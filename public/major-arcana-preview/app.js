@@ -2914,6 +2914,51 @@
     runtimeShell: null,
   };
   let __runtimeShellInProgress = false;
+  let __runtimeShellPendingScopes = new Set();
+  let __runtimeShellRaf = 0;
+
+  function resolveRuntimeShellScope(scopes = new Set()) {
+    if (!scopes || scopes.size === 0 || scopes.has("all")) {
+      return "all";
+    }
+    const normalized = new Set(
+      Array.from(scopes).map((scope) => normalizeKey(scope)).filter(Boolean)
+    );
+    if (normalized.has("queue") && normalized.has("focus")) {
+      return "queue+focus";
+    }
+    if (normalized.has("queue")) return "queue";
+    if (normalized.has("focus")) return "focus";
+    if (normalized.has("chrome")) return "chrome";
+    return "all";
+  }
+
+  function scheduleRuntimeConversationShell(scope = "all") {
+    if (normalizeKey(scope) === "all") {
+      __runtimeShellPendingScopes = new Set(["all"]);
+    } else if (!__runtimeShellPendingScopes.has("all")) {
+      __runtimeShellPendingScopes.add(normalizeKey(scope) || "all");
+    }
+    if (__runtimeShellRaf) return;
+    __runtimeShellRaf =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame(flushScheduledRuntimeConversationShell)
+        : setTimeout(flushScheduledRuntimeConversationShell, 0);
+  }
+
+  function flushScheduledRuntimeConversationShell() {
+    __runtimeShellRaf = 0;
+    const pending = __runtimeShellPendingScopes;
+    __runtimeShellPendingScopes = new Set();
+    const effectiveScope = resolveRuntimeShellScope(pending);
+    if (typeof __renderHooks.runtimeShell === "function") {
+      __renderHooks.runtimeShell({ scope: effectiveScope });
+      return;
+    }
+    if (typeof renderRuntimeConversationShell === "function") {
+      renderRuntimeConversationShell({ scope: effectiveScope });
+    }
+  }
 
   let __renderScheduled = false;
   function scheduleRender(reason) {
@@ -2972,7 +3017,7 @@
     }
     __runtimeShellInProgress = true;
     try {
-      __renderHooks.runtimeShell();
+      __renderHooks.runtimeShell({ scope: "all" });
     } catch (e) {
       if (typeof console !== 'undefined') {
         console.warn('[render] runtimeShell fel:', e);
@@ -3011,6 +3056,7 @@
         .slice(0, 10),
     });
     window.__getRenderStats = () => ({ ...__renderStats });
+    window.__scheduleRuntimeConversationShell = scheduleRuntimeConversationShell;
     window.__renderApp = () => {
       __doRender();
       return __renderStats;
@@ -13925,6 +13971,7 @@
       renderQuickActionRows,
       renderQueueLaneShortcutRows,
       renderRuntimeConversationShell,
+      scheduleRuntimeConversationShell,
       renderRuntimeFocusConversation,
       renderQueueHistorySection,
       syncRuntimeVisualStateMachine,
@@ -38837,26 +38884,35 @@
     };
   }
 
-  function renderRuntimeConversationShell() {
-    if (false) {
-renderStudioShell();
-    renderWorkspaceRuntimeContext();
-    renderAnalyticsRuntime();
-    renderRuntimeIntel(selectedFocusThread, focusReadState);
-    }
-    // Hooka in shell:en till renderApp (engångs, idempotent).
+  function renderRuntimeConversationShell(options = {}) {
+    const scope = normalizeKey(options?.scope) || "all";
+    const renderAll = scope === "all";
+    const renderQueue =
+      renderAll || scope === "queue" || scope === "queue+focus";
+    const renderFocus =
+      renderAll || scope === "focus" || scope === "queue+focus";
+    const renderChrome = renderAll || scope === "chrome";
+
     if (__renderHooks.runtimeShell !== renderRuntimeConversationShell) {
       __renderHooks.runtimeShell = renderRuntimeConversationShell;
     }
-    ensureRuntimeSelection();
-    renderRuntimeQueue();
-    renderQueueCategoryStripMode();
-    renderTruthWorklistView();
-    ensureTruthWorklistViewLoaded({ force: false });
-    renderQueueLaneShortcutRows(queueActionRows);
-    renderQueueHistorySection();
-    renderMailFeeds();
-    renderThreadContextRows();
+
+    if (renderQueue) {
+      ensureRuntimeSelection();
+      renderRuntimeQueue();
+      renderQueueCategoryStripMode();
+      renderTruthWorklistView();
+      ensureTruthWorklistViewLoaded({ force: false });
+      renderQueueLaneShortcutRows(queueActionRows);
+      renderQueueHistorySection();
+      renderMailFeeds();
+      renderThreadContextRows();
+    }
+
+    if (!renderFocus && !renderChrome) {
+      return;
+    }
+
     const backgroundRefreshSelectedThreadId = asText(
       state.runtime?.backgroundRefreshSelectedThreadId
     );
@@ -38870,7 +38926,8 @@ renderStudioShell();
     const selectedThread = getSelectedRuntimeThread();
     const selectedFocusThread = getSelectedRuntimeFocusThread();
     let focusReadState = getRuntimeFocusReadState(selectedFocusThread);
-    if (!shouldSkipFocusRefresh) {
+
+    if (renderFocus && !shouldSkipFocusRefresh) {
       syncSelectedCustomerIdentityForThread(selectedFocusThread || selectedThread);
       focusReadState = getRuntimeFocusReadState(selectedFocusThread);
       const focusNotesHeading = document.querySelector(".focus-notes-head h3");
@@ -38948,30 +39005,26 @@ renderStudioShell();
       syncJourneyDrivenWorkspaceLanding(selectedFocusThread, focusReadState);
       renderRuntimeIntel(selectedFocusThread, focusReadState);
     }
-    if (!shouldSkipFocusRefresh) {
+    if (renderFocus && !shouldSkipFocusRefresh) {
       renderStudioShell();
       renderWorkspaceRuntimeContext();
       renderBookingSurface();
       renderAnalyticsRuntime();
       renderRuntimeIntel(selectedFocusThread, focusReadState);
-      if (false) {
-        renderStudioShell();
-        renderWorkspaceRuntimeContext();
-        renderBookingSurface();
-        renderAnalyticsRuntime();
-        renderRuntimeIntel(selectedFocusThread, focusReadState);
-      }
-    } else {
+    } else if (renderFocus) {
       renderStudioShell();
       renderWorkspaceRuntimeContext();
       renderBookingSurface();
       renderAnalyticsRuntime();
     }
-    document.body.classList.add("is-preview-ready");
-    document.body.classList.remove("is-runtime-loading");
-    const runtimeVisualState = syncRuntimeVisualStateMachine();
-    if (runtimeVisualState === "auth_required") {
-      document.body.classList.remove("is-preview-ready");
+
+    if (renderChrome || renderAll) {
+      document.body.classList.add("is-preview-ready");
+      document.body.classList.remove("is-runtime-loading");
+      const runtimeVisualState = syncRuntimeVisualStateMachine();
+      if (runtimeVisualState === "auth_required") {
+        document.body.classList.remove("is-preview-ready");
+      }
     }
   }
 

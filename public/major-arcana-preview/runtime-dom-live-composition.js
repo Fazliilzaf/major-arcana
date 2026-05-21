@@ -197,6 +197,7 @@
       renderQuickActionRows,
       renderQueueLaneShortcutRows,
       renderRuntimeConversationShell,
+      scheduleRuntimeConversationShell,
       renderRuntimeFocusConversation,
       renderRuntimeIntel,
       renderQueueHistorySection,
@@ -246,6 +247,19 @@
     const RUNTIME_ANALYZE_INBOX_MIN_INTERVAL_MS = 55000;
     let runtimeMailboxScopeLoadTimer = 0;
     const RUNTIME_MAILBOX_SCOPE_DEBOUNCE_MS = 450;
+
+    function paintRuntimeShell(scope = "all") {
+      if (typeof scheduleRuntimeConversationShell === "function") {
+        scheduleRuntimeConversationShell(scope);
+        return;
+      }
+      if (typeof renderRuntimeConversationShell !== "function") return;
+      if (normalizeKey(scope) === "all") {
+        renderRuntimeConversationShell();
+        return;
+      }
+      renderRuntimeConversationShell({ scope: normalizeKey(scope) || "all" });
+    }
 
     function runtimeHasLiveThreads(threads = state.runtime?.threads) {
       return asArray(threads).some(
@@ -451,7 +465,7 @@
         return { refreshed: false, hasNewMail: false };
       }
 
-      renderRuntimeConversationShell();
+      paintRuntimeShell("queue");
       if (typeof syncRuntimeVisualStateMachine === "function") {
         syncRuntimeVisualStateMachine();
       }
@@ -1607,7 +1621,7 @@
         ensureCustomerRuntimeProfilesFromLive();
         await refreshCustomerIdentitySuggestions({ quiet: true });
       }
-      renderRuntimeConversationShell();
+      paintRuntimeShell("focus");
       loadQueueHistory({ force: true, prefetch: true }).catch((queueHistoryError) => {
         console.warn("CCO queue-historik kunde inte förladdas.", queueHistoryError);
       });
@@ -1619,7 +1633,7 @@
       }).catch((error) => {
         console.warn("CCO workspace bootstrap misslyckades efter aktiv körning.", error);
       });
-      renderRuntimeConversationShell();
+      paintRuntimeShell("all");
     }
 
     function getRuntimeThreadHydrationMailboxIds(thread, fallbackMailboxIds = []) {
@@ -2753,7 +2767,7 @@
       };
       ensureRuntimeOpenFlowDiagnostics().lastSelection = selectionEntry;
       recordRuntimeOpenFlowEvent("select_thread", selectionEntry);
-      renderRuntimeConversationShell();
+      paintRuntimeShell("focus");
       captureRuntimeReentrySnapshot("runtime_thread_selected");
       const selectedCard = Array.from(
         queueHistoryList?.querySelectorAll("[data-runtime-thread]") || []
@@ -2774,7 +2788,7 @@
             console.warn("CCO workspace bootstrap misslyckades för vald tråd.", error);
           })
           .finally(() => {
-            renderRuntimeConversationShell();
+            paintRuntimeShell("focus");
           });
       }
     }
@@ -3238,7 +3252,7 @@
           })
           .finally(() => {
             clearRuntimeBackgroundSync();
-            renderRuntimeConversationShell();
+            paintRuntimeShell("queue");
           });
       }, RUNTIME_MAILBOX_SCOPE_DEBOUNCE_MS);
     }
@@ -3445,7 +3459,7 @@
                   configuredTruthPrimaryMailboxIds,
                   activeTruthPrimaryMailboxIds: configuredTruthPrimaryMailboxIds,
                 });
-                renderRuntimeConversationShell();
+                paintRuntimeShell("all");
                 if (typeof syncRuntimeVisualStateMachine === "function") {
                   syncRuntimeVisualStateMachine();
                 }
@@ -3481,7 +3495,11 @@
 
         if (!isBackgroundRefresh) {
           state.runtime.loading = false;
-          renderRuntimeConversationShell();
+          if (!truthPrimaryFastPathApplied) {
+            paintRuntimeShell("all");
+          } else {
+            paintRuntimeShell("chrome");
+          }
           if (typeof syncRuntimeVisualStateMachine === "function") {
             syncRuntimeVisualStateMachine();
           }
@@ -3522,7 +3540,7 @@
                 });
                 hasNewMail = paintResult.hasNewMail === true;
                 state.runtime.lastTruthConsumerSig = getTruthConsumerSignature(truthPrimaryPayload);
-                renderRuntimeConversationShell();
+                paintRuntimeShell("queue");
                 if (typeof syncRuntimeVisualStateMachine === "function") {
                   syncRuntimeVisualStateMachine();
                 }
@@ -4189,7 +4207,7 @@
             hasMore: false,
             scopeKey: "",
           };
-          renderRuntimeConversationShell();
+          paintRuntimeShell("queue");
           renderQueueHistorySection();
           if (typeof ensureRuntimeSelection === "function") {
             ensureRuntimeSelection();
@@ -4242,7 +4260,7 @@
             laneId: "",
             feedKey: "",
           };
-          renderRuntimeConversationShell();
+          paintRuntimeShell("queue");
           captureRuntimeReentrySnapshot("owner_scope_changed");
           debugReentrySnapshot("AFTER OWNER CHANGE");
           debugRuntimePipeline("AFTER OWNER CHANGE");

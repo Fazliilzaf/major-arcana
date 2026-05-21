@@ -193,7 +193,7 @@ test('app.js routar fokusytan via selectedFocusThread och focusReadState utan at
   );
   assert.ok(
     source.includes(
-      'renderStudioShell();\n    renderWorkspaceRuntimeContext();\n    renderAnalyticsRuntime();\n    renderRuntimeIntel(selectedFocusThread, focusReadState);'
+      'renderStudioShell();\n      renderWorkspaceRuntimeContext();\n      renderBookingSurface();\n      renderAnalyticsRuntime();\n      renderRuntimeIntel(selectedFocusThread, focusReadState);'
     ),
     'Förväntade att fokusintelligensen renderas en sista gång efter övriga shell-renders så selectedFocusThread får sista ordet.'
   );

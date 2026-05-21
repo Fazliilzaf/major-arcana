@@ -22,6 +22,7 @@
     "app/keyboard-nav.js",
     "app/bulk-actions.js",
     "app/inbox-streak.js",
-    "app/system-mail-parser.js"
+    "app/system-mail-parser.js",
+    "app/showcase-banner.js"
   ]
 }
