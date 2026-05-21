@@ -281,14 +281,15 @@ async function sleep(ms) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  if (!args.email || !args.password) {
+  const envToken = normalizeText(process.env.ARCANA_AUTH_TOKEN);
+  const auth = envToken ? { token: envToken } : await resolveToken(args);
+  if (!envToken && (!args.email || !args.password)) {
     console.error(
-      'Saknar ARCANA_OWNER_EMAIL / ARCANA_OWNER_PASSWORD. Se docs/ops/cco-fas-j-full-enrichment-backfill-plan.md.'
+      'Saknar ARCANA_OWNER_EMAIL / ARCANA_OWNER_PASSWORD (eller ARCANA_AUTH_TOKEN). Se docs/ops/cco-fas-j-full-enrichment-backfill-plan.md.'
     );
     process.exit(1);
   }
 
-  const auth = await resolveToken(args);
   const token = auth.token;
 
   if (args.trigger) {

@@ -38,6 +38,8 @@ jobs:
 
       - name: Run full CCO enrichment backfill
         run: |
+          chmod +x scripts/extract-owner-token.sh
+          export ARCANA_AUTH_TOKEN="$(bash scripts/extract-owner-token.sh)"
           node scripts/run-cco-full-enrichment-backfill.js \
             --trigger \
             --wait \
