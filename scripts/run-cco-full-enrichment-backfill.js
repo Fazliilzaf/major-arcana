@@ -163,6 +163,11 @@ async function fetchJson(baseUrl, routePath, { method = 'GET', token = '', body 
   return payload;
 }
 
+function asText(value, fallback = '') {
+  const normalized = String(value ?? '').trim();
+  return normalized || fallback;
+}
+
 async function resolveToken(args) {
   const loginResponse = await fetchJson(args.baseUrl, '/api/v1/auth/login', {
     method: 'POST',
@@ -198,9 +203,33 @@ async function resolveToken(args) {
           body: { mfaTicket, code, tenantId: args.tenantId || undefined },
         });
         if (authStep?.token) break;
+        if (authStep?.requiresTenantSelection === true && authStep?.loginTicket) {
+          const selectedTenant =
+            args.tenantId || asText(authStep?.tenants?.[0]?.tenantId);
+          if (selectedTenant) {
+            authStep = await fetchJson(args.baseUrl, '/api/v1/auth/select-tenant', {
+              method: 'POST',
+              body: {
+                loginTicket: String(authStep.loginTicket),
+                tenantId: selectedTenant,
+              },
+            });
+            if (authStep?.token) break;
+          }
+        }
       } catch (error) {
         if (!String(error?.message || '').toLowerCase().includes('mfa')) throw error;
       }
+    }
+  }
+  if (authStep?.requiresTenantSelection === true) {
+    const loginTicket = String(authStep?.loginTicket || '').trim();
+    const tenantId = args.tenantId || asText(authStep?.tenants?.[0]?.tenantId);
+    if (loginTicket && tenantId) {
+      authStep = await fetchJson(args.baseUrl, '/api/v1/auth/select-tenant', {
+        method: 'POST',
+        body: { loginTicket, tenantId },
+      });
     }
   }
   if (!authStep?.token) {

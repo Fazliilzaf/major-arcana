@@ -3554,6 +3554,24 @@ function createScheduler({
       });
     }
 
+    if (config.graphReadEnabled && config.schedulerCcoInboxFullBackfillOnStart !== false) {
+      const fullBackfillDelayMs = Math.max(120000, startupDelayMs + 90000);
+      clearJobTimer('cco_inbox_enrichment_full_backfill_startup');
+      setLongTimeout('cco_inbox_enrichment_full_backfill_startup', fullBackfillDelayMs, async () => {
+        try {
+          await runCcoInboxEnrichmentFullBackfill({
+            tenantId: config.defaultTenantId,
+            trigger: 'scheduler_start',
+          });
+        } catch (error) {
+          logger?.error?.(
+            '[scheduler] cco_inbox_enrichment_full_backfill startup failed',
+            sanitizeError(error)
+          );
+        }
+      });
+    }
+
     return getStatus();
   }
 

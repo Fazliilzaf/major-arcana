@@ -657,6 +657,10 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_INTERVAL_HOURS,
     168
   ),
+  schedulerCcoInboxFullBackfillOnStart: asBool(
+    process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_ON_START,
+    true
+  ),
   schedulerCcoHistoryMailboxId: asNonEmptyString(
     process.env.ARCANA_SCHEDULER_CCO_HISTORY_MAILBOX_ID,
     'kons@hairtpclinic.com'
