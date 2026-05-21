@@ -309,3 +309,27 @@ jobs:
             echo "::warning::Owner auth smoke failed efter deploy. Synka MFA-secret mot prod (npm run owner:mfa:setup)."
           fi
           exit 0
+
+      - name: Run CMO connector smoke (Fas O)
+        continue-on-error: true
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+          ARCANA_STAGING_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+        run: |
+          set +e
+          TOKEN="$(bash ./scripts/extract-owner-token.sh 2>/dev/null || true)"
+          if [[ -z "$TOKEN" ]]; then
+            echo "::warning::CMO connector smoke skipped — kunde inte hämta owner token (MFA/credentials)."
+            exit 0
+          fi
+          route_code="$(curl -sS -o /dev/null -w '%{http_code}' "${BASE_URL}/api/v1/marketing/connectors/status" || true)"
+          if [[ "$route_code" == "404" ]]; then
+            echo "::warning::marketing/connectors/status 404 — marketing workspace routes saknas i deployad build."
+            exit 0
+          fi
+          ARCANA_SMOKE_BASE_URL="${BASE_URL}" ARCANA_SMOKE_TOKEN="$TOKEN" npm run smoke:cmo-connectors
+          status=$?
+          if [[ "$status" -ne 0 ]]; then
+            echo "::warning::CMO connector smoke failed after deploy."
+          fi
+          exit 0
