@@ -555,6 +555,7 @@ const { createMicrosoftGraphSendConnector } = require('./src/infra/microsoftGrap
 const { createScheduler } = require('./src/ops/scheduler');
 const { createAlertNotifier } = require('./src/ops/alertNotifier');
 const { runStartupDiskGuard } = require('./src/ops/startupDiskGuard');
+const { waitForPersistentRoot } = require('./src/ops/persistentDir');
 const { createSecretRotationStore } = require('./src/ops/secretRotationStore');
 const { createRuntimeMetricsStore } = require('./src/ops/runtimeMetrics');
 const { createPatientConversionStore } = require('./src/ops/patientConversionStore');
@@ -982,6 +983,11 @@ process.once('SIGTERM', () => {
 });
 
 (async () => {
+  setStartupPhase('persistent_root');
+  if (config.stateRoot) {
+    await waitForPersistentRoot(config.stateRoot, { logger: console });
+  }
+
   setStartupPhase('startup_disk_guard');
   const diskGuardSummary = await runStartupDiskGuard({ config, logger: console });
   runtimeState.startupDiskGuard = {

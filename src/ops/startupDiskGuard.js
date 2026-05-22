@@ -1,6 +1,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
+const { ensureDirectoryWithRetry } = require('./persistentDir');
 const { pruneBackups } = require('./stateBackup');
 const { pruneSchedulerPilotReports } = require('./pilotReports');
 
@@ -33,7 +34,7 @@ function buildDirectorySet(config = {}) {
 async function pruneTempFilesInDirectory({ directoryPath, olderThanMs = 5 * 60 * 1000 }) {
   const nowMs = Date.now();
   const deleted = [];
-  await fs.mkdir(directoryPath, { recursive: true });
+  await ensureDirectoryWithRetry(directoryPath);
   const entries = await fs.readdir(directoryPath, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isFile()) continue;
@@ -69,7 +70,7 @@ async function pruneOversizeBackupsInDirectory({
 }) {
   const nowMs = Date.now();
   const deleted = [];
-  await fs.mkdir(directoryPath, { recursive: true });
+  await ensureDirectoryWithRetry(directoryPath);
   const entries = await fs.readdir(directoryPath, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isFile()) continue;
