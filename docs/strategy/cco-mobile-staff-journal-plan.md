@@ -1,6 +1,6 @@
 # CCO Mobil journal & foto — Byggplan (personal)
 
-Status: **IMPLEMENTERAT (kod)** — väntar deploy/pilot (Fas 0, 5.5–5.6)  
+Status: **LIVE (prod)** — pilot Fas 5.5–5.6 pågår  
 Senast uppdaterad: 2026-05-22  
 Relaterad: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 
@@ -36,9 +36,9 @@ Personal ska kunna använda CCO **på telefon som en app**: öppna kund → Jour
 
 Personal kan inte jobba förrän detta är klart.
 
-- [ ] **0.1 HTTPS + publik URL**
-  - [ ] CCO nås från mobil (staging eller prod)
-  - [ ] Certifikat giltigt (Safari kräver HTTPS för kamera)
+- [x] **0.1 HTTPS + publik URL**
+  - [x] CCO nås från mobil (prod: arcana.hairtpclinic.se)
+  - [x] Certifikat giltigt (Safari kräver HTTPS för kamera)
   - **DoD:** Öppna URL i telefon → inloggningssida laddas
 
 - [ ] **0.2 Inloggning på mobil**
@@ -48,10 +48,10 @@ Personal kan inte jobba förrän detta är klart.
   - [ ] Verifiera att `__preview_local__` **inte** används i prod
   - **DoD:** Personal loggar in en gång och når Kundregister
 
-- [ ] **0.3 Server med senaste kod**
-  - [ ] `cco-journal/photo` svarar 200
-  - [ ] `cco-patient-master/patient` returnerar journalposter
-  - [ ] Omstart/deploy-dokumenterat
+- [x] **0.3 Server med senaste kod**
+  - [x] `cco-journal/photo` svarar (401 utan auth, 200 med auth)
+  - [x] `cco-patient-master/patient` returnerar journalposter (med auth)
+  - [x] Deploy via GitHub Actions + Render (2026-05-22)
   - **DoD:** `curl`/health OK efter deploy
 
 - [ ] **0.4 Testkonton & pilotdata**
@@ -243,13 +243,13 @@ Minsta ändring för att personal ska kunna börja.
   - **DoD:** Oinloggad upload nekas
 
 - [ ] **5.5 Enhetstest i verkligheten**
-  - [ ] iPhone Safari (senaste iOS)
+  - [ ] iPhone Safari (senaste iOS) — se [pilot-checklist](./cco-mobile-staff-pilot-checklist.md)
   - [ ] Android Chrome
   - [ ] iPad (om används för markering)
   - **DoD:** Checklista ifylld per enhet
 
 - [ ] **5.6 Pilot med personal**
-  - [ ] 2 personal, minst 5 riktiga konsultationer
+  - [ ] 2 personal, minst 5 riktiga konsultationer — se [pilot-checklist](./cco-mobile-staff-pilot-checklist.md)
   - [ ] Feedback-formulär (5 frågor)
   - [ ] Buggar triagerade
   - **DoD:** Go/no-go beslut dokumenterat
@@ -298,7 +298,17 @@ Fas 0 → Fas 1 → Fas 2 → Fas 3 → Fas 5.5 (pilot) → Fas 4 (parallellt d�
 
 ## Dubbelkoll — inget utelämnat?
 
-Verifierat mot kodbas 2026-05-22:
+Verifiera efter deploy:
+
+```bash
+BASE_URL=https://arcana.hairtpclinic.se npm run smoke:mobile-journal
+```
+
+Med inloggning (full upload-test):
+
+```bash
+ARCANA_OWNER_EMAIL=... ARCANA_OWNER_PASSWORD=... npm run smoke:mobile-journal
+```
 
 | Område                         | Ingår i plan?    | Kommentar                                        |
 | ------------------------------ | ---------------- | ------------------------------------------------ |
