@@ -332,3 +332,22 @@ jobs:
             echo "::warning::CMO connector smoke failed after deploy."
           fi
           exit 0
+
+      - name: Run mobile journal smoke (staff photo upload)
+        continue-on-error: true
+        env:
+          BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
+          ARCANA_SMOKE_PATIENT_ID: 4b7b97a5-88ba-4597-9f34-31307c04cbcb
+        run: |
+          set +e
+          TOKEN="$(bash ./scripts/extract-owner-token.sh 2>/dev/null || true)"
+          if [[ -z "$TOKEN" ]]; then
+            echo "::warning::Mobile journal smoke skipped — kunde inte hämta owner token (MFA/credentials)."
+            exit 0
+          fi
+          ARCANA_SMOKE_BEARER_TOKEN="$TOKEN" npm run smoke:mobile-journal
+          status=$?
+          if [[ "$status" -ne 0 ]]; then
+            echo "::warning::Mobile journal smoke failed after deploy (photo upload / journal API)."
+          fi
+          exit 0
