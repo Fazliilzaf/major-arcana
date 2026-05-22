@@ -1281,8 +1281,6 @@
     function isStaffJournalOpenAccessClient() {
       try {
         if (windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ === true) return true;
-        const params = new URLSearchParams(windowObject.location?.search || "");
-        if (params.get("view") === "customers") return true;
       } catch {
         /* ignore */
       }
@@ -1306,17 +1304,7 @@
         const nextToken = readToken();
         if (nextToken) return nextToken;
       }
-      return isLocalPreviewHost() ||
-        windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ === true ||
-        (() => {
-          try {
-            return (
-              new URLSearchParams(windowObject.location?.search || "").get("view") === "customers"
-            );
-          } catch {
-            return false;
-          }
-        })()
+      return isLocalPreviewHost() || windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ === true
         ? "__preview_local__"
         : "";
     }

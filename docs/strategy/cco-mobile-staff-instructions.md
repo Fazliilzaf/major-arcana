@@ -2,9 +2,9 @@
 
 ## Snabbstart (iPhone/Android)
 
-1. Öppna CCO i Safari/Chrome (HTTPS krävs för kamera).
-2. Logga in som personal.
-3. Gå till **Kunder** → sök kund → öppna kundkortet.
+1. Öppna **`https://arcana.hairtpclinic.se/staff`** i Safari/Chrome (HTTPS krävs för kamera).
+2. **Byggfas:** ingen inloggning krävs om kliniken kör öppen åtkomst. **Skarp drift:** logga in i formuläret som visas.
+3. Sök kund → kundkortet öppnas.
 4. Fliken **Journal** öppnas automatiskt på mobil.
 5. Tryck **Ta bild** → ta foto → välj etikett (Front, Vertex, …).
 6. Bilden sparas direkt i behandlingsplanen.

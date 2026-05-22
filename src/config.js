@@ -610,6 +610,8 @@ const config = {
   ),
   /** Byggfas: öppen åtkomst till kundregister/journal/offert-API utan inloggning. Sätt false före go-live. */
   staffJournalOpenAccess: asBool(process.env.ARCANA_STAFF_JOURNAL_OPEN_ACCESS, true),
+  /** Kommaseparerade patientId för pilot — filtrerar kundlistan i staff-vyn när satt. */
+  pilotPatientIds: asStringArray(process.env.ARCANA_PILOT_PATIENT_IDS),
 
   templateStorePath: resolveStatePath({
     explicitPath: process.env.TEMPLATE_STORE_PATH,

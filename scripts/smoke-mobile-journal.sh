@@ -58,6 +58,10 @@ READY="$(curl -sS "$BASE_URL/readyz")"
 [[ "$(printf '%s' "$READY" | json_get ready 2>/dev/null || true)" == "true" ]] || fail "readyz ej ready"
 pass "readyz OK"
 
+JOURNAL_HEALTH="$(curl -sS "$BASE_URL/api/v1/health/journal-photos")"
+[[ "$(printf '%s' "$JOURNAL_HEALTH" | json_get ok 2>/dev/null || true)" == "true" ]] || fail "journal-photos health ej ok"
+pass "journal-photos health OK"
+
 MANIFEST="$(curl -sS "$BASE_URL/major-arcana-preview/manifest.json")"
 [[ "$MANIFEST" == *"view=customers"* ]] || fail "manifest saknar start_url ?view=customers"
 pass "PWA manifest OK"
@@ -78,8 +82,11 @@ BUNDLE="$(curl -sS "$BASE_URL/major-arcana-preview/$BUNDLE_PATH")"
 pass "bundle innehåller mobil journal-UI"
 
 PHOTO_UNAUTH="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/api/v1/cco-journal/photo")"
+OPEN_ACCESS="$(printf '%s' "$JOURNAL_HEALTH" | json_get staffJournalOpenAccess 2>/dev/null || true)"
 if [[ "$IS_LOCAL_PREVIEW" == "1" ]]; then
   warn "lokal preview: photo utan auth → $PHOTO_UNAUTH (förväntat 400 utan fil)"
+elif [[ "$OPEN_ACCESS" == "true" ]]; then
+  warn "byggläge: staffJournalOpenAccess=true (photo utan auth → $PHOTO_UNAUTH)"
 else
   [[ "$PHOTO_UNAUTH" == "401" || "$PHOTO_UNAUTH" == "403" ]] || fail "photo upload utan auth borde ge 401/403, fick $PHOTO_UNAUTH"
   pass "photo upload kräver auth ($PHOTO_UNAUTH)"
@@ -88,6 +95,8 @@ fi
 PATIENTS_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/api/v1/cco-patient-master/patients?limit=1")"
 if [[ "$IS_LOCAL_PREVIEW" == "1" ]]; then
   warn "lokal preview: patient-master utan auth → $PATIENTS_CODE"
+elif [[ "$OPEN_ACCESS" == "true" ]]; then
+  warn "byggläge: patient-master utan auth → $PATIENTS_CODE (öppen åtkomst)"
 else
   [[ "$PATIENTS_CODE" == "401" || "$PATIENTS_CODE" == "403" ]] || fail "patient-master utan auth borde ge 401/403, fick $PATIENTS_CODE"
   pass "patient-master kräver auth ($PATIENTS_CODE)"
@@ -191,5 +200,13 @@ UPLOAD_CODE="${UPLOAD_RESPONSE##*$'\n'}"
 [[ "$UPLOAD_CODE" == "200" ]] || fail "photo upload misslyckades ($UPLOAD_CODE): $UPLOAD_BODY"
 pass "photo upload OK (200)"
 
+PHOTO_ID="$(printf '%s' "$UPLOAD_BODY" | json_get photo.photoId 2>/dev/null || true)"
+[[ -n "$PHOTO_ID" ]] || PHOTO_ID="$(printf '%s' "$UPLOAD_BODY" | json_get readout.attachments.0.photoId 2>/dev/null || true)"
+[[ -n "$PHOTO_ID" ]] || fail "upload-svar saknar photoId"
+PHOTO_GET_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/api/v1/cco-journal/photo?patientId=$(node -e "process.stdout.write(encodeURIComponent(process.argv[1]))" "$TARGET_PATIENT")&photoId=$(node -e "process.stdout.write(encodeURIComponent(process.argv[1]))" "$PHOTO_ID")" \
+  -H "Authorization: Bearer $TOKEN")"
+[[ "$PHOTO_GET_CODE" == "200" ]] || fail "photo GET misslyckades ($PHOTO_GET_CODE)"
+pass "photo GET OK (200)"
+
 echo
-echo "✅ Mobile journal smoke klar (publik + autentiserad upload)."
+echo "✅ Mobile journal smoke klar (publik + autentiserad upload + photo GET)."

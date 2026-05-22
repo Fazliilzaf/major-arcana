@@ -93,12 +93,143 @@
   function isStaffJournalOpenAccess() {
     try {
       if (window.__ARCANA_STAFF_JOURNAL_OPEN__ === true) return true;
-      const params = new URLSearchParams(window.location.search || '');
-      if (params.get('view') === 'customers') return true;
     } catch {
       /* ignore */
     }
     return isLocalPreviewHost();
+  }
+
+  function needsStaffLogin() {
+    return !isStaffJournalOpenAccess() && !getAdminToken();
+  }
+
+  function setAdminToken(token) {
+    const normalized = normalizeText(token);
+    if (!normalized) return;
+    try {
+      window.localStorage.setItem(ADMIN_TOKEN_KEY, normalized);
+    } catch {
+      /* ignore */
+    }
+    try {
+      window.sessionStorage.setItem(ADMIN_TOKEN_KEY, normalized);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function renderStaffLoginCard(message = '') {
+    return `
+      <section class="patient-master-card patient-master-auth-card">
+        <h2>Logga in</h2>
+        <p class="patient-master-muted">${escapeHtml(message || 'Logga in för att läsa kundregister och journal.')}</p>
+        <form class="patient-master-login-form" data-staff-login-form>
+          <label class="patient-master-login-field">
+            <span class="patient-master-muted">E-post</span>
+            <input type="email" name="email" autocomplete="username" inputmode="email" required />
+          </label>
+          <label class="patient-master-login-field">
+            <span class="patient-master-muted">Lösenord</span>
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <label class="patient-master-login-field">
+            <span class="patient-master-muted">Klinik</span>
+            <input type="text" name="tenantId" value="hair-tp-clinic" autocomplete="organization" />
+          </label>
+          <button type="submit" class="customers-utility-button patient-master-login-button">Logga in</button>
+          <p class="patient-master-muted" data-staff-login-status aria-live="polite"></p>
+        </form>
+      </section>
+    `;
+  }
+
+  async function authRequest(path, options = {}) {
+    const response = await fetch(new URL(path, window.location.origin).toString(), {
+      method: options.method || 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'x-arcana-client': 'major_arcana_admin',
+        ...(options.headers && typeof options.headers === 'object' ? options.headers : {}),
+      },
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(payload.error || `HTTP ${response.status}`);
+      error.statusCode = response.status;
+      throw error;
+    }
+    return payload;
+  }
+
+  async function completeStaffAuthSession(payload) {
+    const token = normalizeText(payload?.token);
+    if (!token) throw new Error('Inloggning misslyckades (saknar token).');
+    setAdminToken(token);
+    runtime.authRequired = false;
+    runtime.error = '';
+    setStatus('Inloggad.', 'success');
+    void loadStats();
+    void loadPatientList();
+  }
+
+  async function submitStaffLogin(form) {
+    const statusEl = form.querySelector('[data-staff-login-status]');
+    const submitBtn = form.querySelector('[type="submit"]');
+    const email = normalizeText(form.email?.value);
+    const password = String(form.password?.value || '');
+    const tenantId = normalizeText(form.tenantId?.value) || 'hair-tp-clinic';
+    if (!email || !password) {
+      if (statusEl) statusEl.textContent = 'Ange e-post och lösenord.';
+      return;
+    }
+    if (statusEl) statusEl.textContent = 'Loggar in…';
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const response = await authRequest('/api/v1/auth/login', {
+        method: 'POST',
+        body: { client: 'major_arcana_admin', email, password, tenantId },
+      });
+      if (response?.requiresMfa) {
+        const mfaTicket = normalizeText(response.mfaTicket);
+        const code = window.prompt('MFA krävs. Ange 6-siffrig kod.', '');
+        if (!code) throw new Error('MFA-kod krävs.');
+        const mfaResponse = await authRequest('/api/v1/auth/mfa/verify', {
+          method: 'POST',
+          body: { mfaTicket, code: normalizeText(code), tenantId },
+        });
+        await completeStaffAuthSession(mfaResponse);
+        return;
+      }
+      if (response?.requiresTenantSelection) {
+        throw new Error('Välj klinik i admin — flera tenants kopplade till kontot.');
+      }
+      await completeStaffAuthSession(response);
+    } catch (error) {
+      runtime.authRequired = true;
+      runtime.error = error.message || 'Inloggning misslyckades.';
+      if (statusEl) statusEl.textContent = runtime.error;
+      setStatus(runtime.error, 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  function getPilotPatientIds() {
+    try {
+      const ids = window.__ARCANA_PILOT_PATIENT_IDS__;
+      return Array.isArray(ids) ? ids.map((id) => normalizeText(id)).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function filterPilotPatients(patients) {
+    const pilotIds = getPilotPatientIds();
+    if (!pilotIds.length) return patients;
+    const allowed = new Set(pilotIds);
+    return asArray(patients).filter((row) => allowed.has(normalizeText(row?.patientId)));
   }
 
   function getAdminToken() {
@@ -322,6 +453,11 @@
 
   function renderPatientRows() {
     if (!els.list || runtime.mode !== 'register') return;
+    if (needsStaffLogin()) {
+      els.list.innerHTML = renderStaffLoginCard(runtime.error);
+      renderDetailEmpty();
+      return;
+    }
     if (runtime.loading && !runtime.patients.length) {
       els.list.innerHTML = '<p class="patient-master-empty">Laddar kundregister…</p>';
       return;
@@ -465,6 +601,16 @@
         if (!objectUrl) {
           img.alt = 'Kunde inte visa bild';
           img.classList.add('is-broken');
+          const retry = document.createElement('button');
+          retry.type = 'button';
+          retry.className = 'customers-utility-button';
+          retry.textContent = 'Visa bild igen';
+          retry.addEventListener('click', () => {
+            img.dataset.loaded = '';
+            img.classList.remove('is-broken');
+            void hydrateJournalPhotoElements(root);
+          });
+          img.insertAdjacentElement('afterend', retry);
           return;
         }
         img.src = objectUrl;
@@ -1113,8 +1259,10 @@
 
     try {
       const payload = await apiRequest(`/api/v1/cco-patient-master/patients?${params}`);
-      const batch = asArray(payload.patients);
-      runtime.total = Number(payload.total || batch.length);
+      const batch = filterPilotPatients(asArray(payload.patients));
+      runtime.total = getPilotPatientIds().length
+        ? batch.length
+        : Number(payload.total || batch.length);
       runtime.patients = append ? runtime.patients.concat(batch) : batch;
       runtime.loaded = true;
       runtime.authRequired = false;
@@ -1130,8 +1278,10 @@
         await loadPatientDetail(runtime.selectedPatientId);
       }
     } catch (error) {
-      runtime.error = error.message || 'Kunde inte läsa kundregistret.';
-      runtime.authRequired = false;
+      runtime.error = isAuthFailure(error.statusCode, error.message)
+        ? 'Inloggning krävs. Logga in nedan.'
+        : error.message || 'Kunde inte läsa kundregistret.';
+      runtime.authRequired = isAuthFailure(error.statusCode, error.message);
       setStatus(runtime.error, 'error');
     } finally {
       runtime.loading = false;
@@ -1391,6 +1541,21 @@
     const card = runtime.detail?.card;
     if (!patientId || !file) return;
 
+    if (needsStaffLogin()) {
+      setStatus('Logga in för att ladda upp bilder.', 'error');
+      renderPatientRows();
+      return;
+    }
+
+    let uploadFile = file;
+    if (window.ArcanaJournalPhotoClient?.compressForUpload) {
+      try {
+        uploadFile = await window.ArcanaJournalPhotoClient.compressForUpload(file);
+      } catch {
+        uploadFile = file;
+      }
+    }
+
     if (!isOnline()) {
       setStatus('Ingen internetanslutning. Bilden sparades inte.', 'error');
       return;
@@ -1406,7 +1571,7 @@
 
     const planEntry = findConsultationPlanEntry(runtime.detail?.journalEntries);
     const formData = new FormData();
-    formData.append('photo', file);
+    formData.append('photo', uploadFile);
     formData.append('patientId', patientId);
     if (card?.personnummer) formData.append('personnummer', card.personnummer);
     if (planEntry?.entryId) formData.append('entryId', planEntry.entryId);
@@ -1622,6 +1787,13 @@
       }
     });
 
+    document.addEventListener('submit', (event) => {
+      const form = event.target.closest('[data-staff-login-form]');
+      if (!form || runtime.mode !== 'register') return;
+      event.preventDefault();
+      void submitStaffLogin(form);
+    });
+
     document.addEventListener('change', (event) => {
       const cameraInput = event.target.closest('[data-patient-photo-camera]');
       const galleryInput = event.target.closest('[data-patient-photo-gallery]');
@@ -1690,9 +1862,22 @@
       runtime.pendingPatientId = startup.patientId;
     }
     if (runtime.mode === 'register') {
+      if (needsStaffLogin()) {
+        renderPatientRows();
+        return;
+      }
       void loadOfferTemplates();
       void loadStats();
       void loadPatientList();
+      if (isMobileViewport() && els.search && !runtime.selectedPatientId && !startup.patientId) {
+        window.setTimeout(() => {
+          try {
+            els.search.focus({ preventScroll: true });
+          } catch {
+            els.search.focus();
+          }
+        }, 180);
+      }
     }
   }
 

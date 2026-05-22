@@ -5,10 +5,11 @@ Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.
 
 ## Före pilot
 
-- [ ] Minst 1 STAFF + 1 OWNER har inloggning
+- [ ] Minst 1 STAFF + 1 OWNER har inloggning (krävs när `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false`)
+- [ ] (Valfritt pilot) Sätt `ARCANA_PILOT_PATIENT_IDS` till 3–5 kund-id
 - [ ] Personal har läst instruktionen (1 sida)
-- [ ] iPhone/Android har **Lägg till på hemskärmen** (valfritt men rekommenderat)
 - [ ] Kör `BASE_URL=https://arcana.hairtpclinic.se npm run smoke:mobile-journal`
+- [ ] Kör `npm run backup:journal-photos` och spara arkivet
 
 ## Enhetstest (Fas 5.5)
 
