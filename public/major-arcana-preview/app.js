@@ -4773,11 +4773,17 @@
 
   function getAdminToken() {
     try {
-      if (window.__ARCANA_STAFF_JOURNAL_OPEN__ === true) {
+      if (
+        window.__ARCANA_STAFF_JOURNAL_OPEN__ === true ||
+        new URLSearchParams(window.location.search || "").get("view") === "customers"
+      ) {
         return "__preview_local__";
       }
     } catch {
       /* ignore */
+    }
+    if (isLocalPreviewHost()) {
+      return "__preview_local__";
     }
     const readTokenFromStorage = (storage) => {
       try {

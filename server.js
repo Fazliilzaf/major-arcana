@@ -343,11 +343,19 @@ app.use((req, res, next) => {
     '/ccp',
     '/admin/cco',
     '/admin/unanswered',
+    '/major-arcana-preview',
+    '/major-arcana-preview/',
+    '/staff',
+    '/mobil',
   ]);
+  const isPreviewAssetPath =
+    path.startsWith('/major-arcana-preview/') ||
+    path.startsWith('/staff') ||
+    path.startsWith('/mobil');
   const isCcoNextHtmlPath =
     path === '/cco-next' ||
     (path.startsWith('/cco-next/') && !path.startsWith('/cco-next/assets/'));
-  if (disableCachePaths.has(path) || isCcoNextHtmlPath) {
+  if (disableCachePaths.has(path) || isCcoNextHtmlPath || isPreviewAssetPath) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
