@@ -1332,6 +1332,46 @@ async function syncPatient360FromCommercialCase({
   });
 }
 
+async function syncPatient360FromJournalCase({
+  patientSystemStore,
+  context = {},
+  journalEntry = {},
+  source = 'cco_journal',
+} = {}) {
+  if (!patientSystemStore || typeof patientSystemStore.upsertPatient !== 'function') {
+    return null;
+  }
+  const safeEntry = asObject(journalEntry);
+  const tenantId = normalizeText(context.tenantId || safeEntry.tenantId);
+  const customerEmail = normalizeText(context.customerId || context.customerEmail);
+  if (!tenantId || !customerEmail) return null;
+  const locked = Boolean(safeEntry.locked);
+  const status = locked ? 'complete' : 'needs_validation';
+  return patientSystemStore.upsertPatient({
+    tenantId,
+    customerEmail,
+    customerName: normalizeText(context.customerName),
+    modules: {
+      clinical: {
+        status,
+        label: 'Kliniskt underlag',
+        detail: normalizeText(safeEntry.title) || 'Behandlingsjournal',
+        nextAction: locked ? 'Journal signerad' : 'Komplettera journal',
+        confidence: locked ? 0.95 : 0.7,
+        updatedAt: safeEntry.updatedAt || nowIsoBridge(),
+      },
+      documents: {
+        status: safeEntry.journalType === 'fitness_certificate' ? status : undefined,
+      },
+    },
+    source,
+  });
+}
+
+function nowIsoBridge() {
+  return new Date().toISOString();
+}
+
 module.exports = {
   buildPatient360SnapshotFromBookingCase,
   buildPatient360SnapshotFromAftercareCase,
@@ -1357,6 +1397,7 @@ module.exports = {
   syncPatient360FromBookingCase,
   syncPatient360FromCommercialCase,
   syncPatient360FromConsultationCase,
+  syncPatient360FromJournalCase,
   syncPatient360FromOperationCase,
   syncPatient360FromWorkspaceSignals,
 };
