@@ -423,6 +423,12 @@ function transformPreviewHtml(html) {
   if (dropped > 0 || bumped > 0) {
     console.log(`[asset-pipeline] HTML transform: bumped=${bumped} dropped=${dropped}`);
   }
+  if (config.staffJournalOpenAccess) {
+    const inject = '<script>window.__ARCANA_STAFF_JOURNAL_OPEN__=true;</script>';
+    if (html.includes('</head>')) {
+      html = html.replace('</head>', `${inject}</head>`);
+    }
+  }
   return html;
 }
 

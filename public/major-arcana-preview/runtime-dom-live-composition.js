@@ -1295,7 +1295,9 @@
         const nextToken = readToken();
         if (nextToken) return nextToken;
       }
-      return isLocalPreviewHost() ? "__preview_local__" : "";
+      return isLocalPreviewHost() || windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ === true
+        ? "__preview_local__"
+        : "";
     }
 
     function clearRuntimeAuthRecoveryTimer() {
@@ -1671,9 +1673,7 @@
         workspaceSourceOfTruth.setSelectedMailboxIds(nextMailboxIds);
         return nextMailboxIds;
       }
-      const currentSet = new Set(
-        currentMailboxIds.map((id) => canonicalizeRuntimeMailboxId(id))
-      );
+      const currentSet = new Set(currentMailboxIds.map((id) => canonicalizeRuntimeMailboxId(id)));
       const missing = nextMailboxIds.filter((id) => !currentSet.has(id));
       if (missing.length) {
         const union = [...currentMailboxIds, ...missing];
@@ -2578,8 +2578,7 @@
       let _hasAdminToken_fas39 = false;
       try {
         _hasAdminToken_fas39 = Boolean(
-          (typeof localStorage !== "undefined" &&
-            localStorage.getItem("ARCANA_ADMIN_TOKEN")) || ""
+          (typeof localStorage !== "undefined" && localStorage.getItem("ARCANA_ADMIN_TOKEN")) || ""
         );
       } catch (_e) {
         _hasAdminToken_fas39 = false;
@@ -3258,6 +3257,11 @@
     }
 
     async function loadLiveRuntime(options = {}) {
+      if (windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ === true) {
+        state.runtime.loading = false;
+        state.runtime.authRequired = false;
+        return;
+      }
       clearRuntimeLiveRefreshTimer();
       const requestedMailboxIds = asArray(options.requestedMailboxIds)
         .map((value) =>
@@ -3659,19 +3663,17 @@
           requestedMailboxIds: runtimeMailboxIds,
           error: message,
         });
-        const authRequired = isAuthFailure(statusCode, message);
+        const authRequired =
+          windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ !== true && isAuthFailure(statusCode, message);
         if (authRequired && typeof clearAdminToken === "function") {
           clearAdminToken();
         }
-        setRuntimeModeState(
-          authRequired ? "auth_required" : "runtime_error",
-          {
-            error: authRequired ? RUNTIME_AUTH_REQUIRED_USER_MESSAGE : message,
-            live: false,
-            offline: normalizeKey(message).includes("offline"),
-            authRequired,
-          }
-        );
+        setRuntimeModeState(authRequired ? "auth_required" : "runtime_error", {
+          error: authRequired ? RUNTIME_AUTH_REQUIRED_USER_MESSAGE : message,
+          live: false,
+          offline: normalizeKey(message).includes("offline"),
+          authRequired,
+        });
         clearRuntimeLiveRefreshTimer();
         if (authRequired) {
           setRuntimeAuthRecoveryPollingEnabled(true);
@@ -4688,7 +4690,8 @@
         if (typeof openBookingOperatorSurface === "function") {
           openBookingOperatorSurface({
             scroll: false,
-            message: "Bokningsytan öppnades. Lediga tider hämtas automatiskt när urvalet är ifyllt.",
+            message:
+              "Bokningsytan öppnades. Lediga tider hämtas automatiskt när urvalet är ifyllt.",
           });
         } else {
           state.runtime = state.runtime || {};
@@ -5022,11 +5025,13 @@
       });
 
       const cachedApplied = await applyRuntimeThreadCacheIfAvailable();
-      loadLiveRuntime({
-        staleWhileRevalidate: cachedApplied === true,
-      }).catch((error) => {
-        console.warn("CCO aktiv körning misslyckades.", error);
-      });
+      if (windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ !== true) {
+        loadLiveRuntime({
+          staleWhileRevalidate: cachedApplied === true,
+        }).catch((error) => {
+          console.warn("CCO aktiv körning misslyckades.", error);
+        });
+      }
     }
 
     return Object.freeze({
