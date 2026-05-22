@@ -58,6 +58,8 @@
     preferJournalOnMobile: true,
     pendingPatientId: '',
     editingTpEntryId: '',
+    editingClinicalFormKey: '',
+    editingClinicalEntryId: '',
   };
 
   const els = {
@@ -824,7 +826,20 @@
     );
   }
 
+  function hasSignedHealthDeclaration(entries) {
+    return asArray(entries).some(
+      (entry) =>
+        entry.journalType === 'health_declaration' &&
+        (entry.locked || entry.signedAt || entry.signatureStatus === 'signed')
+    );
+  }
+
+  function hasHealthDeclarationDraft(entries) {
+    return asArray(entries).some((entry) => entry.journalType === 'health_declaration');
+  }
+
   function renderJournalWorkflowCallout(entries) {
+    const rows = asArray(entries);
     const planEntry = findConsultationPlanEntry(entries);
     const linkedOffer =
       planEntry && runtime.commercialCase?.linkedJournalEntryId === planEntry.entryId
@@ -834,6 +849,7 @@
       ? asArray(planEntry.attachments).filter((item) => item.type === 'consultation_photo')
       : [];
     const steps = [
+      { label: 'Hälsodeklaration', done: rows.some((e) => e.journalType === 'health_declaration') },
       { label: 'Skapa behandlingsplan', done: !!planEntry },
       {
         label: 'Ta bilder och markera zoner',
@@ -867,8 +883,12 @@
 
   function renderJournalToolbar(card, entries) {
     const uploadBlocked = isPlanUploadBlocked(entries);
+    const healthReady = hasSignedHealthDeclaration(entries);
+    const planBlocked = !healthReady;
     const disabledAttr = uploadBlocked ? ' disabled' : '';
     const disabledClass = uploadBlocked ? ' is-disabled' : '';
+    const planDisabledAttr = planBlocked ? ' disabled' : '';
+    const planDisabledClass = planBlocked ? ' is-disabled' : '';
     return `
       <div class="patient-master-journal-intro">
         <h4>Journalverktyg</h4>
@@ -883,11 +903,17 @@
           Välj från galleri
           <input type="file" accept="image/*,.heic,.heif" multiple hidden data-patient-photo-gallery${disabledAttr} />
         </label>
-        <button class="customers-utility-button" type="button" data-patient-action="new-consultation-plan">
+        <button class="customers-utility-button${planDisabledClass}" type="button" data-patient-action="new-consultation-plan"${planDisabledAttr}>
           Ny behandlingsplan
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="import-historical">
           Importera historik
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-health-declaration">
+          Ny hälsodekl
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-fitness-certificate">
+          Ny friskförsäkran
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-tp-journal">
           Ny TP-journal
@@ -896,7 +922,9 @@
       ${
         uploadBlocked
           ? `<p class="patient-master-upload-blocked">Behandlingsplanen är signerad och låst. Skapa en ny plan om du ska ta fler bilder.</p>`
-          : ''
+          : planBlocked
+            ? `<p class="patient-master-upload-blocked">Signera hälsodeklarationen innan du skapar behandlingsplan.</p>`
+            : ''
       }
       <p class="patient-master-muted">${Number(card.fileSummary?.journalPdfs || 0)} journal-PDF i index · ${Number(card.fileSummary?.images || 0)} bilder</p>
     `;
@@ -1117,6 +1145,32 @@
     );
   }
 
+  function renderClinicalFormSection(entries) {
+    const formKey = runtime.editingClinicalFormKey;
+    const entryId = runtime.editingClinicalEntryId;
+    const config = window.ArcanaJournalClinicalForms?.[formKey];
+    if (!formKey || !entryId || !config?.render) return '';
+    const entry = asArray(entries).find(
+      (row) => row.entryId === entryId && row.journalType === config.journalType
+    );
+    if (!entry) return '';
+    const signFooter =
+      entry.canSign && !entry.locked
+        ? `
+        <div class="patient-master-tp-footer">
+          <button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">
+            Signera och lås
+          </button>
+        </div>`
+        : '';
+    return `
+      <form class="patient-master-tp-form-wrap" data-clinical-journal-save-form data-clinical-form-key="${escapeHtml(formKey)}" data-clinical-entry-id="${escapeHtml(entry.entryId)}">
+        ${config.render(entry, { locked: entry.locked })}
+        ${signFooter}
+      </form>
+    `;
+  }
+
   function renderTpJournalSection(entries) {
     const tpForm = window.ArcanaJournalTpForm;
     if (!tpForm?.render || !runtime.editingTpEntryId) return '';
@@ -1144,6 +1198,7 @@
     const toolbar = runtime.detail?.card ? renderJournalToolbar(runtime.detail.card, rows) : '';
     const planSection = renderConsultationPlanSection(rows);
     const tpSection = renderTpJournalSection(rows);
+    const clinicalSection = renderClinicalFormSection(rows);
     const otherEntries = rows.filter((entry) => entry.journalType !== 'consultation_plan');
 
     const listMarkup = otherEntries.length
@@ -1157,17 +1212,29 @@
               ? `<a class="patient-master-open-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Öppna PDF</a>`
               : '';
             const isTpEntry = entry.journalType === 'tp_treatment';
+            const isHealthEntry = entry.journalType === 'health_declaration';
+            const isFitnessEntry = entry.journalType === 'fitness_certificate';
+            const isClinicalEntry = isHealthEntry || isFitnessEntry;
             const isEditingTp = isTpEntry && runtime.editingTpEntryId === entry.entryId;
+            const isEditingClinical =
+              isClinicalEntry &&
+              runtime.editingClinicalEntryId === entry.entryId &&
+              ((isHealthEntry && runtime.editingClinicalFormKey === 'health') ||
+                (isFitnessEntry && runtime.editingClinicalFormKey === 'fitness'));
             const tpOpenButton =
               isTpEntry && runtime.detail?.card?.patientId
                 ? `<button type="button" class="customers-utility-button${isEditingTp ? ' is-active' : ''}" data-patient-open-tp="${escapeHtml(entry.entryId)}">${isEditingTp ? 'Öppen' : 'Öppna'}</button>`
                 : '';
+            const clinicalOpenButton =
+              isClinicalEntry && runtime.detail?.card?.patientId
+                ? `<button type="button" class="customers-utility-button${isEditingClinical ? ' is-active' : ''}" data-patient-open-clinical="${escapeHtml(isHealthEntry ? 'health' : 'fitness')}:${escapeHtml(entry.entryId)}">${isEditingClinical ? 'Öppen' : 'Öppna'}</button>`
+                : '';
             const signButton =
-              entry.canSign && runtime.detail?.card?.patientId && !isEditingTp
+              entry.canSign && runtime.detail?.card?.patientId && !isEditingTp && !isEditingClinical
                 ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">Signera</button>`
                 : '';
             return `
-              <li class="patient-master-journal-item${entry.locked ? ' is-locked' : ''}${isEditingTp ? ' is-editing' : ''}">
+              <li class="patient-master-journal-item${entry.locked ? ' is-locked' : ''}${isEditingTp || isEditingClinical ? ' is-editing' : ''}">
                 <div>
                   <strong>${escapeHtml(entry.title || entry.journalType || 'Journal')}</strong>
                   <span>${escapeHtml(entry.status || 'draft')}${entry.signedAt ? ` · signerad ${escapeHtml(String(entry.signedAt).slice(0, 10))}` : ''}</span>
@@ -1182,6 +1249,7 @@
                         : chipHtml('Utkast', 'blue')
                   }
                   ${tpOpenButton}
+                  ${clinicalOpenButton}
                   ${signButton}
                 </div>
               </li>
@@ -1194,6 +1262,7 @@
     return `
       ${toolbar}
       ${planSection}
+      ${clinicalSection}
       ${tpSection}
       ${
         otherEntries.some((entry) => entry.journalType === 'tp_treatment')
@@ -1517,6 +1586,8 @@
     if (!patientId || runtime.mode !== 'register') return;
     if (runtime.selectedPatientId !== patientId) {
       runtime.editingTpEntryId = '';
+      runtime.editingClinicalFormKey = '';
+      runtime.editingClinicalEntryId = '';
     }
     runtime.selectedPatientId = patientId;
     if (isMobileViewport() && runtime.preferJournalOnMobile) {
@@ -1742,7 +1813,17 @@
   async function createConsultationPlan() {
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
+    const entries = asArray(runtime.detail?.journalEntries);
     if (!patientId || !card) return;
+    if (!hasSignedHealthDeclaration(entries)) {
+      setStatus(
+        hasHealthDeclarationDraft(entries)
+          ? 'Signera hälsodeklarationen innan behandlingsplan skapas.'
+          : 'Skapa och signera hälsodeklaration innan behandlingsplan.',
+        'error'
+      );
+      return;
+    }
     setStatus('Skapar behandlingsplan…', 'loading');
     try {
       await apiRequest('/api/v1/cco-journal/entry', {
@@ -1982,6 +2063,65 @@
     }
   }
 
+  async function createClinicalJournalDraft(formKey) {
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    const config = window.ArcanaJournalClinicalForms?.[formKey];
+    if (!patientId || !card || !config) return;
+    setStatus(`Skapar ${config.title.toLowerCase()}…`, 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-journal/entry', {
+        method: 'PUT',
+        body: {
+          patientId,
+          personnummer: card.personnummer || '',
+          journalType: config.journalType,
+          title: config.title,
+          fields: config.defaultFields ? config.defaultFields(card) : {},
+        },
+      });
+      runtime.editingClinicalFormKey = formKey;
+      runtime.editingClinicalEntryId = normalizeText(payload?.entry?.entryId);
+      runtime.editingTpEntryId = '';
+      setStatus(`${config.title} skapad.`, 'success');
+      runtime.detailTab = 'journal';
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte skapa formulär.', 'error');
+    }
+  }
+
+  async function saveClinicalJournalEntry(form) {
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    const formKey = normalizeText(form?.dataset?.clinicalFormKey) || runtime.editingClinicalFormKey;
+    const entryId = normalizeText(form?.dataset?.clinicalEntryId) || runtime.editingClinicalEntryId;
+    const config = window.ArcanaJournalClinicalForms?.[formKey];
+    if (!patientId || !card || !entryId || !config?.readForm) return;
+    const entryRoot = form.querySelector('[data-clinical-journal-form]');
+    const fields = config.readForm(entryRoot);
+    setStatus(`Sparar ${config.title.toLowerCase()}…`, 'loading');
+    try {
+      await apiRequest('/api/v1/cco-journal/entry', {
+        method: 'PUT',
+        body: {
+          patientId,
+          entryId,
+          personnummer: card.personnummer || '',
+          journalType: config.journalType,
+          title: config.title,
+          fields,
+        },
+      });
+      setStatus(`${config.title} sparad.`, 'success');
+      runtime.editingClinicalFormKey = formKey;
+      runtime.editingClinicalEntryId = entryId;
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte spara formulär.', 'error');
+    }
+  }
+
   async function createTpJournalDraft() {
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
@@ -1999,6 +2139,8 @@
         },
       });
       runtime.editingTpEntryId = normalizeText(payload?.entry?.entryId);
+      runtime.editingClinicalFormKey = '';
+      runtime.editingClinicalEntryId = '';
       setStatus('Ny TP-journal skapad.', 'success');
       runtime.detailTab = 'journal';
       await loadPatientDetail(patientId);
@@ -2049,6 +2191,9 @@
         runtime.detailTab = tab.dataset.patientTab || 'profil';
         if (tab.dataset.patientTab !== 'journal') {
           runtime.preferJournalOnMobile = false;
+          runtime.editingTpEntryId = '';
+          runtime.editingClinicalFormKey = '';
+          runtime.editingClinicalEntryId = '';
         }
         renderDetailPanel();
         return;
@@ -2064,6 +2209,20 @@
       const openTpButton = event.target.closest('[data-patient-open-tp]');
       if (openTpButton && runtime.mode === 'register') {
         runtime.editingTpEntryId = normalizeText(openTpButton.dataset.patientOpenTp);
+        runtime.editingClinicalFormKey = '';
+        runtime.editingClinicalEntryId = '';
+        runtime.detailTab = 'journal';
+        renderDetailPanel();
+        return;
+      }
+
+      const openClinicalButton = event.target.closest('[data-patient-open-clinical]');
+      if (openClinicalButton && runtime.mode === 'register') {
+        const raw = normalizeText(openClinicalButton.dataset.patientOpenClinical);
+        const [formKey, entryId] = raw.split(':');
+        runtime.editingClinicalFormKey = formKey;
+        runtime.editingClinicalEntryId = normalizeText(entryId);
+        runtime.editingTpEntryId = '';
         runtime.detailTab = 'journal';
         renderDetailPanel();
         return;
@@ -2091,6 +2250,10 @@
           void importHistoricalForCurrentPatient();
         } else if (actionButton.dataset.patientAction === 'new-tp-journal') {
           void createTpJournalDraft();
+        } else if (actionButton.dataset.patientAction === 'new-health-declaration') {
+          void createClinicalJournalDraft('health');
+        } else if (actionButton.dataset.patientAction === 'new-fitness-certificate') {
+          void createClinicalJournalDraft('fitness');
         } else if (actionButton.dataset.patientAction === 'new-consultation-plan') {
           void createConsultationPlan();
         } else if (actionButton.dataset.patientAction === 'create-offer-from-plan') {
@@ -2120,6 +2283,13 @@
       if (tpForm && runtime.mode === 'register') {
         event.preventDefault();
         void saveTpJournalEntry(tpForm);
+        return;
+      }
+
+      const clinicalForm = event.target.closest('[data-clinical-journal-save-form]');
+      if (clinicalForm && runtime.mode === 'register') {
+        event.preventDefault();
+        void saveClinicalJournalEntry(clinicalForm);
         return;
       }
 
