@@ -2700,6 +2700,7 @@ function createScheduler({
           ? {
               conversationIds: scopedIds,
               skipGraphSnapshotCache: true,
+              runTimeoutMs: 90000,
               maxMessagesPerUser: scopedMaxMessagesPerUser,
               maxInboxMessagesPerUser: Math.max(
                 8,
@@ -2712,6 +2713,7 @@ function createScheduler({
             }
           : useElevatedBootstrapCaps
             ? {
+                runTimeoutMs: 120000,
                 maxMessagesPerUser: bootstrapMaxMessagesPerUser,
                 maxInboxMessagesPerUser: Math.max(
                   20,
