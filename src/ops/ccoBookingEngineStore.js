@@ -2,6 +2,8 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
+const { ensureDirectoryWithRetry } = require('./persistentDir');
+
 /** Plan A — endast dessa tjänster exponeras via /api/public/booking-engine/catalog */
 const PLAN_A_PUBLIC_SERVICE_IDS = [
   'consultation-online',
@@ -77,7 +79,7 @@ async function readJson(filePath, fallbackValue) {
 }
 
 async function writeJsonAtomic(filePath, data) {
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await ensureDirectoryWithRetry(path.dirname(filePath));
   const tmpPath = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
   await fs.writeFile(tmpPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
   await fs.rename(tmpPath, filePath);
