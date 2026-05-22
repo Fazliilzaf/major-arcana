@@ -43,7 +43,15 @@ Tryck **Kopiera länk** eller **Visa QR** i kundhuvudet. Länken öppnar samma k
 
 Starta om CCO-servern och hard-reload webbläsaren så nya API-routes och bundle laddas.
 
-## Vid problem
+## Före pilot
+
+Se full checklista: [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md)
+
+Verifiera deploy:
+
+```bash
+BASE_URL=https://arcana.hairtpclinic.se npm run smoke:mobile-journal
+```
 
 - **Ingen anslutning** — kontrollera WiFi/mobilnät, försök igen.
 - **Inloggning krävs** — logga ut/in igen.
