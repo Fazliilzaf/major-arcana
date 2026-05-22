@@ -312,7 +312,17 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  const staffSurfaces =
+    path.startsWith('/major-arcana-preview') ||
+    path.startsWith('/staff') ||
+    path.startsWith('/mobil') ||
+    path.startsWith('/api/v1/cco-journal');
+  res.setHeader(
+    'Permissions-Policy',
+    staffSurfaces
+      ? 'camera=(self), microphone=(), geolocation=(), payment=()'
+      : 'camera=(), microphone=(), geolocation=(), payment=()'
+  );
   // HSTS — endast för HTTPS-anslutningar (Render serverar HTTPS i prod)
   if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
@@ -632,6 +642,19 @@ function createRuntimeGraphReadConnector() {
 app.get('/', (req, res) => {
   res.sendFile('index.html', { root: __dirname + '/public' });
 });
+
+function redirectStaffMobileEntry(req, res) {
+  const query = String(req.url || '').includes('?')
+    ? String(req.url).slice(String(req.url).indexOf('?'))
+    : '';
+  const params = new URLSearchParams(query.startsWith('?') ? query.slice(1) : query);
+  if (!params.get('view')) params.set('view', 'customers');
+  const qs = params.toString();
+  res.redirect(302, `/major-arcana-preview/?${qs}`);
+}
+
+// Kort mobil-länk för personal (Safari/iPhone) → CCO kundregister + journal
+app.get(['/staff', '/mobil'], redirectStaffMobileEntry);
 
 app.get('/patientinformation/hartransplantation-dhi-prp', (_req, res) => {
   res.sendFile('patientinformation-hartransplantation-dhi-prp.html', {

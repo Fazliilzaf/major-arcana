@@ -134,14 +134,21 @@
   }
 
   function buildPatientDeepLink(patientId) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('view', 'customers');
-    if (patientId) {
-      url.searchParams.set('patientId', patientId);
-    } else {
-      url.searchParams.delete('patientId');
+    try {
+      const url = new URL(window.location.origin);
+      url.pathname = '/staff';
+      url.search = '';
+      url.hash = '';
+      url.searchParams.set('view', 'customers');
+      if (patientId) {
+        url.searchParams.set('patientId', patientId);
+      }
+      return url.toString();
+    } catch {
+      const qs = new URLSearchParams({ view: 'customers' });
+      if (patientId) qs.set('patientId', patientId);
+      return `${window.location.origin}/staff?${qs.toString()}`;
     }
-    return url.toString();
   }
 
   function promptPhotoLabel() {
