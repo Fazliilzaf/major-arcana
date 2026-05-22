@@ -68,7 +68,7 @@ pass "service-worker.js OK"
 
 PREVIEW_HTML="$(curl -sS "$BASE_URL/major-arcana-preview/?view=customers")"
 [[ "$PREVIEW_HTML" == *"app.bundle."* ]] || fail "preview saknar bundle"
-BUNDLE_PATH="$(printf '%s' "$PREVIEW_HTML" | rg -o 'app\.bundle\.[a-f0-9]+\.min\.js' | head -1 || true)"
+BUNDLE_PATH="$(printf '%s' "$PREVIEW_HTML" | grep -oE 'app\.bundle\.[a-f0-9]+\.min\.js' | head -1 || true)"
 [[ -n "$BUNDLE_PATH" ]] || fail "kunde inte hitta bundle-hash i preview"
 pass "preview bundle: $BUNDLE_PATH"
 
