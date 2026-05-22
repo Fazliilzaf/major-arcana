@@ -14,6 +14,7 @@ const {
 } = require('../ops/ccoTreatmentAgreementDocument');
 const { addDaysIso, buildEsignToken } = require('../ops/ccoOfferEsign');
 const { renderHtmlToPdfBuffer } = require('../ops/ccoOfferPdf');
+const { checkTreatmentBookingGate } = require('../ops/ccoTreatmentBookingGate');
 
 function createCcoTreatmentAgreementRouter({
   treatmentAgreementStore,
@@ -64,6 +65,33 @@ function createCcoTreatmentAgreementRouter({
           agreement,
           agreementReadout: agreement ? buildTreatmentAgreementReadout(agreement) : null,
         });
+      })
+  );
+
+  router.get(
+    '/cco-treatment-agreement/booking-gate',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (_context, actor) => {
+        const patientId = normalizeText(req.query.patientId);
+        const customerEmail = normalizeText(req.query.customerEmail);
+        const serviceId = normalizeText(req.query.serviceId);
+        if (!patientId && !customerEmail) {
+          return res.status(400).json({ error: 'patientId eller customerEmail krävs.' });
+        }
+        const gate = await checkTreatmentBookingGate({
+          treatmentAgreementStore,
+          patientMasterStore,
+          tenantId: actor.tenantId,
+          patientId,
+          customerEmail,
+          body: {
+            serviceId,
+            selectedSlots: serviceId ? [{ serviceId }] : [],
+          },
+        });
+        return res.json({ gate });
       })
   );
 

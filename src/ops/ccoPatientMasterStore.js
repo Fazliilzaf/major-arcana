@@ -270,6 +270,17 @@ async function createCcoPatientMasterStore({ filePath }) {
     return found ? clonePatient(found) : null;
   }
 
+  async function findPatientByEmail({ tenantId, email } = {}) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) return null;
+    const bucket = tenantBucket(state, tenantId);
+    const found = bucket.patients.find((item) => {
+      if (normalizeEmail(item.primaryEmail) === normalizedEmail) return true;
+      return asArray(item.emails).some((value) => normalizeEmail(value) === normalizedEmail);
+    });
+    return found ? clonePatient(found) : null;
+  }
+
   async function upsertPatient(input = {}) {
     const normalized = normalizePatientRecord(input);
     if (!normalized.tenantId) throw new Error('tenantId saknas.');
@@ -462,6 +473,7 @@ async function createCcoPatientMasterStore({ filePath }) {
 
   return {
     buildPatientCardReadout,
+    findPatientByEmail,
     getPatient,
     getTenantStats,
     importClientoRows,

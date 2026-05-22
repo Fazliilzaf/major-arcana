@@ -9,6 +9,11 @@ const {
   enrichBookingCaseWithHistorySignals,
 } = require('../ops/ccoBookingStore');
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
+const {
+  assertTreatmentBookingAllowed,
+  buildTreatmentAgreementBookingBlocker,
+  checkTreatmentBookingGate,
+} = require('../ops/ccoTreatmentBookingGate');
 
 const WORKSPACE_ID = 'major-arcana-preview';
 
@@ -368,6 +373,8 @@ function createCcoBookingEngineRouter({
   bookingStore,
   historyStore = null,
   patientSystemStore = null,
+  treatmentAgreementStore = null,
+  patientMasterStore = null,
   authStore,
   config,
 }) {
@@ -383,6 +390,58 @@ function createCcoBookingEngineRouter({
       includeTimelineEvent: options.includeTimelineEvent === true,
       event: options.event || latestEvent,
     });
+  }
+
+  async function enforceTreatmentBookingGate(context, body = {}) {
+    return assertTreatmentBookingAllowed({
+      treatmentAgreementStore,
+      patientMasterStore,
+      tenantId: context.tenantId,
+      customerEmail: context.customerEmail,
+      patientId: normalizeText(body?.patientId),
+      body,
+    });
+  }
+
+  async function loadTreatmentBookingGate(context, bookingCase = null, body = {}) {
+    const slots = asArray(bookingCase?.selectedSlots);
+    const mergedBody = {
+      ...body,
+      selectedSlots: asArray(body.selectedSlots || body.slots).length
+        ? body.selectedSlots || body.slots
+        : slots,
+      serviceId:
+        normalizeText(body.serviceId) ||
+        normalizeText(slots[0]?.serviceId) ||
+        normalizeText(bookingCase?.requestedTreatment),
+    };
+    return checkTreatmentBookingGate({
+      treatmentAgreementStore,
+      patientMasterStore,
+      tenantId: context.tenantId,
+      customerEmail: context.customerEmail,
+      patientId: normalizeText(body?.patientId),
+      body: mergedBody,
+    });
+  }
+
+  function mergeAgreementBlocker(summary = {}, gate = null) {
+    const agreementBlocker = buildTreatmentAgreementBookingBlocker(gate);
+    if (!agreementBlocker) return summary;
+    const existingBlocker = asObject(summary.blocker);
+    const existingScore = Math.max(0, Number(existingBlocker.score) || 0);
+    if (existingScore >= agreementBlocker.score) {
+      return {
+        ...summary,
+        treatmentAgreementGate: agreementBlocker.treatmentAgreementGate,
+      };
+    }
+    return {
+      ...summary,
+      blocker: agreementBlocker,
+      recommendedAction: '',
+      treatmentAgreementGate: agreementBlocker.treatmentAgreementGate,
+    };
   }
 
   async function handle(req, res, run) {
@@ -450,9 +509,11 @@ function createCcoBookingEngineRouter({
         bookingStore.getCase(context),
       ]);
       const bookingCase = await enrichBookingCaseWithHistorySignals(rawBookingCase, historyStore);
+      const gate = await loadTreatmentBookingGate(context, bookingCase, req.body || {});
+      const payload = summaryPayload(summary, bookingCase);
       return res.json({
         provider: 'cco_engine',
-        ...summaryPayload(summary, bookingCase),
+        ...mergeAgreementBlocker(payload, gate),
       });
     })
   );
@@ -460,6 +521,7 @@ function createCcoBookingEngineRouter({
   router.post('/cco-booking-engine/reservations', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingContext(context);
+      await enforceTreatmentBookingGate(context, req.body || {});
       const reservations = await bookingEngineStore.reserveSlots({
         ...toCaseInput(context, req.body),
       });
@@ -531,6 +593,7 @@ function createCcoBookingEngineRouter({
   router.post('/cco-booking-engine/confirm', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingContext(context);
+      await enforceTreatmentBookingGate(context, req.body || {});
       const booking = await bookingEngineStore.confirmBooking({
         ...toCaseInput(context, req.body),
         slot: req.body?.slot || req.body?.selectedSlot,
@@ -603,6 +666,7 @@ function createCcoBookingEngineRouter({
   router.post('/cco-booking-engine/rebook', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingContext(context);
+      await enforceTreatmentBookingGate(context, req.body || {});
       const booking = await bookingEngineStore.rebookBooking({
         ...toCaseInput(context, req.body),
         selectedSlots:

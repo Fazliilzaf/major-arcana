@@ -11,6 +11,8 @@ const { createCcoBookingStore } = require('../../src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
 const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
 const { createCcoPatientSystemStore } = require('../../src/ops/ccoPatientSystemStore');
+const { createCcoTreatmentAgreementStore } = require('../../src/ops/ccoTreatmentAgreementStore');
+const { createCcoPatientMasterStore } = require('../../src/ops/ccoPatientMasterStore');
 
 async function withServer(app, run) {
   const server = http.createServer(app);
@@ -24,7 +26,7 @@ async function withServer(app, run) {
   }
 }
 
-async function createFixture() {
+async function createFixture(options = {}) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-route-'));
   const bookingStore = await createCcoBookingStore({
     filePath: path.join(tempDir, 'bookings.json'),
@@ -38,6 +40,16 @@ async function createFixture() {
   const patientSystemStore = await createCcoPatientSystemStore({
     filePath: path.join(tempDir, 'patient-system.json'),
   });
+  const treatmentAgreementStore =
+    options.treatmentAgreementStore ||
+    (await createCcoTreatmentAgreementStore({
+      filePath: path.join(tempDir, 'agreements.json'),
+    }));
+  const patientMasterStore =
+    options.patientMasterStore ||
+    (await createCcoPatientMasterStore({
+      filePath: path.join(tempDir, 'patients.json'),
+    }));
   const app = express();
   app.use(express.json());
   app.use(
@@ -47,6 +59,8 @@ async function createFixture() {
       bookingStore,
       historyStore,
       patientSystemStore,
+      treatmentAgreementStore,
+      patientMasterStore,
       authStore: {
         async getSessionContextByToken() {
           return null;
@@ -56,11 +70,19 @@ async function createFixture() {
         },
       },
       config: {
-        defaultTenantId: 'tenant-a',
+        defaultTenantId: options.tenantId || 'tenant-a',
       },
     })
   );
-  return { app, tempDir, bookingStore, bookingEngineStore, historyStore };
+  return {
+    app,
+    tempDir,
+    bookingStore,
+    bookingEngineStore,
+    historyStore,
+    treatmentAgreementStore,
+    patientMasterStore,
+  };
 }
 
 test('cco booking engine route reserverar, bekräftar och avbokar mot samma booking truth', async () => {
@@ -781,6 +803,43 @@ test('cco booking engine case-summary kan läsa reply_later från historik som a
       assert.match(String(payload.waitingCustomer.latestFollowUpDueAt || ''), /T/);
       assert.equal(payload.recommendedActionState, 'monitor');
       assert.match(String(payload.recommendedActionReason || ''), /bevakas/i);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco booking engine route spärrar behandlingsbokning utan signerat avtal', async () => {
+  const fixture = await createFixture({ tenantId: 'tenant-a' });
+  try {
+    await fixture.patientMasterStore.upsertPatient({
+      tenantId: 'tenant-a',
+      id: 'patient-gate',
+      displayName: 'Gate Test',
+      personnummer: '19920202-1234',
+      primaryEmail: 'gate@example.com',
+      emails: ['gate@example.com'],
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const qs =
+        'workspaceId=major-arcana-preview&conversationId=conv-gate-block&customerEmail=gate%40example.com&customerName=Gate';
+      const slot = {
+        slotId: 'egzona::fue::2026-05-11T06:00:00.000Z',
+        resourceId: 'egzona',
+        serviceId: 'fue',
+        startsAt: '2026-05-11T06:00:00.000Z',
+        endsAt: '2026-05-11T14:00:00.000Z',
+      };
+
+      const blockedResponse = await fetch(`${baseUrl}/cco-booking-engine/reservations?${qs}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ selectedSlots: [slot] }),
+      });
+      assert.equal(blockedResponse.status, 409);
+      const blockedPayload = await blockedResponse.json();
+      assert.equal(blockedPayload.metadata.code, 'treatment_agreement_not_bookable');
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
