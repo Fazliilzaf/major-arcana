@@ -152,6 +152,23 @@ module.exports = [
     },
   },
   {
+    files: ['public/admin/**/*.js', 'public/admin.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
+      'no-undef': 'warn',
+      'prefer-const': 'off',
+      'no-var': 'off',
+    },
+  },
+  {
     files: ['bin/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
