@@ -274,26 +274,73 @@ function listZipEntries(zipPath) {
   return { ok: true, entries, error: null };
 }
 
+function listZipCandidates(rootDir) {
+  const root = path.resolve(rootDir);
+  if (!fs.existsSync(root)) return [];
+  const out = [];
+  for (const name of fs.readdirSync(root)) {
+    if (name.toLowerCase().endsWith('.zip')) {
+      out.push(path.join(root, name));
+    }
+  }
+  return out;
+}
+
 function discoverMigrationZips(migrationRoot) {
   const root = path.resolve(migrationRoot);
   if (!fs.existsSync(root)) return [];
-  return fs
-    .readdirSync(root)
-    .filter((name) => name.toLowerCase().endsWith('.zip'))
-    .map((name) => path.join(root, name))
-    .sort();
+
+  const searchRoots = new Set([root]);
+  for (const name of fs.readdirSync(root)) {
+    const abs = path.join(root, name);
+    try {
+      if (fs.statSync(abs).isDirectory()) searchRoots.add(abs);
+    } catch {
+      // ignore unreadable iCloud placeholders
+    }
+  }
+
+  const archiveJournal = path.join(root, 'MA-Archive', 'journal-zips');
+  if (fs.existsSync(archiveJournal)) searchRoots.add(archiveJournal);
+
+  const zips = new Set();
+  for (const dir of searchRoots) {
+    for (const zipPath of listZipCandidates(dir)) {
+      zips.add(zipPath);
+    }
+  }
+  return [...zips].sort();
 }
 
 function discoverClientoCsv(migrationRoot) {
   const root = path.resolve(migrationRoot);
   if (!fs.existsSync(root)) return null;
-  const candidates = fs
-    .readdirSync(root)
-    .filter(
-      (name) => name.toLowerCase().includes('kundexport') && name.toLowerCase().endsWith('.csv')
-    )
-    .map((name) => path.join(root, name));
-  return candidates[0] || null;
+
+  const searchRoots = [root, path.join(root, 'MA-Archive', 'cliento')];
+  for (const name of fs.readdirSync(root)) {
+    const abs = path.join(root, name);
+    try {
+      if (fs.statSync(abs).isDirectory()) searchRoots.push(abs);
+    } catch {
+      // ignore
+    }
+  }
+
+  for (const dir of searchRoots) {
+    if (!fs.existsSync(dir)) continue;
+    let names = [];
+    try {
+      names = fs.readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      const lower = name.toLowerCase();
+      if (!lower.includes('kundexport') || !lower.endsWith('.csv')) continue;
+      return path.join(dir, name);
+    }
+  }
+  return null;
 }
 
 function walkFolderEntries(folderRoot, { skipHidden = true } = {}) {

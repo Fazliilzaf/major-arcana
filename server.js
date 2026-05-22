@@ -583,6 +583,7 @@ const { createCcoPatientMasterStore } = require('./src/ops/ccoPatientMasterStore
 const { createCcoJournalStore } = require('./src/ops/ccoJournalStore');
 const { createCcoJournalPhotoStore } = require('./src/ops/ccoJournalPhotoStore');
 const { createCcoCommercialStore } = require('./src/ops/ccoCommercialStore');
+const { createCcoTreatmentAgreementStore } = require('./src/ops/ccoTreatmentAgreementStore');
 const { createCcoOfferDocumentStore } = require('./src/ops/ccoOfferDocumentStore');
 const { createCcoMigrationIndexStore } = require('./src/ops/ccoMigrationIndexStore');
 const { createCcoPatientSystemStore } = require('./src/ops/ccoPatientSystemStore');
@@ -603,6 +604,7 @@ const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
 const { createCcoPatientMasterRouter } = require('./src/routes/ccoPatientMaster');
 const { createCcoJournalRouter } = require('./src/routes/ccoJournal');
 const { createCcoCommercialRouter } = require('./src/routes/ccoCommercial');
+const { createCcoTreatmentAgreementRouter } = require('./src/routes/ccoTreatmentAgreement');
 const { createCcoMigrationRouter } = require('./src/routes/ccoMigration');
 const { createCcoConsultationsRouter } = require('./src/routes/ccoConsultations');
 const { createCcoAftercareRouter } = require('./src/routes/ccoAftercare');
@@ -1265,6 +1267,9 @@ process.once('SIGTERM', () => {
   const ccoCommercialStore = await createCcoCommercialStore({
     filePath: config.ccoCommercialStorePath,
   });
+  const ccoTreatmentAgreementStore = await createCcoTreatmentAgreementStore({
+    filePath: config.ccoTreatmentAgreementStorePath,
+  });
   const ccoOfferDocumentStore = await createCcoOfferDocumentStore({
     baseDir: config.offerDocumentsDir,
   });
@@ -1888,6 +1893,20 @@ process.once('SIGTERM', () => {
       patientMasterStore: ccoPatientMasterStore,
       offerDocumentStore: ccoOfferDocumentStore,
       patientSystemStore: ccoPatientSystemStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoTreatmentAgreementRouter({
+      treatmentAgreementStore: ccoTreatmentAgreementStore,
+      commercialStore: ccoCommercialStore,
+      patientMasterStore: ccoPatientMasterStore,
+      offerDocumentStore: ccoOfferDocumentStore,
       authStore,
       config,
       requireAuth: auth.requireAuth,

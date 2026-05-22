@@ -217,6 +217,7 @@ function buildOfferDocumentHtml({
         <dt>Zoner</dt><dd>${escapeHtml(zones || '—')}</dd>
         <dt>PRP</dt><dd>${fields.prpIncluded === true ? 'Ja' : fields.prpIncluded === false ? 'Nej' : '—'}</dd>
         <dt>Pris</dt><dd>${escapeHtml(commercialCase.quotedAmount || 'Enligt separat prislista')}</dd>
+        <dt>Moms</dt><dd>Inkluderad enligt gällande skattesats (25 % om inget annat anges)</dd>
         <dt>Deposition</dt><dd>${escapeHtml(commercialCase.depositAmount || '—')}</dd>
       </dl>
       ${

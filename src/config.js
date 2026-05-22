@@ -312,6 +312,11 @@ const config = {
     stateRoot,
     fileName: 'cco-commercial.json',
   }),
+  ccoTreatmentAgreementStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_TREATMENT_AGREEMENT_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-treatment-agreements.json',
+  }),
   offerDocumentsDir: process.env.ARCANA_OFFER_DOCUMENTS_DIR
     ? String(process.env.ARCANA_OFFER_DOCUMENTS_DIR).trim()
     : path.join(stateRoot, 'offer-documents'),
