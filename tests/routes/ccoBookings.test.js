@@ -583,7 +583,7 @@ test('cco bookings route låter case-listan följa engine-blocker när tider är
               endsAt: '2026-05-11T10:30:00.000Z',
               resourceId: 'egzona',
               resourceLabel: 'Egzona',
-              serviceId: 'consultation',
+              serviceId: 'consultation-physical',
               serviceLabel: 'Konsultation',
               source: 'cco_engine',
             },
@@ -1120,7 +1120,7 @@ test('cco bookings route låter case-listan visa confirm_external när CCO redan
       fromDate: '2026-05-11',
       toDate: '2026-05-11',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     const slot = availability[0];
     await fixture.bookingStore.setCandidateSlots({
@@ -1193,7 +1193,7 @@ test('cco bookings route kan läsa egen booking engine som source of truth för 
       assert.ok(refPayload.services.length >= 1);
 
       const slotsResponse = await fetch(
-        `${baseUrl}/cco-bookings/slots?fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation`
+        `${baseUrl}/cco-bookings/slots?fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(slotsResponse.status, 200);
       const slotsPayload = await slotsResponse.json();

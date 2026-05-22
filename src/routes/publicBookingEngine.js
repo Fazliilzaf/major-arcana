@@ -20,7 +20,10 @@ const crypto = require('node:crypto');
 
 const { resolveBrandForHost } = require('../brand/resolveBrand');
 const { sendEmail } = require('../infra/resendMailer');
-const { buildBookingReservationEmail, buildOperatorNotificationEmail } = require('../templates/bookingReservationEmail');
+const {
+  buildBookingReservationEmail,
+  buildOperatorNotificationEmail,
+} = require('../templates/bookingReservationEmail');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -81,7 +84,9 @@ function sanitizeService(service) {
     id: normalizeText(service?.id || service?.serviceId) || 'service',
     title: normalizeText(service?.label || service?.title || service?.name) || 'Service',
     description: normalizeText(service?.description) || undefined,
-    durationMinutes: Number.isFinite(duration) ? Math.max(10, Math.min(1440, Math.round(duration))) : 60,
+    durationMinutes: Number.isFinite(duration)
+      ? Math.max(10, Math.min(1440, Math.round(duration)))
+      : 60,
     fromPriceSek: Number.isFinite(fromPrice) ? Math.max(0, Math.round(fromPrice)) : 0,
   };
 }
@@ -130,7 +135,9 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
       // är fortfarande viktig så vi inte läcker data när det skalas upp.
       const [resourcesRaw, servicesRaw] = await Promise.all([
         bookingEngineStore.listResources({ tenantId: brand?.id || brand }),
-        bookingEngineStore.listServices({ tenantId: brand?.id || brand }),
+        bookingEngineStore.listPublicServices
+          ? bookingEngineStore.listPublicServices({ tenantId: brand?.id || brand })
+          : bookingEngineStore.listServices({ tenantId: brand?.id || brand }),
       ]);
 
       const resources = (Array.isArray(resourcesRaw) ? resourcesRaw : []).map(sanitizeResource);
@@ -265,16 +272,18 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
           // öppning (slipper dyka i email-kopian). Lagras i event-metadata
           // för att inte ändra ccoBookingStore-schemat — frontend läser
           // från events-arrayen.
-          const leadContextRaw = (body.leadContext && typeof body.leadContext === 'object')
-            ? body.leadContext
-            : {};
+          const leadContextRaw =
+            body.leadContext && typeof body.leadContext === 'object' ? body.leadContext : {};
           // Sanitize: bara whitelistade fält + size-limit på fritext-fält.
           const leadContext = {
             source: normalizeText(leadContextRaw.source) || 'hairtpclinic.com',
             submittedAt: normalizeText(leadContextRaw.submittedAt) || new Date().toISOString(),
             service: normalizeText(leadContextRaw.service) || null,
             healthYes: Array.isArray(leadContextRaw.healthYes)
-              ? leadContextRaw.healthYes.slice(0, 20).map((v) => normalizeText(v)).filter(Boolean)
+              ? leadContextRaw.healthYes
+                  .slice(0, 20)
+                  .map((v) => normalizeText(v))
+                  .filter(Boolean)
               : [],
             healthNotes: normalizeText(leadContextRaw.healthNotes).slice(0, 1000),
             timeWindow: normalizeText(leadContextRaw.timeWindow) || null,
@@ -283,6 +292,12 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
             languagePref: normalizeText(leadContextRaw.languagePref) || 'sv',
             photos: normalizeText(leadContextRaw.photos) || 'none',
             marketingConsent: leadContextRaw.marketingConsent === true,
+            surgeryDate:
+              normalizeText(leadContextRaw.surgeryDate || leadContextRaw.operatedAt).slice(0, 32) ||
+              null,
+            operatedAt:
+              normalizeText(leadContextRaw.operatedAt || leadContextRaw.surgeryDate).slice(0, 32) ||
+              null,
           };
           bookingCase = await bookingStore.addEvent({
             tenantId,
@@ -307,16 +322,20 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
       // Skickas best-effort. Om Resend failar bryts inte boknings-flowet —
       // operatören har patientens telefonnummer och ringer ändå.
       const primary = reservations[0] || null;
-      const locale = (normalizeText(body.locale) === 'en') ? 'en' : 'sv';
+      const locale = normalizeText(body.locale) === 'en' ? 'en' : 'sv';
       const resolvedResource =
         primary?.slot?.resourceLabel || primary?.slot?.resourceId || slotResourceId;
       const resolvedService =
         primary?.slot?.serviceLabel || primary?.slot?.serviceId || slotServiceId;
+      const resolvedServiceId = primary?.slot?.serviceId || slotServiceId || resolvedService;
+      const resolvedLocation = primary?.slot?.locationLabel || body?.slot?.locationLabel || '';
       const emailContent = buildBookingReservationEmail({
         patientName: name,
         slotStart: primary?.slot?.startsAt || slotStart,
         resourceLabel: resolvedResource,
         serviceLabel: resolvedService,
+        serviceId: resolvedServiceId,
+        locationLabel: resolvedLocation,
         caseId: conversationId,
         expiresAt: primary?.expiresAt,
         locale,
@@ -336,7 +355,9 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
           workspaceId,
           conversationId,
           customerEmail: email,
-          type: emailResult.ok ? 'reservation_confirmation_sent' : 'reservation_confirmation_failed',
+          type: emailResult.ok
+            ? 'reservation_confirmation_sent'
+            : 'reservation_confirmation_failed',
           label: emailResult.ok
             ? `Bekräftelse skickad (${emailResult.mode})`
             : 'Bekräftelse-mail failade',
@@ -351,7 +372,9 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
           },
         });
       }
-      console.log(`[public-reservation] web booking by ${email} for slot ${slotId} email:${emailResult.mode}`);
+      console.log(
+        `[public-reservation] web booking by ${email} for slot ${slotId} email:${emailResult.mode}`
+      );
 
       // ── 6b. Operatörs-notifiering ─────────────────────────────────
       // Skicka intern notis till kliniken så operatör ser bokningen i
@@ -366,8 +389,11 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
             slotStart: primary?.slot?.startsAt || slotStart,
             resourceLabel: resolvedResource,
             serviceLabel: resolvedService,
+            serviceId: resolvedServiceId,
+            locationLabel: resolvedLocation,
             caseId: conversationId,
-            leadContext: (body.leadContext && typeof body.leadContext === 'object') ? body.leadContext : {},
+            leadContext:
+              body.leadContext && typeof body.leadContext === 'object' ? body.leadContext : {},
           });
           const opResult = await sendEmail({
             to: operatorTo,
@@ -376,9 +402,13 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
             text: opContent.text,
             idempotencyKey: `op-notify-${conversationId}-${primary?.reservationId || slotId}`,
           });
-          console.log(`[public-reservation] operator notify to ${operatorTo} email:${opResult.mode}`);
+          console.log(
+            `[public-reservation] operator notify to ${operatorTo} email:${opResult.mode}`
+          );
         } catch (opErr) {
-          console.warn(`[public-reservation] operator notify failed: ${opErr && opErr.message ? opErr.message : opErr}`);
+          console.warn(
+            `[public-reservation] operator notify failed: ${opErr && opErr.message ? opErr.message : opErr}`
+          );
         }
       }
 
@@ -399,9 +429,11 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
     } catch (error) {
       const statusCode = Number(error?.statusCode || 500);
       if (statusCode === 409) {
-        return res
-          .status(409)
-          .json({ ok: false, error: 'slot_unavailable', message: error.message || 'Tiden är inte längre ledig.' });
+        return res.status(409).json({
+          ok: false,
+          error: 'slot_unavailable',
+          message: error.message || 'Tiden är inte längre ledig.',
+        });
       }
       console.error('[public-booking-engine/reservations]', error);
       return res.status(500).json({ ok: false, error: 'reservation_failed' });

@@ -32,6 +32,10 @@ services:
     envVars:
       - key: ARCANA_STATE_ROOT
         value: /var/data
+      - key: ARCANA_CCO_BOOKING_STORE_PATH
+        value: /var/data/cco-booking.json
+      - key: ARCANA_CCO_BOOKING_ENGINE_STORE_PATH
+        value: /var/data/cco-booking-engine.json
       - key: PLAYWRIGHT_BROWSERS_PATH
         value: /var/data/playwright-browsers
       - key: NODE_ENV

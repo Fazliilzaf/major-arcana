@@ -70,7 +70,7 @@ test('cco booking engine route reserverar, bekräftar och avbokar mot samma book
       const qs =
         'workspaceId=major-arcana-preview&conversationId=conv-engine-route&customerEmail=engine%40example.com&customerName=Engine';
       const availabilityResponse = await fetch(
-        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation`
+        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(availabilityResponse.status, 200);
       const availabilityPayload = await availabilityResponse.json();
@@ -148,7 +148,7 @@ test('cco booking engine route sparar gammal och ny tid i ombokningshändelsen',
       const qs =
         'workspaceId=major-arcana-preview&conversationId=conv-engine-rebook&customerEmail=rebook%40example.com&customerName=Rebook';
       const availabilityResponse = await fetch(
-        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-12&resIds=egzona&srvIds=consultation`
+        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-12&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(availabilityResponse.status, 200);
       const availabilityPayload = await availabilityResponse.json();
@@ -195,7 +195,7 @@ test('cco booking engine route kräver rebook när annan tid redan är bekräfta
       const qs =
         'workspaceId=major-arcana-preview&conversationId=conv-engine-rebook-guard&customerEmail=guard%40example.com&customerName=Guard';
       const availabilityResponse = await fetch(
-        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-12&resIds=egzona&srvIds=consultation`
+        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-12&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(availabilityResponse.status, 200);
       const availabilityPayload = await availabilityResponse.json();
@@ -233,7 +233,7 @@ test('cco booking engine route kan förnya reservationer', async () => {
       const qs =
         'workspaceId=major-arcana-preview&conversationId=conv-engine-renew-route&customerEmail=renew-route%40example.com&customerName=Renew';
       const availabilityResponse = await fetch(
-        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation`
+        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(availabilityResponse.status, 200);
       const availabilityPayload = await availabilityResponse.json();
@@ -282,7 +282,7 @@ test('cco booking engine case-summary prioriterar uppdaterad Svarstudio efter om
       fromDate: '2026-05-11',
       toDate: '2026-05-12',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     const slot = availability[0];
     await fixture.bookingEngineStore.reserveSlots({
@@ -348,7 +348,7 @@ test('cco booking engine case-summary visar när uppföljning redan pågår i wa
       fromDate: '2026-05-11',
       toDate: '2026-05-12',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     const slot = availability[0];
     await fixture.bookingEngineStore.reserveSlots({
@@ -412,7 +412,7 @@ test('cco booking engine case-summary visar kundsvar inkommet före gammal follo
       fromDate: '2026-05-11',
       toDate: '2026-05-12',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     const slot = availability[0];
     await fixture.bookingEngineStore.reserveSlots({
