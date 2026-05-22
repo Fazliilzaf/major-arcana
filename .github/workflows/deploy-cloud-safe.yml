@@ -337,7 +337,6 @@ jobs:
         continue-on-error: true
         env:
           BASE_URL: ${{ steps.resolve_base_url.outputs.base_url }}
-          ARCANA_SMOKE_PATIENT_ID: 4b7b97a5-88ba-4597-9f34-31307c04cbcb
         run: |
           set +e
           TOKEN="$(bash ./scripts/extract-owner-token.sh 2>/dev/null || true)"
