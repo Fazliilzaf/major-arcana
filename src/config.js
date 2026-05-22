@@ -288,49 +288,6 @@ const config = {
     stateRoot,
     fileName: 'cco-customers.json',
   }),
-  ccoPatientMasterStorePath: resolveStatePath({
-    explicitPath: process.env.ARCANA_CCO_PATIENT_MASTER_STORE_PATH,
-    stateRoot,
-    fileName: 'cco-patient-master.json',
-  }),
-  ccoJournalStorePath: resolveStatePath({
-    explicitPath: process.env.ARCANA_CCO_JOURNAL_STORE_PATH,
-    stateRoot,
-    fileName: 'cco-journal.json',
-  }),
-  ccoMigrationIndexStorePath: resolveStatePath({
-    explicitPath: process.env.ARCANA_CCO_MIGRATION_INDEX_STORE_PATH,
-    stateRoot,
-    fileName: 'cco-migration-index.json',
-  }),
-  migrationDataRoot: asNonEmptyString(
-    process.env.ARCANA_MIGRATION_ROOT,
-    path.resolve(process.cwd(), '..')
-  ),
-  journalPhotosDir: asNonEmptyString(
-    process.env.ARCANA_JOURNAL_PHOTOS_DIR,
-    path.join(stateRoot, 'journal-photos')
-  ),
-  ccoConsultationStorePath: resolveStatePath({
-    explicitPath: process.env.ARCANA_CCO_CONSULTATION_STORE_PATH,
-    stateRoot,
-    fileName: 'cco-consultations.json',
-  }),
-  ccoAftercareStorePath: resolveStatePath({
-    explicitPath: process.env.ARCANA_CCO_AFTERCARE_STORE_PATH,
-    stateRoot,
-    fileName: 'cco-aftercare.json',
-  }),
-  ccoOperationStorePath: resolveStatePath({
-    explicitPath: process.env.ARCANA_CCO_OPERATION_STORE_PATH,
-    stateRoot,
-    fileName: 'cco-operations.json',
-  }),
-  ccoPatientSystemStorePath: resolveStatePath({
-    explicitPath: process.env.ARCANA_CCO_PATIENT_SYSTEM_STORE_PATH,
-    stateRoot,
-    fileName: 'cco-patient-system.json',
-  }),
   capabilityAnalysisMaxEntries: asInt(process.env.ARCANA_CAPABILITY_ANALYSIS_MAX_ENTRIES, 15000),
   marketingCampaignDraftsPath: resolveStatePath({
     explicitPath: process.env.ARCANA_MARKETING_CAMPAIGN_DRAFTS_PATH,
