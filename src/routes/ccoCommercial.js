@@ -168,12 +168,17 @@ function createCcoCommercialRouter({
       documentId,
       html,
     });
-    const pdfBuffer = await renderHtmlToPdfBuffer(html);
-    const savedPdf = await offerDocumentStore.savePdf({
-      tenantId: actor.tenantId,
-      documentId: savedHtml.documentId,
-      buffer: pdfBuffer,
-    });
+    let savedPdf = { documentId: '' };
+    try {
+      const pdfBuffer = await renderHtmlToPdfBuffer(html);
+      savedPdf = await offerDocumentStore.savePdf({
+        tenantId: actor.tenantId,
+        documentId: savedHtml.documentId,
+        buffer: pdfBuffer,
+      });
+    } catch (error) {
+      console.warn('[cco-commercial] Offert-PDF kunde inte genereras:', error.message || error);
+    }
     const wordHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Offert</title></head><body>${html.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '')}</body></html>`;
     const savedWord = await offerDocumentStore.saveWordHtml({
       tenantId: actor.tenantId,
