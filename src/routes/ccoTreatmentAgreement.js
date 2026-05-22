@@ -1,12 +1,7 @@
 'use strict';
 
 const express = require('express');
-const {
-  normalizeText,
-  resolveCcoRouteActor,
-  buildCcoRouteContext,
-  requireCcoRouteContext,
-} = require('./ccoRouteShared');
+const { normalizeText, resolveCcoRouteActor, buildCcoRouteContext } = require('./ccoRouteShared');
 
 const {
   buildTreatmentAgreementReadout,
@@ -37,10 +32,10 @@ function createCcoTreatmentAgreementRouter({
     try {
       const actor = await resolveCcoRouteActor(req, { authStore, config });
       const context = buildCcoRouteContext(req, actor);
-      requireCcoRouteContext(context);
       return fn(context, actor, req, res);
     } catch (error) {
       const status = Number(error.statusCode) || 500;
+      if (status >= 500) console.error(error);
       return res.status(status).json({ error: error.message || 'Internt fel.' });
     }
   }
