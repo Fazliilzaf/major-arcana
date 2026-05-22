@@ -4426,6 +4426,17 @@ body.is-admin-embed .focus-conversation {
   background: rgba(244, 236, 231, 0.8);
 }
 
+.patient-master-plan-photo img.is-loading {
+  background: linear-gradient(135deg, rgba(244, 236, 231, 0.95), rgba(223, 212, 203, 0.75));
+}
+
+.patient-master-plan-photo img.is-broken {
+  object-fit: contain;
+  padding: 0.75rem;
+  color: rgba(120, 96, 80, 0.8);
+  font-size: 0.72rem;
+}
+
 .patient-master-plan-photo figcaption {
   display: flex;
   align-items: center;
