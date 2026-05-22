@@ -123,7 +123,6 @@ worklist-API → app.js (buildUnifiedCardMarkup) → DOM (warm-row markup)
                 ↓
                 runtime-fix-shims.js (P0/P1 patches via setInterval polling)
                 runtime-sentiment-badges.js (data-quick-sentiment via polling)
-                runtime-followup-filters.js (filter-chip apply via polling)
                 runtime-i18n.js (text-translation via observer)
                 runtime-a11y.js (auto-aria-label via observer)
 
