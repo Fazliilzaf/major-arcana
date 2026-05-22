@@ -26,6 +26,7 @@
   };
 
   const PHOTO_LABEL_OPTIONS = ['Front', 'Vertex', 'Baksida', 'Profil', 'Annan'];
+  const photoObjectUrls = new Set();
 
   const runtime = {
     mode: 'register',
@@ -413,6 +414,81 @@
     });
     if (variant) params.set('variant', variant);
     return `/api/v1/cco-journal/photo?${params.toString()}`;
+  }
+
+  function revokePhotoObjectUrls() {
+    photoObjectUrls.forEach((url) => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        /* ignore */
+      }
+    });
+    photoObjectUrls.clear();
+  }
+
+  async function fetchJournalPhotoObjectUrl(photoId, variant = '') {
+    const primaryUrl = journalPhotoUrl(photoId, variant);
+    if (!primaryUrl) return '';
+
+    const token = getAdminToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const fetchPhoto = async (url) =>
+      fetch(new URL(url, window.location.origin), {
+        headers,
+        credentials: 'same-origin',
+      });
+
+    let response = await fetchPhoto(primaryUrl);
+    if (!response.ok && variant === 'annotated') {
+      response = await fetchPhoto(journalPhotoUrl(photoId));
+    }
+    if (!response.ok) return '';
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    photoObjectUrls.add(objectUrl);
+    return objectUrl;
+  }
+
+  async function hydrateJournalPhotoElements(root = els.patientRail) {
+    if (!root) return;
+    const images = root.querySelectorAll('img[data-journal-photo-id]');
+    await Promise.all(
+      Array.from(images).map(async (img) => {
+        const photoId = normalizeText(img.dataset.journalPhotoId);
+        const variant = normalizeText(img.dataset.journalPhotoVariant);
+        if (!photoId || img.dataset.loaded === 'true') return;
+        img.classList.add('is-loading');
+        const objectUrl = await fetchJournalPhotoObjectUrl(photoId, variant);
+        img.classList.remove('is-loading');
+        if (!objectUrl) {
+          img.alt = 'Kunde inte visa bild';
+          img.classList.add('is-broken');
+          return;
+        }
+        img.src = objectUrl;
+        img.dataset.loaded = 'true';
+        const previewLink = img.closest('a[data-journal-photo-link]');
+        if (previewLink) previewLink.href = objectUrl;
+      })
+    );
+  }
+
+  function bindJournalPhotoOpenLinks(root = els.patientRail) {
+    if (!root) return;
+    root.querySelectorAll('[data-journal-photo-open]').forEach((link) => {
+      if (link.dataset.boundJournalPhotoOpen === 'true') return;
+      link.dataset.boundJournalPhotoOpen = 'true';
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const photoId = normalizeText(link.dataset.journalPhotoOpen);
+        if (!photoId) return;
+        void fetchJournalPhotoObjectUrl(photoId).then((objectUrl) => {
+          if (objectUrl) window.open(objectUrl, '_blank', 'noopener');
+        });
+      });
+    });
   }
 
   function isPreviewableImage(file) {
@@ -836,14 +912,17 @@
             ? `<div class="patient-master-plan-photo-grid">
                 ${photos
                   .map((photo) => {
-                    const originalUrl = journalPhotoUrl(photo.photoId);
-                    const previewUrl = photo.annotatedPreviewAvailable
-                      ? journalPhotoUrl(photo.photoId, 'annotated')
-                      : originalUrl;
+                    const variant = photo.annotatedPreviewAvailable ? 'annotated' : '';
                     return `
                       <figure class="patient-master-plan-photo">
-                        <a class="patient-master-plan-photo-link" href="${escapeHtml(originalUrl)}" target="_blank" rel="noopener">
-                          <img src="${escapeHtml(previewUrl)}" alt="${escapeHtml(photo.fileName || photo.label || 'Konsultationsbild')}" loading="lazy" />
+                        <a class="patient-master-plan-photo-link" href="#" data-journal-photo-link data-journal-photo-open="${escapeHtml(photo.photoId)}">
+                          <img
+                            data-journal-photo-id="${escapeHtml(photo.photoId)}"
+                            data-journal-photo-variant="${escapeHtml(variant)}"
+                            src=""
+                            alt="${escapeHtml(photo.fileName || photo.label || 'Konsultationsbild')}"
+                            loading="lazy"
+                          />
                         </a>
                         <figcaption>
                           <strong>${escapeHtml(photo.label || photo.fileName || 'Bild')}</strong>
@@ -859,7 +938,7 @@
                               ? `<button type="button" class="customers-utility-button" data-patient-annotate-photo="${escapeHtml(photo.attachmentId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-photo-id="${escapeHtml(photo.photoId)}">Markera plan</button>`
                               : ''
                           }
-                          <a class="patient-master-open-link" href="${escapeHtml(originalUrl)}" target="_blank" rel="noopener">Original</a>
+                          <a class="patient-master-open-link" href="#" data-journal-photo-open="${escapeHtml(photo.photoId)}">Original</a>
                         </div>
                       </figure>
                     `;
@@ -935,6 +1014,7 @@
       renderDetailEmpty();
       return;
     }
+    revokePhotoObjectUrls();
     const { card, patient, journalEntries, driveFiles } = detail;
     const tab = runtime.detailTab;
     const profilActive = tab === 'profil';
@@ -999,6 +1079,8 @@
         </div>
       </section>
     `;
+    bindJournalPhotoOpenLinks(els.patientRail);
+    void hydrateJournalPhotoElements(els.patientRail);
   }
 
   async function loadStats() {
@@ -1395,8 +1477,14 @@
       /* use attachment fallback */
     }
 
+    const imageUrl = await fetchJournalPhotoObjectUrl(photoId);
+    if (!imageUrl) {
+      setStatus('Kunde inte ladda bilden för markering.', 'error');
+      return;
+    }
+
     window.ArcanaJournalPlanEditor.open({
-      imageUrl: journalPhotoUrl(photoId),
+      imageUrl,
       annotations,
       planSummary,
       onSave: async (payload) => {
