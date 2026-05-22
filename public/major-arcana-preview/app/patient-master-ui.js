@@ -1277,6 +1277,7 @@
     const agreement = runtime.treatmentAgreement;
     const readout = runtime.agreementReadout;
     const commercial = runtime.commercialCase;
+    const card = runtime.detail?.card;
     const offerAccepted = commercial?.quoteStatus === 'accepted';
     const patientInfoPdf =
       readout?.patientInfoPdfUrl || '/patientinformation/hartransplantation-dhi-prp-minimal.pdf';
@@ -1365,6 +1366,13 @@
           angerUrl
             ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
             : ''
+        }
+        ${
+          readout?.bookable
+            ? `<div class="patient-master-booking-ready">
+                <p class="patient-master-muted"><strong>Behandlingsbokning öppen.</strong> Boka behandlingstid i CCO-tråden med kundens e-post (${escapeHtml(card.primaryEmail || 'saknas')}). Endast behandlingstjänster (FUE/DHI m.fl.) — inte konsultation.</p>
+              </div>`
+            : `<p class="patient-master-muted">Behandlingsbokning spärrad tills avtalet är signerat och bokningsbart.</p>`
         }
       </article>
     `;

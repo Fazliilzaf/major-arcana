@@ -17,6 +17,7 @@ const {
   enrichBookingCaseWithHistorySignals,
 } = require('../ops/ccoBookingStore');
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
+const { assertTreatmentBookingAllowed } = require('../ops/ccoTreatmentBookingGate');
 
 const WORKSPACE_ID = 'major-arcana-preview';
 
@@ -412,6 +413,8 @@ function createCcoBookingsRouter({
   bookingEngineStore = null,
   historyStore = null,
   patientSystemStore = null,
+  treatmentAgreementStore = null,
+  patientMasterStore = null,
   authStore,
   config,
 }) {
@@ -578,6 +581,14 @@ function createCcoBookingsRouter({
   router.post('/cco-bookings/candidates', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingContext(context);
+      await assertTreatmentBookingAllowed({
+        treatmentAgreementStore,
+        patientMasterStore,
+        tenantId: context.tenantId,
+        customerEmail: context.customerEmail,
+        patientId: normalizeText(req.body?.patientId),
+        body: req.body || {},
+      });
       const reservedSlots = bookingEngineStore
         ? await bookingEngineStore.reserveSlots({
             ...toCaseInput(context, req.body),

@@ -1813,6 +1813,8 @@ process.once('SIGTERM', () => {
     createCcoBookingsRouter({
       bookingStore: ccoBookingStore,
       bookingEngineStore: ccoBookingEngineStore,
+      treatmentAgreementStore: ccoTreatmentAgreementStore,
+      patientMasterStore: ccoPatientMasterStore,
       authStore,
       config,
     })
@@ -1823,6 +1825,8 @@ process.once('SIGTERM', () => {
     createCcoBookingEngineRouter({
       bookingEngineStore: ccoBookingEngineStore,
       bookingStore: ccoBookingStore,
+      treatmentAgreementStore: ccoTreatmentAgreementStore,
+      patientMasterStore: ccoPatientMasterStore,
       authStore,
       config,
     })
