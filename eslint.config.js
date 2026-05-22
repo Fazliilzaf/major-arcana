@@ -124,6 +124,34 @@ module.exports = [
     },
   },
   {
+    files: [
+      'public/major-arcana-preview/app/components/arcana-thread-card.js',
+      'public/major-arcana-preview/app/components/lit-switchover.js',
+      'public/major-arcana-preview/app/components/thread-store-bridge.js',
+      'public/major-arcana-preview/app/components/thread-to-card-props.js',
+    ],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        MajorArcanaPreviewI18n: 'readonly',
+        MajorArcanaPreviewA11y: 'readonly',
+        MajorArcanaPreviewAnimations: 'readonly',
+        MajorArcanaPreviewToast: 'readonly',
+        state: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
+      'no-undef': 'warn',
+      'no-redeclare': 'off',
+      'prefer-const': 'off',
+      'no-var': 'off',
+    },
+  },
+  {
     files: ['bin/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
