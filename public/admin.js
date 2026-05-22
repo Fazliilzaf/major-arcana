@@ -25,12 +25,16 @@
     teamSection: '#team',
     settingsSection: '#settings',
     opsSection: '#ops',
+    cmoSection: '#cmo',
   });
   const ADMIN_PRIMARY_PATH = '/admin';
   const CCO_PRIMARY_PATH = '/admin';
   const CCO_PREVIEW_PRIMARY_PATH = '/major-arcana-preview/';
   const CCO_PREVIEW_EMBED_SRC = '/major-arcana-preview/?embed=admin';
   const AUTH_RETURN_TO_QUERY_PARAM = 'next';
+  const INITIAL_ADMIN_HASH = String(window.location.hash || '')
+    .trim()
+    .toLowerCase();
   const TRANSLATIONS = Object.freeze({
     sv: {
       brand_title: 'Major Arcana',
@@ -4609,6 +4613,7 @@
       .toLowerCase();
     if (!hash) return '';
     if (hash === '#cco-workspace') return 'ccoWorkspaceSection';
+    if (hash === '#cmo-connectors' || hash === '#cmo/connectors') return 'cmoSection';
     const entry = Object.entries(SECTION_GROUP_HASH_MAP).find(
       ([, hashTarget]) =>
         String(hashTarget || '')
@@ -4624,6 +4629,16 @@
     if (normalized === 'ccoWorkspaceSection') {
       const preservedSearch = buildPreservedAdminSearch();
       return `${ADMIN_PRIMARY_PATH}${preservedSearch}#cco`;
+    }
+    if (normalized === 'cmoSection') {
+      const preservedSearch = buildPreservedAdminSearch();
+      if (
+        INITIAL_ADMIN_HASH === '#cmo-connectors' ||
+        INITIAL_ADMIN_HASH === '#cmo/connectors'
+      ) {
+        return `${ADMIN_PRIMARY_PATH}${preservedSearch}#cmo-connectors`;
+      }
+      return `${ADMIN_PRIMARY_PATH}${preservedSearch}#cmo`;
     }
     const preservedSearch = buildPreservedAdminSearch();
     const hash = SECTION_GROUP_HASH_MAP[normalized] || SECTION_GROUP_HASH_MAP.overviewSection;
@@ -10506,6 +10521,19 @@
     if (typeof window.initCmoMarketingTabs === 'function') {
       window.initCmoMarketingTabs();
     }
+    (function applyCmoConnectorsDeepLink() {
+      if (
+        INITIAL_ADMIN_HASH !== '#cmo-connectors' &&
+        INITIAL_ADMIN_HASH !== '#cmo/connectors'
+      ) {
+        return;
+      }
+      if (typeof window.activateCmoTab === 'function') {
+        window.activateCmoTab('connectors');
+      }
+      const refreshBtn = document.getElementById('cmoConnectorsRefreshBtn');
+      if (refreshBtn) refreshBtn.click();
+    })();
     if (typeof window.initCmoAnalyticsPanel === 'function') {
       window.initCmoAnalyticsPanel(getToken);
     }

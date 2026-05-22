@@ -4,8 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PORT=3100
-ADMIN_URL="http://127.0.0.1:${PORT}/admin"
-CONNECTORS_URL="${ADMIN_URL}#cmo-connectors"
+ADMIN_URL="http://127.0.0.1:${PORT}/admin/cmo/connectors"
 
 cd "${ROOT_DIR}"
 
@@ -28,8 +27,7 @@ open_browser_when_ready() {
         open "${ADMIN_URL}"
       fi
       echo "✅ Admin redo: ${ADMIN_URL}"
-      echo "   CMO → Connectors → Uppdatera status (förväntat: ok: 4)"
-      echo "   Direktlänk: ${CONNECTORS_URL}"
+      echo "   (Inte http://127.0.0.1:${PORT}/ — det är patientchatten)"
       return 0
     fi
     sleep 2

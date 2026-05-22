@@ -743,6 +743,14 @@ app.get('/admin', (req, res) => {
   sendAdminHtml(res);
 });
 
+app.get('/admin/cmo/connectors', (_req, res) => {
+  res.redirect(302, '/admin#cmo-connectors');
+});
+
+app.get('/admin/cmo', (_req, res) => {
+  res.redirect(302, '/admin#cmo');
+});
+
 app.get('/cco', (req, res) => {
   const query = String(req.url || '').includes('?')
     ? String(req.url).slice(String(req.url).indexOf('?'))
