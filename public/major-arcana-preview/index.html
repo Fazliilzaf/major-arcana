@@ -9,6 +9,23 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="HairTP CCO" />
+    <script>
+      window.__ARCANA_STAFF_JOURNAL_OPEN__ = true;
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then(function (regs) {
+            return Promise.all(
+              regs.map(function (reg) {
+                return reg.unregister();
+              })
+            );
+          })
+          .catch(function () {});
+      }
+    </script>
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./icon-192.png" />
@@ -10432,8 +10449,8 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 85db2296e8) -->
-    <script src="./app.bundle.85db2296e8.min.js"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: b81eb3bff9) -->
+    <script src="./app.bundle.b81eb3bff9.min.js"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's

@@ -1278,6 +1278,17 @@
       }
     }
 
+    function isStaffJournalOpenAccessClient() {
+      try {
+        if (windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ === true) return true;
+        const params = new URLSearchParams(windowObject.location?.search || "");
+        if (params.get("view") === "customers") return true;
+      } catch {
+        /* ignore */
+      }
+      return isLocalPreviewHost();
+    }
+
     async function waitForRuntimeAuthToken({ timeoutMs, intervalMs = 60 } = {}) {
       const readToken = () =>
         normalizeText(typeof getAdminToken === "function" ? getAdminToken() : "");
@@ -1295,7 +1306,17 @@
         const nextToken = readToken();
         if (nextToken) return nextToken;
       }
-      return isLocalPreviewHost() || windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ === true
+      return isLocalPreviewHost() ||
+        windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ === true ||
+        (() => {
+          try {
+            return (
+              new URLSearchParams(windowObject.location?.search || "").get("view") === "customers"
+            );
+          } catch {
+            return false;
+          }
+        })()
         ? "__preview_local__"
         : "";
     }
@@ -3257,7 +3278,7 @@
     }
 
     async function loadLiveRuntime(options = {}) {
-      if (windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ === true) {
+      if (isStaffJournalOpenAccessClient()) {
         state.runtime.loading = false;
         state.runtime.authRequired = false;
         return;
@@ -3664,7 +3685,7 @@
           error: message,
         });
         const authRequired =
-          windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ !== true && isAuthFailure(statusCode, message);
+          !isStaffJournalOpenAccessClient() && isAuthFailure(statusCode, message);
         if (authRequired && typeof clearAdminToken === "function") {
           clearAdminToken();
         }
@@ -5025,7 +5046,7 @@
       });
 
       const cachedApplied = await applyRuntimeThreadCacheIfAvailable();
-      if (windowObject.__ARCANA_STAFF_JOURNAL_OPEN__ !== true) {
+      if (!isStaffJournalOpenAccessClient()) {
         loadLiveRuntime({
           staleWhileRevalidate: cachedApplied === true,
         }).catch((error) => {

@@ -92,6 +92,8 @@
   function isStaffJournalOpenAccess() {
     try {
       if (window.__ARCANA_STAFF_JOURNAL_OPEN__ === true) return true;
+      const params = new URLSearchParams(window.location.search || '');
+      if (params.get('view') === 'customers') return true;
     } catch {
       /* ignore */
     }
@@ -1617,7 +1619,10 @@
       runtime.pendingPatientId = startup.patientId;
     }
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => Promise.all(registrations.map((reg) => reg.unregister())))
+        .catch(() => {});
     }
   }
 
