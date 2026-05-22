@@ -55,6 +55,7 @@
     "smoke:mobile-journal:local": "BASE_URL=http://127.0.0.1:3100 ARCANA_SMOKE_BEARER_TOKEN=__preview_local__ bash ./scripts/smoke-mobile-journal.sh",
     "verify": "npm run check:syntax && npm run smoke:local",
     "backup:state": "node ./scripts/backup-state.js",
+    "backup:journal-photos": "node ./scripts/backup-journal-photos.js",
     "backup:list": "node ./scripts/list-backups.js",
     "backup:prune": "node ./scripts/prune-backups.js --dry-run",
     "backup:prune:apply": "node ./scripts/prune-backups.js --apply",

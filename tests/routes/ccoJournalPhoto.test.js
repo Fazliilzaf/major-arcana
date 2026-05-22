@@ -175,3 +175,29 @@ test('photo upload rejects unsupported mime type', async () => {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+test('photo GET returns stored image bytes', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const upload = await postPhoto(baseUrl, {
+        patientId: 'patient-photo-get',
+        personnummer: '19960830-4698',
+        label: 'Front',
+      });
+      assert.equal(upload.status, 200);
+      const payload = await upload.json();
+      const photoId = payload?.photo?.photoId;
+      assert.ok(photoId);
+      const getResponse = await fetch(
+        `${baseUrl}/cco-journal/photo?patientId=patient-photo-get&photoId=${encodeURIComponent(photoId)}`
+      );
+      assert.equal(getResponse.status, 200);
+      assert.match(String(getResponse.headers.get('content-type') || ''), /image\//);
+      const bytes = Buffer.from(await getResponse.arrayBuffer());
+      assert.ok(bytes.length > 0);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});

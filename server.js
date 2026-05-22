@@ -432,7 +432,16 @@ function transformPreviewHtml(html) {
     console.log(`[asset-pipeline] HTML transform: bumped=${bumped} dropped=${dropped}`);
   }
   if (config.staffJournalOpenAccess) {
-    const inject = '<script>window.__ARCANA_STAFF_JOURNAL_OPEN__=true;</script>';
+    const inject =
+      '<script>window.__ARCANA_STAFF_JOURNAL_OPEN__=true;</script>' +
+      "<script>if('serviceWorker'in navigator){navigator.serviceWorker.getRegistrations().then(function(r){return Promise.all(r.map(function(x){return x.unregister();}));}).catch(function(){});}</script>";
+    if (html.includes('</head>')) {
+      html = html.replace('</head>', `${inject}</head>`);
+    }
+  }
+  if (Array.isArray(config.pilotPatientIds) && config.pilotPatientIds.length) {
+    const idsJson = JSON.stringify(config.pilotPatientIds);
+    const inject = `<script>window.__ARCANA_PILOT_PATIENT_IDS__=${idsJson};</script>`;
     if (html.includes('</head>')) {
       html = html.replace('</head>', `${inject}</head>`);
     }
@@ -803,6 +812,57 @@ app.get('/healthz', (req, res) => {
     startupPhase: runtimeState.startupPhase,
     uptimeSec: Number(process.uptime().toFixed(1)),
   });
+});
+
+app.get('/api/v1/health/journal-photos', async (_req, res) => {
+  const dir = String(config.journalPhotosDir || '').trim();
+  if (!dir) {
+    return res.status(503).json({ ok: false, error: 'journalPhotosDir saknas.' });
+  }
+  const fsPromises = require('node:fs/promises');
+  const pathMod = require('node:path');
+  let fileCount = 0;
+  let totalBytes = 0;
+  async function walk(current) {
+    const entries = await fsPromises.readdir(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = pathMod.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+        continue;
+      }
+      fileCount += 1;
+      const stat = await fsPromises.stat(fullPath);
+      totalBytes += Number(stat.size || 0);
+    }
+  }
+  try {
+    await walk(dir);
+    const warnBytes = Number(process.env.ARCANA_JOURNAL_PHOTOS_WARN_BYTES || 5_000_000_000);
+    return res.json({
+      ok: true,
+      path: dir,
+      fileCount,
+      totalBytes,
+      warnBytes,
+      warn: totalBytes >= warnBytes,
+      staffJournalOpenAccess: Boolean(config.staffJournalOpenAccess),
+    });
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return res.json({
+        ok: true,
+        path: dir,
+        fileCount: 0,
+        totalBytes: 0,
+        exists: false,
+        staffJournalOpenAccess: Boolean(config.staffJournalOpenAccess),
+      });
+    }
+    return res
+      .status(500)
+      .json({ ok: false, error: error.message || 'journal_photos_health_failed' });
+  }
 });
 
 app.get('/api/v1/executive/feed', (req, res) => {

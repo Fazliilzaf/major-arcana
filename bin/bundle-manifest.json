@@ -25,6 +25,7 @@
     "app/system-mail-parser.js",
     "app/showcase-banner.js",
     "app/journal-plan-editor.js",
+    "app/journal-photo-client.js",
     "app/patient-master-ui.js"
   ]
 }
