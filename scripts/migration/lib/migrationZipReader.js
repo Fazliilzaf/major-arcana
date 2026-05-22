@@ -18,7 +18,29 @@ const MIME_BY_EXT = {
 
 function resolveZipPath(migrationRoot, zipName) {
   if (!zipName) return '';
-  return path.join(path.resolve(migrationRoot), zipName);
+  const root = path.resolve(migrationRoot);
+  const direct = path.join(root, zipName);
+  if (zipExists(direct)) return direct;
+
+  const searchDirs = [root];
+  const archiveJournal = path.join(root, 'MA-Archive', 'journal-zips');
+  if (fs.existsSync(archiveJournal)) searchDirs.push(archiveJournal);
+
+  try {
+    for (const name of fs.readdirSync(root)) {
+      const abs = path.join(root, name);
+      if (fs.statSync(abs).isDirectory()) searchDirs.push(abs);
+    }
+  } catch {
+    // ignore
+  }
+
+  for (const dir of searchDirs) {
+    const candidate = path.join(dir, zipName);
+    if (zipExists(candidate)) return candidate;
+  }
+
+  return direct;
 }
 
 function zipExists(zipPath) {

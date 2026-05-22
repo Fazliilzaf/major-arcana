@@ -48,6 +48,11 @@
     offerDocumentPdfUrl: '',
     offerDocumentWordUrl: '',
     offerSignUrl: '',
+    treatmentAgreement: null,
+    agreementReadout: null,
+    agreementDocumentUrl: '',
+    agreementDocumentPdfUrl: '',
+    agreementSignUrl: '',
     offerTemplates: [],
     stats: null,
     preferJournalOnMobile: true,
@@ -1199,6 +1204,103 @@
     `;
   }
 
+  function renderAgreementSection() {
+    const agreement = runtime.treatmentAgreement;
+    const readout = runtime.agreementReadout;
+    const commercial = runtime.commercialCase;
+    const offerAccepted = commercial?.quoteStatus === 'accepted';
+    const patientInfoPdf =
+      readout?.patientInfoPdfUrl || '/patientinformation/hartransplantation-dhi-prp-minimal.pdf';
+    const angerUrl = readout?.angerBlanketUrl || '';
+    const coolingActive = readout?.coolingOff?.active;
+    const canCreate = offerAccepted && (!agreement || agreement.agreementStatus === 'draft');
+    const canSendSign =
+      agreement?.agreementDocumentId &&
+      agreement.agreementStatus !== 'bookable' &&
+      agreement.agreementStatus !== 'signed';
+    const canAcceptAgreement =
+      agreement &&
+      (agreement.agreementStatus === 'sent' || agreement.agreementStatus === 'cooling_off');
+
+    return `
+      <article class="focus-customer-data-card patient-master-agreement-card">
+        <div class="patient-master-material-head">
+          <h4>Behandlingsavtal</h4>
+          ${
+            readout?.phase
+              ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(readout.phase)}</span>`
+              : ''
+          }
+        </div>
+        <p class="patient-master-muted">${escapeHtml(readout?.nextStep || 'Följ juristflödet: patientinfo → offert accepterad → avtal → signering → bokning.')}</p>
+        <ol class="patient-master-workflow-steps">
+          <li class="${readout?.patientInfoSent ? 'is-done' : ''}">Skicka patientinformation (bilaga 1)${readout?.patientInfoSent ? ' ✓' : ''}</li>
+          <li class="${offerAccepted ? 'is-done' : ''}">Offert accepterad${offerAccepted ? ' ✓' : ''}</li>
+          <li class="${agreement?.agreementDocumentId ? 'is-done' : ''}">Avtal skapat${agreement?.agreementDocumentId ? ' ✓' : ''}</li>
+          <li class="${readout?.bookable ? 'is-done' : ''}">Signerat — bokningsbart${readout?.bookable ? ' ✓' : ''}</li>
+        </ol>
+        ${
+          readout?.patientInfoSentAt
+            ? `<p class="patient-master-muted">Patientinfo skickad ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))} (${escapeHtml(readout.patientInfoChannel || '—')})</p>`
+            : ''
+        }
+        ${
+          agreement?.deliveryMode
+            ? `<p class="patient-master-muted">Leveransläge: ${escapeHtml(agreement.deliveryMode === 'distans' ? 'Distans (betänketid)' : 'På plats')}</p>`
+            : ''
+        }
+        ${
+          coolingActive
+            ? `<p class="patient-master-muted">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</p>`
+            : ''
+        }
+        <div class="patient-master-plan-photo-actions">
+          <a class="customers-utility-button" href="${escapeHtml(patientInfoPdf)}" target="_blank" rel="noopener">Bilaga 1 PDF</a>
+          <button type="button" class="customers-utility-button" data-patient-action="send-patient-info">Logga skickad patientinfo</button>
+          ${
+            canCreate
+              ? `<button type="button" class="customers-utility-button" data-patient-action="create-agreement-from-offer">Skapa avtal från offert</button>`
+              : ''
+          }
+          ${
+            canSendSign
+              ? `<button type="button" class="customers-utility-button" data-patient-action="send-agreement-for-sign">Skicka för signering</button>`
+              : ''
+          }
+          ${
+            canAcceptAgreement
+              ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement">Signera avtal (staff)</button>`
+              : ''
+          }
+          ${
+            canAcceptAgreement && coolingActive
+              ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement" data-patient-force-agreement="1">Tvinga signering</button>`
+              : ''
+          }
+        </div>
+        ${
+          runtime.agreementDocumentUrl
+            ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementDocumentUrl)}" target="_blank" rel="noopener">Öppna avtal (HTML)</a>${
+                runtime.agreementDocumentPdfUrl
+                  ? ` · <a href="${escapeHtml(runtime.agreementDocumentPdfUrl)}" target="_blank" rel="noopener">PDF</a>`
+                  : ''
+              }</p>`
+            : ''
+        }
+        ${
+          runtime.agreementSignUrl
+            ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementSignUrl)}" target="_blank" rel="noopener">Signeringssida för kund</a></p>`
+            : ''
+        }
+        ${
+          angerUrl
+            ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
+            : ''
+        }
+      </article>
+    `;
+  }
+
   function renderDetailPanel() {
     if (!els.patientRail) return;
     const detail = runtime.detail;
@@ -1211,6 +1313,7 @@
     const tab = runtime.detailTab;
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
+    const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
     const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
 
@@ -1240,6 +1343,7 @@
         <div class="patient-master-tabs" role="tablist">
           <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
           <button type="button" class="patient-master-tab${journalActive ? ' is-active' : ''}" data-patient-tab="journal" aria-pressed="${journalActive}">Journal</button>
+          <button type="button" class="patient-master-tab${avtalActive ? ' is-active' : ''}" data-patient-tab="avtal" aria-pressed="${avtalActive}">Avtal</button>
           <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileCount ? ` (${fileCount})` : ''}</button>
         </div>
 
@@ -1264,6 +1368,10 @@
 
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
           ${renderJournalEntries(journalEntries)}
+        </div>
+
+        <div class="patient-master-tab-panel"${avtalActive ? '' : ' hidden'} data-patient-tab-panel="avtal">
+          ${renderAgreementSection()}
         </div>
 
         <div class="patient-master-tab-panel"${filesActive ? '' : ' hidden'} data-patient-tab-panel="filer">
@@ -1344,6 +1452,40 @@
     }
   }
 
+  async function loadPatientTreatmentAgreement(patientId) {
+    if (!patientId) {
+      runtime.treatmentAgreement = null;
+      runtime.agreementReadout = null;
+      runtime.agreementDocumentUrl = '';
+      runtime.agreementDocumentPdfUrl = '';
+      runtime.agreementSignUrl = '';
+      return;
+    }
+    try {
+      const payload = await apiRequest(
+        `/api/v1/cco-treatment-agreement/patient-agreement?patientId=${encodeURIComponent(patientId)}`
+      );
+      runtime.treatmentAgreement = payload.agreement || null;
+      runtime.agreementReadout = payload.agreementReadout || null;
+      const agreement = runtime.treatmentAgreement;
+      runtime.agreementDocumentUrl =
+        agreement?.agreementDocumentId && patientId
+          ? `/api/v1/cco-treatment-agreement/document?patientId=${encodeURIComponent(patientId)}&documentId=${encodeURIComponent(agreement.agreementDocumentId)}`
+          : '';
+      runtime.agreementDocumentPdfUrl =
+        agreement?.agreementDocumentPdfId && patientId
+          ? `/api/v1/cco-treatment-agreement/document.pdf?patientId=${encodeURIComponent(patientId)}&documentId=${encodeURIComponent(agreement.agreementDocumentPdfId)}`
+          : '';
+      runtime.agreementSignUrl = '';
+    } catch {
+      runtime.treatmentAgreement = null;
+      runtime.agreementReadout = null;
+      runtime.agreementDocumentUrl = '';
+      runtime.agreementDocumentPdfUrl = '';
+      runtime.agreementSignUrl = '';
+    }
+  }
+
   async function loadPatientCommercialCase(patientId) {
     if (!patientId) {
       runtime.commercialCase = null;
@@ -1388,6 +1530,7 @@
       );
       runtime.detail = payload;
       await loadPatientCommercialCase(patientId);
+      await loadPatientTreatmentAgreement(patientId);
       renderDetailPanel();
     } catch (error) {
       runtime.detail = null;
@@ -1503,6 +1646,96 @@
       await loadPatientDetail(patientId);
     } catch (error) {
       setStatus(error.message || 'Kunde inte acceptera offert.', 'error');
+    }
+  }
+
+  async function sendPatientInfo() {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId) return;
+    const channel =
+      window.prompt('Kanal (t.ex. e-post, sms, utskrift vid konsultation):', 'e-post') || 'manual';
+    setStatus('Loggar utskick av patientinformation…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-treatment-agreement/send-patient-info', {
+        method: 'POST',
+        body: { patientId, channel },
+      });
+      runtime.treatmentAgreement = payload.agreement || null;
+      runtime.agreementReadout = payload.agreementReadout || null;
+      setStatus('Patientinformation loggad som skickad.', 'success');
+      runtime.detailTab = 'avtal';
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte logga patientinfo.', 'error');
+    }
+  }
+
+  async function createAgreementFromOffer() {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId) return;
+    const deliveryMode =
+      window.prompt('Leveransläge: skriv "distans" eller "plats":', 'plats') || 'plats';
+    setStatus('Skapar behandlingsavtal…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-treatment-agreement/from-offer', {
+        method: 'POST',
+        body: {
+          patientId,
+          deliveryMode: deliveryMode.toLowerCase().includes('dist') ? 'distans' : 'plats',
+        },
+      });
+      runtime.treatmentAgreement = payload.agreement || null;
+      runtime.agreementReadout = payload.agreementReadout || null;
+      runtime.agreementDocumentUrl = payload.agreementDocumentUrl || '';
+      setStatus('Behandlingsavtal skapat.', 'success');
+      runtime.detailTab = 'avtal';
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte skapa avtal.', 'error');
+    }
+  }
+
+  async function sendAgreementForSign() {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId) return;
+    setStatus('Skickar avtal för signering…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-treatment-agreement/send-for-sign', {
+        method: 'POST',
+        body: { patientId },
+      });
+      runtime.treatmentAgreement = payload.agreement || null;
+      runtime.agreementReadout = payload.agreementReadout || null;
+      runtime.agreementSignUrl = payload.agreementSignUrl || '';
+      setStatus('Avtal skickat för signering.', 'success');
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte skicka avtal.', 'error');
+    }
+  }
+
+  async function acceptAgreement(forceAccept) {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId) return;
+    const customerSignedName =
+      window.prompt('Kundens namn för signering:', runtime.detail?.card?.displayName || '') || '';
+    if (!customerSignedName) return;
+    setStatus('Registrerar avtalssignering…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-treatment-agreement/accept', {
+        method: 'POST',
+        body: {
+          patientId,
+          customerSignedName,
+          forceAccept: forceAccept === true,
+        },
+      });
+      runtime.treatmentAgreement = payload.agreement || null;
+      runtime.agreementReadout = payload.agreementReadout || null;
+      setStatus('Behandlingsavtal signerat.', 'success');
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte signera avtal.', 'error');
     }
   }
 
@@ -1866,6 +2099,14 @@
           void sendOfferForSign();
         } else if (actionButton.dataset.patientAction === 'accept-offer') {
           void acceptOffer(actionButton.dataset.patientForceOffer === '1');
+        } else if (actionButton.dataset.patientAction === 'send-patient-info') {
+          void sendPatientInfo();
+        } else if (actionButton.dataset.patientAction === 'create-agreement-from-offer') {
+          void createAgreementFromOffer();
+        } else if (actionButton.dataset.patientAction === 'send-agreement-for-sign') {
+          void sendAgreementForSign();
+        } else if (actionButton.dataset.patientAction === 'accept-agreement') {
+          void acceptAgreement(actionButton.dataset.patientForceAgreement === '1');
         } else if (actionButton.dataset.patientAction === 'copy-patient-link') {
           void copyPatientDeepLink();
         } else if (actionButton.dataset.patientAction === 'show-patient-qr') {

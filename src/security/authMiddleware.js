@@ -36,9 +36,11 @@ function isStaffJournalOpenApiPath(req) {
     '/api/v1/cco-patient-master',
     '/api/v1/cco-journal',
     '/api/v1/cco-commercial',
+    '/api/v1/cco-treatment-agreement',
     '/cco-patient-master',
     '/cco-journal',
     '/cco-commercial',
+    '/cco-treatment-agreement',
   ];
   return openPrefixes.some((prefix) => path.startsWith(prefix));
 }
