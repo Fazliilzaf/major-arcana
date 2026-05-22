@@ -88,6 +88,12 @@ services:
         value: hair-tp-clinic
       - key: ARCANA_BOOTSTRAP_DELAY_MS
         value: "5000"
+      # Byggfas: OWNER-login utan MFA. Sätt till true igen före go-live.
+      - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
+        value: "false"
+      # Byggfas: hoppa owner_mfa_enforced i readiness guard
+      - key: ARCANA_PREFLIGHT_READINESS_CHECKS
+        value: cors_strict
       # MFA reset: sätt till true manuellt i Render UI vid kontrollerad heal, sedan tillbaka false
       - key: ARCANA_BOOTSTRAP_RESET_OWNER_MFA
         value: "false"

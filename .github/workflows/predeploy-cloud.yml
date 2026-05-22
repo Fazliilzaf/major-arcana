@@ -68,8 +68,7 @@ jobs:
             fi
           done
           if [[ -z "${ARCANA_OWNER_MFA_SECRET:-}" && -z "${ARCANA_OWNER_MFA_RECOVERY_CODE:-}" ]]; then
-            echo "::error::Set ARCANA_OWNER_MFA_SECRET or ARCANA_OWNER_MFA_RECOVERY_CODE."
-            missing=1
+            echo "::warning::ARCANA_OWNER_MFA_SECRET/RECOVERY saknas — OK när prod har ARCANA_AUTH_OWNER_MFA_REQUIRED=false (byggfas)."
           fi
           if [[ "$missing" -ne 0 ]]; then
             exit 1
