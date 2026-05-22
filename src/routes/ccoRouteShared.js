@@ -21,7 +21,21 @@ function getAuthToken(req) {
   return normalizeText(req.get('x-auth-token'));
 }
 
+function resolveActorFromRequestAuth(req) {
+  const auth = req.auth;
+  if (!auth?.tenantId || !auth?.userId) return null;
+  return {
+    tenantId: auth.tenantId,
+    userId: auth.userId,
+    role: auth.role || 'OWNER',
+    authMode: auth.authMode || 'session',
+  };
+}
+
 async function resolveCcoRouteActor(req, { authStore, config }) {
+  const actorFromMiddleware = resolveActorFromRequestAuth(req);
+  if (actorFromMiddleware) return actorFromMiddleware;
+
   const token = getAuthToken(req);
   if (token === '__preview_local__' && isLocalPreviewRequest(req)) {
     return {
@@ -108,6 +122,7 @@ function buildPatient360SyncContext(context) {
 module.exports = {
   WORKSPACE_ID,
   normalizeText,
+  resolveActorFromRequestAuth,
   resolveCcoRouteActor,
   buildCcoRouteContext,
   requireCcoRouteContext,
