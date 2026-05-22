@@ -123,12 +123,26 @@ if (!row?.patientId) process.exit(1);
 process.stdout.write(row.patientId);
 " 2>/dev/null || true)"
 TARGET_PATIENT="${PATIENT_ID:-$FIRST_PATIENT}"
-[[ -n "$TARGET_PATIENT" ]] || fail "ingen testpatient i register"
-pass "testpatient: $TARGET_PATIENT"
+if [[ -z "$TARGET_PATIENT" ]]; then
+  SMOKE_ENSURE_ID="a1111111-1111-4111-8111-111111111111"
+  UPSERT_RESPONSE="$(curl -sS -X PUT "$BASE_URL/api/v1/cco-patient-master/patient" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"id\":\"$SMOKE_ENSURE_ID\",\"displayName\":\"Arcana Smoke Journal\",\"primaryEmail\":\"smoke-journal@arcana.invalid\"}")"
+  TARGET_PATIENT="$(printf '%s' "$UPSERT_RESPONSE" | json_get patient.id 2>/dev/null || true)"
+  [[ -n "$TARGET_PATIENT" ]] || fail "kunde inte skapa smoke-testpatient"
+  pass "smoke-testpatient upsertad: $TARGET_PATIENT"
+else
+  pass "testpatient: $TARGET_PATIENT"
+fi
 
 PATIENT_DETAIL="$(curl -sS "$BASE_URL/api/v1/cco-patient-master/patient?patientId=$(node -e "process.stdout.write(encodeURIComponent(process.argv[1]))" "$TARGET_PATIENT")" \
   -H "Authorization: Bearer $TOKEN")"
-[[ "$(printf '%s' "$PATIENT_DETAIL" | json_get card.patientId 2>/dev/null || true)" == "$TARGET_PATIENT" ]] || fail "kunde inte läsa kundkort"
+DETAIL_PATIENT_ID="$(printf '%s' "$PATIENT_DETAIL" | json_get card.patientId 2>/dev/null || true)"
+if [[ -z "$DETAIL_PATIENT_ID" ]]; then
+  DETAIL_PATIENT_ID="$(printf '%s' "$PATIENT_DETAIL" | json_get patient.id 2>/dev/null || true)"
+fi
+[[ "$DETAIL_PATIENT_ID" == "$TARGET_PATIENT" ]] || fail "kunde inte läsa kundkort"
 pass "patient detail OK"
 
 TMP_PNG="$(mktemp /tmp/arcana-smoke-XXXXXX.png)"
