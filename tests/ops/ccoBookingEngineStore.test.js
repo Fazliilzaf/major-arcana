@@ -18,7 +18,7 @@ test('ccoBookingEngineStore listar egna lediga tider, reserverar, bekräftar och
       fromDate: '2026-05-11',
       toDate: '2026-05-11',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     assert.ok(availability.length >= 1);
     const chosenSlot = availability[0];
@@ -39,7 +39,7 @@ test('ccoBookingEngineStore listar egna lediga tider, reserverar, bekräftar och
       fromDate: '2026-05-11',
       toDate: '2026-05-11',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     assert.ok(followupAvailability.every((slot) => slot.slotId !== chosenSlot.slotId));
 
@@ -99,7 +99,7 @@ test('ccoBookingEngineStore kräver ombokning när en annan tid redan är bekrä
       fromDate: '2026-05-11',
       toDate: '2026-05-12',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     assert.ok(availability.length >= 2);
     const firstSlot = availability[0];
@@ -147,7 +147,7 @@ test('ccoBookingEngineStore släpper utgångna reservationer ur availability och
       fromDate: '2026-05-11',
       toDate: '2026-05-11',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     assert.ok(availability.length >= 1);
     const chosenSlot = availability[0];
@@ -168,7 +168,7 @@ test('ccoBookingEngineStore släpper utgångna reservationer ur availability och
       fromDate: '2026-05-11',
       toDate: '2026-05-11',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     assert.ok(refreshedAvailability.some((slot) => slot.slotId === chosenSlot.slotId));
 
@@ -200,7 +200,7 @@ test('ccoBookingEngineStore sammanfattar reservation expiry i workflow-summaryn'
       fromDate: '2026-05-11',
       toDate: '2026-05-11',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     const chosenSlot = availability[0];
     await store.reserveSlots({
@@ -240,7 +240,7 @@ test('ccoBookingEngineStore kan förnya aktiva reservationer och byter rekommend
       fromDate: '2026-05-11',
       toDate: '2026-05-11',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     const chosenSlot = availability[0];
     await store.reserveSlots({
@@ -312,7 +312,7 @@ test('ccoBookingEngineStore blockerar överlappande tider på samma resurs även
       fromDate: '2026-05-11',
       toDate: '2026-05-11',
       resIds: 'egzona',
-      srvIds: 'consultation',
+      srvIds: 'consultation-physical',
     });
     const standardSlot = consultationAvailability[0];
     assert.ok(standardSlot);
@@ -361,6 +361,75 @@ test('ccoBookingEngineStore blockerar överlappande tider på samma resurs även
         return true;
       }
     );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ccoBookingEngineStore migrerar legacy store till Plan A schema', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-migrate-'));
+  const filePath = path.join(tempDir, 'booking-engine.json');
+  try {
+    await fs.writeFile(
+      filePath,
+      JSON.stringify(
+        {
+          version: 1,
+          resources: [{ id: 'fazli', label: 'Fazli Krasniqi', active: true }],
+          services: [
+            { id: 'consultation', label: 'Konsultation', durationMinutes: 30, active: true },
+            { id: 'fue', label: 'FUE', durationMinutes: 480, active: true },
+          ],
+          availabilityRules: [
+            {
+              ruleId: 'legacy-consultation',
+              resourceId: 'fazli',
+              serviceId: 'consultation',
+              weekdays: [1, 2, 3, 4, 5],
+              startTimes: ['09:00'],
+              locationLabel: 'Hair TP Clinic',
+            },
+          ],
+          reservations: [],
+          bookings: [],
+        },
+        null,
+        2
+      ),
+      'utf8'
+    );
+    const store = await createCcoBookingEngineStore({ filePath });
+    const publicServices = await store.listPublicServices();
+    assert.deepEqual(publicServices.map((item) => item.id).sort(), [
+      'consultation-online',
+      'consultation-physical',
+      'followup-transplant',
+    ]);
+    const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    assert.ok(
+      persisted.availabilityRules.some(
+        (rule) =>
+          rule.serviceId === 'consultation-physical' || rule.serviceId === 'consultation-online'
+      )
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ccoBookingEngineStore listPublicServices returnerar endast Plan A-tjänster', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-public-'));
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const allServices = await store.listServices();
+    const publicServices = await store.listPublicServices();
+    assert.equal(allServices.length, 3);
+    assert.equal(publicServices.length, 3);
+    const ids = publicServices.map((item) => item.id).sort();
+    assert.deepEqual(ids, ['consultation-online', 'consultation-physical', 'followup-transplant']);
+    assert.ok(publicServices.every((item) => item.publicBookable === true));
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

@@ -2,6 +2,13 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
+/** Plan A — endast dessa tjänster exponeras via /api/public/booking-engine/catalog */
+const PLAN_A_PUBLIC_SERVICE_IDS = [
+  'consultation-online',
+  'consultation-physical',
+  'followup-transplant',
+];
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -96,18 +103,40 @@ function defaultState() {
       { id: 'wendela', label: 'Wendela', active: true },
       { id: 'louise', label: 'Louise', active: true },
     ],
-    // Tjänstekatalog speglar fastpris-listan på hairtpclinic.com.
-    // Konsultation är alltid 30 min och kostnadsfri.
+    // Plan A (go-live): tre publika mötestyper. Övriga tjänster inaktiva tills vidare.
     services: [
-      { id: 'consultation', label: 'Kostnadsfri konsultation', durationMinutes: 30, active: true },
-      { id: 'fue', label: 'FUE-hårtransplantation', durationMinutes: 480, active: true },
-      { id: 'dhi', label: 'DHI-hårtransplantation', durationMinutes: 480, active: true },
-      { id: 'beard', label: 'Skäggtransplantation', durationMinutes: 360, active: true },
-      { id: 'eyebrow', label: 'Ögonbrynstransplantation', durationMinutes: 240, active: true },
-      { id: 'prp-hair', label: 'PRP för hår', durationMinutes: 45, active: true },
-      { id: 'prp-skin', label: 'PRP för hud', durationMinutes: 60, active: true },
-      { id: 'microneedling', label: 'Microneedling + PRP', durationMinutes: 60, active: true },
-      { id: 'followup', label: 'Efterkontroll', durationMinutes: 30, active: true },
+      {
+        id: 'consultation-online',
+        label: 'Online möte',
+        durationMinutes: 30,
+        active: true,
+        publicBookable: true,
+        meetingMode: 'online',
+      },
+      {
+        id: 'consultation-physical',
+        label: 'Fysisk konsultation',
+        durationMinutes: 30,
+        active: true,
+        publicBookable: true,
+        meetingMode: 'physical',
+      },
+      {
+        id: 'followup-transplant',
+        label: 'Uppföljning hårtransplantation',
+        durationMinutes: 30,
+        active: true,
+        publicBookable: true,
+      },
+      { id: 'consultation', label: 'Kostnadsfri konsultation', durationMinutes: 30, active: false },
+      { id: 'fue', label: 'FUE-hårtransplantation', durationMinutes: 480, active: false },
+      { id: 'dhi', label: 'DHI-hårtransplantation', durationMinutes: 480, active: false },
+      { id: 'beard', label: 'Skäggtransplantation', durationMinutes: 360, active: false },
+      { id: 'eyebrow', label: 'Ögonbrynstransplantation', durationMinutes: 240, active: false },
+      { id: 'prp-hair', label: 'PRP för hår', durationMinutes: 45, active: false },
+      { id: 'prp-skin', label: 'PRP för hud', durationMinutes: 60, active: false },
+      { id: 'microneedling', label: 'Microneedling + PRP', durationMinutes: 60, active: false },
+      { id: 'followup', label: 'Efterkontroll', durationMinutes: 30, active: false },
     ],
     // Schema: Fazli + Egzona delar hårtransplantations-veckan (max 2 patienter/dag enligt
     // kvalitetslöfte). Arya tar konsultation + ögonbrynstransplantation.
@@ -117,7 +146,7 @@ function defaultState() {
       {
         ruleId: 'rule-consultation-fazli',
         resourceId: 'fazli',
-        serviceId: 'consultation',
+        serviceId: 'consultation-physical',
         weekdays: [1, 2, 3, 4, 5],
         startTimes: ['09:00', '11:00', '14:00', '16:00'],
         locationLabel: 'Hair TP Clinic',
@@ -125,7 +154,7 @@ function defaultState() {
       {
         ruleId: 'rule-consultation-egzona',
         resourceId: 'egzona',
-        serviceId: 'consultation',
+        serviceId: 'consultation-physical',
         weekdays: [1, 2, 3, 4, 5],
         startTimes: ['09:30', '11:30', '14:30', '16:30'],
         locationLabel: 'Hair TP Clinic',
@@ -133,12 +162,37 @@ function defaultState() {
       {
         ruleId: 'rule-consultation-arya',
         resourceId: 'arya',
-        serviceId: 'consultation',
+        serviceId: 'consultation-physical',
         weekdays: [1, 3, 5],
         startTimes: ['10:00', '13:00', '15:00'],
         locationLabel: 'Hair TP Clinic',
       },
-      // ── Hårtransplantation (Fazli + Egzona, hela arbetsdagar) ──
+      // ── Online möte (Plan A1) ──
+      {
+        ruleId: 'rule-consultation-online-fazli',
+        resourceId: 'fazli',
+        serviceId: 'consultation-online',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: ['09:00', '11:00', '14:00', '16:00'],
+        locationLabel: 'Online (videomöte)',
+      },
+      {
+        ruleId: 'rule-consultation-online-egzona',
+        resourceId: 'egzona',
+        serviceId: 'consultation-online',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: ['09:30', '11:30', '14:30', '16:30'],
+        locationLabel: 'Online (videomöte)',
+      },
+      {
+        ruleId: 'rule-consultation-online-arya',
+        resourceId: 'arya',
+        serviceId: 'consultation-online',
+        weekdays: [1, 3, 5],
+        startTimes: ['10:00', '13:00', '15:00'],
+        locationLabel: 'Online (videomöte)',
+      },
+      // ── Hårtransplantation (inaktiv i Plan A — regler kvar för intern migration) ──
       {
         ruleId: 'rule-fue-fazli',
         resourceId: 'fazli',
@@ -146,6 +200,7 @@ function defaultState() {
         weekdays: [2, 4],
         startTimes: ['08:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       {
         ruleId: 'rule-fue-egzona',
@@ -154,6 +209,7 @@ function defaultState() {
         weekdays: [1, 3],
         startTimes: ['08:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       {
         ruleId: 'rule-dhi-fazli',
@@ -162,6 +218,7 @@ function defaultState() {
         weekdays: [5],
         startTimes: ['08:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       {
         ruleId: 'rule-dhi-egzona',
@@ -170,6 +227,7 @@ function defaultState() {
         weekdays: [5],
         startTimes: ['08:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       {
         ruleId: 'rule-beard-fazli',
@@ -178,6 +236,7 @@ function defaultState() {
         weekdays: [3],
         startTimes: ['10:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       // ── Ögonbrynstransplantation (Arya, ögonplastikkirurg) ──
       {
@@ -187,6 +246,7 @@ function defaultState() {
         weekdays: [3, 5],
         startTimes: ['09:00', '14:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       // ── PRP-behandlingar (alla tre kan göra) ──
       {
@@ -196,6 +256,7 @@ function defaultState() {
         weekdays: [2, 4],
         startTimes: ['15:00', '16:30'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       {
         ruleId: 'rule-prp-hair-egzona',
@@ -204,6 +265,7 @@ function defaultState() {
         weekdays: [1, 3, 5],
         startTimes: ['10:00', '15:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       {
         ruleId: 'rule-prp-skin-arya',
@@ -212,6 +274,7 @@ function defaultState() {
         weekdays: [1, 3, 5],
         startTimes: ['11:00', '13:30'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       // ── Microneedling + PRP (Arya) ──
       {
@@ -221,12 +284,13 @@ function defaultState() {
         weekdays: [1, 5],
         startTimes: ['12:00', '16:00'],
         locationLabel: 'Hair TP Clinic',
+        active: false,
       },
       // ── Efterkontroller (alla tre) ──
       {
         ruleId: 'rule-followup-fazli',
         resourceId: 'fazli',
-        serviceId: 'followup',
+        serviceId: 'followup-transplant',
         weekdays: [1, 3, 5],
         startTimes: ['17:00', '17:30'],
         locationLabel: 'Hair TP Clinic',
@@ -234,7 +298,7 @@ function defaultState() {
       {
         ruleId: 'rule-followup-egzona',
         resourceId: 'egzona',
-        serviceId: 'followup',
+        serviceId: 'followup-transplant',
         weekdays: [2, 4],
         startTimes: ['17:00', '17:30'],
         locationLabel: 'Hair TP Clinic',
@@ -247,36 +311,250 @@ function defaultState() {
       // som tar 45-60 min. Followup blir morgon/eftermiddag, korta 30-min-slots.
 
       // — Veronica: prp-hair Mån/Ons, prp-skin Fre, microneedling Tor, followup Tis —
-      { ruleId: 'rule-cons-veronica', resourceId: 'veronica', serviceId: 'consultation', weekdays: [1, 2, 3, 4, 5], startTimes: ['10:30', '13:30'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-prp-hair-veronica', resourceId: 'veronica', serviceId: 'prp-hair', weekdays: [1, 3], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-prp-skin-veronica', resourceId: 'veronica', serviceId: 'prp-skin', weekdays: [5], startTimes: ['10:00', '13:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-micro-veronica', resourceId: 'veronica', serviceId: 'microneedling', weekdays: [4], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-followup-veronica', resourceId: 'veronica', serviceId: 'followup', weekdays: [2], startTimes: ['09:00', '09:30', '15:30', '16:00'], locationLabel: 'Hair TP Clinic' },
+      {
+        ruleId: 'rule-cons-veronica',
+        resourceId: 'veronica',
+        serviceId: 'consultation-physical',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: ['10:30', '13:30'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-prp-hair-veronica',
+        resourceId: 'veronica',
+        serviceId: 'prp-hair',
+        weekdays: [1, 3],
+        startTimes: ['11:00', '14:00'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-prp-skin-veronica',
+        resourceId: 'veronica',
+        serviceId: 'prp-skin',
+        weekdays: [5],
+        startTimes: ['10:00', '13:00'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-micro-veronica',
+        resourceId: 'veronica',
+        serviceId: 'microneedling',
+        weekdays: [4],
+        startTimes: ['11:00', '14:00'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-followup-veronica',
+        resourceId: 'veronica',
+        serviceId: 'followup-transplant',
+        weekdays: [2],
+        startTimes: ['09:00', '09:30', '15:30', '16:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
 
       // — Clara: prp-hair Tis/Tor, prp-skin Mån, microneedling Ons, followup Fre —
-      { ruleId: 'rule-cons-clara', resourceId: 'clara', serviceId: 'consultation', weekdays: [1, 2, 3, 4, 5], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-prp-hair-clara', resourceId: 'clara', serviceId: 'prp-hair', weekdays: [2, 4], startTimes: ['10:30', '13:30'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-prp-skin-clara', resourceId: 'clara', serviceId: 'prp-skin', weekdays: [1], startTimes: ['10:00', '13:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-micro-clara', resourceId: 'clara', serviceId: 'microneedling', weekdays: [3], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-followup-clara', resourceId: 'clara', serviceId: 'followup', weekdays: [5], startTimes: ['09:00', '09:30', '15:30', '16:00'], locationLabel: 'Hair TP Clinic' },
+      {
+        ruleId: 'rule-cons-clara',
+        resourceId: 'clara',
+        serviceId: 'consultation-physical',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: ['11:00', '14:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-prp-hair-clara',
+        resourceId: 'clara',
+        serviceId: 'prp-hair',
+        weekdays: [2, 4],
+        startTimes: ['10:30', '13:30'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-prp-skin-clara',
+        resourceId: 'clara',
+        serviceId: 'prp-skin',
+        weekdays: [1],
+        startTimes: ['10:00', '13:00'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-micro-clara',
+        resourceId: 'clara',
+        serviceId: 'microneedling',
+        weekdays: [3],
+        startTimes: ['11:00', '14:00'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-followup-clara',
+        resourceId: 'clara',
+        serviceId: 'followup-transplant',
+        weekdays: [5],
+        startTimes: ['09:00', '09:30', '15:30', '16:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
 
       // — Wendela: prp-hair Mån/Fre, prp-skin Ons, microneedling Tis, followup Tor —
-      { ruleId: 'rule-cons-wendela', resourceId: 'wendela', serviceId: 'consultation', weekdays: [1, 2, 3, 4, 5], startTimes: ['10:00', '15:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-prp-hair-wendela', resourceId: 'wendela', serviceId: 'prp-hair', weekdays: [1, 5], startTimes: ['11:30', '14:30'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-prp-skin-wendela', resourceId: 'wendela', serviceId: 'prp-skin', weekdays: [3], startTimes: ['10:00', '13:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-micro-wendela', resourceId: 'wendela', serviceId: 'microneedling', weekdays: [2], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-followup-wendela', resourceId: 'wendela', serviceId: 'followup', weekdays: [4], startTimes: ['09:00', '09:30', '15:30', '16:00'], locationLabel: 'Hair TP Clinic' },
+      {
+        ruleId: 'rule-cons-wendela',
+        resourceId: 'wendela',
+        serviceId: 'consultation-physical',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: ['10:00', '15:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-prp-hair-wendela',
+        resourceId: 'wendela',
+        serviceId: 'prp-hair',
+        weekdays: [1, 5],
+        startTimes: ['11:30', '14:30'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-prp-skin-wendela',
+        resourceId: 'wendela',
+        serviceId: 'prp-skin',
+        weekdays: [3],
+        startTimes: ['10:00', '13:00'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-micro-wendela',
+        resourceId: 'wendela',
+        serviceId: 'microneedling',
+        weekdays: [2],
+        startTimes: ['11:00', '14:00'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-followup-wendela',
+        resourceId: 'wendela',
+        serviceId: 'followup-transplant',
+        weekdays: [4],
+        startTimes: ['09:00', '09:30', '15:30', '16:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
 
       // — Louise: prp-hair Ons, prp-skin Tor, microneedling Fre, followup Mån —
-      { ruleId: 'rule-cons-louise', resourceId: 'louise', serviceId: 'consultation', weekdays: [1, 2, 3, 4, 5], startTimes: ['11:30', '15:30'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-prp-hair-louise', resourceId: 'louise', serviceId: 'prp-hair', weekdays: [3], startTimes: ['10:30', '13:30'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-prp-skin-louise', resourceId: 'louise', serviceId: 'prp-skin', weekdays: [4], startTimes: ['10:00', '13:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-micro-louise', resourceId: 'louise', serviceId: 'microneedling', weekdays: [5], startTimes: ['11:00', '14:00'], locationLabel: 'Hair TP Clinic' },
-      { ruleId: 'rule-followup-louise', resourceId: 'louise', serviceId: 'followup', weekdays: [1], startTimes: ['09:00', '09:30', '15:30', '16:00'], locationLabel: 'Hair TP Clinic' },
+      {
+        ruleId: 'rule-cons-louise',
+        resourceId: 'louise',
+        serviceId: 'consultation-physical',
+        weekdays: [1, 2, 3, 4, 5],
+        startTimes: ['11:30', '15:30'],
+        locationLabel: 'Hair TP Clinic',
+      },
+      {
+        ruleId: 'rule-prp-hair-louise',
+        resourceId: 'louise',
+        serviceId: 'prp-hair',
+        weekdays: [3],
+        startTimes: ['10:30', '13:30'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-prp-skin-louise',
+        resourceId: 'louise',
+        serviceId: 'prp-skin',
+        weekdays: [4],
+        startTimes: ['10:00', '13:00'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-micro-louise',
+        resourceId: 'louise',
+        serviceId: 'microneedling',
+        weekdays: [5],
+        startTimes: ['11:00', '14:00'],
+        locationLabel: 'Hair TP Clinic',
+        active: false,
+      },
+      {
+        ruleId: 'rule-followup-louise',
+        resourceId: 'louise',
+        serviceId: 'followup-transplant',
+        weekdays: [1],
+        startTimes: ['09:00', '09:30', '15:30', '16:00'],
+        locationLabel: 'Hair TP Clinic',
+      },
     ],
     reservations: [],
     bookings: [],
   };
+}
+
+function migratePlanASchema(state) {
+  const defaults = defaultState();
+  let changed = false;
+  const servicesById = new Map(state.services.map((item) => [item.id, item]));
+
+  for (const svc of defaults.services) {
+    const id = normalizeText(svc.id);
+    const existing = servicesById.get(id);
+    if (PLAN_A_PUBLIC_SERVICE_IDS.includes(id)) {
+      const next = { ...svc, ...(existing || {}), ...svc, active: true, publicBookable: true };
+      if (JSON.stringify(existing) !== JSON.stringify(next)) {
+        servicesById.set(id, next);
+        changed = true;
+      }
+      continue;
+    }
+    if (existing && existing.active !== false) {
+      servicesById.set(id, { ...existing, active: false, publicBookable: false });
+      changed = true;
+    } else if (!existing) {
+      servicesById.set(id, { ...svc, active: false, publicBookable: false });
+      changed = true;
+    }
+  }
+
+  state.services = Array.from(servicesById.values()).map(normalizeService).filter(Boolean);
+
+  const ruleServiceMap = {
+    consultation: 'consultation-physical',
+    followup: 'followup-transplant',
+  };
+  const rulesById = new Map(state.availabilityRules.map((item) => [item.ruleId, item]));
+
+  for (const rule of state.availabilityRules) {
+    const mapped = ruleServiceMap[normalizeText(rule.serviceId)];
+    if (!mapped || rule.serviceId === mapped) continue;
+    rulesById.set(rule.ruleId, { ...rule, serviceId: mapped });
+    changed = true;
+  }
+
+  for (const rule of defaults.availabilityRules) {
+    const existing = rulesById.get(rule.ruleId);
+    if (PLAN_A_PUBLIC_SERVICE_IDS.includes(normalizeText(rule.serviceId))) {
+      const next = { ...(existing || {}), ...rule, active: true };
+      if (!existing || JSON.stringify(existing) !== JSON.stringify(next)) {
+        rulesById.set(rule.ruleId, next);
+        changed = true;
+      }
+      continue;
+    }
+    if (existing && existing.active !== false) {
+      rulesById.set(rule.ruleId, { ...existing, active: false });
+      changed = true;
+    }
+  }
+
+  state.availabilityRules = Array.from(rulesById.values())
+    .map(normalizeAvailabilityRule)
+    .filter(Boolean);
+  return changed;
 }
 
 function normalizeResource(input = {}) {
@@ -299,6 +577,8 @@ function normalizeService(input = {}) {
     label: normalizeText(safe.label || safe.title || safe.name || id),
     durationMinutes: Math.max(15, Number(safe.durationMinutes) || 60),
     active: safe.active !== false,
+    publicBookable: safe.publicBookable === true,
+    meetingMode: normalizeText(safe.meetingMode) || undefined,
   };
 }
 
@@ -472,9 +752,15 @@ async function createCcoBookingEngineStore({ filePath }) {
     .map((item) => normalizeBookingRecord(item, state))
     .filter(Boolean);
 
+  const migrated = migratePlanASchema(state);
+
   async function save() {
     state.updatedAt = nowIso();
     await writeJsonAtomic(filePath, state);
+  }
+
+  if (migrated) {
+    await save();
   }
 
   async function expireStaleReservations() {
@@ -977,10 +1263,20 @@ async function createCcoBookingEngineStore({ filePath }) {
     getCaseSummary,
     listResources: async () => clone(state.resources.filter((item) => item.active !== false)),
     listServices: async () => clone(state.services.filter((item) => item.active !== false)),
+    listPublicServices: async () =>
+      clone(
+        state.services.filter(
+          (item) =>
+            item.active !== false &&
+            (item.publicBookable === true ||
+              PLAN_A_PUBLIC_SERVICE_IDS.includes(normalizeText(item.id)))
+        )
+      ),
     _state: state,
   };
 }
 
 module.exports = {
   createCcoBookingEngineStore,
+  PLAN_A_PUBLIC_SERVICE_IDS,
 };

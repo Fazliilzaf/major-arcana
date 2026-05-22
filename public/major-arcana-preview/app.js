@@ -28854,6 +28854,7 @@
         : asText(readout.doctorName || readout.ownerLabel || readout.mailboxLabel || "Välj behandlare"));
     const serviceLabel =
       selectedServiceLabel ||
+      WEB_LEAD_SERVICE_LABELS[serviceId] ||
       (serviceId ? `Tjänst ${serviceId}` : asText(readout.requestedTreatment || "Konsultation"));
     const dateLabel =
       request.fromDate && request.toDate
@@ -36419,6 +36420,9 @@
 
   // SV-labels för web-lead-context-fält. Operator-vyn är svensk.
   const WEB_LEAD_SERVICE_LABELS = {
+    "consultation-online": "Online möte",
+    "consultation-physical": "Fysisk konsultation",
+    "followup-transplant": "Uppföljning hårtransplantation",
     konsultation: "Konsultation (kostnadsfri)",
     consultation: "Konsultation (kostnadsfri)",
     fue: "FUE-hårtransplantation",
@@ -36442,6 +36446,20 @@
   function formatWebLeadHealthYes(list) {
     if (!Array.isArray(list) || list.length === 0) return "Inga ja-svar";
     return list.map((v) => v.replace(/_/g, " ")).join(", ");
+  }
+
+  function resolveWebLeadMeetingLocation(lead, readout, webEvent) {
+    const selectedSlot = asArray(readout?.selectedSlots)[0];
+    const fromSlot = asText(selectedSlot?.locationLabel);
+    if (fromSlot) return fromSlot;
+    const serviceId = normalizeKey(lead?.service);
+    if (serviceId === "consultation-online") {
+      return "Online (videomöte)";
+    }
+    if (serviceId === "consultation-physical" || serviceId === "followup-transplant") {
+      return "Hair TP Clinic";
+    }
+    return "";
   }
 
   function renderWebLeadContext(thread) {
@@ -36473,7 +36491,17 @@
     if (bookingDom.webLeadContextFields) {
       const fields = [];
       const serviceLabel = WEB_LEAD_SERVICE_LABELS[lead.service] || lead.service || "Ej angiven";
-      fields.push(["Önskad behandling", serviceLabel]);
+      fields.push(["Mötestyp", serviceLabel]);
+      const locationLabel = resolveWebLeadMeetingLocation(lead, readout, webEvent);
+      if (locationLabel) {
+        fields.push(["Plats/kanal", locationLabel]);
+      }
+      if (lead.surgeryDate || lead.operatedAt) {
+        fields.push([
+          "Operationsdatum",
+          asText(lead.surgeryDate || lead.operatedAt),
+        ]);
+      }
       if (lead.timeWindow) {
         fields.push(["Önskad tid", WEB_LEAD_TIME_WINDOW_LABELS[lead.timeWindow] || lead.timeWindow]);
       }
