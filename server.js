@@ -550,6 +550,13 @@ const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
 const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
 const { createCcoMacroStore } = require('./src/ops/ccoMacroStore');
 const { createCcoCustomerStore } = require('./src/ops/ccoCustomerStore');
+const { createCcoPatientMasterStore } = require('./src/ops/ccoPatientMasterStore');
+const { createCcoJournalStore } = require('./src/ops/ccoJournalStore');
+const { createCcoMigrationIndexStore } = require('./src/ops/ccoMigrationIndexStore');
+const { createCcoPatientSystemStore } = require('./src/ops/ccoPatientSystemStore');
+const { createCcoConsultationStore } = require('./src/ops/ccoConsultationStore');
+const { createCcoAftercareStore } = require('./src/ops/ccoAftercareStore');
+const { createCcoOperationStore } = require('./src/ops/ccoOperationStore');
 const { createCapabilityAnalysisStore } = require('./src/capabilities/analysisStore');
 const { createCapabilityExecutor } = require('./src/capabilities/executionService');
 const { createSloTicketStore } = require('./src/ops/sloTicketStore');
@@ -561,6 +568,12 @@ const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
 const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
+const { createCcoPatientMasterRouter } = require('./src/routes/ccoPatientMaster');
+const { createCcoJournalRouter } = require('./src/routes/ccoJournal');
+const { createCcoMigrationRouter } = require('./src/routes/ccoMigration');
+const { createCcoConsultationsRouter } = require('./src/routes/ccoConsultations');
+const { createCcoAftercareRouter } = require('./src/routes/ccoAftercare');
+const { createCcoOperationsRouter } = require('./src/routes/ccoOperations');
 const { createExecutionGateway } = require('./src/gateway/executionGateway');
 const { createRedisExecutionRuntimeBackend } = require('./src/gateway/redisRuntimeBackend');
 
@@ -1138,6 +1151,27 @@ process.once('SIGTERM', () => {
     filePath: config.ccoCustomerStorePath,
     historyStore: ccoHistoryStore,
   });
+  const ccoPatientMasterStore = await createCcoPatientMasterStore({
+    filePath: config.ccoPatientMasterStorePath,
+  });
+  const ccoJournalStore = await createCcoJournalStore({
+    filePath: config.ccoJournalStorePath,
+  });
+  const ccoMigrationIndexStore = await createCcoMigrationIndexStore({
+    filePath: config.ccoMigrationIndexStorePath,
+  });
+  const ccoPatientSystemStore = await createCcoPatientSystemStore({
+    filePath: config.ccoPatientSystemStorePath,
+  });
+  const ccoConsultationStore = await createCcoConsultationStore({
+    filePath: config.ccoConsultationStorePath,
+  });
+  const ccoAftercareStore = await createCcoAftercareStore({
+    filePath: config.ccoAftercareStorePath,
+  });
+  const ccoOperationStore = await createCcoOperationStore({
+    filePath: config.ccoOperationStorePath,
+  });
 
   const tenantConfigStore = await createTenantConfigStore({
     filePath: config.tenantConfigStorePath,
@@ -1691,6 +1725,75 @@ process.once('SIGTERM', () => {
       authStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoPatientMasterRouter({
+      patientMasterStore: ccoPatientMasterStore,
+      journalStore: ccoJournalStore,
+      migrationIndexStore: ccoMigrationIndexStore,
+      patientSystemStore: ccoPatientSystemStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoJournalRouter({
+      journalStore: ccoJournalStore,
+      patientMasterStore: ccoPatientMasterStore,
+      patientSystemStore: ccoPatientSystemStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoMigrationRouter({
+      patientMasterStore: ccoPatientMasterStore,
+      migrationIndexStore: ccoMigrationIndexStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoConsultationsRouter({
+      consultationStore: ccoConsultationStore,
+      patientSystemStore: ccoPatientSystemStore,
+      authStore,
+      config,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoAftercareRouter({
+      aftercareStore: ccoAftercareStore,
+      patientSystemStore: ccoPatientSystemStore,
+      authStore,
+      config,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoOperationsRouter({
+      operationStore: ccoOperationStore,
+      patientSystemStore: ccoPatientSystemStore,
+      authStore,
+      config,
     })
   );
 
