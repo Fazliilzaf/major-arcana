@@ -8,6 +8,8 @@ function createReq({
   xAuthToken = '',
   host = 'localhost:3000',
   ip = '127.0.0.1',
+  path = '/',
+  originalUrl = '',
 } = {}) {
   const headers = {
     authorization,
@@ -17,6 +19,8 @@ function createReq({
   return {
     hostname: host.split(':')[0],
     ip,
+    path,
+    originalUrl: originalUrl || path,
     socket: { remoteAddress: ip },
     get(name) {
       return headers[String(name || '').toLowerCase()] || '';
@@ -305,4 +309,39 @@ test('requireTenantScope denies cross-tenant access', async () => {
   assert.equal(res.statusCode, 403);
   assert.equal(audit.length, 1);
   assert.equal(audit[0].action, 'tenant.scope.denied');
+});
+
+test('staff journal open access accepts mounted router paths without token', async () => {
+  const authStore = {
+    async getSessionContextByToken() {
+      return null;
+    },
+    async touchSession() {
+      throw new Error('touchSession should not be called for open access');
+    },
+  };
+  const middleware = createAuthMiddleware({
+    authStore,
+    config: {
+      defaultTenantId: 'hair-tp-clinic',
+      staffJournalOpenAccess: true,
+    },
+  });
+
+  const req = createReq({
+    host: 'arcana.hairtpclinic.se',
+    ip: '203.0.113.10',
+    path: '/cco-patient-master/patients',
+    originalUrl: '/api/v1/cco-patient-master/patients?limit=1',
+  });
+  const res = createRes();
+  let nextCalled = false;
+  await middleware.requireAuth(req, res, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, true);
+  assert.equal(res.statusCode, 200);
+  assert.equal(req.auth.authMode, 'preview_local');
+  assert.equal(req.auth.tenantId, 'hair-tp-clinic');
 });

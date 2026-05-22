@@ -86,7 +86,8 @@ OPEN_ACCESS="$(printf '%s' "$JOURNAL_HEALTH" | json_get staffJournalOpenAccess 2
 if [[ "$IS_LOCAL_PREVIEW" == "1" ]]; then
   warn "lokal preview: photo utan auth → $PHOTO_UNAUTH (förväntat 400 utan fil)"
 elif [[ "$OPEN_ACCESS" == "true" ]]; then
-  warn "byggläge: staffJournalOpenAccess=true (photo utan auth → $PHOTO_UNAUTH)"
+  [[ "$PHOTO_UNAUTH" == "400" || "$PHOTO_UNAUTH" == "415" ]] || fail "byggläge: photo utan auth borde ge 400/415 (saknar fil), fick $PHOTO_UNAUTH"
+  pass "byggläge: öppen journal-API utan auth ($PHOTO_UNAUTH)"
 else
   [[ "$PHOTO_UNAUTH" == "401" || "$PHOTO_UNAUTH" == "403" ]] || fail "photo upload utan auth borde ge 401/403, fick $PHOTO_UNAUTH"
   pass "photo upload kräver auth ($PHOTO_UNAUTH)"
@@ -96,13 +97,16 @@ PATIENTS_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/api/v1/cco-p
 if [[ "$IS_LOCAL_PREVIEW" == "1" ]]; then
   warn "lokal preview: patient-master utan auth → $PATIENTS_CODE"
 elif [[ "$OPEN_ACCESS" == "true" ]]; then
-  warn "byggläge: patient-master utan auth → $PATIENTS_CODE (öppen åtkomst)"
+  [[ "$PATIENTS_CODE" == "200" ]] || fail "byggläge: patient-master utan auth borde ge 200, fick $PATIENTS_CODE"
+  pass "byggläge: patient-master öppen utan auth (200)"
 else
   [[ "$PATIENTS_CODE" == "401" || "$PATIENTS_CODE" == "403" ]] || fail "patient-master utan auth borde ge 401/403, fick $PATIENTS_CODE"
   pass "patient-master kräver auth ($PATIENTS_CODE)"
 fi
 
 if [[ "$IS_LOCAL_PREVIEW" == "1" && -z "$BEARER_TOKEN" ]]; then
+  BEARER_TOKEN="__preview_local__"
+elif [[ "$OPEN_ACCESS" == "true" && -z "$BEARER_TOKEN" ]]; then
   BEARER_TOKEN="__preview_local__"
 fi
 

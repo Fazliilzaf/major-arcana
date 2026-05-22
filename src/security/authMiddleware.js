@@ -32,11 +32,15 @@ function isLocalPreviewRequest(req) {
 
 function isStaffJournalOpenApiPath(req) {
   const path = normalizeText(req.path || req.originalUrl?.split('?')[0] || '').toLowerCase();
-  return (
-    path.startsWith('/api/v1/cco-patient-master') ||
-    path.startsWith('/api/v1/cco-journal') ||
-    path.startsWith('/api/v1/cco-commercial')
-  );
+  const openPrefixes = [
+    '/api/v1/cco-patient-master',
+    '/api/v1/cco-journal',
+    '/api/v1/cco-commercial',
+    '/cco-patient-master',
+    '/cco-journal',
+    '/cco-commercial',
+  ];
+  return openPrefixes.some((prefix) => path.startsWith(prefix));
 }
 
 function shouldUseStaffJournalOpenAccess(req, config = {}) {
