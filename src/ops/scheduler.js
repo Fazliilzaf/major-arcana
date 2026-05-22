@@ -3296,7 +3296,7 @@ function createScheduler({
     {
       id: 'cco_cliento_backfill',
       name: 'CCO Cliento backfill',
-      intervalMs: toHoursMs(config.schedulerCcoClientoBackfillIntervalHours, 24),
+      intervalMs: 0, // Cliento bortkopplad 2026-05-23: Hair TP kor egen CCO booking, jobbet avregistrerat
       run: runCcoClientoBackfill,
     },
     {
