@@ -52,6 +52,7 @@
     "predeploy:quick": "bash ./scripts/predeploy-quick.sh",
     "smoke:public": "bash ./scripts/smoke-public.sh",
     "smoke:mobile-journal": "bash ./scripts/smoke-mobile-journal.sh",
+    "smoke:mobile-journal:local": "BASE_URL=http://127.0.0.1:3100 ARCANA_SMOKE_BEARER_TOKEN=__preview_local__ bash ./scripts/smoke-mobile-journal.sh",
     "verify": "npm run check:syntax && npm run smoke:local",
     "backup:state": "node ./scripts/backup-state.js",
     "backup:list": "node ./scripts/list-backups.js",
