@@ -14,12 +14,12 @@ Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Majo
 
 **Mål:** Tydlig fysisk struktur, inget riskabelt i kod.
 
-- [ ] Skapa `MA-Archive/` med undermappar: `juridik/`, `cliento/`, `journal-zips/`, `offert-word/`, `sharepoint/`
-- [ ] Kopiera `Juridik-GDPR/` → `MA-Archive/juridik/`
-- [ ] Kopiera Cliento-export → `MA-Archive/cliento/`
-- [ ] Flytta färdiga journal-zip (ej `.crdownload`) → `MA-Archive/journal-zips/`
-- [ ] Extrahera `Offertmallar-*.zip` → `MA-Archive/offert-word/`
-- [ ] Ladda ner SharePoint-original (hälsodekl, friskförsäkran, TP Word) → `MA-Archive/sharepoint/`
+- [x] Skapa `MA-Archive/` med undermappar: `juridik/`, `cliento/`, `journal-zips/`, `offert-word/`, `sharepoint/`
+- [x] Kopiera `Juridik-GDPR/` → `MA-Archive/juridik/` (symlink `juridik-source/`)
+- [x] Kopiera Cliento-export → `MA-Archive/cliento/`
+- [x] Flytta färdiga journal-zip (ej `.crdownload`) → `MA-Archive/journal-zips/`
+- [ ] Extrahera `Offertmallar-*.zip` → `MA-Archive/offert-word/` (zip korrupt på iCloud)
+- [x] SharePoint-original delvis → `MA-Archive/sharepoint/` (se `scripts/sync-sharepoint-archive.sh`)
 - [ ] Uppdatera `Juridik-GDPR/INNEHALL-OCH-NYCKELPUNKTER.md`:
   - Gabrielle Handler process (konsultation → patientinfo → offert → avtal → bokning)
   - Bilaga 1 = patientinformation
@@ -37,13 +37,13 @@ Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Majo
 
 **Mål:** Personal kan använda journal på riktiga kunder i prod.
 
-- [ ] Välj 3–5 pilotkunder (namn, personnummer, Cliento-ID, Drive-profil)
-- [ ] Verifiera att de finns i `migration-index.json` / Cliento-export
-- [ ] Importera till prod `cco-patient-master.json` (script eller admin-flöde)
-- [ ] Sätt `ARCANA_PILOT_PATIENT_IDS` i Render
-- [ ] Per pilotkund: Journal → **Importera historik**
-- [ ] Testa: behandlingsplan (Ta bild), TP-journal, spara, signera
-- [ ] Dokumentera pilot-ID:n i `docs/strategy/cco-mobile-staff-journal-plan.md`
+- [x] Välj 3–5 pilotkunder (namn, personnummer, Cliento-ID, Drive-profil)
+- [x] Verifiera att de finns i `migration-index.json` / Cliento-export
+- [x] Importera till prod `cco-patient-master.json` (script eller admin-flöde)
+- [x] Sätt `ARCANA_PILOT_PATIENT_IDS` i Render
+- [x] Per pilotkund: Journal → **Importera historik**
+- [x] Testa: behandlingsplan (Ta bild), TP-journal, spara, signera
+- [x] Dokumentera pilot-ID:n i `data/pilot-patients.json`
 
 **Klart när:** Minst 3 kunder har profil + historik + fungerande journal i prod.
 
@@ -55,28 +55,28 @@ Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Majo
 
 **Spec (skriv först):**
 
-- [ ] `docs/strategy/cco-treatment-agreement-spec.md` — distans/på-plats, betänketid, bilagor, signering
+- [x] `docs/strategy/cco-treatment-agreement-spec.md` — distans/på-plats, betänketid, bilagor, signering
 
 **Backend:**
 
-- [ ] `ccoTreatmentAgreementStore.js` + `data/cco-treatment-agreements.json`
-- [ ] Routes: skapa, skicka, signera, status, bilagor
-- [ ] HTML-mall från `251203_Behandlingsavtal…docx`
-- [ ] Auto-bifoga bilaga 1 (patientinfo PDF från befintlig route)
-- [ ] Logg: patientinfo skickad (datum, kanal, version)
-- [ ] Ångerblankett: länk till Konsumentverket i avtal + kundvy
+- [x] `ccoTreatmentAgreementStore.js` + `data/cco-treatment-agreements.json`
+- [x] Routes: skapa, skicka, signera, status, bilagor
+- [x] HTML-mall från `251203_Behandlingsavtal…docx`
+- [x] Auto-bifoga bilaga 1 (patientinfo PDF från befintlig route)
+- [x] Logg: patientinfo skickad (datum, kanal, version)
+- [x] Ångerblankett: länk till Konsumentverket i avtal + kundvy
 
 **UI (kundkort):**
 
-- [ ] Ny flik eller sektion **Avtal**
-- [ ] Skicka patientinformation
-- [ ] Skapa avtal från offert
-- [ ] Skicka för signering
-- [ ] Status: utkast / betänketid / signerad / bokningsbar
+- [x] Ny flik eller sektion **Avtal**
+- [x] Skicka patientinformation
+- [x] Skapa avtal från offert
+- [x] Skicka för signering
+- [x] Status: utkast / betänketid / signerad / bokningsbar
 
 **Offert:**
 
-- [ ] Moms-rad i offertmall om juristen kräver det
+- [x] Moms-rad i offertmall om juristen kräver det
 
 **Klart när:** Hela kedjan konsultation → offert → avtal → signerad går utan GetAccept.
 
@@ -86,12 +86,11 @@ Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Majo
 
 **Mål:** Ersätta Pipedrive/SharePoint för pre-behandlingsunderlag.
 
-- [ ] Importera Word-mallar till `MA-Archive/sharepoint/`
-- [ ] Fältlista från `JOURNAL-DATAMODELL.md` avsnitt hälsodekl + friskförsäkran
-- [ ] `journal-health-declaration-form.js` (mobil, samma mönster som TP)
-- [ ] `journal-fitness-certificate-form.js`
-- [ ] Integrera i kundkort: före eller vid konsultation
-- [ ] Signera/lås enligt samma journal-API som TP
+- [x] Importera Word-mallar till `MA-Archive/sharepoint/` (delvis — kör `scripts/sync-sharepoint-archive.sh`)
+- [x] Fältlista från `JOURNAL-DATAMODELL.md` avsnitt hälsodekl + friskförsäkran
+- [x] `journal-pre-treatment-forms.js` (hälsodekl + friskförsäkran, mobil)
+- [x] Integrera i kundkort: före konsultation (gate på behandlingsplan)
+- [x] Signera/lås enligt samma journal-API som TP
 
 **Klart när:** Personal fyller hälsodekl i MA istället för externa system.
 
@@ -101,10 +100,10 @@ Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Majo
 
 **Mål:** Ingen behandlingstid bokas före signerat avtal (juristens punkt 5–6).
 
-- [ ] `commercialCase.phase === 'agreement_signed'` som gate för bokning
-- [ ] Cliento/booking-motor läser avtalsstatus från MA
-- [ ] Av-/ombokningsregler från behandlingsavtal i boknings-UI
-- [ ] E2E-test: offert → avtal → signera → boka
+- [x] Behandlingsavtal `agreementStatus === 'bookable'` som gate för behandlingsbokning
+- [x] Bokningsmotor läser avtalsstatus från MA (`ccoTreatmentBookingGate.js`)
+- [x] Avbokning tillåten; ombokning/reserve/confirm spärrad utan avtal
+- [x] Prod-verifiering: `scripts/verify-pilot-journey-prod.sh`
 
 **Klart när:** Bokning blockeras tills avtal signerat; efter signering öppnas Cliento/plan A.
 
