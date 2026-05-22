@@ -151,6 +151,30 @@
     }
   }
 
+  function buildStaffLoginUrl() {
+    try {
+      const returnPath = `${window.location.pathname || '/staff'}${window.location.search || '?view=customers'}`;
+      const params = new URLSearchParams();
+      params.set('next', returnPath);
+      params.set('reason', 'staff_journal');
+      return `/admin?${params.toString()}`;
+    } catch {
+      return '/admin?next=/staff%3Fview%3Dcustomers&reason=staff_journal';
+    }
+  }
+
+  function renderAuthRequiredPrompt(message) {
+    const loginUrl = buildStaffLoginUrl();
+    return `
+      <section class="patient-master-card patient-master-auth-card">
+        <h2>Logga in</h2>
+        <p class="patient-master-muted">${escapeHtml(message || 'Inloggning krävs för att läsa kundregistret.')}</p>
+        <p class="patient-master-muted">Använd ditt personal- eller ägarkonto. MFA kan krävas.</p>
+        <a class="customers-utility-button patient-master-login-button" href="${escapeHtml(loginUrl)}">Logga in</a>
+      </section>
+    `;
+  }
+
   function promptPhotoLabel() {
     const choice = window.prompt(
       `Etikett för bilden?\n${PHOTO_LABEL_OPTIONS.map((label, index) => `${index + 1}. ${label}`).join('\n')}\n\nSkriv nummer eller egen text:`,
@@ -312,6 +336,11 @@
       return;
     }
     if (!runtime.patients.length) {
+      if (runtime.authRequired) {
+        els.list.innerHTML = renderAuthRequiredPrompt(runtime.error);
+        renderDetailEmpty();
+        return;
+      }
       els.list.innerHTML = `<p class="patient-master-empty">${escapeHtml(
         runtime.error || 'Inga kunder matchar sökningen.'
       )}</p>`;
@@ -369,6 +398,10 @@
 
   function renderDetailEmpty() {
     if (!els.patientRail) return;
+    if (runtime.authRequired) {
+      els.patientRail.innerHTML = renderAuthRequiredPrompt(runtime.error);
+      return;
+    }
     els.patientRail.innerHTML = `
       <section class="patient-master-card patient-master-card-empty">
         <h2>Välj en kund</h2>
