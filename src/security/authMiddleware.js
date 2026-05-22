@@ -30,6 +30,34 @@ function isLocalPreviewRequest(req) {
   );
 }
 
+function isStaffJournalOpenApiPath(req) {
+  const path = normalizeText(req.path || req.originalUrl?.split('?')[0] || '').toLowerCase();
+  return (
+    path.startsWith('/api/v1/cco-patient-master') ||
+    path.startsWith('/api/v1/cco-journal') ||
+    path.startsWith('/api/v1/cco-commercial')
+  );
+}
+
+function shouldUseStaffJournalOpenAccess(req, config = {}) {
+  return Boolean(config.staffJournalOpenAccess) && isStaffJournalOpenApiPath(req);
+}
+
+function applyPreviewAuthToRequest(req, localPreviewAuthContext) {
+  req.auth = {
+    token: localPreviewAuthContext.token,
+    sessionId: localPreviewAuthContext.sessionId,
+    userId: localPreviewAuthContext.userId,
+    membershipId: localPreviewAuthContext.membershipId,
+    tenantId: localPreviewAuthContext.tenantId,
+    role: localPreviewAuthContext.role,
+    authMode: localPreviewAuthContext.authMode,
+  };
+  req.currentUser = localPreviewAuthContext.currentUser;
+  req.currentMembership = localPreviewAuthContext.currentMembership;
+  req.currentSession = localPreviewAuthContext.currentSession;
+}
+
 function buildPreviewAuthContext({ config = {}, previewAuthContext = null } = {}) {
   const bootstrapUser = previewAuthContext?.user || null;
   const bootstrapMembership = previewAuthContext?.membership || null;
@@ -91,19 +119,13 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
   async function requireAuth(req, res, next) {
     try {
       const token = getAuthToken(req);
-      if (token === '__preview_local__' && isLocalPreviewRequest(req)) {
-        req.auth = {
-          token: localPreviewAuthContext.token,
-          sessionId: localPreviewAuthContext.sessionId,
-          userId: localPreviewAuthContext.userId,
-          membershipId: localPreviewAuthContext.membershipId,
-          tenantId: localPreviewAuthContext.tenantId,
-          role: localPreviewAuthContext.role,
-          authMode: localPreviewAuthContext.authMode,
-        };
-        req.currentUser = localPreviewAuthContext.currentUser;
-        req.currentMembership = localPreviewAuthContext.currentMembership;
-        req.currentSession = localPreviewAuthContext.currentSession;
+      const staffOpenAccess = shouldUseStaffJournalOpenAccess(req, config);
+      if (staffOpenAccess || (token === '__preview_local__' && isLocalPreviewRequest(req))) {
+        applyPreviewAuthToRequest(req, localPreviewAuthContext);
+        return next();
+      }
+      if (token === '__preview_local__' && config.staffJournalOpenAccess) {
+        applyPreviewAuthToRequest(req, localPreviewAuthContext);
         return next();
       }
       if (token) {
@@ -127,19 +149,8 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
         }
       }
 
-      if (isLocalPreviewRequest(req)) {
-        req.auth = {
-          token: localPreviewAuthContext.token,
-          sessionId: localPreviewAuthContext.sessionId,
-          userId: localPreviewAuthContext.userId,
-          membershipId: localPreviewAuthContext.membershipId,
-          tenantId: localPreviewAuthContext.tenantId,
-          role: localPreviewAuthContext.role,
-          authMode: localPreviewAuthContext.authMode,
-        };
-        req.currentUser = localPreviewAuthContext.currentUser;
-        req.currentMembership = localPreviewAuthContext.currentMembership;
-        req.currentSession = localPreviewAuthContext.currentSession;
+      if (isLocalPreviewRequest(req) || staffOpenAccess) {
+        applyPreviewAuthToRequest(req, localPreviewAuthContext);
         return next();
       }
 
@@ -225,4 +236,6 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
 
 module.exports = {
   createAuthMiddleware,
+  isStaffJournalOpenApiPath,
+  shouldUseStaffJournalOpenAccess,
 };

@@ -608,6 +608,8 @@ const config = {
   majorArcanaPreviewAutoAuthHosts: asStringArray(
     process.env.ARCANA_MAJOR_ARCANA_PREVIEW_AUTO_AUTH_HOSTS
   ),
+  /** Byggfas: öppen åtkomst till kundregister/journal/offert-API utan inloggning. Sätt false före go-live. */
+  staffJournalOpenAccess: asBool(process.env.ARCANA_STAFF_JOURNAL_OPEN_ACCESS, true),
 
   templateStorePath: resolveStatePath({
     explicitPath: process.env.TEMPLATE_STORE_PATH,

@@ -89,7 +89,19 @@
     }
   }
 
+  function isStaffJournalOpenAccess() {
+    try {
+      if (window.__ARCANA_STAFF_JOURNAL_OPEN__ === true) return true;
+    } catch {
+      /* ignore */
+    }
+    return isLocalPreviewHost();
+  }
+
   function getAdminToken() {
+    if (isStaffJournalOpenAccess()) {
+      return '__preview_local__';
+    }
     try {
       const local = normalizeText(window.localStorage.getItem(ADMIN_TOKEN_KEY));
       if (local) return local;
@@ -98,7 +110,7 @@
     } catch {
       /* ignore */
     }
-    return isLocalPreviewHost() ? '__preview_local__' : '';
+    return '';
   }
 
   function isAuthFailure(statusCode, message) {
@@ -149,165 +161,6 @@
       if (patientId) qs.set('patientId', patientId);
       return `${window.location.origin}/staff?${qs.toString()}`;
     }
-  }
-
-  function buildStaffLoginUrl() {
-    try {
-      const returnPath = `${window.location.pathname || '/staff'}${window.location.search || '?view=customers'}`;
-      const params = new URLSearchParams();
-      params.set('next', returnPath);
-      params.set('reason', 'staff_journal');
-      return `/admin?${params.toString()}`;
-    } catch {
-      return '/admin?next=/staff%3Fview%3Dcustomers&reason=staff_journal';
-    }
-  }
-
-  function setAdminToken(token) {
-    const normalized = normalizeText(token);
-    if (!normalized) return;
-    try {
-      window.localStorage.setItem(ADMIN_TOKEN_KEY, normalized);
-    } catch {
-      /* ignore */
-    }
-    try {
-      window.sessionStorage.setItem(ADMIN_TOKEN_KEY, normalized);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  function isStaffEntryPath() {
-    try {
-      const path = String(window.location.pathname || '')
-        .replace(/\/+$/, '')
-        .toLowerCase();
-      return path === '/staff';
-    } catch {
-      return false;
-    }
-  }
-
-  function renderAuthRequiredPrompt(message) {
-    return `
-      <section class="patient-master-card patient-master-auth-card">
-        <h2>Logga in</h2>
-        <p class="patient-master-muted">${escapeHtml(message || 'Inloggning krävs för att läsa kundregistret.')}</p>
-        <form class="patient-master-login-form" data-staff-login-form>
-          <label class="patient-master-login-field">
-            <span class="patient-master-muted">E-post</span>
-            <input type="email" name="email" autocomplete="username" inputmode="email" required />
-          </label>
-          <label class="patient-master-login-field">
-            <span class="patient-master-muted">Lösenord</span>
-            <input type="password" name="password" autocomplete="current-password" required />
-          </label>
-          <label class="patient-master-login-field">
-            <span class="patient-master-muted">Klinik</span>
-            <input type="text" name="tenantId" value="hair-tp-clinic" autocomplete="organization" />
-          </label>
-          <button type="submit" class="customers-utility-button patient-master-login-button">Logga in</button>
-          <p class="patient-master-muted" data-staff-login-status aria-live="polite"></p>
-        </form>
-      </section>
-    `;
-  }
-
-  async function authRequest(path, options = {}) {
-    const response = await fetch(new URL(path, window.location.origin).toString(), {
-      method: options.method || 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'x-arcana-client': 'major_arcana_admin',
-        ...(options.headers && typeof options.headers === 'object' ? options.headers : {}),
-      },
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const error = new Error(payload.error || `HTTP ${response.status}`);
-      error.statusCode = response.status;
-      throw error;
-    }
-    return payload;
-  }
-
-  async function completeStaffAuthSession(payload) {
-    const token = normalizeText(payload?.token);
-    if (!token) {
-      throw new Error('Inloggning misslyckades (saknar token).');
-    }
-    setAdminToken(token);
-    runtime.authRequired = false;
-    runtime.error = '';
-    setStatus('Inloggad.', 'success');
-    await loadPatientList();
-  }
-
-  async function submitStaffLogin(form) {
-    const statusEl = form.querySelector('[data-staff-login-status]');
-    const submitBtn = form.querySelector('[type="submit"]');
-    const email = normalizeText(form.email?.value);
-    const password = String(form.password?.value || '');
-    const tenantId = normalizeText(form.tenantId?.value) || 'hair-tp-clinic';
-    if (!email || !password) {
-      if (statusEl) statusEl.textContent = 'Ange e-post och lösenord.';
-      return;
-    }
-    if (statusEl) statusEl.textContent = 'Loggar in…';
-    if (submitBtn) submitBtn.disabled = true;
-    try {
-      const response = await authRequest('/api/v1/auth/login', {
-        method: 'POST',
-        body: {
-          client: 'major_arcana_admin',
-          email,
-          password,
-          tenantId,
-        },
-      });
-
-      if (response?.requiresMfa) {
-        const mfaTicket = normalizeText(response.mfaTicket);
-        if (!mfaTicket) throw new Error('MFA krävs men saknar ticket.');
-        const code = window.prompt('MFA krävs. Ange 6-siffrig kod.', '');
-        if (!code) throw new Error('MFA-kod krävs.');
-        const mfaResponse = await authRequest('/api/v1/auth/mfa/verify', {
-          method: 'POST',
-          body: { mfaTicket, code: normalizeText(code), tenantId },
-        });
-        if (mfaResponse?.requiresTenantSelection) {
-          throw new Error('Välj klinik i admin — flera tenants kopplade till kontot.');
-        }
-        await completeStaffAuthSession(mfaResponse);
-        return;
-      }
-
-      if (response?.requiresTenantSelection) {
-        throw new Error('Välj klinik i admin — flera tenants kopplade till kontot.');
-      }
-
-      await completeStaffAuthSession(response);
-    } catch (error) {
-      runtime.authRequired = true;
-      runtime.error = error.message || 'Inloggning misslyckades.';
-      if (statusEl) statusEl.textContent = runtime.error;
-      setStatus(runtime.error, 'error');
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
-    }
-  }
-
-  function showAuthRequiredState(message) {
-    runtime.authRequired = true;
-    runtime.error = message || 'Inloggning krävs för att läsa kundregistret.';
-    runtime.patients = [];
-    runtime.detail = null;
-    setStatus(runtime.error, 'error');
-    renderPatientRows();
-    renderDetailEmpty();
   }
 
   function promptPhotoLabel() {
@@ -471,11 +324,6 @@
       return;
     }
     if (!runtime.patients.length) {
-      if (runtime.authRequired) {
-        els.list.innerHTML = renderAuthRequiredPrompt(runtime.error);
-        renderDetailEmpty();
-        return;
-      }
       els.list.innerHTML = `<p class="patient-master-empty">${escapeHtml(
         runtime.error || 'Inga kunder matchar sökningen.'
       )}</p>`;
@@ -533,10 +381,6 @@
 
   function renderDetailEmpty() {
     if (!els.patientRail) return;
-    if (runtime.authRequired) {
-      els.patientRail.innerHTML = renderAuthRequiredPrompt(runtime.error);
-      return;
-    }
     els.patientRail.innerHTML = `
       <section class="patient-master-card patient-master-card-empty">
         <h2>Välj en kund</h2>
@@ -1202,10 +1046,8 @@
         await loadPatientDetail(runtime.selectedPatientId);
       }
     } catch (error) {
-      runtime.error = isAuthFailure(error.statusCode, error.message)
-        ? 'Inloggning krävs för att läsa kundregistret.'
-        : error.message || 'Kunde inte läsa kundregistret.';
-      runtime.authRequired = isAuthFailure(error.statusCode, error.message);
+      runtime.error = error.message || 'Kunde inte läsa kundregistret.';
+      runtime.authRequired = false;
       setStatus(runtime.error, 'error');
     } finally {
       runtime.loading = false;
@@ -1502,10 +1344,6 @@
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        if (isAuthFailure(response.status, payload.error)) {
-          runtime.authRequired = true;
-          throw new Error('Inloggning krävs. Logga in igen och försök på nytt.');
-        }
         if (response.status === 409) {
           throw new Error('Behandlingsplanen är signerad. Skapa en ny plan för fler bilder.');
         }
@@ -1694,13 +1532,6 @@
       }
     });
 
-    document.addEventListener('submit', (event) => {
-      const form = event.target.closest('[data-staff-login-form]');
-      if (!form || runtime.mode !== 'register') return;
-      event.preventDefault();
-      void submitStaffLogin(form);
-    });
-
     document.addEventListener('change', (event) => {
       const cameraInput = event.target.closest('[data-patient-photo-camera]');
       const galleryInput = event.target.closest('[data-patient-photo-gallery]');
@@ -1769,10 +1600,6 @@
       runtime.pendingPatientId = startup.patientId;
     }
     if (runtime.mode === 'register') {
-      if (!getAdminToken() && !isLocalPreviewHost()) {
-        showAuthRequiredState('Inloggning krävs för att läsa kundregistret.');
-        return;
-      }
       void loadOfferTemplates();
       void loadStats();
       void loadPatientList();
