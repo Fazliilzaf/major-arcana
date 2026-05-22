@@ -163,16 +163,151 @@
     }
   }
 
+  function setAdminToken(token) {
+    const normalized = normalizeText(token);
+    if (!normalized) return;
+    try {
+      window.localStorage.setItem(ADMIN_TOKEN_KEY, normalized);
+    } catch {
+      /* ignore */
+    }
+    try {
+      window.sessionStorage.setItem(ADMIN_TOKEN_KEY, normalized);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function isStaffEntryPath() {
+    try {
+      const path = String(window.location.pathname || '')
+        .replace(/\/+$/, '')
+        .toLowerCase();
+      return path === '/staff';
+    } catch {
+      return false;
+    }
+  }
+
   function renderAuthRequiredPrompt(message) {
-    const loginUrl = buildStaffLoginUrl();
     return `
       <section class="patient-master-card patient-master-auth-card">
         <h2>Logga in</h2>
         <p class="patient-master-muted">${escapeHtml(message || 'Inloggning krävs för att läsa kundregistret.')}</p>
-        <p class="patient-master-muted">Använd ditt personal- eller ägarkonto. MFA kan krävas.</p>
-        <a class="customers-utility-button patient-master-login-button" href="${escapeHtml(loginUrl)}">Logga in</a>
+        <form class="patient-master-login-form" data-staff-login-form>
+          <label class="patient-master-login-field">
+            <span class="patient-master-muted">E-post</span>
+            <input type="email" name="email" autocomplete="username" inputmode="email" required />
+          </label>
+          <label class="patient-master-login-field">
+            <span class="patient-master-muted">Lösenord</span>
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <label class="patient-master-login-field">
+            <span class="patient-master-muted">Klinik</span>
+            <input type="text" name="tenantId" value="hair-tp-clinic" autocomplete="organization" />
+          </label>
+          <button type="submit" class="customers-utility-button patient-master-login-button">Logga in</button>
+          <p class="patient-master-muted" data-staff-login-status aria-live="polite"></p>
+        </form>
       </section>
     `;
+  }
+
+  async function authRequest(path, options = {}) {
+    const response = await fetch(new URL(path, window.location.origin).toString(), {
+      method: options.method || 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'x-arcana-client': 'major_arcana_admin',
+        ...(options.headers && typeof options.headers === 'object' ? options.headers : {}),
+      },
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(payload.error || `HTTP ${response.status}`);
+      error.statusCode = response.status;
+      throw error;
+    }
+    return payload;
+  }
+
+  async function completeStaffAuthSession(payload) {
+    const token = normalizeText(payload?.token);
+    if (!token) {
+      throw new Error('Inloggning misslyckades (saknar token).');
+    }
+    setAdminToken(token);
+    runtime.authRequired = false;
+    runtime.error = '';
+    setStatus('Inloggad.', 'success');
+    await loadPatientList();
+  }
+
+  async function submitStaffLogin(form) {
+    const statusEl = form.querySelector('[data-staff-login-status]');
+    const submitBtn = form.querySelector('[type="submit"]');
+    const email = normalizeText(form.email?.value);
+    const password = String(form.password?.value || '');
+    const tenantId = normalizeText(form.tenantId?.value) || 'hair-tp-clinic';
+    if (!email || !password) {
+      if (statusEl) statusEl.textContent = 'Ange e-post och lösenord.';
+      return;
+    }
+    if (statusEl) statusEl.textContent = 'Loggar in…';
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const response = await authRequest('/api/v1/auth/login', {
+        method: 'POST',
+        body: {
+          client: 'major_arcana_admin',
+          email,
+          password,
+          tenantId,
+        },
+      });
+
+      if (response?.requiresMfa) {
+        const mfaTicket = normalizeText(response.mfaTicket);
+        if (!mfaTicket) throw new Error('MFA krävs men saknar ticket.');
+        const code = window.prompt('MFA krävs. Ange 6-siffrig kod.', '');
+        if (!code) throw new Error('MFA-kod krävs.');
+        const mfaResponse = await authRequest('/api/v1/auth/mfa/verify', {
+          method: 'POST',
+          body: { mfaTicket, code: normalizeText(code), tenantId },
+        });
+        if (mfaResponse?.requiresTenantSelection) {
+          throw new Error('Välj klinik i admin — flera tenants kopplade till kontot.');
+        }
+        await completeStaffAuthSession(mfaResponse);
+        return;
+      }
+
+      if (response?.requiresTenantSelection) {
+        throw new Error('Välj klinik i admin — flera tenants kopplade till kontot.');
+      }
+
+      await completeStaffAuthSession(response);
+    } catch (error) {
+      runtime.authRequired = true;
+      runtime.error = error.message || 'Inloggning misslyckades.';
+      if (statusEl) statusEl.textContent = runtime.error;
+      setStatus(runtime.error, 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  function showAuthRequiredState(message) {
+    runtime.authRequired = true;
+    runtime.error = message || 'Inloggning krävs för att läsa kundregistret.';
+    runtime.patients = [];
+    runtime.detail = null;
+    setStatus(runtime.error, 'error');
+    renderPatientRows();
+    renderDetailEmpty();
   }
 
   function promptPhotoLabel() {
@@ -1559,6 +1694,13 @@
       }
     });
 
+    document.addEventListener('submit', (event) => {
+      const form = event.target.closest('[data-staff-login-form]');
+      if (!form || runtime.mode !== 'register') return;
+      event.preventDefault();
+      void submitStaffLogin(form);
+    });
+
     document.addEventListener('change', (event) => {
       const cameraInput = event.target.closest('[data-patient-photo-camera]');
       const galleryInput = event.target.closest('[data-patient-photo-gallery]');
@@ -1627,6 +1769,10 @@
       runtime.pendingPatientId = startup.patientId;
     }
     if (runtime.mode === 'register') {
+      if (!getAdminToken() && !isLocalPreviewHost()) {
+        showAuthRequiredState('Inloggning krävs för att läsa kundregistret.');
+        return;
+      }
       void loadOfferTemplates();
       void loadStats();
       void loadPatientList();

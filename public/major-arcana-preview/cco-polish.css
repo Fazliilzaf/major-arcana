@@ -4705,6 +4705,24 @@ body.is-admin-embed .focus-conversation {
     border-color: transparent;
   }
 
+  .patient-master-login-form {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .patient-master-login-field {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .patient-master-login-field input {
+    min-height: 44px;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(139, 94, 60, 0.25);
+    font-size: 16px;
+  }
+
   .patient-master-plan-photo-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 0.85rem;
