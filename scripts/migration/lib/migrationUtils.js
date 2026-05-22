@@ -19,7 +19,9 @@ function normalizeKey(value) {
 }
 
 function normalizeEmail(value) {
-  return normalizeText(value).toLowerCase().replace(/^mailto:/, '');
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/^mailto:/, '');
 }
 
 function normalizePhone(value) {
@@ -61,7 +63,6 @@ function nameOverlapScore(a, b) {
 
 function classifyFile(relativePath) {
   const ext = path.extname(relativePath).toLowerCase();
-  const baseName = path.basename(relativePath);
   if (ext === '.pdf') {
     return JOURNAL_NAME_RE.test(relativePath) ? 'journal_pdf' : 'document_pdf';
   }
@@ -86,6 +87,179 @@ function extractDisplayNameFromSegment(segment) {
     .replace(/\s+/g, ' ')
     .replace(/^[-–—_\s]+|[-–—_\s]+$/g, '');
   return cleaned;
+}
+
+const SWEDISH_MONTHS = [
+  'januari',
+  'februari',
+  'mars',
+  'april',
+  'maj',
+  'juni',
+  'juli',
+  'augusti',
+  'september',
+  'oktober',
+  'november',
+  'december',
+];
+
+function formatCapturedLabel(capturedAt) {
+  const match = normalizeText(capturedAt).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return '';
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!year || month < 1 || month > 12 || !day) return '';
+  return `${day} ${SWEDISH_MONTHS[month - 1]} ${year}`;
+}
+
+function extractCapturedDate(text) {
+  const haystack = normalizeText(text);
+  if (!haystack) return '';
+
+  const isoMatch = haystack.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+  const spacedMatch = haystack.match(/\b(20\d{2})[\s_./-](\d{1,2})[\s_./-](\d{1,2})\b/);
+  if (spacedMatch) {
+    return `${spacedMatch[1]}-${String(spacedMatch[2]).padStart(2, '0')}-${String(spacedMatch[3]).padStart(2, '0')}`;
+  }
+
+  return '';
+}
+
+function extractFileOccasionContext({
+  relativePath = '',
+  fileName = '',
+  fileType = '',
+  patientSegment = '',
+} = {}) {
+  const pathText = normalizeText(relativePath).replace(/\\/g, '/');
+  const segments = pathText.split('/').filter(Boolean);
+  const combined = `${pathText} ${fileName} ${patientSegment}`;
+
+  let occasionType = 'other';
+  let occasionLabel = '';
+  let batchMonth = '';
+  let batchYear = '';
+
+  for (const segment of segments) {
+    const tpMatch = segment.match(
+      /^(Januari|Februari|Mars|April|Maj|Juni|Juli|Augusti|September|Oktober|November|December)\s+TP\s+(\d{4})$/i
+    );
+    if (tpMatch) {
+      occasionType = 'tp_batch';
+      batchMonth = tpMatch[1].charAt(0).toUpperCase() + tpMatch[1].slice(1).toLowerCase();
+      batchYear = tpMatch[2];
+      occasionLabel = `${batchMonth} TP ${batchYear}`;
+      break;
+    }
+  }
+
+  const clinicYear =
+    segments.find((segment) => /hair tp clinic/i.test(segment))?.match(/(20\d{2})/)?.[1] || '';
+
+  if (/prp/i.test(combined)) {
+    occasionType = occasionType === 'tp_batch' ? 'tp_batch' : 'prp';
+    if (!occasionLabel) occasionLabel = 'PRP-behandling';
+  }
+
+  if (fileType === 'journal_pdf' || /journal/i.test(fileName)) {
+    occasionType = occasionType === 'tp_batch' ? 'tp_batch' : 'journal';
+    if (!occasionLabel && clinicYear) occasionLabel = `Journal ${clinicYear}`;
+  }
+
+  let capturedAt = extractCapturedDate(combined);
+  if (!capturedAt && patientSegment) {
+    capturedAt = extractCapturedDate(patientSegment);
+  }
+
+  const capturedLabel = formatCapturedLabel(capturedAt);
+  const isPrp = /prp/i.test(combined);
+  const isJournal = fileType === 'journal_pdf' || /journal/i.test(fileName);
+
+  let timelineKey = 'unknown';
+  let timelineLabel = 'Okänt tillfälle';
+  let timelineSort = '0000-00-00';
+
+  if (capturedAt) {
+    timelineKey = capturedAt;
+    timelineSort = capturedAt;
+    timelineLabel = capturedLabel;
+    if (isPrp) timelineLabel = `${timelineLabel} · PRP`;
+    else if (isJournal) timelineLabel = `${timelineLabel} · Journal`;
+    else if (occasionLabel) timelineLabel = `${timelineLabel} · ${occasionLabel}`;
+  } else if (occasionLabel) {
+    timelineKey = normalizeKey(occasionLabel);
+    timelineLabel = occasionLabel;
+    timelineSort = batchYear ? `${batchYear}-12-31` : `${clinicYear || '0000'}-12-31`;
+  } else if (clinicYear) {
+    timelineKey = `year-${clinicYear}`;
+    timelineLabel = `Arkiv ${clinicYear}`;
+    timelineSort = `${clinicYear}-12-31`;
+  }
+
+  let occasionHint = '';
+  if (capturedLabel && occasionLabel && !timelineLabel.includes(occasionLabel)) {
+    occasionHint = occasionLabel;
+  } else if (capturedLabel && isPrp) {
+    occasionHint = 'PRP';
+  } else if (capturedLabel && isJournal) {
+    occasionHint = 'Journal';
+  } else if (occasionLabel) {
+    occasionHint = occasionLabel;
+  }
+
+  return {
+    occasionType,
+    occasionLabel,
+    batchMonth,
+    batchYear,
+    clinicYear,
+    capturedAt,
+    capturedLabel,
+    occasionHint,
+    timelineKey,
+    timelineLabel,
+    timelineSort,
+  };
+}
+
+function buildOccasionTimeline(files = []) {
+  const groups = new Map();
+  for (const file of asArray(files)) {
+    const context =
+      file?.occasionContext && typeof file.occasionContext === 'object'
+        ? file.occasionContext
+        : extractFileOccasionContext(file || {});
+    const key = context.timelineKey || 'unknown';
+    if (!groups.has(key)) {
+      groups.set(key, {
+        timelineKey: key,
+        timelineLabel: context.timelineLabel || 'Okänt tillfälle',
+        timelineSort: context.timelineSort || '0000-00-00',
+        capturedAt: context.capturedAt || '',
+        capturedLabel: context.capturedLabel || '',
+        occasionLabel: context.occasionLabel || '',
+        fileCount: 0,
+        journalPdfCount: 0,
+        imageCount: 0,
+      });
+    }
+    const group = groups.get(key);
+    group.fileCount += 1;
+    if (file?.fileType === 'journal_pdf') group.journalPdfCount += 1;
+    if (file?.fileType === 'image') group.imageCount += 1;
+  }
+
+  return [...groups.values()].sort((a, b) =>
+    String(b.timelineSort).localeCompare(String(a.timelineSort))
+  );
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function listZipEntries(zipPath) {
@@ -115,7 +289,9 @@ function discoverClientoCsv(migrationRoot) {
   if (!fs.existsSync(root)) return null;
   const candidates = fs
     .readdirSync(root)
-    .filter((name) => name.toLowerCase().includes('kundexport') && name.toLowerCase().endsWith('.csv'))
+    .filter(
+      (name) => name.toLowerCase().includes('kundexport') && name.toLowerCase().endsWith('.csv')
+    )
     .map((name) => path.join(root, name));
   return candidates[0] || null;
 }
@@ -203,7 +379,10 @@ module.exports = {
   discoverClientoCsv,
   discoverMigrationZips,
   extractDisplayNameFromSegment,
+  extractFileOccasionContext,
   extractPersonnummerFromPath,
+  buildOccasionTimeline,
+  formatCapturedLabel,
   listZipEntries,
   nameOverlapScore,
   normalizeEmail,

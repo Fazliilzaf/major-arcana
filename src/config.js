@@ -34,9 +34,7 @@ function asStringArray(value) {
     try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed
-          .map((v) => (typeof v === 'string' ? v.trim() : ''))
-          .filter(Boolean);
+        return parsed.map((v) => (typeof v === 'string' ? v.trim() : '')).filter(Boolean);
       }
     } catch {
       // fall through
@@ -53,10 +51,7 @@ function asJsonObject(value, fallback = null) {
   if (value === undefined || value === null) return fallback;
   let raw = String(value).trim();
   if (!raw) return fallback;
-  if (
-    (raw.startsWith("'") && raw.endsWith("'")) ||
-    (raw.startsWith('"') && raw.endsWith('"'))
-  ) {
+  if ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"'))) {
     raw = raw.slice(1, -1).trim();
   }
   try {
@@ -116,10 +111,7 @@ function resolveStatePath({ explicitPath, stateRoot, fileName }) {
 }
 
 const port = asInt(process.env.PORT, 3000);
-const publicBaseUrl = asNonEmptyString(
-  process.env.PUBLIC_BASE_URL,
-  `http://localhost:${port}`
-);
+const publicBaseUrl = asNonEmptyString(process.env.PUBLIC_BASE_URL, `http://localhost:${port}`);
 const ccoNextCanonicalOrigin = asNonEmptyString(
   process.env.ARCANA_CCO_NEXT_CANONICAL_ORIGIN,
   'https://arcana-cco.onrender.com'
@@ -245,13 +237,15 @@ const config = {
     : require('path').join(stateRoot, 'post-op-photos'),
   // GDPR-retention för foton submittade utan publicerings-consent.
   // Default 365 dagar (12 mån) per Hair TP:s sekretesspolicy.
-  postOpPhotoRetentionDays: Number(process.env.ARCANA_POST_OP_PHOTO_RETENTION_DAYS) > 0
-    ? Number(process.env.ARCANA_POST_OP_PHOTO_RETENTION_DAYS)
-    : 365,
+  postOpPhotoRetentionDays:
+    Number(process.env.ARCANA_POST_OP_PHOTO_RETENTION_DAYS) > 0
+      ? Number(process.env.ARCANA_POST_OP_PHOTO_RETENTION_DAYS)
+      : 365,
   // Cron-interval för pruneNoConsentPhotos (default 24h).
-  schedulerPostOpPhotoPruneIntervalHours: Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS) > 0
-    ? Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS)
-    : 24,
+  schedulerPostOpPhotoPruneIntervalHours:
+    Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS) > 0
+      ? Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS)
+      : 24,
   // Sender-mailbox för auto-send av post-op review-email via M365 Graph.
   // Default contact@hairtpclinic.com. Faller tillbaka till config.defaultMailbox.
   postOpReviewFromMailbox: asNonEmptyString(
@@ -288,6 +282,55 @@ const config = {
     stateRoot,
     fileName: 'cco-customers.json',
   }),
+  ccoPatientMasterStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PATIENT_MASTER_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-patient-master.json',
+  }),
+  ccoJournalStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_JOURNAL_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-journal.json',
+  }),
+  ccoMigrationIndexStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_MIGRATION_INDEX_STORE_PATH,
+    stateRoot,
+    fileName: 'migration-index.json',
+  }),
+  ccoPatientSystemStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PATIENT_SYSTEM_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-patient-system.json',
+  }),
+  ccoConsultationStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_CONSULTATION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-consultations.json',
+  }),
+  ccoCommercialStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_COMMERCIAL_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-commercial.json',
+  }),
+  offerDocumentsDir: process.env.ARCANA_OFFER_DOCUMENTS_DIR
+    ? String(process.env.ARCANA_OFFER_DOCUMENTS_DIR).trim()
+    : path.join(stateRoot, 'offer-documents'),
+  ccoAftercareStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_AFTERCARE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-aftercare.json',
+  }),
+  ccoOperationStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_OPERATION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-operations.json',
+  }),
+  migrationDataRoot: process.env.ARCANA_MIGRATION_ROOT
+    ? String(process.env.ARCANA_MIGRATION_ROOT).trim()
+    : path.resolve(process.cwd(), '..'),
+  journalPhotosDir: process.env.ARCANA_JOURNAL_PHOTOS_DIR
+    ? String(process.env.ARCANA_JOURNAL_PHOTOS_DIR).trim()
+    : path.join(stateRoot, 'journal-photos'),
   capabilityAnalysisMaxEntries: asInt(process.env.ARCANA_CAPABILITY_ANALYSIS_MAX_ENTRIES, 15000),
   marketingCampaignDraftsPath: resolveStatePath({
     explicitPath: process.env.ARCANA_MARKETING_CAMPAIGN_DRAFTS_PATH,
@@ -305,13 +348,19 @@ const config = {
     fileName: 'marketing-content-assets.json',
   }),
   marketingConnectorsEnabled: asBool(process.env.ARCANA_MARKETING_CONNECTORS_ENABLED, false),
-  marketingConnectorsMode: asNonEmptyString(process.env.ARCANA_MARKETING_CONNECTORS_MODE, 'fixture'),
+  marketingConnectorsMode: asNonEmptyString(
+    process.env.ARCANA_MARKETING_CONNECTORS_MODE,
+    'fixture'
+  ),
   marketingConnectorsLiveFetch: asBool(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH, false),
   marketingPublishPilotEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_PILOT_ENABLED, false),
   marketingAutoPublishPilotChannels: asStringArray(
     process.env.ARCANA_MARKETING_AUTO_PUBLISH_PILOT_CHANNELS
   ),
-  marketingPublishPilotMaxRiskLevel: asInt(process.env.ARCANA_MARKETING_PUBLISH_PILOT_MAX_RISK_LEVEL, 3),
+  marketingPublishPilotMaxRiskLevel: asInt(
+    process.env.ARCANA_MARKETING_PUBLISH_PILOT_MAX_RISK_LEVEL,
+    3
+  ),
   marketingConnectors: {
     google_ads: {
       enabled: asBool(process.env.ARCANA_MARKETING_GOOGLE_ADS_ENABLED, false),
@@ -321,7 +370,10 @@ const config = {
       customerId: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_CUSTOMER_ID),
       loginCustomerId: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_LOGIN_CUSTOMER_ID),
       apiBaseUrl: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_API_BASE_URL),
-      metricsPath: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_METRICS_PATH, '/metrics'),
+      metricsPath: asNonEmptyString(
+        process.env.ARCANA_MARKETING_GOOGLE_ADS_METRICS_PATH,
+        '/metrics'
+      ),
       mode: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_MODE),
       liveFetch: asBool(process.env.ARCANA_MARKETING_GOOGLE_ADS_LIVE_FETCH, false),
       fixtureId: asNonEmptyString(process.env.ARCANA_MARKETING_GOOGLE_ADS_FIXTURE_ID, 'google_ads'),
@@ -378,10 +430,7 @@ const config = {
     true
   ),
   schedulerSloTicketMaxPerRun: asInt(process.env.ARCANA_SCHEDULER_SLO_TICKET_MAX_PER_RUN, 8),
-  schedulerSloTicketStoreMaxEntries: asInt(
-    process.env.ARCANA_SLO_TICKET_STORE_MAX_ENTRIES,
-    3000
-  ),
+  schedulerSloTicketStoreMaxEntries: asInt(process.env.ARCANA_SLO_TICKET_STORE_MAX_ENTRIES, 3000),
   releaseGovernanceMaxCycles: asInt(process.env.ARCANA_RELEASE_GOVERNANCE_MAX_CYCLES, 400),
   releaseNoGoFreeDays: asInt(process.env.ARCANA_RELEASE_NO_GO_FREE_DAYS, 14),
   releasePentestMaxAgeDays: asInt(process.env.ARCANA_RELEASE_PENTEST_MAX_AGE_DAYS, 120),
@@ -502,19 +551,13 @@ const config = {
     process.env.AUTH_LOGIN_SESSION_ROTATION,
     'tenant'
   ),
-  distributedBackend: normalizeDistributedBackend(
-    process.env.ARCANA_DISTRIBUTED_BACKEND,
-    'memory'
-  ),
+  distributedBackend: normalizeDistributedBackend(process.env.ARCANA_DISTRIBUTED_BACKEND, 'memory'),
   redisUrl: asNonEmptyString(process.env.ARCANA_REDIS_URL),
   redisRequired: asBool(process.env.ARCANA_REDIS_REQUIRED, false),
   redisConnectTimeoutMs: asInt(process.env.ARCANA_REDIS_CONNECT_TIMEOUT_MS, 4000),
   redisKeyPrefix: asNonEmptyString(process.env.ARCANA_REDIS_KEY_PREFIX, 'arcana'),
   gatewayQueueLockTtlMs: asInt(process.env.ARCANA_GATEWAY_QUEUE_LOCK_TTL_MS, 30000),
-  gatewayQueueAcquireTimeoutMs: asInt(
-    process.env.ARCANA_GATEWAY_QUEUE_ACQUIRE_TIMEOUT_MS,
-    10000
-  ),
+  gatewayQueueAcquireTimeoutMs: asInt(process.env.ARCANA_GATEWAY_QUEUE_ACQUIRE_TIMEOUT_MS, 10000),
   gatewayQueuePollIntervalMs: asInt(process.env.ARCANA_GATEWAY_QUEUE_POLL_INTERVAL_MS, 80),
   apiRateLimitWindowSec: asInt(process.env.ARCANA_API_RATE_LIMIT_WINDOW_SEC, 60),
   apiRateLimitReadMax: asInt(process.env.ARCANA_API_RATE_LIMIT_READ_MAX, 300),
@@ -562,7 +605,9 @@ const config = {
   bootstrapOwnerResetMfa: asBool(process.env.ARCANA_BOOTSTRAP_RESET_OWNER_MFA, false),
   /** When true, GET /api/v1/auth/preview-bootstrap-session can mint a session for ARCANA_OWNER_* on allowlisted hosts only (staging-style convenience; off by default). */
   majorArcanaPreviewAutoAuth: asBool(process.env.ARCANA_MAJOR_ARCANA_PREVIEW_AUTO_AUTH, false),
-  majorArcanaPreviewAutoAuthHosts: asStringArray(process.env.ARCANA_MAJOR_ARCANA_PREVIEW_AUTO_AUTH_HOSTS),
+  majorArcanaPreviewAutoAuthHosts: asStringArray(
+    process.env.ARCANA_MAJOR_ARCANA_PREVIEW_AUTO_AUTH_HOSTS
+  ),
 
   templateStorePath: resolveStatePath({
     explicitPath: process.env.TEMPLATE_STORE_PATH,
@@ -726,10 +771,7 @@ const config = {
       .filter(Boolean);
     return configured.length > 0 ? configured : ['kons@hairtpclinic.com'];
   })(),
-  schedulerCcoShadowLookbackDays: asInt(
-    process.env.ARCANA_SCHEDULER_CCO_SHADOW_LOOKBACK_DAYS,
-    14
-  ),
+  schedulerCcoShadowLookbackDays: asInt(process.env.ARCANA_SCHEDULER_CCO_SHADOW_LOOKBACK_DAYS, 14),
   schedulerCcoShadowReviewLookbackDays: asInt(
     process.env.ARCANA_SCHEDULER_CCO_SHADOW_REVIEW_LOOKBACK_DAYS,
     14
@@ -760,10 +802,7 @@ const config = {
     process.env.ARCANA_SCHEDULER_RELEASE_GOVERNANCE_AUTO_REVIEW_ENABLED,
     true
   ),
-  schedulerSecretRotationDryRun: asBool(
-    process.env.ARCANA_SCHEDULER_SECRET_ROTATION_DRY_RUN,
-    true
-  ),
+  schedulerSecretRotationDryRun: asBool(process.env.ARCANA_SCHEDULER_SECRET_ROTATION_DRY_RUN, true),
   schedulerSecretRotationNote: asNonEmptyString(
     process.env.ARCANA_SCHEDULER_SECRET_ROTATION_NOTE,
     'Scheduled secret rotation snapshot'
@@ -801,10 +840,7 @@ const config = {
   schedulerJitterSec: asInt(process.env.ARCANA_SCHEDULER_JITTER_SEC, 4),
   schedulerRunOnStartup: asBool(process.env.ARCANA_SCHEDULER_RUN_ON_STARTUP, false),
   monitorRestoreDrillMaxAgeDays: asInt(process.env.ARCANA_MONITOR_RESTORE_DRILL_MAX_AGE_DAYS, 30),
-  monitorPilotReportMaxAgeHours: asInt(
-    process.env.ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS,
-    36
-  ),
+  monitorPilotReportMaxAgeHours: asInt(process.env.ARCANA_MONITOR_PILOT_REPORT_MAX_AGE_HOURS, 36),
   metricsMaxSamples: asInt(process.env.ARCANA_METRICS_MAX_SAMPLES, 5000),
   metricsSlowRequestMs: asInt(process.env.ARCANA_METRICS_SLOW_REQUEST_MS, 1500),
   observabilityAlertMaxErrorRatePct: asFloat(
@@ -845,7 +881,9 @@ const config = {
 if (
   config.aiProvider === 'openai' &&
   !config.openaiApiKey &&
-  String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production'
+  String(process.env.NODE_ENV || '')
+    .trim()
+    .toLowerCase() === 'production'
 ) {
   throw new Error('Missing env var: OPENAI_API_KEY');
 }

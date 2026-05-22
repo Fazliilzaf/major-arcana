@@ -38,6 +38,9 @@ async function createFixture() {
       commercialStore,
       patientSystemStore,
       authStore: {
+        async addAuditEvent() {
+          return true;
+        },
         async getSessionContextByToken() {
           return null;
         },
@@ -48,6 +51,8 @@ async function createFixture() {
       config: {
         defaultTenantId: 'tenant-a',
       },
+      requireAuth: (_req, _res, next) => next(),
+      requireRole: () => (_req, _res, next) => next(),
     })
   );
   return { app, tempDir };

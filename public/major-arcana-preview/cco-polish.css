@@ -1690,7 +1690,6 @@
     display: flex;
     flex-direction: column;
   }
-
   .queue-history-list[data-lit-virtual="1"] {
     gap: 0;
   }
@@ -3459,4 +3458,1295 @@ body.is-admin-embed .focus-conversation {
 
 .preview-canvas.is-runtime-auth_required .preview-live-pill {
   opacity: 1;
+}
+
+/* Fas 2 — Kundregister (patient master) */
+.patient-master-mode-toggle {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: var(--warm-surface-muted, rgba(255, 251, 247, 0.92));
+  border: 1px solid var(--warm-border-soft, rgba(154, 126, 104, 0.18));
+}
+
+.patient-master-mode-button {
+  border: 0;
+  background: transparent;
+  color: var(--warm-text-secondary, #6b5648);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.patient-master-mode-button.is-active {
+  background: var(--warm-accent, #8b5e3c);
+  color: #fff;
+}
+
+.patient-master-empty,
+.patient-master-muted,
+.patient-master-list-meta {
+  color: var(--warm-text-secondary, #6b5648);
+  padding: 1rem 0.25rem;
+}
+
+.patient-master-record-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.patient-master-chip-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.patient-master-load-more {
+  margin: 0.75rem 0 0.25rem;
+}
+
+.patient-master-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.patient-master-card-empty {
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: var(--warm-surface-muted, rgba(255, 251, 247, 0.92));
+  border: 1px dashed var(--warm-border-soft, rgba(154, 126, 104, 0.18));
+}
+
+.patient-master-hero {
+  margin: 0;
+}
+
+.patient-master-tabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.patient-master-tab {
+  border: 1px solid var(--warm-border-soft, rgba(154, 126, 104, 0.18));
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.patient-master-tab.is-active {
+  background: var(--warm-accent-soft, rgba(139, 94, 60, 0.12));
+  border-color: var(--warm-accent, #8b5e3c);
+}
+
+.patient-master-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.patient-master-tab-panel[hidden] {
+  display: none !important;
+}
+
+.focus-customer-dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.focus-customer-dl div {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr;
+  gap: 0.5rem;
+}
+
+.focus-customer-dl dt {
+  margin: 0;
+  color: var(--warm-text-secondary, #6b5648);
+}
+
+.focus-customer-dl dd {
+  margin: 0;
+}
+
+.patient-master-file-list,
+.patient-master-journal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.patient-master-file-list li,
+.patient-master-journal-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.75rem;
+  background: var(--warm-surface-muted, rgba(255, 251, 247, 0.92));
+}
+
+.patient-master-journal-item.is-locked {
+  opacity: 0.92;
+}
+
+.patient-master-journal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.patient-master-journal-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.patient-master-open-link {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.patient-master-file-list a {
+  color: var(--warm-accent, #8b5e3c);
+  text-decoration: none;
+}
+
+.patient-master-file-list a:hover {
+  text-decoration: underline;
+}
+
+.patient-master-file-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.patient-master-file-section h4 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--warm-text-3, #4b5563);
+}
+
+.patient-master-file-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  padding: 0.1rem 0.35rem;
+  margin-left: 0.35rem;
+  border-radius: 999px;
+  background: rgba(139, 94, 60, 0.12);
+  color: #8b5e3c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.patient-master-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 0.55rem;
+}
+
+.patient-master-image-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.35rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(154, 126, 104, 0.16);
+  background: rgba(255, 255, 255, 0.94);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.patient-master-image-tile:hover {
+  border-color: rgba(139, 94, 60, 0.32);
+  box-shadow: var(--warm-shadow-sm, 0 1px 2px rgba(120, 80, 40, 0.05));
+  transform: translateY(-1px);
+}
+
+.patient-master-image-tile img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 0.55rem;
+  background: rgba(244, 236, 231, 0.8);
+}
+
+.patient-master-image-tile span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  color: var(--warm-text-5, #6b7280);
+}
+
+.patient-master-occasion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.18rem 0.42rem;
+  border-radius: 999px;
+  background: rgba(139, 94, 60, 0.12);
+  color: #7c4a24;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.patient-master-occasion-badge.is-compact {
+  font-size: 0.62rem;
+}
+
+.patient-master-image-tile .patient-master-occasion-badge {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-master-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(139, 94, 60, 0.16);
+  background: linear-gradient(180deg, rgba(255, 251, 247, 0.98) 0%, rgba(255, 244, 232, 0.92) 100%);
+}
+
+.patient-master-timeline--compact {
+  padding: 0.65rem 0.75rem;
+}
+
+.patient-master-timeline-head h4,
+.patient-master-occasion-group-head h4 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--warm-text, #0f172a);
+}
+
+.patient-master-timeline-head p {
+  margin: 0.2rem 0 0;
+}
+
+.patient-master-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.patient-master-timeline-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(154, 126, 104, 0.12);
+}
+
+.patient-master-timeline-item strong {
+  font-size: 0.78rem;
+  color: var(--warm-text, #0f172a);
+}
+
+.patient-master-timeline-item span {
+  font-size: 0.68rem;
+  color: var(--warm-text-3, #4b5563);
+}
+
+.patient-master-occasion-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.patient-master-occasion-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(154, 126, 104, 0.14);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.patient-master-occasion-group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.patient-master-occasion-group-head p {
+  margin: 0.15rem 0 0;
+}
+
+.patient-master-file-section h5 {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--warm-text-3, #4b5563);
+}
+
+.patient-master-segment {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid rgba(223, 212, 203, 0.55);
+}
+
+.patient-master-segment:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.patient-master-segment-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.patient-master-segment-head h4 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--warm-text, #0f172a);
+}
+
+.patient-master-segment-meta {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: var(--warm-text-3, #6b7280);
+  white-space: nowrap;
+}
+
+.patient-master-history-card .patient-master-file-list--compact {
+  gap: 0.35rem;
+}
+
+.patient-master-history-card .patient-master-file-list--compact li {
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  border: 1px solid rgba(223, 212, 203, 0.55);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: none;
+}
+
+.patient-master-history-card .patient-master-image-tile {
+  padding: 0.25rem;
+  border: 1px solid rgba(223, 212, 203, 0.55);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: none;
+}
+
+.patient-master-history-card .patient-master-image-tile img {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.patient-master-history-card .patient-master-file-section--compact {
+  gap: 0.35rem;
+}
+
+.patient-master-segment-head p {
+  margin: 0.2rem 0 0;
+}
+
+.patient-master-file-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.customers-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.customers-head-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  min-width: 0;
+  flex: 1 1 18rem;
+}
+
+.customers-head-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 14px;
+  color: #8b5e3c;
+  background: linear-gradient(180deg, rgba(255, 251, 247, 0.98) 0%, rgba(244, 232, 220, 0.92) 100%);
+  border: 1px solid rgba(154, 126, 104, 0.16);
+  box-shadow: var(--warm-shadow-sm, 0 1px 2px rgba(120, 80, 40, 0.05));
+}
+
+.customers-head-mark svg,
+.customers-search svg,
+.customers-filter svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  display: block;
+}
+
+.customers-head-mark svg {
+  width: 22px;
+  height: 22px;
+}
+
+.customers-title-group {
+  min-width: 0;
+}
+
+.customers-kicker {
+  margin: 0 0 0.2rem;
+  color: #8b5e3c;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.customers-title-group h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--warm-text, #0f172a);
+}
+
+.customers-title-group p {
+  margin: 0.35rem 0 0;
+  max-width: 42rem;
+  color: var(--warm-text-3, #4b5563);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.customers-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.customers-surface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1rem 1.1rem 1.25rem;
+}
+
+.customers-metric-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.customers-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(154, 126, 104, 0.14);
+  background: rgba(255, 251, 247, 0.92);
+}
+
+.customers-metric-card span {
+  color: var(--warm-text-3, #4b5563);
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.customers-metric-card strong {
+  color: var(--warm-text, #0f172a);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.customers-metric-card-blue {
+  border-color: rgba(79, 70, 229, 0.16);
+  background: linear-gradient(180deg, rgba(248, 246, 255, 0.96) 0%, rgba(238, 235, 255, 0.9) 100%);
+}
+
+.customers-metric-card-green {
+  border-color: rgba(22, 163, 74, 0.16);
+  background: linear-gradient(180deg, rgba(240, 253, 244, 0.96) 0%, rgba(220, 252, 231, 0.9) 100%);
+}
+
+.customers-metric-card-violet {
+  border-color: rgba(124, 58, 237, 0.16);
+  background: linear-gradient(180deg, rgba(250, 245, 255, 0.96) 0%, rgba(243, 232, 255, 0.9) 100%);
+}
+
+.customers-metric-card-gold {
+  border-color: rgba(180, 130, 40, 0.18);
+  background: linear-gradient(180deg, rgba(255, 251, 235, 0.96) 0%, rgba(254, 243, 199, 0.88) 100%);
+}
+
+.customers-metric-card-rose {
+  border-color: rgba(190, 90, 120, 0.16);
+  background: linear-gradient(180deg, rgba(255, 247, 250, 0.96) 0%, rgba(252, 231, 239, 0.9) 100%);
+}
+
+.customers-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.customers-search,
+.customers-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.35rem;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(154, 126, 104, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--warm-text-3, #4b5563);
+}
+
+.customers-search {
+  flex: 1 1 16rem;
+}
+
+.customers-search input,
+.customers-filter select {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  min-width: 0;
+  width: 100%;
+}
+
+.customers-search input {
+  flex: 1 1 auto;
+}
+
+.customers-search input:focus,
+.customers-filter select:focus {
+  outline: none;
+}
+
+.customers-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.customers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  max-height: calc(100vh - 15rem);
+  overflow: auto;
+  padding-right: 0.35rem;
+  border-right: 1px solid rgba(154, 126, 104, 0.12);
+}
+
+.customers-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  position: static;
+  top: auto;
+}
+
+.customers-rail .patient-master-card {
+  padding: 1rem 1.1rem 1.15rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(154, 126, 104, 0.16);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--warm-shadow-md, 0 2px 8px rgba(120, 80, 40, 0.08));
+}
+
+.customer-record {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.62rem;
+  border: 1px solid rgba(154, 126, 104, 0.14);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.customer-record--compact .customer-record-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.customer-record--compact .customer-record-head h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-record-file-badge {
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #8b5e3c;
+  white-space: nowrap;
+}
+
+.customer-record-match {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.customer-record:hover {
+  border-color: rgba(139, 94, 60, 0.28);
+  box-shadow: var(--warm-shadow-sm, 0 1px 2px rgba(120, 80, 40, 0.05));
+}
+
+.customer-record.is-selected {
+  border-color: rgba(139, 94, 60, 0.42);
+  background: var(--warm-selected, #ffebd8);
+  box-shadow: var(--warm-shadow-md, 0 2px 8px rgba(120, 80, 40, 0.08));
+}
+
+.customer-record-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.customer-record-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-weight: 700;
+  color: var(--warm-text, #0f172a);
+}
+
+.customer-record-meta,
+.customer-record-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.4rem;
+  color: var(--warm-text-3, #4b5563);
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.customer-record-meta-rose {
+  color: #b45309;
+}
+
+.customer-record-side {
+  display: none;
+}
+
+/* Profil: identitet och hero delar samma neutrala yta (inte rosa data-card) */
+.patient-master-card .patient-master-identity-card.focus-customer-data-card {
+  background: linear-gradient(180deg, rgba(252, 248, 244, 0.88) 0%, rgba(246, 240, 235, 0.8) 100%);
+  border: 1px solid rgba(223, 212, 203, 0.72);
+  box-shadow:
+    0 1px 4px rgba(121, 92, 64, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  padding: 13px 15px 14px;
+}
+
+.patient-master-card .patient-master-identity-card.focus-customer-data-card::before {
+  display: none;
+}
+
+.patient-master-card .patient-master-identity-card h4 {
+  color: var(--warm-text-2, #374151);
+  --focus-card-accent: #6b7280;
+  letter-spacing: 0.08em;
+}
+
+.patient-master-card .patient-master-workflow-card.focus-customer-data-card,
+.patient-master-card .patient-master-plan-card.focus-customer-data-card {
+  background: linear-gradient(180deg, rgba(252, 248, 244, 0.88) 0%, rgba(246, 240, 235, 0.8) 100%);
+  border: 1px solid rgba(223, 212, 203, 0.72);
+  box-shadow:
+    0 1px 4px rgba(121, 92, 64, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  padding: 13px 15px 14px;
+}
+
+.patient-master-card .patient-master-workflow-card.focus-customer-data-card::before,
+.patient-master-card .patient-master-plan-card.focus-customer-data-card::before {
+  display: none;
+}
+
+.patient-master-card .patient-master-workflow-card h4,
+.patient-master-card .patient-master-plan-card h4,
+.patient-master-card .patient-master-plan-card .patient-master-material-head h4 {
+  color: var(--warm-text-2, #374151);
+  --focus-card-accent: #6b7280;
+  letter-spacing: 0.08em;
+}
+
+.patient-master-workflow-steps {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.25rem;
+  color: var(--warm-text-2, #374151);
+  font-size: 0.82rem;
+}
+
+.patient-master-workflow-steps li.is-done {
+  color: #3f8f55;
+}
+
+.patient-master-journal-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.patient-master-journal-intro h4 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warm-text-2, #374151);
+}
+
+.patient-master-history-card {
+  gap: 0.35rem;
+}
+
+/* Kundhistorik: ingen rosa data-card-yta — samma neutrala vita ton som kortets hero */
+.patient-master-card .patient-master-history-card.focus-customer-data-card {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0.35rem 0 0;
+}
+
+.patient-master-card .patient-master-history-card.focus-customer-data-card::before {
+  display: none;
+}
+
+.patient-master-card .patient-master-history-card h4,
+.patient-master-card .patient-master-history-card .patient-master-segment-head h4 {
+  color: var(--warm-text-2, #374151);
+  --focus-card-accent: #6b7280;
+  letter-spacing: 0.08em;
+}
+
+.patient-master-history-segments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.patient-master-history-segments .patient-master-segment:first-child {
+  padding-top: 0.35rem;
+}
+
+.patient-master-material-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.patient-master-material-head h4 {
+  margin: 0;
+}
+
+.patient-master-image-grid--preview {
+  margin-top: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+}
+
+.patient-master-list-meta,
+.patient-master-load-more {
+  font-size: 0.72rem;
+}
+
+/* Kundregister: låt hela vyn skrolla — preview-shell klipper annars kundkortet */
+.preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.preview-canvas[data-app-shell-view="customers"] {
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.preview-canvas[data-app-shell-view="customers"] .preview-workspace,
+.preview-canvas[data-app-shell-view="customers"] .customers-shell {
+  overflow: visible;
+  min-height: auto;
+}
+
+.preview-canvas[data-app-shell-view="customers"] .customers-list {
+  max-height: calc(100vh - 15rem);
+  overflow: auto;
+  position: sticky;
+  top: calc(var(--workspace-sticky-top, 72px) + 0.5rem);
+  align-self: start;
+}
+
+@media (max-width: 1100px) {
+  .customers-metric-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customers-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customers-rail {
+    position: static;
+  }
+
+  .customers-list {
+    max-height: none;
+    position: static;
+  }
+}
+
+.patient-master-upload-button {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.patient-master-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.patient-master-plan-notes {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.patient-master-plan-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.patient-master-plan-photo {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(154, 126, 104, 0.14);
+  background: rgba(255, 251, 247, 0.92);
+}
+
+.patient-master-plan-photo img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0.65rem;
+  background: rgba(244, 236, 231, 0.8);
+}
+
+.patient-master-plan-photo figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+}
+
+.patient-master-offer-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(223, 212, 203, 0.55);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.patient-master-plan-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.patient-master-offer-link {
+  text-decoration: none;
+}
+
+.patient-master-offer-template {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.patient-master-offer-template select {
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(223, 212, 203, 0.72);
+  background: rgba(255, 255, 255, 0.92);
+  font: inherit;
+}
+
+.journal-plan-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.journal-plan-editor-shell {
+  width: min(1180px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: #fffaf6;
+  border: 1px solid rgba(154, 126, 104, 0.18);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.journal-plan-editor-head,
+.journal-plan-editor-toolbar,
+.journal-plan-editor-body {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.journal-plan-editor-head {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.journal-plan-editor-head h3 {
+  margin: 0;
+}
+
+.journal-plan-editor-toolbar {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.journal-plan-tool.is-active,
+.journal-plan-color.is-active {
+  border-color: #8b5e3c;
+  background: rgba(139, 94, 60, 0.12);
+}
+
+.journal-plan-colors {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.journal-plan-color {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid rgba(154, 126, 104, 0.2);
+  background: var(--plan-color, #e11d48);
+  cursor: pointer;
+}
+
+.journal-plan-editor-body {
+  align-items: flex-start;
+}
+
+.journal-plan-canvas-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(154, 126, 104, 0.14);
+  background: #111;
+}
+
+.journal-plan-canvas {
+  display: block;
+  max-width: 100%;
+  cursor: crosshair;
+}
+
+.journal-plan-side {
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.journal-plan-side label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.journal-plan-side input,
+.journal-plan-side select,
+.journal-plan-side textarea {
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(154, 126, 104, 0.18);
+  background: #fff;
+}
+
+.journal-plan-save {
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 900px) {
+  .journal-plan-editor-body {
+    flex-direction: column;
+  }
+
+  .journal-plan-side {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .journal-plan-editor-toolbar {
+    gap: 0.45rem;
+  }
+
+  .journal-plan-tool,
+  .journal-plan-color,
+  .journal-plan-save {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .journal-plan-canvas {
+    touch-action: none;
+  }
+}
+
+/* Mobil journal & kundregister (personal) */
+@media (max-width: 820px) {
+  .customers-toolbar,
+  .customers-search {
+    position: sticky;
+    top: calc(var(--workspace-sticky-top, 72px) + 0.25rem);
+    z-index: 12;
+    background: var(--warm-bg, #f7f2ec);
+    padding-bottom: 0.35rem;
+  }
+
+  .customers-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .patient-master-hero-sticky {
+    position: sticky;
+    top: calc(var(--workspace-sticky-top, 72px) + 0.25rem);
+    z-index: 11;
+  }
+
+  .patient-master-hero-id {
+    margin: 0.15rem 0 0.35rem;
+    font-size: 0.82rem;
+    color: var(--warm-text-2, #374151);
+  }
+
+  .patient-master-copy-link {
+    align-self: flex-start;
+    margin-left: auto;
+    min-height: 44px;
+  }
+
+  .focus-customer-hero-main {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .patient-master-journal-toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .patient-master-journal-toolbar .customers-utility-button,
+  .patient-master-journal-toolbar .patient-master-upload-button {
+    min-height: 48px;
+    font-size: 0.92rem;
+    justify-content: center;
+  }
+
+  .patient-master-camera-button {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #8b5e3c, #a8744c);
+    color: #fff;
+    border-color: transparent;
+    font-weight: 700;
+  }
+
+  .patient-master-upload-button.is-disabled {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  .patient-master-upload-blocked {
+    margin: 0.35rem 0 0;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.75rem;
+    background: rgba(254, 226, 226, 0.65);
+    color: #991b1b;
+    font-size: 0.86rem;
+  }
+
+  .patient-master-plan-photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.85rem;
+  }
+
+  .patient-master-plan-photo img {
+    aspect-ratio: 1 / 1;
+  }
+
+  .patient-master-plan-photo-actions .customers-utility-button,
+  .patient-master-offer-box .customers-utility-button,
+  .patient-master-offer-box .patient-master-offer-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .patient-master-tabs {
+    position: sticky;
+    top: calc(var(--workspace-sticky-top, 72px) + 5.5rem);
+    z-index: 10;
+    background: var(--warm-bg, #f7f2ec);
+    padding-bottom: 0.25rem;
+  }
+
+  .patient-master-tab {
+    min-height: 44px;
+  }
+}
+
+.patient-master-qr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.patient-master-qr-card {
+  width: min(100%, 320px);
+  padding: 1rem;
+  border-radius: 1rem;
+  background: #fff;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.patient-master-qr-card img {
+  width: 240px;
+  height: 240px;
+  margin: 0 auto;
+  border-radius: 0.5rem;
+}
+
+.patient-master-plan-photo-link {
+  display: block;
+  border-radius: 0.65rem;
+  overflow: hidden;
 }

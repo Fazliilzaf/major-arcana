@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="HairTP CCO" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
-    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -27,7 +27,7 @@
          → konfliktade med Lit:s parallella container → vit yta. -->
     <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-f7c1ae6" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
-    <link rel="stylesheet" href="./cco-polish.css?v=build-f7c1ae6" />
+    <link rel="stylesheet" href="./cco-polish.css?v=build-mobile-journal" />
     <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
@@ -1206,7 +1206,6 @@
                       </span>
                       <strong data-queue-lane-count="medical">0</strong>
                     </button>
-
                   </div>
 
                   <div
@@ -2929,13 +2928,30 @@
                   </div>
                   <div class="customers-title-group">
                     <p class="customers-kicker" data-i18n="ui.kunder.40ba99">Kunder</p>
-                    <h1 id="customers-title">Kundidentitetshantering</h1>
-                    <p
-                      data-i18n="ui.hantera_kundprofiler_sla_ihop_dubbletter_och_fa_full_overbli.d23aa2"
-                    >
-                      Hantera kundprofiler, slå ihop dubbletter och få full överblick.
-                    </p>
+                    <h1 id="customers-title">Kundregister</h1>
+                    <p>Sök kunder, öppna kundkort med importerad journal och Drive-filer.</p>
                   </div>
+                </div>
+
+                <div class="patient-master-mode-toggle" role="tablist" aria-label="Kundvy">
+                  <button
+                    class="patient-master-mode-button is-active"
+                    type="button"
+                    data-patient-master-mode="register"
+                    role="tab"
+                    aria-pressed="true"
+                  >
+                    Kundregister
+                  </button>
+                  <button
+                    class="patient-master-mode-button"
+                    type="button"
+                    data-patient-master-mode="identity"
+                    role="tab"
+                    aria-pressed="false"
+                  >
+                    Identitet
+                  </button>
                 </div>
 
                 <div class="customers-head-actions">
@@ -2977,38 +2993,38 @@
               <div class="customers-metric-row" aria-label="Kundöversikt">
                 <article
                   class="customers-metric-card customers-metric-card-blue"
-                  data-customer-metric="total"
+                  data-patient-metric="total"
                 >
-                  <span data-i18n="ui.totalt_kunder.2b382c">Totalt kunder</span>
-                  <strong>10</strong>
-                </article>
-                <article
-                  class="customers-metric-card customers-metric-card-gold"
-                  data-customer-metric="vip"
-                >
-                  <span data-i18n="ui.vip_kunder.84be84">VIP-kunder</span>
-                  <strong>2</strong>
+                  <span>Totalt kunder</span>
+                  <strong>0</strong>
                 </article>
                 <article
                   class="customers-metric-card customers-metric-card-green"
-                  data-customer-metric="emails"
+                  data-patient-metric="matched"
                 >
-                  <span data-i18n="ui.e_postadresser.d70478">E-postadresser</span>
-                  <strong>17</strong>
+                  <span>Kopplade (Cliento + Drive)</span>
+                  <strong>0</strong>
                 </article>
                 <article
                   class="customers-metric-card customers-metric-card-violet"
-                  data-customer-metric="value"
+                  data-patient-metric="journal"
                 >
-                  <span data-i18n="ui.totalt_kundvarde.939839">Totalt kundvärde</span>
-                  <strong>228k kr</strong>
+                  <span>Med personnummer</span>
+                  <strong>0</strong>
+                </article>
+                <article
+                  class="customers-metric-card customers-metric-card-gold"
+                  data-patient-metric="review"
+                >
+                  <span>Behöver granskning</span>
+                  <strong>0</strong>
                 </article>
                 <article
                   class="customers-metric-card customers-metric-card-rose"
-                  data-customer-metric="duplicates"
+                  data-patient-metric="drive"
                 >
-                  <span data-i18n="ui.dubbletter.1e778d">Dubbletter</span>
-                  <strong>3</strong>
+                  <span>Endast Drive</span>
+                  <strong>0</strong>
                 </article>
               </div>
 
@@ -3049,672 +3065,543 @@
                     />
                   </svg>
                   <select data-customer-filter>
-                    <option data-i18n="ui.alla_kunder.5e6d64">Alla kunder</option>
-                    <option data-i18n="ui.vip_kunder.84be84">VIP-kunder</option>
-                    <option data-i18n="ui.mojliga_dubbletter.6db257">Möjliga dubbletter</option>
+                    <option>Alla kunder</option>
+                    <option>Med Drive-filer</option>
+                    <option>Behöver granskning</option>
+                    <option>Endast Cliento</option>
+                    <option>Endast Drive</option>
                   </select>
                 </label>
               </div>
 
               <div class="customers-layout">
                 <section class="customers-list" data-customer-list aria-label="Kundlista">
-                  <button
-                    class="customer-record is-selected"
-                    type="button"
-                    data-customer-row="johan"
-                    aria-pressed="true"
-                  >
-                    <span class="customer-record-check" aria-hidden="true"></span>
-                    <div class="customer-record-main">
-                      <div class="customer-record-head">
-                        <h3 data-i18n="ui.johan_andersson.5ce149">Johan Andersson</h3>
-                        <span class="customer-record-star" aria-hidden="true">★</span>
-                        <span class="customer-record-badge" data-i18n="ui.3_profiler.502ab0"
-                          >3 profiler</span
-                        >
-                      </div>
-                      <div class="customer-record-meta">
-                        <span>johan@gmail.com</span>
-                        <span
-                          class="customer-record-meta-rose"
-                          data-i18n="ui.2_andra_e_postadresser.2b70f5"
-                          >+2 andra e-postadresser</span
-                        >
-                      </div>
-                      <div class="customer-record-foot">
-                        <span data-i18n="ui.28_konv.636d37">28 konv.</span>
-                        <span data-i18n="ui.207_medd.0d6477">207 medd.</span>
-                        <strong>52 000 kr kundvärde</strong>
-                      </div>
-                    </div>
-                    <div class="customer-record-side">
-                      <span>+46 70 123 4567</span>
-                    </div>
-                  </button>
-
-                  <button
-                    class="customer-record"
-                    type="button"
-                    data-customer-row="emma"
-                    aria-pressed="false"
-                  >
-                    <span class="customer-record-check" aria-hidden="true"></span>
-                    <div class="customer-record-main">
-                      <div class="customer-record-head">
-                        <h3 data-i18n="ui.emma_svensson.18e10c">Emma Svensson</h3>
-                        <span class="customer-record-badge" data-i18n="ui.2_profiler.d3617c"
-                          >2 profiler</span
-                        >
-                      </div>
-                      <div class="customer-record-meta">
-                        <span>emma.svensson@gmail.com</span>
-                        <span
-                          class="customer-record-meta-rose"
-                          data-i18n="ui.1_andra_e_postadress.fda6d1"
-                          >+1 andra e-postadress</span
-                        >
-                      </div>
-                      <div class="customer-record-foot">
-                        <span data-i18n="ui.15_konv.f2d788">15 konv.</span>
-                        <span data-i18n="ui.112_medd.ffe0dc">112 medd.</span>
-                        <strong>34 500 kr kundvärde</strong>
-                      </div>
-                    </div>
-                    <div class="customer-record-side">
-                      <span>+46 72 456 7890</span>
-                    </div>
-                  </button>
-
-                  <button
-                    class="customer-record"
-                    type="button"
-                    data-customer-row="sara"
-                    aria-pressed="false"
-                  >
-                    <span class="customer-record-check" aria-hidden="true"></span>
-                    <div class="customer-record-main">
-                      <div class="customer-record-head">
-                        <h3 data-i18n="ui.sara_lindstrom.4da574">Sara Lindström</h3>
-                      </div>
-                      <div class="customer-record-meta">
-                        <span>sara.lindstrom@company.se</span>
-                      </div>
-                      <div class="customer-record-foot">
-                        <span data-i18n="ui.8_konv.3d7ec1">8 konv.</span>
-                        <span data-i18n="ui.45_medd.1070c1">45 medd.</span>
-                        <strong>18 000 kr kundvärde</strong>
-                      </div>
-                    </div>
-                    <div class="customer-record-side">
-                      <span>+46 76 234 5678</span>
-                    </div>
-                  </button>
-
-                  <button
-                    class="customer-record"
-                    type="button"
-                    data-customer-row="johan_a"
-                    aria-pressed="false"
-                  >
-                    <span class="customer-record-check" aria-hidden="true"></span>
-                    <div class="customer-record-main">
-                      <div class="customer-record-head">
-                        <h3 data-i18n="ui.johan_a.3dbccb">Johan A.</h3>
-                      </div>
-                      <div class="customer-record-meta">
-                        <span>johan.a@newwork.se</span>
-                      </div>
-                      <div class="customer-record-foot">
-                        <span data-i18n="ui.1_konv.b61c09">1 konv.</span>
-                        <span data-i18n="ui.3_medd.9e0523">3 medd.</span>
-                        <strong>0</strong>
-                      </div>
-                    </div>
-                    <div class="customer-record-side">
-                      <span>+46 70 123 4567</span>
-                    </div>
-                  </button>
-
-                  <button
-                    class="customer-record"
-                    type="button"
-                    data-customer-row="erik"
-                    aria-pressed="false"
-                  >
-                    <span class="customer-record-check" aria-hidden="true"></span>
-                    <div class="customer-record-main">
-                      <div class="customer-record-head">
-                        <h3 data-i18n="ui.erik_nilsson.ec330d">Erik Nilsson</h3>
-                      </div>
-                      <div class="customer-record-meta">
-                        <span>erik.nilsson@gmail.com</span>
-                        <span
-                          class="customer-record-meta-rose"
-                          data-i18n="ui.1_andra_e_postadress.fda6d1"
-                          >+1 andra e-postadress</span
-                        >
-                      </div>
-                      <div class="customer-record-foot">
-                        <span data-i18n="ui.6_konv.8f3e40">6 konv.</span>
-                        <span data-i18n="ui.41_medd.3939ca">41 medd.</span>
-                        <strong>12 400 kr kundvärde</strong>
-                      </div>
-                    </div>
-                    <div class="customer-record-side">
-                      <span>+46 73 345 6789</span>
-                    </div>
-                  </button>
+                  <p class="patient-master-empty">Öppnar kundregister…</p>
                 </section>
 
-                <aside class="customers-rail" aria-label="Kundintelligens för identiteter">
-                  <section class="customers-rail-panel customers-rail-panel-suggestions">
-                    <div class="customers-rail-panel-head">
-                      <h2>Kundidentitetshantering</h2>
-                      <button
-                        class="customers-rail-link"
-                        type="button"
-                        data-customer-suggestions-toggle
-                        data-i18n="ui.dolj_forslag.3f56f8"
-                      >
-                        Dölj förslag
-                      </button>
-                    </div>
-                    <div class="customers-rail-alert">
-                      <strong>AI-förslag: möjliga dubbletter</strong>
-                    </div>
-
-                    <div data-customer-merge-groups>
-                      <div
-                        class="customers-merge-group is-active"
-                        data-customer-merge-group="johan"
-                      >
-                        <article class="customers-merge-card">
-                          <div class="customers-merge-top">
-                            <strong>Johan Andersson</strong>
-                            <span data-i18n="ui.emma_svensson.18e10c">Emma Svensson</span>
-                            <b>95%</b>
-                          </div>
-                          <ul>
-                            <li>Samma telefonnummer</li>
-                            <li>Liknande namn</li>
-                            <li>Båda från Göteborg</li>
-                          </ul>
-                          <div class="customers-merge-actions">
-                            <button
-                              class="customers-merge-accept"
-                              type="button"
-                              data-customer-merge-action="accept"
-                              data-i18n="ui.sla_ihop.602df7"
-                            >
-                              Slå ihop
-                            </button>
-                            <button
-                              class="customers-merge-dismiss"
-                              type="button"
-                              data-customer-merge-action="dismiss"
-                              data-i18n="ui.inte_samma.81785e"
-                            >
-                              Inte samma
-                            </button>
-                          </div>
-                        </article>
-
-                        <article class="customers-merge-card">
-                          <div class="customers-merge-top">
-                            <strong>Sara Lindström</strong>
-                            <span data-i18n="ui.johan_a.3dbccb">Johan A.</span>
-                            <b>87%</b>
-                          </div>
-                          <ul>
-                            <li>Samma efternamn</li>
-                            <li>Liknande e-postdomän</li>
-                            <li>Kontaktade samma dag</li>
-                          </ul>
-                          <div class="customers-merge-actions">
-                            <button
-                              class="customers-merge-accept"
-                              type="button"
-                              data-customer-merge-action="accept"
-                              data-i18n="ui.sla_ihop.602df7"
-                            >
-                              Slå ihop
-                            </button>
-                            <button
-                              class="customers-merge-dismiss"
-                              type="button"
-                              data-customer-merge-action="dismiss"
-                              data-i18n="ui.inte_samma.81785e"
-                            >
-                              Inte samma
-                            </button>
-                          </div>
-                        </article>
-                      </div>
-
-                      <div class="customers-merge-group" data-customer-merge-group="emma" hidden>
-                        <article class="customers-merge-card">
-                          <div class="customers-merge-top">
-                            <strong>Emma Svensson</strong>
-                            <span data-i18n="ui.johan_andersson.5ce149">Johan Andersson</span>
-                            <b>82%</b>
-                          </div>
-                          <ul>
-                            <li>Delad kontaktkedja i mejlkontot</li>
-                            <li>Överlappande kundvärde</li>
-                            <li>Liknande bokningsmönster</li>
-                          </ul>
-                          <div class="customers-merge-actions">
-                            <button
-                              class="customers-merge-accept"
-                              type="button"
-                              data-customer-merge-action="accept"
-                              data-i18n="ui.sla_ihop.602df7"
-                            >
-                              Slå ihop
-                            </button>
-                            <button
-                              class="customers-merge-dismiss"
-                              type="button"
-                              data-customer-merge-action="dismiss"
-                              data-i18n="ui.inte_samma.81785e"
-                            >
-                              Inte samma
-                            </button>
-                          </div>
-                        </article>
-                      </div>
-
-                      <div class="customers-merge-group" data-customer-merge-group="sara" hidden>
-                        <article class="customers-merge-card customers-merge-card-muted">
-                          <div class="customers-merge-empty">
-                            <strong>Inga aktiva dubblettförslag</strong>
-                            <p
-                              data-i18n="ui.sara_har_just_nu_en_ren_profil_och_kan_foljas_utan_sammansla.6ab9e1"
-                            >
-                              Sara har just nu en ren profil och kan följas utan sammanslagning.
-                            </p>
-                          </div>
-                        </article>
-                      </div>
-
-                      <div class="customers-merge-group" data-customer-merge-group="johan_a" hidden>
-                        <article class="customers-merge-card">
-                          <div class="customers-merge-top">
-                            <strong>Johan A.</strong>
-                            <span data-i18n="ui.johan_andersson.5ce149">Johan Andersson</span>
-                            <b>91%</b>
-                          </div>
-                          <ul>
-                            <li>Samma telefonnummer</li>
-                            <li>Kortad namnvariant</li>
-                            <li>Liknande ärendemönster</li>
-                          </ul>
-                          <div class="customers-merge-actions">
-                            <button
-                              class="customers-merge-accept"
-                              type="button"
-                              data-customer-merge-action="accept"
-                              data-i18n="ui.sla_ihop.602df7"
-                            >
-                              Slå ihop
-                            </button>
-                            <button
-                              class="customers-merge-dismiss"
-                              type="button"
-                              data-customer-merge-action="dismiss"
-                              data-i18n="ui.inte_samma.81785e"
-                            >
-                              Inte samma
-                            </button>
-                          </div>
-                        </article>
-                      </div>
-
-                      <div class="customers-merge-group" data-customer-merge-group="erik" hidden>
-                        <article class="customers-merge-card customers-merge-card-muted">
-                          <div class="customers-merge-empty">
-                            <strong>Inga aktiva dubblettförslag</strong>
-                            <p>Erik har bara en verifierad profil just nu.</p>
-                          </div>
-                        </article>
-                      </div>
-                    </div>
-                  </section>
-
+                <aside class="customers-rail" aria-label="Kundkort och identitet">
                   <section
-                    class="customers-rail-stack"
-                    data-customer-detail-stack
-                    aria-label="Vald kund"
-                  >
-                    <article class="customers-rail-card is-active" data-customer-detail="johan">
-                      <div class="customers-rail-card-head">
-                        <h3 data-i18n="ui.johan_andersson.5ce149">Johan Andersson</h3>
-                        <span data-i18n="ui.3_profiler.502ab0">3 profiler</span>
-                      </div>
-                      <p>johan@gmail.com <strong>+2 till</strong></p>
-                      <p>+46 70 123 4567</p>
-                      <div class="customers-rail-card-foot">
-                        <span data-i18n="ui.28_konv.636d37">28 konv.</span>
-                        <strong>52 000 kr</strong>
-                      </div>
-                    </article>
+                    class="patient-master-rail"
+                    data-patient-master-rail
+                    aria-label="Kundkort"
+                  ></section>
 
-                    <article class="customers-rail-card" data-customer-detail="emma" hidden>
-                      <div class="customers-rail-card-head">
-                        <h3 data-i18n="ui.emma_svensson.18e10c">Emma Svensson</h3>
-                        <span data-i18n="ui.2_profiler.d3617c">2 profiler</span>
+                  <div data-patient-identity-rail hidden>
+                    <section class="customers-rail-panel customers-rail-panel-suggestions">
+                      <div class="customers-rail-panel-head">
+                        <h2>Kundidentitetshantering</h2>
+                        <button
+                          class="customers-rail-link"
+                          type="button"
+                          data-customer-suggestions-toggle
+                          data-i18n="ui.dolj_forslag.3f56f8"
+                        >
+                          Dölj förslag
+                        </button>
                       </div>
-                      <p>emma.svensson@gmail.com <strong>+1 till</strong></p>
-                      <p>+46 72 456 7890</p>
-                      <div class="customers-rail-card-foot">
-                        <span data-i18n="ui.15_konv.f2d788">15 konv.</span>
-                        <strong>34 500 kr</strong>
+                      <div class="customers-rail-alert">
+                        <strong>AI-förslag: möjliga dubbletter</strong>
                       </div>
-                    </article>
 
-                    <article class="customers-rail-card" data-customer-detail="sara" hidden>
-                      <div class="customers-rail-card-head">
-                        <h3 data-i18n="ui.sara_lindstrom.4da574">Sara Lindström</h3>
-                        <span data-i18n="ui.1_profil.368c63">1 profil</span>
-                      </div>
-                      <p>sara.lindstrom@company.se</p>
-                      <p>+46 76 234 5678</p>
-                      <div class="customers-rail-card-foot">
-                        <span data-i18n="ui.8_konv.3d7ec1">8 konv.</span>
-                        <strong>18 000 kr</strong>
-                      </div>
-                    </article>
+                      <div data-customer-merge-groups>
+                        <div
+                          class="customers-merge-group is-active"
+                          data-customer-merge-group="johan"
+                        >
+                          <article class="customers-merge-card">
+                            <div class="customers-merge-top">
+                              <strong>Johan Andersson</strong>
+                              <span data-i18n="ui.emma_svensson.18e10c">Emma Svensson</span>
+                              <b>95%</b>
+                            </div>
+                            <ul>
+                              <li>Samma telefonnummer</li>
+                              <li>Liknande namn</li>
+                              <li>Båda från Göteborg</li>
+                            </ul>
+                            <div class="customers-merge-actions">
+                              <button
+                                class="customers-merge-accept"
+                                type="button"
+                                data-customer-merge-action="accept"
+                                data-i18n="ui.sla_ihop.602df7"
+                              >
+                                Slå ihop
+                              </button>
+                              <button
+                                class="customers-merge-dismiss"
+                                type="button"
+                                data-customer-merge-action="dismiss"
+                                data-i18n="ui.inte_samma.81785e"
+                              >
+                                Inte samma
+                              </button>
+                            </div>
+                          </article>
 
-                    <article class="customers-rail-card" data-customer-detail="johan_a" hidden>
-                      <div class="customers-rail-card-head">
-                        <h3 data-i18n="ui.johan_a.3dbccb">Johan A.</h3>
-                        <span data-i18n="ui.1_profil.368c63">1 profil</span>
-                      </div>
-                      <p>johan.a@newwork.se</p>
-                      <p>+46 70 123 4567</p>
-                      <div class="customers-rail-card-foot">
-                        <span data-i18n="ui.1_konv.b61c09">1 konv.</span>
-                        <strong>0 kr</strong>
-                      </div>
-                    </article>
+                          <article class="customers-merge-card">
+                            <div class="customers-merge-top">
+                              <strong>Sara Lindström</strong>
+                              <span data-i18n="ui.johan_a.3dbccb">Johan A.</span>
+                              <b>87%</b>
+                            </div>
+                            <ul>
+                              <li>Samma efternamn</li>
+                              <li>Liknande e-postdomän</li>
+                              <li>Kontaktade samma dag</li>
+                            </ul>
+                            <div class="customers-merge-actions">
+                              <button
+                                class="customers-merge-accept"
+                                type="button"
+                                data-customer-merge-action="accept"
+                                data-i18n="ui.sla_ihop.602df7"
+                              >
+                                Slå ihop
+                              </button>
+                              <button
+                                class="customers-merge-dismiss"
+                                type="button"
+                                data-customer-merge-action="dismiss"
+                                data-i18n="ui.inte_samma.81785e"
+                              >
+                                Inte samma
+                              </button>
+                            </div>
+                          </article>
+                        </div>
 
-                    <article class="customers-rail-card" data-customer-detail="erik" hidden>
-                      <div class="customers-rail-card-head">
-                        <h3 data-i18n="ui.erik_nilsson.ec330d">Erik Nilsson</h3>
-                        <span data-i18n="ui.1_profil.368c63">1 profil</span>
-                      </div>
-                      <p>erik.nilsson@gmail.com <strong>+1 till</strong></p>
-                      <p>+46 73 345 6789</p>
-                      <div class="customers-rail-card-foot">
-                        <span data-i18n="ui.6_konv.8f3e40">6 konv.</span>
-                        <strong>12 400 kr</strong>
-                      </div>
-                    </article>
-                  </section>
+                        <div class="customers-merge-group" data-customer-merge-group="emma" hidden>
+                          <article class="customers-merge-card">
+                            <div class="customers-merge-top">
+                              <strong>Emma Svensson</strong>
+                              <span data-i18n="ui.johan_andersson.5ce149">Johan Andersson</span>
+                              <b>82%</b>
+                            </div>
+                            <ul>
+                              <li>Delad kontaktkedja i mejlkontot</li>
+                              <li>Överlappande kundvärde</li>
+                              <li>Liknande bokningsmönster</li>
+                            </ul>
+                            <div class="customers-merge-actions">
+                              <button
+                                class="customers-merge-accept"
+                                type="button"
+                                data-customer-merge-action="accept"
+                                data-i18n="ui.sla_ihop.602df7"
+                              >
+                                Slå ihop
+                              </button>
+                              <button
+                                class="customers-merge-dismiss"
+                                type="button"
+                                data-customer-merge-action="dismiss"
+                                data-i18n="ui.inte_samma.81785e"
+                              >
+                                Inte samma
+                              </button>
+                            </div>
+                          </article>
+                        </div>
 
-                  <section class="customers-detail-tools" aria-label="Profilverktyg">
-                    <div class="customers-rail-panel-head">
-                      <h2 data-i18n="ui.profilverktyg.57d76d">Profilverktyg</h2>
-                      <span
-                        class="customers-rail-inline-note"
-                        data-customer-detail-name
-                        data-i18n="ui.johan_andersson.5ce149"
-                        >Johan Andersson</span
-                      >
-                    </div>
-
-                    <div class="customers-email-list" data-customer-email-list></div>
-
-                    <div class="customers-detail-actions">
-                      <button
-                        class="customers-utility-button"
-                        type="button"
-                        data-customer-detail-action="primary_email"
-                        data-i18n="ui.satt_primar_e_post.c5f503"
-                      >
-                        Sätt primär e-post
-                      </button>
-                      <button
-                        class="customers-utility-button"
-                        type="button"
-                        data-customer-detail-action="merge_settings"
-                        data-i18n="ui.merge_val.cea062"
-                      >
-                        Merge-val
-                      </button>
-                      <button
-                        class="customers-utility-button"
-                        type="button"
-                        data-customer-detail-action="split_profile"
-                        data-i18n="ui.dela_profil.0e4b40"
-                      >
-                        Dela profil
-                      </button>
-                      <button
-                        class="customers-utility-button"
-                        type="button"
-                        data-customer-detail-action="toggle_batch"
-                        data-i18n="ui.markera_for_batch.c867f8"
-                      >
-                        Markera för batch
-                      </button>
-                    </div>
-
-                    <section class="customers-portal-panel" data-portal-panel aria-label="Portal">
-                      <div class="customers-portal-head">
-                        <div>
-                          <p class="customers-portal-kicker">Portal</p>
-                          <h4 data-portal-title>Ägarportal och kundportal</h4>
-                          <p class="customers-portal-subtitle" data-portal-customer-key>
-                            Välj en kund för att ladda portalstatus.
-                          </p>
+                        <div class="customers-merge-group" data-customer-merge-group="sara" hidden>
+                          <article class="customers-merge-card customers-merge-card-muted">
+                            <div class="customers-merge-empty">
+                              <strong>Inga aktiva dubblettförslag</strong>
+                              <p
+                                data-i18n="ui.sara_har_just_nu_en_ren_profil_och_kan_foljas_utan_sammansla.6ab9e1"
+                              >
+                                Sara har just nu en ren profil och kan följas utan sammanslagning.
+                              </p>
+                            </div>
+                          </article>
                         </div>
 
                         <div
-                          class="customers-portal-view-toggle"
-                          role="tablist"
-                          aria-label="Portalvy"
+                          class="customers-merge-group"
+                          data-customer-merge-group="johan_a"
+                          hidden
                         >
-                          <button
-                            class="customers-portal-toggle is-active"
-                            type="button"
-                            data-portal-view="owner"
-                            role="tab"
-                            aria-pressed="true"
-                          >
-                            Ägare
-                          </button>
-                          <button
-                            class="customers-portal-toggle"
-                            type="button"
-                            data-portal-view="customer"
-                            role="tab"
-                            aria-pressed="false"
-                          >
-                            Kund
-                          </button>
+                          <article class="customers-merge-card">
+                            <div class="customers-merge-top">
+                              <strong>Johan A.</strong>
+                              <span data-i18n="ui.johan_andersson.5ce149">Johan Andersson</span>
+                              <b>91%</b>
+                            </div>
+                            <ul>
+                              <li>Samma telefonnummer</li>
+                              <li>Kortad namnvariant</li>
+                              <li>Liknande ärendemönster</li>
+                            </ul>
+                            <div class="customers-merge-actions">
+                              <button
+                                class="customers-merge-accept"
+                                type="button"
+                                data-customer-merge-action="accept"
+                                data-i18n="ui.sla_ihop.602df7"
+                              >
+                                Slå ihop
+                              </button>
+                              <button
+                                class="customers-merge-dismiss"
+                                type="button"
+                                data-customer-merge-action="dismiss"
+                                data-i18n="ui.inte_samma.81785e"
+                              >
+                                Inte samma
+                              </button>
+                            </div>
+                          </article>
+                        </div>
+
+                        <div class="customers-merge-group" data-customer-merge-group="erik" hidden>
+                          <article class="customers-merge-card customers-merge-card-muted">
+                            <div class="customers-merge-empty">
+                              <strong>Inga aktiva dubblettförslag</strong>
+                              <p>Erik har bara en verifierad profil just nu.</p>
+                            </div>
+                          </article>
                         </div>
                       </div>
+                    </section>
 
-                      <p class="customers-portal-status" data-portal-status hidden></p>
+                    <section
+                      class="customers-rail-stack"
+                      data-customer-detail-stack
+                      aria-label="Vald kund"
+                    >
+                      <article class="customers-rail-card is-active" data-customer-detail="johan">
+                        <div class="customers-rail-card-head">
+                          <h3 data-i18n="ui.johan_andersson.5ce149">Johan Andersson</h3>
+                          <span data-i18n="ui.3_profiler.502ab0">3 profiler</span>
+                        </div>
+                        <p>johan@gmail.com <strong>+2 till</strong></p>
+                        <p>+46 70 123 4567</p>
+                        <div class="customers-rail-card-foot">
+                          <span data-i18n="ui.28_konv.636d37">28 konv.</span>
+                          <strong>52 000 kr</strong>
+                        </div>
+                      </article>
 
-                      <div class="customers-portal-panels">
-                        <section class="customers-portal-view is-active" data-portal-owner-view>
-                          <div
-                            class="customers-portal-mode-banner customers-portal-mode-banner-owner"
-                          >
-                            <p class="customers-portal-kicker">Ägarläge</p>
-                            <h5>Redigera, spara och publicera</h5>
-                            <p>
-                              Här bygger du layers-skissen, låser versionen och skickar den vidare
-                              till kunden.
+                      <article class="customers-rail-card" data-customer-detail="emma" hidden>
+                        <div class="customers-rail-card-head">
+                          <h3 data-i18n="ui.emma_svensson.18e10c">Emma Svensson</h3>
+                          <span data-i18n="ui.2_profiler.d3617c">2 profiler</span>
+                        </div>
+                        <p>emma.svensson@gmail.com <strong>+1 till</strong></p>
+                        <p>+46 72 456 7890</p>
+                        <div class="customers-rail-card-foot">
+                          <span data-i18n="ui.15_konv.f2d788">15 konv.</span>
+                          <strong>34 500 kr</strong>
+                        </div>
+                      </article>
+
+                      <article class="customers-rail-card" data-customer-detail="sara" hidden>
+                        <div class="customers-rail-card-head">
+                          <h3 data-i18n="ui.sara_lindstrom.4da574">Sara Lindström</h3>
+                          <span data-i18n="ui.1_profil.368c63">1 profil</span>
+                        </div>
+                        <p>sara.lindstrom@company.se</p>
+                        <p>+46 76 234 5678</p>
+                        <div class="customers-rail-card-foot">
+                          <span data-i18n="ui.8_konv.3d7ec1">8 konv.</span>
+                          <strong>18 000 kr</strong>
+                        </div>
+                      </article>
+
+                      <article class="customers-rail-card" data-customer-detail="johan_a" hidden>
+                        <div class="customers-rail-card-head">
+                          <h3 data-i18n="ui.johan_a.3dbccb">Johan A.</h3>
+                          <span data-i18n="ui.1_profil.368c63">1 profil</span>
+                        </div>
+                        <p>johan.a@newwork.se</p>
+                        <p>+46 70 123 4567</p>
+                        <div class="customers-rail-card-foot">
+                          <span data-i18n="ui.1_konv.b61c09">1 konv.</span>
+                          <strong>0 kr</strong>
+                        </div>
+                      </article>
+
+                      <article class="customers-rail-card" data-customer-detail="erik" hidden>
+                        <div class="customers-rail-card-head">
+                          <h3 data-i18n="ui.erik_nilsson.ec330d">Erik Nilsson</h3>
+                          <span data-i18n="ui.1_profil.368c63">1 profil</span>
+                        </div>
+                        <p>erik.nilsson@gmail.com <strong>+1 till</strong></p>
+                        <p>+46 73 345 6789</p>
+                        <div class="customers-rail-card-foot">
+                          <span data-i18n="ui.6_konv.8f3e40">6 konv.</span>
+                          <strong>12 400 kr</strong>
+                        </div>
+                      </article>
+                    </section>
+
+                    <section class="customers-detail-tools" aria-label="Profilverktyg">
+                      <div class="customers-rail-panel-head">
+                        <h2 data-i18n="ui.profilverktyg.57d76d">Profilverktyg</h2>
+                        <span
+                          class="customers-rail-inline-note"
+                          data-customer-detail-name
+                          data-i18n="ui.johan_andersson.5ce149"
+                          >Johan Andersson</span
+                        >
+                      </div>
+
+                      <div class="customers-email-list" data-customer-email-list></div>
+
+                      <div class="customers-detail-actions">
+                        <button
+                          class="customers-utility-button"
+                          type="button"
+                          data-customer-detail-action="primary_email"
+                          data-i18n="ui.satt_primar_e_post.c5f503"
+                        >
+                          Sätt primär e-post
+                        </button>
+                        <button
+                          class="customers-utility-button"
+                          type="button"
+                          data-customer-detail-action="merge_settings"
+                          data-i18n="ui.merge_val.cea062"
+                        >
+                          Merge-val
+                        </button>
+                        <button
+                          class="customers-utility-button"
+                          type="button"
+                          data-customer-detail-action="split_profile"
+                          data-i18n="ui.dela_profil.0e4b40"
+                        >
+                          Dela profil
+                        </button>
+                        <button
+                          class="customers-utility-button"
+                          type="button"
+                          data-customer-detail-action="toggle_batch"
+                          data-i18n="ui.markera_for_batch.c867f8"
+                        >
+                          Markera för batch
+                        </button>
+                      </div>
+
+                      <section class="customers-portal-panel" data-portal-panel aria-label="Portal">
+                        <div class="customers-portal-head">
+                          <div>
+                            <p class="customers-portal-kicker">Portal</p>
+                            <h4 data-portal-title>Ägarportal och kundportal</h4>
+                            <p class="customers-portal-subtitle" data-portal-customer-key>
+                              Välj en kund för att ladda portalstatus.
                             </p>
                           </div>
 
-                          <div class="customers-portal-summary" data-portal-owner-summary></div>
+                          <div
+                            class="customers-portal-view-toggle"
+                            role="tablist"
+                            aria-label="Portalvy"
+                          >
+                            <button
+                              class="customers-portal-toggle is-active"
+                              type="button"
+                              data-portal-view="owner"
+                              role="tab"
+                              aria-pressed="true"
+                            >
+                              Ägare
+                            </button>
+                            <button
+                              class="customers-portal-toggle"
+                              type="button"
+                              data-portal-view="customer"
+                              role="tab"
+                              aria-pressed="false"
+                            >
+                              Kund
+                            </button>
+                          </div>
+                        </div>
 
-                          <div class="customers-portal-draft-card">
-                            <div class="customers-rail-panel-head">
-                              <h5>Layers-sketch</h5>
-                              <span class="customers-rail-inline-note">Redigera och publicera</span>
+                        <p class="customers-portal-status" data-portal-status hidden></p>
+
+                        <div class="customers-portal-panels">
+                          <section class="customers-portal-view is-active" data-portal-owner-view>
+                            <div
+                              class="customers-portal-mode-banner customers-portal-mode-banner-owner"
+                            >
+                              <p class="customers-portal-kicker">Ägarläge</p>
+                              <h5>Redigera, spara och publicera</h5>
+                              <p>
+                                Här bygger du layers-skissen, låser versionen och skickar den vidare
+                                till kunden.
+                              </p>
                             </div>
 
-                            <div class="customers-portal-draft-grid">
-                              <label class="customers-portal-field customers-portal-field-wide">
-                                <span>Titel</span>
-                                <input type="text" data-portal-draft-title />
-                              </label>
-                              <label class="customers-portal-field">
-                                <span>Sammanfattning</span>
-                                <input type="text" data-portal-draft-summary />
-                              </label>
-                              <label class="customers-portal-field customers-portal-field-wide">
-                                <span>Notis till kund</span>
-                                <textarea rows="2" data-portal-draft-note></textarea>
-                              </label>
+                            <div class="customers-portal-summary" data-portal-owner-summary></div>
+
+                            <div class="customers-portal-draft-card">
+                              <div class="customers-rail-panel-head">
+                                <h5>Layers-sketch</h5>
+                                <span class="customers-rail-inline-note"
+                                  >Redigera och publicera</span
+                                >
+                              </div>
+
+                              <div class="customers-portal-draft-grid">
+                                <label class="customers-portal-field customers-portal-field-wide">
+                                  <span>Titel</span>
+                                  <input type="text" data-portal-draft-title />
+                                </label>
+                                <label class="customers-portal-field">
+                                  <span>Sammanfattning</span>
+                                  <input type="text" data-portal-draft-summary />
+                                </label>
+                                <label class="customers-portal-field customers-portal-field-wide">
+                                  <span>Notis till kund</span>
+                                  <textarea rows="2" data-portal-draft-note></textarea>
+                                </label>
+                              </div>
+
+                              <div class="customers-portal-layer-list" aria-label="Nivåer">
+                                <label class="customers-portal-layer-row">
+                                  <span>Head</span>
+                                  <input
+                                    type="text"
+                                    placeholder="Produkter separerade med komma"
+                                    data-portal-layer-products="head"
+                                  />
+                                </label>
+                                <label class="customers-portal-layer-row">
+                                  <span>Heart</span>
+                                  <input
+                                    type="text"
+                                    placeholder="Produkter separerade med komma"
+                                    data-portal-layer-products="heart"
+                                  />
+                                </label>
+                                <label class="customers-portal-layer-row">
+                                  <span>Base</span>
+                                  <input
+                                    type="text"
+                                    placeholder="Produkter separerade med komma"
+                                    data-portal-layer-products="base"
+                                  />
+                                </label>
+                              </div>
+
+                              <div class="customers-portal-actions">
+                                <button
+                                  class="customers-utility-button"
+                                  type="button"
+                                  data-portal-action="refresh"
+                                >
+                                  Ladda portal
+                                </button>
+                                <button
+                                  class="customers-utility-button"
+                                  type="button"
+                                  data-portal-action="save"
+                                >
+                                  Spara utkast
+                                </button>
+                                <button
+                                  class="customers-merge-accept"
+                                  type="button"
+                                  data-portal-action="publish"
+                                >
+                                  Publicera till kund
+                                </button>
+                              </div>
                             </div>
 
-                            <div class="customers-portal-layer-list" aria-label="Nivåer">
-                              <label class="customers-portal-layer-row">
-                                <span>Head</span>
-                                <input
-                                  type="text"
-                                  placeholder="Produkter separerade med komma"
-                                  data-portal-layer-products="head"
-                                />
-                              </label>
-                              <label class="customers-portal-layer-row">
-                                <span>Heart</span>
-                                <input
-                                  type="text"
-                                  placeholder="Produkter separerade med komma"
-                                  data-portal-layer-products="heart"
-                                />
-                              </label>
-                              <label class="customers-portal-layer-row">
-                                <span>Base</span>
-                                <input
-                                  type="text"
-                                  placeholder="Produkter separerade med komma"
-                                  data-portal-layer-products="base"
-                                />
-                              </label>
+                            <div class="customers-portal-owner-history">
+                              <div class="customers-rail-panel-head">
+                                <h5>Versioner och publiceringar</h5>
+                                <span class="customers-rail-inline-note"
+                                  >Senaste utkast och versioner</span
+                                >
+                              </div>
+                              <div data-portal-owner-history></div>
                             </div>
+
+                            <div class="customers-portal-owner-history">
+                              <div class="customers-rail-panel-head">
+                                <h5>Aktivitetslogg</h5>
+                                <span class="customers-rail-inline-note"
+                                  >Spara, publicera, öppna och kvittera</span
+                                >
+                              </div>
+                              <div data-portal-owner-activity></div>
+                            </div>
+
+                            <div class="customers-portal-owner-list" data-portal-owner-list></div>
+                          </section>
+
+                          <section class="customers-portal-view" data-portal-customer-view hidden>
+                            <div
+                              class="customers-portal-mode-banner customers-portal-mode-banner-customer"
+                            >
+                              <p class="customers-portal-kicker">Kundläge</p>
+                              <h5>Se publicerade versioner</h5>
+                              <p>
+                                Kunden ser den senaste publicerade skissen, notiserna och
+                                kvittensstatusen.
+                              </p>
+                            </div>
+
+                            <div class="customers-portal-customer-hero">
+                              <div>
+                                <p class="customers-portal-kicker">Kundvy</p>
+                                <h5 data-portal-customer-title>Ingen publicerad version ännu</h5>
+                                <p data-portal-customer-summary>
+                                  Den publicerade layers-skissen visas här när den har skickats ut.
+                                </p>
+                              </div>
+                              <div class="customers-portal-customer-meta">
+                                <span data-portal-customer-version>Version —</span>
+                                <span data-portal-customer-notification-count>0 notiser</span>
+                              </div>
+                            </div>
+
+                            <article
+                              class="customers-portal-summary-card"
+                              data-portal-customer-activity
+                            ></article>
+
+                            <div
+                              class="customers-portal-customer-status"
+                              data-portal-customer-status
+                            ></div>
+
+                            <div
+                              class="customers-portal-version-list"
+                              data-portal-customer-versions
+                            ></div>
+
+                            <div
+                              class="customers-portal-notification-list"
+                              data-portal-customer-notifications
+                            ></div>
 
                             <div class="customers-portal-actions">
                               <button
                                 class="customers-utility-button"
                                 type="button"
-                                data-portal-action="refresh"
+                                data-portal-action="viewed"
                               >
-                                Ladda portal
-                              </button>
-                              <button
-                                class="customers-utility-button"
-                                type="button"
-                                data-portal-action="save"
-                              >
-                                Spara utkast
+                                Markera som öppnad
                               </button>
                               <button
                                 class="customers-merge-accept"
                                 type="button"
-                                data-portal-action="publish"
+                                data-portal-action="ack"
                               >
-                                Publicera till kund
+                                Kvittera senaste
                               </button>
                             </div>
-                          </div>
-
-                          <div class="customers-portal-owner-history">
-                            <div class="customers-rail-panel-head">
-                              <h5>Versioner och publiceringar</h5>
-                              <span class="customers-rail-inline-note"
-                                >Senaste utkast och versioner</span
-                              >
-                            </div>
-                            <div data-portal-owner-history></div>
-                          </div>
-
-                          <div class="customers-portal-owner-history">
-                            <div class="customers-rail-panel-head">
-                              <h5>Aktivitetslogg</h5>
-                              <span class="customers-rail-inline-note"
-                                >Spara, publicera, öppna och kvittera</span
-                              >
-                            </div>
-                            <div data-portal-owner-activity></div>
-                          </div>
-
-                          <div class="customers-portal-owner-list" data-portal-owner-list></div>
-                        </section>
-
-                        <section class="customers-portal-view" data-portal-customer-view hidden>
-                          <div
-                            class="customers-portal-mode-banner customers-portal-mode-banner-customer"
-                          >
-                            <p class="customers-portal-kicker">Kundläge</p>
-                            <h5>Se publicerade versioner</h5>
-                            <p>
-                              Kunden ser den senaste publicerade skissen, notiserna och
-                              kvittensstatusen.
-                            </p>
-                          </div>
-
-                          <div class="customers-portal-customer-hero">
-                            <div>
-                              <p class="customers-portal-kicker">Kundvy</p>
-                              <h5 data-portal-customer-title>Ingen publicerad version ännu</h5>
-                              <p data-portal-customer-summary>
-                                Den publicerade layers-skissen visas här när den har skickats ut.
-                              </p>
-                            </div>
-                            <div class="customers-portal-customer-meta">
-                              <span data-portal-customer-version>Version —</span>
-                              <span data-portal-customer-notification-count>0 notiser</span>
-                            </div>
-                          </div>
-
-                          <article
-                            class="customers-portal-summary-card"
-                            data-portal-customer-activity
-                          ></article>
-
-                          <div
-                            class="customers-portal-customer-status"
-                            data-portal-customer-status
-                          ></div>
-
-                          <div
-                            class="customers-portal-version-list"
-                            data-portal-customer-versions
-                          ></div>
-
-                          <div
-                            class="customers-portal-notification-list"
-                            data-portal-customer-notifications
-                          ></div>
-
-                          <div class="customers-portal-actions">
-                            <button
-                              class="customers-utility-button"
-                              type="button"
-                              data-portal-action="viewed"
-                            >
-                              Markera som öppnad
-                            </button>
-                            <button
-                              class="customers-merge-accept"
-                              type="button"
-                              data-portal-action="ack"
-                            >
-                              Kvittera senaste
-                            </button>
-                          </div>
-                        </section>
-                      </div>
+                          </section>
+                        </div>
+                      </section>
                     </section>
-                  </section>
+                  </div>
                 </aside>
               </div>
             </div>
@@ -10194,7 +10081,9 @@ Kunden önskar ombokning av PRP 2/3. Föredrar fredagar 09:00-12:00 med Dr. Erik
                 <div class="booking-shell-toolbar-main">
                   <span class="booking-shell-toolbar-kicker">ARBETSYTA</span>
                   <h2 id="booking-shell-title" data-booking-shell-title>Bokningsarbete</h2>
-                  <span class="booking-shell-status-pill" data-booking-shell-status>Behöver triage</span>
+                  <span class="booking-shell-status-pill" data-booking-shell-status
+                    >Behöver triage</span
+                  >
                 </div>
                 <div class="booking-shell-toolbar-actions">
                   <button
@@ -10543,8 +10432,8 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: b472c2cdf7) -->
-    <script src="./app.bundle.b472c2cdf7.min.js"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 7f3472b9d9) -->
+    <script src="./app.bundle.7f3472b9d9.min.js"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's

@@ -10,6 +10,7 @@ const JOURNAL_TYPES = Object.freeze([
   'fitness_certificate',
   'follow_up',
   'prp_treatment',
+  'consultation_plan',
 ]);
 
 const JOURNAL_STATUSES = Object.freeze(['draft', 'signed', 'corrected']);
@@ -32,6 +33,17 @@ function asArray(value) {
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function emptyConsultationPlanFields() {
+  return {
+    consultationDate: '',
+    method: '',
+    graftsTotal: '',
+    zones: [],
+    prpIncluded: null,
+    notes: '',
+  };
 }
 
 function emptyTpTreatmentFields() {
@@ -138,7 +150,13 @@ function normalizeJournalEntry(input = {}, existing = {}) {
   const fields =
     journalType === 'tp_treatment'
       ? { ...emptyTpTreatmentFields(), ...asObject(existingSafe.fields), ...asObject(safe.fields) }
-      : { ...asObject(existingSafe.fields), ...asObject(safe.fields) };
+      : journalType === 'consultation_plan'
+        ? {
+            ...emptyConsultationPlanFields(),
+            ...asObject(existingSafe.fields),
+            ...asObject(safe.fields),
+          }
+        : { ...asObject(existingSafe.fields), ...asObject(safe.fields) };
 
   return {
     entryId: normalizeText(safe.entryId || existingSafe.entryId) || crypto.randomUUID(),
@@ -171,8 +189,86 @@ function normalizeJournalEntry(input = {}, existing = {}) {
   };
 }
 
+function historicalImportKey(file = {}) {
+  const zipName = normalizeText(file.zipName);
+  const relativePath = normalizeText(file.relativePath);
+  const driveFileId = normalizeText(file.driveFileId);
+  if (driveFileId) return `drive::${driveFileId}`;
+  return `${zipName}::${relativePath}`;
+}
+
+function buildHistoricalImportEntry({ tenantId, patientId, personnummer, file, actor = {} }) {
+  const importKey = historicalImportKey(file);
+  return normalizeJournalEntry({
+    tenantId,
+    patientId,
+    personnummer,
+    journalType: 'historical_import',
+    title: normalizeText(file.fileName) || 'Importerad journal',
+    source: 'drive_import',
+    status: 'signed',
+    locked: true,
+    signedAt: nowIso(),
+    signedByName: 'Drive-import',
+    importMeta: {
+      importKey,
+      fileId: normalizeText(file.id),
+      zipName: file.zipName || '',
+      relativePath: file.relativePath || '',
+      driveFileId: file.driveFileId || '',
+      fileType: file.fileType || '',
+      importedAt: nowIso(),
+      readOnly: true,
+    },
+    attachments: [
+      {
+        type: file.fileType === 'image' ? 'historical_image' : 'historical_pdf',
+        fileId: normalizeText(file.id),
+        zipName: file.zipName || '',
+        relativePath: file.relativePath || '',
+        driveFileId: file.driveFileId || '',
+        fileName: file.fileName || '',
+      },
+    ],
+    events: [
+      normalizeEvent({
+        type: 'journal_historical_imported',
+        label: 'Historisk journal importerad',
+        actorUserId: actor.userId,
+        actorName: actor.displayName || actor.userId,
+        actorRole: actor.role,
+      }),
+    ].filter(Boolean),
+  });
+}
+
 function cloneEntry(entry) {
   return JSON.parse(JSON.stringify(entry));
+}
+
+function normalizePersonnummer(value) {
+  const raw = normalizeText(value);
+  if (!raw) return '';
+  const match = raw.match(/(\d{8})[- ]?(\d{4})/);
+  if (!match) return '';
+  return `${match[1]}-${match[2]}`;
+}
+
+function normalizeAttachment(input = {}) {
+  const safe = asObject(input);
+  return {
+    attachmentId: normalizeText(safe.attachmentId) || crypto.randomUUID(),
+    type: normalizeKey(safe.type) || 'consultation_photo',
+    photoId: normalizeText(safe.photoId),
+    fileName: normalizeText(safe.fileName),
+    mimeType: normalizeText(safe.mimeType) || 'image/jpeg',
+    label: normalizeText(safe.label),
+    capturedAt: normalizeText(safe.capturedAt) || nowIso(),
+    annotations: asObject(safe.annotations),
+    planSummary: asObject(safe.planSummary),
+    hasAnnotation: Boolean(safe.hasAnnotation),
+    annotatedPreviewAvailable: Boolean(safe.annotatedPreviewAvailable),
+  };
 }
 
 function buildJournalReadout(entry) {
@@ -198,7 +294,7 @@ function buildJournalReadout(entry) {
 }
 
 async function createCcoJournalStore({ filePath }) {
-  let state = await readJson(filePath, emptyState());
+  const state = await readJson(filePath, emptyState());
 
   async function save() {
     state.updatedAt = nowIso();
@@ -325,51 +421,245 @@ async function createCcoJournalStore({ filePath }) {
     );
   }
 
-  async function importHistoricalEntries({ tenantId, patientId, personnummer, files = [], actor = {} } = {}) {
+  async function importHistoricalEntries({
+    tenantId,
+    patientId,
+    personnummer,
+    files = [],
+    actor = {},
+  } = {}) {
+    const existingKeys = new Set(
+      state.entries
+        .filter(
+          (item) =>
+            normalizeText(item.tenantId) === normalizeText(tenantId) &&
+            normalizeText(item.patientId) === normalizeText(patientId) &&
+            normalizeKey(item.journalType) === 'historical_import'
+        )
+        .map(
+          (item) =>
+            normalizeText(item.importMeta?.importKey) || historicalImportKey(item.importMeta)
+        )
+        .filter(Boolean)
+    );
+
     let created = 0;
+    let skipped = 0;
     for (const file of asArray(files)) {
-      if (normalizeKey(file.fileType) !== 'journal_pdf') continue;
-      await upsertEntry(
-        {
+      const fileType = normalizeKey(file.fileType);
+      if (fileType !== 'journal_pdf' && fileType !== 'image') continue;
+      const importKey = historicalImportKey(file);
+      if (existingKeys.has(importKey)) {
+        skipped += 1;
+        continue;
+      }
+      state.entries.push(
+        buildHistoricalImportEntry({
           tenantId,
           patientId,
           personnummer,
-          journalType: 'historical_import',
-          title: normalizeText(file.fileName) || 'Importerad journal',
-          source: 'drive_import',
-          status: 'signed',
-          locked: true,
-          signedAt: nowIso(),
-          signedByName: 'Drive-import',
-          importMeta: {
-            zipName: file.zipName,
-            relativePath: file.relativePath,
-            importedAt: nowIso(),
-            readOnly: true,
-          },
-          attachments: [
-            {
-              type: 'historical_pdf',
-              zipName: file.zipName,
-              relativePath: file.relativePath,
-              fileName: file.fileName,
-            },
-          ],
-        },
-        { actor }
+          file,
+          actor,
+        })
       );
+      existingKeys.add(importKey);
       created += 1;
     }
-    return { created };
+    if (created) await save();
+    return { created, skipped };
+  }
+
+  async function importHistoricalForPatients({
+    tenantId,
+    patients = [],
+    filesByPersonnummer = {},
+    actor = {},
+    onProgress,
+  } = {}) {
+    let patientsTouched = 0;
+    let created = 0;
+    let skipped = 0;
+    for (const patient of asArray(patients)) {
+      const pnr = normalizePersonnummer(patient.personnummer);
+      const patientId = normalizeText(patient.id);
+      if (!pnr || !patientId) continue;
+      const files = asArray(filesByPersonnummer[pnr]);
+      if (!files.length) continue;
+      const result = await importHistoricalEntries({
+        tenantId,
+        patientId,
+        personnummer: pnr,
+        files,
+        actor,
+      });
+      if (result.created || result.skipped) {
+        patientsTouched += 1;
+        created += result.created;
+        skipped += result.skipped;
+        if (onProgress) {
+          onProgress({ patientsTouched, created, skipped, personnummer: pnr });
+        }
+      }
+    }
+    return { patientsTouched, created, skipped };
+  }
+
+  async function findOpenConsultationPlan({ tenantId, patientId } = {}) {
+    const entries = await listEntries({ tenantId, patientId, journalType: 'consultation_plan' });
+    return entries.find((entry) => !entry.locked && entry.status === 'draft') || null;
+  }
+
+  async function ensureConsultationPlan({
+    tenantId,
+    patientId,
+    personnummer = '',
+    actor = {},
+  } = {}) {
+    const existing = await findOpenConsultationPlan({ tenantId, patientId });
+    if (existing) return existing;
+    return upsertEntry(
+      {
+        tenantId,
+        patientId,
+        personnummer,
+        journalType: 'consultation_plan',
+        title: 'Konsultation — behandlingsplan',
+        fields: {
+          consultationDate: nowIso().slice(0, 10),
+        },
+      },
+      { actor }
+    );
+  }
+
+  async function addConsultationPhotoAttachment({
+    tenantId,
+    patientId,
+    personnummer = '',
+    entryId = '',
+    photo = {},
+    actor = {},
+  } = {}) {
+    let entry = entryId
+      ? await getEntry({ tenantId, patientId, entryId })
+      : await findOpenConsultationPlan({ tenantId, patientId });
+    if (!entry) {
+      entry = await ensureConsultationPlan({ tenantId, patientId, personnummer, actor });
+    }
+    if (entry.locked) {
+      const error = new Error('Signerad behandlingsplan kan inte uppdateras.');
+      error.statusCode = 409;
+      throw error;
+    }
+    const attachment = normalizeAttachment({
+      type: 'consultation_photo',
+      photoId: photo.photoId,
+      fileName: photo.fileName,
+      mimeType: photo.mimeType,
+      label: photo.label,
+      capturedAt: photo.storedAt,
+    });
+    const attachments = [...asArray(entry.attachments), attachment];
+    return upsertEntry(
+      {
+        ...entry,
+        journalType: 'consultation_plan',
+        attachments,
+      },
+      { actor }
+    );
+  }
+
+  async function updateConsultationPhotoAnnotation({
+    tenantId,
+    patientId,
+    entryId,
+    attachmentId,
+    annotations = {},
+    planSummary = {},
+    actor = {},
+  } = {}) {
+    const entry = await getEntry({ tenantId, patientId, entryId });
+    if (!entry) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (entry.locked) {
+      const error = new Error('Signerad behandlingsplan kan inte ändras.');
+      error.statusCode = 409;
+      throw error;
+    }
+    const targetId = normalizeText(attachmentId);
+    let found = false;
+    const attachments = asArray(entry.attachments).map((item) => {
+      const safe = asObject(item);
+      if (normalizeText(safe.attachmentId) !== targetId) return safe;
+      found = true;
+      const mergedSummary = { ...asObject(safe.planSummary), ...asObject(planSummary) };
+      return normalizeAttachment({
+        ...safe,
+        annotations: asObject(annotations),
+        planSummary: mergedSummary,
+        hasAnnotation: Array.isArray(annotations.shapes) ? annotations.shapes.length > 0 : false,
+        annotatedPreviewAvailable: Boolean(safe.annotatedPreviewAvailable),
+      });
+    });
+    if (!found) {
+      const error = new Error('Bilagan hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const mergedFields = {
+      ...asObject(entry.fields),
+      ...asObject(planSummary),
+    };
+    return upsertEntry(
+      {
+        ...entry,
+        fields: mergedFields,
+        attachments,
+      },
+      { actor }
+    );
+  }
+
+  async function markAttachmentAnnotatedPreview({
+    tenantId,
+    patientId,
+    entryId,
+    attachmentId,
+    actor = {},
+  } = {}) {
+    const entry = await getEntry({ tenantId, patientId, entryId });
+    if (!entry) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const targetId = normalizeText(attachmentId);
+    const attachments = asArray(entry.attachments).map((item) => {
+      const safe = asObject(item);
+      if (normalizeText(safe.attachmentId) !== targetId) return safe;
+      return { ...safe, annotatedPreviewAvailable: true, hasAnnotation: true };
+    });
+    return upsertEntry({ ...entry, attachments }, { actor });
   }
 
   return {
+    addConsultationPhotoAttachment,
     addCorrection,
     buildJournalReadout,
+    ensureConsultationPlan,
+    findOpenConsultationPlan,
     getEntry,
+    historicalImportKey,
     importHistoricalEntries,
+    importHistoricalForPatients,
     listEntries,
+    markAttachmentAnnotatedPreview,
     signEntry,
+    updateConsultationPhotoAnnotation,
     upsertEntry,
   };
 }
@@ -379,5 +669,6 @@ module.exports = {
   JOURNAL_TYPES,
   buildJournalReadout,
   createCcoJournalStore,
+  emptyConsultationPlanFields,
   emptyTpTreatmentFields,
 };
