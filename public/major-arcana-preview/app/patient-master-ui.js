@@ -52,6 +52,7 @@
     stats: null,
     preferJournalOnMobile: true,
     pendingPatientId: '',
+    editingTpEntryId: '',
   };
 
   const els = {
@@ -1102,10 +1103,42 @@
     `;
   }
 
+  function findTpJournalEntry(entries, entryId) {
+    if (!entryId) return null;
+    return (
+      asArray(entries).find(
+        (entry) => entry.journalType === 'tp_treatment' && entry.entryId === entryId
+      ) || null
+    );
+  }
+
+  function renderTpJournalSection(entries) {
+    const tpForm = window.ArcanaJournalTpForm;
+    if (!tpForm?.render || !runtime.editingTpEntryId) return '';
+    const entry = findTpJournalEntry(entries, runtime.editingTpEntryId);
+    if (!entry) return '';
+    const signFooter =
+      entry.canSign && !entry.locked
+        ? `
+        <div class="patient-master-tp-footer">
+          <button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">
+            Signera och lås journal
+          </button>
+        </div>`
+        : '';
+    return `
+      <form class="patient-master-tp-form-wrap" data-tp-journal-save-form data-tp-entry-id="${escapeHtml(entry.entryId)}">
+        ${tpForm.render(entry, { locked: entry.locked })}
+        ${signFooter}
+      </form>
+    `;
+  }
+
   function renderJournalEntries(entries) {
     const rows = asArray(entries);
     const toolbar = runtime.detail?.card ? renderJournalToolbar(runtime.detail.card, rows) : '';
     const planSection = renderConsultationPlanSection(rows);
+    const tpSection = renderTpJournalSection(rows);
     const otherEntries = rows.filter((entry) => entry.journalType !== 'consultation_plan');
 
     const listMarkup = otherEntries.length
@@ -1118,12 +1151,18 @@
             const openLink = href
               ? `<a class="patient-master-open-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Öppna PDF</a>`
               : '';
+            const isTpEntry = entry.journalType === 'tp_treatment';
+            const isEditingTp = isTpEntry && runtime.editingTpEntryId === entry.entryId;
+            const tpOpenButton =
+              isTpEntry && runtime.detail?.card?.patientId
+                ? `<button type="button" class="customers-utility-button${isEditingTp ? ' is-active' : ''}" data-patient-open-tp="${escapeHtml(entry.entryId)}">${isEditingTp ? 'Öppen' : 'Öppna'}</button>`
+                : '';
             const signButton =
-              entry.canSign && runtime.detail?.card?.patientId
+              entry.canSign && runtime.detail?.card?.patientId && !isEditingTp
                 ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">Signera</button>`
                 : '';
             return `
-              <li class="patient-master-journal-item${entry.locked ? ' is-locked' : ''}">
+              <li class="patient-master-journal-item${entry.locked ? ' is-locked' : ''}${isEditingTp ? ' is-editing' : ''}">
                 <div>
                   <strong>${escapeHtml(entry.title || entry.journalType || 'Journal')}</strong>
                   <span>${escapeHtml(entry.status || 'draft')}${entry.signedAt ? ` · signerad ${escapeHtml(String(entry.signedAt).slice(0, 10))}` : ''}</span>
@@ -1137,6 +1176,7 @@
                         ? chipHtml('Låst', 'violet')
                         : chipHtml('Utkast', 'blue')
                   }
+                  ${tpOpenButton}
                   ${signButton}
                 </div>
               </li>
@@ -1149,6 +1189,12 @@
     return `
       ${toolbar}
       ${planSection}
+      ${tpSection}
+      ${
+        otherEntries.some((entry) => entry.journalType === 'tp_treatment')
+          ? `<p class="patient-master-muted patient-master-tp-hint">TP-journal fylls i efter behandlingsdagen — öppna utkastet och signera när det är klart.</p>`
+          : ''
+      }
       ${listMarkup}
     `;
   }
@@ -1327,6 +1373,9 @@
 
   async function loadPatientDetail(patientId) {
     if (!patientId || runtime.mode !== 'register') return;
+    if (runtime.selectedPatientId !== patientId) {
+      runtime.editingTpEntryId = '';
+    }
     runtime.selectedPatientId = patientId;
     if (isMobileViewport() && runtime.preferJournalOnMobile) {
       runtime.detailTab = 'journal';
@@ -1671,13 +1720,42 @@
     });
   }
 
+  async function saveTpJournalEntry(form) {
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    const entryId = normalizeText(form?.dataset?.tpEntryId) || runtime.editingTpEntryId;
+    const tpForm = window.ArcanaJournalTpForm;
+    if (!patientId || !card || !entryId || !tpForm?.readForm) return;
+    const entryRoot = form.querySelector('[data-tp-journal-form]');
+    const fields = tpForm.readForm(entryRoot);
+    setStatus('Sparar TP-journal…', 'loading');
+    try {
+      await apiRequest('/api/v1/cco-journal/entry', {
+        method: 'PUT',
+        body: {
+          patientId,
+          entryId,
+          personnummer: card.personnummer || '',
+          journalType: 'tp_treatment',
+          title: 'TP behandlingsjournal',
+          fields,
+        },
+      });
+      setStatus('TP-journal sparad.', 'success');
+      runtime.editingTpEntryId = entryId;
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte spara journal.', 'error');
+    }
+  }
+
   async function createTpJournalDraft() {
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
     if (!patientId || !card) return;
     setStatus('Skapar TP-journal…', 'loading');
     try {
-      await apiRequest('/api/v1/cco-journal/entry', {
+      const payload = await apiRequest('/api/v1/cco-journal/entry', {
         method: 'PUT',
         body: {
           patientId,
@@ -1687,6 +1765,7 @@
           fields: {},
         },
       });
+      runtime.editingTpEntryId = normalizeText(payload?.entry?.entryId);
       setStatus('Ny TP-journal skapad.', 'success');
       runtime.detailTab = 'journal';
       await loadPatientDetail(patientId);
@@ -1749,6 +1828,14 @@
         return;
       }
 
+      const openTpButton = event.target.closest('[data-patient-open-tp]');
+      if (openTpButton && runtime.mode === 'register') {
+        runtime.editingTpEntryId = normalizeText(openTpButton.dataset.patientOpenTp);
+        runtime.detailTab = 'journal';
+        renderDetailPanel();
+        return;
+      }
+
       const signButton = event.target.closest('[data-patient-sign-entry]');
       if (signButton && runtime.mode === 'register') {
         void signJournalEntry(signButton.dataset.patientSignEntry);
@@ -1788,6 +1875,13 @@
     });
 
     document.addEventListener('submit', (event) => {
+      const tpForm = event.target.closest('[data-tp-journal-save-form]');
+      if (tpForm && runtime.mode === 'register') {
+        event.preventDefault();
+        void saveTpJournalEntry(tpForm);
+        return;
+      }
+
       const form = event.target.closest('[data-staff-login-form]');
       if (!form || runtime.mode !== 'register') return;
       event.preventDefault();
