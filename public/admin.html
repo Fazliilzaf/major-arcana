@@ -238,6 +238,27 @@
         margin-bottom: 14px;
         flex-wrap: wrap;
       }
+      .mobile-staff-journal-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 14px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(139, 94, 60, 0.16), rgba(168, 116, 76, 0.12));
+        border: 1px solid rgba(139, 94, 60, 0.28);
+      }
+      .mobile-staff-journal-banner .btn.primary {
+        flex-shrink: 0;
+        min-height: 44px;
+        white-space: nowrap;
+      }
+      @media (min-width: 821px) {
+        .mobile-staff-journal-banner {
+          display: none !important;
+        }
+      }
       .brand-stack {
         display: flex;
         align-items: center;
@@ -2238,6 +2259,23 @@
             <button id="logoutBtn" class="btn danger" data-i18n="logout">Logga ut</button>
           </div>
         </div>
+      </div>
+
+      <div
+        id="mobileStaffJournalBanner"
+        class="mobile-staff-journal-banner hidden"
+        role="region"
+        aria-label="Mobil journal"
+      >
+        <div>
+          <strong>Mobil journal</strong>
+          <p class="mini muted" style="margin: 4px 0 0">
+            Ta bilder och skriv journal i kundkortet — inte här i admin-översikten.
+          </p>
+        </div>
+        <a id="mobileStaffJournalLink" class="btn primary" href="/staff?view=customers"
+          >Öppna journal</a
+        >
       </div>
 
       <section id="loginPanel" class="panel">

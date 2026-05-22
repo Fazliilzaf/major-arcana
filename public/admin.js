@@ -173,7 +173,9 @@
   }
 
   function isCcoRoutePath(pathname = '') {
-    const normalized = String(pathname || '').trim().toLowerCase();
+    const normalized = String(pathname || '')
+      .trim()
+      .toLowerCase();
     return (
       normalized.endsWith('/cco') ||
       normalized.endsWith('/ccp') ||
@@ -245,7 +247,6 @@
     return Array.isArray(value) ? value : [];
   }
 
-
   function readArcanaUiBuildMarker() {
     const fromMeta = document
       .querySelector('meta[name="arcana-ui-build"]')
@@ -292,9 +293,6 @@
 
   if (maybeResetArcanaUiClientState()) return;
 
-
-
-
   function loadLanguage() {
     const raw = String(localStorage.getItem(LANGUAGE_KEY) || 'sv')
       .trim()
@@ -326,14 +324,19 @@
     const minRiskLevel = Number.parseInt(String(parsed.minRiskLevel ?? '3'), 10);
     const maxRiskLevel = Number.parseInt(String(parsed.maxRiskLevel ?? '5'), 10);
     const sinceDays = Number.parseInt(String(parsed.sinceDays ?? '14'), 10);
-    const ownerDecision = typeof parsed.ownerDecision === 'string' ? parsed.ownerDecision.trim() : '';
+    const ownerDecision =
+      typeof parsed.ownerDecision === 'string' ? parsed.ownerDecision.trim() : '';
     const decision = typeof parsed.decision === 'string' ? parsed.decision.trim() : '';
     const category = typeof parsed.category === 'string' ? parsed.category.trim() : '';
     const state = typeof parsed.state === 'string' ? parsed.state.trim() : '';
     const reasonCode = typeof parsed.reasonCode === 'string' ? parsed.reasonCode.trim() : '';
     const search = typeof parsed.search === 'string' ? parsed.search.trim() : '';
-    const minNormalized = Number.isFinite(minRiskLevel) ? Math.max(1, Math.min(5, minRiskLevel)) : 3;
-    const maxNormalized = Number.isFinite(maxRiskLevel) ? Math.max(1, Math.min(5, maxRiskLevel)) : 5;
+    const minNormalized = Number.isFinite(minRiskLevel)
+      ? Math.max(1, Math.min(5, minRiskLevel))
+      : 3;
+    const maxNormalized = Number.isFinite(maxRiskLevel)
+      ? Math.max(1, Math.min(5, maxRiskLevel))
+      : 5;
     return {
       minRiskLevel: Math.min(minNormalized, maxNormalized),
       maxRiskLevel: Math.max(minNormalized, maxNormalized),
@@ -548,10 +551,18 @@
     refreshMonitorBtn: document.getElementById('refreshMonitorBtn'),
     toggleMonitorDetailsBtn: document.getElementById('toggleMonitorDetailsBtn'),
     runSchedulerSuiteBtn: document.getElementById('runSchedulerSuiteBtn'),
-    previewReadinessOutputGateRemediationBtn: document.getElementById('previewReadinessOutputGateRemediationBtn'),
-    runReadinessOutputGateRemediationBtn: document.getElementById('runReadinessOutputGateRemediationBtn'),
-    previewReadinessOwnerMfaRemediationBtn: document.getElementById('previewReadinessOwnerMfaRemediationBtn'),
-    runReadinessOwnerMfaRemediationBtn: document.getElementById('runReadinessOwnerMfaRemediationBtn'),
+    previewReadinessOutputGateRemediationBtn: document.getElementById(
+      'previewReadinessOutputGateRemediationBtn'
+    ),
+    runReadinessOutputGateRemediationBtn: document.getElementById(
+      'runReadinessOutputGateRemediationBtn'
+    ),
+    previewReadinessOwnerMfaRemediationBtn: document.getElementById(
+      'previewReadinessOwnerMfaRemediationBtn'
+    ),
+    runReadinessOwnerMfaRemediationBtn: document.getElementById(
+      'runReadinessOwnerMfaRemediationBtn'
+    ),
     monitorPanelStatus: document.getElementById('monitorPanelStatus'),
     monitorResult: document.getElementById('monitorResult'),
     monitorObservabilitySummary: document.getElementById('monitorObservabilitySummary'),
@@ -762,7 +773,9 @@
   }
 
   function setLanguage(nextLanguage) {
-    const normalized = String(nextLanguage || '').trim().toLowerCase();
+    const normalized = String(nextLanguage || '')
+      .trim()
+      .toLowerCase();
     state.language = SUPPORTED_LANGUAGES.includes(normalized) ? normalized : 'sv';
     localStorage.setItem(LANGUAGE_KEY, state.language);
     applyLanguage();
@@ -797,14 +810,18 @@
   }
 
   function formatRoleLabel(roleRaw) {
-    const role = String(roleRaw || '').trim().toUpperCase();
+    const role = String(roleRaw || '')
+      .trim()
+      .toUpperCase();
     if (role === 'OWNER') return isEnglishLanguage() ? 'OWNER' : 'ÄGARE';
     if (role === 'STAFF') return isEnglishLanguage() ? 'STAFF' : 'MEDARBETARE';
     return roleRaw || '-';
   }
 
   function formatStatusLabel(statusRaw) {
-    const status = String(statusRaw || '').trim().toLowerCase();
+    const status = String(statusRaw || '')
+      .trim()
+      .toLowerCase();
     const map = {
       active: isEnglishLanguage() ? 'Active' : 'Aktiv',
       disabled: isEnglishLanguage() ? 'Disabled' : 'Inaktiv',
@@ -822,7 +839,9 @@
   }
 
   function formatDecisionLabel(decisionRaw) {
-    const decision = String(decisionRaw || '').trim().toLowerCase();
+    const decision = String(decisionRaw || '')
+      .trim()
+      .toLowerCase();
     const map = {
       allow: isEnglishLanguage() ? 'Allowed' : 'Tillåten',
       allow_flag: isEnglishLanguage() ? 'Allowed (flagged)' : 'Tillåten (flaggad)',
@@ -835,7 +854,9 @@
   }
 
   function formatOwnerDecisionLabel(valueRaw) {
-    const value = String(valueRaw || '').trim().toLowerCase();
+    const value = String(valueRaw || '')
+      .trim()
+      .toLowerCase();
     const map = {
       pending: isEnglishLanguage() ? 'Pending' : 'Väntar',
       approved_exception: isEnglishLanguage() ? 'Approved exception' : 'Godkänd avvikelse',
@@ -848,12 +869,16 @@
   }
 
   function getOwnerActionPresentation(actionRaw) {
-    const action = String(actionRaw || '').trim().toLowerCase();
+    const action = String(actionRaw || '')
+      .trim()
+      .toLowerCase();
     const map = {
       request_revision: {
         icon: '↺',
         label: isEnglishLanguage() ? 'Request revision' : 'Begär revidering',
-        meta: isEnglishLanguage() ? 'Send back for a new version.' : 'Skicka tillbaka för ny version.',
+        meta: isEnglishLanguage()
+          ? 'Send back for a new version.'
+          : 'Skicka tillbaka för ny version.',
       },
       approve_exception: {
         icon: '✓',
@@ -868,7 +893,9 @@
       escalate: {
         icon: '↑',
         label: isEnglishLanguage() ? 'Escalate' : 'Eskalera',
-        meta: isEnglishLanguage() ? 'Hand off to a higher-priority path.' : 'Lyft vidare till högre prioriterat spår.',
+        meta: isEnglishLanguage()
+          ? 'Hand off to a higher-priority path.'
+          : 'Lyft vidare till högre prioriterat spår.',
       },
     };
     if (Object.prototype.hasOwnProperty.call(map, action)) return map[action];
@@ -884,7 +911,9 @@
   }
 
   function formatTemplateStateLabel(stateRaw) {
-    const value = String(stateRaw || '').trim().toLowerCase();
+    const value = String(stateRaw || '')
+      .trim()
+      .toLowerCase();
     const map = {
       draft: isEnglishLanguage() ? 'Draft' : 'Utkast',
       active: isEnglishLanguage() ? 'Active' : 'Aktiv',
@@ -937,7 +966,7 @@
   function buildRevisionEtag(revision) {
     const safeRevision = parseRevisionNumber(revision);
     if (!safeRevision) return '';
-    return `W/\"r${safeRevision}\"`;
+    return `W/"r${safeRevision}"`;
   }
 
   function extractTemplateVariables(content) {
@@ -1280,7 +1309,10 @@
     if (action === 'activate' && /risk\/policy/i.test(raw)) {
       return `${raw} Kör Evaluate och hantera riskbeslut innan activation.`;
     }
-    if ((action === 'save' || action === 'evaluate') && /Bara draft-versioner kan ändras/i.test(raw)) {
+    if (
+      (action === 'save' || action === 'evaluate') &&
+      /Bara draft-versioner kan ändras/i.test(raw)
+    ) {
       return `${raw} Klona aktiv version för att skapa en ny draft.`;
     }
     return raw;
@@ -1361,7 +1393,11 @@
           if (Array.isArray(parsed.services)) {
             return parsed.services;
           }
-          if (parsed.publicSite && typeof parsed.publicSite === 'object' && Array.isArray(parsed.publicSite.services)) {
+          if (
+            parsed.publicSite &&
+            typeof parsed.publicSite === 'object' &&
+            Array.isArray(parsed.publicSite.services)
+          ) {
             return parsed.publicSite.services;
           }
         }
@@ -1441,13 +1477,17 @@
     const duplicate = Array.from(els.toastViewport.querySelectorAll('.toast')).find((toastNode) => {
       const nodeTone = String(toastNode.className || '').toLowerCase();
       const nodeTitle = String(toastNode.querySelector('.toast-title')?.textContent || '').trim();
-      const nodeMessage = String(toastNode.querySelector('.toast-message')?.textContent || '').trim();
+      const nodeMessage = String(
+        toastNode.querySelector('.toast-message')?.textContent || ''
+      ).trim();
       return nodeTone.includes(` ${toastTone}`) && nodeTitle === toastTitle && nodeMessage === text;
     });
     if (duplicate) {
       removeToast(duplicate);
     }
-    const ttl = Number.isFinite(Number(durationMs)) ? Math.max(1800, Number(durationMs)) : TOAST_AUTO_DISMISS_MS;
+    const ttl = Number.isFinite(Number(durationMs))
+      ? Math.max(1800, Number(durationMs))
+      : TOAST_AUTO_DISMISS_MS;
     const toastId = `toast-${Date.now()}-${++state.toastSequence}`;
 
     const node = document.createElement('article');
@@ -1518,7 +1558,9 @@
   }
 
   function normalizeWritingMailbox(value = '') {
-    return String(value || '').trim().toLowerCase();
+    return String(value || '')
+      .trim()
+      .toLowerCase();
   }
 
   function isValidWritingMailbox(value = '') {
@@ -1529,7 +1571,9 @@
 
   function toWritingIdentityProfile(source = {}) {
     const safe = source && typeof source === 'object' && !Array.isArray(source) ? source : {};
-    const sentenceLength = String(safe.sentenceLength || '').trim().toLowerCase();
+    const sentenceLength = String(safe.sentenceLength || '')
+      .trim()
+      .toLowerCase();
     const ctaStyle = String(safe.ctaStyle || '').trim();
     const greetingStyle = String(safe.greetingStyle || '').trim();
     const closingStyle = String(safe.closingStyle || '').trim();
@@ -1542,9 +1586,13 @@
         ? Math.max(0, Math.min(10, Math.round(formalityLevel)))
         : 5,
       ctaStyle: ctaStyle || 'balanced',
-      sentenceLength: ['short', 'medium', 'long'].includes(sentenceLength) ? sentenceLength : 'medium',
+      sentenceLength: ['short', 'medium', 'long'].includes(sentenceLength)
+        ? sentenceLength
+        : 'medium',
       emojiUsage: safe.emojiUsage === true,
-      warmthIndex: Number.isFinite(warmthIndex) ? Math.max(0, Math.min(10, Math.round(warmthIndex))) : 5,
+      warmthIndex: Number.isFinite(warmthIndex)
+        ? Math.max(0, Math.min(10, Math.round(warmthIndex)))
+        : 5,
     };
   }
 
@@ -1566,9 +1614,11 @@
     }
     if (els.writingIdentityGreeting) els.writingIdentityGreeting.value = profile.greetingStyle;
     if (els.writingIdentityClosing) els.writingIdentityClosing.value = profile.closingStyle;
-    if (els.writingIdentityFormality) els.writingIdentityFormality.value = String(profile.formalityLevel);
+    if (els.writingIdentityFormality)
+      els.writingIdentityFormality.value = String(profile.formalityLevel);
     if (els.writingIdentityWarmth) els.writingIdentityWarmth.value = String(profile.warmthIndex);
-    if (els.writingIdentitySentenceLength) els.writingIdentitySentenceLength.value = profile.sentenceLength;
+    if (els.writingIdentitySentenceLength)
+      els.writingIdentitySentenceLength.value = profile.sentenceLength;
     if (els.writingIdentityCtaStyle) els.writingIdentityCtaStyle.value = profile.ctaStyle;
     if (els.writingIdentityEmojiUsage) {
       els.writingIdentityEmojiUsage.value = profile.emojiUsage ? 'true' : 'false';
@@ -1586,7 +1636,9 @@
   }
 
   function renderWritingIdentityProfiles() {
-    const profiles = Array.isArray(state.writingIdentityProfiles) ? state.writingIdentityProfiles : [];
+    const profiles = Array.isArray(state.writingIdentityProfiles)
+      ? state.writingIdentityProfiles
+      : [];
     if (els.writingIdentityCount) {
       els.writingIdentityCount.textContent = `Profiler: ${profiles.length}`;
     }
@@ -1678,7 +1730,10 @@
       fillWritingIdentityForm(selectedRecord);
       renderWritingIdentityProfiles();
       if (!quiet) {
-        setStatus(els.writingIdentityStatus, `Skrivprofiler laddade: ${state.writingIdentityProfiles.length}.`);
+        setStatus(
+          els.writingIdentityStatus,
+          `Skrivprofiler laddade: ${state.writingIdentityProfiles.length}.`
+        );
       }
     } catch (error) {
       if (!quiet) {
@@ -1738,7 +1793,10 @@
     try {
       if (!isOwner()) throw new Error('Endast OWNER kan köra auto-extraktion.');
       const sampleSizeRaw = Number(els.writingIdentitySampleSize?.value || 40);
-      const sampleSize = Math.max(30, Math.min(50, Number.isFinite(sampleSizeRaw) ? Math.round(sampleSizeRaw) : 40));
+      const sampleSize = Math.max(
+        30,
+        Math.min(50, Number.isFinite(sampleSizeRaw) ? Math.round(sampleSizeRaw) : 40)
+      );
       if (els.writingIdentitySampleSize) {
         els.writingIdentitySampleSize.value = String(sampleSize);
       }
@@ -1754,7 +1812,9 @@
         },
       });
 
-      const updatedProfiles = Array.isArray(response?.updatedProfiles) ? response.updatedProfiles : [];
+      const updatedProfiles = Array.isArray(response?.updatedProfiles)
+        ? response.updatedProfiles
+        : [];
       await loadWritingIdentityProfiles({ quiet: true });
       setStatus(
         els.writingIdentityStatus,
@@ -1774,8 +1834,10 @@
   }
 
   function getModalInputNode() {
-    if (els.appModalInput && !els.appModalInput.classList.contains('hidden')) return els.appModalInput;
-    if (els.appModalTextarea && !els.appModalTextarea.classList.contains('hidden')) return els.appModalTextarea;
+    if (els.appModalInput && !els.appModalInput.classList.contains('hidden'))
+      return els.appModalInput;
+    if (els.appModalTextarea && !els.appModalTextarea.classList.contains('hidden'))
+      return els.appModalTextarea;
     return null;
   }
 
@@ -1905,7 +1967,12 @@
   }
 
   function openAppModal(options = {}) {
-    if (!els.appModalBackdrop || !els.appModalTitle || !els.appModalConfirmBtn || !els.appModalCancelBtn) {
+    if (
+      !els.appModalBackdrop ||
+      !els.appModalTitle ||
+      !els.appModalConfirmBtn ||
+      !els.appModalCancelBtn
+    ) {
       const fallbackMessage = String(options.message || options.title || 'Bekräfta');
       if (options.inputMode && options.inputMode !== 'none') {
         const fallback = window.prompt(fallbackMessage, String(options.defaultValue || ''));
@@ -1935,20 +2002,24 @@
       inputLabel: String(options.inputLabel || ''),
       inputPlaceholder: String(options.inputPlaceholder || ''),
       defaultValue: String(options.defaultValue || ''),
-      inputType: ['text', 'password', 'email', 'search'].includes(String(options.inputType || '').trim())
+      inputType: ['text', 'password', 'email', 'search'].includes(
+        String(options.inputType || '').trim()
+      )
         ? String(options.inputType || 'text').trim()
         : 'text',
       hint: String(options.hint || ''),
       requiredExact: String(options.requiredExact || ''),
       allowEmpty: options.allowEmpty !== false,
-      confirmTone: String(options.confirmTone || 'primary').toLowerCase() === 'danger' ? 'danger' : 'primary',
+      confirmTone:
+        String(options.confirmTone || 'primary').toLowerCase() === 'danger' ? 'danger' : 'primary',
       closeOnEscape: options.closeOnEscape === true,
       closeOnBackdrop: options.closeOnBackdrop === true,
       blockedDismissHint: String(options.blockedDismissHint || 'Stäng via knapparna i dialogen.'),
     };
 
     activeModalOptions = normalized;
-    activeModalFocusReturn = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    activeModalFocusReturn =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     els.appModalTitle.textContent = normalized.title;
     if (els.appModalSubtitle) {
@@ -1957,7 +2028,9 @@
     els.appModalConfirmBtn.textContent = normalized.confirmLabel;
     els.appModalCancelBtn.textContent = normalized.cancelLabel;
     els.appModalConfirmBtn.classList.remove('danger', 'primary');
-    els.appModalConfirmBtn.classList.add(normalized.confirmTone === 'danger' ? 'danger' : 'primary');
+    els.appModalConfirmBtn.classList.add(
+      normalized.confirmTone === 'danger' ? 'danger' : 'primary'
+    );
 
     resetModalInputState();
     if (normalized.hint) {
@@ -2051,7 +2124,9 @@
   }
 
   function buildTonePreviewText(toneStyle, assistantName, brandProfile) {
-    const tone = String(toneStyle || '').trim().toLowerCase();
+    const tone = String(toneStyle || '')
+      .trim()
+      .toLowerCase();
     const assistant = String(assistantName || '').trim() || 'Arcana';
     const brand = String(brandProfile || '').trim() || 'kliniken';
 
@@ -2068,7 +2143,9 @@
   }
 
   function normalizeBrandColorForUi(value, palette, fallback) {
-    const normalized = String(value || '').trim().toUpperCase();
+    const normalized = String(value || '')
+      .trim()
+      .toUpperCase();
     if (palette.includes(normalized)) return normalized;
     return fallback;
   }
@@ -2176,7 +2253,9 @@
   }
 
   function looksLikeEmail(value) {
-    const email = String(value || '').trim().toLowerCase();
+    const email = String(value || '')
+      .trim()
+      .toLowerCase();
     if (!email) return false;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
@@ -2289,8 +2368,8 @@
             ? 'session: current'
             : 'session: aktuell'
           : isEnglishLanguage()
-          ? 'session: other'
-          : 'session: annan',
+            ? 'session: other'
+            : 'session: annan',
       ].join('\n');
     }
     const canReset = isOwner() && role !== 'OWNER';
@@ -2337,8 +2416,14 @@
       els.profileSessionExpiresValue,
       data?.session?.expiresAt ? formatDateTime(data.session.expiresAt) : '-'
     );
-    setText(els.profilePermissionsValue, Array.isArray(data?.permissions) ? data.permissions.length : 0);
-    setText(els.profileTenantsValue, Array.isArray(data?.memberships) ? data.memberships.length : 0);
+    setText(
+      els.profilePermissionsValue,
+      Array.isArray(data?.permissions) ? data.permissions.length : 0
+    );
+    setText(
+      els.profileTenantsValue,
+      Array.isArray(data?.memberships) ? data.memberships.length : 0
+    );
   }
 
   function readStaffFiltersFromInputs() {
@@ -2346,7 +2431,9 @@
       search: String(els.staffSearchInput?.value || '')
         .trim()
         .toLowerCase(),
-      status: String(els.staffStatusFilter?.value || '').trim().toLowerCase(),
+      status: String(els.staffStatusFilter?.value || '')
+        .trim()
+        .toLowerCase(),
     };
   }
 
@@ -2380,12 +2467,40 @@
     setText(els.teamSummaryOwners, owners);
   }
 
+  function syncMobileStaffJournalBanner(isLoggedIn) {
+    const banner = document.getElementById('mobileStaffJournalBanner');
+    const link = document.getElementById('mobileStaffJournalLink');
+    if (!banner) return;
+    let show = Boolean(isLoggedIn);
+    try {
+      show = show && window.matchMedia('(max-width: 820px)').matches;
+    } catch {
+      /* ignore */
+    }
+    banner.classList.toggle('hidden', !show);
+    if (link) {
+      const params = new URLSearchParams({ view: 'customers' });
+      const returnPath = readPostLoginRedirectPath();
+      if (returnPath) {
+        try {
+          const parsed = new URL(returnPath, window.location.origin);
+          const patientId = String(parsed.searchParams.get('patientId') || '').trim();
+          if (patientId) params.set('patientId', patientId);
+        } catch {
+          /* ignore */
+        }
+      }
+      link.href = `/staff?${params.toString()}`;
+    }
+  }
+
   function setAuthVisible(isLoggedIn) {
     els.loginPanel.classList.toggle('hidden', isLoggedIn);
     els.dashboardPanel.classList.toggle('hidden', !isLoggedIn);
     if (els.sectionNav) {
       els.sectionNav.hidden = !isLoggedIn;
     }
+    syncMobileStaffJournalBanner(isLoggedIn);
     if (isLoggedIn) {
       if (maybeActivateCcoWorkspaceFromHash()) return;
       if (els.tenantSelectionPanel) els.tenantSelectionPanel.classList.add('hidden');
@@ -2406,7 +2521,6 @@
       clearPendingMfa();
     }
   }
-
 
   function setSessionMeta() {
     if (!els.sessionMeta) return;
@@ -2448,7 +2562,9 @@
     }
 
     const hasPrevious = memberships.some((item) => item.tenantId === previous);
-    els.tenantSwitchSelect.value = hasPrevious ? previous : state.tenantId || memberships[0]?.tenantId || '';
+    els.tenantSwitchSelect.value = hasPrevious
+      ? previous
+      : state.tenantId || memberships[0]?.tenantId || '';
   }
 
   function renderPendingTenantSelection(tenants = []) {
@@ -2556,7 +2672,8 @@
       els.rollbackRevisionSelect.disabled =
         !owner || !hasVersion || state.versionRevisions.length === 0;
     }
-    if (els.rollbackRevisionNoteInput) els.rollbackRevisionNoteInput.disabled = !owner || !hasVersion;
+    if (els.rollbackRevisionNoteInput)
+      els.rollbackRevisionNoteInput.disabled = !owner || !hasVersion;
     if (els.rollbackRevisionBtn) {
       els.rollbackRevisionBtn.disabled =
         !owner || !hasVersion || state.versionRevisions.length === 0;
@@ -2662,11 +2779,9 @@
       el.disabled = lockEditor;
     });
     if (els.templateVariablePicker) {
-      els.templateVariablePicker
-        .querySelectorAll('button[data-template-var]')
-        .forEach((button) => {
-          button.disabled = lockEditor;
-        });
+      els.templateVariablePicker.querySelectorAll('button[data-template-var]').forEach((button) => {
+        button.disabled = lockEditor;
+      });
     }
     if (els.appendSignatureBtn) {
       els.appendSignatureBtn.disabled = lockEditor;
@@ -2841,7 +2956,6 @@
     frame.setAttribute('src', 'about:blank');
   }
 
-
   function currentDashboardStreamKey() {
     if (!state.token || !state.tenantId) return '';
     return `${state.tenantId}:${state.token}`;
@@ -2900,7 +3014,10 @@
     if (state.dashboardStreamReconnectTimer) return;
     const delayMs = Math.max(
       DASHBOARD_STREAM_RETRY_MIN_MS,
-      Math.min(DASHBOARD_STREAM_RETRY_MAX_MS, Number(state.dashboardStreamRetryMs) || DASHBOARD_STREAM_RETRY_MIN_MS)
+      Math.min(
+        DASHBOARD_STREAM_RETRY_MAX_MS,
+        Number(state.dashboardStreamRetryMs) || DASHBOARD_STREAM_RETRY_MIN_MS
+      )
     );
     state.dashboardStreamReconnectTimer = setTimeout(() => {
       state.dashboardStreamReconnectTimer = null;
@@ -3070,7 +3187,8 @@
     const text = isEnglishLanguage()
       ? `Breach:${buckets.breached} • Critical:${buckets.critical} • Warning:${buckets.warn}`
       : `Brist:${buckets.breached} • Kritisk:${buckets.critical} • Varning:${buckets.warn}`;
-    const tone = buckets.breached > 0 ? 'bad' : buckets.critical > 0 || buckets.warn > 0 ? 'warn' : 'ok';
+    const tone =
+      buckets.breached > 0 ? 'bad' : buckets.critical > 0 || buckets.warn > 0 ? 'warn' : 'ok';
     setKpiMeta(els.slaIndicatorMeta, text, tone);
   }
 
@@ -3140,11 +3258,7 @@
         isEnglishLanguage() ? `+${potentialGain} possible` : `+${potentialGain} möjlig`
       );
     }
-    setKpiMeta(
-      els.readinessBandMeta,
-      metaParts.join(' • '),
-      tone
-    );
+    setKpiMeta(els.readinessBandMeta, metaParts.join(' • '), tone);
   }
 
   function renderPilotReportKpi(monitorStatus = null) {
@@ -3236,7 +3350,8 @@
 
   function renderRiskTrendBars(riskSummary = {}) {
     if (!els.riskTrendBars || !els.riskTrendMeta) return;
-    const byLevel = riskSummary?.byLevel && typeof riskSummary.byLevel === 'object' ? riskSummary.byLevel : {};
+    const byLevel =
+      riskSummary?.byLevel && typeof riskSummary.byLevel === 'object' ? riskSummary.byLevel : {};
     const levels = [1, 2, 3, 4, 5].map((level) => {
       const count = Number(byLevel[level] ?? byLevel[String(level)] ?? 0);
       return { level, count: Number.isFinite(count) ? count : 0 };
@@ -3291,7 +3406,9 @@
     if (l3Count > 0) {
       notifications.push({
         tone: 'warn',
-        title: isEnglishLanguage() ? `${l3Count} reviews pending` : `${l3Count} granskningar väntar`,
+        title: isEnglishLanguage()
+          ? `${l3Count} reviews pending`
+          : `${l3Count} granskningar väntar`,
         detail: isEnglishLanguage()
           ? 'L3 evaluations need manual review.'
           : 'L3-utvärderingar behöver manuell granskning.',
@@ -3359,7 +3476,9 @@
   }
 
   function normalizeOwnerDecision(value) {
-    return String(value || 'pending').trim().toLowerCase();
+    return String(value || 'pending')
+      .trim()
+      .toLowerCase();
   }
 
   function ownerActionFromDecision(value) {
@@ -3385,7 +3504,10 @@
       if (ownerDecision === 'pending') stats.pending += 1;
       if (ownerDecision === 'revision_requested') stats.revisionRequested += 1;
       if (ownerDecision === 'escalated') stats.escalated += 1;
-      if (Number(evaluation.riskLevel || 0) >= 4 && ['pending', 'revision_requested'].includes(ownerDecision)) {
+      if (
+        Number(evaluation.riskLevel || 0) >= 4 &&
+        ['pending', 'revision_requested'].includes(ownerDecision)
+      ) {
         stats.highCriticalOpen += 1;
       }
     }
@@ -3400,7 +3522,9 @@
       `${isEnglishLanguage() ? 'High/Critical open' : 'Hög/Kritisk öppna'}: ${stats.highCriticalOpen}`,
       `${isEnglishLanguage() ? 'Selected rows' : 'Valda rader'}: ${state.selectedRiskIds.length}`,
     ];
-    els.riskQueueSummary.innerHTML = rows.map((row) => `<span class="chip">${escapeHtml(row)}</span>`).join('');
+    els.riskQueueSummary.innerHTML = rows
+      .map((row) => `<span class="chip">${escapeHtml(row)}</span>`)
+      .join('');
   }
 
   function renderRiskDetail(evaluation) {
@@ -3410,26 +3534,24 @@
       if (!els.riskDetailQuickActions) return;
       const selectedAction = ownerActionFromDecision(currentEvaluation?.ownerDecision || 'pending');
       const canEdit = Boolean(currentEvaluation?.id) && isOwner();
-      els.riskDetailQuickActions
-        .querySelectorAll('button[data-owner-action]')
-        .forEach((btn) => {
-          const action = String(btn.getAttribute('data-owner-action') || '').trim();
-          const presentation = getOwnerActionPresentation(action);
-          btn.innerHTML = renderOwnerActionButtonLabel(action);
-          btn.setAttribute('aria-label', presentation.label);
-          if (presentation.meta) {
-            btn.title = presentation.meta;
-          } else {
-            btn.removeAttribute('title');
-          }
-          btn.disabled = !canEdit;
-          btn.classList.toggle('active', canEdit && action === selectedAction);
-          if (currentEvaluation?.id) {
-            btn.setAttribute('data-eid', currentEvaluation.id);
-          } else {
-            btn.removeAttribute('data-eid');
-          }
-        });
+      els.riskDetailQuickActions.querySelectorAll('button[data-owner-action]').forEach((btn) => {
+        const action = String(btn.getAttribute('data-owner-action') || '').trim();
+        const presentation = getOwnerActionPresentation(action);
+        btn.innerHTML = renderOwnerActionButtonLabel(action);
+        btn.setAttribute('aria-label', presentation.label);
+        if (presentation.meta) {
+          btn.title = presentation.meta;
+        } else {
+          btn.removeAttribute('title');
+        }
+        btn.disabled = !canEdit;
+        btn.classList.toggle('active', canEdit && action === selectedAction);
+        if (currentEvaluation?.id) {
+          btn.setAttribute('data-eid', currentEvaluation.id);
+        } else {
+          btn.removeAttribute('data-eid');
+        }
+      });
       if (els.riskDetailNoteInput) {
         els.riskDetailNoteInput.disabled = !canEdit;
       }
@@ -3452,9 +3574,9 @@
           })`,
           detail: `${isEnglishLanguage() ? 'Decision' : 'Beslut'}: ${formatDecisionLabel(
             currentEvaluation.decision || '-'
-          )} • ${isEnglishLanguage() ? 'Owner' : 'Ägare'}: ${
-            formatOwnerDecisionLabel(currentEvaluation.ownerDecision || 'pending')
-          }`,
+          )} • ${isEnglishLanguage() ? 'Owner' : 'Ägare'}: ${formatOwnerDecisionLabel(
+            currentEvaluation.ownerDecision || 'pending'
+          )}`,
         });
       }
       const ownerActions = Array.isArray(currentEvaluation?.ownerActions)
@@ -3509,7 +3631,8 @@
 
     if (!evaluation) {
       els.riskDetailMeta.textContent = 'Ingen utvärdering vald.';
-      if (els.riskDetailSummary) els.riskDetailSummary.textContent = 'Ingen detaljerad riskdata ännu.';
+      if (els.riskDetailSummary)
+        els.riskDetailSummary.textContent = 'Ingen detaljerad riskdata ännu.';
       if (els.riskDetailSla) {
         els.riskDetailSla.className = 'mini muted';
         els.riskDetailSla.textContent = 'Ingen incident-SLA.';
@@ -3552,9 +3675,7 @@
         <div class="mini" style="margin-top:8px"><strong>${
           isEnglishLanguage() ? 'Reason codes' : 'Orsakskoder'
         }:</strong> ${
-          reasonCodes.length
-            ? escapeHtml(reasonCodes.join(', '))
-            : '<span class="muted">-</span>'
+          reasonCodes.length ? escapeHtml(reasonCodes.join(', ')) : '<span class="muted">-</span>'
         }</div>
         <div class="mini" style="margin-top:4px"><strong>${
           isEnglishLanguage() ? 'Policy' : 'Policy'
@@ -3566,8 +3687,8 @@
         sla.className === 'sla-breached'
           ? 'bad'
           : sla.className === 'sla-critical' || sla.className === 'sla-warn'
-          ? 'warn'
-          : 'ok';
+            ? 'warn'
+            : 'ok';
       els.riskDetailSla.className = `kpi-meta ${tone}`;
       els.riskDetailSla.textContent =
         Number(evaluation.riskLevel || 0) >= 4
@@ -3628,7 +3749,9 @@
 
   async function applyOwnerAction(evaluationId, action, note) {
     const normalizedEvaluationId = String(evaluationId || '').trim();
-    const normalizedAction = String(action || '').trim().toLowerCase();
+    const normalizedAction = String(action || '')
+      .trim()
+      .toLowerCase();
     if (!normalizedEvaluationId || !normalizedAction) return;
     await api(`/risk/evaluations/${encodeURIComponent(normalizedEvaluationId)}/owner-action`, {
       method: 'POST',
@@ -3659,16 +3782,14 @@
       evaluation?.incidentSla && typeof evaluation.incidentSla === 'object'
         ? evaluation.incidentSla
         : evaluation?.sla && typeof evaluation.sla === 'object'
-        ? evaluation.sla
-        : null;
+          ? evaluation.sla
+          : null;
 
     if (providedSla) {
       let slaState = String(providedSla.state || '')
         .trim()
         .toLowerCase();
-      const deadlineRaw = String(
-        providedSla.deadline || evaluation?.slaDeadline || ''
-      ).trim();
+      const deadlineRaw = String(providedSla.deadline || evaluation?.slaDeadline || '').trim();
       const deadlineMs = parseIsoToMs(deadlineRaw);
       const targetMsFromMinutes =
         Number(providedSla.targetMinutes) > 0 ? Number(providedSla.targetMinutes) * 60000 : 0;
@@ -3676,10 +3797,10 @@
         Number(providedSla.targetMs) > 0
           ? Number(providedSla.targetMs)
           : targetMsFromMinutes > 0
-          ? targetMsFromMinutes
-          : level >= 5
-          ? 30 * 60 * 1000
-          : 4 * 60 * 60 * 1000;
+            ? targetMsFromMinutes
+            : level >= 5
+              ? 30 * 60 * 1000
+              : 4 * 60 * 60 * 1000;
 
       let remainingMs = Number(providedSla.remainingMs || 0);
 
@@ -3696,8 +3817,7 @@
       }
 
       const targetMinutes = Number(providedSla.targetMinutes || 0);
-      const targetMs =
-        targetMinutes > 0 ? targetMinutes * 60 * 1000 : targetMsBase;
+      const targetMs = targetMinutes > 0 ? targetMinutes * 60 * 1000 : targetMsBase;
       const deadlineLabel = formatDateTime(deadlineRaw || providedSla.deadline);
       const targetLabel = formatDurationCompact(targetMs);
 
@@ -3829,7 +3949,9 @@
     clearIncidentSlaRefreshTimer();
     const tick = () => {
       const liveNodes =
-        els.riskIncidentsTableBody?.querySelectorAll?.('span.incident-sla-live[data-sla-live="1"]') || [];
+        els.riskIncidentsTableBody?.querySelectorAll?.(
+          'span.incident-sla-live[data-sla-live="1"]'
+        ) || [];
       if (!liveNodes.length) {
         clearIncidentSlaRefreshTimer();
         return;
@@ -3886,7 +4008,10 @@
       return;
     }
     targetEl.innerHTML = codes
-      .map((item) => `<span class="badge" style="margin:4px 6px 0 0;"><span class="dot"></span>${escapeHtml(item)}</span>`)
+      .map(
+        (item) =>
+          `<span class="badge" style="margin:4px 6px 0 0;"><span class="dot"></span>${escapeHtml(item)}</span>`
+      )
       .join('');
   }
 
@@ -3992,7 +4117,9 @@
 
   function syncSelectAllCheckbox(checkbox, visibleIds) {
     if (!checkbox) return;
-    const selectedVisibleCount = visibleIds.filter((id) => state.selectedRiskIds.includes(id)).length;
+    const selectedVisibleCount = visibleIds.filter((id) =>
+      state.selectedRiskIds.includes(id)
+    ).length;
     checkbox.checked = visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
     checkbox.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < visibleIds.length;
   }
@@ -4060,7 +4187,10 @@
             return;
           }
           try {
-            setStatus(els.riskActionStatus, `Sparar ägaråtgärd (${formatOwnerActionLabel(action)})...`);
+            setStatus(
+              els.riskActionStatus,
+              `Sparar ägaråtgärd (${formatOwnerActionLabel(action)})...`
+            );
             await applyOwnerAction(evaluationId, action, noteDialog.value || '');
             setStatus(els.riskActionStatus, `Owner action sparad: ${action}.`);
             await loadDashboard();
@@ -4129,7 +4259,11 @@
     if (!displayEvaluations.length) {
       clearIncidentSlaRefreshTimer();
       renderRiskEmptyRow(els.riskReviewsTableBody, 12, 'Inga granskningar (L3) för valt filter.');
-      renderRiskEmptyRow(els.riskIncidentsTableBody, 11, 'Inga incidenter (L4-L5) för valt filter.');
+      renderRiskEmptyRow(
+        els.riskIncidentsTableBody,
+        11,
+        'Inga incidenter (L4-L5) för valt filter.'
+      );
       syncSelectAllCheckbox(els.riskSelectAllReviews, []);
       syncSelectAllCheckbox(els.riskSelectAllIncidents, []);
       renderRiskDetail(null);
@@ -4143,7 +4277,8 @@
       tr.classList.add('row-link');
       const evaluationId = String(evaluation.id || '');
       tr.setAttribute('data-eid', evaluationId);
-      if (evaluationId && evaluationId === state.selectedRiskEvaluationId) tr.classList.add('risk-row-selected');
+      if (evaluationId && evaluationId === state.selectedRiskEvaluationId)
+        tr.classList.add('risk-row-selected');
       const reasonCodes = Array.isArray(evaluation.reasonCodes) ? evaluation.reasonCodes : [];
       const reasonCodesShort = reasonCodes.length ? reasonCodes.slice(0, 3).join(', ') : '';
       const ownerDecision = String(evaluation.ownerDecision || '');
@@ -4222,7 +4357,8 @@
       const evaluationId = String(evaluation.id || '');
       const incidentId = String(evaluation.incidentId || evaluationId);
       tr.setAttribute('data-eid', evaluationId);
-      if (evaluationId && evaluationId === state.selectedRiskEvaluationId) tr.classList.add('risk-row-selected');
+      if (evaluationId && evaluationId === state.selectedRiskEvaluationId)
+        tr.classList.add('risk-row-selected');
       const reasonCodes = Array.isArray(evaluation.reasonCodes) ? evaluation.reasonCodes : [];
       const reasonCodesShort = reasonCodes.length ? reasonCodes.slice(0, 3).join(', ') : '';
       const ownerDecision = String(evaluation.ownerDecision || '');
@@ -4234,14 +4370,18 @@
       const updatedAt = evaluation.updatedAt || evaluation.evaluatedAt || '';
       const updatedAtLabel = formatDateTime(updatedAt);
       const ageLabel = formatRelativeAge(updatedAt);
-      const deadlineForLive = String(evaluation.slaDeadline || evaluation.incidentSla?.deadline || '').trim();
+      const deadlineForLive = String(
+        evaluation.slaDeadline || evaluation.incidentSla?.deadline || ''
+      ).trim();
       const slaTargetMsAttr =
         Number(evaluation.incidentSla?.targetMs) > 0
           ? Number(evaluation.incidentSla.targetMs)
           : riskLevel >= 5
-          ? 30 * 60 * 1000
-          : 4 * 60 * 60 * 1000;
-      const normalizedOwnerDec = String(ownerDecision || '').trim().toLowerCase();
+            ? 30 * 60 * 1000
+            : 4 * 60 * 60 * 1000;
+      const normalizedOwnerDec = String(ownerDecision || '')
+        .trim()
+        .toLowerCase();
       const canSlaLive =
         parseIsoToMs(deadlineForLive) !== null &&
         String(evaluation.incidentSla?.state || '').toLowerCase() !== 'resolved' &&
@@ -4300,7 +4440,11 @@
       renderRiskEmptyRow(els.riskReviewsTableBody, 12, 'Inga granskningar (L3) för valt filter.');
     }
     if (!incidents.length) {
-      renderRiskEmptyRow(els.riskIncidentsTableBody, 11, 'Inga incidenter (L4-L5) för valt filter.');
+      renderRiskEmptyRow(
+        els.riskIncidentsTableBody,
+        11,
+        'Inga incidenter (L4-L5) för valt filter.'
+      );
     }
 
     bindRiskRowInteractions(reviews, incidents);
@@ -4318,7 +4462,9 @@
       renderRiskDetail(displayEvaluations[0]);
       void loadRiskEvaluationDetail(displayEvaluations[0].id);
     } else if (state.selectedRiskEvaluationId) {
-      const activeRow = displayEvaluations.find((item) => item.id === state.selectedRiskEvaluationId);
+      const activeRow = displayEvaluations.find(
+        (item) => item.id === state.selectedRiskEvaluationId
+      );
       if (activeRow) renderRiskDetail(activeRow);
     }
     restoreListScrollPosition('riskReviewsWrap', els.riskReviewsWrap);
@@ -4352,7 +4498,8 @@
     }
     if (els.riskStateFilter) els.riskStateFilter.value = state.riskFilters.state || '';
     if (els.riskCategoryFilter) els.riskCategoryFilter.value = state.riskFilters.category || '';
-    if (els.riskSinceDaysFilter) els.riskSinceDaysFilter.value = String(state.riskFilters.sinceDays || 14);
+    if (els.riskSinceDaysFilter)
+      els.riskSinceDaysFilter.value = String(state.riskFilters.sinceDays || 14);
     if (els.riskReasonFilter) els.riskReasonFilter.value = state.riskFilters.reasonCode || '';
     if (els.riskSearchFilter) els.riskSearchFilter.value = state.riskFilters.search || '';
   }
@@ -4463,11 +4610,13 @@
     if (!hash) return '';
     if (hash === '#cco-workspace') return 'ccoWorkspaceSection';
     const entry = Object.entries(SECTION_GROUP_HASH_MAP).find(
-      ([, hashTarget]) => String(hashTarget || '').trim().toLowerCase() === hash
+      ([, hashTarget]) =>
+        String(hashTarget || '')
+          .trim()
+          .toLowerCase() === hash
     );
     return entry ? entry[0] : '';
   }
-
 
   function buildSectionCanonicalUrl(groupId) {
     const normalized = String(groupId || '').trim();
@@ -4536,7 +4685,11 @@
     const hideAdminChrome = ccoEmbedActive;
 
     document.body.classList.toggle('cco-preview-embed-route', ccoEmbedActive);
-    document.body.classList.remove('cco-light-mode', 'cco-next-preview-route', 'cco-compact-header');
+    document.body.classList.remove(
+      'cco-light-mode',
+      'cco-next-preview-route',
+      'cco-compact-header'
+    );
     if (els.adminHeader) {
       if (hideAdminChrome) {
         els.adminHeader.style.setProperty('display', 'none', 'important');
@@ -4617,13 +4770,15 @@
     return normalized;
   }
 
-
   function setActiveSectionNav(targetId) {
     if (!els.sectionNav) return;
     const resolvedTargetId = resolveSectionNavTarget(targetId);
     els.sectionNav.querySelectorAll('.sectionNavBtn').forEach((button) => {
       const currentTarget = String(button.getAttribute('data-target') || '').trim();
-      button.classList.toggle('active', Boolean(currentTarget && currentTarget === resolvedTargetId));
+      button.classList.toggle(
+        'active',
+        Boolean(currentTarget && currentTarget === resolvedTargetId)
+      );
     });
   }
 
@@ -4642,7 +4797,9 @@
       const selectedIds = state.selectedRiskIds.filter(Boolean);
       if (!selectedIds.length) throw new Error('Markera minst en riskutvärdering först.');
 
-      const action = String(els.riskBulkAction?.value || '').trim().toLowerCase();
+      const action = String(els.riskBulkAction?.value || '')
+        .trim()
+        .toLowerCase();
       if (!action) throw new Error('Välj ägaråtgärd.');
       const actionLabel = formatOwnerActionLabel(action);
 
@@ -4661,7 +4818,10 @@
         return;
       }
 
-      setStatus(els.riskActionStatus, `Applicerar ${actionLabel} på ${selectedIds.length} rader...`);
+      setStatus(
+        els.riskActionStatus,
+        `Applicerar ${actionLabel} på ${selectedIds.length} rader...`
+      );
       let success = 0;
       const failures = [];
       for (const evaluationId of selectedIds) {
@@ -4690,7 +4850,10 @@
           true
         );
       } else {
-        setStatus(els.riskActionStatus, `Bulk action klar: ${success}/${selectedIds.length} uppdaterade.`);
+        setStatus(
+          els.riskActionStatus,
+          `Bulk action klar: ${success}/${selectedIds.length} uppdaterade.`
+        );
       }
     } catch (error) {
       setStatus(els.riskActionStatus, error.message || 'Kunde inte köra bulk action.', true);
@@ -4829,13 +4992,17 @@
     if (hasBeforeAfter) {
       const beforeMap = flattenAuditObject(isAuditObject(metadata.before) ? metadata.before : {});
       const afterMap = flattenAuditObject(isAuditObject(metadata.after) ? metadata.after : {});
-      const keys = Array.from(new Set([...Object.keys(beforeMap), ...Object.keys(afterMap)])).sort((a, b) =>
-        a.localeCompare(b)
+      const keys = Array.from(new Set([...Object.keys(beforeMap), ...Object.keys(afterMap)])).sort(
+        (a, b) => a.localeCompare(b)
       );
       const rows = [];
       for (const key of keys) {
-        const beforeValue = Object.prototype.hasOwnProperty.call(beforeMap, key) ? beforeMap[key] : undefined;
-        const afterValue = Object.prototype.hasOwnProperty.call(afterMap, key) ? afterMap[key] : undefined;
+        const beforeValue = Object.prototype.hasOwnProperty.call(beforeMap, key)
+          ? beforeMap[key]
+          : undefined;
+        const afterValue = Object.prototype.hasOwnProperty.call(afterMap, key)
+          ? afterMap[key]
+          : undefined;
         if (!areAuditValuesEqual(beforeValue, afterValue)) {
           rows.push({
             field: key,
@@ -4856,7 +5023,10 @@
       if (patchRows.length) return patchRows;
     }
 
-    if (Object.prototype.hasOwnProperty.call(metadata, 'from') || Object.prototype.hasOwnProperty.call(metadata, 'to')) {
+    if (
+      Object.prototype.hasOwnProperty.call(metadata, 'from') ||
+      Object.prototype.hasOwnProperty.call(metadata, 'to')
+    ) {
       return [
         {
           field: 'value',
@@ -4938,7 +5108,9 @@
           .slice(0, 5)
           .map((key) => `${key}=${JSON.stringify(metadata[key])}`)
           .join(' • ');
-        facts.push(`<li><strong>Metadata:</strong> <span class="code">${escapeHtml(previewKeys)}</span></li>`);
+        facts.push(
+          `<li><strong>Metadata:</strong> <span class="code">${escapeHtml(previewKeys)}</span></li>`
+        );
       }
       els.auditDetailFacts.innerHTML = facts.join('');
     }
@@ -5001,13 +5173,20 @@
     if (els.auditActorFilter) els.auditActorFilter.value = state.auditFilters.actorUserId;
     if (els.auditOutcomeFilter) els.auditOutcomeFilter.value = state.auditFilters.outcome;
     if (els.auditSeverityFilter) els.auditSeverityFilter.value = state.auditFilters.severity;
-    if (els.auditSinceDaysFilter) els.auditSinceDaysFilter.value = String(state.auditFilters.sinceDays);
+    if (els.auditSinceDaysFilter)
+      els.auditSinceDaysFilter.value = String(state.auditFilters.sinceDays);
     if (els.auditLimitFilter) els.auditLimitFilter.value = String(state.auditFilters.limit);
   }
 
   function readAuditFiltersFromInputs() {
-    const sinceDays = Number.parseInt(String(els.auditSinceDaysFilter?.value || state.auditFilters.sinceDays), 10);
-    const limit = Number.parseInt(String(els.auditLimitFilter?.value || state.auditFilters.limit), 10);
+    const sinceDays = Number.parseInt(
+      String(els.auditSinceDaysFilter?.value || state.auditFilters.sinceDays),
+      10
+    );
+    const limit = Number.parseInt(
+      String(els.auditLimitFilter?.value || state.auditFilters.limit),
+      10
+    );
     state.auditFilters = {
       search: String(els.auditSearchInput?.value || '').trim(),
       action: String(els.auditActionFilter?.value || '').trim(),
@@ -5073,10 +5252,22 @@
 
     els.auditSummary.innerHTML = '';
     const badges = [
-      { label: isEnglishLanguage() ? 'Loaded' : 'Laddade', value: state.auditEvents.length, dot: 'ok' },
-      { label: isEnglishLanguage() ? 'Visible' : 'Visade', value: visibleEvents.length, dot: 'info' },
+      {
+        label: isEnglishLanguage() ? 'Loaded' : 'Laddade',
+        value: state.auditEvents.length,
+        dot: 'ok',
+      },
+      {
+        label: isEnglishLanguage() ? 'Visible' : 'Visade',
+        value: visibleEvents.length,
+        dot: 'info',
+      },
       { label: isEnglishLanguage() ? 'Success' : 'Lyckade', value: success, dot: 'ok' },
-      { label: isEnglishLanguage() ? 'Errors' : 'Fel', value: error, dot: error > 0 ? 'bad' : 'ok' },
+      {
+        label: isEnglishLanguage() ? 'Errors' : 'Fel',
+        value: error,
+        dot: error > 0 ? 'bad' : 'ok',
+      },
       { label: 'L4-L5', value: highCritical, dot: highCritical > 0 ? 'bad' : 'ok' },
     ];
 
@@ -5127,7 +5318,8 @@
       els.auditTimeline.appendChild(li);
     }
 
-    const selected = events.find((event) => String(event?.id || '') === state.selectedAuditEventId) || events[0];
+    const selected =
+      events.find((event) => String(event?.id || '') === state.selectedAuditEventId) || events[0];
     renderAuditDetail(selected);
     restoreListScrollPosition('auditTimeline', els.auditTimeline);
   }
@@ -5195,7 +5387,9 @@
       const canDemoteOwner = isOwnerMembership && activeOwnerCount > 1 && !isCurrentMembership;
       const updatedAt = formatDateTime(item?.membership?.updatedAt || item?.user?.updatedAt);
       const isSelected = Boolean(
-        membershipId && state.selectedStaffMembershipId && membershipId === state.selectedStaffMembershipId
+        membershipId &&
+        state.selectedStaffMembershipId &&
+        membershipId === state.selectedStaffMembershipId
       );
       const actionControls = isOwnerMembership
         ? canDemoteOwner
@@ -5211,8 +5405,8 @@
                 ? 'Disable'
                 : 'Inaktivera'
               : isEnglishLanguage()
-              ? 'Enable'
-              : 'Aktivera'
+                ? 'Enable'
+                : 'Aktivera'
           }</button>
            <button class="btn small staffRoleBtn" data-mid="${membershipId}" data-role="OWNER">${
              isEnglishLanguage() ? 'Promote OWNER' : 'Befordra till ÄGARE'
@@ -5266,7 +5460,11 @@
           await loadStaffMembers();
           await loadDashboard();
         } catch (error) {
-          setStatus(els.staffStatus, error.message || 'Kunde inte uppdatera medarbetarstatus.', true);
+          setStatus(
+            els.staffStatus,
+            error.message || 'Kunde inte uppdatera medarbetarstatus.',
+            true
+          );
         }
       });
     });
@@ -5317,7 +5515,9 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="code">${escapeHtml(sessionId || '-')} ${
-          isCurrent ? `<span class="chip">${isEnglishLanguage() ? 'current' : 'aktuell'}</span>` : ''
+          isCurrent
+            ? `<span class="chip">${isEnglishLanguage() ? 'current' : 'aktuell'}</span>`
+            : ''
         }</td>
         <td>${escapeHtml(userEmail)}</td>
         <td>${escapeHtml(role)}</td>
@@ -5327,7 +5527,9 @@
           ${
             statusRaw === 'active'
               ? `<button class="btn small revokeSessionBtn" data-session-id="${escapeHtml(sessionId)}" ${
-                  isCurrent ? `title="${isEnglishLanguage() ? 'Current session' : 'Aktuell session'}"` : ''
+                  isCurrent
+                    ? `title="${isEnglishLanguage() ? 'Current session' : 'Aktuell session'}"`
+                    : ''
                 }>${isCurrent ? (isEnglishLanguage() ? 'Sign out this' : 'Logga ut denna') : isEnglishLanguage() ? 'Revoke' : 'Avsluta'}</button>`
               : '<span class="mini muted">-</span>'
           }
@@ -5355,7 +5557,9 @@
     }
 
     try {
-      let scope = String(els.sessionsScopeSelect?.value || 'me').trim().toLowerCase();
+      let scope = String(els.sessionsScopeSelect?.value || 'me')
+        .trim()
+        .toLowerCase();
       if (!isOwner() && scope === 'tenant') {
         scope = 'me';
         if (els.sessionsScopeSelect) els.sessionsScopeSelect.value = 'me';
@@ -5415,9 +5619,8 @@
   }
 
   function getPublicSiteConfigFromTenantConfig(config) {
-    const source = config?.publicSite && typeof config.publicSite === 'object'
-      ? config.publicSite
-      : {};
+    const source =
+      config?.publicSite && typeof config.publicSite === 'object' ? config.publicSite : {};
     return {
       clinicName: String(source.clinicName || ''),
       city: String(source.city || ''),
@@ -5448,11 +5651,13 @@
     if (els.publicSiteCity) els.publicSiteCity.value = publicSite.city || '';
     if (els.publicSiteTagline) els.publicSiteTagline.value = publicSite.tagline || '';
     if (els.publicSiteHeroTitle) els.publicSiteHeroTitle.value = publicSite.heroTitle || '';
-    if (els.publicSiteHeroSubtitle) els.publicSiteHeroSubtitle.value = publicSite.heroSubtitle || '';
+    if (els.publicSiteHeroSubtitle)
+      els.publicSiteHeroSubtitle.value = publicSite.heroSubtitle || '';
     if (els.publicSitePrimaryCtaLabel) {
       els.publicSitePrimaryCtaLabel.value = publicSite.primaryCtaLabel || '';
     }
-    if (els.publicSitePrimaryCtaUrl) els.publicSitePrimaryCtaUrl.value = publicSite.primaryCtaUrl || '';
+    if (els.publicSitePrimaryCtaUrl)
+      els.publicSitePrimaryCtaUrl.value = publicSite.primaryCtaUrl || '';
     if (els.publicSiteSecondaryCtaLabel) {
       els.publicSiteSecondaryCtaLabel.value = publicSite.secondaryCtaLabel || '';
     }
@@ -5468,9 +5673,12 @@
     if (els.publicSiteTrustSurgeons) {
       els.publicSiteTrustSurgeons.value = String(publicSite.trustSurgeons || 0);
     }
-    if (els.publicSiteContactPhone) els.publicSiteContactPhone.value = publicSite.contactPhone || '';
-    if (els.publicSiteContactEmail) els.publicSiteContactEmail.value = publicSite.contactEmail || '';
-    if (els.publicSiteContactAddress) els.publicSiteContactAddress.value = publicSite.contactAddress || '';
+    if (els.publicSiteContactPhone)
+      els.publicSiteContactPhone.value = publicSite.contactPhone || '';
+    if (els.publicSiteContactEmail)
+      els.publicSiteContactEmail.value = publicSite.contactEmail || '';
+    if (els.publicSiteContactAddress)
+      els.publicSiteContactAddress.value = publicSite.contactAddress || '';
     if (els.publicSiteContactBookingUrl) {
       els.publicSiteContactBookingUrl.value = publicSite.contactBookingUrl || '';
     }
@@ -5481,7 +5689,8 @@
     if (els.publicSiteThemeCanvasFrom) {
       els.publicSiteThemeCanvasFrom.value = publicSite.themeCanvasFrom || '';
     }
-    if (els.publicSiteThemeCanvasTo) els.publicSiteThemeCanvasTo.value = publicSite.themeCanvasTo || '';
+    if (els.publicSiteThemeCanvasTo)
+      els.publicSiteThemeCanvasTo.value = publicSite.themeCanvasTo || '';
     if (els.publicSiteServicesJson) {
       els.publicSiteServicesJson.value = toPrettyJsonAny(publicSite.services, '[]');
     }
@@ -5499,7 +5708,9 @@
       secondaryCtaLabel: String(els.publicSiteSecondaryCtaLabel?.value || '').trim(),
       secondaryCtaUrl: String(els.publicSiteSecondaryCtaUrl?.value || '').trim(),
       trustRating: clampNumber(els.publicSiteTrustRating?.value, 0, 5, 0),
-      trustReviewCount: Math.round(clampNumber(els.publicSiteTrustReviewCount?.value, 0, 100000, 0)),
+      trustReviewCount: Math.round(
+        clampNumber(els.publicSiteTrustReviewCount?.value, 0, 100000, 0)
+      ),
       trustSurgeons: Math.round(clampNumber(els.publicSiteTrustSurgeons?.value, 0, 100, 0)),
       contactPhone: String(els.publicSiteContactPhone?.value || '').trim(),
       contactEmail: String(els.publicSiteContactEmail?.value || '').trim(),
@@ -5509,10 +5720,7 @@
       themeAccentSoft: String(els.publicSiteThemeAccentSoft?.value || '').trim(),
       themeCanvasFrom: String(els.publicSiteThemeCanvasFrom?.value || '').trim(),
       themeCanvasTo: String(els.publicSiteThemeCanvasTo?.value || '').trim(),
-      services: parseJsonArrayInput(
-        els.publicSiteServicesJson?.value,
-        'publicSite.services'
-      ),
+      services: parseJsonArrayInput(els.publicSiteServicesJson?.value, 'publicSite.services'),
     };
   }
 
@@ -5544,9 +5752,7 @@
       els.riskModifierRange.value = String(normalizedModifier);
     }
     if (els.templateEmailSignature) {
-      els.templateEmailSignature.value = String(
-        config?.templateSignaturesByChannel?.email || ''
-      );
+      els.templateEmailSignature.value = String(config?.templateSignaturesByChannel?.email || '');
     }
     if (els.templateAllowlistOverrides) {
       els.templateAllowlistOverrides.value = toPrettyJson(
@@ -5630,7 +5836,8 @@
 
     const revisionSet = new Set(optionRows.map((item) => item.revision));
     const latestRevision = optionRows.length ? optionRows[optionRows.length - 1].revision : null;
-    const previousRevision = optionRows.length > 1 ? optionRows[optionRows.length - 2].revision : latestRevision;
+    const previousRevision =
+      optionRows.length > 1 ? optionRows[optionRows.length - 2].revision : latestRevision;
 
     if (!revisionSet.has(Number(state.selectedRevisionTo || 0))) {
       state.selectedRevisionTo = latestRevision;
@@ -5690,7 +5897,8 @@
     state.selectedRollbackRevision = null;
     if (els.revisionFromSelect) els.revisionFromSelect.innerHTML = '<option value="">-</option>';
     if (els.revisionToSelect) els.revisionToSelect.innerHTML = '<option value="">-</option>';
-    if (els.rollbackRevisionSelect) els.rollbackRevisionSelect.innerHTML = '<option value="">-</option>';
+    if (els.rollbackRevisionSelect)
+      els.rollbackRevisionSelect.innerHTML = '<option value="">-</option>';
     if (els.rollbackRevisionNoteInput) els.rollbackRevisionNoteInput.value = '';
     setText(els.revisionStatus, statusText);
     setText(els.revisionSummary, summaryText);
@@ -5724,11 +5932,7 @@
         summaryText: 'Kunde inte läsa revisionshistorik.',
         diffText: 'Ingen diff tillgänglig.',
       });
-      setStatus(
-        els.revisionStatus,
-        error.message || 'Kunde inte läsa revisionshistorik.',
-        true
-      );
+      setStatus(els.revisionStatus, error.message || 'Kunde inte läsa revisionshistorik.', true);
     }
   }
 
@@ -5864,7 +6068,8 @@
   }
 
   async function loadTemplateMeta({ force = false } = {}) {
-    const hasMeta = Array.isArray(state.templateMeta?.categories) && state.templateMeta.categories.length > 0;
+    const hasMeta =
+      Array.isArray(state.templateMeta?.categories) && state.templateMeta.categories.length > 0;
     const sameTenant = state.templateMetaTenantId && state.templateMetaTenantId === state.tenantId;
     if (!force && hasMeta && sameTenant) {
       renderTemplateCategoryOptions();
@@ -5896,10 +6101,14 @@
   }
 
   function syncTemplateFilterInputs() {
-    if (els.templateSearchInput) els.templateSearchInput.value = state.templateListFilters.search || '';
-    if (els.templateFilterSelect) els.templateFilterSelect.value = state.templateListFilters.category || '';
-    if (els.templateStatusFilterSelect) els.templateStatusFilterSelect.value = state.templateListFilters.status || '';
-    if (els.templateSortSelect) els.templateSortSelect.value = state.templateListFilters.sort || 'updated_desc';
+    if (els.templateSearchInput)
+      els.templateSearchInput.value = state.templateListFilters.search || '';
+    if (els.templateFilterSelect)
+      els.templateFilterSelect.value = state.templateListFilters.category || '';
+    if (els.templateStatusFilterSelect)
+      els.templateStatusFilterSelect.value = state.templateListFilters.status || '';
+    if (els.templateSortSelect)
+      els.templateSortSelect.value = state.templateListFilters.sort || 'updated_desc';
     syncTemplateCategoryChipSelection();
     updateTemplateViewButtons();
   }
@@ -5917,7 +6126,8 @@
   }
 
   function updateTemplateViewButtons() {
-    const view = String(state.templateListFilters?.view || 'table').trim() === 'card' ? 'card' : 'table';
+    const view =
+      String(state.templateListFilters?.view || 'table').trim() === 'card' ? 'card' : 'table';
     if (els.templateViewTableBtn) {
       els.templateViewTableBtn.classList.toggle('active', view === 'table');
       els.templateViewTableBtn.setAttribute('aria-pressed', view === 'table' ? 'true' : 'false');
@@ -5953,12 +6163,7 @@
     }
     if (search) {
       items = items.filter((template) => {
-        const haystack = [
-          template?.name,
-          template?.category,
-          template?.locale,
-          template?.channel,
-        ]
+        const haystack = [template?.name, template?.category, template?.locale, template?.channel]
           .map((value) => String(value || '').toLowerCase())
           .join(' ');
         return haystack.includes(search);
@@ -5996,7 +6201,11 @@
     const matches = state.riskEvaluations
       .filter((item) => String(item?.templateId || '') === id)
       .slice()
-      .sort((a, b) => String(b?.updatedAt || b?.evaluatedAt || '').localeCompare(String(a?.updatedAt || a?.evaluatedAt || '')));
+      .sort((a, b) =>
+        String(b?.updatedAt || b?.evaluatedAt || '').localeCompare(
+          String(a?.updatedAt || a?.evaluatedAt || '')
+        )
+      );
     const latest = matches[0];
     if (!latest) return null;
     const riskLevel = Number(latest?.riskLevel || 0);
@@ -6012,12 +6221,12 @@
     const visibleIds = Array.isArray(visibleTemplateIds)
       ? visibleTemplateIds.map((item) => String(item || '')).filter(Boolean)
       : [];
-    const selectedVisibleCount = visibleIds.filter((id) => state.selectedTemplateIds.includes(id)).length;
+    const selectedVisibleCount = visibleIds.filter((id) =>
+      state.selectedTemplateIds.includes(id)
+    ).length;
     if (els.templateSelectionMeta) {
       els.templateSelectionMeta.textContent =
-        selectedVisibleCount > 0
-          ? `${selectedVisibleCount} valda`
-          : '0 valda';
+        selectedVisibleCount > 0 ? `${selectedVisibleCount} valda` : '0 valda';
     }
     if (els.templateSelectAll) {
       els.templateSelectAll.checked =
@@ -6158,7 +6367,8 @@
       visibleTemplateIds.includes(id)
     );
     syncTemplateSelectionMeta(visibleTemplateIds);
-    const view = String(state.templateListFilters?.view || 'table').trim() === 'card' ? 'card' : 'table';
+    const view =
+      String(state.templateListFilters?.view || 'table').trim() === 'card' ? 'card' : 'table';
 
     if (els.templateResultsMeta) {
       els.templateResultsMeta.textContent = `Visar ${items.length} av ${total} mallar`;
@@ -6216,8 +6426,8 @@
                   ? 'Active version'
                   : 'Aktiv version'
                 : isEnglishLanguage()
-                ? 'No active version'
-                : 'Utan aktiv version'
+                  ? 'No active version'
+                  : 'Utan aktiv version'
             }</span>
             <span class="chip">${escapeHtml(formatTemplateStateLabel(template.status || 'active'))}</span>
             ${
@@ -6234,8 +6444,8 @@
                   ? 'Selected'
                   : 'Vald'
                 : isEnglishLanguage()
-                ? 'Open'
-                : 'Öppna'
+                  ? 'Open'
+                  : 'Öppna'
             }</button>
             <button class="btn small templateNewDraftBtn" data-tid="${escapeHtml(template.id)}">${
               isEnglishLanguage() ? 'New draft' : 'Ny draft'
@@ -6296,8 +6506,8 @@
               ? 'Selected'
               : 'Vald'
             : isEnglishLanguage()
-            ? 'Select'
-            : 'Välj'
+              ? 'Select'
+              : 'Välj'
         }</button></td>
       `;
       if (els.templateTableBody) els.templateTableBody.appendChild(tr);
@@ -6339,8 +6549,8 @@
               ? 'Selected'
               : 'Vald'
             : isEnglishLanguage()
-            ? 'Open'
-            : 'Öppna'
+              ? 'Open'
+              : 'Öppna'
         }</button></td>
       `;
       els.versionTableBody.appendChild(tr);
@@ -6375,10 +6585,7 @@
         ? JSON.stringify(version.risk, null, 2)
         : 'Ingen riskutvärdering ännu.';
     }
-    if (
-      state.lastVariableValidation &&
-      state.lastVariableValidation.versionId !== version.id
-    ) {
+    if (state.lastVariableValidation && state.lastVariableValidation.versionId !== version.id) {
       state.lastVariableValidation = null;
     }
     renderTemplateEditorAssist();
@@ -6416,7 +6623,9 @@
     }
 
     const keepId =
-      preserveVersion && state.selectedVersionId && state.versions.some((v) => v.id === state.selectedVersionId)
+      preserveVersion &&
+      state.selectedVersionId &&
+      state.versions.some((v) => v.id === state.selectedVersionId)
         ? state.selectedVersionId
         : state.versions[0].id;
     await selectVersion(keepId);
@@ -6495,7 +6704,8 @@
       if (els.templateNameInput) els.templateNameInput.value = '';
       await loadDashboard();
       await loadTemplates({ preserveSelection: false });
-      if (response?.template?.id) await selectTemplate(response.template.id, { preserveVersion: false });
+      if (response?.template?.id)
+        await selectTemplate(response.template.id, { preserveVersion: false });
     } catch (error) {
       setStatus(els.templateStatus, error.message || 'Kunde inte skapa mall.', true);
     }
@@ -6545,16 +6755,19 @@
       const expectedRevision = parseRevisionNumber(currentVersion?.revision);
       const ifMatch = buildRevisionEtag(expectedRevision);
       setStatus(els.versionStatus, 'Sparar draft...');
-      const response = await api(`/templates/${state.selectedTemplateId}/versions/${state.selectedVersionId}`, {
-        method: 'PATCH',
-        headers: ifMatch ? { 'If-Match': ifMatch } : null,
-        body: {
-          title: (els.versionTitleInput?.value || '').trim(),
-          content: els.versionContentInput?.value || '',
-          instruction: (els.draftInstructionInput?.value || '').trim(),
-          expectedRevision: expectedRevision || undefined,
-        },
-      });
+      const response = await api(
+        `/templates/${state.selectedTemplateId}/versions/${state.selectedVersionId}`,
+        {
+          method: 'PATCH',
+          headers: ifMatch ? { 'If-Match': ifMatch } : null,
+          body: {
+            title: (els.versionTitleInput?.value || '').trim(),
+            content: els.versionContentInput?.value || '',
+            instruction: (els.draftInstructionInput?.value || '').trim(),
+            expectedRevision: expectedRevision || undefined,
+          },
+        }
+      );
       rememberVariableValidation(state.selectedVersionId, response?.variableValidation);
       const decision = response?.version?.risk?.decision || '-';
       setStatus(els.versionStatus, `Draft sparad • riskbeslut: ${decision}.`);
@@ -6575,12 +6788,15 @@
         throw new Error('Välj en version först.');
       }
       setStatus(els.versionStatus, 'Utvärderar risk...');
-      const response = await api(`/templates/${state.selectedTemplateId}/versions/${state.selectedVersionId}/evaluate`, {
-        method: 'POST',
-        body: {
-          instruction: (els.draftInstructionInput?.value || '').trim(),
-        },
-      });
+      const response = await api(
+        `/templates/${state.selectedTemplateId}/versions/${state.selectedVersionId}/evaluate`,
+        {
+          method: 'POST',
+          body: {
+            instruction: (els.draftInstructionInput?.value || '').trim(),
+          },
+        }
+      );
       rememberVariableValidation(state.selectedVersionId, response?.variableValidation);
       setStatus(
         els.versionStatus,
@@ -6605,10 +6821,13 @@
         throw new Error('Välj en version först.');
       }
       setStatus(els.versionStatus, 'Aktiverar version...');
-      const response = await api(`/templates/${state.selectedTemplateId}/versions/${state.selectedVersionId}/activate`, {
-        method: 'POST',
-        body: {},
-      });
+      const response = await api(
+        `/templates/${state.selectedTemplateId}/versions/${state.selectedVersionId}/activate`,
+        {
+          method: 'POST',
+          body: {},
+        }
+      );
       setStatus(
         els.versionStatus,
         `Version aktiverad • status=${formatTemplateStateLabel(response?.version?.state || 'active')}.`
@@ -6630,10 +6849,13 @@
         throw new Error('Välj en version först.');
       }
       setStatus(els.versionStatus, 'Arkiverar version...');
-      await api(`/templates/${state.selectedTemplateId}/versions/${state.selectedVersionId}/archive`, {
-        method: 'POST',
-        body: {},
-      });
+      await api(
+        `/templates/${state.selectedTemplateId}/versions/${state.selectedVersionId}/archive`,
+        {
+          method: 'POST',
+          body: {},
+        }
+      );
       setStatus(els.versionStatus, 'Version arkiverad.');
       await refreshAll();
     } catch (error) {
@@ -6768,7 +6990,9 @@
   }
 
   async function copyInviteForMember(member) {
-    const email = String(member?.user?.email || '').trim().toLowerCase();
+    const email = String(member?.user?.email || '')
+      .trim()
+      .toLowerCase();
     if (!looksLikeEmail(email)) throw new Error('Saknar giltig e-post för vald användare.');
 
     const modal = await openAppModal({
@@ -6829,7 +7053,9 @@
     try {
       if (!isOwner()) throw new Error('Endast OWNER kan resetta staff-lösenord.');
       const member = getStaffMemberByMembershipId(membershipId);
-      const email = String(member?.user?.email || '').trim().toLowerCase();
+      const email = String(member?.user?.email || '')
+        .trim()
+        .toLowerCase();
       const role = String(member?.membership?.role || '').toUpperCase();
       if (!member || !email) throw new Error('Kunde inte hitta vald användare.');
       if (role === 'OWNER') throw new Error('OWNER-lösenord hanteras via profilpanelen.');
@@ -6886,14 +7112,20 @@
   async function updateStaffRole(membershipId, nextRole) {
     try {
       if (!isOwner()) throw new Error('Endast OWNER kan ändra roll.');
-      const role = String(nextRole || '').trim().toUpperCase();
+      const role = String(nextRole || '')
+        .trim()
+        .toUpperCase();
       if (!['STAFF', 'OWNER'].includes(role)) {
         throw new Error('Ogiltig roll.');
       }
 
       const member = getStaffMemberByMembershipId(membershipId);
-      const email = String(member?.user?.email || '').trim().toLowerCase();
-      const currentRole = String(member?.membership?.role || '').trim().toUpperCase();
+      const email = String(member?.user?.email || '')
+        .trim()
+        .toLowerCase();
+      const currentRole = String(member?.membership?.role || '')
+        .trim()
+        .toUpperCase();
       if (!member || !email) throw new Error('Kunde inte hitta vald användare.');
       if (currentRole === 'OWNER') throw new Error('Owner-medlemskap kan inte ändras här.');
       if (currentRole === role) {
@@ -6990,7 +7222,9 @@
   async function applyFilteredStaffStatus(nextStatus) {
     try {
       if (!isOwner()) throw new Error('Endast OWNER kan hantera staff.');
-      const targetStatus = String(nextStatus || '').trim().toLowerCase();
+      const targetStatus = String(nextStatus || '')
+        .trim()
+        .toLowerCase();
       if (!['active', 'disabled'].includes(targetStatus)) {
         throw new Error('Ogiltig status för bulk-uppdatering.');
       }
@@ -7084,29 +7318,35 @@
       );
       await loadDashboard();
     } catch (error) {
-      setStatus(els.riskLabStatus, error.message || 'Kunde inte köra riskförhandsgranskning.', true);
+      setStatus(
+        els.riskLabStatus,
+        error.message || 'Kunde inte köra riskförhandsgranskning.',
+        true
+      );
     }
   }
 
   function renderOrchestratorMeta(metaResponse = null) {
     if (!els.orchestratorMetaSummary || !els.orchestratorMetaResult) return;
 
-    const agents = metaResponse?.agents && typeof metaResponse.agents === 'object'
-      ? metaResponse.agents
-      : {};
-    const intents = metaResponse?.intents && typeof metaResponse.intents === 'object'
-      ? metaResponse.intents
-      : {};
-    const roadmap = metaResponse?.roadmap && typeof metaResponse.roadmap === 'object'
-      ? metaResponse.roadmap
-      : {};
-    const policyFloor = metaResponse?.policyFloor && typeof metaResponse.policyFloor === 'object'
-      ? metaResponse.policyFloor
-      : {};
+    const agents =
+      metaResponse?.agents && typeof metaResponse.agents === 'object' ? metaResponse.agents : {};
+    const intents =
+      metaResponse?.intents && typeof metaResponse.intents === 'object' ? metaResponse.intents : {};
+    const roadmap =
+      metaResponse?.roadmap && typeof metaResponse.roadmap === 'object' ? metaResponse.roadmap : {};
+    const policyFloor =
+      metaResponse?.policyFloor && typeof metaResponse.policyFloor === 'object'
+        ? metaResponse.policyFloor
+        : {};
     const phases = Array.isArray(roadmap?.phases) ? roadmap.phases : [];
     const policyRules = Array.isArray(policyFloor?.rules) ? policyFloor.rules : [];
-    const agentLabels = Object.values(agents).map((item) => String(item || '').trim()).filter(Boolean);
-    const intentLabels = Object.values(intents).map((item) => String(item || '').trim()).filter(Boolean);
+    const agentLabels = Object.values(agents)
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+    const intentLabels = Object.values(intents)
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
 
     if (agentLabels.length === 0 && intentLabels.length === 0 && phases.length === 0) {
       els.orchestratorMetaSummary.textContent = '';
@@ -7147,7 +7387,12 @@
     }
     lines.push('');
     lines.push(
-      `policyFloorRules(${policyRules.length}): ${policyRules.map((item) => String(item?.id || '').trim()).filter(Boolean).join(', ') || '-'}`
+      `policyFloorRules(${policyRules.length}): ${
+        policyRules
+          .map((item) => String(item?.id || '').trim())
+          .filter(Boolean)
+          .join(', ') || '-'
+      }`
     );
     els.orchestratorMetaResult.textContent = lines.join('\n');
   }
@@ -7157,7 +7402,9 @@
       const response = await api('/orchestrator/meta');
       renderOrchestratorMeta(response);
       if (updateStatus) {
-        const phases = Array.isArray(response?.roadmap?.phases) ? response.roadmap.phases.length : 0;
+        const phases = Array.isArray(response?.roadmap?.phases)
+          ? response.roadmap.phases.length
+          : 0;
         setStatus(els.orchestratorStatus, `Roadmap laddad: phases=${phases}`);
       }
     } catch (error) {
@@ -7203,7 +7450,9 @@
 
       if (els.orchestratorExecutePreview) {
         const lines = [];
-        lines.push(`Intent: ${response?.intent || '-'} (confidence ${response?.confidence ?? '-'})`);
+        lines.push(
+          `Intent: ${response?.intent || '-'} (confidence ${response?.confidence ?? '-'})`
+        );
         lines.push(`Läge: plan (ingen körning)`);
         lines.push('');
         if (recommendedAgentRun) {
@@ -7257,7 +7506,8 @@
       'VerifyDecisionTraceability',
     ]);
     if (steps.some((step) => highRiskCapabilities.has(String(step?.capability || '')))) return true;
-    if (preview.recommendedAgentRun && normalizeText(preview.intent) === 'audit_review') return true;
+    if (preview.recommendedAgentRun && normalizeText(preview.intent) === 'audit_review')
+      return true;
     return false;
   }
 
@@ -7272,7 +7522,9 @@
       lines.push('Capability-steg: ' + preview.executableSteps.length);
     }
     if (preview?.recommendedAgentRun) {
-      lines.push('Agent-run: ' + (preview.recommendedAgentRun.label || preview.recommendedAgentRun.agent));
+      lines.push(
+        'Agent-run: ' + (preview.recommendedAgentRun.label || preview.recommendedAgentRun.agent)
+      );
     }
     if (orchestratorExecuteRequiresOwnerConfirm(preview)) {
       lines.push('');
@@ -7301,13 +7553,10 @@
       }
 
       setStatus(els.orchestratorStatus, 'Kör orchestrator...');
-      const response = await api(
-        '/orchestrator/admin-run' + (executeMode ? '?mode=execute' : ''),
-        {
-          method: 'POST',
-          body: { prompt, mode: executeMode ? 'execute' : 'plan' },
-        }
-      );
+      const response = await api('/orchestrator/admin-run' + (executeMode ? '?mode=execute' : ''), {
+        method: 'POST',
+        body: { prompt, mode: executeMode ? 'execute' : 'plan' },
+      });
       if (els.orchestratorResult) {
         els.orchestratorResult.textContent = JSON.stringify(response, null, 2);
       }
@@ -7373,11 +7622,7 @@
       if (els.incidentIntelligenceRisk) {
         els.incidentIntelligenceRisk.textContent = '-';
       }
-      renderIncidentIntelligenceList(
-        els.incidentIntelligencePatterns,
-        [],
-        'Inga mönster ännu.'
-      );
+      renderIncidentIntelligenceList(els.incidentIntelligencePatterns, [], 'Inga mönster ännu.');
       renderIncidentIntelligenceList(
         els.incidentIntelligenceRecommendations,
         [],
@@ -7418,12 +7663,15 @@
   async function loadIncidentIntelligence({ quiet = true } = {}) {
     try {
       const response = await api('/capabilities/analysis?capability=SummarizeIncidents&limit=1');
-      const entry = Array.isArray(response?.entries) && response.entries.length > 0
-        ? response.entries[0]
-        : null;
+      const entry =
+        Array.isArray(response?.entries) && response.entries.length > 0
+          ? response.entries[0]
+          : null;
       if (entry?.output) {
         renderIncidentIntelligence(entry.output);
-        const generatedAt = String(entry?.output?.data?.generatedAt || entry?.createdAt || '').trim();
+        const generatedAt = String(
+          entry?.output?.data?.generatedAt || entry?.createdAt || ''
+        ).trim();
         if (!quiet) {
           setStatus(
             els.incidentIntelligenceStatus,
@@ -7464,9 +7712,7 @@
       const generatedAt = String(response?.output?.data?.generatedAt || '').trim();
       setStatus(
         els.incidentIntelligenceStatus,
-        generatedAt
-          ? `Incidentanalys uppdaterad (${generatedAt}).`
-          : 'Incidentanalys uppdaterad.'
+        generatedAt ? `Incidentanalys uppdaterad (${generatedAt}).` : 'Incidentanalys uppdaterad.'
       );
     } catch (error) {
       setStatus(
@@ -7536,7 +7782,9 @@
     }
     renderIncidentIntelligenceList(
       els.dailyBriefRecommendations,
-      Array.isArray(incidentSummary.recommendations) ? incidentSummary.recommendations.slice(0, 5) : [],
+      Array.isArray(incidentSummary.recommendations)
+        ? incidentSummary.recommendations.slice(0, 5)
+        : [],
       'Inga rekommendationer an.'
     );
   }
@@ -7544,9 +7792,10 @@
   async function loadDailyBrief({ quiet = true } = {}) {
     try {
       const response = await api('/agents/analysis?agent=COO&limit=1');
-      const entry = Array.isArray(response?.entries) && response.entries.length > 0
-        ? response.entries[0]
-        : null;
+      const entry =
+        Array.isArray(response?.entries) && response.entries.length > 0
+          ? response.entries[0]
+          : null;
       if (entry?.output) {
         renderDailyBrief(entry.output);
         if (!quiet) {
@@ -7590,7 +7839,6 @@
       setStatus(els.dailyBriefStatus, error.message || 'Kunde inte kora daily brief.', true);
     }
   }
-
 
   async function fetchCalibrationSuggestion() {
     try {
@@ -7673,11 +7921,7 @@
       const message = guidance.length
         ? guidance.map((line) => `- ${line}`).join('\n')
         : '- Ingen mail-data hittades för tenant ännu.';
-      els.mailInsightsResult.textContent = [
-        'Mail-insikter saknas',
-        '',
-        message,
-      ].join('\n');
+      els.mailInsightsResult.textContent = ['Mail-insikter saknas', '', message].join('\n');
       return;
     }
 
@@ -7821,9 +8065,10 @@
 
   function renderMonitorObservability(observabilityResponse = null) {
     if (!els.monitorObservabilitySummary || !els.monitorObservabilityResult) return;
-    const summary = observabilityResponse?.summary && typeof observabilityResponse.summary === 'object'
-      ? observabilityResponse.summary
-      : null;
+    const summary =
+      observabilityResponse?.summary && typeof observabilityResponse.summary === 'object'
+        ? observabilityResponse.summary
+        : null;
     if (!summary) {
       els.monitorObservabilitySummary.textContent = '';
       els.monitorObservabilityResult.textContent = isEnglishLanguage()
@@ -7837,9 +8082,10 @@
     const hasTraffic = summary?.hasTraffic === true;
     const totalRequests = Number(summary?.totalRequests || 0);
     const sampledRequests = Number(summary?.sampledRequests || 0);
-    const metrics = observabilityResponse?.metrics && typeof observabilityResponse.metrics === 'object'
-      ? observabilityResponse.metrics
-      : {};
+    const metrics =
+      observabilityResponse?.metrics && typeof observabilityResponse.metrics === 'object'
+        ? observabilityResponse.metrics
+        : {};
     const thresholds =
       observabilityResponse?.thresholds && typeof observabilityResponse.thresholds === 'object'
         ? observabilityResponse.thresholds
@@ -7863,9 +8109,7 @@
     lines.push(`skapad: ${formatDateTime(observabilityResponse?.generatedAt)}`);
     lines.push('');
     lines.push(
-      isEnglishLanguage()
-        ? `checks (${checks.length}):`
-        : `kontroller (${checks.length}):`
+      isEnglishLanguage() ? `checks (${checks.length}):` : `kontroller (${checks.length}):`
     );
     checks.forEach((check) => {
       lines.push(
@@ -7874,13 +8118,9 @@
     });
     lines.push('');
     if (triggeredAlerts.length === 0) {
-      lines.push(
-        isEnglishLanguage() ? 'No triggered alerts.' : 'Inga aktiva varningar.'
-      );
+      lines.push(isEnglishLanguage() ? 'No triggered alerts.' : 'Inga aktiva varningar.');
     } else {
-      lines.push(
-        isEnglishLanguage() ? 'Triggered alerts:' : 'Aktiva varningar:'
-      );
+      lines.push(isEnglishLanguage() ? 'Triggered alerts:' : 'Aktiva varningar:');
       triggeredAlerts.forEach((alert) => {
         lines.push(
           `- ${String(alert?.id || '-')} target=${String(alert?.target || '-')} value=${JSON.stringify(alert?.value || {})}`
@@ -7951,7 +8191,8 @@
       return;
     }
 
-    const summary = feedback?.summary && typeof feedback.summary === 'object' ? feedback.summary : {};
+    const summary =
+      feedback?.summary && typeof feedback.summary === 'object' ? feedback.summary : {};
     const check = feedback?.check && typeof feedback.check === 'object' ? feedback.check : {};
     const value = check?.value && typeof check.value === 'object' ? check.value : {};
     const totalRequests = Number(summary?.totalRequests || 0);
@@ -7960,11 +8201,11 @@
     const feedbackHealthy = summary?.feedbackHealthy === true;
     const latestEventAt = summary?.latestEventAt || value?.latestEventAt || null;
     const ageHoursRaw = summary?.ageHoursSinceLatest ?? value?.ageHoursSinceLatest;
-    const ageHoursSinceLatest = Number.isFinite(Number(ageHoursRaw))
-      ? Number(ageHoursRaw)
-      : null;
+    const ageHoursSinceLatest = Number.isFinite(Number(ageHoursRaw)) ? Number(ageHoursRaw) : null;
     const status = String(check?.status || 'unknown').toLowerCase();
-    const windowDays = Number(feedback?.windowDays || statusResponse?.patientChannel?.windowDays || 0);
+    const windowDays = Number(
+      feedback?.windowDays || statusResponse?.patientChannel?.windowDays || 0
+    );
 
     els.monitorPatientConversionSummary.textContent = isEnglishLanguage()
       ? `status=${status} healthy=${feedbackHealthy ? 'yes' : 'no'} requests=${totalRequests} deniedRate=${deniedRatePct}% conversionRate=${conversionRatePct}%`
@@ -7985,7 +8226,7 @@
     const daily = Array.isArray(summary?.daily) ? summary.daily : [];
 
     lines.push('');
-	      lines.push(isEnglishLanguage() ? 'Top denied hosts:' : 'Topp nekade värdar:');
+    lines.push(isEnglishLanguage() ? 'Top denied hosts:' : 'Topp nekade värdar:');
     if (topDeniedHosts.length === 0) {
       lines.push(isEnglishLanguage() ? '- none' : '- inga');
     } else {
@@ -7995,7 +8236,7 @@
     }
 
     lines.push('');
-	    lines.push(isEnglishLanguage() ? 'Top intent signals:' : 'Topp intentsignaler:');
+    lines.push(isEnglishLanguage() ? 'Top intent signals:' : 'Topp intentsignaler:');
     if (topSignals.length === 0) {
       lines.push(isEnglishLanguage() ? '- none' : '- inga');
     } else {
@@ -8011,7 +8252,7 @@
     } else {
       daily.slice(-7).forEach((item) => {
         lines.push(
-	          `${String(item?.date || '-')} förfrågningar=${Number(item?.totalRequests || 0)} nekade=${Number(item?.deniedRequests || 0)} konverteringssignaler=${Number(item?.conversionIntentRequests || 0)}`
+          `${String(item?.date || '-')} förfrågningar=${Number(item?.totalRequests || 0)} nekade=${Number(item?.deniedRequests || 0)} konverteringssignaler=${Number(item?.conversionIntentRequests || 0)}`
         );
       });
     }
@@ -8037,19 +8278,20 @@
       'restore_drill_preview',
     ];
     const byId = new Map(
-      (Array.isArray(scheduler?.jobs) ? scheduler.jobs : []).map((job) => [String(job?.id || ''), job])
+      (Array.isArray(scheduler?.jobs) ? scheduler.jobs : []).map((job) => [
+        String(job?.id || ''),
+        job,
+      ])
     );
-    const jobs = requiredOrder
-      .map((jobId) => byId.get(jobId))
-      .filter((job) => Boolean(job));
+    const jobs = requiredOrder.map((jobId) => byId.get(jobId)).filter((job) => Boolean(job));
 
     if (jobs.length === 0) {
       els.monitorSchedulerSummary.textContent = isEnglishLanguage()
         ? 'Required jobs missing in monitor status.'
-	        : 'Obligatoriska jobb saknas i monitor-status.';
+        : 'Obligatoriska jobb saknas i monitor-status.';
       els.monitorSchedulerResult.textContent = isEnglishLanguage()
         ? 'No scheduler job details available.'
-	        : 'Ingen scheduler-jobbdetalj tillgänglig.';
+        : 'Ingen scheduler-jobbdetalj tillgänglig.';
       return;
     }
 
@@ -8058,17 +8300,24 @@
     const running = jobs.filter((job) => job?.running === true).length;
     els.monitorSchedulerSummary.textContent = isEnglishLanguage()
       ? `required=${jobs.length} stale=${stale} warn=${warn} running=${running}`
-	      : `krav=${jobs.length} inaktuella=${stale} varning=${warn} kör=${running}`;
+      : `krav=${jobs.length} inaktuella=${stale} varning=${warn} kör=${running}`;
 
     const lines = jobs.map((job) => {
       const id = String(job?.id || '-');
-      const enabled = job?.enabled === true ? (isEnglishLanguage() ? 'yes' : 'ja') : isEnglishLanguage() ? 'no' : 'nej';
+      const enabled =
+        job?.enabled === true
+          ? isEnglishLanguage()
+            ? 'yes'
+            : 'ja'
+          : isEnglishLanguage()
+            ? 'no'
+            : 'nej';
       const freshness = String(job?.freshnessStatus || 'unknown');
       const lastSuccess = formatDateTime(job?.lastSuccessAt);
       const lastSuccessAge = formatRelativeAge(job?.lastSuccessAt);
       const nextRun = formatDateTime(job?.nextRunAt);
       const lastStatus = String(job?.lastStatus || '-');
-	      return `${id} | aktiverad=${enabled} | färskhet=${freshness} | senasteLyckad=${lastSuccess} (${lastSuccessAge}) | nästaKörning=${nextRun} | status=${lastStatus}`;
+      return `${id} | aktiverad=${enabled} | färskhet=${freshness} | senasteLyckad=${lastSuccess} (${lastSuccessAge}) | nästaKörning=${nextRun} | status=${lastStatus}`;
     });
     els.monitorSchedulerResult.textContent = lines.join('\n');
   }
@@ -8076,15 +8325,16 @@
   function renderReadinessHistory(historyResponse = null) {
     if (!els.monitorReadinessHistorySummary || !els.monitorReadinessHistoryResult) return;
     const entries = Array.isArray(historyResponse?.entries) ? historyResponse.entries : [];
-    const trend = historyResponse?.trend && typeof historyResponse.trend === 'object'
-      ? historyResponse.trend
-      : null;
+    const trend =
+      historyResponse?.trend && typeof historyResponse.trend === 'object'
+        ? historyResponse.trend
+        : null;
 
     if (entries.length === 0) {
       els.monitorReadinessHistorySummary.textContent = '';
       els.monitorReadinessHistoryResult.textContent = isEnglishLanguage()
         ? 'No readiness history yet.'
-	        : 'Ingen beredskapshistorik ännu.';
+        : 'Ingen beredskapshistorik ännu.';
       return;
     }
 
@@ -8155,7 +8405,8 @@
 
   function renderReadinessNoGo(readiness = null) {
     if (!els.monitorReadinessNoGoSummary || !els.monitorReadinessNoGoResult) return;
-    const goNoGo = readiness?.goNoGo && typeof readiness.goNoGo === 'object' ? readiness.goNoGo : {};
+    const goNoGo =
+      readiness?.goNoGo && typeof readiness.goNoGo === 'object' ? readiness.goNoGo : {};
     const triggers = (Array.isArray(readiness?.noGoTriggers) ? readiness.noGoTriggers : []).filter(
       (item) => String(item?.status || '').toLowerCase() === 'triggered'
     );
@@ -8165,7 +8416,9 @@
     const requiredBlockerIds = Array.isArray(goNoGo?.blockingRequiredCheckIds)
       ? goNoGo.blockingRequiredCheckIds.map((item) => String(item || '')).filter(Boolean)
       : [];
-    const requiredBlockerDetails = Array.isArray(readiness?.evidence?.blockingRequiredChecks?.checks)
+    const requiredBlockerDetails = Array.isArray(
+      readiness?.evidence?.blockingRequiredChecks?.checks
+    )
       ? readiness.evidence.blockingRequiredChecks.checks
       : [];
     if (triggers.length === 0) {
@@ -8201,9 +8454,7 @@
         }
       } else {
         lines.push(
-          isEnglishLanguage()
-            ? 'No active no-go blockers.'
-            : 'Inga aktiva No-Go-blockeringar.'
+          isEnglishLanguage() ? 'No active no-go blockers.' : 'Inga aktiva No-Go-blockeringar.'
         );
       }
       els.monitorReadinessNoGoResult.textContent = lines.join('\n');
@@ -8298,7 +8549,7 @@
     if (nextActions.length === 0) {
       els.monitorRemediationResult.textContent = isEnglishLanguage()
         ? 'No remediation actions right now.'
-	        : 'Inga åtgärder just nu.';
+        : 'Inga åtgärder just nu.';
       return;
     }
 
@@ -8361,12 +8612,13 @@
   async function loadMonitorStatus() {
     try {
       setStatus(els.monitorPanelStatus, 'Laddar monitor-status...');
-      const [statusResponse, readinessResponse, readinessHistoryResponse, observabilityResponse] = await Promise.all([
-        api('/monitor/status'),
-        api('/monitor/readiness'),
-        api('/monitor/readiness/history?limit=30'),
-        api('/monitor/observability?areaLimit=12'),
-      ]);
+      const [statusResponse, readinessResponse, readinessHistoryResponse, observabilityResponse] =
+        await Promise.all([
+          api('/monitor/status'),
+          api('/monitor/readiness'),
+          api('/monitor/readiness/history?limit=30'),
+          api('/monitor/observability?areaLimit=12'),
+        ]);
       if (els.monitorResult) {
         els.monitorResult.textContent = JSON.stringify(
           {
@@ -8438,11 +8690,7 @@
       );
       await loadMonitorStatus();
     } catch (error) {
-      setStatus(
-        els.monitorPanelStatus,
-        error.message || 'Kunde inte köra scheduler-suite.',
-        true
-      );
+      setStatus(els.monitorPanelStatus, error.message || 'Kunde inte köra scheduler-suite.', true);
     }
   }
 
@@ -8482,11 +8730,7 @@
       );
       await loadMonitorStatus();
     } catch (error) {
-      setStatus(
-        els.monitorPanelStatus,
-        error.message || 'Kunde inte köra beredskapsåtgärd.',
-        true
-      );
+      setStatus(els.monitorPanelStatus, error.message || 'Kunde inte köra beredskapsåtgärd.', true);
     }
   }
 
@@ -8527,11 +8771,7 @@
       );
       await loadMonitorStatus();
     } catch (error) {
-      setStatus(
-        els.monitorPanelStatus,
-        error.message || 'Kunde inte köra owner-MFA-åtgärd.',
-        true
-      );
+      setStatus(els.monitorPanelStatus, error.message || 'Kunde inte köra owner-MFA-åtgärd.', true);
     }
   }
 
@@ -8621,7 +8861,11 @@
         `Förhandsvisning klar: ${response?.deletedCount ?? 0} filer skulle tas bort.`
       );
     } catch (error) {
-      setStatus(els.opsStatus, error.message || 'Kunde inte köra förhandsvisning av rensning.', true);
+      setStatus(
+        els.opsStatus,
+        error.message || 'Kunde inte köra förhandsvisning av rensning.',
+        true
+      );
     }
   }
 
@@ -8650,10 +8894,7 @@
       if (els.opsResult) {
         els.opsResult.textContent = JSON.stringify(response, null, 2);
       }
-      setStatus(
-        els.opsStatus,
-        `Rensning klar: ${response?.deletedCount ?? 0} filer borttagna.`
-      );
+      setStatus(els.opsStatus, `Rensning klar: ${response?.deletedCount ?? 0} filer borttagna.`);
     } catch (error) {
       setStatus(els.opsStatus, error.message || 'Kunde inte pruna backups.', true);
     }
@@ -8695,7 +8936,11 @@
         `Förhandsvisning av rapport-rensning klar: ${response?.deletedCount ?? 0} filer skulle tas bort.`
       );
     } catch (error) {
-      setStatus(els.opsStatus, error.message || 'Kunde inte köra förhandsvisning av rapport-rensning.', true);
+      setStatus(
+        els.opsStatus,
+        error.message || 'Kunde inte köra förhandsvisning av rapport-rensning.',
+        true
+      );
     }
   }
 
@@ -8757,7 +9002,11 @@
         : 0;
       setStatus(els.opsStatus, `Förhandsvisning klar: ${restoreCount} stores kan återställas.`);
     } catch (error) {
-      setStatus(els.opsStatus, error.message || 'Kunde inte köra förhandsvisning av återställning.', true);
+      setStatus(
+        els.opsStatus,
+        error.message || 'Kunde inte köra förhandsvisning av återställning.',
+        true
+      );
     }
   }
 
@@ -8867,7 +9116,8 @@
 
     if (ownerDecision === 'pending' || ownerDecision === 'revision_requested') return 'open';
     if (ownerDecision === 'escalated') return 'escalated';
-    if (ownerDecision === 'approved_exception' || ownerDecision === 'false_positive') return 'resolved';
+    if (ownerDecision === 'approved_exception' || ownerDecision === 'false_positive')
+      return 'resolved';
     if (stateFilter === 'open') return 'open';
     return 'all';
   }
@@ -8904,13 +9154,11 @@
     const rowId = sourceEvaluationId || incidentId;
     if (!rowId) return null;
 
-    const severity = String(incident.severity || '').trim().toUpperCase();
+    const severity = String(incident.severity || '')
+      .trim()
+      .toUpperCase();
     const riskLevel = Number(
-      incident.riskLevel !== undefined
-        ? incident.riskLevel
-        : severity === 'L5'
-        ? 5
-        : 4
+      incident.riskLevel !== undefined ? incident.riskLevel : severity === 'L5' ? 5 : 4
     );
 
     return {
@@ -8966,22 +9214,32 @@
       if (row.riskLevel < 4) continue;
       if (row.riskLevel < minRiskLevel || row.riskLevel > maxRiskLevel) continue;
 
-      const normalizedOwnerDecision = String(row.ownerDecision || '').trim().toLowerCase();
+      const normalizedOwnerDecision = String(row.ownerDecision || '')
+        .trim()
+        .toLowerCase();
       if (ownerDecisionFilter && normalizedOwnerDecision !== ownerDecisionFilter) continue;
 
-      const normalizedDecision = String(row.decision || '').trim().toLowerCase();
+      const normalizedDecision = String(row.decision || '')
+        .trim()
+        .toLowerCase();
       if (decisionFilter && normalizedDecision !== decisionFilter) continue;
 
-      const normalizedCategory = String(row.category || '').trim().toUpperCase();
+      const normalizedCategory = String(row.category || '')
+        .trim()
+        .toUpperCase();
       if (categoryFilter && normalizedCategory !== categoryFilter) continue;
 
-      const normalizedIncidentStatus = String(row.incidentStatus || '').trim().toLowerCase();
+      const normalizedIncidentStatus = String(row.incidentStatus || '')
+        .trim()
+        .toLowerCase();
       if (stateFilter === 'open' && normalizedIncidentStatus !== 'open') continue;
       if (stateFilter === 'closed' && normalizedIncidentStatus === 'open') continue;
 
       if (reasonCodeFilter) {
         const hasReasonCode = (Array.isArray(row.reasonCodes) ? row.reasonCodes : []).some((code) =>
-          String(code || '').toLowerCase().includes(reasonCodeFilter)
+          String(code || '')
+            .toLowerCase()
+            .includes(reasonCodeFilter)
         );
         if (!hasReasonCode) continue;
       }
@@ -9024,19 +9282,21 @@
 
     state.tenantId = dashboard.tenantId || state.tenantId;
     const incidentSummary = dashboard?.incidents?.summary || null;
-    const incidentOpen = Array.isArray(dashboard?.incidents?.open)
-      ? dashboard.incidents.open
-      : [];
+    const incidentOpen = Array.isArray(dashboard?.incidents?.open) ? dashboard.incidents.open : [];
 
     setText(els.templatesTotal, dashboard?.templates?.total ?? 0);
     setText(els.templatesActive, dashboard?.templates?.withActiveVersion ?? 0);
     setText(els.riskTotal, dashboard?.riskSummary?.totals?.evaluations ?? 0);
     setText(
       els.riskOpen,
-      incidentSummary?.totals?.openUnresolved ?? dashboard?.riskSummary?.totals?.highCriticalOpen ?? 0
+      incidentSummary?.totals?.openUnresolved ??
+        dashboard?.riskSummary?.totals?.highCriticalOpen ??
+        0
     );
     renderOwnerCoverageKpi(dashboard?.riskSummary || {});
-    renderSlaIndicatorKpi(incidentOpen.length ? incidentOpen : dashboard?.riskSummary?.highCriticalOpen || []);
+    renderSlaIndicatorKpi(
+      incidentOpen.length ? incidentOpen : dashboard?.riskSummary?.highCriticalOpen || []
+    );
     renderLatestActivity(dashboard?.recentAuditEvents || []);
     renderRiskTrendBars(dashboard?.riskSummary || {});
     renderOverviewNotifications({
@@ -9045,23 +9305,30 @@
       recentAuditEvents: dashboard?.recentAuditEvents || [],
     });
 
-    const categoryBadges = Object.entries(dashboard?.templates?.byCategory || {}).map(([label, value]) => ({
-      label,
-      value,
-      dot: 'ok',
-    }));
+    const categoryBadges = Object.entries(dashboard?.templates?.byCategory || {}).map(
+      ([label, value]) => ({
+        label,
+        value,
+        dot: 'ok',
+      })
+    );
     renderBadges(els.categoryBadges, categoryBadges);
 
-    const riskBadges = Object.entries(dashboard?.riskSummary?.byLevel || {}).map(([level, count]) => ({
-      label: `L${level}`,
-      value: count,
-      dot: dotClassForRiskLevel(level),
-    }));
+    const riskBadges = Object.entries(dashboard?.riskSummary?.byLevel || {}).map(
+      ([level, count]) => ({
+        label: `L${level}`,
+        value: count,
+        dot: dotClassForRiskLevel(level),
+      })
+    );
     renderBadges(els.riskBadges, riskBadges);
 
     const riskRows = Array.isArray(riskEvaluations?.evaluations) ? riskEvaluations.evaluations : [];
     const reviewRows = riskRows.filter((item) => Number(item?.riskLevel || 0) === 3);
-    const incidentRows = normalizeIncidentRowsForRiskTable(incidents?.incidents || [], state.riskFilters);
+    const incidentRows = normalizeIncidentRowsForRiskTable(
+      incidents?.incidents || [],
+      state.riskFilters
+    );
     renderRiskTable(reviewRows, incidentRows);
     fillTenantConfig(tenantConfig?.config || {});
     setStatus(els.tenantConfigStatus, '');
@@ -9270,8 +9537,8 @@
           (Array.isArray(state.availableTenants) && state.availableTenants.length
             ? state.availableTenants
             : response?.membership
-            ? [response.membership]
-            : []),
+              ? [response.membership]
+              : []),
       });
       setStatus(els.loginStatus, `Bytte tenant till ${state.tenantId}.`);
       await refreshAll();
@@ -9370,7 +9637,9 @@
   async function onboardTenant() {
     try {
       if (!isOwner()) throw new Error('Endast OWNER kan onboarda tenant.');
-      const tenantId = String(els.onboardTenantId?.value || '').trim().toLowerCase();
+      const tenantId = String(els.onboardTenantId?.value || '')
+        .trim()
+        .toLowerCase();
       if (!tenantId) throw new Error('Ange tenantId.');
 
       const body = { tenantId };
@@ -9467,7 +9736,8 @@
         ? 'No orchestrator roadmap data yet.'
         : 'Ingen orkestreringsfärdplan ännu.';
     }
-    if (els.calibrationResult) els.calibrationResult.textContent = 'Inget kalibreringsförslag ännu.';
+    if (els.calibrationResult)
+      els.calibrationResult.textContent = 'Inget kalibreringsförslag ännu.';
     if (els.pilotReportResult) els.pilotReportResult.textContent = 'Ingen rapport körd ännu.';
     if (els.mailInsightsResult) els.mailInsightsResult.textContent = 'Ingen mail-data ännu.';
     if (els.monitorResult) els.monitorResult.textContent = 'Ingen monitor-data ännu.';
@@ -9546,7 +9816,8 @@
     if (els.riskBulkAction) els.riskBulkAction.value = 'request_revision';
     if (els.auditSummary) els.auditSummary.innerHTML = '';
     if (els.auditTimeline) {
-      els.auditTimeline.innerHTML = '<li class="audit-timeline-item muted mini">Ingen audit-data ännu.</li>';
+      els.auditTimeline.innerHTML =
+        '<li class="audit-timeline-item muted mini">Ingen audit-data ännu.</li>';
     }
     renderAuditDetail(null);
     if (els.riskSelectAllReviews) {
@@ -9615,20 +9886,14 @@
   els.completeTenantSelectionBtn?.addEventListener('click', completeTenantSelection);
   els.switchTenantBtn?.addEventListener('click', switchTenant);
   els.refreshBtn?.addEventListener('click', () =>
-    refreshAll().catch((error) =>
-      alert(error.message || 'Kunde inte uppdatera.')
-    )
+    refreshAll().catch((error) => alert(error.message || 'Kunde inte uppdatera.'))
   );
   els.logoutBtn?.addEventListener('click', logout);
   els.saveTenantConfigBtn?.addEventListener('click', saveTenantConfig);
   els.refreshWritingIdentityBtn?.addEventListener('click', () => {
     const mailbox = normalizeWritingMailbox(els.writingIdentityMailboxFilter?.value || '');
     loadWritingIdentityProfiles({ mailbox }).catch((error) => {
-      setStatus(
-        els.writingIdentityStatus,
-        error.message || 'Kunde inte läsa skrivprofiler.',
-        true
-      );
+      setStatus(els.writingIdentityStatus, error.message || 'Kunde inte läsa skrivprofiler.', true);
     });
   });
   els.autoExtractWritingIdentityBtn?.addEventListener('click', autoExtractWritingIdentityProfiles);
@@ -9645,11 +9910,7 @@
     event.preventDefault();
     const mailbox = normalizeWritingMailbox(els.writingIdentityMailboxFilter?.value || '');
     loadWritingIdentityProfiles({ mailbox }).catch((error) => {
-      setStatus(
-        els.writingIdentityStatus,
-        error.message || 'Kunde inte läsa skrivprofiler.',
-        true
-      );
+      setStatus(els.writingIdentityStatus, error.message || 'Kunde inte läsa skrivprofiler.', true);
     });
   });
   [
@@ -9691,7 +9952,9 @@
   });
   els.onboardTenantBtn?.addEventListener('click', onboardTenant);
   els.languageSelect?.addEventListener('change', (event) => {
-    const nextLanguage = String(event?.target?.value || '').trim().toLowerCase();
+    const nextLanguage = String(event?.target?.value || '')
+      .trim()
+      .toLowerCase();
     setLanguage(nextLanguage);
     if (state.token) {
       refreshAll().catch((error) => {
@@ -9788,7 +10051,9 @@
     if (els.templateSelectAll?.checked) {
       state.selectedTemplateIds = [...new Set([...state.selectedTemplateIds, ...visibleIds])];
     } else {
-      state.selectedTemplateIds = state.selectedTemplateIds.filter((id) => !visibleIds.includes(id));
+      state.selectedTemplateIds = state.selectedTemplateIds.filter(
+        (id) => !visibleIds.includes(id)
+      );
     }
     renderTemplateTable();
   });
@@ -9866,7 +10131,9 @@
   });
   els.selectedStaffRoleBtn?.addEventListener('click', () => {
     const membershipId = String(state.selectedStaffMembershipId || '').trim();
-    const nextRole = String(els.selectedStaffRoleBtn?.dataset?.role || '').trim().toUpperCase();
+    const nextRole = String(els.selectedStaffRoleBtn?.dataset?.role || '')
+      .trim()
+      .toUpperCase();
     if (!membershipId || !nextRole) {
       setStatus(els.staffStatus, 'Välj en giltig medarbetarrad först.');
       return;
@@ -9918,9 +10185,7 @@
   els.previewMailSeedsBtn?.addEventListener('click', () =>
     applyMailTemplateSeeds({ dryRun: true })
   );
-  els.applyMailSeedsBtn?.addEventListener('click', () =>
-    applyMailTemplateSeeds({ dryRun: false })
-  );
+  els.applyMailSeedsBtn?.addEventListener('click', () => applyMailTemplateSeeds({ dryRun: false }));
   els.refreshMonitorBtn?.addEventListener('click', loadMonitorStatus);
   els.toggleMonitorDetailsBtn?.addEventListener('click', () => {
     setMonitorDetailsVisible(!state.monitorDetailsVisible);
@@ -9984,12 +10249,20 @@
   });
   els.riskShowPendingBtn?.addEventListener('click', () => {
     openReviewsQueue().catch((error) => {
-      setStatus(els.riskActionStatus, error.message || 'Kunde inte applicera pending-filter.', true);
+      setStatus(
+        els.riskActionStatus,
+        error.message || 'Kunde inte applicera pending-filter.',
+        true
+      );
     });
   });
   els.riskShowHighCriticalBtn?.addEventListener('click', () => {
     openIncidentsQueue().catch((error) => {
-      setStatus(els.riskActionStatus, error.message || 'Kunde inte applicera högt/kritiskt filter.', true);
+      setStatus(
+        els.riskActionStatus,
+        error.message || 'Kunde inte applicera högt/kritiskt filter.',
+        true
+      );
     });
   });
   els.riskClearFiltersBtn?.addEventListener('click', () => {
@@ -10174,7 +10447,9 @@
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: '{}',
-      }).then(function (res) { return res.json(); });
+      }).then(function (res) {
+        return res.json();
+      });
     }
 
     var cooBtn = document.getElementById('runCooAgentBtn');
@@ -10183,27 +10458,42 @@
       cooBtn.addEventListener('click', function () {
         cooBtn.disabled = true;
         if (cooStatus) cooStatus.textContent = 'Kör...';
-        agentPost('COO').then(function (d) {
-          var out = (d && d.output && d.output.data) || (d && d.data) || {};
-          var panel = document.getElementById('cooResultPanel');
-          if (panel) panel.style.display = '';
-          var el = document.getElementById('cooPriorityLevel');
-          if (el) el.textContent = out.priorityLevel || '—';
-          el = document.getElementById('cooTaskCount');
-          if (el) el.textContent = String((out.taskPlan && out.taskPlan.tasks && out.taskPlan.tasks.length) || 0);
-          el = document.getElementById('cooIncidentRisk');
-          if (el) el.textContent = (out.incidentSummary && out.incidentSummary.escalationRisk) || '—';
-          el = document.getElementById('cooExecutiveSummary');
-          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
-          el = document.getElementById('cooTaskList');
-          if (el) {
-            var tasks = (out.taskPlan && out.taskPlan.tasks) || [];
-            el.textContent = tasks.length ? tasks.map(function (t, i) { return (i + 1) + '. [' + (t.priority || '') + '] ' + (t.title || ''); }).join('\n') : 'Inga tasks genererade.';
-          }
-          if (cooStatus) cooStatus.textContent = 'Klar';
-        }).catch(function (err) {
-          if (cooStatus) cooStatus.textContent = 'Fel: ' + (err.message || err);
-        }).finally(function () { cooBtn.disabled = false; });
+        agentPost('COO')
+          .then(function (d) {
+            var out = (d && d.output && d.output.data) || (d && d.data) || {};
+            var panel = document.getElementById('cooResultPanel');
+            if (panel) panel.style.display = '';
+            var el = document.getElementById('cooPriorityLevel');
+            if (el) el.textContent = out.priorityLevel || '—';
+            el = document.getElementById('cooTaskCount');
+            if (el)
+              el.textContent = String(
+                (out.taskPlan && out.taskPlan.tasks && out.taskPlan.tasks.length) || 0
+              );
+            el = document.getElementById('cooIncidentRisk');
+            if (el)
+              el.textContent = (out.incidentSummary && out.incidentSummary.escalationRisk) || '—';
+            el = document.getElementById('cooExecutiveSummary');
+            if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+            el = document.getElementById('cooTaskList');
+            if (el) {
+              var tasks = (out.taskPlan && out.taskPlan.tasks) || [];
+              el.textContent = tasks.length
+                ? tasks
+                    .map(function (t, i) {
+                      return i + 1 + '. [' + (t.priority || '') + '] ' + (t.title || '');
+                    })
+                    .join('\n')
+                : 'Inga tasks genererade.';
+            }
+            if (cooStatus) cooStatus.textContent = 'Klar';
+          })
+          .catch(function (err) {
+            if (cooStatus) cooStatus.textContent = 'Fel: ' + (err.message || err);
+          })
+          .finally(function () {
+            cooBtn.disabled = false;
+          });
       });
     }
 
@@ -10226,31 +10516,41 @@
       cfoBtn.addEventListener('click', function () {
         cfoBtn.disabled = true;
         if (cfoStatus) cfoStatus.textContent = 'Kör...';
-        agentPost('CFO').then(function (d) {
-          var out = (d && d.output && d.output.data) || (d && d.data) || {};
-          var panel = document.getElementById('cfoResultPanel');
-          if (panel) panel.style.display = '';
-          var cs = out.costSummary || {};
-          var el = document.getElementById('cfoMonthlyCost');
-          if (el) el.textContent = (cs.totalMonthlySek || 0) + ' SEK';
-          el = document.getElementById('cfoLlmCost');
-          if (el) el.textContent = (cs.llmCostSek || 0) + ' SEK';
-          el = document.getElementById('cfoCostPerTenant');
-          if (el) el.textContent = (cs.costPerTenantSek || 0) + ' SEK';
-          el = document.getElementById('cfoExecutiveSummary');
-          if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
-          el = document.getElementById('cfoAlerts');
-          if (el) {
-            var alerts = out.alerts || [];
-            el.textContent = alerts.length ? alerts.map(function (a) { return '[' + a.severity + '] ' + a.message; }).join('\n') : 'Inga kostnadsvarningar.';
-          }
-          if (cfoStatus) cfoStatus.textContent = 'Klar';
-        }).catch(function (err) {
-          if (cfoStatus) cfoStatus.textContent = 'Fel: ' + (err.message || err);
-        }).finally(function () { cfoBtn.disabled = false; });
+        agentPost('CFO')
+          .then(function (d) {
+            var out = (d && d.output && d.output.data) || (d && d.data) || {};
+            var panel = document.getElementById('cfoResultPanel');
+            if (panel) panel.style.display = '';
+            var cs = out.costSummary || {};
+            var el = document.getElementById('cfoMonthlyCost');
+            if (el) el.textContent = (cs.totalMonthlySek || 0) + ' SEK';
+            el = document.getElementById('cfoLlmCost');
+            if (el) el.textContent = (cs.llmCostSek || 0) + ' SEK';
+            el = document.getElementById('cfoCostPerTenant');
+            if (el) el.textContent = (cs.costPerTenantSek || 0) + ' SEK';
+            el = document.getElementById('cfoExecutiveSummary');
+            if (el) el.textContent = out.executiveSummary || 'Ingen sammanfattning.';
+            el = document.getElementById('cfoAlerts');
+            if (el) {
+              var alerts = out.alerts || [];
+              el.textContent = alerts.length
+                ? alerts
+                    .map(function (a) {
+                      return '[' + a.severity + '] ' + a.message;
+                    })
+                    .join('\n')
+                : 'Inga kostnadsvarningar.';
+            }
+            if (cfoStatus) cfoStatus.textContent = 'Klar';
+          })
+          .catch(function (err) {
+            if (cfoStatus) cfoStatus.textContent = 'Fel: ' + (err.message || err);
+          })
+          .finally(function () {
+            cfoBtn.disabled = false;
+          });
       });
     }
-
   })();
 
   restoreSession();
