@@ -1,0 +1,183 @@
+<svg width="1600" height="1000" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="40" x2="1480" y2="980" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DCCDBF"/>
+      <stop offset="1" stop-color="#C8B6A7"/>
+    </linearGradient>
+    <radialGradient id="flareA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1220 120) rotate(90) scale(240 520)">
+      <stop stop-color="white" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="flareB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(320 140) rotate(90) scale(200 420)">
+      <stop stop-color="white" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBF7F3" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#F0E7E0" stop-opacity="0.92"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDF9F6" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#F1E7E0" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.68"/>
+      <stop offset="1" stop-color="#F5EEE8" stop-opacity="0.34"/>
+    </linearGradient>
+    <linearGradient id="brownGloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7C6356" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#4E3D35" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="redDot" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#E56E60"/>
+      <stop offset="1" stop-color="#B3352B"/>
+    </linearGradient>
+    <linearGradient id="amberDot" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ECCB4B"/>
+      <stop offset="1" stop-color="#D2A216"/>
+    </linearGradient>
+    <linearGradient id="greenDot" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#5DCE63"/>
+      <stop offset="1" stop-color="#2C9B35"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#6A4E38" flood-opacity="0.10"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#6A4E38" flood-opacity="0.08"/>
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#6A4E38" flood-opacity="0.09"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#6A4E38" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <rect width="1600" height="1000" fill="url(#flareA)"/>
+  <rect width="1600" height="1000" fill="url(#flareB)"/>
+
+  <g filter="url(#shadow)">
+    <rect x="28" y="20" width="1544" height="54" rx="24" fill="url(#glass)" stroke="#C9B8AA"/>
+    <rect x="28" y="86" width="1544" height="46" rx="22" fill="url(#glass)" stroke="#C9B8AA"/>
+    <rect x="28" y="144" width="1544" height="54" rx="24" fill="url(#glass)" stroke="#C9B8AA"/>
+  </g>
+
+  <circle cx="58" cy="47" r="18" fill="#3B2E28" opacity="0.95"/>
+  <text x="94" y="57" fill="#4E3D35" font-size="13" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.18em">COMMUNICATION OS</text>
+
+  <g font-family="Inter, Arial, sans-serif" font-size="15" fill="#4E3D35" font-weight="700">
+    <rect x="46" y="96" width="88" height="28" rx="14" fill="url(#card)" stroke="#D0C0B3"/>
+    <text x="73" y="114">Inbox</text>
+    <text x="156" y="114" opacity="0.72">Templates</text>
+    <text x="270" y="114" opacity="0.72">Reviews</text>
+    <text x="384" y="114" opacity="0.72">Incidents</text>
+    <text x="504" y="114" opacity="0.72">Settings</text>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <rect x="1260" y="28" width="240" height="36" rx="18" fill="url(#card)" stroke="#D0C0B3"/>
+    <rect x="1426" y="152" width="116" height="38" rx="16" fill="url(#brownGloss)"/>
+  </g>
+  <text x="1284" y="50" fill="#5E4B41" font-size="12" font-family="Inter, Arial, sans-serif" font-weight="700">Workspace  hair-tp-clinic / Arcana</text>
+  <text x="1455" y="177" fill="#FBF7F3" font-size="15" font-family="Inter, Arial, sans-serif" font-weight="700">Send digest</text>
+
+  <g filter="url(#shadow)">
+    <rect x="38" y="216" width="1524" height="742" rx="32" fill="url(#panel)" stroke="#CBB9AB"/>
+  </g>
+
+  <text x="72" y="260" fill="#3B2E28" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.08em">TODAY'S COMMUNICATION FLOW</text>
+  <text x="418" y="260" fill="#8A7668" font-size="18" font-family="Inter, Arial, sans-serif">4 threads need an answer today</text>
+
+  <line x1="842" y1="216" x2="842" y2="958" stroke="#D6C7B8" stroke-width="1.5"/>
+
+  <g filter="url(#softShadow)">
+    <rect x="72" y="292" width="726" height="132" rx="26" fill="url(#glass)" stroke="#D0C0B3"/>
+  </g>
+  <text x="100" y="330" fill="#7C6356" font-size="13" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.16em">COMMAND DOCK</text>
+  <text x="100" y="370" fill="#5E4B41" font-size="12" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.16em">SEARCH</text>
+  <rect x="100" y="384" width="240" height="36" rx="18" fill="url(#card)" stroke="#D2C2B5"/>
+  <text x="122" y="407" fill="#A38F82" font-size="17" font-family="Inter, Arial, sans-serif">Name, thread, colleague</text>
+  <text x="376" y="370" fill="#5E4B41" font-size="12" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.16em">MAILBOXES</text>
+  <rect x="376" y="384" width="72" height="36" rx="18" fill="url(#brownGloss)"/>
+  <rect x="458" y="384" width="82" height="36" rx="18" fill="url(#card)" stroke="#D2C2B5"/>
+  <rect x="550" y="384" width="84" height="36" rx="18" fill="url(#card)" stroke="#D2C2B5"/>
+  <rect x="644" y="384" width="114" height="36" rx="18" fill="url(#card)" stroke="#D2C2B5"/>
+  <text x="398" y="407" fill="#FBF7F3" font-size="16" font-family="Inter, Arial, sans-serif" font-weight="700">All</text>
+  <text x="484" y="407" fill="#5E4B41" font-size="16" font-family="Inter, Arial, sans-serif" font-weight="700">Egzona</text>
+  <text x="579" y="407" fill="#5E4B41" font-size="16" font-family="Inter, Arial, sans-serif" font-weight="700">Contact</text>
+  <text x="675" y="407" fill="#5E4B41" font-size="16" font-family="Inter, Arial, sans-serif" font-weight="700">Waiting reply</text>
+
+  <g filter="url(#softShadow)">
+    <rect x="72" y="448" width="726" height="468" rx="28" fill="url(#card)" stroke="#D0C0B3"/>
+  </g>
+  <text x="100" y="488" fill="#3B2E28" font-size="30" font-family="Inter, Arial, sans-serif" font-weight="700">Inbox stream</text>
+  <text x="630" y="488" fill="#8A7668" font-size="16" font-family="Inter, Arial, sans-serif">Sorted by urgency, history, follow-up</text>
+
+  <g>
+    <rect x="100" y="516" width="670" height="98" rx="24" fill="url(#card)" stroke="#D0C0B3"/>
+    <circle cx="126" cy="548" r="14" fill="url(#redDot)"/>
+    <text x="154" y="545" fill="#3B2E28" font-size="27" font-family="Inter, Arial, sans-serif" font-weight="700">Customer 11</text>
+    <text x="680" y="545" fill="#7C6356" font-size="17" font-family="Inter, Arial, sans-serif">19 min to SLA breach</text>
+    <text x="154" y="576" fill="#6B594D" font-size="21" font-family="Inter, Arial, sans-serif" font-weight="600">Same customer reopened another thread</text>
+    <text x="154" y="603" fill="#8A7668" font-size="18" font-family="Inter, Arial, sans-serif">System sees mail in another conversation and to another mailbox.</text>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <rect x="92" y="624" width="686" height="132" rx="28" fill="url(#card)" stroke="#7BA2E8" stroke-width="2"/>
+  </g>
+  <circle cx="126" cy="662" r="14" fill="url(#amberDot)"/>
+  <text x="154" y="659" fill="#3B2E28" font-size="28" font-family="Inter, Arial, sans-serif" font-weight="700">Customer 3</text>
+  <text x="670" y="659" fill="#7C6356" font-size="17" font-family="Inter, Arial, sans-serif">Today 14:27</text>
+  <text x="154" y="692" fill="#6B594D" font-size="22" font-family="Inter, Arial, sans-serif" font-weight="600">Follow-up after consultation</text>
+  <text x="154" y="720" fill="#8A7668" font-size="18" font-family="Inter, Arial, sans-serif">Needs a warm personal answer today. History and draft are open in the dialogue surface.</text>
+
+  <g>
+    <rect x="100" y="772" width="670" height="98" rx="24" fill="url(#card)" stroke="#D0C0B3"/>
+    <circle cx="126" cy="804" r="14" fill="url(#greenDot)"/>
+    <text x="154" y="801" fill="#3B2E28" font-size="27" font-family="Inter, Arial, sans-serif" font-weight="700">Customer 2</text>
+    <text x="680" y="801" fill="#7C6356" font-size="17" font-family="Inter, Arial, sans-serif">Yesterday</text>
+    <text x="154" y="832" fill="#6B594D" font-size="21" font-family="Inter, Arial, sans-serif" font-weight="600">Calm thread but follow-up window is opening</text>
+    <text x="154" y="859" fill="#8A7668" font-size="18" font-family="Inter, Arial, sans-serif">Recommended next step: a soft check-in tomorrow.</text>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <rect x="880" y="292" width="630" height="624" rx="28" fill="url(#card)" stroke="#D0C0B3"/>
+  </g>
+  <text x="918" y="332" fill="#3B2E28" font-size="13" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.18em">CUSTOMER DIALOGUE</text>
+  <text x="918" y="376" fill="#3B2E28" font-size="40" font-family="Inter, Arial, sans-serif" font-weight="700">Customer 3</text>
+  <text x="1158" y="376" fill="#7C6356" font-size="20" font-family="Inter, Arial, sans-serif">Follow-up  Neutral  Medium risk  Active</text>
+
+  <rect x="918" y="404" width="554" height="112" rx="24" fill="url(#glass)" stroke="#D0C0B3"/>
+  <text x="944" y="438" fill="#5E4B41" font-size="12" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.16em">LATEST CUSTOMER MESSAGE</text>
+  <text x="944" y="474" fill="#3B2E28" font-size="28" font-family="Inter, Arial, sans-serif">I want to continue, but I am still unsure about timing.</text>
+  <text x="944" y="500" fill="#8A7668" font-size="18" font-family="Inter, Arial, sans-serif">Another email was also sent to a colleague yesterday afternoon.</text>
+
+  <rect x="918" y="538" width="170" height="42" rx="21" fill="url(#brownGloss)"/>
+  <rect x="1104" y="538" width="140" height="42" rx="21" fill="url(#card)" stroke="#D2C2B5"/>
+  <rect x="1260" y="538" width="180" height="42" rx="21" fill="url(#card)" stroke="#D2C2B5"/>
+  <text x="953" y="565" fill="#FBF7F3" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">Conversation</text>
+  <text x="1152" y="565" fill="#5E4B41" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">History</text>
+  <text x="1295" y="565" fill="#5E4B41" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">Colleague view</text>
+
+  <rect x="918" y="604" width="554" height="54" rx="20" fill="url(#glass)" stroke="#D0C0B3"/>
+  <text x="944" y="638" fill="#5E4B41" font-size="20" font-family="Inter, Arial, sans-serif">Recommended next step: send a soft personal follow-up today.</text>
+
+  <rect x="918" y="682" width="554" height="186" rx="26" fill="#FFFFFF" fill-opacity="0.76" stroke="#D0C0B3"/>
+  <text x="944" y="714" fill="#7C6356" font-size="13" font-family="Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.16em">RESPONSE MODES</text>
+  <rect x="944" y="730" width="132" height="40" rx="20" fill="url(#card)" stroke="#D2C2B5"/>
+  <rect x="1088" y="730" width="132" height="40" rx="20" fill="url(#card)" stroke="#D2C2B5"/>
+  <rect x="1232" y="730" width="186" height="40" rx="20" fill="url(#brownGloss)"/>
+  <text x="993" y="756" fill="#5E4B41" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="700">Short</text>
+  <text x="1135" y="756" fill="#5E4B41" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="700">Warm</text>
+  <text x="1281" y="756" fill="#FBF7F3" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="700">Professional</text>
+  <text x="944" y="800" fill="#3B2E28" font-size="18" font-family="Inter, Arial, sans-serif">Hi,</text>
+  <text x="944" y="838" fill="#3B2E28" font-size="18" font-family="Inter, Arial, sans-serif">Thank you for your email. I want to help you move forward with clarity.</text>
+  <text x="944" y="872" fill="#3B2E28" font-size="18" font-family="Inter, Arial, sans-serif">If you send the key details in this thread, I will return with the next best step.</text>
+
+  <rect x="918" y="886" width="132" height="42" rx="18" fill="url(#brownGloss)"/>
+  <rect x="1062" y="886" width="132" height="42" rx="18" fill="url(#card)" stroke="#D2C2B5"/>
+  <rect x="1206" y="886" width="236" height="42" rx="18" fill="url(#card)" stroke="#D2C2B5"/>
+  <text x="968" y="913" fill="#FBF7F3" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">Send</text>
+  <text x="1102" y="913" fill="#5E4B41" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">Pause</text>
+  <text x="1236" y="913" fill="#5E4B41" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">Improve  Softer tone  Flag risk</text>
+
+  <text x="74" y="974" fill="#7C6356" font-size="18" font-family="Inter, Arial, sans-serif">Concept 2  Dialogue First  One communication workspace, less dashboard, more email tool.</text>
+</svg>

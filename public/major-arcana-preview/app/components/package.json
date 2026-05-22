@@ -1,0 +1,4 @@
+{
+  "_comment": "Lokal package.json så Node tolkar alla .js i denna katalog som ESM. CI:s check:syntax-script kör 'node --check' per fil — utan denna konfig failar den med 'Unexpected token export' eftersom root-package.json inte har type:module. Browsern är opåverkad (loadar via <script type=module> oavsett).",
+  "type": "module"
+}

@@ -1,0 +1,211 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1900" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="canvasGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F8F3ED"/>
+      <stop offset="100%" stop-color="#F5F0EA"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FCF9F4"/>
+    </linearGradient>
+    <linearGradient id="btnGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3D352E"/>
+      <stop offset="100%" stop-color="#231F1D"/>
+    </linearGradient>
+    <linearGradient id="gbpGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FAEDE2"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#231F1D" flood-opacity="0.10"/>
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#231F1D" flood-opacity="0.07"/>
+    </filter>
+  </defs>
+
+  <rect width="1440" height="1900" fill="url(#canvasGrad)"/>
+
+  <!-- Two-screen comparison label -->
+  <text x="720" y="40" font-size="11" font-weight="600" fill="#231F1D" opacity="0.55" letter-spacing="2" text-anchor="middle">PATIENT-VY · /UPPFOLJNING/[TOKEN]</text>
+
+  <!-- ============== SCREEN 1: Upload state ============== -->
+
+  <!-- Header band -->
+  <text x="80" y="100" font-size="14" font-weight="600" fill="#826E5A" letter-spacing="1.5">SKÄRM 1 · UPLOAD</text>
+  <line x1="80" y1="115" x2="700" y2="115" stroke="#231F1D" stroke-opacity="0.10"/>
+
+  <!-- Brand bar -->
+  <text x="80" y="172" font-size="13" font-weight="600" fill="#231F1D" letter-spacing="2.5">HAIR TP CLINIC</text>
+  <line x1="80" y1="184" x2="120" y2="184" stroke="#231F1D" stroke-width="1.5"/>
+
+  <!-- Hero -->
+  <text x="80" y="240" font-size="13" font-weight="500" fill="#826E5A" letter-spacing="2">UPPFÖLJNING · 12 MÅNADER</text>
+  <text x="80" y="296" font-size="44" font-weight="300" fill="#231F1D">Tack för förtroendet,</text>
+  <text x="80" y="346" font-size="44" font-style="italic" font-weight="300" fill="#231F1D">Morten.</text>
+
+  <text x="80" y="402" font-size="17" fill="#231F1D" opacity="0.75">Det har gått 11 månader sedan din behandling.</text>
+  <text x="80" y="426" font-size="17" fill="#231F1D" opacity="0.75">Om du har möjlighet vore vi väldigt tacksamma</text>
+  <text x="80" y="450" font-size="17" fill="#231F1D" opacity="0.75">om du delar 1–6 efter-bilder med oss.</text>
+
+  <!-- Card 1: Photo upload zone -->
+  <g filter="url(#cardShadow)">
+    <rect x="80" y="500" width="620" height="380" rx="20" fill="url(#cardGrad)"/>
+  </g>
+
+  <text x="112" y="546" font-size="11" font-weight="600" fill="#231F1D" opacity="0.55" letter-spacing="1.5">STEG 1 · BILDER</text>
+  <text x="112" y="586" font-size="22" font-weight="400" fill="#231F1D">Ladda upp dina efter-bilder</text>
+  <text x="112" y="612" font-size="13" fill="#231F1D" opacity="0.6">Max 6 stycken · JPEG, PNG eller HEIC · upp till 5 MB / bild</text>
+
+  <!-- Dashed dropzone -->
+  <rect x="112" y="638" width="556" height="200" rx="14" fill="#FAEDE2" stroke="#D2A06E" stroke-width="2" stroke-dasharray="8 6"/>
+
+  <!-- Upload icon -->
+  <circle cx="390" cy="710" r="28" fill="#FFFFFF" stroke="#826E5A" stroke-width="1.5"/>
+  <path d="M 380 712 L 390 700 L 400 712 M 390 700 L 390 724" stroke="#826E5A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="390" y="770" font-size="16" fill="#231F1D" text-anchor="middle">Dra hit bilderna eller</text>
+  <rect x="350" y="790" width="80" height="28" rx="6" fill="#FFFFFF" stroke="#826E5A" stroke-width="1"/>
+  <text x="390" y="809" font-size="13" fill="#826E5A" text-anchor="middle">Välj filer</text>
+
+  <!-- Card 2: Consent + note -->
+  <g filter="url(#cardShadow)">
+    <rect x="80" y="918" width="620" height="380" rx="20" fill="url(#cardGrad)"/>
+  </g>
+
+  <text x="112" y="964" font-size="11" font-weight="600" fill="#231F1D" opacity="0.55" letter-spacing="1.5">STEG 2 · SAMTYCKE OCH KOMMENTAR</text>
+
+  <!-- Checkbox -->
+  <rect x="112" y="1004" width="22" height="22" rx="4" fill="#FFFFFF" stroke="#231F1D" stroke-width="1.5"/>
+  <text x="146" y="1018" font-size="15" font-weight="500" fill="#231F1D">Ja, ni får använda bilderna anonymt</text>
+  <text x="146" y="1040" font-size="13" fill="#231F1D" opacity="0.7">i marknadsföring (hairtpclinic.com, Instagram).</text>
+  <text x="146" y="1058" font-size="13" fill="#231F1D" opacity="0.7">Endast bildutsnitt <tspan font-weight="600">från ögonbryn och uppåt</tspan> publiceras —</text>
+  <text x="146" y="1076" font-size="13" fill="#231F1D" opacity="0.7">inga drag som kan identifiera mig som person.</text>
+
+  <text x="146" y="1103" font-size="12" fill="#826E5A">Du kan när som helst återkalla samtycket via contact@hairtpclinic.com.</text>
+  <text x="146" y="1121" font-size="12" fill="#826E5A">Utan kryss: bilderna används bara internt och raderas efter 365 dagar.</text>
+
+  <text x="112" y="1130" font-size="13" font-weight="500" fill="#231F1D">Något du vill säga om resultatet? <tspan opacity="0.5">(frivilligt)</tspan></text>
+  <rect x="112" y="1148" width="556" height="100" rx="10" fill="#FAF6F1" stroke="#231F1D" stroke-opacity="0.12" stroke-width="1"/>
+  <text x="128" y="1180" font-size="13" fill="#231F1D" opacity="0.35" font-style="italic">"Jag är jättenöjd, hade aldrig trott…"</text>
+
+  <!-- Submit -->
+  <g filter="url(#cardShadow)">
+    <rect x="80" y="1330" width="620" height="64" rx="12" fill="url(#btnGrad)"/>
+  </g>
+  <text x="390" y="1370" font-size="16" font-weight="600" fill="#FFFFFF" text-anchor="middle">Skicka in →</text>
+
+  <text x="390" y="1430" font-size="12" fill="#231F1D" opacity="0.5" text-anchor="middle">Säker överföring · EXIF strippas · GDPR-radering på begäran</text>
+
+
+  <!-- ============== SCREEN 2: Thank-you + GBP CTA ============== -->
+
+  <text x="800" y="100" font-size="14" font-weight="600" fill="#826E5A" letter-spacing="1.5">SKÄRM 2 · TACK + GOOGLE-CTA</text>
+  <line x1="800" y1="115" x2="1360" y2="115" stroke="#231F1D" stroke-opacity="0.10"/>
+
+  <!-- Check icon hero -->
+  <circle cx="1080" cy="240" r="44" fill="#231F1D"/>
+  <path d="M 1060 240 L 1075 255 L 1100 230" stroke="#FFFFFF" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="1080" y="328" font-size="13" font-weight="500" fill="#826E5A" letter-spacing="2" text-anchor="middle">BILDERNA HAR KOMMIT FRAM</text>
+  <text x="1080" y="386" font-size="40" font-weight="300" fill="#231F1D" text-anchor="middle">Tusen tack, Morten.</text>
+
+  <text x="1080" y="436" font-size="17" fill="#231F1D" opacity="0.75" text-anchor="middle">Vi går igenom bilderna inom de närmaste</text>
+  <text x="1080" y="460" font-size="17" fill="#231F1D" opacity="0.75" text-anchor="middle">dagarna och hör av oss om något.</text>
+
+  <!-- GBP CTA card -->
+  <g filter="url(#cardShadow)">
+    <rect x="800" y="540" width="560" height="380" rx="20" fill="url(#gbpGrad)"/>
+  </g>
+
+  <!-- 5 stars -->
+  <g transform="translate(960, 590)">
+    <g fill="#C49A1A">
+      <polygon points="0,12 4,4 12,3 6,-3 8,-12 0,-8 -8,-12 -6,-3 -12,3 -4,4"/>
+      <polygon points="32,12 36,4 44,3 38,-3 40,-12 32,-8 24,-12 26,-3 20,3 28,4"/>
+      <polygon points="64,12 68,4 76,3 70,-3 72,-12 64,-8 56,-12 58,-3 52,3 60,4"/>
+      <polygon points="96,12 100,4 108,3 102,-3 104,-12 96,-8 88,-12 90,-3 84,3 92,4"/>
+      <polygon points="128,12 132,4 140,3 134,-3 136,-12 128,-8 120,-12 122,-3 116,3 124,4"/>
+    </g>
+  </g>
+
+  <text x="1080" y="650" font-size="11" font-weight="600" fill="#826E5A" letter-spacing="1.5" text-anchor="middle">VI HAR REDAN 197 OMDÖMEN · SNITT 4.8★</text>
+
+  <text x="1080" y="708" font-size="26" font-weight="300" fill="#231F1D" text-anchor="middle">En sista snäll fråga.</text>
+
+  <text x="1080" y="752" font-size="16" fill="#231F1D" opacity="0.78" text-anchor="middle">Skulle du också vilja lämna ett kort omdöme på Google?</text>
+  <text x="1080" y="774" font-size="16" fill="#231F1D" opacity="0.78" text-anchor="middle">Det hjälper andra som funderar på samma resa.</text>
+
+  <!-- GBP button -->
+  <rect x="900" y="820" width="360" height="56" rx="28" fill="#FFFFFF" stroke="#231F1D" stroke-width="1.5"/>
+  <text x="1080" y="855" font-size="15" font-weight="600" fill="#231F1D" letter-spacing="0.5" text-anchor="middle">Lämna ett Google-omdöme →</text>
+
+  <text x="1080" y="903" font-size="12" fill="#231F1D" opacity="0.5" text-anchor="middle">Öppnar Hair TP Clinics Google-profil</text>
+
+  <!-- Footer note -->
+  <text x="1080" y="980" font-size="13" fill="#231F1D" opacity="0.6" text-anchor="middle">Eller stäng fönstret — tack ändå för bilderna.</text>
+
+
+  <!-- ============== ANNOTATIONS / FLOW ============== -->
+
+  <line x1="80" y1="1500" x2="1360" y2="1500" stroke="#231F1D" stroke-opacity="0.10"/>
+  <text x="80" y="1546" font-size="14" font-weight="600" fill="#826E5A" letter-spacing="1.5">FLÖDE OCH LOGIK</text>
+
+  <!-- Flow steps -->
+  <g transform="translate(80, 1580)">
+    <!-- Step 1 -->
+    <rect x="0" y="0" width="240" height="180" rx="12" fill="#FFFFFF" stroke="#231F1D" stroke-opacity="0.12"/>
+    <text x="20" y="34" font-size="11" font-weight="600" fill="#826E5A" letter-spacing="1.5">01</text>
+    <text x="20" y="64" font-size="15" font-weight="500" fill="#231F1D">CCO klickar Markera</text>
+    <text x="20" y="84" font-size="15" font-weight="500" fill="#231F1D">uppföljning klar</text>
+    <text x="20" y="116" font-size="12" fill="#231F1D" opacity="0.65">Status sätts till</text>
+    <text x="20" y="134" font-size="12" font-family="Menlo, monospace" fill="#646E46">follow_up_completed</text>
+
+    <!-- Arrow -->
+    <line x1="252" y1="90" x2="276" y2="90" stroke="#231F1D" stroke-opacity="0.3" stroke-width="1.5"/>
+    <path d="M 270 84 L 280 90 L 270 96" stroke="#231F1D" stroke-opacity="0.3" stroke-width="1.5" fill="none"/>
+
+    <!-- Step 2 -->
+    <rect x="280" y="0" width="240" height="180" rx="12" fill="#FFFFFF" stroke="#231F1D" stroke-opacity="0.12"/>
+    <text x="300" y="34" font-size="11" font-weight="600" fill="#826E5A" letter-spacing="1.5">02</text>
+    <text x="300" y="64" font-size="15" font-weight="500" fill="#231F1D">Capability via</text>
+    <text x="300" y="84" font-size="15" font-weight="500" fill="#231F1D">ExecutionGateway</text>
+    <text x="300" y="116" font-size="12" fill="#231F1D" opacity="0.65">Input-risk + output-risk +</text>
+    <text x="300" y="134" font-size="12" fill="#231F1D" opacity="0.65">policy-floor körs.</text>
+
+    <line x1="532" y1="90" x2="556" y2="90" stroke="#231F1D" stroke-opacity="0.3" stroke-width="1.5"/>
+    <path d="M 550 84 L 560 90 L 550 96" stroke="#231F1D" stroke-opacity="0.3" stroke-width="1.5" fill="none"/>
+
+    <!-- Step 3 -->
+    <rect x="560" y="0" width="240" height="180" rx="12" fill="#FFFFFF" stroke="#231F1D" stroke-opacity="0.12"/>
+    <text x="580" y="34" font-size="11" font-weight="600" fill="#826E5A" letter-spacing="1.5">03</text>
+    <text x="580" y="64" font-size="15" font-weight="500" fill="#231F1D">E-post skickas via</text>
+    <text x="580" y="84" font-size="15" font-weight="500" fill="#231F1D">M365 Graph</text>
+    <text x="580" y="116" font-size="12" fill="#231F1D" opacity="0.65">Från: contact@</text>
+    <text x="580" y="134" font-size="12" fill="#231F1D" opacity="0.65">hairtpclinic.com</text>
+
+    <line x1="812" y1="90" x2="836" y2="90" stroke="#231F1D" stroke-opacity="0.3" stroke-width="1.5"/>
+    <path d="M 830 84 L 840 90 L 830 96" stroke="#231F1D" stroke-opacity="0.3" stroke-width="1.5" fill="none"/>
+
+    <!-- Step 4 -->
+    <rect x="840" y="0" width="240" height="180" rx="12" fill="#FFFFFF" stroke="#231F1D" stroke-opacity="0.12"/>
+    <text x="860" y="34" font-size="11" font-weight="600" fill="#826E5A" letter-spacing="1.5">04</text>
+    <text x="860" y="64" font-size="15" font-weight="500" fill="#231F1D">Patient klickar länk</text>
+    <text x="860" y="84" font-size="15" font-weight="500" fill="#231F1D">i mejlet</text>
+    <text x="860" y="116" font-size="12" fill="#231F1D" opacity="0.65">arcana.hairtpclinic.se/</text>
+    <text x="860" y="134" font-size="12" font-family="Menlo, monospace" fill="#646E46">uppfoljning/[token]</text>
+
+    <line x1="1092" y1="90" x2="1116" y2="90" stroke="#231F1D" stroke-opacity="0.3" stroke-width="1.5"/>
+    <path d="M 1110 84 L 1120 90 L 1110 96" stroke="#231F1D" stroke-opacity="0.3" stroke-width="1.5" fill="none"/>
+
+    <!-- Step 5 -->
+    <rect x="1120" y="0" width="240" height="180" rx="12" fill="#231F1D"/>
+    <text x="1140" y="34" font-size="11" font-weight="600" fill="#FAEDE2" opacity="0.75" letter-spacing="1.5">05</text>
+    <text x="1140" y="64" font-size="15" font-weight="500" fill="#FFFFFF">Bilder + consent</text>
+    <text x="1140" y="84" font-size="15" font-weight="500" fill="#FFFFFF">+ GBP-omdöme</text>
+    <text x="1140" y="116" font-size="12" fill="#FFFFFF" opacity="0.75">EXIF strippas server-side.</text>
+    <text x="1140" y="134" font-size="12" fill="#FFFFFF" opacity="0.75">Audit-trail: 4 events.</text>
+  </g>
+
+  <!-- Bottom title -->
+  <text x="80" y="1860" font-size="10" fill="#231F1D" opacity="0.5" font-family="Menlo, monospace">patient-uppfoljning-page.svg</text>
+  <text x="1360" y="1860" font-size="10" fill="#231F1D" opacity="0.5" text-anchor="end">DXM mock 2026-05-18 · Hair TP Clinic · Capability: RequestPostOpReview v1.0.0</text>
+</svg>

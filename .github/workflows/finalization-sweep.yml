@@ -1,0 +1,104 @@
+name: arcana-finalization-sweep
+
+on:
+  schedule:
+    - cron: "41 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finalization-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ARCANA_DEFAULT_TENANT: hair-tp-clinic
+      ARCANA_OWNER_EMAIL: owner@hairtpclinic.se
+      ARCANA_OWNER_PASSWORD: ArcanaPilot!2026
+      ARCANA_AI_PROVIDER: fallback
+      ARCANA_FINALIZATION_SWEEP_OUT_FILE: ./data/reports/finalization-sweep-latest.json
+      ARCANA_FINALIZATION_SWEEP_BOOTSTRAP_MODE: if_missing
+      ARCANA_EXPECTED_EXTERNAL_FAIL_STEPS: bootstrap_release_cycle,check_pentest_evidence,report_release_readiness,report_stability_window,release_go_live_gate,release_final_live_signoff
+      ARCANA_EXPECTED_CLOSURE_REMAINING: external_pentest_evidence,stability_window_14_30d,formal_live_signoff
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Run finalization sweep (local runtime)
+        id: sweep
+        run: |
+          set +e
+          npm run finalization:sweep:strict:local:bootstrap
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          echo "Sweep exit code: $EXIT_CODE"
+          exit 0
+
+      - name: Upload finalization sweep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finalization-sweep-${{ github.run_id }}
+          path: ./data/reports/finalization-sweep-latest.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Build closure status
+        if: always()
+        run: npm run report:closure-status
+
+      - name: Validate closure status (known external blockers only)
+        if: always()
+        run: npm run closure:guard
+
+      - name: Upload closure status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: closure-status-${{ github.run_id }}
+          path: |
+            ./data/reports/closure-status-latest.json
+            ./data/reports/closure-status-latest.md
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Validate sweep result
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const reportPath = path.resolve('./data/reports/finalization-sweep-latest.json');
+          if (!fs.existsSync(reportPath)) {
+            console.error('Missing finalization sweep report:', reportPath);
+            process.exit(1);
+          }
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          const failed = Array.isArray(report?.summary?.failedSteps) ? report.summary.failedSteps : [];
+          const expected = String(process.env.ARCANA_EXPECTED_EXTERNAL_FAIL_STEPS || '')
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+          const expectedSet = new Set(expected);
+          const unexpected = failed.filter((id) => !expectedSet.has(id));
+          const missingExpected = expected.filter((id) => !failed.includes(id));
+
+          console.log('failed steps:', failed.join(',') || '-');
+          console.log('expected external steps:', expected.join(',') || '-');
+          console.log('unexpected failed steps:', unexpected.join(',') || '-');
+          console.log('resolved expected blockers:', missingExpected.join(',') || '-');
+
+          if (unexpected.length > 0) {
+            console.error('Unexpected internal regressions detected in finalization sweep.');
+            process.exit(1);
+          }
+          NODE

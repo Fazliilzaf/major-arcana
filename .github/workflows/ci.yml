@@ -1,0 +1,120 @@
+name: arcana-ci
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ARCANA_AI_PROVIDER: fallback
+      ARCANA_DEFAULT_TENANT: hair-tp-clinic
+      ARCANA_OWNER_EMAIL: owner@hairtpclinic.se
+      ARCANA_OWNER_PASSWORD: ArcanaPilot!2026
+      PORT: 3000
+      PUBLIC_BASE_URL: http://localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Syntax check
+        run: npm run check:syntax
+
+      - name: No-bypass lint
+        run: npm run lint:no-bypass
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Smoke (local)
+        run: npm run smoke:local
+
+      - name: Ops strict suite (local runtime)
+        run: |
+          npm start > /tmp/arcana-server.log 2>&1 &
+          SERVER_PID=$!
+          cleanup() {
+            kill "$SERVER_PID" >/dev/null 2>&1 || true
+            wait "$SERVER_PID" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/healthz >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -sf http://localhost:3000/healthz >/dev/null
+          npm run owner:mfa:setup -- --force-mfa-challenge --quiet-secrets
+          npm run ops:suite:strict
+
+      - name: Finalization sweep guard (local runtime)
+        env:
+          ARCANA_FINALIZATION_SWEEP_OUT_FILE: ./data/reports/finalization-sweep-latest.json
+          ARCANA_FINALIZATION_SWEEP_BOOTSTRAP_MODE: if_missing
+          ARCANA_EXPECTED_EXTERNAL_FAIL_STEPS: bootstrap_release_cycle,check_pentest_evidence,report_release_readiness,report_stability_window,release_go_live_gate,release_final_live_signoff
+        run: |
+          npm run finalization:sweep:local:bootstrap
+          npm run finalization:sweep:guard
+
+      - name: Closure status report (local runtime)
+        run: npm run report:closure-status
+
+      - name: Closure status guard (known external blockers only)
+        env:
+          ARCANA_EXPECTED_CLOSURE_REMAINING: external_pentest_evidence,stability_window_14_30d,formal_live_signoff
+        run: npm run closure:guard
+
+      - name: Upload closure status artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: closure-status-ci-${{ github.run_id }}
+          path: |
+            ./data/reports/closure-status-latest.json
+            ./data/reports/closure-status-latest.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  cmo-mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ARCANA_AI_PROVIDER: fallback
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: CMO mutation tests (Stryker)
+        run: npm run test:mutation:cmo
+
+      - name: Upload CMO mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmo-mutation-report-${{ github.run_id }}
+          path: reports/stryker/cmo-mutation.html
+          if-no-files-found: warn
+          retention-days: 14

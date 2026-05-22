@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Torti Massimiliano | The Art of Layering</title>
+    <meta
+      name="description"
+      content="Minimal digital scent sheet for Torti Massimiliano with product selection, placement across Head, Heart and Base, and body-zone mapping."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260519-action-focus-flow" />
+  </head>
+  <body>
+    <main class="sheet-app" data-export-root>
+      <header class="brand-strip">
+        <img
+          class="brand-logo"
+          src="https://tortimassimiliano.com/wp-content/uploads/2025/01/cropped-torti-logo-footer-1-192x192.png"
+          alt="Torti Massimiliano"
+          width="54"
+          height="54"
+        />
+        <div class="brand-copy">
+          <div class="brand-title-row">
+            <h1>Torti Massimiliano</h1>
+            <div
+              class="brand-subcopy"
+              aria-label="The art of layering personal olfactory stratification"
+            >
+              <span>THE ART OF LAYERING</span>
+              <span>PERSONAL OLFACTORY STRATIFICATION</span>
+            </div>
+          </div>
+          <div class="brand-cta-row">
+            <button class="brand-cta brand-cta-primary" type="button" data-browse-collections>
+              Browse collections
+            </button>
+            <button class="brand-cta" type="button" data-open-portal>Open portal</button>
+            <span class="brand-cta-note">Start with the bottles, then review the portal flow.</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="sheet-meta">
+        <label class="meta-field">
+          <span>First name</span>
+          <input type="text" data-first-name autocomplete="off" />
+        </label>
+        <label class="meta-field">
+          <span>Last name</span>
+          <input type="text" data-last-name autocomplete="off" />
+        </label>
+      </section>
+
+      <section class="composition-strip" data-pdf-exclude>
+        <section class="customer-library" data-customer-library></section>
+        <section class="zone-editor" data-selected-bottle-panel data-pdf-exclude hidden></section>
+        <section class="layers-panel" data-layers-panel></section>
+        <section class="portal-panel" data-portal-panel data-pdf-exclude id="portal-flow"></section>
+      </section>
+
+      <section class="sheet-document" id="sheet-document">
+        <div class="sheet-grid">
+          <div class="document-stage" data-document-stage>
+            <div class="stage-steps" aria-hidden="true">
+              <div class="stage-step stage-step-head"><span>Head</span></div>
+              <div class="stage-step stage-step-heart"><span>Heart</span></div>
+              <div class="stage-step stage-step-base"><span>Base</span></div>
+            </div>
+
+            <button
+              class="placement-target placement-target-high"
+              type="button"
+              data-place-level="high"
+              aria-label="Place bottle in head"
+            ></button>
+            <button
+              class="placement-target placement-target-middle"
+              type="button"
+              data-place-level="middle"
+              aria-label="Place bottle in heart"
+            ></button>
+            <button
+              class="placement-target placement-target-low"
+              type="button"
+              data-place-level="low"
+              aria-label="Place bottle in base"
+            ></button>
+
+            <div class="level-row level-row-high" data-level-row="high">
+              <div class="slot slot-left" data-slot="high::Perfume"></div>
+              <div class="slot slot-right-top" data-slot="high::Oil"></div>
+              <div class="slot slot-right-bottom" data-slot="high::Body Lotion"></div>
+            </div>
+
+            <div class="level-row level-row-middle" data-level-row="middle">
+              <div class="slot slot-left" data-slot="middle::Perfume"></div>
+              <div class="slot slot-right-top" data-slot="middle::Oil"></div>
+              <div class="slot slot-right-bottom" data-slot="middle::Body Lotion"></div>
+            </div>
+
+            <div class="level-row level-row-low" data-level-row="low">
+              <div class="slot slot-left" data-slot="low::Perfume"></div>
+              <div class="slot slot-right-top" data-slot="low::Oil"></div>
+              <div class="slot slot-right-bottom" data-slot="low::Body Lotion"></div>
+            </div>
+
+            <div class="body-map" data-body-map>
+              <img
+                class="body-sketch"
+                src="./assets/body-reference-clean.png"
+                alt=""
+                aria-hidden="true"
+                draggable="false"
+                width="160"
+                height="1170"
+              />
+            </div>
+
+            <div class="bottle-layer" data-bottle-layer></div>
+            <div class="zone-layer" data-zone-layer></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sheet-status" data-pdf-exclude>
+        <p data-sheet-status>Choose a product below. Then place it in Head, Heart, or Base.</p>
+        <div class="sheet-status-actions">
+          <button class="ghost-button" type="button" data-remove-selected hidden>
+            Remove selected product
+          </button>
+        </div>
+      </section>
+
+      <section class="library-strip" data-pdf-exclude id="collections">
+        <div class="library-head">
+          <div class="library-copy">
+            <p>Add product</p>
+            <h2>Collections</h2>
+            <span class="library-note">Search within each collection below.</span>
+          </div>
+        </div>
+
+        <div class="product-scroller" data-product-scroller></div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script src="./app.js?v=20260519-action-focus-flow"></script>
+  </body>
+</html>

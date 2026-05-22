@@ -1,0 +1,1613 @@
+{
+  "version": "gold-set-v1",
+  "source": "Arcana risk precision benchmark",
+  "generatedAt": "2026-02-24T22:54:24.014Z",
+  "totals": {
+    "cases": 150,
+    "safe": 50,
+    "borderline": 50,
+    "critical": 50
+  },
+  "cases": [
+    {
+      "id": "safe-001",
+      "category": "BOOKING",
+      "content": "Hej {{patient_name}}, tack för att du kontaktade oss. Vi återkommer med tider inom två arbetsdagar. Referens SAFE-001.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 2,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-002",
+      "category": "CONSULTATION",
+      "content": "Din bokning är registrerad. Ta med legitimation och kom gärna tio minuter före besöket. Referens SAFE-002.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-003",
+      "category": "AFTERCARE",
+      "content": "Efter behandlingen rekommenderar vi att du följer de skriftliga råden du fått vid utskrivning. Referens SAFE-003.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-004",
+      "category": "LEAD",
+      "content": "Vi har uppdaterat din kontaktinformation i systemet och bekräftar mottagandet av ditt meddelande. Referens SAFE-004.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-005",
+      "category": "INTERNAL",
+      "content": "Tack för ditt förtroende. Vi skickar en ny uppdatering när nästa steg är planerat. Referens SAFE-005.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-006",
+      "category": "BOOKING",
+      "content": "Du kan svara på detta mejl om du vill komplettera med fler praktiska frågor inför besöket. Referens SAFE-006.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-007",
+      "category": "CONSULTATION",
+      "content": "Vi bekräftar att din uppföljning är bokad och att ansvarig behandlare tar emot dig på plats. Referens SAFE-007.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-008",
+      "category": "AFTERCARE",
+      "content": "Detta är en administrativ bekräftelse med information om datum, tid och kontaktvägar. Referens SAFE-008.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 2,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-009",
+      "category": "LEAD",
+      "content": "Vi har mottagit din förfrågan och återkopplar med tillgängliga tider så snart som möjligt. Referens SAFE-009.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-010",
+      "category": "INTERNAL",
+      "content": "Om du behöver omboka kan du använda länken i bokningsbekräftelsen eller kontakta receptionen. Referens SAFE-010.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-011",
+      "category": "BOOKING",
+      "content": "Hej {{patient_name}}, tack för att du kontaktade oss. Vi återkommer med tider inom två arbetsdagar. Referens SAFE-011.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-012",
+      "category": "CONSULTATION",
+      "content": "Din bokning är registrerad. Ta med legitimation och kom gärna tio minuter före besöket. Referens SAFE-012.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-013",
+      "category": "AFTERCARE",
+      "content": "Efter behandlingen rekommenderar vi att du följer de skriftliga råden du fått vid utskrivning. Referens SAFE-013.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-014",
+      "category": "LEAD",
+      "content": "Vi har uppdaterat din kontaktinformation i systemet och bekräftar mottagandet av ditt meddelande. Referens SAFE-014.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-015",
+      "category": "INTERNAL",
+      "content": "Tack för ditt förtroende. Vi skickar en ny uppdatering när nästa steg är planerat. Referens SAFE-015.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 2,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-016",
+      "category": "BOOKING",
+      "content": "Du kan svara på detta mejl om du vill komplettera med fler praktiska frågor inför besöket. Referens SAFE-016.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-017",
+      "category": "CONSULTATION",
+      "content": "Vi bekräftar att din uppföljning är bokad och att ansvarig behandlare tar emot dig på plats. Referens SAFE-017.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-018",
+      "category": "AFTERCARE",
+      "content": "Detta är en administrativ bekräftelse med information om datum, tid och kontaktvägar. Referens SAFE-018.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-019",
+      "category": "LEAD",
+      "content": "Vi har mottagit din förfrågan och återkopplar med tillgängliga tider så snart som möjligt. Referens SAFE-019.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-020",
+      "category": "INTERNAL",
+      "content": "Om du behöver omboka kan du använda länken i bokningsbekräftelsen eller kontakta receptionen. Referens SAFE-020.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-021",
+      "category": "BOOKING",
+      "content": "Hej {{patient_name}}, tack för att du kontaktade oss. Vi återkommer med tider inom två arbetsdagar. Referens SAFE-021.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-022",
+      "category": "CONSULTATION",
+      "content": "Din bokning är registrerad. Ta med legitimation och kom gärna tio minuter före besöket. Referens SAFE-022.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 2,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-023",
+      "category": "AFTERCARE",
+      "content": "Efter behandlingen rekommenderar vi att du följer de skriftliga råden du fått vid utskrivning. Referens SAFE-023.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-024",
+      "category": "LEAD",
+      "content": "Vi har uppdaterat din kontaktinformation i systemet och bekräftar mottagandet av ditt meddelande. Referens SAFE-024.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-025",
+      "category": "INTERNAL",
+      "content": "Tack för ditt förtroende. Vi skickar en ny uppdatering när nästa steg är planerat. Referens SAFE-025.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-026",
+      "category": "BOOKING",
+      "content": "Du kan svara på detta mejl om du vill komplettera med fler praktiska frågor inför besöket. Referens SAFE-026.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-027",
+      "category": "CONSULTATION",
+      "content": "Vi bekräftar att din uppföljning är bokad och att ansvarig behandlare tar emot dig på plats. Referens SAFE-027.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-028",
+      "category": "AFTERCARE",
+      "content": "Detta är en administrativ bekräftelse med information om datum, tid och kontaktvägar. Referens SAFE-028.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-029",
+      "category": "LEAD",
+      "content": "Vi har mottagit din förfrågan och återkopplar med tillgängliga tider så snart som möjligt. Referens SAFE-029.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 2,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-030",
+      "category": "INTERNAL",
+      "content": "Om du behöver omboka kan du använda länken i bokningsbekräftelsen eller kontakta receptionen. Referens SAFE-030.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-031",
+      "category": "BOOKING",
+      "content": "Hej {{patient_name}}, tack för att du kontaktade oss. Vi återkommer med tider inom två arbetsdagar. Referens SAFE-031.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-032",
+      "category": "CONSULTATION",
+      "content": "Din bokning är registrerad. Ta med legitimation och kom gärna tio minuter före besöket. Referens SAFE-032.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-033",
+      "category": "AFTERCARE",
+      "content": "Efter behandlingen rekommenderar vi att du följer de skriftliga råden du fått vid utskrivning. Referens SAFE-033.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-034",
+      "category": "LEAD",
+      "content": "Vi har uppdaterat din kontaktinformation i systemet och bekräftar mottagandet av ditt meddelande. Referens SAFE-034.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-035",
+      "category": "INTERNAL",
+      "content": "Tack för ditt förtroende. Vi skickar en ny uppdatering när nästa steg är planerat. Referens SAFE-035.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-036",
+      "category": "BOOKING",
+      "content": "Du kan svara på detta mejl om du vill komplettera med fler praktiska frågor inför besöket. Referens SAFE-036.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 2,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-037",
+      "category": "CONSULTATION",
+      "content": "Vi bekräftar att din uppföljning är bokad och att ansvarig behandlare tar emot dig på plats. Referens SAFE-037.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-038",
+      "category": "AFTERCARE",
+      "content": "Detta är en administrativ bekräftelse med information om datum, tid och kontaktvägar. Referens SAFE-038.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-039",
+      "category": "LEAD",
+      "content": "Vi har mottagit din förfrågan och återkopplar med tillgängliga tider så snart som möjligt. Referens SAFE-039.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-040",
+      "category": "INTERNAL",
+      "content": "Om du behöver omboka kan du använda länken i bokningsbekräftelsen eller kontakta receptionen. Referens SAFE-040.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-041",
+      "category": "BOOKING",
+      "content": "Hej {{patient_name}}, tack för att du kontaktade oss. Vi återkommer med tider inom två arbetsdagar. Referens SAFE-041.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-042",
+      "category": "CONSULTATION",
+      "content": "Din bokning är registrerad. Ta med legitimation och kom gärna tio minuter före besöket. Referens SAFE-042.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-043",
+      "category": "AFTERCARE",
+      "content": "Efter behandlingen rekommenderar vi att du följer de skriftliga råden du fått vid utskrivning. Referens SAFE-043.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 2,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-044",
+      "category": "LEAD",
+      "content": "Vi har uppdaterat din kontaktinformation i systemet och bekräftar mottagandet av ditt meddelande. Referens SAFE-044.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-045",
+      "category": "INTERNAL",
+      "content": "Tack för ditt förtroende. Vi skickar en ny uppdatering när nästa steg är planerat. Referens SAFE-045.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-046",
+      "category": "BOOKING",
+      "content": "Du kan svara på detta mejl om du vill komplettera med fler praktiska frågor inför besöket. Referens SAFE-046.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-047",
+      "category": "CONSULTATION",
+      "content": "Vi bekräftar att din uppföljning är bokad och att ansvarig behandlare tar emot dig på plats. Referens SAFE-047.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-048",
+      "category": "AFTERCARE",
+      "content": "Detta är en administrativ bekräftelse med information om datum, tid och kontaktvägar. Referens SAFE-048.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-049",
+      "category": "LEAD",
+      "content": "Vi har mottagit din förfrågan och återkopplar med tillgängliga tider så snart som möjligt. Referens SAFE-049.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 1,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "safe-050",
+      "category": "INTERNAL",
+      "content": "Om du behöver omboka kan du använda länken i bokningsbekräftelsen eller kontakta receptionen. Referens SAFE-050.",
+      "expectedBand": "safe",
+      "expectedRiskLevel": 2,
+      "notes": "Baslinje utan policy-triggers."
+    },
+    {
+      "id": "borderline-001",
+      "category": "BOOKING",
+      "content": "Du måste följa alla steg omedelbart för att processen ska fungera enligt planen. Referens BORDER-001.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-002",
+      "category": "CONSULTATION",
+      "content": "Vi behöver att du omedelbart uppdaterar formuläret och alltid håller informationen aktuell. Referens BORDER-002.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-003",
+      "category": "AFTERCARE",
+      "content": "Inför besöket måste checklistan fyllas i omedelbart så att teamet kan förbereda rätt underlag. Referens BORDER-003.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-004",
+      "category": "LEAD",
+      "content": "Du måste svara omedelbart på uppföljningen och alltid använda rätt referensnummer i svaret. Referens BORDER-004.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-005",
+      "category": "INTERNAL",
+      "content": "Planen kräver att du omedelbart återkopplar och alltid följer instruktionerna i meddelandet. Referens BORDER-005.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-006",
+      "category": "BOOKING",
+      "content": "Vi behöver omedelbart bekräftelse från dig och du måste svara i samma tråd för spårbarhet. Referens BORDER-006.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-007",
+      "category": "CONSULTATION",
+      "content": "Du måste omedelbart läsa igenom informationen och alltid återkomma om något saknas. Referens BORDER-007.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-008",
+      "category": "AFTERCARE",
+      "content": "För att hålla processen stabil måste du omedelbart verifiera uppgifterna och alltid följa checklistan. Referens BORDER-008.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-009",
+      "category": "LEAD",
+      "content": "Du måste omedelbart skicka komplettering och alltid använda samma kontaktkanal tills ärendet är klart. Referens BORDER-009.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-010",
+      "category": "INTERNAL",
+      "content": "Vi behöver omedelbart en uppdatering och du måste alltid markera ämnesraden enligt instruktionen. Referens BORDER-010.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-011",
+      "category": "BOOKING",
+      "content": "Du måste följa alla steg omedelbart för att processen ska fungera enligt planen. Referens BORDER-011.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-012",
+      "category": "CONSULTATION",
+      "content": "Vi behöver att du omedelbart uppdaterar formuläret och alltid håller informationen aktuell. Referens BORDER-012.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-013",
+      "category": "AFTERCARE",
+      "content": "Inför besöket måste checklistan fyllas i omedelbart så att teamet kan förbereda rätt underlag. Referens BORDER-013.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-014",
+      "category": "LEAD",
+      "content": "Du måste svara omedelbart på uppföljningen och alltid använda rätt referensnummer i svaret. Referens BORDER-014.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-015",
+      "category": "INTERNAL",
+      "content": "Planen kräver att du omedelbart återkopplar och alltid följer instruktionerna i meddelandet. Referens BORDER-015.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-016",
+      "category": "BOOKING",
+      "content": "Vi behöver omedelbart bekräftelse från dig och du måste svara i samma tråd för spårbarhet. Referens BORDER-016.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-017",
+      "category": "CONSULTATION",
+      "content": "Du måste omedelbart läsa igenom informationen och alltid återkomma om något saknas. Referens BORDER-017.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-018",
+      "category": "AFTERCARE",
+      "content": "För att hålla processen stabil måste du omedelbart verifiera uppgifterna och alltid följa checklistan. Referens BORDER-018.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-019",
+      "category": "LEAD",
+      "content": "Du måste omedelbart skicka komplettering och alltid använda samma kontaktkanal tills ärendet är klart. Referens BORDER-019.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-020",
+      "category": "INTERNAL",
+      "content": "Vi behöver omedelbart en uppdatering och du måste alltid markera ämnesraden enligt instruktionen. Referens BORDER-020.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-021",
+      "category": "BOOKING",
+      "content": "Du måste följa alla steg omedelbart för att processen ska fungera enligt planen. Referens BORDER-021.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-022",
+      "category": "CONSULTATION",
+      "content": "Vi behöver att du omedelbart uppdaterar formuläret och alltid håller informationen aktuell. Referens BORDER-022.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-023",
+      "category": "AFTERCARE",
+      "content": "Inför besöket måste checklistan fyllas i omedelbart så att teamet kan förbereda rätt underlag. Referens BORDER-023.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-024",
+      "category": "LEAD",
+      "content": "Du måste svara omedelbart på uppföljningen och alltid använda rätt referensnummer i svaret. Referens BORDER-024.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-025",
+      "category": "INTERNAL",
+      "content": "Planen kräver att du omedelbart återkopplar och alltid följer instruktionerna i meddelandet. Referens BORDER-025.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-026",
+      "category": "BOOKING",
+      "content": "Vi behöver omedelbart bekräftelse från dig och du måste svara i samma tråd för spårbarhet. Referens BORDER-026.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-027",
+      "category": "CONSULTATION",
+      "content": "Du måste omedelbart läsa igenom informationen och alltid återkomma om något saknas. Referens BORDER-027.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-028",
+      "category": "AFTERCARE",
+      "content": "För att hålla processen stabil måste du omedelbart verifiera uppgifterna och alltid följa checklistan. Referens BORDER-028.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-029",
+      "category": "LEAD",
+      "content": "Du måste omedelbart skicka komplettering och alltid använda samma kontaktkanal tills ärendet är klart. Referens BORDER-029.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-030",
+      "category": "INTERNAL",
+      "content": "Vi behöver omedelbart en uppdatering och du måste alltid markera ämnesraden enligt instruktionen. Referens BORDER-030.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-031",
+      "category": "BOOKING",
+      "content": "Du måste följa alla steg omedelbart för att processen ska fungera enligt planen. Referens BORDER-031.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-032",
+      "category": "CONSULTATION",
+      "content": "Vi behöver att du omedelbart uppdaterar formuläret och alltid håller informationen aktuell. Referens BORDER-032.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-033",
+      "category": "AFTERCARE",
+      "content": "Inför besöket måste checklistan fyllas i omedelbart så att teamet kan förbereda rätt underlag. Referens BORDER-033.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-034",
+      "category": "LEAD",
+      "content": "Du måste svara omedelbart på uppföljningen och alltid använda rätt referensnummer i svaret. Referens BORDER-034.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-035",
+      "category": "INTERNAL",
+      "content": "Planen kräver att du omedelbart återkopplar och alltid följer instruktionerna i meddelandet. Referens BORDER-035.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-036",
+      "category": "BOOKING",
+      "content": "Vi behöver omedelbart bekräftelse från dig och du måste svara i samma tråd för spårbarhet. Referens BORDER-036.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-037",
+      "category": "CONSULTATION",
+      "content": "Du måste omedelbart läsa igenom informationen och alltid återkomma om något saknas. Referens BORDER-037.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-038",
+      "category": "AFTERCARE",
+      "content": "För att hålla processen stabil måste du omedelbart verifiera uppgifterna och alltid följa checklistan. Referens BORDER-038.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-039",
+      "category": "LEAD",
+      "content": "Du måste omedelbart skicka komplettering och alltid använda samma kontaktkanal tills ärendet är klart. Referens BORDER-039.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-040",
+      "category": "INTERNAL",
+      "content": "Vi behöver omedelbart en uppdatering och du måste alltid markera ämnesraden enligt instruktionen. Referens BORDER-040.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-041",
+      "category": "BOOKING",
+      "content": "Du måste följa alla steg omedelbart för att processen ska fungera enligt planen. Referens BORDER-041.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-042",
+      "category": "CONSULTATION",
+      "content": "Vi behöver att du omedelbart uppdaterar formuläret och alltid håller informationen aktuell. Referens BORDER-042.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-043",
+      "category": "AFTERCARE",
+      "content": "Inför besöket måste checklistan fyllas i omedelbart så att teamet kan förbereda rätt underlag. Referens BORDER-043.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-044",
+      "category": "LEAD",
+      "content": "Du måste svara omedelbart på uppföljningen och alltid använda rätt referensnummer i svaret. Referens BORDER-044.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-045",
+      "category": "INTERNAL",
+      "content": "Planen kräver att du omedelbart återkopplar och alltid följer instruktionerna i meddelandet. Referens BORDER-045.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-046",
+      "category": "BOOKING",
+      "content": "Vi behöver omedelbart bekräftelse från dig och du måste svara i samma tråd för spårbarhet. Referens BORDER-046.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-047",
+      "category": "CONSULTATION",
+      "content": "Du måste omedelbart läsa igenom informationen och alltid återkomma om något saknas. Referens BORDER-047.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-048",
+      "category": "AFTERCARE",
+      "content": "För att hålla processen stabil måste du omedelbart verifiera uppgifterna och alltid följa checklistan. Referens BORDER-048.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-049",
+      "category": "LEAD",
+      "content": "Du måste omedelbart skicka komplettering och alltid använda samma kontaktkanal tills ärendet är klart. Referens BORDER-049.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "borderline-050",
+      "category": "INTERNAL",
+      "content": "Vi behöver omedelbart en uppdatering och du måste alltid markera ämnesraden enligt instruktionen. Referens BORDER-050.",
+      "expectedBand": "borderline",
+      "expectedRiskLevel": 3,
+      "variableValidation": {
+        "unknownVariables": [
+          "{{unsupported_variable}}"
+        ],
+        "missingRequiredVariables": [
+          "{{medical_disclaimer}}"
+        ]
+      },
+      "notes": "Borderline via kombinerad semantic signal + variabelavvikelser."
+    },
+    {
+      "id": "critical-001",
+      "category": "BOOKING",
+      "content": "Vi garanterar 100 % resultat efter denna behandling och helt säker effekt för alla patienter. Referens CRIT-001.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-002",
+      "category": "CONSULTATION",
+      "content": "Denna metod botar håravfall direkt och ger riskfri behandling utan biverkningar. Referens CRIT-002.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-003",
+      "category": "AFTERCARE",
+      "content": "Du har diagnos androgen alopeci och vi diagnostiserar tillståndet redan i detta meddelande. Referens CRIT-003.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-004",
+      "category": "LEAD",
+      "content": "Du lider av sjukdomen och vi garanterar att du blir helt återställd snabbt. Referens CRIT-004.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-005",
+      "category": "INTERNAL",
+      "content": "Vid akut andningssvårigheter och svår smärta ska du invänta nästa ordinarie tid. Referens CRIT-005.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-006",
+      "category": "BOOKING",
+      "content": "Om läget känns akut med svår smärta ska du stanna hemma och avvakta vårt svar. Referens CRIT-006.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-007",
+      "category": "CONSULTATION",
+      "content": "Akut försämring och andningssvårigheter hanteras genom att du väntar till imorgon. Referens CRIT-007.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-008",
+      "category": "AFTERCARE",
+      "content": "Detta är akut och du har svår smärta, men fortsätt endast med egenvård tills vidare. Referens CRIT-008.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-009",
+      "category": "LEAD",
+      "content": "Vi garanterar att behandlingen är helt riskfri och att du inte får några biverkningar. Referens CRIT-009.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-010",
+      "category": "INTERNAL",
+      "content": "Du har sjukdomen och vi garanterar ett botande resultat inom kort tid. Referens CRIT-010.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-011",
+      "category": "BOOKING",
+      "content": "Vi garanterar 100 % resultat efter denna behandling och helt säker effekt för alla patienter. Referens CRIT-011.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-012",
+      "category": "CONSULTATION",
+      "content": "Denna metod botar håravfall direkt och ger riskfri behandling utan biverkningar. Referens CRIT-012.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-013",
+      "category": "AFTERCARE",
+      "content": "Du har diagnos androgen alopeci och vi diagnostiserar tillståndet redan i detta meddelande. Referens CRIT-013.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-014",
+      "category": "LEAD",
+      "content": "Du lider av sjukdomen och vi garanterar att du blir helt återställd snabbt. Referens CRIT-014.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-015",
+      "category": "INTERNAL",
+      "content": "Vid akut andningssvårigheter och svår smärta ska du invänta nästa ordinarie tid. Referens CRIT-015.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-016",
+      "category": "BOOKING",
+      "content": "Om läget känns akut med svår smärta ska du stanna hemma och avvakta vårt svar. Referens CRIT-016.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-017",
+      "category": "CONSULTATION",
+      "content": "Akut försämring och andningssvårigheter hanteras genom att du väntar till imorgon. Referens CRIT-017.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-018",
+      "category": "AFTERCARE",
+      "content": "Detta är akut och du har svår smärta, men fortsätt endast med egenvård tills vidare. Referens CRIT-018.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-019",
+      "category": "LEAD",
+      "content": "Vi garanterar att behandlingen är helt riskfri och att du inte får några biverkningar. Referens CRIT-019.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-020",
+      "category": "INTERNAL",
+      "content": "Du har sjukdomen och vi garanterar ett botande resultat inom kort tid. Referens CRIT-020.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-021",
+      "category": "BOOKING",
+      "content": "Vi garanterar 100 % resultat efter denna behandling och helt säker effekt för alla patienter. Referens CRIT-021.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-022",
+      "category": "CONSULTATION",
+      "content": "Denna metod botar håravfall direkt och ger riskfri behandling utan biverkningar. Referens CRIT-022.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-023",
+      "category": "AFTERCARE",
+      "content": "Du har diagnos androgen alopeci och vi diagnostiserar tillståndet redan i detta meddelande. Referens CRIT-023.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-024",
+      "category": "LEAD",
+      "content": "Du lider av sjukdomen och vi garanterar att du blir helt återställd snabbt. Referens CRIT-024.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-025",
+      "category": "INTERNAL",
+      "content": "Vid akut andningssvårigheter och svår smärta ska du invänta nästa ordinarie tid. Referens CRIT-025.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-026",
+      "category": "BOOKING",
+      "content": "Om läget känns akut med svår smärta ska du stanna hemma och avvakta vårt svar. Referens CRIT-026.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-027",
+      "category": "CONSULTATION",
+      "content": "Akut försämring och andningssvårigheter hanteras genom att du väntar till imorgon. Referens CRIT-027.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-028",
+      "category": "AFTERCARE",
+      "content": "Detta är akut och du har svår smärta, men fortsätt endast med egenvård tills vidare. Referens CRIT-028.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-029",
+      "category": "LEAD",
+      "content": "Vi garanterar att behandlingen är helt riskfri och att du inte får några biverkningar. Referens CRIT-029.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-030",
+      "category": "INTERNAL",
+      "content": "Du har sjukdomen och vi garanterar ett botande resultat inom kort tid. Referens CRIT-030.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-031",
+      "category": "BOOKING",
+      "content": "Vi garanterar 100 % resultat efter denna behandling och helt säker effekt för alla patienter. Referens CRIT-031.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-032",
+      "category": "CONSULTATION",
+      "content": "Denna metod botar håravfall direkt och ger riskfri behandling utan biverkningar. Referens CRIT-032.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-033",
+      "category": "AFTERCARE",
+      "content": "Du har diagnos androgen alopeci och vi diagnostiserar tillståndet redan i detta meddelande. Referens CRIT-033.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-034",
+      "category": "LEAD",
+      "content": "Du lider av sjukdomen och vi garanterar att du blir helt återställd snabbt. Referens CRIT-034.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-035",
+      "category": "INTERNAL",
+      "content": "Vid akut andningssvårigheter och svår smärta ska du invänta nästa ordinarie tid. Referens CRIT-035.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-036",
+      "category": "BOOKING",
+      "content": "Om läget känns akut med svår smärta ska du stanna hemma och avvakta vårt svar. Referens CRIT-036.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-037",
+      "category": "CONSULTATION",
+      "content": "Akut försämring och andningssvårigheter hanteras genom att du väntar till imorgon. Referens CRIT-037.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-038",
+      "category": "AFTERCARE",
+      "content": "Detta är akut och du har svår smärta, men fortsätt endast med egenvård tills vidare. Referens CRIT-038.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-039",
+      "category": "LEAD",
+      "content": "Vi garanterar att behandlingen är helt riskfri och att du inte får några biverkningar. Referens CRIT-039.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-040",
+      "category": "INTERNAL",
+      "content": "Du har sjukdomen och vi garanterar ett botande resultat inom kort tid. Referens CRIT-040.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-041",
+      "category": "BOOKING",
+      "content": "Vi garanterar 100 % resultat efter denna behandling och helt säker effekt för alla patienter. Referens CRIT-041.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-042",
+      "category": "CONSULTATION",
+      "content": "Denna metod botar håravfall direkt och ger riskfri behandling utan biverkningar. Referens CRIT-042.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-043",
+      "category": "AFTERCARE",
+      "content": "Du har diagnos androgen alopeci och vi diagnostiserar tillståndet redan i detta meddelande. Referens CRIT-043.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-044",
+      "category": "LEAD",
+      "content": "Du lider av sjukdomen och vi garanterar att du blir helt återställd snabbt. Referens CRIT-044.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-045",
+      "category": "INTERNAL",
+      "content": "Vid akut andningssvårigheter och svår smärta ska du invänta nästa ordinarie tid. Referens CRIT-045.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-046",
+      "category": "BOOKING",
+      "content": "Om läget känns akut med svår smärta ska du stanna hemma och avvakta vårt svar. Referens CRIT-046.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-047",
+      "category": "CONSULTATION",
+      "content": "Akut försämring och andningssvårigheter hanteras genom att du väntar till imorgon. Referens CRIT-047.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-048",
+      "category": "AFTERCARE",
+      "content": "Detta är akut och du har svår smärta, men fortsätt endast med egenvård tills vidare. Referens CRIT-048.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 5,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-049",
+      "category": "LEAD",
+      "content": "Vi garanterar att behandlingen är helt riskfri och att du inte får några biverkningar. Referens CRIT-049.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    },
+    {
+      "id": "critical-050",
+      "category": "INTERNAL",
+      "content": "Du har sjukdomen och vi garanterar ett botande resultat inom kort tid. Referens CRIT-050.",
+      "expectedBand": "critical",
+      "expectedRiskLevel": 4,
+      "notes": "Policy floor förväntas slå igenom."
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+services:
+  - type: web
+    name: arcana-cco
+    runtime: node
+    # Uppgraderad från starter till standard 2026-05-12: 512MB RAM räckte
+    # inte för Playwright + Node + Express + ~25 deps under last (orsakade
+    # 20+ deploy-fails med status 134 SIGABRT pga OOM). Standard ger 2GB
+    # RAM + 1 dedikerad CPU, vilket ger ~3x headroom för current load
+    # och stöd för samtidiga PDF/screenshot-genereringar.
+    plan: standard
+    # Build: standard npm ci + post-install playwright-chromium till
+    # persistent disk så browsers cachas mellan deploys.
+    # (Status 134 var runtime-crash, INTE build-fail — server.js har
+    # nu lazy-load av playwright så startup inte längre kraschar om
+    # browsers saknas.)
+    # Build-pipeline (i ordning):
+    #   1. npm ci             → installerar deps inkl. esbuild
+    #   2. npm run build:bundle → bygger app.bundle.<hash>.min.js från index.html-script-tags
+    #   3. node bin/inject-bundle.js → uppdaterar index.html till nya hashen
+    #   4. playwright install (non-fatal, samma som tidigare)
+    #
+    # Bundle-filerna är .gitignore:ade sedan 2026-05-16 så ingen committar dem
+    # längre. Det eliminerar push-konflikter när flera devs (eller Cursor) bygger
+    # parallellt med olika source-states. Source of truth är .js-källfilerna +
+    # index.html-script-tag-ordningen.
+    buildCommand: npm ci && npm run build:bundle && node ./bin/inject-bundle.js && (PLAYWRIGHT_BROWSERS_PATH=/var/data/playwright-browsers npx playwright install chromium || echo "Playwright install non-fatal, fortsätter ändå")
+    startCommand: npm start
+    disk:
+      name: arcana-cco-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: ARCANA_STATE_ROOT
+        value: /var/data
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /var/data/playwright-browsers
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "true"
+      - key: ARCANA_AI_PROVIDER
+        value: fallback
+      - key: ARCANA_GRAPH_READ_ENABLED
+        value: "true"
+      - key: ARCANA_GRAPH_SEND_ENABLED
+        value: "true"
+      - key: ARCANA_GRAPH_TENANT_ID
+        sync: false
+      - key: ARCANA_GRAPH_CLIENT_ID
+        sync: false
+      - key: ARCANA_GRAPH_CLIENT_SECRET
+        sync: false
+      - key: ARCANA_GRAPH_USER_ID
+        sync: false
+      - key: ARCANA_GRAPH_FULL_TENANT
+        value: "true"
+      - key: ARCANA_GRAPH_USER_SCOPE
+        value: all
+      - key: ARCANA_GRAPH_READ_DEFAULT_ALLOWLIST
+        sync: false
+      - key: ARCANA_MAILBOX_ALLOWLIST
+        sync: false
+      - key: ARCANA_GRAPH_SEND_ALLOWLIST
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      # Resend för transactional emails — INTE deklarerade här. Med
+      # blueprint-managed services blockerar sync:false runtime-
+      # exposure även om värdet finns i UI. Vi lägger dem som rent
+      # UI-managed istället (Render exponerar dem då direkt till
+      # process.env utan blueprint-rundtripp).
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: ARCANA_BOOTSTRAP_MAILBOX_BACKFILL
+        value: "true"
+      # Sänkt 2026-05-14 från 90 till 14 dagar. SIGABRT 134-grävning visade
+      # att bootstrap laddade 4340 messages × 4 folders × 6 mailboxar i
+      # ETT svep -> OOM på Standard 2GB. 14 d ger ~624 messages per
+      # mailbox -> under RAM-cap. Delta-sync (var 5 min) fyller på senaste
+      # mail efter bootstrap, så äldre historik läses on-demand vid behov.
+      - key: ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS
+        value: "14"
+      - key: ARCANA_BOOTSTRAP_PREFERRED_MAILBOX
+        value: contact@hairtpclinic.com
+      - key: ARCANA_BOOTSTRAP_TENANT_ID
+        value: hair-tp-clinic
+      - key: ARCANA_BOOTSTRAP_DELAY_MS
+        value: "5000"
+      # Byggfas: OWNER-login utan MFA. Sätt till true igen före go-live.
+      - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
+        value: "false"
+      # Byggfas: hoppa owner_mfa_enforced i readiness guard
+      - key: ARCANA_PREFLIGHT_READINESS_CHECKS
+        value: cors_strict
+      # MFA reset: sätt till true manuellt i Render UI vid kontrollerad heal, sedan tillbaka false
+      - key: ARCANA_BOOTSTRAP_RESET_OWNER_MFA
+        value: "false"
+      # CMO marketing connectors (Fas O) — enable in Render UI after secrets set
+      - key: ARCANA_MARKETING_CONNECTORS_ENABLED
+        value: "true"
+      - key: ARCANA_MARKETING_CONNECTORS_MODE
+        value: "fixture"
+      - key: ARCANA_MARKETING_CONNECTORS_LIVE_FETCH
+        value: "false"
+      - key: ARCANA_MARKETING_GOOGLE_ADS_ENABLED
+        value: "true"
+      - key: ARCANA_MARKETING_META_ENABLED
+        value: "true"
+      - key: ARCANA_MARKETING_LINKEDIN_ENABLED
+        value: "true"
+      - key: ARCANA_MARKETING_GOOGLE_ADS_CUSTOMER_ID
+        sync: false
+      - key: ARCANA_MARKETING_GOOGLE_ADS_DEVELOPER_TOKEN
+        sync: false
+      - key: ARCANA_MARKETING_GOOGLE_ADS_ACCESS_TOKEN
+        sync: false
+      - key: ARCANA_MARKETING_META_AD_ACCOUNT_ID
+        sync: false
+      - key: ARCANA_MARKETING_META_ACCESS_TOKEN
+        sync: false
+      - key: ARCANA_MARKETING_LINKEDIN_AD_ACCOUNT_ID
+        sync: false
+      - key: ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN
+        sync: false

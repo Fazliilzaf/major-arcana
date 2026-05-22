@@ -1,0 +1,507 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1542" height="2318" viewBox="0 0 1542 2318">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1f2024" />
+      <stop offset="100%" stop-color="#17181c" />
+    </linearGradient>
+  </defs>
+  <rect width="1542" height="2318" fill="url(#bgGrad)" />
+  <text x="24" y="52" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="44" font-weight="700">Major Arcana – Färgpalett (Design Tokens)</text>
+  
+      <g transform="translate(24,104)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#2a2a2a" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--bg</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">#2A2A2A</text>
+      </g>
+    
+
+      <g transform="translate(402,104)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(40, 44, 50, 0.86)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--panel</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(40, 44, 50, 0.86)</text>
+      </g>
+    
+
+      <g transform="translate(780,104)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(23, 26, 31, 0.78)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--panel-soft</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(23, 26, 31, 0.78)</text>
+      </g>
+    
+
+      <g transform="translate(1158,104)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(30, 34, 40, 0.74)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--panel-soft-2</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(30, 34, 40, 0.74)</text>
+      </g>
+    
+
+      <g transform="translate(24,242)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#f7f3ef" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--text</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">#f7f3ef</text>
+      </g>
+    
+
+      <g transform="translate(402,242)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(233, 223, 213, 0.9)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--muted</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(233, 223, 213, 0.9)</text>
+      </g>
+    
+
+      <g transform="translate(780,242)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(223, 205, 188, 0.24)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--line</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(223, 205, 188, 0.24)</text>
+      </g>
+    
+
+      <g transform="translate(1158,242)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#deb590" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--accent</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">#deb590</text>
+      </g>
+    
+
+      <g transform="translate(24,380)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#ecccb0" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--accent-2</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">#ecccb0</text>
+      </g>
+    
+
+      <g transform="translate(402,380)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#1a1411" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--accent-text</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">#1A1411</text>
+      </g>
+    
+
+      <g transform="translate(780,380)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#50c878" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--ok</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">#50c878</text>
+      </g>
+    
+
+      <g transform="translate(1158,380)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#f2b84b" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--warn</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">#f2b84b</text>
+      </g>
+    
+
+      <g transform="translate(24,518)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#e46b6b" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--bad</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">#e46b6b</text>
+      </g>
+    
+
+      <g transform="translate(402,518)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(48, 48, 48, 0.28)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-bg</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(48, 48, 48, 0.28)</text>
+      </g>
+    
+
+      <g transform="translate(780,518)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(48, 48, 48, 0.42)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-bg-strong</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(48, 48, 48, 0.42)</text>
+      </g>
+    
+
+      <g transform="translate(1158,518)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(235, 220, 207, 0.14)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-border</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(235, 220, 207, 0.14)</text>
+      </g>
+    
+
+      <g transform="translate(24,656)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(253, 246, 244, 0.10)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-highlight</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(253, 246, 244, 0.10)</text>
+      </g>
+    
+
+      <g transform="translate(402,656)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-edge</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">var(--glass-border)</text>
+      </g>
+    
+
+      <g transform="translate(780,656)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(52, 56, 64, 0.84)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-layer-a</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(52, 56, 64, 0.84)</text>
+      </g>
+    
+
+      <g transform="translate(1158,656)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(33, 36, 42, 0.7)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-layer-b</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(33, 36, 42, 0.7)</text>
+      </g>
+    
+
+      <g transform="translate(24,794)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(59, 63, 72, 0.84)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-row-a</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(59, 63, 72, 0.84)</text>
+      </g>
+    
+
+      <g transform="translate(402,794)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(36, 39, 45, 0.68)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-row-b</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(36, 39, 45, 0.68)</text>
+      </g>
+    
+
+      <g transform="translate(780,794)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(77, 82, 92, 0.9)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-row-hover-a</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(77, 82, 92, 0.9)</text>
+      </g>
+    
+
+      <g transform="translate(1158,794)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(43, 46, 53, 0.76)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-row-hover-b</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(43, 46, 53, 0.76)</text>
+      </g>
+    
+
+      <g transform="translate(24,932)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.52)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glass-shadow</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 26px 50px rgba(0, 0, 0, 0.52), 0 10px 16px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.2)</text>
+      </g>
+    
+
+      <g transform="translate(402,932)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.35)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--shadow-soft</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 10px 26px rgba(0, 0, 0, 0.35)</text>
+      </g>
+    
+
+      <g transform="translate(780,932)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.48)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--shadow-elev</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 18px 42px rgba(0, 0, 0, 0.48)</text>
+      </g>
+    
+
+      <g transform="translate(1158,932)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(253, 246, 244, 0.06)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--shadow-inset</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">inset 0 1px 0 rgba(253, 246, 244, 0.06)</text>
+      </g>
+    
+
+      <g transform="translate(24,1070)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(194, 170, 156, 0.22)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--glow-accent</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 0 0 1px rgba(194, 170, 156, 0.22), 0 0 22px rgba(235, 220, 207, 0.18)</text>
+      </g>
+    
+
+      <g transform="translate(402,1070)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--t-fast</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">120ms</text>
+      </g>
+    
+
+      <g transform="translate(780,1070)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--t-med</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">180ms</text>
+      </g>
+    
+
+      <g transform="translate(1158,1070)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--ease</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">cubic-bezier(.2,.8,.2,1)</text>
+      </g>
+    
+
+      <g transform="translate(24,1208)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--motion-fast</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">var(--t-fast) var(--ease)</text>
+      </g>
+    
+
+      <g transform="translate(402,1208)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--motion-smooth</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">var(--t-med) var(--ease)</text>
+      </g>
+    
+
+      <g transform="translate(780,1208)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--r-sm</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">10px</text>
+      </g>
+    
+
+      <g transform="translate(1158,1208)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--r-md</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">14px</text>
+      </g>
+    
+
+      <g transform="translate(24,1346)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--r-lg</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">18px</text>
+      </g>
+    
+
+      <g transform="translate(402,1346)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(35, 35, 35, 0.70)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-bg</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(35, 35, 35, 0.70)</text>
+      </g>
+    
+
+      <g transform="translate(780,1346)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(52, 56, 64, 0.28)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-row-a</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(52, 56, 64, 0.28)</text>
+      </g>
+    
+
+      <g transform="translate(1158,1346)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(33, 36, 42, 0.20)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-row-b</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(33, 36, 42, 0.20)</text>
+      </g>
+    
+
+      <g transform="translate(24,1484)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(77, 82, 92, 0.36)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-row-hover</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(77, 82, 92, 0.36)</text>
+      </g>
+    
+
+      <g transform="translate(402,1484)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(235, 220, 207, 0.10)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-border</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(235, 220, 207, 0.10)</text>
+      </g>
+    
+
+      <g transform="translate(780,1484)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(235, 220, 207, 0.08)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-divider</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(235, 220, 207, 0.08)</text>
+      </g>
+    
+
+      <g transform="translate(1158,1484)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(31, 31, 31, 0.86)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-header-bg</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(31, 31, 31, 0.86)</text>
+      </g>
+    
+
+      <g transform="translate(24,1622)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(253, 246, 244, 0.95)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-header-text</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(253, 246, 244, 0.95)</text>
+      </g>
+    
+
+      <g transform="translate(402,1622)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(253, 246, 244, 0.92)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-cell-text</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(253, 246, 244, 0.92)</text>
+      </g>
+    
+
+      <g transform="translate(780,1622)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(232, 221, 213, 0.82)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--table-cell-muted</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(232, 221, 213, 0.82)</text>
+      </g>
+    
+
+      <g transform="translate(1158,1622)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(48, 48, 48, 0.40)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--badge-bg</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(48, 48, 48, 0.40)</text>
+      </g>
+    
+
+      <g transform="translate(24,1760)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(235, 220, 207, 0.14)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--badge-border</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(235, 220, 207, 0.14)</text>
+      </g>
+    
+
+      <g transform="translate(402,1760)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(236, 204, 176, 0.42)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--active-glow</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(236, 204, 176, 0.42)</text>
+      </g>
+    
+
+      <g transform="translate(780,1760)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(94, 110, 136, 0.09)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--section-tint-default</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(94, 110, 136, 0.09)</text>
+      </g>
+    
+
+      <g transform="translate(1158,1760)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="#111" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--shadow-3d</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">var(--glass-shadow)</text>
+      </g>
+    
+
+      <g transform="translate(24,1898)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.5)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--depth-panel-shadow</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 26px 52px rgba(0, 0, 0, 0.5), 0 10px 20px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.14)</text>
+      </g>
+    
+
+      <g transform="translate(402,1898)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.56)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--depth-panel-shadow-hover</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 32px 62px rgba(0, 0, 0, 0.56), 0 12px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.16)</text>
+      </g>
+    
+
+      <g transform="translate(780,1898)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.34)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--depth-row-shadow</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 16px 30px rgba(0, 0, 0, 0.34), 0 6px 12px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.14)</text>
+      </g>
+    
+
+      <g transform="translate(1158,1898)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.42)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--depth-row-shadow-hover</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 24px 38px rgba(0, 0, 0, 0.42), 0 8px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.18)</text>
+      </g>
+    
+
+      <g transform="translate(24,2036)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.4)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--ma-shadow-far</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 56px 110px rgba(0, 0, 0, 0.4)</text>
+      </g>
+    
+
+      <g transform="translate(402,2036)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.34)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--ma-shadow-mid</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 30px 62px rgba(0, 0, 0, 0.34)</text>
+      </g>
+    
+
+      <g transform="translate(780,2036)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.28)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--ma-shadow-close</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 14px 28px rgba(0, 0, 0, 0.28)</text>
+      </g>
+    
+
+      <g transform="translate(1158,2036)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(235, 220, 207, 0.08)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--ma-halo</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 0 120px rgba(235, 220, 207, 0.08)</text>
+      </g>
+    
+
+      <g transform="translate(24,2174)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(235, 220, 207, 0)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--ma-edge</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">0 0 0 1px rgba(235, 220, 207, 0)</text>
+      </g>
+    
+
+      <g transform="translate(402,2174)">
+        <rect x="0" y="0" width="360" height="120" rx="16" fill="rgba(32,34,38,0.96)" stroke="rgba(255,255,255,0.12)" />
+        <rect x="16" y="16" width="84" height="84" rx="12" fill="rgba(0, 0, 0, 0.44)" stroke="rgba(255,255,255,0.38)" />
+        <text x="116" y="44" fill="#f7f3ef" font-family="Jost, Inter, Arial" font-size="30" font-weight="600">--ma-bottom-vignette</text>
+        <text x="116" y="82" fill="rgba(233,223,213,0.95)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">rgba(0, 0, 0, 0.44)</text>
+      </g>
+    
+</svg>

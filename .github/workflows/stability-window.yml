@@ -1,0 +1,67 @@
+name: arcana-stability-window
+
+on:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stability-window:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BASE_URL: ${{ secrets.ARCANA_PUBLIC_BASE_URL }}
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+      ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+      ARCANA_STABILITY_WINDOW_DAYS: 14
+      ARCANA_STABILITY_WINDOW_RUN_REQUIRED_SUITE: true
+      ARCANA_STABILITY_WINDOW_REQUIRE_COMPLETE: false
+      ARCANA_STABILITY_WINDOW_FAIL_ON_WINDOW: false
+      ARCANA_STABILITY_WINDOW_FAIL_ON_RELEASE_BLOCKERS: false
+      ARCANA_STABILITY_WINDOW_OUT_FILE: ./data/reports/stability-window-latest.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for name in BASE_URL ARCANA_OWNER_EMAIL ARCANA_OWNER_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required secret/env: $name"
+              missing=1
+            fi
+          done
+          if [[ -z "${ARCANA_OWNER_MFA_SECRET:-}" && -z "${ARCANA_OWNER_MFA_RECOVERY_CODE:-}" ]]; then
+            echo "::error::Missing MFA secret/recovery code (set ARCANA_OWNER_MFA_SECRET or ARCANA_OWNER_MFA_RECOVERY_CODE)."
+            missing=1
+          fi
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Run stability-window report
+        run: npm run report:stability-window
+
+      - name: Upload stability-window report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stability-window-${{ github.run_id }}
+          path: ./data/reports/stability-window-latest.json
+          if-no-files-found: warn
+          retention-days: 30

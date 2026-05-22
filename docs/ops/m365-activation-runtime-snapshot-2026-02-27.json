@@ -1,0 +1,121 @@
+{
+  "generatedAt": "2026-02-27T01:00:22.962Z",
+  "targets": [
+    {
+      "service": "staging",
+      "serviceId": "srv-d6gd8i94tr6s73dbb2ug",
+      "baseUrl": "https://arcana-staging.onrender.com",
+      "graphEnv": {
+        "ARCANA_GRAPH_READ_ENABLED": "set",
+        "ARCANA_GRAPH_TENANT_ID": "missing",
+        "ARCANA_GRAPH_CLIENT_ID": "missing",
+        "ARCANA_GRAPH_CLIENT_SECRET": "missing",
+        "ARCANA_GRAPH_USER_ID": "missing"
+      },
+      "auth": {
+        "ok": true,
+        "flow": "mfa",
+        "stage": null,
+        "usedSetupSecret": true,
+        "membershipTenantId": "hair-tp-clinic",
+        "membershipRole": "OWNER",
+        "error": null
+      },
+      "meta": {
+        "status": 200,
+        "capabilityNames": [
+          "GenerateTaskPlan",
+          "SummarizeIncidents",
+          "AnalyzeInbox"
+        ],
+        "agentRoles": [
+          "COO",
+          "CAO",
+          "CCO"
+        ]
+      },
+      "ccoRun": {
+        "status": 200,
+        "decision": "allow",
+        "error": null,
+        "mailboxCount": 0,
+        "messageCount": 0,
+        "mailboxIds": [],
+        "subjects": []
+      },
+      "audit": {
+        "status": 200,
+        "mailboxReadStart": 0,
+        "mailboxReadComplete": 0,
+        "mailboxReadError": 0,
+        "sample": []
+      },
+      "analysis": {
+        "status": 200,
+        "entryCount": 3,
+        "capability": "CCO.InboxAnalysis",
+        "latestDecision": "allow",
+        "persistTarget": "analysis",
+        "hasBody": false,
+        "hasAttachments": false
+      }
+    },
+    {
+      "service": "production",
+      "serviceId": "srv-d6b11o0boq4c73chm7f0",
+      "baseUrl": "https://arcana-3pji.onrender.com",
+      "graphEnv": {
+        "ARCANA_GRAPH_READ_ENABLED": "missing",
+        "ARCANA_GRAPH_TENANT_ID": "missing",
+        "ARCANA_GRAPH_CLIENT_ID": "missing",
+        "ARCANA_GRAPH_CLIENT_SECRET": "missing",
+        "ARCANA_GRAPH_USER_ID": "missing"
+      },
+      "auth": {
+        "ok": true,
+        "flow": "mfa",
+        "stage": null,
+        "usedSetupSecret": false,
+        "membershipTenantId": "hair-tp-clinic",
+        "membershipRole": "OWNER",
+        "error": null
+      },
+      "meta": {
+        "status": 200,
+        "capabilityNames": [
+          "GenerateTaskPlan",
+          "SummarizeIncidents"
+        ],
+        "agentRoles": [
+          "COO",
+          "CAO"
+        ]
+      },
+      "ccoRun": {
+        "status": 404,
+        "decision": null,
+        "error": "Agent saknas: CCO.",
+        "mailboxCount": 0,
+        "messageCount": 0,
+        "mailboxIds": [],
+        "subjects": []
+      },
+      "audit": {
+        "status": 200,
+        "mailboxReadStart": 0,
+        "mailboxReadComplete": 0,
+        "mailboxReadError": 0,
+        "sample": []
+      },
+      "analysis": {
+        "status": 200,
+        "entryCount": 0,
+        "capability": "CCO.DailyBrief",
+        "latestDecision": null,
+        "persistTarget": null,
+        "hasBody": false,
+        "hasAttachments": false
+      }
+    }
+  ]
+}

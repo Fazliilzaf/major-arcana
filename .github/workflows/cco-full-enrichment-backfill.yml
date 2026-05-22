@@ -1,0 +1,46 @@
+name: cco-full-enrichment-backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      wait_minutes:
+        description: "Max wait time for backfill completion"
+        required: false
+        default: "90"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      BASE_URL: https://arcana.hairtpclinic.se
+      ARCANA_DEFAULT_TENANT: hair-tp-clinic
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+      ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Run full CCO enrichment backfill
+        run: |
+          chmod +x scripts/extract-owner-token.sh
+          export ARCANA_AUTH_TOKEN="$(bash scripts/extract-owner-token.sh)"
+          node scripts/run-cco-full-enrichment-backfill.js \
+            --trigger \
+            --wait \
+            --wait-minutes="${{ inputs.wait_minutes }}"

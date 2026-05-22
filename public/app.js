@@ -1,0 +1,760 @@
+const STORAGE_KEY = 'arcana.conversationId';
+
+const els = {
+  messages: document.getElementById('messages'),
+  input: document.getElementById('messageInput'),
+  send: document.getElementById('sendBtn'),
+  newChat: document.getElementById('newChatBtn'),
+  book: document.getElementById('bookBtn'),
+  brandMark: document.getElementById('brandMark'),
+  bookingBrandMark: document.getElementById('bookingBrandMark'),
+  bookingModal: document.getElementById('bookingModal'),
+  bookingBackdrop: document.getElementById('bookingBackdrop'),
+  bookingClose: document.getElementById('bookingCloseBtn'),
+  clientoMount: document.getElementById('clientoMount'),
+};
+
+let conversationId = localStorage.getItem(STORAGE_KEY) || '';
+let isSending = false;
+let publicConfig = null;
+
+function getSourceUrl() {
+  try {
+    const url = new URL(window.location.href);
+    const fromQuery = url.searchParams.get('sourceUrl');
+    if (fromQuery && String(fromQuery).trim()) return String(fromQuery).trim();
+  } catch {
+    // ignore
+  }
+  return document.referrer || window.location.href;
+}
+
+const publicConfigPromise = loadPublicConfig();
+const clientoState = { loading: false, loaded: false };
+const BRAND_LOGO_PATH = '/assets/hair-tp-clinic/hairtpclinic-mark-light.svg';
+
+function brandLabel() {
+  const brand = publicConfig?.brand;
+  if (brand === 'curatiio') return 'Curatiio';
+  if (brand === 'hair-tp-clinic') return 'Hair TP Clinic';
+  return brand || 'kliniken';
+}
+
+function applyBrandUi() {
+  const brand = publicConfig?.brand;
+  const subtitle = document.getElementById('brandSubtitle');
+  if (subtitle) subtitle.textContent = `${brandLabel()} · chat & bokning`;
+  document.title = `Arcana · ${brandLabel()}`;
+
+  if (els.brandMark) {
+    if (brand === 'hair-tp-clinic') {
+      els.brandMark.src = BRAND_LOGO_PATH;
+      els.brandMark.classList.remove('hidden');
+    } else {
+      els.brandMark.classList.add('hidden');
+    }
+  }
+
+  if (els.bookingBrandMark) {
+    if (brand === 'hair-tp-clinic') {
+      els.bookingBrandMark.src = BRAND_LOGO_PATH;
+      els.bookingBrandMark.classList.remove('hidden');
+    } else {
+      els.bookingBrandMark.classList.add('hidden');
+    }
+  }
+}
+
+function applyBrandTheme() {
+  const brand = publicConfig?.brand;
+  if (!document.body) return;
+
+  if (brand === 'hair-tp-clinic') {
+    document.body.style.setProperty('--arcana-primary', '#cabaae');
+    document.body.style.setProperty('--arcana-primary-hover', '#d7c9be');
+    document.body.style.setProperty('--arcana-primary-text', '#303030');
+    document.body.style.setProperty('--arcana-primary-rgb', '202, 186, 174');
+    document.body.style.setProperty('--cb-color-primary', '#cabaae');
+
+    document.body.style.setProperty('--arcana-bg', '#303030');
+    document.body.style.setProperty('--arcana-surface', 'rgba(48, 48, 48, 0.72)');
+    document.body.style.setProperty('--arcana-surface-solid', 'rgba(38, 38, 38, 0.76)');
+    document.body.style.setProperty('--arcana-text', '#f6f1ee');
+    document.body.style.setProperty('--arcana-text-muted', 'rgba(246, 241, 238, 0.72)');
+    document.body.style.setProperty('--arcana-border', 'rgba(246, 241, 238, 0.14)');
+    document.body.style.setProperty('--arcana-glow', 'rgba(202, 186, 174, 0.22)');
+    document.body.style.setProperty('--arcana-glass-edge', 'rgba(246, 241, 238, 0.2)');
+    document.body.style.setProperty('--arcana-glass-highlight', 'rgba(255, 255, 255, 0.16)');
+    document.body.style.setProperty('--arcana-glass-layer-a', 'rgba(255, 255, 255, 0.12)');
+    document.body.style.setProperty('--arcana-glass-layer-b', 'rgba(255, 255, 255, 0.03)');
+    document.body.style.setProperty('--arcana-shadow-3d', '0 18px 36px rgba(0, 0, 0, 0.42), 0 6px 12px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14)');
+  } else if (brand === 'curatiio') {
+    document.body.style.setProperty('--arcana-primary', '#4e6f68');
+    document.body.style.setProperty('--arcana-primary-hover', '#5a837b');
+    document.body.style.setProperty('--arcana-primary-text', '#ffffff');
+    document.body.style.setProperty('--arcana-primary-rgb', '78, 111, 104');
+    document.body.style.setProperty('--cb-color-primary', '#4e6f68');
+
+    document.body.style.setProperty('--arcana-bg', '#060f10');
+    document.body.style.setProperty('--arcana-surface', 'rgba(6, 15, 16, 0.72)');
+    document.body.style.setProperty('--arcana-surface-solid', 'rgba(8, 24, 22, 0.72)');
+    document.body.style.setProperty('--arcana-text', '#f2f7f6');
+    document.body.style.setProperty('--arcana-text-muted', 'rgba(242, 247, 246, 0.72)');
+    document.body.style.setProperty('--arcana-border', 'rgba(242, 247, 246, 0.14)');
+    document.body.style.setProperty('--arcana-glow', 'rgba(78, 111, 104, 0.24)');
+    document.body.style.setProperty('--arcana-glass-edge', 'rgba(242, 247, 246, 0.2)');
+    document.body.style.setProperty('--arcana-glass-highlight', 'rgba(255, 255, 255, 0.16)');
+    document.body.style.setProperty('--arcana-glass-layer-a', 'rgba(242, 247, 246, 0.11)');
+    document.body.style.setProperty('--arcana-glass-layer-b', 'rgba(242, 247, 246, 0.03)');
+    document.body.style.setProperty('--arcana-shadow-3d', '0 18px 36px rgba(0, 0, 0, 0.48), 0 6px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.13)');
+  } else {
+    document.body.style.removeProperty('--arcana-primary');
+    document.body.style.removeProperty('--arcana-primary-hover');
+    document.body.style.removeProperty('--arcana-primary-text');
+    document.body.style.removeProperty('--arcana-primary-rgb');
+    document.body.style.removeProperty('--cb-color-primary');
+
+    document.body.style.removeProperty('--arcana-bg');
+    document.body.style.removeProperty('--arcana-surface');
+    document.body.style.removeProperty('--arcana-surface-solid');
+    document.body.style.removeProperty('--arcana-text');
+    document.body.style.removeProperty('--arcana-text-muted');
+    document.body.style.removeProperty('--arcana-border');
+    document.body.style.removeProperty('--arcana-glow');
+    document.body.style.removeProperty('--arcana-glass-edge');
+    document.body.style.removeProperty('--arcana-glass-highlight');
+    document.body.style.removeProperty('--arcana-glass-layer-a');
+    document.body.style.removeProperty('--arcana-glass-layer-b');
+    document.body.style.removeProperty('--arcana-shadow-3d');
+  }
+}
+
+function applyBrandSuggestions() {
+  const brand = publicConfig?.brand;
+
+  const suggestions =
+    brand === 'hair-tp-clinic'
+      ? {
+          prices: 'Vad kostar en hårtransplantation?',
+          process: 'Hur går en hårtransplantation till?',
+          aftercare: 'Vad ska jag tänka på efter en hårtransplantation?',
+        }
+      : brand === 'curatiio'
+        ? {
+            prices: 'Vad kostar en konsultation eller behandling?',
+            process: 'Hur går en konsultation eller behandling till?',
+            aftercare: 'Vad ska jag tänka på efter en behandling?',
+          }
+        : {
+            prices: 'Vad kostar en konsultation?',
+            process: 'Hur går en konsultation till?',
+            aftercare: 'Vad ska jag tänka på efter en behandling?',
+          };
+
+  document.querySelectorAll('[data-chip="prices"]').forEach((el) => {
+    el.dataset.suggest = suggestions.prices;
+  });
+  document.querySelectorAll('[data-chip="process"]').forEach((el) => {
+    el.dataset.suggest = suggestions.process;
+  });
+  document.querySelectorAll('[data-chip="aftercare"]').forEach((el) => {
+    el.dataset.suggest = suggestions.aftercare;
+  });
+}
+
+function scrollToBottom() {
+  window.requestAnimationFrame(() => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  });
+}
+
+function bubbleBase(role, { fullWidth = false } = {}) {
+  const wrapper = document.createElement('div');
+  wrapper.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+
+  const widthClass = fullWidth ? 'w-full max-w-full' : 'max-w-[85%]';
+  const bubble = document.createElement('div');
+  bubble.className =
+    role === 'user'
+      ? `bubble-user ${widthClass} rounded-2xl px-4 py-3 text-sm shadow-sm`
+      : `bubble-assistant ${widthClass} rounded-2xl px-4 py-3 text-sm shadow-sm`;
+
+  const content = document.createElement('div');
+  content.className = 'whitespace-pre-wrap leading-relaxed';
+
+  if (fullWidth && role !== 'user') {
+    bubble.style.maxHeight = 'none';
+    bubble.style.overflow = 'visible';
+    content.style.maxHeight = 'none';
+    content.style.overflow = 'visible';
+  }
+
+  bubble.appendChild(content);
+
+  wrapper.appendChild(bubble);
+  return { wrapper, content };
+}
+
+function addMessage(role, text, { scroll = true, fullWidth = false } = {}) {
+  const { wrapper, content } = bubbleBase(role, { fullWidth });
+  content.textContent = String(text ?? '');
+  els.messages.appendChild(wrapper);
+  if (scroll) scrollToBottom();
+  return wrapper;
+}
+
+function setSending(next) {
+  isSending = next;
+  els.send.disabled = isSending;
+  els.input.disabled = isSending;
+}
+
+async function loadPublicConfig() {
+  try {
+    const sourceUrl = getSourceUrl();
+    const res = await fetch(`/config?sourceUrl=${encodeURIComponent(sourceUrl)}`);
+    const data = await res.json();
+    if (!res.ok) return null;
+    publicConfig = data;
+    applyBrandUi();
+    applyBrandTheme();
+    applyBrandSuggestions();
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+async function sendMessage(text) {
+  const message = String(text ?? '').trim();
+  if (!message) return;
+  if (isSending) return;
+
+  addMessage('user', message);
+  els.input.value = '';
+  setSending(true);
+
+  const typingEl = addMessage('assistant', 'Skriver…');
+
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        conversationId: conversationId || undefined,
+        sourceUrl: getSourceUrl(),
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.error || 'Okänt fel');
+    }
+
+    if (typeof data.conversationId === 'string' && data.conversationId) {
+      conversationId = data.conversationId;
+      localStorage.setItem(STORAGE_KEY, conversationId);
+    }
+
+    typingEl.remove();
+    addMessage('assistant', data.reply || '—');
+  } catch (err) {
+    typingEl.remove();
+    addMessage('assistant', `Det blev ett fel: ${err.message}`);
+  } finally {
+    setSending(false);
+    els.input.focus();
+  }
+}
+
+function startNewChat() {
+  const oldId = conversationId;
+  conversationId = '';
+  localStorage.removeItem(STORAGE_KEY);
+  els.messages.innerHTML = '';
+  seedWelcome();
+  els.input.focus();
+
+  if (oldId) {
+    const sourceUrl = getSourceUrl();
+    fetch(
+      `/conversation/${encodeURIComponent(oldId)}?sourceUrl=${encodeURIComponent(sourceUrl)}`,
+      { method: 'DELETE' }
+    ).catch(() => {});
+  }
+}
+
+function seedWelcome() {
+  addMessage(
+    'assistant',
+    [
+      `Hej! Jag är Arcana, ${brandLabel()}s digitala assistent.`,
+      '',
+      'Jag kan hjälpa dig med:',
+      '- Behandlingar, eftervård och praktiska frågor',
+      '- Boka konsultation (klicka på “Boka tid”)',
+      '',
+      'Vad vill du ha hjälp med idag?',
+    ].join('\n'),
+    { fullWidth: true }
+  );
+}
+
+els.send.addEventListener('click', () => sendMessage(els.input.value));
+els.newChat.addEventListener('click', startNewChat);
+els.book.addEventListener('click', () => openBookingModal());
+
+document.addEventListener('click', (e) => {
+  const chip = e.target?.closest?.('.chip');
+  if (!chip) return;
+
+  const action = chip.dataset.action;
+  if (action === 'open-booking') {
+    openBookingModal();
+    return;
+  }
+
+  const suggest = chip.dataset.suggest;
+  if (suggest) sendMessage(suggest);
+});
+
+els.input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage(els.input.value);
+  }
+});
+
+function openModal() {
+  if (!els.bookingModal) return;
+  els.bookingModal.classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+}
+
+function closeModal() {
+  if (!els.bookingModal) return;
+  els.bookingModal.classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+}
+
+function showBookingStatus(html) {
+  if (!els.clientoMount) return;
+  els.clientoMount.innerHTML = html;
+}
+
+function installClientoOverridesStyle() {
+  const styleId = 'arcana-cliento-overrides';
+  let style = document.getElementById(styleId);
+  if (!style) {
+    style = document.createElement('style');
+    style.id = styleId;
+    document.head.appendChild(style);
+  }
+
+  style.textContent = `
+    #cliento-booking {
+      font-family: inherit !important;
+      color: #0f172a !important;
+      accent-color: var(--arcana-primary) !important;
+      --cb-color-primary: var(--arcana-primary);
+      --cb-color-primary-hover: var(--arcana-primary-hover);
+      --cb-color-primary-text: var(--arcana-primary-text);
+      --arcana-cliento-card-border: rgba(31, 41, 55, 0.11);
+      --arcana-cliento-card-a: rgba(255, 255, 255, 0.94);
+      --arcana-cliento-card-b: rgba(247, 244, 241, 0.74);
+      --arcana-cliento-card-shadow: 0 14px 26px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    #cliento-booking,
+    #cliento-booking * {
+      box-sizing: border-box;
+    }
+
+    #cliento-booking [data-arcana-hidden="true"] {
+      display: none !important;
+    }
+
+    #cliento-booking :is(a, button, input, select, textarea, label, p, h1, h2, h3, h4, h5, h6, span, div) {
+      font-family: inherit !important;
+    }
+
+    #cliento-booking :is(p, span, div, small, strong, b, h1, h2, h3, h4, h5, h6, label) {
+      color: #1f2937 !important;
+    }
+
+    #cliento-booking :is(.cb-card, .cb-location, .cb-location-item, .cb-accordion-item, .cb-group, .cb-day, .cb-slot, li[class*="cb-"]) {
+      border: 1px solid var(--arcana-cliento-card-border) !important;
+      border-radius: 16px !important;
+      background: linear-gradient(160deg, var(--arcana-cliento-card-a), var(--arcana-cliento-card-b)) !important;
+      box-shadow: var(--arcana-cliento-card-shadow) !important;
+      backdrop-filter: blur(8px) saturate(122%) !important;
+      -webkit-backdrop-filter: blur(8px) saturate(122%) !important;
+    }
+
+    #cliento-booking :is(.cb-card, .cb-location, .cb-location-item, .cb-accordion-item, .cb-group, .cb-day, .cb-slot, li[class*="cb-"]):hover {
+      border-color: rgba(var(--arcana-primary-rgb), 0.34) !important;
+      box-shadow: 0 18px 30px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    }
+
+    #cliento-booking a {
+      color: var(--arcana-primary) !important;
+    }
+
+    #cliento-booking :is(button, a[role="button"], .cb-button, .arcana-cliento-action) {
+      transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+    }
+
+    #cliento-booking .cb-nav-item.active {
+      border: 1px solid rgba(var(--arcana-primary-rgb), 0.46) !important;
+      border-radius: 9999px !important;
+      background: linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.3), rgba(var(--arcana-primary-rgb), 0.16)) !important;
+      color: var(--arcana-primary) !important;
+      box-shadow: 0 12px 20px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+      backdrop-filter: blur(7px) saturate(122%) !important;
+      -webkit-backdrop-filter: blur(7px) saturate(122%) !important;
+    }
+
+    #cliento-booking .cb-day-header.today,
+    #cliento-booking .cb-summary-table .cb-details,
+    #cliento-booking .cb-slot strong,
+    #cliento-booking .cb-slot:link strong,
+    #cliento-booking .cb-slot:visited strong {
+      color: var(--arcana-primary) !important;
+    }
+
+    #cliento-booking .cb-checkbox.checked {
+      background: rgba(var(--arcana-primary-rgb), 0.84) !important;
+      border-color: rgba(var(--arcana-primary-rgb), 0.9) !important;
+    }
+
+    #cliento-booking .cb-button,
+    #cliento-booking button[type="button"].cb-button,
+    #cliento-booking button[type="submit"].cb-button,
+    #cliento-booking a.cb-button,
+    #cliento-booking .arcana-cliento-action {
+      border: 1px solid rgba(var(--arcana-primary-rgb), 0.54) !important;
+      background: linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.28), rgba(var(--arcana-primary-rgb), 0.13)) !important;
+      color: var(--arcana-primary) !important;
+      border-radius: 9999px !important;
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+      backdrop-filter: blur(8px) saturate(128%) !important;
+      -webkit-backdrop-filter: blur(8px) saturate(128%) !important;
+    }
+
+    #cliento-booking .cb-button:hover,
+    #cliento-booking button[type="button"].cb-button:hover,
+    #cliento-booking button[type="submit"].cb-button:hover,
+    #cliento-booking a.cb-button:hover,
+    #cliento-booking .arcana-cliento-action:hover {
+      transform: translateY(-1px) !important;
+      border-color: rgba(var(--arcana-primary-rgb), 0.68) !important;
+      background: linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.36), rgba(var(--arcana-primary-rgb), 0.18)) !important;
+      box-shadow: 0 14px 24px rgba(15, 23, 42, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+    }
+
+    #cliento-booking :is(button, a):disabled,
+    #cliento-booking :is(.cb-button:disabled) {
+      background: linear-gradient(160deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.12)) !important;
+      border-color: rgba(148, 163, 184, 0.35) !important;
+      color: #64748b !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    #cliento-booking :is(button, a):focus-visible {
+      outline: 2px solid var(--arcana-primary) !important;
+      outline-offset: 2px !important;
+    }
+  `;
+}
+
+let clientoObserver = null;
+
+function normalizeUiText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isClientoActionLabel(label) {
+  const normalized = normalizeUiText(label);
+  if (!normalized) return false;
+  if (normalized === 'välj' || normalized === 'välj tid') return true;
+  if (normalized === 'boka' || normalized === 'boka tid') return true;
+  if (normalized === 'fortsätt' || normalized === 'bekräfta') return true;
+  if (normalized.startsWith('välj ')) return true;
+  if (normalized.startsWith('fortsätt')) return true;
+  return false;
+}
+
+function forceBrandActionStyle(el) {
+  if (!el) return;
+  el.classList.add('arcana-cliento-action');
+  el.style.setProperty('background', 'linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.28), rgba(var(--arcana-primary-rgb), 0.13))', 'important');
+  el.style.setProperty('border', '1px solid rgba(var(--arcana-primary-rgb), 0.54)', 'important');
+  el.style.setProperty('color', 'var(--arcana-primary)', 'important');
+  el.style.setProperty('border-radius', '9999px', 'important');
+  el.style.setProperty('font-weight', '600', 'important');
+  el.style.setProperty('box-shadow', '0 10px 18px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)', 'important');
+  el.style.setProperty('backdrop-filter', 'blur(8px) saturate(128%)', 'important');
+  el.style.setProperty('-webkit-backdrop-filter', 'blur(8px) saturate(128%)', 'important');
+}
+
+function findClientoSectionRoot(el, root) {
+  if (!el || !root) return null;
+  const preferred = el.closest(
+    '.cb-location, .cb-location-item, .cb-accordion-item, .cb-accordion, .cb-group, .cb-card'
+  );
+  if (preferred && root.contains(preferred)) return preferred;
+
+  let node = el;
+  for (let i = 0; i < 12 && node && node !== root; i++) {
+    if (node.classList && Array.from(node.classList).some((c) => String(c).startsWith('cb-'))) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return el.closest('div, section, li') || el;
+}
+
+function hideDuplicateClientoCloseControls(root) {
+  if (!root) return;
+  const rootRect = root.getBoundingClientRect();
+  if (!rootRect.width || !rootRect.height) return;
+
+  const closeGlyphs = Array.from(root.querySelectorAll('button, a, span, div')).filter((el) => {
+    const text = String(el.textContent || '').trim();
+    if (!text) return false;
+    const normalized = normalizeUiText(text);
+    if (normalized !== '×' && normalized !== 'x' && normalized !== '✕' && normalized !== 'stäng') {
+      return false;
+    }
+    if (el.children && el.children.length > 0 && normalized !== 'stäng') return false;
+    return true;
+  });
+
+  for (const el of closeGlyphs) {
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) continue;
+    if (rect.width > 90 || rect.height > 90) continue;
+
+    const nearTop = rect.top - rootRect.top < 88;
+    const nearRight = rootRect.right - rect.right < 160;
+    if (!nearTop || !nearRight) continue;
+
+    el.dataset.arcanaHidden = 'true';
+    el.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function decorateClientoWidgetDom() {
+  const root = document.getElementById('cliento-booking');
+  if (!root) return;
+
+  // Style action buttons like "Välj" consistently.
+  for (const el of root.querySelectorAll('button, a')) {
+    const label = String(el.textContent || '').trim();
+    if (!label) continue;
+    if (isClientoActionLabel(label)) {
+      forceBrandActionStyle(el);
+      continue;
+    }
+
+    const normalized = normalizeUiText(label);
+    if (normalized === 'visa mer' || normalized.startsWith('visa mer ')) {
+      el.style.setProperty('color', 'var(--arcana-primary)', 'important');
+      el.style.setProperty('font-weight', '500', 'important');
+    }
+  }
+
+  hideDuplicateClientoCloseControls(root);
+
+  // Hide other company to avoid confusing customers.
+  const brand = publicConfig?.brand;
+  const blocked =
+    brand === 'hair-tp-clinic'
+      ? ['curatiio']
+      : brand === 'curatiio'
+        ? ['hair tp clinic', 'hair-tp clinic', 'hairtpclinic']
+        : [];
+
+  if (blocked.length === 0) return;
+
+  const candidates = Array.from(root.querySelectorAll('button, a, h1, h2, h3, h4, div, span'));
+  for (const el of candidates) {
+    const text = String(el.textContent || '').trim();
+    if (!text) continue;
+    if (text.length > 48) continue;
+    if (text.includes('\n')) continue;
+
+    const normalized = normalizeUiText(text).replace(/[^a-z0-9]+/g, ' ').trim();
+    const hit = blocked.find((name) => {
+      const expected = name.replace(/[^a-z0-9]+/g, ' ').trim();
+      if (!expected) return false;
+      if (normalized === expected) return true;
+      if (normalized.startsWith(`${expected} `)) return true;
+      if (normalized.endsWith(` ${expected}`)) return true;
+      if (normalized.includes(` ${expected} `)) return true;
+      return false;
+    });
+    if (!hit) continue;
+    const sectionRoot = findClientoSectionRoot(el, root);
+    if (!sectionRoot) continue;
+    sectionRoot.dataset.arcanaHidden = 'true';
+    sectionRoot.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function scheduleClientoDecorationPasses() {
+  decorateClientoWidgetDom();
+  window.setTimeout(decorateClientoWidgetDom, 120);
+  window.setTimeout(decorateClientoWidgetDom, 420);
+  window.setTimeout(decorateClientoWidgetDom, 1000);
+  window.setTimeout(decorateClientoWidgetDom, 2200);
+}
+
+function ensureClientoObserver() {
+  const root = document.getElementById('cliento-booking');
+  if (!root) return;
+  if (clientoObserver) return;
+
+  clientoObserver = new MutationObserver(() => {
+    decorateClientoWidgetDom();
+  });
+
+  clientoObserver.observe(root, { subtree: true, childList: true, characterData: true });
+}
+
+function ensureClientoLoaded() {
+  if (clientoState.loaded || clientoState.loading) return;
+
+  const cliento = publicConfig?.cliento || {};
+  const accountIds = Array.isArray(cliento.accountIds) ? cliento.accountIds : [];
+  const bookingUrl = typeof cliento.bookingUrl === 'string' ? cliento.bookingUrl : '';
+  const widgetSrc = typeof cliento.widgetSrc === 'string' && cliento.widgetSrc
+    ? cliento.widgetSrc
+    : 'https://cliento.com/widget-v2/cliento.js';
+  const serviceFilters = Array.isArray(cliento.serviceFilters)
+    ? cliento.serviceFilters.map((value) => String(value || '').trim()).filter(Boolean)
+    : [];
+  const locale = typeof cliento.locale === 'string' ? cliento.locale : 'sv';
+  const mergeLocations = Boolean(cliento.mergeLocations);
+
+  if (accountIds.length === 0) {
+    if (bookingUrl) {
+      showBookingStatus(
+        [
+          '<div class="p-3 text-xs text-slate-600">',
+          'Bokningen öppnas från Cliento.',
+          ` <a class="link-brand underline" target="_blank" rel="noreferrer" href="${bookingUrl}">Öppna i ny flik</a>`,
+          '</div>',
+          `<iframe class="h-[75vh] w-full" src="${bookingUrl}" title="Boka tid"></iframe>`,
+        ].join('')
+      );
+      return;
+    }
+
+    showBookingStatus(
+      '<div class="p-4 text-sm text-slate-700">Saknar Cliento-konfiguration. Sätt <code>CLIENTO_ACCOUNT_IDS</code> (eller <code>CLIENTO_BOOKING_URL</code>) i serverns <code>.env</code>.</div>'
+    );
+    return;
+  }
+
+  clientoState.loading = true;
+  installClientoOverridesStyle();
+  showBookingStatus('<div class="p-4 text-sm text-slate-700">Laddar bokning…</div>');
+
+  if (!document.getElementById('cliento-booking')) {
+    const bookingDiv = document.createElement('div');
+    bookingDiv.id = 'cliento-booking';
+    els.clientoMount.innerHTML = '';
+    els.clientoMount.appendChild(bookingDiv);
+  }
+
+  if (!window.cbk) {
+    window.cbk = function () {
+      window.cbk.p.push(arguments);
+    };
+    window.cbk.p = [];
+  }
+
+  const ids = accountIds.length === 1 ? accountIds[0] : accountIds;
+  window.cbk('id', ids);
+  if (serviceFilters.length > 0) {
+    window.cbk('serviceFilter', serviceFilters);
+  }
+  window.cbk('locale', locale);
+  window.cbk('mergeLocations', mergeLocations);
+  window.cbk('onCompleted', () => {
+    closeModal();
+    addMessage('assistant', 'Toppen! Om du vill kan jag även svara på frågor om förberedelser och eftervård.');
+  });
+
+  const scriptId = 'cliento-widget-script';
+  if (document.getElementById(scriptId)) return;
+
+  const s = document.createElement('script');
+  s.id = scriptId;
+  s.async = true;
+  s.src = widgetSrc;
+  s.onload = () => {
+    clientoState.loaded = true;
+    clientoState.loading = false;
+    installClientoOverridesStyle();
+    scheduleClientoDecorationPasses();
+    ensureClientoObserver();
+  };
+  s.onerror = () => {
+    clientoState.loaded = false;
+    clientoState.loading = false;
+    showBookingStatus(
+      '<div class="p-4 text-sm text-slate-700">Kunde inte ladda bokningswidgeten. Prova igen eller boka via hemsidan.</div>'
+    );
+  };
+  document.head.appendChild(s);
+}
+
+async function openBookingModal() {
+  openModal();
+  await publicConfigPromise;
+  ensureClientoLoaded();
+  scheduleClientoDecorationPasses();
+}
+
+els.bookingClose?.addEventListener('click', closeModal);
+els.bookingBackdrop?.addEventListener('click', closeModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+async function loadExistingConversation() {
+  if (!conversationId) return false;
+  try {
+    const sourceUrl = getSourceUrl();
+    const res = await fetch(
+      `/conversation/${encodeURIComponent(conversationId)}?sourceUrl=${encodeURIComponent(sourceUrl)}`
+    );
+    const data = await res.json();
+    if (!res.ok) return false;
+
+    els.messages.innerHTML = '';
+    const msgs = Array.isArray(data.messages) ? data.messages : [];
+    for (const m of msgs) {
+      if (m?.role !== 'user' && m?.role !== 'assistant') continue;
+      addMessage(m.role, m.content, { scroll: false });
+    }
+    if (msgs.length === 0) seedWelcome();
+    scrollToBottom();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+(async () => {
+  await publicConfigPromise;
+  const loaded = await loadExistingConversation();
+  if (!loaded) seedWelcome();
+})();

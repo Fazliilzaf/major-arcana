@@ -1,0 +1,204 @@
+body.pdf-export .site-header,
+body.pdf-export .section-nav,
+body.pdf-export .guide-panel,
+body.pdf-export .pdf-panel,
+body.pdf-export .site-footer,
+body.pdf-export .hero-actions {
+  display: none !important;
+}
+
+body.pdf-export .hero-panel,
+body.pdf-export .summary-grid,
+body.pdf-export .content-layout {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+body.pdf-export .hero-panel {
+  grid-template-columns: minmax(0, 1fr) 18.25rem;
+  grid-template-areas:
+    "ribbons contact"
+    "heading contact"
+    "copy contact";
+  gap: 0.8rem 1rem;
+  padding: 0 0 1rem;
+}
+
+body.pdf-export .hero-heading-block,
+body.pdf-export .hero-copy {
+  max-width: none;
+}
+
+body.pdf-export .hero-ribbons {
+  margin-bottom: 0.55rem;
+}
+
+body.pdf-export .contact-panel {
+  width: 100%;
+  max-width: 18.25rem;
+  padding: 0.9rem 0.95rem;
+}
+
+body.pdf-export .summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+body.pdf-export .summary-card {
+  gap: 0.8rem;
+  padding: 0.9rem 0.95rem 0.95rem;
+}
+
+body.pdf-export .summary-badge {
+  margin-bottom: 0.45rem;
+}
+
+body.pdf-export .content-layout,
+body.pdf-export .content-stack {
+  gap: 0;
+}
+
+body.pdf-export .spec-section {
+  padding: 1.25rem 0 1rem;
+}
+
+body.pdf-export .section-head {
+  margin-bottom: 0.95rem;
+}
+
+body.pdf-export .section-story {
+  padding: 1rem;
+}
+
+body.pdf-export .mini-grid,
+body.pdf-export .timeline-grid,
+body.pdf-export .callout-grid,
+body.pdf-export .support-column,
+body.pdf-export .compare-simple-grid {
+  gap: 0.75rem;
+}
+
+body.pdf-export .support-column {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.pdf-export .compare-table th,
+body.pdf-export .compare-table td {
+  padding: 0.58rem 0.78rem 0.58rem 0;
+}
+
+body.pdf-export .hero-panel,
+body.pdf-export .summary-card,
+body.pdf-export .contact-panel,
+body.pdf-export .mini-card,
+body.pdf-export .timeline-card,
+body.pdf-export .alert-card,
+body.pdf-export .compare-card,
+body.pdf-export .support-card,
+body.pdf-export .compare-simple-card,
+body.pdf-export .section-story,
+body.pdf-export .timeline-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+body.pdf-export-mobile .site-header,
+body.pdf-export-mobile .section-nav,
+body.pdf-export-mobile .pdf-panel,
+body.pdf-export-mobile .site-footer,
+body.pdf-export-mobile .hero-actions {
+  display: none !important;
+}
+
+body.pdf-export-mobile .hero-panel,
+body.pdf-export-mobile .summary-grid,
+body.pdf-export-mobile .guide-panel,
+body.pdf-export-mobile .content-layout {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+body.pdf-export-mobile .hero-panel {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "ribbons"
+    "heading"
+    "copy"
+    "contact";
+  gap: 0.8rem;
+  padding: 0 0 1rem;
+}
+
+body.pdf-export-mobile .hero-heading-block,
+body.pdf-export-mobile .hero-copy,
+body.pdf-export-mobile .contact-panel {
+  max-width: none;
+}
+
+body.pdf-export-mobile .contact-panel {
+  width: 100%;
+}
+
+body.pdf-export-mobile .guide-panel {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+body.pdf-export-mobile .guide-grid,
+body.pdf-export-mobile .summary-grid,
+body.pdf-export-mobile .mini-grid,
+body.pdf-export-mobile .timeline-grid,
+body.pdf-export-mobile .callout-grid,
+body.pdf-export-mobile .support-column,
+body.pdf-export-mobile .compare-simple-grid,
+body.pdf-export-mobile .site-footer {
+  grid-template-columns: 1fr;
+}
+
+body.pdf-export-mobile .summary-grid {
+  gap: 0.8rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+body.pdf-export-mobile .guide-card,
+body.pdf-export-mobile .summary-card,
+body.pdf-export-mobile .mini-card,
+body.pdf-export-mobile .timeline-card,
+body.pdf-export-mobile .alert-card,
+body.pdf-export-mobile .compare-card,
+body.pdf-export-mobile .support-card,
+body.pdf-export-mobile .compare-simple-card {
+  padding: 0.95rem;
+}
+
+body.pdf-export-mobile .spec-section {
+  padding: 1.2rem 0 1rem;
+}
+
+body.pdf-export-mobile .section-story {
+  padding: 0.95rem;
+}
+
+body.pdf-export-mobile .hero-panel,
+body.pdf-export-mobile .guide-card,
+body.pdf-export-mobile .summary-card,
+body.pdf-export-mobile .contact-panel,
+body.pdf-export-mobile .mini-card,
+body.pdf-export-mobile .timeline-card,
+body.pdf-export-mobile .alert-card,
+body.pdf-export-mobile .compare-card,
+body.pdf-export-mobile .support-card,
+body.pdf-export-mobile .compare-simple-card,
+body.pdf-export-mobile .section-story,
+body.pdf-export-mobile .timeline-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}

@@ -1,0 +1,3351 @@
+/* ============================================================
+   warm-row.css  v8 — Apple Mail / Linear / Arc-stil
+   Layout per kort: top (Oklart + meta) + mid (avatar | content | actions)
+
+   Tokens kommer från design-tokens.css (single source of truth).
+   All CSS wrappad i @layer components för att vinna över @layer legacy
+   (styles.css) utan-krig.
+   ============================================================ */
+
+@layer components {
+  /* Listans bakgrund — transparent så bara korten syns mot yttre container */
+  .queue-history-list,
+  .runtime-shell .queue-history-list,
+  [data-queue-list-mode] {
+    background-color: transparent;
+    background-image: none;
+  }
+
+  /* ============================================================
+   KORTET — warm-row v8
+   2 zoner: top + mid
+   ============================================================ */
+  .thread-card.unified-queue-card.warm-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas: "top" "mid";
+    gap: 4px;
+    padding: 12px 16px 12px 18px;
+    background-color: var(--warm-card);
+    border: 1px solid var(--warm-border);
+    border-radius: 14px;
+    /* Tydligare elevation (option 2): kort lyfter visuellt från bg */
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 1px 2px rgba(120, 80, 40, 0.05),
+      0 2px 8px rgba(120, 80, 40, 0.08);
+    position: relative;
+    overflow: visible;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      transform 140ms ease;
+  }
+  .queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even) {
+    background-color: var(--warm-card-alt);
+  }
+  .thread-card.unified-queue-card.warm-row:hover {
+    background-color: var(--warm-hover);
+    border-color: var(--warm-border-2);
+    /* Hover: starkare elevation, kortet "lyfter" */
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 2px 4px rgba(120, 80, 40, 0.08),
+      0 6px 16px rgba(120, 80, 40, 0.12);
+    transform: translateY(-1px);
+  }
+  .queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even):hover {
+    background-color: var(--warm-hover);
+  }
+  .thread-card.unified-queue-card.warm-row[aria-current="true"],
+  .thread-card.unified-queue-card.warm-row.thread-card-selected {
+    background-color: var(--warm-selected);
+    border-color: #e8c9a6;
+  }
+
+  /* Stäng av peach-gradient ::before/::after från styles.css */
+  .thread-card.unified-queue-card.warm-row::before,
+  .thread-card.unified-queue-card.warm-row::after,
+  .thread-card.unified-queue-card.warm-row.thread-card-selected::before,
+  .thread-card.unified-queue-card.warm-row.thread-card-selected::after,
+  .thread-card.unified-queue-card.warm-row:hover::before,
+  .thread-card.unified-queue-card.warm-row:hover::after {
+    content: none;
+    display: none;
+    background: none;
+    background-image: none;
+    box-shadow: none;
+    opacity: 0;
+  }
+  .thread-card.unified-queue-card.warm-row {
+    --thread-card-wash: transparent;
+    --mail-card-highlight: none;
+    --mail-card-lower-glow: none;
+    --mail-card-highlight-selected: none;
+    --mail-card-lower-glow-selected: none;
+  }
+  .thread-card.unified-queue-card.warm-row.thread-card-selected {
+    min-height: 0;
+    padding: 12px 16px 12px 18px;
+    gap: 4px;
+  }
+
+  /* ============================================================
+   RAIL — lila vertikal accent på vänster kant
+   ============================================================ */
+  .thread-card.unified-queue-card.warm-row .warm-rail {
+    position: absolute;
+    left: 6px;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--warm-violet);
+    opacity: 0.9;
+    pointer-events: none;
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="oklart"] .warm-rail,
+  .thread-card.unified-queue-card.warm-row[data-lane="unclear"] .warm-rail {
+    background: var(--warm-violet);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="act-now"] .warm-rail,
+  .thread-card.unified-queue-card.warm-row[data-lane="urgent"] .warm-rail {
+    background: var(--warm-red);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="granska"] .warm-rail,
+  .thread-card.unified-queue-card.warm-row[data-lane="review"] .warm-rail {
+    background: var(--warm-indigo);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="senare"] .warm-rail,
+  .thread-card.unified-queue-card.warm-row[data-lane="later"] .warm-rail {
+    background: var(--warm-orange);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="bokning"] .warm-rail,
+  .thread-card.unified-queue-card.warm-row[data-lane="bookable"] .warm-rail,
+  .thread-card.unified-queue-card.warm-row[data-lane="booking"] .warm-rail {
+    background: var(--warm-green);
+  }
+
+  /* ============================================================
+   TOP — Oklart vänster + meta höger
+   ============================================================ */
+  .thread-card.unified-queue-card.warm-row .warm-top {
+    grid-area: top;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 0 0 4px;
+    min-height: 14px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-top .lane-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    background-image: none;
+    box-shadow: none;
+    border-radius: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    line-height: 1.2;
+    color: var(--warm-violet);
+    white-space: nowrap;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-top .lane-badge svg {
+    display: none;
+  }
+
+  .thread-card.unified-queue-card.warm-row[data-lane="oklart"] .lane-badge,
+  .thread-card.unified-queue-card.warm-row[data-lane="unclear"] .lane-badge {
+    color: var(--warm-violet);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="act-now"] .lane-badge,
+  .thread-card.unified-queue-card.warm-row[data-lane="urgent"] .lane-badge {
+    color: var(--warm-red);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="granska"] .lane-badge,
+  .thread-card.unified-queue-card.warm-row[data-lane="review"] .lane-badge {
+    color: var(--warm-indigo);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="senare"] .lane-badge,
+  .thread-card.unified-queue-card.warm-row[data-lane="later"] .lane-badge {
+    color: var(--warm-orange);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="bokning"] .lane-badge,
+  .thread-card.unified-queue-card.warm-row[data-lane="bookable"] .lane-badge,
+  .thread-card.unified-queue-card.warm-row[data-lane="booking"] .lane-badge {
+    color: var(--warm-green);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="pending"] .warm-rail,
+  .thread-card.unified-queue-card.warm-row[data-lane="analyserar"] .warm-rail {
+    background: #94a3b8;
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="pending"] .lane-badge,
+  .thread-card.unified-queue-card.warm-row[data-lane="analyserar"] .lane-badge {
+    color: #64748b;
+    font-style: italic;
+  }
+
+  /* Top meta: datum + Ej tilldelad */
+  .thread-card.unified-queue-card.warm-row .warm-top-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--warm-text-3);
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-top-meta .meta-date {
+    color: var(--warm-text-2);
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-top-meta .meta-sep {
+    color: var(--warm-border-2);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--warm-text-3);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status svg {
+    display: none;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status.unowned {
+    color: var(--warm-orange);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-top-meta .meta-status.unowned::before {
+    content: "";
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><line x1='12' y1='8' x2='12' y2='12.5'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>")
+      no-repeat center / contain;
+    mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><line x1='12' y1='8' x2='12' y2='12.5'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>")
+      no-repeat center / contain;
+  }
+
+  /* ============================================================
+   MID — avatar | content | actions
+   actions vertikalt centrerade med content
+   ============================================================ */
+  .thread-card.unified-queue-card.warm-row .warm-mid {
+    grid-area: mid;
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    grid-template-rows: auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 0;
+    padding: 0 0 0 4px;
+    min-width: 0;
+  }
+
+  /* ============================================================
+   AVATAR — 36px peach radial, status-prick blå
+   ============================================================ */
+  .thread-card.unified-queue-card.warm-row .warm-avatar.avatar-wrap {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    margin: 0;
+    align-self: start;
+    margin-top: 2px;
+    transform: none;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-avatar .avatar,
+  .thread-card.unified-queue-card.warm-row .warm-avatar .avatar.queue-history-avatar,
+  .queue-history-list[data-queue-list-mode="live"]
+    > .thread-card.unified-queue-card.warm-row
+    .warm-avatar
+    .avatar,
+  .queue-history-list[data-queue-list-mode="history"]
+    > .thread-card.unified-queue-card.warm-row
+    .warm-avatar
+    .avatar {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    max-width: 36px;
+    max-height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #6b4a2f;
+    background: radial-gradient(
+      circle at 35% 30%,
+      #ffffff 0%,
+      #ffefde 35%,
+      #f7ddc0 75%,
+      #e8c29a 100%
+    );
+    background-image: radial-gradient(
+      circle at 35% 30%,
+      #ffffff 0%,
+      #ffefde 35%,
+      #f7ddc0 75%,
+      #e8c29a 100%
+    );
+    border: 1px solid #ecd3b4;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset -1px -2px 4px rgba(180, 120, 60, 0.18),
+      0 1px 2px rgba(120, 80, 40, 0.1);
+    letter-spacing: 0.2px;
+    margin: 0;
+    padding: 0;
+    transform: none;
+    transition: none;
+  }
+  .thread-card.unified-queue-card.warm-row:hover .avatar,
+  .thread-card.unified-queue-card.warm-row:hover .warm-avatar .avatar {
+    transform: none;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 2px solid var(--warm-card);
+    background: var(--warm-indigo);
+    box-shadow: 0 0 0 0.5px rgba(120, 80, 40, 0.1);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.warn {
+    background: var(--warm-orange);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.alert {
+    background: var(--warm-red);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot.done {
+    background: var(--warm-green);
+  }
+
+  /* ============================================================
+   CONTENT — sender · subject + filer / preview / why
+   ============================================================ */
+  .thread-card.unified-queue-card.warm-row .warm-content {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow: hidden;
+  }
+
+  /* Rad 1: Sender · Subject + filikoner */
+  .thread-card.unified-queue-card.warm-row .warm-line-1 {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    white-space: nowrap;
+    line-height: 1.25;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-sender {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--warm-text);
+    letter-spacing: -0.005em;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-line-1 .warm-sep {
+    color: var(--warm-border-2);
+    font-weight: 400;
+    flex: 0 0 auto;
+    font-size: 13px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-subject.signal-what {
+    font-size: 14.5px;
+    font-weight: 400;
+    color: var(--warm-text-4);
+    letter-spacing: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Filikoner inline */
+  .thread-card.unified-queue-card.warm-row .warm-file-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    margin-left: 4px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-file-icon {
+    width: 13px;
+    height: 13px;
+    color: var(--warm-text-5);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+
+  /* Rad 2: Body preview, 2-rader clamp */
+  .thread-card.unified-queue-card.warm-row .warm-preview {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--warm-text-3);
+    letter-spacing: 0;
+    line-height: 1.4;
+    margin: 1px 0 0 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Rad 3: Why — färgad ikon + text */
+  .thread-card.unified-queue-card.warm-row .warm-why {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 3px 0 0 0;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.2;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 13px;
+    height: 13px;
+    flex: 0 0 auto;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why .warm-why-icon svg {
+    width: 13px;
+    height: 13px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why .why-reason {
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="alert"] {
+    color: var(--warm-orange);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="refresh"] {
+    color: var(--warm-indigo);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="info"] {
+    color: var(--warm-red);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"] {
+    color: var(--warm-green);
+  }
+
+  /* ============================================================
+   ACTIONS — vertikalt centrerade höger
+   ============================================================ */
+  .thread-card.unified-queue-card.warm-row .warm-actions.action-cluster {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+    flex: 0 0 auto;
+    align-self: end;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+    width: 26px;
+    height: 26px;
+    padding: 5px;
+    border-radius: 50%;
+    background: rgba(255, 252, 248, 0.85);
+    border: 1px solid var(--warm-border);
+    color: var(--warm-text-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+      background 140ms ease,
+      border-color 140ms ease,
+      transform 140ms ease,
+      box-shadow 140ms ease;
+    box-shadow: 0 1px 1px rgba(120, 80, 40, 0.04);
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon:hover {
+    background: var(--warm-bg-warmer);
+    border-color: var(--warm-border-2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(120, 80, 40, 0.1);
+  }
+
+  /* Action-icon färgkodning */
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="history"] {
+    color: var(--warm-violet);
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="later"] {
+    color: var(--warm-orange);
+  }
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="schedule"] {
+    color: var(--warm-green);
+  }
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="handled"] {
+    color: var(--warm-green);
+  }
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="delete"] {
+    color: var(--warm-red);
+  }
+
+  /* Primary action — Öppna pill */
+  .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    height: 26px;
+    border-radius: 999px;
+    border: 1px solid var(--warm-border-2);
+    background: linear-gradient(180deg, #fffcf7 0%, #f4e9dc 100%);
+    color: #6b563a;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    white-space: nowrap;
+    margin-left: 4px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 1px 2px rgba(120, 80, 40, 0.06);
+    transition:
+      background 140ms ease,
+      transform 140ms ease,
+      box-shadow 140ms ease;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .primary-action svg {
+    width: 11px;
+    height: 11px;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .primary-action:hover {
+    background: linear-gradient(180deg, #fffefb 0%, #ebddc9 100%);
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      0 2px 8px rgba(120, 80, 40, 0.12);
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="oklart"] .primary-action,
+  .thread-card.unified-queue-card.warm-row[data-lane="unclear"] .primary-action {
+    background: linear-gradient(180deg, #fffcf7 0%, #efe3fa 100%);
+    color: #5b2ead;
+    border-color: #ddd0f0;
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="act-now"] .primary-action {
+    background: linear-gradient(180deg, #fffcf7 0%, #fce2de 100%);
+    color: #b23b3b;
+    border-color: #f2c9c2;
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="granska"] .primary-action,
+  .thread-card.unified-queue-card.warm-row[data-lane="review"] .primary-action {
+    background: linear-gradient(180deg, #fffcf7 0%, #dedefb 100%);
+    color: #4040b0;
+    border-color: #c7c7f0;
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="senare"] .primary-action,
+  .thread-card.unified-queue-card.warm-row[data-lane="later"] .primary-action {
+    background: linear-gradient(180deg, #fffcf7 0%, #fce5cc 100%);
+    color: #b85a1f;
+    border-color: #f2d2b0;
+  }
+  .thread-card.unified-queue-card.warm-row[data-lane="bokning"] .primary-action,
+  .thread-card.unified-queue-card.warm-row[data-lane="bookable"] .primary-action,
+  .thread-card.unified-queue-card.warm-row[data-lane="booking"] .primary-action {
+    background: linear-gradient(180deg, #fffcf7 0%, #d6f0dc 100%);
+    color: #1f7a3a;
+    border-color: #b8dfc0;
+  }
+
+  /* ============================================================
+   Stäng AV gammalt: orphan-element från tidigare versioner
+   ============================================================ */
+  .warm-row .priority-bar,
+  .warm-row .card-strip,
+  .warm-row .card-body,
+  .warm-row .card-footer,
+  .warm-row .mailbox-stack,
+  .warm-row .signal-why:not(.warm-why),
+  .warm-row .warm-bottom,
+  .warm-row .warm-name,
+  .warm-row > .warm-mid > .warm-content > .warm-name {
+    display: none;
+  }
+
+  .warm-row * {
+    text-shadow: none;
+  }
+
+  /* ============================================================
+   Workspace-resizers (drag-handles mellan inkorg / focus / panel)
+   Tona ner: dölj synlig stripe + skugga, behåll col-resize-cursor.
+   Vid hover: subtil mjuk linje som hint.
+   ============================================================ */
+  .workspace-resizer,
+  .workspace-resizer-left,
+  .workspace-resizer-right {
+    background: transparent;
+    background-image: none;
+    box-shadow: none;
+    border: none;
+    cursor: col-resize;
+  }
+  .workspace-resizer::before,
+  .workspace-resizer::after,
+  .workspace-resizer-left::before,
+  .workspace-resizer-left::after,
+  .workspace-resizer-right::before,
+  .workspace-resizer-right::after {
+    content: none;
+    display: none;
+    background: none;
+    background-image: none;
+    box-shadow: none;
+    opacity: 0;
+  }
+  .workspace-resizer:hover::before,
+  .workspace-resizer-left:hover::before,
+  .workspace-resizer-right:hover::before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: 30%;
+    bottom: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    border-radius: 999px;
+    background: rgba(120, 80, 40, 0.18);
+    opacity: 1;
+    pointer-events: none;
+  }
+
+  /* ============================================================
+   Auto-stäng dropdowns vid sidladdning
+   Respektera hidden / aria-hidden attribut, så menyn inte syns
+   om inte trigger explicit har aria-expanded="true".
+   ============================================================ */
+  .preview-more-menu[hidden],
+  .preview-more-menu[aria-hidden="true"] {
+    display: none;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .preview-more-menu:not([aria-hidden="false"]):not(.is-open) {
+    display: none;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Mailbox-meny: visa endast när toggle :checked */
+  .mailbox-menu-toggle:not(:checked) ~ .mailbox-menu,
+  .mailbox-dropdown:not(:has(.mailbox-menu-toggle:checked)) .mailbox-menu {
+    display: none;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Mailbox-menyn: byt från position:fixed (som kräver app.js att räkna top/left)
+   till position:absolute relativt .mailbox-dropdown — anchoras automatiskt
+   under triggern. Fungerar oavsett timing eller app.js-state. */
+  .mailbox-dropdown {
+    position: relative;
+    z-index: 20;
+  }
+  .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger,
+  .queue-lane-quickstrip > .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger {
+    position: relative;
+    z-index: 1;
+  }
+  /* Only show/interact with the menu when the toggle is checked.
+     Do NOT target `.mailbox-dropdown > .mailbox-menu` unconditionally — that
+     overrode the closed-state rules and left an invisible layer blocking clicks. */
+  .mailbox-menu-toggle:checked ~ .mailbox-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    bottom: auto;
+    left: 0;
+    right: auto;
+    width: min(360px, calc(100vw - 32px));
+    max-height: min(520px, calc(100vh - 80px));
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1200;
+  }
+  /* Owner-dropdown: höger-anchorerad (fakturarow) */
+  .owner-dropdown.mailbox-dropdown > .mailbox-menu {
+    left: auto;
+    right: 0;
+    width: min(220px, calc(100vw - 32px));
+  }
+
+  /* Responsivt — på smala skärmar dölj några actions */
+  @media (max-width: 720px) {
+    .thread-card.unified-queue-card.warm-row {
+      padding: 10px 12px 12px 16px;
+    }
+    .thread-card.unified-queue-card.warm-row .warm-mid {
+      grid-template-columns: 32px 1fr auto;
+      column-gap: 10px;
+    }
+    .thread-card.unified-queue-card.warm-row .warm-avatar.avatar-wrap,
+    .thread-card.unified-queue-card.warm-row .warm-avatar .avatar.queue-history-avatar {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      max-width: 32px;
+      max-height: 32px;
+    }
+    .thread-card.unified-queue-card.warm-row .warm-sender,
+    .thread-card.unified-queue-card.warm-row .warm-subject.signal-what {
+      font-size: 13.5px;
+    }
+    .thread-card.unified-queue-card.warm-row .warm-preview {
+      font-size: 12.5px;
+      -webkit-line-clamp: 1;
+    }
+    .thread-card.unified-queue-card.warm-row
+      .action-cluster
+      .action-icon[data-quick-action="history"],
+    .thread-card.unified-queue-card.warm-row
+      .action-cluster
+      .action-icon[data-quick-action="schedule"] {
+      display: none;
+    }
+  }
+
+  /* ============================================================
+   Responsiv layout (migrerad från P1-D shim 2026-05-07)
+   .preview-workspace + .focus-layout grid-fixes och mejl-content overflow.
+   Inga importance-flaggor behövs — @layer components vinner över @layer legacy.
+   ============================================================ */
+
+  /* CORE FIX — .cco-followup-row och .focus-shell var båda i grid-cell row 1
+   col 2, så filter-raden lade sig OVANPÅ Fokusyta-rubriken vid reload.
+   Lös genom att ge dem egna rader. */
+  .preview-workspace {
+    grid-template-rows: auto 1fr;
+  }
+  .cco-followup-row {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  .focus-shell {
+    grid-row: 2;
+    grid-column: 2;
+  }
+  .preview-shell {
+    grid-row: 1 / span 2;
+    grid-column: 1;
+  }
+
+  /* CORE FIX — höger panel-tabgrupp overlappade pga flex-shrink (primary 182px,
+   content 291px). Tvinga primary till content-höjd och tillåt scroll i panelen. */
+  .focus-intel-primary {
+    flex: 0 0 auto;
+    height: auto;
+  }
+  .focus-intel-primary-body {
+    flex: 0 0 auto;
+  }
+  .focus-intel-switcher {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .focus-intel {
+    overflow-y: auto;
+  }
+
+  /* Fokusyta: mejltråden fyller tillgänglig höjd och scrollar internt */
+  .focus-conversation-layout .focus-conversation {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Email-content: tillåt scroll horisontalt om mejl-tabell är bredare */
+  .conversation-mail-body,
+  .conversation-mail {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .conversation-mail-body table {
+    max-width: 100%;
+  }
+  /* Marketing/HTML-tabeller: tillåt radbrytning i smala kolumner utan vertikal bokstavsrad */
+  .conversation-mail-body td,
+  .conversation-mail-body th {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  /* Vid smalare viewports — låt operativt stöd falla under mailet i stället för att försvinna. */
+  @media (max-width: 1100px) {
+    .preview-workspace {
+      height: auto;
+      max-height: none;
+      overflow: visible;
+    }
+
+    .focus-layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .focus-main {
+      position: relative;
+      top: auto;
+    }
+
+    .focus-intel {
+      position: relative;
+      top: auto;
+      display: flex;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      padding: 18px 0 0;
+      overflow: visible;
+      border-top: 1px solid rgba(120, 105, 90, 0.14);
+      gap: 10px;
+    }
+  }
+
+  /* Single-workspace: behåll kundintelligensen under mailet i stället för att gömma den. */
+  @media (max-width: 820px) {
+    .focus-intel {
+      display: flex;
+      width: 100%;
+      padding: 18px 0 0;
+      border-top: 1px solid rgba(120, 105, 90, 0.14);
+    }
+  }
+
+  /* Narrow CCO: gör underliggande intelligens mer som mailmetadata än sidopanel. */
+  @media (max-width: 820px) {
+    .focus-intel-primary {
+      min-height: 0;
+      padding-bottom: 10px;
+    }
+
+    .focus-intel-primary-body {
+      min-height: 0;
+    }
+
+    .focus-intel-switcher {
+      flex: 0 0 auto;
+    }
+  }
+
+  /* Focus-shell layout-guardian — migrerad från FIX13 i runtime-demo-fixture
+     (eliminerar setInterval-pollingen + inline-styles). Tvingar focus-shell till
+     höger grid-kolumn och spannar två rader så panelen syns även när auth_required
+     skulle ha flyttat den till en ny rad. */
+  .focus-shell {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    justify-self: stretch;
+    width: 100%;
+    height: auto;
+    min-height: 600px;
+  }
+  .cco-followup-row {
+    align-self: start;
+  }
+  .preview-workspace {
+    grid-template-rows: auto;
+  }
+  /* Mail-content-area får 2/3, intel-area 1/3 (var 348px lika delar = för smalt) */
+  .focus-layout {
+    grid-template-columns: minmax(420px, 2fr) minmax(260px, 1fr);
+    gap: 14px;
+  }
+
+  /* ============================================================
+   More-menu CSS-only visibility (steg 5 state-konsolidering 2026-05-08)
+   Wrappern .preview-more bär data-open="" när menyn är öppen.
+   JS sätter bara attributet via renderMoreMenu — inga inline-styles.
+   ============================================================ */
+  .preview-more-menu {
+    /* Default hidden — overrides styles.css base som hade display:grid */
+    display: none;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .preview-more[data-open] .preview-more-menu {
+    display: grid;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ============================================================
+   Floating shells (modaler) — CSS-only synlighet via [data-open]
+   (migrerad från setFloatingShellOpen inline-styles 2026-05-08)
+   JS sätter bara data-open=""-attributet, CSS hanterar opacity/
+   visibility/pointer-events/transform. Synkrona attribut-skrivningar
+   reagerar i samma frame — ingen rAF-delay för open/close.
+   ============================================================ */
+  #mailbox-admin-shell,
+  #shell-confirm-shell,
+  #customers-merge-shell,
+  #customers-settings-shell,
+  #macro-editor-shell,
+  #settings-profile-shell,
+  #note-mode-shell,
+  #truth-worklist-shell,
+  #customers-import-shell,
+  #customers-split-shell {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.18s ease,
+      transform 0.22s ease;
+  }
+  #mailbox-admin-shell[data-open],
+  #shell-confirm-shell[data-open],
+  #customers-merge-shell[data-open],
+  #customers-settings-shell[data-open],
+  #macro-editor-shell[data-open],
+  #settings-profile-shell[data-open],
+  #note-mode-shell[data-open],
+  #truth-worklist-shell[data-open],
+  #customers-import-shell[data-open],
+  #customers-split-shell[data-open] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  /* Surface-transform: körs ned från ovan när stängd, glider in när öppen */
+  #mailbox-admin-shell .mailbox-admin-surface,
+  #shell-confirm-shell .shell-modal-surface,
+  #customers-merge-shell .customers-modal-surface,
+  #customers-settings-shell .customers-modal-surface,
+  #macro-editor-shell .shell-modal-surface,
+  #settings-profile-shell .shell-modal-surface,
+  #note-mode-shell .note-mode-surface,
+  #customers-import-shell .customers-modal-surface,
+  #customers-split-shell .customers-modal-surface {
+    transform: translateX(-50%) translateY(14px);
+    transition: transform 0.22s ease;
+  }
+  #mailbox-admin-shell[data-open] .mailbox-admin-surface,
+  #shell-confirm-shell[data-open] .shell-modal-surface,
+  #customers-merge-shell[data-open] .customers-modal-surface,
+  #customers-settings-shell[data-open] .customers-modal-surface,
+  #macro-editor-shell[data-open] .shell-modal-surface,
+  #settings-profile-shell[data-open] .shell-modal-surface,
+  #note-mode-shell[data-open] .note-mode-surface,
+  #customers-import-shell[data-open] .customers-modal-surface,
+  #customers-split-shell[data-open] .customers-modal-surface {
+    transform: translateX(-50%) translateY(0);
+  }
+  /* Truth-worklist: ingen translateX-centrering (sidpanel) */
+  #truth-worklist-shell {
+    transform: translateY(14px);
+    transition:
+      transform 0.22s ease,
+      opacity 0.18s ease;
+  }
+  #truth-worklist-shell[data-open] {
+    transform: translateY(0);
+  }
+
+  /* ============================================================
+   Secondary filter chips (migrerad från P1-B shim 2026-05-07)
+   Klickbara chips för Hög risk / Idag / Imorgon / Otilldelad / Uppföljning.
+   ============================================================ */
+  .queue-secondary-signal-chip {
+    cursor: pointer;
+    transition:
+      transform 0.1s ease,
+      opacity 0.1s ease;
+  }
+  .queue-secondary-signal-chip:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+  }
+  .queue-secondary-signal-chip.is-active-filter {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    font-weight: 600;
+  }
+
+  /* ============================================================
+   Cmd+K Spotlight-snabbsök (app/cmd-k.js, 2026-05-08)
+   ============================================================ */
+  #cmd-k-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12vh;
+  }
+  #cmd-k-overlay[data-open] {
+    display: flex;
+  }
+  #cmd-k-overlay .cmd-k-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(40, 25, 15, 0.42);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  #cmd-k-overlay .cmd-k-panel {
+    position: relative;
+    width: min(640px, 92vw);
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #fffaf2 0%, #fbf2e6 100%);
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    border-radius: 16px;
+    box-shadow:
+      0 20px 60px rgba(60, 35, 20, 0.28),
+      0 4px 12px rgba(60, 35, 20, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    overflow: hidden;
+  }
+  #cmd-k-overlay .cmd-k-input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(165, 105, 60, 0.14);
+    background: rgba(255, 252, 246, 0.6);
+  }
+  #cmd-k-overlay .cmd-k-search-icon {
+    width: 18px;
+    height: 18px;
+    color: #8a6f55;
+    flex-shrink: 0;
+  }
+  #cmd-k-overlay .cmd-k-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 16px;
+    font-weight: 400;
+    color: #2b1f15;
+    font-family: inherit;
+  }
+  #cmd-k-overlay .cmd-k-input::placeholder {
+    color: #b89e85;
+  }
+  #cmd-k-overlay .cmd-k-esc {
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: rgba(165, 105, 60, 0.1);
+    color: #8a6f55;
+    border: 1px solid rgba(165, 105, 60, 0.18);
+  }
+  #cmd-k-overlay .cmd-k-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    min-height: 60px;
+  }
+  #cmd-k-overlay .cmd-k-empty {
+    padding: 32px 18px;
+    text-align: center;
+    color: #b89e85;
+    font-size: 13px;
+  }
+  #cmd-k-overlay .cmd-k-group-label {
+    padding: 10px 18px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a78867;
+  }
+  #cmd-k-overlay .cmd-k-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 18px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+  #cmd-k-overlay .cmd-k-result:hover,
+  #cmd-k-overlay .cmd-k-result.is-active {
+    background: rgba(215, 130, 90, 0.12);
+    border-left-color: #c97a4d;
+  }
+  #cmd-k-overlay .cmd-k-icon {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #8a6f55;
+    flex-shrink: 0;
+  }
+  #cmd-k-overlay .cmd-k-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  #cmd-k-overlay .cmd-k-label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  #cmd-k-overlay .cmd-k-label strong {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #2b1f15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #cmd-k-overlay .cmd-k-sub {
+    font-size: 11.5px;
+    color: #7a6249;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #cmd-k-overlay .cmd-k-footer {
+    padding: 10px 18px;
+    font-size: 11px;
+    color: #8a6f55;
+    border-top: 1px solid rgba(165, 105, 60, 0.14);
+    background: rgba(248, 240, 230, 0.5);
+  }
+  #cmd-k-overlay .cmd-k-footer kbd {
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #6b5340;
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    margin: 0 2px;
+  }
+
+  /* ============================================================
+   Tangentbordsnav (app/keyboard-nav.js, 2026-05-08)
+   ============================================================ */
+
+  /* Highlighted thread-card (j/k navigation) — visuell distinkt från click-selected */
+  .thread-card.is-keyboard-focused {
+    box-shadow:
+      0 0 0 2px #c97a4d,
+      0 4px 14px rgba(201, 122, 77, 0.22);
+    outline: none;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Help-overlay (?-genväg) */
+  #keyboard-help-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998; /* under cmd-k-overlay (9999) */
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  #keyboard-help-overlay[data-open] {
+    display: flex;
+  }
+  #keyboard-help-overlay .kbd-help-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(40, 25, 15, 0.42);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  #keyboard-help-overlay .kbd-help-panel {
+    position: relative;
+    width: min(520px, 92vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #fffaf2 0%, #fbf2e6 100%);
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    border-radius: 16px;
+    box-shadow:
+      0 20px 60px rgba(60, 35, 20, 0.28),
+      0 4px 12px rgba(60, 35, 20, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    overflow: hidden;
+  }
+  #keyboard-help-overlay .kbd-help-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 22px;
+    border-bottom: 1px solid rgba(165, 105, 60, 0.14);
+  }
+  #keyboard-help-overlay .kbd-help-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2b1f15;
+  }
+  #keyboard-help-overlay .kbd-help-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    color: #8a6f55;
+    cursor: pointer;
+    padding: 0 6px;
+    border-radius: 6px;
+  }
+  #keyboard-help-overlay .kbd-help-close:hover {
+    background: rgba(165, 105, 60, 0.1);
+    color: #2b1f15;
+  }
+  #keyboard-help-overlay .kbd-help-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #keyboard-help-overlay .kbd-help-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 6px 0;
+    font-size: 13.5px;
+    color: #2b1f15;
+  }
+  #keyboard-help-overlay .kbd-help-label {
+    flex: 1;
+  }
+  #keyboard-help-overlay .kbd-help-keys {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  #keyboard-help-overlay kbd {
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #6b5340;
+    border: 1px solid rgba(165, 105, 60, 0.22);
+    box-shadow: inset 0 -1px 0 rgba(165, 105, 60, 0.12);
+    min-width: 18px;
+    text-align: center;
+  }
+  #keyboard-help-overlay .kbd-help-footer {
+    padding: 12px 22px;
+    font-size: 11.5px;
+    color: #8a6f55;
+    border-top: 1px solid rgba(165, 105, 60, 0.14);
+    background: rgba(248, 240, 230, 0.5);
+    text-align: center;
+  }
+
+  /* ============================================================
+   Bulk-actions (app/bulk-actions.js, 2026-05-08)
+   ============================================================ */
+
+  /* Valda thread-cards — accent border + checkmark */
+  .thread-card.is-bulk-selected {
+    box-shadow:
+      inset 4px 0 0 #c97a4d,
+      0 4px 14px rgba(201, 122, 77, 0.18);
+    background-color: rgba(255, 247, 240, 0.6);
+  }
+  .thread-card.is-bulk-selected::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 18px;
+    height: 18px;
+    background: #c97a4d;
+    border-radius: 50%;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 8 7 12 13 4'/></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 12px 12px;
+    z-index: 3;
+  }
+
+  /* Bulk-toolbar — fixed bottom, slides up när ≥1 vald */
+  #bulk-actions-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    z-index: 9997;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    margin-bottom: 24px;
+    background: linear-gradient(180deg, #fffaf2 0%, #fbf2e6 100%);
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    border-radius: 14px;
+    box-shadow:
+      0 14px 40px rgba(60, 35, 20, 0.22),
+      0 4px 12px rgba(60, 35, 20, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    transition:
+      transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+      opacity 0.18s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+  #bulk-actions-toolbar[data-open] {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #bulk-actions-toolbar .bulk-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2b1f15;
+    padding: 0 8px;
+  }
+  #bulk-actions-toolbar .bulk-divider {
+    width: 1px;
+    height: 22px;
+    background: rgba(165, 105, 60, 0.2);
+  }
+  #bulk-actions-toolbar .bulk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid rgba(165, 105, 60, 0.18);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #4b3826;
+    font-size: 12.5px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      transform 0.08s ease;
+  }
+  #bulk-actions-toolbar .bulk-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-1px);
+  }
+  #bulk-actions-toolbar .bulk-btn:active {
+    transform: translateY(0);
+  }
+  #bulk-actions-toolbar .bulk-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  #bulk-actions-toolbar .bulk-btn-danger {
+    color: #b54420;
+    border-color: rgba(181, 68, 32, 0.25);
+  }
+  #bulk-actions-toolbar .bulk-btn-danger:hover {
+    background: rgba(255, 235, 230, 0.95);
+  }
+  #bulk-actions-toolbar .bulk-btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: #8a6f55;
+  }
+  #bulk-actions-toolbar .bulk-btn-ghost:hover {
+    background: rgba(165, 105, 60, 0.1);
+    color: #2b1f15;
+  }
+
+  /* ============================================================
+   Inbox-zero-streak pill (app/inbox-streak.js, 2026-05-08)
+   ============================================================ */
+  #inbox-streak-pill.inbox-streak-pill {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    margin-left: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fff4d8 0%, #ffe6b3 100%);
+    border: 1px solid rgba(200, 130, 60, 0.32);
+    color: #8a4a18;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.55) inset,
+      0 1px 3px rgba(150, 90, 30, 0.18);
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  #inbox-streak-pill.inbox-streak-pill[data-visible] {
+    display: inline-flex;
+  }
+  #inbox-streak-pill.inbox-streak-pill:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 3px 8px rgba(150, 90, 30, 0.24);
+  }
+  #inbox-streak-pill .inbox-streak-flame {
+    font-size: 13px;
+    line-height: 1;
+  }
+  #inbox-streak-pill .inbox-streak-label {
+    white-space: nowrap;
+  }
+
+  /* ============================================================
+   Inline-draft-editor (app/inline-draft-edit.js, 2026-05-08)
+   ============================================================ */
+  .warm-preview {
+    cursor: text;
+    border-radius: 4px;
+    transition: background 0.12s ease;
+  }
+  .warm-preview:hover {
+    background: rgba(255, 247, 240, 0.6);
+  }
+  .inline-draft-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 6px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fffaf2 0%, #fbf2e6 100%);
+    border: 1px solid rgba(165, 105, 60, 0.22);
+    box-shadow: 0 4px 12px rgba(60, 35, 20, 0.08);
+  }
+  .inline-draft-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .inline-draft-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #a44a1f;
+  }
+  .inline-draft-hint {
+    font-size: 10.5px;
+    color: #8a6f55;
+  }
+  .inline-draft-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(165, 105, 60, 0.2);
+    background: rgba(255, 255, 255, 0.85);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #2b1f15;
+    resize: vertical;
+    outline: none;
+  }
+  .inline-draft-textarea:focus {
+    border-color: rgba(201, 122, 77, 0.5);
+    box-shadow: 0 0 0 2px rgba(201, 122, 77, 0.18);
+  }
+  .inline-draft-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .inline-draft-btn {
+    padding: 6px 12px;
+    border: 1px solid rgba(165, 105, 60, 0.2);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #4b3826;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      transform 0.08s ease;
+  }
+  .inline-draft-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-1px);
+  }
+  .inline-draft-btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: #8a6f55;
+  }
+  .inline-draft-btn-ghost:hover {
+    background: rgba(165, 105, 60, 0.1);
+    color: #2b1f15;
+  }
+  .inline-draft-btn-primary {
+    background: linear-gradient(180deg, #d68a5f 0%, #c97a4d 100%);
+    border-color: #b56a3d;
+    color: #fff;
+  }
+  .inline-draft-btn-primary:hover {
+    background: linear-gradient(180deg, #de9268 0%, #d2825a 100%);
+  }
+
+  /* ============================================================
+     Vellum Triage polish — matcha canvas-mockup (2026-05-11)
+     ------------------------------------------------------------
+     Action-ikon-färger + storlek matchar mockupens spec exakt:
+     lila alarm, amber timer, moss kalender/check, crimson trash.
+     ============================================================ */
+  /* Kompakta thread-cards för smal inbox-kolumn (~456px):
+     mindre font, tighter gap, mindre actions så allt får plats. */
+  .thread-card.unified-queue-card.warm-row {
+    padding: 12px 14px 12px 16px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-sender {
+    font-size: 13.5px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-subject {
+    font-size: 13px;
+    color: var(--warm-text-2);
+    font-weight: 450;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-preview {
+    font-size: 12px;
+    line-height: 1.42;
+    -webkit-line-clamp: 2;
+    color: var(--warm-text-3);
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why,
+  .thread-card.unified-queue-card.warm-row .why-reason {
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster {
+    gap: 4px;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
+    width: 11px;
+    height: 11px;
+  }
+  /* Avatar något mindre för att frigöra horisontell yta */
+  .thread-card.unified-queue-card.warm-row .warm-avatar .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12.5px;
+  }
+  /* Top-meta tightare */
+  .thread-card.unified-queue-card.warm-row .warm-top-meta {
+    font-size: 11px;
+    gap: 5px;
+  }
+  /* Primary-action pill kompakt */
+  .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
+    padding: 5px 10px;
+    height: 24px;
+    font-size: 11.5px;
+  }
+
+  /* warm-mid grid: tvinga content att ta all extra horisontell yta
+     så subject inte trunkeras onödigt. Actions blir auto-bredd. */
+  .thread-card.unified-queue-card.warm-row .warm-mid {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 12px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-content {
+    min-width: 0;
+  }
+
+  /* ============================================================
+     KOLUMN-OMFÖRDELNING (2026-05-17, Fas 13):
+     ------------------------------------------------------------
+     Vision: konversationen (mitten) är hjälten. Inbox krymps,
+     mitten vidgas, höger förblir kompakt helper. Designen är
+     100% bevarad — bara storlekarna ändras.
+
+     Inbox  : 760 → 440 px  (–42%)
+     Mitten : 564 → 760 px  (+35%, via --workspace-main-width)
+     Höger  : 360 → 280 px  (–22%, via --workspace-right-width)
+     ============================================================ */
+  .preview-canvas {
+    --workspace-main-width: 760px;
+    --workspace-right-width: 280px;
+  }
+  .preview-canvas .preview-workspace {
+    grid-template-columns: 440px minmax(0, 1fr);
+  }
+
+  /* ============================================================
+     SPEC-IMPLEMENTATION: thread-card enligt KOMPAKT-spec (2026-05-11)
+     ------------------------------------------------------------
+     Höjd 88-96px (var 128) · padding 12/16 · avatar 32 · actions 32
+     · öppna-pill 32 · sender 15/600 · subject 14/600 · preview 13/18
+     · meta 12 · Inter-typografi
+     ============================================================ */
+  .preview-shell .thread-card.unified-queue-card.warm-row {
+    /* min-height 96 = behåll spec-höjd som default.
+       max-height borttagen 2026-05-12: tidigare 96px tvingade kortet
+       till fix höjd vilket krockade med signal-bar som behöver utrymme.
+       Nu växer kortet naturligt om innehåll kräver (signal-pills,
+       expanderade sub-trådar etc.). Eliminerar grid-template-areas-hack-
+       kedjan. */
+    min-height: 96px;
+    height: auto;
+    padding: 12px 16px 12px 24px;
+    border-radius: 16px;
+    box-shadow:
+      0 2px 8px rgba(111, 78, 55, 0.04),
+      0 1px 0 rgba(255, 255, 255, 0.6) inset;
+    background-color: #FBF6F0;
+    border: 1px solid #F3E7DC;
+    margin-bottom: 0;
+  }
+  .queue-history-list {
+    gap: 8px;
+    display: flex;
+    flex-direction: column;
+  }
+  .preview-shell .thread-card.unified-queue-card.warm-row:hover {
+    background-color: #F4ECE3;
+    transform: none;
+  }
+  .preview-shell .thread-card.unified-queue-card.warm-row .warm-rail {
+    width: 4px;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    border-radius: 0 4px 4px 0;
+  }
+  /* Lane-rail mockup-färger */
+  .preview-shell .thread-card.warm-row[data-lane="oklart"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="unclear"] .warm-rail { background: #7C3AED; }
+  .preview-shell .thread-card.warm-row[data-lane="act-now"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="urgent"] .warm-rail { background: #EF4444; }
+  .preview-shell .thread-card.warm-row[data-lane="sprint"] .warm-rail { background: #4F46E5; }
+  .preview-shell .thread-card.warm-row[data-lane="granska"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="review"] .warm-rail { background: #4F46E5; }
+  .preview-shell .thread-card.warm-row[data-lane="bokning"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="bookable"] .warm-rail { background: #16A34A; }
+  .preview-shell .thread-card.warm-row[data-lane="senare"] .warm-rail,
+  .preview-shell .thread-card.warm-row[data-lane="later"] .warm-rail { background: #F59E0B; }
+  /* Lane-tag — kompakt monospace caps i färg */
+  .preview-shell .thread-card.warm-row .lane-badge {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: none;
+  }
+  .preview-shell .thread-card.warm-row[data-lane="oklart"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="unclear"] .lane-badge { color: #7C3AED; }
+  .preview-shell .thread-card.warm-row[data-lane="act-now"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="urgent"] .lane-badge { color: #EF4444; }
+  .preview-shell .thread-card.warm-row[data-lane="sprint"] .lane-badge { color: #4F46E5; }
+  .preview-shell .thread-card.warm-row[data-lane="granska"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="review"] .lane-badge { color: #4F46E5; }
+  .preview-shell .thread-card.warm-row[data-lane="bokning"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="bookable"] .lane-badge { color: #16A34A; }
+  .preview-shell .thread-card.warm-row[data-lane="senare"] .lane-badge,
+  .preview-shell .thread-card.warm-row[data-lane="later"] .lane-badge { color: #F59E0B; }
+
+  /* Avatar 32x32 */
+  .preview-shell .thread-card.warm-row .warm-avatar .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #F8ECDD;
+    color: #8B6A3D;
+  }
+  .preview-shell .thread-card.warm-row .warm-avatar .status-dot {
+    background: #2D7CD3;
+    box-shadow: 0 0 0 2px #FBF6F0;
+    width: 8px;
+    height: 8px;
+  }
+
+  /* Typografi enligt spec */
+  .preview-shell .thread-card.warm-row .warm-sender {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+    color: #1F2937;
+  }
+  .preview-shell .thread-card.warm-row .warm-subject,
+  .preview-shell .thread-card.warm-row .signal-what {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: #1F2937;
+  }
+  .preview-shell .thread-card.warm-row .warm-preview {
+    font-size: 13px;
+    line-height: 18px;
+    color: #6B7280;
+    -webkit-line-clamp: 1;
+  }
+  .preview-shell .thread-card.warm-row .warm-top-meta,
+  .preview-shell .thread-card.warm-row .meta-date,
+  .preview-shell .thread-card.warm-row .meta-status {
+    font-size: 12px;
+    font-weight: 500;
+    color: #9CA3AF;
+  }
+  .preview-shell .thread-card.warm-row .warm-why,
+  .preview-shell .thread-card.warm-row .why-reason {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* ACTIONS 32x32 (back to spec) — override mini overrides */
+  .preview-shell .thread-card.warm-row .action-cluster {
+    gap: 4px;
+  }
+  .preview-shell .thread-card.warm-row .action-cluster .action-icon {
+    width: 32px;
+    height: 32px;
+    padding: 7px;
+    border-radius: 999px;
+    background: #FFFAF0;
+    border: 1px solid #ECDDC4;
+    /* SYNS ALLTID — ta bort hover-only-trick */
+    display: inline-flex;
+    opacity: 1;
+    pointer-events: auto;
+    position: static;
+  }
+  .preview-shell .thread-card.warm-row .action-cluster .action-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  /* Återställ static-position på action-cluster (overlay-trick borta) */
+  .preview-shell .thread-card.warm-row .action-cluster,
+  .preview-shell .thread-card.warm-row:hover .action-cluster,
+  .preview-shell .thread-card.warm-row:focus-within .action-cluster,
+  .preview-shell .thread-card.warm-row.is-keyboard-focused .action-cluster {
+    position: static;
+    transform: none;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    right: auto;
+    top: auto;
+  }
+  /* Öppna-pill 32px höjd */
+  .preview-shell .thread-card.warm-row .action-cluster .primary-action {
+    height: 32px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 999px;
+    background: #FFFAF0;
+    border: 1px solid #ECDDC4;
+    color: #1F2937;
+  }
+  .preview-shell .thread-card.warm-row .action-cluster .primary-action:hover {
+    background: #FFF1DC;
+  }
+
+  /* Multi-mailkonto-badge: pill UNDER avataren (egen rad) */
+  .preview-shell .thread-card.warm-row .warm-avatar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .preview-shell .thread-card.warm-row .warm-avatar[data-mailbox-count]::after {
+    content: "+" attr(data-mailbox-count) " konton";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #FFF1DC;
+    color: #6B3F0E;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+    border: 1px solid #ECDDC4;
+    white-space: nowrap;
+    margin-top: 2px;
+    cursor: help;
+  }
+  /* Specialfall: om count = 2, säg "+1 till" istället för "+2 konton" */
+  .preview-shell .thread-card.warm-row .warm-avatar[data-mailbox-count="2"]::after {
+    content: "+1 till";
+  }
+
+  /* Texten närmare överkant: warm-content top-aligned (var center) */
+  .preview-shell .thread-card.warm-row .warm-mid {
+    align-items: flex-start;
+  }
+  .preview-shell .thread-card.warm-row .warm-content {
+    justify-content: flex-start;
+    padding-top: 1px;
+  }
+  /* Avatar behöver också top-align så badgen får plats under */
+  .preview-shell .thread-card.warm-row .warm-avatar {
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+
+  /* Status-rad + snooze-pill -20% (font 12→9.6, padding -20%) */
+  .preview-shell .thread-card.warm-row .warm-why,
+  .preview-shell .thread-card.warm-row .why-reason {
+    font-size: 9.6px;
+    line-height: 1.25;
+    gap: 4px;
+  }
+  .preview-shell .thread-card.warm-row .warm-why-icon,
+  .preview-shell .thread-card.warm-row .warm-why-icon svg {
+    width: 9.5px;
+    height: 9.5px;
+  }
+  .preview-shell .thread-card.warm-row .snooze-pill {
+    font-size: 9px;
+    padding: 2px 7px;
+    margin-top: 4px;
+    gap: 4px;
+  }
+  .preview-shell .thread-card.warm-row .snooze-pill-icon {
+    font-size: 8px;
+  }
+
+  /* ============================================================
+     Stadium 3: kort-grid-perfection (2026-05-11)
+     ------------------------------------------------------------
+     Matcha mockupens visuella stil:
+     - 24px border-radius (var 18px)
+     - 128px konstant höjd
+     - padding 16/20/16/34 (extra left för lane-rail)
+     - lane-rail 4px bred (var 3px)
+     - Mockup card-bg #FBF6F0, border #F1E7DD
+     ============================================================ */
+  .thread-card.unified-queue-card.warm-row {
+    border-radius: 24px;
+    background-color: #FBF6F0;
+    border-color: #F1E7DD;
+    min-height: 128px;
+    max-height: 128px;
+    padding: 14px 18px 14px 28px;
+    box-shadow:
+      0 10px 30px rgba(111, 78, 55, 0.055),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+  .queue-history-list .thread-card.unified-queue-card.warm-row:nth-child(even) {
+    background-color: #FBF6F0;
+  }
+  .thread-card.unified-queue-card.warm-row:hover {
+    background-color: #F4ECE3;
+    transform: translateY(-1px);
+    box-shadow:
+      0 14px 34px rgba(111, 78, 55, 0.075),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+  /* Lane-rail bredare och rundare som mockup */
+  .thread-card.unified-queue-card.warm-row .warm-rail {
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 4px;
+    border-radius: 0 8px 8px 0;
+    opacity: 0.95;
+  }
+  /* Lane-tag tightare i mockup-stil */
+  .thread-card.unified-queue-card.warm-row .warm-top .lane-badge {
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  /* Konsistent gap för warm-mid (avatar + content + actions) */
+  .thread-card.unified-queue-card.warm-row .warm-mid {
+    column-gap: 14px;
+  }
+  /* Avatar — mockup-stil med subtilare ring */
+  .thread-card.unified-queue-card.warm-row .warm-avatar .avatar {
+    box-shadow:
+      inset 0 0 0 1px rgba(160, 110, 60, 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+  /* Status-dot på avatar — mockup-blå */
+  .thread-card.unified-queue-card.warm-row .warm-avatar .status-dot {
+    background: #2D7CD3;
+    box-shadow: 0 0 0 2px #FBF6F0;
+  }
+  /* Status-rad — kompaktare som mockup */
+  .thread-card.unified-queue-card.warm-row .warm-why {
+    margin-top: 4px;
+    gap: 5px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why-icon {
+    width: 12px;
+    height: 12px;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+  /* Primary-pill — mockup-stil (rundad, subtil) */
+  .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255,250,243,0.95) 0%, rgba(252,245,234,0.95) 100%);
+    border: 1px solid #ECDDC4;
+    color: var(--warm-text-1);
+    font-weight: 600;
+    transition: all 140ms ease;
+  }
+  .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .primary-action:hover {
+    background: linear-gradient(180deg, #FFE7C7 0%, #FCD9AB 100%);
+    color: #6B3F0E;
+  }
+
+  /* ============================================================
+     Stadium 2: slimma topbar mot mockup-stil (2026-05-11)
+     ------------------------------------------------------------
+     Mockup har: [Inbox] [Streak] [Sök ⌘K] [Live·N] [Filter] [E]
+     Vi behåller: CCO + Nav + Live + 1 streak + Nytt mejl + Profile
+     Döljer: duplicate streak, Sprint-pill, theme-switcher, 6 utility-
+     icons, language-picker. Frigör ~300px topbar-bredd.
+     ============================================================ */
+  /* Bug-fix: två element delar id="inbox-streak-pill" — dölj duplikat */
+  .preview-topbar-right #inbox-streak-pill ~ #inbox-streak-pill,
+  .preview-topbar-right .inbox-streak-pill:nth-of-type(n + 2) {
+    display: none;
+  }
+  /* Dölj utility-icons (theme/refresh/desktop/web/notifications/file) */
+  .preview-topbar-right .preview-utility-button,
+  .preview-topbar-right .preview-theme-button,
+  .preview-topbar-right .preview-mode-button {
+    display: none;
+  }
+  /* Dölj theme-mode dropdown (Standard) */
+  .preview-topbar-right .preview-theme-mode,
+  .preview-topbar-right [data-theme-switcher] {
+    display: none;
+  }
+  /* Dölj language-picker */
+  .preview-topbar-right .preview-language-picker,
+  .preview-topbar-right [data-language-picker] {
+    display: none;
+  }
+  /* Dölj Sprint-pill (info-cluttring) */
+  .preview-topbar-right .preview-sprint-pill {
+    display: none;
+  }
+  /* Kompakta resterande element: tighter padding + gap */
+  .preview-topbar-right {
+    gap: 8px;
+  }
+  .preview-topbar-right .preview-live-pill {
+    padding: 4px 11px;
+    font-size: 11.5px;
+    height: 28px;
+  }
+  .preview-topbar-right .preview-compose-pill {
+    padding: 4px 13px;
+    font-size: 11.5px;
+    height: 28px;
+  }
+  /* Slimma topbar-höjden själv */
+  .preview-topbar {
+    min-height: 52px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .preview-topbar .preview-brand {
+    font-size: 16px;
+  }
+  .preview-topbar .preview-nav .preview-nav-item {
+    font-size: 12.5px;
+    padding: 5px 10px;
+  }
+
+  /* ============================================================
+     Stadium 1: Inbox filter-toggle (2026-05-11)
+     ------------------------------------------------------------
+     Default: body har .has-inbox-filters-collapsed → dölj
+     lane-chips, ARBETSKO-rubrik, mailbox-row, counts-row.
+     Klick på "Visa filter"-pill expanderar tillbaka.
+     ============================================================ */
+  body.has-inbox-filters-collapsed .preview-shell .queue-secondary-signal-row,
+  body.has-inbox-filters-collapsed .preview-shell .queue-filter-row,
+  body.has-inbox-filters-collapsed .preview-shell [data-queue-secondary-filters],
+  body.has-inbox-filters-collapsed .preview-shell .queue-mailbox-row,
+  body.has-inbox-filters-collapsed .preview-shell .queue-filter-counts,
+  body.has-inbox-filters-collapsed .preview-shell .queue-arbetsko-title,
+  body.has-inbox-filters-collapsed .preview-shell [data-queue-section-label],
+  body.has-inbox-filters-collapsed .preview-shell .arbetslista-title,
+  body.has-inbox-filters-collapsed .preview-shell .queue-mailbox-bar,
+  body.has-inbox-filters-collapsed .preview-shell label[for="mailbox-menu-toggle"],
+  body.has-inbox-filters-collapsed .preview-shell .queue-filter-bar,
+  body.has-inbox-filters-collapsed .preview-shell .queue-summary-row {
+    display: none;
+  }
+  /* Filter-toggle pill — varm rundad knapp */
+  .inbox-filter-toggle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--warm-border);
+    background: rgba(255, 252, 248, 0.95);
+    color: var(--warm-text-2);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    box-shadow: 0 1px 1px rgba(120, 80, 40, 0.04);
+    margin-bottom: 8px;
+  }
+  .inbox-filter-toggle-pill:hover {
+    background: var(--warm-bg-warmer);
+    border-color: var(--warm-border-2);
+    transform: translateY(-1px);
+  }
+  .inbox-filter-toggle-pill .filter-pill-icon {
+    width: 12px;
+    height: 12px;
+    opacity: 0.7;
+  }
+  .inbox-filter-toggle-pill[data-collapsed="0"] {
+    background: var(--warm-bg-warmer);
+    border-color: var(--warm-border-2);
+    color: var(--warm-text-1);
+  }
+
+  /* ============================================================
+     Chrome-reducering: slimma topp-area så fler kort syns (2026-05-11)
+     ============================================================ */
+  /* Lane-chips: kompakta i grid med tighter spacing */
+  .preview-shell .queue-secondary-signal-row,
+  .preview-shell .queue-filter-row,
+  .preview-shell [data-queue-secondary-filters] {
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .preview-shell .queue-secondary-signal-chip {
+    padding: 4px 9px;
+    font-size: 11.5px;
+    border-radius: 999px;
+  }
+  /* "ARBETSKO Arbetslista (X)" kompakt rubrik */
+  .preview-shell .queue-arbetsko-title,
+  .preview-shell [data-queue-section-label],
+  .preview-shell .arbetslista-title {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    margin: 0 0 6px;
+    padding: 0;
+  }
+  /* Mailbox-row + filter-counts row: kompakt */
+  .preview-shell .queue-mailbox-row,
+  .preview-shell .queue-filter-counts {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    min-height: 0;
+  }
+  /* Generell shell-padding reducerad */
+  .preview-shell {
+    padding-top: 12px;
+  }
+
+  /* ============================================================
+     Smart filter-bar (app/smart-filter-bar.js, 2026-05-11)
+     Placerad direkt FÖRE .queue-history-list (samlat med mailbox/counts)
+     ============================================================ */
+  .cco-smart-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 4px 10px;
+    margin: 4px 0 8px;
+    border-top: none;
+    background: transparent;
+  }
+  .cco-smart-filter-bar .smart-filter-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #8B7660;
+    margin-right: 8px;
+  }
+  .cco-smart-filter-bar .smart-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: #FFFAF0;
+    border: 1px solid #ECDDC4;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #5A4838;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+  .cco-smart-filter-bar .smart-filter-chip:hover {
+    background: #FFF1DC;
+    border-color: #DCC8A6;
+  }
+  .cco-smart-filter-bar .smart-filter-chip.is-active {
+    background: linear-gradient(180deg, #FFE7C7 0%, #FCD9AB 100%);
+    border-color: #DCC8A6;
+    color: #6B3F0E;
+    box-shadow: inset 0 0 0 1px rgba(190, 130, 60, 0.25);
+  }
+
+  /* ============================================================
+     Keyboard-footer (app/keyboard-footer.js, 2026-05-11)
+     ------------------------------------------------------------
+     Linear-stil shortcut-hjälp längst ned i preview-shell.
+     ============================================================ */
+  .cco-keyboard-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 14px;
+    margin-top: 8px;
+    border-top: 1px solid var(--warm-border);
+    font-size: 11px;
+    color: var(--warm-text-3);
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    background: linear-gradient(180deg, rgba(251,246,240,0) 0%, rgba(252,247,239,0.6) 100%);
+    user-select: none;
+  }
+  .cco-keyboard-footer .kbd-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .cco-keyboard-footer kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    padding: 1px 4px;
+    background: rgba(251, 246, 240, 0.95);
+    border: 1px solid var(--warm-border-2);
+    border-bottom-width: 1.5px;
+    border-radius: 4px;
+    font-family: 'SF Mono', ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--warm-text-2);
+    line-height: 1;
+  }
+  .cco-keyboard-footer .kbd-sep {
+    opacity: 0.45;
+    color: var(--warm-text-4, var(--warm-text-3));
+  }
+
+  /* Mini-actions för smal kolumn — alla 5 syns men ultra-kompakta */
+  @media (max-width: 1500px) {
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster {
+      gap: 2px;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+      width: 20px;
+      height: 20px;
+      padding: 3px;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
+      width: 10px;
+      height: 10px;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
+      padding: 4px 8px;
+      height: 22px;
+      font-size: 11px;
+    }
+
+    /* Gmail-mönster: göm 5 action-ikoner default, visa floating-overlay
+       på hover/focus. Primary-action (Öppna/Svara/Bekräfta bokning)
+       syns alltid till höger. Sender + subject får hela bredden default. */
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster {
+      position: relative;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+      display: none;
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row:hover .action-cluster,
+    .preview-shell .thread-card.unified-queue-card.warm-row:focus-within .action-cluster,
+    .preview-shell .thread-card.unified-queue-card.warm-row.is-keyboard-focused .action-cluster {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: linear-gradient(90deg, rgba(251,246,240,0) 0%, var(--warm-card) 18%);
+      padding: 8px 8px 8px 28px;
+      border-radius: 14px;
+      z-index: 5;
+      box-shadow: -8px 0 16px -8px rgba(120,80,40,0.12);
+    }
+    .preview-shell .thread-card.unified-queue-card.warm-row:hover .action-cluster .action-icon,
+    .preview-shell .thread-card.unified-queue-card.warm-row:focus-within .action-cluster .action-icon,
+    .preview-shell .thread-card.unified-queue-card.warm-row.is-keyboard-focused .action-cluster .action-icon {
+      display: inline-flex;
+    }
+  }
+
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
+    width: 13px;
+    height: 13px;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+    background: #FFFAF0;
+    border-color: #ECDDC4;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="history"] {
+    color: #7E5BD9;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="later"] {
+    color: #C77D2A;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="schedule"],
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="handled"] {
+    color: #4F8A55;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon[data-quick-action="delete"] {
+    color: #B43A3A;
+  }
+  /* Status-rad (warm-why) färgmättning enligt mockup */
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="alert"] .why-reason,
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="alert"] .warm-why-icon {
+    color: #C77D2A;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="refresh"] .why-reason,
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="refresh"] .warm-why-icon {
+    color: #1F66A8;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="info"] .why-reason,
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="info"] .warm-why-icon {
+    color: #B43A3A;
+  }
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"] .why-reason,
+  .thread-card.unified-queue-card.warm-row .warm-why[data-why-kind="check"] .warm-why-icon {
+    color: #4F8A55;
+  }
+
+  /* ============================================================
+     Konsistent thread-card-proportioner (2026-05-11)
+     ------------------------------------------------------------
+     Spec från användarens mockup: 88–110px höjd, 16px horisontell
+     padding, 12–16px vertikal padding. Behåll nuvarande design,
+     justera bara mått så ALLA kort hamnar i samma proportionsband.
+     2-rad preview tillåts; subject + why trunkas på 1 rad.
+     ============================================================ */
+  .thread-card.unified-queue-card.warm-row {
+    min-height: 104px;
+    max-height: 116px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+  /* Preview: max 2 rader (line-clamp), aldrig mer */
+  .thread-card.unified-queue-card.warm-row .warm-preview {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.42;
+    max-width: 100%;
+  }
+  /* Subject på 1 rad med ellipsis — så lång subject inte sprängar layouten */
+  .thread-card.unified-queue-card.warm-row .warm-subject,
+  .thread-card.unified-queue-card.warm-row .signal-what {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  /* Why-pill alltid på en rad */
+  .thread-card.unified-queue-card.warm-row .warm-why,
+  .thread-card.unified-queue-card.warm-row .why-reason {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ============================================================
+     Snooze (app/snooze.js, 2026-05-10)
+     ============================================================ */
+  .thread-card.is-snoozed {
+    opacity: 0.55;
+    filter: saturate(0.7);
+    transition: opacity 0.2s ease, filter 0.2s ease;
+  }
+  .thread-card.is-snoozed:hover {
+    opacity: 0.85;
+  }
+  .thread-card.is-just-returned {
+    animation: snooze-return-pulse 2s ease-out;
+    box-shadow: 0 0 0 2px rgba(215, 130, 90, 0.45);
+  }
+  @keyframes snooze-return-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(215, 130, 90, 0.6); }
+    50% { box-shadow: 0 0 0 8px rgba(215, 130, 90, 0); }
+    100% { box-shadow: 0 0 0 2px rgba(215, 130, 90, 0.45); }
+  }
+  .snooze-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 240, 220, 0.95) 0%, rgba(255, 220, 180, 0.92) 100%);
+    border: 1px solid rgba(215, 130, 90, 0.28);
+    font-size: 11px;
+    font-weight: 600;
+    color: #a44a1f;
+    line-height: 1.2;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(180, 100, 50, 0.08);
+  }
+  .snooze-pill-icon {
+    font-size: 10px;
+    opacity: 0.75;
+  }
+  .snooze-pill-returned {
+    background: linear-gradient(180deg, #fff5e8 0%, #ffe5c4 100%);
+    color: #7a3a14;
+    border-color: rgba(180, 90, 40, 0.45);
+    animation: snooze-pill-pulse 2s ease-out;
+  }
+  @keyframes snooze-pill-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+
+  /* Overlay för tidsval */
+  .snooze-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: transparent;
+    pointer-events: auto;
+  }
+  .snooze-overlay-card {
+    width: 280px;
+    background: linear-gradient(180deg, rgba(255, 252, 246, 0.99) 0%, rgba(252, 245, 235, 0.99) 100%);
+    border: 1px solid rgba(215, 130, 90, 0.32);
+    border-radius: 14px;
+    box-shadow: 0 12px 36px rgba(60, 30, 10, 0.22), 0 2px 8px rgba(60, 30, 10, 0.08);
+    padding: 12px;
+    backdrop-filter: blur(8px);
+  }
+  .snooze-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 0 2px;
+  }
+  .snooze-overlay-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #7a4a20;
+  }
+  .snooze-overlay-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    color: #a08068;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .snooze-overlay-close:hover {
+    color: #5a3a18;
+  }
+  .snooze-overlay-presets {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .snooze-preset {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(180, 130, 90, 0.18);
+    border-radius: 9px;
+    font-size: 13px;
+    color: #3b2615;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .snooze-preset:hover {
+    background: rgba(255, 220, 180, 0.55);
+    border-color: rgba(215, 130, 90, 0.4);
+    transform: translateX(2px);
+  }
+  .snooze-preset-when {
+    font-size: 11px;
+    color: #8a6a4a;
+    font-weight: 500;
+  }
+  .snooze-overlay-custom {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(180, 130, 90, 0.2);
+  }
+  .snooze-custom-label {
+    font-size: 11px;
+    color: #7a5a3a;
+    font-weight: 600;
+  }
+  .snooze-custom-input {
+    padding: 7px 10px;
+    border: 1px solid rgba(180, 130, 90, 0.32);
+    border-radius: 8px;
+    font-size: 13px;
+    background: white;
+  }
+  .snooze-custom-apply {
+    padding: 8px 12px;
+    background: linear-gradient(180deg, #d2825a 0%, #b8693f 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .snooze-custom-apply:hover {
+    background: linear-gradient(180deg, #de9268 0%, #c2734a 100%);
+  }
+
+  /* Dölj sekundär signal-rad (Uppföljn./Oägda/Hög risk/Idag/Imorgon)
+     på användarens begäran — duplicerar info som redan finns i andra
+     filter-chips och tar onödig plats. */
+  .preview-shell .queue-secondary-signal-strip {
+    display: none;
+  }
+
+  /* Dölj .mailbox-option-meta i dropdown — flickrar mellan "Läs: spärrad
+     · Skicka: spärrad..." och "· N" (tråd-count) på olika renderApp-cykler.
+     Stör läsning. Behåll bara namn + status-pill + email. */
+  .mailbox-menu .mailbox-option-meta {
+    display: none;
+  }
+
+  /* Dölj .shim-mbx-count — den span:en (' · 53', ' · 186') skapas av
+     runtime-queue-renderers __applyMailboxCountsToDom() och appendas till
+     .mailbox-option-copy. Användaren ville inte ha tråd-count under namn. */
+  .mailbox-menu .shim-mbx-count,
+  .shim-mbx-count {
+    display: none;
+  }
+
+  /* Dölj .warm-sender när den matchar mailbox-namn — mailbox-pillen
+     visar samma info, gamla texten är duplikat. Klassen sätts av app.js
+     runtime-queue-renderers, fortfarande aktiv. */
+  .thread-card.has-mailbox-sender .warm-sender,
+  .thread-card.has-mailbox-sender .warm-sep {
+    display: none;
+  }
+
+  /* Fas 9 av Lit-migration (2026-05-16): ~200 rader CSS raderade härifrån.
+     De stilade klasser som skapades av 3 nu-rivna DOM-shims:
+       - .warm-why-extras / .warm-why-extra* (signal-bar.js)
+       - .customer-cluster-sub / .customer-cluster-hidden /
+         .customer-cluster-count (customer-cluster.js)
+       - .has-inline-signals / [data-signal-bar-ready] (signal-bar.js
+         FOUC-fix)
+       - 80+ rader .preview-shell .has-inline-signals layout-overrides
+     Inget JS skapar dessa klasser/attribut längre. Lit-cards renderar
+     pillar och cluster-roller via Shadow DOM. */
+
+  /* ──────────────────────────────────────────────────────────────────
+     Onboarding-tour (app/onboarding-tour.js, 2026-05-12)
+     First-visit walkthrough med spotlight + tooltip.
+     ────────────────────────────────────────────────────────────────── */
+
+  .onboarding-tour-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 9998;
+    pointer-events: none;
+    /* Spotlight via radial-gradient som "skär hål" i overlayen */
+    background: radial-gradient(
+      circle var(--spotlight-size, 200px) at var(--spotlight-x, 50%) var(--spotlight-y, 50%),
+      transparent 0%,
+      transparent 60%,
+      rgba(15, 23, 42, 0.55) 80%,
+      rgba(15, 23, 42, 0.6) 100%
+    );
+    animation: onboarding-fade-in 200ms ease;
+  }
+  @keyframes onboarding-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .onboarding-tour-tooltip {
+    position: absolute;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    padding: 18px 22px 18px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow:
+      0 14px 32px rgba(15, 23, 42, 0.18),
+      0 4px 8px rgba(15, 23, 42, 0.08);
+    z-index: 9999;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #0f172a;
+    animation: onboarding-pop-in 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes onboarding-pop-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .onboarding-tour-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 120ms ease;
+  }
+  .onboarding-tour-close:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+  .onboarding-tour-step-count {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
+  .onboarding-tour-tooltip h4 {
+    margin: 0 0 8px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .onboarding-tour-tooltip p {
+    margin: 0 0 16px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: #475569;
+  }
+  .onboarding-tour-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .onboarding-tour-actions button {
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 140ms ease;
+  }
+  .onboarding-tour-prev {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #e2e8f0;
+  }
+  .onboarding-tour-prev:hover {
+    background: #f1f5f9;
+  }
+  .onboarding-tour-next,
+  .onboarding-tour-finish {
+    background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+    color: #fff;
+  }
+  .onboarding-tour-next:hover,
+  .onboarding-tour-finish:hover {
+    background: linear-gradient(180deg, #4338ca 0%, #3730a3 100%);
+  }
+} /* end @layer components */
+
+@layer components {
+  /* Queue coherence pass: calmer reading order and less fragile preview copy. */
+  .thread-card.unified-queue-card.warm-row .warm-top {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-top .lane-badge {
+    font-size: 11.5px;
+    line-height: 1.25;
+    font-weight: 650;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-top-meta {
+    gap: 7px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-mid {
+    column-gap: 14px;
+    align-items: start;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-content {
+    gap: 5px;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-line-1 {
+    gap: 7px;
+    line-height: 1.32;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-sender {
+    max-width: 48%;
+    font-size: 14px;
+    font-weight: 650;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-subject.signal-what {
+    font-size: 14px;
+    line-height: 1.3;
+    color: var(--warm-text-3);
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-preview {
+    margin-top: 2px;
+    color: var(--warm-text-2);
+    font-size: 13px;
+    line-height: 1.46;
+    -webkit-line-clamp: 3;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-why {
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 4px;
+    white-space: normal;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-why .why-reason {
+    line-height: 1.34;
+    text-wrap: pretty;
+  }
+
+  .thread-card.unified-queue-card.warm-row .warm-actions.action-cluster {
+    gap: 5px;
+    align-self: center;
+  }
+
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .thread-card.unified-queue-card.warm-row .action-cluster .primary-action {
+    gap: 6px;
+    min-height: 30px;
+    height: 30px;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  /* ============================================================
+     Action-icon färgad halo per data-quick-action (2026-05-16)
+     ------------------------------------------------------------
+     Varje rund knapp får en svag färgad halo i vilande läge och
+     en starkare färgad ring vid hover. Symbolen tonas i sin egen
+     färg vid hover. Mappar mockup-paletten (dämpad, varm) på
+     production-knapparna.
+     ============================================================ */
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon {
+    --glow: rgba(120, 80, 40, 0.10);
+    background:
+      radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.95) 0%, transparent 55%),
+      linear-gradient(180deg, #ffffff 0%, var(--warm-card-alt) 100%);
+    box-shadow:
+      0 1px 2px rgba(120, 80, 40, 0.08),
+      0 1.5px 4px var(--glow),
+      inset 0 0.5px 0.5px rgba(255, 255, 255, 0.95),
+      inset 0 -0.5px 0.5px rgba(120, 80, 40, 0.06);
+    transition: all 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon svg {
+    transition: all 200ms ease;
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon:hover {
+    transform: translateY(-1px) scale(1.08);
+    box-shadow:
+      0 2px 3px rgba(120, 80, 40, 0.10),
+      0 3px 8px var(--glow),
+      0 0 0 2.5px var(--glow),
+      inset 0 0.5px 0.5px rgba(255, 255, 255, 1);
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon:hover svg {
+    transform: scale(1.12);
+  }
+  .thread-card.unified-queue-card.warm-row .action-cluster .action-icon:active {
+    transform: scale(0.94);
+  }
+
+  /* Per-action glow + hover-tone */
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="history"] {
+    --glow: rgba(126, 91, 217, 0.22);
+  }
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="history"]:hover {
+    color: #6b3fcc;
+  }
+
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="later"] {
+    --glow: rgba(199, 125, 42, 0.22);
+  }
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="later"]:hover {
+    color: #c77d2a;
+  }
+
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="schedule"],
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="handled"] {
+    --glow: rgba(79, 138, 85, 0.22);
+  }
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="schedule"]:hover,
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="handled"]:hover {
+    color: #4f8a55;
+  }
+
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="delete"] {
+    --glow: rgba(180, 58, 58, 0.22);
+  }
+  .thread-card.unified-queue-card.warm-row
+    .action-cluster
+    .action-icon[data-quick-action="delete"]:hover {
+    color: #b43a3a;
+  }
+
+  /* ============================================================
+     DESIGN-BUNDLE 2026-05-17 (Fas 14): warm-glass cushion-design
+     ============================================================ */
+
+  /* --- KOLUMN-BREDDER: 500 / 700 / 280 (var 440/760/280) --- */
+  .preview-canvas {
+    --workspace-left-width: 500px;
+    --workspace-main-width: 700px;
+    --workspace-right-width: 280px;
+    --workspace-left-width-locked: 500px;
+    --workspace-main-width-locked: 700px;
+    --workspace-right-width-locked: 280px;
+  }
+  .preview-canvas .preview-workspace {
+    grid-template-columns: 500px minmax(0, 1fr);
+  }
+
+  /* --- LAUNCHER-KNAPPAR (Svarstudio/Bokningsyta/Smart anteckning/Kalender) --- */
+  /* Dölj vita wrapper-rutan */
+  .conversation-next-step,
+  .conversation-next-step--toolbar-only {
+    background: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+  .conversation-next-actions,
+  .conversation-next-actions--toolbar-row {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 8px 0;
+  }
+  /* Cushion-look på knapparna (matchar focus-tabs) */
+  .conversation-next-action-chip,
+  .conversation-next-button.conversation-next-action-chip,
+  .conversation-next-button.conversation-next-action-chip--studio,
+  .conversation-next-button.conversation-next-action-chip--booking,
+  .conversation-next-button.conversation-next-action-chip--note,
+  .conversation-next-button.conversation-next-action-chip--schedule {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 238, 232, 0.90) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    border-radius: 14px;
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    font-weight: 600;
+    height: 27px;
+    min-height: 27px;
+    max-height: 27px;
+    padding: 0 16px;
+    transition: all 220ms ease;
+  }
+  .conversation-next-action-chip:hover {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 232, 226, 0.94));
+    box-shadow:
+      0 4px 10px rgba(56, 40, 28, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    transform: translateY(-1px);
+  }
+  /* Per-modifier färg på text + ikon */
+  .conversation-next-button.conversation-next-action-chip--studio,
+  .conversation-next-button.conversation-next-action-chip--studio svg,
+  .conversation-next-button.conversation-next-action-chip--studio path {
+    color: #b43a3a;
+    stroke: #b43a3a;
+  }
+  .conversation-next-button.conversation-next-action-chip--booking,
+  .conversation-next-button.conversation-next-action-chip--booking svg,
+  .conversation-next-button.conversation-next-action-chip--booking path {
+    color: #4f8a55;
+    stroke: #4f8a55;
+  }
+  .conversation-next-button.conversation-next-action-chip--note,
+  .conversation-next-button.conversation-next-action-chip--note svg,
+  .conversation-next-button.conversation-next-action-chip--note path {
+    color: #1f66a8;
+    stroke: #1f66a8;
+  }
+  .conversation-next-button.conversation-next-action-chip--schedule,
+  .conversation-next-button.conversation-next-action-chip--schedule svg,
+  .conversation-next-button.conversation-next-action-chip--schedule path {
+    color: #c77d2a;
+    stroke: #c77d2a;
+  }
+
+  /* --- DROPDOWN-PLACERING (egen rad ovanför quickstrip) --- */
+  /* Görs via index.html DOM-move, men säkra layout-CSS här */
+  .queue-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .queue-bottom-row > .mailbox-dropdown {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
+
+  /* --- HIGHLIGHT AKTIV QUEUE-CHIP --- */
+  .queue-filter-chip.is-active {
+    background: linear-gradient(180deg, #fff2dc 0%, #ffe6be 100%);
+    box-shadow:
+      0 0 0 2px rgba(199, 125, 42, 0.35),
+      0 1px 3px rgba(199, 125, 42, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    border-color: #c77d2a;
+    transform: translateY(-0.5px);
+  }
+
+  /* --- DÖLJ INDIKATOR-RAD + SIGNAL-STRIP --- */
+  .queue-action-row.queue-bubble-row,
+  .queue-secondary-signal-strip {
+    display: none;
+  }
+
+  /* ============================================================
+     ARBETSKÖ-CHROME (2026-05-17, Fas 12):
+     - queue-bottom-row flyttad INTO collapsed-list via index.html
+     - display: contents låter dropdowns bli direkta grid-items
+     - dropdowns fyller rad 3 slot 4-5 (intill Medicinsk)
+     - Dölj indikator-rad + signal-strip (aktiv kö syns via chip-highlight)
+     ============================================================ */
+  .collapsed-list > .queue-bottom-row {
+    display: contents;
+  }
+  .collapsed-list > .queue-bottom-row > .mailbox-dropdown {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+  }
+  .collapsed-list > .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger,
+  .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger,
+  .queue-lane-quickstrip > .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger {
+    width: 100%;
+    height: 26px;
+    min-height: 0;
+    padding: 2px 12px;
+    font-size: 11.5px;
+    /* === CUSHION-LOOK (matchar focus-tabs) === */
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 238, 232, 0.90) 100%);
+    box-shadow:
+      0 2px 6px rgba(56, 40, 28, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    color: #6a564a;
+    font-weight: 600;
+    transition: all 220ms ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+  }
+  .collapsed-list > .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger:hover,
+  .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger:hover,
+  .queue-lane-quickstrip > .queue-bottom-row > .mailbox-dropdown > .mailbox-trigger:hover {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 232, 226, 0.94) 100%);
+    box-shadow:
+      0 4px 10px rgba(56, 40, 28, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    transform: translateY(-1px);
+  }
+  .mailbox-menu-toggle:checked + .mailbox-trigger {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(240, 232, 226, 0.96) 100%);
+    border-color: rgba(232, 220, 212, 0.96);
+    box-shadow:
+      0 5px 12px rgba(56, 40, 28, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    transform: translateY(-1px);
+    font-weight: 700;
+  }
+
+  /* Dölj indikator-rad (Bokning + check + trash) — överflödig nu */
+  .queue-action-row.queue-bubble-row,
+  .queue-secondary-signal-strip {
+    display: none;
+  }
+
+  /* --- FIX: tom-state-card i fokus-pane (session expired etc.) ---
+     Parent .conversation-entry-empty är CSS Grid med 2 kolumner
+     (~32px avatar-slot + 1fr content-slot) som ärvts från regular
+     conversation-entry. Tom-state-cardet hamnar fel i avatar-slot
+     (32px) → text radbryts ord-för-ord. Fix: bara 1 kolumn. */
+  .conversation-entry.conversation-entry-empty {
+    grid-template-columns: 1fr;
+  }
+  .conversation-empty-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Highlight aktiv kö-chip prominent (ersätter den dolda indikator-raden) */
+  .queue-filter-chip.is-active {
+    background: linear-gradient(180deg, #fff2dc 0%, #ffe6be 100%);
+    box-shadow:
+      0 0 0 2px rgba(199, 125, 42, 0.35),
+      0 1px 3px rgba(199, 125, 42, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    border-color: #c77d2a;
+    transform: translateY(-0.5px);
+  }
+  .queue-filter-chip.is-active > span,
+  .queue-filter-chip.is-active > strong {
+    font-weight: 700;
+  }
+
+  /* ────────────────────────────────────────────────────────────────
+     Fas 22 (2026-05-18): Konsolidera 4 filter-lager — försök 1 reverterades
+     pga inre grid-collapse. Fas 23 aktiverade is-compact-mode som default.
+     Fas 24 (nedan, utanför @layer) plattar ut alla 3 lager till EN rad. */
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   Fas 26 (2026-05-18): Violet-accent på Kalender + Operationsspår
+   Samma look som Smart anteckning (.note-shell) — skapar visuell
+   konsistens mellan alla 3 fixed-positioned arbetsyta-shells.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Kalender (.schedule-shell): byt rose-accent till violet */
+.schedule-mark {
+  color: #a35cd7;
+}
+.schedule-status-pill-rose {
+  color: #8b4fc3;
+  background: linear-gradient(180deg, rgba(247, 239, 255, 0.98) 0%, rgba(235, 222, 249, 0.92) 100%);
+}
+.schedule-section-label {
+  color: #8f3b67;
+}
+
+/* Operationsspår / Bokningsyta (.booking-shell): byt accent till violet */
+.booking-shell-status-pill {
+  color: #8b4fc3;
+  background: linear-gradient(180deg, rgba(247, 239, 255, 0.98) 0%, rgba(235, 222, 249, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  font-size: 10.5px;
+  line-height: 12px;
+  font-weight: 700;
+  min-height: 23px;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Fas 27F-B (2026-05-18): Separera AI-tip visuellt från kund-preview
+   ════════════════════════════════════════════════════════════════════
+   .warm-preview = kundens egen text (eller fallback)
+   .warm-why     = AI-rekommendation / handlingsråd
+   Båda renderas i samma yta — visuell separation gör det tydligt
+   vem som "skrev" vad. */
+
+.warm-row .warm-why {
+  margin: 4px 0 0;
+  padding: 4px 10px 4px 8px;
+  background: rgba(167, 139, 250, 0.10);
+  border-left: 2px solid #8B5CF6;
+  border-radius: 0 8px 8px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.warm-row .warm-why .warm-why-icon {
+  color: #8B5CF6;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.warm-row .warm-why .why-reason {
+  color: #6D28D9;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Ej tilldelad — gör mer synlig (orange) istället för diskret grå */
+.warm-row .thread-card-stamp .thread-owner,
+.warm-row .meta-status,
+.thread-card .meta-status.unowned,
+.thread-card .thread-owner:not(.is-owned) {
+  /* Targetar 'Ej tilldelad'-texten via attribut eller fallback-värde */
+}
+
+/* Använd attribut-selector om mailen är "Ej tilldelad" */
+.warm-row .thread-owner[data-owner-state="unassigned"],
+.warm-row .meta-status[data-owner-state="unassigned"] {
+  color: #C77D2A;
+  font-weight: 500;
+}
+
+/* Fallback: matcha på text-innehåll via :has (modern CSS) */
+.warm-row .thread-card-stamp:has(.thread-owner:not([data-owner-state="owned"])) .thread-owner {
+  /* Behåll original färg om vi inte vet med säkerhet */
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Fas 27F-C (2026-05-18): Glance default minimal, hover/selected avslöjar
+   ════════════════════════════════════════════════════════════════════
+   Default-state (Glance): bara avatar + sender + subject + tid + lane-rail
+   synliga. AI-tip (.warm-why) och action-cluster (.warm-actions) döljs
+   med max-height collapse + opacity fade. Klick eller hover avslöjar.
+
+   Höjd: ~70px default · ~110px hover/selected.
+
+   Bara på enheter med (hover: hover) — touch-devices visar alltid allt
+   så användaren inte missar actions. */
+
+@media (hover: hover) {
+  .warm-row .warm-why,
+  .warm-row .warm-actions {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition:
+      max-height 200ms ease,
+      opacity 180ms ease,
+      margin-top 200ms ease;
+  }
+
+  .warm-row:hover .warm-why,
+  .warm-row:focus-within .warm-why,
+  .warm-row.is-selected .warm-why,
+  .warm-row[data-selected="true"] .warm-why,
+  .warm-row[aria-selected="true"] .warm-why {
+    max-height: 60px;
+    opacity: 1;
+    margin-top: 6px;
+    pointer-events: auto;
+  }
+
+  .warm-row:hover .warm-actions,
+  .warm-row:focus-within .warm-actions,
+  .warm-row.is-selected .warm-actions,
+  .warm-row[data-selected="true"] .warm-actions,
+  .warm-row[aria-selected="true"] .warm-actions {
+    max-height: 50px;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* På touch-devices: visa allt alltid (ingen hover-trigger möjlig).
+   media (hover: none) matchar touch + ingen hover-mus. */
+@media (hover: none) {
+  .warm-row .warm-why,
+  .warm-row .warm-actions {
+    /* Behåll default-visning — no overrides needed */
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Fas 27G (2026-05-18): Showcase-banner — visas när portalCustomerKey
+   är aktiv i URL. Säkerställer att användaren aldrig missar att de
+   tittar på fixtures istället för live-data.
+   ════════════════════════════════════════════════════════════════════ */
+.showcase-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px;
+  background: linear-gradient(180deg, #FFF4E0 0%, #FFE9C2 100%);
+  border-bottom: 1px solid #E0B670;
+  color: #6B4A11;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  position: relative;
+  z-index: 999;
+}
+.showcase-banner-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(199, 125, 42, 0.18);
+  color: #C77D2A;
+  flex-shrink: 0;
+}
+.showcase-banner-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+.showcase-banner-text strong {
+  font-weight: 600;
+  margin-right: 4px;
+}
+.showcase-banner-text code {
+  background: rgba(120, 80, 40, 0.10);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-family: 'SF Mono', Menlo, monospace;
+  color: #5A3F1A;
+}
+.showcase-banner-cta {
+  flex-shrink: 0;
+  background: #6B4A11;
+  color: #FFF4E0;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 180ms ease;
+  font-family: inherit;
+}
+.showcase-banner-cta:hover {
+  background: #4A330C;
+}
+.showcase-banner-cta:active {
+  transform: scale(0.97);
+}
+
+/* Admin embed: dölj duplicerad topbar när CCO körs inuti /admin */
+html.is-admin-embed,
+body.is-admin-embed {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  --topbar-height: 0px;
+  --workspace-top-clearance: 0px;
+  --shell-sticky-offset: 0px;
+  --workspace-pane-max-height: calc(100vh - 12px);
+  --workspace-left-pane-max-height: calc(100vh - 12px);
+}
+
+body.is-admin-embed .preview-page,
+body.is-admin-embed .preview-canvas {
+  min-height: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body.is-admin-embed .preview-topbar {
+  display: none !important;
+}
+
+body.is-admin-embed .preview-workspace,
+body.is-admin-embed .preview-shell {
+  min-height: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+body.is-admin-embed .preview-canvas {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body.is-admin-embed .focus-shell,
+body.is-admin-embed .focus-main,
+body.is-admin-embed .focus-surface {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+}
+
+body.is-admin-embed .focus-surface {
+  min-height: 0;
+}
+
+body.is-admin-embed .focus-conversation-layout,
+body.is-admin-embed .focus-section-conversation,
+body.is-admin-embed .focus-detail-block {
+  min-height: 0;
+}
+
+body.is-admin-embed .focus-conversation {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Fas 51: auth_required = ren inloggningsyta, ingen mejl-chrome bakom. */
+.preview-canvas.is-runtime-auth_required .queue-lane-quickstrip,
+.preview-canvas.is-runtime-auth_required .queue-scope-strip {
+  display: none !important;
+}
+
+.preview-canvas.is-runtime-auth_required .preview-hint {
+  display: none;
+}
+
+.preview-canvas.is-runtime-auth_required .preview-live-pill {
+  opacity: 1;
+}

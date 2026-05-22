@@ -1,0 +1,89 @@
+name: arcana-finalization-sweep-public
+
+on:
+  schedule:
+    - cron: "11 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finalization-sweep-public:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BASE_URL: ${{ secrets.ARCANA_PUBLIC_BASE_URL }}
+      ARCANA_OWNER_EMAIL: ${{ secrets.ARCANA_OWNER_EMAIL }}
+      ARCANA_OWNER_PASSWORD: ${{ secrets.ARCANA_OWNER_PASSWORD }}
+      ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+      ARCANA_OWNER_MFA_RECOVERY_CODE: ${{ secrets.ARCANA_OWNER_MFA_RECOVERY_CODE }}
+      ARCANA_FINALIZATION_SWEEP_OUT_FILE: ./data/reports/finalization-sweep-public-latest.json
+      ARCANA_FINALIZATION_SWEEP_REPORT_FILE: ./data/reports/finalization-sweep-public-latest.json
+      ARCANA_EXPECTED_EXTERNAL_FAIL_STEPS: bootstrap_release_cycle,check_pentest_evidence,report_release_readiness,report_stability_window,release_go_live_gate,release_final_live_signoff
+      ARCANA_EXPECTED_CLOSURE_REMAINING: external_pentest_evidence,stability_window_14_30d,formal_live_signoff
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for name in BASE_URL ARCANA_OWNER_EMAIL ARCANA_OWNER_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required secret/env: $name"
+              missing=1
+            fi
+          done
+          if [[ -z "${ARCANA_OWNER_MFA_SECRET:-}" && -z "${ARCANA_OWNER_MFA_RECOVERY_CODE:-}" ]]; then
+            echo "::error::Missing MFA secret/recovery code (set ARCANA_OWNER_MFA_SECRET or ARCANA_OWNER_MFA_RECOVERY_CODE)."
+            missing=1
+          fi
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Run finalization sweep (public)
+        run: npm run finalization:sweep -- --base-url "$BASE_URL"
+
+      - name: Guard finalization sweep (unexpected regressions only)
+        run: |
+          npm run finalization:sweep:guard -- \
+            --report-file "$ARCANA_FINALIZATION_SWEEP_REPORT_FILE" \
+            --expected-fail-steps "$ARCANA_EXPECTED_EXTERNAL_FAIL_STEPS"
+
+      - name: Build closure status (public)
+        if: always()
+        env:
+          ARCANA_CLOSURE_STATUS_FINALIZATION_FILE: ./data/reports/finalization-sweep-public-latest.json
+          ARCANA_CLOSURE_STATUS_STABILITY_FILE: ./data/reports/stability-window-latest.json
+          ARCANA_CLOSURE_STATUS_OUT_JSON: ./data/reports/closure-status-public-latest.json
+          ARCANA_CLOSURE_STATUS_OUT_MD: ./data/reports/closure-status-public-latest.md
+        run: npm run report:closure-status
+
+      - name: Validate closure status (public)
+        if: always()
+        env:
+          ARCANA_CLOSURE_STATUS_REPORT_FILE: ./data/reports/closure-status-public-latest.json
+        run: npm run closure:guard
+
+      - name: Upload finalization sweep public report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finalization-sweep-public-${{ github.run_id }}
+          path: |
+            ./data/reports/finalization-sweep-public-latest.json
+            ./data/reports/closure-status-public-latest.json
+            ./data/reports/closure-status-public-latest.md
+          if-no-files-found: warn
+          retention-days: 30

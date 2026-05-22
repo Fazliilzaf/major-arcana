@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-schema.json",
+  "_comment": "Stryker mutation testing config (T7). Kräver: npm i -D @stryker-mutator/core @stryker-mutator/api. Kör: npx stryker run.",
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "npm test"
+  },
+  "mutate": [
+    "src/risk/**/*.js",
+    "src/capabilities/gdprCustomer.js",
+    "src/capabilities/tenantLifecycle.js",
+    "src/capabilities/recordDraftFeedback.js",
+    "src/security/planQuotas.js",
+    "!src/**/*.test.js"
+  ],
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": 40
+  },
+  "concurrency": 2,
+  "timeoutMS": 60000,
+  "ignorePatterns": ["data/", "public/", ".github/", "tests/"],
+  "reporters": ["progress", "html", "clear-text"],
+  "htmlReporter": {
+    "fileName": "reports/stryker/mutation.html"
+  }
+}

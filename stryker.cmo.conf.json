@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-schema.json",
+  "_comment": "CMO-focused mutation testing. Kör: npm run test:mutation:cmo",
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "node tests/_cmoMutationRunner.js"
+  },
+  "mutate": [
+    "src/ops/cmoOrchestrationGate.js",
+    "src/ops/cmoComplianceGate.js",
+    "src/ops/cmoMarketingMetrics.js",
+    "src/ops/cmoPublishPolicy.js",
+    "src/ops/marketingCampaignDraftsStore.js",
+    "src/ops/marketingContentAssetsStore.js",
+    "src/agents/cmoContentAgent.js",
+    "src/agents/cmoCopilotComposeHelpers.js"
+  ],
+  "thresholds": {
+    "high": 65,
+    "low": 50,
+    "break": 30
+  },
+  "coverageAnalysis": "off",
+  "concurrency": 2,
+  "timeoutMS": 120000,
+  "inPlace": true,
+  "ignorePatterns": ["data/", "public/", ".github/", "tests/"],
+  "reporters": ["progress", "html", "clear-text"],
+  "htmlReporter": {
+    "fileName": "reports/stryker/cmo-mutation.html"
+  }
+}

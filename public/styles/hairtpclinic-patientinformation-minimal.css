@@ -1,0 +1,720 @@
+@font-face {
+  font-family: "HairTPDisplay";
+  src: url("https://hairtpclinic.se/wp-content/themes/woonderland/library/fonts/noe-display-regular.woff")
+    format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.hairtp-minimal-proposal {
+  --minimal-panel: rgba(255, 251, 247, 0.58);
+  --minimal-panel-strong: rgba(255, 253, 251, 0.72);
+  --minimal-panel-soft: rgba(250, 244, 239, 0.48);
+  --minimal-line: rgba(177, 152, 132, 0.08);
+  --minimal-line-strong: rgba(177, 152, 132, 0.14);
+  --minimal-accent: #b89d87;
+  --minimal-type-kicker: 0.7rem;
+  --minimal-type-body: 1.04rem;
+  --minimal-type-body-compact: 0.96rem;
+  --minimal-type-hero: clamp(2.08rem, 3.45vw, 3.34rem);
+  --minimal-type-aside: 1.48rem;
+  --minimal-type-stat-value: 2.18rem;
+  --minimal-type-stat-heading: 0.92rem;
+  --minimal-type-section: clamp(1.4rem, 1.95vw, 1.72rem);
+  --minimal-type-card: 1.06rem;
+  --minimal-type-timeline: 0.94rem;
+  --minimal-type-cta: clamp(1.46rem, 2vw, 1.72rem);
+  --minimal-shadow:
+    0 26px 56px rgba(82, 57, 38, 0.05),
+    0 8px 20px rgba(82, 57, 38, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --minimal-shadow-soft:
+    0 14px 32px rgba(82, 57, 38, 0.04),
+    0 4px 12px rgba(82, 57, 38, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  --minimal-shadow-button:
+    0 12px 24px rgba(55, 37, 25, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.14);
+  margin: 0;
+  min-height: 100vh;
+  color: var(--spec-ink);
+  background:
+    linear-gradient(180deg, #fdfaf7 0%, #faf6f1 52%, #fcf8f4 100%);
+  font-family: "Overpass", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hairtp-minimal-proposal * {
+  box-sizing: border-box;
+}
+
+.hairtp-minimal-proposal a {
+  color: inherit;
+}
+
+.minimal-shell {
+  width: min(calc(100% - 4rem), 1040px);
+  margin: 0 auto;
+  padding: 1.65rem 0 5.4rem;
+}
+
+.minimal-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0 1rem;
+}
+
+.minimal-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  text-decoration: none;
+}
+
+.minimal-brand img {
+  width: 28px;
+  height: 28px;
+}
+
+.minimal-brand-copy {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.minimal-brand-title {
+  margin: 0;
+  font-family: "HairTPDisplay", Georgia, serif;
+  font-size: 1.38rem;
+  line-height: 1;
+}
+
+.minimal-brand-meta {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.12rem;
+  text-transform: uppercase;
+  color: rgba(74, 73, 70, 0.64);
+}
+
+.minimal-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.minimal-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.72rem;
+  padding: 0.72rem 1.08rem;
+  border-radius: 999px;
+  border: 1px solid rgba(177, 152, 132, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(247, 239, 232, 0.62) 100%);
+  color: var(--spec-ink);
+  text-decoration: none;
+  font-size: 0.72rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.1rem;
+  text-transform: uppercase;
+  box-shadow: 0 6px 14px rgba(82, 57, 38, 0.04);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.minimal-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(177, 152, 132, 0.14);
+  box-shadow: 0 10px 18px rgba(82, 57, 38, 0.05);
+}
+
+.minimal-button-primary {
+  background: linear-gradient(180deg, rgba(250, 245, 240, 0.96) 0%, rgba(242, 234, 226, 0.92) 100%);
+  border-color: rgba(177, 152, 132, 0.2);
+  color: rgba(74, 73, 70, 0.92);
+  box-shadow: 0 8px 18px rgba(82, 57, 38, 0.05);
+}
+
+.minimal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-bottom: 1.35rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.minimal-nav a {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: auto;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.72rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.08rem;
+  text-transform: uppercase;
+  color: rgba(74, 73, 70, 0.5);
+}
+
+.minimal-nav a:hover {
+  color: var(--spec-ink);
+}
+
+.minimal-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(255px, 0.64fr);
+  gap: 1.35rem;
+  margin-bottom: 1.3rem;
+  padding: 0.2rem 0 0.15rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.minimal-kicker {
+  margin: 0 0 0.6rem;
+  font-size: var(--minimal-type-kicker);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.16rem;
+  text-transform: uppercase;
+  color: rgba(74, 73, 70, 0.54);
+}
+
+.minimal-title {
+  margin: 0;
+  max-width: 12.6ch;
+  font-family: "HairTPDisplay", Georgia, serif;
+  font-size: var(--minimal-type-hero);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.minimal-title-accent {
+  display: block;
+  color: rgba(184, 157, 135, 0.96);
+}
+
+.minimal-divider {
+  width: 52px;
+  height: 2px;
+  margin: 0.7rem 0 0.95rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(184, 157, 135, 0.74) 0%, rgba(184, 157, 135, 0.1) 100%);
+}
+
+.minimal-lead,
+.minimal-copy,
+.minimal-list,
+.minimal-cta p,
+.minimal-contact dd,
+.minimal-contact dt,
+.minimal-timeline p,
+.minimal-footer {
+  font-size: var(--minimal-type-body);
+  line-height: 1.76;
+}
+
+.minimal-lead,
+.minimal-copy {
+  max-width: 50ch;
+  margin: 0 0 0.72rem;
+}
+
+.minimal-lead {
+  font-size: 1.06rem;
+  line-height: 1.72;
+  color: rgba(74, 73, 70, 0.92);
+}
+
+.minimal-copy {
+  color: rgba(74, 73, 70, 0.82);
+}
+
+.minimal-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding-top: 0.45rem;
+}
+
+.minimal-aside {
+  align-self: start;
+  justify-self: end;
+  max-width: 19.5rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.minimal-aside .minimal-kicker {
+  margin-bottom: 0.3rem;
+}
+
+.minimal-aside h2 {
+  margin: 0 0 0.5rem;
+  font-family: "HairTPDisplay", Georgia, serif;
+  font-size: 1.34rem;
+  line-height: 1.04;
+}
+
+.minimal-contact {
+  margin: 0;
+  display: grid;
+  gap: 0.05rem;
+}
+
+.minimal-contact div {
+  padding: 0.34rem 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.minimal-contact div:first-child {
+  padding-top: 0;
+}
+
+.minimal-contact dt {
+  margin: 0 0 0.04rem;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0.1rem;
+  text-transform: uppercase;
+  color: rgba(74, 73, 70, 0.56);
+}
+
+.minimal-contact dd {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.38;
+}
+
+.minimal-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  padding: 0.15rem 0 1.55rem;
+}
+
+.minimal-stat {
+  min-height: 100%;
+  position: relative;
+  padding: 0 1.15rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.minimal-stat:first-child {
+  padding-left: 0;
+}
+
+.minimal-stat:last-child {
+  padding-right: 0;
+}
+
+.minimal-stat + .minimal-stat::before {
+  content: "";
+  position: absolute;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  left: 0;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(177, 152, 132, 0) 0%,
+    rgba(177, 152, 132, 0.14) 12%,
+    rgba(177, 152, 132, 0.14) 88%,
+    rgba(177, 152, 132, 0) 100%
+  );
+}
+
+.minimal-stat-value {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-family: "HairTPDisplay", Georgia, serif;
+  font-size: var(--minimal-type-stat-value);
+  line-height: 0.92;
+  color: rgba(184, 157, 135, 0.96);
+}
+
+.minimal-stat h3 {
+  margin: 0 0 0.42rem;
+  font-size: var(--minimal-type-stat-heading);
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.minimal-stat p {
+  margin: 0;
+  font-size: var(--minimal-type-body-compact);
+  line-height: 1.62;
+  color: rgba(74, 73, 70, 0.88);
+}
+
+.minimal-section {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  padding: 2.05rem 0 0;
+  align-items: start;
+  border-top: 1px solid rgba(177, 152, 132, 0.08);
+}
+
+.minimal-section + .minimal-section {
+  margin-top: 0.1rem;
+}
+
+.minimal-section-label {
+  display: inline-flex;
+  align-items: center;
+  align-self: start;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font-size: 0.76rem;
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: 0.09rem;
+  text-transform: uppercase;
+  color: rgba(74, 73, 70, 0.62);
+}
+
+.minimal-section-content {
+  display: grid;
+  gap: 0.92rem;
+}
+
+.minimal-section-header {
+  display: grid;
+  gap: 0.36rem;
+}
+
+.minimal-section-title {
+  margin: 0;
+  max-width: 18ch;
+  font-family: "HairTPDisplay", Georgia, serif;
+  font-size: var(--minimal-type-section);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.minimal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.minimal-card {
+  padding: 0 0 0 1.25rem;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid rgba(177, 152, 132, 0.1);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.minimal-card h3 {
+  margin: 0 0 0.65rem;
+  font-family: "HairTPDisplay", Georgia, serif;
+  font-size: var(--minimal-type-card);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.minimal-card .minimal-kicker {
+  margin-bottom: 0.7rem;
+}
+
+.minimal-list {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.minimal-list li + li {
+  margin-top: 0.5rem;
+}
+
+.minimal-list li::marker {
+  color: rgba(184, 157, 135, 0.92);
+}
+
+.minimal-timeline {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.minimal-timeline-item {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 0.82rem;
+  padding: 0.72rem 0 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid rgba(177, 152, 132, 0.08);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.minimal-timeline-item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.minimal-timeline-label {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.09rem;
+  text-transform: uppercase;
+  color: rgba(74, 73, 70, 0.6);
+}
+
+.minimal-timeline h3 {
+  margin: 0 0 0.38rem;
+  font-size: var(--minimal-type-timeline);
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.minimal-timeline p {
+  margin: 0;
+}
+
+.minimal-cta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 2.6rem;
+  padding: 2.2rem 0 0;
+  background: transparent;
+  border-top: 1px solid rgba(177, 152, 132, 0.08);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.minimal-cta h2 {
+  margin: 0 0 0.45rem;
+  font-family: "HairTPDisplay", Georgia, serif;
+  font-size: var(--minimal-type-cta);
+  line-height: 1.08;
+  max-width: 16ch;
+}
+
+.minimal-cta p,
+.minimal-footer {
+  margin: 0;
+  color: rgba(74, 73, 70, 0.86);
+}
+
+.minimal-cta p {
+  max-width: 60ch;
+}
+
+.minimal-footer {
+  padding: 1.55rem 0 0.4rem;
+  text-align: left;
+}
+
+body.pdf-server-export .print-hidden {
+  display: none !important;
+}
+
+body.pdf-server-export {
+  background: #fff;
+}
+
+body.pdf-server-export .minimal-shell {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+body.pdf-server-export .minimal-topbar {
+  padding-bottom: 0.55rem;
+}
+
+body.pdf-server-export .minimal-hero {
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+  padding-top: 0;
+}
+
+body.pdf-server-export .minimal-title {
+  max-width: 11.5ch;
+  font-size: 2.34rem;
+}
+
+body.pdf-server-export .minimal-kicker {
+  margin-bottom: 0.45rem;
+}
+
+body.pdf-server-export .minimal-divider {
+  margin: 0.55rem 0 0.75rem;
+}
+
+body.pdf-server-export .minimal-overview {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  padding-bottom: 1rem;
+}
+
+body.pdf-server-export .minimal-stat,
+body.pdf-server-export .minimal-section,
+body.pdf-server-export .minimal-card,
+body.pdf-server-export .minimal-timeline-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+body.pdf-server-export .minimal-stat {
+  padding: 0;
+}
+
+body.pdf-server-export .minimal-stat + .minimal-stat::before {
+  display: none;
+}
+
+body.pdf-server-export .minimal-section {
+  padding-top: 1.3rem;
+}
+
+body.pdf-server-export .minimal-grid {
+  grid-template-columns: 1fr;
+  gap: 0.8rem;
+}
+
+body.pdf-server-export .minimal-card {
+  padding-left: 0.95rem;
+}
+
+body.pdf-server-export .minimal-timeline {
+  gap: 0.5rem;
+}
+
+body.pdf-server-export .minimal-timeline-item {
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0.65rem;
+  padding-top: 0.52rem;
+}
+
+body.pdf-server-export .minimal-footer {
+  padding-top: 1rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 980px) {
+  .minimal-hero,
+  .minimal-section,
+  .minimal-cta {
+    grid-template-columns: 1fr;
+  }
+
+  .minimal-overview,
+  .minimal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .minimal-stat {
+    padding: 0 1.4rem;
+  }
+
+  .minimal-hero {
+    padding: 0.35rem 0 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .minimal-shell {
+    width: min(calc(100% - 1.5rem), 1040px);
+    padding-top: 1rem;
+  }
+
+  .minimal-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .minimal-actions,
+  .minimal-nav,
+  .minimal-hero-actions,
+  .minimal-overview,
+  .minimal-grid {
+    width: 100%;
+  }
+
+  .minimal-overview,
+  .minimal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .minimal-overview {
+    gap: 1.35rem;
+  }
+
+  .minimal-stat,
+  .minimal-stat:first-child,
+  .minimal-stat:last-child {
+    padding: 0 0 0 1.25rem;
+  }
+
+  .minimal-stat + .minimal-stat::before {
+    top: -0.7rem;
+    right: 0;
+    bottom: auto;
+    left: 0;
+    width: auto;
+    height: 1px;
+  }
+
+  .minimal-hero {
+    padding: 0.2rem 0 0;
+  }
+
+  .minimal-timeline-item {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .minimal-cta {
+    padding: 2.2rem 0 0;
+  }
+
+  .minimal-button {
+    width: 100%;
+  }
+}

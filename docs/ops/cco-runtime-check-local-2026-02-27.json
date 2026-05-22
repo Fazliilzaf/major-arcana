@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-02-27T20:00:31.049Z",
+  "baseUrl": "http://127.0.0.1:3114",
+  "result": "ok",
+  "cco": {
+    "decision": "allow",
+    "runId": "89b7555b-cda7-4ebd-acec-3d334a8079be",
+    "priorityLevel": "Low",
+    "mailboxCount": 0,
+    "messageCount": 0,
+    "needsReplyTodayCount": 0,
+    "suggestedDraftsCount": 0,
+    "conversationWorklistCount": 0
+  },
+  "ccoSendStatus": 422,
+  "ccoSendBodySnippet": "{\"error\":\"mailboxId kravs.\",\"code\":\"CCO_SEND_INPUT_INVALID\",\"details\":null}"
+}
