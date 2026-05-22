@@ -39419,6 +39419,9 @@
       console.warn("Kundernas live-laddning misslyckades.", error);
         applyCustomerFilters();
       });
+      if (window.ArcanaPatientMasterUi?.onCustomersViewOpen) {
+        window.ArcanaPatientMasterUi.onCustomersViewOpen();
+      }
     }
 
     if (shellView === "analytics") {
@@ -41185,6 +41188,11 @@
       }
     });
   }
+
+  window.addEventListener("arcana-patient-master-mode", (event) => {
+    if (normalizeKey(event?.detail?.mode) !== "identity") return;
+    applyCustomerFilters();
+  });
 
   customerCommandButtons.forEach((button) => {
     button.addEventListener("click", () => {

@@ -241,17 +241,23 @@ function buildCommercialCaseReadout(commercialCase = {}, { nowMs = Date.now() } 
     nextStep = 'Skicka offerten och tydliggör nästa betalnings- eller bokningssteg';
     waitingOn = 'operator';
   } else if (commercialStatus === 'quote_sent' || quoteStatus === 'sent') {
-    phase = 'quote_sent';
+    const coolingEndsAt = normalizeText(safeCase.coolingOffEndsAt);
+    const coolingActive = coolingEndsAt && Date.parse(coolingEndsAt) > nowMs;
+    phase = coolingActive ? 'cooling_off' : 'quote_sent';
     blocker = {
-      key: 'quote_sent',
-      action: 'follow_up_quote',
-      label: schedule.isOverdue
-        ? 'Offerten väntar på kundens besked och uppföljningen har förfallit'
-        : 'Offerten väntar på kundens besked',
-      score: schedule.isOverdue ? 88 : schedule.isDue ? 80 : 60,
+      key: coolingActive ? 'cooling_off_active' : 'quote_sent',
+      action: coolingActive ? 'wait_cooling_off' : 'follow_up_quote',
+      label: coolingActive
+        ? `Betänketid gäller till ${coolingEndsAt.slice(0, 10)}`
+        : schedule.isOverdue
+          ? 'Offerten väntar på kundens besked och uppföljningen har förfallit'
+          : 'Offerten väntar på kundens besked',
+      score: coolingActive ? 92 : schedule.isOverdue ? 88 : schedule.isDue ? 80 : 60,
     };
-    nextStep = 'Invänta kundens besked om offert eller prisupplägg';
-    waitingOn = 'customer';
+    nextStep = coolingActive
+      ? `Invänta betänketid till ${coolingEndsAt.slice(0, 10)} innan bindande accept`
+      : 'Invänta kundens besked om offert eller prisupplägg';
+    waitingOn = coolingActive ? 'legal' : 'customer';
   } else if (
     commercialStatus === 'deposit_pending' ||
     commercialStatus === 'payment_pending' ||
@@ -370,6 +376,17 @@ function buildCommercialCaseReadout(commercialCase = {}, { nowMs = Date.now() } 
         : waitingOn === 'booking'
           ? 'Commercial är förankrat. Lämna vidare till bokning med tydligt ekonomiskt läge.'
           : ''),
+    linkedJournalEntryId: normalizeText(safeCase.linkedJournalEntryId),
+    offerDocumentId: normalizeText(safeCase.offerDocumentId),
+    offerDocumentPdfId: normalizeText(safeCase.offerDocumentPdfId),
+    offerDocumentWordId: normalizeText(safeCase.offerDocumentWordId),
+    offerTemplateKey: normalizeText(safeCase.offerTemplateKey),
+    quoteSentAt: normalizeText(safeCase.quoteSentAt),
+    quoteAcceptedAt: normalizeText(safeCase.quoteAcceptedAt),
+    customerSignedName: normalizeText(safeCase.customerSignedName),
+    coolingOffEndsAt: normalizeText(safeCase.coolingOffEndsAt),
+    esignStatus: normalizeText(safeCase.esignStatus) || 'draft',
+    hasPlanSnapshot: Boolean(safeCase.planSnapshot),
   };
 }
 
@@ -469,6 +486,24 @@ function normalizeCommercialCase(input = {}, existing = {}) {
     linkedOperationCaseId: normalizeText(
       safe.linkedOperationCaseId || previous.linkedOperationCaseId
     ),
+    linkedJournalEntryId: normalizeText(safe.linkedJournalEntryId || previous.linkedJournalEntryId),
+    linkedPatientId: normalizeText(safe.linkedPatientId || previous.linkedPatientId),
+    offerDocumentId: normalizeText(safe.offerDocumentId || previous.offerDocumentId),
+    offerDocumentPdfId: normalizeText(safe.offerDocumentPdfId || previous.offerDocumentPdfId),
+    offerDocumentWordId: normalizeText(safe.offerDocumentWordId || previous.offerDocumentWordId),
+    offerTemplateKey: normalizeText(safe.offerTemplateKey || previous.offerTemplateKey),
+    quoteSentAt: normalizeText(safe.quoteSentAt || previous.quoteSentAt),
+    quoteAcceptedAt: normalizeText(safe.quoteAcceptedAt || previous.quoteAcceptedAt),
+    customerSignedName: normalizeText(safe.customerSignedName || previous.customerSignedName),
+    coolingOffEndsAt: normalizeText(safe.coolingOffEndsAt || previous.coolingOffEndsAt),
+    esignToken: normalizeText(safe.esignToken || previous.esignToken),
+    esignStatus: normalizeText(safe.esignStatus || previous.esignStatus) || 'draft',
+    planSnapshot:
+      safe.planSnapshot && typeof safe.planSnapshot === 'object'
+        ? safe.planSnapshot
+        : previous.planSnapshot && typeof previous.planSnapshot === 'object'
+          ? previous.planSnapshot
+          : null,
     requiredActions,
     events: asArray(safe.events).length
       ? asArray(safe.events).map((event) => {
@@ -540,8 +575,28 @@ async function createCcoCommercialStore({ filePath }) {
     return cloneCase(state.commercialCases[index >= 0 ? index : state.commercialCases.length - 1]);
   }
 
+  async function getPatientRegisterCase({ tenantId, patientId } = {}) {
+    const key = caseKey({
+      tenantId,
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'patient-register',
+      customerId: patientId,
+    });
+    return cloneCase(state.commercialCases.find((item) => caseKey(item) === key));
+  }
+
+  async function findCaseByEsignToken(token) {
+    const normalized = normalizeText(token);
+    if (!normalized) return null;
+    return cloneCase(
+      state.commercialCases.find((item) => normalizeText(item.esignToken) === normalized)
+    );
+  }
+
   return {
     getCase,
+    getPatientRegisterCase,
+    findCaseByEsignToken,
     ensureCase,
     upsertCase,
   };

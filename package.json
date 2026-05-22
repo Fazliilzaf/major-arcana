@@ -37,6 +37,7 @@
     "migration:scan-folder": "node scripts/migration/scanDriveFolder.js",
     "migration:scan-drive-api": "node scripts/migration/scanGoogleDriveApi.js",
     "migration:import": "node scripts/migration/runMigrationPipeline.js --root .. --tenant hair-tp-clinic",
+    "migration:import-journals": "node scripts/migration/importHistoricalJournals.js",
     "migration:test": "node --test tests/ops/ccoPatientJournalMigration.test.js",
     "test:runtime-queue-integration": "node scripts/test/runtime-queue-renderers.integration.test.js",
     "sync-cache-busters": "bash ./bin/sync-cache-busters.sh",
@@ -168,6 +169,7 @@
     "piexifjs": "^1.0.6",
     "playwright": "1.58.2",
     "redis": "^4.7.1",
+    "sharp": "^0.34.5",
     "stripe": "^22.1.1"
   },
   "devDependencies": {

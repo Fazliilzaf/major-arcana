@@ -20,7 +20,9 @@ function getAuthToken(req) {
 }
 
 function isLocalPreviewRequest(req) {
-  const host = normalizeText(req.hostname || req.get('host')).split(':')[0].toLowerCase();
+  const host = normalizeText(req.hostname || req.get('host'))
+    .split(':')[0]
+    .toLowerCase();
   const ip = normalizeText(req.ip || req.socket?.remoteAddress || '').toLowerCase();
   return (
     ['localhost', '127.0.0.1', '::1'].includes(host) ||
@@ -89,6 +91,21 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
   async function requireAuth(req, res, next) {
     try {
       const token = getAuthToken(req);
+      if (token === '__preview_local__' && isLocalPreviewRequest(req)) {
+        req.auth = {
+          token: localPreviewAuthContext.token,
+          sessionId: localPreviewAuthContext.sessionId,
+          userId: localPreviewAuthContext.userId,
+          membershipId: localPreviewAuthContext.membershipId,
+          tenantId: localPreviewAuthContext.tenantId,
+          role: localPreviewAuthContext.role,
+          authMode: localPreviewAuthContext.authMode,
+        };
+        req.currentUser = localPreviewAuthContext.currentUser;
+        req.currentMembership = localPreviewAuthContext.currentMembership;
+        req.currentSession = localPreviewAuthContext.currentSession;
+        return next();
+      }
       if (token) {
         const context = await authStore.getSessionContextByToken(token);
         if (context) {

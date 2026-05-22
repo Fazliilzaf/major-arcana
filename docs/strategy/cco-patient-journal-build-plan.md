@@ -45,23 +45,23 @@ Synka journalmappen till en mapp **utanför iCloud**, t.ex. `~/Major-Arcana-Migr
 - [x] 1.5 `ccoMigrationIndexStore.js`
 - [x] 1.6 `ccoPatientMaster.js` router
 - [x] 1.7 `ccoMigration.js` router
-- [ ] 1.8 Kör `migration:scan-drive-api` eller `migration:scan-folder` (zip behövs inte)
+- [x] 1.8 Kör `migration:scan` — **46 977 filer indexerade**
 
 ## Fas 2 — Kundkort UI
 
-- [ ] 2.1 Kundlista: sök, filter, flaggor (API klart, UI kvar)
-- [ ] 2.2 Kundkort flikar
-- [ ] 2.3 Visuell markering importerad vs ny
+- [x] 2.1 Kundlista: sök, filter, flaggor (API + preview UI)
+- [x] 2.2 Kundkort flikar (Profil | Journal | Filer)
+- [x] 2.3 Visuell markering importerad vs ny (chips: Kopplad, Importerad journal, flaggor)
 
 ## Fas 3 — Journalmodul
 
 - [x] 3.1 `ccoJournalStore.js` — signering, låsning, rättelse
 - [x] 3.2 `ccoJournal.js` router — audit på läsning + skrivning
 - [x] 3.3 TP-journal 38 fält (schema i store)
-- [ ] 3.4 Historisk import — PDF från Drive (väntar scan)
-- [ ] 3.5 Bildmetadata + `journal-photos/` lagring
+- [x] 3.4 Historisk import — PDF från zip (`migration:import-journals` + per-patient import)
+- [x] 3.5 Bildmetadata + filvisning från zip (journal-photos/ för nya foton)
 - [x] 3.6 `syncPatient360FromJournalCase` i bridge
-- [ ] 3.7 `buildJournalReadout` i workspace UI
+- [x] 3.7 `journalReadout` i workspace bootstrap
 
 ## Fas 4 — Wire patient-resa
 
@@ -71,9 +71,9 @@ Synka journalmappen till en mapp **utanför iCloud**, t.ex. `~/Major-Arcana-Migr
 
 ## Fas 5 — Offerter & avtal
 
-- [ ] 5.1 Offertmallar (14 Word) som mallbibliotek
-- [ ] 5.2 Offertmodul + statusflöde
-- [ ] 5.3 Avtal/e-sign + betänketid-blocker
+- [x] 5.1 Offertmallar (14 Word) som mallbibliotek
+- [x] 5.2 Offertmodul + statusflöde
+- [x] 5.3 Avtal/e-sign + betänketid-blocker
 
 ## Fas 6 — Bookingmotor
 
@@ -102,3 +102,13 @@ Synka journalmappen till en mapp **utanför iCloud**, t.ex. `~/Major-Arcana-Migr
 - [ ] Migration-index verifierat (pilot 20 kunder)
 - [ ] Journal-MVP deployad
 - [ ] Minst en personal utbildad
+- [ ] **Mobil foto-flöde (kod klar)** — se [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md) — **deploy Fas 0 + pilot Fas 5.5 krävs**
+
+## Fas 10 — Mobil journal (personal)
+
+Detaljerad plan: [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)
+
+- [x] Fas 1–4 + 6.1/6.3 kod (Ta bild, HEIC, mobil-CSS, PWA, deep link, QR, batch)
+- [ ] Fas 0 deploy (HTTPS, prod-auth)
+- [ ] Fas 5.5–5.6 pilot med personal
+- Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)

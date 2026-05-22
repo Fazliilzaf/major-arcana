@@ -11,6 +11,8 @@ const { createCcoJournalStore } = require('../../src/ops/ccoJournalStore');
 const {
   normalizePersonnummer,
   nameOverlapScore,
+  extractFileOccasionContext,
+  buildOccasionTimeline,
 } = require('../../scripts/migration/lib/migrationUtils');
 
 test('normalizePersonnummer formats Swedish personnummer', () => {
@@ -21,6 +23,33 @@ test('normalizePersonnummer formats Swedish personnummer', () => {
 test('nameOverlapScore finds likely same person', () => {
   const score = nameOverlapScore('David Persson', 'David Persson - 19801224-5513');
   assert.ok(score >= 0.5);
+});
+
+test('extractFileOccasionContext reads TP batch, PRP date and journal date', () => {
+  const imageContext = extractFileOccasionContext({
+    relativePath:
+      'Hair TP Clinic 2020/Januari TP 2020/Abbe Holmlund - 19960830-4698/Abbe Holmlund _ 2025 05 17 _ PRP 9/IMG_3464.HEIC',
+    fileName: 'IMG_3464.HEIC',
+    fileType: 'image',
+  });
+  assert.equal(imageContext.capturedAt, '2025-05-17');
+  assert.match(imageContext.timelineLabel, /17 maj 2025/i);
+  assert.match(imageContext.timelineLabel, /PRP/i);
+
+  const journalContext = extractFileOccasionContext({
+    relativePath:
+      'Hair TP Clinic 2020/Januari TP 2020/Abbe Holmlund - 19960830-4698/Journal Abbe Holmlund- 2024-05-14.pdf',
+    fileName: 'Journal Abbe Holmlund- 2024-05-14.pdf',
+    fileType: 'journal_pdf',
+  });
+  assert.equal(journalContext.capturedAt, '2024-05-14');
+  assert.match(journalContext.timelineLabel, /14 maj 2024/i);
+
+  const timeline = buildOccasionTimeline([
+    { ...journalContext, fileType: 'journal_pdf', occasionContext: journalContext },
+    { ...imageContext, fileType: 'image', occasionContext: imageContext },
+  ]);
+  assert.ok(timeline.length >= 2);
 });
 
 test('buildFileRecord indexes folder and drive_api sources', () => {
@@ -94,6 +123,41 @@ test('patient master imports cliento rows and merges drive profile', async () =>
   assert.ok(patient);
   assert.equal(patient.matchStatus, 'matched');
   assert.equal(patient.fileSummary.journalPdfs, 2);
+});
+
+test('historical journal import dedupes by zip path', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'journal-import-'));
+  const filePath = path.join(dir, 'cco-journal.json');
+  const store = await createCcoJournalStore({ filePath });
+  const file = {
+    id: 'file-1',
+    zipName: 'Hair TP Clinic 2024.zip',
+    relativePath: '2024/Test 19801224-5513/journal.pdf',
+    fileName: 'journal.pdf',
+    fileType: 'journal_pdf',
+  };
+  const first = await store.importHistoricalEntries({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    personnummer: '19801224-5513',
+    files: [file],
+    actor: { userId: 'staff-1', role: 'STAFF' },
+  });
+  const second = await store.importHistoricalEntries({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    personnummer: '19801224-5513',
+    files: [file],
+    actor: { userId: 'staff-1', role: 'STAFF' },
+  });
+  assert.equal(first.created, 1);
+  assert.equal(second.created, 0);
+  assert.equal(second.skipped, 1);
+  const entries = await store.listEntries({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+  });
+  assert.equal(entries.length, 1);
 });
 
 test('journal store locks entry after signing', async () => {

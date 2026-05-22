@@ -99,14 +99,20 @@ function normalizeClientoRecord(input = {}) {
   const { firstName, lastName } = splitName(name);
   const emails = [
     ...new Set(
-      [normalizeEmail(safe.email), normalizeEmail(safe['E-post']), normalizeEmail(safe.customerEmail)]
-        .filter(Boolean)
+      [
+        normalizeEmail(safe.email),
+        normalizeEmail(safe['E-post']),
+        normalizeEmail(safe.customerEmail),
+      ].filter(Boolean)
     ),
   ];
   const phones = [
     ...new Set(
-      [normalizePhone(safe.phone), normalizePhone(safe.Telefon), normalizePhone(safe.customerPhone)]
-        .filter(Boolean)
+      [
+        normalizePhone(safe.phone),
+        normalizePhone(safe.Telefon),
+        normalizePhone(safe.customerPhone),
+      ].filter(Boolean)
     ),
   ];
   return {
@@ -151,6 +157,7 @@ function computeFlags(patient) {
   if (patient.matchStatus === 'cliento_only') flags.push('cliento_only');
   if (patient.matchStatus === 'needs_review') flags.push('needs_review');
   if (patient.duplicateEmail) flags.push('duplicate_email');
+  if (Number(asObject(patient.fileSummary).totalFiles) > 0) flags.push('has_drive_files');
   return normalizeFlags(flags);
 }
 
@@ -193,15 +200,23 @@ function normalizePatientRecord(input = {}, existing = {}) {
     emails,
     phones,
     matchStatus: normalizeKey(safe.matchStatus || existingSafe.matchStatus) || 'unmatched',
-    matchConfidence:
-      Number.isFinite(Number(safe.matchConfidence)) ? Number(safe.matchConfidence) : Number(existingSafe.matchConfidence) || 0,
+    matchConfidence: Number.isFinite(Number(safe.matchConfidence))
+      ? Number(safe.matchConfidence)
+      : Number(existingSafe.matchConfidence) || 0,
     duplicateEmail: Boolean(safe.duplicateEmail ?? existingSafe.duplicateEmail),
     cliento: safe.cliento || existingSafe.cliento || null,
     drive: safe.drive || existingSafe.drive || null,
     fileSummary: {
-      totalFiles: Number(asObject(safe.fileSummary).totalFiles || asObject(existingSafe.fileSummary).totalFiles) || 0,
-      journalPdfs: Number(asObject(safe.fileSummary).journalPdfs || asObject(existingSafe.fileSummary).journalPdfs) || 0,
-      images: Number(asObject(safe.fileSummary).images || asObject(existingSafe.fileSummary).images) || 0,
+      totalFiles:
+        Number(
+          asObject(safe.fileSummary).totalFiles || asObject(existingSafe.fileSummary).totalFiles
+        ) || 0,
+      journalPdfs:
+        Number(
+          asObject(safe.fileSummary).journalPdfs || asObject(existingSafe.fileSummary).journalPdfs
+        ) || 0,
+      images:
+        Number(asObject(safe.fileSummary).images || asObject(existingSafe.fileSummary).images) || 0,
     },
     flags: [],
     createdAt: normalizeText(existingSafe.createdAt) || nowIso(),
@@ -236,7 +251,7 @@ function buildPatientCardReadout(patient) {
 }
 
 async function createCcoPatientMasterStore({ filePath }) {
-  let state = await readJson(filePath, emptyState());
+  const state = await readJson(filePath, emptyState());
 
   async function save() {
     state.updatedAt = nowIso();
@@ -262,9 +277,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     const pnr = normalizePersonnummer(normalized.personnummer);
     let index = -1;
     if (pnr) {
-      index = bucket.patients.findIndex(
-        (item) => normalizePersonnummer(item.personnummer) === pnr
-      );
+      index = bucket.patients.findIndex((item) => normalizePersonnummer(item.personnummer) === pnr);
     }
     if (index < 0 && normalized.id) {
       index = bucket.patients.findIndex((item) => item.id === normalized.id);
@@ -303,7 +316,15 @@ async function createCcoPatientMasterStore({ filePath }) {
       });
     }
     if (flagSet.size) {
-      rows = rows.filter((item) => asArray(item.flags).some((flag) => flagSet.has(normalizeKey(flag))));
+      if (flagSet.has('has_drive_files')) {
+        rows = rows.filter((item) => Number(asObject(item.fileSummary).totalFiles) > 0);
+        flagSet.delete('has_drive_files');
+      }
+      if (flagSet.size) {
+        rows = rows.filter((item) =>
+          asArray(item.flags).some((flag) => flagSet.has(normalizeKey(flag)))
+        );
+      }
     }
     rows.sort((a, b) => {
       const nameA = normalizeKey(a.displayName);
@@ -312,7 +333,7 @@ async function createCcoPatientMasterStore({ filePath }) {
       return Date.parse(b.updatedAt || 0) - Date.parse(a.updatedAt || 0);
     });
     const start = Math.max(0, Number(offset) || 0);
-    const max = Math.max(1, Math.min(500, Number(limit) || 100));
+    const max = Math.max(1, Math.min(20000, Number(limit) || 100));
     return {
       total: rows.length,
       offset: start,

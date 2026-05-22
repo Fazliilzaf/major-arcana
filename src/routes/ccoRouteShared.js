@@ -23,6 +23,14 @@ function getAuthToken(req) {
 
 async function resolveCcoRouteActor(req, { authStore, config }) {
   const token = getAuthToken(req);
+  if (token === '__preview_local__' && isLocalPreviewRequest(req)) {
+    return {
+      tenantId: config.defaultTenantId,
+      userId: 'preview-local',
+      role: 'OWNER',
+      authMode: 'preview_local',
+    };
+  }
   if (token) {
     const context = await authStore.getSessionContextByToken(token);
     if (!context) {

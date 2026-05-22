@@ -13,6 +13,7 @@ const { buildConsultationCaseReadout } = require('../ops/ccoConsultationStore');
 const { buildAftercareCaseReadout } = require('../ops/ccoAftercareStore');
 const { buildOperationCaseReadout } = require('../ops/ccoOperationStore');
 const { buildCommercialCaseReadout } = require('../ops/ccoCommercialStore');
+const { buildJournalReadout } = require('../ops/ccoJournalStore');
 const {
   syncPatient360FromAftercareCase,
   syncPatient360FromBookingCase,
@@ -568,6 +569,44 @@ function buildConsultationReadout(consultationCase, workspaceContext = null) {
   };
 }
 
+function buildJournalWorkspaceReadout({ entries = [], patientCard = null } = {}) {
+  const safeEntries = asArray(entries).map((entry) => buildJournalReadout(entry));
+  const card = patientCard && typeof patientCard === 'object' ? patientCard : null;
+  return {
+    enabled: Boolean(card),
+    patientId: card?.patientId || null,
+    personnummer: card?.personnummer || '',
+    displayName: card?.displayName || '',
+    totalEntries: safeEntries.length,
+    historicalCount: safeEntries.filter((item) => item.journalType === 'historical_import').length,
+    draftCount: safeEntries.filter((item) => item.status === 'draft' && !item.locked).length,
+    signedCount: safeEntries.filter((item) => item.status === 'signed').length,
+    hasJournalHistory: Boolean(card?.hasJournalHistory),
+    fileSummary: card?.fileSummary || null,
+    recent: safeEntries.slice(0, 8),
+  };
+}
+
+async function resolvePatientCardFromContext(patientMasterStore, context) {
+  if (!patientMasterStore || !context?.customerId) return null;
+  const listed = await patientMasterStore.listPatients({
+    tenantId: context.tenantId,
+    query: context.customerId,
+    limit: 8,
+  });
+  const target = normalizeText(context.customerId).toLowerCase();
+  const match =
+    listed.patients.find(
+      (patient) => normalizeText(patient.primaryEmail).toLowerCase() === target
+    ) ||
+    listed.patients.find((patient) =>
+      normalizeText(patient.displayName).toLowerCase().includes(target.replace(/@.+/, ''))
+    ) ||
+    listed.patients[0] ||
+    null;
+  return match ? patientMasterStore.buildPatientCardReadout(match) : null;
+}
+
 function buildCommercialReadout(commercialCase, workspaceContext = null) {
   const contentContext = toWorkspaceContentContext(workspaceContext);
   const safeCase = commercialCase && typeof commercialCase === 'object' ? commercialCase : null;
@@ -639,6 +678,8 @@ function createCcoWorkspaceRouter({
   bookingStore,
   consultationStore = null,
   patientSystemStore = null,
+  patientMasterStore = null,
+  journalStore = null,
   workspacePrefsStore,
   portalStore = null,
   authStore,
@@ -867,6 +908,19 @@ function createCcoWorkspaceRouter({
         .map((item) => buildAftercareQueueItem(item, context))
         .filter(Boolean);
 
+      const patientCard = await resolvePatientCardFromContext(patientMasterStore, context);
+      const journalEntries =
+        patientCard && journalStore
+          ? await journalStore.listEntries({
+              tenantId: context.tenantId,
+              patientId: patientCard.patientId,
+            })
+          : [];
+      const journalReadout = buildJournalWorkspaceReadout({
+        entries: journalEntries,
+        patientCard,
+      });
+
       return res.json({
         workspaceId: context.workspaceId,
         authMode: context.actor.authMode,
@@ -890,6 +944,8 @@ function createCcoWorkspaceRouter({
         operationReadout: buildOperationReadout(operationCase, context),
         commercialReadout: buildCommercialReadout(commercialCase, context),
         aftercareQueue,
+        journalReadout,
+        patientCard,
         patient360: serializePatient360(
           pickLatestPatient360Record(
             patientRecord,

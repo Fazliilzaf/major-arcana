@@ -76,7 +76,7 @@ function aggregateProfiles(files) {
 }
 
 async function createCcoMigrationIndexStore({ filePath }) {
-  let state = await readJson(filePath, emptyState());
+  const state = await readJson(filePath, emptyState());
 
   async function save() {
     state.updatedAt = nowIso();
@@ -106,7 +106,9 @@ async function createCcoMigrationIndexStore({ filePath }) {
 
   async function listProfiles({ limit = 200, offset = 0 } = {}) {
     const rows = Object.values(state.profilesByPersonnummer || {});
-    rows.sort((a, b) => normalizeText(a.displayName).localeCompare(normalizeText(b.displayName), 'sv'));
+    rows.sort((a, b) =>
+      normalizeText(a.displayName).localeCompare(normalizeText(b.displayName), 'sv')
+    );
     const start = Math.max(0, Number(offset) || 0);
     const max = Math.max(1, Math.min(1000, Number(limit) || 200));
     return {
@@ -129,7 +131,14 @@ async function createCcoMigrationIndexStore({ filePath }) {
     return state.profilesByPersonnummer[pnr] || null;
   }
 
+  async function getFileById(fileId) {
+    const id = normalizeText(fileId);
+    if (!id) return null;
+    return state.files.find((item) => item.id === id) || null;
+  }
+
   return {
+    getFileById,
     getFilesForPersonnummer,
     getProfile,
     getStats,
