@@ -3463,26 +3463,57 @@ body.is-admin-embed .focus-conversation {
 /* Fas 2 — Kundregister (patient master) */
 .patient-master-mode-toggle {
   display: inline-flex;
-  gap: 0.35rem;
-  padding: 0.25rem;
-  border-radius: 999px;
-  background: var(--warm-surface-muted, rgba(255, 251, 247, 0.92));
-  border: 1px solid var(--warm-border-soft, rgba(154, 126, 104, 0.18));
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .patient-master-mode-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 9px;
   border: 0;
-  background: transparent;
-  color: var(--warm-text-secondary, #6b5648);
   border-radius: 999px;
-  padding: 0.45rem 0.85rem;
-  font: inherit;
+  background: transparent;
+  color: rgba(43, 41, 38, 0.72);
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.patient-master-mode-button:hover {
+  color: rgba(43, 41, 38, 0.9);
+  background: rgba(255, 255, 255, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.64);
 }
 
 .patient-master-mode-button.is-active {
-  background: var(--warm-accent, #8b5e3c);
-  color: #fff;
+  border: 1px solid rgba(226, 188, 206, 0.88);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 246, 249, 0.985) 0%,
+    rgba(244, 225, 234, 0.94) 100%
+  );
+  color: #9d4b76;
+  box-shadow:
+    0 5px 10px rgba(187, 135, 161, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.36),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -4px 6px rgba(214, 176, 192, 0.24);
 }
 
 .patient-master-empty,
@@ -3528,22 +3559,53 @@ body.is-admin-embed .focus-conversation {
 
 .patient-master-tabs {
   display: flex;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .patient-master-tab {
-  border: 1px solid var(--warm-border-soft, rgba(154, 126, 104, 0.18));
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 0;
   border-radius: 999px;
-  padding: 0.35rem 0.8rem;
+  background: transparent;
+  color: rgba(43, 41, 38, 0.72);
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  font: inherit;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.patient-master-tab:hover {
+  color: rgba(43, 41, 38, 0.9);
+  background: rgba(255, 255, 255, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.64);
 }
 
 .patient-master-tab.is-active {
-  background: var(--warm-accent-soft, rgba(139, 94, 60, 0.12));
-  border-color: var(--warm-accent, #8b5e3c);
+  border: 1px solid rgba(226, 188, 206, 0.88);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 246, 249, 0.985) 0%,
+    rgba(244, 225, 234, 0.94) 100%
+  );
+  color: #9d4b76;
+  box-shadow:
+    0 5px 10px rgba(187, 135, 161, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.36),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -4px 6px rgba(214, 176, 192, 0.24);
 }
 
 .patient-master-tab-panel {
@@ -3613,6 +3675,113 @@ body.is-admin-embed .focus-conversation {
   flex-wrap: wrap;
   gap: 0.35rem;
   align-items: center;
+}
+
+.patient-master-journal-item.is-editing {
+  border-color: rgba(157, 75, 118, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(157, 75, 118, 0.18);
+}
+
+.patient-master-tp-hint {
+  margin: 0.35rem 0 0.75rem;
+}
+
+.patient-master-tp-form-wrap {
+  margin: 0.75rem 0 1rem;
+}
+
+.patient-master-tp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.patient-master-tp-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.patient-master-tp-header h4 {
+  margin: 0 0 0.25rem;
+}
+
+.patient-master-tp-section {
+  border: 1px solid rgba(43, 41, 38, 0.08);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.patient-master-tp-section > summary {
+  cursor: pointer;
+  padding: 0.65rem 0.85rem;
+  font-weight: 700;
+  list-style: none;
+}
+
+.patient-master-tp-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.patient-master-tp-section-body {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0 0.85rem 0.85rem;
+}
+
+.patient-master-tp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.patient-master-tp-field input,
+.patient-master-tp-field select,
+.patient-master-tp-field textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(43, 41, 38, 0.14);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.92);
+  font: inherit;
+}
+
+.patient-master-tp-checkboxes {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.patient-master-tp-checkboxes legend {
+  margin-bottom: 0.35rem;
+}
+
+.patient-master-tp-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 36px;
+}
+
+.patient-master-tp-checkbox input {
+  width: auto;
+  min-height: auto;
+}
+
+.patient-master-tp-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+}
+
+.patient-master-tp-card.is-locked .patient-master-tp-field input,
+.patient-master-tp-card.is-locked .patient-master-tp-field select,
+.patient-master-tp-card.is-locked .patient-master-tp-field textarea {
+  opacity: 0.85;
+  pointer-events: none;
 }
 
 .patient-master-open-link {
@@ -4697,6 +4866,20 @@ body.is-admin-embed .focus-conversation {
     font-size: 0.86rem;
   }
 
+  .patient-master-tp-section-body {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-master-tp-header .patient-master-tp-save,
+  .patient-master-tp-footer .customers-utility-button {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .patient-master-tp-header {
+    flex-direction: column;
+  }
+
   .patient-master-auth-card {
     display: grid;
     gap: 0.75rem;
@@ -4758,10 +4941,16 @@ body.is-admin-embed .focus-conversation {
     z-index: 10;
     background: var(--warm-bg, #f7f2ec);
     padding-bottom: 0.25rem;
+    gap: 4px 5px;
   }
 
-  .patient-master-tab {
-    min-height: 44px;
+  .patient-master-tab,
+  .patient-master-mode-button {
+    min-height: 28px;
+    padding: 0 8px;
+    gap: 5px;
+    font-size: 10.5px;
+    line-height: 14px;
   }
 }
 
