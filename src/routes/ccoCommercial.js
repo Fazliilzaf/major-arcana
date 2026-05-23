@@ -31,7 +31,7 @@ const {
   buildOfferSignPageHtml,
   getCoolingOffMeta,
 } = require('../ops/ccoOfferEsign');
-const { renderHtmlToPdfBuffer } = require('../ops/ccoOfferPdf');
+const { renderHtmlToPdfBuffer: defaultRenderHtmlToPdfBuffer } = require('../ops/ccoOfferPdf');
 const { syncPatient360FromCommercialCase } = require('../ops/ccoPatient360Bridge');
 
 function toCaseInput(context, body = {}) {
@@ -92,6 +92,7 @@ function createCcoCommercialRouter({
   config,
   requireAuth,
   requireRole,
+  renderHtmlToPdfBuffer = defaultRenderHtmlToPdfBuffer,
 }) {
   const router = express.Router();
   const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');

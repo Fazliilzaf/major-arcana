@@ -389,7 +389,13 @@ test('selectRuntimeThread renderar om igen efter bootstrap så högerpanelen int
     'queueHistoryList',
     'requestRuntimeThreadHydration',
     'loadBootstrap',
-    `${functionSource}; return selectRuntimeThread;`
+    'windowObject',
+    'BOOTSTRAP_THREAD_SELECT_DEBOUNCE_MS',
+    `
+      let bootstrapThreadSelectTimer = 0;
+      ${functionSource}
+      return selectRuntimeThread;
+    `
   )(
     (value) => (value == null ? '' : String(value)),
     () => ({ selectedThreadId: 'thread-1' }),
@@ -406,7 +412,16 @@ test('selectRuntimeThread renderar om igen efter bootstrap så högerpanelen int
     () => ({ catch() {} }),
     async (options) => {
       bootstrapCalls.push(options);
-    }
+    },
+    {
+      clearTimeout() {},
+      setTimeout(fn) {
+        fn();
+        return 1;
+      },
+      Element: class Element {},
+    },
+    200
   );
 
   selectRuntimeThread('thread-2', { reloadBootstrap: true });
