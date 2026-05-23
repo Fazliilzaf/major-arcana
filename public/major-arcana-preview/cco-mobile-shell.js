@@ -29,6 +29,7 @@
 
   const canvas = document.querySelector('.preview-canvas');
   const appTitleEl = document.getElementById('cco-mobile-app-title');
+  const backButtonEl = document.getElementById('cco-mobile-back-button');
   const tabbar = document.querySelector('[data-cco-mobile-tabbar]');
   const tabButtons = Array.from(document.querySelectorAll('.cco-mobile-tabbar-item[data-mobile-tab]'));
   const moreSheet = document.getElementById('cco-mobile-more-sheet');
@@ -102,14 +103,30 @@
     return 'queue';
   }
 
-  function resolveAppTitle(shellView, normalizedView) {
+  function resolveAppTitle(shellView, mobileWorkspaceView) {
     if (shellView === 'customers') {
-      const name = document.querySelector('[data-patient-detail] h2, .patient-master-hero h2')?.textContent?.trim();
-      return name || VIEW_LABELS.customers;
+      if (document.documentElement.hasAttribute('data-cco-patient-detail')) {
+        const name = document.querySelector('[data-patient-detail] h2, .patient-master-hero h2')
+          ?.textContent?.trim();
+        return name || VIEW_LABELS.customers;
+      }
+      return VIEW_LABELS.customers;
     }
-    if (normalizedView && VIEW_LABELS[normalizedView]) return VIEW_LABELS[normalizedView];
+    if (shellView === 'conversations' && mobileWorkspaceView === 'focus') {
+      return VIEW_LABELS.booking;
+    }
     if (shellView && VIEW_LABELS[shellView]) return VIEW_LABELS[shellView];
     return VIEW_LABELS.conversations;
+  }
+
+  function syncBackButton() {
+    if (!backButtonEl) return;
+    const showBack =
+      isMobile() &&
+      canvas?.dataset.appShellView === 'customers' &&
+      document.documentElement.hasAttribute('data-cco-patient-detail');
+    backButtonEl.hidden = !showBack;
+    backButtonEl.setAttribute('aria-hidden', showBack ? 'false' : 'true');
   }
 
   function syncTabbar(activeTab) {
@@ -141,7 +158,8 @@
 
     const activeTab = resolveActiveTab(shellView, mobileWorkspaceView);
     syncTabbar(activeTab);
-    syncAppTitle(resolveAppTitle(shellView, normalizedView));
+    syncBackButton();
+    syncAppTitle(resolveAppTitle(shellView, mobileWorkspaceView));
 
     moreItems.forEach((item) => {
       const view = item.dataset.navView || '';
@@ -215,10 +233,26 @@
     }
   }
 
+  function bindBackButton() {
+    backButtonEl?.addEventListener('click', () => {
+      window.ArcanaPatientMasterUi?.goBackToPatientList?.();
+    });
+  }
+
+  function observePatientDetailState() {
+    const observer = new MutationObserver(() => syncFromApp());
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-cco-patient-detail'],
+    });
+  }
+
   bindTabbar();
   bindMoreSheet();
+  bindBackButton();
   applyMobileShellState();
   observeCanvas();
+  observePatientDetailState();
 
   try {
     window.matchMedia(MQ).addEventListener('change', applyMobileShellState);

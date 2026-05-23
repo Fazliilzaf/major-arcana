@@ -4794,11 +4794,11 @@ body.is-admin-embed .focus-conversation {
 @media (max-width: 768px) {
   .customers-toolbar,
   .customers-search {
-    position: sticky;
-    top: calc(var(--workspace-sticky-top, 72px) + 0.25rem);
-    z-index: 12;
-    background: var(--warm-bg, #f7f2ec);
-    padding-bottom: 0.35rem;
+    position: static;
+    top: auto;
+    z-index: auto;
+    background: transparent;
+    padding-bottom: 0;
   }
 
   .customers-toolbar {
@@ -4809,9 +4809,9 @@ body.is-admin-embed .focus-conversation {
   }
 
   .patient-master-hero-sticky {
-    position: sticky;
-    top: calc(var(--workspace-sticky-top, 72px) + 0.25rem);
-    z-index: 11;
+    position: static;
+    top: auto;
+    z-index: auto;
   }
 
   .patient-master-hero-id {
@@ -4934,23 +4934,26 @@ body.is-admin-embed .focus-conversation {
     align-items: center;
     justify-content: center;
   }
+}
 
-  .patient-master-tabs {
-    position: sticky;
-    top: calc(var(--workspace-sticky-top, 72px) + 5.5rem);
-    z-index: 10;
-    background: var(--warm-bg, #f7f2ec);
-    padding-bottom: 0.25rem;
-    gap: 4px 5px;
+@media (min-width: 769px) {
+  .patient-master-journal-collapse {
+    display: block;
+    border: 0;
+    background: transparent;
+    margin: 0;
   }
 
-  .patient-master-tab,
-  .patient-master-mode-button {
-    min-height: 28px;
-    padding: 0 8px;
-    gap: 5px;
-    font-size: 10.5px;
-    line-height: 14px;
+  .patient-master-journal-collapse + .patient-master-journal-collapse {
+    margin-top: 0;
+  }
+
+  .patient-master-journal-collapse-summary {
+    display: none;
+  }
+
+  .patient-master-journal-collapse-body {
+    padding: 0;
   }
 }
 
