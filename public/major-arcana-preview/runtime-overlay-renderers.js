@@ -171,6 +171,7 @@
       setStudioFeedback,
       tagsFrom,
       runtimeConversationIdsMatch,
+      runtimeThreadHistoryBodyRef = null,
       workspaceSourceOfTruth,
     } = helpers;
 
@@ -1234,6 +1235,15 @@
       studioShell.style.transform = isOpen ? "translateY(0)" : "translateY(16px)";
       if (isOpen) {
         renderStudioShell();
+        const ensureBodyLoad =
+          typeof runtimeThreadHistoryBodyRef?.ensureSelectedRuntimeThreadHistoryBody === "function"
+            ? runtimeThreadHistoryBodyRef.ensureSelectedRuntimeThreadHistoryBody
+            : null;
+        if (ensureBodyLoad) {
+          ensureBodyLoad().catch((error) => {
+            console.warn("CCO kunde inte lazy-ladda bodyHtml när studion öppnades.", error);
+          });
+        }
       } else {
         setStudioFeedback("", "");
       }
@@ -1305,7 +1315,9 @@
         title: asText(payload.title, payload.label || "Kontext"),
         body: asText(payload.body, ""),
         meta: asText(payload.meta, ""),
-        items: asArray(payload.items).map((item) => asText(item)).filter(Boolean),
+        items: asArray(payload.items)
+          .map((item) => asText(item))
+          .filter(Boolean),
       };
       renderFocusContextShell(state.runtime.focusContextPayload);
       setFocusContextOpen(true);

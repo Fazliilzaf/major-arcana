@@ -470,12 +470,27 @@ test('loadLiveRuntime öppnar live-listan först, lazy-hydrerar trådar och cach
   assert.match(
     source,
     /function fetchRuntimeThreadHistoryPayload\(/,
-    'Förväntade en separat helper som hämtar full history-payload för trådhydrering med bodyHtml aktiverat.'
+    'Förväntade en separat helper som hämtar history-payload för trådhydrering.'
   );
   assert.match(
     source,
-    /params\.set\("conversationId",\s*targetConversationId\);[\s\S]*params\.set\("includeBodyHtml",\s*wantsBodyHtml\s*\?\s*"1"\s*:\s*"0"\);/,
-    'Förväntade att history-payload-helpers fortfarande hämtar conversation-specifik historik med bodyHtml aktiverat.'
+    /params\.set\("includeBodyHtml",\s*wantsBodyHtml \? "1" : "0"\);/,
+    'Förväntade att history-payload kan hämtas med eller utan bodyHtml beroende på flagga.'
+  );
+  assert.match(
+    source,
+    /function ensureSelectedRuntimeThreadHistoryBody\(/,
+    'Förväntade en helper som lazy-laddar bodyHtml när studion öppnas.'
+  );
+  assert.match(
+    source,
+    /includeBodyHtml:\s*true[\s\S]*renderRuntimeConversationShell\(\);/,
+    'Förväntade att bodyHtml-laddning hydrerar tråden och renderar om konversationsytan.'
+  );
+  assert.match(
+    source,
+    /buildRuntimeThreadHistoryCacheKey\([\s\S]*includeBodyHtml[\s\S]*bodyFlag/,
+    'Förväntade att history-cache-nyckeln skiljer payload med och utan bodyHtml.'
   );
   assert.match(
     source,
