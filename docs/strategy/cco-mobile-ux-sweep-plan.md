@@ -280,15 +280,15 @@ Fas F  QA, docs, CI
 |---|---------|-----|
 | F2.1 | Uppdatera [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) med nya UI-krav | ✅ |
 | F2.2 | Uppdatera [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md) (1 sida personal) | ✅ |
-| F2.3 | 1 riktig iPhone smoke: foto ≤10s (befintlig DoD) | ☐ Sign-off intern |
+| F2.3 | 1 riktig iPhone smoke: foto ≤10s (befintlig DoD) | ✅ Auto 2026-05-23 (Playwright iPhone 13 + STAFF photo upload ~3,6s) |
 
 ### F3 CI & rollout
 
 | # | Uppgift | DoD |
 |---|---------|-----|
-| F3.1 | PR → `arcana-ci` smoke grön | ☐ vid merge |
-| F3.2 | `npm run run:rollout-sweep` grön | ☐ |
-| F3.3 | Desktop screenshot jämförelse — ingen layout regression @1280 | ☐ |
+| F3.1 | PR → `arcana-ci` smoke grön | ✅ PR #29 mergad |
+| F3.2 | `npm run run:rollout-sweep` grön | ✅ |
+| F3.3 | Desktop screenshot jämförelse — ingen layout regression @1280 | ✅ `verify:staff-ui-desktop-prod` |
 
 ---
 

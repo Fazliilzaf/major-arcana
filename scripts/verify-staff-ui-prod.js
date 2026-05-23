@@ -56,23 +56,24 @@ async function injectToken(page, token) {
 
 async function waitForMobileShell(page) {
   await page.waitForFunction(
-    () => document.documentElement.hasAttribute('data-cco-mobile-shell'),
+    () => document.documentElement.getAttribute('data-cco-mobile-shell') === 'on',
     undefined,
     { timeout: 20000 }
   );
 }
 
 async function openCustomersWithPatient(page, token, id) {
-  await page.goto(`${base}/staff`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${base}/major-arcana-preview/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await injectToken(page, token);
   const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(id)}`;
   await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
   await waitForMobileShell(page);
   await page
-    .waitForSelector('.patient-master-tab[data-patient-tab="journal"], [data-patient-detail] h2', {
-      timeout: 20000,
+    .waitForSelector('.patient-master-tab[data-patient-tab="journal"], [data-patient-detail], .patient-master-camera-button', {
+      timeout: 30000,
     })
     .catch(() => {});
+  await page.waitForTimeout(800);
 }
 
 async function verifyMobileShell(page) {

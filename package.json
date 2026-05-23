@@ -57,6 +57,7 @@
     "verify:auth-go-live-prod": "bash ./scripts/verify-auth-go-live-prod.sh",
     "apply:auth-go-live-prod": "bash ./scripts/apply-auth-go-live-prod.sh",
     "verify:staff-ui-prod": "node ./scripts/verify-staff-ui-prod.js",
+    "verify:staff-ui-desktop-prod": "node ./scripts/verify-staff-ui-desktop-prod.js",
     "verify:staff-ui-local": "ARCANA_PROD_URL=http://127.0.0.1:3100 ARCANA_SMOKE_BEARER_TOKEN=__preview_local__ node ./scripts/verify-staff-ui-prod.js",
     "test:visual:mobile": "playwright test tests/visual/mobile-customers.spec.js --config=playwright.mobile.config.js",
     "verify:booking-plan-a-prod": "bash ./scripts/verify-booking-plan-a-prod.sh",
