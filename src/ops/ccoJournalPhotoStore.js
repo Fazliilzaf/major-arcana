@@ -4,8 +4,14 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
+const { repairMojibakeFilename } = require('./filenameEncoding');
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeFileName(value) {
+  return repairMojibakeFilename(normalizeText(value));
 }
 
 function asObject(value) {
@@ -82,7 +88,7 @@ async function createCcoJournalPhotoStore({ baseDir }) {
       photoId,
       ext,
       mimeType: normalizeText(mimeType) || 'image/jpeg',
-      fileName: normalizeText(originalName) || `${photoId}.${ext}`,
+      fileName: normalizeFileName(originalName) || `${photoId}.${ext}`,
       byteSize: buffer.length,
       storedAt: new Date().toISOString(),
     };

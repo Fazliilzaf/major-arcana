@@ -89,6 +89,13 @@
       .replace(/"/g, '&quot;');
   }
 
+  function repairDisplayFilename(name) {
+    if (window.ArcanaMobileCore?.repairDisplayFilename) {
+      return window.ArcanaMobileCore.repairDisplayFilename(name);
+    }
+    return normalizeText(name);
+  }
+
   function isLocalPreviewHost() {
     try {
       const host = window.location.hostname.split(':')[0].toLowerCase();
@@ -841,7 +848,7 @@
           ${pdfs
             .map((file) => {
               const href = fileViewUrl(file);
-              const label = escapeHtml(file.fileName || file.relativePath || 'PDF');
+              const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'PDF'));
               return `
                 <li>
                   <a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>
@@ -861,7 +868,7 @@
             ${images
               .map((file) => {
                 const href = fileViewUrl(file);
-                const label = escapeHtml(file.fileName || 'Bild');
+                const label = escapeHtml(repairDisplayFilename(file.fileName || 'Bild'));
                 return `
                   <a class="patient-master-image-tile" href="${escapeHtml(href)}" target="_blank" rel="noopener" title="${label}">
                     <img src="${escapeHtml(href)}" alt="${label}" loading="lazy" decoding="async" />
@@ -880,7 +887,7 @@
           ${other
             .map((file) => {
               const href = fileViewUrl(file);
-              const label = escapeHtml(file.fileName || file.relativePath || 'Fil');
+              const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'Fil'));
               const link = href
                 ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>`
                 : `<strong>${label}</strong>`;
@@ -1536,8 +1543,39 @@
     `;
   }
 
+  function renderMobileJournalSteps(entries) {
+    if (!isMobileViewport()) return '';
+    const rows = asArray(entries);
+    const hasHealth = rows.some(
+      (entry) => entry.journalType === 'health_declaration' && entry.locked
+    );
+    const hasPlan = rows.some((entry) => entry.journalType === 'consultation_plan');
+    const hasSignedPlan = rows.some(
+      (entry) => entry.journalType === 'consultation_plan' && entry.locked
+    );
+    let active = 1;
+    if (hasHealth) active = 2;
+    if (hasPlan) active = 3;
+    if (hasSignedPlan) active = 4;
+    const steps = ['Anteckning', 'Bilder', 'Plan', 'Signera'];
+    return `
+      <ol class="cco-mobile-journal-steps" aria-label="Journalsteg">
+        ${steps
+          .map((label, index) => {
+            const stepNumber = index + 1;
+            const stateClass =
+              stepNumber < active ? 'is-done' : stepNumber === active ? 'is-active' : '';
+            return `<li class="cco-mobile-journal-step ${stateClass}">${escapeHtml(label)}</li>`;
+          })
+          .join('')}
+      </ol>
+      <p class="patient-master-muted cco-mobile-journal-progress" aria-live="polite">Steg ${active} av 4</p>
+    `;
+  }
+
   function renderJournalEntries(entries) {
     const rows = asArray(entries);
+    const mobileSteps = renderMobileJournalSteps(rows);
     const toolbar = runtime.detail?.card ? renderJournalToolbar(runtime.detail.card, rows) : '';
     const planSection = renderConsultationPlanSection(rows);
     const tpSectionRaw = renderTpJournalSection(rows);
@@ -1606,6 +1644,7 @@
       : `<p class="patient-master-muted">Inga övriga journalposter ännu.</p>`;
 
     return `
+      ${mobileSteps}
       ${toolbar}
       ${planSection}
       ${clinicalSection}
@@ -2833,6 +2872,27 @@
     }
   }
 
+  function setPatientTab(tabKey) {
+    if (!runtime.detail?.card) return false;
+    runtime.detailTab = tabKey || 'profil';
+    if (tabKey === 'journal') {
+      runtime.preferJournalOnMobile = true;
+    } else {
+      runtime.preferJournalOnMobile = false;
+      runtime.editingTpEntryId = '';
+      runtime.editingClinicalFormKey = '';
+      runtime.editingClinicalEntryId = '';
+    }
+    renderDetailPanel();
+    syncMobilePatientLayout();
+    window.ArcanaMobileShell?.syncFromApp?.();
+    return true;
+  }
+
+  function showMobileToast(message) {
+    setStatus(message, 'info');
+  }
+
   function renderStaffAuth() {
     resolveElements();
     if (runtime.mode !== 'register') return false;
@@ -2850,6 +2910,8 @@
     clearMobilePatientSelection,
     goBackToPatientList,
     syncMobilePatientLayout,
+    setPatientTab,
+    showMobileToast,
   };
 
   if (document.readyState === 'loading') {

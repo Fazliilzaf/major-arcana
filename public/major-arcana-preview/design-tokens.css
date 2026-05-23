@@ -154,10 +154,13 @@
   --cco-z-toast: 100000;
   --cco-z-tooltip: 1000000;
 
-  /* Layout breakpoints (canonical — mobile UX sweep 2026-05) */
+  /* Layout breakpoints (canonical — mobile-first 2026-05) */
+  --cco-bp-mobile-max: 767px;
   --cco-bp-phone-max: 768px;
-  --cco-bp-tablet-min: 769px;
+  --cco-bp-tablet-min: 768px;
+  --cco-bp-tablet-max: 1023px;
   --cco-bp-desktop-min: 1024px;
+  --cco-bp-xl-min: 1440px;
   --cco-bp-xl: 1280px;
   --cco-bp-2xl: 1536px;
 
@@ -166,6 +169,19 @@
   --cco-mobile-tabbar-h: 56px;
   --cco-mobile-gutter: 16px;
   --cco-mobile-page-title: 20px;
+  --cco-mobile-space-xs: 4px;
+  --cco-mobile-space-sm: 8px;
+  --cco-mobile-space-md: 12px;
+  --cco-mobile-space-lg: 16px;
+  --cco-mobile-space-xl: 20px;
+  --cco-mobile-text-body: 15px;
+  --cco-mobile-text-label: 13px;
+  --cco-mobile-text-heading: 20px;
+  --cco-mobile-text-button: 15px;
+  --cco-touch-min: 44px;
+  --cco-touch-comfortable: 48px;
+  --cco-vh-full: 100vh;
+  --cco-vh-dynamic: 100dvh;
 
   /* === WARM-ROW TOKENS (Fas 3, 2026-05-08) ============================
    * Dedikerad palett för CCO inkorgs-rader. Varm beige/peach-stil.
@@ -322,6 +338,8 @@
     --cco-text-base: 15px;
     --cco-text-md: 16px;
     --cco-text-sm: 13px;
+    --cco-vh-full: 100dvh;
+    --cco-mobile-gutter: 16px;
   }
 }
 

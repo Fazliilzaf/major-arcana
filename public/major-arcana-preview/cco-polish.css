@@ -4556,6 +4556,29 @@ body.is-admin-embed .focus-conversation {
 }
 
 @media (max-width: 768px) {
+  html[data-cco-mobile-shell="on"] .preview-page {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    height: auto !important;
+    min-height: 100dvh;
+  }
+
+  html[data-cco-mobile-shell="on"] .preview-canvas {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  html[data-cco-mobile-shell="on"] .preview-workspace,
+  html[data-cco-mobile-shell="on"] .preview-workspace-shell,
+  html[data-cco-mobile-shell="on"] .customers-list {
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
   html[data-cco-mobile-shell="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
     overflow-y: auto !important;
     overflow-x: hidden;

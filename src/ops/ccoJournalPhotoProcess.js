@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('node:path');
+const { repairMojibakeFilename } = require('./filenameEncoding');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -37,7 +38,7 @@ function isAllowedJournalPhotoMime(mimeType = '', originalName = '') {
 }
 
 function buildStoredFileName(originalName = '', mimeType = 'image/jpeg') {
-  const base = normalizeText(originalName).replace(/\.[^.]+$/, '') || 'konsultationsbild';
+  const base = repairMojibakeFilename(originalName).replace(/\.[^.]+$/, '') || 'konsultationsbild';
   const safeBase = base.replace(/[^\w\-åäöÅÄÖ ]+/g, '').trim() || 'konsultationsbild';
   if (mimeType === 'image/png') {
     return `${safeBase}.png`;

@@ -53,16 +53,31 @@
     wizardEl = document.createElement('nav');
     wizardEl.className = 'cco-booking-mobile-wizard';
     wizardEl.setAttribute('aria-label', 'Bokningssteg');
-    wizardEl.innerHTML = STEPS.map(
-      (step) =>
-        `<button type="button" class="cco-booking-mobile-wizard-step" data-booking-mobile-step="${step.id}" data-step-index="${step.id}" aria-current="false"><span class="cco-booking-mobile-wizard-label">${step.label}</span></button>`
-    ).join('');
+    wizardEl.innerHTML =
+      STEPS.map(
+        (step) =>
+          `<button type="button" class="cco-booking-mobile-wizard-step" data-booking-mobile-step="${step.id}" data-step-index="${step.id}" aria-current="false"><span class="cco-booking-mobile-wizard-label">${step.label}</span></button>`
+      ).join('') +
+      '<p class="cco-booking-mobile-progress" data-booking-mobile-progress hidden aria-live="polite"></p>';
     const toolbar = bookingShell.querySelector('.booking-shell-toolbar');
     if (toolbar?.parentNode) {
       toolbar.insertAdjacentElement('afterend', wizardEl);
     } else {
       bookingShell.prepend(wizardEl);
     }
+
+    wizardEl.querySelectorAll('[data-booking-mobile-step]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const activeSurface = getBookingSurface();
+        const step = Number(button.dataset.bookingMobileStep || 0);
+        if (step === 1) {
+          activeSurface?.querySelector('[data-booking-slot-service-select]')?.focus?.();
+        } else if (step === 2) {
+          activeSurface?.querySelector('[data-booking-slot-from]')?.focus?.();
+        }
+      });
+    });
+
     return wizardEl;
   }
 
@@ -82,6 +97,11 @@
     if (!surface) return;
 
     const activeStep = resolveBookingStep(surface);
+    const progressEl = wizard.querySelector('[data-booking-mobile-progress]');
+    if (progressEl) {
+      progressEl.hidden = false;
+      progressEl.textContent = `Steg ${activeStep} av ${STEPS.length}`;
+    }
     wizard.querySelectorAll('[data-booking-mobile-step]').forEach((button) => {
       const step = Number(button.dataset.bookingMobileStep || 0);
       const isActive = step === activeStep;

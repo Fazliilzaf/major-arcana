@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { repairMojibakeFilename } = require('../../../src/ops/filenameEncoding');
 
 const PERSONNUMMER_RE = /(\d{8})[- ]?(\d{4})/;
 const JOURNAL_NAME_RE = /journal|frisk|h[aä]lso|samtycke|friskfors/i;
@@ -409,7 +410,7 @@ function buildFileRecord({
     mimeType: source === 'drive_api' ? mimeType : '',
     webViewLink: source === 'drive_api' ? webViewLink : '',
     relativePath,
-    fileName: path.basename(relativePath),
+    fileName: repairMojibakeFilename(path.basename(relativePath)),
     fileType: classifyFile(relativePath),
     personnummer: personnummerList[0] || '',
     personnummerCandidates: personnummerList,

@@ -31,12 +31,14 @@
     <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-f7c1ae6" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
     <link rel="stylesheet" href="./cco-polish.css?v=build-mobile-journal" />
-    <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-mobile-shell-c" />
+    <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-mobile-shell-d" />
     <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
-    <script src="./cco-mobile-shell.js?v=build-mobile-shell" defer></script>
-    <script src="./booking-mobile-shell.js?v=build-mobile-shell" defer></script>
-    <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell" defer></script>
-    <script src="./cco-mobile-queue.js?v=build-mobile-shell" defer></script>
+    <script src="./cco-mobile-core.js?v=build-mobile-shell-d" defer></script>
+    <script src="./cco-mobile-shell.js?v=build-mobile-shell-d" defer></script>
+    <script src="./booking-mobile-shell.js?v=build-mobile-shell-d" defer></script>
+    <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-d" defer></script>
+    <script src="./booking-mobile-calendar-day.js?v=build-mobile-shell-d" defer></script>
+    <script src="./cco-mobile-queue.js?v=build-mobile-shell-d" defer></script>
   </head>
   <body class="is-preview-ready is-runtime-loading">
     <script>
@@ -300,6 +302,20 @@
           </div>
 
           <div class="preview-topbar-right">
+            <button
+              type="button"
+              class="cco-mobile-menu-button"
+              id="cco-mobile-menu-button"
+              aria-label="Fler sidor"
+              aria-haspopup="dialog"
+              aria-controls="cco-mobile-more-sheet"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true" width="18" height="18">
+                <circle cx="4" cy="8" r="1.2" fill="currentColor"/>
+                <circle cx="8" cy="8" r="1.2" fill="currentColor"/>
+                <circle cx="12" cy="8" r="1.2" fill="currentColor"/>
+              </svg>
+            </button>
             <span
               class="preview-live-pill preview-live-pill--demo"
               id="preview-live-status"
@@ -10457,14 +10473,26 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
       <button
         type="button"
         class="cco-mobile-tabbar-item"
-        data-mobile-tab="queue"
+        data-mobile-tab="home"
         data-nav-view="conversations"
         aria-pressed="false"
       >
         <span class="cco-mobile-tabbar-icon" aria-hidden="true">
-          <svg viewBox="0 0 16 16"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 16 16"><path d="M2.5 8.5 8 3l5.5 5.5V13a1 1 0 0 1-1 1h-3.5v-3H7v3H3.5a1 1 0 0 1-1-1V8.5Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
         </span>
-        <span class="cco-mobile-tabbar-label">Kö</span>
+        <span class="cco-mobile-tabbar-label">Hem</span>
+      </button>
+      <button type="button" class="cco-mobile-tabbar-item" data-mobile-tab="booking" aria-pressed="false">
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 6.5h11M5.5 1.8v1.8M10.5 1.8v1.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Boka</span>
+      </button>
+      <button type="button" class="cco-mobile-tabbar-item" data-mobile-tab="calendar" aria-pressed="false">
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 6.5h11M5.5 1.8v1.8M10.5 1.8v1.8M5 9h2M9 9h2M5 11.5h2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Kalender</span>
       </button>
       <button
         type="button"
@@ -10476,26 +10504,13 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
         <span class="cco-mobile-tabbar-icon" aria-hidden="true">
           <svg viewBox="0 0 16 16"><circle cx="8" cy="5.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 13.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         </span>
-        <span class="cco-mobile-tabbar-label">Kunder</span>
+        <span class="cco-mobile-tabbar-label">Kund</span>
       </button>
-      <button type="button" class="cco-mobile-tabbar-item" data-mobile-tab="booking" aria-pressed="false">
+      <button type="button" class="cco-mobile-tabbar-item" data-mobile-tab="journal" aria-pressed="false">
         <span class="cco-mobile-tabbar-icon" aria-hidden="true">
-          <svg viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 6.5h11M5.5 1.8v1.8M10.5 1.8v1.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 16 16"><path d="M4.5 2.5h5.8L12.5 4.2V13a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 2.5v2.2M6.2 8.2h3.6M6.2 10.4h2.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         </span>
-        <span class="cco-mobile-tabbar-label">Boka</span>
-      </button>
-      <button
-        type="button"
-        class="cco-mobile-tabbar-item"
-        data-mobile-tab="more"
-        aria-pressed="false"
-        aria-haspopup="dialog"
-        aria-controls="cco-mobile-more-sheet"
-      >
-        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
-          <svg viewBox="0 0 16 16"><circle cx="4" cy="8" r="1.1" fill="currentColor"/><circle cx="8" cy="8" r="1.1" fill="currentColor"/><circle cx="12" cy="8" r="1.1" fill="currentColor"/></svg>
-        </span>
-        <span class="cco-mobile-tabbar-label">Mer</span>
+        <span class="cco-mobile-tabbar-label">Journal</span>
       </button>
     </nav>
 
