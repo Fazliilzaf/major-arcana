@@ -265,10 +265,121 @@
 
   function isMobileViewport() {
     try {
-      return window.matchMedia('(max-width: 820px)').matches;
+      return window.matchMedia('(max-width: 768px)').matches;
     } catch {
       return false;
     }
+  }
+
+  let mobilePatientHistoryDepth = 0;
+  let suppressMobilePatientPopstate = false;
+
+  function isMobilePatientDetailActive() {
+    return (
+      isMobileViewport() &&
+      runtime.mode === 'register' &&
+      Boolean(normalizeText(runtime.selectedPatientId))
+    );
+  }
+
+  function syncMobilePatientLayout() {
+    const active = isMobilePatientDetailActive();
+    if (active) {
+      document.documentElement.setAttribute('data-cco-patient-detail', 'on');
+    } else {
+      document.documentElement.removeAttribute('data-cco-patient-detail');
+    }
+    window.ArcanaMobileShell?.syncFromApp?.();
+  }
+
+  function ensureMobilePatientListHistory() {
+    if (!isMobileViewport() || runtime.mode !== 'register') return;
+    if (window.history.state?.ccoMobilePatientList || window.history.state?.ccoMobilePatient) return;
+    const startup = parseStartupParams();
+    if (startup.patientId || runtime.pendingPatientId) return;
+    try {
+      window.history.replaceState({ ccoMobilePatientList: true }, '', buildPatientDeepLink(''));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function pushMobilePatientDetailHistory(patientId) {
+    if (!isMobileViewport() || runtime.mode !== 'register' || !patientId) return;
+    try {
+      const state = { ccoMobilePatient: patientId };
+      const url = buildPatientDeepLink(patientId);
+      if (window.history.state?.ccoMobilePatientList) {
+        window.history.pushState(state, '', url);
+        mobilePatientHistoryDepth += 1;
+        return;
+      }
+      if (window.history.state?.ccoMobilePatient === patientId) return;
+      if (!window.history.state?.ccoMobilePatient) {
+        window.history.replaceState(state, '', url);
+        mobilePatientHistoryDepth = 0;
+        return;
+      }
+      window.history.pushState(state, '', url);
+      mobilePatientHistoryDepth += 1;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function resetMobilePatientDetailState() {
+    runtime.selectedPatientId = '';
+    runtime.detail = null;
+    runtime.detailLoading = false;
+    runtime.commercialCase = null;
+    runtime.offerDocumentUrl = '';
+    runtime.offerDocumentPdfUrl = '';
+    runtime.offerDocumentWordUrl = '';
+    runtime.offerSignUrl = '';
+    runtime.treatmentAgreement = null;
+    runtime.agreementReadout = null;
+    runtime.agreementDocumentUrl = '';
+    runtime.agreementDocumentPdfUrl = '';
+    runtime.agreementSignUrl = '';
+    runtime.editingTpEntryId = '';
+    runtime.editingClinicalFormKey = '';
+    runtime.editingClinicalEntryId = '';
+  }
+
+  function clearMobilePatientSelection({ fromPopstate = false } = {}) {
+    if (!runtime.selectedPatientId) {
+      syncMobilePatientLayout();
+      return;
+    }
+    resetMobilePatientDetailState();
+    renderDetailEmpty();
+    renderPatientRows();
+    syncMobilePatientLayout();
+    if (!fromPopstate && mobilePatientHistoryDepth > 0) {
+      suppressMobilePatientPopstate = true;
+      mobilePatientHistoryDepth -= 1;
+      window.history.back();
+    }
+  }
+
+  function goBackToPatientList() {
+    if (!isMobilePatientDetailActive()) return;
+    if (mobilePatientHistoryDepth > 0) {
+      window.history.back();
+      return;
+    }
+    clearMobilePatientSelection();
+  }
+
+  function wrapJournalCollapse(title, bodyHtml, { open = false, className = '' } = {}) {
+    const content = String(bodyHtml || '').trim();
+    if (!content) return '';
+    return `
+      <details class="patient-master-journal-collapse ${className}"${open ? ' open' : ''}>
+        <summary class="patient-master-journal-collapse-summary">${escapeHtml(title)}</summary>
+        <div class="patient-master-journal-collapse-body">${content}</div>
+      </details>
+    `;
   }
 
   function isOnline() {
@@ -534,6 +645,7 @@
         <p>Öppna ett kundkort i listan för profil, journal och importerade filer.</p>
       </section>
     `;
+    syncMobilePatientLayout();
   }
 
   function fileViewUrl(file) {
@@ -973,7 +1085,191 @@
     if (linkedOffer.quoteAcceptedAt) {
       bits.push(`Accepterad ${String(linkedOffer.quoteAcceptedAt).slice(0, 10)}`);
     }
-    return bits.length ? `<p class="patient-master-muted">${escapeHtml(bits.join(' · '))}</p>` : '';
+    if (!bits.length) return '';
+    if (isMobileViewport()) {
+      return `<div class="patient-master-offer-meta-badges">${bits
+        .map(
+          (bit, index) =>
+            `<span class="patient-master-status-badge${index === 0 ? ' is-accent' : ''}">${escapeHtml(bit)}</span>`
+        )
+        .join('')}</div>`;
+    }
+    return `<p class="patient-master-muted">${escapeHtml(bits.join(' · '))}</p>`;
+  }
+
+  let offerWizardEntryId = '';
+  let offerWizardStep = 1;
+
+  function ensureMobileOfferWizard() {
+    let shell = document.getElementById('cco-mobile-offer-wizard');
+    if (shell) return shell;
+
+    shell = document.createElement('div');
+    shell.id = 'cco-mobile-offer-wizard';
+    shell.className = 'cco-mobile-offer-wizard';
+    shell.hidden = true;
+    shell.innerHTML = `
+      <div class="cco-mobile-offer-wizard-panel" role="dialog" aria-modal="true" aria-labelledby="cco-mobile-offer-wizard-title">
+        <div class="cco-mobile-offer-wizard-steps" aria-hidden="true">
+          <span class="cco-mobile-offer-wizard-step is-active" data-offer-wizard-step-indicator="1">1 Pris</span>
+          <span class="cco-mobile-offer-wizard-step" data-offer-wizard-step-indicator="2">2 Bekräfta</span>
+        </div>
+        <h3 id="cco-mobile-offer-wizard-title">Skapa offert</h3>
+        <form data-mobile-offer-wizard-form>
+          <div data-mobile-offer-wizard-step="1">
+            <label class="cco-mobile-offer-wizard-field">
+              <span>Pris i offerten</span>
+              <input type="text" name="quotedAmount" placeholder="t.ex. 75 000 kr" autocomplete="off" />
+            </label>
+            <label class="cco-mobile-offer-wizard-field">
+              <span>Deposition (valfritt)</span>
+              <input type="text" name="depositAmount" placeholder="t.ex. 5 000 kr" autocomplete="off" />
+            </label>
+            <label class="cco-mobile-offer-wizard-field">
+              <span>Offertmall</span>
+              <select name="templateKey" data-mobile-offer-wizard-template></select>
+            </label>
+          </div>
+          <div data-mobile-offer-wizard-step="2" hidden>
+            <p class="patient-master-muted" data-mobile-offer-wizard-summary></p>
+          </div>
+          <div class="cco-mobile-offer-wizard-actions">
+            <button type="button" class="customers-utility-button" data-mobile-offer-wizard-cancel>Avbryt</button>
+            <button type="button" class="customers-utility-button" data-mobile-offer-wizard-back hidden>Tillbaka</button>
+            <button type="button" class="customers-utility-button" data-mobile-offer-wizard-next>Nästa</button>
+            <button type="submit" class="customers-utility-button" data-mobile-offer-wizard-submit hidden>Skapa offert</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(shell);
+
+    shell.querySelector('[data-mobile-offer-wizard-cancel]')?.addEventListener('click', closeMobileOfferWizard);
+    shell.querySelector('[data-mobile-offer-wizard-back]')?.addEventListener('click', () => {
+      setMobileOfferWizardStep(1);
+    });
+    shell.querySelector('[data-mobile-offer-wizard-next]')?.addEventListener('click', () => {
+      const form = shell.querySelector('[data-mobile-offer-wizard-form]');
+      const quotedAmount = normalizeText(form?.quotedAmount?.value);
+      if (!quotedAmount) {
+        setStatus('Ange pris i offerten.', 'error');
+        return;
+      }
+      setMobileOfferWizardStep(2);
+    });
+    shell.querySelector('[data-mobile-offer-wizard-form]')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      void submitMobileOfferWizard();
+    });
+
+    return shell;
+  }
+
+  function populateMobileOfferWizardTemplates(selectNode) {
+    if (!selectNode) return;
+    const templates = asArray(runtime.offerTemplates);
+    selectNode.innerHTML = templates.length
+      ? templates
+          .map(
+            (template) =>
+              `<option value="${escapeHtml(template.key)}">${escapeHtml(template.label || template.key)}</option>`
+          )
+          .join('')
+      : '<option value="custom">Anpassad</option>';
+  }
+
+  function setMobileOfferWizardStep(step) {
+    offerWizardStep = step === 2 ? 2 : 1;
+    const shell = document.getElementById('cco-mobile-offer-wizard');
+    if (!shell) return;
+    shell.querySelector('[data-mobile-offer-wizard-step="1"]').hidden = offerWizardStep !== 1;
+    shell.querySelector('[data-mobile-offer-wizard-step="2"]').hidden = offerWizardStep !== 2;
+    shell.querySelector('[data-mobile-offer-wizard-back]').hidden = offerWizardStep !== 2;
+    shell.querySelector('[data-mobile-offer-wizard-next]').hidden = offerWizardStep !== 1;
+    shell.querySelector('[data-mobile-offer-wizard-submit]').hidden = offerWizardStep !== 2;
+    shell.querySelectorAll('[data-offer-wizard-step-indicator]').forEach((node) => {
+      const nodeStep = Number(node.getAttribute('data-offer-wizard-step-indicator') || 0);
+      node.classList.toggle('is-active', nodeStep === offerWizardStep);
+      node.classList.toggle('is-done', nodeStep < offerWizardStep);
+    });
+
+    if (offerWizardStep === 2) {
+      const form = shell.querySelector('[data-mobile-offer-wizard-form]');
+      const quotedAmount = normalizeText(form?.quotedAmount?.value);
+      const depositAmount = normalizeText(form?.depositAmount?.value);
+      const templateKey = normalizeText(form?.templateKey?.value);
+      const templateLabel =
+        asArray(runtime.offerTemplates).find((item) => item.key === templateKey)?.label || templateKey;
+      const summary = shell.querySelector('[data-mobile-offer-wizard-summary]');
+      if (summary) {
+        summary.textContent = `Skapa offert på ${quotedAmount || '—'}${
+          depositAmount ? ` med deposition ${depositAmount}` : ''
+        } (${templateLabel || 'Anpassad'}).`;
+      }
+    }
+  }
+
+  function openMobileOfferWizard(entryId) {
+    if (!isMobileViewport()) return false;
+    offerWizardEntryId = normalizeText(entryId);
+    const shell = ensureMobileOfferWizard();
+    populateMobileOfferWizardTemplates(shell.querySelector('[data-mobile-offer-wizard-template]'));
+    const form = shell.querySelector('[data-mobile-offer-wizard-form]');
+    if (form) {
+      form.reset();
+      if (form.templateKey && !form.templateKey.value) {
+        form.templateKey.value = 'custom';
+      }
+    }
+    setMobileOfferWizardStep(1);
+    shell.hidden = false;
+    shell.querySelector('[name="quotedAmount"]')?.focus?.();
+    return true;
+  }
+
+  function closeMobileOfferWizard() {
+    const shell = document.getElementById('cco-mobile-offer-wizard');
+    if (shell) shell.hidden = true;
+    offerWizardEntryId = '';
+    offerWizardStep = 1;
+  }
+
+  async function submitMobileOfferWizard() {
+    const entryId = offerWizardEntryId;
+    const patientId = runtime.selectedPatientId;
+    if (!patientId || !entryId) return;
+    const form = document.querySelector('[data-mobile-offer-wizard-form]');
+    const quotedAmount = normalizeText(form?.quotedAmount?.value);
+    const depositAmount = normalizeText(form?.depositAmount?.value);
+    const templateKey = normalizeText(form?.templateKey?.value) || 'custom';
+    if (!quotedAmount) {
+      setStatus('Ange pris i offerten.', 'error');
+      setMobileOfferWizardStep(1);
+      return;
+    }
+    closeMobileOfferWizard();
+    setStatus('Skapar offert från behandlingsplan…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-commercial/offer-from-plan', {
+        method: 'POST',
+        body: {
+          patientId,
+          entryId,
+          quotedAmount,
+          depositAmount,
+          templateKey,
+        },
+      });
+      runtime.commercialCase = payload.commercialCase || null;
+      runtime.offerDocumentUrl = payload.offerDocumentUrl || '';
+      runtime.offerDocumentPdfUrl = payload.offerDocumentPdfUrl || '';
+      runtime.offerDocumentWordUrl = payload.offerDocumentWordUrl || '';
+      setStatus('Offert skapad från behandlingsplan.', 'success');
+      runtime.detailTab = 'journal';
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte skapa offert.', 'error');
+    }
   }
 
   function renderConsultationPlanSection(entries) {
@@ -1017,20 +1313,7 @@
     const coolingActive =
       linkedOffer?.coolingOffEndsAt && Date.parse(linkedOffer.coolingOffEndsAt) > Date.now();
 
-    return `
-      <article class="focus-customer-data-card patient-master-plan-card">
-        <div class="patient-master-material-head">
-          <h4>${escapeHtml(planEntry.title || 'Konsultation — behandlingsplan')}</h4>
-          <span class="patient-master-muted">${escapeHtml(planEntry.status || 'draft')}</span>
-        </div>
-        ${
-          summaryBits.length
-            ? `<p class="patient-master-muted">${escapeHtml(summaryBits.join(' · '))}</p>`
-            : ''
-        }
-        ${
-          fields.notes ? `<p class="patient-master-plan-notes">${escapeHtml(fields.notes)}</p>` : ''
-        }
+    const offerBody = `
         <div class="patient-master-offer-box">
           <div class="patient-master-material-head">
             <h4>Offert</h4>
@@ -1086,7 +1369,22 @@
                 ? `<p class="patient-master-muted">Signeringssida: <a href="/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(linkedOffer.esignToken)}" target="_blank" rel="noopener">Öppna kundsignering</a></p>`
                 : ''
           }
+        </div>`;
+
+    const planBody = `
+      <article class="focus-customer-data-card patient-master-plan-card">
+        <div class="patient-master-material-head">
+          <h4>${escapeHtml(planEntry.title || 'Konsultation — behandlingsplan')}</h4>
+          <span class="patient-master-muted">${escapeHtml(planEntry.status || 'draft')}</span>
         </div>
+        ${
+          summaryBits.length
+            ? `<p class="patient-master-muted">${escapeHtml(summaryBits.join(' · '))}</p>`
+            : ''
+        }
+        ${
+          fields.notes ? `<p class="patient-master-plan-notes">${escapeHtml(fields.notes)}</p>` : ''
+        }
         ${
           photos.length
             ? `<div class="patient-master-plan-photo-grid">
@@ -1132,8 +1430,12 @@
             ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(planEntry.entryId)}">Signera behandlingsplan</button>`
             : ''
         }
-      </article>
-    `;
+      </article>`;
+
+    return (
+      wrapJournalCollapse('Behandlingsplan', planBody, { open: true }) +
+      wrapJournalCollapse('Offert', offerBody, { open: Boolean(linkedOffer) })
+    );
   }
 
   function findTpJournalEntry(entries, entryId) {
@@ -1197,7 +1499,10 @@
     const rows = asArray(entries);
     const toolbar = runtime.detail?.card ? renderJournalToolbar(runtime.detail.card, rows) : '';
     const planSection = renderConsultationPlanSection(rows);
-    const tpSection = renderTpJournalSection(rows);
+    const tpSectionRaw = renderTpJournalSection(rows);
+    const tpSection = tpSectionRaw
+      ? wrapJournalCollapse('TP-journal', tpSectionRaw, { open: true })
+      : '';
     const clinicalSection = renderClinicalFormSection(rows);
     const otherEntries = rows.filter((entry) => entry.journalType !== 'consultation_plan');
 
@@ -1292,6 +1597,18 @@
       agreement &&
       (agreement.agreementStatus === 'sent' || agreement.agreementStatus === 'cooling_off');
 
+    const nextActionLabel = readout?.bookable
+      ? 'Nästa: Boka behandlingstid i CCO-tråden.'
+      : canSendSign
+        ? 'Nästa: Skicka avtalet för signering.'
+        : canCreate
+          ? 'Nästa: Skapa avtal från accepterad offert.'
+          : !readout?.patientInfoSent
+            ? 'Nästa: Logga skickad patientinformation (bilaga 1).'
+            : !offerAccepted
+              ? 'Nästa: Få offerten accepterad av kunden.'
+              : readout?.nextStep || 'Följ juristflödet steg för steg.';
+
     return `
       <article class="focus-customer-data-card patient-master-agreement-card">
         <div class="patient-master-material-head">
@@ -1302,26 +1619,26 @@
               : ''
           }
         </div>
-        <p class="patient-master-muted">${escapeHtml(readout?.nextStep || 'Följ juristflödet: patientinfo → offert accepterad → avtal → signering → bokning.')}</p>
-        <ol class="patient-master-workflow-steps">
-          <li class="${readout?.patientInfoSent ? 'is-done' : ''}">Skicka patientinformation (bilaga 1)${readout?.patientInfoSent ? ' ✓' : ''}</li>
-          <li class="${offerAccepted ? 'is-done' : ''}">Offert accepterad${offerAccepted ? ' ✓' : ''}</li>
-          <li class="${agreement?.agreementDocumentId ? 'is-done' : ''}">Avtal skapat${agreement?.agreementDocumentId ? ' ✓' : ''}</li>
-          <li class="${readout?.bookable ? 'is-done' : ''}">Signerat — bokningsbart${readout?.bookable ? ' ✓' : ''}</li>
+        <p class="patient-master-next-action">${escapeHtml(nextActionLabel)}</p>
+        <ol class="patient-master-agreement-checklist patient-master-workflow-steps">
+          <li class="${readout?.patientInfoSent ? 'is-done' : ''}">Patientinformation (bilaga 1)</li>
+          <li class="${offerAccepted ? 'is-done' : ''}">Offert accepterad</li>
+          <li class="${agreement?.agreementDocumentId ? 'is-done' : ''}">Avtal skapat</li>
+          <li class="${readout?.bookable ? 'is-done' : ''}">Signerat — bokningsbart</li>
         </ol>
         ${
           readout?.patientInfoSentAt
-            ? `<p class="patient-master-muted">Patientinfo skickad ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))} (${escapeHtml(readout.patientInfoChannel || '—')})</p>`
+            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Patientinfo ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))}</span></div>`
             : ''
         }
         ${
           agreement?.deliveryMode
-            ? `<p class="patient-master-muted">Leveransläge: ${escapeHtml(agreement.deliveryMode === 'distans' ? 'Distans (betänketid)' : 'På plats')}</p>`
+            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge is-accent">${escapeHtml(agreement.deliveryMode === 'distans' ? 'Distans (betänketid)' : 'På plats')}</span></div>`
             : ''
         }
         ${
           coolingActive
-            ? `<p class="patient-master-muted">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</p>`
+            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</span></div>`
             : ''
         }
         <div class="patient-master-plan-photo-actions">
@@ -1458,6 +1775,7 @@
     `;
     bindJournalPhotoOpenLinks(els.patientRail);
     void hydrateJournalPhotoElements(els.patientRail);
+    syncMobilePatientLayout();
   }
 
   async function loadStats() {
@@ -1504,7 +1822,7 @@
         await loadPatientDetail(deepLinkId);
         return;
       }
-      if (!runtime.selectedPatientId && runtime.patients[0]) {
+      if (!runtime.selectedPatientId && runtime.patients[0] && !isMobileViewport()) {
         runtime.selectedPatientId = runtime.patients[0].patientId;
         await loadPatientDetail(runtime.selectedPatientId);
       }
@@ -1592,7 +1910,8 @@
 
   async function loadPatientDetail(patientId) {
     if (!patientId || runtime.mode !== 'register') return;
-    if (runtime.selectedPatientId !== patientId) {
+    const openingNewPatient = runtime.selectedPatientId !== patientId;
+    if (openingNewPatient) {
       runtime.editingTpEntryId = '';
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
@@ -1603,6 +1922,10 @@
     }
     runtime.detailLoading = true;
     renderPatientRows();
+    syncMobilePatientLayout();
+    if (isMobileViewport() && openingNewPatient) {
+      pushMobilePatientDetailHistory(patientId);
+    }
     try {
       const payload = await apiRequest(
         `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
@@ -1658,6 +1981,7 @@
   async function createOfferFromPlan(entryId) {
     const patientId = runtime.selectedPatientId;
     if (!patientId || !entryId) return;
+    if (openMobileOfferWizard(entryId)) return;
     const quotedAmount = window.prompt('Pris i offerten (t.ex. 75 000 kr):', '') || '';
     const depositAmount = window.prompt('Deposition (valfritt):', '') || '';
     const templateSelect = document.querySelector('[data-patient-offer-template]');
@@ -2364,12 +2688,40 @@
         void loadPatientList();
       });
     }
+
+    window.addEventListener('popstate', () => {
+      if (suppressMobilePatientPopstate) {
+        suppressMobilePatientPopstate = false;
+        return;
+      }
+      if (!isMobileViewport() || runtime.mode !== 'register') return;
+      const state = window.history.state;
+      if (!state?.ccoMobilePatient && runtime.selectedPatientId) {
+        mobilePatientHistoryDepth = Math.max(0, mobilePatientHistoryDepth - 1);
+        resetMobilePatientDetailState();
+        renderDetailEmpty();
+        renderPatientRows();
+        syncMobilePatientLayout();
+        return;
+      }
+      const historyPatientId = normalizeText(state?.ccoMobilePatient);
+      if (historyPatientId && historyPatientId !== runtime.selectedPatientId) {
+        void loadPatientDetail(historyPatientId);
+      }
+    });
+
+    try {
+      window.matchMedia('(max-width: 768px)').addEventListener('change', syncMobilePatientLayout);
+    } catch {
+      window.addEventListener('resize', syncMobilePatientLayout);
+    }
   }
 
   function onCustomersViewOpen() {
     resolveElements();
     renderModeChrome();
     renderDetailEmpty();
+    ensureMobilePatientListHistory();
     const startup = parseStartupParams();
     if (startup.patientId) {
       runtime.pendingPatientId = startup.patientId;
@@ -2416,6 +2768,9 @@
     onCustomersViewOpen,
     setMode,
     getRuntime: () => ({ ...runtime }),
+    clearMobilePatientSelection,
+    goBackToPatientList,
+    syncMobilePatientLayout,
   };
 
   if (document.readyState === 'loading') {

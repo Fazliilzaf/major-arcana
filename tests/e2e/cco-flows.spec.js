@@ -58,13 +58,13 @@ test.describe('CCO huvudflöden', () => {
     expect(body.output.data.anomalies).toBeTruthy();
   });
 
-  test('mobile responsive auto-aktiveras under 768px', async ({ page, viewport }) => {
+  test('mobile shell auto-aktiveras under 768px', async ({ page }) => {
     await page.setViewportSize({ width: 414, height: 850 });
     await page.goto('/major-arcana-preview/');
     await page.waitForLoadState('networkidle');
-    const isMobile = await page.evaluate(() =>
-      document.documentElement.getAttribute('data-cco-mobile') === 'true'
+    const isMobileShell = await page.evaluate(
+      () => document.documentElement.getAttribute('data-cco-mobile-shell') === 'on'
     );
-    expect(isMobile).toBe(true);
+    expect(isMobileShell).toBe(true);
   });
 });

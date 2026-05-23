@@ -154,12 +154,18 @@
   --cco-z-toast: 100000;
   --cco-z-tooltip: 1000000;
 
-  /* Layout breakpoints (för referens i media queries) */
-  --cco-bp-sm: 480px;
-  --cco-bp-md: 768px;
-  --cco-bp-lg: 1024px;
+  /* Layout breakpoints (canonical — mobile UX sweep 2026-05) */
+  --cco-bp-phone-max: 768px;
+  --cco-bp-tablet-min: 769px;
+  --cco-bp-desktop-min: 1024px;
   --cco-bp-xl: 1280px;
   --cco-bp-2xl: 1536px;
+
+  /* Mobile shell dimensions (phone ≤768px) */
+  --cco-mobile-topbar-h: 56px;
+  --cco-mobile-tabbar-h: 56px;
+  --cco-mobile-gutter: 16px;
+  --cco-mobile-page-title: 20px;
 
   /* === WARM-ROW TOKENS (Fas 3, 2026-05-08) ============================
    * Dedikerad palett för CCO inkorgs-rader. Varm beige/peach-stil.
@@ -308,6 +314,14 @@
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
     color-scheme: dark;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --cco-text-base: 15px;
+    --cco-text-md: 16px;
+    --cco-text-sm: 13px;
   }
 }
 

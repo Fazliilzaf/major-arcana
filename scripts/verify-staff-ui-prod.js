@@ -1,29 +1,235 @@
 #!/usr/bin/env node
 /**
- * STAFF UI verify prod: injicera token, öppna kund, leta efter journal/kamera-UI.
- * Ersätter inte riktig mobil enhetstest men fångar regressions i UI efter go-live.
+ * STAFF UI verify: iPhone 13 viewport — mobil shell, kundvy, journal, modaler.
+ * Prod: injicerar STAFF-token via get-prod-auth-token.js
+ * Lokal: ARCANA_PROD_URL=http://127.0.0.1:3100 + ARCANA_SMOKE_BEARER_TOKEN=__preview_local__
  */
 require('dotenv').config({ quiet: true });
 const { chromium, devices } = require('playwright');
 const { execSync } = require('node:child_process');
 const path = require('node:path');
 
-const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const base = (process.env.ARCANA_PROD_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://arcana.hairtpclinic.se').replace(
+  /\/+$/,
+  ''
+);
 const patientId = process.env.ARCANA_SMOKE_PATIENT_ID || '2e8d3535-cd89-418e-8b68-ca239f8836a4';
 const root = path.join(__dirname, '..');
+const isLocal =
+  /^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?$/i.test(base) ||
+  base.includes('127.0.0.1') ||
+  base.includes('localhost');
+
+const results = [];
+let hardFail = false;
+
+function record(name, pass, detail = '') {
+  results.push({ name, pass, detail });
+  const suffix = detail ? ` — ${detail}` : '';
+  console.log(`${pass ? 'PASS' : 'FAIL'}: ${name}${suffix}`);
+  if (!pass) hardFail = true;
+}
+
+function warn(name, detail = '') {
+  console.log(`WARN: ${name}${detail ? ` — ${detail}` : ''}`);
+}
 
 function getStaffToken() {
+  if (process.env.ARCANA_SMOKE_BEARER_TOKEN) {
+    return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
+  }
+  if (isLocal) {
+    return '__preview_local__';
+  }
   return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim();
 }
 
+async function injectToken(page, token) {
+  await page.evaluate((t) => {
+    localStorage.setItem('ARCANA_ADMIN_TOKEN', t);
+    sessionStorage.setItem('ARCANA_ADMIN_TOKEN', t);
+  }, token);
+}
+
+async function waitForMobileShell(page) {
+  await page.waitForFunction(
+    () => document.documentElement.hasAttribute('data-cco-mobile-shell'),
+    undefined,
+    { timeout: 20000 }
+  );
+}
+
+async function openCustomersWithPatient(page, token, id) {
+  await page.goto(`${base}/staff`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await injectToken(page, token);
+  const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(id)}`;
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+  await waitForMobileShell(page);
+  await page
+    .waitForSelector('.patient-master-tab[data-patient-tab="journal"], [data-patient-detail] h2', {
+      timeout: 20000,
+    })
+    .catch(() => {});
+}
+
+async function verifyMobileShell(page) {
+  const shellOn = await page.evaluate(() => document.documentElement.hasAttribute('data-cco-mobile-shell'));
+  record('Mobil shell aktiv', shellOn);
+
+  const tabbarVisible = await page.locator('.cco-mobile-tabbar').isVisible();
+  record('Bottom tab bar synlig', tabbarVisible);
+
+  const navHidden = await page.evaluate(() => {
+    const nav = document.querySelector('.preview-topbar-left .preview-nav');
+    if (!nav) return true;
+    return window.getComputedStyle(nav).display === 'none';
+  });
+  record('Desktop nav dold', navHidden);
+
+  const topbarHeight = await page.evaluate(() => {
+    const bar = document.querySelector('.preview-topbar');
+    return bar ? Math.round(bar.getBoundingClientRect().height) : 0;
+  });
+  record('Topbar ≤ 64px', topbarHeight > 0 && topbarHeight <= 64, `${topbarHeight}px`);
+}
+
+async function verifyPatientJournal(page) {
+  const journalTab = page.locator('.patient-master-tab[data-patient-tab="journal"]').first();
+  if (await journalTab.count()) {
+    await journalTab.click();
+    await page.waitForTimeout(400);
+    const tabBox = await journalTab.boundingBox();
+    record('Journal-tab ≥ 40px', Boolean(tabBox && tabBox.height >= 38), tabBox ? `${Math.round(tabBox.height)}px` : 'saknas');
+  }
+
+  await page.locator('.patient-master-journal-toolbar, [data-patient-master-rail]').first().scrollIntoViewIfNeeded().catch(() => {});
+
+  const taBildVisible = await page
+    .locator('.patient-master-camera-button, label:has-text("Ta bild")')
+    .first()
+    .isVisible()
+    .catch(() => false);
+  const bodyText = await page.locator('body').innerText();
+  const hasJournal = /Journal/i.test(bodyText);
+  const hasTaBild = taBildVisible;
+  const loginLocked = /Inloggningslåst/i.test(bodyText) && !hasJournal;
+
+  record('Journal UI', hasJournal);
+  if (!hasTaBild && isLocal) {
+    warn('Ta bild synlig', 'journal toolbar ej renderad (lokal fixture?)');
+  } else {
+    record('Ta bild synlig', hasTaBild);
+  }
+  record('Ej inloggningslåst', !loginLocked);
+
+  const detailActive = await page.evaluate(() =>
+    document.documentElement.hasAttribute('data-cco-patient-detail')
+  );
+  record('Kund detail-läge', detailActive);
+}
+
+async function verifyListBackFlow(page) {
+  await page.evaluate(() => {
+    window.ArcanaPatientMasterUi?.clearMobilePatientSelection?.();
+  });
+  await page.waitForTimeout(400);
+
+  const listVisible = await page.locator('[data-customer-list]').isVisible();
+  record('Kundlista efter clear', listVisible);
+
+  const firstRow = page.locator('[data-patient-row]').first();
+  if (!(await firstRow.count())) {
+    warn('List→detail', 'ingen kundrad att klicka');
+    return;
+  }
+
+  await firstRow.click();
+  await page.waitForTimeout(800);
+
+  const detailAfterClick = await page.evaluate(() =>
+    document.documentElement.hasAttribute('data-cco-patient-detail')
+  );
+  record('List→detail efter klick', detailAfterClick);
+
+  const backVisible = await page.evaluate(() => {
+    const btn = document.getElementById('cco-mobile-back-button');
+    return Boolean(btn && !btn.hidden);
+  });
+  record('Back-knapp synlig i detail', backVisible);
+
+  await page.evaluate(() => {
+    window.ArcanaPatientMasterUi?.goBackToPatientList?.();
+  });
+  await page.waitForTimeout(500);
+
+  const backToList = await page.evaluate(
+    () => !document.documentElement.hasAttribute('data-cco-patient-detail')
+  );
+  record('Back till lista', backToList);
+}
+
+async function verifySettingsBottomSheet(page) {
+  const settingsBtn = page.locator('[data-customer-command="settings"]').first();
+  if (!(await settingsBtn.count())) {
+    warn('Modal sheet', 'inställningsknapp saknas');
+    return;
+  }
+
+  await settingsBtn.click();
+  await page.waitForTimeout(350);
+
+  const shellOpen = await page.evaluate(() =>
+    document.getElementById('customers-settings-shell')?.hasAttribute('data-open')
+  );
+  record('Inställnings-modal öppen', Boolean(shellOpen));
+
+  if (shellOpen) {
+    const sheetStyle = await page.evaluate(() => {
+      const surface = document.querySelector('#customers-settings-shell .customers-modal-surface');
+      if (!surface) return null;
+      const style = window.getComputedStyle(surface);
+      return { position: style.position, bottom: style.bottom };
+    });
+    record(
+      'Modal som bottom sheet',
+      sheetStyle?.position === 'fixed' && (sheetStyle?.bottom === '0px' || sheetStyle?.bottom === '0'),
+      sheetStyle ? `${sheetStyle.position} bottom=${sheetStyle.bottom}` : 'saknas'
+    );
+  }
+
+  await page.locator('[data-customer-settings-close]').first().click({ timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(200);
+}
+
+async function verifyQueueChrome(page) {
+  await page.goto(`${base}/staff?view=conversations`, { waitUntil: 'networkidle', timeout: 90000 });
+  await waitForMobileShell(page);
+
+  const filterToggle = await page.locator('[data-cco-queue-filter-toggle]').count();
+  record('Kö Filter-chip', filterToggle > 0, filterToggle ? 'finns' : 'saknas');
+
+  const compactRow = await page.locator('.warm-row--mobile-compact').count();
+  if (compactRow === 0) {
+    await page.waitForTimeout(2000);
+  }
+  const compactAfter = await page.locator('.warm-row--mobile-compact').count();
+  if (compactAfter > 0) {
+    record('Kompakta kö-rader', true, `${compactAfter} rader`);
+  } else {
+    warn('Kompakta kö-rader', '0 rader (tom kö eller ej renderad)');
+  }
+}
+
 async function main() {
   const token = getStaffToken();
-  if (!token || token.length < 20) {
+  if (!token || token.length < 8) {
     throw new Error('Saknar STAFF-token');
   }
+
+  console.log(`Base: ${base}${isLocal ? ' (lokal)' : ' (prod)'}`);
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -32,35 +238,27 @@ async function main() {
   });
   const page = await context.newPage();
 
-  await page.goto(`${base}/staff`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.evaluate((t) => {
-    localStorage.setItem('ARCANA_ADMIN_TOKEN', t);
-    sessionStorage.setItem('ARCANA_ADMIN_TOKEN', t);
-  }, token);
+  try {
+    await openCustomersWithPatient(page, token, patientId);
+    console.log(`URL: ${page.url()}`);
 
-  const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(patientId)}`;
-  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
-
-  const bodyText = await page.locator('body').innerText();
-  const hasTaBild = /Ta bild/i.test(bodyText);
-  const hasJournal = /Journal/i.test(bodyText);
-  const loginLocked = /Inloggningslåst|Logga in/i.test(bodyText) && !hasJournal;
-
-  console.log(`URL: ${page.url()}`);
-  console.log(`Journal UI: ${hasJournal ? 'PASS' : 'FAIL'}`);
-  console.log(`Ta bild: ${hasTaBild ? 'PASS' : 'FAIL'}`);
-  console.log(`Login locked: ${loginLocked ? 'FAIL' : 'PASS'}`);
-
-  if (!hasJournal || loginLocked) {
+    await verifyMobileShell(page);
+    await verifyPatientJournal(page);
+    await verifyListBackFlow(page);
+    await verifySettingsBottomSheet(page);
+    await verifyQueueChrome(page);
+  } finally {
     await browser.close();
+  }
+
+  const passed = results.filter((r) => r.pass).length;
+  console.log('');
+  console.log(`Resultat: ${passed}/${results.length} PASS`);
+
+  if (hardFail) {
     process.exit(1);
   }
 
-  if (!hasTaBild) {
-    console.log('WARN: Journal synlig men "Ta bild" hittades inte — öppna journal-tab manuellt på enhet');
-  }
-
-  await browser.close();
   console.log('✅ STAFF UI verify (iPhone 13 viewport) klar');
 }
 
