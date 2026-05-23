@@ -19,7 +19,7 @@ Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Majo
 - [x] Kopiera Cliento-export → `MA-Archive/cliento/`
 - [x] Flytta färdiga journal-zip (ej `.crdownload`) → `MA-Archive/journal-zips/`
 - [ ] Extrahera `Offertmallar-*.zip` → `MA-Archive/offert-word/` (zip korrupt — ladda om från Drive)
-- [x] SharePoint-original delvis → `~/Code/MA-Archive/sharepoint/` (se `scripts/sync-sharepoint-archive.sh`)
+- [x] SharePoint-original → `~/Code/MA-Archive/sharepoint/` via `scripts/sync-sharepoint-archive.sh` (**GitHub repo**, inte Word-nedladdning)
 - [x] Uppdatera juridik-index (`docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md`):
   - Gabrielle Handler process (konsultation → patientinfo → offert → avtal → bokning)
   - Bilaga 1 = patientinformation
