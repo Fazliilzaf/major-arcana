@@ -41,10 +41,17 @@ function getStaffToken() {
   if (isLocal) {
     return '__preview_local__';
   }
-  return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim();
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }).trim();
+    } catch (err) {
+      if (attempt === 3) throw err;
+    }
+  }
+  return '';
 }
 
 async function injectToken(page, token) {
@@ -71,17 +78,30 @@ async function waitForMobileShell(page, timeout = 30000) {
   }
 }
 
+async function ensurePatientDetailLoaded(page, token, id) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const ready = await page.evaluate(
+      () =>
+        Boolean(
+          document.querySelector('[data-patient-detail], .patient-master-camera-button, .patient-master-tab[data-patient-tab="journal"]')
+        )
+    );
+    if (ready) return;
+    await injectToken(page, token);
+    const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(id)}`;
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+    await waitForMobileShell(page);
+    await page.waitForTimeout(1200);
+  }
+}
+
 async function openCustomersWithPatient(page, token, id) {
   await page.goto(`${base}/major-arcana-preview/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await injectToken(page, token);
   const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(id)}`;
   await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
   await waitForMobileShell(page);
-  await page
-    .waitForSelector('.patient-master-tab[data-patient-tab="journal"], [data-patient-detail], .patient-master-camera-button', {
-      timeout: 30000,
-    })
-    .catch(() => {});
+  await ensurePatientDetailLoaded(page, token, id);
   await page.waitForTimeout(800);
 }
 
@@ -135,8 +155,8 @@ async function verifyPatientJournal(page) {
   }
   record('Ej inloggningslåst', !loginLocked);
 
-  const detailActive = await page.evaluate(() =>
-    document.documentElement.hasAttribute('data-cco-patient-detail')
+  const detailActive = await page.evaluate(
+    () => document.documentElement.getAttribute('data-cco-patient-detail') === 'on'
   );
   record('Kund detail-läge', detailActive);
 }
