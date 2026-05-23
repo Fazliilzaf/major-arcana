@@ -56,6 +56,14 @@ Befintlig arkitektur har:
 - Scheduler `cmo_pilot_publish_due` skriver audit + `publish_queued` — **ingen extern publicering** förrän separat connector/adapters godkänns.
 - L5 autonom publicering/spend förblir blockerad.
 
+### v3 addendum (2026-05-22)
+
+- **Live extern publish** tillåts endast när `ARCANA_MARKETING_PUBLISH_LIVE_ENABLED=true` (default **false**).
+- Pilot allowlist (default `linkedin`) + OWNER-godkännande + compliance-gates krävs fortfarande.
+- `cmoPublishConnectors.js` adapter-lager anropar extern API i sandbox/live; mail/meta kan vara stub.
+- Idempotency via `correlationId`; misslyckade försök loggas som `cmo.pilot_publish.failed` med dead-letter metadata.
+- Rollback: sätt `ARCANA_MARKETING_PUBLISH_LIVE_ENABLED=false` — återgå till queue-only.
+
 ## References
 
 - `docs/strategy/cmo-arcana-marketing-copilot-implementation-plan.md`

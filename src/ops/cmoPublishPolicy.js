@@ -245,33 +245,76 @@ async function executePilotChannelPublish({
   actorUserId = 'scheduler',
   authStore = null,
   correlationId = '',
+  config = null,
+  tenantConfig = null,
+  fetchImpl = globalThis.fetch,
 } = {}) {
   const normalizedChannel = normalizeChannel(channel || campaign.channel);
   const campaignId = normalizeText(campaign.id);
+  const resolvedCorrelationId =
+    normalizeText(correlationId) || `pilot-${campaignId || 'unknown'}-${normalizedChannel}-${Date.now()}`;
+
+  const { publishToExternalChannel, resolvePublishLiveEnabled } = require('./cmoPublishConnectors');
+  const appConfig = config && typeof config === 'object' ? config : {};
+  const liveEnabled = resolvePublishLiveEnabled(appConfig);
+
+  let publishResult;
+  if (liveEnabled) {
+    publishResult = await publishToExternalChannel({
+      channel: normalizedChannel,
+      campaign,
+      tenantId,
+      config: appConfig,
+      tenantConfig: tenantConfig || {},
+      correlationId: resolvedCorrelationId,
+      fetchImpl,
+    });
+  } else {
+    publishResult = {
+      status: 'publish_queued',
+      channel: normalizedChannel,
+      campaignId,
+      tenantId: normalizeText(tenantId) || 'default',
+      mode: 'pilot_queue_stub',
+      externalPublishInvoked: false,
+      message:
+        'Pilot publish köad — extern connector anropas inte (ADR 0002). OWNER audit + manuell verifiering krävs.',
+      correlationId: resolvedCorrelationId,
+    };
+  }
+
   const result = {
-    status: 'publish_queued',
+    ...publishResult,
     channel: normalizedChannel,
     campaignId,
     tenantId: normalizeText(tenantId) || 'default',
-    mode: 'pilot_queue_stub',
-    externalPublishInvoked: false,
-    message:
-      'Pilot publish köad — extern connector anropas inte (ADR 0002). OWNER audit + manuell verifiering krävs.',
     queuedAt: new Date().toISOString(),
+    mode: publishResult.mode || (liveEnabled ? 'live' : 'pilot_queue_stub'),
   };
+
+  const auditAction =
+    result.status === 'published'
+      ? 'cmo.pilot_publish.published'
+      : result.status === 'publish_failed'
+        ? 'cmo.pilot_publish.failed'
+        : 'cmo.pilot_publish.queue';
+  const auditOutcome = result.status === 'publish_failed' ? 'failure' : 'success';
 
   if (authStore && typeof authStore.addAuditEvent === 'function') {
     await authStore.addAuditEvent({
       tenantId: result.tenantId,
       actorUserId: normalizeText(actorUserId) || 'scheduler',
-      action: 'cmo.pilot_publish.queue',
-      outcome: 'success',
+      action: auditAction,
+      outcome: auditOutcome,
       targetType: 'marketing_campaign_draft',
       targetId: campaignId || 'unknown',
       metadata: {
         channel: normalizedChannel,
-        correlationId: normalizeText(correlationId) || null,
-        externalPublishInvoked: false,
+        correlationId: resolvedCorrelationId,
+        externalPublishInvoked: result.externalPublishInvoked === true,
+        publishStatus: result.status,
+        externalId: normalizeText(result.externalId) || null,
+        deadLetter: result.deadLetter === true,
       },
     });
   }

@@ -154,7 +154,17 @@ test('GET /marketing/connectors/status returns connector summary', async () => {
 });
 
 test('listConnectorStatuses returns not_configured without enabled connectors', async () => {
-  const statuses = await listConnectorStatuses({ config: {} });
+  const statuses = await listConnectorStatuses({
+    config: {
+      marketingConnectorsEnabled: false,
+      marketingConnectors: {
+        google_ads: { enabled: false },
+        meta: { enabled: false },
+        linkedin: { enabled: false },
+        mail: { enabled: false },
+      },
+    },
+  });
   assert.ok(statuses.length >= 4);
   assert.ok(statuses.every((item) => item.status === CONNECTOR_STATUS.NOT_CONFIGURED));
 });

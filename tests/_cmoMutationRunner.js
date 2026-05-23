@@ -14,6 +14,7 @@ const files = [
   'tests/ops/cmoPhaseV2Connectors.test.js',
   'tests/ops/cmoPhaseV2LiveAdapters.test.js',
   'tests/ops/cmoPhasePublishPolicy.test.js',
+  'tests/ops/cmoPhaseV3Sweep.test.js',
   'tests/ops/cmoPhaseContentAssets.test.js',
   'tests/ops/cmoMutationHardening.test.js',
   'tests/ops/cmoStoreIntegration.test.js',

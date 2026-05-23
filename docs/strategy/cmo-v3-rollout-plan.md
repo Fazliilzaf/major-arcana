@@ -1,6 +1,6 @@
 # CMO v3 — Rollout-plan (commit, prod-connectors, produktscope)
 
-**Status:** BYGGFAS (Fas N delvis klar, O fixture aktiv)  
+**Status:** BYGGFAS (Fas N–R kod levererad lokalt; prod secrets + CI push återstår)  
 **Datum:** 2026-05-22  
 **Ägare:** OWNER + plattform  
 **Förutsättning:** Fas A–M levererade (mutation **66.32%**, 168 CMO-tester gröna lokalt)
@@ -24,10 +24,15 @@ Spåren kan köras delvis parallellt; **Fas N ska vara klar före prod-deploy (F
 | Fas   | Namn                      | Mål                                        | Uppskattning | Blocker                     |
 | ----- | ------------------------- | ------------------------------------------ | ------------ | --------------------------- |
 | **N** | Commit & CI               | Ren main, grön pipeline, mutation-artifact | 1–2 dagar    | —                           |
-| **O** | Prod connectors           | Live Google/Meta/LinkedIn metrics i prod   | 1–2 veckor   | Fas N, secrets, OWNER       |
+| **O** | Prod connectors           | Live Google/Meta/LinkedIn/Mail metrics i prod | 1–2 veckor   | Fas N, secrets, OWNER       |
 | **P** | v3.0 Live publish (pilot) | Extern publicering efter OWNER + gates     | 3–4 veckor   | Fas O, ADR 0002-uppdatering |
 | **Q** | v3.1 Connector ops        | Observability, fallback, tenant-config     | 2 veckor     | Fas O                       |
 | **R** | v3.2 Kvalitet & scope     | Mutation ≥70%, mail/analytics+, UI         | Löpande      | —                           |
+
+**2026-05-22 sweep (lokal kod):**
+- P: `cmoPublishConnectors.js`, live publish gate (`ARCANA_MARKETING_PUBLISH_LIVE_ENABLED`), ADR v3 addendum
+- Q: tenant `marketing.connectors`, health job `cmo_connector_health_check`, mail adapter, cache TTL, admin force-refresh
+- R: `GenerateContentSeries`, trust topics i brief, `cmoPhaseV3Sweep.test.js`
 
 ---
 

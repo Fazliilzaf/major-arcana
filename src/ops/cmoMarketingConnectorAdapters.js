@@ -133,11 +133,19 @@ function canFetchLinkedIn(connector = {}) {
   return Boolean(normalizeText(connector.adAccountId || connector.accountId) && normalizeText(connector.accessToken));
 }
 
+function canFetchMail(connector = {}) {
+  return Boolean(
+    normalizeText(connector.apiBaseUrl) &&
+      (normalizeText(connector.accessToken) || normalizeText(connector.apiKey))
+  );
+}
+
 function resolveLiveAdapter(channel = '', connector = {}) {
   const normalizedChannel = normalizeText(channel).toLowerCase();
   if (normalizedChannel === 'google_ads' && canFetchGoogleAds(connector)) return 'google_ads';
   if (normalizedChannel === 'meta' && canFetchMeta(connector)) return 'meta';
   if (normalizedChannel === 'linkedin' && canFetchLinkedIn(connector)) return 'linkedin';
+  if (normalizedChannel === 'mail' && canFetchMail(connector)) return 'mail';
   return null;
 }
 
@@ -304,6 +312,35 @@ async function fetchLinkedInMetrics({ connector = {}, window = '7d', fetchImpl =
   return normalized;
 }
 
+async function fetchMailMetrics({ connector = {}, window = '7d', fetchImpl = globalThis.fetch } = {}) {
+  const apiBaseUrl = normalizeText(connector.apiBaseUrl);
+  const metricsPath = normalizeText(connector.metricsPath) || '/metrics';
+  const url = new URL(metricsPath, apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`);
+  url.searchParams.set('window', window);
+
+  const headers = { Accept: 'application/json' };
+  const accessToken = normalizeText(connector.accessToken);
+  const apiKey = normalizeText(connector.apiKey);
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  else if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
+  const response = await fetchWithTimeout(url.toString(), { headers, timeoutMs: connector.timeoutMs }, fetchImpl);
+  const body = await readJsonResponse(response);
+  const metricsSource = asObject(body.metrics || body.kpis || body);
+  const normalized = buildNormalizedMetrics({
+    impressions: metricsSource.impressions ?? metricsSource.delivered,
+    clicks: metricsSource.clicks ?? metricsSource.unique_clicks,
+    spend: metricsSource.spend ?? metricsSource.cost,
+    ctr: metricsSource.ctr ?? metricsSource.click_rate,
+    cpc: metricsSource.cpc,
+    conversions: metricsSource.conversions ?? metricsSource.signups,
+  });
+  if (!Object.keys(normalized.metrics).length && normalized.spend == null) {
+    throw new Error('Mail metrics response saknar data.');
+  }
+  return normalized;
+}
+
 async function fetchLiveMetricsViaAdapter({
   channel = '',
   connector = {},
@@ -322,6 +359,9 @@ async function fetchLiveMetricsViaAdapter({
   if (adapter === 'linkedin') {
     return fetchLinkedInMetrics({ connector, window, fetchImpl });
   }
+  if (adapter === 'mail') {
+    return fetchMailMetrics({ connector, window, fetchImpl });
+  }
   return null;
 }
 
@@ -339,4 +379,6 @@ module.exports = {
   canFetchGoogleAds,
   canFetchMeta,
   canFetchLinkedIn,
+  canFetchMail,
+  fetchMailMetrics,
 };
