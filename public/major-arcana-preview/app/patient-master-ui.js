@@ -1081,7 +1081,191 @@
     if (linkedOffer.quoteAcceptedAt) {
       bits.push(`Accepterad ${String(linkedOffer.quoteAcceptedAt).slice(0, 10)}`);
     }
-    return bits.length ? `<p class="patient-master-muted">${escapeHtml(bits.join(' · '))}</p>` : '';
+    if (!bits.length) return '';
+    if (isMobileViewport()) {
+      return `<div class="patient-master-offer-meta-badges">${bits
+        .map(
+          (bit, index) =>
+            `<span class="patient-master-status-badge${index === 0 ? ' is-accent' : ''}">${escapeHtml(bit)}</span>`
+        )
+        .join('')}</div>`;
+    }
+    return `<p class="patient-master-muted">${escapeHtml(bits.join(' · '))}</p>`;
+  }
+
+  let offerWizardEntryId = '';
+  let offerWizardStep = 1;
+
+  function ensureMobileOfferWizard() {
+    let shell = document.getElementById('cco-mobile-offer-wizard');
+    if (shell) return shell;
+
+    shell = document.createElement('div');
+    shell.id = 'cco-mobile-offer-wizard';
+    shell.className = 'cco-mobile-offer-wizard';
+    shell.hidden = true;
+    shell.innerHTML = `
+      <div class="cco-mobile-offer-wizard-panel" role="dialog" aria-modal="true" aria-labelledby="cco-mobile-offer-wizard-title">
+        <div class="cco-mobile-offer-wizard-steps" aria-hidden="true">
+          <span class="cco-mobile-offer-wizard-step is-active" data-offer-wizard-step-indicator="1">1 Pris</span>
+          <span class="cco-mobile-offer-wizard-step" data-offer-wizard-step-indicator="2">2 Bekräfta</span>
+        </div>
+        <h3 id="cco-mobile-offer-wizard-title">Skapa offert</h3>
+        <form data-mobile-offer-wizard-form>
+          <div data-mobile-offer-wizard-step="1">
+            <label class="cco-mobile-offer-wizard-field">
+              <span>Pris i offerten</span>
+              <input type="text" name="quotedAmount" placeholder="t.ex. 75 000 kr" autocomplete="off" />
+            </label>
+            <label class="cco-mobile-offer-wizard-field">
+              <span>Deposition (valfritt)</span>
+              <input type="text" name="depositAmount" placeholder="t.ex. 5 000 kr" autocomplete="off" />
+            </label>
+            <label class="cco-mobile-offer-wizard-field">
+              <span>Offertmall</span>
+              <select name="templateKey" data-mobile-offer-wizard-template></select>
+            </label>
+          </div>
+          <div data-mobile-offer-wizard-step="2" hidden>
+            <p class="patient-master-muted" data-mobile-offer-wizard-summary></p>
+          </div>
+          <div class="cco-mobile-offer-wizard-actions">
+            <button type="button" class="customers-utility-button" data-mobile-offer-wizard-cancel>Avbryt</button>
+            <button type="button" class="customers-utility-button" data-mobile-offer-wizard-back hidden>Tillbaka</button>
+            <button type="button" class="customers-utility-button" data-mobile-offer-wizard-next>Nästa</button>
+            <button type="submit" class="customers-utility-button" data-mobile-offer-wizard-submit hidden>Skapa offert</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(shell);
+
+    shell.querySelector('[data-mobile-offer-wizard-cancel]')?.addEventListener('click', closeMobileOfferWizard);
+    shell.querySelector('[data-mobile-offer-wizard-back]')?.addEventListener('click', () => {
+      setMobileOfferWizardStep(1);
+    });
+    shell.querySelector('[data-mobile-offer-wizard-next]')?.addEventListener('click', () => {
+      const form = shell.querySelector('[data-mobile-offer-wizard-form]');
+      const quotedAmount = normalizeText(form?.quotedAmount?.value);
+      if (!quotedAmount) {
+        setStatus('Ange pris i offerten.', 'error');
+        return;
+      }
+      setMobileOfferWizardStep(2);
+    });
+    shell.querySelector('[data-mobile-offer-wizard-form]')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      void submitMobileOfferWizard();
+    });
+
+    return shell;
+  }
+
+  function populateMobileOfferWizardTemplates(selectNode) {
+    if (!selectNode) return;
+    const templates = asArray(runtime.offerTemplates);
+    selectNode.innerHTML = templates.length
+      ? templates
+          .map(
+            (template) =>
+              `<option value="${escapeHtml(template.key)}">${escapeHtml(template.label || template.key)}</option>`
+          )
+          .join('')
+      : '<option value="custom">Anpassad</option>';
+  }
+
+  function setMobileOfferWizardStep(step) {
+    offerWizardStep = step === 2 ? 2 : 1;
+    const shell = document.getElementById('cco-mobile-offer-wizard');
+    if (!shell) return;
+    shell.querySelector('[data-mobile-offer-wizard-step="1"]').hidden = offerWizardStep !== 1;
+    shell.querySelector('[data-mobile-offer-wizard-step="2"]').hidden = offerWizardStep !== 2;
+    shell.querySelector('[data-mobile-offer-wizard-back]').hidden = offerWizardStep !== 2;
+    shell.querySelector('[data-mobile-offer-wizard-next]').hidden = offerWizardStep !== 1;
+    shell.querySelector('[data-mobile-offer-wizard-submit]').hidden = offerWizardStep !== 2;
+    shell.querySelectorAll('[data-offer-wizard-step-indicator]').forEach((node) => {
+      const nodeStep = Number(node.getAttribute('data-offer-wizard-step-indicator') || 0);
+      node.classList.toggle('is-active', nodeStep === offerWizardStep);
+      node.classList.toggle('is-done', nodeStep < offerWizardStep);
+    });
+
+    if (offerWizardStep === 2) {
+      const form = shell.querySelector('[data-mobile-offer-wizard-form]');
+      const quotedAmount = normalizeText(form?.quotedAmount?.value);
+      const depositAmount = normalizeText(form?.depositAmount?.value);
+      const templateKey = normalizeText(form?.templateKey?.value);
+      const templateLabel =
+        asArray(runtime.offerTemplates).find((item) => item.key === templateKey)?.label || templateKey;
+      const summary = shell.querySelector('[data-mobile-offer-wizard-summary]');
+      if (summary) {
+        summary.textContent = `Skapa offert på ${quotedAmount || '—'}${
+          depositAmount ? ` med deposition ${depositAmount}` : ''
+        } (${templateLabel || 'Anpassad'}).`;
+      }
+    }
+  }
+
+  function openMobileOfferWizard(entryId) {
+    if (!isMobileViewport()) return false;
+    offerWizardEntryId = normalizeText(entryId);
+    const shell = ensureMobileOfferWizard();
+    populateMobileOfferWizardTemplates(shell.querySelector('[data-mobile-offer-wizard-template]'));
+    const form = shell.querySelector('[data-mobile-offer-wizard-form]');
+    if (form) {
+      form.reset();
+      if (form.templateKey && !form.templateKey.value) {
+        form.templateKey.value = 'custom';
+      }
+    }
+    setMobileOfferWizardStep(1);
+    shell.hidden = false;
+    shell.querySelector('[name="quotedAmount"]')?.focus?.();
+    return true;
+  }
+
+  function closeMobileOfferWizard() {
+    const shell = document.getElementById('cco-mobile-offer-wizard');
+    if (shell) shell.hidden = true;
+    offerWizardEntryId = '';
+    offerWizardStep = 1;
+  }
+
+  async function submitMobileOfferWizard() {
+    const entryId = offerWizardEntryId;
+    const patientId = runtime.selectedPatientId;
+    if (!patientId || !entryId) return;
+    const form = document.querySelector('[data-mobile-offer-wizard-form]');
+    const quotedAmount = normalizeText(form?.quotedAmount?.value);
+    const depositAmount = normalizeText(form?.depositAmount?.value);
+    const templateKey = normalizeText(form?.templateKey?.value) || 'custom';
+    if (!quotedAmount) {
+      setStatus('Ange pris i offerten.', 'error');
+      setMobileOfferWizardStep(1);
+      return;
+    }
+    closeMobileOfferWizard();
+    setStatus('Skapar offert från behandlingsplan…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-commercial/offer-from-plan', {
+        method: 'POST',
+        body: {
+          patientId,
+          entryId,
+          quotedAmount,
+          depositAmount,
+          templateKey,
+        },
+      });
+      runtime.commercialCase = payload.commercialCase || null;
+      runtime.offerDocumentUrl = payload.offerDocumentUrl || '';
+      runtime.offerDocumentPdfUrl = payload.offerDocumentPdfUrl || '';
+      runtime.offerDocumentWordUrl = payload.offerDocumentWordUrl || '';
+      setStatus('Offert skapad från behandlingsplan.', 'success');
+      runtime.detailTab = 'journal';
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte skapa offert.', 'error');
+    }
   }
 
   function renderConsultationPlanSection(entries) {
@@ -1409,6 +1593,18 @@
       agreement &&
       (agreement.agreementStatus === 'sent' || agreement.agreementStatus === 'cooling_off');
 
+    const nextActionLabel = readout?.bookable
+      ? 'Nästa: Boka behandlingstid i CCO-tråden.'
+      : canSendSign
+        ? 'Nästa: Skicka avtalet för signering.'
+        : canCreate
+          ? 'Nästa: Skapa avtal från accepterad offert.'
+          : !readout?.patientInfoSent
+            ? 'Nästa: Logga skickad patientinformation (bilaga 1).'
+            : !offerAccepted
+              ? 'Nästa: Få offerten accepterad av kunden.'
+              : readout?.nextStep || 'Följ juristflödet steg för steg.';
+
     return `
       <article class="focus-customer-data-card patient-master-agreement-card">
         <div class="patient-master-material-head">
@@ -1419,26 +1615,26 @@
               : ''
           }
         </div>
-        <p class="patient-master-muted">${escapeHtml(readout?.nextStep || 'Följ juristflödet: patientinfo → offert accepterad → avtal → signering → bokning.')}</p>
-        <ol class="patient-master-workflow-steps">
-          <li class="${readout?.patientInfoSent ? 'is-done' : ''}">Skicka patientinformation (bilaga 1)${readout?.patientInfoSent ? ' ✓' : ''}</li>
-          <li class="${offerAccepted ? 'is-done' : ''}">Offert accepterad${offerAccepted ? ' ✓' : ''}</li>
-          <li class="${agreement?.agreementDocumentId ? 'is-done' : ''}">Avtal skapat${agreement?.agreementDocumentId ? ' ✓' : ''}</li>
-          <li class="${readout?.bookable ? 'is-done' : ''}">Signerat — bokningsbart${readout?.bookable ? ' ✓' : ''}</li>
+        <p class="patient-master-next-action">${escapeHtml(nextActionLabel)}</p>
+        <ol class="patient-master-agreement-checklist patient-master-workflow-steps">
+          <li class="${readout?.patientInfoSent ? 'is-done' : ''}">Patientinformation (bilaga 1)</li>
+          <li class="${offerAccepted ? 'is-done' : ''}">Offert accepterad</li>
+          <li class="${agreement?.agreementDocumentId ? 'is-done' : ''}">Avtal skapat</li>
+          <li class="${readout?.bookable ? 'is-done' : ''}">Signerat — bokningsbart</li>
         </ol>
         ${
           readout?.patientInfoSentAt
-            ? `<p class="patient-master-muted">Patientinfo skickad ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))} (${escapeHtml(readout.patientInfoChannel || '—')})</p>`
+            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Patientinfo ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))}</span></div>`
             : ''
         }
         ${
           agreement?.deliveryMode
-            ? `<p class="patient-master-muted">Leveransläge: ${escapeHtml(agreement.deliveryMode === 'distans' ? 'Distans (betänketid)' : 'På plats')}</p>`
+            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge is-accent">${escapeHtml(agreement.deliveryMode === 'distans' ? 'Distans (betänketid)' : 'På plats')}</span></div>`
             : ''
         }
         ${
           coolingActive
-            ? `<p class="patient-master-muted">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</p>`
+            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</span></div>`
             : ''
         }
         <div class="patient-master-plan-photo-actions">
@@ -1781,6 +1977,7 @@
   async function createOfferFromPlan(entryId) {
     const patientId = runtime.selectedPatientId;
     if (!patientId || !entryId) return;
+    if (openMobileOfferWizard(entryId)) return;
     const quotedAmount = window.prompt('Pris i offerten (t.ex. 75 000 kr):', '') || '';
     const depositAmount = window.prompt('Deposition (valfritt):', '') || '';
     const templateSelect = document.querySelector('[data-patient-offer-template]');

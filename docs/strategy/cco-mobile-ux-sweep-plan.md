@@ -1,6 +1,6 @@
 # CCO Mobil UX/UI — Sweep-plan (ett svep)
 
-**Status:** Fas 0 + A + B + C + **D klara** (2026-05-23) — nästa: **Fas E** (density & affärsflöden)  
+**Status:** Fas 0 + A + B + C + D + **E klara** (2026-05-23) — nästa: **Fas F** (QA, Playwright, CI)  
 **Senast uppdaterad:** 2026-05-23  
 **Relaterad audit:** mobil UX-audit 2026-05-23 (chat)  
 **Bygger på:** [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)  
@@ -203,20 +203,20 @@ Fas F  QA, docs, CI
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| D2.1 | `#booking-shell` @767: fullskärm sheet `inset: auto 0 0 0` | **High** | 3.12 | `styles.css` / shell | Ingen desktop-panel |
-| D2.2 | Toolbar kompakt; stäng alltid synlig | High | 3.12 | shell CSS | |
-| D2.3 | **3-steg wizard:** Tjänst → Tid → Bekräfta | **High** | 3.12 | `runtime-overlay-renderers.js` + JS | Progress indicator |
-| D2.4 | Slot picker: vertikala tidschips (ersätt input-grid) | **High** | 3.6 | ny `booking-mobile-slot-picker.js` | Inga 4 inputs på rad |
+| D2.1 | `#booking-shell` @767: fullskärm sheet `inset: auto 0 0 0` | **High** | 3.12 | shell CSS | ✅ Ingen desktop-panel |
+| D2.2 | Toolbar kompakt; stäng alltid synlig | High | 3.12 | shell CSS | ✅ 44px stäng |
+| D2.3 | **3-steg wizard:** Tjänst → Tid → Bekräfta | **High** | 3.12 | `booking-mobile-shell.js` | ✅ Progress indicator |
+| D2.4 | Slot picker: vertikala tidschips (ersätt input-grid) | **High** | 3.6 | `booking-mobile-slot-picker.js` | ✅ 1-kolumn + datumchips |
 
 ### D3 Övriga overlays
 
 | # | Uppgift | Prio | Filer | DoD |
 |---|---------|------|-------|-----|
-| D3.1 | `#cmd-k-overlay` dold @767; sök i app-bar istället (valfritt) | Medium | `app/cmd-k.js` | |
-| D3.2 | `journal-plan-editor` — behåll full overlay; sidopanel stack @900 (redan delvis OK) | Low | `cco-polish.css` | |
-| D3.3 | QR-overlay redan `min(100%, 320px)` — lägg safe-area | Low | `cco-polish.css` | |
+| D3.1 | `#cmd-k-overlay` dold @767; sök i app-bar istället (valfritt) | Medium | shell CSS | ✅ Dold på phone |
+| D3.2 | `journal-plan-editor` — behåll full overlay; sidopanel stack @900 (redan delvis OK) | Low | `cco-polish.css` | ⏳ Oförändrat (redan OK) |
+| D3.3 | QR-overlay redan `min(100%, 320px)` — lägg safe-area | Low | `cco-polish.css` | ✅ safe-area padding |
 
-**Fas D acceptans:** Öppna merge-modal + bokning på phone — bottom sheet, stäng med tumme.
+**Fas D acceptans:** Öppna merge-modal + bokning på phone — bottom sheet, stäng med tumme. ✅ **Implementerat** — commit på `feat/cco-mobile-ux-sweep`.
 
 ---
 
