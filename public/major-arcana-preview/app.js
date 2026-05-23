@@ -2390,6 +2390,7 @@
       isBackgroundRefresh: false,
       staleCacheActive: false,
       backgroundSyncActive: false,
+      bootLaneLocked: true,
       scopeAutoWidenedAt: "",
       backgroundRefreshSelectedThreadId: "",
       mode: "",
@@ -14472,7 +14473,8 @@
       !getQueueScopedRuntimeThreads().length &&
       liveThreads.length &&
       availableMailboxIds.length > 1 &&
-      !state.runtime?.scopeAutoWidenedAt
+      !state.runtime?.scopeAutoWidenedAt &&
+      state.runtime?.bootLaneLocked !== true
     ) {
       workspaceSourceOfTruth.setSelectedMailboxIds([...availableMailboxIds]);
       state.runtime.scopeAutoWidenedAt = new Date().toISOString();
@@ -14495,7 +14497,11 @@
     }
 
     let visibleThreads = getFilteredRuntimeThreads();
-    if (!visibleThreads.length && options.allowLaneFallback) {
+    if (
+      !visibleThreads.length &&
+      options.allowLaneFallback &&
+      state.runtime?.bootLaneLocked !== true
+    ) {
       const activeQueueThreads = getQueueScopedRuntimeThreads().filter((thread) => !isHandledRuntimeThread(thread));
       if (activeQueueThreads.length) {
         const lanePriorityRank = {
@@ -15368,7 +15374,7 @@
       leftColumnState.mode === "default"
     ) {
       return normalizeVisibleRuntimeScope({
-        allowLaneFallback: true,
+        allowLaneFallback: state.runtime?.bootLaneLocked !== true,
         preferredThreadId: workspaceSourceOfTruth.getSelectedThreadId(),
         resetHistoryOnChange: false,
       });
@@ -41203,6 +41209,9 @@
 
 	  document.addEventListener("pointerup", (event) => {
 	    const activateWorkspaceLane = (laneId, statusMessage) => {
+	      if (state.runtime?.bootLaneLocked === true) {
+	        state.runtime.bootLaneLocked = false;
+	      }
 	      const workspaceApi = window.__ccoWorkspace;
 	      if (workspaceApi && typeof workspaceApi.setActiveLaneId === "function") {
 	        workspaceApi.setActiveLaneId(laneId);
