@@ -12,12 +12,13 @@ permissions:
 jobs:
   prod-heal:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     if: github.repository == 'Fazliilzaf/major-arcana'
     env:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_SERVICE_ID: srv-d6b11o0boq4c73chm7f0
       ARCANA_PROD_URL: https://arcana.hairtpclinic.se
+      TARGET_SHA: ${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,10 +28,21 @@ jobs:
         with:
           node-version: 20
 
-      - name: Wait for Render deploy
+      - name: Wait for prod deploy (commit match)
         run: |
-          echo "Väntar 90s på att Render auto-deploy ska starta..."
-          sleep 90
+          target_short="${TARGET_SHA:0:7}"
+          echo "Väntar på prod commit ${target_short}..."
+          for i in $(seq 1 36); do
+            body="$(curl -fsS "${ARCANA_PROD_URL}/api/v1/_diag/version" 2>/dev/null || true)"
+            prod_short="$(printf '%s' "$body" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).commit.slice(0,7))}catch{}});" 2>/dev/null || true)"
+            echo "  försök $i: prod=${prod_short:-?} mål=${target_short}"
+            if [[ "$prod_short" == "$target_short" ]]; then
+              echo "Deploy matchar push-commit."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::Prod nådde inte ${target_short} inom timeout — fortsätter ändå med heal"
 
       - name: Restore Render env from blueprint
         if: env.RENDER_API_KEY != ''
@@ -40,25 +52,34 @@ jobs:
         if: env.RENDER_API_KEY == ''
         run: |
           echo "::warning::RENDER_API_KEY saknas i GitHub secrets — env restore hoppas över."
-          echo "Lägg till Render API-nyckel under Settings → Secrets → RENDER_API_KEY"
 
-      - name: Wait for prod readyz
+      - name: Wait for prod readyz after heal
         run: |
           for i in $(seq 1 36); do
-            if curl -fsS "${ARCANA_PROD_URL}/readyz" | grep -q '"ready":true'; then
+            if curl -fsS "${ARCANA_PROD_URL}/readyz" 2>/dev/null | grep -q '"ready":true'; then
               echo "readyz OK efter ${i} försök"
               exit 0
             fi
-            echo "väntar... ($i/36)"
+            echo "väntar på readyz... ($i/36)"
             sleep 10
           done
-          echo "::error::Prod readyz timeout"
+          echo "::error::Prod readyz timeout efter env-restore"
           exit 1
 
-      - name: Verify prod version
+      - name: Verify Render env count
+        if: env.RENDER_API_KEY != ''
         run: |
-          curl -fsS "${ARCANA_PROD_URL}/api/v1/_diag/version"
-          echo ""
+          count="$(curl -fsS -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars" | \
+            node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).length));")"
+          echo "Render env keys: $count"
+          if [[ "$count" -lt 25 ]]; then
+            echo "::error::För få env-nycklar efter restore ($count)"
+            exit 1
+          fi
+
+      - name: Verify prod version
+        run: curl -fsS "${ARCANA_PROD_URL}/api/v1/_diag/version"
 
       - name: Verify pilot journeys (public API)
         continue-on-error: true

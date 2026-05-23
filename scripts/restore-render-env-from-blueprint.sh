@@ -34,9 +34,15 @@ curl -fsS -X PUT \
   "https://api.render.com/v1/services/${SERVICE_ID}/env-vars" \
   -d "$MERGED_JSON" >/dev/null
 
-if [[ "${RENDER_ENV_RESTORE_RESTART:-true}" == "true" ]] && command -v render >/dev/null 2>&1; then
+if [[ "${RENDER_ENV_RESTORE_RESTART:-true}" == "true" ]]; then
+  curl -fsS -X POST \
+    -H "Authorization: Bearer ${API_KEY}" \
+    -H "Accept: application/json" \
+    "https://api.render.com/v1/services/${SERVICE_ID}/restart" >/dev/null
+  echo "✅ Env återställd + omstart via Render API"
+elif command -v render >/dev/null 2>&1; then
   render restart "$SERVICE_ID" --confirm -o text >/dev/null
-  echo "✅ Env återställd + omstart triggad"
+  echo "✅ Env återställd + omstart triggad (render CLI)"
 else
-  echo "✅ Env återställd (ingen omstart — sätt RENDER_ENV_RESTORE_RESTART=true för restart)"
+  echo "✅ Env återställd (ingen omstart — sätt RENDER_ENV_RESTORE_RESTART=true)"
 fi
