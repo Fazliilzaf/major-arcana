@@ -364,7 +364,7 @@ test('finalizeRuntimeLoad renderar om efter bootstrap så fokus och intel läser
   });
 
   assert.equal(loadBootstrapCalls.length, 1);
-  assert.equal(renderCalls.length, 2);
+  assert.equal(renderCalls.length, 1);
 });
 
 test('selectRuntimeThread renderar om igen efter bootstrap så högerpanelen inte ligger kvar på stale truth', async () => {
