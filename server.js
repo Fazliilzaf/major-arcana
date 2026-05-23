@@ -798,6 +798,14 @@ app.get('/api/v1/_diag/env', (req, res) => {
   return res.json({
     ok: true,
     env,
+    resolved: {
+      stateRoot: config.stateRoot,
+      aiProvider: config.aiProvider,
+      staffJournalOpenAccess: Boolean(config.staffJournalOpenAccess),
+      renderDefaultsApplied: Array.isArray(config.renderRuntimeDefaults?.applied)
+        ? config.renderRuntimeDefaults.applied
+        : [],
+    },
     cwd: process.cwd(),
     nodeVersion: process.version,
   });
