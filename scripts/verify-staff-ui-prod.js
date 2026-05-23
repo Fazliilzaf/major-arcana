@@ -80,16 +80,12 @@ async function waitForMobileShell(page, timeout = 30000) {
 
 async function ensurePatientDetailLoaded(page, token, id) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const ready = await page.evaluate(
-      (patientId) =>
-        Boolean(
-          document.querySelector('[data-patient-detail], .patient-master-camera-button, .patient-master-tab[data-patient-tab="journal"]')
-        ) &&
-        (document.documentElement.getAttribute('data-cco-patient-detail') === 'on' ||
-          document.querySelector(`[data-patient-row="${patientId}"]`)),
-      id
+    const detailReady = await page.evaluate(
+      () =>
+        document.documentElement.getAttribute('data-cco-patient-detail') === 'on' &&
+        Boolean(document.querySelector('.patient-master-camera-button'))
     );
-    if (ready && (await page.evaluate(() => document.documentElement.getAttribute('data-cco-patient-detail') === 'on'))) {
+    if (detailReady) {
       return;
     }
     await injectToken(page, token);
@@ -101,7 +97,18 @@ async function ensurePatientDetailLoaded(page, token, id) {
       row?.click();
       window.ArcanaPatientMasterUi?.setPatientTab?.('journal');
     }, id);
-    await page.waitForTimeout(1500);
+    try {
+      await page.waitForFunction(
+        () =>
+          document.documentElement.getAttribute('data-cco-patient-detail') === 'on' &&
+          Boolean(document.querySelector('.patient-master-camera-button')),
+        undefined,
+        { timeout: 12000 }
+      );
+      return;
+    } catch {
+      await page.waitForTimeout(800);
+    }
   }
 }
 
@@ -157,8 +164,12 @@ async function verifyPatientJournal(page) {
     .first()
     .isVisible()
     .catch(() => false);
+  const hasJournalPanel = await page
+    .locator('[data-patient-tab-panel="journal"]:not([hidden])')
+    .isVisible()
+    .catch(() => false);
   const bodyText = await page.locator('body').innerText();
-  const hasJournal = /Journal/i.test(bodyText);
+  const hasJournal = hasJournalPanel;
   const hasTaBild = taBildVisible;
   const loginLocked = /Inloggningslåst/i.test(bodyText) && !hasJournal;
 
