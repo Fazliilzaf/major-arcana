@@ -1,6 +1,6 @@
 # CCO Mobil UX/UI — Sweep-plan (ett svep)
 
-**Status:** Fas 0 + A + **B klara** (2026-05-23) — nästa: **Fas C** (list→detail, tabs, sticky)  
+**Status:** Fas 0 + A + B + **C klara** (2026-05-23) — nästa: **Fas D** (bottom sheets, booking)  
 **Senast uppdaterad:** 2026-05-23  
 **Relaterad audit:** mobil UX-audit 2026-05-23 (chat)  
 **Bygger på:** [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)  
@@ -155,36 +155,36 @@ Fas F  QA, docs, CI
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| C1.1 | @767: dölj kundlista när `selectedPatientId` | **High** | 3.16 | `patient-master-ui.js` + shell CSS | Fullskärm kund |
-| C1.2 | App-bar ← tillbaka rensar selection | **High** | 3.16 | `patient-master-ui.js` | En tap till lista |
-| C1.3 | `history.pushState` / `popstate` för back | Medium | 3.16 | `app.js` | Browser back fungerar |
-| C1.4 | Auto-fokus sök endast desktop (behåll nuvarande mobil logik) | Low | — | `patient-master-ui.js` | Ingen regression |
+| C1.1 | @767: dölj kundlista när `selectedPatientId` | **High** | 3.16 | `patient-master-ui.js` + shell CSS | ✅ Fullskärm kund |
+| C1.2 | App-bar ← tillbaka rensar selection | **High** | 3.16 | `patient-master-ui.js` + shell JS | ✅ En tap till lista |
+| C1.3 | `history.pushState` / `popstate` för back | Medium | 3.16 | `patient-master-ui.js` | ✅ Browser back fungerar |
+| C1.4 | Auto-fokus sök endast desktop (behåll nuvarande mobil logik) | Low | — | `patient-master-ui.js` | ✅ Ingen auto-select på mobil |
 
 ### C2 Patient tabs (Profil / Journal / Avtal / Filer)
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| C2.1 | Tab `min-height: 28→40px`, `font-size: 10.5→13px` | **Critical** | C4 | `cco-polish.css` eller shell | Touch OK |
-| C2.2 | Segmented control-stil (full bredd eller scroll-snap) | High | C4 | shell CSS | App-likt |
-| C2.3 | **En** sticky rad: hero ELLER tabs — inte båda + toolbar | **Critical** | C3 | `cco-polish.css` | Scroll-yta ≥60vh |
+| C2.1 | Tab `min-height: 28→40px`, `font-size: 10.5→13px` | **Critical** | C4 | shell CSS | ✅ Touch OK |
+| C2.2 | Segmented control-stil (full bredd eller scroll-snap) | High | C4 | shell CSS | ✅ App-likt |
+| C2.3 | **En** sticky rad: hero ELLER tabs — inte båda + toolbar | **Critical** | C3 | shell + polish CSS | ✅ Tabs sticky, hero static |
 
 ### C3 Sticky stack — rensa
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| C3.1 | Ta bort sticky från `.customers-toolbar` @767 | **Critical** | C3 | `cco-polish.css` | |
-| C3.2 | Justera `.patient-master-tabs` sticky top till endast under hero | **Critical** | C3 | shell CSS | |
-| C3.3 | Verifiera journal auto-open på mobil (`preferJournalOnMobile`) | Low | — | `patient-master-ui.js` | Journal default kvar |
+| C3.1 | Ta bort sticky från `.customers-toolbar` @767 | **Critical** | C3 | `cco-polish.css` | ✅ |
+| C3.2 | Justera `.patient-master-tabs` sticky top till endast under hero | **Critical** | C3 | shell CSS | ✅ |
+| C3.3 | Verifiera journal auto-open på mobil (`preferJournalOnMobile`) | Low | — | `patient-master-ui.js` | ✅ Journal default kvar |
 
 ### C4 Journal (behåll + polish)
 
 | # | Uppgift | Prio | Filer | DoD |
 |---|---------|------|-------|-----|
 | C4.1 | Behåll kamera 48px / upload 44px (redan OK) | — | — | Ingen regression |
-| C4.2 | Collapsible sektioner: Plan · Offert · TP (accordions) | Medium | `patient-master-ui.js` | Kortare scroll |
-| C4.3 | Foto-grid `minmax(140px)` → `minmax(120px)` @767 | Low | shell CSS | Tätare grid OK |
+| C4.2 | Collapsible sektioner: Plan · Offert · TP (accordions) | Medium | `patient-master-ui.js` | ✅ Kortare scroll |
+| C4.3 | Foto-grid `minmax(140px)` → `minmax(120px)` @767 | Low | shell CSS | ✅ Tätare grid OK |
 
-**Fas C acceptans:** Kund → Journal → Ta bild ≤3 tap; max 1 sticky header; back till lista.
+**Fas C acceptans:** Kund → Journal → Ta bild ≤3 tap; max 1 sticky header; back till lista. ✅ **Implementerat** — commit på `feat/cco-mobile-ux-sweep`.
 
 ---
 

@@ -271,6 +271,113 @@
     }
   }
 
+  let mobilePatientHistoryDepth = 0;
+  let suppressMobilePatientPopstate = false;
+
+  function isMobilePatientDetailActive() {
+    return (
+      isMobileViewport() &&
+      runtime.mode === 'register' &&
+      Boolean(normalizeText(runtime.selectedPatientId))
+    );
+  }
+
+  function syncMobilePatientLayout() {
+    const active = isMobilePatientDetailActive();
+    document.documentElement.toggleAttribute('data-cco-patient-detail', active);
+    window.ArcanaMobileShell?.syncFromApp?.();
+  }
+
+  function ensureMobilePatientListHistory() {
+    if (!isMobileViewport() || runtime.mode !== 'register') return;
+    if (window.history.state?.ccoMobilePatientList || window.history.state?.ccoMobilePatient) return;
+    const startup = parseStartupParams();
+    if (startup.patientId || runtime.pendingPatientId) return;
+    try {
+      window.history.replaceState({ ccoMobilePatientList: true }, '', buildPatientDeepLink(''));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function pushMobilePatientDetailHistory(patientId) {
+    if (!isMobileViewport() || runtime.mode !== 'register' || !patientId) return;
+    try {
+      const state = { ccoMobilePatient: patientId };
+      const url = buildPatientDeepLink(patientId);
+      if (window.history.state?.ccoMobilePatientList) {
+        window.history.pushState(state, '', url);
+        mobilePatientHistoryDepth += 1;
+        return;
+      }
+      if (window.history.state?.ccoMobilePatient === patientId) return;
+      if (!window.history.state?.ccoMobilePatient) {
+        window.history.replaceState(state, '', url);
+        mobilePatientHistoryDepth = 0;
+        return;
+      }
+      window.history.pushState(state, '', url);
+      mobilePatientHistoryDepth += 1;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function resetMobilePatientDetailState() {
+    runtime.selectedPatientId = '';
+    runtime.detail = null;
+    runtime.detailLoading = false;
+    runtime.commercialCase = null;
+    runtime.offerDocumentUrl = '';
+    runtime.offerDocumentPdfUrl = '';
+    runtime.offerDocumentWordUrl = '';
+    runtime.offerSignUrl = '';
+    runtime.treatmentAgreement = null;
+    runtime.agreementReadout = null;
+    runtime.agreementDocumentUrl = '';
+    runtime.agreementDocumentPdfUrl = '';
+    runtime.agreementSignUrl = '';
+    runtime.editingTpEntryId = '';
+    runtime.editingClinicalFormKey = '';
+    runtime.editingClinicalEntryId = '';
+  }
+
+  function clearMobilePatientSelection({ fromPopstate = false } = {}) {
+    if (!runtime.selectedPatientId) {
+      syncMobilePatientLayout();
+      return;
+    }
+    resetMobilePatientDetailState();
+    renderDetailEmpty();
+    renderPatientRows();
+    syncMobilePatientLayout();
+    if (!fromPopstate && mobilePatientHistoryDepth > 0) {
+      suppressMobilePatientPopstate = true;
+      mobilePatientHistoryDepth -= 1;
+      window.history.back();
+    }
+  }
+
+  function goBackToPatientList() {
+    if (!isMobilePatientDetailActive()) return;
+    if (mobilePatientHistoryDepth > 0) {
+      window.history.back();
+      return;
+    }
+    clearMobilePatientSelection();
+  }
+
+  function wrapJournalCollapse(title, bodyHtml, { open = false, className = '' } = {}) {
+    const content = String(bodyHtml || '').trim();
+    if (!content) return '';
+    return `
+      <details class="patient-master-journal-collapse ${className}"${open ? ' open' : ''}>
+        <summary class="patient-master-journal-collapse-summary">${escapeHtml(title)}</summary>
+        <div class="patient-master-journal-collapse-body">${content}</div>
+      </details>
+    `;
+  }
+
   function isOnline() {
     return typeof navigator.onLine === 'boolean' ? navigator.onLine : true;
   }
@@ -534,6 +641,7 @@
         <p>Öppna ett kundkort i listan för profil, journal och importerade filer.</p>
       </section>
     `;
+    syncMobilePatientLayout();
   }
 
   function fileViewUrl(file) {
@@ -1017,20 +1125,7 @@
     const coolingActive =
       linkedOffer?.coolingOffEndsAt && Date.parse(linkedOffer.coolingOffEndsAt) > Date.now();
 
-    return `
-      <article class="focus-customer-data-card patient-master-plan-card">
-        <div class="patient-master-material-head">
-          <h4>${escapeHtml(planEntry.title || 'Konsultation — behandlingsplan')}</h4>
-          <span class="patient-master-muted">${escapeHtml(planEntry.status || 'draft')}</span>
-        </div>
-        ${
-          summaryBits.length
-            ? `<p class="patient-master-muted">${escapeHtml(summaryBits.join(' · '))}</p>`
-            : ''
-        }
-        ${
-          fields.notes ? `<p class="patient-master-plan-notes">${escapeHtml(fields.notes)}</p>` : ''
-        }
+    const offerBody = `
         <div class="patient-master-offer-box">
           <div class="patient-master-material-head">
             <h4>Offert</h4>
@@ -1086,7 +1181,22 @@
                 ? `<p class="patient-master-muted">Signeringssida: <a href="/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(linkedOffer.esignToken)}" target="_blank" rel="noopener">Öppna kundsignering</a></p>`
                 : ''
           }
+        </div>`;
+
+    const planBody = `
+      <article class="focus-customer-data-card patient-master-plan-card">
+        <div class="patient-master-material-head">
+          <h4>${escapeHtml(planEntry.title || 'Konsultation — behandlingsplan')}</h4>
+          <span class="patient-master-muted">${escapeHtml(planEntry.status || 'draft')}</span>
         </div>
+        ${
+          summaryBits.length
+            ? `<p class="patient-master-muted">${escapeHtml(summaryBits.join(' · '))}</p>`
+            : ''
+        }
+        ${
+          fields.notes ? `<p class="patient-master-plan-notes">${escapeHtml(fields.notes)}</p>` : ''
+        }
         ${
           photos.length
             ? `<div class="patient-master-plan-photo-grid">
@@ -1132,8 +1242,12 @@
             ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(planEntry.entryId)}">Signera behandlingsplan</button>`
             : ''
         }
-      </article>
-    `;
+      </article>`;
+
+    return (
+      wrapJournalCollapse('Behandlingsplan', planBody, { open: true }) +
+      wrapJournalCollapse('Offert', offerBody, { open: Boolean(linkedOffer) })
+    );
   }
 
   function findTpJournalEntry(entries, entryId) {
@@ -1197,7 +1311,10 @@
     const rows = asArray(entries);
     const toolbar = runtime.detail?.card ? renderJournalToolbar(runtime.detail.card, rows) : '';
     const planSection = renderConsultationPlanSection(rows);
-    const tpSection = renderTpJournalSection(rows);
+    const tpSectionRaw = renderTpJournalSection(rows);
+    const tpSection = tpSectionRaw
+      ? wrapJournalCollapse('TP-journal', tpSectionRaw, { open: true })
+      : '';
     const clinicalSection = renderClinicalFormSection(rows);
     const otherEntries = rows.filter((entry) => entry.journalType !== 'consultation_plan');
 
@@ -1458,6 +1575,7 @@
     `;
     bindJournalPhotoOpenLinks(els.patientRail);
     void hydrateJournalPhotoElements(els.patientRail);
+    syncMobilePatientLayout();
   }
 
   async function loadStats() {
@@ -1504,7 +1622,7 @@
         await loadPatientDetail(deepLinkId);
         return;
       }
-      if (!runtime.selectedPatientId && runtime.patients[0]) {
+      if (!runtime.selectedPatientId && runtime.patients[0] && !isMobileViewport()) {
         runtime.selectedPatientId = runtime.patients[0].patientId;
         await loadPatientDetail(runtime.selectedPatientId);
       }
@@ -1592,7 +1710,8 @@
 
   async function loadPatientDetail(patientId) {
     if (!patientId || runtime.mode !== 'register') return;
-    if (runtime.selectedPatientId !== patientId) {
+    const openingNewPatient = runtime.selectedPatientId !== patientId;
+    if (openingNewPatient) {
       runtime.editingTpEntryId = '';
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
@@ -1603,6 +1722,10 @@
     }
     runtime.detailLoading = true;
     renderPatientRows();
+    syncMobilePatientLayout();
+    if (isMobileViewport() && openingNewPatient) {
+      pushMobilePatientDetailHistory(patientId);
+    }
     try {
       const payload = await apiRequest(
         `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
@@ -2364,12 +2487,40 @@
         void loadPatientList();
       });
     }
+
+    window.addEventListener('popstate', () => {
+      if (suppressMobilePatientPopstate) {
+        suppressMobilePatientPopstate = false;
+        return;
+      }
+      if (!isMobileViewport() || runtime.mode !== 'register') return;
+      const state = window.history.state;
+      if (!state?.ccoMobilePatient && runtime.selectedPatientId) {
+        mobilePatientHistoryDepth = Math.max(0, mobilePatientHistoryDepth - 1);
+        resetMobilePatientDetailState();
+        renderDetailEmpty();
+        renderPatientRows();
+        syncMobilePatientLayout();
+        return;
+      }
+      const historyPatientId = normalizeText(state?.ccoMobilePatient);
+      if (historyPatientId && historyPatientId !== runtime.selectedPatientId) {
+        void loadPatientDetail(historyPatientId);
+      }
+    });
+
+    try {
+      window.matchMedia('(max-width: 768px)').addEventListener('change', syncMobilePatientLayout);
+    } catch {
+      window.addEventListener('resize', syncMobilePatientLayout);
+    }
   }
 
   function onCustomersViewOpen() {
     resolveElements();
     renderModeChrome();
     renderDetailEmpty();
+    ensureMobilePatientListHistory();
     const startup = parseStartupParams();
     if (startup.patientId) {
       runtime.pendingPatientId = startup.patientId;
@@ -2416,6 +2567,9 @@
     onCustomersViewOpen,
     setMode,
     getRuntime: () => ({ ...runtime }),
+    clearMobilePatientSelection,
+    goBackToPatientList,
+    syncMobilePatientLayout,
   };
 
   if (document.readyState === 'loading') {

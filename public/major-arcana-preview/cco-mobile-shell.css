@@ -332,5 +332,156 @@
     .cco-mobile-more-item:active {
       background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
     }
+
+    /* C1 — back button in app bar */
+    .cco-mobile-back-button {
+      display: none;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: var(--cco-text-primary, #2b251f);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cco-mobile-back-button:not([hidden]) {
+      display: inline-flex;
+    }
+
+    .cco-mobile-back-button svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-topbar-left:has(.cco-mobile-back-button:not([hidden])) {
+      gap: 4px;
+    }
+
+    /* C1 — list → detail layout */
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-head,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-metric-row,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-toolbar,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-list {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-rail {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-rail {
+      min-width: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card-empty {
+      display: none;
+    }
+
+    /* C2 — segmented patient tabs (single sticky row) */
+    html[data-cco-mobile-shell="on"] .patient-master-hero-sticky {
+      position: static;
+      top: auto;
+      z-index: auto;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tabs {
+      position: sticky;
+      top: calc(var(--workspace-sticky-top, 56px) + 4px);
+      z-index: 12;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 4px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      margin-inline: calc(-1 * var(--cco-mobile-gutter, 16px));
+      padding: 4px var(--cco-mobile-gutter, 16px) 8px;
+      background: color-mix(in srgb, var(--warm-bg, #f7f2ec) 92%, transparent);
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tab,
+    html[data-cco-mobile-shell="on"] .patient-master-mode-button {
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 40px;
+      padding: 0 10px;
+      font-size: 13px;
+      line-height: 1.2;
+      scroll-snap-align: start;
+      border-radius: 10px;
+    }
+
+    /* C4 — journal collapsibles */
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse {
+      border: 1px solid rgba(154, 126, 104, 0.16);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.72);
+      overflow: hidden;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse + .patient-master-journal-collapse {
+      margin-top: 0.65rem;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-summary {
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      padding: 0 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-summary::after {
+      content: '›';
+      margin-left: auto;
+      font-size: 18px;
+      line-height: 1;
+      transform: rotate(90deg);
+      transition: transform 160ms ease;
+      color: var(--cco-text-tertiary, #8a8174);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse[open] .patient-master-journal-collapse-summary::after {
+      transform: rotate(-90deg);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-body {
+      padding: 0 10px 12px;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-body .patient-master-plan-card,
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-body .patient-master-offer-box {
+      border: 0;
+      box-shadow: none;
+      padding: 0;
+      background: transparent;
+    }
+
+    /* C4.3 — tighter photo grid */
+    html[data-cco-mobile-shell="on"] .patient-master-plan-photo-grid {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
   }
 }
