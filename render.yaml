@@ -1,13 +1,13 @@
 services:
   - type: web
-    name: arcana-cco
+    # Måste matcha befintlig prod-tjänst (srv-d6b11o0boq4c73chm7f0) så Blueprint
+    # synkar env/build/disk till arcana.hairtpclinic.se — inte duplicerad arcana-cco.
+    name: major-arcana
     runtime: node
-    # Uppgraderad från starter till standard 2026-05-12: 512MB RAM räckte
-    # inte för Playwright + Node + Express + ~25 deps under last (orsakade
-    # 20+ deploy-fails med status 134 SIGABRT pga OOM). Standard ger 2GB
-    # RAM + 1 dedikerad CPU, vilket ger ~3x headroom för current load
-    # och stöd för samtidiga PDF/screenshot-genereringar.
-    plan: standard
+    repo: https://github.com/Fazliilzaf/major-arcana
+    branch: main
+    autoDeployTrigger: commit
+    # plan utelämnad medvetet — prod kör Pro; Render behåller befintlig plan vid sync.
     # Build: standard npm ci + post-install playwright-chromium till
     # persistent disk så browsers cachas mellan deploys.
     # (Status 134 var runtime-crash, INTE build-fail — server.js har
@@ -26,9 +26,9 @@ services:
     buildCommand: npm ci && npm run build:bundle && node ./bin/inject-bundle.js && (PLAYWRIGHT_BROWSERS_PATH=/var/data/playwright-browsers npx playwright install chromium || echo "Playwright install non-fatal, fortsätter ändå")
     startCommand: npm start
     disk:
-      name: arcana-cco-data
+      name: arcana-state
       mountPath: /var/data
-      sizeGB: 1
+      sizeGB: 2
     envVars:
       - key: ARCANA_STATE_ROOT
         value: /var/data
