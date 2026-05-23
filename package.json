@@ -150,6 +150,7 @@
     "test:mutation": "stryker run",
     "test:mutation:cao": "stryker run stryker.cao.conf.json",
     "test:mutation:cmo": "stryker run stryker.cmo.conf.json",
+    "test:mutation:cmo:shard": "node scripts/run-cmo-mutation-shard.js",
     "test:all": "npm test && npm run test:e2e",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
