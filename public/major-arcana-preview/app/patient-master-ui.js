@@ -701,7 +701,11 @@
     }
     if (!response.ok) return '';
 
-    const blob = await response.blob();
+    let blob = await response.blob();
+    const contentType = response.headers.get('content-type') || '';
+    if (blob.type === '' && contentType.startsWith('image/')) {
+      blob = new Blob([blob], { type: contentType.split(';')[0] });
+    }
     const objectUrl = URL.createObjectURL(blob);
     photoObjectUrls.add(objectUrl);
     return objectUrl;
@@ -719,6 +723,12 @@
         const objectUrl = await fetchJournalPhotoObjectUrl(photoId, variant);
         img.classList.remove('is-loading');
         if (!objectUrl) {
+          if (variant && !img.dataset.fallbackTried) {
+            img.dataset.fallbackTried = 'true';
+            img.dataset.journalPhotoVariant = '';
+            void hydrateJournalPhotoElements(root);
+            return;
+          }
           img.alt = 'Kunde inte visa bild';
           img.classList.add('is-broken');
           const retry = document.createElement('button');
@@ -727,12 +737,22 @@
           retry.textContent = 'Visa bild igen';
           retry.addEventListener('click', () => {
             img.dataset.loaded = '';
+            img.dataset.fallbackTried = '';
             img.classList.remove('is-broken');
             void hydrateJournalPhotoElements(root);
           });
           img.insertAdjacentElement('afterend', retry);
           return;
         }
+        img.onerror = () => {
+          if (variant && !img.dataset.fallbackTried) {
+            img.dataset.fallbackTried = 'true';
+            img.dataset.journalPhotoVariant = '';
+            img.dataset.loaded = '';
+            img.removeAttribute('src');
+            void hydrateJournalPhotoElements(root);
+          }
+        };
         img.src = objectUrl;
         img.dataset.loaded = 'true';
         const previewLink = img.closest('a[data-journal-photo-link]');
@@ -750,6 +770,22 @@
         event.preventDefault();
         const photoId = normalizeText(link.dataset.journalPhotoOpen);
         if (!photoId) return;
+
+        const figure = link.closest('.patient-master-plan-photo');
+        const annotateButton = figure?.querySelector('[data-patient-annotate-photo]');
+        if (
+          annotateButton &&
+          runtime.mode === 'register' &&
+          window.matchMedia('(max-width: 768px)').matches
+        ) {
+          void openPlanEditor(
+            annotateButton.dataset.patientEntryId,
+            annotateButton.dataset.patientAnnotatePhoto,
+            annotateButton.dataset.patientPhotoId
+          );
+          return;
+        }
+
         void fetchJournalPhotoObjectUrl(photoId).then((objectUrl) => {
           if (objectUrl) window.open(objectUrl, '_blank', 'noopener');
         });

@@ -137,8 +137,14 @@
     /* B3 — workspace switch */
     .mobile-workspace-switch {
       width: calc(100% - (var(--cco-mobile-gutter) * 2));
-      margin: 8px var(--cco-mobile-gutter) 0;
-      min-height: 48px;
+      margin: 6px var(--cco-mobile-gutter) 0;
+      min-height: 40px;
+      padding: 3px;
+    }
+
+    .mobile-workspace-switch-button {
+      min-height: 34px;
+      font-size: 12px;
     }
 
     .preview-workspace {
@@ -1163,6 +1169,227 @@
       margin: 0;
       font-size: 15px;
       font-weight: 700;
+    }
+
+    /* ============================================================
+       Fas F — kundkort mobil: platt yta, full bredd, inga klipp
+       ============================================================ */
+
+    /* Dölj arbetsyte-växlare i kundvy (hör bara till mejl/kö) */
+    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .mobile-workspace-switch {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-mode-toggle,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-head-actions,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-title-group > p:not(.customers-kicker) {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-workspace {
+      padding-inline: 0;
+      gap: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-shell,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-rail,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card {
+      overflow: visible;
+      max-height: none;
+      min-height: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card {
+      padding: 0 var(--cco-mobile-gutter, 16px)
+        calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 24px);
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-offer-box,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent;
+      padding-inline: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero {
+      padding: 8px 0 12px;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-data-card + .focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-collapse + .patient-master-journal-collapse {
+      border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      margin-top: 0;
+      padding-top: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-collapse {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-material-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-material-head h4 {
+      font-size: 13px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-copy h2 {
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-contact-line {
+      flex-direction: column;
+      gap: 2px;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero-main {
+      gap: 10px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-copy-link {
+      min-height: 36px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    /* Journal: kompakta verktyg, inga jätte-bubblor */
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-toolbar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-toolbar .customers-utility-button,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-toolbar .patient-master-upload-button {
+      min-height: 40px;
+      padding: 0 8px;
+      font-size: 12px;
+      line-height: 1.2;
+      white-space: normal;
+      text-align: center;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-camera-button {
+      min-height: 44px;
+      font-size: 14px;
+    }
+
+    /* Journal/offert-rader: stapla titel och knappar */
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-item {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 10px 0;
+      border-radius: 0;
+      background: transparent;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-item > div:first-child {
+      min-width: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-item strong,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-file-list li a,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-file-list li strong {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      hyphens: auto;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-start;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-actions .customers-utility-button {
+      min-height: 36px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo-actions {
+      flex-wrap: wrap;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo {
+      padding: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo img {
+      aspect-ratio: auto;
+      max-height: 280px;
+      object-fit: contain;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-file-list li {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 10px 0;
+      border-radius: 0;
+      background: transparent;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    /* Topbar: undvik att streak/live-pill klipper kundnamn */
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-topbar-right .inbox-streak-pill .inbox-streak-label {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-topbar-right {
+      gap: 4px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .cco-mobile-app-title {
+      max-width: calc(100vw - 140px);
+    }
+
+    /* Plan-editor: fullskärms-sheet på mobil */
+    html[data-cco-mobile-shell="on"] .journal-plan-editor-overlay {
+      z-index: calc(var(--cco-z-modal, 10000) + 2);
+      align-items: flex-end;
+      padding: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .journal-plan-editor-shell {
+      width: 100%;
+      max-height: 100vh;
+      max-height: 100dvh;
+      border-radius: 16px 16px 0 0;
+      padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+
+    html[data-cco-mobile-shell="on"] .journal-plan-editor-body {
+      flex-direction: column;
+    }
+
+    html[data-cco-mobile-shell="on"] .journal-plan-side {
+      width: 100%;
     }
   }
 
