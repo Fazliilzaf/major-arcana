@@ -21,6 +21,7 @@ if curl -fsS "${BASE}/readyz" 2>/dev/null | grep -q '"ready":true'; then
   npm run verify:mobile-pilot-prod 2>&1 | tail -8 || warn "verify:mobile-pilot-prod misslyckades"
   npm run verify:staff-ui-prod 2>&1 || warn "verify:staff-ui-prod (Playwright iPhone viewport)"
   npm run verify:staff-ui-desktop-prod 2>&1 || warn "verify:staff-ui-desktop-prod (1280px regression)"
+  npm run verify:staff-mobile-login-prod 2>&1 || warn "verify:staff-mobile-login-prod (STAFF mobil login)"
   if [[ -f ./data/pilot-patients.json ]]; then
     bash ./scripts/verify-all-pilot-journey-prod.sh 2>&1 | tail -12 || warn "pilot journey verify misslyckades"
   else
