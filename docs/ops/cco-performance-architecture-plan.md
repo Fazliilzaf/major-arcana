@@ -59,7 +59,7 @@ git commit -m "Perf: CCO scoped render, single bundle, background AnalyzeInbox"
 | P2a | Light bootstrap (`scope=light`) vid trådval                             | `resolveBootstrapScope` → `loadBootstrap({ quiet: true })`  | Skippar Patient360-sync, portal-overview och aftercare-kö    |
 | P2b | Lazy history: `includeBodyHtml=0` vid trådval                         | `fetchRuntimeThreadHistoryPayload` (default `false`)        | Mindre payload vid klick; metadata/preview räcker för fokus  |
 | P2c | Full body vid studion                                                    | `ensureSelectedRuntimeThreadHistoryBody` + `includeBodyHtml: true` | bodyHtml/signatur laddas först när svarsstudion öppnas       |
-| P2d | Uppskjutna aux-shell-renders                                           | `requestIdleCallback` (fallback `setTimeout(0)`)              | automation/integrations/macros/settings renderas efter idle  |
+| P2d | Uppskjutna aux-shell-renders                                           | ~~`requestIdleCallback`~~ → borttagen (P4a); lazy via `setAppView` | Aux-vyer mountas först vid besök |
 | P2e | Bootstrap-cache + metrics                                              | `BOOTSTRAP_CACHE_TTL_MS` (45 s), `bootstrapCacheHits`       | Upprepade trådval inom TTL undviker nätverksbootstrap        |
 
 ### Verifiering (Fas P2)
@@ -92,6 +92,23 @@ git commit -m "Perf: CCO scoped render, single bundle, background AnalyzeInbox"
    ```
 
 4. Performance-profil: färre style/recalc vid initial load jämfört med fas före P3 (dolda vyer ska inte målas).
+
+## Fas P4 — Lazy aux-mount + history pagination (2026-05-23)
+
+| #   | Åtgärd | Var | Effekt |
+| --- | ------ | --- | ------ |
+| P4a | Ta bort startup `requestIdleCallback` för aux-shell | `app.js` init | automation/integrations/macros/settings renderas inte före första `setAppView`-besök |
+| P4b | Lazy aux via `setAppView` | `setAppView` (customers, analytics, automation, …) | Första besök per vy laddar data + render; inget idle-förrender vid kallstart |
+| P4c | History pagination spike | `toCcoRuntimeHistoryQuery` + handler | Valfria `limit`/`offset`; trådfråga med `limit` returnerar senaste N meddelanden |
+| P4d | Klient skickar `limit` vid trådval | `fetchRuntimeThreadHistoryPayload` (default 80, ej vid `includeBodyHtml=1`) | Mindre initial historik-payload vid trådval |
+
+### Verifiering (Fas P4)
+
+1. Hard reload `/admin#cco` — inga nätverksanrop till automation/integrations/macros/settings före navigering.
+2. Första besök på Automation/Integrationer/Makron/Inställningar triggar render + ev. live-laddning.
+3. DevTools → Network vid trådval: `runtime/history?...&includeBodyHtml=0&limit=80`.
+4. Öppna svarsstudion → `includeBodyHtml=1` utan `limit` (full body).
+5. API-test: `tests/capabilities/ccoRuntimeHistory.test.js` (limit-pagination).
 
 ## Nästa fas (ej i detta pass)
 

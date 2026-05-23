@@ -92,6 +92,7 @@ function composeCmoMarketingCopilot({
   adOutput = null,
   emailOutput = null,
   repurposeOutput = null,
+  seriesOutput = null,
   claimsOutput = null,
   complianceOutput = null,
   calendarOutput = null,
@@ -153,6 +154,7 @@ function composeCmoMarketingCopilot({
     scheduleOutput,
     utmOutput,
     trackingOutput,
+    seriesOutput,
     complianceReview,
     trackingReview,
   });
@@ -165,6 +167,8 @@ function composeCmoMarketingCopilot({
   const adCopies = asArray(adData.ads);
   const emailDrafts = asArray(emailData.emails);
   const repurposeVariants = asArray(repurposeData.variants);
+  const seriesData = asObject(asObject(seriesOutput).data);
+  const contentSeriesEpisodes = asArray(seriesData.episodes);
   const scheduleItemsRaw = asArray(publishScheduleData.scheduleItems);
   const missedPublications = asArray(publishScheduleData.missedPublications);
   const utmLinks = asArray(utmPackData.links);
@@ -239,6 +243,7 @@ function composeCmoMarketingCopilot({
     gateResult,
     enablementData,
     crisisData,
+    contentSeriesEpisodes,
     disclaimer: CMO_DRAFT_DISCLAIMER,
   });
 
@@ -265,6 +270,8 @@ function composeCmoMarketingCopilot({
       adCopyPack: adData,
       emailDrafts: emailData,
       repurposedContent: repurposeData,
+      contentSeries: seriesData,
+      contentSeriesEpisodes,
       productionCounts,
       contentAssetCount: computeContentAssetCount(productionCounts),
       complianceReview,

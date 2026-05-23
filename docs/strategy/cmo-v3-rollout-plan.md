@@ -165,6 +165,42 @@ Förväntat: `data.status` ≠ `insufficient_data` när metrics finns
 - [ ] Ingen auto-publish eller spend-ändring aktiverad
 - [ ] Rollback testad i staging (`LIVE_FETCH=false` — verifieras av `smoke:cmo-connectors`)
 
+### O5 — Prod rollout-checklista (sandbox vs prod)
+
+**Miljöer**
+
+| Miljö | URL / syfte | Connector-läge |
+| ----- | ----------- | -------------- |
+| **Sandbox / staging** | Ephemeral CI + valfri staging-URL | `MODE=live`, testtokens, `LIVE_FETCH=true` |
+| **Prod** | `https://arcana.hairtpclinic.se` | `MODE=live` endast efter OWNER go-live; annars `fixture` |
+
+**Checklista — staging (sandbox)**
+
+1. [ ] Deploy med `ARCANA_MARKETING_CONNECTORS_ENABLED=false` (kod på plats)
+2. [ ] Sätt connector-secrets i Render **staging** env (inga prod-tokens i repo)
+3. [ ] `ENABLED=true`, `MODE=live`, `LIVE_FETCH=true`
+4. [ ] `npm run smoke:cmo-connectors` + `npm run smoke:cmo-staging`
+5. [ ] Nattlig CI: [`.github/workflows/cmo-nightly-smoke.yml`](../../.github/workflows/cmo-nightly-smoke.yml) — staging smoke + sandbox publish E2E + mutation (03:15 UTC)
+
+**Checklista — prod (Fas O go-live)**
+
+1. [ ] Underhållsfönster + OWNER sign-off
+2. [ ] Deploy prod med connectors **disabled** (`ENABLED=false`)
+3. [ ] Lagra **prod** tokens i Render secret env (Google/Meta/LinkedIn) — aldrig i git
+4. [ ] Aktivera: `ENABLED=true`, `MODE=live`, `LIVE_FETCH=true`
+5. [ ] Verifiera:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://arcana.hairtpclinic.se/api/v1/marketing/connectors/status?window=7d"
+```
+
+6. [ ] Kör CMO analytics i prod; bekräfta att `insufficient_data` inte dominerar när metrics finns
+7. [ ] Rollback redo: sätt `LIVE_FETCH=false` (återgå till fixture)
+8. [ ] Bekräfta att `cmo-nightly-smoke` var grön ≥7 dagar före prod flip
+
+**CI-referens:** `cmo-nightly-smoke.yml` kör `smoke:cmo-staging`, `demo:cmo-sandbox-publish:e2e` och mutation-gate — använd som regressionsnet innan prod-secrets aktiveras.
+
 ---
 
 ## Fas P–R — v3 produktscope (definition)

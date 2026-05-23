@@ -40,6 +40,7 @@
     "migration:scan-drive-api": "node scripts/migration/scanGoogleDriveApi.js",
     "migration:import": "node scripts/migration/runMigrationPipeline.js --root .. --tenant hair-tp-clinic",
     "migration:import-journals": "node scripts/migration/importHistoricalJournals.js",
+    "migration:spot-check": "node scripts/migration/spotCheckPatientIndex.js",
     "migration:test": "node --test tests/ops/ccoPatientJournalMigration.test.js",
     "test:runtime-queue-integration": "node scripts/test/runtime-queue-renderers.integration.test.js",
     "sync-cache-busters": "bash ./bin/sync-cache-busters.sh",

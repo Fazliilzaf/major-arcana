@@ -540,6 +540,7 @@
     const FULL_MAILBOX_LOOKBACK_DAYS = 1095;
     const RUNTIME_THREAD_HISTORY_CACHE_TTL_MS = 90_000;
     const RUNTIME_THREAD_HISTORY_CACHE_MAX = 48;
+    const RUNTIME_THREAD_HISTORY_INITIAL_LIMIT = 80;
     const runtimeThreadHistoryPayloadCache = new Map();
 
     function normalizeRuntimeHistoryMailboxList(mailboxIds = []) {
@@ -556,12 +557,14 @@
     function buildRuntimeThreadHistoryCacheKey(
       mailboxIds = [],
       conversationId = "",
-      includeBodyHtml = false
+      includeBodyHtml = false,
+      limit = null
     ) {
       const normalizedConversation = asText(conversationId).trim().toLowerCase();
       const mailboxKey = normalizeRuntimeHistoryMailboxList(mailboxIds).join(",");
       const bodyFlag = includeBodyHtml ? "1" : "0";
-      return `${normalizedConversation}\x00${mailboxKey}\x00${bodyFlag}`;
+      const limitKey = Number.isFinite(limit) ? String(limit) : "all";
+      return `${normalizedConversation}\x00${mailboxKey}\x00${bodyFlag}\x00${limitKey}`;
     }
 
     function pruneRuntimeThreadHistoryCache() {
@@ -1852,14 +1855,21 @@
       conversationId = "",
       includeBodyHtml = false,
       bypassCache = false,
+      limit = null,
     } = {}) {
       const targetConversationId = asText(conversationId);
       if (!mailboxIds.length || !targetConversationId) return null;
       const wantsBodyHtml = includeBodyHtml === true;
+      const effectiveLimit = wantsBodyHtml
+        ? null
+        : Number.isFinite(limit)
+          ? limit
+          : RUNTIME_THREAD_HISTORY_INITIAL_LIMIT;
       const cacheKey = buildRuntimeThreadHistoryCacheKey(
         mailboxIds,
         targetConversationId,
-        wantsBodyHtml
+        wantsBodyHtml,
+        effectiveLimit
       );
       if (!bypassCache) {
         const cached = runtimeThreadHistoryPayloadCache.get(cacheKey);
@@ -1877,6 +1887,9 @@
       params.set("conversationId", targetConversationId);
       params.set("lookbackDays", String(FULL_MAILBOX_LOOKBACK_DAYS));
       params.set("includeBodyHtml", wantsBodyHtml ? "1" : "0");
+      if (Number.isFinite(effectiveLimit)) {
+        params.set("limit", String(effectiveLimit));
+      }
       const payload = await apiRequest(`/api/v1/cco/runtime/history?${params.toString()}`);
       runtimeThreadHistoryPayloadCache.set(cacheKey, {
         fetchedAt: Date.now(),
@@ -4881,6 +4894,15 @@
           requestedMailboxIds: getRequestedRuntimeMailboxIds(),
         });
         windowObject.location.assign(buildReauthUrl());
+        return true;
+      }
+
+      const widenMailboxButton = event.target.closest("[data-mailbox-widen-all]");
+      if (widenMailboxButton) {
+        event.preventDefault();
+        if (typeof windowObject.__ccoWorkspace?.widenMailboxScopeToAll === "function") {
+          windowObject.__ccoWorkspace.widenMailboxScopeToAll();
+        }
         return true;
       }
 

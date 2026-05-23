@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Kopiera + extrahera Offertmallar.zip till ~/Code/MA-Archive/offert-word/
-# Källa: iCloud Journal-mapp (Drive-export) eller explicit OFFERT_ZIP_SRC.
+# Källa: explicit OFFERT_ZIP_SRC (rekommenderat) eller iCloud Drive-export som fallback.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"

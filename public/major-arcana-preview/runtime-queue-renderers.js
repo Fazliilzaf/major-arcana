@@ -5618,18 +5618,27 @@
                 ? "Byt ägare eller återgå till Ägarvy för att se fler trådar."
                 : runtimeMode === "offline_history"
                   ? "Den aktiva kön är offline och det finns ännu ingen sparad historik att visa i arbetsytan."
-                  : "Välj fler mejlkonton eller vänta på nästa inkommande konversation.",
+                  : state.runtime?.mailboxScopeWidenHint === true
+                    ? "Det finns trådar i andra mejlkonton. Välj «Visa alla mailkonton» i mejlurvalet nedan."
+                    : "Välj fler mejlkonton eller vänta på nästa inkommande konversation.",
             mailboxLabel: "Arbetskö",
             intentLabel: runtimeMode === "offline_history" ? "Offline historik" : "Tom kö",
             statusLabel: runtimeMode === "offline_history" ? "Historik saknas" : "Ingen match",
-            nextActionLabel: runtimeMode === "offline_history" ? "Byt mejlurval" : "Justera urval",
+            nextActionLabel:
+              state.runtime?.mailboxScopeWidenHint === true
+                ? "Visa alla mailkonton"
+                : runtimeMode === "offline_history"
+                  ? "Byt mejlurval"
+                  : "Justera urval",
             nextActionSummary: laneFiltered
               ? "Återgå till Alla trådar eller byt kö för att hitta nästa aktiva konversation."
               : ownerFiltered
                 ? "Byt ägarfilter eller återgå till Ägarvy för att läsa fler trådar."
-                : runtimeMode === "offline_history"
-                  ? "Välj ett annat mejlurval eller invänta att kopplingen kommer tillbaka."
-                  : "Utöka mejlurvalet för att fylla arbetskön med fler konversationer.",
+                : state.runtime?.mailboxScopeWidenHint === true
+                  ? "Utöka mejlurvalet manuellt — automatisk breddning sker inte vid boot."
+                  : runtimeMode === "offline_history"
+                    ? "Välj ett annat mejlurval eller invänta att kopplingen kommer tillbaka."
+                    : "Utöka mejlurvalet för att fylla arbetskön med fler konversationer.",
             tags: [],
           },
           0,

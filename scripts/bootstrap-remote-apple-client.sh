@@ -10,9 +10,9 @@ REMOTE_USER="${ARCANA_BOOTSTRAP_REMOTE_USER:-}"
 if [[ -n "${ARCANA_BOOTSTRAP_REMOTE_REPO_PATH:-}" ]]; then
   REMOTE_REPO_PATH="${ARCANA_BOOTSTRAP_REMOTE_REPO_PATH}"
 elif [[ -n "${REMOTE_USER}" ]]; then
-  REMOTE_REPO_PATH="/Users/${REMOTE_USER}/Desktop/Arcana"
+  REMOTE_REPO_PATH="/Users/${REMOTE_USER}/Code/major-arcana"
 else
-  REMOTE_REPO_PATH="/Users/${USER}/Desktop/Arcana"
+  REMOTE_REPO_PATH="/Users/${USER}/Code/major-arcana"
 fi
 
 copy_file_if_present() {
