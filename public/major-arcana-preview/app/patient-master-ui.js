@@ -1499,6 +1499,69 @@
     );
   }
 
+  function bindJournalAutosaveForms() {
+    if (!isMobileViewport() || !window.ArcanaMobileAutosave?.bindForm) return;
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    if (!patientId || !card) return;
+
+    document.querySelectorAll('[data-clinical-journal-save-form]').forEach((form) => {
+      const formKey = normalizeText(form.dataset.clinicalFormKey) || runtime.editingClinicalFormKey;
+      const entryId = normalizeText(form.dataset.clinicalEntryId) || runtime.editingClinicalEntryId;
+      const config = window.ArcanaJournalClinicalForms?.[formKey];
+      if (!config?.readForm || !entryId) return;
+      const entryRoot = form.querySelector('[data-clinical-journal-form]');
+      window.ArcanaMobileAutosave.bindForm(form, {
+        patientId,
+        entryId,
+        formKey,
+        readFields: () => config.readForm(entryRoot),
+        onSync: async (fields) => {
+          await apiRequest('/api/v1/cco-journal/entry', {
+            method: 'PUT',
+            body: {
+              patientId,
+              entryId,
+              personnummer: card.personnummer || '',
+              journalType: config.journalType,
+              title: config.title,
+              fields,
+            },
+          });
+        },
+      });
+      window.ArcanaMobileAutosave.initMobileStepper(form);
+    });
+
+    document.querySelectorAll('[data-tp-journal-save-form]').forEach((form) => {
+      const entryId = normalizeText(form.dataset.tpEntryId) || runtime.editingTpEntryId;
+      const tpForm = window.ArcanaJournalTpForm;
+      if (!tpForm?.readForm || !entryId) return;
+      const entryRoot = form.querySelector('[data-tp-journal-form]');
+      window.ArcanaMobileAutosave.bindForm(form, {
+        patientId,
+        entryId,
+        formKey: 'tp_treatment',
+        readFields: () => tpForm.readForm(entryRoot),
+        onSync: async (fields) => {
+          await apiRequest('/api/v1/cco-journal/entry', {
+            method: 'PUT',
+            body: {
+              patientId,
+              entryId,
+              personnummer: card.personnummer || '',
+              journalType: 'tp_treatment',
+              title: 'TP behandlingsjournal',
+              fields,
+            },
+          });
+        },
+      });
+      window.ArcanaMobileAutosave.initMobileStepper(form);
+    });
+  }
+
+
   function renderClinicalFormSection(entries) {
     const formKey = runtime.editingClinicalFormKey;
     const entryId = runtime.editingClinicalEntryId;
@@ -1519,7 +1582,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-clinical-journal-save-form data-clinical-form-key="${escapeHtml(formKey)}" data-clinical-entry-id="${escapeHtml(entry.entryId)}">
-        ${config.render(entry, { locked: entry.locked })}
+        ${config.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
         ${signFooter}
       </form>
     `;
@@ -1541,7 +1604,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-tp-journal-save-form data-tp-entry-id="${escapeHtml(entry.entryId)}">
-        ${tpForm.render(entry, { locked: entry.locked })}
+        ${tpForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
         ${signFooter}
       </form>
     `;
@@ -1860,6 +1923,7 @@
     bindJournalPhotoOpenLinks(els.patientRail);
     void hydrateJournalPhotoElements(els.patientRail);
     syncMobilePatientLayout();
+    window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
 
   async function loadStats() {
@@ -2490,6 +2554,7 @@
         },
       });
       setStatus('TP-journal sparad.', 'success');
+      window.ArcanaMobileAutosave?.markFormSaved?.(form);
       runtime.editingTpEntryId = entryId;
       await loadPatientDetail(patientId);
     } catch (error) {
@@ -2548,6 +2613,7 @@
         },
       });
       setStatus(`${config.title} sparad.`, 'success');
+      window.ArcanaMobileAutosave?.markFormSaved?.(form);
       runtime.editingClinicalFormKey = formKey;
       runtime.editingClinicalEntryId = entryId;
       await loadPatientDetail(patientId);

@@ -261,18 +261,54 @@
     const locked = Boolean(options.locked || entry?.locked);
     const entryId = String(entry?.entryId || '');
     const title = String(entry?.title || 'TP behandlingsjournal');
+    const useMobileSteps = Boolean(options.mobileSteps && !locked);
 
-    const sectionsHtml = SECTIONS.map((section) => {
-      const fieldsHtml = section.fields
-        .map((field) => renderField({ ...field, disabled: locked }, fields))
-        .join('');
-      return `
+    function renderSectionBody(section) {
+      return section.fields.map((field) => renderField({ ...field, disabled: locked }, fields)).join('');
+    }
+
+    let sectionsHtml = '';
+    if (useMobileSteps) {
+      sectionsHtml = `
+        <div class="cco-clinical-mobile-stepper" data-tp-stepper>
+          <div class="cco-clinical-mobile-stepper-head">
+            <p class="cco-clinical-mobile-stepper-progress" data-tp-step-progress aria-live="polite">
+              Steg 1 av ${SECTIONS.length}
+            </p>
+            <p class="cco-clinical-mobile-stepper-title" data-tp-step-title>
+              ${escapeHtml(SECTIONS[0]?.title || '')}
+            </p>
+          </div>
+          <div class="cco-clinical-mobile-stepper-actions">
+            <button type="button" class="customers-utility-button" data-tp-step-prev disabled>
+              Föregående
+            </button>
+            <button type="button" class="customers-utility-button" data-tp-step-next>
+              Nästa
+            </button>
+          </div>
+        </div>
+        ${SECTIONS.map(
+          (section, index) => `
+          <section
+            class="patient-master-tp-section cco-clinical-step-panel"
+            data-tp-step-panel="${index}"
+            data-step-title="${escapeHtml(section.title)}"
+            ${index === 0 ? '' : ' hidden'}
+          >
+            <div class="patient-master-tp-section-body">${renderSectionBody(section)}</div>
+          </section>`
+        ).join('')}
+      `;
+    } else {
+      sectionsHtml = SECTIONS.map(
+        (section) => `
         <details class="patient-master-tp-section" open>
           <summary>${escapeHtml(section.title)}</summary>
-          <div class="patient-master-tp-section-body">${fieldsHtml}</div>
-        </details>
-      `;
-    }).join('');
+          <div class="patient-master-tp-section-body">${renderSectionBody(section)}</div>
+        </details>`
+      ).join('');
+    }
 
     return `
       <article class="focus-customer-data-card patient-master-tp-card${locked ? ' is-locked' : ''}" data-tp-journal-form data-tp-entry-id="${escapeHtml(entryId)}">

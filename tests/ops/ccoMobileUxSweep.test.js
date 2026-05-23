@@ -11,6 +11,7 @@ const REQUIRED_MOBILE_ASSETS = [
   'cco-mobile-shell.css',
   'cco-mobile-shell.js',
   'cco-mobile-core.js',
+  'cco-mobile-autosave.js',
   'cco-mobile-queue.js',
   'booking-mobile-shell.js',
   'booking-mobile-slot-picker.js',
@@ -21,6 +22,7 @@ const REQUIRED_INDEX_MARKERS = [
   'viewport-fit=cover',
   'cco-mobile-shell.css',
   'cco-mobile-core.js',
+  'cco-mobile-autosave.js',
   'cco-mobile-shell.js',
   'cco-mobile-queue.js',
   'booking-mobile-calendar-day.js',
@@ -52,15 +54,21 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   assert.match(shellJs, /window\.ArcanaMobileShell/, 'ArcanaMobileShell export saknas');
   assert.match(shellJs, /navigateToCalendar/, 'navigateToCalendar saknas');
 
+  const autosaveJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-autosave.js'), 'utf8');
+  assert.match(autosaveJs, /window\.ArcanaMobileAutosave/, 'ArcanaMobileAutosave export saknas');
+
   const coreJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-core.js'), 'utf8');
   assert.match(coreJs, /window\.ArcanaMobileCore/, 'ArcanaMobileCore export saknas');
+
+  const clinicalJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-pre-treatment-forms.js'), 'utf8');
+  assert.match(clinicalJs, /data-clinical-step-panel/, 'pre-treatment mobil steg saknas');
 
   const queueJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-queue.js'), 'utf8');
   assert.match(queueJs, /window\.ArcanaMobileQueue/, 'ArcanaMobileQueue export saknas');
 
   const patientUi = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'patient-master-ui.js'), 'utf8');
   assert.match(patientUi, /goBackToPatientList/, 'goBackToPatientList saknas');
-  assert.match(patientUi, /setPatientTab/, 'setPatientTab saknas');
+  assert.match(patientUi, /bindJournalAutosaveForms/, 'bindJournalAutosaveForms saknas');
 });
 
 test('mobile UX sweep — design tokens har phone breakpoint', () => {

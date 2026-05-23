@@ -140,18 +140,58 @@
     const fields = entry?.fields && typeof entry.fields === 'object' ? entry.fields : {};
     const locked = Boolean(options.locked || entry?.locked);
     const entryId = String(entry?.entryId || '');
-    const sectionsHtml = config.sections
-      .map((section) => {
-        const fieldsHtml = section.fields
-          .map((field) => renderField({ ...field, disabled: locked }, fields))
-          .join('');
-        return `
+    const useMobileSteps = Boolean(options.mobileSteps && !locked);
+
+    function renderSectionBody(section) {
+      return section.fields.map((field) => renderField({ ...field, disabled: locked }, fields)).join('');
+    }
+
+    let sectionsHtml = '';
+    if (useMobileSteps) {
+      sectionsHtml = `
+        <div class="cco-clinical-mobile-stepper" data-clinical-stepper>
+          <div class="cco-clinical-mobile-stepper-head">
+            <p class="cco-clinical-mobile-stepper-progress" data-clinical-step-progress aria-live="polite">
+              Steg 1 av ${config.sections.length}
+            </p>
+            <p class="cco-clinical-mobile-stepper-title" data-clinical-step-title>
+              ${escapeHtml(config.sections[0]?.title || '')}
+            </p>
+          </div>
+          <div class="cco-clinical-mobile-stepper-actions">
+            <button type="button" class="customers-utility-button" data-clinical-step-prev disabled>
+              Föregående
+            </button>
+            <button type="button" class="customers-utility-button" data-clinical-step-next>
+              Nästa
+            </button>
+          </div>
+        </div>
+        ${config.sections
+          .map(
+            (section, index) => `
+          <section
+            class="patient-master-tp-section cco-clinical-step-panel"
+            data-clinical-step-panel="${index}"
+            data-step-title="${escapeHtml(section.title)}"
+            ${index === 0 ? '' : ' hidden'}
+          >
+            <div class="patient-master-tp-section-body">${renderSectionBody(section)}</div>
+          </section>`
+          )
+          .join('')}
+      `;
+    } else {
+      sectionsHtml = config.sections
+        .map(
+          (section) => `
         <details class="patient-master-tp-section" open>
           <summary>${escapeHtml(section.title)}</summary>
-          <div class="patient-master-tp-section-body">${fieldsHtml}</div>
-        </details>`;
-      })
-      .join('');
+          <div class="patient-master-tp-section-body">${renderSectionBody(section)}</div>
+        </details>`
+        )
+        .join('');
+    }
 
     return `
       <article class="focus-customer-data-card patient-master-tp-card${locked ? ' is-locked' : ''}" data-clinical-journal-form data-clinical-entry-id="${escapeHtml(entryId)}" data-clinical-form-key="${escapeHtml(config.key)}">
