@@ -191,7 +191,7 @@ v3.2 (Fas R)    →  kvalitet, UI, mutation ≥70%
 | P3  | Utöka `executePilotChannelPublish` | Anropa riktig API; sätt `externalPublishInvoked: true`                        |
 | P4  | Idempotency + audit                | CorrelationId, retry, dead-letter i audit store                               |
 | P5  | UI                                 | Publish-status i Kampanjer-fliken (`publish_queued` → `published` / `failed`) | **workspace UI klar** |
-| P6  | Tester                             | Contract + integration med mocked APIs; mutation på publish path              |
+| P6  | Tester                             | Contract + integration med mocked APIs; mutation på publish path              | **E2E script klar** |
 
 **Acceptans:** Godkänd kampanj på LinkedIn publiceras i staging sandbox-konto; prod efter OWNER sign-off. L5-kanaler fortfarande `proposal_only`.
 

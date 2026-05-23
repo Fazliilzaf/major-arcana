@@ -137,6 +137,7 @@
     "smoke:cmo-connectors": "node ./scripts/cmo-connector-smoke.js",
     "smoke:cmo-connectors:local": "bash ./scripts/run-cmo-connector-smoke-local.sh",
     "demo:cmo-sandbox-publish": "node ./scripts/cmo-sandbox-publish-demo.js",
+    "demo:cmo-sandbox-publish:e2e": "node ./scripts/cmo-sandbox-publish-e2e.js",
     "test": "npm run test:unit",
     "test:unit": "find ./tests -type f -name \"*.test.js\" -print0 | xargs -0 node --test",
     "test:coverage": "find ./tests -type f -name \"*.test.js\" -print0 | xargs -0 c8 --include=\"src/**/*.js\" --reporter=text-summary --reporter=html --reporter=text node --test",
