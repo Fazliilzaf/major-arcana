@@ -44,6 +44,7 @@
     "test:runtime-queue-integration": "node scripts/test/runtime-queue-renderers.integration.test.js",
     "sync-cache-busters": "bash ./bin/sync-cache-busters.sh",
     "check-cache-busters": "bash ./bin/check-cache-busters.sh",
+    "clean:icloud-duplicates": "bash ./scripts/clean-icloud-duplicates.sh",
     "pre-commit": "bash ./bin/pre-commit-cco.sh",
     "verify-cco": "bash ./bin/verify-cco.sh",
     "install-hooks": "ln -sf ../../bin/pre-commit-cco.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit && echo 'Hook installerad: pre-commit'",

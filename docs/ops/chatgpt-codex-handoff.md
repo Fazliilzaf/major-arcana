@@ -15,6 +15,8 @@ Praktisk referens när arbetet flyttas mellan Codex (Mac Studio), GitHub och and
 
 **Använd inte** iCloud-sökvägen `~/Library/Mobile Documents/.../Major Arcana 2.0` för git, npm eller Stryker. Den stör sync och mutation-tester.
 
+Rensa iCloud-kopior (`file 2.ext`): `npm run clean:icloud-duplicates -- "/path/to/iCloud/major-arcana"` (torrkörning: `DRY_RUN=1`).
+
 Arkiv utanför repo: `~/Code/MA-Archive/` — kör `bash scripts/sync-sharepoint-archive.sh` (CODE-only, inga iCloud-sökvägar).
 
 ## Codex — starta session
