@@ -16,7 +16,7 @@ fi
 [[ -n "$API_KEY" ]] || fail "Saknar Render API-nyckel (RENDER_API_KEY eller render login)."
 
 EXISTING_JSON="$(curl -fsS -H "Authorization: Bearer ${API_KEY}" \
-  "https://api.render.com/v1/services/${SERVICE_ID}/env-vars" || echo '[]')"
+  "https://api.render.com/v1/services/${SERVICE_ID}/env-vars?limit=100" || echo '[]')"
 
 MERGED_JSON="$(node "$ROOT_DIR/scripts/merge-render-env-from-blueprint.js" \
   "$ROOT_DIR/render.yaml" "$EXISTING_JSON")"
@@ -40,9 +40,6 @@ if [[ "${RENDER_ENV_RESTORE_RESTART:-true}" == "true" ]]; then
     -H "Accept: application/json" \
     "https://api.render.com/v1/services/${SERVICE_ID}/restart" >/dev/null
   echo "✅ Env återställd + omstart via Render API"
-elif command -v render >/dev/null 2>&1; then
-  render restart "$SERVICE_ID" --confirm -o text >/dev/null
-  echo "✅ Env återställd + omstart triggad (render CLI)"
 else
-  echo "✅ Env återställd (ingen omstart — sätt RENDER_ENV_RESTORE_RESTART=true)"
+  echo "✅ Env återställd (ingen omstart — processen plockar upp vid nästa deploy)"
 fi
