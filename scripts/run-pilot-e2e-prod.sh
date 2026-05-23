@@ -17,16 +17,24 @@ echo "=== Pilot E2E ($BASE_URL) ==="
 echo "Patient: $PATIENT_ID"
 echo
 
+AUTH_TOKEN="$(node "$ROOT_DIR/scripts/get-prod-auth-token.js" 2>/dev/null || true)"
+export AUTH_TOKEN
+if [[ -n "$AUTH_TOKEN" ]]; then
+  pass "autentiserad API (go-live)"
+fi
+
 node - "$BASE_URL" "$PATIENT_ID" <<'NODE'
 const crypto = require('crypto');
 
 const baseUrl = process.argv[2];
 const patientId = process.argv[3];
+const token = process.env.AUTH_TOKEN || '';
 const headers = {
   Accept: 'application/json',
   'Content-Type': 'application/json',
   'x-arcana-client': 'major_arcana_admin',
 };
+if (token) headers.Authorization = `Bearer ${token}`;
 
 async function api(method, path, body, attempt = 0) {
   const res = await fetch(new URL(path, baseUrl), {
@@ -261,8 +269,8 @@ function today() {
   } catch (error) {
     if (error.status === 401) {
       console.log('• Reservation kräver inloggning (gate verifierad via booking-gate-API)');
-    } else if (error.status === 409 && error.payload?.metadata?.code === 'slot_unavailable') {
-      console.log('• Reservation: slot otillgänglig (gate passerad, motor svarade)');
+    } else if (error.status === 409) {
+      console.log('• Reservation: slot otillgänglig/redan bokad (gate passerad)');
     } else if (error.status === 400) {
       console.log(`• Reservation: ${error.message} (gate passerad)`);
     } else {

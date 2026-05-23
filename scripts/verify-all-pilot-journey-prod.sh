@@ -20,13 +20,18 @@ COMMIT="$(printf '%s' "$VERSION" | node -e "let d='';process.stdin.on('data',c=>
 echo "Prod commit: $COMMIT"
 echo ""
 
+AUTH_TOKEN="$(node "$ROOT_DIR/scripts/get-prod-auth-token.js" 2>/dev/null || true)"
+export AUTH_TOKEN
+
 FAILED=0
 while IFS= read -r patientId; do
   [[ -n "$patientId" ]] || continue
   node - "$BASE" "$patientId" <<'NODE'
 const base = process.argv[2];
 const patientId = process.argv[3];
+const token = process.env.AUTH_TOKEN || '';
 const headers = { Accept: 'application/json', 'x-arcana-client': 'major_arcana_admin' };
+if (token) headers.Authorization = `Bearer ${token}`;
 
 async function get(path) {
   const res = await fetch(new URL(path, base), { headers });
