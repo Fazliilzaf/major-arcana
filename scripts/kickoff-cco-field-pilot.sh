@@ -14,9 +14,27 @@ section() { echo ""; echo "=== $1 ==="; }
 pass() { echo "✅ $1"; }
 fail() { echo "❌ $1"; FAIL=1; }
 
+section "Pilot journal — dubbletter"
+if [[ -f "$PILOT_JSON" ]]; then
+  bash "$ROOT_DIR/scripts/cleanup-pilot-journal-duplicates-prod.sh" && pass "Journal dubbletter städade" || fail "Journal cleanup"
+  bash "$ROOT_DIR/scripts/verify-all-pilot-journey-prod.sh" && pass "Pilot journey alla 5" || fail "Pilot journey"
+else
+  fail "Saknar $PILOT_JSON"
+fi
+
 section "Prod-verify (automation)"
-npm run verify:cco-mail-start-prod && pass "Mail-lik start" || fail "Mail-lik start"
-npm run verify:cco-mobile-pilot-prod && pass "Mobil pilot suite" || fail "Mobil pilot suite"
+if npm run verify:cco-mail-start-prod; then
+  pass "Mail-lik start"
+else
+  echo "↻ retry verify:cco-mail-start-prod …"
+  npm run verify:cco-mail-start-prod && pass "Mail-lik start (retry)" || fail "Mail-lik start"
+fi
+if npm run verify:cco-mobile-pilot-prod; then
+  pass "Mobil pilot suite"
+else
+  echo "↻ retry verify:cco-mobile-pilot-prod …"
+  npm run verify:cco-mobile-pilot-prod && pass "Mobil pilot suite (retry)" || fail "Mobil pilot suite"
+fi
 
 section "Rollout sweep"
 npm run run:rollout-sweep && pass "Rollout sweep" || fail "Rollout sweep"

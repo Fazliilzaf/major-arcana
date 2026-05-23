@@ -10,15 +10,24 @@ BASE_URL="${BASE_URL%/}"
 PATIENT_ID="${1:-f8233fca-779c-488b-a980-0e41bc01c0c0}"
 DRY_RUN="${DRY_RUN:-false}"
 
+AUTH_TOKEN="$(node "$ROOT_DIR/scripts/get-prod-auth-token.js" 2>/dev/null || true)"
+if [[ -z "$AUTH_TOKEN" ]]; then
+  echo "Kunde inte hämta AUTH_TOKEN — kontrollera .env (ARCANA_STAFF_*)" >&2
+  exit 1
+fi
+export AUTH_TOKEN
+
 node - "$BASE_URL" "$PATIENT_ID" "$DRY_RUN" <<'NODE'
 const baseUrl = process.argv[2];
 const patientId = process.argv[3];
 const dryRun = process.argv[4] === 'true';
+const token = process.env.AUTH_TOKEN || '';
 const headers = {
   Accept: 'application/json',
   'Content-Type': 'application/json',
   'x-arcana-client': 'major_arcana_admin',
 };
+if (token) headers.Authorization = `Bearer ${token}`;
 
 async function api(method, path, body, attempt = 0) {
   const res = await fetch(new URL(path, baseUrl), {
