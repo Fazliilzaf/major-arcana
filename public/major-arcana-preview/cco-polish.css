@@ -4556,6 +4556,39 @@ body.is-admin-embed .focus-conversation {
 }
 
 @media (max-width: 768px) {
+  html[data-cco-mobile-shell="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: auto;
+    min-height: 100%;
+  }
+
+  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-list,
+  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-rail {
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-shell {
+    overflow: visible;
+    padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 20px);
+  }
+
+  html[data-cco-mobile-shell="on"] .patient-master-auth-card {
+    padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 12px);
+  }
+
+  html[data-cco-mobile-shell="on"] .patient-master-login-field--tenant {
+    display: none;
+  }
+
   html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -4762,12 +4795,28 @@ body.is-admin-embed .focus-conversation {
   border-radius: 0.85rem;
   border: 1px solid rgba(154, 126, 104, 0.14);
   background: #111;
+  touch-action: none;
+}
+
+.journal-plan-canvas-wrap.is-pan-mode {
+  touch-action: pan-x pan-y pinch-zoom;
 }
 
 .journal-plan-canvas {
   display: block;
   max-width: 100%;
   cursor: crosshair;
+  touch-action: none;
+}
+
+.journal-plan-canvas.is-pan-mode {
+  cursor: grab;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+.patient-master-photo-delete {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.24);
 }
 
 .journal-plan-side {

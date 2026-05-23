@@ -385,6 +385,47 @@ function createCcoJournalRouter({
       })
   );
 
+  router.delete(
+    '/cco-journal/photo',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        if (!journalPhotoStore || !journalStore) {
+          return res.status(503).json({ error: 'Journalbilder är inte konfigurerade.' });
+        }
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const patientId = normalizeText(body.patientId);
+        const entryId = normalizeText(body.entryId);
+        const attachmentId = normalizeText(body.attachmentId);
+        const photoId = normalizeText(body.photoId);
+        if (!patientId || !entryId || !attachmentId || !photoId) {
+          return res
+            .status(400)
+            .json({ error: 'patientId, entryId, attachmentId och photoId krävs.' });
+        }
+
+        const entry = await journalStore.removeConsultationPhotoAttachment({
+          tenantId: actor.tenantId,
+          patientId,
+          entryId,
+          attachmentId,
+          actor: {
+            userId: actor.userId,
+            role: actor.role,
+            displayName: actor.userId,
+          },
+        });
+        await journalPhotoStore.deletePhoto({
+          tenantId: actor.tenantId,
+          patientId,
+          photoId,
+        });
+        await auditJournal(actor, 'cco.journal.photo.delete', photoId);
+        return res.json({ ok: true, entry });
+      })
+  );
+
   router.put(
     '/cco-journal/plan-annotation',
     requireAuth,

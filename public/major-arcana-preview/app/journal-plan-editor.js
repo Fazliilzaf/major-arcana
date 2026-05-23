@@ -91,6 +91,13 @@
     return canvas.toDataURL('image/png');
   }
 
+  function touchDistance(touches) {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
   function closeEditor() {
     if (overlayEl) {
       overlayEl.remove();
@@ -116,6 +123,10 @@
       draftPath: null,
       arrowStart: null,
       rectStart: null,
+      activePointers: new Set(),
+      viewScale: 1,
+      pinchStartDistance: 0,
+      pinchStartScale: 1,
       onSave,
       onClose,
     };
@@ -137,6 +148,7 @@
           <button type="button" class="journal-plan-tool" data-plan-tool="rect">Ruta</button>
           <button type="button" class="journal-plan-tool" data-plan-tool="text">Text</button>
           <button type="button" class="journal-plan-tool" data-plan-tool="undo">Ångra</button>
+          <button type="button" class="journal-plan-tool" data-plan-tool="pan">Zooma</button>
           <div class="journal-plan-colors">
             ${COLORS.map(
               (color, index) =>
@@ -175,6 +187,7 @@
     document.body.appendChild(overlayEl);
 
     const canvas = overlayEl.querySelector('.journal-plan-canvas');
+    const canvasWrap = overlayEl.querySelector('.journal-plan-canvas-wrap');
     const image = new Image();
     image.crossOrigin = 'anonymous';
     image.onload = () => {
@@ -203,11 +216,34 @@
       }
     });
 
+    function applyViewTransform() {
+      canvas.style.transform = `scale(${state.viewScale})`;
+      canvas.style.transformOrigin = 'top left';
+    }
+
+    function cancelDraftShape() {
+      state.draftPath = null;
+      state.arrowStart = null;
+      state.rectStart = null;
+      const last = state.shapes[state.shapes.length - 1];
+      if (last?.type === 'path' && Array.isArray(last.points) && last.points.length <= 1) {
+        state.shapes.pop();
+        redrawCanvas(canvas, image, state.shapes);
+      }
+    }
+
+    function isDrawingTool() {
+      return state.tool !== 'pan' && state.activePointers.size <= 1;
+    }
+
     function setTool(tool) {
       state.tool = tool;
       overlayEl.querySelectorAll('[data-plan-tool]').forEach((button) => {
         button.classList.toggle('is-active', button.dataset.planTool === tool);
       });
+      canvasWrap.classList.toggle('is-pan-mode', tool === 'pan');
+      canvas.classList.toggle('is-pan-mode', tool === 'pan');
+      cancelDraftShape();
     }
 
     function readPlanSummary() {
@@ -274,6 +310,11 @@
     });
 
     canvas.addEventListener('pointerdown', (event) => {
+      state.activePointers.add(event.pointerId);
+      if (state.activePointers.size > 1 || state.tool === 'pan') {
+        cancelDraftShape();
+        return;
+      }
       canvas.setPointerCapture(event.pointerId);
       const point = canvasPoint(canvas, event);
       if (state.tool === 'pen') {
@@ -305,6 +346,7 @@
     });
 
     canvas.addEventListener('pointermove', (event) => {
+      if (!isDrawingTool()) return;
       const point = canvasPoint(canvas, event);
       if (state.tool === 'pen' && state.draftPath) {
         const last = state.draftPath.points[state.draftPath.points.length - 1];
@@ -316,6 +358,11 @@
     });
 
     canvas.addEventListener('pointerup', (event) => {
+      state.activePointers.delete(event.pointerId);
+      if (!isDrawingTool()) {
+        cancelDraftShape();
+        return;
+      }
       const point = canvasPoint(canvas, event);
       if (state.tool === 'arrow' && state.arrowStart) {
         state.shapes.push({
@@ -344,6 +391,48 @@
       }
       state.draftPath = null;
     });
+
+    canvas.addEventListener('pointercancel', (event) => {
+      state.activePointers.delete(event.pointerId);
+      cancelDraftShape();
+    });
+
+    canvasWrap.addEventListener(
+      'touchstart',
+      (event) => {
+        if (event.touches.length >= 2) {
+          cancelDraftShape();
+          state.pinchStartDistance = touchDistance(event.touches);
+          state.pinchStartScale = state.viewScale;
+        }
+      },
+      { passive: true }
+    );
+
+    canvasWrap.addEventListener(
+      'touchmove',
+      (event) => {
+        if (event.touches.length < 2) return;
+        event.preventDefault();
+        const distance = touchDistance(event.touches);
+        if (!state.pinchStartDistance) {
+          state.pinchStartDistance = distance;
+          state.pinchStartScale = state.viewScale;
+        }
+        const nextScale = state.pinchStartScale * (distance / state.pinchStartDistance);
+        state.viewScale = Math.min(4, Math.max(1, nextScale));
+        applyViewTransform();
+      },
+      { passive: false }
+    );
+
+    canvasWrap.addEventListener(
+      'touchend',
+      () => {
+        state.pinchStartDistance = 0;
+      },
+      { passive: true }
+    );
   }
 
   window.ArcanaJournalPlanEditor = {

@@ -1271,23 +1271,24 @@
 
     /* Journal: kompakta verktyg, inga jätte-bubblor */
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-toolbar {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
     }
 
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-toolbar .customers-utility-button,
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-toolbar .patient-master-upload-button {
-      min-height: 40px;
-      padding: 0 8px;
-      font-size: 12px;
-      line-height: 1.2;
+      min-height: 32px;
+      padding: 0 6px;
+      font-size: 11px;
+      line-height: 1.15;
       white-space: normal;
       text-align: center;
     }
 
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-camera-button {
-      min-height: 44px;
-      font-size: 14px;
+      grid-column: 1 / -1;
+      min-height: 38px;
+      font-size: 13px;
     }
 
     /* Journal/offert-rader: stapla titel och knappar */
@@ -1390,6 +1391,45 @@
 
     html[data-cco-mobile-shell="on"] .journal-plan-side {
       width: 100%;
+    }
+
+    /* Kundregister mobil: hela sidan scrollar (login + profil) */
+    html[data-cco-mobile-shell="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      height: auto;
+      min-height: 100%;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-list,
+    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-rail,
+    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout {
+      max-height: none !important;
+      overflow: visible !important;
+      position: static !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-shell {
+      overflow: visible;
+      padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 24px);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-auth-card {
+      padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 16px);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-login-field--tenant {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-login-button {
+      min-height: 44px;
     }
   }
 
