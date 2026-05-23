@@ -16,8 +16,8 @@ echo "== Auth go-live verify =="
 echo "BASE: $BASE"
 
 ENV_JSON="$(curl -fsS "${BASE}/api/v1/_diag/env" 2>/dev/null || echo '{}')"
-OPEN="$(printf '%s' "$ENV_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.env?.ARCANA_STAFF_JOURNAL_OPEN_ACCESS ?? j.resolved?.staffJournalOpenAccess ?? '?')}catch{console.log('?')}};")"
-MFA="$(printf '%s' "$ENV_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).env?.ARCANA_AUTH_OWNER_MFA_REQUIRED ?? '?')}catch{console.log('?')}};")"
+OPEN="$(printf '%s' "$ENV_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.env?.ARCANA_STAFF_JOURNAL_OPEN_ACCESS ?? j.resolved?.staffJournalOpenAccess ?? '?')}catch{console.log('?')}});")"
+MFA="$(printf '%s' "$ENV_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).env?.ARCANA_AUTH_OWNER_MFA_REQUIRED ?? '?')}catch{console.log('?')}});")"
 
 echo "ARCANA_STAFF_JOURNAL_OPEN_ACCESS=$OPEN"
 echo "ARCANA_AUTH_OWNER_MFA_REQUIRED=$MFA"
@@ -37,7 +37,7 @@ fi
 if [[ -n "$API_KEY" ]]; then
   STAFF_COUNT="$(curl -fsS -H "Authorization: Bearer ${API_KEY}" \
     "${BASE}/api/v1/users/staff" 2>/dev/null | \
-    node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log((JSON.parse(d).staff||[]).length)}catch{console.log(0)}};" 2>/dev/null || echo 0)"
+    node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log((JSON.parse(d).staff||[]).length)}catch{console.log(0)}});" 2>/dev/null || echo 0)"
   echo "STAFF-konton (via prod API): ${STAFF_COUNT:-?} (kräver OWNER-token om 0/401)"
 fi
 
