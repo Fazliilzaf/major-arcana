@@ -17,6 +17,7 @@ jobs:
     env:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_SERVICE_ID: srv-d6b11o0boq4c73chm7f0
+      RENDER_BLUEPRINT_ID: exs-d6vdjapaae7s7386fum0
       ARCANA_PROD_URL: https://arcana.hairtpclinic.se
       TARGET_SHA: ${{ github.sha }}
     steps:
@@ -27,6 +28,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Verify blueprint targets prod service
+        if: env.RENDER_API_KEY != ''
+        run: bash ./scripts/verify-render-blueprint-link.sh
+
+      - name: Wait for Render blueprint sync
+        if: env.RENDER_API_KEY != ''
+        run: bash ./scripts/wait-for-render-blueprint-sync.sh
 
       - name: Wait for prod deploy (commit match)
         run: |

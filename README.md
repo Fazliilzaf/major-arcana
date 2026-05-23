@@ -42,7 +42,7 @@ npm run demo:cmo-sandbox-publish:e2e  # Fas P admin E2E (seed → approve → sc
 
 **Prod connectors / live publish:** av medvetet tills OWNER go-live (`ARCANA_MARKETING_CONNECTORS_MODE=fixture`, `ARCANA_MARKETING_PUBLISH_LIVE_ENABLED=false`).
 
-**Render env efter deploy:** Lägg `RENDER_API_KEY` i GitHub Secrets → workflow `arcana-post-deploy-heal` kör `restore-render-env-from-blueprint.sh` automatiskt vid push till `main`. Lokalt: `bash scripts/post-deploy-prod-heal.sh`.
+**Render env efter deploy:** Blueprint `CCO-Next` synkar `render.yaml` → prod-tjänsten `major-arcana` (autoSync). GitHub workflow `arcana-post-deploy-heal` väntar på blueprint-sync + kör `restore-render-env-from-blueprint.sh` som säkerhetsnät vid push till `main` (kräver `RENDER_API_KEY` i Secrets). Lokalt: `bash scripts/post-deploy-prod-heal.sh`.
 
 Mer handoff mellan Codex, Cursor och ChatGPT: [`docs/ops/chatgpt-codex-handoff.md`](docs/ops/chatgpt-codex-handoff.md).
 
@@ -69,7 +69,7 @@ Sätt `ARCANA_AI_PROVIDER=fallback` i `.env` för att köra Arcana utan externa 
 Det är användbart för lokal smoke/CI och kräver då inte `OPENAI_API_KEY`.
 
 ### Deploy på Render (Blueprint)
-Repo:t innehåller `render.yaml` för snabb deploy.
+Repo:t innehåller `render.yaml` kopplad till Blueprint **CCO-Next** → prod-tjänst **major-arcana** (`arcana.hairtpclinic.se`). Tjänstenamnet i yaml måste matcha Render (inte `arcana-cco`, som skapade en duplicerad tjänst).
 I Render: välj **Blueprint** och fyll minst:
 - `OPENAI_API_KEY`
 - `ARCANA_OWNER_EMAIL`
