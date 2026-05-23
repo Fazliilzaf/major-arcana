@@ -13,7 +13,9 @@ Sweep-plan: [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md)
 - [ ] Personal har läst instruktionen (1 sida) — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
 - [x] Kör `npm run verify:mobile-pilot-prod` — **grön 2026-05-21**
 - [x] Kör `npm run run:rollout-sweep` + pilot E2E alla 5 kunder — **grön 2026-05-23 (STAFF-auth)**
-- [x] Kör `npm run verify:staff-ui-prod` — Playwright iPhone viewport (shell, tabbar, back, journal, modal) **2026-05-23**
+- [x] Kör `npm run verify:staff-ui-prod` — Playwright iPhone viewport **16/16 grön 2026-05-23**
+- [x] Kör `npm run verify:staff-ui-desktop-prod` — desktop @1280 regression **2026-05-23**
+- [x] Kör `smoke:mobile-journal` (STAFF) — photo upload + GET **~3,6s 2026-05-23**
 - [x] Kör `npm test -- tests/ops/ccoMobileUxSweep.test.js` — asset + API-yta **2026-05-23**
 - [x] Kör `npm run backup:journal-photos` — **2026-05-23** (`data/backups/journal-photos/`)
 
@@ -23,13 +25,13 @@ Testa på **iPhone Safari 390×844** (eller DevTools iPhone 13).
 
 | Kontroll | OK? |
 | -------- | --- |
-| Bottom tab bar (Kö / Kunder / Boka / Mer) synlig, inga desktop-nav-länkar | ☐ |
-| Topbar ≤ 56px; app-titel visar vy/kundnamn | ☐ |
-| Kundlista → klick → detail; **← Tillbaka** till lista | ☐ |
-| Journal-flik ≥ 40px; **Ta bild** synlig utan scroll | ☐ |
-| Inställningar/modaler öppnas som **bottom sheet** (inte centrerad desktop-modal) | ☐ |
-| Arbetskö: kompakta rader + **Filter ▾** | ☐ |
-| PWA “Lägg till på hemskärmen” från `/staff` | ☐ |
+| Bottom tab bar (Kö / Kunder / Boka / Mer) synlig, inga desktop-nav-länkar | ✅ auto |
+| Topbar ≤ 56px; app-titel visar vy/kundnamn | ✅ auto |
+| Kundlista → klick → detail; **← Tillbaka** till lista | ✅ auto |
+| Journal-flik ≥ 40px; **Ta bild** synlig utan scroll | ✅ auto |
+| Inställningar/modaler öppnas som **bottom sheet** (inte centrerad desktop-modal) | ✅ auto |
+| Arbetskö: kompakta rader + **Filter ▾** | ⚠️ auto (Filter ✅; tom kö = inga rader) |
+| PWA “Lägg till på hemskärmen” från `/staff` | ☐ manuell |
 
 **Automatiserat:** `npm run verify:staff-ui-prod` (prod) eller `npm run verify:staff-ui-local` (localhost:3100).
 

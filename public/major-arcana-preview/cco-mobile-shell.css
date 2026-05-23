@@ -1165,4 +1165,14 @@
       font-weight: 700;
     }
   }
+
+  /* Desktop/tablet — mobil-only chrome ska aldrig synas ≥769px */
+  @media (min-width: 769px) {
+    .cco-mobile-tabbar,
+    .cco-mobile-more-sheet,
+    #cco-mobile-back-button,
+    #cco-mobile-app-title {
+      display: none;
+    }
+  }
 }
