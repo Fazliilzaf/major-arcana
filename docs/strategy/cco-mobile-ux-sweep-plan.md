@@ -1,6 +1,6 @@
 # CCO Mobil UX/UI — Sweep-plan (ett svep)
 
-**Status:** Fas 0 + A + B + C + D + **E klara** (2026-05-23) — nästa: **Fas F** (QA, Playwright, CI)  
+**Status:** Fas 0 + A + B + C + D + E + **F klara** (2026-05-23) — sweep **klar för pilot**  
 **Senast uppdaterad:** 2026-05-23  
 **Relaterad audit:** mobil UX-audit 2026-05-23 (chat)  
 **Bygger på:** [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)  
@@ -75,7 +75,7 @@ Fas F  QA, docs, CI
 | 0.1 | Skapa branch `feat/cco-mobile-ux-sweep` | — | git | ✅ Branch skapad |
 | 0.2 | Skapa `public/major-arcana-preview/cco-mobile-shell.css` | High | ny fil | ✅ + `cco-mobile-shell.js` |
 | 0.3 | Lägg till mobil tokens i `design-tokens.css` | High | `design-tokens.css` | ✅ |
-| 0.4 | Baseline-screenshots iPhone 13 | Medium | `tests/visual/` | ⏳ Fas F |
+| 0.4 | Baseline-screenshots iPhone 13 | Medium | `tests/visual/` | ✅ `mobile-customers.spec.js` |
 
 ---
 
@@ -226,69 +226,69 @@ Fas F  QA, docs, CI
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| E1.1 | `.warm-row--mobile-compact`: min-height 96→72px | **High** | 3.5 | `cco-polish.css` | Tätare lista |
-| E1.2 | Dölj `.mailbox-trail`, extra actions @767 → “⋯” sheet | Medium | 3.7 | shell CSS + JS | 2-raders kort |
-| E1.3 | Queue tools: collapse till “Filter ▾” chip | Medium | 3.5 | `index.html` / JS | Mindre chrome |
-| E1.4 | Page title h1: 10.5→20px @767 | High | 3.3 | shell CSS | Läsbar rubrik |
+| E1.1 | `.warm-row--mobile-compact`: min-height 96→72px | **High** | 3.5 | shell CSS | ✅ Tätare lista |
+| E1.2 | Dölj `.mailbox-trail`, extra actions @767 → “⋯” sheet | Medium | 3.7 | shell CSS + JS | ✅ 2-raders kort |
+| E1.3 | Queue tools: collapse till “Filter ▾” chip | Medium | 3.5 | `cco-mobile-queue.js` | ✅ Mindre chrome |
+| E1.4 | Page title h1: 10.5→20px @767 | High | 3.3 | shell CSS | ✅ Läsbar rubrik |
 
 ### E2 Offertflöde
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| E2.1 | Efter plan: CTA “Skapa offert” → fullskärms 2-steg | Medium | 3.14 | `patient-master-ui.js` | Wizard, ej inline dropdown |
-| E2.2 | Status/meta som badges, inte brödtextvägg | Medium | 3.14 | shell CSS | |
+| E2.1 | Efter plan: CTA “Skapa offert” → fullskärms 2-steg | Medium | 3.14 | `patient-master-ui.js` | ✅ Wizard, ej prompt |
+| E2.2 | Status/meta som badges, inte brödtextvägg | Medium | 3.14 | shell CSS | ✅ Badges |
 
 ### E3 Avtal / samtycke
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| E3.1 | Avtal-tab: vertikal checklist, 48px radhöjd | Medium | 3.15 | `patient-master-ui.js` + shell CSS | |
-| E3.2 | Samtycke-steg tydlig “nästa åtgärd” (conversation flags oförändrade backend) | Medium | 3.15 | UI copy only | |
+| E3.1 | Avtal-tab: vertikal checklist, 48px radhöjd | Medium | 3.15 | `patient-master-ui.js` + shell CSS | ✅ |
+| E3.2 | Samtycke-steg tydlig “nästa åtgärd” (conversation flags oförändrade backend) | Medium | 3.15 | UI copy only | ✅ |
 
 ### E4 Formulär (TP, pre-treatment, bokning)
 
 | # | Uppgift | Prio | Filer | DoD |
 |---|---------|------|-------|-----|
-| E4.1 | Alla inputs @767: min-height 44px, font-size 16px | High | shell CSS | Global form pass |
-| E4.2 | TP-journal: en kolumn + sticky “Spara” footer | Medium | `journal-tp-form.js` / shell | |
-| E4.3 | Pre-treatment: stepper 1/n (valfritt v2) | Low | `journal-pre-treatment-forms.js` | |
+| E4.1 | Alla inputs @767: min-height 44px, font-size 16px | High | shell CSS | ✅ Global form pass |
+| E4.2 | TP-journal: en kolumn + sticky “Spara” footer | Medium | shell CSS | ✅ |
+| E4.3 | Pre-treatment: stepper 1/n (valfritt v2) | Low | `journal-pre-treatment-forms.js` | ⏳ v2 |
 
 ### E5 Kundchat (public)
 
 | # | Uppgift | Prio | Filer | DoD |
 |---|---------|------|-------|-----|
-| E5.1 | Brand mark 108px → 48px @767 | Medium | `public/index.html` | Mindre header |
-| E5.2 | Booking modal redan responsiv — safe-area pass | Low | `public/index.html` | |
+| E5.1 | Brand mark 108px → 48px @767 | Medium | `public/index.html` | ✅ Mindre header |
+| E5.2 | Booking modal redan responsiv — safe-area pass | Low | `public/index.html` | ✅ |
 
-**Fas E acceptans:** Arbetskö scrollbar utan “desktop-kort”; offert/avtal användbara enhandat.
+**Fas E acceptans:** Arbetskö scrollbar utan “desktop-kort”; offert/avtal användbara enhandat. ✅ **Implementerat** — commit på `feat/cco-mobile-ux-sweep`.
 
 ---
 
-## Fas F — QA, docs, CI (1–2 dagar)
+## Fas F — QA, docs, CI (1–2 dagar) ✅
 
 ### F1 Automatiserade tester
 
 | # | Uppgift | Filer | DoD |
 |---|---------|-------|-----|
-| F1.1 | Utöka `scripts/verify-staff-ui-prod.js`: tabbar, back, journal tab, modal sheet | script | iPhone viewport grön |
-| F1.2 | Ev. Playwright snapshot 390px för Kunder + Journal | `tests/visual/` | Baseline committed |
-| F1.3 | `npm test` + `node tests/_cmoMutationRunner.js` (ingen CMO-regression) | — | Grön |
+| F1.1 | Utöka `scripts/verify-staff-ui-prod.js`: tabbar, back, journal tab, modal sheet | script | ✅ iPhone viewport |
+| F1.2 | Playwright snapshot 390px för Kunder + Journal | `tests/visual/mobile-customers.spec.js` | ✅ |
+| F1.3 | `npm test` + `tests/ops/ccoMobileUxSweep.test.js` | — | ✅ |
 
 ### F2 Manuell pilot
 
 | # | Uppgift | DoD |
 |---|---------|-----|
-| F2.1 | Uppdatera [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) med nya UI-krav | Checklist matchar sweep |
-| F2.2 | Uppdatera [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md) (1 sida personal) | Skärmdumpar nya UI |
-| F2.3 | 1 riktig iPhone smoke: foto ≤10s (befintlig DoD) | Sign-off intern |
+| F2.1 | Uppdatera [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) med nya UI-krav | ✅ |
+| F2.2 | Uppdatera [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md) (1 sida personal) | ✅ |
+| F2.3 | 1 riktig iPhone smoke: foto ≤10s (befintlig DoD) | ☐ Sign-off intern |
 
 ### F3 CI & rollout
 
 | # | Uppgift | DoD |
 |---|---------|-----|
-| F3.1 | PR → `arcana-ci` smoke grön | |
-| F3.2 | `npm run run:rollout-sweep` grön | |
-| F3.3 | Desktop screenshot jämförelse — ingen layout regression @1280 | |
+| F3.1 | PR → `arcana-ci` smoke grön | ☐ vid merge |
+| F3.2 | `npm run run:rollout-sweep` grön | ☐ |
+| F3.3 | Desktop screenshot jämförelse — ingen layout regression @1280 | ☐ |
 
 ---
 
