@@ -156,6 +156,31 @@ async function createCcoJournalPhotoStore({ baseDir }) {
     }
   }
 
+  async function deletePhoto({ tenantId, patientId, photoId }) {
+    const id = normalizeText(photoId);
+    if (!tenantId || !patientId || !id) {
+      throw new Error('tenantId, patientId och photoId krävs.');
+    }
+    const dir = patientDir(root, tenantId, patientId);
+    const candidates = [
+      `${id}.jpg`,
+      `${id}.jpeg`,
+      `${id}.png`,
+      `${id}.annotations.json`,
+      `${id}.annotated.png`,
+    ];
+    let removed = 0;
+    for (const name of candidates) {
+      try {
+        await fs.unlink(path.join(dir, name));
+        removed += 1;
+      } catch (error) {
+        if (!error || error.code !== 'ENOENT') throw error;
+      }
+    }
+    return { removed };
+  }
+
   return {
     savePhoto,
     readPhoto,
@@ -164,6 +189,7 @@ async function createCcoJournalPhotoStore({ baseDir }) {
     saveAnnotatedPreview,
     readAnnotatedPreview,
     resolvePhotoFile,
+    deletePhoto,
   };
 }
 

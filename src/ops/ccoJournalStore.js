@@ -680,6 +680,37 @@ async function createCcoJournalStore({ filePath }) {
     return upsertEntry({ ...entry, attachments }, { actor });
   }
 
+  async function removeConsultationPhotoAttachment({
+    tenantId,
+    patientId,
+    entryId,
+    attachmentId,
+    actor = {},
+  } = {}) {
+    const entry = await getEntry({ tenantId, patientId, entryId });
+    if (!entry) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (entry.locked) {
+      const error = new Error('Signerad behandlingsplan kan inte ändras.');
+      error.statusCode = 409;
+      throw error;
+    }
+    const targetId = normalizeText(attachmentId);
+    const before = asArray(entry.attachments);
+    const attachments = before.filter(
+      (item) => normalizeText(asObject(item).attachmentId) !== targetId
+    );
+    if (attachments.length === before.length) {
+      const error = new Error('Bilagan hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    return upsertEntry({ ...entry, attachments }, { actor });
+  }
+
   return {
     addConsultationPhotoAttachment,
     addCorrection,
@@ -693,6 +724,7 @@ async function createCcoJournalStore({ filePath }) {
     importHistoricalForPatients,
     listEntries,
     markAttachmentAnnotatedPreview,
+    removeConsultationPhotoAttachment,
     signEntry,
     updateConsultationPhotoAnnotation,
     upsertEntry,

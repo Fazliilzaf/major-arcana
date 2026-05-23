@@ -201,3 +201,39 @@ test('photo GET returns stored image bytes', async () => {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+test('photo DELETE removes attachment and stored bytes', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const upload = await postPhoto(baseUrl, {
+        patientId: 'patient-photo-del',
+        personnummer: '19960830-4698',
+        label: 'Front',
+      });
+      assert.equal(upload.status, 200);
+      const payload = await upload.json();
+      const entry = payload.entry;
+      const attachment = entry.attachments[0];
+      const deleteResponse = await fetch(`${baseUrl}/cco-journal/photo`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: 'patient-photo-del',
+          entryId: entry.entryId,
+          attachmentId: attachment.attachmentId,
+          photoId: attachment.photoId,
+        }),
+      });
+      assert.equal(deleteResponse.status, 200);
+      const deleted = await deleteResponse.json();
+      assert.equal(deleted.entry.attachments.length, 0);
+      const getResponse = await fetch(
+        `${baseUrl}/cco-journal/photo?patientId=patient-photo-del&photoId=${encodeURIComponent(attachment.photoId)}`
+      );
+      assert.equal(getResponse.status, 404);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});

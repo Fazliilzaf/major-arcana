@@ -140,7 +140,7 @@
             <span class="patient-master-muted">Lösenord</span>
             <input type="password" name="password" autocomplete="current-password" required />
           </label>
-          <label class="patient-master-login-field">
+          <label class="patient-master-login-field patient-master-login-field--tenant">
             <span class="patient-master-muted">Klinik</span>
             <input type="text" name="tenantId" value="hair-tp-clinic" autocomplete="organization" />
           </label>
@@ -1052,19 +1052,19 @@
           <input type="file" accept="image/*,.heic,.heif" multiple hidden data-patient-photo-gallery${disabledAttr} />
         </label>
         <button class="customers-utility-button${planDisabledClass}" type="button" data-patient-action="new-consultation-plan"${planDisabledAttr}>
-          Ny behandlingsplan
+          Behandlingsplan
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="import-historical">
           Importera historik
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-health-declaration">
-          Ny hälsodekl
+          Hälsodekl
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-fitness-certificate">
-          Ny friskförsäkran
+          Friskförsäkran
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-tp-journal">
-          Ny TP-journal
+          TP-journal
         </button>
       </div>
       ${
@@ -1450,6 +1450,11 @@
                           ${
                             planEntry.canEdit
                               ? `<button type="button" class="customers-utility-button" data-patient-annotate-photo="${escapeHtml(photo.attachmentId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-photo-id="${escapeHtml(photo.photoId)}">Markera plan</button>`
+                              : ''
+                          }
+                          ${
+                            planEntry.canEdit
+                              ? `<button type="button" class="customers-utility-button patient-master-photo-delete" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}">Ta bort</button>`
                               : ''
                           }
                           <a class="patient-master-open-link" href="#" data-journal-photo-open="${escapeHtml(photo.photoId)}">Original</a>
@@ -2402,6 +2407,24 @@
     });
   }
 
+  async function deleteConsultationPhoto(entryId, attachmentId, photoId) {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId || !entryId || !attachmentId || !photoId) return;
+    const ok = window.confirm('Ta bort bilden från behandlingsplanen?');
+    if (!ok) return;
+    setStatus('Tar bort bild…', 'loading');
+    try {
+      await apiRequest('/api/v1/cco-journal/photo', {
+        method: 'DELETE',
+        body: { patientId, entryId, attachmentId, photoId },
+      });
+      setStatus('Bilden togs bort.', 'success');
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte ta bort bilden.', 'error');
+    }
+  }
+
   async function saveTpJournalEntry(form) {
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
@@ -2608,6 +2631,16 @@
           annotateButton.dataset.patientEntryId,
           annotateButton.dataset.patientAnnotatePhoto,
           annotateButton.dataset.patientPhotoId
+        );
+        return;
+      }
+
+      const deletePhotoButton = event.target.closest('[data-patient-delete-photo]');
+      if (deletePhotoButton && runtime.mode === 'register') {
+        void deleteConsultationPhoto(
+          deletePhotoButton.dataset.patientEntryId,
+          deletePhotoButton.dataset.patientAttachmentId,
+          deletePhotoButton.dataset.patientDeletePhoto
         );
         return;
       }
