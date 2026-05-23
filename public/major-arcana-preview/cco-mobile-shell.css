@@ -831,5 +831,336 @@
     html[data-cco-mobile-shell="on"] #cmd-k-overlay {
       display: none !important;
     }
+
+    /* ============================================================
+       Fas E — Density & affärsflöden
+       ============================================================ */
+
+    /* E1.1 — compact queue rows */
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row,
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row--mobile-compact {
+      min-height: 72px;
+      padding: 10px 12px 10px 20px;
+      border-radius: 14px;
+    }
+
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-mid {
+      grid-template-columns: 32px 1fr auto;
+      column-gap: 10px;
+    }
+
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-avatar .avatar,
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-avatar.avatar-wrap {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      max-width: 32px;
+      max-height: 32px;
+    }
+
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-preview {
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* E1.2 — 2-line cards, overflow actions */
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card .mailbox-trail,
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card .warm-why {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-actions .action-icon {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-actions .primary-action {
+      min-height: 40px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-menu-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      min-height: 40px;
+      border: 1px solid rgba(154, 126, 104, 0.18);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: calc(var(--cco-z-modal, 10000) - 1);
+      display: grid;
+      place-items: end center;
+      pointer-events: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-sheet[hidden] {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-sheet:not([hidden]) {
+      pointer-events: auto;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      margin: 0;
+      padding: 0;
+      background: rgba(15, 23, 42, 0.42);
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-panel {
+      position: relative;
+      width: min(100%, 480px);
+      margin: 0;
+      padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+      border-radius: 16px 16px 0 0;
+      background: var(--cco-bg-surface, #fff);
+      box-shadow: var(--cco-shadow-xl);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-panel button {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 48px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 15px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-panel button:active {
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+    }
+
+    /* E1.3 — collapsed queue filters */
+    html[data-cco-mobile-shell="on"] .cco-mobile-queue-filter-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 40px;
+      margin: 0 var(--cco-mobile-gutter, 16px) 8px;
+      padding: 0 14px;
+      border: 1px solid rgba(154, 126, 104, 0.2);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"] body.has-inbox-filters-collapsed .queue-stream-tools .queue-scope-strip,
+    html[data-cco-mobile-shell="on"] body.has-inbox-filters-collapsed .queue-stream-tools .queue-secondary-signal-strip,
+    html[data-cco-mobile-shell="on"] body.has-inbox-filters-collapsed .queue-stream-tools .queue-action-row {
+      display: none !important;
+    }
+
+    /* E1.4 — page titles (also preview-head) */
+    html[data-cco-mobile-shell="on"] .preview-head h1,
+    html[data-cco-mobile-shell="on"] .preview-title-group h1,
+    html[data-cco-mobile-shell="on"] .focus-head h2,
+    html[data-cco-mobile-shell="on"] .preview-head .preview-title-group h1 {
+      font-size: 20px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    /* E2 — offer badges & wizard */
+    html[data-cco-mobile-shell="on"] .patient-master-offer-box .patient-master-offer-template {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-offer-meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0.35rem 0 0.5rem;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-status-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: var(--cco-text-secondary, #5c5348);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-status-badge.is-accent {
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.14));
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard {
+      position: fixed;
+      inset: 0;
+      z-index: calc(var(--cco-z-modal, 10000) - 1);
+      display: grid;
+      place-items: end center;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard[hidden] {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-panel {
+      width: min(100%, 480px);
+      max-height: min(92vh, 640px);
+      overflow: auto;
+      margin: 0;
+      padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      border-radius: 16px 16px 0 0;
+      background: var(--cco-bg-surface, #fff);
+      box-shadow: var(--cco-shadow-xl);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-steps {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-step {
+      flex: 1 1 0;
+      min-height: 36px;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: var(--cco-text-tertiary, #8a8174);
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-step.is-active {
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.16));
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field input,
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field select {
+      min-height: 48px;
+      padding: 0 12px;
+      border: 1px solid rgba(154, 126, 104, 0.22);
+      border-radius: 12px;
+      font-size: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-actions .customers-utility-button {
+      flex: 1 1 0;
+      min-height: 48px;
+    }
+
+    /* E3 — agreement checklist */
+    html[data-cco-mobile-shell="on"] .patient-master-agreement-checklist {
+      list-style: none;
+      margin: 0.5rem 0 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-agreement-checklist li {
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      padding: 0 12px;
+      border: 1px solid rgba(154, 126, 104, 0.16);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--cco-text-primary, #2b251f);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-agreement-checklist li.is-done {
+      border-color: rgba(74, 130, 104, 0.24);
+      background: rgba(74, 130, 104, 0.08);
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-next-action {
+      margin: 0 0 0.75rem;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
+      color: var(--cco-color-accent-strong, #2e5a47);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    /* E4 — forms pass + TP sticky save */
+    html[data-cco-mobile-shell="on"] .preview-canvas input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    html[data-cco-mobile-shell="on"] .preview-canvas select,
+    html[data-cco-mobile-shell="on"] .preview-canvas textarea,
+    html[data-cco-mobile-shell="on"] .patient-master-tp-field input,
+    html[data-cco-mobile-shell="on"] .patient-master-tp-field select,
+    html[data-cco-mobile-shell="on"] .patient-master-tp-field textarea {
+      min-height: 44px;
+      font-size: max(16px, 1rem);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tp-section-body {
+      grid-template-columns: 1fr !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tp-form-wrap {
+      padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + 72px);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tp-header .patient-master-tp-save {
+      position: fixed;
+      left: var(--cco-mobile-gutter, 16px);
+      right: var(--cco-mobile-gutter, 16px);
+      bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 8px);
+      z-index: calc(var(--cco-z-sticky, 100) + 2);
+      width: auto;
+      min-height: 48px;
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+    }
   }
 }

@@ -4937,6 +4937,28 @@ body.is-admin-embed .focus-conversation {
 }
 
 @media (min-width: 769px) {
+  .patient-master-agreement-checklist {
+    list-style: decimal;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .patient-master-agreement-checklist li {
+    display: list-item;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    font-size: 0.82rem;
+    font-weight: inherit;
+  }
+
+  .patient-master-next-action {
+    display: none;
+  }
+
   .patient-master-journal-collapse {
     display: block;
     border: 0;

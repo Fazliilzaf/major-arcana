@@ -155,6 +155,26 @@
     .h-20 { height: 5rem; }
     .w-\[108px\] { width: 108px; }
     .h-\[108px\] { height: 108px; }
+
+    @media (max-width: 767px) {
+      #brandMark.brand-mark-flat,
+      #brandMark {
+        width: 48px !important;
+        height: 48px !important;
+      }
+
+      #bookingModal .relative.mx-auto {
+        padding:
+          max(1rem, env(safe-area-inset-top, 0px))
+          max(1rem, env(safe-area-inset-right, 0px))
+          max(1rem, env(safe-area-inset-bottom, 0px))
+          max(1rem, env(safe-area-inset-left, 0px));
+      }
+
+      #bookingModal .glass-booking-body {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+    }
     .h-\[44px\] { height: 44px; }
     .min-h-\[44px\] { min-height: 44px; }
     .min-h-full { min-height: 100%; }
