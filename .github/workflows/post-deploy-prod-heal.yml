@@ -46,6 +46,8 @@ jobs:
 
       - name: Restore Render env from blueprint
         if: env.RENDER_API_KEY != ''
+        env:
+          RENDER_ENV_RESTORE_RESTART: "false"
         run: bash ./scripts/restore-render-env-from-blueprint.sh
 
       - name: Skip env restore (no RENDER_API_KEY)
@@ -70,7 +72,7 @@ jobs:
         if: env.RENDER_API_KEY != ''
         run: |
           count="$(curl -fsS -H "Authorization: Bearer ${RENDER_API_KEY}" \
-            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars" | \
+            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars?limit=100" | \
             node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).length));")"
           echo "Render env keys: $count"
           if [[ "$count" -lt 25 ]]; then
