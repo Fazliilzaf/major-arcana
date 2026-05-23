@@ -201,6 +201,32 @@ function createCcoJournalRouter({
       })
   );
 
+  router.delete(
+    '/cco-journal/entry',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.query.patientId);
+        const entryId = normalizeText(req.query.entryId);
+        if (!patientId || !entryId) {
+          return res.status(400).json({ error: 'patientId och entryId krävs.' });
+        }
+        const entry = await journalStore.deleteEntry({
+          tenantId: actor.tenantId,
+          patientId,
+          entryId,
+          actor: {
+            userId: actor.userId,
+            role: actor.role,
+            displayName: actor.userId,
+          },
+        });
+        await auditJournal(actor, 'cco.journal.entry.delete', entryId);
+        return res.json({ entry, readout: journalStore.buildJournalReadout(entry) });
+      })
+  );
+
   router.post(
     '/cco-journal/import-historical',
     requireAuth,

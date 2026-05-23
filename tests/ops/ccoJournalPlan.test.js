@@ -90,3 +90,69 @@ test('journal store manages consultation plan photos and annotations', async () 
   assert.equal(annotated.fields.method, 'FUE');
   assert.equal(annotated.attachments[0].hasAnnotation, true);
 });
+
+test('deleteEntry tar bort dubblett av hälsodeklaration men behåller sista', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'journal-store-delete-'));
+  const store = await createCcoJournalStore({ filePath: path.join(dir, 'journal.json') });
+  const actor = { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' };
+
+  const first = await store.upsertEntry(
+    {
+      tenantId: 'hair-tp-clinic',
+      patientId: 'patient-1',
+      journalType: 'health_declaration',
+      title: 'Hälsodeklaration 1',
+      fields: { personnummer: '19900101-1234' },
+    },
+    { actor }
+  );
+  await store.signEntry({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    entryId: first.entryId,
+    actor,
+  });
+
+  const second = await store.upsertEntry(
+    {
+      tenantId: 'hair-tp-clinic',
+      patientId: 'patient-1',
+      journalType: 'health_declaration',
+      title: 'Hälsodeklaration 2',
+      fields: { personnummer: '19900101-1234' },
+    },
+    { actor }
+  );
+  await store.signEntry({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    entryId: second.entryId,
+    actor,
+  });
+
+  await store.deleteEntry({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    entryId: first.entryId,
+    actor,
+  });
+
+  const remaining = await store.listEntries({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    journalType: 'health_declaration',
+  });
+  assert.equal(remaining.length, 1);
+  assert.equal(remaining[0].entryId, second.entryId);
+
+  await assert.rejects(
+    () =>
+      store.deleteEntry({
+        tenantId: 'hair-tp-clinic',
+        patientId: 'patient-1',
+        entryId: second.entryId,
+        actor,
+      }),
+    (error) => error.statusCode === 409
+  );
+});
