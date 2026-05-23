@@ -12,7 +12,7 @@ Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.
 - [ ] Personal har läst instruktionen (1 sida) — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
 - [x] Kör `npm run verify:mobile-pilot-prod` — **grön 2026-05-21**
 - [x] Kör `npm run run:rollout-sweep` + pilot E2E alla 5 kunder — **grön 2026-05-23 (STAFF-auth)**
-- [x] Kör `npm run verify:booking-plan-a-e2e-prod` (PA-21–24) — **grön 2026-05-21**
+- [x] Kör `npm run verify:staff-ui-prod` — Playwright iPhone viewport, Journal + Ta bild **grön 2026-05-23**
 - [x] Kör `npm run backup:journal-photos` — **2026-05-23** (`data/backups/journal-photos/`)
 
 ## Enhetstest (Fas 5.5)
