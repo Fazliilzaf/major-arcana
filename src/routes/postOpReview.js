@@ -79,6 +79,16 @@ function getAuthToken(req) {
   return normalizeText(req.get('x-auth-token'));
 }
 
+function resolveBookingCaseKey(bookingStore, tenantId, caseRef) {
+  const ref = normalizeText(caseRef);
+  if (!ref) return '';
+  if (bookingStore && typeof bookingStore.findCaseByRef === 'function') {
+    const match = bookingStore.findCaseByRef({ tenantId, caseRef: ref });
+    return normalizeText(match?.bookingCaseId) || ref;
+  }
+  return ref;
+}
+
 async function resolveOperatorActor(req, { authStore, config }) {
   const token = getAuthToken(req);
   if (token && authStore) {
@@ -159,6 +169,12 @@ function createPostOpReviewRouter({
         return res.status(400).json({ ok: false, error: 'caseId saknas' });
       }
 
+      const resolvedCase =
+        bookingStore && typeof bookingStore.findCaseByRef === 'function'
+          ? bookingStore.findCaseByRef({ tenantId: actor.tenantId, caseRef: caseId })
+          : null;
+      const bookingCaseKey = normalizeText(resolvedCase?.bookingCaseId) || caseId;
+
       const body = typeof req.body === 'object' && req.body !== null ? req.body : {};
       const customerName = normalizeText(body.customerName);
       const locale = body.locale === 'en' ? 'en' : 'sv';
@@ -173,7 +189,7 @@ function createPostOpReviewRouter({
         channel: 'admin',
         capabilityName: 'RequestPostOpReview',
         input: {
-          bookingCaseId: caseId,
+          bookingCaseId: bookingCaseKey,
           customerName,
           locale,
           baseUrl,
@@ -262,6 +278,17 @@ function createPostOpReviewRouter({
       }
 
       // Audit-event i booking-case så operator-vyn visar att triggern körts
+      if (bookingStore && typeof bookingStore.updateStatus === 'function' && resolvedCase) {
+        await bookingStore.updateStatus({
+          tenantId: actor.tenantId,
+          workspaceId: resolvedCase.workspaceId,
+          conversationId: resolvedCase.conversationId,
+          customerEmail: resolvedCase.customerEmail,
+          status: 'follow_up_completed',
+          ownerUserId: actor.userId,
+        });
+      }
+
       if (bookingStore && typeof bookingStore.addEvent === 'function') {
         const sendSummary = graphSendResult?.ok
           ? ` · 📤 Email skickad via M365 Graph till ${graphSendResult.to}`
@@ -270,8 +297,8 @@ function createPostOpReviewRouter({
             : '';
         await bookingStore.addEvent({
           tenantId: actor.tenantId,
-          conversationId: caseId,
-          customerEmail: patientEmail || '',
+          conversationId: resolvedCase?.conversationId || caseId,
+          customerEmail: patientEmail || resolvedCase?.customerEmail || '',
           type: 'final_followup_marked',
           label: 'Sista uppföljning markerad klar',
           detail: (result.data.alreadyExists
@@ -319,7 +346,8 @@ function createPostOpReviewRouter({
       const caseId = normalizeText(req.params.caseId);
       if (!caseId) return res.status(400).json({ ok: false, error: 'caseId_missing' });
 
-      const submission = postOpReviewStore.findByBookingCaseId(caseId);
+      const bookingCaseKey = resolveBookingCaseKey(bookingStore, actor.tenantId, caseId);
+      const submission = postOpReviewStore.findByBookingCaseId(bookingCaseKey);
       if (!submission) {
         return res.json({ ok: true, submission: null, photos: [] });
       }
@@ -368,7 +396,8 @@ function createPostOpReviewRouter({
         return res.status(400).json({ ok: false, error: 'missing_params' });
       }
 
-      const submission = postOpReviewStore.findByBookingCaseId(caseId);
+      const bookingCaseKey = resolveBookingCaseKey(bookingStore, actor.tenantId, caseId);
+      const submission = postOpReviewStore.findByBookingCaseId(bookingCaseKey);
       if (!submission) {
         return res.status(404).json({ ok: false, error: 'submission_not_found' });
       }

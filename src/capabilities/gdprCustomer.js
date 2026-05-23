@@ -94,6 +94,11 @@ class GdprExportCustomerCapability extends BaseCapability {
                 maxItems: 500,
                 items: { type: 'object', additionalProperties: true },
               },
+              postOpReviews: {
+                type: 'array',
+                maxItems: 100,
+                items: { type: 'object', additionalProperties: true },
+              },
             },
           },
           summary: {
@@ -103,6 +108,7 @@ class GdprExportCustomerCapability extends BaseCapability {
               threadCount: { type: 'integer', minimum: 0, maximum: 100000 },
               noteCount: { type: 'integer', minimum: 0, maximum: 100000 },
               auditCount: { type: 'integer', minimum: 0, maximum: 100000 },
+              postOpReviewCount: { type: 'integer', minimum: 0, maximum: 10000 },
             },
           },
         },
@@ -167,6 +173,7 @@ class GdprExportCustomerCapability extends BaseCapability {
     const ccoCustomerStore = safeContext.ccoCustomerStore;
     const ccoHistoryStore = safeContext.ccoHistoryStore;
     const authStore = safeContext.authStore;
+    const postOpReviewStore = safeContext.postOpReviewStore;
 
     // 1. PROFILE — från ccoCustomerStore
     if (ccoCustomerStore && typeof ccoCustomerStore.peekTenantCustomerState === 'function') {
@@ -289,6 +296,35 @@ class GdprExportCustomerCapability extends BaseCapability {
       warnings.push('authStore.listAuditEvents saknas — audit-trail ej hämtad.');
     }
 
+    // 4. POST-OP REVIEWS — metadata (inga tokens/filer)
+    sections.postOpReviews = [];
+    if (postOpReviewStore && typeof postOpReviewStore.listSubmissions === 'function') {
+      try {
+        const profileName = normalizeText(sections.profile?.name).toLowerCase();
+        const subs = postOpReviewStore.listSubmissions({ tenantId });
+        sections.postOpReviews = subs
+          .filter((s) => {
+            if (!profileName) return true;
+            return normalizeText(s.patientName).toLowerCase() === profileName;
+          })
+          .slice(0, 100)
+          .map((s) => ({
+            submissionId: s.submissionId,
+            bookingCaseId: s.bookingCaseId,
+            patientName: s.patientName || '',
+            createdAt: s.createdAt || null,
+            submittedAt: s.submittedAt || null,
+            consentToPublish: s.consentToPublish === true,
+            photoCount: Array.isArray(s.photos) ? s.photos.length : 0,
+            reviewClicked: s.reviewClicked === true,
+          }));
+      } catch (err) {
+        warnings.push(`Post-op export misslyckades: ${err.message || 'okänt'}`);
+      }
+    } else {
+      warnings.push('postOpReviewStore saknas — post-op metadata ej hämtad.');
+    }
+
     return {
       data: {
         customerId,
@@ -299,6 +335,7 @@ class GdprExportCustomerCapability extends BaseCapability {
           threadCount: sections.threads?.length || 0,
           noteCount: sections.notes?.length || 0,
           auditCount: sections.auditTrail?.length || 0,
+          postOpReviewCount: sections.postOpReviews?.length || 0,
         },
       },
       metadata: {
@@ -417,6 +454,24 @@ class GdprAnonymizeCustomerCapability extends BaseCapability {
       'analytics.metrics (aggregerat)',
     ];
 
+    const postOpReviewStore = safeContext.postOpReviewStore;
+    let postOpDeleted = 0;
+    if (postOpReviewStore && typeof postOpReviewStore.listSubmissions === 'function') {
+      const subs = postOpReviewStore.listSubmissions({ tenantId });
+      for (const s of subs) {
+        const nameMatch =
+          !normalizeText(s.patientName) ||
+          normalizeText(s.patientName).toLowerCase() === customerId.toLowerCase();
+        if (nameMatch && typeof postOpReviewStore.deleteSubmission === 'function') {
+          const ok = await postOpReviewStore.deleteSubmission(s.submissionId);
+          if (ok) postOpDeleted += 1;
+        }
+      }
+      if (postOpDeleted > 0) {
+        fieldsAnonymized.push('postOpReview.submissions');
+      }
+    }
+
     return {
       data: {
         customerId,
@@ -426,6 +481,7 @@ class GdprAnonymizeCustomerCapability extends BaseCapability {
         reason,
         fieldsAnonymized,
         retainedFields,
+        postOpSubmissionsDeleted: postOpDeleted,
       },
       metadata: {
         capability: GdprAnonymizeCustomerCapability.name,
