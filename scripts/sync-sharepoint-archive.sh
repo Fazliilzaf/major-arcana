@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Symlinkar SharePoint-original till MA-Archive/sharepoint/ (CODE-only).
+# Synka MA-Archive från GitHub-repot (~/Code/major-arcana) — inga SharePoint/iCloud-nedladdningar.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -7,6 +7,7 @@ WORKSPACE_ROOT="$(cd "$ROOT_DIR/.." && pwd)"
 ARCHIVE="$WORKSPACE_ROOT/MA-Archive/sharepoint"
 ORIG="$ARCHIVE/originals"
 MD="$ARCHIVE/markdown"
+REPO="$ROOT_DIR"
 
 mkdir -p "$ORIG" "$MD"
 
@@ -22,72 +23,74 @@ link() {
   fi
 }
 
-echo "=== Sync SharePoint → MA-Archive/sharepoint ==="
-echo "Workspace: $WORKSPACE_ROOT"
-
-# originals/ — förväntas vara riktiga filer i ~/Code/MA-Archive (ej iCloud-symlinks)
-for f in \
-  "5. Friskförsäkran TP 2025.docx" \
-  "Bilaga-1-patientinformation-DHI.docx"; do
-  if [[ -f "$ORIG/$f" && ! -L "$ORIG/$f" ]]; then
-    echo "✓ $ORIG/$f (lokal kopia)"
-  elif [[ -f "$ORIG/$f" ]]; then
-    echo "⚠ $ORIG/$f är symlink — ersätt med riktig fil i MA-Archive"
+copy() {
+  local src="$1"
+  local dest="$2"
+  if [[ -f "$src" ]]; then
+    cp "$src" "$dest"
+    echo "✓ kopierad $dest"
   else
-    echo "○ saknas: $ORIG/$f"
+    echo "⚠ saknas: $src"
   fi
-done
+}
 
-HEALTH_MD="$WORKSPACE_ROOT/hairtpclinic-web/docs/sources/halsodeklaration-konsultation.md"
-if [[ ! -f "$HEALTH_MD" && -f "$MD/1. Hälsodeklaration TP, PRP, Microneedling PRF.md" ]]; then
-  HEALTH_MD="$MD/1. Hälsodeklaration TP, PRP, Microneedling PRF.md"
-fi
-[[ -f "$HEALTH_MD" ]] && link "$HEALTH_MD" "1. Hälsodeklaration TP, PRP, Microneedling PRF.md" "$MD"
+echo "=== Sync MA-Archive ← GitHub (major-arcana) ==="
+echo "Repo: $REPO"
 
-INDEX_MD="$WORKSPACE_ROOT/hairtpclinic-web/docs/sources/INDEX.md"
-[[ -f "$INDEX_MD" ]] && link "$INDEX_MD" "SharePoint-INDEX.md" "$MD"
+# Spec + juridik (markdown i repo)
+link "$REPO/docs/strategy/JOURNAL-DATAMODELL.md" "JOURNAL-DATAMODELL.md" "$MD"
+link "$REPO/docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md" "Juridik-INNEHALL-OCH-NYCKELPUNKTER.md" "$MD"
+link "$REPO/docs/legal/juridik-gdpr/JURIST-FLODE-GABRIELLE-HANDLER.md" "JURIST-FLODE-GABRIELLE-HANDLER.md" "$MD"
 
-link "$ROOT_DIR/docs/strategy/JOURNAL-DATAMODELL.md" "JOURNAL-DATAMODELL.md" "$MD"
+# Hälsodekl + friskförsäkran — implementation i kod (ersätter Word på GitHub)
+link "$REPO/public/major-arcana-preview/app/journal-pre-treatment-forms.js" "journal-pre-treatment-forms.js" "$MD"
 
-for word in \
-  "1. Hälsodeklaration TP, PRP, Microneedling PRF.docx" \
-  "6. TP Journal – Behandling FÖRSLAG.docx" \
-  "Journalföring och dokumentationrutiner.docx"; do
-  [[ -f "$ORIG/$word" ]] || echo "○ saknas Word: $word → lägg i $ORIG"
-done
+# Bilaga 1 patientinformation — HTML i repo (PDF genereras i prod)
+copy "$REPO/public/patientinformation-hartransplantation-dhi-prp-minimal.html" \
+  "$ORIG/Bilaga-1-patientinformation-DHI.html"
+
+# TP-journal — implementation
+link "$REPO/public/major-arcana-preview/app/journal-tp-form.js" "journal-tp-form.js" "$MD"
+
+# Journalföring/compliance — datamodell avsnitt 3 + legal
+link "$REPO/docs/legal/pdl-mdr-assessment.md" "Journalföring-compliance-PDL-bedömning.md" "$MD"
 
 echo ""
 if [[ -f "$ARCHIVE/manifest.json" ]]; then
-  echo "Manifest: $ARCHIVE/manifest.json"
-  node - "$ARCHIVE/manifest.json" <<'NODE'
+  node - "$ARCHIVE/manifest.json" "$REPO" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const manifestPath = process.argv[2];
+const repo = process.argv[3];
 const base = path.dirname(manifestPath);
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+const githubSources = {
+  health_declaration: 'public/major-arcana-preview/app/journal-pre-treatment-forms.js',
+  fitness_certificate: 'public/major-arcana-preview/app/journal-pre-treatment-forms.js',
+  tp_treatment_reference: 'public/major-arcana-preview/app/journal-tp-form.js',
+  journal_compliance: 'docs/strategy/JOURNAL-DATAMODELL.md',
+  patient_info_bilaga1: 'public/patientinformation-hartransplantation-dhi-prp-minimal.html',
+};
+
 let ok = 0;
-let missing = 0;
 for (const file of manifest.files) {
-  if (!file.archivePath) {
-    console.log(`  ○ ${file.sharepointName} — ej arkiverad (${file.status})`);
-    missing += 1;
-    continue;
-  }
-  const full = path.join(base, file.archivePath);
-  if (fs.existsSync(full)) {
-    console.log(`  ✓ ${file.sharepointName}`);
+  const gh = githubSources[file.id];
+  const ghPath = gh ? path.join(repo, gh) : null;
+  const archiveFull = file.archivePath ? path.join(base, file.archivePath) : null;
+  const archiveOk = archiveFull && fs.existsSync(archiveFull);
+  const ghOk = ghPath && fs.existsSync(ghPath);
+
+  if (archiveOk || ghOk) {
+    console.log(`  ✓ ${file.sharepointName}${gh ? ` ← ${gh}` : ''}`);
     ok += 1;
   } else {
-    console.log(`  ✗ ${file.sharepointName} — saknas`);
-    missing += 1;
+    console.log(`  ○ ${file.sharepointName} — saknas`);
   }
 }
-console.log(`\nArkiverade: ${ok}/${manifest.files.length}`);
+console.log(`\nArkiverade via GitHub: ${ok}/${manifest.files.length}`);
 NODE
 fi
 
 echo ""
-echo "SharePoint-nedladdning → $ORIG:"
-echo "  • 1. Hälsodeklaration TP, PRP, Microneedling PRF.docx"
-echo "  • 6. TP Journal – Behandling FÖRSLAG.docx"
-echo "  • Journalföring och dokumentationrutiner.docx"
+echo "Källa: https://github.com/Fazliilzaf/major-arcana (Word-original finns inte i repo — spec + kod är source of truth)"
