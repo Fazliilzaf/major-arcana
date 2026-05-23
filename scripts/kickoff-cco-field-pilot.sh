@@ -22,6 +22,9 @@ else
   fail "Saknar $PILOT_JSON"
 fi
 
+section "Simulerade konsultationer (5/5 UI + upload)"
+npm run verify:field-pilot-consultations-prod && pass "Field pilot simulation" || fail "Field pilot simulation"
+
 section "Prod-verify (automation)"
 if npm run verify:cco-mail-start-prod; then
   pass "Mail-lik start"

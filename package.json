@@ -64,6 +64,8 @@
     "verify:cco-mail-start-prod": "node ./scripts/verify-cco-mail-start-prod.js",
     "kickoff:cco-field-pilot": "bash ./scripts/kickoff-cco-field-pilot.sh",
     "cleanup:pilot-journal-duplicates-prod": "bash ./scripts/cleanup-pilot-journal-duplicates-prod.sh",
+    "verify:field-pilot-consultations-prod": "node ./scripts/verify-field-pilot-consultations-prod.js",
+    "brief:field-pilot-staff": "bash ./scripts/print-field-pilot-staff-brief.sh",
     "verify:staff-ui-local": "ARCANA_PROD_URL=http://127.0.0.1:3100 ARCANA_SMOKE_BEARER_TOKEN=__preview_local__ node ./scripts/verify-staff-ui-prod.js",
     "verify:post-op-prod": "BASE=${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se} node ./scripts/verify-post-op-prod.mjs",
     "test:visual:mobile": "playwright test tests/visual/mobile-customers.spec.js --config=playwright.mobile.config.js",

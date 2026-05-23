@@ -57,6 +57,8 @@ Fyll i per enhet efter test i verklig konsultation (eller simulerad kund).
 
 Mål: **2 personal**, minst **5 riktiga konsultationer** totalt.
 
+**Automation (2026-05-23):** `npm run verify:field-pilot-consultations-prod` — 5/5 simulerade (mobil UI + foto-upload). Ersätter inte fysisk enhet.
+
 
 | #   | Personal | Kund | Bilder uppladdade | Tid (sek) | Problem? |
 | --- | -------- | ---- | ----------------- | --------- | -------- |
