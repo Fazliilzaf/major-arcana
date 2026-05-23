@@ -1,6 +1,6 @@
 # CCO Mobil UX/UI — Sweep-plan (ett svep)
 
-**Status:** Fas 0 + A **klara** (2026-05-23) — nästa: **Fas B** (tab bar + dölj desktop nav)  
+**Status:** Fas 0 + A + **B klara** (2026-05-23) — nästa: **Fas C** (list→detail, tabs, sticky)  
 **Senast uppdaterad:** 2026-05-23  
 **Relaterad audit:** mobil UX-audit 2026-05-23 (chat)  
 **Bygger på:** [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)  
@@ -115,20 +115,20 @@ Fas F  QA, docs, CI
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| B1.1 | Phone: `--topbar-height: 56px` (ersätt 104px cascade) | **Critical** | C1 | `cco-mobile-shell.css` | Topbar en rad |
-| B1.2 | Brand: 18–20px eller ikon-only (ej 36–40px) | **Critical** | C1 | shell CSS | Logo dominerar inte |
-| B1.3 | Dölj desktop `.preview-nav` i topbar @767 | **Critical** | C2 | shell CSS + `index.html` | Ingen nav-wrap rad 2 |
-| B1.4 | App-bar: titel = aktiv vy / kundnamn; höger ⋮ + live | High | — | `app.js` | Dynamisk titel |
+| B1.1 | Phone: `--topbar-height: 56px` | **Critical** | C1 | `cco-mobile-shell.css` | ✅ |
+| B1.2 | Brand dold; app-titel visas | **Critical** | C1 | shell CSS | ✅ |
+| B1.3 | Dölj desktop `.preview-nav` @768 | **Critical** | C2 | shell CSS | ✅ |
+| B1.4 | App-bar titel = vy / kundnamn | High | — | `cco-mobile-shell.js` | ✅ |
 
 ### B2 Bottom tab bar
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| B2.1 | HTML: `<nav class="cco-mobile-tabbar">` — Kö · Kunder · Boka · Mer | **Critical** | C2 | `index.html` | 4 tabs, `role="tablist"` |
-| B2.2 | Tabbar höjd 56px + safe-area; targets ≥48px | **Critical** | C2 | shell CSS | Touch OK |
-| B2.3 | `initMobileTabbar()` synkar ↔ `data-nav-view` | **Critical** | C2 | `app.js` | Tap byter vy |
-| B2.4 | “Mer” öppnar bottom sheet med Sekundära (Automatisering, Analys, Inställningar…) | High | — | `app.js` + shell CSS | Desktop “Mer ▼” ersatt på phone |
-| B2.5 | `/staff` default: tab **Kunder** aktiv | High | 3.17 | `app.js` / server redirect | Oförändrat beteende, ny chrome |
+| B2.1 | HTML tabbar Kö · Kunder · Boka · Mer | **Critical** | C2 | `index.html` | ✅ |
+| B2.2 | Tabbar 56px + safe-area; ≥48px touch | **Critical** | C2 | shell CSS | ✅ |
+| B2.3 | `ArcanaMobileShell` synkar ↔ nav | **Critical** | C2 | `cco-mobile-shell.js` | ✅ |
+| B2.4 | Mer bottom sheet | High | — | shell JS/CSS | ✅ |
+| B2.5 | `/staff` → Kunder (befintlig redirect) | High | 3.17 | server | ✅ |
 
 ### B3 Workspace switch (behåll + justera)
 

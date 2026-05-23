@@ -57,6 +57,7 @@
         <header class="preview-topbar" aria-label="Huvudnavigation">
           <div class="preview-topbar-left">
             <div class="preview-brand" aria-label="CCO">CCO</div>
+            <p class="cco-mobile-app-title" id="cco-mobile-app-title" aria-live="polite"></p>
 
             <nav class="preview-nav" aria-label="Primär navigation">
               <button
@@ -10430,6 +10431,96 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
         </div>
       </div>
     </main>
+
+    <nav class="cco-mobile-tabbar" aria-label="Mobil navigation" data-cco-mobile-tabbar>
+      <button
+        type="button"
+        class="cco-mobile-tabbar-item"
+        data-mobile-tab="queue"
+        data-nav-view="conversations"
+        aria-pressed="false"
+      >
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Kö</span>
+      </button>
+      <button
+        type="button"
+        class="cco-mobile-tabbar-item"
+        data-mobile-tab="customers"
+        data-nav-view="customers"
+        aria-pressed="false"
+      >
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16"><circle cx="8" cy="5.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 13.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Kunder</span>
+      </button>
+      <button type="button" class="cco-mobile-tabbar-item" data-mobile-tab="booking" aria-pressed="false">
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 6.5h11M5.5 1.8v1.8M10.5 1.8v1.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Boka</span>
+      </button>
+      <button
+        type="button"
+        class="cco-mobile-tabbar-item"
+        data-mobile-tab="more"
+        aria-pressed="false"
+        aria-haspopup="dialog"
+        aria-controls="cco-mobile-more-sheet"
+      >
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16"><circle cx="4" cy="8" r="1.1" fill="currentColor"/><circle cx="8" cy="8" r="1.1" fill="currentColor"/><circle cx="12" cy="8" r="1.1" fill="currentColor"/></svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Mer</span>
+      </button>
+    </nav>
+
+    <div
+      class="cco-mobile-more-sheet"
+      id="cco-mobile-more-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cco-mobile-more-title"
+      hidden
+    >
+      <button type="button" class="cco-mobile-more-backdrop" data-mobile-more-close aria-label="Stäng"></button>
+      <div class="cco-mobile-more-panel">
+        <header class="cco-mobile-more-head">
+          <h2 id="cco-mobile-more-title">Mer</h2>
+          <button type="button" class="cco-mobile-more-close" data-mobile-more-close aria-label="Stäng">✕</button>
+        </header>
+        <div class="cco-mobile-more-list" role="menu">
+          <button type="button" class="cco-mobile-more-item" data-nav-view="automation" role="menuitem">
+            Automatisering
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="analytics" role="menuitem">
+            Analys
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="later" role="menuitem">
+            Senare
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="sent" role="menuitem">
+            Skickat
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="integrations" role="menuitem">
+            Integrationer
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="macros" role="menuitem">
+            Makron
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="settings" role="menuitem">
+            Inställningar
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="showcase" role="menuitem">
+            Showcase
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script src="/cco-next-customer-intelligence.js"></script>
     <script src="/cco-next-collaboration.js"></script>
     <!-- Previewn kör nu på explicita källfiler.
@@ -10437,8 +10528,8 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 1221d5a4ad) -->
-    <script src="./app.bundle.1221d5a4ad.min.js"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: d45675cb6b) -->
+    <script src="./app.bundle.d45675cb6b.min.js"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's
