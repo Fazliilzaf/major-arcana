@@ -1,5 +1,48 @@
 // @ts-nocheck
+const fs = require('node:fs');
 const path = require('node:path');
+
+const RENDER_RUNTIME_DEFAULTS = Object.freeze({
+  ARCANA_STATE_ROOT: '/var/data',
+  ARCANA_CCO_BOOKING_STORE_PATH: '/var/data/cco-booking.json',
+  ARCANA_CCO_BOOKING_ENGINE_STORE_PATH: '/var/data/cco-booking-engine.json',
+  PLAYWRIGHT_BROWSERS_PATH: '/var/data/playwright-browsers',
+  NODE_ENV: 'production',
+  TRUST_PROXY: 'true',
+  ARCANA_AI_PROVIDER: 'fallback',
+  ARCANA_GRAPH_READ_ENABLED: 'false',
+  ARCANA_GRAPH_SEND_ENABLED: 'false',
+  ARCANA_GRAPH_FULL_TENANT: 'true',
+  ARCANA_GRAPH_USER_SCOPE: 'all',
+  ARCANA_STAFF_JOURNAL_OPEN_ACCESS: 'true',
+  PUBLIC_BASE_URL: 'https://arcana.hairtpclinic.se',
+  ARCANA_BOOTSTRAP_MAILBOX_BACKFILL: 'true',
+  ARCANA_BOOTSTRAP_MAILBOX_LOOKBACK_DAYS: '14',
+  ARCANA_BOOTSTRAP_PREFERRED_MAILBOX: 'contact@hairtpclinic.com',
+  ARCANA_BOOTSTRAP_TENANT_ID: 'hair-tp-clinic',
+  ARCANA_BOOTSTRAP_DELAY_MS: '5000',
+  ARCANA_AUTH_OWNER_MFA_REQUIRED: 'false',
+  ARCANA_PREFLIGHT_READINESS_CHECKS: 'cors_strict',
+  ARCANA_BOOTSTRAP_RESET_OWNER_MFA: 'false',
+});
+
+function isRenderRuntime() {
+  return asBool(process.env.RENDER, false);
+}
+
+function applyRenderRuntimeDefaults() {
+  if (!isRenderRuntime()) return { applied: [], skipped: true };
+  const applied = [];
+  for (const [key, value] of Object.entries(RENDER_RUNTIME_DEFAULTS)) {
+    if (!asNonEmptyString(process.env[key])) {
+      process.env[key] = value;
+      applied.push(key);
+    }
+  }
+  return { applied, skipped: false };
+}
+
+const renderRuntimeDefaults = applyRenderRuntimeDefaults();
 
 function asInt(value, fallback) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -124,6 +167,8 @@ const ccoNextRedirectHosts = (() => {
 })();
 const nodeEnv = asNonEmptyString(process.env.NODE_ENV, 'development').toLowerCase();
 const isProduction = nodeEnv === 'production';
+const aiProviderDefault =
+  isProduction && !asNonEmptyString(process.env.OPENAI_API_KEY) ? 'fallback' : 'openai';
 const stateRoot = resolveDirectoryPath(
   process.env.ARCANA_STATE_ROOT,
   path.join(process.cwd(), 'data')
@@ -141,6 +186,7 @@ const defaultMailbox = asNonEmptyString(
 );
 
 const config = {
+  renderRuntimeDefaults,
   port,
   publicBaseUrl,
   ccoNextCanonicalOrigin,
@@ -159,7 +205,7 @@ const config = {
 
   openaiApiKey: asNonEmptyString(process.env.OPENAI_API_KEY),
   openaiModel: asNonEmptyString(process.env.OPENAI_MODEL, 'gpt-4o-mini'),
-  aiProvider: normalizeAiProvider(process.env.ARCANA_AI_PROVIDER, 'openai'),
+  aiProvider: normalizeAiProvider(process.env.ARCANA_AI_PROVIDER, aiProviderDefault),
   semanticModelMode: normalizeSemanticMode(process.env.ARCANA_SEMANTIC_MODEL_MODE, 'heuristic'),
 
   stateRoot,
@@ -900,4 +946,9 @@ if (
   throw new Error('Missing env var: OPENAI_API_KEY');
 }
 
-module.exports = { config };
+module.exports = {
+  config,
+  applyRenderRuntimeDefaults,
+  isRenderRuntime,
+  renderRuntimeDefaults,
+};
