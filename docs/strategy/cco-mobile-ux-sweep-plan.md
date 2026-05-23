@@ -1,0 +1,425 @@
+# CCO Mobil UX/UI — Sweep-plan (ett svep)
+
+**Status:** Fas 0 + A **klara** (2026-05-23) — nästa: **Fas B** (tab bar + dölj desktop nav)  
+**Senast uppdaterad:** 2026-05-23  
+**Relaterad audit:** mobil UX-audit 2026-05-23 (chat)  
+**Bygger på:** [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)  
+**Mål:** CCO ska kännas som en **modern mobilapp** på telefon — inte desktop inskalerad.
+
+---
+
+## Definition of done (helheten)
+
+- [ ] iPhone 13 (390×844) och Android Chrome: alla primära personalflöden utan zoom/pinch
+- [ ] Ingen primär touch target under **44×44px**
+- [ ] Max **en** sticky header-rad per vy (ingen staplad chrome)
+- [ ] Topbar ≤ **56px** på phone; bottom tab bar synlig
+- [ ] Modaler och bokning som **bottom sheets** (fullbredd, tumme-nåbara knappar)
+- [ ] Kund: **list → detail → back** utan desktop tvåkolumn
+- [ ] Desktop ≥1024px: **oförändrat** utseende (regression OK)
+- [ ] Playwright iPhone + `npm run run:rollout-sweep` gröna
+- [ ] Pilot-checklist uppdaterad; minst 1 intern smoke på riktig telefon
+
+---
+
+## Principer (gäller alla faser)
+
+| Princip | Regel |
+|---------|--------|
+| **Breakpoint** | Phone `≤767px`, tablet `768–1023`, desktop `≥1024` |
+| **Touch** | Min 44×44px primärt; 40px sekundärt (tabs) |
+| **Typografi** | Input ≥16px (iOS zoom); brödtext 15px på phone |
+| **Spacing** | Sidpadding 16px (inte 30px) |
+| **Safe area** | `viewport-fit=cover` + `env(safe-area-inset-*)` |
+| **CSS-arkitektur** | Ny mobil layer i `@layer components` — **inte** fler patchar i 20k-raders `styles.css` utan motivering |
+| **Entry** | `/staff` → `?view=customers` förblir default |
+
+---
+
+## Förutsättningar före start
+
+- [ ] Arbeta från `~/Code/major-arcana` (inte iCloud-klon)
+- [ ] `npm ci && npm test` grön
+- [ ] Lokal server `:3100` eller `:3000` för manuell smoke
+- [ ] Chrome DevTools → iPhone 13 + Safari responsive mode
+- [ ] Prod **inte** aktiveras för CMO live; CCO mobil kan testas mot staging/prod read-only där det är säkert
+
+---
+
+## Sweep-ordning (gör i denna ordning)
+
+```
+Fas 0  Prep & branch
+  ↓
+Fas A  Foundation (tokens, viewport, mobil-CSS-fil)
+  ↓
+Fas B  App shell & navigation (topbar, tabbar, breakpoints)
+  ↓
+Fas C  Kundvy (list→detail, tabs, sticky-fix)
+  ↓
+Fas D  Overlays (modaler, booking sheet, cmd-k)
+  ↓
+Fas E  Density & flöden (kö, bokning wizard, offert/avtal)
+  ↓
+Fas F  QA, docs, CI
+```
+
+**Estimerad tid:** 8–12 utvecklingsdagar i ett svep (1 dev), eller 3–4 dagar med 2 parallella spår (CSS shell / JS flows).
+
+---
+
+## Fas 0 — Prep (½ dag)
+
+| # | Uppgift | Prio | Filer | DoD |
+|---|---------|------|-------|-----|
+| 0.1 | Skapa branch `feat/cco-mobile-ux-sweep` | — | git | ✅ Branch skapad |
+| 0.2 | Skapa `public/major-arcana-preview/cco-mobile-shell.css` | High | ny fil | ✅ + `cco-mobile-shell.js` |
+| 0.3 | Lägg till mobil tokens i `design-tokens.css` | High | `design-tokens.css` | ✅ |
+| 0.4 | Baseline-screenshots iPhone 13 | Medium | `tests/visual/` | ⏳ Fas F |
+
+---
+
+## Fas A — Foundation (1–2 dagar)
+
+### A1 Viewport & safe area
+
+| # | Uppgift | Prio | Filer | DoD |
+|---|---------|------|-------|-----|
+| A1.1 | Uppdatera viewport: `width=device-width, initial-scale=1, viewport-fit=cover` | Medium | `index.html`, `cco/index.html` | ✅ |
+| A1.2 | `theme-color` = `--cco-bg-page` | Low | `index.html` | ✅ `#fbf7f1` |
+| A1.3 | Body/tabbar `padding-bottom: env(safe-area-inset-bottom)` | Medium | `cco-mobile-shell.css` | ✅ |
+
+### A2 Breakpoints — en definition
+
+| # | Uppgift | Prio | Filer | DoD |
+|---|---------|------|-------|-----|
+| A2.1 | Dokumentera canonical breakpoints i tokens (767/768/1024) | High | `design-tokens.css` | ✅ |
+| A2.2 | Ändra `isMobileViewport()` **820 → 768** | High | `patient-master-ui.js`, `journal-plan-editor.js` | ✅ |
+| A2.3 | `@media (max-width: 768px)` i `cco-mobile-shell.css` | High | `cco-mobile-shell.css` | ✅ |
+
+### A3 Typografi & spacing (phone)
+
+| # | Uppgift | Prio | Filer | DoD |
+|---|---------|------|-------|-----|
+| A3.1 | Phone override: `--cco-text-base: 15px` | High | `design-tokens.css` | ✅ |
+| A3.2 | Sidpadding `--cco-mobile-gutter: 16px` | High | tokens + shell CSS | ✅ |
+| A3.3 | Page title token `--cco-mobile-page-title: 20px` | High | shell CSS | ✅ |
+
+**Fas A acceptans:** DevTools iPhone 13 — inget horisontellt scroll; inputs ≥16px i journal-login.
+
+---
+
+## Fas B — App shell & navigation (2–3 dagar)
+
+### B1 Topbar — kompakt app bar
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| B1.1 | Phone: `--topbar-height: 56px` (ersätt 104px cascade) | **Critical** | C1 | `cco-mobile-shell.css` | Topbar en rad |
+| B1.2 | Brand: 18–20px eller ikon-only (ej 36–40px) | **Critical** | C1 | shell CSS | Logo dominerar inte |
+| B1.3 | Dölj desktop `.preview-nav` i topbar @767 | **Critical** | C2 | shell CSS + `index.html` | Ingen nav-wrap rad 2 |
+| B1.4 | App-bar: titel = aktiv vy / kundnamn; höger ⋮ + live | High | — | `app.js` | Dynamisk titel |
+
+### B2 Bottom tab bar
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| B2.1 | HTML: `<nav class="cco-mobile-tabbar">` — Kö · Kunder · Boka · Mer | **Critical** | C2 | `index.html` | 4 tabs, `role="tablist"` |
+| B2.2 | Tabbar höjd 56px + safe-area; targets ≥48px | **Critical** | C2 | shell CSS | Touch OK |
+| B2.3 | `initMobileTabbar()` synkar ↔ `data-nav-view` | **Critical** | C2 | `app.js` | Tap byter vy |
+| B2.4 | “Mer” öppnar bottom sheet med Sekundära (Automatisering, Analys, Inställningar…) | High | — | `app.js` + shell CSS | Desktop “Mer ▼” ersatt på phone |
+| B2.5 | `/staff` default: tab **Kunder** aktiv | High | 3.17 | `app.js` / server redirect | Oförändrat beteende, ny chrome |
+
+### B3 Workspace switch (behåll + justera)
+
+| # | Uppgift | Prio | Filer | DoD |
+|---|---------|------|-------|-----|
+| B3.1 | Behåll Arbetskö / Fokus-Bokning @767 | Medium | `styles.css` / shell | Fortfarande användbart i Konversationer |
+| B3.2 | Marginal `30px → 16px`; bredd `calc(100% - 32px)` | High | shell CSS | Fullbredd känsla |
+| B3.3 | Placera under app-bar utan extra sticky-konflikt | High | shell CSS | Max 1 sticky ovan innehåll |
+
+### B4 Utility & touch
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| B4.1 | `.preview-utility-button` 26→44px @767 | High | 3.10 | shell CSS | |
+| B4.2 | Dölj compose/sprint/lang pills @767 (flytta till Mer) | Medium | — | shell CSS | Ren app-bar |
+
+**Fas B acceptans:** Phone — bottom tabs synliga; topbar ≤56px; navigering utan desktop nav-pills.
+
+---
+
+## Fas C — Kundvy (2–3 dagar)
+
+### C1 List → detail → back
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| C1.1 | @767: dölj kundlista när `selectedPatientId` | **High** | 3.16 | `patient-master-ui.js` + shell CSS | Fullskärm kund |
+| C1.2 | App-bar ← tillbaka rensar selection | **High** | 3.16 | `patient-master-ui.js` | En tap till lista |
+| C1.3 | `history.pushState` / `popstate` för back | Medium | 3.16 | `app.js` | Browser back fungerar |
+| C1.4 | Auto-fokus sök endast desktop (behåll nuvarande mobil logik) | Low | — | `patient-master-ui.js` | Ingen regression |
+
+### C2 Patient tabs (Profil / Journal / Avtal / Filer)
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| C2.1 | Tab `min-height: 28→40px`, `font-size: 10.5→13px` | **Critical** | C4 | `cco-polish.css` eller shell | Touch OK |
+| C2.2 | Segmented control-stil (full bredd eller scroll-snap) | High | C4 | shell CSS | App-likt |
+| C2.3 | **En** sticky rad: hero ELLER tabs — inte båda + toolbar | **Critical** | C3 | `cco-polish.css` | Scroll-yta ≥60vh |
+
+### C3 Sticky stack — rensa
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| C3.1 | Ta bort sticky från `.customers-toolbar` @767 | **Critical** | C3 | `cco-polish.css` | |
+| C3.2 | Justera `.patient-master-tabs` sticky top till endast under hero | **Critical** | C3 | shell CSS | |
+| C3.3 | Verifiera journal auto-open på mobil (`preferJournalOnMobile`) | Low | — | `patient-master-ui.js` | Journal default kvar |
+
+### C4 Journal (behåll + polish)
+
+| # | Uppgift | Prio | Filer | DoD |
+|---|---------|------|-------|-----|
+| C4.1 | Behåll kamera 48px / upload 44px (redan OK) | — | — | Ingen regression |
+| C4.2 | Collapsible sektioner: Plan · Offert · TP (accordions) | Medium | `patient-master-ui.js` | Kortare scroll |
+| C4.3 | Foto-grid `minmax(140px)` → `minmax(120px)` @767 | Low | shell CSS | Tätare grid OK |
+
+**Fas C acceptans:** Kund → Journal → Ta bild ≤3 tap; max 1 sticky header; back till lista.
+
+---
+
+## Fas D — Overlays & modaler (2–3 dagar)
+
+### D1 Customer modals → bottom sheets
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| D1.1 | `.customers-modal-surface` @767: fixed bottom, fullbredd, radius top 16px | **Critical** | C5 | shell CSS | Sheet UX |
+| D1.2 | `padding-bottom: calc(16px + env(safe-area-inset-bottom))` | **Critical** | C5 | shell CSS | Knappar nåbara |
+| D1.3 | Drag handle + swipe-to-close (valfritt v1: stäng-knapp nederst) | Medium | — | shell CSS + liten JS | |
+| D1.4 | Gäller: merge, import, macro editor, mailbox admin, settings profile | **Critical** | C5 | shell CSS | Alla `.customers-modal-shell` |
+
+### D2 Booking shell
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| D2.1 | `#booking-shell` @767: fullskärm sheet `inset: auto 0 0 0` | **High** | 3.12 | `styles.css` / shell | Ingen desktop-panel |
+| D2.2 | Toolbar kompakt; stäng alltid synlig | High | 3.12 | shell CSS | |
+| D2.3 | **3-steg wizard:** Tjänst → Tid → Bekräfta | **High** | 3.12 | `runtime-overlay-renderers.js` + JS | Progress indicator |
+| D2.4 | Slot picker: vertikala tidschips (ersätt input-grid) | **High** | 3.6 | ny `booking-mobile-slot-picker.js` | Inga 4 inputs på rad |
+
+### D3 Övriga overlays
+
+| # | Uppgift | Prio | Filer | DoD |
+|---|---------|------|-------|-----|
+| D3.1 | `#cmd-k-overlay` dold @767; sök i app-bar istället (valfritt) | Medium | `app/cmd-k.js` | |
+| D3.2 | `journal-plan-editor` — behåll full overlay; sidopanel stack @900 (redan delvis OK) | Low | `cco-polish.css` | |
+| D3.3 | QR-overlay redan `min(100%, 320px)` — lägg safe-area | Low | `cco-polish.css` | |
+
+**Fas D acceptans:** Öppna merge-modal + bokning på phone — bottom sheet, stäng med tumme.
+
+---
+
+## Fas E — Density & affärsflöden (2–3 dagar)
+
+### E1 Arbetskö / inkorg
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| E1.1 | `.warm-row--mobile-compact`: min-height 96→72px | **High** | 3.5 | `cco-polish.css` | Tätare lista |
+| E1.2 | Dölj `.mailbox-trail`, extra actions @767 → “⋯” sheet | Medium | 3.7 | shell CSS + JS | 2-raders kort |
+| E1.3 | Queue tools: collapse till “Filter ▾” chip | Medium | 3.5 | `index.html` / JS | Mindre chrome |
+| E1.4 | Page title h1: 10.5→20px @767 | High | 3.3 | shell CSS | Läsbar rubrik |
+
+### E2 Offertflöde
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| E2.1 | Efter plan: CTA “Skapa offert” → fullskärms 2-steg | Medium | 3.14 | `patient-master-ui.js` | Wizard, ej inline dropdown |
+| E2.2 | Status/meta som badges, inte brödtextvägg | Medium | 3.14 | shell CSS | |
+
+### E3 Avtal / samtycke
+
+| # | Uppgift | Prio | Audit | Filer | DoD |
+|---|---------|------|-------|-------|-----|
+| E3.1 | Avtal-tab: vertikal checklist, 48px radhöjd | Medium | 3.15 | `patient-master-ui.js` + shell CSS | |
+| E3.2 | Samtycke-steg tydlig “nästa åtgärd” (conversation flags oförändrade backend) | Medium | 3.15 | UI copy only | |
+
+### E4 Formulär (TP, pre-treatment, bokning)
+
+| # | Uppgift | Prio | Filer | DoD |
+|---|---------|------|-------|-----|
+| E4.1 | Alla inputs @767: min-height 44px, font-size 16px | High | shell CSS | Global form pass |
+| E4.2 | TP-journal: en kolumn + sticky “Spara” footer | Medium | `journal-tp-form.js` / shell | |
+| E4.3 | Pre-treatment: stepper 1/n (valfritt v2) | Low | `journal-pre-treatment-forms.js` | |
+
+### E5 Kundchat (public)
+
+| # | Uppgift | Prio | Filer | DoD |
+|---|---------|------|-------|-----|
+| E5.1 | Brand mark 108px → 48px @767 | Medium | `public/index.html` | Mindre header |
+| E5.2 | Booking modal redan responsiv — safe-area pass | Low | `public/index.html` | |
+
+**Fas E acceptans:** Arbetskö scrollbar utan “desktop-kort”; offert/avtal användbara enhandat.
+
+---
+
+## Fas F — QA, docs, CI (1–2 dagar)
+
+### F1 Automatiserade tester
+
+| # | Uppgift | Filer | DoD |
+|---|---------|-------|-----|
+| F1.1 | Utöka `scripts/verify-staff-ui-prod.js`: tabbar, back, journal tab, modal sheet | script | iPhone viewport grön |
+| F1.2 | Ev. Playwright snapshot 390px för Kunder + Journal | `tests/visual/` | Baseline committed |
+| F1.3 | `npm test` + `node tests/_cmoMutationRunner.js` (ingen CMO-regression) | — | Grön |
+
+### F2 Manuell pilot
+
+| # | Uppgift | DoD |
+|---|---------|-----|
+| F2.1 | Uppdatera [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) med nya UI-krav | Checklist matchar sweep |
+| F2.2 | Uppdatera [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md) (1 sida personal) | Skärmdumpar nya UI |
+| F2.3 | 1 riktig iPhone smoke: foto ≤10s (befintlig DoD) | Sign-off intern |
+
+### F3 CI & rollout
+
+| # | Uppgift | DoD |
+|---|---------|-----|
+| F3.1 | PR → `arcana-ci` smoke grön | |
+| F3.2 | `npm run run:rollout-sweep` grön | |
+| F3.3 | Desktop screenshot jämförelse — ingen layout regression @1280 | |
+
+---
+
+## Komplett punktlista (audit → sweep ID)
+
+Alla audit-punkter mappade till sweep-uppgifter:
+
+| Audit | Sweep-ID | Prio |
+|-------|----------|------|
+| Viewport meta | A1.1–A1.3 | Medium |
+| Breakpoints | A2.1–A2.3 | High |
+| Fontstorlekar | A3.x, B1.2, C2.1, E1.4, E4.1 | High |
+| Padding/margin/gap | A3.2, B3.2 | High |
+| Cards/dashboard | E1.1–E1.3 | High |
+| Kalender mobil | D2.4 | High |
+| Tabeller mobil | E1.2 | Medium |
+| Formulär | E4.1–E4.3, C4 | High/Medium |
+| Navigation | B1–B2 | **Critical** |
+| Knappar/touch | B4, C2, E4.1 | **Critical/High** |
+| Modaler/drawers | D1 | **Critical** |
+| Bokningsflöde | D2 | High |
+| Journalflöde | C3–C4 | Critical/Medium |
+| Offertflöde | E2 | Medium |
+| Avtal/samtycke | E3 | Medium |
+| Kundprofil | C1 | High |
+| Personal arbetsvy | B2.5, B3, E1 | High |
+
+---
+
+## Prioriterad fixlista (snabbreferens)
+
+| # | Fix | Prio | Fas |
+|---|-----|------|-----|
+| 1 | Bottom tab bar + dölj desktop nav | **Critical** | B |
+| 2 | Topbar 104→56px | **Critical** | B |
+| 3 | Patient tabs 28→40px | **Critical** | C |
+| 4 | Modaler → bottom sheets | **Critical** | D |
+| 5 | En sticky header (ta bort stack) | **Critical** | C |
+| 6 | Breakpoint 768 enhetlig | High | A |
+| 7 | Gutter 30→16px | High | A/B |
+| 8 | Kund list→detail + back | High | C |
+| 9 | Kompakta queue-kort | High | E |
+| 10 | Bokning 3-steg + slot chips | High | D |
+| 11 | Page titles 20px | High | A/E |
+| 12 | Utility 44px | High | B |
+| 13 | viewport-fit + safe-area | Medium | A |
+| 14 | Offert wizard | Medium | E |
+| 15 | Avtal checklist | Medium | E |
+| 16 | Cmd+K dölj | Medium | D |
+| 17 | Full månadskalender | Low | backlog |
+| 18 | cco-next-release parity | Low | backlog |
+
+---
+
+## Mobile QA-checklista (kör efter Fas F)
+
+### Enhet
+- [ ] iPhone Safari 390×844
+- [ ] Android Chrome
+- [ ] PWA Add to Home Screen från `/staff`
+- [ ] Notch/home indicator — inget klippt
+
+### Shell
+- [ ] Topbar ≤56px; ingen nav rad 2
+- [ ] Bottom tabbar; alla ≥44px
+- [ ] `/staff` → Kunder default
+- [ ] Back från kund → lista
+
+### Journal (pilot DoD)
+- [ ] Ta bild ≤2 tap; bild ≤10s
+- [ ] Tabs ≥40px
+- [ ] Max 1 sticky vid scroll
+
+### Bokning
+- [ ] Fullbredd sheet
+- [ ] 3 steg utan horisontell form-scroll
+- [ ] Tidschips valbara
+
+### Modaler
+- [ ] Bottom sheet + safe-area på knappar
+- [ ] Stäng nåbar med tumme
+
+### Touch & a11y
+- [ ] Primära knappar ≥44px
+- [ ] Inputs ≥16px
+- [ ] `prefers-reduced-motion` OK
+
+### Regression
+- [ ] Desktop 1280 oförändrat
+- [ ] `npm test` grön
+- [ ] `run:rollout-sweep` grön
+- [ ] `verify-staff-ui-prod` grön
+
+---
+
+## Commit-strategi (ett svep, flera commits)
+
+Rekommenderad ordning i **en PR**:
+
+1. `feat(cco-mobile): foundation tokens, viewport, shell css`
+2. `feat(cco-mobile): app shell, tabbar, compact topbar`
+3. `feat(cco-mobile): customer list-detail, tabs, sticky fix`
+4. `feat(cco-mobile): bottom sheets for modals and booking`
+5. `feat(cco-mobile): queue density, booking wizard, slot picker`
+6. `feat(cco-mobile): offer/agreement mobile flows`
+7. `test(docs): staff ui verify + pilot checklist update`
+
+Alternativ: **en squash-commit** efter full sweep om team föredrar det.
+
+---
+
+## Backlog (ej i detta svep)
+
+- Full månadsvy-kalender (E/API finns; UI saknas)
+- Pre-treatment stepper v2
+- `cco-next-release` React PWA — avgör canonical app först
+- Admin `admin.html` mobil pass (ej personal pilot scope)
+- Swipe-actions på queue-kort v2
+
+---
+
+## Snabbstart — kör sweep
+
+```bash
+cd ~/Code/major-arcana
+git checkout -b feat/cco-mobile-ux-sweep
+# Fas 0 → A → B → C → D → E → F (i ordning ovan)
+npm test
+npm run demo:cmo-sandbox-publish:e2e   # om CMO-routes rörts
+node scripts/verify-staff-ui-prod.js   # efter F1.1
+npm run run:rollout-sweep              # efter F3.2
+```
+
+**Nästa steg:** Säg **KÖR** så påbörjar vi Fas 0 + A i samma branch.

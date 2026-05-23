@@ -265,7 +265,7 @@
 
   function isMobileViewport() {
     try {
-      return window.matchMedia('(max-width: 820px)').matches;
+      return window.matchMedia('(max-width: 768px)').matches;
     } catch {
       return false;
     }

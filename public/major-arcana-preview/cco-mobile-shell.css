@@ -1,0 +1,149 @@
+/* ============================================================
+   CCO Mobile Shell — phone-first app chrome (UX sweep Fas A+)
+   Breakpoint: max-width 768px (see design-tokens --cco-bp-phone-max)
+   Loaded after cco-polish.css in @layer components.
+   ============================================================ */
+
+@layer components {
+  @media (max-width: 768px) {
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    html[data-cco-mobile-shell="on"] {
+      --cco-shell-active: 1;
+    }
+
+    body.is-preview-ready {
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .preview-canvas {
+      --cco-mobile-gutter: 16px;
+      --topbar-height: var(--cco-mobile-topbar-h, 56px);
+      --workspace-top-clearance: 8px;
+      --workspace-sticky-top: calc(
+        var(--shell-sticky-offset, 0px) + var(--topbar-height) + var(--workspace-top-clearance)
+      );
+      --workspace-left-sticky-top: var(--workspace-sticky-top);
+      --workspace-pane-max-height: calc(100vh - var(--workspace-sticky-top) - 12px);
+      --workspace-left-pane-max-height: calc(100vh - var(--workspace-left-sticky-top) - 12px);
+      overflow-x: clip;
+    }
+
+    .preview-topbar {
+      align-items: center;
+      flex-wrap: nowrap;
+      height: var(--topbar-height);
+      min-height: var(--topbar-height);
+      max-height: var(--topbar-height);
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-inline: var(--cco-mobile-gutter);
+      row-gap: 0;
+    }
+
+    .preview-topbar-left {
+      flex: 1 1 auto;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      width: auto;
+    }
+
+    .preview-brand {
+      font-size: 18px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: min(42vw, 160px);
+    }
+
+    .preview-topbar-right {
+      position: static;
+      flex: 0 0 auto;
+      width: auto;
+      max-width: none;
+      justify-content: flex-end;
+      gap: 6px;
+      padding-right: 0;
+    }
+
+    .preview-topbar-right .preview-live-pill {
+      width: 40px;
+      height: 40px;
+      min-height: 40px;
+    }
+
+    .preview-title-group h1,
+    .focus-head h2,
+    .preview-head .preview-title-group h1 {
+      font-size: var(--cco-mobile-page-title, 20px);
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .preview-kicker,
+    .focus-head .preview-kicker {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+    }
+
+    .mobile-workspace-switch {
+      width: calc(100% - (var(--cco-mobile-gutter) * 2));
+      margin: 8px var(--cco-mobile-gutter) 0;
+      min-height: 48px;
+    }
+
+    .preview-workspace {
+      gap: 16px;
+      padding-inline: var(--cco-mobile-gutter);
+    }
+
+    .preview-shell,
+    .focus-shell {
+      padding-inline: 0;
+    }
+
+    .preview-canvas input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    .preview-canvas select,
+    .preview-canvas textarea {
+      font-size: max(16px, 1rem);
+    }
+
+    .preview-canvas .patient-master-login-field input {
+      font-size: 16px;
+    }
+
+    /* Reserve space for Fas B bottom tab bar (hidden until wired) */
+    .cco-mobile-tabbar {
+      display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: var(--cco-z-sticky, 100);
+      min-height: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+      border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      background: color-mix(in srgb, var(--cco-bg-surface, #fff) 92%, transparent);
+      backdrop-filter: blur(16px) saturate(1.08);
+    }
+
+    html[data-cco-mobile-tabbar="on"] .cco-mobile-tabbar {
+      display: flex;
+    }
+
+    html[data-cco-mobile-tabbar="on"] body.is-preview-ready {
+      padding-bottom: calc(
+        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px)
+      );
+    }
+  }
+}
