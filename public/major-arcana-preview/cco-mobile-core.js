@@ -69,6 +69,8 @@
     const openSelectors = [
       '#cco-mobile-more-sheet:not([hidden])',
       '#cco-mobile-calendar-sheet[data-open="true"]',
+      '#cco-mobile-offer-wizard:not([hidden])',
+      '.cco-queue-row-actions-sheet:not([hidden])',
       '.customers-modal-shell[data-open]',
       '#customers-merge-shell[data-open]',
       '#customers-settings-shell[data-open]',
@@ -80,7 +82,6 @@
       '#mailbox-admin-shell[data-open]',
       '#note-mode-shell[data-open]',
       '.journal-plan-editor-overlay:not([hidden])',
-      '.cco-mobile-offer-wizard[data-open="true"]',
     ];
 
     function countOpenOverlays() {
@@ -122,16 +123,20 @@
       '[data-staff-login-form] .patient-master-login-button, ' +
         '[data-tp-journal-save-form] [type="submit"], ' +
         '[data-clinical-journal-save-form] [type="submit"], ' +
-        '.booking-shell-actions .booking-shell-primary, ' +
-        '.cco-mobile-offer-wizard [data-offer-wizard-next], ' +
-        '.cco-mobile-offer-wizard [data-offer-wizard-submit]'
+        '.booking-action-row .booking-action-primary, ' +
+        '#cco-mobile-offer-wizard [data-mobile-offer-wizard-next]:not([hidden]), ' +
+        '#cco-mobile-offer-wizard [data-mobile-offer-wizard-submit]:not([hidden])'
     );
 
     targets.forEach((button) => {
       if (button.closest('.cco-mobile-sticky-cta-bar')) return;
-      const form = button.closest('form') || button.closest('.booking-shell-body') || button.parentElement;
-      if (!form || form.dataset.ccoStickyCta === '1') return;
-      form.dataset.ccoStickyCta = '1';
+      const host =
+        button.closest('form') ||
+        button.closest('.booking-shell-body') ||
+        button.closest('#cco-mobile-offer-wizard') ||
+        button.parentElement;
+      if (!host || host.dataset.ccoStickyCta === '1') return;
+      host.dataset.ccoStickyCta = '1';
 
       const bar = document.createElement('div');
       bar.className = 'cco-mobile-sticky-cta-bar';
@@ -139,11 +144,23 @@
       clone.classList.add('cco-mobile-sticky-cta-button');
       if (clone.id) clone.id = `${clone.id}-sticky`;
       bar.appendChild(clone);
-      form.appendChild(bar);
+      host.appendChild(bar);
+
+      button.classList.add('cco-mobile-sticky-cta-source');
+      button.setAttribute('aria-hidden', 'true');
+      button.tabIndex = -1;
 
       clone.addEventListener('click', (event) => {
         event.preventDefault();
+        button.classList.remove('cco-mobile-sticky-cta-source');
+        button.removeAttribute('aria-hidden');
+        button.tabIndex = 0;
         button.click();
+        if (!button.closest('#cco-mobile-offer-wizard')) {
+          button.classList.add('cco-mobile-sticky-cta-source');
+          button.setAttribute('aria-hidden', 'true');
+          button.tabIndex = -1;
+        }
       });
     });
   }
