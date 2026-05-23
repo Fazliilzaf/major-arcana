@@ -4931,6 +4931,29 @@ body.is-admin-embed .focus-conversation {
     z-index: auto;
   }
 
+  html[data-cco-mobile-shell="on"] .patient-master-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html[data-cco-mobile-shell="on"] .patient-master-tab,
+  html[data-cco-mobile-shell="on"] .patient-master-mode-button {
+    flex: 1 1 0;
+    min-width: 0;
+    box-sizing: border-box;
+    min-height: 44px;
+    height: auto;
+    padding: 0 10px;
+    font-size: 13px;
+    line-height: 1.2;
+    scroll-snap-align: start;
+    border-radius: 10px;
+  }
+
   .patient-master-hero-id {
     margin: 0.15rem 0 0.35rem;
     font-size: 0.82rem;
