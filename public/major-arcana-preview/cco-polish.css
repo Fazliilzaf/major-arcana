@@ -4963,7 +4963,10 @@ body.is-admin-embed .focus-conversation {
   z-index: 12000;
   display: grid;
   place-items: center;
-  padding: 1rem;
+  padding: max(1rem, env(safe-area-inset-top, 1rem))
+    max(1rem, env(safe-area-inset-right, 1rem))
+    max(1rem, env(safe-area-inset-bottom, 1rem))
+    max(1rem, env(safe-area-inset-left, 1rem));
   background: rgba(15, 23, 42, 0.55);
 }
 
