@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Symlinkar lokalt hittade SharePoint-original till MA-Archive/sharepoint/
-# Workspace: ~/Code (major-arcana + MA-Archive som syskon)
+# Symlinkar SharePoint-original till MA-Archive/sharepoint/ (CODE-only).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -8,7 +7,6 @@ WORKSPACE_ROOT="$(cd "$ROOT_DIR/.." && pwd)"
 ARCHIVE="$WORKSPACE_ROOT/MA-Archive/sharepoint"
 ORIG="$ARCHIVE/originals"
 MD="$ARCHIVE/markdown"
-ICLOUD="${ARCANA_ICLOUD_ROOT:-$HOME/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0}"
 
 mkdir -p "$ORIG" "$MD"
 
@@ -24,56 +22,38 @@ link() {
   fi
 }
 
-first_existing() {
-  for candidate in "$@"; do
-    [[ -f "$candidate" ]] && { printf '%s' "$candidate"; return 0; }
-  done
-  return 1
-}
-
 echo "=== Sync SharePoint → MA-Archive/sharepoint ==="
 echo "Workspace: $WORKSPACE_ROOT"
 
-FRISK="$(first_existing \
-  "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Friskförsäkran - TP.docx" \
-  "$ICLOUD/Juridik-GDPR/Friskförsäkran - TP.docx" \
-  || true)"
-[[ -n "$FRISK" ]] && link "$FRISK" "5. Friskförsäkran TP 2025.docx" "$ORIG"
+# originals/ — förväntas vara riktiga filer i ~/Code/MA-Archive (ej iCloud-symlinks)
+for f in \
+  "5. Friskförsäkran TP 2025.docx" \
+  "Bilaga-1-patientinformation-DHI.docx"; do
+  if [[ -f "$ORIG/$f" && ! -L "$ORIG/$f" ]]; then
+    echo "✓ $ORIG/$f (lokal kopia)"
+  elif [[ -f "$ORIG/$f" ]]; then
+    echo "⚠ $ORIG/$f är symlink — ersätt med riktig fil i MA-Archive"
+  else
+    echo "○ saknas: $ORIG/$f"
+  fi
+done
 
-FRISK2="$(first_existing \
-  "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Downloads/Kvalitetsledningssystem/Friskförsäkran TP-2.docx" \
-  || true)"
-[[ -n "$FRISK2" ]] && link "$FRISK2" "5. Friskförsäkran TP 2025 (kvalitetsledning).docx" "$ORIG"
+HEALTH_MD="$WORKSPACE_ROOT/hairtpclinic-web/docs/sources/halsodeklaration-konsultation.md"
+if [[ ! -f "$HEALTH_MD" && -f "$MD/1. Hälsodeklaration TP, PRP, Microneedling PRF.md" ]]; then
+  HEALTH_MD="$MD/1. Hälsodeklaration TP, PRP, Microneedling PRF.md"
+fi
+[[ -f "$HEALTH_MD" ]] && link "$HEALTH_MD" "1. Hälsodeklaration TP, PRP, Microneedling PRF.md" "$MD"
 
-BILAGA1="$(first_existing \
-  "$ROOT_DIR/docs/legal/juridik-gdpr/251030_KLARSPRÅK Patientinformation & Tjänstespecifikation – Hårtransplantation med DHI-tekniken, med kommentarer.docx" \
-  "$ICLOUD/Juridik-GDPR/251030_KLARSPRÅK Patientinformation & Tjänstespecifikation – Hårtransplantation med DHI-tekniken, med kommentarer.docx" \
-  || true)"
-[[ -n "$BILAGA1" ]] && link "$BILAGA1" "Bilaga-1-patientinformation-DHI.docx" "$ORIG"
-
-HEALTH_MD="$(first_existing \
-  "$WORKSPACE_ROOT/hairtpclinic-web/docs/sources/halsodeklaration-konsultation.md" \
-  "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Hairtpclinic webb/docs/sources/halsodeklaration-konsultation.md" \
-  "$ARCHIVE/markdown/1. Hälsodeklaration TP, PRP, Microneedling PRF.md" \
-  || true)"
-[[ -n "$HEALTH_MD" ]] && link "$HEALTH_MD" "1. Hälsodeklaration TP, PRP, Microneedling PRF.md" "$MD"
-
-INDEX_MD="$(first_existing \
-  "$WORKSPACE_ROOT/hairtpclinic-web/docs/sources/INDEX.md" \
-  "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Hairtpclinic webb/docs/sources/INDEX.md" \
-  || true)"
-[[ -n "$INDEX_MD" ]] && link "$INDEX_MD" "SharePoint-INDEX.md" "$MD"
+INDEX_MD="$WORKSPACE_ROOT/hairtpclinic-web/docs/sources/INDEX.md"
+[[ -f "$INDEX_MD" ]] && link "$INDEX_MD" "SharePoint-INDEX.md" "$MD"
 
 link "$ROOT_DIR/docs/strategy/JOURNAL-DATAMODELL.md" "JOURNAL-DATAMODELL.md" "$MD"
 
-# Word-original som måste ligga i originals/ (SharePoint-nedladdning)
-for pair in \
+for word in \
   "1. Hälsodeklaration TP, PRP, Microneedling PRF.docx" \
   "6. TP Journal – Behandling FÖRSLAG.docx" \
   "Journalföring och dokumentationrutiner.docx"; do
-  if [[ ! -f "$ORIG/$pair" ]]; then
-    echo "○ saknas Word: $pair → lägg i $ORIG"
-  fi
+  [[ -f "$ORIG/$word" ]] || echo "○ saknas Word: $word → lägg i $ORIG"
 done
 
 echo ""
@@ -98,18 +78,16 @@ for (const file of manifest.files) {
     console.log(`  ✓ ${file.sharepointName}`);
     ok += 1;
   } else {
-    console.log(`  ✗ ${file.sharepointName} — symlink trasig`);
+    console.log(`  ✗ ${file.sharepointName} — saknas`);
     missing += 1;
   }
 }
 console.log(`\nArkiverade: ${ok}/${manifest.files.length}`);
 NODE
-else
-  echo "⚠ Saknar $ARCHIVE/manifest.json"
 fi
 
 echo ""
-echo "Nästa: ladda ner från SharePoint och lägg i $ORIG:"
+echo "SharePoint-nedladdning → $ORIG:"
 echo "  • 1. Hälsodeklaration TP, PRP, Microneedling PRF.docx"
 echo "  • 6. TP Journal – Behandling FÖRSLAG.docx"
 echo "  • Journalföring och dokumentationrutiner.docx"
