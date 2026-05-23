@@ -63,6 +63,7 @@
     "verify:staff-mobile-login-prod": "node ./scripts/verify-staff-mobile-login-prod.js",
     "verify:cco-mobile-pilot-prod": "bash ./scripts/verify-cco-mobile-pilot-prod.sh",
     "verify:cco-mail-start-prod": "node ./scripts/verify-cco-mail-start-prod.js",
+    "verify:graph-read-prod": "node ./scripts/verify-graph-read-prod.js",
     "kickoff:cco-field-pilot": "bash ./scripts/kickoff-cco-field-pilot.sh",
     "cleanup:pilot-journal-duplicates-prod": "bash ./scripts/cleanup-pilot-journal-duplicates-prod.sh",
     "verify:field-pilot-consultations-prod": "node ./scripts/verify-field-pilot-consultations-prod.js",
