@@ -366,6 +366,9 @@ const config = {
     process.env.ARCANA_MARKETING_PUBLISH_PILOT_MAX_RISK_LEVEL,
     3
   ),
+  marketingPublishLiveEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_LIVE_ENABLED, false),
+  marketingPublishSandbox: asBool(process.env.ARCANA_MARKETING_PUBLISH_SANDBOX, true),
+  marketingConnectorsCacheTtlMs: asInt(process.env.ARCANA_MARKETING_CONNECTORS_CACHE_TTL_MS, 300000),
   marketingConnectors: {
     google_ads: {
       enabled: asBool(process.env.ARCANA_MARKETING_GOOGLE_ADS_ENABLED, false),

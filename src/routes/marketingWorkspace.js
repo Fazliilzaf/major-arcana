@@ -13,6 +13,7 @@ function createMarketingWorkspaceRouter({
   marketingCampaignDraftsStore,
   marketingContentAssetsStore = null,
   marketingClaimsWhitelistStore = null,
+  tenantConfigStore = null,
   config = null,
   requireAuth,
   requireRole,
@@ -349,19 +350,30 @@ function createMarketingWorkspaceRouter({
         const loadedConfig = config && typeof config === 'object' ? config : require('../config');
         const appConfig = resolveAppConfig(loadedConfig);
         const window = normalizeText(req.query?.window) || '7d';
+        const forceRefresh = normalizeText(req.query?.force) === '1' || req.query?.forceRefresh === 'true';
+        const tenantConfig =
+          tenantConfigStore && typeof tenantConfigStore.getTenantConfig === 'function'
+            ? await tenantConfigStore.getTenantConfig(req.auth.tenantId)
+            : null;
         const items = await listConnectorStatuses({
           config: appConfig,
           tenantId: req.auth.tenantId,
+          tenantConfig,
           window,
+          forceRefresh,
         });
+        const errorItems = items.filter((item) => item.status === 'error');
         return res.json({
           items,
           summary: {
             total: items.length,
             configured: items.filter((item) => item.status !== 'not_configured').length,
             ok: items.filter((item) => item.status === 'ok').length,
-            error: items.filter((item) => item.status === 'error').length,
+            error: errorItems.length,
+            healthAlert: errorItems.length > 0,
           },
+          refreshedAt: new Date().toISOString(),
+          forceRefresh,
         });
       } catch (error) {
         return res.status(500).json({ error: error?.message || 'Kunde inte läsa connector-status.' });

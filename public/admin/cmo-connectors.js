@@ -8,6 +8,7 @@
     if (key === 'google_ads') return 'Google Ads';
     if (key === 'meta') return 'Meta';
     if (key === 'linkedin') return 'LinkedIn';
+    if (key === 'mail') return 'Mail / CRM';
     return channel || '—';
   }
 
@@ -50,6 +51,7 @@
       var ok = summary && summary.ok != null ? summary.ok : 0;
       var configured = summary && summary.configured != null ? summary.configured : 0;
       var errorCount = summary && summary.error != null ? summary.error : 0;
+      var healthAlert = summary && summary.healthAlert === true;
       summaryEl.textContent =
         'Totalt: ' +
         total +
@@ -58,7 +60,9 @@
         ' | ok: ' +
         ok +
         ' | fel: ' +
-        errorCount;
+        errorCount +
+        (healthAlert ? ' | ⚠ health alert' : '');
+      if (summaryEl.style) summaryEl.style.color = healthAlert ? '#b42318' : '';
     }
 
     function renderItems(items) {
@@ -119,7 +123,9 @@
       setStatus('Hämtar connector-status (' + windowValue + ')...');
 
       return fetch(
-        '/api/v1/marketing/connectors/status?window=' + encodeURIComponent(windowValue),
+        '/api/v1/marketing/connectors/status?window=' +
+          encodeURIComponent(windowValue) +
+          '&force=1',
         {
           credentials: 'same-origin',
           headers: { accept: 'application/json' },

@@ -58,6 +58,7 @@ const { ProposeCrisisCommsHoldCapability } = require('./proposeCrisisCommsHold')
 const { AnalyzeCompetitorLandscapeCapability } = require('./analyzeCompetitorLandscape');
 const { GenerateNurtureSequenceCapability } = require('./generateNurtureSequence');
 const { GenerateWinbackCampaignCapability } = require('./generateWinbackCampaign');
+const { GenerateContentSeriesCapability } = require('./generateContentSeries');
 const { PatientChatResponseCapability } = require('./patientChatResponse');
 const { RequestPostOpReviewCapability } = require('./requestPostOpReview');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
@@ -129,6 +130,7 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
   assertCapabilityClass(AnalyzeCompetitorLandscapeCapability),
   assertCapabilityClass(GenerateNurtureSequenceCapability),
   assertCapabilityClass(GenerateWinbackCampaignCapability),
+  assertCapabilityClass(GenerateContentSeriesCapability),
   assertCapabilityClass(PatientChatResponseCapability),
   assertCapabilityClass(RequestPostOpReviewCapability),
 ]);
@@ -218,6 +220,7 @@ const AGENT_BUNDLE_DEFINITIONS = Object.freeze([
       'AnalyzeCompetitorLandscape',
       'GenerateNurtureSequence',
       'GenerateWinbackCampaign',
+      'GenerateContentSeries',
     ]),
     allowedRoles: Object.freeze([ROLE_OWNER, ROLE_STAFF]),
     allowedChannels: Object.freeze(['admin']),

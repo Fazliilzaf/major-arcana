@@ -2,7 +2,11 @@
 
 const { notifyOwnerIfNeeded } = require('./caoSchedulerJobs');
 
-const CMO_SCHEDULER_JOB_IDS = Object.freeze(['cmo_weekly_content_plan', 'cmo_pilot_publish_due']);
+const CMO_SCHEDULER_JOB_IDS = Object.freeze([
+  'cmo_weekly_content_plan',
+  'cmo_pilot_publish_due',
+  'cmo_connector_health_check',
+]);
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -318,6 +322,8 @@ async function runCmoPilotPublishDue({
       actorUserId: actorUserId || 'scheduler',
       authStore,
       correlationId: `scheduler-cmo-pilot-${Date.now()}`,
+      config,
+      tenantConfig,
     });
     if (typeof marketingCampaignDraftsStore.markPublishQueued === 'function') {
       await marketingCampaignDraftsStore.markPublishQueued({
@@ -345,8 +351,10 @@ async function runCmoPilotPublishDue({
       severity: 'info',
       riskLevel: 'L3',
       payload: {
-        summary: `${queued.length} godkända kampanjer köade för pilot-publicering (ingen extern API).`,
+        summary: `${queued.length} godkända kampanjer bearbetade för pilot-publicering.`,
         queuedCount: queued.length,
+        publishedCount: queued.filter((item) => item.publishResult.status === 'published').length,
+        failedCount: queued.filter((item) => item.publishResult.status === 'publish_failed').length,
         channels: queued.map((item) => item.channel),
       },
     });
@@ -362,8 +370,85 @@ async function runCmoPilotPublishDue({
   };
 }
 
+async function runCmoConnectorHealthCheck({
+  tenantId,
+  trigger = 'scheduled',
+  config = null,
+  tenantConfigStore = null,
+  executiveDecisionFeed = null,
+  sendAlertNotification = null,
+  minNotifyRiskLevel = 'L3',
+} = {}) {
+  const { listConnectorStatuses } = require('./cmoMarketingConnectors');
+  const tenantConfig =
+    tenantConfigStore && typeof tenantConfigStore.getTenantConfig === 'function'
+      ? await tenantConfigStore.getTenantConfig(tenantId)
+      : {};
+
+  const items = await listConnectorStatuses({
+    config: config || {},
+    tenantId,
+    tenantConfig,
+    window: '7d',
+    forceRefresh: true,
+  });
+
+  const errors = items.filter((item) => item.status === 'error');
+  const notConfigured = items.filter((item) => item.status === 'not_configured');
+  const payload = {
+    tenantId,
+    trigger,
+    checkedAt: new Date().toISOString(),
+    total: items.length,
+    ok: items.filter((item) => item.status === 'ok').length,
+    errorCount: errors.length,
+    notConfiguredCount: notConfigured.length,
+    errorChannels: errors.map((item) => item.channel),
+    items: items.map((item) => ({
+      channel: item.channel,
+      status: item.status,
+      mode: item.mode,
+      message: item.message,
+      fetchedAt: item.fetchedAt,
+    })),
+  };
+
+  let notification = { skipped: true };
+  if (
+    errors.length > 0 &&
+    executiveDecisionFeed &&
+    typeof executiveDecisionFeed.addFromSchedulerNotification === 'function'
+  ) {
+    executiveDecisionFeed.addFromSchedulerNotification({
+      tenantId,
+      eventType: 'review_marketing_connectors',
+      severity: 'warn',
+      riskLevel: 'L3',
+      payload: {
+        summary: `${errors.length} marketing connector(s) i fel-läge: ${errors.map((item) => item.channel).join(', ')}`,
+        ...payload,
+      },
+    });
+    notification = { skipped: false, eventType: 'review_marketing_connectors' };
+  } else if (errors.length > 0 && typeof sendAlertNotification === 'function') {
+    notification = await sendAlertNotification({
+      tenantId,
+      eventType: 'review_marketing_connectors',
+      severity: 'warn',
+      payload,
+      minRiskLevel: minNotifyRiskLevel,
+    });
+  }
+
+  return {
+    ...payload,
+    notification,
+  };
+}
+
 module.exports = {
   CMO_SCHEDULER_JOB_IDS,
   runCmoWeeklyContentPlan,
   runCmoPilotPublishDue,
+  runCmoConnectorHealthCheck,
 };

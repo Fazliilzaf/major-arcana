@@ -425,20 +425,38 @@ async function createMarketingCampaignDraftsStore({ filePath = '' } = {}) {
 
       const existing = normalizeCampaign(state.campaigns[index]);
       const schedule = asObject(asObject(existing.payload).publishSchedule);
+      const publishStatus =
+        normalizeText(publishResult.status).toLowerCase() || 'publish_queued';
       const next = {
         ...existing,
         payload: {
           ...existing.payload,
           publishSchedule: {
             ...schedule,
-            publishStatus: 'publish_queued',
+            publishStatus,
             publishQueuedAt: normalizeText(publishResult.queuedAt) || nowIso(),
             publishQueueMode: normalizeText(publishResult.mode) || 'pilot_queue_stub',
             externalPublishInvoked: publishResult.externalPublishInvoked === true,
+            externalPublishId: normalizeText(publishResult.externalId) || null,
+            publishMessage: normalizeText(publishResult.message) || null,
+            publishedAt:
+              publishStatus === 'published'
+                ? normalizeText(publishResult.publishedAt) || nowIso()
+                : schedule.publishedAt || null,
+            publishFailedAt:
+              publishStatus === 'publish_failed' ? nowIso() : schedule.publishFailedAt || null,
           },
         },
         version: existing.version + 1,
-        versions: pushVersionHistory(existing, 'publish_queue', changedBy),
+        versions: pushVersionHistory(
+          existing,
+          publishStatus === 'published'
+            ? 'publish_completed'
+            : publishStatus === 'publish_failed'
+              ? 'publish_failed'
+              : 'publish_queue',
+          changedBy
+        ),
         updatedAt: nowIso(),
       };
       state.campaigns[index] = next;

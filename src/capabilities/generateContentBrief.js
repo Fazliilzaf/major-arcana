@@ -118,6 +118,21 @@ class GenerateContentBriefCapability extends BaseCapability {
       }
     }
 
+    const trustTopics = [
+      'Sakerhet och integritet i patientresan',
+      'Transparens kring behandlingsprocess och forvantningar',
+      'Teamets kompetens och erfarenhet',
+    ];
+    for (const trustTopic of trustTopics) {
+      topicCandidates.push({
+        topic: trustTopic,
+        source: 'trust_template',
+        relevance: 'medium',
+        suggestedFormat: 'artikel',
+        rationale: 'Product & trust marketing — stodjer trygghet utan kliniska lofenden.',
+      });
+    }
+
     if (topicCandidates.length === 0) {
       topicCandidates.push(
         { topic: 'Hartransplantation — vad du behover veta', source: 'default', relevance: 'medium', suggestedFormat: 'artikel', rationale: 'Standard-amne for harkliniker.' },

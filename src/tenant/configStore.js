@@ -22,6 +22,17 @@ function normalizeText(value) {
   return value.trim();
 }
 
+function cloneMarketingConfig(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { connectors: {} };
+  }
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return { connectors: {} };
+  }
+}
+
 function normalizeRiskModifier(value) {
   const num = Number(value);
   if (!Number.isFinite(num)) return 0;
@@ -404,6 +415,7 @@ function sanitizeTenantConfig(config) {
     ),
     templateSignaturesByChannel: cloneSignatures(config.templateSignaturesByChannel),
     publicSite: clonePublicSiteProfile(config.publicSite),
+    marketing: cloneMarketingConfig(config.marketing),
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
     updatedBy: config.updatedBy || null,
@@ -440,6 +452,7 @@ function buildDefaultConfig({
       tenantId,
       defaultBrand,
     }),
+    marketing: { connectors: {} },
     createdAt: ts,
     updatedAt: ts,
     updatedBy: null,
@@ -502,6 +515,7 @@ function hydrateTenantConfig(rawConfig, { tenantId, defaultBrand }) {
       fallback: fallback.publicSite,
       strict: false,
     }),
+    marketing: cloneMarketingConfig(source.marketing || fallback.marketing),
     createdAt: normalizeText(source.createdAt) || fallback.createdAt,
     updatedAt: normalizeText(source.updatedAt) || fallback.updatedAt,
     updatedBy: source.updatedBy || null,

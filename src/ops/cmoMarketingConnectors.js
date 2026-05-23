@@ -10,6 +10,50 @@ const CONNECTOR_STATUS = Object.freeze({
 });
 
 const DEFAULT_CHANNELS = Object.freeze(['google_ads', 'meta', 'linkedin', 'mail']);
+const metricsCache = new Map();
+
+function cacheKey(tenantId, channel, window, connector = {}, appConfig = {}) {
+  const mode = resolveConnectorMode(connector, appConfig);
+  const enabled = isConnectorEnabled(connector, appConfig) ? '1' : '0';
+  return `${normalizeText(tenantId) || 'default'}:${normalizeText(channel).toLowerCase()}:${window}:${mode}:${enabled}`;
+}
+
+function readCachedMetrics(key, ttlMs) {
+  const entry = metricsCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > ttlMs) {
+    metricsCache.delete(key);
+    return null;
+  }
+  return entry.result;
+}
+
+function writeCachedMetrics(key, result) {
+  if (result.status !== CONNECTOR_STATUS.OK) return result;
+  metricsCache.set(key, { result, cachedAt: Date.now() });
+  return result;
+}
+
+function clearConnectorMetricsCache() {
+  metricsCache.clear();
+}
+
+function mergeConnectorConfig(globalConnector = {}, tenantConnector = {}) {
+  const merged = { ...asObject(globalConnector) };
+  const tenant = asObject(tenantConnector);
+  for (const [key, value] of Object.entries(tenant)) {
+    if (value === null || value === undefined) continue;
+    if (typeof value === 'string' && !normalizeText(value)) continue;
+    merged[key] = value;
+  }
+  return merged;
+}
+
+function resolveTenantConnectorConfig(tenantConfig = {}, channel = '') {
+  const marketing = asObject(tenantConfig.marketing);
+  const connectors = asObject(marketing.connectors || marketing.marketingConnectors);
+  return asObject(connectors[normalizeText(channel).toLowerCase()]);
+}
 
 const CHANNEL_FIXTURES = Object.freeze({
   google_ads: {
@@ -61,11 +105,14 @@ function resolveAppConfig(config = {}) {
   }
 }
 
-function resolveConnectorConfig(config = {}, channel = '') {
+function resolveConnectorConfig(config = {}, channel = '', tenantConfig = null) {
   const appConfig = resolveAppConfig(config);
   const marketing = asObject(appConfig.marketingConnectors || appConfig.marketing?.connectors);
   const key = normalizeText(channel).toLowerCase();
-  return asObject(marketing[key]);
+  const globalConnector = asObject(marketing[key]);
+  if (!tenantConfig) return globalConnector;
+  const tenantConnector = resolveTenantConnectorConfig(tenantConfig, key);
+  return mergeConnectorConfig(globalConnector, tenantConnector);
 }
 
 function resolveConnectorMode(connector = {}, appConfig = {}) {
@@ -233,12 +280,26 @@ async function fetchChannelMetrics({
   channel = '',
   tenantId = '',
   config = {},
+  tenantConfig = null,
   window = '7d',
   fetchImpl = globalThis.fetch,
+  forceRefresh = false,
 } = {}) {
   const normalizedChannel = normalizeText(channel).toLowerCase();
   const appConfig = resolveAppConfig(config);
-  const connector = resolveConnectorConfig(appConfig, normalizedChannel);
+  const cacheTtlMs = Number(appConfig.marketingConnectorsCacheTtlMs) > 0
+    ? Number(appConfig.marketingConnectorsCacheTtlMs)
+    : 300000;
+
+  const connector = resolveConnectorConfig(appConfig, normalizedChannel, tenantConfig);
+  const key = cacheKey(tenantId, normalizedChannel, window, connector, appConfig);
+  if (!forceRefresh) {
+    const cached = readCachedMetrics(key, cacheTtlMs);
+    if (cached) {
+      return { ...cached, cacheHit: true };
+    }
+  }
+
   const enabled = isConnectorEnabled(connector, appConfig);
   const mode = resolveConnectorMode(connector, appConfig);
   const hasCredentials = connectorHasCredentials(connector);
@@ -247,7 +308,7 @@ async function fetchChannelMetrics({
   const fetchedAt = new Date().toISOString();
 
   if (!enabled || mode === 'off') {
-    return {
+    const result = {
       status: CONNECTOR_STATUS.NOT_CONFIGURED,
       channel: normalizedChannel,
       tenantId: normalizeText(tenantId) || null,
@@ -257,6 +318,7 @@ async function fetchChannelMetrics({
       message: `Connector ${normalizedChannel || 'unknown'} not configured.`,
       fetchedAt,
     };
+    return result;
   }
 
   if (mode === 'fixture' || (hasCredentials && !liveFetch)) {
@@ -282,7 +344,7 @@ async function fetchChannelMetrics({
       connectorMode: 'fixture',
     });
 
-    return {
+    return writeCachedMetrics(key, {
       status: CONNECTOR_STATUS.OK,
       channel: normalizedChannel,
       tenantId: normalizeText(tenantId) || null,
@@ -293,7 +355,7 @@ async function fetchChannelMetrics({
         ? 'Fixture metrics (credentials present, live fetch disabled).'
         : 'Fixture metrics (v2.1 mock mode).',
       fetchedAt,
-    };
+    });
   }
 
   if (!hasCredentials) {
@@ -324,7 +386,7 @@ async function fetchChannelMetrics({
       fetchedAt,
       connectorMode: 'live',
     });
-    return {
+    return writeCachedMetrics(key, {
       status: CONNECTOR_STATUS.OK,
       channel: normalizedChannel,
       tenantId: normalizeText(tenantId) || null,
@@ -336,7 +398,7 @@ async function fetchChannelMetrics({
         ? `Live metrics fetched via ${adapterName} adapter.`
         : 'Live metrics fetched via generic endpoint.',
       fetchedAt,
-    };
+    });
   } catch (error) {
     return {
       status: CONNECTOR_STATUS.ERROR,
@@ -355,11 +417,22 @@ async function listConnectorStatuses({
   config = {},
   channels = DEFAULT_CHANNELS,
   tenantId = '',
+  tenantConfig = null,
   window = '7d',
+  forceRefresh = false,
 } = {}) {
   const results = [];
   for (const channel of channels) {
-    results.push(await fetchChannelMetrics({ channel, tenantId, config, window }));
+    results.push(
+      await fetchChannelMetrics({
+        channel,
+        tenantId,
+        config,
+        tenantConfig,
+        window,
+        forceRefresh,
+      })
+    );
   }
   return results;
 }
@@ -446,9 +519,12 @@ module.exports = {
   CHANNEL_FIXTURES,
   resolveAppConfig,
   resolveConnectorConfig,
+  resolveTenantConnectorConfig,
+  mergeConnectorConfig,
   fetchChannelMetrics,
   listConnectorStatuses,
   mergeMarketingPerformanceFromConnectors,
   snapshotHasFreshMarketingPerformance,
   buildChannelPerformanceBlock,
+  clearConnectorMetricsCache,
 };

@@ -62,7 +62,17 @@ test('composeCmoStrategyIntelReport merges v2 strategy outputs', () => {
 });
 
 test('listConnectorStatuses returns not_configured for v2 stub', async () => {
-  const statuses = await listConnectorStatuses({ config: {} });
+  const statuses = await listConnectorStatuses({
+    config: {
+      marketingConnectorsEnabled: false,
+      marketingConnectors: {
+        google_ads: { enabled: false },
+        meta: { enabled: false },
+        linkedin: { enabled: false },
+        mail: { enabled: false },
+      },
+    },
+  });
   assert.ok(statuses.length >= 3);
   assert.ok(statuses.every((item) => item.status === CONNECTOR_STATUS.NOT_CONFIGURED));
 });
