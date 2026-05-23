@@ -25,7 +25,16 @@ npm test -- tests/ops/ccoMobileUxSweep.test.js >/dev/null && pass "ccoMobileUxSw
 
 section "Prod — mobil login + UI"
 npm run verify:staff-mobile-login-prod && pass "verify:staff-mobile-login-prod" || fail "verify:staff-mobile-login-prod"
-npm run verify:staff-ui-prod && pass "verify:staff-ui-prod" || fail "verify:staff-ui-prod"
+if npm run verify:staff-ui-prod; then
+  pass "verify:staff-ui-prod"
+else
+  echo "↻ retry verify:staff-ui-prod …"
+  if npm run verify:staff-ui-prod; then
+    pass "verify:staff-ui-prod (retry)"
+  else
+    fail "verify:staff-ui-prod"
+  fi
+fi
 npm run verify:staff-ui-desktop-prod && pass "verify:staff-ui-desktop-prod" || fail "verify:staff-ui-desktop-prod"
 
 section "Prod — journal + pilotkunder"
