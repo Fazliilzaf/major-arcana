@@ -9357,6 +9357,7 @@ function createCapabilitiesRouter({
   ccoCustomerStore = null,
   runtimeMetricsStore = null,
   clientoBookingStore = null,
+  postOpReviewStore = null,
   templateStore = null,
   adminTasksStore = null,
   scheduler = null,
@@ -9495,6 +9496,7 @@ function createCapabilitiesRouter({
     ccoConversationStateStore,
     runtimeMetricsStore,
     clientoBookingStore,
+    postOpReviewStore,
     buildVersion: process.env.npm_package_version || 'dev',
   });
 

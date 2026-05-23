@@ -716,3 +716,31 @@ test('ccoBookingStore bryter blocker-likaläge med rekommenderat arbetsläge fö
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('ccoBookingStore accepterar follow_up_completed och findCaseByRef', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-followup-'));
+  try {
+    const store = await createCcoBookingStore({
+      filePath: path.join(tempDir, 'bookings.json'),
+    });
+    const base = {
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-followup-ref',
+      customerEmail: 'pilot@example.com',
+    };
+    const created = await store.ensureCase(base);
+    const byConv = store.findCaseByRef({
+      tenantId: 'tenant-a',
+      caseRef: created.conversationId,
+    });
+    assert.equal(byConv.bookingCaseId, created.bookingCaseId);
+    const updated = await store.updateStatus({
+      ...base,
+      status: 'follow_up_completed',
+    });
+    assert.equal(updated.status, 'follow_up_completed');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

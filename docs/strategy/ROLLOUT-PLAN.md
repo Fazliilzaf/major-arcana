@@ -161,22 +161,24 @@ BASE_URL=https://arcana.hairtpclinic.se \
 
 ### Leveranspaket
 
-| Del | Innehåll | Uppskattning |
-|-----|----------|--------------|
-| **3.1 Backend** | `RequestPostOpReview` capability, store, routes, token | 1.5 dag |
-| **3.2 Patientvy** | `/uppfoljning/[token]` — upload, consent, GBP-länk | 0.5 dag |
-| **3.3 CCO-UI** | Knapp i booking/case-vy, status + retry | 0.5–1 dag |
-| **3.4 Test/docs** | Unit + Playwright grep uppfoljning, runbook | 0.5 dag |
+| Del | Innehåll | Status |
+|-----|----------|--------|
+| **3.1 Backend** | `RequestPostOpReview` capability, store, routes, token | ✅ Kod klar |
+| **3.2 Patientvy** | `/uppfoljning/[token]` — upload, consent, GBP-länk | ✅ Kod klar |
+| **3.3 CCO-UI** | Knapp i booking/case-vy, status + retry | ✅ Kod klar |
+| **3.4 Test/docs** | Unit + runbook | ✅ Unit + runbook |
 
 ### Huvuduppgifter
 
-- [ ] `data/post-op-reviews.json` + `data/post-op-photos/` store
-- [ ] Booking case: `follow_up_completed`, token-fält, events
-- [ ] Capability via ExecutionGateway (ej direkt execute)
-- [ ] `POST .../mark-follow-up-completed` + send via Graph
-- [ ] Publik token-route (rate limit, size cap 30 MB/foto)
-- [ ] Audit: `final_followup_marked`, `post_op_photos_received`, …
-- [ ] Runbook: `docs/ops/runbooks/post-op-review-runbook.md`
+- [x] `data/post-op-reviews.json` + `data/post-op-photos/` store
+- [x] Booking case: `follow_up_completed`, events (`findCaseByRef` + `updateStatus`)
+- [x] Capability via ExecutionGateway
+- [x] `POST .../mark-follow-up-completed` + send via Graph
+- [x] Publik token-route (multer, EXIF-strip, size cap)
+- [x] Audit-events + GDPR export/anonymize post-op metadata
+- [x] Runbook: `docs/ops/runbooks/post-op-review-runbook.md`
+- [ ] Graph send live i prod (secrets + beslut)
+- [ ] Playwright smoke `/uppfoljning/[token]`
 
 ### GO-kriterier
 
@@ -185,12 +187,11 @@ BASE_URL=https://arcana.hairtpclinic.se \
 - Playwright smoke på `/uppfoljning/[token]`
 - **Fas 2 auto-trigger** — utelämnad medvetet (Q4 2026)
 
-### Verifiering
+**Verifiering:**
 
 ```bash
-npm run check:syntax && npm run lint:no-bypass && npm run test:unit
-ARCANA_AI_PROVIDER=fallback npm run smoke:local
-npx playwright test --grep uppfoljning
+npm run run:rollout-sweep
+node --test tests/capabilities/requestPostOpReview.test.js
 ```
 
 ---

@@ -2003,6 +2003,7 @@ process.once('SIGTERM', () => {
       ccoCustomerStore,
       runtimeMetricsStore,
       clientoBookingStore,
+      postOpReviewStore,
       scheduler,
       graphReadConnector,
       executiveDecisionFeed,

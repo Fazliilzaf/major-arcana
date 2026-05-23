@@ -10,6 +10,7 @@ const BOOKING_STATUSES = Object.freeze([
   'offered',
   'waiting_customer',
   'confirmed_external',
+  'follow_up_completed',
   'cancelled',
   'closed',
 ]);
@@ -928,6 +929,18 @@ async function createCcoBookingStore({ filePath }) {
     return cloneBookingCase(match);
   }
 
+  /** Slå upp case via bookingCaseId eller conversationId (CCO URL :caseId). */
+  function findCaseByRef({ tenantId, caseRef } = {}) {
+    const ref = normalizeText(caseRef);
+    const tenant = normalizeText(tenantId);
+    if (!ref) return null;
+    const match = state.cases.find((item) => {
+      if (tenant && item.tenantId !== tenant) return false;
+      return item.bookingCaseId === ref || item.conversationId === ref;
+    });
+    return cloneBookingCase(match);
+  }
+
   async function ensureCase(input = {}) {
     const existing = await getCase(input);
     if (existing) return existing;
@@ -1037,6 +1050,7 @@ async function createCcoBookingStore({ filePath }) {
   return {
     addEvent,
     ensureCase,
+    findCaseByRef,
     getCase,
     listCases,
     setCandidateSlots,

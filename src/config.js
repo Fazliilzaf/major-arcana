@@ -293,6 +293,8 @@ const config = {
     Number(process.env.ARCANA_POST_OP_PHOTO_RETENTION_DAYS) > 0
       ? Number(process.env.ARCANA_POST_OP_PHOTO_RETENTION_DAYS)
       : 365,
+  // Journal / medicinsk data — svensk lag 10 år (Patientdatalagen).
+  journalRetentionYears: asInt(process.env.ARCANA_JOURNAL_RETENTION_YEARS, 10),
   // Cron-interval för pruneNoConsentPhotos (default 24h).
   schedulerPostOpPhotoPruneIntervalHours:
     Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS) > 0
