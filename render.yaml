@@ -45,7 +45,7 @@ services:
       - key: ARCANA_AI_PROVIDER
         value: fallback
       - key: ARCANA_STAFF_JOURNAL_OPEN_ACCESS
-        value: "true"
+        value: "false"
       - key: ARCANA_GRAPH_READ_ENABLED
         value: "false"
       - key: ARCANA_GRAPH_SEND_ENABLED
@@ -94,12 +94,11 @@ services:
         value: hair-tp-clinic
       - key: ARCANA_BOOTSTRAP_DELAY_MS
         value: "5000"
-      # Byggfas: OWNER-login utan MFA. Sätt till true igen före go-live.
+      # Go-live: OWNER-login kräver MFA.
       - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
-        value: "false"
-      # Byggfas: hoppa owner_mfa_enforced i readiness guard
+        value: "true"
       - key: ARCANA_PREFLIGHT_READINESS_CHECKS
-        value: cors_strict
+        value: cors_strict,owner_mfa_enforced
       # MFA reset: sätt till true manuellt i Render UI vid kontrollerad heal, sedan tillbaka false
       - key: ARCANA_BOOTSTRAP_RESET_OWNER_MFA
         value: "false"

@@ -6,7 +6,8 @@ Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.
 ## Före pilot
 
 - [x] **Pilotläge aktivt** — `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true` (ingen login krävs just nu)
-- [ ] Minst 1 STAFF + 1 OWNER har inloggning (krävs **före skarp drift** när open access stängs av)
+- [x] **Auth go-live** — `OPEN_ACCESS=false`, OWNER MFA required, STAFF `staff@hairtpclinic.se` (2026-05-23)
+- [ ] Minst 1 STAFF + 1 OWNER har inloggning testad på **mobil** (login krävs nu)
 - [x] 5 pilotkunder tillgängliga — se `data/pilot-patients.json` + deep links via `npm run verify:mobile-pilot-prod`
 - [ ] Personal har läst instruktionen (1 sida) — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
 - [x] Kör `npm run verify:mobile-pilot-prod` — **grön 2026-05-21**
