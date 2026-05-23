@@ -1625,6 +1625,12 @@
       runtimeLiveRefreshTimer = windowObject.setTimeout(poll, intervalMs);
     }
 
+    function clearRuntimeBootLaneLock() {
+      if (state.runtime?.bootLaneLocked === true) {
+        state.runtime.bootLaneLocked = false;
+      }
+    }
+
     async function finalizeRuntimeLoad({
       preferredThreadId = "",
       resetHistoryOnChange = false,
@@ -1632,7 +1638,7 @@
       clearRuntimeAuthRecoveryTimer();
       ensureRuntimeMailboxSelection();
       normalizeVisibleRuntimeScope({
-        allowLaneFallback: true,
+        allowLaneFallback: state.runtime?.bootLaneLocked !== true,
         preferredThreadId,
         resetHistoryOnChange,
       });
@@ -1640,7 +1646,6 @@
         ensureCustomerRuntimeProfilesFromLive();
         await refreshCustomerIdentitySuggestions({ quiet: true });
       }
-      paintRuntimeShell("focus");
       loadQueueHistory({ force: true, prefetch: true }).catch((queueHistoryError) => {
         console.warn("CCO queue-historik kunde inte förladdas.", queueHistoryError);
       });
@@ -2830,6 +2835,7 @@
     }
 
     function setActiveRuntimeLane(laneId) {
+      clearRuntimeBootLaneLock();
       const normalizedLaneId = normalizeKey(laneId || "all") || "all";
       const previousThreadId = workspaceSourceOfTruth.getSelectedThreadId();
       workspaceSourceOfTruth.setActiveLaneId(normalizedLaneId);
@@ -2934,6 +2940,7 @@
     }
 
     function openQueueInlineLane(laneId) {
+      clearRuntimeBootLaneLock();
       const normalizedLaneId = normalizeKey(laneId || "all") || "all";
       const wasSameInlinePanel =
         state.runtime.queueInlinePanel.open &&
@@ -3652,7 +3659,11 @@
                 });
                 hasNewMail = paintResult.hasNewMail === true;
                 state.runtime.lastTruthConsumerSig = getTruthConsumerSignature(truthPrimaryPayload);
-                paintRuntimeShell("queue");
+                if (paintResult.hasNewMail || !worklistReadyAtDefer) {
+                  paintRuntimeShell("queue");
+                } else {
+                  paintRuntimeShell("chrome");
+                }
                 if (typeof syncRuntimeVisualStateMachine === "function") {
                   syncRuntimeVisualStateMachine();
                 }
@@ -3892,7 +3903,8 @@
 
             state.runtime.threads = mapCachedRuntimeThreads(cached);
             state.runtime.lastEnrichedAt = asText(entry?.lastEnrichedAt);
-            state.runtime.staleCacheActive = !state.runtime.lastEnrichedAt;
+            state.runtime.staleCacheActive = true;
+            state.runtime.backgroundSyncActive = true;
             state.runtime.loading = false;
             state.runtime.loaded = Boolean(state.runtime.lastEnrichedAt);
             setRuntimeModeState("live", {
@@ -3901,12 +3913,18 @@
               authRequired: false,
               error: "",
             });
-            renderRuntimeConversationShell();
+            paintRuntimeShell("chrome");
+            renderRuntimeConversationShell({ scope: "queue" });
             if (typeof syncRuntimeVisualStateMachine === "function") {
               syncRuntimeVisualStateMachine();
             }
             if (windowObject.__litSwitchover?.clearBootstrapWindow) {
               windowObject.__litSwitchover.clearBootstrapWindow();
+            }
+            try {
+              windowObject.dispatchEvent(new CustomEvent("cco:runtime-update"));
+            } catch (_dispatchError) {
+              /* ignore */
             }
             return true;
           })
@@ -5124,6 +5142,10 @@
       bindRuntimeVisibilityRecovery();
       bindAdminTokenStorageRecovery();
 
+      state.runtime.bootLaneLocked = true;
+
+      const cachedApplied = await applyRuntimeThreadCacheIfAvailable();
+
       loadBootstrap({
         preserveActiveDestination: true,
         applyWorkspacePrefs: true,
@@ -5132,7 +5154,6 @@
         console.warn("CCO workspace bootstrap misslyckades.", error);
       });
 
-      const cachedApplied = await applyRuntimeThreadCacheIfAvailable();
       if (!isStaffJournalOpenAccessClient()) {
         loadLiveRuntime({
           staleWhileRevalidate: cachedApplied === true,
