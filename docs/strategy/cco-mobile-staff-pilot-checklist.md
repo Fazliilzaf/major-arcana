@@ -11,7 +11,7 @@ Sweep-plan: [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md)
 - Kör `npm run verify:cco-mobile-pilot-prod` — **grön 2026-05-23** (login + UI + journal + pilot)
 - Kör `npm run verify:cco-mail-start-prod` — **grön 2026-05-23** (kall 639ms, warm 272ms, lane=all)
 - Kör `npm run kickoff:cco-field-pilot` — **automation + deep links** (start Fas 5.6)
-- 5 pilotkunder tillgängliga — se `data/pilot-patients.json` + deep links via `npm run verify:mobile-pilot-prod`
+- 5 pilotkunder tillgängliga — **5/5 journey grön 2026-05-23** (`verify-all-pilot-journey-prod.sh`)
 - Personal har läst instruktionen (1 sida) — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
 - Kör `npm run verify:mobile-pilot-prod` — **grön 2026-05-21**
 - Kör `npm run run:rollout-sweep` + pilot E2E alla 5 kunder — **grön 2026-05-23 (STAFF-auth)**
