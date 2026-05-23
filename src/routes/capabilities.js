@@ -4556,6 +4556,12 @@ function toCcoRuntimeHistoryQuery(query = {}) {
     CCO_KONS_HISTORY_MAX_LOOKBACK_DAYS,
     CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS
   );
+  const hasLimit = safeQuery.limit !== undefined && safeQuery.limit !== null && safeQuery.limit !== '';
+  const limit = hasLimit
+    ? clampInteger(safeQuery.limit, 1, CCO_RUNTIME_HISTORY_MAX_LIMIT, CCO_RUNTIME_HISTORY_DEFAULT_THREAD_LIMIT)
+    : null;
+  const hasOffset = safeQuery.offset !== undefined && safeQuery.offset !== null && safeQuery.offset !== '';
+  const offset = hasOffset ? clampInteger(safeQuery.offset, 0, Number.MAX_SAFE_INTEGER, 0) : 0;
 
   if (requestedCustomerEmail && !customerEmail) {
     return {
@@ -4580,6 +4586,8 @@ function toCcoRuntimeHistoryQuery(query = {}) {
     conversationId,
     includeBodyHtml,
     lookbackDays,
+    limit,
+    offset,
   };
 }
 
@@ -4642,6 +4650,49 @@ function filterHistoryMessages(messages = [], { conversationId = '', customerEma
     }
     return false;
   });
+}
+
+const CCO_RUNTIME_HISTORY_MAX_LIMIT = 500;
+const CCO_RUNTIME_HISTORY_DEFAULT_THREAD_LIMIT = 80;
+
+function applyCcoRuntimeHistoryPagination(messages = [], parsedQuery = {}) {
+  const sorted = asArray(messages)
+    .slice()
+    .sort((left, right) => String(left?.sentAt || '').localeCompare(String(right?.sentAt || '')));
+  const totalCount = sorted.length;
+  const limit = parsedQuery.limit;
+  const offset = Number.isFinite(parsedQuery.offset) ? parsedQuery.offset : 0;
+
+  if (!Number.isFinite(limit)) {
+    return {
+      messages: sorted,
+      pagination: {
+        totalCount,
+        limit: null,
+        offset: 0,
+        hasMore: false,
+      },
+    };
+  }
+
+  const safeLimit = clampInteger(limit, 1, CCO_RUNTIME_HISTORY_MAX_LIMIT, CCO_RUNTIME_HISTORY_DEFAULT_THREAD_LIMIT);
+  const safeOffset =
+    offset > 0
+      ? clampInteger(offset, 0, Math.max(totalCount - 1, 0), 0)
+      : parsedQuery.conversationId
+        ? Math.max(totalCount - safeLimit, 0)
+        : 0;
+  const page = sorted.slice(safeOffset, safeOffset + safeLimit);
+
+  return {
+    messages: page,
+    pagination: {
+      totalCount,
+      limit: safeLimit,
+      offset: safeOffset,
+      hasMore: safeOffset > 0 || safeOffset + safeLimit < totalCount,
+    },
+  };
 }
 
 function summarizeHistoryMessages(messages = []) {
@@ -5351,6 +5402,8 @@ function toCcoRuntimeHistoryHandler({
         conversationId,
         includeBodyHtml,
         lookbackDays,
+        limit,
+        offset,
       } = parsedQuery;
       const tenantId = toTenantId(req);
       const { startIso, endIso } = resolveCcoRuntimeWindowBounds({ lookbackDays });
@@ -5394,6 +5447,7 @@ function toCcoRuntimeHistoryHandler({
           conversationId,
         });
         const historyCoverage = mailboxTruthHistory.getHistoryCoverage({ mailboxIds });
+        const paginated = applyCcoRuntimeHistoryPagination(messages, parsedQuery);
         return res.json({
           ok: true,
           mailboxId,
@@ -5402,6 +5456,9 @@ function toCcoRuntimeHistoryHandler({
           conversationId: conversationId || null,
           includeBodyHtml,
           lookbackDays,
+          limit,
+          offset,
+          pagination: paginated.pagination,
           source: 'mailbox_truth_store',
           window: {
             startIso,
@@ -5410,7 +5467,7 @@ function toCcoRuntimeHistoryHandler({
           windowCount: mailboxIds.length,
           backfilledWindowCount: 0,
           summary: summarizeHistoryMessages(messages),
-          messages,
+          messages: paginated.messages,
           threadDocument: hydratedThread.threadDocument,
           events,
           store: {
@@ -5515,6 +5572,7 @@ function toCcoRuntimeHistoryHandler({
           (sum, coverage) => sum + Number(coverage?.missingWindows?.length || 0),
           0
         );
+        const paginated = applyCcoRuntimeHistoryPagination(hydratedMessages, parsedQuery);
         const mailboxSummaries = coverages
           .map((coverage, index) => ({
             mailboxId: mailboxIds[index] || null,
@@ -5545,6 +5603,9 @@ function toCcoRuntimeHistoryHandler({
           customerEmail: customerEmail || null,
           conversationId: conversationId || null,
           lookbackDays,
+          limit,
+          offset,
+          pagination: paginated.pagination,
           window: {
             startIso,
             endIso,
@@ -5552,7 +5613,7 @@ function toCcoRuntimeHistoryHandler({
           windowCount: totalWindowCount,
           backfilledWindowCount: totalBackfilledWindowCount,
           summary,
-          messages: hydratedMessages,
+          messages: paginated.messages,
           threadDocument: hydratedThread.threadDocument,
           events: eventsWithLaneFields,
           store: {
@@ -5605,6 +5666,7 @@ function toCcoRuntimeHistoryHandler({
         customerEmail,
       });
       const hydratedMessages = hydratedThread.messages;
+      const paginated = applyCcoRuntimeHistoryPagination(hydratedMessages, parsedQuery);
 
       return res.json({
         ok: true,
@@ -5613,13 +5675,16 @@ function toCcoRuntimeHistoryHandler({
         customerEmail: customerEmail || null,
         conversationId: conversationId || null,
         lookbackDays,
+        limit,
+        offset,
+        pagination: paginated.pagination,
         window: {
           startIso,
           endIso,
         },
         windowCount: result.windowCount,
         summary: summarizeHistoryMessages(hydratedMessages),
-        messages: hydratedMessages,
+        messages: paginated.messages,
         threadDocument: hydratedThread.threadDocument,
         events: [],
       });

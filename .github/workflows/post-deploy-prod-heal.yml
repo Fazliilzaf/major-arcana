@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -36,6 +38,7 @@ jobs:
       - name: Wait for Render blueprint sync
         if: env.RENDER_API_KEY != ''
         run: bash ./scripts/wait-for-render-blueprint-sync.sh
+        # Deploy-drift: script avslutar 0 vid sync-lag; heal fortsätter (env-restore + readyz).
 
       - name: Wait for prod deploy (commit match)
         run: |

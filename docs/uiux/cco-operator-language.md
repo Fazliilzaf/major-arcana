@@ -30,6 +30,10 @@ Den här ordlistan låser vilka systemord operatören ska se i CCO-ytan. Målet 
 | Slots                     | Tider           | Kandidattider och tillgängliga bokningsalternativ.                                |
 | Audit                     | Logg            | Bokningsytans gransknings- och händelsevy.                                        |
 | Write endpoint            | Skrivstöd       | Endast i tekniska/adminnära felmeddelanden.                                       |
+| Web booking               | Webb-bokning    | Bokning skapad via hairtpclinic.com — visas i Webb-bokningar-vyn.                 |
+| Booking case              | Bokningsärende  | Öppet bokningscase i höger bokningspanel; kan vara webb- eller mejlbaserat.       |
+| Web bookings filter       | Webb-bokningar  | Sortering/filter i bokningslistan för enbart webb-leads.                          |
+| Booking handoff           | Bokningshandoff | Operatörsbeslut eller väntan kring bokning innan bekräftelse.                     |
 
 ## Ord Som Inte Ska Synas I Operatörsytan
 

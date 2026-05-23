@@ -65,7 +65,7 @@ if [ -x "$HOME/.npm-global/bin/arcana-share" ]; then
 fi
 
 printf 'arcana-share ar inte installerat.\n' >&2
-printf 'Kor: cd "$HOME/Desktop/Arcana" && bash ./scripts/install-arcana-commands.sh\n' >&2
+printf 'Kor: cd "$HOME/Code/major-arcana" && bash ./scripts/install-arcana-commands.sh\n' >&2
 exit 1
 EOF
   chmod +x "${DESKTOP_SHARE_COMMAND}"

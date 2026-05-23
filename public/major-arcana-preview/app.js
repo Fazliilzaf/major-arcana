@@ -4647,6 +4647,18 @@
   // Expose workspace-state to runtime-fix-shims for permanent thread-card click-handler.
   // Behövs eftersom app.js är en sluten IIFE och workspaceSourceOfTruth annars
   // är oåtkomligt för external shims.
+  function widenRuntimeMailboxScopeToAll() {
+    const availableMailboxIds = getCanonicalAvailableRuntimeMailboxIds();
+    if (!availableMailboxIds.length) return false;
+    workspaceSourceOfTruth.setSelectedMailboxIds([...availableMailboxIds]);
+    state.runtime.mailboxScopePinned = false;
+    state.runtime.mailboxScopeWidenHint = false;
+    ensureRuntimeMailboxSelection();
+    ensureRuntimeSelection({ allowLaneFallback: state.runtime?.bootLaneLocked !== true });
+    renderRuntimeConversationShell();
+    return true;
+  }
+  workspaceSourceOfTruth.widenMailboxScopeToAll = widenRuntimeMailboxScopeToAll;
   try { window.__ccoWorkspace = workspaceSourceOfTruth; } catch (_e) {}
 
   const runtimeReentryState = PREVIEW_REENTRY_STATE.createRuntimeReentryStateApi({
@@ -14469,16 +14481,15 @@
       (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
     );
     const availableMailboxIds = getCanonicalAvailableRuntimeMailboxIds();
-    if (
+    const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
+    const mailboxScopeIsPartial =
+      selectedMailboxIds.length > 0 && selectedMailboxIds.length < availableMailboxIds.length;
+    state.runtime.mailboxScopeWidenHint =
       !getQueueScopedRuntimeThreads().length &&
-      liveThreads.length &&
+      liveThreads.length > 0 &&
       availableMailboxIds.length > 1 &&
-      !state.runtime?.scopeAutoWidenedAt &&
-      state.runtime?.bootLaneLocked !== true
-    ) {
-      workspaceSourceOfTruth.setSelectedMailboxIds([...availableMailboxIds]);
-      state.runtime.scopeAutoWidenedAt = new Date().toISOString();
-    }
+      mailboxScopeIsPartial &&
+      state.runtime?.bootLaneLocked !== true;
 
     if (
       !getFilteredRuntimeThreads().length &&
@@ -39555,6 +39566,7 @@
       renderAutomationTemplateConfig();
       renderAutomationTestingState();
       renderAutomationVersions();
+      renderAutomationSuggestions();
       loadAutomationVersions(state.selection.automationTemplate).catch((error) => {
         console.warn("Automation live-laddning misslyckades.", error);
       });
@@ -41992,39 +42004,6 @@
   void (async () => {
     const initialShellViewState = readShellViewStateFromLocation();
     await ensurePreviewBootstrapSession();
-    // Fas 46 (2026-05-20): Apple-Mail-pattern steg 3 — instant inbox från
-    // IndexedDB-cache. Läs cachen async (blockerar inte). Om den finns OCH
-    // live-load inte hunnit klart → injicera cachade trådar + rendera direkt
-    // så användaren ser sin inbox på en gång. Live-fetchen overrider sedan
-    // med färsk data när den är klar (Fas 39-logiken i live-composition).
-    try {
-      const __hasTokenFas46 =
-        typeof localStorage !== "undefined" &&
-        Boolean(localStorage.getItem("ARCANA_ADMIN_TOKEN"));
-      if (__hasTokenFas46 && window.CcoThreadCache?.loadThreads) {
-        window.CcoThreadCache.loadThreads()
-          .then((cached) => {
-            if (!Array.isArray(cached) || cached.length === 0) return;
-            // Bara injicera om live-load INTE redan fyllt kön — annars
-            // skulle vi skriva över färskare data med äldre cache.
-            const alreadyLive =
-              state.runtime?.loaded === true ||
-              asArray(state.runtime?.threads).some(
-                (t) => String(t?.worklistSource || "").toLowerCase() !== "demo"
-              );
-            if (alreadyLive) return;
-            state.runtime.threads = cached;
-            try {
-              renderRuntimeConversationShell();
-            } catch (_e) {
-              if (typeof window.__renderApp === "function") window.__renderApp();
-            }
-          })
-          .catch(() => {});
-      }
-    } catch (_e) {
-      /* tyst — cache är best-effort */
-    }
     state.forms.customerFilter = normalizeText(customerFilterSelect?.value) || "Alla kunder";
     setSelectedCustomerIdentity("");
     setSelectedAnalyticsPeriod("week");
@@ -42038,18 +42017,6 @@
     setAutomationCanvasScale(100);
     setAutomationRailCollapsed(false);
     renderAutomationTestingState();
-    const scheduleDeferredAuxShellRenders = () => {
-      renderAutomationVersions();
-      renderAutomationSuggestions();
-      renderIntegrations();
-      renderMacros();
-      renderSettings();
-    };
-    if (typeof requestIdleCallback === "function") {
-      requestIdleCallback(scheduleDeferredAuxShellRenders, { timeout: 2000 });
-    } else {
-      setTimeout(scheduleDeferredAuxShellRenders, 0);
-    }
     setAutomationSubnav("Byggare");
     setSelectedShowcaseFeature("command_palette");
     applyCustomerFilters();

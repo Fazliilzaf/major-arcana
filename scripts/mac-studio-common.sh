@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ARCANA_MAC_STUDIO_USER="${ARCANA_MAC_STUDIO_USER:-fazlikrasniqi}"
-ARCANA_MAC_STUDIO_REPO_PATH="${ARCANA_MAC_STUDIO_REPO_PATH:-/Users/${ARCANA_MAC_STUDIO_USER}/Desktop/Arcana}"
+ARCANA_MAC_STUDIO_REPO_PATH="${ARCANA_MAC_STUDIO_REPO_PATH:-/Users/${ARCANA_MAC_STUDIO_USER}/Code/major-arcana}"
 ARCANA_MAC_STUDIO_VNC_PORT="${ARCANA_MAC_STUDIO_VNC_PORT:-5900}"
 
 is_running_on_mac_studio() {
@@ -90,7 +90,7 @@ print_mac_studio_repo_missing() {
 Arcana finns inte pa Mac Studio i ${ARCANA_MAC_STUDIO_REPO_PATH}.
 
 Kor detta pa Mac Studio en gang:
-  git clone https://github.com/Fazliilzaf/Arcana.git "${ARCANA_MAC_STUDIO_REPO_PATH}"
+  git clone https://github.com/Fazliilzaf/major-arcana.git "${ARCANA_MAC_STUDIO_REPO_PATH}"
   cd "${ARCANA_MAC_STUDIO_REPO_PATH}"
   npm ci
 EOF

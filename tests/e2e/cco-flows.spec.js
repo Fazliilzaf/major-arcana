@@ -67,4 +67,12 @@ test.describe('CCO huvudflöden', () => {
     );
     expect(isMobileShell).toBe(true);
   });
+
+  test('bokningsytan exponerar operatörstermer för webb-bokningar', async ({ page }) => {
+    await page.goto('/major-arcana-preview/');
+    await page.waitForLoadState('domcontentloaded');
+    const bookingCaseList = page.locator('[data-booking-case-list][aria-label="Bokningsärenden"]');
+    await expect(bookingCaseList).toHaveCount(1);
+    await expect(page.locator('body')).toContainText(/Webb-bokningar|Bokningsärenden/i);
+  });
 });

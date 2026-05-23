@@ -2316,6 +2316,26 @@ function createCapabilityExecutor({
           },
         });
 
+        const seriesRun = await runCapability({
+          tenantId: normalizedTenantId,
+          actor: normalizedActor,
+          channel: normalizedChannel,
+          capabilityName: 'GenerateContentSeries',
+          input: {
+            seriesName: cmoInput.seriesName,
+            episodeCount: 4,
+            pillar: 'trust',
+          },
+          systemStateSnapshot: productionSnapshot,
+          correlationId: normalizedCorrelationId,
+          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:series` : null,
+          requestMetadata: {
+            ...safeObject(requestMetadata),
+            parentAgentRunId: agentRunId,
+            parentAgentName: agentBundle.name,
+          },
+        });
+
         const campaignRun = await runCapability({
           tenantId: normalizedTenantId,
           actor: normalizedActor,
@@ -2476,6 +2496,7 @@ function createCapabilityExecutor({
           toDependencyRunSummary(adRun),
           toDependencyRunSummary(emailRun),
           toDependencyRunSummary(repurposeRun),
+          toDependencyRunSummary(seriesRun),
           toDependencyRunSummary(campaignRun),
           toDependencyRunSummary(claimsRun),
           toDependencyRunSummary(complianceRun),
@@ -2496,6 +2517,7 @@ function createCapabilityExecutor({
           adOutput: toCapabilityResponseOutput(adRun),
           emailOutput: toCapabilityResponseOutput(emailRun),
           repurposeOutput: toCapabilityResponseOutput(repurposeRun),
+          seriesOutput: toCapabilityResponseOutput(seriesRun),
           claimsOutput: toCapabilityResponseOutput(claimsRun),
           complianceOutput: toCapabilityResponseOutput(complianceRun),
           calendarOutput: toCapabilityResponseOutput(calendarRun),

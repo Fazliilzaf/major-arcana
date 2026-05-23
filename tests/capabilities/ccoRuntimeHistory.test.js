@@ -1323,6 +1323,115 @@ test('runtime history route can return thin mailbox history without bodyHtml on 
   }
 });
 
+test('runtime history route supports limit pagination for conversation thread loads', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-runtime-history-limit-'));
+  const authStore = await createAuthStore({
+    filePath: path.join(tempDir, 'auth.json'),
+    sessionTtlMs: 12 * 60 * 60 * 1000,
+    sessionIdleTtlMs: 3 * 60 * 60 * 1000,
+    loginTicketTtlMs: 10 * 60 * 1000,
+    auditAppendOnly: true,
+    auditMaxEntries: 5000,
+  });
+  const ccoHistoryStore = await createCcoHistoryStore({
+    filePath: path.join(tempDir, 'cco-history.json'),
+  });
+  const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
+    filePath: path.join(tempDir, 'cco-mailbox-truth.json'),
+  });
+
+  try {
+    const conversationId = 'conv-truth-limit-1';
+    const messages = Array.from({ length: 5 }, (_, index) => ({
+      graphMessageId: `truth-limit-${index + 1}`,
+      mailboxId: 'contact@hairtpclinic.com',
+      mailboxAddress: 'contact@hairtpclinic.com',
+      userPrincipalName: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      folderId: 'folder-inbox',
+      folderName: 'Inbox',
+      conversationId,
+      subject: `Limit history ${index + 1}`,
+      bodyPreview: `Preview ${index + 1}`,
+      direction: index % 2 === 0 ? 'inbound' : 'outbound',
+      isRead: true,
+      receivedAt: buildRecentIso({ daysAgo: 10 - index, hours: 12, minutes: 0 }),
+      from: {
+        address: index % 2 === 0 ? 'ralph@example.com' : 'contact@hairtpclinic.com',
+        name: index % 2 === 0 ? 'Ralph Hultman' : 'Contact',
+      },
+      toRecipients: [{ address: 'contact@hairtpclinic.com', name: 'Contact' }],
+      replyToRecipients: [],
+    }));
+
+    await ccoMailboxTruthStore.recordFolderPage({
+      account: {
+        mailboxId: 'contact@hairtpclinic.com',
+        mailboxAddress: 'contact@hairtpclinic.com',
+        userPrincipalName: 'contact@hairtpclinic.com',
+      },
+      folder: {
+        folderType: 'inbox',
+        folderId: 'folder-inbox',
+        folderName: 'Inbox',
+        wellKnownName: 'inbox',
+        totalItemCount: messages.length,
+        unreadItemCount: 0,
+        messageCollectionCount: messages.length,
+      },
+      messages,
+      complete: true,
+    });
+
+    const graphReadConnector = {
+      async fetchMailboxTruthFolderPage() {
+        throw new Error('not used in this test');
+      },
+      async enrichStoredMessagesWithInlineHtmlAssets({ messages: input = [] } = {}) {
+        return input;
+      },
+    };
+
+    const app = express();
+    app.use(express.json());
+    const auth = createMockAuth('OWNER');
+    app.use(
+      '/api/v1',
+      createCapabilitiesRouter({
+        authStore,
+        tenantConfigStore: {
+          async getTenantConfig() {
+            return {};
+          },
+        },
+        requireAuth: auth.requireAuth,
+        requireRole: auth.requireRole,
+        ccoHistoryStore,
+        ccoMailboxTruthStore,
+        graphReadConnector,
+      })
+    );
+
+    await withServer(app, async (baseUrl) => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/cco/runtime/history?mailboxIds=contact@hairtpclinic.com&conversationId=${encodeURIComponent(conversationId)}&lookbackDays=30&includeBodyHtml=0&limit=2`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.equal(payload.ok, true);
+      assert.equal(payload.limit, 2);
+      assert.equal(payload.pagination?.totalCount, 5);
+      assert.equal(payload.pagination?.hasMore, true);
+      assert.equal(payload.messages.length, 2);
+      assert.equal(payload.messages[0]?.bodyPreview, 'Preview 4');
+      assert.equal(payload.messages[1]?.bodyPreview, 'Preview 5');
+      assert.equal(payload.summary?.messageCount, 5);
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('runtime history route matches mailbox-prefixed conversation ids even when mailbox casing differs', async () => {
   const tempDir = await fs.mkdtemp(
     path.join(os.tmpdir(), 'arcana-cco-runtime-history-prefix-case-')

@@ -327,6 +327,19 @@ Post-op upload räknas som **transactional touch** — full patientchat kommer s
 
 ---
 
+## Infra — deploy & blueprint (gate status 2026-05-23)
+
+| Gate | Status | Notering |
+|------|--------|----------|
+| Blueprint → prod service link | **Stängd** | `verify-render-blueprint-link.sh` i post-deploy-heal |
+| Blueprint sync wait | **Stängd (soft)** | Sync-lag blockar inte heal; varning + fortsätt |
+| Prod commit match | **Soft** | Heal fortsätter vid timeout; env-restore + readyz är hard gate |
+| CI checkout submodules | **Stängd** | `submodules: false` i workflows (undviker exit 128 utan `.gitmodules`) |
+
+Kör lokalt efter push: `bash scripts/post-deploy-prod-heal.sh` vid behov.
+
+---
+
 ## Snabbreferens — env per fas
 
 | Fas | Viktiga env |
