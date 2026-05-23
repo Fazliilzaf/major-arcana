@@ -1389,8 +1389,10 @@ process.once('SIGTERM', () => {
     sloTicketStore,
     releaseGovernanceStore,
     postOpReviewStore,
-    adminTasksStore,
+    marketingCampaignDraftsStore,
+    marketingContentAssetsStore,
     executiveDecisionFeed,
+    adminTasksStore,
     alertNotifier: createAlertNotifier({
       webhookUrl: config.alertWebhookUrl,
       webhookSecret: config.alertWebhookSecret,

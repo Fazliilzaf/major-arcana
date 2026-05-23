@@ -36,7 +36,8 @@ Standard sedan 2026-05: **Codex** på Mac Studio (eller annan Mac med `~/Code`) 
 
 ```bash
 npm run smoke:cmo-connectors:local   # fixture connectors + valfri remote probe
-npm run demo:cmo-sandbox-publish     # Fas P sandbox publish (ingen live API)
+npm run demo:cmo-sandbox-publish     # Fas P sandbox publish (in-process)
+npm run demo:cmo-sandbox-publish:e2e  # Fas P admin E2E (seed → approve → scheduler → published)
 ```
 
 **Prod connectors / live publish:** av medvetet tills OWNER go-live (`ARCANA_MARKETING_CONNECTORS_MODE=fixture`, `ARCANA_MARKETING_PUBLISH_LIVE_ENABLED=false`).

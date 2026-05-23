@@ -71,7 +71,7 @@ Blocker: <om något>
 |-----|--------|-----|
 | N — CI | Klar | arcana-ci smoke grön |
 | O — prod connectors | Pausad | fixture i prod; inga live tokens |
-| P — sandbox publish | Kod klar | `npm run demo:cmo-sandbox-publish` |
+| P — sandbox publish | Kod + E2E klar | `npm run demo:cmo-sandbox-publish:e2e` |
 | Q/R | Delvis i kod | tenant config, health job, mutation |
 
 Flaggor som ska vara **false** i prod tills go-live:

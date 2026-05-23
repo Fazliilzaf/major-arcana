@@ -286,6 +286,9 @@ function createScheduler({
   sloTicketStore = null,
   releaseGovernanceStore = null,
   postOpReviewStore = null,
+  marketingCampaignDraftsStore = null,
+  marketingContentAssetsStore = null,
+  executiveDecisionFeed = null,
   alertNotifier = null,
   logger = console,
 } = {}) {
@@ -3230,6 +3233,38 @@ function createScheduler({
     }
   }
 
+  async function runCmoPilotPublishDueJob({ tenantId, trigger, actorUserId } = {}) {
+    if (
+      !marketingCampaignDraftsStore ||
+      typeof marketingCampaignDraftsStore.listCampaigns !== 'function'
+    ) {
+      return { skipped: true, reason: 'marketingCampaignDraftsStore saknas' };
+    }
+    const { runCmoPilotPublishDue } = require('./cmoSchedulerJobs');
+    return runCmoPilotPublishDue({
+      tenantId: tenantId || config.defaultTenantId,
+      trigger,
+      actorUserId,
+      marketingCampaignDraftsStore,
+      authStore,
+      executiveDecisionFeed,
+      config,
+      tenantConfigStore,
+    });
+  }
+
+  async function runCmoConnectorHealthCheckJob({ tenantId, trigger, actorUserId } = {}) {
+    const { runCmoConnectorHealthCheck } = require('./cmoSchedulerJobs');
+    return runCmoConnectorHealthCheck({
+      tenantId: tenantId || config.defaultTenantId,
+      trigger,
+      actorUserId,
+      config,
+      tenantConfigStore,
+      executiveDecisionFeed,
+    });
+  }
+
   const jobDefinitions = [
     {
       id: 'coo_daily_brief',
@@ -3366,6 +3401,18 @@ function createScheduler({
         ? toHoursMs(config.schedulerPostOpPhotoPruneIntervalHours, 24)
         : 0,
       run: runPostOpPhotoPrune,
+    },
+    {
+      id: 'cmo_pilot_publish_due',
+      name: 'CMO pilot publish due',
+      intervalMs: config.marketingPublishPilotEnabled ? toMinutesMs(15, 15) : 0,
+      run: runCmoPilotPublishDueJob,
+    },
+    {
+      id: 'cmo_connector_health_check',
+      name: 'CMO marketing connector health check',
+      intervalMs: config.marketingConnectorsEnabled ? toMinutesMs(30, 30) : 0,
+      run: runCmoConnectorHealthCheckJob,
     },
   ];
 
