@@ -57,6 +57,30 @@
     });
   }
 
+  function formatPublishStatus(campaign) {
+    var schedule =
+      campaign && campaign.payload && campaign.payload.publishSchedule
+        ? campaign.payload.publishSchedule
+        : null;
+    if (!schedule) return '';
+    var status = String(schedule.publishStatus || schedule.status || '').trim().toLowerCase();
+    if (!status || status === 'proposed') return '';
+    var parts = ['publish=' + status];
+    if (schedule.publishQueueMode) parts.push('mode=' + schedule.publishQueueMode);
+    if (schedule.externalPublishInvoked === true) parts.push('extern=ja');
+    if (schedule.externalPublishId) parts.push('id=' + schedule.externalPublishId);
+    if (schedule.publishMessage) parts.push(String(schedule.publishMessage).slice(0, 80));
+    return ' | ' + parts.join(' · ');
+  }
+
+  function publishStatusClass(status) {
+    var normalized = String(status || '').trim().toLowerCase();
+    if (normalized === 'published') return 'ok';
+    if (normalized === 'publish_failed') return 'error';
+    if (normalized === 'publish_queued') return 'pending';
+    return '';
+  }
+
   function renderRows(items) {
     resultsEl.style.whiteSpace = 'normal';
     resultsEl.innerHTML = '';
@@ -69,6 +93,13 @@
       var row = document.createElement('div');
       row.style.cssText =
         'display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(127,127,127,0.2);font-size:12px;';
+
+      var schedule =
+        campaign.payload && campaign.payload.publishSchedule
+          ? campaign.payload.publishSchedule
+          : null;
+      var publishStatus = schedule ? String(schedule.publishStatus || '').trim().toLowerCase() : '';
+      var publishClass = publishStatusClass(publishStatus);
 
       var text = document.createElement('span');
       text.style.flex = '1 1 280px';
@@ -84,7 +115,12 @@
         ' | channel=' +
         (campaign.channel || '—') +
         ' | v' +
-        (campaign.version || 1);
+        (campaign.version || 1) +
+        formatPublishStatus(campaign);
+
+      if (publishClass === 'ok') text.style.color = '#027a48';
+      else if (publishClass === 'error') text.style.color = '#b42318';
+      else if (publishClass === 'pending') text.style.color = '#b54708';
 
       row.appendChild(text);
 

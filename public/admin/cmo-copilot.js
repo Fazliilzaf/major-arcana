@@ -196,6 +196,7 @@
         scheduleEl.textContent = scheduleItems.length
           ? scheduleItems
               .map(function (item, index) {
+                var publishStatus = String(item.publishStatus || '').trim();
                 return (
                   index +
                   1 +
@@ -206,7 +207,9 @@
                   ' | ' +
                   (item.topic || '—') +
                   ' | ' +
-                  (item.windowLabel || '')
+                  (item.windowLabel || '') +
+                  (publishStatus ? ' | publish=' + publishStatus : '') +
+                  (item.publishMode ? ' | mode=' + item.publishMode : '')
                 );
               })
               .join('\n')
