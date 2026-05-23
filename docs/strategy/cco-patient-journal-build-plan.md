@@ -7,6 +7,8 @@ Syfte: Färdiga kundkort med importerad journal/bilder + ny journalföring för 
 
 **Master-plan (arkiv, juridik, faser):** [ma-document-placement-plan.md](./ma-document-placement-plan.md)
 
+**Projektchecklista (en sida, bocka av):** [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md)
+
 **Workspace:** `~/Code/major-arcana` (GitHub) + `~/Code/MA-Archive/` (källfiler)
 
 ---

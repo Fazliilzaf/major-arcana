@@ -11,6 +11,7 @@ Regel:
 
 0. Nuläge (uppdateras)
    - [ops/status-2026-05-12.md](./ops/status-2026-05-12.md)
+   - [strategy/PROJECT-CHECKLIST.md](./strategy/PROJECT-CHECKLIST.md) — **samlad projektchecklista**
    - Gemensam sanningskälla: verifiering, spår (Cursor vs Cloud AI), nästa tre leveranser.
 
 1. Ursprung och mål

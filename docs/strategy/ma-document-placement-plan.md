@@ -121,5 +121,6 @@ Fas A ──► Fas B ──► Fas C ──► Fas 6
 
 - [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 - [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)
+- [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) — samlad projektchecklista
 - `Juridik-GDPR/INNEHALL-OCH-NYCKELPUNKTER.md`
 - Jurist: Gabrielle Handler, Nordbro — processmail 2025
