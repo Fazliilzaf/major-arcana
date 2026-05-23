@@ -11,9 +11,7 @@ const {
   INSUFFICIENT_DATA_MESSAGE,
 } = require('../../src/ops/cmoMarketingMetrics');
 
-const FRESH_AT = new Date().toISOString();
-
-function freshMetric(value, source, window = '7d', fetchedAt = FRESH_AT) {
+function freshMetric(value, source, window = '7d', fetchedAt = new Date().toISOString()) {
   return {
     value,
     source,
@@ -23,13 +21,17 @@ function freshMetric(value, source, window = '7d', fetchedAt = FRESH_AT) {
   };
 }
 
+function recentFetchedAt(offsetHours = 1) {
+  return new Date(Date.now() - offsetHours * 60 * 60 * 1000).toISOString();
+}
+
 const samplePerformanceSnapshot = {
   marketingPerformance: {
     channels: {
       google_ads: {
         source: 'google_ads',
         window: '7d',
-        fetchedAt: FRESH_AT,
+        fetchedAt: recentFetchedAt(1),
         fresh: true,
         metrics: {
           ctr: freshMetric(0.008, 'google_ads'),
@@ -43,13 +45,13 @@ const samplePerformanceSnapshot = {
       linkedin: {
         source: 'linkedin',
         window: '7d',
-        fetchedAt: FRESH_AT,
+        fetchedAt: recentFetchedAt(2),
         fresh: true,
         metrics: {
-          ctr: freshMetric(0.03, 'linkedin'),
-          cpc: freshMetric(2.2, 'linkedin'),
+          ctr: freshMetric(0.03, 'linkedin', '7d', recentFetchedAt(2)),
+          cpc: freshMetric(2.2, 'linkedin', '7d', recentFetchedAt(2)),
         },
-        spend: freshMetric(500, 'linkedin'),
+        spend: freshMetric(500, 'linkedin', '7d', recentFetchedAt(2)),
       },
     },
   },
