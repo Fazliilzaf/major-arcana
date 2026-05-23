@@ -11,6 +11,10 @@
       text-size-adjust: 100%;
     }
 
+    .customers-toolbar-settings {
+      display: none;
+    }
+
     html[data-cco-mobile-shell="on"] {
       --cco-shell-active: 1;
     }
@@ -1547,6 +1551,16 @@
       min-height: 40px;
     }
 
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-toolbar-settings {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: var(--cco-touch-min, 44px);
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-search {
       flex: 1 1 100%;
     }
@@ -1891,6 +1905,10 @@
 
   /* Desktop/tablet — mobil-only chrome ska aldrig synas ≥769px */
   @media (min-width: 769px) {
+    .customers-toolbar-settings {
+      display: none !important;
+    }
+
     .cco-mobile-tabbar,
     .cco-mobile-more-sheet,
     #cco-mobile-back-button,

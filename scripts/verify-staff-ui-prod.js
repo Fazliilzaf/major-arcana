@@ -202,13 +202,33 @@ async function verifyListBackFlow(page) {
 }
 
 async function verifySettingsBottomSheet(page) {
-  const settingsBtn = page.locator('[data-customer-command="settings"]').first();
-  if (!(await settingsBtn.count())) {
-    warn('Modal sheet', 'inställningsknapp saknas');
-    return;
+  const mobileShell = await page.evaluate(() =>
+    document.documentElement.hasAttribute('data-cco-mobile-shell')
+  );
+
+  let opened = false;
+  const toolbarSettings = page.locator('.customers-toolbar-settings[data-customer-command="settings"]').first();
+  if (mobileShell && (await toolbarSettings.count())) {
+    await toolbarSettings.click();
+    opened = true;
+  } else {
+    const settingsBtn = page.locator('[data-customer-command="settings"]').first();
+    if (!(await settingsBtn.count())) {
+      warn('Modal sheet', 'inställningsknapp saknas');
+      return;
+    }
+    if (mobileShell) {
+      await page.evaluate(() => {
+        document.querySelector('[data-customer-command="settings"]')?.click();
+      });
+      opened = true;
+    } else {
+      await settingsBtn.click();
+      opened = true;
+    }
   }
 
-  await settingsBtn.click();
+  if (!opened) return;
   await page.waitForTimeout(350);
 
   const shellOpen = await page.evaluate(() =>
