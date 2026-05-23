@@ -57,7 +57,7 @@ async function verifyStaffMobileLogin(page) {
     }
   }
   const started = Date.now();
-  await page.locator('[data-staff-login-form] button[type="submit"]').click();
+  await page.locator('[data-staff-login-form] .cco-mobile-sticky-cta-button, [data-staff-login-form] button[type="submit"]').first().click();
   await page.waitForFunction(
     () => {
       const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || sessionStorage.getItem('ARCANA_ADMIN_TOKEN');

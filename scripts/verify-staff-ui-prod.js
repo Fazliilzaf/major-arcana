@@ -79,19 +79,29 @@ async function waitForMobileShell(page, timeout = 30000) {
 }
 
 async function ensurePatientDetailLoaded(page, token, id) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     const ready = await page.evaluate(
-      () =>
+      (patientId) =>
         Boolean(
           document.querySelector('[data-patient-detail], .patient-master-camera-button, .patient-master-tab[data-patient-tab="journal"]')
-        )
+        ) &&
+        (document.documentElement.getAttribute('data-cco-patient-detail') === 'on' ||
+          document.querySelector(`[data-patient-row="${patientId}"]`)),
+      id
     );
-    if (ready) return;
+    if (ready && (await page.evaluate(() => document.documentElement.getAttribute('data-cco-patient-detail') === 'on'))) {
+      return;
+    }
     await injectToken(page, token);
     const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(id)}`;
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await waitForMobileShell(page);
-    await page.waitForTimeout(1200);
+    await page.evaluate((patientId) => {
+      const row = document.querySelector(`[data-patient-row="${patientId}"]`);
+      row?.click();
+      window.ArcanaPatientMasterUi?.setPatientTab?.('journal');
+    }, id);
+    await page.waitForTimeout(1500);
   }
 }
 
@@ -127,6 +137,11 @@ async function verifyMobileShell(page) {
 }
 
 async function verifyPatientJournal(page) {
+  await page.evaluate(() => {
+    window.ArcanaPatientMasterUi?.setPatientTab?.('journal');
+  });
+  await page.waitForTimeout(500);
+
   const journalTab = page.locator('.patient-master-tab[data-patient-tab="journal"]').first();
   if (await journalTab.count()) {
     await journalTab.click();

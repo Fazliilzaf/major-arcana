@@ -143,24 +143,28 @@
       const clone = button.cloneNode(true);
       clone.classList.add('cco-mobile-sticky-cta-button');
       if (clone.id) clone.id = `${clone.id}-sticky`;
+      if (button.type === 'submit') {
+        clone.type = 'submit';
+        button.type = 'button';
+      }
       bar.appendChild(clone);
       host.appendChild(bar);
 
       button.classList.add('cco-mobile-sticky-cta-source');
+      button.hidden = true;
       button.setAttribute('aria-hidden', 'true');
       button.tabIndex = -1;
 
       clone.addEventListener('click', (event) => {
         event.preventDefault();
-        button.classList.remove('cco-mobile-sticky-cta-source');
-        button.removeAttribute('aria-hidden');
-        button.tabIndex = 0;
-        button.click();
-        if (!button.closest('#cco-mobile-offer-wizard')) {
-          button.classList.add('cco-mobile-sticky-cta-source');
-          button.setAttribute('aria-hidden', 'true');
-          button.tabIndex = -1;
+        const form = button.closest('form');
+        if (form) {
+          form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+          return;
         }
+        button.hidden = false;
+        button.click();
+        button.hidden = true;
       });
     });
   }
