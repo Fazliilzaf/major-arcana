@@ -1431,6 +1431,99 @@
     html[data-cco-mobile-shell="on"] .patient-master-login-button {
       min-height: 44px;
     }
+
+    /* Fas G — kundlista mobil: kompakt header, hela sidan scrollar */
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .preview-canvas[data-app-shell-view="customers"]
+      .preview-workspace {
+      display: block;
+      overflow: visible !important;
+      min-height: auto;
+      margin-inline: 0;
+      padding-inline: var(--cco-mobile-gutter, 16px);
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-surface {
+      padding: 0.65rem 0 0.85rem;
+      gap: 0.65rem;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-surface::before {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head-main,
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head-actions {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      margin-bottom: 0.35rem;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .patient-master-mode-toggle {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .patient-master-mode-button {
+      min-height: 34px;
+      padding: 0 8px;
+      font-size: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-card {
+      padding: 0.55rem 0.65rem;
+      min-height: 0;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-card span {
+      font-size: 0.68rem;
+      line-height: 1.25;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-card strong {
+      font-size: 1.05rem;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-toolbar {
+      position: static;
+      top: auto;
+      z-index: auto;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-search,
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-filter {
+      min-height: 40px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-search {
+      flex: 1 1 100%;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+      overflow-y: auto !important;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      height: auto !important;
+      min-height: 100dvh;
+      padding-inline: 0;
+    }
   }
 
   /* Desktop/tablet — mobil-only chrome ska aldrig synas ≥769px */
