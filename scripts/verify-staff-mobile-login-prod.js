@@ -45,7 +45,17 @@ async function verifyStaffMobileLogin(page) {
   record('STAFF mobil login-form visas', true);
   await page.locator('[data-staff-login-form] input[name="email"]').fill(staffEmail);
   await page.locator('[data-staff-login-form] input[name="password"]').fill(staffPassword);
-  await page.locator('[data-staff-login-form] input[name="tenantId"]').fill(tenantId);
+  const tenantInput = page.locator('[data-staff-login-form] input[name="tenantId"]');
+  if (await tenantInput.isVisible()) {
+    await tenantInput.fill(tenantId);
+  } else {
+    const preset = await tenantInput.inputValue().catch(() => '');
+    if (preset !== tenantId) {
+      await tenantInput.evaluate((node, value) => {
+        node.value = value;
+      }, tenantId);
+    }
+  }
   const started = Date.now();
   await page.locator('[data-staff-login-form] button[type="submit"]').click();
   await page.waitForFunction(
