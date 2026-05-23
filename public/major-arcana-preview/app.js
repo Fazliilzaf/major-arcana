@@ -108,6 +108,7 @@
         node.scrollLeft = 0;
       });
     }
+    window.ArcanaMobileShell?.syncFromApp?.();
   }
 
   function initializeMobileWorkspaceSwitch() {
@@ -39586,6 +39587,7 @@
 
     normalizeWorkspaceState();
     syncShellViewToLocation();
+    window.ArcanaMobileShell?.syncFromApp?.();
   }
 
   function setSelectedAnalyticsPeriod(periodKey) {

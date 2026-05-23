@@ -1,5 +1,5 @@
 /* ============================================================
-   CCO Mobile Shell — phone-first app chrome (UX sweep Fas A+)
+   CCO Mobile Shell — phone-first app chrome (UX sweep Fas A–B)
    Breakpoint: max-width 768px (see design-tokens --cco-bp-phone-max)
    Loaded after cco-polish.css in @layer components.
    ============================================================ */
@@ -18,7 +18,12 @@
     body.is-preview-ready {
       padding-left: env(safe-area-inset-left, 0px);
       padding-right: env(safe-area-inset-right, 0px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html[data-cco-mobile-tabbar="on"] body.is-preview-ready {
+      padding-bottom: calc(
+        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px)
+      );
     }
 
     .preview-canvas {
@@ -34,6 +39,7 @@
       overflow-x: clip;
     }
 
+    /* B1 — compact app bar */
     .preview-topbar {
       align-items: center;
       flex-wrap: nowrap;
@@ -45,6 +51,11 @@
       row-gap: 0;
     }
 
+    html[data-cco-mobile-shell="on"] .preview-topbar-left .preview-nav,
+    html[data-cco-mobile-shell="on"] .preview-topbar-left .preview-more {
+      display: none;
+    }
+
     .preview-topbar-left {
       flex: 1 1 auto;
       align-items: center;
@@ -53,14 +64,27 @@
       width: auto;
     }
 
-    .preview-brand {
-      font-size: 18px;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-      white-space: nowrap;
+    html[data-cco-mobile-shell="on"] .preview-brand {
+      display: none;
+    }
+
+    .cco-mobile-app-title {
+      display: none;
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: min(42vw, 160px);
+      white-space: nowrap;
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--cco-text-primary, #2b251f);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-app-title:not([hidden]) {
+      display: block;
     }
 
     .preview-topbar-right {
@@ -73,10 +97,26 @@
       padding-right: 0;
     }
 
+    /* B4 — hide desktop-only topbar actions on phone */
+    html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-compose-pill,
+    html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-sprint-pill,
+    html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-utility-cluster,
+    html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-profile-pill,
+    html[data-cco-mobile-shell="on"] #cco-langpicker-root {
+      display: none;
+    }
+
     .preview-topbar-right .preview-live-pill {
       width: 40px;
       height: 40px;
       min-height: 40px;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-utility-button {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
     }
 
     .preview-title-group h1,
@@ -94,6 +134,7 @@
       letter-spacing: 0.1em;
     }
 
+    /* B3 — workspace switch */
     .mobile-workspace-switch {
       width: calc(100% - (var(--cco-mobile-gutter) * 2));
       margin: 8px var(--cco-mobile-gutter) 0;
@@ -103,6 +144,10 @@
     .preview-workspace {
       gap: 16px;
       padding-inline: var(--cco-mobile-gutter);
+    }
+
+    html[data-cco-mobile-tabbar="on"] .preview-workspace {
+      padding-bottom: 8px;
     }
 
     .preview-shell,
@@ -120,7 +165,7 @@
       font-size: 16px;
     }
 
-    /* Reserve space for Fas B bottom tab bar (hidden until wired) */
+    /* B2 — bottom tab bar */
     .cco-mobile-tabbar {
       display: none;
       position: fixed;
@@ -128,11 +173,15 @@
       right: 0;
       bottom: 0;
       z-index: var(--cco-z-sticky, 100);
+      align-items: stretch;
+      justify-content: space-around;
+      gap: 0;
       min-height: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
       padding-bottom: env(safe-area-inset-bottom, 0px);
-      padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+      padding-inline: max(env(safe-area-inset-left, 0px), 4px)
+        max(env(safe-area-inset-right, 0px), 4px);
       border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
-      background: color-mix(in srgb, var(--cco-bg-surface, #fff) 92%, transparent);
+      background: color-mix(in srgb, var(--cco-bg-surface, #fff) 94%, transparent);
       backdrop-filter: blur(16px) saturate(1.08);
     }
 
@@ -140,10 +189,148 @@
       display: flex;
     }
 
-    html[data-cco-mobile-tabbar="on"] body.is-preview-ready {
-      padding-bottom: calc(
-        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px)
-      );
+    .cco-mobile-tabbar-item {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-width: 0;
+      min-height: var(--cco-mobile-tabbar-h, 56px);
+      padding: 6px 4px 4px;
+      border: 0;
+      background: transparent;
+      color: var(--cco-text-tertiary, #8a8174);
+      font: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cco-mobile-tabbar-item.is-active {
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    .cco-mobile-tabbar-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+    }
+
+    .cco-mobile-tabbar-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .cco-mobile-tabbar-label {
+      font-size: 11px;
+      line-height: 1.1;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    /* B2.4 — Mer bottom sheet */
+    .cco-mobile-more-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: calc(var(--cco-z-modal, 10000) - 1);
+      display: grid;
+      place-items: end center;
+      pointer-events: none;
+    }
+
+    .cco-mobile-more-sheet[hidden] {
+      display: none;
+    }
+
+    html[data-cco-mobile-more-open="on"] .cco-mobile-more-sheet {
+      pointer-events: auto;
+    }
+
+    .cco-mobile-more-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      margin: 0;
+      padding: 0;
+      background: rgba(15, 23, 42, 0.42);
+      cursor: pointer;
+    }
+
+    .cco-mobile-more-panel {
+      position: relative;
+      width: min(100%, 480px);
+      max-height: min(72vh, 520px);
+      margin: 0;
+      padding: 0 0 calc(12px + env(safe-area-inset-bottom, 0px));
+      border-radius: 16px 16px 0 0;
+      background: var(--cco-bg-surface, #fff);
+      box-shadow: var(--cco-shadow-xl);
+      overflow: auto;
+      transform: translateY(100%);
+      transition: transform 220ms var(--cco-ease-out, ease-out);
+    }
+
+    html[data-cco-mobile-more-open="on"] .cco-mobile-more-panel {
+      transform: translateY(0);
+    }
+
+    .cco-mobile-more-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px var(--cco-mobile-gutter, 16px) 10px;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    .cco-mobile-more-head h2 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .cco-mobile-more-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: inherit;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .cco-mobile-more-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px var(--cco-mobile-gutter, 16px) 0;
+    }
+
+    .cco-mobile-more-item {
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 15px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .cco-mobile-more-item.is-active,
+    .cco-mobile-more-item:active {
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
     }
   }
 }
