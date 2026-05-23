@@ -21,7 +21,7 @@ pass() { echo "✅ $1"; }
 fail() { echo "❌ $1"; FAIL=1; }
 
 section "Unit — mobile UX sweep assets"
-npm test -- tests/ops/ccoMobileUxSweep.test.js >/dev/null && pass "ccoMobileUxSweep.test.js" || fail "ccoMobileUxSweep.test.js"
+node --test tests/ops/ccoMobileUxSweep.test.js >/dev/null && pass "ccoMobileUxSweep.test.js" || fail "ccoMobileUxSweep.test.js"
 
 section "Prod — mobil login + UI"
 npm run verify:staff-mobile-login-prod && pass "verify:staff-mobile-login-prod" || fail "verify:staff-mobile-login-prod"
