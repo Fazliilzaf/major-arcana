@@ -962,6 +962,18 @@
         if (runtime.authRequired === true) {
           return { pillMode: "auth", threadCount: 0, isLive: false };
         }
+        if (runtime.staleCacheActive === true || runtime.backgroundSyncActive === true) {
+          const syncingThreads = Array.isArray(runtime.threads)
+            ? runtime.threads.filter(
+                (thread) => __normalizeKey(thread?.worklistSource || "") !== "demo"
+              )
+            : [];
+          return {
+            pillMode: "sync",
+            threadCount: syncingThreads.length,
+            isLive: syncingThreads.length > 0,
+          };
+        }
         const liveThreads = Array.isArray(runtime.threads)
           ? runtime.threads.filter(
               (thread) => __normalizeKey(thread?.worklistSource || "") !== "demo"
@@ -1009,21 +1021,26 @@
     const newLabel =
       pillMode === "auth"
         ? "Session krävs"
-        : pillMode === "live"
-          ? `Live · ${threadCount}`
-          : "Demo";
-    const newDemoClass = pillMode !== "live";
+        : pillMode === "sync"
+          ? "Synkar…"
+          : pillMode === "live"
+            ? `Live · ${threadCount}`
+            : "Demo";
+    const newDemoClass = pillMode !== "live" && pillMode !== "sync";
     const sig = `${newLabel}|${newDemoClass}|${pillMode}`;
     if (sig === __lastPillSig) return;
     __lastPillSig = sig;
     labelEl.textContent = newLabel;
     pill.classList.toggle("preview-live-pill--demo", newDemoClass);
+    pill.classList.toggle("preview-live-pill--sync", pillMode === "sync");
     pill.title =
       pillMode === "auth"
         ? "Logga in i admin för att läsa aktiv kö och mejlkontostatus"
-        : pillMode === "live"
-          ? `Live-data — ${threadCount} tråd${threadCount === 1 ? "" : "ar"} i kö`
-          : "Demo-läge — logga in i admin för att hämta live-data";
+        : pillMode === "sync"
+          ? "Uppdaterar inkorgen i bakgrunden"
+          : pillMode === "live"
+            ? `Live-data — ${threadCount} tråd${threadCount === 1 ? "" : "ar"} i kö`
+            : "Demo-läge — logga in i admin för att hämta live-data";
   }
 
   if (typeof document !== "undefined") {

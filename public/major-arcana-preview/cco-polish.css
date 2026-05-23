@@ -3460,6 +3460,28 @@ body.is-admin-embed .focus-conversation {
   opacity: 1;
 }
 
+.preview-live-pill--sync {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(59, 130, 246, 0.12));
+  color: #3b4cc0;
+  border-color: rgba(99, 102, 241, 0.28);
+}
+
+.preview-live-pill--sync .preview-live-pill-dot {
+  animation: cco-mail-sync-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes cco-mail-sync-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Fas 2 — Kundregister (patient master) */
 .patient-master-mode-toggle {
   display: inline-flex;
