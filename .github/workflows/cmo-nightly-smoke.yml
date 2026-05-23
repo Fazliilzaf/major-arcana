@@ -1,0 +1,34 @@
+name: cmo-nightly-smoke
+
+on:
+  schedule:
+    - cron: "15 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cmo-staging-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ARCANA_AI_PROVIDER: fallback
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: CMO staging smoke (in-process)
+        run: npm run smoke:cmo-staging
+
+      - name: CMO sandbox publish E2E (ephemeral server)
+        run: npm run demo:cmo-sandbox-publish:e2e

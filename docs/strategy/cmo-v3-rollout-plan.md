@@ -75,7 +75,7 @@ npm run test:mutation:cmo                   # valfritt pre-push; ~16 min, ≥65%
 
 #### N3 — Push & CI
 
-- [ ] Push till feature branch **eller** `main` (efter teambeslut)
+- [x] Push till feature branch **eller** `main` (efter teambeslut)
 - [ ] Verifiera GitHub Actions:
       | Jobb | Förväntat |
       |------|-----------|
@@ -84,10 +84,12 @@ npm run test:mutation:cmo                   # valfritt pre-push; ~16 min, ≥65%
 - [ ] Ladda ner mutation HTML-artifact från CI och jämför score med lokal baseline (~66%)
 - [ ] Om `cmo-mutation` failar: felsök timeout (45 min), `inPlace`, iCloud-sökväg vs CI Linux
 
+**Status 2026-05-23:** `arcana-ci` smoke grön på `2950554`; `cmo-mutation` körs (~45–60 min). `arcana-drift-gate` failar på prod-login (MFA) — **ej Fas N-blocker** (prod medvetet av).
+
 #### N4 — Acceptans (Fas N)
 
-- [ ] Alla CMO-relaterade commits på remote
-- [ ] CI grön på merge-commit
+- [x] Alla CMO-relaterade commits på remote
+- [ ] CI grön på merge-commit (`cmo-mutation` pending)
 - [x] Runbook + implementationsplan refererar denna rollout-plan
 - [x] Ingen Stryker-instrumenterad källkod kvar i `src/`
 
@@ -205,11 +207,11 @@ v3.2 (Fas R)    →  kvalitet, UI, mutation ≥70%
 
 | #   | Leverans                       | Beskrivning                                                 |
 | --- | ------------------------------ | ----------------------------------------------------------- | --------------------------- |
-| Q1  | Tenant-scoped connector config | Per-tenant ad account ids i tenant store (ej bara env)      |
-| Q2  | Health job                     | Schemalagd `cmo_connector_health_check` → feed vid fel      |
-| Q3  | Mail/CRM connector             | Read-only (Mailchimp/Sendgrid metrics) eller webhook ingest |
-| Q4  | Rate limit & cache             | TTL-cache för metrics; respektera API quotas                |
-| Q5  | Admin UI                       | Connectors-flik: status, senaste fetch, manuell refresh     | **Q-lite klar (read-only)** |
+| Q1  | Tenant-scoped connector config | Per-tenant ad account ids i tenant store (ej bara env)      | **PATCH `/tenant-config` + `marketing.connectors`** |
+| Q2  | Health job                     | Schemalagd `cmo_connector_health_check` → feed vid fel      | **All-tenant loop i scheduler** |
+| Q3  | Mail/CRM connector             | Read-only (Mailchimp/Sendgrid metrics) eller webhook ingest | **Generic mail adapter (fixture/live HTTP)** |
+| Q4  | Rate limit & cache             | TTL-cache för metrics; respektera API quotas                | **TTL cache klar; API quota backoff återstår** |
+| Q5  | Admin UI                       | Connectors-flik: status, senaste fetch, manuell refresh     | **Q-lite klar (read-only + force refresh)** |
 
 **Acceptans:** Multi-tenant staging med två tenants och separata ad accounts; health alert triggas vid invalid token.
 
@@ -221,11 +223,11 @@ v3.2 (Fas R)    →  kvalitet, UI, mutation ≥70%
 
 | #   | Leverans            | Beskrivning                                                                        |
 | --- | ------------------- | ---------------------------------------------------------------------------------- |
-| R1  | Mutation ≥70%       | Prioritet: `cmoMarketingMetrics`, `cmoContentAgent`, `marketingContentAssetsStore` |
-| R2  | E2E prod-smoke      | `smoke:cmo-staging` i CI mot ephemeral env (nightly)                               |
-| R3  | Organisk tillväxt   | Serie/kampanjsekvenser (`GenerateContentSeries` capability)                        |
-| R4  | Product & trust     | Security/trust content templates i content brief                                   |
-| R5  | Asset governance v2 | Content asset diff/history i UI                                                    |
+| R1  | Mutation ≥70%       | Prioritet: `cmoMarketingMetrics`, `cmoContentAgent`, `marketingContentAssetsStore` | **CI threshold 65%; `generateContentSeries` + publish i mutate scope** |
+| R2  | E2E prod-smoke      | `smoke:cmo-staging` i CI mot ephemeral env (nightly)                               | **`cmo-nightly-smoke.yml` (staging + sandbox E2E)** |
+| R3  | Organisk tillväxt   | Serie/kampanjsekvenser (`GenerateContentSeries` capability)                        | **Capability + copilot metadata; compose wiring återstår** |
+| R4  | Product & trust     | Security/trust content templates i content brief                                   | **trust_template topics i brief + test** |
+| R5  | Asset governance v2 | Content asset diff/history i UI                                                    | **Read-only asset-lista i Content-fliken** |
 
 **Acceptans:** Mutation high-tröskel 70% i CI; nightly smoke grön 7 dagar i rad.
 

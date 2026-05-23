@@ -3254,9 +3254,9 @@ function createScheduler({
   }
 
   async function runCmoConnectorHealthCheckJob({ tenantId, trigger, actorUserId } = {}) {
-    const { runCmoConnectorHealthCheck } = require('./cmoSchedulerJobs');
-    return runCmoConnectorHealthCheck({
-      tenantId: tenantId || config.defaultTenantId,
+    const { runCmoConnectorHealthCheckAllTenants } = require('./cmoSchedulerJobs');
+    return runCmoConnectorHealthCheckAllTenants({
+      tenantIds: tenantId ? [tenantId] : null,
       trigger,
       actorUserId,
       config,

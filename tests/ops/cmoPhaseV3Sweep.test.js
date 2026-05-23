@@ -14,8 +14,13 @@ const {
   fetchChannelMetrics,
 } = require('../../src/ops/cmoMarketingConnectors');
 const { resolveLiveAdapter, canFetchMail } = require('../../src/ops/cmoMarketingConnectorAdapters');
-const { runCmoConnectorHealthCheck, CMO_SCHEDULER_JOB_IDS } = require('../../src/ops/cmoSchedulerJobs');
+const { runCmoConnectorHealthCheck, runCmoConnectorHealthCheckAllTenants, CMO_SCHEDULER_JOB_IDS } = require('../../src/ops/cmoSchedulerJobs');
 const { GenerateContentSeriesCapability, TRUST_SERIES_THEMES } = require('../../src/capabilities/generateContentSeries');
+const { GenerateContentBriefCapability } = require('../../src/capabilities/generateContentBrief');
+const { createTenantConfigStore } = require('../../src/tenant/configStore');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
 
 test('CMO scheduler includes connector health check job', () => {
   assert.ok(CMO_SCHEDULER_JOB_IDS.includes('cmo_connector_health_check'));
@@ -185,6 +190,50 @@ test('GenerateContentSeriesCapability returns trust-themed episodes', async () =
   assert.equal(output.data.episodeCount, 3);
   assert.equal(output.data.autoPublish, false);
   assert.ok(TRUST_SERIES_THEMES.length >= 3);
+});
+
+test('runCmoConnectorHealthCheckAllTenants checks each active tenant', async () => {
+  clearConnectorMetricsCache();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cmo-health-tenants-'));
+  const tenantConfigStore = await createTenantConfigStore({
+    filePath: path.join(tempDir, 'tenant-config.json'),
+    defaultBrand: 'Arcana',
+  });
+  await tenantConfigStore.getTenantConfig('tenant-a');
+  await tenantConfigStore.getTenantConfig('tenant-b');
+
+  const result = await runCmoConnectorHealthCheckAllTenants({
+    config: {
+      marketingConnectorsEnabled: true,
+      marketingConnectorsMode: 'fixture',
+      marketingConnectors: {
+        google_ads: { enabled: true, mode: 'fixture' },
+        meta: { enabled: true, mode: 'fixture' },
+        linkedin: { enabled: true, mode: 'fixture' },
+        mail: { enabled: true, mode: 'fixture' },
+      },
+    },
+    tenantConfigStore,
+  });
+
+  assert.equal(result.tenantsChecked, 2);
+  assert.deepEqual(result.tenantIds.sort(), ['tenant-a', 'tenant-b']);
+  assert.equal(result.results.length, 2);
+  assert.equal(result.results.every((entry) => entry.total >= 1), true);
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+test('GenerateContentBriefCapability includes trust_template topics', async () => {
+  const capability = new GenerateContentBriefCapability();
+  const output = await capability.execute({
+    input: { maxTopics: 8 },
+    systemStateSnapshot: {
+      templates: [],
+      tenantConfig: { brandProfile: 'Hair TP Clinic' },
+    },
+  });
+  const sources = output.data.topics.map((topic) => topic.source);
+  assert.ok(sources.includes('trust_template'));
 });
 
 test('resolvePublishLiveEnabled respects config flag', () => {

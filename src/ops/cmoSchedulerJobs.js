@@ -446,9 +446,58 @@ async function runCmoConnectorHealthCheck({
   };
 }
 
+async function runCmoConnectorHealthCheckAllTenants({
+  tenantIds = null,
+  trigger = 'scheduled',
+  config = null,
+  tenantConfigStore = null,
+  executiveDecisionFeed = null,
+  sendAlertNotification = null,
+  minNotifyRiskLevel = 'L3',
+} = {}) {
+  let ids = Array.isArray(tenantIds)
+    ? tenantIds.map((id) => String(id || '').trim()).filter(Boolean)
+    : null;
+
+  if ((!ids || !ids.length) && tenantConfigStore && typeof tenantConfigStore.listTenants === 'function') {
+    const tenants = await tenantConfigStore.listTenants();
+    ids = tenants.filter((tenant) => tenant && tenant.disabled !== true).map((tenant) => tenant.tenantId);
+  }
+
+  if (!ids || !ids.length) {
+    ids = [String(config?.defaultTenantId || 'default').trim() || 'default'];
+  }
+
+  const results = [];
+  let totalErrorCount = 0;
+  for (const tenantId of ids) {
+    const result = await runCmoConnectorHealthCheck({
+      tenantId,
+      trigger,
+      config,
+      tenantConfigStore,
+      executiveDecisionFeed,
+      sendAlertNotification,
+      minNotifyRiskLevel,
+    });
+    results.push(result);
+    totalErrorCount += Number(result.errorCount || 0);
+  }
+
+  return {
+    trigger,
+    tenantsChecked: ids.length,
+    tenantIds: ids,
+    totalErrorCount,
+    results,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
 module.exports = {
   CMO_SCHEDULER_JOB_IDS,
   runCmoWeeklyContentPlan,
   runCmoPilotPublishDue,
   runCmoConnectorHealthCheck,
+  runCmoConnectorHealthCheckAllTenants,
 };

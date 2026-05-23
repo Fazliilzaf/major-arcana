@@ -22,6 +22,18 @@ function normalizeText(value) {
   return value.trim();
 }
 
+const MARKETING_CONNECTOR_CHANNELS = Object.freeze([
+  'google_ads',
+  'meta',
+  'linkedin',
+  'mail',
+]);
+const MARKETING_CONNECTOR_PATCH_FIELDS = Object.freeze([
+  'adAccountId',
+  'customerId',
+  'enabled',
+]);
+
 function cloneMarketingConfig(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return { connectors: {} };
@@ -31,6 +43,65 @@ function cloneMarketingConfig(value) {
   } catch {
     return { connectors: {} };
   }
+}
+
+function normalizeMarketingConnectorField(field, value) {
+  if (field === 'enabled') {
+    return value === true;
+  }
+  const text = normalizeText(value);
+  if (!text) return '';
+  if (text.length > 120) {
+    throw new Error(`${field} är för långt (max 120).`);
+  }
+  return text;
+}
+
+function normalizeMarketingConnectors(value, { fallback = { connectors: {} }, strict = true } = {}) {
+  const base = cloneMarketingConfig(fallback);
+  if (value === undefined || value === null) return base;
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    if (strict) throw new Error('marketing måste vara ett objekt.');
+    return base;
+  }
+
+  const inputConnectors = value.connectors || value.marketingConnectors;
+  if (inputConnectors === undefined) {
+    return base;
+  }
+  if (typeof inputConnectors !== 'object' || Array.isArray(inputConnectors)) {
+    if (strict) throw new Error('marketing.connectors måste vara ett objekt.');
+    return base;
+  }
+
+  const outputConnectors = { ...asPlainObject(base.connectors) };
+  for (const channel of MARKETING_CONNECTOR_CHANNELS) {
+    if (!Object.prototype.hasOwnProperty.call(inputConnectors, channel)) continue;
+    const channelInput = asPlainObject(inputConnectors[channel]);
+    const channelOutput = { ...asPlainObject(outputConnectors[channel]) };
+    for (const field of MARKETING_CONNECTOR_PATCH_FIELDS) {
+      if (!Object.prototype.hasOwnProperty.call(channelInput, field)) continue;
+      const nextValue = normalizeMarketingConnectorField(field, channelInput[field]);
+      if (field === 'enabled') {
+        channelOutput.enabled = nextValue;
+      } else if (nextValue) {
+        channelOutput[field] = nextValue;
+      } else {
+        delete channelOutput[field];
+      }
+    }
+    if (Object.keys(channelOutput).length) {
+      outputConnectors[channel] = channelOutput;
+    } else {
+      delete outputConnectors[channel];
+    }
+  }
+
+  return { connectors: outputConnectors };
+}
+
+function asPlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
 function normalizeRiskModifier(value) {
@@ -757,6 +828,17 @@ async function createTenantConfigStore({
       });
       if (JSON.stringify(rawConfig.publicSite) !== JSON.stringify(nextValue)) {
         rawConfig.publicSite = nextValue;
+        changed = true;
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(patch, 'marketing')) {
+      const nextValue = normalizeMarketingConnectors(patch.marketing, {
+        fallback: rawConfig.marketing,
+        strict: true,
+      });
+      if (JSON.stringify(rawConfig.marketing) !== JSON.stringify(nextValue)) {
+        rawConfig.marketing = nextValue;
         changed = true;
       }
     }

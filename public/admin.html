@@ -4407,6 +4407,20 @@
                 class="code-block"
                 style="white-space: pre-wrap; font-size: 12px; max-height: 120px; overflow: auto"
               ></div>
+              <h3 style="margin-top: 14px">Content assets (read-only)</h3>
+              <div class="muted mini" style="margin-bottom: 8px">
+                Versioner och historik från marketing content store — ingen auto-publicering.
+              </div>
+              <div
+                class="seg glass-toolbar"
+                style="flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center"
+              >
+                <button type="button" id="cmoContentAssetsRefreshBtn" class="btn small primary">
+                  Uppdatera assets
+                </button>
+                <span id="cmoContentAssetsStatus" class="muted mini"></span>
+              </div>
+              <div id="cmoContentAssetsList" class="code-block" style="font-size: 12px"></div>
             </div>
           </div>
 
@@ -5285,6 +5299,7 @@ const BOOKING_STATUSES = Object.freeze([
     <script src="/admin/cmo-copilot.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/cmo-tabs.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/cmo-workspace.js?v=__ARCANA_UI_BUILD__"></script>
+    <script src="/admin/cmo-content-assets.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/cmo-analytics.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/cmo-connectors.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/executive-feed.js?v=__ARCANA_UI_BUILD__"></script>
