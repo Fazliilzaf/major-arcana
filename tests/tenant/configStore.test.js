@@ -129,3 +129,25 @@ test('updateTenantConfig clamps riskSensitivityModifier to -10..10', async (t) =
   });
   assert.equal(low.riskSensitivityModifier, -10);
 });
+
+test('updateTenantConfig patches marketing.connectors per channel', async (t) => {
+  const { store } = await makeStore(t);
+  await store.getTenantConfig('tenant-marketing');
+
+  const updated = await store.updateTenantConfig({
+    tenantId: 'tenant-marketing',
+    patch: {
+      marketing: {
+        connectors: {
+          linkedin: { adAccountId: 'tenant-li-99' },
+          meta: { adAccountId: 'tenant-meta-1', enabled: true },
+        },
+      },
+    },
+  });
+
+  assert.equal(updated.marketing.connectors.linkedin.adAccountId, 'tenant-li-99');
+  assert.equal(updated.marketing.connectors.meta.adAccountId, 'tenant-meta-1');
+  assert.equal(updated.marketing.connectors.meta.enabled, true);
+  assert.equal(updated.marketing.connectors.google_ads, undefined);
+});

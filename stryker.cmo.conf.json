@@ -10,10 +10,12 @@
     "src/ops/cmoComplianceGate.js",
     "src/ops/cmoMarketingMetrics.js",
     "src/ops/cmoPublishPolicy.js",
+    "src/ops/cmoPublishConnectors.js",
     "src/ops/marketingCampaignDraftsStore.js",
     "src/ops/marketingContentAssetsStore.js",
     "src/agents/cmoContentAgent.js",
-    "src/agents/cmoCopilotComposeHelpers.js"
+    "src/agents/cmoCopilotComposeHelpers.js",
+    "src/capabilities/generateContentSeries.js"
   ],
   "thresholds": {
     "high": 65,

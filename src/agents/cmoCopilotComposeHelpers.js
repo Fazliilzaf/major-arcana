@@ -25,6 +25,7 @@ const CMO_COPILOT_METADATA_SOURCES = Object.freeze([
   'ReviewMarketingCompliance',
   'ProposeContentCalendar',
   'ProposePublishSchedule',
+  'GenerateContentSeries',
   'GenerateUtmPack',
   'ValidateMarketingTracking',
   'GenerateSalesEnablementPack',
