@@ -3055,7 +3055,13 @@
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10),
     });
-    window.__getRenderStats = () => ({ ...__renderStats });
+    window.__getRenderStats = () => ({
+      ...__renderStats,
+      bootstrapCacheHits: Number(asyncRuntimeRefs.bootstrapCacheHits || 0),
+      bootstrapLastScope: asText(asyncRuntimeRefs.bootstrapLastScope),
+      bootstrapLastDurationMs: Number(asyncRuntimeRefs.bootstrapLastDurationMs || 0),
+      bootstrapNetworkLoads: Number(asyncRuntimeRefs.bootstrapNetworkLoads || 0),
+    });
     window.__scheduleRuntimeConversationShell = scheduleRuntimeConversationShell;
     window.__renderApp = () => {
       __doRender();
@@ -3093,6 +3099,14 @@
 
   const asyncRuntimeRefs = {
     bootstrapPromise: null,
+    bootstrapCacheKey: "",
+    bootstrapCachePayload: null,
+    bootstrapCacheFetchedAt: 0,
+    bootstrapCacheHits: 0,
+    bootstrapLastScope: "",
+    bootstrapLastDurationMs: 0,
+    bootstrapNetworkLoads: 0,
+    ensureSelectedRuntimeThreadHistoryBody: null,
     persistPrefsTimer: null,
   };
   let activeResizeCleanup = null;
@@ -13388,6 +13402,7 @@
       normalizeKey,
       normalizeText,
       runtimeConversationIdsMatch,
+      runtimeThreadHistoryBodyRef: asyncRuntimeRefs,
       renderStudioContextAiList,
       renderStudioContextHistoryList,
       renderStudioContextPreferencesList,
@@ -13701,6 +13716,7 @@
       ensureStudioState,
       formatDueLabel,
       getActiveNoteDraft,
+      getActiveWorkspaceContext,
       getAdminToken,
       getRuntimeCustomerEmail,
       getRuntimeMailboxCapability,
@@ -13801,6 +13817,7 @@
 
   const {
     bindWorkspaceInteractions,
+    ensureSelectedRuntimeThreadHistoryBody,
     handleWorkspaceDocumentClick,
     handleWorkspaceDocumentKeydown,
     initializeWorkspaceSurface,
@@ -13956,6 +13973,7 @@
       isTruthPrimaryFocusFeatureEnabled,
       isTruthPrimaryStudioFeatureEnabled,
       loadBootstrap,
+      loadBookingCaseList,
       loadQueueHistory,
       normalizeCustomMailboxDefinition,
       normalizeKey,
@@ -14025,6 +14043,11 @@
     state,
     windowObject: window,
   });
+
+  asyncRuntimeRefs.ensureSelectedRuntimeThreadHistoryBody = ensureSelectedRuntimeThreadHistoryBody;
+  if (typeof window !== "undefined") {
+    window.ensureSelectedRuntimeThreadHistoryBody = ensureSelectedRuntimeThreadHistoryBody;
+  }
 
   function normalizeCustomMailboxDefinition(mailbox, index = 0) {
     if (!mailbox || typeof mailbox !== "object") return null;
@@ -15363,8 +15386,9 @@
       };
     }
     const bookingThread = getBookingWorkThread();
-    if (bookingThread && isBookingRuntimeThread(bookingThread)) {
-      const customerId = getRuntimeCustomerEmail(bookingThread) || asText(bookingThread.customerEmail || bookingThread.id);
+    if (bookingThread && asText(bookingThread.id)) {
+      const customerId =
+        getRuntimeCustomerEmail(bookingThread) || asText(bookingThread.customerEmail || bookingThread.id);
       return {
         workspaceId: WORKSPACE_ID,
         conversationId: asText(bookingThread.id),
@@ -15430,6 +15454,7 @@
       preserveActiveDestination: true,
       applyWorkspacePrefs: false,
       quiet: true,
+      forceReload: true,
     }).catch((error) => {
       console.warn(`CCO workspace bootstrap misslyckades efter ${reason}.`, error);
     });
@@ -31113,9 +31138,24 @@
 
   const BOOKING_CASE_SORTS = Object.freeze([
     { sort: "recent", label: "Senast" },
+    { sort: "web_leads", label: "Webb-bokningar" },
     { sort: "blocked", label: "Mest blockerad" },
     { sort: "audit_needed", label: "Logg behövs" },
   ]);
+
+  function isWebLeadBookingCase(bookingCase = {}) {
+    if (!bookingCase || typeof bookingCase !== "object") return false;
+    if (normalizeKey(bookingCase.workspaceId) === "web-public") return true;
+    const conversationId = asText(bookingCase.conversationId);
+    if (conversationId.startsWith("web-")) return true;
+    return asArray(bookingCase.events).some(
+      (event) => normalizeKey(event?.type) === "web_public_reservation"
+    );
+  }
+
+  function countWebLeadBookingCases(cases = state.booking.caseList) {
+    return asArray(cases).filter((bookingCase) => isWebLeadBookingCase(bookingCase)).length;
+  }
 
   function renderBookingStatusFlow(bookingDom, readout = {}) {
     if (!bookingDom.statusFlow) return;
@@ -31158,6 +31198,11 @@
         bookingDom.statusFilterNote.textContent = remainingCount
           ? `Loggkö: ${remainingCount} kvar. Filter: ${activeLabel}. Öppna nästa ärende och kopiera loggen för att gå vidare.`
           : `Loggkö: klar. Filter: ${activeLabel}. Alla synliga bokningsärenden har aktuell intern logg.`;
+      } else if (activeSort === "web_leads") {
+        const webCount = countWebLeadBookingCases();
+        bookingDom.statusFilterNote.textContent = webCount
+          ? `Webb-bokningar: ${webCount} ärenden från hairtpclinic.com. Klicka ett ärende — mejltråd krävs inte.`
+          : "Inga webb-bokningar i listan just nu. Nya bokningar från /boka visas här.";
       } else {
         bookingDom.statusFilterNote.textContent = matches
           ? `Filter: ${activeLabel}. Sortering: ${sortLabel}. Denna bokning ligger i ${formatBookingStatus(activeStatus)}.`
@@ -31213,6 +31258,9 @@
     const activeSort = normalizeKey(state.booking?.caseSort || "recent") || "recent";
     const sorted = asArray(cases)
       .filter((bookingCase) => {
+        if (activeSort === "web_leads") {
+          return isWebLeadBookingCase(bookingCase);
+        }
         if (activeSort !== "audit_needed") return true;
         return getBookingAuditExportState(bookingCase).tone !== "current";
       })
@@ -31260,6 +31308,8 @@
       bookingDom.caseList.innerHTML =
         activeSort === "audit_needed"
           ? `<li class="booking-case-list-empty booking-case-list-done"><strong>Loggkö klar</strong><span>Alla synliga bokningsärenden har en aktuell intern logg.</span></li>`
+          : activeSort === "web_leads"
+          ? `<li class="booking-case-list-empty"><strong>Inga webb-bokningar</strong><span>Nya bokningar från hairtpclinic.com visas här — inte i vänsterkolumnens Bokning-filter.</span></li>`
           : `<li class="booking-case-list-empty"><strong>Inga ärenden i filtret</strong><span>Byt statusfilter, sortering eller skapa ett bokningscase från en tråd.</span></li>`;
       renderBookingAuditNextCaseControl(bookingDom);
       return;
@@ -31278,11 +31328,12 @@
       const nextActionLabel =
         asText(blocker?.nextActionLabel) || asText(nextAction.label).replace(/^Nästa:\s*/i, "");
       const auditExportState = getBookingAuditExportState(bookingCase);
-      return `<li class="booking-case-list-item${isActive ? " is-active" : ""}">
+      const isWebLead = isWebLeadBookingCase(bookingCase);
+      return `<li class="booking-case-list-item${isActive ? " is-active" : ""}${isWebLead ? " is-web-lead" : ""}">
         <button class="booking-case-list-main" type="button" data-booking-case-id="${escapeHtml(caseId)}">
-          <strong>${escapeHtml(asText(bookingCase.customerName || bookingCase.customerEmail, "Bokningskund"))}</strong>
+          <strong>${escapeHtml(asText(bookingCase.customerName || bookingCase.customerEmail, "Bokningskund"))}</strong>${isWebLead ? '<span class="booking-case-web-badge">Webb</span>' : ""}
           <span>${escapeHtml(formatBookingStatus(bookingCase.status))} · ${slotCount} tider · ${escapeHtml(formatBookingEventTime(bookingCase.updatedAt || latestEvent?.createdAt))}</span>
-          <p>${escapeHtml(formatBookingVisibleLogText(latestEvent?.label || bookingCase.requestedTreatment, "Bokningsärende"))}</p>
+          <p>${escapeHtml(formatBookingVisibleLogText(latestEvent?.label || bookingCase.requestedTreatment, isWebLead ? "Webb-bokning skapad" : "Bokningsärende"))}</p>
           <span class="booking-case-signal-row">
             <small class="booking-case-blocker" data-tone="${escapeHtml(blockerTone)}">${escapeHtml(blockerLabel)} · ${escapeHtml(nextActionLabel)}</small>
             <small class="booking-case-audit-state" data-tone="${escapeHtml(auditExportState.tone)}">${escapeHtml(auditExportState.label)}</small>
@@ -31291,7 +31342,7 @@
         ${
           runtimeThread
             ? `<button class="booking-case-list-thread" type="button" data-booking-open-thread-case-id="${escapeHtml(caseId)}">Öppna tråd</button>`
-            : `<span class="booking-case-list-thread booking-case-list-thread-muted">Ingen aktiv tråd</span>`
+            : `<span class="booking-case-list-thread booking-case-list-thread-muted">${isWebLead ? "Ingen mejltråd" : "Ingen aktiv tråd"}</span>`
         }
       </li>`;
     }).join("");
@@ -31321,7 +31372,21 @@
       recommendedActionState: bookingCase.recommendedActionState || "",
       recommendedActionReason: bookingCase.recommendedActionReason || "",
     };
+    state.runtime.bookingShellOpen = true;
+    setBookingOpen(true);
+    const workThread = buildBookingThreadFromCase(bookingCase);
+    if (workThread) {
+      ensureBookingRuntimeContext(workThread);
+    }
     renderBookingSurface();
+    loadBootstrap({
+      preserveActiveDestination: true,
+      applyWorkspacePrefs: false,
+      quiet: true,
+      forceReload: true,
+    }).catch((error) => {
+      console.warn("CCO workspace bootstrap misslyckades efter valt bokningsärende.", error);
+    });
     if (options.scrollToAudit) {
       getBookingDom().auditPreview?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -36630,12 +36695,13 @@
     }
     const userRequestedBookingOpen = state.runtime?.bookingShellOpen === true;
     const isBooking =
-      Boolean(focusThread) &&
+      Boolean(thread) &&
       state.runtime?.authRequired !== true &&
       state.runtime?.loading !== true &&
       (userRequestedBookingOpen ||
         threadHasBookingCase(thread) ||
-        hasBookingSurfaceCue(thread));
+        hasBookingSurfaceCue(thread) ||
+        Boolean(asText(state.booking?.focusCaseId)));
     if (focusConversationLayout) {
       focusConversationLayout.classList.remove("is-booking-workspace");
     }
@@ -37421,9 +37487,12 @@
     try {
       const activeFilter = normalizeKey(state.booking.statusFilter || "all") || "all";
       const activeSort = normalizeKey(state.booking.caseSort || "recent") || "recent";
-      const params = new URLSearchParams({ limit: ["blocked", "audit_needed"].includes(activeSort) ? "24" : "8" });
+      const params = new URLSearchParams({
+        limit: ["blocked", "audit_needed", "web_leads"].includes(activeSort) ? "24" : "12",
+      });
       if (activeFilter && activeFilter !== "all") params.set("status", activeFilter);
       if (activeSort === "blocked") params.set("sort", "blocked");
+      if (activeSort === "web_leads") params.set("source", "web");
       const payload = await apiRequest(`/api/v1/cco-bookings/cases?${params.toString()}`);
       state.booking.caseList = asArray(payload.cases);
       state.booking.caseListLoaded = true;
@@ -41955,12 +42024,19 @@
     setAutomationCanvasScale(100);
     setAutomationRailCollapsed(false);
     renderAutomationTestingState();
-    renderAutomationVersions();
-    renderAutomationSuggestions();
+    const scheduleDeferredAuxShellRenders = () => {
+      renderAutomationVersions();
+      renderAutomationSuggestions();
+      renderIntegrations();
+      renderMacros();
+      renderSettings();
+    };
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(scheduleDeferredAuxShellRenders, { timeout: 2000 });
+    } else {
+      setTimeout(scheduleDeferredAuxShellRenders, 0);
+    }
     setAutomationSubnav("Byggare");
-    renderIntegrations();
-    renderMacros();
-    renderSettings();
     setSelectedShowcaseFeature("command_palette");
     applyCustomerFilters();
     setCustomerSuggestionsHidden(false);

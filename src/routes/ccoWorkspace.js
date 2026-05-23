@@ -760,6 +760,8 @@ function createCcoWorkspaceRouter({
     try {
       const context = await getRequestContext(req);
       const hasLiveContext = hasWorkspaceConversationContext(context);
+      const bootstrapScope = normalizeKey(req.query.scope) === 'light' ? 'light' : 'full';
+      const isLightBootstrap = bootstrapScope === 'light';
       const [
         savedNotes,
         latestFollowUp,
@@ -801,7 +803,7 @@ function createCcoWorkspaceRouter({
               customerId: context.customerId,
             })
           : Promise.resolve(null),
-        aftercareStore && typeof aftercareStore.listCases === 'function'
+        aftercareStore && typeof aftercareStore.listCases === 'function' && !isLightBootstrap
           ? aftercareStore.listCases({
               tenantId: context.tenantId,
               workspaceId: context.workspaceId,
@@ -830,73 +832,71 @@ function createCcoWorkspaceRouter({
           userId: context.userId,
           workspaceId: context.workspaceId,
         }),
-        hasLiveContext && portalStore && typeof portalStore.getTenantPortalOverview === 'function'
+        hasLiveContext &&
+        portalStore &&
+        typeof portalStore.getTenantPortalOverview === 'function' &&
+        !isLightBootstrap
           ? portalStore.getTenantPortalOverview({
               tenantId: context.tenantId,
             })
           : Promise.resolve(null),
       ]);
       const patientRecord =
-        hasLiveContext && patientSystemStore
-          ? await syncPatient360FromBookingCase({
-              patientSystemStore,
-              context: buildPatient360SyncContext(context),
-              bookingCase,
-              source: 'cco_workspace_bootstrap',
-              includeTimelineEvent: false,
-            })
-          : null;
-      const workspacePatientRecord =
-        hasLiveContext && patientSystemStore
-          ? await syncPatient360FromWorkspaceSignals({
-              patientSystemStore,
-              context: buildPatient360SyncContext(context),
-              bookingCase,
-              savedNotes,
-              latestFollowUp,
-              source: 'cco_workspace_bootstrap',
-              includeTimelineEvent: false,
-            })
-          : null;
-      const consultationPatientRecord =
-        hasLiveContext && patientSystemStore && consultationCase
-          ? await syncPatient360FromConsultationCase({
-              patientSystemStore,
-              context: buildPatient360SyncContext(context),
-              consultationCase,
-              source: 'cco_workspace_bootstrap',
-              includeTimelineEvent: false,
-            })
-          : null;
-      const aftercarePatientRecord =
-        hasLiveContext && patientSystemStore && aftercareCase
-          ? await syncPatient360FromAftercareCase({
-              patientSystemStore,
-              context: buildPatient360SyncContext(context),
-              aftercareCase,
-              source: 'cco_workspace_bootstrap',
-              includeTimelineEvent: false,
-            })
-          : null;
-      const operationPatientRecord =
-        hasLiveContext && patientSystemStore && operationCase
-          ? await syncPatient360FromOperationCase({
-              patientSystemStore,
-              context: buildPatient360SyncContext(context),
-              operationCase,
-              source: 'cco_workspace_bootstrap',
-              includeTimelineEvent: false,
-            })
-          : null;
-      const commercialPatientRecord =
-        hasLiveContext && patientSystemStore && commercialCase
-          ? await syncPatient360FromCommercialCase({
-              patientSystemStore,
-              context: buildPatient360SyncContext(context),
-              commercialCase,
-              source: 'cco_workspace_bootstrap',
-              includeTimelineEvent: false,
-            })
+        hasLiveContext && patientSystemStore && !isLightBootstrap
+          ? await Promise.all([
+              syncPatient360FromBookingCase({
+                patientSystemStore,
+                context: buildPatient360SyncContext(context),
+                bookingCase,
+                source: 'cco_workspace_bootstrap',
+                includeTimelineEvent: false,
+              }),
+              syncPatient360FromWorkspaceSignals({
+                patientSystemStore,
+                context: buildPatient360SyncContext(context),
+                bookingCase,
+                savedNotes,
+                latestFollowUp,
+                source: 'cco_workspace_bootstrap',
+                includeTimelineEvent: false,
+              }),
+              consultationCase
+                ? syncPatient360FromConsultationCase({
+                    patientSystemStore,
+                    context: buildPatient360SyncContext(context),
+                    consultationCase,
+                    source: 'cco_workspace_bootstrap',
+                    includeTimelineEvent: false,
+                  })
+                : Promise.resolve(null),
+              aftercareCase
+                ? syncPatient360FromAftercareCase({
+                    patientSystemStore,
+                    context: buildPatient360SyncContext(context),
+                    aftercareCase,
+                    source: 'cco_workspace_bootstrap',
+                    includeTimelineEvent: false,
+                  })
+                : Promise.resolve(null),
+              operationCase
+                ? syncPatient360FromOperationCase({
+                    patientSystemStore,
+                    context: buildPatient360SyncContext(context),
+                    operationCase,
+                    source: 'cco_workspace_bootstrap',
+                    includeTimelineEvent: false,
+                  })
+                : Promise.resolve(null),
+              commercialCase
+                ? syncPatient360FromCommercialCase({
+                    patientSystemStore,
+                    context: buildPatient360SyncContext(context),
+                    commercialCase,
+                    source: 'cco_workspace_bootstrap',
+                    includeTimelineEvent: false,
+                  })
+                : Promise.resolve(null),
+            ]).then((records) => pickLatestPatient360Record(...records))
           : null;
 
       const noteDefinitions = mergeSavedNotes(
@@ -908,9 +908,12 @@ function createCcoWorkspaceRouter({
         .map((item) => buildAftercareQueueItem(item, context))
         .filter(Boolean);
 
-      const patientCard = await resolvePatientCardFromContext(patientMasterStore, context);
+      const patientCard =
+        !isLightBootstrap && hasLiveContext
+          ? await resolvePatientCardFromContext(patientMasterStore, context)
+          : null;
       const journalEntries =
-        patientCard && journalStore
+        !isLightBootstrap && patientCard && journalStore
           ? await journalStore.listEntries({
               tenantId: context.tenantId,
               patientId: patientCard.patientId,
@@ -923,6 +926,7 @@ function createCcoWorkspaceRouter({
 
       return res.json({
         workspaceId: context.workspaceId,
+        bootstrapScope,
         authMode: context.actor.authMode,
         customer: {
           customerId: context.customerId || null,
@@ -946,16 +950,7 @@ function createCcoWorkspaceRouter({
         aftercareQueue,
         journalReadout,
         patientCard,
-        patient360: serializePatient360(
-          pickLatestPatient360Record(
-            patientRecord,
-            workspacePatientRecord,
-            consultationPatientRecord,
-            aftercarePatientRecord,
-            operationPatientRecord,
-            commercialPatientRecord
-          )
-        ),
+        patient360: serializePatient360(patientRecord),
         scheduleDraft,
         scheduleOptions: SCHEDULE_OPTIONS,
         workspacePrefs: prefs

@@ -109,14 +109,190 @@
         .slice(0, 20);
     }
 
+    const BOOTSTRAP_CACHE_TTL_MS = 45000;
+
+    function getBootstrapCacheKey(scope = "full") {
+      if (typeof helpers.getActiveWorkspaceContext !== "function") {
+        return "";
+      }
+      const context = helpers.getActiveWorkspaceContext();
+      return [scope, context.workspaceId, context.conversationId, context.customerId]
+        .map((value) => asText(value))
+        .join("|");
+    }
+
+    function resolveBootstrapScope({
+      applyWorkspacePrefs = false,
+      quiet = false,
+      forceReload = false,
+    } = {}) {
+      if (forceReload || applyWorkspacePrefs) return "full";
+      if (quiet) return "light";
+      return "full";
+    }
+
+    function applyBootstrapPayload(
+      payload,
+      followUpPayload,
+      { preserveActiveDestination = true, applyWorkspacePrefs = false, quiet = false } = {}
+    ) {
+      state.bootstrapped = true;
+      state.bootstrapError = "";
+
+      state.noteTemplates = Array.isArray(payload.noteTemplates) ? payload.noteTemplates : [];
+      state.noteTemplatesByKey = Object.fromEntries(
+        state.noteTemplates.map((template) => [normalizeKey(template.key), template])
+      );
+      state.noteDefinitions = payload.noteDefinitions || {};
+      state.noteVisibilityRules = payload.visibilityRules || {};
+      state.booking = {
+        ...(state.booking || {}),
+        case: payload.bookingCase || null,
+        readout: payload.bookingReadout || null,
+        engineSummary: payload.bookingEngine || state.booking?.engineSummary || null,
+        provider:
+          asText(payload.bookingEngine?.provider || payload.bookingProvider) ||
+          state.booking?.provider ||
+          "",
+        patient360:
+          payload.patient360 && typeof payload.patient360 === "object" ? payload.patient360 : null,
+        statuses: Array.isArray(payload.bookingStatuses)
+          ? payload.bookingStatuses
+          : state.booking?.statuses || [],
+      };
+      const bootstrapContextThread =
+        typeof getSelectedRuntimeFocusThread === "function"
+          ? getSelectedRuntimeFocusThread() || getSelectedRuntimeThread?.()
+          : getSelectedRuntimeThread?.();
+      state.aftercare = {
+        ...(state.aftercare || {}),
+        case: payload.aftercareCase || null,
+        readout: payload.aftercareReadout || null,
+        queue: Array.isArray(payload.aftercareQueue) ? payload.aftercareQueue : [],
+        contextConversationId: asText(bootstrapContextThread?.id),
+        contextCustomerId: asText(
+          (typeof getRuntimeCustomerEmail === "function"
+            ? getRuntimeCustomerEmail(bootstrapContextThread)
+            : "") || bootstrapContextThread?.customerEmail
+        ),
+      };
+      state.operation = {
+        ...(state.operation || {}),
+        case: payload.operationCase || null,
+        readout: payload.operationReadout || null,
+        contextConversationId: asText(bootstrapContextThread?.id),
+        contextCustomerId: asText(
+          (typeof getRuntimeCustomerEmail === "function"
+            ? getRuntimeCustomerEmail(bootstrapContextThread)
+            : "") || bootstrapContextThread?.customerEmail
+        ),
+      };
+      state.commercial = {
+        ...(state.commercial || {}),
+        case: payload.commercialCase || null,
+        readout: payload.commercialReadout || null,
+        contextConversationId: asText(bootstrapContextThread?.id),
+        contextCustomerId: asText(
+          (typeof getRuntimeCustomerEmail === "function"
+            ? getRuntimeCustomerEmail(bootstrapContextThread)
+            : "") || bootstrapContextThread?.customerEmail
+        ),
+      };
+      state.consultation = {
+        ...(state.consultation || {}),
+        case: payload.consultationCase || null,
+        readout: payload.consultationReadout || null,
+        contextConversationId: asText(bootstrapContextThread?.id),
+        contextCustomerId: asText(
+          (typeof getRuntimeCustomerEmail === "function"
+            ? getRuntimeCustomerEmail(bootstrapContextThread)
+            : "") || bootstrapContextThread?.customerEmail
+        ),
+      };
+      state.activity.notes = Array.isArray(payload.savedNotes) ? payload.savedNotes : [];
+      state.activity.followUps = Array.isArray(followUpPayload?.followUps)
+        ? followUpPayload.followUps
+        : [];
+      state.schedule.options = payload.scheduleOptions || {
+        doctors: [],
+        categories: [],
+        reminders: [],
+      };
+      state.schedule.draft = createScheduleDraft(payload.scheduleDraft);
+
+      const nextDrafts = {};
+      for (const [key, definition] of Object.entries(state.noteDefinitions)) {
+        nextDrafts[key] = createNoteDraft(definition);
+      }
+      state.note.drafts = nextDrafts;
+
+      const requestedActiveKey =
+        preserveActiveDestination && state.noteDefinitions[state.note.activeKey]
+          ? state.note.activeKey
+          : Object.keys(state.noteDefinitions)[0] || "konversation";
+
+      renderTemplateButtons();
+      renderNoteDestination(requestedActiveKey);
+      renderScheduleDraft();
+      if (typeof renderBookingSurface === "function") {
+        renderBookingSurface();
+      }
+      renderActiveFocusHistorySection();
+      renderFocusNotesSection();
+
+      if (applyWorkspacePrefs) {
+        workspaceState.left =
+          Number.parseInt(
+            String(payload.workspacePrefs?.leftWidth ?? DEFAULT_WORKSPACE.left),
+            10
+          ) || DEFAULT_WORKSPACE.left;
+        workspaceState.right =
+          Number.parseInt(
+            String(payload.workspacePrefs?.rightWidth ?? DEFAULT_WORKSPACE.right),
+            10
+          ) || DEFAULT_WORKSPACE.right;
+        normalizeWorkspaceState();
+        state.workspacePrefsApplied = true;
+      }
+
+      if (!quiet) {
+        loadBootstrapFeedback("idle");
+      }
+
+      return payload;
+    }
+
     function loadBootstrap({
       preserveActiveDestination = true,
       applyWorkspacePrefs = false,
       quiet = false,
       forceReload = false,
     } = {}) {
+      const bootstrapScope = resolveBootstrapScope({ applyWorkspacePrefs, quiet, forceReload });
+
       if (forceReload) {
         refs.bootstrapPromise = null;
+        refs.bootstrapCacheKey = "";
+        refs.bootstrapCachePayload = null;
+        refs.bootstrapCacheFetchedAt = 0;
+      }
+
+      const cacheKey = getBootstrapCacheKey(bootstrapScope);
+      const cacheFresh =
+        !forceReload &&
+        cacheKey &&
+        refs.bootstrapCacheKey === cacheKey &&
+        refs.bootstrapCachePayload &&
+        Date.now() - Number(refs.bootstrapCacheFetchedAt || 0) < BOOTSTRAP_CACHE_TTL_MS;
+
+      if (cacheFresh) {
+        refs.bootstrapCacheHits = Number(refs.bootstrapCacheHits || 0) + 1;
+        applyBootstrapPayload(
+          refs.bootstrapCachePayload.payload,
+          refs.bootstrapCachePayload.followUpPayload,
+          { preserveActiveDestination, applyWorkspacePrefs, quiet }
+        );
+        return Promise.resolve(refs.bootstrapCachePayload.payload);
       }
 
       if (refs.bootstrapPromise) {
@@ -127,137 +303,23 @@
         loadBootstrapFeedback("loading");
       }
 
+      const bootstrapStartedAt = Date.now();
       refs.bootstrapPromise = Promise.all([
-        apiRequest("/api/v1/cco-workspace/bootstrap"),
+        apiRequest(`/api/v1/cco-workspace/bootstrap?scope=${bootstrapScope}`),
         apiRequest("/api/v1/cco-workspace/follow-ups").catch(() => ({ followUps: [] })),
       ])
         .then(([payload, followUpPayload]) => {
-          state.bootstrapped = true;
-          state.bootstrapError = "";
-
-          state.noteTemplates = Array.isArray(payload.noteTemplates) ? payload.noteTemplates : [];
-          state.noteTemplatesByKey = Object.fromEntries(
-            state.noteTemplates.map((template) => [normalizeKey(template.key), template])
-          );
-          state.noteDefinitions = payload.noteDefinitions || {};
-          state.noteVisibilityRules = payload.visibilityRules || {};
-          state.booking = {
-            ...(state.booking || {}),
-            case: payload.bookingCase || null,
-            readout: payload.bookingReadout || null,
-            engineSummary: payload.bookingEngine || state.booking?.engineSummary || null,
-            provider:
-              asText(payload.bookingEngine?.provider || payload.bookingProvider) ||
-              state.booking?.provider ||
-              "",
-            patient360:
-              payload.patient360 && typeof payload.patient360 === "object"
-                ? payload.patient360
-                : null,
-            statuses: Array.isArray(payload.bookingStatuses)
-              ? payload.bookingStatuses
-              : state.booking?.statuses || [],
-          };
-          const bootstrapContextThread =
-            typeof getSelectedRuntimeFocusThread === "function"
-              ? getSelectedRuntimeFocusThread() || getSelectedRuntimeThread?.()
-              : getSelectedRuntimeThread?.();
-          state.aftercare = {
-            ...(state.aftercare || {}),
-            case: payload.aftercareCase || null,
-            readout: payload.aftercareReadout || null,
-            queue: Array.isArray(payload.aftercareQueue) ? payload.aftercareQueue : [],
-            contextConversationId: asText(bootstrapContextThread?.id),
-            contextCustomerId: asText(
-              (typeof getRuntimeCustomerEmail === "function"
-                ? getRuntimeCustomerEmail(bootstrapContextThread)
-                : "") || bootstrapContextThread?.customerEmail
-            ),
-          };
-          state.operation = {
-            ...(state.operation || {}),
-            case: payload.operationCase || null,
-            readout: payload.operationReadout || null,
-            contextConversationId: asText(bootstrapContextThread?.id),
-            contextCustomerId: asText(
-              (typeof getRuntimeCustomerEmail === "function"
-                ? getRuntimeCustomerEmail(bootstrapContextThread)
-                : "") || bootstrapContextThread?.customerEmail
-            ),
-          };
-          state.commercial = {
-            ...(state.commercial || {}),
-            case: payload.commercialCase || null,
-            readout: payload.commercialReadout || null,
-            contextConversationId: asText(bootstrapContextThread?.id),
-            contextCustomerId: asText(
-              (typeof getRuntimeCustomerEmail === "function"
-                ? getRuntimeCustomerEmail(bootstrapContextThread)
-                : "") || bootstrapContextThread?.customerEmail
-            ),
-          };
-          state.consultation = {
-            ...(state.consultation || {}),
-            case: payload.consultationCase || null,
-            readout: payload.consultationReadout || null,
-            contextConversationId: asText(bootstrapContextThread?.id),
-            contextCustomerId: asText(
-              (typeof getRuntimeCustomerEmail === "function"
-                ? getRuntimeCustomerEmail(bootstrapContextThread)
-                : "") || bootstrapContextThread?.customerEmail
-            ),
-          };
-          state.activity.notes = Array.isArray(payload.savedNotes) ? payload.savedNotes : [];
-          state.activity.followUps = Array.isArray(followUpPayload?.followUps)
-            ? followUpPayload.followUps
-            : [];
-          state.schedule.options = payload.scheduleOptions || {
-            doctors: [],
-            categories: [],
-            reminders: [],
-          };
-          state.schedule.draft = createScheduleDraft(payload.scheduleDraft);
-
-          const nextDrafts = {};
-          for (const [key, definition] of Object.entries(state.noteDefinitions)) {
-            nextDrafts[key] = createNoteDraft(definition);
-          }
-          state.note.drafts = nextDrafts;
-
-          const requestedActiveKey =
-            preserveActiveDestination && state.noteDefinitions[state.note.activeKey]
-              ? state.note.activeKey
-              : Object.keys(state.noteDefinitions)[0] || "konversation";
-
-          renderTemplateButtons();
-          renderNoteDestination(requestedActiveKey);
-          renderScheduleDraft();
-          if (typeof renderBookingSurface === "function") {
-            renderBookingSurface();
-          }
-          renderActiveFocusHistorySection();
-          renderFocusNotesSection();
-
-          if (applyWorkspacePrefs) {
-            workspaceState.left =
-              Number.parseInt(
-                String(payload.workspacePrefs?.leftWidth ?? DEFAULT_WORKSPACE.left),
-                10
-              ) || DEFAULT_WORKSPACE.left;
-            workspaceState.right =
-              Number.parseInt(
-                String(payload.workspacePrefs?.rightWidth ?? DEFAULT_WORKSPACE.right),
-                10
-              ) || DEFAULT_WORKSPACE.right;
-            normalizeWorkspaceState();
-            state.workspacePrefsApplied = true;
-          }
-
-          if (!quiet) {
-            loadBootstrapFeedback("idle");
-          }
-
-          return payload;
+          refs.bootstrapCacheKey = cacheKey;
+          refs.bootstrapCachePayload = { payload, followUpPayload };
+          refs.bootstrapCacheFetchedAt = Date.now();
+          refs.bootstrapLastScope = bootstrapScope;
+          refs.bootstrapLastDurationMs = refs.bootstrapCacheFetchedAt - bootstrapStartedAt;
+          refs.bootstrapNetworkLoads = Number(refs.bootstrapNetworkLoads || 0) + 1;
+          return applyBootstrapPayload(payload, followUpPayload, {
+            preserveActiveDestination,
+            applyWorkspacePrefs,
+            quiet,
+          });
         })
         .catch((error) => {
           state.bootstrapError = error.message;

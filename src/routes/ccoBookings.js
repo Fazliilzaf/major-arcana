@@ -29,6 +29,14 @@ function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
 }
 
+function isWebLeadBookingCase(bookingCase = {}) {
+  if (normalizeKey(bookingCase.workspaceId) === 'web-public') return true;
+  const conversationId = normalizeText(bookingCase.conversationId);
+  if (conversationId.startsWith('web-')) return true;
+  const events = Array.isArray(bookingCase.events) ? bookingCase.events : [];
+  return events.some((event) => normalizeKey(event?.type) === 'web_public_reservation');
+}
+
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
@@ -514,8 +522,13 @@ function createCcoBookingsRouter({
             )
           )
         : historyAwareCases;
+      const sourceFilter = normalizeKey(req.query.source);
+      const sourceScopedCases =
+        sourceFilter === 'web'
+          ? cases.filter((bookingCase) => isWebLeadBookingCase(bookingCase))
+          : cases;
       const sortMode = normalizeKey(req.query.sort) === 'blocked' ? 'blocked' : 'recent';
-      const sortedCases = cases
+      const sortedCases = sourceScopedCases
         .slice()
         .sort((left, right) => {
           if (sortMode === 'blocked') {

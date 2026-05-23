@@ -1085,3 +1085,44 @@ test('cco workspace bootstrap returnerar sorterad aftercare-kö över flera äre
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+test('cco workspace bootstrap scope=light skippar Patient360, portal och aftercare-kö', async () => {
+  const fixture = await createRouterFixture();
+
+  try {
+    await fixture.aftercareStore.upsertCase({
+      tenantId: 'tenant-a',
+      workspaceId: 'major-arcana-preview',
+      conversationId: 'conv-aftercare-light-scope',
+      customerId: 'anna.karlsson@email.com',
+      customerName: 'Anna Karlsson',
+      aftercareStatus: 'scheduled',
+      notes: 'Eftervård som inte ska listas i light bootstrap.',
+    });
+
+    await withServer(fixture.app, async (baseUrl) => {
+      const query =
+        'workspaceId=major-arcana-preview&conversationId=conv-aftercare-light-scope&customerId=anna.karlsson@email.com&customerName=Anna%20Karlsson';
+
+      const lightResponse = await fetch(`${baseUrl}/cco-workspace/bootstrap?scope=light&${query}`);
+      assert.equal(lightResponse.status, 200);
+      const lightPayload = await lightResponse.json();
+      assert.equal(lightPayload.bootstrapScope, 'light');
+      assert.equal(lightPayload.patient360, null);
+      assert.equal(lightPayload.portalOverview, null);
+      assert.equal(Array.isArray(lightPayload.aftercareQueue), true);
+      assert.equal(lightPayload.aftercareQueue.length, 0);
+      assert.equal(lightPayload.journalReadout.enabled, false);
+
+      const fullResponse = await fetch(`${baseUrl}/cco-workspace/bootstrap?scope=full&${query}`);
+      assert.equal(fullResponse.status, 200);
+      const fullPayload = await fullResponse.json();
+      assert.equal(fullPayload.bootstrapScope, 'full');
+      assert.ok(fullPayload.patient360);
+      assert.equal(Array.isArray(fullPayload.aftercareQueue), true);
+      assert.ok(fullPayload.aftercareQueue.length >= 1);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});

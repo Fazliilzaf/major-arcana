@@ -73,6 +73,8 @@
 
     let runtimeAuthRecoveryTimer = 0;
     let runtimeLiveRefreshTimer = 0;
+    let bootstrapThreadSelectTimer = 0;
+    const BOOTSTRAP_THREAD_SELECT_DEBOUNCE_MS = 200;
     const AUTH_RECOVERY_INITIAL_DELAY_MS = 2000;
     const AUTH_RECOVERY_MAX_DELAY_MS = 30000;
     let runtimeAuthRecoveryDelayMs = AUTH_RECOVERY_INITIAL_DELAY_MS;
@@ -170,6 +172,7 @@
       isTruthPrimaryFocusFeatureEnabled,
       isTruthPrimaryStudioFeatureEnabled,
       loadBootstrap,
+      loadBookingCaseList,
       loadQueueHistory,
       normalizeKey,
       normalizeMailboxId,
@@ -550,10 +553,15 @@
         .sort();
     }
 
-    function buildRuntimeThreadHistoryCacheKey(mailboxIds = [], conversationId = "") {
+    function buildRuntimeThreadHistoryCacheKey(
+      mailboxIds = [],
+      conversationId = "",
+      includeBodyHtml = false
+    ) {
       const normalizedConversation = asText(conversationId).trim().toLowerCase();
       const mailboxKey = normalizeRuntimeHistoryMailboxList(mailboxIds).join(",");
-      return `${normalizedConversation}\x00${mailboxKey}`;
+      const bodyFlag = includeBodyHtml ? "1" : "0";
+      return `${normalizedConversation}\x00${mailboxKey}\x00${bodyFlag}`;
     }
 
     function pruneRuntimeThreadHistoryCache() {
@@ -1644,6 +1652,11 @@
       }).catch((error) => {
         console.warn("CCO workspace bootstrap misslyckades efter aktiv körning.", error);
       });
+      if (typeof loadBookingCaseList === "function" && state.runtime?.authRequired !== true) {
+        loadBookingCaseList().catch((error) => {
+          console.warn("CCO bokningsärenden kunde inte förladdas.", error);
+        });
+      }
       paintRuntimeShell("all");
     }
 
@@ -1832,11 +1845,17 @@
     async function fetchRuntimeThreadHistoryPayload({
       mailboxIds = [],
       conversationId = "",
+      includeBodyHtml = false,
       bypassCache = false,
     } = {}) {
       const targetConversationId = asText(conversationId);
       if (!mailboxIds.length || !targetConversationId) return null;
-      const cacheKey = buildRuntimeThreadHistoryCacheKey(mailboxIds, targetConversationId);
+      const wantsBodyHtml = includeBodyHtml === true;
+      const cacheKey = buildRuntimeThreadHistoryCacheKey(
+        mailboxIds,
+        targetConversationId,
+        wantsBodyHtml
+      );
       if (!bypassCache) {
         const cached = runtimeThreadHistoryPayloadCache.get(cacheKey);
         if (
@@ -1852,7 +1871,7 @@
       params.set("mailboxIds", mailboxIds.join(","));
       params.set("conversationId", targetConversationId);
       params.set("lookbackDays", String(FULL_MAILBOX_LOOKBACK_DAYS));
-      params.set("includeBodyHtml", "1");
+      params.set("includeBodyHtml", wantsBodyHtml ? "1" : "0");
       const payload = await apiRequest(`/api/v1/cco/runtime/history?${params.toString()}`);
       runtimeThreadHistoryPayloadCache.set(cacheKey, {
         fetchedAt: Date.now(),
@@ -1860,6 +1879,83 @@
       });
       pruneRuntimeThreadHistoryCache();
       return payload;
+    }
+
+    let selectedRuntimeThreadHistoryBodyPromise = null;
+
+    async function ensureSelectedRuntimeThreadHistoryBody() {
+      const selectedThread = getSelectedRuntimeThread?.();
+      const targetConversationId = asText(selectedThread?.id);
+      if (!targetConversationId) {
+        return { loaded: false, reason: "no_selected_thread" };
+      }
+
+      const threadSummary = summarizeRuntimeOpenFlowThread(selectedThread);
+      if (
+        threadSummary &&
+        (Number(threadSummary.primaryBodyHtmlLength || 0) >= 160 ||
+          Number(threadSummary.signatureHtmlLength || 0) >= 120)
+      ) {
+        return { loaded: true, updated: false, reason: "body_already_present" };
+      }
+
+      if (selectedRuntimeThreadHistoryBodyPromise) {
+        return selectedRuntimeThreadHistoryBodyPromise;
+      }
+
+      const scopedMailboxIds = getRuntimeThreadHydrationMailboxIds(
+        selectedThread,
+        getRequestedRuntimeMailboxIds()
+      );
+      if (!scopedMailboxIds.length) {
+        return { loaded: false, reason: "no_mailbox_scope" };
+      }
+
+      selectedRuntimeThreadHistoryBodyPromise = (async () => {
+        try {
+          let historyPayload = await fetchRuntimeThreadHistoryPayload({
+            mailboxIds: scopedMailboxIds,
+            conversationId: targetConversationId,
+            includeBodyHtml: true,
+          });
+          let updated = applyHydratedRuntimeThreadHistory(targetConversationId, historyPayload);
+
+          if (!updated) {
+            const matchedConversationId = await resolveRuntimeHistoryHydrationConversationId(
+              selectedThread,
+              scopedMailboxIds
+            );
+            if (
+              matchedConversationId &&
+              (!runtimeConversationIdsMatch(matchedConversationId, targetConversationId) ||
+                !hasRuntimeHistoryPayloadContent(historyPayload))
+            ) {
+              historyPayload = await fetchRuntimeThreadHistoryPayload({
+                mailboxIds: scopedMailboxIds,
+                conversationId: matchedConversationId,
+                includeBodyHtml: true,
+              });
+              updated = applyHydratedRuntimeThreadHistory(targetConversationId, historyPayload);
+            }
+          }
+
+          if (updated) {
+            renderRuntimeConversationShell();
+          }
+          return { loaded: true, updated };
+        } catch (error) {
+          console.warn("CCO kunde inte ladda bodyHtml för vald tråd.", error);
+          return {
+            loaded: false,
+            reason: "fetch_error",
+            error: error instanceof Error ? error.message : String(error),
+          };
+        } finally {
+          selectedRuntimeThreadHistoryBodyPromise = null;
+        }
+      })();
+
+      return selectedRuntimeThreadHistoryBodyPromise;
     }
 
     function applyHydratedRuntimeThreadHistory(conversationId, historyPayload) {
@@ -2787,17 +2883,20 @@
         console.warn("CCO kunde inte hydrera vald aktiv tråd efter selection.", error);
       });
       if (reloadBootstrap) {
-        loadBootstrap({
-          preserveActiveDestination: true,
-          applyWorkspacePrefs: false,
-          quiet: true,
-        })
-          .catch((error) => {
-            console.warn("CCO workspace bootstrap misslyckades för vald tråd.", error);
+        windowObject.clearTimeout(bootstrapThreadSelectTimer);
+        bootstrapThreadSelectTimer = windowObject.setTimeout(() => {
+          loadBootstrap({
+            preserveActiveDestination: true,
+            applyWorkspacePrefs: false,
+            quiet: true,
           })
-          .finally(() => {
-            paintRuntimeShell("focus");
-          });
+            .catch((error) => {
+              console.warn("CCO workspace bootstrap misslyckades för vald tråd.", error);
+            })
+            .finally(() => {
+              paintRuntimeShell("focus");
+            });
+        }, BOOTSTRAP_THREAD_SELECT_DEBOUNCE_MS);
       }
     }
 
@@ -5045,6 +5144,7 @@
 
     return Object.freeze({
       bindWorkspaceInteractions,
+      ensureSelectedRuntimeThreadHistoryBody,
       handleWorkspaceDocumentClick,
       handleWorkspaceDocumentKeydown,
       initializeWorkspaceSurface,
