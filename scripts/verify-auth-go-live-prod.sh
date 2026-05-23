@@ -2,6 +2,7 @@
 # Fas 2: verifiera auth-läge prod + skriv ut go-live-steg (flippar INTE env automatiskt).
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
 BASE="${BASE%/}"
 CLI_YAML="${HOME}/.render/cli.yaml"
@@ -37,10 +38,15 @@ else
 fi
 
 if [[ -n "$API_KEY" ]]; then
-  STAFF_COUNT="$(curl -fsS -H "Authorization: Bearer ${API_KEY}" \
-    "${BASE}/api/v1/users/staff" 2>/dev/null | \
-    node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log((JSON.parse(d).staff||[]).length)}catch{console.log('?')}});" 2>/dev/null || echo "?")"
-  echo "STAFF-konton (via prod API): ${STAFF_COUNT} (kräver OWNER-token om ?/401)"
+  OWNER_TOKEN="$(node "$ROOT_DIR/scripts/get-prod-auth-token.js" --owner 2>/dev/null || true)"
+  if [[ -n "$OWNER_TOKEN" ]]; then
+    STAFF_COUNT="$(curl -fsS -H "Authorization: Bearer ${OWNER_TOKEN}" \
+      "${BASE}/api/v1/users/staff" 2>/dev/null | \
+      node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log((j.members||j.staff||[]).filter(m=>String(m.membership?.role||m.role||'').toUpperCase()==='STAFF').length)}catch{console.log('?')}});" 2>/dev/null || echo "?")"
+    echo "STAFF-konton (prod): ${STAFF_COUNT}"
+  else
+    echo "STAFF-konton (prod): ? (owner-token saknas)"
+  fi
 fi
 
 cat <<'EOF'
