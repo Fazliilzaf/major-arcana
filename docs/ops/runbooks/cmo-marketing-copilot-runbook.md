@@ -200,8 +200,12 @@ curl -H "Authorization: Bearer $TOKEN" \
 ```bash
 node --test tests/capabilities/cmoCapabilityContract.test.js
 node --test tests/ops/cmoPhaseG.test.js
-npm run test:mutation:cmo   # ~16 min; CI `cmo-mutation`; break ≥30%, low ≥50%, high ≥65% (baseline ~66%)
+npm run test:cmo:mutation              # CI fast gate (~sekunder) på varje push/PR
+npm run test:mutation:cmo              # full lokalt (~16 min med incremental)
+npm run test:mutation:cmo:shard gate   # shard lokalt (gate|store|agent)
 ```
+
+**CI:** `arcana-ci` kör bara fast gate. Full Stryker körs **nattligt** (`.github/workflows/cmo-mutation-nightly.yml`) och via **Actions → cmo-mutation-nightly → Run workflow**. Tre parallella shards + incremental cache; trösklar break ≥30%, low ≥50%, high ≥65%.
 
 ---
 
