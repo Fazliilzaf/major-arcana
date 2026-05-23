@@ -25592,6 +25592,9 @@
   }
 
   function applyCustomerFilters() {
+    if (window.ArcanaPatientMasterUi?.renderStaffAuth?.()) {
+      return;
+    }
     ensureCustomerRuntimeProfilesFromLive();
     const visibleKeys = getVisibleCustomerKeys();
     const portalLockedCustomerKey = normalizeKey(
