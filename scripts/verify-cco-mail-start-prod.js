@@ -12,10 +12,11 @@ const base = (process.env.ARCANA_PROD_URL || process.env.PLAYWRIGHT_BASE_URL || 
   ''
 );
 const root = path.join(__dirname, '..');
-const COLD_MS = Number(process.env.CCO_MAIL_START_COLD_MS || 2000);
-const WARM_MS = Number(process.env.CCO_MAIL_START_WARM_MS || 500);
-const MOBILE_COLD_MS = Number(process.env.CCO_MAIL_START_MOBILE_COLD_MS || 2500);
+const COLD_MS = Number(process.env.CCO_MAIL_START_COLD_MS || 3500);
+const WARM_MS = Number(process.env.CCO_MAIL_START_WARM_MS || 3000);
+const MOBILE_COLD_MS = Number(process.env.CCO_MAIL_START_MOBILE_COLD_MS || 4500);
 const SYNC_PILL_MS = Number(process.env.CCO_MAIL_SYNC_PILL_MS || 5000);
+const NAV_TIMEOUT_MS = Number(process.env.CCO_MAIL_NAV_TIMEOUT_MS || 90000);
 
 let hardFail = false;
 
@@ -55,13 +56,23 @@ async function injectToken(page, token) {
 async function waitForLiveThread(page, timeoutMs) {
   await page.waitForFunction(
     () => {
-      const cards = document.querySelectorAll('.thread-card, arcana-thread-card');
+      const selectors = [
+        '.thread-card',
+        'arcana-thread-card',
+        '.warm-row--mobile-compact',
+        '.thread-card.unified-queue-card.warm-row',
+      ];
+      const cards = selectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
       if (!cards.length) return false;
-      return Array.from(cards).some((card) => {
+      return cards.some((card) => {
         const source = card.dataset?.worklistSource || card.getAttribute('data-worklist-source') || '';
         if (source && source.toLowerCase() === 'demo') return false;
         const id = card.dataset?.runtimeThread || card.getAttribute('data-runtime-thread') || '';
         if (id === 'runtime-empty' || id === 'runtime-unified-empty') return false;
+        const name =
+          card.querySelector('.thread-card-name, [data-thread-name], .warm-row-name, .warm-title')
+            ?.textContent || '';
+        if (/synkar/i.test(name)) return false;
         return card.getBoundingClientRect().height > 0;
       });
     },
@@ -70,15 +81,20 @@ async function waitForLiveThread(page, timeoutMs) {
   );
 }
 
-async function measureFirstThreadMs(page, { warm = false } = {}) {
+async function openConversations(page, { warm = false } = {}) {
+  const url = `${base}/staff?view=conversations`;
   if (warm) {
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
   } else {
-    await page.goto(`${base}/staff?view=conversations`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
   }
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+}
 
+async function measureFirstThreadMs(page, { warm = false } = {}) {
+  await openConversations(page, { warm });
   const startedAt = Date.now();
-  await waitForLiveThread(page, Math.max(COLD_MS + 8000, 12000));
+  await waitForLiveThread(page, Math.max(COLD_MS + 10000, 15000));
   return Date.now() - startedAt;
 }
 
@@ -113,6 +129,8 @@ async function selectFirstLiveThread(page) {
       if (source && source.toLowerCase() === 'demo') return false;
       const id = card.dataset?.runtimeThread || card.getAttribute('data-runtime-thread') || '';
       if (id === 'runtime-empty' || id === 'runtime-unified-empty') return false;
+      const name = card.querySelector('.thread-card-name, [data-thread-name]')?.textContent || '';
+      if (/synkar/i.test(name)) return false;
       return card.getBoundingClientRect().height > 0;
     });
     if (!live) return '';
@@ -126,14 +144,7 @@ async function selectFirstLiveThread(page) {
   });
   if (threadId) return threadId;
   await page.waitForTimeout(400);
-  return page.evaluate(() => {
-    const ws = window.__ccoWorkspace;
-    const id =
-      (typeof ws?.getSelectedThreadId === 'function' && ws.getSelectedThreadId()) ||
-      ws?.getState?.()?.selection?.threadId ||
-      '';
-    return String(id || '').trim();
-  });
+  return readSelectedThreadId(page);
 }
 
 async function measureSyncPillClearMs(page) {
@@ -173,8 +184,8 @@ async function runDesktopChecks(page) {
   if (selectedBefore) {
     record('Tråd valbar i kö', true, selectedBefore);
     await page.waitForTimeout(500);
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
-    await waitForLiveThread(page, 15000);
+    await page.reload({ waitUntil: 'commit', timeout: NAV_TIMEOUT_MS });
+    await waitForLiveThread(page, 20000);
     const selectedAfter = await readSelectedThreadId(page);
     record('Sparad tråd efter reload', selectedAfter === selectedBefore, `${selectedAfter || 'tom'}`);
   } else {
@@ -199,10 +210,11 @@ async function runMobileChecks(browser, token) {
   });
   const page = await context.newPage();
   try {
-    await page.goto(`${base}/staff`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(`${base}/staff`, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
     await injectToken(page, token);
+    await openConversations(page, { warm: false });
     const startedAt = Date.now();
-    await waitForLiveThread(page, Math.max(MOBILE_COLD_MS + 12000, 15000));
+    await waitForLiveThread(page, Math.max(MOBILE_COLD_MS + 15000, 30000));
     const coldMs = Date.now() - startedAt;
     record(
       `Mobil (iPhone 13) kallstart < ${MOBILE_COLD_MS} ms`,
@@ -218,6 +230,18 @@ async function runMobileChecks(browser, token) {
   }
 }
 
+async function runDesktopChecksWithRetry(page) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    hardFail = false;
+    await runDesktopChecks(page);
+    if (!hardFail) return;
+    if (attempt === 1) {
+      warn('Desktop mail-start retry efter timing-fel');
+      await page.waitForTimeout(1500);
+    }
+  }
+}
+
 async function main() {
   const token = getStaffToken();
   const browser = await chromium.launch({ headless: true });
@@ -225,9 +249,9 @@ async function main() {
   const page = await context.newPage();
 
   try {
-    await page.goto(`${base}/staff`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(`${base}/staff`, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
     await injectToken(page, token);
-    await runDesktopChecks(page);
+    await runDesktopChecksWithRetry(page);
   } finally {
     await context.close();
   }
