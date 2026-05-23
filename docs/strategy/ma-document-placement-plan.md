@@ -6,7 +6,7 @@ Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Majo
 
 | Lager   | Innehåll                         | Plats                                   |
 | ------- | -------------------------------- | --------------------------------------- |
-| Källa   | Word, zip, CSV, SharePoint       | `MA-Archive/` (utanför repo)            |
+| Källa   | Word, zip, CSV, SharePoint       | `~/Code/MA-Archive/` (utanför repo)     |
 | Runtime | Importerad data, mallar, journal | `major-arcana/data/` + `/var/data` prod |
 | UI      | Personalflöden                   | `/staff` → Kunder → Journal / Avtal     |
 
@@ -18,16 +18,16 @@ Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Majo
 - [x] Kopiera `Juridik-GDPR/` → `MA-Archive/juridik/` (symlink `juridik-source/`)
 - [x] Kopiera Cliento-export → `MA-Archive/cliento/`
 - [x] Flytta färdiga journal-zip (ej `.crdownload`) → `MA-Archive/journal-zips/`
-- [ ] Extrahera `Offertmallar-*.zip` → `MA-Archive/offert-word/` (zip korrupt på iCloud)
-- [x] SharePoint-original delvis → `MA-Archive/sharepoint/` (se `scripts/sync-sharepoint-archive.sh`)
-- [ ] Uppdatera `Juridik-GDPR/INNEHALL-OCH-NYCKELPUNKTER.md`:
+- [ ] Extrahera `Offertmallar-*.zip` → `MA-Archive/offert-word/` (zip korrupt — ladda om från Drive)
+- [x] SharePoint-original delvis → `~/Code/MA-Archive/sharepoint/` (se `scripts/sync-sharepoint-archive.sh`)
+- [x] Uppdatera juridik-index (`docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md`):
   - Gabrielle Handler process (konsultation → patientinfo → offert → avtal → bokning)
   - Bilaga 1 = patientinformation
   - Bilaga 3 = [Konsumentverkets ångerblankett](https://www.konsumentverket.se/for-foretag/konsumentratt-for-foretagare/om-konsumentratt/om-konsumentratt/angerblankett/) (extern, uppdateras av KO)
   - Gällande avtalsversion: `251203_Behandlingsavtal…docx`
   - Distans vs på-plats: betänketid endast vid distansavtal
-- [ ] Flytta `JOURNAL-DATAMODELL.md` → `docs/strategy/JOURNAL-DATAMODELL.md`
-- [ ] Länka denna plan från `docs/strategy/cco-patient-journal-build-plan.md`
+- [x] Flytta `JOURNAL-DATAMODELL.md` → `docs/strategy/JOURNAL-DATAMODELL.md`
+- [x] Länka denna plan från `docs/strategy/cco-patient-journal-build-plan.md`
 
 **Klart när:** Alla filer har en känd plats och indexet beskriver version + juristflöde.
 

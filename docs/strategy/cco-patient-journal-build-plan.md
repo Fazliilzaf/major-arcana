@@ -1,9 +1,13 @@
 # CCO Patient, Journal & Migration — Byggplan
 
 Status: **PÅGÅR**  
-Senast uppdaterad: 2026-05-22
+Senast uppdaterad: 2026-05-23
 
 Syfte: Färdiga kundkort med importerad journal/bilder + ny journalföring för personal i Arcana CCO.
+
+**Master-plan (arkiv, juridik, faser):** [ma-document-placement-plan.md](./ma-document-placement-plan.md)
+
+**Workspace:** `~/Code/major-arcana` (GitHub) + `~/Code/MA-Archive/` (källfiler)
 
 ---
 
