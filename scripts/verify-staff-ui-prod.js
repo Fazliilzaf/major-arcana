@@ -79,19 +79,19 @@ async function waitForMobileShell(page, timeout = 30000) {
 }
 
 async function ensurePatientDetailLoaded(page, token, id) {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const detailReady = await page.evaluate(
+  const isDetailReady = () =>
+    page.evaluate(
       () =>
         document.documentElement.getAttribute('data-cco-patient-detail') === 'on' &&
         Boolean(document.querySelector('.patient-master-camera-button'))
     );
-    if (detailReady) {
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (await isDetailReady()) {
+      await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('journal'));
       return;
     }
     await injectToken(page, token);
-    const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(id)}`;
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
-    await waitForMobileShell(page);
     await page.evaluate((patientId) => {
       const row = document.querySelector(`[data-patient-row="${patientId}"]`);
       row?.click();
@@ -103,23 +103,24 @@ async function ensurePatientDetailLoaded(page, token, id) {
           document.documentElement.getAttribute('data-cco-patient-detail') === 'on' &&
           Boolean(document.querySelector('.patient-master-camera-button')),
         undefined,
-        { timeout: 12000 }
+        { timeout: 15000 }
       );
       return;
     } catch {
-      await page.waitForTimeout(800);
+      await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
+      await waitForMobileShell(page);
     }
   }
 }
 
 async function openCustomersWithPatient(page, token, id) {
-  await page.goto(`${base}/major-arcana-preview/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await injectToken(page, token);
   const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(id)}`;
-  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await injectToken(page, token);
+  await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
   await waitForMobileShell(page);
   await ensurePatientDetailLoaded(page, token, id);
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(400);
 }
 
 async function verifyMobileShell(page) {
@@ -312,6 +313,14 @@ async function main() {
     ...devices['iPhone 13'],
     locale: 'sv-SE',
   });
+  await context.addInitScript((t) => {
+    try {
+      localStorage.setItem('ARCANA_ADMIN_TOKEN', t);
+      sessionStorage.setItem('ARCANA_ADMIN_TOKEN', t);
+    } catch {
+      /* ignore */
+    }
+  }, token);
   const page = await context.newPage();
 
   try {
