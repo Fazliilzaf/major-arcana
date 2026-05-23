@@ -124,7 +124,7 @@ npm run test:mutation:cmo                   # valfritt pre-push; ~16 min, ≥65%
 ### O2 — Deploy-sekvens
 
 1. [ ] Deploy app med connectors **disabled** (`ENABLED=false`) — kod på plats, ingen live fetch
-2. [ ] Sätt secrets i staging → `ENABLED=true`, `MODE=live`
+2. [ ] Sätt secrets i staging → `ENABLED=true`, `MODE=live` (**prod avstängt tills OWNER go-live**)
 3. [x] Automatiserad verifiering: `npm run smoke:cmo-connectors`
 
 ```bash
@@ -190,7 +190,7 @@ v3.2 (Fas R)    →  kvalitet, UI, mutation ≥70%
 | P2  | `cmoPublishConnectors.js`          | Adapter-lager: LinkedIn post, Meta (optional), mail stub                      |
 | P3  | Utöka `executePilotChannelPublish` | Anropa riktig API; sätt `externalPublishInvoked: true`                        |
 | P4  | Idempotency + audit                | CorrelationId, retry, dead-letter i audit store                               |
-| P5  | UI                                 | Publish-status i Kampanjer-fliken (`publish_queued` → `published` / `failed`) |
+| P5  | UI                                 | Publish-status i Kampanjer-fliken (`publish_queued` → `published` / `failed`) | **workspace UI klar** |
 | P6  | Tester                             | Contract + integration med mocked APIs; mutation på publish path              |
 
 **Acceptans:** Godkänd kampanj på LinkedIn publiceras i staging sandbox-konto; prod efter OWNER sign-off. L5-kanaler fortfarande `proposal_only`.
