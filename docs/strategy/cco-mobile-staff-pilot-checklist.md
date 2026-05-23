@@ -8,7 +8,7 @@ Sweep-plan: [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md)
 
 - [x] **Pilotläge aktivt** — `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true` (ingen login krävs just nu)
 - [x] **Auth go-live** — `OPEN_ACCESS=false`, OWNER MFA required, STAFF `staff@hairtpclinic.se` (2026-05-23)
-- [x] Kör `npm run verify:staff-mobile-login-prod` — STAFF UI login @390px + OWNER MFA API **2026-05-23**
+- [x] Kör `npm run verify:cco-mobile-pilot-prod` — **en-kommando prod-suite (login + UI + journal + pilot)**
 - [x] 5 pilotkunder tillgängliga — se `data/pilot-patients.json` + deep links via `npm run verify:mobile-pilot-prod`
 - [ ] Personal har läst instruktionen (1 sida) — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
 - [x] Kör `npm run verify:mobile-pilot-prod` — **grön 2026-05-21**
