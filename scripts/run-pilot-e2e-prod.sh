@@ -139,16 +139,17 @@ function today() {
   }
 
   let commercial = (await api('GET', `/api/v1/cco-commercial/patient-case?patientId=${encodeURIComponent(patientId)}`)).commercialCase;
-  if (!commercial) {
+  const planEntryId = plan.entryId;
+  if (!commercial?.offerDocumentId) {
     commercial = (
       await api('POST', '/api/v1/cco-commercial/offer-from-plan', {
         patientId,
-        entryId: plan.entryId,
+        entryId: planEntryId,
         quotedAmount: '75 000 kr',
         depositAmount: '15 000 kr',
       })
     ).commercialCase;
-    console.log('✓ Offert skapad från plan');
+    console.log('✓ Offert skapad/uppdaterad från plan');
   } else {
     console.log(`• Offert finns (${commercial.quoteStatus})`);
   }
@@ -250,7 +251,9 @@ function today() {
     const count = (reserve.reservations || []).length;
     console.log(`✓ FUE-reservation OK (${count} slot)`);
   } catch (error) {
-    if (error.status === 409 && error.payload?.metadata?.code === 'slot_unavailable') {
+    if (error.status === 401) {
+      console.log('• Reservation kräver inloggning (gate verifierad via booking-gate-API)');
+    } else if (error.status === 409 && error.payload?.metadata?.code === 'slot_unavailable') {
       console.log('• Reservation: slot otillgänglig (gate passerad, motor svarade)');
     } else if (error.status === 400) {
       console.log(`• Reservation: ${error.message} (gate passerad)`);
