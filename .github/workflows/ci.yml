@@ -91,7 +91,7 @@ jobs:
 
   cmo-mutation:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     env:
       ARCANA_AI_PROVIDER: fallback
     steps:
@@ -107,11 +107,15 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: CMO mutation tests (Stryker)
+      - name: CMO mutation fast gate
+        run: node tests/_cmoMutationRunner.js
+
+      - name: CMO mutation tests (Stryker, main only)
+        if: github.ref == 'refs/heads/main'
         run: npm run test:mutation:cmo
 
       - name: Upload CMO mutation report
-        if: always()
+        if: always() && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: cmo-mutation-report-${{ github.run_id }}

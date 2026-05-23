@@ -80,11 +80,12 @@ npm run test:mutation:cmo                   # valfritt pre-push; ~16 min, ≥65%
       | Jobb | Förväntat |
       |------|-----------|
       | Huvud-CI (`ci.yml`) | unit + contract + closure guard grön |
-      | `cmo-mutation` | Stryker grön, break ≥30%, artifact `cmo-mutation-report-*` |
+      | `cmo-mutation` | Fast gate (`_cmoMutationRunner.js`) grön på alla branches; Stryker + artifact på `main` |
+      | `cmo-nightly-smoke` | Nattlig Stryker + staging smoke (fallback om main-push timeout) |
 - [ ] Ladda ner mutation HTML-artifact från CI och jämför score med lokal baseline (~66%)
-- [ ] Om `cmo-mutation` failar: felsök timeout (45 min), `inPlace`, iCloud-sökväg vs CI Linux
+- [x] Om `cmo-mutation` failar: **smoke** fixad (metadata 20→21 efter `GenerateContentSeries`); **Stryker** tvåstegs (fast gate + main-only, 120 min, concurrency 4)
 
-**Status 2026-05-23:** `arcana-ci` smoke grön på `2950554`; `cmo-mutation` körs (~45–60 min). `arcana-drift-gate` failar på prod-login (MFA) — **ej Fas N-blocker** (prod medvetet av).
+**Status 2026-05-23:** Run `90e5580` failade p.g.a. (1) smoke: `CMO_COPILOT_METADATA_SOURCES.length` 20 vs 21, (2) Stryker timeout >90 min på utökad mutate-scope. Fix: uppdaterade tester + CI tvåstegs. `arcana-drift-gate` failar på prod-login (MFA) — **ej Fas N-blocker** (prod medvetet av).
 
 #### N4 — Acceptans (Fas N)
 

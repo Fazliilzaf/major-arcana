@@ -32,3 +32,36 @@ jobs:
 
       - name: CMO sandbox publish E2E (ephemeral server)
         run: npm run demo:cmo-sandbox-publish:e2e
+
+  cmo-mutation-stryker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      ARCANA_AI_PROVIDER: fallback
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: CMO mutation fast gate
+        run: node tests/_cmoMutationRunner.js
+
+      - name: CMO mutation tests (Stryker)
+        run: npm run test:mutation:cmo
+
+      - name: Upload CMO mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmo-mutation-nightly-${{ github.run_id }}
+          path: reports/stryker/cmo-mutation.html
+          if-no-files-found: warn
+          retention-days: 14

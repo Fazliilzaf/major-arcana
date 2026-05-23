@@ -23,7 +23,7 @@
     "break": 30
   },
   "coverageAnalysis": "off",
-  "concurrency": 2,
+  "concurrency": 4,
   "timeoutMS": 120000,
   "inPlace": true,
   "ignorePatterns": ["data/", "public/", ".github/", "tests/"],
