@@ -284,7 +284,11 @@
 
   function syncMobilePatientLayout() {
     const active = isMobilePatientDetailActive();
-    document.documentElement.toggleAttribute('data-cco-patient-detail', active);
+    if (active) {
+      document.documentElement.setAttribute('data-cco-patient-detail', 'on');
+    } else {
+      document.documentElement.removeAttribute('data-cco-patient-detail');
+    }
     window.ArcanaMobileShell?.syncFromApp?.();
   }
 

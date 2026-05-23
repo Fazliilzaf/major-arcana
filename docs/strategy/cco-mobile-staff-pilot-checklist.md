@@ -1,7 +1,8 @@
-# CCO Mobil journal — Pilotchecklista (Fas 5.5–5.6)
+# CCO Mobil journal — Pilotchecklista (Fas 5.5–5.6 + UX sweep)
 
-Produktion: **https://arcana.hairtpclinic.se/major-arcana-preview/?view=customers**  
-Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
+Produktion: **https://arcana.hairtpclinic.se/staff?view=customers**  
+Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)  
+Sweep-plan: [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md)
 
 ## Före pilot
 
@@ -12,18 +13,35 @@ Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.
 - [ ] Personal har läst instruktionen (1 sida) — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
 - [x] Kör `npm run verify:mobile-pilot-prod` — **grön 2026-05-21**
 - [x] Kör `npm run run:rollout-sweep` + pilot E2E alla 5 kunder — **grön 2026-05-23 (STAFF-auth)**
-- [x] Kör `npm run verify:staff-ui-prod` — Playwright iPhone viewport, Journal + Ta bild **grön 2026-05-23**
+- [x] Kör `npm run verify:staff-ui-prod` — Playwright iPhone viewport (shell, tabbar, back, journal, modal) **2026-05-23**
+- [x] Kör `npm test -- tests/ops/ccoMobileUxSweep.test.js` — asset + API-yta **2026-05-23**
 - [x] Kör `npm run backup:journal-photos` — **2026-05-23** (`data/backups/journal-photos/`)
+
+## Mobil shell (UX sweep — ny checklista)
+
+Testa på **iPhone Safari 390×844** (eller DevTools iPhone 13).
+
+| Kontroll | OK? |
+| -------- | --- |
+| Bottom tab bar (Kö / Kunder / Boka / Mer) synlig, inga desktop-nav-länkar | ☐ |
+| Topbar ≤ 56px; app-titel visar vy/kundnamn | ☐ |
+| Kundlista → klick → detail; **← Tillbaka** till lista | ☐ |
+| Journal-flik ≥ 40px; **Ta bild** synlig utan scroll | ☐ |
+| Inställningar/modaler öppnas som **bottom sheet** (inte centrerad desktop-modal) | ☐ |
+| Arbetskö: kompakta rader + **Filter ▾** | ☐ |
+| PWA “Lägg till på hemskärmen” från `/staff` | ☐ |
+
+**Automatiserat:** `npm run verify:staff-ui-prod` (prod) eller `npm run verify:staff-ui-local` (localhost:3100).
 
 ## Enhetstest (Fas 5.5)
 
 Fyll i per enhet efter test i verklig konsultation (eller simulerad kund).
 
-| Enhet            | Testare | Datum | Ta bild | Galleri | HEIC | Etikett | QR/deep link | Markera plan | OK? |
-| ---------------- | ------- | ----- | ------- | ------- | ---- | ------- | ------------ | ------------ | --- |
-| iPhone Safari    |         |       | ☐       | ☐       | ☐    | ☐       | ☐            | ☐            | ☐   |
-| Android Chrome   |         |       | ☐       | ☐       | ☐    | ☐       | ☐            | ☐            | ☐   |
-| iPad (markering) |         |       | ☐       | ☐       | ☐    | ☐       | ☐            | ☐            | ☐   |
+| Enhet            | Testare | Datum | Ta bild | Galleri | HEIC | Etikett | QR/deep link | Markera plan | Shell UX | OK? |
+| ---------------- | ------- | ----- | ------- | ------- | ---- | ------- | ------------ | ------------ | -------- | --- |
+| iPhone Safari    |         |       | ☐       | ☐       | ☐    | ☐       | ☐            | ☐            | ☐        | ☐   |
+| Android Chrome   |         |       | ☐       | ☐       | ☐    | ☐       | ☐            | ☐            | ☐        | ☐   |
+| iPad (markering) |         |       | ☐       | ☐       | ☐    | ☐       | ☐            | ☐            | ☐        | ☐   |
 
 **Godkänt per enhet:** alla ☐ i raden ikryssade utan utvecklarstöd.
 
@@ -44,7 +62,7 @@ Mål: **2 personal**, minst **5 riktiga konsultationer** totalt.
 1. Var det enkelt att hitta rätt kund? (1–5)
 2. Var **Ta bild** tydlig och snabb? (1–5)
 3. Förstod du att arbetet sker under **Journal** (inte Profil)? (Ja/Nej)
-4. Något som strulade (nätverk, inloggning, bildformat)? (fritext)
+4. Fungerade **tab bar** och **Tillbaka** naturligt? (Ja/Nej)
 5. Skulle du använda detta i varje konsultation? (Ja/Nej/Delvis)
 
 ## Go / no-go

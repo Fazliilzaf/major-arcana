@@ -46,10 +46,18 @@
     }
   }
 
+  function setShellFlag(name, on) {
+    if (on) {
+      document.documentElement.setAttribute(name, 'on');
+    } else {
+      document.documentElement.removeAttribute(name);
+    }
+  }
+
   function applyMobileShellState() {
     const on = isMobile();
-    document.documentElement.toggleAttribute('data-cco-mobile-shell', on);
-    document.documentElement.toggleAttribute('data-cco-mobile-tabbar', on);
+    setShellFlag('data-cco-mobile-shell', on);
+    setShellFlag('data-cco-mobile-tabbar', on);
     if (!on) {
       setMoreOpen(false);
       explicitBookingTab = false;
@@ -87,7 +95,7 @@
     moreOpen = open === true;
     if (!moreSheet) return;
     moreSheet.hidden = !moreOpen;
-    document.documentElement.toggleAttribute('data-cco-mobile-more-open', moreOpen);
+    setShellFlag('data-cco-mobile-more-open', moreOpen);
     if (moreOpen) {
       moreSheet.querySelector('.cco-mobile-more-item')?.focus?.();
     }
