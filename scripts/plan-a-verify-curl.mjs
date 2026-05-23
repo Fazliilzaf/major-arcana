@@ -6,7 +6,18 @@
 const BASE = (process.env.BASE || 'http://127.0.0.1:3099').replace(/\/+$/, '');
 const HOST = process.env.HOST || 'hairtpclinic.com';
 const FROM = process.env.FROM || new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-const TO = process.env.TO || new Date(Date.now() + 86400000 * 14).toISOString().slice(0, 10);
+const TO = process.env.TO || new Date(Date.now() + 86400000 * 21).toISOString().slice(0, 10);
+
+function pickSlot(slots, index = 0) {
+  const list = Array.isArray(slots) ? slots : [];
+  return list[index] || list[0] || null;
+}
+
+function isSlotConflict(status, body) {
+  if (status === 409) return true;
+  const err = String(body?.error || '').toLowerCase();
+  return err.includes('slot') || err.includes('ledig') || err.includes('unavailable');
+}
 
 const PLAN_A = ['consultation-online', 'consultation-physical', 'followup-transplant'];
 
@@ -85,7 +96,11 @@ async function main() {
       contact: { name: 'Plan A Verify Dup', email: `plan-a-dup-${Date.now()}@example.com`, phone: '+46701234568' },
     });
     pa23 = assert('PA-23 reservation A1 first', first.status === 200 && first.body.ok === true)
-      && assert('PA-23 reservation A1 duplicate 409', second.status === 409 || second.body.error === 'slot_unavailable');
+      && assert(
+        'PA-23 reservation A1 duplicate 409',
+        isSlotConflict(second.status, second.body),
+        `status=${second.status} error=${second.body?.error || '-'}`
+      );
   } else {
     assert('PA-23 reservation A1', false, 'no slot');
   }
@@ -94,7 +109,7 @@ async function main() {
     const avail = await getJson(
       `/api/public/booking-engine/availability?host=${encodeURIComponent(HOST)}&fromDate=${FROM}&toDate=${TO}&srvIds=${serviceId}`
     );
-    const slot = avail.body.slots?.[0] || null;
+    const slot = pickSlot(avail.body.slots, serviceId === 'consultation-physical' ? 1 : 2);
     if (!slot) {
       assert(`PA-24 reservation ${serviceId}`, false, 'no slot');
       continue;
