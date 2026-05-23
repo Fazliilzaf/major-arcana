@@ -178,7 +178,7 @@
     const image = new Image();
     image.crossOrigin = 'anonymous';
     image.onload = () => {
-      const isMobile = window.matchMedia('(max-width: 820px)').matches;
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
       const sideReserve = isMobile ? 24 : 420;
       const maxWidth = Math.min(window.innerWidth - sideReserve, 960);
       const scale = Math.min(1, maxWidth / image.width);
