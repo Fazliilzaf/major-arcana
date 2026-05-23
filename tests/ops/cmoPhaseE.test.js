@@ -11,7 +11,7 @@ const {
   INSUFFICIENT_DATA_MESSAGE,
 } = require('../../src/ops/cmoMarketingMetrics');
 
-function freshMetric(value, source, window = '7d', fetchedAt = '2026-05-21T12:00:00.000Z') {
+function freshMetric(value, source, window = '7d', fetchedAt = new Date().toISOString()) {
   return {
     value,
     source,
@@ -21,13 +21,17 @@ function freshMetric(value, source, window = '7d', fetchedAt = '2026-05-21T12:00
   };
 }
 
+function recentFetchedAt(offsetHours = 1) {
+  return new Date(Date.now() - offsetHours * 60 * 60 * 1000).toISOString();
+}
+
 const samplePerformanceSnapshot = {
   marketingPerformance: {
     channels: {
       google_ads: {
         source: 'google_ads',
         window: '7d',
-        fetchedAt: '2026-05-21T12:00:00.000Z',
+        fetchedAt: recentFetchedAt(1),
         fresh: true,
         metrics: {
           ctr: freshMetric(0.008, 'google_ads'),
@@ -41,13 +45,13 @@ const samplePerformanceSnapshot = {
       linkedin: {
         source: 'linkedin',
         window: '7d',
-        fetchedAt: '2026-05-21T11:00:00.000Z',
+        fetchedAt: recentFetchedAt(2),
         fresh: true,
         metrics: {
-          ctr: freshMetric(0.03, 'linkedin', '7d', '2026-05-21T11:00:00.000Z'),
-          cpc: freshMetric(2.2, 'linkedin', '7d', '2026-05-21T11:00:00.000Z'),
+          ctr: freshMetric(0.03, 'linkedin', '7d', recentFetchedAt(2)),
+          cpc: freshMetric(2.2, 'linkedin', '7d', recentFetchedAt(2)),
         },
-        spend: freshMetric(500, 'linkedin', '7d', '2026-05-21T11:00:00.000Z'),
+        spend: freshMetric(500, 'linkedin', '7d', recentFetchedAt(2)),
       },
     },
   },
