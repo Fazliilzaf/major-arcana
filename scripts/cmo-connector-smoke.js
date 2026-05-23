@@ -95,6 +95,12 @@ async function smokeDisabledConnectors() {
   const config = {
     marketingConnectorsEnabled: false,
     marketingConnectorsMode: 'off',
+    marketingConnectors: {
+      google_ads: { enabled: false },
+      meta: { enabled: false },
+      linkedin: { enabled: false },
+      mail: { enabled: false },
+    },
   };
   const statuses = await listConnectorStatuses({ config });
   const configured = statuses.filter((item) => item.status !== CONNECTOR_STATUS.NOT_CONFIGURED);
