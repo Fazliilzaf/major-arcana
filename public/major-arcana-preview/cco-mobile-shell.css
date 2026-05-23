@@ -1928,6 +1928,76 @@
       font-size: 10px;
       letter-spacing: -0.01em;
     }
+
+    /* Pre-treatment / TP stegflöde mobil */
+    .cco-clinical-mobile-stepper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 0 0 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+    }
+
+    .cco-clinical-mobile-stepper-progress {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    .cco-clinical-mobile-stepper-title {
+      margin: 2px 0 0;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .cco-clinical-mobile-stepper-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .cco-clinical-mobile-stepper-actions .customers-utility-button {
+      min-height: var(--cco-touch-min, 44px);
+      font-size: 14px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-clinical-step-panel .patient-master-tp-section-body {
+      display: grid;
+      gap: 10px;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tp-header {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .cco-mobile-autosave-indicator {
+      flex: 1 1 100%;
+      margin: 4px 0 0;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .cco-mobile-autosave-indicator[data-tone='success'] {
+      color: var(--cco-status-success, #4a8268);
+    }
+
+    .cco-mobile-autosave-indicator[data-tone='local'],
+    .cco-mobile-autosave-indicator[data-tone='info'] {
+      color: var(--cco-status-info, #4a7ba8);
+    }
+
+    .cco-mobile-autosave-indicator[data-tone='error'] {
+      color: var(--cco-status-danger, #b94a4a);
+    }
+
+    .cco-mobile-autosave-indicator[data-tone='loading'] {
+      color: var(--cco-text-secondary, #5d544a);
+    }
   }
 
   /* Desktop/tablet — mobil-only chrome ska aldrig synas ≥769px */
