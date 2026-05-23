@@ -59,6 +59,7 @@
     "verify:staff-ui-prod": "node ./scripts/verify-staff-ui-prod.js",
     "verify:staff-ui-desktop-prod": "node ./scripts/verify-staff-ui-desktop-prod.js",
     "verify:staff-mobile-login-prod": "node ./scripts/verify-staff-mobile-login-prod.js",
+    "verify:cco-mobile-pilot-prod": "bash ./scripts/verify-cco-mobile-pilot-prod.sh",
     "verify:staff-ui-local": "ARCANA_PROD_URL=http://127.0.0.1:3100 ARCANA_SMOKE_BEARER_TOKEN=__preview_local__ node ./scripts/verify-staff-ui-prod.js",
     "verify:post-op-prod": "BASE=${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se} node ./scripts/verify-post-op-prod.mjs",
     "test:visual:mobile": "playwright test tests/visual/mobile-customers.spec.js --config=playwright.mobile.config.js",

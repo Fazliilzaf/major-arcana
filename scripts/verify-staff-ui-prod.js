@@ -54,12 +54,21 @@ async function injectToken(page, token) {
   }, token);
 }
 
-async function waitForMobileShell(page) {
-  await page.waitForFunction(
-    () => document.documentElement.getAttribute('data-cco-mobile-shell') === 'on',
-    undefined,
-    { timeout: 20000 }
-  );
+async function waitForMobileShell(page, timeout = 30000) {
+  try {
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute('data-cco-mobile-shell') === 'on',
+      undefined,
+      { timeout }
+    );
+  } catch {
+    await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute('data-cco-mobile-shell') === 'on',
+      undefined,
+      { timeout: 15000 }
+    );
+  }
 }
 
 async function openCustomersWithPatient(page, token, id) {

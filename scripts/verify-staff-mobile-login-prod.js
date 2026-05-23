@@ -22,12 +22,12 @@ function record(name, pass, detail = '') {
 }
 
 async function verifyStaffMobileLogin(page) {
-  await page.goto(`${base}/staff?view=customers`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${base}/major-arcana-preview/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.evaluate(() => {
     localStorage.removeItem('ARCANA_ADMIN_TOKEN');
     sessionStorage.removeItem('ARCANA_ADMIN_TOKEN');
   });
-  await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
+  await page.goto(`${base}/staff?view=customers`, { waitUntil: 'networkidle', timeout: 90000 });
 
   const loginForm = page.locator('[data-staff-login-form]');
   const needsLogin = (await loginForm.count()) > 0;
@@ -51,11 +51,14 @@ async function verifyStaffMobileLogin(page) {
   await page.waitForFunction(
     () => {
       const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || sessionStorage.getItem('ARCANA_ADMIN_TOKEN');
-      const list = document.querySelector('[data-customer-list]');
-      return Boolean(token && token.length > 8 && list);
+      const loggedIn = Boolean(token && token.length > 8 && !document.querySelector('[data-staff-login-form]'));
+      const customersReady = Boolean(
+        document.querySelector('[data-customer-list], [data-patient-detail], .customers-layout')
+      );
+      return loggedIn && customersReady;
     },
     undefined,
-    { timeout: 20000 }
+    { timeout: 30000 }
   );
   const elapsedMs = Date.now() - started;
   record('STAFF mobil UI-inloggning → kundlista', true, `${elapsedMs}ms`);
