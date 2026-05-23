@@ -3439,7 +3439,7 @@ function createScheduler({
     }
 
     const runtime = state.jobs[job.id];
-    if (!runtime.enabled) {
+    if (!runtime.enabled && trigger !== 'manual') {
       return { ok: false, error: 'disabled_job', message: 'Jobbet är inaktiverat.' };
     }
 

@@ -36,11 +36,19 @@ async function createFixture() {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
-    req.auth = {
-      tenantId: 'tenant-a',
-      userId: 'anna@example.com',
-      role: 'PATIENT',
-    };
+    const isCustomerPortalRoute =
+      typeof req.path === 'string' && req.path.includes('/cco/customers/portal');
+    req.auth = isCustomerPortalRoute
+      ? {
+          tenantId: 'tenant-a',
+          userId: 'anna@example.com',
+          role: 'PATIENT',
+        }
+      : {
+          tenantId: 'tenant-a',
+          userId: 'staff-1',
+          role: 'STAFF',
+        };
     next();
   });
   app.use(
