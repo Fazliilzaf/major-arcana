@@ -44,7 +44,8 @@ else
 fi
 
 section "Fas 5 — Booking Plan A"
-bash ./scripts/verify-booking-plan-a-prod.sh || warn "booking verify"
+bash ./scripts/verify-booking-plan-a-prod.sh || warn "booking catalog verify"
+BASE="${BASE}" node ./scripts/plan-a-verify-curl.mjs 2>&1 | tail -12 || warn "booking Plan A E2E (plan-a-verify-curl)"
 
 section "Fas 6 — Infra"
 bash ./scripts/verify-render-blueprint-link.sh || fail "blueprint link"
