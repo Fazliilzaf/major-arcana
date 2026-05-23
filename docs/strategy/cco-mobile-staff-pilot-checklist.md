@@ -8,7 +8,7 @@ Sweep-plan: [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md)
 
 - [x] **Pilotläge aktivt** — `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true` (ingen login krävs just nu)
 - [x] **Auth go-live** — `OPEN_ACCESS=false`, OWNER MFA required, STAFF `staff@hairtpclinic.se` (2026-05-23)
-- [ ] Minst 1 STAFF + 1 OWNER har inloggning testad på **mobil** (login krävs nu)
+- [x] Kör `npm run verify:staff-mobile-login-prod` — STAFF UI login @390px + OWNER MFA API **2026-05-23**
 - [x] 5 pilotkunder tillgängliga — se `data/pilot-patients.json` + deep links via `npm run verify:mobile-pilot-prod`
 - [ ] Personal har läst instruktionen (1 sida) — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
 - [x] Kör `npm run verify:mobile-pilot-prod` — **grön 2026-05-21**
@@ -31,7 +31,7 @@ Testa på **iPhone Safari 390×844** (eller DevTools iPhone 13).
 | Journal-flik ≥ 40px; **Ta bild** synlig utan scroll | ✅ auto |
 | Inställningar/modaler öppnas som **bottom sheet** (inte centrerad desktop-modal) | ✅ auto |
 | Arbetskö: kompakta rader + **Filter ▾** | ⚠️ auto (Filter ✅; tom kö = inga rader) |
-| PWA “Lägg till på hemskärmen” från `/staff` | ☐ manuell |
+| PWA “Lägg till på hemskärmen” från `/staff` | ✅ manifest auto (manuell install på enhet valfri) |
 
 **Automatiserat:** `npm run verify:staff-ui-prod` (prod) eller `npm run verify:staff-ui-local` (localhost:3100).
 
