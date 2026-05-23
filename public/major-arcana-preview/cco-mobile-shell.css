@@ -448,13 +448,27 @@
       border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
     }
 
+    html[data-cco-mobile-shell="on"] .preview-shell {
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .focus-conversation,
+    html[data-cco-mobile-shell="on"] .focus-conversation-layout,
+    html[data-cco-mobile-shell="on"] .focus-shell {
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
     html[data-cco-mobile-shell="on"] .patient-master-tab,
     html[data-cco-mobile-shell="on"] .patient-master-mode-button {
       flex: 1 1 0;
       min-width: 0;
       box-sizing: border-box;
-      min-height: 40px;
-      height: 40px;
+      min-height: var(--cco-touch-min, 44px);
+      height: auto;
       padding: 0 10px;
       font-size: 13px;
       line-height: 1.2;
@@ -1618,11 +1632,24 @@
       font-weight: 700;
     }
 
-    html[data-cco-mobile-shell="on"] .patient-master-auth-card,
-    html[data-cco-mobile-shell="on"] [data-staff-login-form],
-    html[data-cco-mobile-shell="on"] .booking-shell-body,
-    html[data-cco-mobile-shell="on"] [data-tp-journal-save-form],
-    html[data-cco-mobile-shell="on"] [data-clinical-journal-save-form] {
+    .cco-mobile-sticky-cta-source {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) .patient-master-auth-card,
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) [data-staff-login-form],
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) .booking-shell-body,
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) [data-tp-journal-save-form],
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) [data-clinical-journal-save-form],
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) #cco-mobile-offer-wizard {
       padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 72px);
     }
 

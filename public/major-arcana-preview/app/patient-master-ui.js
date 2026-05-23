@@ -1266,13 +1266,17 @@
     }
     setMobileOfferWizardStep(1);
     shell.hidden = false;
+    shell.dataset.open = 'true';
     shell.querySelector('[name="quotedAmount"]')?.focus?.();
     return true;
   }
 
   function closeMobileOfferWizard() {
     const shell = document.getElementById('cco-mobile-offer-wizard');
-    if (shell) shell.hidden = true;
+    if (shell) {
+      shell.hidden = true;
+      shell.dataset.open = 'false';
+    }
     offerWizardEntryId = '';
     offerWizardStep = 1;
   }
