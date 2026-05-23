@@ -1295,7 +1295,7 @@ test('composeCmoMarketingCopilot empty inputs still returns stable marketing cop
   assert.equal(composed.data.autoPublish, false);
   assert.match(composed.data.executiveSummary, /Ingen content-data tillgänglig/);
   assert.equal(composed.metadata.agent, CMO_AGENT_NAME);
-  assert.equal(composed.metadata.sources.length, 20);
+  assert.equal(composed.metadata.sources.length, 21);
 });
 
 test('composeCmoMarketingCopilot rich path fills executive summary and asset counts', () => {

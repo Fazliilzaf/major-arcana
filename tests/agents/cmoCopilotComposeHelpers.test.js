@@ -194,6 +194,7 @@ test('dedupeWarnings handles non-array input and analytics metadata constants', 
 test('resolveAgentMetadataIdentity and metadata source constants', () => {
   assert.equal(resolveAgentMetadataIdentity({ channel: ' slack ', tenantId: ' t1 ' }).channel, 'slack');
   assert.equal(resolveAgentMetadataIdentity({}).tenantId, 'unknown');
-  assert.equal(CMO_COPILOT_METADATA_SOURCES.length, 20);
+  assert.equal(CMO_COPILOT_METADATA_SOURCES.length, 21);
+  assert.ok(CMO_COPILOT_METADATA_SOURCES.includes('GenerateContentSeries'));
   assert.ok(CMO_COPILOT_METADATA_SOURCES.includes('CLINICAL_GUARD'));
 });
