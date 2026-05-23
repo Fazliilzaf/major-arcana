@@ -3,6 +3,8 @@
 Senast uppdaterad: **2026-05-23**  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana` · Arkiv: `~/Code/MA-Archive/`
 
+**Steg-för-steg utrullning (6 faser):** [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md)
+
 Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
 
 ---
@@ -164,14 +166,15 @@ P0-arkitektur: [architecture/p0-checklist.md](../architecture/p0-checklist.md)
 
 ## Snabb ordning (vad först)
 
+Se full plan: **[ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md)**
+
 ```
 1. Mobil pilot GO          ← DU ÄR HÄR
 2. Auth + MFA go-live
 3. Post-op flow Fas 1
 4. Compliance-grund (Fas 9)
 5. Egen bookingmotor (Fas 6–7)
-6. Drive-historik i skala
-7. Agenter live + patientkanal
+6. Agenter live + CMO + patientkanal
 ```
 
 ---
@@ -180,6 +183,7 @@ P0-arkitektur: [architecture/p0-checklist.md](../architecture/p0-checklist.md)
 
 | Dokument | Innehåll |
 |----------|----------|
+| [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md) | **6-fas utrullning** — mål, uppgifter, GO per fas |
 | [ma-document-placement-plan.md](./ma-document-placement-plan.md) | Fas A–D + avtalsgate |
 | [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) | Teknisk journal-roadmap |
 | [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) | Detalj per enhet/konsultation |
