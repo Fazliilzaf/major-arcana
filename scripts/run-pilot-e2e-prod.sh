@@ -28,7 +28,7 @@ const headers = {
   'x-arcana-client': 'major_arcana_admin',
 };
 
-async function api(method, path, body) {
+async function api(method, path, body, attempt = 0) {
   const res = await fetch(new URL(path, baseUrl), {
     method,
     headers,
@@ -40,6 +40,10 @@ async function api(method, path, body) {
     json = text ? JSON.parse(text) : {};
   } catch {
     json = { raw: text.slice(0, 300) };
+  }
+  if ((res.status === 502 || res.status === 503) && attempt < 8) {
+    await new Promise((resolve) => setTimeout(resolve, 4000));
+    return api(method, path, body, attempt + 1);
   }
   if (!res.ok) {
     const err = new Error(`${method} ${path} -> ${res.status}: ${json.error || text.slice(0, 200)}`);
@@ -61,7 +65,11 @@ function today() {
 
   const journalBefore = await api('GET', `/api/v1/cco-journal/entries?patientId=${encodeURIComponent(patientId)}`);
   const entries = journalBefore.entries || [];
-  let health = entries.find((e) => e.journalType === 'health_declaration' && !e.locked);
+  const healthEntries = entries.filter((e) => e.journalType === 'health_declaration');
+  let health =
+    healthEntries.find((e) => e.status === 'signed') ||
+    healthEntries.find((e) => !e.locked) ||
+    null;
   let plan = entries.find((e) => e.journalType === 'consultation_plan' && !e.locked);
 
   if (!health) {
