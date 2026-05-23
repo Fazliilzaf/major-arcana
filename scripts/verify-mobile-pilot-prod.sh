@@ -17,6 +17,18 @@ echo "== Mobil pilot prod-verify =="
 echo "BASE: $BASE"
 echo ""
 
+# Ladda STAFF/OWNER från .env om saknas (go-live)
+if [[ -f .env ]]; then
+  if [[ -z "${ARCANA_STAFF_EMAIL:-}" ]]; then
+    ARCANA_STAFF_EMAIL="$(node -r dotenv/config -e "console.log(process.env.ARCANA_STAFF_EMAIL||'')")"
+    export ARCANA_STAFF_EMAIL
+  fi
+  if [[ -z "${ARCANA_STAFF_PASSWORD:-}" ]]; then
+    ARCANA_STAFF_PASSWORD="$(node -r dotenv/config -e "console.log(process.env.ARCANA_STAFF_PASSWORD||'')")"
+    export ARCANA_STAFF_PASSWORD
+  fi
+fi
+
 bash "$ROOT_DIR/scripts/smoke-mobile-journal.sh"
 
 HEALTH="$(curl -fsS "$BASE/api/v1/health/journal-photos")"
@@ -24,7 +36,12 @@ OPEN="$(printf '%s' "$HEALTH" | node -e "let d='';process.stdin.on('data',c=>d+=
 if [[ "$OPEN" == "true" ]]; then
   pass "ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true — personal når journal utan login (pilotläge)"
 else
-  warn "Inloggning krävs — säkerställ STAFF/OWNER-konton innan pilot"
+  pass "Auth go-live aktiv — journal kräver login (OPEN_ACCESS=false)"
+  if node -r dotenv/config -e "process.exit(process.env.ARCANA_STAFF_EMAIL&&process.env.ARCANA_STAFF_PASSWORD?0:1)" 2>/dev/null; then
+    pass "STAFF-credentials finns lokalt — smoke använder staff@ för API-tester"
+  else
+    warn "Saknar ARCANA_STAFF_* i .env — API-upload-tester kan hoppas över"
+  fi
 fi
 
 STAFF_CODE="$(curl -sS -o /dev/null -w '%{http_code}' -L "$BASE/staff?view=customers")"
@@ -51,8 +68,9 @@ fi
 
 echo ""
 echo "=== Nästa (personal) ==="
-echo "1. Öppna länk ovan på iPhone/Android"
-echo "2. Journal → Ta bild → verifiera bild inom 10 sek"
-echo "3. Fyll i docs/strategy/cco-mobile-staff-pilot-checklist.md"
+echo "1. Logga in på /staff med STAFF-konto (staff@hairtpclinic.se — lösenord i .env/GitHub Secrets)"
+echo "2. Öppna Staff-länk ovan på iPhone/Android"
+echo "3. Journal → Ta bild → verifiera bild inom 10 sek"
+echo "4. Fyll i docs/strategy/cco-mobile-staff-pilot-checklist.md"
 echo ""
 pass "Mobil pilot prod-verify klar"

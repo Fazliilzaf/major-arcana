@@ -8,6 +8,8 @@ BASE_URL="${BASE_URL:-https://arcana.hairtpclinic.se}"
 BASE_URL="${BASE_URL%/}"
 EMAIL="${ARCANA_OWNER_EMAIL:-}"
 PASSWORD="${ARCANA_OWNER_PASSWORD:-}"
+STAFF_EMAIL="${ARCANA_STAFF_EMAIL:-}"
+STAFF_PASSWORD="${ARCANA_STAFF_PASSWORD:-}"
 TENANT_ID="${ARCANA_DEFAULT_TENANT:-hair-tp-clinic}"
 PATIENT_ID="${ARCANA_SMOKE_PATIENT_ID:-}"
 BEARER_TOKEN="${ARCANA_SMOKE_BEARER_TOKEN:-}"
@@ -108,13 +110,17 @@ if [[ "$IS_LOCAL_PREVIEW" == "1" && -z "$BEARER_TOKEN" ]]; then
   BEARER_TOKEN="__preview_local__"
 elif [[ "$OPEN_ACCESS" == "true" && -z "$BEARER_TOKEN" ]]; then
   BEARER_TOKEN="__preview_local__"
+elif [[ "$OPEN_ACCESS" != "true" && -n "$STAFF_EMAIL" && -n "$STAFF_PASSWORD" ]]; then
+  EMAIL="$STAFF_EMAIL"
+  PASSWORD="$STAFF_PASSWORD"
+  pass "go-live: använder STAFF-credentials för autentiserade journal-tester"
 fi
 
 if [[ -n "$BEARER_TOKEN" ]]; then
   TOKEN="$BEARER_TOKEN"
   pass "använder ARCANA_SMOKE_BEARER_TOKEN"
 elif [[ -z "$EMAIL" || -z "$PASSWORD" ]]; then
-  warn "Hoppar autentiserade API-tester (sätt ARCANA_OWNER_EMAIL + ARCANA_OWNER_PASSWORD eller ARCANA_SMOKE_BEARER_TOKEN)"
+  warn "Hoppar autentiserade API-tester (sätt ARCANA_STAFF_* eller ARCANA_OWNER_* eller ARCANA_SMOKE_BEARER_TOKEN)"
   echo
   echo "✅ Mobile journal smoke (publik) klar."
   exit 0
