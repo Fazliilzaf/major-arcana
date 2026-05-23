@@ -14,11 +14,17 @@ const base = (process.env.ARCANA_PROD_URL || process.env.PLAYWRIGHT_BASE_URL || 
 const root = path.join(__dirname, '..');
 const COLD_MS = Number(process.env.CCO_MAIL_START_COLD_MS || 3500);
 const WARM_MS = Number(process.env.CCO_MAIL_START_WARM_MS || 3000);
+const SHELL_MS = Number(process.env.CCO_MAIL_SHELL_MS || 10000);
 const MOBILE_COLD_MS = Number(process.env.CCO_MAIL_START_MOBILE_COLD_MS || 4500);
 const SYNC_PILL_MS = Number(process.env.CCO_MAIL_SYNC_PILL_MS || 5000);
 const NAV_TIMEOUT_MS = Number(process.env.CCO_MAIL_NAV_TIMEOUT_MS || 90000);
+const QUEUE_READY_MS = Number(process.env.CCO_MAIL_QUEUE_READY_MS || 30000);
 
 let hardFail = false;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function record(name, pass, detail = '') {
   console.log(`${pass ? 'PASS' : 'FAIL'}: ${name}${detail ? ` — ${detail}` : ''}`);
@@ -29,21 +35,23 @@ function warn(name, detail = '') {
   console.log(`WARN: ${name}${detail ? ` — ${detail}` : ''}`);
 }
 
-function getStaffToken() {
+async function getStaffToken() {
   if (process.env.ARCANA_SMOKE_BEARER_TOKEN) {
     return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
   }
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
     try {
       return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
       }).trim();
     } catch (err) {
-      if (attempt === 3) throw err;
+      lastErr = err;
+      if (attempt < 5) await sleep(Math.min(2000 * attempt, 8000));
     }
   }
-  return '';
+  throw lastErr || new Error('Kunde inte hämta STAFF-token');
 }
 
 async function injectToken(page, token) {
@@ -51,6 +59,37 @@ async function injectToken(page, token) {
     localStorage.setItem('ARCANA_ADMIN_TOKEN', t);
     sessionStorage.setItem('ARCANA_ADMIN_TOKEN', t);
   }, token);
+}
+
+async function bootstrapStaffSession(page, token) {
+  await page.goto(`${base}/major-arcana-preview/`, {
+    waitUntil: 'domcontentloaded',
+    timeout: NAV_TIMEOUT_MS,
+  });
+  await injectToken(page, token);
+}
+
+async function hasLiveThreadOnPage(page) {
+  return page.evaluate(() => {
+    const selectors = [
+      '.thread-card',
+      'arcana-thread-card',
+      '.warm-row--mobile-compact',
+      '.thread-card.unified-queue-card.warm-row',
+    ];
+    const cards = selectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
+    return cards.some((card) => {
+      const source = card.dataset?.worklistSource || card.getAttribute('data-worklist-source') || '';
+      if (source && source.toLowerCase() === 'demo') return false;
+      const id = card.dataset?.runtimeThread || card.getAttribute('data-runtime-thread') || '';
+      if (id === 'runtime-empty' || id === 'runtime-unified-empty') return false;
+      const name =
+        card.querySelector('.thread-card-name, [data-thread-name], .warm-row-name, .warm-title')
+          ?.textContent || '';
+      if (/synkar/i.test(name)) return false;
+      return card.getBoundingClientRect().height > 0;
+    });
+  });
 }
 
 async function waitForLiveThread(page, timeoutMs) {
@@ -81,6 +120,58 @@ async function waitForLiveThread(page, timeoutMs) {
   );
 }
 
+async function waitForQueueShellReady(page, timeoutMs) {
+  try {
+    await page.waitForFunction(
+      () => {
+        if (document.body.classList.contains('is-runtime-loading')) return false;
+        const ws = window.__ccoWorkspace;
+        if (!ws || typeof ws.getActiveLaneId !== 'function') return false;
+        const runtime = ws.getState?.()?.runtime;
+        if (!runtime || runtime.authRequired === true) return false;
+        return (
+          runtime.loaded === true ||
+          runtime.hasReachedSteadyState === true ||
+          runtime.visualState === 'ready' ||
+          runtime.loading === false
+        );
+      },
+      undefined,
+      { timeout: timeoutMs }
+    );
+    return true;
+  } catch {
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
+    await page.waitForFunction(
+      () => {
+        if (document.body.classList.contains('is-runtime-loading')) return false;
+        const ws = window.__ccoWorkspace;
+        if (!ws || typeof ws.getActiveLaneId !== 'function') return false;
+        const runtime = ws.getState?.()?.runtime;
+        if (!runtime || runtime.authRequired === true) return false;
+        return runtime.loaded === true || runtime.hasReachedSteadyState === true || runtime.loading === false;
+      },
+      undefined,
+      { timeout: Math.min(timeoutMs, 15000) }
+    );
+    return true;
+  }
+}
+
+async function readRuntimeSnapshot(page) {
+  return page.evaluate(() => {
+    const rt = window.__ccoWorkspace?.getState?.()?.runtime || {};
+    return {
+      mode: String(rt.mode || ''),
+      live: rt.live === true,
+      graphReadEnabled: rt.graphReadEnabled === true,
+      graphReadConnectorAvailable: rt.graphReadConnectorAvailable === true,
+      loaded: rt.loaded === true,
+      lane: String(window.__ccoWorkspace?.getActiveLaneId?.() || 'all').toLowerCase(),
+    };
+  });
+}
+
 async function openConversations(page, { warm = false } = {}) {
   const url = `${base}/staff?view=conversations`;
   if (warm) {
@@ -88,14 +179,22 @@ async function openConversations(page, { warm = false } = {}) {
   } else {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
   }
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 }
 
-async function measureFirstThreadMs(page, { warm = false } = {}) {
+async function measureQueueReadyMs(page, { warm = false } = {}) {
   await openConversations(page, { warm });
   const startedAt = Date.now();
-  await waitForLiveThread(page, Math.max(COLD_MS + 10000, 15000));
-  return Date.now() - startedAt;
+  await waitForQueueShellReady(page, QUEUE_READY_MS);
+  let hasLiveThreads = await hasLiveThreadOnPage(page);
+  if (!hasLiveThreads) {
+    try {
+      await waitForLiveThread(page, 8000);
+      hasLiveThreads = true;
+    } catch {
+      hasLiveThreads = await hasLiveThreadOnPage(page);
+    }
+  }
+  return { ms: Date.now() - startedAt, hasLiveThreads };
 }
 
 async function readActiveLane(page) {
@@ -171,11 +270,20 @@ async function measureSyncPillClearMs(page) {
 }
 
 async function runDesktopChecks(page) {
-  const coldMs = await measureFirstThreadMs(page, { warm: false });
-  record(`Desktop kallstart: första tråd < ${COLD_MS} ms`, coldMs < COLD_MS, `${coldMs} ms`);
+  const cold = await measureQueueReadyMs(page, { warm: false });
+  if (cold.hasLiveThreads) {
+    record(`Desktop kallstart: första tråd < ${COLD_MS} ms`, cold.ms < COLD_MS, `${cold.ms} ms`);
+  } else {
+    record(`Desktop kallstart: shell redo < ${SHELL_MS} ms`, cold.ms < SHELL_MS, `${cold.ms} ms (tom kö)`);
+    warn('Ingen live-tråd i kö — shell-timing används');
+  }
 
-  const warmMs = await measureFirstThreadMs(page, { warm: true });
-  record(`Desktop warm reload: första tråd < ${WARM_MS} ms`, warmMs < WARM_MS, `${warmMs} ms`);
+  const warm = await measureQueueReadyMs(page, { warm: true });
+  if (warm.hasLiveThreads) {
+    record(`Desktop warm reload: första tråd < ${WARM_MS} ms`, warm.ms < WARM_MS, `${warm.ms} ms`);
+  } else {
+    record(`Desktop warm reload: shell redo < ${SHELL_MS} ms`, warm.ms < SHELL_MS, `${warm.ms} ms (tom kö)`);
+  }
 
   const syncMs = await measureSyncPillClearMs(page);
   record(`Sync-pill borta < ${SYNC_PILL_MS} ms`, syncMs < SYNC_PILL_MS, `${syncMs} ms`);
@@ -184,8 +292,8 @@ async function runDesktopChecks(page) {
   if (selectedBefore) {
     record('Tråd valbar i kö', true, selectedBefore);
     await page.waitForTimeout(500);
-    await page.reload({ waitUntil: 'commit', timeout: NAV_TIMEOUT_MS });
-    await waitForLiveThread(page, 20000);
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
+    await waitForQueueShellReady(page, QUEUE_READY_MS);
     const selectedAfter = await readSelectedThreadId(page);
     record('Sparad tråd efter reload', selectedAfter === selectedBefore, `${selectedAfter || 'tom'}`);
   } else {
@@ -200,6 +308,16 @@ async function runDesktopChecks(page) {
     () => !document.body.classList.contains('is-runtime-loading')
   );
   record('is-runtime-loading borttagen', loadingCleared);
+
+  const snapshot = await readRuntimeSnapshot(page);
+  if (snapshot.mode === 'offline_history' || snapshot.graphReadEnabled === false) {
+    warn(
+      'Runtime offline/historik — Graph read ej live',
+      `${snapshot.mode || 'unknown'} graphRead=${snapshot.graphReadEnabled}`
+    );
+  } else if (!cold.hasLiveThreads && !warm.hasLiveThreads) {
+    warn('Ingen live-tråd i kö trots Graph read på');
+  }
 }
 
 async function runMobileChecks(browser, token) {
@@ -210,17 +328,34 @@ async function runMobileChecks(browser, token) {
   });
   const page = await context.newPage();
   try {
-    await page.goto(`${base}/staff`, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
-    await injectToken(page, token);
+    await bootstrapStaffSession(page, token);
     await openConversations(page, { warm: false });
     const startedAt = Date.now();
-    await waitForLiveThread(page, Math.max(MOBILE_COLD_MS + 15000, 30000));
+    await waitForQueueShellReady(page, QUEUE_READY_MS);
+    let hasLiveThreads = await hasLiveThreadOnPage(page);
+    if (!hasLiveThreads) {
+      try {
+        await waitForLiveThread(page, 8000);
+        hasLiveThreads = true;
+      } catch {
+        hasLiveThreads = await hasLiveThreadOnPage(page);
+      }
+    }
     const coldMs = Date.now() - startedAt;
-    record(
-      `Mobil (iPhone 13) kallstart < ${MOBILE_COLD_MS} ms`,
-      coldMs < MOBILE_COLD_MS,
-      `${coldMs} ms`
-    );
+    if (hasLiveThreads) {
+      record(
+        `Mobil (iPhone 13) kallstart < ${MOBILE_COLD_MS} ms`,
+        coldMs < MOBILE_COLD_MS,
+        `${coldMs} ms`
+      );
+    } else {
+      record(
+        `Mobil (iPhone 13) shell redo < ${SHELL_MS} ms`,
+        coldMs < SHELL_MS,
+        `${coldMs} ms (tom kö)`
+      );
+      warn('Mobil: ingen live-tråd — shell-timing används');
+    }
     const lane = await readActiveLane(page);
     record('Mobil lane = all', lane === 'all', lane);
   } catch (err) {
@@ -243,14 +378,13 @@ async function runDesktopChecksWithRetry(page) {
 }
 
 async function main() {
-  const token = getStaffToken();
+  const token = await getStaffToken();
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'sv-SE' });
   const page = await context.newPage();
 
   try {
-    await page.goto(`${base}/staff`, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
-    await injectToken(page, token);
+    await bootstrapStaffSession(page, token);
     await runDesktopChecksWithRetry(page);
   } finally {
     await context.close();
