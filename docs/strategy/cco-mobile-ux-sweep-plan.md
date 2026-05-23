@@ -1,6 +1,6 @@
 # CCO Mobil UX/UI — Sweep-plan (ett svep)
 
-**Status:** Fas 0 + A + B + **C klara** (2026-05-23) — nästa: **Fas D** (bottom sheets, booking)  
+**Status:** Fas 0 + A + B + C + **D klara** (2026-05-23) — nästa: **Fas E** (density & affärsflöden)  
 **Senast uppdaterad:** 2026-05-23  
 **Relaterad audit:** mobil UX-audit 2026-05-23 (chat)  
 **Bygger på:** [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)  
@@ -194,10 +194,10 @@ Fas F  QA, docs, CI
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| D1.1 | `.customers-modal-surface` @767: fixed bottom, fullbredd, radius top 16px | **Critical** | C5 | shell CSS | Sheet UX |
-| D1.2 | `padding-bottom: calc(16px + env(safe-area-inset-bottom))` | **Critical** | C5 | shell CSS | Knappar nåbara |
-| D1.3 | Drag handle + swipe-to-close (valfritt v1: stäng-knapp nederst) | Medium | — | shell CSS + liten JS | |
-| D1.4 | Gäller: merge, import, macro editor, mailbox admin, settings profile | **Critical** | C5 | shell CSS | Alla `.customers-modal-shell` |
+| D1.1 | `.customers-modal-surface` @767: fixed bottom, fullbredd, radius top 16px | **Critical** | C5 | shell CSS | ✅ Sheet UX |
+| D1.2 | `padding-bottom: calc(16px + env(safe-area-inset-bottom))` | **Critical** | C5 | shell CSS | ✅ Knappar nåbara |
+| D1.3 | Drag handle + swipe-to-close (valfritt v1: stäng-knapp nederst) | Medium | — | shell CSS + liten JS | ✅ Drag handle (::before) |
+| D1.4 | Gäller: merge, import, macro editor, mailbox admin, settings profile | **Critical** | C5 | shell CSS | ✅ Alla `.customers-modal-shell` |
 
 ### D2 Booking shell
 
