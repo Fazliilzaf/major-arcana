@@ -421,6 +421,40 @@ async function createCcoJournalStore({ filePath }) {
     );
   }
 
+  async function deleteEntry({ tenantId, patientId, entryId, actor = {} } = {}) {
+    const existing = await getEntry({ tenantId, patientId, entryId });
+    if (!existing) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (normalizeKey(existing.journalType) !== 'health_declaration') {
+      const error = new Error('Endast dubbletter av hälsodeklaration kan tas bort.');
+      error.statusCode = 409;
+      throw error;
+    }
+    const siblings = await listEntries({
+      tenantId,
+      patientId,
+      journalType: 'health_declaration',
+    });
+    if (siblings.length <= 1) {
+      const error = new Error('Kan inte ta bort enda hälsodeklarationen.');
+      error.statusCode = 409;
+      throw error;
+    }
+    const key = entryKey({ tenantId, patientId, entryId });
+    const index = state.entries.findIndex((item) => entryKey(item) === key);
+    if (index < 0) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const [removed] = state.entries.splice(index, 1);
+    await save();
+    return cloneEntry(removed);
+  }
+
   async function importHistoricalEntries({
     tenantId,
     patientId,
@@ -650,6 +684,7 @@ async function createCcoJournalStore({ filePath }) {
     addConsultationPhotoAttachment,
     addCorrection,
     buildJournalReadout,
+    deleteEntry,
     ensureConsultationPlan,
     findOpenConsultationPlan,
     getEntry,
