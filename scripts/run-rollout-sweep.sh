@@ -34,6 +34,8 @@ warn "MANUELLT: Fas 5.5–5.6 enhetstest + 5 konsultationer (cco-mobile-staff-pi
 
 section "Fas 2 — Auth/MFA (check only)"
 bash ./scripts/verify-auth-go-live-prod.sh || true
+npm run verify:graph-read-prod 2>&1 || warn "Graph read prod verify"
+npm run verify:cco-mail-start-prod 2>&1 || warn "CCO mail-start prod verify"
 
 section "Fas 3 — Post-op Fas 1 (unit)"
 node --test tests/capabilities/requestPostOpReview.test.js

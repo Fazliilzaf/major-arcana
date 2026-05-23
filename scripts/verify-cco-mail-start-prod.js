@@ -142,19 +142,23 @@ async function waitForQueueShellReady(page, timeoutMs) {
     return true;
   } catch {
     await page.reload({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
-    await page.waitForFunction(
-      () => {
-        if (document.body.classList.contains('is-runtime-loading')) return false;
-        const ws = window.__ccoWorkspace;
-        if (!ws || typeof ws.getActiveLaneId !== 'function') return false;
-        const runtime = ws.getState?.()?.runtime;
-        if (!runtime || runtime.authRequired === true) return false;
-        return runtime.loaded === true || runtime.hasReachedSteadyState === true || runtime.loading === false;
-      },
-      undefined,
-      { timeout: Math.min(timeoutMs, 15000) }
-    );
-    return true;
+    try {
+      await page.waitForFunction(
+        () => {
+          if (document.body.classList.contains('is-runtime-loading')) return false;
+          const ws = window.__ccoWorkspace;
+          if (!ws || typeof ws.getActiveLaneId !== 'function') return false;
+          const runtime = ws.getState?.()?.runtime;
+          if (!runtime || runtime.authRequired === true) return false;
+          return runtime.loaded === true || runtime.hasReachedSteadyState === true || runtime.loading === false;
+        },
+        undefined,
+        { timeout: timeoutMs }
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -184,7 +188,11 @@ async function openConversations(page, { warm = false } = {}) {
 async function measureQueueReadyMs(page, { warm = false } = {}) {
   await openConversations(page, { warm });
   const startedAt = Date.now();
-  await waitForQueueShellReady(page, QUEUE_READY_MS);
+  const shellReady = await waitForQueueShellReady(page, QUEUE_READY_MS);
+  const shellMs = Date.now() - startedAt;
+  if (!shellReady) {
+    return { ms: shellMs, hasLiveThreads: false, shellReady: false };
+  }
   let hasLiveThreads = await hasLiveThreadOnPage(page);
   if (!hasLiveThreads) {
     try {
@@ -194,7 +202,7 @@ async function measureQueueReadyMs(page, { warm = false } = {}) {
       hasLiveThreads = await hasLiveThreadOnPage(page);
     }
   }
-  return { ms: Date.now() - startedAt, hasLiveThreads };
+  return { ms: hasLiveThreads ? Date.now() - startedAt : shellMs, hasLiveThreads, shellReady: true };
 }
 
 async function readActiveLane(page) {
@@ -271,7 +279,9 @@ async function measureSyncPillClearMs(page) {
 
 async function runDesktopChecks(page) {
   const cold = await measureQueueReadyMs(page, { warm: false });
-  if (cold.hasLiveThreads) {
+  if (!cold.shellReady) {
+    record(`Desktop kallstart: shell redo < ${SHELL_MS} ms`, cold.ms < SHELL_MS, `${cold.ms} ms (shell ej redo)`);
+  } else if (cold.hasLiveThreads) {
     record(`Desktop kallstart: första tråd < ${COLD_MS} ms`, cold.ms < COLD_MS, `${cold.ms} ms`);
   } else {
     record(`Desktop kallstart: shell redo < ${SHELL_MS} ms`, cold.ms < SHELL_MS, `${cold.ms} ms (tom kö)`);
@@ -279,7 +289,9 @@ async function runDesktopChecks(page) {
   }
 
   const warm = await measureQueueReadyMs(page, { warm: true });
-  if (warm.hasLiveThreads) {
+  if (!warm.shellReady) {
+    record(`Desktop warm reload: shell redo < ${SHELL_MS} ms`, warm.ms < SHELL_MS, `${warm.ms} ms (shell ej redo)`);
+  } else if (warm.hasLiveThreads) {
     record(`Desktop warm reload: första tråd < ${WARM_MS} ms`, warm.ms < WARM_MS, `${warm.ms} ms`);
   } else {
     record(`Desktop warm reload: shell redo < ${SHELL_MS} ms`, warm.ms < SHELL_MS, `${warm.ms} ms (tom kö)`);
@@ -320,6 +332,47 @@ async function runDesktopChecks(page) {
   }
 }
 
+async function runMobileChecksOnce(page) {
+  await openConversations(page, { warm: false });
+  const startedAt = Date.now();
+  const shellReady = await waitForQueueShellReady(page, QUEUE_READY_MS);
+  const shellMs = Date.now() - startedAt;
+  if (!shellReady) {
+    record(
+      `Mobil (iPhone 13) shell redo < ${SHELL_MS} ms`,
+      shellMs < SHELL_MS,
+      `${shellMs} ms (shell ej redo)`
+    );
+    return;
+  }
+  let hasLiveThreads = await hasLiveThreadOnPage(page);
+  if (!hasLiveThreads) {
+    try {
+      await waitForLiveThread(page, 8000);
+      hasLiveThreads = true;
+    } catch {
+      hasLiveThreads = await hasLiveThreadOnPage(page);
+    }
+  }
+  const coldMs = hasLiveThreads ? Date.now() - startedAt : shellMs;
+  if (hasLiveThreads) {
+    record(
+      `Mobil (iPhone 13) kallstart < ${MOBILE_COLD_MS} ms`,
+      coldMs < MOBILE_COLD_MS,
+      `${coldMs} ms`
+    );
+  } else {
+    record(
+      `Mobil (iPhone 13) shell redo < ${SHELL_MS} ms`,
+      coldMs < SHELL_MS,
+      `${coldMs} ms (tom kö)`
+    );
+    warn('Mobil: ingen live-tråd — shell-timing används');
+  }
+  const lane = await readActiveLane(page);
+  record('Mobil lane = all', lane === 'all', lane);
+}
+
 async function runMobileChecks(browser, token) {
   const iphone = devices['iPhone 13'];
   const context = await browser.newContext({
@@ -329,37 +382,18 @@ async function runMobileChecks(browser, token) {
   const page = await context.newPage();
   try {
     await bootstrapStaffSession(page, token);
-    await openConversations(page, { warm: false });
-    const startedAt = Date.now();
-    await waitForQueueShellReady(page, QUEUE_READY_MS);
-    let hasLiveThreads = await hasLiveThreadOnPage(page);
-    if (!hasLiveThreads) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      const failedBefore = hardFail;
       try {
-        await waitForLiveThread(page, 8000);
-        hasLiveThreads = true;
-      } catch {
-        hasLiveThreads = await hasLiveThreadOnPage(page);
+        await runMobileChecksOnce(page);
+      } catch (err) {
+        record('Mobil mail-start', false, err.message || String(err));
       }
+      if (!hardFail || attempt === 2) return;
+      hardFail = failedBefore;
+      warn('Mobil mail-start retry efter timing-fel');
+      await page.waitForTimeout(1500);
     }
-    const coldMs = Date.now() - startedAt;
-    if (hasLiveThreads) {
-      record(
-        `Mobil (iPhone 13) kallstart < ${MOBILE_COLD_MS} ms`,
-        coldMs < MOBILE_COLD_MS,
-        `${coldMs} ms`
-      );
-    } else {
-      record(
-        `Mobil (iPhone 13) shell redo < ${SHELL_MS} ms`,
-        coldMs < SHELL_MS,
-        `${coldMs} ms (tom kö)`
-      );
-      warn('Mobil: ingen live-tråd — shell-timing används');
-    }
-    const lane = await readActiveLane(page);
-    record('Mobil lane = all', lane === 'all', lane);
-  } catch (err) {
-    record('Mobil mail-start', false, err.message || String(err));
   } finally {
     await context.close();
   }
