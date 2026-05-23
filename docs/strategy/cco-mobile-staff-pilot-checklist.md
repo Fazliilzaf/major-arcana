@@ -5,11 +5,12 @@ Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.
 
 ## Före pilot
 
-- [ ] Minst 1 STAFF + 1 OWNER har inloggning (krävs när `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false`)
-- [ ] (Valfritt pilot) Sätt `ARCANA_PILOT_PATIENT_IDS` till 3–5 kund-id
-- [ ] Personal har läst instruktionen (1 sida)
-- [x] Kör `BASE_URL=https://arcana.hairtpclinic.se npm run smoke:mobile-journal` — **grön 2026-05-23** (publik + upload + photo GET)
-- [ ] Kör `npm run backup:journal-photos` och spara arkivet
+- [x] **Pilotläge aktivt** — `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true` (ingen login krävs just nu)
+- [ ] Minst 1 STAFF + 1 OWNER har inloggning (krävs **före skarp drift** när open access stängs av)
+- [x] 5 pilotkunder tillgängliga — se `data/pilot-patients.json` + deep links via `npm run verify:mobile-pilot-prod`
+- [ ] Personal har läst instruktionen (1 sida) — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
+- [x] Kör `npm run verify:mobile-pilot-prod` — **grön 2026-05-23**
+- [x] Kör `npm run backup:journal-photos` — **2026-05-23** (`data/backups/journal-photos/`)
 
 ## Enhetstest (Fas 5.5)
 
