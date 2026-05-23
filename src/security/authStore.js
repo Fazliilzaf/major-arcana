@@ -1256,9 +1256,11 @@ async function createAuthStore({
       const created = await createUser({ email: normalizedEmail, password });
       rawUser = state.users[created.id];
       createdUser = true;
-    } else if (rawUser.status !== 'active') {
-      rawUser.status = 'active';
-      rawUser.updatedAt = nowIso();
+    } else {
+      if (rawUser.status !== 'active') {
+        rawUser.status = 'active';
+        rawUser.updatedAt = nowIso();
+      }
       await setUserPassword(rawUser.id, password);
     }
 

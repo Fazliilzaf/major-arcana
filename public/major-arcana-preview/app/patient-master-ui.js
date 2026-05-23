@@ -2764,10 +2764,20 @@
     }
   }
 
+  function renderStaffAuth() {
+    resolveElements();
+    if (runtime.mode !== 'register') return false;
+    if (!needsStaffLogin()) return false;
+    renderPatientRows();
+    return true;
+  }
+
   window.ArcanaPatientMasterUi = {
     onCustomersViewOpen,
     setMode,
     getRuntime: () => ({ ...runtime }),
+    needsStaffLogin,
+    renderStaffAuth,
     clearMobilePatientSelection,
     goBackToPatientList,
     syncMobilePatientLayout,
