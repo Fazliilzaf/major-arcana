@@ -474,7 +474,7 @@ test('loadLiveRuntime öppnar live-listan först, lazy-hydrerar trådar och cach
   );
   assert.match(
     source,
-    /params\.set\("conversationId",\s*targetConversationId\);[\s\S]*params\.set\("includeBodyHtml",\s*"1"\);/,
+    /params\.set\("conversationId",\s*targetConversationId\);[\s\S]*params\.set\("includeBodyHtml",\s*wantsBodyHtml\s*\?\s*"1"\s*:\s*"0"\);/,
     'Förväntade att history-payload-helpers fortfarande hämtar conversation-specifik historik med bodyHtml aktiverat.'
   );
   assert.match(

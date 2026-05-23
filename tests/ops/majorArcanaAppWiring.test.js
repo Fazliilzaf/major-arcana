@@ -156,15 +156,15 @@ test('topbarens Nytt mejl öppnar compose som fristående nytt mejl utan vald li
 test('compose-läget behåller studiovalen men döljer kundkontextspalten', () => {
   const stylesSource = fs.readFileSync(STYLES_PATH, 'utf8');
 
-  assert.ok(
-    stylesSource.includes('.studio-shell[data-mode="compose"] .studio-sidebar'),
+  assert.match(
+    stylesSource,
+    /\.studio-shell\[data-mode="compose"\] \.studio-sidebar/,
     'Compose-läget ska ha en separat regel för att dölja vänster kundkontext.'
   );
 
-  assert.ok(
-    stylesSource.includes(
-      '.studio-shell[data-mode="compose"] .studio-layout {\n  grid-template-columns: minmax(0, 1fr);'
-    ),
+  assert.match(
+    stylesSource,
+    /\.studio-shell\[data-mode="compose"\] \.studio-layout\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\);/,
     'Compose-läget ska använda en enkolumnslayout när kundkontexten är dold.'
   );
 

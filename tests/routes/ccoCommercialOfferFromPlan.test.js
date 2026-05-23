@@ -69,6 +69,8 @@ async function createFixture() {
       },
       requireAuth: (_req, _res, next) => next(),
       requireRole: () => (_req, _res, next) => next(),
+      renderHtmlToPdfBuffer: async () =>
+        Buffer.from(`%PDF-1.4\n${'mock offer pdf '.repeat(80)}\n`),
     })
   );
   return { app, tempDir, journalStore };
