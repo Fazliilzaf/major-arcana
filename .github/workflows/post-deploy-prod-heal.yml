@@ -1,0 +1,70 @@
+name: arcana-post-deploy-heal
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prod-heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.repository == 'Fazliilzaf/major-arcana'
+    env:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: srv-d6b11o0boq4c73chm7f0
+      ARCANA_PROD_URL: https://arcana.hairtpclinic.se
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Wait for Render deploy
+        run: |
+          echo "Väntar 90s på att Render auto-deploy ska starta..."
+          sleep 90
+
+      - name: Restore Render env from blueprint
+        if: env.RENDER_API_KEY != ''
+        run: bash ./scripts/restore-render-env-from-blueprint.sh
+
+      - name: Skip env restore (no RENDER_API_KEY)
+        if: env.RENDER_API_KEY == ''
+        run: |
+          echo "::warning::RENDER_API_KEY saknas i GitHub secrets — env restore hoppas över."
+          echo "Lägg till Render API-nyckel under Settings → Secrets → RENDER_API_KEY"
+
+      - name: Wait for prod readyz
+        run: |
+          for i in $(seq 1 36); do
+            if curl -fsS "${ARCANA_PROD_URL}/readyz" | grep -q '"ready":true'; then
+              echo "readyz OK efter ${i} försök"
+              exit 0
+            fi
+            echo "väntar... ($i/36)"
+            sleep 10
+          done
+          echo "::error::Prod readyz timeout"
+          exit 1
+
+      - name: Verify prod version
+        run: |
+          curl -fsS "${ARCANA_PROD_URL}/api/v1/_diag/version"
+          echo ""
+
+      - name: Verify pilot journeys (public API)
+        continue-on-error: true
+        run: |
+          if [[ ! -f ./data/pilot-patients.json ]]; then
+            echo "::warning::data/pilot-patients.json saknas (gitignored) — hoppar pilot-verify"
+            exit 0
+          fi
+          bash ./scripts/verify-all-pilot-journey-prod.sh

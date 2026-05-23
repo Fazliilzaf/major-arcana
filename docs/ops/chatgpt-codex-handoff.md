@@ -11,8 +11,11 @@ Praktisk referens när arbetet flyttas mellan Codex (Mac Studio), GitHub och and
 | **Branch** | `main` |
 | **Prod** | https://arcana.hairtpclinic.se (Render auto-deploy efter push) |
 | **CI** | GitHub Actions — workflow `arcana-ci` |
+| **Post-deploy** | `arcana-post-deploy-heal` (kräver GitHub secret `RENDER_API_KEY`) |
 
 **Använd inte** iCloud-sökvägen `~/Library/Mobile Documents/.../Major Arcana 2.0` för git, npm eller Stryker. Den stör sync och mutation-tester.
+
+Arkiv utanför repo: `~/Code/MA-Archive/` — kör `bash scripts/sync-sharepoint-archive.sh` (CODE-only, inga iCloud-sökvägar).
 
 ## Codex — starta session
 
@@ -49,7 +52,8 @@ Efter push:
 
 1. Vänta på grön **arcana-ci** på GitHub
 2. Render deployar prod automatiskt (~1–2 min)
-3. Vid auth/MFA-drift efter deploy: `bash scripts/post-deploy-prod-heal.sh`
+3. **arcana-post-deploy-heal** återställer Render env från `render.yaml` (kräver secret `RENDER_API_KEY`)
+4. Vid behov manuellt: `bash scripts/post-deploy-prod-heal.sh`
 
 ## Vad du ska skriva i handoff till nästa agent
 

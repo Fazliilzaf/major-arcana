@@ -42,6 +42,8 @@ npm run demo:cmo-sandbox-publish:e2e  # Fas P admin E2E (seed → approve → sc
 
 **Prod connectors / live publish:** av medvetet tills OWNER go-live (`ARCANA_MARKETING_CONNECTORS_MODE=fixture`, `ARCANA_MARKETING_PUBLISH_LIVE_ENABLED=false`).
 
+**Render env efter deploy:** Lägg `RENDER_API_KEY` i GitHub Secrets → workflow `arcana-post-deploy-heal` kör `restore-render-env-from-blueprint.sh` automatiskt vid push till `main`. Lokalt: `bash scripts/post-deploy-prod-heal.sh`.
+
 Mer handoff mellan Codex, Cursor och ChatGPT: [`docs/ops/chatgpt-codex-handoff.md`](docs/ops/chatgpt-codex-handoff.md).
 
 ---
