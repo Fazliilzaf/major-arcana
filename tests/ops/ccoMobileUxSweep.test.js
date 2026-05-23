@@ -10,19 +10,26 @@ const PREVIEW_DIR = path.join(ROOT, 'public', 'major-arcana-preview');
 const REQUIRED_MOBILE_ASSETS = [
   'cco-mobile-shell.css',
   'cco-mobile-shell.js',
+  'cco-mobile-core.js',
   'cco-mobile-queue.js',
   'booking-mobile-shell.js',
   'booking-mobile-slot-picker.js',
+  'booking-mobile-calendar-day.js',
 ];
 
 const REQUIRED_INDEX_MARKERS = [
   'viewport-fit=cover',
   'cco-mobile-shell.css',
+  'cco-mobile-core.js',
   'cco-mobile-shell.js',
   'cco-mobile-queue.js',
+  'booking-mobile-calendar-day.js',
   'cco-mobile-tabbar',
   'cco-mobile-back-button',
+  'cco-mobile-menu-button',
   'id="cco-mobile-app-title"',
+  'data-mobile-tab="calendar"',
+  'data-mobile-tab="journal"',
 ];
 
 test('mobile UX sweep — preview index länkar shell assets', () => {
@@ -43,13 +50,17 @@ test('mobile UX sweep — shell asset-filer finns', () => {
 test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const shellJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-shell.js'), 'utf8');
   assert.match(shellJs, /window\.ArcanaMobileShell/, 'ArcanaMobileShell export saknas');
+  assert.match(shellJs, /navigateToCalendar/, 'navigateToCalendar saknas');
+
+  const coreJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-core.js'), 'utf8');
+  assert.match(coreJs, /window\.ArcanaMobileCore/, 'ArcanaMobileCore export saknas');
 
   const queueJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-queue.js'), 'utf8');
   assert.match(queueJs, /window\.ArcanaMobileQueue/, 'ArcanaMobileQueue export saknas');
 
   const patientUi = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'patient-master-ui.js'), 'utf8');
   assert.match(patientUi, /goBackToPatientList/, 'goBackToPatientList saknas');
-  assert.match(patientUi, /openMobileOfferWizard/, 'openMobileOfferWizard saknas');
+  assert.match(patientUi, /setPatientTab/, 'setPatientTab saknas');
 });
 
 test('mobile UX sweep — design tokens har phone breakpoint', () => {
