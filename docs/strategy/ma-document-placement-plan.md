@@ -104,6 +104,7 @@ Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Majo
 - [x] Bokningsmotor läser avtalsstatus från MA (`ccoTreatmentBookingGate.js`)
 - [x] Avbokning tillåten; ombokning/reserve/confirm spärrad utan avtal
 - [x] Prod-verifiering: `scripts/verify-pilot-journey-prod.sh`
+- [x] E2E prod (alla 5 pilotkunder): `scripts/run-pilot-e2e-all-prod.sh` + `scripts/verify-all-pilot-journey-prod.sh`
 
 **Klart när:** Bokning blockeras tills avtal signerat; efter signering öppnas Cliento/plan A.
 

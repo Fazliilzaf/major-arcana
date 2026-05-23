@@ -44,10 +44,12 @@ services:
         value: "true"
       - key: ARCANA_AI_PROVIDER
         value: fallback
+      - key: ARCANA_STAFF_JOURNAL_OPEN_ACCESS
+        value: "true"
       - key: ARCANA_GRAPH_READ_ENABLED
-        value: "true"
+        value: "false"
       - key: ARCANA_GRAPH_SEND_ENABLED
-        value: "true"
+        value: "false"
       - key: ARCANA_GRAPH_TENANT_ID
         sync: false
       - key: ARCANA_GRAPH_CLIENT_ID
@@ -74,7 +76,7 @@ services:
       # UI-managed istället (Render exponerar dem då direkt till
       # process.env utan blueprint-rundtripp).
       - key: PUBLIC_BASE_URL
-        sync: false
+        value: https://arcana.hairtpclinic.se
       - key: CORS_ALLOWED_ORIGINS
         sync: false
       - key: ARCANA_BOOTSTRAP_MAILBOX_BACKFILL
