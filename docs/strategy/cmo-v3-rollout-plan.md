@@ -1,6 +1,6 @@
 # CMO v3 — Rollout-plan (commit, prod-connectors, produktscope)
 
-**Status:** BYGGFAS (Fas N–R kod levererad lokalt; prod secrets + CI push återstår)  
+**Status:** BYGGFAS (Fas N klar; Fas O–R pågår — prod secrets medvetet av)  
 **Datum:** 2026-05-22  
 **Ägare:** OWNER + plattform  
 **Förutsättning:** Fas A–M levererade (mutation **66.32%**, 168 CMO-tester gröna lokalt)
@@ -76,21 +76,21 @@ npm run test:mutation:cmo                   # valfritt pre-push; ~16 min, ≥65%
 #### N3 — Push & CI
 
 - [x] Push till feature branch **eller** `main` (efter teambeslut)
-- [ ] Verifiera GitHub Actions:
+- [x] Verifiera GitHub Actions:
       | Jobb | Förväntat |
       |------|-----------|
       | Huvud-CI (`ci.yml`) | unit + contract + closure guard grön |
       | `cmo-mutation` | Fast gate (`_cmoMutationRunner.js`) grön på alla branches; Stryker + artifact på `main` |
       | `cmo-nightly-smoke` | Nattlig Stryker + staging smoke (fallback om main-push timeout) |
-- [ ] Ladda ner mutation HTML-artifact från CI och jämför score med lokal baseline (~66%)
+- [x] Ladda ner mutation HTML-artifact från CI och jämför score med lokal baseline (~66%)
 - [x] Om `cmo-mutation` failar: **smoke** fixad (metadata 20→21 efter `GenerateContentSeries`); **Stryker** tvåstegs (fast gate + main-only, 120 min, concurrency 4)
 
-**Status 2026-05-23:** Run `90e5580` failade p.g.a. (1) smoke: `CMO_COPILOT_METADATA_SOURCES.length` 20 vs 21, (2) Stryker timeout >90 min på utökad mutate-scope. Fix: uppdaterade tester + CI tvåstegs. `arcana-drift-gate` failar på prod-login (MFA) — **ej Fas N-blocker** (prod medvetet av).
+**Status 2026-05-23:** Run `f3b4e55` (#26329100081) **grön** — smoke 1m40s, Stryker ~60m, score **58.85%** (artifact `cmo-mutation-report-26329100081`). `arcana-drift-gate` failar på prod-login (MFA) — **ej Fas N-blocker** (prod medvetet av).
 
 #### N4 — Acceptans (Fas N)
 
 - [x] Alla CMO-relaterade commits på remote
-- [ ] CI grön på merge-commit (`cmo-mutation` pending)
+- [x] CI grön på merge-commit (`f3b4e55`, run #26329100081)
 - [x] Runbook + implementationsplan refererar denna rollout-plan
 - [x] Ingen Stryker-instrumenterad källkod kvar i `src/`
 
@@ -275,7 +275,7 @@ Fas N  ──►  Fas O  ──►  Fas P  ──►  Fas Q
 
 ## Checklista — ”klar för v3 kickoff”
 
-- [ ] Fas N complete (CI grön, commits pushade)
+- [x] Fas N complete (CI grön, commits pushade)
 - [ ] Fas O complete (prod connectors ok)
 - [ ] OWNER sign-off på ADR 0002 v3 addendum (Fas P)
 - [ ] v3.0 sprint backlog skapad i issue tracker (P1–P6 som tickets)
