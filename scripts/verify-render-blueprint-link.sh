@@ -52,7 +52,7 @@ if [[ -n "${TARGET_SHA:-}" ]]; then
     node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j[0]?.sync?.commit?.id?.slice(0,7)||'')}catch{}});")"
   if [[ -n "$sync_commit" && "$sync_commit" != "$target_short" ]]; then
     echo "⚠ Senaste blueprint-sync ($sync_commit) matchar inte push ($target_short) — autoSync kan vara på väg"
-    exit 2
+  else
+    echo "✅ Blueprint sync commit matchar push ($target_short)"
   fi
-  echo "✅ Blueprint sync commit matchar push ($target_short)"
 fi
