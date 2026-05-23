@@ -1636,3 +1636,42 @@ test('booking engine-ytan visar reservera/bekräfta som förstaklassiga CCO-moto
     'Varför-nu-readouten ska bli tydligare i väntar-kund-läget och visa att tempot eller kundsvaret har förändrats.'
   );
 });
+
+test('Mail-lik start låser lane vid boot och cache-first paint', () => {
+  const appSource = fs.readFileSync(APP_PATH, 'utf8');
+  const domLiveSource = fs.readFileSync(DOM_LIVE_COMPOSITION_PATH, 'utf8');
+  const renderersSource = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'runtime-queue-renderers.js'),
+    'utf8'
+  );
+
+  assertMatchFast(
+    appSource,
+    /bootLaneLocked:\s*true/,
+    'Runtime-state ska starta med bootLaneLocked för att undvika auto-lane-switch.'
+  );
+
+  assertMatchFast(
+    appSource,
+    /bootLaneLocked !== true[\s\S]*allowLaneFallback/,
+    'normalizeVisibleRuntimeScope ska respektera bootLaneLocked vid lane-fallback.'
+  );
+
+  assertMatchFast(
+    domLiveSource,
+    /state\.runtime\.bootLaneLocked = true[\s\S]*applyRuntimeThreadCacheIfAvailable\(\)/,
+    'initializeWorkspaceSurface ska låsa lane och applicera cache före live-load.'
+  );
+
+  assertMatchFast(
+    domLiveSource,
+    /state\.runtime\.staleCacheActive = true[\s\S]*paintRuntimeShell\("chrome"\)/,
+    'Cache-hit ska markera stale sync och måla chrome utan full reload-flash.'
+  );
+
+  assertMatchFast(
+    renderersSource,
+    /pillMode === "sync"[\s\S]*Synkar/,
+    'Live-pill ska visa Synkar… under stale/background sync.'
+  );
+});
