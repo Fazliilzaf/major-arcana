@@ -272,6 +272,23 @@ test('store.deleteSubmission — GDPR-radering', async () => {
   assert.equal(store.findById(submission.submissionId), null);
 });
 
+test('store.deleteSubmission — rensar foto-mapp på disk', async () => {
+  const filePath = await tmpStorePath('gdpr-delete-disk');
+  const photosDir = path.join(path.dirname(filePath), 'post-op-photos');
+  const store = await createPostOpReviewStore({ filePath, photosDir });
+  const { submission } = await store.createSubmission({
+    bookingCaseId: 'case-gdpr-disk',
+    tenantId: 'hair-tp-clinic',
+    patientName: 'X',
+  });
+  const submissionDir = path.join(photosDir, submission.submissionId);
+  await fs.mkdir(submissionDir, { recursive: true });
+  await fs.writeFile(path.join(submissionDir, 'photo-1.jpg'), Buffer.from('jpeg-bytes'));
+  const ok = await store.deleteSubmission(submission.submissionId);
+  assert.equal(ok, true);
+  await assert.rejects(() => fs.stat(submissionDir), /ENOENT/);
+});
+
 test('store.pruneNoConsentPhotos — rensar foton för no-consent efter TTL', async () => {
   const filePath = await tmpStorePath('prune');
   const store = await createPostOpReviewStore({ filePath });

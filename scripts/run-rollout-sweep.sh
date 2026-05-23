@@ -37,6 +37,7 @@ bash ./scripts/verify-auth-go-live-prod.sh || true
 section "Fas 3 — Post-op Fas 1 (unit)"
 node --test tests/capabilities/requestPostOpReview.test.js
 pass "RequestPostOpReview unit tests"
+BASE="${BASE}" node ./scripts/verify-post-op-prod.mjs 2>&1 | tail -14 || warn "post-op prod smoke (verify-post-op-prod.mjs)"
 
 section "Fas 4 — Compliance (unit)"
 if [[ -f tests/capabilities/gdprCustomer.test.js ]]; then

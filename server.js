@@ -1260,6 +1260,7 @@ process.once('SIGTERM', () => {
   });
   const postOpReviewStore = await createPostOpReviewStore({
     filePath: config.postOpReviewStorePath,
+    photosDir: config.postOpPhotosDir,
   });
   const ccoWorkspacePrefsStore = await createCcoWorkspacePrefsStore({
     filePath: config.ccoWorkspacePrefsStorePath,

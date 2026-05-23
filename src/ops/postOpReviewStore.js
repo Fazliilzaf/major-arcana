@@ -154,6 +154,7 @@ function normalizeSubmission(value) {
 
 async function createPostOpReviewStore({
   filePath,
+  photosDir = '',
   tokenTtlDays = DEFAULT_TOKEN_TTL_DAYS,
 } = {}) {
   if (!normalizeText(filePath)) {
@@ -299,12 +300,18 @@ async function createPostOpReviewStore({
 
   /**
    * GDPR-radering på begäran från patient.
+   * Tar även bort foto-mapp på disk om photosDir är konfigurerad.
    */
   async function deleteSubmission(submissionId) {
     const idx = store.submissions.findIndex((s) => s.submissionId === submissionId);
     if (idx < 0) return false;
     store.submissions.splice(idx, 1);
     await persist();
+    const dir = normalizeText(photosDir);
+    if (dir) {
+      const submissionDir = path.join(dir, submissionId);
+      await fs.rm(submissionDir, { recursive: true, force: true }).catch(() => {});
+    }
     return true;
   }
 

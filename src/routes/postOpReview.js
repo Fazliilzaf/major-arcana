@@ -28,6 +28,10 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function normalizeKey(value) {
+  return normalizeText(value).toLowerCase();
+}
+
 // ── EXIF-strip via piexifjs ────────────────────────────────────────
 // piexifjs jobbar med binary-strings ("\xFF\xD8\xFF…"), inte Buffers.
 // Vi konverterar Buffer→binary-string→stripped→Buffer.
@@ -146,6 +150,24 @@ function createPostOpReviewRouter({
   }
 
   const router = express.Router();
+
+  async function safeBookingAddEvent(eventInput = {}, resolvedCase = null) {
+    if (!bookingStore || typeof bookingStore.addEvent !== 'function') return;
+    const tenantId = normalizeText(eventInput.tenantId);
+    const conversationId = normalizeText(eventInput.conversationId || resolvedCase?.conversationId);
+    const customerEmail = normalizeKey(eventInput.customerEmail || resolvedCase?.customerEmail);
+    if (!tenantId || !conversationId || !customerEmail) return;
+    try {
+      await bookingStore.addEvent({
+        ...eventInput,
+        tenantId,
+        conversationId,
+        customerEmail,
+      });
+    } catch (err) {
+      console.warn('[post-op-review] addEvent non-fatal:', err?.message);
+    }
+  }
 
   // ── PATIENT-VY ────────────────────────────────────────────────────
   // GET /uppfoljning/:token — serverar public/uppfoljning/index.html.
@@ -279,38 +301,43 @@ function createPostOpReviewRouter({
 
       // Audit-event i booking-case så operator-vyn visar att triggern körts
       if (bookingStore && typeof bookingStore.updateStatus === 'function' && resolvedCase) {
-        await bookingStore.updateStatus({
-          tenantId: actor.tenantId,
-          workspaceId: resolvedCase.workspaceId,
-          conversationId: resolvedCase.conversationId,
-          customerEmail: resolvedCase.customerEmail,
-          status: 'follow_up_completed',
-          ownerUserId: actor.userId,
-        });
+        try {
+          await bookingStore.updateStatus({
+            tenantId: actor.tenantId,
+            workspaceId: resolvedCase.workspaceId,
+            conversationId: resolvedCase.conversationId,
+            customerEmail: resolvedCase.customerEmail,
+            status: 'follow_up_completed',
+            ownerUserId: actor.userId,
+          });
+        } catch (statusError) {
+          console.warn('[post-op-review/trigger] updateStatus non-fatal:', statusError?.message);
+        }
       }
 
-      if (bookingStore && typeof bookingStore.addEvent === 'function') {
+      if (resolvedCase) {
         const sendSummary = graphSendResult?.ok
           ? ` · 📤 Email skickad via M365 Graph till ${graphSendResult.to}`
           : graphSendResult
             ? ` · 📋 Email INTE auto-skickad (${graphSendResult.mode})`
             : '';
-        await bookingStore.addEvent({
-          tenantId: actor.tenantId,
-          conversationId: resolvedCase?.conversationId || caseId,
-          customerEmail: patientEmail || resolvedCase?.customerEmail || '',
-          type: 'final_followup_marked',
-          label: 'Sista uppföljning markerad klar',
-          detail: (result.data.alreadyExists
-            ? 'Submission fanns redan — ingen ny token genererad.'
-            : `Token-länk genererad. Operator: ${actor.userId}`) + sendSummary,
-          metadata: {
-            submissionId: result.data.submissionId,
-            reviewLink: result.data.reviewLink,
-            alreadyExists: result.data.alreadyExists === true,
-            graphSend: graphSendResult,
+        await safeBookingAddEvent(
+          {
+            tenantId: actor.tenantId,
+            type: 'final_followup_marked',
+            label: 'Sista uppföljning markerad klar',
+            detail: (result.data.alreadyExists
+              ? 'Submission fanns redan — ingen ny token genererad.'
+              : `Token-länk genererad. Operator: ${actor.userId}`) + sendSummary,
+            metadata: {
+              submissionId: result.data.submissionId,
+              reviewLink: result.data.reviewLink,
+              alreadyExists: result.data.alreadyExists === true,
+              graphSend: graphSendResult,
+            },
           },
-        });
+          resolvedCase
+        );
       }
 
       return res.json({
@@ -498,12 +525,16 @@ function createPostOpReviewRouter({
         patientNote,
       });
 
-      // Audit till booking-case att patient submittat
-      if (bookingStore && typeof bookingStore.addEvent === 'function') {
-        await bookingStore.addEvent({
+      const resolvedCase =
+        bookingStore && typeof bookingStore.findCaseByRef === 'function'
+          ? bookingStore.findCaseByRef({
+              tenantId: updated.tenantId,
+              caseRef: updated.bookingCaseId,
+            })
+          : null;
+      await safeBookingAddEvent(
+        {
           tenantId: updated.tenantId,
-          conversationId: updated.bookingCaseId,
-          customerEmail: '',
           type: 'post_op_photos_received',
           label: 'Patient har lämnat efter-bilder',
           detail: consentToPublish
@@ -514,8 +545,9 @@ function createPostOpReviewRouter({
             consentToPublish,
             photoCount: Array.isArray(updated.photos) ? updated.photos.length : 0,
           },
-        });
-      }
+        },
+        resolvedCase
+      );
 
       return res.json({ ok: true, submission: updated });
     } catch (err) {
@@ -591,12 +623,16 @@ function createPostOpReviewRouter({
           uploaded.push({ photoId, size: cleanBuffer.length, mime: file.mimetype });
         }
 
-        // Audit-event
-        if (bookingStore && typeof bookingStore.addEvent === 'function') {
-          await bookingStore.addEvent({
+        const resolvedCase =
+          bookingStore && typeof bookingStore.findCaseByRef === 'function'
+            ? bookingStore.findCaseByRef({
+                tenantId: submission.tenantId,
+                caseRef: submission.bookingCaseId,
+              })
+            : null;
+        await safeBookingAddEvent(
+          {
             tenantId: submission.tenantId,
-            conversationId: submission.bookingCaseId,
-            customerEmail: '',
             type: 'post_op_photo_uploaded',
             label: 'Patient laddade upp efter-bild',
             detail: `${uploaded.length} foto(n) tagna emot, EXIF strippad där tillämpligt.`,
@@ -605,8 +641,9 @@ function createPostOpReviewRouter({
               photoIds: uploaded.map((p) => p.photoId),
               totalAfter: existingCount + uploaded.length,
             },
-          });
-        }
+          },
+          resolvedCase
+        );
 
         return res.json({
           ok: true,
@@ -630,17 +667,23 @@ function createPostOpReviewRouter({
     if (submission) {
       try {
         await postOpReviewStore.markReviewClicked(submission.submissionId);
-        if (bookingStore && typeof bookingStore.addEvent === 'function') {
-          await bookingStore.addEvent({
+        const resolvedCase =
+          bookingStore && typeof bookingStore.findCaseByRef === 'function'
+            ? bookingStore.findCaseByRef({
+                tenantId: submission.tenantId,
+                caseRef: submission.bookingCaseId,
+              })
+            : null;
+        await safeBookingAddEvent(
+          {
             tenantId: submission.tenantId,
-            conversationId: submission.bookingCaseId,
-            customerEmail: '',
             type: 'post_op_review_clicked',
             label: 'Patient klickade på Google-omdöme-CTA',
             detail: 'Beacon från /uppfoljning/:token — patient skickades till GBP.',
             metadata: { submissionId: submission.submissionId },
-          });
-        }
+          },
+          resolvedCase
+        );
       } catch (err) {
         console.warn('[post-op-review/review-clicked] non-fatal:', err?.message);
       }
