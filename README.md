@@ -5,7 +5,45 @@ Node + Express-app med en patientvänlig chatt som:
 - kan öppna bokning via Cliento-widget (”Boka tid”)
 - kan svara utifrån en lokal kunskapsbas (Markdown/TXT)
 
-Arkitekturkontrakt:
+## Workspace (2026-05-23)
+
+| Vad | Var |
+| --- | --- |
+| **Git / kod** | `~/Code/major-arcana` → [github.com/Fazliilzaf/major-arcana](https://github.com/Fazliilzaf/major-arcana) |
+| **Prod** | https://arcana.hairtpclinic.se |
+| **Arkiv (Word, SharePoint)** | `~/Code/MA-Archive/` (utanför repo) |
+| **Webb** | `~/Code/hairtpclinic-web` |
+
+**Regel:** Jobba alltid i `~/Code` — inte i iCloud (`Major Arcana 2.0`). Push → Render auto-deploy → `bash scripts/post-deploy-prod-heal.sh` vid behov.
+
+## Codex + GitHub (daglig dev)
+
+Standard sedan 2026-05: **Codex** på Mac Studio (eller annan Mac med `~/Code`) + **GitHub** som source of truth. iCloud-klonen används inte för kod längre.
+
+| Steg | Kommando / var |
+| --- | --- |
+| 1. Öppna repo | `cd ~/Code/major-arcana` i Codex |
+| 2. Synka | `git pull origin main` |
+| 3. Lokal server | `bash ~/start-arcana.sh` eller `./start-cco-local.sh` → port **3100** |
+| 4. Admin / CMO | http://127.0.0.1:3100/admin (t.ex. `#cmo-connectors`) |
+| 5. Commit | `git add … && git commit -m "…"` |
+| 6. Push | `git push origin main` → **arcana-ci** på GitHub |
+| 7. Prod | Render auto-deploy → https://arcana.hairtpclinic.se |
+
+**Lokal inloggning (dev):** `fazli@hairtpclinic.com` / tenant `hair-tp-clinic` (lösenord i `.env`).
+
+**CMO smoke (lokalt, utan prod):**
+
+```bash
+npm run smoke:cmo-connectors:local   # fixture connectors + valfri remote probe
+npm run demo:cmo-sandbox-publish     # Fas P sandbox publish (ingen live API)
+```
+
+**Prod connectors / live publish:** av medvetet tills OWNER go-live (`ARCANA_MARKETING_CONNECTORS_MODE=fixture`, `ARCANA_MARKETING_PUBLISH_LIVE_ENABLED=false`).
+
+Mer handoff mellan Codex, Cursor och ChatGPT: [`docs/ops/chatgpt-codex-handoff.md`](docs/ops/chatgpt-codex-handoff.md).
+
+---
 - `docs/major-arcana-index.md` (samlad ingång till Major Arcana-materialet)
 - `docs/architecture/execution-gateway-contract.md`
 - `docs/architecture/capability-framework-contract-v1.md`

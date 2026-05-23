@@ -2,10 +2,12 @@
 
 Snabbguide för att slippa vänta på Render-deploy.
 
+> **Workspace:** Kör alltid från `~/Code/major-arcana` (GitHub). Se [`README.md`](README.md) och [`docs/ops/chatgpt-codex-handoff.md`](docs/ops/chatgpt-codex-handoff.md) för Codex-flödet.
+
 ## Snabbstart
 
 ```bash
-cd "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/major-arcana"
+cd ~/Code/major-arcana
 ./start-cco-local.sh
 ```
 
