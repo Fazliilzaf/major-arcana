@@ -1675,18 +1675,12 @@
     }
 
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-chip-row {
-      gap: 4px;
-      margin-top: 4px;
+      display: none;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-chip {
-      min-height: 0;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      line-height: 1.25;
-      box-shadow: none;
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] [data-patient-tab="journal"],
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] [data-patient-tab="avtal"] {
+      display: none !important;
     }
 
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero-main {

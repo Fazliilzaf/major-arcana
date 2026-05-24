@@ -2536,16 +2536,12 @@
                 <span>${escapeHtml(card.primaryEmail || 'Saknar e-post')}</span>
                 <span>${escapeHtml(card.primaryPhone || 'Saknar telefon')}</span>
               </div>
-              <div class="focus-customer-chip-row">${renderPatientFlags(card)}</div>
+              ${renderPatientHeroChipRow(card)}
             </div>
           </div>
         </article>
 
-        <div class="patient-master-tabs" role="tablist">
-          <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
-          <button type="button" class="patient-master-tab${journalActive ? ' is-active' : ''}" data-patient-tab="journal" aria-pressed="${journalActive}">Journal</button>
-          <button type="button" class="patient-master-tab${avtalActive ? ' is-active' : ''}" data-patient-tab="avtal" aria-pressed="${avtalActive}">Avtal</button>
-          <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileCount ? ` (${fileCount})` : ''}</button>
+        <div class="patient-master-tabs" role="tablist">${renderPatientPrimaryTabs(tab, fileCount)}
         </div>
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil"></div>
@@ -2609,7 +2605,7 @@
                 <span>${escapeHtml(card.primaryEmail || 'Saknar e-post')}</span>
                 <span>${escapeHtml(card.primaryPhone || 'Saknar telefon')}</span>
               </div>
-              <div class="focus-customer-chip-row">${renderPatientFlags(card)}</div>
+              ${renderPatientHeroChipRow(card)}
             </div>
             <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="copy-patient-link" title="Kopiera kollegelänk till kundkort (kräver CCO-inloggning)">
               Kopiera kollegelänk
@@ -2620,11 +2616,7 @@
           </div>
         </article>
 
-        <div class="patient-master-tabs" role="tablist">
-          <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
-          <button type="button" class="patient-master-tab${journalActive ? ' is-active' : ''}" data-patient-tab="journal" aria-pressed="${journalActive}">Journal</button>
-          <button type="button" class="patient-master-tab${avtalActive ? ' is-active' : ''}" data-patient-tab="avtal" aria-pressed="${avtalActive}">Avtal</button>
-          <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileCount ? ` (${fileCount})` : ''}</button>
+        <div class="patient-master-tabs" role="tablist">${renderPatientPrimaryTabs(tab, fileCount)}
         </div>
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <!-- Bundlade scripts preload (content-hash: 937abc0aac) -->
     <link rel="preload" as="script" href="./app.bundle.937abc0aac.min.js" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-plan-photo-remove-a" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-mobile-patient-nav-h" />
     <script>
       (function mobileDeferInboxUntilNeeded() {
         try {
@@ -143,11 +143,11 @@
     <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-f7c1ae6" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
     <link rel="stylesheet" href="./cco-polish.css?v=build-plan-photo-remove-a" />
-    <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-plan-photo-remove-a" />
+    <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-mobile-patient-nav-h" />
     <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
     <script src="./cco-mobile-core.js?v=build-mobile-shell-g" defer></script>
     <script src="./cco-mobile-autosave.js?v=build-mobile-shell-e" defer></script>
-    <script src="./cco-mobile-shell.js?v=build-mobile-perf-a" defer></script>
+    <script src="./cco-mobile-shell.js?v=build-mobile-patient-nav-h" defer></script>
     <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
     <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
     <script src="./booking-mobile-calendar-day.js?v=build-mobile-shell-e" defer></script>
@@ -3279,8 +3279,7 @@
                           '<div class="focus-customer-copy"><h2>Laddar kund…</h2>' +
                           '<p class="patient-master-muted patient-master-loading-line">Hämtar kundkort…</p></div></div></article>' +
                           '<div class="patient-master-tabs" role="tablist" aria-hidden="true">' +
-                          '<span class="patient-master-tab">Profil</span><span class="patient-master-tab is-active">Journal</span>' +
-                          '<span class="patient-master-tab">Avtal</span><span class="patient-master-tab">Filer</span></div>' +
+                          '<span class="patient-master-tab is-active">Profil</span><span class="patient-master-tab">Filer</span></div>' +
                           '<div class="patient-master-detail-skeleton" aria-hidden="true">' +
                           '<div class="patient-master-detail-skeleton-bar"></div>' +
                           '<div class="patient-master-detail-skeleton-bar is-short"></div>' +
@@ -3292,7 +3291,7 @@
                   </script>
                   <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-modal-c"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=build-plan-photo-remove-a"></script>
+                  <script async src="./app/patient-master-ui.js?v=build-mobile-patient-nav-h"></script>
 <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
