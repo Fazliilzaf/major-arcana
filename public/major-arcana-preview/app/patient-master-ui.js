@@ -2344,6 +2344,24 @@
     window.setTimeout(paint, 120);
   }
 
+  async function waitForPrefetchedPatient(patientId, maxMs = 4500) {
+    const key = normalizeText(patientId);
+    const deadline = performance.now() + maxMs;
+    while (performance.now() < deadline) {
+      const prefetched = window.__ARCANA_PATIENT_PREFETCH__;
+      if (
+        prefetched &&
+        normalizeText(prefetched.patientId) === key &&
+        prefetched.payload
+      ) {
+        return prefetched.payload;
+      }
+      if (!window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) break;
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
+    return null;
+  }
+
   async function loadPatientDetailInternal(patientId) {
     resolveElements();
     if (!patientId || runtime.mode !== 'register') return;
@@ -2379,7 +2397,13 @@
           : null;
       if (payload) {
         delete window.__ARCANA_PATIENT_PREFETCH__;
-      } else {
+      } else if (window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) {
+        payload = await waitForPrefetchedPatient(patientId);
+        if (payload) {
+          delete window.__ARCANA_PATIENT_PREFETCH__;
+        }
+      }
+      if (!payload) {
         payload = await apiRequest(
           `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
         );

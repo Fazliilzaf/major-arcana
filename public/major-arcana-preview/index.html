@@ -17,7 +17,10 @@
           window.__ARCANA_DEEPLINK_PREFETCH_STARTED__ = true;
           var token = '';
           try {
-            token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+            token =
+              localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+              sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+              '';
           } catch (tokenError) {
             token = '';
           }
@@ -3214,7 +3217,10 @@
                           '<div class="patient-master-detail-skeleton-bar"></div></div></section>';
                         var token = '';
                         try {
-                          token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+                          token =
+                            localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+                            sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
+                            '';
                         } catch (prefetchTokenError) {
                           token = '';
                         }
