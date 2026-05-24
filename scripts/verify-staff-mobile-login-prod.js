@@ -71,6 +71,36 @@ async function verifyStaffMobileLogin(page) {
     blurLeaks.length ? JSON.stringify(blurLeaks) : 'ingen'
   );
 
+  const scrollDiag = await page.evaluate(() => {
+    const pageEl = document.querySelector('.preview-page');
+    if (!pageEl) return { missingPreviewPage: true };
+    const cs = getComputedStyle(pageEl);
+    const before = pageEl.scrollTop;
+    pageEl.scrollTop = before + 120;
+    const after = pageEl.scrollTop;
+    pageEl.scrollTop = before;
+    return {
+      overflowY: cs.overflowY,
+      height: cs.height,
+      maxHeight: cs.maxHeight,
+      scrollH: pageEl.scrollHeight,
+      clientH: pageEl.clientHeight,
+      canScroll: pageEl.scrollHeight > pageEl.clientHeight + 4,
+      moved: after > before,
+    };
+  });
+  if (scrollDiag.missingPreviewPage) {
+    record('Mobil scroll (.preview-page)', false, 'saknar preview-page — fel entry URL?');
+  } else {
+    record(
+      'Mobil scroll (.preview-page)',
+      scrollDiag.overflowY === 'auto' && (scrollDiag.canScroll ? scrollDiag.moved : true),
+      scrollDiag.canScroll
+        ? `moved=${scrollDiag.moved} ${scrollDiag.scrollH}/${scrollDiag.clientH}px`
+        : `overflow=${scrollDiag.overflowY} h=${scrollDiag.height}`
+    );
+  }
+
   if (!staffEmail || !staffPassword) {
     record('STAFF mobil login-form visas', true);
     record('STAFF mobil UI-inloggning', false, 'saknar ARCANA_STAFF_* i .env');

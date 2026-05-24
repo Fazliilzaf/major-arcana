@@ -131,6 +131,11 @@ test('mobile UX sweep — stängda modal-backdrops suddar inte iOS-vy', () => {
     /#later-shell\[aria-hidden="true"\][\s\S]*display:\s*none\s*!important/,
     'Stängda runtime-overlays (later/note/studio) ska display:none på mobil'
   );
+  assert.match(
+    shellCss,
+    /\.preview-page[\s\S]*height:\s*100%\s*!important[\s\S]*overflow-y:\s*auto\s*!important/,
+    'Mobil scroll-container ska ha begränsad höjd + overflow-y auto'
+  );
 });
 
 test('mobile UX sweep — design tokens har phone breakpoint', () => {

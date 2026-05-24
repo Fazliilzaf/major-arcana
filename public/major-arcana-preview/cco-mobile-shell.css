@@ -15,14 +15,22 @@
       --cco-shell-active: 1;
     }
 
-    /* Global mobil scroll — en scroll-container per vy (sidnivå) */
+    /* Global mobil scroll — preview-page är scroll-container (iOS kräver begränsad höjd) */
+    html[data-cco-mobile-shell="on"],
+    html[data-cco-mobile-shell="on"] body.is-preview-ready {
+      height: 100%;
+      overflow: hidden;
+    }
+
     html[data-cco-mobile-shell="on"] .preview-page {
-      height: auto !important;
-      min-height: var(--cco-vh-dynamic, 100dvh);
+      height: 100% !important;
+      max-height: var(--cco-vh-dynamic, 100dvh);
+      min-height: 0 !important;
       overflow-x: hidden !important;
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y;
+      overscroll-behavior-y: contain;
     }
 
     html[data-cco-mobile-shell="on"] .preview-canvas {
@@ -617,14 +625,22 @@
        Fas D — Overlays & modaler (bottom sheets + booking)
        ============================================================ */
 
-    /* D1 — customer / admin modals → bottom sheets */
-    html[data-cco-mobile-shell="on"] .customers-modal-shell,
-    html[data-cco-mobile-shell="on"] .mailbox-admin-shell,
-    html[data-cco-mobile-shell="on"] #note-mode-shell,
-    html[data-cco-mobile-shell="on"] #shell-confirm-shell {
+    /* D1 — customer / admin modals → bottom sheets (endast när öppna) */
+    html[data-cco-mobile-shell="on"] .customers-modal-shell[data-open],
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell[data-open],
+    html[data-cco-mobile-shell="on"] #note-mode-shell[data-open],
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell[data-open] {
       position: fixed;
       inset: 0;
       z-index: calc(var(--cco-z-modal, 10000) - 2);
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-shell:not([data-open]),
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell:not([data-open]),
+    html[data-cco-mobile-shell="on"] #note-mode-shell:not([data-open]),
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell:not([data-open]) {
+      display: none !important;
+      pointer-events: none !important;
     }
 
     /* iOS Safari: fixed backdrop-filter på stängda modaler suddar + blockerar hela sidan.
@@ -1558,12 +1574,10 @@
       width: 100%;
     }
 
-    /* Kundregister mobil: hela sidan scrollar (login + profil) */
+    /* Kundregister mobil: hela sidan scrollar (login + profil) via .preview-page */
     html[data-cco-mobile-shell="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
-      overflow-y: auto;
+      overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
-      height: auto;
-      min-height: 100%;
     }
 
     html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] {
@@ -1606,8 +1620,6 @@
     html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
-      height: auto !important;
-      min-height: 100dvh;
     }
 
     html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-auth-card {
@@ -1771,8 +1783,6 @@
       overflow-y: auto !important;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-      height: auto !important;
-      min-height: var(--cco-vh-dynamic, 100dvh);
       padding-inline: 0;
     }
 
