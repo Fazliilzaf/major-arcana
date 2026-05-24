@@ -30,7 +30,7 @@ if curl -fsS "${BASE}/readyz" 2>/dev/null | grep -q '"ready":true'; then
 else
   warn "Prod svarar inte (deploy?) — kör lokalt: npm run smoke:mobile-journal:local"
 fi
-warn "MANUELLT: Fas 5.5–5.6 enhetstest + 5 konsultationer (cco-mobile-staff-pilot-checklist.md)"
+warn "VALFRITT: Fas 5.5–5.6 uppskjuten — kör manuellt vid behov (cco-mobile-staff-pilot-checklist.md)"
 
 section "Fas 2 — Auth/MFA (check only)"
 bash ./scripts/verify-auth-go-live-prod.sh || true
