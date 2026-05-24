@@ -479,8 +479,8 @@
       tab === 'home' || tab === 'queue'
         ? 'conversations'
         : String(
-            tabButtons.find((node) => node.dataset.mobileTab === tab)?.dataset.navView || tab
-          ).trim();
+          tabButtons.find((node) => node.dataset.mobileTab === tab)?.dataset.navView || tab
+        ).trim();
 
     if (tab === 'customers' && shellBefore === 'customers') {
       syncFromApp();
