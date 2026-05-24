@@ -3224,6 +3224,7 @@
     syncMobilePatientLayout,
     setPatientTab,
     showMobileToast,
+    renderDetailPanel,
   };
 
   if (document.readyState === 'loading') {
