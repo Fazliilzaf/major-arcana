@@ -121,14 +121,6 @@ async function verifyEngine(engine, engineLabel) {
 
     await measureTap(
       page,
-      engineLabel,
-      page.locator('[data-patient-row]').first(),
-      () => Boolean(document.querySelector('[data-patient-detail]:not([data-patient-loading="true"])')),
-      2500
-    );
-
-    await measureTap(
-      page,
       `${engineLabel} tab Kund`,
       page.locator('[data-mobile-tab="customers"]'),
       () =>
@@ -136,6 +128,14 @@ async function verifyEngine(engine, engineLabel) {
         document.querySelector('[data-shell-view="customers"]')?.hidden === false &&
         document.querySelectorAll('[data-patient-row]').length > 0,
       1500
+    );
+
+    await measureTap(
+      page,
+      engineLabel,
+      page.locator('[data-patient-row]').first(),
+      () => Boolean(document.querySelector('[data-patient-detail]:not([data-patient-loading="true"])')),
+      2500
     );
 
     const backButton = page.locator('#cco-mobile-back-button:not([hidden])');
