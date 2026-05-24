@@ -1921,8 +1921,8 @@
     }
 
     if (runtime.detailTab === 'journal') {
-      renderDetailPanel();
-      return true;
+      void hydrateJournalPhotoElements(els.patientRail);
+      window.requestAnimationFrame(() => bindJournalAutosaveForms());
     }
 
     return true;
