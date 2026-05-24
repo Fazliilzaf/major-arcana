@@ -43,6 +43,7 @@
   let explicitCalendarTab = false;
   let explicitJournalTab = false;
   let syncFromAppRaf = 0;
+  let mobileNavGeneration = 0;
   const WORKSPACE_OPTS = Object.freeze({
     persist: false,
     resetScroll: false,
@@ -133,14 +134,20 @@
   }
 
   function deferMobileTabWork(fn) {
+    const generation = ++mobileNavGeneration;
+    const run = () => {
+      if (generation !== mobileNavGeneration) return;
+      fn();
+    };
     if (typeof queueMicrotask === 'function') {
-      queueMicrotask(fn);
+      queueMicrotask(run);
     } else {
-      setTimeout(fn, 0);
+      setTimeout(run, 0);
     }
   }
 
   function primeMobileTabNavigation(tab) {
+    window.ArcanaAppNav?.cancelMobileNavigationWork?.();
     if (!canvas) return;
     switch (tab) {
       case 'home':
