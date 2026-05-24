@@ -148,9 +148,40 @@
     return !hasStoredStaffSession();
   }
 
+  function clearStaffTokens() {
+    try {
+      window.localStorage.removeItem(ADMIN_TOKEN_KEY);
+    } catch {
+      /* ignore */
+    }
+    try {
+      window.sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function resetAuthMobileLayout() {
+    if (!isMobileViewport() || runtime.mode !== 'register') return;
+    const hadDetail =
+      Boolean(normalizeText(runtime.selectedPatientId)) ||
+      document.documentElement.hasAttribute('data-cco-patient-detail');
+    resetMobilePatientDetailState();
+    document.documentElement.removeAttribute('data-cco-patient-detail');
+    try {
+      delete window.__ARCANA_MOBILE_DEEPLINK_PRIME__;
+    } catch {
+      /* ignore */
+    }
+    if (hadDetail) {
+      replaceMobilePatientListUrl();
+    }
+  }
+
   function syncAuthRequiredChrome() {
     const required = needsStaffLogin() || runtime.authRequired;
     if (required) {
+      resetAuthMobileLayout();
       document.documentElement.setAttribute('data-cco-auth-required', 'on');
       window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
       window.ArcanaMobileCore?.enhanceStickyCtas?.();
@@ -736,13 +767,7 @@
     if (!rail) return;
     els.patientRail = rail;
     if (syncAuthRequiredChrome()) {
-      const mobileListShowsLogin =
-        isMobileViewport() && runtime.mode === 'register' && !isMobilePatientDetailActive();
-      rail.innerHTML = mobileListShowsLogin
-        ? ''
-        : renderStaffLoginCard(
-            runtime.error || 'Logga in för att läsa kundregister och journal.'
-          );
+      rail.innerHTML = '';
       syncMobilePatientLayout();
       return;
     }
@@ -2545,6 +2570,10 @@
         ? 'Inloggning krävs. Logga in nedan.'
         : error.message || 'Kunde inte läsa kundregistret.';
       runtime.authRequired = isAuthFailure(error.statusCode, error.message);
+      if (runtime.authRequired) {
+        clearStaffTokens();
+        runtime.authRequired = true;
+      }
       setStatus(runtime.error, 'error');
     } finally {
       runtime.loading = false;
@@ -3865,7 +3894,12 @@
       runtime.preferJournalOnMobile = true;
     }
     if (runtime.mode === 'register') {
-      if (needsStaffLogin()) {
+      if (needsStaffLogin() || runtime.authRequired) {
+        if (runtime.authRequired) {
+          clearStaffTokens();
+        }
+        resetAuthMobileLayout();
+        renderDetailEmpty();
         renderPatientRows();
         return;
       }
