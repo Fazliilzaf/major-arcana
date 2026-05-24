@@ -13835,6 +13835,7 @@
     handleWorkspaceDocumentClick,
     handleWorkspaceDocumentKeydown,
     initializeWorkspaceSurface,
+    ensureMobileInboxReady,
     loadLiveRuntime,
     requestRuntimeThreadHydration,
     selectOfflineHistoryConversation,
@@ -39617,9 +39618,27 @@
       });
     }
 
-    normalizeWorkspaceState();
-    syncShellViewToLocation();
-    window.ArcanaMobileShell?.syncFromApp?.();
+    if (shellView === "conversations" && isMobileShellViewport()) {
+      void ensureMobileInboxReady({ backgroundRefresh: true }).catch((error) => {
+        console.warn("CCO mobil inbox kunde inte förberedas.", error);
+      });
+    }
+
+    const finalizeAppView = () => {
+      normalizeWorkspaceState();
+      syncShellViewToLocation();
+      window.ArcanaMobileShell?.syncFromApp?.();
+    };
+
+    if (isMobileShellViewport() && shellStructureChanged) {
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(finalizeAppView);
+      } else {
+        setTimeout(finalizeAppView, 0);
+      }
+    } else {
+      finalizeAppView();
+    }
   }
 
   function setSelectedAnalyticsPeriod(periodKey) {
@@ -42443,5 +42462,6 @@
   window.ArcanaAppNav = Object.freeze({
     setAppView,
     setMobileWorkspaceView,
+    ensureMobileInboxReady,
   });
 })();

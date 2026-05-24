@@ -250,6 +250,8 @@
     const RUNTIME_ANALYZE_INBOX_MIN_INTERVAL_MS = 55000;
     let runtimeMailboxScopeLoadTimer = 0;
     const RUNTIME_MAILBOX_SCOPE_DEBOUNCE_MS = 450;
+    let mobileInboxLoadPromise = null;
+    let mobileInboxDeferredBootstrap = false;
 
     function paintRuntimeShell(scope = "all") {
       if (typeof scheduleRuntimeConversationShell === "function") {
@@ -1296,6 +1298,88 @@
         /* ignore */
       }
       return isLocalPreviewHost();
+    }
+
+    function isMobileShellViewport() {
+      try {
+        return windowObject.matchMedia("(max-width: 768px)").matches;
+      } catch {
+        return false;
+      }
+    }
+
+    function readInitialShellViewFromLocation() {
+      try {
+        const params = new URLSearchParams(windowObject.location?.search || "");
+        return normalizeKey(params.get("view")) || "conversations";
+      } catch {
+        return "conversations";
+      }
+    }
+
+    function shouldDeferMobileInboxBootstrap() {
+      if (!isMobileShellViewport()) return false;
+      const initialView = readInitialShellViewFromLocation();
+      return initialView !== "conversations" && initialView !== "inbox" && initialView !== "home";
+    }
+
+    async function ensureMobileInboxReady({ backgroundRefresh = true } = {}) {
+      if (!isMobileShellViewport() || isStaffJournalOpenAccessClient()) {
+        return { ready: false, deferred: false };
+      }
+      if (state.runtime?.authRequired === true) {
+        return { ready: false, authRequired: true };
+      }
+
+      const paintQueueIfAvailable = () => {
+        if (runtimeHasLiveThreads() || asArray(state.runtime?.threads).length > 0) {
+          paintRuntimeShell("queue");
+          return true;
+        }
+        return false;
+      };
+
+      if (paintQueueIfAvailable()) {
+        if (backgroundRefresh && state.runtime?.loading !== true) {
+          void loadLiveRuntime({
+            staleWhileRevalidate: true,
+            isBackgroundRefresh: true,
+          }).catch((error) => {
+            console.warn("CCO mobil inbox-bakgrundssync misslyckades.", error);
+          });
+        }
+        return { ready: true, source: "memory" };
+      }
+
+      if (mobileInboxLoadPromise) {
+        return mobileInboxLoadPromise;
+      }
+
+      mobileInboxLoadPromise = (async () => {
+        const cachedApplied = await applyRuntimeThreadCacheIfAvailable();
+        if (cachedApplied || paintQueueIfAvailable()) {
+          if (backgroundRefresh) {
+            await loadLiveRuntime({
+              staleWhileRevalidate: true,
+            }).catch((error) => {
+              console.warn("CCO mobil inbox-laddning misslyckades.", error);
+            });
+          }
+          return { ready: true, source: cachedApplied ? "cache" : "memory" };
+        }
+
+        await loadLiveRuntime({
+          staleWhileRevalidate: false,
+        }).catch((error) => {
+          console.warn("CCO mobil inbox-laddning misslyckades.", error);
+        });
+        return { ready: runtimeHasLiveThreads(), source: "network" };
+      })().finally(() => {
+        mobileInboxLoadPromise = null;
+        mobileInboxDeferredBootstrap = false;
+      });
+
+      return mobileInboxLoadPromise;
     }
 
     async function waitForRuntimeAuthToken({ timeoutMs, intervalMs = 60 } = {}) {
@@ -3430,6 +3514,23 @@
         return;
       }
 
+      if (
+        isMobileShellViewport() &&
+        options.forceReload !== true &&
+        !requestedMailboxIds.length &&
+        runtimeHasLiveThreads() &&
+        state.runtime?.loading !== true &&
+        (options.viewRestoreOnly === true ||
+          (options.isBackgroundRefresh !== true &&
+            options.staleWhileRevalidate === true &&
+            state.runtime?.loaded === true))
+      ) {
+        paintRuntimeShell("queue");
+        if (options.viewRestoreOnly === true && options.isBackgroundRefresh !== true) {
+          return;
+        }
+      }
+
       try {
         const adminToken = await waitForRuntimeAuthToken();
         if (!isCurrentRequest()) return;
@@ -5167,6 +5268,8 @@
       state.runtime.bootLaneLocked = true;
 
       const cachedApplied = await applyRuntimeThreadCacheIfAvailable();
+      const deferMobileInbox = shouldDeferMobileInboxBootstrap();
+      mobileInboxDeferredBootstrap = deferMobileInbox;
 
       loadBootstrap({
         preserveActiveDestination: true,
@@ -5177,16 +5280,19 @@
       });
 
       if (!isStaffJournalOpenAccessClient()) {
-        loadLiveRuntime({
-          staleWhileRevalidate: cachedApplied === true,
-        }).catch((error) => {
-          console.warn("CCO aktiv körning misslyckades.", error);
-        });
+        if (!deferMobileInbox) {
+          loadLiveRuntime({
+            staleWhileRevalidate: cachedApplied === true,
+          }).catch((error) => {
+            console.warn("CCO aktiv körning misslyckades.", error);
+          });
+        }
       }
     }
 
     return Object.freeze({
       bindWorkspaceInteractions,
+      ensureMobileInboxReady,
       ensureSelectedRuntimeThreadHistoryBody,
       handleWorkspaceDocumentClick,
       handleWorkspaceDocumentKeydown,

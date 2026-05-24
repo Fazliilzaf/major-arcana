@@ -329,6 +329,7 @@
             return;
           }
           setMobileWorkspaceQueue();
+          void window.ArcanaAppNav?.ensureMobileInboxReady?.({ backgroundRefresh: true });
           if (shellView === 'conversations') {
             syncFromApp();
             return;
