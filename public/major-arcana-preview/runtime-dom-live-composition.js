@@ -1333,7 +1333,12 @@
 
       const paintQueueIfAvailable = () => {
         if (runtimeHasLiveThreads() || asArray(state.runtime?.threads).length > 0) {
-          paintRuntimeShell("queue");
+          const paint = () => paintRuntimeShell("queue");
+          if (typeof windowObject.requestAnimationFrame === "function") {
+            windowObject.requestAnimationFrame(paint);
+          } else {
+            paint();
+          }
           return true;
         }
         return false;

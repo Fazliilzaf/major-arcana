@@ -39507,10 +39507,11 @@
     const shellStructureChanged =
       appliedShellViewState !== shellView ||
       appliedConversationShellState !== showConversations;
+    const mobileShell = isMobileShellViewport();
     canvas.dataset.appView = normalizedView;
     canvas.dataset.appShellView = shellView;
 
-    if (shellStructureChanged) {
+    const applyShellStructure = () => {
       shellViewSections.forEach((section) => {
         section.hidden = normalizeKey(section.dataset.shellView) !== shellView;
       });
@@ -39522,106 +39523,132 @@
       });
       appliedShellViewState = shellView;
       appliedConversationShellState = showConversations;
+    };
+
+    if (shellStructureChanged) {
+      if (mobileShell && typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(applyShellStructure);
+      } else {
+        applyShellStructure();
+      }
     }
 
-    navViewButtons.forEach((button) => {
-      const buttonView = normalizeKey(button.dataset.navView);
-      const isActive =
-        buttonView === normalizedView ||
-        (buttonView === "automation" && shellView === "automation");
-      button.classList.toggle("preview-nav-item-active", isActive);
-      button.setAttribute("aria-pressed", isActive ? "true" : "false");
-    });
+    if (!mobileShell) {
+      navViewButtons.forEach((button) => {
+        const buttonView = normalizeKey(button.dataset.navView);
+        const isActive =
+          buttonView === normalizedView ||
+          (buttonView === "automation" && shellView === "automation");
+        button.classList.toggle("preview-nav-item-active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
 
-    closeMailboxDropdowns();
-    if (moreMenuToggle) {
-      const isMoreView = AUX_VIEWS.has(shellView);
-      moreMenuToggle.classList.toggle("preview-nav-item-active", isMoreView);
-      moreMenuToggle.setAttribute("aria-pressed", isMoreView ? "true" : "false");
+      closeMailboxDropdowns();
+      if (moreMenuToggle) {
+        const isMoreView = AUX_VIEWS.has(shellView);
+        moreMenuToggle.classList.toggle("preview-nav-item-active", isMoreView);
+        moreMenuToggle.setAttribute("aria-pressed", isMoreView ? "true" : "false");
+      }
+
+      setMoreMenuOpen(false);
     }
 
-    setMoreMenuOpen(false);
+    const closeConversationPanels = () => {
+      if (!showConversations && shellStructureChanged) {
+        setStudioOpen(false);
+        setNoteOpen(false);
+        setNoteModeOpen(false);
+        setScheduleOpen(false);
+        setLaterOpen(false);
+        setContextCollapsed(false);
+      }
+    };
 
-    if (!showConversations && shellStructureChanged) {
-      setStudioOpen(false);
-      setNoteOpen(false);
-      setNoteModeOpen(false);
-      setScheduleOpen(false);
-      setLaterOpen(false);
-      setContextCollapsed(false);
-    }
+    const runViewLoads = () => {
+      closeConversationPanels();
 
-    if (shellView === "customers") {
-      const patientRegisterReady = window.ArcanaPatientMasterUi?.getRuntime?.()?.loaded === true;
-      if (!(isMobileShellViewport() && patientRegisterReady)) {
-        loadCustomersRuntime().catch((error) => {
-          console.warn("Kundernas live-laddning misslyckades.", error);
-          applyCustomerFilters();
+      if (shellView === "customers") {
+        const patientRegisterReady = window.ArcanaPatientMasterUi?.getRuntime?.()?.loaded === true;
+        if (!(mobileShell && patientRegisterReady)) {
+          loadCustomersRuntime().catch((error) => {
+            console.warn("Kundernas live-laddning misslyckades.", error);
+            applyCustomerFilters();
+          });
+        }
+        if (window.ArcanaPatientMasterUi?.onCustomersViewOpen) {
+          window.ArcanaPatientMasterUi.onCustomersViewOpen();
+        }
+      }
+
+      if (shellView === "analytics") {
+        renderAnalyticsRuntime();
+        loadAnalyticsRuntime().catch((error) => {
+          console.warn("Analysens live-laddning misslyckades.", error);
         });
       }
-      if (window.ArcanaPatientMasterUi?.onCustomersViewOpen) {
-        window.ArcanaPatientMasterUi.onCustomersViewOpen();
+
+      if (shellView === "automation") {
+        if (aliasAutomationSection) {
+          setAutomationSubnav(aliasAutomationSection);
+        }
+        renderAutomationTemplateConfig();
+        renderAutomationTestingState();
+        renderAutomationVersions();
+        renderAutomationSuggestions();
+        loadAutomationVersions(state.selection.automationTemplate).catch((error) => {
+          console.warn("Automation live-laddning misslyckades.", error);
+        });
       }
-    }
 
-    if (shellView === "analytics") {
-      renderAnalyticsRuntime();
-      loadAnalyticsRuntime().catch((error) => {
-        console.warn("Analysens live-laddning misslyckades.", error);
-      });
-    }
-
-    if (shellView === "automation") {
-      if (aliasAutomationSection) {
-        setAutomationSubnav(aliasAutomationSection);
+      if (shellView === "integrations") {
+        renderIntegrations();
+        loadIntegrationsRuntime().catch((error) => {
+          console.warn("Integrations live-laddning misslyckades.", error);
+        });
       }
-      renderAutomationTemplateConfig();
-      renderAutomationTestingState();
-      renderAutomationVersions();
-      renderAutomationSuggestions();
-      loadAutomationVersions(state.selection.automationTemplate).catch((error) => {
-        console.warn("Automation live-laddning misslyckades.", error);
-      });
-    }
 
-    if (shellView === "integrations") {
-      renderIntegrations();
-      loadIntegrationsRuntime().catch((error) => {
-        console.warn("Integrations live-laddning misslyckades.", error);
-      });
-    }
+      if (shellView === "macros") {
+        renderMacros();
+        loadMacrosRuntime().catch((error) => {
+          console.warn("Macros live-laddning misslyckades.", error);
+        });
+      }
 
-    if (shellView === "macros") {
-      renderMacros();
-      loadMacrosRuntime().catch((error) => {
-        console.warn("Macros live-laddning misslyckades.", error);
-      });
-    }
+      if (shellView === "settings") {
+        renderSettings();
+        loadSettingsRuntime().catch((error) => {
+          console.warn("Settings live-laddning misslyckades.", error);
+        });
+      }
 
-    if (shellView === "settings") {
-      renderSettings();
-      loadSettingsRuntime().catch((error) => {
-        console.warn("Settings live-laddning misslyckades.", error);
-      });
-    }
+      if (shellView === "showcase") {
+        renderShowcase();
+        loadMacrosRuntime().catch((error) => {
+          console.warn("Showcase macros-laddning misslyckades.", error);
+        });
+        loadSettingsRuntime().catch((error) => {
+          console.warn("Showcase settings-laddning misslyckades.", error);
+        });
+        loadIntegrationsRuntime().catch((error) => {
+          console.warn("Showcase integrations-laddning misslyckades.", error);
+        });
+      }
 
-    if (shellView === "showcase") {
-      renderShowcase();
-      loadMacrosRuntime().catch((error) => {
-        console.warn("Showcase macros-laddning misslyckades.", error);
-      });
-      loadSettingsRuntime().catch((error) => {
-        console.warn("Showcase settings-laddning misslyckades.", error);
-      });
-      loadIntegrationsRuntime().catch((error) => {
-        console.warn("Showcase integrations-laddning misslyckades.", error);
-      });
-    }
+      if (shellView === "conversations" && mobileShell) {
+        void ensureMobileInboxReady({ backgroundRefresh: true }).catch((error) => {
+          console.warn("CCO mobil inbox kunde inte förberedas.", error);
+        });
+      }
+    };
 
-    if (shellView === "conversations" && isMobileShellViewport()) {
-      void ensureMobileInboxReady({ backgroundRefresh: true }).catch((error) => {
-        console.warn("CCO mobil inbox kunde inte förberedas.", error);
-      });
+    if (mobileShell && shellStructureChanged) {
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(runViewLoads);
+      } else {
+        setTimeout(runViewLoads, 0);
+      }
+    } else {
+      runViewLoads();
     }
 
     const finalizeAppView = () => {
@@ -39630,7 +39657,7 @@
       window.ArcanaMobileShell?.syncFromApp?.();
     };
 
-    if (isMobileShellViewport() && shellStructureChanged) {
+    if (mobileShell && shellStructureChanged) {
       if (typeof requestAnimationFrame === "function") {
         requestAnimationFrame(finalizeAppView);
       } else {
