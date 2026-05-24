@@ -2367,7 +2367,7 @@
     window.setTimeout(paint, 120);
   }
 
-  async function waitForPrefetchedPatient(patientId, maxMs = 4500) {
+  async function waitForPrefetchedPatient(patientId, maxMs = 800) {
     const key = normalizeText(patientId);
     const deadline = performance.now() + maxMs;
     while (performance.now() < deadline) {
@@ -2379,10 +2379,54 @@
       ) {
         return prefetched.payload;
       }
-      if (!window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) break;
-      await new Promise((resolve) => window.setTimeout(resolve, 0));
+      if (!window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) break;
+      await new Promise((resolve) => window.setTimeout(resolve, 16));
     }
     return null;
+  }
+
+  async function fetchPatientDetailFromApi(patientId) {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeoutId = controller ? window.setTimeout(() => controller.abort(), 8000) : 0;
+    try {
+      return await apiRequest(
+        `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`,
+        controller ? { signal: controller.signal } : {}
+      );
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    }
+  }
+
+  async function resolvePatientDetailPayload(patientId) {
+    const key = normalizeText(patientId);
+    const prefetched = window.__ARCANA_PATIENT_PREFETCH__;
+    if (
+      prefetched &&
+      normalizeText(prefetched.patientId) === key &&
+      prefetched.payload
+    ) {
+      delete window.__ARCANA_PATIENT_PREFETCH__;
+      return prefetched.payload;
+    }
+
+    const apiPromise = fetchPatientDetailFromApi(patientId);
+    if (!window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) {
+      return apiPromise;
+    }
+
+    try {
+      return await Promise.race([
+        waitForPrefetchedPatient(patientId, 2500).then((payload) => {
+          if (!payload) throw new Error('prefetch-miss');
+          delete window.__ARCANA_PATIENT_PREFETCH__;
+          return payload;
+        }),
+        apiPromise,
+      ]);
+    } catch {
+      return apiPromise;
+    }
   }
 
   async function loadPatientDetailInternal(patientId) {
@@ -2411,35 +2455,7 @@
       pushMobilePatientDetailHistory(patientId);
     }
     try {
-      const prefetched = window.__ARCANA_PATIENT_PREFETCH__;
-      let payload =
-        prefetched &&
-        normalizeText(prefetched.patientId) === normalizeText(patientId) &&
-        prefetched.payload
-          ? prefetched.payload
-          : null;
-      if (payload) {
-        delete window.__ARCANA_PATIENT_PREFETCH__;
-      } else if (window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) {
-        payload = await waitForPrefetchedPatient(patientId);
-        if (payload) {
-          delete window.__ARCANA_PATIENT_PREFETCH__;
-        }
-      }
-      if (!payload) {
-        const controller = typeof AbortController === 'function' ? new AbortController() : null;
-        const timeoutId = controller
-          ? window.setTimeout(() => controller.abort(), 8000)
-          : 0;
-        try {
-          payload = await apiRequest(
-            `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`,
-            controller ? { signal: controller.signal } : {}
-          );
-        } finally {
-          if (timeoutId) window.clearTimeout(timeoutId);
-        }
-      }
+      const payload = await resolvePatientDetailPayload(patientId);
       runtime.detail = payload;
       runtime.detailLoading = false;
       if (isMobileViewport() && runtime.preferJournalOnMobile) {
