@@ -2200,6 +2200,21 @@
   }
 
   async function loadPatientDetailInternal(patientId) {
+    const debugMark = (phase) => {
+      try {
+        window.__DEBUG_PATIENT_LOAD__ = window.__DEBUG_PATIENT_LOAD__ || [];
+        window.__DEBUG_PATIENT_LOAD__.push({
+          phase,
+          patientId: normalizeText(patientId),
+          detailLoading: runtime.detailLoading,
+          card: Boolean(runtime.detail?.card),
+          t: Math.round(performance.now()),
+        });
+      } catch {
+        /* ignore */
+      }
+    };
+    debugMark('start');
     if (!patientId || runtime.mode !== 'register') return;
     const openingNewPatient = runtime.selectedPatientId !== patientId;
     if (openingNewPatient) {
@@ -2234,13 +2249,17 @@
       if (payload) {
         delete window.__ARCANA_PATIENT_PREFETCH__;
       } else {
+        debugMark('api-wait');
         payload = await apiRequest(
           `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
         );
+        debugMark('api-done');
       }
       runtime.detail = payload;
       runtime.detailLoading = false;
+      debugMark('before-render');
       renderDetailPanel();
+      debugMark('after-render');
       if (isMobileViewport()) {
         void Promise.all([
           loadPatientCommercialCase(patientId),
@@ -2258,11 +2277,13 @@
         renderDetailPanel();
       }
     } catch (error) {
+      debugMark('error');
       runtime.detail = null;
       renderDetailEmpty();
       setStatus(error.message || 'Kunde inte läsa kundkortet.', 'error');
     } finally {
       runtime.detailLoading = false;
+      debugMark('finally');
       if (normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__) === normalizeText(patientId)) {
         delete window.__ARCANA_MOBILE_DEEPLINK_PRIME__;
       }
