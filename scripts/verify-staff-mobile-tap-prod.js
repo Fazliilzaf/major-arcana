@@ -92,18 +92,39 @@ async function verifyEngine(engine, engineLabel) {
 
     await measureTap(
       page,
-      engineLabel,
-      page.locator('[data-patient-row]').first(),
-      () => Boolean(document.querySelector('[data-patient-detail]:not([data-patient-loading="true"])')),
-      2500
+      `${engineLabel} tab Boka`,
+      page.locator('[data-mobile-tab="booking"]'),
+      () =>
+        document.querySelector('.preview-canvas')?.dataset?.appShellView === 'conversations' &&
+        document.querySelector('.preview-canvas')?.dataset?.mobileWorkspaceView === 'focus',
+      800
+    );
+
+    await measureTap(
+      page,
+      `${engineLabel} tab Kalender`,
+      page.locator('[data-mobile-tab="calendar"]'),
+      () => document.documentElement.hasAttribute('data-cco-calendar-open'),
+      800
     );
 
     await measureTap(
       page,
       `${engineLabel} tab Hem`,
       page.locator('[data-mobile-tab="home"]'),
-      () => document.querySelector('.preview-canvas')?.dataset?.appShellView === 'conversations',
-      1500
+      () =>
+        document.querySelector('.preview-canvas')?.dataset?.appShellView === 'conversations' &&
+        document.querySelector('.preview-canvas')?.dataset?.mobileWorkspaceView === 'queue' &&
+        !document.documentElement.hasAttribute('data-cco-calendar-open'),
+      800
+    );
+
+    await measureTap(
+      page,
+      engineLabel,
+      page.locator('[data-patient-row]').first(),
+      () => Boolean(document.querySelector('[data-patient-detail]:not([data-patient-loading="true"])')),
+      2500
     );
 
     await measureTap(
