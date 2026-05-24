@@ -736,9 +736,13 @@
     if (!rail) return;
     els.patientRail = rail;
     if (syncAuthRequiredChrome()) {
-      rail.innerHTML = renderStaffLoginCard(
-        runtime.error || 'Logga in för att läsa kundregister och journal.'
-      );
+      const mobileListShowsLogin =
+        isMobileViewport() && runtime.mode === 'register' && !isMobilePatientDetailActive();
+      rail.innerHTML = mobileListShowsLogin
+        ? ''
+        : renderStaffLoginCard(
+            runtime.error || 'Logga in för att läsa kundregister och journal.'
+          );
       syncMobilePatientLayout();
       return;
     }
@@ -2464,11 +2468,17 @@
   }
 
   async function loadStats() {
+    if (needsStaffLogin()) return;
     try {
       const payload = await apiRequest('/api/v1/cco-patient-master/stats');
       runtime.stats = payload.stats || null;
       renderMetricCards();
     } catch (error) {
+      if (isAuthFailure(error.statusCode, error.message)) {
+        runtime.authRequired = true;
+        runtime.error = 'Inloggning krävs. Logga in nedan.';
+        renderPatientRows();
+      }
       console.warn('Patient stats misslyckades.', error);
     }
   }
