@@ -303,7 +303,7 @@ async function dispatchCustomerReminderDigest({
   toEmail,
   fromEmail,
 } = {}) {
-  if (!graphSendConnector || typeof graphSendConnector.sendMail !== 'function') {
+  if (!graphSendConnector || typeof graphSendConnector.sendNewMessage !== 'function') {
     return { skipped: true, reason: 'graph_send_unavailable' };
   }
   const recipient = normalizeText(toEmail);
@@ -312,12 +312,14 @@ async function dispatchCustomerReminderDigest({
   }
   const subject = `CCO påminnelser — ${queue.visitReminders.length} besök, ${queue.aftercareReminders.length} eftervård`;
   const html = buildReminderDigestHtml(queue);
-  await graphSendConnector.sendMail({
-    from: normalizeText(fromEmail) || 'kons@hairtpclinic.com',
-    to: recipient,
+  const mailboxId = normalizeText(fromEmail) || 'kons@hairtpclinic.com';
+  await graphSendConnector.sendNewMessage({
+    mailboxId,
+    sourceMailboxId: mailboxId,
     subject,
-    html,
-    metadata: { tenantId, kind: 'cco_customer_reminders_digest' },
+    bodyHtml: html,
+    body: html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    to: [{ emailAddress: { address: recipient } }],
   });
   return { skipped: false, to: recipient, subject };
 }

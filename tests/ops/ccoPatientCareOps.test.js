@@ -195,7 +195,7 @@ test('resolveMaintenanceWindow marks upcoming before window', () => {
 
 test('dispatchCustomerReminderDigest skips empty queue', async () => {
   const result = await dispatchCustomerReminderDigest({
-    graphSendConnector: { sendMail: async () => {} },
+    graphSendConnector: { sendNewMessage: async () => {} },
     queue: { total: 0, visitReminders: [], aftercareReminders: [] },
     toEmail: 'ops@example.com',
   });
@@ -206,7 +206,7 @@ test('dispatchCustomerReminderDigest sends when queue has items', async () => {
   let sent = null;
   const result = await dispatchCustomerReminderDigest({
     graphSendConnector: {
-      sendMail: async (payload) => {
+      sendNewMessage: async (payload) => {
         sent = payload;
       },
     },
@@ -216,9 +216,10 @@ test('dispatchCustomerReminderDigest sends when queue has items', async () => {
       aftercareReminders: [],
     },
     toEmail: 'ops@example.com',
+    fromEmail: 'kons@hairtpclinic.com',
     tenantId: 'hair-tp-clinic',
   });
   assert.equal(result.skipped, false);
-  assert.equal(sent.to, 'ops@example.com');
+  assert.equal(sent.to[0].emailAddress.address, 'ops@example.com');
   assert.match(sent.subject, /CCO påminnelser/);
 });
