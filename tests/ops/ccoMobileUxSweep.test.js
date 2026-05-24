@@ -71,6 +71,25 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   assert.match(patientUi, /bindJournalAutosaveForms/, 'bindJournalAutosaveForms saknas');
 });
 
+test('mobile UX sweep — B3 workspace switch synlig i Konversationer, dold i Kunder', () => {
+  const shellCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-shell.css'), 'utf8');
+  assert.match(
+    shellCss,
+    /data-app-shell-view="conversations"\][\s\S]*\.mobile-workspace-switch[\s\S]*display:\s*flex/,
+    'B3: workspace switch ska visas i Konversationer'
+  );
+  assert.match(
+    shellCss,
+    /width:\s*calc\(100% - \(var\(--cco-mobile-gutter\) \* 2\)\)/,
+    'B3: fullbredd med 16px gutter'
+  );
+  assert.doesNotMatch(
+    shellCss,
+    /html\[data-cco-mobile-shell="on"\]\s*\.mobile-workspace-switch\s*\{[^}]*display:\s*none\s*!important/,
+    'B3: global hide !important ska vara borta'
+  );
+});
+
 test('mobile UX sweep — design tokens har phone breakpoint', () => {
   const tokens = fs.readFileSync(path.join(PREVIEW_DIR, 'design-tokens.css'), 'utf8');
   assert.match(tokens, /768|767|phone/i, 'design-tokens saknar mobil breakpoint');

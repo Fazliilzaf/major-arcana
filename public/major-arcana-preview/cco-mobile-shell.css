@@ -43,10 +43,6 @@
       min-height: auto;
     }
 
-    html[data-cco-mobile-shell="on"] .mobile-workspace-switch {
-      display: none !important;
-    }
-
     body.is-preview-ready {
       padding-left: env(safe-area-inset-left, 0px);
       padding-right: env(safe-area-inset-right, 0px);
@@ -166,9 +162,74 @@
       letter-spacing: 0.1em;
     }
 
-    /* B3 — workspace switch dold globalt på mobil (se global regel ovan) */
-    .mobile-workspace-switch {
-      display: none !important;
+    /* B3 — workspace switch: Konversationer (Arbetskö / Fokus-Bokning) */
+    html[data-cco-mobile-shell="on"] .mobile-workspace-switch {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .mobile-workspace-switch {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-sizing: border-box;
+      width: calc(100% - (var(--cco-mobile-gutter) * 2));
+      min-height: 48px;
+      margin: 8px var(--cco-mobile-gutter) 0;
+      padding: 4px;
+      position: sticky;
+      top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+      z-index: calc(var(--cco-z-sticky, 100) - 1);
+      border: 1px solid rgba(120, 105, 90, 0.16);
+      border-radius: 14px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(250, 246, 242, 0.48)),
+        rgba(252, 248, 244, 0.82);
+      box-shadow:
+        0 5px 14px rgba(70, 50, 30, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(18px) saturate(1.12);
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .mobile-workspace-switch-button {
+      flex: 1 1 0;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 11px;
+      background: transparent;
+      color: rgba(74, 63, 54, 0.62);
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* B3.3 — switch är enda sticky under app-bar; kö-rubrik scrollar med innehåll */
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .queue-topzone,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .preview-head,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .focus-head {
+      position: static;
+      top: auto;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .preview-workspace {
+      --workspace-top-clearance: 0px;
+      --workspace-sticky-top: calc(var(--topbar-height) + 52px);
+      padding-inline: var(--cco-mobile-gutter);
+      gap: 12px;
+      padding-top: 0;
     }
 
     .preview-workspace {
