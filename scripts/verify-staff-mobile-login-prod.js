@@ -165,6 +165,17 @@ async function verifyStaffMobileLogin(page, engineLabel = 'Chromium') {
     undefined,
     { timeout: 30000 }
   );
+  await page
+    .waitForFunction(
+      () => {
+        const node = document.querySelector('[data-patient-metric="total"] strong');
+        const total = Number(String(node?.textContent || '0').replace(/\s/g, ''));
+        return Number.isFinite(total) && total > 0;
+      },
+      undefined,
+      { timeout: 15000 }
+    )
+    .catch(() => {});
   const elapsedMs = Date.now() - started;
   const metricTotal = await page
     .locator('[data-patient-metric="total"] strong')
