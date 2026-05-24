@@ -1,9 +1,9 @@
 # Major Arcana — projektchecklista
 
-Senast uppdaterad: **2026-05-20**  
+Senast uppdaterad: **2026-05-24**  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana` · Arkiv: `~/Code/MA-Archive/`
 
-> **Följ dagligen:** [MASTER-TODO.md](./MASTER-TODO.md) (en sida) · [Notion — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)
+> **Följ dagligen:** [MASTER-TODO.md](./MASTER-TODO.md) — **samlad faslista, alla punkter i ordning** · [Notion — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)
 
 **Steg-för-steg utrullning (6 faser):** [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md)
 
