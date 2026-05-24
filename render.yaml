@@ -97,11 +97,11 @@ services:
         value: "5000"
       - key: ARCANA_BOOTSTRAP_PHASE1_ONLY
         value: "false"
-      # Go-live: OWNER-login kräver MFA.
+      # Byggfas: MFA av tills allt är klart (sätt true + owner_mfa_enforced vid go-live).
       - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
-        value: "true"
+        value: "false"
       - key: ARCANA_PREFLIGHT_READINESS_CHECKS
-        value: cors_strict,owner_mfa_enforced
+        value: cors_strict
       # MFA reset: sätt till true manuellt i Render UI vid kontrollerad heal, sedan tillbaka false
       - key: ARCANA_BOOTSTRAP_RESET_OWNER_MFA
         value: "false"

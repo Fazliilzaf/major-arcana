@@ -78,7 +78,7 @@ function createAuthRouter({
   requireTenantScope,
   loginRateLimiter = null,
   selectTenantRateLimiter = null,
-  ownerMfaRequired = true,
+  ownerMfaRequired = false,
   ownerMfaBypassHosts = [],
   loginSessionRotationScope = 'none',
   bootstrapOwnerEmail = '',
@@ -384,11 +384,11 @@ function createAuthRouter({
       const hasAdminRoleMembership = hasAdminMembership(memberships);
       const ownerMfaBypassed = isOwnerMfaBypassed(req);
       const ownerAdminClientBypassed = hasAdminRoleMembership && isMajorArcanaAdminClient(req);
-      const requiresMfa = ownerMfaBypassed || ownerAdminClientBypassed
-        ? false
-        : hasOwnerMembership
-          ? ownerMfaRequired === true
-          : Boolean(user?.mfaRequired);
+      const requiresMfa =
+        ownerMfaRequired === true &&
+        !ownerMfaBypassed &&
+        !ownerAdminClientBypassed &&
+        (hasOwnerMembership ? true : Boolean(user?.mfaRequired));
 
       if (requiresMfa) {
         const pendingMfa =
