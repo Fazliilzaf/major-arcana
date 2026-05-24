@@ -143,11 +143,11 @@
     <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-f7c1ae6" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
     <link rel="stylesheet" href="./cco-polish.css?v=build-plan-photo-remove-a" />
-    <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-mobile-booking-layout" />
+    <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-mobile-tab-nav-h" />
     <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
     <script src="./cco-mobile-core.js?v=build-mobile-shell-g" defer></script>
     <script src="./cco-mobile-autosave.js?v=build-mobile-shell-e" defer></script>
-    <script src="./cco-mobile-shell.js?v=build-mobile-booking-layout" defer></script>
+    <script src="./cco-mobile-shell.js?v=build-mobile-tab-nav-h" defer></script>
     <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
     <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
     <script src="./booking-mobile-calendar-day.js?v=build-mobile-shell-e" defer></script>
@@ -3060,101 +3060,38 @@
             hidden
           >
             <div class="customers-surface">
-              <div class="customers-head">
-                <div class="customers-head-main">
-                  <div class="customers-head-mark" aria-hidden="true">
-                    <svg viewBox="0 0 16 16">
-                      <circle
-                        cx="5.2"
-                        cy="5.5"
-                        r="1.9"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.35"
-                      />
-                      <path
-                        d="M2.8 10.8a3.2 3.2 0 0 1 4.8 0M10.1 4.9h3.1M11.65 3.35v3.1M9.9 10.7l1.6 1.6 2.7-3.1"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.35"
-                      />
-                    </svg>
+              <header class="customers-register-header customers-head">
+                <div class="customers-register-hero">
+                  <div class="customers-register-title-row">
+                    <div class="customers-title-group">
+                      <h1 id="customers-title">Kundregister</h1>
+                      <p class="customers-register-lead" data-customers-lead hidden>
+                        Hantera kundprofiler, slå ihop dubbletter och få full överblick.
+                      </p>
+                    </div>
+                    <div class="patient-master-mode-toggle" role="tablist" aria-label="Kundvy">
+                      <button
+                        class="patient-master-mode-button is-active"
+                        type="button"
+                        data-patient-master-mode="register"
+                        role="tab"
+                        aria-pressed="true"
+                      >
+                        Register
+                      </button>
+                      <button
+                        class="patient-master-mode-button"
+                        type="button"
+                        data-patient-master-mode="identity"
+                        role="tab"
+                        aria-pressed="false"
+                      >
+                        Identitet
+                      </button>
+                    </div>
                   </div>
-                  <div class="customers-title-group">
-                    <p class="customers-kicker" data-i18n="ui.kunder.40ba99">Kunder</p>
-                    <h1 id="customers-title">Kundregister</h1>
-                    <p>Sök kunder, öppna kundkort med importerad journal och Drive-filer.</p>
-                  </div>
-                </div>
 
-                <div class="patient-master-mode-toggle" role="tablist" aria-label="Kundvy">
-                  <button
-                    class="patient-master-mode-button is-active"
-                    type="button"
-                    data-patient-master-mode="register"
-                    role="tab"
-                    aria-pressed="true"
-                  >
-                    Kundregister
-                  </button>
-                  <button
-                    class="patient-master-mode-button"
-                    type="button"
-                    data-patient-master-mode="identity"
-                    role="tab"
-                    aria-pressed="false"
-                  >
-                    Identitet
-                  </button>
-                </div>
-
-                <div class="customers-head-actions">
-                  <button
-                    class="customers-utility-button"
-                    type="button"
-                    data-customer-command="bulk_merge"
-                  >
-                    Massammanfoga <span data-customer-bulk-count>(2)</span>
-                  </button>
-                  <button
-                    class="customers-utility-button"
-                    type="button"
-                    data-customer-command="export"
-                    data-i18n="ui.exportera.59e749"
-                  >
-                    Exportera
-                  </button>
-                  <button
-                    class="customers-utility-button"
-                    type="button"
-                    data-customer-command="import"
-                    data-i18n="ui.importera.4c615a"
-                  >
-                    Importera
-                  </button>
-                  <button
-                    class="customers-utility-button"
-                    type="button"
-                    data-post-op-reviews-open
-                    hidden
-                  >
-                    Omdömen <span data-post-op-toolbar-count></span>
-                  </button>
-                  <button
-                    class="customers-utility-button"
-                    type="button"
-                    data-customer-command="settings"
-                    data-i18n="ui.installningar.04700b"
-                  >
-                    Inställningar
-                  </button>
-                  <p class="shell-status customers-shell-status" data-customers-status hidden></p>
-                </div>
-              </div>
-
-              <div class="customers-metric-row" aria-label="Kundöversikt">
+                  <div class="customers-metric-row" aria-label="Kundöversikt">
                 <article
                   class="customers-metric-card customers-metric-card-blue"
                   data-patient-metric="total"
@@ -3190,7 +3127,9 @@
                   <span>Endast Drive</span>
                   <strong>0</strong>
                 </article>
-              </div>
+                  </div>
+                </div>
+              </header>
 
               <div class="customers-toolbar">
                 <label class="customers-search">
@@ -3237,14 +3176,48 @@
                   </select>
                 </label>
 
-                <button
-                  type="button"
-                  class="customers-utility-button customers-toolbar-settings"
-                  data-customer-command="settings"
-                  aria-label="Kundregister inställningar"
-                >
-                  Inställ.
-                </button>
+                <div class="customers-toolbar-actions customers-head-actions">
+                  <button
+                    class="customers-utility-button customers-utility-button-quiet"
+                    type="button"
+                    data-customer-command="bulk_merge"
+                  >
+                    Massammanfoga <span data-customer-bulk-count>(2)</span>
+                  </button>
+                  <button
+                    class="customers-utility-button customers-utility-button-quiet"
+                    type="button"
+                    data-customer-command="export"
+                    data-i18n="ui.exportera.59e749"
+                  >
+                    Exportera
+                  </button>
+                  <button
+                    class="customers-utility-button customers-utility-button-quiet"
+                    type="button"
+                    data-customer-command="import"
+                    data-i18n="ui.importera.4c615a"
+                  >
+                    Importera
+                  </button>
+                  <button
+                    class="customers-utility-button customers-utility-button-quiet"
+                    type="button"
+                    data-post-op-reviews-open
+                    hidden
+                  >
+                    Omdömen <span data-post-op-toolbar-count></span>
+                  </button>
+                  <button
+                    type="button"
+                    class="customers-utility-button customers-toolbar-settings"
+                    data-customer-command="settings"
+                    aria-label="Kundregister inställningar"
+                  >
+                    Inställ.
+                  </button>
+                  <p class="shell-status customers-shell-status" data-customers-status hidden></p>
+                </div>
               </div>
 
               <div class="customers-layout">

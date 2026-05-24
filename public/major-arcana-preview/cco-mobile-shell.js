@@ -187,9 +187,14 @@
     }
   }
 
+  function closeCalendarSheet() {
+    document.documentElement.removeAttribute('data-cco-calendar-open');
+    window.ArcanaBookingMobileCalendar?.close?.();
+  }
+
   function showConversationShell(workspaceView) {
     if (!canvas) return;
-    document.documentElement.removeAttribute('data-cco-calendar-open');
+    closeCalendarSheet();
     canvas.dataset.appShellView = 'conversations';
     canvas.dataset.appView = 'conversations';
     canvas.dataset.mobileWorkspaceView = workspaceView === 'focus' ? 'focus' : 'queue';
@@ -204,7 +209,7 @@
 
   function showCustomersShell() {
     if (!canvas) return;
-    document.documentElement.removeAttribute('data-cco-calendar-open');
+    closeCalendarSheet();
     canvas.dataset.appShellView = 'customers';
     canvas.dataset.appView = 'customers';
     document.querySelectorAll('[data-shell-view]').forEach((section) => {
