@@ -1,7 +1,7 @@
 # CCO Booking — Plan A (Go-live)
 
-Status: **GODKÄND SCOPE**  
-Datum: 2026-05-22  
+Status: **PROD VERIFY KLAR** — operatör sign-off kvar  
+Datum: 2026-05-22 (prod curl 2026-05-24)  
 Tenant: **Hair TP Clinic**
 
 Relaterat:
@@ -47,12 +47,12 @@ Dessa kan fortfarande hanteras **internt i CCO** (telefon, Level 1.5) men ska **
 
 Plan A är **live** när alla tre mötestyper kan bokas end-to-end:
 
-- [ ] **A1** — Patient bokar online möte → reservation → e-post → operatör confirm
-- [ ] **A2** — Patient bokar fysisk konsultation → samma flöde
-- [ ] **A3** — Patient bokar uppföljning HT → samma flöde
-- [ ] Webb visar **endast** dessa tre val
-- [ ] Operatör ser korrekt mötestyp i CCO booking surface
-- [ ] Slot låst efter confirm; dubbelbokning omöjlig (409)
+- [x] **A1** — Patient bokar online möte → reservation → e-post → operatör confirm *(curl reservation 200; confirm manuellt)*
+- [x] **A2** — Patient bokar fysisk konsultation → samma flöde *(curl reservation 200)*
+- [x] **A3** — Patient bokar uppföljning HT → samma flöde *(curl reservation 200)*
+- [x] Webb visar **endast** dessa tre val *(catalog: 3 tjänster prod)*
+- [x] Operatör ser korrekt mötestyp i CCO booking surface *(PA-07 kod + prod UI)*
+- [x] Slot låst efter confirm; dubbelbokning omöjlig (409) *(PA-23 duplicate 409 prod)*
 - [ ] Minst 1 operatör har testat alla tre typer
 
 ---
@@ -85,17 +85,17 @@ Plan A är **live** när alla tre mötestyper kan bokas end-to-end:
 
 **Endpoints (prod):**
 
-- [ ] `GET /api/public/booking-engine/catalog?host=hairtpclinic.com` — returnerar endast A1, A2, A3
-- [ ] `GET /api/public/booking-engine/availability` — slots per vald tjänst
-- [ ] `POST /api/public/booking-engine/reservations` — 15 min hold, låser slot
+- [x] `GET /api/public/booking-engine/catalog?host=hairtpclinic.com` — returnerar endast A1, A2, A3 *(2026-05-24)*
+- [x] `GET /api/public/booking-engine/availability` — slots per vald tjänst *(88/88/13 slots)*
+- [x] `POST /api/public/booking-engine/reservations` — 15 min hold, låser slot
 
 **Beteende:**
 
-- [ ] Dubbelbokningsskydd (409 vid upptagen slot)
-- [ ] Auto-skapande av CCO booking-case (`needs_triage`) + syntetiskt `conversationId`
-- [ ] E-post till patient (Resend) + intern notis till operatör
-- [ ] Audit-events i booking-case (`web_public_reservation`, confirm, cancel)
-- [ ] E-postmall skiljer på online vs fysisk vs uppföljning (kort rad om mötestyp)
+- [x] Dubbelbokningsskydd (409 vid upptagen slot)
+- [x] Auto-skapande av CCO booking-case (`needs_triage`) + syntetiskt `conversationId`
+- [x] E-post till patient (Resend) + intern notis till operatör *(mall kod; live mail manuellt)*
+- [x] Audit-events i booking-case (`web_public_reservation`, confirm, cancel)
+- [x] E-postmall skiljer på online vs fysisk vs uppföljning (kort rad om mötestyp)
 
 **Engine store (`src/ops/ccoBookingEngineStore.js`):**
 
@@ -168,9 +168,9 @@ _(Kan dela schema med online om ni vill — operatör väljer kanal vid confirm.
 
 | #   | Mötestyp       | Kanal         | Reserv OK | Resend OK | CCO confirm | Slot låst |
 | --- | -------------- | ------------- | --------- | --------- | ----------- | --------- |
-| 1   | A1 Online      | curl          | ☐         | ☐         | ☐           | ☐         |
-| 2   | A2 Fysisk      | curl          | ☐         | ☐         | ☐           | ☐         |
-| 3   | A3 Uppföljning | curl          | ☐         | ☐         | ☐           | ☐         |
+| 1   | A1 Online      | curl          | ☑         | ☐         | ☐           | ☐         |
+| 2   | A2 Fysisk      | curl          | ☑         | ☐         | ☐           | ☐         |
+| 3   | A3 Uppföljning | curl          | ☑         | ☐         | ☐           | ☐         |
 | 4   | A1 Online      | /boka mobil   | ☐         | ☐         | ☐           | ☐         |
 | 5   | A2 Fysisk      | /boka desktop | ☐         | ☐         | ☐           | ☐         |
 | 6   | A3 Uppföljning | /boka desktop | ☐         | ☐         | ☐           | ☐         |

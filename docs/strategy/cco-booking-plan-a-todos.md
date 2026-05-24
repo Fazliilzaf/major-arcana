@@ -1,6 +1,6 @@
 # CCO Booking Plan A — Todo (koda en punkt i taget)
 
-Status: **PÅGÅR** — **30/30 kod + lokal verify klara · prod deploy + manuell sign-off kvar**  
+Status: **KLAR** — **30/30 kod + prod curl verify** (2026-05-24) · operatör sign-off kvar  
 Regel: **En punkt = ett svep.** Markera `[x]` när klar. Nästa punkt startar först när föregående är grön.
 
 Relaterat: [cco-booking-plan-a-go-live.md](./cco-booking-plan-a-go-live.md)
@@ -36,8 +36,8 @@ Relaterat: [cco-booking-plan-a-go-live.md](./cco-booking-plan-a-go-live.md)
 | 23  | **PA-29** | Telefon Level 1.5 parallellt                         | Verify       | [x] |
 | 24  | **PA-30** | Sign-off Plan A go-live                              | Verify       | [x] |
 
-**Klara (30):** PA-01 → PA-30 (kod + lokal verify)  
-**Prod kvar:** Deploy Arcana + Vercel, sätt Render Resend UI-env, kör `scripts/plan-a-verify-curl.mjs` mot prod, operatör sign-off
+**Klara (30):** PA-01 → PA-30 (kod + prod verify 2026-05-24)  
+**Kvar:** Operatör sign-off (1 person × alla tre mötestyper via `/boka` + CCO confirm)
 
 ---
 
@@ -101,12 +101,13 @@ Relaterat: [cco-booking-plan-a-go-live.md](./cco-booking-plan-a-go-live.md)
 
 ## Nuvarande punkt
 
-**Kod + lokal verify klart.** Nästa: deploy Arcana (Render) + webb (Vercel), sätt Resend UI-env, kör prod verify.
+**Prod verify klar (2026-05-24).** Nästa: operatör sign-off + `/boka` mobil/desktop E2E + Resend live-mail.
 
 ## Logg
 
 | Datum      | ID                 | Resultat                                                                                                                                         |
 | ---------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-05-24 | PA-21–PA-24 prod   | `plan-a-verify-curl.mjs` + `verify-booking-plan-a-prod.sh` PASS mot arcana.hairtpclinic.se                                                       |
 | 2026-05-22 | PA-01–PA-05, PA-08 | Engine store Plan A-tjänster, schema, listPublicServices, publik catalog filter, tester                                                          |
 | 2026-05-22 | PA-06              | `bookingReservationEmail.js`: mötestyp/plats, dynamisk hold-copy, operator surgeryDate; `publicBookingEngine.js` skickar serviceId; 5 unit tests |
 | 2026-05-22 | PA-07              | `app.js`: Plan A labels, `renderWebLeadContext` mötestyp + plats/kanal + operationsdatum                                                         |
