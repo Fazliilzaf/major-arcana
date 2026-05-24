@@ -39542,16 +39542,10 @@
         button.classList.toggle("preview-nav-item-active", isActive);
         button.setAttribute("aria-pressed", isActive ? "true" : "false");
       });
-
-      closeMailboxDropdowns();
-      if (moreMenuToggle) {
-        const isMoreView = AUX_VIEWS.has(shellView);
-        moreMenuToggle.classList.toggle("preview-nav-item-active", isMoreView);
-        moreMenuToggle.setAttribute("aria-pressed", isMoreView ? "true" : "false");
-      }
-
-      setMoreMenuOpen(false);
     }
+
+    closeMailboxDropdowns();
+    setMoreMenuOpen(false);
 
     const closeConversationPanels = () => {
       if (!showConversations && shellStructureChanged) {
