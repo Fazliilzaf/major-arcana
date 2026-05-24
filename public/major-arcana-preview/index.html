@@ -2,9 +2,24 @@
 <html lang="sv" data-build="build-f7c1ae6">
   <head>
     <meta charset="UTF-8" />
-    <!-- Bundlade scripts preload (content-hash: 753b5c527d) -->
-    <link rel="preload" as="script" href="./app.bundle.753b5c527d.min.js" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-c" />
+    <!-- Bundlade scripts preload (content-hash: 3ffa970225) -->
+    <link rel="preload" as="script" href="./app.bundle.3ffa970225.min.js" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-sweep-d" />
+    <script>
+      (function mobileDeferInboxUntilNeeded() {
+        try {
+          if (!window.matchMedia('(max-width: 768px)').matches) return;
+          var params = new URLSearchParams(window.location.search || '');
+          var view = String(params.get('view') || 'customers').trim();
+          if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
+            return;
+          }
+          document.documentElement.setAttribute('data-cco-mobile-defer-inbox', 'on');
+        } catch (deferInboxError) {
+          /* best-effort */
+        }
+      })();
+    </script>
     <script>
       (function headPrefetchMobilePatientDeepLink() {
         try {
@@ -3294,7 +3309,7 @@
                     })();
                   </script>
                   <!-- Early patient-master-ui: mobil deep link — kör före huvudbundle -->
-                  <script src="./app/patient-master-ui.js?v=build-deeplink-c"></script>
+                  <script src="./app/patient-master-ui.js?v=build-sweep-d"></script>
 <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
@@ -10730,8 +10745,8 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 753b5c527d) -->
-    <script src="./app.bundle.753b5c527d.min.js"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 3ffa970225) -->
+    <script src="./app.bundle.3ffa970225.min.js"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's
