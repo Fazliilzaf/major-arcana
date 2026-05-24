@@ -1755,7 +1755,7 @@
     return `
       ${mobileSteps}
       ${toolbar}
-      ${planSection}
+      <div data-patient-sidecar="commercial-plan">${planSection}</div>
       ${clinicalSection}
       ${tpSection}
       ${
@@ -1882,6 +1882,39 @@
         }
       </article>
     `;
+  }
+
+  function patchCommercialAgreementSidecars() {
+    if (!els.patientRail?.querySelector('[data-patient-detail]') || !runtime.detail?.card) {
+      return false;
+    }
+    const { journalEntries } = runtime.detail;
+
+    const avtalPanel = els.patientRail.querySelector('[data-patient-tab-panel="avtal"]');
+    if (avtalPanel) {
+      avtalPanel.innerHTML = renderAgreementSection();
+    }
+
+    const workflowCard = els.patientRail.querySelector(
+      '[data-patient-tab-panel="profil"] .patient-master-workflow-card'
+    );
+    if (workflowCard) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = renderJournalWorkflowCallout(journalEntries).trim();
+      const next = wrapper.firstElementChild;
+      if (next) workflowCard.replaceWith(next);
+    }
+
+    const sidecarHost = els.patientRail.querySelector('[data-patient-sidecar="commercial-plan"]');
+    if (sidecarHost) {
+      sidecarHost.innerHTML = renderConsultationPlanSection(journalEntries);
+      if (runtime.detailTab === 'journal') {
+        void hydrateJournalPhotoElements(els.patientRail);
+        window.requestAnimationFrame(() => bindJournalAutosaveForms());
+      }
+    }
+
+    return true;
   }
 
   function switchDetailTab(nextTab) {
@@ -2199,7 +2232,7 @@
           loadPatientTreatmentAgreement(patientId),
         ]).then(() => {
           if (runtime.selectedPatientId === patientId && runtime.detail?.card) {
-            renderDetailPanel();
+            patchCommercialAgreementSidecars();
           }
         });
       } else {
