@@ -1,19 +1,22 @@
 # Major Arcana — utrullningsplan (6 faser)
 
 Skapad: **2026-05-23**  
-Status: **aktiv**  
+Senast synkad: **2026-05-24**  
+Status: **aktiv — Fas 1 (mobil pilot) pågår; Fas 2 + Plan A delvis i prod redan**  
 Relaterat: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md)
 
+**Du är här:** Teknik klar (journal, mobil UX sweep, Plan A automated verify). **Kvar:** Fas 5.5–5.6 med personal, kundlista/Drive på prod, MFA enforce polish.
+
 ```
-Mobil pilot GO
+Mobil pilot GO          ← AKTIV (5.5–5.6 manuellt)
     ↓
-Auth/MFA go-live
+Auth/MFA go-live         ← DELVIS (open access av; MFA enforce kvar)
     ↓
 Post-op flow Fas 1
     ↓
 Compliance Fas 9
     ↓
-Bookingmotor Fas 6–7
+Bookingmotor Fas 6–7     ← Plan A GO (automated); påminnelser + full motor kvar
     ↓
 Agenter + CMO live + patientkanal
 ```
@@ -31,20 +34,22 @@ Varje fas har **mål**, **uppgifter**, **GO-kriterier** och **verifiering**. Nä
 
 ### Förutsättningar (klara)
 
-- [x] Kod deployad prod (`/staff`, journal-API, HEIC, PWA)
+- [x] Kod deployad prod (`/staff`, journal-API, HEIC, PWA, deep link)
+- [x] Mobil UX sweep Fas A–F (#1–16) — [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md)
 - [x] 5 pilotkunder + deep links (`npm run verify:mobile-pilot-prod`)
-- [x] `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true` (pilotläge)
-- [x] Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
+- [x] Instruktion skriven: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
+- [x] Prod-automation grön: `verify:cco-mobile-pilot-prod`, `run:rollout-sweep` (2026-05-24)
+- [x] **Login krävs** — `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false` i prod (auth delvis före Fas 2 GO)
 
-### Uppgifter
+### Uppgifter (kvar = manuellt)
 
-| # | Uppgift | Typ |
-|---|---------|-----|
-| 1.1 | Skicka instruktion + deep links till ≥2 personal | Ops |
-| 1.2 | **Fas 5.5** — test per enhet: iPhone Safari, Android Chrome, iPad | Test |
-| 1.3 | **Fas 5.6** — ≥5 konsultationer, fyll tabell + 5 feedbackfrågor | Test |
-| 1.4 | Dokumentera incidenter (nätverk, kamera, format) | Ops |
-| 1.5 | Beslut GO/NO-GO i [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) | Beslut |
+| # | Uppgift | Typ | Status |
+|---|---------|-----|--------|
+| 1.1 | Skicka instruktion + deep links till ≥2 personal | Ops | ☐ |
+| 1.2 | **Fas 5.5** — test per enhet: iPhone Safari, Android Chrome, iPad | Test | ☐ (iPhone delvis) |
+| 1.3 | **Fas 5.6** — ≥5 konsultationer, fyll tabell + 5 feedbackfrågor | Test | ☐ |
+| 1.4 | Dokumentera incidenter (nätverk, kamera, format) | Ops | ☐ |
+| 1.5 | Beslut GO/NO-GO i [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) | Beslut | ☐ |
 
 ### GO-kriterier
 
@@ -59,13 +64,14 @@ Varje fas har **mål**, **uppgifter**, **GO-kriterier** och **verifiering**. Nä
 | Problem | Åtgärd |
 |---------|--------|
 | Kamera/upload fail | Debug prod, ev. kodfix + ny deploy |
-| Auth förvirring | Vänta till Fas 2; håll open access under fix |
+| Auth förvirring | Uppdatera [mobilinstruktion](./cco-mobile-staff-instructions.md) (login krävs); se Fas 2 |
 | >2 allvarliga incidenter | Stopp, root cause, ny pilotomgång |
 
 ### Verifiering
 
 ```bash
-npm run verify:mobile-pilot-prod
+npm run verify:cco-mobile-pilot-prod
+npm run verify:mobile-staff-regression-prod   # slutregression E2E×2
 bash scripts/verify-all-pilot-journey-prod.sh
 curl -fsS https://arcana.hairtpclinic.se/readyz
 ```
@@ -77,13 +83,14 @@ curl -fsS https://arcana.hairtpclinic.se/readyz
 **Mål:** Skarp drift — endast inloggad STAFF/OWNER når journal; OWNER MFA på.
 
 **Uppskattning:** 2–3 dagar (1 dag config + 1 dag test + underhållsfönster)  
-**Blocker:** Fas 1 GO  
+**Blocker:** Fas 1 GO (formellt) — **delvis redan i prod** (open access av sedan 2026-05-23)  
 **Ägare:** Fazli + IT
 
 ### Förutsättningar
 
 - [ ] Fas 1 GO signerad
-- [ ] STAFF-konton skapade (minst 2)
+- [x] STAFF-konton skapade (minst 2)
+- [x] `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false` i prod (login krävs)
 - [ ] OWNER MFA secret/recovery sparade säkert
 - [ ] Underhållsfönster kommunicerat (~15 min)
 
@@ -99,11 +106,11 @@ curl -fsS https://arcana.hairtpclinic.se/readyz
 
 #### 2.2 Render env (underhållsfönster)
 
-| Env | Nu (pilot) | Go-live |
-|-----|------------|---------|
-| `ARCANA_STAFF_JOURNAL_OPEN_ACCESS` | `true` | **`false`** |
-| `ARCANA_AUTH_OWNER_MFA_REQUIRED` | `false` | **`true`** |
-| `ARCANA_PREFLIGHT_READINESS_CHECKS` | `cors_strict` | **`cors_strict,owner_mfa_enforced`** (eller motsv. i prod) |
+| Env | Pilot (historisk) | Prod idag (2026-05-24) | Go-live mål |
+|-----|-------------------|------------------------|-------------|
+| `ARCANA_STAFF_JOURNAL_OPEN_ACCESS` | `true` | **`false`** ✅ | **`false`** |
+| `ARCANA_AUTH_OWNER_MFA_REQUIRED` | `false` | `false` (troligen) | **`true`** |
+| `ARCANA_PREFLIGHT_READINESS_CHECKS` | `cors_strict` | — | **`cors_strict,owner_mfa_enforced`** |
 
 Uppdatera `render.yaml` + merge via blueprint/CI heal. **Ingen restart direkt efter env PUT** om CI heal körs (befintlig policy).
 
@@ -118,11 +125,11 @@ Uppdatera `render.yaml` + merge via blueprint/CI heal. **Ingen restart direkt ef
 
 #### 2.4 Test efter byte
 
-- [ ] `/staff` kräver login (401/redirect)
-- [ ] STAFF kan logga in + nå journal + Ta bild på mobil
-- [ ] OWNER login kräver MFA
-- [ ] Deep links fungerar efter login
-- [ ] Pilot 5/5 journey fortfarande grön (`verify-all-pilot-journey-prod.sh`)
+- [x] `/staff` kräver login (401/redirect) — prod 2026-05-23
+- [ ] STAFF kan logga in + nå journal + Ta bild på mobil (iPhone + Android manuellt)
+- [ ] OWNER login kräver MFA (enforced)
+- [x] Deep links fungerar efter login (automation med STAFF-token)
+- [x] Pilot 5/5 journey grön (`verify-all-pilot-journey-prod.sh`)
 
 ### GO-kriterier
 
@@ -239,15 +246,24 @@ npm run preflight:readiness
 **Blocker:** Fas 2 GO; avtalsgate redan klart  
 **Spec:** [cco-booking-mvp-spec.md](./cco-booking-mvp-spec.md), [cco-booking-plan-a-go-live.md](./cco-booking-plan-a-go-live.md)
 
-### Fas 5A — Bookingmotor Fas 6 (4–6 v)
+### Fas 5A — Bookingmotor Fas 6 (Plan A)
 
-| # | Uppgift | Status idag |
-|---|---------|-------------|
-| 5A.1 | Plan A go-live på hairtpclinic.com (webb → Arcana API) | Engine finns, E2E återstår |
-| 5A.2 | Operatörsbekräftelse (reservation ≠ confirm) | Delvis byggt |
-| 5A.3 | Koppling bokning → behandlingstillfälle → journal | Spec i build-plan 6.3 |
-| 5A.4 | Resend live (bekräftelsemail) | Mock utan API-nyckel |
-| 5A.5 | Prod readiness checklist grön | [cco-booking-prod-readiness-checklist.md](./cco-booking-prod-readiness-checklist.md) |
+| # | Uppgift | Status (2026-05-24) |
+|---|---------|----------------------|
+| 5A.1 | Plan A go-live på hairtpclinic.com (webb → Arcana API) | ✅ `verify:booking-web-e2e-prod` |
+| 5A.2 | Operatörsbekräftelse (reservation ≠ confirm) | ✅ `verify:booking-operator-signoff-prod` 3/3 |
+| 5A.3 | Koppling bokning → behandlingstillfälle → journal | ☐ Spec i build-plan 6.3 |
+| 5A.4 | Bekräftelsemail live | ✅ Graph send till operatör; Resend till patient ☐ |
+| 5A.5 | Prod readiness + sign-off | ✅ Automated GO — [go-live](./cco-booking-plan-a-go-live.md) |
+
+**Verify:**
+
+```bash
+npm run verify:booking-plan-a-prod
+npm run verify:booking-web-e2e-prod
+npm run verify:booking-operator-signoff-prod
+npm run verify:booking-mail-prod
+```
 
 ### Fas 5B — Påminnelser Fas 7 (2 v efter 5A)
 
@@ -318,11 +334,11 @@ Post-op upload räknas som **transactional touch** — full patientchat kommer s
 
 | Vecka | Fas | Milstolpe |
 |-------|-----|-----------|
-| W1–W2 | 1 | Mobil pilot GO |
-| W3 | 2 | Auth/MFA go-live |
-| W4 | 3 | Post-op Fas 1 staging |
-| W5–W6 | 4 | Compliance Fas 9 |
-| W7–W12 | 5 | Booking Plan A + påminnelser |
+| W1–W2 | 1 | Mobil pilot GO ← **pågår** |
+| W2–W3 | 2 | Auth/MFA polish (open access redan av) |
+| W3 | 3 | Post-op Fas 1 staging |
+| W4–W5 | 4 | Compliance Fas 9 |
+| W5+ | 5B | Påminnelser; full bookingmotor efter Plan A |
 | Q4+ | 6 | Agenter, CMO, patientkanal |
 
 ---
@@ -344,10 +360,10 @@ Kör lokalt efter push: `bash scripts/post-deploy-prod-heal.sh` vid behov.
 
 | Fas | Viktiga env |
 |-----|-------------|
-| 1 (pilot) | `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true` |
-| 2 (go-live) | `…=false`, `ARCANA_AUTH_OWNER_MFA_REQUIRED=true` |
+| 1 (pilot) | Login krävs (`OPEN_ACCESS=false`); STAFF-konton |
+| 2 (go-live) | `ARCANA_AUTH_OWNER_MFA_REQUIRED=true`, preflight owner_mfa |
 | 3 (post-op) | Graph send enabled, allowlist |
-| 5 (booking) | `RESEND_API_KEY`, publik webb-URL |
+| 5 (booking) | Vercel `ARCANA_PROVIDER=booking-engine`; Graph/Resend mail |
 | 6 (CMO) | `ARCANA_MARKETING_CONNECTORS_MODE=live` |
 
 ---
