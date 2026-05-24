@@ -423,6 +423,13 @@ const config = {
   marketingPublishLiveEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_LIVE_ENABLED, false),
   marketingPublishSandbox: asBool(process.env.ARCANA_MARKETING_PUBLISH_SANDBOX, true),
   marketingConnectorsCacheTtlMs: asInt(process.env.ARCANA_MARKETING_CONNECTORS_CACHE_TTL_MS, 300000),
+  marketingBridgeToken: asNonEmptyString(process.env.ARCANA_MARKETING_BRIDGE_TOKEN),
+  marketingConnectorHealthStatePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_MARKETING_CONNECTOR_HEALTH_STATE_PATH,
+    stateRoot,
+    fileName: 'cmo-connector-health-state.json',
+  }),
+  marketingConnectorAlertAfterMs: asInt(process.env.ARCANA_MARKETING_CONNECTOR_ALERT_AFTER_MS, 900000),
   marketingConnectors: {
     google_ads: {
       enabled: asBool(process.env.ARCANA_MARKETING_GOOGLE_ADS_ENABLED, false),

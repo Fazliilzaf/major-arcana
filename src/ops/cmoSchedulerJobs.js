@@ -377,6 +377,7 @@ async function runCmoConnectorHealthCheck({
   tenantConfigStore = null,
   executiveDecisionFeed = null,
   sendAlertNotification = null,
+  connectorHealthStateStore = null,
   minNotifyRiskLevel = 'L3',
 } = {}) {
   const { listConnectorStatuses } = require('./cmoMarketingConnectors');
@@ -395,10 +396,11 @@ async function runCmoConnectorHealthCheck({
 
   const errors = items.filter((item) => item.status === 'error');
   const notConfigured = items.filter((item) => item.status === 'not_configured');
+  const checkedAt = new Date().toISOString();
   const payload = {
     tenantId,
     trigger,
-    checkedAt: new Date().toISOString(),
+    checkedAt,
     total: items.length,
     ok: items.filter((item) => item.status === 'ok').length,
     errorCount: errors.length,
@@ -413,9 +415,23 @@ async function runCmoConnectorHealthCheck({
     })),
   };
 
+  let healthSummary = null;
+  if (connectorHealthStateStore && typeof connectorHealthStateStore.recordStatuses === 'function') {
+    healthSummary = await connectorHealthStateStore.recordStatuses({
+      tenantId,
+      items,
+      checkedAt,
+    });
+    payload.healthSummary = healthSummary;
+  }
+
+  const shouldNotify =
+    errors.length > 0 &&
+    (!healthSummary || healthSummary.alertingCount > 0);
+
   let notification = { skipped: true };
   if (
-    errors.length > 0 &&
+    shouldNotify &&
     executiveDecisionFeed &&
     typeof executiveDecisionFeed.addFromSchedulerNotification === 'function'
   ) {
@@ -425,12 +441,12 @@ async function runCmoConnectorHealthCheck({
       severity: 'warn',
       riskLevel: 'L3',
       payload: {
-        summary: `${errors.length} marketing connector(s) i fel-läge: ${errors.map((item) => item.channel).join(', ')}`,
+        summary: `${healthSummary?.alertingCount || errors.length} marketing connector(s) i fel >15 min: ${(healthSummary?.alertingChannels || errors.map((item) => item.channel)).join(', ')}`,
         ...payload,
       },
     });
     notification = { skipped: false, eventType: 'review_marketing_connectors' };
-  } else if (errors.length > 0 && typeof sendAlertNotification === 'function') {
+  } else if (shouldNotify && typeof sendAlertNotification === 'function') {
     notification = await sendAlertNotification({
       tenantId,
       eventType: 'review_marketing_connectors',
@@ -453,6 +469,7 @@ async function runCmoConnectorHealthCheckAllTenants({
   tenantConfigStore = null,
   executiveDecisionFeed = null,
   sendAlertNotification = null,
+  connectorHealthStateStore = null,
   minNotifyRiskLevel = 'L3',
 } = {}) {
   let ids = Array.isArray(tenantIds)
@@ -478,6 +495,7 @@ async function runCmoConnectorHealthCheckAllTenants({
       tenantConfigStore,
       executiveDecisionFeed,
       sendAlertNotification,
+      connectorHealthStateStore,
       minNotifyRiskLevel,
     });
     results.push(result);

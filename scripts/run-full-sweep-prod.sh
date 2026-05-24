@@ -44,10 +44,12 @@ section "2 — Graph + mail-start"
 npm run verify:graph-read-prod 2>&1 || warn "verify:graph-read-prod"
 npm run verify:cco-mail-start-prod 2>&1 || warn "verify:cco-mail-start-prod"
 
-section "3 — Booking Plan A + mail"
+section "3 — Booking Plan A + mail + webb E2E + operatör sign-off"
 npm run verify:booking-plan-a-prod 2>&1 || warn "verify:booking-plan-a-prod"
 BASE="${BASE}" node ./scripts/plan-a-verify-curl.mjs 2>&1 | tail -10 || warn "plan-a-verify-curl"
 npm run verify:booking-mail-prod 2>&1 || warn "verify:booking-mail-prod"
+npm run verify:booking-web-e2e-prod 2>&1 || warn "verify:booking-web-e2e-prod"
+npm run verify:booking-operator-signoff-prod 2>&1 || warn "verify:booking-operator-signoff-prod"
 
 section "4 — Mobil journal + pilot"
 TOKEN="$(node scripts/get-prod-auth-token.js 2>/dev/null || true)"
@@ -65,16 +67,14 @@ npm run verify:staff-mobile-login-prod 2>&1 | tail -8 || warn "verify:staff-mobi
 
 section "6 — Unit / CMO / migration"
 node --test tests/ops/cmoPhaseV3Sweep.test.js 2>&1 | tail -5 || warn "cmo sweep tests"
+npm run verify:cmo-connectors-prod 2>&1 || warn "verify:cmo-connectors-prod"
 npm run migration:spot-check 2>&1 || warn "migration spot-check"
 
 section "7 — Rollout sweep (övriga faser)"
 npm run run:rollout-sweep 2>&1 | tail -20 || warn "run:rollout-sweep"
 
 section "8 — Manuella spår (ej auto)"
-warn "B4 webb E2E — hairtpclinic-web (Vercel)"
-warn "B5 operatör sign-off — 1 bokning/typ"
 warn "C1–C5 migration — Google/SharePoint/compliance"
-warn "D1–D4 CMO connectors — staging secrets"
 warn "A5 IDB snapshot — nästa sprint"
 warn "E3–E5 bridge — design/Cloudflare"
 warn "B3b Resend — valfritt (Graph send täcker bokningsmail)"

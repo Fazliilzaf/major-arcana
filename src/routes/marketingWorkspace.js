@@ -14,6 +14,7 @@ function createMarketingWorkspaceRouter({
   marketingContentAssetsStore = null,
   marketingClaimsWhitelistStore = null,
   tenantConfigStore = null,
+  connectorHealthStateStore = null,
   config = null,
   requireAuth,
   requireRole,
@@ -363,6 +364,14 @@ function createMarketingWorkspaceRouter({
           forceRefresh,
         });
         const errorItems = items.filter((item) => item.status === 'error');
+        let healthSummary = null;
+        if (connectorHealthStateStore && typeof connectorHealthStateStore.recordStatuses === 'function') {
+          healthSummary = await connectorHealthStateStore.recordStatuses({
+            tenantId: req.auth.tenantId,
+            items,
+            checkedAt: new Date().toISOString(),
+          });
+        }
         return res.json({
           items,
           summary: {
@@ -370,7 +379,9 @@ function createMarketingWorkspaceRouter({
             configured: items.filter((item) => item.status !== 'not_configured').length,
             ok: items.filter((item) => item.status === 'ok').length,
             error: errorItems.length,
-            healthAlert: errorItems.length > 0,
+            healthAlert: healthSummary ? healthSummary.alertingCount > 0 : errorItems.length > 0,
+            sustainedAlertAfterMs: healthSummary?.alertAfterMs || null,
+            alertingChannels: healthSummary?.alertingChannels || [],
           },
           refreshedAt: new Date().toISOString(),
           forceRefresh,

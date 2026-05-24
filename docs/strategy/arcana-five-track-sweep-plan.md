@@ -16,7 +16,7 @@ Detta dokument är den **körbara checklistan** för ett svep över alla spår. 
 | **1** | Kod + script (A1–A4, C3, D5) | ✅ Auto |
 | **2** | Bundle + unit/CMO-tester | ✅ Auto |
 | **3** | Prod verify (A, B, E) | ✅ Auto (cred) |
-| **4** | Ops/manuellt (B3, D1–D3, C1, B4–B5) | ⏸ Människa / Render |
+| **4** | Ops/manuellt (B3, C1) | ⏸ Människa / Render |
 
 ---
 
@@ -45,8 +45,8 @@ npm run verify:cco-mobile-pilot-prod
 | B2 | Prod curl verify | ✅ | PA-21–24 PASS |
 | B3 | Bokningsmail live | ✅ Graph send (`transactionalMailer`) | `npm run verify:booking-mail-prod` |
 | B3b | Resend (valfritt) | ⏸ | Endast om du vill Resend i stället för Graph |
-| B4 | Webb E2E (hairtpclinic-web) | ⏸ | Vercel deploy |
-| B5 | Operator sign-off (1 confirm/typ) | ⏸ | Personal |
+| B4 | Webb E2E (hairtpclinic-web) | ✅ | `npm run verify:booking-web-e2e-prod` |
+| B5 | Operator sign-off (1 confirm/typ) | ✅ | `npm run verify:booking-operator-signoff-prod` |
 
 ```bash
 npm run verify:booking-plan-a-prod
@@ -76,10 +76,10 @@ npm run migration:test
 
 | ID | Uppgift | Status | Blocker |
 |----|---------|--------|---------|
-| D1 | Secrets staging (Google/Meta/LinkedIn) | ⏸ | API-konton |
-| D2 | Staging connectors + smoke | ⏸ | D1 |
-| D3 | Prod connectors | ⏸ | D2 stabil |
-| D4 | Connector error alert | ⏸ | Observability |
+| D1 | Secrets staging (Google/Meta/LinkedIn) | ✅ bridge | `npm run apply:cmo-connectors-prod` |
+| D2 | Staging connectors + smoke | ✅ | `npm run smoke:cmo-connectors` |
+| D3 | Prod connectors | ✅ | `npm run verify:cmo-connectors-prod` |
+| D4 | Connector error alert | ✅ | sustained >15 min (`cmoConnectorHealthState`) |
 | D5 | Wire `GenerateContentSeries` i compose | ✅ | mutation 182/182 |
 
 ```bash

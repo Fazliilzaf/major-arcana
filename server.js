@@ -545,6 +545,8 @@ const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
+const { createMarketingConnectorBridgeRouter } = require('./src/routes/marketingConnectorBridge');
+const { createCmoConnectorHealthStateStore } = require('./src/ops/cmoConnectorHealthState');
 const { createPostOpReviewStore } = require('./src/ops/postOpReviewStore');
 const { createPostOpReviewRouter } = require('./src/routes/postOpReview');
 const { createBillingRouter } = require('./src/routes/billing');
@@ -1328,6 +1330,10 @@ process.once('SIGTERM', () => {
   const marketingClaimsWhitelistStore = await createMarketingClaimsWhitelistStore({
     filePath: config.marketingClaimsWhitelistPath,
   });
+  const connectorHealthStateStore = createCmoConnectorHealthStateStore({
+    filePath: config.marketingConnectorHealthStatePath,
+    alertAfterMs: config.marketingConnectorAlertAfterMs,
+  });
 
   billingService = createBillingService({
     stripe: stripeInstance,
@@ -1395,6 +1401,7 @@ process.once('SIGTERM', () => {
     postOpReviewStore,
     marketingCampaignDraftsStore,
     marketingContentAssetsStore,
+    connectorHealthStateStore,
     executiveDecisionFeed,
     adminTasksStore,
     alertNotifier: createAlertNotifier({
@@ -1505,6 +1512,8 @@ process.once('SIGTERM', () => {
       graphSendConnector,
     })
   );
+
+  app.use('/api', createMarketingConnectorBridgeRouter({ config }));
 
   // Post-op review routes — operator-trigger + token-skyddade patient-endpoints.
   // Patient-UI (vanilla HTML på /uppfoljning/:token) på public/uppfoljning/.
@@ -1817,6 +1826,8 @@ process.once('SIGTERM', () => {
       marketingCampaignDraftsStore,
       marketingContentAssetsStore,
       marketingClaimsWhitelistStore,
+      tenantConfigStore,
+      connectorHealthStateStore,
       config,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
