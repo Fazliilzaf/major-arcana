@@ -845,6 +845,12 @@
           }
           img.alt = 'Kunde inte visa bild';
           img.classList.add('is-broken');
+          img.closest('.patient-master-plan-photo')?.classList.add('is-broken-photo');
+          const link = img.closest('a[data-journal-photo-link]');
+          if (link && !link.dataset.brokenLabel) {
+            link.dataset.brokenLabel = 'true';
+            link.textContent = 'Bilden kunde inte laddas';
+          }
           const retry = document.createElement('button');
           retry.type = 'button';
           retry.className = 'customers-utility-button';
@@ -1541,7 +1547,15 @@
         }
         ${
           photos.length
-            ? `<div class="patient-master-plan-photo-grid">
+            ? `<div class="patient-master-plan-photo-toolbar">
+                <span class="patient-master-muted">${photos.length} bilder</span>
+                ${
+                  planEntry.canEdit
+                    ? `<button type="button" class="customers-utility-button patient-master-photo-clear-all" data-patient-clear-plan-photos="${escapeHtml(planEntry.entryId)}">Rensa alla bilder</button>`
+                    : ''
+                }
+              </div>
+              <div class="patient-master-plan-photo-grid">
                 ${photos
                   .map((photo) => {
                     const variant = photo.annotatedPreviewAvailable ? 'annotated' : '';
@@ -2952,6 +2966,47 @@
     }
   }
 
+  function consultationPlanPhotosFromEntry(entry) {
+    return asArray(entry?.attachments).filter(
+      (item) => item.type === 'consultation_photo' && item.photoId
+    );
+  }
+
+  async function deleteAllConsultationPhotos(entryId) {
+    const patientId = runtime.selectedPatientId;
+    const planEntry = findConsultationPlanEntry(runtime.detail?.entries || []);
+    if (!patientId || !entryId || !planEntry || planEntry.entryId !== entryId) return;
+    const photos = consultationPlanPhotosFromEntry(planEntry);
+    if (!photos.length) return;
+    const ok = window.confirm(
+      `Ta bort alla ${photos.length} bilder från behandlingsplanen? Det går inte att ångra.`
+    );
+    if (!ok) return;
+    setStatus(`Tar bort ${photos.length} bilder…`, 'loading');
+    let removed = 0;
+    for (const photo of photos) {
+      try {
+        await apiRequest('/api/v1/cco-journal/photo', {
+          method: 'DELETE',
+          body: {
+            patientId,
+            entryId,
+            attachmentId: photo.attachmentId,
+            photoId: photo.photoId,
+          },
+        });
+        removed += 1;
+        setStatus(`Tar bort bilder… ${removed}/${photos.length}`, 'loading');
+      } catch (error) {
+        setStatus(error.message || `Kunde inte ta bort bild ${removed + 1}.`, 'error');
+        await loadPatientDetail(patientId);
+        return;
+      }
+    }
+    setStatus(`Alla ${removed} bilder togs bort.`, 'success');
+    await loadPatientDetail(patientId);
+  }
+
   async function saveTpJournalEntry(form) {
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
@@ -3177,6 +3232,12 @@
           deletePhotoButton.dataset.patientAttachmentId,
           deletePhotoButton.dataset.patientDeletePhoto
         );
+        return;
+      }
+
+      const clearPlanPhotosButton = event.target.closest('[data-patient-clear-plan-photos]');
+      if (clearPlanPhotosButton && runtime.mode === 'register') {
+        void deleteAllConsultationPhotos(clearPlanPhotosButton.dataset.patientClearPlanPhotos);
         return;
       }
 
