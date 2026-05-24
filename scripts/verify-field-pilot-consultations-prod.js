@@ -120,16 +120,16 @@ async function verifyPatientUi(page, token, patient) {
   await page.goto(`${base}/major-arcana-preview/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await injectToken(page, token);
   const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(patient.patientId)}`;
-  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+  await page.goto(url, { waitUntil: 'commit', timeout: 90000 });
   await waitForMobileShell(page);
 
   await page.waitForFunction(
-    () =>
-      Boolean(
-        document.querySelector('.patient-master-camera-button, [data-patient-photo-camera], .patient-master-tab[data-patient-tab="journal"]')
-      ),
+    () => {
+      const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
+      return Boolean(rt?.detail?.card) && !rt?.detailLoading;
+    },
     undefined,
-    { timeout: 45000 }
+    { timeout: 45000, polling: 16 }
   );
   const uiMs = Date.now() - started;
 
@@ -153,6 +153,7 @@ async function verifyPatientUi(page, token, patient) {
 }
 
 async function main() {
+  execSync(`node "${path.join(root, 'scripts/lib/wait-for-prod-ready.js')}"`, { stdio: 'inherit' });
   const token = getStaffToken();
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ ...devices['iPhone 13'], locale: 'sv-SE' });
@@ -171,9 +172,22 @@ async function main() {
       let err = '';
 
       try {
-        ({ uiMs, taBild, journalTab, backVisible } = await verifyPatientUi(page, token, patient));
-        uploadMs = await uploadPhoto(token, patient.patientId, 'Field pilot Front');
-        uploadOk = true;
+        for (let attempt = 1; attempt <= 2; attempt += 1) {
+          try {
+            ({ uiMs, taBild, journalTab, backVisible } = await verifyPatientUi(page, token, patient));
+            uploadMs = await uploadPhoto(token, patient.patientId, 'Field pilot Front');
+            uploadOk = true;
+            err = '';
+            break;
+          } catch (e) {
+            err = e.message || String(e);
+            if (attempt < 2 && /502|503|504|Timeout|AbortError/i.test(err)) {
+              execSync(`node "${path.join(root, 'scripts/lib/wait-for-prod-ready.js')}"`, { stdio: 'inherit' });
+              continue;
+            }
+            throw e;
+          }
+        }
       } catch (e) {
         err = e.message || String(e);
       }
