@@ -3333,10 +3333,21 @@
       void loadOfferTemplates();
     }
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .getRegistrations()
-        .then((registrations) => Promise.all(registrations.map((reg) => reg.unregister())))
-        .catch(() => {});
+      const unregisterWorkers = () => {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) => Promise.all(registrations.map((reg) => reg.unregister())))
+          .catch(() => {});
+      };
+      if (startup.patientId && isMobileViewport()) {
+        if (typeof requestIdleCallback === 'function') {
+          requestIdleCallback(unregisterWorkers, { timeout: 4000 });
+        } else {
+          window.setTimeout(unregisterWorkers, 0);
+        }
+      } else {
+        unregisterWorkers();
+      }
     }
   }
 
@@ -3385,7 +3396,21 @@
     showMobileToast,
   };
 
-  if (document.readyState === 'loading') {
+  function canBootstrapMobileDeepLinkEarly() {
+    try {
+      if (document.readyState !== 'loading') return false;
+      if (!isMobileViewport()) return false;
+      const startup = parseStartupParams();
+      if (!startup.patientId) return false;
+      return Boolean(document.querySelector('[data-patient-master-rail]'));
+    } catch {
+      return false;
+    }
+  }
+
+  if (canBootstrapMobileDeepLinkEarly()) {
+    bootstrap();
+  } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootstrap);
   } else {
     bootstrap();
