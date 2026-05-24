@@ -2464,6 +2464,14 @@
       } else {
         scheduleDetailPanelPaint(patientId);
       }
+      try {
+        const nav = performance.getEntriesByType('navigation')[0];
+        if (nav && isMobileViewport() && normalizeText(parseStartupParams().patientId) === normalizeText(patientId)) {
+          window.__ARCANA_DEEPLINK_DETAIL_READY_MS__ = performance.now() - nav.startTime;
+        }
+      } catch {
+        /* best-effort */
+      }
       if (isMobileViewport()) {
         void Promise.all([
           loadPatientCommercialCase(patientId),
@@ -3365,15 +3373,8 @@
         void loadOfferTemplates();
         const mobileDeepLink = deepLinkId && isMobileViewport();
         if (mobileDeepLink) {
-          const deferList = () => void loadPatientList();
-          const deferStats = () => void loadStats();
-          if (typeof requestIdleCallback === 'function') {
-            requestIdleCallback(deferList, { timeout: 3500 });
-            requestIdleCallback(deferStats, { timeout: 4000 });
-          } else {
-            window.setTimeout(deferList, 600);
-            window.setTimeout(deferStats, 900);
-          }
+          void loadPatientList();
+          void loadStats();
         } else {
           void loadStats();
           void loadPatientList();
@@ -3493,11 +3494,45 @@
     }
   }
 
-  if (shouldBootstrapMobileDeepLinkNow()) {
-    bootstrap();
-  } else if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootstrap);
-  } else {
+  let bootstrapStarted = false;
+
+  function runBootstrapOnce() {
+    if (bootstrapStarted) return;
+    bootstrapStarted = true;
     bootstrap();
   }
+
+  function bootWhenPatientRailReady() {
+    if (!shouldBootstrapMobileDeepLinkNow()) {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runBootstrapOnce, { once: true });
+      } else {
+        runBootstrapOnce();
+      }
+      return;
+    }
+
+    if (document.querySelector('[data-patient-master-rail]')) {
+      runBootstrapOnce();
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      if (document.querySelector('[data-patient-master-rail]')) {
+        observer.disconnect();
+        runBootstrapOnce();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    document.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        observer.disconnect();
+        runBootstrapOnce();
+      },
+      { once: true }
+    );
+  }
+
+  bootWhenPatientRailReady();
 })();

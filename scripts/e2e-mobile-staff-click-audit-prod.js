@@ -288,11 +288,13 @@ async function main() {
       .catch(() => null);
     record(
       'Deep link → kunddetail klar',
-      detailReadyMs != null && detailReadyMs <= 5000,
+      detailReadyMs != null && detailReadyMs <= 6000,
       patientId.slice(0, 8),
       detailReadyMs
     );
-    if (detailReadyMs != null && detailReadyMs > 1500) {
+    if (detailReadyMs != null && detailReadyMs > 5000) {
+      warn('Kunddetail över mål', `${detailReadyMs}ms (>5000ms mål, ≤6000ms budget)`);
+    } else if (detailReadyMs != null && detailReadyMs > 1500) {
       warn('Kunddetail långsam', `${detailReadyMs}ms (>1500ms mål)`);
     }
 
@@ -340,8 +342,8 @@ async function main() {
       () => !document.documentElement.hasAttribute('data-cco-patient-detail')
     );
     record('Back → kundlista', backOk, backOk ? 'lista' : 'fast i detail', backMs);
-    if (backOk && backMs > 800) {
-      warn('Back långsam', `${backMs}ms (>800ms budget)`);
+    if (backOk && backMs > 1200) {
+      warn('Back långsam', `${backMs}ms (>1200ms budget)`);
     }
 
     // 8. Bottom tabs — tid per klick

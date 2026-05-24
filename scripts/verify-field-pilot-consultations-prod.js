@@ -134,6 +134,19 @@ async function verifyPatientUi(page, token, patient) {
     undefined,
     { timeout: 45000, polling: 16 }
   );
+  await page.evaluate(() => {
+    window.ArcanaPatientMasterUi?.setPatientTab?.('journal');
+  });
+  await page.waitForFunction(
+    () => {
+      const btn = document.querySelector('.patient-master-camera-button, [data-patient-photo-camera]');
+      if (!btn) return false;
+      const rect = btn.getBoundingClientRect();
+      return rect.width >= 40 && rect.height >= 40;
+    },
+    undefined,
+    { timeout: 15000, polling: 16 }
+  );
   const uiMs = Date.now() - started;
 
   const taBild = await page.evaluate(() => {
