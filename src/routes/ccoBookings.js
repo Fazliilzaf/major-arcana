@@ -8,6 +8,7 @@ const {
   normalizeClientoSlotsPayload,
   normalizeCsvParam,
 } = require('../infra/clientoApi');
+const { isClientoIntegrationEnabled } = require('../infra/clientoIntegration');
 const {
   BOOKING_STATUSES,
   buildWaitingCustomerBlocker,
@@ -764,6 +765,9 @@ function createCcoBookingsRouter({
           bookingUrl: null,
         });
       }
+      if (!isClientoIntegrationEnabled()) {
+        return res.status(503).json({ error: 'cliento_booking_disabled' });
+      }
       const brand = resolveBrandFromRequest(req, config);
       const clientoApiConfig = getClientoApiConfigForBrand(brand, config);
       const cliento = getClientoConfigForBrand(brand, config);
@@ -793,6 +797,9 @@ function createCcoBookingsRouter({
           resources: resources.map((item) => ({ id: item.id, label: item.label })),
           services: services.map((item) => ({ id: item.id, label: item.label })),
         });
+      }
+      if (!isClientoIntegrationEnabled()) {
+        return res.status(503).json({ error: 'cliento_booking_disabled' });
       }
       const brand = resolveBrandFromRequest(req, config);
       const clientoApiConfig = getClientoApiConfigForBrand(brand, config);
