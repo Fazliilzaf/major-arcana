@@ -14,6 +14,7 @@ const {
   buildDefaultPublicSiteProfile,
   normalizePublicSiteProfile,
 } = require('../tenant/publicSiteProfile');
+const { isClientoIntegrationEnabled } = require('../infra/clientoIntegration');
 
 function normalizeClinicId(value) {
   if (typeof value !== 'string') return '';
@@ -100,6 +101,13 @@ function parsePositiveInt(value, fallback) {
 
 async function handleClientoRequest(req, res, config, run) {
   try {
+    if (!isClientoIntegrationEnabled()) {
+      return res.status(503).json({
+        ok: false,
+        error: 'cliento_booking_disabled',
+      });
+    }
+
     const brand = resolveBrandFromRequest(req, config);
     const clientoApiConfig = getClientoApiConfigForBrand(brand, config);
 
