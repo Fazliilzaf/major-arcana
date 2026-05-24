@@ -295,6 +295,8 @@ async function main() {
       );
       record('Inställningar bottom sheet', Boolean(sheetOpen), sheetOpen ? 'öppen' : 'stängd', ms(t0));
       await page.locator('[data-customer-settings-close]').first().click({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(250);
+      await page.evaluate(() => window.ArcanaMobileCore?.forceUnlockBodyScroll?.());
     } else {
       warn('Inställningsknapp', 'dold på mobil kundlista (förväntat om ej list-läge)');
     }
