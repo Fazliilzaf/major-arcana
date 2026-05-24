@@ -232,12 +232,44 @@
     });
   }
 
-  function boot() {
-    syncOfflineBanner();
-    observeModalScrollLock();
+  function runDomEnhancements() {
+    if (!isMobile()) {
+      enhanceStickyCtas();
+      convertMailTablesToCards();
+      applyFilenameRepairs();
+      return;
+    }
+
+    syncAuthMobileState();
+
+    const shellView = document.querySelector('.preview-canvas')?.dataset?.appShellView || '';
+    const browsingCustomers =
+      shellView === 'customers' &&
+      !document.querySelector('[data-staff-login-form]') &&
+      !document.querySelector('[data-tp-journal-save-form], .booking-action-row, #cco-mobile-offer-wizard:not([hidden])');
+
+    if (browsingCustomers) {
+      return;
+    }
+
     enhanceStickyCtas();
     convertMailTablesToCards();
     applyFilenameRepairs();
+  }
+
+  let domEnhanceTimer = 0;
+  function scheduleDomEnhancements() {
+    if (domEnhanceTimer) return;
+    domEnhanceTimer = window.setTimeout(() => {
+      domEnhanceTimer = 0;
+      runDomEnhancements();
+    }, 100);
+  }
+
+  function boot() {
+    syncOfflineBanner();
+    observeModalScrollLock();
+    runDomEnhancements();
   }
 
   window.addEventListener('online', syncOfflineBanner);
@@ -254,11 +286,7 @@
   }
 
   const domObserver = new MutationObserver(() => {
-    window.requestAnimationFrame(() => {
-      enhanceStickyCtas();
-      convertMailTablesToCards();
-      applyFilenameRepairs();
-    });
+    scheduleDomEnhancements();
   });
   domObserver.observe(document.body, { childList: true, subtree: true });
 

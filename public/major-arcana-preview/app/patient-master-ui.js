@@ -263,6 +263,7 @@
     setStatus('Inloggad.', 'success');
     void loadStats();
     void loadPatientList();
+    window.ArcanaPostOpInternalReviews?.refresh?.();
   }
 
   async function submitStaffLogin(form) {
@@ -2404,9 +2405,9 @@
       renderDetailPanel();
     };
     if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(hydrate, { timeout: 1200 });
+      requestIdleCallback(hydrate, { timeout: 320 });
     } else {
-      window.setTimeout(hydrate, 0);
+      window.requestAnimationFrame(hydrate);
     }
   }
 
@@ -3899,7 +3900,7 @@
     }
   }
 
-  function onCustomersViewOpen() {
+  function onCustomersViewOpenImpl() {
     resolveElements();
     renderModeChrome();
     ensureMobilePatientListHistory();
@@ -3918,6 +3919,7 @@
         renderPatientRows();
         return;
       }
+      window.ArcanaPostOpInternalReviews?.refresh?.();
       const deepLinkId = normalizeText(runtime.pendingPatientId || startup.patientId);
       const preserveDetail =
         deepLinkId &&
@@ -3964,6 +3966,21 @@
           }
         }, 180);
       }
+    }
+  }
+
+  let customersViewOpenQueued = false;
+  function onCustomersViewOpen() {
+    if (customersViewOpenQueued) return;
+    customersViewOpenQueued = true;
+    const run = () => {
+      customersViewOpenQueued = false;
+      onCustomersViewOpenImpl();
+    };
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(run);
+    } else {
+      window.setTimeout(run, 0);
     }
   }
 
@@ -4115,6 +4132,7 @@
     if (!canvas) return;
     const openIfCustomers = () => {
       if (canvas.dataset.appShellView !== 'customers' || runtime.mode !== 'register') return;
+      if (runtime.loading || runtime.loaded) return;
       onCustomersViewOpen();
     };
     openIfCustomers();

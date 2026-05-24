@@ -2,9 +2,9 @@
 <html lang="sv" data-build="build-f7c1ae6">
   <head>
     <meta charset="UTF-8" />
-    <!-- Bundlade scripts preload (content-hash: 81cd9429f4) -->
-    <link rel="preload" as="script" href="./app.bundle.81cd9429f4.min.js" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-safari-customers-j" />
+    <!-- Bundlade scripts preload (content-hash: a42b2d4855) -->
+    <link rel="preload" as="script" href="./app.bundle.a42b2d4855.min.js" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-sweep-h" />
     <script>
       (function mobileDeferInboxUntilNeeded() {
         try {
@@ -119,9 +119,9 @@
     <link rel="stylesheet" href="./cco-polish.css?v=build-mobile-journal" />
     <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-mobile-shell-i" />
     <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
-    <script src="./cco-mobile-core.js?v=build-mobile-shell-f" defer></script>
+    <script src="./cco-mobile-core.js?v=build-mobile-shell-g" defer></script>
     <script src="./cco-mobile-autosave.js?v=build-mobile-shell-e" defer></script>
-    <script src="./cco-mobile-shell.js?v=build-mobile-shell-e" defer></script>
+    <script src="./cco-mobile-shell.js?v=build-mobile-shell-f" defer></script>
     <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
     <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
     <script src="./booking-mobile-calendar-day.js?v=build-mobile-shell-e" defer></script>
@@ -3120,6 +3120,54 @@
                 </div>
               </div>
 
+              <section
+                class="post-op-internal-reviews"
+                data-post-op-internal-reviews
+                hidden
+                aria-label="Interna omdömen"
+              >
+                <div class="post-op-internal-reviews-head">
+                  <div>
+                    <h2>Interna omdömen</h2>
+                    <p class="patient-master-muted">
+                      Feedback under 4 stjärnor — visas inte på Google. Ring eller mejla kunden.
+                    </p>
+                  </div>
+                  <span class="post-op-internal-count-badge" data-post-op-internal-count>0</span>
+                </div>
+                <label class="post-op-internal-toggle">
+                  <input type="checkbox" data-post-op-internal-show-handled />
+                  Visa hanterade
+                </label>
+                <p class="shell-status" data-post-op-internal-status hidden></p>
+                <p class="patient-master-empty" data-post-op-internal-empty hidden>
+                  Inga väntande interna omdömen just nu.
+                </p>
+                <div class="post-op-internal-list" data-post-op-internal-list></div>
+              </section>
+
+              <section
+                class="post-op-google-reviews"
+                data-post-op-google-reviews
+                hidden
+                aria-label="Google-godkännande"
+              >
+                <div class="post-op-internal-reviews-head">
+                  <div>
+                    <h2>Google-godkännande</h2>
+                    <p class="patient-master-muted">
+                      Patienten har lämnat 4–5 stjärnor. Godkänn innan de kan skickas vidare till Google.
+                    </p>
+                  </div>
+                  <span class="post-op-internal-count-badge post-op-google-count-badge" data-post-op-google-count>0</span>
+                </div>
+                <p class="shell-status" data-post-op-google-status hidden></p>
+                <p class="patient-master-empty" data-post-op-google-empty hidden>
+                  Inga omdömen väntar på Google-godkännande.
+                </p>
+                <div class="post-op-internal-list" data-post-op-google-list></div>
+              </section>
+
               <div class="customers-metric-row" aria-label="Kundöversikt">
                 <article
                   class="customers-metric-card customers-metric-card-blue"
@@ -3256,8 +3304,9 @@
                       }
                     })();
                   </script>
+                  <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-internal-a"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=build-safari-customers-j"></script>
+                  <script async src="./app/patient-master-ui.js?v=build-sweep-h"></script>
 <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
@@ -10705,8 +10754,8 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="./app/thread-cache-idb.js?v=build-idb-v2"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 81cd9429f4) -->
-    <script src="./app.bundle.81cd9429f4.min.js"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: a42b2d4855) -->
+    <script src="./app.bundle.a42b2d4855.min.js"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's

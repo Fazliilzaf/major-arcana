@@ -434,7 +434,6 @@
           ).trim();
 
     if (tab === 'customers' && shellBefore === 'customers') {
-      window.ArcanaPatientMasterUi?.onCustomersViewOpen?.();
       syncFromApp();
       return;
     }
