@@ -4925,6 +4925,16 @@ body.is-admin-embed .focus-conversation {
     align-items: center;
   }
 
+  html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-toolbar-settings {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
   .patient-master-hero-sticky {
     position: static;
     top: auto;

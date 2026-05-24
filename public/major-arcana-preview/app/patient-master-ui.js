@@ -1955,6 +1955,16 @@
     setStatus('Läser kundregister…', 'loading');
     renderPatientRows();
 
+    const deepLinkId = !append ? normalizeText(runtime.pendingPatientId || parseStartupParams().patientId) : '';
+    let detailPromise = null;
+    if (deepLinkId) {
+      runtime.pendingPatientId = '';
+      runtime.preferJournalOnMobile = true;
+      if (runtime.selectedPatientId !== deepLinkId || !runtime.detail?.card) {
+        detailPromise = loadPatientDetail(deepLinkId);
+      }
+    }
+
     const params = new URLSearchParams({
       limit: String(PAGE_SIZE),
       offset: String(runtime.offset),
@@ -1972,10 +1982,8 @@
       runtime.loaded = true;
       runtime.authRequired = false;
       setStatus('', '');
-      const deepLinkId = runtime.pendingPatientId || parseStartupParams().patientId;
-      if (deepLinkId) {
-        runtime.pendingPatientId = '';
-        await loadPatientDetail(deepLinkId);
+      if (detailPromise) {
+        await detailPromise;
         return;
       }
       if (!runtime.selectedPatientId && runtime.patients[0] && !isMobileViewport()) {
@@ -2087,8 +2095,10 @@
         `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
       );
       runtime.detail = payload;
-      await loadPatientCommercialCase(patientId);
-      await loadPatientTreatmentAgreement(patientId);
+      await Promise.all([
+        loadPatientCommercialCase(patientId),
+        loadPatientTreatmentAgreement(patientId),
+      ]);
       renderDetailPanel();
     } catch (error) {
       runtime.detail = null;
@@ -2911,15 +2921,25 @@
     const startup = parseStartupParams();
     if (startup.patientId) {
       runtime.pendingPatientId = startup.patientId;
+      runtime.preferJournalOnMobile = true;
     }
     if (runtime.mode === 'register') {
       if (needsStaffLogin()) {
         renderPatientRows();
         return;
       }
-      void loadOfferTemplates();
-      void loadStats();
-      void loadPatientList();
+      const deepLinkId = normalizeText(runtime.pendingPatientId || startup.patientId);
+      if (deepLinkId && isMobileViewport() && !runtime.detail?.card) {
+        void loadPatientDetail(deepLinkId);
+      }
+      if (!runtime.loaded && !runtime.loading) {
+        void loadOfferTemplates();
+        void loadStats();
+        void loadPatientList();
+      } else {
+        renderPatientRows();
+        syncMobilePatientLayout();
+      }
       if (isMobileViewport() && els.search && !runtime.selectedPatientId && !startup.patientId) {
         window.setTimeout(() => {
           try {
