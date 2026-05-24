@@ -22,12 +22,13 @@ function record(name, pass, detail = '') {
 }
 
 async function verifyStaffMobileLogin(page) {
-  await page.goto(`${base}/major-arcana-preview/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${base}/staff?view=customers`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.evaluate(() => {
     localStorage.removeItem('ARCANA_ADMIN_TOKEN');
     sessionStorage.removeItem('ARCANA_ADMIN_TOKEN');
   });
-  await page.goto(`${base}/staff?view=customers`, { waitUntil: 'networkidle', timeout: 90000 });
+  await page.context().clearCookies();
+  await page.goto(`${base}/staff?view=customers`, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
   const loginForm = page.locator('[data-staff-login-form]');
   const needsLogin = (await loginForm.count()) > 0;

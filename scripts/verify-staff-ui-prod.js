@@ -115,12 +115,19 @@ async function ensurePatientDetailLoaded(page, token, id) {
 
 async function openCustomersWithPatient(page, token, id) {
   const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(id)}`;
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(url, { waitUntil: 'commit', timeout: 60000 });
   await injectToken(page, token);
-  await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
-  await waitForMobileShell(page);
-  await ensurePatientDetailLoaded(page, token, id);
-  await page.waitForTimeout(400);
+  await waitForMobileShell(page, 20000);
+  await page.waitForFunction(
+    () => {
+      const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
+      const journalTab = document.querySelector('button[data-patient-tab="journal"]');
+      return Boolean(rt?.detail?.card) && !rt?.detailLoading && Boolean(journalTab);
+    },
+    undefined,
+    { timeout: 25000, polling: 16 }
+  );
+  await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('journal'));
 }
 
 async function verifyMobileShell(page) {

@@ -18,10 +18,17 @@ function record(name, pass, detail = '') {
 
 function getStaffToken() {
   if (process.env.ARCANA_SMOKE_BEARER_TOKEN) return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
-  return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim();
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }).trim();
+    } catch (err) {
+      if (attempt === 4) throw err;
+    }
+  }
+  return '';
 }
 
 async function main() {

@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
+node "$ROOT_DIR/scripts/lib/wait-for-prod-ready.js" || exit 1
+
 if [[ -f .env ]]; then
   while IFS= read -r line; do
     [[ "$line" =~ ^# ]] && continue

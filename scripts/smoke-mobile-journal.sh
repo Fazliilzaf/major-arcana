@@ -56,7 +56,17 @@ if [[ "$BASE_URL" == *"127.0.0.1"* || "$BASE_URL" == *"localhost"* ]]; then
   echo
 fi
 
-READY="$(curl -sS "$BASE_URL/readyz")"
+READY=""
+for attempt in $(seq 1 12); do
+  READY="$(curl -sS "$BASE_URL/readyz" 2>/dev/null || true)"
+  if [[ "$(printf '%s' "$READY" | json_get ready 2>/dev/null || true)" == "true" ]]; then
+    break
+  fi
+  if [[ "$attempt" -lt 12 ]]; then
+    echo "Väntar på readyz… ($attempt/12)"
+    sleep 5
+  fi
+done
 [[ "$(printf '%s' "$READY" | json_get ready 2>/dev/null || true)" == "true" ]] || fail "readyz ej ready"
 pass "readyz OK"
 
