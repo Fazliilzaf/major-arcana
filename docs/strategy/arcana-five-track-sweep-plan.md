@@ -1,6 +1,6 @@
 # Arcana — fem-spårssvep (A–E)
 
-**Status:** Auto-svep klart · **Graph read live på Render** · Resend kvar  
+**Status:** Full prod-svep auto · Graph live · bootstrap fas 2 · Resend valfritt  
 **Senast verifierad:** 2026-05-24  
 **Branch:** `main`  
 **Prod:** https://arcana.hairtpclinic.se
@@ -117,6 +117,7 @@ npm run run:rollout-sweep
 7. npm run verify:booking-plan-a-prod                ✅
 8. BASE=... node scripts/plan-a-verify-curl.mjs      ✅
 9. npm run run:rollout-sweep
+10. npm run run:full-sweep-prod                         → hela prod-svepet
 ```
 
 ---

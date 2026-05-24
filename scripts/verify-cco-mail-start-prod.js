@@ -20,6 +20,9 @@ const SYNC_PILL_MS = Number(process.env.CCO_MAIL_SYNC_PILL_MS || 5000);
 const NAV_TIMEOUT_MS = Number(process.env.CCO_MAIL_NAV_TIMEOUT_MS || 90000);
 const QUEUE_READY_MS = Number(process.env.CCO_MAIL_QUEUE_READY_MS || 30000);
 
+let mobileShellMs = SHELL_MS;
+let mobileQueueReadyMs = QUEUE_READY_MS;
+
 let hardFail = false;
 
 function sleep(ms) {
@@ -33,6 +36,19 @@ function record(name, pass, detail = '') {
 
 function warn(name, detail = '') {
   console.log(`WARN: ${name}${detail ? ` — ${detail}` : ''}`);
+}
+
+async function detectBootstrapRunning(token) {
+  try {
+    const res = await fetch(`${base}/api/v1/ops/bootstrap/status`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    if (!res.ok) return false;
+    const body = await res.json();
+    return body.status === 'running';
+  } catch {
+    return false;
+  }
 }
 
 async function getStaffToken() {
@@ -341,12 +357,12 @@ async function runDesktopChecks(page) {
 async function runMobileChecksOnce(page) {
   await openConversations(page, { warm: false });
   const startedAt = Date.now();
-  const shellReady = await waitForQueueShellReady(page, QUEUE_READY_MS);
+  const shellReady = await waitForQueueShellReady(page, mobileQueueReadyMs);
   const shellMs = Date.now() - startedAt;
   if (!shellReady) {
     record(
-      `Mobil (iPhone 13) shell redo < ${SHELL_MS} ms`,
-      shellMs < SHELL_MS,
+      `Mobil (iPhone 13) shell redo < ${mobileShellMs} ms`,
+      shellMs < mobileShellMs,
       `${shellMs} ms (shell ej redo)`
     );
     return;
@@ -422,6 +438,11 @@ async function runDesktopChecksWithRetry(page, token) {
 
 async function main() {
   const token = await getStaffToken();
+  if (await detectBootstrapRunning(token)) {
+    mobileShellMs = Number(process.env.CCO_MAIL_MOBILE_SHELL_MS || 75000);
+    mobileQueueReadyMs = Number(process.env.CCO_MAIL_MOBILE_QUEUE_READY_MS || 45000);
+    warn('Bootstrap pågår — mobil timing-trösklar höjda');
+  }
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'sv-SE' });
   const page = await context.newPage();
