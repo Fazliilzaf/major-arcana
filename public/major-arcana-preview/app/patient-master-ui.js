@@ -670,6 +670,13 @@
 
   function renderPatientFlags(card) {
     const chips = [];
+    const seen = new Set();
+    const add = (label, tone) => {
+      const key = normalizeText(label).toLowerCase();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      chips.push(chipHtml(label, tone));
+    };
     if (card.matchStatus) {
       const tone =
         card.matchStatus === 'matched'
@@ -677,20 +684,21 @@
           : card.matchStatus === 'needs_review'
             ? 'gold'
             : 'blue';
-      chips.push(chipHtml(MATCH_LABELS[card.matchStatus] || card.matchStatus, tone));
+      add(MATCH_LABELS[card.matchStatus] || card.matchStatus, tone);
     }
     if (card.hasJournalHistory) {
-      chips.push(chipHtml('Importerad journal', 'green'));
+      add('Importerad journal', 'green');
     } else if (card.clientoLinked && !card.driveLinked) {
-      chips.push(chipHtml('Cliento', 'blue'));
+      add('Cliento', 'blue');
     }
     asArray(card.flags)
-      .slice(0, 2)
+      .slice(0, 3)
       .forEach((flag) => {
-        chips.push(
-          chipHtml(FLAG_LABELS[flag] || flag, flag === 'needs_review' ? 'gold' : 'violet')
-        );
+        add(FLAG_LABELS[flag] || flag, flag === 'needs_review' ? 'gold' : 'violet');
       });
+    if (isMobileViewport() && chips.length > 2) {
+      return chips.slice(0, 2).join('');
+    }
     return chips.join('');
   }
 
@@ -766,6 +774,31 @@
         : '';
 
     els.list.innerHTML = rows + footer;
+  }
+
+  function escapeSelectorValue(value) {
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+      return CSS.escape(String(value));
+    }
+    return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  }
+
+  function updatePatientRowSelection(previousId, nextId) {
+    if (!els.list) return false;
+    let touched = false;
+    const mark = (patientId, selected) => {
+      if (!patientId) return;
+      const row = els.list.querySelector(
+        `[data-patient-row="${escapeSelectorValue(patientId)}"]`
+      );
+      if (!row) return;
+      row.classList.toggle('is-selected', selected);
+      row.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      touched = true;
+    };
+    if (previousId && previousId !== nextId) mark(previousId, false);
+    if (nextId) mark(nextId, true);
+    return touched;
   }
 
   function railHasPatientDetailUi() {
@@ -1400,6 +1433,7 @@
 
   let offerWizardEntryId = '';
   let offerWizardStep = 1;
+  let offerWizardPreviewHtml = '';
 
   function ensureMobileOfferWizard() {
     let shell = document.getElementById('cco-mobile-offer-wizard');
@@ -1413,7 +1447,8 @@
       <div class="cco-mobile-offer-wizard-panel" role="dialog" aria-modal="true" aria-labelledby="cco-mobile-offer-wizard-title">
         <div class="cco-mobile-offer-wizard-steps" aria-hidden="true">
           <span class="cco-mobile-offer-wizard-step is-active" data-offer-wizard-step-indicator="1">1 Pris</span>
-          <span class="cco-mobile-offer-wizard-step" data-offer-wizard-step-indicator="2">2 Bekräfta</span>
+          <span class="cco-mobile-offer-wizard-step" data-offer-wizard-step-indicator="2">2 Anteckning</span>
+          <span class="cco-mobile-offer-wizard-step" data-offer-wizard-step-indicator="3">3 Förhandsgranska</span>
         </div>
         <h3 id="cco-mobile-offer-wizard-title">Skapa offert</h3>
         <form data-mobile-offer-wizard-form>
@@ -1432,7 +1467,23 @@
             </label>
           </div>
           <div data-mobile-offer-wizard-step="2" hidden>
+            <label class="cco-mobile-offer-wizard-field">
+              <span>Anteckning till kund</span>
+              <textarea name="notesToCustomer" rows="3" placeholder="Syns i offerten"></textarea>
+            </label>
+            <label class="cco-mobile-offer-wizard-field">
+              <span>Intern anteckning</span>
+              <textarea name="internalNotes" rows="3" placeholder="Bara för personal"></textarea>
+            </label>
+          </div>
+          <div data-mobile-offer-wizard-step="3" hidden>
             <p class="patient-master-muted" data-mobile-offer-wizard-summary></p>
+            <div class="cco-mobile-offer-wizard-preview-wrap">
+              <iframe class="cco-mobile-offer-wizard-preview" data-mobile-offer-wizard-preview title="Förhandsgranskning av offert"></iframe>
+            </div>
+            <p class="patient-master-muted cco-mobile-offer-wizard-preview-hint" data-mobile-offer-wizard-preview-hint hidden>
+              Förhandsgranskning kunde inte laddas — du kan fortfarande skapa offerten.
+            </p>
           </div>
           <div class="cco-mobile-offer-wizard-actions">
             <button type="button" class="customers-utility-button" data-mobile-offer-wizard-cancel>Avbryt</button>
@@ -1447,16 +1498,22 @@
 
     shell.querySelector('[data-mobile-offer-wizard-cancel]')?.addEventListener('click', closeMobileOfferWizard);
     shell.querySelector('[data-mobile-offer-wizard-back]')?.addEventListener('click', () => {
-      setMobileOfferWizardStep(1);
+      setMobileOfferWizardStep(Math.max(1, offerWizardStep - 1));
     });
     shell.querySelector('[data-mobile-offer-wizard-next]')?.addEventListener('click', () => {
       const form = shell.querySelector('[data-mobile-offer-wizard-form]');
-      const quotedAmount = normalizeText(form?.quotedAmount?.value);
-      if (!quotedAmount) {
-        setStatus('Ange pris i offerten.', 'error');
+      if (offerWizardStep === 1) {
+        const quotedAmount = normalizeText(form?.quotedAmount?.value);
+        if (!quotedAmount) {
+          setStatus('Ange pris i offerten.', 'error');
+          return;
+        }
+        setMobileOfferWizardStep(2);
         return;
       }
-      setMobileOfferWizardStep(2);
+      if (offerWizardStep === 2) {
+        setMobileOfferWizardStep(3);
+      }
     });
     shell.querySelector('[data-mobile-offer-wizard-form]')?.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -1479,34 +1536,84 @@
       : '<option value="custom">Anpassad</option>';
   }
 
+  function readMobileOfferWizardForm() {
+    const form = document.querySelector('[data-mobile-offer-wizard-form]');
+    return {
+      quotedAmount: normalizeText(form?.quotedAmount?.value),
+      depositAmount: normalizeText(form?.depositAmount?.value),
+      templateKey: normalizeText(form?.templateKey?.value) || 'custom',
+      notesToCustomer: normalizeText(form?.notesToCustomer?.value),
+      internalNotes: normalizeText(form?.internalNotes?.value),
+    };
+  }
+
+  async function loadMobileOfferPreview() {
+    const entryId = offerWizardEntryId;
+    const patientId = runtime.selectedPatientId;
+    const shell = document.getElementById('cco-mobile-offer-wizard');
+    if (!shell || !patientId || !entryId) return;
+    const formValues = readMobileOfferWizardForm();
+    const previewFrame = shell.querySelector('[data-mobile-offer-wizard-preview]');
+    const previewHint = shell.querySelector('[data-mobile-offer-wizard-preview-hint]');
+    if (previewFrame) previewFrame.removeAttribute('srcdoc');
+    if (previewHint) previewHint.hidden = true;
+    offerWizardPreviewHtml = '';
+    setStatus('Laddar förhandsgranskning…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-commercial/offer-from-plan', {
+        method: 'POST',
+        body: {
+          patientId,
+          entryId,
+          ...formValues,
+          previewOnly: true,
+        },
+      });
+      offerWizardPreviewHtml = payload.previewHtml || '';
+      if (previewFrame && offerWizardPreviewHtml) {
+        previewFrame.srcdoc = offerWizardPreviewHtml;
+      } else if (previewHint) {
+        previewHint.hidden = false;
+      }
+      setStatus('', '');
+    } catch (error) {
+      if (previewHint) previewHint.hidden = false;
+      setStatus(error.message || 'Kunde inte förhandsgranska offerten.', 'error');
+    }
+  }
+
   function setMobileOfferWizardStep(step) {
-    offerWizardStep = step === 2 ? 2 : 1;
+    offerWizardStep = step >= 3 ? 3 : step >= 2 ? 2 : 1;
     const shell = document.getElementById('cco-mobile-offer-wizard');
     if (!shell) return;
     shell.querySelector('[data-mobile-offer-wizard-step="1"]').hidden = offerWizardStep !== 1;
     shell.querySelector('[data-mobile-offer-wizard-step="2"]').hidden = offerWizardStep !== 2;
-    shell.querySelector('[data-mobile-offer-wizard-back]').hidden = offerWizardStep !== 2;
-    shell.querySelector('[data-mobile-offer-wizard-next]').hidden = offerWizardStep !== 1;
-    shell.querySelector('[data-mobile-offer-wizard-submit]').hidden = offerWizardStep !== 2;
+    shell.querySelector('[data-mobile-offer-wizard-step="3"]').hidden = offerWizardStep !== 3;
+    shell.querySelector('[data-mobile-offer-wizard-back]').hidden = offerWizardStep === 1;
+    shell.querySelector('[data-mobile-offer-wizard-next]').hidden = offerWizardStep === 3;
+    shell.querySelector('[data-mobile-offer-wizard-submit]').hidden = offerWizardStep !== 3;
     shell.querySelectorAll('[data-offer-wizard-step-indicator]').forEach((node) => {
       const nodeStep = Number(node.getAttribute('data-offer-wizard-step-indicator') || 0);
       node.classList.toggle('is-active', nodeStep === offerWizardStep);
       node.classList.toggle('is-done', nodeStep < offerWizardStep);
     });
 
-    if (offerWizardStep === 2) {
-      const form = shell.querySelector('[data-mobile-offer-wizard-form]');
-      const quotedAmount = normalizeText(form?.quotedAmount?.value);
-      const depositAmount = normalizeText(form?.depositAmount?.value);
-      const templateKey = normalizeText(form?.templateKey?.value);
+    if (offerWizardStep === 3) {
+      const formValues = readMobileOfferWizardForm();
       const templateLabel =
-        asArray(runtime.offerTemplates).find((item) => item.key === templateKey)?.label || templateKey;
+        asArray(runtime.offerTemplates).find((item) => item.key === formValues.templateKey)?.label ||
+        formValues.templateKey;
       const summary = shell.querySelector('[data-mobile-offer-wizard-summary]');
       if (summary) {
-        summary.textContent = `Skapa offert på ${quotedAmount || '—'}${
-          depositAmount ? ` med deposition ${depositAmount}` : ''
-        } (${templateLabel || 'Anpassad'}).`;
+        const noteBits = [
+          formValues.notesToCustomer ? `Till kund: ${formValues.notesToCustomer}` : '',
+          formValues.internalNotes ? `Internt: ${formValues.internalNotes}` : '',
+        ].filter(Boolean);
+        summary.textContent = `Offert på ${formValues.quotedAmount || '—'}${
+          formValues.depositAmount ? ` med deposition ${formValues.depositAmount}` : ''
+        } (${templateLabel || 'Anpassad'}).${noteBits.length ? ` ${noteBits.join(' · ')}` : ''}`;
       }
+      void loadMobileOfferPreview();
     }
   }
 
@@ -1521,6 +1628,11 @@
       if (form.templateKey && !form.templateKey.value) {
         form.templateKey.value = 'custom';
       }
+      const planEntry = findConsultationPlanEntry(runtime.detail?.journalEntries);
+      const fields =
+        planEntry?.fields && typeof planEntry.fields === 'object' ? planEntry.fields : {};
+      if (form.notesToCustomer) form.notesToCustomer.value = fields.notes || '';
+      if (form.internalNotes) form.internalNotes.value = fields.staffNotes || '';
     }
     setMobileOfferWizardStep(1);
     shell.hidden = false;
@@ -1534,20 +1646,19 @@
     if (shell) {
       shell.hidden = true;
       shell.dataset.open = 'false';
+      shell.querySelector('[data-mobile-offer-wizard-preview]')?.removeAttribute('srcdoc');
     }
     offerWizardEntryId = '';
     offerWizardStep = 1;
+    offerWizardPreviewHtml = '';
   }
 
   async function submitMobileOfferWizard() {
     const entryId = offerWizardEntryId;
     const patientId = runtime.selectedPatientId;
     if (!patientId || !entryId) return;
-    const form = document.querySelector('[data-mobile-offer-wizard-form]');
-    const quotedAmount = normalizeText(form?.quotedAmount?.value);
-    const depositAmount = normalizeText(form?.depositAmount?.value);
-    const templateKey = normalizeText(form?.templateKey?.value) || 'custom';
-    if (!quotedAmount) {
+    const formValues = readMobileOfferWizardForm();
+    if (!formValues.quotedAmount) {
       setStatus('Ange pris i offerten.', 'error');
       setMobileOfferWizardStep(1);
       return;
@@ -1560,9 +1671,7 @@
         body: {
           patientId,
           entryId,
-          quotedAmount,
-          depositAmount,
-          templateKey,
+          ...formValues,
         },
       });
       runtime.commercialCase = payload.commercialCase || null;
@@ -1571,6 +1680,11 @@
       runtime.offerDocumentWordUrl = payload.offerDocumentWordUrl || '';
       setStatus('Offert skapad från behandlingsplan.', 'success');
       runtime.detailTab = 'journal';
+      if (payload.offerDocumentPdfUrl) {
+        window.open(payload.offerDocumentPdfUrl, '_blank', 'noopener');
+      } else if (payload.offerDocumentUrl) {
+        window.open(payload.offerDocumentUrl, '_blank', 'noopener');
+      }
       await loadPatientDetail(patientId);
     } catch (error) {
       setStatus(error.message || 'Kunde inte skapa offert.', 'error');
@@ -1688,7 +1802,12 @@
             : ''
         }
         ${
-          fields.notes ? `<p class="patient-master-plan-notes">${escapeHtml(fields.notes)}</p>` : ''
+          fields.notes ? `<p class="patient-master-plan-notes"><strong>Till kund:</strong> ${escapeHtml(fields.notes)}</p>` : ''
+        }
+        ${
+          fields.staffNotes
+            ? `<p class="patient-master-plan-notes patient-master-plan-notes-internal"><strong>Internt:</strong> ${escapeHtml(fields.staffNotes)}</p>`
+            : ''
         }
         ${
           fields.bookingSlotStart || planEntry.treatmentEncounterId
@@ -2013,18 +2132,11 @@
     if (hasPlan) active = 3;
     if (hasSignedPlan) active = 4;
     const steps = ['Anteckning', 'Bilder', 'Plan', 'Signera'];
+    const currentLabel = steps[Math.max(0, Math.min(steps.length - 1, active - 1))] || '';
     return `
-      <ol class="cco-mobile-journal-steps" aria-label="Journalsteg">
-        ${steps
-          .map((label, index) => {
-            const stepNumber = index + 1;
-            const stateClass =
-              stepNumber < active ? 'is-done' : stepNumber === active ? 'is-active' : '';
-            return `<li class="cco-mobile-journal-step ${stateClass}">${escapeHtml(label)}</li>`;
-          })
-          .join('')}
-      </ol>
-      <p class="patient-master-muted cco-mobile-journal-progress" aria-live="polite">Steg ${active} av 4</p>
+      <p class="patient-master-muted cco-mobile-journal-progress" aria-live="polite">
+        Steg ${active} av 4 · ${escapeHtml(currentLabel)}
+      </p>
     `;
   }
 
@@ -2457,11 +2569,11 @@
               </div>
               <div class="focus-customer-chip-row">${renderPatientFlags(card)}</div>
             </div>
-            <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="copy-patient-link" title="Kopiera länk till kund">
-              Kopiera länk
+            <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="copy-patient-link" title="Kopiera kollegelänk till kundkort (kräver CCO-inloggning)">
+              Kopiera kollegelänk
             </button>
-            <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="show-patient-qr" title="QR-kod till kundkort">
-              Visa QR
+            <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="show-patient-qr" title="QR för kollega — kräver CCO-inloggning">
+              QR för kollega
             </button>
           </div>
         </article>
@@ -2775,6 +2887,7 @@
     resolveElements();
     if (!patientId || runtime.mode !== 'register') return;
     const openingNewPatient = runtime.selectedPatientId !== patientId;
+    const previousPatientId = runtime.selectedPatientId;
     if (openingNewPatient) {
       runtime.editingTpEntryId = '';
       runtime.editingPrpEntryId = '';
@@ -2787,7 +2900,11 @@
       runtime.detailTab = 'journal';
     }
     runtime.detailLoading = true;
-    renderPatientRows();
+    if (openingNewPatient) {
+      if (!updatePatientRowSelection(previousPatientId, patientId)) {
+        renderPatientRows();
+      }
+    }
     const alreadyPrimed =
       normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__) === normalizeText(patientId) &&
       Boolean(els.patientRail?.querySelector('[data-patient-loading="true"]'));
@@ -3101,7 +3218,7 @@
         window.prompt('Kopiera länken:', url);
         return;
       }
-      setStatus('Länk till kund kopierad.', 'success');
+      setStatus('Kollegelänk kopierad (kräver CCO-inloggning).', 'success');
     } catch {
       setStatus('Kunde inte kopiera länken.', 'error');
     }
@@ -3120,10 +3237,10 @@
     const overlay = document.createElement('div');
     overlay.className = 'patient-master-qr-overlay';
     overlay.innerHTML = `
-      <div class="patient-master-qr-card" role="dialog" aria-modal="true" aria-label="QR-kod till kundkort">
+      <div class="patient-master-qr-card" role="dialog" aria-modal="true" aria-label="QR-kod för kollega">
         <h4>QR — ${escapeHtml(runtime.detail?.card?.displayName || 'Kund')}</h4>
-        <img src="${escapeHtml(qrSrc)}" alt="QR-kod till kundkort" width="240" height="240" />
-        <p class="patient-master-muted">Skanna för att öppna kundkortet direkt i CCO.</p>
+        <img src="${escapeHtml(qrSrc)}" alt="QR-kod till kundkort för kollega" width="240" height="240" />
+        <p class="patient-master-muted">För kollegor med CCO-inloggning. Skanna för att öppna kundkortet — utan inloggning kommer du till inloggningssidan.</p>
         <button type="button" class="customers-utility-button" data-patient-qr-close>Stäng</button>
       </div>
     `;

@@ -1251,12 +1251,37 @@
     }
 
     html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field input,
-    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field select {
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field select,
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field textarea {
       min-height: 48px;
       padding: 0 12px;
       border: 1px solid rgba(154, 126, 104, 0.22);
       border-radius: 12px;
       font-size: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field textarea {
+      min-height: 96px;
+      padding: 10px 12px;
+      resize: vertical;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-preview-wrap {
+      margin-top: 10px;
+      border: 1px solid rgba(154, 126, 104, 0.18);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      min-height: 220px;
+      max-height: 42vh;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-preview {
+      display: block;
+      width: 100%;
+      height: 42vh;
+      border: 0;
+      background: #fff;
     }
 
     html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-actions {
@@ -1572,6 +1597,131 @@
 
     html[data-cco-mobile-shell="on"] .journal-plan-side {
       width: 100%;
+    }
+
+    /* ============================================================
+       Fas G — kundkort mobil: full bredd, färre bubblor, flata flikar
+       ============================================================ */
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-surface,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-shell {
+      padding-inline: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card {
+      padding-inline: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .patient-master-identity-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .patient-master-workflow-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .patient-master-plan-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .patient-master-history-card.focus-customer-data-card {
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      padding: 10px 0 !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tabs {
+      margin-inline: -12px;
+      padding: 0 12px;
+      gap: 0;
+      background: transparent;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.1));
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab {
+      flex: 1 1 0;
+      min-height: 42px;
+      padding: 10px 4px;
+      border: 0;
+      border-radius: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      box-shadow: none;
+      color: var(--cco-text-secondary, #5d544a);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab.is-active {
+      color: var(--cco-text-primary, #2b251f);
+      border-bottom-color: var(--cco-status-success, #4a8268);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-chip-row {
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-chip {
+      min-height: 0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.25;
+      box-shadow: none;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero-main {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-copy-link {
+      align-self: flex-start;
+      margin-left: 0;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      color: var(--cco-text-link, #4a8268);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero-main > .patient-master-copy-link
+      + .patient-master-copy-link {
+      margin-left: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-journal-steps {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-journal-progress {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-intro h4 {
+      font-size: 12px;
+      letter-spacing: 0.06em;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-collapse {
+      border: 0;
+      border-radius: 0;
+      border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      background: transparent;
     }
 
     /* Kundregister mobil: hela sidan scrollar (login + profil) via .preview-page */
