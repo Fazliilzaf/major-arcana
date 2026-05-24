@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <!-- Bundlade scripts preload (content-hash: 753b5c527d) -->
     <link rel="preload" as="script" href="./app.bundle.753b5c527d.min.js" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-b" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-c" />
     <script>
       (function headPrefetchMobilePatientDeepLink() {
         try {
@@ -25,35 +25,18 @@
             token = '';
           }
           if (token.length <= 8) return;
-          var apiUrl = new URL(
-            '/api/v1/cco-patient-master/patient?patientId=' + encodeURIComponent(patientId),
-            window.location.origin
-          ).toString();
-          try {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', apiUrl, false);
-            xhr.setRequestHeader('Accept', 'application/json');
-            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-            xhr.send(null);
-            if (xhr.status >= 200 && xhr.status < 300) {
-              var payload = JSON.parse(xhr.responseText || 'null');
-              if (payload && payload.card) {
-                window.__ARCANA_PATIENT_PREFETCH__ = {
-                  patientId: patientId,
-                  payload: payload,
-                };
-                return;
-              }
+          fetch(
+            new URL(
+              '/api/v1/cco-patient-master/patient?patientId=' + encodeURIComponent(patientId),
+              window.location.origin
+            ).toString(),
+            {
+              headers: {
+                Accept: 'application/json',
+                Authorization: 'Bearer ' + token,
+              },
             }
-          } catch (syncPrefetchError) {
-            /* fall through to async fetch */
-          }
-          fetch(apiUrl, {
-            headers: {
-              Accept: 'application/json',
-              Authorization: 'Bearer ' + token,
-            },
-          })
+          )
             .then(function (response) {
               return response.ok ? response.json() : null;
             })
@@ -3241,44 +3224,69 @@
                         } catch (prefetchTokenError) {
                           token = '';
                         }
-                        if (token.length > 8) {
-                          if (window.__ARCANA_PATIENT_PREFETCH__ || window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) {
-                            return;
+                        if (token.length > 8 && !window.__ARCANA_PATIENT_PREFETCH__) {
+                          var apiUrl = new URL(
+                            '/api/v1/cco-patient-master/patient?patientId=' +
+                              encodeURIComponent(patientId),
+                            window.location.origin
+                          ).toString();
+                          try {
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('GET', apiUrl, false);
+                            xhr.setRequestHeader('Accept', 'application/json');
+                            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                            xhr.send(null);
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                              var syncPayload = JSON.parse(xhr.responseText || 'null');
+                              if (syncPayload && syncPayload.card) {
+                                window.__ARCANA_PATIENT_PREFETCH__ = {
+                                  patientId: patientId,
+                                  payload: syncPayload,
+                                };
+                              }
+                            }
+                          } catch (syncPrefetchError) {
+                            /* async fallback below */
                           }
-                          window.__ARCANA_DEEPLINK_PREFETCH_STARTED__ = true;
-                          fetch(
-                            new URL(
-                              '/api/v1/cco-patient-master/patient?patientId=' +
-                                encodeURIComponent(patientId),
-                              window.location.origin
-                            ).toString(),
-                            {
+                          if (window.__ARCANA_PATIENT_PREFETCH__ && window.__ARCANA_PATIENT_PREFETCH__.payload) {
+                            var syncCard = window.__ARCANA_PATIENT_PREFETCH__.payload.card;
+                            var syncName = String(syncCard.displayName || syncCard.fullName || 'Kund').trim();
+                            var syncInitials = syncName.slice(0, 2).toUpperCase();
+                            var syncH2 = rail.querySelector('.focus-customer-copy h2');
+                            var syncAvatar = rail.querySelector('.focus-customer-avatar');
+                            var syncLine = rail.querySelector('.patient-master-loading-line');
+                            if (syncH2) syncH2.textContent = syncName;
+                            if (syncAvatar) syncAvatar.textContent = syncInitials;
+                            if (syncLine) syncLine.textContent = 'Hämtar journal och avtal…';
+                          } else if (!window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) {
+                            window.__ARCANA_DEEPLINK_PREFETCH_STARTED__ = true;
+                            fetch(apiUrl, {
                               headers: {
                                 Accept: 'application/json',
                                 Authorization: 'Bearer ' + token,
                               },
-                            }
-                          )
-                            .then(function (response) {
-                              return response.ok ? response.json() : null;
                             })
-                            .then(function (payload) {
-                              if (!payload || !payload.card) return;
-                              window.__ARCANA_PATIENT_PREFETCH__ = {
-                                patientId: patientId,
-                                payload: payload,
-                              };
-                              var card = payload.card;
-                              var name = String(card.displayName || card.fullName || 'Kund').trim();
-                              var initials = name.slice(0, 2).toUpperCase();
-                              var h2 = rail.querySelector('.focus-customer-copy h2');
-                              var avatar = rail.querySelector('.focus-customer-avatar');
-                              var line = rail.querySelector('.patient-master-loading-line');
-                              if (h2) h2.textContent = name;
-                              if (avatar) avatar.textContent = initials;
-                              if (line) line.textContent = 'Hämtar journal och avtal…';
-                            })
-                            .catch(function () {});
+                              .then(function (response) {
+                                return response.ok ? response.json() : null;
+                              })
+                              .then(function (payload) {
+                                if (!payload || !payload.card) return;
+                                window.__ARCANA_PATIENT_PREFETCH__ = {
+                                  patientId: patientId,
+                                  payload: payload,
+                                };
+                                var card = payload.card;
+                                var name = String(card.displayName || card.fullName || 'Kund').trim();
+                                var initials = name.slice(0, 2).toUpperCase();
+                                var h2 = rail.querySelector('.focus-customer-copy h2');
+                                var avatar = rail.querySelector('.focus-customer-avatar');
+                                var line = rail.querySelector('.patient-master-loading-line');
+                                if (h2) h2.textContent = name;
+                                if (avatar) avatar.textContent = initials;
+                                if (line) line.textContent = 'Hämtar journal och avtal…';
+                              })
+                              .catch(function () {});
+                          }
                         }
                       } catch (e) {
                         /* best-effort */
@@ -3286,7 +3294,7 @@
                     })();
                   </script>
                   <!-- Early patient-master-ui: mobil deep link — kör före huvudbundle -->
-                  <script src="./app/patient-master-ui.js?v=build-deeplink-b"></script>
+                  <script src="./app/patient-master-ui.js?v=build-deeplink-c"></script>
 <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
