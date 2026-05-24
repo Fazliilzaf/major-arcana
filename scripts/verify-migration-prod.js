@@ -73,7 +73,7 @@ async function main() {
   } else {
     const indexProfiles = Number(status.body?.indexStats?.totalProfiles || 0);
     const indexFiles = Number(status.body?.indexStats?.totalFiles || 0);
-    const patientTotal = Number(status.body?.patientStats?.total || 0);
+    const patientTotal = Number(status.body?.patientStats?.totalPatients || status.body?.patientStats?.total || 0);
     const historicalEntries = Number(status.body?.journalImportStats?.historicalImportEntries || 0);
     const patientsWithHistorical = Number(status.body?.journalImportStats?.patientsWithHistorical || 0);
 
