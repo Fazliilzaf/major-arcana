@@ -47,31 +47,50 @@ function resolveMigrationPaths(options = {}) {
 
 function resolveDriveCredentials(paths = {}) {
   const folderId = paths.driveFolderId;
-  const serviceAccountPath = paths.serviceAccountPath;
+  const rawSa = paths.serviceAccountPath;
   const missing = [];
   if (!folderId) missing.push('ARCANA_GOOGLE_DRIVE_FOLDER_ID');
-  if (!serviceAccountPath) missing.push('ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON');
+  if (!rawSa) missing.push('ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON');
+
   if (missing.length) {
     return {
       ok: false,
       missing,
       folderId,
-      serviceAccountPath,
+      serviceAccountPath: rawSa,
     };
   }
-  if (!fs.existsSync(path.resolve(serviceAccountPath))) {
+
+  if (String(rawSa).trim().startsWith('{')) {
+    return { ok: true, folderId, serviceAccountPath: rawSa, inlineJson: true };
+  }
+
+  const resolved = path.resolve(rawSa);
+  if (!fs.existsSync(resolved)) {
     return {
       ok: false,
-      missing: [`service account file saknas: ${serviceAccountPath}`],
+      missing: [`service account file saknas: ${resolved}`],
       folderId,
-      serviceAccountPath,
+      serviceAccountPath: rawSa,
     };
   }
-  return { ok: true, folderId, serviceAccountPath: path.resolve(serviceAccountPath) };
+  return { ok: true, folderId, serviceAccountPath: resolved, inlineJson: false };
+}
+
+function loadServiceAccountFromCreds(creds) {
+  if (creds.inlineJson) {
+    const parsed = JSON.parse(String(creds.serviceAccountPath));
+    if (!parsed?.client_email || !parsed?.private_key) {
+      throw new Error('Service account JSON saknar client_email eller private_key.');
+    }
+    return parsed;
+  }
+  return require('./googleDriveApi').loadServiceAccountJson(creds.serviceAccountPath);
 }
 
 module.exports = {
   normalizeText,
+  loadServiceAccountFromCreds,
   resolveDriveCredentials,
   resolveMigrationPaths,
 };

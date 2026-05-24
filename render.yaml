@@ -133,3 +133,9 @@ services:
         sync: false
       - key: ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN
         sync: false
+      - key: ARCANA_GOOGLE_DRIVE_FOLDER_ID
+        sync: false
+      - key: ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: ARCANA_MIGRATION_INDEX_PATH
+        value: /var/data/arcana/migration-index.json

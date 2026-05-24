@@ -14,9 +14,8 @@ const {
   getAccessToken,
   getFolderMetadata,
   listChildrenPage,
-  loadServiceAccountJson,
 } = require('./lib/googleDriveApi');
-const { resolveDriveCredentials, resolveMigrationPaths } = require('./lib/migrationEnv');
+const { resolveDriveCredentials, resolveMigrationPaths, loadServiceAccountFromCreds } = require('./lib/migrationEnv');
 
 function parseArgs(argv) {
   const args = { json: false };
@@ -65,7 +64,7 @@ async function main() {
     process.exit(1);
   }
 
-  const serviceAccount = loadServiceAccountJson(creds.serviceAccountPath);
+  const serviceAccount = loadServiceAccountFromCreds(creds);
   report.serviceAccountEmail = serviceAccount.client_email;
 
   const accessToken = await getAccessToken(serviceAccount);

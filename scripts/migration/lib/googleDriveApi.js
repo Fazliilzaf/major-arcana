@@ -155,6 +155,26 @@ async function listAllDriveFiles({ accessToken, rootFolderId, onProgress, maxFol
   return files;
 }
 
+async function openDriveFileReadStream({ accessToken, driveFileId }) {
+  const params = new URLSearchParams({
+    alt: 'media',
+    supportsAllDrives: 'true',
+  });
+  const response = await fetch(`${FILES_URL}/${encodeURIComponent(driveFileId)}?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    const err = new Error(payload.error?.message || `Drive files.get misslyckades (${response.status}).`);
+    err.status = response.status;
+    throw err;
+  }
+  if (!response.body) {
+    throw new Error('Drive files.get returnerade ingen body.');
+  }
+  return response;
+}
+
 module.exports = {
   getAccessToken,
   getFolderMetadata,
@@ -162,4 +182,5 @@ module.exports = {
   listChildren,
   listChildrenPage,
   loadServiceAccountJson,
+  openDriveFileReadStream,
 };

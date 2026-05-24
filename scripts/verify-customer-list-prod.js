@@ -184,11 +184,16 @@ async function main() {
       `${indexProfiles} profiler, zipCount=${zipCount}, migrationRoot=${migrationRes.body?.migrationRoot || '?'}`
     );
     if (zipCount === 0) {
+      const driveApiConfigured = migrationRes.body?.driveApiConfigured === true;
       record(
         'CL-08 zip volume on prod',
-        false,
-        '0 zips — PDF-visning kräver ARCANA_MIGRATION_ROOT eller Google Drive API'
+        driveApiConfigured,
+        driveApiConfigured
+          ? '0 zips men Drive API konfigurerad — PDF via driveFileId'
+          : '0 zips — PDF-visning kräver ARCANA_MIGRATION_ROOT eller Google Drive API'
       );
+    } else {
+      record('CL-08 zip volume on prod', true, `${zipCount} zips`);
     }
   }
 
