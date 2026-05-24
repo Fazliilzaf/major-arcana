@@ -17,7 +17,7 @@ Sweep-plan: [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md)
 - Kör `npm run verify:cco-mobile-pilot-prod` — login + UI + journal + pilot
 - Kör `npm run kickoff:cco-field-pilot` — automation + deep links (start Fas 5.6)
 - 5 pilotkunder tillgängliga — `verify-all-pilot-journey-prod.sh`
-- Personal har läst instruktionen — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md) *(login, inte open access)*
+- Personal har läst instruktionen — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md) *(valfritt; hanteras externt)*
 - Kör `npm run run:rollout-sweep` + pilot E2E alla 5 kunder
 - Kör `npm run verify:staff-ui-prod` — Playwright iPhone viewport
 - Kör `smoke:mobile-journal` (STAFF) — photo upload + GET

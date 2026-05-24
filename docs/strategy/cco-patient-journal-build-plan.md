@@ -107,7 +107,7 @@ Synka journalmappen till en mapp **utanför iCloud**, t.ex. `~/Major-Arcana-Migr
 
 - [ ] Migration-index verifierat (pilot 20 kunder)
 - [ ] Journal-MVP deployad
-- [ ] Minst en personal utbildad
+- [~] Minst en personal utbildad *(hanteras externt)*
 - [ ] **Mobil foto-flöde (kod klar)** — se [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md) — **deploy Fas 0 + pilot Fas 5.5 krävs**
 
 ## Fas 10 — Mobil journal (personal)
