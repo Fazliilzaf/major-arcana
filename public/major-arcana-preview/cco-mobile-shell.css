@@ -1553,6 +1553,20 @@
       background: var(--cco-bg-surface-sunken, #f5efe6);
     }
 
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo-remove {
+      top: 8px;
+      right: 8px;
+      width: var(--cco-touch-min, 44px);
+      height: var(--cco-touch-min, 44px);
+      min-width: var(--cco-touch-min, 44px);
+      min-height: var(--cco-touch-min, 44px);
+      font-size: 1.35rem;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-photo-delete {
+      display: none;
+    }
+
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-file-list li {
       flex-direction: column;
       align-items: flex-start;
