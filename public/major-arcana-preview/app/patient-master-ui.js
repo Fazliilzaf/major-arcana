@@ -1884,6 +1884,47 @@
     `;
   }
 
+  function switchDetailTab(nextTab) {
+    const normalized = nextTab || 'profil';
+    if (!runtime.detail?.card || !els.patientRail?.querySelector('[data-patient-detail]')) {
+      return false;
+    }
+    if (normalized === runtime.detailTab) {
+      syncMobilePatientLayout();
+      window.ArcanaMobileShell?.syncFromApp?.();
+      return true;
+    }
+    runtime.detailTab = normalized;
+    if (normalized === 'journal') {
+      runtime.preferJournalOnMobile = true;
+    } else {
+      runtime.preferJournalOnMobile = false;
+      runtime.editingTpEntryId = '';
+      runtime.editingClinicalFormKey = '';
+      runtime.editingClinicalEntryId = '';
+    }
+    els.patientRail.querySelectorAll('[data-patient-tab]').forEach((button) => {
+      const active = (button.dataset.patientTab || '') === normalized;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    els.patientRail.querySelectorAll('[data-patient-tab-panel]').forEach((panel) => {
+      const isActive = (panel.dataset.patientTabPanel || '') === normalized;
+      if (isActive) {
+        panel.removeAttribute('hidden');
+      } else {
+        panel.setAttribute('hidden', 'hidden');
+      }
+    });
+    syncMobilePatientLayout();
+    window.ArcanaMobileShell?.syncFromApp?.();
+    if (normalized === 'journal') {
+      void hydrateJournalPhotoElements(els.patientRail);
+      window.requestAnimationFrame(() => bindJournalAutosaveForms());
+    }
+    return true;
+  }
+
   function renderDetailPanel() {
     if (!els.patientRail) return;
     if (runtime.detailLoading && !runtime.detail?.card) {
@@ -2021,8 +2062,9 @@
       runtime.authRequired = false;
       setStatus('', '');
       if (detailPromise) {
-        await detailPromise;
-        return;
+        void detailPromise.catch((error) => {
+          console.warn('Patient deep link misslyckades.', error);
+        });
       }
       if (!runtime.selectedPatientId && runtime.patients[0] && !isMobileViewport()) {
         runtime.selectedPatientId = runtime.patients[0].patientId;
@@ -2124,15 +2166,31 @@
     }
     runtime.detailLoading = true;
     renderPatientRows();
-    renderDetailLoadingSkeleton(patientId);
+    const alreadyPrimed =
+      normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__) === normalizeText(patientId) &&
+      Boolean(els.patientRail?.querySelector('[data-patient-loading="true"]'));
+    if (!alreadyPrimed) {
+      renderDetailLoadingSkeleton(patientId);
+    }
     syncMobilePatientLayout();
     if (isMobileViewport() && openingNewPatient) {
       pushMobilePatientDetailHistory(patientId);
     }
     try {
-      const payload = await apiRequest(
-        `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
-      );
+      const prefetched = window.__ARCANA_PATIENT_PREFETCH__;
+      let payload =
+        prefetched &&
+        normalizeText(prefetched.patientId) === normalizeText(patientId) &&
+        prefetched.payload
+          ? prefetched.payload
+          : null;
+      if (payload) {
+        delete window.__ARCANA_PATIENT_PREFETCH__;
+      } else {
+        payload = await apiRequest(
+          `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
+        );
+      }
       runtime.detail = payload;
       renderDetailPanel();
       if (isMobileViewport()) {
@@ -2157,6 +2215,9 @@
       setStatus(error.message || 'Kunde inte läsa kundkortet.', 'error');
     } finally {
       runtime.detailLoading = false;
+      if (normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__) === normalizeText(patientId)) {
+        delete window.__ARCANA_MOBILE_DEEPLINK_PRIME__;
+      }
     }
   }
 
@@ -2757,6 +2818,9 @@
 
       const tab = event.target.closest('[data-patient-tab]');
       if (tab && runtime.mode === 'register') {
+        if (switchDetailTab(tab.dataset.patientTab || 'profil')) {
+          return;
+        }
         runtime.detailTab = tab.dataset.patientTab || 'profil';
         if (tab.dataset.patientTab !== 'journal') {
           runtime.preferJournalOnMobile = false;
@@ -2770,6 +2834,9 @@
 
       const tabJump = event.target.closest('[data-patient-tab-jump]');
       if (tabJump && runtime.mode === 'register') {
+        if (switchDetailTab(tabJump.dataset.patientTabJump || 'journal')) {
+          return;
+        }
         runtime.detailTab = tabJump.dataset.patientTabJump || 'journal';
         renderDetailPanel();
         return;
@@ -3038,6 +3105,9 @@
 
   function setPatientTab(tabKey) {
     if (!runtime.detail?.card) return false;
+    if (switchDetailTab(tabKey || 'profil')) {
+      return true;
+    }
     runtime.detailTab = tabKey || 'profil';
     if (tabKey === 'journal') {
       runtime.preferJournalOnMobile = true;

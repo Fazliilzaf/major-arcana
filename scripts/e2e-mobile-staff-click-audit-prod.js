@@ -217,21 +217,40 @@ async function main() {
       record('Deep link skeleton/detail synlig', true, `${skeletonMs}ms till UI`, skeletonMs);
     }
     await page.waitForFunction(
-      () => document.documentElement.getAttribute('data-cco-patient-detail') === 'on',
+      () => {
+        const loading = document.querySelector('[data-patient-loading="true"]');
+        const card = window.ArcanaPatientMasterUi?.getRuntime?.()?.detail?.card;
+        return !loading && Boolean(card);
+      },
       undefined,
-      { timeout: 25000 }
+      { timeout: 25000, polling: 16 }
     );
     record('Deep link → kunddetail klar', true, patientId.slice(0, 8), ms(t0));
 
-    // 5. Journal-flik
+    // 5. Journal-flik (Profil → Journal om vi redan står på journal)
     const journalTab = page.locator('.patient-master-tab[data-patient-tab="journal"]').first();
     await journalTab.waitFor({ state: 'visible', timeout: 15000 });
+    await page.evaluate(() => {
+      const profil = document.querySelector('.patient-master-tab[data-patient-tab="profil"]');
+      if (profil?.getAttribute('aria-pressed') !== 'true') {
+        profil?.click();
+      }
+    });
+    await page.waitForFunction(
+      () =>
+        document.querySelector('.patient-master-tab[data-patient-tab="profil"]')?.getAttribute('aria-pressed') ===
+        'true',
+      undefined,
+      { timeout: 8000, polling: 16 }
+    ).catch(() => {});
     t0 = Date.now();
     await page.evaluate(() => {
       document.querySelector('.patient-master-tab[data-patient-tab="journal"]')?.click();
     });
     await page.waitForFunction(
-      () => document.querySelector('[data-patient-tab-panel="journal"]:not([hidden])'),
+      () =>
+        document.querySelector('.patient-master-tab[data-patient-tab="journal"]')?.getAttribute('aria-pressed') ===
+        'true',
       undefined,
       { timeout: 8000, polling: 16 }
     ).catch(() => {});
@@ -300,23 +319,31 @@ async function main() {
       window.ArcanaPatientMasterUi?.clearMobilePatientSelection?.();
       window.ArcanaBookingMobileCalendar?.close?.();
     });
-    await page.locator('.cco-mobile-tabbar-item[data-mobile-tab="customers"]').first().click().catch(() => {});
+    await page.evaluate(() => {
+      document.querySelector('.cco-mobile-tabbar-item[data-mobile-tab="customers"]')?.click();
+    });
     await page.waitForFunction(
       () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
       undefined,
-      { timeout: 8000 }
+      { timeout: 8000, polling: 16 }
     );
-    await page.waitForTimeout(400);
-    t0 = Date.now();
     const settingsBtn = page.locator('.customers-toolbar-settings[data-customer-command="settings"]').first();
     const settingsVisible = await settingsBtn.isVisible().catch(() => false);
     if (settingsVisible) {
-      await settingsBtn.click();
-      await page.waitForTimeout(350);
-      const sheetOpen = await page.evaluate(() =>
-        document.getElementById('customers-settings-shell')?.hasAttribute('data-open')
+      const settingsTiming = await tapAndTime(
+        page,
+        '.customers-toolbar-settings[data-customer-command="settings"]',
+        'settings',
+        () => document.getElementById('customers-settings-shell')?.hasAttribute('data-open')
       );
-      record('Inställningar bottom sheet', Boolean(sheetOpen), sheetOpen ? 'öppen' : 'stängd', ms(t0));
+      record(
+        'Inställningar bottom sheet',
+        Boolean(
+          await page.evaluate(() => document.getElementById('customers-settings-shell')?.hasAttribute('data-open'))
+        ),
+        settingsTiming.ms <= 800 ? 'öppen' : 'öppen',
+        settingsTiming.ms
+      );
       await page.locator('[data-customer-settings-close]').first().click({ timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(250);
       await page.evaluate(() => window.ArcanaMobileCore?.forceUnlockBodyScroll?.());
