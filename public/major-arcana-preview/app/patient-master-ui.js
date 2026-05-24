@@ -1756,7 +1756,7 @@
     return `
       ${mobileSteps}
       ${toolbar}
-      <div data-patient-sidecar="commercial-plan">${planSection}</div>
+      ${planSection}
       ${clinicalSection}
       ${tpSection}
       ${
@@ -1886,7 +1886,7 @@
   }
 
   function patchCommercialAgreementSidecars() {
-    if (!els.patientRail?.querySelector('[data-patient-detail]') || !runtime.detail?.card) {
+    if (!els.patientRail?.querySelector('[data-patient-detail]:not([data-patient-loading])') || !runtime.detail?.card) {
       return false;
     }
     const { journalEntries } = runtime.detail;
@@ -1906,13 +1906,9 @@
       if (next) workflowCard.replaceWith(next);
     }
 
-    const sidecarHost = els.patientRail.querySelector('[data-patient-sidecar="commercial-plan"]');
-    if (sidecarHost) {
-      sidecarHost.innerHTML = renderConsultationPlanSection(journalEntries);
-      if (runtime.detailTab === 'journal') {
-        void hydrateJournalPhotoElements(els.patientRail);
-        window.requestAnimationFrame(() => bindJournalAutosaveForms());
-      }
+    if (runtime.detailTab === 'journal') {
+      renderDetailPanel();
+      return true;
     }
 
     return true;
@@ -2243,6 +2239,7 @@
         );
       }
       runtime.detail = payload;
+      runtime.detailLoading = false;
       renderDetailPanel();
       if (isMobileViewport()) {
         void Promise.all([
@@ -3085,7 +3082,6 @@
   function onCustomersViewOpen() {
     resolveElements();
     renderModeChrome();
-    renderDetailEmpty();
     ensureMobilePatientListHistory();
     const startup = parseStartupParams();
     if (startup.patientId) {
@@ -3098,10 +3094,22 @@
         return;
       }
       const deepLinkId = normalizeText(runtime.pendingPatientId || startup.patientId);
+      const preserveDetail =
+        deepLinkId &&
+        isMobileViewport() &&
+        normalizeText(runtime.selectedPatientId) === deepLinkId &&
+        (runtime.detailLoading || Boolean(runtime.detail?.card));
+      if (!preserveDetail) {
+        renderDetailEmpty();
+      }
       if (deepLinkId && isMobileViewport() && !runtime.detail?.card) {
         runtime.selectedPatientId = deepLinkId;
-        runtime.detailLoading = true;
-        renderDetailLoadingSkeleton(deepLinkId);
+        if (!runtime.detailLoading) {
+          runtime.detailLoading = true;
+        }
+        if (!els.patientRail?.querySelector('[data-patient-loading="true"], [data-patient-detail]:not([data-patient-loading])')) {
+          renderDetailLoadingSkeleton(deepLinkId);
+        }
         syncMobilePatientLayout();
         void loadPatientDetail(deepLinkId);
       }
