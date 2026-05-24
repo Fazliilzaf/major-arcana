@@ -36,6 +36,8 @@
 ```bash
 cd ~/Code/major-arcana
 npm run verify:auth-go-live-prod
+npm run verify:journal-photos-backup-prod
+npm run verify:staff-mobile-login-prod
 npm run verify:cco-mobile-pilot-prod   # kräver STAFF/OWNER i .env
 curl -fsS https://arcana.hairtpclinic.se/readyz
 ```
@@ -51,6 +53,8 @@ curl -fsS https://arcana.hairtpclinic.se/readyz
 | `ARCANA_STAFF_JOURNAL_OPEN_ACCESS` | `false` |
 | `ARCANA_AUTH_OWNER_MFA_REQUIRED` | `true` |
 | `ARCANA_PREFLIGHT_READINESS_CHECKS` | `cors_strict,owner_mfa_enforced` (via `render.yaml`) |
+
+**Render Dashboard (obligatoriskt vid go-live):** Sätt ovan i Environment → Deploy. `render.yaml` har fortfarande `ARCANA_AUTH_OWNER_MFA_REQUIRED=false` (byggfas) — synka blueprint efter env-flip. Kör `npm run owner:mfa:setup` **innan** MFA required slås på.
 
 **Go-live-steg** (samma som `verify-auth-go-live-prod.sh` skriver ut):
 
@@ -111,7 +115,25 @@ npm run verify:auth-go-live-prod
 ```bash
 curl -fsS https://arcana.hairtpclinic.se/api/v1/_diag/env | jq '.env.ARCANA_STAFF_JOURNAL_OPEN_ACCESS, .env.ARCANA_AUTH_OWNER_MFA_REQUIRED'
 npm run verify:auth-go-live-prod
+npm run verify:journal-photos-backup-prod
+npm run verify:staff-mobile-login-prod   # STAFF @390px + OWNER API MFA
 bash scripts/verify-render-blueprint-link.sh
 ```
+
+## STAFF login i fält (U2.4)
+
+**Flöde:** `/staff?view=customers` → e-post + lösenord (+ tenant `hair-tp-clinic` om synligt) → token i `localStorage`/`sessionStorage` → kundlista. Passkey stöds ej i nuvarande STAFF-formulär (lösenord only).
+
+**Automatiserad verify (kör före fälttest):**
+
+```bash
+npm run verify:staff-mobile-login-prod   # Chromium + WebKit @ iPhone 13, API-login
+npm run verify:cco-mobile-pilot-prod       # bred mobil suite inkl. journal
+npm run smoke:mobile-journal             # journal-photos health + UI gates
+```
+
+Kräver i `.env`: `ARCANA_STAFF_EMAIL`, `ARCANA_STAFF_PASSWORD` (samma som prod-konton). OWNER MFA: `ARCANA_OWNER_MFA_SECRET` eller recovery.
+
+**Fysisk enhet (endast efter automation PASS):** iPhone/Android → Add to Home Screen (PWA manifest pekar på `/staff?view=customers`) → logga in → öppna pilotkund → Filer/Journal.
 
 **Senast granskad:** 2026-05-25

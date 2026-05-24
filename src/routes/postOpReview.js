@@ -268,7 +268,7 @@ function createPostOpReviewRouter({
           try {
             const senderMailbox = normalizeText(
               config?.postOpReviewFromMailbox || config?.defaultMailbox
-            ) || 'contact@hairtpclinic.com';
+            ) || 'kons@hairtpclinic.com';
             const sent = await graphSendConnector.sendComposeDocument({
               composeDocument: {
                 version: 'phase_5',

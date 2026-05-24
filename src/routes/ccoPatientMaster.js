@@ -12,8 +12,10 @@ const {
   isGoogleDriveConfigured,
   streamDriveFileToResponse,
 } = require('../lib/googleDriveClient');
+const fs = require('node:fs/promises');
 const {
   buildOccasionTimeline,
+  describeMigrationFileStreamability,
   extractFileOccasionContext,
 } = require('../../scripts/migration/lib/migrationUtils');
 
@@ -126,12 +128,17 @@ function createCcoPatientMasterRouter({
         if (migrationIndexStore && patient.personnummer) {
           driveFiles = await migrationIndexStore.getFilesForPersonnummer(patient.personnummer);
         }
+        const driveConfigured = isGoogleDriveConfigured();
         const enrichedDriveFiles = driveFiles.map((file) => {
           const occasionContext = extractFileOccasionContext(file);
+          const streamability = describeMigrationFileStreamability(file, { driveConfigured });
           return {
             ...file,
             occasionContext,
-            viewUrl: `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`,
+            ...streamability,
+            viewUrl: streamability.streamable
+              ? `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`
+              : '',
           };
         });
 
@@ -189,6 +196,23 @@ function createCcoPatientMasterRouter({
         }
 
         const zipPath = resolveZipPath(config.migrationDataRoot, file.zipName);
+        if (isGoogleDriveConfigured() && !normalizeText(file.folderRoot)) {
+          let zipExists = false;
+          if (normalizeText(file.zipName)) {
+            try {
+              await fs.access(zipPath);
+              zipExists = true;
+            } catch {
+              zipExists = false;
+            }
+          }
+          if (!zipExists) {
+            return res.status(404).json({
+              error: 'Filen saknar Drive-koppling.',
+              code: 'drive_link_missing',
+            });
+          }
+        }
         const stream = openZipEntryStream({ zipPath, relativePath: file.relativePath });
         res.setHeader('Content-Type', contentTypeForPath(file.relativePath));
         res.setHeader('Cache-Control', 'private, max-age=3600');

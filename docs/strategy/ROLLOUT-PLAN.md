@@ -166,12 +166,14 @@ BASE_URL=https://arcana.hairtpclinic.se \
 **Blocker:** Fas 2 GO (+ 4 beslut nedan)  
 **Spec:** [post-op-review-photo-flow.md](./post-op-review-photo-flow.md)
 
-### Beslut före kod (open questions)
+### Beslut före kod — ☑ låsta 2026-05-25
 
-- [ ] **Patientkanal-tolkning** — transactional touch OK enligt canon?
-- [ ] **Avsändare** — `info@hairtpclinic.com` via Graph?
-- [ ] **Foto-retention** — 365 d utan consent / obegränsat med consent?
-- [ ] **CCO-UI** — vem godkänner mock för knappen "Markera sista uppföljning klar"?
+Se **[u4-post-op-decisions.md](./u4-post-op-decisions.md)**:
+
+- [x] **Patientkanal** — e-post via Graph (transactional touch OK, ej SMS)
+- [x] **Avsändare** — `kons@hairtpclinic.com` (`ARCANA_POST_OP_REVIEW_FROM_MAILBOX`)
+- [x] **Foto-retention** — 365 d utan consent / obegränsat med consent
+- [x] **CCO-UI** — STAFF/OPERATOR trigger utan extra godkänn-dialog Fas 1
 
 ### Leveranspaket
 
@@ -191,8 +193,8 @@ BASE_URL=https://arcana.hairtpclinic.se \
 - [x] Publik token-route (multer, EXIF-strip, size cap)
 - [x] Audit-events + GDPR export/anonymize post-op metadata
 - [x] Runbook: `docs/ops/runbooks/post-op-review-runbook.md`
-- [ ] Graph send live i prod (secrets + beslut)
-- [ ] Playwright smoke `/uppfoljning/[token]`
+- [ ] Graph send live i prod (secrets + beslut) — `npm run verify:graph-send-prod`
+- [ ] Playwright smoke `/uppfoljning/[token]` — `npm run verify:post-op-uppfoljning-prod` / `test:playwright:post-op`
 
 ### GO-kriterier
 

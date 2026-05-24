@@ -1,6 +1,6 @@
 # Major Arcana — samlad faslista (en sida)
 
-Senast uppdaterad: **2026-05-24**  
+Senast uppdaterad: **2026-05-25**  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
 
 **Du är här:** **Utrullning Fas 3** (Drive-PDF + bred drift) — journal, avtal och mobil är live; STAFF-konton för sjuksköterskor skapade.
@@ -153,17 +153,17 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 > **Verify 2026-05-25:** Publik catalog **200** (11 tjänster). Plan A E2E **PASS** (PA-21–24). Webb-reservation → `consultation_plan` + `treatmentEncounterId` **PASS** prod. `ccoJournalBookingBridge` + TL-B.1 (Ta bild→encounter) live. Resend patient-mail **ej live** (se U5A.4).
 
-### Fas J-7 — Påminnelser ☐
+### Fas J-7 — Påminnelser ~ (scheduler-kö, ej utskick)
 
-- [ ] J-7.1 Scheduler triggers per kund
-- [ ] J-7.2 Eftervård, formulär, återbesök
+- [~] J-7.1 Scheduler triggers per kund
+- [~] J-7.2 Eftervård, formulär, återbesök
 
-> **Verify 2026-05-24:** Scheduler kör backup/report prune m.m., men inga **per-kund** triggers för eftervård/formulär/återbesök.
+> **Verify 2026-05-25:** `cco_customer_reminders` scheduler-job + `buildCustomerReminderQueue` (besök ≤48h + aftercare-heuristik). Påminnelser **loggas** i `cco-patient-care-state.json` — **ingen SMS/mail/Resend-utsändning** än (U5B.1–U5B.2 delvis).
 
-### Fas J-8 — CCO-agent ☐ (underlag + byggblock, ej J-8 prod)
+### Fas J-8 — CCO-agent ~ (scheduler + ops API, ej full agent)
 
-- [ ] J-8.1 Daglig rapport: saknade formulär/samtycken
-- [ ] J-8.2 Journalutkast (human approval)
+- [~] J-8.1 Daglig rapport: saknade formulär/samtycken
+- [~] J-8.2 Journalutkast (human approval)
 
 > **Underlag (finns i repo):**
 > - Spec: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) **Fas 8** (8.1–8.2)
@@ -181,7 +181,7 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 > - `ccoPatient360Bridge.js` (consent/status), `ccoTreatmentBookingGate.js`, `ccoJournalStore.js` (draft/signed)
 > - `executionGateway.js` (`review_required`), manuella journalutkast i `patient-master-ui.js`
 >
-> **Verify 2026-05-25:** J-8.1/J-8.2 **ej implementerade** som prod-agent/scheduler — men **underlag och byggblock finns**; se ovan. Bygg = ny capability + scheduler (skilj från `nightly_pilot_report`).
+> **Verify 2026-05-25:** J-8.1 `cco_daily_missing_forms_report` scheduler + JSON i `reportsDir` + `GET /api/v1/ops/cco-care/missing-forms-report` + manuell `POST /ops/cco-care/run-missing-forms`. J-8.2 `cco_journal_draft_proposals` + pending-förslag i `ccoPatientCareStateStore` + `GET /ops/cco-care/draft-proposals`. **Ej prod-agent:** ingen OWNER-notify, ingen execution-gateway/auto-apply, human approval i UI saknas fortfarande.
 
 ### Fas J-9 — Compliance ☐ (delvis)
 
@@ -189,9 +189,9 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [~] J-9.1 Retention 10 år i config + policy
 - [~] J-9.2 GDPR export-endpoint
 - [~] J-9.3 GDPR spärr/radering + audit
-- [ ] J-9.4 Art. 30 + PUB uppdaterade
+- [~] J-9.4 Art. 30 + PUB uppdaterade
 
-> **Verify 2026-05-24:** `journalRetentionYears=10` i `config.js`. Policy `docs/legal/data-retention-policy.md` = **UTKAST** (saknar journal 10 år-rad). GDPR via capabilities API (`GdprExportCustomer` / `GdprAnonymizeCustomer`) — unit **10/10 PASS**; ej dedikerade patient-REST-endpoints. Art. 30/PUB ej verifierade uppdaterade.
+> **Verify 2026-05-25:** Repo-kopior uppdaterade: `docs/legal/art-30-register-maj-arcana.md` (A1–A7 Arcana-behandlingar) + `docs/legal/personuppgiftspolicy-pub-maj-arcana.md` (utkast). Excel/DOCX i `MA-Archive/juridik-gdpr/` kvar som master — **juristgranskning före sign-off**.
 
 ---
 
@@ -215,54 +215,54 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [x] U2.1 `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false`
 - [~] U2.2 OWNER MFA enforced prod (`verify:auth-go-live-prod`)
 - [x] U2.3 STAFF-konton (generiskt + 4 sjuksköterskor)
-- [ ] U2.4 STAFF login verifierad i fält (iPhone/Android)
+- [~] U2.4 STAFF login verifierad i fält (iPhone/Android) — automation `verify:staff-mobile-login-prod`; fysisk enhet kvar
 - [x] U2.5 Rollback-plan + underhållsfönster **dokumenterat** — [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25)
-- [ ] U2.5b Underhållsfönster **i produkt** (P2) — schemalagt fönster, STAFF-varning, max driftstopp, GO/rollback-signoff (Notion)
+- [x] U2.5b Underhållsfönster **i produkt** — `GET /api/v1/ops/maintenance-window` + STAFF-banner + CSS; env `ARCANA_MAINTENANCE_WINDOW_*`
 - [x] U2.6 Backup journal-photos schemalagd (`journal_photos_backup` i scheduler)
 
-> **Verify:** Open access **av**. OWNER MFA **av** (login probe: off) — inte enforced än. **5 STAFF** på prod. `journal_photos_backup` scheduler-job + `backup:journal-photos` CLI. Auth rollback + underhållsfönster: [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25).
+> **Verify 2026-05-25 (sweep):** Open access **av**. OWNER MFA **kod klar** men prod env fortfarande `false` (`verify:auth-go-live-prod` — login probe: off). **5 STAFF** på prod. `journal_photos_backup` scheduler-job + `backup:journal-photos` CLI + `verify:journal-photos-backup-prod`. STAFF mobil: `verify:staff-mobile-login-prod` (API + Playwright @390px; kräver `ARCANA_STAFF_*`). **U2.5b PASS (kod):** maintenance API + banner + unit test `ccoPatientCareOps.test.js`; prod banner kräver env-fönster satt på Render.
 
 ### Utrullning 3 — Drive-PDF + bred drift → **AKTIV**
 
 - [x] U3.1 **Drive-PDF på prod** — Google Drive API (ej 86 GB zip på 2 GB disk)
-- [~] U3.2 Drive-filer visningsbara i Filer-fliken prod
+- [~] U3.2 Drive-filer visningsbara i Filer-fliken prod — UI **saknar Drive-koppling** för filer utan `driveFileId`; ~15% kvar (8455/57558)
 - [~] U3.3 Personal utbildad + journalför i MA — externt
 - [x] U3.4 Notion: verify prod efter duplicate-cleanup (2026-05-25 — readyz, blueprint in_sync, verify:migration-prod PASS, needsReview 0)
 
-> **Verify:** `driveApiConfigured=true`, zipCount=0, **57558** filer / **1981** profiler. Index pushad + Render restart. PDF-stream **200** (Drive) för filer med `driveFileId` (**49103/57558**; journal_pdf **3482/5313**). Filer utan match faller tillbaka till zip → 404 (förväntat).
+> **Verify 2026-05-25 (sweep):** `driveApiConfigured=true`, zipCount=0, **57558** filer / **1981** profiler. Index **49103/57558** `driveFileId` (journal_pdf **3482/5313**). Filer med `driveFileId` streamar **200** (Drive). Filer utan: API `404 drive_link_missing` + Filer-fliken visar etikett **saknar Drive-koppling** (ej trasig länk). Kör `migration:enrich-drive-ids` för resterande matchning.
 
 ### Utrullning 4 — Post-op Fas 1 🔄
 
 - [x] U4.1 Backend: capability + store + routes (kod)
 - [x] U4.2 `/uppfoljning/[token]` + CCO-knapp (kod)
 - [x] U4.3 Unit tests + runbook
-- [~] U4.4 Graph send live (`verify:post-op-graph-prod`)
-- [ ] U4.5 4 beslut (patientkanal, avsändare, retention, UI)
-- [ ] U4.6 Playwright smoke `/uppfoljning/[token]` prod
+- [~] U4.4 Graph send live (`verify:graph-send-prod` / `verify:post-op-graph-prod`)
+- [x] U4.5 4 beslut (patientkanal, avsändare, retention, UI) — [u4-post-op-decisions.md](./u4-post-op-decisions.md)
+- [~] U4.6 Playwright smoke `/uppfoljning/[token]` (`verify:post-op-uppfoljning-prod`, `test:playwright:post-op`)
 
-> **Verify:** Kod + runbook finns. `verify:post-op-graph-prod` **FAIL** — `ARCANA_GRAPH_SEND_ENABLED=false`, operator 401. U4.5-beslut **ej tagna** (ROLLOUT-PLAN open questions).
+> **Verify 2026-05-25:** U4.5 **PASS** (låsta beslut + config defaults). U4.4 **BLOCKED/PARTIAL** — kör `npm run verify:graph-send-prod` (Render `ARCANA_GRAPH_SEND_ENABLED` + OWNER auth). U4.6 **PARTIAL** — fetch smoke script + Playwright spec; full submit kräver lokal `test:playwright:post-op`.
 
 ### Utrullning 5 — Bookingmotor & påminnelser 🔄
 
 - [x] U5A.1 Plan A webb → Arcana API
 - [x] U5A.2 Operatör confirm prod
 - [x] U5A.3 Plan A automated sign-off
-- [ ] U5A.4 Bekräftelsemail patient (Resend) — valfritt
+- [ ] U5A.4 Bekräftelsemail patient (Resend) — **BLOCKED** (`RESEND_API_KEY` saknas)
 - [x] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
-- [ ] U5B.1 Påminnelse före besök
-- [ ] U5B.2 Eftervård / formulär / återbesök triggers
+- [~] U5B.1 Påminnelse före besök
+- [~] U5B.2 Eftervård / formulär / återbesök triggers
 - [ ] U5B.3 Post-op auto-trigger (Q4)
 
-> **Verify 2026-05-25:** Publik catalog **200** (3 tjänster). Plan A curl E2E **PASS**. Bokning→journal **PASS** (reservation skapar plan + `treatmentEncounterId`). U5A.4 **BLOCKER:** `RESEND_API_KEY` saknas lokalt + Render — Graph→operatör OK. U5B **ej påbörjad**.
+> **Verify 2026-05-25:** Publik catalog **200** (3 tjänster). Plan A curl E2E **PASS**. Bokning→journal **PASS**. U5A.4 **BLOCKED:** `RESEND_API_KEY` saknas — kodväg klar (`transactionalMailer`), `@example.com` blockeras; steg: [resend-domain-go-live.md](../ops/resend-domain-go-live.md). **U5B delvis:** samma `cco_customer_reminders`-jobb som J-7 — kö + audit-logg, **ingen patient/operatör-utsändning** (Resend/Graph).
 
 ### Utrullning 6 — Agenter + CMO + patientkanal ☐
 
 - [ ] U6A CCO-agent ( = J-8)
 - [ ] U6B CMO live connectors (fixture → live) — [cmo-v3-rollout-plan.md](./cmo-v3-rollout-plan.md)
 - [ ] U6C CAO admin-operator — [cao-arcana-admin-operator-implementation-plan.md](./cao-arcana-admin-operator-implementation-plan.md)
-- [ ] U6D Patientkanal (canon: sist)
+- [~] U6D Patientkanal (canon: sist)
 
-> **Verify:** U6A = J-8 — **prod-agent ej byggd**; underlag (Fas 8, ROLLOUT 6A, gateway-contract) + byggblock finns. CMO/CAO/patientkanal separata planer.
+> **Verify 2026-05-25:** Minimal hub `GET /patient` (länkar till chatt + patientinfo). Monitor-endpoint `GET /api/v1/monitor/patient-channel` oförändrad. **Ej** full patientkanal/conversion-loop i produkt.
 
 ---
 
@@ -302,7 +302,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [~] TL-D.2 Drive-import som “Arkiv”-segment längst ner
 - [x] TL-D.3 Filter: Konsultation / Behandling / Uppföljning / Arkiv
 
-> **Verify:** Flikar: **Profil · Journal · Tidslinje · Avtal · Filer** (desktop) / **Profil · Tidslinje · Filer** (mobil). Tidslinje: enhetlig segmentvy + filter. Filer: `timelineLabel` inkl. **Arkiv YYYY** från migration.
+> **Verify 2026-05-25:** Flikar: **Profil · Journal · Tidslinje · Avtal · Filer** (desktop) / **Profil · Tidslinje · Filer** (mobil). Tidslinje: `renderUnifiedTimelinePanel` + filter (Konsultation/Behandling/Uppföljning/Arkiv) + CSS i `cco-polish.css`. Filer: `timelineLabel` inkl. **Arkiv YYYY**. TL-D.2 Drive-arkiv som segment **delvis** (filer grupperas, full import-segmentation ej komplett).
 
 ---
 

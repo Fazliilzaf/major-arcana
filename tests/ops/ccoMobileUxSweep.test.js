@@ -69,6 +69,8 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const patientUi = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'patient-master-ui.js'), 'utf8');
   assert.match(patientUi, /goBackToPatientList/, 'goBackToPatientList saknas');
   assert.match(patientUi, /bindJournalAutosaveForms/, 'bindJournalAutosaveForms saknas');
+  assert.match(patientUi, /saknar Drive-koppling/, 'Filer: saknar Drive-koppling copy saknas');
+  assert.match(patientUi, /fileHasStreamLink/, 'fileHasStreamLink helper saknas');
 });
 
 test('mobile UX sweep — B3 workspace switch synlig i Konversationer, dold i Kunder', () => {

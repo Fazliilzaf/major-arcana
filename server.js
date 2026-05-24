@@ -603,6 +603,7 @@ const { createCcoPatientSystemStore } = require('./src/ops/ccoPatientSystemStore
 const { createCcoConsultationStore } = require('./src/ops/ccoConsultationStore');
 const { createCcoAftercareStore } = require('./src/ops/ccoAftercareStore');
 const { createCcoOperationStore } = require('./src/ops/ccoOperationStore');
+const { createCcoPatientCareStateStore } = require('./src/ops/ccoPatientCareStateStore');
 const { createCapabilityAnalysisStore } = require('./src/capabilities/analysisStore');
 const { createCapabilityExecutor } = require('./src/capabilities/executionService');
 const { createSloTicketStore } = require('./src/ops/sloTicketStore');
@@ -696,6 +697,10 @@ function serveStaffMobileEntry(req, res, next) {
 
 // Kort mobil-länk för personal (Safari/iPhone) → CCO kundregister + journal
 app.get(['/staff', '/mobil'], serveStaffMobileEntry);
+
+app.get('/patient', (_req, res) => {
+  res.sendFile('patient-hub.html', { root: __dirname + '/public' });
+});
 
 app.get('/patientinformation/hartransplantation-dhi-prp', (_req, res) => {
   res.sendFile('patientinformation-hartransplantation-dhi-prp.html', {
@@ -1329,6 +1334,9 @@ process.once('SIGTERM', () => {
   const ccoOperationStore = await createCcoOperationStore({
     filePath: config.ccoOperationStorePath,
   });
+  const patientCareStateStore = await createCcoPatientCareStateStore({
+    filePath: config.ccoPatientCareStateStorePath,
+  });
 
   const tenantConfigStore = await createTenantConfigStore({
     filePath: config.tenantConfigStorePath,
@@ -1423,6 +1431,11 @@ process.once('SIGTERM', () => {
       webhookTimeoutMs: config.alertWebhookTimeoutMs,
       logger: console,
     }),
+    journalStore: ccoJournalStore,
+    patientMasterStore: ccoPatientMasterStore,
+    bookingEngineStore: ccoBookingEngineStore,
+    treatmentAgreementStore: ccoTreatmentAgreementStore,
+    patientCareStateStore,
     logger: console,
   });
 
@@ -2141,6 +2154,11 @@ process.once('SIGTERM', () => {
       graphSendConnector,
       runtimeMetricsStore,
       clientoBookingStore,
+      journalStore: ccoJournalStore,
+      patientMasterStore: ccoPatientMasterStore,
+      bookingEngineStore: ccoBookingEngineStore,
+      treatmentAgreementStore: ccoTreatmentAgreementStore,
+      patientCareStateStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
     })

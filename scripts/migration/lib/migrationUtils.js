@@ -465,6 +465,19 @@ function walkFolderEntries(folderRoot, { skipHidden = true } = {}) {
   return { ok: true, entries, error: null };
 }
 
+function describeMigrationFileStreamability(file, { driveConfigured = false } = {}) {
+  const driveFileId = normalizeText(file?.driveFileId);
+  const hasFolder = file?.source === 'folder' && Boolean(normalizeText(file?.folderRoot));
+  const hasZip = Boolean(normalizeText(file?.zipName));
+  const streamable = hasFolder || (driveConfigured && Boolean(driveFileId)) || hasZip;
+  const driveLinkMissing = driveConfigured && !driveFileId && !hasFolder;
+  return {
+    streamable,
+    driveLinkMissing,
+    hasDriveFileId: Boolean(driveFileId),
+  };
+}
+
 function buildFileRecord({
   source = 'zip',
   zipName = '',
@@ -505,6 +518,7 @@ module.exports = {
   PIPEDRIVE_EMAIL_HEADERS,
   PIPEDRIVE_PHONE_HEADERS,
   buildFileRecord,
+  describeMigrationFileStreamability,
   classifyFile,
   collectPipedriveEmails,
   collectPipedrivePhones,
