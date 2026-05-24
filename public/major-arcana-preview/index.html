@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <!-- Bundlade scripts preload (content-hash: 753b5c527d) -->
     <link rel="preload" as="script" href="./app.bundle.753b5c527d.min.js" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-a" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-b" />
     <script>
       (function headPrefetchMobilePatientDeepLink() {
         try {
@@ -25,18 +25,35 @@
             token = '';
           }
           if (token.length <= 8) return;
-          fetch(
-            new URL(
-              '/api/v1/cco-patient-master/patient?patientId=' + encodeURIComponent(patientId),
-              window.location.origin
-            ).toString(),
-            {
-              headers: {
-                Accept: 'application/json',
-                Authorization: 'Bearer ' + token,
-              },
+          var apiUrl = new URL(
+            '/api/v1/cco-patient-master/patient?patientId=' + encodeURIComponent(patientId),
+            window.location.origin
+          ).toString();
+          try {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', apiUrl, false);
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.send(null);
+            if (xhr.status >= 200 && xhr.status < 300) {
+              var payload = JSON.parse(xhr.responseText || 'null');
+              if (payload && payload.card) {
+                window.__ARCANA_PATIENT_PREFETCH__ = {
+                  patientId: patientId,
+                  payload: payload,
+                };
+                return;
+              }
             }
-          )
+          } catch (syncPrefetchError) {
+            /* fall through to async fetch */
+          }
+          fetch(apiUrl, {
+            headers: {
+              Accept: 'application/json',
+              Authorization: 'Bearer ' + token,
+            },
+          })
             .then(function (response) {
               return response.ok ? response.json() : null;
             })
@@ -3269,7 +3286,7 @@
                     })();
                   </script>
                   <!-- Early patient-master-ui: mobil deep link — kör före huvudbundle -->
-                  <script src="./app/patient-master-ui.js?v=build-deeplink-a"></script>
+                  <script src="./app/patient-master-ui.js?v=build-deeplink-b"></script>
 <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
