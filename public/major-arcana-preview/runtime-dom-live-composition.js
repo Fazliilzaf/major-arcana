@@ -254,6 +254,17 @@
     let mobileInboxDeferredBootstrap = false;
 
     function paintRuntimeShell(scope = "all") {
+      try {
+        if (windowObject.matchMedia("(max-width: 768px)").matches) {
+          const previewShellNode = windowObject.document?.querySelector?.(".preview-shell");
+          const scopeKey = normalizeKey(scope);
+          if (previewShellNode?.hidden === true && scopeKey !== "chrome") {
+            return;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
       if (typeof scheduleRuntimeConversationShell === "function") {
         scheduleRuntimeConversationShell(scope);
         return;
@@ -4033,7 +4044,7 @@
               error: "",
             });
             paintRuntimeShell("chrome");
-            renderRuntimeConversationShell({ scope: "queue" });
+            paintRuntimeShell("queue");
             if (typeof syncRuntimeVisualStateMachine === "function") {
               syncRuntimeVisualStateMachine();
             }
