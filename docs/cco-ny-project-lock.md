@@ -4,14 +4,14 @@ Senast uppdaterad: 2026-03-29
 
 ## Projekt
 - Namn: `CCO-Ny`
-- Bas: nya CCO-ytan i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview)
+- Bas: nya CCO-ytan i [`public/major-arcana-preview`](../../public/major-arcana-preview)
 - Status: intern alpha-staging med live mailbox-stöd för `kons@hairtpclinic.com`
 
 ## Snabbstart
 - Offline preview: [http://localhost:3100/major-arcana-preview/](http://localhost:3100/major-arcana-preview/)
 - Live preview: [http://localhost:3200/major-arcana-preview/](http://localhost:3200/major-arcana-preview/)
 - Primär mailbox just nu: `kons@hairtpclinic.com`
-- Lokal upstream-arkivkopia: [`/Users/fazlikrasniqi/Desktop/Arcana-archive/cconext-upstream-20260329`](/Users/fazlikrasniqi/Desktop/Arcana-archive/cconext-upstream-20260329)
+- Lokal upstream-arkivkopia: [`extern arkiv (ej i repo): cconext-upstream-20260329`](extern arkiv (ej i repo): cconext-upstream-20260329)
 
 ## Låsta beslut
 - `/cco-next` ska inte bytas ut ännu.
@@ -37,28 +37,28 @@ Senast uppdaterad: 2026-03-29
 
 ## Viktiga filer
 - UI shell och runtime:
-  - [/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/index.html](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/index.html)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/styles.css](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/styles.css)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/app.js](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/app.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-config.js](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-config.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-action-engine.js](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-action-engine.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-dom-live-composition.js](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-dom-live-composition.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-overlay-renderers.js](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-overlay-renderers.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-async-orchestration.js](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-async-orchestration.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-queue-renderers.js](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-queue-renderers.js)
+  - [public/major-arcana-preview/index.html](../public/major-arcana-preview/index.html)
+  - [public/major-arcana-preview/styles.css](../public/major-arcana-preview/styles.css)
+  - [public/major-arcana-preview/app.js](../public/major-arcana-preview/app.js)
+  - [public/major-arcana-preview/runtime-config.js](../public/major-arcana-preview/runtime-config.js)
+  - [public/major-arcana-preview/runtime-action-engine.js](../public/major-arcana-preview/runtime-action-engine.js)
+  - [public/major-arcana-preview/runtime-dom-live-composition.js](../public/major-arcana-preview/runtime-dom-live-composition.js)
+  - [public/major-arcana-preview/runtime-overlay-renderers.js](../public/major-arcana-preview/runtime-overlay-renderers.js)
+  - [public/major-arcana-preview/runtime-async-orchestration.js](../public/major-arcana-preview/runtime-async-orchestration.js)
+  - [public/major-arcana-preview/runtime-queue-renderers.js](../public/major-arcana-preview/runtime-queue-renderers.js)
 
 - Backend och live-stöd:
-  - [/Users/fazlikrasniqi/Desktop/Arcana/src/capabilities/executionService.js](/Users/fazlikrasniqi/Desktop/Arcana/src/capabilities/executionService.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/src/infra/microsoftGraphReadConnector.js](/Users/fazlikrasniqi/Desktop/Arcana/src/infra/microsoftGraphReadConnector.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/src/infra/microsoftGraphSendConnector.js](/Users/fazlikrasniqi/Desktop/Arcana/src/infra/microsoftGraphSendConnector.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/src/routes/capabilities.js](/Users/fazlikrasniqi/Desktop/Arcana/src/routes/capabilities.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoWorkspace.js](/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoWorkspace.js)
+  - [src/capabilities/executionService.js](../src/capabilities/executionService.js)
+  - [src/infra/microsoftGraphReadConnector.js](../src/infra/microsoftGraphReadConnector.js)
+  - [src/infra/microsoftGraphSendConnector.js](../src/infra/microsoftGraphSendConnector.js)
+  - [src/routes/capabilities.js](../src/routes/capabilities.js)
+  - [src/routes/ccoWorkspace.js](../src/routes/ccoWorkspace.js)
 
 - Stores:
-  - [/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoNoteStore.js](/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoNoteStore.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoFollowUpStore.js](/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoFollowUpStore.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoHistoryStore.js](/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoHistoryStore.js)
-  - [/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoWorkspacePrefsStore.js](/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoWorkspacePrefsStore.js)
+  - [src/ops/ccoNoteStore.js](../src/ops/ccoNoteStore.js)
+  - [src/ops/ccoFollowUpStore.js](../src/ops/ccoFollowUpStore.js)
+  - [src/ops/ccoHistoryStore.js](../src/ops/ccoHistoryStore.js)
+  - [src/ops/ccoWorkspacePrefsStore.js](../src/ops/ccoWorkspacePrefsStore.js)
 
 ## Hur man återupptar snabbt
 1. Starta offline:

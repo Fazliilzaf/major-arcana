@@ -142,7 +142,7 @@ Detta är den stora leveransen sedan masterplanen sist uppdaterades. Bridge-doc 
 
 ## 6. Snabb-uppslag
 
-- Webb-repo (lokal): `/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Hairtpclinic webb/next-app/`
+- Webb-repo (lokal): `hairtpclinic-web (extern Next.js-repo, Vercel) — `
 - Live: `https://hairtpclinic.com` + `https://www.hairtpclinic.com`
 - Arcana booking-engine: `https://arcana.hairtpclinic.se/api/public/booking-engine/{catalog,availability,reservations}`
 - Webside availability proxy: `https://hairtpclinic.com/api/availability?fromDate=&toDate=`

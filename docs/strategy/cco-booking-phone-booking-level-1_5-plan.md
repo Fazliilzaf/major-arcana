@@ -8,7 +8,7 @@
 
 ## Related documents
 
-- Prod and rollout checklist: [cco-booking-prod-readiness-checklist.md](/Users/fazlikrasniqi/Desktop/Arcana/docs/strategy/cco-booking-prod-readiness-checklist.md)
+- Prod and rollout checklist: [cco-booking-prod-readiness-checklist.md](./cco-booking-prod-readiness-checklist.md)
 
 ## Executive summary
 
@@ -309,18 +309,18 @@ Done when:
 
 First implementation should likely begin in:
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/app.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/styles.css`
+- `public/major-arcana-preview/app.js`
+- `public/major-arcana-preview/styles.css`
 
 Likely tests to extend:
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/tests/ops/majorArcanaBookingWorkflowTruth.test.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/tests/ops/majorArcanaFocusTruthPrimary.test.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/tests/ops/majorArcanaRuntimeQueueRender.test.js`
+- `tests/ops/majorArcanaBookingWorkflowTruth.test.js`
+- `tests/ops/majorArcanaFocusTruthPrimary.test.js`
+- `tests/ops/majorArcanaRuntimeQueueRender.test.js`
 
 Possible later extraction:
 
-- booking-specific store logic under `/Users/fazlikrasniqi/Desktop/Arcana/src/ops`
+- booking-specific store logic under `src/ops`
 
 ## Product recommendation
 

@@ -180,7 +180,7 @@ Källor: `docs/strategy/arcana-phase-2-masterplan.md`, `docs/Pilot-1-slutrapport
 
 7.1. Status: intern alpha-staging med live mailbox-stöd för `kons@hairtpclinic.com`.
 
-7.2. Bas: `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview`.
+7.2. Bas: `public/major-arcana-preview`.
 
 7.3. Snabbstart:
 - 7.3.1. Offline preview: `http://localhost:3100/major-arcana-preview/` via `npm run dev:offline`.

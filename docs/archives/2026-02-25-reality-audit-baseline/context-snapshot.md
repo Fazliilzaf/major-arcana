@@ -32,7 +32,7 @@ Purpose: Baseline snapshot before P0 Architecture Lock implementation.
 
 ## Integrity fingerprints
 d6be9946dde9fe903fe28de36df08415621eb886a113e4f10f217e39c441df06  /Users/fazlikrasniqi/Desktop/ Arcana  målet .txt
-d6be9946dde9fe903fe28de36df08415621eb886a113e4f10f217e39c441df06  /Users/fazlikrasniqi/Desktop/Arcana/docs/archives/2026-02-25-reality-audit-baseline/Arcana-mal-original.txt
+d6be9946dde9fe903fe28de36df08415621eb886a113e4f10f217e39c441df06  docs/archives/2026-02-25-reality-audit-baseline/Arcana-mal-original.txt
 
 ## Git baseline
 - branch: main

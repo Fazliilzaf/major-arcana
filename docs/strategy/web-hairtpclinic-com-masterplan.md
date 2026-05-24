@@ -3,7 +3,7 @@
 Skapad: 2026-05-18
 Syfte: Binda ihop den publika klinikwebben (hairtpclinic.com, Next.js 15 App Router) med Major Arcana-strukturen så att webb-arbetet kan drivas från samma command center som Arcana-core, CCO och övriga workstreams.
 Källor: `docs/strategy/arcana-master-plan-punktvis.md` (mall för punktvis-format), `docs/major-arcana-index.md` (läsordning), aktuell webb-audit 2026-05-18.
-Repo: separat — `/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Hairtpclinic webb/next-app/`. Deploy: Vercel (hairtpclinic.com).
+Repo: separat — `hairtpclinic-web (extern Next.js-repo, Vercel) — `. Deploy: Vercel (hairtpclinic.com).
 
 ---
 
@@ -204,7 +204,7 @@ Phase 2 körs sekventiellt. Varje workstream har egen Definition of Done. Inga p
 
 ## 9. Snabb-uppslag
 
-- Repo (lokal): `/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Hairtpclinic webb/next-app/`
+- Repo (lokal): `hairtpclinic-web (extern Next.js-repo, Vercel) — `
 - Live (planerad): `https://hairtpclinic.com` + `https://www.hairtpclinic.com`
 - Status-cadens: `docs/ops/status-web-YYYY-MM-DD.md` (veckovis)
 - Senaste status: `docs/ops/status-web-2026-05-18.md`

@@ -3,7 +3,7 @@
 ## Broken thread
 
 - Thread ID: `019cd9a8-aa16-7570-90d5-e7537044649d`
-- Session file: `/Users/fazlikrasniqi/.codex/sessions/2026/03/10/rollout-2026-03-10T22-30-35-019cd9a8-aa16-7570-90d5-e7537044649d.jsonl`
+- Session file: `~/.codex/sessions/2026/03/10/rollout-2026-03-10T22-30-35-019cd9a8-aa16-7570-90d5-e7537044649d.jsonl` (lokal maskin)
 - Local size observed on 2026-03-14: about `21G`
 - Stored `tokens_used` for the thread: about `606,939,178`
 
@@ -30,13 +30,13 @@ Key evidence in the repo:
 
 ## Files to resume from
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/admin.html`
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/admin.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/styles/cco-major-arcana-skin.css`
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/styles/cco-major-arcana-skin-tokens.css`
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/styles/cco-density-rebuild-final.css`
-- `/Users/fazlikrasniqi/Desktop/Arcana/docs/major-arcana-color-inventory.md`
-- `/Users/fazlikrasniqi/Desktop/Arcana/docs/major-arcana-color-palette.png`
+- `public/admin.html`
+- `public/admin.js`
+- `public/styles/cco-major-arcana-skin.css`
+- `public/styles/cco-major-arcana-skin-tokens.css`
+- `public/styles/cco-density-rebuild-final.css`
+- `docs/major-arcana-color-inventory.md`
+- `docs/major-arcana-color-palette.png`
 
 ## Relevant recent history
 

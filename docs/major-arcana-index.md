@@ -52,7 +52,7 @@ Regel:
    - Den publika klinikwebben — egen Next.js-monorepo, separat deploy (Vercel),
      men ägs av samma roadmap. Patientkanal-pelaren är fortsatt blockerad i
      Arcana-core; webben är publik kanal för konvertering och SEO.
-   - Repo (lokal): `../../Hairtpclinic webb/next-app/`
+   - Repo (lokal): **hairtpclinic-web** — separat Next.js-monorepo (Vercel), ej i detta repo
 
 ## Canon i kort form
 
