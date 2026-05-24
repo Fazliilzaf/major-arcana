@@ -663,6 +663,40 @@
     syncMobilePatientLayout();
   }
 
+  function renderDetailLoadingSkeleton(patientId) {
+    if (!els.patientRail) return;
+    const cached = runtime.patients.find((row) => normalizeText(row?.patientId) === normalizeText(patientId));
+    const displayName = cached?.displayName || 'Laddar kund…';
+    const initials = String(displayName).slice(0, 2).toUpperCase();
+    const journalActive = runtime.detailTab === 'journal' || runtime.preferJournalOnMobile;
+    els.patientRail.innerHTML = `
+      <section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">
+        <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
+          <div class="focus-customer-hero-main">
+            <div class="focus-customer-avatar">${escapeHtml(initials)}</div>
+            <div class="focus-customer-copy">
+              <h2>${escapeHtml(displayName)}</h2>
+              <p class="patient-master-muted patient-master-loading-line">Hämtar kundkort…</p>
+            </div>
+          </div>
+        </article>
+        <div class="patient-master-tabs" role="tablist" aria-hidden="true">
+          <span class="patient-master-tab${journalActive ? '' : ' is-active'}">Profil</span>
+          <span class="patient-master-tab${journalActive ? ' is-active' : ''}">Journal</span>
+          <span class="patient-master-tab">Avtal</span>
+          <span class="patient-master-tab">Filer</span>
+        </div>
+        <div class="patient-master-detail-skeleton" aria-hidden="true">
+          <div class="patient-master-detail-skeleton-bar"></div>
+          <div class="patient-master-detail-skeleton-bar is-short"></div>
+          <div class="patient-master-detail-skeleton-bar"></div>
+        </div>
+      </section>
+    `;
+    syncMobilePatientLayout();
+    window.ArcanaMobileShell?.syncFromApp?.();
+  }
+
   function fileViewUrl(file) {
     if (file?.viewUrl) return file.viewUrl;
     if (file?.id) return `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`;
@@ -1852,6 +1886,10 @@
 
   function renderDetailPanel() {
     if (!els.patientRail) return;
+    if (runtime.detailLoading && !runtime.detail?.card) {
+      renderDetailLoadingSkeleton(runtime.selectedPatientId);
+      return;
+    }
     const detail = runtime.detail;
     if (!detail?.card) {
       renderDetailEmpty();
@@ -2086,6 +2124,7 @@
     }
     runtime.detailLoading = true;
     renderPatientRows();
+    renderDetailLoadingSkeleton(patientId);
     syncMobilePatientLayout();
     if (isMobileViewport() && openingNewPatient) {
       pushMobilePatientDetailHistory(patientId);
