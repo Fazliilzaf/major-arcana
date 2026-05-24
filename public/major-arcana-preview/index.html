@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <!-- Bundlade scripts preload (content-hash: a42b2d4855) -->
     <link rel="preload" as="script" href="./app.bundle.a42b2d4855.min.js" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-sweep-h" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-mobile-perf-a" />
     <script>
       (function mobileDeferInboxUntilNeeded() {
         try {
@@ -16,6 +16,32 @@
           }
           document.documentElement.setAttribute('data-cco-mobile-defer-inbox', 'on');
         } catch (deferInboxError) {
+          /* best-effort */
+        }
+      })();
+    </script>
+    <script>
+      (function mobileCustomersShellEarly() {
+        try {
+          if (!window.matchMedia('(max-width: 768px)').matches) return;
+          var params = new URLSearchParams(window.location.search || '');
+          if (String(params.get('view') || 'customers').trim() !== 'customers') return;
+          var reveal = function () {
+            document.querySelectorAll('[data-shell-view]').forEach(function (section) {
+              section.hidden = section.getAttribute('data-shell-view') !== 'customers';
+            });
+            var canvas = document.querySelector('.preview-canvas');
+            if (canvas) {
+              canvas.dataset.appShellView = 'customers';
+              canvas.dataset.appView = 'customers';
+            }
+          };
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', reveal, { once: true });
+          } else {
+            reveal();
+          }
+        } catch (shellEarlyError) {
           /* best-effort */
         }
       })();
@@ -3280,7 +3306,7 @@
                   </script>
                   <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-google-gate-a"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=build-sweep-h"></script>
+                  <script async src="./app/patient-master-ui.js?v=build-mobile-perf-a"></script>
 <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
