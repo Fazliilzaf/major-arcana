@@ -59,6 +59,7 @@
     "verify:auth-go-live-prod": "bash ./scripts/verify-auth-go-live-prod.sh",
     "apply:auth-go-live-prod": "bash ./scripts/apply-auth-go-live-prod.sh",
     "apply:graph-resend-go-live-prod": "bash ./scripts/apply-graph-resend-go-live-prod.sh",
+    "provision:graph-secret-via-az": "bash ./scripts/provision-graph-secret-via-az.sh",
     "verify:staff-ui-prod": "node ./scripts/verify-staff-ui-prod.js",
     "verify:staff-ui-desktop-prod": "node ./scripts/verify-staff-ui-desktop-prod.js",
     "verify:staff-mobile-login-prod": "node ./scripts/verify-staff-mobile-login-prod.js",
