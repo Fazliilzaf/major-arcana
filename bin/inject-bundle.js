@@ -47,7 +47,7 @@ const EXISTING_PRELOAD_RE =
   /\s*<!-- Bundlade scripts preload[^>]*-->\s*\n?(?:\s*<link\s+rel="preload"\s+as="script"\s+href="\.\/[^"]+"\s*\/?>\s*)+/g;
 const EARLY_PATIENT_UI_RE =
   /\s*<!-- Early patient-master-ui[^>]*-->\s*\n?\s*<script\s+src="\.\/app\/patient-master-ui\.js[^"]*"\s*><\/script>\s*/g;
-const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-sweep-f';
+const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-sweep-g';
 
 function injectBundlePreload(html, bundleRel, hash) {
   const preloadBlock = `\n    <!-- Bundlade scripts preload (content-hash: ${hash}) -->\n    <link rel="preload" as="script" href="${bundleRel}" />\n    <link rel="preload" as="script" href="${PATIENT_UI_PRELOAD}" />\n    `;
