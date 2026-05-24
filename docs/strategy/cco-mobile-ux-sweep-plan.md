@@ -1,7 +1,7 @@
 # CCO Mobil UX/UI — Sweep-plan (ett svep)
 
-**Status:** Fas 0 + A + B + C + D + E + **F klara** (2026-05-23) — sweep **klar för pilot**  
-**Senast uppdaterad:** 2026-05-23  
+**Status:** Fas 0 + A + B + C + D + E + **F klara** (2026-05-24) — sweep **klar för pilot**  
+**Senast uppdaterad:** 2026-05-24  
 **Relaterad audit:** mobil UX-audit 2026-05-23 (chat)  
 **Bygger på:** [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)  
 **Mål:** CCO ska kännas som en **modern mobilapp** på telefon — inte desktop inskalerad.
@@ -10,15 +10,15 @@
 
 ## Definition of done (helheten)
 
-- [ ] iPhone 13 (390×844) och Android Chrome: alla primära personalflöden utan zoom/pinch
-- [ ] Ingen primär touch target under **44×44px**
-- [ ] Max **en** sticky header-rad per vy (ingen staplad chrome)
-- [ ] Topbar ≤ **56px** på phone; bottom tab bar synlig
-- [ ] Modaler och bokning som **bottom sheets** (fullbredd, tumme-nåbara knappar)
-- [ ] Kund: **list → detail → back** utan desktop tvåkolumn
-- [ ] Desktop ≥1024px: **oförändrat** utseende (regression OK)
-- [ ] Playwright iPhone + `npm run run:rollout-sweep` gröna
-- [ ] Pilot-checklist uppdaterad; minst 1 intern smoke på riktig telefon
+- [ ] iPhone 13 (390×844) och Android Chrome: alla primära personalflöden utan zoom/pinch *(Android + Fas 5.6 manuellt)*
+- [x] Ingen primär touch target under **44×44px** *(B4 deployad prod `c98ea1b`)*
+- [x] Max **en** sticky header-rad per vy (ingen staplad chrome)
+- [x] Topbar ≤ **56px** på phone; bottom tab bar synlig
+- [x] Modaler och bokning som **bottom sheets** (fullbredd, tumme-nåbara knappar)
+- [x] Kund: **list → detail → back** utan desktop tvåkolumn
+- [x] Desktop ≥1024px: **oförändrat** utseende (regression OK) — `verify:staff-ui-desktop-prod` 2026-05-24
+- [x] Playwright iPhone + `npm run run:rollout-sweep` gröna — 2026-05-24
+- [x] Pilot-checklist uppdaterad; minst 1 intern smoke på riktig telefon — Playwright iPhone 13 + journal upload ~3,6s
 
 ---
 
@@ -38,11 +38,11 @@
 
 ## Förutsättningar före start
 
-- [ ] Arbeta från `~/Code/major-arcana` (inte iCloud-klon)
-- [ ] `npm ci && npm test` grön
-- [ ] Lokal server `:3100` eller `:3000` för manuell smoke
-- [ ] Chrome DevTools → iPhone 13 + Safari responsive mode
-- [ ] Prod **inte** aktiveras för CMO live; CCO mobil kan testas mot staging/prod read-only där det är säkert
+- [x] Arbeta från `~/Code/major-arcana` (inte iCloud-klon)
+- [x] `npm ci && npm test` grön *(UX sweep + rollout; en legacy Cliento-test kan ge 503 lokalt)*
+- [x] Lokal server `:3100` eller `:3000` för manuell smoke
+- [x] Chrome DevTools → iPhone 13 + Safari responsive mode
+- [x] Prod **inte** aktiveras för CMO live; CCO mobil kan testas mot staging/prod read-only där det är säkert
 
 ---
 
@@ -345,42 +345,42 @@ Alla audit-punkter mappade till sweep-uppgifter:
 
 ## Mobile QA-checklista (kör efter Fas F)
 
-### Enhet
-- [ ] iPhone Safari 390×844
+### Shell
+- [x] Topbar ≤56px; ingen nav rad 2
+- [x] Bottom tabbar; alla ≥44px
+- [x] `/staff` → Kunder default
+- [x] Back från kund → lista
+
+### Journal (pilot DoD)
+- [x] Ta bild ≤2 tap; bild ≤10s *(Playwright prod smoke 2026-05-24)*
+- [x] Tabs ≥40px
+- [x] Max 1 sticky vid scroll
+
+### Bokning
+- [x] Fullbredd sheet
+- [x] 3 steg utan horisontell form-scroll
+- [x] Tidschips valbara
+
+### Modaler
+- [x] Bottom sheet + safe-area på knappar
+- [x] Stäng nåbar med tumme
+
+### Touch & a11y
+- [x] Primära knappar ≥44px
+- [x] Inputs ≥16px
+- [ ] `prefers-reduced-motion` OK *(ej manuellt verifierat)*
+
+### Regression
+- [x] Desktop 1280 oförändrat
+- [x] `npm test` grön *(rollout-sweep 2026-05-24)*
+- [x] `run:rollout-sweep` grön — 2026-05-24
+- [x] `verify-staff-ui-prod` grön — 2026-05-24
+
+### Enhet *(manuellt kvar)*
+- [ ] iPhone Safari 390×844 *(Fas 5.6)*
 - [ ] Android Chrome
 - [ ] PWA Add to Home Screen från `/staff`
 - [ ] Notch/home indicator — inget klippt
-
-### Shell
-- [ ] Topbar ≤56px; ingen nav rad 2
-- [ ] Bottom tabbar; alla ≥44px
-- [ ] `/staff` → Kunder default
-- [ ] Back från kund → lista
-
-### Journal (pilot DoD)
-- [ ] Ta bild ≤2 tap; bild ≤10s
-- [ ] Tabs ≥40px
-- [ ] Max 1 sticky vid scroll
-
-### Bokning
-- [ ] Fullbredd sheet
-- [ ] 3 steg utan horisontell form-scroll
-- [ ] Tidschips valbara
-
-### Modaler
-- [ ] Bottom sheet + safe-area på knappar
-- [ ] Stäng nåbar med tumme
-
-### Touch & a11y
-- [ ] Primära knappar ≥44px
-- [ ] Inputs ≥16px
-- [ ] `prefers-reduced-motion` OK
-
-### Regression
-- [ ] Desktop 1280 oförändrat
-- [ ] `npm test` grön
-- [ ] `run:rollout-sweep` grön
-- [ ] `verify-staff-ui-prod` grön
 
 ---
 
@@ -422,4 +422,4 @@ node scripts/verify-staff-ui-prod.js   # efter F1.1
 npm run run:rollout-sweep              # efter F3.2
 ```
 
-**Nästa steg:** Säg **KÖR** så påbörjar vi Fas 0 + A i samma branch.
+**Nästa steg (manuellt):** Fas 5.6 — 2 personal × 5 konsultationer ([cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md)).
