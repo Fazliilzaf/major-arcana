@@ -286,15 +286,19 @@
 
   function resolveActiveTab(shellView, mobileWorkspaceView) {
     if (document.documentElement.hasAttribute('data-cco-calendar-open')) return 'calendar';
-    if (explicitJournalTab && shellView === 'customers') return 'journal';
     if (explicitBookingTab && shellView === 'conversations' && mobileWorkspaceView === 'focus') {
       return 'booking';
     }
-    if (shellView === 'customers' && document.documentElement.hasAttribute('data-cco-patient-detail')) {
-      const journalPanel = document.querySelector('[data-patient-tab-panel="journal"]:not([hidden])');
-      if (journalPanel || runtimeDetailTabIsJournal()) return 'journal';
+    if (shellView === 'customers') {
+      if (
+        document.documentElement.hasAttribute('data-cco-patient-detail') &&
+        runtimeDetailTabIsJournal()
+      ) {
+        return 'journal';
+      }
+      if (explicitJournalTab) return 'journal';
+      return 'customers';
     }
-    if (shellView === 'customers') return 'customers';
     if (AUX_VIEWS.has(shellView)) return 'more';
     if (shellView === 'conversations' && mobileWorkspaceView === 'focus') return 'booking';
     return 'home';
@@ -363,6 +367,11 @@
       explicitBookingTab = false;
     }
     if (shellView !== 'customers') {
+      explicitJournalTab = false;
+    } else if (
+      document.documentElement.hasAttribute('data-cco-patient-detail') &&
+      !runtimeDetailTabIsJournal()
+    ) {
       explicitJournalTab = false;
     }
 
