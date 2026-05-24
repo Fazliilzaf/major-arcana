@@ -90,6 +90,25 @@ test('mobile UX sweep — B3 workspace switch synlig i Konversationer, dold i Ku
   );
 });
 
+test('mobile UX sweep — B4 utility touch + Mer-sheet actions', () => {
+  const shellCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-shell.css'), 'utf8');
+  const shellJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-shell.js'), 'utf8');
+  const html = fs.readFileSync(INDEX, 'utf8');
+
+  assert.match(
+    shellCss,
+    /preview-utility-button[\s\S]*min-height:\s*44px/,
+    'B4.1: preview-utility-button ska vara 44px'
+  );
+  assert.match(
+    shellCss,
+    /preview-compose-pill[\s\S]*display:\s*none\s*!important/,
+    'B4.2: compose ska döljas i app-bar'
+  );
+  assert.match(html, /data-mobile-more-action="compose"/, 'B4.2: Nytt mejl i Mer-sheet');
+  assert.match(shellJs, /runMoreAction|data-mobile-more-action/, 'B4.2: Mer-sheet proxy till topbar');
+});
+
 test('mobile UX sweep — design tokens har phone breakpoint', () => {
   const tokens = fs.readFileSync(path.join(PREVIEW_DIR, 'design-tokens.css'), 'utf8');
   assert.match(tokens, /768|767|phone/i, 'design-tokens saknar mobil breakpoint');
