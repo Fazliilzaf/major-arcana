@@ -1,14 +1,6 @@
 #!/usr/bin/env node
 /**
  * bin/inject-bundle.js — uppdaterar index.html med senaste hashade bundle.
- *
- * Läser app.bundle.latest.json för att hitta hashen, ersätter sedan ev.
- * befintlig bundle-tag (oavsett hash) med ny tag som pekar på
- * ./app.bundle.<hash>.min.js. Permanent cache-bust per content-hash.
- *
- * Användning:
- *   node bin/inject-bundle.js          # injicera senaste bundle
- *   node bin/inject-bundle.js --revert # print revert-instruktion
  */
 const fs = require('fs');
 const path = require('path');
@@ -26,7 +18,6 @@ if (REVERT) {
   process.exit(0);
 }
 
-// 1. Läs latest.json för att hitta senaste bundle
 if (!fs.existsSync(LATEST_JSON)) {
   console.error('FEL: app.bundle.latest.json saknas. Kör bin/build-bundle.js först.');
   process.exit(1);
@@ -37,15 +28,12 @@ console.log(`Senaste bundle: ${latest.filename} (hash=${latest.hash})`);
 
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
 
-// 2. Hitta ev. befintlig bundle-tag (oavsett hash, oavsett query-param)
 const EXISTING_BUNDLE_RE =
   /\s*(?:<!--[^>]*Bundlade scripts[^>]*-->\s*)?<script\s+src="\.\/app\.bundle(?:\.[a-f0-9]+)?(?:\.min)?\.js(?:\?[^"]*)?"\s*><\/script>\s*/g;
 const EXISTING_PRELOAD_RE =
   /\s*<!-- Bundlade scripts preload[^>]*-->\s*\n?(?:\s*<link\s+rel="preload"\s+as="script"\s+href="\.\/[^"]+"\s*\/?>\s*)+/g;
-const HEAD_PATIENT_UI_RE =
-  /\s*<!-- Early patient-master-ui \(head\)[^>]*-->\s*\n?\s*<script\s+src="\.\/app\/patient-master-ui\.js[^"]*"\s*><\/script>\s*/g;
-const BODY_PATIENT_UI_RE =
-  /\s*<!-- Early patient-master-ui[^>]*-->\s*\n?\s*<script\s+src="\.\/app\/patient-master-ui\.js[^"]*"\s*><\/script>\s*/g;
+const EARLY_PATIENT_UI_RE =
+  /\s*<!-- Early patient-master-ui[^>]*-->\s*\n?\s*<script(?:\s+async)?\s+src="\.\/app\/patient-master-ui\.js[^"]*"\s*><\/script>\s*/g;
 const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-sweep-h';
 
 function injectBundlePreload(html, bundleRel, hash) {
@@ -61,19 +49,17 @@ function injectBundlePreload(html, bundleRel, hash) {
   return html;
 }
 
-function injectHeadEarlyPatientUi(html) {
-  const tag = `\n    <!-- Early patient-master-ui (head): mobil deep link -->\n    <script src="${PATIENT_UI_PRELOAD}"></script>\n`;
-  if (HEAD_PATIENT_UI_RE.test(html)) {
-    HEAD_PATIENT_UI_RE.lastIndex = 0;
-    html = html.replace(HEAD_PATIENT_UI_RE, tag);
-  } else {
-    const anchor = /(<\/script>\s*\n\s*<meta\s*\n\s*name="viewport")/;
-    if (anchor.test(html)) {
-      html = html.replace(anchor, `</script>${tag}\n    <meta\n      name="viewport"`);
-    }
+function injectEarlyPatientUiScript(html) {
+  const tag = `\n                  <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->\n                  <script async src="${PATIENT_UI_PRELOAD}"></script>\n`;
+  if (EARLY_PATIENT_UI_RE.test(html)) {
+    EARLY_PATIENT_UI_RE.lastIndex = 0;
+    return html.replace(EARLY_PATIENT_UI_RE, tag);
   }
-  BODY_PATIENT_UI_RE.lastIndex = 0;
-  return html.replace(BODY_PATIENT_UI_RE, '\n');
+  const anchor = /<\/script>\s*\n\s*<div data-patient-identity-rail hidden>/;
+  if (anchor.test(html)) {
+    return html.replace(anchor, `</script>${tag}\n<div data-patient-identity-rail hidden>`);
+  }
+  return html;
 }
 
 let newHtml = html;
@@ -118,7 +104,7 @@ if (existingMatches.length > 0) {
 }
 
 const withPreload = injectBundlePreload(newHtml, newBundleRel, latest.hash);
-const withEarlyPatientUi = injectHeadEarlyPatientUi(withPreload);
+const withEarlyPatientUi = injectEarlyPatientUiScript(withPreload);
 
 if (withEarlyPatientUi === html) {
   console.log('Ingen ändring behövs — index.html pekar redan på senaste bundle.');
@@ -128,9 +114,3 @@ if (withEarlyPatientUi === html) {
 fs.writeFileSync(INDEX_HTML, withEarlyPatientUi);
 
 console.log(`✓ Index.html uppdaterad → ${newBundleRel}`);
-console.log(`Bytes före: ${html.length}`);
-console.log(`Bytes efter: ${withEarlyPatientUi.length} (${withEarlyPatientUi.length - html.length >= 0 ? '+' : ''}${withEarlyPatientUi.length - html.length})`);
-console.log(
-  '\nNästa steg: hard-reload i Chrome + kör verify-three-features.js + verify-demo-fixtures.js'
-);
-console.log('Om något bryter: git checkout -- public/major-arcana-preview/index.html');
