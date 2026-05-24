@@ -39622,8 +39622,19 @@
       appliedConversationShellState = showConversations;
     };
 
+    const finalizeAppView = () => {
+      normalizeWorkspaceState();
+      syncShellViewToLocation();
+      window.ArcanaMobileShell?.syncFromApp?.();
+    };
+
     if (shellStructureChanged) {
       applyShellStructure();
+    }
+
+    if (mobileShell && !shellStructureChanged && shellView === appliedShellViewState) {
+      finalizeAppView();
+      return;
     }
 
     if (!mobileShell) {
@@ -39735,12 +39746,6 @@
     } else {
       runViewLoads();
     }
-
-    const finalizeAppView = () => {
-      normalizeWorkspaceState();
-      syncShellViewToLocation();
-      window.ArcanaMobileShell?.syncFromApp?.();
-    };
 
     finalizeAppView();
   }
