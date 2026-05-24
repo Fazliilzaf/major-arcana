@@ -121,7 +121,7 @@
     <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
     <script src="./cco-mobile-core.js?v=build-mobile-shell-g" defer></script>
     <script src="./cco-mobile-autosave.js?v=build-mobile-shell-e" defer></script>
-    <script src="./cco-mobile-shell.js?v=build-mobile-shell-f" defer></script>
+    <script src="./cco-mobile-shell.js?v=build-mobile-perf-a" defer></script>
     <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
     <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
     <script src="./booking-mobile-calendar-day.js?v=build-mobile-shell-e" defer></script>
@@ -3121,49 +3121,23 @@
               </div>
 
               <section
-                class="post-op-internal-reviews"
-                data-post-op-internal-reviews
-                hidden
-                aria-label="Interna omdömen"
-              >
-                <div class="post-op-internal-reviews-head">
-                  <div>
-                    <h2>Interna omdömen</h2>
-                    <p class="patient-master-muted">
-                      Feedback under 4 stjärnor — visas inte på Google. Ring eller mejla kunden.
-                    </p>
-                  </div>
-                  <span class="post-op-internal-count-badge" data-post-op-internal-count>0</span>
-                </div>
-                <label class="post-op-internal-toggle">
-                  <input type="checkbox" data-post-op-internal-show-handled />
-                  Visa hanterade
-                </label>
-                <p class="shell-status" data-post-op-internal-status hidden></p>
-                <p class="patient-master-empty" data-post-op-internal-empty hidden>
-                  Inga väntande interna omdömen just nu.
-                </p>
-                <div class="post-op-internal-list" data-post-op-internal-list></div>
-              </section>
-
-              <section
                 class="post-op-google-reviews"
                 data-post-op-google-reviews
                 hidden
-                aria-label="Google-godkännande"
+                aria-label="Omdömen kund till Google"
               >
                 <div class="post-op-internal-reviews-head">
                   <div>
-                    <h2>Google-godkännande</h2>
+                    <h2>Omdömen (kund → Google)</h2>
                     <p class="patient-master-muted">
-                      Patienten har lämnat 4–5 stjärnor. Godkänn innan de kan skickas vidare till Google.
+                      Alla betyg 1–5. Patienten har redan skickat — godkänn eller avvisa innan något når Google.
                     </p>
                   </div>
                   <span class="post-op-internal-count-badge post-op-google-count-badge" data-post-op-google-count>0</span>
                 </div>
                 <p class="shell-status" data-post-op-google-status hidden></p>
                 <p class="patient-master-empty" data-post-op-google-empty hidden>
-                  Inga omdömen väntar på Google-godkännande.
+                  Inga omdömen väntar på godkännande just nu.
                 </p>
                 <div class="post-op-internal-list" data-post-op-google-list></div>
               </section>
@@ -3304,7 +3278,7 @@
                       }
                     })();
                   </script>
-                  <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-internal-a"></script>
+                  <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-google-gate-a"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
                   <script async src="./app/patient-master-ui.js?v=build-sweep-h"></script>
 <div data-patient-identity-rail hidden>

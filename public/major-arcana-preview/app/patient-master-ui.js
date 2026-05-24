@@ -518,6 +518,13 @@
     return false;
   }
 
+  function ensureCustomersShellVisible() {
+    if (!isCustomersShellActive()) return;
+    document.querySelectorAll('[data-shell-view]').forEach((section) => {
+      section.hidden = section.dataset.shellView !== 'customers';
+    });
+  }
+
   function buildPatientDeepLink(patientId) {
     try {
       const url = new URL(window.location.origin);
@@ -3901,6 +3908,7 @@
   }
 
   function onCustomersViewOpenImpl() {
+    ensureCustomersShellVisible();
     resolveElements();
     renderModeChrome();
     ensureMobilePatientListHistory();

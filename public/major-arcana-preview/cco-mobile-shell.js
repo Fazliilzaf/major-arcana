@@ -202,6 +202,9 @@
         document.documentElement.removeAttribute('data-cco-calendar-open');
         canvas.dataset.appShellView = 'customers';
         canvas.dataset.appView = 'customers';
+        document.querySelectorAll('[data-shell-view]').forEach((section) => {
+          section.hidden = section.dataset.shellView !== 'customers';
+        });
         break;
       case 'booking':
         document.documentElement.removeAttribute('data-cco-calendar-open');
