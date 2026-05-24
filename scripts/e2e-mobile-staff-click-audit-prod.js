@@ -218,9 +218,8 @@ async function main() {
     }
     await page.waitForFunction(
       () => {
-        const loading = document.querySelector('[data-patient-loading="true"]');
-        const card = window.ArcanaPatientMasterUi?.getRuntime?.()?.detail?.card;
-        return !loading && Boolean(card);
+        const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
+        return Boolean(rt?.detail?.card) && !rt?.detailLoading;
       },
       undefined,
       { timeout: 25000, polling: 16 }
