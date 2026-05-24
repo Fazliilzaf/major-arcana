@@ -40,6 +40,7 @@
 
   const PHOTO_LABEL_OPTIONS = ['Front', 'Vertex', 'Baksida', 'Profil', 'Annan'];
   const photoObjectUrls = new Set();
+  const fileObjectUrls = new Set();
   const patientDetailInflight = new Map();
 
   const runtime = {
@@ -801,14 +802,60 @@
   }
 
   function revokePhotoObjectUrls() {
-    photoObjectUrls.forEach((url) => {
-      try {
-        URL.revokeObjectURL(url);
-      } catch {
-        /* ignore */
-      }
+    for (const bucket of [photoObjectUrls, fileObjectUrls]) {
+      bucket.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          /* ignore */
+        }
+      });
+      bucket.clear();
+    }
+  }
+
+  async function fetchPatientFileObjectUrl(fileId) {
+    const normalizedId = normalizeText(fileId);
+    if (!normalizedId) return '';
+    const primaryUrl = `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(normalizedId)}`;
+    const token = getAdminToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await fetch(new URL(primaryUrl, window.location.origin), {
+      headers,
+      credentials: 'same-origin',
     });
-    photoObjectUrls.clear();
+    if (!response.ok) return '';
+    let blob = await response.blob();
+    const contentType = response.headers.get('content-type') || '';
+    if (blob.type === '' && contentType) {
+      blob = new Blob([blob], { type: contentType.split(';')[0] });
+    }
+    const objectUrl = URL.createObjectURL(blob);
+    fileObjectUrls.add(objectUrl);
+    return objectUrl;
+  }
+
+  async function hydratePatientFileImages(root = els.patientRail) {
+    if (!root) return;
+    const images = root.querySelectorAll('img[data-patient-file-id]');
+    await Promise.all(
+      Array.from(images).map(async (img) => {
+        const fileId = normalizeText(img.dataset.patientFileId);
+        if (!fileId || img.dataset.loaded === 'true') return;
+        img.classList.add('is-loading');
+        const objectUrl = await fetchPatientFileObjectUrl(fileId);
+        img.classList.remove('is-loading');
+        if (!objectUrl) {
+          img.alt = 'Kunde inte visa bild';
+          img.classList.add('is-broken');
+          return;
+        }
+        img.src = objectUrl;
+        img.dataset.loaded = 'true';
+        const tileLink = img.closest('a.patient-master-image-tile');
+        if (tileLink) tileLink.href = objectUrl;
+      })
+    );
   }
 
   async function fetchJournalPhotoObjectUrl(photoId, variant = '') {
@@ -998,7 +1045,7 @@
                 const label = escapeHtml(repairDisplayFilename(file.fileName || 'Bild'));
                 return `
                   <a class="patient-master-image-tile" href="${escapeHtml(href)}" target="_blank" rel="noopener" title="${label}">
-                    <img src="${escapeHtml(href)}" alt="${label}" loading="lazy" decoding="async" />
+                    <img src="" data-patient-file-id="${escapeHtml(file.id)}" alt="${label}" loading="lazy" decoding="async" />
                   </a>
                 `;
               })
@@ -2161,6 +2208,8 @@
     if (runtime.detailTab === 'journal') {
       void hydrateJournalPhotoElements(els.patientRail);
       window.requestAnimationFrame(() => bindJournalAutosaveForms());
+    } else if (runtime.detailTab === 'profil' || runtime.detailTab === 'filer') {
+      void hydratePatientFileImages(els.patientRail);
     }
 
     return true;
@@ -2210,6 +2259,16 @@
         if (runtime.detailTab !== 'journal') return;
         void hydrateJournalPhotoElements(rail);
         bindJournalAutosaveForms();
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(hydrate, { timeout: 1200 });
+      } else {
+        window.requestAnimationFrame(hydrate);
+      }
+    } else if (normalized === 'profil' || normalized === 'filer') {
+      const hydrate = () => {
+        if (runtime.detailTab !== normalized) return;
+        void hydratePatientFileImages(rail);
       };
       if (typeof requestIdleCallback === 'function') {
         requestIdleCallback(hydrate, { timeout: 1200 });
@@ -2370,6 +2429,7 @@
     `;
     bindJournalPhotoOpenLinks(els.patientRail);
     void hydrateJournalPhotoElements(els.patientRail);
+    void hydratePatientFileImages(els.patientRail);
     syncMobilePatientLayout();
     window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
