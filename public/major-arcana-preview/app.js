@@ -2923,6 +2923,45 @@
   let __runtimeShellInProgress = false;
   let __runtimeShellPendingScopes = new Set();
   let __runtimeShellRaf = 0;
+  let __mobileViewLoadsTimer = 0;
+
+  function isMobileShellViewportEarly() {
+    try {
+      return window.matchMedia("(max-width: 768px)").matches;
+    } catch {
+      return false;
+    }
+  }
+
+  function scheduleMobileIdleWork(callback, { timeout = 180 } = {}) {
+    if (typeof requestIdleCallback === "function") {
+      return requestIdleCallback(callback, { timeout });
+    }
+    return setTimeout(callback, 0);
+  }
+
+  function cancelMobileNavigationWork() {
+    if (!isMobileShellViewportEarly()) return;
+    if (__runtimeShellRaf) {
+      if (typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(__runtimeShellRaf);
+      }
+      if (typeof cancelIdleCallback === "function") {
+        cancelIdleCallback(__runtimeShellRaf);
+      }
+      clearTimeout(__runtimeShellRaf);
+      __runtimeShellRaf = 0;
+    }
+    __runtimeShellPendingScopes = new Set();
+    __runtimeShellInProgress = false;
+    if (__mobileViewLoadsTimer) {
+      clearTimeout(__mobileViewLoadsTimer);
+      if (typeof cancelIdleCallback === "function") {
+        cancelIdleCallback(__mobileViewLoadsTimer);
+      }
+      __mobileViewLoadsTimer = 0;
+    }
+  }
 
   function resolveRuntimeShellScope(scopes = new Set()) {
     if (!scopes || scopes.size === 0 || scopes.has("all")) {
@@ -2947,10 +2986,15 @@
       __runtimeShellPendingScopes.add(normalizeKey(scope) || "all");
     }
     if (__runtimeShellRaf) return;
+    const flush = flushScheduledRuntimeConversationShell;
+    if (isMobileShellViewportEarly()) {
+      __runtimeShellRaf = scheduleMobileIdleWork(flush, { timeout: 220 });
+      return;
+    }
     __runtimeShellRaf =
       typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame(flushScheduledRuntimeConversationShell)
-        : setTimeout(flushScheduledRuntimeConversationShell, 0);
+        ? requestAnimationFrame(flush)
+        : setTimeout(flush, 0);
   }
 
   function flushScheduledRuntimeConversationShell() {
@@ -39531,8 +39575,8 @@
     };
 
     if (shellStructureChanged) {
-      if (mobileShell && typeof requestAnimationFrame === "function") {
-        requestAnimationFrame(applyShellStructure);
+      if (mobileShell) {
+        scheduleMobileIdleWork(applyShellStructure, { timeout: 200 });
       } else {
         applyShellStructure();
       }
@@ -39641,11 +39685,7 @@
     };
 
     if (mobileShell && shellStructureChanged) {
-      if (typeof requestAnimationFrame === "function") {
-        requestAnimationFrame(runViewLoads);
-      } else {
-        setTimeout(runViewLoads, 0);
-      }
+      __mobileViewLoadsTimer = scheduleMobileIdleWork(runViewLoads, { timeout: 220 });
     } else {
       runViewLoads();
     }
@@ -39657,11 +39697,7 @@
     };
 
     if (mobileShell && shellStructureChanged) {
-      if (typeof requestAnimationFrame === "function") {
-        requestAnimationFrame(finalizeAppView);
-      } else {
-        setTimeout(finalizeAppView, 0);
-      }
+      scheduleMobileIdleWork(finalizeAppView, { timeout: 240 });
     } else {
       finalizeAppView();
     }
@@ -42489,5 +42525,6 @@
     setAppView,
     setMobileWorkspaceView,
     ensureMobileInboxReady,
+    cancelMobileNavigationWork,
   });
 })();
