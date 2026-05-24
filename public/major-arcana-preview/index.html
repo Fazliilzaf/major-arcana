@@ -72,8 +72,6 @@
         }
       })();
     </script>
-    <!-- Early patient-master-ui (head): mobil deep link — körs före body parse -->
-    <script src="./app/patient-master-ui.js?v=build-sweep-h"></script>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -3240,6 +3238,8 @@
                       }
                     })();
                   </script>
+                  <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
+                  <script async src="./app/patient-master-ui.js?v=build-sweep-h"></script>
 <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
