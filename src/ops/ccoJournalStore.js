@@ -815,6 +815,46 @@ async function createCcoJournalStore({ filePath }) {
     return upsertEntry({ ...entry, attachments }, { actor });
   }
 
+  async function transferEntriesToPatient({
+    tenantId,
+    fromPatientId,
+    toPatientId,
+    actor = {},
+  } = {}) {
+    const fromId = normalizeText(fromPatientId);
+    const toId = normalizeText(toPatientId);
+    const tenant = normalizeText(tenantId);
+    if (!tenant || !fromId || !toId || fromId === toId) {
+      return { moved: 0 };
+    }
+    let moved = 0;
+    for (const entry of state.entries) {
+      if (normalizeText(entry.tenantId) !== tenant) continue;
+      if (normalizeText(entry.patientId) !== fromId) continue;
+      const index = state.entries.findIndex((item) => entryKey(item) === entryKey(entry));
+      state.entries[index] = normalizeJournalEntry(
+        {
+          ...entry,
+          patientId: toId,
+          events: [
+            ...asArray(entry.events),
+            normalizeEvent({
+              type: 'journal_patient_merged',
+              label: `Journal flyttad till ${toId}`,
+              actorUserId: actor.userId,
+              actorName: actor.displayName || actor.userId,
+              actorRole: actor.role,
+            }),
+          ].filter(Boolean),
+        },
+        entry
+      );
+      moved += 1;
+    }
+    if (moved) await save();
+    return { moved };
+  }
+
   async function getImportSummary({ tenantId } = {}) {
     const normalizedTenant = normalizeText(tenantId);
     const entries = asArray(state.entries).filter(
@@ -851,6 +891,7 @@ async function createCcoJournalStore({ filePath }) {
     markAttachmentAnnotatedPreview,
     removeConsultationPhotoAttachment,
     signEntry,
+    transferEntriesToPatient,
     updateConsultationPhotoAnnotation,
     upsertEntry,
   };

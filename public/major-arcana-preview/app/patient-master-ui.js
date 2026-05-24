@@ -71,6 +71,8 @@
     agreementSignUrl: '',
     offerTemplates: [],
     stats: null,
+    reviewGroups: null,
+    reviewGroupsLoading: false,
     preferJournalOnMobile: false,
     pendingPatientId: '',
     pendingPasswordSetup: null,
@@ -706,6 +708,7 @@
     els.title = document.querySelector('#customers-title');
     els.subtitle = els.shell?.querySelector('[data-customers-lead]');
     els.modeButtons = Array.from(document.querySelectorAll('[data-patient-master-mode]'));
+    els.mergeGroupsHost = document.querySelector('[data-customer-merge-groups]');
   }
 
   function renderModeChrome() {
@@ -780,6 +783,13 @@
             : 'blue';
       add(MATCH_LABELS[card.matchStatus] || card.matchStatus, tone);
     }
+    if (card.pipedriveLinked) {
+      const dealLabel =
+        Number(card.pipedriveDealCount) > 0
+          ? `Pipedrive (${card.pipedriveDealCount})`
+          : 'Pipedrive';
+      add(dealLabel, 'violet');
+    }
     if (card.hasJournalHistory) {
       add('Importerad journal', 'green');
     } else if (card.clientoLinked && !card.driveLinked) {
@@ -791,6 +801,176 @@
         add(FLAG_LABELS[flag] || flag, flag === 'needs_review' ? 'gold' : 'violet');
       });
     return chips.join('');
+  }
+
+  const REVIEW_REASON_LABELS = {
+    shared_email: 'Samma e-post',
+    shared_phone: 'Samma telefon',
+    shared_personnummer: 'Samma personnummer',
+  };
+
+  function formatDealValue(deal) {
+    const value = normalizeText(deal?.value);
+    if (!value || value === '0') return '—';
+    const currency = normalizeText(deal?.currency);
+    return currency ? `${value} ${currency}` : value;
+  }
+
+  function renderPipedriveSection(patient) {
+    const pipedrive = patient?.pipedrive;
+    if (!pipedrive) return '';
+    const deals = asArray(pipedrive.deals);
+    if (!deals.length) {
+      return `
+          <article class="focus-customer-data-card patient-master-pipedrive-card">
+            <h4>Pipedrive</h4>
+            <p class="patient-master-muted">Kopplad person (ID ${escapeHtml(pipedrive.personId || '—')}) utan affärer i exporten.</p>
+          </article>`;
+    }
+    const rows = deals
+      .slice(0, 40)
+      .map(
+        (deal) => `
+            <tr>
+              <td>${escapeHtml(deal.title || '—')}</td>
+              <td>${escapeHtml(deal.stage || '—')}</td>
+              <td>${escapeHtml(deal.status || '—')}</td>
+              <td>${escapeHtml(formatDealValue(deal))}</td>
+              <td>${escapeHtml(deal.pipeline || '—')}</td>
+            </tr>`
+      )
+      .join('');
+    const more =
+      deals.length > 40
+        ? `<p class="patient-master-muted">Visar 40 av ${deals.length} affärer.</p>`
+        : '';
+    return `
+          <article class="focus-customer-data-card patient-master-pipedrive-card">
+            <h4>Pipedrive · ${deals.length} affär${deals.length === 1 ? '' : 'er'}</h4>
+            <p class="patient-master-muted">Person-ID ${escapeHtml(pipedrive.personId || '—')}${pipedrive.matchMethod ? ` · match via ${escapeHtml(pipedrive.matchMethod)}` : ''}</p>
+            <div class="patient-master-pipedrive-table-wrap">
+              <table class="patient-master-pipedrive-table">
+                <thead>
+                  <tr>
+                    <th>Affär</th>
+                    <th>Fas</th>
+                    <th>Status</th>
+                    <th>Värde</th>
+                    <th>Pipeline</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+            ${more}
+          </article>`;
+  }
+
+  function renderReviewGroupsPanel() {
+    if (!els.mergeGroupsHost) return;
+    if (needsStaffLogin()) {
+      els.mergeGroupsHost.innerHTML = renderStaffLoginCard(
+        'Logga in för att granska och slå ihop dubbletter.'
+      );
+      return;
+    }
+    if (runtime.reviewGroupsLoading) {
+      els.mergeGroupsHost.innerHTML =
+        '<p class="patient-master-muted">Läser granskningsgrupper…</p>';
+      return;
+    }
+    const groups = asArray(runtime.reviewGroups?.groups);
+    if (!groups.length) {
+      els.mergeGroupsHost.innerHTML =
+        '<p class="patient-master-muted">Inga dubblettgrupper att slå ihop just nu. Filtrera kundregister på «Granska» för enstaka poster.</p>';
+      return;
+    }
+    const cards = groups
+      .map((group, index) => {
+        const reasons = asArray(group.reasons)
+          .map((reason) => REVIEW_REASON_LABELS[reason] || reason)
+          .filter(Boolean);
+        const primaryId = group.suggestedPrimaryId || group.members?.[0]?.patientId || '';
+        const memberRows = asArray(group.members)
+          .map((member) => {
+            const isPrimary = member.patientId === primaryId;
+            return `
+              <li class="${isPrimary ? 'is-primary' : ''}">
+                <strong>${escapeHtml(member.displayName || 'Okänd')}</strong>
+                <span>${escapeHtml(member.primaryEmail || member.primaryPhone || member.personnummer || '—')}</span>
+                ${isPrimary ? '<em>Primär</em>' : ''}
+              </li>`;
+          })
+          .join('');
+        const secondaryIds = asArray(group.members)
+          .map((member) => member.patientId)
+          .filter((id) => id && id !== primaryId);
+        return `
+          <article class="customers-merge-card" data-patient-merge-group="${escapeHtml(group.groupId)}">
+            <div class="customers-merge-top">
+              <strong>Grupp ${index + 1}</strong>
+              <span>${group.members.length} poster</span>
+            </div>
+            <ul>${reasons.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+            <ul class="patient-master-merge-members">${memberRows}</ul>
+            <div class="customers-merge-actions">
+              <button class="customers-merge-accept" type="button" data-patient-merge-accept data-patient-merge-primary="${escapeHtml(primaryId)}" data-patient-merge-secondary="${escapeHtml(secondaryIds.join(','))}">
+                Slå ihop
+              </button>
+            </div>
+          </article>`;
+      })
+      .join('');
+    els.mergeGroupsHost.innerHTML = `
+      <div class="customers-merge-group is-active" data-patient-merge-groups-live>
+        <p class="patient-master-muted">${groups.length} grupp${groups.length === 1 ? '' : 'er'} med delad e-post, telefon eller personnummer (${runtime.reviewGroups?.total || groups.length} totalt).</p>
+        ${cards}
+      </div>`;
+  }
+
+  async function loadReviewGroups() {
+    if (needsStaffLogin()) {
+      renderReviewGroupsPanel();
+      return;
+    }
+    runtime.reviewGroupsLoading = true;
+    renderReviewGroupsPanel();
+    try {
+      runtime.reviewGroups = await apiRequest('/api/v1/cco-patient-master/review-groups?limit=120');
+    } catch (error) {
+      runtime.reviewGroups = { groups: [], total: 0 };
+      setStatus(error.message || 'Kunde inte läsa granskningsgrupper.', 'error');
+    } finally {
+      runtime.reviewGroupsLoading = false;
+      renderReviewGroupsPanel();
+    }
+  }
+
+  async function mergeReviewGroup(primaryPatientId, secondaryPatientIds) {
+    if (!primaryPatientId || !asArray(secondaryPatientIds).length) return;
+    setStatus('Slår ihop patientposter…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-patient-master/merge', {
+        method: 'POST',
+        body: {
+          primaryPatientId,
+          secondaryPatientIds,
+        },
+      });
+      setStatus(
+        `Slog ihop ${payload.removedPatientIds?.length || 0} poster${payload.journalMoved ? ` (${payload.journalMoved} journaler flyttade)` : ''}.`,
+        'success'
+      );
+      await Promise.all([loadReviewGroups(), loadStats()]);
+      if (runtime.mode === 'register') {
+        runtime.selectedPatientId = '';
+        runtime.detail = null;
+        renderDetailEmpty();
+        void loadPatientList();
+      }
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte slå ihop poster.', 'error');
+    }
   }
 
   function renderPatientHeroChipRow(card) {
@@ -2689,8 +2869,10 @@
               <div><dt>Matchning</dt><dd>${escapeHtml(MATCH_LABELS[card.matchStatus] || card.matchStatus || '—')}</dd></div>
               <div><dt>Cliento</dt><dd>${card.clientoLinked ? 'Ja' : 'Nej'}</dd></div>
               <div><dt>Drive</dt><dd>${card.driveLinked ? 'Ja' : 'Nej'}</dd></div>
+              <div><dt>Pipedrive</dt><dd>${card.pipedriveLinked ? `Ja (${card.pipedriveDealCount || 0} affärer)` : 'Nej'}</dd></div>
             </dl>
           </article>
+          ${renderPipedriveSection(patient)}
           ${renderMaterialPreview(driveFiles, card)}
           ${patient?.cliento?.createdAt
         ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
@@ -3077,6 +3259,7 @@
       void loadPatientList();
     } else {
       setStatus('', '');
+      void loadReviewGroups();
     }
   }
 
@@ -3816,6 +3999,18 @@
         return;
       }
 
+      const mergeButton = event.target.closest('[data-patient-merge-accept]');
+      if (mergeButton && runtime.mode === 'identity') {
+        const primaryId = normalizeText(mergeButton.dataset.patientMergePrimary);
+        const secondaryRaw = normalizeText(mergeButton.dataset.patientMergeSecondary);
+        const secondaryIds = secondaryRaw
+          .split(',')
+          .map((item) => normalizeText(item))
+          .filter(Boolean);
+        void mergeReviewGroup(primaryId, secondaryIds);
+        return;
+      }
+
       const row = event.target.closest('[data-patient-row]');
       if (row && runtime.mode === 'register') {
         void loadPatientDetail(row.dataset.patientRow);
@@ -4092,6 +4287,10 @@
           'importerad journal': '',
         };
         runtime.flagFilter = flagMap[value.toLowerCase()] || '';
+        if (runtime.flagFilter === 'needs_review' && runtime.mode !== 'identity') {
+          setMode('identity');
+          return;
+        }
         runtime.selectedPatientId = '';
         runtime.detail = null;
         renderDetailEmpty();

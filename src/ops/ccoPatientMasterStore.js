@@ -354,6 +354,98 @@ function clonePatient(patient) {
   return JSON.parse(JSON.stringify(patient));
 }
 
+function scorePatientAsMergePrimary(patient) {
+  const safe = asObject(patient);
+  let score = 0;
+  if (safe.personnummer) score += 100;
+  if (safe.cliento) score += 40;
+  if (safe.drive) score += 30;
+  if (safe.pipedrive) score += 20;
+  score += Number(asObject(safe.fileSummary).totalFiles) || 0;
+  if (safe.matchStatus === 'matched') score += 10;
+  return score;
+}
+
+function mergePipedriveRecords(primary, secondary) {
+  const left = asObject(primary);
+  const right = asObject(secondary);
+  if (!left.personId && right.personId) return right;
+  if (!left.personId) return left;
+  const deals = [...asArray(left.deals), ...asArray(right.deals)];
+  const seen = new Set();
+  const mergedDeals = deals.filter((deal) => {
+    const id = normalizeText(asObject(deal).dealId);
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  return { ...left, deals: mergedDeals };
+}
+
+function mergePatientSources(primary, secondary) {
+  const left = asObject(primary);
+  const right = asObject(secondary);
+  const emails = [
+    ...new Set([
+      ...asArray(left.emails),
+      ...asArray(right.emails),
+      normalizeEmail(left.primaryEmail),
+      normalizeEmail(right.primaryEmail),
+    ]),
+  ].filter(Boolean);
+  const phones = [
+    ...new Set([
+      ...asArray(left.phones),
+      ...asArray(right.phones),
+      normalizePhone(left.primaryPhone),
+      normalizePhone(right.primaryPhone),
+    ]),
+  ].filter(Boolean);
+  const fileSummary = {
+    totalFiles: Math.max(
+      Number(asObject(left.fileSummary).totalFiles) || 0,
+      Number(asObject(right.fileSummary).totalFiles) || 0
+    ),
+    journalPdfs: Math.max(
+      Number(asObject(left.fileSummary).journalPdfs) || 0,
+      Number(asObject(right.fileSummary).journalPdfs) || 0
+    ),
+    images: Math.max(
+      Number(asObject(left.fileSummary).images) || 0,
+      Number(asObject(right.fileSummary).images) || 0
+    ),
+  };
+  let pipedrive = left.pipedrive || null;
+  if (right.pipedrive) {
+    pipedrive = pipedrive ? mergePipedriveRecords(pipedrive, right.pipedrive) : right.pipedrive;
+  }
+  let matchStatus = 'matched';
+  const hasCliento = Boolean(left.cliento || right.cliento);
+  const hasDrive = Boolean(left.drive || right.drive);
+  if (hasCliento && hasDrive) matchStatus = 'matched';
+  else if (hasCliento) matchStatus = 'cliento_only';
+  else if (hasDrive) matchStatus = 'drive_only';
+  else matchStatus = 'unmatched';
+
+  return {
+    personnummer: normalizePersonnummer(left.personnummer) || normalizePersonnummer(right.personnummer),
+    displayName: left.displayName || right.displayName,
+    firstName: left.firstName || right.firstName,
+    lastName: left.lastName || right.lastName,
+    primaryEmail: left.primaryEmail || right.primaryEmail || emails[0] || '',
+    primaryPhone: left.primaryPhone || right.primaryPhone || phones[0] || '',
+    emails,
+    phones,
+    cliento: left.cliento || right.cliento || null,
+    drive: left.drive || right.drive || null,
+    pipedrive,
+    fileSummary,
+    matchStatus,
+    matchConfidence: Math.max(Number(left.matchConfidence) || 0, Number(right.matchConfidence) || 0, 0.95),
+    duplicateEmail: Boolean(left.duplicateEmail || right.duplicateEmail),
+  };
+}
+
 function buildPatientCardReadout(patient) {
   const safe = asObject(patient);
   return {
@@ -696,6 +788,180 @@ async function createCcoPatientMasterStore({ filePath }) {
     return bucket.imports.pipedrive;
   }
 
+  async function listMergeReviewGroups({ tenantId, limit = 80 } = {}) {
+    const bucket = tenantBucket(state, tenantId);
+    const reviewPatients = bucket.patients.filter(
+      (item) =>
+        item.matchStatus === 'needs_review' || asArray(item.flags).includes('needs_review')
+    );
+    const patientById = new Map(reviewPatients.map((item) => [item.id, item]));
+    const parent = new Map();
+    const edgeReasons = new Map();
+
+    function find(id) {
+      if (!parent.has(id)) parent.set(id, id);
+      if (parent.get(id) !== id) parent.set(id, find(parent.get(id)));
+      return parent.get(id);
+    }
+
+    function unite(aId, bId, reason) {
+      if (!aId || !bId || aId === bId) return;
+      const rootA = find(aId);
+      const rootB = find(bId);
+      if (rootA === rootB) return;
+      parent.set(rootB, rootA);
+      const key = [aId, bId].sort().join('|');
+      if (!edgeReasons.has(key)) edgeReasons.set(key, new Set());
+      edgeReasons.get(key).add(reason);
+    }
+
+    const emailMap = new Map();
+    const phoneMap = new Map();
+    const pnrMap = new Map();
+    reviewPatients.forEach((patient) => {
+      const emails = new Set(
+        [patient.primaryEmail, ...asArray(patient.emails)].map(normalizeEmail).filter(Boolean)
+      );
+      const phones = new Set(
+        [patient.primaryPhone, ...asArray(patient.phones)].map(phoneMatchKey).filter(Boolean)
+      );
+      emails.forEach((email) => {
+        if (!emailMap.has(email)) emailMap.set(email, []);
+        emailMap.get(email).push(patient.id);
+      });
+      phones.forEach((phone) => {
+        if (!phoneMap.has(phone)) phoneMap.set(phone, []);
+        phoneMap.get(phone).push(patient.id);
+      });
+      const pnr = normalizePersonnummer(patient.personnummer);
+      if (pnr) {
+        if (!pnrMap.has(pnr)) pnrMap.set(pnr, []);
+        pnrMap.get(pnr).push(patient.id);
+      }
+    });
+
+    const linkBucket = (ids, reason) => {
+      if (ids.length < 2) return;
+      const anchor = ids[0];
+      ids.slice(1).forEach((id) => unite(anchor, id, reason));
+    };
+    emailMap.forEach((ids) => linkBucket(ids, 'shared_email'));
+    phoneMap.forEach((ids) => linkBucket(ids, 'shared_phone'));
+    pnrMap.forEach((ids) => linkBucket(ids, 'shared_personnummer'));
+
+    const grouped = new Map();
+    reviewPatients.forEach((patient) => {
+      const root = find(patient.id);
+      if (!grouped.has(root)) grouped.set(root, new Set());
+      grouped.get(root).add(patient.id);
+    });
+
+    const groups = [];
+    grouped.forEach((memberIds, rootId) => {
+      if (memberIds.size < 2) return;
+      const ids = [...memberIds];
+      const members = ids.map((id) => patientById.get(id)).filter(Boolean);
+      const sorted = members
+        .map((item) => ({ patient: item, score: scorePatientAsMergePrimary(item) }))
+        .sort((a, b) => b.score - a.score);
+      const reasons = new Set();
+      ids.forEach((a) => {
+        ids.forEach((b) => {
+          if (a >= b) return;
+          const edge = edgeReasons.get([a, b].sort().join('|'));
+          if (edge) edge.forEach((reason) => reasons.add(reason));
+        });
+      });
+      groups.push({
+        groupId: ids.sort().join('|'),
+        reasons: [...reasons],
+        suggestedPrimaryId: sorted[0]?.patient?.id || rootId,
+        members: sorted.map(({ patient: item, score }) => ({
+          patientId: item.id,
+          displayName: item.displayName,
+          personnummer: item.personnummer || '',
+          primaryEmail: item.primaryEmail || '',
+          primaryPhone: item.primaryPhone || '',
+          matchStatus: item.matchStatus,
+          clientoLinked: Boolean(item.cliento),
+          driveLinked: Boolean(item.drive),
+          pipedriveLinked: Boolean(item.pipedrive),
+          pipedriveDealCount: asArray(asObject(item.pipedrive).deals).length,
+          score,
+        })),
+      });
+    });
+
+    groups.sort((a, b) => b.members.length - a.members.length);
+    return {
+      total: groups.length,
+      groups: groups.slice(0, Math.max(1, Math.min(200, Number(limit) || 80))),
+    };
+  }
+
+  async function mergePatients({
+    tenantId,
+    primaryPatientId,
+    secondaryPatientIds = [],
+  } = {}) {
+    const bucket = tenantBucket(state, tenantId);
+    const primaryId = normalizeText(primaryPatientId);
+    const secondaryIds = [
+      ...new Set(asArray(secondaryPatientIds).map(normalizeText).filter((id) => id && id !== primaryId)),
+    ];
+    if (!primaryId || !secondaryIds.length) {
+      throw new Error('primaryPatientId och minst en secondaryPatientId krävs.');
+    }
+
+    const primary = bucket.patients.find((item) => item.id === primaryId);
+    if (!primary) {
+      const error = new Error('Primär patient hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const secondaries = secondaryIds
+      .map((id) => bucket.patients.find((item) => item.id === id))
+      .filter(Boolean);
+    if (secondaries.length !== secondaryIds.length) {
+      const error = new Error('En eller flera sekundära patienter hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    let merged = clonePatient(primary);
+    for (const secondary of secondaries) {
+      merged = normalizePatientRecord(
+        {
+          ...merged,
+          tenantId,
+          id: primaryId,
+          ...mergePatientSources(merged, secondary),
+        },
+        merged
+      );
+    }
+
+    applyPatientPatch({ ...merged, tenantId, id: primaryId });
+    bucket.patients = bucket.patients.filter((item) => !secondaryIds.includes(item.id));
+    bucket.imports.patientMerge = bucket.imports.patientMerge || {
+      mergedGroups: 0,
+      removedPatients: 0,
+    };
+    bucket.imports.patientMerge.mergedGroups += 1;
+    bucket.imports.patientMerge.removedPatients += secondaryIds.length;
+    bucket.imports.patientMerge.lastMergedAt = nowIso();
+    await save();
+
+    return {
+      primaryPatientId: primaryId,
+      removedPatientIds: secondaryIds,
+      patient: clonePatient(
+        bucket.patients.find((item) => item.id === primaryId) || merged
+      ),
+    };
+  }
+
   async function getTenantStats({ tenantId } = {}) {
     const bucket = tenantBucket(state, tenantId);
     const patients = asArray(bucket.patients);
@@ -719,7 +985,9 @@ async function createCcoPatientMasterStore({ filePath }) {
     getTenantStats,
     importClientoRows,
     listPatients,
+    listMergeReviewGroups,
     mergeDriveProfiles,
+    mergePatients,
     mergePipedriveProfiles,
     upsertPatient,
     patientKey,
@@ -735,4 +1003,6 @@ module.exports = {
   normalizePipedrivePersonRecord,
   buildPipedrivePatientLookup,
   findPatientsForPipedrivePerson,
+  scorePatientAsMergePrimary,
+  mergePatientSources,
 };

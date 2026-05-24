@@ -184,6 +184,48 @@ test('patient master enriches cliento row with pipedrive person and deals', asyn
   assert.equal(patient.pipedrive.matchMethod, 'email');
 });
 
+test('patient master lists review groups and merges duplicates', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'patient-merge-'));
+  const filePath = path.join(dir, 'cco-patient-master.json');
+  const store = await createCcoPatientMasterStore({ filePath });
+
+  await store.upsertPatient({
+    tenantId: 'hair-tp-clinic',
+    displayName: 'Anna Primär',
+    primaryEmail: 'anna.merge@example.com',
+    primaryPhone: '+46701111111',
+    matchStatus: 'needs_review',
+  });
+  await store.upsertPatient({
+    tenantId: 'hair-tp-clinic',
+    displayName: 'Anna Sekundär',
+    primaryEmail: 'anna.merge@example.com',
+    primaryPhone: '+46701111111',
+    matchStatus: 'needs_review',
+  });
+
+  const before = await store.getTenantStats({ tenantId: 'hair-tp-clinic' });
+  assert.equal(before.totalPatients, 2);
+
+  const groups = await store.listMergeReviewGroups({ tenantId: 'hair-tp-clinic' });
+  assert.equal(groups.total, 1);
+  assert.equal(groups.groups[0].members.length, 2);
+
+  const primaryId = groups.groups[0].suggestedPrimaryId;
+  const secondaryIds = groups.groups[0].members
+    .map((member) => member.patientId)
+    .filter((id) => id !== primaryId);
+  const merged = await store.mergePatients({
+    tenantId: 'hair-tp-clinic',
+    primaryPatientId: primaryId,
+    secondaryPatientIds: secondaryIds,
+  });
+  assert.equal(merged.removedPatientIds.length, 1);
+  const after = await store.getTenantStats({ tenantId: 'hair-tp-clinic' });
+  assert.equal(after.totalPatients, 1);
+  assert.equal(after.needsReview, 0);
+});
+
 test('historical journal import dedupes by zip path', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'journal-import-'));
   const filePath = path.join(dir, 'cco-journal.json');
