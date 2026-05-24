@@ -814,6 +814,19 @@
       pointer-events: auto;
     }
 
+    html[data-cco-mobile-shell="on"] .booking-shell {
+      bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .booking-shell-surface {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      max-height: 100%;
+      border-radius: 0;
+    }
+
     html[data-cco-mobile-shell="on"] .booking-shell-surface {
       border-radius: 16px 16px 0 0;
       max-height: 100%;
@@ -844,13 +857,87 @@
       flex: 0 0 auto;
     }
 
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .booking-shell-toolbar,
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .cco-booking-mobile-wizard {
+      flex: 0 0 auto;
+      background: var(--warm-bg, #f7f2ec);
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .booking-shell-body,
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open [data-booking-shell-mount] {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-bottom: 0;
+    }
+
     html[data-cco-mobile-shell="on"] .booking-shell-body,
     html[data-cco-mobile-shell="on"] [data-booking-shell-mount] {
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .booking-shell [data-booking-surface] {
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      text-align: left;
+      padding: 12px 16px 20px;
+    }
+
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] {
       padding: 12px 16px 20px;
+      text-align: left;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-head,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-head h3,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] p,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-source-line,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-health-line,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-next-action-line,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-source-line,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-note,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-status-filter-note,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-slot-overview-copy,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-feedback,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-action-hint {
+      text-align: left;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-attention-grid,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-grid,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-handoff-checklist,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-status-flow {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-attention-grid > div,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-card,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-slot-overview {
+      text-align: left;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-attention-grid span,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-attention-grid strong,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-card span,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-card strong,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-card p {
+      text-align: left;
     }
 
     /* D2.3 — mobile booking wizard stepper (injected by JS) */
@@ -866,7 +953,7 @@
       flex: 1 1 0;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
       gap: 4px;
       min-width: 0;
       margin: 0;
@@ -907,7 +994,76 @@
       font-size: 11px;
       font-weight: 600;
       line-height: 1.1;
-      text-align: center;
+      text-align: left;
+      width: 100%;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-progress {
+      text-align: left;
+      width: 100%;
+    }
+
+    /* Boka-fliken: fokus på bokningsytan, inte krympt konversationsband */
+    html[data-cco-mobile-booking-tab="on"]
+      .preview-canvas[data-mobile-workspace-view="focus"]
+      .focus-conversation {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-booking-tab="on"]
+      .preview-canvas[data-mobile-workspace-view="focus"]
+      .focus-conversation-layout {
+      gap: 0;
+      padding-top: 0;
+    }
+
+    html[data-cco-mobile-booking-tab="on"]
+      .preview-canvas[data-mobile-workspace-view="focus"]
+      .focus-workrail {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: left;
+      gap: 12px;
+      margin: 0 0 12px;
+      padding: 14px 16px;
+    }
+
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock-copy,
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock-copy strong,
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock-copy p {
+      text-align: left;
+    }
+
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock-open {
+      width: 100%;
+      min-height: var(--cco-touch-comfortable, 48px);
+    }
+
+    html[data-cco-mobile-booking-tab="on"]
+      .focus-workrail.is-booking-active
+      .booking-operator-surface {
+      margin-top: 0;
+      max-height: none;
+      padding: 12px 16px 20px;
+      text-align: left;
+    }
+
+    html[data-cco-mobile-booking-tab="on"]
+      .focus-workrail.is-booking-active
+      .booking-operator-surface
+      .booking-attention-grid,
+    html[data-cco-mobile-booking-tab="on"]
+      .focus-workrail.is-booking-active
+      .booking-operator-surface
+      .booking-decision-grid {
+      grid-template-columns: 1fr;
     }
 
     /* D2.4 — slot picker: single column + vertical chips */
