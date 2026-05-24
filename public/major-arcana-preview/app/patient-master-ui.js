@@ -711,6 +711,18 @@
     return `<div class="focus-customer-chip-row">${flags}</div>`;
   }
 
+  function renderPatientHeroActions() {
+    return `
+            <div class="patient-master-hero-actions">
+              <button type="button" class="customers-utility-button patient-master-copy-link patient-master-colleague-link-copy" data-patient-action="copy-patient-link" title="Kopiera kollegelänk till kundkort (kräver CCO-inloggning)">
+                Kopiera kollegelänk
+              </button>
+              <button type="button" class="customers-utility-button patient-master-copy-link patient-master-colleague-link-qr" data-patient-action="show-patient-qr" title="QR för kollega — kräver CCO-inloggning">
+                QR för kollega
+              </button>
+            </div>`;
+  }
+
   function renderPatientPrimaryTabs(detailTab, fileCount = 0) {
     const tab = detailTab || 'profil';
     const profilActive = tab === 'profil';
@@ -2500,6 +2512,7 @@
               </div>
               ${renderPatientHeroChipRow(card)}
             </div>
+            ${renderPatientHeroActions()}
           </div>
         </article>
 
@@ -2569,14 +2582,7 @@
               </div>
               ${renderPatientHeroChipRow(card)}
             </div>
-            <div class="patient-master-hero-actions">
-              <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="copy-patient-link" title="Kopiera kollegelänk till kundkort (kräver CCO-inloggning)">
-                Kopiera kollegelänk
-              </button>
-              <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="show-patient-qr" title="QR för kollega — kräver CCO-inloggning">
-                QR för kollega
-              </button>
-            </div>
+            ${renderPatientHeroActions()}
           </div>
         </article>
 
