@@ -194,6 +194,15 @@ async function main() {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
     });
+    const inlinePrimeMs = await page.evaluate(() => {
+      const nav = performance.getEntriesByType('navigation')[0];
+      const start = nav ? nav.startTime : 0;
+      const primeAt = Number(window.__ARCANA_DEEPLINK_PRIME_MS__ || 0);
+      return primeAt > 0 ? Math.round(primeAt - start) : null;
+    });
+    if (inlinePrimeMs != null) {
+      record('Deep link inline skeleton', inlinePrimeMs <= 2500, `${inlinePrimeMs}ms från navigation`, inlinePrimeMs);
+    }
     const skeletonMs = await page
       .waitForFunction(
         () =>
