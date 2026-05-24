@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <!-- Bundlade scripts preload (content-hash: 2619106fcf) -->
     <link rel="preload" as="script" href="./app.bundle.2619106fcf.min.js" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-sweep-g" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-sweep-h" />
     <script>
       (function mobileDeferInboxUntilNeeded() {
         try {
@@ -72,6 +72,8 @@
         }
       })();
     </script>
+    <!-- Early patient-master-ui (head): mobil deep link — körs före body parse -->
+    <script src="./app/patient-master-ui.js?v=build-sweep-h"></script>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -3238,8 +3240,6 @@
                       }
                     })();
                   </script>
-                  <!-- Early patient-master-ui: mobil deep link — kör före huvudbundle (ingen sync XHR före) -->
-                  <script src="./app/patient-master-ui.js?v=build-sweep-g"></script>
 <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">

@@ -38,16 +38,15 @@ console.log(`Senaste bundle: ${latest.filename} (hash=${latest.hash})`);
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
 
 // 2. Hitta ev. befintlig bundle-tag (oavsett hash, oavsett query-param)
-//    Matchar: <script src="./app.bundle.min.js">,
-//             <script src="./app.bundle.<hash>.min.js">,
-//             <script src="./app.bundle.<hash>.min.js?v=...">
 const EXISTING_BUNDLE_RE =
   /\s*(?:<!--[^>]*Bundlade scripts[^>]*-->\s*)?<script\s+src="\.\/app\.bundle(?:\.[a-f0-9]+)?(?:\.min)?\.js(?:\?[^"]*)?"\s*><\/script>\s*/g;
 const EXISTING_PRELOAD_RE =
   /\s*<!-- Bundlade scripts preload[^>]*-->\s*\n?(?:\s*<link\s+rel="preload"\s+as="script"\s+href="\.\/[^"]+"\s*\/?>\s*)+/g;
-const EARLY_PATIENT_UI_RE =
+const HEAD_PATIENT_UI_RE =
+  /\s*<!-- Early patient-master-ui \(head\)[^>]*-->\s*\n?\s*<script\s+src="\.\/app\/patient-master-ui\.js[^"]*"\s*><\/script>\s*/g;
+const BODY_PATIENT_UI_RE =
   /\s*<!-- Early patient-master-ui[^>]*-->\s*\n?\s*<script\s+src="\.\/app\/patient-master-ui\.js[^"]*"\s*><\/script>\s*/g;
-const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-sweep-g';
+const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-sweep-h';
 
 function injectBundlePreload(html, bundleRel, hash) {
   const preloadBlock = `\n    <!-- Bundlade scripts preload (content-hash: ${hash}) -->\n    <link rel="preload" as="script" href="${bundleRel}" />\n    <link rel="preload" as="script" href="${PATIENT_UI_PRELOAD}" />\n    `;
@@ -62,17 +61,19 @@ function injectBundlePreload(html, bundleRel, hash) {
   return html;
 }
 
-function injectEarlyPatientUiScript(html) {
-  const tag = `\n                  <!-- Early patient-master-ui: mobil deep link — kör före huvudbundle -->\n                  <script src="${PATIENT_UI_PRELOAD}"></script>\n`;
-  if (EARLY_PATIENT_UI_RE.test(html)) {
-    EARLY_PATIENT_UI_RE.lastIndex = 0;
-    return html.replace(EARLY_PATIENT_UI_RE, tag);
+function injectHeadEarlyPatientUi(html) {
+  const tag = `\n    <!-- Early patient-master-ui (head): mobil deep link -->\n    <script src="${PATIENT_UI_PRELOAD}"></script>\n`;
+  if (HEAD_PATIENT_UI_RE.test(html)) {
+    HEAD_PATIENT_UI_RE.lastIndex = 0;
+    html = html.replace(HEAD_PATIENT_UI_RE, tag);
+  } else {
+    const anchor = /(<\/script>\s*\n\s*<meta\s*\n\s*name="viewport")/;
+    if (anchor.test(html)) {
+      html = html.replace(anchor, `</script>${tag}\n    <meta\n      name="viewport"`);
+    }
   }
-  const anchor = /<\/script>\s*\n\s*<div data-patient-identity-rail hidden>/;
-  if (anchor.test(html)) {
-    return html.replace(anchor, `</script>${tag}\n                  <div data-patient-identity-rail hidden>`);
-  }
-  return html;
+  BODY_PATIENT_UI_RE.lastIndex = 0;
+  return html.replace(BODY_PATIENT_UI_RE, '\n');
 }
 
 let newHtml = html;
@@ -80,22 +81,15 @@ const existingMatches = [...html.matchAll(EXISTING_BUNDLE_RE)];
 
 if (existingMatches.length > 0) {
   console.log(`Hittade ${existingMatches.length} befintlig(a) bundle-tag(s) — ersätter med ny hash`);
-  // Replace ALL existing bundle-tags med EN ny tag (vid första positionen).
-  // Det här är idempotent: kör en gång → 1 tag, kör igen → fortfarande 1 tag.
   const firstMatchStart = existingMatches[0].index;
-  // Bygg ny HTML utan alla befintliga bundle-tags
   let stripped = html;
-  // Iterera baklänges så indices inte ändras
   for (let i = existingMatches.length - 1; i >= 0; i--) {
     const mm = existingMatches[i];
     stripped = stripped.slice(0, mm.index) + stripped.slice(mm.index + mm[0].length);
   }
-  // Insertera ny bundle-tag vid första matchningens position (men i strippad HTML)
-  // Räkna om position: alla matches före första-pos är 0, så firstMatchStart är OK
   const newTag = `\n    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: ${latest.hash}) -->\n    <script src="${newBundleRel}"></script>\n    `;
   newHtml = stripped.slice(0, firstMatchStart) + newTag + stripped.slice(firstMatchStart);
 } else {
-  // 3. Ingen befintlig bundle — hitta script-block med >5 taggar och ersätt
   const SCRIPT_BLOCK_RE = /(\s*<script\s+src="\.\/[^"]+"\s*><\/script>\s*){5,}/g;
   let target = null;
   let bestCount = 0;
@@ -124,7 +118,7 @@ if (existingMatches.length > 0) {
 }
 
 const withPreload = injectBundlePreload(newHtml, newBundleRel, latest.hash);
-const withEarlyPatientUi = injectEarlyPatientUiScript(withPreload);
+const withEarlyPatientUi = injectHeadEarlyPatientUi(withPreload);
 
 if (withEarlyPatientUi === html) {
   console.log('Ingen ändring behövs — index.html pekar redan på senaste bundle.');
