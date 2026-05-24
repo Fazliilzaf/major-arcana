@@ -1,11 +1,28 @@
 # Major Arcana — projektchecklista
 
-Senast uppdaterad: **2026-05-23**  
+Senast uppdaterad: **2026-05-24**  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana` · Arkiv: `~/Code/MA-Archive/`
 
 **Steg-för-steg utrullning (6 faser):** [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md)
 
 Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
+
+**Prod snapshot (2026-05-24):** 7 349 kunder · 1 981 Drive-profiler · 5 152 historiska journalposter · `verify:migration-prod` PASS · open access **av** (login krävs).
+
+### Status i ett svep
+
+| Spår | Klart | Kvar |
+|------|-------|------|
+| **Journal + avtal + migration** | Kundmaster, offert, avtal, 7 349 kunder prod | Drive-PDF på prod, kundlista smoke full skala |
+| **Mobil UX sweep** | #1–16 kod + prod (`cco-mobile-ux-sweep-plan.md`) | Android enhet, Fas 5.6 manuellt |
+| **Mobil pilot (Fas 1)** | Automation grön (`verify:cco-mobile-pilot-prod`, `run:rollout-sweep`) | 5.5–5.6 tabeller, GO/NO-GO |
+| **Auth** | Open access av, STAFF/OWNER finns | MFA enforced, mobil STAFF-login, rollback-doc |
+| **Plan A bokning** | Webb + Arcana + operatör confirm 3/3 (automated GO) | Resend patient-mail, bokning→journal |
+| **Post-op Fas 1** | Kod + unit + runbook | 4 beslut, Graph live, Playwright smoke |
+| **Compliance Fas 9** | PDL dokumenterat | Retention, GDPR, Art. 30, legal sign-off |
+| **Backlog (ej nu)** | — | Månadskalender (#17), cco-next (#18) |
+
+**Du är här:** Mobil pilot **Fas 5.5–5.6** + kundlista/Drive på prod + auth polish.
 
 ---
 
@@ -13,8 +30,13 @@ Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
 
 - [ ] **Mobil journal-pilot Fas 5.5** — testa iPhone / Android / iPad ([checklista](./cco-mobile-staff-pilot-checklist.md))
 - [ ] **Mobil journal-pilot Fas 5.6** — ≥2 personal, ≥5 konsultationer, feedback + GO/NO-GO
-- [ ] **STAFF + OWNER-konton** skapade i prod (krävs före skarp drift)
-- [ ] **Personal läst** [mobilinstruktion](./cco-mobile-staff-instructions.md)
+- [x] **Mobil UX sweep** (#1–16) — kod + prod deploy ([sweep-plan](./cco-mobile-ux-sweep-plan.md))
+- [x] **STAFF + OWNER-konton** i prod (login krävs; open access av)
+- [x] **Plan A bokning** — automated prod sign-off ([go-live](./cco-booking-plan-a-go-live.md))
+- [ ] **Personal läst** [mobilinstruktion](./cco-mobile-staff-instructions.md) *(login krävs — uppdatera om den nämner open access)*
+- [ ] **Kundlista med full data** — smoke med 7 349 kunder (sök, kort, journal, filer)
+- [ ] **Drive-PDF på prod** — zips/data volume på Render (`ARCANA_MIGRATION_ROOT`) för filvisning
+- [ ] **OWNER MFA enforced** i prod + STAFF login testad på mobil
 - [ ] **Notion 30 maj** — [verify prod efter duplicate-cleanup](https://www.notion.so/369060ccc15b819fbe4cdfcc726653d7)
 
 ---
@@ -61,13 +83,15 @@ Källa: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 ### Fas 0 — Förberedelse
 
 - [x] Migration-scripts + Cliento-import (6 687 kunder)
-- [ ] PDL-bedömning uppdaterad (Arcana = journalsystem)
-- [ ] Render EU-region dokumenterad/verifierad
+- [x] Bulk migration pushad till prod (7 349 kunder, index, journal)
+- [x] PDL + EU Frankfurt dokumenterat (`docs/legal/pdl-mdr-assessment.md` §6)
+- [ ] PDL juridiskt signerat / slutgranskat externt
+- [ ] Render EU-region verifierad i Dashboard (Frankfurt)
 - [ ] Pipedrive People+Deals export (nuvarande zip tom)
 
 ### Fas 1–5 — Kundmaster, UI, journal, offert ✅
 
-- [x] Migration-index (46 977 filer)
+- [x] Migration-index (57 558 filer · 1 981 profiler prod)
 - [x] Kundlista + kundkort (Profil | Journal | Filer)
 - [x] Journalmodul (TP 38 fält, signering, historikimport)
 - [x] Patient-resa wired (consultations, aftercare, operations)
@@ -75,23 +99,26 @@ Källa: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 
 ### Fas 10 — Mobil journal (personal)
 
-- [x] Kod: Ta bild, HEIC, PWA, deep link, QR, batch, markera plan
-- [x] Prod smoke + deep links (`npm run verify:mobile-pilot-prod`)
-- [ ] **Pilot 5.5–5.6** (se [pilotchecklista](./cco-mobile-staff-pilot-checklist.md))
+- [x] Kod: Ta bild, HEIC, PWA, deep link, QR, batch, markera plan, UX sweep shell
+- [x] Prod smoke + deep links (`npm run verify:cco-mobile-pilot-prod`, `run:rollout-sweep`)
+- [ ] **Pilot 5.5–5.6** — manuellt med personal ([pilotchecklista](./cco-mobile-staff-pilot-checklist.md))
 
-### Fas 6–9 — Ej påbörjat (nästa vågor)
+### Fas 6–9 — Nästa vågor
 
-- [ ] **6** Egen bookingmotor (Cliento ut), behandlingskatalog
+- [x] **6 (Plan A)** Publik `/boka` — automated GO 2026-05-24 ([go-live](./cco-booking-plan-a-go-live.md))
+- [ ] **6 (full)** Egen bookingmotor — Cliento ut, full behandlingskatalog på webben
 - [ ] **7** Påminnelser (eftervård, formulär, återbesök)
 - [ ] **8** CCO-agent (saknade formulär, journalutkast)
 - [ ] **9** Compliance: retention 10 år, GDPR export/spärr, Art. 30
 
 ### Blockers innan personal live (bred drift)
 
-- [ ] Migration-index spot-check (≥20 kunder utöver pilot)
+- [x] Migration-index spot-check (≥20 kunder · `migration:spot-check` + prod verify)
 - [ ] Minst en personal utbildad
-- [ ] Mobil pilot **GO**
-- [ ] Skarp auth (se avsnitt D nedan)
+- [ ] Mobil pilot **GO** (Fas 5.6)
+- [x] Skarp auth (open access av · se avsnitt D)
+- [ ] Kundlista/journal OK med full kundbas (7 349)
+- [ ] Drive-filer visningsbara i prod (zip-volym)
 
 ---
 
@@ -102,24 +129,29 @@ Källa: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 - [x] Auto env-heal vid push (`arcana-post-deploy-heal`)
 - [x] Duplicerade Render-tjänster borttagna
 - [x] Post-deploy pilot-verify scripts
-- [ ] Full Drive-historik (API eller lokal mirror) — valfritt före bred rollout
+- [x] Migration state push API (`push-state-file` + `npm run push:migration-state-prod`)
+- [ ] Full Drive-historik på prod disk (zip-volym eller API) — krävs för PDF-visning i Filer-fliken
 
 **Verifiering (kör vid behov):**
 
 ```bash
 bash scripts/verify-render-blueprint-link.sh
 bash scripts/verify-all-pilot-journey-prod.sh
-npm run verify:mobile-pilot-prod
+npm run verify:cco-mobile-pilot-prod
+npm run verify:mobile-staff-regression-prod
+npm run verify:booking-web-e2e-prod
+npm run verify:migration-prod
+npm run verify:auth-go-live-prod
 curl -fsS https://arcana.hairtpclinic.se/readyz
 ```
 
 ---
 
-## D. Go-live klinik (efter pilot-GO)
+## D. Go-live klinik (auth)
 
-- [ ] Stäng `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false`
-- [ ] `ARCANA_AUTH_OWNER_MFA_REQUIRED=true`
-- [ ] STAFF-inloggning testad på mobil
+- [x] Stäng `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false`
+- [ ] `ARCANA_AUTH_OWNER_MFA_REQUIRED=true` (verifiera enforced i prod)
+- [ ] STAFF-inloggning testad på mobil (iPhone + Android)
 - [ ] Underhållsfönster + rollback-plan dokumenterad
 - [ ] Backup journal-photos schemalagd (`npm run backup:journal-photos`)
 
@@ -132,9 +164,10 @@ curl -fsS https://arcana.hairtpclinic.se/readyz
 Källa: [post-op-review-photo-flow.md](./post-op-review-photo-flow.md)
 
 - [ ] Bekräfta 4 open questions (patientkanal-tolkning, avsändare, retention, UI)
-- [ ] Backend: capability + store + routes
-- [ ] `/uppfoljning/[token]` + CCO-knapp “Markera uppföljning klar”
-- [ ] Smoke + runbook
+- [x] Backend: capability + store + routes *(kod klar)*
+- [x] `/uppfoljning/[token]` + CCO-knapp “Markera uppföljning klar” *(kod klar)*
+- [x] Unit tests + runbook *(kod klar)*
+- [ ] Graph send live i prod + Playwright smoke `/uppfoljning/[token]`
 
 ### CMO marketing (medvetet av i prod)
 
@@ -152,9 +185,10 @@ Nuvarande fas: **STABILISERA** → sedan **EXPANDERA**
 | Workstream | Status | Notering |
 |------------|--------|----------|
 | Pilot 1 Admin Core | ✅ | Auth, mallar, risk, orchestrator |
-| Phase 2 säkerhet (A) | 🔄 Delvis | MFA av i byggfas |
-| CCO operativt (C) | 🔄 | Journal nästan live |
-| Bookingmotor | ❌ | Fas 6–7 huvudplan |
+| Phase 2 säkerhet (A) | 🔄 Delvis | Open access av; MFA enforce + mobil STAFF-login kvar |
+| CCO operativt (C) | 🔄 | Full kundbas prod; pilot 5.6 + Drive-filer kvar |
+| Bookingmotor | 🔄 | **Plan A GO** (automated); påminnelser + full motor kvar |
+| Mobil UX sweep | ✅ | #1–16 prod; backlog #17–18 medvetet utelämnat |
 | Agenter CFO/COO/CMO | 🔄 | CMO fixture |
 | Patientkanal | ❌ | Sist enligt canon |
 | CAO admin-operator | ❌ | Egen plan |
@@ -169,13 +203,15 @@ P0-arkitektur: [architecture/p0-checklist.md](../architecture/p0-checklist.md)
 Se full plan: **[ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md)**
 
 ```
-1. Mobil pilot GO          ← DU ÄR HÄR
-2. Auth + MFA go-live
-3. Post-op flow Fas 1
-4. Compliance-grund (Fas 9)
-5. Egen bookingmotor (Fas 6–7)
-6. Agenter live + CMO + patientkanal
+1. Mobil pilot GO          ← DU ÄR HÄR (5.5–5.6 manuellt)
+2. Kundlista/journal med 7 349 kunder + Drive-filer på prod
+3. Auth polish (MFA enforced, mobil STAFF-login, rollback-doc)
+4. Post-op flow Fas 1 live (beslut + Graph + smoke)
+5. Compliance-grund (Fas 9)
+6. Påminnelser + full bookingmotor · Agenter + CMO
 ```
+
+Plan A bokning: **GO (automated 2026-05-24)** — parallellt spår, blockerar inte Fas 1.
 
 ---
 
@@ -187,5 +223,7 @@ Se full plan: **[ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md)**
 | [ma-document-placement-plan.md](./ma-document-placement-plan.md) | Fas A–D + avtalsgate |
 | [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) | Teknisk journal-roadmap |
 | [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) | Detalj per enhet/konsultation |
+| [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md) | Mobil UX sweep (#1–16 klart; #17–18 backlog) |
+| [cco-booking-plan-a-go-live.md](./cco-booking-plan-a-go-live.md) | Plan A bokning (automated GO) |
 | [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md) | 1-sida för personal |
 | [arcana-phase-2-masterplan.md](./arcana-phase-2-masterplan.md) | Executive OS Phase 2 |
