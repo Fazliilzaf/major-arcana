@@ -91,7 +91,7 @@ Källa: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 - [x] PDL + EU Frankfurt dokumenterat (`docs/legal/pdl-mdr-assessment.md` §6)
 - [x] PDL juridiskt signerat / slutgranskat externt (2026-05-24)
 - [x] Render EU-region verifierad i Dashboard (Frankfurt, 2026-05-24)
-- [ ] Pipedrive People+Deals export (nuvarande zip tom)
+- [x] Pipedrive People+Deals export — `migration/pipedrive/personer-2026-05-24.csv` (3 694), `affarer-2026-05-24.csv` (3 487)
 
 ### Fas 1–5 — Kundmaster, UI, journal, offert ✅
 
