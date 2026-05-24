@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+require('dotenv').config({ quiet: true });
+
 /**
  * Enrich zip-baserat migration-index med driveFileId från Google Drive API.
  * Matchar på personnummer + filnamn (case-insensitive).
@@ -71,6 +73,7 @@ async function main() {
   const driveFiles = await listAllDriveFiles({
     accessToken,
     rootFolderId: creds.folderId,
+    serviceAccount,
     onProgress: ({ foldersScanned, filesIndexed }) => {
       if (foldersScanned % 50 === 0) {
         console.log(`… ${foldersScanned} mappar, ${filesIndexed} filer`);

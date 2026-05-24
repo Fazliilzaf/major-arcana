@@ -60,11 +60,13 @@ function isPatientDetailReady() {
   const journalTab = document.querySelector(
     'button[data-patient-tab="journal"], .patient-master-tab[data-patient-tab="journal"]'
   );
+  const journalPanel = document.querySelector('[data-patient-tab-panel="journal"]:not([hidden])');
   const camera = document.querySelector('.patient-master-camera-button, [data-patient-photo-camera]');
   const detailOn = document.documentElement.getAttribute('data-cco-patient-detail') === 'on';
-  if (camera && journalTab) return true;
-  if (Boolean(rt?.detail?.card) && journalTab) return true;
-  if (detailOn && journalTab && !rt?.detailLoading) return true;
+  const mobileJournal = Boolean(rt?.preferJournalOnMobile) && detailOn;
+  if (camera && (journalTab || journalPanel || mobileJournal)) return true;
+  if (Boolean(rt?.detail?.card) && (journalTab || journalPanel || mobileJournal)) return true;
+  if (detailOn && (journalTab || journalPanel || mobileJournal) && !rt?.detailLoading) return true;
   return false;
 }
 
