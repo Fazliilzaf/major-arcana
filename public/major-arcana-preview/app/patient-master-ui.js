@@ -2072,6 +2072,7 @@
 
   async function loadPatientList({ append = false } = {}) {
     if (runtime.mode !== 'register') return;
+    if (runtime.loading) return;
     runtime.loading = true;
     runtime.error = '';
     if (!append) {
@@ -2112,6 +2113,9 @@
         await detailPromise.catch((error) => {
           console.warn('Patient deep link misslyckades.', error);
         });
+        if (runtime.detail?.card) {
+          scheduleDetailPanelPaint(deepLinkId);
+        }
       }
       if (!runtime.selectedPatientId && runtime.patients[0] && !isMobileViewport()) {
         runtime.selectedPatientId = runtime.patients[0].patientId;
@@ -2216,6 +2220,18 @@
     }
   }
 
+  function scheduleDetailPanelPaint(patientId) {
+    const paint = () => {
+      if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
+      if (!runtime.detail?.card) return;
+      renderDetailPanel();
+    };
+    paint();
+    window.requestAnimationFrame(paint);
+    window.setTimeout(paint, 0);
+    window.setTimeout(paint, 120);
+  }
+
   async function loadPatientDetailInternal(patientId) {
     resolveElements();
     if (!patientId || runtime.mode !== 'register') return;
@@ -2258,12 +2274,7 @@
       }
       runtime.detail = payload;
       runtime.detailLoading = false;
-      renderDetailPanel();
-      window.requestAnimationFrame(() => {
-        if (runtime.selectedPatientId === patientId && runtime.detail?.card) {
-          renderDetailPanel();
-        }
-      });
+      scheduleDetailPanelPaint(patientId);
       if (isMobileViewport()) {
         void Promise.all([
           loadPatientCommercialCase(patientId),
@@ -3224,7 +3235,6 @@
     syncMobilePatientLayout,
     setPatientTab,
     showMobileToast,
-    renderDetailPanel,
   };
 
   if (document.readyState === 'loading') {
