@@ -27,6 +27,7 @@
 
   const PHOTO_LABEL_OPTIONS = ['Front', 'Vertex', 'Baksida', 'Profil', 'Annan'];
   const photoObjectUrls = new Set();
+  const patientDetailInflight = new Map();
 
   const runtime = {
     mode: 'register',
@@ -2186,6 +2187,23 @@
   }
 
   async function loadPatientDetail(patientId) {
+    if (!patientId || runtime.mode !== 'register') return;
+    const key = normalizeText(patientId);
+    const inflight = patientDetailInflight.get(key);
+    if (inflight) return inflight;
+
+    const promise = loadPatientDetailInternal(patientId);
+    patientDetailInflight.set(key, promise);
+    try {
+      return await promise;
+    } finally {
+      if (patientDetailInflight.get(key) === promise) {
+        patientDetailInflight.delete(key);
+      }
+    }
+  }
+
+  async function loadPatientDetailInternal(patientId) {
     if (!patientId || runtime.mode !== 'register') return;
     const openingNewPatient = runtime.selectedPatientId !== patientId;
     if (openingNewPatient) {
