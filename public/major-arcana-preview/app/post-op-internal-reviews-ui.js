@@ -70,6 +70,20 @@
 
   let loading = false;
 
+  function staffSessionReady() {
+    if (document.documentElement.getAttribute('data-cco-auth-required') === 'on') {
+      return false;
+    }
+    return Boolean(getAdminToken());
+  }
+
+  function hidePanel() {
+    if (els.panel) els.panel.hidden = true;
+    if (els.empty) els.empty.hidden = true;
+    if (els.list) els.list.innerHTML = '';
+    setStatus('', '');
+  }
+
   function setStatus(message = '', tone = '') {
     if (!els.status) return;
     els.status.hidden = !message;
@@ -130,8 +144,8 @@
 
   async function refresh() {
     if (loading) return;
-    if (!getAdminToken()) {
-      els.panel.hidden = true;
+    if (!staffSessionReady()) {
+      hidePanel();
       return;
     }
     loading = true;
@@ -196,11 +210,24 @@
     }
   });
 
-  window.ArcanaPostOpInternalReviews = { refresh };
+  window.ArcanaPostOpInternalReviews = { refresh, hide: hidePanel };
+
+  hidePanel();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => void refresh());
   } else {
     void refresh();
+  }
+
+  try {
+    new MutationObserver(() => {
+      if (!staffSessionReady()) hidePanel();
+    }).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-cco-auth-required'],
+    });
+  } catch {
+    /* ignore */
   }
 })();

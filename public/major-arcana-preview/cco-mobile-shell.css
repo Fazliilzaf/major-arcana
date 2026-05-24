@@ -1613,7 +1613,9 @@
 
     html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-metric-row,
     html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-toolbar,
-    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-mode-toggle {
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-mode-toggle,
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .post-op-google-reviews,
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .post-op-internal-reviews {
       display: none !important;
     }
 
