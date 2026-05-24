@@ -16,8 +16,6 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 | # | Uppgift | Vem | Status |
 |---|---------|-----|--------|
 | 1 | **Drive-PDF på prod** — Google Drive API / volym (ej 86 GB zip på 2 GB disk) | Agent | ☐ |
-| 2 | Personal har läst [mobilinstruktion](./cco-mobile-staff-instructions.md) | Personal | ☐ |
-| 3 | Minst en personal utbildad i `/staff` | Du | ☐ |
 
 ---
 
@@ -61,6 +59,7 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 
 ## Backlog (medvetet inte nu)
 
+- **Personal + utbildning** — mobilinstruktion + `/staff`-intro (hanteras externt, ej blocker)
 - **Fas 5.5–5.6 manuell pilot** — enhetstabell + ≥5 konsultationer med personal ([checklista](./cco-mobile-staff-pilot-checklist.md))
 - Full månadskalender mobil (#17 i UX sweep)
 - cco-next-release parity (#18)

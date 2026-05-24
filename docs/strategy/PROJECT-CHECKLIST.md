@@ -35,7 +35,7 @@ Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
 - [x] **Mobil UX sweep** (#1–16) — kod + prod deploy ([sweep-plan](./cco-mobile-ux-sweep-plan.md))
 - [x] **STAFF + OWNER-konton** i prod (login krävs; open access av)
 - [x] **Plan A bokning** — automated prod sign-off ([go-live](./cco-booking-plan-a-go-live.md))
-- [ ] **Personal läst** [mobilinstruktion](./cco-mobile-staff-instructions.md) *(login krävs — uppdatera om den nämner open access)*
+- [~] **Personal läst** [mobilinstruktion](./cco-mobile-staff-instructions.md) — hanteras externt, ej blocker
 - [x] **Kundlista med full data** — API smoke PASS (`verify:customer-list-prod`: 7349, sök ~300ms)
 - [x] **Kundlista mobil UI** — `verify:staff-ui-prod` PASS (13/13, dynamiskt patientId från API)
 - [ ] **Drive-PDF på prod** — kräver Google Drive API (86 GB zip får inte plats på 2 GB disk)
@@ -118,7 +118,7 @@ Källa: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 ### Blockers innan personal live (bred drift)
 
 - [x] Migration-index spot-check (≥20 kunder · `migration:spot-check` + prod verify)
-- [ ] Minst en personal utbildad
+- [~] Minst en personal utbildad — hanteras externt, ej blocker
 - [x] Mobil pilot **GO** — automation (`verify:staff-ui-prod`, `verify:cco-mobile-pilot-prod`); Fas 5.6 manuellt uppskjuten
 - [x] Skarp auth (open access av · MFA required · se avsnitt D)
 - [x] Kundlista API OK med full kundbas (7 349)
