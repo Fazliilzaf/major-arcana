@@ -119,21 +119,6 @@ function platformKeys() {
 }
 
 async function main() {
-  let bridgeToken = (process.env.ARCANA_MARKETING_BRIDGE_TOKEN || '').trim();
-  if (mode === 'bridge' && !bridgeToken) {
-    bridgeToken = crypto.randomBytes(24).toString('hex');
-    console.log('ℹ Genererade ARCANA_MARKETING_BRIDGE_TOKEN — spara i .env för reproducerbar deploy');
-    console.log(`ARCANA_MARKETING_BRIDGE_TOKEN=${bridgeToken}`);
-  }
-
-  if (mode === 'platform') {
-    if (!hasPlatformGoogle() && !hasPlatformMeta() && !hasPlatformLinkedIn()) {
-      fail('platform-läge kräver minst en kanal med tokens i .env (Google/Meta/LinkedIn)');
-    }
-  }
-
-  const connectorKeys = mode === 'platform' ? platformKeys() : bridgeKeys(bridgeToken);
-
   const cliPath = path.join(process.env.HOME, '.render/cli.yaml');
   const cliYaml = fs.readFileSync(cliPath, 'utf8');
   const apiKey = (cliYaml.match(/key: (rnd_\S+)/) || [])[1];
@@ -150,6 +135,27 @@ async function main() {
       return [ev.key, ev.value ?? ''];
     })
   );
+
+  let bridgeToken = (process.env.ARCANA_MARKETING_BRIDGE_TOKEN || '').trim();
+  if (mode === 'bridge' && !bridgeToken) {
+    const existingBridge = map.get('ARCANA_MARKETING_BRIDGE_TOKEN');
+    if (existingBridge) {
+      bridgeToken = existingBridge;
+      console.log('ℹ Återanvänder befintlig ARCANA_MARKETING_BRIDGE_TOKEN från Render');
+    } else {
+      bridgeToken = crypto.randomBytes(24).toString('hex');
+      console.log('ℹ Genererade ARCANA_MARKETING_BRIDGE_TOKEN — spara i .env för reproducerbar deploy');
+      console.log(`ARCANA_MARKETING_BRIDGE_TOKEN=${bridgeToken}`);
+    }
+  }
+
+  if (mode === 'platform') {
+    if (!hasPlatformGoogle() && !hasPlatformMeta() && !hasPlatformLinkedIn()) {
+      fail('platform-läge kräver minst en kanal med tokens i .env (Google/Meta/LinkedIn)');
+    }
+  }
+
+  const connectorKeys = mode === 'platform' ? platformKeys() : bridgeKeys(bridgeToken);
 
   for (const [key, value] of Object.entries(connectorKeys)) {
     map.set(key, value);
