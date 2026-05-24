@@ -650,6 +650,25 @@
       -webkit-backdrop-filter: blur(4px);
     }
 
+    /* iOS Safari: fixed overlays med opacity:0 läcker fortfarande backdrop-filter.
+       Dölj hela shell när stängd (aria-hidden) — gäller studio/note/schedule/later m.fl. */
+    html[data-cco-mobile-shell="on"] .customers-modal-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #note-mode-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #truth-worklist-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #studio-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #note-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #schedule-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #later-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #focus-context-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #booking-shell[aria-hidden="true"] {
+      display: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      pointer-events: none !important;
+    }
+
     html[data-cco-mobile-shell="on"] .customers-modal-surface,
     html[data-cco-mobile-shell="on"] .mailbox-admin-surface,
     html[data-cco-mobile-shell="on"] .shell-modal-surface,

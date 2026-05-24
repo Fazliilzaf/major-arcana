@@ -37,6 +37,40 @@ async function verifyStaffMobileLogin(page) {
     return;
   }
 
+  const blurLeaks = await page.evaluate(() => {
+    const overlayClasses = [
+      'later-backdrop',
+      'truth-worklist-surface',
+      'studio-surface',
+      'note-surface',
+      'schedule-surface',
+      'customers-modal-backdrop',
+      'mailbox-admin-backdrop',
+      'note-mode-backdrop',
+    ];
+    return [...document.querySelectorAll('*')]
+      .filter((el) => {
+        const cs = getComputedStyle(el);
+        const bf = cs.backdropFilter || cs.webkitBackdropFilter || '';
+        if (!bf || bf === 'none') return false;
+        const rect = el.getBoundingClientRect();
+        if (rect.width < 80 || rect.height < 80) return false;
+        if (el.classList.contains('cco-mobile-tabbar')) return false;
+        if (el.closest('[aria-hidden="true"]')) return true;
+        return overlayClasses.some((name) => el.classList.contains(name));
+      })
+      .slice(0, 5)
+      .map((el) => ({
+        shell: el.closest('section[id$="-shell"], .customers-modal-shell, .mailbox-admin-shell')?.id || '-',
+        className: String(el.className || '').slice(0, 48),
+      }));
+  });
+  record(
+    'iOS blur-leak (stängda overlays)',
+    blurLeaks.length === 0,
+    blurLeaks.length ? JSON.stringify(blurLeaks) : 'ingen'
+  );
+
   if (!staffEmail || !staffPassword) {
     record('STAFF mobil login-form visas', true);
     record('STAFF mobil UI-inloggning', false, 'saknar ARCANA_STAFF_* i .env');
