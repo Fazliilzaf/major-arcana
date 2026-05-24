@@ -233,9 +233,101 @@ async function syncBookingConfirmedToJournal({
   return { encounter, plan, skipped: false };
 }
 
+async function syncConsultationPhotoToEncounter({
+  treatmentEncounterStore,
+  journalStore,
+  patientMasterStore = null,
+  tenantId,
+  planEntry = {},
+  photo = {},
+  actor = {},
+  channel = 'cco_staff',
+} = {}) {
+  if (!journalStore || !treatmentEncounterStore || !planEntry?.entryId) {
+    return { encounter: null, plan: planEntry, skipped: true };
+  }
+
+  const patientId = normalizeText(planEntry.patientId);
+  if (!patientId) return { encounter: null, plan: planEntry, skipped: true };
+
+  const today = new Date().toISOString().slice(0, 10);
+  let encounter = null;
+
+  const existingEncounterId = normalizeText(planEntry.treatmentEncounterId);
+  if (existingEncounterId) {
+    encounter = await treatmentEncounterStore.getEncounter({
+      tenantId,
+      patientId,
+      encounterId: existingEncounterId,
+    });
+  }
+
+  if (!encounter) {
+    const encounters = await treatmentEncounterStore.listByPatient({ tenantId, patientId, limit: 20 });
+    encounter =
+      encounters.find(
+        (item) =>
+          item.status !== 'cancelled' &&
+          !normalizeText(item.bookingId) &&
+          (normalizeText(item.startsAt).slice(0, 10) === today ||
+            normalizeText(item.channel) === channel)
+      ) || null;
+  }
+
+  if (!encounter) {
+    let customerEmail = '';
+    let customerName = '';
+    if (patientMasterStore) {
+      const patient = await patientMasterStore.getPatient({ tenantId, patientId });
+      customerEmail = normalizeEmail(patient?.primaryEmail || patient?.emails?.[0] || '');
+      customerName = normalizeText(patient?.displayName);
+    }
+    encounter = await treatmentEncounterStore.upsertEncounter({
+      tenantId,
+      patientId,
+      serviceId: 'consultation-physical',
+      serviceLabel: 'Konsultation',
+      startsAt: `${today}T12:00:00.000Z`,
+      status: 'confirmed',
+      channel,
+      customerEmail,
+      customerName,
+      metadata: {
+        photoCaptureAt: normalizeText(photo.storedAt) || new Date().toISOString(),
+        photoId: normalizeText(photo.photoId),
+      },
+    });
+  }
+
+  let plan = planEntry;
+  if (normalizeText(plan.treatmentEncounterId) !== encounter.encounterId) {
+    plan = await journalStore.upsertEntry(
+      {
+        ...planEntry,
+        treatmentEncounterId: encounter.encounterId,
+        fields: {
+          ...(planEntry.fields || {}),
+          consultationDate: normalizeText(planEntry.fields?.consultationDate) || today,
+        },
+      },
+      { actor }
+    );
+  }
+
+  await treatmentEncounterStore.linkJournalEntry({
+    tenantId,
+    patientId,
+    encounterId: encounter.encounterId,
+    entryId: plan.entryId,
+  });
+
+  return { encounter, plan, skipped: false };
+}
+
 module.exports = {
   resolvePatientFromBookingContact,
   serviceToPlanMethod,
   syncBookingConfirmedToJournal,
+  syncConsultationPhotoToEncounter,
   syncWebReservationToJournal,
 };

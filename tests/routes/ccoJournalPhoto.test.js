@@ -11,6 +11,7 @@ const express = require('express');
 const { createCcoJournalRouter } = require('../../src/routes/ccoJournal');
 const { createCcoJournalStore } = require('../../src/ops/ccoJournalStore');
 const { createCcoJournalPhotoStore } = require('../../src/ops/ccoJournalPhotoStore');
+const { createCcoTreatmentEncounterStore } = require('../../src/ops/ccoTreatmentEncounterStore');
 
 async function withServer(app, run) {
   const server = http.createServer(app);
@@ -32,6 +33,9 @@ async function createFixture(overrides = {}) {
   const journalPhotoStore = await createCcoJournalPhotoStore({
     baseDir: path.join(tempDir, 'photos'),
   });
+  const treatmentEncounterStore = await createCcoTreatmentEncounterStore({
+    filePath: path.join(tempDir, 'encounters.json'),
+  });
   const auditEvents = [];
   const app = express();
   app.use(express.json({ limit: '2mb' }));
@@ -40,6 +44,7 @@ async function createFixture(overrides = {}) {
     createCcoJournalRouter({
       journalStore,
       journalPhotoStore,
+      treatmentEncounterStore,
       authStore: {
         async addAuditEvent(event) {
           auditEvents.push(event);
@@ -57,7 +62,7 @@ async function createFixture(overrides = {}) {
       requireRole: overrides.requireRole || (() => (_req, _res, next) => next()),
     })
   );
-  return { app, tempDir, journalStore, auditEvents };
+  return { app, tempDir, journalStore, treatmentEncounterStore, auditEvents };
 }
 
 async function buildJpegBuffer() {
@@ -99,6 +104,8 @@ test('photo upload creates consultation plan when entryId missing', async () => 
       assert.equal(payload.entry.journalType, 'consultation_plan');
       assert.equal(payload.entry.attachments.length, 1);
       assert.equal(payload.entry.attachments[0].label, 'Front');
+      assert.ok(payload.entry.treatmentEncounterId);
+      assert.equal(payload.encounter?.encounterId, payload.entry.treatmentEncounterId);
       assert.ok(fixture.auditEvents.some((event) => event.action === 'cco.journal.photo.upload'));
     });
   } finally {

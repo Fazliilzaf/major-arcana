@@ -40,7 +40,7 @@ fi
 npm run verify:staff-ui-desktop-prod && pass "verify:staff-ui-desktop-prod" || fail "verify:staff-ui-desktop-prod"
 
 section "Prod — journal + pilotkunder"
-BASE_URL="$BASE" ARCANA_SMOKE_PATIENT_ID="${ARCANA_SMOKE_PATIENT_ID:-2e8d3535-cd89-418e-8b68-ca239f8836a4}" \
+BASE_URL="$BASE" ARCANA_SMOKE_PATIENT_ID="${ARCANA_SMOKE_PATIENT_ID:-4db24289-7f9e-431e-b7f3-bd9014d8c9f3}" \
   bash ./scripts/smoke-mobile-journal.sh && pass "smoke-mobile-journal" || fail "smoke-mobile-journal"
 npm run verify:mobile-pilot-prod >/dev/null && pass "verify:mobile-pilot-prod" || fail "verify:mobile-pilot-prod"
 

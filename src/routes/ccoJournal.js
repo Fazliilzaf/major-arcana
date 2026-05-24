@@ -9,6 +9,7 @@ const {
   buildPatient360SyncContext,
 } = require('./ccoRouteShared');
 const { syncPatient360FromJournalCase } = require('../ops/ccoPatient360Bridge');
+const { syncConsultationPhotoToEncounter } = require('../ops/ccoJournalBookingBridge');
 const { JOURNAL_TYPES } = require('../ops/ccoJournalStore');
 const {
   isAllowedJournalPhotoMime,
@@ -48,6 +49,7 @@ function createCcoJournalRouter({
   journalStore,
   journalPhotoStore = null,
   patientMasterStore = null,
+  treatmentEncounterStore = null,
   migrationIndexStore = null,
   patientSystemStore = null,
   authStore,
@@ -327,22 +329,41 @@ function createCcoJournalRouter({
           originalName: normalized.fileName || req.file.originalname,
         });
 
-        const entry = await journalStore.addConsultationPhotoAttachment({
+        const photoActor = {
+          userId: actor.userId,
+          role: actor.role,
+          displayName: actor.userId,
+        };
+        let entry = await journalStore.addConsultationPhotoAttachment({
           tenantId: actor.tenantId,
           patientId,
           personnummer,
           entryId,
           photo: { ...stored, label: label || normalized.fileName || 'Konsultationsbild' },
-          actor: {
-            userId: actor.userId,
-            role: actor.role,
-            displayName: actor.userId,
-          },
+          actor: photoActor,
         });
+
+        let encounter = null;
+        if (treatmentEncounterStore) {
+          const synced = await syncConsultationPhotoToEncounter({
+            treatmentEncounterStore,
+            journalStore,
+            patientMasterStore,
+            tenantId: actor.tenantId,
+            planEntry: entry,
+            photo: stored,
+            actor: photoActor,
+          });
+          if (!synced.skipped) {
+            entry = synced.plan;
+            encounter = synced.encounter;
+          }
+        }
 
         await auditJournal(actor, 'cco.journal.photo.upload', stored.photoId);
         return res.json({
           entry,
+          encounter,
           readout: journalStore.buildJournalReadout(entry),
           photo: stored,
         });
