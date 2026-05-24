@@ -357,16 +357,34 @@
   function clearMobilePatientSelection({ fromPopstate = false } = {}) {
     if (!runtime.selectedPatientId) {
       syncMobilePatientLayout();
+      if (!fromPopstate) {
+        replaceMobilePatientListUrl();
+      }
       return;
     }
     resetMobilePatientDetailState();
     renderDetailEmpty();
     renderPatientRows();
     syncMobilePatientLayout();
-    if (!fromPopstate && mobilePatientHistoryDepth > 0) {
-      suppressMobilePatientPopstate = true;
-      mobilePatientHistoryDepth -= 1;
-      window.history.back();
+    if (!fromPopstate) {
+      replaceMobilePatientListUrl();
+      if (mobilePatientHistoryDepth > 0) {
+        suppressMobilePatientPopstate = true;
+        mobilePatientHistoryDepth -= 1;
+        window.history.back();
+      }
+    }
+  }
+
+  function replaceMobilePatientListUrl() {
+    try {
+      const startup = parseStartupParams();
+      if (!startup.patientId && !window.history.state?.ccoMobilePatient) return;
+      window.history.replaceState({ ccoMobilePatientList: true }, '', buildPatientDeepLink(''));
+      runtime.pendingPatientId = '';
+      mobilePatientHistoryDepth = 0;
+    } catch {
+      /* ignore */
     }
   }
 
@@ -1966,8 +1984,16 @@
     syncMobilePatientLayout();
     window.ArcanaMobileShell?.syncFromApp?.();
     if (normalized === 'journal') {
-      void hydrateJournalPhotoElements(els.patientRail);
-      window.requestAnimationFrame(() => bindJournalAutosaveForms());
+      const hydrate = () => {
+        if (runtime.detailTab !== 'journal') return;
+        void hydrateJournalPhotoElements(rail);
+        bindJournalAutosaveForms();
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(hydrate, { timeout: 1200 });
+      } else {
+        window.requestAnimationFrame(hydrate);
+      }
     }
     return true;
   }
@@ -2284,8 +2310,15 @@
           loadPatientCommercialCase(patientId),
           loadPatientTreatmentAgreement(patientId),
         ]).then(() => {
-          if (runtime.selectedPatientId === patientId && runtime.detail?.card) {
+          if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
+          const patch = () => {
+            if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
             patchCommercialAgreementSidecars();
+          };
+          if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(patch, { timeout: 1200 });
+          } else {
+            window.setTimeout(patch, 0);
           }
         });
       } else {
@@ -3140,10 +3173,14 @@
       if (!preserveDetail) {
         renderDetailEmpty();
       }
-      if (deepLinkId && isMobileViewport() && !runtime.detail?.card) {
+      if (
+        deepLinkId &&
+        isMobileViewport() &&
+        !runtime.detail?.card &&
+        !patientDetailInflight.has(normalizeText(deepLinkId))
+      ) {
         runtime.selectedPatientId = deepLinkId;
-        const inflight = patientDetailInflight.has(normalizeText(deepLinkId));
-        if (!inflight && !railHasPatientDetailUi()) {
+        if (!railHasPatientDetailUi()) {
           renderDetailLoadingSkeleton(deepLinkId);
         }
         syncMobilePatientLayout();

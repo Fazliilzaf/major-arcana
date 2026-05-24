@@ -227,31 +227,22 @@ async function main() {
     );
     record('Deep link → kunddetail klar', true, patientId.slice(0, 8), ms(t0));
 
-    // 5. Journal-flik (Profil → Journal om vi redan står på journal)
-    const journalTab = page.locator('.patient-master-tab[data-patient-tab="journal"]').first();
+    // 5. Journal-flik (Profil → Journal)
+    const journalTab = page.locator('button[data-patient-tab="journal"]').first();
     await journalTab.waitFor({ state: 'visible', timeout: 15000 });
-    await page.evaluate(() => {
-      const profil = document.querySelector('.patient-master-tab[data-patient-tab="profil"]');
-      if (profil?.getAttribute('aria-pressed') !== 'true') {
-        profil?.click();
-      }
-    });
+    await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('profil'));
     await page.waitForFunction(
-      () =>
-        document.querySelector('.patient-master-tab[data-patient-tab="profil"]')?.getAttribute('aria-pressed') ===
-        'true',
+      () => !document.querySelector('[data-patient-tab-panel="profil"]')?.hasAttribute('hidden'),
       undefined,
-      { timeout: 8000, polling: 16 }
-    ).catch(() => {});
+      { timeout: 3000, polling: 16 }
+    );
     t0 = Date.now();
-    await page.evaluate(() => {
-      document.querySelector('.patient-master-tab[data-patient-tab="journal"]')?.click();
-    });
+    await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('journal'));
     await page.waitForFunction(
       () => !document.querySelector('[data-patient-tab-panel="journal"]')?.hasAttribute('hidden'),
       undefined,
-      { timeout: 8000, polling: 16 }
-    ).catch(() => {});
+      { timeout: 3000, polling: 16 }
+    );
     const tabH = await journalTab.evaluate((el) => Math.round(el.getBoundingClientRect().height));
     record('Journal-tab klick', tabH >= 40, `${tabH}px höjd`, ms(t0));
 
@@ -322,6 +313,11 @@ async function main() {
     });
     await page.waitForFunction(
       () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
+      undefined,
+      { timeout: 8000, polling: 16 }
+    );
+    await page.waitForFunction(
+      () => !document.documentElement.hasAttribute('data-cco-patient-detail'),
       undefined,
       { timeout: 8000, polling: 16 }
     );
