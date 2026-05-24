@@ -22,6 +22,7 @@
       overflow-x: hidden !important;
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
     }
 
     html[data-cco-mobile-shell="on"] .preview-canvas {
@@ -626,13 +627,27 @@
       z-index: calc(var(--cco-z-modal, 10000) - 2);
     }
 
-    html[data-cco-mobile-shell="on"] .customers-modal-backdrop,
-    html[data-cco-mobile-shell="on"] .mailbox-admin-backdrop,
-    html[data-cco-mobile-shell="on"] .note-mode-backdrop {
+    /* iOS Safari: fixed backdrop-filter på stängda modaler suddar + blockerar hela sidan.
+       Backdrop ska bara existera när shell har [data-open]. */
+    html[data-cco-mobile-shell="on"] .customers-modal-shell:not([data-open]) .customers-modal-backdrop,
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell:not([data-open]) .mailbox-admin-backdrop,
+    html[data-cco-mobile-shell="on"] #note-mode-shell:not([data-open]) .note-mode-backdrop,
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell:not([data-open]) .customers-modal-backdrop {
+      display: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      pointer-events: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-shell[data-open] .customers-modal-backdrop,
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell[data-open] .mailbox-admin-backdrop,
+    html[data-cco-mobile-shell="on"] #note-mode-shell[data-open] .note-mode-backdrop,
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell[data-open] .customers-modal-backdrop {
       position: fixed;
       inset: 0;
       background: rgba(15, 23, 42, 0.44);
       backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
 
     html[data-cco-mobile-shell="on"] .customers-modal-surface,
@@ -1655,6 +1670,11 @@
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
       .preview-canvas[data-app-shell-view="customers"]
       .customers-surface::before {
+      display: none;
+    }
+
+    /* Dekorativ blur-blob ska inte påverka läsbarhet på iOS */
+    html[data-cco-mobile-shell="on"] .preview-canvas::before {
       display: none;
     }
 

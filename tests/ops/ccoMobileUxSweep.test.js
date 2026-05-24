@@ -109,6 +109,25 @@ test('mobile UX sweep — B4 utility touch + Mer-sheet actions', () => {
   assert.match(shellJs, /runMoreAction|data-mobile-more-action/, 'B4.2: Mer-sheet proxy till topbar');
 });
 
+test('mobile UX sweep — stängda modal-backdrops suddar inte iOS-vy', () => {
+  const shellCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-shell.css'), 'utf8');
+  assert.match(
+    shellCss,
+    /customers-modal-shell:not\(\[data-open\]\)[\s\S]*customers-modal-backdrop[\s\S]*display:\s*none\s*!important/,
+    'Stängda customer-modaler ska dölja backdrop helt'
+  );
+  assert.match(
+    shellCss,
+    /customers-modal-shell\[data-open\][\s\S]*customers-modal-backdrop[\s\S]*backdrop-filter:\s*blur\(4px\)/,
+    'Öppna modaler ska behålla backdrop blur'
+  );
+  assert.doesNotMatch(
+    shellCss,
+    /html\[data-cco-mobile-shell="on"\]\s*\.customers-modal-backdrop,\s*\n\s*html\[data-cco-mobile-shell="on"\]\s*\.mailbox-admin-backdrop/,
+    'Backdrop-filter får inte ligga på alla backdrops ovillkorligt'
+  );
+});
+
 test('mobile UX sweep — design tokens har phone breakpoint', () => {
   const tokens = fs.readFileSync(path.join(PREVIEW_DIR, 'design-tokens.css'), 'utf8');
   assert.match(tokens, /768|767|phone/i, 'design-tokens saknar mobil breakpoint');
