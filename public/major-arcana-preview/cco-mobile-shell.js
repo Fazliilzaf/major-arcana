@@ -289,6 +289,7 @@
         const tab = button.dataset.mobileTab || '';
         explicitCalendarTab = false;
         window.ArcanaBookingMobileCalendar?.close?.();
+        window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
 
         if (tab === 'more') {
           setMoreOpen(!moreOpen);
