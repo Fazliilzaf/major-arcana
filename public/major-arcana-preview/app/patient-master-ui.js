@@ -132,8 +132,32 @@
     return isLocalPreviewHost();
   }
 
+  function hasStoredStaffSession() {
+    try {
+      const local = normalizeText(window.localStorage.getItem(ADMIN_TOKEN_KEY));
+      if (local && local !== '__preview_local__') return true;
+      const session = normalizeText(window.sessionStorage.getItem(ADMIN_TOKEN_KEY));
+      if (session && session !== '__preview_local__') return true;
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
+
   function needsStaffLogin() {
-    return !isStaffJournalOpenAccess() && !getAdminToken();
+    return !hasStoredStaffSession();
+  }
+
+  function syncAuthRequiredChrome() {
+    const required = needsStaffLogin() || runtime.authRequired;
+    if (required) {
+      document.documentElement.setAttribute('data-cco-auth-required', 'on');
+      window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
+      window.ArcanaMobileCore?.enhanceStickyCtas?.();
+    } else {
+      document.documentElement.removeAttribute('data-cco-auth-required');
+    }
+    return required;
   }
 
   function setAdminToken(token) {
@@ -202,6 +226,9 @@
     setAdminToken(token);
     runtime.authRequired = false;
     runtime.error = '';
+    runtime.loaded = false;
+    runtime.patients = [];
+    syncAuthRequiredChrome();
     setStatus('Inloggad.', 'success');
     void loadStats();
     void loadPatientList();
@@ -266,16 +293,16 @@
   }
 
   function getAdminToken() {
-    if (isStaffJournalOpenAccess()) {
-      return '__preview_local__';
-    }
     try {
       const local = normalizeText(window.localStorage.getItem(ADMIN_TOKEN_KEY));
-      if (local) return local;
+      if (local && local !== '__preview_local__') return local;
       const session = normalizeText(window.sessionStorage.getItem(ADMIN_TOKEN_KEY));
-      if (session) return session;
+      if (session && session !== '__preview_local__') return session;
     } catch {
       /* ignore */
+    }
+    if (isStaffJournalOpenAccess()) {
+      return '__preview_local__';
     }
     return '';
   }
@@ -622,18 +649,13 @@
 
   function renderPatientRows() {
     if (!els.list || runtime.mode !== 'register') return;
-    if (needsStaffLogin()) {
-      els.list.innerHTML = renderStaffLoginCard(runtime.error);
+    if (syncAuthRequiredChrome()) {
+      const loginCard = renderStaffLoginCard(
+        runtime.error || 'Logga in för att läsa kundregister och journal.'
+      );
+      els.list.innerHTML = loginCard;
       renderDetailEmpty();
-      if (isMobileViewport()) {
-        document.documentElement.setAttribute('data-cco-auth-required', 'on');
-        window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
-        window.ArcanaMobileCore?.enhanceStickyCtas?.();
-      }
       return;
-    }
-    if (isMobileViewport()) {
-      document.documentElement.removeAttribute('data-cco-auth-required');
     }
     if (runtime.loading && !runtime.patients.length) {
       els.list.innerHTML = '<p class="patient-master-empty">Laddar kundregister…</p>';
@@ -713,6 +735,13 @@
     const rail = document.querySelector('[data-patient-master-rail]');
     if (!rail) return;
     els.patientRail = rail;
+    if (syncAuthRequiredChrome()) {
+      rail.innerHTML = renderStaffLoginCard(
+        runtime.error || 'Logga in för att läsa kundregister och journal.'
+      );
+      syncMobilePatientLayout();
+      return;
+    }
     rail.innerHTML = `
       <section class="patient-master-card patient-master-card-empty">
         <h2>Välj en kund</h2>
