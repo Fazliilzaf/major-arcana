@@ -2227,6 +2227,7 @@
     const paint = () => {
       if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
       if (!runtime.detail?.card) return;
+      if (railHasPatientDetailUi()) return;
       renderDetailPanel();
     };
     paint();
