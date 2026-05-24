@@ -147,11 +147,11 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 - [x] J-6A Plan A — publik `/boka` GO 2026-05-24
 - [x] J-6A Operatörsbekräftelse 3/3 prod
-- [ ] J-6.1 Full behandlingskatalog på webben
+- [x] J-6.1 Full behandlingskatalog på webben (11 Plan A-tjänster)
 - [ ] J-6.2 Egen engine — Cliento ut
 - [x] J-6.3 **Koppling bokning → behandlingstillfälle → journal**
 
-> **Verify 2026-05-25:** Publik catalog **200** (`ARCANA_PUBLIC_WEB_BOOKING_ENABLED=true` + deploy). Plan A E2E **PASS** (PA-21–24). Webb-reservation → `consultation_plan` + `treatmentEncounterId` **PASS** prod. `ccoJournalBookingBridge` + TL-B.1 (Ta bild→encounter) live. Resend patient-mail **ej live** (se U5A.4).
+> **Verify 2026-05-25:** Publik catalog **200** (11 tjänster). Plan A E2E **PASS** (PA-21–24). Webb-reservation → `consultation_plan` + `treatmentEncounterId` **PASS** prod. `ccoJournalBookingBridge` + TL-B.1 (Ta bild→encounter) live. Resend patient-mail **ej live** (se U5A.4).
 
 ### Fas J-7 — Påminnelser ☐
 
@@ -216,10 +216,11 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [~] U2.2 OWNER MFA enforced prod (`verify:auth-go-live-prod`)
 - [x] U2.3 STAFF-konton (generiskt + 4 sjuksköterskor)
 - [ ] U2.4 STAFF login verifierad i fält (iPhone/Android)
-- [x] U2.5 Rollback-plan + underhållsfönster dokumenterat — [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25)
-- [ ] U2.6 Backup journal-photos schemalagd (`npm run backup:journal-photos`)
+- [x] U2.5 Rollback-plan + underhållsfönster **dokumenterat** — [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25)
+- [ ] U2.5b Underhållsfönster **i produkt** (P2) — schemalagt fönster, STAFF-varning, max driftstopp, GO/rollback-signoff (Notion)
+- [x] U2.6 Backup journal-photos schemalagd (`journal_photos_backup` i scheduler)
 
-> **Verify:** Open access **av**. OWNER MFA **av** (login probe: off) — inte enforced än. **5 STAFF** på prod. `backup:journal-photos` = manuellt script, ej scheduler. Auth rollback + underhållsfönster: [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25).
+> **Verify:** Open access **av**. OWNER MFA **av** (login probe: off) — inte enforced än. **5 STAFF** på prod. `journal_photos_backup` scheduler-job + `backup:journal-photos` CLI. Auth rollback + underhållsfönster: [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25).
 
 ### Utrullning 3 — Drive-PDF + bred drift → **AKTIV**
 
@@ -269,7 +270,7 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingstillfälle med datum** — se [JOURNAL-DATAMODELL.md](./JOURNAL-DATAMODELL.md).
 
-> **Verify 2026-05-25:** TL-A live i prod (pilot). TL-B–D = kod delvis / UI ej byggd. Encounter-store + booking-bridge finns backend; journal-UI är fortfarande platt lista + Filer/Kundhistorik med datosegment.
+> **Verify 2026-05-25:** TL-A live i prod (pilot). **Tidslinje-flik** (desktop + mobil) med enhetlig vy journal+filer per tillfälle + filter. Encounter-store + booking-bridge + foto→`encounterId`. Journal-fliken behåller redigeringsformulär (platt lista).
 
 ### Tidslinje A — Nu (pilot) ☑
 
@@ -278,13 +279,13 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 
 > **Verify:** `POST /api/v1/cco-journal/photo` → `ensureConsultationPlan` + attachment på `consultation_plan`. Signerad plan → upload **409** + knapp **Behandlingsplan** (`new-consultation-plan`). Unit **12/12 PASS** (`ccoJournalPlan`, `ccoJournalPhoto`).
 
-### Tidslinje B — Tillfälle + datosegment i Journal ☐ (backend delvis)
+### Tidslinje B — Tillfälle + datosegment ☑ (backend + Tidslinje-flik)
 
-- [~] TL-B.1 Auto-skapa `behandlingstillfälle` vid Ta bild eller bokning
-- [ ] TL-B.2 Nya foton kopplas till `encounterId`
-- [~] TL-B.3 Datosegment i Journal (inte bara Profil/Kundhistorik)
+- [x] TL-B.1 Auto-skapa `behandlingstillfälle` vid Ta bild eller bokning
+- [x] TL-B.2 Nya foton kopplas till `encounterId`
+- [x] TL-B.3 Datosegment i **Tidslinje**-flik (enhetlig journal+filer per tillfälle)
 
-> **Verify:** **Bokning:** `ccoJournalBookingBridge` skapar encounter + länkar plan (`treatmentEncounterId`). **Ta bild:** skapar **inte** encounter — bara plan/attachment. **Journal-fliken:** platt lista per journaltyp. **Filer-fliken:** datosegment via `groupFilesByOccasion` / `occasionContext` (Kundhistorik).
+> **Verify:** **Bokning + foto:** `ccoJournalBookingBridge` + `patchConsultationPhotoEncounter`. **Tidslinje-flik:** `renderUnifiedTimelinePanel` + filter (Konsultation/Behandling/Uppföljning/Arkiv). **Journal-fliken:** redigeringsformulär (platt lista). **Filer-fliken:** `groupFilesByOccasion` (Kundhistorik).
 
 ### Tidslinje C — Alla journaltyper per tillfälle ☐
 
@@ -295,13 +296,13 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 
 > **Verify:** Hälsodekl/TP/PRP/uppföljning = separata poster i platt journal-lista (ej grupperade per tillfälle). Signering låser **journalpost** (`entry.locked`), inte encounter. Plan visar `treatmentEncounterId` om satt från bokning — ingen auto-scroll till segment.
 
-### Tidslinje D — Enhetlig mobil tidslinje ☐
+### Tidslinje D — Enhetlig mobil tidslinje ~ (Tidslinje-flik live)
 
-- [ ] TL-D.1 Vy: Profil (identitet) + **Tidslinje** + Filer
+- [x] TL-D.1 Vy: Profil (identitet) + **Tidslinje** + Filer (mobil + desktop Tidslinje-flik)
 - [~] TL-D.2 Drive-import som “Arkiv”-segment längst ner
-- [ ] TL-D.3 Filter: Konsultation / Behandling / Uppföljning / Arkiv
+- [x] TL-D.3 Filter: Konsultation / Behandling / Uppföljning / Arkiv
 
-> **Verify:** Flikar idag: **Profil · Journal · Avtal · Filer** (desktop) / **Profil · Filer** (mobil). Ingen **Tidslinje**-flik. Filer: `timelineLabel` inkl. **Arkiv YYYY** från migration (`migrationUtils`). Ingen filter-UI. Unit: `ccoPatientJournalMigration` occasion-timeline **PASS**.
+> **Verify:** Flikar: **Profil · Journal · Tidslinje · Avtal · Filer** (desktop) / **Profil · Tidslinje · Filer** (mobil). Tidslinje: enhetlig segmentvy + filter. Filer: `timelineLabel` inkl. **Arkiv YYYY** från migration.
 
 ---
 

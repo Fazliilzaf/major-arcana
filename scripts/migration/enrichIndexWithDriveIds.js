@@ -16,6 +16,7 @@ const path = require('node:path');
 
 const { buildFileRecord, normalizePersonnummer } = require('./lib/migrationUtils');
 const { resolveDriveCredentials, resolveMigrationPaths, loadServiceAccountFromCreds } = require('./lib/migrationEnv');
+const { buildDriveLookup, lookupDriveFile } = require('./lib/driveFileMatch');
 const {
   getAccessToken,
   listAllDriveFiles,
@@ -23,31 +24,6 @@ const {
 
 function parseArgs(argv) {
   return { dryRun: argv.includes('--dry-run') };
-}
-
-function buildDriveLookup(driveFiles) {
-  const byKey = new Map();
-  for (const item of driveFiles) {
-    const records = buildFileRecord({
-      source: 'drive_api',
-      relativePath: item.relativePath,
-      driveFileId: item.driveFileId,
-      mimeType: item.mimeType,
-      webViewLink: item.webViewLink,
-    });
-    const pnr = normalizePersonnummer(records.personnummer);
-    const fileName = String(records.fileName || path.basename(item.relativePath)).toLowerCase();
-    if (!pnr || !fileName) continue;
-    const key = `${pnr}::${fileName}`;
-    if (!byKey.has(key)) {
-      byKey.set(key, {
-        driveFileId: item.driveFileId,
-        mimeType: item.mimeType || '',
-        webViewLink: item.webViewLink || '',
-      });
-    }
-  }
-  return byKey;
 }
 
 async function main() {
@@ -80,14 +56,44 @@ async function main() {
       }
     },
   });
-  const lookup = buildDriveLookup(driveFiles);
+  const lookup = buildDriveLookup(
+    driveFiles.map((item) => {
+      const records = buildFileRecord({
+        source: 'drive_api',
+        relativePath: item.relativePath,
+        driveFileId: item.driveFileId,
+        mimeType: item.mimeType,
+        webViewLink: item.webViewLink,
+      });
+      return {
+        ...item,
+        personnummer: normalizePersonnummer(records.personnummer),
+        fileName: records.fileName || path.basename(item.relativePath || ''),
+      };
+    })
+  );
 
   let matched = 0;
+  let relaxedMatched = 0;
   for (const file of files) {
     if (String(file.driveFileId || '').trim()) continue;
     const pnr = normalizePersonnummer(file.personnummer);
     const fileName = String(file.fileName || path.basename(file.relativePath || '')).toLowerCase();
-    const hit = lookup.get(`${pnr}::${fileName}`);
+    let hit = lookupDriveFile({
+      lookup,
+      personnummer: pnr,
+      fileName,
+      relativePath: file.relativePath,
+    });
+    if (!hit) {
+      hit = lookupDriveFile({
+        lookup,
+        personnummer: '',
+        fileName,
+        relativePath: file.relativePath,
+      });
+      if (hit) relaxedMatched += 1;
+    }
     if (!hit) continue;
     file.driveFileId = hit.driveFileId;
     file.mimeType = hit.mimeType || file.mimeType || '';
@@ -95,7 +101,9 @@ async function main() {
     matched += 1;
   }
 
-  console.log(`Matchade ${matched}/${needsEnrich.length} filer utan driveFileId.`);
+  console.log(
+    `Matchade ${matched}/${needsEnrich.length} filer utan driveFileId${relaxedMatched ? ` (${relaxedMatched} via filnamn-fallback)` : ''}.`
+  );
   if (args.dryRun) {
     console.log('Dry-run — index ej sparat.');
     return;

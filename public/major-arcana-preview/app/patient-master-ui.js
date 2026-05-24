@@ -81,7 +81,16 @@
     editingFollowUpEntryId: '',
     editingClinicalFormKey: '',
     editingClinicalEntryId: '',
+    journalTimelineFilter: 'all',
   };
+
+  const JOURNAL_TIMELINE_FILTERS = [
+    { id: 'all', label: 'Alla' },
+    { id: 'consultation', label: 'Konsultation' },
+    { id: 'treatment', label: 'Behandling' },
+    { id: 'followup', label: 'Uppföljning' },
+    { id: 'archive', label: 'Arkiv' },
+  ];
 
   const els = {
     shell: null,
@@ -1002,13 +1011,209 @@
     if (isMobileViewport()) {
       return `
           <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
+          <button type="button" class="patient-master-tab${tab === 'tidslinje' ? ' is-active' : ''}" data-patient-tab="tidslinje" aria-pressed="${tab === 'tidslinje'}">Tidslinje</button>
           <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileLabel}</button>`;
     }
     return `
           <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
           <button type="button" class="patient-master-tab${journalActive ? ' is-active' : ''}" data-patient-tab="journal" aria-pressed="${journalActive}">Journal</button>
+          <button type="button" class="patient-master-tab${tab === 'tidslinje' ? ' is-active' : ''}" data-patient-tab="tidslinje" aria-pressed="${tab === 'tidslinje'}">Tidslinje</button>
           <button type="button" class="patient-master-tab${avtalActive ? ' is-active' : ''}" data-patient-tab="avtal" aria-pressed="${avtalActive}">Avtal</button>
           <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileLabel}</button>`;
+  }
+
+  function journalOccasionCategory(entry) {
+    const type = entry?.journalType || '';
+    if (type === 'historical_import' || entry?.source === 'drive_import') return 'archive';
+    if (type === 'follow_up') return 'followup';
+    if (type === 'tp_treatment' || type === 'prp_treatment') return 'treatment';
+    return 'consultation';
+  }
+
+  function journalOccasionKey(entry) {
+    const encounterId = normalizeText(entry?.treatmentEncounterId);
+    if (encounterId) return `encounter:${encounterId}`;
+    const date = String(
+      entry?.fields?.consultationDate || entry?.signedAt || entry?.createdAt || ''
+    ).slice(0, 10);
+    if (journalOccasionCategory(entry) === 'archive') {
+      const year = date.slice(0, 4) || '0000';
+      return `archive:${year}`;
+    }
+    return `date:${date || 'unknown'}`;
+  }
+
+  function journalOccasionLabel(entry) {
+    const category = journalOccasionCategory(entry);
+    const date = String(
+      entry?.fields?.consultationDate || entry?.signedAt || entry?.createdAt || ''
+    ).slice(0, 10);
+    if (normalizeText(entry?.treatmentEncounterId)) {
+      return `Tillfälle ${entry.treatmentEncounterId.slice(0, 8)}… · ${date || 'datum saknas'}`;
+    }
+    if (category === 'archive') return `Arkiv ${date.slice(0, 4) || '—'}`;
+    if (category === 'followup') return `Uppföljning · ${date || 'datum saknas'}`;
+    if (category === 'treatment') return `Behandling · ${date || 'datum saknas'}`;
+    return `Konsultation · ${date || 'datum saknas'}`;
+  }
+
+  function groupJournalEntriesByOccasion(entries) {
+    const groups = new Map();
+    for (const entry of asArray(entries)) {
+      const key = journalOccasionKey(entry);
+      if (!groups.has(key)) {
+        groups.set(key, {
+          timelineKey: key,
+          timelineLabel: journalOccasionLabel(entry),
+          timelineSort: String(
+            entry?.fields?.consultationDate || entry?.signedAt || entry?.createdAt || ''
+          ).slice(0, 10),
+          category: journalOccasionCategory(entry),
+          entries: [],
+        });
+      }
+      groups.get(key).entries.push(entry);
+    }
+    return [...groups.values()].sort((a, b) =>
+      String(b.timelineSort || '').localeCompare(String(a.timelineSort || ''))
+    );
+  }
+
+  function renderJournalTimelineFilters() {
+    const active = runtime.journalTimelineFilter || 'all';
+    return `
+      <div class="patient-master-timeline-filters" role="toolbar" aria-label="Filtrera tidslinje">
+        ${JOURNAL_TIMELINE_FILTERS.map(
+          (filter) => `
+            <button type="button" class="patient-master-timeline-filter${active === filter.id ? ' is-active' : ''}" data-journal-timeline-filter="${escapeHtml(filter.id)}">
+              ${escapeHtml(filter.label)}
+            </button>`
+        ).join('')}
+      </div>`;
+  }
+
+  function renderJournalTimelineItem(entry) {
+    const typeLabel = JOURNAL_TYPE_LABELS[entry.journalType] || entry.journalType || 'Journal';
+    const photos = asArray(entry.attachments).filter((item) => item.type === 'consultation_photo');
+    const photoMeta = photos.length
+      ? ` · ${photos.length} bild${photos.length === 1 ? '' : 'er'}`
+      : entry.treatmentEncounterId
+        ? ` · ${entry.treatmentEncounterId.slice(0, 8)}…`
+        : '';
+    return `
+      <li class="patient-master-timeline-item${entry.locked ? ' is-locked' : ''}">
+        <strong>${escapeHtml(entry.title || typeLabel)}</strong>
+        <span>${escapeHtml(entry.status || 'draft')}${entry.signedAt ? ` · ${escapeHtml(String(entry.signedAt).slice(0, 10))}` : ''}${photoMeta}</span>
+      </li>`;
+  }
+
+  function renderJournalTimelineSegments(entries) {
+    const filter = runtime.journalTimelineFilter || 'all';
+    const groups = groupJournalEntriesByOccasion(entries).filter(
+      (group) => filter === 'all' || group.category === filter
+    );
+    if (!groups.length) {
+      return `<p class="patient-master-muted">Inga journalposter matchar filtret.</p>`;
+    }
+    return `
+      <div class="patient-master-history-segments patient-master-journal-timeline">
+        ${groups
+          .map(
+            (group) => `
+          <section class="patient-master-history-segment">
+            <header class="patient-master-history-segment-head">
+              <h4>${escapeHtml(group.timelineLabel)}</h4>
+              <span>${group.entries.length} post${group.entries.length === 1 ? '' : 'er'}</span>
+            </header>
+            <ul class="patient-master-journal-list patient-master-timeline-list">
+              ${group.entries.map((entry) => renderJournalTimelineItem(entry)).join('')}
+            </ul>
+          </section>`
+          )
+          .join('')}
+      </div>`;
+  }
+
+  function renderUnifiedTimelinePanel(journalEntries, driveFiles, occasionTimeline) {
+    const journalGroups = groupJournalEntriesByOccasion(journalEntries);
+    const fileGroups = groupFilesByOccasion(driveFiles);
+    const merged = new Map();
+    for (const group of journalGroups) {
+      merged.set(group.timelineKey, {
+        ...group,
+        fileCount: 0,
+        journalPdfCount: 0,
+        imageCount: 0,
+      });
+    }
+    for (const group of fileGroups) {
+      const existing = merged.get(group.timelineKey);
+      if (existing) {
+        existing.fileCount = group.files.length;
+        existing.journalPdfCount = group.files.filter(isJournalPdf).length;
+        existing.imageCount = group.files.filter(isPreviewableImage).length;
+        existing.timelineLabel = existing.timelineLabel || group.timelineLabel;
+      } else {
+        merged.set(group.timelineKey, {
+          timelineKey: group.timelineKey,
+          timelineLabel: group.timelineLabel,
+          timelineSort: group.timelineSort,
+          category: String(group.timelineKey || '').startsWith('archive:') ? 'archive' : 'consultation',
+          entries: [],
+          fileCount: group.files.length,
+          journalPdfCount: group.files.filter(isJournalPdf).length,
+          imageCount: group.files.filter(isPreviewableImage).length,
+          files: group.files,
+        });
+      }
+    }
+    for (const item of asArray(occasionTimeline)) {
+      const existing = merged.get(item.timelineKey);
+      if (existing) {
+        existing.fileCount = Math.max(existing.fileCount || 0, Number(item.fileCount || 0));
+        existing.journalPdfCount = Math.max(
+          existing.journalPdfCount || 0,
+          Number(item.journalPdfCount || 0)
+        );
+        existing.imageCount = Math.max(existing.imageCount || 0, Number(item.imageCount || 0));
+      }
+    }
+    const filter = runtime.journalTimelineFilter || 'all';
+    const groups = [...merged.values()]
+      .filter((group) => filter === 'all' || group.category === filter)
+      .sort((a, b) => String(b.timelineSort || '').localeCompare(String(a.timelineSort || '')));
+    if (!groups.length) {
+      return `<p class="patient-master-muted">Ingen tidslinje att visa ännu.</p>`;
+    }
+    return `
+      ${renderJournalTimelineFilters()}
+      <div class="patient-master-history-segments">
+        ${groups
+          .map(
+            (group) => `
+          <section class="patient-master-history-segment">
+            <header class="patient-master-history-segment-head">
+              <h4>${escapeHtml(group.timelineLabel)}</h4>
+              <span>${group.entries.length} journal · ${group.fileCount || 0} filer</span>
+            </header>
+            ${
+              group.entries.length
+                ? `<ul class="patient-master-journal-list patient-master-timeline-list">${group.entries
+                    .map((entry) => renderJournalTimelineItem(entry))
+                    .join('')}</ul>`
+                : ''
+            }
+            ${
+              group.files?.length
+                ? `<div class="patient-master-timeline-files">${renderOccasionGroup(group)}</div>`
+                : group.fileCount
+                  ? `<p class="patient-master-muted">${group.journalPdfCount || 0} PDF · ${group.imageCount || 0} bilder i Filer</p>`
+                  : ''
+            }
+          </section>`
+          )
+          .join('')}
+      </div>`;
   }
 
   function renderPatientPrimaryTabsSkeleton(detailTab) {
@@ -1016,14 +1221,17 @@
     const journalish = tab === 'journal' || runtime.preferJournalOnMobile;
     if (isMobileViewport()) {
       const profilActive = tab === 'profil';
+      const tidslinjeActive = tab === 'tidslinje';
       const filesActive = tab === 'filer';
       return `
           <span class="patient-master-tab${profilActive ? ' is-active' : ''}">Profil</span>
+          <span class="patient-master-tab${tidslinjeActive ? ' is-active' : ''}">Tidslinje</span>
           <span class="patient-master-tab${filesActive ? ' is-active' : ''}">Filer</span>`;
     }
     return `
           <span class="patient-master-tab${journalish ? '' : ' is-active'}">Profil</span>
           <span class="patient-master-tab${journalish ? ' is-active' : ''}">Journal</span>
+          <span class="patient-master-tab${tab === 'tidslinje' ? ' is-active' : ''}">Tidslinje</span>
           <span class="patient-master-tab">Avtal</span>
           <span class="patient-master-tab">Filer</span>`;
   }
@@ -2685,7 +2893,11 @@
     if (runtime.detailTab === 'journal') {
       void hydrateJournalPhotoElements(els.patientRail);
       window.requestAnimationFrame(() => bindJournalAutosaveForms());
-    } else if (runtime.detailTab === 'profil' || runtime.detailTab === 'filer') {
+    } else if (
+      runtime.detailTab === 'profil' ||
+      runtime.detailTab === 'filer' ||
+      runtime.detailTab === 'tidslinje'
+    ) {
       void hydratePatientFileImages(els.patientRail);
     }
 
@@ -2742,7 +2954,7 @@
       } else {
         window.requestAnimationFrame(hydrate);
       }
-    } else if (normalized === 'profil' || normalized === 'filer') {
+    } else if (normalized === 'profil' || normalized === 'filer' || normalized === 'tidslinje') {
       const hydrate = () => {
         if (runtime.detailTab !== normalized) return;
         void hydratePatientFileImages(rail);
@@ -2765,6 +2977,7 @@
     const tab = runtime.detailTab;
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
+    const tidslinjeActive = tab === 'tidslinje';
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
     const fileCount = Number(card.fileSummary?.totalFiles || runtime.detail.driveFiles?.length || 0);
@@ -2793,6 +3006,9 @@
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil"></div>
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
           <p class="patient-master-muted" data-patient-shell-placeholder>Laddar journal…</p>
+        </div>
+        <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
+          <p class="patient-master-muted" data-patient-shell-placeholder>Laddar tidslinje…</p>
         </div>
         <div class="patient-master-tab-panel"${avtalActive ? '' : ' hidden'} data-patient-tab-panel="avtal"></div>
         <div class="patient-master-tab-panel"${filesActive ? '' : ' hidden'} data-patient-tab-panel="filer"></div>
@@ -2831,10 +3047,11 @@
     }
     runtime.detailShellOnly = false;
     revokePhotoObjectUrls();
-    const { card, patient, journalEntries, driveFiles } = detail;
+    const { card, patient, journalEntries, driveFiles, occasionTimeline } = detail;
     const tab = runtime.detailTab;
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
+    const tidslinjeActive = tab === 'tidslinje';
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
     const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
@@ -2882,6 +3099,10 @@
 
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
           ${renderJournalEntries(journalEntries)}
+        </div>
+
+        <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
+          ${renderUnifiedTimelinePanel(journalEntries, driveFiles, occasionTimeline)}
         </div>
 
         <div class="patient-master-tab-panel"${avtalActive ? '' : ' hidden'} data-patient-tab-panel="avtal">
@@ -4021,6 +4242,17 @@
       if (loadMore && runtime.mode === 'register') {
         runtime.offset += PAGE_SIZE;
         void loadPatientList({ append: true });
+        return;
+      }
+
+      const timelineFilter = event.target.closest('[data-journal-timeline-filter]');
+      if (timelineFilter && runtime.mode === 'register' && runtime.detail?.card) {
+        runtime.journalTimelineFilter = timelineFilter.dataset.journalTimelineFilter || 'all';
+        if (runtime.detailTab === 'tidslinje') {
+          renderDetailPanel();
+        } else {
+          switchDetailTab('tidslinje');
+        }
         return;
       }
 

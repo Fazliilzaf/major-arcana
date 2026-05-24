@@ -26,6 +26,7 @@ const {
   inspectBackupRestore,
   restoreFromBackup,
 } = require('./stateBackup');
+const { createJournalPhotosBackup } = require('./journalPhotosBackup');
 const {
   computeUsageAnalytics,
   computeWorklistSnapshotMetrics,
@@ -447,6 +448,43 @@ function createScheduler({
       pruneScannedCount: prune.scannedCount,
       pruneKeptCount: prune.keptCount,
     };
+  }
+
+  async function runJournalPhotosBackup({ tenantId }) {
+    const sourceDir = String(config.journalPhotosDir || '').trim();
+    if (!sourceDir) {
+      return { tenantId, skipped: true, reason: 'journalPhotosDir_missing' };
+    }
+    try {
+      const backup = await createJournalPhotosBackup({
+        sourceDir,
+        backupRoot: config.backupDir || path.join(config.stateRoot, 'backups'),
+      });
+      const prune = await pruneBackups({
+        backupDir: path.join(
+          config.backupDir || path.join(config.stateRoot, 'backups'),
+          'journal-photos'
+        ),
+        maxFiles: config.journalPhotosBackupRetentionMaxFiles,
+        maxAgeDays: config.journalPhotosBackupRetentionMaxAgeDays,
+        dryRun: false,
+      });
+      return {
+        tenantId,
+        archivePath: backup.archivePath,
+        fileCount: backup.fileCount,
+        sourceBytes: backup.sourceBytes,
+        archiveBytes: backup.archiveBytes,
+        pruneDeletedCount: prune.deletedCount,
+        pruneKeptCount: prune.keptCount,
+      };
+    } catch (error) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: error?.message || 'journal_photos_backup_failed',
+      };
+    }
   }
 
   /**
@@ -3359,6 +3397,14 @@ function createScheduler({
       name: 'State backup + prune',
       intervalMs: toHoursMs(config.schedulerBackupIntervalHours, 24),
       run: runBackupAndPrune,
+    },
+    {
+      id: 'journal_photos_backup',
+      name: 'Journal photos tar backup',
+      intervalMs: config.journalPhotosDir
+        ? toHoursMs(config.schedulerJournalPhotosBackupIntervalHours, 24)
+        : 0,
+      run: runJournalPhotosBackup,
     },
     {
       id: 'restore_drill_preview',

@@ -327,6 +327,7 @@ function normalizeAttachment(input = {}) {
     planSummary: asObject(safe.planSummary),
     hasAnnotation: Boolean(safe.hasAnnotation),
     annotatedPreviewAvailable: Boolean(safe.annotatedPreviewAvailable),
+    treatmentEncounterId: normalizeText(safe.treatmentEncounterId || safe.encounterId),
   };
 }
 
@@ -663,6 +664,41 @@ async function createCcoJournalStore({ filePath }) {
     );
   }
 
+  async function patchConsultationPhotoEncounter({
+    tenantId,
+    patientId,
+    entryId,
+    photoId,
+    treatmentEncounterId,
+    actor = {},
+  } = {}) {
+    const entry = await getEntry({ tenantId, patientId, entryId });
+    if (!entry) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const targetPhotoId = normalizeText(photoId);
+    const encounterId = normalizeText(treatmentEncounterId);
+    if (!targetPhotoId || !encounterId) return entry;
+    let touched = false;
+    const attachments = asArray(entry.attachments).map((item) => {
+      const safe = asObject(item);
+      if (normalizeText(safe.photoId) !== targetPhotoId) return safe;
+      touched = true;
+      return normalizeAttachment({ ...safe, treatmentEncounterId: encounterId });
+    });
+    if (!touched) return entry;
+    return upsertEntry(
+      {
+        ...entry,
+        treatmentEncounterId: normalizeText(entry.treatmentEncounterId) || encounterId,
+        attachments,
+      },
+      { actor }
+    );
+  }
+
   async function updateConsultationPhotoAnnotation({
     tenantId,
     patientId,
@@ -876,6 +912,7 @@ async function createCcoJournalStore({ filePath }) {
   return {
     addConsultationPhotoAttachment,
     addCorrection,
+    patchConsultationPhotoEncounter,
     buildJournalReadout,
     clearConsultationPhotoAttachments,
     deleteEntry,

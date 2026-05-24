@@ -150,20 +150,29 @@ async function main() {
         `${samplePatientId.slice(0, 8)}… journal=${journalCount} drive=${driveCount} (${detailRes.ms}ms)`
       );
 
-      const journalPdf = (detailRes.body?.driveFiles || []).find((f) => f.fileType === 'journal_pdf');
+      const journalPdf =
+        (detailRes.body?.driveFiles || []).find(
+          (f) => f.fileType === 'journal_pdf' && String(f.driveFileId || '').trim()
+        ) || (detailRes.body?.driveFiles || []).find((f) => f.fileType === 'journal_pdf');
       if (journalPdf?.id) {
         const fileRes = await fetch(
           `${BASE}/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(journalPdf.id)}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (fileRes.status === 200) {
-          record('CL-05 drive PDF stream', true, `${fileRes.status} ${journalPdf.id.slice(0, 8)}…`);
-        } else if (fileRes.status === 404) {
           record(
             'CL-05 drive PDF stream',
             true,
-            `404 — index OK men zip saknas på prod (sätt ARCANA_MIGRATION_ROOT eller Drive API)`
+            `${fileRes.status} ${journalPdf.id.slice(0, 8)}…${journalPdf.driveFileId ? ' drive' : ''}`
           );
+        } else if (fileRes.status === 404 && !journalPdf.driveFileId) {
+          record(
+            'CL-05 drive PDF stream',
+            true,
+            `404 — saknar driveFileId (zip ej på prod)`
+          );
+        } else if (fileRes.status === 404) {
+          fail('CL-05 drive PDF stream', `HTTP 404 trots driveFileId ${journalPdf.driveFileId.slice(0, 8)}…`);
         } else {
           fail('CL-05 drive PDF stream', `HTTP ${fileRes.status}`);
         }
