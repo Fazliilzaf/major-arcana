@@ -125,6 +125,65 @@ test('patient master imports cliento rows and merges drive profile', async () =>
   assert.equal(patient.fileSummary.journalPdfs, 2);
 });
 
+test('patient master enriches cliento row with pipedrive person and deals', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'pipedrive-merge-'));
+  const filePath = path.join(dir, 'cco-patient-master.json');
+  const store = await createCcoPatientMasterStore({ filePath });
+
+  await store.importClientoRows({
+    tenantId: 'hair-tp-clinic',
+    rows: [
+      {
+        Namn: 'Camilla Ingemarsson',
+        Telefon: '+46707774756',
+        'E-post': 'camilla.ingemarsson78@gmail.com',
+        Skapad: '2023-12-19',
+        rowNumber: 2,
+      },
+    ],
+    duplicateEmails: new Set(),
+  });
+
+  const result = await store.mergePipedriveProfiles({
+    tenantId: 'hair-tp-clinic',
+    peopleRows: [
+      {
+        ID: '9001',
+        Namn: 'Camilla Ingemarsson',
+        Förnamn: 'Camilla',
+        Efternamn: 'Ingemarsson',
+        'E-post - Hem': 'camilla.ingemarsson78@gmail.com',
+        'Telefon - Mobil': '+46707774756',
+        'Social Number': '',
+      },
+    ],
+    dealRows: [
+      {
+        ID: '7001',
+        Namn: 'TP konsultation',
+        Status: 'open',
+        Fas: 'Konsultation',
+        'Kontaktpersonens id': '9001',
+        Kontaktperson: 'Camilla Ingemarsson',
+        Värde: '0',
+      },
+    ],
+  });
+
+  assert.equal(result.matched, 1);
+  assert.equal(result.dealsLinked, 1);
+
+  const patient = await store.findPatientByEmail({
+    tenantId: 'hair-tp-clinic',
+    email: 'camilla.ingemarsson78@gmail.com',
+  });
+  assert.ok(patient?.pipedrive);
+  assert.equal(patient.pipedrive.personId, '9001');
+  assert.equal(patient.pipedrive.deals.length, 1);
+  assert.equal(patient.pipedrive.deals[0].dealId, '7001');
+  assert.equal(patient.pipedrive.matchMethod, 'email');
+});
+
 test('historical journal import dedupes by zip path', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'journal-import-'));
   const filePath = path.join(dir, 'cco-journal.json');

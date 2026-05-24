@@ -1,0 +1,219 @@
+{
+  "generatedAt": "2026-05-24T21:23:55.475Z",
+  "manualCount": 5,
+  "cases": [
+    {
+      "pipedriveId": "43",
+      "name": "Rubia Diljaj",
+      "emails": "albertredzepi1984@gmail.com",
+      "phones": "'+46723710097",
+      "personnummer": "",
+      "candidates": [
+        {
+          "id": "fab3ea2e-76bc-4a1b-b28f-2dc605413383",
+          "displayName": "Rubia Diljaj",
+          "email": "albertredzepi1984@gmail.com",
+          "phone": "+46723710097",
+          "personnummer": "19861124-1780",
+          "matchStatus": "needs_review",
+          "method": "email",
+          "confidence": 0.9,
+          "hasCliento": true,
+          "hasDrive": true
+        },
+        {
+          "id": "27b1c2be-f5db-467f-9eae-2973d9280f3a",
+          "displayName": "Albert",
+          "email": "",
+          "phone": "+46723710097",
+          "personnummer": "",
+          "matchStatus": "needs_review",
+          "method": "phone",
+          "confidence": 0.85,
+          "hasCliento": true,
+          "hasDrive": false
+        },
+        {
+          "id": "fa4a2b35-ffaa-491f-9b29-d98013a4520b",
+          "displayName": "Fabian Redzepi",
+          "email": "fabianredzepi05@gmail.com",
+          "phone": "+46723710097",
+          "personnummer": "20050810-2415",
+          "matchStatus": "needs_review",
+          "method": "phone",
+          "confidence": 0.85,
+          "hasCliento": true,
+          "hasDrive": true
+        }
+      ]
+    },
+    {
+      "pipedriveId": "1013",
+      "name": "Mattias Månsson",
+      "emails": "matte@gronabladverk.se",
+      "phones": "0733786591",
+      "personnummer": "19750408-2533",
+      "candidates": [
+        {
+          "id": "b90793c0-593d-4d57-a82f-17800444f76c",
+          "displayName": "Patient 2 - Mattias M+?nsson (DHI)",
+          "email": "",
+          "phone": "",
+          "personnummer": "19750408-2533",
+          "matchStatus": "needs_review",
+          "method": "personnummer",
+          "confidence": 0.98,
+          "hasCliento": false,
+          "hasDrive": true
+        },
+        {
+          "id": "f54ff743-ba90-43ef-a2f3-f6daef3ced06",
+          "displayName": "Mattias Månsson",
+          "email": "matte@gronabladverk.se",
+          "phone": "+46733786591",
+          "personnummer": "",
+          "matchStatus": "needs_review",
+          "method": "email",
+          "confidence": 0.9,
+          "hasCliento": true,
+          "hasDrive": false
+        },
+        {
+          "id": "89f0085a-42b6-4da8-8771-d46a1653ac24",
+          "displayName": "Mattias Månsson",
+          "email": "",
+          "phone": "+46733786591",
+          "personnummer": "",
+          "matchStatus": "needs_review",
+          "method": "phone",
+          "confidence": 0.85,
+          "hasCliento": true,
+          "hasDrive": false
+        }
+      ]
+    },
+    {
+      "pipedriveId": "1978",
+      "name": "Hussein Hassan",
+      "emails": "hussein.hassan7@hotmail.com",
+      "phones": "0739567862",
+      "personnummer": "20000728-8533",
+      "candidates": [
+        {
+          "id": "8eea3af6-0f25-421e-9502-4dc3ce049154",
+          "displayName": "Hussein Hassan",
+          "email": "",
+          "phone": "+46739567862",
+          "personnummer": "20000728-8533",
+          "matchStatus": "needs_review",
+          "method": "personnummer",
+          "confidence": 0.98,
+          "hasCliento": true,
+          "hasDrive": true
+        },
+        {
+          "id": "4a0bb955-6b83-4ded-860e-b3fc832c94a5",
+          "displayName": "Hossein Hassan",
+          "email": "",
+          "phone": "+46739567862",
+          "personnummer": "",
+          "matchStatus": "needs_review",
+          "method": "phone",
+          "confidence": 0.85,
+          "hasCliento": true,
+          "hasDrive": false
+        }
+      ]
+    },
+    {
+      "pipedriveId": "2669",
+      "name": "Marcus Andersson",
+      "emails": "marcusandersson94@hotmail.com",
+      "phones": "'+46738282940",
+      "personnummer": "19940928-1418",
+      "candidates": [
+        {
+          "id": "4f5490cd-f0dc-442c-b471-0dc6ab690086",
+          "displayName": "Marcus Andersson",
+          "email": "marcus.p.andersson109@gmail.com",
+          "phone": "+46738202055",
+          "personnummer": "19940928-1418",
+          "matchStatus": "matched",
+          "method": "personnummer",
+          "confidence": 0.98,
+          "hasCliento": true,
+          "hasDrive": true
+        },
+        {
+          "id": "eed6f42d-d27f-4263-82ef-d08adde40b7f",
+          "displayName": "Marcus Andersson",
+          "email": "marcusandersson94@hotmail.com",
+          "phone": "+46738282940",
+          "personnummer": "",
+          "matchStatus": "needs_review",
+          "method": "email",
+          "confidence": 0.9,
+          "hasCliento": true,
+          "hasDrive": false
+        },
+        {
+          "id": "d1dc5679-713a-4a2c-a956-0e91471e8e85",
+          "displayName": "Marcus Andersson",
+          "email": "marcus@projma.nu",
+          "phone": "+46738282940",
+          "personnummer": "",
+          "matchStatus": "needs_review",
+          "method": "phone",
+          "confidence": 0.85,
+          "hasCliento": true,
+          "hasDrive": false
+        }
+      ]
+    },
+    {
+      "pipedriveId": "2869",
+      "name": "Anders Jonsson",
+      "emails": "andersjonssonakeri@hotmail.com",
+      "phones": "'+46705502042",
+      "personnummer": "",
+      "candidates": [
+        {
+          "id": "078902e5-c146-44fb-a4f5-172b29afc81c",
+          "displayName": "Anders Jonsson",
+          "email": "andersjonssonakeri@hotmail.com",
+          "phone": "+46705502042",
+          "personnummer": "19681107-6253",
+          "matchStatus": "needs_review",
+          "method": "email",
+          "confidence": 0.9,
+          "hasCliento": true,
+          "hasDrive": true
+        },
+        {
+          "id": "ee4e9a22-bebf-4457-82e5-2cfcf0d0dae2",
+          "displayName": "Anders",
+          "email": "",
+          "phone": "+46705502042",
+          "personnummer": "",
+          "matchStatus": "needs_review",
+          "method": "phone",
+          "confidence": 0.85,
+          "hasCliento": true,
+          "hasDrive": false
+        },
+        {
+          "id": "c1e40f9d-a1a7-4065-bf74-455f41cb1c01",
+          "displayName": "Anders Jonsson",
+          "email": "",
+          "phone": "+46705502042",
+          "personnummer": "",
+          "matchStatus": "needs_review",
+          "method": "phone",
+          "confidence": 0.85,
+          "hasCliento": true,
+          "hasDrive": false
+        }
+      ]
+    }
+  ]
+}

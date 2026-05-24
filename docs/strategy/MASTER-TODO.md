@@ -34,7 +34,7 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 | # | Uppgift | Vem | Status |
 |---|---------|-----|--------|
 | 7 | Post-op Fas 1 — Playwright smoke `/uppfoljning/[token]` prod | Agent | ☐ |
-| 8 | Pipedrive People+Deals export | Agent | ☐ |
+| 8 | Pipedrive People+Deals export | Agent | ☑ |
 | 9 | Plan A valfritt: Resend patient-mail + bokning→journal koppling | Agent | ☐ |
 
 ---

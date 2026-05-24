@@ -5,11 +5,14 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const {
+  collectPipedriveEmails,
+  collectPipedrivePhones,
   normalizeEmail,
   normalizeKey,
   normalizePersonnummer,
   normalizePhone,
   normalizeText,
+  phoneMatchKey,
   splitName,
   nameOverlapScore,
 } = require('../../scripts/migration/lib/migrationUtils');
@@ -130,6 +133,126 @@ function normalizeClientoRecord(input = {}) {
   };
 }
 
+function normalizePipedriveDealRecord(input = {}) {
+  const safe = asObject(input);
+  return {
+    dealId: normalizeText(safe.ID),
+    title: normalizeText(safe.Namn),
+    status: normalizeText(safe.Status),
+    stage: normalizeText(safe.Fas),
+    value: normalizeText(safe.Värde),
+    currency: normalizeText(safe['Valuta för Värde']),
+    pipeline: normalizeText(safe.Pipeline),
+    contactPersonId: normalizeText(safe['Kontaktpersonens id']),
+    contactPersonName: normalizeText(safe.Kontaktperson),
+    organization: normalizeText(safe.Organisation),
+    owner: normalizeText(safe.Ägare),
+    productName: normalizeText(safe.Produktnamn),
+    graftCount: normalizeText(safe['Antal grafts']),
+    treatmentDate: normalizeText(safe['Treatment date']),
+    wonAt: normalizeText(safe['Tidpunkt för vunnen affär']),
+    createdAt: normalizeText(safe['Affär skapad']),
+    updatedAt: normalizeText(safe['Uppdaterat klockan']),
+  };
+}
+
+function normalizePipedrivePersonRecord(input = {}) {
+  const safe = asObject(input);
+  const name = normalizeText(safe.Namn);
+  const firstName = normalizeText(safe.Förnamn);
+  const lastName = normalizeText(safe.Efternamn);
+  const { firstName: splitFirst, lastName: splitLast } = splitName(name);
+  const emails = collectPipedriveEmails(safe);
+  const phones = collectPipedrivePhones(safe);
+  return {
+    personId: normalizeText(safe.ID),
+    name,
+    firstName: firstName || splitFirst,
+    lastName: lastName || splitLast,
+    personnummer: normalizePersonnummer(safe['Social Number']),
+    emails,
+    primaryEmail: emails[0] || '',
+    phones,
+    primaryPhone: phones[0] || '',
+    organization: normalizeText(safe.Organisation),
+    owner: normalizeText(safe.Ägare),
+    createdAt: normalizeText(safe['Person skapad']),
+    updatedAt: normalizeText(safe['Uppdaterat klockan']),
+  };
+}
+
+function patientHasEmail(patient, email) {
+  const target = normalizeEmail(email);
+  if (!target) return false;
+  if (normalizeEmail(patient.primaryEmail) === target) return true;
+  return asArray(patient.emails).some((value) => normalizeEmail(value) === target);
+}
+
+function patientHasPhone(patient, phone) {
+  const target = phoneMatchKey(phone);
+  if (!target) return false;
+  if (phoneMatchKey(patient.primaryPhone) === target) return true;
+  return asArray(patient.phones).some((value) => phoneMatchKey(value) === target);
+}
+
+function buildPipedrivePatientLookup(patients) {
+  const byPersonnummer = new Map();
+  const byEmail = new Map();
+  const byPhone = new Map();
+
+  patients.forEach((patient) => {
+    const pnr = normalizePersonnummer(patient.personnummer);
+    if (pnr && !byPersonnummer.has(pnr)) byPersonnummer.set(pnr, patient);
+    const emailKeys = new Set(
+      [patient.primaryEmail, ...asArray(patient.emails)].map(normalizeEmail).filter(Boolean)
+    );
+    emailKeys.forEach((email) => {
+      if (!byEmail.has(email)) byEmail.set(email, []);
+      byEmail.get(email).push(patient);
+    });
+    const phoneKeys = new Set(
+      [patient.primaryPhone, ...asArray(patient.phones)].map(phoneMatchKey).filter(Boolean)
+    );
+    phoneKeys.forEach((phone) => {
+      if (!byPhone.has(phone)) byPhone.set(phone, []);
+      byPhone.get(phone).push(patient);
+    });
+  });
+
+  return { byPersonnummer, byEmail, byPhone };
+}
+
+function findPatientsForPipedrivePerson(lookup, pipedrivePerson) {
+  const matches = new Map();
+  const add = (patient, method, confidence) => {
+    if (!patient?.id) return;
+    const existing = matches.get(patient.id);
+    if (!existing || confidence > existing.confidence) {
+      matches.set(patient.id, { patient, method, confidence });
+    }
+  };
+
+  const pnr = normalizePersonnummer(pipedrivePerson.personnummer);
+  if (pnr) {
+    const patient = lookup.byPersonnummer.get(pnr);
+    if (patient) add(patient, 'personnummer', 0.98);
+  }
+
+  pipedrivePerson.emails.forEach((email) => {
+    asArray(lookup.byEmail.get(normalizeEmail(email))).forEach((patient) => {
+      add(patient, 'email', 0.9);
+    });
+  });
+
+  pipedrivePerson.phones.forEach((phone) => {
+    asArray(lookup.byPhone.get(phoneMatchKey(phone))).forEach((patient) => {
+      add(patient, 'phone', 0.85);
+    });
+  });
+
+  return [...matches.values()];
+}
+
 function normalizeDriveRecord(input = {}) {
   const safe = asObject(input);
   const personnummer = normalizePersonnummer(safe.personnummer);
@@ -206,6 +329,7 @@ function normalizePatientRecord(input = {}, existing = {}) {
     duplicateEmail: Boolean(safe.duplicateEmail ?? existingSafe.duplicateEmail),
     cliento: safe.cliento || existingSafe.cliento || null,
     drive: safe.drive || existingSafe.drive || null,
+    pipedrive: safe.pipedrive || existingSafe.pipedrive || null,
     fileSummary: {
       totalFiles:
         Number(
@@ -246,6 +370,8 @@ function buildPatientCardReadout(patient) {
     hasImages: Number(asObject(safe.fileSummary).images) > 0,
     clientoLinked: Boolean(safe.cliento),
     driveLinked: Boolean(safe.drive),
+    pipedriveLinked: Boolean(safe.pipedrive),
+    pipedriveDealCount: asArray(asObject(safe.pipedrive).deals).length,
     updatedAt: safe.updatedAt || null,
   };
 }
@@ -281,7 +407,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     return found ? clonePatient(found) : null;
   }
 
-  async function upsertPatient(input = {}) {
+  function applyPatientPatch(input = {}) {
     const normalized = normalizePatientRecord(input);
     if (!normalized.tenantId) throw new Error('tenantId saknas.');
     const bucket = tenantBucket(state, normalized.tenantId);
@@ -298,11 +424,16 @@ async function createCcoPatientMasterStore({ filePath }) {
     } else {
       bucket.patients.push(normalized);
     }
+    return bucket.patients[index >= 0 ? index : bucket.patients.length - 1];
+  }
+
+  async function upsertPatient(input = {}) {
+    const patient = applyPatientPatch(input);
     await save();
     return getPatient({
-      tenantId: normalized.tenantId,
-      patientId: normalized.id,
-      personnummer: normalized.personnummer,
+      tenantId: patient.tenantId,
+      patientId: patient.id,
+      personnummer: patient.personnummer,
     });
   }
 
@@ -456,6 +587,115 @@ async function createCcoPatientMasterStore({ filePath }) {
     return bucket.imports.drive;
   }
 
+  async function mergePipedriveProfiles({
+    tenantId,
+    peopleRows = [],
+    dealRows = [],
+  } = {}) {
+    const bucket = tenantBucket(state, tenantId);
+    const dealsByPersonId = new Map();
+    for (const row of asArray(dealRows)) {
+      const deal = normalizePipedriveDealRecord(row);
+      const personId = deal.contactPersonId;
+      if (!personId) continue;
+      if (!dealsByPersonId.has(personId)) dealsByPersonId.set(personId, []);
+      dealsByPersonId.get(personId).push(deal);
+    }
+
+    let matched = 0;
+    let unmatched = 0;
+    let ambiguous = 0;
+    let dealsLinked = 0;
+    let personnummerBackfilled = 0;
+    const lookup = buildPipedrivePatientLookup(bucket.patients);
+
+    for (const row of asArray(peopleRows)) {
+      const person = normalizePipedrivePersonRecord(row);
+      if (!person.personId) continue;
+      const candidates = findPatientsForPipedrivePerson(lookup, person);
+      if (!candidates.length) {
+        unmatched += 1;
+        continue;
+      }
+      if (candidates.length > 1) {
+        ambiguous += 1;
+        for (const { patient } of candidates) {
+          applyPatientPatch({
+            ...patient,
+            tenantId,
+            matchStatus: 'needs_review',
+          });
+        }
+        continue;
+      }
+
+      const { patient, method, confidence } = candidates[0];
+      const deals = dealsByPersonId.get(person.personId) || [];
+      dealsLinked += deals.length;
+      const pipedrive = {
+        source: 'pipedrive',
+        personId: person.personId,
+        name: person.name,
+        firstName: person.firstName,
+        lastName: person.lastName,
+        emails: person.emails,
+        phones: person.phones,
+        organization: person.organization,
+        owner: person.owner,
+        matchMethod: method,
+        matchConfidence: confidence,
+        deals,
+        importedAt: nowIso(),
+      };
+
+      const backfillPnr =
+        !normalizePersonnummer(patient.personnummer) && person.personnummer
+          ? person.personnummer
+          : patient.personnummer;
+      if (backfillPnr && !normalizePersonnummer(patient.personnummer)) {
+        personnummerBackfilled += 1;
+      }
+
+      let matchStatus = patient.matchStatus || 'unmatched';
+      if (patient.cliento || patient.drive) {
+        matchStatus = patient.cliento && patient.drive ? 'matched' : patient.matchStatus;
+        if (matchStatus === 'cliento_only' || matchStatus === 'drive_only') {
+          matchStatus = 'matched';
+        }
+      }
+
+      applyPatientPatch({
+        ...patient,
+        tenantId,
+        personnummer: backfillPnr,
+        displayName: patient.displayName || person.name,
+        firstName: patient.firstName || person.firstName,
+        lastName: patient.lastName || person.lastName,
+        emails: [...new Set([...asArray(patient.emails), ...person.emails])],
+        phones: [...new Set([...asArray(patient.phones), ...person.phones])],
+        primaryEmail: patient.primaryEmail || person.primaryEmail,
+        primaryPhone: patient.primaryPhone || person.primaryPhone,
+        pipedrive,
+        matchStatus,
+        matchConfidence: Math.max(Number(patient.matchConfidence) || 0, confidence),
+      });
+      matched += 1;
+    }
+
+    bucket.imports.pipedrive = {
+      importedAt: nowIso(),
+      peopleRows: peopleRows.length,
+      dealRows: dealRows.length,
+      matched,
+      unmatched,
+      ambiguous,
+      dealsLinked,
+      personnummerBackfilled,
+    };
+    await save();
+    return bucket.imports.pipedrive;
+  }
+
   async function getTenantStats({ tenantId } = {}) {
     const bucket = tenantBucket(state, tenantId);
     const patients = asArray(bucket.patients);
@@ -466,6 +706,7 @@ async function createCcoPatientMasterStore({ filePath }) {
       clientoOnly: patients.filter((item) => item.matchStatus === 'cliento_only').length,
       driveOnly: patients.filter((item) => item.matchStatus === 'drive_only').length,
       needsReview: patients.filter((item) => item.matchStatus === 'needs_review').length,
+      pipedriveLinked: patients.filter((item) => item.pipedrive).length,
       imports: bucket.imports || {},
       updatedAt: state.updatedAt,
     };
@@ -479,6 +720,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     importClientoRows,
     listPatients,
     mergeDriveProfiles,
+    mergePipedriveProfiles,
     upsertPatient,
     patientKey,
   };
@@ -489,4 +731,8 @@ module.exports = {
   buildPatientCardReadout,
   createCcoPatientMasterStore,
   normalizePatientRecord,
+  normalizePipedriveDealRecord,
+  normalizePipedrivePersonRecord,
+  buildPipedrivePatientLookup,
+  findPatientsForPipedrivePerson,
 };

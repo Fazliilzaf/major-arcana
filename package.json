@@ -43,6 +43,7 @@
     "migration:run-bulk": "node scripts/migration/runBulkMigration.js",
     "migration:import": "node scripts/migration/runMigrationPipeline.js --root .. --tenant hair-tp-clinic",
     "migration:import-pipedrive": "node scripts/migration/importPipedrive.js --tenant hair-tp-clinic",
+    "migration:resolve-pipedrive-ambiguous": "node scripts/migration/resolvePipedriveAmbiguous.js --tenant hair-tp-clinic",
     "migration:import-journals": "node scripts/migration/importHistoricalJournals.js",
     "migration:spot-check": "node scripts/migration/spotCheckPatientIndex.js",
     "migration:sync-sharepoint": "bash ./scripts/sync-sharepoint-archive.sh",

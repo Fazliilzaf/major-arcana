@@ -29,6 +29,86 @@ function normalizePhone(value) {
   return normalizeText(value).replace(/[\s()-]/g, '');
 }
 
+function phoneMatchKey(value) {
+  const digits = normalizePhone(value).replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length >= 9) return digits.slice(-9);
+  return digits;
+}
+
+function parseCsv(content) {
+  const lines = String(content || '')
+    .split(/\r?\n/)
+    .filter((line) => line.length > 0);
+  if (!lines.length) return [];
+  const headers = lines[0].split(',').map((item) => item.replace(/^"|"$/g, '').trim());
+  return lines.slice(1).map((line, index) => {
+    const cells = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (ch === ',' && !inQuotes) {
+        cells.push(current);
+        current = '';
+        continue;
+      }
+      current += ch;
+    }
+    cells.push(current);
+    const row = {};
+    headers.forEach((header, cellIndex) => {
+      row[header] = (cells[cellIndex] || '').trim();
+    });
+    row.rowNumber = index + 2;
+    return row;
+  });
+}
+
+const PIPEDRIVE_EMAIL_HEADERS = ['E-post - Arbete', 'E-post - Hem', 'E-post - Annan'];
+const PIPEDRIVE_PHONE_HEADERS = [
+  'Telefon - Mobil',
+  'Telefon - Arbete',
+  'Telefon - Hem',
+  'Telefon - Annan',
+];
+
+function collectPipedriveEmails(row = {}) {
+  return [
+    ...new Set(PIPEDRIVE_EMAIL_HEADERS.map((header) => normalizeEmail(row[header])).filter(Boolean)),
+  ];
+}
+
+function collectPipedrivePhones(row = {}) {
+  return [
+    ...new Set(PIPEDRIVE_PHONE_HEADERS.map((header) => normalizePhone(row[header])).filter(Boolean)),
+  ];
+}
+
+function discoverPipedriveCsvPair(rootDir) {
+  const dir = path.join(rootDir, 'migration', 'pipedrive');
+  if (!fs.existsSync(dir)) return null;
+  const files = fs.readdirSync(dir).filter((name) => name.toLowerCase().endsWith('.csv'));
+  const people =
+    files.find((name) => /^personer/i.test(name)) ||
+    files.find((name) => /^people/i.test(name)) ||
+    null;
+  const deals =
+    files.find((name) => /^affar/i.test(name)) ||
+    files.find((name) => /^affär/i.test(name)) ||
+    files.find((name) => /^deals/i.test(name)) ||
+    null;
+  if (!people || !deals) return null;
+  return {
+    peoplePath: path.join(dir, people),
+    dealsPath: path.join(dir, deals),
+  };
+}
+
 function normalizePersonnummer(value) {
   const raw = normalizeText(value);
   if (!raw) return '';
@@ -422,10 +502,17 @@ function buildFileRecord({
 
 module.exports = {
   PERSONNUMMER_RE,
+  PIPEDRIVE_EMAIL_HEADERS,
+  PIPEDRIVE_PHONE_HEADERS,
   buildFileRecord,
   classifyFile,
+  collectPipedriveEmails,
+  collectPipedrivePhones,
   discoverClientoCsv,
   discoverMigrationZips,
+  discoverPipedriveCsvPair,
+  parseCsv,
+  phoneMatchKey,
   extractDisplayNameFromSegment,
   extractFileOccasionContext,
   extractPersonnummerFromPath,
