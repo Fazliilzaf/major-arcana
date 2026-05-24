@@ -219,7 +219,8 @@ async function main() {
     await page.waitForFunction(
       () => {
         const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
-        return Boolean(rt?.detail?.card) && !rt?.detailLoading;
+        const journalTab = document.querySelector('button[data-patient-tab="journal"]');
+        return Boolean(rt?.detail?.card) && !rt?.detailLoading && Boolean(journalTab);
       },
       undefined,
       { timeout: 25000, polling: 16 }
