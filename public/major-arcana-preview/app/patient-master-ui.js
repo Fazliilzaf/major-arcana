@@ -2969,6 +2969,10 @@
       }
       const deepLinkId = normalizeText(runtime.pendingPatientId || startup.patientId);
       if (deepLinkId && isMobileViewport() && !runtime.detail?.card) {
+        runtime.selectedPatientId = deepLinkId;
+        runtime.detailLoading = true;
+        renderDetailLoadingSkeleton(deepLinkId);
+        syncMobilePatientLayout();
         void loadPatientDetail(deepLinkId);
       }
       if (!runtime.loaded && !runtime.loading) {
