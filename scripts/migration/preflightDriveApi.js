@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+require('dotenv').config({ quiet: true });
+
 /**
  * C1 — Preflight för Google Drive API migration.
  * Verifierar credentials, hämtar token och listar rotmapp utan full indexering.
