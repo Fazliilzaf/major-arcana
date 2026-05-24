@@ -306,7 +306,7 @@ function createOpsRouter({
   router.get(
     '/ops/cco-care/missing-forms-report',
     requireAuth,
-    requireRole(ROLE_STAFF),
+    requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
       if (!journalStore || !patientMasterStore) {
         return res.status(503).json({ error: 'Journal- eller patientstore saknas.' });
@@ -342,7 +342,7 @@ function createOpsRouter({
   router.get(
     '/ops/cco-care/draft-proposals',
     requireAuth,
-    requireRole(ROLE_STAFF),
+    requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
       const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
       const status = normalizeText(req.query?.status) || 'pending';
@@ -385,7 +385,7 @@ function createOpsRouter({
   router.get(
     '/ops/cco-care/reminders',
     requireAuth,
-    requireRole(ROLE_STAFF),
+    requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
       if (!bookingEngineStore) {
         return res.status(503).json({ error: 'Booking engine store saknas.' });
@@ -505,7 +505,7 @@ function createOpsRouter({
   router.patch(
     '/ops/cco-care/draft-proposals/:proposalId',
     requireAuth,
-    requireRole(ROLE_STAFF),
+    requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
       if (!patientCareStateStore) {
         return res.status(503).json({ error: 'Patient care store saknas.' });
