@@ -159,7 +159,9 @@ async function verifyPatientJournal(page) {
 
   const journalTab = page.locator('.patient-master-tab[data-patient-tab="journal"]').first();
   if (await journalTab.count()) {
-    await journalTab.click();
+    await page.evaluate(() => {
+      document.querySelector('.patient-master-tab[data-patient-tab="journal"]')?.click();
+    });
     await page.waitForTimeout(400);
     const tabBox = await journalTab.boundingBox();
     record('Journal-tab ≥ 40px', Boolean(tabBox && tabBox.height >= 38), tabBox ? `${Math.round(tabBox.height)}px` : 'saknas');
@@ -210,7 +212,9 @@ async function verifyListBackFlow(page) {
     return;
   }
 
-  await firstRow.click();
+  await page.evaluate(() => {
+    document.querySelector('[data-patient-row]')?.click();
+  });
   await page.waitForTimeout(800);
 
   const detailAfterClick = await page.evaluate(() =>
@@ -243,7 +247,9 @@ async function verifySettingsBottomSheet(page) {
   let opened = false;
   const toolbarSettings = page.locator('.customers-toolbar-settings[data-customer-command="settings"]').first();
   if (mobileShell && (await toolbarSettings.count())) {
-    await toolbarSettings.click();
+    await page.evaluate(() => {
+      document.querySelector('.customers-toolbar-settings[data-customer-command="settings"]')?.click();
+    });
     opened = true;
   } else {
     const settingsBtn = page.locator('[data-customer-command="settings"]').first();

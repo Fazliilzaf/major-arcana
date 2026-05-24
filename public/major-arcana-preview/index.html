@@ -2,9 +2,9 @@
 <html lang="sv" data-build="build-f7c1ae6">
   <head>
     <meta charset="UTF-8" />
-    <!-- Bundlade scripts preload (content-hash: 3ffa970225) -->
-    <link rel="preload" as="script" href="./app.bundle.3ffa970225.min.js" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-sweep-d" />
+    <!-- Bundlade scripts preload (content-hash: 2619106fcf) -->
+    <link rel="preload" as="script" href="./app.bundle.2619106fcf.min.js" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-sweep-e" />
     <script>
       (function mobileDeferInboxUntilNeeded() {
         try {
@@ -28,8 +28,7 @@
           var view = String(params.get('view') || 'customers').trim();
           var patientId = String(params.get('patientId') || '').trim();
           if (view !== 'customers' || !patientId) return;
-          if (window.__ARCANA_PATIENT_PREFETCH__ || window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) return;
-          window.__ARCANA_DEEPLINK_PREFETCH_STARTED__ = true;
+          if (window.__ARCANA_PATIENT_PREFETCH__ || window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) return;
           var token = '';
           try {
             token =
@@ -40,6 +39,7 @@
             token = '';
           }
           if (token.length <= 8) return;
+          window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = true;
           fetch(
             new URL(
               '/api/v1/cco-patient-master/patient?patientId=' + encodeURIComponent(patientId),
@@ -63,7 +63,10 @@
                 };
               }
             })
-            .catch(function () {});
+            .catch(function () {})
+            .finally(function () {
+              window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = false;
+            });
         } catch (prefetchError) {
           /* best-effort */
         }
@@ -3273,8 +3276,8 @@
                             if (syncH2) syncH2.textContent = syncName;
                             if (syncAvatar) syncAvatar.textContent = syncInitials;
                             if (syncLine) syncLine.textContent = 'Hämtar journal och avtal…';
-                          } else if (!window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) {
-                            window.__ARCANA_DEEPLINK_PREFETCH_STARTED__ = true;
+                          } else if (!window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) {
+                            window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = true;
                             fetch(apiUrl, {
                               headers: {
                                 Accept: 'application/json',
@@ -3300,7 +3303,10 @@
                                 if (avatar) avatar.textContent = initials;
                                 if (line) line.textContent = 'Hämtar journal och avtal…';
                               })
-                              .catch(function () {});
+                              .catch(function () {})
+                              .finally(function () {
+                                window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = false;
+                              });
                           }
                         }
                       } catch (e) {
@@ -3309,7 +3315,7 @@
                     })();
                   </script>
                   <!-- Early patient-master-ui: mobil deep link — kör före huvudbundle -->
-                  <script src="./app/patient-master-ui.js?v=build-sweep-d"></script>
+                  <script src="./app/patient-master-ui.js?v=build-sweep-e"></script>
 <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
@@ -10744,9 +10750,9 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          Den gamla bundlen låg efter källan och kunde visa en äldre booking-surface i browsern. -->
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
-    <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 3ffa970225) -->
-    <script src="./app.bundle.3ffa970225.min.js"></script>
+    <script src="./app/thread-cache-idb.js?v=build-idb-v2"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 2619106fcf) -->
+    <script src="./app.bundle.2619106fcf.min.js"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's

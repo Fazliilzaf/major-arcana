@@ -126,7 +126,10 @@ async function verifyPatientUi(page, token, patient) {
   await page.waitForFunction(
     () => {
       const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
-      return Boolean(rt?.detail?.card) && !rt?.detailLoading;
+      const camera = document.querySelector(
+        '.patient-master-camera-button, [data-patient-photo-camera]'
+      );
+      return Boolean(rt?.detail?.card) && !rt?.detailLoading && Boolean(camera);
     },
     undefined,
     { timeout: 45000, polling: 16 }
