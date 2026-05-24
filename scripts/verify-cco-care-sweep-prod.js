@@ -64,14 +64,13 @@ async function main() {
   else pass('CC-04 preview HTML');
 
   const uiMatch = html.match(/patient-master-ui\.js[^"]*/);
-  if (uiMatch) {
-    const ui = await fetch(`${BASE}/major-arcana-preview/app/${uiMatch[0]}`);
-    const uiText = await ui.text();
-    if (!/data-patient-tab="tidslinje"/.test(uiText)) markFail('CC-05 TL-D mobile tidslinje tab');
-    else pass('CC-05 TL-D tidslinje tab + filter');
-    if (!/review-draft-proposal/.test(uiText)) markFail('CC-06 J-8.2 draft proposal UI');
-    else pass('CC-06 J-8.2 draft proposal UI');
-  }
+  const uiPath = uiMatch ? uiMatch[0] : 'patient-master-ui.js?v=build-care-sweep-a';
+  const ui = await fetch(`${BASE}/major-arcana-preview/app/${uiPath}`);
+  const uiText = await ui.text();
+  if (!/data-patient-tab="tidslinje"/.test(uiText)) markFail('CC-05 TL-D mobile tidslinje tab');
+  else pass('CC-05 TL-D tidslinje tab + filter');
+  if (!/review-draft-proposal/.test(uiText)) markFail('CC-06 J-8.2 draft proposal UI');
+  else pass('CC-06 J-8.2 draft proposal UI');
 
   let token = '';
   try {
