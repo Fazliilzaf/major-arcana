@@ -88,7 +88,10 @@
     return true;
   }
 
-  function setMobileWorkspaceView(view, { persist = false, resetScroll = true } = {}) {
+  function setMobileWorkspaceView(
+    view,
+    { persist = false, resetScroll = true, syncShell = true } = {}
+  ) {
     if (!canvas) return;
     const nextView = view === "focus" ? "focus" : "queue";
     canvas.dataset.mobileWorkspaceView = nextView;
@@ -108,7 +111,9 @@
         node.scrollLeft = 0;
       });
     }
-    window.ArcanaMobileShell?.syncFromApp?.();
+    if (syncShell) {
+      window.ArcanaMobileShell?.syncFromApp?.();
+    }
   }
 
   function initializeMobileWorkspaceSwitch() {
