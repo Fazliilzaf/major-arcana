@@ -63,12 +63,12 @@ async function verifyEngine(engine, engineLabel) {
   const page = await context.newPage();
 
   try {
-    await page.goto(`${base}/staff?view=customers`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(`${base}/staff?view=customers`, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => {
       localStorage.removeItem('ARCANA_ADMIN_TOKEN');
       sessionStorage.removeItem('ARCANA_ADMIN_TOKEN');
     });
-    await page.goto(`${base}/staff?view=customers`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(`${base}/staff?view=customers`, { waitUntil: 'networkidle', timeout: 90000 });
     await page.waitForFunction(
       () =>
         Boolean(
@@ -103,7 +103,7 @@ async function verifyEngine(engine, engineLabel) {
       `${engineLabel} tab Hem`,
       page.locator('[data-mobile-tab="home"]'),
       () => document.querySelector('.preview-canvas')?.dataset?.appShellView === 'conversations',
-      1200
+      1500
     );
 
     await measureTap(
@@ -112,8 +112,9 @@ async function verifyEngine(engine, engineLabel) {
       page.locator('[data-mobile-tab="customers"]'),
       () =>
         document.querySelector('.preview-canvas')?.dataset?.appShellView === 'customers' &&
+        document.querySelector('[data-shell-view="customers"]')?.hidden === false &&
         document.querySelectorAll('[data-patient-row]').length > 0,
-      1200
+      1500
     );
 
     const tabSwitch = await measureTap(

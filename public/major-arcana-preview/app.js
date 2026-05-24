@@ -39601,7 +39601,7 @@
       appliedConversationShellState !== showConversations;
     const mobileShell = isMobileShellViewport();
     const mobileDeepLink = mobileShell && isMobileCustomersDeepLinkRoute();
-    const mobileCustomersView = mobileShell && shellView === "customers";
+    const mobileFastNav = mobileShell && !mobileDeepLink;
     canvas.dataset.appView = normalizedView;
     canvas.dataset.appShellView = shellView;
 
@@ -39623,11 +39623,7 @@
     };
 
     if (shellStructureChanged) {
-      if (mobileShell && !mobileDeepLink && !mobileCustomersView) {
-        scheduleMobileIdleWork(applyShellStructure, { timeout: 200 });
-      } else {
-        applyShellStructure();
-      }
+      applyShellStructure();
     }
 
     if (!mobileShell) {
@@ -39731,8 +39727,8 @@
       }
     };
 
-    if (mobileShell && shellStructureChanged && !mobileDeepLink && !mobileCustomersView) {
-      __mobileViewLoadsTimer = scheduleMobileIdleWork(runViewLoads, { timeout: 220 });
+    if (mobileFastNav && shellStructureChanged && shellView === "conversations") {
+      __mobileViewLoadsTimer = scheduleMobileIdleWork(runViewLoads, { timeout: 180 });
     } else {
       runViewLoads();
     }
@@ -39743,11 +39739,7 @@
       window.ArcanaMobileShell?.syncFromApp?.();
     };
 
-    if (mobileShell && shellStructureChanged && !mobileDeepLink && !mobileCustomersView) {
-      scheduleMobileIdleWork(finalizeAppView, { timeout: 240 });
-    } else {
-      finalizeAppView();
-    }
+    finalizeAppView();
   }
 
   function setSelectedAnalyticsPeriod(periodKey) {
