@@ -1706,36 +1706,86 @@
       gap: 0.65rem;
     }
 
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
-      .preview-canvas[data-app-shell-view="customers"]
-      .customers-surface::before {
-      display: none;
+    /*
+     Mobil ambient under arbetsyta — design-sudding utan filter:blur (iOS Safari läcker
+     filter på pseudo-element över hela viewport). Gradient-wash ger samma känsla.
+    */
+    html[data-cco-mobile-shell="on"] .preview-canvas {
+      isolation: isolate;
     }
 
-    /* iOS Safari: filter:blur på pseudo-element kan sudda hela viewport */
-    html[data-cco-mobile-shell="on"] .customers-surface::before,
-    html[data-cco-mobile-shell="on"] .customers-shell::before,
-    html[data-cco-mobile-shell="on"] .focus-shell::before {
-      content: none !important;
-      display: none !important;
+    html[data-cco-mobile-shell="on"] .preview-canvas::before {
+      display: block !important;
+      left: 4%;
+      top: calc(var(--topbar-height, 56px) + 4px);
+      width: 92%;
+      max-width: 420px;
+      height: 200px;
       filter: none !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
+      -webkit-filter: none !important;
+      opacity: 0.9;
+      background: radial-gradient(
+        ellipse 95% 110% at 18% 22%,
+        rgba(234, 231, 239, 0.62) 0%,
+        rgba(244, 238, 233, 0.38) 34%,
+        rgba(255, 249, 242, 0.14) 58%,
+        transparent 82%
+      );
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas::after {
+      display: block !important;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-workspace {
+      position: relative;
+      z-index: 1;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-workspace::before {
+      display: block !important;
+      opacity: 1;
+      filter: none !important;
+      z-index: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-topbar,
+    html[data-cco-mobile-shell="on"] .preview-workspace-shell,
+    html[data-cco-mobile-shell="on"] .customers-shell,
+    html[data-cco-mobile-shell="on"] .preview-shell,
+    html[data-cco-mobile-shell="on"] .focus-shell {
+      position: relative;
+      z-index: 1;
     }
 
     html[data-cco-mobile-shell="on"] .customers-surface,
-    html[data-cco-mobile-shell="on"] .customers-layout,
-    html[data-cco-mobile-shell="on"] .customers-shell,
-    html[data-cco-mobile-shell="on"] .customers-list,
-    html[data-cco-mobile-shell="on"] .customers-metric-row,
-    html[data-cco-mobile-shell="on"] .customers-toolbar,
-    html[data-cco-mobile-shell="on"] .patient-master-mode-toggle {
-      filter: none !important;
+    html[data-cco-mobile-shell="on"] .customers-shell {
+      position: relative;
+      isolation: isolate;
     }
 
-    /* Dekorativ blur-blob ska inte påverka läsbarhet på iOS */
-    html[data-cco-mobile-shell="on"] .preview-canvas::before {
-      display: none;
+    html[data-cco-mobile-shell="on"] .customers-surface::before {
+      display: block !important;
+      content: "" !important;
+      filter: none !important;
+      -webkit-filter: none !important;
+      left: -12px;
+      top: -4px;
+      width: min(100%, 360px);
+      height: 160px;
+      background: radial-gradient(
+        ellipse 90% 100% at 20% 24%,
+        rgba(255, 254, 250, 0.72) 0%,
+        rgba(255, 249, 242, 0.42) 32%,
+        rgba(255, 243, 233, 0.16) 58%,
+        transparent 84%
+      );
+      z-index: -1;
+      pointer-events: none;
     }
 
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head-main,
