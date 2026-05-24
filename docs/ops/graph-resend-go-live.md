@@ -14,10 +14,10 @@ ARCANA_GRAPH_CLIENT_SECRET=<från Azure Portal → Certificates & secrets>
 # ARCANA_GRAPH_CLIENT_ID=13adfc91-69ab-4c35-ac80-b52ebba7e09f
 # ARCANA_GRAPH_USER_ID=fazli@hairtpclinic.com
 
-# Resend (valfritt — bokningsmail använder Graph send om nyckeln saknas)
-RESEND_API_KEY=re_...
-RESEND_FROM=contact@hairtpclinic.com
-OPERATOR_NOTIFY_TO=contact@hairtpclinic.com
+# Resend (valfritt — Graph send räcker för bokningsbekräftelse)
+# RESEND_API_KEY=re_...
+# RESEND_FROM=contact@hairtpclinic.com
+# OPERATOR_NOTIFY_TO=contact@hairtpclinic.com
 ```
 
 ## 2. Kör go-live
@@ -38,7 +38,7 @@ Detta skapar nytt client secret, uppdaterar `.env` och pushar till Render.
 npm run apply:graph-resend-go-live-prod
 ```
 
-Endast Graph (utan Resend — rekommenderat tills RESEND_API_KEY finns):
+Endast Graph (standard — Resend behövs inte för bokningsmail):
 
 ```bash
 SKIP_RESEND=true npm run apply:graph-resend-go-live-prod
@@ -52,9 +52,10 @@ Scriptet **merge:ar** alla befintliga Render env-variabler (PUT med full lista) 
 ## 3. Verify
 
 ```bash
-npm run verify:graph-read-prod      # Graph live-läge
-npm run verify:booking-plan-a-prod  # catalog
-npm run verify:cco-mail-start-prod  # live-trådar när Graph läser
+npm run verify:graph-read-prod       # Graph live-läge
+npm run verify:booking-mail-prod     # PA-25 Graph send (Resend ej krävd)
+npm run verify:booking-plan-a-prod   # catalog + reservation
+npm run verify:cco-mail-start-prod   # live-trådar när Graph läser
 ```
 
 Efter deploy: gör en testreservation och kontrollera audit-event `reservation_confirmation_sent`
@@ -64,4 +65,5 @@ med `metadata.provider: "graph"` (eller `"resend"` om nyckel finns) — inte `�
 
 Efter lyckad prod-verify: sätt `ARCANA_GRAPH_READ_ENABLED` och `ARCANA_GRAPH_SEND_ENABLED` till `"true"` i `render.yaml` och push så blueprint matchar runtime.
 
-**Resend** deklareras medvetet **utanför** `render.yaml` (UI-managed) — se kommentar i render.yaml.
+**Resend** är **valfritt** — deklareras medvetet **utanför** `render.yaml` (UI-managed).  
+Bokningsbekräftelse går via Microsoft Graph (`transactionalMailer`) när `ARCANA_GRAPH_SEND_ENABLED=true`.

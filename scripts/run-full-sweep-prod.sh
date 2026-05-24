@@ -44,9 +44,10 @@ section "2 — Graph + mail-start"
 npm run verify:graph-read-prod 2>&1 || warn "verify:graph-read-prod"
 npm run verify:cco-mail-start-prod 2>&1 || warn "verify:cco-mail-start-prod"
 
-section "3 — Booking Plan A"
+section "3 — Booking Plan A + mail"
 npm run verify:booking-plan-a-prod 2>&1 || warn "verify:booking-plan-a-prod"
 BASE="${BASE}" node ./scripts/plan-a-verify-curl.mjs 2>&1 | tail -10 || warn "plan-a-verify-curl"
+npm run verify:booking-mail-prod 2>&1 || warn "verify:booking-mail-prod"
 
 section "4 — Mobil journal + pilot"
 TOKEN="$(node scripts/get-prod-auth-token.js 2>/dev/null || true)"
@@ -76,9 +77,7 @@ warn "C1–C5 migration — Google/SharePoint/compliance"
 warn "D1–D4 CMO connectors — staging secrets"
 warn "A5 IDB snapshot — nästa sprint"
 warn "E3–E5 bridge — design/Cloudflare"
-if [[ -z "$(node -e "require('dotenv').config({quiet:true}); process.stdout.write((process.env.RESEND_API_KEY||'').trim())")" ]]; then
-  warn "Resend — RESEND_API_KEY saknas (Graph send används för bokningsmail)"
-fi
+warn "B3b Resend — valfritt (Graph send täcker bokningsmail)"
 
 section "Sammanfattning"
 if [[ "$FAIL" -eq 0 ]]; then
