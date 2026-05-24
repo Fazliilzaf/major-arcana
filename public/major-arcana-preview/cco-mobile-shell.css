@@ -1712,6 +1712,27 @@
       display: none;
     }
 
+    /* iOS Safari: filter:blur på pseudo-element kan sudda hela viewport */
+    html[data-cco-mobile-shell="on"] .customers-surface::before,
+    html[data-cco-mobile-shell="on"] .customers-shell::before,
+    html[data-cco-mobile-shell="on"] .focus-shell::before {
+      content: none !important;
+      display: none !important;
+      filter: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-surface,
+    html[data-cco-mobile-shell="on"] .customers-layout,
+    html[data-cco-mobile-shell="on"] .customers-shell,
+    html[data-cco-mobile-shell="on"] .customers-list,
+    html[data-cco-mobile-shell="on"] .customers-metric-row,
+    html[data-cco-mobile-shell="on"] .customers-toolbar,
+    html[data-cco-mobile-shell="on"] .patient-master-mode-toggle {
+      filter: none !important;
+    }
+
     /* Dekorativ blur-blob ska inte påverka läsbarhet på iOS */
     html[data-cco-mobile-shell="on"] .preview-canvas::before {
       display: none;
