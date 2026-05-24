@@ -19,7 +19,20 @@ function isSlotConflict(status, body) {
   return err.includes('slot') || err.includes('ledig') || err.includes('unavailable');
 }
 
-const PLAN_A = ['consultation-online', 'consultation-physical', 'followup-transplant'];
+const PLAN_A_BOOKABLE = ['consultation-online', 'consultation-physical', 'followup-transplant'];
+const PLAN_A_CATALOG = [
+  'consultation-online',
+  'consultation-physical',
+  'followup-transplant',
+  'fue',
+  'dhi',
+  'beard',
+  'eyebrow',
+  'prp-hair',
+  'prp-skin',
+  'microneedling',
+  'followup',
+];
 
 async function getJson(path) {
   const res = await fetch(`${BASE}${path}`);
@@ -60,10 +73,14 @@ async function main() {
 
   const catalog = await getJson(`/api/public/booking-engine/catalog?host=${encodeURIComponent(HOST)}`);
   const ids = (catalog.body.services || []).map((s) => s.id);
-  const pa21 = assert('PA-21 catalog', ids.length === 3 && PLAN_A.every((id) => ids.includes(id)), ids.join(', '));
+  const pa21 = assert(
+    'PA-21 catalog',
+    ids.length === PLAN_A_CATALOG.length && PLAN_A_CATALOG.every((id) => ids.includes(id)),
+    `${ids.length} ids: ${ids.join(', ')}`
+  );
 
   let firstSlots = {};
-  for (const serviceId of PLAN_A) {
+  for (const serviceId of PLAN_A_BOOKABLE) {
     const avail = await getJson(
       `/api/public/booking-engine/availability?host=${encodeURIComponent(HOST)}&fromDate=${FROM}&toDate=${TO}&srvIds=${serviceId}`
     );
