@@ -13,6 +13,8 @@ Relaterat:
 
 ## 0. Kompass
 
+0.0. **Driftregel (låst):** `.com` ska använda **Cliento** (`ARCANA_PROVIDER=cliento`) tills CCO booking är **100 % klar och operatörssign-off**. Byt till `booking-engine` först efter explicit go-live — inte under utveckling/pilot.
+
 0.1. "Webbens roll är att fånga intentionen, Arcanas roll är att äga sanningen — gränsen mellan dem ska vara så smal att en patient inte märker den, men så tydlig att en operatör alltid vet vem som har bollen."
 
 0.2. Konkret: webben visar **läsbart** vad som finns ledigt, och **submittar** en lead med vald tid. CCO-operatören gör den verifierade reservationen.
