@@ -1485,6 +1485,41 @@
       min-height: 44px;
     }
 
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-metric-row,
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-toolbar,
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-mode-toggle {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      height: auto !important;
+      min-height: 100dvh;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-auth-card {
+      margin-top: 0.5rem;
+      padding: 1rem 0 1.25rem;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-login-form {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-login-field input {
+      min-height: 48px;
+      font-size: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-login-button {
+      width: 100%;
+      min-height: 48px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
     /* Fas G — kundlista mobil: kompakt header, hela sidan scrollar */
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
       .preview-canvas[data-app-shell-view="customers"]

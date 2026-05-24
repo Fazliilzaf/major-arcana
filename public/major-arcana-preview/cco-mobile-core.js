@@ -99,6 +99,10 @@
         forceUnlockBodyScroll();
         return;
       }
+      if (document.querySelector('[data-staff-login-form]')) {
+        forceUnlockBodyScroll();
+        return;
+      }
       const openCount = countOpenOverlays();
       if (openCount > 0 && scrollLockCount === 0) lockBodyScroll();
       if (openCount === 0 && scrollLockCount > 0) forceUnlockBodyScroll();
@@ -116,12 +120,36 @@
     syncLock();
   }
 
+  function restoreLoginButton(form) {
+    if (!form) return;
+    form.querySelector('.cco-mobile-sticky-cta-bar')?.remove();
+    const button = form.querySelector('.patient-master-login-button');
+    if (!button) return;
+    button.hidden = false;
+    button.removeAttribute('aria-hidden');
+    button.tabIndex = 0;
+    button.classList.remove('cco-mobile-sticky-cta-source');
+    delete form.dataset.ccoStickyCta;
+  }
+
+  function syncAuthMobileState() {
+    const loginForm = document.querySelector('[data-staff-login-form]');
+    if (loginForm && isMobile()) {
+      document.documentElement.setAttribute('data-cco-auth-required', 'on');
+      restoreLoginButton(loginForm);
+      forceUnlockBodyScroll();
+      return;
+    }
+    document.documentElement.removeAttribute('data-cco-auth-required');
+  }
+
   function enhanceStickyCtas() {
     if (!isMobile()) return;
 
+    syncAuthMobileState();
+
     const targets = document.querySelectorAll(
-      '[data-staff-login-form] .patient-master-login-button, ' +
-        '[data-tp-journal-save-form] [type="submit"], ' +
+      '[data-tp-journal-save-form] [type="submit"], ' +
         '[data-clinical-journal-save-form] [type="submit"], ' +
         '.booking-action-row .booking-action-primary, ' +
         '#cco-mobile-offer-wizard [data-mobile-offer-wizard-next]:not([hidden]), ' +
@@ -159,7 +187,11 @@
         event.preventDefault();
         const form = button.closest('form');
         if (form) {
-          form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+          if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit(button);
+          } else {
+            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+          }
           return;
         }
         button.hidden = false;
