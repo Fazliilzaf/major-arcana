@@ -111,10 +111,10 @@ async function verifyStaffMobileLogin(page) {
   }
 
   record('STAFF mobil login-form visas', true);
-  const loginForm = page.locator('[data-staff-login-form]').first();
-  await loginForm.locator('input[name="email"]').fill(staffEmail);
-  await loginForm.locator('input[name="password"]').fill(staffPassword);
-  const tenantInput = loginForm.locator('input[name="tenantId"]');
+  const loginFormFirst = loginForm.first();
+  await loginFormFirst.locator('input[name="email"]').fill(staffEmail);
+  await loginFormFirst.locator('input[name="password"]').fill(staffPassword);
+  const tenantInput = loginFormFirst.locator('input[name="tenantId"]');
   if (await tenantInput.isVisible()) {
     await tenantInput.fill(tenantId);
   } else {
