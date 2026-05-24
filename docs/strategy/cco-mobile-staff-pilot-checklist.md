@@ -1,5 +1,8 @@
 # CCO Mobil journal — Pilotchecklista (Fas 5.5–5.6 + UX sweep)
 
+> **Status 2026-05-20:** Fas 5.5–5.6 **uppskjuten** — automation smoke GO (`verify:staff-ui-prod`).  
+> Denna checklista körs vid behov när personal ska testa i fält; blockerar inte go-live.
+
 Produktion: **[https://arcana.hairtpclinic.se/staff?view=customers](https://arcana.hairtpclinic.se/staff?view=customers)**  
 Masterlista (en sida): [MASTER-TODO.md](./MASTER-TODO.md) · Notion: [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)  
 Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)  

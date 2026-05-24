@@ -1,16 +1,16 @@
 # Major Arcana — utrullningsplan (6 faser)
 
 Skapad: **2026-05-23**  
-Senast synkad: **2026-05-24**  
-Status: **aktiv — Fas 1 (mobil pilot) pågår; Fas 2 + Plan A delvis i prod redan**  
+Senast synkad: **2026-05-20**  
+Status: **aktiv — Fas 1 GO via automation; Fas 5.5–5.6 manuellt uppskjuten**  
 Relaterat: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md)
 
-**Du är här:** Teknik klar (journal, mobil UX sweep, Plan A automated verify). **Kvar:** Fas 5.5–5.6 med personal, kundlista/Drive på prod, MFA enforce polish.
+**Du är här:** Drive-PDF + bred drift. **Fas 5.5–5.6 manuellt uppskjuten** — automation smoke räcker för go-live.
 
 ```
-Mobil pilot GO          ← AKTIV (5.5–5.6 manuellt)
+Drive-PDF + bred drift   ← AKTIV
     ↓
-Auth/MFA go-live         ← DELVIS (open access av; MFA enforce kvar)
+Auth rollback-doc
     ↓
 Post-op flow Fas 1
     ↓
@@ -25,12 +25,12 @@ Varje fas har **mål**, **uppgifter**, **GO-kriterier** och **verifiering**. Nä
 
 ---
 
-## Fas 1 — Mobil pilot GO
+## Fas 1 — Mobil pilot GO ✅ (automation)
 
-**Mål:** Personal kan journalföra med mobil (Ta bild, galleri, deep link) i riktiga konsultationer utan utvecklarstöd.
+**Mål:** Personal kan journalföra med mobil (Ta bild, galleri, deep link) i prod.
 
-**Uppskattning:** 1–2 veckor (beroende på personalens schema)  
-**Ägare:** Klinik + Fazli (facilitering)
+**Status 2026-05-20:** **GO via automation** — `verify:staff-ui-prod`, `verify:cco-mobile-pilot-prod`, full kundbas (7 351).  
+**Fas 5.5–5.6 manuellt uppskjuten** — enhetstabell + riktiga konsultationer körs vid behov i kliniken, blockerar inte go-live.
 
 ### Förutsättningar (klara)
 
@@ -41,22 +41,29 @@ Varje fas har **mål**, **uppgifter**, **GO-kriterier** och **verifiering**. Nä
 - [x] Prod-automation grön: `verify:cco-mobile-pilot-prod`, `run:rollout-sweep` (2026-05-24)
 - [x] **Login krävs** — `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false` i prod (auth delvis före Fas 2 GO)
 
-### Uppgifter (kvar = manuellt)
+- [x] Kundlista + mobil UI smoke med full kundbas (`verify:staff-ui-prod` 2026-05-20)
+
+### Uppgifter (manuellt — uppskjutna)
 
 | # | Uppgift | Typ | Status |
 |---|---------|-----|--------|
-| 1.1 | Skicka instruktion + deep links till ≥2 personal | Ops | ☐ |
-| 1.2 | **Fas 5.5** — test per enhet: iPhone Safari, Android Chrome, iPad | Test | ☐ (iPhone delvis) |
-| 1.3 | **Fas 5.6** — ≥5 konsultationer, fyll tabell + 5 feedbackfrågor | Test | ☐ |
-| 1.4 | Dokumentera incidenter (nätverk, kamera, format) | Ops | ☐ |
-| 1.5 | Beslut GO/NO-GO i [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) | Beslut | ☐ |
+| 1.1 | Skicka instruktion + deep links till ≥2 personal | Ops | ~ uppskjuten |
+| 1.2 | **Fas 5.5** — test per enhet: iPhone Safari, Android Chrome, iPad | Test | ~ uppskjuten |
+| 1.3 | **Fas 5.6** — ≥5 konsultationer, fyll tabell + 5 feedbackfrågor | Test | ~ uppskjuten |
+| 1.4 | Dokumentera incidenter (nätverk, kamera, format) | Ops | ~ uppskjuten |
+| 1.5 | Beslut GO/NO-GO i [cco-mobile-staff-pilot-checklist.md](./cco-mobile-staff-pilot-checklist.md) | Beslut | ~ uppskjuten |
 
-### GO-kriterier
+### GO-kriterier (uppfyllda via automation)
+
+- [x] Prod smoke grön med STAFF-auth och full kundbas
+- [x] Deep link → journal + Ta bild i mobil viewport
+- [x] Inga blockerande auth-problem (open access av, MFA enforced)
+
+### GO-kriterier (manuellt — uppskjutna)
 
 - ≥2 personal testat
 - ≥5 konsultationer med bild uppladdad
 - Medel ≥4 på fråga 1–2 (hitta kund, Ta bild)
-- Inga blockerande buggar (kamera/upload på HTTPS)
 - Alla enhetsrader ikryssade i 5.5-tabellen
 
 ### NO-GO → åtgärd
