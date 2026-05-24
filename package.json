@@ -83,6 +83,7 @@
     "brief:field-pilot-staff": "bash ./scripts/print-field-pilot-staff-brief.sh",
     "verify:staff-ui-local": "ARCANA_PROD_URL=http://127.0.0.1:3100 ARCANA_SMOKE_BEARER_TOKEN=__preview_local__ node ./scripts/verify-staff-ui-prod.js",
     "verify:post-op-prod": "BASE=${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se} node ./scripts/verify-post-op-prod.mjs",
+    "verify:post-op-graph-prod": "BASE=${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se} node ./scripts/verify-post-op-graph-prod.mjs",
     "test:visual:mobile": "playwright test tests/visual/mobile-customers.spec.js --config=playwright.mobile.config.js",
     "verify:booking-plan-a-prod": "bash ./scripts/verify-booking-plan-a-prod.sh",
     "verify:booking-plan-a-e2e-prod": "BASE=${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se} node ./scripts/plan-a-verify-curl.mjs",
