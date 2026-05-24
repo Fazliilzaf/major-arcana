@@ -101,6 +101,9 @@ async function verifyStaffMobileLogin(page) {
     );
   }
 
+  const loginFormCount = await page.locator('[data-staff-login-form]').count();
+  record('STAFF mobil en login-form', loginFormCount === 1, loginFormCount === 1 ? '' : `${loginFormCount} st`);
+
   if (!staffEmail || !staffPassword) {
     record('STAFF mobil login-form visas', true);
     record('STAFF mobil UI-inloggning', false, 'saknar ARCANA_STAFF_* i .env');
@@ -108,9 +111,10 @@ async function verifyStaffMobileLogin(page) {
   }
 
   record('STAFF mobil login-form visas', true);
-  await page.locator('[data-staff-login-form] input[name="email"]').fill(staffEmail);
-  await page.locator('[data-staff-login-form] input[name="password"]').fill(staffPassword);
-  const tenantInput = page.locator('[data-staff-login-form] input[name="tenantId"]');
+  const loginForm = page.locator('[data-staff-login-form]').first();
+  await loginForm.locator('input[name="email"]').fill(staffEmail);
+  await loginForm.locator('input[name="password"]').fill(staffPassword);
+  const tenantInput = loginForm.locator('input[name="tenantId"]');
   if (await tenantInput.isVisible()) {
     await tenantInput.fill(tenantId);
   } else {
@@ -122,7 +126,7 @@ async function verifyStaffMobileLogin(page) {
     }
   }
   const started = Date.now();
-  await page.locator('[data-staff-login-form] .cco-mobile-sticky-cta-button, [data-staff-login-form] button[type="submit"]').first().click();
+  await page.locator('[data-staff-login-form]').first().locator('.cco-mobile-sticky-cta-button, button[type="submit"]').first().click();
   await page.waitForFunction(
     () => {
       const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || sessionStorage.getItem('ARCANA_ADMIN_TOKEN');
