@@ -189,9 +189,8 @@ async function main() {
     );
 
     // 4. Öppna testpatient (deep link)
-    t0 = Date.now();
     await page.goto(`${base}/staff?view=customers&patientId=${encodeURIComponent(patientId)}`, {
-      waitUntil: 'domcontentloaded',
+      waitUntil: 'commit',
       timeout: 60000,
     });
     const inlinePrimeMs = await page.evaluate(() => {
@@ -227,27 +226,54 @@ async function main() {
     }
     const skeletonMs = await page
       .waitForFunction(
-        () =>
-          document.documentElement.getAttribute('data-cco-patient-detail') === 'on' ||
-          document.querySelector('[data-patient-loading="true"]'),
+        () => {
+          const nav = performance.getEntriesByType('navigation')[0];
+          const ready =
+            document.documentElement.getAttribute('data-cco-patient-detail') === 'on' ||
+            document.querySelector('[data-patient-loading="true"]');
+          if (ready && nav) {
+            window.__ARCANA_DEEPLINK_SKELETON_MS__ = performance.now() - nav.startTime;
+          }
+          return ready;
+        },
         undefined,
         { timeout: 8000, polling: 16 }
       )
-      .then(() => ms(t0))
+      .then(() =>
+        page.evaluate(() => Math.round(Number(window.__ARCANA_DEEPLINK_SKELETON_MS__ || 0)))
+      )
       .catch(() => null);
     if (skeletonMs != null) {
-      record('Deep link skeleton/detail synlig', true, `${skeletonMs}ms till UI`, skeletonMs);
+      record('Deep link skeleton/detail synlig', skeletonMs <= 2500, `${skeletonMs}ms från navigation`, skeletonMs);
     }
-    await page.waitForFunction(
-      () => {
-        const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
-        const journalTab = document.querySelector('button[data-patient-tab="journal"]');
-        return Boolean(rt?.detail?.card) && !rt?.detailLoading && Boolean(journalTab);
-      },
-      undefined,
-      { timeout: 25000, polling: 16 }
+    const detailReadyMs = await page
+      .waitForFunction(
+        () => {
+          const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
+          const journalTab = document.querySelector('button[data-patient-tab="journal"]');
+          const ready =
+            Boolean(rt?.detail?.card) && !rt?.detailLoading && Boolean(journalTab);
+          if (ready) {
+            const nav = performance.getEntriesByType('navigation')[0];
+            if (nav) {
+              window.__ARCANA_DEEPLINK_DETAIL_READY_MS__ = performance.now() - nav.startTime;
+            }
+          }
+          return ready;
+        },
+        undefined,
+        { timeout: 25000, polling: 16 }
+      )
+      .then(() =>
+        page.evaluate(() => Math.round(Number(window.__ARCANA_DEEPLINK_DETAIL_READY_MS__ || 0)))
+      )
+      .catch(() => null);
+    record(
+      'Deep link → kunddetail klar',
+      detailReadyMs != null && detailReadyMs <= 5000,
+      patientId.slice(0, 8),
+      detailReadyMs
     );
-    record('Deep link → kunddetail klar', ms(t0) <= 5000, patientId.slice(0, 8), ms(t0));
 
     // 5. Journal-flik (Profil → Journal, mäts in-page)
     const journalTab = page.locator('button[data-patient-tab="journal"]').first();
