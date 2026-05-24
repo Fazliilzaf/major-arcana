@@ -73,6 +73,12 @@ After code changes always run:
 - `npm run test:unit`
 - `ARCANA_AI_PROVIDER=fallback ARCANA_GRAPH_READ_ENABLED=false ARCANA_GRAPH_SEND_ENABLED=false npm run smoke:local`
 
+### Prod-verify before user test (mandatory)
+
+- Never ask the user to test on prod, mobile, or real inbox until you have verified yourself (`npm run verify:*-prod`, Playwright iPhone viewport, `/readyz`, etc.).
+- Report your own PASS/FAIL results first; only then optionally ask the user to confirm on a physical device if automation cannot cover it.
+- See `.cursor/rules/prod-verify-before-user.mdc`.
+
 ## Screenshots
 
 - After every completed task with a visual or UI result, always capture and share at least one current screenshot of the relevant state before closing the task.
