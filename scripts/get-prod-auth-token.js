@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 /**
- * Skriv Bearer-token till stdout för prod API när open access är av.
+ * Skriv Bearer-token till stdout för prod API.
  * Default: STAFF. --owner: OWNER med MFA (.env).
+ * --force: logga alltid in även om open access är explicit på.
+ * --skip-if-open-access: returnera tom sträng endast om ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true i prod env.
  */
 require('dotenv').config({ quiet: true });
 
 const { buildMfaVerifyAttempts } = require('./lib/mfa-totp');
 
 const ownerMode = process.argv.includes('--owner');
+const forceMode = process.argv.includes('--force');
+const skipIfOpenAccess = process.argv.includes('--skip-if-open-access');
 const base = (process.env.ARCANA_PROD_URL || process.env.BASE_URL || 'https://arcana.hairtpclinic.se').replace(
   /\/+$/,
   ''
@@ -94,9 +98,34 @@ async function loginStaff() {
   return login.token;
 }
 
+function parseEnvBool(value) {
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase();
+  if (!normalized) return null;
+  if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) return false;
+  return null;
+}
+
+async function isStaffJournalOpenAccessExplicitOnProd() {
+  try {
+    const diag = await fetchJson('/api/v1/_diag/env');
+    const parsed = parseEnvBool(diag.env?.ARCANA_STAFF_JOURNAL_OPEN_ACCESS);
+    return parsed === true;
+  } catch {
+    return false;
+  }
+}
+
+async function shouldSkipTokenForOpenAccess() {
+  if (forceMode || ownerMode) return false;
+  if (!skipIfOpenAccess) return false;
+  return isStaffJournalOpenAccessExplicitOnProd();
+}
+
 async function main() {
-  const health = await fetchJson('/api/v1/health/journal-photos').catch(() => ({}));
-  if (health.staffJournalOpenAccess === true) {
+  if (await shouldSkipTokenForOpenAccess()) {
     return;
   }
 
