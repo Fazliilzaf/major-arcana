@@ -95,7 +95,11 @@ async function tapAndTime(page, selector, label, readyCheck) {
   const t0 = Date.now();
   const loc = page.locator(selector).first();
   await loc.waitFor({ state: 'visible', timeout: 15000 });
-  await loc.click({ timeout: 10000 });
+  // Native click i sidan — Playwrights syntetiska click väntar ofta 2–3 s på
+  // actionability/stabilitet i headless iPhone-läge trots att vår handler är ~10 ms.
+  await page.evaluate((sel) => {
+    document.querySelector(sel)?.click();
+  }, selector);
   if (typeof readyCheck === 'function') {
     try {
       await page.waitForFunction(readyCheck, undefined, { timeout: 8000 });
