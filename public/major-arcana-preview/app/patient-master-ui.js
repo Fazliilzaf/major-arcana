@@ -673,6 +673,14 @@
 
   function railHasPatientDetailUi() {
     const rail = document.querySelector('[data-patient-master-rail]');
+    return Boolean(
+      rail?.querySelector('[data-patient-detail]:not([data-patient-loading="true"])') ||
+        rail?.querySelector('button[data-patient-tab]')
+    );
+  }
+
+  function railHasPatientDetailShell() {
+    const rail = document.querySelector('[data-patient-master-rail]');
     return Boolean(rail?.querySelector('[data-patient-detail]'));
   }
 
@@ -3175,7 +3183,7 @@
         (runtime.detailLoading ||
           Boolean(runtime.detail?.card) ||
           patientDetailInflight.has(normalizeText(deepLinkId)) ||
-          railHasPatientDetailUi());
+          railHasPatientDetailShell());
       if (!preserveDetail) {
         renderDetailEmpty();
       }
@@ -3184,7 +3192,7 @@
         isMobileViewport() &&
         !runtime.detail?.card &&
         !patientDetailInflight.has(normalizeText(deepLinkId)) &&
-        !railHasPatientDetailUi()
+        !railHasPatientDetailShell()
       ) {
         runtime.selectedPatientId = deepLinkId;
         renderDetailLoadingSkeleton(deepLinkId);
@@ -3232,7 +3240,7 @@
       runtime.selectedPatientId = startup.patientId;
       runtime.preferJournalOnMobile = true;
       runtime.detailTab = 'journal';
-      if (!primedPatientId && !railHasPatientDetailUi()) {
+      if (!primedPatientId && !railHasPatientDetailShell()) {
         renderDetailLoadingSkeleton(startup.patientId);
       }
       if (!needsStaffLogin()) {
