@@ -191,6 +191,7 @@
       void refresh();
       sheetEl.querySelector('.cco-mobile-calendar-close')?.focus?.();
     } else {
+      window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
       window.ArcanaMobileShell?.syncFromApp?.();
     }
   }
