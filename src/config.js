@@ -403,6 +403,14 @@ const config = {
   journalPhotosDir: process.env.ARCANA_JOURNAL_PHOTOS_DIR
     ? String(process.env.ARCANA_JOURNAL_PHOTOS_DIR).trim()
     : path.join(stateRoot, 'journal-photos'),
+  journalPhotosBackupRetentionMaxFiles: asInt(
+    process.env.ARCANA_JOURNAL_PHOTOS_BACKUP_RETENTION_MAX_FILES,
+    14
+  ),
+  journalPhotosBackupRetentionMaxAgeDays: asInt(
+    process.env.ARCANA_JOURNAL_PHOTOS_BACKUP_RETENTION_MAX_AGE_DAYS,
+    30
+  ),
   capabilityAnalysisMaxEntries: asInt(process.env.ARCANA_CAPABILITY_ANALYSIS_MAX_ENTRIES, 15000),
   marketingCampaignDraftsPath: resolveStatePath({
     explicitPath: process.env.ARCANA_MARKETING_CAMPAIGN_DRAFTS_PATH,
@@ -866,6 +874,10 @@ const config = {
   ),
   schedulerReportIntervalHours: asInt(process.env.ARCANA_SCHEDULER_REPORT_INTERVAL_HOURS, 24),
   schedulerBackupIntervalHours: asInt(process.env.ARCANA_SCHEDULER_BACKUP_INTERVAL_HOURS, 24),
+  schedulerJournalPhotosBackupIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_JOURNAL_PHOTOS_BACKUP_INTERVAL_HOURS,
+    24
+  ),
   schedulerRestoreDrillIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_RESTORE_DRILL_INTERVAL_HOURS,
     168

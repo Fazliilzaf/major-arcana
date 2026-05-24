@@ -360,12 +360,17 @@ function createCcoJournalRouter({
           }
         }
 
+        const photoPayload = {
+          ...stored,
+          treatmentEncounterId: encounter?.encounterId || entry?.treatmentEncounterId || '',
+        };
+
         await auditJournal(actor, 'cco.journal.photo.upload', stored.photoId);
         return res.json({
           entry,
           encounter,
           readout: journalStore.buildJournalReadout(entry),
-          photo: stored,
+          photo: photoPayload,
         });
       })
   );

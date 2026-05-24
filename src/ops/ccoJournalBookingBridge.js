@@ -321,6 +321,17 @@ async function syncConsultationPhotoToEncounter({
     entryId: plan.entryId,
   });
 
+  if (journalStore && normalizeText(photo.photoId)) {
+    plan = await journalStore.patchConsultationPhotoEncounter({
+      tenantId,
+      patientId,
+      entryId: plan.entryId,
+      photoId: photo.photoId,
+      treatmentEncounterId: encounter.encounterId,
+      actor,
+    });
+  }
+
   return { encounter, plan, skipped: false };
 }
 

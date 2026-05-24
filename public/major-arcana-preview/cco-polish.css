@@ -4695,6 +4695,33 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   letter-spacing: 0.08em;
 }
 
+.patient-master-timeline-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.75rem;
+}
+
+.patient-master-timeline-filter {
+  appearance: none;
+  border: 1px solid rgba(139, 94, 60, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--warm-text-2, #374151);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.28rem 0.65rem;
+  cursor: pointer;
+}
+
+.patient-master-timeline-filter.is-active {
+  border-color: rgba(139, 94, 60, 0.42);
+  background: rgba(255, 244, 232, 0.95);
+  color: var(--warm-text, #0f172a);
+}
+
 .patient-master-history-segments {
   display: flex;
   flex-direction: column;
