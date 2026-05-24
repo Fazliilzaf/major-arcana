@@ -654,8 +654,11 @@
   }
 
   function renderDetailEmpty() {
-    if (!els.patientRail) return;
-    els.patientRail.innerHTML = `
+    resolveElements();
+    const rail = document.querySelector('[data-patient-master-rail]');
+    if (!rail) return;
+    els.patientRail = rail;
+    rail.innerHTML = `
       <section class="patient-master-card patient-master-card-empty">
         <h2>Välj en kund</h2>
         <p>Öppna ett kundkort i listan för profil, journal och importerade filer.</p>
@@ -665,12 +668,15 @@
   }
 
   function renderDetailLoadingSkeleton(patientId) {
-    if (!els.patientRail) return;
+    resolveElements();
+    const rail = document.querySelector('[data-patient-master-rail]');
+    if (!rail) return;
+    els.patientRail = rail;
     const cached = runtime.patients.find((row) => normalizeText(row?.patientId) === normalizeText(patientId));
     const displayName = cached?.displayName || 'Laddar kund…';
     const initials = String(displayName).slice(0, 2).toUpperCase();
     const journalActive = runtime.detailTab === 'journal' || runtime.preferJournalOnMobile;
-    els.patientRail.innerHTML = `
+    rail.innerHTML = `
       <section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">
         <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
           <div class="focus-customer-hero-main">
@@ -1956,7 +1962,10 @@
   }
 
   function renderDetailPanel() {
-    if (!els.patientRail) return;
+    resolveElements();
+    const rail = document.querySelector('[data-patient-master-rail]');
+    if (!rail) return;
+    els.patientRail = rail;
     if (runtime.detailLoading && !runtime.detail?.card) {
       renderDetailLoadingSkeleton(runtime.selectedPatientId);
       return;
@@ -1975,7 +1984,7 @@
     const filesActive = tab === 'filer';
     const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
 
-    els.patientRail.innerHTML = `
+    rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
         <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
           <div class="focus-customer-hero-main">
@@ -2200,21 +2209,7 @@
   }
 
   async function loadPatientDetailInternal(patientId) {
-    const debugMark = (phase) => {
-      try {
-        window.__DEBUG_PATIENT_LOAD__ = window.__DEBUG_PATIENT_LOAD__ || [];
-        window.__DEBUG_PATIENT_LOAD__.push({
-          phase,
-          patientId: normalizeText(patientId),
-          detailLoading: runtime.detailLoading,
-          card: Boolean(runtime.detail?.card),
-          t: Math.round(performance.now()),
-        });
-      } catch {
-        /* ignore */
-      }
-    };
-    debugMark('start');
+    resolveElements();
     if (!patientId || runtime.mode !== 'register') return;
     const openingNewPatient = runtime.selectedPatientId !== patientId;
     if (openingNewPatient) {
@@ -2249,17 +2244,13 @@
       if (payload) {
         delete window.__ARCANA_PATIENT_PREFETCH__;
       } else {
-        debugMark('api-wait');
         payload = await apiRequest(
           `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
         );
-        debugMark('api-done');
       }
       runtime.detail = payload;
       runtime.detailLoading = false;
-      debugMark('before-render');
       renderDetailPanel();
-      debugMark('after-render');
       if (isMobileViewport()) {
         void Promise.all([
           loadPatientCommercialCase(patientId),
@@ -2277,13 +2268,11 @@
         renderDetailPanel();
       }
     } catch (error) {
-      debugMark('error');
       runtime.detail = null;
       renderDetailEmpty();
       setStatus(error.message || 'Kunde inte läsa kundkortet.', 'error');
     } finally {
       runtime.detailLoading = false;
-      debugMark('finally');
       if (normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__) === normalizeText(patientId)) {
         delete window.__ARCANA_MOBILE_DEEPLINK_PRIME__;
       }
@@ -3125,9 +3114,6 @@
       }
       if (deepLinkId && isMobileViewport() && !runtime.detail?.card) {
         runtime.selectedPatientId = deepLinkId;
-        if (!runtime.detailLoading) {
-          runtime.detailLoading = true;
-        }
         if (!els.patientRail?.querySelector('[data-patient-loading="true"], [data-patient-detail]:not([data-patient-loading])')) {
           renderDetailLoadingSkeleton(deepLinkId);
         }
@@ -3163,7 +3149,6 @@
     }
     if (startup.patientId && isMobileViewport()) {
       runtime.selectedPatientId = startup.patientId;
-      runtime.detailLoading = true;
       runtime.preferJournalOnMobile = true;
       runtime.detailTab = 'journal';
       if (!primedPatientId) {
