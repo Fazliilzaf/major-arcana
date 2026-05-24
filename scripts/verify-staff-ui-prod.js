@@ -8,12 +8,18 @@ require('dotenv').config({ quiet: true });
 const { chromium, devices } = require('playwright');
 const { execSync } = require('node:child_process');
 const path = require('node:path');
+const {
+  openMobilePatientDeepLink,
+  waitForMobileShell,
+  waitForPatientDetailReady,
+} = require('./lib/mobile-patient-deeplink-prod');
+const { resolveSmokePatientId } = require('./lib/resolve-smoke-patient-prod');
 
 const base = (process.env.ARCANA_PROD_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://arcana.hairtpclinic.se').replace(
   /\/+$/,
   ''
 );
-const patientId = process.env.ARCANA_SMOKE_PATIENT_ID || '2e8d3535-cd89-418e-8b68-ca239f8836a4';
+const preferredPatientId = process.env.ARCANA_SMOKE_PATIENT_ID || '2e8d3535-cd89-418e-8b68-ca239f8836a4';
 const root = path.join(__dirname, '..');
 const isLocal =
   /^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?$/i.test(base) ||
@@ -52,85 +58,6 @@ function getStaffToken() {
     }
   }
   return '';
-}
-
-async function injectToken(page, token) {
-  await page.evaluate((t) => {
-    localStorage.setItem('ARCANA_ADMIN_TOKEN', t);
-    sessionStorage.setItem('ARCANA_ADMIN_TOKEN', t);
-  }, token);
-}
-
-async function waitForMobileShell(page, timeout = 30000) {
-  try {
-    await page.waitForFunction(
-      () => document.documentElement.getAttribute('data-cco-mobile-shell') === 'on',
-      undefined,
-      { timeout }
-    );
-  } catch {
-    await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
-    await page.waitForFunction(
-      () => document.documentElement.getAttribute('data-cco-mobile-shell') === 'on',
-      undefined,
-      { timeout: 15000 }
-    );
-  }
-}
-
-async function ensurePatientDetailLoaded(page, token, id) {
-  const isDetailReady = () =>
-    page.evaluate(
-      () =>
-        document.documentElement.getAttribute('data-cco-patient-detail') === 'on' &&
-        Boolean(document.querySelector('.patient-master-camera-button'))
-    );
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    if (await isDetailReady()) {
-      await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('journal'));
-      return;
-    }
-    await injectToken(page, token);
-    await page.evaluate((patientId) => {
-      const row = document.querySelector(`[data-patient-row="${patientId}"]`);
-      row?.click();
-      window.ArcanaPatientMasterUi?.setPatientTab?.('journal');
-    }, id);
-    try {
-      await page.waitForFunction(
-        () =>
-          document.documentElement.getAttribute('data-cco-patient-detail') === 'on' &&
-          Boolean(document.querySelector('.patient-master-camera-button')),
-        undefined,
-        { timeout: 15000 }
-      );
-      return;
-    } catch {
-      await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
-      await waitForMobileShell(page);
-    }
-  }
-}
-
-async function openCustomersWithPatient(page, token, id) {
-  const url = `${base}/staff?view=customers&patientId=${encodeURIComponent(id)}`;
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await injectToken(page, token);
-  await waitForMobileShell(page, 45000);
-  await page.waitForFunction(
-    () => {
-      const rt = window.ArcanaPatientMasterUi?.getRuntime?.();
-      const journalTab = document.querySelector('button[data-patient-tab="journal"]');
-      const detailReady =
-        Boolean(rt?.detail?.card) ||
-        document.documentElement.getAttribute('data-cco-patient-detail') === 'on';
-      return detailReady && !rt?.detailLoading && Boolean(journalTab);
-    },
-    undefined,
-    { timeout: 60000, polling: 16 }
-  );
-  await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('journal'));
 }
 
 async function verifyMobileShell(page) {
@@ -200,7 +127,7 @@ async function verifyPatientJournal(page) {
   record('Kund detail-läge', detailActive);
 }
 
-async function verifyListBackFlow(page) {
+async function verifyListBackFlow(page, patientId) {
   await page.evaluate(() => {
     window.ArcanaPatientMasterUi?.clearMobilePatientSelection?.();
   });
@@ -209,21 +136,19 @@ async function verifyListBackFlow(page) {
   const listVisible = await page.locator('[data-customer-list]').isVisible();
   record('Kundlista efter clear', listVisible);
 
-  const firstRow = page.locator('[data-patient-row]').first();
-  if (!(await firstRow.count())) {
+  await page.waitForSelector('[data-patient-row]', { timeout: 30000 }).catch(() => {});
+
+  const targetRow = page.locator(`[data-patient-row="${patientId}"]`).first();
+  const fallbackRow = page.locator('[data-patient-row]').first();
+  const row = (await targetRow.count()) ? targetRow : fallbackRow;
+  if (!(await row.count())) {
     warn('List→detail', 'ingen kundrad att klicka');
     return;
   }
 
-  await page.evaluate(() => {
-    document.querySelector('[data-patient-row]')?.click();
-  });
-  await page.waitForTimeout(800);
-
-  const detailAfterClick = await page.evaluate(() =>
-    document.documentElement.hasAttribute('data-cco-patient-detail')
-  );
-  record('List→detail efter klick', detailAfterClick);
+  await row.evaluate((node) => node.click());
+  const detailReady = await waitForPatientDetailReady(page, { timeout: 45000, patientId });
+  record('List→detail efter klick', detailReady);
 
   const backVisible = await page.evaluate(() => {
     const btn = document.getElementById('cco-mobile-back-button');
@@ -298,7 +223,7 @@ async function verifySettingsBottomSheet(page) {
 }
 
 async function verifyQueueChrome(page) {
-  await page.goto(`${base}/staff?view=conversations`, { waitUntil: 'networkidle', timeout: 90000 });
+  await page.goto(`${base}/staff?view=conversations`, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await waitForMobileShell(page);
 
   const filterToggle = await page.locator('[data-cco-queue-filter-toggle]').count();
@@ -322,7 +247,16 @@ async function main() {
     throw new Error('Saknar STAFF-token');
   }
 
+  if (!isLocal) {
+    execSync(`node "${path.join(root, 'scripts/lib/wait-for-prod-ready.js')}"`, { stdio: 'inherit' });
+  }
+
+  const patientId = isLocal
+    ? preferredPatientId
+    : await resolveSmokePatientId({ base, token, preferredId: preferredPatientId });
+
   console.log(`Base: ${base}${isLocal ? ' (lokal)' : ' (prod)'}`);
+  console.log(`Patient: ${patientId.slice(0, 8)}…`);
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -340,12 +274,12 @@ async function main() {
   const page = await context.newPage();
 
   try {
-    await openCustomersWithPatient(page, token, patientId);
+    await openMobilePatientDeepLink(page, { base, patientId, token, warmSession: true });
     console.log(`URL: ${page.url()}`);
 
     await verifyMobileShell(page);
     await verifyPatientJournal(page);
-    await verifyListBackFlow(page);
+    await verifyListBackFlow(page, patientId);
     await verifySettingsBottomSheet(page);
     await verifyQueueChrome(page);
   } finally {
