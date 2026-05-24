@@ -37,9 +37,10 @@ bash ./scripts/verify-auth-go-live-prod.sh || true
 npm run verify:graph-read-prod 2>&1 || warn "Graph read prod verify"
 npm run verify:cco-mail-start-prod 2>&1 || warn "CCO mail-start prod verify"
 
-section "Fas 3 — Post-op Fas 1 (unit)"
+section "Fas 3 — Post-op Fas 1 (unit + prod)"
 node --test tests/capabilities/requestPostOpReview.test.js
 pass "RequestPostOpReview unit tests"
+npm run verify:post-op-graph-prod 2>&1 | tail -12 || warn "post-op Graph send prod (verify-post-op-graph-prod.mjs)"
 BASE="${BASE}" node ./scripts/verify-post-op-prod.mjs 2>&1 | tail -14 || warn "post-op prod smoke (verify-post-op-prod.mjs)"
 
 section "Fas 4 — Compliance (unit)"

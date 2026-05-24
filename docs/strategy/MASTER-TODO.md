@@ -38,7 +38,7 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 
 | # | Uppgift | Vem | Status |
 |---|---------|-----|--------|
-| 10 | Post-op Fas 1 — 4 beslut + Graph send live + Playwright smoke | Du + Agent | ☐ |
+| 10 | Post-op Fas 1 — Playwright smoke `/uppfoljning/[token]` prod | Agent | ☐ |
 | 13 | Pipedrive People+Deals export | Agent | ☐ |
 | 14 | Plan A valfritt: Resend patient-mail + bokning→journal koppling | Agent | ☐ |
 
@@ -56,6 +56,7 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 - [x] Migration + avtal + journal kod prod
 - [x] PDL juridiskt signerat / extern granskning (2026-05-24)
 - [x] Render EU Frankfurt verifierad i Dashboard (2026-05-24)
+- [x] Post-op Fas 1 — 4 beslut + Graph send live (`verify:post-op-graph-prod`, 2026-05-24)
 
 ---
 
