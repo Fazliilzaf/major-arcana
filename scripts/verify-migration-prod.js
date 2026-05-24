@@ -34,8 +34,7 @@ function record(name, pass, detail = '') {
 
 function getStaffToken() {
   if (process.env.ARCANA_SMOKE_BEARER_TOKEN) return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
-  if (process.env.ARCANA_OWNER_TOKEN) return process.env.ARCANA_OWNER_TOKEN.trim();
-  return execSync(`node "${path.join(__dirname, 'get-prod-auth-token.js')}"`, {
+  return execSync(`node "${path.join(__dirname, 'get-prod-auth-token.js')}" --owner`, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim();

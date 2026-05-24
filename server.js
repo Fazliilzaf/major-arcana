@@ -1950,6 +1950,7 @@ process.once('SIGTERM', () => {
       journalStore: ccoJournalStore,
       journalPhotoStore: ccoJournalPhotoStore,
       patientMasterStore: ccoPatientMasterStore,
+      treatmentEncounterStore: ccoTreatmentEncounterStore,
       migrationIndexStore: ccoMigrationIndexStore,
       patientSystemStore: ccoPatientSystemStore,
       authStore,
