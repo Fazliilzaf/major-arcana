@@ -1,0 +1,24 @@
+---
+description: Verifiera prod själv innan användaren ombeds testa
+alwaysApply: true
+---
+
+# Prod-verify före användartest
+
+**Aldrig** be användaren testa, verifiera, "kolla inkorgen", "prova på iPhone" eller liknande förrän du själv har kontrollerat på prod (eller motsvarande målmiljö).
+
+## Obligatoriskt före "testa hos dig"
+
+1. Kör relevant `npm run verify:*-prod`, Playwright @ iPhone-viewport, `curl /readyz`, eller annan automatisk kontroll som täcker felet.
+2. Bekräfta att deploy är live (t.ex. asset-hash, `readyz`, förväntat API-svar).
+3. Rapportera **egna verify-resultat** (PASS/FAIL + kort detalj) i svaret.
+
+## När användaren får testa
+
+- Endast efter egna checks är gröna, **eller**
+- När något kräver fysisk enhet/inloggning du saknar (t.ex. riktig STAFF-lösenord, SMS, passkey) — då ska du säga exakt vad **du redan verifierat** och vad som **bara** användaren kan bekräfta.
+
+## Formulering
+
+- ❌ "Testa på iPhone och säg till om scroll funkar."
+- ✅ "Prod-verify: scroll PASS på `/staff?view=customers` (492px scrollRoom). Testa gärna på din iPhone om du vill dubbelkolla känslan."
