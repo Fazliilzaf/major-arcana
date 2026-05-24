@@ -54,7 +54,8 @@ Spåren **delar prod** (`arcana.hairtpclinic.se`), **Render env**, och **STAFF/O
 |---|---------|--------|---------|
 | B1 | **Prod deploy** — catalog = 3 services (ej legacy 9) | M | Render deploy |
 | B2 | **Prod curl** — `BASE=https://arcana.hairtpclinic.se node scripts/plan-a-verify-curl.mjs` | S | B1 |
-| B3 | **Resend live** — `RESEND_API_KEY` + verify patient/operator mail | S | Render env |
+| B3 | **Graph send live** — bokningsbekräftelse | S | ✅ `verify:booking-mail-prod` |
+| B3b | **Resend separat domän** — `notifications.hairtpclinic.com` | S | DNS + `verify:resend-domain-prod` |
 | B4 | **Webb E2E** — Vercel `ARCANA_PROVIDER=booking-engine`, mobil A1 + desktop A2/A3 | M | hairtpclinic-web deploy |
 | B5 | **Operator sign-off** — 1 confirm per mötestyp i CCO; fyll sprint-0 log | M | Personal |
 
@@ -74,11 +75,11 @@ Spåren **delar prod** (`arcana.hairtpclinic.se`), **Render env**, och **STAFF/O
 
 | # | Uppgift | Effort | Blocker |
 |---|---------|--------|---------|
-| C1 | **Drive API scan** — `npm run migration:scan-drive-api` | M | Google service account |
-| C2 | **Bulk journal import** — `migration:import-journals` | L | C1 |
-| C3 | **Spot-check script** — ≥20 kunder index ↔ patient master | S | — |
-| C4 | **SharePoint archive sync** — `bash scripts/sync-sharepoint-archive.sh` | S | — |
-| C5 | **PDL + EU region** — uppdatera `pdl-mdr-assessment.md`, dokumentera Frankfurt | M | Manuell compliance |
+| C1 | **Drive API scan** — `npm run migration:scan-drive-api` | M | ✅ preflight + verify-only |
+| C2 | **Bulk journal import** — `migration:import-journals` | L | ✅ `migration:run-bulk` |
+| C3 | **Spot-check script** — ≥20 kunder index ↔ patient master | S | ✅ |
+| C4 | **SharePoint archive sync** — `npm run migration:sync-sharepoint` | S | ✅ verify script |
+| C5 | **PDL + EU region** — `pdl-mdr-assessment.md` §6 Frankfurt | M | ✅ |
 
 **Manuellt kvar:** PRP-mall i SharePoint, OneNote CCO-design, Pipedrive-export.
 

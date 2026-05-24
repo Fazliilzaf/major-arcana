@@ -11,6 +11,9 @@ const PLAN_A_PUBLIC_SERVICE_IDS = [
   'followup-transplant',
 ];
 
+/** Plan A web — läkare/konsulter som får synas i publik katalog (ej sjuksköterskor). */
+const PLAN_A_PUBLIC_RESOURCE_IDS = ['fazli', 'egzona', 'arya'];
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -97,13 +100,37 @@ function defaultState() {
     // De syns INTE på publik Team-sida (interna) — bara i operator-CCO-vyn.
     // Back-office (Måns, Felix, Britt-louise) är aldrig patient-bokningsbara.
     resources: [
-      { id: 'fazli', label: 'Fazli Krasniqi', active: true },
-      { id: 'egzona', label: 'Egzona Krasniqi', active: true },
-      { id: 'arya', label: 'Dr. Arya Emami', active: true },
-      { id: 'veronica', label: 'Veronica', active: true },
-      { id: 'clara', label: 'Clara', active: true },
-      { id: 'wendela', label: 'Wendela', active: true },
-      { id: 'louise', label: 'Louise', active: true },
+      { id: 'fazli', label: 'Fazli Krasniqi', active: true, publicBookable: true },
+      { id: 'egzona', label: 'Egzona Krasniqi', active: true, publicBookable: true },
+      { id: 'arya', label: 'Dr. Arya Emami', active: true, publicBookable: true },
+      {
+        id: 'veronica',
+        label: 'Veronica',
+        active: true,
+        publicBookable: false,
+        role: 'Sjuksköterska',
+      },
+      {
+        id: 'clara',
+        label: 'Clara',
+        active: true,
+        publicBookable: false,
+        role: 'Sjuksköterska',
+      },
+      {
+        id: 'wendela',
+        label: 'Wendela',
+        active: true,
+        publicBookable: false,
+        role: 'Sjuksköterska',
+      },
+      {
+        id: 'louise',
+        label: 'Louise',
+        active: true,
+        publicBookable: false,
+        role: 'Sjuksköterska',
+      },
     ],
     // Plan A (go-live): tre publika mötestyper. Övriga tjänster inaktiva tills vidare.
     services: [
@@ -563,10 +590,14 @@ function normalizeResource(input = {}) {
   const safe = asObject(input);
   const id = normalizeText(safe.id);
   if (!id) return null;
+  const publicBookable =
+    safe.publicBookable === true || PLAN_A_PUBLIC_RESOURCE_IDS.includes(id);
   return {
     id,
     label: normalizeText(safe.label || safe.name || id),
     active: safe.active !== false,
+    publicBookable,
+    role: normalizeText(safe.role) || undefined,
   };
 }
 
@@ -858,16 +889,28 @@ async function createCcoBookingEngineStore({ filePath }) {
     resIds = '',
     srvIds = '',
     excludeConversationId = '',
+    publicOnly = false,
   } = {}) {
     await expireStaleReservations();
     const tenant = normalizeText(tenantId);
     if (!tenant) throw new Error('tenantId krävs för booking engine availability.');
-    const resourceIds = normalizeText(resIds)
+    let resourceIds = normalizeText(resIds)
       ? normalizeText(resIds)
           .split(',')
           .map((item) => item.trim())
           .filter(Boolean)
       : [];
+    if (!resourceIds.length && publicOnly === true) {
+      resourceIds = state.resources
+        .filter(
+          (item) =>
+            item.active !== false &&
+            (item.publicBookable === true ||
+              PLAN_A_PUBLIC_RESOURCE_IDS.includes(normalizeText(item.id)))
+        )
+        .map((item) => normalizeText(item.id))
+        .filter(Boolean);
+    }
     const serviceIds = normalizeText(srvIds)
       ? normalizeText(srvIds)
           .split(',')
@@ -1274,6 +1317,20 @@ async function createCcoBookingEngineStore({ filePath }) {
               PLAN_A_PUBLIC_SERVICE_IDS.includes(normalizeText(item.id)))
         )
       ),
+    listPublicResources: async () =>
+      clone(
+        state.resources.filter(
+          (item) =>
+            item.active !== false &&
+            (item.publicBookable === true ||
+              PLAN_A_PUBLIC_RESOURCE_IDS.includes(normalizeText(item.id)))
+        )
+      ),
+    listPublicAvailability: async (input = {}) =>
+      listAvailability({
+        ...input,
+        publicOnly: true,
+      }),
     _state: state,
   };
 }
@@ -1281,4 +1338,5 @@ async function createCcoBookingEngineStore({ filePath }) {
 module.exports = {
   createCcoBookingEngineStore,
   PLAN_A_PUBLIC_SERVICE_IDS,
+  PLAN_A_PUBLIC_RESOURCE_IDS,
 };

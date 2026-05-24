@@ -26,10 +26,11 @@ fetch('https://api.resend.com/emails', {
   method: 'POST',
   headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    from: process.env.RESEND_FROM || 'contact@hairtpclinic.com',
+    from: process.env.RESEND_FROM || 'Hair TP Clinic <booking@notifications.hairtpclinic.com>',
     to: process.env.OPERATOR_NOTIFY_TO || 'contact@hairtpclinic.com',
     subject: '[Arcana] Resend go-live smoke',
-    html: '<p>Resend live på Render — smoke OK.</p>',
+    html: '<p>Resend live på Render — separat domän smoke OK.</p>',
+    reply_to: process.env.RESEND_REPLY_TO || 'contact@hairtpclinic.com',
   }),
 }).then(r => r.json().then(j => { console.log(r.status, j.id ? 'OK id='+j.id : JSON.stringify(j)); process.exit(r.ok?0:1); }));
 " && echo "✅ Resend API smoke OK"

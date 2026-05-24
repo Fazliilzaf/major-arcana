@@ -16,6 +16,7 @@ function parseArgs(argv) {
     indexPath: path.join(process.cwd(), 'data', 'migration-index.json'),
     includeImages: false,
     limitPatients: 0,
+    dryRun: false,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
@@ -25,6 +26,7 @@ function parseArgs(argv) {
     else if (token === '--index') args.indexPath = argv[++i];
     else if (token === '--include-images') args.includeImages = true;
     else if (token === '--limit') args.limitPatients = Number(argv[++i]) || 0;
+    else if (token === '--dry-run') args.dryRun = true;
   }
   return args;
 }
@@ -67,6 +69,32 @@ async function main() {
   console.log(
     `Importerar historik för ${patients.length} patienter (${Object.keys(filesByPersonnummer).length} personnummer i index)…`
   );
+
+  if (args.dryRun) {
+    let wouldCreate = 0;
+    let wouldTouch = 0;
+    for (const patient of patients) {
+      const pnr = normalizePersonnummer(patient.personnummer);
+      const files = filesByPersonnummer[pnr] || [];
+      if (!files.length) continue;
+      wouldTouch += 1;
+      wouldCreate += files.length;
+    }
+    console.log('\n=== DRY-RUN (ingen skrivning) ===');
+    console.log(
+      JSON.stringify(
+        {
+          patientsEligible: patients.length,
+          patientsWithFiles: wouldTouch,
+          filesWouldImport: wouldCreate,
+          includeImages: args.includeImages,
+        },
+        null,
+        2
+      )
+    );
+    return;
+  }
 
   const startedAt = Date.now();
   const result = await journalStore.importHistoricalForPatients({

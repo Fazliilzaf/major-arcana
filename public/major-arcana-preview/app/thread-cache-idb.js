@@ -4,6 +4,8 @@
  * worklist-threads.
  * Fas 50 (2026-05-20): Scope-aware cache — varje mejlurval får egen nyckel
  * (Mail filtrerar lokalt utan ny nätverks-sync).
+ * Fas 51 (2026-05-20): DB v2 — workspace snapshot (tråd + lane + mailboxscope)
+ * sparas tillsammans med threads för cold boot utan sessionStorage.
  *
  * Varför IndexedDB och inte localStorage:
  *  - localStorage är SYNKRON och blockerar main-thread vid läs/skriv. Fas 40
@@ -12,8 +14,8 @@
  *    blockering. Exakt det Apple Mail gör (SQLite på disk).
  *
  * Användning:
- *   await window.CcoThreadCache.saveThreads(threads, { mailboxIds })
- *   const cached = await window.CcoThreadCache.loadThreads({ mailboxIds })
+ *   await window.CcoThreadCache.saveThreads(threads, { mailboxIds, workspace })
+ *   const cached = await window.CcoThreadCache.loadCacheEntry({ mailboxIds })
  *   await window.CcoThreadCache.clearThreads()
  *
  * Cachen är per-origin (delas inte mellan kliniker). TTL 24h. Max 120 trådar
@@ -23,7 +25,7 @@
   'use strict';
 
   const DB_NAME = 'ccoThreadCache';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORE = 'threads';
   const LEGACY_KEY = 'worklist';
   const TTL_MS = 24 * 60 * 60 * 1000; // 24h
@@ -121,6 +123,27 @@
     }
   }
 
+  function normalizeWorkspaceSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return null;
+    try {
+      const copy = JSON.parse(JSON.stringify(snapshot));
+      if (!copy || typeof copy !== 'object') return null;
+      copy.version = 2;
+      return copy;
+    } catch (_e) {
+      return null;
+    }
+  }
+
+  function hasWorkspaceSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return false;
+    if (String(snapshot.selectedThreadId || '').trim()) return true;
+    if (String(snapshot.activeLaneId || 'all').trim() !== 'all') return true;
+    if (Array.isArray(snapshot.mailboxscope) && snapshot.mailboxscope.length) return true;
+    if (String(snapshot.selectedOwnerKey || 'all').trim() !== 'all') return true;
+    return false;
+  }
+
   /**
    * Spara threads. Fire-and-forget — caller behöver inte await:a.
    */
@@ -129,6 +152,7 @@
     const scopeKey = buildScopeKey(options.mailboxIds);
     const safe = safeCopyThreads(threads);
     if (!safe) return Promise.resolve(false);
+    const workspace = normalizeWorkspaceSnapshot(options.workspace);
 
     return openDb()
       .then((db) => {
@@ -139,8 +163,10 @@
             const payload = {
               key: scopeKey,
               ts: Date.now(),
+              dbVersion: DB_VERSION,
               threads: safe,
               lastEnrichedAt: String(options.lastEnrichedAt || '').trim(),
+              workspace,
             };
             store.put(payload);
             // Bakåtkompatibilitet + snabb boot utan scope: behåll legacy-nyckel.
@@ -148,8 +174,10 @@
               store.put({
                 key: LEGACY_KEY,
                 ts: Date.now(),
+                dbVersion: DB_VERSION,
                 threads: safe,
                 lastEnrichedAt: String(options.lastEnrichedAt || '').trim(),
+                workspace,
               });
             }
             tx.oncomplete = () => resolve(true);
@@ -158,6 +186,26 @@
           } catch (_e) {
             resolve(false);
           }
+        });
+      })
+      .catch(() => false);
+  }
+
+  function saveWorkspaceSnapshot(workspace, options = {}) {
+    const normalized = normalizeWorkspaceSnapshot(workspace);
+    if (!normalized || !hasWorkspaceSnapshot(normalized)) {
+      return Promise.resolve(false);
+    }
+    const scopeKey = buildScopeKey(options.mailboxIds);
+    return openDb()
+      .then(async (db) => {
+        const existing = (await readEntry(db, scopeKey)) || {};
+        const threads = Array.isArray(existing.threads) ? existing.threads : [];
+        if (!threads.length) return false;
+        return saveThreads(threads, {
+          mailboxIds: options.mailboxIds,
+          lastEnrichedAt: options.lastEnrichedAt || existing.lastEnrichedAt,
+          workspace: normalized,
         });
       })
       .catch(() => false);
@@ -202,6 +250,12 @@
     );
   }
 
+  function loadWorkspaceSnapshot(options = {}) {
+    return loadCacheEntry(options).then((entry) =>
+      entry && entry.workspace && typeof entry.workspace === 'object' ? entry.workspace : null
+    );
+  }
+
   function clearThreads() {
     return openDb()
       .then(
@@ -222,11 +276,15 @@
 
   if (typeof window !== 'undefined') {
     window.CcoThreadCache = Object.freeze({
+      DB_VERSION,
       buildScopeKey,
       saveThreads,
+      saveWorkspaceSnapshot,
       loadThreads,
       loadCacheEntry,
+      loadWorkspaceSnapshot,
       clearThreads,
+      hasWorkspaceSnapshot,
     });
   }
 })();

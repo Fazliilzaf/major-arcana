@@ -14,9 +14,11 @@ ARCANA_GRAPH_CLIENT_SECRET=<från Azure Portal → Certificates & secrets>
 # ARCANA_GRAPH_CLIENT_ID=13adfc91-69ab-4c35-ac80-b52ebba7e09f
 # ARCANA_GRAPH_USER_ID=fazli@hairtpclinic.com
 
-# Resend (valfritt — Graph send räcker för bokningsbekräftelse)
+# Resend (B3b — separat domän, valfritt; Graph send räcker för B3)
 # RESEND_API_KEY=re_...
-# RESEND_FROM=contact@hairtpclinic.com
+# RESEND_DOMAIN=notifications.hairtpclinic.com
+# RESEND_FROM=Hair TP Clinic <booking@notifications.hairtpclinic.com>
+# RESEND_REPLY_TO=contact@hairtpclinic.com
 # OPERATOR_NOTIFY_TO=contact@hairtpclinic.com
 ```
 
@@ -65,5 +67,5 @@ med `metadata.provider: "graph"` (eller `"resend"` om nyckel finns) — inte `�
 
 Efter lyckad prod-verify: sätt `ARCANA_GRAPH_READ_ENABLED` och `ARCANA_GRAPH_SEND_ENABLED` till `"true"` i `render.yaml` och push så blueprint matchar runtime.
 
-**Resend** är **valfritt** — deklareras medvetet **utanför** `render.yaml` (UI-managed).  
+**Resend (B3b)** är **valfritt** — separat subdomän, se [resend-domain-go-live.md](./resend-domain-go-live.md).  
 Bokningsbekräftelse går via Microsoft Graph (`transactionalMailer`) när `ARCANA_GRAPH_SEND_ENABLED=true`.

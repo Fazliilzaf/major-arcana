@@ -45,7 +45,11 @@ test('transactionalMailer uses Resend when RESEND_API_KEY is set', async () => {
 
 test('transactionalMailer falls back to Graph when Resend is not configured', async () => {
   const prev = process.env.RESEND_API_KEY;
+  const prevGraphUser = process.env.ARCANA_GRAPH_USER_ID;
+  const prevGraphDefault = process.env.ARCANA_GRAPH_DEFAULT_SENDER;
   delete process.env.RESEND_API_KEY;
+  delete process.env.ARCANA_GRAPH_USER_ID;
+  delete process.env.ARCANA_GRAPH_DEFAULT_SENDER;
 
   const graphSendConnector = {
     async sendNewMessage(input) {
@@ -70,6 +74,10 @@ test('transactionalMailer falls back to Graph when Resend is not configured', as
   } finally {
     if (prev === undefined) delete process.env.RESEND_API_KEY;
     else process.env.RESEND_API_KEY = prev;
+    if (prevGraphUser === undefined) delete process.env.ARCANA_GRAPH_USER_ID;
+    else process.env.ARCANA_GRAPH_USER_ID = prevGraphUser;
+    if (prevGraphDefault === undefined) delete process.env.ARCANA_GRAPH_DEFAULT_SENDER;
+    else process.env.ARCANA_GRAPH_DEFAULT_SENDER = prevGraphDefault;
   }
 });
 

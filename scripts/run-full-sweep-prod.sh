@@ -48,6 +48,11 @@ section "3 — Booking Plan A + mail + webb E2E + operatör sign-off"
 npm run verify:booking-plan-a-prod 2>&1 || warn "verify:booking-plan-a-prod"
 BASE="${BASE}" node ./scripts/plan-a-verify-curl.mjs 2>&1 | tail -10 || warn "plan-a-verify-curl"
 npm run verify:booking-mail-prod 2>&1 || warn "verify:booking-mail-prod"
+if node -e "require('dotenv').config({quiet:true}); process.exit((process.env.RESEND_API_KEY||'').trim()?0:1)" 2>/dev/null; then
+  npm run verify:resend-domain-prod 2>&1 || warn "verify:resend-domain-prod"
+else
+  warn "B3b Resend — RESEND_API_KEY saknas lokalt (Graph täcker B3)"
+fi
 npm run verify:booking-web-e2e-prod 2>&1 || warn "verify:booking-web-e2e-prod"
 npm run verify:booking-operator-signoff-prod 2>&1 || warn "verify:booking-operator-signoff-prod"
 
@@ -69,15 +74,16 @@ section "6 — Unit / CMO / migration"
 node --test tests/ops/cmoPhaseV3Sweep.test.js 2>&1 | tail -5 || warn "cmo sweep tests"
 npm run verify:cmo-connectors-prod 2>&1 || warn "verify:cmo-connectors-prod"
 npm run migration:spot-check 2>&1 || warn "migration spot-check"
+npm run verify:sharepoint-archive 2>&1 || warn "verify:sharepoint-archive"
+npm run verify:migration-prod 2>&1 || warn "verify:migration-prod"
 
 section "7 — Rollout sweep (övriga faser)"
 npm run run:rollout-sweep 2>&1 | tail -20 || warn "run:rollout-sweep"
 
 section "8 — Manuella spår (ej auto)"
-warn "C1–C5 migration — Google/SharePoint/compliance"
-warn "A5 IDB snapshot — nästa sprint"
-warn "E3–E5 bridge — design/Cloudflare"
-warn "B3b Resend — valfritt (Graph send täcker bokningsmail)"
+warn "C1 Drive scan på prod — kräver Google service account + Render env"
+warn "C2 bulk journalimport på prod data volume — efter C1"
+warn "B3b Resend live på prod — npm run provision:resend-go-live-prod efter DNS verify"
 
 section "Sammanfattning"
 if [[ "$FAIL" -eq 0 ]]; then

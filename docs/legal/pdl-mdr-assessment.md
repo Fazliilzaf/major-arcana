@@ -162,6 +162,42 @@ Arcana riskerar att klassificeras som medicinteknisk produkt om:
 
 ---
 
+## 6. EU/EES datalagring och driftregion (C5)
+
+### 6.1 Produktionsmiljö
+
+| Komponent | Leverantör | Region | Data |
+| --------- | ---------- | ------ | ---- |
+| Arcana API + state | Render.com | **Frankfurt (eu-central)** | Patient master, journal metadata, migration-index, auth |
+| Journalbilder (konsultation) | Render persistent disk | **Frankfurt** | `/var/data/arcana/journal-photos` |
+| Transactionell mail | Microsoft Graph / Resend | EU/EES (Graph tenant) | Bokningsbekräftelser |
+| Webb (hairtpclinic.com) | Vercel | Edge (ingen journal persist) | Lead-formulär → Arcana API |
+
+**Verifiering:** Render Dashboard → Service → Region = Frankfurt. Backup: `npm run backup:state` + `npm run backup:journal-photos`.
+
+### 6.2 Källor utanför Arcana runtime
+
+| Källa | Plats | Arcana-koppling |
+| ----- | ----- | ---------------- |
+| Google Drive (journalarkiv) | Google Cloud (EU-policy enligt klinikens Workspace) | Read-only API → `migration-index.json` (referenser, ej full filkopia) |
+| SharePoint (mallar) | Microsoft 365 | Ersatt av GitHub source of truth + `docs/migration/sharepoint-manifest.json` |
+| Cliento CSV | `MA-Archive/cliento/` | Engångsimport → patient master |
+
+### 6.3 Personuppgiftsbiträde och underleverantörer
+
+- **Render** — hosting (DPA via Render)
+- **Microsoft** — Graph mail, M365 (DPA via tenant)
+- **Google** — Drive read-only för migration (service account, ingen write-back)
+- **Vercel** — statisk webb + `/api/lead` proxy (ingen journaldata persist)
+
+### 6.4 Transfer impact assessment (förenklad)
+
+Webb-leads och bokningar skickas från Vercel (global edge) till Arcana Frankfurt — personuppgifter i transit (TLS 1.2+). Journalhistorik indexeras från Drive utan att ladda ner zip till operatörs dator; filreferenser (`driveFileId`, `webViewLink`) lagras i Arcana.
+
+**Status C5:** Dokumenterad 2026-05-20. Juridisk sign-off av DPA + registerföring kvar hos klinik.
+
+---
+
 ## Relaterade dokument
 
 - `docs/legal/gdpr-dpa-template.md` — DPA-mall

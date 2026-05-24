@@ -545,6 +545,7 @@ const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
+const { createPublicWebEventsRouter } = require('./src/routes/publicWebEvents');
 const { createMarketingConnectorBridgeRouter } = require('./src/routes/marketingConnectorBridge');
 const { createCmoConnectorHealthStateStore } = require('./src/ops/cmoConnectorHealthState');
 const { createPostOpReviewStore } = require('./src/ops/postOpReviewStore');
@@ -564,6 +565,7 @@ const { waitForPersistentRoot } = require('./src/ops/persistentDir');
 const { createSecretRotationStore } = require('./src/ops/secretRotationStore');
 const { createRuntimeMetricsStore } = require('./src/ops/runtimeMetrics');
 const { createPatientConversionStore } = require('./src/ops/patientConversionStore');
+const { createWebBridgeAuditStore } = require('./src/ops/webBridgeAuditStore');
 const { createCcoHistoryStore } = require('./src/ops/ccoHistoryStore');
 const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore');
 const { createMessageIntelligenceStore } = require('./src/ops/messageIntelligenceStore');
@@ -1422,6 +1424,9 @@ process.once('SIGTERM', () => {
     maxEvents: config.patientSignalMaxEvents,
     retentionDays: config.patientSignalRetentionDays,
   });
+  const webBridgeAuditStore = await createWebBridgeAuditStore({
+    filePath: config.webBridgeAuditStorePath,
+  });
   const executionGateway = createExecutionGateway({
     buildVersion: process.env.npm_package_version || 'dev',
     runtimeBackend: gatewayRuntimeBackend,
@@ -1510,6 +1515,15 @@ process.once('SIGTERM', () => {
       bookingStore: ccoBookingStore,
       config,
       graphSendConnector,
+    })
+  );
+
+  app.use(
+    '/api',
+    createPublicWebEventsRouter({
+      executionGateway,
+      webBridgeAuditStore,
+      config,
     })
   );
 

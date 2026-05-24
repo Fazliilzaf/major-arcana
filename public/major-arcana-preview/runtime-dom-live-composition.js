@@ -184,6 +184,8 @@
       captureRuntimeReentrySnapshot: captureRuntimeReentrySnapshotState,
       getRuntimeReentryOutcome: getRuntimeReentryOutcomeState,
       getRuntimeReentrySnapshot: getRuntimeReentrySnapshotState,
+      getCurrentWorkspaceSnapshot: getCurrentWorkspaceSnapshotState,
+      applyRuntimeReentrySnapshot: applyRuntimeReentrySnapshotState,
       restoreRuntimeReentrySnapshot: restoreRuntimeReentrySnapshotState,
       openLaterDialog,
       persistCustomMailboxes,
@@ -323,12 +325,29 @@
       );
     }
 
+    function collectWorkspaceSnapshotForThreadCache() {
+      try {
+        if (typeof getCurrentWorkspaceSnapshotState === "function") {
+          const snapshot = getCurrentWorkspaceSnapshotState();
+          if (snapshot && typeof snapshot === "object") return snapshot;
+        }
+        if (typeof getRuntimeReentrySnapshotState === "function") {
+          const snapshot = getRuntimeReentrySnapshotState();
+          if (snapshot && typeof snapshot === "object") return snapshot;
+        }
+      } catch (_error) {
+        /* cache är best-effort */
+      }
+      return null;
+    }
+
     function persistRuntimeThreadCacheIfReady({ runtimeMailboxIds = [] } = {}) {
       try {
         if (!windowObject?.CcoThreadCache?.saveThreads || !runtimeHasLiveThreads()) return;
         windowObject.CcoThreadCache.saveThreads(state.runtime.threads, {
           mailboxIds: runtimeMailboxIds,
           lastEnrichedAt: asText(state.runtime?.lastEnrichedAt),
+          workspace: collectWorkspaceSnapshotForThreadCache(),
         });
       } catch (_cacheError) {
         /* cache är best-effort */
@@ -4044,6 +4063,19 @@
             state.runtime.backgroundSyncActive = true;
             state.runtime.loading = false;
             state.runtime.loaded = Boolean(state.runtime.lastEnrichedAt);
+
+            const cachedWorkspace = entry?.workspace;
+            if (
+              cachedWorkspace &&
+              typeof cachedWorkspace === "object" &&
+              typeof applyRuntimeReentrySnapshotState === "function"
+            ) {
+              applyRuntimeReentrySnapshotState(cachedWorkspace, {
+                reason: "idb_cache_restore",
+                scopeMode: "hint_only",
+              });
+            }
+
             setRuntimeModeState("live", {
               live: true,
               offline: false,

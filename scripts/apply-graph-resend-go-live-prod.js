@@ -52,7 +52,12 @@ if (!skipResend) {
     fail('Saknar RESEND_API_KEY i .env (eller kör SKIP_RESEND=true för endast Graph)');
   }
   resendKeys.RESEND_API_KEY = resendApiKey;
-  resendKeys.RESEND_FROM = (process.env.RESEND_FROM || 'contact@hairtpclinic.com').trim();
+  resendKeys.RESEND_DOMAIN = (process.env.RESEND_DOMAIN || 'notifications.hairtpclinic.com').trim();
+  resendKeys.RESEND_FROM = (
+    process.env.RESEND_FROM ||
+    `Hair TP Clinic <booking@${resendKeys.RESEND_DOMAIN}>`
+  ).trim();
+  resendKeys.RESEND_REPLY_TO = (process.env.RESEND_REPLY_TO || 'contact@hairtpclinic.com').trim();
   resendKeys.OPERATOR_NOTIFY_TO = (process.env.OPERATOR_NOTIFY_TO || 'contact@hairtpclinic.com').trim();
 }
 

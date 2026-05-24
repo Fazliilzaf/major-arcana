@@ -434,3 +434,34 @@ test('ccoBookingEngineStore listPublicServices returnerar endast Plan A-tjänste
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('ccoBookingEngineStore listPublicResources returnerar Plan A-läkare utan sjuksköterskor', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-public-res-'));
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const allResources = await store.listResources();
+    const publicResources = await store.listPublicResources();
+    assert.ok(allResources.length >= 7);
+    assert.equal(publicResources.length, 3);
+    assert.deepEqual(
+      publicResources.map((item) => item.id).sort(),
+      ['arya', 'egzona', 'fazli']
+    );
+    assert.ok(publicResources.every((item) => item.publicBookable === true));
+
+    const availability = await store.listPublicAvailability({
+      tenantId: 'tenant-a',
+      fromDate: '2026-05-12',
+      toDate: '2026-05-12',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(availability.length >= 1);
+    assert.ok(
+      availability.every((slot) => ['arya', 'egzona', 'fazli'].includes(String(slot.resourceId)))
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
