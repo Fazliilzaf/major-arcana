@@ -25687,6 +25687,12 @@
     if (window.ArcanaPatientMasterUi?.renderStaffAuth?.()) {
       return;
     }
+    if (
+      isMobileShellViewportEarly() &&
+      window.ArcanaPatientMasterUi?.getRuntime?.()?.mode === "register"
+    ) {
+      return;
+    }
     ensureCustomerRuntimeProfilesFromLive();
     const visibleKeys = getVisibleCustomerKeys();
     const portalLockedCustomerKey = normalizeKey(
@@ -39595,6 +39601,7 @@
       appliedConversationShellState !== showConversations;
     const mobileShell = isMobileShellViewport();
     const mobileDeepLink = mobileShell && isMobileCustomersDeepLinkRoute();
+    const mobileCustomersView = mobileShell && shellView === "customers";
     canvas.dataset.appView = normalizedView;
     canvas.dataset.appShellView = shellView;
 
@@ -39616,7 +39623,7 @@
     };
 
     if (shellStructureChanged) {
-      if (mobileShell && !mobileDeepLink) {
+      if (mobileShell && !mobileDeepLink && !mobileCustomersView) {
         scheduleMobileIdleWork(applyShellStructure, { timeout: 200 });
       } else {
         applyShellStructure();
@@ -39652,8 +39659,7 @@
       closeConversationPanels();
 
       if (shellView === "customers") {
-        const patientRegisterReady = window.ArcanaPatientMasterUi?.getRuntime?.()?.loaded === true;
-        if (!(mobileShell && patientRegisterReady) && !mobileDeepLink) {
+        if (!mobileDeepLink && !mobileShell) {
           loadCustomersRuntime().catch((error) => {
             console.warn("Kundernas live-laddning misslyckades.", error);
             applyCustomerFilters();
@@ -39725,7 +39731,7 @@
       }
     };
 
-    if (mobileShell && shellStructureChanged && !mobileDeepLink) {
+    if (mobileShell && shellStructureChanged && !mobileDeepLink && !mobileCustomersView) {
       __mobileViewLoadsTimer = scheduleMobileIdleWork(runViewLoads, { timeout: 220 });
     } else {
       runViewLoads();
@@ -39737,7 +39743,7 @@
       window.ArcanaMobileShell?.syncFromApp?.();
     };
 
-    if (mobileShell && shellStructureChanged && !mobileDeepLink) {
+    if (mobileShell && shellStructureChanged && !mobileDeepLink && !mobileCustomersView) {
       scheduleMobileIdleWork(finalizeAppView, { timeout: 240 });
     } else {
       finalizeAppView();
@@ -41441,6 +41447,12 @@
 
   if (customerList) {
     customerList.addEventListener("click", (event) => {
+      if (
+        isMobileShellViewportEarly() &&
+        window.ArcanaPatientMasterUi?.getRuntime?.()?.mode === "register"
+      ) {
+        return;
+      }
       const check = event.target.closest(".customer-record-check");
       const row = event.target.closest("[data-customer-row]");
       if (check && row) {

@@ -73,6 +73,7 @@
     "verify:staff-ui-prod": "node ./scripts/verify-staff-ui-prod.js",
     "verify:staff-ui-desktop-prod": "node ./scripts/verify-staff-ui-desktop-prod.js",
     "verify:staff-mobile-login-prod": "node ./scripts/verify-staff-mobile-login-prod.js",
+    "verify:staff-mobile-tap-prod": "node ./scripts/verify-staff-mobile-tap-prod.js",
     "verify:cco-mobile-pilot-prod": "bash ./scripts/verify-cco-mobile-pilot-prod.sh",
     "verify:mobile-staff-regression-prod": "bash ./scripts/verify-mobile-staff-regression-prod.sh",
     "verify:cco-mail-start-prod": "node ./scripts/verify-cco-mail-start-prod.js",
