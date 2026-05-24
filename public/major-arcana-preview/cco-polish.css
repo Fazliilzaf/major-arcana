@@ -3482,6 +3482,32 @@ body.is-admin-embed .focus-conversation {
   }
 }
 
+/* Kundregister: inloggning ska synas även på desktop (inte bara i vänsterkolumnen). */
+html[data-cco-auth-required='on'] .customers-metric-row,
+html[data-cco-auth-required='on'] .customers-toolbar,
+html[data-cco-auth-required='on'] .patient-master-mode-toggle {
+  display: none !important;
+}
+
+html[data-cco-auth-required='on'] .customers-layout {
+  display: block;
+}
+
+html[data-cco-auth-required='on'] .customers-list {
+  max-height: none;
+  position: static;
+}
+
+html[data-cco-auth-required='on'] .patient-master-auth-card {
+  max-width: 26rem;
+  margin: 0 auto 1rem;
+}
+
+html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
+  max-width: 26rem;
+  margin: 1rem auto 0;
+}
+
 /* Fas 2 — Kundregister (patient master) */
 .patient-master-mode-toggle {
   display: inline-flex;
