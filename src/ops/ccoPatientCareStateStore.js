@@ -57,14 +57,16 @@ async function createCcoPatientCareStateStore({ filePath }) {
     await writeJsonAtomic(filePath, state);
   }
 
-  async function listDraftProposals({ tenantId, status = 'pending', limit = 50 } = {}) {
+  async function listDraftProposals({ tenantId, status = 'pending', patientId = '', limit = 50 } = {}) {
     const tenant = normalizeText(tenantId);
     const wanted = normalizeText(status).toLowerCase() || 'pending';
+    const patient = normalizeText(patientId);
     return asArray(state.draftProposals)
       .filter(
         (row) =>
           normalizeText(row.tenantId) === tenant &&
-          (wanted === 'all' || normalizeText(row.status).toLowerCase() === wanted)
+          (wanted === 'all' || normalizeText(row.status).toLowerCase() === wanted) &&
+          (!patient || normalizeText(row.patientId) === patient)
       )
       .sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0))
       .slice(0, Math.max(1, Math.min(200, Number(limit) || 50)));
@@ -86,6 +88,28 @@ async function createCcoPatientCareStateStore({ filePath }) {
     };
     if (index >= 0) state.draftProposals[index] = next;
     else state.draftProposals.push(next);
+    await save();
+    return next;
+  }
+
+  async function reviewDraftProposal({ tenantId, proposalId, status, reviewedBy = '', note = '' } = {}) {
+    const tenant = normalizeText(tenantId);
+    const id = normalizeText(proposalId);
+    const nextStatus = normalizeText(status).toLowerCase();
+    if (!tenant || !id || !['approved', 'dismissed'].includes(nextStatus)) return null;
+    const index = state.draftProposals.findIndex(
+      (row) => row.proposalId === id && normalizeText(row.tenantId) === tenant
+    );
+    if (index < 0) return null;
+    const next = {
+      ...state.draftProposals[index],
+      status: nextStatus,
+      reviewedBy: normalizeText(reviewedBy),
+      reviewNote: normalizeText(note),
+      reviewedAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+    state.draftProposals[index] = next;
     await save();
     return next;
   }
@@ -144,6 +168,7 @@ async function createCcoPatientCareStateStore({ filePath }) {
     getLastReport,
     listDraftProposals,
     logReminder,
+    reviewDraftProposal,
     setLastReport,
     upsertDraftProposal,
     wasReminderSent,

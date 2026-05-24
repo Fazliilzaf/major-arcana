@@ -346,10 +346,11 @@ function createOpsRouter({
     async (req, res) => {
       const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
       const status = normalizeText(req.query?.status) || 'pending';
+      const patientId = normalizeText(req.query?.patientId);
       const limit = parseLimit(req.query?.limit, 50);
       try {
         const stored = patientCareStateStore
-          ? await patientCareStateStore.listDraftProposals({ tenantId, status, limit })
+          ? await patientCareStateStore.listDraftProposals({ tenantId, status, patientId, limit })
           : [];
         let live = null;
         if (journalStore && patientMasterStore && patientCareStateStore) {
@@ -447,6 +448,98 @@ function createOpsRouter({
       } catch (error) {
         console.error('[ops/cco-care/run-missing-forms]', error);
         return res.status(500).json({ error: 'Kunde inte köra missing-forms-jobb.' });
+      }
+    }
+  );
+
+  async function runCareSchedulerJob(req, res, jobId, auditAction) {
+    if (!scheduler || typeof scheduler.runJob !== 'function') {
+      return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
+    }
+    const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+    try {
+      const result = await scheduler.runJob(jobId, {
+        trigger: 'manual_api',
+        actorUserId: req.auth.userId,
+        tenantId,
+      });
+      await authStore.addAuditEvent({
+        tenantId,
+        actorUserId: req.auth.userId,
+        action: auditAction,
+        outcome: result?.ok ? 'success' : 'failed',
+        targetType: 'scheduler_job',
+        targetId: jobId,
+        metadata: { result },
+      });
+      const statusCode = result?.ok ? 200 : 409;
+      return res.status(statusCode).json({ ok: Boolean(result?.ok), result });
+    } catch (error) {
+      console.error(`[ops/${auditAction}]`, error);
+      return res.status(500).json({ error: `Kunde inte köra ${jobId}.` });
+    }
+  }
+
+  router.post(
+    '/ops/cco-care/run-journal-drafts',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) =>
+      runCareSchedulerJob(req, res, 'cco_journal_draft_proposals', 'ops.cco_care.run_journal_drafts')
+  );
+
+  router.post(
+    '/ops/cco-care/run-reminders',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) => runCareSchedulerJob(req, res, 'cco_customer_reminders', 'ops.cco_care.run_reminders')
+  );
+
+  router.post(
+    '/ops/cco-care/run-journal-photos-backup',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    (req, res) => runCareSchedulerJob(req, res, 'journal_photos_backup', 'ops.cco_care.run_journal_photos_backup')
+  );
+
+  router.patch(
+    '/ops/cco-care/draft-proposals/:proposalId',
+    requireAuth,
+    requireRole(ROLE_STAFF),
+    async (req, res) => {
+      if (!patientCareStateStore) {
+        return res.status(503).json({ error: 'Patient care store saknas.' });
+      }
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const proposalId = normalizeText(req.params?.proposalId);
+      const status = normalizeText(req.body?.status).toLowerCase();
+      if (!proposalId || !['approved', 'dismissed'].includes(status)) {
+        return res.status(400).json({ error: 'proposalId och status (approved|dismissed) krävs.' });
+      }
+      try {
+        const updated = await patientCareStateStore.reviewDraftProposal({
+          tenantId,
+          proposalId,
+          status,
+          reviewedBy: req.auth.userId,
+          note: normalizeText(req.body?.note),
+        });
+        if (!updated) {
+          return res.status(404).json({ error: 'Utkast hittades inte.' });
+        }
+        await authStore.addAuditEvent({
+          tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco_care.review_draft_proposal',
+          outcome: 'success',
+          targetType: 'journal_draft_proposal',
+          targetId: proposalId,
+          metadata: { status, patientId: updated.patientId },
+        });
+        return res.json({ ok: true, proposal: updated });
+      } catch (error) {
+        console.error('[ops/cco-care/draft-proposals/review]', error);
+        return res.status(500).json({ error: 'Kunde inte uppdatera journalutkast.' });
       }
     }
   );

@@ -68,6 +68,7 @@
     "verify:mobile-pilot-prod": "bash ./scripts/verify-mobile-pilot-prod.sh",
     "verify:auth-go-live-prod": "bash ./scripts/verify-auth-go-live-prod.sh",
     "verify:journal-photos-backup-prod": "node ./scripts/verify-journal-photos-backup-prod.js",
+    "verify:cco-care-sweep-prod": "node ./scripts/verify-cco-care-sweep-prod.js",
     "apply:auth-go-live-prod": "bash ./scripts/apply-auth-go-live-prod.sh",
     "apply:graph-resend-go-live-prod": "bash ./scripts/apply-graph-resend-go-live-prod.sh",
     "apply:cliento-prod-env": "bash ./scripts/apply-cliento-prod-env.sh",

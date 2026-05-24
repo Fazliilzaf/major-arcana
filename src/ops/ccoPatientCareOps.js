@@ -278,6 +278,50 @@ async function buildCustomerReminderQueue({
   };
 }
 
+function buildReminderDigestHtml(queue = {}) {
+  const visitLines = asArray(queue.visitReminders).map(
+    (row) =>
+      `<li>${normalizeText(row.customerName) || normalizeText(row.patientId) || 'Kund'} — ${normalizeText(row.message)}</li>`
+  );
+  const aftercareLines = asArray(queue.aftercareReminders).map(
+    (row) => `<li>${normalizeText(row.displayName) || normalizeText(row.patientId)} — ${normalizeText(row.message)}</li>`
+  );
+  return `
+    <h2>CCO påminnelser</h2>
+    <p>Genererad ${new Date().toISOString()}</p>
+    <h3>Kommande besök (${visitLines.length})</h3>
+    <ul>${visitLines.join('') || '<li>Inga</li>'}</ul>
+    <h3>Eftervård / uppföljning (${aftercareLines.length})</h3>
+    <ul>${aftercareLines.join('') || '<li>Inga</li>'}</ul>
+  `.trim();
+}
+
+async function dispatchCustomerReminderDigest({
+  graphSendConnector,
+  queue,
+  tenantId,
+  toEmail,
+  fromEmail,
+} = {}) {
+  if (!graphSendConnector || typeof graphSendConnector.sendMail !== 'function') {
+    return { skipped: true, reason: 'graph_send_unavailable' };
+  }
+  const recipient = normalizeText(toEmail);
+  if (!recipient || queue?.total <= 0) {
+    return { skipped: true, reason: 'no_recipient_or_empty_queue' };
+  }
+  const subject = `CCO påminnelser — ${queue.visitReminders.length} besök, ${queue.aftercareReminders.length} eftervård`;
+  const html = buildReminderDigestHtml(queue);
+  await graphSendConnector.sendMail({
+    from: normalizeText(fromEmail) || 'kons@hairtpclinic.com',
+    to: recipient,
+    subject,
+    html,
+    metadata: { tenantId, kind: 'cco_customer_reminders_digest' },
+  });
+  return { skipped: false, to: recipient, subject };
+}
+
 function resolveMaintenanceWindow(config = {}) {
   const start = parseIso(config.maintenanceWindowStart);
   const end = parseIso(config.maintenanceWindowEnd);
@@ -300,6 +344,8 @@ module.exports = {
   buildCustomerReminderQueue,
   buildJournalDraftProposals,
   buildMissingFormsReport,
+  buildReminderDigestHtml,
   classifyMissingForms,
+  dispatchCustomerReminderDigest,
   resolveMaintenanceWindow,
 };

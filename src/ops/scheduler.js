@@ -31,6 +31,7 @@ const {
   buildCustomerReminderQueue,
   buildJournalDraftProposals,
   buildMissingFormsReport,
+  dispatchCustomerReminderDigest,
 } = require('./ccoPatientCareOps');
 const {
   computeUsageAnalytics,
@@ -545,11 +546,22 @@ function createScheduler({
         },
       });
     }
+    let digest = { skipped: true, reason: 'empty_queue' };
+    if (queue.total > 0) {
+      digest = await dispatchCustomerReminderDigest({
+        graphSendConnector,
+        queue,
+        tenantId,
+        toEmail: config.ccoCareReminderDigestEmail,
+        fromEmail: config.ccoCareReminderFromEmail,
+      });
+    }
     return {
       tenantId,
       visitReminders: queue.visitReminders.length,
       aftercareReminders: queue.aftercareReminders.length,
       logged,
+      digest,
     };
   }
 
