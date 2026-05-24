@@ -13,9 +13,11 @@ Relaterat:
 
 ## 0. Kompass
 
-0.0. **Driftregel (låst):** **Cliento sköter all kundbokning** på `.com` via **Cliento-widget** (direkt mot cliento.com). Cliento ska **inte** vara kopplad till Arcana eller CCO — ingen proxy, ingen spegling, inga reservationer via Arcana. CCO booking-engine utvecklas parallellt och kopplas till `.com` först efter 100 % klar + sign-off (`ARCANA_PROVIDER=booking-engine`, utan Cliento).
+0.0. **Driftregel (låst, 2026-05-24):** **Ingen Cliento** och **ingen CCO** på hemsidans kundbokning tills CCO-bokning är redo och uttryckligen godkänd.
 
-0.0.1. **Tills dess:** `ARCANA_CLIENTO_INTEGRATION_ENABLED=false` (default) på Render — `/public/cliento/*` och CCO Cliento-slots returnerar `cliento_booking_disabled`.
+0.0.1. **Prod-default:** `ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false` och `ARCANA_CLIENTO_INTEGRATION_ENABLED=false` — alla `/api/public/booking-engine/*` svarar `503 public_web_booking_disabled`; `/public/cliento/*` svarar `cliento_booking_disabled`.
+
+0.0.2. **Efter sign-off:** sätt endast `ARCANA_PUBLIC_WEB_BOOKING_ENABLED=true` (aldrig Cliento på `.com`). Se `.cursor/rules/website-booking-policy.mdc`.
 
 0.1. "Webbens roll är att fånga intentionen, Arcanas roll är att äga sanningen — gränsen mellan dem ska vara så smal att en patient inte märker den, men så tydlig att en operatör alltid vet vem som har bollen."
 

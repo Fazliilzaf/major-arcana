@@ -99,6 +99,11 @@ services:
       - key: ARCANA_BOOTSTRAP_PHASE1_ONLY
         value: "true"
       # Byggfas: MFA av tills allt är klart (sätt true + owner_mfa_enforced vid go-live).
+      # Webb-bokning av tills CCO-bokning är godkänd (se .cursor/rules/website-booking-policy.mdc).
+      - key: ARCANA_PUBLIC_WEB_BOOKING_ENABLED
+        value: "false"
+      - key: ARCANA_CLIENTO_INTEGRATION_ENABLED
+        value: "false"
       - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
         value: "false"
       - key: ARCANA_PREFLIGHT_READINESS_CHECKS

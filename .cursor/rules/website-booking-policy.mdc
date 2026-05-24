@@ -1,0 +1,29 @@
+---
+description: Regel — ingen Cliento/CCO på hemsidans kundbokning tills CCO är redo
+alwaysApply: true
+---
+
+# Webb-bokning (hairtpclinic.com) — låst policy
+
+## Regel (icke-förhandlingsbar)
+
+1. **Ingen Cliento-koppling** till hemsidan för kundbokning (`/public/cliento/*`, widget, proxy, spegling).
+2. **Ingen CCO-koppling** till hemsidans bokningsflöde tills CCO-bokning är **100 % redo** och uttryckligen godkänd för go-live.
+3. Tills dess ska `ARCANA_PUBLIC_WEB_BOOKING_ENABLED` vara **`false`** på prod (default i kod och `render.yaml`).
+
+## Vad som är förbjudet medan flaggan är av
+
+- `POST /api/public/booking-engine/reservations` (CCO-ärende, kundregister, operatörsnotis)
+- `GET /api/public/booking-engine/catalog` och `availability` som matar live boknings-UI
+- Återaktivera Cliento via `ARCANA_CLIENTO_INTEGRATION_ENABLED=true` för hemsidan
+
+## När CCO-bokning är redo
+
+1. Sign-off enligt `docs/strategy/cco-booking-plan-a-go-live.md`
+2. Sätt `ARCANA_PUBLIC_WEB_BOOKING_ENABLED=true` på Render (inte Cliento)
+3. Webben använder endast `/api/public/booking-engine/*` — aldrig Cliento
+
+## Implementation
+
+- Guard: `src/infra/publicWebBooking.js`
+- Routes: `src/routes/publicBookingEngine.js`, `src/routes/publicClinic.js`
