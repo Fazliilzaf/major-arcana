@@ -117,6 +117,16 @@ async function verifyEngine(engine, engineLabel) {
       1500
     );
 
+    const backButton = page.locator('#cco-mobile-back-button:not([hidden])');
+    if ((await backButton.count()) > 0) {
+      await backButton.first().click({ timeout: 3000 });
+      await page.waitForFunction(
+        () => !document.documentElement.hasAttribute('data-cco-patient-detail'),
+        undefined,
+        { timeout: 5000 }
+      );
+    }
+
     const tabSwitch = await measureTap(
       page,
       `${engineLabel} öppna kund #2`,
