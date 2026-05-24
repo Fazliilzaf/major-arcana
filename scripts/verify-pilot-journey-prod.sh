@@ -17,7 +17,11 @@ if [[ -n "$AUTH_TOKEN" ]]; then
 fi
 
 curl_api() {
-  curl -fsS "${CURL_AUTH[@]}" "$@"
+  if ((${#CURL_AUTH[@]})); then
+    curl -fsS "${CURL_AUTH[@]}" "$@"
+  else
+    curl -fsS "$@"
+  fi
 }
 
 echo "=== Prod journey check ($BASE) ==="
