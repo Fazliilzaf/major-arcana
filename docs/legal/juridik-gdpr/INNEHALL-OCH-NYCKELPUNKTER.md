@@ -31,7 +31,7 @@ Sparat 2026-05-21. Samma uppsättning ligger även i mappen "Hairtpclinic webb/J
 
 1. **Behörighetsstyrning** per roll, 4 kap. 1-3 §§ patientdatalagen.
 2. **Åtkomstloggning + loggkontroll** per 4 kap. 3 + 9-12 §§ (idag manuellt i Drive, en inbyggd logg löser detta).
-3. Data inom **EU/EES** där möjligt (verifiera Render EU-region, Frankfurt).
+3. Data inom **EU/EES** — Render **Frankfurt (eu-central)** verifierad i Dashboard (2026-05-24).
 4. **Inga känsliga hälsouppgifter via webbformulär eller mejl** (validerar att vi ersätter /screen + halso@-flödet).
 5. **Kryptering** systematiskt.
 6. **Risk- och sårbarhetsanalys per system** (3 kap. 5 §), driftdokumentation (3 kap. 8 §), regelbunden **säkerhetskopiering** (12 §).

@@ -21,7 +21,7 @@ Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
 | **Auth** | Open access av, STAFF/OWNER finns | MFA enforced, mobil STAFF-login, rollback-doc |
 | **Plan A bokning** | Webb + Arcana + operatör confirm 3/3 (automated GO) | Resend patient-mail, bokning→journal |
 | **Post-op Fas 1** | Kod + unit + runbook | 4 beslut, Graph live, Playwright smoke |
-| **Compliance Fas 9** | PDL signerat externt ✅ | Retention, GDPR, Art. 30 kvar |
+| **Compliance Fas 9** | PDL + juridik ✅, Render EU Frankfurt ✅ | Retention, GDPR, Art. 30 kvar |
 | **Backlog (ej nu)** | — | Månadskalender (#17), cco-next (#18) |
 
 **Du är här:** Mobil pilot **Fas 5.5–5.6** + kundlista/Drive på prod + auth polish.
@@ -89,7 +89,7 @@ Källa: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 - [x] Bulk migration pushad till prod (7 349 kunder, index, journal)
 - [x] PDL + EU Frankfurt dokumenterat (`docs/legal/pdl-mdr-assessment.md` §6)
 - [x] PDL juridiskt signerat / slutgranskat externt (2026-05-24)
-- [ ] Render EU-region verifierad i Dashboard (Frankfurt)
+- [x] Render EU-region verifierad i Dashboard (Frankfurt, 2026-05-24)
 - [ ] Pipedrive People+Deals export (nuvarande zip tom)
 
 ### Fas 1–5 — Kundmaster, UI, journal, offert ✅
