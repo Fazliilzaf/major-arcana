@@ -134,9 +134,9 @@ Fas F  QA, docs, CI
 
 | # | Uppgift | Prio | Filer | DoD |
 |---|---------|------|-------|-----|
-| B3.1 | Behåll Arbetskö / Fokus-Bokning @767 | Medium | `styles.css` / shell | Fortfarande användbart i Konversationer |
-| B3.2 | Marginal `30px → 16px`; bredd `calc(100% - 32px)` | High | shell CSS | Fullbredd känsla |
-| B3.3 | Placera under app-bar utan extra sticky-konflikt | High | shell CSS | Max 1 sticky ovan innehåll |
+| B3.1 | Behåll Arbetskö / Fokus-Bokning @767 | Medium | `styles.css` / shell | Fortfarande användbart i Konversationer | ✅ |
+| B3.2 | Marginal `30px → 16px`; bredd `calc(100% - 32px)` | High | shell CSS | Fullbredd känsla | ✅ |
+| B3.3 | Placera under app-bar utan extra sticky-konflikt | High | shell CSS | Max 1 sticky ovan innehåll | ✅ |
 
 ### B4 Utility & touch
 
