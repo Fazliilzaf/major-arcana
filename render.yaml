@@ -47,7 +47,7 @@ services:
       - key: ARCANA_STAFF_JOURNAL_OPEN_ACCESS
         value: "false"
       - key: ARCANA_GRAPH_READ_ENABLED
-        value: "false"
+        value: "true"
       - key: ARCANA_GRAPH_SEND_ENABLED
         value: "false"
       - key: ARCANA_GRAPH_TENANT_ID
