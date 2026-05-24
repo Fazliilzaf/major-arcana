@@ -20,7 +20,7 @@ const HOST = process.env.HOST || 'hairtpclinic.com';
 const FROM = process.env.FROM || new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 const TO = process.env.TO || new Date(Date.now() + 86400000 * 14).toISOString().slice(0, 10);
 
-const PLAN_A_MARKERS = ['Vad vill du boka?', 'Reservera tid', 'PlanABookingWizard'];
+const PLAN_A_MARKERS = ['data-booking-surface="plan-a"', 'Vad vill du boka?', 'Reservera tid', 'PlanABookingWizard'];
 const CLIENTO_MARKERS = ['cliento.com', 'ClientoBooking', 'data-cliento'];
 
 function record(name, pass, detail = '') {
