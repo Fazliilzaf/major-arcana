@@ -2134,11 +2134,23 @@
         `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
       );
       runtime.detail = payload;
-      await Promise.all([
-        loadPatientCommercialCase(patientId),
-        loadPatientTreatmentAgreement(patientId),
-      ]);
       renderDetailPanel();
+      if (isMobileViewport()) {
+        void Promise.all([
+          loadPatientCommercialCase(patientId),
+          loadPatientTreatmentAgreement(patientId),
+        ]).then(() => {
+          if (runtime.selectedPatientId === patientId && runtime.detail?.card) {
+            renderDetailPanel();
+          }
+        });
+      } else {
+        await Promise.all([
+          loadPatientCommercialCase(patientId),
+          loadPatientTreatmentAgreement(patientId),
+        ]);
+        renderDetailPanel();
+      }
     } catch (error) {
       runtime.detail = null;
       renderDetailEmpty();
@@ -2998,13 +3010,24 @@
   function bootstrap() {
     resolveElements();
     renderModeChrome();
-    renderDetailEmpty();
-    bindEvents();
-    void loadOfferTemplates();
     const startup = parseStartupParams();
+    const primedPatientId = normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__ || '');
     if (startup.patientId) {
       runtime.pendingPatientId = startup.patientId;
     }
+    if (startup.patientId && isMobileViewport()) {
+      runtime.selectedPatientId = startup.patientId;
+      runtime.detailLoading = true;
+      runtime.preferJournalOnMobile = true;
+      runtime.detailTab = 'journal';
+      if (!primedPatientId) {
+        renderDetailLoadingSkeleton(startup.patientId);
+      }
+    } else {
+      renderDetailEmpty();
+    }
+    bindEvents();
+    void loadOfferTemplates();
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .getRegistrations()

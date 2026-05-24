@@ -92,17 +92,15 @@ async function canScroll(page) {
 }
 
 async function tapAndTime(page, selector, label, readyCheck) {
-  const t0 = Date.now();
   const loc = page.locator(selector).first();
   await loc.waitFor({ state: 'visible', timeout: 15000 });
-  // Native click i sidan — Playwrights syntetiska click väntar ofta 2–3 s på
-  // actionability/stabilitet i headless iPhone-läge trots att vår handler är ~10 ms.
+  const t0 = Date.now();
   await page.evaluate((sel) => {
     document.querySelector(sel)?.click();
   }, selector);
   if (typeof readyCheck === 'function') {
     try {
-      await page.waitForFunction(readyCheck, undefined, { timeout: 8000 });
+      await page.waitForFunction(readyCheck, undefined, { timeout: 8000, polling: 16 });
     } catch {
       /* fall through — still record click time */
     }
@@ -202,7 +200,7 @@ async function main() {
           document.documentElement.getAttribute('data-cco-patient-detail') === 'on' ||
           document.querySelector('[data-patient-loading="true"]'),
         undefined,
-        { timeout: 8000 }
+        { timeout: 8000, polling: 16 }
       )
       .then(() => ms(t0))
       .catch(() => null);
@@ -217,10 +215,17 @@ async function main() {
     record('Deep link → kunddetail klar', true, patientId.slice(0, 8), ms(t0));
 
     // 5. Journal-flik
-    t0 = Date.now();
     const journalTab = page.locator('.patient-master-tab[data-patient-tab="journal"]').first();
-    await journalTab.click();
-    await page.waitForTimeout(400);
+    await journalTab.waitFor({ state: 'visible', timeout: 15000 });
+    t0 = Date.now();
+    await page.evaluate(() => {
+      document.querySelector('.patient-master-tab[data-patient-tab="journal"]')?.click();
+    });
+    await page.waitForFunction(
+      () => document.querySelector('[data-patient-tab-panel="journal"]:not([hidden])'),
+      undefined,
+      { timeout: 8000, polling: 16 }
+    ).catch(() => {});
     const tabH = await journalTab.evaluate((el) => Math.round(el.getBoundingClientRect().height));
     record('Journal-tab klick', tabH >= 40, `${tabH}px höjd`, ms(t0));
 
