@@ -3,6 +3,8 @@
 Senast uppdaterad: **2026-05-24**  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana` · Arkiv: `~/Code/MA-Archive/`
 
+> **Följ dagligen:** [MASTER-TODO.md](./MASTER-TODO.md) (en sida) · [Notion — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)
+
 **Steg-för-steg utrullning (6 faser):** [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md)
 
 Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
@@ -222,6 +224,7 @@ Plan A bokning: **GO (automated 2026-05-24)** — parallellt spår, blockerar in
 
 | Dokument | Innehåll |
 |----------|----------|
+| [MASTER-TODO.md](./MASTER-TODO.md) | **En sida att följa** — Notion + repo |
 | [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md) | **6-fas utrullning** — mål, uppgifter, GO per fas |
 | [ma-document-placement-plan.md](./ma-document-placement-plan.md) | Fas A–D + avtalsgate |
 | [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) | Teknisk journal-roadmap |
