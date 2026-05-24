@@ -142,7 +142,7 @@
          → konfliktade med Lit:s parallella container → vit yta. -->
     <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-f7c1ae6" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
-    <link rel="stylesheet" href="./cco-polish.css?v=build-customers-register-hero" />
+    <link rel="stylesheet" href="./cco-polish.css?v=build-customers-register-compact" />
     <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-mobile-tab-nav-i" />
     <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
     <script src="./cco-mobile-core.js?v=build-mobile-shell-g" defer></script>
@@ -3061,14 +3061,12 @@
           >
             <div class="customers-surface">
               <header class="customers-register-header customers-head">
-                <div class="customers-register-hero">
-                  <div class="customers-register-title-row">
-                    <div class="customers-title-group">
-                      <h1 id="customers-title">Kundregister</h1>
-                      <p class="customers-register-lead" data-customers-lead hidden>
-                        Hantera kundprofiler, slå ihop dubbletter och få full överblick.
-                      </p>
-                    </div>
+                <div class="customers-register-top">
+                  <div class="customers-register-top-main">
+                    <h1 id="customers-title">Kundregister</h1>
+                    <p class="customers-register-lead" data-customers-lead hidden>
+                      Hantera kundprofiler, slå ihop dubbletter och få full överblick.
+                    </p>
                     <div class="patient-master-mode-toggle" role="tablist" aria-label="Kundvy">
                       <button
                         class="patient-master-mode-button is-active"
@@ -3077,7 +3075,7 @@
                         role="tab"
                         aria-pressed="true"
                       >
-                        Register
+                        Kundregister
                       </button>
                       <button
                         class="patient-master-mode-button"
@@ -3090,8 +3088,51 @@
                       </button>
                     </div>
                   </div>
+                  <div class="customers-head-actions">
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-customer-command="bulk_merge"
+                    >
+                      Massammanfoga <span data-customer-bulk-count>(2)</span>
+                    </button>
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-customer-command="export"
+                      data-i18n="ui.exportera.59e749"
+                    >
+                      Exportera
+                    </button>
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-customer-command="import"
+                      data-i18n="ui.importera.4c615a"
+                    >
+                      Importera
+                    </button>
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-post-op-reviews-open
+                      hidden
+                    >
+                      Omdömen <span data-post-op-toolbar-count></span>
+                    </button>
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-customer-command="settings"
+                      data-i18n="ui.installningar.04700b"
+                    >
+                      Inställningar
+                    </button>
+                    <p class="shell-status customers-shell-status" data-customers-status hidden></p>
+                  </div>
+                </div>
 
-                  <div class="customers-metric-row" aria-label="Kundöversikt">
+                <div class="customers-metric-row" aria-label="Kundöversikt">
                 <article
                   class="customers-metric-card customers-metric-card-blue"
                   data-patient-metric="total"
@@ -3127,7 +3168,6 @@
                   <span>Endast Drive</span>
                   <strong>0</strong>
                 </article>
-                  </div>
                 </div>
               </header>
 
@@ -3176,48 +3216,6 @@
                   </select>
                 </label>
 
-                <div class="customers-toolbar-actions customers-head-actions">
-                  <button
-                    class="customers-utility-button customers-utility-button-quiet"
-                    type="button"
-                    data-customer-command="bulk_merge"
-                  >
-                    Massammanfoga <span data-customer-bulk-count>(2)</span>
-                  </button>
-                  <button
-                    class="customers-utility-button customers-utility-button-quiet"
-                    type="button"
-                    data-customer-command="export"
-                    data-i18n="ui.exportera.59e749"
-                  >
-                    Exportera
-                  </button>
-                  <button
-                    class="customers-utility-button customers-utility-button-quiet"
-                    type="button"
-                    data-customer-command="import"
-                    data-i18n="ui.importera.4c615a"
-                  >
-                    Importera
-                  </button>
-                  <button
-                    class="customers-utility-button customers-utility-button-quiet"
-                    type="button"
-                    data-post-op-reviews-open
-                    hidden
-                  >
-                    Omdömen <span data-post-op-toolbar-count></span>
-                  </button>
-                  <button
-                    type="button"
-                    class="customers-utility-button customers-toolbar-settings"
-                    data-customer-command="settings"
-                    aria-label="Kundregister inställningar"
-                  >
-                    Inställ.
-                  </button>
-                  <p class="shell-status customers-shell-status" data-customers-status hidden></p>
-                </div>
               </div>
 
               <div class="customers-layout">
