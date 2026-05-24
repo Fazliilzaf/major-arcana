@@ -1,17 +1,21 @@
 #!/usr/bin/env node
 /**
- * Tar bort alla konsultationsbilder från en patients behandlingsplan.
- * Använd för att rensa E2E/smoke-test ("Smoke Front") som visats som svarta rutor.
+ * Tar bort smoke/E2E-konsultationsbilder från en patients behandlingsplan (standard).
+ * Med --all tas alla planbilder bort.
  *
  *   ADMIN_TOKEN=... node scripts/cleanup-plan-smoke-photos.js <patientId>
- *   BASE_URL=https://arcana.hairtpclinic.se ADMIN_TOKEN=... node scripts/cleanup-plan-smoke-photos.js <patientId>
+ *   ADMIN_TOKEN=... node scripts/cleanup-plan-smoke-photos.js <patientId> --all
  */
 const baseUrl = (process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 const token = process.env.ADMIN_TOKEN || process.env.CCO_ADMIN_TOKEN || '';
-const patientId = process.argv[2];
+const argv = process.argv.slice(2);
+const clearAll = argv.includes('--all');
+const patientId = argv.find((arg) => arg && !arg.startsWith('-'));
 
 if (!patientId) {
-  console.error('Usage: ADMIN_TOKEN=... node scripts/cleanup-plan-smoke-photos.js <patientId>');
+  console.error(
+    'Usage: ADMIN_TOKEN=... node scripts/cleanup-plan-smoke-photos.js <patientId> [--all]'
+  );
   process.exit(1);
 }
 if (!token) {
@@ -60,19 +64,15 @@ async function api(method, path, body) {
     console.log('Inga bilder att ta bort.');
     return;
   }
-  console.log(`Tar bort ${photos.length} bilder från plan ${plan.entryId}…`);
-  let removed = 0;
-  for (const photo of photos) {
-    await api('DELETE', '/api/v1/cco-journal/photo', {
-      patientId,
-      entryId: plan.entryId,
-      attachmentId: photo.attachmentId,
-      photoId: photo.photoId,
-    });
-    removed += 1;
-    if (removed % 10 === 0) console.log(`  ${removed}/${photos.length}`);
-  }
-  console.log(`✓ ${removed} bilder borttagna.`);
+  const modeLabel = clearAll ? 'alla' : 'smoke/E2E';
+  console.log(`Tar bort ${modeLabel}-bilder från plan ${plan.entryId}…`);
+  const result = await api('POST', '/api/v1/cco-journal/plan-photos/clear', {
+    patientId,
+    entryId: plan.entryId,
+    smokeOnly: !clearAll,
+  });
+  const removed = Number(result.removedCount) || 0;
+  console.log(`✓ ${removed} bilder borttagna (${modeLabel}).`);
 })().catch((err) => {
   console.error(err.message || err);
   process.exit(1);

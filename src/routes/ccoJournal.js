@@ -385,6 +385,53 @@ function createCcoJournalRouter({
       })
   );
 
+  router.post(
+    '/cco-journal/plan-photos/clear',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        if (!journalPhotoStore || !journalStore) {
+          return res.status(503).json({ error: 'Journalbilder är inte konfigurerade.' });
+        }
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const patientId = normalizeText(body.patientId);
+        const entryId = normalizeText(body.entryId);
+        if (!patientId || !entryId) {
+          return res.status(400).json({ error: 'patientId och entryId krävs.' });
+        }
+        const smokeOnly = body.smokeOnly !== false;
+        const routeActor = {
+          userId: actor.userId,
+          role: actor.role,
+          displayName: actor.userId,
+        };
+        const { entry, removed } = await journalStore.clearConsultationPhotoAttachments({
+          tenantId: actor.tenantId,
+          patientId,
+          entryId,
+          smokeOnly,
+          actor: routeActor,
+        });
+        for (const item of removed) {
+          if (!item.photoId) continue;
+          await journalPhotoStore.deletePhoto({
+            tenantId: actor.tenantId,
+            patientId,
+            photoId: item.photoId,
+          });
+        }
+        await auditJournal(actor, 'cco.journal.plan_photos.clear', entryId);
+        return res.json({
+          ok: true,
+          removedCount: removed.length,
+          smokeOnly,
+          entry,
+          readout: journalStore.buildJournalReadout(entry),
+        });
+      })
+  );
+
   router.delete(
     '/cco-journal/photo',
     requireAuth,

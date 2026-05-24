@@ -9,6 +9,7 @@ const {
   enrichBookingCaseWithHistorySignals,
 } = require('../ops/ccoBookingStore');
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
+const { syncBookingConfirmedToJournal } = require('../ops/ccoJournalBookingBridge');
 const {
   assertTreatmentBookingAllowed,
   buildTreatmentAgreementBookingBlocker,
@@ -375,6 +376,8 @@ function createCcoBookingEngineRouter({
   patientSystemStore = null,
   treatmentAgreementStore = null,
   patientMasterStore = null,
+  journalStore = null,
+  treatmentEncounterStore = null,
   authStore,
   config,
 }) {
@@ -619,6 +622,35 @@ function createCcoBookingEngineRouter({
         source: 'cco_booking_engine_confirm',
         includeTimelineEvent: true,
       });
+      let journalSync = null;
+      if (journalStore && treatmentEncounterStore) {
+        let patientId = normalizeText(req.body?.patientId);
+        if (!patientId && patientMasterStore && context.customerEmail) {
+          const patient = await patientMasterStore.findPatientByEmail({
+            tenantId: context.tenantId,
+            email: context.customerEmail,
+          });
+          patientId = normalizeText(patient?.id);
+        }
+        if (patientId) {
+          try {
+            journalSync = await syncBookingConfirmedToJournal({
+              treatmentEncounterStore,
+              journalStore,
+              tenantId: context.tenantId,
+              patientId,
+              conversationId: context.conversationId,
+              booking,
+              channel: 'cco_staff',
+            });
+          } catch (syncError) {
+            console.warn(
+              '[cco-booking-engine/confirm] journal sync failed:',
+              syncError && syncError.message ? syncError.message : syncError
+            );
+          }
+        }
+      }
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -626,6 +658,7 @@ function createCcoBookingEngineRouter({
         bookingCase,
         bookingEngine: summaryPayload(bookingEngine, bookingCase),
         patient360: patientPayload(patientRecord),
+        journalSync,
       });
     })
   );

@@ -25,6 +25,7 @@ const {
   buildOperatorNotificationEmail,
 } = require('../templates/bookingReservationEmail');
 const { assertPublicWebAbuseGuard } = require('../security/publicWebAbuseGuard');
+const { syncWebReservationToJournal } = require('../ops/ccoJournalBookingBridge');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -127,6 +128,9 @@ function synthConversationId(email, slotId) {
 function createPublicBookingEngineRouter({
   bookingEngineStore,
   bookingStore,
+  patientMasterStore = null,
+  journalStore = null,
+  treatmentEncounterStore = null,
   config,
   graphSendConnector = null,
 }) {
@@ -446,6 +450,26 @@ function createPublicBookingEngineRouter({
         } catch (opErr) {
           console.warn(
             `[public-reservation] operator notify failed: ${opErr && opErr.message ? opErr.message : opErr}`
+          );
+        }
+      }
+
+      if (journalStore && treatmentEncounterStore && patientMasterStore && primary) {
+        try {
+          await syncWebReservationToJournal({
+            patientMasterStore,
+            treatmentEncounterStore,
+            journalStore,
+            tenantId,
+            reservation: primary,
+            contact: { name, email, phone },
+            conversationId,
+            channel: 'web_public',
+          });
+        } catch (syncError) {
+          console.warn(
+            '[public-reservation] journal sync failed:',
+            syncError && syncError.message ? syncError.message : syncError
           );
         }
       }
