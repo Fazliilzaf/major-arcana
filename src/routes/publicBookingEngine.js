@@ -19,7 +19,7 @@ const express = require('express');
 const crypto = require('node:crypto');
 
 const { resolveBrandForHost } = require('../brand/resolveBrand');
-const { sendEmail } = require('../infra/resendMailer');
+const { createTransactionalMailer } = require('../infra/transactionalMailer');
 const {
   buildBookingReservationEmail,
   buildOperatorNotificationEmail,
@@ -123,8 +123,14 @@ function synthConversationId(email, slotId) {
   return `web-${hash}`;
 }
 
-function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, config }) {
+function createPublicBookingEngineRouter({
+  bookingEngineStore,
+  bookingStore,
+  config,
+  graphSendConnector = null,
+}) {
   const router = express.Router();
+  const { sendEmail } = createTransactionalMailer({ graphSendConnector });
 
   // ── GET /api/public/booking-engine/catalog ────────────────────────
   router.get('/public/booking-engine/catalog', async (req, res) => {
@@ -318,8 +324,8 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
         }
       }
 
-      // ── 6. Resend-bekräftelse ─────────────────────────────────────
-      // Skickas best-effort. Om Resend failar bryts inte boknings-flowet —
+      // ── 6. Bekräftelse-mail (Resend → Graph → mock) ─────────────────
+      // Skickas best-effort. Om send failar bryts inte boknings-flowet —
       // operatören har patientens telefonnummer och ringer ändå.
       const primary = reservations[0] || null;
       const locale = normalizeText(body.locale) === 'en' ? 'en' : 'sv';
@@ -362,13 +368,14 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
             ? `Bekräftelse skickad (${emailResult.mode})`
             : 'Bekräftelse-mail failade',
           detail: emailResult.ok
-            ? `Resend ${emailResult.mode}-mode${emailResult.messageId ? `, id ${emailResult.messageId}` : ''}`
-            : `Resend-fel: ${emailResult.error || 'unknown'}. Operatör ringer manuellt.`,
+            ? `${emailResult.provider || 'mail'} ${emailResult.mode}-mode${emailResult.messageId ? `, id ${emailResult.messageId}` : ''}`
+            : `${emailResult.provider || 'mail'}-fel: ${emailResult.error || 'unknown'}. Operatör ringer manuellt.`,
           metadata: {
-            provider: 'resend',
+            provider: emailResult.provider || 'none',
             mode: emailResult.mode,
             messageId: emailResult.messageId || null,
             error: emailResult.error || null,
+            sendMode: emailResult.sendMode || null,
           },
         });
       }

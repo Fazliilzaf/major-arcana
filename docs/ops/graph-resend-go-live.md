@@ -14,7 +14,7 @@ ARCANA_GRAPH_CLIENT_SECRET=<från Azure Portal → Certificates & secrets>
 # ARCANA_GRAPH_CLIENT_ID=13adfc91-69ab-4c35-ac80-b52ebba7e09f
 # ARCANA_GRAPH_USER_ID=fazli@hairtpclinic.com
 
-# Resend (resend.com — domän hairtpclinic.com verifierad)
+# Resend (valfritt — bokningsmail använder Graph send om nyckeln saknas)
 RESEND_API_KEY=re_...
 RESEND_FROM=contact@hairtpclinic.com
 OPERATOR_NOTIFY_TO=contact@hairtpclinic.com
@@ -38,11 +38,14 @@ Detta skapar nytt client secret, uppdaterar `.env` och pushar till Render.
 npm run apply:graph-resend-go-live-prod
 ```
 
-Endast Graph (utan Resend):
+Endast Graph (utan Resend — rekommenderat tills RESEND_API_KEY finns):
 
 ```bash
 SKIP_RESEND=true npm run apply:graph-resend-go-live-prod
 ```
+
+Detta sätter `ARCANA_GRAPH_SEND_ENABLED=true`, send-allowlist och `OPERATOR_NOTIFY_TO`.
+Bokningsbekräftelser skickas via `transactionalMailer` (Graph fallback) efter deploy.
 
 Scriptet **merge:ar** alla befintliga Render env-variabler (PUT med full lista) — samma mönster som `apply-auth-go-live-prod`.
 
@@ -54,10 +57,11 @@ npm run verify:booking-plan-a-prod  # catalog
 npm run verify:cco-mail-start-prod  # live-trådar när Graph läser
 ```
 
-Efter Resend: gör en testreservation och kontrollera audit-event `reservation_confirmation_sent` (inte `…_failed`).
+Efter deploy: gör en testreservation och kontrollera audit-event `reservation_confirmation_sent`
+med `metadata.provider: "graph"` (eller `"resend"` om nyckel finns) — inte `…_failed`.
 
 ## 4. Uppdatera blueprint
 
-Efter lyckad prod-verify: sätt `ARCANA_GRAPH_READ_ENABLED: "true"` i `render.yaml` och push så blueprint matchar runtime.
+Efter lyckad prod-verify: sätt `ARCANA_GRAPH_READ_ENABLED` och `ARCANA_GRAPH_SEND_ENABLED` till `"true"` i `render.yaml` och push så blueprint matchar runtime.
 
 **Resend** deklareras medvetet **utanför** `render.yaml` (UI-managed) — se kommentar i render.yaml.

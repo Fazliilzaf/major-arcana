@@ -1499,6 +1499,7 @@ process.once('SIGTERM', () => {
       bookingEngineStore: ccoBookingEngineStore,
       bookingStore: ccoBookingStore,
       config,
+      graphSendConnector,
     })
   );
 

@@ -49,7 +49,7 @@ services:
       - key: ARCANA_GRAPH_READ_ENABLED
         value: "true"
       - key: ARCANA_GRAPH_SEND_ENABLED
-        value: "false"
+        value: "true"
       - key: ARCANA_GRAPH_TENANT_ID
         sync: false
       - key: ARCANA_GRAPH_CLIENT_ID
