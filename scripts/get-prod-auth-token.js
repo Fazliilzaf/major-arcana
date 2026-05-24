@@ -14,23 +14,32 @@ const base = (process.env.ARCANA_PROD_URL || process.env.BASE_URL || 'https://ar
 );
 const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
 
-async function fetchJson(path, opts = {}) {
-  const res = await fetch(`${base}${path}`, {
-    ...opts,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(opts.headers || {}),
-    },
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const err = new Error(body.error || `${res.status}`);
-    err.status = res.status;
-    err.body = body;
+async function fetchJson(path, opts = {}, attempt = 1) {
+  try {
+    const res = await fetch(`${base}${path}`, {
+      ...opts,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...(opts.headers || {}),
+      },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(body.error || `${res.status}`);
+      err.status = res.status;
+      err.body = body;
+      throw err;
+    }
+    return body;
+  } catch (err) {
+    const retryable = err.status >= 500 || err.status === 429 || err.code === 'ECONNRESET';
+    if (retryable && attempt < 4) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+      return fetchJson(path, opts, attempt + 1);
+    }
     throw err;
   }
-  return body;
 }
 
 async function loginOwnerWithMfa() {
