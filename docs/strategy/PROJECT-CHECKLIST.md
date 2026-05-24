@@ -15,10 +15,10 @@ Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
 
 | Spår | Klart | Kvar |
 |------|-------|------|
-| **Journal + avtal + migration** | Kundmaster, offert, avtal, 7 349 kunder prod | Drive-PDF på prod, kundlista smoke full skala |
+| **Journal + avtal + migration** | Kundmaster, offert, avtal, 7 349 kunder prod, API + mobil UI smoke | Drive-PDF på prod (Google Drive API) |
 | **Mobil UX sweep** | #1–16 kod + prod (`cco-mobile-ux-sweep-plan.md`) | Android enhet, Fas 5.6 manuellt |
 | **Mobil pilot (Fas 1)** | Automation grön (`verify:cco-mobile-pilot-prod`, `run:rollout-sweep`) | 5.5–5.6 tabeller, GO/NO-GO |
-| **Auth** | Open access av, STAFF/OWNER finns | MFA enforced, mobil STAFF-login, rollback-doc |
+| **Auth** | Open access av, MFA required, STAFF/OWNER, `verify:auth-go-live-prod` | Mobil STAFF-login (Fas 5.6), rollback-doc |
 | **Plan A bokning** | Webb + Arcana + operatör confirm 3/3 (automated GO) | Resend patient-mail, bokning→journal |
 | **Post-op Fas 1** | Kod + unit + runbook | 4 beslut, Graph live, Playwright smoke |
 | **Compliance Fas 9** | PDL + juridik ✅, Render EU Frankfurt ✅ | Retention, GDPR, Art. 30 kvar |
@@ -37,9 +37,10 @@ Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
 - [x] **Plan A bokning** — automated prod sign-off ([go-live](./cco-booking-plan-a-go-live.md))
 - [ ] **Personal läst** [mobilinstruktion](./cco-mobile-staff-instructions.md) *(login krävs — uppdatera om den nämner open access)*
 - [x] **Kundlista med full data** — API smoke PASS (`verify:customer-list-prod`: 7349, sök ~300ms)
-- [ ] **Kundlista mobil UI** — `verify:staff-ui-prod` timeout med full kundbas (desktop PASS)
+- [x] **Kundlista mobil UI** — `verify:staff-ui-prod` PASS (13/13, dynamiskt patientId från API)
 - [ ] **Drive-PDF på prod** — kräver Google Drive API (86 GB zip får inte plats på 2 GB disk)
-- [ ] **OWNER MFA enforced** i prod + STAFF login testad på mobil
+- [x] **OWNER MFA enforced** i prod (`verify:auth-go-live-prod` 2026-05-24)
+- [ ] **STAFF login testad på mobil** (iPhone + Android) — Fas 5.6
 - [ ] **Notion 30 maj** — [verify prod efter duplicate-cleanup](https://www.notion.so/369060ccc15b819fbe4cdfcc726653d7)
 
 ---
@@ -121,7 +122,7 @@ Källa: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 - [ ] Mobil pilot **GO** (Fas 5.6)
 - [x] Skarp auth (open access av · MFA required · se avsnitt D)
 - [x] Kundlista API OK med full kundbas (7 349)
-- [ ] Kundlista/journal OK i mobil UI med full kundbas
+- [x] Kundlista/journal OK i mobil UI med full kundbas (`verify:staff-ui-prod` 2026-05-24)
 - [ ] Drive-filer visningsbara i prod (zip-volym)
 
 ---
@@ -145,6 +146,7 @@ npm run verify:cco-mobile-pilot-prod
 npm run verify:mobile-staff-regression-prod
 npm run verify:booking-web-e2e-prod
 npm run verify:customer-list-prod
+npm run verify:staff-ui-prod
 npm run verify:auth-go-live-prod
 curl -fsS https://arcana.hairtpclinic.se/readyz
 ```
@@ -190,7 +192,7 @@ Nuvarande fas: **STABILISERA** → sedan **EXPANDERA**
 | Workstream | Status | Notering |
 |------------|--------|----------|
 | Pilot 1 Admin Core | ✅ | Auth, mallar, risk, orchestrator |
-| Phase 2 säkerhet (A) | 🔄 Delvis | Open access av; MFA enforce + mobil STAFF-login kvar |
+| Phase 2 säkerhet (A) | 🔄 Delvis | Open access av, MFA enforced; mobil STAFF-login + rollback kvar |
 | CCO operativt (C) | 🔄 | Full kundbas prod; pilot 5.6 + Drive-filer kvar |
 | Bookingmotor | 🔄 | **Plan A GO** (automated); påminnelser + full motor kvar |
 | Mobil UX sweep | ✅ | #1–16 prod; backlog #17–18 medvetet utelämnat |
@@ -210,7 +212,7 @@ Se full plan: **[ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md)**
 ```
 1. Mobil pilot GO          ← DU ÄR HÄR (5.5–5.6 manuellt)
 2. Kundlista/journal med 7 349 kunder + Drive-filer på prod
-3. Auth polish (MFA enforced, mobil STAFF-login, rollback-doc)
+3. Auth polish (mobil STAFF-login, rollback-doc) — MFA enforced ✅
 4. Post-op flow Fas 1 live (beslut + Graph + smoke)
 5. Compliance-grund (Fas 9)
 6. Påminnelser + full bookingmotor · Agenter + CMO
