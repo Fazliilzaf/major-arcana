@@ -125,13 +125,13 @@
       padding-right: 0;
     }
 
-    /* B4 — hide desktop-only topbar actions on phone */
+    /* B4 — hide desktop-only topbar actions on phone (proxy via Mer-sheet) */
     html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-compose-pill,
     html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-sprint-pill,
     html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-utility-cluster,
     html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-profile-pill,
     html[data-cco-mobile-shell="on"] #cco-langpicker-root {
-      display: none;
+      display: none !important;
     }
 
     .preview-topbar-right .preview-live-pill {
@@ -140,11 +140,17 @@
       min-height: 44px;
     }
 
+    /* B4.1 — utility touch targets (overrides styles.css 26px @767) */
     html[data-cco-mobile-shell="on"] .preview-utility-button {
       width: 44px;
       height: 44px;
       min-width: 44px;
       min-height: 44px;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-utility-button svg {
+      width: 18px;
+      height: 18px;
     }
 
     .preview-title-group h1,
@@ -423,6 +429,20 @@
     .cco-mobile-more-item.is-active,
     .cco-mobile-more-item:active {
       background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
+    }
+
+    .cco-mobile-more-actions {
+      padding-bottom: 0;
+    }
+
+    .cco-mobile-more-divider {
+      height: 1px;
+      margin: 8px var(--cco-mobile-gutter, 16px);
+      background: var(--cco-border-subtle, rgba(43, 37, 31, 0.1));
+    }
+
+    .cco-mobile-more-item[hidden] {
+      display: none;
     }
 
     /* C1 — back button in app bar */

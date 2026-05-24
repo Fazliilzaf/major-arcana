@@ -142,8 +142,8 @@ Fas F  QA, docs, CI
 
 | # | Uppgift | Prio | Audit | Filer | DoD |
 |---|---------|------|-------|-------|-----|
-| B4.1 | `.preview-utility-button` 26→44px @767 | High | 3.10 | shell CSS | |
-| B4.2 | Dölj compose/sprint/lang pills @767 (flytta till Mer) | Medium | — | shell CSS | Ren app-bar |
+| B4.1 | `.preview-utility-button` 26→44px @767 | High | 3.10 | shell CSS | ✅ Touch OK |
+| B4.2 | Dölj compose/sprint/lang pills @767 (flytta till Mer) | Medium | — | shell CSS | ✅ Ren app-bar |
 
 **Fas B acceptans:** Phone — bottom tabs synliga; topbar ≤56px; navigering utan desktop nav-pills.
 

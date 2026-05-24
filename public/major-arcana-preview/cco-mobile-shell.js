@@ -37,6 +37,7 @@
   const tabButtons = Array.from(document.querySelectorAll('.cco-mobile-tabbar-item[data-mobile-tab]'));
   const moreSheet = document.getElementById('cco-mobile-more-sheet');
   const moreItems = Array.from(document.querySelectorAll('.cco-mobile-more-item[data-nav-view]'));
+  const moreActions = Array.from(document.querySelectorAll('[data-mobile-more-action]'));
 
   let moreOpen = false;
   let explicitBookingTab = false;
@@ -78,6 +79,46 @@
       window.ArcanaBookingMobileCalendar?.close?.();
     } else {
       syncFromApp();
+    }
+  }
+
+  function proxyTopbarClick(selector) {
+    const el = document.querySelector(selector);
+    if (!el) return false;
+    el.click();
+    return true;
+  }
+
+  function syncMoreActions() {
+    const sprintItem = document.querySelector('[data-mobile-more-action="sprint"]');
+    const sprintPill = document.querySelector('.preview-sprint-pill');
+    if (sprintItem && sprintPill) {
+      const label = sprintPill.querySelector('span')?.textContent?.trim();
+      if (label) sprintItem.textContent = label;
+    }
+
+    const langItem = document.querySelector('[data-mobile-more-action="language"]');
+    const langRoot = document.getElementById('cco-langpicker-root');
+    const langControl = langRoot?.querySelector('button, select, [role="combobox"], [role="button"]');
+    if (langItem) {
+      langItem.hidden = !langControl;
+    }
+  }
+
+  function runMoreAction(action) {
+    const key = String(action || '').trim();
+    if (!key) return false;
+    switch (key) {
+      case 'compose':
+        return proxyTopbarClick('.preview-compose-pill');
+      case 'sprint':
+        return proxyTopbarClick('.preview-sprint-pill');
+      case 'language':
+        return proxyTopbarClick(
+          '#cco-langpicker-root button, #cco-langpicker-root select, #cco-langpicker-root [role="combobox"], #cco-langpicker-root [role="button"]'
+        );
+      default:
+        return false;
     }
   }
 
@@ -233,7 +274,8 @@
     moreSheet.hidden = !moreOpen;
     setShellFlag('data-cco-mobile-more-open', moreOpen);
     if (moreOpen) {
-      moreSheet.querySelector('.cco-mobile-more-item')?.focus?.();
+      syncMoreActions();
+      moreSheet.querySelector('.cco-mobile-more-item:not([hidden])')?.focus?.();
     } else {
       window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
     }
@@ -330,6 +372,7 @@
       const view = item.dataset.navView || '';
       item.classList.toggle('is-active', normalizeView(view) === normalizeView(normalizedView));
     });
+    syncMoreActions();
   }
 
   function syncFromApp() {
@@ -441,6 +484,14 @@
         explicitCalendarTab = false;
         window.ArcanaBookingMobileCalendar?.close?.();
         clickNavView(item.dataset.navView);
+        setMoreOpen(false);
+        syncFromApp();
+      });
+    });
+
+    moreActions.forEach((item) => {
+      item.addEventListener('click', () => {
+        runMoreAction(item.dataset.mobileMoreAction);
         setMoreOpen(false);
         syncFromApp();
       });
