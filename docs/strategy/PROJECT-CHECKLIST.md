@@ -159,7 +159,7 @@ curl -fsS https://arcana.hairtpclinic.se/readyz
 - [x] `ARCANA_AUTH_OWNER_MFA_REQUIRED=true` (prod verify 2026-05-24)
 - [x] STAFF-konto i prod (1 st — `verify:auth-go-live-prod`)
 - [ ] STAFF-inloggning i fält (iPhone/Android) — vid behov, ej blocker
-- [ ] Underhållsfönster + rollback-plan dokumenterad
+- [x] Underhållsfönster + rollback-plan dokumenterad — `docs/ops/runbooks/auth-go-live-rollback-runbook.md` (2026-05-25)
 - [ ] Backup journal-photos schemalagd (`npm run backup:journal-photos`)
 
 ---

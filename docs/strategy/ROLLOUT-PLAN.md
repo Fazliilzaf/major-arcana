@@ -128,7 +128,7 @@ Uppdatera `render.yaml` + merge via blueprint/CI heal. **Ingen restart direkt ef
 | 2.3.1 | Uppdatera `render.yaml` defaults för go-live | `render.yaml` |
 | 2.3.2 | Ev. script: `scripts/verify-auth-go-live-prod.sh` | Nytt |
 | 2.3.3 | Uppdatera mobilinstruktion (login krävs) | `cco-mobile-staff-instructions.md` |
-| 2.3.4 | Dokumentera rollback (sätt open access tillbaka) | `docs/ops/runbooks/` |
+| 2.3.4 | Dokumentera rollback (sätt open access tillbaka) | [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) |
 
 #### 2.4 Test efter byte
 

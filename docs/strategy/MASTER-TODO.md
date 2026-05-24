@@ -149,9 +149,9 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [x] J-6A Operatörsbekräftelse 3/3 prod
 - [ ] J-6.1 Full behandlingskatalog på webben
 - [ ] J-6.2 Egen engine — Cliento ut
-- [ ] J-6.3 **Koppling bokning → behandlingstillfälle → journal** (store finns delvis)
+- [x] J-6.3 **Koppling bokning → behandlingstillfälle → journal**
 
-> **Verify 2026-05-24:** `hairtpclinic.com/boka` → **200**. Prod publik catalog → **503** `public_web_booking_disabled` (`ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false` — avsiktligt tills explicit GO). Plan A = **3 tjänster** (online, fysisk, uppföljning). `ccoTreatmentEncounterStore` + `ccoJournalBookingBridge` finns; koppling vid confirm/reservation delvis. Operatörssignoff ej omkörd (auth). Cliento-kod kvar men avstängd på hemsidan.
+> **Verify 2026-05-25:** Publik catalog **200** (`ARCANA_PUBLIC_WEB_BOOKING_ENABLED=true` + deploy). Plan A E2E **PASS** (PA-21–24). Webb-reservation → `consultation_plan` + `treatmentEncounterId` **PASS** prod. `ccoJournalBookingBridge` + TL-B.1 (Ta bild→encounter) live. Resend patient-mail **ej live** (se U5A.4).
 
 ### Fas J-7 — Påminnelser ☐
 
@@ -216,17 +216,17 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [~] U2.2 OWNER MFA enforced prod (`verify:auth-go-live-prod`)
 - [x] U2.3 STAFF-konton (generiskt + 4 sjuksköterskor)
 - [ ] U2.4 STAFF login verifierad i fält (iPhone/Android)
-- [ ] U2.5 Rollback-plan + underhållsfönster dokumenterat
+- [x] U2.5 Rollback-plan + underhållsfönster dokumenterat — [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25)
 - [ ] U2.6 Backup journal-photos schemalagd (`npm run backup:journal-photos`)
 
-> **Verify:** Open access **av**. OWNER MFA **av** (login probe: off) — inte enforced än. **5 STAFF** på prod. `backup:journal-photos` = manuellt script, ej scheduler. Rollback endast i ROLLOUT-PLAN, ej dedikerad runbook.
+> **Verify:** Open access **av**. OWNER MFA **av** (login probe: off) — inte enforced än. **5 STAFF** på prod. `backup:journal-photos` = manuellt script, ej scheduler. Auth rollback + underhållsfönster: [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25).
 
 ### Utrullning 3 — Drive-PDF + bred drift → **AKTIV**
 
 - [x] U3.1 **Drive-PDF på prod** — Google Drive API (ej 86 GB zip på 2 GB disk)
 - [~] U3.2 Drive-filer visningsbara i Filer-fliken prod
 - [~] U3.3 Personal utbildad + journalför i MA — externt
-- [ ] U3.4 Notion: verify prod efter duplicate-cleanup (30 maj)
+- [x] U3.4 Notion: verify prod efter duplicate-cleanup (2026-05-25 — readyz, blueprint in_sync, verify:migration-prod PASS, needsReview 0)
 
 > **Verify:** `driveApiConfigured=true`, zipCount=0, **57558** filer / **1981** profiler. Index pushad + Render restart. PDF-stream **200** (Drive) för filer med `driveFileId` (**49103/57558**; journal_pdf **3482/5313**). Filer utan match faller tillbaka till zip → 404 (förväntat).
 
@@ -247,12 +247,12 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [x] U5A.2 Operatör confirm prod
 - [x] U5A.3 Plan A automated sign-off
 - [ ] U5A.4 Bekräftelsemail patient (Resend) — valfritt
-- [ ] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
+- [x] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
 - [ ] U5B.1 Påminnelse före besök
 - [ ] U5B.2 Eftervård / formulär / återbesök triggers
 - [ ] U5B.3 Post-op auto-trigger (Q4)
 
-> **Verify:** Publik catalog **503** `public_web_booking_disabled` (avsiktligt). `hairtpclinic.com/boka` **200**. Bridge design delvis PASS. U5B **ej påbörjad**.
+> **Verify 2026-05-25:** Publik catalog **200** (3 tjänster). Plan A curl E2E **PASS**. Bokning→journal **PASS** (reservation skapar plan + `treatmentEncounterId`). U5A.4 **BLOCKER:** `RESEND_API_KEY` saknas lokalt + Render — Graph→operatör OK. U5B **ej påbörjad**.
 
 ### Utrullning 6 — Agenter + CMO + patientkanal ☐
 
