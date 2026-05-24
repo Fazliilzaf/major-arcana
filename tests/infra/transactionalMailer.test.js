@@ -28,7 +28,7 @@ test('transactionalMailer uses Resend when RESEND_API_KEY is set', async () => {
   try {
     const { sendEmail } = createTransactionalMailer();
     const result = await sendEmail({
-      to: 'patient@example.com',
+      to: 'patient@hairtpclinic.com',
       subject: 'Bokning',
       html: '<p>Hej</p>',
     });
@@ -54,7 +54,7 @@ test('transactionalMailer falls back to Graph when Resend is not configured', as
   const graphSendConnector = {
     async sendNewMessage(input) {
       assert.equal(input.mailboxId, 'contact@hairtpclinic.com');
-      assert.deepEqual(input.to, ['patient@example.com']);
+      assert.deepEqual(input.to, ['patient@hairtpclinic.com']);
       return { sendMode: 'send_mail', mailboxId: input.mailboxId };
     },
   };
@@ -62,7 +62,7 @@ test('transactionalMailer falls back to Graph when Resend is not configured', as
   try {
     const { sendEmail } = createTransactionalMailer({ graphSendConnector });
     const result = await sendEmail({
-      to: 'patient@example.com',
+      to: 'patient@hairtpclinic.com',
       subject: 'Bokning',
       html: '<p>Hej</p>',
       text: 'Hej',
@@ -94,7 +94,7 @@ test('transactionalMailer returns graph error without breaking caller contract',
   try {
     const { sendEmail } = createTransactionalMailer({ graphSendConnector });
     const result = await sendEmail({
-      to: 'patient@example.com',
+      to: 'patient@hairtpclinic.com',
       subject: 'Bokning',
       html: '<p>Hej</p>',
     });
@@ -114,7 +114,7 @@ test('transactionalMailer mock-mode when neither Resend nor Graph is available',
   try {
     const { sendEmail } = createTransactionalMailer();
     const result = await sendEmail({
-      to: 'patient@example.com',
+      to: 'patient@hairtpclinic.com',
       subject: 'Bokning',
       html: '<p>Hej</p>',
     });
@@ -124,5 +124,40 @@ test('transactionalMailer mock-mode when neither Resend nor Graph is available',
   } finally {
     if (prev === undefined) delete process.env.RESEND_API_KEY;
     else process.env.RESEND_API_KEY = prev;
+  }
+});
+
+test('transactionalMailer skips live send for RFC 2606 / verify addresses', async () => {
+  const prev = process.env.RESEND_API_KEY;
+  process.env.RESEND_API_KEY = 're_test_key';
+  let fetchCalled = false;
+  const originalFetch = global.fetch;
+  global.fetch = async () => {
+    fetchCalled = true;
+    return { ok: true, status: 200, json: async () => ({ id: 'should-not-send' }) };
+  };
+
+  const graphSendConnector = {
+    async sendNewMessage() {
+      throw new Error('should_not_send');
+    },
+  };
+
+  try {
+    const { sendEmail } = createTransactionalMailer({ graphSendConnector });
+    const result = await sendEmail({
+      to: 'bokning-journal-1779662391531@example.com',
+      subject: 'Din tid är reserverad',
+      html: '<p>Hej</p>',
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.mode, 'mock');
+    assert.equal(result.provider, 'none');
+    assert.equal(result.skipped, 'reserved_domain');
+    assert.equal(fetchCalled, false);
+  } finally {
+    if (prev === undefined) delete process.env.RESEND_API_KEY;
+    else process.env.RESEND_API_KEY = prev;
+    global.fetch = originalFetch;
   }
 });
