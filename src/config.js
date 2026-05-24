@@ -21,6 +21,8 @@ const RENDER_RUNTIME_DEFAULTS = Object.freeze({
   ARCANA_BOOTSTRAP_PREFERRED_MAILBOX: 'contact@hairtpclinic.com',
   ARCANA_BOOTSTRAP_TENANT_ID: 'hair-tp-clinic',
   ARCANA_BOOTSTRAP_DELAY_MS: '5000',
+  ARCANA_PUBLIC_WEB_BOOKING_ENABLED: 'false',
+  ARCANA_CLIENTO_INTEGRATION_ENABLED: 'false',
   ARCANA_AUTH_OWNER_MFA_REQUIRED: 'false',
   ARCANA_PREFLIGHT_READINESS_CHECKS: 'cors_strict',
   ARCANA_BOOTSTRAP_RESET_OWNER_MFA: 'false',
@@ -646,6 +648,8 @@ const config = {
   orchestratorRateLimitMax: asInt(process.env.ARCANA_ORCHESTRATOR_RATE_LIMIT_MAX, 80),
   publicRateLimitWindowSec: asInt(process.env.ARCANA_PUBLIC_RATE_LIMIT_WINDOW_SEC, 60),
   publicClinicRateLimitMax: asInt(process.env.ARCANA_PUBLIC_CLINIC_RATE_LIMIT_MAX, 180),
+  publicWebBookingEnabled: asBool(process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED, false),
+  clientoIntegrationEnabled: asBool(process.env.ARCANA_CLIENTO_INTEGRATION_ENABLED, false),
   publicChatRateLimitMax: asInt(process.env.ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX, 90),
   publicChatBetaEnabled: asBool(process.env.ARCANA_PUBLIC_CHAT_BETA_ENABLED, false),
   publicChatBetaHeader: asNonEmptyString(

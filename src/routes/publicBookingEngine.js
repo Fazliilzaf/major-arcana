@@ -5,8 +5,8 @@
  * för Cliento. Detta är Fas B i web-to-arcana-bridge:
  * docs/strategy/web-to-arcana-bridge.md
  *
- * När hairtpclinic.com sätter ARCANA_PROVIDER=booking-engine byter den från
- * /api/public/cliento/* till dessa endpoints och Cliento är ute för webben.
+ * När ARCANA_PUBLIC_WEB_BOOKING_ENABLED=true (efter CCO sign-off) använder
+ * hairtpclinic.com endast dessa endpoints — aldrig Cliento (/public/cliento/*).
  *
  * Säkerhet:
  *   - Ingen auth (brand-resolveras via host)
@@ -25,6 +25,10 @@ const {
   buildOperatorNotificationEmail,
 } = require('../templates/bookingReservationEmail');
 const { assertPublicWebAbuseGuard } = require('../security/publicWebAbuseGuard');
+const {
+  isPublicWebBookingEnabled,
+  publicWebBookingDisabledBody,
+} = require('../infra/publicWebBooking');
 const { syncWebReservationToJournal } = require('../ops/ccoJournalBookingBridge');
 
 function normalizeText(value) {
@@ -137,8 +141,15 @@ function createPublicBookingEngineRouter({
   const router = express.Router();
   const { sendEmail } = createTransactionalMailer({ graphSendConnector });
 
+  function rejectIfPublicWebBookingDisabled(res) {
+    if (isPublicWebBookingEnabled()) return false;
+    res.status(503).json(publicWebBookingDisabledBody());
+    return true;
+  }
+
   // ── GET /api/public/booking-engine/catalog ────────────────────────
   router.get('/public/booking-engine/catalog', async (req, res) => {
+    if (rejectIfPublicWebBookingDisabled(res)) return;
     try {
       const brand = resolveBrandFromRequest(req, config);
       // Brand-resolution är förberedd för framtiden då booking-engine blir
@@ -169,6 +180,7 @@ function createPublicBookingEngineRouter({
 
   // ── GET /api/public/booking-engine/availability ───────────────────
   router.get('/public/booking-engine/availability', async (req, res) => {
+    if (rejectIfPublicWebBookingDisabled(res)) return;
     const fromDate = isoDateOnly(req.query.fromDate);
     const toDate = isoDateOnly(req.query.toDate);
     if (!fromDate || !toDate) {
@@ -208,6 +220,7 @@ function createPublicBookingEngineRouter({
   // (synthetic conversationId) så operatören ser ärendet som needs_triage.
   // Se docs/strategy/web-to-arcana-bridge.md sektion 3.3 för fullt kontrakt.
   router.post('/public/booking-engine/reservations', async (req, res) => {
+    if (rejectIfPublicWebBookingDisabled(res)) return;
     try {
       const body = typeof req.body === 'object' && req.body !== null ? req.body : {};
 
