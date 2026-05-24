@@ -446,6 +446,10 @@ function transformPreviewHtml(html) {
       html = html.replace('</head>', `${inject}</head>`);
     }
   }
+  // Mobil /staff URL (history.replaceState) får inte bryta relativa asset-sökvägar.
+  if (!/<base\s/i.test(html)) {
+    html = html.replace('<head>', '<head>\n    <base href="/major-arcana-preview/">');
+  }
   return html;
 }
 
@@ -677,18 +681,21 @@ app.get('/', (req, res) => {
   res.sendFile('index.html', { root: __dirname + '/public' });
 });
 
-function redirectStaffMobileEntry(req, res) {
+function serveStaffMobileEntry(req, res, next) {
   const query = String(req.url || '').includes('?')
     ? String(req.url).slice(String(req.url).indexOf('?'))
     : '';
   const params = new URLSearchParams(query.startsWith('?') ? query.slice(1) : query);
   if (!params.get('view')) params.set('view', 'customers');
   const qs = params.toString();
-  res.redirect(302, `/major-arcana-preview/?${qs}`);
+  if (qs && !String(req.url || '').includes('?')) {
+    return res.redirect(302, `/staff?${qs}`);
+  }
+  return servePreviewHtml(req, res, next);
 }
 
 // Kort mobil-länk för personal (Safari/iPhone) → CCO kundregister + journal
-app.get(['/staff', '/mobil'], redirectStaffMobileEntry);
+app.get(['/staff', '/mobil'], serveStaffMobileEntry);
 
 app.get('/patientinformation/hartransplantation-dhi-prp', (_req, res) => {
   res.sendFile('patientinformation-hartransplantation-dhi-prp.html', {
