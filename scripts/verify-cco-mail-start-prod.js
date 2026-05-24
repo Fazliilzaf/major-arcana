@@ -228,6 +228,11 @@ async function readSelectedThreadId(page) {
   });
 }
 
+function isPlaceholderThreadId(id) {
+  const value = String(id || '').trim().toLowerCase();
+  return !value || value === 'runtime-empty' || value === 'runtime-unified-empty';
+}
+
 async function selectFirstLiveThread(page) {
   const threadId = await page.evaluate(() => {
     const cards = Array.from(document.querySelectorAll('.thread-card, arcana-thread-card'));
@@ -249,9 +254,10 @@ async function selectFirstLiveThread(page) {
       ''
     );
   });
-  if (threadId) return threadId;
+  if (threadId && !isPlaceholderThreadId(threadId)) return threadId;
   await page.waitForTimeout(400);
-  return readSelectedThreadId(page);
+  const selected = await readSelectedThreadId(page);
+  return isPlaceholderThreadId(selected) ? '' : selected;
 }
 
 async function measureSyncPillClearMs(page) {
@@ -399,8 +405,11 @@ async function runMobileChecks(browser, token) {
   }
 }
 
-async function runDesktopChecksWithRetry(page) {
+async function runDesktopChecksWithRetry(page, token) {
   for (let attempt = 1; attempt <= 2; attempt += 1) {
+    if (attempt > 1) {
+      await bootstrapStaffSession(page, token);
+    }
     hardFail = false;
     await runDesktopChecks(page);
     if (!hardFail) return;
@@ -419,7 +428,7 @@ async function main() {
 
   try {
     await bootstrapStaffSession(page, token);
-    await runDesktopChecksWithRetry(page);
+    await runDesktopChecksWithRetry(page, token);
   } finally {
     await context.close();
   }
