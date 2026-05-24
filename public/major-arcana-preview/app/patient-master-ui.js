@@ -506,6 +506,17 @@
     }
   }
 
+  function isCustomersShellActive() {
+    try {
+      if (parseStartupParams().view === 'customers') return true;
+      const canvas = document.querySelector('.preview-canvas');
+      if (canvas?.dataset?.appShellView === 'customers') return true;
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
+
   function buildPatientDeepLink(patientId) {
     try {
       const url = new URL(window.location.origin);
@@ -2510,6 +2521,10 @@
 
   async function loadPatientList({ append = false } = {}) {
     if (runtime.mode !== 'register') return;
+    if (needsStaffLogin()) {
+      renderPatientRows();
+      return;
+    }
     if (runtime.loading) return;
     runtime.loading = true;
     runtime.error = '';
@@ -3970,6 +3985,8 @@
       if (!needsStaffLogin()) {
         void loadPatientDetail(startup.patientId);
       }
+    } else if (isCustomersShellActive()) {
+      onCustomersViewOpen();
     } else {
       renderDetailEmpty();
     }
@@ -4093,5 +4110,22 @@
     );
   }
 
+  function watchCustomersShellActivation() {
+    const canvas = document.querySelector('.preview-canvas');
+    if (!canvas) return;
+    const openIfCustomers = () => {
+      if (canvas.dataset.appShellView !== 'customers' || runtime.mode !== 'register') return;
+      onCustomersViewOpen();
+    };
+    openIfCustomers();
+    const observer = new MutationObserver(openIfCustomers);
+    observer.observe(canvas, { attributes: true, attributeFilter: ['data-app-shell-view'] });
+  }
+
   bootWhenPatientRailReady();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', watchCustomersShellActivation, { once: true });
+  } else {
+    watchCustomersShellActivation();
+  }
 })();

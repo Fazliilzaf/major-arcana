@@ -4,7 +4,7 @@
  * OWNER verifieras via API (MFA) i samma körning.
  */
 require('dotenv').config({ quiet: true });
-const { chromium, devices } = require('playwright');
+const { chromium, webkit, devices } = require('playwright');
 const { execSync } = require('node:child_process');
 const path = require('node:path');
 
@@ -21,7 +21,8 @@ function record(name, pass, detail = '') {
   if (!pass) hardFail = true;
 }
 
-async function verifyStaffMobileLogin(page) {
+async function verifyStaffMobileLogin(page, engineLabel = 'Chromium') {
+  const tag = (name) => `[${engineLabel}] ${name}`;
   await page.goto(`${base}/staff?view=customers`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.evaluate(() => {
     localStorage.removeItem('ARCANA_ADMIN_TOKEN');
@@ -29,11 +30,18 @@ async function verifyStaffMobileLogin(page) {
   });
   await page.context().clearCookies();
   await page.goto(`${base}/staff?view=customers`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForFunction(
+    () =>
+      Boolean(document.querySelector('[data-staff-login-form]')) ||
+      Boolean(document.querySelector('[data-customer-list] [data-patient-row]')),
+    undefined,
+    { timeout: 15000 }
+  ).catch(() => {});
 
   const loginForm = page.locator('[data-staff-login-form]');
   const needsLogin = (await loginForm.count()) > 0;
   if (!needsLogin) {
-    record('STAFF mobil login-form visas', false, 'open access eller redan inloggad');
+    record(tag('STAFF mobil login-form visas'), false, 'open access eller redan inloggad');
     return;
   }
 
@@ -48,15 +56,18 @@ async function verifyStaffMobileLogin(page) {
       'mailbox-admin-backdrop',
       'note-mode-backdrop',
     ];
-    return [...document.querySelectorAll('*')]
+    const leaks = [...document.querySelectorAll('*')]
       .filter((el) => {
         const cs = getComputedStyle(el);
         const bf = cs.backdropFilter || cs.webkitBackdropFilter || '';
-        if (!bf || bf === 'none') return false;
+        const fl = cs.filter || '';
+        const hasBlur = (bf && bf !== 'none') || (fl && fl.includes('blur'));
+        if (!hasBlur) return false;
         const rect = el.getBoundingClientRect();
         if (rect.width < 80 || rect.height < 80) return false;
         if (el.classList.contains('cco-mobile-tabbar')) return false;
         if (el.closest('[aria-hidden="true"]')) return true;
+        if (el.closest('.customers-surface, .customers-shell, .customers-layout')) return true;
         return overlayClasses.some((name) => el.classList.contains(name));
       })
       .slice(0, 5)
@@ -64,9 +75,20 @@ async function verifyStaffMobileLogin(page) {
         shell: el.closest('section[id$="-shell"], .customers-modal-shell, .mailbox-admin-shell')?.id || '-',
         className: String(el.className || '').slice(0, 48),
       }));
+    const surfaceBefore = document.querySelector('.customers-surface');
+    const beforeStyle = surfaceBefore ? getComputedStyle(surfaceBefore, '::before') : null;
+    const pseudoBlur =
+      beforeStyle &&
+      beforeStyle.display !== 'none' &&
+      beforeStyle.content !== 'none' &&
+      String(beforeStyle.filter || '').includes('blur');
+    if (pseudoBlur) {
+      leaks.push({ shell: 'customers-surface::before', className: 'filter-blur-pseudo' });
+    }
+    return leaks;
   });
   record(
-    'iOS blur-leak (stängda overlays)',
+    tag('iOS blur-leak (stängda overlays)'),
     blurLeaks.length === 0,
     blurLeaks.length ? JSON.stringify(blurLeaks) : 'ingen'
   );
@@ -90,10 +112,10 @@ async function verifyStaffMobileLogin(page) {
     };
   });
   if (scrollDiag.missingPreviewPage) {
-    record('Mobil scroll (.preview-page)', false, 'saknar preview-page — fel entry URL?');
+    record(tag('Mobil scroll (.preview-page)'), false, 'saknar preview-page — fel entry URL?');
   } else {
     record(
-      'Mobil scroll (.preview-page)',
+      tag('Mobil scroll (.preview-page)'),
       scrollDiag.overflowY === 'auto' && (scrollDiag.canScroll ? scrollDiag.moved : true),
       scrollDiag.canScroll
         ? `moved=${scrollDiag.moved} ${scrollDiag.scrollH}/${scrollDiag.clientH}px`
@@ -102,15 +124,19 @@ async function verifyStaffMobileLogin(page) {
   }
 
   const loginFormCount = await page.locator('[data-staff-login-form]:visible').count();
-  record('STAFF mobil en synlig login-form', loginFormCount === 1, loginFormCount === 1 ? '' : `${loginFormCount} st`);
+  record(
+    tag('STAFF mobil en synlig login-form'),
+    loginFormCount === 1,
+    loginFormCount === 1 ? '' : `${loginFormCount} st`
+  );
 
   if (!staffEmail || !staffPassword) {
-    record('STAFF mobil login-form visas', true);
-    record('STAFF mobil UI-inloggning', false, 'saknar ARCANA_STAFF_* i .env');
+    record(tag('STAFF mobil login-form visas'), true);
+    record(tag('STAFF mobil UI-inloggning'), false, 'saknar ARCANA_STAFF_* i .env');
     return;
   }
 
-  record('STAFF mobil login-form visas', true);
+  record(tag('STAFF mobil login-form visas'), true);
   const loginFormFirst = loginForm.first();
   await loginFormFirst.locator('input[name="email"]').fill(staffEmail);
   await loginFormFirst.locator('input[name="password"]').fill(staffPassword);
@@ -132,7 +158,7 @@ async function verifyStaffMobileLogin(page) {
       const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || sessionStorage.getItem('ARCANA_ADMIN_TOKEN');
       const loggedIn = Boolean(token && token.length > 8 && !document.querySelector('[data-staff-login-form]'));
       const customersReady = Boolean(
-        document.querySelector('[data-customer-list], [data-patient-detail], .customers-layout')
+        document.querySelector('[data-customer-list] [data-patient-row], [data-patient-detail], .customers-layout')
       );
       return loggedIn && customersReady;
     },
@@ -140,8 +166,30 @@ async function verifyStaffMobileLogin(page) {
     { timeout: 30000 }
   );
   const elapsedMs = Date.now() - started;
-  record('STAFF mobil UI-inloggning → kundlista', true, `${elapsedMs}ms`);
-  record('STAFF mobil login ≤10s', elapsedMs <= 10000, `${elapsedMs}ms`);
+  const metricTotal = await page
+    .locator('[data-patient-metric="total"] strong')
+    .first()
+    .textContent()
+    .catch(() => '0');
+  const metricNum = Number(String(metricTotal || '0').replace(/\s/g, ''));
+  record(tag('STAFF mobil UI-inloggning → kundlista'), true, `${elapsedMs}ms`);
+  record(tag('STAFF mobil login ≤10s'), elapsedMs <= 10000, `${elapsedMs}ms`);
+  record(
+    tag('STAFF mobil kundmetrics laddade'),
+    Number.isFinite(metricNum) && metricNum > 0,
+    `total=${metricTotal}`
+  );
+}
+
+async function runMobileVerify(engine, engineLabel) {
+  const browser = await engine.launch({ headless: true });
+  const context = await browser.newContext({ ...devices['iPhone 13'], locale: 'sv-SE' });
+  const page = await context.newPage();
+  try {
+    await verifyStaffMobileLogin(page, engineLabel);
+  } finally {
+    await browser.close();
+  }
 }
 
 function verifyOwnerApiLogin() {
@@ -195,14 +243,8 @@ async function main() {
   verifyStaffApiLogin();
   verifyOwnerApiLogin();
 
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ ...devices['iPhone 13'], locale: 'sv-SE' });
-  const page = await context.newPage();
-  try {
-    await verifyStaffMobileLogin(page);
-  } finally {
-    await browser.close();
-  }
+  await runMobileVerify(chromium, 'Chromium');
+  await runMobileVerify(webkit, 'WebKit');
 
   if (hardFail) process.exit(1);
   console.log('✅ STAFF mobil login verify klar');
