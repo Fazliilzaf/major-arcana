@@ -336,18 +336,57 @@ function createCcoCommercialRouter({
         }
 
         const planSnapshot = buildPlanSnapshot(journalEntry, patient || { id: patientId });
-        const defaults = buildOfferDefaultsFromPlan(planSnapshot, body);
+        const defaults = buildOfferDefaultsFromPlan(planSnapshot, {
+          ...body,
+          notes: normalizeText(body.notesToCustomer) || normalizeText(body.notes) || undefined,
+        });
         const context = buildPatientRegisterContext(actor, {
           patientId,
           customerName: patient?.displayName || patient?.fullName || '',
         });
+
+        const origin = `${req.protocol}://${req.get('host')}`;
+
+        if (body.previewOnly === true) {
+          const previewCase = toCaseInput(context, {
+            ...defaults,
+            linkedJournalEntryId: entryId,
+            linkedPatientId: patientId,
+            planSnapshot,
+            quoteStatus: 'draft',
+            commercialStatus: 'needs_review',
+            paymentStatus: 'pending',
+          });
+          const embeddedPhotos = await resolvePlanPhotoDataUrls({
+            journalPhotoStore,
+            tenantId: actor.tenantId,
+            patientId,
+            planSnapshot,
+          });
+          const previewHtml = buildOfferDocumentHtml({
+            origin,
+            commercialCase: previewCase,
+            planSnapshot,
+            embeddedPhotos,
+          });
+          return res.json({
+            preview: true,
+            previewHtml,
+            summary: {
+              quotedAmount: defaults.quotedAmount,
+              depositAmount: defaults.depositAmount,
+              offerType: defaults.offerType,
+              notes: defaults.notes,
+              templateKey: defaults.offerTemplateKey,
+            },
+          });
+        }
 
         const existing = await commercialStore.getPatientRegisterCase({
           tenantId: actor.tenantId,
           patientId,
         });
 
-        const origin = `${req.protocol}://${req.get('host')}`;
         const draftCase = {
           ...toCaseInput(context, {
             ...defaults,
@@ -375,6 +414,16 @@ function createCcoCommercialRouter({
               detail: defaults.offerType,
               actorUserId: actor.userId,
             },
+            ...(normalizeText(body.internalNotes)
+              ? [
+                  {
+                    type: 'offer_internal_note',
+                    label: 'Intern anteckning',
+                    detail: normalizeText(body.internalNotes),
+                    actorUserId: actor.userId,
+                  },
+                ]
+              : []),
           ],
         };
 

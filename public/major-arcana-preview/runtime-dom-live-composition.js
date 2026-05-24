@@ -1397,6 +1397,26 @@
         return mobileInboxLoadPromise;
       }
 
+      if (backgroundRefresh) {
+        mobileInboxLoadPromise = (async () => {
+          const cachedApplied = await applyRuntimeThreadCacheIfAvailable();
+          if (cachedApplied || paintQueueIfAvailable()) {
+            return { ready: true, source: cachedApplied ? "cache" : "memory" };
+          }
+          void loadLiveRuntime({
+            staleWhileRevalidate: true,
+            isBackgroundRefresh: true,
+          }).catch((error) => {
+            console.warn("CCO mobil inbox-bakgrundsladdning misslyckades.", error);
+          });
+          return { ready: false, source: "background" };
+        })().finally(() => {
+          mobileInboxLoadPromise = null;
+          mobileInboxDeferredBootstrap = false;
+        });
+        return mobileInboxLoadPromise;
+      }
+
       mobileInboxLoadPromise = (async () => {
         const cachedApplied = await applyRuntimeThreadCacheIfAvailable();
         if (cachedApplied || paintQueueIfAvailable()) {
