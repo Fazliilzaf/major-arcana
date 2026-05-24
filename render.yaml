@@ -7,6 +7,7 @@ services:
     repo: https://github.com/Fazliilzaf/major-arcana
     branch: main
     autoDeployTrigger: commit
+    healthCheckPath: /readyz
     # plan utelämnad medvetet — prod kör Pro; Render behåller befintlig plan vid sync.
     # Build: standard npm ci + post-install playwright-chromium till
     # persistent disk så browsers cachas mellan deploys.

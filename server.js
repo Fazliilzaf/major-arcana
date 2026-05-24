@@ -480,6 +480,9 @@ app.use(
       if (/\/major-arcana-preview\/app\.bundle\.[a-f0-9]{6,}\.min\.js$/i.test(safe)) {
         // Content-hashed bundle — säkert att cacha aggressivt
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (/\/major-arcana-preview\/app\/patient-master-ui\.js$/i.test(safe)) {
+        // Versionerad early deep-link UI (?v= i HTML) — immutable tills deploy byter query
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (/\/major-arcana-preview\/.+\.(js|css)$/i.test(safe)) {
         res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=86400');
       } else if (/\.(woff2?|ttf|otf|eot|ico|png|jpe?g|svg|webp|gif)$/i.test(safe)) {

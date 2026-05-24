@@ -39577,6 +39577,9 @@
     canvas.dataset.appShellView = shellView;
 
     const applyShellStructure = () => {
+      if (shellView === "conversations") {
+        document.documentElement.removeAttribute("data-cco-mobile-defer-inbox");
+      }
       shellViewSections.forEach((section) => {
         section.hidden = normalizeKey(section.dataset.shellView) !== shellView;
       });

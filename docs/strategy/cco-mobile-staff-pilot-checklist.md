@@ -8,6 +8,7 @@ Sweep-plan: [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md)
 
 - **Pilotläge aktivt** — `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true` (ingen login krävs just nu)
 - **Auth go-live** — `OPEN_ACCESS=false`, OWNER MFA required, STAFF `staff@hairtpclinic.se` (2026-05-23)
+- Kör `npm run verify:mobile-staff-regression-prod` — **pilot + fältpilot-sim + E2E×2** (slutregression)
 - Kör `npm run verify:cco-mobile-pilot-prod` — **grön 2026-05-23** (login + UI + journal + pilot)
 - Kör `npm run verify:cco-mail-start-prod` — **grön 2026-05-23** (kall 639ms, warm 272ms, lane=all)
 - Kör `npm run kickoff:cco-field-pilot` — **automation + deep links** (start Fas 5.6)
@@ -37,7 +38,8 @@ Testa på **iPhone Safari 390×844** (eller DevTools iPhone 13).
 | PWA “Lägg till på hemskärmen” från `/staff`                                      | ✅ manifest auto (manuell install på enhet valfri) |
 
 
-**Automatiserat:** `npm run verify:staff-ui-prod` (prod) eller `npm run verify:staff-ui-local` (localhost:3100).
+**Automatiserat:** `npm run verify:staff-ui-prod` (prod) eller `npm run verify:staff-ui-local` (localhost:3100).  
+**Slutregression (E2E×2 + perf-varningar):** `npm run verify:mobile-staff-regression-prod`
 
 ## Enhetstest (Fas 5.5)
 

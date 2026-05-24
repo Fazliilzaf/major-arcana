@@ -142,6 +142,10 @@ async function main() {
     );
     const snap1 = await snapshot(page, 'after-load');
     record('Kallstart /staff → mobil shell', snap1.shell === 'on', snap1.url, ms(t0));
+    const coldStartMs = ms(t0);
+    if (coldStartMs > 8000) {
+      warn('Kallstart långsam', `${coldStartMs}ms (>8000ms budget)`);
+    }
 
     // 2. Login-form tillgänglig
     t0 = Date.now();
@@ -288,6 +292,9 @@ async function main() {
       patientId.slice(0, 8),
       detailReadyMs
     );
+    if (detailReadyMs != null && detailReadyMs > 1500) {
+      warn('Kunddetail långsam', `${detailReadyMs}ms (>1500ms mål)`);
+    }
 
     // 5. Journal-flik (Profil → Journal, mäts in-page)
     const journalTab = page.locator('button[data-patient-tab="journal"]').first();
@@ -321,11 +328,21 @@ async function main() {
     // 7. Tillbaka till lista
     t0 = Date.now();
     await page.evaluate(() => window.ArcanaPatientMasterUi?.goBackToPatientList?.());
-    await page.waitForTimeout(600);
+    const backMs = await page
+      .waitForFunction(
+        () => !document.documentElement.hasAttribute('data-cco-patient-detail'),
+        undefined,
+        { timeout: 8000, polling: 16 }
+      )
+      .then(() => ms(t0))
+      .catch(() => ms(t0));
     const backOk = await page.evaluate(
       () => !document.documentElement.hasAttribute('data-cco-patient-detail')
     );
-    record('Back → kundlista', backOk, backOk ? 'lista' : 'fast i detail', ms(t0));
+    record('Back → kundlista', backOk, backOk ? 'lista' : 'fast i detail', backMs);
+    if (backOk && backMs > 800) {
+      warn('Back långsam', `${backMs}ms (>800ms budget)`);
+    }
 
     // 8. Bottom tabs — tid per klick
     const tabClicks = [];

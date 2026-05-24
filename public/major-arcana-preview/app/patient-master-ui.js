@@ -367,8 +367,13 @@
       return;
     }
     resetMobilePatientDetailState();
+    const listHasRows = Boolean(document.querySelector('[data-customer-list] [data-patient-row]'));
     renderDetailEmpty();
-    renderPatientRows();
+    if (!listHasRows || !runtime.loaded) {
+      renderPatientRows();
+    } else {
+      setStatus('', '');
+    }
     syncMobilePatientLayout();
     if (!fromPopstate) {
       replaceMobilePatientListUrl();
@@ -697,6 +702,24 @@
       <section class="patient-master-card patient-master-card-empty">
         <h2>Välj en kund</h2>
         <p>Öppna ett kundkort i listan för profil, journal och importerade filer.</p>
+      </section>
+    `;
+    syncMobilePatientLayout();
+  }
+
+  function renderDetailLoadError(patientId, message) {
+    resolveElements();
+    const rail = document.querySelector('[data-patient-master-rail]');
+    if (!rail) return;
+    els.patientRail = rail;
+    const offlineHint = isOnline() ? '' : ' Du verkar vara offline.';
+    rail.innerHTML = `
+      <section class="patient-master-card patient-master-card-error" data-patient-detail data-patient-load-error="true">
+        <h2>Kunde inte ladda kund</h2>
+        <p class="patient-master-muted">${escapeHtml(message || 'Nätverksfel')}${offlineHint}</p>
+        <button type="button" class="customers-utility-button" data-patient-action="retry-detail-load">
+          Försök igen
+        </button>
       </section>
     `;
     syncMobilePatientLayout();
@@ -2404,9 +2427,18 @@
         }
       }
       if (!payload) {
-        payload = await apiRequest(
-          `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`
-        );
+        const controller = typeof AbortController === 'function' ? new AbortController() : null;
+        const timeoutId = controller
+          ? window.setTimeout(() => controller.abort(), 8000)
+          : 0;
+        try {
+          payload = await apiRequest(
+            `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`,
+            controller ? { signal: controller.signal } : {}
+          );
+        } finally {
+          if (timeoutId) window.clearTimeout(timeoutId);
+        }
       }
       runtime.detail = payload;
       runtime.detailLoading = false;
@@ -2441,8 +2473,12 @@
       }
     } catch (error) {
       runtime.detail = null;
-      renderDetailEmpty();
-      setStatus(error.message || 'Kunde inte läsa kundkortet.', 'error');
+      const message =
+        error?.name === 'AbortError'
+          ? 'Tidsgräns — kontrollera nätverket och försök igen.'
+          : error.message || 'Kunde inte läsa kundkortet.';
+      renderDetailLoadError(patientId, message);
+      setStatus(message, 'error');
     } finally {
       runtime.detailLoading = false;
       if (normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__) === normalizeText(patientId)) {
@@ -3150,6 +3186,10 @@
           void copyPatientDeepLink();
         } else if (actionButton.dataset.patientAction === 'show-patient-qr') {
           showPatientQrCode();
+        } else if (actionButton.dataset.patientAction === 'retry-detail-load') {
+          if (runtime.selectedPatientId) {
+            void loadPatientDetail(runtime.selectedPatientId);
+          }
         }
       }
     });
@@ -3191,6 +3231,13 @@
     window.addEventListener('online', () => {
       if (runtime.mode === 'register') {
         setStatus('Anslutning återställd.', 'success');
+        if (
+          runtime.selectedPatientId &&
+          !runtime.detail?.card &&
+          document.querySelector('[data-patient-load-error="true"]')
+        ) {
+          void loadPatientDetail(runtime.selectedPatientId);
+        }
       }
     });
     window.addEventListener('offline', () => {

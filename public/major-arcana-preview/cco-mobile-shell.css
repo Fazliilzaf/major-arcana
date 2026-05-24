@@ -2058,6 +2058,27 @@
     .cco-mobile-autosave-indicator[data-tone='loading'] {
       color: var(--cco-text-secondary, #5d544a);
     }
+
+    /* Kallstart kundvy — skippa layout/paint av tung inbox tills användaren byter flik */
+    html[data-cco-mobile-defer-inbox='on'] .preview-workspace > #workspace-queue,
+    html[data-cco-mobile-defer-inbox='on']
+      .preview-workspace
+      > section[data-shell-view]:not([data-shell-view='customers']) {
+      content-visibility: hidden;
+      contain-intrinsic-size: auto 640px;
+    }
+
+    html[data-cco-mobile-shell='on'] .patient-master-card-error {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px 16px;
+    }
+
+    html[data-cco-mobile-shell='on'] .patient-master-card-error h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
   }
 
   /* Desktop/tablet — mobil-only chrome ska aldrig synas ≥769px */

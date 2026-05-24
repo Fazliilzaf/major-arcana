@@ -1328,22 +1328,17 @@
       }
     }
 
-    function shouldDeferMobileInboxBootstrap() {
+    function shouldDeferHeavyWorkspaceBootstrap() {
       if (!isMobileShellViewport()) return false;
-      const initialView = readInitialShellViewFromLocation();
-      return initialView !== "conversations" && initialView !== "inbox" && initialView !== "home";
-    }
-
-    function isMobileCustomersDeepLinkRoute() {
-      if (!isMobileShellViewport()) return false;
-      try {
-        const params = new URLSearchParams(windowObject.location?.search || "");
-        const view = normalizeKey(params.get("view") || "customers");
-        const patientId = String(params.get("patientId") || "").trim();
-        return view === "customers" && patientId.length > 0;
-      } catch {
+      const view = readInitialShellViewFromLocation();
+      if (view === "conversations" || view === "inbox" || view === "home" || view === "queue") {
         return false;
       }
+      return true;
+    }
+
+    function shouldDeferMobileInboxBootstrap() {
+      return shouldDeferHeavyWorkspaceBootstrap();
     }
 
     async function ensureMobileInboxReady({ backgroundRefresh = true } = {}) {
@@ -5244,11 +5239,12 @@
     }
 
     async function initializeWorkspaceSurface() {
-      if (isMobileCustomersDeepLinkRoute()) {
+      if (shouldDeferHeavyWorkspaceBootstrap()) {
         bindWorkspaceInteractions();
         bindRuntimeVisibilityRecovery();
         bindAdminTokenStorageRecovery();
         state.runtime.bootLaneLocked = true;
+        mobileInboxDeferredBootstrap = true;
         return;
       }
 
