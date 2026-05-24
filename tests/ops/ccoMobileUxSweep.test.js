@@ -126,6 +126,11 @@ test('mobile UX sweep — stängda modal-backdrops suddar inte iOS-vy', () => {
     /html\[data-cco-mobile-shell="on"\]\s*\.customers-modal-backdrop,\s*\n\s*html\[data-cco-mobile-shell="on"\]\s*\.mailbox-admin-backdrop/,
     'Backdrop-filter får inte ligga på alla backdrops ovillkorligt'
   );
+  assert.match(
+    shellCss,
+    /#later-shell\[aria-hidden="true"\][\s\S]*display:\s*none\s*!important/,
+    'Stängda runtime-overlays (later/note/studio) ska display:none på mobil'
+  );
 });
 
 test('mobile UX sweep — design tokens har phone breakpoint', () => {
