@@ -1,57 +1,53 @@
 # CCO Mobil journal — Pilotchecklista (Fas 5.5–5.6 + UX sweep)
 
 Produktion: **[https://arcana.hairtpclinic.se/staff?view=customers](https://arcana.hairtpclinic.se/staff?view=customers)**  
+Masterlista (en sida): [MASTER-TODO.md](./MASTER-TODO.md) · Notion: [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)  
 Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)  
 Sweep-plan: [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md)
 
 ## Före pilot
 
-- **Pilotläge aktivt** — `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=true` (ingen login krävs just nu)
-- **Auth go-live** — `OPEN_ACCESS=false`, OWNER MFA required, STAFF `staff@hairtpclinic.se` (2026-05-23)
-- Kör `npm run verify:mobile-staff-regression-prod` — **pilot + fältpilot-sim + E2E×2** (slutregression)
-- Kör `npm run verify:cco-mobile-pilot-prod` — **grön 2026-05-23** (login + UI + journal + pilot)
-- Kör `npm run verify:cco-mail-start-prod` — **grön 2026-05-23** (kall 639ms, warm 272ms, lane=all)
-- Kör `npm run kickoff:cco-field-pilot` — **automation + deep links** (start Fas 5.6)
-- 5 pilotkunder tillgängliga — **5/5 journey grön 2026-05-23** (`verify-all-pilot-journey-prod.sh`)
-- Personal har läst instruktionen (1 sida) — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)
-- Kör `npm run verify:mobile-pilot-prod` — **grön 2026-05-21**
-- Kör `npm run run:rollout-sweep` + pilot E2E alla 5 kunder — **grön 2026-05-23 (STAFF-auth)**
-- Kör `npm run verify:staff-ui-prod` — Playwright iPhone viewport **16/16 grön 2026-05-23**
-- Kör `npm run verify:staff-ui-desktop-prod` — desktop @1280 regression **2026-05-23**
-- Kör `smoke:mobile-journal` (STAFF) — photo upload + GET **~3,6s 2026-05-23**
-- Kör `npm test -- tests/ops/ccoMobileUxSweep.test.js` — asset + API-yta **2026-05-23**
-- Kör `npm run backup:journal-photos` — **2026-05-23** (`data/backups/journal-photos/`)
+- **Login krävs** — `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false` (ingen open access i prod)
+- **Auth go-live** — OWNER MFA enforced, STAFF `staff@hairtpclinic.se` (2026-05-24)
+- **iOS blur-fix** — stängda modal-backdrops suddar inte längre (`3364875`, 2026-05-24)
+- Kör `npm run verify:mobile-staff-regression-prod` — **pilot + fältpilot-sim + E2E×2**
+- Kör `npm run verify:cco-mobile-pilot-prod` — login + UI + journal + pilot
+- Kör `npm run kickoff:cco-field-pilot` — automation + deep links (start Fas 5.6)
+- 5 pilotkunder tillgängliga — `verify-all-pilot-journey-prod.sh`
+- Personal har läst instruktionen — [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md) *(login, inte open access)*
+- Kör `npm run run:rollout-sweep` + pilot E2E alla 5 kunder
+- Kör `npm run verify:staff-ui-prod` — Playwright iPhone viewport
+- Kör `smoke:mobile-journal` (STAFF) — photo upload + GET
+- Kör `npm test -- tests/ops/ccoMobileUxSweep.test.js`
+- Kör `npm run backup:journal-photos` (`data/backups/journal-photos/`)
 
-## Mobil shell (UX sweep — ny checklista)
+## Mobil shell (UX sweep)
 
-Testa på **iPhone Safari 390×844** (eller DevTools iPhone 13).
+Testa på **iPhone Safari 390×844** (eller DevTools iPhone 13).  
+Efter deploy: **stäng Safari-fliken** och öppna `/staff` igen (cache).
 
+| Kontroll | OK? |
+| -------- | --- |
+| Bottom tab bar (Hem · Boka · Kalender · Kund · Journal), inga desktop-nav-länkar | ✅ auto |
+| Topbar ≤ 56px; app-titel visar vy/kundnamn | ✅ auto |
+| **Skarp bild** — ingen suddig overlay; kan scrolla och trycka | ✅ auto (iOS backdrop-fix) |
+| Kundlista → klick → detail; **← Tillbaka** till lista | ✅ auto |
+| Journal-flik ≥ 40px; **Ta bild** synlig utan scroll | ✅ auto |
+| Inställningar/modaler öppnas som **bottom sheet** | ✅ auto |
+| Arbetskö: kompakta rader + **Filter ▾** | ⚠️ auto (tom kö = inga rader) |
+| PWA “Lägg till på hemskärmen” från `/staff` | ✅ manifest (manuell install valfri) |
 
-| Kontroll                                                                         | OK?                                               |
-| -------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Bottom tab bar (Kö / Kunder / Boka / Mer) synlig, inga desktop-nav-länkar        | ✅ auto                                            |
-| Topbar ≤ 56px; app-titel visar vy/kundnamn                                       | ✅ auto                                            |
-| Kundlista → klick → detail; **← Tillbaka** till lista                            | ✅ auto                                            |
-| Journal-flik ≥ 40px; **Ta bild** synlig utan scroll                              | ✅ auto                                            |
-| Inställningar/modaler öppnas som **bottom sheet** (inte centrerad desktop-modal) | ✅ auto                                            |
-| Arbetskö: kompakta rader + **Filter ▾**                                          | ⚠️ auto (Filter ✅; tom kö = inga rader)           |
-| PWA “Lägg till på hemskärmen” från `/staff`                                      | ✅ manifest auto (manuell install på enhet valfri) |
-
-
-**Automatiserat:** `npm run verify:staff-ui-prod` (prod) eller `npm run verify:staff-ui-local` (localhost:3100).  
-**Slutregression (E2E×2 + perf-varningar):** `npm run verify:mobile-staff-regression-prod`
+**Automatiserat:** `npm run verify:staff-ui-prod` · **Slutregression:** `npm run verify:mobile-staff-regression-prod`
 
 ## Enhetstest (Fas 5.5)
 
 Fyll i per enhet efter test i verklig konsultation (eller simulerad kund).
 
-
-| Enhet            | Testare | Datum   | Ta bild | Galleri | HEIC | Etikett | QR/deep link | Markera plan | Shell UX | OK? |
-| ---------------- | ------- | ------- | ------- | ------- | ---- | ------- | ------------ | ------------ | -------- | --- |
-| iPhone Safari    | Clara   | 23/5-26 | x       | x       | x    | x       | ☐            | ☐            | ☐        | ☐   |
-| Android Chrome   |         |         | ☐       | ☐       | ☐    | ☐       | ☐            | ☐            | ☐        | ☐   |
-| iPad (markering) |         |         | ☐       | ☐       | ☐    | ☐       | ☐            | ☐            | ☐        | ☐   |
-
+| Enhet | Testare | Datum | Ta bild | Galleri | HEIC | Etikett | QR/deep link | Markera plan | Shell UX | OK? |
+| ----- | ------- | ----- | ------- | ------- | ---- | ------- | ------------ | ------------ | -------- | --- |
+| iPhone Safari | Clara | 23/5–26 | x | x | x | x | ☐ | ☐ | ☐ | ☐ |
+| Android Chrome | | | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
+| iPad (markering) | | | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
 
 **Godkänt per enhet:** alla ☐ i raden ikryssade utan utvecklarstöd.
 
@@ -59,17 +55,15 @@ Fyll i per enhet efter test i verklig konsultation (eller simulerad kund).
 
 Mål: **2 personal**, minst **5 riktiga konsultationer** totalt.
 
-**Automation (2026-05-23):** `npm run verify:field-pilot-consultations-prod` — 5/5 simulerade (mobil UI + foto-upload). Ersätter inte fysisk enhet.
+**Automation:** `npm run verify:field-pilot-consultations-prod` — simulerar UI + foto (ersätter inte fysisk enhet).
 
-
-| #   | Personal | Kund | Bilder uppladdade | Tid (sek) | Problem? |
+| # | Personal | Kund | Bilder uppladdade | Tid (sek) | Problem? |
 | --- | -------- | ---- | ----------------- | --------- | -------- |
-| 1   |          |      |                   |           |          |
-| 2   |          |      |                   |           |          |
-| 3   |          |      |                   |           |          |
-| 4   |          |      |                   |           |          |
-| 5   |          |      |                   |           |          |
-
+| 1 | | | | | |
+| 2 | | | | | |
+| 3 | | | | | |
+| 4 | | | | | |
+| 5 | | | | | |
 
 ### Feedback (5 frågor)
 
@@ -81,12 +75,10 @@ Mål: **2 personal**, minst **5 riktiga konsultationer** totalt.
 
 ## Go / no-go
 
-
-| Beslut    | Krav                                                                                 |
-| --------- | ------------------------------------------------------------------------------------ |
-| **GO**    | ≥2 personal, ≥5 konsultationer, inga blockerande buggar, medel betyg ≥4 på fråga 1–2 |
-| **NO-GO** | Kamera/upload funkar inte på HTTPS, auth strular, eller >2 allvarliga incidenter     |
-
+| Beslut | Krav |
+| ------ | ---- |
+| **GO** | ≥2 personal, ≥5 konsultationer, inga blockerande buggar, medel betyg ≥4 på fråga 1–2 |
+| **NO-GO** | Kamera/upload funkar inte på HTTPS, auth strular, eller >2 allvarliga incidenter |
 
 **Beslut:** ☐ GO ☐ NO-GO  
 **Datum:**  
