@@ -3163,6 +3163,39 @@
                           '<div class="patient-master-detail-skeleton-bar"></div>' +
                           '<div class="patient-master-detail-skeleton-bar is-short"></div>' +
                           '<div class="patient-master-detail-skeleton-bar"></div></div></section>';
+                        var token = '';
+                        try {
+                          token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+                        } catch (prefetchTokenError) {
+                          token = '';
+                        }
+                        if (token.length > 8) {
+                          fetch(
+                            new URL(
+                              '/api/v1/cco-patient-master/patient?patientId=' +
+                                encodeURIComponent(patientId),
+                              window.location.origin
+                            ).toString(),
+                            {
+                              headers: {
+                                Accept: 'application/json',
+                                Authorization: 'Bearer ' + token,
+                              },
+                            }
+                          )
+                            .then(function (response) {
+                              return response.ok ? response.json() : null;
+                            })
+                            .then(function (payload) {
+                              if (payload) {
+                                window.__ARCANA_PATIENT_PREFETCH__ = {
+                                  patientId: patientId,
+                                  payload: payload,
+                                };
+                              }
+                            })
+                            .catch(function () {});
+                        }
                       } catch (e) {
                         /* best-effort */
                       }
@@ -10604,8 +10637,8 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 5c7c3182f0) -->
-    <script src="./app.bundle.5c7c3182f0.min.js"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: dee565434d) -->
+    <script src="./app.bundle.dee565434d.min.js"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's
