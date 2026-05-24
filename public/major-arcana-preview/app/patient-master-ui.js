@@ -3483,19 +3483,17 @@
     showMobileToast,
   };
 
-  function canBootstrapMobileDeepLinkEarly() {
+  function shouldBootstrapMobileDeepLinkNow() {
     try {
-      if (document.readyState !== 'loading') return false;
       if (!isMobileViewport()) return false;
       const startup = parseStartupParams();
-      if (!startup.patientId) return false;
-      return Boolean(document.querySelector('[data-patient-master-rail]'));
+      return Boolean(normalizeText(startup.patientId));
     } catch {
       return false;
     }
   }
 
-  if (canBootstrapMobileDeepLinkEarly()) {
+  if (shouldBootstrapMobileDeepLinkNow()) {
     bootstrap();
   } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootstrap);
