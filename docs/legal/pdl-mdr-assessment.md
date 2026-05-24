@@ -146,7 +146,7 @@ Arcana riskerar att klassificeras som medicinteknisk produkt om:
 
 | #   | Åtgärd                                             | Status                          |
 | --- | -------------------------------------------------- | ------------------------------- |
-| 8   | Juridisk granskning av PDL-avgränsning             | ❌ Krävs extern rådgivare       |
+| 8   | Juridisk granskning av PDL-avgränsning             | ✅ Signerat externt (2026-05-24) |
 | 9   | MDR-klassificeringsbedömning av extern expert      | ❌ Krävs vid expansion till CDS |
 | 10  | Kontakt med Läkemedelsverket om SaMD-gränsdragning | ❌ Vid behov                    |
 
