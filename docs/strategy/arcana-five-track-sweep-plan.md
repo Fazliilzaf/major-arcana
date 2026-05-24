@@ -131,4 +131,4 @@ npm run run:rollout-sweep
 - [ ] D2 staging connectors
 - [ ] E1 OOM stabil 3+ dagar
 
-**Relaterad:** [arcana-five-track-parallel-plan.md](./arcana-five-track-parallel-plan.md)
+**Relaterad:** [arcana-five-track-parallel-plan.md](./arcana-five-track-parallel-plan.md) · [graph-resend-go-live.md](../ops/graph-resend-go-live.md) (Render ops)

@@ -1,7 +1,7 @@
 # Major Arcana – Färginventering
 
 - Genererad: 2026-02-24T01:47:12.164Z
-- Källa: `/Users/fazlikrasniqi/Desktop/Arcana/public/admin.html`
+- Källa: `public/admin.html`
 - Scope: CSS i `public/admin.html` `<style>`-block
 
 ## 1) Design tokens i :root

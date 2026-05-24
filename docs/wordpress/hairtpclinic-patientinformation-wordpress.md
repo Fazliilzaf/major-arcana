@@ -290,9 +290,9 @@ Om vi ska göra detta på riktigt är rätt ordning:
 ## Vad som redan finns i Arcana
 Nuvarande statiska mall finns här:
 
-- innehåll: `/Users/fazlikrasniqi/Desktop/Arcana/public/patientinformation-hartransplantation-dhi-prp.html`
-- stil: `/Users/fazlikrasniqi/Desktop/Arcana/public/styles/hairtpclinic-patientinformation.css`
-- tokens: `/Users/fazlikrasniqi/Desktop/Arcana/public/styles/hairtpclinic-patientinformation-tokens.css`
-- route: `/Users/fazlikrasniqi/Desktop/Arcana/server.js`
+- innehåll: `public/patientinformation-hartransplantation-dhi-prp.html`
+- stil: `public/styles/hairtpclinic-patientinformation.css`
+- tokens: `public/styles/hairtpclinic-patientinformation-tokens.css`
+- route: `server.js`
 
 Det gör det möjligt att använda den nuvarande versionen som exakt källa när WordPress-mallen byggs.

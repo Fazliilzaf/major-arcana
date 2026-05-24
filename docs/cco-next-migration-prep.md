@@ -4,7 +4,7 @@
 Det här dokumentet beskriver hur stagingytan i `public/major-arcana-preview/` kan lyftas över till `/cco-next` senare utan att vi byter skalet nu.
 
 ## Vad som är isolerat i första passet
-Följande definitioner är nu flyttade till en egen stagingmodul i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-config.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-config.js):
+Följande definitioner är nu flyttade till en egen stagingmodul i [`public/major-arcana-preview/runtime-config.js`](../../public/major-arcana-preview/runtime-config.js):
 
 - queue lane-order och lane-labels
 - pill-/bubble-ikoner
@@ -16,7 +16,7 @@ Följande definitioner är nu flyttade till en egen stagingmodul i [`/Users/fazl
 Det här är medvetet den del av stagingkoden som är mest återanvändbar i ett framtida `/cco-next`-lyft och minst riskabel att modulera först.
 
 ## Vad som är isolerat i andra passet
-Följande delade trådoperationer ligger nu i en egen modul i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-thread-ops.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-thread-ops.js):
+Följande delade trådoperationer ligger nu i en egen modul i [`public/major-arcana-preview/runtime-thread-ops.js`](../../public/major-arcana-preview/runtime-thread-ops.js):
 
 - `updateRuntimeThread`
 - `patchStudioThreadAfterSend`
@@ -28,7 +28,7 @@ Följande delade trådoperationer ligger nu i en egen modul i [`/Users/fazlikras
 Det här är stagingytans första riktiga state-/actionkärna som nu kan återanvändas utan att dra med hela renderlagret i `app.js`.
 
 ## Vad som är isolerat i tredje passet
-Följande delade actionrouting ligger nu i en egen modul i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-action-engine.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-action-engine.js):
+Följande delade actionrouting ligger nu i en egen modul i [`public/major-arcana-preview/runtime-action-engine.js`](../../public/major-arcana-preview/runtime-action-engine.js):
 
 - runtime-openers för `studio`, `anteckning` och `schemaläggning`
 - shared quick action-dispatch för:
@@ -46,7 +46,7 @@ Följande delade actionrouting ligger nu i en egen modul i [`/Users/fazlikrasniq
 Det betyder att stagingytans delade navigation, overlay-entry points och snabbactions nu är separerade från själva DOM-wireupen i `app.js`.
 
 ## Vad som är isolerat i fjärde passet
-Följande workspace source-of-truth ligger nu i en egen modul i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-workspace-state.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-workspace-state.js):
+Följande workspace source-of-truth ligger nu i en egen modul i [`public/major-arcana-preview/runtime-workspace-state.js`](../../public/major-arcana-preview/runtime-workspace-state.js):
 
 - app-view
 - aktiv fokussektion
@@ -61,7 +61,7 @@ Följande workspace source-of-truth ligger nu i en egen modul i [`/Users/fazlikr
 I det här passet är målet inte att flytta all rendering, utan att ge stagingytan ett eget workspace-state-lager som kan spegla tillbaka till legacyfälten i `app.js` medan resten av renderlagret fortfarande bor där.
 
 ## Vad som är isolerat i femte passet
-Följande renderlogik för fokusyta, kundhistorik och kundintelligens ligger nu i en egen modul i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-focus-intel-renderers.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-focus-intel-renderers.js):
+Följande renderlogik för fokusyta, kundhistorik och kundintelligens ligger nu i en egen modul i [`public/major-arcana-preview/runtime-focus-intel-renderers.js`](../../public/major-arcana-preview/runtime-focus-intel-renderers.js):
 
 - `renderRuntimeFocusConversation`
 - `renderFocusHistorySection`
@@ -73,7 +73,7 @@ Följande renderlogik för fokusyta, kundhistorik och kundintelligens ligger nu 
 I det här passet flyttas renderlagret för mitten- och högerkolumnen ut ur `app.js`, men arbetsköns renderers och overlay-livscykler ligger fortfarande kvar där för att hålla snittet säkert.
 
 ## Vad som är isolerat i sjätte passet
-Följande kö- och feed-rendering för vänsterkolumnen ligger nu i en egen modul i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-queue-renderers.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-queue-renderers.js):
+Följande kö- och feed-rendering för vänsterkolumnen ligger nu i en egen modul i [`public/major-arcana-preview/runtime-queue-renderers.js`](../../public/major-arcana-preview/runtime-queue-renderers.js):
 
 - arbetsköns renderers för:
   - trådkort
@@ -88,7 +88,7 @@ Följande kö- och feed-rendering för vänsterkolumnen ligger nu i en egen modu
 I det här passet flyttas vänsterkolumnens rendererlager ut ur `app.js`, medan async laddning, selection-flow och overlay-livscykler fortfarande ligger kvar där för att hålla snittet stabilt.
 
 ## Vad som är isolerat i sjunde passet
-Följande overlay-renderers och overlay-livscykler ligger nu i en egen modul i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-overlay-renderers.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-overlay-renderers.js):
+Följande overlay-renderers och overlay-livscykler ligger nu i en egen modul i [`public/major-arcana-preview/runtime-overlay-renderers.js`](../../public/major-arcana-preview/runtime-overlay-renderers.js):
 
 - `Svarstudio`
   - open/close
@@ -115,7 +115,7 @@ Följande overlay-renderers och overlay-livscykler ligger nu i en egen modul i [
 I det här passet flyttas overlay-lagret ut ur `app.js`, medan själva save/send/delete-mutationerna och async-orkestreringen fortfarande ligger kvar där för att hålla snittet säkert.
 
 ## Vad som är isolerat i åttonde passet
-Följande async-orkestrering ligger nu i en egen modul i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-async-orchestration.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-async-orchestration.js):
+Följande async-orkestrering ligger nu i en egen modul i [`public/major-arcana-preview/runtime-async-orchestration.js`](../../public/major-arcana-preview/runtime-async-orchestration.js):
 
 - workspace bootstrap
   - anteckningar
@@ -148,7 +148,7 @@ Följande async-orkestrering ligger nu i en egen modul i [`/Users/fazlikrasniqi/
 I det här passet flyttas async-lagret ut ur `app.js`, medan live-runtime-laddning, domän-/mockdata och DOM-wireup fortfarande ligger kvar där för att hålla sista kompositionssnittet säkert.
 
 ## Vad som är isolerat i nionde passet
-Följande sista staging-komposition ligger nu i en egen modul i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-dom-live-composition.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-dom-live-composition.js):
+Följande sista staging-komposition ligger nu i en egen modul i [`public/major-arcana-preview/runtime-dom-live-composition.js`](../../public/major-arcana-preview/runtime-dom-live-composition.js):
 
 - live-runtime-loadern för CCO-workspace
 - workspace selection/lane/history-expansion
@@ -170,7 +170,7 @@ Följande sista staging-komposition ligger nu i en egen modul i [`/Users/fazlikr
 I det här passet blir `app.js` ett tunnare kompositionslager för själva stagingytan. Kvar där ligger nu främst icke-CCO-workspace-delar som showcase-/customer-/analytics-/automation-sidorna och den övergripande app-shellen.
 
 ## Delar som fortfarande lever i `app.js`
-Följande ligger kvar i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/app.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/app.js) efter sista staging-snittssteget:
+Följande ligger kvar i [`public/major-arcana-preview/app.js`](../../public/major-arcana-preview/app.js) efter sista staging-snittssteget:
 
 - domän-/mockdata för kunder, analytics, automation, integrations, macros och settings
 - app-shellens övergripande nav till vyer utanför CCO-workspace
@@ -224,9 +224,9 @@ Om någon av dessa dupliceras mellan staging och `/cco-next` uppstår direkt ris
 - `runtime-overlay-renderers.js`
 - `runtime-async-orchestration.js`
 - `runtime-dom-live-composition.js`
-- shell-tokens i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/styles.css`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/styles.css)
+- shell-tokens i [`public/major-arcana-preview/styles.css`](../../public/major-arcana-preview/styles.css)
 - bubble-rollernas ton- och storlekssystem
-- overlay-shell-strukturen i [`/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/index.html`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/index.html)
+- overlay-shell-strukturen i [`public/major-arcana-preview/index.html`](../../public/major-arcana-preview/index.html)
 
 ## Single-track parity-stängning
 Efter parity-auditen är arbetsregeln nu att nya CCO i `public/major-arcana-preview/` är enda aktiva spåret. Gammal `CCO-next` i `vendor/cconext-upstream/` används bara som read-only referens tills sista gapen är stängda.

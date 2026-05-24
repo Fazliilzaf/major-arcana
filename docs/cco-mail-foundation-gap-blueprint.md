@@ -3,9 +3,9 @@
 Senast uppdaterad: 2026-04-08
 
 ## Relaterade dokument
-- Status och nuläge: [`cco-mail-foundation-status.md`](/Users/fazlikrasniqi/Desktop/Arcana/docs/cco-mail-foundation-status.md)
-- Rekommenderad arbetssekvens: [`cco-mail-foundation-working-sequence.md`](/Users/fazlikrasniqi/Desktop/Arcana/docs/cco-mail-foundation-working-sequence.md)
-- MIME-backed fidelity-plan: [`cco-mail-mime-fidelity-plan.md`](/Users/fazlikrasniqi/Desktop/Arcana/docs/cco-mail-mime-fidelity-plan.md)
+- Status och nuläge: [`cco-mail-foundation-status.md`](./cco-mail-foundation-status.md)
+- Rekommenderad arbetssekvens: [`cco-mail-foundation-working-sequence.md`](./cco-mail-foundation-working-sequence.md)
+- MIME-backed fidelity-plan: [`cco-mail-mime-fidelity-plan.md`](./cco-mail-mime-fidelity-plan.md)
 
 ## Syfte
 Det här dokumentet beskriver vad CCO behöver för att få en fungerande mail foundation.
@@ -118,7 +118,7 @@ På systemnivå har Mac Mail i praktiken dessa lager:
 Repo-grundad nulägesbild:
 
 ### Read / ingest
-- [`microsoftGraphReadConnector.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/infra/microsoftGraphReadConnector.js)
+- [`microsoftGraphReadConnector.js`](../src/infra/microsoftGraphReadConnector.js)
 - hämtar Graph-meddelanden med:
   - `body`
   - `bodyPreview`
@@ -128,27 +128,27 @@ Repo-grundad nulägesbild:
 - gör viss `cid:`-reparation genom att läsa `/attachments` och ersätta inline-bilder med `data:`-URL:er
 
 ### Truth / history
-- [`ccoMailboxTruthReadAdapter.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoMailboxTruthReadAdapter.js)
-- [`ccoHistoryStore.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoHistoryStore.js)
+- [`ccoMailboxTruthReadAdapter.js`](../src/ops/ccoMailboxTruthReadAdapter.js)
+- [`ccoHistoryStore.js`](../src/ops/ccoHistoryStore.js)
 - CCO har två historikspår:
   - mailbox truth
   - legacy history store
 - båda bär idag delar av mailmodellen men inte en full canonical message model
 
 ### Runtime / API
-- [`capabilities.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/routes/capabilities.js)
+- [`capabilities.js`](../src/routes/capabilities.js)
 - runtime history, search, backfill och worklist exponerar mail till UI
 - truth-spåret kan nu leverera `bodyHtml`, men UI:t får fortfarande en redan tolkad version av mailobjektet
 
 ### Focus render
-- [`app.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/app.js)
-- [`runtime-focus-intel-renderers.js`](/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-focus-intel-renderers.js)
+- [`app.js`](../public/major-arcana-preview/app.js)
+- [`runtime-focus-intel-renderers.js`](../public/major-arcana-preview/runtime-focus-intel-renderers.js)
 - fokusytan har nu kontrollerad rich HTML och `mail-body mode`
 - men renderaren sitter fortfarande ovanpå en begränsad message model
 
 ### Compose / send
-- [`executionService.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/capabilities/executionService.js)
-- [`microsoftGraphSendConnector.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/infra/microsoftGraphSendConnector.js)
+- [`executionService.js`](../src/capabilities/executionService.js)
+- [`microsoftGraphSendConnector.js`](../src/infra/microsoftGraphSendConnector.js)
 - CCO kan:
   - skicka nytt mail
   - skicka reply
@@ -342,10 +342,10 @@ Det passet ska göra exakt detta:
 
 3. Bygga objektet i ett enda backendspår
 - sannolik huvudyta:
-  - [`/Users/fazlikrasniqi/Desktop/Arcana/src/routes/capabilities.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/routes/capabilities.js)
-  - [`/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoMailboxTruthReadAdapter.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoMailboxTruthReadAdapter.js)
-  - [`/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoHistoryStore.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoHistoryStore.js)
-  - eventuellt [`/Users/fazlikrasniqi/Desktop/Arcana/src/infra/microsoftGraphReadConnector.js`](/Users/fazlikrasniqi/Desktop/Arcana/src/infra/microsoftGraphReadConnector.js)
+  - [`src/routes/capabilities.js`](../../src/routes/capabilities.js)
+  - [`src/ops/ccoMailboxTruthReadAdapter.js`](../../src/ops/ccoMailboxTruthReadAdapter.js)
+  - [`src/ops/ccoHistoryStore.js`](../../src/ops/ccoHistoryStore.js)
+  - eventuellt [`src/infra/microsoftGraphReadConnector.js`](../../src/infra/microsoftGraphReadConnector.js)
 
 4. Ändra fokusytan så att den öppnar `mailDocument`
 - inte en blandning av preview/feed/history-fält

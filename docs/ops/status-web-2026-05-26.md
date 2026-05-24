@@ -207,7 +207,7 @@ Total: 6 arcana-commits + 2 webb-commits = 8 commits, ~1400 insertions netto.
 
 ## 6. Snabb-uppslag
 
-- Webb-repo (lokal): `/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Hairtpclinic webb/next-app/`
+- Webb-repo (lokal): `hairtpclinic-web (extern Next.js-repo, Vercel) — `
 - Live: `https://hairtpclinic.com` + `https://www.hairtpclinic.com`
 - Arcana booking-engine: `https://arcana.hairtpclinic.se/api/public/booking-engine/{catalog,availability,reservations}`
 - Arcana post-op review: `https://arcana.hairtpclinic.se/api/v1/post-op-review/:token/{lookup,submit,photos,review-clicked}`

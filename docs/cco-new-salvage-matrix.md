@@ -9,12 +9,12 @@ It is a no-loss migration map, not a redesign brief.
 ## Non-negotiables
 
 - The **only** correct UI base for the new CCO is:
-  - `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/index.html`
-  - `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/styles.css`
-  - `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/app.js`
+  - `public/major-arcana-preview/index.html`
+  - `public/major-arcana-preview/styles.css`
+  - `public/major-arcana-preview/app.js`
 - The old `/cco-next` React app is **not** the target UI.
 - The old `/cco-next` React app is a **function source only**:
-  - `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app`
+  - `vendor/cconext-upstream/src/app`
 - No functionality already built may be silently dropped.
 - No area is considered migrated until its no-loss gate is satisfied.
 - Backend, store, runtime, and action logic are salvageable.
@@ -24,9 +24,9 @@ It is a no-loss migration map, not a redesign brief.
 
 ### A. Correct target UI base
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/index.html`
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/styles.css`
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/app.js`
+- `public/major-arcana-preview/index.html`
+- `public/major-arcana-preview/styles.css`
+- `public/major-arcana-preview/app.js`
 
 These files already contain the new shell structure and entry points for:
 
@@ -50,46 +50,46 @@ These files already contain the new shell structure and entry points for:
 
 These are the primary salvage candidates and should be reused directly where possible:
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoWorkspace.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoIntegrations.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoMacros.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoSettings.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoFollowUpStore.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoHistoryStore.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoIntegrationStore.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoMacroStore.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoNoteStore.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoSettingsStore.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoShadowRun.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoWorkspacePrefsStore.js`
+- `src/routes/ccoWorkspace.js`
+- `src/routes/ccoIntegrations.js`
+- `src/routes/ccoMacros.js`
+- `src/routes/ccoSettings.js`
+- `src/ops/ccoFollowUpStore.js`
+- `src/ops/ccoHistoryStore.js`
+- `src/ops/ccoIntegrationStore.js`
+- `src/ops/ccoMacroStore.js`
+- `src/ops/ccoNoteStore.js`
+- `src/ops/ccoSettingsStore.js`
+- `src/ops/ccoShadowRun.js`
+- `src/ops/ccoWorkspacePrefsStore.js`
 
 ### C. Logic/reference source, but wrong UI base
 
 These are behavior references only. Do not keep building the new UI on them:
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/routes.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/layouts/main-layout.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/context/cco-next-runtime-context.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/context/mailbox-context.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components`
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/cco-next-release`
+- `vendor/cconext-upstream/src/app/routes.tsx`
+- `vendor/cconext-upstream/src/app/layouts/main-layout.tsx`
+- `vendor/cconext-upstream/src/app/context/cco-next-runtime-context.tsx`
+- `vendor/cconext-upstream/src/app/context/mailbox-context.tsx`
+- `vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
+- `vendor/cconext-upstream/src/app/pages`
+- `vendor/cconext-upstream/src/app/components`
+- `public/cco-next-release`
 
 ## Forbidden continuation paths
 
 Do not continue the migration by extending these as the UI destination:
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/inbox-page-final.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/later-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/sent-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/analytics-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/integrations-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/macros-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/settings-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/showcase-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/template-studio-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/workflow-builder-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/inbox-page-final.tsx`
+- `vendor/cconext-upstream/src/app/pages/later-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/sent-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/analytics-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/integrations-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/macros-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/settings-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/showcase-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/template-studio-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/workflow-builder-page.tsx`
 
 These files may still be mined for logic and behavior references.
 
@@ -126,18 +126,18 @@ No area is complete until all of these are true in the new CCO:
 **Target in new CCO**
 
 - Top-level conversation shell in:
-  - `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/app.js`
+  - `public/major-arcana-preview/app.js`
 - Search, sprint pill, top utility controls, and conversation workspace shell
 
 **Reuse directly**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/context/cco-next-runtime-context.tsx`
+- `vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
+- `vendor/cconext-upstream/src/app/context/cco-next-runtime-context.tsx`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/inbox-page-final.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/layouts/main-layout.tsx`
+- `vendor/cconext-upstream/src/app/pages/inbox-page-final.tsx`
+- `vendor/cconext-upstream/src/app/layouts/main-layout.tsx`
 
 **Must not be missed**
 
@@ -168,14 +168,14 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/context/mailbox-context.tsx`
-- runtime mailbox handling from `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
+- `vendor/cconext-upstream/src/app/context/mailbox-context.tsx`
+- runtime mailbox handling from `vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/mailbox-dropdown.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/add-mailbox-modal.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/add-mailbox-modal-advanced.tsx`
+- `vendor/cconext-upstream/src/app/components/mailbox-dropdown.tsx`
+- `vendor/cconext-upstream/src/app/components/add-mailbox-modal.tsx`
+- `vendor/cconext-upstream/src/app/components/add-mailbox-modal-advanced.tsx`
 
 **Must not be missed**
 
@@ -200,13 +200,13 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- queue state patterns from `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/context/cco-next-runtime-context.tsx`
+- queue state patterns from `vendor/cconext-upstream/src/app/context/cco-next-runtime-context.tsx`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/simplified-worklist-panel.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/worklist-panel.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/toggleable-filter-pills.tsx`
+- `vendor/cconext-upstream/src/app/components/simplified-worklist-panel.tsx`
+- `vendor/cconext-upstream/src/app/components/worklist-panel.tsx`
+- `vendor/cconext-upstream/src/app/components/toggleable-filter-pills.tsx`
 
 **Must not be missed**
 
@@ -237,13 +237,13 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoHistoryStore.js`
-- relevant runtime/history logic from `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
+- `src/ops/ccoHistoryStore.js`
+- relevant runtime/history logic from `vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/conversation-focus-panel.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/customer-intelligence-panel.tsx`
+- `vendor/cconext-upstream/src/app/components/conversation-focus-panel.tsx`
+- `vendor/cconext-upstream/src/app/components/customer-intelligence-panel.tsx`
 
 **Must not be missed**
 
@@ -276,15 +276,15 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- runtime action logic from `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
+- runtime action logic from `vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/response-studio-ultra.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/response-studio.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/response-studio-modal.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/response-studio-drawer.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/signature-editor-modal.tsx`
+- `vendor/cconext-upstream/src/app/components/response-studio-ultra.tsx`
+- `vendor/cconext-upstream/src/app/components/response-studio.tsx`
+- `vendor/cconext-upstream/src/app/components/response-studio-modal.tsx`
+- `vendor/cconext-upstream/src/app/components/response-studio-drawer.tsx`
+- `vendor/cconext-upstream/src/app/components/signature-editor-modal.tsx`
 
 **Must not be missed**
 
@@ -319,14 +319,14 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- runtime data composition from `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
+- runtime data composition from `vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/customer-intelligence-panel.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/customer-intelligence-sidebar.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/customer-intelligence-sidebar-optimized.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/customer-journey-timeline.tsx`
+- `vendor/cconext-upstream/src/app/components/customer-intelligence-panel.tsx`
+- `vendor/cconext-upstream/src/app/components/customer-intelligence-sidebar.tsx`
+- `vendor/cconext-upstream/src/app/components/customer-intelligence-sidebar-optimized.tsx`
+- `vendor/cconext-upstream/src/app/components/customer-journey-timeline.tsx`
 
 **Must not be missed**
 
@@ -352,16 +352,16 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoWorkspace.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoNoteStore.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoFollowUpStore.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoWorkspacePrefsStore.js`
+- `src/routes/ccoWorkspace.js`
+- `src/ops/ccoNoteStore.js`
+- `src/ops/ccoFollowUpStore.js`
+- `src/ops/ccoWorkspacePrefsStore.js`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/notes-dialog.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/schedule-followup-dialog.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/notes-viewer-panel.tsx`
+- `vendor/cconext-upstream/src/app/components/notes-dialog.tsx`
+- `vendor/cconext-upstream/src/app/components/schedule-followup-dialog.tsx`
+- `vendor/cconext-upstream/src/app/components/notes-viewer-panel.tsx`
 
 **Must not be missed**
 
@@ -393,11 +393,11 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoShadowRun.js`
+- `src/ops/ccoShadowRun.js`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/customer-intelligence-panel.tsx`
+- `vendor/cconext-upstream/src/app/components/customer-intelligence-panel.tsx`
 
 **Must not be missed**
 
@@ -422,14 +422,14 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- runtime list data handling from `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
+- runtime list data handling from `vendor/cconext-upstream/src/app/hooks/use-cco-next-runtime.ts`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/progressive-message-list.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/progressive-message-item.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/multi-select-toolbar.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/follow-up-filter.tsx`
+- `vendor/cconext-upstream/src/app/components/progressive-message-list.tsx`
+- `vendor/cconext-upstream/src/app/components/progressive-message-item.tsx`
+- `vendor/cconext-upstream/src/app/components/multi-select-toolbar.tsx`
+- `vendor/cconext-upstream/src/app/components/follow-up-filter.tsx`
 
 **Must not be missed**
 
@@ -463,10 +463,10 @@ No area is complete until all of these are true in the new CCO:
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/customer-identity-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/customer-identity-manager.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/contact-merge-modal.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/bulk-merge-panel.tsx`
+- `vendor/cconext-upstream/src/app/components/customer-identity-page.tsx`
+- `vendor/cconext-upstream/src/app/components/customer-identity-manager.tsx`
+- `vendor/cconext-upstream/src/app/components/contact-merge-modal.tsx`
+- `vendor/cconext-upstream/src/app/components/bulk-merge-panel.tsx`
 
 **Must not be missed**
 
@@ -493,13 +493,13 @@ No area is complete until all of these are true in the new CCO:
 **Reuse directly**
 
 - existing analytics-related routes:
-  - `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/reports.js`
-  - `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/mailInsights.js`
-  - `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/runtimeMetrics.js`
+  - `src/routes/reports.js`
+  - `src/routes/mailInsights.js`
+  - `src/ops/runtimeMetrics.js`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/analytics-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/analytics-page.tsx`
 
 **Must not be missed**
 
@@ -521,12 +521,12 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoIntegrations.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoIntegrationStore.js`
+- `src/routes/ccoIntegrations.js`
+- `src/ops/ccoIntegrationStore.js`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/integrations-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/integrations-page.tsx`
 
 **Must not be missed**
 
@@ -555,18 +555,18 @@ No area is complete until all of these are true in the new CCO:
 
 **Reuse directly**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoMacros.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoSettings.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoMacroStore.js`
-- `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoSettingsStore.js`
+- `src/routes/ccoMacros.js`
+- `src/routes/ccoSettings.js`
+- `src/ops/ccoMacroStore.js`
+- `src/ops/ccoSettingsStore.js`
 
 **Behavior reference only**
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/components/macro-builder.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/settings-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/showcase-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/workflow-builder-page.tsx`
-- `/Users/fazlikrasniqi/Desktop/Arcana/vendor/cconext-upstream/src/app/pages/template-studio-page.tsx`
+- `vendor/cconext-upstream/src/app/components/macro-builder.tsx`
+- `vendor/cconext-upstream/src/app/pages/settings-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/showcase-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/workflow-builder-page.tsx`
+- `vendor/cconext-upstream/src/app/pages/template-studio-page.tsx`
 
 **Must not be missed**
 
@@ -622,7 +622,7 @@ If any of these happen during migration, stop and reconcile before continuing:
 
 The migration is successful only when:
 
-- `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview` is the real CCO UI base
+- `public/major-arcana-preview` is the real CCO UI base
 - all required functionality is reachable from the new CCO
 - old `/cco-next` is no longer the active place where new UI work is happening
 - nothing from the 13 areas has been silently dropped
