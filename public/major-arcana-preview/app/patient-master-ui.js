@@ -2569,12 +2569,14 @@
               </div>
               ${renderPatientHeroChipRow(card)}
             </div>
-            <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="copy-patient-link" title="Kopiera kollegelänk till kundkort (kräver CCO-inloggning)">
-              Kopiera kollegelänk
-            </button>
-            <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="show-patient-qr" title="QR för kollega — kräver CCO-inloggning">
-              QR för kollega
-            </button>
+            <div class="patient-master-hero-actions">
+              <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="copy-patient-link" title="Kopiera kollegelänk till kundkort (kräver CCO-inloggning)">
+                Kopiera kollegelänk
+              </button>
+              <button type="button" class="customers-utility-button patient-master-copy-link" data-patient-action="show-patient-qr" title="QR för kollega — kräver CCO-inloggning">
+                QR för kollega
+              </button>
+            </div>
           </div>
         </article>
 

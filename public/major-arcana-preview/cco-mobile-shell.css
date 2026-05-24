@@ -1622,9 +1622,9 @@
     }
 
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-copy-link {
-      min-height: 36px;
-      padding: 0 10px;
-      font-size: 12px;
+      min-height: var(--cco-touch-min, 44px);
+      padding: 0 14px;
+      font-size: 13px;
     }
 
     /* Journal: kompakta verktyg, inga jätte-bubblor */
@@ -1855,25 +1855,38 @@
       align-items: stretch;
     }
 
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-copy-link {
       align-self: flex-start;
       margin-left: 0;
-      min-height: 0;
-      padding: 0;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      box-shadow: none;
-      color: var(--cco-text-link, #4a8268);
+      min-height: var(--cco-touch-min, 44px);
+      padding: 0 14px;
+      border: 1px solid rgba(154, 126, 104, 0.22);
+      border-radius: 999px;
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.96) 0%,
+        rgba(245, 239, 233, 0.92) 100%
+      );
+      box-shadow:
+        0 4px 10px rgba(161, 143, 126, 0.08),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+      color: var(--cco-text-primary, #2b251f);
       font-size: 13px;
       font-weight: 600;
-      text-decoration: underline;
-      text-underline-offset: 2px;
+      text-decoration: none;
+      white-space: nowrap;
     }
 
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero-main > .patient-master-copy-link
       + .patient-master-copy-link {
-      margin-left: 12px;
+      margin-left: 0;
     }
 
     html[data-cco-mobile-shell="on"] .cco-mobile-journal-steps {
