@@ -10,6 +10,7 @@ const {
   discoverMigrationZips,
   walkFolderEntries,
 } = require('../../scripts/migration/lib/migrationUtils');
+const { isGoogleDriveConfigured } = require('../lib/googleDriveClient');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -82,11 +83,7 @@ function createCcoMigrationRouter({
         incompleteDownloads: crdownloads.length,
         driveMirrorRoot: driveMirrorRoot || null,
         driveMirrorReady,
-        driveApiConfigured: Boolean(
-          process.env.ARCANA_GOOGLE_DRIVE_FOLDER_ID &&
-          (process.env.ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON ||
-            process.env.GOOGLE_APPLICATION_CREDENTIALS)
-        ),
+        driveApiConfigured: isGoogleDriveConfigured(),
         clientoCsv: csvPath ? path.basename(csvPath) : null,
         indexStats,
         patientStats,

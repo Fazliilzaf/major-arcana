@@ -9,6 +9,10 @@ const {
   resolveZipPath,
 } = require('../../scripts/migration/lib/migrationZipReader');
 const {
+  isGoogleDriveConfigured,
+  streamDriveFileToResponse,
+} = require('../lib/googleDriveClient');
+const {
   buildOccasionTimeline,
   extractFileOccasionContext,
 } = require('../../scripts/migration/lib/migrationUtils');
@@ -162,6 +166,28 @@ function createCcoPatientMasterRouter({
           res.setHeader('Cache-Control', 'private, max-age=3600');
           return res.sendFile(absPath);
         }
+
+        if (normalizeText(file.driveFileId) && isGoogleDriveConfigured()) {
+          await auditRead(req, actor, fileId, 'cco.patient_master.file.read');
+          try {
+            await streamDriveFileToResponse({
+              driveFileId: file.driveFileId,
+              res,
+              contentType: contentTypeForPath(file.relativePath),
+              fileName: path.basename(file.relativePath),
+            });
+            return;
+          } catch (error) {
+            if (!res.headersSent) {
+              const status = Number(error?.status) === 404 ? 404 : 502;
+              return res.status(status).json({
+                error: status === 404 ? 'Filen hittades inte i Google Drive.' : 'Kunde inte streama från Drive.',
+              });
+            }
+            return;
+          }
+        }
+
         const zipPath = resolveZipPath(config.migrationDataRoot, file.zipName);
         const stream = openZipEntryStream({ zipPath, relativePath: file.relativePath });
         res.setHeader('Content-Type', contentTypeForPath(file.relativePath));
@@ -185,6 +211,20 @@ function createCcoPatientMasterRouter({
         }
         const exitCode = await exitCodePromise;
         if (Number(exitCode) !== 0 && !res.headersSent) {
+          if (normalizeText(file.driveFileId) && isGoogleDriveConfigured()) {
+            await auditRead(req, actor, fileId, 'cco.patient_master.file.read');
+            try {
+              await streamDriveFileToResponse({
+                driveFileId: file.driveFileId,
+                res,
+                contentType: contentTypeForPath(file.relativePath),
+                fileName: path.basename(file.relativePath),
+              });
+              return;
+            } catch {
+              /* fall through */
+            }
+          }
           return res.status(404).json({ error: 'Kunde inte läsa filen från zip.' });
         }
       })

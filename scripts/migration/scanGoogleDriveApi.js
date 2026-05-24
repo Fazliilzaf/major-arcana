@@ -5,11 +5,10 @@ const path = require('node:path');
 
 const { buildFileRecord } = require('./lib/migrationUtils');
 const { writeMigrationIndex } = require('./lib/migrationIndexWriter');
-const { resolveDriveCredentials, resolveMigrationPaths } = require('./lib/migrationEnv');
+const { resolveDriveCredentials, resolveMigrationPaths, loadServiceAccountFromCreds } = require('./lib/migrationEnv');
 const {
   getAccessToken,
   listAllDriveFiles,
-  loadServiceAccountJson,
 } = require('./lib/googleDriveApi');
 
 function parseArgs(argv) {
@@ -36,7 +35,7 @@ async function main() {
   }
 
   if (args.verifyOnly) {
-    const serviceAccount = loadServiceAccountJson(creds.serviceAccountPath);
+    const serviceAccount = loadServiceAccountFromCreds(creds);
     const accessToken = await getAccessToken(serviceAccount);
     const sample = await listAllDriveFiles({
       accessToken,
@@ -63,7 +62,7 @@ async function main() {
   const startedAt = new Date().toISOString();
   console.log(`Indexerar Google Drive-mapp ${folderId} via API (ingen zip-nedladdning)...`);
 
-  const serviceAccount = loadServiceAccountJson(path.resolve(serviceAccountPath));
+  const serviceAccount = loadServiceAccountFromCreds(creds);
   const accessToken = await getAccessToken(serviceAccount);
   const driveFiles = await listAllDriveFiles({
     accessToken,
