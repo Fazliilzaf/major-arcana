@@ -903,6 +903,14 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_CUSTOMER_REMINDERS_INTERVAL_HOURS,
     6
   ),
+  ccoCareReminderDigestEmail: asNonEmptyString(
+    process.env.ARCANA_CCO_CARE_REMINDER_DIGEST_EMAIL,
+    'kons@hairtpclinic.com'
+  ),
+  ccoCareReminderFromEmail: asNonEmptyString(
+    process.env.ARCANA_CCO_CARE_REMINDER_FROM_EMAIL,
+    'kons@hairtpclinic.com'
+  ),
   schedulerRestoreDrillIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_RESTORE_DRILL_INTERVAL_HOURS,
     168

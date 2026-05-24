@@ -82,6 +82,7 @@
     editingClinicalFormKey: '',
     editingClinicalEntryId: '',
     journalTimelineFilter: 'all',
+    draftProposals: [],
   };
 
   const JOURNAL_TIMELINE_FILTERS = [
@@ -1883,6 +1884,33 @@
     `;
   }
 
+  function renderDraftProposalBanner(proposals) {
+    const pending = asArray(proposals).filter((row) => normalizeText(row.status) === 'pending');
+    if (!pending.length) return '';
+    const proposal = pending[0];
+    const fields = proposal.draftFields && typeof proposal.draftFields === 'object' ? proposal.draftFields : {};
+    const fieldLines = Object.values(fields)
+      .map((field) => `<li>${escapeHtml(field.title || field.journalType || 'Utkast')}</li>`)
+      .join('');
+    const missing = asArray(proposal.missing)
+      .map((item) => `<span class="patient-master-chip">${escapeHtml(item)}</span>`)
+      .join('');
+    return `
+      <article class="focus-customer-data-card patient-master-draft-proposal-card" data-draft-proposal-id="${escapeHtml(proposal.proposalId)}">
+        <div class="patient-master-material-head">
+          <h4>Journalutkast (agent)</h4>
+          <span class="patient-master-muted">Kräver personalgodkännande</span>
+        </div>
+        <p class="patient-master-muted">Automatiskt förslag baserat på saknade formulär. Godkänn för att öppna i Journal — inget sparas utan manuell signering.</p>
+        ${missing ? `<div class="patient-master-chip-row">${missing}</div>` : ''}
+        ${fieldLines ? `<ul class="patient-master-draft-proposal-list">${fieldLines}</ul>` : ''}
+        <div class="patient-master-draft-proposal-actions">
+          <button type="button" class="customers-utility-button" data-patient-action="review-draft-proposal" data-draft-status="approved" data-draft-proposal-id="${escapeHtml(proposal.proposalId)}">Godkänn &amp; öppna Journal</button>
+          <button type="button" class="customers-utility-button patient-master-muted-button" data-patient-action="review-draft-proposal" data-draft-status="dismissed" data-draft-proposal-id="${escapeHtml(proposal.proposalId)}">Avvisa</button>
+        </div>
+      </article>`;
+  }
+
   function renderJournalToolbar(card, entries) {
     const uploadBlocked = isPlanUploadBlocked(entries);
     const healthReady = hasSignedHealthDeclaration(entries);
@@ -3114,6 +3142,7 @@
         </div>
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">
+          ${renderDraftProposalBanner(runtime.draftProposals)}
           ${renderJournalWorkflowCallout(journalEntries)}
           <article class="focus-customer-data-card patient-master-identity-card">
             <h4>Identitet</h4>
@@ -3416,6 +3445,51 @@
     }
   }
 
+  async function loadPatientDraftProposals(patientId) {
+    if (!patientId) return;
+    try {
+      const payload = await apiRequest(
+        `/api/v1/ops/cco-care/draft-proposals?patientId=${encodeURIComponent(patientId)}&status=pending&limit=5`
+      );
+      runtime.draftProposals = asArray(payload?.proposals);
+      if (runtime.selectedPatientId === patientId && runtime.detail?.card) {
+        const panel = els.patientRail?.querySelector('[data-patient-tab-panel="profil"]');
+        const existing = panel?.querySelector('.patient-master-draft-proposal-card');
+        const html = renderDraftProposalBanner(runtime.draftProposals);
+        if (html && panel && !existing) {
+          panel.insertAdjacentHTML('afterbegin', html);
+        } else if (!html && existing) {
+          existing.remove();
+        } else if (html && existing) {
+          existing.outerHTML = html;
+        }
+      }
+    } catch {
+      runtime.draftProposals = [];
+    }
+  }
+
+  async function reviewDraftProposal(proposalId, status) {
+    if (!proposalId || !['approved', 'dismissed'].includes(status)) return;
+    try {
+      await apiRequest(`/api/v1/ops/cco-care/draft-proposals/${encodeURIComponent(proposalId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      runtime.draftProposals = runtime.draftProposals.filter((row) => row.proposalId !== proposalId);
+      if (status === 'approved') {
+        switchDetailTab('journal');
+        setStatus('Utkast godkänt — fortsätt manuellt i Journal.', 'success');
+      } else {
+        setStatus('Journalutkast avvisat.', 'success');
+      }
+      renderDetailPanel();
+    } catch (error) {
+      setStatus(error?.message || 'Kunde inte uppdatera journalutkast.', 'error');
+    }
+  }
+
   async function loadPatientDetailInternal(patientId) {
     resolveElements();
     if (!patientId || runtime.mode !== 'register') return;
@@ -3470,6 +3544,7 @@
         void Promise.all([
           loadPatientCommercialCase(patientId),
           loadPatientTreatmentAgreement(patientId),
+          loadPatientDraftProposals(patientId),
         ]).then(() => {
           if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
           const patch = () => {
@@ -3486,6 +3561,7 @@
         await Promise.all([
           loadPatientCommercialCase(patientId),
           loadPatientTreatmentAgreement(patientId),
+          loadPatientDraftProposals(patientId),
         ]);
         renderDetailPanel();
       }
@@ -4450,6 +4526,11 @@
           if (runtime.selectedPatientId) {
             void loadPatientDetail(runtime.selectedPatientId);
           }
+        } else if (actionButton.dataset.patientAction === 'review-draft-proposal') {
+          void reviewDraftProposal(
+            actionButton.dataset.draftProposalId,
+            actionButton.dataset.draftStatus
+          );
         }
       }
     });

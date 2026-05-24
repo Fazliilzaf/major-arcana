@@ -69,5 +69,8 @@ Om `RESEND_API_KEY` saknas på Render fortsätter `transactionalMailer` med **Gr
 |------|--------|
 | Kod (`transactionalMailer`) | ✅ Resend-first, Graph fallback |
 | `mailDeliveryGuard` | ✅ Blockerar `@example.com` i verify |
-| Render `RESEND_API_KEY` | ❌ **Saknas — BLOCKED** |
-| GO live | Kör steg 1–3 + `npm run verify:resend-domain-prod` efter deploy |
+| Lokal `.env` `RESEND_API_KEY` | ❌ **Saknas — `provision:resend-go-live-prod` stoppar** |
+| Prod leverans idag | Graph (tills Resend provisionerats) |
+| `npm run verify:resend-domain-prod` | WARN utan nyckel; PASS reply-to; prod provider = Graph |
+
+**För att köra B3b:** lägg `RESEND_API_KEY=re_...` (och ev. `RESEND_DOMAIN` / `RESEND_FROM`) i `.env` → `npm run provision:resend-go-live-prod` → `STRICT=1 npm run verify:resend-domain-prod`

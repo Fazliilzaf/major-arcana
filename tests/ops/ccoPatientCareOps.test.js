@@ -11,6 +11,7 @@ const {
   buildJournalDraftProposals,
   buildMissingFormsReport,
   classifyMissingForms,
+  dispatchCustomerReminderDigest,
   resolveMaintenanceWindow,
 } = require('../../src/ops/ccoPatientCareOps');
 const { createCcoPatientCareStateStore } = require('../../src/ops/ccoPatientCareStateStore');
@@ -190,4 +191,34 @@ test('resolveMaintenanceWindow marks upcoming before window', () => {
   assert.equal(result.active, false);
   assert.equal(result.upcoming, true);
   assert.match(result.message, /underhåll/i);
+});
+
+test('dispatchCustomerReminderDigest skips empty queue', async () => {
+  const result = await dispatchCustomerReminderDigest({
+    graphSendConnector: { sendMail: async () => {} },
+    queue: { total: 0, visitReminders: [], aftercareReminders: [] },
+    toEmail: 'ops@example.com',
+  });
+  assert.equal(result.skipped, true);
+});
+
+test('dispatchCustomerReminderDigest sends when queue has items', async () => {
+  let sent = null;
+  const result = await dispatchCustomerReminderDigest({
+    graphSendConnector: {
+      sendMail: async (payload) => {
+        sent = payload;
+      },
+    },
+    queue: {
+      total: 1,
+      visitReminders: [{ customerName: 'Test', message: 'Besök om 2h' }],
+      aftercareReminders: [],
+    },
+    toEmail: 'ops@example.com',
+    tenantId: 'hair-tp-clinic',
+  });
+  assert.equal(result.skipped, false);
+  assert.equal(sent.to, 'ops@example.com');
+  assert.match(sent.subject, /CCO påminnelser/);
 });
