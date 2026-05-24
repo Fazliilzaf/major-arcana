@@ -71,7 +71,7 @@
     agreementSignUrl: '',
     offerTemplates: [],
     stats: null,
-    preferJournalOnMobile: true,
+    preferJournalOnMobile: false,
     pendingPatientId: '',
     editingTpEntryId: '',
     editingPrpEntryId: '',
@@ -696,10 +696,50 @@
       .forEach((flag) => {
         add(FLAG_LABELS[flag] || flag, flag === 'needs_review' ? 'gold' : 'violet');
       });
-    if (isMobileViewport() && chips.length > 2) {
-      return chips.slice(0, 2).join('');
-    }
     return chips.join('');
+  }
+
+  function renderPatientHeroChipRow(card) {
+    if (isMobileViewport()) return '';
+    const flags = renderPatientFlags(card);
+    if (!flags) return '';
+    return `<div class="focus-customer-chip-row">${flags}</div>`;
+  }
+
+  function renderPatientPrimaryTabs(detailTab, fileCount = 0) {
+    const tab = detailTab || 'profil';
+    const profilActive = tab === 'profil';
+    const journalActive = tab === 'journal';
+    const avtalActive = tab === 'avtal';
+    const filesActive = tab === 'filer';
+    const fileLabel = fileCount ? ` (${fileCount})` : '';
+    if (isMobileViewport()) {
+      return `
+          <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
+          <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileLabel}</button>`;
+    }
+    return `
+          <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
+          <button type="button" class="patient-master-tab${journalActive ? ' is-active' : ''}" data-patient-tab="journal" aria-pressed="${journalActive}">Journal</button>
+          <button type="button" class="patient-master-tab${avtalActive ? ' is-active' : ''}" data-patient-tab="avtal" aria-pressed="${avtalActive}">Avtal</button>
+          <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileLabel}</button>`;
+  }
+
+  function renderPatientPrimaryTabsSkeleton(detailTab) {
+    const tab = detailTab || 'profil';
+    const journalish = tab === 'journal' || runtime.preferJournalOnMobile;
+    if (isMobileViewport()) {
+      const profilActive = tab === 'profil';
+      const filesActive = tab === 'filer';
+      return `
+          <span class="patient-master-tab${profilActive ? ' is-active' : ''}">Profil</span>
+          <span class="patient-master-tab${filesActive ? ' is-active' : ''}">Filer</span>`;
+    }
+    return `
+          <span class="patient-master-tab${journalish ? '' : ' is-active'}">Profil</span>
+          <span class="patient-master-tab${journalish ? ' is-active' : ''}">Journal</span>
+          <span class="patient-master-tab">Avtal</span>
+          <span class="patient-master-tab">Filer</span>`;
   }
 
   function asArray(value) {
@@ -859,7 +899,6 @@
     const cached = runtime.patients.find((row) => normalizeText(row?.patientId) === normalizeText(patientId));
     const displayName = cached?.displayName || 'Laddar kund…';
     const initials = String(displayName).slice(0, 2).toUpperCase();
-    const journalActive = runtime.detailTab === 'journal' || runtime.preferJournalOnMobile;
     rail.innerHTML = `
       <section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">
         <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
@@ -871,11 +910,7 @@
             </div>
           </div>
         </article>
-        <div class="patient-master-tabs" role="tablist" aria-hidden="true">
-          <span class="patient-master-tab${journalActive ? '' : ' is-active'}">Profil</span>
-          <span class="patient-master-tab${journalActive ? ' is-active' : ''}">Journal</span>
-          <span class="patient-master-tab">Avtal</span>
-          <span class="patient-master-tab">Filer</span>
+        <div class="patient-master-tabs" role="tablist" aria-hidden="true">${renderPatientPrimaryTabsSkeleton(runtime.detailTab)}
         </div>
         <div class="patient-master-detail-skeleton" aria-hidden="true">
           <div class="patient-master-detail-skeleton-bar"></div>
@@ -1831,15 +1866,22 @@
                     const variant = photo.annotatedPreviewAvailable ? 'annotated' : '';
                     return `
                       <figure class="patient-master-plan-photo">
-                        <a class="patient-master-plan-photo-link" href="#" data-journal-photo-link data-journal-photo-open="${escapeHtml(photo.photoId)}">
-                          <img
-                            data-journal-photo-id="${escapeHtml(photo.photoId)}"
-                            data-journal-photo-variant="${escapeHtml(variant)}"
-                            src=""
-                            alt="${escapeHtml(photo.fileName || photo.label || 'Konsultationsbild')}"
-                            loading="lazy"
-                          />
-                        </a>
+                        <div class="patient-master-plan-photo-media">
+                          <a class="patient-master-plan-photo-link" href="#" data-journal-photo-link data-journal-photo-open="${escapeHtml(photo.photoId)}">
+                            <img
+                              data-journal-photo-id="${escapeHtml(photo.photoId)}"
+                              data-journal-photo-variant="${escapeHtml(variant)}"
+                              src=""
+                              alt="${escapeHtml(photo.fileName || photo.label || 'Konsultationsbild')}"
+                              loading="lazy"
+                            />
+                          </a>
+                          ${
+                            planEntry.canEdit
+                              ? `<button type="button" class="patient-master-plan-photo-remove" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}" aria-label="Ta bort bild" title="Ta bort bild"><span aria-hidden="true">×</span></button>`
+                              : ''
+                          }
+                        </div>
                         <figcaption>
                           <strong>${escapeHtml(photo.label || photo.fileName || 'Bild')}</strong>
                           ${
