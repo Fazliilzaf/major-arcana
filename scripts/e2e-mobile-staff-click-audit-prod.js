@@ -227,24 +227,28 @@ async function main() {
     );
     record('Deep link → kunddetail klar', true, patientId.slice(0, 8), ms(t0));
 
-    // 5. Journal-flik (Profil → Journal)
+    // 5. Journal-flik (Profil → Journal, mäts in-page)
     const journalTab = page.locator('button[data-patient-tab="journal"]').first();
     await journalTab.waitFor({ state: 'visible', timeout: 15000 });
-    await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('profil'));
-    await page.waitForFunction(
-      () => !document.querySelector('[data-patient-tab-panel="profil"]')?.hasAttribute('hidden'),
-      undefined,
-      { timeout: 3000, polling: 16 }
-    );
-    t0 = Date.now();
-    await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('journal'));
-    await page.waitForFunction(
-      () => !document.querySelector('[data-patient-tab-panel="journal"]')?.hasAttribute('hidden'),
-      undefined,
-      { timeout: 3000, polling: 16 }
-    );
+    const journalTiming = await page.evaluate(() => {
+      const t0 = performance.now();
+      window.ArcanaPatientMasterUi?.setPatientTab?.('profil');
+      window.ArcanaPatientMasterUi?.setPatientTab?.('journal');
+      const journalVisible = !document
+        .querySelector('[data-patient-tab-panel="journal"]')
+        ?.hasAttribute('hidden');
+      return {
+        ms: Math.round(performance.now() - t0),
+        journalVisible,
+      };
+    });
     const tabH = await journalTab.evaluate((el) => Math.round(el.getBoundingClientRect().height));
-    record('Journal-tab klick', tabH >= 40, `${tabH}px höjd`, ms(t0));
+    record(
+      'Journal-tab klick',
+      journalTiming.journalVisible && tabH >= 40,
+      `${tabH}px höjd`,
+      journalTiming.ms
+    );
 
     // 6. Ta bild
     t0 = Date.now();
