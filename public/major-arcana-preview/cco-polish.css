@@ -5232,6 +5232,39 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
     min-height: 44px;
   }
 
+  .patient-master-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .patient-master-colleague-link-copy {
+    color: #1f6b4f;
+    border-color: rgba(74, 130, 104, 0.38);
+    background: linear-gradient(
+      180deg,
+      rgba(236, 253, 245, 0.98) 0%,
+      rgba(209, 250, 229, 0.94) 100%
+    );
+    box-shadow:
+      0 4px 10px rgba(74, 130, 104, 0.12),
+      inset 0 1px 1px rgba(255, 255, 255, 0.95);
+  }
+
+  .patient-master-colleague-link-qr {
+    color: #6d28d9;
+    border-color: rgba(124, 58, 237, 0.34);
+    background: linear-gradient(
+      180deg,
+      rgba(245, 243, 255, 0.98) 0%,
+      rgba(233, 213, 255, 0.94) 100%
+    );
+    box-shadow:
+      0 4px 10px rgba(124, 58, 237, 0.1),
+      inset 0 1px 1px rgba(255, 255, 255, 0.95);
+  }
+
   .focus-customer-hero-main {
     flex-wrap: wrap;
     align-items: flex-start;

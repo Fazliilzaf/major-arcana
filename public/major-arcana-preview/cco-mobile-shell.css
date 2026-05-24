@@ -1884,6 +1884,32 @@
       white-space: nowrap;
     }
 
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-colleague-link-copy {
+      color: #1f6b4f;
+      border-color: rgba(74, 130, 104, 0.38);
+      background: linear-gradient(
+        180deg,
+        rgba(236, 253, 245, 0.98) 0%,
+        rgba(209, 250, 229, 0.94) 100%
+      );
+      box-shadow:
+        0 4px 10px rgba(74, 130, 104, 0.12),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-colleague-link-qr {
+      color: #6d28d9;
+      border-color: rgba(124, 58, 237, 0.34);
+      background: linear-gradient(
+        180deg,
+        rgba(245, 243, 255, 0.98) 0%,
+        rgba(233, 213, 255, 0.94) 100%
+      );
+      box-shadow:
+        0 4px 10px rgba(124, 58, 237, 0.1),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+    }
+
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero-main > .patient-master-copy-link
       + .patient-master-copy-link {
       margin-left: 0;
