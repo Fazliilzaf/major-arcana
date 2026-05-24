@@ -187,38 +187,55 @@
     }
   }
 
+  function showConversationShell(workspaceView) {
+    if (!canvas) return;
+    document.documentElement.removeAttribute('data-cco-calendar-open');
+    canvas.dataset.appShellView = 'conversations';
+    canvas.dataset.appView = 'conversations';
+    canvas.dataset.mobileWorkspaceView = workspaceView === 'focus' ? 'focus' : 'queue';
+    document.querySelectorAll('[data-shell-view]').forEach((section) => {
+      section.hidden = true;
+    });
+    const previewShell = document.querySelector('.preview-shell');
+    const focusShell = document.querySelector('.focus-shell');
+    if (previewShell) previewShell.hidden = false;
+    if (focusShell) focusShell.hidden = false;
+  }
+
+  function showCustomersShell() {
+    if (!canvas) return;
+    document.documentElement.removeAttribute('data-cco-calendar-open');
+    canvas.dataset.appShellView = 'customers';
+    canvas.dataset.appView = 'customers';
+    document.querySelectorAll('[data-shell-view]').forEach((section) => {
+      section.hidden = section.dataset.shellView !== 'customers';
+    });
+    const previewShell = document.querySelector('.preview-shell');
+    const focusShell = document.querySelector('.focus-shell');
+    if (previewShell) previewShell.hidden = true;
+    if (focusShell) focusShell.hidden = true;
+  }
+
   function primeMobileTabNavigation(tab) {
     window.ArcanaAppNav?.cancelMobileNavigationWork?.();
     if (!canvas) return;
     switch (tab) {
       case 'home':
       case 'queue':
-        document.documentElement.removeAttribute('data-cco-calendar-open');
-        canvas.dataset.appShellView = 'conversations';
-        canvas.dataset.appView = 'conversations';
-        canvas.dataset.mobileWorkspaceView = 'queue';
+        showConversationShell('queue');
         break;
       case 'customers':
-        document.documentElement.removeAttribute('data-cco-calendar-open');
-        canvas.dataset.appShellView = 'customers';
-        canvas.dataset.appView = 'customers';
-        document.querySelectorAll('[data-shell-view]').forEach((section) => {
-          section.hidden = section.dataset.shellView !== 'customers';
-        });
+        showCustomersShell();
         break;
       case 'booking':
-        document.documentElement.removeAttribute('data-cco-calendar-open');
-        canvas.dataset.appShellView = 'conversations';
-        canvas.dataset.appView = 'conversations';
-        canvas.dataset.mobileWorkspaceView = 'focus';
+        showConversationShell('focus');
         break;
       case 'journal':
-        document.documentElement.removeAttribute('data-cco-calendar-open');
-        canvas.dataset.appShellView = 'customers';
-        canvas.dataset.appView = 'customers';
+        showCustomersShell();
         break;
       case 'calendar':
         document.documentElement.setAttribute('data-cco-calendar-open', '');
+        window.ArcanaBookingMobileCalendar?.open?.();
         break;
       default:
         break;
@@ -233,10 +250,14 @@
     optimisticTab('booking');
     const shellView = canvas?.dataset.appShellView || '';
     const workspaceView = canvas?.dataset.mobileWorkspaceView || '';
-    if (shellView === 'conversations' && workspaceView === 'focus') {
+    if (shellView === 'conversations') {
+      if (workspaceView !== 'focus') {
+        setMobileWorkspaceFocus();
+      }
       syncFromApp();
       return;
     }
+    showConversationShell('focus');
     clickNavView('conversations');
     setMobileWorkspaceFocus();
     syncFromApp();
@@ -248,6 +269,10 @@
     explicitJournalTab = false;
     setMoreOpen(false);
     optimisticTab('calendar');
+    if (document.documentElement.hasAttribute('data-cco-calendar-open')) {
+      syncFromApp();
+      return;
+    }
     window.ArcanaBookingMobileCalendar?.open?.();
     syncFromApp();
   }
@@ -376,6 +401,11 @@
     }
 
     const activeTab = resolveActiveTab(shellView, mobileWorkspaceView);
+    if (activeTab === 'booking') {
+      document.documentElement.setAttribute('data-cco-mobile-booking-tab', 'on');
+    } else {
+      document.documentElement.removeAttribute('data-cco-mobile-booking-tab');
+    }
     syncTabbar(activeTab);
     syncBackButton();
     syncAppTitle(resolveAppTitle(shellView, mobileWorkspaceView));
@@ -405,8 +435,10 @@
   }
 
   function activateMobileTab(tab, { shellBefore = '', workspaceBefore = '' } = {}) {
-    explicitCalendarTab = false;
-    window.ArcanaBookingMobileCalendar?.close?.();
+    if (tab !== 'calendar') {
+      explicitCalendarTab = false;
+      window.ArcanaBookingMobileCalendar?.close?.();
+    }
     window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
 
     if (tab === 'more') {
@@ -451,12 +483,18 @@
     }
 
     if (tab === 'home' || tab === 'queue') {
-      if (shellBefore === 'conversations' && workspaceBefore === 'queue') {
+      explicitBookingTab = false;
+      explicitJournalTab = false;
+      if (shellBefore === 'conversations') {
+        if (workspaceBefore !== 'queue') {
+          setMobileWorkspaceQueue();
+        }
         syncFromApp();
         return;
       }
-      setMobileWorkspaceQueue();
+      showConversationShell('queue');
       clickNavView('conversations');
+      setMobileWorkspaceQueue();
       syncFromApp();
       return;
     }
