@@ -97,8 +97,17 @@ async function main() {
     headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ clearCache: 'do_not_clear' }),
   });
-  const deploy = await deployRes.json();
-  console.log(`✅ Deploy startad: ${deploy.id || deploy.deploy?.id || 'ok'}`);
+  const deployText = await deployRes.text();
+  let deploy = {};
+  try {
+    deploy = deployText ? JSON.parse(deployText) : {};
+  } catch {
+    deploy = {};
+  }
+  if (!deployRes.ok && deployRes.status !== 202) {
+    fail(`Render deploy failed: ${deployRes.status} ${deployText.slice(0, 200)}`);
+  }
+  console.log(`✅ Deploy startad: ${deploy.id || deploy.deploy?.id || deployRes.status || 'ok'}`);
 }
 
 main().catch((err) => fail(err.message || String(err)));
