@@ -421,6 +421,7 @@ function createPublicBookingEngineRouter({
           metadata: {
             provider: emailResult.provider || 'none',
             mode: emailResult.mode,
+            skipped: emailResult.skipped || null,
             messageId: emailResult.messageId || null,
             error: emailResult.error || null,
             sendMode: emailResult.sendMode || null,
@@ -504,6 +505,7 @@ function createPublicBookingEngineRouter({
           ok: emailResult.ok === true,
           mode: emailResult.mode || 'mock',
           provider: emailResult.provider || 'none',
+          skipped: emailResult.skipped || null,
           messageId: emailResult.messageId || null,
           error: emailResult.error || null,
         },

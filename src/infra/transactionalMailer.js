@@ -9,6 +9,7 @@
 
 const { sendEmail: sendViaResend, isConfigured: isResendConfigured } = require('./resendMailer');
 const { resolveGraphSendFrom } = require('./resendConfig');
+const { shouldSkipLiveMailSend } = require('./mailDeliveryGuard');
 
 const DEFAULT_FROM_MAILBOX = 'contact@hairtpclinic.com';
 
@@ -28,6 +29,22 @@ function createTransactionalMailer({ graphSendConnector = null } = {}) {
     const validTo = normalizeRecipients(input.to);
     if (!validTo.length) {
       return { ok: false, mode: 'mock', provider: 'none', error: 'no_recipient' };
+    }
+
+    const skipCheck = shouldSkipLiveMailSend(validTo);
+    if (skipCheck.skip) {
+      console.log('[transactionalMailer] skip live send — reserved/verify recipient:', {
+        to: validTo,
+        skipped: skipCheck.reason,
+        blocked: skipCheck.recipients,
+        subject: input.subject,
+      });
+      return {
+        ok: true,
+        mode: 'mock',
+        provider: 'none',
+        skipped: skipCheck.reason,
+      };
     }
 
     if (isResendConfigured()) {

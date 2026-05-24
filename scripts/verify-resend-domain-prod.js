@@ -211,8 +211,11 @@ async function main() {
     } else {
       prodProvider = probe.email?.provider || 'unknown';
       const resendLive = prodProvider === 'resend' && probe.email?.ok !== false;
+      const skippedReserved = probe.email?.skipped === 'reserved_domain';
       if (resendLive) {
         record('RB3b-05 prod leverans via Resend', true, probe.email.messageId || 'sent');
+      } else if (skippedReserved) {
+        record('RB3b-05 prod reservation mail', true, 'skipped reserved_domain (@example.com verify)');
       } else if (STRICT) {
         fail('RB3b-05 prod leverans via Resend', `provider=${prodProvider} (STRICT=1 kräver resend)`);
       } else {
