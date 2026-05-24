@@ -39,7 +39,6 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 | # | Uppgift | Vem | Status |
 |---|---------|-----|--------|
 | 10 | Post-op Fas 1 — 4 beslut + Graph send live + Playwright smoke | Du + Agent | ☐ |
-| 11 | PDL juridiskt signerat / extern granskning | Du | ☐ |
 | 12 | Render EU Frankfurt verifierad i Dashboard | Du | ☐ |
 | 13 | Pipedrive People+Deals export | Agent | ☐ |
 | 14 | Plan A valfritt: Resend patient-mail + bokning→journal koppling | Agent | ☐ |
@@ -55,6 +54,7 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 - [x] iOS blur/touch-block fix — stängda modal-backdrops (`3364875`)
 - [x] Kundlista API smoke — 7 349 kunder
 - [x] Migration + avtal + journal kod prod
+- [x] PDL juridiskt signerat / extern granskning (2026-05-24)
 
 ---
 
