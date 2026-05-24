@@ -77,6 +77,10 @@
   function clickNavView(viewKey) {
     const key = String(viewKey || '').trim();
     if (!key) return false;
+    if (window.ArcanaAppNav?.setAppView) {
+      window.ArcanaAppNav.setAppView(key);
+      return true;
+    }
     const button = document.querySelector(
       `.preview-nav [data-nav-view="${key}"], .preview-more-item[data-nav-view="${key}"]`
     );
@@ -87,14 +91,39 @@
     return false;
   }
 
+  function setMobileWorkspace(view, options = {}) {
+    if (window.ArcanaAppNav?.setMobileWorkspaceView) {
+      window.ArcanaAppNav.setMobileWorkspaceView(view, options);
+      return;
+    }
+    const btn = document.querySelector(`[data-mobile-workspace-view="${view}"]`);
+    btn?.click();
+  }
+
+  function optimisticTab(tab) {
+    if (!tab || tab === 'more') return;
+    syncTabbar(tab);
+    const title =
+      tab === 'home'
+        ? VIEW_LABELS.conversations
+        : tab === 'customers'
+          ? VIEW_LABELS.customers
+          : tab === 'booking'
+            ? VIEW_LABELS.booking
+            : tab === 'calendar'
+              ? VIEW_LABELS.calendar
+              : tab === 'journal'
+                ? VIEW_LABELS.journal
+                : '';
+    if (title) syncAppTitle(title);
+  }
+
   function setMobileWorkspaceFocus() {
-    const focusBtn = document.querySelector('[data-mobile-workspace-view="focus"]');
-    focusBtn?.click();
+    setMobileWorkspace('focus', { persist: false, resetScroll: false });
   }
 
   function setMobileWorkspaceQueue() {
-    const queueBtn = document.querySelector('[data-mobile-workspace-view="queue"]');
-    queueBtn?.click();
+    setMobileWorkspace('queue', { persist: false, resetScroll: false });
   }
 
   function navigateToBooking() {
@@ -102,11 +131,10 @@
     explicitCalendarTab = false;
     explicitJournalTab = false;
     window.ArcanaBookingMobileCalendar?.close?.();
+    optimisticTab('booking');
     clickNavView('conversations');
-    window.setTimeout(() => {
-      setMobileWorkspaceFocus();
-      syncFromApp();
-    }, 0);
+    setMobileWorkspaceFocus();
+    syncFromApp();
   }
 
   function navigateToCalendar() {
@@ -114,6 +142,7 @@
     explicitBookingTab = false;
     explicitJournalTab = false;
     setMoreOpen(false);
+    optimisticTab('calendar');
     window.ArcanaBookingMobileCalendar?.open?.();
     syncFromApp();
   }
@@ -123,19 +152,18 @@
     explicitBookingTab = false;
     explicitCalendarTab = false;
     window.ArcanaBookingMobileCalendar?.close?.();
+    optimisticTab('journal');
     clickNavView('customers');
-    window.setTimeout(() => {
-      const ui = window.ArcanaPatientMasterUi;
-      const runtime = ui?.getRuntime?.();
-      if (runtime?.selectedPatientId && runtime?.detail?.card) {
-        ui?.setPatientTab?.('journal');
-      } else if (ui?.needsStaffLogin?.()) {
-        syncFromApp();
-      } else {
-        ui?.showMobileToast?.('Välj en kund för att öppna journalen.');
-      }
-      syncFromApp();
-    }, 0);
+    const ui = window.ArcanaPatientMasterUi;
+    const runtime = ui?.getRuntime?.();
+    if (runtime?.selectedPatientId && runtime?.detail?.card) {
+      ui?.setPatientTab?.('journal');
+    } else if (ui?.needsStaffLogin?.()) {
+      /* login form handles itself */
+    } else {
+      ui?.showMobileToast?.('Välj en kund för att öppna journalen.');
+    }
+    syncFromApp();
   }
 
   function setMoreOpen(open) {
@@ -279,11 +307,12 @@
         explicitBookingTab = false;
         explicitJournalTab = false;
         const viewKey = button.dataset.navView || (tab === 'home' || tab === 'queue' ? 'conversations' : tab);
+        optimisticTab(tab === 'queue' ? 'home' : tab);
         if (tab === 'home' || tab === 'queue') {
           setMobileWorkspaceQueue();
         }
         clickNavView(viewKey);
-        window.setTimeout(syncFromApp, 0);
+        syncFromApp();
       });
     });
   }
@@ -301,7 +330,7 @@
         window.ArcanaBookingMobileCalendar?.close?.();
         clickNavView(item.dataset.navView);
         setMoreOpen(false);
-        window.setTimeout(syncFromApp, 0);
+        syncFromApp();
       });
     });
 

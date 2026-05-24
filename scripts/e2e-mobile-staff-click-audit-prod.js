@@ -86,11 +86,20 @@ async function canScroll(page) {
   });
 }
 
-async function tapAndTime(page, selector, label) {
+async function tapAndTime(page, selector, label, readyCheck) {
   const t0 = Date.now();
   const loc = page.locator(selector).first();
   await loc.waitFor({ state: 'visible', timeout: 15000 });
   await loc.click({ timeout: 10000 });
+  if (typeof readyCheck === 'function') {
+    try {
+      await page.waitForFunction(readyCheck, undefined, { timeout: 8000 });
+    } catch {
+      /* fall through — still record click time */
+    }
+  } else {
+    await page.waitForTimeout(300);
+  }
   return { label, ms: ms(t0) };
 }
 
@@ -211,21 +220,36 @@ async function main() {
     // 8. Bottom tabs — tid per klick
     const tabClicks = [];
     for (const tab of [
-      { key: 'home', sel: '.cco-mobile-tabbar-item[data-mobile-tab="home"]' },
-      { key: 'booking', sel: '.cco-mobile-tabbar-item[data-mobile-tab="booking"]' },
-      { key: 'calendar', sel: '.cco-mobile-tabbar-item[data-mobile-tab="calendar"]' },
-      { key: 'customers', sel: '.cco-mobile-tabbar-item[data-mobile-tab="customers"]' },
+      {
+        key: 'home',
+        sel: '.cco-mobile-tabbar-item[data-mobile-tab="home"]',
+        ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'conversations',
+      },
+      {
+        key: 'booking',
+        sel: '.cco-mobile-tabbar-item[data-mobile-tab="booking"]',
+        ready: () => document.querySelector('.preview-canvas')?.dataset.mobileWorkspaceView === 'focus',
+      },
+      {
+        key: 'calendar',
+        sel: '.cco-mobile-tabbar-item[data-mobile-tab="calendar"]',
+        ready: () => document.documentElement.hasAttribute('data-cco-calendar-open'),
+      },
+      {
+        key: 'customers',
+        sel: '.cco-mobile-tabbar-item[data-mobile-tab="customers"]',
+        ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
+      },
     ]) {
       try {
         if (tab.key === 'calendar') {
           await page.evaluate(() => window.ArcanaBookingMobileCalendar?.close?.());
-          await page.waitForTimeout(200);
+          await page.waitForTimeout(150);
         }
-        const r = await tapAndTime(page, tab.sel, tab.key);
-        await page.waitForTimeout(600);
+        const r = await tapAndTime(page, tab.sel, tab.key, tab.ready);
         if (tab.key === 'calendar') {
           await page.evaluate(() => window.ArcanaBookingMobileCalendar?.close?.());
-          await page.waitForTimeout(200);
+          await page.waitForTimeout(150);
         }
         tabClicks.push(r);
         const slow = r.ms > 800 ? ' ⚠ långsam' : '';
@@ -236,8 +260,17 @@ async function main() {
     }
 
     // 9. Inställningar bottom sheet (synlig endast på kundlista)
+    await page.evaluate(() => {
+      window.ArcanaPatientMasterUi?.clearMobilePatientSelection?.();
+      window.ArcanaBookingMobileCalendar?.close?.();
+    });
     await page.locator('.cco-mobile-tabbar-item[data-mobile-tab="customers"]').first().click().catch(() => {});
-    await page.waitForTimeout(500);
+    await page.waitForFunction(
+      () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
+      undefined,
+      { timeout: 8000 }
+    );
+    await page.waitForTimeout(400);
     t0 = Date.now();
     const settingsBtn = page.locator('.customers-toolbar-settings[data-customer-command="settings"]').first();
     const settingsVisible = await settingsBtn.isVisible().catch(() => false);

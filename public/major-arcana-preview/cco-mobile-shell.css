@@ -11,10 +11,6 @@
       text-size-adjust: 100%;
     }
 
-    .customers-toolbar-settings {
-      display: none;
-    }
-
     html[data-cco-mobile-shell="on"] {
       --cco-shell-active: 1;
     }

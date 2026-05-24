@@ -42428,4 +42428,9 @@
     getRuntimeReentryOutcome,
     openRuntimeHistoryConversationForDiagnostics,
   });
+
+  window.ArcanaAppNav = Object.freeze({
+    setAppView,
+    setMobileWorkspaceView,
+  });
 })();
