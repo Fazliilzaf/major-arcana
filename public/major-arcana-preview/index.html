@@ -3138,6 +3138,36 @@
                     data-patient-master-rail
                     aria-label="Kundkort"
                   ></section>
+                  <script>
+                    (function primeMobilePatientDeepLink() {
+                      try {
+                        if (!window.matchMedia('(max-width: 768px)').matches) return;
+                        var params = new URLSearchParams(window.location.search || '');
+                        var patientId = String(params.get('patientId') || '').trim();
+                        if (!patientId) return;
+                        var rail = document.querySelector('[data-patient-master-rail]');
+                        if (!rail) return;
+                        window.__ARCANA_MOBILE_DEEPLINK_PRIME__ = patientId;
+                        window.__ARCANA_DEEPLINK_PRIME_MS__ = performance.now();
+                        document.documentElement.setAttribute('data-cco-patient-detail', 'on');
+                        rail.innerHTML =
+                          '<section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">' +
+                          '<article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">' +
+                          '<div class="focus-customer-hero-main"><div class="focus-customer-avatar">…</div>' +
+                          '<div class="focus-customer-copy"><h2>Laddar kund…</h2>' +
+                          '<p class="patient-master-muted patient-master-loading-line">Hämtar kundkort…</p></div></div></article>' +
+                          '<div class="patient-master-tabs" role="tablist" aria-hidden="true">' +
+                          '<span class="patient-master-tab">Profil</span><span class="patient-master-tab is-active">Journal</span>' +
+                          '<span class="patient-master-tab">Avtal</span><span class="patient-master-tab">Filer</span></div>' +
+                          '<div class="patient-master-detail-skeleton" aria-hidden="true">' +
+                          '<div class="patient-master-detail-skeleton-bar"></div>' +
+                          '<div class="patient-master-detail-skeleton-bar is-short"></div>' +
+                          '<div class="patient-master-detail-skeleton-bar"></div></div></section>';
+                      } catch (e) {
+                        /* best-effort */
+                      }
+                    })();
+                  </script>
 
                   <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
@@ -10574,35 +10604,6 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
-    <script>
-      (function primeMobilePatientDeepLink() {
-        try {
-          if (!window.matchMedia('(max-width: 768px)').matches) return;
-          var params = new URLSearchParams(window.location.search || '');
-          var patientId = String(params.get('patientId') || '').trim();
-          if (!patientId) return;
-          var rail = document.querySelector('[data-patient-master-rail]');
-          if (!rail) return;
-          window.__ARCANA_MOBILE_DEEPLINK_PRIME__ = patientId;
-          document.documentElement.setAttribute('data-cco-patient-detail', 'on');
-          rail.innerHTML =
-            '<section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">' +
-            '<article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">' +
-            '<div class="focus-customer-hero-main"><div class="focus-customer-avatar">…</div>' +
-            '<div class="focus-customer-copy"><h2>Laddar kund…</h2>' +
-            '<p class="patient-master-muted patient-master-loading-line">Hämtar kundkort…</p></div></div></article>' +
-            '<div class="patient-master-tabs" role="tablist" aria-hidden="true">' +
-            '<span class="patient-master-tab">Profil</span><span class="patient-master-tab is-active">Journal</span>' +
-            '<span class="patient-master-tab">Avtal</span><span class="patient-master-tab">Filer</span></div>' +
-            '<div class="patient-master-detail-skeleton" aria-hidden="true">' +
-            '<div class="patient-master-detail-skeleton-bar"></div>' +
-            '<div class="patient-master-detail-skeleton-bar is-short"></div>' +
-            '<div class="patient-master-detail-skeleton-bar"></div></div></section>';
-        } catch (e) {
-          /* best-effort */
-        }
-      })();
-    </script>
     <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 5c7c3182f0) -->
     <script src="./app.bundle.5c7c3182f0.min.js"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
