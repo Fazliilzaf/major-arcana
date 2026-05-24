@@ -39,7 +39,6 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 | # | Uppgift | Vem | Status |
 |---|---------|-----|--------|
 | 10 | Post-op Fas 1 — 4 beslut + Graph send live + Playwright smoke | Du + Agent | ☐ |
-| 12 | Render EU Frankfurt verifierad i Dashboard | Du | ☐ |
 | 13 | Pipedrive People+Deals export | Agent | ☐ |
 | 14 | Plan A valfritt: Resend patient-mail + bokning→journal koppling | Agent | ☐ |
 
@@ -47,6 +46,7 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 
 ## Klart (senaste veckan)
 
+- [x] **Juridiska underlag** — godkända av advokater, följer svensk lag (2026-05-24)
 - [x] Mobil UX sweep #1–16 (kod + prod)
 - [x] Plan A bokning — automated GO (2026-05-24)
 - [x] Open access av — login krävs
@@ -55,6 +55,7 @@ Detaljdokument finns kvar i [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) och [
 - [x] Kundlista API smoke — 7 349 kunder
 - [x] Migration + avtal + journal kod prod
 - [x] PDL juridiskt signerat / extern granskning (2026-05-24)
+- [x] Render EU Frankfurt verifierad i Dashboard (2026-05-24)
 
 ---
 

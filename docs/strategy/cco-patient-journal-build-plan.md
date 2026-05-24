@@ -17,8 +17,8 @@ Syfte: Färdiga kundkort med importerad journal/bilder + ny journalföring för 
 
 - [x] 0.1 Migration-mappstruktur + npm-scripts (`migration:scan`, `migration:import`, `migration:test`)
 - [x] 0.2 **Zip-nedlading avbruten** — ersatt med Drive API + lokal mirror (se nedan)
-- [ ] 0.3 PDL-bedömning uppdaterad (Arcana = journalsystem)
-- [ ] 0.4 Render EU-region verifierad
+- [x] 0.3 PDL-bedömning uppdaterad (Arcana = journalsystem) — advokatgodkänd 2026-05-24
+- [x] 0.4 Render EU-region verifierad (Frankfurt Dashboard, 2026-05-24)
 - [ ] 0.5 Pipedrive People+Deals export (nuvarande zip tom)
 
 ### Drive-migration utan zip (rekommenderat)

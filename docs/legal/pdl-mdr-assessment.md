@@ -173,7 +173,7 @@ Arcana riskerar att klassificeras som medicinteknisk produkt om:
 | Transactionell mail | Microsoft Graph / Resend | EU/EES (Graph tenant) | Bokningsbekräftelser |
 | Webb (hairtpclinic.com) | Vercel | Edge (ingen journal persist) | Lead-formulär → Arcana API |
 
-**Verifiering:** Render Dashboard → Service → Region = Frankfurt. Backup: `npm run backup:state` + `npm run backup:journal-photos`.
+**Verifiering:** Render Dashboard → Service → Region = Frankfurt (verifierad 2026-05-24). Backup: `npm run backup:state` + `npm run backup:journal-photos`.
 
 ### 6.2 Källor utanför Arcana runtime
 
@@ -194,7 +194,7 @@ Arcana riskerar att klassificeras som medicinteknisk produkt om:
 
 Webb-leads och bokningar skickas från Vercel (global edge) till Arcana Frankfurt — personuppgifter i transit (TLS 1.2+). Journalhistorik indexeras från Drive utan att ladda ner zip till operatörs dator; filreferenser (`driveFileId`, `webViewLink`) lagras i Arcana.
 
-**Status C5:** Dokumenterad 2026-05-20. Juridisk sign-off av DPA + registerföring kvar hos klinik.
+**Status C5:** Dokumenterad 2026-05-20. Render EU Frankfurt verifierad i Dashboard 2026-05-24. Juridiska underlag (PDL/DPA m.m.) godkända av advokater enligt svensk lag 2026-05-24.
 
 ---
 

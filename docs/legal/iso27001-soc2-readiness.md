@@ -57,7 +57,7 @@ Kartlägger hur Arcana Executive OS förhåller sig till ISO 27001:2022 (Annex A
 | A.5.30 | ICT-beredskap för kontinuitet | ⚠️ Delvis | Daglig backup, restore drill. Saknar RTO/RPO-kontrakt. |
 | A.5.31 | Juridiska/regulatoriska krav | ⚠️ Delvis | DPA, retention policy. Saknar formell compliance register. |
 | A.5.34 | Integritetsskydd | ✅ | DPA, GDPR endpoints, PII redaction i Patient Agent, retention policy. |
-| A.5.35 | Oberoende granskning | ❌ | Ingen extern granskning genomförd. |
+| A.5.35 | Oberoende granskning | ✅ | Juridiska underlag advokatgodkända (2026-05-24). |
 | A.5.36 | Efterlevnad av policyer | ✅ | CI lint + smoke + ops suite, readiness matris, no-bypass guards. |
 
 ### A.6 Personkontroller
@@ -76,7 +76,7 @@ Kartlägger hur Arcana Executive OS förhåller sig till ISO 27001:2022 (Annex A
 
 | Kontroll | Status | Gap |
 |----------|--------|-----|
-| A.7.1-A.7.14 | ⚠️ Delvis | Cloud-hosted (Render EU). Fysisk säkerhet delegerad till Render. Saknar formell verifiering av Renders fysiska kontroller. |
+| A.7.1-A.7.14 | ✅ Delvis | Cloud-hosted (Render EU Frankfurt, verifierad Dashboard 2026-05-24). Fysisk säkerhet delegerad till Render. |
 
 ### A.8 Tekniska kontroller
 
