@@ -3593,6 +3593,52 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   margin: 0.75rem 0 0.25rem;
 }
 
+.patient-master-pipedrive-card {
+  margin-top: 12px;
+}
+
+.patient-master-pipedrive-table-wrap {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.patient-master-pipedrive-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.patient-master-pipedrive-table th,
+.patient-master-pipedrive-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.patient-master-pipedrive-table th {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.patient-master-merge-members {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.patient-master-merge-members li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.patient-master-merge-members li.is-primary em {
+  font-style: normal;
+  color: #9fd89f;
+  font-size: 12px;
+}
+
 .patient-master-card {
   display: flex;
   flex-direction: column;

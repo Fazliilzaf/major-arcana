@@ -230,6 +230,65 @@ function createCcoPatientMasterRouter({
       })
   );
 
+  router.get(
+    '/cco-patient-master/review-groups',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const result = await patientMasterStore.listMergeReviewGroups({
+          tenantId: actor.tenantId,
+          limit: req.query.limit,
+        });
+        await auditRead(req, actor, actor.tenantId, 'cco.patient_master.review_groups.read');
+        return res.json(result);
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/merge',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const primaryPatientId = normalizeText(body.primaryPatientId);
+        const secondaryPatientIds = Array.isArray(body.secondaryPatientIds)
+          ? body.secondaryPatientIds
+          : [];
+        let journalMoved = 0;
+        if (journalStore) {
+          for (const secondaryId of secondaryPatientIds) {
+            const moved = await journalStore.transferEntriesToPatient({
+              tenantId: actor.tenantId,
+              fromPatientId: secondaryId,
+              toPatientId: primaryPatientId,
+              actor,
+            });
+            journalMoved += Number(moved.moved) || 0;
+          }
+        }
+        const result = await patientMasterStore.mergePatients({
+          tenantId: actor.tenantId,
+          primaryPatientId,
+          secondaryPatientIds,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.patient.merge',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: primaryPatientId,
+        });
+        return res.json({
+          ...result,
+          journalMoved,
+          card: patientMasterStore.buildPatientCardReadout(result.patient),
+        });
+      })
+  );
+
   router.put(
     '/cco-patient-master/patient',
     requireAuth,
