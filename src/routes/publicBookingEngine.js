@@ -432,6 +432,13 @@ function createPublicBookingEngineRouter({
         caseId: conversationId,
         operatorWillContact: true,
         operatorEtaMinutes: 60,
+        emailConfirmation: {
+          ok: emailResult.ok === true,
+          mode: emailResult.mode || 'mock',
+          provider: emailResult.provider || 'none',
+          messageId: emailResult.messageId || null,
+          error: emailResult.error || null,
+        },
       });
     } catch (error) {
       const statusCode = Number(error?.statusCode || 500);
