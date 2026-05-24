@@ -1732,6 +1732,103 @@
       background: transparent;
     }
 
+    /* ============================================================
+       Fas H — ingen yttre vit “låda”: innehåll direkt mot beige bakgrund
+       ============================================================ */
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-shell,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-surface,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-rail,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-layout {
+      padding: 0 !important;
+      margin: 0;
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .customers-rail
+      .patient-master-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card {
+      padding: 0 0
+        calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 20px) !important;
+      margin: 0;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      gap: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tabs,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab-panel,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .patient-master-identity-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .patient-master-workflow-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .patient-master-plan-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .patient-master-history-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-collapse,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-offer-box {
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-data-card::before {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+      .focus-customer-data-card {
+      padding-inline: 12px !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tabs {
+      margin-inline: 0;
+      padding-inline: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo {
+      padding: 0 12px 16px !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo-grid {
+      gap: 20px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo img {
+      width: 100%;
+      max-height: none;
+      border-radius: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .cco-mobile-journal-progress {
+      padding-inline: 12px;
+    }
+
     /* Kundregister mobil: hela sidan scrollar (login + profil) via .preview-page */
     html[data-cco-mobile-shell="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
       overflow-y: auto !important;
