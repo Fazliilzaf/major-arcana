@@ -615,7 +615,7 @@
     els.filter = document.querySelector('[data-customer-filter]');
     els.metrics = document.querySelector('.customers-metric-row');
     els.title = document.querySelector('#customers-title');
-    els.subtitle = els.shell?.querySelector('.customers-title-group p');
+    els.subtitle = els.shell?.querySelector('[data-customers-lead]');
     els.modeButtons = Array.from(document.querySelectorAll('[data-patient-master-mode]'));
   }
 
@@ -630,9 +630,14 @@
       els.title.textContent = isRegister ? 'Kundregister' : 'Kundidentitetshantering';
     }
     if (els.subtitle) {
-      els.subtitle.textContent = isRegister
-        ? 'Sök kunder, öppna kundkort med importerad journal och Drive-filer.'
-        : 'Hantera kundprofiler, slå ihop dubbletter och få full överblick.';
+      if (isRegister) {
+        els.subtitle.textContent = '';
+        els.subtitle.hidden = true;
+      } else {
+        els.subtitle.textContent =
+          'Hantera kundprofiler, slå ihop dubbletter och få full överblick.';
+        els.subtitle.hidden = false;
+      }
     }
     if (els.identityRail) {
       els.identityRail.hidden = isRegister;

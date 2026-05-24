@@ -2220,12 +2220,14 @@
       pointer-events: none;
     }
 
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head-main,
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-register-title-row,
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-toolbar-actions,
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head-actions {
       display: none !important;
     }
 
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head {
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head,
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-register-header {
       flex-direction: column;
       align-items: stretch;
       gap: 8px;
