@@ -46,6 +46,7 @@
     "migration:sync-sharepoint": "bash ./scripts/sync-sharepoint-archive.sh",
     "migration:test": "node --test tests/ops/ccoPatientJournalMigration.test.js tests/ops/migrationSpotCheck.test.js",
     "verify:migration-prod": "node ./scripts/verify-migration-prod.js",
+    "push:migration-state-prod": "node ./scripts/push-migration-state-prod.js",
     "verify:sharepoint-archive": "node ./scripts/verify-sharepoint-archive.js",
     "test:runtime-queue-integration": "node scripts/test/runtime-queue-renderers.integration.test.js",
     "sync-cache-busters": "bash ./bin/sync-cache-busters.sh",
