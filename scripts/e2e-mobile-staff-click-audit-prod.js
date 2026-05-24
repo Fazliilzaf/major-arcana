@@ -203,6 +203,17 @@ async function main() {
     if (inlinePrimeMs != null) {
       record('Deep link inline skeleton', inlinePrimeMs <= 2500, `${inlinePrimeMs}ms från navigation`, inlinePrimeMs);
     }
+    const bundleLoadMs = await page.evaluate(() => {
+      const nav = performance.getEntriesByType('navigation')[0];
+      const start = nav ? nav.startTime : 0;
+      const bundle = performance
+        .getEntriesByType('resource')
+        .find((entry) => /app\.bundle.*\.min\.js/.test(entry.name));
+      return bundle ? Math.round(bundle.responseEnd - start) : null;
+    });
+    if (bundleLoadMs != null) {
+      record('Deep link bundle laddad', bundleLoadMs <= 8000, `${bundleLoadMs}ms från navigation`, bundleLoadMs);
+    }
     const skeletonMs = await page
       .waitForFunction(
         () =>

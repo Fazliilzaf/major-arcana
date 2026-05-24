@@ -673,10 +673,7 @@
 
   function railHasPatientDetailUi() {
     const rail = document.querySelector('[data-patient-master-rail]');
-    return Boolean(
-      rail?.querySelector('[data-patient-detail]:not([data-patient-loading="true"])') ||
-        rail?.querySelector('button[data-patient-tab]')
-    );
+    return Boolean(rail?.querySelector('[data-patient-detail]'));
   }
 
   function renderDetailEmpty() {
@@ -2139,11 +2136,17 @@
       runtime.authRequired = false;
       setStatus('', '');
       if (detailPromise) {
-        await detailPromise.catch((error) => {
-          console.warn('Patient deep link misslyckades.', error);
-        });
-        if (runtime.detail?.card) {
-          scheduleDetailPanelPaint(deepLinkId);
+        if (deepLinkId && isMobileViewport()) {
+          void detailPromise.catch((error) => {
+            console.warn('Patient deep link misslyckades.', error);
+          });
+        } else {
+          await detailPromise.catch((error) => {
+            console.warn('Patient deep link misslyckades.', error);
+          });
+          if (runtime.detail?.card) {
+            scheduleDetailPanelPaint(deepLinkId);
+          }
         }
       }
       if (!runtime.selectedPatientId && runtime.patients[0] && !isMobileViewport()) {
@@ -3169,7 +3172,10 @@
         deepLinkId &&
         isMobileViewport() &&
         normalizeText(runtime.selectedPatientId) === deepLinkId &&
-        (runtime.detailLoading || Boolean(runtime.detail?.card));
+        (runtime.detailLoading ||
+          Boolean(runtime.detail?.card) ||
+          patientDetailInflight.has(normalizeText(deepLinkId)) ||
+          railHasPatientDetailUi());
       if (!preserveDetail) {
         renderDetailEmpty();
       }
@@ -3177,17 +3183,26 @@
         deepLinkId &&
         isMobileViewport() &&
         !runtime.detail?.card &&
-        !patientDetailInflight.has(normalizeText(deepLinkId))
+        !patientDetailInflight.has(normalizeText(deepLinkId)) &&
+        !railHasPatientDetailUi()
       ) {
         runtime.selectedPatientId = deepLinkId;
-        if (!railHasPatientDetailUi()) {
-          renderDetailLoadingSkeleton(deepLinkId);
-        }
+        renderDetailLoadingSkeleton(deepLinkId);
         syncMobilePatientLayout();
       }
       if (!runtime.loaded && !runtime.loading) {
         void loadOfferTemplates();
-        void loadStats();
+        const mobileDeepLink = deepLinkId && isMobileViewport();
+        if (mobileDeepLink) {
+          const deferStats = () => void loadStats();
+          if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(deferStats, { timeout: 2000 });
+          } else {
+            window.setTimeout(deferStats, 400);
+          }
+        } else {
+          void loadStats();
+        }
         void loadPatientList();
       } else {
         renderPatientRows();
@@ -3217,14 +3232,19 @@
       runtime.selectedPatientId = startup.patientId;
       runtime.preferJournalOnMobile = true;
       runtime.detailTab = 'journal';
-      if (!primedPatientId) {
+      if (!primedPatientId && !railHasPatientDetailUi()) {
         renderDetailLoadingSkeleton(startup.patientId);
+      }
+      if (!needsStaffLogin()) {
+        void loadPatientDetail(startup.patientId);
       }
     } else {
       renderDetailEmpty();
     }
     bindEvents();
-    void loadOfferTemplates();
+    if (!(startup.patientId && isMobileViewport())) {
+      void loadOfferTemplates();
+    }
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .getRegistrations()
