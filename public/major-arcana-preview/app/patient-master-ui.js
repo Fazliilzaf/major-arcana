@@ -787,23 +787,20 @@
             <div class="customer-record-main">
               <div class="customer-record-head">
                 <h3>${escapeHtml(card.displayName || 'Okänd kund')}</h3>
-                ${
-                  journalCount || imageCount
-                    ? `<span class="customer-record-file-badge">${journalCount} PDF · ${imageCount} bild</span>`
-                    : ''
-                }
+                ${journalCount || imageCount
+            ? `<span class="customer-record-file-badge">${journalCount} PDF · ${imageCount} bild</span>`
+            : ''
+          }
               </div>
               <div class="customer-record-meta">
-                ${
-                  card.personnummer
-                    ? `<span>${escapeHtml(card.personnummer)}</span>`
-                    : '<span class="customer-record-meta-rose">Saknar pnr</span>'
-                }
-                ${
-                  card.matchStatus === 'matched'
-                    ? '<span class="customer-record-match">Kopplad</span>'
-                    : ''
-                }
+                ${card.personnummer
+            ? `<span>${escapeHtml(card.personnummer)}</span>`
+            : '<span class="customer-record-meta-rose">Saknar pnr</span>'
+          }
+                ${card.matchStatus === 'matched'
+            ? '<span class="customer-record-match">Kopplad</span>'
+            : ''
+          }
               </div>
             </div>
           </button>
@@ -850,7 +847,7 @@
     const rail = document.querySelector('[data-patient-master-rail]');
     return Boolean(
       rail?.querySelector('[data-patient-detail]:not([data-patient-loading="true"])') ||
-        rail?.querySelector('button[data-patient-tab]')
+      rail?.querySelector('button[data-patient-tab]')
     );
   }
 
@@ -1171,17 +1168,17 @@
       ? `
         <ul class="patient-master-file-list patient-master-file-list--compact">
           ${pdfs
-            .map((file) => {
-              const href = fileViewUrl(file);
-              const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'PDF'));
-              return `
+        .map((file) => {
+          const href = fileViewUrl(file);
+          const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'PDF'));
+          return `
                 <li>
                   <a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>
                   <span>PDF</span>
                 </li>
               `;
-            })
-            .join('')}
+        })
+        .join('')}
         </ul>
       `
       : '';
@@ -1191,16 +1188,16 @@
         <div class="patient-master-file-section patient-master-file-section--compact">
           <div class="patient-master-image-grid">
             ${images
-              .map((file) => {
-                const href = fileViewUrl(file);
-                const label = escapeHtml(repairDisplayFilename(file.fileName || 'Bild'));
-                return `
+        .map((file) => {
+          const href = fileViewUrl(file);
+          const label = escapeHtml(repairDisplayFilename(file.fileName || 'Bild'));
+          return `
                   <a class="patient-master-image-tile" href="${escapeHtml(href)}" target="_blank" rel="noopener" title="${label}">
                     <img src="" data-patient-file-id="${escapeHtml(file.id)}" alt="${label}" loading="lazy" decoding="async" />
                   </a>
                 `;
-              })
-              .join('')}
+        })
+        .join('')}
           </div>
         </div>
       `
@@ -1210,20 +1207,20 @@
       ? `
         <ul class="patient-master-file-list patient-master-file-list--compact">
           ${other
-            .map((file) => {
-              const href = fileViewUrl(file);
-              const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'Fil'));
-              const link = href
-                ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>`
-                : `<strong>${label}</strong>`;
-              return `
+        .map((file) => {
+          const href = fileViewUrl(file);
+          const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'Fil'));
+          const link = href
+            ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>`
+            : `<strong>${label}</strong>`;
+          return `
                 <li>
                   ${link}
                   <span>${escapeHtml(file.fileType || 'fil')}</span>
                 </li>
               `;
-            })
-            .join('')}
+        })
+        .join('')}
         </ul>
       `
       : '';
@@ -1232,11 +1229,10 @@
       <section class="patient-master-segment">
         <header class="patient-master-segment-head">
           <h4>${escapeHtml(group.timelineLabel)}</h4>
-          ${
-            metaBits.length
-              ? `<span class="patient-master-segment-meta">${escapeHtml(metaBits.join(' · '))}</span>`
-              : ''
-          }
+          ${metaBits.length
+        ? `<span class="patient-master-segment-meta">${escapeHtml(metaBits.join(' · '))}</span>`
+        : ''
+      }
         </header>
         ${pdfList}
         ${imageGrid}
@@ -1349,13 +1345,12 @@
         <p class="patient-master-muted">Nytt arbete sker under <strong>Journal</strong>: ta bild, markera zoner och skapa offert.</p>
         <ol class="patient-master-workflow-steps">
           ${steps
-            .map(
-              (step) =>
-                `<li class="${step.done ? 'is-done' : ''}">${escapeHtml(step.label)}${
-                  step.done ? ' ✓' : ''
-                }</li>`
-            )
-            .join('')}
+        .map(
+          (step) =>
+            `<li class="${step.done ? 'is-done' : ''}">${escapeHtml(step.label)}${step.done ? ' ✓' : ''
+            }</li>`
+        )
+        .join('')}
         </ol>
       </article>
     `;
@@ -1405,12 +1400,11 @@
           Uppföljning
         </button>
       </div>
-      ${
-        uploadBlocked
-          ? `<p class="patient-master-upload-blocked">Behandlingsplanen är signerad och låst. Skapa en ny plan om du ska ta fler bilder.</p>`
-          : planBlocked
-            ? `<p class="patient-master-upload-blocked">Signera hälsodeklarationen innan du skapar behandlingsplan.</p>`
-            : ''
+      ${uploadBlocked
+        ? `<p class="patient-master-upload-blocked">Behandlingsplanen är signerad och låst. Skapa en ny plan om du ska ta fler bilder.</p>`
+        : planBlocked
+          ? `<p class="patient-master-upload-blocked">Signera hälsodeklarationen innan du skapar behandlingsplan.</p>`
+          : ''
       }
       <p class="patient-master-muted">${Number(card.fileSummary?.journalPdfs || 0)} journal-PDF i index · ${Number(card.fileSummary?.images || 0)} bilder</p>
     `;
@@ -1435,13 +1429,12 @@
         <span class="patient-master-muted">Offertmall</span>
         <select data-patient-offer-template>
           ${templates
-            .map(
-              (template) =>
-                `<option value="${escapeHtml(template.key)}"${
-                  template.key === selectedKey ? ' selected' : ''
-                }>${escapeHtml(template.label)}</option>`
-            )
-            .join('')}
+        .map(
+          (template) =>
+            `<option value="${escapeHtml(template.key)}"${template.key === selectedKey ? ' selected' : ''
+            }>${escapeHtml(template.label)}</option>`
+        )
+        .join('')}
         </select>
       </label>
     `;
@@ -1568,11 +1561,11 @@
     const templates = asArray(runtime.offerTemplates);
     selectNode.innerHTML = templates.length
       ? templates
-          .map(
-            (template) =>
-              `<option value="${escapeHtml(template.key)}">${escapeHtml(template.label || template.key)}</option>`
-          )
-          .join('')
+        .map(
+          (template) =>
+            `<option value="${escapeHtml(template.key)}">${escapeHtml(template.label || template.key)}</option>`
+        )
+        .join('')
       : '<option value="custom">Anpassad</option>';
   }
 
@@ -1649,9 +1642,8 @@
           formValues.notesToCustomer ? `Till kund: ${formValues.notesToCustomer}` : '',
           formValues.internalNotes ? `Internt: ${formValues.internalNotes}` : '',
         ].filter(Boolean);
-        summary.textContent = `Offert på ${formValues.quotedAmount || '—'}${
-          formValues.depositAmount ? ` med deposition ${formValues.depositAmount}` : ''
-        } (${templateLabel || 'Anpassad'}).${noteBits.length ? ` ${noteBits.join(' · ')}` : ''}`;
+        summary.textContent = `Offert på ${formValues.quotedAmount || '—'}${formValues.depositAmount ? ` med deposition ${formValues.depositAmount}` : ''
+          } (${templateLabel || 'Anpassad'}).${noteBits.length ? ` ${noteBits.join(' · ')}` : ''}`;
       }
       void loadMobileOfferPreview();
     }
@@ -1776,58 +1768,49 @@
         <div class="patient-master-offer-box">
           <div class="patient-master-material-head">
             <h4>Offert</h4>
-            ${
-              linkedOffer
-                ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(linkedOffer.quoteStatus || 'draft')}</span>`
-                : ''
-            }
+            ${linkedOffer
+        ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(linkedOffer.quoteStatus || 'draft')}</span>`
+        : ''
+      }
           </div>
-          ${
-            linkedOffer
-              ? `<p class="patient-master-muted">${escapeHtml(linkedOffer.offerType || 'Offert')} · ${escapeHtml(linkedOffer.quotedAmount || 'Pris ej satt')}</p>`
-              : `<p class="patient-master-muted">Skapa offert från planen när bilder är markerade och planen är klar.</p>`
-          }
+          ${linkedOffer
+        ? `<p class="patient-master-muted">${escapeHtml(linkedOffer.offerType || 'Offert')} · ${escapeHtml(linkedOffer.quotedAmount || 'Pris ej satt')}</p>`
+        : `<p class="patient-master-muted">Skapa offert från planen när bilder är markerade och planen är klar.</p>`
+      }
           ${renderOfferStatusMeta(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
           <div class="patient-master-plan-photo-actions">
             <button type="button" class="customers-utility-button" data-patient-action="create-offer-from-plan" data-patient-entry-id="${escapeHtml(planEntry.entryId)}">
               ${linkedOffer ? 'Uppdatera offert från plan' : 'Skapa offert från plan'}
             </button>
-            ${
-              offerDocumentUrl
-                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerDocumentUrl)}" target="_blank" rel="noopener">Visa offert</a>`
-                : ''
-            }
-            ${
-              offerPdfUrl
-                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerPdfUrl)}" target="_blank" rel="noopener">Ladda ner PDF</a>`
-                : ''
-            }
-            ${
-              offerWordUrl
-                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerWordUrl)}" target="_blank" rel="noopener">Word-mall</a>`
-                : ''
-            }
-            ${
-              canSendForSign
-                ? `<button type="button" class="customers-utility-button" data-patient-action="send-offer-for-sign">Skicka för signering</button>`
-                : ''
-            }
-            ${
-              canAccept
-                ? `<button type="button" class="customers-utility-button" data-patient-action="accept-offer"${coolingActive ? ' data-patient-force-offer="1"' : ''}>${
-                    coolingActive ? 'Acceptera (override betänketid)' : 'Kund accepterar'
-                  }</button>`
-                : ''
-            }
+            ${offerDocumentUrl
+        ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerDocumentUrl)}" target="_blank" rel="noopener">Visa offert</a>`
+        : ''
+      }
+            ${offerPdfUrl
+        ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerPdfUrl)}" target="_blank" rel="noopener">Ladda ner PDF</a>`
+        : ''
+      }
+            ${offerWordUrl
+        ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerWordUrl)}" target="_blank" rel="noopener">Word-mall</a>`
+        : ''
+      }
+            ${canSendForSign
+        ? `<button type="button" class="customers-utility-button" data-patient-action="send-offer-for-sign">Skicka för signering</button>`
+        : ''
+      }
+            ${canAccept
+        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-offer"${coolingActive ? ' data-patient-force-offer="1"' : ''}>${coolingActive ? 'Acceptera (override betänketid)' : 'Kund accepterar'
+        }</button>`
+        : ''
+      }
           </div>
-          ${
-            runtime.offerSignUrl
-              ? `<p class="patient-master-muted">Signeringssida: <a href="${escapeHtml(runtime.offerSignUrl)}" target="_blank" rel="noopener">${escapeHtml(runtime.offerSignUrl)}</a></p>`
-              : linkedOffer?.esignStatus === 'sent' && linkedOffer?.esignToken
-                ? `<p class="patient-master-muted">Signeringssida: <a href="/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(linkedOffer.esignToken)}" target="_blank" rel="noopener">Öppna kundsignering</a></p>`
-                : ''
-          }
+          ${runtime.offerSignUrl
+        ? `<p class="patient-master-muted">Signeringssida: <a href="${escapeHtml(runtime.offerSignUrl)}" target="_blank" rel="noopener">${escapeHtml(runtime.offerSignUrl)}</a></p>`
+        : linkedOffer?.esignStatus === 'sent' && linkedOffer?.esignToken
+          ? `<p class="patient-master-muted">Signeringssida: <a href="/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(linkedOffer.esignToken)}" target="_blank" rel="noopener">Öppna kundsignering</a></p>`
+          : ''
+      }
         </div>`;
 
     const planBody = `
@@ -1836,40 +1819,34 @@
           <h4>${escapeHtml(planEntry.title || 'Konsultation — behandlingsplan')}</h4>
           <span class="patient-master-muted">${escapeHtml(planEntry.status || 'draft')}</span>
         </div>
-        ${
-          summaryBits.length
-            ? `<p class="patient-master-muted">${escapeHtml(summaryBits.join(' · '))}</p>`
-            : ''
-        }
-        ${
-          fields.notes ? `<p class="patient-master-plan-notes"><strong>Till kund:</strong> ${escapeHtml(fields.notes)}</p>` : ''
-        }
-        ${
-          fields.staffNotes
-            ? `<p class="patient-master-plan-notes patient-master-plan-notes-internal"><strong>Internt:</strong> ${escapeHtml(fields.staffNotes)}</p>`
-            : ''
-        }
-        ${
-          fields.bookingSlotStart || planEntry.treatmentEncounterId
-            ? `<p class="patient-master-muted">Bokning: ${escapeHtml(fields.bookingSlotStart || '—')}${fields.bookingServiceId ? ` · ${escapeHtml(fields.bookingServiceId)}` : ''}${planEntry.treatmentEncounterId ? ` · tillfälle ${escapeHtml(planEntry.treatmentEncounterId.slice(0, 8))}` : ''}</p>`
-            : ''
-        }
-        ${
-          photos.length
-            ? `<div class="patient-master-plan-photo-toolbar">
+        ${summaryBits.length
+        ? `<p class="patient-master-muted">${escapeHtml(summaryBits.join(' · '))}</p>`
+        : ''
+      }
+        ${fields.notes ? `<p class="patient-master-plan-notes"><strong>Till kund:</strong> ${escapeHtml(fields.notes)}</p>` : ''
+      }
+        ${fields.staffNotes
+        ? `<p class="patient-master-plan-notes patient-master-plan-notes-internal"><strong>Internt:</strong> ${escapeHtml(fields.staffNotes)}</p>`
+        : ''
+      }
+        ${fields.bookingSlotStart || planEntry.treatmentEncounterId
+        ? `<p class="patient-master-muted">Bokning: ${escapeHtml(fields.bookingSlotStart || '—')}${fields.bookingServiceId ? ` · ${escapeHtml(fields.bookingServiceId)}` : ''}${planEntry.treatmentEncounterId ? ` · tillfälle ${escapeHtml(planEntry.treatmentEncounterId.slice(0, 8))}` : ''}</p>`
+        : ''
+      }
+        ${photos.length
+        ? `<div class="patient-master-plan-photo-toolbar">
                 <span class="patient-master-muted">${photos.length} bilder</span>
-                ${
-                  planEntry.canEdit
-                    ? `<button type="button" class="customers-utility-button patient-master-photo-clear-smoke" data-patient-clear-smoke-photos="${escapeHtml(planEntry.entryId)}">Rensa smoke-bilder</button>
+                ${planEntry.canEdit
+          ? `<button type="button" class="customers-utility-button patient-master-photo-clear-smoke" data-patient-clear-smoke-photos="${escapeHtml(planEntry.entryId)}">Rensa smoke-bilder</button>
                     <button type="button" class="customers-utility-button patient-master-photo-clear-all" data-patient-clear-plan-photos="${escapeHtml(planEntry.entryId)}">Rensa alla bilder</button>`
-                    : ''
-                }
+          : ''
+        }
               </div>
               <div class="patient-master-plan-photo-grid">
                 ${photos
-                  .map((photo) => {
-                    const variant = photo.annotatedPreviewAvailable ? 'annotated' : '';
-                    return `
+          .map((photo) => {
+            const variant = photo.annotatedPreviewAvailable ? 'annotated' : '';
+            return `
                       <figure class="patient-master-plan-photo">
                         <div class="patient-master-plan-photo-media">
                           <a class="patient-master-plan-photo-link" href="#" data-journal-photo-link data-journal-photo-open="${escapeHtml(photo.photoId)}">
@@ -1881,45 +1858,40 @@
                               loading="lazy"
                             />
                           </a>
-                          ${
-                            planEntry.canEdit
-                              ? `<button type="button" class="patient-master-plan-photo-remove" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}" aria-label="Ta bort bild" title="Ta bort bild"><span aria-hidden="true">×</span></button>`
-                              : ''
-                          }
+                          ${planEntry.canEdit
+                ? `<button type="button" class="patient-master-plan-photo-remove" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}" aria-label="Ta bort bild" title="Ta bort bild"><span aria-hidden="true">×</span></button>`
+                : ''
+              }
                         </div>
                         <figcaption>
                           <strong>${escapeHtml(photo.label || photo.fileName || 'Bild')}</strong>
-                          ${
-                            photo.hasAnnotation
-                              ? '<span class="patient-master-occasion-badge is-compact">Markerad</span>'
-                              : ''
-                          }
+                          ${photo.hasAnnotation
+                ? '<span class="patient-master-occasion-badge is-compact">Markerad</span>'
+                : ''
+              }
                         </figcaption>
                         <div class="patient-master-plan-photo-actions">
-                          ${
-                            planEntry.canEdit
-                              ? `<button type="button" class="customers-utility-button" data-patient-annotate-photo="${escapeHtml(photo.attachmentId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-photo-id="${escapeHtml(photo.photoId)}">Markera plan</button>`
-                              : ''
-                          }
-                          ${
-                            planEntry.canEdit
-                              ? `<button type="button" class="customers-utility-button patient-master-photo-delete" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}">Ta bort</button>`
-                              : ''
-                          }
+                          ${planEntry.canEdit
+                ? `<button type="button" class="customers-utility-button" data-patient-annotate-photo="${escapeHtml(photo.attachmentId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-photo-id="${escapeHtml(photo.photoId)}">Markera plan</button>`
+                : ''
+              }
+                          ${planEntry.canEdit
+                ? `<button type="button" class="customers-utility-button patient-master-photo-delete" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}">Ta bort</button>`
+                : ''
+              }
                           <a class="patient-master-open-link" href="#" data-journal-photo-open="${escapeHtml(photo.photoId)}">Original</a>
                         </div>
                       </figure>
                     `;
-                  })
-                  .join('')}
+          })
+          .join('')}
               </div>`
-            : `<p class="patient-master-muted">Inga bilder ännu. Tryck <strong>Ta bild</strong> ovan.</p>`
-        }
-        ${
-          planEntry.canSign
-            ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(planEntry.entryId)}">Signera behandlingsplan</button>`
-            : ''
-        }
+        : `<p class="patient-master-muted">Inga bilder ännu. Tryck <strong>Ta bild</strong> ovan.</p>`
+      }
+        ${planEntry.canSign
+        ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(planEntry.entryId)}">Signera behandlingsplan</button>`
+        : ''
+      }
       </article>`;
 
     return (
@@ -2211,55 +2183,55 @@
       ? `
       <ul class="patient-master-journal-list">
         ${otherEntries
-          .map((entry) => {
-            const attachment = asArray(entry.attachments)[0];
-            const href = attachmentViewUrl(attachment);
-            const openLink = href
-              ? `<a class="patient-master-open-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Öppna PDF</a>`
+        .map((entry) => {
+          const attachment = asArray(entry.attachments)[0];
+          const href = attachmentViewUrl(attachment);
+          const openLink = href
+            ? `<a class="patient-master-open-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Öppna PDF</a>`
+            : '';
+          const isTpEntry = entry.journalType === 'tp_treatment';
+          const isPrpEntry = entry.journalType === 'prp_treatment';
+          const isFollowUpEntry = entry.journalType === 'follow_up';
+          const isHealthEntry = entry.journalType === 'health_declaration';
+          const isFitnessEntry = entry.journalType === 'fitness_certificate';
+          const isClinicalEntry = isHealthEntry || isFitnessEntry;
+          const typeLabel =
+            JOURNAL_TYPE_LABELS[entry.journalType] || entry.journalType || 'Journal';
+          const isEditingTp = isTpEntry && runtime.editingTpEntryId === entry.entryId;
+          const isEditingPrp = isPrpEntry && runtime.editingPrpEntryId === entry.entryId;
+          const isEditingFollowUp =
+            isFollowUpEntry && runtime.editingFollowUpEntryId === entry.entryId;
+          const isEditingClinical =
+            isClinicalEntry &&
+            runtime.editingClinicalEntryId === entry.entryId &&
+            ((isHealthEntry && runtime.editingClinicalFormKey === 'health') ||
+              (isFitnessEntry && runtime.editingClinicalFormKey === 'fitness'));
+          const tpOpenButton =
+            isTpEntry && runtime.detail?.card?.patientId
+              ? `<button type="button" class="customers-utility-button${isEditingTp ? ' is-active' : ''}" data-patient-open-tp="${escapeHtml(entry.entryId)}">${isEditingTp ? 'Öppen' : 'Öppna'}</button>`
               : '';
-            const isTpEntry = entry.journalType === 'tp_treatment';
-            const isPrpEntry = entry.journalType === 'prp_treatment';
-            const isFollowUpEntry = entry.journalType === 'follow_up';
-            const isHealthEntry = entry.journalType === 'health_declaration';
-            const isFitnessEntry = entry.journalType === 'fitness_certificate';
-            const isClinicalEntry = isHealthEntry || isFitnessEntry;
-            const typeLabel =
-              JOURNAL_TYPE_LABELS[entry.journalType] || entry.journalType || 'Journal';
-            const isEditingTp = isTpEntry && runtime.editingTpEntryId === entry.entryId;
-            const isEditingPrp = isPrpEntry && runtime.editingPrpEntryId === entry.entryId;
-            const isEditingFollowUp =
-              isFollowUpEntry && runtime.editingFollowUpEntryId === entry.entryId;
-            const isEditingClinical =
-              isClinicalEntry &&
-              runtime.editingClinicalEntryId === entry.entryId &&
-              ((isHealthEntry && runtime.editingClinicalFormKey === 'health') ||
-                (isFitnessEntry && runtime.editingClinicalFormKey === 'fitness'));
-            const tpOpenButton =
-              isTpEntry && runtime.detail?.card?.patientId
-                ? `<button type="button" class="customers-utility-button${isEditingTp ? ' is-active' : ''}" data-patient-open-tp="${escapeHtml(entry.entryId)}">${isEditingTp ? 'Öppen' : 'Öppna'}</button>`
-                : '';
-            const prpOpenButton =
-              isPrpEntry && runtime.detail?.card?.patientId
-                ? `<button type="button" class="customers-utility-button${isEditingPrp ? ' is-active' : ''}" data-patient-open-prp="${escapeHtml(entry.entryId)}">${isEditingPrp ? 'Öppen' : 'Öppna'}</button>`
-                : '';
-            const followUpOpenButton =
-              isFollowUpEntry && runtime.detail?.card?.patientId
-                ? `<button type="button" class="customers-utility-button${isEditingFollowUp ? ' is-active' : ''}" data-patient-open-follow-up="${escapeHtml(entry.entryId)}">${isEditingFollowUp ? 'Öppen' : 'Öppna'}</button>`
-                : '';
-            const clinicalOpenButton =
-              isClinicalEntry && runtime.detail?.card?.patientId
-                ? `<button type="button" class="customers-utility-button${isEditingClinical ? ' is-active' : ''}" data-patient-open-clinical="${escapeHtml(isHealthEntry ? 'health' : 'fitness')}:${escapeHtml(entry.entryId)}">${isEditingClinical ? 'Öppen' : 'Öppna'}</button>`
-                : '';
-            const signButton =
-              entry.canSign &&
+          const prpOpenButton =
+            isPrpEntry && runtime.detail?.card?.patientId
+              ? `<button type="button" class="customers-utility-button${isEditingPrp ? ' is-active' : ''}" data-patient-open-prp="${escapeHtml(entry.entryId)}">${isEditingPrp ? 'Öppen' : 'Öppna'}</button>`
+              : '';
+          const followUpOpenButton =
+            isFollowUpEntry && runtime.detail?.card?.patientId
+              ? `<button type="button" class="customers-utility-button${isEditingFollowUp ? ' is-active' : ''}" data-patient-open-follow-up="${escapeHtml(entry.entryId)}">${isEditingFollowUp ? 'Öppen' : 'Öppna'}</button>`
+              : '';
+          const clinicalOpenButton =
+            isClinicalEntry && runtime.detail?.card?.patientId
+              ? `<button type="button" class="customers-utility-button${isEditingClinical ? ' is-active' : ''}" data-patient-open-clinical="${escapeHtml(isHealthEntry ? 'health' : 'fitness')}:${escapeHtml(entry.entryId)}">${isEditingClinical ? 'Öppen' : 'Öppna'}</button>`
+              : '';
+          const signButton =
+            entry.canSign &&
               runtime.detail?.card?.patientId &&
               !isEditingTp &&
               !isEditingPrp &&
               !isEditingFollowUp &&
               !isEditingClinical
-                ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">Signera</button>`
-                : '';
-            return `
+              ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">Signera</button>`
+              : '';
+          return `
               <li class="patient-master-journal-item${entry.locked ? ' is-locked' : ''}${isEditingTp || isEditingPrp || isEditingFollowUp || isEditingClinical ? ' is-editing' : ''}">
                 <div>
                   <strong>${escapeHtml(entry.title || typeLabel)}</strong>
@@ -2267,13 +2239,12 @@
                   ${openLink}
                 </div>
                 <div class="patient-master-journal-actions">
-                  ${
-                    entry.journalType === 'historical_import' || entry.source === 'drive_import'
-                      ? chipHtml('Importerad', 'gold')
-                      : entry.locked
-                        ? chipHtml('Låst', 'violet')
-                        : chipHtml('Utkast', 'blue')
-                  }
+                  ${entry.journalType === 'historical_import' || entry.source === 'drive_import'
+              ? chipHtml('Importerad', 'gold')
+              : entry.locked
+                ? chipHtml('Låst', 'violet')
+                : chipHtml('Utkast', 'blue')
+            }
                   ${tpOpenButton}
                   ${prpOpenButton}
                   ${followUpOpenButton}
@@ -2282,8 +2253,8 @@
                 </div>
               </li>
             `;
-          })
-          .join('')}
+        })
+        .join('')}
       </ul>`
       : `<p class="patient-master-muted">Inga övriga journalposter ännu.</p>`;
 
@@ -2295,10 +2266,9 @@
       ${tpSection}
       ${prpSection}
       ${followUpSection}
-      ${
-        otherEntries.some((entry) => entry.journalType === 'tp_treatment')
-          ? `<p class="patient-master-muted patient-master-tp-hint">TP-journal fylls i efter behandlingsdagen — öppna utkastet och signera när det är klart.</p>`
-          : ''
+      ${otherEntries.some((entry) => entry.journalType === 'tp_treatment')
+        ? `<p class="patient-master-muted patient-master-tp-hint">TP-journal fylls i efter behandlingsdagen — öppna utkastet och signera när det är klart.</p>`
+        : ''
       }
       ${listMarkup}
     `;
@@ -2339,11 +2309,10 @@
       <article class="focus-customer-data-card patient-master-agreement-card">
         <div class="patient-master-material-head">
           <h4>Behandlingsavtal</h4>
-          ${
-            readout?.phase
-              ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(readout.phase)}</span>`
-              : ''
-          }
+          ${readout?.phase
+        ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(readout.phase)}</span>`
+        : ''
+      }
         </div>
         <p class="patient-master-next-action">${escapeHtml(nextActionLabel)}</p>
         <ol class="patient-master-agreement-checklist patient-master-workflow-steps">
@@ -2352,71 +2321,59 @@
           <li class="${agreement?.agreementDocumentId ? 'is-done' : ''}">Avtal skapat</li>
           <li class="${readout?.bookable ? 'is-done' : ''}">Signerat — bokningsbart</li>
         </ol>
-        ${
-          readout?.patientInfoSentAt
-            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Patientinfo ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))}</span></div>`
-            : ''
-        }
-        ${
-          agreement?.deliveryMode
-            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge is-accent">${escapeHtml(agreement.deliveryMode === 'distans' ? 'Distans (betänketid)' : 'På plats')}</span></div>`
-            : ''
-        }
-        ${
-          coolingActive
-            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</span></div>`
-            : ''
-        }
+        ${readout?.patientInfoSentAt
+        ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Patientinfo ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))}</span></div>`
+        : ''
+      }
+        ${agreement?.deliveryMode
+        ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge is-accent">${escapeHtml(agreement.deliveryMode === 'distans' ? 'Distans (betänketid)' : 'På plats')}</span></div>`
+        : ''
+      }
+        ${coolingActive
+        ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</span></div>`
+        : ''
+      }
         <div class="patient-master-plan-photo-actions">
           <a class="customers-utility-button" href="${escapeHtml(patientInfoPdf)}" target="_blank" rel="noopener">Bilaga 1 PDF</a>
           <button type="button" class="customers-utility-button" data-patient-action="send-patient-info">Logga skickad patientinfo</button>
-          ${
-            canCreate
-              ? `<button type="button" class="customers-utility-button" data-patient-action="create-agreement-from-offer">Skapa avtal från offert</button>`
-              : ''
-          }
-          ${
-            canSendSign
-              ? `<button type="button" class="customers-utility-button" data-patient-action="send-agreement-for-sign">Skicka för signering</button>`
-              : ''
-          }
-          ${
-            canAcceptAgreement
-              ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement">Signera avtal (staff)</button>`
-              : ''
-          }
-          ${
-            canAcceptAgreement && coolingActive
-              ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement" data-patient-force-agreement="1">Tvinga signering</button>`
-              : ''
-          }
+          ${canCreate
+        ? `<button type="button" class="customers-utility-button" data-patient-action="create-agreement-from-offer">Skapa avtal från offert</button>`
+        : ''
+      }
+          ${canSendSign
+        ? `<button type="button" class="customers-utility-button" data-patient-action="send-agreement-for-sign">Skicka för signering</button>`
+        : ''
+      }
+          ${canAcceptAgreement
+        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement">Signera avtal (staff)</button>`
+        : ''
+      }
+          ${canAcceptAgreement && coolingActive
+        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement" data-patient-force-agreement="1">Tvinga signering</button>`
+        : ''
+      }
         </div>
-        ${
-          runtime.agreementDocumentUrl
-            ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementDocumentUrl)}" target="_blank" rel="noopener">Öppna avtal (HTML)</a>${
-                runtime.agreementDocumentPdfUrl
-                  ? ` · <a href="${escapeHtml(runtime.agreementDocumentPdfUrl)}" target="_blank" rel="noopener">PDF</a>`
-                  : ''
-              }</p>`
-            : ''
-        }
-        ${
-          runtime.agreementSignUrl
-            ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementSignUrl)}" target="_blank" rel="noopener">Signeringssida för kund</a></p>`
-            : ''
-        }
-        ${
-          angerUrl
-            ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
-            : ''
-        }
-        ${
-          readout?.bookable
-            ? `<div class="patient-master-booking-ready">
+        ${runtime.agreementDocumentUrl
+        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementDocumentUrl)}" target="_blank" rel="noopener">Öppna avtal (HTML)</a>${runtime.agreementDocumentPdfUrl
+          ? ` · <a href="${escapeHtml(runtime.agreementDocumentPdfUrl)}" target="_blank" rel="noopener">PDF</a>`
+          : ''
+        }</p>`
+        : ''
+      }
+        ${runtime.agreementSignUrl
+        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementSignUrl)}" target="_blank" rel="noopener">Signeringssida för kund</a></p>`
+        : ''
+      }
+        ${angerUrl
+        ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
+        : ''
+      }
+        ${readout?.bookable
+        ? `<div class="patient-master-booking-ready">
                 <p class="patient-master-muted"><strong>Behandlingsbokning öppen.</strong> Boka behandlingstid i CCO-tråden med kundens e-post (${escapeHtml(card.primaryEmail || 'saknas')}). Endast behandlingstjänster (FUE/DHI m.fl.) — inte konsultation.</p>
               </div>`
-            : `<p class="patient-master-muted">Behandlingsbokning spärrad tills avtalet är signerat och bokningsbart.</p>`
-        }
+        : `<p class="patient-master-muted">Behandlingsbokning spärrad tills avtalet är signerat och bokningsbart.</p>`
+      }
       </article>
     `;
   }
@@ -2636,11 +2593,10 @@
             </dl>
           </article>
           ${renderMaterialPreview(driveFiles, card)}
-          ${
-            patient?.cliento?.createdAt
-              ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
-              : ''
-          }
+          ${patient?.cliento?.createdAt
+        ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
+        : ''
+      }
         </div>
 
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
@@ -4181,7 +4137,7 @@
         navigator.serviceWorker
           .getRegistrations()
           .then((registrations) => Promise.all(registrations.map((reg) => reg.unregister())))
-          .catch(() => {});
+          .catch(() => { });
       };
       if (startup.patientId && isMobileViewport()) {
         if (typeof requestIdleCallback === 'function') {

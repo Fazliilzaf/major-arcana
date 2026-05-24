@@ -192,12 +192,40 @@ async function verifyStaffMobileLogin(page, engineLabel = 'Chromium') {
   );
 }
 
+async function verifyStaffMobileLoginDeepLink(page, engineLabel = 'WebKit') {
+  const tag = (name) => `[${engineLabel} deeplink] ${name}`;
+  await page.goto(`${base}/staff?view=customers&patientId=00000000-0000-4000-8000-000000000001`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 60000,
+  });
+  await page.evaluate(() => {
+    localStorage.removeItem('ARCANA_ADMIN_TOKEN');
+    sessionStorage.removeItem('ARCANA_ADMIN_TOKEN');
+  });
+  await page.goto(`${base}/staff?view=customers&patientId=00000000-0000-4000-8000-000000000001`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 60000,
+  });
+  await page
+    .waitForFunction(() => Boolean(document.querySelector('[data-staff-login-form]:visible')), undefined, {
+      timeout: 15000,
+    })
+    .catch(() => {});
+  const loginVisible = (await page.locator('[data-staff-login-form]:visible').count()) === 1;
+  const loadingSkeleton = await page.locator('[data-patient-loading="true"]').count();
+  record(tag('login-form vid patientId-deeplink'), loginVisible, loginVisible ? '' : 'saknas');
+  record(tag('ingen evig laddningsskeleton'), loadingSkeleton === 0, `${loadingSkeleton} st`);
+}
+
 async function runMobileVerify(engine, engineLabel) {
   const browser = await engine.launch({ headless: true });
   const context = await browser.newContext({ ...devices['iPhone 13'], locale: 'sv-SE' });
   const page = await context.newPage();
   try {
     await verifyStaffMobileLogin(page, engineLabel);
+    if (engineLabel === 'WebKit') {
+      await verifyStaffMobileLoginDeepLink(page, engineLabel);
+    }
   } finally {
     await browser.close();
   }
@@ -239,6 +267,7 @@ function verifyPwaManifest() {
     const data = JSON.parse(manifest);
     const ok =
       data.display === 'standalone' &&
+      String(data.start_url || '').includes('/staff') &&
       String(data.start_url || '').includes('view=customers') &&
       Array.isArray(data.icons) &&
       data.icons.length > 0;

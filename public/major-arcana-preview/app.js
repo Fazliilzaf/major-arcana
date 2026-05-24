@@ -5038,6 +5038,26 @@
       return { view: "conversations", automationSection: "", portalCustomerKey: "" };
     }
     const params = new URLSearchParams(window.location.search || "");
+    const path = String(window.location.pathname || "");
+    let requestedView = normalizeKey(params.get("view"));
+    if (!requestedView) {
+      let mobileDefault = false;
+      try {
+        mobileDefault = window.matchMedia("(max-width: 768px)").matches;
+      } catch {
+        mobileDefault = false;
+      }
+      if (
+        mobileDefault ||
+        path.startsWith("/staff") ||
+        path.startsWith("/mobil") ||
+        path.includes("/major-arcana-preview")
+      ) {
+        requestedView = "customers";
+      } else {
+        requestedView = "conversations";
+      }
+    }
     // Fas 37 (2026-05-19): portalCustomerKey kräver nu EXPLICIT opt-in via
     // ?showcase=1. Tidigare räckte det med portalCustomerKey ensam — vilket
     // poisonade state vid varje reload av en URL som råkat ha keyen kvar
@@ -5050,7 +5070,7 @@
     const wantsShowcase = params.get("showcase") === "1";
     const portalCustomerKey = wantsShowcase ? rawPortalKey : "";
     return {
-      view: normalizeKey(params.get("view")) || "conversations",
+      view: requestedView,
       automationSection:
         normalizeKey(params.get("automationSection") || params.get("section")) || "",
       portalCustomerKey,
