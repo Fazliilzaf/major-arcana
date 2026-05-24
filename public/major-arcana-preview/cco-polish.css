@@ -4990,6 +4990,44 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   margin-left: auto;
 }
 
+.journal-plan-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(154, 126, 104, 0.18);
+  background: rgba(255, 251, 247, 0.92);
+}
+
+.journal-plan-zoom-btn {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(154, 126, 104, 0.12);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.journal-plan-zoom-readout {
+  min-width: 3rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b5648;
+}
+
+.journal-plan-canvas-wrap.is-zoomed {
+  cursor: grab;
+}
+
+.journal-plan-canvas.is-pan-dragging,
+.journal-plan-canvas-wrap.is-pan-mode .journal-plan-canvas:active {
+  cursor: grabbing;
+}
+
 .journal-plan-color {
   width: 22px;
   height: 22px;

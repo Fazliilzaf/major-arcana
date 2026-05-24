@@ -39606,8 +39606,8 @@
     canvas.dataset.appShellView = shellView;
 
     const applyShellStructure = () => {
-      if (shellView === "conversations") {
-        document.documentElement.removeAttribute("data-cco-mobile-defer-inbox");
+      if (shellView !== "conversations") {
+        document.documentElement.setAttribute("data-cco-mobile-defer-inbox", "on");
       }
       shellViewSections.forEach((section) => {
         section.hidden = normalizeKey(section.dataset.shellView) !== shellView;
@@ -39727,8 +39727,11 @@
       }
     };
 
-    if (mobileFastNav && shellStructureChanged && shellView === "conversations") {
-      __mobileViewLoadsTimer = scheduleMobileIdleWork(runViewLoads, { timeout: 180 });
+    if (mobileShell && shellView === "conversations") {
+      __mobileViewLoadsTimer = scheduleMobileIdleWork(runViewLoads, { timeout: 120 });
+      scheduleMobileIdleWork(() => {
+        document.documentElement.removeAttribute("data-cco-mobile-defer-inbox");
+      }, { timeout: 480 });
     } else {
       runViewLoads();
     }

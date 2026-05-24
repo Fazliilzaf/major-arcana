@@ -125,6 +125,13 @@
       rectStart: null,
       activePointers: new Set(),
       viewScale: 1,
+      panX: 0,
+      panY: 0,
+      panDragging: false,
+      panStartX: 0,
+      panStartY: 0,
+      panOriginX: 0,
+      panOriginY: 0,
       pinchStartDistance: 0,
       pinchStartScale: 1,
       onSave,
@@ -148,7 +155,12 @@
           <button type="button" class="journal-plan-tool" data-plan-tool="rect">Ruta</button>
           <button type="button" class="journal-plan-tool" data-plan-tool="text">Text</button>
           <button type="button" class="journal-plan-tool" data-plan-tool="undo">Ångra</button>
-          <button type="button" class="journal-plan-tool" data-plan-tool="pan">Zooma</button>
+          <button type="button" class="journal-plan-tool" data-plan-tool="pan">Flytta</button>
+          <div class="journal-plan-zoom-controls" aria-label="Zoom">
+            <button type="button" class="journal-plan-zoom-btn" data-plan-zoom="out" aria-label="Zooma ut">−</button>
+            <span class="journal-plan-zoom-readout" data-plan-zoom-readout>100%</span>
+            <button type="button" class="journal-plan-zoom-btn" data-plan-zoom="in" aria-label="Zooma in">+</button>
+          </div>
           <div class="journal-plan-colors">
             ${COLORS.map(
               (color, index) =>
@@ -176,8 +188,11 @@
             <label>Zoner
               <textarea data-plan-field="zones" rows="3" placeholder="Front, vertex, temporal…"></textarea>
             </label>
-            <label>Anteckning
-              <textarea data-plan-field="notes" rows="4" placeholder="Plan och överenskommelse…"></textarea>
+            <label>Anteckning till kund
+              <textarea data-plan-field="notes" rows="3" placeholder="Syns i offert och behandlingsplan…"></textarea>
+            </label>
+            <label>Intern anteckning
+              <textarea data-plan-field="staffNotes" rows="3" placeholder="Bara för personal — syns inte i offert"></textarea>
             </label>
             <button type="button" class="customers-utility-button journal-plan-save" data-plan-editor-save>Spara markering</button>
           </aside>
@@ -208,6 +223,7 @@
         ? planSummary.zones.join(', ')
         : planSummary.zones || '',
       notes: planSummary.notes || '',
+      staffNotes: planSummary.staffNotes || '',
     };
     overlayEl.querySelectorAll('[data-plan-field]').forEach((node) => {
       const key = node.dataset.planField;
@@ -216,9 +232,46 @@
       }
     });
 
+    function updateZoomReadout() {
+      const readout = overlayEl.querySelector('[data-plan-zoom-readout]');
+      if (readout) readout.textContent = `${Math.round(state.viewScale * 100)}%`;
+    }
+
+    function clampPan() {
+      if (state.viewScale <= 1) {
+        state.panX = 0;
+        state.panY = 0;
+        return;
+      }
+      const scaledW = canvas.width * state.viewScale;
+      const scaledH = canvas.height * state.viewScale;
+      const wrapW = canvasWrap.clientWidth || 0;
+      const wrapH = canvasWrap.clientHeight || 0;
+      const minX = Math.min(0, wrapW - scaledW);
+      const minY = Math.min(0, wrapH - scaledH);
+      state.panX = Math.min(0, Math.max(minX, state.panX));
+      state.panY = Math.min(0, Math.max(minY, state.panY));
+    }
+
     function applyViewTransform() {
-      canvas.style.transform = `scale(${state.viewScale})`;
+      canvas.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.viewScale})`;
       canvas.style.transformOrigin = 'top left';
+      canvasWrap.classList.toggle('is-zoomed', state.viewScale > 1);
+      updateZoomReadout();
+    }
+
+    function setViewScale(nextScale) {
+      state.viewScale = Math.min(4, Math.max(1, nextScale));
+      if (state.viewScale <= 1) {
+        state.panX = 0;
+        state.panY = 0;
+      }
+      clampPan();
+      applyViewTransform();
+    }
+
+    function canPanView() {
+      return state.tool === 'pan' || state.viewScale > 1;
     }
 
     function cancelDraftShape() {
@@ -233,7 +286,7 @@
     }
 
     function isDrawingTool() {
-      return state.tool !== 'pan' && state.activePointers.size <= 1;
+      return state.tool !== 'pan' && !state.panDragging && state.activePointers.size <= 1;
     }
 
     function setTool(tool) {
@@ -241,8 +294,9 @@
       overlayEl.querySelectorAll('[data-plan-tool]').forEach((button) => {
         button.classList.toggle('is-active', button.dataset.planTool === tool);
       });
-      canvasWrap.classList.toggle('is-pan-mode', tool === 'pan');
-      canvas.classList.toggle('is-pan-mode', tool === 'pan');
+      const panMode = tool === 'pan' || state.viewScale > 1;
+      canvasWrap.classList.toggle('is-pan-mode', panMode);
+      canvas.classList.toggle('is-pan-mode', panMode);
       cancelDraftShape();
     }
 
@@ -291,6 +345,15 @@
         });
         return;
       }
+      const zoomButton = event.target.closest('[data-plan-zoom]');
+      if (zoomButton) {
+        const delta = zoomButton.dataset.planZoom === 'in' ? 0.25 : -0.25;
+        setViewScale(state.viewScale + delta);
+        if (state.viewScale > 1 && state.tool !== 'pan') {
+          setTool('pan');
+        }
+        return;
+      }
       const saveButton = event.target.closest('[data-plan-editor-save]');
       if (saveButton && onSave) {
         const payload = {
@@ -309,9 +372,48 @@
       }
     });
 
+    canvasWrap.addEventListener('pointerdown', (event) => {
+      if (!canPanView() || event.touches?.length >= 2) return;
+      if (state.tool !== 'pan' && state.viewScale <= 1) return;
+      state.panDragging = true;
+      state.panStartX = event.clientX;
+      state.panStartY = event.clientY;
+      state.panOriginX = state.panX;
+      state.panOriginY = state.panY;
+      canvasWrap.setPointerCapture(event.pointerId);
+      canvas.classList.add('is-pan-dragging');
+      event.preventDefault();
+    });
+
+    canvasWrap.addEventListener('pointermove', (event) => {
+      if (!state.panDragging) return;
+      state.panX = state.panOriginX + (event.clientX - state.panStartX);
+      state.panY = state.panOriginY + (event.clientY - state.panStartY);
+      clampPan();
+      applyViewTransform();
+      event.preventDefault();
+    });
+
+    function endPanDrag(event) {
+      if (!state.panDragging) return;
+      state.panDragging = false;
+      if (event?.pointerId != null) {
+        try {
+          canvasWrap.releasePointerCapture(event.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+      canvas.classList.remove('is-pan-dragging');
+    }
+
+    canvasWrap.addEventListener('pointerup', endPanDrag);
+    canvasWrap.addEventListener('pointercancel', endPanDrag);
+
     canvas.addEventListener('pointerdown', (event) => {
+      if (state.panDragging || canPanView() && state.tool === 'pan') return;
       state.activePointers.add(event.pointerId);
-      if (state.activePointers.size > 1 || state.tool === 'pan') {
+      if (state.activePointers.size > 1) {
         cancelDraftShape();
         return;
       }
@@ -420,8 +522,10 @@
           state.pinchStartScale = state.viewScale;
         }
         const nextScale = state.pinchStartScale * (distance / state.pinchStartDistance);
-        state.viewScale = Math.min(4, Math.max(1, nextScale));
-        applyViewTransform();
+        setViewScale(nextScale);
+        if (state.viewScale > 1 && state.tool !== 'pan') {
+          setTool('pan');
+        }
       },
       { passive: false }
     );
