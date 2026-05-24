@@ -293,6 +293,7 @@
 
     html[data-cco-mobile-tabbar="on"] .cco-mobile-tabbar {
       display: flex;
+      z-index: calc(var(--cco-z-sticky, 100) + 6);
     }
 
     .cco-mobile-tabbar-item {
@@ -2462,8 +2463,11 @@
     /* Kalender bottom sheet */
     .cco-mobile-calendar-sheet {
       position: fixed;
-      inset: 0;
-      z-index: calc(var(--cco-z-modal, 10000) + 1);
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
+      z-index: calc(var(--cco-z-sticky, 100) + 4);
       display: flex;
       align-items: flex-end;
       justify-content: center;
