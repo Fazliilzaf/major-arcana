@@ -653,6 +653,14 @@
     els.list.innerHTML = rows + footer;
   }
 
+  function railHasPatientDetailUi() {
+    const rail = document.querySelector('[data-patient-master-rail]');
+    return Boolean(
+      rail?.querySelector('[data-patient-detail]:not([data-patient-loading="true"])') ||
+        rail?.querySelector('button[data-patient-tab]')
+    );
+  }
+
   function renderDetailEmpty() {
     resolveElements();
     const rail = document.querySelector('[data-patient-master-rail]');
@@ -2251,6 +2259,11 @@
       runtime.detail = payload;
       runtime.detailLoading = false;
       renderDetailPanel();
+      window.requestAnimationFrame(() => {
+        if (runtime.selectedPatientId === patientId && runtime.detail?.card) {
+          renderDetailPanel();
+        }
+      });
       if (isMobileViewport()) {
         void Promise.all([
           loadPatientCommercialCase(patientId),
@@ -3114,7 +3127,8 @@
       }
       if (deepLinkId && isMobileViewport() && !runtime.detail?.card) {
         runtime.selectedPatientId = deepLinkId;
-        if (!els.patientRail?.querySelector('[data-patient-loading="true"], [data-patient-detail]:not([data-patient-loading])')) {
+        const inflight = patientDetailInflight.has(normalizeText(deepLinkId));
+        if (!inflight && !railHasPatientDetailUi()) {
           renderDetailLoadingSkeleton(deepLinkId);
         }
         syncMobilePatientLayout();
