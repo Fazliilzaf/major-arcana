@@ -288,6 +288,7 @@ function createScheduler({
   postOpReviewStore = null,
   marketingCampaignDraftsStore = null,
   marketingContentAssetsStore = null,
+  connectorHealthStateStore = null,
   executiveDecisionFeed = null,
   alertNotifier = null,
   logger = console,
@@ -3262,6 +3263,7 @@ function createScheduler({
       config,
       tenantConfigStore,
       executiveDecisionFeed,
+      connectorHealthStateStore,
     });
   }
 
