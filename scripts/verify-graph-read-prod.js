@@ -82,19 +82,21 @@ async function main() {
   });
 
   if (worklist && typeof worklist === 'object') {
-    const threads = Array.isArray(worklist.threads)
-      ? worklist.threads
-      : Array.isArray(worklist.items)
-        ? worklist.items
-        : [];
-    const liveCount = threads.filter((row) => {
+    const rows = Array.isArray(worklist.rows)
+      ? worklist.rows
+      : Array.isArray(worklist.threads)
+        ? worklist.threads
+        : Array.isArray(worklist.items)
+          ? worklist.items
+          : [];
+    const liveCount = rows.filter((row) => {
       const source = String(row?.source || row?.worklistSource || '').toLowerCase();
       return source !== 'demo';
     }).length;
     if (readEnabled && connectorAvailable && liveCount === 0) {
-      warn('Live worklist tom trots Graph på', `${threads.length} rader totalt`);
+      warn('Live worklist tom trots Graph på', `${rows.length} rader (bootstrap/backfill kan pågå)`);
     } else {
-      record('Worklist consumer svarar', true, `${liveCount} live / ${threads.length} totalt`);
+      record('Worklist consumer svarar', true, `${liveCount} live / ${rows.length} totalt`);
     }
   }
 
