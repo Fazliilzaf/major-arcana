@@ -39489,6 +39489,14 @@
     });
   }
 
+  function isMobileShellViewport() {
+    try {
+      return window.matchMedia('(max-width: 768px)').matches;
+    } catch {
+      return false;
+    }
+  }
+
   function setAppView(view = "conversations") {
     markExplicitNavigationIntent();
     const normalizedView = workspaceSourceOfTruth.setView(view);
@@ -39543,10 +39551,13 @@
     }
 
     if (shellView === "customers") {
-      loadCustomersRuntime().catch((error) => {
-      console.warn("Kundernas live-laddning misslyckades.", error);
-        applyCustomerFilters();
-      });
+      const patientRegisterReady = window.ArcanaPatientMasterUi?.getRuntime?.()?.loaded === true;
+      if (!(isMobileShellViewport() && patientRegisterReady)) {
+        loadCustomersRuntime().catch((error) => {
+          console.warn("Kundernas live-laddning misslyckades.", error);
+          applyCustomerFilters();
+        });
+      }
       if (window.ArcanaPatientMasterUi?.onCustomersViewOpen) {
         window.ArcanaPatientMasterUi.onCustomersViewOpen();
       }

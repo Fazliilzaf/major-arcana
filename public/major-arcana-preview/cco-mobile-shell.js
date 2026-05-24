@@ -132,6 +132,12 @@
     explicitJournalTab = false;
     window.ArcanaBookingMobileCalendar?.close?.();
     optimisticTab('booking');
+    const shellView = canvas?.dataset.appShellView || '';
+    const workspaceView = canvas?.dataset.mobileWorkspaceView || '';
+    if (shellView === 'conversations' && workspaceView === 'focus') {
+      syncFromApp();
+      return;
+    }
     clickNavView('conversations');
     setMobileWorkspaceFocus();
     syncFromApp();
@@ -308,9 +314,30 @@
         explicitJournalTab = false;
         const viewKey = button.dataset.navView || (tab === 'home' || tab === 'queue' ? 'conversations' : tab);
         optimisticTab(tab === 'queue' ? 'home' : tab);
-        if (tab === 'home' || tab === 'queue') {
-          setMobileWorkspaceQueue();
+
+        if (tab === 'customers' && canvas?.dataset.appShellView === 'customers') {
+          window.ArcanaPatientMasterUi?.onCustomersViewOpen?.();
+          syncFromApp();
+          return;
         }
+
+        if (tab === 'home' || tab === 'queue') {
+          const shellView = canvas?.dataset.appShellView || '';
+          const workspaceView = canvas?.dataset.mobileWorkspaceView || '';
+          if (shellView === 'conversations' && workspaceView === 'queue') {
+            syncFromApp();
+            return;
+          }
+          setMobileWorkspaceQueue();
+          if (shellView === 'conversations') {
+            syncFromApp();
+            return;
+          }
+          clickNavView('conversations');
+          syncFromApp();
+          return;
+        }
+
         clickNavView(viewKey);
         syncFromApp();
       });

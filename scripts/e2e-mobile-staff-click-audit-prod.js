@@ -181,18 +181,31 @@ async function main() {
       ms(t0)
     );
 
-    // 4. Öppna testpatient (deep link snabbare)
+    // 4. Öppna testpatient (deep link)
     t0 = Date.now();
     await page.goto(`${base}/staff?view=customers&patientId=${encodeURIComponent(patientId)}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
     });
+    const skeletonMs = await page
+      .waitForFunction(
+        () =>
+          document.documentElement.getAttribute('data-cco-patient-detail') === 'on' ||
+          document.querySelector('[data-patient-loading="true"]'),
+        undefined,
+        { timeout: 8000 }
+      )
+      .then(() => ms(t0))
+      .catch(() => null);
+    if (skeletonMs != null) {
+      record('Deep link skeleton/detail synlig', true, `${skeletonMs}ms till UI`, skeletonMs);
+    }
     await page.waitForFunction(
       () => document.documentElement.getAttribute('data-cco-patient-detail') === 'on',
       undefined,
       { timeout: 25000 }
     );
-    record('Deep link → kunddetail', true, patientId.slice(0, 8), ms(t0));
+    record('Deep link → kunddetail klar', true, patientId.slice(0, 8), ms(t0));
 
     // 5. Journal-flik
     t0 = Date.now();

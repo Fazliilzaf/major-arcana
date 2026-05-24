@@ -1516,6 +1516,42 @@
       font-weight: 700;
     }
 
+    html[data-cco-mobile-shell="on"] .patient-master-card-loading {
+      opacity: 1;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-detail-skeleton {
+      display: grid;
+      gap: 10px;
+      padding: 0.75rem 0 1rem;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-detail-skeleton-bar {
+      height: 14px;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        rgba(139, 94, 60, 0.12) 0%,
+        rgba(139, 94, 60, 0.22) 50%,
+        rgba(139, 94, 60, 0.12) 100%
+      );
+      background-size: 200% 100%;
+      animation: cco-mobile-skeleton-pulse 1.2s ease-in-out infinite;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-detail-skeleton-bar.is-short {
+      width: 62%;
+    }
+
+    @keyframes cco-mobile-skeleton-pulse {
+      0% {
+        background-position: 100% 0;
+      }
+      100% {
+        background-position: -100% 0;
+      }
+    }
+
     /* Fas G — kundlista mobil: kompakt header, hela sidan scrollar */
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
       .preview-canvas[data-app-shell-view="customers"]
