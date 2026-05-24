@@ -144,8 +144,15 @@ function normalizeSubmission(value) {
       size: Number(p?.size) || 0,
       uploadedAt: normalizeText(p?.uploadedAt) || new Date().toISOString(),
     })),
+    treatmentLabel: normalizeText(safe.treatmentLabel) || null,
     reviewClicked: Boolean(safe.reviewClicked),
     reviewClickedAt: normalizeText(safe.reviewClickedAt) || null,
+    reviewRating:
+      Number.isFinite(Number(safe.reviewRating)) && Number(safe.reviewRating) >= 1
+        ? Math.min(5, Math.max(1, Math.round(Number(safe.reviewRating))))
+        : null,
+    reviewFeedback: normalizeText(safe.reviewFeedback) || null,
+    reviewFeedbackAt: normalizeText(safe.reviewFeedbackAt) || null,
     photosDeletedAt: normalizeText(safe.photosDeletedAt) || null,
   };
 }
@@ -179,6 +186,7 @@ async function createPostOpReviewStore({
     bookingCaseId,
     tenantId,
     patientName,
+    treatmentLabel = '',
   } = {}) {
     if (!normalizeText(bookingCaseId)) {
       throw new Error('createSubmission requires bookingCaseId');
@@ -197,6 +205,7 @@ async function createPostOpReviewStore({
       bookingCaseId: normalizeText(bookingCaseId),
       tenantId: normalizeText(tenantId),
       patientName: normalizeText(patientName),
+      treatmentLabel: normalizeText(treatmentLabel),
       tokenHash,
       createdAt,
       expiresAt,
@@ -286,6 +295,23 @@ async function createPostOpReviewStore({
   }
 
   /**
+   * Intern omdömes-gate innan eventuell Google-länk.
+   */
+  async function saveReviewFeedback(submissionId, { rating, feedback } = {}) {
+    const submission = findById(submissionId);
+    if (!submission) throw new Error(`saveReviewFeedback: unknown submissionId ${submissionId}`);
+    const numeric = Number(rating);
+    if (!Number.isFinite(numeric) || numeric < 1 || numeric > 5) {
+      throw new Error('saveReviewFeedback: rating must be 1-5');
+    }
+    submission.reviewRating = Math.round(numeric);
+    submission.reviewFeedback = normalizeText(feedback) || null;
+    submission.reviewFeedbackAt = new Date().toISOString();
+    await persist();
+    return submission;
+  }
+
+  /**
    * Beacon från patient — kallas när patienten klickar GBP-länken.
    */
   async function markReviewClicked(submissionId) {
@@ -360,6 +386,7 @@ async function createPostOpReviewStore({
     markSent,
     addPhoto,
     submit,
+    saveReviewFeedback,
     markReviewClicked,
     deleteSubmission,
     pruneNoConsentPhotos,
