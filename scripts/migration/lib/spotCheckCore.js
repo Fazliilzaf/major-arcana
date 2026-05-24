@@ -19,7 +19,11 @@ function evaluateSpotCheck({
     indexByPnr.get(pnr).push(file);
   }
 
-  const patients = (Array.isArray(masterRaw?.patients) ? masterRaw.patients : []).filter(
+  const patientsFromRoot = Array.isArray(masterRaw?.patients) ? masterRaw.patients : [];
+  const patientsFromTenant = Array.isArray(masterRaw?.tenants?.[tenantId]?.patients)
+    ? masterRaw.tenants[tenantId].patients
+    : [];
+  const patients = [...patientsFromRoot, ...patientsFromTenant].filter(
     (patient) =>
       String(patient?.tenantId || tenantId) === tenantId &&
       normalizePersonnummer(patient.personnummer)
