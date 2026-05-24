@@ -1418,8 +1418,33 @@
 
   function fileViewUrl(file) {
     if (file?.viewUrl) return file.viewUrl;
-    if (file?.id) return `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`;
+    if (file?.streamable === false) return '';
+    if (fileHasStreamLink(file) && file?.id) {
+      return `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`;
+    }
     return '';
+  }
+
+  function fileHasStreamLink(file) {
+    if (file?.streamable === true) return true;
+    if (file?.streamable === false || file?.driveLinkMissing === true) return false;
+    if (String(file?.driveFileId || '').trim()) return true;
+    if (file?.source === 'folder' && file?.folderRoot) return true;
+    if (String(file?.zipName || '').trim()) return true;
+    return false;
+  }
+
+  function fileMissingDriveLinkLabel() {
+    return '<span class="patient-master-muted">· saknar Drive-koppling</span>';
+  }
+
+  function renderFileEntryLabel(file, label) {
+    const safeLabel = escapeHtml(repairDisplayFilename(label));
+    const href = fileViewUrl(file);
+    if (href) {
+      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${safeLabel}</a>`;
+    }
+    return `<strong>${safeLabel}</strong>${fileMissingDriveLinkLabel()}`;
   }
 
   function attachmentViewUrl(attachment) {
@@ -1485,7 +1510,9 @@
         const objectUrl = await fetchPatientFileObjectUrl(fileId);
         img.classList.remove('is-loading');
         if (!objectUrl) {
-          img.alt = 'Kunde inte visa bild';
+          img.alt = fileHasStreamLink({ id: fileId })
+            ? 'Kunde inte visa bild'
+            : 'Saknar Drive-koppling';
           img.classList.add('is-broken');
           return;
         }
@@ -1660,11 +1687,10 @@
         <ul class="patient-master-file-list patient-master-file-list--compact">
           ${pdfs
         .map((file) => {
-          const href = fileViewUrl(file);
-          const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'PDF'));
+          const label = file.fileName || file.relativePath || 'PDF';
           return `
                 <li>
-                  <a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>
+                  ${renderFileEntryLabel(file, label)}
                   <span>PDF</span>
                 </li>
               `;
@@ -1680,8 +1706,15 @@
           <div class="patient-master-image-grid">
             ${images
         .map((file) => {
-          const href = fileViewUrl(file);
           const label = escapeHtml(repairDisplayFilename(file.fileName || 'Bild'));
+          if (!fileHasStreamLink(file)) {
+            return `
+                  <div class="patient-master-image-tile is-unlinked" title="Saknar Drive-koppling">
+                    <span class="patient-master-muted">Saknar Drive-koppling</span>
+                  </div>
+                `;
+          }
+          const href = fileViewUrl(file);
           return `
                   <a class="patient-master-image-tile" href="${escapeHtml(href)}" target="_blank" rel="noopener" title="${label}">
                     <img src="" data-patient-file-id="${escapeHtml(file.id)}" alt="${label}" loading="lazy" decoding="async" />
@@ -1699,14 +1732,10 @@
         <ul class="patient-master-file-list patient-master-file-list--compact">
           ${other
         .map((file) => {
-          const href = fileViewUrl(file);
-          const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'Fil'));
-          const link = href
-            ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>`
-            : `<strong>${label}</strong>`;
+          const label = file.fileName || file.relativePath || 'Fil';
           return `
                 <li>
-                  ${link}
+                  ${renderFileEntryLabel(file, label)}
                   <span>${escapeHtml(file.fileType || 'fil')}</span>
                 </li>
               `;
@@ -1737,9 +1766,16 @@
     if (!rows.length) {
       return renderFilesEmpty(card);
     }
-    return groupFilesByOccasion(rows)
+    const missingDriveLinkCount = rows.filter(
+      (file) => file?.driveLinkMissing === true || !fileHasStreamLink(file)
+    ).length;
+    const missingBanner =
+      missingDriveLinkCount > 0
+        ? `<p class="patient-master-muted">${missingDriveLinkCount} fil${missingDriveLinkCount === 1 ? '' : 'er'} saknar Drive-koppling och kan inte öppnas.</p>`
+        : '';
+    return `${missingBanner}${groupFilesByOccasion(rows)
       .map((group) => renderOccasionGroup(group))
-      .join('');
+      .join('')}`;
   }
 
   function renderMaterialPreview(files, card) {

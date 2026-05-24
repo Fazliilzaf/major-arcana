@@ -61,3 +61,13 @@ Om `RESEND_API_KEY` saknas på Render fortsätter `transactionalMailer` med **Gr
 | `403 domain mismatch` | `RESEND_FROM` måste matcha verifierad domän |
 | Prod `provider: graph` | Kör `provision:resend-go-live-prod`; kontrollera Render env |
 | Mail i spam | Kontrollera DKIM + DMARC på subdomänen |
+| **`RESEND_API_KEY` saknas (U5A.4 BLOCKED)** | Patient-bekräftelsemail faller tillbaka till Graph send om `ARCANA_GRAPH_SEND_ENABLED=true`; Resend kräver nyckel + verifierad domän — se steg 1–3 ovan |
+
+## 6. Status U5A.4 (2026-05-25)
+
+| Item | Status |
+|------|--------|
+| Kod (`transactionalMailer`) | ✅ Resend-first, Graph fallback |
+| `mailDeliveryGuard` | ✅ Blockerar `@example.com` i verify |
+| Render `RESEND_API_KEY` | ❌ **Saknas — BLOCKED** |
+| GO live | Kör steg 1–3 + `npm run verify:resend-domain-prod` efter deploy |

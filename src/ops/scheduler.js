@@ -28,6 +28,11 @@ const {
 } = require('./stateBackup');
 const { createJournalPhotosBackup } = require('./journalPhotosBackup');
 const {
+  buildCustomerReminderQueue,
+  buildJournalDraftProposals,
+  buildMissingFormsReport,
+} = require('./ccoPatientCareOps');
+const {
   computeUsageAnalytics,
   computeWorklistSnapshotMetrics,
   computeHealthScore,
@@ -292,6 +297,11 @@ function createScheduler({
   connectorHealthStateStore = null,
   executiveDecisionFeed = null,
   alertNotifier = null,
+  journalStore = null,
+  patientMasterStore = null,
+  bookingEngineStore = null,
+  treatmentAgreementStore = null,
+  patientCareStateStore = null,
   logger = console,
 } = {}) {
   if (!incomingConfig) throw new Error('config saknas för scheduler.');
@@ -447,6 +457,99 @@ function createScheduler({
       pruneDeletedCount: prune.deletedCount,
       pruneScannedCount: prune.scannedCount,
       pruneKeptCount: prune.keptCount,
+    };
+  }
+
+  async function runCcoDailyMissingFormsReport({ tenantId }) {
+    if (!journalStore || !patientMasterStore) {
+      return { tenantId, skipped: true, reason: 'journal_or_patient_store_missing' };
+    }
+    const report = await buildMissingFormsReport({
+      journalStore,
+      patientMasterStore,
+      treatmentAgreementStore,
+      tenantId,
+    });
+    if (patientCareStateStore) {
+      await patientCareStateStore.setLastReport({
+        tenantId,
+        reportType: 'missing_forms',
+        payload: {
+          patientsWithMissing: report.patientsWithMissing,
+          patientCount: report.patientCount,
+          topRows: report.rows.slice(0, 20),
+        },
+      });
+    }
+    const reportsDir = config.reportsDir;
+    await fs.mkdir(reportsDir, { recursive: true });
+    const fileName = `CCO_MissingForms_${formatUtcStamp()}.json`;
+    const filePath = path.join(reportsDir, fileName);
+    await fs.writeFile(filePath, JSON.stringify(report, null, 2), 'utf8');
+    return {
+      tenantId,
+      fileName,
+      patientsWithMissing: report.patientsWithMissing,
+      patientCount: report.patientCount,
+    };
+  }
+
+  async function runCcoJournalDraftProposals({ tenantId }) {
+    if (!journalStore || !patientMasterStore || !patientCareStateStore) {
+      return { tenantId, skipped: true, reason: 'care_stores_missing' };
+    }
+    const result = await buildJournalDraftProposals({
+      journalStore,
+      patientMasterStore,
+      treatmentAgreementStore,
+      patientCareStateStore,
+      tenantId,
+    });
+    return {
+      tenantId,
+      proposalCount: result.proposalCount,
+      patientsWithMissing: result.reportSummary.patientsWithMissing,
+    };
+  }
+
+  async function runCcoCustomerReminders({ tenantId }) {
+    if (!bookingEngineStore || !patientCareStateStore) {
+      return { tenantId, skipped: true, reason: 'booking_or_care_store_missing' };
+    }
+    const queue = await buildCustomerReminderQueue({
+      bookingEngineStore,
+      journalStore,
+      patientMasterStore,
+      patientCareStateStore,
+      tenantId,
+    });
+    let logged = 0;
+    for (const reminder of [...queue.visitReminders, ...queue.aftercareReminders]) {
+      await patientCareStateStore.logReminder({
+        tenantId,
+        reminderKey: reminder.reminderKey,
+        reminderType: reminder.reminderType,
+        patientId: reminder.patientId,
+        metadata: { message: reminder.message, startsAt: reminder.startsAt || null },
+      });
+      logged += 1;
+    }
+    if (patientCareStateStore) {
+      await patientCareStateStore.setLastReport({
+        tenantId,
+        reportType: 'customer_reminders',
+        payload: {
+          visitCount: queue.visitReminders.length,
+          aftercareCount: queue.aftercareReminders.length,
+          logged,
+        },
+      });
+    }
+    return {
+      tenantId,
+      visitReminders: queue.visitReminders.length,
+      aftercareReminders: queue.aftercareReminders.length,
+      logged,
     };
   }
 
@@ -3405,6 +3508,33 @@ function createScheduler({
         ? toHoursMs(config.schedulerJournalPhotosBackupIntervalHours, 24)
         : 0,
       run: runJournalPhotosBackup,
+    },
+    {
+      id: 'cco_daily_missing_forms_report',
+      name: 'CCO daily missing forms report (J-8.1)',
+      intervalMs:
+        journalStore && patientMasterStore
+          ? toHoursMs(config.schedulerCcoMissingFormsReportIntervalHours, 24)
+          : 0,
+      run: runCcoDailyMissingFormsReport,
+    },
+    {
+      id: 'cco_journal_draft_proposals',
+      name: 'CCO journal draft proposals (J-8.2)',
+      intervalMs:
+        journalStore && patientMasterStore && patientCareStateStore
+          ? toHoursMs(config.schedulerCcoJournalDraftIntervalHours, 24)
+          : 0,
+      run: runCcoJournalDraftProposals,
+    },
+    {
+      id: 'cco_customer_reminders',
+      name: 'CCO customer reminders (J-7 / U5B)',
+      intervalMs:
+        bookingEngineStore && patientCareStateStore
+          ? toHoursMs(config.schedulerCcoCustomerRemindersIntervalHours, 6)
+          : 0,
+      run: runCcoCustomerReminders,
     },
     {
       id: 'restore_drill_preview',

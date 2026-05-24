@@ -55,9 +55,12 @@ Scriptet **merge:ar** alla befintliga Render env-variabler (PUT med full lista) 
 
 ```bash
 npm run verify:graph-read-prod       # Graph live-läge
+npm run verify:graph-send-prod       # alias → verify:post-op-graph-prod (post-op Graph send)
+npm run verify:post-op-graph-prod    # post-op operator trigger + Graph sendMail
 npm run verify:booking-mail-prod     # PA-25 Graph send (Resend ej krävd)
 npm run verify:booking-plan-a-prod   # catalog + reservation
 npm run verify:cco-mail-start-prod   # live-trådar när Graph läser
+npm run verify:post-op-uppfoljning-prod  # patient /uppfoljning/[token] fetch smoke
 ```
 
 Efter deploy: gör en testreservation och kontrollera audit-event `reservation_confirmation_sent`

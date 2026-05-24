@@ -38,6 +38,12 @@ const {
   isEnabled: isBootstrapEnabled,
 } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
+const {
+  buildCustomerReminderQueue,
+  buildJournalDraftProposals,
+  buildMissingFormsReport,
+  resolveMaintenanceWindow,
+} = require('../ops/ccoPatientCareOps');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -265,6 +271,11 @@ function createOpsRouter({
   graphSendConnector = null,
   runtimeMetricsStore = null,
   clientoBookingStore = null,
+  journalStore = null,
+  patientMasterStore = null,
+  bookingEngineStore = null,
+  treatmentAgreementStore = null,
+  patientCareStateStore = null,
   requireAuth,
   requireRole,
 }) {
@@ -274,6 +285,7 @@ function createOpsRouter({
   const REQUIRED_SCHEDULER_SUITE_JOB_IDS = Object.freeze([
     'nightly_pilot_report',
     'backup_prune',
+    'journal_photos_backup',
     'restore_drill_preview',
     'restore_drill_full',
     'audit_integrity_check',
@@ -281,6 +293,163 @@ function createOpsRouter({
     'release_governance_review',
     'alert_probe',
   ]);
+
+  router.get('/ops/maintenance-window', (_req, res) => {
+    const window = resolveMaintenanceWindow(config || {});
+    return res.json({
+      ok: true,
+      generatedAt: new Date().toISOString(),
+      maintenance: window,
+    });
+  });
+
+  router.get(
+    '/ops/cco-care/missing-forms-report',
+    requireAuth,
+    requireRole(ROLE_STAFF),
+    async (req, res) => {
+      if (!journalStore || !patientMasterStore) {
+        return res.status(503).json({ error: 'Journal- eller patientstore saknas.' });
+      }
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      try {
+        const live = await buildMissingFormsReport({
+          journalStore,
+          patientMasterStore,
+          treatmentAgreementStore,
+          tenantId,
+        });
+        const cached = patientCareStateStore
+          ? await patientCareStateStore.getLastReport({
+              tenantId,
+              reportType: 'missing_forms',
+            })
+          : null;
+        return res.json({
+          ok: true,
+          generatedAt: new Date().toISOString(),
+          tenantId,
+          report: live,
+          lastScheduledRun: cached,
+        });
+      } catch (error) {
+        console.error('[ops/cco-care/missing-forms-report]', error);
+        return res.status(500).json({ error: 'Kunde inte bygga missing-forms-rapport.' });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/cco-care/draft-proposals',
+    requireAuth,
+    requireRole(ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const status = normalizeText(req.query?.status) || 'pending';
+      const limit = parseLimit(req.query?.limit, 50);
+      try {
+        const stored = patientCareStateStore
+          ? await patientCareStateStore.listDraftProposals({ tenantId, status, limit })
+          : [];
+        let live = null;
+        if (journalStore && patientMasterStore && patientCareStateStore) {
+          live = await buildJournalDraftProposals({
+            journalStore,
+            patientMasterStore,
+            treatmentAgreementStore,
+            patientCareStateStore,
+            tenantId,
+            patientLimit: limit,
+          });
+        }
+        return res.json({
+          ok: true,
+          generatedAt: new Date().toISOString(),
+          tenantId,
+          proposals: stored,
+          livePreview: live
+            ? {
+                proposalCount: live.proposalCount,
+                reportSummary: live.reportSummary,
+              }
+            : null,
+        });
+      } catch (error) {
+        console.error('[ops/cco-care/draft-proposals]', error);
+        return res.status(500).json({ error: 'Kunde inte läsa journalutkast.' });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/cco-care/reminders',
+    requireAuth,
+    requireRole(ROLE_STAFF),
+    async (req, res) => {
+      if (!bookingEngineStore) {
+        return res.status(503).json({ error: 'Booking engine store saknas.' });
+      }
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      try {
+        const queue = await buildCustomerReminderQueue({
+          bookingEngineStore,
+          journalStore,
+          patientMasterStore,
+          patientCareStateStore,
+          tenantId,
+        });
+        const cached = patientCareStateStore
+          ? await patientCareStateStore.getLastReport({
+              tenantId,
+              reportType: 'customer_reminders',
+            })
+          : null;
+        return res.json({
+          ok: true,
+          generatedAt: new Date().toISOString(),
+          tenantId,
+          queue,
+          lastScheduledRun: cached,
+        });
+      } catch (error) {
+        console.error('[ops/cco-care/reminders]', error);
+        return res.status(500).json({ error: 'Kunde inte bygga påminnelskö.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cco-care/run-missing-forms',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!scheduler || typeof scheduler.runJob !== 'function') {
+        return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
+      }
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      try {
+        const result = await scheduler.runJob('cco_daily_missing_forms_report', {
+          trigger: 'manual_api',
+          actorUserId: req.auth.userId,
+          tenantId,
+        });
+        await authStore.addAuditEvent({
+          tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco_care.run_missing_forms',
+          outcome: result?.ok ? 'success' : 'failed',
+          targetType: 'scheduler_job',
+          targetId: 'cco_daily_missing_forms_report',
+          metadata: { result },
+        });
+        const statusCode = result?.ok ? 200 : 409;
+        return res.status(statusCode).json({ ok: Boolean(result?.ok), result });
+      } catch (error) {
+        console.error('[ops/cco-care/run-missing-forms]', error);
+        return res.status(500).json({ error: 'Kunde inte köra missing-forms-jobb.' });
+      }
+    }
+  );
 
   router.get(
     '/ops/scheduler/status',

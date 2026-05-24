@@ -309,10 +309,15 @@ const config = {
       ? Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS)
       : 24,
   // Sender-mailbox för auto-send av post-op review-email via M365 Graph.
-  // Default contact@hairtpclinic.com. Faller tillbaka till config.defaultMailbox.
+  // Locked default per docs/strategy/u4-post-op-decisions.md (U4.5).
   postOpReviewFromMailbox: asNonEmptyString(
     process.env.ARCANA_POST_OP_REVIEW_FROM_MAILBOX,
-    'contact@hairtpclinic.com'
+    'kons@hairtpclinic.com'
+  ),
+  // Dokumenterad kanal — kodväg är Graph send idag (ej SMS/Resend för post-op).
+  postOpNotificationChannel: asNonEmptyString(
+    process.env.ARCANA_POST_OP_NOTIFICATION_CHANNEL,
+    'graph_email'
   ),
   ccoBookingEngineStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_BOOKING_ENGINE_STORE_PATH,
@@ -384,6 +389,14 @@ const config = {
     stateRoot,
     fileName: 'cco-treatment-agreements.json',
   }),
+  ccoPatientCareStateStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PATIENT_CARE_STATE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-patient-care-state.json',
+  }),
+  maintenanceWindowStart: asNonEmptyString(process.env.ARCANA_MAINTENANCE_WINDOW_START),
+  maintenanceWindowEnd: asNonEmptyString(process.env.ARCANA_MAINTENANCE_WINDOW_END),
+  maintenanceWindowMessage: asNonEmptyString(process.env.ARCANA_MAINTENANCE_WINDOW_MESSAGE),
   offerDocumentsDir: process.env.ARCANA_OFFER_DOCUMENTS_DIR
     ? String(process.env.ARCANA_OFFER_DOCUMENTS_DIR).trim()
     : path.join(stateRoot, 'offer-documents'),
@@ -877,6 +890,18 @@ const config = {
   schedulerJournalPhotosBackupIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_JOURNAL_PHOTOS_BACKUP_INTERVAL_HOURS,
     24
+  ),
+  schedulerCcoMissingFormsReportIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_MISSING_FORMS_REPORT_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoJournalDraftIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_JOURNAL_DRAFT_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoCustomerRemindersIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_CUSTOMER_REMINDERS_INTERVAL_HOURS,
+    6
   ),
   schedulerRestoreDrillIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_RESTORE_DRILL_INTERVAL_HOURS,
