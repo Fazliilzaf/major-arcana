@@ -1,7 +1,7 @@
 # Arcana — fem-spårssvep (A–E)
 
-**Status:** Auto-svep klart · ops kvar  
-**Senast verifierad:** 2026-05-23  
+**Status:** Auto-svep klart · **Graph read live på Render** · Resend kvar  
+**Senast verifierad:** 2026-05-24  
 **Branch:** `main`  
 **Prod:** https://arcana.hairtpclinic.se
 
@@ -127,6 +127,7 @@ npm run run:rollout-sweep
 - [x] C3 spot-check script
 - [x] D5 GenerateContentSeries wired
 - [x] B1/B2 prod grön (3 services + curl)
+- [x] Graph read live (Render `ARCANA_GRAPH_READ_ENABLED=true`)
 - [ ] B3/E2 Resend live
 - [ ] D2 staging connectors
 - [ ] E1 OOM stabil 3+ dagar
