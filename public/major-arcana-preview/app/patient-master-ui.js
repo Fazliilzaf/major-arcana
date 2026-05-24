@@ -5,6 +5,9 @@
 (() => {
   'use strict';
 
+  if (window.__ARCANA_PATIENT_MASTER_UI_BOOTED__) return;
+  window.__ARCANA_PATIENT_MASTER_UI_BOOTED__ = true;
+
   const ADMIN_TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
   const PAGE_SIZE = 60;
 
@@ -44,6 +47,7 @@
     detail: null,
     detailTab: 'profil',
     detailLoading: false,
+    detailShellOnly: false,
     commercialCase: null,
     offerDocumentUrl: '',
     offerDocumentPdfUrl: '',
@@ -2003,6 +2007,68 @@
     return true;
   }
 
+  function renderDetailShellLite() {
+    resolveElements();
+    const rail = document.querySelector('[data-patient-master-rail]');
+    if (!rail || !runtime.detail?.card) return;
+    els.patientRail = rail;
+    const { card } = runtime.detail;
+    const tab = runtime.detailTab;
+    const profilActive = tab === 'profil';
+    const journalActive = tab === 'journal';
+    const avtalActive = tab === 'avtal';
+    const filesActive = tab === 'filer';
+    const fileCount = Number(card.fileSummary?.totalFiles || runtime.detail.driveFiles?.length || 0);
+
+    rail.innerHTML = `
+      <section class="patient-master-card" data-patient-detail>
+        <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
+          <div class="focus-customer-hero-main">
+            <div class="focus-customer-avatar">${escapeHtml((card.displayName || '?').slice(0, 2).toUpperCase())}</div>
+            <div class="focus-customer-copy">
+              <h2>${escapeHtml(card.displayName || 'Okänd kund')}</h2>
+              <p class="patient-master-hero-id">${escapeHtml(card.personnummer || 'Saknar personnummer')}</p>
+              <div class="focus-customer-contact-line">
+                <span>${escapeHtml(card.primaryEmail || 'Saknar e-post')}</span>
+                <span>${escapeHtml(card.primaryPhone || 'Saknar telefon')}</span>
+              </div>
+              <div class="focus-customer-chip-row">${renderPatientFlags(card)}</div>
+            </div>
+          </div>
+        </article>
+
+        <div class="patient-master-tabs" role="tablist">
+          <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
+          <button type="button" class="patient-master-tab${journalActive ? ' is-active' : ''}" data-patient-tab="journal" aria-pressed="${journalActive}">Journal</button>
+          <button type="button" class="patient-master-tab${avtalActive ? ' is-active' : ''}" data-patient-tab="avtal" aria-pressed="${avtalActive}">Avtal</button>
+          <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileCount ? ` (${fileCount})` : ''}</button>
+        </div>
+
+        <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil"></div>
+        <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
+          <p class="patient-master-muted" data-patient-shell-placeholder>Laddar journal…</p>
+        </div>
+        <div class="patient-master-tab-panel"${avtalActive ? '' : ' hidden'} data-patient-tab-panel="avtal"></div>
+        <div class="patient-master-tab-panel"${filesActive ? '' : ' hidden'} data-patient-tab-panel="filer"></div>
+      </section>
+    `;
+    runtime.detailShellOnly = true;
+    syncMobilePatientLayout();
+  }
+
+  function scheduleFullDetailPanelHydration(patientId) {
+    const hydrate = () => {
+      if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
+      if (!runtime.detail?.card) return;
+      renderDetailPanel();
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(hydrate, { timeout: 1200 });
+    } else {
+      window.setTimeout(hydrate, 0);
+    }
+  }
+
   function renderDetailPanel() {
     resolveElements();
     const rail = document.querySelector('[data-patient-master-rail]');
@@ -2017,6 +2083,7 @@
       renderDetailEmpty();
       return;
     }
+    runtime.detailShellOnly = false;
     revokePhotoObjectUrls();
     const { card, patient, journalEntries, driveFiles } = detail;
     const tab = runtime.detailTab;
@@ -2264,6 +2331,10 @@
     const paint = () => {
       if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
       if (!runtime.detail?.card) return;
+      if (runtime.detailShellOnly) {
+        renderDetailPanel();
+        return;
+      }
       if (railHasPatientDetailUi()) return;
       renderDetailPanel();
     };
@@ -2315,7 +2386,12 @@
       }
       runtime.detail = payload;
       runtime.detailLoading = false;
-      scheduleDetailPanelPaint(patientId);
+      if (isMobileViewport() && runtime.preferJournalOnMobile) {
+        renderDetailShellLite();
+        scheduleFullDetailPanelHydration(patientId);
+      } else {
+        scheduleDetailPanelPaint(patientId);
+      }
       if (isMobileViewport()) {
         void Promise.all([
           loadPatientCommercialCase(patientId),
@@ -3202,16 +3278,19 @@
         void loadOfferTemplates();
         const mobileDeepLink = deepLinkId && isMobileViewport();
         if (mobileDeepLink) {
+          const deferList = () => void loadPatientList();
           const deferStats = () => void loadStats();
           if (typeof requestIdleCallback === 'function') {
-            requestIdleCallback(deferStats, { timeout: 2000 });
+            requestIdleCallback(deferList, { timeout: 3500 });
+            requestIdleCallback(deferStats, { timeout: 4000 });
           } else {
-            window.setTimeout(deferStats, 400);
+            window.setTimeout(deferList, 600);
+            window.setTimeout(deferStats, 900);
           }
         } else {
           void loadStats();
+          void loadPatientList();
         }
-        void loadPatientList();
       } else {
         renderPatientRows();
         syncMobilePatientLayout();

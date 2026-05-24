@@ -1334,6 +1334,18 @@
       return initialView !== "conversations" && initialView !== "inbox" && initialView !== "home";
     }
 
+    function isMobileCustomersDeepLinkRoute() {
+      if (!isMobileShellViewport()) return false;
+      try {
+        const params = new URLSearchParams(windowObject.location?.search || "");
+        const view = normalizeKey(params.get("view") || "customers");
+        const patientId = String(params.get("patientId") || "").trim();
+        return view === "customers" && patientId.length > 0;
+      } catch {
+        return false;
+      }
+    }
+
     async function ensureMobileInboxReady({ backgroundRefresh = true } = {}) {
       if (!isMobileShellViewport() || isStaffJournalOpenAccessClient()) {
         return { ready: false, deferred: false };
@@ -5232,6 +5244,14 @@
     }
 
     async function initializeWorkspaceSurface() {
+      if (isMobileCustomersDeepLinkRoute()) {
+        bindWorkspaceInteractions();
+        bindRuntimeVisibilityRecovery();
+        bindAdminTokenStorageRecovery();
+        state.runtime.bootLaneLocked = true;
+        return;
+      }
+
       bindWorkspaceInteractions();
       DEFAULT_WORKSPACE.left =
         Math.round(readPxVariable("--workspace-left-width")) || DEFAULT_WORKSPACE.left;

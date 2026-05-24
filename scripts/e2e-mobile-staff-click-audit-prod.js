@@ -214,6 +214,17 @@ async function main() {
     if (bundleLoadMs != null) {
       record('Deep link bundle laddad', bundleLoadMs <= 8000, `${bundleLoadMs}ms från navigation`, bundleLoadMs);
     }
+    const earlyUiMs = await page.evaluate(() => {
+      const nav = performance.getEntriesByType('navigation')[0];
+      const start = nav ? nav.startTime : 0;
+      const earlyUi = performance
+        .getEntriesByType('resource')
+        .find((entry) => /patient-master-ui\.js/.test(entry.name));
+      return earlyUi ? Math.round(earlyUi.responseEnd - start) : null;
+    });
+    if (earlyUiMs != null) {
+      record('Deep link early patient UI', earlyUiMs <= 4000, `${earlyUiMs}ms från navigation`, earlyUiMs);
+    }
     const skeletonMs = await page
       .waitForFunction(
         () =>
@@ -236,7 +247,7 @@ async function main() {
       undefined,
       { timeout: 25000, polling: 16 }
     );
-    record('Deep link → kunddetail klar', true, patientId.slice(0, 8), ms(t0));
+    record('Deep link → kunddetail klar', ms(t0) <= 5000, patientId.slice(0, 8), ms(t0));
 
     // 5. Journal-flik (Profil → Journal, mäts in-page)
     const journalTab = page.locator('button[data-patient-tab="journal"]').first();
