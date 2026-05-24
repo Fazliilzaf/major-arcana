@@ -1617,6 +1617,14 @@
       display: none !important;
     }
 
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-list {
+      display: block !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-rail {
+      display: none !important;
+    }
+
     html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
