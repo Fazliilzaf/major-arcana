@@ -43,6 +43,21 @@ const html = fs.readFileSync(INDEX_HTML, 'utf8');
 //             <script src="./app.bundle.<hash>.min.js?v=...">
 const EXISTING_BUNDLE_RE =
   /\s*(?:<!--[^>]*Bundlade scripts[^>]*-->\s*)?<script\s+src="\.\/app\.bundle(?:\.[a-f0-9]+)?(?:\.min)?\.js(?:\?[^"]*)?"\s*><\/script>\s*/g;
+const EXISTING_PRELOAD_RE =
+  /\s*<!-- Bundlade scripts preload[^>]*-->\s*\n?\s*<link\s+rel="preload"\s+as="script"\s+href="\.\/app\.bundle[^"]*"\s*\/?>\s*/g;
+
+function injectBundlePreload(html, bundleRel, hash) {
+  const preloadBlock = `\n    <!-- Bundlade scripts preload (content-hash: ${hash}) -->\n    <link rel="preload" as="script" href="${bundleRel}" />\n    `;
+  if (EXISTING_PRELOAD_RE.test(html)) {
+    EXISTING_PRELOAD_RE.lastIndex = 0;
+    return html.replace(EXISTING_PRELOAD_RE, preloadBlock);
+  }
+  const charsetMeta = /<meta charset="UTF-8"\s*\/?>/;
+  if (charsetMeta.test(html)) {
+    return html.replace(charsetMeta, `$&${preloadBlock}`);
+  }
+  return html;
+}
 
 let newHtml = html;
 const existingMatches = [...html.matchAll(EXISTING_BUNDLE_RE)];
@@ -92,16 +107,18 @@ if (existingMatches.length > 0) {
   newHtml = html.slice(0, target.start) + BUNDLE_TAG + html.slice(target.end);
 }
 
-if (newHtml === html) {
+const withPreload = injectBundlePreload(newHtml, newBundleRel, latest.hash);
+
+if (withPreload === html) {
   console.log('Ingen ändring behövs — index.html pekar redan på senaste bundle.');
   process.exit(0);
 }
 
-fs.writeFileSync(INDEX_HTML, newHtml);
+fs.writeFileSync(INDEX_HTML, withPreload);
 
 console.log(`✓ Index.html uppdaterad → ${newBundleRel}`);
 console.log(`Bytes före: ${html.length}`);
-console.log(`Bytes efter: ${newHtml.length} (${newHtml.length - html.length >= 0 ? '+' : ''}${newHtml.length - html.length})`);
+console.log(`Bytes efter: ${withPreload.length} (${withPreload.length - html.length >= 0 ? '+' : ''}${withPreload.length - html.length})`);
 console.log(
   '\nNästa steg: hard-reload i Chrome + kör verify-three-features.js + verify-demo-fixtures.js'
 );
