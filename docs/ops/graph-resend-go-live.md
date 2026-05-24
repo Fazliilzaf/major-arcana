@@ -22,6 +22,18 @@ OPERATOR_NOTIFY_TO=contact@hairtpclinic.com
 
 ## 2. Kör go-live
 
+### Graph (automatiskt via Azure CLI)
+
+```bash
+az login --tenant 90b09262-dfbf-42b7-9c56-1149703a76e5 --use-device-code
+# Slutför inloggning i webbläsaren (M365-lösenord, ev. MFA)
+npm run provision:graph-secret-via-az
+```
+
+Detta skapar nytt client secret, uppdaterar `.env` och pushar till Render.
+
+### Manuellt (om du redan har secrets i .env)
+
 ```bash
 npm run apply:graph-resend-go-live-prod
 ```
