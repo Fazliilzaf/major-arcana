@@ -18,18 +18,25 @@ function record(name, pass, detail = '') {
 }
 
 async function loginIfNeeded(page) {
-  const form = page.locator('[data-staff-login-form]');
-  if ((await form.count()) === 0) return;
+  const form = page.locator('[data-staff-login-form]:visible');
+  if ((await form.count()) === 0) {
+    if ((await page.locator('[data-patient-row]').count()) > 0) return;
+    const hidden = page.locator('[data-staff-login-form]');
+    if ((await hidden.count()) === 0) {
+      throw new Error('varken login-form eller kundrader hittades');
+    }
+  }
+  const loginForm = (await form.count()) > 0 ? form : page.locator('[data-staff-login-form]');
   if (!staffEmail || !staffPassword) {
     throw new Error('saknar ARCANA_STAFF_* i .env');
   }
-  await form.first().locator('input[name="email"]').fill(staffEmail);
-  await form.first().locator('input[name="password"]').fill(staffPassword);
-  const tenantInput = form.first().locator('input[name="tenantId"]');
+  await loginForm.first().locator('input[name="email"]').fill(staffEmail);
+  await loginForm.first().locator('input[name="password"]').fill(staffPassword);
+  const tenantInput = loginForm.first().locator('input[name="tenantId"]');
   if (await tenantInput.isVisible()) {
     await tenantInput.fill(tenantId);
   }
-  await form.first().locator('button[type="submit"]').first().click();
+  await loginForm.first().locator('button[type="submit"]').first().click();
   await page.waitForFunction(
     () =>
       Boolean(
@@ -62,7 +69,15 @@ async function verifyEngine(engine, engineLabel) {
       sessionStorage.removeItem('ARCANA_ADMIN_TOKEN');
     });
     await page.goto(`${base}/staff?view=customers`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForSelector('[data-staff-login-form], [data-patient-row]', { timeout: 20000 });
+    await page.waitForFunction(
+      () =>
+        Boolean(
+          document.querySelector('[data-staff-login-form]') ||
+            document.querySelector('[data-patient-row]')
+        ),
+      undefined,
+      { timeout: 20000 }
+    );
     await loginIfNeeded(page);
 
     const rowKind = await page.evaluate(() => ({
