@@ -95,8 +95,9 @@ services:
         value: hair-tp-clinic
       - key: ARCANA_BOOTSTRAP_DELAY_MS
         value: "5000"
+      # Endast preferred mailbox vid start — minskar OOM-risk (502) på Render Standard.
       - key: ARCANA_BOOTSTRAP_PHASE1_ONLY
-        value: "false"
+        value: "true"
       # Byggfas: MFA av tills allt är klart (sätt true + owner_mfa_enforced vid go-live).
       - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
         value: "false"

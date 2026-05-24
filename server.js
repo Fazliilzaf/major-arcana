@@ -2158,22 +2158,25 @@ process.once('SIGTERM', () => {
     console.log('[scheduler] inaktiv (ARCANA_SCHEDULER_ENABLED=false)');
   }
 
-  // DI9 + FIX2: auto-bootstrap mailbox-backfill ALLTID (om hair-tp-clinic).
-  // Tidigare berodde på ARCANA_BOOTSTRAP_MAILBOX_BACKFILL=true men Render
-  // env-vars syncas inte alltid till container. Hårdcodar nu för Hair TP
-  // så data garanterat fylls vid varje server-start.
-  process.env.ARCANA_BOOTSTRAP_MAILBOX_BACKFILL = 'true';
-  console.log('[bootstrap] FIX2: hårdcodar bootstrap-aktivering, schemalägger…');
-  scheduleMailboxBootstrap({
-    tenantId:
-      process.env.ARCANA_BOOTSTRAP_TENANT_ID ||
-      process.env.ARCANA_DEFAULT_TENANT ||
-      'hair-tp-clinic',
-    graphReadConnector,
-    ccoMailboxTruthStore,
-    messageIntelligenceStore,
-    customerPreferenceStore,
-  });
+  // Mailbox-backfill endast när ARCANA_BOOTSTRAP_MAILBOX_BACKFILL=true (se render.yaml).
+  // Tvinga inte på vid varje start — full backfill har gett OOM/SIGABRT → 502 på Render.
+  if (isMailboxBootstrapEnabled()) {
+    console.log('[bootstrap] schemalägger mailbox-backfill…');
+    scheduleMailboxBootstrap({
+      tenantId:
+        process.env.ARCANA_BOOTSTRAP_TENANT_ID ||
+        process.env.ARCANA_DEFAULT_TENANT ||
+        'hair-tp-clinic',
+      graphReadConnector,
+      ccoMailboxTruthStore,
+      messageIntelligenceStore,
+      customerPreferenceStore,
+    });
+  } else {
+    console.log(
+      '[bootstrap] mailbox-backfill inaktiv (sätt ARCANA_BOOTSTRAP_MAILBOX_BACKFILL=true för att aktivera)'
+    );
+  }
 })().catch((error) => {
   runtimeState.ready = false;
   runtimeState.lastError = error?.message || 'startup_failed';
