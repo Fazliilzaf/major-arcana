@@ -589,6 +589,7 @@ const { createCcoMacroStore } = require('./src/ops/ccoMacroStore');
 const { createCcoCustomerStore } = require('./src/ops/ccoCustomerStore');
 const { createCcoPatientMasterStore } = require('./src/ops/ccoPatientMasterStore');
 const { createCcoJournalStore } = require('./src/ops/ccoJournalStore');
+const { createCcoTreatmentEncounterStore } = require('./src/ops/ccoTreatmentEncounterStore');
 const { createCcoJournalPhotoStore } = require('./src/ops/ccoJournalPhotoStore');
 const { createCcoCommercialStore } = require('./src/ops/ccoCommercialStore');
 const { createCcoTreatmentAgreementStore } = require('./src/ops/ccoTreatmentAgreementStore');
@@ -1291,6 +1292,9 @@ process.once('SIGTERM', () => {
   const ccoJournalStore = await createCcoJournalStore({
     filePath: config.ccoJournalStorePath,
   });
+  const ccoTreatmentEncounterStore = await createCcoTreatmentEncounterStore({
+    filePath: config.ccoTreatmentEncounterStorePath,
+  });
   const ccoJournalPhotoStore = await createCcoJournalPhotoStore({
     baseDir: config.journalPhotosDir,
   });
@@ -1513,6 +1517,9 @@ process.once('SIGTERM', () => {
     createPublicBookingEngineRouter({
       bookingEngineStore: ccoBookingEngineStore,
       bookingStore: ccoBookingStore,
+      patientMasterStore: ccoPatientMasterStore,
+      journalStore: ccoJournalStore,
+      treatmentEncounterStore: ccoTreatmentEncounterStore,
       config,
       graphSendConnector,
     })
@@ -1867,6 +1874,8 @@ process.once('SIGTERM', () => {
       bookingStore: ccoBookingStore,
       treatmentAgreementStore: ccoTreatmentAgreementStore,
       patientMasterStore: ccoPatientMasterStore,
+      journalStore: ccoJournalStore,
+      treatmentEncounterStore: ccoTreatmentEncounterStore,
       authStore,
       config,
     })

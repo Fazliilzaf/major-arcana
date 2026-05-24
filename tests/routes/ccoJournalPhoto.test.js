@@ -202,6 +202,63 @@ test('photo GET returns stored image bytes', async () => {
   }
 });
 
+test('plan-photos/clear removes smoke attachments in bulk', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const plan = await fixture.journalStore.ensureConsultationPlan({
+        tenantId: 'tenant-a',
+        patientId: 'patient-1',
+        personnummer: '19900101-1234',
+        actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' },
+      });
+      await fixture.journalStore.addConsultationPhotoAttachment({
+        tenantId: 'tenant-a',
+        patientId: 'patient-1',
+        entryId: plan.entryId,
+        photo: {
+          photoId: 'smoke-1',
+          fileName: 'smoke.jpg',
+          mimeType: 'image/jpeg',
+          storedAt: new Date().toISOString(),
+          label: 'Smoke Front',
+        },
+        actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' },
+      });
+      await fixture.journalStore.addConsultationPhotoAttachment({
+        tenantId: 'tenant-a',
+        patientId: 'patient-1',
+        entryId: plan.entryId,
+        photo: {
+          photoId: 'real-1',
+          fileName: 'front.jpg',
+          mimeType: 'image/jpeg',
+          storedAt: new Date().toISOString(),
+          label: 'Front',
+        },
+        actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' },
+      });
+
+      const res = await fetch(`${baseUrl}/cco-journal/plan-photos/clear`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: 'patient-1',
+          entryId: plan.entryId,
+          smokeOnly: true,
+        }),
+      });
+      assert.equal(res.status, 200);
+      const payload = await res.json();
+      assert.equal(payload.removedCount, 1);
+      assert.equal(payload.entry.attachments.length, 1);
+      assert.equal(payload.entry.attachments[0].photoId, 'real-1');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
 test('photo DELETE removes attachment and stored bytes', async () => {
   const fixture = await createFixture();
   try {

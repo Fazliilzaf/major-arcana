@@ -352,6 +352,11 @@ const config = {
     stateRoot,
     fileName: 'cco-journal.json',
   }),
+  ccoTreatmentEncounterStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_TREATMENT_ENCOUNTER_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-treatment-encounters.json',
+  }),
   ccoMigrationIndexStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_MIGRATION_INDEX_STORE_PATH,
     stateRoot,

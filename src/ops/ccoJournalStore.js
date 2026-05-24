@@ -43,6 +43,53 @@ function emptyConsultationPlanFields() {
     zones: [],
     prpIncluded: null,
     notes: '',
+    bookingConversationId: '',
+    bookingServiceId: '',
+    bookingSlotStart: '',
+    bookingChannel: '',
+    bookingConfirmedAt: '',
+  };
+}
+
+function isSmokeTestPhotoLabel(label = '') {
+  const normalized = normalizeKey(label);
+  return (
+    normalized === 'smoke front' ||
+    normalized.startsWith('smoke ') ||
+    normalized.includes('smoke-front') ||
+    normalized === 'e2e' ||
+    normalized.includes('pilot e2e')
+  );
+}
+
+function emptyPrpTreatmentFields() {
+  return {
+    behandlingsdatum: '',
+    omrade: '',
+    serieNummer: '',
+    serieTotalt: '',
+    antalBlodror: '',
+    mangdPrpMl: '',
+    teknik: '',
+    bedovning: null,
+    bedovningTyp: '',
+    blodtryckMmHg: '',
+    puls: '',
+    lakemedel: '',
+    komplikationer: '',
+    eftervardsrad: '',
+    behandlare: '',
+  };
+}
+
+function emptyFollowUpFields() {
+  return {
+    uppfoljningsdatum: '',
+    tillfalle: '',
+    bedomning: '',
+    bilderNotering: '',
+    atgardPlan: '',
+    behandlare: '',
   };
 }
 
@@ -156,7 +203,19 @@ function normalizeJournalEntry(input = {}, existing = {}) {
             ...asObject(existingSafe.fields),
             ...asObject(safe.fields),
           }
-        : { ...asObject(existingSafe.fields), ...asObject(safe.fields) };
+        : journalType === 'prp_treatment'
+          ? {
+              ...emptyPrpTreatmentFields(),
+              ...asObject(existingSafe.fields),
+              ...asObject(safe.fields),
+            }
+          : journalType === 'follow_up'
+            ? {
+                ...emptyFollowUpFields(),
+                ...asObject(existingSafe.fields),
+                ...asObject(safe.fields),
+              }
+            : { ...asObject(existingSafe.fields), ...asObject(safe.fields) };
 
   return {
     entryId: normalizeText(safe.entryId || existingSafe.entryId) || crypto.randomUUID(),
@@ -680,6 +739,51 @@ async function createCcoJournalStore({ filePath }) {
     return upsertEntry({ ...entry, attachments }, { actor });
   }
 
+  async function clearConsultationPhotoAttachments({
+    tenantId,
+    patientId,
+    entryId,
+    smokeOnly = false,
+    actor = {},
+  } = {}) {
+    const entry = await getEntry({ tenantId, patientId, entryId });
+    if (!entry) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (entry.locked) {
+      const error = new Error('Signerad behandlingsplan kan inte ändras.');
+      error.statusCode = 409;
+      throw error;
+    }
+    const before = asArray(entry.attachments);
+    const removed = [];
+    const kept = [];
+    for (const item of before) {
+      const safe = asObject(item);
+      if (normalizeKey(safe.type) !== 'consultation_photo' || !safe.photoId) {
+        kept.push(safe);
+        continue;
+      }
+      const label = normalizeText(safe.label || safe.fileName);
+      if (smokeOnly && !isSmokeTestPhotoLabel(label)) {
+        kept.push(safe);
+        continue;
+      }
+      removed.push({
+        attachmentId: safe.attachmentId,
+        photoId: safe.photoId,
+        label,
+      });
+    }
+    if (!removed.length) {
+      return { entry: cloneEntry(entry), removed: [] };
+    }
+    const updated = await upsertEntry({ ...entry, attachments: kept }, { actor });
+    return { entry: updated, removed };
+  }
+
   async function removeConsultationPhotoAttachment({
     tenantId,
     patientId,
@@ -733,6 +837,7 @@ async function createCcoJournalStore({ filePath }) {
     addConsultationPhotoAttachment,
     addCorrection,
     buildJournalReadout,
+    clearConsultationPhotoAttachments,
     deleteEntry,
     ensureConsultationPlan,
     findOpenConsultationPlan,
@@ -741,6 +846,7 @@ async function createCcoJournalStore({ filePath }) {
     historicalImportKey,
     importHistoricalEntries,
     importHistoricalForPatients,
+    isSmokeTestPhotoLabel,
     listEntries,
     markAttachmentAnnotatedPreview,
     removeConsultationPhotoAttachment,
@@ -756,5 +862,8 @@ module.exports = {
   buildJournalReadout,
   createCcoJournalStore,
   emptyConsultationPlanFields,
+  emptyFollowUpFields,
+  emptyPrpTreatmentFields,
   emptyTpTreatmentFields,
+  isSmokeTestPhotoLabel,
 };
