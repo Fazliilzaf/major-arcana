@@ -582,7 +582,15 @@
     if (needsStaffLogin()) {
       els.list.innerHTML = renderStaffLoginCard(runtime.error);
       renderDetailEmpty();
+      if (isMobileViewport()) {
+        document.documentElement.setAttribute('data-cco-auth-required', 'on');
+        window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
+        window.ArcanaMobileCore?.enhanceStickyCtas?.();
+      }
       return;
+    }
+    if (isMobileViewport()) {
+      document.documentElement.removeAttribute('data-cco-auth-required');
     }
     if (runtime.loading && !runtime.patients.length) {
       els.list.innerHTML = '<p class="patient-master-empty">Laddar kundregister…</p>';
