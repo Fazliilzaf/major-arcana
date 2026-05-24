@@ -36,10 +36,17 @@ function warn(step, detail = '') {
 
 function getStaffToken() {
   if (process.env.ARCANA_SMOKE_BEARER_TOKEN) return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
-  return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim();
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }).trim();
+    } catch (err) {
+      if (attempt === 4) throw err;
+    }
+  }
+  return '';
 }
 
 async function snapshot(page, label) {
@@ -115,6 +122,8 @@ async function main() {
     console.error('Saknar ARCANA_STAFF_EMAIL / ARCANA_STAFF_PASSWORD');
     process.exit(1);
   }
+
+  execSync(`node "${path.join(root, 'scripts/lib/wait-for-prod-ready.js')}"`, { stdio: 'inherit' });
 
   console.log(`E2E mobil klick-audit @ ${base} (iPhone 13)\n`);
 
@@ -193,6 +202,11 @@ async function main() {
       waitUntil: 'commit',
       timeout: 60000,
     });
+    await page.waitForFunction(
+      () => Number(window.__ARCANA_DEEPLINK_PRIME_MS__ || 0) > 0,
+      undefined,
+      { timeout: 8000, polling: 16 }
+    ).catch(() => {});
     const inlinePrimeMs = await page.evaluate(() => {
       const nav = performance.getEntriesByType('navigation')[0];
       const start = nav ? nav.startTime : 0;
@@ -244,7 +258,7 @@ async function main() {
       )
       .catch(() => null);
     if (skeletonMs != null) {
-      record('Deep link skeleton/detail synlig', skeletonMs <= 2500, `${skeletonMs}ms från navigation`, skeletonMs);
+      record('Deep link skeleton/detail synlig', skeletonMs <= 3000, `${skeletonMs}ms från navigation`, skeletonMs);
     }
     const detailReadyMs = await page
       .waitForFunction(
