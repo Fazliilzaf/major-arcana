@@ -3485,7 +3485,9 @@ body.is-admin-embed .focus-conversation {
 /* Kundregister: inloggning ska synas även på desktop (inte bara i vänsterkolumnen). */
 html[data-cco-auth-required='on'] .customers-metric-row,
 html[data-cco-auth-required='on'] .customers-toolbar,
-html[data-cco-auth-required='on'] .patient-master-mode-toggle {
+html[data-cco-auth-required='on'] .patient-master-mode-toggle,
+html[data-cco-auth-required='on'] .post-op-google-reviews,
+html[data-cco-auth-required='on'] .post-op-internal-reviews {
   display: none !important;
 }
 

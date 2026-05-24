@@ -183,6 +183,7 @@
     if (required) {
       resetAuthMobileLayout();
       document.documentElement.setAttribute('data-cco-auth-required', 'on');
+      window.ArcanaPostOpInternalReviews?.hide?.();
       window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
       window.ArcanaMobileCore?.enhanceStickyCtas?.();
     } else {
