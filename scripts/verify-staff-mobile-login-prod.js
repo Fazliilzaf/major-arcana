@@ -101,8 +101,8 @@ async function verifyStaffMobileLogin(page) {
     );
   }
 
-  const loginFormCount = await page.locator('[data-staff-login-form]').count();
-  record('STAFF mobil en login-form', loginFormCount === 1, loginFormCount === 1 ? '' : `${loginFormCount} st`);
+  const loginFormCount = await page.locator('[data-staff-login-form]:visible').count();
+  record('STAFF mobil en synlig login-form', loginFormCount === 1, loginFormCount === 1 ? '' : `${loginFormCount} st`);
 
   if (!staffEmail || !staffPassword) {
     record('STAFF mobil login-form visas', true);
@@ -126,7 +126,7 @@ async function verifyStaffMobileLogin(page) {
     }
   }
   const started = Date.now();
-  await page.locator('[data-staff-login-form]').first().locator('.cco-mobile-sticky-cta-button, button[type="submit"]').first().click();
+  await loginFormFirst.locator('.cco-mobile-sticky-cta-button, button[type="submit"]').first().click();
   await page.waitForFunction(
     () => {
       const token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || sessionStorage.getItem('ARCANA_ADMIN_TOKEN');
