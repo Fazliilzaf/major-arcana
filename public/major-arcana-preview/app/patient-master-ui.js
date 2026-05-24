@@ -2092,7 +2092,7 @@
       runtime.authRequired = false;
       setStatus('', '');
       if (detailPromise) {
-        void detailPromise.catch((error) => {
+        await detailPromise.catch((error) => {
           console.warn('Patient deep link misslyckades.', error);
         });
       }
@@ -3111,7 +3111,6 @@
           renderDetailLoadingSkeleton(deepLinkId);
         }
         syncMobilePatientLayout();
-        void loadPatientDetail(deepLinkId);
       }
       if (!runtime.loaded && !runtime.loading) {
         void loadOfferTemplates();
