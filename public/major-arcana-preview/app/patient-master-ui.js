@@ -1929,8 +1929,11 @@
   }
 
   function switchDetailTab(nextTab) {
+    resolveElements();
+    const rail = document.querySelector('[data-patient-master-rail]');
+    if (rail) els.patientRail = rail;
     const normalized = nextTab || 'profil';
-    if (!runtime.detail?.card || !els.patientRail?.querySelector('[data-patient-detail]')) {
+    if (!runtime.detail?.card || !rail?.querySelector('[data-patient-detail]')) {
       return false;
     }
     if (normalized === runtime.detailTab) {
@@ -1947,12 +1950,12 @@
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
     }
-    els.patientRail.querySelectorAll('[data-patient-tab]').forEach((button) => {
+    rail.querySelectorAll('[data-patient-tab]').forEach((button) => {
       const active = (button.dataset.patientTab || '') === normalized;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
-    els.patientRail.querySelectorAll('[data-patient-tab-panel]').forEach((panel) => {
+    rail.querySelectorAll('[data-patient-tab-panel]').forEach((panel) => {
       const isActive = (panel.dataset.patientTabPanel || '') === normalized;
       if (isActive) {
         panel.removeAttribute('hidden');
