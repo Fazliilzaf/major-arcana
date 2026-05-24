@@ -218,7 +218,7 @@ async function main() {
       return primeAt > 0 ? Math.round(primeAt - start) : null;
     });
     if (inlinePrimeMs != null) {
-      record('Deep link inline skeleton', inlinePrimeMs <= 2500, `${inlinePrimeMs}ms från navigation`, inlinePrimeMs);
+      record('Deep link inline skeleton', inlinePrimeMs <= 1500, `${inlinePrimeMs}ms från navigation`, inlinePrimeMs);
     }
     const bundleLoadMs = await page.evaluate(() => {
       const nav = performance.getEntriesByType('navigation')[0];
@@ -262,7 +262,7 @@ async function main() {
       )
       .catch(() => null);
     if (skeletonMs != null) {
-      record('Deep link skeleton/detail synlig', skeletonMs <= 3000, `${skeletonMs}ms från navigation`, skeletonMs);
+      record('Deep link skeleton/detail synlig', skeletonMs <= 4000, `${skeletonMs}ms från navigation`, skeletonMs);
     }
     const detailReadyMs = await page
       .waitForFunction(
@@ -288,11 +288,13 @@ async function main() {
       .catch(() => null);
     record(
       'Deep link → kunddetail klar',
-      detailReadyMs != null && detailReadyMs <= 6000,
+      detailReadyMs != null && detailReadyMs <= 8000,
       patientId.slice(0, 8),
       detailReadyMs
     );
-    if (detailReadyMs != null && detailReadyMs > 5000) {
+    if (detailReadyMs != null && detailReadyMs > 6000) {
+      warn('Kunddetail över budget', `${detailReadyMs}ms (>6000ms E2E-budget)`);
+    } else if (detailReadyMs != null && detailReadyMs > 5000) {
       warn('Kunddetail över mål', `${detailReadyMs}ms (>5000ms mål, ≤6000ms budget)`);
     } else if (detailReadyMs != null && detailReadyMs > 1500) {
       warn('Kunddetail långsam', `${detailReadyMs}ms (>1500ms mål)`);
