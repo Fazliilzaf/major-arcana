@@ -179,6 +179,12 @@ function createPostOpReviewRouter({
     return res.sendFile(path.join(process.cwd(), 'public', 'uppfoljning', 'index.html'));
   });
 
+  router.get('/uppfoljning/:token/omdome', (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.sendFile(path.join(process.cwd(), 'public', 'uppfoljning', 'omdome.html'));
+  });
+
   // ── OPERATOR-TRIGGER ──────────────────────────────────────────────
   // POST /api/v1/cco-bookings/:caseId/mark-follow-up-completed
   // Operator trycker "markera sista uppföljning klar" i CCO → vi kallar
@@ -201,6 +207,10 @@ function createPostOpReviewRouter({
       const customerName = normalizeText(body.customerName);
       const locale = body.locale === 'en' ? 'en' : 'sv';
       const baseUrl = normalizeText(body.baseUrl) || 'https://arcana.hairtpclinic.se';
+      const { formatTreatmentLabel } = require('../lib/postOpTreatmentLabel');
+      const treatmentLabel =
+        normalizeText(body.treatmentLabel) ||
+        formatTreatmentLabel(normalizeText(resolvedCase?.requestedTreatment), locale);
 
       const run = await capabilityExecutor.runCapability({
         tenantId: actor.tenantId,
@@ -215,6 +225,8 @@ function createPostOpReviewRouter({
           customerName,
           locale,
           baseUrl,
+          treatmentLabel,
+          treatmentKey: normalizeText(resolvedCase?.requestedTreatment),
         },
         correlationId: normalizeText(req.correlationId) || normalizeText(req.get('x-correlation-id')) || null,
         idempotencyKey:
@@ -491,13 +503,79 @@ function createPostOpReviewRouter({
       submission: {
         submissionId: submission.submissionId,
         patientName: submission.patientName || '',
+        treatmentLabel: submission.treatmentLabel || '',
         submittedAt: submission.submittedAt || null,
         consentToPublish: submission.consentToPublish === true,
         photoCount: Array.isArray(submission.photos) ? submission.photos.length : 0,
         reviewClicked: submission.reviewClicked === true,
+        reviewRating: submission.reviewRating ?? null,
+        reviewFeedbackAt: submission.reviewFeedbackAt || null,
         expiresAt: submission.expiresAt || null,
       },
     });
+  });
+
+  const GBP_REVIEW_URL = 'https://maps.google.com/?cid=17939638689643749556';
+  const MIN_GOOGLE_REVIEW_RATING = 4;
+
+  router.post('/api/v1/post-op-review/:token/review-feedback', async (req, res) => {
+    const token = normalizeText(req.params.token);
+    if (!token) return res.status(400).json({ ok: false, error: 'token_missing' });
+    const submission = postOpReviewStore.findByToken(token);
+    if (!submission) {
+      return res.status(404).json({ ok: false, error: 'invalid_or_expired_token' });
+    }
+    const body = typeof req.body === 'object' && req.body !== null ? req.body : {};
+    const rating = Number(body.rating);
+    const feedback = normalizeText(body.feedback);
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ ok: false, error: 'rating_invalid' });
+    }
+    try {
+      const updated = await postOpReviewStore.saveReviewFeedback(submission.submissionId, {
+        rating,
+        feedback,
+      });
+      const promoteToGoogle = updated.reviewRating >= MIN_GOOGLE_REVIEW_RATING;
+      const resolvedCase =
+        bookingStore && typeof bookingStore.findCaseByRef === 'function'
+          ? bookingStore.findCaseByRef({
+              tenantId: updated.tenantId,
+              caseRef: updated.bookingCaseId,
+            })
+          : null;
+      await safeBookingAddEvent(
+        {
+          tenantId: updated.tenantId,
+          type: promoteToGoogle ? 'post_op_review_positive' : 'post_op_review_internal',
+          label: promoteToGoogle ? 'Positivt omdöme — Google erbjuds' : 'Internt omdöme — ingen Google-länk',
+          detail: promoteToGoogle
+            ? `Patient gav ${updated.reviewRating}/5. Google-länk visas efter gate.`
+            : `Patient gav ${updated.reviewRating}/5. Feedback sparas internt.`,
+          metadata: {
+            submissionId: updated.submissionId,
+            reviewRating: updated.reviewRating,
+            hasFeedback: Boolean(updated.reviewFeedback),
+          },
+        },
+        resolvedCase
+      );
+      return res.json({
+        ok: true,
+        promoteToGoogle,
+        googleReviewUrl: promoteToGoogle ? GBP_REVIEW_URL : null,
+        googleClickPath: promoteToGoogle
+          ? `/api/v1/post-op-review/${encodeURIComponent(token)}/review-clicked`
+          : null,
+        submission: {
+          reviewRating: updated.reviewRating,
+          reviewFeedbackAt: updated.reviewFeedbackAt,
+        },
+      });
+    } catch (err) {
+      console.error('[post-op-review/review-feedback]', err);
+      return res.status(500).json({ ok: false, error: 'review_feedback_failed' });
+    }
   });
 
   // POST /api/v1/post-op-review/:token/submit
@@ -661,10 +739,20 @@ function createPostOpReviewRouter({
   // Beacon → markReviewClicked + 302 till Google Business Profile.
   router.get('/api/v1/post-op-review/:token/review-clicked', async (req, res) => {
     const token = normalizeText(req.params.token);
-    const gbpUrl = 'https://maps.google.com/?cid=17939638689643749556';
-    if (!token) return res.redirect(302, gbpUrl);
+    const gbpUrl = GBP_REVIEW_URL;
+    const gatePath = token ? `/uppfoljning/${encodeURIComponent(token)}/omdome` : '/';
+    if (!token) return res.redirect(302, gatePath);
     const submission = postOpReviewStore.findByToken(token);
     if (submission) {
+      if (
+        submission.reviewRating != null &&
+        submission.reviewRating < MIN_GOOGLE_REVIEW_RATING
+      ) {
+        return res.redirect(302, `${gatePath}?blocked=1`);
+      }
+      if (submission.reviewRating == null) {
+        return res.redirect(302, gatePath);
+      }
       try {
         await postOpReviewStore.markReviewClicked(submission.submissionId);
         const resolvedCase =

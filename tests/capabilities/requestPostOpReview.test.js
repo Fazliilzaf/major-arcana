@@ -36,18 +36,19 @@ test('RequestPostOpReviewCapability has correct static contract', () => {
 
 // ─── Email-mall ───────────────────────────────────────────────────────────
 
-test('Email SV — innehåller GBP-länk + privacy-text + signatur', () => {
+test('Email SV — CTA-knappar utan rå Google-URL + behandlingsnamn', () => {
   const email = _buildEmailSv({
     patientFirstName: 'Morten',
     reviewLink: 'https://arcana.hairtpclinic.se/uppfoljning/abc123',
+    treatmentLabel: 'hair-transplant',
   });
   assert.match(email.subject, /Morten/);
-  assert.match(email.plain, /abc123/);
-  assert.match(email.plain, /maps\.google\.com.*cid=/);
+  assert.match(email.plain, /Ladda upp dina bilder efter din hårtransplantation/);
+  assert.match(email.plain, /\/uppfoljning\/abc123\/omdome/);
+  assert.doesNotMatch(email.html, /maps\.google\.com/);
+  assert.match(email.html, /Ladda upp dina bilder efter din hårtransplantation/);
+  assert.match(email.html, /\/omdome/);
   assert.match(email.plain, /ögonbryn och uppåt/);
-  assert.match(email.plain, /contact@hairtpclinic\.com/);
-  assert.match(email.plain, /Hair TP Clinic/);
-  assert.match(email.html, /<a href="https:\/\/arcana/);
 });
 
 test('Email EN — engelsk locale + EN-URL i CTA-text', () => {
@@ -195,6 +196,24 @@ test('store.findByToken returnerar null för fel token', async () => {
     patientName: 'X',
   });
   assert.equal(store.findByToken('not-a-real-token'), null);
+});
+
+test('saveReviewFeedback — låg rating blockerar inte markReviewClicked-data men gate krävs', async () => {
+  const filePath = await tmpStorePath('review-gate');
+  const store = await createPostOpReviewStore({ filePath });
+  const { submission } = await store.createSubmission({
+    bookingCaseId: 'case-gate',
+    tenantId: 'hair-tp-clinic',
+    patientName: 'Gate Patient',
+    treatmentLabel: 'hårtransplantation',
+  });
+  const updated = await store.saveReviewFeedback(submission.submissionId, {
+    rating: 2,
+    feedback: 'Inte nöjd',
+  });
+  assert.equal(updated.reviewRating, 2);
+  assert.equal(updated.reviewFeedback, 'Inte nöjd');
+  assert.ok(updated.reviewFeedbackAt);
 });
 
 test('store.addPhoto + submit + markReviewClicked — full flow', async () => {

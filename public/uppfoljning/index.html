@@ -209,7 +209,7 @@
       <div class="card" style="text-align:center">
         <h2 style="margin-bottom:16px" data-i18n="gbpTitle">Lämna ett Google-omdöme?</h2>
         <p class="muted" style="margin:0 0 24px;max-width:380px;margin-left:auto;margin-right:auto" data-i18n="gbpBody">Det tar mindre än en minut. Vi har redan 197 omdömen med snittet 4,8★ — varje ny röst räknas.</p>
-        <a id="gbp-link" href="https://maps.google.com/?cid=17939638689643749556" class="btn btn-primary" style="text-decoration:none" data-i18n="gbpCta">Lämna omdöme på Google →</a>
+        <a id="gbp-link" href="#" class="btn btn-primary" style="text-decoration:none" data-i18n="gbpCta">Dela din upplevelse →</a>
       </div>
     </div>
 
@@ -254,9 +254,9 @@
           submitError:     'Kunde inte skicka just nu. Försök igen eller mejla contact@hairtpclinic.com.',
           successTitle:    'Tack, det betyder mycket',
           successBody:     'Vi har sparat din återkoppling. Om du har en stund vore vi tacksamma om du även lämnade ett kort omdöme på Google — det hjälper fler hitta hit.',
-          gbpTitle:        'Lämna ett Google-omdöme?',
-          gbpBody:         'Det tar mindre än en minut. Vi har redan 197 omdömen med snittet 4,8★ — varje ny röst räknas.',
-          gbpCta:          'Lämna omdöme på Google →',
+          gbpTitle:        'Dela din upplevelse',
+          gbpBody:         'Berätta hur det gick — positiva omdömen kan du välja att publicera på Google via vår sida.',
+          gbpCta:          'Dela din upplevelse →',
           city:            'Göteborg',
         },
         en: {
@@ -288,9 +288,9 @@
           submitError:     'Could not send right now. Try again or email contact@hairtpclinic.com.',
           successTitle:    'Thank you, this means a lot',
           successBody:     'We have saved your feedback. If you have a moment, we would be grateful if you also left a short review on Google — it helps others find us.',
-          gbpTitle:        'Leave a Google review?',
-          gbpBody:         'Takes less than a minute. We already have 197 reviews with a 4.8★ average — every new voice counts.',
-          gbpCta:          'Leave a Google review →',
+          gbpTitle:        'Share your experience',
+          gbpBody:         'Tell us how it went — positive reviews can be published on Google via our page.',
+          gbpCta:          'Share your experience →',
           city:            'Gothenburg',
         },
       };
@@ -324,7 +324,7 @@
 
       // ── Patient flow ────────────────────────────────────────────────
       var parts = window.location.pathname.split('/').filter(Boolean);
-      var token = parts[parts.length - 1] || '';
+      var token = (parts[0] === 'uppfoljning' && parts[1]) ? parts[1] : (parts[parts.length - 1] || '');
 
       var $loading = document.getElementById('loading-state');
       var $invalid = document.getElementById('invalid-state');
@@ -362,8 +362,14 @@
             return;
           }
           if (data.submission.submittedAt) {
+            if ($gbp) {
+              $gbp.href = '/uppfoljning/' + encodeURIComponent(token) + '/omdome';
+            }
             show($success);
             return;
+          }
+          if ($gbp) {
+            $gbp.href = '/uppfoljning/' + encodeURIComponent(token) + '/omdome';
           }
           var first = (data.submission.patientName || '').trim().split(/\s+/)[0];
           $name.textContent = first || t.greetingFallback;
