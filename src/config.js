@@ -227,6 +227,12 @@ const config = {
     stateRoot,
     fileName: 'patient-signals.json',
   }),
+  webBridgeAuditStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_WEB_BRIDGE_AUDIT_STORE_PATH,
+    stateRoot,
+    fileName: 'web-bridge-audit.json',
+  }),
+  turnstileSecret: (process.env.TURNSTILE_SECRET || '').trim(),
   capabilityAnalysisStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CAPABILITY_ANALYSIS_STORE_PATH,
     stateRoot,

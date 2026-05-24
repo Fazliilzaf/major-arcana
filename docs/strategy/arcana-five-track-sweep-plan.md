@@ -28,7 +28,7 @@ Detta dokument är den **körbara checklistan** för ett svep över alla spår. 
 | A2 | Explicit mailbox-widen (ingen `scopeAutoWidenedAt` auto) | ✅ | `widenMailboxScopeToAll()` + hint i tom kö |
 | A3 | Utöka `verify-cco-mail-start-prod.js` | ✅ | sync-pill, tråd-restore, lane |
 | A4 | Mobil iPhone 13 i samma verify | ✅ | viewport 390×844 |
-| A5 | IDB workspace snapshot (DB v2) | ⏸ | L — nästa sprint |
+| A5 | IDB workspace snapshot (DB v2) | ✅ | `thread-cache-idb.js` v2 + runtime restore |
 
 ```bash
 npm run verify:cco-mail-start-prod
@@ -44,12 +44,13 @@ npm run verify:cco-mobile-pilot-prod
 | B1 | Prod deploy → catalog = 3 services | ✅ | Prod: 3 services live |
 | B2 | Prod curl verify | ✅ | PA-21–24 PASS |
 | B3 | Bokningsmail live | ✅ Graph send (`transactionalMailer`) | `npm run verify:booking-mail-prod` |
-| B3b | Resend (valfritt) | ⏸ | Endast om du vill Resend i stället för Graph |
+| B3b | Resend separat domän | ✅ | `verify:resend-domain-prod` + `docs/ops/resend-domain-go-live.md` |
 | B4 | Webb E2E (hairtpclinic-web) | ✅ | `npm run verify:booking-web-e2e-prod` |
 | B5 | Operator sign-off (1 confirm/typ) | ✅ | `npm run verify:booking-operator-signoff-prod` |
 
 ```bash
-npm run verify:booking-plan-a-prod
+npm run verify:booking-mail-prod
+npm run verify:resend-domain-prod
 BASE=https://arcana.hairtpclinic.se node scripts/plan-a-verify-curl.mjs
 ```
 
@@ -59,14 +60,18 @@ BASE=https://arcana.hairtpclinic.se node scripts/plan-a-verify-curl.mjs
 
 | ID | Uppgift | Status | Blocker |
 |----|---------|--------|---------|
-| C1 | Drive API scan | ⏸ | Google service account |
-| C2 | Bulk `migration:import-journals` | ⏸ | C1 |
+| C1 | Drive API scan | ✅ | `migration:preflight-drive` + `migration:scan-drive-api` |
+| C2 | Bulk `migration:import-journals` | ✅ | `migration:run-bulk` + `--dry-run` |
 | C3 | Spot-check script (≥20 kunder) | ✅ | `npm run migration:spot-check` |
-| C4 | SharePoint archive sync | ⏸ | `bash scripts/sync-sharepoint-archive.sh` |
-| C5 | PDL + EU region doc | ⏸ | Compliance |
+| C4 | SharePoint archive sync | ✅ | `migration:sync-sharepoint` + verify |
+| C5 | PDL + EU region doc | ✅ | `pdl-mdr-assessment.md` §6 Frankfurt |
 
 ```bash
+npm run migration:preflight-drive
+npm run migration:run-bulk -- --dry-run
 npm run migration:spot-check
+npm run verify:sharepoint-archive
+npm run verify:migration-prod
 npm run migration:test
 ```
 
@@ -95,12 +100,13 @@ node --test tests/ops/cmoPhaseV3Sweep.test.js
 |----|---------|--------|---------|
 | E1 | OOM-stabilitet (lookback 7d) | ⏸ | Render monitoring 3+ dagar |
 | E2 | Transactional mail | ✅ | = B3 Graph send (Resend valfritt) |
-| E3 | ExecutionGateway audit (icke-bokning) | ⏸ | Design spike |
-| E4 | Nurse resources i engine | ⏸ | Produktbeslut |
-| E5 | Turnstile/honeypot | ⏸ | Cloudflare keys |
+| E3 | ExecutionGateway audit (icke-bokning) | ✅ | `POST /api/public/web-events` |
+| E4 | Nurse resources i engine | ✅ | `publicBookable` + `listPublicResources` |
+| E5 | Turnstile/honeypot | ✅ | honeypot live; Turnstile om `TURNSTILE_SECRET` |
 
 ```bash
 curl -fsS https://arcana.hairtpclinic.se/readyz
+npm run verify:bridge-design-prod
 npm run run:rollout-sweep
 ```
 
@@ -130,8 +136,8 @@ npm run run:rollout-sweep
 - [x] D5 GenerateContentSeries wired
 - [x] B1/B2 prod grön (3 services + curl)
 - [x] Graph read live (Render `ARCANA_GRAPH_READ_ENABLED=true`)
-- [x] B3 Graph send — bokningsbekräftelse (Resend valfritt)
-- [ ] B3b Resend (valfritt — Graph räcker)
+- [x] B3 Graph send — bokningsbekräftelse (`transactionalMailer`)
+- [x] B3b Resend separat domän — `notifications.hairtpclinic.com` + verify script
 - [ ] D2 staging connectors
 - [ ] E1 OOM stabil 3+ dagar
 

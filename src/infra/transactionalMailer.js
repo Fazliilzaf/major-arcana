@@ -8,11 +8,12 @@
  */
 
 const { sendEmail: sendViaResend, isConfigured: isResendConfigured } = require('./resendMailer');
+const { resolveGraphSendFrom } = require('./resendConfig');
 
 const DEFAULT_FROM_MAILBOX = 'contact@hairtpclinic.com';
 
 function parseFromAddress(from) {
-  const raw = from || process.env.RESEND_FROM || DEFAULT_FROM_MAILBOX;
+  const raw = from || resolveGraphSendFrom() || DEFAULT_FROM_MAILBOX;
   const match = String(raw).match(/<([^>]+)>/);
   return (match ? match[1] : raw).trim();
 }

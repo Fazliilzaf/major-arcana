@@ -711,6 +711,24 @@ async function createCcoJournalStore({ filePath }) {
     return upsertEntry({ ...entry, attachments }, { actor });
   }
 
+  async function getImportSummary({ tenantId } = {}) {
+    const normalizedTenant = normalizeText(tenantId);
+    const entries = asArray(state.entries).filter(
+      (item) => !normalizedTenant || normalizeText(item.tenantId) === normalizedTenant
+    );
+    const historical = entries.filter(
+      (item) => normalizeKey(item.journalType) === 'historical_import'
+    );
+    const patientIds = new Set(
+      historical.map((item) => normalizeText(item.patientId)).filter(Boolean)
+    );
+    return {
+      totalEntries: entries.length,
+      historicalImportEntries: historical.length,
+      patientsWithHistorical: patientIds.size,
+    };
+  }
+
   return {
     addConsultationPhotoAttachment,
     addCorrection,
@@ -719,6 +737,7 @@ async function createCcoJournalStore({ filePath }) {
     ensureConsultationPlan,
     findOpenConsultationPlan,
     getEntry,
+    getImportSummary,
     historicalImportKey,
     importHistoricalEntries,
     importHistoricalForPatients,

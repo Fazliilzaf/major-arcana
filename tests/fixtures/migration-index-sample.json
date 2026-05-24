@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "id": "f1",
+      "personnummer": "19801224-5513",
+      "displayName": "David Persson",
+      "fileType": "journal_pdf",
+      "relativePath": "2024/David Persson 19801224-5513/journal behandling.pdf"
+    },
+    {
+      "id": "f2",
+      "personnummer": "19801224-5513",
+      "displayName": "David Persson",
+      "fileType": "image",
+      "relativePath": "2024/David Persson 19801224-5513/foto.jpg"
+    },
+    {
+      "id": "f3",
+      "personnummer": "19900101-1234",
+      "displayName": "Anna Svensson",
+      "fileType": "journal_pdf",
+      "relativePath": "2023/Anna Svensson 19900101-1234/journal.pdf"
+    }
+  ],
+  "profilesByPersonnummer": {
+    "19801224-5513": { "personnummer": "19801224-5513", "displayName": "David Persson", "fileCount": 2 },
+    "19900101-1234": { "personnummer": "19900101-1234", "displayName": "Anna Svensson", "fileCount": 1 }
+  }
+}

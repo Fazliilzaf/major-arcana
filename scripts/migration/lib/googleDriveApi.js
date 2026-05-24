@@ -62,7 +62,7 @@ async function getAccessToken(serviceAccount) {
   return payload.access_token;
 }
 
-async function listChildren({ accessToken, folderId, pageToken = '' }) {
+async function listChildrenPage({ accessToken, folderId, pageToken = '' }) {
   const params = new URLSearchParams({
     q: `'${folderId}' in parents and trashed=false`,
     fields: 'nextPageToken,files(id,name,mimeType,webViewLink,modifiedTime,size)',
@@ -82,7 +82,34 @@ async function listChildren({ accessToken, folderId, pageToken = '' }) {
   return payload;
 }
 
-async function listAllDriveFiles({ accessToken, rootFolderId, onProgress }) {
+async function listChildren({ accessToken, folderId, pageToken = '' }) {
+  return listChildrenPage({ accessToken, folderId, pageToken });
+}
+
+async function getFolderMetadata({ accessToken, folderId }) {
+  const params = new URLSearchParams({
+    fields: 'id,name,mimeType,modifiedTime',
+    supportsAllDrives: 'true',
+  });
+  const response = await fetch(`${FILES_URL}/${encodeURIComponent(folderId)}?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error?.message || 'Drive files.get misslyckades.');
+  }
+
+  const childPage = await listChildrenPage({ accessToken, folderId });
+  return {
+    id: payload.id,
+    name: payload.name || '',
+    mimeType: payload.mimeType || '',
+    modifiedTime: payload.modifiedTime || '',
+    childCount: Array.isArray(childPage.files) ? childPage.files.length : 0,
+  };
+}
+
+async function listAllDriveFiles({ accessToken, rootFolderId, onProgress, maxFolders = 0 }) {
   const files = [];
   const folders = [{ id: rootFolderId, relativePath: '' }];
   let folderCount = 0;
@@ -90,6 +117,9 @@ async function listAllDriveFiles({ accessToken, rootFolderId, onProgress }) {
   while (folders.length) {
     const folder = folders.pop();
     folderCount += 1;
+    if (maxFolders > 0 && folderCount > maxFolders) {
+      break;
+    }
     if (onProgress && folderCount % 25 === 0) {
       onProgress({ foldersScanned: folderCount, filesIndexed: files.length });
     }
@@ -104,7 +134,9 @@ async function listAllDriveFiles({ accessToken, rootFolderId, onProgress }) {
       for (const item of page.files || []) {
         const relativePath = folder.relativePath ? `${folder.relativePath}/${item.name}` : item.name;
         if (item.mimeType === 'application/vnd.google-apps.folder') {
-          folders.push({ id: item.id, relativePath });
+          if (maxFolders <= 0 || folderCount < maxFolders) {
+            folders.push({ id: item.id, relativePath });
+          }
           continue;
         }
         files.push({
@@ -125,6 +157,9 @@ async function listAllDriveFiles({ accessToken, rootFolderId, onProgress }) {
 
 module.exports = {
   getAccessToken,
+  getFolderMetadata,
   listAllDriveFiles,
+  listChildren,
+  listChildrenPage,
   loadServiceAccountJson,
 };

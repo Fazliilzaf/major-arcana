@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "updatedAt": "2026-05-23T09:10:00.000Z",
+  "sourceOfTruth": "github:Fazliilzaf/major-arcana",
+  "sharepointSite": "hairtpclinic1.sharepoint.com/sites/Ledning",
+  "sharepointFolder": "Shared Documents/General/1. Kunddokument - KVALITETSSÄKRA/2. Hair TP Clinic 2026/",
+  "note": "Word-original (.docx) finns inte i GitHub. Arkiv speglar repo: markdown-spec, HTML/PDF och journal-implementation.",
+  "files": [
+    {
+      "id": "health_declaration",
+      "sharepointName": "1. Hälsodeklaration TP, PRP, Microneedling PRF.docx",
+      "journalType": "health_declaration",
+      "githubPath": "public/major-arcana-preview/app/journal-pre-treatment-forms.js",
+      "archivePath": "markdown/journal-pre-treatment-forms.js",
+      "status": "github_implementation"
+    },
+    {
+      "id": "fitness_certificate",
+      "sharepointName": "5. Friskförsäkran TP 2025.docx",
+      "journalType": "fitness_certificate",
+      "githubPath": "public/major-arcana-preview/app/journal-pre-treatment-forms.js",
+      "archivePath": "markdown/journal-pre-treatment-forms.js",
+      "status": "github_implementation"
+    },
+    {
+      "id": "tp_treatment_reference",
+      "sharepointName": "6. TP Journal – Behandling FÖRSLAG.docx",
+      "journalType": "tp_treatment",
+      "githubPath": "public/major-arcana-preview/app/journal-tp-form.js",
+      "archivePath": "markdown/journal-tp-form.js",
+      "status": "github_implementation"
+    },
+    {
+      "id": "journal_compliance",
+      "sharepointName": "Journalföring och dokumentationrutiner.docx",
+      "journalType": null,
+      "githubPath": "docs/strategy/JOURNAL-DATAMODELL.md",
+      "archivePath": "markdown/JOURNAL-DATAMODELL.md",
+      "status": "github_spec"
+    },
+    {
+      "id": "patient_info_bilaga1",
+      "sharepointName": "Patientinformation DHI (bilaga 1)",
+      "journalType": null,
+      "githubPath": "public/patientinformation-hartransplantation-dhi-prp-minimal.html",
+      "archivePath": "originals/Bilaga-1-patientinformation-DHI.html",
+      "status": "github_html"
+    }
+  ]
+}

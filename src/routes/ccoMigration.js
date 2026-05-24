@@ -55,6 +55,10 @@ function createCcoMigrationRouter({
       const driveMirrorReady = driveMirrorRoot ? walkFolderEntries(driveMirrorRoot).ok : false;
       const indexStats = migrationIndexStore ? await migrationIndexStore.getStats() : {};
       const patientStats = await patientMasterStore.getTenantStats({ tenantId: actor.tenantId });
+      const journalImportStats =
+        journalStore && typeof journalStore.getImportSummary === 'function'
+          ? await journalStore.getImportSummary({ tenantId: actor.tenantId })
+          : null;
       return res.json({
         migrationRoot,
         recommendedPath: 'drive_api_or_folder_mirror',
@@ -70,6 +74,7 @@ function createCcoMigrationRouter({
         clientoCsv: csvPath ? path.basename(csvPath) : null,
         indexStats,
         patientStats,
+        journalImportStats,
       });
     })
   );

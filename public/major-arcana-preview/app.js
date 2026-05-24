@@ -4742,6 +4742,22 @@
       : null;
   }
 
+  function getCurrentWorkspaceSnapshot() {
+    return typeof runtimeReentryState?.getCurrentSnapshot === "function"
+      ? runtimeReentryState.getCurrentSnapshot()
+      : null;
+  }
+
+  function applyRuntimeReentrySnapshot(snapshot, options = {}) {
+    if (
+      !runtimeReentryState ||
+      typeof runtimeReentryState.applyRuntimeReentrySnapshot !== "function"
+    ) {
+      return null;
+    }
+    return runtimeReentryState.applyRuntimeReentrySnapshot(snapshot, options);
+  }
+
   function debugRuntimeReentrySnapshot(label = "reentry") {
     if (!runtimeReentryState || typeof runtimeReentryState.debugReentrySnapshot !== "function") {
       return null;
@@ -14023,6 +14039,12 @@
       getSelectedRuntimeFocusThread,
       getSelectedRuntimeThread,
       hasMeaningfulRuntimeReentryState,
+      captureRuntimeReentrySnapshot,
+      getRuntimeReentryOutcome,
+      getRuntimeReentrySnapshot,
+      getCurrentWorkspaceSnapshot,
+      applyRuntimeReentrySnapshot,
+      restoreRuntimeReentrySnapshot,
       getStudioSenderMailboxId,
       getStudioSignatureOverride,
       getStudioSignatureProfiles,

@@ -5,6 +5,7 @@ const path = require('node:path');
 
 const { buildFileRecord } = require('./lib/migrationUtils');
 const { writeMigrationIndex } = require('./lib/migrationIndexWriter');
+const { resolveDriveCredentials, resolveMigrationPaths } = require('./lib/migrationEnv');
 const {
   getAccessToken,
   listAllDriveFiles,
@@ -12,46 +13,52 @@ const {
 } = require('./lib/googleDriveApi');
 
 function parseArgs(argv) {
-  const args = {
-    folderId: '',
-    serviceAccountPath: '',
-    out: '',
-  };
+  const args = { verifyOnly: false };
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
     if (token === '--folder-id') args.folderId = argv[++i];
     else if (token === '--service-account') args.serviceAccountPath = argv[++i];
     else if (token === '--out') args.out = argv[++i];
+    else if (token === '--verify-only') args.verifyOnly = true;
   }
   return args;
 }
 
 async function main() {
   const args = parseArgs(process.argv);
-  const folderId =
-    args.folderId ||
-    process.env.ARCANA_GOOGLE_DRIVE_FOLDER_ID ||
-    process.env.ARCANA_DRIVE_JOURNAL_FOLDER_ID ||
-    '';
-  const serviceAccountPath =
-    args.serviceAccountPath ||
-    process.env.ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON ||
-    process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-    '';
+  const paths = resolveMigrationPaths(args);
+  const creds = resolveDriveCredentials(paths);
 
-  if (!folderId) {
-    throw new Error('Ange journalmappens folder-id med --folder-id eller ARCANA_GOOGLE_DRIVE_FOLDER_ID.');
-  }
-  if (!serviceAccountPath) {
+  if (!creds.ok) {
     throw new Error(
-      'Ange service account JSON med --service-account eller ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON.'
+      `Drive API saknar konfiguration: ${creds.missing.join(', ')}. Kör npm run migration:preflight-drive.`
     );
   }
 
-  const outPath =
-    args.out ||
-    process.env.ARCANA_MIGRATION_INDEX_PATH ||
-    path.join(process.cwd(), 'data', 'migration-index.json');
+  if (args.verifyOnly) {
+    const serviceAccount = loadServiceAccountJson(creds.serviceAccountPath);
+    const accessToken = await getAccessToken(serviceAccount);
+    const sample = await listAllDriveFiles({
+      accessToken,
+      rootFolderId: creds.folderId,
+      onProgress: ({ foldersScanned, filesIndexed }) => {
+        if (foldersScanned <= 3) {
+          console.log(`… verify ${foldersScanned} mappar, ${filesIndexed} filer`);
+        }
+      },
+      maxFolders: 3,
+    });
+    console.log('\n=== VERIFY ONLY (begränsad crawl) ===');
+    console.log(`Service account: ${serviceAccount.client_email}`);
+    console.log(`Folder ID: ${creds.folderId}`);
+    console.log(`Filer i sample-crawl: ${sample.length}`);
+    console.log('Kör utan --verify-only för full indexering.');
+    return;
+  }
+
+  const outPath = args.out || paths.indexPath;
+  const folderId = creds.folderId;
+  const serviceAccountPath = creds.serviceAccountPath;
 
   const startedAt = new Date().toISOString();
   console.log(`Indexerar Google Drive-mapp ${folderId} via API (ingen zip-nedladdning)...`);

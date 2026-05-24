@@ -69,9 +69,20 @@ async function main() {
     })
   );
 
-  for (const [key, value] of Object.entries(clientoKeys)) {
-    map.set(key, value);
-  }
+for (const [key, value] of Object.entries(clientoKeys)) {
+  map.set(key, value);
+}
+
+// Global fallback så prod fungerar även om brand-env läses sent vid boot.
+if (!map.get('CLIENTO_PARTNER_ID') && clientoKeys.CLIENTO_PARTNER_ID_HAIR_TP_CLINIC) {
+  map.set('CLIENTO_PARTNER_ID', clientoKeys.CLIENTO_PARTNER_ID_HAIR_TP_CLINIC);
+}
+if (!map.get('CLIENTO_ACCOUNT_IDS') && clientoKeys.CLIENTO_ACCOUNT_IDS_HAIR_TP_CLINIC) {
+  map.set('CLIENTO_ACCOUNT_IDS', clientoKeys.CLIENTO_ACCOUNT_IDS_HAIR_TP_CLINIC);
+}
+if (!map.get('CLIENTO_BOOKING_URL') && clientoKeys.CLIENTO_BOOKING_URL_HAIR_TP_CLINIC) {
+  map.set('CLIENTO_BOOKING_URL', clientoKeys.CLIENTO_BOOKING_URL_HAIR_TP_CLINIC);
+}
 
   const payload = JSON.stringify([...map.entries()].map(([key, value]) => ({ key, value })));
   const putRes = await fetch(`https://api.render.com/v1/services/${serviceId}/env-vars`, {

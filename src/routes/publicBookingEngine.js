@@ -24,6 +24,7 @@ const {
   buildBookingReservationEmail,
   buildOperatorNotificationEmail,
 } = require('../templates/bookingReservationEmail');
+const { assertPublicWebAbuseGuard } = require('../security/publicWebAbuseGuard');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -140,7 +141,9 @@ function createPublicBookingEngineRouter({
       // multi-tenant. Idag delar alla tenants samma store; tenantId-flaggan
       // är fortfarande viktig så vi inte läcker data när det skalas upp.
       const [resourcesRaw, servicesRaw] = await Promise.all([
-        bookingEngineStore.listResources({ tenantId: brand?.id || brand }),
+        bookingEngineStore.listPublicResources
+          ? bookingEngineStore.listPublicResources({ tenantId: brand?.id || brand })
+          : bookingEngineStore.listResources({ tenantId: brand?.id || brand }),
         bookingEngineStore.listPublicServices
           ? bookingEngineStore.listPublicServices({ tenantId: brand?.id || brand })
           : bookingEngineStore.listServices({ tenantId: brand?.id || brand }),
@@ -170,13 +173,22 @@ function createPublicBookingEngineRouter({
 
     try {
       const brand = resolveBrandFromRequest(req, config);
-      const slots = await bookingEngineStore.listAvailability({
-        tenantId: brand?.id || brand,
-        fromDate,
-        toDate,
-        resIds: normalizeText(req.query.resIds) || undefined,
-        srvIds: normalizeText(req.query.srvIds) || undefined,
-      });
+      const slots = bookingEngineStore.listPublicAvailability
+        ? await bookingEngineStore.listPublicAvailability({
+            tenantId: brand?.id || brand,
+            fromDate,
+            toDate,
+            resIds: normalizeText(req.query.resIds) || undefined,
+            srvIds: normalizeText(req.query.srvIds) || undefined,
+          })
+        : await bookingEngineStore.listAvailability({
+            tenantId: brand?.id || brand,
+            fromDate,
+            toDate,
+            resIds: normalizeText(req.query.resIds) || undefined,
+            srvIds: normalizeText(req.query.srvIds) || undefined,
+            publicOnly: true,
+          });
       return res.json({
         provider: 'cco_engine',
         slots: (Array.isArray(slots) ? slots : []).map(sanitizeSlot),
@@ -194,6 +206,13 @@ function createPublicBookingEngineRouter({
   router.post('/public/booking-engine/reservations', async (req, res) => {
     try {
       const body = typeof req.body === 'object' && req.body !== null ? req.body : {};
+
+      const abuse = await assertPublicWebAbuseGuard(req, body, {
+        turnstileSecret: config.turnstileSecret,
+      });
+      if (!abuse.ok) {
+        return res.status(abuse.status || 400).json({ ok: false, error: abuse.error || 'abuse_detected' });
+      }
 
       // ── 1. Consent + body-validering ──────────────────────────────
       const consent = typeof body.consent === 'object' && body.consent !== null ? body.consent : {};
@@ -224,8 +243,20 @@ function createPublicBookingEngineRouter({
         return res.status(400).json({ ok: false, error: 'invalid_slot' });
       }
 
-      // ── 2. Brand → tenantId ───────────────────────────────────────
       const brand = resolveBrandFromRequest(req, config);
+      const publicResources = bookingEngineStore.listPublicResources
+        ? await bookingEngineStore.listPublicResources({ tenantId: brand?.id || brand })
+        : [];
+      const publicResourceIds = new Set(
+        (Array.isArray(publicResources) ? publicResources : []).map((item) =>
+          normalizeText(item?.id)
+        )
+      );
+      if (publicResourceIds.size && !publicResourceIds.has(slotResourceId)) {
+        return res.status(400).json({ ok: false, error: 'resource_not_public' });
+      }
+
+      // ── 2. Brand → tenantId ───────────────────────────────────────
       const tenantId = normalizeText(brand?.id || brand);
       if (!tenantId) {
         return res.status(500).json({ ok: false, error: 'brand_resolution_failed' });
