@@ -153,6 +153,12 @@ function normalizeSubmission(value) {
         : null,
     reviewFeedback: normalizeText(safe.reviewFeedback) || null,
     reviewFeedbackAt: normalizeText(safe.reviewFeedbackAt) || null,
+    internalReviewHandledAt: normalizeText(safe.internalReviewHandledAt) || null,
+    internalReviewHandledBy: normalizeText(safe.internalReviewHandledBy) || null,
+    googleReviewApprovedAt: normalizeText(safe.googleReviewApprovedAt) || null,
+    googleReviewApprovedBy: normalizeText(safe.googleReviewApprovedBy) || null,
+    googleReviewRejectedAt: normalizeText(safe.googleReviewRejectedAt) || null,
+    googleReviewRejectedBy: normalizeText(safe.googleReviewRejectedBy) || null,
     photosDeletedAt: normalizeText(safe.photosDeletedAt) || null,
   };
 }
@@ -313,10 +319,16 @@ async function createPostOpReviewStore({
 
   /**
    * Beacon från patient — kallas när patienten klickar GBP-länken.
+   * Kräver att staff godkänt Google-publicering först.
    */
   async function markReviewClicked(submissionId) {
     const submission = findById(submissionId);
     if (!submission) throw new Error(`markReviewClicked: unknown submissionId ${submissionId}`);
+    if (!submission.googleReviewApprovedAt) {
+      const err = new Error('markReviewClicked: google review not approved');
+      err.code = 'GOOGLE_NOT_APPROVED';
+      throw err;
+    }
     if (submission.reviewClicked) return submission; // idempotent
     submission.reviewClicked = true;
     submission.reviewClickedAt = new Date().toISOString();
@@ -374,6 +386,72 @@ async function createPostOpReviewStore({
     });
   }
 
+  const INTERNAL_REVIEW_MAX_RATING = 3;
+
+  function listInternalReviews({ tenantId, includeHandled = false } = {}) {
+    return store.submissions
+      .filter((submission) => {
+        if (tenantId && submission.tenantId !== tenantId) return false;
+        if (!submission.reviewFeedbackAt) return false;
+        if (submission.reviewRating == null || submission.reviewRating > INTERNAL_REVIEW_MAX_RATING) {
+          return false;
+        }
+        if (!includeHandled && submission.internalReviewHandledAt) return false;
+        return true;
+      })
+      .sort((a, b) => Date.parse(b.reviewFeedbackAt || 0) - Date.parse(a.reviewFeedbackAt || 0));
+  }
+
+  async function markInternalReviewHandled(submissionId, { handledBy = '' } = {}) {
+    const submission = findById(submissionId);
+    if (!submission) throw new Error(`markInternalReviewHandled: unknown submissionId ${submissionId}`);
+    submission.internalReviewHandledAt = new Date().toISOString();
+    submission.internalReviewHandledBy = normalizeText(handledBy) || null;
+    await persist();
+    return submission;
+  }
+
+  function listPendingGoogleReviews({ tenantId, includeApproved = false } = {}) {
+    return store.submissions
+      .filter((submission) => {
+        if (tenantId && submission.tenantId !== tenantId) return false;
+        if (!submission.reviewFeedbackAt) return false;
+        if (submission.reviewRating == null) return false;
+        if (!includeApproved && submission.googleReviewApprovedAt) return false;
+        if (submission.googleReviewRejectedAt) return false;
+        return true;
+      })
+      .sort((a, b) => Date.parse(b.reviewFeedbackAt || 0) - Date.parse(a.reviewFeedbackAt || 0));
+  }
+
+  function assertReviewFeedbackReady(submission, actionName) {
+    if (!submission.reviewFeedbackAt || submission.reviewRating == null) {
+      throw new Error(`${actionName}: review feedback required`);
+    }
+  }
+
+  async function approveGoogleReview(submissionId, { approvedBy = '' } = {}) {
+    const submission = findById(submissionId);
+    if (!submission) throw new Error(`approveGoogleReview: unknown submissionId ${submissionId}`);
+    assertReviewFeedbackReady(submission, 'approveGoogleReview');
+    if (submission.googleReviewApprovedAt) return submission;
+    submission.googleReviewApprovedAt = new Date().toISOString();
+    submission.googleReviewApprovedBy = normalizeText(approvedBy) || null;
+    await persist();
+    return submission;
+  }
+
+  async function rejectGoogleReview(submissionId, { rejectedBy = '' } = {}) {
+    const submission = findById(submissionId);
+    if (!submission) throw new Error(`rejectGoogleReview: unknown submissionId ${submissionId}`);
+    assertReviewFeedbackReady(submission, 'rejectGoogleReview');
+    if (submission.googleReviewRejectedAt) return submission;
+    submission.googleReviewRejectedAt = new Date().toISOString();
+    submission.googleReviewRejectedBy = normalizeText(rejectedBy) || null;
+    await persist();
+    return submission;
+  }
+
   function count() {
     return store.submissions.length;
   }
@@ -391,6 +469,11 @@ async function createPostOpReviewStore({
     deleteSubmission,
     pruneNoConsentPhotos,
     listSubmissions,
+    listInternalReviews,
+    markInternalReviewHandled,
+    listPendingGoogleReviews,
+    approveGoogleReview,
+    rejectGoogleReview,
     count,
     // Exponera för tester
     _hashToken: hashToken,

@@ -1550,6 +1550,7 @@ process.once('SIGTERM', () => {
       postOpReviewStore,
       capabilityExecutor: postOpReviewCapabilityExecutor,
       bookingStore: ccoBookingStore,
+      patientMasterStore: ccoPatientMasterStore,
       authStore,
       config,
       // M365 Graph send-integration: emailDraft skickas automatiskt om

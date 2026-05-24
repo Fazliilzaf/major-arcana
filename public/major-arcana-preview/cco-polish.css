@@ -4201,6 +4201,132 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   padding: 1rem 1.1rem 1.25rem;
 }
 
+.post-op-internal-reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(180, 83, 9, 0.18);
+  background: linear-gradient(180deg, rgba(255, 251, 235, 0.98) 0%, rgba(254, 243, 199, 0.55) 100%);
+}
+
+.post-op-internal-reviews-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.post-op-internal-reviews-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.post-op-internal-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: rgba(180, 83, 9, 0.14);
+  color: #92400e;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.post-op-internal-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--warm-text-3, #4b5563);
+}
+
+.post-op-internal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.post-op-internal-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(154, 126, 104, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.post-op-internal-item.is-handled {
+  opacity: 0.72;
+}
+
+.post-op-internal-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.post-op-internal-stars {
+  color: #b45309;
+  letter-spacing: 0.04em;
+  font-size: 0.95rem;
+}
+
+.post-op-internal-meta,
+.post-op-internal-feedback {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.post-op-internal-meta {
+  color: var(--warm-text-3, #4b5563);
+}
+
+.post-op-internal-feedback {
+  color: var(--warm-text, #0f172a);
+}
+
+.post-op-internal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.post-op-internal-handled-label {
+  font-size: 0.8rem;
+  color: #166534;
+  font-weight: 600;
+}
+
+.post-op-google-reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(22, 101, 52, 0.18);
+  background: linear-gradient(180deg, rgba(240, 253, 244, 0.98) 0%, rgba(220, 252, 231, 0.55) 100%);
+}
+
+.post-op-google-count-badge {
+  background: rgba(22, 101, 52, 0.14);
+  color: #166534;
+}
+
+.customers-utility-button-primary {
+  border-color: rgba(22, 101, 52, 0.35);
+  background: rgba(22, 101, 52, 0.1);
+  color: #14532d;
+}
+
 .customers-metric-row {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

@@ -60,7 +60,13 @@
     <div id="positive" class="card hidden success">
       <h2 style="font-family:Newsreader,serif;font-weight:300;font-size:24px;margin:0 0 12px">Tack — vad roligt att höra!</h2>
       <p class="muted">Om du vill kan du lämna ett kort omdöme på Google. Det hjälper fler att hitta oss.</p>
-      <a class="btn btn-primary" id="google-btn" href="#" style="margin-top:20px">Fortsätt till Google →</a>
+      <a class="btn btn-primary" id="google-btn" href="#" style="margin-top:20px">Dela på Google →</a>
+    </div>
+
+    <div id="pending" class="card hidden success">
+      <h2 style="font-family:Newsreader,serif;font-weight:300;font-size:24px;margin:0 0 12px">Tack — vi har tagit emot ditt omdöme</h2>
+      <p class="muted">Vårt team granskar ditt omdöme (oavsett betyg). Inget skickas till Google utan vårt godkännande — om vi godkänner kan du dela via samma länk.</p>
+      <p class="muted" style="margin-top:12px">Har du frågor? Ring <a href="tel:+46318811166">031 88 11 66</a>.</p>
     </div>
 
     <div id="internal" class="card hidden success">
@@ -73,14 +79,42 @@
       var parts = window.location.pathname.split('/').filter(Boolean);
       var token = (parts[0] === 'uppfoljning' && parts[1]) ? parts[1] : '';
       var rating = 0;
+      var viewIds = ['form-card', 'positive', 'pending', 'internal', 'invalid'];
       var $stars = document.getElementById('stars');
       var $submit = document.getElementById('submit-btn');
       var $back = document.getElementById('back-link');
       $back.href = token ? '/uppfoljning/' + encodeURIComponent(token) : '/';
 
+      function hideAllViews() {
+        viewIds.forEach(function(id) {
+          var node = document.getElementById(id);
+          if (node) node.classList.add('hidden');
+        });
+      }
+
+      function showView(id) {
+        hideAllViews();
+        var node = document.getElementById(id);
+        if (node) node.classList.remove('hidden');
+      }
+
+      function showGoogleApproved() {
+        document.getElementById('google-btn').href =
+          '/api/v1/post-op-review/' + encodeURIComponent(token) + '/review-clicked';
+        showView('positive');
+      }
+
+      function showAfterFeedback(googleReviewApproved, googleReviewRejected) {
+        if (googleReviewRejected) {
+          showView('internal');
+          return;
+        }
+        if (googleReviewApproved) showGoogleApproved();
+        else showView('pending');
+      }
+
       if (!token || token.length < 8) {
-        document.getElementById('form-card').classList.add('hidden');
-        document.getElementById('invalid').classList.remove('hidden');
+        showView('invalid');
         return;
       }
 
@@ -102,6 +136,21 @@
         })(i);
       }
 
+      fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/lookup', {
+        headers: { Accept: 'application/json' },
+      })
+        .then(function(r){ return r.json().then(function(b){ return { ok: r.ok, body: b }; }); })
+        .then(function(res){
+          if (!res.ok || !res.body.ok || !res.body.submission) return;
+          var sub = res.body.submission;
+          if (!sub.reviewFeedbackAt || sub.reviewRating == null) return;
+          showAfterFeedback(
+            sub.googleReviewApproved === true,
+            sub.googleReviewRejected === true
+          );
+        })
+        .catch(function(){ /* lookup optional */ });
+
       $submit.addEventListener('click', function(){
         $submit.disabled = true;
         document.getElementById('error').classList.add('hidden');
@@ -116,18 +165,21 @@
           .then(function(r){ return r.json().then(function(b){ return { ok: r.ok, body: b }; }); })
           .then(function(res){
             if (!res.ok || !res.body.ok) throw new Error(res.body.error || 'submit_failed');
-            document.getElementById('form-card').classList.add('hidden');
-            if (res.body.promoteToGoogle && res.body.googleClickPath) {
-              document.getElementById('google-btn').href = res.body.googleClickPath;
-              document.getElementById('positive').classList.remove('hidden');
-            } else {
-              document.getElementById('internal').classList.remove('hidden');
+            if (res.body.promoteToGoogle) {
+              showGoogleApproved();
+              return;
             }
+            if (res.body.pendingStaffApproval) {
+              showView('pending');
+              return;
+            }
+            showView('internal');
           })
           .catch(function(){
             var err = document.getElementById('error');
             err.textContent = 'Kunde inte spara just nu. Försök igen.';
             err.classList.remove('hidden');
+            showView('form-card');
             $submit.disabled = false;
           });
       });

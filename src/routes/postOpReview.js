@@ -138,6 +138,7 @@ function createPostOpReviewRouter({
   postOpReviewStore,
   capabilityExecutor,
   bookingStore = null,
+  patientMasterStore = null,
   authStore = null,
   config = {},
   graphSendConnector = null,
@@ -368,6 +369,292 @@ function createPostOpReviewRouter({
     }
   });
 
+  // GET /api/v1/post-op-reviews/internal-queue — omdömen 1–3★ (ej Google)
+  router.get('/api/v1/post-op-reviews/internal-queue', async (req, res) => {
+    try {
+      const actor = await resolveOperatorActor(req, { authStore, config });
+      const includeHandled = normalizeText(req.query.includeHandled).toLowerCase() === 'true';
+      const rows = postOpReviewStore.listInternalReviews({
+        tenantId: actor.tenantId,
+        includeHandled,
+      });
+      const items = await Promise.all(
+        rows.map(async (submission) => {
+          let customerEmail = '';
+          let patientId = '';
+          if (bookingStore && typeof bookingStore.findCaseByRef === 'function') {
+            const bookingCase = bookingStore.findCaseByRef({
+              tenantId: actor.tenantId,
+              caseRef: submission.bookingCaseId,
+            });
+            customerEmail = normalizeText(bookingCase?.customerEmail);
+          }
+          if (
+            customerEmail &&
+            patientMasterStore &&
+            typeof patientMasterStore.findPatientByEmail === 'function'
+          ) {
+            const patient = await patientMasterStore.findPatientByEmail({
+              tenantId: actor.tenantId,
+              email: customerEmail,
+            });
+            patientId = normalizeText(patient?.id);
+          }
+          return {
+            submissionId: submission.submissionId,
+            bookingCaseId: submission.bookingCaseId,
+            patientName: submission.patientName || '',
+            customerEmail,
+            patientId,
+            treatmentLabel: submission.treatmentLabel || '',
+            reviewRating: submission.reviewRating,
+            reviewFeedback: submission.reviewFeedback || '',
+            reviewFeedbackAt: submission.reviewFeedbackAt,
+            internalReviewHandledAt: submission.internalReviewHandledAt || null,
+            internalReviewHandledBy: submission.internalReviewHandledBy || null,
+            photoCount: Array.isArray(submission.photos) ? submission.photos.length : 0,
+            submittedAt: submission.submittedAt || null,
+            consentToPublish: submission.consentToPublish === true,
+          };
+        })
+      );
+      return res.json({
+        ok: true,
+        total: items.length,
+        pending: items.filter((item) => !item.internalReviewHandledAt).length,
+        items,
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res.status(statusCode).json({ ok: false, error: error.message });
+      }
+      console.error('[post-op-review/internal-queue]', error);
+      return res.status(500).json({ ok: false, error: 'internal_queue_failed' });
+    }
+  });
+
+  router.post('/api/v1/post-op-reviews/:submissionId/mark-internal-handled', async (req, res) => {
+    try {
+      const actor = await resolveOperatorActor(req, { authStore, config });
+      const submissionId = normalizeText(req.params.submissionId);
+      if (!submissionId) {
+        return res.status(400).json({ ok: false, error: 'submissionId_missing' });
+      }
+      const existing = postOpReviewStore.findById(submissionId);
+      if (!existing) {
+        return res.status(404).json({ ok: false, error: 'submission_not_found' });
+      }
+      if (existing.tenantId && existing.tenantId !== actor.tenantId) {
+        return res.status(403).json({ ok: false, error: 'tenant_mismatch' });
+      }
+      const updated = await postOpReviewStore.markInternalReviewHandled(submissionId, {
+        handledBy: actor.userId,
+      });
+      const resolvedCase =
+        bookingStore && typeof bookingStore.findCaseByRef === 'function'
+          ? bookingStore.findCaseByRef({
+              tenantId: updated.tenantId,
+              caseRef: updated.bookingCaseId,
+            })
+          : null;
+      await safeBookingAddEvent(
+        {
+          tenantId: updated.tenantId,
+          type: 'post_op_review_internal_handled',
+          label: 'Internt omdöme hanterat',
+          detail: `Operatör markerade ${updated.reviewRating}/5-feedback som hanterad.`,
+          metadata: {
+            submissionId: updated.submissionId,
+            reviewRating: updated.reviewRating,
+            handledBy: actor.userId,
+          },
+        },
+        resolvedCase
+      );
+      return res.json({ ok: true, submission: updated });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res.status(statusCode).json({ ok: false, error: error.message });
+      }
+      console.error('[post-op-review/mark-internal-handled]', error);
+      return res.status(500).json({ ok: false, error: 'mark_internal_handled_failed' });
+    }
+  });
+
+  async function mapReviewQueueItems(rows, actor) {
+    return Promise.all(
+      rows.map(async (submission) => {
+        let customerEmail = '';
+        let patientId = '';
+        if (bookingStore && typeof bookingStore.findCaseByRef === 'function') {
+          const bookingCase = bookingStore.findCaseByRef({
+            tenantId: actor.tenantId,
+            caseRef: submission.bookingCaseId,
+          });
+          customerEmail = normalizeText(bookingCase?.customerEmail);
+        }
+        if (
+          customerEmail &&
+          patientMasterStore &&
+          typeof patientMasterStore.findPatientByEmail === 'function'
+        ) {
+          const patient = await patientMasterStore.findPatientByEmail({
+            tenantId: actor.tenantId,
+            email: customerEmail,
+          });
+          patientId = normalizeText(patient?.id);
+        }
+        return {
+          submissionId: submission.submissionId,
+          bookingCaseId: submission.bookingCaseId,
+          patientName: submission.patientName || '',
+          customerEmail,
+          patientId,
+          treatmentLabel: submission.treatmentLabel || '',
+          reviewRating: submission.reviewRating,
+          reviewFeedback: submission.reviewFeedback || '',
+          reviewFeedbackAt: submission.reviewFeedbackAt,
+          internalReviewHandledAt: submission.internalReviewHandledAt || null,
+          internalReviewHandledBy: submission.internalReviewHandledBy || null,
+          googleReviewApprovedAt: submission.googleReviewApprovedAt || null,
+          googleReviewApprovedBy: submission.googleReviewApprovedBy || null,
+          googleReviewRejectedAt: submission.googleReviewRejectedAt || null,
+          googleReviewRejectedBy: submission.googleReviewRejectedBy || null,
+          photoCount: Array.isArray(submission.photos) ? submission.photos.length : 0,
+          submittedAt: submission.submittedAt || null,
+          consentToPublish: submission.consentToPublish === true,
+        };
+      })
+    );
+  }
+
+  // GET /api/v1/post-op-reviews/google-queue — 4–5★ väntar på staff-godkännande
+  router.get('/api/v1/post-op-reviews/google-queue', async (req, res) => {
+    try {
+      const actor = await resolveOperatorActor(req, { authStore, config });
+      const includeApproved = normalizeText(req.query.includeApproved).toLowerCase() === 'true';
+      const rows = postOpReviewStore.listPendingGoogleReviews({
+        tenantId: actor.tenantId,
+        includeApproved,
+      });
+      const items = await mapReviewQueueItems(rows, actor);
+      return res.json({
+        ok: true,
+        total: items.length,
+        pending: items.filter((item) => !item.googleReviewApprovedAt && !item.googleReviewRejectedAt)
+          .length,
+        items,
+      });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res.status(statusCode).json({ ok: false, error: error.message });
+      }
+      console.error('[post-op-review/google-queue]', error);
+      return res.status(500).json({ ok: false, error: 'google_queue_failed' });
+    }
+  });
+
+  router.post('/api/v1/post-op-reviews/:submissionId/approve-google-review', async (req, res) => {
+    try {
+      const actor = await resolveOperatorActor(req, { authStore, config });
+      const submissionId = normalizeText(req.params.submissionId);
+      if (!submissionId) {
+        return res.status(400).json({ ok: false, error: 'submissionId_missing' });
+      }
+      const existing = postOpReviewStore.findById(submissionId);
+      if (!existing) {
+        return res.status(404).json({ ok: false, error: 'submission_not_found' });
+      }
+      if (existing.tenantId && existing.tenantId !== actor.tenantId) {
+        return res.status(403).json({ ok: false, error: 'tenant_mismatch' });
+      }
+      const updated = await postOpReviewStore.approveGoogleReview(submissionId, {
+        approvedBy: actor.userId,
+      });
+      const resolvedCase =
+        bookingStore && typeof bookingStore.findCaseByRef === 'function'
+          ? bookingStore.findCaseByRef({
+              tenantId: updated.tenantId,
+              caseRef: updated.bookingCaseId,
+            })
+          : null;
+      await safeBookingAddEvent(
+        {
+          tenantId: updated.tenantId,
+          type: 'post_op_review_google_approved',
+          label: 'Google-omdöme godkänt',
+          detail: `Operatör godkände ${updated.reviewRating}/5 för Google-publicering.`,
+          metadata: {
+            submissionId: updated.submissionId,
+            reviewRating: updated.reviewRating,
+            approvedBy: actor.userId,
+          },
+        },
+        resolvedCase
+      );
+      return res.json({ ok: true, submission: updated });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res.status(statusCode).json({ ok: false, error: error.message });
+      }
+      console.error('[post-op-review/approve-google-review]', error);
+      return res.status(500).json({ ok: false, error: 'approve_google_review_failed' });
+    }
+  });
+
+  router.post('/api/v1/post-op-reviews/:submissionId/reject-google-review', async (req, res) => {
+    try {
+      const actor = await resolveOperatorActor(req, { authStore, config });
+      const submissionId = normalizeText(req.params.submissionId);
+      if (!submissionId) {
+        return res.status(400).json({ ok: false, error: 'submissionId_missing' });
+      }
+      const existing = postOpReviewStore.findById(submissionId);
+      if (!existing) {
+        return res.status(404).json({ ok: false, error: 'submission_not_found' });
+      }
+      if (existing.tenantId && existing.tenantId !== actor.tenantId) {
+        return res.status(403).json({ ok: false, error: 'tenant_mismatch' });
+      }
+      const updated = await postOpReviewStore.rejectGoogleReview(submissionId, {
+        rejectedBy: actor.userId,
+      });
+      const resolvedCase =
+        bookingStore && typeof bookingStore.findCaseByRef === 'function'
+          ? bookingStore.findCaseByRef({
+              tenantId: updated.tenantId,
+              caseRef: updated.bookingCaseId,
+            })
+          : null;
+      await safeBookingAddEvent(
+        {
+          tenantId: updated.tenantId,
+          type: 'post_op_review_google_rejected',
+          label: 'Google-omdöme avvisat',
+          detail: `Operatör avvisade ${updated.reviewRating}/5 för Google — stannar internt.`,
+          metadata: {
+            submissionId: updated.submissionId,
+            reviewRating: updated.reviewRating,
+            rejectedBy: actor.userId,
+          },
+        },
+        resolvedCase
+      );
+      return res.json({ ok: true, submission: updated });
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      if (statusCode < 500) {
+        return res.status(statusCode).json({ ok: false, error: error.message });
+      }
+      console.error('[post-op-review/reject-google-review]', error);
+      return res.status(500).json({ ok: false, error: 'reject_google_review_failed' });
+    }
+  });
+
   // ── OPERATOR THUMBNAIL READ (auth-protected) ──────────────────────
   //
   // GET /api/v1/cco-bookings/:caseId/post-op-photos
@@ -510,13 +797,14 @@ function createPostOpReviewRouter({
         reviewClicked: submission.reviewClicked === true,
         reviewRating: submission.reviewRating ?? null,
         reviewFeedbackAt: submission.reviewFeedbackAt || null,
+        googleReviewApproved: Boolean(submission.googleReviewApprovedAt),
+        googleReviewRejected: Boolean(submission.googleReviewRejectedAt),
         expiresAt: submission.expiresAt || null,
       },
     });
   });
 
   const GBP_REVIEW_URL = 'https://maps.google.com/?cid=17939638689643749556';
-  const MIN_GOOGLE_REVIEW_RATING = 4;
 
   router.post('/api/v1/post-op-review/:token/review-feedback', async (req, res) => {
     const token = normalizeText(req.params.token);
@@ -536,7 +824,10 @@ function createPostOpReviewRouter({
         rating,
         feedback,
       });
-      const promoteToGoogle = updated.reviewRating >= MIN_GOOGLE_REVIEW_RATING;
+      const rejected = Boolean(updated.googleReviewRejectedAt);
+      const approved = Boolean(updated.googleReviewApprovedAt);
+      const promoteToGoogle = approved && !rejected;
+      const pendingStaffApproval = !approved && !rejected;
       const resolvedCase =
         bookingStore && typeof bookingStore.findCaseByRef === 'function'
           ? bookingStore.findCaseByRef({
@@ -547,11 +838,21 @@ function createPostOpReviewRouter({
       await safeBookingAddEvent(
         {
           tenantId: updated.tenantId,
-          type: promoteToGoogle ? 'post_op_review_positive' : 'post_op_review_internal',
-          label: promoteToGoogle ? 'Positivt omdöme — Google erbjuds' : 'Internt omdöme — ingen Google-länk',
+          type: promoteToGoogle
+            ? 'post_op_review_google_approved'
+            : pendingStaffApproval
+              ? 'post_op_review_pending_google'
+              : 'post_op_review_google_rejected',
+          label: promoteToGoogle
+            ? 'Omdöme godkänt för Google'
+            : pendingStaffApproval
+              ? 'Omdöme väntar på Google-godkännande'
+              : 'Omdöme avvisat för Google',
           detail: promoteToGoogle
-            ? `Patient gav ${updated.reviewRating}/5. Google-länk visas efter gate.`
-            : `Patient gav ${updated.reviewRating}/5. Feedback sparas internt.`,
+            ? `Patient gav ${updated.reviewRating}/5. Staff godkände — Google-länk tillgänglig.`
+            : pendingStaffApproval
+              ? `Patient gav ${updated.reviewRating}/5. Väntar på staff innan Google.`
+              : `Patient gav ${updated.reviewRating}/5. Staff avvisade Google.`,
           metadata: {
             submissionId: updated.submissionId,
             reviewRating: updated.reviewRating,
@@ -563,6 +864,7 @@ function createPostOpReviewRouter({
       return res.json({
         ok: true,
         promoteToGoogle,
+        pendingStaffApproval,
         googleReviewUrl: promoteToGoogle ? GBP_REVIEW_URL : null,
         googleClickPath: promoteToGoogle
           ? `/api/v1/post-op-review/${encodeURIComponent(token)}/review-clicked`
@@ -570,6 +872,7 @@ function createPostOpReviewRouter({
         submission: {
           reviewRating: updated.reviewRating,
           reviewFeedbackAt: updated.reviewFeedbackAt,
+          googleReviewApproved: approved,
         },
       });
     } catch (err) {
@@ -736,22 +1039,24 @@ function createPostOpReviewRouter({
   );
 
   // GET /api/v1/post-op-review/:token/review-clicked
-  // Beacon → markReviewClicked + 302 till Google Business Profile.
+  // Beacon → markReviewClicked + 302 till Google Business Profile (endast efter staff-godkännande).
   router.get('/api/v1/post-op-review/:token/review-clicked', async (req, res) => {
     const token = normalizeText(req.params.token);
     const gbpUrl = GBP_REVIEW_URL;
     const gatePath = token ? `/uppfoljning/${encodeURIComponent(token)}/omdome` : '/';
     if (!token) return res.redirect(302, gatePath);
     const submission = postOpReviewStore.findByToken(token);
-    if (submission) {
-      if (
-        submission.reviewRating != null &&
-        submission.reviewRating < MIN_GOOGLE_REVIEW_RATING
-      ) {
-        return res.redirect(302, `${gatePath}?blocked=1`);
-      }
-      if (submission.reviewRating == null) {
+    if (!submission) {
+      return res.redirect(302, gatePath);
+    }
+    if (submission.reviewRating == null || !submission.reviewFeedbackAt) {
         return res.redirect(302, gatePath);
+      }
+      if (!submission.googleReviewApprovedAt) {
+        return res.redirect(302, `${gatePath}?pending=1`);
+      }
+      if (submission.googleReviewRejectedAt) {
+        return res.redirect(302, `${gatePath}?blocked=1`);
       }
       try {
         await postOpReviewStore.markReviewClicked(submission.submissionId);
@@ -767,16 +1072,16 @@ function createPostOpReviewRouter({
             tenantId: submission.tenantId,
             type: 'post_op_review_clicked',
             label: 'Patient klickade på Google-omdöme-CTA',
-            detail: 'Beacon från /uppfoljning/:token — patient skickades till GBP.',
+            detail: 'Beacon från /uppfoljning/:token — patient skickades till GBP efter staff-godkännande.',
             metadata: { submissionId: submission.submissionId },
           },
           resolvedCase
         );
+        return res.redirect(302, gbpUrl);
       } catch (err) {
-        console.warn('[post-op-review/review-clicked] non-fatal:', err?.message);
+        console.warn('[post-op-review/review-clicked] blocked:', err?.message);
+        return res.redirect(302, `${gatePath}?blocked=1`);
       }
-    }
-    return res.redirect(302, gbpUrl);
   });
 
   return router;

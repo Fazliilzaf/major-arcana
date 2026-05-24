@@ -576,8 +576,10 @@
           });
       });
 
-      // GBP-länken pekar på beacon-endpoint så vi loggar klick + redirectar
-      $gbp.setAttribute('href', '/api/v1/post-op-review/' + encodeURIComponent(token) + '/review-clicked');
+      // Google endast via omdömessidan (staff-godkännande krävs innan redirect)
+      if ($gbp && token) {
+        $gbp.setAttribute('href', '/uppfoljning/' + encodeURIComponent(token) + '/omdome');
+      }
     })();
   </script>
 </body>
