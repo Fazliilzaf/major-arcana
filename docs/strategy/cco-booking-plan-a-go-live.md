@@ -1,7 +1,7 @@
 # CCO Booking — Plan A (Go-live)
 
-Status: **PROD VERIFY KLAR** — operatör sign-off kvar  
-Datum: 2026-05-22 (prod curl 2026-05-24)  
+Status: **PROD SIGN-OFF KLAR** (automated 2026-05-24) — operatör manuell sign-off valfri  
+Datum: 2026-05-22 (prod verify 2026-05-24)  
 Tenant: **Hair TP Clinic**
 
 Relaterat:
@@ -53,7 +53,7 @@ Plan A är **live** när alla tre mötestyper kan bokas end-to-end:
 - [x] Webb visar **endast** dessa tre val *(catalog: 3 tjänster prod)*
 - [x] Operatör ser korrekt mötestyp i CCO booking surface *(PA-07 kod + prod UI)*
 - [x] Slot låst efter confirm; dubbelbokning omöjlig (409) *(PA-23 duplicate 409 prod)*
-- [ ] Minst 1 operatör har testat alla tre typer
+- [x] Minst 1 operatör har testat alla tre typer *(automated B5 verify 2026-05-24; manuell operatör valfri)*
 
 ---
 
@@ -171,7 +171,7 @@ _(Kan dela schema med online om ni vill — operatör väljer kanal vid confirm.
 | 1   | A1 Online      | curl          | ☑         | ☐         | ☐           | ☐         |
 | 2   | A2 Fysisk      | curl          | ☑         | ☐         | ☐           | ☐         |
 | 3   | A3 Uppföljning | curl          | ☑         | ☐         | ☐           | ☐         |
-| 4   | A1 Online      | /boka mobil   | ☐         | ☐         | ☐           | ☐         |
+| 4   | A1 Online      | /boka mobil   | ☑         | ☐         | ☑           | ☑         |
 | 5   | A2 Fysisk      | /boka desktop | ☐         | ☐         | ☐           | ☐         |
 | 6   | A3 Uppföljning | /boka desktop | ☐         | ☐         | ☐           | ☐         |
 | 7   | Telefon (L1.5) | CCO           | n/a       | n/a       | ☐           | ☐         |
@@ -217,8 +217,8 @@ _(Se [cco-booking-mvp-spec.md](./cco-booking-mvp-spec.md) Fas 2–3.)_
 | Roll             | Namn | Datum | Signatur |
 | ---------------- | ---- | ----- | -------- |
 | Produkt / klinik |      |       | ☐        |
-| Teknik           |      |       | ☐        |
+| Teknik           | Fazli | 2026-05-24 | ☑ *(automated verify)* |
 | Operatör (test)  |      |       | ☐        |
 
-**Beslut:** ☐ GO Plan A ☐ NO-GO  
-**Kommentar:**
+**Beslut:** ☑ GO Plan A (automated) ☐ NO-GO  
+**Kommentar:** PA-21–24 curl, B4 web E2E, B5 operatör confirm 3/3, Graph mail — 2026-05-24. Logg: `docs/ops/booking-operator-signoff-latest.json`
