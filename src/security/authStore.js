@@ -307,6 +307,7 @@ function toSafeUser(user) {
     email: user.email,
     status: user.status,
     mfaRequired: Boolean(user.mfaRequired),
+    mustChangePassword: Boolean(user.mustChangePassword),
     mfaConfigured: Boolean(mfaSecret),
     mfaRecoveryCodesRemaining: recoveryCodeHashes.length,
     createdAt: user.createdAt,
@@ -672,7 +673,7 @@ async function createAuthStore({
     return safeEvent;
   }
 
-  async function createUser({ email, password, mfaRequired = false }) {
+  async function createUser({ email, password, mfaRequired = false, mustChangePassword = false }) {
     const normalizedEmail = normalizeEmail(email);
     if (!normalizedEmail) {
       throw new Error('E-postadress saknas.');
@@ -689,6 +690,7 @@ async function createAuthStore({
       passwordHash: passwordDigest.hash,
       passwordSalt: passwordDigest.salt,
       mfaRequired: Boolean(mfaRequired),
+      mustChangePassword: Boolean(mustChangePassword),
       mfaSecret: '',
       mfaRecoveryCodeHashes: [],
       status: 'active',
@@ -700,12 +702,15 @@ async function createAuthStore({
     return toSafeUser(user);
   }
 
-  async function setUserPassword(userId, password) {
+  async function setUserPassword(userId, password, { clearMustChangePassword = true } = {}) {
     const user = state.users[userId];
     if (!user) return null;
     const passwordDigest = await hashPassword(password);
     user.passwordHash = passwordDigest.hash;
     user.passwordSalt = passwordDigest.salt;
+    if (clearMustChangePassword) {
+      user.mustChangePassword = false;
+    }
     user.updatedAt = nowIso();
     await save();
     return toSafeUser(user);
@@ -1240,7 +1245,13 @@ async function createAuthStore({
     return toSafeMembership(membership);
   }
 
-  async function upsertStaffMember({ tenantId, email, password, actorUserId = null }) {
+  async function upsertStaffMember({
+    tenantId,
+    email,
+    password,
+    actorUserId = null,
+    mustChangePassword = false,
+  }) {
     const normalizedTenantId = normalizeTenantId(tenantId);
     if (!normalizedTenantId) throw new Error('tenantId saknas.');
     const normalizedEmail = normalizeEmail(email);
@@ -1253,7 +1264,11 @@ async function createAuthStore({
     let createdUser = false;
 
     if (!rawUser) {
-      const created = await createUser({ email: normalizedEmail, password });
+      const created = await createUser({
+        email: normalizedEmail,
+        password,
+        mustChangePassword: Boolean(mustChangePassword),
+      });
       rawUser = state.users[created.id];
       createdUser = true;
     } else {
@@ -1261,7 +1276,13 @@ async function createAuthStore({
         rawUser.status = 'active';
         rawUser.updatedAt = nowIso();
       }
-      await setUserPassword(rawUser.id, password);
+      await setUserPassword(rawUser.id, password, { clearMustChangePassword: false });
+      rawUser = state.users[rawUser.id] || rawUser;
+      if (mustChangePassword) {
+        rawUser.mustChangePassword = true;
+        rawUser.updatedAt = nowIso();
+        await save();
+      }
     }
 
     const currentMembership = findRawMembershipForUserAndTenant(rawUser.id, normalizedTenantId);
@@ -1280,6 +1301,7 @@ async function createAuthStore({
       user: toSafeUser(rawUser),
       membership,
       createdUser,
+      mustChangePassword: Boolean(rawUser?.mustChangePassword),
     };
   }
 

@@ -1071,6 +1071,7 @@ function createAuthRouter({
       const email = normalizeEmail(req.body?.email);
       const password = typeof req.body?.password === 'string' ? req.body.password : '';
       const tenantId = normalizeTenantId(req.body?.tenantId) || req.auth.tenantId;
+      const mustChangePassword = parseBoolean(req.body?.mustChangePassword, true);
 
       if (!email || !password) {
         return res.status(400).json({ error: 'E-postadress och lösenord krävs.' });
@@ -1085,6 +1086,7 @@ function createAuthRouter({
         email,
         password,
         actorUserId: req.auth.userId,
+        mustChangePassword,
       });
 
       await authStore.addAuditEvent({
@@ -1097,6 +1099,7 @@ function createAuthRouter({
         metadata: {
           email,
           createdUser: result.createdUser,
+          mustChangePassword: Boolean(result.mustChangePassword),
         },
       });
 

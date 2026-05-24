@@ -73,6 +73,7 @@
     stats: null,
     preferJournalOnMobile: false,
     pendingPatientId: '',
+    pendingPasswordSetup: null,
     editingTpEntryId: '',
     editingPrpEntryId: '',
     editingFollowUpEntryId: '',
@@ -145,6 +146,7 @@
   }
 
   function needsStaffLogin() {
+    if (runtime.pendingPasswordSetup) return true;
     return !hasStoredStaffSession();
   }
 
@@ -232,6 +234,32 @@
     `;
   }
 
+  function renderStaffPasswordSetupCard() {
+    const setup = runtime.pendingPasswordSetup || {};
+    return `
+      <section class="patient-master-card patient-master-auth-card">
+        <h2>Välj ditt lösenord</h2>
+        <p class="patient-master-muted">Detta är din första inloggning. Välj ett eget lösenord (minst 10 tecken). Du loggar in igen direkt efteråt — ingen extra verifiering.</p>
+        <form class="patient-master-login-form" data-staff-setup-password-form>
+          <label class="patient-master-login-field">
+            <span class="patient-master-muted">E-post</span>
+            <input type="email" name="email" value="${escapeHtml(setup.email || '')}" readonly />
+          </label>
+          <label class="patient-master-login-field">
+            <span class="patient-master-muted">Nytt lösenord</span>
+            <input type="password" name="newPassword" autocomplete="new-password" minlength="10" required />
+          </label>
+          <label class="patient-master-login-field">
+            <span class="patient-master-muted">Bekräfta lösenord</span>
+            <input type="password" name="confirmPassword" autocomplete="new-password" minlength="10" required />
+          </label>
+          <button type="submit" class="customers-utility-button patient-master-login-button">Spara och logga in igen</button>
+          <p class="patient-master-muted" data-staff-setup-password-status aria-live="polite"></p>
+        </form>
+      </section>
+    `;
+  }
+
   async function authRequest(path, options = {}) {
     const response = await fetch(new URL(path, window.location.origin).toString(), {
       method: options.method || 'GET',
@@ -267,6 +295,55 @@
     window.ArcanaPostOpInternalReviews?.refresh?.();
   }
 
+  async function submitStaffPasswordSetup(form) {
+    const setup = runtime.pendingPasswordSetup;
+    if (!setup?.token || !setup?.currentPassword) {
+      runtime.pendingPasswordSetup = null;
+      runtime.error = 'Lösenordsinställningen avbröts. Logga in igen.';
+      renderPatientRows();
+      return;
+    }
+    const statusEl = form.querySelector('[data-staff-setup-password-status]');
+    const submitBtn = form.querySelector('[type="submit"]');
+    const newPassword = String(form.newPassword?.value || '');
+    const confirmPassword = String(form.confirmPassword?.value || '');
+    if (newPassword.length < 10) {
+      if (statusEl) statusEl.textContent = 'Lösenordet måste vara minst 10 tecken.';
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      if (statusEl) statusEl.textContent = 'Lösenorden matchar inte.';
+      return;
+    }
+    if (statusEl) statusEl.textContent = 'Sparar lösenord…';
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      await authRequest('/api/v1/auth/change-password', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${setup.token}` },
+        body: {
+          currentPassword: setup.currentPassword,
+          newPassword,
+          revokeOtherSessions: true,
+          revokeCurrentSession: true,
+        },
+      });
+      runtime.pendingPasswordSetup = null;
+      clearStaffTokens();
+      runtime.authRequired = true;
+      runtime.error = 'Klart! Logga in med ditt nya lösenord.';
+      syncAuthRequiredChrome();
+      renderPatientRows();
+      setStatus('Lösenord sparat. Logga in igen.', 'success');
+    } catch (error) {
+      runtime.error = error.message || 'Kunde inte spara lösenord.';
+      if (statusEl) statusEl.textContent = runtime.error;
+      setStatus(runtime.error, 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
   async function submitStaffLogin(form) {
     const statusEl = form.querySelector('[data-staff-login-status]');
     const submitBtn = form.querySelector('[type="submit"]');
@@ -297,6 +374,18 @@
       }
       if (response?.requiresTenantSelection) {
         throw new Error('Välj klinik i admin — flera tenants kopplade till kontot.');
+      }
+      if (response?.user?.mustChangePassword && response?.token) {
+        runtime.pendingPasswordSetup = {
+          email,
+          currentPassword: password,
+          token: response.token,
+        };
+        runtime.authRequired = true;
+        runtime.error = '';
+        syncAuthRequiredChrome();
+        renderPatientRows();
+        return;
       }
       await completeStaffAuthSession(response);
     } catch (error) {
@@ -766,10 +855,12 @@
   function renderPatientRows() {
     if (!els.list || runtime.mode !== 'register') return;
     if (syncAuthRequiredChrome()) {
-      const loginCard = renderStaffLoginCard(
-        runtime.error || 'Logga in för att läsa kundregister och journal.'
-      );
-      els.list.innerHTML = loginCard;
+      const authCard = runtime.pendingPasswordSetup
+        ? renderStaffPasswordSetupCard()
+        : renderStaffLoginCard(
+            runtime.error || 'Logga in för att läsa kundregister och journal.'
+          );
+      els.list.innerHTML = authCard;
       renderDetailEmpty();
       return;
     }
@@ -3930,9 +4021,17 @@
       }
 
       const form = event.target.closest('[data-staff-login-form]');
-      if (!form || runtime.mode !== 'register') return;
-      event.preventDefault();
-      void submitStaffLogin(form);
+      if (form && runtime.mode === 'register') {
+        event.preventDefault();
+        void submitStaffLogin(form);
+        return;
+      }
+
+      const setupForm = event.target.closest('[data-staff-setup-password-form]');
+      if (setupForm && runtime.mode === 'register') {
+        event.preventDefault();
+        void submitStaffPasswordSetup(setupForm);
+      }
     });
 
     document.addEventListener('change', (event) => {

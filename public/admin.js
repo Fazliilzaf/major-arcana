@@ -2290,13 +2290,14 @@
     return [
       `Hej ${safeEmail},`,
       '',
-      'Du är nu inbjuden till Major Arcana.',
-      `Inloggning: ${window.location.origin}/admin.html`,
+      'Du har nu konto i Major Arcana för journalföring.',
+      `Inloggning (mobil): ${window.location.origin}/staff`,
       `Klinik: ${safeTenant || '-'}`,
       `E-post: ${safeEmail}`,
-      `Temporärt lösenord: ${safePassword}`,
+      `Tillfälligt lösenord: ${safePassword}`,
       '',
-      'Byt lösenord direkt efter första inloggning.',
+      'Första gången: logga in med tillfälligt lösenord → välj eget lösenord → logga in igen.',
+      'Ingen MFA eller extra verifiering krävs för journal.',
     ].join('\n');
   }
 
