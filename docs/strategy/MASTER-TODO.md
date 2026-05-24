@@ -220,7 +220,7 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [x] U2.5b Underhållsfönster **i produkt** — `GET /api/v1/ops/maintenance-window` + STAFF-banner + CSS; env `ARCANA_MAINTENANCE_WINDOW_*`
 - [x] U2.6 Backup journal-photos schemalagd (`journal_photos_backup` i scheduler)
 
-> **Verify 2026-05-25 (sweep):** Open access **av**. OWNER MFA **kod klar** men prod env fortfarande `false` (`verify:auth-go-live-prod` — login probe: off). **5 STAFF** på prod. `journal_photos_backup` scheduler-job + `backup:journal-photos` CLI + `verify:journal-photos-backup-prod`. STAFF mobil: `verify:staff-mobile-login-prod` (API + Playwright @390px; kräver `ARCANA_STAFF_*`). **U2.5b PASS (kod):** maintenance API + banner + unit test `ccoPatientCareOps.test.js`; prod banner kräver env-fönster satt på Render.
+> **Verify 2026-05-25 (sweep):** Open access **av**. OWNER MFA **kod klar** men prod env fortfarande `false`. **5 STAFF** på prod. **U2.5b PASS (kod):** maintenance API + banner + CSS + unit tests — **prod endpoint ej deployad än** (`GET /api/v1/ops/maintenance-window` → 404 tills deploy).
 
 ### Utrullning 3 — Drive-PDF + bred drift → **AKTIV**
 
@@ -236,11 +236,11 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [x] U4.1 Backend: capability + store + routes (kod)
 - [x] U4.2 `/uppfoljning/[token]` + CCO-knapp (kod)
 - [x] U4.3 Unit tests + runbook
-- [~] U4.4 Graph send live (`verify:graph-send-prod` / `verify:post-op-graph-prod`)
+- [x] U4.4 Graph send live (`verify:graph-send-prod` / `verify:post-op-graph-prod`)
 - [x] U4.5 4 beslut (patientkanal, avsändare, retention, UI) — [u4-post-op-decisions.md](./u4-post-op-decisions.md)
-- [~] U4.6 Playwright smoke `/uppfoljning/[token]` (`verify:post-op-uppfoljning-prod`, `test:playwright:post-op`)
+- [x] U4.6 Playwright smoke `/uppfoljning/[token]` (`verify:post-op-uppfoljning-prod`, `test:playwright:post-op`)
 
-> **Verify 2026-05-25:** U4.5 **PASS** (låsta beslut + config defaults). U4.4 **BLOCKED/PARTIAL** — kör `npm run verify:graph-send-prod` (Render `ARCANA_GRAPH_SEND_ENABLED` + OWNER auth). U4.6 **PARTIAL** — fetch smoke script + Playwright spec; full submit kräver lokal `test:playwright:post-op`.
+> **Verify 2026-05-25:** U4.5 **PASS** (låsta beslut + config defaults). U4.4 **PASS** — `verify:graph-send-prod` grön (Graph sendEnabled + sendMail live). U4.6 **PASS** — `verify:post-op-uppfoljning-prod` fetch smoke + `test:playwright:post-op` lokal submit-flow.
 
 ### Utrullning 5 — Bookingmotor & påminnelser 🔄
 
