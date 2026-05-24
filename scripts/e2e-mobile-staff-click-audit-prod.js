@@ -248,9 +248,7 @@ async function main() {
       document.querySelector('.patient-master-tab[data-patient-tab="journal"]')?.click();
     });
     await page.waitForFunction(
-      () =>
-        document.querySelector('.patient-master-tab[data-patient-tab="journal"]')?.getAttribute('aria-pressed') ===
-        'true',
+      () => !document.querySelector('[data-patient-tab-panel="journal"]')?.hasAttribute('hidden'),
       undefined,
       { timeout: 8000, polling: 16 }
     ).catch(() => {});
