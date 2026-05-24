@@ -94,6 +94,8 @@ services:
         value: hair-tp-clinic
       - key: ARCANA_BOOTSTRAP_DELAY_MS
         value: "5000"
+      - key: ARCANA_BOOTSTRAP_PHASE1_ONLY
+        value: "true"
       # Go-live: OWNER-login kräver MFA.
       - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
         value: "true"

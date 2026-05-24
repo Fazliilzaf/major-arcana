@@ -79,9 +79,17 @@ BUNDLE_PATH="$(printf '%s' "$PREVIEW_HTML" | grep -oE 'app\.bundle\.[a-f0-9]+\.m
 pass "preview bundle: $BUNDLE_PATH"
 
 BUNDLE="$(curl -sS "$BASE_URL/major-arcana-preview/$BUNDLE_PATH")"
-[[ "$BUNDLE" == *"data-patient-photo-camera"* ]] || fail "bundle saknar kamera-input"
-[[ "$BUNDLE" == *"Ta bild"* ]] || fail "bundle saknar Ta bild-knapp"
-pass "bundle innehåller mobil journal-UI"
+PATIENT_MASTER_SCRIPT="$(printf '%s' "$PREVIEW_HTML" | grep -oE 'app/patient-master-ui\.js[^"]*' | head -1 || true)"
+if [[ -n "$PATIENT_MASTER_SCRIPT" ]]; then
+  PATIENT_MASTER_UI="$(curl -sS "$BASE_URL/major-arcana-preview/$PATIENT_MASTER_SCRIPT")"
+  [[ "$PATIENT_MASTER_UI" == *"data-patient-photo-camera"* ]] || fail "patient-master-ui saknar kamera-input"
+  [[ "$PATIENT_MASTER_UI" == *"Ta bild"* ]] || fail "patient-master-ui saknar Ta bild-knapp"
+  pass "patient-master-ui innehåller mobil journal-UI"
+elif [[ "$BUNDLE" == *"data-patient-photo-camera"* && "$BUNDLE" == *"Ta bild"* ]]; then
+  pass "bundle innehåller mobil journal-UI"
+else
+  fail "varken patient-master-ui eller bundle innehåller kamera-input / Ta bild"
+fi
 
 PHOTO_UNAUTH="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/api/v1/cco-journal/photo")"
 OPEN_ACCESS="$(printf '%s' "$JOURNAL_HEALTH" | json_get staffJournalOpenAccess 2>/dev/null || true)"

@@ -43,7 +43,7 @@ npm run verify:cco-mobile-pilot-prod
 |----|---------|--------|---------|
 | B1 | Prod deploy → catalog = 3 services | ✅ | Prod: 3 services live |
 | B2 | Prod curl verify | ✅ | PA-21–24 PASS |
-| B3 | Resend live (`RESEND_API_KEY`) | ⏸ | Render env |
+| B3 | Resend live (`RESEND_API_KEY`) eller Graph send fallback | ✅ Graph send på Render | Render env |
 | B4 | Webb E2E (hairtpclinic-web) | ⏸ | Vercel deploy |
 | B5 | Operator sign-off (1 confirm/typ) | ⏸ | Personal |
 
@@ -128,7 +128,8 @@ npm run run:rollout-sweep
 - [x] D5 GenerateContentSeries wired
 - [x] B1/B2 prod grön (3 services + curl)
 - [x] Graph read live (Render `ARCANA_GRAPH_READ_ENABLED=true`)
-- [ ] B3/E2 Resend live
+- [x] B3 Graph send fallback (booking mail utan Resend-key)
+- [ ] B3/E2 Resend live (valfritt — Graph send räcker för intern mail)
 - [ ] D2 staging connectors
 - [ ] E1 OOM stabil 3+ dagar
 
