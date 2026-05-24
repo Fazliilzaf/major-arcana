@@ -2,8 +2,55 @@
 <html lang="sv" data-build="build-f7c1ae6">
   <head>
     <meta charset="UTF-8" />
-    <!-- Bundlade scripts preload (content-hash: 398f2219dc) -->
-    <link rel="preload" as="script" href="./app.bundle.398f2219dc.min.js" />
+    <!-- Bundlade scripts preload (content-hash: 753b5c527d) -->
+    <link rel="preload" as="script" href="./app.bundle.753b5c527d.min.js" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-a" />
+    <script>
+      (function headPrefetchMobilePatientDeepLink() {
+        try {
+          if (!window.matchMedia('(max-width: 768px)').matches) return;
+          var params = new URLSearchParams(window.location.search || '');
+          var view = String(params.get('view') || 'customers').trim();
+          var patientId = String(params.get('patientId') || '').trim();
+          if (view !== 'customers' || !patientId) return;
+          if (window.__ARCANA_PATIENT_PREFETCH__ || window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) return;
+          window.__ARCANA_DEEPLINK_PREFETCH_STARTED__ = true;
+          var token = '';
+          try {
+            token = localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+          } catch (tokenError) {
+            token = '';
+          }
+          if (token.length <= 8) return;
+          fetch(
+            new URL(
+              '/api/v1/cco-patient-master/patient?patientId=' + encodeURIComponent(patientId),
+              window.location.origin
+            ).toString(),
+            {
+              headers: {
+                Accept: 'application/json',
+                Authorization: 'Bearer ' + token,
+              },
+            }
+          )
+            .then(function (response) {
+              return response.ok ? response.json() : null;
+            })
+            .then(function (payload) {
+              if (payload && !window.__ARCANA_PATIENT_PREFETCH__) {
+                window.__ARCANA_PATIENT_PREFETCH__ = {
+                  patientId: patientId,
+                  payload: payload,
+                };
+              }
+            })
+            .catch(function () {});
+        } catch (prefetchError) {
+          /* best-effort */
+        }
+      })();
+    </script>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -3172,6 +3219,10 @@
                           token = '';
                         }
                         if (token.length > 8) {
+                          if (window.__ARCANA_PATIENT_PREFETCH__ || window.__ARCANA_DEEPLINK_PREFETCH_STARTED__) {
+                            return;
+                          }
+                          window.__ARCANA_DEEPLINK_PREFETCH_STARTED__ = true;
                           fetch(
                             new URL(
                               '/api/v1/cco-patient-master/patient?patientId=' +
@@ -3211,8 +3262,9 @@
                       }
                     })();
                   </script>
-
-                  <div data-patient-identity-rail hidden>
+                  <!-- Early patient-master-ui: mobil deep link — kör före huvudbundle -->
+                  <script src="./app/patient-master-ui.js?v=build-deeplink-a"></script>
+<div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
                         <h2>Kundidentitetshantering</h2>
@@ -10647,8 +10699,8 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 398f2219dc) -->
-    <script src="./app.bundle.398f2219dc.min.js"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 753b5c527d) -->
+    <script src="./app.bundle.753b5c527d.min.js"></script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's

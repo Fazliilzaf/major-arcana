@@ -4956,6 +4956,9 @@
     }
     const existing = normalizeText(getAdminToken());
     if (existing && existing !== "__preview_local__") {
+      if (isMobileCustomersDeepLinkRoute()) {
+        return;
+      }
       const valid = await validateStoredAdminSession();
       if (valid) {
         return;
@@ -39547,6 +39550,18 @@
     }
   }
 
+  function isMobileCustomersDeepLinkRoute() {
+    try {
+      if (!isMobileShellViewport()) return false;
+      const params = new URLSearchParams(window.location.search || "");
+      const view = normalizeKey(params.get("view") || "customers");
+      const patientId = normalizeText(params.get("patientId"));
+      return view === "customers" && Boolean(patientId);
+    } catch {
+      return false;
+    }
+  }
+
   function setAppView(view = "conversations") {
     markExplicitNavigationIntent();
     const normalizedView = workspaceSourceOfTruth.setView(view);
@@ -39557,6 +39572,7 @@
       appliedShellViewState !== shellView ||
       appliedConversationShellState !== showConversations;
     const mobileShell = isMobileShellViewport();
+    const mobileDeepLink = mobileShell && isMobileCustomersDeepLinkRoute();
     canvas.dataset.appView = normalizedView;
     canvas.dataset.appShellView = shellView;
 
@@ -39575,7 +39591,7 @@
     };
 
     if (shellStructureChanged) {
-      if (mobileShell) {
+      if (mobileShell && !mobileDeepLink) {
         scheduleMobileIdleWork(applyShellStructure, { timeout: 200 });
       } else {
         applyShellStructure();
@@ -39612,7 +39628,7 @@
 
       if (shellView === "customers") {
         const patientRegisterReady = window.ArcanaPatientMasterUi?.getRuntime?.()?.loaded === true;
-        if (!(mobileShell && patientRegisterReady)) {
+        if (!(mobileShell && patientRegisterReady) && !mobileDeepLink) {
           loadCustomersRuntime().catch((error) => {
             console.warn("Kundernas live-laddning misslyckades.", error);
             applyCustomerFilters();
@@ -39684,7 +39700,7 @@
       }
     };
 
-    if (mobileShell && shellStructureChanged) {
+    if (mobileShell && shellStructureChanged && !mobileDeepLink) {
       __mobileViewLoadsTimer = scheduleMobileIdleWork(runViewLoads, { timeout: 220 });
     } else {
       runViewLoads();
@@ -39696,7 +39712,7 @@
       window.ArcanaMobileShell?.syncFromApp?.();
     };
 
-    if (mobileShell && shellStructureChanged) {
+    if (mobileShell && shellStructureChanged && !mobileDeepLink) {
       scheduleMobileIdleWork(finalizeAppView, { timeout: 240 });
     } else {
       finalizeAppView();

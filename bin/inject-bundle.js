@@ -44,10 +44,13 @@ const html = fs.readFileSync(INDEX_HTML, 'utf8');
 const EXISTING_BUNDLE_RE =
   /\s*(?:<!--[^>]*Bundlade scripts[^>]*-->\s*)?<script\s+src="\.\/app\.bundle(?:\.[a-f0-9]+)?(?:\.min)?\.js(?:\?[^"]*)?"\s*><\/script>\s*/g;
 const EXISTING_PRELOAD_RE =
-  /\s*<!-- Bundlade scripts preload[^>]*-->\s*\n?\s*<link\s+rel="preload"\s+as="script"\s+href="\.\/app\.bundle[^"]*"\s*\/?>\s*/g;
+  /\s*<!-- Bundlade scripts preload[^>]*-->\s*\n?(?:\s*<link\s+rel="preload"\s+as="script"\s+href="\.\/[^"]+"\s*\/?>\s*)+/g;
+const EARLY_PATIENT_UI_RE =
+  /\s*<!-- Early patient-master-ui[^>]*-->\s*\n?\s*<script\s+src="\.\/app\/patient-master-ui\.js[^"]*"\s*><\/script>\s*/g;
+const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-deeplink-a';
 
 function injectBundlePreload(html, bundleRel, hash) {
-  const preloadBlock = `\n    <!-- Bundlade scripts preload (content-hash: ${hash}) -->\n    <link rel="preload" as="script" href="${bundleRel}" />\n    `;
+  const preloadBlock = `\n    <!-- Bundlade scripts preload (content-hash: ${hash}) -->\n    <link rel="preload" as="script" href="${bundleRel}" />\n    <link rel="preload" as="script" href="${PATIENT_UI_PRELOAD}" />\n    `;
   if (EXISTING_PRELOAD_RE.test(html)) {
     EXISTING_PRELOAD_RE.lastIndex = 0;
     return html.replace(EXISTING_PRELOAD_RE, preloadBlock);
@@ -55,6 +58,19 @@ function injectBundlePreload(html, bundleRel, hash) {
   const charsetMeta = /<meta charset="UTF-8"\s*\/?>/;
   if (charsetMeta.test(html)) {
     return html.replace(charsetMeta, `$&${preloadBlock}`);
+  }
+  return html;
+}
+
+function injectEarlyPatientUiScript(html) {
+  const tag = `\n                  <!-- Early patient-master-ui: mobil deep link — kör före huvudbundle -->\n                  <script src="${PATIENT_UI_PRELOAD}"></script>\n`;
+  if (EARLY_PATIENT_UI_RE.test(html)) {
+    EARLY_PATIENT_UI_RE.lastIndex = 0;
+    return html.replace(EARLY_PATIENT_UI_RE, tag);
+  }
+  const anchor = /<\/script>\s*\n\s*<div data-patient-identity-rail hidden>/;
+  if (anchor.test(html)) {
+    return html.replace(anchor, `</script>${tag}\n                  <div data-patient-identity-rail hidden>`);
   }
   return html;
 }
@@ -108,17 +124,18 @@ if (existingMatches.length > 0) {
 }
 
 const withPreload = injectBundlePreload(newHtml, newBundleRel, latest.hash);
+const withEarlyPatientUi = injectEarlyPatientUiScript(withPreload);
 
-if (withPreload === html) {
+if (withEarlyPatientUi === html) {
   console.log('Ingen ändring behövs — index.html pekar redan på senaste bundle.');
   process.exit(0);
 }
 
-fs.writeFileSync(INDEX_HTML, withPreload);
+fs.writeFileSync(INDEX_HTML, withEarlyPatientUi);
 
 console.log(`✓ Index.html uppdaterad → ${newBundleRel}`);
 console.log(`Bytes före: ${html.length}`);
-console.log(`Bytes efter: ${withPreload.length} (${withPreload.length - html.length >= 0 ? '+' : ''}${withPreload.length - html.length})`);
+console.log(`Bytes efter: ${withEarlyPatientUi.length} (${withEarlyPatientUi.length - html.length >= 0 ? '+' : ''}${withEarlyPatientUi.length - html.length})`);
 console.log(
   '\nNästa steg: hard-reload i Chrome + kör verify-three-features.js + verify-demo-fixtures.js'
 );
