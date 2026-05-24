@@ -42,6 +42,12 @@
   let explicitBookingTab = false;
   let explicitCalendarTab = false;
   let explicitJournalTab = false;
+  let syncFromAppRaf = 0;
+  const WORKSPACE_OPTS = Object.freeze({
+    persist: false,
+    resetScroll: false,
+    syncShell: false,
+  });
 
   function isMobile() {
     try {
@@ -119,11 +125,53 @@
   }
 
   function setMobileWorkspaceFocus() {
-    setMobileWorkspace('focus', { persist: false, resetScroll: false });
+    setMobileWorkspace('focus', WORKSPACE_OPTS);
   }
 
   function setMobileWorkspaceQueue() {
-    setMobileWorkspace('queue', { persist: false, resetScroll: false });
+    setMobileWorkspace('queue', WORKSPACE_OPTS);
+  }
+
+  function deferMobileTabWork(fn) {
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(fn);
+    } else {
+      setTimeout(fn, 0);
+    }
+  }
+
+  function primeMobileTabNavigation(tab) {
+    if (!canvas) return;
+    switch (tab) {
+      case 'home':
+      case 'queue':
+        document.documentElement.removeAttribute('data-cco-calendar-open');
+        canvas.dataset.appShellView = 'conversations';
+        canvas.dataset.appView = 'conversations';
+        canvas.dataset.mobileWorkspaceView = 'queue';
+        break;
+      case 'customers':
+        document.documentElement.removeAttribute('data-cco-calendar-open');
+        canvas.dataset.appShellView = 'customers';
+        canvas.dataset.appView = 'customers';
+        break;
+      case 'booking':
+        document.documentElement.removeAttribute('data-cco-calendar-open');
+        canvas.dataset.appShellView = 'conversations';
+        canvas.dataset.appView = 'conversations';
+        canvas.dataset.mobileWorkspaceView = 'focus';
+        break;
+      case 'journal':
+        document.documentElement.removeAttribute('data-cco-calendar-open');
+        canvas.dataset.appShellView = 'customers';
+        canvas.dataset.appView = 'customers';
+        break;
+      case 'calendar':
+        document.documentElement.setAttribute('data-cco-calendar-open', '');
+        break;
+      default:
+        break;
+    }
   }
 
   function navigateToBooking() {
@@ -252,7 +300,7 @@
     appTitleEl.hidden = !text;
   }
 
-  function syncFromApp() {
+  function syncFromAppNow() {
     if (!isMobile() || !canvas) return;
 
     const shellView = canvas.dataset.appShellView || 'conversations';
@@ -277,70 +325,99 @@
     });
   }
 
+  function syncFromApp() {
+    if (!isMobile() || !canvas) return;
+    if (syncFromAppRaf) return;
+    const schedule =
+      typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (cb) => setTimeout(cb, 0);
+    syncFromAppRaf = schedule(() => {
+      syncFromAppRaf = 0;
+      syncFromAppNow();
+    });
+  }
+
   function normalizeView(value) {
     return String(value || '')
       .trim()
       .toLowerCase();
   }
 
+  function activateMobileTab(tab, { shellBefore = '', workspaceBefore = '' } = {}) {
+    explicitCalendarTab = false;
+    window.ArcanaBookingMobileCalendar?.close?.();
+    window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
+
+    if (tab === 'more') {
+      setMoreOpen(!moreOpen);
+      syncFromApp();
+      return;
+    }
+    setMoreOpen(false);
+
+    if (tab === 'booking') {
+      if (shellBefore === 'conversations' && workspaceBefore === 'focus') {
+        explicitBookingTab = true;
+        explicitCalendarTab = false;
+        explicitJournalTab = false;
+        syncFromApp();
+        return;
+      }
+      navigateToBooking();
+      return;
+    }
+    if (tab === 'calendar') {
+      navigateToCalendar();
+      return;
+    }
+    if (tab === 'journal') {
+      navigateToJournal();
+      return;
+    }
+
+    explicitBookingTab = false;
+    explicitJournalTab = false;
+    const viewKey =
+      tab === 'home' || tab === 'queue'
+        ? 'conversations'
+        : String(
+            tabButtons.find((node) => node.dataset.mobileTab === tab)?.dataset.navView || tab
+          ).trim();
+
+    if (tab === 'customers' && shellBefore === 'customers') {
+      window.ArcanaPatientMasterUi?.onCustomersViewOpen?.();
+      syncFromApp();
+      return;
+    }
+
+    if (tab === 'home' || tab === 'queue') {
+      if (shellBefore === 'conversations' && workspaceBefore === 'queue') {
+        syncFromApp();
+        return;
+      }
+      setMobileWorkspaceQueue();
+      clickNavView('conversations');
+      syncFromApp();
+      return;
+    }
+
+    clickNavView(viewKey);
+    syncFromApp();
+  }
+
   function bindTabbar() {
     tabButtons.forEach((button) => {
       button.addEventListener('click', () => {
         const tab = button.dataset.mobileTab || '';
-        explicitCalendarTab = false;
-        window.ArcanaBookingMobileCalendar?.close?.();
-        window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
-
         if (tab === 'more') {
-          setMoreOpen(!moreOpen);
-          syncFromApp();
-          return;
-        }
-        setMoreOpen(false);
-
-        if (tab === 'booking') {
-          navigateToBooking();
-          return;
-        }
-        if (tab === 'calendar') {
-          navigateToCalendar();
-          return;
-        }
-        if (tab === 'journal') {
-          navigateToJournal();
+          activateMobileTab(tab);
           return;
         }
 
-        explicitBookingTab = false;
-        explicitJournalTab = false;
-        const viewKey = button.dataset.navView || (tab === 'home' || tab === 'queue' ? 'conversations' : tab);
+        const shellBefore = canvas?.dataset.appShellView || '';
+        const workspaceBefore = canvas?.dataset.mobileWorkspaceView || '';
+        primeMobileTabNavigation(tab);
         optimisticTab(tab === 'queue' ? 'home' : tab);
-
-        if (tab === 'customers' && canvas?.dataset.appShellView === 'customers') {
-          window.ArcanaPatientMasterUi?.onCustomersViewOpen?.();
-          syncFromApp();
-          return;
-        }
-
-        if (tab === 'home' || tab === 'queue') {
-          const shellView = canvas?.dataset.appShellView || '';
-          const workspaceView = canvas?.dataset.mobileWorkspaceView || '';
-          if (shellView === 'conversations' && workspaceView === 'queue') {
-            syncFromApp();
-            return;
-          }
-          setMobileWorkspaceQueue();
-          if (shellView === 'conversations') {
-            syncFromApp();
-            return;
-          }
-          clickNavView('conversations');
-          syncFromApp();
-          return;
-        }
-
-        clickNavView(viewKey);
-        syncFromApp();
+        deferMobileTabWork(() => activateMobileTab(tab, { shellBefore, workspaceBefore }));
       });
     });
   }

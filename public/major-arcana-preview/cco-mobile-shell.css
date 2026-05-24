@@ -235,6 +235,7 @@
       font: inherit;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
+      transition: none;
     }
 
     .cco-mobile-tabbar-item.is-active {

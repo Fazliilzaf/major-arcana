@@ -78,6 +78,11 @@ async function snapshot(page, label) {
 async function canScroll(page) {
   return page.evaluate(() => {
     const pageEl = document.querySelector('.preview-page') || document.documentElement;
+    const scrollHeight = pageEl.scrollHeight || document.documentElement.scrollHeight;
+    const clientHeight = pageEl.clientHeight || window.innerHeight;
+    if (scrollHeight <= clientHeight + 4) {
+      return true;
+    }
     const before = pageEl.scrollTop || window.scrollY;
     pageEl.scrollBy?.(0, 80);
     window.scrollBy(0, 80);
