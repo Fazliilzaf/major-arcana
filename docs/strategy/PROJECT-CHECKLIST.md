@@ -34,8 +34,9 @@ Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
 - [x] **STAFF + OWNER-konton** i prod (login krävs; open access av)
 - [x] **Plan A bokning** — automated prod sign-off ([go-live](./cco-booking-plan-a-go-live.md))
 - [ ] **Personal läst** [mobilinstruktion](./cco-mobile-staff-instructions.md) *(login krävs — uppdatera om den nämner open access)*
-- [ ] **Kundlista med full data** — smoke med 7 349 kunder (sök, kort, journal, filer)
-- [ ] **Drive-PDF på prod** — zips/data volume på Render (`ARCANA_MIGRATION_ROOT`) för filvisning
+- [x] **Kundlista med full data** — API smoke PASS (`verify:customer-list-prod`: 7349, sök ~300ms)
+- [ ] **Kundlista mobil UI** — `verify:staff-ui-prod` timeout med full kundbas (desktop PASS)
+- [ ] **Drive-PDF på prod** — kräver Google Drive API (86 GB zip får inte plats på 2 GB disk)
 - [ ] **OWNER MFA enforced** i prod + STAFF login testad på mobil
 - [ ] **Notion 30 maj** — [verify prod efter duplicate-cleanup](https://www.notion.so/369060ccc15b819fbe4cdfcc726653d7)
 
@@ -116,8 +117,9 @@ Källa: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 - [x] Migration-index spot-check (≥20 kunder · `migration:spot-check` + prod verify)
 - [ ] Minst en personal utbildad
 - [ ] Mobil pilot **GO** (Fas 5.6)
-- [x] Skarp auth (open access av · se avsnitt D)
-- [ ] Kundlista/journal OK med full kundbas (7 349)
+- [x] Skarp auth (open access av · MFA required · se avsnitt D)
+- [x] Kundlista API OK med full kundbas (7 349)
+- [ ] Kundlista/journal OK i mobil UI med full kundbas
 - [ ] Drive-filer visningsbara i prod (zip-volym)
 
 ---
@@ -140,7 +142,7 @@ bash scripts/verify-all-pilot-journey-prod.sh
 npm run verify:cco-mobile-pilot-prod
 npm run verify:mobile-staff-regression-prod
 npm run verify:booking-web-e2e-prod
-npm run verify:migration-prod
+npm run verify:customer-list-prod
 npm run verify:auth-go-live-prod
 curl -fsS https://arcana.hairtpclinic.se/readyz
 ```
@@ -150,8 +152,9 @@ curl -fsS https://arcana.hairtpclinic.se/readyz
 ## D. Go-live klinik (auth)
 
 - [x] Stäng `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false`
-- [ ] `ARCANA_AUTH_OWNER_MFA_REQUIRED=true` (verifiera enforced i prod)
-- [ ] STAFF-inloggning testad på mobil (iPhone + Android)
+- [x] `ARCANA_AUTH_OWNER_MFA_REQUIRED=true` (prod verify 2026-05-24)
+- [x] STAFF-konto i prod (1 st — `verify:auth-go-live-prod`)
+- [ ] STAFF-inloggning testad på mobil (iPhone + Android) — Fas 5.6
 - [ ] Underhållsfönster + rollback-plan dokumenterad
 - [ ] Backup journal-photos schemalagd (`npm run backup:journal-photos`)
 

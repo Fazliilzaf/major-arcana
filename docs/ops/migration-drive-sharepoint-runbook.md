@@ -111,9 +111,14 @@ ARCANA_OWNER_TOKEN=... npm run verify:migration-prod
 
 ## Prod (Render)
 
-1. Sätt env: `ARCANA_GOOGLE_DRIVE_FOLDER_ID`, `ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON` (Render secret file).
-2. Kör scan mot prod disk path (SSH/one-off job) eller lokal scan + `scp` av `migration-index.json` till `/var/data/arcana/`.
-3. OWNER i CCO: **Importera Drive-profiler** + **Importera historik** via `/api/v1/cco-migration/*` eller CLI mot prod data volume.
+1. **State JSON** (patient master, journal, migration-index): `npm run push:migration-state-prod -- --files-only` + `render restart`.
+2. **PDF-visning i Filer-fliken:** Render disken (~2 GB) räcker **inte** för ~86 GB zip-arkiv. Använd **Google Drive API** på prod:
+   - Sätt `ARCANA_GOOGLE_DRIVE_FOLDER_ID` + `ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON` (Render secret file).
+   - Verifiera: `npm run verify:migration-prod` (C1 Drive API configured).
+3. Alternativ (ej rekommenderat): ladda upp enskilda zips till persistent disk och sätt `ARCANA_MIGRATION_ROOT` — endast för spot-check/pilot.
+4. OWNER: **Importera Drive-profiler** + **Importera historik** via `/api/v1/cco-migration/*` om index uppdateras på prod.
+
+**Verify kundlista:** `npm run verify:customer-list-prod`
 
 ## Felsökning
 
@@ -123,6 +128,7 @@ ARCANA_OWNER_TOKEN=... npm run verify:migration-prod
 | `403 insufficientPermissions` | Dela Drive-mapp med service account email |
 | Spot-check overlap < 20 | Cliento personnummer matchar inte Drive-mappstruktur — kontrollera mappnamn `Namn YYYYMMDD-XXXX` |
 | `403` på migration/status | Använd OWNER-token, inte STAFF |
+| `404` på `/cco-patient-master/file` | Index OK men zip saknas — konfigurera Drive API eller `ARCANA_MIGRATION_ROOT` |
 | SharePoint archive saknas | `npm run migration:sync-sharepoint` |
 
 ## Relaterat
