@@ -3013,6 +3013,188 @@
     }
   }
 
+  /* CCO Care + AI summary — shared mobile + desktop */
+  .cco-care-panel-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 12060;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .cco-care-panel-sheet[hidden] {
+    display: none !important;
+  }
+
+  html[data-cco-care-open='on'] .cco-care-panel-sheet {
+    pointer-events: auto;
+  }
+
+  .cco-care-panel-backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(35, 22, 15, 0.28);
+    backdrop-filter: blur(4px);
+  }
+
+  .cco-care-panel-panel {
+    position: relative;
+    width: min(100%, 560px);
+    max-height: min(88vh, 760px);
+    margin: 0 auto;
+    padding: 20px 16px 24px;
+    border-radius: 20px 20px 0 0;
+    background: rgba(250, 246, 242, 0.96);
+    box-shadow:
+      0 -8px 24px rgba(70, 50, 30, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    overflow: hidden auto;
+    transform: translateY(100%);
+    transition: transform 180ms ease;
+  }
+
+  html[data-cco-care-open='on'] .cco-care-panel-panel {
+    transform: translateY(0);
+  }
+
+  .cco-care-panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .cco-care-panel-kicker {
+    margin: 0 0 4px;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(70, 60, 50, 0.55);
+  }
+
+  .cco-care-panel-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .cco-care-panel-tab {
+    min-height: 44px;
+    padding: 8px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(120, 105, 90, 0.16);
+    background: rgba(255, 255, 255, 0.82);
+  }
+
+  .cco-care-panel-tab.is-active {
+    background: rgba(252, 248, 244, 0.96);
+    box-shadow: 0 4px 10px rgba(45, 28, 18, 0.12);
+  }
+
+  .cco-care-panel-summary,
+  .cco-care-panel-digest {
+    margin: 0 0 12px;
+    color: rgba(70, 60, 50, 0.72);
+  }
+
+  .cco-care-panel-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cco-care-panel-item-button {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1px solid rgba(120, 105, 90, 0.16);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
+    text-align: left;
+  }
+
+  .cco-care-panel-item-name {
+    display: block;
+    font-weight: 600;
+  }
+
+  .cco-care-panel-item-meta {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.875rem;
+    color: rgba(70, 60, 50, 0.72);
+  }
+
+  .cco-care-panel-refresh {
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 0;
+    background: rgba(70, 50, 30, 0.9);
+    color: #fff;
+  }
+
+  .preview-utility-badge,
+  .cco-care-mobile-badge {
+    margin-left: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(181, 86, 75, 0.92);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .thread-ai-summary-host {
+    margin: 12px 0 0;
+  }
+
+  .thread-ai-summary-panel {
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(252, 248, 244, 0.9);
+    border: 1px solid rgba(120, 105, 90, 0.16);
+    box-shadow: 0 4px 10px rgba(45, 28, 18, 0.08);
+  }
+
+  .thread-ai-summary-kicker {
+    margin: 0 0 4px;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(70, 60, 50, 0.55);
+  }
+
+  .thread-ai-summary-title {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 650;
+  }
+
+  .thread-ai-summary-bullets {
+    margin: 0 0 8px;
+    padding-left: 18px;
+  }
+
+  .thread-ai-summary-next,
+  .thread-ai-summary-risk {
+    margin: 0 0 6px;
+    font-size: 0.875rem;
+    color: rgba(70, 60, 50, 0.78);
+  }
+
+  .studio-choice.is-loading {
+    opacity: 0.55;
+  }
+
   /* Desktop/tablet — mobil-only chrome ska aldrig synas ≥769px */
   @media (min-width: 769px) {
     .customers-toolbar-settings {
