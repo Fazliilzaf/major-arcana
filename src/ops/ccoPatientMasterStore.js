@@ -18,6 +18,10 @@ const {
 } = require('../../scripts/migration/lib/migrationUtils');
 const { normalizePhotoPublishConsent } = require('./ccoPhotoPublishConsent');
 const { normalizeFortnoxPatientRef } = require('./ccoFortnoxPatientSync');
+const {
+  normalizePatientDemographics,
+  buildDemographicsReadout,
+} = require('./patientDemographics');
 
 const PATIENT_FLAGS = Object.freeze([
   'missing_email',
@@ -396,6 +400,7 @@ function normalizePatientRecord(input = {}, existing = {}) {
     access: normalizePatientAccess(safe.access, existingSafe.access),
     consents: normalizePhotoPublishConsent(safe.consents, existingSafe.consents),
     fortnox: normalizeFortnoxPatientRef(safe.fortnox, existingSafe.fortnox),
+    demographics: normalizePatientDemographics(safe.demographics, existingSafe.demographics),
     flags: [],
     createdAt: normalizeText(existingSafe.createdAt) || nowIso(),
     updatedAt: nowIso(),
@@ -526,6 +531,7 @@ function buildPatientCardReadout(patient) {
     fortnoxCustomerId: normalizeText(asObject(safe.fortnox).customerNumber),
     fortnoxSyncedAt: normalizeText(asObject(safe.fortnox).syncedAt) || null,
     fortnoxSyncError: normalizeText(asObject(safe.fortnox).lastError) || '',
+    demographics: buildDemographicsReadout(safe.demographics),
     updatedAt: safe.updatedAt || null,
   };
 }

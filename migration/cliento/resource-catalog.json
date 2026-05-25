@@ -1,0 +1,1457 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "Cliento locations API",
+  "serviceGroups": [
+    {
+      "id": 8504,
+      "name": "Tilläggstjänster",
+      "color": null,
+      "serviceIds": [],
+      "addon": true
+    },
+    {
+      "id": 4423,
+      "name": "Curatiio",
+      "color": "",
+      "serviceIds": [
+        36607,
+        62134,
+        62136,
+        62139,
+        38376,
+        57998,
+        58000,
+        38377,
+        50767,
+        62135,
+        50766,
+        62137,
+        62138,
+        58285,
+        60223,
+        60340
+      ],
+      "addon": false
+    },
+    {
+      "id": 4045,
+      "name": "Hair TP Clinic",
+      "color": null,
+      "serviceIds": [
+        51630,
+        51522,
+        50562,
+        50561,
+        50560,
+        50559,
+        50558,
+        50557,
+        50556,
+        50555,
+        50554,
+        50553,
+        50487,
+        47778,
+        45119,
+        44939,
+        42176,
+        41931,
+        41930,
+        38382,
+        31788,
+        31787,
+        31785,
+        31784,
+        31782,
+        31781,
+        31779,
+        31776,
+        31775,
+        58638,
+        59990,
+        60041,
+        60199,
+        61695,
+        63017,
+        64399,
+        64400,
+        64401,
+        64814
+      ],
+      "addon": false
+    }
+  ],
+  "resourceGroups": [
+    {
+      "id": 3002,
+      "name": "Curatiio",
+      "resourceIds": [
+        10300,
+        9122,
+        8173,
+        7339
+      ]
+    },
+    {
+      "id": 2802,
+      "name": "Hair TP Clinic",
+      "resourceIds": [
+        11329,
+        11702,
+        11501,
+        9893,
+        7534,
+        11727,
+        9259,
+        7533,
+        10326,
+        11458,
+        6677
+      ]
+    },
+    {
+      "id": 4362,
+      "name": "Rum",
+      "resourceIds": [
+        11414
+      ]
+    }
+  ],
+  "count": 16,
+  "resources": [
+    {
+      "resId": "6677",
+      "name": "Transplantation",
+      "serviceCount": 24,
+      "services": [
+        {
+          "srvId": "31775",
+          "name": "PRP Hår Standard",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31776",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31781",
+          "name": "PRP Skägg",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31782",
+          "name": "PRP efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31784",
+          "name": "PRP Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31785",
+          "name": "Transplantation FUE",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31787",
+          "name": "PRP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31788",
+          "name": "TP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "42176",
+          "name": "Microneedling konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "45119",
+          "name": "Konsultation | Ögonbryn",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "47778",
+          "name": "Transplantation  DHI",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50553",
+          "name": "PRF Microneedling",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50554",
+          "name": "PRP | Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50555",
+          "name": "Biofillers",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50556",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50557",
+          "name": "PRP | XL",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50558",
+          "name": "PRP + Microneedling | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50559",
+          "name": "PRP | Skägg",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50560",
+          "name": "PDO - (beroende på område)",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50561",
+          "name": "PRP TP ögonbryn",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50562",
+          "name": "PRP | Underhåll efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "51522",
+          "name": "Transplantation | Skägg",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "51630",
+          "name": "Samarbete",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "61695",
+          "name": "PRP | OP-dagen",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "7339",
+      "name": "Arya Emami",
+      "serviceCount": 8,
+      "services": [
+        {
+          "srvId": "36607",
+          "name": "Ögonlocksplastik | Konsultation",
+          "groupName": "Curatiio",
+          "webShowInBooking": true,
+          "webAllowBooking": true
+        },
+        {
+          "srvId": "38376",
+          "name": "Ögonplastik | Övre Ögonlock",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "38377",
+          "name": "Stygnborttagning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "57998",
+          "name": "Ögonplastik | Nedre Ögonlock",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "58000",
+          "name": "Ögonlocksplastik | Total",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "62134",
+          "name": "Ögonplastik | Digital konsultation",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "62136",
+          "name": "Ögonplastik | Uppföljning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "62139",
+          "name": "Ögonplastik | Digital uppföljning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "7533",
+      "name": "Fysisk konsultation",
+      "serviceCount": 10,
+      "services": [
+        {
+          "srvId": "31779",
+          "name": "Fysisk konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": true,
+          "webAllowBooking": true
+        },
+        {
+          "srvId": "31787",
+          "name": "PRP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31788",
+          "name": "TP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "41930",
+          "name": "Skägg konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "41931",
+          "name": "Ögonbryn konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "42176",
+          "name": "Microneedling konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "45119",
+          "name": "Konsultation | Ögonbryn",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50487",
+          "name": "Konsultation | Inkl. AI",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "51630",
+          "name": "Samarbete",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "60041",
+          "name": "Uppföljning via telefon",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "7534",
+      "name": "Clara",
+      "serviceCount": 31,
+      "services": [
+        {
+          "srvId": "31775",
+          "name": "PRP Hår Standard",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31776",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31781",
+          "name": "PRP Skägg",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31782",
+          "name": "PRP efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31784",
+          "name": "PRP Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31787",
+          "name": "PRP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31788",
+          "name": "TP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "38376",
+          "name": "Ögonplastik | Övre Ögonlock",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "38377",
+          "name": "Stygnborttagning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50553",
+          "name": "PRF Microneedling",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50554",
+          "name": "PRP | Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50555",
+          "name": "Biofillers",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50556",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50557",
+          "name": "PRP | XL",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50558",
+          "name": "PRP + Microneedling | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50559",
+          "name": "PRP | Skägg",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50560",
+          "name": "PDO - (beroende på område)",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50561",
+          "name": "PRP TP ögonbryn",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50562",
+          "name": "PRP | Underhåll efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "51630",
+          "name": "Samarbete",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "57998",
+          "name": "Ögonplastik | Nedre Ögonlock",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "58000",
+          "name": "Ögonlocksplastik | Total",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "58638",
+          "name": "Special",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "59990",
+          "name": "Online uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "60041",
+          "name": "Uppföljning via telefon",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "61695",
+          "name": "PRP | OP-dagen",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "62136",
+          "name": "Ögonplastik | Uppföljning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "64399",
+          "name": "Botox | Behandling",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "64400",
+          "name": "Botox | Återbesök",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "64401",
+          "name": "Botox | Konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "64814",
+          "name": "Injektionsbehandling | Konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "8173",
+      "name": "Jessicka Bakhtiari",
+      "serviceCount": 0,
+      "services": []
+    },
+    {
+      "resId": "9122",
+      "name": "Egzona [Curatiio]",
+      "serviceCount": 5,
+      "services": [
+        {
+          "srvId": "36607",
+          "name": "Ögonlocksplastik | Konsultation",
+          "groupName": "Curatiio",
+          "webShowInBooking": true,
+          "webAllowBooking": true
+        },
+        {
+          "srvId": "38376",
+          "name": "Ögonplastik | Övre Ögonlock",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "38377",
+          "name": "Stygnborttagning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "57998",
+          "name": "Ögonplastik | Nedre Ögonlock",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "58000",
+          "name": "Ögonlocksplastik | Total",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "9259",
+      "name": "Online konsultation",
+      "serviceCount": 4,
+      "services": [
+        {
+          "srvId": "44939",
+          "name": "Online konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": true,
+          "webAllowBooking": true
+        },
+        {
+          "srvId": "51630",
+          "name": "Samarbete",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "59990",
+          "name": "Online uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "60041",
+          "name": "Uppföljning via telefon",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "9893",
+      "name": "Louise",
+      "serviceCount": 23,
+      "services": [
+        {
+          "srvId": "31775",
+          "name": "PRP Hår Standard",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31776",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31781",
+          "name": "PRP Skägg",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31782",
+          "name": "PRP efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31784",
+          "name": "PRP Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31787",
+          "name": "PRP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31788",
+          "name": "TP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "38377",
+          "name": "Stygnborttagning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50553",
+          "name": "PRF Microneedling",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50554",
+          "name": "PRP | Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50555",
+          "name": "Biofillers",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50556",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50557",
+          "name": "PRP | XL",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50558",
+          "name": "PRP + Microneedling | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50559",
+          "name": "PRP | Skägg",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50560",
+          "name": "PDO - (beroende på område)",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50561",
+          "name": "PRP TP ögonbryn",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50562",
+          "name": "PRP | Underhåll efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "51630",
+          "name": "Samarbete",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "58638",
+          "name": "Special",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "59990",
+          "name": "Online uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "60041",
+          "name": "Uppföljning via telefon",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "61695",
+          "name": "PRP | OP-dagen",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "10300",
+      "name": "Sabina Nordvall",
+      "serviceCount": 5,
+      "services": [
+        {
+          "srvId": "50766",
+          "name": "Ortopedisk PRP/PRF | Behandling",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50767",
+          "name": "Ortopedisk PRP/PRF | Konsultation",
+          "groupName": "Curatiio",
+          "webShowInBooking": true,
+          "webAllowBooking": true
+        },
+        {
+          "srvId": "62135",
+          "name": "Ortopedisk PRP/PRF | Konsultation via telefon",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "62137",
+          "name": "Ortopedi | Uppföljning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "62138",
+          "name": "Ortopedi | Telefonuppföljning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "10326",
+      "name": "Egzona",
+      "serviceCount": 17,
+      "services": [
+        {
+          "srvId": "31784",
+          "name": "PRP Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31787",
+          "name": "PRP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31788",
+          "name": "TP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "36607",
+          "name": "Ögonlocksplastik | Konsultation",
+          "groupName": "Curatiio",
+          "webShowInBooking": true,
+          "webAllowBooking": true
+        },
+        {
+          "srvId": "38376",
+          "name": "Ögonplastik | Övre Ögonlock",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "38377",
+          "name": "Stygnborttagning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "41930",
+          "name": "Skägg konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "41931",
+          "name": "Ögonbryn konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "42176",
+          "name": "Microneedling konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "45119",
+          "name": "Konsultation | Ögonbryn",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "51630",
+          "name": "Samarbete",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "57998",
+          "name": "Ögonplastik | Nedre Ögonlock",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "58000",
+          "name": "Ögonlocksplastik | Total",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "58638",
+          "name": "Special",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "60041",
+          "name": "Uppföljning via telefon",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "63017",
+          "name": "Uppföljning (VIP)",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": true,
+          "webAllowBooking": true
+        },
+        {
+          "srvId": "64814",
+          "name": "Injektionsbehandling | Konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "11329",
+      "name": "Andrea",
+      "serviceCount": 1,
+      "services": [
+        {
+          "srvId": "60199",
+          "name": "Content | Andrea",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "11414",
+      "name": "Konsultation (rum)",
+      "serviceCount": 0,
+      "services": []
+    },
+    {
+      "resId": "11458",
+      "name": "Fazli",
+      "serviceCount": 7,
+      "services": [
+        {
+          "srvId": "31787",
+          "name": "PRP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31788",
+          "name": "TP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "51630",
+          "name": "Samarbete",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "58638",
+          "name": "Special",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "60041",
+          "name": "Uppföljning via telefon",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "63017",
+          "name": "Uppföljning (VIP)",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": true,
+          "webAllowBooking": true
+        },
+        {
+          "srvId": "64814",
+          "name": "Injektionsbehandling | Konsultation",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "11501",
+      "name": "Wendela",
+      "serviceCount": 18,
+      "services": [
+        {
+          "srvId": "31775",
+          "name": "PRP Hår Standard",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31776",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31782",
+          "name": "PRP efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31784",
+          "name": "PRP Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31787",
+          "name": "PRP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "38377",
+          "name": "Stygnborttagning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50553",
+          "name": "PRF Microneedling",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50554",
+          "name": "PRP | Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50555",
+          "name": "Biofillers",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50556",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50557",
+          "name": "PRP | XL",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50558",
+          "name": "PRP + Microneedling | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50559",
+          "name": "PRP | Skägg",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50561",
+          "name": "PRP TP ögonbryn",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50562",
+          "name": "PRP | Underhåll efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "51630",
+          "name": "Samarbete",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "60041",
+          "name": "Uppföljning via telefon",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "61695",
+          "name": "PRP | OP-dagen",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    },
+    {
+      "resId": "11702",
+      "name": "Bittan",
+      "serviceCount": 0,
+      "services": []
+    },
+    {
+      "resId": "11727",
+      "name": "Veronica",
+      "serviceCount": 22,
+      "services": [
+        {
+          "srvId": "31775",
+          "name": "PRP Hår Standard",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31776",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31782",
+          "name": "PRP efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31784",
+          "name": "PRP Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31787",
+          "name": "PRP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "31788",
+          "name": "TP uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "38377",
+          "name": "Stygnborttagning",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50553",
+          "name": "PRF Microneedling",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50554",
+          "name": "PRP | Mini",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50555",
+          "name": "Biofillers",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50556",
+          "name": "PRP | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50557",
+          "name": "PRP | XL",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50558",
+          "name": "PRP + Microneedling | Ansikte",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50559",
+          "name": "PRP | Skägg",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50561",
+          "name": "PRP TP ögonbryn",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50562",
+          "name": "PRP | Underhåll efter TP",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50766",
+          "name": "Ortopedisk PRP/PRF | Behandling",
+          "groupName": "Curatiio",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "50767",
+          "name": "Ortopedisk PRP/PRF | Konsultation",
+          "groupName": "Curatiio",
+          "webShowInBooking": true,
+          "webAllowBooking": true
+        },
+        {
+          "srvId": "51630",
+          "name": "Samarbete",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "59990",
+          "name": "Online uppföljning",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "60041",
+          "name": "Uppföljning via telefon",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        },
+        {
+          "srvId": "61695",
+          "name": "PRP | OP-dagen",
+          "groupName": "Hair TP Clinic",
+          "webShowInBooking": false,
+          "webAllowBooking": false
+        }
+      ]
+    }
+  ]
+}

@@ -10,6 +10,7 @@ const {
 } = require('../ops/ccoBookingStore');
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
 const { syncBookingConfirmedToJournal } = require('../ops/ccoJournalBookingBridge');
+const { loadLegacyCatalogBundle } = require('../ops/legacyCatalogLoader');
 const {
   notifyStaffBookingCancelled,
   notifyStaffBookingConfirmed,
@@ -496,6 +497,22 @@ function createCcoBookingEngineRouter({
       return res.status(500).json({ error: 'Kunde inte hantera CCO booking engine.' });
     }
   }
+
+  router.get('/cco-booking-engine/legacy-catalog', async (req, res) =>
+    handle(req, res, async () => {
+      const bundle = loadLegacyCatalogBundle();
+      const includeDetails = normalizeText(req.query.details) === '1';
+      return res.json({
+        ok: true,
+        provider: 'legacy_migration_catalogs',
+        exportedAt: bundle.exportedAt,
+        counts: bundle.counts,
+        catalogs: includeDetails ? bundle.catalogs : undefined,
+        policyNote:
+          'Staff read-only. Publik webb-bokning förblir av tills explicit go-live (ARCANA_PUBLIC_WEB_BOOKING_ENABLED).',
+      });
+    })
+  );
 
   router.get('/cco-booking-engine/catalog', async (req, res) =>
     handle(req, res, async () => {

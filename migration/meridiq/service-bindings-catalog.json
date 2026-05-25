@@ -1,0 +1,1262 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "Meridiq API /api/v2/services (letter_of_consents[], company_service_questionnaires[])",
+  "stats": {
+    "serviceCount": 82,
+    "withConsents": 61,
+    "withQuestionnaires": 5,
+    "withoutEither": 16,
+    "uniqueConsents": 12,
+    "uniqueQuestionaries": 4
+  },
+  "services": [
+    {
+      "apiId": 7078,
+      "name": "Möte på kliniken | Fysisk konsultation",
+      "category": "Konsultationer | Hair TP Clinic",
+      "consents": [],
+      "questionnaires": [
+        {
+          "bindingId": 12368,
+          "questionaryApiId": 16414,
+          "type": "CUSTOM",
+          "title": "Hälsodeklaration | Hair TP Clinic"
+        }
+      ],
+      "consentCount": 0,
+      "questionnaireCount": 1
+    },
+    {
+      "apiId": 7079,
+      "name": "Digitalt videosamtal | Onlinekonsultation",
+      "category": "Konsultationer | Hair TP Clinic",
+      "consents": [],
+      "questionnaires": [
+        {
+          "bindingId": 12369,
+          "questionaryApiId": 16414,
+          "type": "CUSTOM",
+          "title": "Hälsodeklaration | Hair TP Clinic"
+        }
+      ],
+      "consentCount": 0,
+      "questionnaireCount": 1
+    },
+    {
+      "apiId": 7080,
+      "name": "Ögonlocksplastik | Konsultation",
+      "category": "Konsultationer | Curatiio",
+      "consents": [],
+      "questionnaires": [
+        {
+          "bindingId": 12360,
+          "questionaryApiId": 16415,
+          "type": "CUSTOM",
+          "title": "Hälsodeklaration | Ögonlocksplastik"
+        }
+      ],
+      "consentCount": 0,
+      "questionnaireCount": 1
+    },
+    {
+      "apiId": 7081,
+      "name": "Ortopediska injektionsbehandlingar | Konsultation",
+      "category": "Konsultationer | Curatiio",
+      "consents": [],
+      "questionnaires": [
+        {
+          "bindingId": 12464,
+          "questionaryApiId": 14878,
+          "type": "CUSTOM",
+          "title": "Hälsodeklaration | Ortopediska injektionsbehandlingar"
+        }
+      ],
+      "consentCount": 0,
+      "questionnaireCount": 1
+    },
+    {
+      "apiId": 7082,
+      "name": "Nedre ögonlocksplastik",
+      "category": "Ögonlocksplastik | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170954,
+          "title": "Behandlingsavtal | Ögonlocksplastik"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7085,
+      "name": "Övre ögonlocksplastik",
+      "category": "Ögonlocksplastik | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170954,
+          "title": "Behandlingsavtal | Ögonlocksplastik"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7086,
+      "name": "FUE Hårtransplantation: 4000 grafts",
+      "category": "FUE Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7087,
+      "name": "FUE Hårtransplantation: 3500 grafts",
+      "category": "FUE Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7088,
+      "name": "FUE Hårtransplantation: 3000 grafts",
+      "category": "FUE Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7089,
+      "name": "FUE Hårtransplantation: 2500 grafts",
+      "category": "FUE Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7090,
+      "name": "FUE Hårtransplantation: 2000 grafts",
+      "category": "FUE Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7091,
+      "name": "FUE Hårtransplantation: 1500 grafts",
+      "category": "FUE Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7092,
+      "name": "FUE Hårtransplantation: 1000 grafts",
+      "category": "FUE Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7093,
+      "name": "DHI Hårtransplantation: 3000 grafts",
+      "category": "DHI Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7094,
+      "name": "DHI Hårtransplantation: 2500 grafts",
+      "category": "DHI Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7095,
+      "name": "DHI Hårtransplantation: 2000 grafts",
+      "category": "DHI Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7096,
+      "name": "DHI Hårtransplantation: 1500 grafts",
+      "category": "DHI Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7097,
+      "name": "DHI Hårtransplantation: 1000 grafts",
+      "category": "DHI Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7103,
+      "name": "DHI Hårtransplantation: PRP-efterbehandling",
+      "category": "DHI Hårtransplantation",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7104,
+      "name": "DHI Ögonbrynstransplantation",
+      "category": "DHI Ögonbrynstransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7105,
+      "name": "Övre och nedre ögonlocksplastik",
+      "category": "Ögonlocksplastik | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170954,
+          "title": "Behandlingsavtal | Ögonlocksplastik"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7106,
+      "name": "FUE Hårtransplantation: 4500 grafts",
+      "category": "FUE Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7107,
+      "name": "Ögonlocksplastik: Suturborttagning",
+      "category": "Uppföljning | Curatiio",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7109,
+      "name": "Ortopedisk PRP",
+      "category": "Ortopedi | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170943,
+          "title": "Behandlingsavtal | Ortopedisk HA och PRP/PRF"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7112,
+      "name": "PRP: Hår Standard",
+      "category": "PRP | Hår",
+      "consents": [
+        {
+          "consentApiId": 170945,
+          "title": "Behandlingsavtal | PRP hår"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7113,
+      "name": "PRP: Hår XL",
+      "category": "PRP | Hår",
+      "consents": [
+        {
+          "consentApiId": 152994,
+          "title": "PRP hår – Platelet Rich Plasma - SWE"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7114,
+      "name": "PRP: Hår Mini",
+      "category": "PRP | Hår",
+      "consents": [
+        {
+          "consentApiId": 170945,
+          "title": "Behandlingsavtal | PRP hår"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7116,
+      "name": "PRP: Skägg",
+      "category": "PRP | Hår",
+      "consents": [
+        {
+          "consentApiId": 170945,
+          "title": "Behandlingsavtal | PRP hår"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7117,
+      "name": "PRP: Ansikte",
+      "category": "PRP | Hud",
+      "consents": [
+        {
+          "consentApiId": 170944,
+          "title": "Behandlingsavtal | PRP hud"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7118,
+      "name": "PRP: Hals",
+      "category": "PRP | Hud",
+      "consents": [
+        {
+          "consentApiId": 170944,
+          "title": "Behandlingsavtal | PRP hud"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7119,
+      "name": "PRP: Dekolletage",
+      "category": "PRP | Hud",
+      "consents": [
+        {
+          "consentApiId": 170944,
+          "title": "Behandlingsavtal | PRP hud"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7120,
+      "name": "PRP: Händer",
+      "category": "PRP | Hud",
+      "consents": [
+        {
+          "consentApiId": 170944,
+          "title": "Behandlingsavtal | PRP hud"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7121,
+      "name": "Microneedling med PRP: Ansikte",
+      "category": "Microneedling med Dermapen",
+      "consents": [
+        {
+          "consentApiId": 170946,
+          "title": "Behandlingsavtal | Microneedling och PRP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7122,
+      "name": "Tilläggsområde: PRP Hud",
+      "category": "PRP | Hud",
+      "consents": [
+        {
+          "consentApiId": 170944,
+          "title": "Behandlingsavtal | PRP hud"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7123,
+      "name": "Ortopedisk hyaluronsyra",
+      "category": "Ortopedi | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170942,
+          "title": "Behandlingsavtal | Ortopedisk HA"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7124,
+      "name": "Ortopedisk PRP med hyaluronsyra",
+      "category": "Ortopedi | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170943,
+          "title": "Behandlingsavtal | Ortopedisk HA och PRP/PRF"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7127,
+      "name": "DHI Skäggtransplantation: 1000 grafts",
+      "category": "DHI Skäggtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7128,
+      "name": "FUE Hårtransplantation: PRP-efterbehandling",
+      "category": "FUE Hårtransplantation",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7130,
+      "name": "Uppföljning: Hårtransplantation DHI",
+      "category": "Uppföljning | Hair TP Clinic",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7131,
+      "name": "Uppföljning: Hårtransplantation FUE",
+      "category": "Uppföljning | Hair TP Clinic",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7132,
+      "name": "DHI Ögonbrynstransplantation: PRP-efterbehandling",
+      "category": "DHI Ögonbrynstransplantation",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7133,
+      "name": "PRP: Underhållsbehandling TP",
+      "category": "PRP | Hår",
+      "consents": [
+        {
+          "consentApiId": 170945,
+          "title": "Behandlingsavtal | PRP hår"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7134,
+      "name": "Uppföljning: Ögonbrynstransplantation DHI",
+      "category": "Uppföljning | Hair TP Clinic",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7135,
+      "name": "DHI Skäggtransplantation: PRP-efterbehandling",
+      "category": "DHI Skäggtransplantation",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7137,
+      "name": "Uppföljning: Skäggtransplantation DHI",
+      "category": "Uppföljning | Hair TP Clinic",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7144,
+      "name": "DHI Skäggtransplantation: 1500 grafts",
+      "category": "DHI Skäggtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7376,
+      "name": "Fillers: Nasolabialveck 1 ml",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170950,
+          "title": "Behandlingsavtal | Fillers"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7377,
+      "name": "Fillers: Läppar 0.5 ml",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170950,
+          "title": "Behandlingsavtal | Fillers"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7378,
+      "name": "Fillers: Läppar 1 ml",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170950,
+          "title": "Behandlingsavtal | Fillers"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7379,
+      "name": "Profhilo: 1 behandling",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170948,
+          "title": "Behandlingsavtal | Profilho"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7380,
+      "name": "Profhilo: 2 behandlingar",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170948,
+          "title": "Behandlingsavtal | Profilho"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7381,
+      "name": "Profhilo: 3 behandlingar",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170948,
+          "title": "Behandlingsavtal | Profilho"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7382,
+      "name": "Botox: 1 område",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170949,
+          "title": "Behandlingsavtal | Botulinumtoxin (Botox)"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7383,
+      "name": "Botox: 2 områden",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170949,
+          "title": "Behandlingsavtal | Botulinumtoxin (Botox)"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7384,
+      "name": "Botox: 3 områden",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170949,
+          "title": "Behandlingsavtal | Botulinumtoxin (Botox)"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7385,
+      "name": "Botox Läpplyft (Lip Flip)",
+      "category": "Estetiska injektioner | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170949,
+          "title": "Behandlingsavtal | Botulinumtoxin (Botox)"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7387,
+      "name": "DHI Skäggtransplantation: 2000 grafts",
+      "category": "DHI Skäggtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7388,
+      "name": "DHI Skäggtransplantation: 2500 grafts",
+      "category": "DHI Skäggtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7389,
+      "name": "DHI Skäggtransplantation 3000 grafts",
+      "category": "DHI Skäggtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7392,
+      "name": "Microneedling med PRP: Dekolletage",
+      "category": "Microneedling med Dermapen",
+      "consents": [
+        {
+          "consentApiId": 170946,
+          "title": "Behandlingsavtal | Microneedling och PRP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7393,
+      "name": "Microneedling med PRP: Hals",
+      "category": "Microneedling med Dermapen",
+      "consents": [
+        {
+          "consentApiId": 170946,
+          "title": "Behandlingsavtal | Microneedling och PRP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7394,
+      "name": "Microneedling med PRP: Händer",
+      "category": "Microneedling med Dermapen",
+      "consents": [
+        {
+          "consentApiId": 170946,
+          "title": "Behandlingsavtal | Microneedling och PRP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7395,
+      "name": "Tilläggsomårde: PRP Hår",
+      "category": "PRP | Hår",
+      "consents": [
+        {
+          "consentApiId": 170945,
+          "title": "Behandlingsavtal | PRP hår"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7396,
+      "name": "Tilläggsområde: PRP och Microneedling",
+      "category": "Microneedling med Dermapen",
+      "consents": [
+        {
+          "consentApiId": 170946,
+          "title": "Behandlingsavtal | Microneedling och PRP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7397,
+      "name": "FUE Skäggtransplantation: 1000 grafts",
+      "category": "FUE Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7398,
+      "name": "FUE Skäggtransplantation: 1500 grafts",
+      "category": "FUE Skäggtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7399,
+      "name": "FUE Skäggtransplantation: 2000 grafts",
+      "category": "FUE Skäggtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7400,
+      "name": "FUE Skäggtransplantation: 2500 grafts",
+      "category": "FUE Skäggtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7401,
+      "name": "FUE Skäggtransplantation: 3000 grafts",
+      "category": "FUE Skäggtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7404,
+      "name": "FUE Skäggtransplantation: PRP-efterbehandling",
+      "category": "FUE Skäggtransplantation",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7405,
+      "name": "Uppföljning: Skäggtransplantation FUE",
+      "category": "Uppföljning | Hair TP Clinic",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7406,
+      "name": "Ortopedisk PRF",
+      "category": "Ortopedi | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170941,
+          "title": "Behandlingsavtal | Ortopedisk PRP/PRF"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7410,
+      "name": "Uppföljning: Ögonlocksplastik",
+      "category": "Uppföljning | Curatiio",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7411,
+      "name": "Ortopedisk PRF med hyaluronsyra",
+      "category": "Ortopedi | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170943,
+          "title": "Behandlingsavtal | Ortopedisk HA och PRP/PRF"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7412,
+      "name": "Ortopedisk PRP: 3e behandlingen",
+      "category": "Ortopedi | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170941,
+          "title": "Behandlingsavtal | Ortopedisk PRP/PRF"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7413,
+      "name": "Ortopedisk PRF: 3e behandlingen",
+      "category": "Ortopedi | Curatiio",
+      "consents": [
+        {
+          "consentApiId": 170943,
+          "title": "Behandlingsavtal | Ortopedisk HA och PRP/PRF"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 7414,
+      "name": "DHI Ärr",
+      "category": "DHI Hårtransplantation",
+      "consents": [
+        {
+          "consentApiId": 170917,
+          "title": "Behandlingsavtal | TP"
+        }
+      ],
+      "questionnaires": [],
+      "consentCount": 1,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 8694,
+      "name": "Estetiska injektioner | Konsultation",
+      "category": "Konsultationer | Curatiio",
+      "consents": [],
+      "questionnaires": [
+        {
+          "bindingId": 12362,
+          "questionaryApiId": 16472,
+          "type": "CUSTOM",
+          "title": "Hälsodeklaration | Estetiska injektionsbehandlingar"
+        }
+      ],
+      "consentCount": 0,
+      "questionnaireCount": 1
+    },
+    {
+      "apiId": 8727,
+      "name": "DHI Ärr: PRP-efterbehandling",
+      "category": "DHI Hårtransplantation",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 8952,
+      "name": "Uppföljning: Botox",
+      "category": "Uppföljning | Curatiio",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 8953,
+      "name": "Uppföljning: Filler",
+      "category": "Uppföljning | Curatiio",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    },
+    {
+      "apiId": 8954,
+      "name": "Uppföljning: Profilho",
+      "category": "Uppföljning | Curatiio",
+      "consents": [],
+      "questionnaires": [],
+      "consentCount": 0,
+      "questionnaireCount": 0
+    }
+  ],
+  "byConsent": [
+    {
+      "consentApiId": 152994,
+      "title": "PRP hår – Platelet Rich Plasma - SWE",
+      "serviceApiIds": [
+        7113
+      ]
+    },
+    {
+      "consentApiId": 170917,
+      "title": "Behandlingsavtal | TP",
+      "serviceApiIds": [
+        7086,
+        7087,
+        7088,
+        7089,
+        7090,
+        7091,
+        7092,
+        7093,
+        7094,
+        7095,
+        7096,
+        7097,
+        7104,
+        7106,
+        7127,
+        7144,
+        7387,
+        7388,
+        7389,
+        7397,
+        7398,
+        7399,
+        7400,
+        7401,
+        7414
+      ]
+    },
+    {
+      "consentApiId": 170941,
+      "title": "Behandlingsavtal | Ortopedisk PRP/PRF",
+      "serviceApiIds": [
+        7406,
+        7412
+      ]
+    },
+    {
+      "consentApiId": 170942,
+      "title": "Behandlingsavtal | Ortopedisk HA",
+      "serviceApiIds": [
+        7123
+      ]
+    },
+    {
+      "consentApiId": 170943,
+      "title": "Behandlingsavtal | Ortopedisk HA och PRP/PRF",
+      "serviceApiIds": [
+        7109,
+        7124,
+        7411,
+        7413
+      ]
+    },
+    {
+      "consentApiId": 170944,
+      "title": "Behandlingsavtal | PRP hud",
+      "serviceApiIds": [
+        7117,
+        7118,
+        7119,
+        7120,
+        7122
+      ]
+    },
+    {
+      "consentApiId": 170945,
+      "title": "Behandlingsavtal | PRP hår",
+      "serviceApiIds": [
+        7112,
+        7114,
+        7116,
+        7133,
+        7395
+      ]
+    },
+    {
+      "consentApiId": 170946,
+      "title": "Behandlingsavtal | Microneedling och PRP",
+      "serviceApiIds": [
+        7121,
+        7392,
+        7393,
+        7394,
+        7396
+      ]
+    },
+    {
+      "consentApiId": 170948,
+      "title": "Behandlingsavtal | Profilho",
+      "serviceApiIds": [
+        7379,
+        7380,
+        7381
+      ]
+    },
+    {
+      "consentApiId": 170949,
+      "title": "Behandlingsavtal | Botulinumtoxin (Botox)",
+      "serviceApiIds": [
+        7382,
+        7383,
+        7384,
+        7385
+      ]
+    },
+    {
+      "consentApiId": 170950,
+      "title": "Behandlingsavtal | Fillers",
+      "serviceApiIds": [
+        7376,
+        7377,
+        7378
+      ]
+    },
+    {
+      "consentApiId": 170954,
+      "title": "Behandlingsavtal | Ögonlocksplastik",
+      "serviceApiIds": [
+        7082,
+        7085,
+        7105
+      ]
+    }
+  ],
+  "byQuestionary": [
+    {
+      "questionaryApiId": 14878,
+      "title": "Hälsodeklaration | Ortopediska injektionsbehandlingar",
+      "type": "CUSTOM",
+      "serviceApiIds": [
+        7081
+      ]
+    },
+    {
+      "questionaryApiId": 16414,
+      "title": "Hälsodeklaration | Hair TP Clinic",
+      "type": "CUSTOM",
+      "serviceApiIds": [
+        7078,
+        7079
+      ]
+    },
+    {
+      "questionaryApiId": 16415,
+      "title": "Hälsodeklaration | Ögonlocksplastik",
+      "type": "CUSTOM",
+      "serviceApiIds": [
+        7080
+      ]
+    },
+    {
+      "questionaryApiId": 16472,
+      "title": "Hälsodeklaration | Estetiska injektionsbehandlingar",
+      "type": "CUSTOM",
+      "serviceApiIds": [
+        8694
+      ]
+    }
+  ]
+}

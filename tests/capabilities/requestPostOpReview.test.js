@@ -243,6 +243,12 @@ test('store.addPhoto + submit + markReviewClicked — full flow', async () => {
   assert.equal(submitted.patientNote, 'Mycket nöjd!');
   assert.ok(submitted.submittedAt);
 
+  await store.saveReviewFeedback(submission.submissionId, {
+    rating: 5,
+    feedback: 'Mycket nöjd!',
+  });
+  await store.approveGoogleReview(submission.submissionId, { approvedBy: 'staff-1' });
+
   // Patient klickar GBP-länk
   const clicked = await store.markReviewClicked(submission.submissionId);
   assert.equal(clicked.reviewClicked, true);

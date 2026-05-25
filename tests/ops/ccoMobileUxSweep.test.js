@@ -97,6 +97,9 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   assert.match(patientUi, /bindJournalAutosaveForms/, 'bindJournalAutosaveForms saknas');
   assert.match(patientUi, /isCompactFormViewport/, 'BL.5 Fas 3: compact form viewport saknas');
   assert.match(patientUi, /data-agreement-step-panel/, 'BL.5 Fas 3: avtal mobil steg saknas');
+
+  const desktopWeekJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-desktop-week.js'), 'utf8');
+  assert.match(desktopWeekJs, /ArcanaBookingDesktopWeek/, 'BL.5 Fas 5: desktop week calendar saknas');
   assert.match(patientUi, /renderDriveFiles/, 'Filer: renderDriveFiles helper saknas');
   assert.match(patientUi, /Inga indexerade Drive-filer/, 'Filer: tom-state copy saknas');
 });

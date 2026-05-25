@@ -938,6 +938,8 @@ function createMonitorRouter({
   patientConversionStore = null,
   runtimeMetricsStore = null,
   sloTicketStore = null,
+  executiveDecisionFeed = null,
+  releaseGovernanceStore = null,
   executionGateway = null,
   config,
   scheduler = null,
@@ -2049,6 +2051,74 @@ function createMonitorRouter({
       }
       console.error(error);
       return res.status(500).json({ error: 'Kunde inte läsa monitor SLO.' });
+    }
+  });
+
+  router.get('/monitor/executive-feed', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
+    try {
+      const tenantId = req.auth.tenantId;
+      const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 40));
+      const feedEntries =
+        executiveDecisionFeed && typeof executiveDecisionFeed.list === 'function'
+          ? executiveDecisionFeed.list({ status: 'pending', limit })
+          : [];
+      const feedSummary =
+        executiveDecisionFeed && typeof executiveDecisionFeed.getSummary === 'function'
+          ? executiveDecisionFeed.getSummary()
+          : { totalActive: 0, ownerActionRequired: 0 };
+      const sloSummary =
+        sloTicketStore && typeof sloTicketStore.summarize === 'function'
+          ? sloTicketStore.summarize({ tenantId })
+          : null;
+      const governanceSummary = await (async () => {
+        if (!releaseGovernanceStore || typeof releaseGovernanceStore.getLatestCycle !== 'function') {
+          return null;
+        }
+        const latest = await releaseGovernanceStore.getLatestCycle({ tenantId });
+        const evaluation = latest?.evaluation || null;
+        const blockingCount = Array.isArray(evaluation?.blockingFindings)
+          ? evaluation.blockingFindings.length
+          : evaluation?.goAllowed === false
+            ? 1
+            : 0;
+        return {
+          cycleId: latest?.cycle?.cycleId || null,
+          phase: latest?.cycle?.phase || null,
+          goAllowed: evaluation?.goAllowed === true,
+          blockingCount,
+        };
+      })();
+
+      const ownerHints = [];
+      if (sloSummary?.openBreaches > 0) {
+        ownerHints.push({
+          severity: 'high',
+          recommendation: 'Granska öppna SLO-brott innan release.',
+          actionEndpoint: '/api/v1/monitor/slo',
+          requiredOwnerAction: true,
+        });
+      }
+      if (governanceSummary?.blockingCount > 0) {
+        ownerHints.push({
+          severity: 'medium',
+          recommendation: 'Release governance har blockerande punkter.',
+          actionEndpoint: '/api/v1/monitor/readiness',
+          requiredOwnerAction: true,
+        });
+      }
+
+      return res.json({
+        ok: true,
+        tenantId,
+        summary: feedSummary,
+        entries: feedEntries,
+        slo: sloSummary,
+        releaseGovernance: governanceSummary,
+        ownerHints,
+      });
+    } catch (error) {
+      console.error('[monitor/executive-feed]', error);
+      return res.status(500).json({ error: 'Kunde inte läsa executive feed.' });
     }
   });
 

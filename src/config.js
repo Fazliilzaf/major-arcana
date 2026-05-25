@@ -308,6 +308,14 @@ const config = {
     Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS) > 0
       ? Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS)
       : 24,
+  schedulerPostOpAutoTriggerIntervalHours:
+    Number(process.env.ARCANA_SCHED_POST_OP_AUTO_TRIGGER_HOURS) > 0
+      ? Number(process.env.ARCANA_SCHED_POST_OP_AUTO_TRIGGER_HOURS)
+      : 6,
+  postOpAutoTriggerGraceHours:
+    Number(process.env.ARCANA_POST_OP_AUTO_TRIGGER_GRACE_HOURS) >= 0
+      ? Number(process.env.ARCANA_POST_OP_AUTO_TRIGGER_GRACE_HOURS)
+      : 24,
   // Sender-mailbox för auto-send av post-op review-email via M365 Graph.
   // Locked default per docs/strategy/u4-post-op-decisions.md (U4.5).
   postOpReviewFromMailbox: asNonEmptyString(
