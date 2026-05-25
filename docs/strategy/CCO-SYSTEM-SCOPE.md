@@ -127,17 +127,19 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ⚠️ Bokningsbekräftelse e-post (Resend — ⚠️ ej live, saknar API-nyckel)
 - ✅ Bokningsbekräftelse Graph (intern/mechanism live)
-- 🔲 Bokningspåminnelse SMS (4 h online / 24 h fysisk — Cliento-standard)
+- ✅ Bokningspåminnelse SMS (46elks / Twilio — multi-provider)
 - 🔲 Bokningspåminnelse e-post + ICS-kalenderinbjudan
-- 🔲 Avbokningsbekräftelse SMS + e-post
-- 🔲 "Fyll i begärd information" före besök
-- 🔲 Skicka formulär / samtycke / fil till patient (en knapp + audit)
+- ✅ Avbokningsbekräftelse SMS + e-post
+- ✅ "Fyll i begärd information" före besök (patientportal + SMS-länk)
+- ✅ Skicka formulär / samtycke / fil till patient (patientportal token)
 
 ### 7.2 Mallar
 
-- 🔲 SMS-mallar Hair TP + Curatiio (merge-fält: namn, datum, tid, tjänst, behandlare)
+- ✅ SMS-mallar Hair TP + Curatiio (merge-fält: namn, datum, tid, tjänst, behandlare)
 - 🔲 E-postmallar: offert, behandlingsplan, bokning, avbokning
 - 🔲 Intern notis till personal vid bokning/avbokning
+- ✅ WebRTC videosamtal (egen signaling, token-baserad patient-länk, TURN-stöd)
+- ✅ AI mötesanteckningar (Whisper transkribering + GPT sammanfattning, online + fysisk)
 
 ### 7.3 Marknadsföring
 
