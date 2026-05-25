@@ -293,6 +293,114 @@ function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] }
   };
 }
 
+const CLIENTO_RESOURCE_NAME_TO_ARCANA_ID = Object.freeze({
+  louise: 'louise',
+  veronica: 'veronica',
+  clara: 'clara',
+  wendela: 'wendela',
+});
+
+function resolveArcanaResourceIdFromCliento(clientoResource = {}) {
+  const resId = normalizeText(String(clientoResource.resId || ''));
+  const nameKey = normalizeText(clientoResource.name).toLowerCase();
+  for (const [needle, arcanaId] of Object.entries(CLIENTO_RESOURCE_NAME_TO_ARCANA_ID)) {
+    if (nameKey === needle) return arcanaId;
+  }
+  if (!resId) return '';
+  return `legacy-cliento-${resId}`;
+}
+
+function buildClientoDraftResource(clientoResource = {}) {
+  const resId = normalizeText(String(clientoResource.resId || ''));
+  const id = resolveArcanaResourceIdFromCliento(clientoResource);
+  if (!id) return null;
+  const label = normalizeText(clientoResource.name) || id;
+  return {
+    id,
+    label,
+    active: false,
+    publicBookable: false,
+    catalogSource: 'cliento_resource_catalog',
+    legacyMapping: {
+      cliento: {
+        resId,
+        name: label,
+        serviceCount: Number(clientoResource.serviceCount) || 0,
+      },
+    },
+  };
+}
+
+function mergeLegacyResourcesIntoEngineState(state, { planAPublicResourceIds = [] } = {}) {
+  const bundle = loadLegacyCatalogBundle();
+  const planA = new Set(asArray(planAPublicResourceIds).map(normalizeText).filter(Boolean));
+  const resourcesById = new Map(asArray(state.resources).map((item) => [normalizeText(item.id), item]));
+  let changed = false;
+  let promoted = 0;
+
+  for (const item of asArray(bundle?.catalogs?.clientoResources?.resources)) {
+    const draft = buildClientoDraftResource(item);
+    if (!draft) continue;
+    const existing = resourcesById.get(draft.id);
+    const isPlanA = planA.has(draft.id);
+
+    if (!existing) {
+      resourcesById.set(draft.id, draft);
+      promoted += 1;
+      changed = true;
+      continue;
+    }
+
+    const merged = {
+      ...existing,
+      label: existing.label || draft.label,
+      catalogSource: existing.catalogSource || draft.catalogSource,
+      legacyMapping: {
+        ...(asObject(existing.legacyMapping) || {}),
+        ...draft.legacyMapping,
+      },
+    };
+    if (!isPlanA && existing.publicBookable === true && !planA.has(draft.id)) {
+      merged.publicBookable = false;
+    }
+    if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+      resourcesById.set(draft.id, merged);
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    state.resources = Array.from(resourcesById.values());
+  }
+
+  return {
+    changed,
+    promoted,
+    resourceCount: resourcesById.size,
+    clientoResourceTotal: Number(bundle?.counts?.clientoResources || 0),
+  };
+}
+
+function readAddonCatalogSummary(bundle = loadLegacyCatalogBundle()) {
+  const addonCatalog = bundle?.catalogs?.clientoAddons || {};
+  const groups = asArray(addonCatalog.serviceGroups || bundle?.catalogs?.clientoResources?.serviceGroups);
+  const addonGroups = groups.filter((group) => group?.addon === true);
+  const addonServiceIds = addonGroups.flatMap((group) => asArray(group.serviceIds));
+  return {
+    addonGroupCount: addonGroups.length,
+    addonServiceIdCount: addonServiceIds.length,
+    groups: addonGroups.map((group) => ({
+      id: group.id,
+      name: normalizeText(group.name),
+      serviceIds: asArray(group.serviceIds),
+    })),
+    note:
+      addonServiceIds.length === 0
+        ? 'Tilläggstjänster-grupp finns i Cliento men inga tjänster exporterade ännu.'
+        : null,
+  };
+}
+
 function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], planAPublicResourceIds = [] } = {}) {
   const planAServices = new Set(asArray(planAPublicServiceIds).map(normalizeText));
   const planAResources = new Set(asArray(planAPublicResourceIds).map(normalizeText));
@@ -335,6 +443,7 @@ function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], pl
     totalServices: services.length,
     clientoTotal: Number(bundle.counts?.clientoServices || 0),
     meridiqTotal: Number(bundle.counts?.meridiqServices || 0),
+    clientoResourceTotal: Number(bundle.counts?.clientoResources || 0),
     mapped,
     unmapped,
     planA,
@@ -343,6 +452,7 @@ function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], pl
     inactiveDraftServices: services.filter((item) => item.staffCatalogTier === 'inactive_draft').length,
     legacyMappedServices: services.filter((item) => item.legacyMapping).length,
     tripleMapEntries: tripleEntries.length,
+    addonCatalog: readAddonCatalogSummary(bundle),
   };
 
   return {
@@ -368,6 +478,8 @@ module.exports = {
   buildMeridiqDraftService,
   collectMappedLegacyIds,
   mergeLegacyCatalogIntoEngineState,
+  mergeLegacyResourcesIntoEngineState,
+  readAddonCatalogSummary,
   buildStaffRuntimeCatalogReadout,
   readTripleMapEntries,
 };

@@ -73,7 +73,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | **B** | U2.2 OWNER MFA enforced | ~ (väntar `apply:auth-go-live-prod`) |
 | **Policy** | Publik `/api/public/booking-engine/*` | av (503 tills explicit go-live) |
 
-> Nästa kod-svep: **U2.4 fysisk sign-off** · **MFA (D) sist**. P6.2.6–7 + BL.4 runtime-expand ☑ (sweep 2026-05-25).
+> Nästa kod-svep: **U2.4 fysisk sign-off** · **P6.10.4 patient-SMS** · **MFA (D) sist**. Bokningsregler + VIP + reminder-mail ☑ (sweep 2026-05-25).
 
 ---
 
@@ -433,7 +433,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [~] P6.2.5 Full publik katalog — legacy + **runtime-catalog** staff API ☑; publik go-live kvar
 - [~] P6.2.6 Alla **55 Cliento-tjänster** i engine — triple-map + unmapped drafts ☑ (`legacyCatalogRuntime.js`); staff runtime-catalog
 - [~] P6.2.7 Alla **82 Meridiq-tjänster** i engine — triple-map buckets + unmapped drafts ☑; full arcanaId-paritet kvar
-- [ ] P6.2.8 VIP-länk / token-bokning (t.ex. uppföljning srvId **63017**, resId **11458** / **10326**)
+- [~] P6.2.8 VIP-länk / token-bokning — seed + `/public/booking-engine/vip/:token/*` ☑ (policy av); prod-token via `ARCANA_BOOKING_VIP_TOKENS_JSON`
 - [ ] P6.2.9 Curatiio separat bokningsflöde (egna tjänster, inget läckage Hair TP ↔ Curatiio)
 - [ ] P6.2.10 Strikt varumärkesseparation — Curatiio syns inte på hairtpclinic.com
 - [ ] P6.2.11 Curatiio widget på curatiio.se → Arcana (ej Cliento)
@@ -447,16 +447,16 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] P6.3.2 Koppling bokning → behandlingstillfälle (J-6.3 / TL-B)
 - [x] P6.3.3 Virtuella bokningsbanor (online / fysisk) + läkare som resurser
 - [x] P6.3.4 Operatörsbekräftelse Plan A prod
-- [~] P6.3.5 Kalendervy per behandlare och resurs — desktop week grid ☑; full resource/day planner kvar
-- [~] P6.3.6 Kalender-/dagvy i CCO arbetsyta — desktop week ☑; operatörs arbetsyta kvar
+- [~] P6.3.5 Kalendervy per behandlare och resurs — **Hair TP design** ☑ (`cco-calendar.css`, vecka/dag/resurs, event-kort, filter-chips, detaljpanel); drag-drop + blockering kvar
+- [~] P6.3.6 Kalender-/dagvy i CCO arbetsyta — desktop workstation ☑ i kundregister; operatörs split-actions kvar
 - [x] P6.3.7 Mobil månadskalender (BL.1)
-- [ ] P6.3.8 Smart slots: min-notice (120 min online / 60 min fysisk)
-- [ ] P6.3.9 Bokningsfönster max 180 dagar
+- [~] P6.3.8 Smart slots: min-notice (120 min online / 60 min fysisk) — engine + migration defaults ☑; Admin override kvar
+- [~] P6.3.9 Bokningsfönster max 180 dagar — engine enforce ☑
 - [ ] P6.3.10 Kväll/helg-prisregler per tjänst
 - [ ] P6.3.11 Scheman per resurs och per tjänst (**16 Cliento-resurser**)
-- [ ] P6.3.12 Avbokningspolicy per tjänst (timmar före)
-- [ ] P6.3.13 Resurskatalog i runtime (`migration/cliento/resource-catalog.json`)
-- [ ] P6.3.14 Tilläggstjänster (`migration/cliento/addon-catalog.json`)
+- [~] P6.3.12 Avbokningspolicy per tjänst (timmar före) — engine + migration default 24 h ☑
+- [~] P6.3.13 Resurskatalog i runtime (`migration/cliento/resource-catalog.json`) — merge ☑
+- [~] P6.3.14 Tilläggstjänster (`migration/cliento/addon-catalog.json`) — readout ☑; Cliento-grupp tom
 
 ### 6.4 Behandlingstillfälle (encounter) — P0 / P1
 
@@ -543,7 +543,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
   - [ ] **P1** "Fyll i begärd information" före besök (Meridiq mall → deep link patientportal `/patient-forms/{token}`)
   - [ ] **P1** Skicka formulär / samtycke / fil via SMS från patientkort (en knapp + audit, Meridiq patientkort-flöde)
   - [ ] **P3** Marknads-SMS med segmentering (CMO-spår, Meridiq `/communication/sms`)
-- [ ] P6.10.5 Bokningspåminnelse e-post + ICS-kalenderinbjudan (samma konfigurerbara lead time som SMS — `bookingReminderLeadTime` i `/cco/settings`)
+- [~] P6.10.5 Bokningspåminnelse e-post + ICS-kalenderinbjudan — patientmail/ICS i scheduler ☑ (samma `bookingReminderLeadTime`); Resend live / Graph fallback
 - [ ] P6.10.6 Avbokningsbekräftelse e-post
 - [ ] P6.10.7 E-postmallar: offert, behandlingsplan, bokning, avbokning
 - [ ] P6.10.8 Intern notis till personal vid bokning/avbokning

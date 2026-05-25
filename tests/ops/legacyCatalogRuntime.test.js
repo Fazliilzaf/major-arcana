@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 
 const {
   mergeLegacyCatalogIntoEngineState,
+  mergeLegacyResourcesIntoEngineState,
   buildStaffRuntimeCatalogReadout,
   readTripleMapEntries,
   collectMappedLegacyIds,
@@ -175,4 +176,18 @@ test('staff runtime catalog readout exposes plan A vs staff tiers without public
   assert.ok(readout.services.some((item) => item.planA && item.publicBookable));
   assert.ok(readout.services.some((item) => item.staffCatalogTier === 'staff_active'));
   assert.match(readout.policy.note, /go-live/i);
+  assert.ok(readout.summary.addonCatalog);
+});
+
+test('mergeLegacyResourcesIntoEngineState promotes Cliento resource catalog rows', () => {
+  const state = {
+    resources: [{ id: 'louise', label: 'Louise', active: true, publicBookable: false }],
+    services: [],
+  };
+  const result = mergeLegacyResourcesIntoEngineState(state, { planAPublicResourceIds: [] });
+  assert.equal(result.changed, true);
+  assert.ok(state.resources.length >= 10);
+  assert.ok(state.resources.some((item) => item.id === 'legacy-cliento-11458'));
+  const louise = state.resources.find((item) => item.id === 'louise');
+  assert.ok(louise?.legacyMapping?.cliento);
 });

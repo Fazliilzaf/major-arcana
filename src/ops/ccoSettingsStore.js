@@ -7,6 +7,10 @@ const {
   loadBookingReminderLeadTimeMigrationDefaults,
   normalizeBookingReminderLeadTimeConfig,
 } = require('./bookingReminderLeadTime');
+const {
+  loadBookingPolicyMigrationDefaults,
+  normalizeBookingPolicySettings,
+} = require('./bookingPolicySettings');
 
 const DEFAULT_TOGGLES = Object.freeze({
   googleCalendarSync: true,
@@ -146,6 +150,7 @@ function buildDefaultSettings() {
     toggles: { ...DEFAULT_TOGGLES },
     mailFoundation: normalizeCcoMailFoundation(),
     bookingReminderLeadTime: loadBookingReminderLeadTimeMigrationDefaults(),
+    bookingPolicy: normalizeBookingPolicySettings(loadBookingPolicyMigrationDefaults()),
     deleteRequestedAt: null,
   };
 }
@@ -165,6 +170,10 @@ function normalizeSettingsRecord(input = {}, previousRecord = {}) {
   const nextLeadTime = Object.prototype.hasOwnProperty.call(input, 'bookingReminderLeadTime')
     ? normalizeBookingReminderLeadTimeConfig(input.bookingReminderLeadTime, previousLeadTime)
     : previousLeadTime;
+  const previousPolicy = normalizeBookingPolicySettings(previousSettings.bookingPolicy);
+  const nextPolicy = Object.prototype.hasOwnProperty.call(input, 'bookingPolicy')
+    ? normalizeBookingPolicySettings(input.bookingPolicy, previousPolicy)
+    : previousPolicy;
   return {
     theme: normalizedTheme,
     density: normalizedDensity,
@@ -174,6 +183,7 @@ function normalizeSettingsRecord(input = {}, previousRecord = {}) {
     toggles: normalizeToggles(input.toggles),
     mailFoundation: nextMailFoundation,
     bookingReminderLeadTime: nextLeadTime,
+    bookingPolicy: nextPolicy,
     deleteRequestedAt: normalizeText(input.deleteRequestedAt) || null,
     updatedAt: normalizeText(input.updatedAt) || nowIso(),
   };

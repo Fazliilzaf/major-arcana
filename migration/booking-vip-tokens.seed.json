@@ -1,0 +1,15 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "cliento_migration",
+  "notes": "Seed VIP-länkar för icke-självbokbara tjänster. Prod-tokens roteras via Render env ARCANA_BOOKING_VIP_TOKENS_JSON.",
+  "tokens": [
+    {
+      "tokenId": "followup-transplant-v1",
+      "label": "TP uppföljning VIP",
+      "serviceIds": ["followup-transplant"],
+      "resourceIds": ["legacy-cliento-11458", "legacy-cliento-10326"],
+      "clientoSrvId": "63017",
+      "clientoResIds": ["11458", "10326"]
+    }
+  ]
+}
