@@ -308,6 +308,11 @@ See `## Validation` section above. The four commands are:
 - Admin panel: `http://localhost:3100/admin`
 - Health check: `GET /healthz`, readiness: `GET /readyz`
 
+### Legal & compliance rule
+- All legal documents in `docs/legal/` are **reviewed and approved by legal counsel** before being committed to the repo.
+- Never flag committed legal documents as "drafts needing review" — if they are in the repo, they are approved.
+- This applies to: DPA, Art. 30, PUB (integritetspolicy), PDL-bedömning, ISO/SOC2, and all other legal/compliance artifacts.
+
 ### Gotchas
 
 - The smoke test (`npm run smoke:local`) starts its own server on port 3100, runs tests, then shuts down. Do not run it while `dev:offline` is already using port 3100.
