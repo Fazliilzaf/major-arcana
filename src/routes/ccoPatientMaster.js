@@ -12,15 +12,20 @@ const {
   isGoogleDriveConfigured,
   streamDriveFileToResponse,
 } = require('../lib/googleDriveClient');
-const fs = require('node:fs/promises');
 const {
   buildOccasionTimeline,
-  describeMigrationFileStreamability,
   extractFileOccasionContext,
 } = require('../../scripts/migration/lib/migrationUtils');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseIncludeDriveFiles(value) {
+  const normalized = String(value ?? '1')
+    .trim()
+    .toLowerCase();
+  return !['0', 'false', 'no', 'off'].includes(normalized);
 }
 
 function createCcoPatientMasterRouter({
@@ -114,7 +119,6 @@ function createCcoPatientMasterRouter({
         if (!patient) {
           return res.status(404).json({ error: 'Patienten hittades inte.' });
         }
-        await auditRead(req, actor, patient.id, 'cco.patient_master.patient.read');
 
         let journalEntries = [];
         if (journalStore) {
@@ -124,22 +128,22 @@ function createCcoPatientMasterRouter({
           });
         }
 
+        const includeDriveFiles = parseIncludeDriveFiles(req.query.includeDriveFiles);
         let driveFiles = [];
-        if (migrationIndexStore && patient.personnummer) {
+        if (includeDriveFiles && migrationIndexStore && patient.personnummer) {
           driveFiles = await migrationIndexStore.getFilesForPersonnummer(patient.personnummer);
         }
-        const driveConfigured = isGoogleDriveConfigured();
         const enrichedDriveFiles = driveFiles.map((file) => {
           const occasionContext = extractFileOccasionContext(file);
-          const streamability = describeMigrationFileStreamability(file, { driveConfigured });
           return {
             ...file,
             occasionContext,
-            ...streamability,
-            viewUrl: streamability.streamable
-              ? `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`
-              : '',
+            viewUrl: `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`,
           };
+        });
+
+        void auditRead(req, actor, patient.id, 'cco.patient_master.patient.read').catch((error) => {
+          console.error('[cco.patient_master] audit read failed', error);
         });
 
         return res.json({
@@ -196,23 +200,6 @@ function createCcoPatientMasterRouter({
         }
 
         const zipPath = resolveZipPath(config.migrationDataRoot, file.zipName);
-        if (isGoogleDriveConfigured() && !normalizeText(file.folderRoot)) {
-          let zipExists = false;
-          if (normalizeText(file.zipName)) {
-            try {
-              await fs.access(zipPath);
-              zipExists = true;
-            } catch {
-              zipExists = false;
-            }
-          }
-          if (!zipExists) {
-            return res.status(404).json({
-              error: 'Filen saknar Drive-koppling.',
-              code: 'drive_link_missing',
-            });
-          }
-        }
         const stream = openZipEntryStream({ zipPath, relativePath: file.relativePath });
         res.setHeader('Content-Type', contentTypeForPath(file.relativePath));
         res.setHeader('Cache-Control', 'private, max-age=3600');

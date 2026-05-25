@@ -3145,6 +3145,7 @@
     if (!rail || !runtime.detail?.card) return;
     els.patientRail = rail;
     const { card } = runtime.detail;
+    const journalEntries = asArray(runtime.detail.journalEntries);
     const tab = runtime.detailTab;
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
@@ -3176,7 +3177,8 @@
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil"></div>
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
-          <p class="patient-master-muted" data-patient-shell-placeholder>Laddar journal…</p>
+          ${renderJournalWorkflowCallout(journalEntries)}
+          ${renderJournalToolbar(card, journalEntries)}
         </div>
         <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
           <p class="patient-master-muted" data-patient-shell-placeholder>Laddar tidslinje…</p>
@@ -3195,11 +3197,9 @@
       if (!runtime.detail?.card) return;
       renderDetailPanel();
     };
-    if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(hydrate, { timeout: 320 });
-    } else {
+    window.requestAnimationFrame(() => {
       window.requestAnimationFrame(hydrate);
-    }
+    });
   }
 
   function renderDetailPanel() {
@@ -3510,12 +3510,13 @@
     return null;
   }
 
-  async function fetchPatientDetailFromApi(patientId) {
+  async function fetchPatientDetailFromApi(patientId, { includeDriveFiles = true } = {}) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timeoutId = controller ? window.setTimeout(() => controller.abort(), 8000) : 0;
+    const driveQuery = includeDriveFiles ? '1' : '0';
     try {
       return await apiRequest(
-        `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}`,
+        `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}`,
         controller ? { signal: controller.signal } : {}
       );
     } finally {
@@ -3532,7 +3533,7 @@
     if (patientDetailInflight.has(key) || window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) return;
 
     window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = true;
-    void fetchPatientDetailFromApi(key)
+    void fetchPatientDetailFromApi(key, { includeDriveFiles: false })
       .then((payload) => {
         if (!payload) return;
         const current = window.__ARCANA_PATIENT_PREFETCH__;
@@ -3546,7 +3547,7 @@
       });
   }
 
-  async function resolvePatientDetailPayload(patientId) {
+  async function resolvePatientDetailPayload(patientId, { preferLite = false } = {}) {
     const key = normalizeText(patientId);
     const prefetched = window.__ARCANA_PATIENT_PREFETCH__;
     if (
@@ -3558,7 +3559,8 @@
       return prefetched.payload;
     }
 
-    const apiPromise = fetchPatientDetailFromApi(patientId);
+    const useLite = preferLite || isMobileViewport();
+    const apiPromise = fetchPatientDetailFromApi(patientId, { includeDriveFiles: !useLite });
     if (!window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) {
       return apiPromise;
     }
@@ -3574,6 +3576,27 @@
       ]);
     } catch {
       return apiPromise;
+    }
+  }
+
+  async function enrichPatientDriveFiles(patientId) {
+    const key = normalizeText(patientId);
+    if (!key || normalizeText(runtime.selectedPatientId) !== key || !runtime.detail?.card) return;
+    if (asArray(runtime.detail.driveFiles).length > 0) return;
+    const fileTotal = Number(runtime.detail.card.fileSummary?.totalFiles || 0);
+    if (fileTotal <= 0) return;
+
+    try {
+      const payload = await fetchPatientDetailFromApi(patientId, { includeDriveFiles: true });
+      if (normalizeText(runtime.selectedPatientId) !== key || !runtime.detail?.card) return;
+      runtime.detail = {
+        ...runtime.detail,
+        driveFiles: asArray(payload.driveFiles),
+        occasionTimeline: asArray(payload.occasionTimeline),
+      };
+      scheduleDetailPanelPaint(patientId);
+    } catch {
+      /* best-effort */
     }
   }
 
@@ -3611,7 +3634,7 @@
       pushMobilePatientDetailHistory(patientId);
     }
     try {
-      const payload = await resolvePatientDetailPayload(patientId);
+      const payload = await resolvePatientDetailPayload(patientId, { preferLite: isMobileViewport() });
       runtime.detail = payload;
       syncTimelineFocusFromEntries(payload.journalEntries);
       runtime.detailLoading = false;
@@ -3620,6 +3643,9 @@
         scheduleFullDetailPanelHydration(patientId);
       } else {
         scheduleDetailPanelPaint(patientId);
+      }
+      if (isMobileViewport()) {
+        void enrichPatientDriveFiles(patientId);
       }
       try {
         const nav = performance.getEntriesByType('navigation')[0];
