@@ -1,17 +1,30 @@
 'use strict';
 
 (function initCcoMobileCore() {
-  const MQ = '(max-width: 768px)';
+  const MQ_MOBILE = '(max-width: 768px)';
+  const MQ_TABLET = '(min-width: 768px) and (max-width: 1023px)';
   let scrollLockCount = 0;
   let savedBodyOverflow = '';
   let offlineBannerEl = null;
 
   function isMobile() {
     try {
-      return window.matchMedia(MQ).matches;
+      return window.matchMedia(MQ_MOBILE).matches;
     } catch {
       return false;
     }
+  }
+
+  function isTablet() {
+    try {
+      return window.matchMedia(MQ_TABLET).matches;
+    } catch {
+      return false;
+    }
+  }
+
+  function isCompactViewport() {
+    return isMobile() || isTablet();
   }
 
   function lockBodyScroll() {
@@ -202,7 +215,7 @@
   }
 
   function convertMailTablesToCards() {
-    if (!isMobile()) return;
+    if (!isCompactViewport()) return;
     document.querySelectorAll('.conversation-mail-body table').forEach((table) => {
       if (table.dataset.ccoMobileCards === '1') return;
       table.dataset.ccoMobileCards = '1';
@@ -239,8 +252,6 @@
       applyFilenameRepairs();
       return;
     }
-
-    syncAuthMobileState();
 
     const shellView = document.querySelector('.preview-canvas')?.dataset?.appShellView || '';
     const browsingCustomers =

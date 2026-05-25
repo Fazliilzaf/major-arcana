@@ -1,0 +1,154 @@
+@layer components {
+  @media (min-width: 768px) and (max-width: 1023px) {
+    html[data-cco-tablet-shell='on'] {
+      --topbar-height: var(--cco-tablet-topbar-h, 60px);
+    }
+
+    html[data-cco-tablet-shell='on'] .preview-page {
+      padding-inline: var(--cco-tablet-gutter, 20px);
+    }
+
+    html[data-cco-tablet-shell='on'] .preview-topbar {
+      padding-inline: var(--cco-tablet-gutter, 20px);
+    }
+
+    /* Customers — split list + detail (overrides max-width:1100px single column) */
+    html[data-cco-tablet-shell='on'] .customers-layout {
+      grid-template-columns: minmax(var(--cco-tablet-split-min, 320px), var(--cco-tablet-split-max, 420px)) minmax(
+        0,
+        1fr
+      );
+      gap: var(--cco-tablet-panel-gap, 20px);
+      align-items: start;
+    }
+
+    html[data-cco-tablet-shell='on'] .customers-list {
+      display: flex !important;
+      flex-direction: column;
+      max-height: calc(100dvh - 11rem);
+      overflow: auto;
+      position: sticky;
+      top: calc(var(--topbar-height, 60px) + 0.5rem);
+      align-self: start;
+      border-right: 1px solid rgba(120, 105, 90, 0.16);
+      padding-right: 0.5rem;
+    }
+
+    html[data-cco-tablet-shell='on'] .customers-rail {
+      display: flex !important;
+      flex-direction: column;
+      min-width: 0;
+      gap: var(--cco-tablet-panel-gap, 20px);
+    }
+
+    html[data-cco-tablet-shell='on'][data-cco-tablet-patient-split='on'] .customers-list,
+    html[data-cco-tablet-shell='on'][data-cco-tablet-patient-split='on'] .customers-rail {
+      min-height: 0;
+    }
+
+    /* Journal / patient — tabs stay visible alongside detail */
+    html[data-cco-tablet-shell='on'] .patient-master-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding-block: 4px 8px;
+      background: linear-gradient(180deg, rgba(250, 246, 242, 0.98) 70%, rgba(250, 246, 242, 0));
+    }
+
+    html[data-cco-tablet-shell='on'] .patient-master-tab,
+    html[data-cco-tablet-shell='on'] .patient-master-mode-button {
+      min-height: var(--cco-touch-min, 44px);
+    }
+
+    /* Calendar / booking — side panel instead of full-screen overlay */
+    html[data-cco-tablet-shell='on'][data-cco-tablet-booking-split='on'] .preview-canvas.is-booking-open .booking-shell {
+      position: fixed;
+      top: calc(var(--topbar-height, 60px) + 12px);
+      right: var(--cco-tablet-gutter, 20px);
+      left: auto;
+      width: min(420px, calc(100vw - var(--cco-tablet-split-min, 320px) - (var(--cco-tablet-gutter, 20px) * 3)));
+      bottom: 12px;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: none;
+      z-index: 34;
+    }
+
+    html[data-cco-tablet-shell='on'][data-cco-tablet-booking-split='on'] .booking-shell-surface {
+      border-radius: 20px;
+      max-height: 100%;
+    }
+
+    html[data-cco-tablet-shell='on'][data-cco-tablet-booking-split='on'] .preview-workspace > .preview-shell,
+    html[data-cco-tablet-shell='on'][data-cco-tablet-booking-split='on'] .preview-workspace > .focus-shell {
+      margin-right: min(440px, 42vw);
+      transition: margin-right 180ms ease;
+    }
+
+    /* Tabell → kort (tablet, same treatment as mobile mail tables) */
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards {
+      display: block !important;
+      width: 100% !important;
+      border: 0 !important;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards thead {
+      display: none;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards tbody,
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards tr,
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards td,
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards th {
+      display: block !important;
+      width: 100% !important;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards tr {
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      border-radius: 12px;
+      background: var(--cco-bg-surface, #fff);
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards td + td {
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    /* CCO Care panel — compact card rows on tablet */
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table {
+      display: block;
+      width: 100%;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table thead {
+      display: none;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table tbody,
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table tr {
+      display: block;
+      width: 100%;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table tr {
+      margin-bottom: 10px;
+      padding: 12px;
+      border: 1px solid rgba(120, 105, 90, 0.14);
+      border-radius: 14px;
+      background: rgba(252, 248, 244, 0.9);
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table td {
+      display: block;
+      padding: 2px 0;
+    }
+  }
+}

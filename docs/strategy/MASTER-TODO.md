@@ -1,11 +1,11 @@
 # Major Arcana — samlad faslista (en sida)
 
-Senast uppdaterad: **2026-05-25** (BL.3 Android Playwright + Notion-sync)  
+Senast uppdaterad: **2026-05-25** (DEL 6 paritet + Notion-sync 169 punkter)  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
 
-**Du är här:** **BL.3 ☑** · **U2.2 MFA** (väntar go-live) · **U5B.3** Q4 · **BL.4/BL.5** backlog.
+**Du är här:** Se **DEL 6** (full paritet Cliento + Meridiq) · öppna punkter i DEL 1–5 enligt ☐ nedan.
 
-**Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6) — synkad 2026-05-25 Resend-svep (se `NOTION-SYNC-MANIFEST.md`)
+**Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6) — synkad 2026-05-25 DEL 6 (169 P6-rader + referens, se `NOTION-SYNC-MANIFEST.md`)
 
 Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md) · [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) · [ma-document-placement-plan.md](./ma-document-placement-plan.md)
 
@@ -317,9 +317,9 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
 - [x] U5B.1 Påminnelse före besök (= J-7.1)
 - [x] U5B.2 Eftervård / formulär / återbesök triggers (= J-7.2)
-- [ ] U5B.3 Post-op auto-trigger (Q4)
+- [ ] U5B.3 Post-op auto-trigger
 
-> **Verify 2026-05-25:** Publik catalog **503** (policy av). Plan A staff **3/3** publika tjänster. **U5A.4 Resend live** — `resend.configured=true`, OWNER mail-probe `provider:resend`. U5B.1–2 **PASS** (`verify:cco-care-sweep-prod` CC-11). U5B.3 medvetet Q4.
+> **Verify 2026-05-25:** Publik catalog **503** (policy av). Plan A staff **3/3** publika tjänster. **U5A.4 Resend live**. U5B.1–2 **PASS** (`verify:cco-care-sweep-prod` CC-11). U5B.3 ☐.
 
 ### Utrullning 6 — Agenter + CMO + patientkanal ☐
 
@@ -396,13 +396,243 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] BL.2 cco-next-release parity (#18) — `/cco-next` → `/major-arcana-preview` redirect (canonical UI)
 - [x] BL.3 Android enhetstest (valfritt) — Playwright Pixel 5 @ prod (`verify:android-staff-prod`)
 - [ ] BL.4 Executive OS expand — PR #6 delvis (6 agents); full masterplan-expand kvar
-- [~] BL.5 Adaptive layout (Arcana/CCO web) — spec ☑ [cco-adaptive-layout-rules.md](./cco-adaptive-layout-rules.md); Fas 1–4 implementation ☐
+- [~] BL.5 Adaptive layout (Arcana/CCO web) — spec ☑ [cco-adaptive-layout-rules.md](./cco-adaptive-layout-rules.md); Fas 0 ☑ · Fas 1 ☑ (tablet split) · Fas 2 ☑ (tabell→kort tablet) · Fas 3 ~ (FormStep mobil+TP/pre-treatment; full 4-steg spec kvar) · Fas 4 ☐
 
 > **Verify BL.1:** `booking-mobile-calendar-day.js` — månadsvy (nav, Idag, 7×6 grid, badge lediga/bokade), daglista under. `ArcanaBookingMobileCalendar.getViewMonth()`. Unit sweep PASS 2026-05-25.
 > **Verify BL.2:** Prod **302** `/cco-next` → `/major-arcana-preview/` (`X-Arcana-Cco-Next-Redirect`). `resolveCcoNextPreviewRedirect.js` + `smoke:public` PASS 2026-05-25.
 > **Verify BL.3:** `scripts/lib/mobilePlaywrightDevices.js` (Pixel 5 + Galaxy S9+). `npm run verify:android-staff-prod` + `test:visual:mobile:android`. Fysisk enhet kvar i `cco-mobile-staff-pilot-checklist.md` (valfritt).
-> **Verify BL.4:** PR #6 gav 6 agents + capabilities; full Executive OS-expand enligt masterplan **ej påbörjad**.
+> **Verify BL.5:** `cco-tablet-shell.js` + `cco-tablet-shell.css` — tablet 768–1023 split (kunder, kalender sidopanel, journal-tabs). `cco-mobile-core.js` tabell→kort även tablet. CC-10 draft-proposals GET read-only preview (`persist: false`) — verify:cco-care-sweep-prod 16/16.
 > **J-8 underlag:** se Fas J-8 ovan — spec + gateway + byggblock finns; prod-agent saknas.
+
+---
+
+## DEL 6 — Full paritet Cliento + Meridiq (alla punkter)
+
+**Prioritering:** P0 · P1 · P2 · P3 — se [CCO-SYSTEM-SCOPE.md §15](./CCO-SYSTEM-SCOPE.md#15-prioriterad-leveransordning)  
+**Inventering:** [CLIENTO-INVENTORY.md](./CLIENTO-INVENTORY.md) · [MERIDIQ-INVENTORY.md](./MERIDIQ-INVENTORY.md) · [CCO-UNIFIED-SYSTEM-PLAN.md](./CCO-UNIFIED-SYSTEM-PLAN.md)
+
+### 6.1 Kundmaster — P0 ☑
+
+- [x] P6.1.1 Unikt patientregister (personnummer, kontakt, flaggor)
+- [x] P6.1.2 Cliento-import (~7 349) + Drive-filkoppling
+- [x] P6.1.3 Kundlista: sök, filter, profil / journal / filer
+- [x] P6.1.4 Sammanfoga dubbletter (Identitet: grupper, merge, ignorera)
+- [x] P6.1.5 GDPR-utdrag (profil + journal + filindex)
+- [x] P6.1.6 Journalspärr per patient (`journalBlocked`)
+- [x] P6.1.7 Etiketter Importerad / Webbokning / Ny
+- [ ] P6.1.8 ID-verifiering (legitimation) på patientkort — Meridiq `verification`-fält
+- [ ] P6.1.9 Närmaste anhörig, viktig notering, adresser (full Meridiq-demografi)
+- [ ] P6.1.10 Fortnox-kundnummer kopplat till patient
+
+### 6.2 Bokning — publik — P0 / P1
+
+- [x] P6.2.1 Egen bokningsmotor Plan A (tjänster, resurser, slots)
+- [x] P6.2.2 Online konsultation + fysisk konsultation (publikt)
+- [x] P6.2.3 Webb → Arcana reservation (kontakt, slot, hälsodeklarationsflagga)
+- [x] P6.2.4 Plan A intern katalog — 3 publika tjänster (`72f852a`)
+- [ ] P6.2.5 Full publik katalog: FUE, DHI, skägg, ögonbryn, PRP hår/hud, microneedling, uppföljning
+- [ ] P6.2.6 Alla **55 Cliento-tjänster** i engine (`migration/cliento-service-catalog.json` → runtime)
+- [ ] P6.2.7 Alla **82 Meridiq-tjänster** mappade (`migration/meridiq-service-catalog.json` + `service-triple-map.json`)
+- [ ] P6.2.8 VIP-länk / token-bokning (t.ex. uppföljning srvId **63017**, resId **11458** / **10326**)
+- [ ] P6.2.9 Curatiio separat bokningsflöde (egna tjänster, inget läckage Hair TP ↔ Curatiio)
+- [ ] P6.2.10 Strikt varumärkesseparation — Curatiio syns inte på hairtpclinic.com
+- [ ] P6.2.11 Curatiio widget på curatiio.se → Arcana (ej Cliento)
+- [ ] P6.2.12 Publik webb-API go-live (`ARCANA_PUBLIC_WEB_BOOKING_ENABLED`) — policy av idag
+- [ ] P6.2.13 Cliento widget avstängd permanent efter cutover
+- [ ] P6.2.14 `/en/book` locale-paritet (om aktiv på webben)
+
+### 6.3 Bokning — intern (personal) — P0 / P1
+
+- [x] P6.3.1 Bokningsärende i CCO (kandidat-tider, validering, status)
+- [x] P6.3.2 Koppling bokning → behandlingstillfälle (J-6.3 / TL-B)
+- [x] P6.3.3 Virtuella bokningsbanor (online / fysisk) + läkare som resurser
+- [x] P6.3.4 Operatörsbekräftelse Plan A prod
+- [ ] P6.3.5 Kalendervy per behandlare och resurs (mottagningsdag)
+- [ ] P6.3.6 Kalender-/dagvy i CCO arbetsyta
+- [x] P6.3.7 Mobil månadskalender (BL.1)
+- [ ] P6.3.8 Smart slots: min-notice (120 min online / 60 min fysisk)
+- [ ] P6.3.9 Bokningsfönster max 180 dagar
+- [ ] P6.3.10 Kväll/helg-prisregler per tjänst
+- [ ] P6.3.11 Scheman per resurs och per tjänst (**16 Cliento-resurser**)
+- [ ] P6.3.12 Avbokningspolicy per tjänst (timmar före)
+- [ ] P6.3.13 Resurskatalog i runtime (`migration/cliento/resource-catalog.json`)
+- [ ] P6.3.14 Tilläggstjänster (`migration/cliento/addon-catalog.json`)
+
+### 6.4 Behandlingstillfälle (encounter) — P0 / P1
+
+- [x] P6.4.1 Encounter-store kopplad till bokning
+- [x] P6.4.2 Tidslinje TL-B: gruppering per encounter
+- [x] P6.4.3 TL-C: hälsodekl + friskförsäkran + TP/PRP/uppföljning/ögonlock under encounter
+- [x] P6.4.4 Signering låser encounter-metadata
+- [x] P6.4.5 Bokning öppnar rätt tidslinjesegment
+- [ ] P6.4.6 Avtal + betalning (POS) under samma encounter
+- [ ] P6.4.7 Encounter-typer: konsultation, transplant, PRP, microneedling, uppföljning, ögonlocksplastik, Curatiio-estetik
+- [ ] P6.4.8 Automatisk draft uppföljning 4/6/12 mån efter signerad transplant (scheduler)
+
+### 6.5 Patientformulär — P0 / P1 / P2
+
+- [x] P6.5.1 H1 — Hälsodeklaration Hair TP (Meridiq **16414**) — UI + gate (MA-D)
+- [ ] P6.5.2 H2 — Hälsodeklaration ögonlocksplastik (**16415**, `curatiio_bleph`)
+- [ ] P6.5.3 H3 — Hälsodeklaration ortopedi (**14878**, `curatiio_ortho`)
+- [ ] P6.5.4 H4 — Hälsodeklaration estetiska injektioner (**16472**, `curatiio_injection`)
+- [ ] P6.5.5 H5 — ENG Health Questionnaire (`eng`)
+- [x] P6.5.6 F1 — Friskförsäkran TP (Meridiq **16413**) — UI (`/friskforsakran`)
+- [ ] P6.5.7 F2 — Friskförsäkran ögonlocksplastik (**16389**)
+- [ ] P6.5.8 Patientportal / token-länk före besök (ersätter Meridiq registreringsportal)
+- [ ] P6.5.9 Webb `/screen` → journal H1 (synkad, ej fristående)
+- [ ] P6.5.10 Webb `/friskforsakran` → journal F1 (synkad, ej fristående)
+- [ ] P6.5.11 Registreringsportal-inställningar (foto-samtycke, NRS, BankID, flerspråk SV/EN/ES)
+- [ ] P6.5.12 Meridiq ifyllda formulär + PDF importerade som historik
+
+### 6.6 Personalformulär / journal — P0 / P1
+
+- [x] P6.6.1 J1 — TP behandlingsjournal (**16411**, 52/59 fält, `journal-tp-schemas.js`)
+- [ ] P6.6.2 J1 gap — full paritet 59 Meridiq-fält
+- [x] P6.6.3 J2 — TP efterbehandling PRP (**16412**, `journal-prp-schemas.js`)
+- [x] P6.6.4 J3 — PRP/PRF/microneedling (**14988**, `journal-prp-schemas.js`)
+- [x] P6.6.5 J4 — Ögonlocksplastik (**16388**, `journal-bleph-schemas.js`)
+- [x] P6.6.6 U1/U2/U3 — Uppföljning 4/6/12 mån (**16407/16409/16390**)
+- [x] P6.6.7 Behandlingsplan (`consultation_plan`) — bokning + foton
+- [x] P6.6.8 Historisk import PDF (Drive/Meridiq)
+- [ ] P6.6.9 Ordinationer / recept (Meridiq patientkort-flik)
+- [ ] P6.6.10 J-8.2 godkänn journalutkast → skapa signerbar journalpost (ej bara UI)
+
+### 6.7 Journalfunktioner — P0 / P1 / P2
+
+- [x] P6.7.1 Signering, låsning, rättelse som ny post
+- [x] P6.7.2 Auditlogg läsning + skrivning
+- [x] P6.7.3 Foto (Ta bild, HEIC, mobil) kopplat till encounter
+- [ ] P6.7.4 PDF genereras och arkiveras vid signering
+- [ ] P6.7.5 Före/efter-bilder som egen sektion på patientkort
+- [ ] P6.7.6 NRS-smärtskala (valfritt i behandlingsjournal)
+- [ ] P6.7.7 Journaltextmallar (konsultation, ordination, signatur) — Meridiq `/templates/text`
+- [ ] P6.7.8 Bildmallar före/efter — Meridiq `/templates/image`
+- [ ] P6.7.9 SMS/e-post/journal-malltexter som separata filer i repo
+
+### 6.8 Samtycken & behandlingsavtal — P0 / P1
+
+- [x] P6.8.1 Behandlingsavtal från accepterad offert (distans + på plats)
+- [x] P6.8.2 Betänketid / 14-dagars ånger vid distansbokning
+- [x] P6.8.3 Publik signeringssida (token)
+- [ ] P6.8.4 Behandlingsavtal per tjänst: TP, PRP hår, PRP hud, microneedling
+- [ ] P6.8.5 Curatiio-avtal: Botox, fillers, Profhilo, ögonlocksplastik, ortopedi
+- [ ] P6.8.6 Samtycke bokning inom 14 dagar + samtycke behandling under ångerfrist
+- [ ] P6.8.7 Foto-publiceringssamtycke (före/efter)
+- [ ] P6.8.8 Alla **31+ Meridiq-samtycken** i runtime (`migration/meridiq/consent-catalog.json`)
+- [ ] P6.8.9 Per-tjänst samtycke/questionnaire-bindning (`service-bindings-catalog.json`)
+- [ ] P6.8.10 Importerade signerade samtycken från Meridiq (historik)
+
+### 6.9 Offerter & commercial — P1
+
+- [x] P6.9.1 Offertmallar (14 Word) + offertflöde
+- [x] P6.9.2 Offert accepterad → behandlingsavtal
+- [ ] P6.9.3 Offert skickad → accepterad / avvisad / utgången (Meridiq-workflow)
+- [ ] P6.9.4 Patientinformation bilaga 1 (PDF) loggad vid utskick
+- [ ] P6.9.5 Medical Finance / betalningsinfo i offertmejl
+- [ ] P6.9.6 Skickade mejl + offerter-flik på patientkort (`/communication/email`)
+
+### 6.10 Kommunikation — P0 / P1 / P3
+
+- [x] P6.10.1 Bokningsbekräftelse e-post Resend (U5A.4 live)
+- [x] P6.10.2 Bokningsbekräftelse Graph (intern)
+- [x] P6.10.3 Operatörs-digest påminnelser (J-7 — ej patient-SMS)
+- [ ] P6.10.4 Bokningspåminnelse SMS (4 h online / 24 h fysisk — Cliento-standard)
+- [ ] P6.10.5 Bokningspåminnelse e-post + ICS-kalenderinbjudan
+- [ ] P6.10.6 Avbokningsbekräftelse SMS + e-post
+- [ ] P6.10.7 "Fyll i begärd information" före besök
+- [ ] P6.10.8 Skicka formulär / samtycke / fil till patient (en knapp + audit)
+- [ ] P6.10.9 SMS-mallar Hair TP + Curatiio (merge-fält)
+- [ ] P6.10.10 E-postmallar: offert, behandlingsplan, bokning, avbokning
+- [ ] P6.10.11 Intern notis till personal vid bokning/avbokning
+- [ ] P6.10.12 Post-op auto-trigger patientkanal (U5B.3)
+- [ ] P6.10.13 Marknads-SMS med segmentering (P3 — CMO-spår)
+
+### 6.11 Kassa / POS — P1 / P2
+
+- [ ] P6.11.1 Kassa vid/efter behandlingstillfälle
+- [ ] P6.11.2 Betalning tjänst (pris, moms, kväll/helg)
+- [ ] P6.11.3 Produktkatalog och lager
+- [ ] P6.11.4 Kvitto (utskrift/e-post)
+- [ ] P6.11.5 Fakturor
+- [ ] P6.11.6 Presentkort (köp + inlösen)
+- [ ] P6.11.7 P-liggare / utestående
+- [ ] P6.11.8 POS-ordrar synliga på patientkort och tidslinje
+- [ ] P6.11.9 Kassarapport (`/point-of-sale/report`)
+- [ ] P6.11.10 POS-terminalinställningar
+- [ ] P6.11.11 `ccoPosStore` — ej byggd
+
+### 6.12 Personal & arbetsyta — P0 / P1 / P2
+
+- [x] P6.12.1 CCO arbetsyta (kundkö, trådar, bokning, journal-readout)
+- [x] P6.12.2 Mobil personalvy (kundlista, journal, foto, bottom sheets)
+- [x] P6.12.3 Roller: owner, staff, patient
+- [~] P6.12.4 MFA + session (U2.2 OWNER enforced — väntar go-live)
+- [x] P6.12.5 STAFF-konton sjuksköterskor + instruktion
+- [x] P6.12.6 J-8.1 daglig rapport saknade formulär/samtycken
+- [x] P6.12.7 J-8.2 journalutkast human approval (API + UI)
+- [ ] P6.12.8 U6A full autonom CCO-agent
+- [ ] P6.12.9 U6B CMO live connectors (fixture → live)
+- [ ] P6.12.10 U6C CAO admin-operator
+- [ ] P6.12.11 U6D Patientkanal (canon: sist)
+- [ ] P6.12.12 BL.4 Executive OS expand
+- [ ] P6.12.13 BL.5 Adaptive layout Fas 1–4
+
+### 6.13 Compliance & QA — P0 / P2
+
+- [x] P6.13.1 Åtkomstlogg (audit events)
+- [x] P6.13.2 EU-lagring (Render Frankfurt)
+- [x] P6.13.3 Retention 10 år (J-9.1)
+- [x] P6.13.4 GDPR export + journalspärr (J-9.2–9.3)
+- [x] P6.13.5 Art. 30 + PUB (J-9.4)
+- [x] P6.13.6 PDL juridiskt signerat
+- [ ] P6.13.7 QA-dashboard: formulärcompletion, signeringar, export
+- [ ] P6.13.8 Meridiq QA-rapporter ersatta (`/reports/record`, `/reports/booking`, `/reports/pos`)
+- [ ] P6.13.9 Inget journalinnehåll till extern AI (policy enforced i kod)
+
+### 6.14 Migration & historik — P0 / P1 / P2
+
+- [x] P6.14.1 Cliento-kunder importerade
+- [x] P6.14.2 Drive-filer indexerade + journal-PDF import
+- [~] P6.14.3 Drive `driveFileId` komplett (56988/57558 — 570 kvar)
+- [x] P6.14.4 Pipedrive export i repo (J-0.5)
+- [ ] P6.14.5 Migration-kataloger committade + wired i runtime (`service-triple-map`, consent, bindings)
+- [ ] P6.14.6 Meridiq historik: ifyllda formulär + PDF + samtycken importerade
+- [ ] P6.14.7 Meridiq read-only efter cutover
+- [ ] P6.14.8 Cliento Partner API av (`cliento_booking_disabled` — klart; permanent)
+
+### 6.15 Varumärken Hair TP / Curatiio
+
+- [ ] P6.15.1 Hair TP: full bokning + formulär + mallar + avtal
+- [ ] P6.15.2 Curatiio: separat bokning + formulär + mallar + avtal
+- [ ] P6.15.3 Verifiera Cliento Botox-tjänster (64399–64814) under Hair TP-grupp — avsikt?
+
+### 6.16 Webb & integrationer
+
+- [x] P6.16.1 hairtpclinic.com → Arcana bokning (Plan A bridge)
+- [x] P6.16.2 Web events ingest (formulär, chat-intent, analyzer)
+- [x] P6.16.3 CMO connectors (Meta, LinkedIn m.fl.)
+- [ ] P6.16.4 Pipedrive djupare synk (leads)
+- [ ] P6.16.5 Fortnox-kundnummer koppling
+
+### 6.17 Definition of Done — enhetligt system
+
+- [ ] P6.17.1 **Bokning:** alla Plan A-tjänster i Arcana; Cliento widget av
+- [ ] P6.17.2 **Formulär:** alla 14 aktiva Meridiq-formulär i Arcana med signering + PDF
+- [ ] P6.17.3 **Samtycken:** behandlingsavtal per tjänstegrupp; distans betänketid enforced
+- [ ] P6.17.4 **Journal:** TP/PRP/uppföljning live personal mobil + desktop
+- [ ] P6.17.5 **Kassa:** minst kvitto + tjänstebetalning på encounter
+- [ ] P6.17.6 **Kommunikation:** boknings-SMS/mejl + offer workflow
+- [ ] P6.17.7 **Migration:** Meridiq + Drive historik importerad; Meridiq read-only
+- [ ] P6.17.8 **Compliance:** audit, 10 år retention, EU, inga AI-tredjeparter i journal
+
+### 6.18 Öppna punkter från DEL 1–5 (ej paritet — drift)
+
+- [~] P6.18.1 U2.2 OWNER MFA enforced prod
+- [ ] P6.18.2 U2.4 STAFF login verifierad i fält (iPhone/Android)
+- [~] P6.18.3 U1.6 / J-10.6–10.7 manuell enhetspilot
+- [ ] P6.18.4 U5B.3 Post-op auto-trigger
+- [~] P6.18.5 U3.3 Personal utbildad — externt
+- [~] P6.18.6 U6A–U6D utrullning 6
 
 ---
 
@@ -430,4 +660,4 @@ curl -fsS "https://arcana.hairtpclinic.se/api/public/booking-engine/catalog?host
 | Journal-byggplan | 0–10 (+ 6–9 kvar) | 11 |
 | Utrullning | 1–6 | 6 |
 | Tidslinje UX | A–D | 4 |
-| **Denna lista** | **DEL 1–5, ~120 punkter** | **Allt i ordning** |
+| **Denna lista** | **DEL 1–6, ~200 punkter** | **Allt i ordning** |
