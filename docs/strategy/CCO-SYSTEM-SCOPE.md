@@ -128,7 +128,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ⚠️ Bokningsbekräftelse e-post (Resend — ⚠️ ej live, saknar API-nyckel)
 - ✅ Bokningsbekräftelse Graph (intern/mechanism live)
 - ✅ Bokningspåminnelse SMS (46elks / Twilio — multi-provider)
-- 🔲 Bokningspåminnelse e-post + ICS-kalenderinbjudan
+- ✅ Bokningspåminnelse e-post + ICS-kalenderinbjudan (iCal VEVENT + HTML-mall)
 - ✅ Avbokningsbekräftelse SMS + e-post
 - ✅ "Fyll i begärd information" före besök (patientportal + SMS-länk)
 - ✅ Skicka formulär / samtycke / fil till patient (patientportal token)
@@ -136,7 +136,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 ### 7.2 Mallar
 
 - ✅ SMS-mallar Hair TP + Curatiio (merge-fält: namn, datum, tid, tjänst, behandlare)
-- 🔲 E-postmallar: offert, behandlingsplan, bokning, avbokning
+- ✅ E-postmallar: offert, behandlingsplan, bokning, avbokning (HTML-templates)
 - ✅ Intern notis till personal vid bokning/avbokning (operatör e-post vid publik bokning)
 - ✅ WebRTC videosamtal (egen signaling, token-baserad patient-länk, TURN-stöd)
 - ✅ AI mötesanteckningar (Whisper transkribering + GPT sammanfattning, online + fysisk)
@@ -155,7 +155,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ Produktkatalog och lager (produkter i POS-store)
 - ✅ Kvitto (genererat receiptId per order)
 - ✅ Fakturor — Fortnox integration (skapa + skicka faktura)
-- 🔲 Presentkort (köp + inlösen)
+- ✅ Presentkort (köp + inlösen + saldo + stats)
 - ✅ P-liggare / utestående (ordrar med status pending_payment/partially_paid)
 - ✅ POS-ordrar synliga på patientkort (GET /pos/patient/:id/orders)
 - ✅ Kassarapport (GET /pos/report/daily)
@@ -168,7 +168,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ Mobil personalvy (kundlista, journal, foto, bottom sheets)
 - ✅ Roller: owner, staff, patient
 - ✅ MFA + session
-- 🔲 Kalender-/dagvy för mottagning
+- ✅ Kalender-/dagvy för mottagning (dag + veckoöversikt per behandlare)
 - ✅ CCO-agent: daglig rapport, saknade formulär/samtycken, utkast (human approval) — scheduler + J-8.1/8.2
 
 ---
@@ -179,9 +179,9 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ EU-lagring (Render Frankfurt)
 - ✅ Retention 10 år konfigurerad (`journalRetentionYears: 10` i config)
 - ✅ GDPR export + rättelseprocess dokumenterad i app (route + buildGdprExportPackage)
-- 🔲 QA-dashboard: formulärcompletion, signeringar, export
+- ✅ QA-dashboard: formulärcompletion, signeringar, export (alerts + coverage)
 - ✅ ID-verifiering (legitimation) på patientkort — manuell upload + selfie + in-person + EU wallet stub
-- 🔲 Inget journalinnehåll till extern AI
+- ✅ Inget journalinnehåll till extern AI (policy gate + middleware)
 
 ---
 

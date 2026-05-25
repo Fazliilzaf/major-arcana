@@ -965,6 +965,40 @@ app.get('/api/v1/executive/agents/status', (req, res) => {
   return res.json({ ok: true, agents, feedSummary });
 });
 
+const { computeQaDashboard } = require('./src/ops/qaDashboard');
+const { buildDayView, buildWeekView } = require('./src/ops/clinicCalendarView');
+
+app.get('/api/v1/qa/dashboard', (req, res) => {
+  const dashboard = computeQaDashboard({
+    journalStore: null,
+    patientMasterStore: null,
+    encounterStore: null,
+    identityStore: null,
+    tenantId: req.query?.tenantId || '',
+  });
+  return res.json({ ok: true, ...dashboard });
+});
+
+app.get('/api/v1/calendar/day', (req, res) => {
+  const view = buildDayView({
+    date: req.query?.date,
+    bookingEngineStore: null,
+    encounterStore: null,
+    tenantId: req.query?.tenantId || '',
+  });
+  return res.json({ ok: true, ...view });
+});
+
+app.get('/api/v1/calendar/week', (req, res) => {
+  const view = buildWeekView({
+    startDate: req.query?.startDate,
+    bookingEngineStore: null,
+    encounterStore: null,
+    tenantId: req.query?.tenantId || '',
+  });
+  return res.json({ ok: true, ...view });
+});
+
 app.get('/api/public/status', (req, res) => {
   const uptimeSec = runtimeState.startedAt
     ? Math.round((Date.now() - new Date(runtimeState.startedAt).getTime()) / 1000)
