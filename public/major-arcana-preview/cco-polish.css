@@ -4875,15 +4875,15 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .customers-layout {
+  html:not([data-cco-tablet-shell='on']) .customers-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .customers-rail {
+  html:not([data-cco-tablet-shell='on']) .customers-rail {
     position: static;
   }
 
-  .customers-list {
+  html:not([data-cco-tablet-shell='on']) .customers-list {
     max-height: none;
     position: static;
   }
