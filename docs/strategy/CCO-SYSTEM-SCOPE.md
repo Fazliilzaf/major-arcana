@@ -42,7 +42,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 ### 2.2 Intern bokning (personal)
 
 - ✅ Bokningsärende i CCO med kandidat-tider, validering, status
-- 🔲 Kalendervy per behandlare och resurs
+- ✅ Kalendervy per behandlare och resurs
 - ✅ Smart slots: min-notice, max 180 dagar, kväll/helg-prisregler (per service config)
 - ✅ Koppling bokning → behandlingstillfälle (encounter) automatiskt
 
@@ -137,7 +137,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ SMS-mallar Hair TP + Curatiio (merge-fält: namn, datum, tid, tjänst, behandlare)
 - 🔲 E-postmallar: offert, behandlingsplan, bokning, avbokning
-- 🔲 Intern notis till personal vid bokning/avbokning
+- ✅ Intern notis till personal vid bokning/avbokning (operatör e-post vid publik bokning)
 - ✅ WebRTC videosamtal (egen signaling, token-baserad patient-länk, TURN-stöd)
 - ✅ AI mötesanteckningar (Whisper transkribering + GPT sammanfattning, online + fysisk)
 
@@ -169,7 +169,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ Roller: owner, staff, patient
 - ✅ MFA + session
 - 🔲 Kalender-/dagvy för mottagning
-- 🔲 CCO-agent: daglig rapport, saknade formulär/samtycken, utkast (human approval)
+- ✅ CCO-agent: daglig rapport, saknade formulär/samtycken, utkast (human approval) — scheduler + J-8.1/8.2
 
 ---
 
@@ -177,8 +177,8 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ Åtkomstlogg (audit events)
 - ✅ EU-lagring (Render Frankfurt)
-- 🔲 Retention 10 år konfigurerad
-- 🔲 GDPR export + rättelseprocess dokumenterad i app
+- ✅ Retention 10 år konfigurerad (`journalRetentionYears: 10` i config)
+- ✅ GDPR export + rättelseprocess dokumenterad i app (route + buildGdprExportPackage)
 - 🔲 QA-dashboard: formulärcompletion, signeringar, export
 - ✅ ID-verifiering (legitimation) på patientkort — manuell upload + selfie + in-person + EU wallet stub
 - 🔲 Inget journalinnehåll till extern AI
