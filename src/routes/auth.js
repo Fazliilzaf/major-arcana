@@ -95,6 +95,16 @@ function createAuthRouter({
   const applySelectTenantRateLimit =
     typeof selectTenantRateLimiter === 'function' ? selectTenantRateLimiter : (_req, _res, next) => next();
   const rotationScope = normalizeSessionRotationScope(loginSessionRotationScope, 'none');
+
+  async function safeAuditEvent(payload) {
+    if (typeof authStore.addAuditEvent !== 'function') return;
+    try {
+      await authStore.addAuditEvent(payload);
+    } catch (error) {
+      console.error('[auth] audit write failed', error?.message || error);
+    }
+  }
+
   const ownerMfaBypassHostSet = new Set(
     (Array.isArray(ownerMfaBypassHosts) ? ownerMfaBypassHosts : [])
       .map((item) => normalizeHost(item))
@@ -318,7 +328,7 @@ function createAuthRouter({
           }
           ownerCredentialSelfHealed = Boolean(user);
           if (ownerCredentialSelfHealed && ownerEmergencyResetEnabled && !ownerPasswordMatchesBootstrap) {
-            await authStore.addAuditEvent({
+            await safeAuditEvent({
               actorUserId: bootstrap?.user?.id || user?.id || null,
               action: 'auth.login.owner_emergency_reset',
               outcome: 'success',
@@ -329,7 +339,7 @@ function createAuthRouter({
             });
           }
         } catch (selfHealError) {
-          await authStore.addAuditEvent({
+          await safeAuditEvent({
             action: 'auth.login.owner_self_heal',
             outcome: 'error',
             metadata: {
@@ -340,7 +350,7 @@ function createAuthRouter({
         }
       }
       if (!user) {
-        await authStore.addAuditEvent({
+        await safeAuditEvent({
           action: 'auth.login',
           outcome: 'denied',
           metadata: { email },
@@ -352,7 +362,7 @@ function createAuthRouter({
         includeDisabled: false,
       });
       if (memberships.length === 0) {
-        await authStore.addAuditEvent({
+        await safeAuditEvent({
           actorUserId: user.id,
           action: 'auth.login',
           outcome: 'denied',
@@ -366,7 +376,7 @@ function createAuthRouter({
         selectedMembership =
           memberships.find((membership) => membership.tenantId === tenantId) || null;
         if (!selectedMembership) {
-          await authStore.addAuditEvent({
+          await safeAuditEvent({
             actorUserId: user.id,
             action: 'auth.login',
             outcome: 'denied',
@@ -404,7 +414,7 @@ function createAuthRouter({
           return res.status(500).json({ error: 'MFA challenge kunde inte initieras.' });
         }
 
-        await authStore.addAuditEvent({
+        await safeAuditEvent({
           actorUserId: user.id,
           action: 'auth.login.pending_mfa',
           outcome: 'success',
@@ -437,7 +447,7 @@ function createAuthRouter({
           membershipIds: memberships.map((membership) => membership.id),
         });
 
-        await authStore.addAuditEvent({
+        await safeAuditEvent({
           actorUserId: user.id,
           action: 'auth.login.pending_tenant_selection',
           outcome: 'success',
@@ -463,7 +473,7 @@ function createAuthRouter({
         currentSessionId: created.session.id,
       });
 
-      await authStore.addAuditEvent({
+      await safeAuditEvent({
         tenantId: selectedMembership.tenantId,
         actorUserId: user.id,
         action: 'auth.login',
