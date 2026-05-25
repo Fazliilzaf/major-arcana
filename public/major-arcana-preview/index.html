@@ -5,8 +5,8 @@
   <meta charset="UTF-8" />
     <!-- Bundlade scripts preload (content-hash: d9a770ff9d) -->
     <link rel="preload" as="script" href="./app.bundle.d9a770ff9d.min.js" />
-    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-deeplink-boot-b" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-boot-b" />
+    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-deeplink-boot-c" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-boot-c" />
     <script>
     (function mobileDeferInboxUntilNeeded() {
       try {
@@ -48,7 +48,7 @@
       }
     })();
   </script>
-  <script src="./app/mobile-deeplink-boot.js?v=build-deeplink-boot-b"></script>
+  <script src="./app/mobile-deeplink-boot.js?v=build-deeplink-boot-c"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>HairTP Clinic CCO</title>
   <meta name="theme-color" content="#fbf7f1" />
@@ -1939,7 +1939,7 @@
                 </script>
                 <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-modal-c"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=build-deeplink-boot-b"></script>
+                  <script async src="./app/patient-master-ui.js?v=build-deeplink-boot-c"></script>
 <div data-patient-identity-rail hidden>
                   <section class="customers-rail-panel customers-rail-panel-suggestions">
                     <div class="customers-rail-panel-head">
@@ -6978,6 +6978,17 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
             inject();
           }
           window.addEventListener('arcana-deeplink-detail-ready', finish, { once: true });
+          window.addEventListener(
+            'DOMContentLoaded',
+            function () {
+              if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(finish, { timeout: 1600 });
+              } else {
+                window.setTimeout(finish, 120);
+              }
+            },
+            { once: true }
+          );
           window.setTimeout(finish, 3200);
           if (window.__ARCANA_DEEPLINK_HYDRATED__) finish();
         } else {

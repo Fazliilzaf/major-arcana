@@ -156,8 +156,16 @@ async function main() {
     const snap1 = await snapshot(page, 'after-load');
     record('Kallstart /staff → mobil shell', snap1.shell === 'on', snap1.url, ms(t0));
     const coldStartMs = ms(t0);
+    const shellPrimeMs = await page.evaluate(() =>
+      Math.round(Number(window.__ARCANA_MOBILE_SHELL_PRIME_MS__ || 0))
+    );
+    if (shellPrimeMs > 0) {
+      record('Mobil shell prime (head)', shellPrimeMs <= 800, `${shellPrimeMs}ms från navigation`, shellPrimeMs);
+    }
     if (coldStartMs > 8000) {
       warn('Kallstart långsam', `${coldStartMs}ms (>8000ms budget)`);
+    } else if (coldStartMs > 3000) {
+      warn('Kallstart över mål', `${coldStartMs}ms (>3000ms mål)`);
     }
 
     // 2. Login-form tillgänglig

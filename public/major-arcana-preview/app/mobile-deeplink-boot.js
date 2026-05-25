@@ -1,13 +1,23 @@
 /**
- * Mobil deep link — tidig prefetch, rail-hydrering och uppskjuten app.bundle.
- * Körs synkront från <head> innan stora HTML-trädet blockar main thread.
+ * Mobil staff boot — tidig shell, uppskjuten app.bundle, deep link-prefetch.
+ * Körs synkront från <head> innan body/HTML-blockerande bundle.
  */
-(function mobileDeepLinkBoot() {
+(function mobileStaffBoot() {
   'use strict';
 
   function isMobileViewport() {
     try {
       return window.matchMedia('(max-width: 768px)').matches;
+    } catch {
+      return false;
+    }
+  }
+
+  function isMobileCustomersRoute() {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const view = String(params.get('view') || 'customers').trim();
+      return view === 'customers';
     } catch {
       return false;
     }
@@ -43,6 +53,19 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  function primeMobileShellEarly() {
+    document.documentElement.setAttribute('data-cco-mobile-shell', 'on');
+    document.documentElement.setAttribute('data-cco-mobile-tabbar', 'on');
+    try {
+      const nav = performance.getEntriesByType('navigation')[0];
+      if (nav) {
+        window.__ARCANA_MOBILE_SHELL_PRIME_MS__ = performance.now() - nav.startTime;
+      }
+    } catch {
+      /* best-effort */
+    }
   }
 
   function markDeepLinkPrime(patientId) {
@@ -174,14 +197,19 @@
       });
   }
 
+  if (!isMobileViewport()) return;
+
+  if (isMobileCustomersRoute()) {
+    window.__ARCANA_DEFER_APP_BUNDLE__ = true;
+    primeMobileShellEarly();
+  }
+
   const deepLink = parseDeepLink();
-  if (!deepLink || !isMobileViewport()) return;
-
-  window.__ARCANA_DEFER_APP_BUNDLE__ = true;
-  markDeepLinkPrime(deepLink.patientId);
-
-  const token = readStaffToken();
-  if (token.length > 8) {
-    prefetchPatientDetail(deepLink.patientId, token);
+  if (deepLink) {
+    markDeepLinkPrime(deepLink.patientId);
+    const token = readStaffToken();
+    if (token.length > 8) {
+      prefetchPatientDetail(deepLink.patientId, token);
+    }
   }
 })();
