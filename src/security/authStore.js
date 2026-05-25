@@ -572,7 +572,21 @@ async function createAuthStore({
       await writeJsonAtomic(filePath, state);
     } catch (error) {
       emergencyPruneForPersistFailure();
-      await writeJsonAtomic(filePath, state);
+      try {
+        await writeJsonAtomic(filePath, state);
+      } catch (retryError) {
+        const sessionIds = Object.keys(state.sessions);
+        if (sessionIds.length > 50) {
+          const keep = sessionIds.slice(-50);
+          const next = {};
+          for (const id of keep) next[id] = state.sessions[id];
+          state.sessions = next;
+        }
+        if (auditMaxEntries > 0 && state.auditEvents.length > 250) {
+          state.auditEvents = state.auditEvents.slice(-250);
+        }
+        await writeJsonAtomic(filePath, state);
+      }
     }
   }
 
