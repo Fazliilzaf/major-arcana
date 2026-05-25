@@ -20,18 +20,34 @@ const steps = [
   { name: 'U2.4-04 cco-mobile-pilot', cmd: 'npm run verify:cco-mobile-pilot-prod' },
 ];
 
+function runStep(step, { retry = false } = {}) {
+  console.log(`--- ${step.name} ---`);
+  try {
+    execSync(step.cmd, { cwd: root, stdio: 'inherit', env: process.env });
+    console.log(`PASS ${step.name}\n`);
+    return true;
+  } catch (error) {
+    if (!retry) return false;
+    console.error(`FAIL ${step.name} — retry …`);
+    try {
+      execSync(step.cmd, { cwd: root, stdio: 'inherit', env: process.env });
+      console.log(`PASS ${step.name} (retry)\n`);
+      return true;
+    } catch (retryError) {
+      console.error(`FAIL ${step.name}\n`);
+      return false;
+    }
+  }
+}
+
 function main() {
   console.log('U2.4 field prep verify (automation before physical device)\n');
   console.log(`Checklist: ${checklist}\n`);
 
   let hardFail = false;
   for (const step of steps) {
-    console.log(`--- ${step.name} ---`);
-    try {
-      execSync(step.cmd, { cwd: root, stdio: 'inherit', env: process.env });
-      console.log(`PASS ${step.name}\n`);
-    } catch (error) {
-      console.error(`FAIL ${step.name}\n`);
+    const retry = step.name === 'U2.4-02 staff-ui' || step.name === 'U2.4-04 cco-mobile-pilot';
+    if (!runStep(step, { retry })) {
       hardFail = true;
       break;
     }

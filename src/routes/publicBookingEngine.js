@@ -30,9 +30,18 @@ const {
   publicWebBookingDisabledBody,
 } = require('../infra/publicWebBooking');
 const { syncWebReservationToJournal } = require('../ops/ccoJournalBookingBridge');
+const {
+  resolveBookingVipToken,
+  isResourceAllowedForVipToken,
+  isServiceAllowedForVipToken,
+} = require('../ops/bookingVipAccess');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function isoDateOnly(value) {
@@ -147,30 +156,92 @@ function createPublicBookingEngineRouter({
     return true;
   }
 
+  async function loadCatalogForTenant(brand) {
+    const tenantId = brand?.id || brand;
+    const [resourcesRaw, servicesRaw] = await Promise.all([
+      bookingEngineStore.listPublicResources
+        ? bookingEngineStore.listPublicResources({ tenantId })
+        : bookingEngineStore.listResources({ tenantId }),
+      bookingEngineStore.listPublicServices
+        ? bookingEngineStore.listPublicServices({ tenantId })
+        : bookingEngineStore.listServices({ tenantId }),
+    ]);
+    return {
+      resources: (Array.isArray(resourcesRaw) ? resourcesRaw : []).map(sanitizeResource),
+      services: (Array.isArray(servicesRaw) ? servicesRaw : []).map(sanitizeService),
+    };
+  }
+
+  // ── VIP token routes (works when public web booking is disabled) ──
+  router.get('/public/booking-engine/vip/:token/catalog', async (req, res) => {
+    const tokenRecord = resolveBookingVipToken(req.params.token);
+    if (!tokenRecord) {
+      return res.status(404).json({ ok: false, error: 'vip_token_invalid' });
+    }
+    try {
+      const brand = resolveBrandFromRequest(req, config);
+      const catalog = await loadCatalogForTenant(brand);
+      return res.json({
+        provider: 'cco_engine_vip',
+        vip: { label: tokenRecord.label, tokenId: tokenRecord.tokenId },
+        services: catalog.services.filter((item) =>
+          isServiceAllowedForVipToken(item.id, tokenRecord)
+        ),
+        resources: catalog.resources.filter((item) =>
+          isResourceAllowedForVipToken(item.id, tokenRecord)
+        ),
+      });
+    } catch (error) {
+      console.error('[public-booking-engine/vip/catalog]', error);
+      return res.status(500).json({ ok: false, error: 'vip_catalog_failed' });
+    }
+  });
+
+  router.get('/public/booking-engine/vip/:token/availability', async (req, res) => {
+    const tokenRecord = resolveBookingVipToken(req.params.token);
+    if (!tokenRecord) {
+      return res.status(404).json({ ok: false, error: 'vip_token_invalid' });
+    }
+    const fromDate = isoDateOnly(req.query.fromDate);
+    const toDate = isoDateOnly(req.query.toDate);
+    if (!fromDate || !toDate) {
+      return res.status(400).json({ ok: false, error: 'availability_range_missing' });
+    }
+    try {
+      const brand = resolveBrandFromRequest(req, config);
+      const slots = await bookingEngineStore.listAvailability({
+        tenantId: brand?.id || brand,
+        fromDate,
+        toDate,
+        resIds: normalizeText(req.query.resIds) || undefined,
+        srvIds: normalizeText(req.query.srvIds) || undefined,
+        publicOnly: false,
+      });
+      const filtered = asArray(slots).filter((slot) => {
+        const serviceId = normalizeText(slot?.serviceId || slot?.service?.id);
+        const resourceId = normalizeText(slot?.resourceId || slot?.resource?.id);
+        return (
+          isServiceAllowedForVipToken(serviceId, tokenRecord) &&
+          (!resourceId || isResourceAllowedForVipToken(resourceId, tokenRecord))
+        );
+      });
+      return res.json({ provider: 'cco_engine_vip', slots: filtered.map(sanitizeSlot) });
+    } catch (error) {
+      console.error('[public-booking-engine/vip/availability]', error);
+      return res.status(500).json({ ok: false, error: 'vip_availability_failed' });
+    }
+  });
+
   // ── GET /api/public/booking-engine/catalog ────────────────────────
   router.get('/public/booking-engine/catalog', async (req, res) => {
     if (rejectIfPublicWebBookingDisabled(res)) return;
     try {
       const brand = resolveBrandFromRequest(req, config);
-      // Brand-resolution är förberedd för framtiden då booking-engine blir
-      // multi-tenant. Idag delar alla tenants samma store; tenantId-flaggan
-      // är fortfarande viktig så vi inte läcker data när det skalas upp.
-      const [resourcesRaw, servicesRaw] = await Promise.all([
-        bookingEngineStore.listPublicResources
-          ? bookingEngineStore.listPublicResources({ tenantId: brand?.id || brand })
-          : bookingEngineStore.listResources({ tenantId: brand?.id || brand }),
-        bookingEngineStore.listPublicServices
-          ? bookingEngineStore.listPublicServices({ tenantId: brand?.id || brand })
-          : bookingEngineStore.listServices({ tenantId: brand?.id || brand }),
-      ]);
-
-      const resources = (Array.isArray(resourcesRaw) ? resourcesRaw : []).map(sanitizeResource);
-      const services = (Array.isArray(servicesRaw) ? servicesRaw : []).map(sanitizeService);
-
+      const catalog = await loadCatalogForTenant(brand);
       return res.json({
         provider: 'cco_engine',
-        services,
-        resources,
+        services: catalog.services,
+        resources: catalog.resources,
       });
     } catch (error) {
       console.error('[public-booking-engine/catalog]', error);

@@ -12,8 +12,10 @@ const path = require('node:path');
 const { ensureDirectoryWithRetry } = require('./persistentDir');
 const {
   mergeLegacyCatalogIntoEngineState,
+  mergeLegacyResourcesIntoEngineState,
   buildStaffRuntimeCatalogReadout,
 } = require('./legacyCatalogRuntime');
+const { applyBookingPolicyMigrationToServices } = require('./bookingPolicySettings');
 
 /** Plan A — endast tre möten exponeras via /api/public/booking-engine/catalog */
 const PLAN_A_PUBLIC_SERVICE_IDS = [
@@ -532,6 +534,20 @@ function defaultState() {
     ],
     reservations: [],
     bookings: [],
+    calendarBlocks: [
+      {
+        blockId: 'block-lunch-all',
+        label: 'Lunch',
+        blockType: 'lunch',
+        resourceIds: [],
+        weekdays: [1, 2, 3, 4, 5],
+        startTime: '12:00',
+        endTime: '13:00',
+        dateFrom: '2024-01-01',
+        dateTo: '2030-12-31',
+        active: true,
+      },
+    ],
   };
 }
 
@@ -609,6 +625,8 @@ function normalizeResource(input = {}) {
     active: safe.active !== false,
     publicBookable,
     role: normalizeText(safe.role) || undefined,
+    catalogSource: normalizeText(safe.catalogSource) || undefined,
+    legacyMapping: asObject(safe.legacyMapping).cliento ? asObject(safe.legacyMapping) : undefined,
   };
 }
 
@@ -629,6 +647,7 @@ function normalizeService(input = {}) {
     brand: normalizeText(safe.brand) || undefined,
     legacyMapping: asObject(safe.legacyMapping).arcanaServiceId ? asObject(safe.legacyMapping) : undefined,
     catalogSource: normalizeText(safe.catalogSource) || undefined,
+    vipTokenRequired: safe.vipTokenRequired === true,
   });
 }
 
@@ -671,6 +690,8 @@ function normalizeEngineSlot(slot = {}, services = [], resources = []) {
     serviceId,
     serviceLabel: normalizeText(safe.serviceLabel || service.label || service.title),
     locationLabel: normalizeText(safe.locationLabel || safe.locationName || 'Hair TP Clinic'),
+    meetingMode: normalizeText(safe.meetingMode || service.meetingMode) || undefined,
+    durationMinutes: Number(service.durationMinutes) || 60,
     source: 'cco_engine',
   };
 }
@@ -780,6 +801,107 @@ function buildDateRange(fromDate, toDate) {
   return days;
 }
 
+function normalizeCalendarBlock(input = {}) {
+  const safe = asObject(input);
+  const blockId = normalizeText(safe.blockId) || crypto.randomUUID();
+  const dateFrom = normalizeDateOnly(safe.dateFrom) || '2024-01-01';
+  const dateTo = normalizeDateOnly(safe.dateTo) || dateFrom;
+  const startTime = normalizeStartTimes([safe.startTime || safe.start || '09:00'])[0];
+  const endTime = normalizeStartTimes([safe.endTime || safe.end || '10:00'])[0];
+  if (!blockId || !startTime || !endTime) return null;
+  return {
+    blockId,
+    label: normalizeText(safe.label) || 'Blockerad tid',
+    blockType: normalizeText(safe.blockType) || 'closed',
+    resourceIds: asArray(safe.resourceIds || safe.resourceId)
+      .map((item) => normalizeText(item))
+      .filter(Boolean),
+    weekdays: normalizeWeekdays(safe.weekdays),
+    startTime,
+    endTime,
+    dateFrom,
+    dateTo: dateTo >= dateFrom ? dateTo : dateFrom,
+    active: safe.active !== false,
+  };
+}
+
+function buildBlockInterval({ day, block, resourceId, resourceLabel }) {
+  const dateOnly = day.toISOString().slice(0, 10);
+  const startsAt = `${dateOnly}T${block.startTime}:00.000Z`;
+  const endsAt = `${dateOnly}T${block.endTime}:00.000Z`;
+  if (Date.parse(startsAt) >= Date.parse(endsAt)) return null;
+  return {
+    blockId: block.blockId,
+    label: block.label,
+    blockType: block.blockType,
+    resourceId: normalizeText(resourceId),
+    resourceLabel: normalizeText(resourceLabel),
+    startsAt,
+    endsAt,
+    kind: 'block',
+  };
+}
+
+function expandCalendarBlocksForRange(blocks = [], fromDate, toDate, resources = [], resIds = []) {
+  const wantedResourceIds = normalizeText(resIds)
+    ? normalizeText(resIds)
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+  const activeResources = asArray(resources).filter((item) => item.active !== false);
+  const targetResources = wantedResourceIds.length
+    ? activeResources.filter((item) => wantedResourceIds.includes(item.id))
+    : activeResources;
+  const expanded = [];
+  buildDateRange(fromDate, toDate).forEach((day) => {
+    const iso = day.toISOString().slice(0, 10);
+    const weekday = day.getUTCDay();
+    asArray(blocks)
+      .filter((block) => block.active !== false)
+      .filter((block) => iso >= block.dateFrom && iso <= block.dateTo)
+      .filter((block) => asArray(block.weekdays).includes(weekday))
+      .forEach((block) => {
+        const scopedResources = block.resourceIds.length
+          ? targetResources.filter((item) => block.resourceIds.includes(item.id))
+          : targetResources;
+        scopedResources.forEach((resource) => {
+          const interval = buildBlockInterval({
+            day,
+            block,
+            resourceId: resource.id,
+            resourceLabel: resource.label,
+          });
+          if (interval) expanded.push(interval);
+        });
+      });
+  });
+  expanded.sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt));
+  return expanded;
+}
+
+function intervalsOverlap(left = {}, right = {}) {
+  const leftResourceId = normalizeText(left.resourceId);
+  const rightResourceId = normalizeText(right.resourceId);
+  if (!leftResourceId || !rightResourceId || leftResourceId !== rightResourceId) return false;
+  const leftStart = Date.parse(normalizeText(left.startsAt));
+  const leftEnd = Date.parse(normalizeText(left.endsAt));
+  const rightStart = Date.parse(normalizeText(right.startsAt));
+  const rightEnd = Date.parse(normalizeText(right.endsAt));
+  if (!Number.isFinite(leftStart) || !Number.isFinite(leftEnd)) return false;
+  if (!Number.isFinite(rightStart) || !Number.isFinite(rightEnd)) return false;
+  return leftStart < rightEnd && rightStart < leftEnd;
+}
+
+function isSlotBlockedByCalendar(slot = {}, blocks = [], resources = []) {
+  const resourceId = normalizeText(slot.resourceId);
+  if (!resourceId) return false;
+  const iso = normalizeDateOnly(slot.startsAt);
+  if (!iso) return false;
+  const expanded = expandCalendarBlocksForRange(blocks, iso, iso, resources);
+  return expanded.some((block) => intervalsOverlap(slot, block));
+}
+
 async function createCcoBookingEngineStore({ filePath }) {
   if (!normalizeText(filePath)) {
     throw new Error('filePath krävs för ccoBookingEngineStore.');
@@ -791,7 +913,9 @@ async function createCcoBookingEngineStore({ filePath }) {
     ...(asObject(initial) || {}),
   };
   state.resources = asArray(state.resources).map(normalizeResource).filter(Boolean);
-  state.services = asArray(state.services).map(normalizeService).filter(Boolean);
+  state.services = applyBookingPolicyMigrationToServices(
+    asArray(state.services).map(normalizeService).filter(Boolean)
+  );
   state.availabilityRules = asArray(state.availabilityRules)
     .map(normalizeAvailabilityRule)
     .filter(Boolean);
@@ -801,13 +925,23 @@ async function createCcoBookingEngineStore({ filePath }) {
   state.bookings = asArray(state.bookings)
     .map((item) => normalizeBookingRecord(item, state))
     .filter(Boolean);
+  if (!asArray(state.calendarBlocks).length) {
+    state.calendarBlocks = defaultState().calendarBlocks;
+  }
+  state.calendarBlocks = asArray(state.calendarBlocks).map(normalizeCalendarBlock).filter(Boolean);
 
   const migrated = migratePlanASchema(state);
   const legacyMerged = mergeLegacyCatalogIntoEngineState(state, {
     planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
   });
-  if (legacyMerged.changed) {
-    state.services = asArray(state.services).map(normalizeService).filter(Boolean);
+  const resourceMerged = mergeLegacyResourcesIntoEngineState(state, {
+    planAPublicResourceIds: PLAN_A_PUBLIC_RESOURCE_IDS,
+  });
+  if (legacyMerged.changed || resourceMerged.changed) {
+    state.resources = asArray(state.resources).map(normalizeResource).filter(Boolean);
+    state.services = applyBookingPolicyMigrationToServices(
+      asArray(state.services).map(normalizeService).filter(Boolean)
+    );
   }
 
   async function save() {
@@ -815,7 +949,7 @@ async function createCcoBookingEngineStore({ filePath }) {
     await writeJsonAtomic(filePath, state);
   }
 
-  if (migrated || legacyMerged.changed) {
+  if (migrated || legacyMerged.changed || resourceMerged.changed) {
     await save();
   }
 
@@ -861,6 +995,7 @@ async function createCcoBookingEngineStore({ filePath }) {
 
   function isSlotTaken(slot = {}, { excludeConversationId = '' } = {}) {
     const slotId = normalizeText(slot.slotId);
+    if (isSlotBlockedByCalendar(slot, state.calendarBlocks, state.resources)) return true;
     return (
       state.reservations.some((item) => {
         if (normalizeKey(item.status) !== 'active') return false;
@@ -962,6 +1097,34 @@ async function createCcoBookingEngineStore({ filePath }) {
     });
     slots.sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt));
     return clone(slots);
+  }
+
+  async function listCalendarBlocks({
+    fromDate,
+    toDate,
+    resIds = '',
+  } = {}) {
+    return expandCalendarBlocksForRange(
+      state.calendarBlocks,
+      fromDate,
+      toDate,
+      state.resources,
+      resIds
+    );
+  }
+
+  async function upsertCalendarBlock(input = {}) {
+    const nextBlock = normalizeCalendarBlock(input);
+    if (!nextBlock) {
+      throw new Error('Kalenderblock kunde inte normaliseras.');
+    }
+    const index = state.calendarBlocks.findIndex(
+      (item) => normalizeText(item.blockId) === normalizeText(nextBlock.blockId)
+    );
+    if (index >= 0) state.calendarBlocks[index] = nextBlock;
+    else state.calendarBlocks.push(nextBlock);
+    await save();
+    return clone(nextBlock);
   }
 
   async function reserveSlots(input = {}) {
@@ -1351,6 +1514,8 @@ async function createCcoBookingEngineStore({ filePath }) {
     cancelBooking,
     rebookBooking,
     getCaseSummary,
+    listCalendarBlocks,
+    upsertCalendarBlock,
     listResources: async () => clone(state.resources.filter((item) => item.active !== false)),
     listServices: async () => clone(state.services.filter((item) => item.active !== false)),
     listPublicServices: async () =>
@@ -1390,4 +1555,6 @@ module.exports = {
   PLAN_A_PUBLIC_SERVICE_IDS,
   PLAN_A_PUBLIC_RESOURCE_IDS,
   resolveServiceBookingPolicy,
+  expandCalendarBlocksForRange,
+  isSlotBlockedByCalendar,
 };

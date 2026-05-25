@@ -8,6 +8,8 @@ const {
   resolveBookingReminderLeadTimeHours,
   resolveMeetingChannel,
 } = require('./bookingReminderLeadTime');
+const { createTransactionalMailer } = require('../infra/transactionalMailer');
+const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -472,6 +474,55 @@ async function dispatchCustomerReminderDigest({
   return { skipped: false, to: recipient, subject };
 }
 
+async function dispatchPatientVisitReminderEmails({
+  queue,
+  bookingEngineStore,
+  graphSendConnector,
+  fromEmail,
+  locale = 'sv',
+} = {}) {
+  const mailer = createTransactionalMailer({ graphSendConnector });
+  const servicesById = await loadServicesById(bookingEngineStore);
+  let sent = 0;
+  let skipped = 0;
+  const results = [];
+
+  for (const reminder of asArray(queue?.visitReminders)) {
+    const recipient = normalizeText(reminder.customerEmail);
+    if (!recipient || !recipient.includes('@')) {
+      skipped += 1;
+      continue;
+    }
+    const service = servicesById.get(reminder.serviceId) || { label: reminder.serviceId };
+    const content = buildBookingReminderEmail({
+      customerName: reminder.customerName,
+      serviceLabel: service.label,
+      startsAt: reminder.startsAt,
+      leadTimeHours: reminder.leadTimeHours,
+      locale,
+    });
+    const result = await mailer.sendEmail({
+      to: recipient,
+      from: normalizeText(fromEmail) || undefined,
+      subject: content.subject,
+      html: content.html,
+      text: `${content.text}\n\n--- calendar ---\n${content.ics}`,
+      attachments: [
+        {
+          filename: 'besok.ics',
+          content: Buffer.from(content.ics, 'utf8').toString('base64'),
+          contentType: 'text/calendar; charset=utf-8; method=PUBLISH',
+        },
+      ],
+    });
+    results.push({ recipient, ok: result.ok === true, provider: result.provider, mode: result.mode });
+    if (result.ok === true) sent += 1;
+    else skipped += 1;
+  }
+
+  return { sent, skipped, results };
+}
+
 function resolveMaintenanceWindow(config = {}) {
   const start = parseIso(config.maintenanceWindowStart);
   const end = parseIso(config.maintenanceWindowEnd);
@@ -498,5 +549,6 @@ module.exports = {
   buildReminderDigestHtml,
   classifyMissingForms,
   dispatchCustomerReminderDigest,
+  dispatchPatientVisitReminderEmails,
   resolveMaintenanceWindow,
 };

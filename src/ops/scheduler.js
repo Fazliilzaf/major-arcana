@@ -32,6 +32,7 @@ const {
   buildJournalDraftProposals,
   buildMissingFormsReport,
   dispatchCustomerReminderDigest,
+  dispatchPatientVisitReminderEmails,
 } = require('./ccoPatientCareOps');
 const { runPostOpAutoTrigger } = require('./postOpAutoTrigger');
 const {
@@ -552,7 +553,14 @@ function createScheduler({
       });
     }
     let digest = { skipped: true, reason: 'empty_queue' };
+    let patientEmails = { sent: 0, skipped: 0 };
     if (queue.total > 0) {
+      patientEmails = await dispatchPatientVisitReminderEmails({
+        queue,
+        bookingEngineStore,
+        graphSendConnector,
+        fromEmail: config.bookingReminderFromEmail || config.ccoCareReminderFromEmail,
+      });
       digest = await dispatchCustomerReminderDigest({
         graphSendConnector,
         queue,
@@ -566,6 +574,7 @@ function createScheduler({
       visitReminders: queue.visitReminders.length,
       aftercareReminders: queue.aftercareReminders.length,
       logged,
+      patientEmails,
       digest,
     };
   }

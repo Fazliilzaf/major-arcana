@@ -244,15 +244,27 @@ async function verifyQueueChrome(page) {
   await page.goto(`${base}/staff?view=conversations`, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await waitForMobileShell(page);
 
+  const filterReady = await page
+    .waitForFunction(
+      () => document.querySelector('[data-cco-queue-filter-toggle]'),
+      undefined,
+      { timeout: 20000 }
+    )
+    .then(() => true)
+    .catch(() => false);
   const filterToggle = await page.locator('[data-cco-queue-filter-toggle]').count();
-  record('Kö Filter-chip', filterToggle > 0, filterToggle ? 'finns' : 'saknas');
+  record('Kö Filter-chip', filterReady && filterToggle > 0, filterToggle ? 'finns' : 'saknas');
 
-  const compactRow = await page.locator('.warm-row--mobile-compact').count();
-  if (compactRow === 0) {
-    await page.waitForTimeout(2000);
-  }
+  const compactReady = await page
+    .waitForFunction(
+      () => document.querySelector('.warm-row--mobile-compact'),
+      undefined,
+      { timeout: 8000 }
+    )
+    .then(() => true)
+    .catch(() => false);
   const compactAfter = await page.locator('.warm-row--mobile-compact').count();
-  if (compactAfter > 0) {
+  if (compactAfter > 0 || compactReady) {
     record('Kompakta kö-rader', true, `${compactAfter} rader`);
   } else {
     warn('Kompakta kö-rader', '0 rader (tom kö eller ej renderad)');
