@@ -620,10 +620,27 @@
     });
   }
 
+  function bindSprintPill() {
+    const sprintPill = document.querySelector(".preview-sprint-pill");
+    if (!sprintPill) return;
+    sprintPill.addEventListener("click", () => {
+      const isActive = document.documentElement.hasAttribute("data-cco-sprint-active");
+      if (isActive) {
+        document.documentElement.removeAttribute("data-cco-sprint-active");
+        window.ArcanaAppNav?.setActiveRuntimeLane?.("all");
+      } else {
+        document.documentElement.setAttribute("data-cco-sprint-active", "on");
+        window.ArcanaAppNav?.setActiveRuntimeLane?.("sprint");
+      }
+      sprintPill.setAttribute("aria-pressed", isActive ? "false" : "true");
+    });
+  }
+
   bindTabbar();
   bindMoreSheet();
   bindMenuButton();
   bindBackButton();
+  bindSprintPill();
   applyMobileShellState();
   observeCanvas();
   observePatientDetailState();

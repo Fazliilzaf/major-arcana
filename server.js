@@ -644,8 +644,14 @@ const knowledgeStore = createTenantKnowledgeStore({
 });
 knowledgeStore.load().catch((err) => console.warn('[knowledge-store] Load failed:', err?.message));
 
-const { createExecutiveDecisionFeed } = require('./src/ops/executiveDecisionFeed');
-const executiveDecisionFeed = createExecutiveDecisionFeed();
+const {
+  createExecutiveDecisionFeed,
+  createPersistentExecutiveDecisionFeed,
+} = require('./src/ops/executiveDecisionFeed');
+const executiveDecisionFeed =
+  typeof createPersistentExecutiveDecisionFeed === 'function'
+    ? createPersistentExecutiveDecisionFeed({ filePath: './data/executive-decision-feed.json' })
+    : createExecutiveDecisionFeed();
 
 let billingService = null;
 let stripeWebhookHandler = null;
@@ -935,6 +941,17 @@ app.post('/api/v1/executive/feed/:entryId/resolve', (req, res) => {
   });
   if (!result) return res.status(404).json({ error: 'Entry hittades inte.' });
   return res.json({ ok: true, entry: result });
+});
+
+app.get('/api/v1/executive/agents/status', (req, res) => {
+  const feedSummary = executiveDecisionFeed.getSummary();
+  const agents = ['COO', 'CAO', 'CFO', 'CMO', 'CCO', 'Patient'].map((name) => ({
+    name,
+    lastRun: feedSummary.lastEntryByAgent?.[name] || null,
+    pendingActions: feedSummary.byAgent?.[name] || 0,
+    status: feedSummary.byAgent?.[name] > 0 ? 'action_required' : 'idle',
+  }));
+  return res.json({ ok: true, agents, feedSummary });
 });
 
 app.get('/api/public/status', (req, res) => {

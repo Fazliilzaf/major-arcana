@@ -151,7 +151,8 @@ function normalizeCustomerSummary(value = null, fallbackCustomerKey = '') {
     }))
     .slice(0, 6);
   return {
-    customerKey: normalizeText(safe.customerKey) || normalizeText(fallbackCustomerKey) || 'okand-kund',
+    customerKey:
+      normalizeText(safe.customerKey) || normalizeText(fallbackCustomerKey) || 'okand-kund',
     customerName: normalizeText(safe.customerName) || 'Okänd kund',
     lifecycleStatus: normalizeText(safe.lifecycleStatus) || 'NEW',
     lifecycleSource: normalizeText(safe.lifecycleSource) || 'auto',
@@ -208,7 +209,8 @@ function normalizeFeedEntry(item = {}) {
     direction: normalizeFeedDirection(safe.direction),
     subject: normalizeText(safe.subject) || '(utan ämne)',
     counterpart: normalizeText(safe.counterpart) || 'okänd kontakt',
-    mailboxAddress: normalizeText(safe.mailboxAddress) || normalizeText(safe.mailboxId) || 'okand-postlada',
+    mailboxAddress:
+      normalizeText(safe.mailboxAddress) || normalizeText(safe.mailboxId) || 'okand-postlada',
     sentAt: normalizeText(safe.sentAt) || new Date().toISOString(),
     preview: normalizeText(safe.preview) || '',
   };
@@ -314,14 +316,13 @@ function normalizeConversationWorkItem(item = {}) {
     mailboxId: normalizeText(safe.mailboxId) || 'okand-postlada',
     subject: normalizeText(safe.subject) || '(utan ämne)',
     sender: normalizeText(safe.sender) || 'okänd avsändare',
-    latestInboundPreview: normalizeText(safe.latestInboundPreview) || 'Ingen förhandsvisning tillgänglig.',
+    latestInboundPreview:
+      normalizeText(safe.latestInboundPreview) || 'Ingen förhandsvisning tillgänglig.',
     hoursSinceInbound: toNonNegativeNumber(safe.hoursSinceInbound, 0),
     lastInboundAt: normalizeText(safe.lastInboundAt) || new Date().toISOString(),
     lastOutboundAt: normalizeText(safe.lastOutboundAt) || null,
     slaStatus: normalizeSlaStatus(safe.slaStatus),
-    hoursRemaining: Number.isFinite(Number(safe.hoursRemaining))
-      ? Number(safe.hoursRemaining)
-      : 0,
+    hoursRemaining: Number.isFinite(Number(safe.hoursRemaining)) ? Number(safe.hoursRemaining) : 0,
     slaThreshold: toNonNegativeNumber(safe.slaThreshold, 48),
     stagnated: safe.stagnated === true,
     stagnationHours: toNonNegativeNumber(safe.stagnationHours, 0),
@@ -389,7 +390,11 @@ function normalizeConversationWorkItem(item = {}) {
     normalized.customerKey = customerKey;
   }
 
-  if (safe.customerSummary && typeof safe.customerSummary === 'object' && !Array.isArray(safe.customerSummary)) {
+  if (
+    safe.customerSummary &&
+    typeof safe.customerSummary === 'object' &&
+    !Array.isArray(safe.customerSummary)
+  ) {
     normalized.customerSummary = normalizeCustomerSummary(safe.customerSummary, customerKey);
   }
 
@@ -401,7 +406,10 @@ function normalizeConversationWorkItem(item = {}) {
     normalized.tempoProfile = normalizeTempoProfile(safe.tempoProfile);
   }
   if (safe.recommendedFollowUpDelayDays !== undefined) {
-    normalized.recommendedFollowUpDelayDays = toNonNegativeNumber(safe.recommendedFollowUpDelayDays, 0);
+    normalized.recommendedFollowUpDelayDays = toNonNegativeNumber(
+      safe.recommendedFollowUpDelayDays,
+      0
+    );
   }
   if (safe.ctaIntensity !== undefined) {
     normalized.ctaIntensity = normalizeCtaIntensity(safe.ctaIntensity);
@@ -433,7 +441,11 @@ function normalizeConversationWorkItem(item = {}) {
   if (safe.estimatedWorkMinutes !== undefined) {
     normalized.estimatedWorkMinutes = normalizeOptionalNumber(safe.estimatedWorkMinutes, 0);
   }
-  if (safe.workloadBreakdown && typeof safe.workloadBreakdown === 'object' && !Array.isArray(safe.workloadBreakdown)) {
+  if (
+    safe.workloadBreakdown &&
+    typeof safe.workloadBreakdown === 'object' &&
+    !Array.isArray(safe.workloadBreakdown)
+  ) {
     normalized.workloadBreakdown = normalizeWorkloadBreakdown(safe.workloadBreakdown);
   }
   if (safe.dominantRisk !== undefined) {
@@ -492,6 +504,7 @@ function composeCcoInboxAnalysis({
   channel = 'admin',
   tenantId = '',
   correlationId = '',
+  refinedDrafts = [],
 } = {}) {
   const normalizedOutput = asObject(inboxOutput);
   const data = asObject(normalizedOutput.data);
@@ -506,7 +519,9 @@ function composeCcoInboxAnalysis({
     sourceCapabilityVersion: normalizeText(sourceMetadata.version) || null,
     sourceSnapshotVersion: normalizeText(sourceMetadata?.snapshotDebug?.snapshotVersion) || null,
     requestedMaxDrafts: clampInteger(sourceMetadata?.requestedMaxDrafts, 1, 5, null),
-    debugMode: Boolean(sourceMetadata?.snapshotDebug && typeof sourceMetadata.snapshotDebug === 'object'),
+    debugMode: Boolean(
+      sourceMetadata?.snapshotDebug && typeof sourceMetadata.snapshotDebug === 'object'
+    ),
     snapshotDebug:
       sourceMetadata?.snapshotDebug && typeof sourceMetadata.snapshotDebug === 'object'
         ? sourceMetadata.snapshotDebug
@@ -524,13 +539,24 @@ function composeCcoInboxAnalysis({
   return {
     data: {
       urgentConversations: toStructuredRows(data.urgentConversations, 25),
-      needsReplyToday: toStructuredRows(data.needsReplyToday, 80).map(normalizeConversationWorkItem),
+      needsReplyToday: toStructuredRows(data.needsReplyToday, 80).map(
+        normalizeConversationWorkItem
+      ),
       conversationWorklist: toStructuredRows(data.conversationWorklist, 120).map(
         normalizeConversationWorkItem
       ),
       slaBreaches: toStructuredRows(data.slaBreaches, 50),
       riskFlags: toStructuredRows(data.riskFlags, 120),
       suggestedDrafts: toStructuredRows(data.suggestedDrafts, 5).map(normalizeSuggestedDraft),
+      refinedDrafts: asArray(refinedDrafts)
+        .slice(0, 5)
+        .map((rd) => ({
+          threadId: normalizeText(rd.threadId),
+          originalBody: normalizeText(rd.originalBody).slice(0, 2000),
+          refinedBody: normalizeText(rd.refinedBody).slice(0, 2000),
+          tone: normalizeText(rd.tone) || 'professional',
+        }))
+        .filter((rd) => rd.threadId && rd.refinedBody),
       executiveSummary:
         normalizeText(data.executiveSummary) ||
         'Inboxanalys klar. Ingen ytterligare sammanfattning tillgänglig.',
@@ -543,11 +569,7 @@ function composeCcoInboxAnalysis({
     },
     metadata: composedMetadata,
     warnings: Array.from(
-      new Set(
-        warnings
-          .map((item) => normalizeText(item))
-          .filter(Boolean)
-      )
+      new Set(warnings.map((item) => normalizeText(item)).filter(Boolean))
     ).slice(0, 30),
   };
 }

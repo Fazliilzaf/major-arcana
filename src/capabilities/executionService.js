@@ -1888,15 +1888,20 @@ function createCapabilityExecutor({
         const cmoMode = normalizeText(validatedInput.mode).toLowerCase() || 'production_draft';
         if (cmoMode === 'analytics') {
           const period = normalizeText(validatedInput.period).toLowerCase() || 'weekly';
-          const windowDays =
-            Number(validatedInput.windowDays) || (period === 'monthly' ? 30 : 7);
-          const { mergeMarketingPerformanceFromConnectors, resolveAppConfig } = require('../ops/cmoMarketingConnectors');
+          const windowDays = Number(validatedInput.windowDays) || (period === 'monthly' ? 30 : 7);
+          const {
+            mergeMarketingPerformanceFromConnectors,
+            resolveAppConfig,
+          } = require('../ops/cmoMarketingConnectors');
           const appConfig = resolveAppConfig(validatedSystemStateSnapshot.appConfig || {});
-          const hydration = await mergeMarketingPerformanceFromConnectors(validatedSystemStateSnapshot, {
-            config: appConfig,
-            tenantId: normalizedTenantId,
-            window: `${windowDays}d`,
-          });
+          const hydration = await mergeMarketingPerformanceFromConnectors(
+            validatedSystemStateSnapshot,
+            {
+              config: appConfig,
+              tenantId: normalizedTenantId,
+              window: `${windowDays}d`,
+            }
+          );
           const analyticsSnapshot = hydration.snapshot;
 
           const performanceRun = await runCapability({
@@ -1997,7 +2002,9 @@ function createCapabilityExecutor({
           const intelSnapshot = {
             ...validatedSystemStateSnapshot,
             contentTopics: Array.isArray(briefData.topics) ? briefData.topics : [],
-            targetAudience: normalizeText(briefData.targetAudience) || normalizeText(validatedInput.targetAudience),
+            targetAudience:
+              normalizeText(briefData.targetAudience) ||
+              normalizeText(validatedInput.targetAudience),
           };
 
           const audienceRun = await runCapability({
@@ -2008,7 +2015,9 @@ function createCapabilityExecutor({
             input: { maxSegments: 6 },
             systemStateSnapshot: intelSnapshot,
             correlationId: normalizedCorrelationId,
-            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:audience` : null,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:audience`
+              : null,
             requestMetadata: {
               ...safeObject(requestMetadata),
               parentAgentRunId: agentRunId,
@@ -2024,7 +2033,9 @@ function createCapabilityExecutor({
             input: { maxCompetitors: 4 },
             systemStateSnapshot: intelSnapshot,
             correlationId: normalizedCorrelationId,
-            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:competitor` : null,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:competitor`
+              : null,
             requestMetadata: {
               ...safeObject(requestMetadata),
               parentAgentRunId: agentRunId,
@@ -2097,7 +2108,9 @@ function createCapabilityExecutor({
             targetType: 'cmo_strategy_intel',
             targetId: agentRunId,
             metadata: {
-              competitorCount: Number(agentOutput?.data?.competitorLandscape?.competitors?.length || 0),
+              competitorCount: Number(
+                agentOutput?.data?.competitorLandscape?.competitors?.length || 0
+              ),
               nurtureTouches: Number(agentOutput?.data?.nurtureSequence?.touchCount || 0),
               winbackTouches: Number(agentOutput?.data?.winbackCampaign?.touches?.length || 0),
             },
@@ -2106,93 +2119,72 @@ function createCapabilityExecutor({
           agentOutputSchema = cmoContentOutputSchema;
           agentCapabilityRef = 'CMO.StrategyIntel';
         } else {
-        const orchestratorIntent =
-          normalizeText(validatedInput.orchestratorIntent) ||
-          normalizeText(validatedSystemStateSnapshot.orchestratorContext?.intent);
-        const isOrchestratedMarketing = orchestratorIntent === 'marketing_campaign';
+          const orchestratorIntent =
+            normalizeText(validatedInput.orchestratorIntent) ||
+            normalizeText(validatedSystemStateSnapshot.orchestratorContext?.intent);
+          const isOrchestratedMarketing = orchestratorIntent === 'marketing_campaign';
 
-        const cmoInput = {
-          maxTopics: Number(validatedInput.maxTopics || 5) || 5,
-          targetAudience: normalizeText(validatedInput.targetAudience) || '',
-          targetSegment: normalizeText(validatedInput.targetSegment) || '',
-          tone: normalizeText(validatedInput.tone) || 'professional',
-          sourceContent: normalizeText(validatedInput.sourceContent) || '',
-          emailType: normalizeText(validatedInput.emailType) || 'newsletter',
-          platforms: Array.isArray(validatedInput.platforms) ? validatedInput.platforms : undefined,
-        };
+          const cmoInput = {
+            maxTopics: Number(validatedInput.maxTopics || 5) || 5,
+            targetAudience: normalizeText(validatedInput.targetAudience) || '',
+            targetSegment: normalizeText(validatedInput.targetSegment) || '',
+            tone: normalizeText(validatedInput.tone) || 'professional',
+            sourceContent: normalizeText(validatedInput.sourceContent) || '',
+            emailType: normalizeText(validatedInput.emailType) || 'newsletter',
+            platforms: Array.isArray(validatedInput.platforms)
+              ? validatedInput.platforms
+              : undefined,
+          };
 
-        const contentRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'GenerateContentBrief',
-          input: {
-            maxTopics: cmoInput.maxTopics,
-            targetAudience: cmoInput.targetAudience,
-          },
-          systemStateSnapshot: validatedSystemStateSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:content` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
-
-        if (
-          contentRun?.gatewayResult?.decision === 'blocked' ||
-          contentRun?.gatewayResult?.decision === 'critical_escalate'
-        ) {
-          throw makeCapabilityError(
-            'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
-            'GenerateContentBrief blockerade agent-körning.'
-          );
-        }
-
-        const contentData = toCapabilityResponseOutput(contentRun)?.data || {};
-        const cmoSnapshot = {
-          ...validatedSystemStateSnapshot,
-          contentTopics: Array.isArray(contentData.topics) ? contentData.topics : [],
-          contentCalendar: Array.isArray(contentData.contentCalendar) ? contentData.contentCalendar : [],
-          targetAudience: normalizeText(contentData.targetAudience) || cmoInput.targetAudience,
-        };
-
-        const audienceRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'AnalyzeAudienceSegments',
-          input: { maxSegments: 6 },
-          systemStateSnapshot: cmoSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:audience` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
-
-        const audienceData = toCapabilityResponseOutput(audienceRun)?.data || {};
-        const productionSnapshot = {
-          ...cmoSnapshot,
-          audienceSegments: Array.isArray(audienceData.segments) ? audienceData.segments : [],
-        };
-
-        let enablementRun = null;
-        let crisisRun = null;
-        if (isOrchestratedMarketing) {
-          enablementRun = await runCapability({
+          const contentRun = await runCapability({
             tenantId: normalizedTenantId,
             actor: normalizedActor,
             channel: normalizedChannel,
-            capabilityName: 'GenerateSalesEnablementPack',
-            input: { maxBattlecards: 4 },
-            systemStateSnapshot: productionSnapshot,
+            capabilityName: 'GenerateContentBrief',
+            input: {
+              maxTopics: cmoInput.maxTopics,
+              targetAudience: cmoInput.targetAudience,
+            },
+            systemStateSnapshot: validatedSystemStateSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:content` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
+
+          if (
+            contentRun?.gatewayResult?.decision === 'blocked' ||
+            contentRun?.gatewayResult?.decision === 'critical_escalate'
+          ) {
+            throw makeCapabilityError(
+              'CAPABILITY_AGENT_DEPENDENCY_BLOCKED',
+              'GenerateContentBrief blockerade agent-körning.'
+            );
+          }
+
+          const contentData = toCapabilityResponseOutput(contentRun)?.data || {};
+          const cmoSnapshot = {
+            ...validatedSystemStateSnapshot,
+            contentTopics: Array.isArray(contentData.topics) ? contentData.topics : [],
+            contentCalendar: Array.isArray(contentData.contentCalendar)
+              ? contentData.contentCalendar
+              : [],
+            targetAudience: normalizeText(contentData.targetAudience) || cmoInput.targetAudience,
+          };
+
+          const audienceRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'AnalyzeAudienceSegments',
+            input: { maxSegments: 6 },
+            systemStateSnapshot: cmoSnapshot,
             correlationId: normalizedCorrelationId,
             idempotencyKey: normalizedIdempotencyKey
-              ? `${normalizedIdempotencyKey}:enablement`
+              ? `${normalizedIdempotencyKey}:audience`
               : null,
             requestMetadata: {
               ...safeObject(requestMetadata),
@@ -2201,364 +2193,411 @@ function createCapabilityExecutor({
             },
           });
 
-          crisisRun = await runCapability({
+          const audienceData = toCapabilityResponseOutput(audienceRun)?.data || {};
+          const productionSnapshot = {
+            ...cmoSnapshot,
+            audienceSegments: Array.isArray(audienceData.segments) ? audienceData.segments : [],
+          };
+
+          let enablementRun = null;
+          let crisisRun = null;
+          if (isOrchestratedMarketing) {
+            enablementRun = await runCapability({
+              tenantId: normalizedTenantId,
+              actor: normalizedActor,
+              channel: normalizedChannel,
+              capabilityName: 'GenerateSalesEnablementPack',
+              input: { maxBattlecards: 4 },
+              systemStateSnapshot: productionSnapshot,
+              correlationId: normalizedCorrelationId,
+              idempotencyKey: normalizedIdempotencyKey
+                ? `${normalizedIdempotencyKey}:enablement`
+                : null,
+              requestMetadata: {
+                ...safeObject(requestMetadata),
+                parentAgentRunId: agentRunId,
+                parentAgentName: agentBundle.name,
+              },
+            });
+
+            crisisRun = await runCapability({
+              tenantId: normalizedTenantId,
+              actor: normalizedActor,
+              channel: normalizedChannel,
+              capabilityName: 'ProposeCrisisCommsHold',
+              input: { scenario: 'operational_incident' },
+              systemStateSnapshot: productionSnapshot,
+              correlationId: normalizedCorrelationId,
+              idempotencyKey: normalizedIdempotencyKey
+                ? `${normalizedIdempotencyKey}:crisis`
+                : null,
+              requestMetadata: {
+                ...safeObject(requestMetadata),
+                parentAgentRunId: agentRunId,
+                parentAgentName: agentBundle.name,
+              },
+            });
+          }
+
+          const socialRun = await runCapability({
             tenantId: normalizedTenantId,
             actor: normalizedActor,
             channel: normalizedChannel,
-            capabilityName: 'ProposeCrisisCommsHold',
-            input: { scenario: 'operational_incident' },
+            capabilityName: 'GenerateSocialPostPack',
+            input: {
+              maxPosts: 10,
+              tone: cmoInput.tone,
+              targetAudience: cmoInput.targetAudience,
+              platforms: cmoInput.platforms,
+            },
             systemStateSnapshot: productionSnapshot,
             correlationId: normalizedCorrelationId,
-            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:crisis` : null,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:social` : null,
             requestMetadata: {
               ...safeObject(requestMetadata),
               parentAgentRunId: agentRunId,
               parentAgentName: agentBundle.name,
             },
           });
-        }
 
-        const socialRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'GenerateSocialPostPack',
-          input: {
-            maxPosts: 10,
-            tone: cmoInput.tone,
-            targetAudience: cmoInput.targetAudience,
-            platforms: cmoInput.platforms,
-          },
-          systemStateSnapshot: productionSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:social` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const seoRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateSeoBrief',
+            input: {
+              maxArticles: cmoInput.maxTopics,
+              targetAudience: cmoInput.targetAudience,
+            },
+            systemStateSnapshot: productionSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:seo` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const seoRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'GenerateSeoBrief',
-          input: {
-            maxArticles: cmoInput.maxTopics,
-            targetAudience: cmoInput.targetAudience,
-          },
-          systemStateSnapshot: productionSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:seo` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const adRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateAdCopyPack',
+            input: {
+              maxAds: 8,
+              targetAudience: cmoInput.targetAudience,
+            },
+            systemStateSnapshot: productionSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:ads` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const adRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'GenerateAdCopyPack',
-          input: {
-            maxAds: 8,
-            targetAudience: cmoInput.targetAudience,
-          },
-          systemStateSnapshot: productionSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:ads` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const emailRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateEmailDraft',
+            input: {
+              maxEmails: 3,
+              emailType: cmoInput.emailType,
+              targetAudience: cmoInput.targetAudience,
+            },
+            systemStateSnapshot: productionSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:email` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const emailRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'GenerateEmailDraft',
-          input: {
-            maxEmails: 3,
-            emailType: cmoInput.emailType,
-            targetAudience: cmoInput.targetAudience,
-          },
-          systemStateSnapshot: productionSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:email` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const repurposeRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'RepurposeContent',
+            input: {
+              sourceContent: cmoInput.sourceContent,
+              sourceType: cmoInput.sourceContent ? 'custom' : 'blog',
+            },
+            systemStateSnapshot: productionSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:repurpose`
+              : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const repurposeRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'RepurposeContent',
-          input: {
-            sourceContent: cmoInput.sourceContent,
-            sourceType: cmoInput.sourceContent ? 'custom' : 'blog',
-          },
-          systemStateSnapshot: productionSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:repurpose` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const seriesRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateContentSeries',
+            input: {
+              seriesName: cmoInput.seriesName,
+              episodeCount: 4,
+              pillar: 'trust',
+            },
+            systemStateSnapshot: productionSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:series` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const seriesRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'GenerateContentSeries',
-          input: {
-            seriesName: cmoInput.seriesName,
-            episodeCount: 4,
-            pillar: 'trust',
-          },
-          systemStateSnapshot: productionSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:series` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const campaignRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateOutreachCampaign',
+            input: {
+              maxCampaigns: 5,
+              targetSegment: cmoInput.targetSegment,
+            },
+            systemStateSnapshot: productionSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:campaign`
+              : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const campaignRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'GenerateOutreachCampaign',
-          input: {
-            maxCampaigns: 5,
-            targetSegment: cmoInput.targetSegment,
-          },
-          systemStateSnapshot: productionSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:campaign` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const complianceSnapshot = {
+            ...productionSnapshot,
+            contentTopics: Array.isArray(contentData.topics) ? contentData.topics : [],
+            socialPostPack: toCapabilityResponseOutput(socialRun)?.data || {},
+            seoBrief: toCapabilityResponseOutput(seoRun)?.data || {},
+            adCopyPack: toCapabilityResponseOutput(adRun)?.data || {},
+            emailDrafts: toCapabilityResponseOutput(emailRun)?.data || {},
+            repurposedContent: toCapabilityResponseOutput(repurposeRun)?.data || {},
+            campaigns: toCapabilityResponseOutput(campaignRun)?.data?.campaigns || [],
+            marketingClaimsWhitelist: Array.isArray(
+              validatedSystemStateSnapshot.marketingClaimsWhitelist
+            )
+              ? validatedSystemStateSnapshot.marketingClaimsWhitelist
+              : [],
+          };
 
-        const complianceSnapshot = {
-          ...productionSnapshot,
-          contentTopics: Array.isArray(contentData.topics) ? contentData.topics : [],
-          socialPostPack: toCapabilityResponseOutput(socialRun)?.data || {},
-          seoBrief: toCapabilityResponseOutput(seoRun)?.data || {},
-          adCopyPack: toCapabilityResponseOutput(adRun)?.data || {},
-          emailDrafts: toCapabilityResponseOutput(emailRun)?.data || {},
-          repurposedContent: toCapabilityResponseOutput(repurposeRun)?.data || {},
-          campaigns: toCapabilityResponseOutput(campaignRun)?.data?.campaigns || [],
-          marketingClaimsWhitelist: Array.isArray(validatedSystemStateSnapshot.marketingClaimsWhitelist)
-            ? validatedSystemStateSnapshot.marketingClaimsWhitelist
-            : [],
-        };
+          const claimsRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'ValidateMarketingClaims',
+            input: {},
+            systemStateSnapshot: complianceSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:claims` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const claimsRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'ValidateMarketingClaims',
-          input: {},
-          systemStateSnapshot: complianceSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:claims` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const complianceRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'ReviewMarketingCompliance',
+            input: {},
+            systemStateSnapshot: {
+              ...complianceSnapshot,
+              validateMarketingClaims: toCapabilityResponseOutput(claimsRun)?.data || {},
+            },
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:compliance`
+              : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const complianceRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'ReviewMarketingCompliance',
-          input: {},
-          systemStateSnapshot: {
+          const scheduleSnapshot = {
             ...complianceSnapshot,
             validateMarketingClaims: toCapabilityResponseOutput(claimsRun)?.data || {},
-          },
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:compliance` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+            reviewMarketingCompliance: toCapabilityResponseOutput(complianceRun)?.data || {},
+            campaigns: toCapabilityResponseOutput(campaignRun)?.data?.campaigns || [],
+          };
 
-        const scheduleSnapshot = {
-          ...complianceSnapshot,
-          validateMarketingClaims: toCapabilityResponseOutput(claimsRun)?.data || {},
-          reviewMarketingCompliance: toCapabilityResponseOutput(complianceRun)?.data || {},
-          campaigns: toCapabilityResponseOutput(campaignRun)?.data?.campaigns || [],
-        };
+          const calendarRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'ProposeContentCalendar',
+            input: {
+              horizonWeeks: 4,
+              includeMonthView: true,
+              targetAudience: cmoInput.targetAudience,
+            },
+            systemStateSnapshot: scheduleSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:calendar`
+              : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const calendarRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'ProposeContentCalendar',
-          input: { horizonWeeks: 4, includeMonthView: true, targetAudience: cmoInput.targetAudience },
-          systemStateSnapshot: scheduleSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:calendar` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const calendarData = toCapabilityResponseOutput(calendarRun)?.data || {};
+          const publishSnapshot = {
+            ...scheduleSnapshot,
+            proposedContentCalendar: calendarData,
+            contentCalendar: Array.isArray(calendarData.weeklyPlan) ? calendarData.weeklyPlan : [],
+          };
 
-        const calendarData = toCapabilityResponseOutput(calendarRun)?.data || {};
-        const publishSnapshot = {
-          ...scheduleSnapshot,
-          proposedContentCalendar: calendarData,
-          contentCalendar: Array.isArray(calendarData.weeklyPlan) ? calendarData.weeklyPlan : [],
-        };
+          const scheduleRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'ProposePublishSchedule',
+            input: { maxItems: 12 },
+            systemStateSnapshot: publishSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:schedule`
+              : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const scheduleRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'ProposePublishSchedule',
-          input: { maxItems: 12 },
-          systemStateSnapshot: publishSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:schedule` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const utmRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'GenerateUtmPack',
+            input: { maxLinks: 12 },
+            systemStateSnapshot: publishSnapshot,
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:utm` : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const utmRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'GenerateUtmPack',
-          input: { maxLinks: 12 },
-          systemStateSnapshot: publishSnapshot,
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:utm` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          const utmData = toCapabilityResponseOutput(utmRun)?.data || {};
+          const trackingRun = await runCapability({
+            tenantId: normalizedTenantId,
+            actor: normalizedActor,
+            channel: normalizedChannel,
+            capabilityName: 'ValidateMarketingTracking',
+            input: {},
+            systemStateSnapshot: {
+              ...publishSnapshot,
+              utmPack: utmData,
+            },
+            correlationId: normalizedCorrelationId,
+            idempotencyKey: normalizedIdempotencyKey
+              ? `${normalizedIdempotencyKey}:tracking`
+              : null,
+            requestMetadata: {
+              ...safeObject(requestMetadata),
+              parentAgentRunId: agentRunId,
+              parentAgentName: agentBundle.name,
+            },
+          });
 
-        const utmData = toCapabilityResponseOutput(utmRun)?.data || {};
-        const trackingRun = await runCapability({
-          tenantId: normalizedTenantId,
-          actor: normalizedActor,
-          channel: normalizedChannel,
-          capabilityName: 'ValidateMarketingTracking',
-          input: {},
-          systemStateSnapshot: {
-            ...publishSnapshot,
-            utmPack: utmData,
-          },
-          correlationId: normalizedCorrelationId,
-          idempotencyKey: normalizedIdempotencyKey ? `${normalizedIdempotencyKey}:tracking` : null,
-          requestMetadata: {
-            ...safeObject(requestMetadata),
-            parentAgentRunId: agentRunId,
-            parentAgentName: agentBundle.name,
-          },
-        });
+          dependencyRuns = [
+            toDependencyRunSummary(contentRun),
+            toDependencyRunSummary(audienceRun),
+            ...(enablementRun ? [toDependencyRunSummary(enablementRun)] : []),
+            ...(crisisRun ? [toDependencyRunSummary(crisisRun)] : []),
+            toDependencyRunSummary(socialRun),
+            toDependencyRunSummary(seoRun),
+            toDependencyRunSummary(adRun),
+            toDependencyRunSummary(emailRun),
+            toDependencyRunSummary(repurposeRun),
+            toDependencyRunSummary(seriesRun),
+            toDependencyRunSummary(campaignRun),
+            toDependencyRunSummary(claimsRun),
+            toDependencyRunSummary(complianceRun),
+            toDependencyRunSummary(calendarRun),
+            toDependencyRunSummary(scheduleRun),
+            toDependencyRunSummary(utmRun),
+            toDependencyRunSummary(trackingRun),
+          ];
+          agentOutput = composeCmoMarketingCopilot({
+            contentBriefOutput: toCapabilityResponseOutput(contentRun),
+            audienceOutput: toCapabilityResponseOutput(audienceRun),
+            enablementOutput: enablementRun ? toCapabilityResponseOutput(enablementRun) : null,
+            crisisOutput: crisisRun ? toCapabilityResponseOutput(crisisRun) : null,
+            orchestrationSnapshot: isOrchestratedMarketing ? validatedSystemStateSnapshot : null,
+            campaignOutput: toCapabilityResponseOutput(campaignRun),
+            socialOutput: toCapabilityResponseOutput(socialRun),
+            seoOutput: toCapabilityResponseOutput(seoRun),
+            adOutput: toCapabilityResponseOutput(adRun),
+            emailOutput: toCapabilityResponseOutput(emailRun),
+            repurposeOutput: toCapabilityResponseOutput(repurposeRun),
+            seriesOutput: toCapabilityResponseOutput(seriesRun),
+            claimsOutput: toCapabilityResponseOutput(claimsRun),
+            complianceOutput: toCapabilityResponseOutput(complianceRun),
+            calendarOutput: toCapabilityResponseOutput(calendarRun),
+            scheduleOutput: toCapabilityResponseOutput(scheduleRun),
+            utmOutput: toCapabilityResponseOutput(utmRun),
+            trackingOutput: toCapabilityResponseOutput(trackingRun),
+            channel: normalizedChannel,
+            tenantId: normalizedTenantId,
+            correlationId: normalizedCorrelationId,
+          });
 
-        dependencyRuns = [
-          toDependencyRunSummary(contentRun),
-          toDependencyRunSummary(audienceRun),
-          ...(enablementRun ? [toDependencyRunSummary(enablementRun)] : []),
-          ...(crisisRun ? [toDependencyRunSummary(crisisRun)] : []),
-          toDependencyRunSummary(socialRun),
-          toDependencyRunSummary(seoRun),
-          toDependencyRunSummary(adRun),
-          toDependencyRunSummary(emailRun),
-          toDependencyRunSummary(repurposeRun),
-          toDependencyRunSummary(seriesRun),
-          toDependencyRunSummary(campaignRun),
-          toDependencyRunSummary(claimsRun),
-          toDependencyRunSummary(complianceRun),
-          toDependencyRunSummary(calendarRun),
-          toDependencyRunSummary(scheduleRun),
-          toDependencyRunSummary(utmRun),
-          toDependencyRunSummary(trackingRun),
-        ];
-        agentOutput = composeCmoMarketingCopilot({
-          contentBriefOutput: toCapabilityResponseOutput(contentRun),
-          audienceOutput: toCapabilityResponseOutput(audienceRun),
-          enablementOutput: enablementRun ? toCapabilityResponseOutput(enablementRun) : null,
-          crisisOutput: crisisRun ? toCapabilityResponseOutput(crisisRun) : null,
-          orchestrationSnapshot: isOrchestratedMarketing ? validatedSystemStateSnapshot : null,
-          campaignOutput: toCapabilityResponseOutput(campaignRun),
-          socialOutput: toCapabilityResponseOutput(socialRun),
-          seoOutput: toCapabilityResponseOutput(seoRun),
-          adOutput: toCapabilityResponseOutput(adRun),
-          emailOutput: toCapabilityResponseOutput(emailRun),
-          repurposeOutput: toCapabilityResponseOutput(repurposeRun),
-          seriesOutput: toCapabilityResponseOutput(seriesRun),
-          claimsOutput: toCapabilityResponseOutput(claimsRun),
-          complianceOutput: toCapabilityResponseOutput(complianceRun),
-          calendarOutput: toCapabilityResponseOutput(calendarRun),
-          scheduleOutput: toCapabilityResponseOutput(scheduleRun),
-          utmOutput: toCapabilityResponseOutput(utmRun),
-          trackingOutput: toCapabilityResponseOutput(trackingRun),
-          channel: normalizedChannel,
-          tenantId: normalizedTenantId,
-          correlationId: normalizedCorrelationId,
-        });
-
-        const complianceStatus = normalizeText(agentOutput?.data?.complianceReview?.status);
-        await writeAudit({
-          tenantId: normalizedTenantId,
-          actorUserId: normalizedActor.id,
-          action: 'cmo.compliance.review',
-          outcome: complianceStatus === 'passed' ? 'success' : 'blocked',
-          targetType: 'cmo_compliance',
-          targetId: agentRunId,
-          metadata: {
-            status: complianceStatus || 'unknown',
-            flaggedClaims: Number(agentOutput?.data?.flaggedClaims?.length || 0),
-            scheduleAllowed: agentOutput?.data?.scheduleAllowed === true,
-          },
-        });
-        if (Number(agentOutput?.data?.flaggedClaims?.length || 0) > 0) {
+          const complianceStatus = normalizeText(agentOutput?.data?.complianceReview?.status);
           await writeAudit({
             tenantId: normalizedTenantId,
             actorUserId: normalizedActor.id,
-            action: 'cmo.claims.flagged',
-            outcome: 'success',
-            targetType: 'cmo_claims',
+            action: 'cmo.compliance.review',
+            outcome: complianceStatus === 'passed' ? 'success' : 'blocked',
+            targetType: 'cmo_compliance',
             targetId: agentRunId,
             metadata: {
-              flaggedClaims: agentOutput.data.flaggedClaims.slice(0, 10),
+              status: complianceStatus || 'unknown',
+              flaggedClaims: Number(agentOutput?.data?.flaggedClaims?.length || 0),
+              scheduleAllowed: agentOutput?.data?.scheduleAllowed === true,
             },
           });
-        }
+          if (Number(agentOutput?.data?.flaggedClaims?.length || 0) > 0) {
+            await writeAudit({
+              tenantId: normalizedTenantId,
+              actorUserId: normalizedActor.id,
+              action: 'cmo.claims.flagged',
+              outcome: 'success',
+              targetType: 'cmo_claims',
+              targetId: agentRunId,
+              metadata: {
+                flaggedClaims: agentOutput.data.flaggedClaims.slice(0, 10),
+              },
+            });
+          }
 
-        agentOutputSchema = cmoContentOutputSchema;
-        agentCapabilityRef = 'CMO.MarketingCopilot';
+          agentOutputSchema = cmoContentOutputSchema;
+          agentCapabilityRef = 'CMO.MarketingCopilot';
         }
       } else if (normalizedAgentName === CCO_AGENT_NAME) {
         const analyzeInboxInput = {
@@ -2597,11 +2636,60 @@ function createCapabilityExecutor({
         }
 
         dependencyRuns = [toDependencyRunSummary(analyzeInboxRun)];
+
+        const inboxOutput = toCapabilityResponseOutput(analyzeInboxRun);
+        const draftCandidates = (
+          Array.isArray(inboxOutput?.suggestedDrafts) ? inboxOutput.suggestedDrafts : []
+        ).filter((d) => normalizeText(d?.threadId) && normalizeText(d?.body));
+
+        const refinedDrafts = [];
+        if (draftCandidates.length > 0 && validatedInput.refineDrafts !== false) {
+          for (const draft of draftCandidates.slice(0, 3)) {
+            try {
+              const refineRun = await runCapability({
+                tenantId: normalizedTenantId,
+                actor: normalizedActor,
+                channel: normalizedChannel,
+                capabilityName: 'RefineReplyDraft',
+                input: {
+                  threadId: draft.threadId,
+                  draftBody: draft.body,
+                  tone: draft.tone || 'professional',
+                  context: draft.context || '',
+                },
+                systemStateSnapshot: validatedSystemStateSnapshot,
+                correlationId: normalizedCorrelationId,
+                idempotencyKey: normalizedIdempotencyKey
+                  ? `${normalizedIdempotencyKey}:refine:${draft.threadId}`
+                  : null,
+                requestMetadata: {
+                  ...safeObject(requestMetadata),
+                  parentAgentRunId: agentRunId,
+                  parentAgentName: agentBundle.name,
+                },
+              });
+              dependencyRuns.push(toDependencyRunSummary(refineRun));
+              const refineOutput = toCapabilityResponseOutput(refineRun);
+              if (normalizeText(refineOutput?.refinedBody)) {
+                refinedDrafts.push({
+                  threadId: draft.threadId,
+                  originalBody: draft.body,
+                  refinedBody: refineOutput.refinedBody,
+                  tone: refineOutput.tone || draft.tone,
+                });
+              }
+            } catch (_refineErr) {
+              /* RefineReplyDraft failure is non-blocking */
+            }
+          }
+        }
+
         agentOutput = composeCcoInboxAnalysis({
-          inboxOutput: toCapabilityResponseOutput(analyzeInboxRun),
+          inboxOutput,
           channel: normalizedChannel,
           tenantId: normalizedTenantId,
           correlationId: normalizedCorrelationId,
+          refinedDrafts,
         });
         agentOutputSchema = ccoInboxAnalysisOutputSchema;
         agentCapabilityRef = CCO_INBOX_ANALYSIS_CAPABILITY_REF;

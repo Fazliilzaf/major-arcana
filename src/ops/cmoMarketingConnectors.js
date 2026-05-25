@@ -1,7 +1,10 @@
 'use strict';
 
 const { isMetricFresh } = require('./cmoMarketingMetrics');
-const { fetchLiveMetricsViaAdapter, resolveLiveAdapter } = require('./cmoMarketingConnectorAdapters');
+const {
+  fetchLiveMetricsViaAdapter,
+  resolveLiveAdapter,
+} = require('./cmoMarketingConnectorAdapters');
 
 const CONNECTOR_STATUS = Object.freeze({
   NOT_CONFIGURED: 'not_configured',
@@ -120,22 +123,22 @@ function resolveConnectorMode(connector = {}, appConfig = {}) {
   if (explicit === 'fixture' || explicit === 'live' || explicit === 'off') return explicit;
   const globalMode = normalizeText(appConfig.marketingConnectorsMode).toLowerCase();
   if (globalMode === 'fixture' || globalMode === 'live' || globalMode === 'off') return globalMode;
-  return 'off';
+  return 'fixture';
 }
 
 function connectorHasCredentials(connector = {}) {
   return Boolean(
     normalizeText(connector.apiKey) ||
-      normalizeText(connector.accessToken) ||
-      normalizeText(connector.clientSecret)
+    normalizeText(connector.accessToken) ||
+    normalizeText(connector.clientSecret)
   );
 }
 
 function isConnectorEnabled(connector = {}, appConfig = {}) {
   if (connector.enabled === false) return false;
   if (connector.enabled === true) return true;
-  if (appConfig.marketingConnectorsEnabled === true) return true;
-  return connectorHasCredentials(connector);
+  if (appConfig.marketingConnectorsEnabled === false) return false;
+  return true;
 }
 
 function buildMetric(value, source, window, fetchedAt) {
@@ -200,7 +203,8 @@ function normalizeLiveMetricsPayload(body = {}, channel = '') {
     metrics[key] = typeof raw === 'object' ? Number(raw.value) : Number(raw);
   }
 
-  const spend = payload.spend != null ? Number(asObject(payload.spend).value ?? payload.spend) : null;
+  const spend =
+    payload.spend != null ? Number(asObject(payload.spend).value ?? payload.spend) : null;
   const impressions =
     payload.impressions != null
       ? Number(asObject(payload.impressions).value ?? payload.impressions)
@@ -287,9 +291,10 @@ async function fetchChannelMetrics({
 } = {}) {
   const normalizedChannel = normalizeText(channel).toLowerCase();
   const appConfig = resolveAppConfig(config);
-  const cacheTtlMs = Number(appConfig.marketingConnectorsCacheTtlMs) > 0
-    ? Number(appConfig.marketingConnectorsCacheTtlMs)
-    : 300000;
+  const cacheTtlMs =
+    Number(appConfig.marketingConnectorsCacheTtlMs) > 0
+      ? Number(appConfig.marketingConnectorsCacheTtlMs)
+      : 300000;
 
   const connector = resolveConnectorConfig(appConfig, normalizedChannel, tenantConfig);
   const key = cacheKey(tenantId, normalizedChannel, window, connector, appConfig);
@@ -303,8 +308,7 @@ async function fetchChannelMetrics({
   const enabled = isConnectorEnabled(connector, appConfig);
   const mode = resolveConnectorMode(connector, appConfig);
   const hasCredentials = connectorHasCredentials(connector);
-  const liveFetch =
-    connector.liveFetch === true || appConfig.marketingConnectorsLiveFetch === true;
+  const liveFetch = connector.liveFetch === true || appConfig.marketingConnectorsLiveFetch === true;
   const fetchedAt = new Date().toISOString();
 
   if (!enabled || mode === 'off') {
@@ -453,10 +457,15 @@ function snapshotHasFreshMarketingPerformance(snapshot = {}, maxAgeMs) {
 
 async function mergeMarketingPerformanceFromConnectors(
   snapshot = {},
-  { config = {}, tenantId = '', forceRefresh = false, window = '7d', channels = DEFAULT_CHANNELS } = {}
+  {
+    config = {},
+    tenantId = '',
+    forceRefresh = false,
+    window = '7d',
+    channels = DEFAULT_CHANNELS,
+  } = {}
 ) {
-  const nextSnapshot =
-    snapshot && typeof snapshot === 'object' ? { ...snapshot } : {};
+  const nextSnapshot = snapshot && typeof snapshot === 'object' ? { ...snapshot } : {};
   const appConfig = resolveAppConfig(config);
 
   if (!forceRefresh && snapshotHasFreshMarketingPerformance(nextSnapshot)) {
