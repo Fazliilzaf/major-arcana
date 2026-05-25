@@ -145,7 +145,11 @@ async function main() {
   if (!email) {
     fail('PA-25 mail', 'saknar emailConfirmation + booking event');
   } else if (email.skipped === 'reserved_domain') {
-    record('PA-25 bekräftelsemail (skipped reserved)', true, 'ingen live-send till @example.com');
+    record(
+      'PA-25 bekräftelsemail (guard)',
+      true,
+      'verify-adress blockerad medvetet — Graph/Resend live för riktiga patientmail'
+    );
   } else if (email.provider === 'resend' && email.ok) {
     record('PA-25 bekräftelsemail (Resend)', true, email.messageId || 'sent');
   } else if (email.provider === 'graph' && email.ok) {

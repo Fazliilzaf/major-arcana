@@ -62,6 +62,21 @@ async function getAccessToken(serviceAccount) {
   return payload.access_token;
 }
 
+const DRIVE_FETCH_TIMEOUT_MS = Math.max(
+  15000,
+  Number.parseInt(process.env.ARCANA_DRIVE_API_FETCH_TIMEOUT_MS || '120000', 10) || 120000
+);
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = DRIVE_FETCH_TIMEOUT_MS) {
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    return await fetch(url, controller ? { ...options, signal: controller.signal } : options);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 async function listChildrenPage({ accessToken, folderId, pageToken = '' }) {
   const params = new URLSearchParams({
     q: `'${folderId}' in parents and trashed=false`,
@@ -72,7 +87,7 @@ async function listChildrenPage({ accessToken, folderId, pageToken = '' }) {
   });
   if (pageToken) params.set('pageToken', pageToken);
 
-  const response = await fetch(`${FILES_URL}?${params}`, {
+  const response = await fetchWithTimeout(`${FILES_URL}?${params}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const payload = await response.json();

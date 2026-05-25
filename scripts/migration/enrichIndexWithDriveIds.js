@@ -22,8 +22,52 @@ const {
   listAllDriveFiles,
 } = require('./lib/googleDriveApi');
 
+const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
 function parseArgs(argv) {
-  return { dryRun: argv.includes('--dry-run') };
+  return {
+    dryRun: argv.includes('--dry-run'),
+    refreshCache: argv.includes('--refresh-cache'),
+  };
+}
+
+function resolveDriveCachePath(paths) {
+  return path.join(path.dirname(paths.indexPath), 'drive-api-file-index.cache.json');
+}
+
+function loadDriveCache(cachePath, folderId) {
+  if (!fs.existsSync(cachePath)) return null;
+  try {
+    const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+    const ageMs = Date.now() - Date.parse(cached.generatedAt || '');
+    if (!Array.isArray(cached.files) || !cached.files.length) return null;
+    if (String(cached.folderId || '') !== String(folderId || '')) return null;
+    if (!Number.isFinite(ageMs) || ageMs > CACHE_MAX_AGE_MS) return null;
+    console.log(
+      `Återanvänder Drive-cache (${cached.files.length} filer, ${Math.round(ageMs / 3600000)}h gammal).`
+    );
+    return cached.files;
+  } catch {
+    return null;
+  }
+}
+
+function saveDriveCache(cachePath, folderId, driveFiles) {
+  fs.writeFileSync(
+    cachePath,
+    `${JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        folderId,
+        fileCount: driveFiles.length,
+        files: driveFiles,
+      },
+      null,
+      2
+    )}\n`,
+    'utf8'
+  );
+  console.log(`Drive-cache sparad: ${cachePath} (${driveFiles.length} filer)`);
 }
 
 async function main() {
@@ -44,18 +88,28 @@ async function main() {
   }
 
   console.log(`Enrich ${needsEnrich.length}/${files.length} filer från Drive folder ${creds.folderId}…`);
-  const serviceAccount = loadServiceAccountFromCreds(creds);
-  const accessToken = await getAccessToken(serviceAccount);
-  const driveFiles = await listAllDriveFiles({
-    accessToken,
-    rootFolderId: creds.folderId,
-    serviceAccount,
-    onProgress: ({ foldersScanned, filesIndexed }) => {
-      if (foldersScanned % 50 === 0) {
-        console.log(`… ${foldersScanned} mappar, ${filesIndexed} filer`);
-      }
-    },
-  });
+  const cachePath = resolveDriveCachePath(paths);
+  let driveFiles = null;
+  if (!args.refreshCache) {
+    driveFiles = loadDriveCache(cachePath, creds.folderId);
+  }
+  if (!driveFiles) {
+    const serviceAccount = loadServiceAccountFromCreds(creds);
+    const accessToken = await getAccessToken(serviceAccount);
+    driveFiles = await listAllDriveFiles({
+      accessToken,
+      rootFolderId: creds.folderId,
+      serviceAccount,
+      onProgress: ({ foldersScanned, filesIndexed }) => {
+        if (foldersScanned % 50 === 0) {
+          console.log(`… ${foldersScanned} mappar, ${filesIndexed} filer`);
+        }
+      },
+    });
+    if (!args.dryRun) {
+      saveDriveCache(cachePath, creds.folderId, driveFiles);
+    }
+  }
   const lookup = buildDriveLookup(
     driveFiles.map((item) => {
       const records = buildFileRecord({
