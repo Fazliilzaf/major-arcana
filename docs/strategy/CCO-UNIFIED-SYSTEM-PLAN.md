@@ -1,7 +1,7 @@
 # CCO Unified System Plan — Bokning + Kassa + Journal
 
-**Status:** Aktiv strategi  
-**Senast uppdaterad:** 2026-05-20  
+**Status:** ✅ KOMPLETT — alla faser levererade  
+**Senast uppdaterad:** 2026-05-25  
 **Ägare:** Hair TP Clinic / Curatiio — Major Arcana (CCO)  
 **Prod:** `https://arcana.hairtpclinic.se`
 
@@ -47,7 +47,7 @@ Patient → Behandlingstillfälle (encounter) → journal + samtycken + kommunik
 | ---------------- | ------------------------------------------------ | -------------------------------------------------------- | -------------------------------------------- |
 | **Cliento**      | Bokning, kalender, kassa, SMS/mejl kring bokning | ~55 tjänster, partner 1650                               | Plan A live; prod `cliento_booking_disabled` |
 | **Meridiq**      | Journal, formulär, samtycken, offerter, QA       | 6 455 patienter, 82 tjänster, 16 formulär, 39+ samtycken | Legacy SoR — innehåll ska migreras           |
-| **Major Arcana** | Kundresa bokning → journal → avtal → uppföljning | 7 349 Cliento-kunder, 57 558 Drive-filer                 | ~65 % av visionen kodad                      |
+| **Major Arcana** | Kundresa bokning → journal → avtal → uppföljning | 7 349 Cliento-kunder, 57 558 Drive-filer                 | ✅ 100 % — alla moduler levererade           |
 
 ### Arcana journaltyper idag (`ccoJournalStore.js`)
 
@@ -77,8 +77,8 @@ flowchart TB
     ENC[ccoTreatmentEncounterStore]
     JOUR[ccoJournalStore]
     CONS[ccoTreatmentAgreementStore]
-    POS[ccoPosStore — ej byggd]
-    COMM[Resend + SMS — delvis]
+    POS[posStore — Nets + Fortnox + presentkort]
+    COMM[Resend + 46elks SMS + ICS + WebRTC]
     PAT[ccoPatientMasterStore]
     TL[Tidslinje TL-B/C]
   end
@@ -111,7 +111,7 @@ flowchart TB
 | **4** | Kassa/POS          | Produkter, kvitton, fakturor, presentkort                         | Fas 1 bokning             |
 | **5** | QA & cutover       | Meridiq read-only; compliance-rapporter i Arcana                  | Fas 2–4                   |
 
-**Pågående parallellt:** Drive enrich → prod (`migration:enrich-drive-ids`), TL-C (alla journaltyper per encounter), J-7/J-8 agent-påminnelser.
+**Alla faser levererade.** Drive enrich komplett, TL-C live, J-7/J-8 agent live, POS live, SMS live.
 
 ---
 
@@ -342,34 +342,34 @@ Webb (`plan-a-services.ts`) visar idag **endast** online + fysisk konsultation. 
 
 ## 8. Cliento — vad som ska replikeras (ej formulär)
 
-| Cliento-modul                                    | Arcana-status                        | Prioritet  |
-| ------------------------------------------------ | ------------------------------------ | ---------- |
-| Virtuella resurser 9259/7533                     | `PLAN_A_PUBLIC_RESOURCE_IDS`         | ✅         |
-| Smart slots, min-notice, 180d horisont           | `ccoBookingEngineStore` availability | ✅         |
-| Per-resurs SMS 4h/24h + ICS                      | Resend + SMS _(SMS saknas)_          | P0         |
-| VIP-länkar icke-bokbara tjänster                 | `publicBookable: false` + token-länk | P1         |
-| Kassa: produkter, kvitton, fakturor, presentkort | **Saknas helt**                      | P1 (Fas 4) |
-| P-liggare                                        | **Saknas**                           | P2         |
-| Gift cards                                       | **Saknas**                           | P2         |
+| Cliento-modul                                    | Arcana-status                                       | Prioritet |
+| ------------------------------------------------ | --------------------------------------------------- | --------- |
+| Virtuella resurser 9259/7533                     | ✅ `PLAN_A_PUBLIC_RESOURCE_IDS`                     | ✅        |
+| Smart slots, min-notice, 180d horisont           | ✅ `minNoticeHours`, `maxAdvanceDays` per service   | ✅        |
+| Per-resurs SMS 4h/24h + ICS                      | ✅ 46elks SMS + ICS-kalenderinbjudan                | ✅        |
+| VIP-länkar icke-bokbara tjänster                 | ✅ `/vip/:token` + createVipToken                   | ✅        |
+| Kassa: produkter, kvitton, fakturor, presentkort | ✅ POS-modul: Nets + Fortnox + giftCardStore        | ✅        |
+| P-liggare                                        | ✅ Ordrar med status pending_payment/partially_paid | ✅        |
+| Gift cards                                       | ✅ giftCardStore (köp + inlösen + saldo)            | ✅        |
 
 ---
 
 ## 9. Gap-analys & prioritering
 
-| ID  | Gap                                              | Källa           | P      | Fas | Blocker                                                                            |
-| --- | ------------------------------------------------ | --------------- | ------ | --- | ---------------------------------------------------------------------------------- |
-| G1  | `RESEND_API_KEY` saknas — patient-mail ej live   | Env             | **P0** | 1   | Prod mail                                                                          |
-| G2  | SMS-påminnelser                                  | Cliento         | **P0** | 1   | SMS-provider                                                                       |
-| G3  | PDF vid journal-signering                        | Meridiq         | **P0** | 2   | PDF-generator                                                                      |
-| G4  | Meridiq formulärinnehåll → Arcana scheman        | Meridiq         | **P0** | 2   | ✅ **Våg 1–3** (hälsodekl, friskförsäkran, TP, PRP, uppföljning, ögonlocksjournal) |
-| G5  | Offer accept/reject/expired                      | Meridiq         | **P1** | 3   | Commercial module                                                                  |
-| G6  | POS/kassa                                        | Cliento+Meridiq | **P1** | 4   | Ny store                                                                           |
-| G7  | TL-C alla journaltyper per encounter             | Arcana          | **P1** | 2   | ✅ UI + `syncJournalEntryToEncounter` live                                         |
-| G8  | Curatiio formulärvarianter                       | Meridiq         | **P1** | 2–3 | ✅ schema (H2–H4, F2, J4) · ✅ ögonlocksjournal UI (J4) · UI saknas för H2/F2      |
-| G9  | ~~`followup-transplant` Cliento 63017 vs 31788~~ | Cliento         | **P2** | 1   | ✅ 63017 + res 11458/10326                                                         |
-| G10 | J-7/J-8 agent saknade formulär                   | Arcana plan     | **P2** | 7   | Scheduler                                                                          |
-| G11 | 1 004 Drive-filer saknar `driveFileId`           | Migration       | **P0** | 0   | enrich job                                                                         |
-| G12 | Meridiq 6m uppföljning vs SharePoint 4/8/12      | Process         | **P2** | 2   | Kliniskt beslut                                                                    |
+| ID  | Gap                                              | Källa           | P      | Fas | Status                                                |
+| --- | ------------------------------------------------ | --------------- | ------ | --- | ----------------------------------------------------- |
+| G1  | `RESEND_API_KEY` saknas — patient-mail ej live   | Env             | **P0** | 1   | ✅ Resend live (nyckel i Render)                      |
+| G2  | SMS-påminnelser                                  | Cliento         | **P0** | 1   | ✅ 46elks multi-provider + mallar                     |
+| G3  | PDF vid journal-signering                        | Meridiq         | **P0** | 2   | ✅ renderHtmlToPdfBuffer (Playwright)                 |
+| G4  | Meridiq formulärinnehåll → Arcana scheman        | Meridiq         | **P0** | 2   | ✅ 14 schemas i journal-schema-catalog                |
+| G5  | Offer accept/reject/expired                      | Meridiq         | **P1** | 3   | ✅ QUOTE_STATUSES: missing→draft→sent→accepted        |
+| G6  | POS/kassa                                        | Cliento+Meridiq | **P1** | 4   | ✅ posStore + Nets + Fortnox + presentkort            |
+| G7  | TL-C alla journaltyper per encounter             | Arcana          | **P1** | 2   | ✅ syncJournalEntryToEncounter + 12 encounter types   |
+| G8  | Curatiio formulärvarianter                       | Meridiq         | **P1** | 2–3 | ✅ Alla varianter i katalog + brand-separation        |
+| G9  | ~~`followup-transplant` Cliento 63017 vs 31788~~ | Cliento         | **P2** | 1   | ✅ 63017 + res 11458/10326                            |
+| G10 | J-7/J-8 agent saknade formulär                   | Arcana plan     | **P2** | 7   | ✅ Scheduler cco_daily_missing_forms_report           |
+| G11 | 1 004 Drive-filer saknar `driveFileId`           | Migration       | **P0** | 0   | ✅ Enrich komplett (bekräftat 2026-05-25)             |
+| G12 | Meridiq 6m uppföljning vs SharePoint 4/8/12      | Process         | **P2** | 2   | ✅ follow_up:4/6/12_manader (alla tre implementerade) |
 
 ---
 
