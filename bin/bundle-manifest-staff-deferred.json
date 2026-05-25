@@ -1,0 +1,23 @@
+{
+  "_comment": "Lazy chunk for mobil staff — journalformulär och icke-kritiska UI-moduler. Laddas efter app.bundle.staff-core på view=customers.",
+  "sources": [
+    "app/cmd-k.js",
+    "app/keyboard-nav.js",
+    "app/bulk-actions.js",
+    "app/inbox-streak.js",
+    "app/showcase-banner.js",
+    "app/maintenance-banner.js",
+    "app/journal-plan-editor.js",
+    "app/journal-photo-client.js",
+    "app/journal-tp-schemas.js",
+    "app/journal-tp-form.js",
+    "app/journal-prp-schemas.js",
+    "app/journal-prp-form.js",
+    "app/journal-follow-up-schemas.js",
+    "app/journal-follow-up-form.js",
+    "app/journal-bleph-schemas.js",
+    "app/journal-bleph-form.js",
+    "app/journal-clinical-schemas.js",
+    "app/journal-pre-treatment-forms.js"
+  ]
+}

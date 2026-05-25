@@ -3231,6 +3231,7 @@
     runtime.detailTab = normalized;
     if (normalized === 'journal') {
       runtime.preferJournalOnMobile = true;
+      window.__ARCANA_LOAD_STAFF_DEFERRED__?.();
     } else {
       runtime.preferJournalOnMobile = false;
       runtime.editingTpEntryId = '';
