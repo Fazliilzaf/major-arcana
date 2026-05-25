@@ -1218,8 +1218,80 @@ test('cco bookings route kan läsa egen booking engine som source of truth för 
       assert.equal(slotsPayload.provider, 'cco_engine');
       assert.ok(slotsPayload.slots.length >= 1);
       assert.equal(slotsPayload.slots[0].source, 'cco_engine');
+      assert.ok(Array.isArray(slotsPayload.blocks));
+      assert.ok(slotsPayload.blocks.some((item) => item.blockType === 'lunch'));
+
+      const blocksResponse = await fetch(
+        `${baseUrl}/cco-bookings/calendar-blocks?fromDate=${fromDate}&toDate=${toDate}`
+      );
+      assert.equal(blocksResponse.status, 200);
+      const blocksPayload = await blocksResponse.json();
+      assert.ok(Array.isArray(blocksPayload.blocks));
+      assert.ok(blocksPayload.blocks.length >= 1);
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings calendar rebook uppdaterar ärende via bookingCaseId', async () => {
+  const fixture = await createEngineFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const fromDate = nextBookableWeekday(1);
+      const toDate = nextBookableWeekday(2, { minDaysAhead: 3 });
+      const qs =
+        'workspaceId=major-arcana-preview&conversationId=conv-cal-rebook&customerEmail=cal%40example.com&customerName=Cal';
+      const availabilityResponse = await fetch(
+        `${baseUrl}/cco-bookings/slots?fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
+      );
+      assert.equal(availabilityResponse.status, 200);
+      const availabilityPayload = await availabilityResponse.json();
+      assert.ok(availabilityPayload.slots.length >= 2);
+      const firstSlot = availabilityPayload.slots[0];
+      const secondSlot = availabilityPayload.slots[1];
+
+      const candidatesResponse = await fetch(`${baseUrl}/cco-bookings/candidates?${qs}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ selectedSlots: [firstSlot] }),
+      });
+      assert.equal(candidatesResponse.status, 200);
+      const candidatesPayload = await candidatesResponse.json();
+      const bookingCaseId = candidatesPayload.bookingCase.bookingCaseId;
+
+      await fixture.bookingEngineStore.confirmBooking({
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-cal-rebook',
+        customerEmail: 'cal@example.com',
+        customerName: 'Cal',
+        slot: firstSlot,
+      });
+      await fixture.bookingStore.updateStatus({
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-cal-rebook',
+        customerEmail: 'cal@example.com',
+        status: 'confirmed_external',
+      });
+
+      const rebookResponse = await fetch(`${baseUrl}/cco-bookings/calendar/rebook`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          bookingCaseId,
+          slot: secondSlot,
+          reason: 'Flyttad i kalender',
+        }),
+      });
+      assert.equal(rebookResponse.status, 200);
+      const rebookPayload = await rebookResponse.json();
+      assert.equal(rebookPayload.booking.slot.slotId, secondSlot.slotId);
+      assert.equal(rebookPayload.bookingCase.selectedSlots[0].slotId, secondSlot.slotId);
+      assert.equal(rebookPayload.bookingCase.events.at(-1).type, 'engine_booking_rebooked');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });

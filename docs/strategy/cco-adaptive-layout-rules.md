@@ -148,9 +148,18 @@ Reusable ytor ska stödja responsiva varianter. Implementation i preview = CSS-m
 
 | Läge | Default | Detalj |
 |------|---------|--------|
-| Mobile | dag/lista/månad | bottom sheet |
+| Mobile | dag/lista/månad | bottom sheet · event-kort med stripe + ikoner |
 | Tablet | dag + sidopanel | tvåpanel bokning |
-| Desktop | vecka/resurs | filter + resurskolumner |
+| Desktop | vecka/dag/resurs | segment-toolbar + filter-chips + detaljpanel |
+
+### Hair TP kalender-design (kod)
+
+- **Tokens:** `--cco-cal-*` i `cco-calendar.css` (taupe `#CABAAE`, espresso `#513D34`, canvas `#FAF6F3`)
+- **Typografi:** Jost (UI) + Cormorant Garamond (rubriker) — samma familj som publik profil
+- **Event-kort:** vänster accent-stripe per typ (online/fysisk/väntar/bekräftad) + ikoner (video, SMS, formulär, plats, klocka)
+- **Verktyg:** segment (Vecka/Dag/Resurs) och resurs-chips “ploppar” via elevation — espresso aktiv, bubble inaktiv
+- **Delade helpers:** `booking-calendar-shared.js` · desktop `booking-desktop-week.js` · mobil `booking-mobile-calendar-day.js`
+- **Inte:** violet schedule-accent (ersatt med Hair TP taupe i `cco-polish.css`)
 
 ---
 
@@ -223,7 +232,7 @@ npm run verify:staff-ui-prod            # desktop regression
 | **2** | Tabell → kort (CCO Care, listor) | ☑ 2026-05-25 (tablet + mobil) |
 | **3** | FormStep långa formulär mobil + tablet | ☑ 2026-05-25 (TP, pre-treatment, PRP, uppföljning, ögonlock, avtal; ≤1023px) |
 | **4** | Playwright 5-viewport gate | ☑ `verify:adaptive-layout-prod` |
-| **5** | Desktop veckokalender (valfritt) | ☑ 2026-05-25 (`booking-desktop-week.js`) |
+| **5** | Desktop kalender (Hair TP design) | ☑ 2026-05-25 (`cco-calendar.css`, `booking-calendar-shared.js`, `booking-desktop-week.js`) |
 
 Se [MASTER-TODO.md](./MASTER-TODO.md) backlog **BL.5**.
 

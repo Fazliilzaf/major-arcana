@@ -85,7 +85,7 @@
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./design-tokens.css" />
   <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
          (Fas 3 Steg B: gör att modern CSS i cco-polish.css kan vinna utan !important).
@@ -98,6 +98,7 @@
   <link rel="stylesheet" href="./cco-polish.css?v=build-tablet-split-b" />
   <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-staff-first-login-a" />
   <link rel="stylesheet" href="./cco-tablet-shell.css?v=build-tablet-split-b" />
+  <link rel="stylesheet" href="./cco-calendar.css?v=build-cal-p2-a" />
   <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
   <script src="./cco-mobile-core.js?v=build-mobile-shell-h" defer></script>
   <script src="./cco-mobile-autosave.js?v=build-mobile-shell-e" defer></script>
@@ -105,8 +106,9 @@
   <script src="./cco-tablet-shell.js?v=build-tablet-cal-b" defer></script>
   <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
   <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
-  <script src="./booking-mobile-calendar-day.js?v=build-tablet-cal-b" defer></script>
-  <script src="./booking-desktop-week.js?v=build-desktop-week-a" defer></script>
+  <script src="./booking-calendar-shared.js?v=build-cal-p2-a" defer></script>
+  <script src="./booking-mobile-calendar-day.js?v=build-cal-p2-a" defer></script>
+  <script src="./booking-desktop-week.js?v=build-cal-p2-a" defer></script>
   <script src="./app/cco-care-panel.js?v=build-ai-care-sweep-a" defer></script>
   <script src="./app/thread-ai-summary.js?v=build-ai-care-sweep-a" defer></script>
   <script src="./cco-mobile-queue.js?v=build-mobile-shell-e" defer></script>
@@ -166,6 +168,16 @@
                   stroke-linecap="round" stroke-width="1.4" />
               </svg>
               <span data-i18n="nav.customers">Kunder</span>
+            </button>
+
+            <button class="preview-nav-item" type="button" data-nav-view="calendar" aria-pressed="false">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" fill="none" stroke="currentColor"
+                  stroke-width="1.4" />
+                <path d="M2.5 6.5h11M5.5 2.5v2M10.5 2.5v2" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-width="1.4" />
+              </svg>
+              <span>Kalender</span>
             </button>
 
             <button class="preview-nav-item" type="button" data-nav-view="automation" aria-pressed="false">
@@ -1845,6 +1857,16 @@
           aria-label="Ändra bredd mellan arbetskö och fokusyta" data-resize-handle="left-main"></button>
         <button class="workspace-resizer workspace-resizer-right" type="button"
           aria-label="Ändra bredd mellan fokusyta och kundintelligens" data-resize-handle="main-right"></button>
+
+        <section class="calendar-shell" data-shell-view="calendar" aria-labelledby="calendar-title" hidden>
+          <div class="calendar-shell-surface">
+            <header class="calendar-shell-header">
+              <h1 id="calendar-title">Kalender</h1>
+              <p class="calendar-shell-lead">Bokade tider, lediga slots och resursplanering för mottagningen.</p>
+            </header>
+            <div data-booking-calendar-host class="cco-cal-host" aria-live="polite"></div>
+          </div>
+        </section>
 
         <section class="customers-shell" data-shell-view="customers" aria-labelledby="customers-title" hidden>
           <div class="customers-surface">

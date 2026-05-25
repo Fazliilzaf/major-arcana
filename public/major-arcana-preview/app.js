@@ -40187,6 +40187,11 @@
         }
       }
 
+      if (shellView === "calendar") {
+        window.ArcanaBookingDesktopWeek?.syncVisibility?.();
+        window.ArcanaBookingDesktopWeek?.refresh?.();
+      }
+
       if (shellView === "analytics") {
         renderAnalyticsRuntime();
         loadAnalyticsRuntime().catch((error) => {
@@ -43130,6 +43135,93 @@
     getRuntimeReentrySnapshot,
     getRuntimeReentryOutcome,
     openRuntimeHistoryConversationForDiagnostics,
+  });
+
+  function prefillBookingFromCalendarSlot(slot = {}) {
+    const normalizedSlot =
+      slot && typeof slot === "object"
+        ? {
+            ...slot,
+            startsAt: slot.startsAt || slot.startAt || slot.start || "",
+            endsAt: slot.endsAt || slot.endAt || slot.end || "",
+          }
+        : null;
+    if (!normalizedSlot?.startsAt) return false;
+    state.booking.phoneMode = "phone";
+    state.booking.availableSlots = [normalizedSlot];
+    state.booking.calendarPrefillSlot = normalizedSlot;
+    state.booking.recentSelectedSlotId = getBookingSlotKey(normalizedSlot);
+    state.booking.recentSelectedSlotAction = "added";
+    state.runtime.bookingShellOpen = true;
+    setBookingOpen(true);
+    renderBookingSurface();
+    setFeedback(
+      getBookingDom().feedback,
+      "success",
+      "Ledig tid från kalendern är förifylld. Välj kund och bekräfta bokningen."
+    );
+    return true;
+  }
+
+  window.ArcanaBookingCalendarActions = Object.freeze({
+    openBookingCase(bookingCase = {}) {
+      const payload =
+        bookingCase?.bookingCaseSnapshot && typeof bookingCase.bookingCaseSnapshot === "object"
+          ? bookingCase.bookingCaseSnapshot
+          : bookingCase;
+      if (!asText(payload?.bookingCaseId)) return false;
+      syncBookingCaseListItem(payload);
+      setAppView("conversations");
+      return openBookingCaseInWorkspace(payload, {
+        message: "Bokningsärendet öppnades från kalendern.",
+      });
+    },
+    openCustomerCard({ patientId = "", customerEmail = "", customerName = "" } = {}) {
+      setAppView("customers");
+      const ui = window.ArcanaPatientMasterUi;
+      if (!ui) return false;
+      if (asText(patientId)) {
+        void ui.openPatient?.(patientId);
+        return true;
+      }
+      void ui.openPatientByEmail?.(customerEmail, customerName);
+      return true;
+    },
+    openJournal({ patientId = "", customerEmail = "", customerName = "" } = {}) {
+      setAppView("customers");
+      const ui = window.ArcanaPatientMasterUi;
+      if (!ui) return false;
+      if (asText(patientId)) {
+        void ui.openPatient?.(patientId, { tab: "journal" });
+        return true;
+      }
+      void ui.openPatientByEmail?.(customerEmail, customerName, { tab: "journal" });
+      return true;
+    },
+    openNewBookingFromSlot(slot = {}) {
+      setAppView("conversations");
+      window.ArcanaMobileShell?.navigateToBooking?.();
+      return prefillBookingFromCalendarSlot(slot);
+    },
+    async rebookFromCalendar(bookingCaseId, slot, reason = "Ombokad från kalendern") {
+      const shared = window.ArcanaBookingCalendarShared;
+      if (!shared?.rebookCalendarBooking || !asText(bookingCaseId)) return false;
+      const payload = await shared.rebookCalendarBooking(bookingCaseId, slot, reason);
+      if (payload?.bookingCase) {
+        syncBookingCaseListItem(payload.bookingCase);
+        syncBookingRuntimePayload(payload);
+      }
+      refreshBookingCaseList();
+      return payload;
+    },
+    showToast(message = "", tone = "success") {
+      const dom = getBookingDom();
+      if (dom?.feedback) {
+        setFeedback(dom.feedback, tone === "error" ? "error" : "success", message);
+        return;
+      }
+      window.ArcanaPatientMasterUi?.showMobileToast?.(message);
+    },
   });
 
   window.ArcanaAppNav = Object.freeze({
