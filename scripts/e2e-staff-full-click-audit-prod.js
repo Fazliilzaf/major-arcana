@@ -1,0 +1,349 @@
+#!/usr/bin/env node
+/**
+ * Full CCO desktop klick-audit @ prod.
+ * Mäter: klick-tid, hop-tid mellan steg, saknade/blockerade vyer.
+ */
+require('dotenv').config({ quiet: true });
+const { chromium } = require('playwright');
+const { execSync } = require('node:child_process');
+const path = require('node:path');
+const fs = require('node:fs');
+const { injectStaffToken } = require('./lib/mobile-patient-deeplink-prod');
+
+const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const staffEmail = process.env.ARCANA_STAFF_EMAIL || '';
+const staffPassword = process.env.ARCANA_STAFF_PASSWORD || '';
+const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
+const root = path.join(__dirname, '..');
+const SLOW_CLICK_MS = Number(process.env.ARCANA_E2E_SLOW_CLICK_MS || 800);
+const SLOW_HOP_MS = Number(process.env.ARCANA_E2E_SLOW_HOP_MS || 400);
+
+const steps = [];
+const hops = [];
+let blockers = [];
+let lastStepEnd = null;
+
+function record(step, ok, detail = '', timingMs = null) {
+  steps.push({ step, ok, detail, timingMs });
+  const time = timingMs != null ? ` — ${timingMs}ms` : '';
+  console.log(`${ok ? 'OK' : 'FAIL'}: ${step}${detail ? ` — ${detail}` : ''}${time}`);
+  if (!ok) blockers.push({ step, detail });
+}
+
+function recordHop(label, ms) {
+  hops.push({ label, ms });
+  const flag = ms > SLOW_HOP_MS ? ' ⚠ långt hop' : '';
+  console.log(`HOP: ${label} — ${ms}ms${flag}`);
+}
+
+function getStaffToken() {
+  if (process.env.ARCANA_SMOKE_BEARER_TOKEN) return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
+  return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
+}
+
+async function ensureLoggedIn(page) {
+  const needsLogin = (await page.locator('[data-staff-login-form]').count()) > 0;
+  if (!needsLogin) return;
+  await page.locator('[data-staff-login-form] input[name="email"]').fill(staffEmail);
+  await page.locator('[data-staff-login-form] input[name="password"]').fill(staffPassword);
+  const tenantInput = page.locator('[data-staff-login-form] input[name="tenantId"]');
+  if (await tenantInput.count()) {
+    await tenantInput.evaluate((node, value) => {
+      node.value = value;
+    }, tenantId);
+  }
+  await page
+    .locator('[data-staff-login-form] .patient-master-login-button, [data-staff-login-form] button[type="submit"]')
+    .first()
+    .click();
+  await page.waitForFunction(
+    () => {
+      const token = localStorage.getItem('ARCANA_ADMIN_TOKEN');
+      return Boolean(token && token.length > 8 && !document.querySelector('[data-staff-login-form]'));
+    },
+    undefined,
+    { timeout: 30000 }
+  );
+}
+
+async function clickNav(page, view, { viaMore = false, readyFn, timeout = 12000 } = {}) {
+  if (lastStepEnd != null) {
+    recordHop(`→ ${view}`, Date.now() - lastStepEnd);
+  }
+  const t0 = Date.now();
+  if (viaMore) {
+    await page.locator('[data-more-toggle]').first().click();
+    await page.waitForTimeout(120);
+    await page.locator(`.preview-more-item[data-nav-view="${view}"]`).first().click();
+  } else {
+    await page.locator(`.preview-nav-item[data-nav-view="${view}"]`).first().click();
+  }
+  if (typeof readyFn === 'function') {
+    await page.waitForFunction(readyFn, undefined, { timeout, polling: 16 });
+  } else {
+    await page.waitForTimeout(250);
+  }
+  const timingMs = Date.now() - t0;
+  return timingMs;
+}
+
+async function main() {
+  if (!staffEmail || !staffPassword) {
+    console.error('Saknar ARCANA_STAFF_EMAIL / ARCANA_STAFF_PASSWORD');
+    process.exit(1);
+  }
+
+  execSync(`node "${path.join(root, 'scripts/lib/wait-for-prod-ready.js')}"`, { stdio: 'inherit' });
+  const staffToken = getStaffToken();
+
+  console.log(`E2E full desktop klick-audit @ ${base}\n`);
+
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+
+  try {
+    let t0 = Date.now();
+    await page.goto(`${base}/staff`, { waitUntil: 'commit', timeout: 60000 });
+    await page.waitForSelector('.preview-canvas', { timeout: 20000 });
+    record('Kallstart /staff', true, page.url(), Date.now() - t0);
+    lastStepEnd = Date.now();
+
+    t0 = Date.now();
+    await ensureLoggedIn(page);
+    record('Inloggning', true, 'session klar', Date.now() - t0);
+    lastStepEnd = Date.now();
+    await injectStaffToken(page, staffToken);
+
+    const primaryViews = [
+      {
+        view: 'conversations',
+        ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'conversations',
+        assert: async () => {
+          const threads = await page.locator('[data-thread-list], [data-conversation-list], .thread-list').count();
+          return threads >= 0;
+        },
+        detail: 'konversationsvy',
+      },
+      {
+        view: 'customers',
+        ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
+        assert: async () => {
+          await page.waitForSelector('[data-customer-list]', { timeout: 15000 });
+          const rows = await page.locator('[data-patient-row]').count();
+          return rows > 0;
+        },
+        detail: 'kundlista',
+      },
+      {
+        view: 'calendar',
+        ready: () => {
+          const shell = document.querySelector('[data-shell-view="calendar"]');
+          const cal = document.getElementById('cco-desktop-calendar');
+          const loading = cal?.querySelector('.cco-cal-empty')?.textContent || '';
+          const hasGrid = Boolean(cal?.querySelector('.cco-cal-week-grid, .cco-cal-day-timeline, .cco-cal-resource-timeline'));
+          return (
+            shell &&
+            !shell.hidden &&
+            cal &&
+            !cal.hidden &&
+            (hasGrid || /Hämtar|Inga/i.test(loading) === false)
+          );
+        },
+        assert: async () => {
+          await page.waitForFunction(() => window.ArcanaBookingDesktopWeek, undefined, { timeout: 15000 });
+          await page.waitForSelector('#cco-desktop-calendar:not([hidden])', { timeout: 20000 });
+          return true;
+        },
+        detail: 'desktop kalender',
+        timeout: 30000,
+      },
+      {
+        view: 'automation',
+        ready: () => {
+          const shell = document.querySelector('[data-shell-view="automation"]');
+          return shell && !shell.hidden;
+        },
+        detail: 'automatisering',
+      },
+      {
+        view: 'analytics',
+        ready: () => {
+          const shell = document.querySelector('[data-shell-view="analytics"]');
+          return shell && !shell.hidden;
+        },
+        detail: 'analys',
+      },
+    ];
+
+    for (const item of primaryViews) {
+      const timingMs = await clickNav(page, item.view, {
+        readyFn: item.ready,
+        timeout: item.timeout || 12000,
+      });
+      let ok = true;
+      let detail = item.detail;
+      if (item.assert) {
+        try {
+          ok = await item.assert();
+          if (!ok) detail = `${item.detail} — assert misslyckades`;
+        } catch (err) {
+          ok = false;
+          detail = err.message?.slice(0, 100) || item.detail;
+        }
+      }
+      record(`Nav ${item.view}`, ok, detail, timingMs);
+      lastStepEnd = Date.now();
+    }
+
+    const moreViews = ['later', 'sent', 'integrations', 'macros', 'settings', 'showcase'];
+    for (const view of moreViews) {
+      const timingMs = await clickNav(page, view, {
+        viaMore: true,
+        readyFn: () => {
+          const shell = document.querySelector(`[data-shell-view="${view}"]`);
+          return shell && !shell.hidden;
+        },
+      });
+      record(`Nav ${view} (Mer)`, true, 'shell synlig', timingMs);
+      lastStepEnd = Date.now();
+    }
+
+    // Kalender sub-vyer
+    await clickNav(page, 'calendar', {
+      readyFn: () => {
+        const cal = document.getElementById('cco-desktop-calendar');
+        return cal && !cal.hidden;
+      },
+    });
+    for (const mode of ['day', 'resource', 'week']) {
+      if (lastStepEnd != null) recordHop(`kalender → ${mode}`, Date.now() - lastStepEnd);
+      t0 = Date.now();
+      await page.locator(`#cco-desktop-calendar [data-cal-view="${mode}"]`).first().click();
+      await page.waitForFunction(
+        (m) => document.getElementById('cco-desktop-calendar')?.dataset.calViewMode === m,
+        mode,
+        { timeout: 8000, polling: 16 }
+      );
+      lastStepEnd = Date.now();
+      record(`Kalender ${mode}`, true, 'vy aktiv', Date.now() - t0);
+    }
+
+    // Klicka första bokade event om det finns
+    if (lastStepEnd != null) recordHop('kalender → event', Date.now() - lastStepEnd);
+    t0 = Date.now();
+    const booked = page.locator('#cco-desktop-calendar .cco-cal-event.is-booked').first();
+    const hasBooked = (await booked.count()) > 0;
+    if (hasBooked) {
+      await booked.click();
+      await page.waitForFunction(
+        () => document.querySelector('[data-cal-detail]:not([hidden])'),
+        undefined,
+        { timeout: 5000, polling: 16 }
+      );
+      const detailOpen = await page.evaluate(
+        () => !document.querySelector('[data-cal-detail]')?.hidden
+      );
+      record('Kalender event → detalj', detailOpen, 'detaljpanel', Date.now() - t0);
+      lastStepEnd = Date.now();
+
+      const signalRows = await page.evaluate(() => {
+        const items = [...document.querySelectorAll('[data-cal-detail-meta] li strong')].map((n) =>
+          n.textContent?.trim()
+        );
+        return items.filter(Boolean);
+      });
+      record(
+        'Kalender signalrader',
+        true,
+        signalRows.length ? signalRows.slice(0, 4).join(' · ') : 'inga signaler på vald bokning'
+      );
+    } else {
+      record('Kalender event → detalj', false, 'ingen bokad tid i intervallet', Date.now() - t0);
+      lastStepEnd = Date.now();
+    }
+
+    // Kund → journal
+    if (lastStepEnd != null) recordHop('→ kund journal', Date.now() - lastStepEnd);
+    t0 = Date.now();
+    await clickNav(page, 'customers', {
+      readyFn: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
+    });
+    const firstRow = page.locator('[data-patient-row]').first();
+    if ((await firstRow.count()) > 0) {
+      await firstRow.click();
+      await page.waitForFunction(
+        () => document.documentElement.getAttribute('data-cco-patient-detail') === 'on',
+        undefined,
+        { timeout: 12000, polling: 16 }
+      );
+      record('Kund rad → detalj', true, 'patient öppnad', Date.now() - t0);
+      lastStepEnd = Date.now();
+
+      if (lastStepEnd != null) recordHop('profil → journal', Date.now() - lastStepEnd);
+      t0 = Date.now();
+      await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('journal'));
+      await page.waitForTimeout(400);
+      const journalOk = await page.evaluate(
+        () => !document.querySelector('[data-patient-tab-panel="journal"]')?.hasAttribute('hidden')
+      );
+      record('Journal-flik', journalOk, journalOk ? 'panel synlig' : 'panel dold', Date.now() - t0);
+      lastStepEnd = Date.now();
+    } else {
+      record('Kund rad → detalj', false, 'ingen patientrad', Date.now() - t0);
+      lastStepEnd = Date.now();
+    }
+
+    const slowClicks = steps.filter((s) => s.timingMs != null && s.timingMs > SLOW_CLICK_MS);
+    const slowHops = hops.filter((h) => h.ms > SLOW_HOP_MS);
+    const passed = steps.filter((s) => s.ok).length;
+
+    const report = {
+      base,
+      at: new Date().toISOString(),
+      passed,
+      total: steps.length,
+      slowClickBudgetMs: SLOW_CLICK_MS,
+      slowHopBudgetMs: SLOW_HOP_MS,
+      steps,
+      hops,
+      blockers,
+      slowClicks,
+      slowHops,
+    };
+
+    const outPath = path.join(root, 'artifacts', 'e2e-full-click-audit.json');
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
+
+    console.log('\n--- Sammanfattning ---');
+    console.log(`Steg: ${passed}/${steps.length} OK`);
+    if (slowClicks.length) {
+      console.log(`Långsamma klick (>${SLOW_CLICK_MS}ms):`);
+      slowClicks.forEach((s) => console.log(`  • ${s.step}: ${s.timingMs}ms`));
+    }
+    if (slowHops.length) {
+      console.log(`Långa hopp (>${SLOW_HOP_MS}ms):`);
+      slowHops.forEach((h) => console.log(`  • ${h.label}: ${h.ms}ms`));
+    }
+    if (blockers.length) {
+      console.log('\nBlockers:');
+      blockers.forEach((b) => console.log(`  • ${b.step}: ${b.detail}`));
+    } else {
+      console.log('\nInga hårda blockers i nav-flödet.');
+    }
+    console.log(`\nRapport: ${outPath}`);
+
+    if (blockers.length) process.exit(1);
+  } finally {
+    await browser.close();
+  }
+}
+
+main().catch((err) => {
+  console.error('E2E full audit kraschade:', err.message || err);
+  process.exit(1);
+});

@@ -106,3 +106,55 @@ test('workspace-state kanoniserar valt mailboxscope till full mailboxadress', ()
   assert.deepEqual(workspaceStateApi.getSelectedMailboxIds(), ['kons@hairtpclinic.com']);
   assert.deepEqual(state.runtime.selectedMailboxIds, ['kons@hairtpclinic.com']);
 });
+
+test('workspace-state tillåter calendar som appView', () => {
+  const source = fs.readFileSync(WORKSPACE_STATE_PATH, 'utf8');
+  const createWorkspaceStateApiSource = extractFunctionSource(source, 'createWorkspaceStateApi');
+  const createWorkspaceStateApi = new Function(
+    `${createWorkspaceStateApiSource}; return createWorkspaceStateApi;`
+  )();
+
+  const state = {
+    view: 'conversations',
+    mailboxAdminOpen: false,
+    moreMenuOpen: false,
+    noteMode: { open: false },
+    runtime: {
+      activeFocusSection: 'conversation',
+      selectedThreadId: '',
+      activeLaneId: 'all',
+      selectedMailboxIds: [],
+      selectedOwnerKey: 'all',
+      historyExpanded: true,
+    },
+  };
+
+  const workspaceStateApi = createWorkspaceStateApi({
+    AUX_VIEWS: new Set(['settings']),
+    QUEUE_LANE_ORDER: ['all'],
+    asArray(value) {
+      return Array.isArray(value) ? value : [];
+    },
+    asText(value, fallback = '') {
+      if (typeof value === 'string' && value.trim()) return value.trim();
+      return fallback;
+    },
+    canonicalizeMailboxId(value) {
+      return String(value || '').trim().toLowerCase();
+    },
+    normalizeKey(value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_');
+    },
+    normalizeMailboxId(value) {
+      return String(value || '').trim().toLowerCase();
+    },
+    state,
+  });
+
+  assert.equal(workspaceStateApi.setView('calendar'), 'calendar');
+  assert.equal(workspaceStateApi.getView(), 'calendar');
+  assert.equal(workspaceStateApi.setView('unknown-view'), 'conversations');
+});
