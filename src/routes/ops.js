@@ -353,7 +353,9 @@ function createOpsRouter({
           ? await patientCareStateStore.listDraftProposals({ tenantId, status, patientId, limit })
           : [];
         let live = null;
-        if (journalStore && patientMasterStore && patientCareStateStore) {
+        const includeLivePreview =
+          !patientId && normalizeText(req.query?.livePreview) !== '0';
+        if (includeLivePreview && journalStore && patientMasterStore && patientCareStateStore) {
           live = await buildJournalDraftProposals({
             journalStore,
             patientMasterStore,

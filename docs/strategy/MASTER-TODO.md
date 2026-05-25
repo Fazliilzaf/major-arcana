@@ -216,11 +216,11 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 ### Utrullning 3 — Drive-PDF + bred drift → **AKTIV**
 
 - [x] U3.1 **Drive-PDF på prod** — Google Drive API (ej 86 GB zip på 2 GB disk)
-- [~] U3.2 Drive-filer visningsbara i Filer-fliken prod — UI **saknar Drive-koppling** för filer utan `driveFileId`; ~15% kvar (8455/57558)
+- [~] U3.2 Drive-filer visningsbara i Filer-fliken prod — index **56554/57558** `driveFileId` (98,3%) efter enrich 2026-05-25; ~1004 utan match
 - [~] U3.3 Personal utbildad + journalför i MA — externt
 - [x] U3.4 Notion: verify prod efter duplicate-cleanup (2026-05-25 — readyz, blueprint in_sync, verify:migration-prod PASS, needsReview 0)
 
-> **Verify 2026-05-25 (sweep):** `driveApiConfigured=true`, zipCount=0, **57558** filer / **1981** profiler. Index **49103/57558** `driveFileId` (journal_pdf **3482/5313**). Filer med `driveFileId` streamar **200** (Drive). Filer utan: API `404 drive_link_missing` + Filer-fliken visar etikett **saknar Drive-koppling** (ej trasig länk). Kör `migration:enrich-drive-ids` för resterande matchning.
+> **Verify 2026-05-25:** Enrich **7451** nya `driveFileId` → **56554/57558** (98,3%). Push index 52 MB + Render restart. `verify:migration-prod` **PASS**. ~1004 filer utan Drive-match kvar (etikett **saknar Drive-koppling**).
 
 ### Utrullning 4 — Post-op Fas 1 🔄
 
