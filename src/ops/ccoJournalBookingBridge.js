@@ -335,10 +335,165 @@ async function syncConsultationPhotoToEncounter({
   return { encounter, plan, skipped: false };
 }
 
+const ENCOUNTER_LINKED_JOURNAL_TYPES = new Set([
+  'consultation_plan',
+  'health_declaration',
+  'fitness_certificate',
+  'tp_treatment',
+  'prp_treatment',
+  'follow_up',
+  'bleph_treatment',
+]);
+
+async function resolveEncounterForJournalEntry({
+  treatmentEncounterStore,
+  journalStore,
+  tenantId,
+  patientId,
+  entry = {},
+} = {}) {
+  const explicitId = normalizeText(entry.treatmentEncounterId);
+  if (explicitId) {
+    const encounter = await treatmentEncounterStore.getEncounter({
+      tenantId,
+      patientId,
+      encounterId: explicitId,
+    });
+    if (encounter) return encounter;
+  }
+
+  const plans = await journalStore.listEntries({
+    tenantId,
+    patientId,
+    journalType: 'consultation_plan',
+  });
+  const planEncounterId = normalizeText(
+    plans.find((item) => normalizeText(item.treatmentEncounterId))?.treatmentEncounterId ||
+      plans.find((item) => !item.locked)?.treatmentEncounterId
+  );
+  if (planEncounterId) {
+    const encounter = await treatmentEncounterStore.getEncounter({
+      tenantId,
+      patientId,
+      encounterId: planEncounterId,
+    });
+    if (encounter) return encounter;
+  }
+
+  const encounters = await treatmentEncounterStore.listByPatient({ tenantId, patientId, limit: 20 });
+  return encounters.find((item) => item.status !== 'cancelled') || null;
+}
+
+async function syncJournalEntryToEncounter({
+  treatmentEncounterStore,
+  journalStore,
+  patientMasterStore = null,
+  tenantId,
+  entry = {},
+  actor = {},
+  channel = 'cco_staff',
+} = {}) {
+  if (!journalStore || !treatmentEncounterStore || !entry?.entryId) {
+    return { entry, encounter: null, skipped: true };
+  }
+  const patientId = normalizeText(entry.patientId);
+  const journalType = normalizeText(entry.journalType);
+  if (!patientId || !ENCOUNTER_LINKED_JOURNAL_TYPES.has(journalType)) {
+    return { entry, encounter: null, skipped: true };
+  }
+
+  let encounter = await resolveEncounterForJournalEntry({
+    treatmentEncounterStore,
+    journalStore,
+    tenantId,
+    patientId,
+    entry,
+  });
+
+  if (!encounter) {
+    const today = new Date().toISOString().slice(0, 10);
+    let customerEmail = '';
+    let customerName = '';
+    if (patientMasterStore) {
+      const patient = await patientMasterStore.getPatient({ tenantId, patientId });
+      customerEmail = normalizeEmail(patient?.primaryEmail || patient?.emails?.[0] || '');
+      customerName = normalizeText(patient?.displayName);
+    }
+    encounter = await treatmentEncounterStore.upsertEncounter({
+      tenantId,
+      patientId,
+      serviceId: journalType === 'consultation_plan' ? 'consultation-physical' : journalType,
+      serviceLabel: normalizeText(entry.title) || journalType,
+      startsAt: `${today}T12:00:00.000Z`,
+      status: 'confirmed',
+      channel,
+      customerEmail,
+      customerName,
+      metadata: {
+        journalType,
+        entryId: entry.entryId,
+      },
+    });
+  }
+
+  let updated = entry;
+  if (normalizeText(entry.treatmentEncounterId) !== encounter.encounterId) {
+    updated = await journalStore.upsertEntry(
+      {
+        ...entry,
+        treatmentEncounterId: encounter.encounterId,
+      },
+      { actor }
+    );
+  }
+
+  await treatmentEncounterStore.linkJournalEntry({
+    tenantId,
+    patientId,
+    encounterId: encounter.encounterId,
+    entryId: updated.entryId,
+  });
+
+  return { entry: updated, encounter, skipped: false };
+}
+
+async function lockEncounterOnJournalSign({
+  treatmentEncounterStore,
+  tenantId,
+  entry = {},
+} = {}) {
+  const patientId = normalizeText(entry.patientId);
+  const encounterId = normalizeText(entry.treatmentEncounterId);
+  if (!treatmentEncounterStore || !patientId || !encounterId) {
+    return { encounter: null, skipped: true };
+  }
+  const encounter = await treatmentEncounterStore.getEncounter({ tenantId, patientId, encounterId });
+  if (!encounter) return { encounter: null, skipped: true };
+  const lockedEntryIds = [
+    ...new Set([...asArray(encounter.metadata?.lockedEntryIds), normalizeText(entry.entryId)].filter(Boolean)),
+  ];
+  const locked = await treatmentEncounterStore.upsertEncounter({
+    ...encounter,
+    metadata: {
+      ...(encounter.metadata || {}),
+      journalLockedAt: normalizeText(encounter.metadata?.journalLockedAt) || new Date().toISOString(),
+      lockedEntryIds,
+    },
+  });
+  return { encounter: locked, skipped: false };
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 module.exports = {
+  ENCOUNTER_LINKED_JOURNAL_TYPES,
   resolvePatientFromBookingContact,
   serviceToPlanMethod,
+  lockEncounterOnJournalSign,
   syncBookingConfirmedToJournal,
   syncConsultationPhotoToEncounter,
+  syncJournalEntryToEncounter,
   syncWebReservationToJournal,
 };

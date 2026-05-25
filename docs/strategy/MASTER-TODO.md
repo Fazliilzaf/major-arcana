@@ -3,7 +3,7 @@
 Senast uppdaterad: **2026-05-25**  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
 
-**Du är här:** **Utrullning Fas 3** (Drive-PDF + bred drift) — journal, avtal och mobil är live; STAFF-konton för sjuksköterskor skapade.
+**Du är här:** **TL-C klart** + G4 våg 3 → **prod-verify pilotresan** (MA-B.3, MA-C.2, MA-D).
 
 **Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)
 
@@ -11,25 +11,21 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 **Tecken:** ☑ klart · ☐ kvar · ~ uppskjutet / valfritt · → pågår
 
-**Doc/kod-sweep 2026-05-25** (MASTER-TODO ↔ verify):
-
-| Punkt | Doc var | Kod + verify |
-|--------|---------|----------------|
-| MA-6.2 | ☐ E2E pilot | **PASS** 5/5 (`verify-all-pilot-journey-prod`) |
-| TL-B.1 | (gammal text: foto utan encounter) | **Live** — `syncConsultationPhotoToEncounter` + anrop i `ccoJournal.js` |
-| J-6.3 | ☑ | **Stämmer** — `ccoJournalBookingBridge` prod |
-| U3.1 | ☑ | **Stämmer** — Drive API + streaming |
-| J-8 | byggblock | **Stämmer** — scheduler/ops API, **ej** prod-agent (U6A) |
-
 ---
 
 ## Snabb ordning (vad som kommer härnäst)
 
 ```
-☑ MA A–D + avtalsgate + journal 0–5 + mobil automation + pilot E2E (MA-6.2)
-☑ J-6.3 bokning→journal · ☑ TL-B.1 foto→encounter · ☑ U3.1 Drive-PDF (kod+prod)
-→ Utrullning 3: U3.2 enrich resterande Drive-länkar (~15%)     ← DU ÄR HÄR
-→ Utrullning 5B + J-8 prod-agent (byggblock finns, ej live)
+☑ MA A–D + avtalsgate + journal 0–5 + mobil automation
+☑ Utrullning 3: Drive-PDF + bred drift (PDF-stream live)
+☑ G4 våg 1: schema-katalog + hälsodekl/friskförsäkran/TP-journal UI
+☑ G4 våg 2a: PRP-journal (16412/14988)
+☑ G4 våg 2b: Uppföljning (16407/16409/16390)
+☑ G4 våg 3: Ögonlocksjournal (16388)
+☑ TL-C: journaltyper grupperade per tillfälle
+→ Prod-verify: pilotresan (MA-B.3, MA-C.2, MA-D på 5 piloter)
+→ Utrullning 4: Post-op Fas 1 live
+→ Utrullning 5: Resend patient-mail + påminnelser
 → Utrullning 6: CMO + patientkanal
 ```
 
@@ -47,34 +43,34 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 > **Verify 2026-05-24:** `MA-Archive/` OK (5/5 SharePoint, 14 docx under `offert-word/Offertmallar/`). Juridik-index: `docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md`.
 
-### Fas MA-B — Pilotkunder ☑
+### Fas MA-B — Pilotkunder ☑ (prod delvis)
 
 - [x] MA-B.1 5 pilotkunder + `data/pilot-patients.json`
 - [x] MA-B.2 Importerade till prod + historik per kund
-- [x] MA-B.3 Journal (plan, hälsodekl) verifierad i prod — TP/signering manuellt vid behov
+- [ ] MA-B.3 Journal (plan, TP, signering) verifierad i prod
 
-> **Verify 2026-05-25 (sweep):** Alla 5 på prod. `verify-all-pilot-journey-prod.sh` **5/5 PASS** — `plan=1`, `hälsodekl=1`, `gate=open`, `avtal=bookable` per pilot. Historik 10–12 `historical_import`/kund. TP-journal + signering = kliniskt nästa steg (ej i E2E-scriptet).
+> **Verify 2026-05-24:** Alla 5 piloter finns på prod (match via e-post efter J-1-migration; nya UUID i `pilot-patients.json`). Filer + `historical_import`-journal (10–12 poster/kund). **Saknas:** `consultation_plan`, hälsodekl, signering i live-journal.
 
-### Fas MA-C — Behandlingsavtal ☑
+### Fas MA-C — Behandlingsavtal ☑ (kod)
 
 - [x] MA-C.1 Spec + store + routes + UI (Avtal-flik)
-- [x] MA-C.2 Konsultation → offert → avtal → signering utan GetAccept (pilot E2E)
+- [ ] MA-C.2 Konsultation → offert → avtal → signering utan GetAccept
 
-> **Verify 2026-05-25 (sweep):** Prod-piloter: `offert=accepted`, `avtal=bookable`, `gate=open` (alla 5). Flödet verifierat via `verify-all-pilot-journey-prod.sh` — inte GetAccept.
+> **Verify 2026-05-24:** Kod + routes finns. Prod-piloter: inget `commercialCase`, inget `agreement` — flödet ej genomfört på pilotkunder efter migration.
 
 ### Fas MA-D — Hälsodekl & friskförsäkran ☑ (kod)
 
 - [x] MA-D.1 Formulär i app + gate före behandlingsplan
 - [x] MA-D.2 Signering/lås via journal-API
 
-> **Verify 2026-05-25 (sweep):** Prod: `hälsodekl=1` alla 5 piloter (E2E). UI + gate i `ccoJournalStore` / MA-D.1–D.2.
+> **Verify 2026-05-24:** UI + API i repo. Prod: 0 `health_declaration` på alla 5 piloter.
 
-### Fas MA-6 — Bokning vs avtal ☑
+### Fas MA-6 — Bokning vs avtal ☑ (kod) / ☐ E2E prod
 
 - [x] MA-6.1 Bokning spärrad tills `agreementStatus === 'bookable'`
-- [x] MA-6.2 E2E prod alla 5 pilotkunder (`verify-all-pilot-journey-prod.sh`)
+- [ ] MA-6.2 E2E prod alla 5 pilotkunder (`verify-all-pilot-journey-prod.sh`)
 
-> **Verify 2026-05-25 (sweep):** Unit 7/7 PASS. Prod **5/5 PASS** — `gate=open`, offert, avtal, hälsodekl, plan. Commit `280a0f0` vid senaste körning.
+> **Verify 2026-05-24:** Unit 7/7 PASS (`ccoTreatmentAgreementStore`, `ccoTreatmentBookingGate`). Prod gate **blocked** för alla 5 (korrekt utan avtal). E2E-script fixat (slutar kräva `totalPatients:5`); kör om när pilotresan är genomförd.
 
 ---
 
@@ -92,7 +88,7 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 ### Fas J-1 — Datamigration & kundmaster ☑ **KLART**
 
-> **Scope J-1:** kundmaster, migration-index och matchning i prod. U3.1 Drive-PDF streaming är **klar** (se Utrullning 3); kvar: U3.2 enrich resterande `driveFileId`.
+> **Scope J-1:** kundmaster, migration-index och matchning i prod. **Inte** samma sak som U3.1 (PDF-byte streaming från Drive på prod — det är nästa steg).
 
 - [x] J-1.1 Drive scan-scripts (zip, folder, Google Drive API)
 - [x] J-1.2 Cliento-import — **7 349 kunder prod** (verify 2026-05-21)
@@ -115,7 +111,10 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 - [x] J-3.1 `ccoJournalStore.js` — signering, låsning, rättelse
 - [x] J-3.2 `ccoJournal.js` — audit läsning + skrivning
-- [x] J-3.3 TP-journal 38 fält
+- [x] J-3.3 TP-journal — **52 Meridiq-fält** schema-driven (mall **16411**, `journal-tp-schemas.js`)
+- [x] J-3.3b PRP-journal — **schema-driven** (`journal-prp-schemas.js`, mall **16412** + **14988**)
+- [x] J-3.3c Uppföljning 4/6/12 mån — schema-driven (`journal-follow-up-schemas.js`)
+- [x] J-3.3d Ögonlocksjournal — schema-driven (`journal-bleph-schemas.js`, mall **16388**)
 - [x] J-3.4 Historisk import PDF
 - [x] J-3.5 Bildmetadata + journal-photos
 - [x] J-3.6 Patient360 bridge
@@ -160,19 +159,35 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 > **Verify 2026-05-25:** Publik catalog **200** (11 tjänster). Plan A E2E **PASS** (PA-21–24). Webb-reservation → `consultation_plan` + `treatmentEncounterId` **PASS** prod. `ccoJournalBookingBridge` + TL-B.1 (Ta bild→encounter) live. Resend patient-mail **ej live** (se U5A.4).
 
-### Fas J-7 — Påminnelser ✅ (scheduler + operatör-digest)
+### Fas J-7 — Påminnelser ☐
 
-- [x] J-7.1 Scheduler triggers per kund
-- [x] J-7.2 Eftervård, formulär, återbesök
+- [ ] J-7.1 Scheduler triggers per kund
+- [ ] J-7.2 Eftervård, formulär, återbesök
 
-> **Verify 2026-05-25:** `cco_customer_reminders` (6h) + `buildCustomerReminderQueue` + audit-logg. Operatör-digest via Graph till `kons@hairtpclinic.com` när kö > 0. **Ej patient-SMS/Resend** (U5B).
+> **Verify 2026-05-24:** Scheduler kör backup/report prune m.m., men inga **per-kund** triggers för eftervård/formulär/återbesök.
 
-### Fas J-8 — CCO-agent ✅ (scheduler + ops + UI-godkännande)
+### Fas J-8 — CCO-agent ☐ (underlag + byggblock, ej J-8 prod)
 
-- [x] J-8.1 Daglig rapport: saknade formulär/samtycken
-- [x] J-8.2 Journalutkast (human approval)
+- [ ] J-8.1 Daglig rapport: saknade formulär/samtycken
+- [ ] J-8.2 Journalutkast (human approval)
 
-> **Verify 2026-05-25:** J-8.1 `cco_daily_missing_forms_report` + `GET/POST /ops/cco-care/missing-forms*`. J-8.2 `cco_journal_draft_proposals` + STAFF-banner i kundkort (Godkänn/Avvisa) + `PATCH /ops/cco-care/draft-proposals/:id`. **Ej auto-apply** — personal signerar manuellt i Journal (= avsikt).
+> **Underlag (finns i repo):**
+> - Spec: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) **Fas 8** (8.1–8.2)
+> - Utrullning: [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md) **6A** (rapport + journalutkast + gateway + scheduler/OWNER notify)
+> - Arkitektur: [execution-gateway-contract.md](../architecture/execution-gateway-contract.md) (`review_required` pipeline)
+> - Masterplan: [arcana-master-plan-punktvis.md](./arcana-master-plan-punktvis.md) §8.3 (CCO-agent) + §8.7 (obligatorisk pipeline)
+> - Bokning: [cco-booking-mvp-spec.md](./cco-booking-mvp-spec.md) Fas 3 (agent flaggar saknade steg / saknad dokumentation)
+>
+> **Relaterat i kod (annat scope än J-8):**
+> - Inbox-CCO: `src/agents/ccoInboxAgent.js` + `AnalyzeInbox` (mail/leadflows, `manual_review_required`)
+> - Ops KPI: `nightly_pilot_report` → `src/reports/pilotReport.js` (template/risk/audit — **inte** saknade formulär)
+> - COO brief + CCO digest: `cooDailyBriefAgent.js`, `dailyDigest.js` / scheduler
+>
+> **Byggblock för J-8 (delvis):**
+> - `ccoPatient360Bridge.js` (consent/status), `ccoTreatmentBookingGate.js`, `ccoJournalStore.js` (draft/signed)
+> - `executionGateway.js` (`review_required`), manuella journalutkast i `patient-master-ui.js`
+>
+> **Verify 2026-05-25:** J-8.1/J-8.2 **ej implementerade** som prod-agent/scheduler — men **underlag och byggblock finns**; se ovan. Bygg = ny capability + scheduler (skilj från `nightly_pilot_report`).
 
 ### Fas J-9 — Compliance ☐ (delvis)
 
@@ -180,15 +195,15 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [~] J-9.1 Retention 10 år i config + policy
 - [~] J-9.2 GDPR export-endpoint
 - [~] J-9.3 GDPR spärr/radering + audit
-- [~] J-9.4 Art. 30 + PUB uppdaterade
+- [ ] J-9.4 Art. 30 + PUB uppdaterade
 
-> **Verify 2026-05-25:** Repo-kopior uppdaterade: `docs/legal/art-30-register-maj-arcana.md` (A1–A7 Arcana-behandlingar) + `docs/legal/personuppgiftspolicy-pub-maj-arcana.md` (utkast). Excel/DOCX i `MA-Archive/juridik-gdpr/` kvar som master — **juristgranskning före sign-off**.
+> **Verify 2026-05-24:** `journalRetentionYears=10` i `config.js`. Policy `docs/legal/data-retention-policy.md` = **UTKAST** (saknar journal 10 år-rad). GDPR via capabilities API (`GdprExportCustomer` / `GdprAnonymizeCustomer`) — unit **10/10 PASS**; ej dedikerade patient-REST-endpoints. Art. 30/PUB ej verifierade uppdaterade.
 
 ---
 
 ## DEL 3 — Utrullning go-live ([ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md))
 
-> **Verify 2026-05-25:** Prod `1d15c0b`. Kundbas **7217** (efter duplicate-cleanup). Drive API **konfigurerad**; migration-index pushad med **49103/57558** `driveFileId`; PDF-stream **200** via Drive (ej zip). Verify-scripts fixade (ignorera stale `ARCANA_OWNER_TOKEN` i `.env`).
+> **Verify 2026-05-25:** Prod restart + `verify:migration-prod` **PASS**. Index **56554/57558** `driveFileId` (98,3%). `push:migration-state-prod --index-only` **fixad** (pushade bara index); orchestration: `npm run resolve:open-track`, `npm run sync:notion-master-todo`. **⚠ Pilot 5/5 FAIL** efter state-push (hälsodekl/plan=0) — återställ journal på prod före ny push.
 
 ### Utrullning 1 — Mobil pilot GO ☑
 
@@ -204,58 +219,56 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 ### Utrullning 2 — Auth / MFA 🔄
 
 - [x] U2.1 `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false`
-- [~] U2.2 OWNER MFA enforced prod (`verify:auth-go-live-prod`)
+- [~] U2.2 OWNER MFA enforced prod (`verify:auth-go-live-prod`) — **BLOCKED** tills explicit go-live; `ARCANA_OWNER_MFA_SECRET` finns lokalt men ej kört `apply-auth-go-live-prod`
 - [x] U2.3 STAFF-konton (generiskt + 4 sjuksköterskor)
-- [~] U2.4 STAFF login verifierad i fält (iPhone/Android) — automation `verify:staff-mobile-login-prod`; fysisk enhet kvar
+- [ ] U2.4 STAFF login verifierad i fält (iPhone/Android)
 - [x] U2.5 Rollback-plan + underhållsfönster **dokumenterat** — [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25)
-- [x] U2.5b Underhållsfönster **i produkt** — `GET /api/v1/ops/maintenance-window` + STAFF-banner + CSS; env `ARCANA_MAINTENANCE_WINDOW_*`
+- [ ] U2.5b Underhållsfönster **i produkt** (P2) — schemalagt fönster, STAFF-varning, max driftstopp, GO/rollback-signoff (Notion)
 - [x] U2.6 Backup journal-photos schemalagd (`journal_photos_backup` i scheduler)
 
-> **Verify 2026-05-25 (sweep):** Open access **av**. OWNER MFA **kod klar** men prod env fortfarande `false`. **5 STAFF** på prod. **U2.5b PASS:** `GET /api/v1/ops/maintenance-window` 200 + STAFF-banner. **U2.6 PASS:** `journal_photos_backup` enabled + `verify:journal-photos-backup-prod`.
+> **Verify:** Open access **av**. OWNER MFA **av** (login probe: off) — inte enforced än. **5 STAFF** på prod. `journal_photos_backup` scheduler-job + `backup:journal-photos` CLI. Auth rollback + underhållsfönster: [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25).
 
 ### Utrullning 3 — Drive-PDF + bred drift → **AKTIV**
 
 - [x] U3.1 **Drive-PDF på prod** — Google Drive API (ej 86 GB zip på 2 GB disk)
-- [~] U3.2 Drive-filer visningsbara i Filer-fliken prod — index **56554/57558** `driveFileId` (98,3%) efter enrich 2026-05-25; ~1004 utan match
+- [~] U3.2 Drive-filer visningsbara i Filer-fliken prod — index **56554/57558** `driveFileId` (98,3%); enrich andra pass avbrutet i agent-miljö (~1004 kvar); `byRelativePath` + unit test `driveFileMatch.test.js`
 - [~] U3.3 Personal utbildad + journalför i MA — externt
 - [x] U3.4 Notion: verify prod efter duplicate-cleanup (2026-05-25 — readyz, blueprint in_sync, verify:migration-prod PASS, needsReview 0)
 
-> **Verify 2026-05-25:** Enrich **7451** nya `driveFileId` → **56554/57558** (98,3%). Push index 52 MB + Render restart. `verify:migration-prod` **PASS**. ~1004 filer utan Drive-match kvar (etikett **saknar Drive-koppling**).
+> **Verify:** `driveApiConfigured=true`, **57558** filer / **1981** profiler / **7217** kunder. `verify:migration-prod` PASS 2026-05-25. **56554/57558** med `driveFileId`. Orchestration-script + `--index-only` fix i `push-migration-state-prod.js`.
 
 ### Utrullning 4 — Post-op Fas 1 🔄
 
 - [x] U4.1 Backend: capability + store + routes (kod)
 - [x] U4.2 `/uppfoljning/[token]` + CCO-knapp (kod)
 - [x] U4.3 Unit tests + runbook
-- [x] U4.4 Graph send live (`verify:graph-send-prod` / `verify:post-op-graph-prod`)
-- [x] U4.5 4 beslut (patientkanal, avsändare, retention, UI) — [u4-post-op-decisions.md](./u4-post-op-decisions.md)
-- [x] U4.6 Playwright smoke `/uppfoljning/[token]` (`verify:post-op-uppfoljning-prod`, `test:playwright:post-op`)
+- [~] U4.4 Graph send live (`verify:post-op-graph-prod`)
+- [ ] U4.5 4 beslut (patientkanal, avsändare, retention, UI)
+- [ ] U4.6 Playwright smoke `/uppfoljning/[token]` prod
 
-> **Verify 2026-05-25:** U4.5 **PASS** (låsta beslut + config defaults). U4.4 **PASS** — `verify:graph-send-prod` grön (Graph sendEnabled + sendMail live). U4.6 **PASS** — `verify:post-op-uppfoljning-prod` fetch smoke + `test:playwright:post-op` lokal submit-flow.
+> **Verify:** Kod + runbook finns. `verify:post-op-graph-prod` **FAIL** — `ARCANA_GRAPH_SEND_ENABLED=false`, operator 401. U4.5-beslut **ej tagna** (ROLLOUT-PLAN open questions).
 
 ### Utrullning 5 — Bookingmotor & påminnelser 🔄
 
 - [x] U5A.1 Plan A webb → Arcana API
 - [x] U5A.2 Operatör confirm prod
 - [x] U5A.3 Plan A automated sign-off
-- [ ] U5A.4 Bekräftelsemail patient (Resend) — **BLOCKED** (`RESEND_API_KEY` saknas)
+- [ ] U5A.4 Bekräftelsemail patient (Resend) — **BLOCKED** (`RESEND_API_KEY` saknas i `.env`; Graph fallback aktiv)
 - [x] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
-- [~] U5B.1 Påminnelse före besök (operatör-digest)
-- [~] U5B.2 Eftervård / formulär / återbesök triggers (operatör-digest)
+- [ ] U5B.1 Påminnelse före besök
+- [ ] U5B.2 Eftervård / formulär / återbesök triggers
 - [ ] U5B.3 Post-op auto-trigger (Q4)
 
-> **Verify 2026-05-25:** `cco_customer_reminders` + Graph digest till operatör. **Ej direkt patientmail** (Resend blockerad, U5A.4).
+> **Verify 2026-05-25:** Publik catalog **200** (3 tjänster). Plan A curl E2E **PASS**. Bokning→journal **PASS** (reservation skapar plan + `treatmentEncounterId`). U5A.4 **BLOCKER:** `RESEND_API_KEY` saknas lokalt + Render — Graph→operatör OK. U5B **ej påbörjad**.
 
 ### Utrullning 6 — Agenter + CMO + patientkanal ☐
 
 - [ ] U6A CCO-agent ( = J-8)
 - [ ] U6B CMO live connectors (fixture → live) — [cmo-v3-rollout-plan.md](./cmo-v3-rollout-plan.md)
 - [ ] U6C CAO admin-operator — [cao-arcana-admin-operator-implementation-plan.md](./cao-arcana-admin-operator-implementation-plan.md)
-- [~] U6D Patientkanal — minimal hub `/patient` live; full kanal ej prod
+- [ ] U6D Patientkanal (canon: sist)
 
-> **Verify 2026-05-25:** `GET /patient` 200 (hub med länkar till chat/uppfoljning). Full patientkanal enligt plan = senare fas.
-
-> **Verify 2026-05-25:** Minimal hub `GET /patient` (länkar till chatt + patientinfo). Monitor-endpoint `GET /api/v1/monitor/patient-channel` oförändrad. **Ej** full patientkanal/conversion-loop i produkt.
+> **Verify:** U6A = J-8 — **prod-agent ej byggd**; underlag (Fas 8, ROLLOUT 6A, gateway-contract) + byggblock finns. CMO/CAO/patientkanal separata planer.
 
 ---
 
@@ -278,16 +291,16 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] TL-B.2 Nya foton kopplas till `encounterId`
 - [x] TL-B.3 Datosegment i **Tidslinje**-flik (enhetlig journal+filer per tillfälle)
 
-> **Verify 2026-05-25 (sweep):** **TL-B.1 live** — `syncConsultationPhotoToEncounter` i `ccoJournalBookingBridge.js`, anropas från `ccoJournal.js` vid `POST …/photo` (skapar/kopplar `encounterId`, ej “foto utan tillfälle”). **Bokning:** samma bridge vid reservation. Tidslinje-flik + filter live. Journal-fliken = platt redigering (TL-C kvar).
+> **Verify:** **Bokning + foto:** `ccoJournalBookingBridge` + `patchConsultationPhotoEncounter`. **Tidslinje-flik:** `renderUnifiedTimelinePanel` + filter (Konsultation/Behandling/Uppföljning/Arkiv). **Journal-fliken:** redigeringsformulär (platt lista). **Filer-fliken:** `groupFilesByOccasion` (Kundhistorik).
 
-### Tidslinje C — Alla journaltyper per tillfälle ☐
+### Tidslinje C — Alla journaltyper per tillfälle ☑
 
-- [ ] TL-C.1 Hälsodekl + friskförsäkran under rätt tillfälle
-- [ ] TL-C.2 TP / PRP / uppföljning under rätt tillfälle
-- [ ] TL-C.3 Bokning öppnar rätt segment automatiskt
-- [ ] TL-C.4 Signering låser tillfälle
+- [x] TL-C.1 Hälsodekl + friskförsäkran under rätt tillfälle
+- [x] TL-C.2 TP / PRP / uppföljning / ögonlocksjournal under rätt tillfälle
+- [x] TL-C.3 Bokning öppnar rätt segment automatiskt
+- [x] TL-C.4 Signering låser tillfälle (encounter metadata)
 
-> **Verify:** Hälsodekl/TP/PRP/uppföljning = separata poster i platt journal-lista (ej grupperade per tillfälle). Signering låser **journalpost** (`entry.locked`), inte encounter. Plan visar `treatmentEncounterId` om satt från bokning — ingen auto-scroll till segment.
+> **Verify:** `syncJournalEntryToEncounter` på PUT entry · `lockEncounterOnJournalSign` på sign · tidslinje grupperar via `treatmentEncounterId` · auto-scroll vid bokningsplan.
 
 ### Tidslinje D — Enhetlig mobil tidslinje ~ (Tidslinje-flik live)
 
@@ -295,7 +308,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [~] TL-D.2 Drive-import som “Arkiv”-segment längst ner
 - [x] TL-D.3 Filter: Konsultation / Behandling / Uppföljning / Arkiv
 
-> **Verify 2026-05-25:** Flikar: **Profil · Journal · Tidslinje · Avtal · Filer** (desktop) / **Profil · Tidslinje · Filer** (mobil). Tidslinje: `renderUnifiedTimelinePanel` + filter (Konsultation/Behandling/Uppföljning/Arkiv) + CSS i `cco-polish.css`. Filer: `timelineLabel` inkl. **Arkiv YYYY**. TL-D.2 Drive-arkiv som segment **delvis** (filer grupperas, full import-segmentation ej komplett).
+> **Verify:** Flikar: **Profil · Journal · Tidslinje · Avtal · Filer** (desktop) / **Profil · Tidslinje · Filer** (mobil). Tidslinje: enhetlig segmentvy + filter. Filer: `timelineLabel` inkl. **Arkiv YYYY** från migration.
 
 ---
 
