@@ -26,6 +26,14 @@
     cliento_only: 'Cliento',
     drive_only: 'Drive',
     needs_review: 'Granska',
+    web_booking: 'Webbokning',
+    unmatched: 'Ny i Arcana',
+  };
+
+  const ORIGIN_LABELS = {
+    imported: 'Importerad',
+    web_booking: 'Webbokning',
+    new: 'Ny i Arcana',
   };
 
   const JOURNAL_TYPE_LABELS = {
@@ -810,6 +818,18 @@
           : 'Pipedrive';
       add(dealLabel, 'violet');
     }
+    if (card.patientOrigin && ORIGIN_LABELS[card.patientOrigin]) {
+      const originTone =
+        card.patientOrigin === 'new'
+          ? 'blue'
+          : card.patientOrigin === 'web_booking'
+            ? 'violet'
+            : 'green';
+      add(ORIGIN_LABELS[card.patientOrigin], originTone);
+    }
+    if (card.journalBlocked) {
+      add('Journal spärrad', 'gold');
+    }
     if (card.hasJournalHistory) {
       add('Importerad journal', 'green');
     } else if (card.clientoLinked && !card.driveLinked) {
@@ -937,6 +957,9 @@
               <button class="customers-merge-accept" type="button" data-patient-merge-accept data-patient-merge-primary="${escapeHtml(primaryId)}" data-patient-merge-secondary="${escapeHtml(secondaryIds.join(','))}">
                 Slå ihop
               </button>
+              <button class="customers-merge-dismiss" type="button" data-patient-merge-dismiss data-patient-merge-group="${escapeHtml(group.groupId)}">
+                Ignorera grupp
+              </button>
             </div>
           </article>`;
       })
@@ -964,6 +987,114 @@
       runtime.reviewGroupsLoading = false;
       renderReviewGroupsPanel();
     }
+  }
+
+  async function dismissMergeReviewGroup(groupId) {
+    if (!groupId) return;
+    try {
+      await apiRequest('/api/v1/cco-patient-master/review-groups/dismiss', {
+        method: 'POST',
+        body: { groupId },
+      });
+      setStatus('Dubblettgrupp ignorerad.', 'success');
+      await loadReviewGroups();
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte ignorera gruppen.', 'error');
+    }
+  }
+
+  async function downloadGdprExport(patientId) {
+    if (!patientId) return;
+    const token = getAdminToken();
+    const url = new URL('/api/v1/cco-patient-master/patient/gdpr-export', window.location.origin);
+    url.searchParams.set('patientId', patientId);
+    setStatus('Exporterar GDPR-utdrag…', 'loading');
+    try {
+      const response = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        let message = `HTTP ${response.status}`;
+        try {
+          const err = await response.json();
+          message = err.error || message;
+        } catch {
+          /* ignore */
+        }
+        throw new Error(message);
+      }
+      const blob = await response.blob();
+      const fileName =
+        response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ||
+        `gdpr-${patientId.slice(0, 8)}.json`;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      setStatus('GDPR-utdrag nedladdat.', 'success');
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte exportera.', 'error');
+    }
+  }
+
+  async function savePatientJournalAccess({ journalBlocked, journalBlockReason }) {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId) return;
+    try {
+      const payload = await apiRequest('/api/v1/cco-patient-master/patient/access', {
+        method: 'PUT',
+        body: {
+          patientId,
+          journalBlocked: Boolean(journalBlocked),
+          journalBlockReason: normalizeText(journalBlockReason),
+        },
+      });
+      if (runtime.detail?.card) {
+        runtime.detail.card = { ...runtime.detail.card, ...payload.card };
+      }
+      if (runtime.detail?.patient) {
+        runtime.detail.patient.access = payload.patient?.access;
+      }
+      setStatus(journalBlocked ? 'Journal spärrad.' : 'Journalspärr borttagen.', 'success');
+      renderPatientDetail(
+        runtime.detail.patient,
+        runtime.detail.card,
+        runtime.detail.journalEntries,
+        runtime.detail.driveFiles,
+        runtime.detail.occasionTimeline,
+        runtime.detailTab
+      );
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte uppdatera journalspärr.', 'error');
+    }
+  }
+
+  function renderPatientComplianceCard(card) {
+    if (!card?.patientId) return '';
+    const blocked = Boolean(card.journalBlocked);
+    const reason = escapeHtml(card.journalBlockReason || '');
+    return `
+          <article class="focus-customer-data-card patient-master-compliance-card">
+            <h4>GDPR &amp; journalspärr</h4>
+            <p class="patient-master-muted">Exportera all profil-, journal- och filindex-data för registerutdrag. Journalspärr stoppar nya/redigerade poster (läsning kvar).</p>
+            <div class="patient-master-compliance-actions">
+              <button type="button" class="customers-utility-button" data-patient-action="gdpr-export">
+                Exportera GDPR-utdrag
+              </button>
+            </div>
+            <label class="patient-master-access-toggle">
+              <input type="checkbox" data-patient-journal-block-toggle ${blocked ? 'checked' : ''} />
+              Spärra journal för denna patient
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Anledning (valfritt)</span>
+              <input type="text" data-patient-journal-block-reason value="${reason}" placeholder="t.ex. begäran om spärr" />
+            </label>
+            <button type="button" class="customers-utility-button" data-patient-action="save-journal-access">
+              Spara journalspärr
+            </button>
+          </article>`;
   }
 
   async function mergeReviewGroup(primaryPatientId, secondaryPatientIds) {
@@ -1008,6 +1139,9 @@
               </button>
               <button type="button" class="customers-utility-button patient-master-copy-link patient-master-colleague-link-qr" data-patient-action="show-patient-qr" title="QR för kollega — kräver CCO-inloggning">
                 QR för kollega
+              </button>
+              <button type="button" class="customers-utility-button" data-patient-action="gdpr-export" title="Ladda ner JSON med profil, journal och filindex">
+                GDPR-export
               </button>
             </div>`;
   }
@@ -3257,6 +3391,7 @@
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">
           ${renderJournalWorkflowCallout(journalEntries)}
+          ${renderPatientComplianceCard(card)}
           <article class="focus-customer-data-card patient-master-identity-card">
             <h4>Identitet</h4>
             <dl class="focus-customer-dl">
@@ -3276,6 +3411,10 @@
         </div>
 
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
+          ${card.journalBlocked
+        ? `<p class="patient-master-block-banner">Journalen är spärrad${card.journalBlockReason ? `: ${escapeHtml(card.journalBlockReason)}` : ''}. Nya eller ändrade poster blockeras.</p>`
+        : ''
+      }
           ${renderJournalEntries(journalEntries)}
         </div>
 
@@ -4596,6 +4735,12 @@
         return;
       }
 
+      const dismissMergeButton = event.target.closest('[data-patient-merge-dismiss]');
+      if (dismissMergeButton && runtime.mode === 'identity') {
+        void dismissMergeReviewGroup(dismissMergeButton.dataset.patientMergeGroup);
+        return;
+      }
+
       const mergeButton = event.target.closest('[data-patient-merge-accept]');
       if (mergeButton && runtime.mode === 'identity') {
         const primaryId = normalizeText(mergeButton.dataset.patientMergePrimary);
@@ -4812,6 +4957,15 @@
           if (runtime.selectedPatientId) {
             void loadPatientDetail(runtime.selectedPatientId);
           }
+        } else if (actionButton.dataset.patientAction === 'gdpr-export') {
+          void downloadGdprExport(runtime.selectedPatientId);
+        } else if (actionButton.dataset.patientAction === 'save-journal-access') {
+          const toggle = els.patientRail?.querySelector('[data-patient-journal-block-toggle]');
+          const reasonInput = els.patientRail?.querySelector('[data-patient-journal-block-reason]');
+          void savePatientJournalAccess({
+            journalBlocked: Boolean(toggle?.checked),
+            journalBlockReason: reasonInput?.value || '',
+          });
         }
       }
     });

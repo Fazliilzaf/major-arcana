@@ -100,7 +100,7 @@ Synka journalmappen till en mapp **utanför iCloud**, t.ex. `~/Major-Arcana-Migr
 ## Fas 9 — Compliance
 
 - [ ] 9.1 Retention 10 år i config
-- [ ] 9.2 GDPR export/spärr endpoints
+- [x] 9.2 GDPR export/spärr — patientmaster `gdpr-export` + `patient/access` (journalBlocked)
 - [ ] 9.3 Uppdatera Art. 30 + PUB
 
 ## Blockers innan personal live

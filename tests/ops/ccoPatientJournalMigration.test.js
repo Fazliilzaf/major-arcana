@@ -6,7 +6,11 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { createCcoPatientMasterStore } = require('../../src/ops/ccoPatientMasterStore');
+const {
+  createCcoPatientMasterStore,
+  assertPatientJournalWritable,
+  derivePatientOrigin,
+} = require('../../src/ops/ccoPatientMasterStore');
 const { createCcoJournalStore } = require('../../src/ops/ccoJournalStore');
 const {
   normalizePersonnummer,
@@ -299,4 +303,66 @@ test('journal store locks entry after signing', async () => {
       ),
     /Signerad journalpost/
   );
+});
+
+test('derivePatientOrigin marks web booking and imported cliento', () => {
+  assert.equal(derivePatientOrigin({ matchStatus: 'web_booking' }), 'web_booking');
+  assert.equal(derivePatientOrigin({ cliento: { id: 'c1' } }), 'imported');
+  assert.equal(derivePatientOrigin({ displayName: 'Ny Kund' }), 'new');
+});
+
+test('patient master journal block and gdpr export package', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'patient-master-'));
+  const filePath = path.join(dir, 'cco-patient-master.json');
+  const master = await createCcoPatientMasterStore({ filePath });
+  const journalPath = path.join(dir, 'cco-journal.json');
+  const journal = await createCcoJournalStore({ filePath: journalPath });
+
+  const patient = await master.upsertPatient({
+    tenantId: 'hair-tp-clinic',
+    personnummer: '19801224-5513',
+    displayName: 'Test Person',
+    primaryEmail: 'test@example.com',
+    matchStatus: 'matched',
+    cliento: { id: '1' },
+  });
+
+  await journal.upsertEntry(
+    {
+      tenantId: 'hair-tp-clinic',
+      patientId: patient.id,
+      personnummer: patient.personnummer,
+      journalType: 'health_declaration',
+      fields: { ok: true },
+    },
+    { actor: { userId: 'staff-1', role: 'STAFF' } }
+  );
+
+  const pkg = await master.buildGdprExportPackage({
+    tenantId: 'hair-tp-clinic',
+    patientId: patient.id,
+    journalStore: journal,
+  });
+  assert.equal(pkg.format, 'arcana-gdpr-patient-v1');
+  assert.equal(pkg.summary.journalEntryCount, 1);
+  assert.equal(pkg.profile.patientOrigin, 'imported');
+
+  await master.setPatientAccess({
+    tenantId: 'hair-tp-clinic',
+    patientId: patient.id,
+    journalBlocked: true,
+    journalBlockReason: 'GDPR-spärr test',
+    actorUserId: 'owner-1',
+  });
+  const blocked = await master.getPatient({ tenantId: 'hair-tp-clinic', patientId: patient.id });
+  assert.equal(blocked.access.journalBlocked, true);
+  assert.throws(() => assertPatientJournalWritable(blocked), /spärrad/i);
+
+  const groupsBefore = await master.listMergeReviewGroups({ tenantId: 'hair-tp-clinic' });
+  const groupId = 'fake-group-id';
+  if (groupsBefore.total === 0) {
+    await master.dismissMergeReviewGroup({ tenantId: 'hair-tp-clinic', groupId });
+    const bucket = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    assert.ok(bucket.tenants['hair-tp-clinic'].mergeDismissals.includes(groupId));
+  }
 });

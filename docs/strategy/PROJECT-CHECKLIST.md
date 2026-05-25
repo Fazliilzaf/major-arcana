@@ -113,7 +113,7 @@ Källa: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md)
 - [ ] **6 (full)** Egen bookingmotor — Cliento ut, full behandlingskatalog på webben
 - [ ] **7** Påminnelser (eftervård, formulär, återbesök)
 - [ ] **8** CCO-agent (saknade formulär, journalutkast)
-- [ ] **9** Compliance: retention 10 år, GDPR export/spärr, Art. 30
+- [~] **9** Compliance: retention 10 år, GDPR export/spärr (patientmaster ☑), Art. 30
 
 ### Blockers innan personal live (bred drift)
 
