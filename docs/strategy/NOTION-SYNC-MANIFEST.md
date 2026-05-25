@@ -82,7 +82,8 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 
 | Datum | Resultat | Evidens |
 |-------|----------|---------|
-| 2026-05-25 | **PASS (MCP)** | 9× `notion-update-page` + 8× `notion-create-pages` mot databasen Major Arcana — Master TODO. |
+| 2026-05-25 | **PASS (MCP)** | 9× `notion-update-page` + 8× `notion-create-pages` + rad Kundmaster §1 Done (`36b060cc-c15b-8155-9180-d41495f1988b`). |
+| 2026-05-25 | **Deploy** | Git `09b7884` → prod. Kundmaster GDPR/spärr/merge dismiss live. |
 | 2026-05-25 (tidigare) | BLOCKED (REST) | `NOTION_API_KEY` saknas i `.env` — REST-script ej kört; MCP räcker när Cursor Notion är kopplat. |
 
 **REST (valfritt):** `npm run check:notion-sync-prereqs` → `npm run sync:notion-master-todo` om du vill synka utan MCP.

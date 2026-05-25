@@ -42,7 +42,7 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [x] Journalspärr per patient (`PUT /patient/access`, skriv blockeras)
 - [x] Importerad / webbokning / ny — chips (`patientOrigin`)
 
-> **Verify 2026-05-25:** Deploy kundmaster-våg. Unit: `derivePatientOrigin`, GDPR-paket, journalspärr. Prod: testa GDPR-export + spärr på valfri pilot efter deploy.
+> **Verify 2026-05-25:** Prod `09b7884` deploy + Render restart. Unit PASS. Pilot 5/5 PASS efter E2E-återställning. Testa GDPR-export + journalspärr i kundkort.
 
 ---
 
