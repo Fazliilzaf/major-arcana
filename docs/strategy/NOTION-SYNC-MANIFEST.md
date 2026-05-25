@@ -21,7 +21,7 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 | MA-6.2 E2E pilot 5/5 prod | `36a060cc-c15b-81f5-8133-f064ab8abc8d` | **Done** | 5/5 PASS 2026-05-25 (E2E återställning efter journal-push). MA-B.3 + MA-C.2 + MA-D verifierade. |
 | Rollback-plan + underhållsfönster dokumenterat | `36a060cc-c15b-819a-badb-c37d21878f16` | **Done** | auth-go-live-rollback-runbook.md. Produkt: se Underhållsfönster P2. |
 | Underhållsfönster i produkt (P2) | `36a060cc-c15b-8175-a2ef-e48ce46f997d` | **Done** | GET /ops/maintenance-window 200 + STAFF-banner. Env ARCANA_MAINTENANCE_WINDOW_*. |
-| Plan A valfritt: Resend patient-mail + bokning→journal | `36a060cc-c15b-8199-bdfc-c893d723d388` | **In progress** | Bokning→journal **Done** (J-6.3). Resend **Blocked** (RESEND_API_KEY saknas). |
+| Plan A valfritt: Resend patient-mail + bokning→journal | `36a060cc-c15b-8199-bdfc-c893d723d388` | **Done** | Paket B ☑: J-6.3 + U5A.4 Resend verify PASS 2026-05-25. |
 | Mobil UX sweep #1–16 (kod + prod) | `36a060cc-c15b-81ef-b78a-d36a33abb1ac` | **Done** | verify:cco-mobile-pilot-prod PASS (retry vid 502). |
 | Post-op Fas 1 — 4 beslut + Graph live + smoke | `36a060cc-c15b-812a-95f7-ff7a0c6847c2` | **Done** | U4.4–U4.6 PASS. verify:post-op-uppfoljning-prod. |
 | Fas 5.6 — ≥2 personal, ≥5 konsultationer | `36a060cc-c15b-818da95ae17da7d16115` | **Not started** | U1.6/J-10.7 — fältpilot uppskjuten. Automation räcker för go-live. |
@@ -35,11 +35,11 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 | Task | Status | Area | Priority | Owner | Notes |
 |------|--------|------|----------|-------|-------|
 | J-6.3 Bokning → journal (prod) | Done | Booking | P1 | Agent | ccoJournalBookingBridge live. Plan A E2E PASS. |
-| J-7 Påminnelser (scheduler + operatör-digest) | Done | Booking | P2 | Agent | cco_customer_reminders. Ej patient-SMS. |
-| J-8 CCO-care (saknade formulär + draft-godkännande) | Done | Backlog | P1 | Agent | Scheduler + ops API + UI godkänn/avvisa. Ej full autonom agent. |
-| U3.2 Drive enrich 98% (1004 kvar) | In progress | Infra | P1 | Agent | 56554/57558 driveFileId. Saknar Drive-koppling-etikett i UI. |
-| U5A.4 Resend patient-mail | Blocked | Booking | P1 | Du | RESEND_API_KEY saknas. Kod klar. Se resend-domain-go-live.md. |
-| U2.2 OWNER MFA enforced prod | In progress | Auth | P1 | Du | MFA kod klar. Prod env ARCANA_AUTH_OWNER_MFA_REQUIRED=false. |
+| J-7 Påminnelser (scheduler + operatör-digest) | Done | Booking | P2 | Agent | verify:cco-care-sweep-prod CC-11 PASS 2026-05-25. |
+| J-8 CCO-care (saknade formulär + draft-godkännande) | In progress | Backlog | P1 | Agent | J-8.1 Done (CC-09). J-8.2 backend Done (CC-10); UI CC-06 FAIL. |
+| U3.2 Drive enrich 99% (570 utan match) | Done | Infra | P1 | Agent | 56988/57558 driveFileId. Push --index-only 2026-05-25. Se page `36b060cc-c15b-81f6-8723-c7d337e114f0`. |
+| U5A.4 Resend patient-mail | Done | Booking | P1 | Agent | Render env + verify PASS 2026-05-25. |
+| U2.2 OWNER MFA enforced prod | In progress | Auth | P1 | Du | Prod: ARCANA_AUTH_OWNER_MFA_REQUIRED=false. apply:auth-go-live-prod vid go-live. |
 | TL-B Tidslinje tillfälle (foto + flik) | Done | Pilot | P1 | Agent | syncConsultationPhotoToEncounter + Tidslinje-flik. |
 | TL-C Journal per tillfälle (gruppering) | Done | Pilot | P2 | Agent | Journaltyper grupperade per tillfälle i UI (2026-05-25). |
 | U6B CMO live connectors | Not started | Backlog | P2 | Agent | Fixture prod. LIVE_FETCH=false tills go-live. |
@@ -53,10 +53,19 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 | J-7 Påminnelser | `36b060cc-c15b-8159-abb7-e851ddd590dc` |
 | J-8 CCO-care | `36b060cc-c15b-81f8-a9f5-dc3799074679` |
 | TL-B Tidslinje | `36b060cc-c15b-81a9-ba33-c02fc78af40d` |
-| TL-C Journal per tillfälle | `36b060cc-c15b-818f-9ee7-da690fe92205` |
+| TL-C Journal per tillfälle | `36b060cc-c15b-8138-bf21-c680e8466e29` *(ersätter ogiltig `818f-9ee7`)* |
 | U3.2 Drive enrich | `36b060cc-c15b-81f6-8723-c7d337e114f0` |
 | U5A.4 Resend | `36b060cc-c15b-8141-b6f2-eecd8a07c2f8` |
 | U2.2 OWNER MFA | `36b060cc-c15b-8130-bcc4-cef2c99f1d1a` |
+
+### Paket A — skapade 2026-05-25 (MCP agent-sweep)
+
+| Task | Page ID |
+|------|---------|
+| J-9.1 Retention 10 år | `36a060cc-c15b-8199-a309-c3a6ce527782` |
+| J-9.4 Art. 30 + PUB | `36b060cc-c15b-8141-907d-e7624882d1b5` |
+| J-10.3 Prod smoke staff + mobil | `36a060cc-c15b-8190-9146-e82094a5a6ed` |
+| TL-D.2 Arkiv-segment | `36b060cc-c15b-81f0-94f2-ec4909066dd7` |
 
 ---
 
@@ -64,17 +73,18 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 
 - J-6.2 Egen engine (Cliento ut)
 - U5B.3 Post-op auto-trigger Q4
-- U6A (duplicerar J-8 — använd J-8-raden som Done, U6A = Not started för “full agent”)
-- TL-C.1–C.4 (kod ☑ — synka Notion-raden TL-C → Done)
+- U6A full agent (J-8 backend ☑ — Notion J-8 = In progress tills UI)
+- U2.2 MFA (Notion = In progress tills enforced prod)
 - BL.1–BL.4 backlog
 
 ---
 
 ## Verifiering efter sync
 
-1. Notion-vy sorterad på Status → Done ska matcha ☑ i MASTER-TODO (~90 % av kärnspår).
+1. Notion-vy sorterad på Status → Done ska matcha ☑ i MASTER-TODO (~95 % kärnspår).
 2. Inga Done-rader utan motsvarande kod/verify i repo.
-3. **Blocked** endast Resend (U5A.4).
+3. **In progress:** J-8.2 UI, U2.2 MFA.
+4. **Not started:** J-6.2, U5B.3 Q4, U6B–D, BL.
 
 ---
 
@@ -82,6 +92,8 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 
 | Datum | Resultat | Evidens |
 |-------|----------|---------|
+| 2026-05-25 | **PASS (MCP agent-sweep)** | 5× update (U5A.4 Blocked→Done, U3.2 In progress→Done, Underhållsfönster notes, J-7/J-8→Not started) + 5× create (J-9.1, J-9.4, J-10.3, TL-C, TL-D.2). TL-C page ID korrigerad. |
+| 2026-05-25 | **Doc-sync svep** | MASTER-TODO: J-7/U5B.1–2 ☑, J-8.1 ☑, J-8.2 ~, U2.2 ~. `verify:cco-care-sweep-prod` (CC-06 UI fail). |
 | 2026-05-25 | **PASS (MCP)** | 9× `notion-update-page` + 8× `notion-create-pages` + rad Kundmaster §1 Done (`36b060cc-c15b-8155-9180-d41495f1988b`). |
 | 2026-05-25 | **Deploy** | Git `09b7884` → prod. Kundmaster GDPR/spärr/merge dismiss live. |
 | 2026-05-25 (tidigare) | BLOCKED (REST) | `NOTION_API_KEY` saknas i `.env` — REST-script ej kört; MCP räcker när Cursor Notion är kopplat. |
@@ -96,7 +108,9 @@ Om Notion-sync från agent misslyckas med **Unauthorized**: öppna Cursor → Se
 
 > “Synka Notion Master TODO enligt docs/strategy/NOTION-SYNC-MANIFEST.md”
 
-**2026-05-25 (agent):** Synk ej körd — ingen API-åtkomst. Lägg nyckel i `.env` (committa aldrig):
+**2026-05-25 (doc-sync):** MASTER-TODO avbockad mot prod-audit. J-7/U5B backend ☑. J-8.2 UI kvar (CC-06). Notion MCP: J-8 In progress, U2.2 In progress.
+
+**2026-05-25 (tidigare agent):** Synk ej körd — ingen API-åtkomst. Lägg nyckel i `.env` (committa aldrig):
 
 ```bash
 # notion.so/my-integrations → skapa integration → dela databasen "Major Arcana — Master TODO"
