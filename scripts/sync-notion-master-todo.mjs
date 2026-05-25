@@ -69,6 +69,18 @@ const UPDATES = [
     Notes: 'J-8.1–8.2 ☑ prod. CC-06 UI + CC-09/10/11 PASS.',
   },
   {
+    pageId: '36a060ccc15b8109b433dbafa6475a86',
+    Task: 'Fas 5.5 — Android Chrome + iPad',
+    Status: 'In progress',
+    Notes: 'BL.3 Playwright Pixel 5 ☑. Fysisk Android + iPad kvar.',
+  },
+  {
+    pageId: '36b060ccc15b81048b25fab750c15b6a',
+    Task: 'BL.3 Android Playwright (Pixel 5)',
+    Status: 'Done',
+    Notes: 'verify:android-staff-prod PASS (shell, login, tabs @ Pixel 5).',
+  },
+  {
     pageId: '36a060ccc15b81efb78ad36a33abb1ac',
     Task: 'Mobil UX sweep #1–16 (kod + prod)',
     Status: 'Done',

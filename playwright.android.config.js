@@ -1,12 +1,12 @@
 /**
- * Playwright — mobil UX (iPhone 13 / 390px).
+ * Playwright — Android mobil UX (Pixel 5 / BL.3).
  */
 const {
-  resolveMobileDeviceProfile,
+  resolveAndroidDeviceProfile,
   mobileBrowserContextOptions,
 } = require('./scripts/lib/mobilePlaywrightDevices');
 
-const profile = resolveMobileDeviceProfile(process.env.ARCANA_MOBILE_DEVICE);
+const profile = resolveAndroidDeviceProfile(process.env.ARCANA_ANDROID_DEVICE);
 
 module.exports = {
   testDir: './tests/visual',

@@ -25,7 +25,7 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 | Mobil UX sweep #1–16 (kod + prod) | `36a060cc-c15b-81ef-b78a-d36a33abb1ac` | **Done** | verify:cco-mobile-pilot-prod PASS (retry vid 502). |
 | Post-op Fas 1 — 4 beslut + Graph live + smoke | `36a060cc-c15b-812a-95f7-ff7a0c6847c2` | **Done** | U4.4–U4.6 PASS. verify:post-op-uppfoljning-prod. |
 | Fas 5.6 — ≥2 personal, ≥5 konsultationer | `36a060cc-c15b-818da95ae17da7d16115` | **Not started** | U1.6/J-10.7 — fältpilot uppskjuten. Automation räcker för go-live. |
-| Fas 5.5 — Android Chrome + iPad | `36a060cc-c15b-8109b433dbafa6475a86` | **Not started** | J-10.6 uppskjuten. |
+| Fas 5.5 — Android Chrome + iPad | `36a060cc-c15b-8109b433dbafa6475a86` | **In progress** | BL.3 Playwright Pixel 5 ☑ (`verify:android-staff-prod`). Fysisk enhet + iPad kvar. |
 | Minst en personal utbildad i /staff | `36a060cc-c15b-819aa4f1e3e6e69edb09` | **Not started** | U3.3 — externt/klinik. |
 
 ---
@@ -44,6 +44,7 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 | TL-C Journal per tillfälle (gruppering) | Done | Pilot | P2 | Agent | Journaltyper grupperade per tillfälle i UI (2026-05-25). |
 | U6B CMO live connectors | Not started | Backlog | P2 | Agent | Fixture prod. LIVE_FETCH=false tills go-live. |
 | U6C CAO admin-operator | Not started | Backlog | P2 | Agent | Plan finns. Ej prod-operator. |
+| BL.3 Android Playwright (Pixel 5) | Done | Infra | P2 | Agent | verify:android-staff-prod + test:visual:mobile:android. |
 
 ### Nya rader skapade 2026-05-25 (MCP)
 
@@ -66,6 +67,7 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 | J-9.4 Art. 30 + PUB | `36b060cc-c15b-8141-907d-e7624882d1b5` |
 | J-10.3 Prod smoke staff + mobil | `36a060cc-c15b-8190-9146-e82094a5a6ed` |
 | TL-D.2 Arkiv-segment | `36b060cc-c15b-81f0-94f2-ec4909066dd7` |
+| BL.3 Android Playwright | `36b060cc-c15b-8104-8b25-fab750c15b6a` | **Done** | verify:android-staff-prod (Pixel 5 shell/login/tabs). |
 
 ---
 
@@ -75,7 +77,8 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 - U5B.3 Post-op auto-trigger Q4
 - U6A full agent (J-8 ☑ — full autonom agent kvar)
 - U2.2 MFA (Notion = In progress tills enforced prod)
-- BL.1–BL.4 backlog
+- BL.1, BL.4–BL.5 backlog
+- BL.3 Android Playwright ☑ (2026-05-25)
 
 ---
 
@@ -84,8 +87,8 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 1. Notion-vy sorterad på Status → Done ska matcha ☑ i MASTER-TODO (~95 % kärnspår).
 2. Inga Done-rader utan motsvarande kod/verify i repo.
 3. **In progress:** U2.2 MFA.
-4. **Not started:** U5B.3 Q4, U6B–D, BL.
-5. **Done (senaste svep):** U5A.4 Resend live · Plan A 3 publika tjänster (`72f852a`).
+4. **Not started:** U5B.3 Q4, U6B–D, BL.4–BL.5.
+5. **Done (senaste svep):** BL.3 Android Playwright · U5A.4 Resend · Plan A 3 tjänster.
 
 ---
 
@@ -93,7 +96,7 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 
 | Datum | Resultat | Evidens |
 |-------|----------|---------|
-| 2026-05-25 | **PASS (Resend-svep)** | U5A.4 Render key + transactional-probe live. Plan A `72f852a` (3 publika tjänster). MASTER-TODO + Notion MCP. |
+| 2026-05-25 | **PASS (BL.3 svep)** | Android Playwright: mobilePlaywrightDevices + verify:android-staff-prod + playwright.android.config. MASTER-TODO BL.3 ☑. |
 | 2026-05-25 | **PASS (MCP agent-sweep)** | 5× update (U5A.4 Blocked→Done, U3.2 In progress→Done, Underhållsfönster notes, J-7/J-8→Not started) + 5× create (J-9.1, J-9.4, J-10.3, TL-C, TL-D.2). TL-C page ID korrigerad. |
 | 2026-05-25 | **Doc-sync svep** | MASTER-TODO: J-7/U5B.1–2 ☑, J-8.1 ☑, J-8.2 ~, U2.2 ~. `verify:cco-care-sweep-prod` (CC-06 UI fail). |
 | 2026-05-25 | **PASS (MCP)** | 9× `notion-update-page` + 8× `notion-create-pages` + rad Kundmaster §1 Done (`36b060cc-c15b-8155-9180-d41495f1988b`). |

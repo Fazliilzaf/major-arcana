@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 /**
- * E2E mobil klick-audit — iPhone 13 @ prod.
+ * E2E mobil klick-audit — Playwright @ prod (iPhone 13 default, Pixel 5 via ARCANA_MOBILE_DEVICE).
  * Mäter tid per steg, flaggar blockers (scroll, overlay, saknade element).
  */
 require('dotenv').config({ quiet: true });
-const { chromium, devices } = require('playwright');
+const { chromium } = require('playwright');
+const {
+  resolveMobileDeviceProfile,
+  mobileBrowserContextOptions,
+} = require('./lib/mobilePlaywrightDevices');
 const { execSync } = require('node:child_process');
 const path = require('node:path');
 const {
@@ -137,11 +141,12 @@ async function main() {
     preferredId: patientId,
   });
 
-  console.log(`E2E mobil klick-audit @ ${base} (iPhone 13)`);
+  const deviceProfile = resolveMobileDeviceProfile();
+  console.log(`E2E mobil klick-audit @ ${base} (${deviceProfile.label})`);
   console.log(`Patient: ${resolvedPatientId.slice(0, 8)}…\n`);
 
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ ...devices['iPhone 13'], locale: 'sv-SE' });
+  const context = await browser.newContext(mobileBrowserContextOptions(deviceProfile));
   const page = await context.newPage();
 
   try {

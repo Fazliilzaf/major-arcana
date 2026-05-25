@@ -44,6 +44,8 @@ Efter deploy: **stäng Safari-fliken** och öppna `/staff` igen (cache).
 
 ## Enhetstest (Fas 5.5)
 
+**Automatiserat (BL.3):** `npm run verify:android-staff-prod` — Playwright Pixel 5 @ prod (login, tabbar, E2E-klick). Ersätter inte kamera/HEIC på fysisk Android.
+
 Fyll i per enhet efter test i verklig konsultation (eller simulerad kund).
 
 | Enhet | Testare | Datum | Ta bild | Galleri | HEIC | Etikett | QR/deep link | Markera plan | Shell UX | OK? |

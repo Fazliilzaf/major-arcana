@@ -1,9 +1,9 @@
 # Major Arcana — samlad faslista (en sida)
 
-Senast uppdaterad: **2026-05-25** (Resend live + Plan A 3-tjänster + Notion-sync)  
+Senast uppdaterad: **2026-05-25** (BL.3 Android Playwright + Notion-sync)  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
 
-**Du är här:** **U5A.4 Resend ☑** · **Plan A katalog ☑** (3 möten) · **U2.2 MFA** (väntar go-live) · **U5B.3** Q4.
+**Du är här:** **BL.3 ☑** · **U2.2 MFA** (väntar go-live) · **U5B.3** Q4 · **BL.4/BL.5** backlog.
 
 **Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6) — synkad 2026-05-25 Resend-svep (se `NOTION-SYNC-MANIFEST.md`)
 
@@ -394,13 +394,13 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 
 - [x] BL.1 Mobil månadskalender (#17 UX sweep) — månadsvy + daglista i kalender-sheet
 - [x] BL.2 cco-next-release parity (#18) — `/cco-next` → `/major-arcana-preview` redirect (canonical UI)
-- [ ] BL.3 Android enhetstest (valfritt)
+- [x] BL.3 Android enhetstest (valfritt) — Playwright Pixel 5 @ prod (`verify:android-staff-prod`)
 - [ ] BL.4 Executive OS expand — PR #6 delvis (6 agents); full masterplan-expand kvar
 - [~] BL.5 Adaptive layout (Arcana/CCO web) — spec ☑ [cco-adaptive-layout-rules.md](./cco-adaptive-layout-rules.md); Fas 1–4 implementation ☐
 
 > **Verify BL.1:** `booking-mobile-calendar-day.js` — månadsvy (nav, Idag, 7×6 grid, badge lediga/bokade), daglista under. `ArcanaBookingMobileCalendar.getViewMonth()`. Unit sweep PASS 2026-05-25.
 > **Verify BL.2:** Prod **302** `/cco-next` → `/major-arcana-preview/` (`X-Arcana-Cco-Next-Redirect`). `resolveCcoNextPreviewRedirect.js` + `smoke:public` PASS 2026-05-25.
-> **Verify BL.3:** Ingen Android Playwright/CI — endast manuell checklista (`cco-mobile-staff-pilot-checklist.md`).
+> **Verify BL.3:** `scripts/lib/mobilePlaywrightDevices.js` (Pixel 5 + Galaxy S9+). `npm run verify:android-staff-prod` + `test:visual:mobile:android`. Fysisk enhet kvar i `cco-mobile-staff-pilot-checklist.md` (valfritt).
 > **Verify BL.4:** PR #6 gav 6 agents + capabilities; full Executive OS-expand enligt masterplan **ej påbörjad**.
 > **J-8 underlag:** se Fas J-8 ovan — spec + gateway + byggblock finns; prod-agent saknas.
 
@@ -409,6 +409,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 ## Snabb verify (kör vid tvivel)
 
 ```bash
+npm run verify:android-staff-prod
 npm run verify:staff-ui-prod
 npm run verify:cco-mobile-pilot-prod
 npm run verify:cco-care-sweep-prod
