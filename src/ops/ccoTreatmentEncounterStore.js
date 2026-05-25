@@ -4,6 +4,20 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 
 const ENCOUNTER_STATUSES = Object.freeze(['reserved', 'confirmed', 'cancelled']);
+const ENCOUNTER_TYPES = Object.freeze([
+  'consultation',
+  'transplant_fue',
+  'transplant_dhi',
+  'prp_hair',
+  'prp_skin',
+  'microneedling',
+  'follow_up',
+  'bleph',
+  'beard',
+  'eyebrow',
+  'curatiio_estetik',
+  'other',
+]);
 
 function nowIso() {
   return new Date().toISOString();
@@ -69,6 +83,11 @@ function normalizeEncounter(input = {}, existing = {}) {
     reservationId: normalizeText(safe.reservationId || existingSafe.reservationId),
     serviceId: normalizeText(safe.serviceId || existingSafe.serviceId),
     serviceLabel: normalizeText(safe.serviceLabel || existingSafe.serviceLabel),
+    encounterType: ENCOUNTER_TYPES.includes(
+      normalizeKey(safe.encounterType || existingSafe.encounterType)
+    )
+      ? normalizeKey(safe.encounterType || existingSafe.encounterType)
+      : 'other',
     resourceId: normalizeText(safe.resourceId || existingSafe.resourceId),
     resourceLabel: normalizeText(safe.resourceLabel || existingSafe.resourceLabel),
     locationLabel: normalizeText(safe.locationLabel || existingSafe.locationLabel),
@@ -192,5 +211,6 @@ async function createCcoTreatmentEncounterStore({ filePath }) {
 
 module.exports = {
   ENCOUNTER_STATUSES,
+  ENCOUNTER_TYPES,
   createCcoTreatmentEncounterStore,
 };

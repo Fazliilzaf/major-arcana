@@ -228,7 +228,9 @@ function createPublicBookingEngineRouter({
         turnstileSecret: config.turnstileSecret,
       });
       if (!abuse.ok) {
-        return res.status(abuse.status || 400).json({ ok: false, error: abuse.error || 'abuse_detected' });
+        return res
+          .status(abuse.status || 400)
+          .json({ ok: false, error: abuse.error || 'abuse_detected' });
       }
 
       // ── 1. Consent + body-validering ──────────────────────────────
@@ -521,6 +523,76 @@ function createPublicBookingEngineRouter({
       }
       console.error('[public-booking-engine/reservations]', error);
       return res.status(500).json({ ok: false, error: 'reservation_failed' });
+    }
+  });
+
+  router.get('/vip/:token', async (req, res) => {
+    const token = normalizeText(req.params?.token);
+    if (!token || token.length < 8) {
+      return res.status(400).json({ ok: false, error: 'invalid_token' });
+    }
+    const store = bookingEngineStore;
+    if (!store) return res.status(503).json({ ok: false, error: 'store_unavailable' });
+
+    const vipBooking = await store.findVipToken?.(token);
+    if (!vipBooking) {
+      return res
+        .status(404)
+        .json({
+          ok: false,
+          error: 'token_not_found',
+          message: 'VIP-länken är ogiltig eller har utgått.',
+        });
+    }
+    const services = await store.listPublicServices();
+    const service = services.find((s) => s.id === vipBooking.serviceId) || null;
+    return res.json({
+      ok: true,
+      vip: true,
+      patientName: vipBooking.patientName || '',
+      serviceId: vipBooking.serviceId,
+      serviceLabel: service?.label || vipBooking.serviceLabel || '',
+      expiresAt: vipBooking.expiresAt || null,
+      prefilledContact: vipBooking.contact || {},
+    });
+  });
+
+  router.post('/vip/:token/reserve', async (req, res) => {
+    const token = normalizeText(req.params?.token);
+    if (!token || token.length < 8) {
+      return res.status(400).json({ ok: false, error: 'invalid_token' });
+    }
+    const store = bookingEngineStore;
+    if (!store) return res.status(503).json({ ok: false, error: 'store_unavailable' });
+
+    const vipBooking = await store.findVipToken?.(token);
+    if (!vipBooking) {
+      return res.status(404).json({ ok: false, error: 'token_expired' });
+    }
+
+    const slotDate = isoDateOnly(req.body?.date);
+    const slotTime = normalizeText(req.body?.time);
+    if (!slotDate || !slotTime) {
+      return res.status(400).json({ ok: false, error: 'missing_slot' });
+    }
+
+    try {
+      const slots = await store.reserveSlots({
+        serviceId: vipBooking.serviceId,
+        resourceId: vipBooking.resourceId || null,
+        dates: [slotDate],
+        preferredTimes: [slotTime],
+        contact: vipBooking.contact || req.body?.contact || {},
+        channel: 'vip_link',
+        metadata: { vipToken: token, patientId: vipBooking.patientId },
+      });
+      const primary = slots?.[0] || null;
+      await store.consumeVipToken?.(token);
+      return res.json({ ok: true, reservation: primary });
+    } catch (error) {
+      return res
+        .status(409)
+        .json({ ok: false, error: 'reservation_failed', message: error.message });
     }
   });
 
