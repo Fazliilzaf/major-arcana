@@ -148,6 +148,12 @@ function composeCaoTemplateAdvisor({
   ).slice(0, 20);
 
   const goNoGoBrief = asObject(asObject(extended.GenerateGoNoGoBrief).data);
+  const adminBrief = asObject(asObject(extended.GenerateAdminDailyBrief).data);
+  const adminWeeklyBrief = asObject(asObject(extended.GenerateAdminWeeklyBrief).data);
+  const readinessScore = asObject(asObject(extended.ExplainReadinessScore).data);
+  const tenantHealth = asObject(asObject(extended.TenantAdminHealthSummary).data);
+  const auditSummary = asObject(asObject(extended.BuildAuditSummary).data);
+  const incidentAdmin = asObject(asObject(extended.SummarizeIncidentAdmin).data);
 
   return {
     data: {
@@ -157,6 +163,12 @@ function composeCaoTemplateAdvisor({
       templateLibraryHealth: libraryHealth,
       adminQualityGate,
       goNoGoBrief: goNoGoBrief.outputType ? goNoGoBrief : null,
+      adminBrief: adminBrief.outputType ? adminBrief : null,
+      adminWeeklyBrief: adminWeeklyBrief.outputType ? adminWeeklyBrief : null,
+      readinessScore: readinessScore.outputType ? readinessScore : null,
+      tenantHealth: tenantHealth.outputType ? tenantHealth : null,
+      auditSummary: auditSummary.outputType ? auditSummary : null,
+      incidentAdmin: incidentAdmin.outputType ? incidentAdmin : null,
       executiveSummary,
       generatedAt: new Date().toISOString(),
     },
