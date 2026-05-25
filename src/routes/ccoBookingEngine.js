@@ -525,6 +525,18 @@ function createCcoBookingEngineRouter({
     })
   );
 
+  router.get('/cco-booking-engine/runtime-catalog', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireStaffRole(context);
+      const readout = await bookingEngineStore.getRuntimeCatalog();
+      return res.json({
+        ok: true,
+        provider: 'cco_engine_runtime_catalog',
+        ...readout,
+      });
+    })
+  );
+
   router.get('/cco-booking-engine/catalog', async (req, res) =>
     handle(req, res, async () => {
       const [resources, services] = await Promise.all([

@@ -80,6 +80,7 @@
     "verify:staff-ui-prod": "node ./scripts/verify-staff-ui-prod.js",
     "verify:staff-ui-desktop-prod": "node ./scripts/verify-staff-ui-desktop-prod.js",
     "verify:staff-mobile-login-prod": "node ./scripts/verify-staff-mobile-login-prod.js",
+    "verify:u2-4-field-prep-prod": "node ./scripts/verify-u2-4-field-prep-prod.js",
     "provision:nurse-staff-prod": "node ./scripts/provision-nurse-staff-prod.js",
     "verify:staff-mobile-tap-prod": "node ./scripts/verify-staff-mobile-tap-prod.js",
     "verify:cco-mobile-pilot-prod": "bash ./scripts/verify-cco-mobile-pilot-prod.sh",

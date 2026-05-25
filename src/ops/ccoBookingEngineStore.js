@@ -10,6 +10,10 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { ensureDirectoryWithRetry } = require('./persistentDir');
+const {
+  mergeLegacyCatalogIntoEngineState,
+  buildStaffRuntimeCatalogReadout,
+} = require('./legacyCatalogRuntime');
 
 /** Plan A — endast tre möten exponeras via /api/public/booking-engine/catalog */
 const PLAN_A_PUBLIC_SERVICE_IDS = [
@@ -622,6 +626,9 @@ function normalizeService(input = {}) {
     minNoticeMinutes: safe.minNoticeMinutes,
     maxBookingDaysAhead: safe.maxBookingDaysAhead,
     cancellationPolicyHours: safe.cancellationPolicyHours,
+    brand: normalizeText(safe.brand) || undefined,
+    legacyMapping: asObject(safe.legacyMapping).arcanaServiceId ? asObject(safe.legacyMapping) : undefined,
+    catalogSource: normalizeText(safe.catalogSource) || undefined,
   });
 }
 
@@ -796,13 +803,19 @@ async function createCcoBookingEngineStore({ filePath }) {
     .filter(Boolean);
 
   const migrated = migratePlanASchema(state);
+  const legacyMerged = mergeLegacyCatalogIntoEngineState(state, {
+    planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
+  });
+  if (legacyMerged.changed) {
+    state.services = asArray(state.services).map(normalizeService).filter(Boolean);
+  }
 
   async function save() {
     state.updatedAt = nowIso();
     await writeJsonAtomic(filePath, state);
   }
 
-  if (migrated) {
+  if (migrated || legacyMerged.changed) {
     await save();
   }
 
@@ -1362,6 +1375,11 @@ async function createCcoBookingEngineStore({ filePath }) {
       listAvailability({
         ...input,
         publicOnly: true,
+      }),
+    getRuntimeCatalog: async () =>
+      buildStaffRuntimeCatalogReadout(state, {
+        planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
+        planAPublicResourceIds: PLAN_A_PUBLIC_RESOURCE_IDS,
       }),
     _state: state,
   };

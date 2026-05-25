@@ -219,6 +219,58 @@ test('cco booking engine legacy-catalog is staff-only and supports details toggl
   }
 });
 
+test('cco booking engine runtime-catalog is staff-only and merges legacy mapping', async () => {
+  const fixture = await createFixture({
+    authStore: {
+      async getSessionContextByToken(token) {
+        if (token === 'owner-token') {
+          return {
+            session: { id: 'sess-owner' },
+            membership: { tenantId: 'tenant-a', role: 'OWNER' },
+            user: { id: 'owner-1' },
+          };
+        }
+        if (token === 'patient-token') {
+          return {
+            session: { id: 'sess-patient' },
+            membership: { tenantId: 'tenant-a', role: 'PATIENT' },
+            user: { id: 'patient-1' },
+          };
+        }
+        return null;
+      },
+      async touchSession() {
+        return true;
+      },
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const forbidden = await fetch(`${baseUrl}/cco-booking-engine/runtime-catalog`, {
+        headers: { authorization: 'Bearer patient-token' },
+      });
+      assert.equal(forbidden.status, 403);
+
+      const ok = await fetch(`${baseUrl}/cco-booking-engine/runtime-catalog`, {
+        headers: { authorization: 'Bearer owner-token' },
+      });
+      assert.equal(ok.status, 200);
+      const payload = await ok.json();
+      assert.equal(payload.ok, true);
+      assert.equal(payload.provider, 'cco_engine_runtime_catalog');
+      assert.equal(payload.policy.publicWebBookingEnabled, false);
+      assert.ok(Array.isArray(payload.services));
+      assert.ok(payload.summary.totalServices >= 1);
+      assert.ok(
+        payload.services.some((item) => item.legacyMapping && item.legacyMapping.cliento) ||
+          payload.summary.legacyMappedServices >= 1
+      );
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
 test('cco booking engine route sparar gammal och ny tid i ombokningshändelsen', async () => {
   const fixture = await createFixture();
   try {
