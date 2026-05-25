@@ -4,6 +4,7 @@
 **Senast uppdaterad:** 2026-05-24  
 **Relaterad audit:** mobil UX-audit 2026-05-23 (chat)  
 **Bygger på:** [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)  
+**Nästa fas:** [cco-adaptive-layout-rules.md](./cco-adaptive-layout-rules.md) (tablet split + density)  
 **Mål:** CCO ska kännas som en **modern mobilapp** på telefon — inte desktop inskalerad.
 
 ---
