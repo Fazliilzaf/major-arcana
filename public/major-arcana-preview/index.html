@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <!-- ARCANA bundle URLs (content-hash: d9a770ff9d) -->
-    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.d9a770ff9d.min.js","staffCore":"./app.bundle.staff-core.d20f6491c0.min.js","staffDeferred":"./app.bundle.staff-deferred.df04313ca7.min.js"};</script>
+    <!-- ARCANA bundle URLs (content-hash: 0bee8a1fb5) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.0bee8a1fb5.min.js","staffCore":"./app.bundle.staff-core.ac20660d87.min.js","staffDeferred":"./app.bundle.staff-deferred.5ac8c48f45.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -104,7 +104,8 @@
   <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
   <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
   <script src="./booking-mobile-calendar-day.js?v=build-mobile-month-cal-f" defer></script>
-  <script src="./app/cco-missing-forms-ops.js?v=build-care-sweep-b" defer></script>
+  <script src="./app/cco-care-panel.js?v=build-ai-care-sweep-a" defer></script>
+  <script src="./app/thread-ai-summary.js?v=build-ai-care-sweep-a" defer></script>
   <script src="./cco-mobile-queue.js?v=build-mobile-shell-e" defer></script>
 </head>
 
@@ -305,12 +306,13 @@
             </button>
 
             <button class="preview-utility-button preview-utility-button-alert" type="button"
-              aria-label="Saknade formulär" data-missing-forms-open title="Saknade formulär (J-8.1)">
+              aria-label="CCO Care" data-cco-care-open title="CCO Care — formulär, påminnelser, journalutkast">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <path
                   d="M8 13.1a1.8 1.8 0 0 0 1.7-1.1H6.3A1.8 1.8 0 0 0 8 13.1ZM4.4 11.1h7.2L10.7 10V7.2a2.7 2.7 0 1 0-5.4 0V10Z"
                   fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3" />
               </svg>
+              <span class="preview-utility-badge" data-cco-care-badge hidden></span>
             </button>
 
             <button class="preview-utility-button" type="button" aria-label="Anteckningar">
@@ -6942,8 +6944,8 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
         <button type="button" class="cco-mobile-more-item" data-mobile-more-action="sprint" role="menuitem">
           Fokuspass
         </button>
-        <button type="button" class="cco-mobile-more-item" data-mobile-more-action="missing-forms" role="menuitem">
-          Saknade formulär
+        <button type="button" class="cco-mobile-more-item" data-mobile-more-action="cco-care" role="menuitem">
+          CCO Care <span class="cco-care-mobile-badge" data-cco-care-badge hidden></span>
         </button>
         <button type="button" class="cco-mobile-more-item" data-mobile-more-action="language" role="menuitem">
           Språk
@@ -6986,13 +6988,13 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
   <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
   <script src="./app/thread-cache-idb.js?v=build-idb-v2"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: d9a770ff9d) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 0bee8a1fb5) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.d9a770ff9d.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.d20f6491c0.min.js';
-        var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.df04313ca7.min.js';
+        var fullSrc = urls.full || './app.bundle.0bee8a1fb5.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.ac20660d87.min.js';
+        var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.5ac8c48f45.min.js';
 
         function injectScript(src, onload) {
           var script = document.createElement('script');

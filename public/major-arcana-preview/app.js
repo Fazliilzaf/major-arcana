@@ -6822,18 +6822,203 @@
     return recipientName ? `Hej ${recipientName},` : "Hej,";
   }
 
+  const preparedDraftModesCache = new Map();
+  const preparedDraftModesInflight = new Map();
+
   function getStudioDraftModes(thread) {
+    const conversationId = asText(thread?.id);
+    const cachedModes = conversationId ? preparedDraftModesCache.get(conversationId) : null;
     const draftModes =
       thread?.raw?.draftModes && typeof thread.raw.draftModes === "object"
-        ? thread.raw.draftModes
-        : {};
+        ? { ...thread.raw.draftModes, ...(cachedModes || {}) }
+        : cachedModes || {};
     return {
       professional: asText(draftModes.professional),
       warm: asText(draftModes.warm),
       short: asText(draftModes.short),
       recommendedMode:
-        normalizeKey(thread?.raw?.recommendedMode || "professional") || "professional",
+        normalizeKey(thread?.raw?.recommendedMode || draftModes.recommendedMode || "professional") ||
+        "professional",
+      loading: Boolean(conversationId && preparedDraftModesInflight.has(conversationId)),
     };
+  }
+
+  function isSmartReplyFeatureEnabled() {
+    if (state.settingsRuntime?.toggles?.smart_reply === false) return false;
+    const toggle = document.querySelector('[data-settings-toggle="smart_reply"]');
+    if (toggle && !toggle.checked) return false;
+    return true;
+  }
+
+  function studioDraftModesAreEmpty(thread) {
+    const modes = getStudioDraftModes(thread);
+    return !modes.professional && !modes.warm && !modes.short;
+  }
+
+  function mapRefineKeyToInstruction(refineKey) {
+    const normalized = normalizeKey(refineKey);
+    if (normalized === "shorter") return "shorten";
+    if (normalized === "professional") return "professional";
+    return "improve";
+  }
+
+  function buildPrepareDraftConversationSnapshot(thread) {
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    return {
+      conversationId: asText(thread?.id),
+      id: asText(thread?.id),
+      customerName: asText(thread?.customerName),
+      customerEmail: asText(getRuntimeCustomerEmail(thread)),
+      subject: asText(thread?.subject),
+      status: "needs_reply",
+      needsReply: true,
+      direction: "inbound",
+      detectedIntent: asText(thread?.intentLabel || raw.intent || "general"),
+      latestInboundBody: asText(raw.latestInboundBody || raw.snippet || thread?.previewBody),
+      snippet: asText(raw.snippet || thread?.previewBody),
+    };
+  }
+
+  function markStudioAiDraftOrigin(studioState, draftText) {
+    if (!studioState) return;
+    const text = normalizeText(draftText);
+    if (!text) return;
+    studioState.lastAiDraftOriginal = text;
+    studioState.aiDraftTrackedAt = new Date().toISOString();
+  }
+
+  function applyPreparedDraftModesToThread(thread, draftModes = {}, recommendedMode = "professional") {
+    if (!thread) return;
+    thread.raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
+    thread.raw.draftModes = {
+      ...(thread.raw.draftModes || {}),
+      ...draftModes,
+    };
+    if (!normalizeText(thread.raw.recommendedMode)) {
+      thread.raw.recommendedMode = recommendedMode;
+    }
+    const conversationId = asText(thread.id);
+    if (conversationId) {
+      preparedDraftModesCache.set(conversationId, {
+        professional: asText(draftModes.professional),
+        warm: asText(draftModes.warm),
+        short: asText(draftModes.short),
+        recommendedMode: normalizeKey(recommendedMode) || "professional",
+      });
+    }
+  }
+
+  async function hydrateStudioDraftModesFromApi(thread, { force = false } = {}) {
+    if (!thread || !isSmartReplyFeatureEnabled()) return null;
+    if (isOfflineHistoryContextThread(thread)) return null;
+    const conversationId = asText(thread.id);
+    if (!conversationId) return null;
+    if (!force && !studioDraftModesAreEmpty(thread)) return getStudioDraftModes(thread);
+    if (!force && preparedDraftModesCache.has(conversationId)) {
+      applyPreparedDraftModesToThread(thread, preparedDraftModesCache.get(conversationId));
+      return getStudioDraftModes(thread);
+    }
+    if (preparedDraftModesInflight.has(conversationId)) {
+      return preparedDraftModesInflight.get(conversationId);
+    }
+    const snapshot = {
+      conversations: [buildPrepareDraftConversationSnapshot(thread)],
+      templates: asArray(state.noteTemplates),
+      timestamps: { capturedAt: new Date().toISOString() },
+    };
+    const studioState =
+      state.studio && runtimeConversationIdsMatch(state.studio.threadId, conversationId)
+        ? state.studio
+        : null;
+    if (studioState) studioState.draftModesLoading = true;
+    if (typeof renderStudioShell === "function") renderStudioShell();
+    const flight = Promise.all(
+      ["professional", "warm", "short"].map((tone) =>
+        apiRequest("/api/v1/capabilities/PrepareResponseDrafts/run", {
+          method: "POST",
+          headers: {
+            "x-idempotency-key": createIdempotencyKey(`major-arcana-prepare-${tone}`),
+          },
+          body: {
+            channel: "admin",
+            input: { tone, maxDrafts: 1 },
+            systemStateSnapshot: snapshot,
+          },
+        }).catch(() => null)
+      )
+    )
+      .then((responses) => {
+        const draftModes = {};
+        responses.forEach((payload, index) => {
+          const tone = ["professional", "warm", "short"][index];
+          const draft = asArray(payload?.output?.data?.drafts)[0];
+          const body = asText(draft?.draft);
+          if (body) draftModes[tone] = body;
+        });
+        if (Object.keys(draftModes).length) {
+          applyPreparedDraftModesToThread(thread, draftModes, "professional");
+        }
+        return getStudioDraftModes(thread);
+      })
+      .finally(() => {
+        preparedDraftModesInflight.delete(conversationId);
+        if (state.studio && runtimeConversationIdsMatch(state.studio.threadId, conversationId)) {
+          state.studio.draftModesLoading = false;
+        }
+        if (typeof renderStudioShell === "function") renderStudioShell();
+      });
+    preparedDraftModesInflight.set(conversationId, flight);
+    return flight;
+  }
+
+  async function runRefineReplyDraftCapability(thread, draft, refineKey) {
+    if (!thread || !isSmartReplyFeatureEnabled()) return null;
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    const payload = await apiRequest("/api/v1/capabilities/RefineReplyDraft/run", {
+      method: "POST",
+      headers: {
+        "x-idempotency-key": createIdempotencyKey("major-arcana-refine-draft"),
+      },
+      body: {
+        channel: "admin",
+        input: {
+          conversationId: asText(thread.id),
+          messageId: asText(raw.messageId || thread.id),
+          mailboxId: asText(thread.mailboxAddress || raw.mailboxId),
+          subject: asText(thread.subject) || "(utan amne)",
+          draft: normalizeText(draft),
+          instruction: mapRefineKeyToInstruction(refineKey),
+        },
+      },
+    });
+    return asText(payload?.output?.data?.refinedReply);
+  }
+
+  function recordDraftFeedbackFireAndForget({ thread, studioState, sentBody, isComposeMode = false }) {
+    const originalDraft = asText(studioState?.lastAiDraftOriginal || studioState?.baseDraftBody);
+    const editedDraft = asText(sentBody);
+    if (!originalDraft || !editedDraft) return;
+    void apiRequest("/api/v1/capabilities/RecordDraftFeedback/run", {
+      method: "POST",
+      headers: {
+        "x-idempotency-key": createIdempotencyKey("major-arcana-draft-feedback"),
+      },
+      body: {
+        channel: "admin",
+        input: {
+          conversationId: isComposeMode ? "" : asText(thread?.id),
+          threadSubject: isComposeMode
+            ? asText(studioState?.composeSubject)
+            : asText(thread?.subject),
+          customerEmail: isComposeMode ? asText(studioState?.composeTo) : asText(getRuntimeCustomerEmail(thread)),
+          originalDraft,
+          editedDraft,
+          sentAt: new Date().toISOString(),
+          tone: asText(studioState?.activeToneKey),
+          track: asText(studioState?.activeTrackKey),
+        },
+      },
+    }).catch(() => {});
   }
 
   function inferStudioTrackKey(thread) {
@@ -13183,7 +13368,7 @@
     const selectedSignature = getStudioReplyDefaultSignatureProfile(thread).id;
     const baseDraft = buildStudioTrackDraft(thread, trackKey);
     const senderMailboxId = getStudioDefaultSenderMailboxId(thread);
-    return applyTruthPrimaryStudioState({
+    const studioState = applyTruthPrimaryStudioState({
       mode: "reply",
       threadId: asText(thread?.id),
       replyContextThreadId: asText(thread?.id),
@@ -13217,7 +13402,16 @@
       bookingStudioReason: "",
       bookingStudioChangedFrom: "",
       bookingStudioChangedTo: "",
+      lastAiDraftOriginal: "",
+      aiDraftTrackedAt: "",
     }, thread);
+    const modes = getStudioDraftModes(thread);
+    const recommended =
+      modes[modes.recommendedMode] || modes.professional || modes.warm || modes.short;
+    if (recommended && normalizeText(studioState.draftBody) === normalizeText(recommended)) {
+      markStudioAiDraftOrigin(studioState, recommended);
+    }
+    return studioState;
   }
 
   function createComposeStudioState(thread = null) {
@@ -13299,6 +13493,9 @@
     );
     state.forms.studioMode = "reply";
     state.studio.replyContextThreadId = asText(thread?.id);
+    if (studioDraftModesAreEmpty(thread) && !preparedDraftModesInflight.has(asText(thread.id))) {
+      void hydrateStudioDraftModesFromApi(thread);
+    }
     return applyTruthPrimaryStudioState(state.studio, thread);
   }
 
@@ -13855,6 +14052,7 @@
       normalizeText,
       normalizeWorkspaceState,
       patchStudioThreadAfterSend,
+      recordDraftFeedbackFireAndForget,
       refreshWorkspaceBootstrapForSelectedThread,
       renderBookingSurface,
       renderFocusHistorySection,
@@ -40490,7 +40688,12 @@
     }
     const studioState = ensureStudioState(thread);
     studioState.activeToneKey = normalizeKey(toneKey) || "professional";
+    const draftModes = getStudioDraftModes(thread);
+    const toneDraft = draftModes[studioState.activeToneKey];
     studioState.draftBody = buildStudioToneDraft(thread, studioState.draftBody, studioState.activeToneKey);
+    if (toneDraft && normalizeText(studioState.draftBody) === normalizeText(toneDraft)) {
+      markStudioAiDraftOrigin(studioState, toneDraft);
+    }
     studioState.baseDraftBody = studioState.draftBody;
     renderStudioShell();
     setStudioFeedback(
@@ -40501,15 +40704,31 @@
     );
   }
 
-  function applyStudioRefineSelection(refineKey) {
+  async function applyStudioRefineSelection(refineKey) {
     if (normalizeKey(state.forms.studioMode) === "compose") {
       const studioState = state.studio;
-      studioState.activeRefineKey = normalizeKey(refineKey);
-      studioState.draftBody = buildComposeRefinedDraft(
+      const normalizedRefine = normalizeKey(refineKey);
+      studioState.activeRefineKey = normalizedRefine;
+      const beforeRefine = normalizeText(studioState.draftBody);
+      let nextDraft = buildComposeRefinedDraft(
         studioState.draftBody,
         studioState.activeRefineKey,
         studioState.composeTo
       );
+      if (isSmartReplyFeatureEnabled()) {
+        try {
+          const refined = await runRefineReplyDraftCapability(
+            { id: "compose", subject: studioState.composeSubject, raw: {} },
+            beforeRefine || nextDraft,
+            normalizedRefine
+          );
+          if (refined) nextDraft = refined;
+        } catch {
+          /* fallback */
+        }
+      }
+      studioState.draftBody = nextDraft;
+      markStudioAiDraftOrigin(studioState, beforeRefine || nextDraft);
       renderStudioShell();
       setStudioFeedback(`Finjusteringen "${studioState.activeRefineKey}" applicerades i nytt mejl.`, "success");
       return;
@@ -40522,7 +40741,22 @@
     }
     const studioState = ensureStudioState(thread);
     studioState.activeRefineKey = normalizeKey(refineKey);
-    studioState.draftBody = buildStudioRefinedDraft(thread, studioState.draftBody, studioState.activeRefineKey);
+    const beforeRefine = normalizeText(studioState.draftBody);
+    let nextDraft = buildStudioRefinedDraft(thread, studioState.draftBody, studioState.activeRefineKey);
+    if (isSmartReplyFeatureEnabled()) {
+      try {
+        const refined = await runRefineReplyDraftCapability(
+          thread,
+          beforeRefine || nextDraft,
+          studioState.activeRefineKey
+        );
+        if (refined) nextDraft = refined;
+      } catch {
+        /* fallback */
+      }
+    }
+    studioState.draftBody = nextDraft;
+    markStudioAiDraftOrigin(studioState, beforeRefine || nextDraft);
     renderStudioShell();
     setStudioFeedback(
       isStudioBookingUpdateMode(studioState)

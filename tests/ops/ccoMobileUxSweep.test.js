@@ -16,7 +16,8 @@ const REQUIRED_MOBILE_ASSETS = [
   'booking-mobile-shell.js',
   'booking-mobile-slot-picker.js',
   'booking-mobile-calendar-day.js',
-  'app/cco-missing-forms-ops.js',
+  'app/cco-care-panel.js',
+  'app/thread-ai-summary.js',
 ];
 
 const REQUIRED_INDEX_MARKERS = [
@@ -27,8 +28,9 @@ const REQUIRED_INDEX_MARKERS = [
   'cco-mobile-shell.js',
   'cco-mobile-queue.js',
   'booking-mobile-calendar-day.js',
-  'cco-missing-forms-ops.js',
-  'data-missing-forms-open',
+  'cco-care-panel.js',
+  'thread-ai-summary.js',
+  'data-cco-care-open',
   'cco-mobile-tabbar',
   'cco-mobile-back-button',
   'cco-mobile-menu-button',
@@ -73,12 +75,10 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const queueJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-queue.js'), 'utf8');
   assert.match(queueJs, /window\.ArcanaMobileQueue/, 'ArcanaMobileQueue export saknas');
 
-  const missingFormsOps = fs.readFileSync(
-    path.join(PREVIEW_DIR, 'app', 'cco-missing-forms-ops.js'),
-    'utf8'
-  );
-  assert.match(missingFormsOps, /ArcanaMissingFormsOps/, 'J-8.1: missing forms ops export saknas');
-  assert.match(missingFormsOps, /missing-forms-report/, 'J-8.1: missing-forms-report API saknas');
+  const carePanel = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'cco-care-panel.js'), 'utf8');
+  assert.match(carePanel, /ArcanaCcoCarePanel/, 'J-8.1/J-7: CCO care panel export saknas');
+  assert.match(carePanel, /missing-forms-report/, 'J-8.1: missing-forms-report API saknas');
+  assert.match(carePanel, /cco-care\/reminders/, 'J-7: reminders API saknas');
 
   const patientUi = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'patient-master-ui.js'), 'utf8');
   assert.match(patientUi, /goBackToPatientList/, 'goBackToPatientList saknas');

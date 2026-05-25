@@ -43,7 +43,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | Punkt | Verdict | Evidens |
 |-------|---------|---------|
 | J-7.1 / J-7.2 | ☑ | Scheduler `cco_customer_reminders`; CC-11 queue total 20 |
-| J-8.1 | ☑ | `missing-forms-report` API + STAFF UI (`ArcanaMissingFormsOps`); CC-09 200 patients |
+| J-8.1 | ☑ | `missing-forms-report` API + STAFF UI (`ArcanaCcoCarePanel` formulär-flik); CC-09 200 patients |
 | U5B.1 / U5B.2 | ☑ | = J-7 (operatörs-digest, ej patient-SMS) |
 | U2.5b | ☑ | CC-02 `GET /ops/maintenance-window` |
 | J-8.2 | ☑ | API + scheduler + kundkort UI (`review-draft-proposal`) |
@@ -235,7 +235,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 > - `ccoPatient360Bridge.js` (consent/status), `ccoTreatmentBookingGate.js`, `ccoJournalStore.js` (draft/signed)
 > - `executionGateway.js` (`review_required`), manuella journalutkast i `patient-master-ui.js`
 >
-> **Verify 2026-05-25:** J-8.1 **live** (CC-09). J-8.2 **live** — `review-draft-proposal` i `patient-master-ui.js`, PATCH `/ops/cco-care/draft-proposals/:id`. Full autonom agent (U6A) kvar.
+> **Verify 2026-05-25:** J-8.1 **live** (CC-09) + STAFF UI care panel. J-7 **live** — påminnelser-flik i `cco-care-panel.js`. J-8.2 **live** — global utkast-lista i care panel + `review-draft-proposal` i `patient-master-ui.js`. AI sweep: SummarizeThread (`thread-ai-summary.js`), RefineReplyDraft/PrepareResponseDrafts/RecordDraftFeedback i `app.js`. Full autonom agent (U6A) kvar.
 
 ### Fas J-9 — Compliance ☑ (Paket A)
 
