@@ -72,6 +72,18 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const clinicalJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-pre-treatment-forms.js'), 'utf8');
   assert.match(clinicalJs, /data-clinical-step-panel/, 'pre-treatment mobil steg saknas');
 
+  const prpJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-prp-form.js'), 'utf8');
+  assert.match(prpJs, /data-prp-step-panel/, 'BL.5 Fas 3: PRP mobil steg saknas');
+
+  const followJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-follow-up-form.js'), 'utf8');
+  assert.match(followJs, /data-follow-step-panel/, 'BL.5 Fas 3: uppföljning mobil steg saknas');
+
+  const blephJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-bleph-form.js'), 'utf8');
+  assert.match(blephJs, /data-bleph-step-panel/, 'BL.5 Fas 3: ögonlock mobil steg saknas');
+
+  assert.match(autosaveJs, /data-prp-journal-save-form/, 'BL.5 Fas 3: autosave PRP selector saknas');
+  assert.match(autosaveJs, /max-width: 1023px/, 'BL.5 Fas 3: tablet form viewport saknas');
+
   const queueJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-queue.js'), 'utf8');
   assert.match(queueJs, /window\.ArcanaMobileQueue/, 'ArcanaMobileQueue export saknas');
 
@@ -83,6 +95,8 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const patientUi = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'patient-master-ui.js'), 'utf8');
   assert.match(patientUi, /goBackToPatientList/, 'goBackToPatientList saknas');
   assert.match(patientUi, /bindJournalAutosaveForms/, 'bindJournalAutosaveForms saknas');
+  assert.match(patientUi, /isCompactFormViewport/, 'BL.5 Fas 3: compact form viewport saknas');
+  assert.match(patientUi, /data-agreement-step-panel/, 'BL.5 Fas 3: avtal mobil steg saknas');
   assert.match(patientUi, /renderDriveFiles/, 'Filer: renderDriveFiles helper saknas');
   assert.match(patientUi, /Inga indexerade Drive-filer/, 'Filer: tom-state copy saknas');
 });

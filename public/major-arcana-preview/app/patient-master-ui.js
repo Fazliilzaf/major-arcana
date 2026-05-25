@@ -485,6 +485,14 @@
     }
   }
 
+  function isCompactFormViewport() {
+    try {
+      return window.matchMedia('(max-width: 1023px)').matches;
+    } catch {
+      return false;
+    }
+  }
+
   let mobilePatientHistoryDepth = 0;
   let suppressMobilePatientPopstate = false;
 
@@ -2759,7 +2767,7 @@
   }
 
   function bindJournalAutosaveForms() {
-    if (!isMobileViewport() || !window.ArcanaMobileAutosave?.bindForm) return;
+    if (!isCompactFormViewport() || !window.ArcanaMobileAutosave?.bindForm) return;
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
     if (!patientId || !card) return;
@@ -2947,7 +2955,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-clinical-journal-save-form data-clinical-form-key="${escapeHtml(formKey)}" data-clinical-entry-id="${escapeHtml(entry.entryId)}">
-        ${config.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${config.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
@@ -2969,7 +2977,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-tp-journal-save-form data-tp-entry-id="${escapeHtml(entry.entryId)}">
-        ${tpForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${tpForm.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
@@ -2991,7 +2999,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-prp-journal-save-form data-prp-entry-id="${escapeHtml(entry.entryId)}" data-prp-form-variant="${escapeHtml(entry.formVariant || 'prp_skin')}">
-        ${prpForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${prpForm.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
@@ -3013,7 +3021,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-follow-journal-save-form data-follow-entry-id="${escapeHtml(entry.entryId)}" data-follow-form-variant="${escapeHtml(entry.formVariant || '4_manader')}">
-        ${followForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${followForm.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
@@ -3035,14 +3043,14 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-bleph-journal-save-form data-bleph-entry-id="${escapeHtml(entry.entryId)}">
-        ${blephForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${blephForm.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
   }
 
   function renderMobileJournalSteps(entries) {
-    if (!isMobileViewport()) return '';
+    if (!isCompactFormViewport()) return '';
     const rows = asArray(entries);
     const hasHealth = rows.some(
       (entry) => entry.journalType === 'health_declaration' && entry.locked
@@ -3227,22 +3235,37 @@
               ? 'Nästa: Få offerten accepterad av kunden.'
               : readout?.nextStep || 'Följ juristflödet steg för steg.';
 
-    return `
-      <article class="focus-customer-data-card patient-master-agreement-card">
+    const agreementStepTitles = [
+      'Patientinformation (bilaga 1)',
+      'Offert accepterad',
+      'Avtal skapat',
+      'Signerat — bokningsbart',
+    ];
+    const agreementStepDone = [
+      Boolean(readout?.patientInfoSent),
+      Boolean(offerAccepted),
+      Boolean(agreement?.agreementDocumentId),
+      Boolean(readout?.bookable),
+    ];
+
+    const headerHtml = `
         <div class="patient-master-material-head">
           <h4>Behandlingsavtal</h4>
           ${readout?.phase
         ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(readout.phase)}</span>`
         : ''
       }
-        </div>
-        <p class="patient-master-next-action">${escapeHtml(nextActionLabel)}</p>
+        </div>`;
+
+    const checklistHtml = `
         <ol class="patient-master-agreement-checklist patient-master-workflow-steps">
           <li class="${readout?.patientInfoSent ? 'is-done' : ''}">Patientinformation (bilaga 1)</li>
           <li class="${offerAccepted ? 'is-done' : ''}">Offert accepterad</li>
           <li class="${agreement?.agreementDocumentId ? 'is-done' : ''}">Avtal skapat</li>
           <li class="${readout?.bookable ? 'is-done' : ''}">Signerat — bokningsbart</li>
-        </ol>
+        </ol>`;
+
+    const badgesHtml = `
         ${readout?.patientInfoSentAt
         ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Patientinfo ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))}</span></div>`
         : ''
@@ -3254,7 +3277,127 @@
         ${coolingActive
         ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</span></div>`
         : ''
+      }`;
+
+    const documentLinksHtml = `
+        ${runtime.agreementDocumentUrl
+        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementDocumentUrl)}" target="_blank" rel="noopener">Öppna avtal (HTML)</a>${runtime.agreementDocumentPdfUrl
+          ? ` · <a href="${escapeHtml(runtime.agreementDocumentPdfUrl)}" target="_blank" rel="noopener">PDF</a>`
+          : ''
+        }</p>`
+        : ''
       }
+        ${runtime.agreementSignUrl
+        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementSignUrl)}" target="_blank" rel="noopener">Signeringssida för kund</a></p>`
+        : ''
+      }
+        ${angerUrl
+        ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
+        : ''
+      }`;
+
+    const bookingHtml = readout?.bookable
+      ? `<div class="patient-master-booking-ready">
+                <p class="patient-master-muted"><strong>Behandlingsbokning öppen.</strong> Boka behandlingstid i CCO-tråden med kundens e-post (${escapeHtml(card?.primaryEmail || 'saknas')}). Endast behandlingstjänster (FUE/DHI m.fl.) — inte konsultation.</p>
+              </div>`
+      : `<p class="patient-master-muted">Behandlingsbokning spärrad tills avtalet är signerat och bokningsbart.</p>`;
+
+    if (isCompactFormViewport()) {
+      const activeStepIndex = Math.max(
+        0,
+        agreementStepDone.findIndex((done) => !done) === -1
+          ? agreementStepTitles.length - 1
+          : agreementStepDone.findIndex((done) => !done)
+      );
+      return `
+      <div data-agreement-mobile-shell class="patient-master-agreement-mobile-shell" data-journal-active-step="${activeStepIndex}">
+        <article class="focus-customer-data-card patient-master-agreement-card">
+          ${headerHtml}
+          <div class="cco-clinical-mobile-stepper" data-agreement-stepper>
+            <div class="cco-clinical-mobile-stepper-head">
+              <p class="cco-clinical-mobile-stepper-progress" data-agreement-step-progress aria-live="polite">
+                Steg ${activeStepIndex + 1} av ${agreementStepTitles.length}
+              </p>
+              <p class="cco-clinical-mobile-stepper-title" data-agreement-step-title>
+                ${escapeHtml(agreementStepTitles[activeStepIndex] || '')}
+              </p>
+            </div>
+            <div class="cco-clinical-mobile-stepper-actions">
+              <button type="button" class="customers-utility-button" data-agreement-step-prev disabled>
+                Föregående
+              </button>
+              <button type="button" class="customers-utility-button" data-agreement-step-next>
+                Nästa
+              </button>
+            </div>
+          </div>
+          <section
+            class="patient-master-agreement-step cco-clinical-step-panel"
+            data-agreement-step-panel="0"
+            data-step-title="${escapeHtml(agreementStepTitles[0])}"
+            ${activeStepIndex === 0 ? '' : ' hidden'}
+          >
+            <p class="patient-master-next-action">${escapeHtml(nextActionLabel)}</p>
+            ${checklistHtml}
+            <div class="patient-master-plan-photo-actions">
+              <a class="customers-utility-button" href="${escapeHtml(patientInfoPdf)}" target="_blank" rel="noopener">Bilaga 1 PDF</a>
+              <button type="button" class="customers-utility-button" data-patient-action="send-patient-info">Logga skickad patientinfo</button>
+            </div>
+            ${badgesHtml}
+          </section>
+          <section
+            class="patient-master-agreement-step cco-clinical-step-panel"
+            data-agreement-step-panel="1"
+            data-step-title="${escapeHtml(agreementStepTitles[1])}"
+            ${activeStepIndex === 1 ? '' : ' hidden'}
+          >
+            <p class="patient-master-muted">${offerAccepted ? 'Offerten är accepterad.' : 'Väntar på att kunden accepterar offerten.'}</p>
+            ${canCreate
+        ? `<div class="patient-master-plan-photo-actions"><button type="button" class="customers-utility-button" data-patient-action="create-agreement-from-offer">Skapa avtal från offert</button></div>`
+        : ''
+      }
+          </section>
+          <section
+            class="patient-master-agreement-step cco-clinical-step-panel"
+            data-agreement-step-panel="2"
+            data-step-title="${escapeHtml(agreementStepTitles[2])}"
+            ${activeStepIndex === 2 ? '' : ' hidden'}
+          >
+            <div class="patient-master-plan-photo-actions">
+              ${canSendSign
+        ? `<button type="button" class="customers-utility-button" data-patient-action="send-agreement-for-sign">Skicka för signering</button>`
+        : ''
+      }
+              ${canAcceptAgreement
+        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement">Signera avtal (staff)</button>`
+        : ''
+      }
+              ${canAcceptAgreement && coolingActive
+        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement" data-patient-force-agreement="1">Tvinga signering</button>`
+        : ''
+      }
+            </div>
+            ${documentLinksHtml}
+          </section>
+          <section
+            class="patient-master-agreement-step cco-clinical-step-panel"
+            data-agreement-step-panel="3"
+            data-step-title="${escapeHtml(agreementStepTitles[3])}"
+            ${activeStepIndex === 3 ? '' : ' hidden'}
+          >
+            ${bookingHtml}
+          </section>
+        </article>
+      </div>
+    `;
+    }
+
+    return `
+      <article class="focus-customer-data-card patient-master-agreement-card">
+        ${headerHtml}
+        <p class="patient-master-next-action">${escapeHtml(nextActionLabel)}</p>
+        ${checklistHtml}
+        ${badgesHtml}
         <div class="patient-master-plan-photo-actions">
           <a class="customers-utility-button" href="${escapeHtml(patientInfoPdf)}" target="_blank" rel="noopener">Bilaga 1 PDF</a>
           <button type="button" class="customers-utility-button" data-patient-action="send-patient-info">Logga skickad patientinfo</button>
@@ -3275,27 +3418,8 @@
         : ''
       }
         </div>
-        ${runtime.agreementDocumentUrl
-        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementDocumentUrl)}" target="_blank" rel="noopener">Öppna avtal (HTML)</a>${runtime.agreementDocumentPdfUrl
-          ? ` · <a href="${escapeHtml(runtime.agreementDocumentPdfUrl)}" target="_blank" rel="noopener">PDF</a>`
-          : ''
-        }</p>`
-        : ''
-      }
-        ${runtime.agreementSignUrl
-        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementSignUrl)}" target="_blank" rel="noopener">Signeringssida för kund</a></p>`
-        : ''
-      }
-        ${angerUrl
-        ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
-        : ''
-      }
-        ${readout?.bookable
-        ? `<div class="patient-master-booking-ready">
-                <p class="patient-master-muted"><strong>Behandlingsbokning öppen.</strong> Boka behandlingstid i CCO-tråden med kundens e-post (${escapeHtml(card.primaryEmail || 'saknas')}). Endast behandlingstjänster (FUE/DHI m.fl.) — inte konsultation.</p>
-              </div>`
-        : `<p class="patient-master-muted">Behandlingsbokning spärrad tills avtalet är signerat och bokningsbart.</p>`
-      }
+        ${documentLinksHtml}
+        ${bookingHtml}
       </article>
     `;
   }
