@@ -186,6 +186,10 @@
   const macroCommandButtons = Array.from(document.querySelectorAll("[data-macro-command]"));
   const settingsChoiceButtons = Array.from(document.querySelectorAll("[data-settings-choice]"));
   const settingsToggleInputs = Array.from(document.querySelectorAll("[data-settings-toggle]"));
+  const settingsLeadTimeInputs = Array.from(document.querySelectorAll("[data-settings-lead-time]"));
+  const settingsLeadTimeJsonInputs = Array.from(
+    document.querySelectorAll("[data-settings-lead-time-json]")
+  );
   const settingsActionButtons = Array.from(document.querySelectorAll("[data-settings-action]"));
   const showcaseFeatureButtons = Array.from(
     document.querySelectorAll("[data-showcase-feature]")
@@ -2373,6 +2377,7 @@
         color_priorities: true,
         advanced_filters: false,
       },
+      bookingReminderLeadTime: createDefaultBookingReminderLeadTimeView(),
     },
     macroModal: {
       open: false,
@@ -6238,7 +6243,78 @@
         signatureProfileId: "",
       },
       toggles: Object.fromEntries(SETTINGS_TOGGLE_KEYS.map((key) => [key, false])),
+      bookingReminderLeadTime: {
+        globalDefaultHours: 24,
+        channelDefaults: { online: 4, physical: 24, default: 24 },
+        serviceOverrides: {},
+        resourceOverrides: {},
+      },
     };
+  }
+
+  function createDefaultBookingReminderLeadTimeView() {
+    return {
+      globalDefaultHours: 24,
+      channelDefaults: { online: 4, physical: 24, default: 24 },
+      serviceOverrides: {},
+      resourceOverrides: {},
+    };
+  }
+
+  function normalizeBookingReminderLeadTimeView(input = {}) {
+    const defaults = createDefaultBookingReminderLeadTimeView();
+    const safe = input && typeof input === "object" ? input : {};
+    const channels =
+      safe.channelDefaults && typeof safe.channelDefaults === "object"
+        ? safe.channelDefaults
+        : {};
+    const clampHours = (value, fallback) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(1, Math.min(168, Math.round(parsed)));
+    };
+    const normalizeMap = (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+      const out = {};
+      Object.entries(value).forEach(([key, hours]) => {
+        const id = normalizeText(key);
+        if (!id) return;
+        out[id] = clampHours(hours, null);
+        if (!Number.isFinite(Number(hours))) delete out[id];
+      });
+      return out;
+    };
+    return {
+      globalDefaultHours: clampHours(safe.globalDefaultHours, defaults.globalDefaultHours),
+      channelDefaults: {
+        online: clampHours(channels.online, defaults.channelDefaults.online),
+        physical: clampHours(channels.physical, defaults.channelDefaults.physical),
+        default: clampHours(channels.default, defaults.channelDefaults.default),
+      },
+      serviceOverrides: normalizeMap(safe.serviceOverrides),
+      resourceOverrides: normalizeMap(safe.resourceOverrides),
+    };
+  }
+
+  function serializeLeadTimeOverrideJson(map = {}) {
+    try {
+      return JSON.stringify(map && typeof map === "object" ? map : {}, null, 0);
+    } catch {
+      return "{}";
+    }
+  }
+
+  function parseLeadTimeOverrideJson(raw = "", mapKey = "serviceOverrides") {
+    const text = normalizeText(raw);
+    if (!text) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return normalizeBookingReminderLeadTimeView({
+        [mapKey]: parsed,
+      })[mapKey];
+    } catch {
+      return null;
+    }
   }
 
   function normalizeMailFoundationDefaults(defaults = {}) {
@@ -6353,6 +6429,9 @@
       deleteRequestedAt: asText(settings?.deleteRequestedAt),
       mailFoundationDefaults: normalizeMailFoundationDefaults(settings?.mailFoundation?.defaults),
       mailFoundationCustomMailboxes: asArray(settings?.mailFoundation?.customMailboxes),
+      bookingReminderLeadTime: normalizeBookingReminderLeadTimeView(
+        settings?.bookingReminderLeadTime
+      ),
       toggles,
     };
   }
@@ -6408,6 +6487,9 @@
           customMailboxes || state.data.customMailboxes
         ),
       },
+      bookingReminderLeadTime: normalizeBookingReminderLeadTimeView(
+        state.settingsRuntime.bookingReminderLeadTime
+      ),
     };
   }
 
@@ -6426,6 +6508,9 @@
       ...state.settingsRuntime.toggles,
       ...mapped.toggles,
     };
+    state.settingsRuntime.bookingReminderLeadTime = normalizeBookingReminderLeadTimeView(
+      mapped.bookingReminderLeadTime
+    );
     if (
       nextState?.mailFoundation &&
       Object.prototype.hasOwnProperty.call(nextState.mailFoundation, "customMailboxes")
@@ -24815,6 +24900,32 @@
       );
     });
 
+    const leadTime = normalizeBookingReminderLeadTimeView(
+      state.settingsRuntime.bookingReminderLeadTime
+    );
+    settingsLeadTimeInputs.forEach((input) => {
+      const key = normalizeKey(input.dataset.settingsLeadTime);
+      if (key === "globaldefaulthours") {
+        input.value = String(leadTime.globalDefaultHours);
+        return;
+      }
+      if (key === "channel_online") {
+        input.value = String(leadTime.channelDefaults.online);
+        return;
+      }
+      if (key === "channel_physical") {
+        input.value = String(leadTime.channelDefaults.physical);
+      }
+    });
+    settingsLeadTimeJsonInputs.forEach((input) => {
+      const mapKey = normalizeKey(input.dataset.settingsLeadTimeJson);
+      if (mapKey === "serviceoverrides") {
+        input.value = serializeLeadTimeOverrideJson(leadTime.serviceOverrides);
+      } else if (mapKey === "resourceoverrides") {
+        input.value = serializeLeadTimeOverrideJson(leadTime.resourceOverrides);
+      }
+    });
+
     const activeGuardrails = [
       state.settingsRuntime.toggles.desktop_notifications,
       state.settingsRuntime.toggles.sla_alerts,
@@ -28408,6 +28519,51 @@
     renderSettings();
     saveSettingsRuntime("Inställningen sparades i nya CCO.").catch((error) => {
       console.warn("Settings toggle-save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsLeadTimeField(fieldKey, rawValue) {
+    const leadTime = normalizeBookingReminderLeadTimeView(
+      state.settingsRuntime.bookingReminderLeadTime
+    );
+    const key = normalizeKey(fieldKey);
+    const parsed = Number(rawValue);
+    if (key === "globaldefaulthours" && Number.isFinite(parsed)) {
+      leadTime.globalDefaultHours = Math.max(1, Math.min(168, Math.round(parsed)));
+    } else if (key === "channel_online" && Number.isFinite(parsed)) {
+      leadTime.channelDefaults.online = Math.max(1, Math.min(168, Math.round(parsed)));
+    } else if (key === "channel_physical" && Number.isFinite(parsed)) {
+      leadTime.channelDefaults.physical = Math.max(1, Math.min(168, Math.round(parsed)));
+    }
+    state.settingsRuntime.bookingReminderLeadTime = leadTime;
+    renderSettings();
+    saveSettingsRuntime("Lead time sparades i nya CCO.").catch((error) => {
+      console.warn("Settings lead-time save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsLeadTimeJson(mapKey, rawValue) {
+    const leadTime = normalizeBookingReminderLeadTimeView(
+      state.settingsRuntime.bookingReminderLeadTime
+    );
+    const key = normalizeKey(mapKey);
+    const parsed =
+      key === "resourceoverrides"
+        ? parseLeadTimeOverrideJson(rawValue, "resourceOverrides")
+        : parseLeadTimeOverrideJson(rawValue, "serviceOverrides");
+    if (parsed === null) {
+      setAuxStatus(settingsStatus, "Ogiltig JSON för lead time override.", "error");
+      return;
+    }
+    if (key === "resourceoverrides") {
+      leadTime.resourceOverrides = parsed;
+    } else {
+      leadTime.serviceOverrides = parsed;
+    }
+    state.settingsRuntime.bookingReminderLeadTime = leadTime;
+    renderSettings();
+    saveSettingsRuntime("Lead time override sparades i nya CCO.").catch((error) => {
+      console.warn("Settings lead-time JSON save misslyckades.", error);
     });
   }
 
@@ -42284,6 +42440,18 @@
   settingsToggleInputs.forEach((input) => {
     input.addEventListener("change", () => {
       handleSettingsToggle(input.dataset.settingsToggle, input.checked);
+    });
+  });
+
+  settingsLeadTimeInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsLeadTimeField(input.dataset.settingsLeadTime, input.value);
+    });
+  });
+
+  settingsLeadTimeJsonInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsLeadTimeJson(input.dataset.settingsLeadTimeJson, input.value);
     });
   });
 

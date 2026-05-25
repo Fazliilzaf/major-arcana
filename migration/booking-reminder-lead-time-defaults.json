@@ -1,0 +1,13 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "cliento_migration",
+  "notes": "Cliento-standard vid migrering — 4 h online / 24 h fysisk. Inte hårdkodat i applikationslogik.",
+  "globalDefaultHours": 24,
+  "channelDefaults": {
+    "online": 4,
+    "physical": 24,
+    "default": 24
+  },
+  "serviceOverrides": {},
+  "resourceOverrides": {}
+}

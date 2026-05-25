@@ -306,6 +306,7 @@ function createScheduler({
   bookingEngineStore = null,
   treatmentAgreementStore = null,
   patientCareStateStore = null,
+  ccoSettingsStore = null,
   logger = console,
 } = {}) {
   if (!incomingConfig) throw new Error('config saknas för scheduler.');
@@ -525,6 +526,7 @@ function createScheduler({
       journalStore,
       patientMasterStore,
       patientCareStateStore,
+      settingsStore: ccoSettingsStore,
       tenantId,
     });
     let logged = 0;

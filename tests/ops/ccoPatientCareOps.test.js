@@ -134,20 +134,24 @@ test('buildJournalDraftProposals med persist=false skriver inte till care state 
   }
 });
 
-test('buildCustomerReminderQueue hittar kommande besök och undviker dubbletter', async () => {
+test('buildCustomerReminderQueue hittar kommande besök vid konfigurerad lead time och undviker dubbletter', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-care-reminders-'));
   try {
     const patientCareStateStore = await createCcoPatientCareStateStore({
       filePath: path.join(tempDir, 'care-state.json'),
     });
-    const startsAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+    const startsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const bookingEngineStore = mockBookingEngineStore({
       bookings: [
         {
           bookingId: 'b1',
           patientId: 'p1',
           customerName: 'Anna',
-          startsAt,
+          slot: {
+            startsAt,
+            serviceId: 'consultation-physical',
+            resourceId: 'fazli',
+          },
         },
       ],
     });
@@ -156,8 +160,13 @@ test('buildCustomerReminderQueue hittar kommande besök och undviker dubbletter'
       tenantId: 'hair-tp-clinic',
       bookingEngineStore,
       patientCareStateStore,
+      leadTimeConfig: {
+        globalDefaultHours: 24,
+        channelDefaults: { online: 4, physical: 24, default: 24 },
+      },
     });
     assert.equal(first.visitReminders.length, 1);
+    assert.equal(first.visitReminders[0].leadTimeHours, 24);
     assert.equal(first.total, 1);
 
     await patientCareStateStore.logReminder({
@@ -171,6 +180,10 @@ test('buildCustomerReminderQueue hittar kommande besök och undviker dubbletter'
       tenantId: 'hair-tp-clinic',
       bookingEngineStore,
       patientCareStateStore,
+      leadTimeConfig: {
+        globalDefaultHours: 24,
+        channelDefaults: { online: 4, physical: 24, default: 24 },
+      },
     });
     assert.equal(second.visitReminders.length, 0);
   } finally {

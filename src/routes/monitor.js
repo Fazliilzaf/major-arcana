@@ -2058,6 +2058,7 @@ function createMonitorRouter({
     try {
       const tenantId = req.auth.tenantId;
       const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 40));
+      const generatedAt = new Date().toISOString();
       const feedEntries =
         executiveDecisionFeed && typeof executiveDecisionFeed.list === 'function'
           ? executiveDecisionFeed.list({ status: 'pending', limit })
@@ -2070,6 +2071,34 @@ function createMonitorRouter({
         sloTicketStore && typeof sloTicketStore.summarize === 'function'
           ? sloTicketStore.summarize({ tenantId })
           : null;
+      const incidentSummary =
+        templateStore && typeof templateStore.summarizeIncidents === 'function'
+          ? await templateStore.summarizeIncidents({ tenantId })
+          : null;
+      const latestReadinessAudit =
+        authStore && typeof authStore.getLatestAuditEvent === 'function'
+          ? await authStore.getLatestAuditEvent({
+              tenantId,
+              action: 'monitor.readiness.read',
+              outcome: 'success',
+            })
+          : null;
+      const readinessMetadata =
+        latestReadinessAudit?.metadata && typeof latestReadinessAudit.metadata === 'object'
+          ? latestReadinessAudit.metadata
+          : {};
+      const readinessSummary = latestReadinessAudit
+        ? {
+            score: Number(readinessMetadata.score || 0),
+            band: normalizeText(readinessMetadata.band) || null,
+            goAllowed: readinessMetadata.goAllowed === true,
+            blockersAllGreen: readinessMetadata.blockersAllGreen === true,
+            blockingRequiredChecks: Number(readinessMetadata.blockingRequiredChecks || 0),
+            triggeredNoGo: Number(readinessMetadata.triggeredNoGo || 0),
+            remediationP0: Number(readinessMetadata.remediationP0 || 0),
+            lastReadAt: toIso(latestReadinessAudit?.ts),
+          }
+        : null;
       const governanceSummary = await (async () => {
         if (!releaseGovernanceStore || typeof releaseGovernanceStore.getLatestCycle !== 'function') {
           return null;
@@ -2090,6 +2119,9 @@ function createMonitorRouter({
       })();
 
       const sloOpenBreaches = Number(sloSummary?.totals?.openBreaches || 0);
+      const openIncidents = Number(incidentSummary?.totals?.openUnresolved || 0);
+      const breachedOpen = Number(incidentSummary?.totals?.breachedOpen || 0);
+      const ownerMfaEnforced = config?.authOwnerMfaRequired !== false;
       const ownerHints = [];
       if (sloOpenBreaches > 0) {
         ownerHints.push({
@@ -2107,6 +2139,30 @@ function createMonitorRouter({
           requiredOwnerAction: true,
         });
       }
+      if (readinessSummary && readinessSummary.goAllowed !== true) {
+        ownerHints.push({
+          severity: readinessSummary.triggeredNoGo > 0 ? 'high' : 'medium',
+          recommendation: 'Monitor readiness blockerar controlled go — granska remediation.',
+          actionEndpoint: '/api/v1/monitor/readiness',
+          requiredOwnerAction: true,
+        });
+      }
+      if (breachedOpen > 0) {
+        ownerHints.push({
+          severity: 'high',
+          recommendation: 'Öppna SLA-brott i incidentkö kräver owner-beslut.',
+          actionEndpoint: '/api/v1/monitor/status',
+          requiredOwnerAction: true,
+        });
+      }
+      if (!ownerMfaEnforced) {
+        ownerHints.push({
+          severity: 'medium',
+          recommendation: 'OWNER MFA är inte enforced i runtime — planera auth go-live.',
+          actionEndpoint: '/api/v1/monitor/readiness',
+          requiredOwnerAction: true,
+        });
+      }
 
       const syntheticEntries = [];
       if (sloOpenBreaches > 0) {
@@ -2120,7 +2176,7 @@ function createMonitorRouter({
           ownerHint: 'OWNER',
           actionEndpoint: '/api/v1/monitor/slo',
           requiredOwnerAction: true,
-          createdAt: new Date().toISOString(),
+          createdAt: generatedAt,
         });
       }
       if (Number(governanceSummary?.blockingCount || 0) > 0) {
@@ -2134,16 +2190,63 @@ function createMonitorRouter({
           ownerHint: 'OWNER',
           actionEndpoint: '/api/v1/monitor/readiness',
           requiredOwnerAction: true,
-          createdAt: new Date().toISOString(),
+          createdAt: generatedAt,
+        });
+      }
+      if (readinessSummary && readinessSummary.goAllowed !== true) {
+        syntheticEntries.push({
+          id: `readiness_go_blocked_${tenantId}`,
+          status: 'pending',
+          priority: readinessSummary.triggeredNoGo > 0 ? 'P0' : 'P1',
+          title: 'Monitor readiness blockerar controlled go',
+          summary: `Score ${readinessSummary.score} (${readinessSummary.band || 'unknown'}) — ${readinessSummary.remediationP0} P0-åtgärder.`,
+          source: 'monitor.readiness',
+          ownerHint: 'OWNER',
+          actionEndpoint: '/api/v1/monitor/readiness',
+          requiredOwnerAction: true,
+          createdAt: generatedAt,
+        });
+      }
+      if (breachedOpen > 0) {
+        syntheticEntries.push({
+          id: `incident_sla_breaches_${tenantId}`,
+          status: 'pending',
+          priority: 'P0',
+          title: 'SLA-brott i öppna incidenter',
+          summary: `${breachedOpen} incidenter har passerat SLA-deadline (${openIncidents} öppna totalt).`,
+          source: 'monitor.incidents',
+          ownerHint: 'OWNER',
+          actionEndpoint: '/api/v1/monitor/status',
+          requiredOwnerAction: true,
+          createdAt: generatedAt,
         });
       }
 
+      const combinedEntries = [...syntheticEntries, ...feedEntries].slice(0, limit);
+      const executiveSummary = {
+        generatedAt,
+        ownerActionRequired:
+          Number(feedSummary?.ownerActionRequired || 0) +
+          ownerHints.filter((item) => item.requiredOwnerAction).length,
+        pendingFeedEntries: feedEntries.length,
+        syntheticMonitorEntries: syntheticEntries.length,
+        sloOpenBreaches,
+        openIncidents,
+        breachedOpen,
+        readinessGoAllowed: readinessSummary?.goAllowed === true,
+        releaseGoAllowed: governanceSummary?.goAllowed === true,
+      };
+
       return res.json({
         ok: true,
+        generatedAt,
         tenantId,
         summary: feedSummary,
-        entries: [...syntheticEntries, ...feedEntries],
+        executiveSummary,
+        entries: combinedEntries,
         slo: sloSummary,
+        incidents: incidentSummary,
+        readiness: readinessSummary,
         releaseGovernance: governanceSummary,
         ownerHints,
       });

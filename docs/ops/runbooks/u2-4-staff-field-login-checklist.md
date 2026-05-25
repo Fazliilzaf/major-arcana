@@ -74,6 +74,16 @@ Kör **endast** om prep ovan är PASS. Markera datum + initialer.
 | Fält U2.4 | PASS / FAIL |
 | Anteckningar | |
 
+## Sign-off (fysisk enhet)
+
+| Gate | Status | Datum | Initialer | Notering |
+|------|--------|-------|-----------|----------|
+| Automation prep (`verify:u2-4-field-prep-prod`) | ☐ PASS / ☐ FAIL | | | PASS = prep komplett; kräver **inte** fysisk enhet |
+| Fysisk iPhone/Android (A–D i checklistan) | ☐ PASS / ☐ FAIL | | | Kräver riktig enhet — automation täcker **inte** PWA/add-to-home, session efter reload i Safari/Chrome, eller svagt nät |
+| U2.4 totalt klart | ☐ | | | Sätt ☑ endast när **båda** raderna ovan är PASS |
+
+> **Ärlig status:** Automation prep ☑ räcker för deploy-gate. U2.4 som helhet är ☑ först efter fysisk sign-off ovan.
+
 ## Vid FAIL
 
 1. Screenshot + kort beskrivning (steg, URL, felmeddelande)

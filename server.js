@@ -1463,6 +1463,7 @@ process.once('SIGTERM', () => {
     bookingEngineStore: ccoBookingEngineStore,
     treatmentAgreementStore: ccoTreatmentAgreementStore,
     patientCareStateStore,
+    ccoSettingsStore,
     logger: console,
   });
 
@@ -2216,6 +2217,7 @@ process.once('SIGTERM', () => {
       bookingEngineStore: ccoBookingEngineStore,
       treatmentAgreementStore: ccoTreatmentAgreementStore,
       patientCareStateStore,
+      ccoSettingsStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
     })

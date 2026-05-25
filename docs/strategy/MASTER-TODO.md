@@ -73,7 +73,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | **B** | U2.2 OWNER MFA enforced | ~ (väntar `apply:auth-go-live-prod`) |
 | **Policy** | Publik `/api/public/booking-engine/*` | av (503 tills explicit go-live) |
 
-> Nästa kod-svep: **U2.4 fysisk sign-off** · **P6.2.6–7 full Cliento/Meridiq promote** · **BL.4 full expand**. MFA (D) sist.
+> Nästa kod-svep: **U2.4 fysisk sign-off** · **MFA (D) sist**. P6.2.6–7 + BL.4 runtime-expand ☑ (sweep 2026-05-25).
 
 ---
 
@@ -281,7 +281,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] U2.1 `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false`
 - [~] U2.2 OWNER MFA enforced prod — **väntar explicit go-live** (`ARCANA_AUTH_OWNER_MFA_REQUIRED=false` prod 2026-05-25)
 - [x] U2.3 STAFF-konton (generiskt + 4 sjuksköterskor)
-- [~] U2.4 STAFF login verifierad i fält (iPhone/Android) — prep ☑ [`verify:u2-4-field-prep-prod`](../ops/runbooks/u2-4-staff-field-login-checklist.md); fysisk enhet kvar
+- [~] U2.4 STAFF login verifierad i fält (iPhone/Android) — prep ☑ automation (`verify:u2-4-field-prep-prod`); fysisk sign-off ☐ ([checklista](../ops/runbooks/u2-4-staff-field-login-checklist.md) § Sign-off)
 - [x] U2.5 Rollback-plan + underhållsfönster **dokumenterat** — [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25)
 - [x] U2.5b Underhållsfönster **i produkt** (P2) — ☑ (`GET /ops/maintenance-window` + STAFF-banner)
 - [x] U2.6 Backup journal-photos schemalagd (`journal_photos_backup` i scheduler)
@@ -395,7 +395,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] BL.1 Mobil månadskalender (#17 UX sweep) — månadsvy + daglista i kalender-sheet
 - [x] BL.2 cco-next-release parity (#18) — `/cco-next` → `/major-arcana-preview` redirect (canonical UI)
 - [x] BL.3 Android enhetstest (valfritt) — Playwright Pixel 5 @ prod (`verify:android-staff-prod`)
-- [~] BL.4 Executive OS expand — executive-feed API + SLO/governance hints; full masterplan-expand kvar
+- [~] BL.4 Executive OS expand — `/monitor/executive-feed` full expand ☑ (SLO, governance, readiness, incidents, MFA hints); långsiktig masterplan (agenter live) kvar
 - [x] BL.5 Adaptive layout (Arcana/CCO web) — spec ☑ · Fas 0–5 ☑ · FormStep ☑ · desktop week ☑
 
 > **Verify BL.1:** `booking-mobile-calendar-day.js` — månadsvy (nav, Idag, 7×6 grid, badge lediga/bokade), daglista under. `ArcanaBookingMobileCalendar.getViewMonth()`. Unit sweep PASS 2026-05-25.
@@ -430,9 +430,9 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] P6.2.2 Online konsultation + fysisk konsultation (publikt)
 - [x] P6.2.3 Webb → Arcana reservation (kontakt, slot, hälsodeklarationsflagga)
 - [x] P6.2.4 Plan A intern katalog — 3 publika tjänster (`72f852a`)
-- [~] P6.2.5 Full publik katalog — legacy + **runtime-catalog** staff API ☑ (`GET /cco-booking-engine/runtime-catalog`, triple-map merge); publik go-live kvar
-- [ ] P6.2.6 Alla **55 Cliento-tjänster** i engine (`migration/cliento-service-catalog.json` → runtime)
-- [ ] P6.2.7 Alla **82 Meridiq-tjänster** mappade (`migration/meridiq-service-catalog.json` + `service-triple-map.json`)
+- [~] P6.2.5 Full publik katalog — legacy + **runtime-catalog** staff API ☑; publik go-live kvar
+- [~] P6.2.6 Alla **55 Cliento-tjänster** i engine — triple-map + unmapped drafts ☑ (`legacyCatalogRuntime.js`); staff runtime-catalog
+- [~] P6.2.7 Alla **82 Meridiq-tjänster** i engine — triple-map buckets + unmapped drafts ☑; full arcanaId-paritet kvar
 - [ ] P6.2.8 VIP-länk / token-bokning (t.ex. uppföljning srvId **63017**, resId **11458** / **10326**)
 - [ ] P6.2.9 Curatiio separat bokningsflöde (egna tjänster, inget läckage Hair TP ↔ Curatiio)
 - [ ] P6.2.10 Strikt varumärkesseparation — Curatiio syns inte på hairtpclinic.com
@@ -536,16 +536,18 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] P6.10.1 Bokningsbekräftelse e-post Resend (U5A.4 live)
 - [x] P6.10.2 Bokningsbekräftelse Graph (intern)
 - [x] P6.10.3 Operatörs-digest påminnelser (J-7 — ej patient-SMS)
-- [ ] P6.10.4 Bokningspåminnelse SMS (4 h online / 24 h fysisk — Cliento-standard)
-- [ ] P6.10.5 Bokningspåminnelse e-post + ICS-kalenderinbjudan
-- [ ] P6.10.6 Avbokningsbekräftelse SMS + e-post
-- [ ] P6.10.7 "Fyll i begärd information" före besök
-- [ ] P6.10.8 Skicka formulär / samtycke / fil till patient (en knapp + audit)
-- [ ] P6.10.9 SMS-mallar Hair TP + Curatiio (merge-fält)
-- [ ] P6.10.10 E-postmallar: offert, behandlingsplan, bokning, avbokning
-- [ ] P6.10.11 Intern notis till personal vid bokning/avbokning
-- [x] P6.10.12 Post-op auto-trigger patientkanal (U5B.3)
-- [ ] P6.10.13 Marknads-SMS med segmentering (P3 — CMO-spår)
+- [ ] P6.10.4 **Patient-SMS (Meridiq-paritet)** — `/sms/templates` + patientkort-utskick; **ej live** idag (J-7 = operatörs-digest via Graph, ej patient-SMS). **Blocker:** SMS-leverantör + merge-fält + audit. Ref: [MERIDIQ-INVENTORY.md](./MERIDIQ-INVENTORY.md) §5.3, §6
+  - [~] **P0** Bokningspåminnelse SMS — **konfigurerbar lead time** ☑ i Admin (`/cco/settings` → Kommunikation; global/kanal/tjänst/resurs via `bookingReminderLeadTime` + `migration/booking-reminder-lead-time-defaults.json`). Patient-SMS utskick **ej live**
+  - [ ] **P0** Övriga transaktionella boknings-SMS: avbokningsbekräftelse, bokningsbekräftelse-SMS
+  - [ ] **P0** SMS-mallbibliotek Hair TP + Curatiio (`{{client_first_name}}`, `{{booking_date}}`, `{{booking_start_time}}`, `{{service_name}}`, `{{practitioner_name}}`, `{{clinic_name}}`)
+  - [ ] **P1** "Fyll i begärd information" före besök (Meridiq mall → deep link patientportal `/patient-forms/{token}`)
+  - [ ] **P1** Skicka formulär / samtycke / fil via SMS från patientkort (en knapp + audit, Meridiq patientkort-flöde)
+  - [ ] **P3** Marknads-SMS med segmentering (CMO-spår, Meridiq `/communication/sms`)
+- [ ] P6.10.5 Bokningspåminnelse e-post + ICS-kalenderinbjudan (samma konfigurerbara lead time som SMS — `bookingReminderLeadTime` i `/cco/settings`)
+- [ ] P6.10.6 Avbokningsbekräftelse e-post
+- [ ] P6.10.7 E-postmallar: offert, behandlingsplan, bokning, avbokning
+- [ ] P6.10.8 Intern notis till personal vid bokning/avbokning
+- [x] P6.10.9 Post-op auto-trigger patientkanal (U5B.3)
 
 ### 6.11 Kassa / POS — P1 / P2
 
@@ -574,7 +576,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [ ] P6.12.9 U6B CMO live connectors (fixture → live)
 - [ ] P6.12.10 U6C CAO admin-operator
 - [ ] P6.12.11 U6D Patientkanal (canon: sist)
-- [~] P6.12.12 BL.4 Executive OS expand — `/monitor/executive-feed` increment ☑
+- [~] P6.12.12 BL.4 Executive OS expand — `/monitor/executive-feed` full expand ☑ (readiness + incidents + MFA)
 - [x] P6.12.13 BL.5 Adaptive layout Fas 1–5
 
 ### 6.13 Compliance & QA — P0 / P2
@@ -628,7 +630,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 ### 6.18 Öppna punkter från DEL 1–5 (ej paritet — drift)
 
 - [~] P6.18.1 U2.2 OWNER MFA enforced prod
-- [~] P6.18.2 U2.4 STAFF login verifierad i fält (iPhone/Android) — prep ☑; fysisk enhet kvar
+- [~] P6.18.2 U2.4 STAFF login verifierad i fält (iPhone/Android) — prep ☑ automation; fysisk sign-off ☐
 - [~] P6.18.3 U1.6 / J-10.6–10.7 manuell enhetspilot
 - [x] P6.18.4 U5B.3 Post-op auto-trigger
 - [~] P6.18.5 U3.3 Personal utbildad — externt
