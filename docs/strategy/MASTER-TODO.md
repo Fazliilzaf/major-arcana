@@ -433,7 +433,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [~] P6.2.5 Full publik katalog — legacy + **runtime-catalog** staff API ☑; publik go-live kvar
 - [~] P6.2.6 Alla **55 Cliento-tjänster** i engine — triple-map + unmapped drafts ☑ (`legacyCatalogRuntime.js`); staff runtime-catalog
 - [~] P6.2.7 Alla **82 Meridiq-tjänster** i engine — triple-map buckets + unmapped drafts ☑; full arcanaId-paritet kvar
-- [~] P6.2.8 VIP-länk / token-bokning — seed + `/public/booking-engine/vip/:token/*` ☑ (policy av); prod-token via `ARCANA_BOOKING_VIP_TOKENS_JSON`
+- [~] P6.2.8 VIP-länk / token-bokning — seed + `/public/booking-engine/vip/:token/*` ☑ inkl. POST reservations (policy av); prod-token via `ARCANA_BOOKING_VIP_TOKENS_JSON`
 - [ ] P6.2.9 Curatiio separat bokningsflöde (egna tjänster, inget läckage Hair TP ↔ Curatiio)
 - [ ] P6.2.10 Strikt varumärkesseparation — Curatiio syns inte på hairtpclinic.com
 - [ ] P6.2.11 Curatiio widget på curatiio.se → Arcana (ej Cliento)
@@ -450,11 +450,11 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [~] P6.3.5 Kalendervy per behandlare och resurs — **Hair TP design** ☑ (`cco-calendar.css`, vecka/dag/resurs, event-kort, filter-chips, detaljpanel); drag-drop + blockering kvar
 - [~] P6.3.6 Kalender-/dagvy i CCO arbetsyta — desktop workstation ☑ i kundregister; operatörs split-actions kvar
 - [x] P6.3.7 Mobil månadskalender (BL.1)
-- [~] P6.3.8 Smart slots: min-notice (120 min online / 60 min fysisk) — engine + migration defaults ☑; Admin override kvar
+- [~] P6.3.8 Smart slots: min-notice (120 min online / 60 min fysisk) — engine + migration defaults ☑; Admin UI + settings→engine runtime ☑
 - [~] P6.3.9 Bokningsfönster max 180 dagar — engine enforce ☑
 - [ ] P6.3.10 Kväll/helg-prisregler per tjänst
 - [ ] P6.3.11 Scheman per resurs och per tjänst (**16 Cliento-resurser**)
-- [~] P6.3.12 Avbokningspolicy per tjänst (timmar före) — engine + migration default 24 h ☑
+- [~] P6.3.12 Avbokningspolicy per tjänst (timmar före) — engine + migration default 24 h ☑; Admin UI + settings→engine runtime ☑
 - [~] P6.3.13 Resurskatalog i runtime (`migration/cliento/resource-catalog.json`) — merge ☑
 - [~] P6.3.14 Tilläggstjänster (`migration/cliento/addon-catalog.json`) — readout ☑; Cliento-grupp tom
 
