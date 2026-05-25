@@ -127,10 +127,13 @@ bash scripts/verify-render-blueprint-link.sh
 **Automatiserad verify (kör före fälttest):**
 
 ```bash
+npm run verify:u2-4-field-prep-prod       # kedjar staff-login, staff-ui, booking-policy, cco-mobile-pilot
 npm run verify:staff-mobile-login-prod   # Chromium + WebKit @ iPhone 13, API-login
 npm run verify:cco-mobile-pilot-prod       # bred mobil suite inkl. journal
 npm run smoke:mobile-journal             # journal-photos health + UI gates
 ```
+
+**Fältchecklista:** [u2-4-staff-field-login-checklist.md](./u2-4-staff-field-login-checklist.md)
 
 Kräver i `.env`: `ARCANA_STAFF_EMAIL`, `ARCANA_STAFF_PASSWORD` (samma som prod-konton). OWNER MFA: `ARCANA_OWNER_MFA_SECRET` eller recovery.
 

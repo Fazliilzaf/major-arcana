@@ -36,11 +36,13 @@ function loadLegacyCatalogBundle({ repoRoot = process.cwd() } = {}) {
   const meridiqCount = Array.isArray(bundle.meridiqServices?.services)
     ? bundle.meridiqServices.services.length
     : 0;
-  const tripleCount = Array.isArray(bundle.serviceTripleMap?.mappings)
-    ? bundle.serviceTripleMap.mappings.length
-    : Array.isArray(bundle.serviceTripleMap)
-      ? bundle.serviceTripleMap.length
-      : 0;
+  const tripleCount = Array.isArray(bundle.serviceTripleMap?.entries)
+    ? bundle.serviceTripleMap.entries.length
+    : Array.isArray(bundle.serviceTripleMap?.mappings)
+      ? bundle.serviceTripleMap.mappings.length
+      : Array.isArray(bundle.serviceTripleMap)
+        ? bundle.serviceTripleMap.length
+        : 0;
 
   return {
     exportedAt: new Date().toISOString(),
