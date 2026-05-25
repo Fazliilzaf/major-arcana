@@ -4,19 +4,11 @@ const path = require('node:path');
 
 const { ensureDirectoryWithRetry } = require('./persistentDir');
 
-/** Plan A — tjänster som exponeras via /api/public/booking-engine/catalog */
+/** Plan A — endast tre möten exponeras via /api/public/booking-engine/catalog */
 const PLAN_A_PUBLIC_SERVICE_IDS = [
   'consultation-online',
   'consultation-physical',
   'followup-transplant',
-  'fue',
-  'dhi',
-  'beard',
-  'eyebrow',
-  'prp-hair',
-  'prp-skin',
-  'microneedling',
-  'followup',
 ];
 
 /** Plan A web — läkare/konsulter som får synas i publik katalog (ej sjuksköterskor). */
