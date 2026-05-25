@@ -1,7 +1,8 @@
 'use strict';
 
 (function initBookingMobileCalendarDay() {
-  const MQ = '(max-width: 768px)';
+  const MQ_MOBILE = '(max-width: 768px)';
+  const MQ_TABLET = '(min-width: 768px) and (max-width: 1023px)';
   const WEEKDAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
 
   let sheetEl = null;
@@ -18,10 +19,22 @@
 
   function isMobile() {
     try {
-      return window.matchMedia(MQ).matches;
+      return window.matchMedia(MQ_MOBILE).matches;
     } catch {
       return false;
     }
+  }
+
+  function isTablet() {
+    try {
+      return window.matchMedia(MQ_TABLET).matches;
+    } catch {
+      return false;
+    }
+  }
+
+  function isCalendarViewport() {
+    return isMobile() || isTablet();
   }
 
   function todayIso() {
@@ -378,10 +391,13 @@
 
   function setOpen(nextOpen) {
     ensureSheet();
+    if (nextOpen === true && !isCalendarViewport()) return;
     open = nextOpen === true;
     sheetEl.hidden = !open;
     sheetEl.dataset.open = open ? 'true' : 'false';
+    sheetEl.dataset.tabletMode = isTablet() ? 'true' : 'false';
     document.documentElement.toggleAttribute('data-cco-calendar-open', open);
+    window.ArcanaTabletShell?.refresh?.();
     if (open) {
       if (!selectedIso) ensureViewMonth(todayIso());
       void refresh();
@@ -392,11 +408,25 @@
     }
   }
 
+  try {
+    const onViewportChange = () => {
+      if (open && !isCalendarViewport()) setOpen(false);
+    };
+    window.matchMedia(MQ_MOBILE).addEventListener('change', onViewportChange);
+    window.matchMedia(MQ_TABLET).addEventListener('change', onViewportChange);
+  } catch {
+    window.addEventListener('resize', () => {
+      if (open && !isCalendarViewport()) setOpen(false);
+    });
+  }
+
   window.ArcanaBookingMobileCalendar = Object.freeze({
     open: () => setOpen(true),
     close: () => setOpen(false),
     refresh,
     isOpen: () => open,
+    isTablet: () => isTablet(),
+    isCalendarViewport,
     getSelectedDate: () => selectedIso,
     getViewMonth: () => ({ year: viewYear, month: viewMonth }),
   });

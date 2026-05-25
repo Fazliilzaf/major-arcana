@@ -396,12 +396,12 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] BL.2 cco-next-release parity (#18) — `/cco-next` → `/major-arcana-preview` redirect (canonical UI)
 - [x] BL.3 Android enhetstest (valfritt) — Playwright Pixel 5 @ prod (`verify:android-staff-prod`)
 - [ ] BL.4 Executive OS expand — PR #6 delvis (6 agents); full masterplan-expand kvar
-- [~] BL.5 Adaptive layout (Arcana/CCO web) — spec ☑ [cco-adaptive-layout-rules.md](./cco-adaptive-layout-rules.md); Fas 0 ☑ · Fas 1 ☑ (tablet split) · Fas 2 ☑ (tabell→kort tablet) · Fas 3 ~ (FormStep mobil+TP/pre-treatment; full 4-steg spec kvar) · Fas 4 ☐
+- [~] BL.5 Adaptive layout (Arcana/CCO web) — spec ☑ · Fas 0–3 ☑ · Fas 4 ☑ (`verify:adaptive-layout-prod`)
 
 > **Verify BL.1:** `booking-mobile-calendar-day.js` — månadsvy (nav, Idag, 7×6 grid, badge lediga/bokade), daglista under. `ArcanaBookingMobileCalendar.getViewMonth()`. Unit sweep PASS 2026-05-25.
 > **Verify BL.2:** Prod **302** `/cco-next` → `/major-arcana-preview/` (`X-Arcana-Cco-Next-Redirect`). `resolveCcoNextPreviewRedirect.js` + `smoke:public` PASS 2026-05-25.
 > **Verify BL.3:** `scripts/lib/mobilePlaywrightDevices.js` (Pixel 5 + Galaxy S9+). `npm run verify:android-staff-prod` + `test:visual:mobile:android`. Fysisk enhet kvar i `cco-mobile-staff-pilot-checklist.md` (valfritt).
-> **Verify BL.5:** `cco-tablet-shell.js` + `cco-tablet-shell.css` — tablet 768–1023 split (kunder, kalender sidopanel, journal-tabs). `cco-mobile-core.js` tabell→kort även tablet. CC-10 draft-proposals GET read-only preview (`persist: false`) — verify:cco-care-sweep-prod 16/16.
+> **Verify BL.5:** Tablet split inkl. kalender sidopanel (`data-cco-tablet-calendar-open`, month+day grid). `npm run verify:adaptive-layout-prod` (320/390/768/1024/1440). CC-10 read-only preview PASS.
 > **J-8 underlag:** se Fas J-8 ovan — spec + gateway + byggblock finns; prod-agent saknas.
 
 ---

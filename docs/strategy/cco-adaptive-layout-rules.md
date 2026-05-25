@@ -222,7 +222,7 @@ npm run verify:staff-ui-prod            # desktop regression
 | **1** | Tablet split: kunder, kalender, journal | ☑ 2026-05-25 |
 | **2** | Tabell → kort (CCO Care, listor) | ☑ 2026-05-25 (tablet + mobil) |
 | **3** | FormStep långa formulär mobil | ~ (TP + pre-treatment stepper; full 4-steg glue kvar) |
-| **4** | Playwright 5-viewport gate | ☐ |
+| **4** | Playwright 5-viewport gate | ☑ `verify:adaptive-layout-prod` |
 | **5** | Desktop veckokalender (valfritt) | ☐ |
 
 Se [MASTER-TODO.md](./MASTER-TODO.md) backlog **BL.5**.

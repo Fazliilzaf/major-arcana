@@ -39,16 +39,24 @@
     setShellFlag('data-cco-tablet-booking-split', Boolean(open));
   }
 
+  function syncCalendarSplit() {
+    if (!isTablet()) return;
+    const open = document.documentElement.hasAttribute('data-cco-calendar-open');
+    setShellFlag('data-cco-tablet-calendar-split', open);
+  }
+
   function applyTabletShellState() {
     const on = isTablet();
     setShellFlag('data-cco-tablet-shell', on);
     if (!on) {
       document.documentElement.removeAttribute('data-cco-tablet-patient-split');
       document.documentElement.removeAttribute('data-cco-tablet-booking-split');
+      document.documentElement.removeAttribute('data-cco-tablet-calendar-split');
       return;
     }
     syncPatientSplit();
     syncBookingSplit();
+    syncCalendarSplit();
   }
 
   let syncRaf = 0;
@@ -58,11 +66,28 @@
       syncRaf = 0;
       syncPatientSplit();
       syncBookingSplit();
+      syncCalendarSplit();
+    });
+  }
+
+  function wireCalendarTrigger() {
+    document.querySelectorAll('[data-cco-tablet-calendar-open]').forEach((button) => {
+      if (button.dataset.ccoTabletCalendarBound === '1') return;
+      button.dataset.ccoTabletCalendarBound = '1';
+      button.addEventListener('click', () => {
+        if (!isTablet()) return;
+        if (window.ArcanaBookingMobileCalendar?.isOpen?.()) {
+          window.ArcanaBookingMobileCalendar.close();
+          return;
+        }
+        window.ArcanaBookingMobileCalendar?.open?.();
+      });
     });
   }
 
   function boot() {
     applyTabletShellState();
+    wireCalendarTrigger();
     try {
       window.matchMedia(MQ).addEventListener('change', applyTabletShellState);
     } catch {
@@ -81,7 +106,7 @@
     const rootObserver = new MutationObserver(scheduleSync);
     rootObserver.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-cco-patient-detail'],
+      attributeFilter: ['data-cco-patient-detail', 'data-cco-calendar-open'],
     });
 
     const customersRail = document.querySelector('.customers-rail');
