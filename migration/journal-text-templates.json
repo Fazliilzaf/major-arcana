@@ -1,0 +1,22 @@
+{
+  "templates": [
+    {
+      "id": "consultation-summary",
+      "label": "Konsultation — sammanfattning",
+      "journalTypes": ["consultation_plan", "tp_treatment"],
+      "text": "Konsultation genomförd. Patient informerad om behandlingsalternativ, förväntad läkningsprocess och uppföljningsplan."
+    },
+    {
+      "id": "prescription-standard",
+      "label": "Ordination — standard",
+      "journalTypes": ["tp_treatment", "follow_up"],
+      "text": "Ordination enligt behandlingsplan. Patient informerad om dosering, biverkningar och kontakt vid behov."
+    },
+    {
+      "id": "signature-closing",
+      "label": "Signatur — avslut",
+      "journalTypes": ["tp_treatment", "prp_treatment", "follow_up", "bleph_treatment"],
+      "text": "Med vänlig hälsning,\nHair TP Clinic"
+    }
+  ]
+}
