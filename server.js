@@ -565,6 +565,9 @@ const {
 } = require('./src/routes/patientPortal');
 const { createPatientIdentityRouter } = require('./src/routes/patientIdentity');
 const { createPatientIdentityStore } = require('./src/ops/patientIdentityVerification');
+const { createVideoRouter } = require('./src/routes/video');
+const { createSignalingService } = require('./src/video/signalingServer');
+const { createMeetingTranscriptionService } = require('./src/video/meetingTranscription');
 const { createBillingService } = require('./src/billing/billingService');
 const { createStripeClient } = require('./src/billing/stripeClient');
 const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
@@ -2209,6 +2212,18 @@ process.once('SIGTERM', () => {
     createPatientIdentityRouter({
       authStore: auth,
       identityStore,
+    })
+  );
+
+  const signalingService = createSignalingService();
+  const transcriptionService = createMeetingTranscriptionService();
+
+  app.use(
+    '/api/v1',
+    createVideoRouter({
+      authStore: auth,
+      signalingService,
+      transcriptionService,
     })
   );
 
