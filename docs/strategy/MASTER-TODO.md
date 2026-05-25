@@ -467,7 +467,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] P6.4.5 Bokning öppnar rätt tidslinjesegment
 - [ ] P6.4.6 Avtal + betalning (POS) under samma encounter
 - [ ] P6.4.7 Encounter-typer: konsultation, transplant, PRP, microneedling, uppföljning, ögonlocksplastik, Curatiio-estetik
-- [ ] P6.4.8 Automatisk draft uppföljning 4/6/12 mån efter signerad transplant (scheduler)
+- [x] P6.4.8 Automatisk draft uppföljning 4/6/12 mån efter signerad transplant (scheduler) — `cco_followup_draft_generator` + `src/ops/ccoFollowupDraftPlanner.js` (idempotent via `followupPlanState`)
 
 ### 6.5 Patientformulär — P0 / P1 / P2
 
@@ -495,7 +495,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] P6.6.7 Behandlingsplan (`consultation_plan`) — bokning + foton
 - [x] P6.6.8 Historisk import PDF (Drive/Meridiq)
 - [ ] P6.6.9 Ordinationer / recept (Meridiq patientkort-flik)
-- [ ] P6.6.10 J-8.2 godkänn journalutkast → skapa signerbar journalpost (ej bara UI)
+- [x] P6.6.10 J-8.2 godkänn journalutkast → skapa signerbar journalpost (ej bara UI) — `promoteApprovedDraftToJournalEntry` + `POST /ops/cco-care/draft-proposals/:id/promote` + audit `journal_draft_promoted`
 
 ### 6.7 Journalfunktioner — P0 / P1 / P2
 
@@ -518,7 +518,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [ ] P6.8.5 Curatiio-avtal: Botox, fillers, Profhilo, ögonlocksplastik, ortopedi
 - [ ] P6.8.6 Samtycke bokning inom 14 dagar + samtycke behandling under ångerfrist
 - [ ] P6.8.7 Foto-publiceringssamtycke (före/efter)
-- [ ] P6.8.8 Alla **31+ Meridiq-samtycken** i runtime (`migration/meridiq/consent-catalog.json`)
+- [x] P6.8.8 Alla **39 Meridiq-samtycken** i runtime — `src/ops/meridiqConsentCatalogRuntime.js` + `GET /api/v1/cco-booking-engine/consent-catalog` (staff readout grupperad per brand). Per-tjänst-bindning kvar = P6.8.9.
 - [ ] P6.8.9 Per-tjänst samtycke/questionnaire-bindning (`service-bindings-catalog.json`)
 - [ ] P6.8.10 Importerade signerade samtycken från Meridiq (historik)
 
@@ -544,7 +544,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
   - [ ] **P1** Skicka formulär / samtycke / fil via SMS från patientkort (en knapp + audit, Meridiq patientkort-flöde)
   - [ ] **P3** Marknads-SMS med segmentering (CMO-spår, Meridiq `/communication/sms`)
 - [~] P6.10.5 Bokningspåminnelse e-post + ICS-kalenderinbjudan — patientmail/ICS i scheduler ☑ (samma `bookingReminderLeadTime`); Resend live / Graph fallback
-- [ ] P6.10.6 Avbokningsbekräftelse e-post
+- [x] P6.10.6 Avbokningsbekräftelse e-post — `src/templates/bookingCancellationEmail.js` + `dispatchBookingCancellationEmail` triggers från `POST /api/v1/cco-booking-engine/cancel` (Resend → Graph fallback, idempotent via `patientCareStateStore.wasReminderSent`)
 - [ ] P6.10.7 E-postmallar: offert, behandlingsplan, bokning, avbokning
 - [ ] P6.10.8 Intern notis till personal vid bokning/avbokning
 - [x] P6.10.9 Post-op auto-trigger patientkanal (U5B.3)
