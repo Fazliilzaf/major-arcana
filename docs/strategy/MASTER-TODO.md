@@ -383,7 +383,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [ ] BL.1 Mobil månadskalender (#17 UX sweep)
 - [ ] BL.2 cco-next-release parity (#18)
 - [ ] BL.3 Android enhetstest (valfritt)
-- [ ] BL.4 Executive OS expand (CFO/COO agenter) — [arcana-master-plan-punktvis.md](./arcana-master-plan-punktvis.md)
+- [x] BL.4 Executive OS expand — PR #6 (6 agents, 15 capabilities, billing, DXM)
 
 > **Verify BL.1:** UX sweep #17 = **backlog** i `cco-mobile-ux-sweep-plan.md` (dag-kalender finns, full månadskalender saknas).
 > **Verify BL.2:** `public/cco-next-release/` mountad i `server.js` men **canonical UI = major-arcana-preview**; parity #18 ej genomförd.
