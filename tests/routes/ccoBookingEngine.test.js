@@ -53,6 +53,16 @@ async function createFixture(options = {}) {
     }));
   const app = express();
   app.use(express.json());
+  const authStore =
+    options.authStore ||
+    {
+      async getSessionContextByToken() {
+        return null;
+      },
+      async touchSession() {
+        return true;
+      },
+    };
   app.use(
     '/api/v1',
     createCcoBookingEngineRouter({
@@ -62,14 +72,7 @@ async function createFixture(options = {}) {
       patientSystemStore,
       treatmentAgreementStore,
       patientMasterStore,
-      authStore: {
-        async getSessionContextByToken() {
-          return null;
-        },
-        async touchSession() {
-          return true;
-        },
-      },
+      authStore,
       config: {
         defaultTenantId: options.tenantId || 'tenant-a',
       },
@@ -159,6 +162,57 @@ test('cco booking engine route reserverar, bekräftar och avbokar mot samma book
       assert.equal(cancelPayload.bookingEngine.reservations.length, 0);
       assert.equal(cancelPayload.bookingEngine.state, 'idle');
       assert.equal(cancelPayload.bookingEngine.recommendedAction, '');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco booking engine legacy-catalog is staff-only and supports details toggle', async () => {
+  const fixture = await createFixture({
+    authStore: {
+      async getSessionContextByToken(token) {
+        if (token === 'owner-token') {
+          return {
+            session: { id: 'sess-owner' },
+            membership: { tenantId: 'tenant-a', role: 'OWNER' },
+            user: { id: 'owner-1' },
+          };
+        }
+        if (token === 'patient-token') {
+          return {
+            session: { id: 'sess-patient' },
+            membership: { tenantId: 'tenant-a', role: 'PATIENT' },
+            user: { id: 'patient-1' },
+          };
+        }
+        return null;
+      },
+      async touchSession() {
+        return true;
+      },
+    },
+  });
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const forbidden = await fetch(`${baseUrl}/cco-booking-engine/legacy-catalog`, {
+        headers: { authorization: 'Bearer patient-token' },
+      });
+      assert.equal(forbidden.status, 403);
+
+      const ok = await fetch(`${baseUrl}/cco-booking-engine/legacy-catalog?details=1`, {
+        headers: { authorization: 'Bearer owner-token' },
+      });
+      assert.equal(ok.status, 200);
+      const payload = await ok.json();
+      assert.equal(payload.ok, true);
+      assert.equal(payload.provider, 'legacy_migration_catalogs');
+      assert.ok(payload.counts && typeof payload.counts.clientoServices === 'number');
+      assert.ok(payload.catalogs && typeof payload.catalogs === 'object');
+      assert.match(
+        String(payload.policyNote || ''),
+        /ARCANA_PUBLIC_WEB_BOOKING_ENABLED/
+      );
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

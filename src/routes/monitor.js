@@ -2089,8 +2089,9 @@ function createMonitorRouter({
         };
       })();
 
+      const sloOpenBreaches = Number(sloSummary?.totals?.openBreaches || 0);
       const ownerHints = [];
-      if (sloSummary?.openBreaches > 0) {
+      if (sloOpenBreaches > 0) {
         ownerHints.push({
           severity: 'high',
           recommendation: 'Granska öppna SLO-brott innan release.',
@@ -2107,11 +2108,41 @@ function createMonitorRouter({
         });
       }
 
+      const syntheticEntries = [];
+      if (sloOpenBreaches > 0) {
+        syntheticEntries.push({
+          id: `slo_open_breaches_${tenantId}`,
+          status: 'pending',
+          priority: 'P0',
+          title: 'Öppna SLO-brott kräver owner-beslut',
+          summary: `${sloOpenBreaches} öppna SLO-brott blockerar release-gate tills åtgärd.`,
+          source: 'monitor.slo',
+          ownerHint: 'OWNER',
+          actionEndpoint: '/api/v1/monitor/slo',
+          requiredOwnerAction: true,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      if (Number(governanceSummary?.blockingCount || 0) > 0) {
+        syntheticEntries.push({
+          id: `release_governance_blockers_${tenantId}`,
+          status: 'pending',
+          priority: 'P1',
+          title: 'Release governance blockerar go/no-go',
+          summary: `${governanceSummary.blockingCount} blockerande governance-fynd kräver beslut.`,
+          source: 'monitor.release_governance',
+          ownerHint: 'OWNER',
+          actionEndpoint: '/api/v1/monitor/readiness',
+          requiredOwnerAction: true,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
       return res.json({
         ok: true,
         tenantId,
         summary: feedSummary,
-        entries: feedEntries,
+        entries: [...syntheticEntries, ...feedEntries],
         slo: sloSummary,
         releaseGovernance: governanceSummary,
         ownerHints,
