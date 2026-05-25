@@ -4,6 +4,7 @@ const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 
 function createCcoSettingsRouter({
   settingsStore,
+  bookingEngineStore = null,
   authStore,
   requireAuth,
   requireRole,
@@ -43,6 +44,13 @@ function createCcoSettingsRouter({
           tenantId: req.auth.tenantId,
           settings: req.body || {},
         });
+        if (
+          bookingEngineStore &&
+          typeof bookingEngineStore.setBookingPolicySettings === 'function' &&
+          settings?.bookingPolicy
+        ) {
+          bookingEngineStore.setBookingPolicySettings(settings.bookingPolicy);
+        }
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
           actorUserId: req.auth.userId,
@@ -53,6 +61,7 @@ function createCcoSettingsRouter({
           metadata: {
             theme: settings.theme,
             density: settings.density,
+            bookingReminderGlobalHours: settings.bookingReminderLeadTime?.globalDefaultHours,
           },
         });
         return res.json({ ok: true, settings });

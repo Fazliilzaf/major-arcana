@@ -16,7 +16,8 @@ const REQUIRED_MOBILE_ASSETS = [
   'booking-mobile-shell.js',
   'booking-mobile-slot-picker.js',
   'booking-mobile-calendar-day.js',
-  'app/cco-missing-forms-ops.js',
+  'app/cco-care-panel.js',
+  'app/thread-ai-summary.js',
 ];
 
 const REQUIRED_INDEX_MARKERS = [
@@ -27,8 +28,9 @@ const REQUIRED_INDEX_MARKERS = [
   'cco-mobile-shell.js',
   'cco-mobile-queue.js',
   'booking-mobile-calendar-day.js',
-  'cco-missing-forms-ops.js',
-  'data-missing-forms-open',
+  'cco-care-panel.js',
+  'thread-ai-summary.js',
+  'data-cco-care-open',
   'cco-mobile-tabbar',
   'cco-mobile-back-button',
   'cco-mobile-menu-button',
@@ -70,19 +72,54 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const clinicalJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-pre-treatment-forms.js'), 'utf8');
   assert.match(clinicalJs, /data-clinical-step-panel/, 'pre-treatment mobil steg saknas');
 
+  const prpJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-prp-form.js'), 'utf8');
+  assert.match(prpJs, /data-prp-step-panel/, 'BL.5 Fas 3: PRP mobil steg saknas');
+
+  const followJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-follow-up-form.js'), 'utf8');
+  assert.match(followJs, /data-follow-step-panel/, 'BL.5 Fas 3: uppföljning mobil steg saknas');
+
+  const blephJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-bleph-form.js'), 'utf8');
+  assert.match(blephJs, /data-bleph-step-panel/, 'BL.5 Fas 3: ögonlock mobil steg saknas');
+
+  assert.match(autosaveJs, /data-prp-journal-save-form/, 'BL.5 Fas 3: autosave PRP selector saknas');
+  assert.match(autosaveJs, /max-width: 1023px/, 'BL.5 Fas 3: tablet form viewport saknas');
+
   const queueJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-queue.js'), 'utf8');
   assert.match(queueJs, /window\.ArcanaMobileQueue/, 'ArcanaMobileQueue export saknas');
 
-  const missingFormsOps = fs.readFileSync(
-    path.join(PREVIEW_DIR, 'app', 'cco-missing-forms-ops.js'),
-    'utf8'
-  );
-  assert.match(missingFormsOps, /ArcanaMissingFormsOps/, 'J-8.1: missing forms ops export saknas');
-  assert.match(missingFormsOps, /missing-forms-report/, 'J-8.1: missing-forms-report API saknas');
+  const carePanel = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'cco-care-panel.js'), 'utf8');
+  assert.match(carePanel, /ArcanaCcoCarePanel/, 'J-8.1/J-7: CCO care panel export saknas');
+  assert.match(carePanel, /missing-forms-report/, 'J-8.1: missing-forms-report API saknas');
+  assert.match(carePanel, /cco-care\/reminders/, 'J-7: reminders API saknas');
 
   const patientUi = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'patient-master-ui.js'), 'utf8');
   assert.match(patientUi, /goBackToPatientList/, 'goBackToPatientList saknas');
   assert.match(patientUi, /bindJournalAutosaveForms/, 'bindJournalAutosaveForms saknas');
+  assert.match(patientUi, /isCompactFormViewport/, 'BL.5 Fas 3: compact form viewport saknas');
+  assert.match(patientUi, /data-agreement-step-panel/, 'BL.5 Fas 3: avtal mobil steg saknas');
+
+  const desktopWeekJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-desktop-week.js'), 'utf8');
+  assert.match(desktopWeekJs, /ArcanaBookingDesktopWeek/, 'BL.5 Fas 5: desktop week calendar saknas');
+  assert.match(desktopWeekJs, /cco-cal-workstation/, 'BL.5 Fas 5: Hair TP calendar workstation saknas');
+  const calendarSharedJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-calendar-shared.js'), 'utf8');
+  assert.match(calendarSharedJs, /fetchCalendarRange/, 'Kalender: merge slots + cases saknas');
+  assert.match(calendarSharedJs, /ArcanaBookingCalendarShared/, 'Kalender: shared helpers saknas');
+  assert.match(desktopWeekJs, /openDayView|data-cal-open-day/, 'Kalender: dubbelklick dag → dagvy saknas');
+  assert.match(desktopWeekJs, /cco-cal-day-hint/, 'Kalender: dagvy-hint i veckorutnät saknas');
+  assert.match(calendarSharedJs, /buildBlockCalendarEvent|rebookCalendarBooking/, 'Kalender P1: block/rebook shared saknas');
+  assert.match(calendarSharedJs, /fetchCalendarSignals/, 'P6.10: calendar-signals API saknas');
+  assert.match(calendarSharedJs, /buildOperationalIconSpecs/, 'P6.10: operativa kalenderikoner saknas');
+  assert.match(calendarSharedJs, /data-icon="invite"|name: 'invite'/, 'P6.10.5: ICS-inbjudningsikon saknas');
+  assert.match(calendarSharedJs, /Saknar hälsodeklaration/, 'P6.5.8: hälsodekl-ikon copy saknas');
+  assert.match(desktopWeekJs, /formatCalendarSignalSummary/, 'Kalender: signalrad i detaljpanel saknas');
+  const calendarCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-calendar.css'), 'utf8');
+  assert.match(calendarCss, /--cco-cal-accent/, 'Kalender: Hair TP tokens saknas');
+  assert.match(calendarCss, /\.cco-cal-event-icon\.is-due/, 'P6.10: ikon-state CSS saknas');
+  const polishCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-polish.css'), 'utf8');
+  assert.match(polishCss, /\.schedule-shell[\s\S]*--schedule-espresso/, 'Schedule-shell: Hair TP taupe tokens saknas');
+  const html = fs.readFileSync(INDEX, 'utf8');
+  assert.match(html, /data-nav-view="calendar"/, 'Kalender: desktop nav-flik saknas');
+  assert.match(html, /data-shell-view="calendar"/, 'Kalender: egen shell-vy saknas');
   assert.match(patientUi, /renderDriveFiles/, 'Filer: renderDriveFiles helper saknas');
   assert.match(patientUi, /Inga indexerade Drive-filer/, 'Filer: tom-state copy saknas');
 });

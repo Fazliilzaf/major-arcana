@@ -164,9 +164,23 @@ async function createCcoPatientCareStateStore({ filePath }) {
     return asObject(asObject(state.lastReports)[tenant])[type] || null;
   }
 
+  async function listReminderLog({ tenantId, sinceHours = 720, limit = 500 } = {}) {
+    const tenant = normalizeText(tenantId);
+    if (!tenant) return [];
+    const cutoff = Date.now() - Math.max(1, Number(sinceHours) || 720) * 60 * 60 * 1000;
+    return asArray(state.reminderLog)
+      .filter(
+        (row) =>
+          normalizeText(row.tenantId) === tenant && Date.parse(row.sentAt || 0) >= cutoff
+      )
+      .sort((left, right) => Date.parse(right.sentAt || 0) - Date.parse(left.sentAt || 0))
+      .slice(0, Math.max(1, Math.min(5000, Number(limit) || 500)));
+  }
+
   return {
     getLastReport,
     listDraftProposals,
+    listReminderLog,
     logReminder,
     reviewDraftProposal,
     setLastReport,

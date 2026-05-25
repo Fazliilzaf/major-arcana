@@ -186,6 +186,16 @@
   const macroCommandButtons = Array.from(document.querySelectorAll("[data-macro-command]"));
   const settingsChoiceButtons = Array.from(document.querySelectorAll("[data-settings-choice]"));
   const settingsToggleInputs = Array.from(document.querySelectorAll("[data-settings-toggle]"));
+  const settingsLeadTimeInputs = Array.from(document.querySelectorAll("[data-settings-lead-time]"));
+  const settingsLeadTimeJsonInputs = Array.from(
+    document.querySelectorAll("[data-settings-lead-time-json]")
+  );
+  const settingsBookingPolicyInputs = Array.from(
+    document.querySelectorAll("[data-settings-booking-policy]")
+  );
+  const settingsBookingPolicyJsonInputs = Array.from(
+    document.querySelectorAll("[data-settings-booking-policy-json]")
+  );
   const settingsActionButtons = Array.from(document.querySelectorAll("[data-settings-action]"));
   const showcaseFeatureButtons = Array.from(
     document.querySelectorAll("[data-showcase-feature]")
@@ -1766,6 +1776,22 @@
       owner: "Automationsteam",
       connected: false,
     },
+    {
+      key: "fortnox",
+      category: "accounting",
+      label: "Fortnox",
+      copy: "Synka patienter till Fortnox-kunder och spara kundnummer direkt i patientkortet.",
+      owner: "Ekonomiteam",
+      connected: false,
+    },
+    {
+      key: "swish",
+      category: "payment",
+      label: "Swish",
+      copy: "Ta betalt med Swish Handel — skapa betalningsförfrågningar och följ status i Arcana.",
+      owner: "Ekonomiteam",
+      connected: false,
+    },
   ];
 
   const MACRO_LIBRARY = [
@@ -2078,6 +2104,7 @@
       requestId: 0,
       pendingKey: "",
       records: [],
+      providerStatus: null,
       docsPayload: null,
       actorProfile: null,
       lastSalesLeadAt: "",
@@ -2356,6 +2383,8 @@
         color_priorities: true,
         advanced_filters: false,
       },
+      bookingReminderLeadTime: createDefaultBookingReminderLeadTimeView(),
+      bookingPolicy: createDefaultBookingPolicyView(),
     },
     macroModal: {
       open: false,
@@ -6026,6 +6055,7 @@
       communication: "Kommunikation",
       analytics: "Analys",
       automation: "Automatisering",
+      accounting: "Bokföring",
     };
     return labels[normalized] || humanizeCode(normalized, "Alla");
   }
@@ -6220,7 +6250,170 @@
         signatureProfileId: "",
       },
       toggles: Object.fromEntries(SETTINGS_TOGGLE_KEYS.map((key) => [key, false])),
+      bookingReminderLeadTime: {
+        globalDefaultHours: 24,
+        channelDefaults: { online: 4, physical: 24, default: 24 },
+        serviceOverrides: {},
+        resourceOverrides: {},
+      },
+      bookingPolicy: createDefaultBookingPolicyView(),
     };
+  }
+
+  function createDefaultBookingPolicyView() {
+    return {
+      minNoticeOnlineHours: 2,
+      minNoticePhysicalHours: 1,
+      maxBookingDaysAhead: 180,
+      cancellationPolicyHours: 24,
+      serviceOverrides: {},
+    };
+  }
+
+  function normalizeBookingPolicyView(input = {}) {
+    const defaults = createDefaultBookingPolicyView();
+    const safe = input && typeof input === "object" ? input : {};
+    const global =
+      safe.globalDefaults && typeof safe.globalDefaults === "object"
+        ? safe.globalDefaults
+        : safe;
+    const clampHours = (value, fallback) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(0, Math.min(168, Math.round(parsed)));
+    };
+    const clampDays = (value, fallback) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(1, Math.min(365, Math.round(parsed)));
+    };
+    const onlineMinutes = Number(global.minNoticeOnlineMinutes);
+    const physicalMinutes = Number(global.minNoticePhysicalMinutes);
+    const normalizeServiceOverrides = (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+      const out = {};
+      Object.entries(value).forEach(([key, override]) => {
+        const id = normalizeText(key);
+        if (!id || !override || typeof override !== "object" || Array.isArray(override)) return;
+        out[id] = { ...override };
+      });
+      return out;
+    };
+    return {
+      minNoticeOnlineHours: clampHours(
+        safe.minNoticeOnlineHours ??
+          (Number.isFinite(onlineMinutes) ? onlineMinutes / 60 : undefined),
+        defaults.minNoticeOnlineHours
+      ),
+      minNoticePhysicalHours: clampHours(
+        safe.minNoticePhysicalHours ??
+          (Number.isFinite(physicalMinutes) ? physicalMinutes / 60 : undefined),
+        defaults.minNoticePhysicalHours
+      ),
+      maxBookingDaysAhead: clampDays(global.maxBookingDaysAhead, defaults.maxBookingDaysAhead),
+      cancellationPolicyHours: clampHours(
+        global.cancellationPolicyHours,
+        defaults.cancellationPolicyHours
+      ),
+      serviceOverrides: normalizeServiceOverrides(safe.serviceOverrides),
+    };
+  }
+
+  function buildBookingPolicyPayloadFromView(view = {}) {
+    const normalized = normalizeBookingPolicyView(view);
+    return {
+      globalDefaults: {
+        minNoticeOnlineMinutes: normalized.minNoticeOnlineHours * 60,
+        minNoticePhysicalMinutes: normalized.minNoticePhysicalHours * 60,
+        maxBookingDaysAhead: normalized.maxBookingDaysAhead,
+        cancellationPolicyHours: normalized.cancellationPolicyHours,
+      },
+      serviceOverrides: normalized.serviceOverrides,
+    };
+  }
+
+  function serializeBookingPolicyJson(map = {}) {
+    try {
+      return JSON.stringify(map && typeof map === "object" ? map : {}, null, 0);
+    } catch {
+      return "{}";
+    }
+  }
+
+  function parseBookingPolicyServiceOverridesJson(raw = "") {
+    const text = normalizeText(raw);
+    if (!text) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return normalizeBookingPolicyView({ serviceOverrides: parsed }).serviceOverrides;
+    } catch {
+      return null;
+    }
+  }
+
+  function createDefaultBookingReminderLeadTimeView() {
+    return {
+      globalDefaultHours: 24,
+      channelDefaults: { online: 4, physical: 24, default: 24 },
+      serviceOverrides: {},
+      resourceOverrides: {},
+    };
+  }
+
+  function normalizeBookingReminderLeadTimeView(input = {}) {
+    const defaults = createDefaultBookingReminderLeadTimeView();
+    const safe = input && typeof input === "object" ? input : {};
+    const channels =
+      safe.channelDefaults && typeof safe.channelDefaults === "object"
+        ? safe.channelDefaults
+        : {};
+    const clampHours = (value, fallback) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(1, Math.min(168, Math.round(parsed)));
+    };
+    const normalizeMap = (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+      const out = {};
+      Object.entries(value).forEach(([key, hours]) => {
+        const id = normalizeText(key);
+        if (!id) return;
+        out[id] = clampHours(hours, null);
+        if (!Number.isFinite(Number(hours))) delete out[id];
+      });
+      return out;
+    };
+    return {
+      globalDefaultHours: clampHours(safe.globalDefaultHours, defaults.globalDefaultHours),
+      channelDefaults: {
+        online: clampHours(channels.online, defaults.channelDefaults.online),
+        physical: clampHours(channels.physical, defaults.channelDefaults.physical),
+        default: clampHours(channels.default, defaults.channelDefaults.default),
+      },
+      serviceOverrides: normalizeMap(safe.serviceOverrides),
+      resourceOverrides: normalizeMap(safe.resourceOverrides),
+    };
+  }
+
+  function serializeLeadTimeOverrideJson(map = {}) {
+    try {
+      return JSON.stringify(map && typeof map === "object" ? map : {}, null, 0);
+    } catch {
+      return "{}";
+    }
+  }
+
+  function parseLeadTimeOverrideJson(raw = "", mapKey = "serviceOverrides") {
+    const text = normalizeText(raw);
+    if (!text) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return normalizeBookingReminderLeadTimeView({
+        [mapKey]: parsed,
+      })[mapKey];
+    } catch {
+      return null;
+    }
   }
 
   function normalizeMailFoundationDefaults(defaults = {}) {
@@ -6335,6 +6528,10 @@
       deleteRequestedAt: asText(settings?.deleteRequestedAt),
       mailFoundationDefaults: normalizeMailFoundationDefaults(settings?.mailFoundation?.defaults),
       mailFoundationCustomMailboxes: asArray(settings?.mailFoundation?.customMailboxes),
+      bookingReminderLeadTime: normalizeBookingReminderLeadTimeView(
+        settings?.bookingReminderLeadTime
+      ),
+      bookingPolicy: normalizeBookingPolicyView(settings?.bookingPolicy),
       toggles,
     };
   }
@@ -6390,6 +6587,10 @@
           customMailboxes || state.data.customMailboxes
         ),
       },
+      bookingReminderLeadTime: normalizeBookingReminderLeadTimeView(
+        state.settingsRuntime.bookingReminderLeadTime
+      ),
+      bookingPolicy: buildBookingPolicyPayloadFromView(state.settingsRuntime.bookingPolicy),
     };
   }
 
@@ -6408,6 +6609,10 @@
       ...state.settingsRuntime.toggles,
       ...mapped.toggles,
     };
+    state.settingsRuntime.bookingReminderLeadTime = normalizeBookingReminderLeadTimeView(
+      mapped.bookingReminderLeadTime
+    );
+    state.settingsRuntime.bookingPolicy = normalizeBookingPolicyView(mapped.bookingPolicy);
     if (
       nextState?.mailFoundation &&
       Object.prototype.hasOwnProperty.call(nextState.mailFoundation, "customMailboxes")
@@ -6822,18 +7027,203 @@
     return recipientName ? `Hej ${recipientName},` : "Hej,";
   }
 
+  const preparedDraftModesCache = new Map();
+  const preparedDraftModesInflight = new Map();
+
   function getStudioDraftModes(thread) {
+    const conversationId = asText(thread?.id);
+    const cachedModes = conversationId ? preparedDraftModesCache.get(conversationId) : null;
     const draftModes =
       thread?.raw?.draftModes && typeof thread.raw.draftModes === "object"
-        ? thread.raw.draftModes
-        : {};
+        ? { ...thread.raw.draftModes, ...(cachedModes || {}) }
+        : cachedModes || {};
     return {
       professional: asText(draftModes.professional),
       warm: asText(draftModes.warm),
       short: asText(draftModes.short),
       recommendedMode:
-        normalizeKey(thread?.raw?.recommendedMode || "professional") || "professional",
+        normalizeKey(thread?.raw?.recommendedMode || draftModes.recommendedMode || "professional") ||
+        "professional",
+      loading: Boolean(conversationId && preparedDraftModesInflight.has(conversationId)),
     };
+  }
+
+  function isSmartReplyFeatureEnabled() {
+    if (state.settingsRuntime?.toggles?.smart_reply === false) return false;
+    const toggle = document.querySelector('[data-settings-toggle="smart_reply"]');
+    if (toggle && !toggle.checked) return false;
+    return true;
+  }
+
+  function studioDraftModesAreEmpty(thread) {
+    const modes = getStudioDraftModes(thread);
+    return !modes.professional && !modes.warm && !modes.short;
+  }
+
+  function mapRefineKeyToInstruction(refineKey) {
+    const normalized = normalizeKey(refineKey);
+    if (normalized === "shorter") return "shorten";
+    if (normalized === "professional") return "professional";
+    return "improve";
+  }
+
+  function buildPrepareDraftConversationSnapshot(thread) {
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    return {
+      conversationId: asText(thread?.id),
+      id: asText(thread?.id),
+      customerName: asText(thread?.customerName),
+      customerEmail: asText(getRuntimeCustomerEmail(thread)),
+      subject: asText(thread?.subject),
+      status: "needs_reply",
+      needsReply: true,
+      direction: "inbound",
+      detectedIntent: asText(thread?.intentLabel || raw.intent || "general"),
+      latestInboundBody: asText(raw.latestInboundBody || raw.snippet || thread?.previewBody),
+      snippet: asText(raw.snippet || thread?.previewBody),
+    };
+  }
+
+  function markStudioAiDraftOrigin(studioState, draftText) {
+    if (!studioState) return;
+    const text = normalizeText(draftText);
+    if (!text) return;
+    studioState.lastAiDraftOriginal = text;
+    studioState.aiDraftTrackedAt = new Date().toISOString();
+  }
+
+  function applyPreparedDraftModesToThread(thread, draftModes = {}, recommendedMode = "professional") {
+    if (!thread) return;
+    thread.raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
+    thread.raw.draftModes = {
+      ...(thread.raw.draftModes || {}),
+      ...draftModes,
+    };
+    if (!normalizeText(thread.raw.recommendedMode)) {
+      thread.raw.recommendedMode = recommendedMode;
+    }
+    const conversationId = asText(thread.id);
+    if (conversationId) {
+      preparedDraftModesCache.set(conversationId, {
+        professional: asText(draftModes.professional),
+        warm: asText(draftModes.warm),
+        short: asText(draftModes.short),
+        recommendedMode: normalizeKey(recommendedMode) || "professional",
+      });
+    }
+  }
+
+  async function hydrateStudioDraftModesFromApi(thread, { force = false } = {}) {
+    if (!thread || !isSmartReplyFeatureEnabled()) return null;
+    if (isOfflineHistoryContextThread(thread)) return null;
+    const conversationId = asText(thread.id);
+    if (!conversationId) return null;
+    if (!force && !studioDraftModesAreEmpty(thread)) return getStudioDraftModes(thread);
+    if (!force && preparedDraftModesCache.has(conversationId)) {
+      applyPreparedDraftModesToThread(thread, preparedDraftModesCache.get(conversationId));
+      return getStudioDraftModes(thread);
+    }
+    if (preparedDraftModesInflight.has(conversationId)) {
+      return preparedDraftModesInflight.get(conversationId);
+    }
+    const snapshot = {
+      conversations: [buildPrepareDraftConversationSnapshot(thread)],
+      templates: asArray(state.noteTemplates),
+      timestamps: { capturedAt: new Date().toISOString() },
+    };
+    const studioState =
+      state.studio && runtimeConversationIdsMatch(state.studio.threadId, conversationId)
+        ? state.studio
+        : null;
+    if (studioState) studioState.draftModesLoading = true;
+    if (typeof renderStudioShell === "function") renderStudioShell();
+    const flight = Promise.all(
+      ["professional", "warm", "short"].map((tone) =>
+        apiRequest("/api/v1/capabilities/PrepareResponseDrafts/run", {
+          method: "POST",
+          headers: {
+            "x-idempotency-key": createIdempotencyKey(`major-arcana-prepare-${tone}`),
+          },
+          body: {
+            channel: "admin",
+            input: { tone, maxDrafts: 1 },
+            systemStateSnapshot: snapshot,
+          },
+        }).catch(() => null)
+      )
+    )
+      .then((responses) => {
+        const draftModes = {};
+        responses.forEach((payload, index) => {
+          const tone = ["professional", "warm", "short"][index];
+          const draft = asArray(payload?.output?.data?.drafts)[0];
+          const body = asText(draft?.draft);
+          if (body) draftModes[tone] = body;
+        });
+        if (Object.keys(draftModes).length) {
+          applyPreparedDraftModesToThread(thread, draftModes, "professional");
+        }
+        return getStudioDraftModes(thread);
+      })
+      .finally(() => {
+        preparedDraftModesInflight.delete(conversationId);
+        if (state.studio && runtimeConversationIdsMatch(state.studio.threadId, conversationId)) {
+          state.studio.draftModesLoading = false;
+        }
+        if (typeof renderStudioShell === "function") renderStudioShell();
+      });
+    preparedDraftModesInflight.set(conversationId, flight);
+    return flight;
+  }
+
+  async function runRefineReplyDraftCapability(thread, draft, refineKey) {
+    if (!thread || !isSmartReplyFeatureEnabled()) return null;
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    const payload = await apiRequest("/api/v1/capabilities/RefineReplyDraft/run", {
+      method: "POST",
+      headers: {
+        "x-idempotency-key": createIdempotencyKey("major-arcana-refine-draft"),
+      },
+      body: {
+        channel: "admin",
+        input: {
+          conversationId: asText(thread.id),
+          messageId: asText(raw.messageId || thread.id),
+          mailboxId: asText(thread.mailboxAddress || raw.mailboxId),
+          subject: asText(thread.subject) || "(utan amne)",
+          draft: normalizeText(draft),
+          instruction: mapRefineKeyToInstruction(refineKey),
+        },
+      },
+    });
+    return asText(payload?.output?.data?.refinedReply);
+  }
+
+  function recordDraftFeedbackFireAndForget({ thread, studioState, sentBody, isComposeMode = false }) {
+    const originalDraft = asText(studioState?.lastAiDraftOriginal || studioState?.baseDraftBody);
+    const editedDraft = asText(sentBody);
+    if (!originalDraft || !editedDraft) return;
+    void apiRequest("/api/v1/capabilities/RecordDraftFeedback/run", {
+      method: "POST",
+      headers: {
+        "x-idempotency-key": createIdempotencyKey("major-arcana-draft-feedback"),
+      },
+      body: {
+        channel: "admin",
+        input: {
+          conversationId: isComposeMode ? "" : asText(thread?.id),
+          threadSubject: isComposeMode
+            ? asText(studioState?.composeSubject)
+            : asText(thread?.subject),
+          customerEmail: isComposeMode ? asText(studioState?.composeTo) : asText(getRuntimeCustomerEmail(thread)),
+          originalDraft,
+          editedDraft,
+          sentAt: new Date().toISOString(),
+          tone: asText(studioState?.activeToneKey),
+          track: asText(studioState?.activeTrackKey),
+        },
+      },
+    }).catch(() => {});
   }
 
   function inferStudioTrackKey(thread) {
@@ -13183,7 +13573,7 @@
     const selectedSignature = getStudioReplyDefaultSignatureProfile(thread).id;
     const baseDraft = buildStudioTrackDraft(thread, trackKey);
     const senderMailboxId = getStudioDefaultSenderMailboxId(thread);
-    return applyTruthPrimaryStudioState({
+    const studioState = applyTruthPrimaryStudioState({
       mode: "reply",
       threadId: asText(thread?.id),
       replyContextThreadId: asText(thread?.id),
@@ -13217,7 +13607,16 @@
       bookingStudioReason: "",
       bookingStudioChangedFrom: "",
       bookingStudioChangedTo: "",
+      lastAiDraftOriginal: "",
+      aiDraftTrackedAt: "",
     }, thread);
+    const modes = getStudioDraftModes(thread);
+    const recommended =
+      modes[modes.recommendedMode] || modes.professional || modes.warm || modes.short;
+    if (recommended && normalizeText(studioState.draftBody) === normalizeText(recommended)) {
+      markStudioAiDraftOrigin(studioState, recommended);
+    }
+    return studioState;
   }
 
   function createComposeStudioState(thread = null) {
@@ -13299,6 +13698,9 @@
     );
     state.forms.studioMode = "reply";
     state.studio.replyContextThreadId = asText(thread?.id);
+    if (studioDraftModesAreEmpty(thread) && !preparedDraftModesInflight.has(asText(thread.id))) {
+      void hydrateStudioDraftModesFromApi(thread);
+    }
     return applyTruthPrimaryStudioState(state.studio, thread);
   }
 
@@ -13855,6 +14257,7 @@
       normalizeText,
       normalizeWorkspaceState,
       patchStudioThreadAfterSend,
+      recordDraftFeedbackFireAndForget,
       refreshWorkspaceBootstrapForSelectedThread,
       renderBookingSurface,
       renderFocusHistorySection,
@@ -24379,9 +24782,10 @@
     renderIntegrations();
 
     try {
-      const [statusResult, meResult] = await Promise.allSettled([
+      const [statusResult, meResult, providerResult] = await Promise.allSettled([
         apiRequest("/api/v1/cco/integrations/status"),
         apiRequest("/api/v1/auth/me"),
+        loadIntegrationProviderStatus(),
       ]);
 
       if (runtime.requestId !== requestId) {
@@ -24392,17 +24796,19 @@
         throw statusResult.reason;
       }
 
-      runtime.records = asArray(statusResult.value?.integrations).map((record) => ({
-        id: normalizeKey(record?.id),
-        category: normalizeKey(record?.category) || "automation",
-        isConnected: record?.isConnected !== false,
-        statusTone: normalizeKey(record?.statusTone) || "idle",
-        statusSummary: asText(record?.statusSummary),
-        watchLabel: asText(record?.watchLabel),
-        updatedAt: asText(record?.updatedAt || record?.configuredAt),
-        configurable: record?.configurable !== false,
-        docsAvailable: record?.docsAvailable !== false,
-      }));
+      runtime.records = mergeIntegrationProviderRecords(
+        asArray(statusResult.value?.integrations).map((record) => ({
+          id: normalizeKey(record?.id),
+          category: normalizeKey(record?.category) || "automation",
+          isConnected: record?.isConnected !== false,
+          statusTone: normalizeKey(record?.statusTone) || "idle",
+          statusSummary: asText(record?.statusSummary),
+          watchLabel: asText(record?.watchLabel),
+          updatedAt: asText(record?.updatedAt || record?.configuredAt),
+          configurable: record?.configurable !== false,
+          docsAvailable: record?.docsAvailable !== false,
+        }))
+      );
       runtime.loaded = true;
       runtime.lastLoadedAt = asText(statusResult.value?.generatedAt) || new Date().toISOString();
       state.integrationsConnectedKeys = runtime.records
@@ -24594,6 +25000,58 @@
       input.checked = Boolean(
         state.settingsRuntime.toggles[normalizeKey(input.dataset.settingsToggle)]
       );
+    });
+
+    const leadTime = normalizeBookingReminderLeadTimeView(
+      state.settingsRuntime.bookingReminderLeadTime
+    );
+    settingsLeadTimeInputs.forEach((input) => {
+      const key = normalizeKey(input.dataset.settingsLeadTime);
+      if (key === "globaldefaulthours") {
+        input.value = String(leadTime.globalDefaultHours);
+        return;
+      }
+      if (key === "channel_online") {
+        input.value = String(leadTime.channelDefaults.online);
+        return;
+      }
+      if (key === "channel_physical") {
+        input.value = String(leadTime.channelDefaults.physical);
+      }
+    });
+    settingsLeadTimeJsonInputs.forEach((input) => {
+      const mapKey = normalizeKey(input.dataset.settingsLeadTimeJson);
+      if (mapKey === "serviceoverrides") {
+        input.value = serializeLeadTimeOverrideJson(leadTime.serviceOverrides);
+      } else if (mapKey === "resourceoverrides") {
+        input.value = serializeLeadTimeOverrideJson(leadTime.resourceOverrides);
+      }
+    });
+
+    const bookingPolicy = normalizeBookingPolicyView(state.settingsRuntime.bookingPolicy);
+    settingsBookingPolicyInputs.forEach((input) => {
+      const key = normalizeKey(input.dataset.settingsBookingPolicy);
+      if (key === "minnoticeonlinehours") {
+        input.value = String(bookingPolicy.minNoticeOnlineHours);
+        return;
+      }
+      if (key === "minnoticephysicalhours") {
+        input.value = String(bookingPolicy.minNoticePhysicalHours);
+        return;
+      }
+      if (key === "maxbookingdaysahead") {
+        input.value = String(bookingPolicy.maxBookingDaysAhead);
+        return;
+      }
+      if (key === "cancellationpolicyhours") {
+        input.value = String(bookingPolicy.cancellationPolicyHours);
+      }
+    });
+    settingsBookingPolicyJsonInputs.forEach((input) => {
+      const mapKey = normalizeKey(input.dataset.settingsBookingPolicyJson);
+      if (mapKey === "serviceoverrides") {
+        input.value = serializeBookingPolicyJson(bookingPolicy.serviceOverrides);
+      }
     });
 
     const activeGuardrails = [
@@ -27742,6 +28200,102 @@
     exitAuxViewToConversations({ focusSection: "conversation" });
   }
 
+  function mergeIntegrationProviderRecords(records) {
+    const map = Object.fromEntries(asArray(records).map((record) => [normalizeKey(record.id), { ...record }]));
+    const fortnoxRuntime = state.integrationsRuntime.providerStatus?.fortnox;
+    const swishRuntime = state.integrationsRuntime.providerStatus?.swish;
+    if (map.fortnox && fortnoxRuntime) {
+      map.fortnox.isConnected = fortnoxRuntime.connected === true;
+      map.fortnox.statusTone = fortnoxRuntime.connected ? "healthy" : "idle";
+      map.fortnox.statusSummary = fortnoxRuntime.connected
+        ? "Fortnox OAuth är ansluten och patienter kan synkas."
+        : fortnoxRuntime.configured
+          ? "Fortnox är konfigurerat — anslut via OAuth."
+          : "Fortnox saknar serverkonfiguration (FORTNOX_CLIENT_ID m.fl.).";
+      map.fortnox.watchLabel = fortnoxRuntime.connected
+        ? "Synka patienter från kundkortet eller via API."
+        : "Klicka Koppla för att öppna Fortnox OAuth.";
+    }
+    if (map.swish && swishRuntime) {
+      map.swish.isConnected = swishRuntime.connected === true;
+      map.swish.statusTone = swishRuntime.connected ? "healthy" : "idle";
+      map.swish.statusSummary = swishRuntime.connected
+        ? `Swish Handel är ansluten (${swishRuntime.payeeAlias || "handelsnummer"}).`
+        : swishRuntime.configured
+          ? "Swish är konfigurerat — ange handelsnummer för att ansluta."
+          : "Swish saknar serverkonfiguration (certifikat m.fl.).";
+      map.swish.watchLabel = swishRuntime.connected
+        ? "Skapa betalningsförfrågningar från patientkortet."
+        : "Klicka Koppla och ange ert Swish Handelsnummer.";
+    }
+    return Object.values(map);
+  }
+
+  async function loadIntegrationProviderStatus() {
+    const providerStatus = {
+      fortnox: { configured: false, connected: false },
+      swish: { configured: false, connected: false },
+    };
+    const [fortnoxResult, swishResult] = await Promise.allSettled([
+      apiRequest("/api/v1/cco-fortnox/status"),
+      apiRequest("/api/v1/cco-swish/status"),
+    ]);
+    if (fortnoxResult.status === "fulfilled") {
+      providerStatus.fortnox = {
+        configured: fortnoxResult.value?.configured === true,
+        connected: fortnoxResult.value?.connected === true,
+        scope: asText(fortnoxResult.value?.scope),
+      };
+    }
+    if (swishResult.status === "fulfilled") {
+      providerStatus.swish = {
+        configured: swishResult.value?.configured === true,
+        connected: swishResult.value?.connected === true,
+        payeeAlias: asText(swishResult.value?.payeeAlias),
+      };
+    }
+    state.integrationsRuntime.providerStatus = providerStatus;
+    return providerStatus;
+  }
+
+  async function connectFortnoxIntegration() {
+    const payload = await apiRequest("/api/v1/cco-fortnox/connect");
+    const authorizeUrl = asText(payload?.authorizeUrl);
+    if (!authorizeUrl) {
+      throw new Error("Fortnox returnerade ingen OAuth-URL.");
+    }
+    const popup = window.open(authorizeUrl, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      window.location.assign(authorizeUrl);
+    }
+    return "Fortnox OAuth öppnades. När du godkänt, uppdatera integrationsvyn.";
+  }
+
+  async function disconnectFortnoxIntegration() {
+    await apiRequest("/api/v1/cco-fortnox/disconnect", { method: "POST" });
+    return "Fortnox kopplades från.";
+  }
+
+  async function connectSwishIntegration() {
+    const payeeAlias = window.prompt(
+      "Ange Swish Handelsnummer (10 siffror, samma som i certifikatet):",
+      asText(state.integrationsRuntime.providerStatus?.swish?.payeeAlias)
+    );
+    if (!payeeAlias) {
+      throw new Error("Swish-anslutning avbröts.");
+    }
+    await apiRequest("/api/v1/cco-swish/connect", {
+      method: "POST",
+      body: { payeeAlias },
+    });
+    return "Swish Handel anslöts.";
+  }
+
+  async function disconnectSwishIntegration() {
+    await apiRequest("/api/v1/cco-swish/disconnect", { method: "POST" });
+    return "Swish kopplades från.";
+  }
+
   async function handleIntegrationToggle(integrationKey) {
     const key = normalizeKey(integrationKey);
     if (!key) return;
@@ -27758,6 +28312,25 @@
     let feedbackTone = "";
     renderIntegrations();
     try {
+      if (key === "fortnox") {
+        feedbackMessage = record.isConnected
+          ? await disconnectFortnoxIntegration()
+          : await connectFortnoxIntegration();
+        feedbackTone = "success";
+        await loadIntegrationProviderStatus();
+        await loadIntegrationsRuntime({ force: true });
+        return;
+      }
+      if (key === "swish") {
+        feedbackMessage = record.isConnected
+          ? await disconnectSwishIntegration()
+          : await connectSwishIntegration();
+        feedbackTone = "success";
+        await loadIntegrationProviderStatus();
+        await loadIntegrationsRuntime({ force: true });
+        return;
+      }
+
       const action = record.isConnected ? "disconnect" : "connect";
       const payload = await apiRequest(`/api/v1/cco/integrations/${key}/${action}`, {
         method: "POST",
@@ -28074,6 +28647,90 @@
     renderSettings();
     saveSettingsRuntime("Inställningen sparades i nya CCO.").catch((error) => {
       console.warn("Settings toggle-save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsLeadTimeField(fieldKey, rawValue) {
+    const leadTime = normalizeBookingReminderLeadTimeView(
+      state.settingsRuntime.bookingReminderLeadTime
+    );
+    const key = normalizeKey(fieldKey);
+    const parsed = Number(rawValue);
+    if (key === "globaldefaulthours" && Number.isFinite(parsed)) {
+      leadTime.globalDefaultHours = Math.max(1, Math.min(168, Math.round(parsed)));
+    } else if (key === "channel_online" && Number.isFinite(parsed)) {
+      leadTime.channelDefaults.online = Math.max(1, Math.min(168, Math.round(parsed)));
+    } else if (key === "channel_physical" && Number.isFinite(parsed)) {
+      leadTime.channelDefaults.physical = Math.max(1, Math.min(168, Math.round(parsed)));
+    }
+    state.settingsRuntime.bookingReminderLeadTime = leadTime;
+    renderSettings();
+    saveSettingsRuntime("Lead time sparades i nya CCO.").catch((error) => {
+      console.warn("Settings lead-time save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsLeadTimeJson(mapKey, rawValue) {
+    const leadTime = normalizeBookingReminderLeadTimeView(
+      state.settingsRuntime.bookingReminderLeadTime
+    );
+    const key = normalizeKey(mapKey);
+    const parsed =
+      key === "resourceoverrides"
+        ? parseLeadTimeOverrideJson(rawValue, "resourceOverrides")
+        : parseLeadTimeOverrideJson(rawValue, "serviceOverrides");
+    if (parsed === null) {
+      setAuxStatus(settingsStatus, "Ogiltig JSON för lead time override.", "error");
+      return;
+    }
+    if (key === "resourceoverrides") {
+      leadTime.resourceOverrides = parsed;
+    } else {
+      leadTime.serviceOverrides = parsed;
+    }
+    state.settingsRuntime.bookingReminderLeadTime = leadTime;
+    renderSettings();
+    saveSettingsRuntime("Lead time override sparades i nya CCO.").catch((error) => {
+      console.warn("Settings lead-time JSON save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsBookingPolicyField(fieldKey, rawValue) {
+    const bookingPolicy = normalizeBookingPolicyView(state.settingsRuntime.bookingPolicy);
+    const key = normalizeKey(fieldKey);
+    const parsed = Number(rawValue);
+    if (key === "minnoticeonlinehours" && Number.isFinite(parsed)) {
+      bookingPolicy.minNoticeOnlineHours = Math.max(0, Math.min(168, Math.round(parsed)));
+    } else if (key === "minnoticephysicalhours" && Number.isFinite(parsed)) {
+      bookingPolicy.minNoticePhysicalHours = Math.max(0, Math.min(168, Math.round(parsed)));
+    } else if (key === "maxbookingdaysahead" && Number.isFinite(parsed)) {
+      bookingPolicy.maxBookingDaysAhead = Math.max(1, Math.min(365, Math.round(parsed)));
+    } else if (key === "cancellationpolicyhours" && Number.isFinite(parsed)) {
+      bookingPolicy.cancellationPolicyHours = Math.max(0, Math.min(168, Math.round(parsed)));
+    }
+    state.settingsRuntime.bookingPolicy = bookingPolicy;
+    renderSettings();
+    saveSettingsRuntime("Bokningspolicy sparades i nya CCO.").catch((error) => {
+      console.warn("Settings booking-policy save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsBookingPolicyJson(mapKey, rawValue) {
+    const bookingPolicy = normalizeBookingPolicyView(state.settingsRuntime.bookingPolicy);
+    const key = normalizeKey(mapKey);
+    const parsed =
+      key === "serviceoverrides"
+        ? parseBookingPolicyServiceOverridesJson(rawValue)
+        : null;
+    if (parsed === null) {
+      setAuxStatus(settingsStatus, "Ogiltig JSON för bokningspolicy override.", "error");
+      return;
+    }
+    bookingPolicy.serviceOverrides = parsed;
+    state.settingsRuntime.bookingPolicy = bookingPolicy;
+    renderSettings();
+    saveSettingsRuntime("Bokningspolicy override sparades i nya CCO.").catch((error) => {
+      console.warn("Settings booking-policy JSON save misslyckades.", error);
     });
   }
 
@@ -39697,6 +40354,11 @@
         }
       }
 
+      if (shellView === "calendar") {
+        window.ArcanaBookingDesktopWeek?.syncVisibility?.();
+        window.ArcanaBookingDesktopWeek?.refresh?.();
+      }
+
       if (shellView === "analytics") {
         renderAnalyticsRuntime();
         loadAnalyticsRuntime().catch((error) => {
@@ -40490,7 +41152,12 @@
     }
     const studioState = ensureStudioState(thread);
     studioState.activeToneKey = normalizeKey(toneKey) || "professional";
+    const draftModes = getStudioDraftModes(thread);
+    const toneDraft = draftModes[studioState.activeToneKey];
     studioState.draftBody = buildStudioToneDraft(thread, studioState.draftBody, studioState.activeToneKey);
+    if (toneDraft && normalizeText(studioState.draftBody) === normalizeText(toneDraft)) {
+      markStudioAiDraftOrigin(studioState, toneDraft);
+    }
     studioState.baseDraftBody = studioState.draftBody;
     renderStudioShell();
     setStudioFeedback(
@@ -40501,15 +41168,31 @@
     );
   }
 
-  function applyStudioRefineSelection(refineKey) {
+  async function applyStudioRefineSelection(refineKey) {
     if (normalizeKey(state.forms.studioMode) === "compose") {
       const studioState = state.studio;
-      studioState.activeRefineKey = normalizeKey(refineKey);
-      studioState.draftBody = buildComposeRefinedDraft(
+      const normalizedRefine = normalizeKey(refineKey);
+      studioState.activeRefineKey = normalizedRefine;
+      const beforeRefine = normalizeText(studioState.draftBody);
+      let nextDraft = buildComposeRefinedDraft(
         studioState.draftBody,
         studioState.activeRefineKey,
         studioState.composeTo
       );
+      if (isSmartReplyFeatureEnabled()) {
+        try {
+          const refined = await runRefineReplyDraftCapability(
+            { id: "compose", subject: studioState.composeSubject, raw: {} },
+            beforeRefine || nextDraft,
+            normalizedRefine
+          );
+          if (refined) nextDraft = refined;
+        } catch {
+          /* fallback */
+        }
+      }
+      studioState.draftBody = nextDraft;
+      markStudioAiDraftOrigin(studioState, beforeRefine || nextDraft);
       renderStudioShell();
       setStudioFeedback(`Finjusteringen "${studioState.activeRefineKey}" applicerades i nytt mejl.`, "success");
       return;
@@ -40522,7 +41205,22 @@
     }
     const studioState = ensureStudioState(thread);
     studioState.activeRefineKey = normalizeKey(refineKey);
-    studioState.draftBody = buildStudioRefinedDraft(thread, studioState.draftBody, studioState.activeRefineKey);
+    const beforeRefine = normalizeText(studioState.draftBody);
+    let nextDraft = buildStudioRefinedDraft(thread, studioState.draftBody, studioState.activeRefineKey);
+    if (isSmartReplyFeatureEnabled()) {
+      try {
+        const refined = await runRefineReplyDraftCapability(
+          thread,
+          beforeRefine || nextDraft,
+          studioState.activeRefineKey
+        );
+        if (refined) nextDraft = refined;
+      } catch {
+        /* fallback */
+      }
+    }
+    studioState.draftBody = nextDraft;
+    markStudioAiDraftOrigin(studioState, beforeRefine || nextDraft);
     renderStudioShell();
     setStudioFeedback(
       isStudioBookingUpdateMode(studioState)
@@ -41917,6 +42615,30 @@
     });
   });
 
+  settingsLeadTimeInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsLeadTimeField(input.dataset.settingsLeadTime, input.value);
+    });
+  });
+
+  settingsLeadTimeJsonInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsLeadTimeJson(input.dataset.settingsLeadTimeJson, input.value);
+    });
+  });
+
+  settingsBookingPolicyInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsBookingPolicyField(input.dataset.settingsBookingPolicy, input.value);
+    });
+  });
+
+  settingsBookingPolicyJsonInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsBookingPolicyJson(input.dataset.settingsBookingPolicyJson, input.value);
+    });
+  });
+
   settingsActionButtons.forEach((button) => {
     button.addEventListener("click", () => {
       handleSettingsAction(button.dataset.settingsAction).catch((error) => {
@@ -42592,6 +43314,93 @@
     getRuntimeReentrySnapshot,
     getRuntimeReentryOutcome,
     openRuntimeHistoryConversationForDiagnostics,
+  });
+
+  function prefillBookingFromCalendarSlot(slot = {}) {
+    const normalizedSlot =
+      slot && typeof slot === "object"
+        ? {
+            ...slot,
+            startsAt: slot.startsAt || slot.startAt || slot.start || "",
+            endsAt: slot.endsAt || slot.endAt || slot.end || "",
+          }
+        : null;
+    if (!normalizedSlot?.startsAt) return false;
+    state.booking.phoneMode = "phone";
+    state.booking.availableSlots = [normalizedSlot];
+    state.booking.calendarPrefillSlot = normalizedSlot;
+    state.booking.recentSelectedSlotId = getBookingSlotKey(normalizedSlot);
+    state.booking.recentSelectedSlotAction = "added";
+    state.runtime.bookingShellOpen = true;
+    setBookingOpen(true);
+    renderBookingSurface();
+    setFeedback(
+      getBookingDom().feedback,
+      "success",
+      "Ledig tid från kalendern är förifylld. Välj kund och bekräfta bokningen."
+    );
+    return true;
+  }
+
+  window.ArcanaBookingCalendarActions = Object.freeze({
+    openBookingCase(bookingCase = {}) {
+      const payload =
+        bookingCase?.bookingCaseSnapshot && typeof bookingCase.bookingCaseSnapshot === "object"
+          ? bookingCase.bookingCaseSnapshot
+          : bookingCase;
+      if (!asText(payload?.bookingCaseId)) return false;
+      syncBookingCaseListItem(payload);
+      setAppView("conversations");
+      return openBookingCaseInWorkspace(payload, {
+        message: "Bokningsärendet öppnades från kalendern.",
+      });
+    },
+    openCustomerCard({ patientId = "", customerEmail = "", customerName = "" } = {}) {
+      setAppView("customers");
+      const ui = window.ArcanaPatientMasterUi;
+      if (!ui) return false;
+      if (asText(patientId)) {
+        void ui.openPatient?.(patientId);
+        return true;
+      }
+      void ui.openPatientByEmail?.(customerEmail, customerName);
+      return true;
+    },
+    openJournal({ patientId = "", customerEmail = "", customerName = "" } = {}) {
+      setAppView("customers");
+      const ui = window.ArcanaPatientMasterUi;
+      if (!ui) return false;
+      if (asText(patientId)) {
+        void ui.openPatient?.(patientId, { tab: "journal" });
+        return true;
+      }
+      void ui.openPatientByEmail?.(customerEmail, customerName, { tab: "journal" });
+      return true;
+    },
+    openNewBookingFromSlot(slot = {}) {
+      setAppView("conversations");
+      window.ArcanaMobileShell?.navigateToBooking?.();
+      return prefillBookingFromCalendarSlot(slot);
+    },
+    async rebookFromCalendar(bookingCaseId, slot, reason = "Ombokad från kalendern") {
+      const shared = window.ArcanaBookingCalendarShared;
+      if (!shared?.rebookCalendarBooking || !asText(bookingCaseId)) return false;
+      const payload = await shared.rebookCalendarBooking(bookingCaseId, slot, reason);
+      if (payload?.bookingCase) {
+        syncBookingCaseListItem(payload.bookingCase);
+        syncBookingRuntimePayload(payload);
+      }
+      refreshBookingCaseList();
+      return payload;
+    },
+    showToast(message = "", tone = "success") {
+      const dom = getBookingDom();
+      if (dom?.feedback) {
+        setFeedback(dom.feedback, tone === "error" ? "error" : "success", message);
+        return;
+      }
+      window.ArcanaPatientMasterUi?.showMobileToast?.(message);
+    },
   });
 
   window.ArcanaAppNav = Object.freeze({

@@ -25,6 +25,7 @@ const { detectConversationSentiment, getSentimentLabel } = require('../risk/sent
 const { runDeterministicIntent } = require('../intelligence/intentClassifier');
 const { recommendNextBestAction } = require('../risk/nextBestAction');
 const { detectAnomalies } = require('../risk/anomalyDetect');
+const { assertExternalAiJournalPolicy } = require('../ops/ccoJournalAiGuard');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -574,10 +575,15 @@ class SummarizeThreadCapability extends BaseCapability {
     const openaiModel = capText(safeContext.openaiModel, 80);
 
     if (openaiClient && openaiModel) {
+      const guardedInput = assertExternalAiJournalPolicy({
+        messages,
+        customerName,
+        subject,
+      });
       const aiResult = await maybeRunOpenAiSummary({
         openai: openaiClient,
         model: openaiModel,
-        messages,
+        messages: asArray(guardedInput.messages),
         customerName,
         subject,
       });

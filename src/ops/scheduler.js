@@ -32,7 +32,9 @@ const {
   buildJournalDraftProposals,
   buildMissingFormsReport,
   dispatchCustomerReminderDigest,
+  dispatchPatientVisitReminderEmails,
 } = require('./ccoPatientCareOps');
+const { runPostOpAutoTrigger } = require('./postOpAutoTrigger');
 const {
   computeUsageAnalytics,
   computeWorklistSnapshotMetrics,
@@ -293,6 +295,8 @@ function createScheduler({
   sloTicketStore = null,
   releaseGovernanceStore = null,
   postOpReviewStore = null,
+  postOpAutoTriggerDeps = null,
+  bookingStore = null,
   marketingCampaignDraftsStore = null,
   marketingContentAssetsStore = null,
   connectorHealthStateStore = null,
@@ -303,6 +307,7 @@ function createScheduler({
   bookingEngineStore = null,
   treatmentAgreementStore = null,
   patientCareStateStore = null,
+  ccoSettingsStore = null,
   logger = console,
 } = {}) {
   if (!incomingConfig) throw new Error('config saknas för scheduler.');
@@ -522,6 +527,7 @@ function createScheduler({
       journalStore,
       patientMasterStore,
       patientCareStateStore,
+      settingsStore: ccoSettingsStore,
       tenantId,
     });
     let logged = 0;
@@ -531,6 +537,7 @@ function createScheduler({
         reminderKey: reminder.reminderKey,
         reminderType: reminder.reminderType,
         patientId: reminder.patientId,
+        channel: 'operator_digest',
         metadata: { message: reminder.message, startsAt: reminder.startsAt || null },
       });
       logged += 1;
@@ -547,7 +554,15 @@ function createScheduler({
       });
     }
     let digest = { skipped: true, reason: 'empty_queue' };
+    let patientEmails = { sent: 0, skipped: 0 };
     if (queue.total > 0) {
+      patientEmails = await dispatchPatientVisitReminderEmails({
+        queue,
+        bookingEngineStore,
+        graphSendConnector,
+        patientCareStateStore,
+        fromEmail: config.bookingReminderFromEmail || config.ccoCareReminderFromEmail,
+      });
       digest = await dispatchCustomerReminderDigest({
         graphSendConnector,
         queue,
@@ -561,6 +576,7 @@ function createScheduler({
       visitReminders: queue.visitReminders.length,
       aftercareReminders: queue.aftercareReminders.length,
       logged,
+      patientEmails,
       digest,
     };
   }
@@ -646,6 +662,30 @@ function createScheduler({
       dirsDeleted,
       diskErrors,
     };
+  }
+
+  async function runPostOpAutoTriggerJob({ tenantId }) {
+    const deps = postOpAutoTriggerDeps || {};
+    const resolvedBookingStore = deps.bookingStore || bookingStore;
+    const resolvedExecutor = deps.capabilityExecutor || null;
+    const resolvedGraphSend = deps.graphSendConnector || graphSendConnector;
+    if (!resolvedBookingStore || !resolvedExecutor || !postOpReviewStore) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'post_op_auto_trigger_deps_missing',
+      };
+    }
+    return runPostOpAutoTrigger({
+      bookingStore: resolvedBookingStore,
+      postOpReviewStore,
+      patientMasterStore,
+      capabilityExecutor: resolvedExecutor,
+      graphSendConnector: resolvedGraphSend,
+      config,
+      tenantId,
+      logger,
+    });
   }
 
   async function runRestoreDrillPreview({ tenantId }) {
@@ -3583,6 +3623,15 @@ function createScheduler({
       name: 'High/Critical alert probe',
       intervalMs: toMinutesMs(config.schedulerAlertProbeIntervalMinutes, 15),
       run: runAlertProbe,
+    },
+    {
+      id: 'post_op_auto_trigger',
+      name: 'Post-op review auto-trigger (U5B.3)',
+      intervalMs:
+        postOpReviewStore && (postOpAutoTriggerDeps?.capabilityExecutor || bookingStore)
+          ? toHoursMs(config.schedulerPostOpAutoTriggerIntervalHours, 6)
+          : 0,
+      run: runPostOpAutoTriggerJob,
     },
     {
       id: 'post_op_photo_prune',
