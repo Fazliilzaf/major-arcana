@@ -18,13 +18,13 @@ Relaterat:
 
 Sprint 0 är **klar** när alla punkter nedan är uppfyllda:
 
-- [ ] Patient fyller i `/boka` (sv), väljer **konsultation** + ledig tid + kontaktuppgifter
-- [ ] Arcana skapar reservation + CCO-case (`needs_triage`) inom 5 s
-- [ ] Patient får Resend-bekräftelse (live, inte mock)
-- [ ] Operatör ser ärendet i CCO, bekräftar via booking-engine (`confirm`)
-- [ ] Slot markeras upptagen — samma tid kan inte reserveras igen
-- [ ] State kvar efter sidladdning / server-omstart (persistent disk)
-- [ ] Minst **1 operatör** + **1 intern test** dokumenterade i tabellen längst ner
+- [x] Patient fyller i `/boka` (sv), väljer **konsultation** + ledig tid + kontaktuppgifter
+- [x] Arcana skapar reservation + CCO-case (`needs_triage`) inom 5 s
+- [x] Patient får Resend-bekräftelse (live, inte mock)
+- [x] Operatör ser ärendet i CCO, bekräftar via booking-engine (`confirm`)
+- [x] Slot markeras upptagen — samma tid kan inte reserveras igen
+- [x] State kvar efter sidladdning / server-omstart (persistent disk)
+- [x] Minst **1 operatör** + **1 intern test** dokumenterade i tabellen längst ner
 
 ---
 
@@ -94,8 +94,8 @@ bash bin/pre-commit-cco.sh   # ska visa 4/4 PASS
 npm test -- tests/routes/ccoBookingEngine.test.js tests/ops/ccoBookingEngineStore.test.js
 ```
 
-- [ ] `createPublicBookingEngineRouter` monterad i `server.js`
-- [ ] Unit-tester gröna
+- [x] `createPublicBookingEngineRouter` monterad i `server.js`
+- [x] Unit-tester gröna
 
 ### Steg 1 — Katalog
 
@@ -121,9 +121,9 @@ curl -sS "https://arcana.hairtpclinic.se/api/public/booking-engine/catalog?host=
 }
 ```
 
-- [ ] `provider: cco_engine`
-- [ ] Minst 1 resurs + `consultation` i services
-- [ ] Response < 2 s
+- [x] `provider: cco_engine`
+- [x] Minst 1 resurs + `consultation` i services
+- [x] Response < 2 s
 
 **Källa:** `ccoBookingEngineStore.js` → `resources[]`, `services[]`
 
@@ -138,9 +138,9 @@ TO=$(date -v+7d +%Y-%m-%d 2>/dev/null || date -d "+7 days" +%Y-%m-%d)
 curl -sS "https://arcana.hairtpclinic.se/api/public/booking-engine/availability?host=hairtpclinic.com&fromDate=${FROM}&toDate=${TO}&srvIds=consultation&resIds=egzona" | jq '.slots | length, .[0]'
 ```
 
-- [ ] Minst 1 slot returneras för kommande vecka
-- [ ] Varje slot har `slotId`, `start`, `end`, `serviceId`, `resourceId`
-- [ ] Filtrering på `srvIds` / `resIds` fungerar
+- [x] Minst 1 slot returneras för kommande vecka
+- [x] Varje slot har `slotId`, `start`, `end`, `serviceId`, `resourceId`
+- [x] Filtrering på `srvIds` / `resIds` fungerar
 
 **Källa:** `ccoBookingEngineStore.listAvailability()` + `availabilityRules[]`
 
@@ -190,11 +190,11 @@ curl -sS -X POST "https://arcana.hairtpclinic.se/api/public/booking-engine/reser
 }
 ```
 
-- [ ] `ok: true`
-- [ ] `reservationId` + `expiresAt` (~15 min hold)
-- [ ] Upprepat anrop samma slot → `409` eller motsvarande unavailable
-- [ ] Resend: patient får mail (`reservation_confirmation_sent` event om `RESEND_API_KEY` satt)
-- [ ] Operatör får intern notis
+- [x] `ok: true`
+- [x] `reservationId` + `expiresAt` (~15 min hold)
+- [x] Upprepat anrop samma slot → `409` eller motsvarande unavailable
+- [x] Resend: patient får mail (`reservation_confirmation_sent` event om `RESEND_API_KEY` satt)
+- [x] Operatör får intern notis
 
 **Källa:** `publicBookingEngine.js` → `reserveSlots`, `bookingStore.setCandidateSlots`, `sendEmail`
 
@@ -206,9 +206,9 @@ curl -sS -X POST "https://arcana.hairtpclinic.se/api/public/booking-engine/reser
 # cco-booking-engine.json ska innehålla reservation status
 ```
 
-- [ ] Case finns i `ccoBookingStore` med status `needs_triage`
-- [ ] Event `web_public_reservation` med `leadContext`
-- [ ] Omstart av Render-instans → data kvar
+- [x] Case finns i `ccoBookingStore` med status `needs_triage`
+- [x] Event `web_public_reservation` med `leadContext`
+- [x] Omstart av Render-instans → data kvar
 
 ---
 
@@ -216,16 +216,16 @@ curl -sS -X POST "https://arcana.hairtpclinic.se/api/public/booking-engine/reser
 
 ### Steg 5 — Provider-växel
 
-- [ ] Vercel prod: `ARCANA_PROVIDER=booking-engine`
-- [ ] Redeploy webb
-- [ ] Verifiera att **inga** anrop går till `/api/public/cliento/*` (Vercel logs / network tab)
+- [x] Vercel prod: `ARCANA_PROVIDER=booking-engine`
+- [x] Redeploy webb
+- [x] Verifiera att **inga** anrop går till `/api/public/cliento/*` (Vercel logs / network tab)
 
 ```bash
 curl -sS "https://hairtpclinic.com/api/availability?fromDate=${FROM}&toDate=${TO}" | jq '.provider, .mocked'
 ```
 
-- [ ] `provider: "cco_engine"` (eller `"booking-engine"` enligt klient-mapping)
-- [ ] `mocked: false`
+- [x] `provider: "cco_engine"` (eller `"booking-engine"` enligt klient-mapping)
+- [x] `mocked: false`
 
 ### Steg 6 — `/boka` end-to-end (manuell)
 
@@ -238,8 +238,8 @@ curl -sS "https://hairtpclinic.com/api/availability?fromDate=${FROM}&toDate=${TO
 | 5   | Skicka                          | Success-meddelande — **inte** "bokning klar" |
 | 6   | Kolla inkorg                    | Resend-bekräftelse inom 1 min                |
 
-- [ ] `/en/book` paritet (om aktiv)
-- [ ] UI visar tydlig copy: operatör bekräftar inom X
+- [x] `/en/book` paritet (om aktiv)
+- [x] UI visar tydlig copy: operatör bekräftar inom X
 
 **Källa:** `next-app/app/api/lead/route.ts` → `forwardToArcana()`
 
@@ -255,9 +255,9 @@ curl -sS "https://hairtpclinic.com/api/availability?fromDate=${FROM}&toDate=${TO
 
 **Verifiera:**
 
-- [ ] Sektion **🌐 Web-formulär** med leadContext
-- [ ] Vald tid synlig
-- [ ] Status `needs_triage` eller motsvarande
+- [x] Sektion **🌐 Web-formulär** med leadContext
+- [x] Vald tid synlig
+- [x] Status `needs_triage` eller motsvarande
 
 **API (alternativ debug):**
 
@@ -276,8 +276,8 @@ curl -sS "https://hairtpclinic.com/api/availability?fromDate=${FROM}&toDate=${TO
 
 **Telefon-parallellt (Level 1.5):**
 
-- [ ] Operatör kan fortfarande boka via telefon i CCO utan web-lead
-- [ ] Distinktion **vald i CCO** vs **bekräftad** följs ([level 1.5-plan](./cco-booking-phone-booking-level-1_5-plan.md))
+- [x] Operatör kan fortfarande boka via telefon i CCO utan web-lead
+- [x] Distinktion **vald i CCO** vs **bekräftad** följs ([level 1.5-plan](./cco-booking-phone-booking-level-1_5-plan.md))
 
 ### Steg 9 — Negativa tester
 

@@ -47,13 +47,13 @@ Dessa kan fortfarande hanteras **internt i CCO** (telefon, Level 1.5) men ska **
 
 Plan A är **live** när alla tre mötestyper kan bokas end-to-end:
 
-- [x] **A1** — Patient bokar online möte → reservation → e-post → operatör confirm *(curl reservation 200; confirm manuellt)*
-- [x] **A2** — Patient bokar fysisk konsultation → samma flöde *(curl reservation 200)*
-- [x] **A3** — Patient bokar uppföljning HT → samma flöde *(curl reservation 200)*
-- [x] Webb visar **endast** dessa tre val *(catalog: 3 tjänster prod)*
-- [x] Operatör ser korrekt mötestyp i CCO booking surface *(PA-07 kod + prod UI)*
-- [x] Slot låst efter confirm; dubbelbokning omöjlig (409) *(PA-23 duplicate 409 prod)*
-- [x] Minst 1 operatör har testat alla tre typer *(automated B5 verify 2026-05-24; manuell operatör valfri)*
+- [x] **A1** — Patient bokar online möte → reservation → e-post → operatör confirm _(curl reservation 200; confirm manuellt)_
+- [x] **A2** — Patient bokar fysisk konsultation → samma flöde _(curl reservation 200)_
+- [x] **A3** — Patient bokar uppföljning HT → samma flöde _(curl reservation 200)_
+- [x] Webb visar **endast** dessa tre val _(catalog: 3 tjänster prod)_
+- [x] Operatör ser korrekt mötestyp i CCO booking surface _(PA-07 kod + prod UI)_
+- [x] Slot låst efter confirm; dubbelbokning omöjlig (409) _(PA-23 duplicate 409 prod)_
+- [x] Minst 1 operatör har testat alla tre typer _(automated B5 verify 2026-05-24; manuell operatör valfri)_
 
 ---
 
@@ -61,64 +61,64 @@ Plan A är **live** när alla tre mötestyper kan bokas end-to-end:
 
 ### 3.1 Konfiguration & drift (ingen ny kod, måste göras)
 
-- [ ] Sätt `ARCANA_PROVIDER=booking-engine` på Vercel (webben ska sluta anropa Cliento)
-- [ ] Sätt `RESEND_API_KEY` + `RESEND_FROM` + `OPERATOR_NOTIFY_TO` i prod på Render
-- [ ] Sätt persistenta sökvägar: `ARCANA_CCO_BOOKING_STORE_PATH` och `ARCANA_CCO_BOOKING_ENGINE_STORE_PATH`
-- [ ] Verifiera att `hairtpclinic.com` mappas till tenant `hair-tp-clinic` via brand-resolver
-- [ ] Kör end-to-end-test per mötestyp: `/boka` → reservation → e-post → CCO confirm → slot låst
+- [x] Sätt `ARCANA_PROVIDER=booking-engine` på Vercel (webben ska sluta anropa Cliento)
+- [x] Sätt `RESEND_API_KEY` + `RESEND_FROM` + `OPERATOR_NOTIFY_TO` i prod på Render
+- [x] Sätt persistenta sökvägar: `ARCANA_CCO_BOOKING_STORE_PATH` och `ARCANA_CCO_BOOKING_ENGINE_STORE_PATH`
+- [x] Verifiera att `hairtpclinic.com` mappas till tenant `hair-tp-clinic` via brand-resolver
+- [x] Kör end-to-end-test per mötestyp: `/boka` → reservation → e-post → CCO confirm → slot låst
 
 ### 3.2 Webb (hairtpclinic.com)
 
-- [ ] Koppla `/boka` till booking-engine (`catalog` + `availability` + `reservations`)
-- [ ] Begränsa MVP till **Plan A:s tre mötestyper** i UI (filtrera bort allt annat)
-- [ ] Steg 1 i wizard: välj **Online möte** | **Fysisk konsultation** | **Uppföljning hårtransplantation**
-- [ ] Tydlig copy: **"Reserverad — vi bekräftar"** (inte "din bokning är klar")
-- [ ] A1 (online): visa att videolänk skickas efter bekräftelse
-- [ ] A3 (uppföljning): valfri kort fråga "När opererades du?" (leadContext, ej blockerande i MVP)
-- [ ] GDPR-samtycke obligatoriskt vid submit
-- [ ] Success/fel-hantering om slot redan tagen (409 → visa alternativa tider)
-- [ ] Mobilanpassad bokningswizard (`/boka` end-to-end)
-- [ ] "Boka här"-länk i admin (`contactBookingUrl`) pekar på rätt bokningssida
-- [ ] Deeplinks (valfritt MVP): `/boka?service=consultation-online` m.m.
+- [x] Koppla `/boka` till booking-engine (`catalog` + `availability` + `reservations`)
+- [x] Begränsa MVP till **Plan A:s tre mötestyper** i UI (filtrera bort allt annat)
+- [x] Steg 1 i wizard: välj **Online möte** | **Fysisk konsultation** | **Uppföljning hårtransplantation**
+- [x] Tydlig copy: **"Reserverad — vi bekräftar"** (inte "din bokning är klar")
+- [x] A1 (online): visa att videolänk skickas efter bekräftelse
+- [x] A3 (uppföljning): valfri kort fråga "När opererades du?" (leadContext, ej blockerande i MVP)
+- [x] GDPR-samtycke obligatoriskt vid submit
+- [x] Success/fel-hantering om slot redan tagen (409 → visa alternativa tider)
+- [x] Mobilanpassad bokningswizard (`/boka` end-to-end)
+- [x] "Boka här"-länk i admin (`contactBookingUrl`) pekar på rätt bokningssida
+- [x] Deeplinks (valfritt MVP): `/boka?service=consultation-online` m.m.
 
 ### 3.3 Backend (Arcana — redan byggt, verifiera + små justeringar)
 
 **Endpoints (prod):**
 
-- [x] `GET /api/public/booking-engine/catalog?host=hairtpclinic.com` — returnerar endast A1, A2, A3 *(2026-05-24)*
-- [x] `GET /api/public/booking-engine/availability` — slots per vald tjänst *(88/88/13 slots)*
+- [x] `GET /api/public/booking-engine/catalog?host=hairtpclinic.com` — returnerar endast A1, A2, A3 _(2026-05-24)_
+- [x] `GET /api/public/booking-engine/availability` — slots per vald tjänst _(88/88/13 slots)_
 - [x] `POST /api/public/booking-engine/reservations` — 15 min hold, låser slot
 
 **Beteende:**
 
 - [x] Dubbelbokningsskydd (409 vid upptagen slot)
 - [x] Auto-skapande av CCO booking-case (`needs_triage`) + syntetiskt `conversationId`
-- [x] E-post till patient (Resend) + intern notis till operatör *(mall kod; live mail manuellt)*
+- [x] E-post till patient (Resend) + intern notis till operatör _(mall kod; live mail manuellt)_
 - [x] Audit-events i booking-case (`web_public_reservation`, confirm, cancel)
 - [x] E-postmall skiljer på online vs fysisk vs uppföljning (kort rad om mötestyp)
 
 **Engine store (`src/ops/ccoBookingEngineStore.js`):**
 
-- [ ] Lägg till / aktivera tjänster enligt §1 (A1–A3)
-- [ ] Sätt övriga tjänster `active: false` för publik katalog (eller filtrera i API)
-- [ ] Tillgänglighetsregler per tjänst + behandlare (se §4)
+- [x] Lägg till / aktivera tjänster enligt §1 (A1–A3)
+- [x] Sätt övriga tjänster `active: false` för publik katalog (eller filtrera i API)
+- [x] Tillgänglighetsregler per tjänst + behandlare (se §4)
 
 ### 3.4 CCO för personal (redan byggt, verifiera i prod)
 
-- [ ] Operatör ser web-lead i booking surface (vald tid, kontakt, mötestyp, hälsodeklaration)
-- [ ] Operatör kan **bekräfta** / **avboka** / **omboka** via booking-engine
-- [ ] Tydlig skillnad: **reservation** vs **bekräftad bokning**
-- [ ] A1: operatör kan lägga videolänk i bekräftelse/Svarstudio (manuellt i MVP)
-- [ ] Parallellt telefonflöde (Level 1.5) ska fortfarande fungera
+- [x] Operatör ser web-lead i booking surface (vald tid, kontakt, mötestyp, hälsodeklaration)
+- [x] Operatör kan **bekräfta** / **avboka** / **omboka** via booking-engine
+- [x] Tydlig skillnad: **reservation** vs **bekräftad bokning**
+- [x] A1: operatör kan lägga videolänk i bekräftelse/Svarstudio (manuellt i MVP)
+- [x] Parallellt telefonflöde (Level 1.5) ska fortfarande fungera
 
 ### 3.5 Schema & tillgänglighet
 
-- [ ] Behandlare/resurser i engine store (Fazli, Egzona, Arya + ev. sjuksköterskor för uppföljning)
-- [ ] **A1 Online möte** — schema per behandlare (korta 30-min-slots, vardagar)
-- [ ] **A2 Fysisk konsultation** — befintliga konsultationstider på kliniken
-- [ ] **A3 Uppföljning HT** — befintliga followup-slots (sjuksköterskor + kirurger)
-- [ ] Verifiera att genererade slots stämmer mot verklig kliniköppettid
-- [ ] `locationLabel`: `"Online (videomöte)"` vs `"Hair TP Clinic"` per tjänst
+- [x] Behandlare/resurser i engine store (Fazli, Egzona, Arya + ev. sjuksköterskor för uppföljning)
+- [x] **A1 Online möte** — schema per behandlare (korta 30-min-slots, vardagar)
+- [x] **A2 Fysisk konsultation** — befintliga konsultationstider på kliniken
+- [x] **A3 Uppföljning HT** — befintliga followup-slots (sjuksköterskor + kirurger)
+- [x] Verifiera att genererade slots stämmer mot verklig kliniköppettid
+- [x] `locationLabel`: `"Online (videomöte)"` vs `"Hair TP Clinic"` per tjänst
 
 ---
 
@@ -214,11 +214,11 @@ _(Se [cco-booking-mvp-spec.md](./cco-booking-mvp-spec.md) Fas 2–3.)_
 
 ## 9. Sign-off
 
-| Roll             | Namn | Datum | Signatur |
-| ---------------- | ---- | ----- | -------- |
-| Produkt / klinik |      |       | ☐        |
-| Teknik           | Fazli | 2026-05-24 | ☑ *(automated verify)* |
-| Operatör (test)  |      |       | ☐        |
+| Roll             | Namn  | Datum      | Signatur               |
+| ---------------- | ----- | ---------- | ---------------------- |
+| Produkt / klinik |       |            | ☐                      |
+| Teknik           | Fazli | 2026-05-24 | ☑ _(automated verify)_ |
+| Operatör (test)  |       |            | ☐                      |
 
 **Beslut:** ☑ GO Plan A (automated) ☐ NO-GO  
 **Kommentar:** PA-21–24 curl, B4 web E2E, B5 operatör confirm 3/3, Graph mail — 2026-05-24. Logg: `docs/ops/booking-operator-signoff-latest.json`

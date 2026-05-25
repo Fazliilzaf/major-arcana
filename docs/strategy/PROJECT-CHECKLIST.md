@@ -41,7 +41,7 @@ Använd denna som **en sida att bocka av**. Detaljer finns i länkade planer.
 - [x] **Drive-PDF på prod** — Google Drive API live, PDF-stream 200 (enrich komplett)
 - [x] **OWNER MFA enforced** i prod (`verify:auth-go-live-prod` 2026-05-24)
 - [~] **STAFF login i fält** — konto provisionerade, väntar fälttest med enheter
-- [ ] **Notion 30 maj** — [verify prod efter duplicate-cleanup](https://www.notion.so/369060ccc15b819fbe4cdfcc726653d7)
+- [x] **Notion 30 maj** — verify prod efter duplicate-cleanup (genomförd 2026-05-25)
 
 ---
 

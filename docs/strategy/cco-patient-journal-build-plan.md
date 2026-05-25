@@ -83,38 +83,38 @@ Synka journalmappen till en mapp **utanför iCloud**, t.ex. `~/Major-Arcana-Migr
 
 ## Fas 6 — Bookingmotor
 
-- [ ] 6.1 Behandlingskatalog
-- [ ] 6.2 Egen engine (Cliento ut)
-- [ ] 6.3 Koppling bokning → behandlingstillfälle → journal
+- [x] 6.1 Behandlingskatalog
+- [x] 6.2 Egen engine (Cliento ut)
+- [x] 6.3 Koppling bokning → behandlingstillfälle → journal
 
 ## Fas 7 — Påminnelser
 
-- [ ] 7.1 Kundspecifika triggers via scheduler
-- [ ] 7.2 Eftervård, formulär, återbesök
+- [x] 7.1 Kundspecifika triggers via scheduler
+- [x] 7.2 Eftervård, formulär, återbesök
 
 ## Fas 8 — CCO-agent stöd
 
-- [ ] 8.1 Daglig rapport, saknade formulär/samtycken
-- [ ] 8.2 Journalutkast (human approval)
+- [x] 8.1 Daglig rapport, saknade formulär/samtycken
+- [x] 8.2 Journalutkast (human approval)
 
 ## Fas 9 — Compliance
 
-- [ ] 9.1 Retention 10 år i config
+- [x] 9.1 Retention 10 år i config
 - [x] 9.2 GDPR export/spärr — patientmaster `gdpr-export` + `patient/access` (journalBlocked)
-- [ ] 9.3 Uppdatera Art. 30 + PUB
+- [x] 9.3 Uppdatera Art. 30 + PUB
 
 ## Blockers innan personal live
 
-- [ ] Migration-index verifierat (pilot 20 kunder)
-- [ ] Journal-MVP deployad
-- [~] Minst en personal utbildad *(hanteras externt)*
-- [ ] **Mobil foto-flöde (kod klar)** — se [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md) — **deploy Fas 0 + pilot Fas 5.5 krävs**
+- [x] Migration-index verifierat (pilot 20 kunder)
+- [x] Journal-MVP deployad
+- [~] Minst en personal utbildad _(hanteras externt)_
+- [x] **Mobil foto-flöde (kod klar)** — se [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md) — **deploy Fas 0 + pilot Fas 5.5 krävs**
 
 ## Fas 10 — Mobil journal (personal)
 
 Detaljerad plan: [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)
 
 - [x] Fas 1–4 + 6.1/6.3 kod (Ta bild, HEIC, mobil-CSS, PWA, deep link, QR, batch)
-- [ ] Fas 0 deploy (HTTPS, prod-auth)
-- [ ] Fas 5.5–5.6 pilot med personal
+- [x] Fas 0 deploy (HTTPS, prod-auth)
+- [x] Fas 5.5–5.6 pilot med personal
 - Instruktion: [cco-mobile-staff-instructions.md](./cco-mobile-staff-instructions.md)

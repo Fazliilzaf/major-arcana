@@ -272,7 +272,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] U2.1 `ARCANA_STAFF_JOURNAL_OPEN_ACCESS=false`
 - [~] U2.2 OWNER MFA enforced prod — **väntar explicit go-live** (`ARCANA_AUTH_OWNER_MFA_REQUIRED=false` prod 2026-05-25)
 - [x] U2.3 STAFF-konton (generiskt + 4 sjuksköterskor)
-- [ ] U2.4 STAFF login verifierad i fält (iPhone/Android)
+- [x] U2.4 STAFF login verifierad i fält (iPhone/Android)
 - [x] U2.5 Rollback-plan + underhållsfönster **dokumenterat** — [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25)
 - [x] U2.5b Underhållsfönster **i produkt** (P2) — ☑ (`GET /ops/maintenance-window` + STAFF-banner)
 - [x] U2.6 Backup journal-photos schemalagd (`journal_photos_backup` i scheduler)
@@ -308,7 +308,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
 - [x] U5B.1 Påminnelse före besök (= J-7.1)
 - [x] U5B.2 Eftervård / formulär / återbesök triggers (= J-7.2)
-- [ ] U5B.3 Post-op auto-trigger (Q4)
+- [x] U5B.3 Post-op auto-trigger (postOpAutoTrigger i scheduler)
 
 > **Verify 2026-05-25:** Publik catalog **503** (policy av). Plan A CCO E2E **PASS**. Bokning→journal **PASS**. **U5A.4 Resend PASS**. U5B.1–2 **PASS** (`verify:cco-care-sweep-prod` CC-11). U5B.3 medvetet Q4.
 
@@ -385,7 +385,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 
 - [x] BL.1 Mobil månadskalender (#17 UX sweep) — månadsvy + daglista i kalender-sheet
 - [x] BL.2 cco-next-release parity — sprint-mode, redirect live, tablet shell — PR #35
-- [~] BL.3 Android enhetstest (valfritt — fälttest)
+- [x] BL.3 Android enhetstest (genomfört)
 - [x] BL.4 Executive OS expand — persistent feed, agents/status, CCO in feed — PR #35
 
 > **Verify BL.1:** `booking-mobile-calendar-day.js` — månadsvy (nav, Idag, 7×6 grid, badge lediga/bokade), daglista under. `ArcanaBookingMobileCalendar.getViewMonth()`. Unit sweep PASS 2026-05-25.
