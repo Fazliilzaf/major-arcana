@@ -34,8 +34,8 @@ const EXISTING_PRELOAD_RE =
   /\s*<!-- Bundlade scripts preload[^>]*-->\s*\n?(?:\s*<link\s+rel="preload"\s+as="script"\s+href="\.\/[^"]+"\s*\/?>\s*)+/g;
 const EARLY_PATIENT_UI_RE =
   /\s*<!-- Early patient-master-ui[^>]*-->\s*\n?\s*<script(?:\s+async)?\s+src="\.\/app\/patient-master-ui\.js[^"]*"\s*><\/script>\s*/g;
-const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-deeplink-boot-b';
-const MOBILE_DEEPLINK_BOOT = './app/mobile-deeplink-boot.js?v=build-deeplink-boot-b';
+const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-deeplink-boot-c';
+const MOBILE_DEEPLINK_BOOT = './app/mobile-deeplink-boot.js?v=build-deeplink-boot-c';
 
 function injectBundlePreload(html, bundleRel, hash) {
   const preloadBlock = `\n    <!-- Bundlade scripts preload (content-hash: ${hash}) -->\n    <link rel="preload" as="script" href="${bundleRel}" />\n    <link rel="preload" as="script" href="${MOBILE_DEEPLINK_BOOT}" />\n    <link rel="preload" as="script" href="${PATIENT_UI_PRELOAD}" />\n    `;
@@ -64,7 +64,7 @@ function injectEarlyPatientUiScript(html) {
 }
 
 function buildDeferredBundleLoaderTag(bundleRel, hash) {
-  return `\n    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: ${hash}) -->\n    <script>\n      (function arcanaLoadAppBundle() {\n        var src = '${bundleRel}';\n        function inject() {\n          if (window.__ARCANA_APP_BUNDLE_LOADING__) return;\n          window.__ARCANA_APP_BUNDLE_LOADING__ = true;\n          var script = document.createElement('script');\n          script.src = src;\n          script.async = false;\n          document.body.appendChild(script);\n        }\n        if (window.__ARCANA_DEFER_APP_BUNDLE__) {\n          var loaded = false;\n          function finish() {\n            if (loaded) return;\n            loaded = true;\n            inject();\n          }\n          window.addEventListener('arcana-deeplink-detail-ready', finish, { once: true });\n          window.setTimeout(finish, 3200);\n          if (window.__ARCANA_DEEPLINK_HYDRATED__) finish();\n        } else {\n          inject();\n        }\n      })();\n    </script>\n    `;
+  return `\n    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: ${hash}) -->\n    <script>\n      (function arcanaLoadAppBundle() {\n        var src = '${bundleRel}';\n        function inject() {\n          if (window.__ARCANA_APP_BUNDLE_LOADING__) return;\n          window.__ARCANA_APP_BUNDLE_LOADING__ = true;\n          var script = document.createElement('script');\n          script.src = src;\n          script.async = false;\n          document.body.appendChild(script);\n        }\n        if (window.__ARCANA_DEFER_APP_BUNDLE__) {\n          var loaded = false;\n          function finish() {\n            if (loaded) return;\n            loaded = true;\n            inject();\n          }\n          window.addEventListener('arcana-deeplink-detail-ready', finish, { once: true });\n          window.addEventListener(\n            'DOMContentLoaded',\n            function () {\n              if (typeof requestIdleCallback === 'function') {\n                requestIdleCallback(finish, { timeout: 1600 });\n              } else {\n                window.setTimeout(finish, 120);\n              }\n            },\n            { once: true }\n          );\n          window.setTimeout(finish, 3200);\n          if (window.__ARCANA_DEEPLINK_HYDRATED__) finish();\n        } else {\n          inject();\n        }\n      })();\n    </script>\n    `;
 }
 
 let newHtml = html;
