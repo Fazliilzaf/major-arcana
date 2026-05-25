@@ -31,6 +31,7 @@ const CONCURRENCY = Math.max(1, Math.min(30, Number(process.env.ARCANA_PUSH_CONC
 const args = new Set(process.argv.slice(2));
 const filesOnly = args.has('--files-only');
 const apiOnly = args.has('--api-only');
+const indexOnly = args.has('--index-only');
 
 function getToken() {
   if (process.env.ARCANA_OWNER_TOKEN) return process.env.ARCANA_OWNER_TOKEN.trim();
@@ -145,11 +146,13 @@ async function pushJournalsViaApi(token) {
 }
 
 async function pushStateFiles(token) {
-  const files = [
-    ['migration-index.json', path.join(ROOT, 'data/migration-index.json')],
-    ['cco-patient-master.json', path.join(ROOT, 'data/cco-patient-master.json')],
-    ['cco-journal.json', path.join(ROOT, 'data/cco-journal.json')],
-  ];
+  const files = indexOnly
+    ? [['migration-index.json', path.join(ROOT, 'data/migration-index.json')]]
+    : [
+        ['migration-index.json', path.join(ROOT, 'data/migration-index.json')],
+        ['cco-patient-master.json', path.join(ROOT, 'data/cco-patient-master.json')],
+        ['cco-journal.json', path.join(ROOT, 'data/cco-journal.json')],
+      ];
   for (const [fileName, filePath] of files) {
     if (!fs.existsSync(filePath)) throw new Error(`Saknar ${filePath}`);
     await pushStateFile(token, fileName, filePath);
