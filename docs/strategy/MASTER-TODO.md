@@ -73,7 +73,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | **B** | U2.2 OWNER MFA enforced | ~ (väntar `apply:auth-go-live-prod`) |
 | **Policy** | Publik `/api/public/booking-engine/*` | av (503 tills explicit go-live) |
 
-> Nästa kod-svep: **U2.2 MFA go-live** eller **BL.2 parity**. U5B.3 medvetet Q4.
+> Nästa kod-svep: **BL.5 adaptive layout** eller **J-6.2**. MFA (D) sist. U5B.3 Q4.
 
 ---
 
@@ -393,13 +393,13 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 ### Backlog (medvetet senare) ☐
 
 - [x] BL.1 Mobil månadskalender (#17 UX sweep) — månadsvy + daglista i kalender-sheet
-- [ ] BL.2 cco-next-release parity (#18) — HTML `/cco-next` → `/major-arcana-preview` redirect live; full React parity kvar
+- [x] BL.2 cco-next-release parity (#18) — `/cco-next` → `/major-arcana-preview` redirect (canonical UI)
 - [ ] BL.3 Android enhetstest (valfritt)
 - [ ] BL.4 Executive OS expand — PR #6 delvis (6 agents); full masterplan-expand kvar
 - [~] BL.5 Adaptive layout (Arcana/CCO web) — spec ☑ [cco-adaptive-layout-rules.md](./cco-adaptive-layout-rules.md); Fas 1–4 implementation ☐
 
 > **Verify BL.1:** `booking-mobile-calendar-day.js` — månadsvy (nav, Idag, 7×6 grid, badge lediga/bokade), daglista under. `ArcanaBookingMobileCalendar.getViewMonth()`. Unit sweep PASS 2026-05-25.
-> **Verify BL.2:** `/cco-next` HTML redirect → `/major-arcana-preview` (`resolveCcoNextPreviewRedirect.js`); legacy PWA assets kvar i `cco-next-release/`. Full #18 parity ej genomförd.
+> **Verify BL.2:** Prod **302** `/cco-next` → `/major-arcana-preview/` (`X-Arcana-Cco-Next-Redirect`). `resolveCcoNextPreviewRedirect.js` + `smoke:public` PASS 2026-05-25.
 > **Verify BL.3:** Ingen Android Playwright/CI — endast manuell checklista (`cco-mobile-staff-pilot-checklist.md`).
 > **Verify BL.4:** PR #6 gav 6 agents + capabilities; full Executive OS-expand enligt masterplan **ej påbörjad**.
 > **J-8 underlag:** se Fas J-8 ovan — spec + gateway + byggblock finns; prod-agent saknas.
