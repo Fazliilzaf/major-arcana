@@ -568,6 +568,8 @@ const { createPatientIdentityStore } = require('./src/ops/patientIdentityVerific
 const { createVideoRouter } = require('./src/routes/video');
 const { createSignalingService } = require('./src/video/signalingServer');
 const { createMeetingTranscriptionService } = require('./src/video/meetingTranscription');
+const { createQmsRouter } = require('./src/routes/qms');
+const { createQmsStore } = require('./src/qms/qmsStore');
 const { createBillingService } = require('./src/billing/billingService');
 const { createStripeClient } = require('./src/billing/stripeClient');
 const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
@@ -2251,6 +2253,20 @@ process.once('SIGTERM', () => {
 
   const signalingService = createSignalingService();
   const transcriptionService = createMeetingTranscriptionService();
+
+  const qmsStorePath = config.stateRoot
+    ? `${config.stateRoot}/cco-qms.json`
+    : './data/cco-qms.json';
+  const qmsStore = createQmsStore({ filePath: qmsStorePath });
+  qmsStore.load().catch((err) => console.warn('[qms-store] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createQmsRouter({
+      authStore: auth,
+      qmsStore,
+    })
+  );
 
   app.use(
     '/api/v1',
