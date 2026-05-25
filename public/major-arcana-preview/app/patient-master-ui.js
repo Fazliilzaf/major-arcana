@@ -179,6 +179,13 @@
 
   function resetAuthMobileLayout() {
     if (!isMobileViewport() || runtime.mode !== 'register') return;
+    if (
+      window.__ARCANA_DEEPLINK_HYDRATED__ ||
+      window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ ||
+      window.__ARCANA_MOBILE_DEEPLINK_PRIME__
+    ) {
+      return;
+    }
     const hadDetail =
       Boolean(normalizeText(runtime.selectedPatientId)) ||
       document.documentElement.hasAttribute('data-cco-patient-detail');
