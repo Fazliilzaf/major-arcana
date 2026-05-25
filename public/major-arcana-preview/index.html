@@ -103,7 +103,8 @@
   <script src="./cco-mobile-shell.js?v=build-staff-first-login-a" defer></script>
   <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
   <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
-  <script src="./booking-mobile-calendar-day.js?v=build-mobile-shell-e" defer></script>
+  <script src="./booking-mobile-calendar-day.js?v=build-mobile-month-cal-f" defer></script>
+  <script src="./app/cco-missing-forms-ops.js?v=build-care-sweep-b" defer></script>
   <script src="./cco-mobile-queue.js?v=build-mobile-shell-e" defer></script>
 </head>
 
@@ -304,7 +305,7 @@
             </button>
 
             <button class="preview-utility-button preview-utility-button-alert" type="button"
-              aria-label="Notifieringar">
+              aria-label="Saknade formulär" data-missing-forms-open title="Saknade formulär (J-8.1)">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <path
                   d="M8 13.1a1.8 1.8 0 0 0 1.7-1.1H6.3A1.8 1.8 0 0 0 8 13.1ZM4.4 11.1h7.2L10.7 10V7.2a2.7 2.7 0 1 0-5.4 0V10Z"
@@ -6940,6 +6941,9 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
         </button>
         <button type="button" class="cco-mobile-more-item" data-mobile-more-action="sprint" role="menuitem">
           Fokuspass
+        </button>
+        <button type="button" class="cco-mobile-more-item" data-mobile-more-action="missing-forms" role="menuitem">
+          Saknade formulär
         </button>
         <button type="button" class="cco-mobile-more-item" data-mobile-more-action="language" role="menuitem">
           Språk

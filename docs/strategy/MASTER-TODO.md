@@ -3,7 +3,7 @@
 Senast uppdaterad: **2026-05-25** (doc-sync svep + prod-audit)  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
 
-**Du är här:** **J-8.2 ☑** (UI) · **U2.2 MFA** (väntar go-live) · **J-6.2** Cliento ut · **U5B.3** Q4.
+**Du är här:** **J-8.2 ☑** (UI) · **U2.2 MFA** (väntar go-live) · **J-6.2 ☑** (guards) · **U5B.3** Q4.
 
 **Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6) — synkad 2026-05-25 doc-svep (se `NOTION-SYNC-MANIFEST.md`)
 
@@ -43,7 +43,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | Punkt | Verdict | Evidens |
 |-------|---------|---------|
 | J-7.1 / J-7.2 | ☑ | Scheduler `cco_customer_reminders`; CC-11 queue total 20 |
-| J-8.1 | ☑ | `missing-forms-report` API; CC-09 200 patients |
+| J-8.1 | ☑ | `missing-forms-report` API + STAFF UI (`ArcanaMissingFormsOps`); CC-09 200 patients |
 | U5B.1 / U5B.2 | ☑ | = J-7 (operatörs-digest, ej patient-SMS) |
 | U2.5b | ☑ | CC-02 `GET /ops/maintenance-window` |
 | J-8.2 | ☑ | API + scheduler + kundkort UI (`review-draft-proposal`) |
@@ -61,7 +61,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | **B** | U2.2 OWNER MFA enforced | ~ (väntar `apply:auth-go-live-prod`) |
 | **Policy** | Publik `/api/public/booking-engine/*` | av (503 tills explicit go-live) |
 
-> Nästa kod-svep: **U2.2 MFA go-live** eller **J-6.2**. U5B.3 medvetet Q4.
+> Nästa kod-svep: **U2.2 MFA go-live** eller **BL.2 parity**. U5B.3 medvetet Q4.
 
 ---
 
@@ -202,10 +202,10 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] J-6A Plan A — publik `/boka` GO 2026-05-24 *(API av på prod: `ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false`)*
 - [x] J-6A Operatörsbekräftelse 3/3 prod
 - [x] J-6.1 Full behandlingskatalog på webben (11 Plan A-tjänster)
-- [ ] J-6.2 Egen engine — Cliento ut
+- [x] J-6.2 Egen engine — Cliento ut *(CCO Plan A live; publik API + Cliento av — policy)*
 - [x] J-6.3 **Koppling bokning → behandlingstillfälle → journal**
 
-> **Verify 2026-05-25:** Plan A E2E **PASS** (CCO/intern). **Publik webb-API av** (`public_web_booking_disabled` — policy). Resend **PASS** (U5A.4). Bokning→journal **PASS** (J-6.3).
+> **Verify 2026-05-25:** Plan A E2E **PASS** (CCO/intern). **Publik webb-API av** (`public_web_booking_disabled` — policy). **Cliento proxy av** (`cliento_booking_disabled`). `npm run verify:booking-engine-policy-prod` BE-01–04. Resend **PASS** (U5A.4). Bokning→journal **PASS** (J-6.3).
 
 ### Fas J-7 — Påminnelser ☑ (backend)
 
@@ -380,15 +380,15 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 
 ### Backlog (medvetet senare) ☐
 
-- [ ] BL.1 Mobil månadskalender (#17 UX sweep)
-- [ ] BL.2 cco-next-release parity (#18)
+- [x] BL.1 Mobil månadskalender (#17 UX sweep) — månadsvy + daglista i kalender-sheet
+- [ ] BL.2 cco-next-release parity (#18) — HTML `/cco-next` → `/major-arcana-preview` redirect live; full React parity kvar
 - [ ] BL.3 Android enhetstest (valfritt)
-- [x] BL.4 Executive OS expand — PR #6 (6 agents, 15 capabilities, billing, DXM)
+- [ ] BL.4 Executive OS expand — PR #6 delvis (6 agents); full masterplan-expand kvar
 
-> **Verify BL.1:** UX sweep #17 = **backlog** i `cco-mobile-ux-sweep-plan.md` (dag-kalender finns, full månadskalender saknas).
-> **Verify BL.2:** `public/cco-next-release/` mountad i `server.js` men **canonical UI = major-arcana-preview**; parity #18 ej genomförd.
+> **Verify BL.1:** `booking-mobile-calendar-day.js` — månadsvy (nav, Idag, 7×6 grid, badge lediga/bokade), daglista under. `ArcanaBookingMobileCalendar.getViewMonth()`. Unit sweep PASS 2026-05-25.
+> **Verify BL.2:** `/cco-next` HTML redirect → `/major-arcana-preview` (`resolveCcoNextPreviewRedirect.js`); legacy PWA assets kvar i `cco-next-release/`. Full #18 parity ej genomförd.
 > **Verify BL.3:** Ingen Android Playwright/CI — endast manuell checklista (`cco-mobile-staff-pilot-checklist.md`).
-> **Verify BL.4:** CFO/COO-referenser i orchestrator/capabilities finns; full Executive OS-expand enligt masterplan **ej påbörjad**.
+> **Verify BL.4:** PR #6 gav 6 agents + capabilities; full Executive OS-expand enligt masterplan **ej påbörjad**.
 > **J-8 underlag:** se Fas J-8 ovan — spec + gateway + byggblock finns; prod-agent saknas.
 
 ---

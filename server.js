@@ -25,6 +25,7 @@ function getChromium() {
 const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
 const { resolveCcoNextCanonicalUrl } = require('./src/brand/resolveCcoNextCanonicalUrl');
+const { resolveCcoNextPreviewPath } = require('./src/brand/resolveCcoNextPreviewRedirect');
 const { getClientoConfigForBrand, getKnowledgeDirForBrand } = require('./src/brand/runtimeConfig');
 const { createCorsPolicy } = require('./src/security/corsPolicy');
 const { requestContextMiddleware } = require('./src/observability/requestContext');
@@ -778,8 +779,16 @@ app.get('/cco', (req, res) => {
   res.redirect(302, `/admin${query}#cco`);
 });
 
-app.get(/^\/cco-next(?:\/.*)?$/, (_req, res) => {
-  sendCcoNextUpstreamHtml(res);
+app.get(/^\/cco-next(?:\/.*)?$/, (req, res) => {
+  const search = String(req.url || '').includes('?')
+    ? String(req.url).slice(String(req.url).indexOf('?'))
+    : '';
+  const previewPath = resolveCcoNextPreviewPath(req.path, search);
+  if (previewPath) {
+    res.setHeader('X-Arcana-Cco-Next-Redirect', 'major-arcana-preview');
+    return res.redirect(302, previewPath);
+  }
+  return sendCcoNextUpstreamHtml(res);
 });
 
 app.get('/unanswered', (req, res) => {
