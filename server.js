@@ -559,6 +559,10 @@ const { createBillingRouter } = require('./src/routes/billing');
 const { createKnowledgeRouter } = require('./src/routes/knowledge');
 const { createPosRouter } = require('./src/routes/pos');
 const { createPosStore } = require('./src/pos/posStore');
+const {
+  createPatientPortalRouter,
+  createPatientPortalStore,
+} = require('./src/routes/patientPortal');
 const { createBillingService } = require('./src/billing/billingService');
 const { createStripeClient } = require('./src/billing/stripeClient');
 const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
@@ -2173,6 +2177,22 @@ process.once('SIGTERM', () => {
     createPosRouter({
       authStore: auth,
       posStore,
+    })
+  );
+
+  const patientPortalStorePath = config.stateRoot
+    ? `${config.stateRoot}/cco-patient-portal.json`
+    : './data/cco-patient-portal.json';
+  const patientPortalStore = createPatientPortalStore({ filePath: patientPortalStorePath });
+  patientPortalStore
+    .load()
+    .catch((err) => console.warn('[patient-portal] Load failed:', err?.message));
+
+  app.use(
+    '/api',
+    createPatientPortalRouter({
+      patientPortalStore,
+      journalStore: ccoJournalStore || null,
     })
   );
 

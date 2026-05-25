@@ -37,20 +37,20 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ Full katalog: FUE, DHI, skägg, ögonbryn, PRP hår/hud, microneedling, uppföljning
 - ✅ VIP-länk / token-bokning för icke-självbokbara tjänster (t.ex. uppföljning)
 - ✅ Webb → Arcana reservation (kontakt, slot, hälsodeklarationsflagga)
-- 🔲 Curatiio som separat bokningsflöde (egna tjänster, inget läckage Hair TP ↔ Curatiio)
+- ✅ Curatiio som separat bokningsflöde (brand-taggning per tjänst, filtrering via host)
 
 ### 2.2 Intern bokning (personal)
 
 - ✅ Bokningsärende i CCO med kandidat-tider, validering, status
 - 🔲 Kalendervy per behandlare och resurs
-- 🔲 Smart slots: min-notice, max 180 dagar, kväll/helg-prisregler
+- ✅ Smart slots: min-notice, max 180 dagar, kväll/helg-prisregler (per service config)
 - ✅ Koppling bokning → behandlingstillfälle (encounter) automatiskt
 
 ### 2.3 Regler & resurser
 
 - ✅ Virtuella bokningsbanor (online / fysisk) + läkare som publika resurser
 - 🔲 Scheman per resurs och per tjänst
-- 🔲 Avbokningspolicy per tjänst (timmar före)
+- ✅ Avbokningspolicy per tjänst (cancellationHours per service)
 
 ---
 
@@ -72,7 +72,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - 🔲 Hälsodeklaration engelska
 - 🔲 Friskförsäkran TP (patient + personal, signering)
 - 🔲 Friskförsäkran ögonlocksplastik
-- 🔲 Patientportal / länk för att fylla i före besök (ersätter Meridiq registreringsportal)
+- ✅ Patientportal / länk för att fylla i före besök (token-baserad, synkar till journal)
 - ⚠️ Webbformulär `/screen` och `/friskforsakran` — ska synkas in i journal (ej fristående)
 
 ### 4.2 Personalformulär (klinisk journalföring)
@@ -202,7 +202,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 | Kommunikation | Hair TP-mallar                                          | Curatiio-mallar                             |
 | Avtal         | TP, PRP, microneedling                                  | Botox, filler, Profhilo, ögonlock, ortopedi |
 
-- 🔲 Strikt separation i publik bokning — Curatiio syns inte på hairtpclinic.com
+- ✅ Strikt separation i publik bokning — brand-fält per tjänst, filtrering via host
 
 ---
 
