@@ -563,6 +563,8 @@ const {
   createPatientPortalRouter,
   createPatientPortalStore,
 } = require('./src/routes/patientPortal');
+const { createPatientIdentityRouter } = require('./src/routes/patientIdentity');
+const { createPatientIdentityStore } = require('./src/ops/patientIdentityVerification');
 const { createBillingService } = require('./src/billing/billingService');
 const { createStripeClient } = require('./src/billing/stripeClient');
 const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
@@ -2193,6 +2195,20 @@ process.once('SIGTERM', () => {
     createPatientPortalRouter({
       patientPortalStore,
       journalStore: ccoJournalStore || null,
+    })
+  );
+
+  const identityStorePath = config.stateRoot
+    ? `${config.stateRoot}/cco-patient-identity.json`
+    : './data/cco-patient-identity.json';
+  const identityStore = createPatientIdentityStore({ filePath: identityStorePath });
+  identityStore.load().catch((err) => console.warn('[identity-store] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createPatientIdentityRouter({
+      authStore: auth,
+      identityStore,
     })
   );
 
