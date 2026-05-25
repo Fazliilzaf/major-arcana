@@ -126,6 +126,7 @@ async function buildJournalDraftProposals({
   patientCareStateStore,
   tenantId,
   patientLimit = 100,
+  persist = true,
 } = {}) {
   const report = await buildMissingFormsReport({
     patientMasterStore,
@@ -139,24 +140,29 @@ async function buildJournalDraftProposals({
   for (const row of report.rows.slice(0, 50)) {
     const fields = buildDraftProposalFields(row.missing);
     if (!Object.keys(fields).length) continue;
-    const proposal = patientCareStateStore
-      ? await patientCareStateStore.upsertDraftProposal({
-          tenantId,
-          patientId: row.patientId,
-          status: 'pending',
-          reviewRequired: true,
-          source: 'cco_journal_draft_agent',
-          missing: row.missing,
-          displayName: row.displayName,
-          draftFields: fields,
-        })
-      : {
-          proposalId: `local-${row.patientId}`,
-          tenantId,
-          patientId: row.patientId,
-          status: 'pending',
-          draftFields: fields,
-        };
+    const proposal =
+      patientCareStateStore && persist
+        ? await patientCareStateStore.upsertDraftProposal({
+            tenantId,
+            patientId: row.patientId,
+            status: 'pending',
+            reviewRequired: true,
+            source: 'cco_journal_draft_agent',
+            missing: row.missing,
+            displayName: row.displayName,
+            draftFields: fields,
+          })
+        : {
+            proposalId: persist ? `local-${row.patientId}` : `preview-${row.patientId}`,
+            tenantId,
+            patientId: row.patientId,
+            status: 'pending',
+            reviewRequired: true,
+            source: 'cco_journal_draft_agent',
+            missing: row.missing,
+            displayName: row.displayName,
+            draftFields: fields,
+          };
     proposals.push(proposal);
   }
 

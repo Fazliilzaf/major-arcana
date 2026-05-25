@@ -106,6 +106,33 @@ test('buildJournalDraftProposals sparar pending-förslag i care state store', as
   }
 });
 
+test('buildJournalDraftProposals med persist=false skriver inte till care state store', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-care-ops-preview-'));
+  try {
+    const patientCareStateStore = await createCcoPatientCareStateStore({
+      filePath: path.join(tempDir, 'care-state.json'),
+    });
+    const result = await buildJournalDraftProposals({
+      tenantId: 'hair-tp-clinic',
+      patientMasterStore: mockPatientMasterStore([{ patientId: 'p1', displayName: 'Anna' }]),
+      journalStore: mockJournalStore({
+        p1: [{ journalType: 'health_declaration', status: 'draft' }],
+      }),
+      patientCareStateStore,
+      persist: false,
+    });
+    assert.equal(result.proposalCount, 1);
+    assert.match(result.proposals[0].proposalId, /^preview-/);
+    const stored = await patientCareStateStore.listDraftProposals({
+      tenantId: 'hair-tp-clinic',
+      status: 'pending',
+    });
+    assert.equal(stored.length, 0);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('buildCustomerReminderQueue hittar kommande besök och undviker dubbletter', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-care-reminders-'));
   try {
