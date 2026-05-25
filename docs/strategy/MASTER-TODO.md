@@ -214,7 +214,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 
 > **Verify 2026-05-25:** `cco_customer_reminders` enabled prod. `buildCustomerReminderQueue` (besök + aftercare). Operatörs-digest via Graph — **ej patient-SMS**. `npm run verify:cco-care-sweep-prod` CC-11 PASS.
 
-### Fas J-8 — CCO-care ~ (backend ☑ / UI kvar)
+### Fas J-8 — CCO-care ☑
 
 - [x] J-8.1 Daglig rapport: saknade formulär/samtycken
 - [x] J-8.2 Journalutkast (human approval) — API + scheduler + godkänn/avvisa i Journal-fliken
