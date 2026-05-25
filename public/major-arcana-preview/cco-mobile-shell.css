@@ -202,7 +202,7 @@
       box-shadow:
         0 5px 14px rgba(70, 50, 30, 0.07),
         inset 0 1px 0 rgba(255, 255, 255, 0.72);
-      backdrop-filter: blur(18px) saturate(1.12);
+      background-color: rgba(250, 246, 242, 0.97);
     }
 
     html[data-cco-mobile-shell="on"]
@@ -285,8 +285,7 @@
       padding-inline: max(env(safe-area-inset-left, 0px), 4px)
         max(env(safe-area-inset-right, 0px), 4px);
       border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
-      background: color-mix(in srgb, var(--cco-bg-surface, #fff) 94%, transparent);
-      backdrop-filter: blur(16px) saturate(1.08);
+      background: rgba(250, 246, 242, 0.98);
     }
 
     html[data-cco-mobile-tabbar="on"] .cco-mobile-tabbar {
@@ -317,7 +316,29 @@
       color: var(--cco-color-accent-strong, #2e5a47);
     }
 
+    .cco-mobile-tabbar-item.is-loading {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .cco-mobile-tabbar-item.is-loading .cco-mobile-tabbar-icon::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      animation: cco-tab-spin 0.6s linear infinite;
+    }
+
+    @keyframes cco-tab-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     .cco-mobile-tabbar-icon {
+      position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -376,7 +397,7 @@
       box-shadow: var(--cco-shadow-xl);
       overflow: auto;
       transform: translateY(100%);
-      transition: transform 220ms var(--cco-ease-out, ease-out);
+      transition: transform 140ms var(--cco-ease-out, ease-out);
     }
 
     html[data-cco-mobile-more-open="on"] .cco-mobile-more-panel {
@@ -722,7 +743,7 @@
       padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
       overflow: auto;
       -webkit-overflow-scrolling: touch;
-      transition: transform 220ms var(--cco-ease-out, ease-out);
+      transition: transform 140ms var(--cco-ease-out, ease-out);
       box-shadow: var(--cco-shadow-xl);
     }
 
@@ -1134,7 +1155,7 @@
     }
 
     html[data-cco-mobile-shell="on"] .cco-booking-date-chip {
-      min-height: 40px;
+      min-height: 44px;
       padding: 0 14px;
       border: 1px solid rgba(154, 126, 104, 0.22);
       border-radius: 999px;
@@ -1284,7 +1305,7 @@
       .thread-card.unified-queue-card.warm-row
       .warm-actions
       .primary-action {
-      min-height: 40px;
+      min-height: 44px;
       padding: 0 12px;
       font-size: 13px;
     }
@@ -1293,10 +1314,10 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
-      min-width: 40px;
-      min-height: 40px;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
       border: 1px solid rgba(154, 126, 104, 0.18);
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.92);
@@ -1368,7 +1389,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      min-height: 40px;
+      min-height: 44px;
       margin: 0 var(--cco-mobile-gutter, 16px) 8px;
       padding: 0 14px;
       border: 1px solid rgba(154, 126, 104, 0.2);
@@ -2426,9 +2447,9 @@
 
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
       .patient-master-mode-button {
-      min-height: 34px;
-      padding: 0 8px;
-      font-size: 12px;
+      min-height: 44px;
+      padding: 0 12px;
+      font-size: 13px;
     }
 
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-row {
@@ -2463,7 +2484,7 @@
 
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-search,
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-filter {
-      min-height: 40px;
+      min-height: 44px;
     }
 
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
@@ -2518,8 +2539,7 @@
       gap: 8px;
       padding: 10px var(--cco-mobile-gutter, 16px);
       border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
-      background: color-mix(in srgb, var(--cco-bg-surface, #fff) 96%, transparent);
-      backdrop-filter: blur(12px);
+      background: rgba(252, 248, 244, 0.98);
     }
 
     html[data-cco-mobile-shell="on"] .cco-mobile-sticky-cta-bar {
@@ -2694,7 +2714,7 @@
       background: var(--cco-bg-surface, #fff);
       box-shadow: var(--cco-shadow-xl);
       transform: translateY(110%);
-      transition: transform 220ms var(--cco-ease-out, ease-out);
+      transition: transform 140ms var(--cco-ease-out, ease-out);
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
@@ -3260,16 +3280,55 @@
       border-bottom: 1px solid rgba(120, 105, 90, 0.12);
     }
 
-    /* Fix legacy 820px conflicts — override cramped heights */
-    .preview-shell-queue-band {
+    /* Fix legacy 760-820px conflicts — mobile shell owns layout */
+    html[data-cco-mobile-shell="on"] .preview-shell-queue-band {
       min-height: auto !important;
       max-height: none !important;
       height: auto !important;
     }
 
-    .conversation-focus-panel {
+    html[data-cco-mobile-shell="on"] .conversation-focus-panel {
       min-height: auto !important;
       max-height: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas {
+      --workspace-gap: 0px;
+      --workspace-focus-gap: 0px;
+      overflow: visible !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-workspace {
+      flex-direction: column;
+      gap: 0;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      overflow: visible;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-shell {
+      position: relative;
+      top: auto;
+      left: auto;
+      right: auto;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      flex: 1 1 auto;
+    }
+
+    html[data-cco-mobile-shell="on"] .workspace-resizer {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .focus-shell {
+      position: relative;
+      top: auto;
+      left: auto;
+      width: 100%;
+      flex: 0 0 auto;
     }
   }
 

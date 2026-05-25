@@ -158,6 +158,13 @@
   function optimisticTab(tab) {
     if (!tab || tab === "more") return;
     syncTabbar(tab);
+    tabButtons.forEach((button) => {
+      const isTarget =
+        (button.dataset.mobileTab || "") === tab ||
+        (tab === "queue" && button.dataset.mobileTab === "home");
+      button.classList.toggle("is-loading", isTarget);
+      button.setAttribute("aria-busy", isTarget ? "true" : "false");
+    });
     const title =
       tab === "home"
         ? VIEW_LABELS.conversations
@@ -383,7 +390,9 @@
       const tab = button.dataset.mobileTab || "";
       const isActive = tab === activeTab;
       button.classList.toggle("is-active", isActive);
+      button.classList.remove("is-loading");
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      button.setAttribute("aria-busy", "false");
     });
   }
 

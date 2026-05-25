@@ -989,7 +989,8 @@
           return { pillMode: "live", threadCount, isLive: true };
         }
         const hasToken =
-          typeof localStorage !== "undefined" && Boolean(localStorage.getItem("ARCANA_ADMIN_TOKEN"));
+          typeof localStorage !== "undefined" &&
+          Boolean(localStorage.getItem("ARCANA_ADMIN_TOKEN"));
         if (hasToken && threadCount > 0 && runtime.authRequired !== true) {
           return { pillMode: "live", threadCount, isLive: true };
         }
@@ -2964,8 +2965,7 @@
         medical: "Medicinsk fråga",
         medicinsk: "Medicinsk fråga",
       };
-      const whatValue =
-        LANE_REDUNDANT_WHAT[laneId] === rawWhatValue ? "" : rawWhatValue;
+      const whatValue = LANE_REDUNDANT_WHAT[laneId] === rawWhatValue ? "" : rawWhatValue;
       const whyValue = compactRuntimeCopy(
         asText(getQueueInlineLaneSignalWhy(thread, laneId)),
         "",
@@ -3265,7 +3265,9 @@
       if (primaryLaneId && ENRICHED_RUNTIME_LANE_IDS.has(primaryLaneId)) return false;
       const intent = normalizeKey(thread?.intent || thread?.raw?.intent || "");
       if (intent && !TRUTH_PRIMARY_PLACEHOLDER_INTENTS.has(intent)) return false;
-      const laneTags = asArray(thread?.tags).map((tag) => normalizeKey(tag)).filter(Boolean);
+      const laneTags = asArray(thread?.tags)
+        .map((tag) => normalizeKey(tag))
+        .filter(Boolean);
       if (
         laneTags.some(
           (tag) =>
@@ -3677,8 +3679,7 @@
       // fields they need (intentLabel, statusLabel, riskLabel, tags, etc.) — pass
       // through any explicit override from caller.
       const enrichmentPending =
-        unifiedModel.enrichmentPending === true ||
-        isRuntimeEnrichmentPending(unifiedModel);
+        unifiedModel.enrichmentPending === true || isRuntimeEnrichmentPending(unifiedModel);
       const v5Lane = enrichmentPending ? "pending" : v5LaneCode(unifiedModel.laneId, unifiedModel);
       const v5Label = enrichmentPending ? "Analyserar…" : v5LaneLabel(v5Lane);
       const v5Icon = v5LaneIcon(v5Lane);
@@ -4074,8 +4075,7 @@
       // Fas 27F-A: skippa subject om identisk med sender (system-mejl utan parsed
       // kundnamn fick tidigare "Booking Request · Booking Request"-duplikat).
       const showSubject =
-        subjectText &&
-        subjectText.trim().toLowerCase() !== senderText.trim().toLowerCase();
+        subjectText && subjectText.trim().toLowerCase() !== senderText.trim().toLowerCase();
       const senderSubjectMarkup = `<div class="warm-line-1">
         <span class="warm-sender">${escapeHtml(senderText)}</span>
         ${showSubject ? `<span class="warm-sep" aria-hidden="true">·</span><span class="warm-subject signal-what" title="${escapeHtml(subjectText)}">${escapeHtml(subjectText)}</span>` : ""}
@@ -5648,11 +5648,43 @@
         return;
       }
 
-      queueContent.innerHTML = filteredThreads
-        .map((thread, index) =>
-          buildThreadCardMarkup(thread, index, thread.id === state.runtime.selectedThreadId)
-        )
-        .join("");
+      const selectedId = state.runtime.selectedThreadId;
+      const existingCards = Array.from(queueContent.querySelectorAll("[data-thread-id]"));
+      const existingMap = new Map(existingCards.map((el) => [el.dataset.threadId, el]));
+      const newIds = new Set(filteredThreads.map((t) => t.id));
+
+      existingCards.forEach((el) => {
+        if (!newIds.has(el.dataset.threadId)) el.remove();
+      });
+
+      let prevNode = null;
+      for (let i = 0; i < filteredThreads.length; i++) {
+        const thread = filteredThreads[i];
+        const isSelected = thread.id === selectedId;
+        const existing = existingMap.get(thread.id);
+        if (existing) {
+          const wantSelected = isSelected;
+          const hasSelected = existing.classList.contains("thread-card-active");
+          if (wantSelected !== hasSelected) {
+            existing.classList.toggle("thread-card-active", wantSelected);
+            existing.setAttribute("aria-current", wantSelected ? "true" : "false");
+          }
+          if (prevNode && prevNode.nextElementSibling !== existing) {
+            prevNode.after(existing);
+          }
+          prevNode = existing;
+        } else {
+          const temp = windowObject.document.createElement("div");
+          temp.innerHTML = buildThreadCardMarkup(thread, i, isSelected);
+          const card = temp.firstElementChild;
+          if (prevNode) {
+            prevNode.after(card);
+          } else {
+            queueContent.prepend(card);
+          }
+          prevNode = card;
+        }
+      }
       decorateStaticPills();
       renderSelectedThreadInlineControls();
     }
@@ -5702,13 +5734,42 @@
           isUnread: item.isUnread === true || runtimeHistoryItem.isUnread === true,
         };
       };
-      queueHistoryList.innerHTML = asArray(items)
-        .map((item) =>
-          buildQueueHistoryCardMarkup(enrichHistoryCardItem(item), {
-            selectedConversationId: state.runtime.queueHistory?.selectedConversationId,
-          })
-        )
-        .join("");
+      const enrichedItems = asArray(items).map((item) => enrichHistoryCardItem(item));
+      const selConvId = state.runtime.queueHistory?.selectedConversationId;
+      const existingHistCards = Array.from(
+        queueHistoryList.querySelectorAll("[data-conversation-id]")
+      );
+      const existingHistMap = new Map(
+        existingHistCards.map((el) => [el.dataset.conversationId, el])
+      );
+      const newConvIds = new Set(enrichedItems.map((item) => asText(item.conversationId)));
+
+      existingHistCards.forEach((el) => {
+        if (!newConvIds.has(el.dataset.conversationId)) el.remove();
+      });
+
+      let prevHistNode = null;
+      for (let i = 0; i < enrichedItems.length; i++) {
+        const item = enrichedItems[i];
+        const convId = asText(item.conversationId);
+        const existing = convId ? existingHistMap.get(convId) : null;
+        if (existing) {
+          if (prevHistNode && prevHistNode.nextElementSibling !== existing) {
+            prevHistNode.after(existing);
+          }
+          prevHistNode = existing;
+        } else {
+          const temp = windowObject.document.createElement("div");
+          temp.innerHTML = buildQueueHistoryCardMarkup(item, { selectedConversationId: selConvId });
+          const card = temp.firstElementChild;
+          if (prevHistNode) {
+            prevHistNode.after(card);
+          } else {
+            queueHistoryList.prepend(card);
+          }
+          prevHistNode = card;
+        }
+      }
       if (typeof enforceUnifiedCardV3Sections === "function") {
         enforceUnifiedCardV3Sections(queueHistoryList);
       }
@@ -5984,9 +6045,7 @@
         }
         // v5: demo-fixtures bara i rent marknadsdemo (ingen token, ej authRequired)
         if (!shouldSuppressDemoRuntimeThreads()) {
-          const demoFixtures = asArray(state.runtime.threads).filter((t) =>
-            isRuntimeDemoThread(t)
-          );
+          const demoFixtures = asArray(state.runtime.threads).filter((t) => isRuntimeDemoThread(t));
           if (demoFixtures.length) {
             if (queueTitle) {
               queueTitle.textContent = `Arbetslista (${demoFixtures.length})`;
@@ -5999,7 +6058,11 @@
             return;
           }
         }
-        if (state.runtime.backgroundSyncActive && !loadingThreads.length && !liveThreadsAnyScope.length) {
+        if (
+          state.runtime.backgroundSyncActive &&
+          !loadingThreads.length &&
+          !liveThreadsAnyScope.length
+        ) {
           if (queueTitle) {
             queueTitle.textContent = "Arbetslista (0)";
           }
@@ -6014,8 +6077,7 @@
           queueTitle.textContent = "Arbetslista (…)";
         }
         if (queueHistoryList) {
-          queueHistoryList.innerHTML =
-            '<div class="queue-history-empty">Laddar arbetskön…</div>';
+          queueHistoryList.innerHTML = '<div class="queue-history-empty">Laddar arbetskön…</div>';
         }
         if (queueHistoryLoadMoreButton) queueHistoryLoadMoreButton.hidden = true;
         return;
@@ -6023,9 +6085,7 @@
 
       if (useUnifiedQueueList && state.runtime.error && runtimeMode !== "offline_history") {
         if (!shouldSuppressDemoRuntimeThreads()) {
-          const demoFixtures = asArray(state.runtime.threads).filter((t) =>
-            isRuntimeDemoThread(t)
-          );
+          const demoFixtures = asArray(state.runtime.threads).filter((t) => isRuntimeDemoThread(t));
           if (demoFixtures.length) {
             if (queueHistoryList?.dataset) {
               queueHistoryList.dataset.queueListMode = "live";
