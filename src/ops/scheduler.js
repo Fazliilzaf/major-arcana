@@ -34,6 +34,10 @@ const {
   dispatchCustomerReminderDigest,
 } = require('./ccoPatientCareOps');
 const {
+  findEligiblePatients: findPostOpEligible,
+  dispatchPostOpTriggers,
+} = require('./postOpAutoTrigger');
+const {
   computeUsageAnalytics,
   computeWorklistSnapshotMetrics,
   computeHealthScore,
@@ -600,6 +604,35 @@ function createScheduler({
         reason: error?.message || 'journal_photos_backup_failed',
       };
     }
+  }
+
+  async function runPostOpAutoTrigger({ tenantId }) {
+    if (!postOpReviewStore || !patientMasterStore || !journalStore) {
+      return { tenantId, skipped: true, reason: 'required_stores_missing' };
+    }
+    const { eligible, skipped } = await findPostOpEligible({
+      journalStore,
+      patientMasterStore,
+      postOpReviewStore,
+      patientCareStateStore,
+      tenantId,
+      triggerAfterDays: Number(config.postOpTriggerAfterDays) || 7,
+      maxTriggerDays: Number(config.postOpMaxTriggerDays) || 30,
+      limit: 20,
+    });
+    if (skipped || eligible.length === 0) {
+      return { tenantId, skipped: skipped || false, eligible: 0, dispatched: 0 };
+    }
+    const result = await dispatchPostOpTriggers({
+      eligible,
+      postOpReviewStore,
+      patientCareStateStore,
+      transactionalMailer: transactionalMailer || null,
+      tenantId,
+      senderMailbox: config.postOpSenderMailbox || 'contact@hairtpclinic.com',
+      baseUrl: config.publicBaseUrl || '',
+    });
+    return { tenantId, eligible: eligible.length, ...result };
   }
 
   /**
@@ -3583,6 +3616,14 @@ function createScheduler({
       name: 'High/Critical alert probe',
       intervalMs: toMinutesMs(config.schedulerAlertProbeIntervalMinutes, 15),
       run: runAlertProbe,
+    },
+    {
+      id: 'post_op_auto_trigger',
+      name: 'Post-op auto-trigger (U5B.3 — 7d after treatment)',
+      intervalMs: postOpReviewStore && patientMasterStore && journalStore
+        ? toHoursMs(config.schedulerPostOpAutoTriggerIntervalHours, 12)
+        : 0,
+      run: runPostOpAutoTrigger,
     },
     {
       id: 'post_op_photo_prune',

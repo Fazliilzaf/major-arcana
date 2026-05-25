@@ -305,7 +305,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
 - [x] U5B.1 Påminnelse före besök (= J-7.1)
 - [x] U5B.2 Eftervård / formulär / återbesök triggers (= J-7.2)
-- [ ] U5B.3 Post-op auto-trigger (Q4)
+- [x] U5B.3 Post-op auto-trigger — `post_op_auto_trigger` scheduler (12h, 7d efter behandling, contact@ avsändare)
 
 > **Verify 2026-05-25:** Publik catalog **503** (policy av). Plan A CCO E2E **PASS**. Bokning→journal **PASS**. **U5A.4 Resend PASS**. U5B.1–2 **PASS** (`verify:cco-care-sweep-prod` CC-11). U5B.3 medvetet Q4.
 
