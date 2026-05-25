@@ -1,0 +1,2871 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "scripts/migration/buildJournalSchemas.py",
+  "schemaCount": 14,
+  "stats": {
+    "tpTreatmentMeridiqFields": 52,
+    "tpTreatmentMappedToStoreKeys": 52,
+    "healthDeclarationVariants": 5,
+    "serviceBindingHints": 5
+  },
+  "serviceBindingHints": [
+    {
+      "meridiqServiceApiId": 7078,
+      "serviceName": "Möte på kliniken | Fysisk konsultation",
+      "journalType": "health_declaration",
+      "formVariant": "hair_tp",
+      "meridiqQuestionaryId": 16414,
+      "questionaryTitle": "Hälsodeklaration | Hair TP Clinic"
+    },
+    {
+      "meridiqServiceApiId": 7079,
+      "serviceName": "Digitalt videosamtal | Onlinekonsultation",
+      "journalType": "health_declaration",
+      "formVariant": "hair_tp",
+      "meridiqQuestionaryId": 16414,
+      "questionaryTitle": "Hälsodeklaration | Hair TP Clinic"
+    },
+    {
+      "meridiqServiceApiId": 7080,
+      "serviceName": "Ögonlocksplastik | Konsultation",
+      "journalType": "health_declaration",
+      "formVariant": "curatiio_bleph",
+      "meridiqQuestionaryId": 16415,
+      "questionaryTitle": "Hälsodeklaration | Ögonlocksplastik"
+    },
+    {
+      "meridiqServiceApiId": 7081,
+      "serviceName": "Ortopediska injektionsbehandlingar | Konsultation",
+      "journalType": "health_declaration",
+      "formVariant": "curatiio_ortho",
+      "meridiqQuestionaryId": 14878,
+      "questionaryTitle": "Hälsodeklaration | Ortopediska injektionsbehandlingar"
+    },
+    {
+      "meridiqServiceApiId": 8694,
+      "serviceName": "Estetiska injektioner | Konsultation",
+      "journalType": "health_declaration",
+      "formVariant": "curatiio_injection",
+      "meridiqQuestionaryId": 16472,
+      "questionaryTitle": "Hälsodeklaration | Estetiska injektionsbehandlingar"
+    }
+  ],
+  "schemas": [
+    {
+      "schemaId": "bleph_treatment:curatiio_bleph",
+      "journalType": "bleph_treatment",
+      "formVariant": "curatiio_bleph",
+      "meridiqQuestionaryId": 16388,
+      "title": "Journal | Ögonlocksplastik",
+      "brand": "Curatiio",
+      "fieldCount": 15,
+      "sections": [
+        {
+          "title": "Journal | Ögonlocksplastik",
+          "fields": [
+            {
+              "key": "fornamn",
+              "label": "Förnamn",
+              "type": "text",
+              "meridiqQuestionId": 450367,
+              "meridiqType": "input",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "efternamn",
+              "label": "Efternamn",
+              "type": "text",
+              "meridiqQuestionId": 450368,
+              "meridiqType": "input",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "personnummer",
+              "label": "Personnummer",
+              "type": "text",
+              "meridiqQuestionId": 450369,
+              "meridiqType": "input",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "adress",
+              "label": "Adress",
+              "type": "text",
+              "meridiqQuestionId": 450370,
+              "meridiqType": "input",
+              "required": false,
+              "options": null
+            },
+            {
+              "key": "e_postadress",
+              "label": "E-postadress",
+              "type": "tristate",
+              "meridiqQuestionId": 450371,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "telefonnummer",
+              "label": "Telefonnummer",
+              "type": "tristate",
+              "meridiqQuestionId": 450372,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "dagens_datum",
+              "label": "Dagens datum",
+              "type": "text",
+              "meridiqQuestionId": 450373,
+              "meridiqType": "input",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "kontaktorsak",
+              "label": "Kontaktorsak",
+              "type": "text",
+              "meridiqQuestionId": 450374,
+              "meridiqType": "textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "anamnes",
+              "label": "Anamnes",
+              "type": "text",
+              "meridiqQuestionId": 450375,
+              "meridiqType": "textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "aktuellt",
+              "label": "Aktuellt",
+              "type": "text",
+              "meridiqQuestionId": 450376,
+              "meridiqType": "textbox",
+              "required": false,
+              "options": null
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "text",
+              "meridiqQuestionId": 450377,
+              "meridiqType": "textbox",
+              "required": false,
+              "options": null
+            },
+            {
+              "key": "aktuella_mediciner",
+              "label": "Aktuella mediciner",
+              "type": "text",
+              "meridiqQuestionId": 450378,
+              "meridiqType": "textbox",
+              "required": false,
+              "options": null
+            },
+            {
+              "key": "allergi",
+              "label": "Allergi",
+              "type": "text",
+              "meridiqQuestionId": 450379,
+              "meridiqType": "textbox",
+              "required": false,
+              "options": null
+            },
+            {
+              "key": "behandling_operationsberattelse",
+              "label": "Behandling / Operationsberättelse",
+              "type": "text",
+              "meridiqQuestionId": 450380,
+              "meridiqType": "textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "planering_aterbesok",
+              "label": "Planering/Återbesök",
+              "type": "text",
+              "meridiqQuestionId": 450381,
+              "meridiqType": "textbox",
+              "required": true,
+              "options": null
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "fornamn": "",
+        "efternamn": "",
+        "personnummer": "",
+        "adress": "",
+        "e_postadress": null,
+        "telefonnummer": null,
+        "dagens_datum": "",
+        "kontaktorsak": "",
+        "anamnes": "",
+        "aktuellt": "",
+        "status": "",
+        "aktuella_mediciner": "",
+        "allergi": "",
+        "behandling_operationsberattelse": "",
+        "planering_aterbesok": ""
+      },
+      "meridiqFieldMap": {
+        "450367": "fornamn",
+        "450368": "efternamn",
+        "450369": "personnummer",
+        "450370": "adress",
+        "450371": "e_postadress",
+        "450372": "telefonnummer",
+        "450373": "dagens_datum",
+        "450374": "kontaktorsak",
+        "450375": "anamnes",
+        "450376": "aktuellt",
+        "450377": "status",
+        "450378": "aktuella_mediciner",
+        "450379": "allergi",
+        "450380": "behandling_operationsberattelse",
+        "450381": "planering_aterbesok"
+      }
+    },
+    {
+      "schemaId": "fitness_certificate:curatiio_bleph",
+      "journalType": "fitness_certificate",
+      "formVariant": "curatiio_bleph",
+      "meridiqQuestionaryId": 16389,
+      "title": "Friskförsäkran | Ögonlocksplastik",
+      "brand": "Curatiio",
+      "fieldCount": 6,
+      "sections": [
+        {
+          "title": "Friskförsäkran | Ögonlocksplastik",
+          "fields": [
+            {
+              "key": "fornamn_och_efternman",
+              "label": "Förnamn och efternman",
+              "type": "text",
+              "meridiqQuestionId": 450382,
+              "meridiqType": "input",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "personnummer",
+              "label": "Personnummer",
+              "type": "text",
+              "meridiqQuestionId": 450384,
+              "meridiqType": "input",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "datum",
+              "label": "Datum",
+              "type": "text",
+              "meridiqQuestionId": 450385,
+              "meridiqType": "input",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "jag_intygar_harmed_att",
+              "label": "Jag intygar härmed att:",
+              "type": "checkboxes",
+              "meridiqQuestionId": 450386,
+              "meridiqType": "checkbox",
+              "required": false,
+              "options": [
+                "Jag känner mig frisk idag och har inga pågående sjukdomssymtom såsom feber, infektion, halsont, hosta, pågående virusinfektion eller annan akut sjukdom.",
+                "Jag har inte haft feber, infektion eller annan sjukdom de senaste 14 dagarna som kan påverka ingreppet.",
+                "Jag har inte nyligen genomgått någon annan operation eller medicinsk behandling som kan påverka dagens ingrepp, eller",
+                "Om ja, jag har informerat behandlande personal om detta.",
+                "Jag har uppgett samtliga kända sjukdomar, diagnoser eller medicinska tillstånd som kan vara relevanta för ingreppet, inklusive men inte begränsat till:  hjärt- och kärlsjukdom  blödningsrubbningar  diabetes  neurologiska sjukdomar  autoimmuna sjukdomar  psykisk ohälsa som kan påverka behandlingen",
+                "Jag har informerat om alla läkemedel, kosttillskott och naturpreparat jag använder eller nyligen har använt, inklusive blodförtunnande läkemedel (t.ex. Waran, Eliquis, Trombyl), NSAID eller liknande.",
+                "Jag har uppgett kända allergier eller överkänslighet mot läkemedel, bedövningsmedel, tejp, latex eller andra relevanta ämnen.",
+                "Jag är inte gravid och ammar inte, alternativt har informerat behandlande personal om detta."
+              ]
+            },
+            {
+              "key": "jag_bekraftar_att_ovanstaende_uppgifter_ar_fulls",
+              "label": "Jag bekräftar att ovanstående uppgifter är fullständiga, korrekta och aktuella per dagens datum.  Jag är medveten om att ofullständiga eller felaktiga uppgifter kan innebära en ökad medicinsk risk och kan medföra att planerat ingrepp behöver skjutas upp eller avbrytas.  Jag samtycker till att Curatiio, utifrån lämnade uppgifter och medicinsk bedömning, avgör om ingreppet kan genomföras på ett säkert sätt.",
+              "type": "tristate",
+              "meridiqQuestionId": 450387,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "genom_digital_signering_bekraftar_jag_att_ovanst",
+              "label": "Genom digital signering bekräftar jag att ovanstående uppgifter är korrekta och aktuella per operationsdagen.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450388,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "fornamn_och_efternman": "",
+        "personnummer": "",
+        "datum": "",
+        "jag_intygar_harmed_att": [],
+        "jag_bekraftar_att_ovanstaende_uppgifter_ar_fulls": null,
+        "genom_digital_signering_bekraftar_jag_att_ovanst": null,
+        "genom_digital_signering_bekraftar_jag_att_ovanstText": ""
+      },
+      "meridiqFieldMap": {
+        "450382": "fornamn_och_efternman",
+        "450384": "personnummer",
+        "450385": "datum",
+        "450386": "jag_intygar_harmed_att",
+        "450387": "jag_bekraftar_att_ovanstaende_uppgifter_ar_fulls",
+        "450388": "genom_digital_signering_bekraftar_jag_att_ovanst"
+      }
+    },
+    {
+      "schemaId": "fitness_certificate:hair_tp",
+      "journalType": "fitness_certificate",
+      "formVariant": "hair_tp",
+      "meridiqQuestionaryId": 16413,
+      "title": "Friskförsäkran | TP",
+      "brand": "Hair TP Clinic",
+      "fieldCount": 13,
+      "sections": [
+        {
+          "title": "Friskförsäkran | TP",
+          "fields": [
+            {
+              "key": "jag_har_visat_foljande_giltiga_id_handling_for_k",
+              "label": "Jag har visat följande giltiga ID-handling för klinikens personal:",
+              "type": "text",
+              "meridiqQuestionId": 450966,
+              "meridiqType": "select",
+              "required": true,
+              "options": [
+                "Pass",
+                "Nationellt ID-kort (utfärdat av Polisen)",
+                "Svenskt körkort (utfärdat av Transportstyrelsen)",
+                "Svenskt ID-kort (utfärdat av Skatteverket)"
+              ]
+            },
+            {
+              "key": "ange_id_nummer",
+              "label": "Ange ID-nummer",
+              "type": "text",
+              "meridiqQuestionId": 450967,
+              "meridiqType": "input",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_du_nagot_av_foljande_sjukdomstillstand_du_ka",
+              "label": "Har du något av följande sjukdomstillstånd? Du kan markera flera alternativ.",
+              "type": "checkboxes",
+              "meridiqQuestionId": 450968,
+              "meridiqType": "checkbox",
+              "required": true,
+              "options": [
+                "Blödningsrubbning",
+                "Hjärt- eller kärlsjukdom",
+                "Diabetes (typ 1 eller typ 2)",
+                "Lever- eller njursjukdom",
+                "Astma",
+                "Epilepsi",
+                "Hepatit (A, B eller C)",
+                "HIV",
+                "Psykisk ohälsa",
+                "Pågående infektion eller feber",
+                "Jag har inga av ovanstående sjukdomar eller tillstånd."
+              ]
+            },
+            {
+              "key": "har_du_nagon_annan_sjukdom_eller_nagot_annat_med",
+              "label": "Har du någon annan sjukdom eller något annat medicinskt tillstånd som inte nämnts ovan?  Om ja, beskriv vilket/vilka.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450969,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "upplever_du_att_du_sa_vitt_du_vet_ar_vid_god_hal",
+              "label": "Upplever du att du, så vitt du vet, är vid god hälsa och saknar sjukdomar eller tillstånd som kan innebära ökade risker vid behandlingen?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450970,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "tar_du_for_narvarande_eller_har_du_under_de_sena",
+              "label": "Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, blodförtunnande läkemedel (t.ex. Warfarin, NOAK eller ASA)? Om ja, ange vilket/vilka:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450971,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "tar_du_for_narvarande_eller_har_du_under_de_sena",
+              "label": "Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, några läkemedel? Om ja, ange läkemedlets namn, dosering och orsak:",
+              "type": "tristate",
+              "meridiqQuestionId": 450972,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_du_nagra_kanda_allergier_till_exempel_mot_la",
+              "label": "Har du några kända allergier, till exempel mot latex, desinfektionsmedel eller födoämnen? Om ja ange vad/vilka eller läkemedlets namn",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450973,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_du_nagra_kanda_allergier_mot_lakemedel_ex_an",
+              "label": "Har du några kända allergier mot läkemedel ex antibiotika eller lokalbedövning? Om ja ange vad/vilka eller läkemedlets namn",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450974,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_du_tidigare_fatt_komplikation_vid_narkos_ell",
+              "label": "Har du tidigare fått komplikation vid narkos eller lokalbedövning?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450975,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "anvander_du_tobak_eller_nikotinprodukter_t_ex_ci",
+              "label": "Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?",
+              "type": "tristate",
+              "meridiqQuestionId": 451843,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_du_intagit_alkohol_eller_narkotiska_preparat",
+              "label": "Har du intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen?",
+              "type": "tristate",
+              "meridiqQuestionId": 451844,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "jag_intygar_att",
+              "label": "Jag intygar att",
+              "type": "checkboxes",
+              "meridiqQuestionId": 451845,
+              "meridiqType": "checkbox",
+              "required": true,
+              "options": [
+                "Jag intygar att jag, såvitt jag vet, är vid god hälsa och inte har undanhållit någon sjukdom, något tillstånd eller annan information som kan vara av betydelse inför behandlingen.",
+                "Jag intygar att jag har uppgett samtliga läkemedel, både receptbelagda och receptfria, som jag tar eller har tagit under de senaste 6 månaderna.",
+                "Jag intygar att jag inte har intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen och att jag avstår från detta i minst 48 timmar efter ingreppet.",
+                "Jag är medveten om att rökning och användning av tobak eller nikotin kan påverka behandlingsresultatet negativt och öka risken för att transplanterade hårsäckar inte överlever. Jag förstår att Hair TP Clinic därför inte kan lämna några resultatgarantier för patienter som använder tobak eller nikotin.",
+                "Jag har tagit del av muntlig och skriftlig information om behandlingen, dess syfte, risker, möjliga alternativ och eftervård.",
+                "Jag har haft möjlighet att ställa frågor och fått dessa besvarade.",
+                "Jag lämnar härmed mitt informerade samtycke till behandlingen.",
+                "Jag intygar att ovanstående uppgifter är korrekta och fullständiga.",
+                "Jag godkänner denna friskförsäkran."
+              ]
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "jag_har_visat_foljande_giltiga_id_handling_for_k": "",
+        "ange_id_nummer": "",
+        "har_du_nagot_av_foljande_sjukdomstillstand_du_ka": [],
+        "har_du_nagon_annan_sjukdom_eller_nagot_annat_med": null,
+        "har_du_nagon_annan_sjukdom_eller_nagot_annat_medText": "",
+        "upplever_du_att_du_sa_vitt_du_vet_ar_vid_god_hal": null,
+        "upplever_du_att_du_sa_vitt_du_vet_ar_vid_god_halText": "",
+        "tar_du_for_narvarande_eller_har_du_under_de_sena": null,
+        "tar_du_for_narvarande_eller_har_du_under_de_senaText": "",
+        "har_du_nagra_kanda_allergier_till_exempel_mot_la": null,
+        "har_du_nagra_kanda_allergier_till_exempel_mot_laText": "",
+        "har_du_nagra_kanda_allergier_mot_lakemedel_ex_an": null,
+        "har_du_nagra_kanda_allergier_mot_lakemedel_ex_anText": "",
+        "har_du_tidigare_fatt_komplikation_vid_narkos_ell": null,
+        "har_du_tidigare_fatt_komplikation_vid_narkos_ellText": "",
+        "anvander_du_tobak_eller_nikotinprodukter_t_ex_ci": null,
+        "har_du_intagit_alkohol_eller_narkotiska_preparat": null,
+        "jag_intygar_att": []
+      },
+      "meridiqFieldMap": {
+        "450966": "jag_har_visat_foljande_giltiga_id_handling_for_k",
+        "450967": "ange_id_nummer",
+        "450968": "har_du_nagot_av_foljande_sjukdomstillstand_du_ka",
+        "450969": "har_du_nagon_annan_sjukdom_eller_nagot_annat_med",
+        "450970": "upplever_du_att_du_sa_vitt_du_vet_ar_vid_god_hal",
+        "450971": "tar_du_for_narvarande_eller_har_du_under_de_sena",
+        "450972": "tar_du_for_narvarande_eller_har_du_under_de_sena",
+        "450973": "har_du_nagra_kanda_allergier_till_exempel_mot_la",
+        "450974": "har_du_nagra_kanda_allergier_mot_lakemedel_ex_an",
+        "450975": "har_du_tidigare_fatt_komplikation_vid_narkos_ell",
+        "451843": "anvander_du_tobak_eller_nikotinprodukter_t_ex_ci",
+        "451844": "har_du_intagit_alkohol_eller_narkotiska_preparat",
+        "451845": "jag_intygar_att"
+      }
+    },
+    {
+      "schemaId": "follow_up:12_manader",
+      "journalType": "follow_up",
+      "formVariant": "12_manader",
+      "meridiqQuestionaryId": 16390,
+      "title": "Journal | TP Resultatuppföljning (12 månader)",
+      "brand": "Hair TP Clinic",
+      "fieldCount": 1,
+      "sections": [
+        {
+          "title": "Journal | TP Resultatuppföljning (12 månader)",
+          "fields": [
+            {
+              "key": "tomt",
+              "label": "Tomt",
+              "type": "tristate",
+              "meridiqQuestionId": 450383,
+              "meridiqType": "yes_no",
+              "required": false,
+              "options": null
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "tomt": null,
+        "uppfoljningsdatum": "",
+        "tillfalle": "",
+        "bedomning": "",
+        "bilderNotering": "",
+        "atgardPlan": "",
+        "behandlare": ""
+      },
+      "meridiqFieldMap": {
+        "450383": "tomt"
+      }
+    },
+    {
+      "schemaId": "follow_up:4_manader",
+      "journalType": "follow_up",
+      "formVariant": "4_manader",
+      "meridiqQuestionaryId": 16407,
+      "title": "Journal | TP Uppföljning (4 månader)",
+      "brand": "Hair TP Clinic",
+      "fieldCount": 8,
+      "sections": [
+        {
+          "title": "Journal | TP Uppföljning (4 månader)",
+          "fields": [
+            {
+              "key": "ser_lakningen_normal_ut",
+              "label": "Ser läkningen normal ut?",
+              "type": "tristate",
+              "meridiqQuestionId": 450851,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "finns_det_latt_rodnad_kvar",
+              "label": "Finns det lätt rodnad kvar?",
+              "type": "tristate",
+              "meridiqQuestionId": 450852,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "syns_tecken_pa_okad_arrvavnad",
+              "label": "Syns tecken på ökad ärrvävnad?",
+              "type": "tristate",
+              "meridiqQuestionId": 450853,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ser_atervaxten_bra_ut",
+              "label": "Ser återväxten bra ut?",
+              "type": "tristate",
+              "meridiqQuestionId": 450854,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "syns_gleshet_i_nacken",
+              "label": "Syns gleshet i nacken?",
+              "type": "tristate",
+              "meridiqQuestionId": 450855,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ar_atervaxten_langsam_eller_forsenad",
+              "label": "Är återväxten långsam eller försenad?",
+              "type": "tristate",
+              "meridiqQuestionId": 450856,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ar_slutresultatet_aningen_glest",
+              "label": "Är slutresultatet aningen glest?",
+              "type": "tristate",
+              "meridiqQuestionId": 450857,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "finns_relevanta_observationer_att_notera_vid_bed",
+              "label": "Finns relevanta observationer att notera vid bedömningen? Om ja, ange vad:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450858,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "ser_lakningen_normal_ut": null,
+        "finns_det_latt_rodnad_kvar": null,
+        "syns_tecken_pa_okad_arrvavnad": null,
+        "ser_atervaxten_bra_ut": null,
+        "syns_gleshet_i_nacken": null,
+        "ar_atervaxten_langsam_eller_forsenad": null,
+        "ar_slutresultatet_aningen_glest": null,
+        "finns_relevanta_observationer_att_notera_vid_bed": null,
+        "finns_relevanta_observationer_att_notera_vid_bedText": "",
+        "uppfoljningsdatum": "",
+        "tillfalle": "",
+        "bedomning": "",
+        "bilderNotering": "",
+        "atgardPlan": "",
+        "behandlare": ""
+      },
+      "meridiqFieldMap": {
+        "450851": "ser_lakningen_normal_ut",
+        "450852": "finns_det_latt_rodnad_kvar",
+        "450853": "syns_tecken_pa_okad_arrvavnad",
+        "450854": "ser_atervaxten_bra_ut",
+        "450855": "syns_gleshet_i_nacken",
+        "450856": "ar_atervaxten_langsam_eller_forsenad",
+        "450857": "ar_slutresultatet_aningen_glest",
+        "450858": "finns_relevanta_observationer_att_notera_vid_bed"
+      }
+    },
+    {
+      "schemaId": "follow_up:6_manader",
+      "journalType": "follow_up",
+      "formVariant": "6_manader",
+      "meridiqQuestionaryId": 16409,
+      "title": "Journal | TP Uppföljning (6 månader)",
+      "brand": "Hair TP Clinic",
+      "fieldCount": 8,
+      "sections": [
+        {
+          "title": "Journal | TP Uppföljning (6 månader)",
+          "fields": [
+            {
+              "key": "ser_lakningen_normal_ut",
+              "label": "Ser läkningen normal ut?",
+              "type": "tristate",
+              "meridiqQuestionId": 450867,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "finns_det_latt_rodnad_kvar",
+              "label": "Finns det lätt rodnad kvar?",
+              "type": "tristate",
+              "meridiqQuestionId": 450868,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "syns_tecken_pa_okad_arrvavnad",
+              "label": "Syns tecken på ökad ärrvävnad?",
+              "type": "tristate",
+              "meridiqQuestionId": 450869,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ser_atervaxten_bra_ut",
+              "label": "Ser återväxten bra ut?",
+              "type": "tristate",
+              "meridiqQuestionId": 450870,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "syns_gleshet_i_nacken",
+              "label": "Syns gleshet i nacken?",
+              "type": "tristate",
+              "meridiqQuestionId": 450871,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ar_atervaxten_langsam_eller_forsenad",
+              "label": "Är återväxten långsam eller försenad?",
+              "type": "tristate",
+              "meridiqQuestionId": 450872,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ar_slutresultatet_aningen_glest",
+              "label": "Är slutresultatet aningen glest?",
+              "type": "tristate",
+              "meridiqQuestionId": 450873,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "finns_relevanta_observationer_att_notera_vid_bed",
+              "label": "Finns relevanta observationer att notera vid bedömningen? Om ja, ange vad:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450874,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "ser_lakningen_normal_ut": null,
+        "finns_det_latt_rodnad_kvar": null,
+        "syns_tecken_pa_okad_arrvavnad": null,
+        "ser_atervaxten_bra_ut": null,
+        "syns_gleshet_i_nacken": null,
+        "ar_atervaxten_langsam_eller_forsenad": null,
+        "ar_slutresultatet_aningen_glest": null,
+        "finns_relevanta_observationer_att_notera_vid_bed": null,
+        "finns_relevanta_observationer_att_notera_vid_bedText": "",
+        "uppfoljningsdatum": "",
+        "tillfalle": "",
+        "bedomning": "",
+        "bilderNotering": "",
+        "atgardPlan": "",
+        "behandlare": ""
+      },
+      "meridiqFieldMap": {
+        "450867": "ser_lakningen_normal_ut",
+        "450868": "finns_det_latt_rodnad_kvar",
+        "450869": "syns_tecken_pa_okad_arrvavnad",
+        "450870": "ser_atervaxten_bra_ut",
+        "450871": "syns_gleshet_i_nacken",
+        "450872": "ar_atervaxten_langsam_eller_forsenad",
+        "450873": "ar_slutresultatet_aningen_glest",
+        "450874": "finns_relevanta_observationer_att_notera_vid_bed"
+      }
+    },
+    {
+      "schemaId": "health_declaration:curatiio_bleph",
+      "journalType": "health_declaration",
+      "formVariant": "curatiio_bleph",
+      "meridiqQuestionaryId": 16415,
+      "title": "Hälsodeklaration | Ögonlocksplastik",
+      "brand": "Curatiio",
+      "fieldCount": 12,
+      "sections": [
+        {
+          "title": "Hälsodeklaration | Ögonlocksplastik",
+          "fields": [
+            {
+              "key": "kannerSigFrisk",
+              "label": "Känner du dig generellt vid god hälsa?",
+              "type": "tristate",
+              "meridiqQuestionId": 450986,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "rokerNikotin",
+              "label": "Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?",
+              "type": "tristate",
+              "meridiqQuestionId": 450987,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "gravidAmmar",
+              "label": "Är du gravid eller ammar?",
+              "type": "tristate",
+              "meridiqQuestionId": 450988,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "sjukSenaste3Manader",
+              "label": "Har du varit sjuk de senaste 3 månaderna? Om ja, ange vad.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450989,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "sjukSenaste3ManaderText"
+            },
+            {
+              "key": "lakemedelNu",
+              "label": "Tar du några läkemedel för närvarande? Om ja, ange läkemedlets namn, styrka och dos",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450990,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "lakemedelNuText"
+            },
+            {
+              "key": "blodningsrisk",
+              "label": "Har du någon sjukdom eller tar du läkemedel som ger ökad blödningsrisk? Om ja, ange vad.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450991,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "blodningsriskText"
+            },
+            {
+              "key": "kosttillskott",
+              "label": "Använder du kosttillskott/naturläkemedel (t.ex. omega-3, fiskolja, ginkgo)? Om ja, ange vilka.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450992,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "kosttillskottText"
+            },
+            {
+              "key": "allergiAstma",
+              "label": "Har du någon allergi eller astma? Om ja, ange vilka.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450993,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "allergiAstmaText"
+            },
+            {
+              "key": "allergiAntibiotikaLokalbedovning",
+              "label": "Har du kända allergier eller överkänslighet mot antibiotika eller lokalbedövning? Om ja, ange läkemedlets namn.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450994,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "allergiAntibiotikaLokalbedovningText"
+            },
+            {
+              "key": "hjalpmedelForflyttning",
+              "label": "Använder du något hjälpmedel för förflyttning, såsom rullstol eller liknande? Om ja, vänligen kontakta kliniken i god tid före besöket.",
+              "type": "tristate",
+              "meridiqQuestionId": 450995,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "ovrigtHalsa",
+              "label": "Finns det något övrigt du anser vi bör känna till om din hälsa? Om ja, förklara.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450996,
+              "meridiqType": "yes_no",
+              "required": true,
+              "textKey": "ovrigtHalsaText"
+            },
+            {
+              "key": "intygarKorrektaUppgifter",
+              "label": "Jag bekräftar att jag har besvarat frågorna så korrekt som möjligt.",
+              "type": "tristate",
+              "meridiqQuestionId": 450997,
+              "meridiqType": "yes_no",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "kannerSigFrisk": null,
+        "rokerNikotin": null,
+        "gravidAmmar": null,
+        "sjukSenaste3Manader": null,
+        "sjukSenaste3ManaderText": "",
+        "lakemedelNu": null,
+        "lakemedelNuText": "",
+        "blodningsrisk": null,
+        "blodningsriskText": "",
+        "kosttillskott": null,
+        "kosttillskottText": "",
+        "allergiAstma": null,
+        "allergiAstmaText": "",
+        "allergiAntibiotikaLokalbedovning": null,
+        "allergiAntibiotikaLokalbedovningText": "",
+        "hjalpmedelForflyttning": null,
+        "ovrigtHalsa": null,
+        "ovrigtHalsaText": "",
+        "intygarKorrektaUppgifter": null
+      },
+      "meridiqFieldMap": {
+        "450986": "kannerSigFrisk",
+        "450987": "rokerNikotin",
+        "450988": "gravidAmmar",
+        "450989": "sjukSenaste3Manader",
+        "450990": "lakemedelNu",
+        "450991": "blodningsrisk",
+        "450992": "kosttillskott",
+        "450993": "allergiAstma",
+        "450994": "allergiAntibiotikaLokalbedovning",
+        "450995": "hjalpmedelForflyttning",
+        "450996": "ovrigtHalsa",
+        "450997": "intygarKorrektaUppgifter"
+      }
+    },
+    {
+      "schemaId": "health_declaration:curatiio_injection",
+      "journalType": "health_declaration",
+      "formVariant": "curatiio_injection",
+      "meridiqQuestionaryId": 16472,
+      "title": "Hälsodeklaration | Estetiska injektionsbehandlingar",
+      "brand": "Curatiio",
+      "fieldCount": 9,
+      "sections": [
+        {
+          "title": "Hälsodeklaration | Estetiska injektionsbehandlingar",
+          "fields": [
+            {
+              "key": "gravidAmmar",
+              "label": "Är du gravid eller ammar? ☐ Ja ☐ Nej",
+              "type": "tristate",
+              "meridiqQuestionId": 452478,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "kandaTillstand",
+              "label": "Markera om du har eller har haft något av följande. (Du kan markera flera alternativ)",
+              "type": "checkboxes",
+              "options": [
+                "Pågående infektion (t.ex. feber, herpes, hudinfektion)",
+                "Autoimmun sjukdom",
+                "Neurologisk sjukdom (t.ex. MS, myastenia gravis)",
+                "Sväljsvårigheter",
+                "Blödningsrubbning eller lätt att få blåmärken",
+                "Diabetes",
+                "Epilepsi",
+                "Hjärt- eller kärlsjukdom",
+                "Aktiv akne, eksem, utslag eller sår i området som ska behandlas",
+                "Ärr, tidigare operationer eller implantat i området",
+                "Herpesutbrott i ansiktet tidigare",
+                "Inget av ovanstående"
+              ],
+              "meridiqQuestionId": 452479,
+              "meridiqType": "checkbox",
+              "required": true
+            },
+            {
+              "key": "allergier",
+              "label": "Har du allergier (läkemedel, latex, lokalbedövning m.m.)? Om ja, vänligen specificera typ av allergi och reaktion",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 452499,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "allergierText"
+            },
+            {
+              "key": "blodfortunnande",
+              "label": "Använder du blodförtunnande läkemedel (t.ex. Waran, Eliquis, Trombyl)? Om ja, vänligen ange läkemedel och dosering",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 452500,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "blodfortunnandeText"
+            },
+            {
+              "key": "receptbelagdaLakemedel",
+              "label": "Använder du receptbelagda läkemedel regelbundet? Om ja, vänligen ange läkemedel och dosering",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 452501,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "receptbelagdaLakemedelText"
+            },
+            {
+              "key": "kosttillskottNaturlakemedel",
+              "label": "Använder du kosttillskott/naturläkemedel (t.ex. omega-3, ginkgo, vitlök)?",
+              "type": "tristate",
+              "meridiqQuestionId": 452502,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "tidigareInjektionsbehandlingar",
+              "label": "Har du tidigare behandlats med fillers, profilho, botulinumtoxin (Botox/Dysport/Vistabel) eller andra injektionsbehandlingar?",
+              "type": "tristate",
+              "meridiqQuestionId": 452503,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "tidigareKomplikationer",
+              "label": "Har du haft komplikationer eller varit missnöjd vid tidigare behandlingar?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 452504,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "tidigareKomplikationerText"
+            },
+            {
+              "key": "intygarKorrektaUppgifter",
+              "label": "Jag intygar att jag har lämnat korrekta och fullständiga uppgifter om min hälsa.",
+              "type": "tristate",
+              "meridiqQuestionId": 452505,
+              "meridiqType": "yes_no",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "gravidAmmar": null,
+        "kandaTillstand": [],
+        "allergier": null,
+        "allergierText": "",
+        "blodfortunnande": null,
+        "blodfortunnandeText": "",
+        "receptbelagdaLakemedel": null,
+        "receptbelagdaLakemedelText": "",
+        "kosttillskottNaturlakemedel": null,
+        "tidigareInjektionsbehandlingar": null,
+        "tidigareKomplikationer": null,
+        "tidigareKomplikationerText": "",
+        "intygarKorrektaUppgifter": null
+      },
+      "meridiqFieldMap": {
+        "452478": "gravidAmmar",
+        "452479": "kandaTillstand",
+        "452499": "allergier",
+        "452500": "blodfortunnande",
+        "452501": "receptbelagdaLakemedel",
+        "452502": "kosttillskottNaturlakemedel",
+        "452503": "tidigareInjektionsbehandlingar",
+        "452504": "tidigareKomplikationer",
+        "452505": "intygarKorrektaUppgifter"
+      }
+    },
+    {
+      "schemaId": "health_declaration:curatiio_ortho",
+      "journalType": "health_declaration",
+      "formVariant": "curatiio_ortho",
+      "meridiqQuestionaryId": 14878,
+      "title": "Hälsodeklaration | Ortopediska injektionsbehandlingar",
+      "brand": "Curatiio",
+      "fieldCount": 14,
+      "sections": [
+        {
+          "title": "Hälsodeklaration | Ortopediska injektionsbehandlingar",
+          "fields": [
+            {
+              "key": "langdCm",
+              "label": "Ange din längd (cm):",
+              "type": "text",
+              "meridiqQuestionId": 411402,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "viktKg",
+              "label": "Ange din vikt (kg):",
+              "type": "text",
+              "meridiqQuestionId": 411403,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "kannerSigFrisk",
+              "label": "Känner du dig frisk?",
+              "type": "tristate",
+              "meridiqQuestionId": 411404,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "sjukSenaste3Manader",
+              "label": "Har du varit sjuk de senaste tre månaderna? Om ja, ange vad",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411405,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "sjukSenaste3ManaderText"
+            },
+            {
+              "key": "gravidAmmar",
+              "label": "Är du gravid eller ammar du?",
+              "type": "tristate",
+              "meridiqQuestionId": 411413,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "lakemedelNu",
+              "label": "Tar du några läkemedel just nu, regelbundet eller vid behov? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411406,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "lakemedelNuText"
+            },
+            {
+              "key": "blodningsrisk",
+              "label": "Har du någon sjukdom eller tar du läkemedel som kan öka blödningsrisken? Om ja, ange vad:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411407,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "blodningsriskText"
+            },
+            {
+              "key": "allergiAstma",
+              "label": "Har du någon allergi eller astma? Om ja, ange vilka:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411409,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "allergiAstmaText"
+            },
+            {
+              "key": "vaccinationNyligen",
+              "label": "Har du nyligen fått någon vaccination? Om ja, ange vilken och när:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411415,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "vaccinationNyligenText"
+            },
+            {
+              "key": "operationSenasteAret",
+              "label": "Har du genomgått en operation eller ett medicinskt ingrepp det senaste året? Om ja, ange diagnos, datum och typ av ingrepp",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411414,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "operationSenasteAretText"
+            },
+            {
+              "key": "kosttillskott",
+              "label": "Tar du omega 3, fiskolja eller andra kosttillskott? Om ja, ange vilka:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411408,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "kosttillskottText"
+            },
+            {
+              "key": "rokerNikotin",
+              "label": "Röker du?",
+              "type": "tristate",
+              "meridiqQuestionId": 411410,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "ovrigtHalsa",
+              "label": "Finns det något övrigt du anser att vi bör känna till om din hälsa? Om ja, förklara:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411412,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "ovrigtHalsaText"
+            },
+            {
+              "key": "hjalpmedelForflyttning",
+              "label": "Har du behov av anpassning vid förflyttning i samband med ditt besök, såsom rullstol, gånghjälpmedel eller annat praktiskt stöd? Om ja, vänligen kontakta oss i god tid så vi kan förbereda mottagandet på bästa sätt.",
+              "type": "tristate",
+              "meridiqQuestionId": 411411,
+              "meridiqType": "yes_no",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "langdCm": "",
+        "viktKg": "",
+        "kannerSigFrisk": null,
+        "sjukSenaste3Manader": null,
+        "sjukSenaste3ManaderText": "",
+        "gravidAmmar": null,
+        "lakemedelNu": null,
+        "lakemedelNuText": "",
+        "blodningsrisk": null,
+        "blodningsriskText": "",
+        "allergiAstma": null,
+        "allergiAstmaText": "",
+        "vaccinationNyligen": null,
+        "vaccinationNyligenText": "",
+        "operationSenasteAret": null,
+        "operationSenasteAretText": "",
+        "kosttillskott": null,
+        "kosttillskottText": "",
+        "rokerNikotin": null,
+        "ovrigtHalsa": null,
+        "ovrigtHalsaText": "",
+        "hjalpmedelForflyttning": null
+      },
+      "meridiqFieldMap": {
+        "411402": "langdCm",
+        "411403": "viktKg",
+        "411404": "kannerSigFrisk",
+        "411405": "sjukSenaste3Manader",
+        "411413": "gravidAmmar",
+        "411406": "lakemedelNu",
+        "411407": "blodningsrisk",
+        "411409": "allergiAstma",
+        "411415": "vaccinationNyligen",
+        "411414": "operationSenasteAret",
+        "411408": "kosttillskott",
+        "411410": "rokerNikotin",
+        "411412": "ovrigtHalsa",
+        "411411": "hjalpmedelForflyttning"
+      }
+    },
+    {
+      "schemaId": "health_declaration:eng",
+      "journalType": "health_declaration",
+      "formVariant": "eng",
+      "meridiqQuestionaryId": 14865,
+      "title": "ENG | Health Questionnaire",
+      "brand": "Both",
+      "fieldCount": 29,
+      "sections": [
+        {
+          "title": "ENG | Health Questionnaire",
+          "fields": [
+            {
+              "key": "do_you_suffer_from_any_allergies",
+              "label": "Do you suffer from any allergies?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 408040,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_an_autoimmune_disease_or_a_disease_t",
+              "label": "Do you have an autoimmune disease or a disease that has affected the immune system?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 408049,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_diabetes",
+              "label": "Do you have diabetes?",
+              "type": "tristate",
+              "meridiqQuestionId": 408050,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_any_haemophilia",
+              "label": "Do you have any haemophilia?",
+              "type": "tristate",
+              "meridiqQuestionId": 408051,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_suffer_from_acute_rheumatoid_arthritis_or",
+              "label": "Do you suffer from acute rheumatoid arthritis or recurrent sore throat?",
+              "type": "tristate",
+              "meridiqQuestionId": 408052,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_suffer_from_amyotrophic_sclerosis_als_or_",
+              "label": "Do you suffer from amyotrophic sclerosis (ALS) or peripheral neuromuscular disorder (nerve disease)?",
+              "type": "tristate",
+              "meridiqQuestionId": 408053,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_suffer_from_myasthenia_gravis_or_eaton_la",
+              "label": "Do you suffer from myasthenia gravis or Eaton-Lambert syndrome (muscle disease)?",
+              "type": "tristate",
+              "meridiqQuestionId": 408054,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_suffer_from_untreated_epilepsy",
+              "label": "Do you suffer from untreated epilepsy?",
+              "type": "tristate",
+              "meridiqQuestionId": 408055,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_a_tendency_to_develop_large_scars_ke",
+              "label": "Do you have a tendency to develop large scars (keloids)?",
+              "type": "tristate",
+              "meridiqQuestionId": 408056,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "have_you_had_any_skin_cancer_before",
+              "label": "Have you had any skin cancer before?",
+              "type": "tristate",
+              "meridiqQuestionId": 408057,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_suffer_from_porphyria_hereditary_disease",
+              "label": "Do you suffer from porphyria (hereditary disease)?",
+              "type": "tristate",
+              "meridiqQuestionId": 408058,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_use_tobacco",
+              "label": "Do you use tobacco?",
+              "type": "tristate",
+              "meridiqQuestionId": 408041,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_suffer_from_abnormal_palpitations_or_othe",
+              "label": "Do you suffer from abnormal palpitations or other heart disease?",
+              "type": "tristate",
+              "meridiqQuestionId": 408059,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "have_you_been_to_or_are_you_planning_a_dental_vi",
+              "label": "Have you been to or are you planning a dental visit soon? (2 weeks before / 2 weeks after)",
+              "type": "tristate",
+              "meridiqQuestionId": 408060,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "have_you_previously_received_any_aesthetic_treat",
+              "label": "Have you previously received any aesthetic treatments (eg laser, peeling, dermabrasion, microneedling, IPL, Chemical Peeling, PRP, etc.)?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 408061,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "have_you_previously_received_injectable_treatmen",
+              "label": "Have you previously received injectable treatments, thread lift or undergone facial surgery of any kind?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 408062,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "did_you_experience_any_side_effects_related_to_t",
+              "label": "Did you experience any side effects related to the treatment?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 408063,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_any_skin_infection_or_inflammatory_s",
+              "label": "Do you have any skin infection or inflammatory skin problems (eg herpes, acne, rosacea, etc.)?",
+              "type": "tristate",
+              "meridiqQuestionId": 408064,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_tattoos_or_permanent_makeup_in_the_t",
+              "label": "Do you have tattoos or permanent makeup in the treatment area?",
+              "type": "tristate",
+              "meridiqQuestionId": 408065,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_tanned_skin_now",
+              "label": "Do you have tanned skin now?",
+              "type": "tristate",
+              "meridiqQuestionId": 408066,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_melasma_or_chloasma_pigmentation",
+              "label": "Do you have Melasma or Chloasma (pigmentation)?",
+              "type": "tristate",
+              "meridiqQuestionId": 408067,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "other_comments_about_your_health",
+              "label": "Other comments about your health",
+              "type": "text",
+              "meridiqQuestionId": 408068,
+              "meridiqType": "textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "are_you_pregnant_breastfeeding_or_trying_to_conc",
+              "label": "Are you pregnant, breastfeeding or trying to conceive?",
+              "type": "tristate",
+              "meridiqQuestionId": 408042,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "are_you_currently_receiving_any_medical_treatmen",
+              "label": "Are you currently receiving any medical treatment?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 408043,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "are_you_currently_taking_steroids_acetylsalicyli",
+              "label": "Are you currently taking steroids, acetylsalicylic acid (eg Treo or Aspirin) or any anticoagulant (eg Warfarin)?",
+              "type": "tristate",
+              "meridiqQuestionId": 408044,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "have_you_recently_used_any_glycolic_acid_or_reti",
+              "label": "Have you recently used any glycolic acid or retinoids (such as isotretinoin or tretinoin)?",
+              "type": "tristate",
+              "meridiqQuestionId": 408045,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_an_ongoing_infection_in_your_body_or",
+              "label": "Do you have an ongoing infection in your body or have you taken antibiotics in the last four weeks?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 408046,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "do_you_have_an_ongoing_illness_that_is_physical_",
+              "label": "Do you have an ongoing illness that is physical or mental?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 408047,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "have_you_had_problems_with_anxiety_depression_or",
+              "label": "Have you had problems with anxiety, depression, or other mental disorders?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 408048,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "do_you_suffer_from_any_allergies": null,
+        "do_you_suffer_from_any_allergiesText": "",
+        "do_you_have_an_autoimmune_disease_or_a_disease_t": null,
+        "do_you_have_an_autoimmune_disease_or_a_disease_tText": "",
+        "do_you_have_diabetes": null,
+        "do_you_have_any_haemophilia": null,
+        "do_you_suffer_from_acute_rheumatoid_arthritis_or": null,
+        "do_you_suffer_from_amyotrophic_sclerosis_als_or_": null,
+        "do_you_suffer_from_myasthenia_gravis_or_eaton_la": null,
+        "do_you_suffer_from_untreated_epilepsy": null,
+        "do_you_have_a_tendency_to_develop_large_scars_ke": null,
+        "have_you_had_any_skin_cancer_before": null,
+        "do_you_suffer_from_porphyria_hereditary_disease": null,
+        "do_you_use_tobacco": null,
+        "do_you_suffer_from_abnormal_palpitations_or_othe": null,
+        "have_you_been_to_or_are_you_planning_a_dental_vi": null,
+        "have_you_previously_received_any_aesthetic_treat": null,
+        "have_you_previously_received_any_aesthetic_treatText": "",
+        "have_you_previously_received_injectable_treatmen": null,
+        "have_you_previously_received_injectable_treatmenText": "",
+        "did_you_experience_any_side_effects_related_to_t": null,
+        "did_you_experience_any_side_effects_related_to_tText": "",
+        "do_you_have_any_skin_infection_or_inflammatory_s": null,
+        "do_you_have_tattoos_or_permanent_makeup_in_the_t": null,
+        "do_you_have_tanned_skin_now": null,
+        "do_you_have_melasma_or_chloasma_pigmentation": null,
+        "other_comments_about_your_health": "",
+        "are_you_pregnant_breastfeeding_or_trying_to_conc": null,
+        "are_you_currently_receiving_any_medical_treatmen": null,
+        "are_you_currently_receiving_any_medical_treatmenText": "",
+        "are_you_currently_taking_steroids_acetylsalicyli": null,
+        "have_you_recently_used_any_glycolic_acid_or_reti": null,
+        "do_you_have_an_ongoing_infection_in_your_body_or": null,
+        "do_you_have_an_ongoing_infection_in_your_body_orText": "",
+        "do_you_have_an_ongoing_illness_that_is_physical_": null,
+        "do_you_have_an_ongoing_illness_that_is_physical_Text": "",
+        "have_you_had_problems_with_anxiety_depression_or": null,
+        "have_you_had_problems_with_anxiety_depression_orText": ""
+      },
+      "meridiqFieldMap": {
+        "408040": "do_you_suffer_from_any_allergies",
+        "408049": "do_you_have_an_autoimmune_disease_or_a_disease_t",
+        "408050": "do_you_have_diabetes",
+        "408051": "do_you_have_any_haemophilia",
+        "408052": "do_you_suffer_from_acute_rheumatoid_arthritis_or",
+        "408053": "do_you_suffer_from_amyotrophic_sclerosis_als_or_",
+        "408054": "do_you_suffer_from_myasthenia_gravis_or_eaton_la",
+        "408055": "do_you_suffer_from_untreated_epilepsy",
+        "408056": "do_you_have_a_tendency_to_develop_large_scars_ke",
+        "408057": "have_you_had_any_skin_cancer_before",
+        "408058": "do_you_suffer_from_porphyria_hereditary_disease",
+        "408041": "do_you_use_tobacco",
+        "408059": "do_you_suffer_from_abnormal_palpitations_or_othe",
+        "408060": "have_you_been_to_or_are_you_planning_a_dental_vi",
+        "408061": "have_you_previously_received_any_aesthetic_treat",
+        "408062": "have_you_previously_received_injectable_treatmen",
+        "408063": "did_you_experience_any_side_effects_related_to_t",
+        "408064": "do_you_have_any_skin_infection_or_inflammatory_s",
+        "408065": "do_you_have_tattoos_or_permanent_makeup_in_the_t",
+        "408066": "do_you_have_tanned_skin_now",
+        "408067": "do_you_have_melasma_or_chloasma_pigmentation",
+        "408068": "other_comments_about_your_health",
+        "408042": "are_you_pregnant_breastfeeding_or_trying_to_conc",
+        "408043": "are_you_currently_receiving_any_medical_treatmen",
+        "408044": "are_you_currently_taking_steroids_acetylsalicyli",
+        "408045": "have_you_recently_used_any_glycolic_acid_or_reti",
+        "408046": "do_you_have_an_ongoing_infection_in_your_body_or",
+        "408047": "do_you_have_an_ongoing_illness_that_is_physical_",
+        "408048": "have_you_had_problems_with_anxiety_depression_or"
+      }
+    },
+    {
+      "schemaId": "health_declaration:hair_tp",
+      "journalType": "health_declaration",
+      "formVariant": "hair_tp",
+      "meridiqQuestionaryId": 16414,
+      "title": "Hälsodeklaration | Hair TP Clinic",
+      "brand": "Hair TP Clinic",
+      "fieldCount": 14,
+      "sections": [
+        {
+          "title": "Hälsodeklaration | Hair TP Clinic",
+          "fields": [
+            {
+              "key": "rokerNikotin",
+              "label": "Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?",
+              "type": "tristate",
+              "meridiqQuestionId": 450976,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "gravidAmmar",
+              "label": "Är du gravid eller ammar?",
+              "type": "tristate",
+              "meridiqQuestionId": 450977,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "hjartKarlsjukdom",
+              "label": "Har du nu eller tidigare haft hjärt- eller kärlsjukdom (t.ex. hjärtinfarkt, kärlkramp, rytmrubbning)? Om ja, ange vad.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450978,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "hjartKarlsjukdomText"
+            },
+            {
+              "key": "hogtBlodtryck",
+              "label": "Har du diagnostiserat högt blodtryck (hypertoni)?",
+              "type": "bloodpressure",
+              "meridiqQuestionId": 450979,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "ovrigaSjukdomar",
+              "label": "Har du någon annan sjukdom som vi bör känna till (t.ex. diabetes, koagulationsrubbning, immunologisk sjukdom)? Om ja, ange vad.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450980,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "ovrigaSjukdomarText"
+            },
+            {
+              "key": "blodsmitta",
+              "label": "Har du någon blodöverförbar sjukdom? Om ja, vänligen ange nedan:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450981,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "blodsmittaText"
+            },
+            {
+              "key": "ovrigtHalsa",
+              "label": "Finns det något annat vi bör känna till om din hälsa? Om ja, beskriv",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450982,
+              "meridiqType": "yes_no_textbox",
+              "required": true
+            },
+            {
+              "key": "lakemedel",
+              "label": "Tar du några läkemedel (regelbundet eller vid behov)? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering nedan.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450983,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "lakemedelText"
+            },
+            {
+              "key": "blodfortunnande",
+              "label": "Tar du blodförtunnande läkemedel? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering nedan.",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450984,
+              "meridiqType": "yes_no_textbox",
+              "required": true
+            },
+            {
+              "key": "omega3Kosttillskott",
+              "label": "Tar du Omega 3, fiskolja eller andra kosttillskott som påverkar blödning?",
+              "type": "tristate",
+              "meridiqQuestionId": 450985,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "allergiskLakemedel",
+              "label": "Är du allergisk eller överkänslig mot något läkemedel (inklusive lokalbedövning eller antibiotika)? Om ja, ange vilket/vilka och eventuell reaktion",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 451846,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "allergiskLakemedelText"
+            },
+            {
+              "key": "langdCm",
+              "label": "Ange din längd (cm):",
+              "type": "text",
+              "meridiqQuestionId": 451847,
+              "meridiqType": "input",
+              "required": true
+            },
+            {
+              "key": "viktKg",
+              "label": "Ange din vikt (kg):",
+              "type": "text",
+              "meridiqQuestionId": 451848,
+              "meridiqType": "input",
+              "required": true
+            },
+            {
+              "key": "sarskildaOnskemal",
+              "label": "Önskar du att vi fokuserar på något särskilt under konsultationen (t.ex hår, hud eller båda)? Om ja, Beskriv gärna kort",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 451849,
+              "meridiqType": "yes_no_textbox",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "rokerNikotin": null,
+        "gravidAmmar": null,
+        "hjartKarlsjukdom": null,
+        "hjartKarlsjukdomText": "",
+        "hogtBlodtryck": null,
+        "ovrigaSjukdomar": null,
+        "ovrigaSjukdomarText": "",
+        "blodsmitta": null,
+        "blodsmittaText": "",
+        "ovrigtHalsa": null,
+        "ovrigtHalsaText": "",
+        "lakemedel": null,
+        "lakemedelText": "",
+        "blodfortunnande": null,
+        "blodfortunnandeText": "",
+        "omega3Kosttillskott": null,
+        "allergiskLakemedel": null,
+        "allergiskLakemedelText": "",
+        "langdCm": "",
+        "viktKg": "",
+        "sarskildaOnskemal": null,
+        "sarskildaOnskemalText": ""
+      },
+      "meridiqFieldMap": {
+        "450976": "rokerNikotin",
+        "450977": "gravidAmmar",
+        "450978": "hjartKarlsjukdom",
+        "450979": "hogtBlodtryck",
+        "450980": "ovrigaSjukdomar",
+        "450981": "blodsmitta",
+        "450982": "ovrigtHalsa",
+        "450983": "lakemedel",
+        "450984": "blodfortunnande",
+        "450985": "omega3Kosttillskott",
+        "451846": "allergiskLakemedel",
+        "451847": "langdCm",
+        "451848": "viktKg",
+        "451849": "sarskildaOnskemal"
+      }
+    },
+    {
+      "schemaId": "prp_treatment:prp_skin",
+      "journalType": "prp_treatment",
+      "formVariant": "prp_skin",
+      "meridiqQuestionaryId": 14988,
+      "title": "Journal | PRP, PRF, Microneedling",
+      "brand": "Hair TP Clinic",
+      "fieldCount": 12,
+      "sections": [
+        {
+          "title": "Journal | PRP, PRF, Microneedling",
+          "fields": [
+            {
+              "key": "har_patientens_halsodeklaration_granskats_infor_",
+              "label": "Har patientens hälsodeklaration granskats inför behandlingen?",
+              "type": "tristate",
+              "meridiqQuestionId": 411231,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "vilken_behandling_utfors_vid_detta_tillfalle",
+              "label": "Vilken behandling utförs vid detta tillfälle?",
+              "type": "checkboxes",
+              "meridiqQuestionId": 411232,
+              "meridiqType": "checkbox",
+              "required": false,
+              "options": [
+                "PRP Hår - Mini",
+                "PRP Hår - Standard",
+                "PRP Hår - XL",
+                "PRP Hår - Skägg",
+                "PRP Hår - Ögonbryn",
+                "PRP Hud - Ansikte",
+                "PRP Hud - Hals",
+                "PRP Hud - Dekolletage",
+                "PRP Hud - Händer",
+                "PRP Hud + Microneedling - Ansikte",
+                "PRP Hud + Microneedling - Hals",
+                "PRP Hud + Microneedling - Dekolletage",
+                "PRP Hud + Microneedling - Händer",
+                "PRF Hud - Ansikte",
+                "PRF Hud - Under ögon",
+                "PRF + Microneedling - Ansikte"
+              ]
+            },
+            {
+              "key": "onskar_patienten_lagga_till_ytterligare_behandli",
+              "label": "Önskar patienten lägga till ytterligare behandlingsområden, utöver det som valts ovan? Om ja, ange område(n)",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411233,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "vilken_behandling_i_ordningen_ar_detta_ange_enda",
+              "label": "Vilken behandling i ordningen är detta? (ange endast siffra, t.ex. 1, 2, 3)",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411399,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_patienten_informerats_om_risker_biverkningar",
+              "label": "Har patienten informerats om risker, biverkningar och hur behandlingen genomförs?",
+              "type": "tristate",
+              "meridiqQuestionId": 411251,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ar_patienten_fullt_frisk_om_nej_ange_sjukdomar",
+              "label": "Är patienten fullt frisk? Om nej, ange sjukdomar",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411253,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "anvander_patienten_nagra_lakemedel_for_narvarand",
+              "label": "Använder patienten några läkemedel för närvarande, regelbundet eller vid behov? Om ja, ange läkemedlets namn, styrka (mg/ml), dosering och orsak",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411252,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "finns_det_nagon_ytterligare_information_om_patie",
+              "label": "Finns det någon ytterligare information om patientens hälsa som är relevant för behandlingen? Om ja, ange vad",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411254,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "observationer_hos_patienten_efter_behandlingen",
+              "label": "Observationer hos patienten efter behandlingen",
+              "type": "checkboxes",
+              "meridiqQuestionId": 411255,
+              "meridiqType": "checkbox",
+              "required": true,
+              "options": [
+                "Allt ok",
+                "Nålrädd",
+                "Svårstucken",
+                "Svaga kärl",
+                "Rädd för blod",
+                "Eksem / Psoriasis",
+                "Övrigt"
+              ]
+            },
+            {
+              "key": "ovriga_observationer",
+              "label": "Övriga observationer",
+              "type": "text",
+              "meridiqQuestionId": 411257,
+              "meridiqType": "textbox",
+              "required": false,
+              "options": null
+            },
+            {
+              "key": "anvandes_bedovningssalva_om_ja_ange_vilken",
+              "label": "Användes bedövningssalva? Om ja, ange vilken",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 411256,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "allmanna_anteckningar",
+              "label": "Allmänna anteckningar",
+              "type": "text",
+              "meridiqQuestionId": 451115,
+              "meridiqType": "textbox",
+              "required": true,
+              "options": null
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "har_patientens_halsodeklaration_granskats_infor_": null,
+        "vilken_behandling_utfors_vid_detta_tillfalle": [],
+        "onskar_patienten_lagga_till_ytterligare_behandli": null,
+        "onskar_patienten_lagga_till_ytterligare_behandliText": "",
+        "vilken_behandling_i_ordningen_ar_detta_ange_enda": null,
+        "vilken_behandling_i_ordningen_ar_detta_ange_endaText": "",
+        "har_patienten_informerats_om_risker_biverkningar": null,
+        "ar_patienten_fullt_frisk_om_nej_ange_sjukdomar": null,
+        "ar_patienten_fullt_frisk_om_nej_ange_sjukdomarText": "",
+        "anvander_patienten_nagra_lakemedel_for_narvarand": null,
+        "anvander_patienten_nagra_lakemedel_for_narvarandText": "",
+        "finns_det_nagon_ytterligare_information_om_patie": null,
+        "finns_det_nagon_ytterligare_information_om_patieText": "",
+        "observationer_hos_patienten_efter_behandlingen": [],
+        "ovriga_observationer": "",
+        "anvandes_bedovningssalva_om_ja_ange_vilken": null,
+        "anvandes_bedovningssalva_om_ja_ange_vilkenText": "",
+        "allmanna_anteckningar": "",
+        "behandlingsdatum": "",
+        "omrade": "",
+        "serieNummer": "",
+        "serieTotalt": "",
+        "antalBlodror": "",
+        "mangdPrpMl": "",
+        "teknik": "",
+        "bedovning": null,
+        "bedovningTyp": "",
+        "blodtryckMmHg": "",
+        "puls": "",
+        "lakemedel": "",
+        "komplikationer": "",
+        "eftervardsrad": "",
+        "behandlare": ""
+      },
+      "meridiqFieldMap": {
+        "411231": "har_patientens_halsodeklaration_granskats_infor_",
+        "411232": "vilken_behandling_utfors_vid_detta_tillfalle",
+        "411233": "onskar_patienten_lagga_till_ytterligare_behandli",
+        "411399": "vilken_behandling_i_ordningen_ar_detta_ange_enda",
+        "411251": "har_patienten_informerats_om_risker_biverkningar",
+        "411253": "ar_patienten_fullt_frisk_om_nej_ange_sjukdomar",
+        "411252": "anvander_patienten_nagra_lakemedel_for_narvarand",
+        "411254": "finns_det_nagon_ytterligare_information_om_patie",
+        "411255": "observationer_hos_patienten_efter_behandlingen",
+        "411257": "ovriga_observationer",
+        "411256": "anvandes_bedovningssalva_om_ja_ange_vilken",
+        "451115": "allmanna_anteckningar"
+      }
+    },
+    {
+      "schemaId": "prp_treatment:tp_post_op",
+      "journalType": "prp_treatment",
+      "formVariant": "tp_post_op",
+      "meridiqQuestionaryId": 16412,
+      "title": "Journal | TP Efterbehandling (PRP)",
+      "brand": "Hair TP Clinic",
+      "fieldCount": 24,
+      "sections": [
+        {
+          "title": "Journal | TP Efterbehandling (PRP)",
+          "fields": [
+            {
+              "key": "hur_manga_prp_efterbehandlingar_har_genomforts_h",
+              "label": "Hur många PRP-efterbehandlingar har genomförts hittills? Ange siffra:",
+              "type": "text",
+              "meridiqQuestionId": 450942,
+              "meridiqType": "textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_kunden_blivit_informerad_om_risker_biverknin",
+              "label": "Har kunden blivit informerad om risker, biverkningar och hur behandlingen genomförs?",
+              "type": "tristate",
+              "meridiqQuestionId": 450943,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "genomfor_kunden_prp_for_att_paskynda_lakningspro",
+              "label": "Genomför kunden PRP för att påskynda läkningsprocessen och stimulera hårtillväxten?",
+              "type": "tristate",
+              "meridiqQuestionId": 450944,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ar_kunden_fullt_frisk",
+              "label": "Är kunden fullt frisk?",
+              "type": "tristate",
+              "meridiqQuestionId": 450945,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "tar_kunden_nagra_lakemedel_om_ja_ange_lakemedel_",
+              "label": "Tar kunden några läkemedel? Om ja, ange läkemedel, styrka och anledning:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450946,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "finns_det_nagot_annat_vi_bor_veta_om_kundens_hal",
+              "label": "Finns det något annat vi bör veta om kundens hälsa? Om ja, ange vad:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450947,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "status_pa_sarskorpor",
+              "label": "Status på sårskorpor?",
+              "type": "text",
+              "meridiqQuestionId": 450948,
+              "meridiqType": "textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_kunden_fatt_sarskilda_uppmaningar_om_ja_ange",
+              "label": "Har kunden fått särskilda uppmaningar? Om ja, ange vilka:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450949,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "forekommer_det_nagon_form_av_kanselbortfall_hos_",
+              "label": "Förekommer det någon form av känselbortfall hos patienten? Om ja, beskriv område eller omfattning (Inget/Lite/Mycket)",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450950,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "upplever_patienten_att_allt_ar_ok",
+              "label": "Upplever patienten att allt är ok?",
+              "type": "tristate",
+              "meridiqQuestionId": 450951,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "upplever_patienten_klada",
+              "label": "Upplever patienten klåda?",
+              "type": "tristate",
+              "meridiqQuestionId": 450952,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_patienten_svart_att_sova",
+              "label": "Har patienten svårt att sova?",
+              "type": "tristate",
+              "meridiqQuestionId": 450953,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "ar_patienten_om_i_donationsomradet",
+              "label": "Är patienten öm i donationsområdet?",
+              "type": "tristate",
+              "meridiqQuestionId": 450954,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_det_forekommit_blodning",
+              "label": "Har det förekommit blödning?",
+              "type": "tristate",
+              "meridiqQuestionId": 450955,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "upplever_patienten_spanningshuvudvark",
+              "label": "Upplever patienten spänningshuvudvärk?",
+              "type": "tristate",
+              "meridiqQuestionId": 450956,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_patienten_kommit_at_eller_slagit_i_transplan",
+              "label": "Har patienten kommit åt eller slagit i transplantationsområdet?",
+              "type": "tristate",
+              "meridiqQuestionId": 450957,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "forekommer_nagot_annat_besvar_om_ja_ange_vad",
+              "label": "Förekommer något annat besvär? Om ja, ange vad:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450958,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "var_allt_normalt_hos_patienten_efter_behandlinge",
+              "label": "Var allt normalt hos patienten efter behandlingen?",
+              "type": "tristate",
+              "meridiqQuestionId": 450959,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "var_patienten_nalradd",
+              "label": "Var patienten nålrädd?",
+              "type": "tristate",
+              "meridiqQuestionId": 450960,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "var_patienten_svarstucken",
+              "label": "Var patienten svårstucken?",
+              "type": "tristate",
+              "meridiqQuestionId": 450961,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "har_patienten_svaga_karl",
+              "label": "Har patienten svaga kärl?",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450962,
+              "meridiqType": "yes_no_textbox",
+              "required": false,
+              "options": null
+            },
+            {
+              "key": "var_patienten_radd_for_blod",
+              "label": "Var patienten rädd för blod?",
+              "type": "tristate",
+              "meridiqQuestionId": 450963,
+              "meridiqType": "yes_no",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "forekom_nagot_annat_av_betydelse_om_ja_ange_vad",
+              "label": "Förekom något annat av betydelse? Om ja, ange vad:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450964,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "options": null
+            },
+            {
+              "key": "allmanna_anteckningar",
+              "label": "Allmänna anteckningar",
+              "type": "text",
+              "meridiqQuestionId": 450965,
+              "meridiqType": "textbox",
+              "required": true,
+              "options": null
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "hur_manga_prp_efterbehandlingar_har_genomforts_h": "",
+        "har_kunden_blivit_informerad_om_risker_biverknin": null,
+        "genomfor_kunden_prp_for_att_paskynda_lakningspro": null,
+        "ar_kunden_fullt_frisk": null,
+        "tar_kunden_nagra_lakemedel_om_ja_ange_lakemedel_": null,
+        "tar_kunden_nagra_lakemedel_om_ja_ange_lakemedel_Text": "",
+        "finns_det_nagot_annat_vi_bor_veta_om_kundens_hal": null,
+        "finns_det_nagot_annat_vi_bor_veta_om_kundens_halText": "",
+        "status_pa_sarskorpor": "",
+        "har_kunden_fatt_sarskilda_uppmaningar_om_ja_ange": null,
+        "har_kunden_fatt_sarskilda_uppmaningar_om_ja_angeText": "",
+        "forekommer_det_nagon_form_av_kanselbortfall_hos_": null,
+        "forekommer_det_nagon_form_av_kanselbortfall_hos_Text": "",
+        "upplever_patienten_att_allt_ar_ok": null,
+        "upplever_patienten_klada": null,
+        "har_patienten_svart_att_sova": null,
+        "ar_patienten_om_i_donationsomradet": null,
+        "har_det_forekommit_blodning": null,
+        "upplever_patienten_spanningshuvudvark": null,
+        "har_patienten_kommit_at_eller_slagit_i_transplan": null,
+        "forekommer_nagot_annat_besvar_om_ja_ange_vad": null,
+        "forekommer_nagot_annat_besvar_om_ja_ange_vadText": "",
+        "var_allt_normalt_hos_patienten_efter_behandlinge": null,
+        "var_patienten_nalradd": null,
+        "var_patienten_svarstucken": null,
+        "har_patienten_svaga_karl": null,
+        "har_patienten_svaga_karlText": "",
+        "var_patienten_radd_for_blod": null,
+        "forekom_nagot_annat_av_betydelse_om_ja_ange_vad": null,
+        "forekom_nagot_annat_av_betydelse_om_ja_ange_vadText": "",
+        "allmanna_anteckningar": "",
+        "behandlingsdatum": "",
+        "omrade": "",
+        "serieNummer": "",
+        "serieTotalt": "",
+        "antalBlodror": "",
+        "mangdPrpMl": "",
+        "teknik": "",
+        "bedovning": null,
+        "bedovningTyp": "",
+        "blodtryckMmHg": "",
+        "puls": "",
+        "lakemedel": "",
+        "komplikationer": "",
+        "eftervardsrad": "",
+        "behandlare": ""
+      },
+      "meridiqFieldMap": {
+        "450942": "hur_manga_prp_efterbehandlingar_har_genomforts_h",
+        "450943": "har_kunden_blivit_informerad_om_risker_biverknin",
+        "450944": "genomfor_kunden_prp_for_att_paskynda_lakningspro",
+        "450945": "ar_kunden_fullt_frisk",
+        "450946": "tar_kunden_nagra_lakemedel_om_ja_ange_lakemedel_",
+        "450947": "finns_det_nagot_annat_vi_bor_veta_om_kundens_hal",
+        "450948": "status_pa_sarskorpor",
+        "450949": "har_kunden_fatt_sarskilda_uppmaningar_om_ja_ange",
+        "450950": "forekommer_det_nagon_form_av_kanselbortfall_hos_",
+        "450951": "upplever_patienten_att_allt_ar_ok",
+        "450952": "upplever_patienten_klada",
+        "450953": "har_patienten_svart_att_sova",
+        "450954": "ar_patienten_om_i_donationsomradet",
+        "450955": "har_det_forekommit_blodning",
+        "450956": "upplever_patienten_spanningshuvudvark",
+        "450957": "har_patienten_kommit_at_eller_slagit_i_transplan",
+        "450958": "forekommer_nagot_annat_besvar_om_ja_ange_vad",
+        "450959": "var_allt_normalt_hos_patienten_efter_behandlinge",
+        "450960": "var_patienten_nalradd",
+        "450961": "var_patienten_svarstucken",
+        "450962": "har_patienten_svaga_karl",
+        "450963": "var_patienten_radd_for_blod",
+        "450964": "forekom_nagot_annat_av_betydelse_om_ja_ange_vad",
+        "450965": "allmanna_anteckningar"
+      }
+    },
+    {
+      "schemaId": "tp_treatment:hair_tp",
+      "journalType": "tp_treatment",
+      "formVariant": "hair_tp",
+      "meridiqQuestionaryId": 16411,
+      "title": "Journal | TP Behandling",
+      "brand": "Hair TP Clinic",
+      "fieldCount": 52,
+      "sections": [
+        {
+          "title": "FÖRBEREDELSE & PLANERING INFÖR INGREPP",
+          "fields": [
+            {
+              "key": "ingreppTypFaststalld",
+              "label": "Är typ av ingrepp (metod och område) fastställd?",
+              "type": "tristate",
+              "meridiqQuestionId": 450884,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "metodFue",
+              "label": "Ska metoden FUE (Follicular Unit Extraction) användas?",
+              "type": "tristate",
+              "meridiqQuestionId": 450885,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "metodDhi",
+              "label": "Ska metoden DHI (Direct Hair Implantation) användas?",
+              "type": "tristate",
+              "meridiqQuestionId": 450886,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "metodKombination",
+              "label": "Ska en kombination av metoderna DHI och FUE användas?",
+              "type": "tristate",
+              "meridiqQuestionId": 450887,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "omradeVikar",
+              "label": "Ska vikar behandlas vid detta ingrepp?",
+              "type": "tristate",
+              "meridiqQuestionId": 450888,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "omradeKrona",
+              "label": "Ska kronan behandlas vid detta ingrepp?",
+              "type": "tristate",
+              "meridiqQuestionId": 450889,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "omradeFront",
+              "label": "Ska fronten behandlas vid detta ingrepp?",
+              "type": "tristate",
+              "meridiqQuestionId": 450890,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "omradeHelaSkalpen",
+              "label": "Ska hela skalpen behandlas vid detta ingrepp?",
+              "type": "tristate",
+              "meridiqQuestionId": 450891,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "omradeSkagg",
+              "label": "Ska skäggområdet behandlas vid detta ingrepp?",
+              "type": "tristate",
+              "meridiqQuestionId": 450892,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "omradeOgonbryn",
+              "label": "Ska ögonbrynen behandlas vid detta ingrepp?",
+              "type": "tristate",
+              "meridiqQuestionId": 450893,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "omradeArr",
+              "label": "Ska ärrvävnad behandlas vid detta ingrepp?",
+              "type": "tristate",
+              "meridiqQuestionId": 450894,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "ytterligareOmrade",
+              "label": "Ska något ytterligare område behandlas vid detta ingrepp utöver det som redan angivits? Om ja, ange vilket:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450895,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "ytterligareOmradeText"
+            }
+          ]
+        },
+        {
+          "title": "PATIENTSTATUS & INFORMATION",
+          "fields": [
+            {
+              "key": "giltigLegitimationVisad",
+              "label": "Har patienten visat giltig legitimation?",
+              "type": "tristate",
+              "meridiqQuestionId": 450897,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "informeradRisker",
+              "label": "Har patienten blivit informerad om risker och hur ingreppet kommer att genomföras?",
+              "type": "tristate",
+              "meridiqQuestionId": 450898,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "fulltFrisk",
+              "label": "Är patienten fullt frisk? Om nej, ange sjukdomar",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450899,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "fulltFriskText"
+            },
+            {
+              "key": "alkoholNarkotika48h",
+              "label": "Har patienten konsumerat alkohol eller narkotiska preparat de senaste 48 timmarna?",
+              "type": "tristate",
+              "meridiqQuestionId": 450900,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "aktuellaLakemedel",
+              "label": "Använder patienten några läkemedel just nu, regelbundet eller vid behov? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml), dosering och orsak:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450901,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "aktuellaLakemedelText"
+            },
+            {
+              "key": "ytterligareHalsoinfo",
+              "label": "Finns det något ytterligare vi bör veta om patientens hälsa? Om ja, ange vad:",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450902,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "ytterligareHalsoinfoText"
+            }
+          ]
+        },
+        {
+          "title": "STATUS & OBSERVATIONER FÖRE INGREPP",
+          "fields": [
+            {
+              "key": "blodtryckMmHg",
+              "label": "Vad var patientens blodtryck och puls vid mätningstillfället?",
+              "type": "text",
+              "meridiqQuestionId": 450904,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "vitalKlockslag",
+              "label": "Vilket klockslag togs blodtrycket?",
+              "type": "time",
+              "meridiqQuestionId": 450905,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "allmannaAnteckningar",
+              "label": "Allmänna anteckningar",
+              "type": "text",
+              "meridiqQuestionId": 450906,
+              "meridiqType": "textbox",
+              "required": false
+            },
+            {
+              "key": "allmantillstandEfter",
+              "label": "Status på patientens allmäntillstånd efter ingreppet? Normalt, medtagen, trött?",
+              "type": "text",
+              "meridiqQuestionId": 450907,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "reaktionLokalbedovning1",
+              "label": "Hur reagerade patient på lokalbedövning 1? Normalt eller känslig?",
+              "type": "text",
+              "meridiqQuestionId": 450908,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "reaktionLokalbedovning2",
+              "label": "Hur reagerade patient på lokalbedövning 2? Normalt eller känslig?",
+              "type": "text",
+              "meridiqQuestionId": 450909,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "obsLangreHarligne",
+              "label": "Tog det längre tid än vanligt att rita hårlinjen?",
+              "type": "tristate",
+              "meridiqQuestionId": 450910,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "obsHelaHuvudetRakat",
+              "label": "Har hela huvudet rakats inför ingreppet?",
+              "type": "tristate",
+              "meridiqQuestionId": 450911,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "obsDelarRakade",
+              "label": "Har endast delar av huvudet rakats inför ingreppet?",
+              "type": "tristate",
+              "meridiqQuestionId": 450912,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "obsKansligAdrenalin",
+              "label": "Reagerade patienten känsligt på adrenalin?",
+              "type": "tristate",
+              "meridiqQuestionId": 450913,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "obsOkadBlodning",
+              "label": "Visade patienten ökad blödningsbenägenhet under ingreppet?",
+              "type": "tristate",
+              "meridiqQuestionId": 450914,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "obsSegHud",
+              "label": "Var huden svårarbetad eller seg?",
+              "type": "tristate",
+              "meridiqQuestionId": 450915,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "ovrigaObservationer",
+              "label": "Förekom andra relevanta observationer vid ingreppet? Om ja, ange vad",
+              "type": "yes_no_textbox",
+              "meridiqQuestionId": 450916,
+              "meridiqType": "yes_no_textbox",
+              "required": true,
+              "textKey": "ovrigaObservationerText"
+            }
+          ]
+        },
+        {
+          "title": "LÄKEMEDEL",
+          "fields": [
+            {
+              "key": "lakemedelDalacin",
+              "label": "Har patienten fått Dalacin?",
+              "type": "tristate",
+              "meridiqQuestionId": 450918,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "lakemedelBetapred",
+              "label": "Har patienten fått Betapred?",
+              "type": "tristate",
+              "meridiqQuestionId": 450919,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "lakemedelIbuprofen",
+              "label": "Har patienten fått Ibuprofen?",
+              "type": "tristate",
+              "meridiqQuestionId": 450920,
+              "meridiqType": "yes_no",
+              "required": true
+            },
+            {
+              "key": "informeradLakemedelEftervard",
+              "label": "Har kund informerats om medicin och eftervård?",
+              "type": "tristate",
+              "meridiqQuestionId": 450921,
+              "meridiqType": "yes_no",
+              "required": true
+            }
+          ]
+        },
+        {
+          "title": "GRAFTS SOM TRANSPLANTERATS",
+          "fields": [
+            {
+              "key": "graftsSingel",
+              "label": "Antal singel grafts som transplanterats:",
+              "type": "text",
+              "meridiqQuestionId": 450923,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "graftsDubbel",
+              "label": "Antal dubbel grafts som transplanterats:",
+              "type": "text",
+              "meridiqQuestionId": 450924,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "graftsTrippel",
+              "label": "Antal trippel grafts som transplanterats:",
+              "type": "text",
+              "meridiqQuestionId": 450925,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "graftsKvadrupel",
+              "label": "Antal kvadrupel grafts som transplanterats:",
+              "type": "text",
+              "meridiqQuestionId": 450926,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "graftsTotalt",
+              "label": "Totalt antal grafts som transplanterats:",
+              "type": "text",
+              "meridiqQuestionId": 450927,
+              "meridiqType": "textbox",
+              "required": true
+            }
+          ]
+        },
+        {
+          "title": "TIDSREGISTRERING I PROCEDUREN",
+          "fields": [
+            {
+              "key": "tidPlanering",
+              "label": "Starttid för planering (bilder och ritning)",
+              "type": "time",
+              "meridiqQuestionId": 450929,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "tidLokalbedovningDonator",
+              "label": "Starttid för lokalbedövning i donationsområde:",
+              "type": "time",
+              "meridiqQuestionId": 450930,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "tidExtraktionDonator",
+              "label": "Starttid för extraktion från donationsområde:",
+              "type": "time",
+              "meridiqQuestionId": 450931,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "tidLokalbedovningMottagare",
+              "label": "Starttid för lokalbedövning i mottagarområde:",
+              "type": "time",
+              "meridiqQuestionId": 450932,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "tidMottagarkanaler",
+              "label": "Starttid för kanalpreparering i mottagarområde:",
+              "type": "time",
+              "meridiqQuestionId": 450933,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "tidImplantationStart",
+              "label": "Starttid för implantation av grafts:",
+              "type": "time",
+              "meridiqQuestionId": 450934,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "tidImplantationSlut",
+              "label": "Sluttid för implantation av grafts:",
+              "type": "time",
+              "meridiqQuestionId": 450935,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "tidPatientLamnar",
+              "label": "Tidpunkt då patienten lämnar behandlingsrummet:",
+              "type": "time",
+              "meridiqQuestionId": 450936,
+              "meridiqType": "textbox",
+              "required": true
+            }
+          ]
+        },
+        {
+          "title": "ANVÄNDNING AV LÄKEMEDEL",
+          "fields": [
+            {
+              "key": "bedovningCarbocainMl",
+              "label": "Användning av läkemedel - Carbokain adrenalin 20/mg/ml 5micro (ml):",
+              "type": "text",
+              "meridiqQuestionId": 450938,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "bedovningMarcainMl",
+              "label": "Användning av läkemedel - Marcain, 5mg/ml (ml):",
+              "type": "text",
+              "meridiqQuestionId": 450939,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "bedovningAdrenalinMl",
+              "label": "Användning av läkemedel - Adrenalin, 1mg/ml NaCI solution (ml):",
+              "type": "text",
+              "meridiqQuestionId": 450940,
+              "meridiqType": "textbox",
+              "required": true
+            },
+            {
+              "key": "bedovningTribonatMl",
+              "label": "Användning av läkemedel - Tribonat:",
+              "type": "text",
+              "meridiqQuestionId": 450941,
+              "meridiqType": "textbox",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "emptyDefaults": {
+        "ingreppTypFaststalld": null,
+        "metodFue": null,
+        "metodDhi": null,
+        "metodKombination": null,
+        "omradeVikar": null,
+        "omradeKrona": null,
+        "omradeFront": null,
+        "omradeHelaSkalpen": null,
+        "omradeSkagg": null,
+        "omradeOgonbryn": null,
+        "omradeArr": null,
+        "ytterligareOmrade": null,
+        "ytterligareOmradeText": "",
+        "giltigLegitimationVisad": null,
+        "informeradRisker": null,
+        "fulltFrisk": null,
+        "fulltFriskText": "",
+        "alkoholNarkotika48h": null,
+        "aktuellaLakemedel": null,
+        "aktuellaLakemedelText": "",
+        "ytterligareHalsoinfo": null,
+        "ytterligareHalsoinfoText": "",
+        "blodtryckMmHg": "",
+        "vitalKlockslag": "",
+        "allmannaAnteckningar": "",
+        "allmantillstandEfter": "",
+        "reaktionLokalbedovning1": "",
+        "reaktionLokalbedovning2": "",
+        "obsLangreHarligne": null,
+        "obsHelaHuvudetRakat": null,
+        "obsDelarRakade": null,
+        "obsKansligAdrenalin": null,
+        "obsOkadBlodning": null,
+        "obsSegHud": null,
+        "ovrigaObservationer": null,
+        "ovrigaObservationerText": "",
+        "lakemedelDalacin": null,
+        "lakemedelBetapred": null,
+        "lakemedelIbuprofen": null,
+        "informeradLakemedelEftervard": null,
+        "graftsSingel": "",
+        "graftsDubbel": "",
+        "graftsTrippel": "",
+        "graftsKvadrupel": "",
+        "graftsTotalt": "",
+        "tidPlanering": "",
+        "tidLokalbedovningDonator": "",
+        "tidExtraktionDonator": "",
+        "tidLokalbedovningMottagare": "",
+        "tidMottagarkanaler": "",
+        "tidImplantationStart": "",
+        "tidImplantationSlut": "",
+        "tidPatientLamnar": "",
+        "bedovningCarbocainMl": "",
+        "bedovningMarcainMl": "",
+        "bedovningAdrenalinMl": "",
+        "bedovningTribonatMl": "",
+        "metod": "",
+        "behandlingsomraden": [],
+        "observationerUnderIngrepp": [],
+        "lakemedelUtlamnade": [],
+        "puls": "",
+        "slutanteckningar": ""
+      },
+      "meridiqFieldMap": {
+        "450884": "ingreppTypFaststalld",
+        "450885": "metodFue",
+        "450886": "metodDhi",
+        "450887": "metodKombination",
+        "450888": "omradeVikar",
+        "450889": "omradeKrona",
+        "450890": "omradeFront",
+        "450891": "omradeHelaSkalpen",
+        "450892": "omradeSkagg",
+        "450893": "omradeOgonbryn",
+        "450894": "omradeArr",
+        "450895": "ytterligareOmrade",
+        "450897": "giltigLegitimationVisad",
+        "450898": "informeradRisker",
+        "450899": "fulltFrisk",
+        "450900": "alkoholNarkotika48h",
+        "450901": "aktuellaLakemedel",
+        "450902": "ytterligareHalsoinfo",
+        "450904": "blodtryckMmHg",
+        "450905": "vitalKlockslag",
+        "450906": "allmannaAnteckningar",
+        "450907": "allmantillstandEfter",
+        "450908": "reaktionLokalbedovning1",
+        "450909": "reaktionLokalbedovning2",
+        "450910": "obsLangreHarligne",
+        "450911": "obsHelaHuvudetRakat",
+        "450912": "obsDelarRakade",
+        "450913": "obsKansligAdrenalin",
+        "450914": "obsOkadBlodning",
+        "450915": "obsSegHud",
+        "450916": "ovrigaObservationer",
+        "450918": "lakemedelDalacin",
+        "450919": "lakemedelBetapred",
+        "450920": "lakemedelIbuprofen",
+        "450921": "informeradLakemedelEftervard",
+        "450923": "graftsSingel",
+        "450924": "graftsDubbel",
+        "450925": "graftsTrippel",
+        "450926": "graftsKvadrupel",
+        "450927": "graftsTotalt",
+        "450929": "tidPlanering",
+        "450930": "tidLokalbedovningDonator",
+        "450931": "tidExtraktionDonator",
+        "450932": "tidLokalbedovningMottagare",
+        "450933": "tidMottagarkanaler",
+        "450934": "tidImplantationStart",
+        "450935": "tidImplantationSlut",
+        "450936": "tidPatientLamnar",
+        "450938": "bedovningCarbocainMl",
+        "450939": "bedovningMarcainMl",
+        "450940": "bedovningAdrenalinMl",
+        "450941": "bedovningTribonatMl"
+      }
+    }
+  ]
+}

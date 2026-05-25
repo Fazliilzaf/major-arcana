@@ -33,6 +33,7 @@
     tp_treatment: 'TP-journal',
     prp_treatment: 'PRP-journal',
     follow_up: 'Uppföljning',
+    bleph_treatment: 'Ögonlocksjournal',
     health_declaration: 'Hälsodeklaration',
     fitness_certificate: 'Friskförsäkran',
     consultation_plan: 'Behandlingsplan',
@@ -42,12 +43,6 @@
   const photoObjectUrls = new Set();
   const fileObjectUrls = new Set();
   const patientDetailInflight = new Map();
-  const patientPrefetchInflight = new Map();
-  let detailHydratedTabs = new Set();
-
-  function resetDetailHydratedTabs() {
-    detailHydratedTabs = new Set();
-  }
 
   const runtime = {
     mode: 'register',
@@ -85,10 +80,11 @@
     editingTpEntryId: '',
     editingPrpEntryId: '',
     editingFollowUpEntryId: '',
+    editingBlephEntryId: '',
     editingClinicalFormKey: '',
     editingClinicalEntryId: '',
     journalTimelineFilter: 'all',
-    draftProposals: [],
+    focusTimelineKey: '',
   };
 
   const JOURNAL_TIMELINE_FILTERS = [
@@ -536,6 +532,7 @@
     runtime.editingTpEntryId = '';
     runtime.editingPrpEntryId = '';
     runtime.editingFollowUpEntryId = '';
+    runtime.editingBlephEntryId = '';
     runtime.editingClinicalFormKey = '';
     runtime.editingClinicalEntryId = '';
   }
@@ -1029,11 +1026,59 @@
           <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileLabel}</button>`;
   }
 
+  function resolveActiveTreatmentEncounterId(entries) {
+    const rows = asArray(entries);
+    const plan =
+      rows.find(
+        (entry) =>
+          entry.journalType === 'consultation_plan' && normalizeText(entry.treatmentEncounterId)
+      ) || rows.find((entry) => entry.journalType === 'consultation_plan' && !entry.locked);
+    if (normalizeText(plan?.treatmentEncounterId)) return plan.treatmentEncounterId;
+    for (const entry of rows) {
+      const encounterId = normalizeText(entry.treatmentEncounterId);
+      if (encounterId) return encounterId;
+    }
+    return '';
+  }
+
+  function journalEntryPayload(base, entries) {
+    const encounterId = resolveActiveTreatmentEncounterId(entries || runtime.detail?.journalEntries);
+    if (!encounterId) return base;
+    return { ...base, treatmentEncounterId: encounterId };
+  }
+
+  function syncTimelineFocusFromEntries(entries) {
+    const plan = asArray(entries).find(
+      (entry) =>
+        entry.journalType === 'consultation_plan' && normalizeText(entry.treatmentEncounterId)
+    );
+    if (!plan) return;
+    const hasBooking = Boolean(
+      normalizeText(plan.fields?.bookingSlotStart) ||
+        normalizeText(plan.fields?.bookingConfirmedAt) ||
+        normalizeText(plan.fields?.bookingConversationId)
+    );
+    if (!hasBooking) return;
+    runtime.focusTimelineKey = `encounter:${plan.treatmentEncounterId}`;
+    if (runtime.detailTab === 'profil') runtime.detailTab = 'tidslinje';
+  }
+
+  function focusTimelineSegmentIfNeeded(root) {
+    const key = normalizeText(runtime.focusTimelineKey);
+    if (!key || runtime.detailTab !== 'tidslinje' || !root) return;
+    const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(key) : key.replace(/"/g, '\\"');
+    const node = root.querySelector(`[data-timeline-key="${escaped}"]`);
+    if (!node) return;
+    node.classList.add('is-timeline-focused');
+    node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    runtime.focusTimelineKey = '';
+  }
+
   function journalOccasionCategory(entry) {
     const type = entry?.journalType || '';
     if (type === 'historical_import' || entry?.source === 'drive_import') return 'archive';
     if (type === 'follow_up') return 'followup';
-    if (type === 'tp_treatment' || type === 'prp_treatment') return 'treatment';
+    if (type === 'tp_treatment' || type === 'prp_treatment' || type === 'bleph_treatment') return 'treatment';
     return 'consultation';
   }
 
@@ -1127,9 +1172,9 @@
         ${groups
           .map(
             (group) => `
-          <section class="patient-master-history-segment">
+          <section class="patient-master-history-segment${group.entries.every((entry) => entry.locked) && group.entries.length ? ' is-encounter-locked' : ''}" data-timeline-key="${escapeHtml(group.timelineKey)}">
             <header class="patient-master-history-segment-head">
-              <h4>${escapeHtml(group.timelineLabel)}</h4>
+              <h4>${escapeHtml(group.timelineLabel)}${group.entries.every((entry) => entry.locked) && group.entries.length ? ' · Låst' : ''}</h4>
               <span>${group.entries.length} post${group.entries.length === 1 ? '' : 'er'}</span>
             </header>
             <ul class="patient-master-journal-list patient-master-timeline-list">
@@ -1198,9 +1243,9 @@
         ${groups
           .map(
             (group) => `
-          <section class="patient-master-history-segment">
+          <section class="patient-master-history-segment${group.entries.every((entry) => entry.locked) && group.entries.length ? ' is-encounter-locked' : ''}" data-timeline-key="${escapeHtml(group.timelineKey)}">
             <header class="patient-master-history-segment-head">
-              <h4>${escapeHtml(group.timelineLabel)}</h4>
+              <h4>${escapeHtml(group.timelineLabel)}${group.entries.every((entry) => entry.locked) && group.entries.length ? ' · Låst' : ''}</h4>
               <span>${group.entries.length} journal · ${group.fileCount || 0} filer</span>
             </header>
             ${
@@ -1425,33 +1470,8 @@
 
   function fileViewUrl(file) {
     if (file?.viewUrl) return file.viewUrl;
-    if (file?.streamable === false) return '';
-    if (fileHasStreamLink(file) && file?.id) {
-      return `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`;
-    }
+    if (file?.id) return `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`;
     return '';
-  }
-
-  function fileHasStreamLink(file) {
-    if (file?.streamable === true) return true;
-    if (file?.streamable === false || file?.driveLinkMissing === true) return false;
-    if (String(file?.driveFileId || '').trim()) return true;
-    if (file?.source === 'folder' && file?.folderRoot) return true;
-    if (String(file?.zipName || '').trim()) return true;
-    return false;
-  }
-
-  function fileMissingDriveLinkLabel() {
-    return '<span class="patient-master-muted">· saknar Drive-koppling</span>';
-  }
-
-  function renderFileEntryLabel(file, label) {
-    const safeLabel = escapeHtml(repairDisplayFilename(label));
-    const href = fileViewUrl(file);
-    if (href) {
-      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${safeLabel}</a>`;
-    }
-    return `<strong>${safeLabel}</strong>${fileMissingDriveLinkLabel()}`;
   }
 
   function attachmentViewUrl(attachment) {
@@ -1517,9 +1537,7 @@
         const objectUrl = await fetchPatientFileObjectUrl(fileId);
         img.classList.remove('is-loading');
         if (!objectUrl) {
-          img.alt = fileHasStreamLink({ id: fileId })
-            ? 'Kunde inte visa bild'
-            : 'Saknar Drive-koppling';
+          img.alt = 'Kunde inte visa bild';
           img.classList.add('is-broken');
           return;
         }
@@ -1694,10 +1712,11 @@
         <ul class="patient-master-file-list patient-master-file-list--compact">
           ${pdfs
         .map((file) => {
-          const label = file.fileName || file.relativePath || 'PDF';
+          const href = fileViewUrl(file);
+          const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'PDF'));
           return `
                 <li>
-                  ${renderFileEntryLabel(file, label)}
+                  <a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>
                   <span>PDF</span>
                 </li>
               `;
@@ -1713,15 +1732,8 @@
           <div class="patient-master-image-grid">
             ${images
         .map((file) => {
-          const label = escapeHtml(repairDisplayFilename(file.fileName || 'Bild'));
-          if (!fileHasStreamLink(file)) {
-            return `
-                  <div class="patient-master-image-tile is-unlinked" title="Saknar Drive-koppling">
-                    <span class="patient-master-muted">Saknar Drive-koppling</span>
-                  </div>
-                `;
-          }
           const href = fileViewUrl(file);
+          const label = escapeHtml(repairDisplayFilename(file.fileName || 'Bild'));
           return `
                   <a class="patient-master-image-tile" href="${escapeHtml(href)}" target="_blank" rel="noopener" title="${label}">
                     <img src="" data-patient-file-id="${escapeHtml(file.id)}" alt="${label}" loading="lazy" decoding="async" />
@@ -1739,10 +1751,14 @@
         <ul class="patient-master-file-list patient-master-file-list--compact">
           ${other
         .map((file) => {
-          const label = file.fileName || file.relativePath || 'Fil';
+          const href = fileViewUrl(file);
+          const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'Fil'));
+          const link = href
+            ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>`
+            : `<strong>${label}</strong>`;
           return `
                 <li>
-                  ${renderFileEntryLabel(file, label)}
+                  ${link}
                   <span>${escapeHtml(file.fileType || 'fil')}</span>
                 </li>
               `;
@@ -1773,16 +1789,9 @@
     if (!rows.length) {
       return renderFilesEmpty(card);
     }
-    const missingDriveLinkCount = rows.filter(
-      (file) => file?.driveLinkMissing === true || !fileHasStreamLink(file)
-    ).length;
-    const missingBanner =
-      missingDriveLinkCount > 0
-        ? `<p class="patient-master-muted">${missingDriveLinkCount} fil${missingDriveLinkCount === 1 ? '' : 'er'} saknar Drive-koppling och kan inte öppnas.</p>`
-        : '';
-    return `${missingBanner}${groupFilesByOccasion(rows)
+    return groupFilesByOccasion(rows)
       .map((group) => renderOccasionGroup(group))
-      .join('')}`;
+      .join('');
   }
 
   function renderMaterialPreview(files, card) {
@@ -1806,7 +1815,9 @@
           <h4>Kundhistorik</h4>
           <p class="patient-master-muted">${journalPdfs} journal-PDF · ${images} bilder · ${total} filer</p>
         </div>
-        <button type="button" class="customers-utility-button" data-patient-tab="filer">Visa alla filer (${total})</button>
+        <div class="patient-master-history-segments">
+          ${renderDriveFiles(rows, card)}
+        </div>
       </article>
     `;
   }
@@ -1888,33 +1899,6 @@
     `;
   }
 
-  function renderDraftProposalBanner(proposals) {
-    const pending = asArray(proposals).filter((row) => normalizeText(row.status) === 'pending');
-    if (!pending.length) return '';
-    const proposal = pending[0];
-    const fields = proposal.draftFields && typeof proposal.draftFields === 'object' ? proposal.draftFields : {};
-    const fieldLines = Object.values(fields)
-      .map((field) => `<li>${escapeHtml(field.title || field.journalType || 'Utkast')}</li>`)
-      .join('');
-    const missing = asArray(proposal.missing)
-      .map((item) => `<span class="patient-master-chip">${escapeHtml(item)}</span>`)
-      .join('');
-    return `
-      <article class="focus-customer-data-card patient-master-draft-proposal-card" data-draft-proposal-id="${escapeHtml(proposal.proposalId)}">
-        <div class="patient-master-material-head">
-          <h4>Journalutkast (agent)</h4>
-          <span class="patient-master-muted">Kräver personalgodkännande</span>
-        </div>
-        <p class="patient-master-muted">Automatiskt förslag baserat på saknade formulär. Godkänn för att öppna i Journal — inget sparas utan manuell signering.</p>
-        ${missing ? `<div class="patient-master-chip-row">${missing}</div>` : ''}
-        ${fieldLines ? `<ul class="patient-master-draft-proposal-list">${fieldLines}</ul>` : ''}
-        <div class="patient-master-draft-proposal-actions">
-          <button type="button" class="customers-utility-button" data-patient-action="review-draft-proposal" data-draft-status="approved" data-draft-proposal-id="${escapeHtml(proposal.proposalId)}">Godkänn &amp; öppna Journal</button>
-          <button type="button" class="customers-utility-button patient-master-muted-button" data-patient-action="review-draft-proposal" data-draft-status="dismissed" data-draft-proposal-id="${escapeHtml(proposal.proposalId)}">Avvisa</button>
-        </div>
-      </article>`;
-  }
-
   function renderJournalToolbar(card, entries) {
     const uploadBlocked = isPlanUploadBlocked(entries);
     const healthReady = hasSignedHealthDeclaration(entries);
@@ -1952,11 +1936,23 @@
         <button class="customers-utility-button" type="button" data-patient-action="new-tp-journal">
           TP-journal
         </button>
-        <button class="customers-utility-button" type="button" data-patient-action="new-prp-journal">
+        <button class="customers-utility-button" type="button" data-patient-action="new-prp-journal" data-prp-form-variant="prp_skin">
           PRP-journal
         </button>
-        <button class="customers-utility-button" type="button" data-patient-action="new-follow-up-journal">
-          Uppföljning
+        <button class="customers-utility-button" type="button" data-patient-action="new-prp-journal" data-prp-form-variant="tp_post_op">
+          PRP efter TP
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-follow-up-journal" data-follow-form-variant="4_manader">
+          Uppföljning 4 mån
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-follow-up-journal" data-follow-form-variant="6_manader">
+          Uppföljning 6 mån
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-follow-up-journal" data-follow-form-variant="12_manader">
+          Uppföljning 12 mån
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-bleph-journal">
+          Ögonlocksjournal
         </button>
       </div>
       ${uploadBlocked
@@ -2486,6 +2482,15 @@
     );
   }
 
+  function findBlephJournalEntry(entries, entryId) {
+    if (!entryId) return null;
+    return (
+      asArray(entries).find(
+        (entry) => entry.journalType === 'bleph_treatment' && entry.entryId === entryId
+      ) || null
+    );
+  }
+
   function bindJournalAutosaveForms() {
     if (!isMobileViewport() || !window.ArcanaMobileAutosave?.bindForm) return;
     const patientId = runtime.selectedPatientId;
@@ -2511,6 +2516,8 @@
               entryId,
               personnummer: card.personnummer || '',
               journalType: config.journalType,
+              formVariant: config.formVariant,
+              sourceQuestionaryId: config.meridiqQuestionaryId,
               title: config.title,
               fields,
             },
@@ -2525,6 +2532,7 @@
       const tpForm = window.ArcanaJournalTpForm;
       if (!tpForm?.readForm || !entryId) return;
       const entryRoot = form.querySelector('[data-tp-journal-form]');
+      const config = tpForm.config || {};
       window.ArcanaMobileAutosave.bindForm(form, {
         patientId,
         entryId,
@@ -2538,7 +2546,9 @@
               entryId,
               personnummer: card.personnummer || '',
               journalType: 'tp_treatment',
-              title: 'TP behandlingsjournal',
+              formVariant: config.formVariant || 'hair_tp',
+              sourceQuestionaryId: config.meridiqQuestionaryId || 16411,
+              title: config.title || 'TP behandlingsjournal',
               fields,
             },
           });
@@ -2552,6 +2562,11 @@
       const prpForm = window.ArcanaJournalPrpForm;
       if (!prpForm?.readForm || !entryId) return;
       const entryRoot = form.querySelector('[data-prp-journal-form]');
+      const formVariant =
+        normalizeText(form.dataset.prpFormVariant) ||
+        normalizeText(entryRoot?.dataset?.prpFormVariant) ||
+        'prp_skin';
+      const config = prpForm.forms?.[formVariant] || prpForm.resolveForm?.({ formVariant }) || {};
       window.ArcanaMobileAutosave.bindForm(form, {
         patientId,
         entryId,
@@ -2565,7 +2580,9 @@
               entryId,
               personnummer: card.personnummer || '',
               journalType: 'prp_treatment',
-              title: 'PRP behandlingsjournal',
+              formVariant: config.formVariant || formVariant,
+              sourceQuestionaryId: config.meridiqQuestionaryId,
+              title: config.title || 'PRP behandlingsjournal',
               fields,
             },
           });
@@ -2579,6 +2596,11 @@
       const followForm = window.ArcanaJournalFollowUpForm;
       if (!followForm?.readForm || !entryId) return;
       const entryRoot = form.querySelector('[data-follow-journal-form]');
+      const formVariant =
+        normalizeText(form.dataset.followFormVariant) ||
+        normalizeText(entryRoot?.dataset?.followFormVariant) ||
+        '4_manader';
+      const config = followForm.forms?.[formVariant] || followForm.resolveForm?.({ formVariant }) || {};
       window.ArcanaMobileAutosave.bindForm(form, {
         patientId,
         entryId,
@@ -2592,7 +2614,39 @@
               entryId,
               personnummer: card.personnummer || '',
               journalType: 'follow_up',
-              title: 'Uppföljning',
+              formVariant: config.formVariant || formVariant,
+              sourceQuestionaryId: config.meridiqQuestionaryId,
+              title: config.title || 'Uppföljning',
+              fields,
+            },
+          });
+        },
+      });
+      window.ArcanaMobileAutosave.initMobileStepper(form);
+    });
+
+    document.querySelectorAll('[data-bleph-journal-save-form]').forEach((form) => {
+      const entryId = normalizeText(form.dataset.blephEntryId) || runtime.editingBlephEntryId;
+      const blephForm = window.ArcanaJournalBlephForm;
+      if (!blephForm?.readForm || !entryId) return;
+      const entryRoot = form.querySelector('[data-bleph-journal-form]');
+      const config = blephForm.config || {};
+      window.ArcanaMobileAutosave.bindForm(form, {
+        patientId,
+        entryId,
+        formKey: 'bleph_treatment',
+        readFields: () => blephForm.readForm(entryRoot),
+        onSync: async (fields) => {
+          await apiRequest('/api/v1/cco-journal/entry', {
+            method: 'PUT',
+            body: {
+              patientId,
+              entryId,
+              personnummer: card.personnummer || '',
+              journalType: 'bleph_treatment',
+              formVariant: config.formVariant || 'curatiio_bleph',
+              sourceQuestionaryId: config.meridiqQuestionaryId || 16388,
+              title: config.title || 'Ögonlocksjournal',
               fields,
             },
           });
@@ -2606,11 +2660,14 @@
   function renderClinicalFormSection(entries) {
     const formKey = runtime.editingClinicalFormKey;
     const entryId = runtime.editingClinicalEntryId;
+    const parsed = window.ArcanaJournalClinicalFormKeys?.parseFormKey?.(formKey);
     const config = window.ArcanaJournalClinicalForms?.[formKey];
     if (!formKey || !entryId || !config?.render) return '';
-    const entry = asArray(entries).find(
-      (row) => row.entryId === entryId && row.journalType === config.journalType
-    );
+    const entry = asArray(entries).find((row) => {
+      if (row.entryId !== entryId || row.journalType !== config.journalType) return false;
+      if (parsed?.formVariant && row.formVariant && row.formVariant !== parsed.formVariant) return false;
+      return true;
+    });
     if (!entry) return '';
     const signFooter =
       entry.canSign && !entry.locked
@@ -2666,7 +2723,7 @@
         </div>`
         : '';
     return `
-      <form class="patient-master-tp-form-wrap" data-prp-journal-save-form data-prp-entry-id="${escapeHtml(entry.entryId)}">
+      <form class="patient-master-tp-form-wrap" data-prp-journal-save-form data-prp-entry-id="${escapeHtml(entry.entryId)}" data-prp-form-variant="${escapeHtml(entry.formVariant || 'prp_skin')}">
         ${prpForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
         ${signFooter}
       </form>
@@ -2688,8 +2745,30 @@
         </div>`
         : '';
     return `
-      <form class="patient-master-tp-form-wrap" data-follow-journal-save-form data-follow-entry-id="${escapeHtml(entry.entryId)}">
+      <form class="patient-master-tp-form-wrap" data-follow-journal-save-form data-follow-entry-id="${escapeHtml(entry.entryId)}" data-follow-form-variant="${escapeHtml(entry.formVariant || '4_manader')}">
         ${followForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${signFooter}
+      </form>
+    `;
+  }
+
+  function renderBlephJournalSection(entries) {
+    const blephForm = window.ArcanaJournalBlephForm;
+    if (!blephForm?.render || !runtime.editingBlephEntryId) return '';
+    const entry = findBlephJournalEntry(entries, runtime.editingBlephEntryId);
+    if (!entry) return '';
+    const signFooter =
+      entry.canSign && !entry.locked
+        ? `
+        <div class="patient-master-tp-footer">
+          <button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">
+            Signera och lås journal
+          </button>
+        </div>`
+        : '';
+    return `
+      <form class="patient-master-tp-form-wrap" data-bleph-journal-save-form data-bleph-entry-id="${escapeHtml(entry.entryId)}">
+        ${blephForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
         ${signFooter}
       </form>
     `;
@@ -2735,6 +2814,10 @@
     const followUpSection = followUpSectionRaw
       ? wrapJournalCollapse('Uppföljning', followUpSectionRaw, { open: true })
       : '';
+    const blephSectionRaw = renderBlephJournalSection(rows);
+    const blephSection = blephSectionRaw
+      ? wrapJournalCollapse('Ögonlocksjournal', blephSectionRaw, { open: true })
+      : '';
     const clinicalSection = renderClinicalFormSection(rows);
     const otherEntries = rows.filter((entry) => entry.journalType !== 'consultation_plan');
 
@@ -2751,6 +2834,7 @@
           const isTpEntry = entry.journalType === 'tp_treatment';
           const isPrpEntry = entry.journalType === 'prp_treatment';
           const isFollowUpEntry = entry.journalType === 'follow_up';
+          const isBlephEntry = entry.journalType === 'bleph_treatment';
           const isHealthEntry = entry.journalType === 'health_declaration';
           const isFitnessEntry = entry.journalType === 'fitness_certificate';
           const isClinicalEntry = isHealthEntry || isFitnessEntry;
@@ -2760,11 +2844,13 @@
           const isEditingPrp = isPrpEntry && runtime.editingPrpEntryId === entry.entryId;
           const isEditingFollowUp =
             isFollowUpEntry && runtime.editingFollowUpEntryId === entry.entryId;
+          const isEditingBleph = isBlephEntry && runtime.editingBlephEntryId === entry.entryId;
           const isEditingClinical =
             isClinicalEntry &&
             runtime.editingClinicalEntryId === entry.entryId &&
-            ((isHealthEntry && runtime.editingClinicalFormKey === 'health') ||
-              (isFitnessEntry && runtime.editingClinicalFormKey === 'fitness'));
+            runtime.editingClinicalFormKey ===
+              (window.ArcanaJournalClinicalFormKeys?.resolveEntryFormKey(entry) ||
+                (isHealthEntry ? 'health' : 'fitness'));
           const tpOpenButton =
             isTpEntry && runtime.detail?.card?.patientId
               ? `<button type="button" class="customers-utility-button${isEditingTp ? ' is-active' : ''}" data-patient-open-tp="${escapeHtml(entry.entryId)}">${isEditingTp ? 'Öppen' : 'Öppna'}</button>`
@@ -2777,9 +2863,16 @@
             isFollowUpEntry && runtime.detail?.card?.patientId
               ? `<button type="button" class="customers-utility-button${isEditingFollowUp ? ' is-active' : ''}" data-patient-open-follow-up="${escapeHtml(entry.entryId)}">${isEditingFollowUp ? 'Öppen' : 'Öppna'}</button>`
               : '';
+          const blephOpenButton =
+            isBlephEntry && runtime.detail?.card?.patientId
+              ? `<button type="button" class="customers-utility-button${isEditingBleph ? ' is-active' : ''}" data-patient-open-bleph="${escapeHtml(entry.entryId)}">${isEditingBleph ? 'Öppen' : 'Öppna'}</button>`
+              : '';
+          const clinicalFormKey =
+            window.ArcanaJournalClinicalFormKeys?.resolveEntryFormKey(entry) ||
+            (isHealthEntry ? 'health' : 'fitness');
           const clinicalOpenButton =
             isClinicalEntry && runtime.detail?.card?.patientId
-              ? `<button type="button" class="customers-utility-button${isEditingClinical ? ' is-active' : ''}" data-patient-open-clinical="${escapeHtml(isHealthEntry ? 'health' : 'fitness')}:${escapeHtml(entry.entryId)}">${isEditingClinical ? 'Öppen' : 'Öppna'}</button>`
+              ? `<button type="button" class="customers-utility-button${isEditingClinical ? ' is-active' : ''}" data-patient-open-clinical="${escapeHtml(clinicalFormKey)}:${escapeHtml(entry.entryId)}">${isEditingClinical ? 'Öppen' : 'Öppna'}</button>`
               : '';
           const signButton =
             entry.canSign &&
@@ -2787,11 +2880,12 @@
               !isEditingTp &&
               !isEditingPrp &&
               !isEditingFollowUp &&
+              !isEditingBleph &&
               !isEditingClinical
               ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">Signera</button>`
               : '';
           return `
-              <li class="patient-master-journal-item${entry.locked ? ' is-locked' : ''}${isEditingTp || isEditingPrp || isEditingFollowUp || isEditingClinical ? ' is-editing' : ''}">
+              <li class="patient-master-journal-item${entry.locked ? ' is-locked' : ''}${isEditingTp || isEditingPrp || isEditingFollowUp || isEditingBleph || isEditingClinical ? ' is-editing' : ''}">
                 <div>
                   <strong>${escapeHtml(entry.title || typeLabel)}</strong>
                   <span>${escapeHtml(entry.status || 'draft')}${entry.signedAt ? ` · signerad ${escapeHtml(String(entry.signedAt).slice(0, 10))}` : ''}</span>
@@ -2807,6 +2901,7 @@
                   ${tpOpenButton}
                   ${prpOpenButton}
                   ${followUpOpenButton}
+                  ${blephOpenButton}
                   ${clinicalOpenButton}
                   ${signButton}
                 </div>
@@ -2825,6 +2920,7 @@
       ${tpSection}
       ${prpSection}
       ${followUpSection}
+      ${blephSection}
       ${otherEntries.some((entry) => entry.journalType === 'tp_treatment')
         ? `<p class="patient-master-muted patient-master-tp-hint">TP-journal fylls i efter behandlingsdagen — öppna utkastet och signera när det är klart.</p>`
         : ''
@@ -2993,10 +3089,10 @@
       runtime.editingTpEntryId = '';
       runtime.editingPrpEntryId = '';
       runtime.editingFollowUpEntryId = '';
+      runtime.editingBlephEntryId = '';
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
     }
-    hydrateDetailTab(normalized);
     rail.querySelectorAll('[data-patient-tab]').forEach((button) => {
       const active = (button.dataset.patientTab || '') === normalized;
       button.classList.toggle('is-active', active);
@@ -3087,146 +3183,17 @@
     syncMobilePatientLayout();
   }
 
-  function renderDetailTabContent(tabName, detail) {
-    const { card, patient, journalEntries, driveFiles, occasionTimeline } = detail;
-    switch (tabName) {
-      case 'profil':
-        return `
-          ${renderDraftProposalBanner(runtime.draftProposals)}
-          ${renderJournalWorkflowCallout(journalEntries)}
-          <article class="focus-customer-data-card patient-master-identity-card">
-            <h4>Identitet</h4>
-            <dl class="focus-customer-dl">
-              <div><dt>Personnummer</dt><dd>${escapeHtml(card.personnummer || '—')}</dd></div>
-              <div><dt>Matchning</dt><dd>${escapeHtml(MATCH_LABELS[card.matchStatus] || card.matchStatus || '—')}</dd></div>
-              <div><dt>Cliento</dt><dd>${card.clientoLinked ? 'Ja' : 'Nej'}</dd></div>
-              <div><dt>Drive</dt><dd>${card.driveLinked ? 'Ja' : 'Nej'}</dd></div>
-              <div><dt>Pipedrive</dt><dd>${card.pipedriveLinked ? `Ja (${card.pipedriveDealCount || 0} affärer)` : 'Nej'}</dd></div>
-            </dl>
-          </article>
-          ${renderPipedriveSection(patient)}
-          ${renderMaterialPreview(driveFiles, card)}
-          ${patient?.cliento?.createdAt
-        ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
-        : ''
-      }`;
-      case 'journal':
-        return renderJournalEntries(journalEntries);
-      case 'tidslinje':
-        return renderUnifiedTimelinePanel(journalEntries, driveFiles, occasionTimeline);
-      case 'avtal':
-        return renderAgreementSection();
-      case 'filer':
-        return renderDriveFiles(driveFiles, card);
-      default:
-        return '';
-    }
-  }
-
-  function renderDetailTabPanelMarkup(tabName, detail, active) {
-    const lazy = !active && !detailHydratedTabs.has(tabName);
-    if (lazy) {
-      return `<p class="patient-master-muted" data-patient-tab-lazy="${tabName}">Laddar…</p>`;
-    }
-    detailHydratedTabs.add(tabName);
-    return renderDetailTabContent(tabName, detail);
-  }
-
-  function hydrateDetailTab(tabName) {
-    if (!runtime.detail?.card || detailHydratedTabs.has(tabName)) return false;
-    const rail = els.patientRail || document.querySelector('[data-patient-master-rail]');
-    const panel = rail?.querySelector(`[data-patient-tab-panel="${tabName}"]`);
-    if (!panel?.querySelector('[data-patient-tab-lazy]')) return false;
-    panel.innerHTML = renderDetailTabContent(tabName, runtime.detail);
-    detailHydratedTabs.add(tabName);
-    if (tabName === 'journal') {
-      bindJournalPhotoOpenLinks(rail);
-      void hydrateJournalPhotoElements(rail);
-      window.requestAnimationFrame(() => bindJournalAutosaveForms());
-    } else if (tabName === 'profil' || tabName === 'filer' || tabName === 'tidslinje') {
-      void hydratePatientFileImages(rail);
-    }
-    return true;
-  }
-
-  function scheduleBackgroundDetailTabHydration(patientId) {
-    const tabs = ['profil', 'journal', 'tidslinje', 'avtal', 'filer'].filter(
-      (tab) => tab !== runtime.detailTab
-    );
-    let index = 0;
-    const step = () => {
-      if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
-      if (index >= tabs.length) return;
-      hydrateDetailTab(tabs[index]);
-      index += 1;
-      if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(step, { timeout: 1800 });
-      } else {
-        window.setTimeout(step, 24);
-      }
-    };
-    if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(step, { timeout: 1200 });
-    } else {
-      window.setTimeout(step, 48);
-    }
-  }
-
-  function prefetchPatientDetail(patientId) {
-    const key = normalizeText(patientId);
-    if (!key || runtime.mode !== 'register' || needsStaffLogin()) return;
-    if (normalizeText(runtime.selectedPatientId) === key && runtime.detail?.card) return;
-    const cached = window.__ARCANA_PATIENT_PREFETCH__;
-    if (cached && normalizeText(cached.patientId) === key && cached.payload) return;
-    if (patientPrefetchInflight.has(key)) return;
-    const promise = fetchPatientDetailFromApi(patientId)
-      .then((payload) => {
-        window.__ARCANA_PATIENT_PREFETCH__ = {
-          patientId: key,
-          payload,
-          at: Date.now(),
-        };
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (patientPrefetchInflight.get(key) === promise) {
-          patientPrefetchInflight.delete(key);
-        }
-      });
-    patientPrefetchInflight.set(key, promise);
-  }
-
-  function scheduleSidecarLoads(patientId) {
-    void Promise.all([
-      loadPatientCommercialCase(patientId),
-      loadPatientTreatmentAgreement(patientId),
-      loadPatientDraftProposals(patientId),
-    ]).then(() => {
-      if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
-      const patch = () => {
-        if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
-        if (patchCommercialAgreementSidecars()) return;
-        if (runtime.detailTab === 'avtal') {
-          hydrateDetailTab('avtal');
-        }
-      };
-      if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(patch, { timeout: 1200 });
-      } else {
-        window.setTimeout(patch, 0);
-      }
-    });
-  }
-
   function scheduleFullDetailPanelHydration(patientId) {
     const hydrate = () => {
       if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
       if (!runtime.detail?.card) return;
       renderDetailPanel();
-      scheduleBackgroundDetailTabHydration(patientId);
     };
-    window.requestAnimationFrame(hydrate);
-    window.setTimeout(hydrate, 0);
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(hydrate, { timeout: 320 });
+    } else {
+      window.requestAnimationFrame(hydrate);
+    }
   }
 
   function renderDetailPanel() {
@@ -3245,7 +3212,7 @@
     }
     runtime.detailShellOnly = false;
     revokePhotoObjectUrls();
-    const { card, driveFiles } = detail;
+    const { card, patient, journalEntries, driveFiles, occasionTimeline } = detail;
     const tab = runtime.detailTab;
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
@@ -3276,35 +3243,50 @@
         </div>
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">
-          ${renderDetailTabPanelMarkup('profil', detail, profilActive)}
+          ${renderJournalWorkflowCallout(journalEntries)}
+          <article class="focus-customer-data-card patient-master-identity-card">
+            <h4>Identitet</h4>
+            <dl class="focus-customer-dl">
+              <div><dt>Personnummer</dt><dd>${escapeHtml(card.personnummer || '—')}</dd></div>
+              <div><dt>Matchning</dt><dd>${escapeHtml(MATCH_LABELS[card.matchStatus] || card.matchStatus || '—')}</dd></div>
+              <div><dt>Cliento</dt><dd>${card.clientoLinked ? 'Ja' : 'Nej'}</dd></div>
+              <div><dt>Drive</dt><dd>${card.driveLinked ? 'Ja' : 'Nej'}</dd></div>
+              <div><dt>Pipedrive</dt><dd>${card.pipedriveLinked ? `Ja (${card.pipedriveDealCount || 0} affärer)` : 'Nej'}</dd></div>
+            </dl>
+          </article>
+          ${renderPipedriveSection(patient)}
+          ${renderMaterialPreview(driveFiles, card)}
+          ${patient?.cliento?.createdAt
+        ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
+        : ''
+      }
         </div>
 
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
-          ${renderDetailTabPanelMarkup('journal', detail, journalActive)}
+          ${renderJournalEntries(journalEntries)}
         </div>
 
         <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
-          ${renderDetailTabPanelMarkup('tidslinje', detail, tidslinjeActive)}
+          ${renderUnifiedTimelinePanel(journalEntries, driveFiles, occasionTimeline)}
         </div>
 
         <div class="patient-master-tab-panel"${avtalActive ? '' : ' hidden'} data-patient-tab-panel="avtal">
-          ${renderDetailTabPanelMarkup('avtal', detail, avtalActive)}
+          ${renderAgreementSection()}
         </div>
 
         <div class="patient-master-tab-panel"${filesActive ? '' : ' hidden'} data-patient-tab-panel="filer">
-          ${renderDetailTabPanelMarkup('filer', detail, filesActive)}
+          ${renderDriveFiles(driveFiles, card)}
         </div>
       </section>
     `;
     bindJournalPhotoOpenLinks(els.patientRail);
-    if (journalActive) {
-      void hydrateJournalPhotoElements(els.patientRail);
-      window.requestAnimationFrame(() => bindJournalAutosaveForms());
-    }
-    if (profilActive || filesActive || tidslinjeActive) {
-      void hydratePatientFileImages(els.patientRail);
-    }
+    void hydrateJournalPhotoElements(els.patientRail);
+    void hydratePatientFileImages(els.patientRail);
     syncMobilePatientLayout();
+    window.requestAnimationFrame(() => {
+      bindJournalAutosaveForms();
+      focusTimelineSegmentIfNeeded(els.patientRail);
+    });
   }
 
   async function loadStats() {
@@ -3493,16 +3475,10 @@
       if (!runtime.detail?.card) return;
       if (runtime.detailShellOnly) {
         renderDetailPanel();
-        scheduleBackgroundDetailTabHydration(patientId);
         return;
       }
-      const loading = document
-        .querySelector('[data-patient-master-rail]')
-        ?.querySelector('[data-patient-loading="true"]');
-      if (loading || !railHasPatientDetailUi()) {
-        renderDetailPanel();
-        scheduleBackgroundDetailTabHydration(patientId);
-      }
+      if (railHasPatientDetailUi()) return;
+      renderDetailPanel();
     };
     paint();
     window.requestAnimationFrame(paint);
@@ -3572,61 +3548,16 @@
     }
   }
 
-  async function loadPatientDraftProposals(patientId) {
-    if (!patientId) return;
-    try {
-      const payload = await apiRequest(
-        `/api/v1/ops/cco-care/draft-proposals?patientId=${encodeURIComponent(patientId)}&status=pending&limit=5`
-      );
-      runtime.draftProposals = asArray(payload?.proposals);
-      if (runtime.selectedPatientId === patientId && runtime.detail?.card) {
-        const panel = els.patientRail?.querySelector('[data-patient-tab-panel="profil"]');
-        const existing = panel?.querySelector('.patient-master-draft-proposal-card');
-        const html = renderDraftProposalBanner(runtime.draftProposals);
-        if (html && panel && !existing) {
-          panel.insertAdjacentHTML('afterbegin', html);
-        } else if (!html && existing) {
-          existing.remove();
-        } else if (html && existing) {
-          existing.outerHTML = html;
-        }
-      }
-    } catch {
-      runtime.draftProposals = [];
-    }
-  }
-
-  async function reviewDraftProposal(proposalId, status) {
-    if (!proposalId || !['approved', 'dismissed'].includes(status)) return;
-    try {
-      await apiRequest(`/api/v1/ops/cco-care/draft-proposals/${encodeURIComponent(proposalId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      runtime.draftProposals = runtime.draftProposals.filter((row) => row.proposalId !== proposalId);
-      if (status === 'approved') {
-        switchDetailTab('journal');
-        setStatus('Utkast godkänt — fortsätt manuellt i Journal.', 'success');
-      } else {
-        setStatus('Journalutkast avvisat.', 'success');
-      }
-      renderDetailPanel();
-    } catch (error) {
-      setStatus(error?.message || 'Kunde inte uppdatera journalutkast.', 'error');
-    }
-  }
-
   async function loadPatientDetailInternal(patientId) {
     resolveElements();
     if (!patientId || runtime.mode !== 'register') return;
     const openingNewPatient = runtime.selectedPatientId !== patientId;
     const previousPatientId = runtime.selectedPatientId;
     if (openingNewPatient) {
-      resetDetailHydratedTabs();
       runtime.editingTpEntryId = '';
       runtime.editingPrpEntryId = '';
       runtime.editingFollowUpEntryId = '';
+      runtime.editingBlephEntryId = '';
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
     }
@@ -3653,6 +3584,7 @@
     try {
       const payload = await resolvePatientDetailPayload(patientId);
       runtime.detail = payload;
+      syncTimelineFocusFromEntries(payload.journalEntries);
       runtime.detailLoading = false;
       if (isMobileViewport() && runtime.preferJournalOnMobile) {
         renderDetailShellLite();
@@ -3668,7 +3600,29 @@
       } catch {
         /* best-effort */
       }
-      scheduleSidecarLoads(patientId);
+      if (isMobileViewport()) {
+        void Promise.all([
+          loadPatientCommercialCase(patientId),
+          loadPatientTreatmentAgreement(patientId),
+        ]).then(() => {
+          if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
+          const patch = () => {
+            if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
+            patchCommercialAgreementSidecars();
+          };
+          if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(patch, { timeout: 1200 });
+          } else {
+            window.setTimeout(patch, 0);
+          }
+        });
+      } else {
+        await Promise.all([
+          loadPatientCommercialCase(patientId),
+          loadPatientTreatmentAgreement(patientId),
+        ]);
+        renderDetailPanel();
+      }
     } catch (error) {
       runtime.detail = null;
       const message =
@@ -4181,6 +4135,7 @@
     if (!patientId || !card || !entryId || !tpForm?.readForm) return;
     const entryRoot = form.querySelector('[data-tp-journal-form]');
     const fields = tpForm.readForm(entryRoot);
+    const config = tpForm.config || {};
     setStatus('Sparar TP-journal…', 'loading');
     try {
       await apiRequest('/api/v1/cco-journal/entry', {
@@ -4190,7 +4145,9 @@
           entryId,
           personnummer: card.personnummer || '',
           journalType: 'tp_treatment',
-          title: 'TP behandlingsjournal',
+          formVariant: config.formVariant || 'hair_tp',
+          sourceQuestionaryId: config.meridiqQuestionaryId || 16411,
+          title: config.title || 'TP behandlingsjournal',
           fields,
         },
       });
@@ -4216,6 +4173,8 @@
           patientId,
           personnummer: card.personnummer || '',
           journalType: config.journalType,
+          formVariant: config.formVariant,
+          sourceQuestionaryId: config.meridiqQuestionaryId,
           title: config.title,
           fields: config.defaultFields ? config.defaultFields(card) : {},
         },
@@ -4225,6 +4184,7 @@
       runtime.editingTpEntryId = '';
       runtime.editingPrpEntryId = '';
       runtime.editingFollowUpEntryId = '';
+      runtime.editingBlephEntryId = '';
       setStatus(`${config.title} skapad.`, 'success');
       runtime.detailTab = 'journal';
       await loadPatientDetail(patientId);
@@ -4251,6 +4211,8 @@
           entryId,
           personnummer: card.personnummer || '',
           journalType: config.journalType,
+          formVariant: config.formVariant,
+          sourceQuestionaryId: config.meridiqQuestionaryId,
           title: config.title,
           fields,
         },
@@ -4268,7 +4230,9 @@
   async function createTpJournalDraft() {
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
-    if (!patientId || !card) return;
+    const tpForm = window.ArcanaJournalTpForm;
+    if (!patientId || !card || !tpForm) return;
+    const config = tpForm.config || {};
     setStatus('Skapar TP-journal…', 'loading');
     try {
       const payload = await apiRequest('/api/v1/cco-journal/entry', {
@@ -4277,13 +4241,16 @@
           patientId,
           personnummer: card.personnummer || '',
           journalType: 'tp_treatment',
-          title: 'TP behandlingsjournal',
-          fields: {},
+          formVariant: config.formVariant || 'hair_tp',
+          sourceQuestionaryId: config.meridiqQuestionaryId || 16411,
+          title: config.title || 'TP behandlingsjournal',
+          fields: tpForm.defaultFields ? tpForm.defaultFields() : {},
         },
       });
       runtime.editingTpEntryId = normalizeText(payload?.entry?.entryId);
       runtime.editingPrpEntryId = '';
       runtime.editingFollowUpEntryId = '';
+      runtime.editingBlephEntryId = '';
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
       setStatus('Ny TP-journal skapad.', 'success');
@@ -4294,10 +4261,13 @@
     }
   }
 
-  async function createPrpJournalDraft() {
+  async function createPrpJournalDraft(formVariant = 'prp_skin') {
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
-    if (!patientId || !card) return;
+    const prpForm = window.ArcanaJournalPrpForm;
+    const variant = normalizeText(formVariant) || 'prp_skin';
+    const config = prpForm?.forms?.[variant] || prpForm?.resolveForm?.({ formVariant: variant });
+    if (!patientId || !card || !config) return;
     setStatus('Skapar PRP-journal…', 'loading');
     try {
       const payload = await apiRequest('/api/v1/cco-journal/entry', {
@@ -4306,13 +4276,16 @@
           patientId,
           personnummer: card.personnummer || '',
           journalType: 'prp_treatment',
-          title: 'PRP behandlingsjournal',
-          fields: {},
+          formVariant: config.formVariant || variant,
+          sourceQuestionaryId: config.meridiqQuestionaryId,
+          title: config.title || 'PRP behandlingsjournal',
+          fields: prpForm.defaultFields ? prpForm.defaultFields(variant) : {},
         },
       });
       runtime.editingPrpEntryId = normalizeText(payload?.entry?.entryId);
       runtime.editingTpEntryId = '';
       runtime.editingFollowUpEntryId = '';
+      runtime.editingBlephEntryId = '';
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
       setStatus('Ny PRP-journal skapad.', 'success');
@@ -4323,10 +4296,13 @@
     }
   }
 
-  async function createFollowUpJournalDraft() {
+  async function createFollowUpJournalDraft(formVariant = '4_manader') {
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
-    if (!patientId || !card) return;
+    const followForm = window.ArcanaJournalFollowUpForm;
+    const variant = normalizeText(formVariant) || '4_manader';
+    const config = followForm?.forms?.[variant] || followForm?.resolveForm?.({ formVariant: variant });
+    if (!patientId || !card || !config) return;
     setStatus('Skapar uppföljningsjournal…', 'loading');
     try {
       const payload = await apiRequest('/api/v1/cco-journal/entry', {
@@ -4335,13 +4311,16 @@
           patientId,
           personnummer: card.personnummer || '',
           journalType: 'follow_up',
-          title: 'Uppföljning',
-          fields: {},
+          formVariant: config.formVariant || variant,
+          sourceQuestionaryId: config.meridiqQuestionaryId,
+          title: config.title || 'Uppföljning',
+          fields: followForm.defaultFields ? followForm.defaultFields(variant) : {},
         },
       });
       runtime.editingFollowUpEntryId = normalizeText(payload?.entry?.entryId);
       runtime.editingTpEntryId = '';
       runtime.editingPrpEntryId = '';
+      runtime.editingBlephEntryId = '';
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
       setStatus('Ny uppföljningsjournal skapad.', 'success');
@@ -4360,6 +4339,11 @@
     if (!patientId || !card || !entryId || !prpForm?.readForm) return;
     const entryRoot = form.querySelector('[data-prp-journal-form]');
     const fields = prpForm.readForm(entryRoot);
+    const formVariant =
+      normalizeText(form.dataset.prpFormVariant) ||
+      normalizeText(entryRoot?.dataset?.prpFormVariant) ||
+      'prp_skin';
+    const config = prpForm.forms?.[formVariant] || prpForm.resolveForm?.({ formVariant }) || {};
     setStatus('Sparar PRP-journal…', 'loading');
     try {
       await apiRequest('/api/v1/cco-journal/entry', {
@@ -4369,7 +4353,9 @@
           entryId,
           personnummer: card.personnummer || '',
           journalType: 'prp_treatment',
-          title: 'PRP behandlingsjournal',
+          formVariant: config.formVariant || formVariant,
+          sourceQuestionaryId: config.meridiqQuestionaryId,
+          title: config.title || 'PRP behandlingsjournal',
           fields,
         },
       });
@@ -4390,6 +4376,11 @@
     if (!patientId || !card || !entryId || !followForm?.readForm) return;
     const entryRoot = form.querySelector('[data-follow-journal-form]');
     const fields = followForm.readForm(entryRoot);
+    const formVariant =
+      normalizeText(form.dataset.followFormVariant) ||
+      normalizeText(entryRoot?.dataset?.followFormVariant) ||
+      '4_manader';
+    const config = followForm.forms?.[formVariant] || followForm.resolveForm?.({ formVariant }) || {};
     setStatus('Sparar uppföljningsjournal…', 'loading');
     try {
       await apiRequest('/api/v1/cco-journal/entry', {
@@ -4399,13 +4390,82 @@
           entryId,
           personnummer: card.personnummer || '',
           journalType: 'follow_up',
-          title: 'Uppföljning',
+          formVariant: config.formVariant || formVariant,
+          sourceQuestionaryId: config.meridiqQuestionaryId,
+          title: config.title || 'Uppföljning',
           fields,
         },
       });
       setStatus('Uppföljningsjournal sparad.', 'success');
       window.ArcanaMobileAutosave?.markFormSaved?.(form);
       runtime.editingFollowUpEntryId = entryId;
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte spara journal.', 'error');
+    }
+  }
+
+  async function createBlephJournalDraft() {
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    const blephForm = window.ArcanaJournalBlephForm;
+    if (!patientId || !card || !blephForm) return;
+    const config = blephForm.config || {};
+    setStatus('Skapar ögonlocksjournal…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-journal/entry', {
+        method: 'PUT',
+        body: {
+          patientId,
+          personnummer: card.personnummer || '',
+          journalType: 'bleph_treatment',
+          formVariant: config.formVariant || 'curatiio_bleph',
+          sourceQuestionaryId: config.meridiqQuestionaryId || 16388,
+          title: config.title || 'Ögonlocksjournal',
+          fields: blephForm.defaultFields ? blephForm.defaultFields(card) : {},
+        },
+      });
+      runtime.editingBlephEntryId = normalizeText(payload?.entry?.entryId);
+      runtime.editingTpEntryId = '';
+      runtime.editingPrpEntryId = '';
+      runtime.editingFollowUpEntryId = '';
+      runtime.editingClinicalFormKey = '';
+      runtime.editingClinicalEntryId = '';
+      setStatus('Ny ögonlocksjournal skapad.', 'success');
+      runtime.detailTab = 'journal';
+      await loadPatientDetail(patientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte skapa journal.', 'error');
+    }
+  }
+
+  async function saveBlephJournalEntry(form) {
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    const entryId = normalizeText(form?.dataset?.blephEntryId) || runtime.editingBlephEntryId;
+    const blephForm = window.ArcanaJournalBlephForm;
+    if (!patientId || !card || !entryId || !blephForm?.readForm) return;
+    const entryRoot = form.querySelector('[data-bleph-journal-form]');
+    const fields = blephForm.readForm(entryRoot);
+    const config = blephForm.config || {};
+    setStatus('Sparar ögonlocksjournal…', 'loading');
+    try {
+      await apiRequest('/api/v1/cco-journal/entry', {
+        method: 'PUT',
+        body: {
+          patientId,
+          entryId,
+          personnummer: card.personnummer || '',
+          journalType: 'bleph_treatment',
+          formVariant: config.formVariant || 'curatiio_bleph',
+          sourceQuestionaryId: config.meridiqQuestionaryId || 16388,
+          title: config.title || 'Ögonlocksjournal',
+          fields,
+        },
+      });
+      setStatus('Ögonlocksjournal sparad.', 'success');
+      window.ArcanaMobileAutosave?.markFormSaved?.(form);
+      runtime.editingBlephEntryId = entryId;
       await loadPatientDetail(patientId);
     } catch (error) {
       setStatus(error.message || 'Kunde inte spara journal.', 'error');
@@ -4429,16 +4489,6 @@
   }
 
   function bindEvents() {
-    document.addEventListener(
-      'pointerenter',
-      (event) => {
-        const row = event.target.closest?.('[data-patient-row]');
-        if (!row || runtime.mode !== 'register') return;
-        prefetchPatientDetail(row.dataset.patientRow);
-      },
-      true
-    );
-
     document.addEventListener('click', (event) => {
       const modeButton = event.target.closest('[data-patient-master-mode]');
       if (modeButton) {
@@ -4493,6 +4543,7 @@
           runtime.editingTpEntryId = '';
           runtime.editingPrpEntryId = '';
           runtime.editingFollowUpEntryId = '';
+          runtime.editingBlephEntryId = '';
           runtime.editingClinicalFormKey = '';
           runtime.editingClinicalEntryId = '';
         }
@@ -4515,6 +4566,7 @@
         runtime.editingTpEntryId = normalizeText(openTpButton.dataset.patientOpenTp);
         runtime.editingPrpEntryId = '';
         runtime.editingFollowUpEntryId = '';
+        runtime.editingBlephEntryId = '';
         runtime.editingClinicalFormKey = '';
         runtime.editingClinicalEntryId = '';
         runtime.detailTab = 'journal';
@@ -4527,6 +4579,7 @@
         runtime.editingPrpEntryId = normalizeText(openPrpButton.dataset.patientOpenPrp);
         runtime.editingTpEntryId = '';
         runtime.editingFollowUpEntryId = '';
+        runtime.editingBlephEntryId = '';
         runtime.editingClinicalFormKey = '';
         runtime.editingClinicalEntryId = '';
         runtime.detailTab = 'journal';
@@ -4541,6 +4594,20 @@
         );
         runtime.editingTpEntryId = '';
         runtime.editingPrpEntryId = '';
+        runtime.editingBlephEntryId = '';
+        runtime.editingClinicalFormKey = '';
+        runtime.editingClinicalEntryId = '';
+        runtime.detailTab = 'journal';
+        renderDetailPanel();
+        return;
+      }
+
+      const openBlephButton = event.target.closest('[data-patient-open-bleph]');
+      if (openBlephButton && runtime.mode === 'register') {
+        runtime.editingBlephEntryId = normalizeText(openBlephButton.dataset.patientOpenBleph);
+        runtime.editingTpEntryId = '';
+        runtime.editingPrpEntryId = '';
+        runtime.editingFollowUpEntryId = '';
         runtime.editingClinicalFormKey = '';
         runtime.editingClinicalEntryId = '';
         runtime.detailTab = 'journal';
@@ -4557,6 +4624,7 @@
         runtime.editingTpEntryId = '';
         runtime.editingPrpEntryId = '';
         runtime.editingFollowUpEntryId = '';
+        runtime.editingBlephEntryId = '';
         runtime.detailTab = 'journal';
         renderDetailPanel();
         return;
@@ -4609,9 +4677,11 @@
         } else if (actionButton.dataset.patientAction === 'new-tp-journal') {
           void createTpJournalDraft();
         } else if (actionButton.dataset.patientAction === 'new-prp-journal') {
-          void createPrpJournalDraft();
+          void createPrpJournalDraft(actionButton.dataset.prpFormVariant || 'prp_skin');
         } else if (actionButton.dataset.patientAction === 'new-follow-up-journal') {
-          void createFollowUpJournalDraft();
+          void createFollowUpJournalDraft(actionButton.dataset.followFormVariant || '4_manader');
+        } else if (actionButton.dataset.patientAction === 'new-bleph-journal') {
+          void createBlephJournalDraft();
         } else if (actionButton.dataset.patientAction === 'new-health-declaration') {
           void createClinicalJournalDraft('health');
         } else if (actionButton.dataset.patientAction === 'new-fitness-certificate') {
@@ -4640,11 +4710,6 @@
           if (runtime.selectedPatientId) {
             void loadPatientDetail(runtime.selectedPatientId);
           }
-        } else if (actionButton.dataset.patientAction === 'review-draft-proposal') {
-          void reviewDraftProposal(
-            actionButton.dataset.draftProposalId,
-            actionButton.dataset.draftStatus
-          );
         }
       }
     });
@@ -4668,6 +4733,13 @@
       if (followForm && runtime.mode === 'register') {
         event.preventDefault();
         void saveFollowUpJournalEntry(followForm);
+        return;
+      }
+
+      const blephForm = event.target.closest('[data-bleph-journal-save-form]');
+      if (blephForm && runtime.mode === 'register') {
+        event.preventDefault();
+        void saveBlephJournalEntry(blephForm);
         return;
       }
 
@@ -4933,6 +5005,7 @@
       runtime.editingTpEntryId = '';
       runtime.editingPrpEntryId = '';
       runtime.editingFollowUpEntryId = '';
+      runtime.editingBlephEntryId = '';
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
     }

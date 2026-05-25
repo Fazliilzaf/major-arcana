@@ -9,8 +9,9 @@ const {
   buildPatient360SyncContext,
 } = require('./ccoRouteShared');
 const { syncPatient360FromJournalCase } = require('../ops/ccoPatient360Bridge');
-const { syncConsultationPhotoToEncounter } = require('../ops/ccoJournalBookingBridge');
+const { syncConsultationPhotoToEncounter, syncJournalEntryToEncounter, lockEncounterOnJournalSign } = require('../ops/ccoJournalBookingBridge');
 const { JOURNAL_TYPES } = require('../ops/ccoJournalStore');
+const { catalog: journalSchemaCatalog, listSchemas } = require('../ops/ccoJournalSchemas');
 const {
   isAllowedJournalPhotoMime,
   normalizeJournalPhotoUpload,
@@ -99,6 +100,25 @@ function createCcoJournalRouter({
   }
 
   router.get(
+    '/cco-journal/schemas',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const journalType = normalizeText(req.query.journalType);
+        const schemas = journalType ? listSchemas(journalType) : journalSchemaCatalog.schemas;
+        await auditJournal(actor, 'cco.journal.schemas.read', journalType || 'all');
+        return res.json({
+          exportedAt: journalSchemaCatalog.exportedAt,
+          schemaCount: schemas.length,
+          stats: journalSchemaCatalog.stats,
+          serviceBindingHints: journalSchemaCatalog.serviceBindingHints,
+          schemas,
+        });
+      })
+  );
+
+  router.get(
     '/cco-journal/entries',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
@@ -166,11 +186,27 @@ function createCcoJournalRouter({
             },
           }
         );
-        const patientRecord = await syncJournalPatient360(actor, entry);
-        await auditJournal(actor, 'cco.journal.entry.write', entry.entryId);
+        let syncedEntry = entry;
+        if (treatmentEncounterStore) {
+          const synced = await syncJournalEntryToEncounter({
+            treatmentEncounterStore,
+            journalStore,
+            patientMasterStore,
+            tenantId: actor.tenantId,
+            entry,
+            actor: {
+              userId: actor.userId,
+              role: actor.role,
+              displayName: actor.userId,
+            },
+          });
+          if (!synced.skipped) syncedEntry = synced.entry;
+        }
+        const patientRecord = await syncJournalPatient360(actor, syncedEntry);
+        await auditJournal(actor, 'cco.journal.entry.write', syncedEntry.entryId);
         return res.json({
-          entry,
-          readout: journalStore.buildJournalReadout(entry),
+          entry: syncedEntry,
+          readout: journalStore.buildJournalReadout(syncedEntry),
           patient360: serializePatient360(patientRecord),
         });
       })
@@ -198,6 +234,13 @@ function createCcoJournalRouter({
             displayName: actor.userId,
           },
         });
+        if (treatmentEncounterStore) {
+          await lockEncounterOnJournalSign({
+            treatmentEncounterStore,
+            tenantId: actor.tenantId,
+            entry,
+          });
+        }
         await auditJournal(actor, 'cco.journal.entry.sign', entryId);
         return res.json({ entry, readout: journalStore.buildJournalReadout(entry) });
       })

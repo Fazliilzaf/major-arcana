@@ -1,0 +1,2620 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "Meridiq API /api/v2/questionary/{id}",
+  "count": 16,
+  "migrateCount": 14,
+  "forms": [
+    {
+      "apiId": 16472,
+      "title": "Hälsodeklaration | Estetiska injektionsbehandlingar",
+      "brand": "Curatiio",
+      "isActive": false,
+      "migrate": true,
+      "arcanaJournalType": "health_declaration",
+      "questionCount": 9,
+      "questions": [
+        {
+          "id": 452478,
+          "type": "yes_no",
+          "label": "Är du gravid eller ammar? ☐ Ja ☐ Nej",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 452479,
+          "type": "checkbox",
+          "label": "Markera om du har eller har haft något av följande. (Du kan markera flera alternativ)",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": [
+            "Pågående infektion (t.ex. feber, herpes, hudinfektion)",
+            "Autoimmun sjukdom",
+            "Neurologisk sjukdom (t.ex. MS, myastenia gravis)",
+            "Sväljsvårigheter",
+            "Blödningsrubbning eller lätt att få blåmärken",
+            "Diabetes",
+            "Epilepsi",
+            "Hjärt- eller kärlsjukdom",
+            "Aktiv akne, eksem, utslag eller sår i området som ska behandlas",
+            "Ärr, tidigare operationer eller implantat i området",
+            "Herpesutbrott i ansiktet tidigare",
+            "Inget av ovanstående"
+          ]
+        },
+        {
+          "id": 452499,
+          "type": "yes_no_textbox",
+          "label": "Har du allergier (läkemedel, latex, lokalbedövning m.m.)? Om ja, vänligen specificera typ av allergi och reaktion",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 452500,
+          "type": "yes_no_textbox",
+          "label": "Använder du blodförtunnande läkemedel (t.ex. Waran, Eliquis, Trombyl)? Om ja, vänligen ange läkemedel och dosering",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 452501,
+          "type": "yes_no_textbox",
+          "label": "Använder du receptbelagda läkemedel regelbundet? Om ja, vänligen ange läkemedel och dosering",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 452502,
+          "type": "yes_no",
+          "label": "Använder du kosttillskott/naturläkemedel (t.ex. omega-3, ginkgo, vitlök)?",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 452503,
+          "type": "yes_no",
+          "label": "Har du tidigare behandlats med fillers, profilho, botulinumtoxin (Botox/Dysport/Vistabel) eller andra injektionsbehandlingar?",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 452504,
+          "type": "yes_no_textbox",
+          "label": "Har du haft komplikationer eller varit missnöjd vid tidigare behandlingar?",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        },
+        {
+          "id": 452505,
+          "type": "yes_no",
+          "label": "Jag intygar att jag har lämnat korrekta och fullständiga uppgifter om min hälsa.",
+          "required": true,
+          "sortOrder": "gggggggggp",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 16415,
+      "title": "Hälsodeklaration | Ögonlocksplastik",
+      "brand": "Curatiio",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "health_declaration",
+      "questionCount": 12,
+      "questions": [
+        {
+          "id": 450986,
+          "type": "yes_no",
+          "label": "Känner du dig generellt vid god hälsa?",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 450987,
+          "type": "yes_no",
+          "label": "Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 450988,
+          "type": "yes_no",
+          "label": "Är du gravid eller ammar?",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 450989,
+          "type": "yes_no_textbox",
+          "label": "Har du varit sjuk de senaste 3 månaderna? Om ja, ange vad.",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 450990,
+          "type": "yes_no_textbox",
+          "label": "Tar du några läkemedel för närvarande? Om ja, ange läkemedlets namn, styrka och dos",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 450991,
+          "type": "yes_no_textbox",
+          "label": "Har du någon sjukdom eller tar du läkemedel som ger ökad blödningsrisk? Om ja, ange vad.",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 450992,
+          "type": "yes_no_textbox",
+          "label": "Använder du kosttillskott/naturläkemedel (t.ex. omega-3, fiskolja, ginkgo)? Om ja, ange vilka.",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 450993,
+          "type": "yes_no_textbox",
+          "label": "Har du någon allergi eller astma? Om ja, ange vilka.",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        },
+        {
+          "id": 450994,
+          "type": "yes_no_textbox",
+          "label": "Har du kända allergier eller överkänslighet mot antibiotika eller lokalbedövning? Om ja, ange läkemedlets namn.",
+          "required": true,
+          "sortOrder": "gggggggggp",
+          "options": null
+        },
+        {
+          "id": 450995,
+          "type": "yes_no",
+          "label": "Använder du något hjälpmedel för förflyttning, såsom rullstol eller liknande? Om ja, vänligen kontakta kliniken i god tid före besöket.",
+          "required": true,
+          "sortOrder": "gggggggggq",
+          "options": null
+        },
+        {
+          "id": 450996,
+          "type": "yes_no",
+          "label": "Finns det något övrigt du anser vi bör känna till om din hälsa? Om ja, förklara.",
+          "required": true,
+          "sortOrder": "gggggggggr",
+          "options": null
+        },
+        {
+          "id": 450997,
+          "type": "yes_no",
+          "label": "Jag bekräftar att jag har besvarat frågorna så korrekt som möjligt.",
+          "required": true,
+          "sortOrder": "gggggggggs",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 16414,
+      "title": "Hälsodeklaration | Hair TP Clinic",
+      "brand": "Hair TP Clinic",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "health_declaration",
+      "questionCount": 14,
+      "questions": [
+        {
+          "id": 450976,
+          "type": "yes_no",
+          "label": "Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 450977,
+          "type": "yes_no",
+          "label": "Är du gravid eller ammar?",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 450978,
+          "type": "yes_no_textbox",
+          "label": "Har du nu eller tidigare haft hjärt- eller kärlsjukdom (t.ex. hjärtinfarkt, kärlkramp, rytmrubbning)? Om ja, ange vad.",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 450979,
+          "type": "yes_no",
+          "label": "Har du diagnostiserat högt blodtryck (hypertoni)?",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 450980,
+          "type": "yes_no_textbox",
+          "label": "Har du någon annan sjukdom som vi bör känna till (t.ex. diabetes, koagulationsrubbning, immunologisk sjukdom)? Om ja, ange vad.",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 450981,
+          "type": "yes_no_textbox",
+          "label": "Har du någon blodöverförbar sjukdom? Om ja, vänligen ange nedan:",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 450982,
+          "type": "yes_no_textbox",
+          "label": "Finns det något annat vi bör känna till om din hälsa? Om ja, beskriv",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 450983,
+          "type": "yes_no_textbox",
+          "label": "Tar du några läkemedel (regelbundet eller vid behov)? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering nedan.",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        },
+        {
+          "id": 450984,
+          "type": "yes_no_textbox",
+          "label": "Tar du blodförtunnande läkemedel? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering nedan.",
+          "required": true,
+          "sortOrder": "gggggggggp",
+          "options": null
+        },
+        {
+          "id": 450985,
+          "type": "yes_no",
+          "label": "Tar du Omega 3, fiskolja eller andra kosttillskott som påverkar blödning?",
+          "required": true,
+          "sortOrder": "gggggggggq",
+          "options": null
+        },
+        {
+          "id": 451846,
+          "type": "yes_no_textbox",
+          "label": "Är du allergisk eller överkänslig mot något läkemedel (inklusive lokalbedövning eller antibiotika)? Om ja, ange vilket/vilka och eventuell reaktion",
+          "required": true,
+          "sortOrder": "gggggggggr",
+          "options": null
+        },
+        {
+          "id": 451847,
+          "type": "input",
+          "label": "Ange din längd (cm):",
+          "required": true,
+          "sortOrder": "gggggggggs",
+          "options": null
+        },
+        {
+          "id": 451848,
+          "type": "input",
+          "label": "Ange din vikt (kg):",
+          "required": true,
+          "sortOrder": "gggggggggt",
+          "options": null
+        },
+        {
+          "id": 451849,
+          "type": "yes_no_textbox",
+          "label": "Önskar du att vi fokuserar på något särskilt under konsultationen (t.ex hår, hud eller båda)? Om ja, Beskriv gärna kort",
+          "required": true,
+          "sortOrder": "gggggggggu",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 16413,
+      "title": "Friskförsäkran | TP",
+      "brand": "Hair TP Clinic",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "fitness_certificate",
+      "questionCount": 13,
+      "questions": [
+        {
+          "id": 450966,
+          "type": "select",
+          "label": "Jag har visat följande giltiga ID-handling för klinikens personal:",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": [
+            "Pass",
+            "Nationellt ID-kort (utfärdat av Polisen)",
+            "Svenskt körkort (utfärdat av Transportstyrelsen)",
+            "Svenskt ID-kort (utfärdat av Skatteverket)"
+          ]
+        },
+        {
+          "id": 450967,
+          "type": "input",
+          "label": "Ange ID-nummer",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 450968,
+          "type": "checkbox",
+          "label": "Har du något av följande sjukdomstillstånd? Du kan markera flera alternativ.",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": [
+            "Blödningsrubbning",
+            "Hjärt- eller kärlsjukdom",
+            "Diabetes (typ 1 eller typ 2)",
+            "Lever- eller njursjukdom",
+            "Astma",
+            "Epilepsi",
+            "Hepatit (A, B eller C)",
+            "HIV",
+            "Psykisk ohälsa",
+            "Pågående infektion eller feber",
+            "Jag har inga av ovanstående sjukdomar eller tillstånd."
+          ]
+        },
+        {
+          "id": 450969,
+          "type": "yes_no_textbox",
+          "label": "Har du någon annan sjukdom eller något annat medicinskt tillstånd som inte nämnts ovan?  Om ja, beskriv vilket/vilka.",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 450970,
+          "type": "yes_no_textbox",
+          "label": "Upplever du att du, så vitt du vet, är vid god hälsa och saknar sjukdomar eller tillstånd som kan innebära ökade risker vid behandlingen?",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 450971,
+          "type": "yes_no_textbox",
+          "label": "Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, blodförtunnande läkemedel (t.ex. Warfarin, NOAK eller ASA)? Om ja, ange vilket/vilka:",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 450972,
+          "type": "yes_no",
+          "label": "Tar du för närvarande, eller har du under de senaste 6 månaderna tagit, några läkemedel? Om ja, ange läkemedlets namn, dosering och orsak:",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 450973,
+          "type": "yes_no_textbox",
+          "label": "Har du några kända allergier, till exempel mot latex, desinfektionsmedel eller födoämnen? Om ja ange vad/vilka eller läkemedlets namn",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        },
+        {
+          "id": 450974,
+          "type": "yes_no_textbox",
+          "label": "Har du några kända allergier mot läkemedel ex antibiotika eller lokalbedövning? Om ja ange vad/vilka eller läkemedlets namn",
+          "required": true,
+          "sortOrder": "gggggggggp",
+          "options": null
+        },
+        {
+          "id": 450975,
+          "type": "yes_no_textbox",
+          "label": "Har du tidigare fått komplikation vid narkos eller lokalbedövning?",
+          "required": true,
+          "sortOrder": "gggggggggq",
+          "options": null
+        },
+        {
+          "id": 451843,
+          "type": "yes_no",
+          "label": "Använder du tobak- eller nikotinprodukter (t.ex. cigaretter, snus, vape)?",
+          "required": true,
+          "sortOrder": "gggggggggr",
+          "options": null
+        },
+        {
+          "id": 451844,
+          "type": "yes_no",
+          "label": "Har du intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen?",
+          "required": true,
+          "sortOrder": "gggggggggs",
+          "options": null
+        },
+        {
+          "id": 451845,
+          "type": "checkbox",
+          "label": "Jag intygar att",
+          "required": true,
+          "sortOrder": "gggggggggt",
+          "options": [
+            "Jag intygar att jag, såvitt jag vet, är vid god hälsa och inte har undanhållit någon sjukdom, något tillstånd eller annan information som kan vara av betydelse inför behandlingen.",
+            "Jag intygar att jag har uppgett samtliga läkemedel, både receptbelagda och receptfria, som jag tar eller har tagit under de senaste 6 månaderna.",
+            "Jag intygar att jag inte har intagit alkohol eller narkotiska preparat under de senaste 48 timmarna före behandlingen och att jag avstår från detta i minst 48 timmar efter ingreppet.",
+            "Jag är medveten om att rökning och användning av tobak eller nikotin kan påverka behandlingsresultatet negativt och öka risken för att transplanterade hårsäckar inte överlever. Jag förstår att Hair TP Clinic därför inte kan lämna några resultatgarantier för patienter som använder tobak eller nikotin.",
+            "Jag har tagit del av muntlig och skriftlig information om behandlingen, dess syfte, risker, möjliga alternativ och eftervård.",
+            "Jag har haft möjlighet att ställa frågor och fått dessa besvarade.",
+            "Jag lämnar härmed mitt informerade samtycke till behandlingen.",
+            "Jag intygar att ovanstående uppgifter är korrekta och fullständiga.",
+            "Jag godkänner denna friskförsäkran."
+          ]
+        }
+      ]
+    },
+    {
+      "apiId": 16412,
+      "title": "Journal | TP Efterbehandling (PRP)",
+      "brand": "Hair TP Clinic",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "prp_treatment",
+      "questionCount": 24,
+      "questions": [
+        {
+          "id": 450942,
+          "type": "textbox",
+          "label": "Hur många PRP-efterbehandlingar har genomförts hittills? Ange siffra:",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 450943,
+          "type": "yes_no",
+          "label": "Har kunden blivit informerad om risker, biverkningar och hur behandlingen genomförs?",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 450944,
+          "type": "yes_no",
+          "label": "Genomför kunden PRP för att påskynda läkningsprocessen och stimulera hårtillväxten?",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 450945,
+          "type": "yes_no",
+          "label": "Är kunden fullt frisk?",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 450946,
+          "type": "yes_no_textbox",
+          "label": "Tar kunden några läkemedel? Om ja, ange läkemedel, styrka och anledning:",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 450947,
+          "type": "yes_no_textbox",
+          "label": "Finns det något annat vi bör veta om kundens hälsa? Om ja, ange vad:",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 450948,
+          "type": "textbox",
+          "label": "Status på sårskorpor?",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 450949,
+          "type": "yes_no_textbox",
+          "label": "Har kunden fått särskilda uppmaningar? Om ja, ange vilka:",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        },
+        {
+          "id": 450950,
+          "type": "yes_no_textbox",
+          "label": "Förekommer det någon form av känselbortfall hos patienten? Om ja, beskriv område eller omfattning (Inget/Lite/Mycket)",
+          "required": true,
+          "sortOrder": "gggggggggp",
+          "options": null
+        },
+        {
+          "id": 450951,
+          "type": "yes_no",
+          "label": "Upplever patienten att allt är ok?",
+          "required": true,
+          "sortOrder": "gggggggggq",
+          "options": null
+        },
+        {
+          "id": 450952,
+          "type": "yes_no",
+          "label": "Upplever patienten klåda?",
+          "required": true,
+          "sortOrder": "gggggggggr",
+          "options": null
+        },
+        {
+          "id": 450953,
+          "type": "yes_no",
+          "label": "Har patienten svårt att sova?",
+          "required": true,
+          "sortOrder": "gggggggggs",
+          "options": null
+        },
+        {
+          "id": 450954,
+          "type": "yes_no",
+          "label": "Är patienten öm i donationsområdet?",
+          "required": true,
+          "sortOrder": "gggggggggt",
+          "options": null
+        },
+        {
+          "id": 450955,
+          "type": "yes_no",
+          "label": "Har det förekommit blödning?",
+          "required": true,
+          "sortOrder": "gggggggggu",
+          "options": null
+        },
+        {
+          "id": 450956,
+          "type": "yes_no",
+          "label": "Upplever patienten spänningshuvudvärk?",
+          "required": true,
+          "sortOrder": "gggggggggv",
+          "options": null
+        },
+        {
+          "id": 450957,
+          "type": "yes_no",
+          "label": "Har patienten kommit åt eller slagit i transplantationsområdet?",
+          "required": true,
+          "sortOrder": "gggggggggw",
+          "options": null
+        },
+        {
+          "id": 450958,
+          "type": "yes_no_textbox",
+          "label": "Förekommer något annat besvär? Om ja, ange vad:",
+          "required": true,
+          "sortOrder": "gggggggggx",
+          "options": null
+        },
+        {
+          "id": 450959,
+          "type": "yes_no",
+          "label": "Var allt normalt hos patienten efter behandlingen?",
+          "required": true,
+          "sortOrder": "gggggggggy",
+          "options": null
+        },
+        {
+          "id": 450960,
+          "type": "yes_no",
+          "label": "Var patienten nålrädd?",
+          "required": true,
+          "sortOrder": "gggggggggz",
+          "options": null
+        },
+        {
+          "id": 450961,
+          "type": "yes_no",
+          "label": "Var patienten svårstucken?",
+          "required": true,
+          "sortOrder": "ggggggggha",
+          "options": null
+        },
+        {
+          "id": 450962,
+          "type": "yes_no_textbox",
+          "label": "Har patienten svaga kärl?",
+          "required": false,
+          "sortOrder": "gggggggghb",
+          "options": null
+        },
+        {
+          "id": 450963,
+          "type": "yes_no",
+          "label": "Var patienten rädd för blod?",
+          "required": true,
+          "sortOrder": "gggggggghc",
+          "options": null
+        },
+        {
+          "id": 450964,
+          "type": "yes_no_textbox",
+          "label": "Förekom något annat av betydelse? Om ja, ange vad:",
+          "required": true,
+          "sortOrder": "gggggggghd",
+          "options": null
+        },
+        {
+          "id": 450965,
+          "type": "textbox",
+          "label": "Allmänna anteckningar",
+          "required": true,
+          "sortOrder": "gggggggghe",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 16411,
+      "title": "Journal | TP Behandling",
+      "brand": "Hair TP Clinic",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "tp_treatment",
+      "questionCount": 59,
+      "questions": [
+        {
+          "id": 450883,
+          "type": "textbox",
+          "label": "FÖRBEREDELSE & PLANERING INFÖR INGREPP",
+          "required": false,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 450884,
+          "type": "yes_no",
+          "label": "Är typ av ingrepp (metod och område) fastställd?",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 450885,
+          "type": "yes_no",
+          "label": "Ska metoden FUE (Follicular Unit Extraction) användas?",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 450886,
+          "type": "yes_no",
+          "label": "Ska metoden DHI (Direct Hair Implantation) användas?",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 450887,
+          "type": "yes_no",
+          "label": "Ska en kombination av metoderna DHI och FUE användas?",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 450888,
+          "type": "yes_no",
+          "label": "Ska vikar behandlas vid detta ingrepp?",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 450889,
+          "type": "yes_no",
+          "label": "Ska kronan behandlas vid detta ingrepp?",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 450890,
+          "type": "yes_no",
+          "label": "Ska fronten behandlas vid detta ingrepp?",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        },
+        {
+          "id": 450891,
+          "type": "yes_no",
+          "label": "Ska hela skalpen behandlas vid detta ingrepp?",
+          "required": true,
+          "sortOrder": "gggggggggp",
+          "options": null
+        },
+        {
+          "id": 450892,
+          "type": "yes_no",
+          "label": "Ska skäggområdet behandlas vid detta ingrepp?",
+          "required": true,
+          "sortOrder": "gggggggggq",
+          "options": null
+        },
+        {
+          "id": 450893,
+          "type": "yes_no",
+          "label": "Ska ögonbrynen behandlas vid detta ingrepp?",
+          "required": true,
+          "sortOrder": "gggggggggr",
+          "options": null
+        },
+        {
+          "id": 450894,
+          "type": "yes_no",
+          "label": "Ska ärrvävnad behandlas vid detta ingrepp?",
+          "required": true,
+          "sortOrder": "gggggggggs",
+          "options": null
+        },
+        {
+          "id": 450895,
+          "type": "yes_no_textbox",
+          "label": "Ska något ytterligare område behandlas vid detta ingrepp utöver det som redan angivits? Om ja, ange vilket:",
+          "required": true,
+          "sortOrder": "gggggggggt",
+          "options": null
+        },
+        {
+          "id": 450896,
+          "type": "textbox",
+          "label": "PATIENTSTATUS & INFORMATION",
+          "required": false,
+          "sortOrder": "gggggggggu",
+          "options": null
+        },
+        {
+          "id": 450897,
+          "type": "yes_no",
+          "label": "Har patienten visat giltig legitimation?",
+          "required": true,
+          "sortOrder": "gggggggggv",
+          "options": null
+        },
+        {
+          "id": 450898,
+          "type": "yes_no",
+          "label": "Har patienten blivit informerad om risker och hur ingreppet kommer att genomföras?",
+          "required": true,
+          "sortOrder": "gggggggggw",
+          "options": null
+        },
+        {
+          "id": 450899,
+          "type": "yes_no_textbox",
+          "label": "Är patienten fullt frisk? Om nej, ange sjukdomar",
+          "required": true,
+          "sortOrder": "gggggggggx",
+          "options": null
+        },
+        {
+          "id": 450900,
+          "type": "yes_no",
+          "label": "Har patienten konsumerat alkohol eller narkotiska preparat de senaste 48 timmarna?",
+          "required": true,
+          "sortOrder": "gggggggggy",
+          "options": null
+        },
+        {
+          "id": 450901,
+          "type": "yes_no_textbox",
+          "label": "Använder patienten några läkemedel just nu, regelbundet eller vid behov? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml), dosering och orsak:",
+          "required": true,
+          "sortOrder": "gggggggggz",
+          "options": null
+        },
+        {
+          "id": 450902,
+          "type": "yes_no_textbox",
+          "label": "Finns det något ytterligare vi bör veta om patientens hälsa? Om ja, ange vad:",
+          "required": true,
+          "sortOrder": "ggggggggha",
+          "options": null
+        },
+        {
+          "id": 450903,
+          "type": "textbox",
+          "label": "STATUS & OBSERVATIONER FÖRE INGREPP",
+          "required": false,
+          "sortOrder": "gggggggghb",
+          "options": null
+        },
+        {
+          "id": 450904,
+          "type": "textbox",
+          "label": "Vad var patientens blodtryck och puls vid mätningstillfället?",
+          "required": true,
+          "sortOrder": "gggggggghc",
+          "options": null
+        },
+        {
+          "id": 450905,
+          "type": "textbox",
+          "label": "Vilket klockslag togs blodtrycket?",
+          "required": true,
+          "sortOrder": "gggggggghd",
+          "options": null
+        },
+        {
+          "id": 450906,
+          "type": "textbox",
+          "label": "Allmänna anteckningar",
+          "required": false,
+          "sortOrder": "gggggggghe",
+          "options": null
+        },
+        {
+          "id": 450907,
+          "type": "textbox",
+          "label": "Status på patientens allmäntillstånd efter ingreppet? Normalt, medtagen, trött?",
+          "required": true,
+          "sortOrder": "gggggggghf",
+          "options": null
+        },
+        {
+          "id": 450908,
+          "type": "textbox",
+          "label": "Hur reagerade patient på lokalbedövning 1? Normalt eller känslig?",
+          "required": true,
+          "sortOrder": "gggggggghg",
+          "options": null
+        },
+        {
+          "id": 450909,
+          "type": "textbox",
+          "label": "Hur reagerade patient på lokalbedövning 2? Normalt eller känslig?",
+          "required": true,
+          "sortOrder": "gggggggghh",
+          "options": null
+        },
+        {
+          "id": 450910,
+          "type": "yes_no",
+          "label": "Tog det längre tid än vanligt att rita hårlinjen?",
+          "required": true,
+          "sortOrder": "gggggggghi",
+          "options": null
+        },
+        {
+          "id": 450911,
+          "type": "yes_no",
+          "label": "Har hela huvudet rakats inför ingreppet?",
+          "required": true,
+          "sortOrder": "gggggggghj",
+          "options": null
+        },
+        {
+          "id": 450912,
+          "type": "yes_no",
+          "label": "Har endast delar av huvudet rakats inför ingreppet?",
+          "required": true,
+          "sortOrder": "gggggggghk",
+          "options": null
+        },
+        {
+          "id": 450913,
+          "type": "yes_no",
+          "label": "Reagerade patienten känsligt på adrenalin?",
+          "required": true,
+          "sortOrder": "gggggggghl",
+          "options": null
+        },
+        {
+          "id": 450914,
+          "type": "yes_no",
+          "label": "Visade patienten ökad blödningsbenägenhet under ingreppet?",
+          "required": true,
+          "sortOrder": "gggggggghm",
+          "options": null
+        },
+        {
+          "id": 450915,
+          "type": "yes_no",
+          "label": "Var huden svårarbetad eller seg?",
+          "required": true,
+          "sortOrder": "gggggggghn",
+          "options": null
+        },
+        {
+          "id": 450916,
+          "type": "yes_no_textbox",
+          "label": "Förekom andra relevanta observationer vid ingreppet? Om ja, ange vad",
+          "required": true,
+          "sortOrder": "ggggggggho",
+          "options": null
+        },
+        {
+          "id": 450917,
+          "type": "textbox",
+          "label": "LÄKEMEDEL",
+          "required": false,
+          "sortOrder": "gggggggghp",
+          "options": null
+        },
+        {
+          "id": 450918,
+          "type": "yes_no",
+          "label": "Har patienten fått Dalacin?",
+          "required": true,
+          "sortOrder": "gggggggghq",
+          "options": null
+        },
+        {
+          "id": 450919,
+          "type": "yes_no",
+          "label": "Har patienten fått Betapred?",
+          "required": true,
+          "sortOrder": "gggggggghr",
+          "options": null
+        },
+        {
+          "id": 450920,
+          "type": "yes_no",
+          "label": "Har patienten fått Ibuprofen?",
+          "required": true,
+          "sortOrder": "gggggggghs",
+          "options": null
+        },
+        {
+          "id": 450921,
+          "type": "yes_no",
+          "label": "Har kund informerats om medicin och eftervård?",
+          "required": true,
+          "sortOrder": "gggggggght",
+          "options": null
+        },
+        {
+          "id": 450922,
+          "type": "textbox",
+          "label": "GRAFTS SOM TRANSPLANTERATS",
+          "required": false,
+          "sortOrder": "gggggggghu",
+          "options": null
+        },
+        {
+          "id": 450923,
+          "type": "textbox",
+          "label": "Antal singel grafts som transplanterats:",
+          "required": true,
+          "sortOrder": "gggggggghv",
+          "options": null
+        },
+        {
+          "id": 450924,
+          "type": "textbox",
+          "label": "Antal dubbel grafts som transplanterats:",
+          "required": true,
+          "sortOrder": "gggggggghw",
+          "options": null
+        },
+        {
+          "id": 450925,
+          "type": "textbox",
+          "label": "Antal trippel grafts som transplanterats:",
+          "required": true,
+          "sortOrder": "gggggggghx",
+          "options": null
+        },
+        {
+          "id": 450926,
+          "type": "textbox",
+          "label": "Antal kvadrupel grafts som transplanterats:",
+          "required": true,
+          "sortOrder": "gggggggghy",
+          "options": null
+        },
+        {
+          "id": 450927,
+          "type": "textbox",
+          "label": "Totalt antal grafts som transplanterats:",
+          "required": true,
+          "sortOrder": "gggggggghz",
+          "options": null
+        },
+        {
+          "id": 450928,
+          "type": "textbox",
+          "label": "TIDSREGISTRERING I PROCEDUREN",
+          "required": false,
+          "sortOrder": "ggggggggia",
+          "options": null
+        },
+        {
+          "id": 450929,
+          "type": "textbox",
+          "label": "Starttid för planering (bilder och ritning)",
+          "required": true,
+          "sortOrder": "ggggggggib",
+          "options": null
+        },
+        {
+          "id": 450930,
+          "type": "textbox",
+          "label": "Starttid för lokalbedövning i donationsområde:",
+          "required": true,
+          "sortOrder": "ggggggggic",
+          "options": null
+        },
+        {
+          "id": 450931,
+          "type": "textbox",
+          "label": "Starttid för extraktion från donationsområde:",
+          "required": true,
+          "sortOrder": "ggggggggid",
+          "options": null
+        },
+        {
+          "id": 450932,
+          "type": "textbox",
+          "label": "Starttid för lokalbedövning i mottagarområde:",
+          "required": true,
+          "sortOrder": "ggggggggie",
+          "options": null
+        },
+        {
+          "id": 450933,
+          "type": "textbox",
+          "label": "Starttid för kanalpreparering i mottagarområde:",
+          "required": true,
+          "sortOrder": "ggggggggif",
+          "options": null
+        },
+        {
+          "id": 450934,
+          "type": "textbox",
+          "label": "Starttid för implantation av grafts:",
+          "required": true,
+          "sortOrder": "ggggggggig",
+          "options": null
+        },
+        {
+          "id": 450935,
+          "type": "textbox",
+          "label": "Sluttid för implantation av grafts:",
+          "required": true,
+          "sortOrder": "ggggggggih",
+          "options": null
+        },
+        {
+          "id": 450936,
+          "type": "textbox",
+          "label": "Tidpunkt då patienten lämnar behandlingsrummet:",
+          "required": true,
+          "sortOrder": "ggggggggii",
+          "options": null
+        },
+        {
+          "id": 450937,
+          "type": "textbox",
+          "label": "ANVÄNDNING AV LÄKEMEDEL",
+          "required": false,
+          "sortOrder": "ggggggggij",
+          "options": null
+        },
+        {
+          "id": 450938,
+          "type": "textbox",
+          "label": "Användning av läkemedel - Carbokain adrenalin 20/mg/ml 5micro (ml):",
+          "required": true,
+          "sortOrder": "ggggggggik",
+          "options": null
+        },
+        {
+          "id": 450939,
+          "type": "textbox",
+          "label": "Användning av läkemedel - Marcain, 5mg/ml (ml):",
+          "required": true,
+          "sortOrder": "ggggggggil",
+          "options": null
+        },
+        {
+          "id": 450940,
+          "type": "textbox",
+          "label": "Användning av läkemedel - Adrenalin, 1mg/ml NaCI solution (ml):",
+          "required": true,
+          "sortOrder": "ggggggggim",
+          "options": null
+        },
+        {
+          "id": 450941,
+          "type": "textbox",
+          "label": "Användning av läkemedel - Tribonat:",
+          "required": true,
+          "sortOrder": "ggggggggin",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 16409,
+      "title": "Journal | TP Uppföljning (6 månader)",
+      "brand": "Hair TP Clinic",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "follow_up",
+      "questionCount": 8,
+      "questions": [
+        {
+          "id": 450867,
+          "type": "yes_no",
+          "label": "Ser läkningen normal ut?",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 450868,
+          "type": "yes_no",
+          "label": "Finns det lätt rodnad kvar?",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 450869,
+          "type": "yes_no",
+          "label": "Syns tecken på ökad ärrvävnad?",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 450870,
+          "type": "yes_no",
+          "label": "Ser återväxten bra ut?",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 450871,
+          "type": "yes_no",
+          "label": "Syns gleshet i nacken?",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 450872,
+          "type": "yes_no",
+          "label": "Är återväxten långsam eller försenad?",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 450873,
+          "type": "yes_no",
+          "label": "Är slutresultatet aningen glest?",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 450874,
+          "type": "yes_no_textbox",
+          "label": "Finns relevanta observationer att notera vid bedömningen? Om ja, ange vad:",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 16407,
+      "title": "Journal | TP Uppföljning (4 månader)",
+      "brand": "Hair TP Clinic",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "follow_up",
+      "questionCount": 8,
+      "questions": [
+        {
+          "id": 450851,
+          "type": "yes_no",
+          "label": "Ser läkningen normal ut?",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 450852,
+          "type": "yes_no",
+          "label": "Finns det lätt rodnad kvar?",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 450853,
+          "type": "yes_no",
+          "label": "Syns tecken på ökad ärrvävnad?",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 450854,
+          "type": "yes_no",
+          "label": "Ser återväxten bra ut?",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 450855,
+          "type": "yes_no",
+          "label": "Syns gleshet i nacken?",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 450856,
+          "type": "yes_no",
+          "label": "Är återväxten långsam eller försenad?",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 450857,
+          "type": "yes_no",
+          "label": "Är slutresultatet aningen glest?",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 450858,
+          "type": "yes_no_textbox",
+          "label": "Finns relevanta observationer att notera vid bedömningen? Om ja, ange vad:",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 16390,
+      "title": "Journal | TP Resultatuppföljning (12 månader)",
+      "brand": "Hair TP Clinic",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "follow_up",
+      "questionCount": 1,
+      "questions": [
+        {
+          "id": 450383,
+          "type": "yes_no",
+          "label": "Tomt",
+          "required": false,
+          "sortOrder": "gggggggggh",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 16389,
+      "title": "Friskförsäkran | Ögonlocksplastik",
+      "brand": "Curatiio",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "fitness_certificate",
+      "questionCount": 6,
+      "questions": [
+        {
+          "id": 450382,
+          "type": "input",
+          "label": "Förnamn och efternman",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 450384,
+          "type": "input",
+          "label": "Personnummer",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 450385,
+          "type": "input",
+          "label": "Datum",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 450386,
+          "type": "checkbox",
+          "label": "Jag intygar härmed att:",
+          "required": false,
+          "sortOrder": "gggggggggk",
+          "options": [
+            "Jag känner mig frisk idag och har inga pågående sjukdomssymtom såsom feber, infektion, halsont, hosta, pågående virusinfektion eller annan akut sjukdom.",
+            "Jag har inte haft feber, infektion eller annan sjukdom de senaste 14 dagarna som kan påverka ingreppet.",
+            "Jag har inte nyligen genomgått någon annan operation eller medicinsk behandling som kan påverka dagens ingrepp, eller",
+            "Om ja, jag har informerat behandlande personal om detta.",
+            "Jag har uppgett samtliga kända sjukdomar, diagnoser eller medicinska tillstånd som kan vara relevanta för ingreppet, inklusive men inte begränsat till:  hjärt- och kärlsjukdom  blödningsrubbningar  diabetes  neurologiska sjukdomar  autoimmuna sjukdomar  psykisk ohälsa som kan påverka behandlingen",
+            "Jag har informerat om alla läkemedel, kosttillskott och naturpreparat jag använder eller nyligen har använt, inklusive blodförtunnande läkemedel (t.ex. Waran, Eliquis, Trombyl), NSAID eller liknande.",
+            "Jag har uppgett kända allergier eller överkänslighet mot läkemedel, bedövningsmedel, tejp, latex eller andra relevanta ämnen.",
+            "Jag är inte gravid och ammar inte, alternativt har informerat behandlande personal om detta."
+          ]
+        },
+        {
+          "id": 450387,
+          "type": "yes_no",
+          "label": "Jag bekräftar att ovanstående uppgifter är fullständiga, korrekta och aktuella per dagens datum.  Jag är medveten om att ofullständiga eller felaktiga uppgifter kan innebära en ökad medicinsk risk och kan medföra att planerat ingrepp behöver skjutas upp eller avbrytas.  Jag samtycker till att Curatiio, utifrån lämnade uppgifter och medicinsk bedömning, avgör om ingreppet kan genomföras på ett säkert sätt.",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 450388,
+          "type": "yes_no_textbox",
+          "label": "Genom digital signering bekräftar jag att ovanstående uppgifter är korrekta och aktuella per operationsdagen.",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 16388,
+      "title": "Journal | Ögonlocksplastik",
+      "brand": "Curatiio",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "bleph_treatment",
+      "questionCount": 15,
+      "questions": [
+        {
+          "id": 450367,
+          "type": "input",
+          "label": "Förnamn",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 450368,
+          "type": "input",
+          "label": "Efternamn",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 450369,
+          "type": "input",
+          "label": "Personnummer",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 450370,
+          "type": "input",
+          "label": "Adress",
+          "required": false,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 450371,
+          "type": "yes_no",
+          "label": "E-postadress",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 450372,
+          "type": "yes_no",
+          "label": "Telefonnummer",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 450373,
+          "type": "input",
+          "label": "Dagens datum",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 450374,
+          "type": "textbox",
+          "label": "Kontaktorsak",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        },
+        {
+          "id": 450375,
+          "type": "textbox",
+          "label": "Anamnes",
+          "required": true,
+          "sortOrder": "gggggggggp",
+          "options": null
+        },
+        {
+          "id": 450376,
+          "type": "textbox",
+          "label": "Aktuellt",
+          "required": false,
+          "sortOrder": "gggggggggq",
+          "options": null
+        },
+        {
+          "id": 450377,
+          "type": "textbox",
+          "label": "Status",
+          "required": false,
+          "sortOrder": "gggggggggr",
+          "options": null
+        },
+        {
+          "id": 450378,
+          "type": "textbox",
+          "label": "Aktuella mediciner",
+          "required": false,
+          "sortOrder": "gggggggggs",
+          "options": null
+        },
+        {
+          "id": 450379,
+          "type": "textbox",
+          "label": "Allergi",
+          "required": false,
+          "sortOrder": "gggggggggt",
+          "options": null
+        },
+        {
+          "id": 450380,
+          "type": "textbox",
+          "label": "Behandling / Operationsberättelse",
+          "required": true,
+          "sortOrder": "gggggggggu",
+          "options": null
+        },
+        {
+          "id": 450381,
+          "type": "textbox",
+          "label": "Planering/Återbesök",
+          "required": true,
+          "sortOrder": "gggggggggv",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 15682,
+      "title": "FÖRSLAG | Journal TP",
+      "brand": "Hair TP Clinic",
+      "isActive": false,
+      "migrate": false,
+      "arcanaJournalType": null,
+      "questionCount": 38,
+      "questions": [
+        {
+          "id": 430632,
+          "type": "yes_no",
+          "label": "Är typ av ingrepp (metod och område) fastställd?",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 430633,
+          "type": "checkbox",
+          "label": "Vilken metod ska användas?",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": [
+            "DHI (Direct Hair Implantation)",
+            "FUE (Follicular Unit Extraction)",
+            "Kombination av DHI och FUE"
+          ]
+        },
+        {
+          "id": 430634,
+          "type": "checkbox",
+          "label": "Planerade behandlingsområden för detta ingrepp",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": [
+            "Full skalp",
+            "Front",
+            "Vikar",
+            "Krona",
+            "Skägg",
+            "Mustasch",
+            "Ögonbryn",
+            "Ärr"
+          ]
+        },
+        {
+          "id": 430635,
+          "type": "yes_no_textbox",
+          "label": "Ytterligare behandlingsområden för detta ingrepp",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 430636,
+          "type": "yes_no",
+          "label": "Patienten har visat giltig legitimation",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 430637,
+          "type": "yes_no",
+          "label": "Patienten informerades om risker och ingreppets genomförande",
+          "required": true,
+          "sortOrder": "gggggggggm",
+          "options": null
+        },
+        {
+          "id": 430638,
+          "type": "yes_no_textbox",
+          "label": "Är patienten fullt frisk? Om nej, ange sjukdomar",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 430639,
+          "type": "yes_no",
+          "label": "Har patienten intagit alkohol eller narkotiska preparat de senaste 48 timmarna?",
+          "required": true,
+          "sortOrder": "gggggggggo",
+          "options": null
+        },
+        {
+          "id": 430640,
+          "type": "yes_no_textbox",
+          "label": "Använder patienten några läkemedel för närvarande, regelbundet eller vid behov? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml), dosering och orsak:",
+          "required": true,
+          "sortOrder": "gggggggggp",
+          "options": null
+        },
+        {
+          "id": 430641,
+          "type": "yes_no_textbox",
+          "label": "Finns det ytterligare information om patientens hälsa som är relevant för bedömning eller behandling? Om ja, ange vad.",
+          "required": true,
+          "sortOrder": "gggggggggq",
+          "options": null
+        },
+        {
+          "id": 430642,
+          "type": "textbox",
+          "label": "Patientens blodtryck (mmHg) och puls (slag/min) vid mätning",
+          "required": true,
+          "sortOrder": "gggggggggr",
+          "options": null
+        },
+        {
+          "id": 430643,
+          "type": "textbox",
+          "label": "Klockslag vid patientens blodtrycksmätning",
+          "required": true,
+          "sortOrder": "gggggggggs",
+          "options": null
+        },
+        {
+          "id": 430644,
+          "type": "textbox",
+          "label": "Allmänna anteckningar",
+          "required": false,
+          "sortOrder": "gggggggggt",
+          "options": null
+        },
+        {
+          "id": 430645,
+          "type": "checkbox",
+          "label": "Patientens allmäntillstånd efter ingreppet",
+          "required": true,
+          "sortOrder": "gggggggggu",
+          "options": [
+            "Normalt",
+            "Medtagen/Trött"
+          ]
+        },
+        {
+          "id": 430646,
+          "type": "checkbox",
+          "label": "Patientens reaktion efter lokalbedövning 1",
+          "required": true,
+          "sortOrder": "gggggggggv",
+          "options": [
+            "Normalt",
+            "Känslig"
+          ]
+        },
+        {
+          "id": 430647,
+          "type": "checkbox",
+          "label": "Patientens reaktion efter lokalbedövning 2.",
+          "required": true,
+          "sortOrder": "gggggggggw",
+          "options": [
+            "Normalt",
+            "Känslig"
+          ]
+        },
+        {
+          "id": 430648,
+          "type": "checkbox",
+          "label": "Observationer under ingreppet",
+          "required": true,
+          "sortOrder": "gggggggggx",
+          "options": [
+            "Tog längre tid än vanligt att rita hårlinjen",
+            "Hela skalpen rakades",
+            "Hela skalpen rakades",
+            "Patienten reagerade känsligt på adrenalin",
+            "Ökad blödningsbenägenhet noterades",
+            "Seg eller svårarbetad hud",
+            "Övrigt"
+          ]
+        },
+        {
+          "id": 430649,
+          "type": "textbox",
+          "label": "Övriga observationer hos patienten under ingreppet",
+          "required": true,
+          "sortOrder": "gggggggggy",
+          "options": null
+        },
+        {
+          "id": 430650,
+          "type": "checkbox",
+          "label": "Följande läkemedel har utlämnats till patienten:",
+          "required": true,
+          "sortOrder": "gggggggggz",
+          "options": [
+            "Dalacin",
+            "Betapred",
+            "Paracetamol"
+          ]
+        },
+        {
+          "id": 430651,
+          "type": "yes_no",
+          "label": "Patienten informerades om läkemedel och eftervård",
+          "required": true,
+          "sortOrder": "ggggggggha",
+          "options": null
+        },
+        {
+          "id": 430652,
+          "type": "input",
+          "label": "Antal singelgrafts",
+          "required": true,
+          "sortOrder": "gggggggghb",
+          "options": null
+        },
+        {
+          "id": 430653,
+          "type": "input",
+          "label": "Antal dubbelgrafts",
+          "required": true,
+          "sortOrder": "gggggggghc",
+          "options": null
+        },
+        {
+          "id": 430654,
+          "type": "input",
+          "label": "Antal trippelgrafts",
+          "required": true,
+          "sortOrder": "gggggggghd",
+          "options": null
+        },
+        {
+          "id": 430655,
+          "type": "input",
+          "label": "Antal kvadrupelgrafts",
+          "required": true,
+          "sortOrder": "gggggggghe",
+          "options": null
+        },
+        {
+          "id": 430656,
+          "type": "input",
+          "label": "Totalt antal transplanterade grafts",
+          "required": true,
+          "sortOrder": "gggggggghf",
+          "options": null
+        },
+        {
+          "id": 430657,
+          "type": "input",
+          "label": "Starttid för planering (fotografering och inritning)",
+          "required": true,
+          "sortOrder": "gggggggghg",
+          "options": null
+        },
+        {
+          "id": 430658,
+          "type": "input",
+          "label": "Starttid för lokalbedövning i donationsområde",
+          "required": true,
+          "sortOrder": "gggggggghh",
+          "options": null
+        },
+        {
+          "id": 430659,
+          "type": "input",
+          "label": "Starttid för extraktion från donationsområde",
+          "required": true,
+          "sortOrder": "gggggggghi",
+          "options": null
+        },
+        {
+          "id": 430660,
+          "type": "input",
+          "label": "Starttid för lokalbedövning i mottagarområde",
+          "required": true,
+          "sortOrder": "gggggggghj",
+          "options": null
+        },
+        {
+          "id": 430661,
+          "type": "input",
+          "label": "Starttid för kanaler i mottagarområde",
+          "required": true,
+          "sortOrder": "gggggggghk",
+          "options": null
+        },
+        {
+          "id": 430662,
+          "type": "input",
+          "label": "Starttid för implantation av grafts",
+          "required": true,
+          "sortOrder": "gggggggghl",
+          "options": null
+        },
+        {
+          "id": 430663,
+          "type": "input",
+          "label": "Sluttid för implantation av grafts",
+          "required": true,
+          "sortOrder": "gggggggghm",
+          "options": null
+        },
+        {
+          "id": 430664,
+          "type": "input",
+          "label": "Tidpunkt då patienten lämnar behandlingsrummet:",
+          "required": true,
+          "sortOrder": "gggggggghn",
+          "options": null
+        },
+        {
+          "id": 430665,
+          "type": "textbox",
+          "label": "Övriga anteckningar",
+          "required": false,
+          "sortOrder": "ggggggggho",
+          "options": null
+        },
+        {
+          "id": 430666,
+          "type": "input",
+          "label": "Administrerad mängd Carbocain® (mepivakain) med adrenalin, 20 mg/ml i ml",
+          "required": true,
+          "sortOrder": "gggggggghp",
+          "options": null
+        },
+        {
+          "id": 430667,
+          "type": "input",
+          "label": "Administrerad mängd Marcain® (bupivakain) med adrenalin, 5 mg/ml i ml",
+          "required": true,
+          "sortOrder": "gggggggghq",
+          "options": null
+        },
+        {
+          "id": 430668,
+          "type": "input",
+          "label": "Administrerad mängd adrenalin, 1 mg/ml i natriumkloridlösning (NaCl) i ml",
+          "required": true,
+          "sortOrder": "gggggggghr",
+          "options": null
+        },
+        {
+          "id": 430669,
+          "type": "input",
+          "label": "Administrerad mängd Tribonat® (buffertlösning) i ml",
+          "required": true,
+          "sortOrder": "gggggggghs",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 14988,
+      "title": "Journal | PRP, PRF, Microneedling",
+      "brand": "Hair TP Clinic",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "prp_treatment",
+      "questionCount": 12,
+      "questions": [
+        {
+          "id": 411231,
+          "type": "yes_no",
+          "label": "Har patientens hälsodeklaration granskats inför behandlingen?",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 411232,
+          "type": "checkbox",
+          "label": "Vilken behandling utförs vid detta tillfälle?",
+          "required": false,
+          "sortOrder": "gggggggggj",
+          "options": [
+            "PRP Hår - Mini",
+            "PRP Hår - Standard",
+            "PRP Hår - XL",
+            "PRP Hår - Skägg",
+            "PRP Hår - Ögonbryn",
+            "PRP Hud - Ansikte",
+            "PRP Hud - Hals",
+            "PRP Hud - Dekolletage",
+            "PRP Hud - Händer",
+            "PRP Hud + Microneedling - Ansikte",
+            "PRP Hud + Microneedling - Hals",
+            "PRP Hud + Microneedling - Dekolletage",
+            "PRP Hud + Microneedling - Händer",
+            "PRF Hud - Ansikte",
+            "PRF Hud - Under ögon",
+            "PRF + Microneedling - Ansikte"
+          ]
+        },
+        {
+          "id": 411233,
+          "type": "yes_no_textbox",
+          "label": "Önskar patienten lägga till ytterligare behandlingsområden, utöver det som valts ovan? Om ja, ange område(n)",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 411399,
+          "type": "yes_no_textbox",
+          "label": "Vilken behandling i ordningen är detta? (ange endast siffra, t.ex. 1, 2, 3)",
+          "required": true,
+          "sortOrder": "h",
+          "options": null
+        },
+        {
+          "id": 411251,
+          "type": "yes_no",
+          "label": "Har patienten informerats om risker, biverkningar och hur behandlingen genomförs?",
+          "required": true,
+          "sortOrder": "i",
+          "options": null
+        },
+        {
+          "id": 411253,
+          "type": "yes_no_textbox",
+          "label": "Är patienten fullt frisk? Om nej, ange sjukdomar",
+          "required": true,
+          "sortOrder": "iU",
+          "options": null
+        },
+        {
+          "id": 411252,
+          "type": "yes_no_textbox",
+          "label": "Använder patienten några läkemedel för närvarande, regelbundet eller vid behov? Om ja, ange läkemedlets namn, styrka (mg/ml), dosering och orsak",
+          "required": true,
+          "sortOrder": "j",
+          "options": null
+        },
+        {
+          "id": 411254,
+          "type": "yes_no_textbox",
+          "label": "Finns det någon ytterligare information om patientens hälsa som är relevant för behandlingen? Om ja, ange vad",
+          "required": true,
+          "sortOrder": "jK",
+          "options": null
+        },
+        {
+          "id": 411255,
+          "type": "checkbox",
+          "label": "Observationer hos patienten efter behandlingen",
+          "required": true,
+          "sortOrder": "jg",
+          "options": [
+            "Allt ok",
+            "Nålrädd",
+            "Svårstucken",
+            "Svaga kärl",
+            "Rädd för blod",
+            "Eksem / Psoriasis",
+            "Övrigt"
+          ]
+        },
+        {
+          "id": 411257,
+          "type": "textbox",
+          "label": "Övriga observationer",
+          "required": false,
+          "sortOrder": "jk",
+          "options": null
+        },
+        {
+          "id": 411256,
+          "type": "yes_no_textbox",
+          "label": "Användes bedövningssalva? Om ja, ange vilken",
+          "required": true,
+          "sortOrder": "jp",
+          "options": null
+        },
+        {
+          "id": 451115,
+          "type": "textbox",
+          "label": "Allmänna anteckningar",
+          "required": true,
+          "sortOrder": "jq",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 14878,
+      "title": "Hälsodeklaration | Ortopediska injektionsbehandlingar",
+      "brand": "Curatiio",
+      "isActive": true,
+      "migrate": true,
+      "arcanaJournalType": "health_declaration",
+      "questionCount": 14,
+      "questions": [
+        {
+          "id": 411402,
+          "type": "textbox",
+          "label": "Ange din längd (cm):",
+          "required": true,
+          "sortOrder": "gggggggggh",
+          "options": null
+        },
+        {
+          "id": 411403,
+          "type": "textbox",
+          "label": "Ange din vikt (kg):",
+          "required": true,
+          "sortOrder": "gggggggggi",
+          "options": null
+        },
+        {
+          "id": 411404,
+          "type": "yes_no",
+          "label": "Känner du dig frisk?",
+          "required": true,
+          "sortOrder": "gggggggggj",
+          "options": null
+        },
+        {
+          "id": 411405,
+          "type": "yes_no_textbox",
+          "label": "Har du varit sjuk de senaste tre månaderna? Om ja, ange vad",
+          "required": true,
+          "sortOrder": "gggggggggk",
+          "options": null
+        },
+        {
+          "id": 411413,
+          "type": "yes_no",
+          "label": "Är du gravid eller ammar du?",
+          "required": true,
+          "sortOrder": "gggggggggkU",
+          "options": null
+        },
+        {
+          "id": 411406,
+          "type": "yes_no_textbox",
+          "label": "Tar du några läkemedel just nu, regelbundet eller vid behov? Om ja, vänligen ange läkemedlets namn, styrka (mg/ml) och dosering:",
+          "required": true,
+          "sortOrder": "gggggggggl",
+          "options": null
+        },
+        {
+          "id": 411407,
+          "type": "yes_no_textbox",
+          "label": "Har du någon sjukdom eller tar du läkemedel som kan öka blödningsrisken? Om ja, ange vad:",
+          "required": true,
+          "sortOrder": "ggggggggglB",
+          "options": null
+        },
+        {
+          "id": 411409,
+          "type": "yes_no_textbox",
+          "label": "Har du någon allergi eller astma? Om ja, ange vilka:",
+          "required": true,
+          "sortOrder": "ggggggggglU",
+          "options": null
+        },
+        {
+          "id": 411415,
+          "type": "yes_no_textbox",
+          "label": "Har du nyligen fått någon vaccination? Om ja, ange vilken och när:",
+          "required": true,
+          "sortOrder": "ggggggggglg",
+          "options": null
+        },
+        {
+          "id": 411414,
+          "type": "yes_no_textbox",
+          "label": "Har du genomgått en operation eller ett medicinskt ingrepp det senaste året? Om ja, ange diagnos, datum och typ av ingrepp",
+          "required": true,
+          "sortOrder": "gggggggggmU",
+          "options": null
+        },
+        {
+          "id": 411408,
+          "type": "yes_no_textbox",
+          "label": "Tar du omega 3, fiskolja eller andra kosttillskott? Om ja, ange vilka:",
+          "required": true,
+          "sortOrder": "gggggggggn",
+          "options": null
+        },
+        {
+          "id": 411410,
+          "type": "yes_no",
+          "label": "Röker du?",
+          "required": true,
+          "sortOrder": "gggggggggp",
+          "options": null
+        },
+        {
+          "id": 411412,
+          "type": "yes_no_textbox",
+          "label": "Finns det något övrigt du anser att vi bör känna till om din hälsa? Om ja, förklara:",
+          "required": true,
+          "sortOrder": "s",
+          "options": null
+        },
+        {
+          "id": 411411,
+          "type": "yes_no",
+          "label": "Har du behov av anpassning vid förflyttning i samband med ditt besök, såsom rullstol, gånghjälpmedel eller annat praktiskt stöd? Om ja, vänligen kontakta oss i god tid så vi kan förbereda mottagandet på bästa sätt.",
+          "required": true,
+          "sortOrder": "v",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 14865,
+      "title": "ENG | Health Questionnaire",
+      "brand": "Both",
+      "isActive": false,
+      "migrate": true,
+      "arcanaJournalType": "health_declaration",
+      "questionCount": 29,
+      "questions": [
+        {
+          "id": 408040,
+          "type": "yes_no_textbox",
+          "label": "Do you suffer from any allergies?",
+          "required": true,
+          "sortOrder": "1",
+          "options": null
+        },
+        {
+          "id": 408049,
+          "type": "yes_no_textbox",
+          "label": "Do you have an autoimmune disease or a disease that has affected the immune system?",
+          "required": true,
+          "sortOrder": "10",
+          "options": null
+        },
+        {
+          "id": 408050,
+          "type": "yes_no",
+          "label": "Do you have diabetes?",
+          "required": true,
+          "sortOrder": "11",
+          "options": null
+        },
+        {
+          "id": 408051,
+          "type": "yes_no",
+          "label": "Do you have any haemophilia?",
+          "required": true,
+          "sortOrder": "12",
+          "options": null
+        },
+        {
+          "id": 408052,
+          "type": "yes_no",
+          "label": "Do you suffer from acute rheumatoid arthritis or recurrent sore throat?",
+          "required": true,
+          "sortOrder": "13",
+          "options": null
+        },
+        {
+          "id": 408053,
+          "type": "yes_no",
+          "label": "Do you suffer from amyotrophic sclerosis (ALS) or peripheral neuromuscular disorder (nerve disease)?",
+          "required": true,
+          "sortOrder": "14",
+          "options": null
+        },
+        {
+          "id": 408054,
+          "type": "yes_no",
+          "label": "Do you suffer from myasthenia gravis or Eaton-Lambert syndrome (muscle disease)?",
+          "required": true,
+          "sortOrder": "15",
+          "options": null
+        },
+        {
+          "id": 408055,
+          "type": "yes_no",
+          "label": "Do you suffer from untreated epilepsy?",
+          "required": true,
+          "sortOrder": "16",
+          "options": null
+        },
+        {
+          "id": 408056,
+          "type": "yes_no",
+          "label": "Do you have a tendency to develop large scars (keloids)?",
+          "required": true,
+          "sortOrder": "17",
+          "options": null
+        },
+        {
+          "id": 408057,
+          "type": "yes_no",
+          "label": "Have you had any skin cancer before?",
+          "required": true,
+          "sortOrder": "18",
+          "options": null
+        },
+        {
+          "id": 408058,
+          "type": "yes_no",
+          "label": "Do you suffer from porphyria (hereditary disease)?",
+          "required": true,
+          "sortOrder": "19",
+          "options": null
+        },
+        {
+          "id": 408041,
+          "type": "yes_no",
+          "label": "Do you use tobacco?",
+          "required": true,
+          "sortOrder": "2",
+          "options": null
+        },
+        {
+          "id": 408059,
+          "type": "yes_no",
+          "label": "Do you suffer from abnormal palpitations or other heart disease?",
+          "required": true,
+          "sortOrder": "20",
+          "options": null
+        },
+        {
+          "id": 408060,
+          "type": "yes_no",
+          "label": "Have you been to or are you planning a dental visit soon? (2 weeks before / 2 weeks after)",
+          "required": true,
+          "sortOrder": "21",
+          "options": null
+        },
+        {
+          "id": 408061,
+          "type": "yes_no_textbox",
+          "label": "Have you previously received any aesthetic treatments (eg laser, peeling, dermabrasion, microneedling, IPL, Chemical Peeling, PRP, etc.)?",
+          "required": true,
+          "sortOrder": "22",
+          "options": null
+        },
+        {
+          "id": 408062,
+          "type": "yes_no_textbox",
+          "label": "Have you previously received injectable treatments, thread lift or undergone facial surgery of any kind?",
+          "required": true,
+          "sortOrder": "23",
+          "options": null
+        },
+        {
+          "id": 408063,
+          "type": "yes_no_textbox",
+          "label": "Did you experience any side effects related to the treatment?",
+          "required": true,
+          "sortOrder": "24",
+          "options": null
+        },
+        {
+          "id": 408064,
+          "type": "yes_no",
+          "label": "Do you have any skin infection or inflammatory skin problems (eg herpes, acne, rosacea, etc.)?",
+          "required": true,
+          "sortOrder": "25",
+          "options": null
+        },
+        {
+          "id": 408065,
+          "type": "yes_no",
+          "label": "Do you have tattoos or permanent makeup in the treatment area?",
+          "required": true,
+          "sortOrder": "26",
+          "options": null
+        },
+        {
+          "id": 408066,
+          "type": "yes_no",
+          "label": "Do you have tanned skin now?",
+          "required": true,
+          "sortOrder": "27",
+          "options": null
+        },
+        {
+          "id": 408067,
+          "type": "yes_no",
+          "label": "Do you have Melasma or Chloasma (pigmentation)?",
+          "required": true,
+          "sortOrder": "28",
+          "options": null
+        },
+        {
+          "id": 408068,
+          "type": "textbox",
+          "label": "Other comments about your health",
+          "required": true,
+          "sortOrder": "29",
+          "options": null
+        },
+        {
+          "id": 408042,
+          "type": "yes_no",
+          "label": "Are you pregnant, breastfeeding or trying to conceive?",
+          "required": true,
+          "sortOrder": "3",
+          "options": null
+        },
+        {
+          "id": 408043,
+          "type": "yes_no_textbox",
+          "label": "Are you currently receiving any medical treatment?",
+          "required": true,
+          "sortOrder": "4",
+          "options": null
+        },
+        {
+          "id": 408044,
+          "type": "yes_no",
+          "label": "Are you currently taking steroids, acetylsalicylic acid (eg Treo or Aspirin) or any anticoagulant (eg Warfarin)?",
+          "required": true,
+          "sortOrder": "5",
+          "options": null
+        },
+        {
+          "id": 408045,
+          "type": "yes_no",
+          "label": "Have you recently used any glycolic acid or retinoids (such as isotretinoin or tretinoin)?",
+          "required": true,
+          "sortOrder": "6",
+          "options": null
+        },
+        {
+          "id": 408046,
+          "type": "yes_no_textbox",
+          "label": "Do you have an ongoing infection in your body or have you taken antibiotics in the last four weeks?",
+          "required": true,
+          "sortOrder": "7",
+          "options": null
+        },
+        {
+          "id": 408047,
+          "type": "yes_no_textbox",
+          "label": "Do you have an ongoing illness that is physical or mental?",
+          "required": true,
+          "sortOrder": "8",
+          "options": null
+        },
+        {
+          "id": 408048,
+          "type": "yes_no_textbox",
+          "label": "Have you had problems with anxiety, depression, or other mental disorders?",
+          "required": true,
+          "sortOrder": "9",
+          "options": null
+        }
+      ]
+    },
+    {
+      "apiId": 14866,
+      "title": "Copy - Hälsodeklaration",
+      "brand": "Hair TP Clinic",
+      "isActive": false,
+      "migrate": false,
+      "arcanaJournalType": null,
+      "questionCount": 29,
+      "questions": [
+        {
+          "id": 408069,
+          "type": "yes_no_textbox",
+          "label": "Har du några allergier?",
+          "required": true,
+          "sortOrder": "1",
+          "options": null
+        },
+        {
+          "id": 408078,
+          "type": "yes_no_textbox",
+          "label": "Har du någon autoimmun sjukdom eller en sjukdom som drabbat immunsystemet?",
+          "required": true,
+          "sortOrder": "10",
+          "options": null
+        },
+        {
+          "id": 408079,
+          "type": "yes_no",
+          "label": "Har du diabetes?",
+          "required": true,
+          "sortOrder": "11",
+          "options": null
+        },
+        {
+          "id": 408080,
+          "type": "yes_no",
+          "label": "Har du någon blödarsjuka?",
+          "required": true,
+          "sortOrder": "12",
+          "options": null
+        },
+        {
+          "id": 408081,
+          "type": "yes_no",
+          "label": "Lider du av akut ledgångsreumatism eller återkommande halsont?",
+          "required": true,
+          "sortOrder": "13",
+          "options": null
+        },
+        {
+          "id": 408082,
+          "type": "yes_no",
+          "label": "Lider du av amyotrofisk skleros (ALS) eller perifer neuromuskulär störning (nervsjukdom)?",
+          "required": true,
+          "sortOrder": "14",
+          "options": null
+        },
+        {
+          "id": 408083,
+          "type": "yes_no",
+          "label": "Lider du av myastenia gravis eller Eaton-Lambert syndrom (muskelsjukdom)?",
+          "required": true,
+          "sortOrder": "15",
+          "options": null
+        },
+        {
+          "id": 408084,
+          "type": "yes_no",
+          "label": "Lider du av obehandlad epilepsi?",
+          "required": true,
+          "sortOrder": "16",
+          "options": null
+        },
+        {
+          "id": 408085,
+          "type": "yes_no",
+          "label": "Har du en tendens att utveckla stor ärrbildning (keloider)?",
+          "required": true,
+          "sortOrder": "17",
+          "options": null
+        },
+        {
+          "id": 408086,
+          "type": "yes_no",
+          "label": "Har du tidigare haft någon hudcancer?",
+          "required": true,
+          "sortOrder": "18",
+          "options": null
+        },
+        {
+          "id": 408087,
+          "type": "yes_no",
+          "label": "Lider du av porfyri (ärftlig sjukdom)?",
+          "required": true,
+          "sortOrder": "19",
+          "options": null
+        },
+        {
+          "id": 408070,
+          "type": "yes_no",
+          "label": "Använder du tobak?",
+          "required": true,
+          "sortOrder": "2",
+          "options": null
+        },
+        {
+          "id": 408088,
+          "type": "yes_no",
+          "label": "Lider du av onormal hjärtklappning eller annan hjärtsjukdom?",
+          "required": true,
+          "sortOrder": "20",
+          "options": null
+        },
+        {
+          "id": 408089,
+          "type": "yes_no",
+          "label": "Har du varit på eller planerar du ett tandläkarbesök inom närmsta tiden? (2v. innan/ 2v efter)",
+          "required": true,
+          "sortOrder": "21",
+          "options": null
+        },
+        {
+          "id": 408090,
+          "type": "yes_no_textbox",
+          "label": "Har du tidigare fått några estetiska behandlingar (t.ex. laser, peeling, dermabrasio, microneedling, IPL, Kemisk Peeling, PRP, HIFU etc.)?",
+          "required": true,
+          "sortOrder": "22",
+          "options": null
+        },
+        {
+          "id": 408091,
+          "type": "yes_no_textbox",
+          "label": "Har du tidigare fått injektionsbehandlingar, trådlyft eller genomgått kirurgi i ansiktet?",
+          "required": true,
+          "sortOrder": "23",
+          "options": null
+        },
+        {
+          "id": 408092,
+          "type": "yes_no_textbox",
+          "label": "Upplevde du några biverkningar relaterade till behandlingen?",
+          "required": true,
+          "sortOrder": "24",
+          "options": null
+        },
+        {
+          "id": 408093,
+          "type": "yes_no",
+          "label": "Har du någon hudinfektion eller inflammatoriska hudproblem (t.ex. herpes, akne, rosacea etc.)?",
+          "required": true,
+          "sortOrder": "25",
+          "options": null
+        },
+        {
+          "id": 408094,
+          "type": "yes_no",
+          "label": "Har du tatueringar eller permanent makeup i behandlingsområdet?",
+          "required": true,
+          "sortOrder": "26",
+          "options": null
+        },
+        {
+          "id": 408095,
+          "type": "yes_no",
+          "label": "Är du solbränd nu?",
+          "required": true,
+          "sortOrder": "27",
+          "options": null
+        },
+        {
+          "id": 408096,
+          "type": "yes_no",
+          "label": "Har du Melasma eller Kloasma (pigmenteringar)?",
+          "required": true,
+          "sortOrder": "28",
+          "options": null
+        },
+        {
+          "id": 408097,
+          "type": "textbox",
+          "label": "Övriga kommentarer om din hälsa",
+          "required": true,
+          "sortOrder": "29",
+          "options": null
+        },
+        {
+          "id": 408071,
+          "type": "yes_no",
+          "label": "Är du gravid, ammar eller försöker du bli gravid?",
+          "required": true,
+          "sortOrder": "3",
+          "options": null
+        },
+        {
+          "id": 408072,
+          "type": "yes_no_textbox",
+          "label": "Äter du några mediciner?",
+          "required": true,
+          "sortOrder": "4",
+          "options": null
+        },
+        {
+          "id": 408073,
+          "type": "yes_no",
+          "label": "Tar du för närvarande steroider, acetylsalicylsyra (t.ex. Treo eller Aspirin) eller någon antikoagulant (t.ex. Warfarin)?",
+          "required": true,
+          "sortOrder": "5",
+          "options": null
+        },
+        {
+          "id": 408074,
+          "type": "yes_no",
+          "label": "Har du nyligen använt någon glykolsyra eller retinoid (t.ex. isotretinoin or tretinoin)?",
+          "required": true,
+          "sortOrder": "6",
+          "options": null
+        },
+        {
+          "id": 408075,
+          "type": "yes_no_textbox",
+          "label": "Har du någon pågående infektion i kroppen, eller har du ätit antibiotika de senaste 4 veckorna?",
+          "required": true,
+          "sortOrder": "7",
+          "options": null
+        },
+        {
+          "id": 408076,
+          "type": "yes_no_textbox",
+          "label": "Har du någon pågående sjukdom som är kroppslig eller psykisk?",
+          "required": true,
+          "sortOrder": "8",
+          "options": null
+        },
+        {
+          "id": 408077,
+          "type": "yes_no_textbox",
+          "label": "Har du haft problem med ångest, depression eller andra psykiska besvär?",
+          "required": true,
+          "sortOrder": "9",
+          "options": null
+        }
+      ]
+    }
+  ]
+}

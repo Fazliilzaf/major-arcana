@@ -3,6 +3,13 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 
+const {
+  emptyFieldsForSchema,
+  normalizeFormVariant,
+  resolveFormVariantFromMeridiq,
+  buildImportMeta,
+} = require('./ccoJournalSchemas');
+
 const JOURNAL_TYPES = Object.freeze([
   'historical_import',
   'tp_treatment',
@@ -11,6 +18,7 @@ const JOURNAL_TYPES = Object.freeze([
   'follow_up',
   'prp_treatment',
   'consultation_plan',
+  'bleph_treatment',
 ]);
 
 const JOURNAL_STATUSES = Object.freeze(['draft', 'signed', 'corrected']);
@@ -62,79 +70,24 @@ function isSmokeTestPhotoLabel(label = '') {
   );
 }
 
-function emptyPrpTreatmentFields() {
-  return {
-    behandlingsdatum: '',
-    omrade: '',
-    serieNummer: '',
-    serieTotalt: '',
-    antalBlodror: '',
-    mangdPrpMl: '',
-    teknik: '',
-    bedovning: null,
-    bedovningTyp: '',
-    blodtryckMmHg: '',
-    puls: '',
-    lakemedel: '',
-    komplikationer: '',
-    eftervardsrad: '',
-    behandlare: '',
-  };
+function emptyPrpTreatmentFields(formVariant = 'prp_skin') {
+  const fromSchema = emptyFieldsForSchema('prp_treatment', formVariant);
+  if (Object.keys(fromSchema).length) return fromSchema;
+  return emptyFieldsForSchema('prp_treatment', 'prp_skin');
 }
 
-function emptyFollowUpFields() {
-  return {
-    uppfoljningsdatum: '',
-    tillfalle: '',
-    bedomning: '',
-    bilderNotering: '',
-    atgardPlan: '',
-    behandlare: '',
-  };
+function emptyBlephTreatmentFields() {
+  return emptyFieldsForSchema('bleph_treatment', 'curatiio_bleph');
+}
+
+function emptyFollowUpFields(formVariant = '4_manader') {
+  const fromSchema = emptyFieldsForSchema('follow_up', formVariant);
+  if (Object.keys(fromSchema).length) return fromSchema;
+  return emptyFieldsForSchema('follow_up', '4_manader');
 }
 
 function emptyTpTreatmentFields() {
-  return {
-    ingreppTypFaststalld: null,
-    metod: '',
-    behandlingsomraden: [],
-    ytterligareOmrade: '',
-    giltigLegitimationVisad: null,
-    informeradRisker: null,
-    fulltFrisk: null,
-    alkoholNarkotika48h: null,
-    aktuellaLakemedel: null,
-    ytterligareHalsoinfo: '',
-    blodtryckMmHg: '',
-    puls: '',
-    vitalKlockslag: '',
-    allmannaAnteckningar: '',
-    allmantillstandEfter: '',
-    reaktionLokalbedovning1: '',
-    reaktionLokalbedovning2: '',
-    observationerUnderIngrepp: [],
-    ovrigaObservationer: '',
-    lakemedelUtlamnade: [],
-    informeradLakemedelEftervard: null,
-    graftsSingel: '',
-    graftsDubbel: '',
-    graftsTrippel: '',
-    graftsKvadrupel: '',
-    graftsTotalt: '',
-    tidPlanering: '',
-    tidLokalbedovningDonator: '',
-    tidExtraktionDonator: '',
-    tidLokalbedovningMottagare: '',
-    tidMottagarkanaler: '',
-    tidImplantationStart: '',
-    tidImplantationSlut: '',
-    tidPatientLamnar: '',
-    bedovningCarbocainMl: '',
-    bedovningMarcainMl: '',
-    bedovningAdrenalinMl: '',
-    bedovningTribonatMl: '',
-    slutanteckningar: '',
-  };
+  return emptyFieldsForSchema('tp_treatment', 'hair_tp');
 }
 
 function emptyState() {
@@ -185,6 +138,17 @@ function normalizeEvent(input = {}) {
   };
 }
 
+function schemaBackedEmptyFields(journalType, formVariant) {
+  const fromSchema = emptyFieldsForSchema(journalType, formVariant);
+  if (Object.keys(fromSchema).length) return fromSchema;
+  if (journalType === 'tp_treatment') return emptyTpTreatmentFields();
+  if (journalType === 'consultation_plan') return emptyConsultationPlanFields();
+  if (journalType === 'prp_treatment') return emptyPrpTreatmentFields();
+  if (journalType === 'follow_up') return emptyFollowUpFields();
+  if (journalType === 'bleph_treatment') return emptyBlephTreatmentFields();
+  return {};
+}
+
 function normalizeJournalEntry(input = {}, existing = {}) {
   const safe = asObject(input);
   const existingSafe = asObject(existing);
@@ -192,30 +156,33 @@ function normalizeJournalEntry(input = {}, existing = {}) {
   if (!JOURNAL_TYPES.includes(journalType)) {
     throw new Error('Ogiltig journaltyp.');
   }
+  const importMeta = {
+    ...asObject(existingSafe.importMeta),
+    ...buildImportMeta(safe.importMeta || existingSafe.importMeta),
+  };
+  const sourceQuestionaryIdRaw =
+    safe.sourceQuestionaryId ??
+    existingSafe.sourceQuestionaryId ??
+    importMeta.sourceQuestionaryId;
+  if (sourceQuestionaryIdRaw != null && sourceQuestionaryIdRaw !== '') {
+    importMeta.sourceQuestionaryId = Number(sourceQuestionaryIdRaw);
+  }
+  const formVariant = normalizeFormVariant(
+    journalType,
+    resolveFormVariantFromMeridiq({
+      journalType,
+      formVariant: safe.formVariant || existingSafe.formVariant,
+      sourceQuestionaryId:
+        safe.sourceQuestionaryId ||
+        existingSafe.sourceQuestionaryId ||
+        importMeta.sourceQuestionaryId,
+      meridiqServiceApiId: importMeta.meridiqServiceApiId,
+    })
+  );
   const status = normalizeKey(safe.status || existingSafe.status) || 'draft';
   const locked = status === 'signed' || Boolean(existingSafe.locked);
-  const fields =
-    journalType === 'tp_treatment'
-      ? { ...emptyTpTreatmentFields(), ...asObject(existingSafe.fields), ...asObject(safe.fields) }
-      : journalType === 'consultation_plan'
-        ? {
-            ...emptyConsultationPlanFields(),
-            ...asObject(existingSafe.fields),
-            ...asObject(safe.fields),
-          }
-        : journalType === 'prp_treatment'
-          ? {
-              ...emptyPrpTreatmentFields(),
-              ...asObject(existingSafe.fields),
-              ...asObject(safe.fields),
-            }
-          : journalType === 'follow_up'
-            ? {
-                ...emptyFollowUpFields(),
-                ...asObject(existingSafe.fields),
-                ...asObject(safe.fields),
-              }
-            : { ...asObject(existingSafe.fields), ...asObject(safe.fields) };
+  const schemaDefaults = schemaBackedEmptyFields(journalType, formVariant);
+  const fields = { ...schemaDefaults, ...asObject(existingSafe.fields), ...asObject(safe.fields) };
 
   return {
     entryId: normalizeText(safe.entryId || existingSafe.entryId) || crypto.randomUUID(),
@@ -225,11 +192,15 @@ function normalizeJournalEntry(input = {}, existing = {}) {
     treatmentEncounterId:
       normalizeText(safe.treatmentEncounterId || existingSafe.treatmentEncounterId) || '',
     journalType,
+    formVariant,
+    sourceQuestionaryId:
+      normalizeText(safe.sourceQuestionaryId || existingSafe.sourceQuestionaryId) ||
+      (importMeta.sourceQuestionaryId ? String(importMeta.sourceQuestionaryId) : ''),
     status: JOURNAL_STATUSES.includes(status) ? status : 'draft',
     locked,
     title: normalizeText(safe.title || existingSafe.title) || 'Behandlingsjournal',
     source: normalizeText(safe.source || existingSafe.source) || 'cco_journal',
-    importMeta: asObject(safe.importMeta || existingSafe.importMeta),
+    importMeta,
     fields,
     attachments: asArray(safe.attachments || existingSafe.attachments),
     authorUserId: normalizeText(safe.authorUserId || existingSafe.authorUserId),
@@ -336,6 +307,8 @@ function buildJournalReadout(entry) {
   return {
     entryId: safe.entryId,
     journalType: safe.journalType,
+    formVariant: safe.formVariant || '',
+    sourceQuestionaryId: safe.sourceQuestionaryId || '',
     status: safe.status,
     locked: Boolean(safe.locked),
     title: safe.title,
@@ -941,6 +914,7 @@ module.exports = {
   createCcoJournalStore,
   emptyConsultationPlanFields,
   emptyFollowUpFields,
+  emptyBlephTreatmentFields,
   emptyPrpTreatmentFields,
   emptyTpTreatmentFields,
   isSmokeTestPhotoLabel,
