@@ -319,7 +319,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] U5B.2 Eftervård / formulär / återbesök triggers (= J-7.2)
 - [x] U5B.3 Post-op auto-trigger — scheduler `post_op_auto_trigger` + `postOpAutoTrigger.js`
 
-> **Verify 2026-05-25:** Publik catalog **503** (policy av). Plan A staff **3/3** publika tjänster. **U5A.4 Resend live**. U5B.1–2 **PASS** (`verify:cco-care-sweep-prod` CC-11). U5B.3 ☐.
+> **Verify 2026-05-25:** Publik catalog **503** (policy av). Plan A staff **3/3** publika tjänster. **U5A.4 Resend live**. U5B.1–2 **PASS** (`verify:cco-care-sweep-prod` CC-11). U5B.3 **PASS** (scheduler `post_op_auto_trigger`).
 
 ### Utrullning 6 — Agenter + CMO + patientkanal ☐
 
@@ -477,7 +477,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [~] P6.5.4 H4 — Hälsodeklaration estetiska injektioner — operator toolbar ☑
 - [~] P6.5.5 H5 — ENG Health Questionnaire — operator toolbar ☑
 - [x] P6.5.6 F1 — Friskförsäkran TP (Meridiq **16413**) — UI (`/friskforsakran`)
-- [ ] P6.5.7 F2 — Friskförsäkran ögonlocksplastik (**16389**)
+- [~] P6.5.7 F2 — Friskförsäkran ögonlocksplastik (**16389**) — operator toolbar ☑
 - [ ] P6.5.8 Patientportal / token-länk före besök (ersätter Meridiq registreringsportal)
 - [ ] P6.5.9 Webb `/screen` → journal H1 (synkad, ej fristående)
 - [ ] P6.5.10 Webb `/friskforsakran` → journal F1 (synkad, ej fristående)

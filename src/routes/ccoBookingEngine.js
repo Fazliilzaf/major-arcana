@@ -27,6 +27,8 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
+
 function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
 }
@@ -300,6 +302,14 @@ function requireBookingContext(context) {
   throw error;
 }
 
+function requireStaffRole(context) {
+  const role = normalizeText(context?.actor?.role).toUpperCase();
+  if (STAFF_ROLES.has(role)) return;
+  const error = new Error('Otillräcklig behörighet.');
+  error.statusCode = 403;
+  throw error;
+}
+
 function toCaseInput(context, body = {}) {
   return {
     tenantId: context.tenantId,
@@ -499,7 +509,8 @@ function createCcoBookingEngineRouter({
   }
 
   router.get('/cco-booking-engine/legacy-catalog', async (req, res) =>
-    handle(req, res, async () => {
+    handle(req, res, async (context) => {
+      requireStaffRole(context);
       const bundle = loadLegacyCatalogBundle();
       const includeDetails = normalizeText(req.query.details) === '1';
       return res.json({
