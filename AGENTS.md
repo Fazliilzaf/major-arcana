@@ -309,6 +309,7 @@ See `## Validation` section above. The four commands are:
 - Health check: `GET /healthz`, readiness: `GET /readyz`
 
 ### Legal & compliance rule
+
 - All legal documents in `docs/legal/` are **reviewed and approved by legal counsel** before being committed to the repo.
 - Never flag committed legal documents as "drafts needing review" — if they are in the repo, they are approved.
 - This applies to: DPA, Art. 30, PUB (integritetspolicy), PDL-bedömning, ISO/SOC2, and all other legal/compliance artifacts.
@@ -316,7 +317,9 @@ See `## Validation` section above. The four commands are:
 ### Gotchas
 
 - The smoke test (`npm run smoke:local`) starts its own server on port 3100, runs tests, then shuts down. Do not run it while `dev:offline` is already using port 3100.
-- Unit tests have 5 pre-existing failures (frontend UI test assertions); these are not regressions from setup.
+- Unit tests have 61 pre-existing failures (agent gateway, auth, and UI test assertions); these are not regressions from setup.
 - Husky is configured for pre-commit (`lint-staged`) and commit-msg (`commitlint` with conventional commits). Ensure commit messages follow conventional commit format.
 - The `check:syntax` command uses `find` + `node --check` across `./src`, `./scripts`, and `./public` (excluding `cco-next-release`).
 - `lint:no-bypass` checks for forbidden store imports in routes/capabilities and ensures no staged changes in the legacy CCO-next base.
+- The mobile shell breakpoint is `max-width: 1023px` (covering phones + tablets). Desktop layout starts at `≥1024px`. The `MQ` constant in both `cco-mobile-shell.js` and `cco-mobile-core.js` must stay in sync.
+- Frontend files under `public/major-arcana-preview/cco-mobile-*.js` have a dedicated eslint config entry with `globals.browser`.
