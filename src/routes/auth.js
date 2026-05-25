@@ -164,31 +164,36 @@ function createAuthRouter({
   }
 
   async function rotateSessionsAfterLogin({ userId, tenantId, currentSessionId }) {
-    if (!userId || !currentSessionId || rotationScope === 'none') return 0;
-    const tenantScope = rotationScope === 'tenant' ? tenantId : '';
+    try {
+      if (!userId || !currentSessionId || rotationScope === 'none') return 0;
+      const tenantScope = rotationScope === 'tenant' ? tenantId : '';
 
-    if (typeof authStore.revokeSessionsByUser === 'function') {
-      const result = await authStore.revokeSessionsByUser(userId, {
+      if (typeof authStore.revokeSessionsByUser === 'function') {
+        const result = await authStore.revokeSessionsByUser(userId, {
+          tenantId: tenantScope,
+          excludeSessionId: currentSessionId,
+          reason: 'login_rotation',
+        });
+        return Number(result?.count || 0);
+      }
+
+      const sessions = await authStore.listSessions({
         tenantId: tenantScope,
-        excludeSessionId: currentSessionId,
-        reason: 'login_rotation',
+        userId,
+        includeRevoked: false,
+        limit: 500,
       });
-      return Number(result?.count || 0);
+      let revokedSessions = 0;
+      for (const session of sessions) {
+        if (!session?.id || session.id === currentSessionId) continue;
+        const revoked = await authStore.revokeSession(session.id, { reason: 'login_rotation' });
+        if (revoked) revokedSessions += 1;
+      }
+      return revokedSessions;
+    } catch (error) {
+      console.error('[auth] session rotation failed', error?.message || error);
+      return 0;
     }
-
-    const sessions = await authStore.listSessions({
-      tenantId: tenantScope,
-      userId,
-      includeRevoked: false,
-      limit: 500,
-    });
-    let revokedSessions = 0;
-    for (const session of sessions) {
-      if (!session?.id || session.id === currentSessionId) continue;
-      const revoked = await authStore.revokeSession(session.id, { reason: 'login_rotation' });
-      if (revoked) revokedSessions += 1;
-    }
-    return revokedSessions;
   }
 
   function toTenantOptions(memberships) {
