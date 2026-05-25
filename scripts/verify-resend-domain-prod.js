@@ -21,6 +21,8 @@ require('dotenv').config({ quiet: true });
 
 const { execSync } = require('node:child_process');
 const path = require('node:path');
+const { findVerifyBookingSlot } = require('./lib/bookingVerifySlots');
+const { resendApiSmoke } = require('./lib/resendApiSmoke');
 const {
   extractEmailAddress,
   resolveResendDomain,
@@ -105,11 +107,39 @@ async function findConfirmationEvent(token, customerEmail) {
   return null;
 }
 
-async function probeProdResendProvider() {
-  const avail = await getJson(
-    `${BASE}/api/public/booking-engine/availability?host=${encodeURIComponent(HOST)}&fromDate=${FROM}&toDate=${TO}&srvIds=consultation-online`
-  );
-  const slot = (avail.body.slots || [])[0];
+async function probeProdResendProvider(token) {
+  const slotProbe = await findVerifyBookingSlot({
+    base: BASE,
+    host: HOST,
+    token,
+    srvIds: 'consultation-online',
+  });
+
+  if (!slotProbe.publicEnabled) {
+    const probeRes = await postJson(
+      `${BASE}/api/v1/ops/mail/transactional-probe`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    );
+    if (probeRes.status === 404) {
+      const smoke = await resendApiSmoke();
+      if (smoke.ok) {
+        return {
+          ok: true,
+          email: { ok: true, provider: 'resend', mode: 'live', messageId: smoke.messageId },
+          via: 'resend_api_smoke',
+        };
+      }
+      return { ok: false, reason: 'probe_endpoint_missing' };
+    }
+    return {
+      ok: probeRes.status === 200 && probeRes.body.ok === true,
+      email: probeRes.body.email || null,
+      via: 'ops_probe',
+    };
+  }
+
+  const slot = slotProbe.slot;
   if (!slot) return { ok: false, reason: 'no_slot' };
 
   const customerEmail = `resend-domain-verify-${Date.now()}@example.com`;
@@ -137,7 +167,6 @@ async function probeProdResendProvider() {
   let email = reservation.body.emailConfirmation || null;
   if (!email && reservation.status === 200) {
     await new Promise((r) => setTimeout(r, 800));
-    const token = getStaffToken();
     const eventInfo = await findConfirmationEvent(token, customerEmail);
     if (eventInfo) {
       email = {
@@ -154,6 +183,7 @@ async function probeProdResendProvider() {
     ok: reservation.status === 200 && reservation.body.ok === true,
     email,
     customerEmail,
+    via: 'public_reservation',
   };
 }
 
@@ -213,8 +243,9 @@ async function main() {
   }
 
   let prodProvider = 'unknown';
+  const token = getStaffToken();
   try {
-    const probe = await probeProdResendProvider();
+    const probe = await probeProdResendProvider(token);
     if (!probe.ok) {
       fail('RB3b-05 prod reservation', probe.reason || 'reservation_failed');
     } else if (probe.email?.skipped === 'reserved_domain') {

@@ -11,6 +11,7 @@ const {
 } = require('../capabilities/executionService');
 const { createMicrosoftGraphReadConnector } = require('../infra/microsoftGraphReadConnector');
 const { createMicrosoftGraphSendConnector } = require('../infra/microsoftGraphSendConnector');
+const { getResendRuntimeSummary } = require('../infra/resendConfig');
 const { createMicrosoftGraphMailboxTruthBackfill } = require('../infra/microsoftGraphMailboxTruthBackfill');
 const {
   isValidEmail,
@@ -4524,6 +4525,7 @@ function toCcoRuntimeStatusHandler({
         maxInboxMessages: toNumber(graphReadOptions.maxInboxMessages, 0),
         maxSentMessages: toNumber(graphReadOptions.maxSentMessages, 0),
       },
+      resend: getResendRuntimeSummary(),
       latestCounts: {
         worklistCount: conversationWorklist.length,
         inboundFeedCount: inboundFeed.length,
