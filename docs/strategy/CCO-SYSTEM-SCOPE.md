@@ -67,22 +67,22 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 ### 4.1 Patientformulär (fylls av patient)
 
-- 🔲 Hälsodeklaration Hair TP (signering + PDF)
-- 🔲 Hälsodeklaration Curatiio (ögonlock, ortopedi, estetiska injektioner)
-- 🔲 Hälsodeklaration engelska
-- 🔲 Friskförsäkran TP (patient + personal, signering)
-- 🔲 Friskförsäkran ögonlocksplastik
+- ✅ Hälsodeklaration Hair TP (schema `health_declaration:hair_tp` + signering + patientportal)
+- ✅ Hälsodeklaration Curatiio (ögonlock, ortopedi, estetiska injektioner — 3 varianter i katalog)
+- ✅ Hälsodeklaration engelska (`health_declaration:eng`)
+- ✅ Friskförsäkran TP (patient + personal, `fitness_certificate:hair_tp`)
+- ✅ Friskförsäkran ögonlocksplastik (`fitness_certificate:curatiio_bleph`)
 - ✅ Patientportal / länk för att fylla i före besök (token-baserad, synkar till journal)
-- ⚠️ Webbformulär `/screen` och `/friskforsakran` — ska synkas in i journal (ej fristående)
+- ✅ Webbformulär `/screen` och `/friskforsakran` — synkas via patientportal till journal
 
 ### 4.2 Personalformulär (klinisk journalföring)
 
 - ✅ TP behandlingsjournal (~38 fält, signering, låsning)
-- 🔲 Full paritet mot Meridiq TP-journal (59 fält)
-- 🔲 PRP / PRF / microneedling journal
-- 🔲 TP efterbehandling PRP (post-op)
-- 🔲 Uppföljning 4 / 6 / 12 månader
-- 🔲 Ögonlocksplastik journal (Curatiio)
+- ✅ Full paritet mot Meridiq TP-journal (`tp_treatment:hair_tp` schema i katalog)
+- ✅ PRP / PRF / microneedling journal (`prp_treatment:prp_skin`)
+- ✅ TP efterbehandling PRP (post-op) (`prp_treatment:tp_post_op`)
+- ✅ Uppföljning 4 / 6 / 12 månader (`follow_up:4/6/12_manader`)
+- ✅ Ögonlocksplastik journal Curatiio (`bleph_treatment:curatiio_bleph`)
 - ✅ Behandlingsplan (`consultation_plan`) — kopplad till bokning och foton
 - ✅ Historisk import (PDF från Drive/Meridiq)
 
