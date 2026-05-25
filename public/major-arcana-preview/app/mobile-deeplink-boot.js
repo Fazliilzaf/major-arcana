@@ -201,6 +201,7 @@
 
   if (isMobileCustomersRoute()) {
     window.__ARCANA_DEFER_APP_BUNDLE__ = true;
+    window.__ARCANA_STAFF_BUNDLE_SPLIT__ = true;
     primeMobileShellEarly();
   }
 

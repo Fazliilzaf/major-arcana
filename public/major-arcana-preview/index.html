@@ -3,10 +3,31 @@
 
 <head>
   <meta charset="UTF-8" />
+    <!-- ARCANA bundle URLs (content-hash: d9a770ff9d) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.d9a770ff9d.min.js","staffCore":"./app.bundle.staff-core.d20f6491c0.min.js","staffDeferred":"./app.bundle.staff-deferred.df04313ca7.min.js"};</script>
+    <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
+    <script>
+      (function arcanaPreloadBundle() {
+        try {
+          var href = './app.bundle.d9a770ff9d.min.js';
+          if (true && window.matchMedia('(max-width: 768px)').matches) {
+            var view = String(new URLSearchParams(window.location.search || '').get('view') || 'customers').trim();
+            if (view === 'customers') href = './app.bundle.staff-core.d20f6491c0.min.js';
+          }
+          var link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'script';
+          link.href = href;
+          document.head.appendChild(link);
+        } catch (preloadError) {
+          /* best-effort */
+        }
+      })();
+    </script>
+    
     <!-- Bundlade scripts preload (content-hash: d9a770ff9d) -->
-    <link rel="preload" as="script" href="./app.bundle.d9a770ff9d.min.js" />
-    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-deeplink-boot-d" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-boot-d" />
+    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-bundle-split-a" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-bundle-split-a" />
     <script>
     (function mobileDeferInboxUntilNeeded() {
       try {
@@ -48,7 +69,7 @@
       }
     })();
   </script>
-  <script src="./app/mobile-deeplink-boot.js?v=build-deeplink-boot-d"></script>
+  <script src="./app/mobile-deeplink-boot.js?v=build-bundle-split-a"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>HairTP Clinic CCO</title>
   <meta name="theme-color" content="#fbf7f1" />
@@ -1939,7 +1960,7 @@
                 </script>
                 <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-modal-c"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=build-deeplink-boot-d"></script>
+                  <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
 <div data-patient-identity-rail hidden>
                   <section class="customers-rail-panel customers-rail-panel-suggestions">
                     <div class="customers-rail-panel-head">
@@ -6961,15 +6982,44 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
     <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaLoadAppBundle() {
-        var src = './app.bundle.d9a770ff9d.min.js';
-        function inject() {
-          if (window.__ARCANA_APP_BUNDLE_LOADING__) return;
-          window.__ARCANA_APP_BUNDLE_LOADING__ = true;
+        var urls = window.__ARCANA_BUNDLE_URLS__ || {};
+        var fullSrc = urls.full || './app.bundle.d9a770ff9d.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.d20f6491c0.min.js';
+        var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.df04313ca7.min.js';
+
+        function injectScript(src, onload) {
           var script = document.createElement('script');
           script.src = src;
           script.async = false;
+          if (onload) script.onload = onload;
           document.body.appendChild(script);
         }
+
+        function injectDeferredChunk() {
+          if (!deferSrc || window.__ARCANA_STAFF_DEFERRED_LOADING__) return;
+          window.__ARCANA_STAFF_DEFERRED_LOADING__ = true;
+          injectScript(deferSrc);
+        }
+        window.__ARCANA_LOAD_STAFF_DEFERRED__ = injectDeferredChunk;
+
+        function inject() {
+          if (window.__ARCANA_APP_BUNDLE_LOADING__) return;
+          window.__ARCANA_APP_BUNDLE_LOADING__ = true;
+
+          var useSplit = !!(window.__ARCANA_STAFF_BUNDLE_SPLIT__ && coreSrc && deferSrc);
+          if (useSplit) {
+            injectScript(coreSrc, function () {
+              if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(injectDeferredChunk, { timeout: 5000 });
+              } else {
+                window.setTimeout(injectDeferredChunk, 80);
+              }
+            });
+            return;
+          }
+          injectScript(fullSrc);
+        }
+
         if (window.__ARCANA_DEFER_APP_BUNDLE__) {
           var loaded = false;
           function finish() {

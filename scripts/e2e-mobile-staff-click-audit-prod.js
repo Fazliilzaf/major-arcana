@@ -174,6 +174,60 @@ async function main() {
       warn('Kallstart över mål', `${shellPrimeMs || coldStartMs}ms (>1500/3000ms mål)`);
     }
 
+    const bundleSplitInfo = await page.evaluate(() => {
+      const resources = performance.getEntriesByType('resource');
+      const scriptUrls = resources
+        .filter((entry) => entry.initiatorType === 'script' || /\.js(\?|$)/.test(entry.name))
+        .map((entry) => entry.name);
+      const splitActive = Boolean(window.__ARCANA_STAFF_BUNDLE_SPLIT__);
+      const staffCoreLoaded = scriptUrls.some((url) => /app\.bundle\.staff-core\.[a-f0-9]+\.min\.js/.test(url));
+      const staffDeferredLoaded = scriptUrls.some((url) =>
+        /app\.bundle\.staff-deferred\.[a-f0-9]+\.min\.js/.test(url)
+      );
+      const fullBundleLoaded = scriptUrls.some((url) =>
+        /app\.bundle\.[a-f0-9]+\.min\.js/.test(url) &&
+        !/app\.bundle\.staff-(core|deferred)\./.test(url)
+      );
+      return { splitActive, staffCoreLoaded, staffDeferredLoaded, fullBundleLoaded, scriptUrls };
+    });
+    record(
+      'Mobil bundle split aktiv',
+      bundleSplitInfo.splitActive,
+      bundleSplitInfo.splitActive ? 'staff-core + deferred' : 'ej aktiv'
+    );
+    if (bundleSplitInfo.splitActive) {
+      record(
+        'Staff-core bundle laddad',
+        bundleSplitInfo.staffCoreLoaded,
+        bundleSplitInfo.staffCoreLoaded ? 'app.bundle.staff-core' : 'saknas'
+      );
+      record(
+        'Full bundle ej laddad (split)',
+        !bundleSplitInfo.fullBundleLoaded,
+        bundleSplitInfo.fullBundleLoaded ? 'full bundle laddades trots split' : 'ok'
+      );
+      if (!bundleSplitInfo.staffDeferredLoaded) {
+        await page.waitForFunction(
+          () =>
+            performance
+              .getEntriesByType('resource')
+              .some((entry) => /app\.bundle\.staff-deferred\.[a-f0-9]+\.min\.js/.test(entry.name)),
+          undefined,
+          { timeout: 8000, polling: 100 }
+        ).catch(() => {});
+      }
+      const deferredLoadedAfterIdle = await page.evaluate(() =>
+        performance
+          .getEntriesByType('resource')
+          .some((entry) => /app\.bundle\.staff-deferred\.[a-f0-9]+\.min\.js/.test(entry.name))
+      );
+      if (deferredLoadedAfterIdle) {
+        record('Staff-deferred lazy chunk', true, 'laddad efter idle', null);
+      } else {
+        warn('Staff-deferred lazy chunk', 'ej laddad inom 8s idle (kan vara ok före journal)');
+      }
+    }
+
     // 2. Login-form tillgänglig
     t0 = Date.now();
     const loginForm = page.locator('[data-staff-login-form]');
