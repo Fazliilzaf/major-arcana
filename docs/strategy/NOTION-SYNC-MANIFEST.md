@@ -2,7 +2,7 @@
 
 **Database:** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)  
 **Data source:** `collection://7e2211ad-1af3-4d10-9e73-9c330fdce0d0`  
-**Repo-sanningskälla:** `docs/strategy/MASTER-TODO.md` (2026-05-25)  
+**Repo-sanningskälla:** `docs/strategy/MASTER-TODO.md` (2026-05-25 Resend-svep)  
 **Prod:** https://arcana.hairtpclinic.se
 
 Egenskaper i Notion: `Task` (title), `Status`, `Priority`, `Area`, `Owner`, `Notes`
@@ -21,7 +21,7 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 | MA-6.2 E2E pilot 5/5 prod | `36a060cc-c15b-81f5-8133-f064ab8abc8d` | **Done** | 5/5 PASS 2026-05-25 (E2E återställning efter journal-push). MA-B.3 + MA-C.2 + MA-D verifierade. |
 | Rollback-plan + underhållsfönster dokumenterat | `36a060cc-c15b-819a-badb-c37d21878f16` | **Done** | auth-go-live-rollback-runbook.md. Produkt: se Underhållsfönster P2. |
 | Underhållsfönster i produkt (P2) | `36a060cc-c15b-8175-a2ef-e48ce46f997d` | **Done** | GET /ops/maintenance-window 200 + STAFF-banner. Env ARCANA_MAINTENANCE_WINDOW_*. |
-| Plan A valfritt: Resend patient-mail + bokning→journal | `36a060cc-c15b-8199-bdfc-c893d723d388` | **Done** | Paket B ☑: J-6.3 + U5A.4 Resend verify PASS 2026-05-25. |
+| Plan A valfritt: Resend patient-mail + bokning→journal | `36a060cc-c15b-8199-bdfc-c893d723d388` | **Done** | J-6.3 + U5A.4 ☑: Render `RESEND_API_KEY`, domän verified, transactional-probe `provider:resend` live 2026-05-25. |
 | Mobil UX sweep #1–16 (kod + prod) | `36a060cc-c15b-81ef-b78a-d36a33abb1ac` | **Done** | verify:cco-mobile-pilot-prod PASS (retry vid 502). |
 | Post-op Fas 1 — 4 beslut + Graph live + smoke | `36a060cc-c15b-812a-95f7-ff7a0c6847c2` | **Done** | U4.4–U4.6 PASS. verify:post-op-uppfoljning-prod. |
 | Fas 5.6 — ≥2 personal, ≥5 konsultationer | `36a060cc-c15b-818da95ae17da7d16115` | **Not started** | U1.6/J-10.7 — fältpilot uppskjuten. Automation räcker för go-live. |
@@ -36,9 +36,9 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 |------|--------|------|----------|-------|-------|
 | J-6.3 Bokning → journal (prod) | Done | Booking | P1 | Agent | ccoJournalBookingBridge live. Plan A E2E PASS. |
 | J-7 Påminnelser (scheduler + operatör-digest) | Done | Booking | P2 | Agent | verify:cco-care-sweep-prod CC-11 PASS 2026-05-25. |
-| J-8 CCO-care (saknade formulär + draft-godkännande) | In progress | Backlog | P1 | Agent | J-8.1 Done (CC-09). J-8.2 backend Done (CC-10); UI CC-06 FAIL. |
+| J-8 CCO-care (saknade formulär + draft-godkännande) | Done | Backlog | P1 | Agent | J-8.1–8.2 ☑ prod. CC-06 UI + CC-09/10/11 PASS. |
 | U3.2 Drive enrich 99% (570 utan match) | Done | Infra | P1 | Agent | 56988/57558 driveFileId. Push --index-only 2026-05-25. Se page `36b060cc-c15b-81f6-8723-c7d337e114f0`. |
-| U5A.4 Resend patient-mail | Done | Booking | P1 | Agent | Render env + verify PASS 2026-05-25. |
+| U5A.4 Resend patient-mail | Done | Booking | P1 | Agent | Render `RESEND_API_KEY` + domän verified + OWNER transactional-probe live 2026-05-25. |
 | U2.2 OWNER MFA enforced prod | In progress | Auth | P1 | Du | Prod: ARCANA_AUTH_OWNER_MFA_REQUIRED=false. apply:auth-go-live-prod vid go-live. |
 | TL-B Tidslinje tillfälle (foto + flik) | Done | Pilot | P1 | Agent | syncConsultationPhotoToEncounter + Tidslinje-flik. |
 | TL-C Journal per tillfälle (gruppering) | Done | Pilot | P2 | Agent | Journaltyper grupperade per tillfälle i UI (2026-05-25). |
@@ -73,7 +73,7 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 
 - J-6.2 Egen engine (Cliento ut)
 - U5B.3 Post-op auto-trigger Q4
-- U6A full agent (J-8 backend ☑ — Notion J-8 = In progress tills UI)
+- U6A full agent (J-8 ☑ — full autonom agent kvar)
 - U2.2 MFA (Notion = In progress tills enforced prod)
 - BL.1–BL.4 backlog
 
@@ -83,8 +83,9 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 
 1. Notion-vy sorterad på Status → Done ska matcha ☑ i MASTER-TODO (~95 % kärnspår).
 2. Inga Done-rader utan motsvarande kod/verify i repo.
-3. **In progress:** J-8.2 UI, U2.2 MFA.
-4. **Not started:** J-6.2, U5B.3 Q4, U6B–D, BL.
+3. **In progress:** U2.2 MFA.
+4. **Not started:** U5B.3 Q4, U6B–D, BL.
+5. **Done (senaste svep):** U5A.4 Resend live · Plan A 3 publika tjänster (`72f852a`).
 
 ---
 
@@ -92,6 +93,7 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 
 | Datum | Resultat | Evidens |
 |-------|----------|---------|
+| 2026-05-25 | **PASS (Resend-svep)** | U5A.4 Render key + transactional-probe live. Plan A `72f852a` (3 publika tjänster). MASTER-TODO + Notion MCP. |
 | 2026-05-25 | **PASS (MCP agent-sweep)** | 5× update (U5A.4 Blocked→Done, U3.2 In progress→Done, Underhållsfönster notes, J-7/J-8→Not started) + 5× create (J-9.1, J-9.4, J-10.3, TL-C, TL-D.2). TL-C page ID korrigerad. |
 | 2026-05-25 | **Doc-sync svep** | MASTER-TODO: J-7/U5B.1–2 ☑, J-8.1 ☑, J-8.2 ~, U2.2 ~. `verify:cco-care-sweep-prod` (CC-06 UI fail). |
 | 2026-05-25 | **PASS (MCP)** | 9× `notion-update-page` + 8× `notion-create-pages` + rad Kundmaster §1 Done (`36b060cc-c15b-8155-9180-d41495f1988b`). |

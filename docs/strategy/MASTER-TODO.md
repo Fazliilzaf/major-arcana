@@ -1,11 +1,11 @@
 # Major Arcana — samlad faslista (en sida)
 
-Senast uppdaterad: **2026-05-25** (doc-sync svep + prod-audit)  
+Senast uppdaterad: **2026-05-25** (Resend live + Plan A 3-tjänster + Notion-sync)  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
 
-**Du är här:** **J-8.2 ☑** (UI) · **U2.2 MFA** (väntar go-live) · **J-6.2 ☑** (guards) · **U5B.3** Q4.
+**Du är här:** **U5A.4 Resend ☑** · **Plan A katalog ☑** (3 möten) · **U2.2 MFA** (väntar go-live) · **U5B.3** Q4.
 
-**Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6) — synkad 2026-05-25 doc-svep (se `NOTION-SYNC-MANIFEST.md`)
+**Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6) — synkad 2026-05-25 Resend-svep (se `NOTION-SYNC-MANIFEST.md`)
 
 Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md) · [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) · [ma-document-placement-plan.md](./ma-document-placement-plan.md)
 
@@ -28,7 +28,7 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 ☑ Utrullning 4: Post-op Fas 1 live (Graph + patient-UI smoke)
 ☑ U3.2 Drive enrich + index push prod
 ☑ Paket A: compliance/docs/verify + underhållsfönster + mobil smoke + TL-D.2
-☑ Paket B (delvis): U5A.4 Resend · publik webb-API av (policy)
+☑ Paket B: U5A.4 Resend live · publik webb-API av (policy)
 ☑ J-7 + U5B.1–2 backend (`verify:cco-care-sweep-prod` CC-08–11)
 → U2.2 OWNER MFA (explicit go-live)
 → Utrullning 6: CMO + patientkanal
@@ -49,6 +49,18 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | J-8.2 | ☑ | API + scheduler + kundkort UI (`review-draft-proposal`) |
 | U2.2 MFA | ~ | `ARCANA_AUTH_OWNER_MFA_REQUIRED=false` prod — **ej enforced** |
 | Publik webb-bokning | av | Catalog **503** `public_web_booking_disabled` (policy) |
+
+---
+
+## Resend + Plan A svep ☑ (2026-05-25)
+
+| Punkt | Verdict | Evidens |
+|-------|---------|---------|
+| U5A.4 Resend | ☑ | `RESEND_API_KEY` på Render · `resend.configured=true` prod · OWNER `POST /ops/mail/transactional-probe` → `provider: resend`, `mode: live` |
+| Plan A publik katalog | ☑ | `72f852a` — `PLAN_A_PUBLIC_SERVICE_IDS` = 3 möten · staff catalog **3/3** `publicBookable` (prod verify) |
+| Resend domän | ☑ | `verify:resend-domain-prod` RB3b-01–04 PASS (`hairtpclinic.com` verified, `booking@hairtpclinic.com`) |
+
+> **Policy oförändrad:** publik `/api/public/booking-engine/*` **503** tills explicit go-live. Resend gäller CCO/intern bokning + transactional mail.
 
 ---
 
@@ -201,11 +213,11 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 
 - [x] J-6A Plan A — publik `/boka` GO 2026-05-24 *(API av på prod: `ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false`)*
 - [x] J-6A Operatörsbekräftelse 3/3 prod
-- [x] J-6.1 Full behandlingskatalog på webben (11 Plan A-tjänster)
+- [x] J-6.1 Publik Plan A — **3 möten** på webben *(intern katalog 11 tjänster; `72f852a` fix)*
 - [x] J-6.2 Egen engine — Cliento ut *(CCO Plan A live; publik API + Cliento av — policy)*
 - [x] J-6.3 **Koppling bokning → behandlingstillfälle → journal**
 
-> **Verify 2026-05-25:** Plan A E2E **PASS** (CCO/intern). **Publik webb-API av** (`public_web_booking_disabled` — policy). **Cliento proxy av** (`cliento_booking_disabled`). `npm run verify:booking-engine-policy-prod` BE-01–04. Resend **PASS** (U5A.4). Bokning→journal **PASS** (J-6.3).
+> **Verify 2026-05-25:** Plan A E2E **PASS** (CCO/intern). Staff catalog **3** publika tjänster (`consultation-online`, `consultation-physical`, `followup-transplant`). **Publik webb-API av** (`public_web_booking_disabled` — policy). **Cliento proxy av** (`cliento_booking_disabled`). Resend **live** (U5A.4 — Render key + transactional-probe). Bokning→journal **PASS** (J-6.3).
 
 ### Fas J-7 — Påminnelser ☑ (backend)
 
@@ -301,13 +313,13 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] U5A.1 Plan A webb → Arcana API
 - [x] U5A.2 Operatör confirm prod
 - [x] U5A.3 Plan A automated sign-off
-- [x] U5A.4 Bekräftelsemail patient (Resend) — Paket B ☑ (Render + verify PASS)
+- [x] U5A.4 Bekräftelsemail patient (Resend) — Paket B ☑ (`RESEND_API_KEY` Render · domän verified · transactional-probe live)
 - [x] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
 - [x] U5B.1 Påminnelse före besök (= J-7.1)
 - [x] U5B.2 Eftervård / formulär / återbesök triggers (= J-7.2)
 - [ ] U5B.3 Post-op auto-trigger (Q4)
 
-> **Verify 2026-05-25:** Publik catalog **503** (policy av). Plan A CCO E2E **PASS**. Bokning→journal **PASS**. **U5A.4 Resend PASS**. U5B.1–2 **PASS** (`verify:cco-care-sweep-prod` CC-11). U5B.3 medvetet Q4.
+> **Verify 2026-05-25:** Publik catalog **503** (policy av). Plan A staff **3/3** publika tjänster. **U5A.4 Resend live** — `resend.configured=true`, OWNER mail-probe `provider:resend`. U5B.1–2 **PASS** (`verify:cco-care-sweep-prod` CC-11). U5B.3 medvetet Q4.
 
 ### Utrullning 6 — Agenter + CMO + patientkanal ☐
 
@@ -384,6 +396,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [ ] BL.2 cco-next-release parity (#18) — HTML `/cco-next` → `/major-arcana-preview` redirect live; full React parity kvar
 - [ ] BL.3 Android enhetstest (valfritt)
 - [ ] BL.4 Executive OS expand — PR #6 delvis (6 agents); full masterplan-expand kvar
+- [~] BL.5 Adaptive layout (Arcana/CCO web) — spec ☑ [cco-adaptive-layout-rules.md](./cco-adaptive-layout-rules.md); Fas 1–4 implementation ☐
 
 > **Verify BL.1:** `booking-mobile-calendar-day.js` — månadsvy (nav, Idag, 7×6 grid, badge lediga/bokade), daglista under. `ArcanaBookingMobileCalendar.getViewMonth()`. Unit sweep PASS 2026-05-25.
 > **Verify BL.2:** `/cco-next` HTML redirect → `/major-arcana-preview` (`resolveCcoNextPreviewRedirect.js`); legacy PWA assets kvar i `cco-next-release/`. Full #18 parity ej genomförd.
