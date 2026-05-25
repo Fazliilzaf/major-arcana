@@ -178,7 +178,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - 🔲 Retention 10 år konfigurerad
 - 🔲 GDPR export + rättelseprocess dokumenterad i app
 - 🔲 QA-dashboard: formulärcompletion, signeringar, export
-- 🔲 ID-verifiering (legitimation) på patientkort
+- ✅ ID-verifiering (legitimation) på patientkort — manuell upload + selfie + in-person + EU wallet stub
 - 🔲 Inget journalinnehåll till extern AI
 
 ---
