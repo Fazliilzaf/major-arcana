@@ -13,6 +13,9 @@ const { ensureDirectoryWithRetry } = require('./persistentDir');
 const {
   mergeLegacyCatalogIntoEngineState,
   mergeLegacyResourcesIntoEngineState,
+  mergeClientoPricingIntoServices,
+  mergeClientoSchedulesIntoEngineState,
+  wireAddonServicesIntoEngineState,
   buildStaffRuntimeCatalogReadout,
 } = require('./legacyCatalogRuntime');
 const {
@@ -21,6 +24,11 @@ const {
   loadBookingPolicyMigrationDefaults,
   normalizeBookingPolicySettings,
 } = require('./bookingPolicySettings');
+const {
+  applyBookingPricingMigrationToService,
+  applyPricingToSlot,
+  normalizePricingRules,
+} = require('./bookingPricingRules');
 
 /** Plan A — endast tre möten exponeras via /api/public/booking-engine/catalog */
 const PLAN_A_PUBLIC_SERVICE_IDS = [
@@ -653,6 +661,9 @@ function normalizeService(input = {}) {
     legacyMapping: asObject(safe.legacyMapping).arcanaServiceId ? asObject(safe.legacyMapping) : undefined,
     catalogSource: normalizeText(safe.catalogSource) || undefined,
     vipTokenRequired: safe.vipTokenRequired === true,
+    isAddon: safe.isAddon === true,
+    pricing: asObject(safe.pricing).basePriceSek != null ? asObject(safe.pricing) : undefined,
+    fromPriceSek: safe.fromPriceSek,
   });
 }
 
@@ -942,11 +953,24 @@ async function createCcoBookingEngineStore({ filePath }) {
   const resourceMerged = mergeLegacyResourcesIntoEngineState(state, {
     planAPublicResourceIds: PLAN_A_PUBLIC_RESOURCE_IDS,
   });
-  if (legacyMerged.changed || resourceMerged.changed) {
+  const scheduleMerged = mergeClientoSchedulesIntoEngineState(state);
+  const pricingMerged = mergeClientoPricingIntoServices(state);
+  const addonMerged = wireAddonServicesIntoEngineState(state);
+  if (
+    legacyMerged.changed ||
+    resourceMerged.changed ||
+    scheduleMerged.changed ||
+    pricingMerged.changed ||
+    addonMerged.changed
+  ) {
     state.resources = asArray(state.resources).map(normalizeResource).filter(Boolean);
     state.services = applyBookingPolicyMigrationToServices(
       asArray(state.services).map(normalizeService).filter(Boolean)
     );
+    mergeClientoPricingIntoServices(state);
+    state.availabilityRules = asArray(state.availabilityRules)
+      .map(normalizeAvailabilityRule)
+      .filter(Boolean);
   }
 
   async function save() {
@@ -954,11 +978,12 @@ async function createCcoBookingEngineStore({ filePath }) {
     await writeJsonAtomic(filePath, state);
   }
 
-  if (migrated || legacyMerged.changed || resourceMerged.changed) {
+  if (migrated || legacyMerged.changed || resourceMerged.changed || scheduleMerged.changed || pricingMerged.changed || addonMerged.changed) {
     await save();
   }
 
   let bookingPolicySettings = normalizeBookingPolicySettings(loadBookingPolicyMigrationDefaults());
+  let pricingRules = normalizePricingRules();
 
   function setBookingPolicySettings(settings = {}) {
     bookingPolicySettings = normalizeBookingPolicySettings(settings, bookingPolicySettings);
@@ -991,7 +1016,8 @@ async function createCcoBookingEngineStore({ filePath }) {
   function getServiceById(serviceId) {
     const raw = state.services.find((item) => item.id === normalizeText(serviceId)) || null;
     if (!raw) return null;
-    return applyBookingPolicySettingsToService(raw, bookingPolicySettings);
+    const withPolicy = applyBookingPolicySettingsToService(raw, bookingPolicySettings);
+    return applyBookingPricingMigrationToService(withPolicy, pricingRules);
   }
 
   function slotsOverlap(left = {}, right = {}) {
@@ -1106,7 +1132,7 @@ async function createCcoBookingEngineStore({ filePath }) {
             const slot = buildAvailabilitySlot(rule, day, timeLabel);
             const service = getServiceById(rule.serviceId) || {};
             if (slot && isSlotWithinBookingPolicy(slot, service, nowMs) && !isSlotTaken(slot, { excludeConversationId })) {
-              slots.push(slot);
+              slots.push(applyPricingToSlot(slot, service, pricingRules));
             }
           });
         });
@@ -1562,7 +1588,9 @@ async function createCcoBookingEngineStore({ filePath }) {
       buildStaffRuntimeCatalogReadout(state, {
         planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
         planAPublicResourceIds: PLAN_A_PUBLIC_RESOURCE_IDS,
+        bookingPolicySettings,
       }),
+    getBookingPolicySummary: async () => clone(bookingPolicySettings.globalDefaults),
     _state: state,
   };
 }

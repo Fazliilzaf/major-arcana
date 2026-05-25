@@ -107,8 +107,14 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   assert.match(desktopWeekJs, /openDayView|data-cal-open-day/, 'Kalender: dubbelklick dag → dagvy saknas');
   assert.match(desktopWeekJs, /cco-cal-day-hint/, 'Kalender: dagvy-hint i veckorutnät saknas');
   assert.match(calendarSharedJs, /buildBlockCalendarEvent|rebookCalendarBooking/, 'Kalender P1: block/rebook shared saknas');
+  assert.match(calendarSharedJs, /fetchCalendarSignals/, 'P6.10: calendar-signals API saknas');
+  assert.match(calendarSharedJs, /buildOperationalIconSpecs/, 'P6.10: operativa kalenderikoner saknas');
+  assert.match(calendarSharedJs, /data-icon="invite"|name: 'invite'/, 'P6.10.5: ICS-inbjudningsikon saknas');
+  assert.match(calendarSharedJs, /Saknar hälsodeklaration/, 'P6.5.8: hälsodekl-ikon copy saknas');
+  assert.match(desktopWeekJs, /formatCalendarSignalSummary/, 'Kalender: signalrad i detaljpanel saknas');
   const calendarCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-calendar.css'), 'utf8');
   assert.match(calendarCss, /--cco-cal-accent/, 'Kalender: Hair TP tokens saknas');
+  assert.match(calendarCss, /\.cco-cal-event-icon\.is-due/, 'P6.10: ikon-state CSS saknas');
   const polishCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-polish.css'), 'utf8');
   assert.match(polishCss, /\.schedule-shell[\s\S]*--schedule-espresso/, 'Schedule-shell: Hair TP taupe tokens saknas');
   const html = fs.readFileSync(INDEX, 'utf8');

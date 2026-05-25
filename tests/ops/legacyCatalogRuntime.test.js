@@ -14,6 +14,7 @@ const {
 } = require('../../src/ops/legacyCatalogRuntime');
 const { loadLegacyCatalogBundle } = require('../../src/ops/legacyCatalogLoader');
 const { PLAN_A_PUBLIC_SERVICE_IDS } = require('../../src/ops/ccoBookingEngineStore');
+const { normalizeBookingPolicySettings } = require('../../src/ops/bookingPolicySettings');
 
 test('legacy catalog runtime merges triple-map entries into engine state', () => {
   const entries = readTripleMapEntries(loadLegacyCatalogBundle());
@@ -187,7 +188,72 @@ test('mergeLegacyResourcesIntoEngineState promotes Cliento resource catalog rows
   const result = mergeLegacyResourcesIntoEngineState(state, { planAPublicResourceIds: [] });
   assert.equal(result.changed, true);
   assert.ok(state.resources.length >= 10);
-  assert.ok(state.resources.some((item) => item.id === 'legacy-cliento-11458'));
+  assert.ok(state.resources.some((item) => item.id === 'legacy-cliento-6677'));
+  const fazli = state.resources.find((item) => item.id === 'fazli');
+  assert.equal(fazli?.legacyMapping?.cliento?.resId, '11458');
   const louise = state.resources.find((item) => item.id === 'louise');
   assert.ok(louise?.legacyMapping?.cliento);
+  assert.ok(Array.isArray(louise?.resourceScheduleBindings));
+  assert.ok(result.scheduleBindingsTotal >= 1);
+});
+
+test('mergeClientoSchedulesIntoEngineState merges evening and weekend rules', () => {
+  const {
+    mergeClientoSchedulesIntoEngineState,
+  } = require('../../src/ops/legacyCatalogRuntime');
+  const state = { availabilityRules: [] };
+  const result = mergeClientoSchedulesIntoEngineState(state);
+  assert.equal(result.changed, true);
+  assert.equal(result.clientoResourceCount, 16);
+  assert.ok(
+    state.availabilityRules.some((rule) => rule.ruleId === 'rule-evening-cons-fazli' && rule.active === true)
+  );
+});
+
+test('buildResourceCatalogReadout wires all 16 Cliento resources', () => {
+  const { buildResourceCatalogReadout } = require('../../src/ops/legacyCatalogRuntime');
+  const state = {
+    resources: [
+      {
+        id: 'fazli',
+        label: 'Fazli',
+        legacyMapping: { cliento: { resId: '11458' } },
+        resourceScheduleBindings: [{ srvId: '63017' }],
+      },
+    ],
+  };
+  const readout = buildResourceCatalogReadout(state);
+  assert.equal(readout.total, 16);
+  assert.ok(readout.wiredCount >= 1);
+  assert.ok(readout.resources.some((row) => row.resId === '11458' && row.wired));
+});
+
+test('buildStaffRuntimeCatalogReadout exposes booking policy and pricing rules', () => {
+  const state = {
+    services: [
+      {
+        id: 'consultation-online',
+        label: 'Online',
+        durationMinutes: 30,
+        active: true,
+        publicBookable: true,
+        meetingMode: 'online',
+        minNoticeMinutes: 120,
+        maxBookingDaysAhead: 180,
+        cancellationPolicyHours: 24,
+      },
+    ],
+    resources: [{ id: 'fazli', label: 'Fazli', active: true, legacyMapping: { cliento: { resId: '11458' } } }],
+    availabilityRules: [{ ruleId: 'rule-evening-cons-fazli', resourceId: 'fazli', serviceId: 'consultation-physical' }],
+  };
+  const readout = buildStaffRuntimeCatalogReadout(state, {
+    planAPublicServiceIds: ['consultation-online'],
+    planAPublicResourceIds: ['fazli'],
+    bookingPolicySettings: normalizeBookingPolicySettings({}),
+  });
+  assert.equal(readout.summary.bookingPolicy.minNoticeOnlineMinutes, 120);
+  assert.equal(readout.summary.pricingRules.eveningStartHour, 17);
+  assert.ok(readout.summary.resourceCatalog);
+  assert.equal(readout.summary.resourceCatalog.total, 16);
+  assert.ok(readout.policy.smartSlots);
 });

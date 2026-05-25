@@ -537,6 +537,7 @@ function createScheduler({
         reminderKey: reminder.reminderKey,
         reminderType: reminder.reminderType,
         patientId: reminder.patientId,
+        channel: 'operator_digest',
         metadata: { message: reminder.message, startsAt: reminder.startsAt || null },
       });
       logged += 1;
@@ -559,6 +560,7 @@ function createScheduler({
         queue,
         bookingEngineStore,
         graphSendConnector,
+        patientCareStateStore,
         fromEmail: config.bookingReminderFromEmail || config.ccoCareReminderFromEmail,
       });
       digest = await dispatchCustomerReminderDigest({

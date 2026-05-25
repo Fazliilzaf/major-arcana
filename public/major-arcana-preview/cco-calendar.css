@@ -536,6 +536,19 @@
     height: 16px;
   }
 
+  .cco-cal-event-icon.is-sent {
+    color: var(--cco-cal-success);
+  }
+
+  .cco-cal-event-icon.is-due,
+  .cco-cal-event-icon.is-warning {
+    color: var(--cco-cal-warn);
+  }
+
+  .cco-cal-event-icon.is-missing {
+    color: var(--cco-cal-espresso-soft);
+  }
+
   .cco-cal-empty {
     padding: 18px;
     border-radius: 12px;

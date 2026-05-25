@@ -94,7 +94,10 @@ function sanitizeResource(resource) {
 
 function sanitizeService(service) {
   const duration = Number(service?.durationMinutes ?? service?.duration ?? 60);
-  const fromPrice = Number(service?.fromPriceSek ?? service?.price ?? 0);
+  const pricing = service?.pricing && typeof service.pricing === 'object' ? service.pricing : {};
+  const fromPrice = Number(
+    service?.fromPriceSek ?? pricing.basePriceSek ?? service?.price ?? 0
+  );
   return {
     id: normalizeText(service?.id || service?.serviceId) || 'service',
     title: normalizeText(service?.label || service?.title || service?.name) || 'Service',
@@ -103,6 +106,15 @@ function sanitizeService(service) {
       ? Math.max(10, Math.min(1440, Math.round(duration)))
       : 60,
     fromPriceSek: Number.isFinite(fromPrice) ? Math.max(0, Math.round(fromPrice)) : 0,
+    pricing: {
+      basePriceSek: Number(pricing.basePriceSek ?? fromPrice) || 0,
+      eveningPriceSek: Number(pricing.eveningPriceSek ?? fromPrice) || 0,
+      weekendPriceSek: Number(pricing.weekendPriceSek ?? fromPrice) || 0,
+      currency: normalizeText(pricing.currency) || 'SEK',
+    },
+    minNoticeMinutes: Number(service?.minNoticeMinutes) || undefined,
+    maxBookingDaysAhead: Number(service?.maxBookingDaysAhead) || undefined,
+    cancellationPolicyHours: Number(service?.cancellationPolicyHours) || undefined,
   };
 }
 
@@ -115,6 +127,9 @@ function sanitizeSlot(slot) {
     end,
     serviceId: normalizeText(slot?.serviceId || slot?.srvId) || '',
     resourceId: normalizeText(slot?.resourceId || slot?.resId) || '',
+    priceTier: normalizeText(slot?.priceTier) || 'base',
+    priceSek: Number.isFinite(Number(slot?.priceSek)) ? Math.max(0, Math.round(Number(slot.priceSek))) : undefined,
+    currency: normalizeText(slot?.currency) || undefined,
   };
 }
 

@@ -53,9 +53,12 @@ function loadLegacyCatalogBundle({ repoRoot = process.cwd() } = {}) {
       clientoResources: Array.isArray(bundle.clientoResources?.resources)
         ? bundle.clientoResources.resources.length
         : 0,
-      clientoAddons: Array.isArray(bundle.clientoAddons?.addons)
-        ? bundle.clientoAddons.addons.length
-        : 0,
+      clientoAddons:
+        Array.isArray(bundle.clientoAddons?.services) && bundle.clientoAddons.services.length
+          ? bundle.clientoAddons.services.length
+          : Array.isArray(bundle.clientoAddons?.addons)
+            ? bundle.clientoAddons.addons.length
+            : 0,
       meridiqConsents: Array.isArray(bundle.meridiqConsents?.consents)
         ? bundle.meridiqConsents.consents.length
         : 0,
