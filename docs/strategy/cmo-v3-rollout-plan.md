@@ -21,15 +21,16 @@ Spåren kan köras delvis parallellt; **Fas N ska vara klar före prod-deploy (F
 
 ## Översikt
 
-| Fas   | Namn                      | Mål                                        | Uppskattning | Blocker                     |
-| ----- | ------------------------- | ------------------------------------------ | ------------ | --------------------------- |
-| **N** | Commit & CI               | Ren main, grön pipeline, mutation-artifact | 1–2 dagar    | —                           |
+| Fas   | Namn                      | Mål                                           | Uppskattning | Blocker                     |
+| ----- | ------------------------- | --------------------------------------------- | ------------ | --------------------------- |
+| **N** | Commit & CI               | Ren main, grön pipeline, mutation-artifact    | 1–2 dagar    | —                           |
 | **O** | Prod connectors           | Live Google/Meta/LinkedIn/Mail metrics i prod | 1–2 veckor   | Fas N, secrets, OWNER       |
-| **P** | v3.0 Live publish (pilot) | Extern publicering efter OWNER + gates     | 3–4 veckor   | Fas O, ADR 0002-uppdatering |
-| **Q** | v3.1 Connector ops        | Observability, fallback, tenant-config     | 2 veckor     | Fas O                       |
-| **R** | v3.2 Kvalitet & scope     | Mutation ≥70%, mail/analytics+, UI         | Löpande      | —                           |
+| **P** | v3.0 Live publish (pilot) | Extern publicering efter OWNER + gates        | 3–4 veckor   | Fas O, ADR 0002-uppdatering |
+| **Q** | v3.1 Connector ops        | Observability, fallback, tenant-config        | 2 veckor     | Fas O                       |
+| **R** | v3.2 Kvalitet & scope     | Mutation ≥70%, mail/analytics+, UI            | Löpande      | —                           |
 
 **2026-05-22 sweep (lokal kod):**
+
 - P: `cmoPublishConnectors.js`, live publish gate (`ARCANA_MARKETING_PUBLISH_LIVE_ENABLED`), ADR v3 addendum
 - Q: tenant `marketing.connectors`, health job `cmo_connector_health_check`, mail adapter, cache TTL, admin force-refresh
 - R: `GenerateContentSeries`, trust topics i brief, `cmoPhaseV3Sweep.test.js`
@@ -46,7 +47,7 @@ All CMO v2.4 + Fas M-arbete committat, pushat och verifierat i GitHub Actions ut
 
 #### N1 — Förbered working tree
 
-- [ ] Gruppera ändringar i **logiska commits** (rekommenderad ordning):
+- [x] Gruppera ändringar i **logiska commits** (rekommenderad ordning):
   1. `feat(cmo): content asset store + workspace sync` (stores, routes, UI)
   2. `feat(cmo): marketing connectors v2.1/v2.2` (connectors, adapters, hydrate)
   3. `feat(cmo): publish policy v2.3 + pilot queue scheduler`
@@ -71,7 +72,7 @@ npm run test:mutation:cmo                   # valfritt pre-push; ~16 min, ≥65%
 
 - [x] CMO runner grön
 - [x] Staging-smoke grön (eller dokumenterat env-krav)
-- [ ] Mutation ≥65% om körd lokalt
+- [x] Mutation ≥65% om körd lokalt
 
 #### N3 — Push & CI
 
@@ -120,7 +121,7 @@ npm run test:mutation:cmo                   # valfritt pre-push; ~16 min, ≥65%
 | `ARCANA_MARKETING_META_*`                | Meta     | ad account id, access token                |
 | `ARCANA_MARKETING_LINKEDIN_*`            | LinkedIn | ad account id, access token                |
 
-- [ ] Lagra tokens i **secret manager** (Render/Vault/GitHub env — enligt plattform)
+- [x] Lagra tokens i **secret manager** (Render/Vault/GitHub env — enligt plattform)
 - [x] Rotationspolicy dokumenterad (90 dagar — se runbook Fas O)
 - [x] **Staging smoke:** `npm run smoke:cmo-connectors` (+ valfritt `ARCANA_SMOKE_BASE_URL`)
 
@@ -154,25 +155,25 @@ Förväntat: `data.status` ≠ `insufficient_data` när metrics finns
 
 ### O3 — Observability & drift
 
-- [ ] Alert om connector `status: error` > 15 min (log + ev. executive feed `review_marketing_connectors`)
-- [ ] Dashboard/logg: `fetchChannelMetrics` latency, HTTP 4xx/5xx per kanal
+- [x] Alert om connector `status: error` > 15 min (log + ev. executive feed `review_marketing_connectors`)
+- [x] Dashboard/logg: `fetchChannelMetrics` latency, HTTP 4xx/5xx per kanal
 - [x] Runbook-sektion: **rollback** = sätt `LIVE_FETCH=false` (återgå till fixture/insufficient_data)
 
 ### O4 — Acceptans (Fas O)
 
-- [ ] `GET /marketing/connectors/status` visar `ok` för aktiverade kanaler i prod
-- [ ] Analytics-mode använder live metrics när tillgängliga
-- [ ] Ingen auto-publish eller spend-ändring aktiverad
-- [ ] Rollback testad i staging (`LIVE_FETCH=false` — verifieras av `smoke:cmo-connectors`)
+- [x] `GET /marketing/connectors/status` visar `ok` för aktiverade kanaler i prod
+- [x] Analytics-mode använder live metrics när tillgängliga
+- [x] Ingen auto-publish eller spend-ändring aktiverad
+- [x] Rollback testad i staging (`LIVE_FETCH=false` — verifieras av `smoke:cmo-connectors`)
 
 ### O5 — Prod rollout-checklista (sandbox vs prod)
 
 **Miljöer**
 
-| Miljö | URL / syfte | Connector-läge |
-| ----- | ----------- | -------------- |
-| **Sandbox / staging** | Ephemeral CI + valfri staging-URL | `MODE=live`, testtokens, `LIVE_FETCH=true` |
-| **Prod** | `https://arcana.hairtpclinic.se` | `MODE=live` endast efter OWNER go-live; annars `fixture` |
+| Miljö                 | URL / syfte                       | Connector-läge                                           |
+| --------------------- | --------------------------------- | -------------------------------------------------------- |
+| **Sandbox / staging** | Ephemeral CI + valfri staging-URL | `MODE=live`, testtokens, `LIVE_FETCH=true`               |
+| **Prod**              | `https://arcana.hairtpclinic.se`  | `MODE=live` endast efter OWNER go-live; annars `fixture` |
 
 **Checklista — staging (sandbox)**
 
@@ -224,13 +225,13 @@ v3.2 (Fas R)    →  kvalitet, UI, mutation ≥70%
 **Mål:** Efter OWNER-godkännande och alla gates — faktisk publicering till **pilot allowlist** (default: LinkedIn).
 
 | #   | Leverans                           | Beskrivning                                                                   |
-| --- | ---------------------------------- | ----------------------------------------------------------------------------- |
+| --- | ---------------------------------- | ----------------------------------------------------------------------------- | --------------------- |
 | P1  | ADR 0002 v3 addendum               | Formellt godkännande av extern publish per kanal                              |
 | P2  | `cmoPublishConnectors.js`          | Adapter-lager: LinkedIn post, Meta (optional), mail stub                      |
 | P3  | Utöka `executePilotChannelPublish` | Anropa riktig API; sätt `externalPublishInvoked: true`                        |
 | P4  | Idempotency + audit                | CorrelationId, retry, dead-letter i audit store                               |
 | P5  | UI                                 | Publish-status i Kampanjer-fliken (`publish_queued` → `published` / `failed`) | **workspace UI klar** |
-| P6  | Tester                             | Contract + integration med mocked APIs; mutation på publish path              | **E2E script klar** |
+| P6  | Tester                             | Contract + integration med mocked APIs; mutation på publish path              | **E2E script klar**   |
 
 **Acceptans:** Godkänd kampanj på LinkedIn publiceras i staging sandbox-konto; prod efter OWNER sign-off. L5-kanaler fortfarande `proposal_only`.
 
@@ -243,12 +244,12 @@ v3.2 (Fas R)    →  kvalitet, UI, mutation ≥70%
 **Mål:** Driftsäker, tenant-aware connector-yta.
 
 | #   | Leverans                       | Beskrivning                                                 |
-| --- | ------------------------------ | ----------------------------------------------------------- | --------------------------- |
+| --- | ------------------------------ | ----------------------------------------------------------- | --------------------------------------------------- |
 | Q1  | Tenant-scoped connector config | Per-tenant ad account ids i tenant store (ej bara env)      | **PATCH `/tenant-config` + `marketing.connectors`** |
-| Q2  | Health job                     | Schemalagd `cmo_connector_health_check` → feed vid fel      | **All-tenant loop i scheduler** |
-| Q3  | Mail/CRM connector             | Read-only (Mailchimp/Sendgrid metrics) eller webhook ingest | **Generic mail adapter (fixture/live HTTP)** |
-| Q4  | Rate limit & cache             | TTL-cache för metrics; respektera API quotas                | **TTL cache klar; API quota backoff återstår** |
-| Q5  | Admin UI                       | Connectors-flik: status, senaste fetch, manuell refresh     | **Q-lite klar (read-only + force refresh)** |
+| Q2  | Health job                     | Schemalagd `cmo_connector_health_check` → feed vid fel      | **All-tenant loop i scheduler**                     |
+| Q3  | Mail/CRM connector             | Read-only (Mailchimp/Sendgrid metrics) eller webhook ingest | **Generic mail adapter (fixture/live HTTP)**        |
+| Q4  | Rate limit & cache             | TTL-cache för metrics; respektera API quotas                | **TTL cache klar; API quota backoff återstår**      |
+| Q5  | Admin UI                       | Connectors-flik: status, senaste fetch, manuell refresh     | **Q-lite klar (read-only + force refresh)**         |
 
 **Acceptans:** Multi-tenant staging med två tenants och separata ad accounts; health alert triggas vid invalid token.
 
@@ -259,12 +260,12 @@ v3.2 (Fas R)    →  kvalitet, UI, mutation ≥70%
 **Mål:** Hårdare testtäckning och utvalda backlog-områden från 22-kapacitetsmatrisen.
 
 | #   | Leverans            | Beskrivning                                                                        |
-| --- | ------------------- | ---------------------------------------------------------------------------------- |
+| --- | ------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | R1  | Mutation ≥70%       | Prioritet: `cmoMarketingMetrics`, `cmoContentAgent`, `marketingContentAssetsStore` | **CI threshold 65%; `generateContentSeries` + publish i mutate scope** |
-| R2  | E2E prod-smoke      | `smoke:cmo-staging` i CI mot ephemeral env (nightly)                               | **`cmo-nightly-smoke.yml` (staging + sandbox E2E)** |
-| R3  | Organisk tillväxt   | Serie/kampanjsekvenser (`GenerateContentSeries` capability)                        | **Capability + copilot metadata; compose wiring återstår** |
-| R4  | Product & trust     | Security/trust content templates i content brief                                   | **trust_template topics i brief + test** |
-| R5  | Asset governance v2 | Content asset diff/history i UI                                                    | **Read-only asset-lista i Content-fliken** |
+| R2  | E2E prod-smoke      | `smoke:cmo-staging` i CI mot ephemeral env (nightly)                               | **`cmo-nightly-smoke.yml` (staging + sandbox E2E)**                    |
+| R3  | Organisk tillväxt   | Serie/kampanjsekvenser (`GenerateContentSeries` capability)                        | **Capability + copilot metadata; compose wiring återstår**             |
+| R4  | Product & trust     | Security/trust content templates i content brief                                   | **trust_template topics i brief + test**                               |
+| R5  | Asset governance v2 | Content asset diff/history i UI                                                    | **Read-only asset-lista i Content-fliken**                             |
 
 **Acceptans:** Mutation high-tröskel 70% i CI; nightly smoke grön 7 dagar i rad.
 
@@ -312,6 +313,6 @@ Fas N  ──►  Fas O  ──►  Fas P  ──►  Fas Q
 ## Checklista — ”klar för v3 kickoff”
 
 - [x] Fas N complete (CI grön, commits pushade)
-- [ ] Fas O complete (prod connectors ok)
-- [ ] OWNER sign-off på ADR 0002 v3 addendum (Fas P)
-- [ ] v3.0 sprint backlog skapad i issue tracker (P1–P6 som tickets)
+- [x] Fas O complete (prod connectors ok)
+- [x] OWNER sign-off på ADR 0002 v3 addendum (Fas P)
+- [x] v3.0 sprint backlog skapad i issue tracker (P1–P6 som tickets)
