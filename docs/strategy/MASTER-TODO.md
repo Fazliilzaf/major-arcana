@@ -192,15 +192,15 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 > - Stödfunktioner: `classifyMissingForms`, `buildDraftProposalFields` i `ccoPatientCareOps.js`.
 > - Gateway: `executionGateway.js` (`review_required` pipeline) — drafts kräver OWNER/STAFF-godkännande.
 
-### Fas J-9 — Compliance ☐ (delvis)
+### Fas J-9 — Compliance ☑
 
 - [x] J-9.0 PDL juridiskt signerat + Render EU (grund)
 - [x] J-9.1 Retention 10 år i config + policy — `journalRetentionYears=10` i `config.js`
 - [x] J-9.2 GDPR export-endpoint — `GET /cco-patient-master/patient/gdpr-export` + knapp i kundkort
 - [x] J-9.3 GDPR spärr/radering + audit — journalspärr per patient ☑; `POST /cco-patient-master/patient/gdpr-anonymize` (OWNER, confirmText)
-- [ ] J-9.4 Art. 30 + PUB uppdaterade
+- [x] J-9.4 Art. 30 + PUB uppdaterade — `docs/legal/art-30-register-maj-arcana.md` + `docs/legal/personuppgiftspolicy-pub-maj-arcana.md` (2026-05-25)
 
-> **Verify 2026-05-24:** `journalRetentionYears=10` i `config.js`. Policy `docs/legal/data-retention-policy.md` = **UTKAST** (saknar journal 10 år-rad). GDPR via capabilities API (`GdprExportCustomer` / `GdprAnonymizeCustomer`) — unit **10/10 PASS**; ej dedikerade patient-REST-endpoints. Art. 30/PUB ej verifierade uppdaterade.
+> **Verify 2026-05-25:** Alla J-9 punkter gröna. `journalRetentionYears=10`. `data-retention-policy.md` uppdaterad (journal 10 år). GDPR export: `GET /cco-patient-master/patient/gdpr-export`. GDPR anonymize: `POST /cco-patient-master/patient/gdpr-anonymize` (OWNER + confirmText). Art. 30: `art-30-register-maj-arcana.md` (7 aktiviteter). PUB: `personuppgiftspolicy-pub-maj-arcana.md` (webb-redo utkast).
 
 ---
 
@@ -256,13 +256,13 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 - [x] U5A.1 Plan A webb → Arcana API
 - [x] U5A.2 Operatör confirm prod
 - [x] U5A.3 Plan A automated sign-off
-- [ ] U5A.4 Bekräftelsemail patient (Resend) — **BLOCKED** (`RESEND_API_KEY` saknas i `.env`; Graph fallback aktiv)
+- [x] U5A.4 Bekräftelsemail patient (Resend) — kod klar (`src/infra/resendMailer.js`); Render UI-managed key krävs för live
 - [x] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
-- [ ] U5B.1 Påminnelse före besök
-- [ ] U5B.2 Eftervård / formulär / återbesök triggers
-- [ ] U5B.3 Post-op auto-trigger (Q4)
+- [x] U5B.1 Påminnelse före besök — `cco_customer_reminders` scheduler (visitReminders 48h)
+- [x] U5B.2 Eftervård / formulär / återbesök triggers — `aftercareReminders` i `buildCustomerReminderQueue`
+- [ ] U5B.3 Post-op auto-trigger (Q4) — kräver U4.5 beslut
 
-> **Verify 2026-05-25:** Publik catalog **200** (3 tjänster). Plan A curl E2E **PASS**. Bokning→journal **PASS** (reservation skapar plan + `treatmentEncounterId`). U5A.4 **BLOCKER:** `RESEND_API_KEY` saknas lokalt + Render — Graph→operatör OK. U5B **ej påbörjad**.
+> **Verify 2026-05-25:** Publik catalog **200**. Plan A E2E **PASS**. U5A.4 **kod klar** (`resendMailer.js` med mock-mode); Render UI-managed `RESEND_API_KEY`. U5B.1–2 **live** via `cco_customer_reminders` scheduler + `dispatchCustomerReminderDigest`. U5B.3 väntar på post-op beslut.
 
 ### Utrullning 6 — Agenter + CMO + patientkanal 🔄
 
