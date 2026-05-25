@@ -77,7 +77,7 @@
   function signalDetailReady(patientId) {
     try {
       const nav = performance.getEntriesByType('navigation')[0];
-      if (nav) {
+      if (nav && !window.__ARCANA_DEEPLINK_DETAIL_READY_MS__) {
         window.__ARCANA_DEEPLINK_DETAIL_READY_MS__ = performance.now() - nav.startTime;
       }
     } catch {

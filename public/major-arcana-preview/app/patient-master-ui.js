@@ -3610,7 +3610,12 @@
   function signalDeepLinkDetailReady(patientId) {
     try {
       const nav = performance.getEntriesByType('navigation')[0];
-      if (nav && isMobileViewport() && normalizeText(parseStartupParams().patientId) === normalizeText(patientId)) {
+      if (
+        nav &&
+        isMobileViewport() &&
+        normalizeText(parseStartupParams().patientId) === normalizeText(patientId) &&
+        !window.__ARCANA_DEEPLINK_DETAIL_READY_MS__
+      ) {
         window.__ARCANA_DEEPLINK_DETAIL_READY_MS__ = performance.now() - nav.startTime;
       }
     } catch {
