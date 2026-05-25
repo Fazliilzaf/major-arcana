@@ -37,8 +37,8 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 | J-6.3 Bokning → journal (prod) | Done | Booking | P1 | Agent | ccoJournalBookingBridge live. Plan A E2E PASS. |
 | J-7 Påminnelser (scheduler + operatör-digest) | Done | Booking | P2 | Agent | cco_customer_reminders. Ej patient-SMS. |
 | J-8 CCO-care (saknade formulär + draft-godkännande) | Done | Backlog | P1 | Agent | Scheduler + ops API + UI godkänn/avvisa. Ej full autonom agent. |
-| U3.2 Drive enrich 98% (1004 kvar) | In progress | Infra | P1 | Agent | 56554/57558 driveFileId. Saknar Drive-koppling-etikett i UI. |
-| U5A.4 Resend patient-mail | Blocked | Booking | P1 | Du | RESEND_API_KEY saknas. Kod klar. Se resend-domain-go-live.md. |
+| U3.2 Drive enrich 99% (570 utan match) | Done | Infra | P1 | Agent | 56988/57558 driveFileId. Push --index-only 2026-05-25. |
+| U5A.4 Resend patient-mail | Done | Booking | P1 | Agent | Render env + verify PASS 2026-05-25. |
 | U2.2 OWNER MFA enforced prod | In progress | Auth | P1 | Du | MFA kod klar. Prod env ARCANA_AUTH_OWNER_MFA_REQUIRED=false. |
 | TL-B Tidslinje tillfälle (foto + flik) | Done | Pilot | P1 | Agent | syncConsultationPhotoToEncounter + Tidslinje-flik. |
 | TL-C Journal per tillfälle (gruppering) | Done | Pilot | P2 | Agent | Journaltyper grupperade per tillfälle i UI (2026-05-25). |
