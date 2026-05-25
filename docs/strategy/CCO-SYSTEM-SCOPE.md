@@ -189,9 +189,9 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ Cliento-kunder importerade
 - ✅ Drive-filer indexerade + journal-PDF import
-- 🔲 Drive `driveFileId` komplett på alla filer (enrich pågår)
-- 🔲 Meridiq historik: ifyllda formulär + PDF + samtycken (manuell/API-export vid behov — inget automatiskt exportscript i scope)
-- 🔲 Meridiq read-only efter cutover
+- ✅ Drive `driveFileId` komplett på alla filer (enrich klar)
+- ✅ Meridiq historik: ifyllda formulär + PDF + samtycken (manuell export genomförd)
+- ✅ Meridiq read-only efter cutover
 
 ---
 
