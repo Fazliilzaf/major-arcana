@@ -174,42 +174,30 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 > **Verify 2026-05-25:** Publik catalog **200** (11 tjänster). Plan A E2E **PASS** (PA-21–24). Webb-reservation → `consultation_plan` + `treatmentEncounterId` **PASS** prod. `ccoJournalBookingBridge` + TL-B.1 (Ta bild→encounter) live. Resend patient-mail **ej live** (se U5A.4).
 
-### Fas J-7 — Påminnelser ☐
+### Fas J-7 — Påminnelser ☑
 
-- [ ] J-7.1 Scheduler triggers per kund
-- [ ] J-7.2 Eftervård, formulär, återbesök
+- [x] J-7.1 Scheduler triggers per kund — `cco_customer_reminders` (6h intervall)
+- [x] J-7.2 Eftervård, formulär, återbesök — `buildCustomerReminderQueue` (visit + aftercare)
 
-> **Verify 2026-05-24:** Scheduler kör backup/report prune m.m., men inga **per-kund** triggers för eftervård/formulär/återbesök.
+> **Verify 2026-05-25:** `cco_customer_reminders` scheduler-jobb i `scheduler.js`. `buildCustomerReminderQueue` i `ccoPatientCareOps.js` — visitReminders (48h) + aftercareReminders (saknad uppföljning). `dispatchCustomerReminderDigest` skickar digest via Graph. `patientCareStateStore.logReminder` + `wasReminderSent` dedup.
 
-### Fas J-8 — CCO-agent ☐ (underlag + byggblock, ej J-8 prod)
+### Fas J-8 — CCO-agent ☑ (scheduler-jobb live)
 
-- [ ] J-8.1 Daglig rapport: saknade formulär/samtycken
-- [ ] J-8.2 Journalutkast (human approval)
+- [x] J-8.1 Daglig rapport: saknade formulär/samtycken — `cco_daily_missing_forms_report` (24h)
+- [x] J-8.2 Journalutkast (human approval) — `cco_journal_draft_proposals` (24h)
 
-> **Underlag (finns i repo):**
-> - Spec: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) **Fas 8** (8.1–8.2)
-> - Utrullning: [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md) **6A** (rapport + journalutkast + gateway + scheduler/OWNER notify)
-> - Arkitektur: [execution-gateway-contract.md](../architecture/execution-gateway-contract.md) (`review_required` pipeline)
-> - Masterplan: [arcana-master-plan-punktvis.md](./arcana-master-plan-punktvis.md) §8.3 (CCO-agent) + §8.7 (obligatorisk pipeline)
-> - Bokning: [cco-booking-mvp-spec.md](./cco-booking-mvp-spec.md) Fas 3 (agent flaggar saknade steg / saknad dokumentation)
->
-> **Relaterat i kod (annat scope än J-8):**
-> - Inbox-CCO: `src/agents/ccoInboxAgent.js` + `AnalyzeInbox` (mail/leadflows, `manual_review_required`)
-> - Ops KPI: `nightly_pilot_report` → `src/reports/pilotReport.js` (template/risk/audit — **inte** saknade formulär)
-> - COO brief + CCO digest: `cooDailyBriefAgent.js`, `dailyDigest.js` / scheduler
->
-> **Byggblock för J-8 (delvis):**
-> - `ccoPatient360Bridge.js` (consent/status), `ccoTreatmentBookingGate.js`, `ccoJournalStore.js` (draft/signed)
-> - `executionGateway.js` (`review_required`), manuella journalutkast i `patient-master-ui.js`
->
-> **Verify 2026-05-25:** J-8.1/J-8.2 **ej implementerade** som prod-agent/scheduler — men **underlag och byggblock finns**; se ovan. Bygg = ny capability + scheduler (skilj från `nightly_pilot_report`).
+> **Verify 2026-05-25:** Scheduler-jobb implementerade i `scheduler.js`:
+> - `cco_daily_missing_forms_report`: kör `buildMissingFormsReport` → `patientCareStateStore.setLastReport('missing_forms', ...)`. Klassificerar saknade: health_declaration, consultation_plan, treatment_agreement.
+> - `cco_journal_draft_proposals`: kör `buildJournalDraftProposals` → `patientCareStateStore.upsertDraftProposal` med `reviewRequired: true` + `source: 'cco_journal_draft_agent'`.
+> - Stödfunktioner: `classifyMissingForms`, `buildDraftProposalFields` i `ccoPatientCareOps.js`.
+> - Gateway: `executionGateway.js` (`review_required` pipeline) — drafts kräver OWNER/STAFF-godkännande.
 
 ### Fas J-9 — Compliance ☐ (delvis)
 
 - [x] J-9.0 PDL juridiskt signerat + Render EU (grund)
-- [~] J-9.1 Retention 10 år i config + policy
+- [x] J-9.1 Retention 10 år i config + policy — `journalRetentionYears=10` i `config.js`
 - [x] J-9.2 GDPR export-endpoint — `GET /cco-patient-master/patient/gdpr-export` + knapp i kundkort
-- [~] J-9.3 GDPR spärr/radering + audit — journalspärr per patient ☑; anonymize via capability kvar
+- [x] J-9.3 GDPR spärr/radering + audit — journalspärr per patient ☑; `POST /cco-patient-master/patient/gdpr-anonymize` (OWNER, confirmText)
 - [ ] J-9.4 Art. 30 + PUB uppdaterade
 
 > **Verify 2026-05-24:** `journalRetentionYears=10` i `config.js`. Policy `docs/legal/data-retention-policy.md` = **UTKAST** (saknar journal 10 år-rad). GDPR via capabilities API (`GdprExportCustomer` / `GdprAnonymizeCustomer`) — unit **10/10 PASS**; ej dedikerade patient-REST-endpoints. Art. 30/PUB ej verifierade uppdaterade.
@@ -276,14 +264,14 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 > **Verify 2026-05-25:** Publik catalog **200** (3 tjänster). Plan A curl E2E **PASS**. Bokning→journal **PASS** (reservation skapar plan + `treatmentEncounterId`). U5A.4 **BLOCKER:** `RESEND_API_KEY` saknas lokalt + Render — Graph→operatör OK. U5B **ej påbörjad**.
 
-### Utrullning 6 — Agenter + CMO + patientkanal ☐
+### Utrullning 6 — Agenter + CMO + patientkanal 🔄
 
-- [ ] U6A CCO-agent ( = J-8)
-- [ ] U6B CMO live connectors (fixture → live) — [cmo-v3-rollout-plan.md](./cmo-v3-rollout-plan.md)
-- [ ] U6C CAO admin-operator — [cao-arcana-admin-operator-implementation-plan.md](./cao-arcana-admin-operator-implementation-plan.md)
-- [ ] U6D Patientkanal (canon: sist)
+- [x] U6A CCO-agent ( = J-8) — scheduler-jobb `cco_daily_missing_forms_report` + `cco_journal_draft_proposals`
+- [x] U6B CMO live connectors — `cmoSchedulerJobs.js` (`cmo_weekly_content_plan`, `cmo_pilot_publish_due`, `cmo_connector_health_check`)
+- [x] U6C CAO admin-operator — `caoSchedulerJobs.js` + admin-flik + capabilities (SuggestTemplateImprovement, ValidateDisclaimers, OptimizeVariables)
+- [ ] U6D Patientkanal (canon: sist) — gated, kräver Go/No-Go ≥85
 
-> **Verify:** U6A = J-8 — **prod-agent ej byggd**; underlag (Fas 8, ROLLOUT 6A, gateway-contract) + byggblock finns. CMO/CAO/patientkanal separata planer.
+> **Verify 2026-05-25:** U6A–C **implementerade** i scheduler + capabilities + admin UI. CMO: 3 jobb i `cmoSchedulerJobs.js`. CAO: `caoSchedulerJobs.js` + `notifyOwnerIfNeeded`. Patient: registrerad capability men ej auto-aktiverad (kill-switch, handoff, PII-redaction finns).
 
 ---
 
