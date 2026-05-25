@@ -71,8 +71,15 @@ async function main() {
   else pass('CC-05 TL-D tidslinje tab + filter');
   if (!/review-draft-proposal/.test(uiText)) markFail('CC-06 J-8.2 draft proposal UI');
   else pass('CC-06 J-8.2 draft proposal UI');
-  if (!/data-missing-forms-open|cco-missing-forms-ops/.test(html)) markFail('CC-06b J-8.1 missing-forms UI');
-  else pass('CC-06b J-8.1 missing-forms UI');
+  if (!/data-cco-care-open|cco-care-panel\.js/.test(html)) markFail('CC-06b J-8.1 CCO care panel UI');
+  else pass('CC-06b J-8.1 CCO care panel UI');
+
+  const careMatch = html.match(/cco-care-panel\.js[^"]*/);
+  const carePath = careMatch ? careMatch[0] : 'cco-care-panel.js?v=build-ai-care-sweep-a';
+  const careUi = await fetch(`${BASE}/major-arcana-preview/app/${carePath}`);
+  const careText = await careUi.text();
+  if (!/missing-forms-report/.test(careText)) markFail('CC-06c J-8.1 care panel API wiring');
+  else pass('CC-06c J-8.1 care panel API wiring');
 
   let token = '';
   try {
