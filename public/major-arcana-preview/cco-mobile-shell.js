@@ -117,6 +117,9 @@
         return proxyTopbarClick(
           '#cco-langpicker-root button, #cco-langpicker-root select, #cco-langpicker-root [role="combobox"], #cco-langpicker-root [role="button"]'
         );
+      case 'missing-forms':
+        window.ArcanaMissingFormsOps?.open?.();
+        return true;
       default:
         return false;
     }

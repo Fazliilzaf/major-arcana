@@ -338,7 +338,7 @@ Alla audit-punkter mappade till sweep-uppgifter:
 | 14 | Offert wizard | Medium | E |
 | 15 | Avtal checklist | Medium | E |
 | 16 | Cmd+K dölj | Medium | D |
-| 17 | Full månadskalender | Low | backlog |
+| 17 | Full månadskalender | Low | **klart** (BL.1 2026-05-25) |
 | 18 | cco-next-release parity | Low | backlog |
 
 ---
@@ -402,7 +402,7 @@ Alternativ: **en squash-commit** efter full sweep om team föredrar det.
 
 ## Backlog (ej i detta svep)
 
-- Full månadsvy-kalender (E/API finns; UI saknas)
+- Full månadsvy-kalender (BL.1 live 2026-05-25 — `booking-mobile-calendar-day.js`)
 - Pre-treatment stepper v2
 - `cco-next-release` React PWA — avgör canonical app först
 - Admin `admin.html` mobil pass (ej personal pilot scope)

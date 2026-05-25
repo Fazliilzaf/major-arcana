@@ -16,6 +16,7 @@ const REQUIRED_MOBILE_ASSETS = [
   'booking-mobile-shell.js',
   'booking-mobile-slot-picker.js',
   'booking-mobile-calendar-day.js',
+  'app/cco-missing-forms-ops.js',
 ];
 
 const REQUIRED_INDEX_MARKERS = [
@@ -26,6 +27,8 @@ const REQUIRED_INDEX_MARKERS = [
   'cco-mobile-shell.js',
   'cco-mobile-queue.js',
   'booking-mobile-calendar-day.js',
+  'cco-missing-forms-ops.js',
+  'data-missing-forms-open',
   'cco-mobile-tabbar',
   'cco-mobile-back-button',
   'cco-mobile-menu-button',
@@ -54,6 +57,10 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   assert.match(shellJs, /window\.ArcanaMobileShell/, 'ArcanaMobileShell export saknas');
   assert.match(shellJs, /navigateToCalendar/, 'navigateToCalendar saknas');
 
+  const calendarJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-mobile-calendar-day.js'), 'utf8');
+  assert.match(calendarJs, /data-calendar-grid/, 'BL.1: månadsvy grid saknas');
+  assert.match(calendarJs, /getViewMonth/, 'BL.1: månadsvy API saknas');
+
   const autosaveJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-autosave.js'), 'utf8');
   assert.match(autosaveJs, /window\.ArcanaMobileAutosave/, 'ArcanaMobileAutosave export saknas');
 
@@ -66,11 +73,18 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const queueJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-queue.js'), 'utf8');
   assert.match(queueJs, /window\.ArcanaMobileQueue/, 'ArcanaMobileQueue export saknas');
 
+  const missingFormsOps = fs.readFileSync(
+    path.join(PREVIEW_DIR, 'app', 'cco-missing-forms-ops.js'),
+    'utf8'
+  );
+  assert.match(missingFormsOps, /ArcanaMissingFormsOps/, 'J-8.1: missing forms ops export saknas');
+  assert.match(missingFormsOps, /missing-forms-report/, 'J-8.1: missing-forms-report API saknas');
+
   const patientUi = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'patient-master-ui.js'), 'utf8');
   assert.match(patientUi, /goBackToPatientList/, 'goBackToPatientList saknas');
   assert.match(patientUi, /bindJournalAutosaveForms/, 'bindJournalAutosaveForms saknas');
-  assert.match(patientUi, /saknar Drive-koppling/, 'Filer: saknar Drive-koppling copy saknas');
-  assert.match(patientUi, /fileHasStreamLink/, 'fileHasStreamLink helper saknas');
+  assert.match(patientUi, /renderDriveFiles/, 'Filer: renderDriveFiles helper saknas');
+  assert.match(patientUi, /Inga indexerade Drive-filer/, 'Filer: tom-state copy saknas');
 });
 
 test('mobile UX sweep — B3 workspace switch synlig i Konversationer, dold i Kunder', () => {

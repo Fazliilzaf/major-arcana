@@ -71,6 +71,8 @@ async function main() {
   else pass('CC-05 TL-D tidslinje tab + filter');
   if (!/review-draft-proposal/.test(uiText)) markFail('CC-06 J-8.2 draft proposal UI');
   else pass('CC-06 J-8.2 draft proposal UI');
+  if (!/data-missing-forms-open|ArcanaMissingFormsOps/.test(html)) markFail('CC-06b J-8.1 missing-forms UI');
+  else pass('CC-06b J-8.1 missing-forms UI');
 
   let token = '';
   try {

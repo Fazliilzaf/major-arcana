@@ -2592,9 +2592,9 @@
 
     .cco-mobile-calendar-list {
       flex: 1 1 auto;
-      overflow: auto;
+      overflow-y: auto;
       margin: 0;
-      padding: 8px var(--cco-mobile-gutter, 16px);
+      padding: 8px var(--cco-mobile-gutter, 16px) 0;
       list-style: none;
     }
 
@@ -2654,6 +2654,136 @@
     .cco-mobile-calendar-book {
       width: 100%;
       min-height: var(--cco-touch-comfortable, 48px);
+    }
+
+    .cco-mobile-calendar-month {
+      padding: 0 var(--cco-mobile-gutter, 16px) 8px;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    .cco-mobile-calendar-month-nav {
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .cco-mobile-calendar-month-label {
+      margin: 0;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 650;
+      line-height: 1.2;
+      text-transform: capitalize;
+    }
+
+    .cco-mobile-calendar-nav-btn {
+      min-width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: var(--cco-text-primary, #2d241d);
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .cco-mobile-calendar-today {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      margin: 0 0 10px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(8, 145, 178, 0.12);
+      color: #0e7490;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .cco-mobile-calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .cco-mobile-calendar-weekdays span {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cco-text-tertiary, #8a8174);
+      letter-spacing: 0.02em;
+    }
+
+    .cco-mobile-calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cco-mobile-calendar-day {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--cco-text-primary, #2d241d);
+      cursor: pointer;
+      padding: 4px 0 8px;
+    }
+
+    .cco-mobile-calendar-day.is-empty {
+      pointer-events: none;
+      visibility: hidden;
+    }
+
+    .cco-mobile-calendar-day.is-today .cco-mobile-calendar-day-num {
+      box-shadow: inset 0 0 0 2px rgba(8, 145, 178, 0.55);
+    }
+
+    .cco-mobile-calendar-day.is-selected {
+      background: rgba(8, 145, 178, 0.14);
+    }
+
+    .cco-mobile-calendar-day-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .cco-mobile-calendar-day-badge {
+      position: absolute;
+      bottom: 2px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: #0891b2;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 16px;
+      text-align: center;
+    }
+
+    .cco-mobile-calendar-day-badge.booked {
+      background: #b45309;
     }
 
     /* Bokning wizard progress */
@@ -2763,6 +2893,123 @@
     html[data-cco-mobile-shell='on'] .patient-master-card-error h2 {
       margin: 0;
       font-size: 1.05rem;
+    }
+
+    /* J-8.1 — saknade formulär bottom sheet */
+    .cco-missing-forms-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 12050;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .cco-missing-forms-sheet[hidden] {
+      display: none !important;
+    }
+
+    .cco-missing-forms-sheet[data-open='true'] {
+      pointer-events: auto;
+    }
+
+    .cco-missing-forms-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      background: rgba(35, 22, 15, 0.28);
+      backdrop-filter: blur(4px);
+    }
+
+    .cco-missing-forms-panel {
+      position: relative;
+      width: min(100%, 560px);
+      max-height: min(88vh, 720px);
+      margin: 0 auto;
+      padding: 20px 16px 24px;
+      border-radius: 20px 20px 0 0;
+      background: rgba(250, 246, 242, 0.96);
+      box-shadow:
+        0 -8px 24px rgba(70, 50, 30, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+      overflow: hidden auto;
+      transform: translateY(100%);
+      transition: transform 180ms ease;
+    }
+
+    .cco-missing-forms-sheet[data-open='true'] .cco-missing-forms-panel {
+      transform: translateY(0);
+    }
+
+    .cco-missing-forms-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .cco-missing-forms-kicker {
+      margin: 0 0 4px;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(70, 60, 50, 0.55);
+    }
+
+    .cco-missing-forms-head h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .cco-missing-forms-close {
+      min-width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .cco-missing-forms-summary {
+      margin: 0 0 12px;
+      color: rgba(70, 60, 50, 0.72);
+    }
+
+    .cco-missing-forms-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cco-missing-forms-item-button {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px;
+      border: 1px solid rgba(120, 105, 90, 0.16);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.82);
+      text-align: left;
+    }
+
+    .cco-missing-forms-item-name {
+      display: block;
+      font-weight: 600;
+    }
+
+    .cco-missing-forms-item-meta {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.875rem;
+      color: rgba(70, 60, 50, 0.72);
+    }
+
+    .cco-missing-forms-empty {
+      padding: 12px 0;
+      color: rgba(70, 60, 50, 0.72);
     }
   }
 
