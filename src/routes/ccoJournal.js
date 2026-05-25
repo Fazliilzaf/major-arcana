@@ -76,6 +76,20 @@ function createCcoJournalRouter({
     }
   }
 
+  async function requirePatientJournalWritable(actor, patientId) {
+    if (!patientMasterStore || !patientId) return;
+    const patient = await patientMasterStore.getPatient({
+      tenantId: actor.tenantId,
+      patientId,
+    });
+    if (!patient) {
+      const error = new Error('Patienten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    patientMasterStore.assertPatientJournalWritable(patient);
+  }
+
   async function auditJournal(actor, action, targetId) {
     await authStore.addAuditEvent({
       tenantId: actor.tenantId,
@@ -172,6 +186,7 @@ function createCcoJournalRouter({
         const body = req.body && typeof req.body === 'object' ? req.body : {};
         const patientId = normalizeText(body.patientId);
         if (!patientId) return res.status(400).json({ error: 'patientId saknas.' });
+        await requirePatientJournalWritable(actor, patientId);
         const entry = await journalStore.upsertEntry(
           {
             ...body,
@@ -224,6 +239,7 @@ function createCcoJournalRouter({
         if (!patientId || !entryId) {
           return res.status(400).json({ error: 'patientId och entryId krävs.' });
         }
+        await requirePatientJournalWritable(actor, patientId);
         const entry = await journalStore.signEntry({
           tenantId: actor.tenantId,
           patientId,
@@ -282,6 +298,7 @@ function createCcoJournalRouter({
         const patientId = normalizeText(body.patientId);
         let files = Array.isArray(body.files) ? body.files : [];
         if (!patientId) return res.status(400).json({ error: 'patientId saknas.' });
+        await requirePatientJournalWritable(actor, patientId);
         let personnummer = normalizeText(body.personnummer);
         let patient = null;
         if (patientMasterStore) {
@@ -338,6 +355,7 @@ function createCcoJournalRouter({
         const entryId = normalizeText(req.body?.entryId);
         const label = normalizeText(req.body?.label);
         if (!patientId) return res.status(400).json({ error: 'patientId saknas.' });
+        await requirePatientJournalWritable(actor, patientId);
         if (!req.file?.buffer?.length) {
           return res.status(400).json({ error: 'Ingen bild mottagen.' });
         }
@@ -520,6 +538,7 @@ function createCcoJournalRouter({
             .status(400)
             .json({ error: 'patientId, entryId, attachmentId och photoId krävs.' });
         }
+        await requirePatientJournalWritable(actor, patientId);
 
         const entry = await journalStore.removeConsultationPhotoAttachment({
           tenantId: actor.tenantId,
@@ -561,6 +580,7 @@ function createCcoJournalRouter({
             .status(400)
             .json({ error: 'patientId, entryId, attachmentId och photoId krävs.' });
         }
+        await requirePatientJournalWritable(actor, patientId);
 
         const annotations =
           body.annotations && typeof body.annotations === 'object'

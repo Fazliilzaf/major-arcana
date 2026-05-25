@@ -257,6 +257,88 @@ function createCcoPatientMasterRouter({
   );
 
   router.post(
+    '/cco-patient-master/review-groups/dismiss',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const result = await patientMasterStore.dismissMergeReviewGroup({
+          tenantId: actor.tenantId,
+          groupId: normalizeText(body.groupId),
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.review_groups.dismiss',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: result.groupId,
+        });
+        return res.json(result);
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/patient/gdpr-export',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.query.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const payload = await patientMasterStore.buildGdprExportPackage({
+          tenantId: actor.tenantId,
+          patientId,
+          journalStore,
+          migrationIndexStore,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.gdpr_export',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+        });
+        const fileName = `gdpr-${patientId.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.json`;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        return res.send(JSON.stringify(payload, null, 2));
+      })
+  );
+
+  router.put(
+    '/cco-patient-master/patient/access',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const patientId = normalizeText(body.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const result = await patientMasterStore.setPatientAccess({
+          tenantId: actor.tenantId,
+          patientId,
+          journalBlocked: Boolean(body.journalBlocked),
+          journalBlockReason: normalizeText(body.journalBlockReason),
+          actorUserId: actor.userId,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: body.journalBlocked
+            ? 'cco.patient_master.journal.block'
+            : 'cco.patient_master.journal.unblock',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+        });
+        return res.json(result);
+      })
+  );
+
+  router.post(
     '/cco-patient-master/merge',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),

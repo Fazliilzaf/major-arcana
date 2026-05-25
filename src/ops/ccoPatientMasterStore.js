@@ -75,7 +75,11 @@ function tenantBucket(state, tenantId) {
       patients: [],
       imports: {},
       stats: {},
+      mergeDismissals: [],
     };
+  }
+  if (!Array.isArray(state.tenants[tenant].mergeDismissals)) {
+    state.tenants[tenant].mergeDismissals = [];
   }
   return state.tenants[tenant];
 }
@@ -271,6 +275,51 @@ function normalizeDriveRecord(input = {}) {
   };
 }
 
+function normalizePatientAccess(input = {}, existing = {}) {
+  const safe = asObject(input);
+  const existingSafe = asObject(existing);
+  const blocked =
+    safe.journalBlocked !== undefined
+      ? Boolean(safe.journalBlocked)
+      : Boolean(existingSafe.journalBlocked);
+  return {
+    journalBlocked: blocked,
+    journalBlockReason: normalizeText(safe.journalBlockReason ?? existingSafe.journalBlockReason),
+    journalBlockedAt: blocked
+      ? normalizeText(safe.journalBlockedAt ?? existingSafe.journalBlockedAt) || nowIso()
+      : null,
+    journalBlockedBy: blocked
+      ? normalizeText(safe.journalBlockedBy ?? existingSafe.journalBlockedBy)
+      : null,
+  };
+}
+
+function derivePatientOrigin(patient) {
+  const safe = asObject(patient);
+  const status = normalizeKey(safe.matchStatus);
+  if (status === 'web_booking') return 'web_booking';
+  if (safe.cliento || safe.drive || Number(asObject(safe.fileSummary).journalPdfs) > 0) {
+    return 'imported';
+  }
+  if (status === 'matched' || status === 'cliento_only' || status === 'drive_only') {
+    return 'imported';
+  }
+  return 'new';
+}
+
+function assertPatientJournalWritable(patient) {
+  const access = normalizePatientAccess(asObject(patient).access);
+  if (!access.journalBlocked) return;
+  const error = new Error(
+    access.journalBlockReason
+      ? `Journalen är spärrad: ${access.journalBlockReason}`
+      : 'Journalen är spärrad för denna patient.'
+  );
+  error.statusCode = 403;
+  error.metadata = { journalBlocked: true, reason: access.journalBlockReason || '' };
+  throw error;
+}
+
 function computeFlags(patient) {
   const flags = [];
   if (!patient.primaryEmail && !asArray(patient.emails).length) flags.push('missing_email');
@@ -342,6 +391,7 @@ function normalizePatientRecord(input = {}, existing = {}) {
       images:
         Number(asObject(safe.fileSummary).images || asObject(existingSafe.fileSummary).images) || 0,
     },
+    access: normalizePatientAccess(safe.access, existingSafe.access),
     flags: [],
     createdAt: normalizeText(existingSafe.createdAt) || nowIso(),
     updatedAt: nowIso(),
@@ -448,6 +498,8 @@ function mergePatientSources(primary, secondary) {
 
 function buildPatientCardReadout(patient) {
   const safe = asObject(patient);
+  const access = normalizePatientAccess(safe.access);
+  const patientOrigin = derivePatientOrigin(safe);
   return {
     patientId: safe.id,
     personnummer: safe.personnummer || '',
@@ -456,6 +508,7 @@ function buildPatientCardReadout(patient) {
     primaryPhone: safe.primaryPhone || '',
     matchStatus: safe.matchStatus || 'unmatched',
     matchConfidence: safe.matchConfidence || 0,
+    patientOrigin,
     flags: asArray(safe.flags),
     fileSummary: asObject(safe.fileSummary),
     hasJournalHistory: Number(asObject(safe.fileSummary).journalPdfs) > 0,
@@ -464,6 +517,8 @@ function buildPatientCardReadout(patient) {
     driveLinked: Boolean(safe.drive),
     pipedriveLinked: Boolean(safe.pipedrive),
     pipedriveDealCount: asArray(asObject(safe.pipedrive).deals).length,
+    journalBlocked: access.journalBlocked,
+    journalBlockReason: access.journalBlockReason,
     updatedAt: safe.updatedAt || null,
   };
 }
@@ -892,10 +947,116 @@ async function createCcoPatientMasterStore({ filePath }) {
       });
     });
 
-    groups.sort((a, b) => b.members.length - a.members.length);
+    const dismissed = new Set(
+      asArray(bucket.mergeDismissals).map(normalizeText).filter(Boolean)
+    );
+    const visible = groups.filter((group) => !dismissed.has(group.groupId));
+
+    visible.sort((a, b) => b.members.length - a.members.length);
     return {
-      total: groups.length,
-      groups: groups.slice(0, Math.max(1, Math.min(200, Number(limit) || 80))),
+      total: visible.length,
+      groups: visible.slice(0, Math.max(1, Math.min(200, Number(limit) || 80))),
+    };
+  }
+
+  async function dismissMergeReviewGroup({ tenantId, groupId } = {}) {
+    const bucket = tenantBucket(state, tenantId);
+    const id = normalizeText(groupId);
+    if (!id) throw new Error('groupId krävs.');
+    if (!bucket.mergeDismissals.includes(id)) {
+      bucket.mergeDismissals.push(id);
+      await save();
+    }
+    return { ok: true, groupId: id };
+  }
+
+  async function setPatientAccess({
+    tenantId,
+    patientId,
+    journalBlocked,
+    journalBlockReason = '',
+    actorUserId = '',
+  } = {}) {
+    const bucket = tenantBucket(state, tenantId);
+    const id = normalizeText(patientId);
+    const patient = bucket.patients.find((item) => item.id === id);
+    if (!patient) {
+      const error = new Error('Patienten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    patient.access = normalizePatientAccess(
+      {
+        journalBlocked: Boolean(journalBlocked),
+        journalBlockReason: normalizeText(journalBlockReason),
+        journalBlockedBy: Boolean(journalBlocked) ? normalizeText(actorUserId) : null,
+      },
+      patient.access
+    );
+    patient.updatedAt = nowIso();
+    await save();
+    return { patient: clonePatient(patient), card: buildPatientCardReadout(patient) };
+  }
+
+  async function buildGdprExportPackage({
+    tenantId,
+    patientId,
+    journalStore = null,
+    migrationIndexStore = null,
+    includeDriveFileIndex = true,
+  } = {}) {
+    const patient = await getPatient({ tenantId, patientId });
+    if (!patient) {
+      const error = new Error('Patienten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    let journalEntries = [];
+    if (journalStore) {
+      journalEntries = await journalStore.listEntries({ tenantId, patientId: patient.id });
+    }
+
+    let driveFiles = [];
+    if (includeDriveFileIndex && migrationIndexStore && patient.personnummer) {
+      const files = await migrationIndexStore.getFilesForPersonnummer(patient.personnummer);
+      driveFiles = files.map((file) => ({
+        id: file.id,
+        fileName: file.fileName || file.relativePath,
+        relativePath: file.relativePath,
+        fileType: file.fileType,
+        capturedAt: file.capturedAt || null,
+        driveFileId: file.driveFileId || null,
+      }));
+    }
+
+    return {
+      exportedAt: nowIso(),
+      tenantId,
+      patientId: patient.id,
+      format: 'arcana-gdpr-patient-v1',
+      profile: {
+        personnummer: patient.personnummer,
+        displayName: patient.displayName,
+        primaryEmail: patient.primaryEmail,
+        primaryPhone: patient.primaryPhone,
+        emails: asArray(patient.emails),
+        phones: asArray(patient.phones),
+        matchStatus: patient.matchStatus,
+        patientOrigin: derivePatientOrigin(patient),
+        flags: asArray(patient.flags),
+        cliento: patient.cliento,
+        pipedrive: patient.pipedrive,
+        access: normalizePatientAccess(patient.access),
+      },
+      journal: journalEntries.map((entry) =>
+        journalStore ? journalStore.buildJournalReadout(entry) : entry
+      ),
+      files: driveFiles,
+      summary: {
+        journalEntryCount: journalEntries.length,
+        driveFileCount: driveFiles.length,
+      },
     };
   }
 
@@ -979,7 +1140,10 @@ async function createCcoPatientMasterStore({ filePath }) {
   }
 
   return {
+    assertPatientJournalWritable,
+    buildGdprExportPackage,
     buildPatientCardReadout,
+    dismissMergeReviewGroup,
     findPatientByEmail,
     getPatient,
     getTenantStats,
@@ -989,6 +1153,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     mergeDriveProfiles,
     mergePatients,
     mergePipedriveProfiles,
+    setPatientAccess,
     upsertPatient,
     patientKey,
   };
@@ -996,7 +1161,10 @@ async function createCcoPatientMasterStore({ filePath }) {
 
 module.exports = {
   PATIENT_FLAGS,
+  assertPatientJournalWritable,
   buildPatientCardReadout,
+  derivePatientOrigin,
+  normalizePatientAccess,
   createCcoPatientMasterStore,
   normalizePatientRecord,
   normalizePipedriveDealRecord,

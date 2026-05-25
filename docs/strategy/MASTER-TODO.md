@@ -3,9 +3,9 @@
 Senast uppdaterad: **2026-05-25**  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
 
-**Du är här:** **TL-C klart** + G4 våg 3 → **prod-verify pilotresan** (MA-B.3, MA-C.2, MA-D).
+**Du är här:** **MA-6.2 + pilotresan klart** → **Utrullning 4** (Post-op Fas 1) · **U5A.4** Resend (blocked) · valfritt U3.2 enrich + `--index-only` push.
 
-**Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)
+**Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6) — synkad 2026-05-25 via MCP (9 uppd. + 8 nya rader, se `NOTION-SYNC-MANIFEST.md`)
 
 Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md) · [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) · [ma-document-placement-plan.md](./ma-document-placement-plan.md)
 
@@ -23,11 +23,26 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 ☑ G4 våg 2b: Uppföljning (16407/16409/16390)
 ☑ G4 våg 3: Ögonlocksjournal (16388)
 ☑ TL-C: journaltyper grupperade per tillfälle
-→ Prod-verify: pilotresan (MA-B.3, MA-C.2, MA-D på 5 piloter)
+☑ Prod-verify: pilotresan 5/5 (`verify-all-pilot-journey-prod.sh` — MA-B.3, MA-C.2, MA-D, MA-6.2)
+☑ Kundmaster §1 ([CCO-SYSTEM-SCOPE.md](./CCO-SYSTEM-SCOPE.md) — merge, GDPR-export, journalspärr, etiketter)
 → Utrullning 4: Post-op Fas 1 live
 → Utrullning 5: Resend patient-mail + påminnelser
 → Utrullning 6: CMO + patientkanal
 ```
+
+---
+
+## Kundmaster — scope §1 ☑ ([CCO-SYSTEM-SCOPE.md](./CCO-SYSTEM-SCOPE.md))
+
+- [x] Unikt patientregister (personnummer, kontakt, flaggor)
+- [x] Cliento-import + Drive-filkoppling
+- [x] Kundlista: sök, filter, profil/journal/filer
+- [x] Sammanfoga dubbletter (Identitet: grupper, merge, ignorera)
+- [x] GDPR-utdrag (`GET /cco-patient-master/patient/gdpr-export` + UI)
+- [x] Journalspärr per patient (`PUT /patient/access`, skriv blockeras)
+- [x] Importerad / webbokning / ny — chips (`patientOrigin`)
+
+> **Verify 2026-05-25:** Deploy kundmaster-våg. Unit: `derivePatientOrigin`, GDPR-paket, journalspärr. Prod: testa GDPR-export + spärr på valfri pilot efter deploy.
 
 ---
 
@@ -43,34 +58,34 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 > **Verify 2026-05-24:** `MA-Archive/` OK (5/5 SharePoint, 14 docx under `offert-word/Offertmallar/`). Juridik-index: `docs/legal/juridik-gdpr/INNEHALL-OCH-NYCKELPUNKTER.md`.
 
-### Fas MA-B — Pilotkunder ☑ (prod delvis)
+### Fas MA-B — Pilotkunder ☑
 
 - [x] MA-B.1 5 pilotkunder + `data/pilot-patients.json`
 - [x] MA-B.2 Importerade till prod + historik per kund
-- [ ] MA-B.3 Journal (plan, TP, signering) verifierad i prod
+- [x] MA-B.3 Journal (plan, TP, signering) verifierad i prod
 
-> **Verify 2026-05-24:** Alla 5 piloter finns på prod (match via e-post efter J-1-migration; nya UUID i `pilot-patients.json`). Filer + `historical_import`-journal (10–12 poster/kund). **Saknas:** `consultation_plan`, hälsodekl, signering i live-journal.
+> **Verify 2026-05-25:** Alla 5 piloter på prod. Efter `run-pilot-e2e-prod.sh` (×5): `health_declaration:1`, `consultation_plan:1` per kund. `verify-all-pilot-journey-prod.sh` **5/5 PASS** (gate open, offert accepted, avtal bookable). Återställning efter oavsiktlig full state-push av journal.
 
-### Fas MA-C — Behandlingsavtal ☑ (kod)
+### Fas MA-C — Behandlingsavtal ☑
 
 - [x] MA-C.1 Spec + store + routes + UI (Avtal-flik)
-- [ ] MA-C.2 Konsultation → offert → avtal → signering utan GetAccept
+- [x] MA-C.2 Konsultation → offert → avtal → signering utan GetAccept
 
-> **Verify 2026-05-24:** Kod + routes finns. Prod-piloter: inget `commercialCase`, inget `agreement` — flödet ej genomfört på pilotkunder efter migration.
+> **Verify 2026-05-25:** Prod-piloter: `offert=accepted`, `avtal=bookable`, gate open (5/5). Flödet genomfört via E2E + verify-script.
 
 ### Fas MA-D — Hälsodekl & friskförsäkran ☑ (kod)
 
 - [x] MA-D.1 Formulär i app + gate före behandlingsplan
 - [x] MA-D.2 Signering/lås via journal-API
 
-> **Verify 2026-05-24:** UI + API i repo. Prod: 0 `health_declaration` på alla 5 piloter.
+> **Verify 2026-05-25:** Prod: `hälsodekl=1` på alla 5 piloter (signerad via E2E). UI + API i repo.
 
-### Fas MA-6 — Bokning vs avtal ☑ (kod) / ☐ E2E prod
+### Fas MA-6 — Bokning vs avtal ☑
 
 - [x] MA-6.1 Bokning spärrad tills `agreementStatus === 'bookable'`
-- [ ] MA-6.2 E2E prod alla 5 pilotkunder (`verify-all-pilot-journey-prod.sh`)
+- [x] MA-6.2 E2E prod alla 5 pilotkunder (`verify-all-pilot-journey-prod.sh`)
 
-> **Verify 2026-05-24:** Unit 7/7 PASS (`ccoTreatmentAgreementStore`, `ccoTreatmentBookingGate`). Prod gate **blocked** för alla 5 (korrekt utan avtal). E2E-script fixat (slutar kräva `totalPatients:5`); kör om när pilotresan är genomförd.
+> **Verify 2026-05-25:** Unit 7/7 PASS. Prod **5/5 PASS** — Dino Placo, Jonas Lundvall, Johan Nguyen, Oscar Sandklef, Axel Meijer (`gate=open`, `hälsodekl=1`, `plan≥1`). Script: `bash scripts/verify-all-pilot-journey-prod.sh`.
 
 ---
 
@@ -193,8 +208,8 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 - [x] J-9.0 PDL juridiskt signerat + Render EU (grund)
 - [~] J-9.1 Retention 10 år i config + policy
-- [~] J-9.2 GDPR export-endpoint
-- [~] J-9.3 GDPR spärr/radering + audit
+- [x] J-9.2 GDPR export-endpoint — `GET /cco-patient-master/patient/gdpr-export` + knapp i kundkort
+- [~] J-9.3 GDPR spärr/radering + audit — journalspärr per patient ☑; anonymize via capability kvar
 - [ ] J-9.4 Art. 30 + PUB uppdaterade
 
 > **Verify 2026-05-24:** `journalRetentionYears=10` i `config.js`. Policy `docs/legal/data-retention-policy.md` = **UTKAST** (saknar journal 10 år-rad). GDPR via capabilities API (`GdprExportCustomer` / `GdprAnonymizeCustomer`) — unit **10/10 PASS**; ej dedikerade patient-REST-endpoints. Art. 30/PUB ej verifierade uppdaterade.
@@ -203,7 +218,7 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 ## DEL 3 — Utrullning go-live ([ROLLOUT-PLAN.md](./ROLLOUT-PLAN.md))
 
-> **Verify 2026-05-25:** Prod restart + `verify:migration-prod` **PASS**. Index **56554/57558** `driveFileId` (98,3%). `push:migration-state-prod --index-only` **fixad** (pushade bara index); orchestration: `npm run resolve:open-track`, `npm run sync:notion-master-todo`. **⚠ Pilot 5/5 FAIL** efter state-push (hälsodekl/plan=0) — återställ journal på prod före ny push.
+> **Verify 2026-05-25:** Prod restart + `verify:migration-prod` **PASS**. Index **56554/57558** `driveFileId` (98,3%). `push:migration-state-prod --index-only` **fixad** — använd **endast** `--index-only` (rör ej `cco-journal.json`). Pilot **5/5 PASS** efter `run-pilot-e2e-prod.sh` (återställd efter oavsiktlig full state-push). Orchestration: `npm run resolve:open-track`, `npm run sync:notion-master-todo`.
 
 ### Utrullning 1 — Mobil pilot GO ☑
 
