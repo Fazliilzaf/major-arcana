@@ -550,9 +550,30 @@ async function createAuthStore({
     return changed;
   }
 
+  function emergencyPruneForPersistFailure() {
+    let changed = false;
+    for (const [id, session] of Object.entries(state.sessions)) {
+      if (session?.revokedAt) {
+        delete state.sessions[id];
+        changed = true;
+      }
+    }
+    const auditTarget = Math.max(500, Math.floor(auditMaxEntries / 2));
+    if (auditMaxEntries > 0 && state.auditEvents.length > auditTarget) {
+      state.auditEvents = state.auditEvents.slice(-auditTarget);
+      changed = true;
+    }
+    return prune() || changed;
+  }
+
   async function save() {
     prune();
-    await writeJsonAtomic(filePath, state);
+    try {
+      await writeJsonAtomic(filePath, state);
+    } catch (error) {
+      emergencyPruneForPersistFailure();
+      await writeJsonAtomic(filePath, state);
+    }
   }
 
   function findRawUserByEmail(email) {
