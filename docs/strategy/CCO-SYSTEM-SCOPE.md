@@ -144,7 +144,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 ### 7.3 Marknadsföring
 
 - ✅ CMO Marketing Copilot (sociala medier, kampanjer — separat spår)
-- 🔲 Marknads-SMS med segmentering (ej prioritet P0)
+- ✅ Marknads-SMS med segmentering (kampanjer, opt-out, merge-fält, 8 segmenttyper)
 
 ---
 
@@ -212,8 +212,8 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ hairtpclinic.com → Arcana bokning (Plan A bridge)
 - ✅ Web events ingest (formulär, chat-intent, analyzer)
-- 🔲 Pipedrive-synk (leads — befintlig export, djupare koppling valfritt)
-- 🔲 Fortnox-kundnummer (fält finns i Meridiq — ev. koppling)
+- ✅ Pipedrive-synk (3694 personer + 3487 affärer importerade, berikar patientmaster)
+- ✅ Fortnox-kundnummer (OAuth-koppling + kundsynk)
 - ✅ CMO connectors (Meta, LinkedIn m.fl.)
 
 ---
