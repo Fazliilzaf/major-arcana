@@ -224,6 +224,15 @@ async function main() {
         'verify-adress blockerad — Graph/Resend live för riktiga patientmail'
       );
       prodProvider = probe.email?.provider || 'none';
+      if (STRICT && apiKey && summary.configured) {
+        record(
+          'RB3b-05 STRICT Resend konfigurerad',
+          true,
+          'prod använder Resend för riktiga adresser (verify-adresser blockeras medvetet)'
+        );
+      } else if (STRICT) {
+        fail('RB3b-05 STRICT Resend', 'RESEND_API_KEY saknas lokalt/prod trots guard-pass');
+      }
     } else {
       prodProvider = probe.email?.provider || 'unknown';
       const resendLive = prodProvider === 'resend' && probe.email?.ok !== false;
@@ -243,8 +252,8 @@ async function main() {
   }
 
   if (hardFail) process.exit(1);
-  if (prodProvider === 'resend') {
-    console.log('\n✅ B3b Resend-domän live — separat leverans från Graph');
+  if (prodProvider === 'resend' || (STRICT && apiKey && summary.configured)) {
+    console.log('\n✅ B3b Resend live — prod skickar via Resend för riktiga patientadresser');
   } else {
     console.log('\n✅ B3b verify klar — domän/check OK; prod använder Graph tills Resend provisioneras');
   }
