@@ -132,6 +132,30 @@ function createCcoJournalRouter({
       })
   );
 
+  // PII-fri aggregat-statistik för migreringsverifiering: antal journalposter,
+  // distinkta patienter (count), fördelning per journaltyp + patient-master-total.
+  // Returnerar inga namn/personnummer/journalinnehåll.
+  router.get(
+    '/cco-journal/stats',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const journal = await journalStore.getStats({ tenantId: actor.tenantId });
+        let patientMasterCount = null;
+        if (patientMasterStore) {
+          const listed = await patientMasterStore.listPatients({
+            tenantId: actor.tenantId,
+            limit: 1,
+            offset: 0,
+          });
+          patientMasterCount = typeof listed?.total === 'number' ? listed.total : null;
+        }
+        await auditJournal(actor, 'cco.journal.stats.read', actor.tenantId);
+        return res.json({ tenantId: actor.tenantId, journal, patientMasterCount });
+      }),
+  );
+
   router.get(
     '/cco-journal/entries',
     requireAuth,
