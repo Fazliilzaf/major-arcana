@@ -97,15 +97,15 @@
   <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
   <link rel="stylesheet" href="./cco-polish.css?v=build-customers-register-compact" />
   <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-staff-first-login-a" />
-  <link rel="stylesheet" href="./cco-tablet-shell.css?v=build-tablet-split-a" />
+  <link rel="stylesheet" href="./cco-tablet-shell.css?v=build-tablet-split-b" />
   <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
   <script src="./cco-mobile-core.js?v=build-mobile-shell-h" defer></script>
   <script src="./cco-mobile-autosave.js?v=build-mobile-shell-e" defer></script>
   <script src="./cco-mobile-shell.js?v=build-staff-first-login-a" defer></script>
-  <script src="./cco-tablet-shell.js?v=build-tablet-split-a" defer></script>
+  <script src="./cco-tablet-shell.js?v=build-tablet-cal-b" defer></script>
   <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
   <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
-  <script src="./booking-mobile-calendar-day.js?v=build-mobile-month-cal-f" defer></script>
+  <script src="./booking-mobile-calendar-day.js?v=build-tablet-cal-b" defer></script>
   <script src="./app/cco-care-panel.js?v=build-ai-care-sweep-a" defer></script>
   <script src="./app/thread-ai-summary.js?v=build-ai-care-sweep-a" defer></script>
   <script src="./cco-mobile-queue.js?v=build-mobile-shell-e" defer></script>
@@ -303,6 +303,16 @@
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" stroke-width="1.4" />
                 <path d="M2.9 8h10.2M8 2.6a9 9 0 0 1 0 10.8M8 2.6a9 9 0 0 0 0 10.8" fill="none" stroke="currentColor"
+                  stroke-width="1.2" />
+              </svg>
+            </button>
+
+            <button class="preview-utility-button" type="button" aria-label="Kalender" data-cco-tablet-calendar-open
+              title="Kalender — månad och daglista" hidden>
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3.2 3.4h9.6a1.1 1.1 0 0 1 1.1 1.1v8.4a1.1 1.1 0 0 1-1.1 1.1H3.2a1.1 1.1 0 0 1-1.1-1.1V4.5a1.1 1.1 0 0 1 1.1-1.1Z"
+                  fill="none" stroke="currentColor" stroke-width="1.2" />
+                <path d="M2.6 6.4h10.8M5.4 2.4v2M10.6 2.4v2" fill="none" stroke="currentColor" stroke-linecap="round"
                   stroke-width="1.2" />
               </svg>
             </button>
