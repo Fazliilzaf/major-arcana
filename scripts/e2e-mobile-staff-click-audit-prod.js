@@ -263,7 +263,9 @@ async function main() {
           const nav = performance.getEntriesByType('navigation')[0];
           const ready =
             document.documentElement.getAttribute('data-cco-patient-detail') === 'on' ||
-            document.querySelector('[data-patient-loading="true"]');
+            document.querySelector('[data-patient-loading="true"]') ||
+            document.querySelector('[data-patient-master-rail] .patient-master-camera-button') ||
+            Boolean(window.__ARCANA_DEEPLINK_HYDRATED__);
           if (ready && nav) {
             window.__ARCANA_DEEPLINK_SKELETON_MS__ = performance.now() - nav.startTime;
           }
@@ -295,8 +297,22 @@ async function main() {
       warn('Kunddetail över budget', `${detailReadyMs}ms (>6000ms E2E-budget)`);
     } else if (detailReadyMs != null && detailReadyMs > 5000) {
       warn('Kunddetail över mål', `${detailReadyMs}ms (>5000ms mål, ≤6000ms budget)`);
-    } else if (detailReadyMs != null && detailReadyMs > 1500) {
+    } else     if (detailReadyMs != null && detailReadyMs > 1500) {
       warn('Kunddetail långsam', `${detailReadyMs}ms (>1500ms mål)`);
+    }
+    const navDetailMs = await page.evaluate(() =>
+      Math.round(Number(window.__ARCANA_DEEPLINK_DETAIL_READY_MS__ || 0))
+    );
+    if (navDetailMs > 0) {
+      record(
+        'Deep link nav → detail (in-page)',
+        navDetailMs <= 1500,
+        `${navDetailMs}ms från navigation`,
+        navDetailMs
+      );
+      if (navDetailMs > 1500) {
+        warn('Deep link nav→detail över mål', `${navDetailMs}ms (>1500ms)`);
+      }
     }
 
     if (!detailReady) {
