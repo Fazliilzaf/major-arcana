@@ -350,12 +350,12 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [ ] BL.1 Mobil månadskalender (#17 UX sweep)
 - [ ] BL.2 cco-next-release parity (#18)
 - [ ] BL.3 Android enhetstest (valfritt)
-- [ ] BL.4 Executive OS expand (CFO/COO agenter) — [arcana-master-plan-punktvis.md](./arcana-master-plan-punktvis.md)
+- [x] BL.4 Executive OS expand (COO/CAO/CFO/CMO/Patient agenter + billing + knowledge + DXM) — PR #6 `ebea192d` 2026-05-14
 
 > **Verify BL.1:** UX sweep #17 = **backlog** i `cco-mobile-ux-sweep-plan.md` (dag-kalender finns, full månadskalender saknas).
 > **Verify BL.2:** `public/cco-next-release/` mountad i `server.js` men **canonical UI = major-arcana-preview**; parity #18 ej genomförd.
 > **Verify BL.3:** Ingen Android Playwright/CI — endast manuell checklista (`cco-mobile-staff-pilot-checklist.md`).
-> **Verify BL.4:** CFO/COO-referenser i orchestrator/capabilities finns; full Executive OS-expand enligt masterplan **ej påbörjad**.
+> **Verify BL.4 (2026-05-14):** PR #6 levererade 6 agenter (COO+CAO+CFO+CMO+CCO+Patient), 15 capabilities, Stripe billing, Knowledge store+API, DXM framework, 11 compliance-docs, 34 tester. Alla admin-flikar live. Mergad `ebea192d`.
 > **J-8 underlag:** se Fas J-8 ovan — spec + gateway + byggblock finns; prod-agent saknas.
 
 ---
