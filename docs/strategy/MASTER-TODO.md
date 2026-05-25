@@ -3,7 +3,7 @@
 Senast uppdaterad: **2026-05-25** (doc-sync svep + prod-audit)  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
 
-**Du är här:** **J-7 / U5B.1–2 ☑** (backend) → **J-8.2 UI** · **U2.2 MFA** (väntar go-live) · **J-6.2** Cliento ut · **U5B.3** Q4.
+**Du är här:** **J-8.2 ☑** (UI) · **U2.2 MFA** (väntar go-live) · **J-6.2** Cliento ut · **U5B.3** Q4.
 
 **Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6) — synkad 2026-05-25 doc-svep (se `NOTION-SYNC-MANIFEST.md`)
 
@@ -30,7 +30,6 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 ☑ Paket A: compliance/docs/verify + underhållsfönster + mobil smoke + TL-D.2
 ☑ Paket B (delvis): U5A.4 Resend · publik webb-API av (policy)
 ☑ J-7 + U5B.1–2 backend (`verify:cco-care-sweep-prod` CC-08–11)
-→ J-8.2 UI (draft-godkännande i kundkort)
 → U2.2 OWNER MFA (explicit go-live)
 → Utrullning 6: CMO + patientkanal
 ```
@@ -47,7 +46,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | J-8.1 | ☑ | `missing-forms-report` API; CC-09 200 patients |
 | U5B.1 / U5B.2 | ☑ | = J-7 (operatörs-digest, ej patient-SMS) |
 | U2.5b | ☑ | CC-02 `GET /ops/maintenance-window` |
-| J-8.2 | ~ | API + scheduler ☑ (CC-10); **UI saknas** (CC-06 FAIL) |
+| J-8.2 | ☑ | API + scheduler + kundkort UI (`review-draft-proposal`) |
 | U2.2 MFA | ~ | `ARCANA_AUTH_OWNER_MFA_REQUIRED=false` prod — **ej enforced** |
 | Publik webb-bokning | av | Catalog **503** `public_web_booking_disabled` (policy) |
 
@@ -62,7 +61,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | **B** | U2.2 OWNER MFA enforced | ~ (väntar `apply:auth-go-live-prod`) |
 | **Policy** | Publik `/api/public/booking-engine/*` | av (503 tills explicit go-live) |
 
-> Nästa kod-svep: **J-8.2 UI** i `patient-master-ui.js`. U5B.3 medvetet Q4.
+> Nästa kod-svep: **U2.2 MFA go-live** eller **J-6.2**. U5B.3 medvetet Q4.
 
 ---
 
@@ -218,7 +217,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 ### Fas J-8 — CCO-care ~ (backend ☑ / UI kvar)
 
 - [x] J-8.1 Daglig rapport: saknade formulär/samtycken
-- [~] J-8.2 Journalutkast (human approval) — API + scheduler ☑; **godkänn/avvisa-UI saknas** i kundkort
+- [x] J-8.2 Journalutkast (human approval) — API + scheduler + godkänn/avvisa i Journal-fliken
 
 > **Underlag (finns i repo):**
 > - Spec: [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md) **Fas 8** (8.1–8.2)
@@ -236,7 +235,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 > - `ccoPatient360Bridge.js` (consent/status), `ccoTreatmentBookingGate.js`, `ccoJournalStore.js` (draft/signed)
 > - `executionGateway.js` (`review_required`), manuella journalutkast i `patient-master-ui.js`
 >
-> **Verify 2026-05-25:** J-8.1 **live** (`cco_daily_missing_forms_report`, CC-09). J-8.2 **backend live** (`cco_journal_draft_proposals`, CC-10) — UI CC-06 FAIL. Full autonom agent (U6A) kvar.
+> **Verify 2026-05-25:** J-8.1 **live** (CC-09). J-8.2 **live** — `review-draft-proposal` i `patient-master-ui.js`, PATCH `/ops/cco-care/draft-proposals/:id`. Full autonom agent (U6A) kvar.
 
 ### Fas J-9 — Compliance ☑ (Paket A)
 
@@ -312,7 +311,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 
 ### Utrullning 6 — Agenter + CMO + patientkanal ☐
 
-- [~] U6A CCO-agent ( = J-8) — backend ☑; full agent + UI kvar
+- [~] U6A CCO-agent ( = J-8) — J-8.1–8.2 ☑; full autonom agent kvar
 - [ ] U6B CMO live connectors (fixture → live) — [cmo-v3-rollout-plan.md](./cmo-v3-rollout-plan.md)
 - [ ] U6C CAO admin-operator — [cao-arcana-admin-operator-implementation-plan.md](./cao-arcana-admin-operator-implementation-plan.md)
 - [ ] U6D Patientkanal (canon: sist)
