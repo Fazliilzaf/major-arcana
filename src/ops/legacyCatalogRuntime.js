@@ -1,6 +1,17 @@
 'use strict';
 
+const fs = require('node:fs');
+const path = require('node:path');
+
 const { loadLegacyCatalogBundle } = require('./legacyCatalogLoader');
+const {
+  applyBookingPricingMigrationToService,
+  loadBookingPricingMigrationDefaults,
+  normalizePricingRules,
+} = require('./bookingPricingRules');
+const { normalizeBookingPolicySettings } = require('./bookingPolicySettings');
+
+const BOOKING_SCHEDULE_DEFAULTS_PATH = 'migration/booking-schedule-defaults.json';
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -294,38 +305,108 @@ function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] }
 }
 
 const CLIENTO_RESOURCE_NAME_TO_ARCANA_ID = Object.freeze({
+  fazli: 'fazli',
+  egzona: 'egzona',
+  'arya emami': 'arya',
+  arya: 'arya',
   louise: 'louise',
   veronica: 'veronica',
   clara: 'clara',
   wendela: 'wendela',
+  andrea: 'andrea',
+  bittan: 'bittan',
 });
+
+const CLIENTO_RES_ID_TO_ARCANA_ID = Object.freeze({
+  '11458': 'fazli',
+  '10326': 'egzona',
+  '7339': 'arya',
+  '9893': 'louise',
+  '11727': 'veronica',
+  '7534': 'clara',
+  '11501': 'wendela',
+  '11329': 'andrea',
+  '11702': 'bittan',
+});
+
+function loadBookingScheduleMigrationDefaults({ repoRoot = process.cwd() } = {}) {
+  const fullPath = path.join(repoRoot, BOOKING_SCHEDULE_DEFAULTS_PATH);
+  try {
+    return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return {};
+    throw error;
+  }
+}
+
+function buildSrvIdToArcanaServiceIdMap(bundle = loadLegacyCatalogBundle()) {
+  const map = new Map();
+  for (const entry of readTripleMapEntries(bundle)) {
+    const mapping = buildLegacyMapping(entry);
+    const arcanaId = normalizeText(mapping.arcanaServiceId);
+    if (!arcanaId) continue;
+    for (const srvId of asArray(mapping.cliento?.srvIds)) {
+      map.set(normalizeText(String(srvId)), arcanaId);
+    }
+    const primary = normalizeText(String(mapping.cliento?.primarySrvId || ''));
+    if (primary) map.set(primary, arcanaId);
+  }
+  for (const item of asArray(bundle?.catalogs?.clientoServices?.services)) {
+    const arcanaId = normalizeText(item.arcanaId);
+    const srvId = normalizeText(String(item.srvId || ''));
+    if (arcanaId && srvId) map.set(srvId, arcanaId);
+  }
+  return map;
+}
+
+function buildClientoResourceScheduleBindings(clientoResource = {}, srvMap = new Map()) {
+  return asArray(clientoResource.services)
+    .map((service) => {
+      const srvId = normalizeText(String(service.srvId || ''));
+      if (!srvId) return null;
+      return {
+        srvId,
+        name: normalizeText(service.name),
+        arcanaServiceId: srvMap.get(srvId) || null,
+        webShowInBooking: service.webShowInBooking === true,
+        webAllowBooking: service.webAllowBooking === true,
+        scheduleSource: 'cliento_resource_catalog',
+      };
+    })
+    .filter(Boolean);
+}
 
 function resolveArcanaResourceIdFromCliento(clientoResource = {}) {
   const resId = normalizeText(String(clientoResource.resId || ''));
+  const mapped = CLIENTO_RES_ID_TO_ARCANA_ID[resId];
+  if (mapped) return mapped;
   const nameKey = normalizeText(clientoResource.name).toLowerCase();
   for (const [needle, arcanaId] of Object.entries(CLIENTO_RESOURCE_NAME_TO_ARCANA_ID)) {
-    if (nameKey === needle) return arcanaId;
+    if (nameKey === needle || nameKey.startsWith(`${needle} `)) return arcanaId;
   }
   if (!resId) return '';
   return `legacy-cliento-${resId}`;
 }
 
-function buildClientoDraftResource(clientoResource = {}) {
+function buildClientoDraftResource(clientoResource = {}, srvMap = new Map()) {
   const resId = normalizeText(String(clientoResource.resId || ''));
   const id = resolveArcanaResourceIdFromCliento(clientoResource);
   if (!id) return null;
   const label = normalizeText(clientoResource.name) || id;
+  const scheduleBindings = buildClientoResourceScheduleBindings(clientoResource, srvMap);
   return {
     id,
     label,
     active: false,
     publicBookable: false,
     catalogSource: 'cliento_resource_catalog',
+    resourceScheduleBindings: scheduleBindings,
     legacyMapping: {
       cliento: {
         resId,
         name: label,
-        serviceCount: Number(clientoResource.serviceCount) || 0,
+        serviceCount: Number(clientoResource.serviceCount) || scheduleBindings.length,
+        linkedSrvIds: scheduleBindings.map((item) => item.srvId),
       },
     },
   };
@@ -333,13 +414,14 @@ function buildClientoDraftResource(clientoResource = {}) {
 
 function mergeLegacyResourcesIntoEngineState(state, { planAPublicResourceIds = [] } = {}) {
   const bundle = loadLegacyCatalogBundle();
+  const srvMap = buildSrvIdToArcanaServiceIdMap(bundle);
   const planA = new Set(asArray(planAPublicResourceIds).map(normalizeText).filter(Boolean));
   const resourcesById = new Map(asArray(state.resources).map((item) => [normalizeText(item.id), item]));
   let changed = false;
   let promoted = 0;
 
   for (const item of asArray(bundle?.catalogs?.clientoResources?.resources)) {
-    const draft = buildClientoDraftResource(item);
+    const draft = buildClientoDraftResource(item, srvMap);
     if (!draft) continue;
     const existing = resourcesById.get(draft.id);
     const isPlanA = planA.has(draft.id);
@@ -355,6 +437,7 @@ function mergeLegacyResourcesIntoEngineState(state, { planAPublicResourceIds = [
       ...existing,
       label: existing.label || draft.label,
       catalogSource: existing.catalogSource || draft.catalogSource,
+      resourceScheduleBindings: draft.resourceScheduleBindings,
       legacyMapping: {
         ...(asObject(existing.legacyMapping) || {}),
         ...draft.legacyMapping,
@@ -378,6 +461,10 @@ function mergeLegacyResourcesIntoEngineState(state, { planAPublicResourceIds = [
     promoted,
     resourceCount: resourcesById.size,
     clientoResourceTotal: Number(bundle?.counts?.clientoResources || 0),
+    scheduleBindingsTotal: Array.from(resourcesById.values()).reduce(
+      (sum, item) => sum + asArray(item.resourceScheduleBindings).length,
+      0
+    ),
   };
 }
 
@@ -386,30 +473,155 @@ function readAddonCatalogSummary(bundle = loadLegacyCatalogBundle()) {
   const groups = asArray(addonCatalog.serviceGroups || bundle?.catalogs?.clientoResources?.serviceGroups);
   const addonGroups = groups.filter((group) => group?.addon === true);
   const addonServiceIds = addonGroups.flatMap((group) => asArray(group.serviceIds));
+  const addonServices = asArray(addonCatalog.services);
   return {
     addonGroupCount: addonGroups.length,
     addonServiceIdCount: addonServiceIds.length,
+    addonServiceExportCount: addonServices.length,
     groups: addonGroups.map((group) => ({
       id: group.id,
       name: normalizeText(group.name),
       serviceIds: asArray(group.serviceIds),
     })),
+    services: addonServices.map((service) => ({
+      srvId: normalizeText(String(service.srvId || '')),
+      name: normalizeText(service.name),
+    })),
     note:
-      addonServiceIds.length === 0
+      addonServiceIds.length === 0 && addonServices.length === 0
         ? 'Tilläggstjänster-grupp finns i Cliento men inga tjänster exporterade ännu.'
         : null,
   };
 }
 
-function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], planAPublicResourceIds = [] } = {}) {
+function wireAddonServicesIntoEngineState(state) {
+  const bundle = loadLegacyCatalogBundle();
+  const addonSummary = readAddonCatalogSummary(bundle);
+  const addonSrvIds = new Set([
+    ...addonSummary.groups.flatMap((group) => group.serviceIds.map((id) => String(id))),
+    ...addonSummary.services.map((item) => item.srvId).filter(Boolean),
+  ]);
+  let changed = false;
+  state.services = asArray(state.services).map((service) => {
+    const legacySrvIds = asArray(service.legacyMapping?.cliento?.srvIds).map((id) => String(id));
+    const primarySrvId = normalizeText(String(service.legacyMapping?.cliento?.primarySrvId || ''));
+    const isAddon =
+      service.isAddon === true ||
+      legacySrvIds.some((id) => addonSrvIds.has(id)) ||
+      (primarySrvId && addonSrvIds.has(primarySrvId));
+    if (!isAddon && service.isAddon !== true) return service;
+    const next = { ...service, isAddon: true, catalogSource: service.catalogSource || 'cliento_addon_catalog' };
+    if (JSON.stringify(service) !== JSON.stringify(next)) changed = true;
+    return next;
+  });
+  return { changed, addonSummary };
+}
+
+function mergeClientoPricingIntoServices(state, pricingRules = normalizePricingRules()) {
+  let changed = false;
+  state.services = asArray(state.services).map((service) => {
+    const next = applyBookingPricingMigrationToService(service, pricingRules);
+    if (JSON.stringify(service) !== JSON.stringify(next)) changed = true;
+    return next;
+  });
+  return { changed, pricingRules };
+}
+
+function mergeClientoSchedulesIntoEngineState(state) {
+  const scheduleDefaults = loadBookingScheduleMigrationDefaults();
+  const rulesById = new Map(asArray(state.availabilityRules).map((item) => [normalizeText(item.ruleId), item]));
+  let changed = false;
+  let mergedRules = 0;
+
+  for (const rule of asArray(scheduleDefaults.eveningWeekendRules)) {
+    const ruleId = normalizeText(rule.ruleId);
+    if (!ruleId) continue;
+    const nextRule = {
+      ruleId,
+      resourceId: normalizeText(rule.resourceId),
+      serviceId: normalizeText(rule.serviceId),
+      weekdays: asArray(rule.weekdays),
+      startTimes: asArray(rule.startTimes),
+      locationLabel: normalizeText(rule.locationLabel || 'Hair TP Clinic'),
+      scheduleTier: normalizeText(rule.scheduleTier) || undefined,
+      active: rule.active !== false,
+    };
+    const existing = rulesById.get(ruleId);
+    if (!existing || JSON.stringify(existing) !== JSON.stringify(nextRule)) {
+      rulesById.set(ruleId, nextRule);
+      mergedRules += 1;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    state.availabilityRules = Array.from(rulesById.values());
+  }
+
+  return {
+    changed,
+    mergedRules,
+    clientoResourceCount:
+      Number(scheduleDefaults.clientoResourceCount) ||
+      asArray(scheduleDefaults.clientoResources).length ||
+      16,
+  };
+}
+
+function buildResourceCatalogReadout(state, bundle = loadLegacyCatalogBundle()) {
+  const scheduleDefaults = loadBookingScheduleMigrationDefaults();
+  const clientoResources = asArray(bundle?.catalogs?.clientoResources?.resources);
+  const engineById = new Map(asArray(state.resources).map((item) => [normalizeText(item.id), item]));
+  const engineByResId = new Map();
+  for (const resource of asArray(state.resources)) {
+    const resId = normalizeText(String(resource.legacyMapping?.cliento?.resId || ''));
+    if (resId) engineByResId.set(resId, resource);
+  }
+
+  const rows = clientoResources.map((item) => {
+    const resId = normalizeText(String(item.resId || ''));
+    const arcanaId = resolveArcanaResourceIdFromCliento(item);
+    const engineResource = engineById.get(arcanaId) || engineByResId.get(resId) || null;
+    const bindings = asArray(engineResource?.resourceScheduleBindings);
+    return {
+      resId,
+      name: normalizeText(item.name),
+      arcanaResourceId: engineResource?.id || arcanaId,
+      wired: Boolean(engineResource?.legacyMapping?.cliento?.resId),
+      serviceCount: Number(item.serviceCount) || bindings.length,
+      scheduleBindingCount: bindings.length,
+      virtualLane: asArray(scheduleDefaults.clientoResources).some(
+        (row) => normalizeText(String(row.resId)) === resId && row.virtualLane === true
+      ),
+    };
+  });
+
+  return {
+    source: 'migration/cliento/resource-catalog.json',
+    total: rows.length,
+    wiredCount: rows.filter((row) => row.wired).length,
+    scheduleBindingCount: rows.reduce((sum, row) => sum + row.scheduleBindingCount, 0),
+    resources: rows,
+  };
+}
+
+function buildStaffRuntimeCatalogReadout(
+  state,
+  { planAPublicServiceIds = [], planAPublicResourceIds = [], bookingPolicySettings = null } = {}
+) {
   const planAServices = new Set(asArray(planAPublicServiceIds).map(normalizeText));
   const planAResources = new Set(asArray(planAPublicResourceIds).map(normalizeText));
   const bundle = loadLegacyCatalogBundle();
   const tripleEntries = readTripleMapEntries(bundle);
+  const policy = normalizeBookingPolicySettings(bookingPolicySettings || {});
+  const pricingRules = normalizePricingRules();
+  const resourceCatalog = buildResourceCatalogReadout(state, bundle);
+  const addonCatalog = readAddonCatalogSummary(bundle);
 
   const services = asArray(state.services).map((service) => {
     const id = normalizeText(service.id);
     const isPlanA = planAServices.has(id);
+    const priced = applyBookingPricingMigrationToService(service, pricingRules);
     return {
       id,
       label: normalizeText(service.label),
@@ -419,6 +631,11 @@ function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], pl
       staffCatalogTier: isPlanA ? 'plan_a_public' : service.active !== false ? 'staff_active' : 'inactive_draft',
       brand: normalizeText(service.brand || service.legacyMapping?.brand),
       durationMinutes: Number(service.durationMinutes) || null,
+      minNoticeMinutes: Number(service.minNoticeMinutes) || null,
+      maxBookingDaysAhead: Number(service.maxBookingDaysAhead) || null,
+      cancellationPolicyHours: Number(service.cancellationPolicyHours) || null,
+      isAddon: service.isAddon === true,
+      pricing: priced.pricing || null,
       legacyMapping: service.legacyMapping || null,
       catalogSource: normalizeText(service.catalogSource) || null,
     };
@@ -431,6 +648,9 @@ function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], pl
     publicBookable: resource.publicBookable === true,
     planA: planAResources.has(normalizeText(resource.id)),
     role: normalizeText(resource.role) || null,
+    clientoResId: normalizeText(String(resource.legacyMapping?.cliento?.resId || '')) || null,
+    scheduleBindingCount: asArray(resource.resourceScheduleBindings).length,
+    catalogSource: normalizeText(resource.catalogSource) || null,
   }));
 
   const mapped = services.filter((item) => item.catalogSource === 'legacy_triple_map').length;
@@ -452,7 +672,12 @@ function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], pl
     inactiveDraftServices: services.filter((item) => item.staffCatalogTier === 'inactive_draft').length,
     legacyMappedServices: services.filter((item) => item.legacyMapping).length,
     tripleMapEntries: tripleEntries.length,
-    addonCatalog: readAddonCatalogSummary(bundle),
+    addonCatalog,
+    resourceCatalog,
+    bookingPolicy: policy.globalDefaults,
+    pricingRules: pricingRules.globalRules,
+    addonServiceCount: services.filter((item) => item.isAddon).length,
+    scheduleRuleCount: asArray(state.availabilityRules).length,
   };
 
   return {
@@ -460,6 +685,12 @@ function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], pl
     policy: {
       publicWebBookingEnabled: false,
       note: 'Runtime-katalog för staff/operatör. Publik webb-API förblir av tills explicit go-live.',
+      smartSlots: {
+        minNoticeOnlineMinutes: policy.globalDefaults.minNoticeOnlineMinutes,
+        minNoticePhysicalMinutes: policy.globalDefaults.minNoticePhysicalMinutes,
+        maxBookingDaysAhead: policy.globalDefaults.maxBookingDaysAhead,
+        cancellationPolicyHours: policy.globalDefaults.cancellationPolicyHours,
+      },
     },
     planA: {
       serviceIds: Array.from(planAServices),
@@ -479,7 +710,12 @@ module.exports = {
   collectMappedLegacyIds,
   mergeLegacyCatalogIntoEngineState,
   mergeLegacyResourcesIntoEngineState,
+  mergeClientoPricingIntoServices,
+  mergeClientoSchedulesIntoEngineState,
+  wireAddonServicesIntoEngineState,
+  buildResourceCatalogReadout,
   readAddonCatalogSummary,
   buildStaffRuntimeCatalogReadout,
   readTripleMapEntries,
+  loadBookingScheduleMigrationDefaults,
 };

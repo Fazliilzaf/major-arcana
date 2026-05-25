@@ -358,6 +358,9 @@
       ['Plats', selectedEvent.locationLabel || selectedEvent.location || '—'],
       ['Status', isBooked ? s.formatCaseStatus(selectedEvent.caseStatus || selectedEvent.status) : 'Ledig'],
       isBooked ? ['Kund', selectedEvent.customerName || selectedEvent.customerEmail || '—'] : null,
+      ...(isBooked && s.formatCalendarSignalSummary
+        ? s.formatCalendarSignalSummary(selectedEvent).map(([label, value]) => [label, value])
+        : []),
     ]
       .filter(Boolean)
       .map(

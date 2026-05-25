@@ -1925,6 +1925,9 @@ process.once('SIGTERM', () => {
       bookingEngineStore: ccoBookingEngineStore,
       treatmentAgreementStore: ccoTreatmentAgreementStore,
       patientMasterStore: ccoPatientMasterStore,
+      patientCareStateStore,
+      journalStore: ccoJournalStore,
+      settingsStore: ccoSettingsStore,
       authStore,
       config,
     })

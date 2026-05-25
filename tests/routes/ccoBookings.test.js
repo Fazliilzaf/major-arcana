@@ -1295,3 +1295,25 @@ test('cco bookings calendar rebook uppdaterar ärende via bookingCaseId', async 
     await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });
+
+test('cco bookings calendar-signals returns operational signals for date range', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const fromDate = '2030-06-01';
+      const toDate = '2030-06-30';
+      const response = await fetch(
+        `${baseUrl}/cco-bookings/calendar-signals?fromDate=${fromDate}&toDate=${toDate}`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.equal(payload.ok, true);
+      assert.equal(payload.provider, 'cco_calendar_signals');
+      assert.equal(payload.fromDate, fromDate);
+      assert.equal(payload.toDate, toDate);
+      assert.ok(payload.byCaseId && typeof payload.byCaseId === 'object');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});

@@ -73,7 +73,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | **B** | U2.2 OWNER MFA enforced | ~ (väntar `apply:auth-go-live-prod`) |
 | **Policy** | Publik `/api/public/booking-engine/*` | av (503 tills explicit go-live) |
 
-> Nästa kod-svep: **U2.4 fysisk sign-off** · **P6.10.4 patient-SMS** · **MFA (D) sist**. Bokningsregler + VIP + reminder-mail ☑ (sweep 2026-05-25).
+> Nästa kod-svep: **U2.4 fysisk sign-off** · **P6.10.4 patient-SMS utskick** · **MFA (D) sist**. Bokningsregler + VIP + reminder-mail ☑ · kalender-signaler (SMS/ICS/hälsodekl) ☑ (sweep 2026-05-20).
 
 ---
 
@@ -450,13 +450,13 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [~] P6.3.5 Kalendervy per behandlare och resurs — **Hair TP design** ☑ (`cco-calendar.css`, vecka/dag/resurs, event-kort, filter-chips, detaljpanel); drag-drop + blockering kvar
 - [~] P6.3.6 Kalender-/dagvy i CCO arbetsyta — desktop workstation ☑ i kundregister; operatörs split-actions kvar
 - [x] P6.3.7 Mobil månadskalender (BL.1)
-- [~] P6.3.8 Smart slots: min-notice (120 min online / 60 min fysisk) — engine + migration defaults ☑; Admin UI + settings→engine runtime ☑
-- [~] P6.3.9 Bokningsfönster max 180 dagar — engine enforce ☑
-- [ ] P6.3.10 Kväll/helg-prisregler per tjänst
-- [ ] P6.3.11 Scheman per resurs och per tjänst (**16 Cliento-resurser**)
-- [~] P6.3.12 Avbokningspolicy per tjänst (timmar före) — engine + migration default 24 h ☑; Admin UI + settings→engine runtime ☑
-- [~] P6.3.13 Resurskatalog i runtime (`migration/cliento/resource-catalog.json`) — merge ☑
-- [~] P6.3.14 Tilläggstjänster (`migration/cliento/addon-catalog.json`) — readout ☑; Cliento-grupp tom
+- [x] P6.3.8 Smart slots: min-notice (120 min online / 60 min fysisk) — engine + migration + Admin/settings→runtime ☑
+- [x] P6.3.9 Bokningsfönster max 180 dagar — engine enforce + settings ☑
+- [x] P6.3.10 Kväll/helg-prisregler per tjänst — `booking-pricing-defaults.json` + slot `priceTier`/`priceSek` ☑
+- [x] P6.3.11 Scheman per resurs och per tjänst (**16 Cliento-resurser**) — resource bindings + kväll/helg-regler ☑
+- [x] P6.3.12 Avbokningspolicy per tjänst (timmar före) — engine + migration + Admin/settings→runtime ☑
+- [x] P6.3.13 Resurskatalog i runtime (`migration/cliento/resource-catalog.json`) — merge + `runtime-catalog` readout ☑
+- [x] P6.3.14 Tilläggstjänster (`migration/cliento/addon-catalog.json`) — readout + `isAddon` wiring (grupp tom) ☑
 
 ### 6.4 Behandlingstillfälle (encounter) — P0 / P1
 
@@ -478,7 +478,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [~] P6.5.5 H5 — ENG Health Questionnaire — operator toolbar ☑
 - [x] P6.5.6 F1 — Friskförsäkran TP (Meridiq **16413**) — UI (`/friskforsakran`)
 - [~] P6.5.7 F2 — Friskförsäkran ögonlocksplastik (**16389**) — operator toolbar ☑
-- [ ] P6.5.8 Patientportal / token-länk före besök (ersätter Meridiq registreringsportal)
+- [~] P6.5.8 Patientportal / token-länk före besök (ersätter Meridiq registreringsportal) — **kalenderikon** “saknar hälsodekl” ☑ (`calendar-signals` + `missing-forms-report`)
 - [ ] P6.5.9 Webb `/screen` → journal H1 (synkad, ej fristående)
 - [ ] P6.5.10 Webb `/friskforsakran` → journal F1 (synkad, ej fristående)
 - [ ] P6.5.11 Registreringsportal-inställningar (foto-samtycke, NRS, BankID, flerspråk SV/EN/ES)
@@ -536,8 +536,8 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] P6.10.1 Bokningsbekräftelse e-post Resend (U5A.4 live)
 - [x] P6.10.2 Bokningsbekräftelse Graph (intern)
 - [x] P6.10.3 Operatörs-digest påminnelser (J-7 — ej patient-SMS)
-- [ ] P6.10.4 **Patient-SMS (Meridiq-paritet)** — `/sms/templates` + patientkort-utskick; **ej live** idag (J-7 = operatörs-digest via Graph, ej patient-SMS). **Blocker:** SMS-leverantör + merge-fält + audit. Ref: [MERIDIQ-INVENTORY.md](./MERIDIQ-INVENTORY.md) §5.3, §6
-  - [~] **P0** Bokningspåminnelse SMS — **konfigurerbar lead time** ☑ i Admin (`/cco/settings` → Kommunikation; global/kanal/tjänst/resurs via `bookingReminderLeadTime` + `migration/booking-reminder-lead-time-defaults.json`). Patient-SMS utskick **ej live**
+- [~] P6.10.4 **Patient-SMS (Meridiq-paritet)** — `/sms/templates` + patientkort-utskick; **ej live** idag (J-7 = operatörs-digest via Graph, ej patient-SMS). **Blocker:** SMS-leverantör + merge-fält + audit. Ref: [MERIDIQ-INVENTORY.md](./MERIDIQ-INVENTORY.md) §5.3, §6
+  - [~] **P0** Bokningspåminnelse SMS — **konfigurerbar lead time** ☑ i Admin (`/cco/settings` → Kommunikation; global/kanal/tjänst/resurs via `bookingReminderLeadTime` + `migration/booking-reminder-lead-time-defaults.json`). Patient-SMS utskick **ej live**; **kalenderikon** sent/due ☑ (`GET /cco-bookings/calendar-signals`)
   - [ ] **P0** Övriga transaktionella boknings-SMS: avbokningsbekräftelse, bokningsbekräftelse-SMS
   - [ ] **P0** SMS-mallbibliotek Hair TP + Curatiio (`{{client_first_name}}`, `{{booking_date}}`, `{{booking_start_time}}`, `{{service_name}}`, `{{practitioner_name}}`, `{{clinic_name}}`)
   - [ ] **P1** "Fyll i begärd information" före besök (Meridiq mall → deep link patientportal `/patient-forms/{token}`)

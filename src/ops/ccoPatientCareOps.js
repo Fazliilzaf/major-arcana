@@ -10,6 +10,7 @@ const {
 } = require('./bookingReminderLeadTime');
 const { createTransactionalMailer } = require('../infra/transactionalMailer');
 const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
+const { buildEmailIcsReminderKey } = require('./bookingCalendarSignals');
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -381,6 +382,7 @@ async function buildCustomerReminderQueue({
     if (alreadySent) continue;
     visitReminders.push({
       ...slot,
+      tenantId,
       reminderType: 'visit_upcoming',
       reminderKey,
       channel,
@@ -478,6 +480,7 @@ async function dispatchPatientVisitReminderEmails({
   queue,
   bookingEngineStore,
   graphSendConnector,
+  patientCareStateStore = null,
   fromEmail,
   locale = 'sv',
 } = {}) {
@@ -516,8 +519,26 @@ async function dispatchPatientVisitReminderEmails({
       ],
     });
     results.push({ recipient, ok: result.ok === true, provider: result.provider, mode: result.mode });
-    if (result.ok === true) sent += 1;
-    else skipped += 1;
+    if (result.ok === true) {
+      sent += 1;
+      if (patientCareStateStore && typeof patientCareStateStore.logReminder === 'function') {
+        await patientCareStateStore.logReminder({
+          tenantId: normalizeText(reminder.tenantId),
+          reminderKey: buildEmailIcsReminderKey({ kind: reminder.kind, id: reminder.id }),
+          reminderType: 'visit_upcoming',
+          patientId: reminder.patientId,
+          channel: 'patient_email_ics',
+          metadata: {
+            startsAt: reminder.startsAt,
+            customerEmail: reminder.customerEmail,
+            includesIcs: true,
+            leadTimeHours: reminder.leadTimeHours,
+          },
+        });
+      }
+    } else {
+      skipped += 1;
+    }
   }
 
   return { sent, skipped, results };

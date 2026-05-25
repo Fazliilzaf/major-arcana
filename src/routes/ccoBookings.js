@@ -19,6 +19,9 @@ const {
 } = require('../ops/ccoBookingStore');
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
 const { assertTreatmentBookingAllowed } = require('../ops/ccoTreatmentBookingGate');
+const { buildCalendarSignalsIndex } = require('../ops/bookingCalendarSignals');
+const { buildMissingFormsReport } = require('../ops/ccoPatientCareOps');
+const { normalizeBookingReminderLeadTimeConfig } = require('../ops/bookingReminderLeadTime');
 
 const WORKSPACE_ID = 'major-arcana-preview';
 const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
@@ -433,6 +436,9 @@ function createCcoBookingsRouter({
   patientSystemStore = null,
   treatmentAgreementStore = null,
   patientMasterStore = null,
+  patientCareStateStore = null,
+  journalStore = null,
+  settingsStore = null,
   authStore,
   config,
 }) {
@@ -745,6 +751,78 @@ function createCcoBookingsRouter({
             }
           : null,
         draft: buildOfferDraft({ bookingCase }),
+      });
+    })
+  );
+
+  router.get('/cco-bookings/calendar-signals', async (req, res) =>
+    handle(req, res, async (context) => {
+      const fromDate = normalizeText(req.query.fromDate);
+      const toDate = normalizeText(req.query.toDate);
+      if (!fromDate || !toDate) {
+        return res.status(400).json({ error: 'availability_range_missing' });
+      }
+
+      let leadTimeConfig = normalizeBookingReminderLeadTimeConfig({});
+      if (settingsStore && typeof settingsStore.getTenantSettings === 'function') {
+        const settings = await settingsStore.getTenantSettings({ tenantId: context.tenantId });
+        leadTimeConfig = normalizeBookingReminderLeadTimeConfig(settings?.bookingReminderLeadTime);
+      }
+
+      const servicesById = new Map();
+      if (bookingEngineStore && typeof bookingEngineStore.listServices === 'function') {
+        const services = await bookingEngineStore.listServices();
+        asArray(services).forEach((service) => {
+          const id = normalizeText(service?.id);
+          if (id) servicesById.set(id, service);
+        });
+      }
+
+      const missingByEmail = new Map();
+      if (journalStore && patientMasterStore) {
+        const report = await buildMissingFormsReport({
+          patientMasterStore,
+          journalStore,
+          treatmentAgreementStore,
+          tenantId: context.tenantId,
+        });
+        asArray(report?.rows).forEach((row) => {
+          const email = normalizeKey(row?.primaryEmail);
+          if (!email) return;
+          missingByEmail.set(email, {
+            patientId: row.patientId || '',
+            missing: asArray(row.missing),
+          });
+        });
+      }
+
+      const rawCases = await bookingStore.listCases({
+        tenantId: context.tenantId,
+        sort: 'recent',
+        limit: 200,
+      });
+      const reminderLog =
+        patientCareStateStore && typeof patientCareStateStore.listReminderLog === 'function'
+          ? await patientCareStateStore.listReminderLog({ tenantId: context.tenantId })
+          : [];
+
+      const signals = buildCalendarSignalsIndex({
+        bookingCases: rawCases,
+        servicesById,
+        missingByEmail,
+        reminderLog,
+        leadTimeConfig,
+        fromDate,
+        toDate,
+      });
+
+      return res.json({
+        ok: true,
+        provider: 'cco_calendar_signals',
+        fromDate,
+        toDate,
+        leadTime: signals.leadTime,
+        byCaseId: signals.byCaseId,
       });
     })
   );

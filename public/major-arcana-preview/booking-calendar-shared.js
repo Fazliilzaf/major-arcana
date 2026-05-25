@@ -13,6 +13,8 @@
       '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3.2l2.2 1.3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.2"/></svg>',
     check:
       '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.8 8.2 2.8 2.8 5.6-5.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/></svg>',
+    invite:
+      '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 3.6h10.4a1.2 1.2 0 0 1 1.2 1.2v6.4a1.2 1.2 0 0 1-1.2 1.2H2.8a1.2 1.2 0 0 1-1.2-1.2V4.8a1.2 1.2 0 0 1 1.2-1.2Z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2.8 4.8 8 8.4l5.2-3.6M5.2 10.4h5.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.2"/></svg>',
   };
 
   const STATUS_LABELS = {
@@ -236,6 +238,24 @@
     }
   }
 
+  async function fetchCalendarSignals(fromDate, toDate) {
+    try {
+      const params = new URLSearchParams({ fromDate, toDate });
+      const response = await fetch(`/api/v1/cco-bookings/calendar-signals?${params.toString()}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) return { byCaseId: {}, leadTime: null };
+      const payload = await response.json();
+      return {
+        byCaseId: payload?.byCaseId && typeof payload.byCaseId === 'object' ? payload.byCaseId : {},
+        leadTime: payload?.leadTime || null,
+      };
+    } catch {
+      return { byCaseId: {}, leadTime: null };
+    }
+  }
+
   async function fetchMissingFormsByEmail() {
     const map = new Map();
     try {
@@ -277,29 +297,60 @@
     });
   }
 
-  function deriveCalendarSignals(slot, bookingCase, { services = {}, missingByEmail = new Map() } = {}) {
+  function deriveCalendarSignals(
+    slot,
+    bookingCase,
+    { services = {}, missingByEmail = new Map(), signalsByCaseId = {} } = {}
+  ) {
     const meetingMode = resolveMeetingMode(slot, services);
     const isOnline = meetingMode === 'online' || slot?.calendarSignals?.isOnline === true;
     const events = Array.isArray(bookingCase?.events) ? bookingCase.events : [];
     const emailKey = normalizeKey(bookingCase?.customerEmail);
     const missingRow = emailKey ? missingByEmail.get(emailKey) : null;
     const missingForms = Array.isArray(missingRow?.missing) ? missingRow.missing : [];
-    const needsHealthDeclaration =
+    const fallbackNeedsHealthDeclaration =
       slot?.needsHealthDeclaration === true ||
       slot?.calendarSignals?.needsHealthDeclaration === true ||
       missingForms.some((item) => String(item).includes('health_declaration'));
-    const reminderSent =
+    const fallbackReminderSent =
       slot?.smsSent === true ||
       slot?.reminderSent === true ||
       slot?.calendarSignals?.reminderSent === true ||
       hasReminderSentFromEvents(events);
 
+    const caseId = String(bookingCase?.bookingCaseId || '').trim();
+    const apiSignals = caseId ? signalsByCaseId[caseId] : null;
+    if (apiSignals && typeof apiSignals === 'object') {
+      const leadTimeHours = Number(apiSignals.smsLeadTimeHours) || 24;
+      return {
+        meetingMode,
+        isOnline,
+        smsLeadTimeHours: leadTimeHours,
+        smsReminderSent: apiSignals.smsReminderSent === true,
+        smsReminderDue: apiSignals.smsReminderDue === true,
+        emailIcsSent: apiSignals.emailIcsSent === true,
+        reminderSent: apiSignals.smsReminderSent === true || fallbackReminderSent,
+        needsHealthDeclaration:
+          apiSignals.needsHealthDeclaration === true || fallbackNeedsHealthDeclaration,
+        missingForms: apiSignals.missingForms === true || missingForms.length > 0,
+        missingFormLabels: Array.isArray(apiSignals.missingFormLabels)
+          ? apiSignals.missingFormLabels
+          : [],
+        patientId: apiSignals.patientId || missingRow?.patientId || slot?.patientId || '',
+      };
+    }
+
     return {
       meetingMode,
       isOnline,
-      reminderSent,
-      needsHealthDeclaration,
+      smsLeadTimeHours: 24,
+      smsReminderSent: fallbackReminderSent,
+      smsReminderDue: false,
+      emailIcsSent: false,
+      reminderSent: fallbackReminderSent,
+      needsHealthDeclaration: fallbackNeedsHealthDeclaration,
       missingForms: missingForms.length > 0,
+      missingFormLabels: [],
       patientId: missingRow?.patientId || slot?.patientId || '',
     };
   }
@@ -321,10 +372,15 @@
       resourceLabel: slot?.resourceLabel || slot?.resource || '',
       meetingMode: signals.meetingMode,
       isOnline: signals.isOnline,
-      smsSent: signals.reminderSent,
+      smsLeadTimeHours: signals.smsLeadTimeHours,
+      smsReminderSent: signals.smsReminderSent,
+      smsReminderDue: signals.smsReminderDue,
+      emailIcsSent: signals.emailIcsSent,
+      smsSent: signals.smsReminderSent || signals.reminderSent,
       reminderSent: signals.reminderSent,
       needsHealthDeclaration: signals.needsHealthDeclaration,
       missingForms: signals.missingForms,
+      missingFormLabels: signals.missingFormLabels,
       patientId: signals.patientId,
       durationMinutes: slotDurationMinutes(slot),
       bookingCaseSnapshot: {
@@ -466,11 +522,12 @@
   }
 
   async function fetchCalendarRange(fromDate, toDate) {
-    const [rangePayload, bookingCases, refData, missingByEmail] = await Promise.all([
+    const [rangePayload, bookingCases, refData, missingByEmail, calendarSignals] = await Promise.all([
       fetchRangeSlots(fromDate, toDate),
       fetchBookingCases(fromDate, toDate),
       fetchRefData(),
       fetchMissingFormsByEmail(),
+      fetchCalendarSignals(fromDate, toDate),
     ]);
     return mergeCalendarEvents(
       rangePayload.slots,
@@ -481,8 +538,77 @@
       {
         services: refData.services,
         missingByEmail,
+        signalsByCaseId: calendarSignals.byCaseId,
       }
     );
+  }
+
+  function buildOperationalIconSpecs(slot) {
+    const icons = [];
+    const leadHours = Number(slot?.smsLeadTimeHours) || 24;
+
+    if (slot?.emailIcsSent) {
+      icons.push({
+        name: 'invite',
+        state: 'sent',
+        title: 'Kalenderinbjudan skickad (e-post + ICS)',
+        ariaLabel: 'Kalenderinbjudan skickad',
+      });
+    }
+
+    if (slot?.smsReminderSent || slot?.reminderSent || slot?.smsSent) {
+      icons.push({
+        name: 'sms',
+        state: 'sent',
+        title: 'SMS-påminnelse skickad',
+        ariaLabel: 'SMS-påminnelse skickad',
+      });
+    } else if (slot?.smsReminderDue) {
+      icons.push({
+        name: 'sms',
+        state: 'due',
+        title: `SMS-påminnelse inom ${leadHours} h`,
+        ariaLabel: `SMS-påminnelse förfaller inom ${leadHours} timmar`,
+      });
+    }
+
+    if (slot?.needsHealthDeclaration) {
+      icons.push({
+        name: 'form',
+        state: 'warning',
+        title: 'Saknar hälsodeklaration',
+        ariaLabel: 'Saknar hälsodeklaration',
+      });
+    } else if (slot?.missingForms) {
+      icons.push({
+        name: 'form',
+        state: 'missing',
+        title: 'Saknar formulär före besök',
+        ariaLabel: 'Saknar formulär före besök',
+      });
+    }
+
+    return icons;
+  }
+
+  function formatCalendarSignalSummary(slot) {
+    const rows = [];
+    const leadHours = Number(slot?.smsLeadTimeHours) || 24;
+
+    if (slot?.emailIcsSent) {
+      rows.push(['Kalenderinbjudan', 'Skickad (e-post + ICS)']);
+    }
+    if (slot?.smsReminderSent || slot?.reminderSent || slot?.smsSent) {
+      rows.push(['SMS-påminnelse', 'Skickad']);
+    } else if (slot?.smsReminderDue) {
+      rows.push(['SMS-påminnelse', `Förfaller inom ${leadHours} h`]);
+    }
+    if (slot?.needsHealthDeclaration) {
+      rows.push(['Patientportal', 'Saknar hälsodeklaration']);
+    } else if (slot?.missingForms) {
+      rows.push(['Patientportal', 'Saknar formulär före besök']);
+    }
+    return rows;
   }
 
   function classifyCalendarEvent(slot) {
@@ -529,15 +655,37 @@
       icons.push('check');
     }
 
-    if (slot?.reminderSent || slot?.smsSent) icons.push('sms');
-    if (slot?.needsHealthDeclaration || slot?.missingForms) icons.push('form');
+    const operationalIcons = slot?.kind === 'booked' ? buildOperationalIconSpecs(slot) : [];
+    const mergedIcons = [...icons.map((name) => ({ name })), ...operationalIcons];
 
-    return { accent, tone, icons: [...new Set(icons)] };
+    return { accent, tone, icons: dedupeIconSpecs(mergedIcons) };
+  }
+
+  function dedupeIconSpecs(entries) {
+    const seen = new Set();
+    const out = [];
+    (entries || []).forEach((entry) => {
+      const spec = typeof entry === 'string' ? { name: entry } : entry;
+      const key = `${spec.name || ''}::${spec.state || ''}`;
+      if (!spec.name || seen.has(key)) return;
+      seen.add(key);
+      out.push(spec);
+    });
+    return out;
   }
 
   function renderEventIcons(icons) {
     return (icons || [])
-      .map((name) => `<span class="cco-cal-event-icon" data-icon="${escapeAttr(name)}">${SVG[name] || ''}</span>`)
+      .map((entry) => {
+        const spec = typeof entry === 'string' ? { name: entry } : entry;
+        const name = spec.name || '';
+        const state = spec.state ? ` is-${spec.state}` : '';
+        const title = spec.title ? ` title="${escapeAttr(spec.title)}"` : '';
+        const aria = spec.ariaLabel
+          ? ` role="img" aria-label="${escapeAttr(spec.ariaLabel)}"`
+          : ' aria-hidden="true"';
+        return `<span class="cco-cal-event-icon${state}" data-icon="${escapeAttr(name)}"${title}${aria}>${SVG[name] || ''}</span>`;
+      })
       .join('');
   }
 
@@ -634,9 +782,13 @@
     fetchBookedCounts,
     fetchRefData,
     fetchMissingFormsByEmail,
+    fetchCalendarSignals,
     fetchCalendarRange,
     mergeCalendarEvents,
     deriveCalendarSignals,
+    buildOperationalIconSpecs,
+    formatCalendarSignalSummary,
+    dedupeIconSpecs,
     buildSlotAtTime,
     rebookCalendarBooking,
     buildBlockCalendarEvent,

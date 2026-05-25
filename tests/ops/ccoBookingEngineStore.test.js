@@ -528,3 +528,31 @@ test('ccoBookingEngineStore calendar blocks döljer tider och expanderar till ka
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('ccoBookingEngineStore stamps priceTier on availability and exposes runtime catalog policy', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-pricing-'));
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const { fromDate, toDate } = bookingMondayWindow({ minDaysAhead: 14 });
+    const availability = await store.listAvailability({
+      tenantId: 'hair-tp-clinic',
+      fromDate,
+      toDate,
+      resIds: 'fazli',
+      srvIds: 'consultation-physical',
+    });
+    assert.ok(availability.length >= 1);
+    assert.ok(availability.every((slot) => typeof slot.priceTier === 'string'));
+    assert.ok(availability.every((slot) => Number.isFinite(Number(slot.priceSek))));
+
+    const catalog = await store.getRuntimeCatalog();
+    assert.equal(catalog.summary.bookingPolicy.minNoticeOnlineMinutes, 120);
+    assert.equal(catalog.summary.bookingPolicy.maxBookingDaysAhead, 180);
+    assert.equal(catalog.summary.resourceCatalog.total, 16);
+    assert.ok(catalog.summary.pricingRules);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
