@@ -17,6 +17,7 @@ const {
   nameOverlapScore,
 } = require('../../scripts/migration/lib/migrationUtils');
 const { normalizePhotoPublishConsent } = require('./ccoPhotoPublishConsent');
+const { normalizeFortnoxPatientRef } = require('./ccoFortnoxPatientSync');
 
 const PATIENT_FLAGS = Object.freeze([
   'missing_email',
@@ -394,6 +395,7 @@ function normalizePatientRecord(input = {}, existing = {}) {
     },
     access: normalizePatientAccess(safe.access, existingSafe.access),
     consents: normalizePhotoPublishConsent(safe.consents, existingSafe.consents),
+    fortnox: normalizeFortnoxPatientRef(safe.fortnox, existingSafe.fortnox),
     flags: [],
     createdAt: normalizeText(existingSafe.createdAt) || nowIso(),
     updatedAt: nowIso(),
@@ -521,6 +523,9 @@ function buildPatientCardReadout(patient) {
     pipedriveDealCount: asArray(asObject(safe.pipedrive).deals).length,
     journalBlocked: access.journalBlocked,
     journalBlockReason: access.journalBlockReason,
+    fortnoxCustomerId: normalizeText(asObject(safe.fortnox).customerNumber),
+    fortnoxSyncedAt: normalizeText(asObject(safe.fortnox).syncedAt) || null,
+    fortnoxSyncError: normalizeText(asObject(safe.fortnox).lastError) || '',
     updatedAt: safe.updatedAt || null,
   };
 }
