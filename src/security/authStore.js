@@ -284,7 +284,8 @@ async function writeJsonAtomic(filePath, data) {
   await fs.mkdir(dir, { recursive: true });
   const tmpPath = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
   try {
-    await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf8');
+    // Compact JSON keeps auth.json smaller under audit/session pressure on prod disk.
+    await fs.writeFile(tmpPath, JSON.stringify(data), 'utf8');
     await fs.rename(tmpPath, filePath);
   } catch (error) {
     try {
@@ -566,28 +567,86 @@ async function createAuthStore({
     return prune() || changed;
   }
 
-  async function save() {
-    prune();
-    try {
-      await writeJsonAtomic(filePath, state);
-    } catch (error) {
-      emergencyPruneForPersistFailure();
-      try {
-        await writeJsonAtomic(filePath, state);
-      } catch (retryError) {
-        const sessionIds = Object.keys(state.sessions);
-        if (sessionIds.length > 50) {
-          const keep = sessionIds.slice(-50);
-          const next = {};
-          for (const id of keep) next[id] = state.sessions[id];
-          state.sessions = next;
-        }
-        if (auditMaxEntries > 0 && state.auditEvents.length > 250) {
-          state.auditEvents = state.auditEvents.slice(-250);
-        }
-        await writeJsonAtomic(filePath, state);
+  function aggressivePruneForPersistFailure() {
+    let changed = false;
+    const sessionIds = Object.keys(state.sessions);
+    if (sessionIds.length > 50) {
+      const keep = sessionIds.slice(-50);
+      const next = {};
+      for (const id of keep) next[id] = state.sessions[id];
+      state.sessions = next;
+      changed = true;
+    }
+    if (auditMaxEntries > 0 && state.auditEvents.length > 250) {
+      state.auditEvents = state.auditEvents.slice(-250);
+      changed = true;
+    }
+    return prune() || changed;
+  }
+
+  function nuclearPruneForPersistFailure() {
+    let changed = false;
+    if (Object.keys(state.pendingLogins).length > 0) {
+      state.pendingLogins = {};
+      changed = true;
+    }
+    if (Object.keys(state.pendingMfaChallenges).length > 0) {
+      state.pendingMfaChallenges = {};
+      changed = true;
+    }
+    if (state.auditEvents.length > 25) {
+      state.auditEvents = state.auditEvents.slice(-25);
+      changed = true;
+    }
+    const sessionIds = Object.keys(state.sessions);
+    if (sessionIds.length > 5) {
+      const keep = sessionIds.slice(-5);
+      const next = {};
+      for (const id of keep) next[id] = state.sessions[id];
+      state.sessions = next;
+      changed = true;
+    }
+    for (const [id, session] of Object.entries(state.sessions)) {
+      if (session?.revokedAt) {
+        delete state.sessions[id];
+        changed = true;
       }
     }
+    return prune() || changed;
+  }
+
+  async function save() {
+    prune();
+    const recoverySteps = [
+      () => {},
+      () => {
+        emergencyPruneForPersistFailure();
+      },
+      () => {
+        aggressivePruneForPersistFailure();
+      },
+      () => {
+        nuclearPruneForPersistFailure();
+      },
+    ];
+
+    let lastError = null;
+    for (const recover of recoverySteps) {
+      recover();
+      try {
+        await writeJsonAtomic(filePath, state);
+        return true;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    console.error(
+      '[authStore] save failed after recovery attempts',
+      lastError?.code || '',
+      lastError?.message || lastError
+    );
+    return false;
   }
 
   function findRawUserByEmail(email) {

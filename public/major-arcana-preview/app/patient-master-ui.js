@@ -1928,10 +1928,16 @@
           Importera historik
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-health-declaration">
-          Hälsodekl
+          Hälsodekl TP
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="health_curatiio_bleph">
+          Hälsodekl ögonlock
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-fitness-certificate">
-          Friskförsäkran
+          Friskförsäkran TP
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="fitness_curatiio_bleph">
+          Friskförsäkran ögonlock
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-tp-journal">
           TP-journal
@@ -3517,6 +3523,29 @@
     }
   }
 
+  function prefetchPatientDetailIntent(patientId) {
+    const key = normalizeText(patientId);
+    if (!key || runtime.mode !== 'register' || needsStaffLogin()) return;
+    if (normalizeText(runtime.selectedPatientId) === key && runtime.detail?.card) return;
+    const cached = window.__ARCANA_PATIENT_PREFETCH__;
+    if (cached && normalizeText(cached.patientId) === key && cached.payload) return;
+    if (patientDetailInflight.has(key) || window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) return;
+
+    window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = true;
+    void fetchPatientDetailFromApi(key)
+      .then((payload) => {
+        if (!payload) return;
+        const current = window.__ARCANA_PATIENT_PREFETCH__;
+        if (!current || normalizeText(current.patientId) !== key) {
+          window.__ARCANA_PATIENT_PREFETCH__ = { patientId: key, payload };
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = false;
+      });
+  }
+
   async function resolvePatientDetailPayload(patientId) {
     const key = normalizeText(patientId);
     const prefetched = window.__ARCANA_PATIENT_PREFETCH__;
@@ -4489,6 +4518,16 @@
   }
 
   function bindEvents() {
+    document.addEventListener(
+      'pointerdown',
+      (event) => {
+        const row = event.target.closest('[data-patient-row]');
+        if (!row || runtime.mode !== 'register') return;
+        prefetchPatientDetailIntent(row.dataset.patientRow);
+      },
+      { passive: true, capture: true }
+    );
+
     document.addEventListener('click', (event) => {
       const modeButton = event.target.closest('[data-patient-master-mode]');
       if (modeButton) {
@@ -4686,6 +4725,8 @@
           void createClinicalJournalDraft('health');
         } else if (actionButton.dataset.patientAction === 'new-fitness-certificate') {
           void createClinicalJournalDraft('fitness');
+        } else if (actionButton.dataset.patientAction === 'new-clinical-form') {
+          void createClinicalJournalDraft(actionButton.dataset.clinicalFormKey);
         } else if (actionButton.dataset.patientAction === 'new-consultation-plan') {
           void createConsultationPlan();
         } else if (actionButton.dataset.patientAction === 'create-offer-from-plan') {
