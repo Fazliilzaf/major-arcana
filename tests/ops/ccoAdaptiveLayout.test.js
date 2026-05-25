@@ -45,6 +45,7 @@ test('verify-adaptive-layout-prod script exists with 5 viewports', () => {
   assert.match(script, /320/);
   assert.match(script, /390/);
   assert.match(script, /834/);
+  assert.match(script, /768/);
   assert.match(script, /1024/);
   assert.match(script, /1440/);
 });
