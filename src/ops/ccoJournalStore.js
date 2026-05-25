@@ -882,9 +882,34 @@ async function createCcoJournalStore({ filePath }) {
     };
   }
 
+  // PII-fri aggregat-statistik: antal poster, distinkta patienter (count, ej id),
+  // och fördelning per journaltyp. Används av GET /cco-journal/stats för att
+  // verifiera migrering utan att läsa ut patientdata.
+  async function getStats({ tenantId } = {}) {
+    const t = normalizeText(tenantId);
+    const all = t
+      ? state.entries.filter((item) => normalizeText(item.tenantId) === t)
+      : state.entries.slice();
+    const patients = new Set();
+    const byType = {};
+    for (const e of all) {
+      if (e.patientId) patients.add(normalizeText(e.patientId));
+      const jt = normalizeText(e.journalType) || 'unknown';
+      byType[jt] = (byType[jt] || 0) + 1;
+    }
+    return {
+      tenantId: t || null,
+      totalEntries: all.length,
+      distinctPatients: patients.size,
+      byType,
+      updatedAt: state.updatedAt || null,
+    };
+  }
+
   return {
     addConsultationPhotoAttachment,
     addCorrection,
+    getStats,
     patchConsultationPhotoEncounter,
     buildJournalReadout,
     clearConsultationPhotoAttachments,
