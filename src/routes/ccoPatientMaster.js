@@ -309,6 +309,38 @@ function createCcoPatientMasterRouter({
   );
 
   router.put(
+    '/cco-patient-master/patient/demographics',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const patientId = normalizeText(body.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const existing = await patientMasterStore.getPatient({ tenantId: actor.tenantId, patientId });
+        if (!existing) return res.status(404).json({ error: 'Patient hittades inte.' });
+        const patient = await patientMasterStore.upsertPatient({
+          ...existing,
+          tenantId: actor.tenantId,
+          id: patientId,
+          demographics: body.demographics || {},
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.demographics.update',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+        });
+        return res.json({
+          patient,
+          card: patientMasterStore.buildPatientCardReadout(patient),
+        });
+      })
+  );
+
+  router.put(
     '/cco-patient-master/patient/access',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),

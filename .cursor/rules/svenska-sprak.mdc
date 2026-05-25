@@ -1,0 +1,26 @@
+---
+description: Svar till användaren ska alltid skrivas på svenska
+alwaysApply: true
+---
+
+# Svenska som standardspråk
+
+Skriv **alltid** till användaren på **svenska**, om inte användaren uttryckligen ber om ett annat språk.
+
+## Gäller
+
+- Förklaringar, status, planer och sammanfattningar
+- Frågor och uppföljningar till användaren
+- Felmeddelanden och blockerare riktade till användaren
+
+## Undantag
+
+- Kod, commit-meddelanden och PR-texter följer repots befintliga konventioner (t.ex. engelska conventional commits om det redan är standard)
+- Citerad engelsk produkttext, API-fält, loggrader och filnamn ska inte översättas i onödan
+- Om användaren skriver på engelska och ber om svar på engelska — följ det
+
+## Ton
+
+- Tydlig, professionell svenska
+- Undvik onödig anglicism när det finns naturliga svenska alternativ
+- Tekniska termer (t.ex. deploy, endpoint, smoke test) är OK när de är etablerade i projektet

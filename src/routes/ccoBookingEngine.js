@@ -10,6 +10,11 @@ const {
 } = require('../ops/ccoBookingStore');
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
 const { syncBookingConfirmedToJournal } = require('../ops/ccoJournalBookingBridge');
+const { loadLegacyCatalogBundle } = require('../ops/legacyCatalogLoader');
+const {
+  notifyStaffBookingCancelled,
+  notifyStaffBookingConfirmed,
+} = require('../ops/ccoBookingStaffNotify');
 const {
   assertTreatmentBookingAllowed,
   buildTreatmentAgreementBookingBlocker,
@@ -21,6 +26,8 @@ const WORKSPACE_ID = 'major-arcana-preview';
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
+
+const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
 
 function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
@@ -295,6 +302,14 @@ function requireBookingContext(context) {
   throw error;
 }
 
+function requireStaffRole(context) {
+  const role = normalizeText(context?.actor?.role).toUpperCase();
+  if (STAFF_ROLES.has(role)) return;
+  const error = new Error('Otillräcklig behörighet.');
+  error.statusCode = 403;
+  throw error;
+}
+
 function toCaseInput(context, body = {}) {
   return {
     tenantId: context.tenantId,
@@ -380,6 +395,7 @@ function createCcoBookingEngineRouter({
   treatmentEncounterStore = null,
   authStore,
   config,
+  graphSendConnector = null,
 }) {
   const router = express.Router();
 
@@ -393,6 +409,34 @@ function createCcoBookingEngineRouter({
       includeTimelineEvent: options.includeTimelineEvent === true,
       event: options.event || latestEvent,
     });
+  }
+
+  async function notifyStaffBookingEvent(kind, booking, extra = {}) {
+    const toEmail = normalizeText(config?.ccoCareReminderDigestEmail);
+    const fromEmail = normalizeText(config?.ccoCareReminderFromEmail);
+    try {
+      if (kind === 'cancel') {
+        return await notifyStaffBookingCancelled({
+          graphSendConnector,
+          booking,
+          reason: extra.reason,
+          toEmail,
+          fromEmail,
+        });
+      }
+      return await notifyStaffBookingConfirmed({
+        graphSendConnector,
+        booking,
+        toEmail,
+        fromEmail,
+      });
+    } catch (error) {
+      console.warn(
+        `[cco-booking-engine/${kind}] staff notify failed:`,
+        error && error.message ? error.message : error
+      );
+      return { skipped: true, reason: 'notify_failed' };
+    }
   }
 
   async function enforceTreatmentBookingGate(context, body = {}) {
@@ -463,6 +507,35 @@ function createCcoBookingEngineRouter({
       return res.status(500).json({ error: 'Kunde inte hantera CCO booking engine.' });
     }
   }
+
+  router.get('/cco-booking-engine/legacy-catalog', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireStaffRole(context);
+      const bundle = loadLegacyCatalogBundle();
+      const includeDetails = normalizeText(req.query.details) === '1';
+      return res.json({
+        ok: true,
+        provider: 'legacy_migration_catalogs',
+        exportedAt: bundle.exportedAt,
+        counts: bundle.counts,
+        catalogs: includeDetails ? bundle.catalogs : undefined,
+        policyNote:
+          'Staff read-only. Publik webb-bokning förblir av tills explicit go-live (ARCANA_PUBLIC_WEB_BOOKING_ENABLED).',
+      });
+    })
+  );
+
+  router.get('/cco-booking-engine/runtime-catalog', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireStaffRole(context);
+      const readout = await bookingEngineStore.getRuntimeCatalog();
+      return res.json({
+        ok: true,
+        provider: 'cco_engine_runtime_catalog',
+        ...readout,
+      });
+    })
+  );
 
   router.get('/cco-booking-engine/catalog', async (req, res) =>
     handle(req, res, async () => {
@@ -651,6 +724,11 @@ function createCcoBookingEngineRouter({
           }
         }
       }
+      const staffNotify = await notifyStaffBookingEvent('confirm', {
+        ...booking,
+        customerName: context.customerName,
+        customerEmail: context.customerEmail,
+      });
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -659,6 +737,7 @@ function createCcoBookingEngineRouter({
         bookingEngine: summaryPayload(bookingEngine, bookingCase),
         patient360: patientPayload(patientRecord),
         journalSync,
+        staffNotify,
       });
     })
   );
@@ -685,6 +764,15 @@ function createCcoBookingEngineRouter({
         source: 'cco_booking_engine_cancel',
         includeTimelineEvent: true,
       });
+      const staffNotify = await notifyStaffBookingEvent(
+        'cancel',
+        {
+          ...(result?.booking || {}),
+          customerName: context.customerName,
+          customerEmail: context.customerEmail,
+        },
+        { reason: normalizeText(req.body?.reason) }
+      );
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -692,6 +780,7 @@ function createCcoBookingEngineRouter({
         bookingCase,
         bookingEngine: summaryPayload(bookingEngine, bookingCase),
         patient360: patientPayload(patientRecord),
+        staffNotify,
       });
     })
   );

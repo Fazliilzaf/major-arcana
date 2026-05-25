@@ -1,0 +1,827 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "Meridiq API live",
+  "count": 82,
+  "services": [
+    {
+      "apiId": 7097,
+      "name": "DHI Hårtransplantation: 1000 grafts",
+      "category": "DHI Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "49 000 kr",
+      "durationMin": 240,
+      "duration": "4 tim",
+      "active": true
+    },
+    {
+      "apiId": 7096,
+      "name": "DHI Hårtransplantation: 1500 grafts",
+      "category": "DHI Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "53 000 kr",
+      "durationMin": 300,
+      "duration": "5 tim",
+      "active": true
+    },
+    {
+      "apiId": 7095,
+      "name": "DHI Hårtransplantation: 2000 grafts",
+      "category": "DHI Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "57 000 kr",
+      "durationMin": 330,
+      "duration": "5 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7094,
+      "name": "DHI Hårtransplantation: 2500 grafts",
+      "category": "DHI Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "61 000 kr",
+      "durationMin": 360,
+      "duration": "6 tim",
+      "active": true
+    },
+    {
+      "apiId": 7093,
+      "name": "DHI Hårtransplantation: 3000 grafts",
+      "category": "DHI Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "65 000 kr",
+      "durationMin": 390,
+      "duration": "6 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7103,
+      "name": "DHI Hårtransplantation: PRP-efterbehandling",
+      "category": "DHI Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7414,
+      "name": "DHI Ärr",
+      "category": "DHI Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "—",
+      "durationMin": 180,
+      "duration": "3 tim",
+      "active": true
+    },
+    {
+      "apiId": 8727,
+      "name": "DHI Ärr: PRP-efterbehandling",
+      "category": "DHI Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7389,
+      "name": "DHI Skäggtransplantation 3000 grafts",
+      "category": "DHI Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "65 000 kr",
+      "durationMin": 390,
+      "duration": "6 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7127,
+      "name": "DHI Skäggtransplantation: 1000 grafts",
+      "category": "DHI Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "49 000 kr",
+      "durationMin": 240,
+      "duration": "4 tim",
+      "active": true
+    },
+    {
+      "apiId": 7144,
+      "name": "DHI Skäggtransplantation: 1500 grafts",
+      "category": "DHI Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "53 000 kr",
+      "durationMin": 300,
+      "duration": "5 tim",
+      "active": true
+    },
+    {
+      "apiId": 7387,
+      "name": "DHI Skäggtransplantation: 2000 grafts",
+      "category": "DHI Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "57 000 kr",
+      "durationMin": 330,
+      "duration": "5 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7388,
+      "name": "DHI Skäggtransplantation: 2500 grafts",
+      "category": "DHI Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "61 000 kr",
+      "durationMin": 360,
+      "duration": "6 tim",
+      "active": true
+    },
+    {
+      "apiId": 7135,
+      "name": "DHI Skäggtransplantation: PRP-efterbehandling",
+      "category": "DHI Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7104,
+      "name": "DHI Ögonbrynstransplantation",
+      "category": "DHI Ögonbrynstransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "25 000 kr",
+      "durationMin": 240,
+      "duration": "4 tim",
+      "active": true
+    },
+    {
+      "apiId": 7132,
+      "name": "DHI Ögonbrynstransplantation: PRP-efterbehandling",
+      "category": "DHI Ögonbrynstransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7385,
+      "name": "Botox Läpplyft (Lip Flip)",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "1 800 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7382,
+      "name": "Botox: 1 område",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "2 300 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7383,
+      "name": "Botox: 2 områden",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "2 800 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7384,
+      "name": "Botox: 3 områden",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "3 400 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7377,
+      "name": "Fillers: Läppar 0.5 ml",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "2 500 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7378,
+      "name": "Fillers: Läppar 1 ml",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "3 500 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7376,
+      "name": "Fillers: Nasolabialveck 1 ml",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "3 000 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7379,
+      "name": "Profhilo: 1 behandling",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "3 000 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7380,
+      "name": "Profhilo: 2 behandlingar",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "5 500 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7381,
+      "name": "Profhilo: 3 behandlingar",
+      "category": "Estetiska injektioner · Curatiio",
+      "brand": "Curatiio",
+      "price": "8 000 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7092,
+      "name": "FUE Hårtransplantation: 1000 grafts",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "39 000 kr",
+      "durationMin": 180,
+      "duration": "3 tim",
+      "active": true
+    },
+    {
+      "apiId": 7091,
+      "name": "FUE Hårtransplantation: 1500 grafts",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "43 000 kr",
+      "durationMin": 210,
+      "duration": "3 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7090,
+      "name": "FUE Hårtransplantation: 2000 grafts",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "47 000 kr",
+      "durationMin": 240,
+      "duration": "4 tim",
+      "active": true
+    },
+    {
+      "apiId": 7089,
+      "name": "FUE Hårtransplantation: 2500 grafts",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "51 000 kr",
+      "durationMin": 270,
+      "duration": "4 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7088,
+      "name": "FUE Hårtransplantation: 3000 grafts",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "55 000 kr",
+      "durationMin": 300,
+      "duration": "5 tim",
+      "active": true
+    },
+    {
+      "apiId": 7087,
+      "name": "FUE Hårtransplantation: 3500 grafts",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "59 000 kr",
+      "durationMin": 330,
+      "duration": "5 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7086,
+      "name": "FUE Hårtransplantation: 4000 grafts",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "63 000 kr",
+      "durationMin": 360,
+      "duration": "6 tim",
+      "active": true
+    },
+    {
+      "apiId": 7106,
+      "name": "FUE Hårtransplantation: 4500 grafts",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "67 000 kr",
+      "durationMin": 420,
+      "duration": "7 tim",
+      "active": true
+    },
+    {
+      "apiId": 7128,
+      "name": "FUE Hårtransplantation: PRP-efterbehandling",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7397,
+      "name": "FUE Skäggtransplantation: 1000 grafts",
+      "category": "FUE Hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "39 000 kr",
+      "durationMin": 180,
+      "duration": "3 tim",
+      "active": true
+    },
+    {
+      "apiId": 7398,
+      "name": "FUE Skäggtransplantation: 1500 grafts",
+      "category": "FUE Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "43 000 kr",
+      "durationMin": 210,
+      "duration": "3 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7399,
+      "name": "FUE Skäggtransplantation: 2000 grafts",
+      "category": "FUE Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "47 000 kr",
+      "durationMin": 240,
+      "duration": "4 tim",
+      "active": true
+    },
+    {
+      "apiId": 7400,
+      "name": "FUE Skäggtransplantation: 2500 grafts",
+      "category": "FUE Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "51 000 kr",
+      "durationMin": 270,
+      "duration": "4 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7401,
+      "name": "FUE Skäggtransplantation: 3000 grafts",
+      "category": "FUE Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "55 000 kr",
+      "durationMin": 300,
+      "duration": "5 tim",
+      "active": true
+    },
+    {
+      "apiId": 7404,
+      "name": "FUE Skäggtransplantation: PRP-efterbehandling",
+      "category": "FUE Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 8694,
+      "name": "Estetiska injektioner · Konsultation",
+      "category": "Konsultationer · Curatiio",
+      "brand": "Curatiio",
+      "price": "0 kr",
+      "durationMin": 20,
+      "duration": "20 min",
+      "active": true
+    },
+    {
+      "apiId": 7081,
+      "name": "Ortopediska injektionsbehandlingar · Konsultation",
+      "category": "Konsultationer · Curatiio",
+      "brand": "Curatiio",
+      "price": "0 kr",
+      "durationMin": 20,
+      "duration": "20 min",
+      "active": true
+    },
+    {
+      "apiId": 7080,
+      "name": "Ögonlocksplastik · Konsultation",
+      "category": "Konsultationer · Curatiio",
+      "brand": "Curatiio",
+      "price": "0 kr",
+      "durationMin": 20,
+      "duration": "20 min",
+      "active": true
+    },
+    {
+      "apiId": 7079,
+      "name": "Digitalt videosamtal · Onlinekonsultation",
+      "category": "Konsultationer · Hair TP Clinic",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7078,
+      "name": "Möte på kliniken · Fysisk konsultation",
+      "category": "Konsultationer · Hair TP Clinic",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7121,
+      "name": "Microneedling med PRP: Ansikte",
+      "category": "Microneedling med Dermapen",
+      "brand": "Hair TP Clinic",
+      "price": "5 800 kr",
+      "durationMin": 90,
+      "duration": "1 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7392,
+      "name": "Microneedling med PRP: Dekolletage",
+      "category": "Microneedling med Dermapen",
+      "brand": "Hair TP Clinic",
+      "price": "5 800 kr",
+      "durationMin": 90,
+      "duration": "1 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7393,
+      "name": "Microneedling med PRP: Hals",
+      "category": "Microneedling med Dermapen",
+      "brand": "Hair TP Clinic",
+      "price": "5 800 kr",
+      "durationMin": 90,
+      "duration": "1 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7394,
+      "name": "Microneedling med PRP: Händer",
+      "category": "Microneedling med Dermapen",
+      "brand": "Hair TP Clinic",
+      "price": "5 800 kr",
+      "durationMin": 90,
+      "duration": "1 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7396,
+      "name": "Tilläggsområde: PRP och Microneedling",
+      "category": "Microneedling med Dermapen",
+      "brand": "Hair TP Clinic",
+      "price": "1 500 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7406,
+      "name": "Ortopedisk PRF",
+      "category": "Ortopedi · Curatiio",
+      "brand": "Curatiio",
+      "price": "3 900 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7411,
+      "name": "Ortopedisk PRF med hyaluronsyra",
+      "category": "Ortopedi · Curatiio",
+      "brand": "Curatiio",
+      "price": "5 400 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7413,
+      "name": "Ortopedisk PRF: 3e behandlingen",
+      "category": "Ortopedi · Curatiio",
+      "brand": "Curatiio",
+      "price": "3 500 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7109,
+      "name": "Ortopedisk PRP",
+      "category": "Ortopedi · Curatiio",
+      "brand": "Curatiio",
+      "price": "3 900 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7124,
+      "name": "Ortopedisk PRP med hyaluronsyra",
+      "category": "Ortopedi · Curatiio",
+      "brand": "Curatiio",
+      "price": "5 400 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7412,
+      "name": "Ortopedisk PRP: 3e behandlingen",
+      "category": "Ortopedi · Curatiio",
+      "brand": "Curatiio",
+      "price": "3 500 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7123,
+      "name": "Ortopedisk hyaluronsyra",
+      "category": "Ortopedi · Curatiio",
+      "brand": "Curatiio",
+      "price": "2 500 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7117,
+      "name": "PRP: Ansikte",
+      "category": "PRP · Hud",
+      "brand": "Hair TP Clinic",
+      "price": "4 300 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7119,
+      "name": "PRP: Dekolletage",
+      "category": "PRP · Hud",
+      "brand": "Hair TP Clinic",
+      "price": "4 300 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7118,
+      "name": "PRP: Hals",
+      "category": "PRP · Hud",
+      "brand": "Hair TP Clinic",
+      "price": "4 300 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7120,
+      "name": "PRP: Händer",
+      "category": "PRP · Hud",
+      "brand": "Hair TP Clinic",
+      "price": "4 300 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7122,
+      "name": "Tilläggsområde: PRP Hud",
+      "category": "PRP · Hud",
+      "brand": "Hair TP Clinic",
+      "price": "1 500 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7114,
+      "name": "PRP: Hår Mini",
+      "category": "PRP · Hår",
+      "brand": "Hair TP Clinic",
+      "price": "2 500 kr",
+      "durationMin": 45,
+      "duration": "45 min",
+      "active": true
+    },
+    {
+      "apiId": 7112,
+      "name": "PRP: Hår Standard",
+      "category": "PRP · Hår",
+      "brand": "Hair TP Clinic",
+      "price": "4 300 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7113,
+      "name": "PRP: Hår XL",
+      "category": "PRP · Hår",
+      "brand": "Hair TP Clinic",
+      "price": "4 800 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7116,
+      "name": "PRP: Skägg",
+      "category": "PRP · Hår",
+      "brand": "Hair TP Clinic",
+      "price": "4 300 kr",
+      "durationMin": 60,
+      "duration": "1 tim",
+      "active": true
+    },
+    {
+      "apiId": 7133,
+      "name": "PRP: Underhållsbehandling TP",
+      "category": "PRP · Hår",
+      "brand": "Hair TP Clinic",
+      "price": "2 500 kr",
+      "durationMin": 45,
+      "duration": "45 min",
+      "active": true
+    },
+    {
+      "apiId": 7395,
+      "name": "Tilläggsomårde: PRP Hår",
+      "category": "PRP · Hår",
+      "brand": "Hair TP Clinic",
+      "price": "1 500 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 8952,
+      "name": "Uppföljning: Botox",
+      "category": "Uppföljning · Curatiio",
+      "brand": "Curatiio",
+      "price": "0 kr",
+      "durationMin": 20,
+      "duration": "20 min",
+      "active": true
+    },
+    {
+      "apiId": 8953,
+      "name": "Uppföljning: Filler",
+      "category": "Uppföljning · Curatiio",
+      "brand": "Curatiio",
+      "price": "0 kr",
+      "durationMin": 20,
+      "duration": "20 min",
+      "active": true
+    },
+    {
+      "apiId": 8954,
+      "name": "Uppföljning: Profilho",
+      "category": "Uppföljning · Curatiio",
+      "brand": "Curatiio",
+      "price": "0 kr",
+      "durationMin": 20,
+      "duration": "20 min",
+      "active": true
+    },
+    {
+      "apiId": 7410,
+      "name": "Uppföljning: Ögonlocksplastik",
+      "category": "Uppföljning · Curatiio",
+      "brand": "Curatiio",
+      "price": "0 kr",
+      "durationMin": 20,
+      "duration": "20 min",
+      "active": true
+    },
+    {
+      "apiId": 7107,
+      "name": "Ögonlocksplastik: Suturborttagning",
+      "category": "Uppföljning · Curatiio",
+      "brand": "Curatiio",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7130,
+      "name": "Uppföljning: Hårtransplantation DHI",
+      "category": "Uppföljning · Hair TP Clinic",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7131,
+      "name": "Uppföljning: Hårtransplantation FUE",
+      "category": "Uppföljning · Hair TP Clinic",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7137,
+      "name": "Uppföljning: Skäggtransplantation DHI",
+      "category": "Uppföljning · Hair TP Clinic",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7405,
+      "name": "Uppföljning: Skäggtransplantation FUE",
+      "category": "Uppföljning · Hair TP Clinic",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7134,
+      "name": "Uppföljning: Ögonbrynstransplantation DHI",
+      "category": "Uppföljning · Hair TP Clinic",
+      "brand": "Hair TP Clinic",
+      "price": "0 kr",
+      "durationMin": 30,
+      "duration": "30 min",
+      "active": true
+    },
+    {
+      "apiId": 7082,
+      "name": "Nedre ögonlocksplastik",
+      "category": "Ögonlocksplastik · Curatiio",
+      "brand": "Curatiio",
+      "price": "28 000 kr",
+      "durationMin": 150,
+      "duration": "2 tim, 30 min",
+      "active": true
+    },
+    {
+      "apiId": 7105,
+      "name": "Övre och nedre ögonlocksplastik",
+      "category": "Ögonlocksplastik · Curatiio",
+      "brand": "Curatiio",
+      "price": "44 000 kr",
+      "durationMin": 180,
+      "duration": "3 tim",
+      "active": true
+    },
+    {
+      "apiId": 7085,
+      "name": "Övre ögonlocksplastik",
+      "category": "Ögonlocksplastik · Curatiio",
+      "brand": "Curatiio",
+      "price": "24 000 kr",
+      "durationMin": 150,
+      "duration": "2 tim, 30 min",
+      "active": true
+    }
+  ]
+}

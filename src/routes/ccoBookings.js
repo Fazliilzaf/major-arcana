@@ -19,8 +19,12 @@ const {
 } = require('../ops/ccoBookingStore');
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
 const { assertTreatmentBookingAllowed } = require('../ops/ccoTreatmentBookingGate');
+const { buildCalendarSignalsIndex } = require('../ops/bookingCalendarSignals');
+const { buildMissingFormsReport } = require('../ops/ccoPatientCareOps');
+const { normalizeBookingReminderLeadTimeConfig } = require('../ops/bookingReminderLeadTime');
 
 const WORKSPACE_ID = 'major-arcana-preview';
+const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -358,6 +362,14 @@ function requireBookingContext(context) {
   throw error;
 }
 
+function requireStaffRole(context) {
+  const role = normalizeText(context?.actor?.role).toUpperCase();
+  if (STAFF_ROLES.has(role)) return;
+  const error = new Error('Otillräcklig behörighet.');
+  error.statusCode = 403;
+  throw error;
+}
+
 function toCaseInput(context, body = {}) {
   return {
     tenantId: context.tenantId,
@@ -424,6 +436,9 @@ function createCcoBookingsRouter({
   patientSystemStore = null,
   treatmentAgreementStore = null,
   patientMasterStore = null,
+  patientCareStateStore = null,
+  journalStore = null,
+  settingsStore = null,
   authStore,
   config,
 }) {
@@ -740,6 +755,78 @@ function createCcoBookingsRouter({
     })
   );
 
+  router.get('/cco-bookings/calendar-signals', async (req, res) =>
+    handle(req, res, async (context) => {
+      const fromDate = normalizeText(req.query.fromDate);
+      const toDate = normalizeText(req.query.toDate);
+      if (!fromDate || !toDate) {
+        return res.status(400).json({ error: 'availability_range_missing' });
+      }
+
+      let leadTimeConfig = normalizeBookingReminderLeadTimeConfig({});
+      if (settingsStore && typeof settingsStore.getTenantSettings === 'function') {
+        const settings = await settingsStore.getTenantSettings({ tenantId: context.tenantId });
+        leadTimeConfig = normalizeBookingReminderLeadTimeConfig(settings?.bookingReminderLeadTime);
+      }
+
+      const servicesById = new Map();
+      if (bookingEngineStore && typeof bookingEngineStore.listServices === 'function') {
+        const services = await bookingEngineStore.listServices();
+        asArray(services).forEach((service) => {
+          const id = normalizeText(service?.id);
+          if (id) servicesById.set(id, service);
+        });
+      }
+
+      const missingByEmail = new Map();
+      if (journalStore && patientMasterStore) {
+        const report = await buildMissingFormsReport({
+          patientMasterStore,
+          journalStore,
+          treatmentAgreementStore,
+          tenantId: context.tenantId,
+        });
+        asArray(report?.rows).forEach((row) => {
+          const email = normalizeKey(row?.primaryEmail);
+          if (!email) return;
+          missingByEmail.set(email, {
+            patientId: row.patientId || '',
+            missing: asArray(row.missing),
+          });
+        });
+      }
+
+      const rawCases = await bookingStore.listCases({
+        tenantId: context.tenantId,
+        sort: 'recent',
+        limit: 200,
+      });
+      const reminderLog =
+        patientCareStateStore && typeof patientCareStateStore.listReminderLog === 'function'
+          ? await patientCareStateStore.listReminderLog({ tenantId: context.tenantId })
+          : [];
+
+      const signals = buildCalendarSignalsIndex({
+        bookingCases: rawCases,
+        servicesById,
+        missingByEmail,
+        reminderLog,
+        leadTimeConfig,
+        fromDate,
+        toDate,
+      });
+
+      return res.json({
+        ok: true,
+        provider: 'cco_calendar_signals',
+        fromDate,
+        toDate,
+        leadTime: signals.leadTime,
+        byCaseId: signals.byCaseId,
+      });
+    })
+  );
+
   router.get('/cco-bookings/slots', async (req, res) =>
     handle(req, res, async (context) => {
       const fromDate = normalizeText(req.query.fromDate);
@@ -750,18 +837,26 @@ function createCcoBookingsRouter({
         return res.status(400).json({ error: 'availability_range_missing' });
       }
       if (bookingEngineStore && normalizeKey(req.query.provider) !== 'external') {
-        const slots = await bookingEngineStore.listAvailability({
-          tenantId: context.tenantId,
-          fromDate,
-          toDate,
-          resIds: resIds || '',
-          srvIds: srvIds || '',
-          excludeConversationId: normalizeText(req.query.conversationId),
-        });
+        const [slots, blocks] = await Promise.all([
+          bookingEngineStore.listAvailability({
+            tenantId: context.tenantId,
+            fromDate,
+            toDate,
+            resIds: resIds || '',
+            srvIds: srvIds || '',
+            excludeConversationId: normalizeText(req.query.conversationId),
+          }),
+          bookingEngineStore.listCalendarBlocks({
+            fromDate,
+            toDate,
+            resIds: resIds || '',
+          }),
+        ]);
         return res.json({
           raw: null,
           provider: 'cco_engine',
           slots,
+          blocks,
           bookingUrl: null,
         });
       }
@@ -784,6 +879,124 @@ function createCcoBookingsRouter({
     })
   );
 
+  router.get('/cco-bookings/calendar-blocks', async (req, res) =>
+    handle(req, res, async (context) => {
+      const fromDate = normalizeText(req.query.fromDate);
+      const toDate = normalizeText(req.query.toDate);
+      const resIds = normalizeCsvParam(req.query.resIds);
+      if (!fromDate || !toDate) {
+        return res.status(400).json({ error: 'availability_range_missing' });
+      }
+      if (!bookingEngineStore) {
+        return res.json({ provider: 'external', blocks: [] });
+      }
+      const blocks = await bookingEngineStore.listCalendarBlocks({
+        fromDate,
+        toDate,
+        resIds: resIds || '',
+      });
+      return res.json({ provider: 'cco_engine', blocks });
+    })
+  );
+
+  router.post('/cco-bookings/calendar-blocks', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireStaffRole(context);
+      if (!bookingEngineStore) {
+        return res.status(503).json({ error: 'booking_engine_disabled' });
+      }
+      const block = await bookingEngineStore.upsertCalendarBlock(req.body || {});
+      return res.json({ provider: 'cco_engine', block });
+    })
+  );
+
+  router.post('/cco-bookings/calendar/rebook', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireStaffRole(context);
+      if (!bookingEngineStore) {
+        return res.status(503).json({ error: 'booking_engine_disabled' });
+      }
+      const bookingCaseId = normalizeText(req.body?.bookingCaseId);
+      const slot = asObject(req.body?.slot);
+      if (!bookingCaseId || !normalizeText(slot.startsAt)) {
+        return res.status(400).json({ error: 'calendar_rebook_missing_fields' });
+      }
+      const bookingCase = bookingStore.findCaseByRef({
+        tenantId: context.tenantId,
+        caseRef: bookingCaseId,
+      });
+      if (!bookingCase) {
+        return res.status(404).json({ error: 'booking_case_not_found' });
+      }
+      const caseContext = {
+        ...context,
+        workspaceId: normalizeText(bookingCase.workspaceId) || context.workspaceId,
+        conversationId: normalizeText(bookingCase.conversationId),
+        customerEmail: normalizeText(bookingCase.customerEmail),
+        customerName: normalizeText(bookingCase.customerName),
+      };
+      requireBookingContext(caseContext);
+      await assertTreatmentBookingAllowed({
+        treatmentAgreementStore,
+        tenantId: caseContext.tenantId,
+        customerEmail: caseContext.customerEmail,
+        body: { ...req.body, selectedSlots: [slot], slot },
+      });
+      const booking = await bookingEngineStore.rebookBooking({
+        ...toCaseInput(caseContext, req.body),
+        selectedSlots: [slot],
+        slot,
+        reason: normalizeText(req.body?.reason) || 'Ombokad från kalendern',
+      });
+      let nextCase = await bookingStore.setCandidateSlots({
+        ...toCaseInput(caseContext, req.body),
+        selectedSlots: [booking.slot],
+      });
+      nextCase = await bookingStore.updateStatus({
+        ...toCaseInput(caseContext, req.body),
+        status: 'confirmed_external',
+        statusSource: 'cco_engine',
+      });
+      nextCase = await bookingStore.addEvent({
+        ...toCaseInput(caseContext, req.body),
+        type: 'engine_booking_rebooked',
+        label: 'Bokning ombokad i CCO',
+        detail: 'Tid flyttades via kalendern.',
+        metadata: {
+          bookingId: booking.bookingId,
+          slotId: booking.slot?.slotId,
+          previousBookingId: booking.previousBooking?.bookingId || '',
+          previousSlotId: booking.previousSlot?.slotId || '',
+          previousSlot: booking.previousSlot || null,
+          nextSlot: booking.slot || null,
+          source: 'calendar_drag',
+        },
+      });
+      const patientRecord = await syncBookingPatient360(caseContext, nextCase, {
+        source: 'cco_bookings_calendar_rebook',
+        includeTimelineEvent: true,
+      });
+      const bookingEngine = await bookingEngineStore.getCaseSummary(caseContext);
+      return res.json({
+        provider: 'cco_engine',
+        booking,
+        bookingCase: nextCase,
+        bookingEngine,
+        patient360: patientRecord
+          ? {
+              attention: patientRecord.patient360,
+              modules: patientRecord.modules,
+              identity: patientRecord.identity,
+              timelineCount: Array.isArray(patientRecord.timeline)
+                ? patientRecord.timeline.length
+                : 0,
+              updatedAt: patientRecord.updatedAt,
+            }
+          : null,
+      });
+    })
+  );
+
   router.get('/cco-bookings/ref-data', async (req, res) =>
     handle(req, res, async () => {
       if (bookingEngineStore && normalizeKey(req.query.provider) !== 'external') {
@@ -795,7 +1008,11 @@ function createCcoBookingsRouter({
           raw: null,
           provider: 'cco_engine',
           resources: resources.map((item) => ({ id: item.id, label: item.label })),
-          services: services.map((item) => ({ id: item.id, label: item.label })),
+          services: services.map((item) => ({
+            id: item.id,
+            label: item.label,
+            meetingMode: item.meetingMode || '',
+          })),
         });
       }
       if (!isClientoIntegrationEnabled()) {

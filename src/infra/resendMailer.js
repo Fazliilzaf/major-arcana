@@ -74,6 +74,15 @@ async function sendEmail(input = {}) {
     html: input.html || '',
     ...(input.text ? { text: input.text } : {}),
     ...(replyTo ? { reply_to: replyTo } : {}),
+    ...(Array.isArray(input.attachments) && input.attachments.length
+      ? {
+          attachments: input.attachments.map((item) => ({
+            filename: item.filename || 'attachment',
+            content: item.content,
+            content_type: item.contentType || item.content_type || 'application/octet-stream',
+          })),
+        }
+      : {}),
   };
 
   const headers = {

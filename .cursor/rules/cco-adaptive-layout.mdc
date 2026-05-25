@@ -1,0 +1,36 @@
+---
+description: CCO adaptive layout — mobile/tablet/desktop breakpoints for Arcana staff web UI
+globs: public/major-arcana-preview/**/*.{css,js,html}
+alwaysApply: false
+---
+
+# CCO Adaptive Layout (Arcana/CCO web)
+
+Full spec: `docs/strategy/cco-adaptive-layout-rules.md`
+
+**Scope:** `/staff`, `major-arcana-preview` only — not hairtpclinic.com, not legacy `/cco`.
+
+## Breakpoints (mobile-first)
+
+- Mobile: **≤767px** — one column, bottom tabbar, bottom sheets, no desktop tables
+- Tablet: **768–1023px** — split views where clarity improves (list + detail)
+- Desktop: **≥1024px** — mail-client workspace; preserve Major Arcana spacing (24px gaps, 32px page pad)
+
+Use tokens from `design-tokens.css` (`--cco-bp-*`, `--cco-mobile-*`, `--cco-tablet-*`). No random one-off sizes.
+
+## Before completing any UI task
+
+1. Answer: current task, next best action, essential info, what to hide on small screens
+2. Verify mentally or via Playwright: **320, 390, 768, 1024, 1440px**
+3. Check scroll: no clipped content, use `100dvh`, safe-area, Å/Ä/Ö not clipped
+4. Mobile tables → card/list; never force wide tables on phone
+5. **Compact ≠ collapsed whitespace** — fewer panels on mobile, same token family/shadows
+
+## CSS placement
+
+- New responsive rules → `cco-mobile-shell.css` or token file, `@layer components`
+- Avoid unpatchable additions to monolithic `styles.css` without reason
+
+## Do not mark UI done without
+
+Mobile + tablet + desktop behavior described, or green `verify:cco-mobile-pilot-prod` / `verify:staff-ui-prod`.

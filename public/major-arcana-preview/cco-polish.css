@@ -3184,22 +3184,136 @@
    konsistens mellan alla 3 fixed-positioned arbetsyta-shells.
    ════════════════════════════════════════════════════════════════════ */
 
-/* Kalender (.schedule-shell): byt rose-accent till violet */
-.schedule-mark {
-  color: #a35cd7;
-}
-.schedule-status-pill-rose {
-  color: #8b4fc3;
-  background: linear-gradient(180deg, rgba(247, 239, 255, 0.98) 0%, rgba(235, 222, 249, 0.92) 100%);
-}
-.schedule-section-label {
-  color: #8f3b67;
+/* Kalender (.schedule-shell): Hair TP taupe accent (inte violet SaaS) */
+.schedule-shell {
+  --schedule-accent: var(--cco-cal-accent, #cabbae);
+  --schedule-accent-soft: var(--cco-cal-accent-soft, #efe5de);
+  --schedule-espresso: var(--cco-cal-espresso, #513d34);
+  --schedule-espresso-soft: var(--cco-cal-espresso-soft, #7f6557);
+  --schedule-border: var(--cco-cal-border, rgba(120, 105, 90, 0.16));
+  --schedule-panel: var(--cco-cal-panel, rgba(250, 246, 242, 0.94));
+  --schedule-card: var(--cco-cal-card, rgba(252, 248, 244, 0.96));
+  font-family: var(--cco-cal-font-ui, "Jost", var(--cco-font-sans, Inter), system-ui, sans-serif);
 }
 
-/* Operationsspår / Bokningsyta (.booking-shell): byt accent till violet */
+.schedule-shell .schedule-surface {
+  border: 1px solid var(--schedule-border);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.42), transparent 34%),
+    linear-gradient(180deg, rgba(250, 246, 242, 0.98) 0%, rgba(245, 239, 232, 0.94) 100%);
+  box-shadow: var(--cco-cal-shadow, 0 8px 24px rgba(70, 50, 30, 0.08));
+}
+
+.schedule-shell .schedule-toolbar {
+  box-shadow: inset 0 -1px 0 rgba(202, 186, 174, 0.42);
+}
+
+.schedule-shell .schedule-toolbar-kicker {
+  color: var(--schedule-espresso-soft);
+}
+
+.schedule-shell .schedule-toolbar-main h2 {
+  font-family: var(--cco-cal-font-display, "Cormorant Garamond", Georgia, serif);
+  color: var(--schedule-espresso);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.schedule-mark {
+  color: var(--schedule-accent);
+}
+
+.schedule-status-pill-rose,
+.schedule-status-pill-neutral {
+  color: var(--schedule-espresso-soft);
+  background: linear-gradient(180deg, rgba(239, 229, 222, 0.98) 0%, rgba(202, 186, 174, 0.28) 100%);
+  border-color: rgba(255, 255, 255, 0.84);
+}
+
+.schedule-section-label {
+  color: var(--schedule-espresso);
+}
+
+.schedule-shell .schedule-section-pill {
+  color: var(--schedule-espresso-soft);
+  background: linear-gradient(180deg, rgba(239, 229, 222, 0.96) 0%, rgba(202, 186, 174, 0.22) 100%);
+  box-shadow:
+    0 4px 10px rgba(70, 50, 30, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.schedule-shell .schedule-recommendation-card,
+.schedule-shell .schedule-link-card {
+  border-color: var(--schedule-border);
+  background: linear-gradient(180deg, var(--schedule-card) 0%, rgba(245, 239, 232, 0.82) 100%);
+}
+
+.schedule-shell .schedule-recommendation-card span,
+.schedule-shell .schedule-link-label {
+  color: var(--schedule-espresso-soft);
+}
+
+.schedule-shell .schedule-recommendation-card strong {
+  color: var(--schedule-espresso);
+  font-family: var(--cco-cal-font-display, "Cormorant Garamond", Georgia, serif);
+  font-weight: 600;
+}
+
+.schedule-shell .schedule-link-card {
+  background: linear-gradient(180deg, rgba(239, 229, 222, 0.72) 0%, rgba(245, 239, 232, 0.88) 100%);
+}
+
+.schedule-shell .schedule-link-list li::before {
+  background: var(--schedule-accent);
+}
+
+.schedule-shell .schedule-field-label {
+  color: var(--schedule-espresso-soft);
+}
+
+.schedule-shell .schedule-input,
+.schedule-shell .schedule-select,
+.schedule-shell .schedule-textarea {
+  border-color: var(--schedule-border);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--schedule-espresso);
+}
+
+.schedule-shell .schedule-input:focus,
+.schedule-shell .schedule-select:focus,
+.schedule-shell .schedule-textarea:focus {
+  border-color: rgba(202, 186, 174, 0.85);
+  box-shadow: 0 0 0 3px rgba(202, 186, 174, 0.22);
+}
+
+.schedule-shell .schedule-field-hint {
+  color: var(--schedule-espresso-soft);
+}
+
+.schedule-shell .schedule-footer .note-footer-button-primary {
+  background: linear-gradient(180deg, rgba(202, 186, 174, 0.98) 0%, rgba(129, 105, 88, 0.92) 100%);
+  border-color: rgba(81, 61, 52, 0.18);
+  color: rgba(255, 252, 249, 0.98);
+  box-shadow:
+    0 8px 18px rgba(70, 50, 30, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.schedule-shell .schedule-layout::before {
+  background: linear-gradient(
+    180deg,
+    rgba(202, 186, 174, 0) 0%,
+    rgba(202, 186, 174, 0.18) 14%,
+    rgba(129, 105, 88, 0.24) 48%,
+    rgba(202, 186, 174, 0.18) 86%,
+    rgba(202, 186, 174, 0) 100%
+  );
+}
+
+/* Operationsspår / Bokningsyta (.booking-shell): Hair TP taupe accent */
 .booking-shell-status-pill {
-  color: #8b4fc3;
-  background: linear-gradient(180deg, rgba(247, 239, 255, 0.98) 0%, rgba(235, 222, 249, 0.92) 100%);
+  color: var(--cco-cal-espresso-soft, #7f6557);
+  background: linear-gradient(180deg, rgba(239, 229, 222, 0.98) 0%, rgba(202, 186, 174, 0.28) 100%);
   border: 1px solid rgba(255, 255, 255, 0.84);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
   font-size: 10.5px;
@@ -4875,15 +4989,15 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .customers-layout {
+  html:not([data-cco-tablet-shell='on']) .customers-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .customers-rail {
+  html:not([data-cco-tablet-shell='on']) .customers-rail {
     position: static;
   }
 
-  .customers-list {
+  html:not([data-cco-tablet-shell='on']) .customers-list {
     max-height: none;
     position: static;
   }

@@ -1,0 +1,76 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "cliento_migration",
+  "notes": "16 Cliento-resurser från resource-catalog.json. Plan A kväll/helg-slots + metadata per resurs×tjänst.",
+  "clientoResourceCount": 16,
+  "clientoResources": [
+    { "resId": "6677", "name": "Transplantation", "groupName": "Hair TP Clinic" },
+    { "resId": "7339", "name": "Arya Emami", "arcanaResourceId": "arya", "groupName": "Curatiio" },
+    { "resId": "7533", "name": "Fysisk konsultation", "virtualLane": true, "planAServiceId": "consultation-physical", "groupName": "Hair TP Clinic" },
+    { "resId": "7534", "name": "Clara", "arcanaResourceId": "clara", "groupName": "Hair TP Clinic" },
+    { "resId": "8173", "name": "Jessicka Bakhtiari", "groupName": "Curatiio" },
+    { "resId": "9122", "name": "Egzona [Curatiio]", "groupName": "Curatiio" },
+    { "resId": "9259", "name": "Online konsultation", "virtualLane": true, "planAServiceId": "consultation-online", "groupName": "Hair TP Clinic" },
+    { "resId": "9893", "name": "Louise", "arcanaResourceId": "louise", "groupName": "Hair TP Clinic" },
+    { "resId": "10300", "name": "Sabina Nordvall", "groupName": "Curatiio" },
+    { "resId": "10326", "name": "Egzona", "arcanaResourceId": "egzona", "groupName": "Hair TP Clinic" },
+    { "resId": "11329", "name": "Andrea", "groupName": "Hair TP Clinic" },
+    { "resId": "11414", "name": "Konsultation (rum)", "groupName": "Rum" },
+    { "resId": "11458", "name": "Fazli", "arcanaResourceId": "fazli", "groupName": "Hair TP Clinic" },
+    { "resId": "11501", "name": "Wendela", "arcanaResourceId": "wendela", "groupName": "Hair TP Clinic" },
+    { "resId": "11702", "name": "Bittan", "groupName": "Hair TP Clinic" },
+    { "resId": "11727", "name": "Veronica", "arcanaResourceId": "veronica", "groupName": "Hair TP Clinic" }
+  ],
+  "eveningWeekendRules": [
+    {
+      "ruleId": "rule-evening-cons-fazli",
+      "resourceId": "fazli",
+      "serviceId": "consultation-physical",
+      "weekdays": [1, 2, 3, 4, 5],
+      "startTimes": ["17:00", "17:30", "18:00"],
+      "locationLabel": "Hair TP Clinic",
+      "scheduleTier": "evening",
+      "active": true
+    },
+    {
+      "ruleId": "rule-evening-cons-egzona",
+      "resourceId": "egzona",
+      "serviceId": "consultation-physical",
+      "weekdays": [1, 2, 3, 4, 5],
+      "startTimes": ["17:00", "17:30", "18:00"],
+      "locationLabel": "Hair TP Clinic",
+      "scheduleTier": "evening",
+      "active": true
+    },
+    {
+      "ruleId": "rule-weekend-cons-fazli",
+      "resourceId": "fazli",
+      "serviceId": "consultation-physical",
+      "weekdays": [6],
+      "startTimes": ["10:00", "11:00", "12:00", "14:00", "15:00"],
+      "locationLabel": "Hair TP Clinic",
+      "scheduleTier": "weekend",
+      "active": true
+    },
+    {
+      "ruleId": "rule-weekend-cons-egzona",
+      "resourceId": "egzona",
+      "serviceId": "consultation-physical",
+      "weekdays": [6],
+      "startTimes": ["10:30", "11:30", "13:30", "14:30"],
+      "locationLabel": "Hair TP Clinic",
+      "scheduleTier": "weekend",
+      "active": true
+    },
+    {
+      "ruleId": "rule-evening-online-fazli",
+      "resourceId": "fazli",
+      "serviceId": "consultation-online",
+      "weekdays": [1, 2, 3, 4, 5],
+      "startTimes": ["17:00", "18:00"],
+      "locationLabel": "Online (videomöte)",
+      "scheduleTier": "evening",
+      "active": true
+    }
+  ]
+}

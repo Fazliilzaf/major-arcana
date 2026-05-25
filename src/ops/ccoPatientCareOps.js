@@ -1,5 +1,17 @@
 'use strict';
 
+const {
+  computeMaxLeadTimeHours,
+  DEFAULT_TOLERANCE_HOURS,
+  isWithinReminderLeadWindow,
+  normalizeBookingReminderLeadTimeConfig,
+  resolveBookingReminderLeadTimeHours,
+  resolveMeetingChannel,
+} = require('./bookingReminderLeadTime');
+const { createTransactionalMailer } = require('../infra/transactionalMailer');
+const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
+const { buildEmailIcsReminderKey } = require('./bookingCalendarSignals');
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -11,6 +23,10 @@ function normalizeText(value) {
 function parseIso(value) {
   const date = new Date(String(value || ''));
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
 function hoursUntil(iso) {
@@ -62,6 +78,8 @@ function buildDraftProposalFields(missing = []) {
     fields.healthDeclaration = {
       title: 'Hälsodeklaration',
       journalType: 'health_declaration',
+      formVariant: 'hair_tp',
+      sourceQuestionaryId: '16414',
       note: 'Föreslagen utkast — kräver personalgodkännande innan signering.',
     };
   }
@@ -73,6 +91,78 @@ function buildDraftProposalFields(missing = []) {
     };
   }
   return fields;
+}
+
+async function applyApprovedDraftProposal({
+  proposal,
+  journalStore,
+  patientMasterStore,
+  actor = {},
+} = {}) {
+  if (!proposal || normalizeText(proposal.status).toLowerCase() !== 'approved') {
+    return { applied: false, reason: 'not_approved' };
+  }
+  if (!journalStore?.upsertEntry) {
+    return { applied: false, reason: 'journal_store_missing' };
+  }
+
+  const tenantId = normalizeText(proposal.tenantId);
+  const patientId = normalizeText(proposal.patientId);
+  if (!tenantId || !patientId) {
+    return { applied: false, reason: 'missing_patient' };
+  }
+
+  let personnummer = '';
+  if (patientMasterStore?.getPatient) {
+    const patient = await patientMasterStore.getPatient({ tenantId, patientId });
+    personnummer = normalizeText(patient?.personnummer || patient?.personalId);
+  }
+
+  const entries = await listJournalEntriesSafe(journalStore, tenantId, patientId);
+  const draftFields = asObject(proposal.draftFields);
+  const created = [];
+
+  for (const spec of Object.values(draftFields)) {
+    const journalType = normalizeText(spec?.journalType);
+    if (!journalType) continue;
+    const hasSigned = entries.some(
+      (entry) => entry.journalType === journalType && isSignedEntry(entry)
+    );
+    if (hasSigned) {
+      created.push({ journalType, action: 'skipped_signed_exists' });
+      continue;
+    }
+    const openDraft = entries.find(
+      (entry) => entry.journalType === journalType && !isSignedEntry(entry)
+    );
+    if (openDraft) {
+      created.push({ journalType, entryId: openDraft.entryId, action: 'existing_draft' });
+      continue;
+    }
+    const entry = await journalStore.upsertEntry(
+      {
+        tenantId,
+        patientId,
+        personnummer,
+        journalType,
+        formVariant: normalizeText(spec.formVariant) || undefined,
+        sourceQuestionaryId: normalizeText(spec.sourceQuestionaryId) || undefined,
+        title: normalizeText(spec.title) || journalType,
+        source: 'cco_draft_proposal_approved',
+        status: 'draft',
+        fields: asObject(spec.fields),
+      },
+      { actor }
+    );
+    created.push({ journalType, entryId: entry.entryId, action: 'created' });
+  }
+
+  return {
+    applied: true,
+    proposalId: proposal.proposalId,
+    patientId,
+    created,
+  };
 }
 
 async function buildMissingFormsReport({
@@ -126,6 +216,7 @@ async function buildJournalDraftProposals({
   patientCareStateStore,
   tenantId,
   patientLimit = 100,
+  persist = true,
 } = {}) {
   const report = await buildMissingFormsReport({
     patientMasterStore,
@@ -139,24 +230,29 @@ async function buildJournalDraftProposals({
   for (const row of report.rows.slice(0, 50)) {
     const fields = buildDraftProposalFields(row.missing);
     if (!Object.keys(fields).length) continue;
-    const proposal = patientCareStateStore
-      ? await patientCareStateStore.upsertDraftProposal({
-          tenantId,
-          patientId: row.patientId,
-          status: 'pending',
-          reviewRequired: true,
-          source: 'cco_journal_draft_agent',
-          missing: row.missing,
-          displayName: row.displayName,
-          draftFields: fields,
-        })
-      : {
-          proposalId: `local-${row.patientId}`,
-          tenantId,
-          patientId: row.patientId,
-          status: 'pending',
-          draftFields: fields,
-        };
+    const proposal =
+      patientCareStateStore && persist
+        ? await patientCareStateStore.upsertDraftProposal({
+            tenantId,
+            patientId: row.patientId,
+            status: 'pending',
+            reviewRequired: true,
+            source: 'cco_journal_draft_agent',
+            missing: row.missing,
+            displayName: row.displayName,
+            draftFields: fields,
+          })
+        : {
+            proposalId: persist ? `local-${row.patientId}` : `preview-${row.patientId}`,
+            tenantId,
+            patientId: row.patientId,
+            status: 'pending',
+            reviewRequired: true,
+            source: 'cco_journal_draft_agent',
+            missing: row.missing,
+            displayName: row.displayName,
+            draftFields: fields,
+          };
     proposals.push(proposal);
   }
 
@@ -192,6 +288,7 @@ function listUpcomingBookings(bookingEngineStore, tenantId, withinHours = 48) {
       startsAt,
       hoursUntil: Math.round(hours * 10) / 10,
       serviceId: normalizeText(booking?.slot?.serviceId || booking.serviceId),
+      resourceId: normalizeText(booking?.slot?.resourceId || booking.resourceId),
     });
   }
 
@@ -209,10 +306,34 @@ function listUpcomingBookings(bookingEngineStore, tenantId, withinHours = 48) {
       startsAt,
       hoursUntil: Math.round(hours * 10) / 10,
       serviceId: normalizeText(reservation?.slot?.serviceId),
+      resourceId: normalizeText(reservation?.slot?.resourceId),
     });
   }
 
   return slots.sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
+}
+
+async function loadServicesById(bookingEngineStore) {
+  const map = new Map();
+  if (typeof bookingEngineStore?.listServices === 'function') {
+    const services = asArray(await bookingEngineStore.listServices());
+    for (const service of services) {
+      const id = normalizeText(service?.id);
+      if (id) map.set(id, service);
+    }
+  }
+  return map;
+}
+
+async function resolveLeadTimeConfig({ settingsStore, tenantId, leadTimeConfig = null } = {}) {
+  if (leadTimeConfig) {
+    return normalizeBookingReminderLeadTimeConfig(leadTimeConfig);
+  }
+  if (settingsStore && typeof settingsStore.getTenantSettings === 'function' && tenantId) {
+    const settings = await settingsStore.getTenantSettings({ tenantId });
+    return normalizeBookingReminderLeadTimeConfig(settings?.bookingReminderLeadTime);
+  }
+  return normalizeBookingReminderLeadTimeConfig({});
 }
 
 async function buildCustomerReminderQueue({
@@ -220,13 +341,40 @@ async function buildCustomerReminderQueue({
   journalStore,
   patientMasterStore = null,
   patientCareStateStore = null,
+  settingsStore = null,
   tenantId,
-  visitWithinHours = 48,
+  leadTimeConfig = null,
+  leadTimeToleranceHours = DEFAULT_TOLERANCE_HOURS,
+  visitWithinHours = null,
 } = {}) {
-  const visitCandidates = listUpcomingBookings(bookingEngineStore, tenantId, visitWithinHours);
+  const normalizedLeadTime = await resolveLeadTimeConfig({ settingsStore, tenantId, leadTimeConfig });
+  const scanWithinHours =
+    Number(visitWithinHours) > 0
+      ? Number(visitWithinHours)
+      : computeMaxLeadTimeHours(normalizedLeadTime) + Math.max(1, Number(leadTimeToleranceHours) || 1);
+  const visitCandidates = listUpcomingBookings(bookingEngineStore, tenantId, scanWithinHours);
+  const servicesById = await loadServicesById(bookingEngineStore);
   const visitReminders = [];
 
   for (const slot of visitCandidates) {
+    const service = servicesById.get(slot.serviceId) || { id: slot.serviceId };
+    const channel = resolveMeetingChannel(service);
+    const leadTimeHours = resolveBookingReminderLeadTimeHours({
+      config: normalizedLeadTime,
+      service,
+      resourceId: slot.resourceId,
+      channel,
+    });
+    if (
+      !isWithinReminderLeadWindow({
+        hoursUntilVisit: slot.hoursUntil,
+        leadTimeHours,
+        toleranceHours: leadTimeToleranceHours,
+      })
+    ) {
+      continue;
+    }
+
     const reminderKey = `visit:${slot.kind}:${slot.id}`;
     const alreadySent = patientCareStateStore
       ? await patientCareStateStore.wasReminderSent({ tenantId, reminderKey, withinHours: 72 })
@@ -234,9 +382,12 @@ async function buildCustomerReminderQueue({
     if (alreadySent) continue;
     visitReminders.push({
       ...slot,
+      tenantId,
       reminderType: 'visit_upcoming',
       reminderKey,
-      message: `Påminnelse: besök om ${slot.hoursUntil}h (${slot.startsAt})`,
+      channel,
+      leadTimeHours,
+      message: `Påminnelse: besök om ${slot.hoursUntil}h (lead ${leadTimeHours}h, ${slot.startsAt})`,
     });
   }
 
@@ -272,6 +423,7 @@ async function buildCustomerReminderQueue({
   return {
     generatedAt: new Date().toISOString(),
     tenantId,
+    leadTimePolicy: normalizedLeadTime,
     visitReminders,
     aftercareReminders,
     total: visitReminders.length + aftercareReminders.length,
@@ -324,6 +476,74 @@ async function dispatchCustomerReminderDigest({
   return { skipped: false, to: recipient, subject };
 }
 
+async function dispatchPatientVisitReminderEmails({
+  queue,
+  bookingEngineStore,
+  graphSendConnector,
+  patientCareStateStore = null,
+  fromEmail,
+  locale = 'sv',
+} = {}) {
+  const mailer = createTransactionalMailer({ graphSendConnector });
+  const servicesById = await loadServicesById(bookingEngineStore);
+  let sent = 0;
+  let skipped = 0;
+  const results = [];
+
+  for (const reminder of asArray(queue?.visitReminders)) {
+    const recipient = normalizeText(reminder.customerEmail);
+    if (!recipient || !recipient.includes('@')) {
+      skipped += 1;
+      continue;
+    }
+    const service = servicesById.get(reminder.serviceId) || { label: reminder.serviceId };
+    const content = buildBookingReminderEmail({
+      customerName: reminder.customerName,
+      serviceLabel: service.label,
+      startsAt: reminder.startsAt,
+      leadTimeHours: reminder.leadTimeHours,
+      locale,
+    });
+    const result = await mailer.sendEmail({
+      to: recipient,
+      from: normalizeText(fromEmail) || undefined,
+      subject: content.subject,
+      html: content.html,
+      text: `${content.text}\n\n--- calendar ---\n${content.ics}`,
+      attachments: [
+        {
+          filename: 'besok.ics',
+          content: Buffer.from(content.ics, 'utf8').toString('base64'),
+          contentType: 'text/calendar; charset=utf-8; method=PUBLISH',
+        },
+      ],
+    });
+    results.push({ recipient, ok: result.ok === true, provider: result.provider, mode: result.mode });
+    if (result.ok === true) {
+      sent += 1;
+      if (patientCareStateStore && typeof patientCareStateStore.logReminder === 'function') {
+        await patientCareStateStore.logReminder({
+          tenantId: normalizeText(reminder.tenantId),
+          reminderKey: buildEmailIcsReminderKey({ kind: reminder.kind, id: reminder.id }),
+          reminderType: 'visit_upcoming',
+          patientId: reminder.patientId,
+          channel: 'patient_email_ics',
+          metadata: {
+            startsAt: reminder.startsAt,
+            customerEmail: reminder.customerEmail,
+            includesIcs: true,
+            leadTimeHours: reminder.leadTimeHours,
+          },
+        });
+      }
+    } else {
+      skipped += 1;
+    }
+  }
+
+  return { sent, skipped, results };
+}
+
 function resolveMaintenanceWindow(config = {}) {
   const start = parseIso(config.maintenanceWindowStart);
   const end = parseIso(config.maintenanceWindowEnd);
@@ -343,11 +563,13 @@ function resolveMaintenanceWindow(config = {}) {
 }
 
 module.exports = {
+  applyApprovedDraftProposal,
   buildCustomerReminderQueue,
   buildJournalDraftProposals,
   buildMissingFormsReport,
   buildReminderDigestHtml,
   classifyMissingForms,
   dispatchCustomerReminderDigest,
+  dispatchPatientVisitReminderEmails,
   resolveMaintenanceWindow,
 };

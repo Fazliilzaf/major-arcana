@@ -1,7 +1,8 @@
 'use strict';
 
 (function initBookingMobileCalendarDay() {
-  const MQ = '(max-width: 768px)';
+  const MQ_MOBILE = '(max-width: 768px)';
+  const MQ_TABLET = '(min-width: 768px) and (max-width: 1023px)';
   const WEEKDAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
 
   let sheetEl = null;
@@ -14,14 +15,25 @@
   let viewMonth = null;
   let selectedIso = '';
   let monthSlotsByDate = new Map();
-  let monthBookedByDate = new Map();
 
   function isMobile() {
     try {
-      return window.matchMedia(MQ).matches;
+      return window.matchMedia(MQ_MOBILE).matches;
     } catch {
       return false;
     }
+  }
+
+  function isTablet() {
+    try {
+      return window.matchMedia(MQ_TABLET).matches;
+    } catch {
+      return false;
+    }
+  }
+
+  function isCalendarViewport() {
+    return isMobile() || isTablet();
   }
 
   function todayIso() {
@@ -203,8 +215,9 @@
           return '<span class="cco-mobile-calendar-day is-empty" aria-hidden="true"></span>';
         }
         const iso = cell.iso;
-        const available = monthSlotsByDate.get(iso)?.length || 0;
-        const booked = monthBookedByDate.get(iso) || 0;
+        const daySlots = monthSlotsByDate.get(iso) || [];
+        const booked = daySlots.filter((slot) => slot?.kind === 'booked').length;
+        const available = daySlots.filter((slot) => slot?.kind === 'available').length;
         const isToday = iso === today;
         const isSelected = iso === selectedIso;
         const classes = [
@@ -240,6 +253,7 @@
 
   function renderSlotRows(slots, isoDate) {
     if (!listEl) return;
+    const shared = window.ArcanaBookingCalendarShared;
     if (!slots.length) {
       listEl.innerHTML = `<li class="cco-mobile-calendar-empty">Inga tider ${isoDate === todayIso() ? 'idag' : 'denna dag'}. Tryck Ny bokning för att lägga in en tid.</li>`;
       return;
@@ -247,6 +261,9 @@
 
     listEl.innerHTML = slots
       .map((slot) => {
+        if (shared?.renderEventCard) {
+          return `<li class="cco-mobile-calendar-item">${shared.renderEventCard(slot, { compact: true })}</li>`;
+        }
         const time = formatTimeLabel(slot.startAt || slot.startsAt || slot.start || slot.time || slot.label);
         const title = slot.customerName || slot.title || slot.serviceLabel || slot.service || 'Bokning';
         const meta = slot.resourceLabel || slot.resource || slot.status || '';
@@ -262,86 +279,33 @@
       })
       .join('');
 
-    listEl.querySelectorAll('[data-calendar-slot]').forEach((button) => {
+    listEl.querySelectorAll('[data-cal-event], [data-calendar-slot]').forEach((button) => {
       button.addEventListener('click', () => {
+        let event = null;
+        try {
+          event = JSON.parse(button.getAttribute('data-cal-event') || button.getAttribute('data-calendar-slot') || '{}');
+        } catch {
+          event = null;
+        }
         setOpen(false);
+        const actions = window.ArcanaBookingCalendarActions;
+        if (event?.kind === 'booked') {
+          actions?.openBookingCase?.(event.bookingCaseSnapshot || event);
+          return;
+        }
+        if (event?.kind === 'available') {
+          actions?.openNewBookingFromSlot?.(event);
+          return;
+        }
         window.ArcanaMobileShell?.navigateToBooking?.();
       });
     });
   }
 
-  function collectDomBookingHints(isoDate) {
-    const hints = [];
-    document.querySelectorAll('.booking-live-slot, .booking-slot-list .is-selected, [data-booking-slot-label]').forEach((node) => {
-      const label = node.textContent?.trim();
-      if (!label) return;
-      hints.push({ label, title: label, startAt: isoDate });
-    });
-    return hints;
-  }
-
-  async function fetchRangeSlots(fromDate, toDate) {
-    const params = new URLSearchParams({ fromDate, toDate });
-    try {
-      const response = await fetch(`/api/v1/cco-bookings/slots?${params.toString()}`, {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) throw new Error('slots_unavailable');
-      const payload = await response.json();
-      return Array.isArray(payload?.slots) ? payload.slots : [];
-    } catch {
-      return collectDomBookingHints(fromDate);
-    }
-  }
-
-  async function fetchBookedCounts(fromDate, toDate) {
-    const counts = new Map();
-    try {
-      const response = await fetch('/api/v1/cco-bookings/cases?limit=200&sort=recent', {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) return counts;
-      const payload = await response.json();
-      const cases = Array.isArray(payload?.cases) ? payload.cases : [];
-      cases.forEach((bookingCase) => {
-        const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
-        slots.forEach((slot) => {
-          const iso = slotIsoDate(slot);
-          if (!iso || iso < fromDate || iso > toDate) return;
-          counts.set(iso, (counts.get(iso) || 0) + 1);
-        });
-      });
-    } catch {
-      /* best-effort */
-    }
-    return counts;
-  }
-
-  function indexSlotsByDate(slots) {
-    const map = new Map();
-    slots.forEach((slot) => {
-      const iso = slotIsoDate(slot);
-      if (!iso) return;
-      if (!map.has(iso)) map.set(iso, []);
-      map.get(iso).push(slot);
-    });
-    map.forEach((rows, iso) => {
-      rows.sort((a, b) => {
-        const left = Date.parse(a.startsAt || a.startAt || a.start || '') || 0;
-        const right = Date.parse(b.startsAt || b.startAt || b.start || '') || 0;
-        return left - right;
-      });
-      map.set(iso, rows);
-    });
-    return map;
-  }
-
   function renderNextAvailable(slots) {
     const nextEl = sheetEl?.querySelector('[data-calendar-next]');
     if (!nextEl) return;
-    const next = slots.find((slot) => slot.available !== false) || slots[0];
+    const next = slots.find((slot) => slot?.kind === 'available') || slots[0];
     if (!next) {
       nextEl.hidden = true;
       return;
@@ -366,9 +330,10 @@
     if (listEl) {
       listEl.innerHTML = '<li class="cco-mobile-calendar-loading">Hämtar kalender…</li>';
     }
-    const [slots, booked] = await Promise.all([fetchRangeSlots(first, last), fetchBookedCounts(first, last)]);
-    monthSlotsByDate = indexSlotsByDate(slots);
-    monthBookedByDate = booked;
+    const merged = shared?.fetchCalendarRange
+      ? await shared.fetchCalendarRange(first, last)
+      : { slotsByDate: new Map() };
+    monthSlotsByDate = merged.slotsByDate || new Map();
     if (!monthSlotsByDate.has(selectedIso) && selectedIso >= first && selectedIso <= last) {
       monthSlotsByDate.set(selectedIso, []);
     }
@@ -376,12 +341,19 @@
     await renderSelectedDay();
   }
 
-  function setOpen(nextOpen) {
+  function setOpen(nextOpen, options = {}) {
     ensureSheet();
+    if (nextOpen === true && !isCalendarViewport()) return;
     open = nextOpen === true;
+    if (open && options.focusDate) {
+      ensureViewMonth(options.focusDate);
+      selectedIso = options.focusDate;
+    }
     sheetEl.hidden = !open;
     sheetEl.dataset.open = open ? 'true' : 'false';
+    sheetEl.dataset.tabletMode = isTablet() ? 'true' : 'false';
     document.documentElement.toggleAttribute('data-cco-calendar-open', open);
+    window.ArcanaTabletShell?.refresh?.();
     if (open) {
       if (!selectedIso) ensureViewMonth(todayIso());
       void refresh();
@@ -392,11 +364,25 @@
     }
   }
 
+  try {
+    const onViewportChange = () => {
+      if (open && !isCalendarViewport()) setOpen(false);
+    };
+    window.matchMedia(MQ_MOBILE).addEventListener('change', onViewportChange);
+    window.matchMedia(MQ_TABLET).addEventListener('change', onViewportChange);
+  } catch {
+    window.addEventListener('resize', () => {
+      if (open && !isCalendarViewport()) setOpen(false);
+    });
+  }
+
   window.ArcanaBookingMobileCalendar = Object.freeze({
-    open: () => setOpen(true),
+    open: (options) => setOpen(true, options || {}),
     close: () => setOpen(false),
     refresh,
     isOpen: () => open,
+    isTablet: () => isTablet(),
+    isCalendarViewport,
     getSelectedDate: () => selectedIso,
     getViewMonth: () => ({ year: viewYear, month: viewMonth }),
   });

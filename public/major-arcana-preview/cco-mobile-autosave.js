@@ -1,14 +1,29 @@
 'use strict';
 
 (function initCcoMobileAutosave() {
-  const MQ = '(max-width: 768px)';
+  const MQ = '(max-width: 1023px)';
   const DEBOUNCE_MS = 2000;
   const PERIODIC_MS = 30000;
   const STORAGE_PREFIX = 'cco-journal-draft:';
 
+  const STEP_PANEL_SELECTOR =
+    '[data-clinical-step-panel], [data-tp-step-panel], [data-prp-step-panel], [data-follow-step-panel], [data-bleph-step-panel], [data-agreement-step-panel]';
+  const STEP_PROGRESS_SELECTOR =
+    '[data-clinical-step-progress], [data-tp-step-progress], [data-prp-step-progress], [data-follow-step-progress], [data-bleph-step-progress], [data-agreement-step-progress]';
+  const STEP_TITLE_SELECTOR =
+    '[data-clinical-step-title], [data-tp-step-title], [data-prp-step-title], [data-follow-step-title], [data-bleph-step-title], [data-agreement-step-title]';
+  const STEP_PREV_SELECTOR =
+    '[data-clinical-step-prev], [data-tp-step-prev], [data-prp-step-prev], [data-follow-step-prev], [data-bleph-step-prev], [data-agreement-step-prev]';
+  const STEP_NEXT_SELECTOR =
+    '[data-clinical-step-next], [data-tp-step-next], [data-prp-step-next], [data-follow-step-next], [data-bleph-step-next], [data-agreement-step-next]';
+  const JOURNAL_FORM_SELECTOR =
+    '[data-clinical-journal-save-form], [data-tp-journal-save-form], [data-prp-journal-save-form], [data-follow-journal-save-form], [data-bleph-journal-save-form], [data-agreement-mobile-shell]';
+  const FIELD_SELECTOR =
+    '[data-clinical-field], [data-tp-field], [data-prp-field], [data-follow-field], [data-bleph-field]';
+
   const bindings = new WeakMap();
 
-  function isMobile() {
+  function isCompactFormViewport() {
     try {
       return window.matchMedia(MQ).matches;
     } catch {
@@ -120,13 +135,34 @@
     }
   }
 
-  function applyFields(root, fields, fieldSelector, multiAttr) {
+  function readFieldKey(el) {
+    return (
+      el.dataset.clinicalField ||
+      el.dataset.tpField ||
+      el.dataset.prpField ||
+      el.dataset.followField ||
+      el.dataset.blephField ||
+      ''
+    );
+  }
+
+  function isMultiField(el) {
+    return (
+      el.dataset.clinicalMulti === 'true' ||
+      el.dataset.tpMulti === 'true' ||
+      el.dataset.prpMulti === 'true' ||
+      el.dataset.followMulti === 'true' ||
+      el.dataset.blephMulti === 'true'
+    );
+  }
+
+  function applyFields(root, fields) {
     if (!root || !fields || typeof fields !== 'object') return;
-    root.querySelectorAll(fieldSelector).forEach((el) => {
-      const key = el.dataset.clinicalField || el.dataset.tpField;
+    root.querySelectorAll(FIELD_SELECTOR).forEach((el) => {
+      const key = readFieldKey(el);
       if (!key || !(key in fields)) return;
       const value = fields[key];
-      if (el.dataset.clinicalMulti === 'true' || el.dataset.tpMulti === 'true') {
+      if (isMultiField(el)) {
         el.checked = Array.isArray(value) && value.includes(el.value);
         return;
       }
@@ -149,8 +185,19 @@
     });
   }
 
+  function resolveEntryRoot(form) {
+    return (
+      form.querySelector('[data-clinical-journal-form]') ||
+      form.querySelector('[data-tp-journal-form]') ||
+      form.querySelector('[data-prp-journal-form]') ||
+      form.querySelector('[data-follow-journal-form]') ||
+      form.querySelector('[data-bleph-journal-form]') ||
+      form
+    );
+  }
+
   function bindForm(form, options = {}) {
-    if (!form || !isMobile()) return;
+    if (!form || !isCompactFormViewport()) return;
     if (bindings.has(form)) return;
 
     const readFields = options.readFields;
@@ -158,10 +205,7 @@
     const patientId = options.patientId;
     const entryId = options.entryId;
     const formKey = options.formKey;
-    const entryRoot =
-      form.querySelector('[data-clinical-journal-form]') ||
-      form.querySelector('[data-tp-journal-form]') ||
-      form;
+    const entryRoot = resolveEntryRoot(form);
     const key = storageKey(patientId, entryId, formKey);
     if (!readFields || !key || !patientId || !entryId) return;
 
@@ -175,12 +219,7 @@
 
     const draft = readDraft(key);
     if (draft?.fields && entryRoot) {
-      applyFields(
-        entryRoot,
-        draft.fields,
-        '[data-clinical-field], [data-tp-field]',
-        true
-      );
+      applyFields(entryRoot, draft.fields);
       setIndicator('restored', entryRoot, formatTime(new Date(draft.savedAt || Date.now())));
       state.dirty = true;
     }
@@ -257,21 +296,20 @@
   }
 
   function initMobileStepper(form) {
-    if (!form || !isMobile()) return;
-    const panels = Array.from(form.querySelectorAll('[data-clinical-step-panel], [data-tp-step-panel]'));
+    if (!form || !isCompactFormViewport()) return;
+    const panels = Array.from(form.querySelectorAll(STEP_PANEL_SELECTOR));
     if (panels.length <= 1) return;
 
-    let step = Number(form.dataset.clinicalActiveStep || form.dataset.tpActiveStep || 0);
-    const progressEl = form.querySelector('[data-clinical-step-progress], [data-tp-step-progress]');
-    const titleEl = form.querySelector('[data-clinical-step-title], [data-tp-step-title]');
-    const prevBtn = form.querySelector('[data-clinical-step-prev], [data-tp-step-prev]');
-    const nextBtn = form.querySelector('[data-clinical-step-next], [data-tp-step-next]');
+    let step = Number(form.dataset.journalActiveStep || 0);
+    const progressEl = form.querySelector(STEP_PROGRESS_SELECTOR);
+    const titleEl = form.querySelector(STEP_TITLE_SELECTOR);
+    const prevBtn = form.querySelector(STEP_PREV_SELECTOR);
+    const nextBtn = form.querySelector(STEP_NEXT_SELECTOR);
     const saveBtn = form.querySelector('.patient-master-tp-save, [type="submit"]');
 
     function renderStep() {
       step = Math.max(0, Math.min(step, panels.length - 1));
-      form.dataset.clinicalActiveStep = String(step);
-      form.dataset.tpActiveStep = String(step);
+      form.dataset.journalActiveStep = String(step);
       panels.forEach((panel, index) => {
         panel.hidden = index !== step;
       });
@@ -289,19 +327,17 @@
     nextBtn?.addEventListener('click', () => {
       step += 1;
       renderStep();
-      panels[step]?.querySelector('input, select, textarea')?.focus?.();
+      panels[step]?.querySelector('input, select, textarea, button, a')?.focus?.();
     });
 
     renderStep();
   }
 
   function scanForms() {
-    if (!isMobile()) return;
-    document
-      .querySelectorAll('[data-clinical-journal-save-form], [data-tp-journal-save-form]')
-      .forEach((form) => {
-        initMobileStepper(form);
-      });
+    if (!isCompactFormViewport()) return;
+    document.querySelectorAll(JOURNAL_FORM_SELECTOR).forEach((form) => {
+      initMobileStepper(form);
+    });
   }
 
   window.addEventListener('DOMContentLoaded', scanForms);

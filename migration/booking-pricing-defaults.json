@@ -1,0 +1,48 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "cliento_migration",
+  "notes": "Cliento pris bas/kväll/helg. Kväll från 17:00 vardagar, helg lördag+söndag (UTC-slot-timme i motor tills Europe/Stockholm-lager).",
+  "globalRules": {
+    "eveningStartHour": 17,
+    "weekendDays": [0, 6],
+    "currency": "SEK"
+  },
+  "servicePricing": {
+    "consultation-online": {
+      "clientoSrvId": "44939",
+      "basePriceSek": 0,
+      "eveningPriceSek": 0,
+      "weekendPriceSek": 0
+    },
+    "consultation-physical": {
+      "clientoSrvId": "31779",
+      "basePriceSek": 0,
+      "eveningPriceSek": 0,
+      "weekendPriceSek": 0
+    },
+    "followup-transplant": {
+      "clientoSrvId": "63017",
+      "basePriceSek": 0,
+      "eveningPriceSek": 0,
+      "weekendPriceSek": 0
+    },
+    "prp-hair": {
+      "clientoSrvId": "31775",
+      "basePriceSek": 4300,
+      "eveningPriceSek": 4800,
+      "weekendPriceSek": 5200
+    },
+    "prp-skin": {
+      "clientoSrvId": "31776",
+      "basePriceSek": 4300,
+      "eveningPriceSek": 4800,
+      "weekendPriceSek": 5200
+    },
+    "microneedling": {
+      "clientoSrvId": "50553",
+      "basePriceSek": 5800,
+      "eveningPriceSek": 6400,
+      "weekendPriceSek": 6900
+    }
+  }
+}
