@@ -44,12 +44,10 @@ async function main() {
     fail('BE-02 public catalog disabled', `${catalog.status} ${catalog.body.error || ''}`);
   } else pass('BE-02 public catalog disabled');
 
-  const cliento = await getJson(
-    `${BASE}/api/public/cliento/slots?partnerId=1650&from=2026-06-01&to=2026-06-07`
-  );
+  const cliento = await getJson(`${BASE}/api/public/cliento/settings`);
   if (cliento.status !== 503 || cliento.body.error !== 'cliento_booking_disabled') {
-    fail('BE-03 cliento slots disabled', `${cliento.status} ${cliento.body.error || ''}`);
-  } else pass('BE-03 cliento slots disabled');
+    fail('BE-03 cliento integration disabled', `${cliento.status} ${cliento.body.error || ''}`);
+  } else pass('BE-03 cliento integration disabled');
 
   const postRes = await fetch(`${BASE}/api/public/booking-engine/reservations`, {
     method: 'POST',
