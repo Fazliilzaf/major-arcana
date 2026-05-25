@@ -53,6 +53,7 @@ function createCcoSettingsRouter({
           metadata: {
             theme: settings.theme,
             density: settings.density,
+            bookingReminderGlobalHours: settings.bookingReminderLeadTime?.globalDefaultHours,
           },
         });
         return res.json({ ok: true, settings });

@@ -3,6 +3,10 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { normalizeCcoMailFoundation } = require('./ccoMailboxSettingsDocument');
+const {
+  loadBookingReminderLeadTimeMigrationDefaults,
+  normalizeBookingReminderLeadTimeConfig,
+} = require('./bookingReminderLeadTime');
 
 const DEFAULT_TOGGLES = Object.freeze({
   googleCalendarSync: true,
@@ -141,6 +145,7 @@ function buildDefaultSettings() {
     profileEmail: 'din.email@hairtp.com',
     toggles: { ...DEFAULT_TOGGLES },
     mailFoundation: normalizeCcoMailFoundation(),
+    bookingReminderLeadTime: loadBookingReminderLeadTimeMigrationDefaults(),
     deleteRequestedAt: null,
   };
 }
@@ -154,6 +159,12 @@ function normalizeSettingsRecord(input = {}, previousRecord = {}) {
   const nextMailFoundation = Object.prototype.hasOwnProperty.call(input, 'mailFoundation')
     ? normalizeCcoMailFoundation(input.mailFoundation)
     : previousMailFoundation;
+  const previousLeadTime = normalizeBookingReminderLeadTimeConfig(
+    previousSettings.bookingReminderLeadTime
+  );
+  const nextLeadTime = Object.prototype.hasOwnProperty.call(input, 'bookingReminderLeadTime')
+    ? normalizeBookingReminderLeadTimeConfig(input.bookingReminderLeadTime, previousLeadTime)
+    : previousLeadTime;
   return {
     theme: normalizedTheme,
     density: normalizedDensity,
@@ -162,6 +173,7 @@ function normalizeSettingsRecord(input = {}, previousRecord = {}) {
     profileEmail: normalizeText(input.profileEmail) || defaults.profileEmail,
     toggles: normalizeToggles(input.toggles),
     mailFoundation: nextMailFoundation,
+    bookingReminderLeadTime: nextLeadTime,
     deleteRequestedAt: normalizeText(input.deleteRequestedAt) || null,
     updatedAt: normalizeText(input.updatedAt) || nowIso(),
   };

@@ -4883,6 +4883,54 @@
                         checked />
                     </label>
                   </div>
+                  <div class="settings-panel-subhead">
+                    <h3>Bokningspåminnelser (lead time)</h3>
+                    <p>Samma konfiguration för SMS (P6.10.4) och e-post/ICS (P6.10.5). Cliento-startvärden: 4 h online, 24 h fysisk.</p>
+                  </div>
+                  <div class="settings-toggle-list">
+                    <label class="settings-toggle-row">
+                      <div class="settings-toggle-copy">
+                        <strong>Global default</strong>
+                        <span>Timmar före besök om inget annat anges</span>
+                      </div>
+                      <input class="settings-number-input" type="number" min="1" max="168" step="1"
+                        data-settings-lead-time="globalDefaultHours" value="24" />
+                    </label>
+                    <label class="settings-toggle-row">
+                      <div class="settings-toggle-copy">
+                        <strong>Online-kanal</strong>
+                        <span>Override för onlinebesök (Cliento: 4 h)</span>
+                      </div>
+                      <input class="settings-number-input" type="number" min="1" max="168" step="1"
+                        data-settings-lead-time="channel_online" value="4" />
+                    </label>
+                    <label class="settings-toggle-row">
+                      <div class="settings-toggle-copy">
+                        <strong>Fysisk kanal</strong>
+                        <span>Override för fysiska besök (Cliento: 24 h)</span>
+                      </div>
+                      <input class="settings-number-input" type="number" min="1" max="168" step="1"
+                        data-settings-lead-time="channel_physical" value="24" />
+                    </label>
+                    <label class="settings-toggle-row settings-toggle-row--stack">
+                      <div class="settings-toggle-copy">
+                        <strong>Override per tjänst (JSON)</strong>
+                        <span>Tjänst-id → timmar, t.ex. <code>{"prp-hair": 48}</code></span>
+                      </div>
+                      <textarea class="settings-json-input" rows="2" spellcheck="false"
+                        data-settings-lead-time-json="serviceOverrides"
+                        placeholder='{"consultation-online": 4}'></textarea>
+                    </label>
+                    <label class="settings-toggle-row settings-toggle-row--stack">
+                      <div class="settings-toggle-copy">
+                        <strong>Override per resurs (JSON)</strong>
+                        <span>Resurs-id → timmar, t.ex. <code>{"fazli": 24}</code></span>
+                      </div>
+                      <textarea class="settings-json-input" rows="2" spellcheck="false"
+                        data-settings-lead-time-json="resourceOverrides"
+                        placeholder='{"fazli": 24}'></textarea>
+                    </label>
+                  </div>
                 </section>
 
                 <section class="settings-panel">

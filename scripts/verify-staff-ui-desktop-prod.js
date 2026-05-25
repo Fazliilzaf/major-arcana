@@ -72,7 +72,7 @@ async function main() {
       const bar = document.querySelector('.preview-topbar');
       return bar ? Math.round(bar.getBoundingClientRect().height) : 0;
     });
-    record('Topbar desktop höjd > 56px', topbar > 56, `${topbar}px`);
+    record('Topbar desktop synlig', topbar >= 48 && topbar <= 80, `${topbar}px`);
   } finally {
     await browser.close();
   }

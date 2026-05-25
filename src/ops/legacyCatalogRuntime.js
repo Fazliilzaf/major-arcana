@@ -44,6 +44,185 @@ function defaultDurationForService(serviceId = '') {
   return 60;
 }
 
+function collectMappedLegacyIds(entries = []) {
+  const clientoSrvIds = new Set();
+  const meridiqApiIds = new Set();
+
+  for (const entry of entries) {
+    const mapping = buildLegacyMapping(entry);
+    for (const srvId of asArray(mapping.cliento?.srvIds)) {
+      const normalized = normalizeText(String(srvId || ''));
+      if (normalized) clientoSrvIds.add(normalized);
+    }
+    const primaryCliento = normalizeText(String(mapping.cliento?.primarySrvId || ''));
+    if (primaryCliento) clientoSrvIds.add(primaryCliento);
+
+    for (const apiId of asArray(mapping.meridiq?.apiIds)) {
+      if (apiId == null) continue;
+      meridiqApiIds.add(String(apiId));
+    }
+    const primaryMeridiq = mapping.meridiq?.primaryApiId;
+    if (primaryMeridiq != null) meridiqApiIds.add(String(primaryMeridiq));
+  }
+
+  return { clientoSrvIds, meridiqApiIds };
+}
+
+function buildClientoDraftService(clientoService = {}) {
+  const srvId = normalizeText(String(clientoService.srvId || ''));
+  if (!srvId) return null;
+
+  const label = normalizeText(clientoService.name) || `Cliento ${srvId}`;
+  const brand =
+    normalizeText(clientoService.brand) || normalizeText(clientoService.groupName) || undefined;
+  const arcanaId = normalizeText(clientoService.arcanaId);
+  const id = arcanaId || `legacy-cliento-${srvId}`;
+
+  return {
+    id,
+    label,
+    durationMinutes: Number(clientoService.durationMin) || defaultDurationForService(label),
+    active: false,
+    publicBookable: false,
+    brand,
+    catalogSource: 'cliento_catalog',
+    legacyMapping: {
+      arcanaServiceId: arcanaId || null,
+      label,
+      brand: brand || null,
+      confidence: 'unmapped',
+      journalTypes: [],
+      cliento: {
+        primarySrvId: srvId,
+        srvIds: [srvId],
+        primaryName: label,
+        groupName: normalizeText(clientoService.groupName) || null,
+        webShowInBooking: clientoService.webShowInBooking === true,
+        webAllowBooking: clientoService.webAllowBooking === true,
+      },
+      meridiq: {},
+      notes: 'Unmapped Cliento catalog entry (inactive draft)',
+    },
+  };
+}
+
+function buildMeridiqDraftService(meridiqService = {}) {
+  const apiId = meridiqService.apiId;
+  if (apiId == null) return null;
+
+  const apiIdStr = String(apiId);
+  const label = normalizeText(meridiqService.name) || `Meridiq ${apiIdStr}`;
+  const brand = normalizeText(meridiqService.brand) || undefined;
+  const category = normalizeText(meridiqService.category);
+
+  return {
+    id: `legacy-meridiq-${apiIdStr}`,
+    label,
+    durationMinutes: Number(meridiqService.durationMin) || defaultDurationForService(label),
+    active: false,
+    publicBookable: false,
+    brand,
+    catalogSource: 'meridiq_catalog',
+    legacyMapping: {
+      arcanaServiceId: null,
+      label,
+      brand: brand || null,
+      confidence: 'unmapped',
+      journalTypes: [],
+      cliento: {},
+      meridiq: {
+        primaryApiId: Number(apiId),
+        apiIds: [Number(apiId)],
+        count: 1,
+        categories: category ? [category] : [],
+        primaryName: label,
+      },
+      notes: 'Unmapped Meridiq catalog entry (inactive draft)',
+    },
+  };
+}
+
+function mergeDraftService(existing, draft, planA) {
+  const isPlanA = planA.has(draft.id);
+  const merged = {
+    ...existing,
+    label: existing.label || draft.label,
+    durationMinutes: Number(existing.durationMinutes) || draft.durationMinutes,
+    brand: existing.brand || draft.brand || undefined,
+    catalogSource: existing.catalogSource || draft.catalogSource,
+    legacyMapping: {
+      ...(asObject(existing.legacyMapping) || {}),
+      ...draft.legacyMapping,
+      cliento: {
+        ...(asObject(existing.legacyMapping?.cliento) || {}),
+        ...draft.legacyMapping.cliento,
+      },
+      meridiq: {
+        ...(asObject(existing.legacyMapping?.meridiq) || {}),
+        ...draft.legacyMapping.meridiq,
+      },
+    },
+  };
+
+  if (!isPlanA) {
+    merged.active = existing.active === true ? existing.active : false;
+    merged.publicBookable = existing.publicBookable === true && isPlanA ? true : false;
+  }
+
+  return merged;
+}
+
+function promoteUnmappedLegacyServices(servicesById, bundle, entries, planA) {
+  const { clientoSrvIds, meridiqApiIds } = collectMappedLegacyIds(entries);
+  let changed = false;
+  let unmappedClientoPromoted = 0;
+  let unmappedMeridiqPromoted = 0;
+
+  for (const item of asArray(bundle?.catalogs?.clientoServices?.services)) {
+    const srvId = normalizeText(String(item.srvId || ''));
+    if (!srvId || clientoSrvIds.has(srvId)) continue;
+
+    const draft = buildClientoDraftService(item);
+    if (!draft) continue;
+
+    const existing = servicesById.get(draft.id);
+    if (existing) {
+      const merged = mergeDraftService(existing, draft, planA);
+      if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+        servicesById.set(draft.id, merged);
+        changed = true;
+      }
+    } else {
+      servicesById.set(draft.id, draft);
+      unmappedClientoPromoted += 1;
+      changed = true;
+    }
+  }
+
+  for (const item of asArray(bundle?.catalogs?.meridiqServices?.services)) {
+    const apiId = item.apiId;
+    if (apiId == null || meridiqApiIds.has(String(apiId))) continue;
+
+    const draft = buildMeridiqDraftService(item);
+    if (!draft) continue;
+
+    const existing = servicesById.get(draft.id);
+    if (existing) {
+      const merged = mergeDraftService(existing, draft, planA);
+      if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+        servicesById.set(draft.id, merged);
+        changed = true;
+      }
+    } else {
+      servicesById.set(draft.id, draft);
+      unmappedMeridiqPromoted += 1;
+      changed = true;
+    }
+  }
+
+  return { changed, unmappedClientoPromoted, unmappedMeridiqPromoted };
+}
+
 function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] } = {}) {
   const bundle = loadLegacyCatalogBundle();
   const entries = readTripleMapEntries(bundle);
@@ -95,6 +274,11 @@ function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] }
     }
   }
 
+  const unmapped = promoteUnmappedLegacyServices(servicesById, bundle, entries, planA);
+  if (unmapped.changed) {
+    changed = true;
+  }
+
   if (changed) {
     state.services = Array.from(servicesById.values());
   }
@@ -103,6 +287,8 @@ function mergeLegacyCatalogIntoEngineState(state, { planAPublicServiceIds = [] }
     changed,
     mappedCount: entries.length,
     serviceCount: servicesById.size,
+    unmappedClientoPromoted: unmapped.unmappedClientoPromoted,
+    unmappedMeridiqPromoted: unmapped.unmappedMeridiqPromoted,
     bundleCounts: bundle.counts,
   };
 }
@@ -111,6 +297,7 @@ function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], pl
   const planAServices = new Set(asArray(planAPublicServiceIds).map(normalizeText));
   const planAResources = new Set(asArray(planAPublicResourceIds).map(normalizeText));
   const bundle = loadLegacyCatalogBundle();
+  const tripleEntries = readTripleMapEntries(bundle);
 
   const services = asArray(state.services).map((service) => {
     const id = normalizeText(service.id);
@@ -138,13 +325,24 @@ function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], pl
     role: normalizeText(resource.role) || null,
   }));
 
+  const mapped = services.filter((item) => item.catalogSource === 'legacy_triple_map').length;
+  const unmapped = services.filter(
+    (item) => item.catalogSource === 'cliento_catalog' || item.catalogSource === 'meridiq_catalog'
+  ).length;
+  const planA = services.filter((item) => item.planA && item.publicBookable).length;
+
   const summary = {
     totalServices: services.length,
-    planAPublicServices: services.filter((item) => item.planA && item.publicBookable).length,
+    clientoTotal: Number(bundle.counts?.clientoServices || 0),
+    meridiqTotal: Number(bundle.counts?.meridiqServices || 0),
+    mapped,
+    unmapped,
+    planA,
+    planAPublicServices: planA,
     staffActiveServices: services.filter((item) => item.staffCatalogTier === 'staff_active').length,
     inactiveDraftServices: services.filter((item) => item.staffCatalogTier === 'inactive_draft').length,
     legacyMappedServices: services.filter((item) => item.legacyMapping).length,
-    tripleMapEntries: readTripleMapEntries(bundle).length,
+    tripleMapEntries: tripleEntries.length,
   };
 
   return {
@@ -166,6 +364,9 @@ function buildStaffRuntimeCatalogReadout(state, { planAPublicServiceIds = [], pl
 
 module.exports = {
   buildLegacyMapping,
+  buildClientoDraftService,
+  buildMeridiqDraftService,
+  collectMappedLegacyIds,
   mergeLegacyCatalogIntoEngineState,
   buildStaffRuntimeCatalogReadout,
   readTripleMapEntries,

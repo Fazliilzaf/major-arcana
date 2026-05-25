@@ -280,6 +280,7 @@ function createOpsRouter({
   bookingEngineStore = null,
   treatmentAgreementStore = null,
   patientCareStateStore = null,
+  ccoSettingsStore = null,
   requireAuth,
   requireRole,
 }) {
@@ -431,6 +432,7 @@ function createOpsRouter({
           journalStore,
           patientMasterStore,
           patientCareStateStore,
+          settingsStore: ccoSettingsStore,
           tenantId,
         });
         const cached = patientCareStateStore

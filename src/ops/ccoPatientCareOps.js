@@ -1,5 +1,14 @@
 'use strict';
 
+const {
+  computeMaxLeadTimeHours,
+  DEFAULT_TOLERANCE_HOURS,
+  isWithinReminderLeadWindow,
+  normalizeBookingReminderLeadTimeConfig,
+  resolveBookingReminderLeadTimeHours,
+  resolveMeetingChannel,
+} = require('./bookingReminderLeadTime');
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -276,6 +285,7 @@ function listUpcomingBookings(bookingEngineStore, tenantId, withinHours = 48) {
       startsAt,
       hoursUntil: Math.round(hours * 10) / 10,
       serviceId: normalizeText(booking?.slot?.serviceId || booking.serviceId),
+      resourceId: normalizeText(booking?.slot?.resourceId || booking.resourceId),
     });
   }
 
@@ -293,10 +303,34 @@ function listUpcomingBookings(bookingEngineStore, tenantId, withinHours = 48) {
       startsAt,
       hoursUntil: Math.round(hours * 10) / 10,
       serviceId: normalizeText(reservation?.slot?.serviceId),
+      resourceId: normalizeText(reservation?.slot?.resourceId),
     });
   }
 
   return slots.sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
+}
+
+async function loadServicesById(bookingEngineStore) {
+  const map = new Map();
+  if (typeof bookingEngineStore?.listServices === 'function') {
+    const services = asArray(await bookingEngineStore.listServices());
+    for (const service of services) {
+      const id = normalizeText(service?.id);
+      if (id) map.set(id, service);
+    }
+  }
+  return map;
+}
+
+async function resolveLeadTimeConfig({ settingsStore, tenantId, leadTimeConfig = null } = {}) {
+  if (leadTimeConfig) {
+    return normalizeBookingReminderLeadTimeConfig(leadTimeConfig);
+  }
+  if (settingsStore && typeof settingsStore.getTenantSettings === 'function' && tenantId) {
+    const settings = await settingsStore.getTenantSettings({ tenantId });
+    return normalizeBookingReminderLeadTimeConfig(settings?.bookingReminderLeadTime);
+  }
+  return normalizeBookingReminderLeadTimeConfig({});
 }
 
 async function buildCustomerReminderQueue({
@@ -304,13 +338,40 @@ async function buildCustomerReminderQueue({
   journalStore,
   patientMasterStore = null,
   patientCareStateStore = null,
+  settingsStore = null,
   tenantId,
-  visitWithinHours = 48,
+  leadTimeConfig = null,
+  leadTimeToleranceHours = DEFAULT_TOLERANCE_HOURS,
+  visitWithinHours = null,
 } = {}) {
-  const visitCandidates = listUpcomingBookings(bookingEngineStore, tenantId, visitWithinHours);
+  const normalizedLeadTime = await resolveLeadTimeConfig({ settingsStore, tenantId, leadTimeConfig });
+  const scanWithinHours =
+    Number(visitWithinHours) > 0
+      ? Number(visitWithinHours)
+      : computeMaxLeadTimeHours(normalizedLeadTime) + Math.max(1, Number(leadTimeToleranceHours) || 1);
+  const visitCandidates = listUpcomingBookings(bookingEngineStore, tenantId, scanWithinHours);
+  const servicesById = await loadServicesById(bookingEngineStore);
   const visitReminders = [];
 
   for (const slot of visitCandidates) {
+    const service = servicesById.get(slot.serviceId) || { id: slot.serviceId };
+    const channel = resolveMeetingChannel(service);
+    const leadTimeHours = resolveBookingReminderLeadTimeHours({
+      config: normalizedLeadTime,
+      service,
+      resourceId: slot.resourceId,
+      channel,
+    });
+    if (
+      !isWithinReminderLeadWindow({
+        hoursUntilVisit: slot.hoursUntil,
+        leadTimeHours,
+        toleranceHours: leadTimeToleranceHours,
+      })
+    ) {
+      continue;
+    }
+
     const reminderKey = `visit:${slot.kind}:${slot.id}`;
     const alreadySent = patientCareStateStore
       ? await patientCareStateStore.wasReminderSent({ tenantId, reminderKey, withinHours: 72 })
@@ -320,7 +381,9 @@ async function buildCustomerReminderQueue({
       ...slot,
       reminderType: 'visit_upcoming',
       reminderKey,
-      message: `Påminnelse: besök om ${slot.hoursUntil}h (${slot.startsAt})`,
+      channel,
+      leadTimeHours,
+      message: `Påminnelse: besök om ${slot.hoursUntil}h (lead ${leadTimeHours}h, ${slot.startsAt})`,
     });
   }
 
@@ -356,6 +419,7 @@ async function buildCustomerReminderQueue({
   return {
     generatedAt: new Date().toISOString(),
     tenantId,
+    leadTimePolicy: normalizedLeadTime,
     visitReminders,
     aftercareReminders,
     total: visitReminders.length + aftercareReminders.length,
