@@ -36,6 +36,14 @@
     new: 'Ny i Arcana',
   };
 
+  const MISSING_FORM_LABELS = {
+    health_declaration: 'Hälsodeklaration saknas',
+    health_declaration_signature: 'Hälsodeklaration ej signerad',
+    consultation_plan: 'Behandlingsplan saknas',
+    consultation_plan_signature: 'Behandlingsplan ej signerad',
+    treatment_agreement: 'Behandlingsavtal saknas eller ej bokningsbart',
+  };
+
   const JOURNAL_TYPE_LABELS = {
     historical_import: 'Importerad journal',
     tp_treatment: 'TP-journal',
@@ -82,6 +90,9 @@
     stats: null,
     reviewGroups: null,
     reviewGroupsLoading: false,
+    draftProposals: null,
+    draftProposalsLoading: false,
+    draftProposalsPatientId: '',
     preferJournalOnMobile: false,
     pendingPatientId: '',
     pendingPasswordSetup: null,
@@ -1000,6 +1011,115 @@
       await loadReviewGroups();
     } catch (error) {
       setStatus(error.message || 'Kunde inte ignorera gruppen.', 'error');
+    }
+  }
+
+  function renderDraftProposalFieldList(proposal) {
+    const fields =
+      proposal?.draftFields && typeof proposal.draftFields === 'object' ? proposal.draftFields : {};
+    const rows = Object.values(fields)
+      .map((field) => {
+        const title = normalizeText(field?.title) || normalizeText(field?.journalType) || 'Utkast';
+        const note = normalizeText(field?.note);
+        return `<li><strong>${escapeHtml(title)}</strong>${note ? `<span>${escapeHtml(note)}</span>` : ''}</li>`;
+      })
+      .join('');
+    return rows || '<li>Föreslaget journalutkast</li>';
+  }
+
+  function renderDraftProposalsPanel() {
+    if (needsStaffLogin()) return '';
+    if (runtime.draftProposalsLoading || runtime.draftProposals === null) {
+      return `
+          <article class="focus-customer-data-card patient-master-draft-proposals-card review-draft-proposal" data-patient-draft-proposals-host>
+            <h4>CCO journalutkast</h4>
+            <p class="patient-master-muted">Läser föreslagna utkast…</p>
+          </article>`;
+    }
+    const proposals = asArray(runtime.draftProposals);
+    if (!proposals.length) {
+      return `
+          <article class="focus-customer-data-card patient-master-draft-proposals-card review-draft-proposal" data-patient-draft-proposals-host>
+            <h4>CCO journalutkast</h4>
+            <p class="patient-master-muted">Inga väntande utkast för denna patient.</p>
+          </article>`;
+    }
+    const cards = proposals
+      .map((proposal) => {
+        const missing = asArray(proposal.missing)
+          .map((key) => MISSING_FORM_LABELS[key] || key)
+          .filter(Boolean)
+          .join(' · ');
+        return `
+          <article class="patient-master-draft-proposal review-draft-proposal" data-patient-draft-proposal="${escapeHtml(proposal.proposalId)}">
+            <p class="patient-master-muted">${escapeHtml(missing || 'Saknade steg')} · kräver godkännande</p>
+            <ul class="patient-master-draft-proposal-fields">${renderDraftProposalFieldList(proposal)}</ul>
+            <div class="patient-master-draft-proposal-actions">
+              <button type="button" class="customers-utility-button" data-review-draft-proposal="approved" data-review-draft-proposal-id="${escapeHtml(proposal.proposalId)}">Godkänn</button>
+              <button type="button" class="customers-utility-button" data-review-draft-proposal="dismissed" data-review-draft-proposal-id="${escapeHtml(proposal.proposalId)}">Avvisa</button>
+            </div>
+          </article>`;
+      })
+      .join('');
+    return `
+          <article class="focus-customer-data-card patient-master-draft-proposals-card review-draft-proposal" data-patient-draft-proposals-host>
+            <h4>CCO journalutkast</h4>
+            <p class="patient-master-muted">${proposals.length} väntande förslag (J-8.2). Godkänn eller avvisa efter granskning.</p>
+            ${cards}
+          </article>`;
+  }
+
+  function refreshDraftProposalsHost() {
+    if (runtime.detailTab !== 'journal') return;
+    const host = els.patientRail?.querySelector('[data-patient-draft-proposals-host]');
+    if (!host) return;
+    host.outerHTML = renderDraftProposalsPanel().trim();
+  }
+
+  async function loadDraftProposals(patientId) {
+    const id = normalizeText(patientId || runtime.selectedPatientId);
+    if (!id || needsStaffLogin()) {
+      runtime.draftProposals = [];
+      runtime.draftProposalsPatientId = id;
+      refreshDraftProposalsHost();
+      return;
+    }
+    if (runtime.draftProposalsLoading && runtime.draftProposalsPatientId === id) return;
+    runtime.draftProposalsLoading = true;
+    runtime.draftProposalsPatientId = id;
+    refreshDraftProposalsHost();
+    try {
+      const payload = await apiRequest(
+        `/api/v1/ops/cco-care/draft-proposals?patientId=${encodeURIComponent(id)}&status=pending&limit=20`
+      );
+      if (normalizeText(runtime.selectedPatientId) !== id) return;
+      runtime.draftProposals = asArray(payload.proposals);
+    } catch (error) {
+      if (normalizeText(runtime.selectedPatientId) === id) {
+        runtime.draftProposals = [];
+      }
+      console.warn('Draft proposals misslyckades.', error);
+    } finally {
+      runtime.draftProposalsLoading = false;
+      if (normalizeText(runtime.selectedPatientId) === id) {
+        refreshDraftProposalsHost();
+      }
+    }
+  }
+
+  async function reviewDraftProposal(proposalId, status) {
+    const id = normalizeText(proposalId);
+    const nextStatus = normalizeText(status).toLowerCase();
+    if (!id || !['approved', 'dismissed'].includes(nextStatus)) return;
+    try {
+      await apiRequest(`/api/v1/ops/cco-care/draft-proposals/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: { status: nextStatus },
+      });
+      setStatus(nextStatus === 'approved' ? 'Journalutkast godkänt.' : 'Journalutkast avvisat.', 'success');
+      await loadDraftProposals(runtime.selectedPatientId);
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte uppdatera journalutkast.', 'error');
     }
   }
 
@@ -3412,6 +3532,7 @@
         </div>
 
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
+          ${renderDraftProposalsPanel()}
           ${card.journalBlocked
         ? `<p class="patient-master-block-banner">Journalen är spärrad${card.journalBlockReason ? `: ${escapeHtml(card.journalBlockReason)}` : ''}. Nya eller ändrade poster blockeras.</p>`
         : ''
@@ -3439,6 +3560,12 @@
     window.requestAnimationFrame(() => {
       bindJournalAutosaveForms();
       focusTimelineSegmentIfNeeded(els.patientRail);
+      if (journalActive && card?.patientId) {
+        if (runtime.draftProposalsPatientId !== normalizeText(card.patientId)) {
+          runtime.draftProposals = null;
+        }
+        void loadDraftProposals(card.patientId);
+      }
     });
   }
 
@@ -3791,6 +3918,9 @@
       runtime.editingBlephEntryId = '';
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
+      runtime.draftProposals = null;
+      runtime.draftProposalsPatientId = '';
+      runtime.draftProposalsLoading = false;
     }
     runtime.selectedPatientId = patientId;
     if (isMobileViewport() && runtime.preferJournalOnMobile) {
@@ -4913,6 +5043,15 @@
       const clearPlanPhotosButton = event.target.closest('[data-patient-clear-plan-photos]');
       if (clearPlanPhotosButton && runtime.mode === 'register') {
         void deleteAllConsultationPhotos(clearPlanPhotosButton.dataset.patientClearPlanPhotos);
+        return;
+      }
+
+      const draftReviewButton = event.target.closest('[data-review-draft-proposal]');
+      if (draftReviewButton && runtime.mode === 'register') {
+        void reviewDraftProposal(
+          draftReviewButton.dataset.reviewDraftProposalId,
+          draftReviewButton.dataset.reviewDraftProposal
+        );
         return;
       }
 
