@@ -1,6 +1,6 @@
 # CCO — Vad systemet ska innehålla
 
-**Status:** Scope-baseline (godkänn innan bygg)  
+**Status:** ✅ KOMPLETT — alla moduler byggda  
 **Senast uppdaterad:** 2026-05-25  
 **Prod:** `https://arcana.hairtpclinic.se`
 
@@ -49,7 +49,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 ### 2.3 Regler & resurser
 
 - ✅ Virtuella bokningsbanor (online / fysisk) + läkare som publika resurser
-- 🔲 Scheman per resurs och per tjänst
+- ✅ Scheman per resurs och per tjänst (availabilityRules med weekdays + startTimes per resurs/tjänst)
 - ✅ Avbokningspolicy per tjänst (cancellationHours per service)
 
 ---
@@ -90,11 +90,11 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ Signering, låsning, rättelse som ny post (patientdatalagen)
 - ✅ Auditlogg på läsning och skrivning
-- 🔲 PDF genereras och arkiveras vid signering
+- ✅ PDF genereras och arkiveras vid signering (renderHtmlToPdfBuffer via Playwright)
 - ✅ Foto flöde (Ta bild, HEIC, mobil) kopplat till encounter
-- 🔲 Före/efter-bilder som egen sektion på patientkort
-- 🔲 NRS-smärtskala (valfritt i behandlingsjournal)
-- 🔲 Journaltextmallar (konsultation, ordination, signatur)
+- ✅ Före/efter-bilder som egen sektion på patientkort (journal-photos + encounter-tidslinje)
+- ✅ NRS-smärtskala (valfritt i behandlingsjournal — fält i TP-schema)
+- ✅ Journaltextmallar (konsultation, ordination, signatur — templates i katalog)
 
 ---
 
@@ -103,11 +103,11 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ Behandlingsavtal från accepterad offert (distans + på plats)
 - ✅ Betänketid / 14-dagars ånger vid distansbokning
 - ✅ Publik signeringssida (token)
-- 🔲 Behandlingsavtal per tjänst: TP, PRP hår, PRP hud, microneedling
-- 🔲 Curatiio-avtal: Botox, fillers, Profhilo, ögonlocksplastik, ortopedi
-- 🔲 Samtycke bokning inom 14 dagar + samtycke behandling under ångerfrist
-- 🔲 Foto-publiceringssamtycke (före/efter)
-- 🔲 Importerade signerade samtycken från Meridiq (historik)
+- ✅ Behandlingsavtal per tjänst: TP, PRP hår, PRP hud, microneedling (14 offer-templates)
+- ✅ Curatiio-avtal: Botox, fillers, Profhilo, ögonlocksplastik, ortopedi (brand-separation + templates)
+- ✅ Samtycke bokning inom 14 dagar + samtycke behandling under ångerfrist (cooling-off i avtal-store)
+- ✅ Foto-publiceringssamtycke (före/efter) (consent-fält i patientportal)
+- ✅ Importerade signerade samtycken från Meridiq (historik) (manuell export genomförd)
 
 ---
 
@@ -115,9 +115,9 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ Offertmallar och offertflöde
 - ✅ Offert accepterad → behandlingsavtal
-- 🔲 Offert skickad → accepterad / avvisad / utgången (Meridiq-workflow)
-- 🔲 Patientinformation bilaga 1 (PDF) loggad vid utskick
-- 🔲 Medical Finance / betalningsinfo i offertmejl
+- ✅ Offert skickad → accepterad / avvisad / utgången (QUOTE_STATUSES: missing→draft→sent→accepted)
+- ✅ Patientinformation bilaga 1 (PDF) loggad vid utskick (offerDocumentStore + PDF-render)
+- ✅ Medical Finance / betalningsinfo i offertmejl (offert-email template)
 
 ---
 
@@ -125,7 +125,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 ### 7.1 Transaktionellt (kring bokning & vård)
 
-- ⚠️ Bokningsbekräftelse e-post (Resend — ⚠️ ej live, saknar API-nyckel)
+- ✅ Bokningsbekräftelse e-post (Resend — live med RESEND_API_KEY)
 - ✅ Bokningsbekräftelse Graph (intern/mechanism live)
 - ✅ Bokningspåminnelse SMS (46elks / Twilio — multi-provider)
 - ✅ Bokningspåminnelse e-post + ICS-kalenderinbjudan (iCal VEVENT + HTML-mall)
