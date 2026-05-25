@@ -392,6 +392,7 @@ function createOpsRouter({
             patientCareStateStore,
             tenantId,
             patientLimit: limit,
+            persist: false,
           });
         }
         return res.json({
