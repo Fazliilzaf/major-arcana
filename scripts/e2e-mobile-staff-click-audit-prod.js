@@ -196,15 +196,39 @@ async function main() {
       bundleSplitInfo.splitActive ? 'staff-core + deferred' : 'ej aktiv'
     );
     if (bundleSplitInfo.splitActive) {
+      if (!bundleSplitInfo.staffCoreLoaded) {
+        await page.waitForFunction(
+          () =>
+            performance
+              .getEntriesByType('resource')
+              .some((entry) => /app\.bundle\.staff-core\.[a-f0-9]+\.min\.js/.test(entry.name)),
+          undefined,
+          { timeout: 6000, polling: 100 }
+        ).catch(() => {});
+      }
+      const staffCoreLoaded = await page.evaluate(() =>
+        performance
+          .getEntriesByType('resource')
+          .some((entry) => /app\.bundle\.staff-core\.[a-f0-9]+\.min\.js/.test(entry.name))
+      );
       record(
         'Staff-core bundle laddad',
-        bundleSplitInfo.staffCoreLoaded,
-        bundleSplitInfo.staffCoreLoaded ? 'app.bundle.staff-core' : 'saknas'
+        staffCoreLoaded,
+        staffCoreLoaded ? 'app.bundle.staff-core' : 'saknas'
+      );
+      const fullBundleLoaded = await page.evaluate(() =>
+        performance
+          .getEntriesByType('resource')
+          .some(
+            (entry) =>
+              /app\.bundle\.[a-f0-9]+\.min\.js/.test(entry.name) &&
+              !/app\.bundle\.staff-(core|deferred)\./.test(entry.name)
+          )
       );
       record(
         'Full bundle ej laddad (split)',
-        !bundleSplitInfo.fullBundleLoaded,
-        bundleSplitInfo.fullBundleLoaded ? 'full bundle laddades trots split' : 'ok'
+        !fullBundleLoaded,
+        fullBundleLoaded ? 'full bundle laddades trots split' : 'ok'
       );
       if (!bundleSplitInfo.staffDeferredLoaded) {
         await page.waitForFunction(
