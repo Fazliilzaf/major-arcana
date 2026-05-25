@@ -6,11 +6,11 @@
 
 Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra när Cliento och Meridiq är ersatta.
 
-| Dokument | Innehåll |
-|----------|----------|
-| [CLIENTO-INVENTORY.md](./CLIENTO-INVENTORY.md) | Allt som finns i Cliento idag (Hair TP + Curatiio) |
-| [MERIDIQ-INVENTORY.md](./MERIDIQ-INVENTORY.md) | Allt som finns i Meridiq idag (Hair TP + Curatiio) |
-| [CCO-UNIFIED-SYSTEM-PLAN.md](./CCO-UNIFIED-SYSTEM-PLAN.md) | Migrering, formulärmatris, fasplan |
+| Dokument                                                   | Innehåll                                           |
+| ---------------------------------------------------------- | -------------------------------------------------- |
+| [CLIENTO-INVENTORY.md](./CLIENTO-INVENTORY.md)             | Allt som finns i Cliento idag (Hair TP + Curatiio) |
+| [MERIDIQ-INVENTORY.md](./MERIDIQ-INVENTORY.md)             | Allt som finns i Meridiq idag (Hair TP + Curatiio) |
+| [CCO-UNIFIED-SYSTEM-PLAN.md](./CCO-UNIFIED-SYSTEM-PLAN.md) | Migrering, formulärmatris, fasplan                 |
 
 **Legend:** ✅ byggt (delvis eller helt) · 🔲 ska byggas · ⚠️ byggt men ej live i prod
 
@@ -34,8 +34,8 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ Egen bokningsmotor (Plan A) — tjänster, resurser, tillgängliga tider
 - ✅ Online konsultation + fysisk konsultation (publikt)
-- 🔲 Full katalog: FUE, DHI, skägg, ögonbryn, PRP hår/hud, microneedling, uppföljning
-- 🔲 VIP-länk / token-bokning för icke-självbokbara tjänster (t.ex. uppföljning)
+- ✅ Full katalog: FUE, DHI, skägg, ögonbryn, PRP hår/hud, microneedling, uppföljning
+- ✅ VIP-länk / token-bokning för icke-självbokbara tjänster (t.ex. uppföljning)
 - ✅ Webb → Arcana reservation (kontakt, slot, hälsodeklarationsflagga)
 - 🔲 Curatiio som separat bokningsflöde (egna tjänster, inget läckage Hair TP ↔ Curatiio)
 
@@ -44,7 +44,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ Bokningsärende i CCO med kandidat-tider, validering, status
 - 🔲 Kalendervy per behandlare och resurs
 - 🔲 Smart slots: min-notice, max 180 dagar, kväll/helg-prisregler
-- 🔲 Koppling bokning → behandlingstillfälle (encounter) automatiskt
+- ✅ Koppling bokning → behandlingstillfälle (encounter) automatiskt
 
 ### 2.3 Regler & resurser
 
@@ -58,8 +58,8 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ Encounter-store kopplad till bokning
 - ✅ Tidslinje (TL-B): gruppering per encounter i journal
-- 🔲 TL-C: alla journaltyper + foton + avtal + betalning under samma encounter
-- 🔲 Encounter-typer: konsultation, transplant, PRP, microneedling, uppföljning, ögonlocksplastik, Curatiio-estetik
+- ✅ TL-C: alla journaltyper + foton + avtal + betalning under samma encounter
+- ✅ Encounter-typer: konsultation, transplant, PRP, microneedling, uppföljning, ögonlocksplastik, Curatiio-estetik
 
 ---
 
@@ -148,15 +148,15 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 ## 8. Kassa / POS
 
-- 🔲 Kassa vid/beefter behandlingstillfälle
-- 🔲 Betalning tjänst (pris, moms, kväll/helg)
-- 🔲 Produktkatalog och lager
-- 🔲 Kvitto (utskrift/e-post)
-- 🔲 Fakturor
+- ✅ Kassa vid/efter behandlingstillfälle (POS-modul med ordrar per encounter)
+- ✅ Betalning tjänst (pris, moms, kväll/helg) — Nets Easy kortbetalning
+- ✅ Produktkatalog och lager (produkter i POS-store)
+- ✅ Kvitto (genererat receiptId per order)
+- ✅ Fakturor — Fortnox integration (skapa + skicka faktura)
 - 🔲 Presentkort (köp + inlösen)
-- 🔲 P-liggare / utestående
-- 🔲 POS-ordrar synliga på patientkort och tidslinje
-- 🔲 Kassarapport
+- ✅ P-liggare / utestående (ordrar med status pending_payment/partially_paid)
+- ✅ POS-ordrar synliga på patientkort (GET /pos/patient/:id/orders)
+- ✅ Kassarapport (GET /pos/report/daily)
 
 ---
 
@@ -195,12 +195,12 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 ## 12. Varumärken
 
-| | Hair TP Clinic | Curatiio |
-|---|----------------|----------|
-| Bokning | TP-tjänster, online/fysisk | Egna konsultationer & behandlingar |
-| Formulär | Hälsodekl, friskförsäkran, TP-journal, PRP, uppföljning | Hälsodekl, friskförsäkran, ögonlock-journal |
-| Kommunikation | Hair TP-mallar | Curatiio-mallar |
-| Avtal | TP, PRP, microneedling | Botox, filler, Profhilo, ögonlock, ortopedi |
+|               | Hair TP Clinic                                          | Curatiio                                    |
+| ------------- | ------------------------------------------------------- | ------------------------------------------- |
+| Bokning       | TP-tjänster, online/fysisk                              | Egna konsultationer & behandlingar          |
+| Formulär      | Hälsodekl, friskförsäkran, TP-journal, PRP, uppföljning | Hälsodekl, friskförsäkran, ögonlock-journal |
+| Kommunikation | Hair TP-mallar                                          | Curatiio-mallar                             |
+| Avtal         | TP, PRP, microneedling                                  | Botox, filler, Profhilo, ögonlock, ortopedi |
 
 - 🔲 Strikt separation i publik bokning — Curatiio syns inte på hairtpclinic.com
 
@@ -233,4 +233,4 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 ---
 
-*Nästa steg efter godkänd punklista: bocka av moduler i [MASTER-TODO.md](./MASTER-TODO.md) och bygg i ordning §15.*
+_Nästa steg efter godkänd punklista: bocka av moduler i [MASTER-TODO.md](./MASTER-TODO.md) och bygg i ordning §15._

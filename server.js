@@ -557,6 +557,8 @@ const { createPostOpReviewStore } = require('./src/ops/postOpReviewStore');
 const { createPostOpReviewRouter } = require('./src/routes/postOpReview');
 const { createBillingRouter } = require('./src/routes/billing');
 const { createKnowledgeRouter } = require('./src/routes/knowledge');
+const { createPosRouter } = require('./src/routes/pos');
+const { createPosStore } = require('./src/pos/posStore');
 const { createBillingService } = require('./src/billing/billingService');
 const { createStripeClient } = require('./src/billing/stripeClient');
 const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
@@ -2157,6 +2159,20 @@ process.once('SIGTERM', () => {
       knowledgeStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
+    })
+  );
+
+  const posStorePath = config.stateRoot
+    ? `${config.stateRoot}/cco-pos.json`
+    : './data/cco-pos.json';
+  const posStore = createPosStore({ filePath: posStorePath });
+  posStore.load().catch((err) => console.warn('[pos-store] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createPosRouter({
+      authStore: auth,
+      posStore,
     })
   );
 

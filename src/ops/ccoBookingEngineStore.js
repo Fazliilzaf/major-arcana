@@ -4,11 +4,19 @@ const path = require('node:path');
 
 const { ensureDirectoryWithRetry } = require('./persistentDir');
 
-/** Plan A — endast tre möten exponeras via /api/public/booking-engine/catalog */
+/** Full publik katalog — alla tjänster exponeras via /api/public/booking-engine/catalog */
 const PLAN_A_PUBLIC_SERVICE_IDS = [
   'consultation-online',
   'consultation-physical',
   'followup-transplant',
+  'fue',
+  'dhi',
+  'beard',
+  'eyebrow',
+  'prp-hair',
+  'prp-skin',
+  'microneedling',
+  'followup',
 ];
 
 /** Plan A web — läkare/konsulter som får synas i publik katalog (ej sjuksköterskor). */
@@ -590,8 +598,7 @@ function normalizeResource(input = {}) {
   const safe = asObject(input);
   const id = normalizeText(safe.id);
   if (!id) return null;
-  const publicBookable =
-    safe.publicBookable === true || PLAN_A_PUBLIC_RESOURCE_IDS.includes(id);
+  const publicBookable = safe.publicBookable === true || PLAN_A_PUBLIC_RESOURCE_IDS.includes(id);
   return {
     id,
     label: normalizeText(safe.label || safe.name || id),
@@ -1331,6 +1338,49 @@ async function createCcoBookingEngineStore({ filePath }) {
         ...input,
         publicOnly: true,
       }),
+    createVipToken: async ({
+      patientId,
+      patientName,
+      serviceId,
+      serviceLabel,
+      resourceId,
+      contact,
+      expiresInDays = 30,
+    } = {}) => {
+      const token = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+      const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString();
+      if (!state.vipTokens) state.vipTokens = [];
+      state.vipTokens.push({
+        token,
+        patientId,
+        patientName,
+        serviceId,
+        serviceLabel,
+        resourceId,
+        contact,
+        expiresAt,
+        consumed: false,
+        createdAt: nowIso(),
+      });
+      await save();
+      return { token, expiresAt };
+    },
+    findVipToken: async (token) => {
+      if (!state.vipTokens) return null;
+      const entry = state.vipTokens.find((t) => t.token === token && !t.consumed);
+      if (!entry) return null;
+      if (entry.expiresAt && new Date(entry.expiresAt) < new Date()) return null;
+      return entry;
+    },
+    consumeVipToken: async (token) => {
+      if (!state.vipTokens) return;
+      const entry = state.vipTokens.find((t) => t.token === token);
+      if (entry) {
+        entry.consumed = true;
+        entry.consumedAt = nowIso();
+        await save();
+      }
+    },
     _state: state,
   };
 }
