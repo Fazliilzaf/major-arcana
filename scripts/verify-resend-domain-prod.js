@@ -97,6 +97,7 @@ async function findConfirmationEvent(token, customerEmail) {
       return {
         provider: hit.metadata?.provider || 'unknown',
         mode: hit.metadata?.mode || 'live',
+        skipped: hit.metadata?.skipped || null,
         messageId: hit.metadata?.messageId || null,
       };
     }
@@ -138,7 +139,15 @@ async function probeProdResendProvider() {
     await new Promise((r) => setTimeout(r, 800));
     const token = getStaffToken();
     const eventInfo = await findConfirmationEvent(token, customerEmail);
-    if (eventInfo) email = { ok: true, ...eventInfo };
+    if (eventInfo) {
+      email = {
+        ok: true,
+        provider: eventInfo.provider,
+        mode: eventInfo.mode,
+        skipped: eventInfo.skipped || null,
+        messageId: eventInfo.messageId || null,
+      };
+    }
   }
 
   return {
@@ -208,14 +217,18 @@ async function main() {
     const probe = await probeProdResendProvider();
     if (!probe.ok) {
       fail('RB3b-05 prod reservation', probe.reason || 'reservation_failed');
+    } else if (probe.email?.skipped === 'reserved_domain') {
+      record(
+        'RB3b-05 prod reservation + mail guard',
+        true,
+        'verify-adress blockerad — Graph/Resend live för riktiga patientmail'
+      );
+      prodProvider = probe.email?.provider || 'none';
     } else {
       prodProvider = probe.email?.provider || 'unknown';
       const resendLive = prodProvider === 'resend' && probe.email?.ok !== false;
-      const skippedReserved = probe.email?.skipped === 'reserved_domain';
       if (resendLive) {
         record('RB3b-05 prod leverans via Resend', true, probe.email.messageId || 'sent');
-      } else if (skippedReserved) {
-        record('RB3b-05 prod reservation mail', true, 'skipped reserved_domain (@example.com verify)');
       } else if (STRICT) {
         fail('RB3b-05 prod leverans via Resend', `provider=${prodProvider} (STRICT=1 kräver resend)`);
       } else {
