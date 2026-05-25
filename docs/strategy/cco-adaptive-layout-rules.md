@@ -221,7 +221,7 @@ npm run verify:staff-ui-prod            # desktop regression
 | **0** | Spec + tokens + Cursor rule | ☑ 2026-05-25 |
 | **1** | Tablet split: kunder, kalender, journal | ☑ 2026-05-25 |
 | **2** | Tabell → kort (CCO Care, listor) | ☑ 2026-05-25 (tablet + mobil) |
-| **3** | FormStep långa formulär mobil | ~ (TP + pre-treatment stepper; full 4-steg glue kvar) |
+| **3** | FormStep långa formulär mobil + tablet | ☑ 2026-05-25 (TP, pre-treatment, PRP, uppföljning, ögonlock, avtal; ≤1023px) |
 | **4** | Playwright 5-viewport gate | ☑ `verify:adaptive-layout-prod` |
 | **5** | Desktop veckokalender (valfritt) | ☐ |
 
