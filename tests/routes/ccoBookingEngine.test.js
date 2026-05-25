@@ -13,6 +13,7 @@ const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
 const { createCcoPatientSystemStore } = require('../../src/ops/ccoPatientSystemStore');
 const { createCcoTreatmentAgreementStore } = require('../../src/ops/ccoTreatmentAgreementStore');
 const { createCcoPatientMasterStore } = require('../../src/ops/ccoPatientMasterStore');
+const { bookingMondayWindow, nextBookableWeekday } = require('../helpers/bookingTestDates');
 
 async function withServer(app, run) {
   const server = http.createServer(app);
@@ -89,10 +90,11 @@ test('cco booking engine route reserverar, bekräftar och avbokar mot samma book
   const fixture = await createFixture();
   try {
     await withServer(fixture.app, async (baseUrl) => {
+      const { fromDate, toDate } = bookingMondayWindow();
       const qs =
         'workspaceId=major-arcana-preview&conversationId=conv-engine-route&customerEmail=engine%40example.com&customerName=Engine';
       const availabilityResponse = await fetch(
-        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation-physical`
+        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(availabilityResponse.status, 200);
       const availabilityPayload = await availabilityResponse.json();
@@ -167,10 +169,12 @@ test('cco booking engine route sparar gammal och ny tid i ombokningshändelsen',
   const fixture = await createFixture();
   try {
     await withServer(fixture.app, async (baseUrl) => {
+      const fromDate = nextBookableWeekday(1);
+      const toDate = nextBookableWeekday(2, { minDaysAhead: 3 });
       const qs =
         'workspaceId=major-arcana-preview&conversationId=conv-engine-rebook&customerEmail=rebook%40example.com&customerName=Rebook';
       const availabilityResponse = await fetch(
-        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-12&resIds=egzona&srvIds=consultation-physical`
+        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(availabilityResponse.status, 200);
       const availabilityPayload = await availabilityResponse.json();
@@ -214,10 +218,12 @@ test('cco booking engine route kräver rebook när annan tid redan är bekräfta
   const fixture = await createFixture();
   try {
     await withServer(fixture.app, async (baseUrl) => {
+      const fromDate = nextBookableWeekday(1);
+      const toDate = nextBookableWeekday(2, { minDaysAhead: 3 });
       const qs =
         'workspaceId=major-arcana-preview&conversationId=conv-engine-rebook-guard&customerEmail=guard%40example.com&customerName=Guard';
       const availabilityResponse = await fetch(
-        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-12&resIds=egzona&srvIds=consultation-physical`
+        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(availabilityResponse.status, 200);
       const availabilityPayload = await availabilityResponse.json();
@@ -252,10 +258,11 @@ test('cco booking engine route kan förnya reservationer', async () => {
   const fixture = await createFixture();
   try {
     await withServer(fixture.app, async (baseUrl) => {
+      const { fromDate, toDate } = bookingMondayWindow();
       const qs =
         'workspaceId=major-arcana-preview&conversationId=conv-engine-renew-route&customerEmail=renew-route%40example.com&customerName=Renew';
       const availabilityResponse = await fetch(
-        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation-physical`
+        `${baseUrl}/cco-booking-engine/availability?${qs}&fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(availabilityResponse.status, 200);
       const availabilityPayload = await availabilityResponse.json();
@@ -301,8 +308,8 @@ test('cco booking engine case-summary prioriterar uppdaterad Svarstudio efter om
     };
     const availability = await fixture.bookingEngineStore.listAvailability({
       tenantId: context.tenantId,
-      fromDate: '2026-05-11',
-      toDate: '2026-05-12',
+      fromDate: nextBookableWeekday(1),
+      toDate: nextBookableWeekday(2, { minDaysAhead: 3 }),
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -367,8 +374,8 @@ test('cco booking engine case-summary visar när uppföljning redan pågår i wa
     };
     const availability = await fixture.bookingEngineStore.listAvailability({
       tenantId: context.tenantId,
-      fromDate: '2026-05-11',
-      toDate: '2026-05-12',
+      fromDate: nextBookableWeekday(1),
+      toDate: nextBookableWeekday(2, { minDaysAhead: 3 }),
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -431,8 +438,8 @@ test('cco booking engine case-summary visar kundsvar inkommet före gammal follo
     };
     const availability = await fixture.bookingEngineStore.listAvailability({
       tenantId: context.tenantId,
-      fromDate: '2026-05-11',
-      toDate: '2026-05-12',
+      fromDate: nextBookableWeekday(1),
+      toDate: nextBookableWeekday(2, { minDaysAhead: 3 }),
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });

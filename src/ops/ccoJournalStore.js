@@ -156,9 +156,11 @@ function normalizeJournalEntry(input = {}, existing = {}) {
   if (!JOURNAL_TYPES.includes(journalType)) {
     throw new Error('Ogiltig journaltyp.');
   }
+  const rawImportMeta = asObject(safe.importMeta || existingSafe.importMeta);
   const importMeta = {
     ...asObject(existingSafe.importMeta),
-    ...buildImportMeta(safe.importMeta || existingSafe.importMeta),
+    ...rawImportMeta,
+    ...buildImportMeta(rawImportMeta),
   };
   const sourceQuestionaryIdRaw =
     safe.sourceQuestionaryId ??

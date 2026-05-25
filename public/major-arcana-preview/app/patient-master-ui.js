@@ -1225,6 +1225,108 @@
           </article>`;
   }
 
+  function renderPatientDemographicsCard(card) {
+    if (!card?.patientId) return '';
+    const demo = card.demographics || {};
+    const idStatus = escapeHtml(demo.idVerificationStatus || 'unverified');
+    const idDoc = escapeHtml(demo.idVerificationDocumentType || '');
+    const nextOfKinName = escapeHtml(demo.nextOfKinName || '');
+    const nextOfKinPhone = escapeHtml(demo.nextOfKinPhone || '');
+    const importantNote = escapeHtml(demo.importantNote || '');
+    const primaryAddress = demo.primaryAddress || {};
+    const addressLine = escapeHtml(
+      [primaryAddress.line1, primaryAddress.postalCode, primaryAddress.city].filter(Boolean).join(', ')
+    );
+    return `
+          <article class="focus-customer-data-card patient-master-demographics-card">
+            <h4>Demografi &amp; ID-verifiering</h4>
+            <p class="patient-master-muted">Meridiq-paritet: legitimation, närmaste anhörig, viktig notering och adress.</p>
+            <label class="patient-master-access-reason">
+              <span>ID-status</span>
+              <select data-patient-id-status>
+                <option value="unverified"${idStatus === 'unverified' ? ' selected' : ''}>Overifierad</option>
+                <option value="pending"${idStatus === 'pending' ? ' selected' : ''}>Väntar</option>
+                <option value="verified"${idStatus === 'verified' ? ' selected' : ''}>Verifierad</option>
+                <option value="rejected"${idStatus === 'rejected' ? ' selected' : ''}>Avvisad</option>
+              </select>
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Legitimationstyp</span>
+              <input type="text" data-patient-id-document value="${idDoc}" placeholder="t.ex. pass, körkort, ID-kort" />
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Närmaste anhörig</span>
+              <input type="text" data-patient-next-of-kin-name value="${nextOfKinName}" placeholder="Namn" />
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Anhörig telefon</span>
+              <input type="tel" data-patient-next-of-kin-phone value="${nextOfKinPhone}" placeholder="+46…" />
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Viktig notering</span>
+              <textarea rows="2" data-patient-important-note placeholder="Synlig för personal">${importantNote}</textarea>
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Adress</span>
+              <input type="text" data-patient-address-line1 value="${escapeHtml(primaryAddress.line1 || '')}" placeholder="Gatuadress" />
+            </label>
+            <div class="patient-master-compliance-actions">
+              <input type="text" data-patient-address-postal value="${escapeHtml(primaryAddress.postalCode || '')}" placeholder="Postnr" />
+              <input type="text" data-patient-address-city value="${escapeHtml(primaryAddress.city || '')}" placeholder="Ort" />
+            </div>
+            ${addressLine ? `<p class="patient-master-muted">Nuvarande: ${addressLine}</p>` : ''}
+            <button type="button" class="customers-utility-button" data-patient-action="save-demographics">
+              Spara demografi
+            </button>
+          </article>`;
+  }
+
+  async function savePatientDemographics(root) {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId || !root) return;
+    setStatus('Sparar demografi…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-patient-master/patient/demographics', {
+        method: 'PUT',
+        body: {
+          patientId,
+          demographics: {
+            idVerification: {
+              status: root.querySelector('[data-patient-id-status]')?.value || 'unverified',
+              documentType: root.querySelector('[data-patient-id-document]')?.value || '',
+              verifiedAt:
+                root.querySelector('[data-patient-id-status]')?.value === 'verified'
+                  ? new Date().toISOString()
+                  : null,
+            },
+            nextOfKin: {
+              name: root.querySelector('[data-patient-next-of-kin-name]')?.value || '',
+              phone: root.querySelector('[data-patient-next-of-kin-phone]')?.value || '',
+            },
+            importantNote: root.querySelector('[data-patient-important-note]')?.value || '',
+            addresses: {
+              items: [
+                {
+                  type: 'home',
+                  line1: root.querySelector('[data-patient-address-line1]')?.value || '',
+                  postalCode: root.querySelector('[data-patient-address-postal]')?.value || '',
+                  city: root.querySelector('[data-patient-address-city]')?.value || '',
+                  country: 'SE',
+                },
+              ],
+            },
+          },
+        },
+      });
+      if (payload?.card) runtime.detail.card = payload.card;
+      if (payload?.patient) runtime.detail.patient = payload.patient;
+      setStatus('Demografi sparad.', 'success');
+      renderDetailPanel();
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte spara demografi.', 'error');
+    }
+  }
+
   function renderPatientIntegrationsCard(card) {
     if (!card?.patientId) return '';
     const fortnoxCustomerId = escapeHtml(card.fortnoxCustomerId || '');
@@ -2294,6 +2396,15 @@
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="health_curatiio_bleph">
           Hälsodekl ögonlock
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="health_curatiio_ortho">
+          Hälsodekl ortopedi
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="health_curatiio_injection">
+          Hälsodekl injektion
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="health_eng">
+          Hälsodekl ENG
         </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-fitness-certificate">
           Friskförsäkran TP
@@ -3731,6 +3842,7 @@
           ${renderJournalWorkflowCallout(journalEntries)}
           ${renderPatientIntegrationsCard(card)}
           ${renderPatientComplianceCard(card)}
+          ${renderPatientDemographicsCard(card)}
           <article class="focus-customer-data-card patient-master-identity-card">
             <h4>Identitet</h4>
             <dl class="focus-customer-dl">
@@ -5321,6 +5433,8 @@
           void syncPatientToFortnox();
         } else if (actionButton.dataset.patientAction === 'swish-payment') {
           void createSwishPaymentForPatient();
+        } else if (actionButton.dataset.patientAction === 'save-demographics') {
+          void savePatientDemographics(els.patientRail);
         } else if (actionButton.dataset.patientAction === 'save-journal-access') {
           const toggle = els.patientRail?.querySelector('[data-patient-journal-block-toggle]');
           const reasonInput = els.patientRail?.querySelector('[data-patient-journal-block-reason]');

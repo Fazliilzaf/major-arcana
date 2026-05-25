@@ -5,6 +5,12 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
+const {
+  bookingMondayWindow,
+  buildSlotId,
+  nextBookableWeekday,
+  slotStartsAt,
+} = require('../helpers/bookingTestDates');
 
 test('ccoBookingEngineStore listar egna lediga tider, reserverar, bekräftar och avbokar', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-engine-'));
@@ -13,10 +19,11 @@ test('ccoBookingEngineStore listar egna lediga tider, reserverar, bekräftar och
       filePath: path.join(tempDir, 'booking-engine.json'),
     });
 
+    const { fromDate, toDate } = bookingMondayWindow();
     const availability = await store.listAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-11',
-      toDate: '2026-05-11',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -36,8 +43,8 @@ test('ccoBookingEngineStore listar egna lediga tider, reserverar, bekräftar och
 
     const followupAvailability = await store.listAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-11',
-      toDate: '2026-05-11',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -94,10 +101,12 @@ test('ccoBookingEngineStore kräver ombokning när en annan tid redan är bekrä
       filePath: path.join(tempDir, 'booking-engine.json'),
     });
 
+    const fromDate = nextBookableWeekday(1);
+    const toDate = nextBookableWeekday(2, { minDaysAhead: 3 });
     const availability = await store.listAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-11',
-      toDate: '2026-05-12',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -142,10 +151,11 @@ test('ccoBookingEngineStore släpper utgångna reservationer ur availability och
       filePath: path.join(tempDir, 'booking-engine.json'),
     });
 
+    const { fromDate, toDate } = bookingMondayWindow();
     const availability = await store.listAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-11',
-      toDate: '2026-05-11',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -165,8 +175,8 @@ test('ccoBookingEngineStore släpper utgångna reservationer ur availability och
 
     const refreshedAvailability = await store.listAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-11',
-      toDate: '2026-05-11',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -195,10 +205,11 @@ test('ccoBookingEngineStore sammanfattar reservation expiry i workflow-summaryn'
       filePath: path.join(tempDir, 'booking-engine.json'),
     });
 
+    const { fromDate, toDate } = bookingMondayWindow();
     const availability = await store.listAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-11',
-      toDate: '2026-05-11',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -235,10 +246,11 @@ test('ccoBookingEngineStore kan förnya aktiva reservationer och byter rekommend
       filePath: path.join(tempDir, 'booking-engine.json'),
     });
 
+    const { fromDate, toDate } = bookingMondayWindow();
     const availability = await store.listAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-11',
-      toDate: '2026-05-11',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -307,10 +319,12 @@ test('ccoBookingEngineStore blockerar överlappande tider på samma resurs även
       active: true,
     });
 
+    const { fromDate, toDate } = bookingMondayWindow();
+    const overlapStartsAt = slotStartsAt(fromDate, '09:30');
     const consultationAvailability = await store.listAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-11',
-      toDate: '2026-05-11',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -328,8 +342,8 @@ test('ccoBookingEngineStore blockerar överlappande tider på samma resurs även
 
     const shortAvailability = await store.listAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-11',
-      toDate: '2026-05-11',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-short',
     });
@@ -345,9 +359,13 @@ test('ccoBookingEngineStore blockerar överlappande tider på samma resurs även
           customerName: 'Overlap B',
           selectedSlots: [
             {
-              slotId: 'egzona::consultation-short::2026-05-11T09:30:00.000Z',
-              startsAt: '2026-05-11T09:30:00.000Z',
-              endsAt: '2026-05-11T10:00:00.000Z',
+              slotId: buildSlotId({
+                resourceId: 'egzona',
+                serviceId: 'consultation-short',
+                startsAt: overlapStartsAt,
+              }),
+              startsAt: overlapStartsAt,
+              endsAt: slotStartsAt(fromDate, '10:00'),
               resourceId: 'egzona',
               resourceLabel: 'Egzona',
               serviceId: 'consultation-short',
@@ -451,10 +469,11 @@ test('ccoBookingEngineStore listPublicResources returnerar Plan A-läkare utan s
     );
     assert.ok(publicResources.every((item) => item.publicBookable === true));
 
+    const tuesday = nextBookableWeekday(2);
     const availability = await store.listPublicAvailability({
       tenantId: 'tenant-a',
-      fromDate: '2026-05-12',
-      toDate: '2026-05-12',
+      fromDate: tuesday,
+      toDate: tuesday,
       srvIds: 'consultation-physical',
     });
     assert.ok(availability.length >= 1);

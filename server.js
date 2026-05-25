@@ -1424,6 +1424,12 @@ process.once('SIGTERM', () => {
     }
   })();
 
+  const postOpAutoTriggerDeps = {
+    bookingStore: ccoBookingStore,
+    capabilityExecutor: null,
+    graphSendConnector: null,
+  };
+
   const scheduler = createScheduler({
     config,
     authStore,
@@ -1439,6 +1445,8 @@ process.once('SIGTERM', () => {
     sloTicketStore,
     releaseGovernanceStore,
     postOpReviewStore,
+    bookingStore: ccoBookingStore,
+    postOpAutoTriggerDeps: postOpAutoTriggerDeps,
     marketingCampaignDraftsStore,
     marketingContentAssetsStore,
     connectorHealthStateStore,
@@ -1482,6 +1490,8 @@ process.once('SIGTERM', () => {
     postOpReviewStore,
     buildVersion: process.env.npm_package_version || 'dev',
   });
+  postOpAutoTriggerDeps.capabilityExecutor = postOpReviewCapabilityExecutor;
+  postOpAutoTriggerDeps.graphSendConnector = graphSendConnector;
 
   const knowledgeRetrieverByBrand = new Map();
 
@@ -2138,6 +2148,8 @@ process.once('SIGTERM', () => {
       patientConversionStore,
       runtimeMetricsStore,
       sloTicketStore,
+      executiveDecisionFeed,
+      releaseGovernanceStore,
       executionGateway,
       config,
       scheduler,

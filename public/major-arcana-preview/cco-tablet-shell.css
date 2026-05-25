@@ -308,3 +308,48 @@
       padding: 2px 0;
     }
   }
+
+  @media (min-width: 1024px) {
+    .cco-desktop-week-calendar {
+      display: grid;
+      gap: 16px;
+      margin: 0 0 24px;
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(250, 246, 242, 0.92);
+      box-shadow:
+        0 8px 24px rgba(70, 50, 30, 0.08),
+        0 2px 6px rgba(70, 50, 30, 0.05);
+    }
+
+    .cco-desktop-week-calendar[hidden] {
+      display: none !important;
+    }
+
+    .cco-desktop-week-calendar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .cco-desktop-week-calendar-nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cco-desktop-week-calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .cco-desktop-week-day {
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(252, 248, 244, 0.9);
+      border: 1px solid rgba(120, 105, 90, 0.14);
+      min-height: 140px;
+    }
+  }

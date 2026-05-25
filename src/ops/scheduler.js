@@ -33,6 +33,7 @@ const {
   buildMissingFormsReport,
   dispatchCustomerReminderDigest,
 } = require('./ccoPatientCareOps');
+const { runPostOpAutoTrigger } = require('./postOpAutoTrigger');
 const {
   computeUsageAnalytics,
   computeWorklistSnapshotMetrics,
@@ -293,6 +294,8 @@ function createScheduler({
   sloTicketStore = null,
   releaseGovernanceStore = null,
   postOpReviewStore = null,
+  postOpAutoTriggerDeps = null,
+  bookingStore = null,
   marketingCampaignDraftsStore = null,
   marketingContentAssetsStore = null,
   connectorHealthStateStore = null,
@@ -646,6 +649,30 @@ function createScheduler({
       dirsDeleted,
       diskErrors,
     };
+  }
+
+  async function runPostOpAutoTriggerJob({ tenantId }) {
+    const deps = postOpAutoTriggerDeps || {};
+    const resolvedBookingStore = deps.bookingStore || bookingStore;
+    const resolvedExecutor = deps.capabilityExecutor || null;
+    const resolvedGraphSend = deps.graphSendConnector || graphSendConnector;
+    if (!resolvedBookingStore || !resolvedExecutor || !postOpReviewStore) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'post_op_auto_trigger_deps_missing',
+      };
+    }
+    return runPostOpAutoTrigger({
+      bookingStore: resolvedBookingStore,
+      postOpReviewStore,
+      patientMasterStore,
+      capabilityExecutor: resolvedExecutor,
+      graphSendConnector: resolvedGraphSend,
+      config,
+      tenantId,
+      logger,
+    });
   }
 
   async function runRestoreDrillPreview({ tenantId }) {
@@ -3583,6 +3610,15 @@ function createScheduler({
       name: 'High/Critical alert probe',
       intervalMs: toMinutesMs(config.schedulerAlertProbeIntervalMinutes, 15),
       run: runAlertProbe,
+    },
+    {
+      id: 'post_op_auto_trigger',
+      name: 'Post-op review auto-trigger (U5B.3)',
+      intervalMs:
+        postOpReviewStore && (postOpAutoTriggerDeps?.capabilityExecutor || bookingStore)
+          ? toHoursMs(config.schedulerPostOpAutoTriggerIntervalHours, 6)
+          : 0,
+      run: runPostOpAutoTriggerJob,
     },
     {
       id: 'post_op_photo_prune',
