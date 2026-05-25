@@ -73,7 +73,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 | **B** | U2.2 OWNER MFA enforced | ~ (väntar `apply:auth-go-live-prod`) |
 | **Policy** | Publik `/api/public/booking-engine/*` | av (503 tills explicit go-live) |
 
-> Nästa kod-svep: **BL.5 adaptive layout** eller **J-6.2**. MFA (D) sist. U5B.3 Q4.
+> Nästa kod-svep: **J-6.2** · **U2.4 fälttest** · **BL.5 Fas 5** (valfritt). MFA (D) sist. U5B.3 Q4.
 
 ---
 
@@ -575,7 +575,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [ ] P6.12.10 U6C CAO admin-operator
 - [ ] P6.12.11 U6D Patientkanal (canon: sist)
 - [ ] P6.12.12 BL.4 Executive OS expand
-- [ ] P6.12.13 BL.5 Adaptive layout Fas 1–4
+- [x] P6.12.13 BL.5 Adaptive layout Fas 1–4
 
 ### 6.13 Compliance & QA — P0 / P2
 

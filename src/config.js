@@ -334,6 +334,16 @@ const config = {
     stateRoot,
     fileName: 'cco-integrations.json',
   }),
+  ccoFortnoxStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_FORTNOX_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-fortnox.json',
+  }),
+  ccoSwishStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_SWISH_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-swish.json',
+  }),
   ccoSettingsStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_SETTINGS_STORE_PATH,
     stateRoot,
@@ -1009,6 +1019,28 @@ const config = {
   clientoApiAuthHeader: asNonEmptyString(process.env.CLIENTO_API_AUTH_HEADER, 'Authorization'),
   clientoApiAuthScheme: asNonEmptyString(process.env.CLIENTO_API_AUTH_SCHEME, 'Bearer'),
   clientoApiTimeoutMs: asInt(process.env.CLIENTO_API_TIMEOUT_MS, 10000),
+  fortnoxEnabled: asBool(process.env.ARCANA_FORTNOX_ENABLED, false),
+  fortnoxClientId: asNonEmptyString(process.env.FORTNOX_CLIENT_ID),
+  fortnoxClientSecret: asNonEmptyString(process.env.FORTNOX_CLIENT_SECRET),
+  fortnoxScope: asNonEmptyString(process.env.FORTNOX_SCOPE, 'customer invoice'),
+  fortnoxRedirectUri: asNonEmptyString(
+    process.env.FORTNOX_REDIRECT_URI,
+    `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-fortnox/oauth/callback`
+  ),
+  swishEnabled: asBool(process.env.ARCANA_SWISH_ENABLED, false),
+  swishApiBaseUrl: asNonEmptyString(
+    process.env.SWISH_API_BASE_URL,
+    'https://mss.cpc.getswish.net/swish-cpcapi'
+  ),
+  swishCertPath: asNonEmptyString(process.env.SWISH_CERT_PATH),
+  swishKeyPath: asNonEmptyString(process.env.SWISH_KEY_PATH),
+  swishP12Path: asNonEmptyString(process.env.SWISH_P12_PATH),
+  swishCertPassphrase: asNonEmptyString(process.env.SWISH_CERT_PASSPHRASE),
+  swishCaPath: asNonEmptyString(process.env.SWISH_CA_PATH),
+  swishCallbackUrl: asNonEmptyString(
+    process.env.SWISH_CALLBACK_URL,
+    `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-swish/callback`
+  ),
 };
 
 if (

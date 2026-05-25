@@ -148,7 +148,8 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 ## 8. Kassa / POS
 
-- 🔲 Kassa vid/beefter behandlingstillfälle
+- ✅ Swish Handel (mTLS + betalningsförfrågningar via `/api/v1/cco-swish/*`)
+- 🔲 Kassa vid/efter behandlingstillfälle
 - 🔲 Betalning tjänst (pris, moms, kväll/helg)
 - 🔲 Produktkatalog och lager
 - 🔲 Kvitto (utskrift/e-post)
@@ -211,7 +212,8 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ hairtpclinic.com → Arcana bokning (Plan A bridge)
 - ✅ Web events ingest (formulär, chat-intent, analyzer)
 - 🔲 Pipedrive-synk (leads — befintlig export, djupare koppling valfritt)
-- 🔲 Fortnox-kundnummer (fält finns i Meridiq — ev. koppling)
+- ✅ Fortnox-kundnummer (OAuth + patient ↔ Fortnox-kund via `/api/v1/cco-fortnox/*`)
+- ✅ Swish Handel (betalningsförfrågningar via `/api/v1/cco-swish/*`)
 - ✅ CMO connectors (Meta, LinkedIn m.fl.)
 
 ---

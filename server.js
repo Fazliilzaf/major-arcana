@@ -589,6 +589,8 @@ const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('./src/ops/ccoBookingEngineStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
 const { createCcoIntegrationStore } = require('./src/ops/ccoIntegrationStore');
+const { createCcoFortnoxStore } = require('./src/ops/ccoFortnoxStore');
+const { createCcoSwishStore } = require('./src/ops/ccoSwishStore');
 const { createCcoSettingsStore } = require('./src/ops/ccoSettingsStore');
 const { createCcoMacroStore } = require('./src/ops/ccoMacroStore');
 const { createCcoCustomerStore } = require('./src/ops/ccoCustomerStore');
@@ -613,6 +615,8 @@ const { createCcoWorkspaceRouter } = require('./src/routes/ccoWorkspace');
 const { createCcoBookingsRouter } = require('./src/routes/ccoBookings');
 const { createCcoBookingEngineRouter } = require('./src/routes/ccoBookingEngine');
 const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
+const { createCcoFortnoxRouter } = require('./src/routes/ccoFortnox');
+const { createCcoSwishRouter } = require('./src/routes/ccoSwish');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
 const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
@@ -1297,6 +1301,12 @@ process.once('SIGTERM', () => {
   const ccoIntegrationStore = await createCcoIntegrationStore({
     filePath: config.ccoIntegrationStorePath,
   });
+  const ccoFortnoxStore = await createCcoFortnoxStore({
+    filePath: config.ccoFortnoxStorePath,
+  });
+  const ccoSwishStore = await createCcoSwishStore({
+    filePath: config.ccoSwishStorePath,
+  });
   const ccoSettingsStore = await createCcoSettingsStore({
     filePath: config.ccoSettingsStorePath,
   });
@@ -1920,6 +1930,31 @@ process.once('SIGTERM', () => {
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       runtimeState,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoFortnoxRouter({
+      fortnoxStore: ccoFortnoxStore,
+      patientMasterStore: ccoPatientMasterStore,
+      integrationStore: ccoIntegrationStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoSwishRouter({
+      swishStore: ccoSwishStore,
+      integrationStore: ccoIntegrationStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
     })
   );
 

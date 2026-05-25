@@ -75,6 +75,30 @@ const INTEGRATION_CATALOG = Object.freeze({
     watchSv: 'Sätt godkännanden och felhantering innan fler steg körs automatiskt.',
     watchEn: 'Set approvals and failure handling before more steps run automatically.',
   },
+  fortnox: {
+    id: 'fortnox',
+    category: 'accounting',
+    labelSv: 'Fortnox',
+    labelEn: 'Fortnox',
+    connectedSummarySv: 'Patienter kan synkas till Fortnox-kunder och kundnummer sparas i Arcana.',
+    connectedSummaryEn: 'Patients can sync to Fortnox customers and customer numbers are stored in Arcana.',
+    disconnectedSummarySv: 'Fortnox OAuth är inte ansluten ännu.',
+    disconnectedSummaryEn: 'Fortnox OAuth is not connected yet.',
+    watchSv: 'Anslut via GET /api/v1/cco-fortnox/connect och synka patienter med POST /api/v1/cco-fortnox/sync-patient.',
+    watchEn: 'Connect via GET /api/v1/cco-fortnox/connect and sync patients with POST /api/v1/cco-fortnox/sync-patient.',
+  },
+  swish: {
+    id: 'swish',
+    category: 'payment',
+    labelSv: 'Swish',
+    labelEn: 'Swish',
+    connectedSummarySv: 'Swish Handel är anslutet och betalningsförfrågningar kan skapas från Arcana.',
+    connectedSummaryEn: 'Swish Commerce is connected and payment requests can be created from Arcana.',
+    disconnectedSummarySv: 'Swish Handelsnummer är inte konfigurerat ännu.',
+    disconnectedSummaryEn: 'Swish merchant number is not configured yet.',
+    watchSv: 'Anslut via POST /api/v1/cco-swish/connect med payeeAlias och skapa betalning via POST /api/v1/cco-swish/payment-request.',
+    watchEn: 'Connect via POST /api/v1/cco-swish/connect with payeeAlias and create payments via POST /api/v1/cco-swish/payment-request.',
+  },
 });
 
 function asNonEmptyString(value) {

@@ -1225,6 +1225,99 @@
           </article>`;
   }
 
+  function renderPatientIntegrationsCard(card) {
+    if (!card?.patientId) return '';
+    const fortnoxCustomerId = escapeHtml(card.fortnoxCustomerId || '');
+    const fortnoxSyncedAt = card.fortnoxSyncedAt
+      ? escapeHtml(String(card.fortnoxSyncedAt).slice(0, 19).replace('T', ' '))
+      : '';
+    const fortnoxSyncError = escapeHtml(card.fortnoxSyncError || '');
+    const fortnoxMeta = fortnoxCustomerId
+      ? `<p class="patient-master-muted">Fortnox kundnr: <strong>${fortnoxCustomerId}</strong>${fortnoxSyncedAt ? ` · synkad ${fortnoxSyncedAt}` : ''}</p>`
+      : `<p class="patient-master-muted">Patienten är inte synkad till Fortnox ännu.</p>`;
+    const fortnoxError = fortnoxSyncError
+      ? `<p class="patient-master-status is-error">${fortnoxSyncError}</p>`
+      : '';
+    return `
+          <article class="focus-customer-data-card patient-master-integrations-card">
+            <h4>Fortnox &amp; Swish</h4>
+            <p class="patient-master-muted">Koppla patienten till Fortnox och ta betalt med Swish Handel direkt från kundkortet.</p>
+            ${fortnoxMeta}
+            ${fortnoxError}
+            <div class="patient-master-compliance-actions">
+              <button type="button" class="customers-utility-button" data-patient-action="sync-fortnox">
+                Synka till Fortnox
+              </button>
+              <button type="button" class="customers-utility-button" data-patient-action="swish-payment">
+                Swish-betalning
+              </button>
+            </div>
+          </article>`;
+  }
+
+  async function syncPatientToFortnox() {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId) return;
+    setStatus('Synkar patient till Fortnox…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-fortnox/sync-patient', {
+        method: 'POST',
+        body: { patientId },
+      });
+      if (payload?.patient && runtime.detail?.card) {
+        runtime.detail.card = { ...runtime.detail.card, ...payload.patient };
+      }
+      setStatus(
+        `Fortnox ${payload.action === 'updated' ? 'uppdaterad' : 'kopplad'} (kundnr ${payload.customerNumber || '—'}).`,
+        'success'
+      );
+      renderDetailPanel();
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte synka till Fortnox.', 'error');
+    }
+  }
+
+  async function createSwishPaymentForPatient() {
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    if (!patientId || !card) return;
+    const amountRaw = window.prompt('Belopp i SEK (t.ex. 500 eller 499.50):', '');
+    if (!amountRaw) return;
+    const message = window.prompt(
+      'Meddelande till betalaren (max 50 tecken):',
+      `Arcana ${card.displayName || 'patient'}`.slice(0, 50)
+    );
+    if (message === null) return;
+    setStatus('Skapar Swish-betalningsförfrågan…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-swish/payment-request', {
+        method: 'POST',
+        body: {
+          patientId,
+          amount: amountRaw,
+          message,
+          payerAlias: card.primaryPhone || '',
+          payeePaymentReference: patientId.slice(0, 35),
+        },
+      });
+      const swishUrl = payload?.swishUrl || '';
+      if (swishUrl) {
+        const openSwish = window.confirm(
+          `Swish-förfrågan skapad (${payload.payment?.amount || amountRaw} SEK). Öppna Swish-appen nu?`
+        );
+        if (openSwish) {
+          window.location.href = swishUrl;
+        }
+      }
+      setStatus(
+        `Swish-förfrågan skapad${payload.payment?.id ? ` (${payload.payment.id})` : ''}.`,
+        'success'
+      );
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte skapa Swish-betalning.', 'error');
+    }
+  }
+
   async function mergeReviewGroup(primaryPatientId, secondaryPatientIds) {
     if (!primaryPatientId || !asArray(secondaryPatientIds).length) return;
     setStatus('Slår ihop patientposter…', 'loading');
@@ -3636,6 +3729,7 @@
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">
           ${renderJournalWorkflowCallout(journalEntries)}
+          ${renderPatientIntegrationsCard(card)}
           ${renderPatientComplianceCard(card)}
           <article class="focus-customer-data-card patient-master-identity-card">
             <h4>Identitet</h4>
@@ -5223,6 +5317,10 @@
           }
         } else if (actionButton.dataset.patientAction === 'gdpr-export') {
           void downloadGdprExport(runtime.selectedPatientId);
+        } else if (actionButton.dataset.patientAction === 'sync-fortnox') {
+          void syncPatientToFortnox();
+        } else if (actionButton.dataset.patientAction === 'swish-payment') {
+          void createSwishPaymentForPatient();
         } else if (actionButton.dataset.patientAction === 'save-journal-access') {
           const toggle = els.patientRail?.querySelector('[data-patient-journal-block-toggle]');
           const reasonInput = els.patientRail?.querySelector('[data-patient-journal-block-reason]');

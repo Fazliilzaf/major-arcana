@@ -1766,6 +1766,22 @@
       owner: "Automationsteam",
       connected: false,
     },
+    {
+      key: "fortnox",
+      category: "accounting",
+      label: "Fortnox",
+      copy: "Synka patienter till Fortnox-kunder och spara kundnummer direkt i patientkortet.",
+      owner: "Ekonomiteam",
+      connected: false,
+    },
+    {
+      key: "swish",
+      category: "payment",
+      label: "Swish",
+      copy: "Ta betalt med Swish Handel — skapa betalningsförfrågningar och följ status i Arcana.",
+      owner: "Ekonomiteam",
+      connected: false,
+    },
   ];
 
   const MACRO_LIBRARY = [
@@ -2078,6 +2094,7 @@
       requestId: 0,
       pendingKey: "",
       records: [],
+      providerStatus: null,
       docsPayload: null,
       actorProfile: null,
       lastSalesLeadAt: "",
@@ -6026,6 +6043,7 @@
       communication: "Kommunikation",
       analytics: "Analys",
       automation: "Automatisering",
+      accounting: "Bokföring",
     };
     return labels[normalized] || humanizeCode(normalized, "Alla");
   }
@@ -24577,9 +24595,10 @@
     renderIntegrations();
 
     try {
-      const [statusResult, meResult] = await Promise.allSettled([
+      const [statusResult, meResult, providerResult] = await Promise.allSettled([
         apiRequest("/api/v1/cco/integrations/status"),
         apiRequest("/api/v1/auth/me"),
+        loadIntegrationProviderStatus(),
       ]);
 
       if (runtime.requestId !== requestId) {
@@ -24590,17 +24609,19 @@
         throw statusResult.reason;
       }
 
-      runtime.records = asArray(statusResult.value?.integrations).map((record) => ({
-        id: normalizeKey(record?.id),
-        category: normalizeKey(record?.category) || "automation",
-        isConnected: record?.isConnected !== false,
-        statusTone: normalizeKey(record?.statusTone) || "idle",
-        statusSummary: asText(record?.statusSummary),
-        watchLabel: asText(record?.watchLabel),
-        updatedAt: asText(record?.updatedAt || record?.configuredAt),
-        configurable: record?.configurable !== false,
-        docsAvailable: record?.docsAvailable !== false,
-      }));
+      runtime.records = mergeIntegrationProviderRecords(
+        asArray(statusResult.value?.integrations).map((record) => ({
+          id: normalizeKey(record?.id),
+          category: normalizeKey(record?.category) || "automation",
+          isConnected: record?.isConnected !== false,
+          statusTone: normalizeKey(record?.statusTone) || "idle",
+          statusSummary: asText(record?.statusSummary),
+          watchLabel: asText(record?.watchLabel),
+          updatedAt: asText(record?.updatedAt || record?.configuredAt),
+          configurable: record?.configurable !== false,
+          docsAvailable: record?.docsAvailable !== false,
+        }))
+      );
       runtime.loaded = true;
       runtime.lastLoadedAt = asText(statusResult.value?.generatedAt) || new Date().toISOString();
       state.integrationsConnectedKeys = runtime.records
@@ -27940,6 +27961,102 @@
     exitAuxViewToConversations({ focusSection: "conversation" });
   }
 
+  function mergeIntegrationProviderRecords(records) {
+    const map = Object.fromEntries(asArray(records).map((record) => [normalizeKey(record.id), { ...record }]));
+    const fortnoxRuntime = state.integrationsRuntime.providerStatus?.fortnox;
+    const swishRuntime = state.integrationsRuntime.providerStatus?.swish;
+    if (map.fortnox && fortnoxRuntime) {
+      map.fortnox.isConnected = fortnoxRuntime.connected === true;
+      map.fortnox.statusTone = fortnoxRuntime.connected ? "healthy" : "idle";
+      map.fortnox.statusSummary = fortnoxRuntime.connected
+        ? "Fortnox OAuth är ansluten och patienter kan synkas."
+        : fortnoxRuntime.configured
+          ? "Fortnox är konfigurerat — anslut via OAuth."
+          : "Fortnox saknar serverkonfiguration (FORTNOX_CLIENT_ID m.fl.).";
+      map.fortnox.watchLabel = fortnoxRuntime.connected
+        ? "Synka patienter från kundkortet eller via API."
+        : "Klicka Koppla för att öppna Fortnox OAuth.";
+    }
+    if (map.swish && swishRuntime) {
+      map.swish.isConnected = swishRuntime.connected === true;
+      map.swish.statusTone = swishRuntime.connected ? "healthy" : "idle";
+      map.swish.statusSummary = swishRuntime.connected
+        ? `Swish Handel är ansluten (${swishRuntime.payeeAlias || "handelsnummer"}).`
+        : swishRuntime.configured
+          ? "Swish är konfigurerat — ange handelsnummer för att ansluta."
+          : "Swish saknar serverkonfiguration (certifikat m.fl.).";
+      map.swish.watchLabel = swishRuntime.connected
+        ? "Skapa betalningsförfrågningar från patientkortet."
+        : "Klicka Koppla och ange ert Swish Handelsnummer.";
+    }
+    return Object.values(map);
+  }
+
+  async function loadIntegrationProviderStatus() {
+    const providerStatus = {
+      fortnox: { configured: false, connected: false },
+      swish: { configured: false, connected: false },
+    };
+    const [fortnoxResult, swishResult] = await Promise.allSettled([
+      apiRequest("/api/v1/cco-fortnox/status"),
+      apiRequest("/api/v1/cco-swish/status"),
+    ]);
+    if (fortnoxResult.status === "fulfilled") {
+      providerStatus.fortnox = {
+        configured: fortnoxResult.value?.configured === true,
+        connected: fortnoxResult.value?.connected === true,
+        scope: asText(fortnoxResult.value?.scope),
+      };
+    }
+    if (swishResult.status === "fulfilled") {
+      providerStatus.swish = {
+        configured: swishResult.value?.configured === true,
+        connected: swishResult.value?.connected === true,
+        payeeAlias: asText(swishResult.value?.payeeAlias),
+      };
+    }
+    state.integrationsRuntime.providerStatus = providerStatus;
+    return providerStatus;
+  }
+
+  async function connectFortnoxIntegration() {
+    const payload = await apiRequest("/api/v1/cco-fortnox/connect");
+    const authorizeUrl = asText(payload?.authorizeUrl);
+    if (!authorizeUrl) {
+      throw new Error("Fortnox returnerade ingen OAuth-URL.");
+    }
+    const popup = window.open(authorizeUrl, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      window.location.assign(authorizeUrl);
+    }
+    return "Fortnox OAuth öppnades. När du godkänt, uppdatera integrationsvyn.";
+  }
+
+  async function disconnectFortnoxIntegration() {
+    await apiRequest("/api/v1/cco-fortnox/disconnect", { method: "POST" });
+    return "Fortnox kopplades från.";
+  }
+
+  async function connectSwishIntegration() {
+    const payeeAlias = window.prompt(
+      "Ange Swish Handelsnummer (10 siffror, samma som i certifikatet):",
+      asText(state.integrationsRuntime.providerStatus?.swish?.payeeAlias)
+    );
+    if (!payeeAlias) {
+      throw new Error("Swish-anslutning avbröts.");
+    }
+    await apiRequest("/api/v1/cco-swish/connect", {
+      method: "POST",
+      body: { payeeAlias },
+    });
+    return "Swish Handel anslöts.";
+  }
+
+  async function disconnectSwishIntegration() {
+    await apiRequest("/api/v1/cco-swish/disconnect", { method: "POST" });
+    return "Swish kopplades från.";
+  }
+
   async function handleIntegrationToggle(integrationKey) {
     const key = normalizeKey(integrationKey);
     if (!key) return;
@@ -27956,6 +28073,25 @@
     let feedbackTone = "";
     renderIntegrations();
     try {
+      if (key === "fortnox") {
+        feedbackMessage = record.isConnected
+          ? await disconnectFortnoxIntegration()
+          : await connectFortnoxIntegration();
+        feedbackTone = "success";
+        await loadIntegrationProviderStatus();
+        await loadIntegrationsRuntime({ force: true });
+        return;
+      }
+      if (key === "swish") {
+        feedbackMessage = record.isConnected
+          ? await disconnectSwishIntegration()
+          : await connectSwishIntegration();
+        feedbackTone = "success";
+        await loadIntegrationProviderStatus();
+        await loadIntegrationsRuntime({ force: true });
+        return;
+      }
+
       const action = record.isConnected ? "disconnect" : "connect";
       const payload = await apiRequest(`/api/v1/cco/integrations/${key}/${action}`, {
         method: "POST",
