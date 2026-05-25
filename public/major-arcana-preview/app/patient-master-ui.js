@@ -42,6 +42,12 @@
   const photoObjectUrls = new Set();
   const fileObjectUrls = new Set();
   const patientDetailInflight = new Map();
+  const patientPrefetchInflight = new Map();
+  let detailHydratedTabs = new Set();
+
+  function resetDetailHydratedTabs() {
+    detailHydratedTabs = new Set();
+  }
 
   const runtime = {
     mode: 'register',
@@ -1800,9 +1806,7 @@
           <h4>Kundhistorik</h4>
           <p class="patient-master-muted">${journalPdfs} journal-PDF · ${images} bilder · ${total} filer</p>
         </div>
-        <div class="patient-master-history-segments">
-          ${renderDriveFiles(rows, card)}
-        </div>
+        <button type="button" class="customers-utility-button" data-patient-tab="filer">Visa alla filer (${total})</button>
       </article>
     `;
   }
@@ -2992,6 +2996,7 @@
       runtime.editingClinicalFormKey = '';
       runtime.editingClinicalEntryId = '';
     }
+    hydrateDetailTab(normalized);
     rail.querySelectorAll('[data-patient-tab]').forEach((button) => {
       const active = (button.dataset.patientTab || '') === normalized;
       button.classList.toggle('is-active', active);
@@ -3082,17 +3087,146 @@
     syncMobilePatientLayout();
   }
 
+  function renderDetailTabContent(tabName, detail) {
+    const { card, patient, journalEntries, driveFiles, occasionTimeline } = detail;
+    switch (tabName) {
+      case 'profil':
+        return `
+          ${renderDraftProposalBanner(runtime.draftProposals)}
+          ${renderJournalWorkflowCallout(journalEntries)}
+          <article class="focus-customer-data-card patient-master-identity-card">
+            <h4>Identitet</h4>
+            <dl class="focus-customer-dl">
+              <div><dt>Personnummer</dt><dd>${escapeHtml(card.personnummer || '—')}</dd></div>
+              <div><dt>Matchning</dt><dd>${escapeHtml(MATCH_LABELS[card.matchStatus] || card.matchStatus || '—')}</dd></div>
+              <div><dt>Cliento</dt><dd>${card.clientoLinked ? 'Ja' : 'Nej'}</dd></div>
+              <div><dt>Drive</dt><dd>${card.driveLinked ? 'Ja' : 'Nej'}</dd></div>
+              <div><dt>Pipedrive</dt><dd>${card.pipedriveLinked ? `Ja (${card.pipedriveDealCount || 0} affärer)` : 'Nej'}</dd></div>
+            </dl>
+          </article>
+          ${renderPipedriveSection(patient)}
+          ${renderMaterialPreview(driveFiles, card)}
+          ${patient?.cliento?.createdAt
+        ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
+        : ''
+      }`;
+      case 'journal':
+        return renderJournalEntries(journalEntries);
+      case 'tidslinje':
+        return renderUnifiedTimelinePanel(journalEntries, driveFiles, occasionTimeline);
+      case 'avtal':
+        return renderAgreementSection();
+      case 'filer':
+        return renderDriveFiles(driveFiles, card);
+      default:
+        return '';
+    }
+  }
+
+  function renderDetailTabPanelMarkup(tabName, detail, active) {
+    const lazy = !active && !detailHydratedTabs.has(tabName);
+    if (lazy) {
+      return `<p class="patient-master-muted" data-patient-tab-lazy="${tabName}">Laddar…</p>`;
+    }
+    detailHydratedTabs.add(tabName);
+    return renderDetailTabContent(tabName, detail);
+  }
+
+  function hydrateDetailTab(tabName) {
+    if (!runtime.detail?.card || detailHydratedTabs.has(tabName)) return false;
+    const rail = els.patientRail || document.querySelector('[data-patient-master-rail]');
+    const panel = rail?.querySelector(`[data-patient-tab-panel="${tabName}"]`);
+    if (!panel?.querySelector('[data-patient-tab-lazy]')) return false;
+    panel.innerHTML = renderDetailTabContent(tabName, runtime.detail);
+    detailHydratedTabs.add(tabName);
+    if (tabName === 'journal') {
+      bindJournalPhotoOpenLinks(rail);
+      void hydrateJournalPhotoElements(rail);
+      window.requestAnimationFrame(() => bindJournalAutosaveForms());
+    } else if (tabName === 'profil' || tabName === 'filer' || tabName === 'tidslinje') {
+      void hydratePatientFileImages(rail);
+    }
+    return true;
+  }
+
+  function scheduleBackgroundDetailTabHydration(patientId) {
+    const tabs = ['profil', 'journal', 'tidslinje', 'avtal', 'filer'].filter(
+      (tab) => tab !== runtime.detailTab
+    );
+    let index = 0;
+    const step = () => {
+      if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
+      if (index >= tabs.length) return;
+      hydrateDetailTab(tabs[index]);
+      index += 1;
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(step, { timeout: 1800 });
+      } else {
+        window.setTimeout(step, 24);
+      }
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(step, { timeout: 1200 });
+    } else {
+      window.setTimeout(step, 48);
+    }
+  }
+
+  function prefetchPatientDetail(patientId) {
+    const key = normalizeText(patientId);
+    if (!key || runtime.mode !== 'register' || needsStaffLogin()) return;
+    if (normalizeText(runtime.selectedPatientId) === key && runtime.detail?.card) return;
+    const cached = window.__ARCANA_PATIENT_PREFETCH__;
+    if (cached && normalizeText(cached.patientId) === key && cached.payload) return;
+    if (patientPrefetchInflight.has(key)) return;
+    const promise = fetchPatientDetailFromApi(patientId)
+      .then((payload) => {
+        window.__ARCANA_PATIENT_PREFETCH__ = {
+          patientId: key,
+          payload,
+          at: Date.now(),
+        };
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (patientPrefetchInflight.get(key) === promise) {
+          patientPrefetchInflight.delete(key);
+        }
+      });
+    patientPrefetchInflight.set(key, promise);
+  }
+
+  function scheduleSidecarLoads(patientId) {
+    void Promise.all([
+      loadPatientCommercialCase(patientId),
+      loadPatientTreatmentAgreement(patientId),
+      loadPatientDraftProposals(patientId),
+    ]).then(() => {
+      if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
+      const patch = () => {
+        if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
+        if (patchCommercialAgreementSidecars()) return;
+        if (runtime.detailTab === 'avtal') {
+          hydrateDetailTab('avtal');
+        }
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(patch, { timeout: 1200 });
+      } else {
+        window.setTimeout(patch, 0);
+      }
+    });
+  }
+
   function scheduleFullDetailPanelHydration(patientId) {
     const hydrate = () => {
       if (normalizeText(runtime.selectedPatientId) !== normalizeText(patientId)) return;
       if (!runtime.detail?.card) return;
       renderDetailPanel();
+      scheduleBackgroundDetailTabHydration(patientId);
     };
-    if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(hydrate, { timeout: 320 });
-    } else {
-      window.requestAnimationFrame(hydrate);
-    }
+    window.requestAnimationFrame(hydrate);
+    window.setTimeout(hydrate, 0);
   }
 
   function renderDetailPanel() {
@@ -3111,7 +3245,7 @@
     }
     runtime.detailShellOnly = false;
     revokePhotoObjectUrls();
-    const { card, patient, journalEntries, driveFiles, occasionTimeline } = detail;
+    const { card, driveFiles } = detail;
     const tab = runtime.detailTab;
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
@@ -3142,48 +3276,35 @@
         </div>
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">
-          ${renderDraftProposalBanner(runtime.draftProposals)}
-          ${renderJournalWorkflowCallout(journalEntries)}
-          <article class="focus-customer-data-card patient-master-identity-card">
-            <h4>Identitet</h4>
-            <dl class="focus-customer-dl">
-              <div><dt>Personnummer</dt><dd>${escapeHtml(card.personnummer || '—')}</dd></div>
-              <div><dt>Matchning</dt><dd>${escapeHtml(MATCH_LABELS[card.matchStatus] || card.matchStatus || '—')}</dd></div>
-              <div><dt>Cliento</dt><dd>${card.clientoLinked ? 'Ja' : 'Nej'}</dd></div>
-              <div><dt>Drive</dt><dd>${card.driveLinked ? 'Ja' : 'Nej'}</dd></div>
-              <div><dt>Pipedrive</dt><dd>${card.pipedriveLinked ? `Ja (${card.pipedriveDealCount || 0} affärer)` : 'Nej'}</dd></div>
-            </dl>
-          </article>
-          ${renderPipedriveSection(patient)}
-          ${renderMaterialPreview(driveFiles, card)}
-          ${patient?.cliento?.createdAt
-        ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
-        : ''
-      }
+          ${renderDetailTabPanelMarkup('profil', detail, profilActive)}
         </div>
 
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
-          ${renderJournalEntries(journalEntries)}
+          ${renderDetailTabPanelMarkup('journal', detail, journalActive)}
         </div>
 
         <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
-          ${renderUnifiedTimelinePanel(journalEntries, driveFiles, occasionTimeline)}
+          ${renderDetailTabPanelMarkup('tidslinje', detail, tidslinjeActive)}
         </div>
 
         <div class="patient-master-tab-panel"${avtalActive ? '' : ' hidden'} data-patient-tab-panel="avtal">
-          ${renderAgreementSection()}
+          ${renderDetailTabPanelMarkup('avtal', detail, avtalActive)}
         </div>
 
         <div class="patient-master-tab-panel"${filesActive ? '' : ' hidden'} data-patient-tab-panel="filer">
-          ${renderDriveFiles(driveFiles, card)}
+          ${renderDetailTabPanelMarkup('filer', detail, filesActive)}
         </div>
       </section>
     `;
     bindJournalPhotoOpenLinks(els.patientRail);
-    void hydrateJournalPhotoElements(els.patientRail);
-    void hydratePatientFileImages(els.patientRail);
+    if (journalActive) {
+      void hydrateJournalPhotoElements(els.patientRail);
+      window.requestAnimationFrame(() => bindJournalAutosaveForms());
+    }
+    if (profilActive || filesActive || tidslinjeActive) {
+      void hydratePatientFileImages(els.patientRail);
+    }
     syncMobilePatientLayout();
-    window.requestAnimationFrame(() => bindJournalAutosaveForms());
   }
 
   async function loadStats() {
@@ -3372,10 +3493,16 @@
       if (!runtime.detail?.card) return;
       if (runtime.detailShellOnly) {
         renderDetailPanel();
+        scheduleBackgroundDetailTabHydration(patientId);
         return;
       }
-      if (railHasPatientDetailUi()) return;
-      renderDetailPanel();
+      const loading = document
+        .querySelector('[data-patient-master-rail]')
+        ?.querySelector('[data-patient-loading="true"]');
+      if (loading || !railHasPatientDetailUi()) {
+        renderDetailPanel();
+        scheduleBackgroundDetailTabHydration(patientId);
+      }
     };
     paint();
     window.requestAnimationFrame(paint);
@@ -3496,6 +3623,7 @@
     const openingNewPatient = runtime.selectedPatientId !== patientId;
     const previousPatientId = runtime.selectedPatientId;
     if (openingNewPatient) {
+      resetDetailHydratedTabs();
       runtime.editingTpEntryId = '';
       runtime.editingPrpEntryId = '';
       runtime.editingFollowUpEntryId = '';
@@ -3540,31 +3668,7 @@
       } catch {
         /* best-effort */
       }
-      if (isMobileViewport()) {
-        void Promise.all([
-          loadPatientCommercialCase(patientId),
-          loadPatientTreatmentAgreement(patientId),
-          loadPatientDraftProposals(patientId),
-        ]).then(() => {
-          if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
-          const patch = () => {
-            if (runtime.selectedPatientId !== patientId || !runtime.detail?.card) return;
-            patchCommercialAgreementSidecars();
-          };
-          if (typeof requestIdleCallback === 'function') {
-            requestIdleCallback(patch, { timeout: 1200 });
-          } else {
-            window.setTimeout(patch, 0);
-          }
-        });
-      } else {
-        await Promise.all([
-          loadPatientCommercialCase(patientId),
-          loadPatientTreatmentAgreement(patientId),
-          loadPatientDraftProposals(patientId),
-        ]);
-        renderDetailPanel();
-      }
+      scheduleSidecarLoads(patientId);
     } catch (error) {
       runtime.detail = null;
       const message =
@@ -4325,6 +4429,16 @@
   }
 
   function bindEvents() {
+    document.addEventListener(
+      'pointerenter',
+      (event) => {
+        const row = event.target.closest?.('[data-patient-row]');
+        if (!row || runtime.mode !== 'register') return;
+        prefetchPatientDetail(row.dataset.patientRow);
+      },
+      true
+    );
+
     document.addEventListener('click', (event) => {
       const modeButton = event.target.closest('[data-patient-master-mode]');
       if (modeButton) {
