@@ -10,7 +10,14 @@ const {
 } = require('./bookingReminderLeadTime');
 const { createTransactionalMailer } = require('../infra/transactionalMailer');
 const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
+const {
+  buildBookingCancellationEmail,
+} = require('../templates/bookingCancellationEmail');
 const { buildEmailIcsReminderKey } = require('./bookingCalendarSignals');
+const {
+  FOLLOWUP_VARIANT_BY_MONTH,
+  planFollowupDrafts,
+} = require('./ccoFollowupDraftPlanner');
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -162,6 +169,100 @@ async function applyApprovedDraftProposal({
     proposalId: proposal.proposalId,
     patientId,
     created,
+  };
+}
+
+/**
+ * P6.6.10 — Promote ett **godkänt** journalutkast (proposal) till en
+ * signerbar journalpost i `ccoJournalStore`. Skiljer sig från
+ * `applyApprovedDraftProposal` genom att:
+ *   - Markera proposalen som `promoted` med `journalEntryIds`
+ *   - Returnera audit-shape (`auditEvent`) som route kan logga
+ *   - Vara idempotent: redan promoted proposal returnerar utan dubbletter
+ */
+async function promoteApprovedDraftToJournalEntry({
+  proposalId,
+  tenantId,
+  ownerUserId = '',
+  patientCareStateStore,
+  journalStore,
+  patientMasterStore,
+  actor = {},
+} = {}) {
+  if (!patientCareStateStore?.listDraftProposals || !patientCareStateStore?.upsertDraftProposal) {
+    return { promoted: false, reason: 'patient_care_state_store_missing' };
+  }
+  if (!journalStore?.upsertEntry) {
+    return { promoted: false, reason: 'journal_store_missing' };
+  }
+  const tenant = normalizeText(tenantId);
+  const proposalIdNormalized = normalizeText(proposalId);
+  if (!tenant || !proposalIdNormalized) {
+    return { promoted: false, reason: 'tenant_or_proposal_missing' };
+  }
+  const proposals = await patientCareStateStore.listDraftProposals({
+    tenantId: tenant,
+    status: 'all',
+    limit: 200,
+  });
+  const proposal = proposals.find((row) => row.proposalId === proposalIdNormalized) || null;
+  if (!proposal) {
+    return { promoted: false, reason: 'proposal_not_found' };
+  }
+  const status = normalizeText(proposal.status).toLowerCase();
+  if (status === 'promoted') {
+    return {
+      promoted: false,
+      reason: 'already_promoted',
+      proposalId: proposal.proposalId,
+      journalEntryIds: asArray(proposal.journalEntryIds),
+      proposal,
+    };
+  }
+  if (status !== 'approved') {
+    return { promoted: false, reason: 'not_approved', currentStatus: status };
+  }
+  const promotionActor = {
+    userId: normalizeText(ownerUserId || actor.userId),
+    displayName: normalizeText(actor.displayName || ownerUserId),
+    role: normalizeText(actor.role) || 'OWNER',
+  };
+  const application = await applyApprovedDraftProposal({
+    proposal,
+    journalStore,
+    patientMasterStore,
+    actor: promotionActor,
+  });
+  const journalEntryIds = asArray(application.created)
+    .map((row) => normalizeText(row.entryId))
+    .filter(Boolean);
+  const promotedProposal = await patientCareStateStore.upsertDraftProposal({
+    ...proposal,
+    status: 'promoted',
+    promotedAt: new Date().toISOString(),
+    promotedBy: promotionActor.userId,
+    journalEntryIds,
+    journalEntries: asArray(application.created),
+  });
+  return {
+    promoted: true,
+    proposalId: promotedProposal.proposalId,
+    patientId: promotedProposal.patientId,
+    journalEntryIds,
+    journalEntries: asArray(application.created),
+    proposal: promotedProposal,
+    auditEvent: {
+      action: 'journal_draft_promoted',
+      tenantId: tenant,
+      actorUserId: promotionActor.userId,
+      targetType: 'journal_draft_proposal',
+      targetId: promotedProposal.proposalId,
+      metadata: {
+        patientId: promotedProposal.patientId,
+        journalEntryIds,
+        journalEntries: asArray(application.created),
+      },
+    },
   };
 }
 
@@ -544,6 +645,274 @@ async function dispatchPatientVisitReminderEmails({
   return { sent, skipped, results };
 }
 
+/**
+ * Skicka avbokningsbekräftelse till patient (Resend → Graph fallback).
+ *
+ * Pattern: motsvarar `dispatchPatientVisitReminderEmails` men för en
+ * enstaka avbokad bokning. Idempotensskydd via patientCareStateStore
+ * (`reminderKey = booking_cancellation:<bookingId>`) så att samma cancel
+ * inte triggar mer än ett mail även om route anropas igen.
+ */
+async function dispatchBookingCancellationEmail({
+  booking,
+  graphSendConnector,
+  patientCareStateStore = null,
+  fromEmail,
+  locale = 'sv',
+  reason = '',
+  tenantId = '',
+  bookingEngineStore = null,
+} = {}) {
+  const safeBooking = asObject(booking);
+  const customerEmail = normalizeText(safeBooking.customerEmail);
+  if (!customerEmail || !customerEmail.includes('@')) {
+    return { skipped: true, reason: 'no_recipient' };
+  }
+  const slot = asObject(safeBooking.slot);
+  const startsAt = normalizeText(slot.startsAt || safeBooking.startsAt);
+  const bookingId =
+    normalizeText(safeBooking.bookingId) ||
+    normalizeText(safeBooking.id) ||
+    `${customerEmail}:${startsAt}`;
+  const reminderKey = `booking_cancellation:${bookingId}`;
+  const resolvedTenantId = normalizeText(tenantId || safeBooking.tenantId);
+
+  if (
+    patientCareStateStore &&
+    typeof patientCareStateStore.wasReminderSent === 'function' &&
+    resolvedTenantId
+  ) {
+    const alreadySent = await patientCareStateStore.wasReminderSent({
+      tenantId: resolvedTenantId,
+      reminderKey,
+      withinHours: 24 * 14,
+    });
+    if (alreadySent) {
+      return { skipped: true, reason: 'already_sent', reminderKey };
+    }
+  }
+
+  let serviceLabel = normalizeText(slot.serviceLabel);
+  let locationLabel = normalizeText(slot.locationLabel);
+  if ((!serviceLabel || !locationLabel) && bookingEngineStore) {
+    const servicesById = await loadServicesById(bookingEngineStore);
+    const service = servicesById.get(normalizeText(slot.serviceId));
+    if (service) {
+      serviceLabel = serviceLabel || normalizeText(service.label);
+    }
+  }
+
+  const content = buildBookingCancellationEmail({
+    customerName: safeBooking.customerName,
+    serviceId: slot.serviceId,
+    serviceLabel: serviceLabel || normalizeText(slot.serviceLabel) || slot.serviceId,
+    slotStart: startsAt,
+    resourceLabel: slot.resourceLabel,
+    locationLabel,
+    reason,
+    locale,
+  });
+
+  const mailer = createTransactionalMailer({ graphSendConnector });
+  const result = await mailer.sendEmail({
+    to: customerEmail,
+    from: normalizeText(fromEmail) || undefined,
+    subject: content.subject,
+    html: content.html,
+    text: content.text,
+  });
+
+  if (
+    result?.ok === true &&
+    patientCareStateStore &&
+    typeof patientCareStateStore.logReminder === 'function' &&
+    resolvedTenantId
+  ) {
+    await patientCareStateStore.logReminder({
+      tenantId: resolvedTenantId,
+      reminderKey,
+      reminderType: 'booking_cancellation',
+      patientId: normalizeText(safeBooking.patientId),
+      channel: 'patient_email',
+      metadata: {
+        bookingId,
+        customerEmail,
+        startsAt,
+        serviceId: normalizeText(slot.serviceId),
+        reason: normalizeText(reason),
+      },
+    });
+  }
+
+  return {
+    skipped: result?.ok !== true,
+    reason: result?.ok === true ? undefined : result?.error || result?.skipped || 'send_failed',
+    provider: result?.provider,
+    mode: result?.mode,
+    recipient: customerEmail,
+    reminderKey,
+  };
+}
+
+/**
+ * P6.4.8 — Automatisk draft uppföljning 4/6/12 mån efter signerad transplant.
+ *
+ * Scheduler-job (`cco_followup_draft_generator`) ringer denna funktion.
+ * - Hittar signerade TP-behandlings-entries
+ * - Listar befintliga follow_up-entries
+ * - Hämtar plannedState för idempotens (`followupPlanState`)
+ * - Planerar utkast och skapar drafts via `journalStore.upsertEntry`
+ * - Persisterar plan-rader i `patientCareStateStore.recordFollowupPlanEntry`
+ */
+async function runFollowupDraftGenerator({
+  journalStore,
+  patientMasterStore,
+  patientCareStateStore,
+  tenantId,
+  today = new Date(),
+  leadDays = 30,
+  patientLimit = 500,
+  actor = {},
+} = {}) {
+  if (!journalStore?.listEntries || !patientMasterStore?.listPatients) {
+    return { tenantId, skipped: true, reason: 'journal_or_patient_store_missing' };
+  }
+  if (!patientCareStateStore?.recordFollowupPlanEntry) {
+    return { tenantId, skipped: true, reason: 'patient_care_state_store_missing' };
+  }
+  const patients = await listPatientsSafe(patientMasterStore, tenantId, patientLimit);
+  const signedEncounters = [];
+  const existingFollowups = [];
+  for (const patient of patients) {
+    const patientId = normalizeText(patient.patientId || patient.id);
+    if (!patientId) continue;
+    const entries = await listJournalEntriesSafe(journalStore, tenantId, patientId);
+    for (const entry of entries) {
+      const journalType = normalizeText(entry.journalType);
+      if (journalType === 'tp_treatment' && isSignedEntry(entry)) {
+        signedEncounters.push({
+          encounterId: normalizeText(entry.treatmentEncounterId) || normalizeText(entry.entryId),
+          patientId,
+          tenantId,
+          type: 'tp_treatment',
+          signedAt: entry.signedAt || entry.updatedAt,
+          formVariant: entry.formVariant,
+          sourceEntryId: entry.entryId,
+        });
+      } else if (journalType === 'follow_up') {
+        existingFollowups.push({
+          patientId,
+          treatmentEncounterId:
+            normalizeText(entry.treatmentEncounterId) || normalizeText(entry.encounterId),
+          formVariant: entry.formVariant,
+          locked: Boolean(entry.locked),
+          entryId: entry.entryId,
+        });
+      }
+    }
+  }
+  const plannedState = await patientCareStateStore.listFollowupPlanState({ tenantId });
+  const plan = planFollowupDrafts({
+    signedEncounters,
+    existingFollowups,
+    plannedState,
+    today,
+    leadDays,
+    tenantId,
+  });
+
+  let createdDrafts = 0;
+  let recordedPlanRows = 0;
+  const created = [];
+
+  for (const row of plan.planned) {
+    if (row.status !== 'planned') continue;
+    const encounterMatch = signedEncounters.find(
+      (entry) => entry.encounterId === row.encounterId
+    );
+    const sourceEntryId = encounterMatch?.sourceEntryId || row.encounterId;
+    let personnummer = '';
+    if (patientMasterStore?.getPatient) {
+      try {
+        const patient = await patientMasterStore.getPatient({
+          tenantId,
+          patientId: row.patientId,
+        });
+        personnummer = normalizeText(patient?.personnummer || patient?.personalId);
+      } catch {
+        personnummer = '';
+      }
+    }
+    let draftEntry = null;
+    try {
+      draftEntry = await journalStore.upsertEntry(
+        {
+          tenantId,
+          patientId: row.patientId,
+          personnummer,
+          treatmentEncounterId: row.encounterId,
+          journalType: 'follow_up',
+          formVariant: row.formVariant,
+          status: 'draft',
+          title: row.title,
+          source: row.source,
+          fields: {
+            sourceEntryId,
+            transplantSignedAt: row.signedAt,
+            followupMonth: row.followupMonth,
+            plannedDueAt: row.dueAt,
+          },
+        },
+        { actor }
+      );
+      createdDrafts += 1;
+      created.push({
+        encounterId: row.encounterId,
+        followupMonth: row.followupMonth,
+        formVariant: row.formVariant,
+        entryId: draftEntry.entryId,
+      });
+    } catch (error) {
+      console.warn(
+        '[cco_followup_draft_generator] kunde inte skapa draft:',
+        error?.message || error
+      );
+    }
+    try {
+      await patientCareStateStore.recordFollowupPlanEntry({
+        tenantId,
+        encounterId: row.encounterId,
+        followupMonth: row.followupMonth,
+        patientId: row.patientId,
+        formVariant: row.formVariant,
+        dueAt: row.dueAt,
+        plannedAt: new Date().toISOString(),
+        draftEntryId: draftEntry?.entryId || '',
+        status: draftEntry ? 'planned' : 'planned_no_draft',
+        source: row.source,
+      });
+      recordedPlanRows += 1;
+    } catch (error) {
+      console.warn(
+        '[cco_followup_draft_generator] kunde inte spara planState:',
+        error?.message || error
+      );
+    }
+  }
+
+  return {
+    tenantId,
+    transplantCount: plan.transplantCount,
+    plannedCount: plan.plannedCount,
+    createdDrafts,
+    recordedPlanRows,
+    skippedExistingCount: plan.skippedExistingCount,
+    skippedAlreadyPlannedCount: plan.skippedAlreadyPlannedCount,
+    horizonDays: plan.horizonDays,
+    created,
+  };
+}
+
 function resolveMaintenanceWindow(config = {}) {
   const start = parseIso(config.maintenanceWindowStart);
   const end = parseIso(config.maintenanceWindowEnd);
@@ -569,7 +938,10 @@ module.exports = {
   buildMissingFormsReport,
   buildReminderDigestHtml,
   classifyMissingForms,
+  dispatchBookingCancellationEmail,
   dispatchCustomerReminderDigest,
   dispatchPatientVisitReminderEmails,
+  promoteApprovedDraftToJournalEntry,
   resolveMaintenanceWindow,
+  runFollowupDraftGenerator,
 };

@@ -1942,6 +1942,7 @@ process.once('SIGTERM', () => {
       patientMasterStore: ccoPatientMasterStore,
       journalStore: ccoJournalStore,
       treatmentEncounterStore: ccoTreatmentEncounterStore,
+      patientCareStateStore,
       authStore,
       config,
       graphSendConnector,

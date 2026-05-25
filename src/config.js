@@ -917,6 +917,14 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_JOURNAL_DRAFT_INTERVAL_HOURS,
     24
   ),
+  schedulerCcoFollowupDraftIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_FOLLOWUP_DRAFT_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoFollowupDraftLeadDays: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_FOLLOWUP_DRAFT_LEAD_DAYS,
+    30
+  ),
   schedulerCcoCustomerRemindersIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_CCO_CUSTOMER_REMINDERS_INTERVAL_HOURS,
     6
