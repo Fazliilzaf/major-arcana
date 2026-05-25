@@ -408,6 +408,69 @@ function createCcoPatientMasterRouter({
       })
   );
 
+  router.post(
+    '/cco-patient-master/patient/gdpr-anonymize',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.body?.patientId || req.query?.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const confirmText = normalizeText(req.body?.confirmText);
+        if (confirmText !== `ANONYMIZE ${patientId}`) {
+          return res.status(400).json({
+            error: `Bekräfta med confirmText: "ANONYMIZE ${patientId}"`,
+          });
+        }
+
+        const patient = await patientMasterStore.getPatient({ tenantId: actor.tenantId, patientId });
+        if (!patient) return res.status(404).json({ error: 'Patient hittades inte.' });
+
+        const anonymizedData = {
+          displayName: '[Anonymiserad]',
+          fullName: '[Anonymiserad]',
+          firstName: '[Anonymiserad]',
+          lastName: '[Anonymiserad]',
+          personalNumber: null,
+          primaryEmail: null,
+          primaryPhone: null,
+          address: null,
+          notes: null,
+          flags: [],
+          anonymizedAt: new Date().toISOString(),
+          anonymizedBy: actor.userId,
+        };
+
+        await patientMasterStore.updatePatient({
+          tenantId: actor.tenantId,
+          patientId,
+          patch: anonymizedData,
+          actorUserId: actor.userId,
+        });
+
+        if (journalStore?.anonymizePatientEntries) {
+          await journalStore.anonymizePatientEntries({ tenantId: actor.tenantId, patientId });
+        }
+
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.gdpr_anonymize',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+          metadata: { anonymizedFields: Object.keys(anonymizedData) },
+        });
+
+        return res.json({
+          ok: true,
+          patientId,
+          anonymized: true,
+          anonymizedAt: anonymizedData.anonymizedAt,
+        });
+      })
+  );
+
   return router;
 }
 
