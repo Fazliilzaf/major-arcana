@@ -15,7 +15,12 @@ const {
   mergeLegacyResourcesIntoEngineState,
   buildStaffRuntimeCatalogReadout,
 } = require('./legacyCatalogRuntime');
-const { applyBookingPolicyMigrationToServices } = require('./bookingPolicySettings');
+const {
+  applyBookingPolicyMigrationToServices,
+  applyBookingPolicySettingsToService,
+  loadBookingPolicyMigrationDefaults,
+  normalizeBookingPolicySettings,
+} = require('./bookingPolicySettings');
 
 /** Plan A — endast tre möten exponeras via /api/public/booking-engine/catalog */
 const PLAN_A_PUBLIC_SERVICE_IDS = [
@@ -953,6 +958,13 @@ async function createCcoBookingEngineStore({ filePath }) {
     await save();
   }
 
+  let bookingPolicySettings = normalizeBookingPolicySettings(loadBookingPolicyMigrationDefaults());
+
+  function setBookingPolicySettings(settings = {}) {
+    bookingPolicySettings = normalizeBookingPolicySettings(settings, bookingPolicySettings);
+    return clone(bookingPolicySettings);
+  }
+
   async function expireStaleReservations() {
     const referenceMs = Date.now();
     let changed = false;
@@ -977,7 +989,9 @@ async function createCcoBookingEngineStore({ filePath }) {
   }
 
   function getServiceById(serviceId) {
-    return state.services.find((item) => item.id === normalizeText(serviceId)) || null;
+    const raw = state.services.find((item) => item.id === normalizeText(serviceId)) || null;
+    if (!raw) return null;
+    return applyBookingPolicySettingsToService(raw, bookingPolicySettings);
   }
 
   function slotsOverlap(left = {}, right = {}) {
@@ -1075,7 +1089,9 @@ async function createCcoBookingEngineStore({ filePath }) {
           .map((item) => item.trim())
           .filter(Boolean)
       : [];
-    const days = buildDateRange(fromDate, capAvailabilityToDate(toDate));
+    const globalMaxDays =
+      Number(bookingPolicySettings?.globalDefaults?.maxBookingDaysAhead) || 180;
+    const days = buildDateRange(fromDate, capAvailabilityToDate(toDate, globalMaxDays));
     const nowMs = Date.now();
     const slots = [];
     days.forEach((day) => {
@@ -1506,6 +1522,7 @@ async function createCcoBookingEngineStore({ filePath }) {
   }
 
   return {
+    setBookingPolicySettings,
     listAvailability,
     reserveSlots,
     renewReservations,

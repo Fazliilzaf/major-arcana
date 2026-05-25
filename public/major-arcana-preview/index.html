@@ -4953,6 +4953,53 @@
                         placeholder='{"fazli": 24}'></textarea>
                     </label>
                   </div>
+                  <div class="settings-panel-subhead">
+                    <h3>Bokningspolicy (min-notice &amp; avbokning)</h3>
+                    <p>Styr smart slots i bokningsmotorn. Cliento-startvärden: 2 h online, 1 h fysisk, max 180 dagar, avbokning 24 h.</p>
+                  </div>
+                  <div class="settings-toggle-list">
+                    <label class="settings-toggle-row">
+                      <div class="settings-toggle-copy">
+                        <strong>Global min-notice online</strong>
+                        <span>Timmar före onlinebesök</span>
+                      </div>
+                      <input class="settings-number-input" type="number" min="0" max="168" step="1"
+                        data-settings-booking-policy="minNoticeOnlineHours" value="2" />
+                    </label>
+                    <label class="settings-toggle-row">
+                      <div class="settings-toggle-copy">
+                        <strong>Global min-notice fysisk</strong>
+                        <span>Timmar före fysiska besök</span>
+                      </div>
+                      <input class="settings-number-input" type="number" min="0" max="168" step="1"
+                        data-settings-booking-policy="minNoticePhysicalHours" value="1" />
+                    </label>
+                    <label class="settings-toggle-row">
+                      <div class="settings-toggle-copy">
+                        <strong>Max bokningsdagar framåt</strong>
+                        <span>Övre gräns för tillgängliga datum</span>
+                      </div>
+                      <input class="settings-number-input" type="number" min="1" max="365" step="1"
+                        data-settings-booking-policy="maxBookingDaysAhead" value="180" />
+                    </label>
+                    <label class="settings-toggle-row">
+                      <div class="settings-toggle-copy">
+                        <strong>Avbokningsgräns</strong>
+                        <span>Timmar före besök som avbokning tillåts</span>
+                      </div>
+                      <input class="settings-number-input" type="number" min="0" max="168" step="1"
+                        data-settings-booking-policy="cancellationPolicyHours" value="24" />
+                    </label>
+                    <label class="settings-toggle-row settings-toggle-row--stack">
+                      <div class="settings-toggle-copy">
+                        <strong>Override per tjänst (JSON)</strong>
+                        <span>Tjänst-id → policy-fält, t.ex. <code>{"consultation-online": {"minNoticeMinutes": 120}}</code></span>
+                      </div>
+                      <textarea class="settings-json-input" rows="3" spellcheck="false"
+                        data-settings-booking-policy-json="serviceOverrides"
+                        placeholder='{"followup-transplant": {"minNoticeMinutes": 60, "vipTokenRequired": true}}'></textarea>
+                    </label>
+                  </div>
                 </section>
 
                 <section class="settings-panel">

@@ -190,6 +190,12 @@
   const settingsLeadTimeJsonInputs = Array.from(
     document.querySelectorAll("[data-settings-lead-time-json]")
   );
+  const settingsBookingPolicyInputs = Array.from(
+    document.querySelectorAll("[data-settings-booking-policy]")
+  );
+  const settingsBookingPolicyJsonInputs = Array.from(
+    document.querySelectorAll("[data-settings-booking-policy-json]")
+  );
   const settingsActionButtons = Array.from(document.querySelectorAll("[data-settings-action]"));
   const showcaseFeatureButtons = Array.from(
     document.querySelectorAll("[data-showcase-feature]")
@@ -2378,6 +2384,7 @@
         advanced_filters: false,
       },
       bookingReminderLeadTime: createDefaultBookingReminderLeadTimeView(),
+      bookingPolicy: createDefaultBookingPolicyView(),
     },
     macroModal: {
       open: false,
@@ -6249,7 +6256,99 @@
         serviceOverrides: {},
         resourceOverrides: {},
       },
+      bookingPolicy: createDefaultBookingPolicyView(),
     };
+  }
+
+  function createDefaultBookingPolicyView() {
+    return {
+      minNoticeOnlineHours: 2,
+      minNoticePhysicalHours: 1,
+      maxBookingDaysAhead: 180,
+      cancellationPolicyHours: 24,
+      serviceOverrides: {},
+    };
+  }
+
+  function normalizeBookingPolicyView(input = {}) {
+    const defaults = createDefaultBookingPolicyView();
+    const safe = input && typeof input === "object" ? input : {};
+    const global =
+      safe.globalDefaults && typeof safe.globalDefaults === "object"
+        ? safe.globalDefaults
+        : safe;
+    const clampHours = (value, fallback) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(0, Math.min(168, Math.round(parsed)));
+    };
+    const clampDays = (value, fallback) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(1, Math.min(365, Math.round(parsed)));
+    };
+    const onlineMinutes = Number(global.minNoticeOnlineMinutes);
+    const physicalMinutes = Number(global.minNoticePhysicalMinutes);
+    const normalizeServiceOverrides = (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+      const out = {};
+      Object.entries(value).forEach(([key, override]) => {
+        const id = normalizeText(key);
+        if (!id || !override || typeof override !== "object" || Array.isArray(override)) return;
+        out[id] = { ...override };
+      });
+      return out;
+    };
+    return {
+      minNoticeOnlineHours: clampHours(
+        safe.minNoticeOnlineHours ??
+          (Number.isFinite(onlineMinutes) ? onlineMinutes / 60 : undefined),
+        defaults.minNoticeOnlineHours
+      ),
+      minNoticePhysicalHours: clampHours(
+        safe.minNoticePhysicalHours ??
+          (Number.isFinite(physicalMinutes) ? physicalMinutes / 60 : undefined),
+        defaults.minNoticePhysicalHours
+      ),
+      maxBookingDaysAhead: clampDays(global.maxBookingDaysAhead, defaults.maxBookingDaysAhead),
+      cancellationPolicyHours: clampHours(
+        global.cancellationPolicyHours,
+        defaults.cancellationPolicyHours
+      ),
+      serviceOverrides: normalizeServiceOverrides(safe.serviceOverrides),
+    };
+  }
+
+  function buildBookingPolicyPayloadFromView(view = {}) {
+    const normalized = normalizeBookingPolicyView(view);
+    return {
+      globalDefaults: {
+        minNoticeOnlineMinutes: normalized.minNoticeOnlineHours * 60,
+        minNoticePhysicalMinutes: normalized.minNoticePhysicalHours * 60,
+        maxBookingDaysAhead: normalized.maxBookingDaysAhead,
+        cancellationPolicyHours: normalized.cancellationPolicyHours,
+      },
+      serviceOverrides: normalized.serviceOverrides,
+    };
+  }
+
+  function serializeBookingPolicyJson(map = {}) {
+    try {
+      return JSON.stringify(map && typeof map === "object" ? map : {}, null, 0);
+    } catch {
+      return "{}";
+    }
+  }
+
+  function parseBookingPolicyServiceOverridesJson(raw = "") {
+    const text = normalizeText(raw);
+    if (!text) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return normalizeBookingPolicyView({ serviceOverrides: parsed }).serviceOverrides;
+    } catch {
+      return null;
+    }
   }
 
   function createDefaultBookingReminderLeadTimeView() {
@@ -6432,6 +6531,7 @@
       bookingReminderLeadTime: normalizeBookingReminderLeadTimeView(
         settings?.bookingReminderLeadTime
       ),
+      bookingPolicy: normalizeBookingPolicyView(settings?.bookingPolicy),
       toggles,
     };
   }
@@ -6490,6 +6590,7 @@
       bookingReminderLeadTime: normalizeBookingReminderLeadTimeView(
         state.settingsRuntime.bookingReminderLeadTime
       ),
+      bookingPolicy: buildBookingPolicyPayloadFromView(state.settingsRuntime.bookingPolicy),
     };
   }
 
@@ -6511,6 +6612,7 @@
     state.settingsRuntime.bookingReminderLeadTime = normalizeBookingReminderLeadTimeView(
       mapped.bookingReminderLeadTime
     );
+    state.settingsRuntime.bookingPolicy = normalizeBookingPolicyView(mapped.bookingPolicy);
     if (
       nextState?.mailFoundation &&
       Object.prototype.hasOwnProperty.call(nextState.mailFoundation, "customMailboxes")
@@ -24926,6 +25028,32 @@
       }
     });
 
+    const bookingPolicy = normalizeBookingPolicyView(state.settingsRuntime.bookingPolicy);
+    settingsBookingPolicyInputs.forEach((input) => {
+      const key = normalizeKey(input.dataset.settingsBookingPolicy);
+      if (key === "minnoticeonlinehours") {
+        input.value = String(bookingPolicy.minNoticeOnlineHours);
+        return;
+      }
+      if (key === "minnoticephysicalhours") {
+        input.value = String(bookingPolicy.minNoticePhysicalHours);
+        return;
+      }
+      if (key === "maxbookingdaysahead") {
+        input.value = String(bookingPolicy.maxBookingDaysAhead);
+        return;
+      }
+      if (key === "cancellationpolicyhours") {
+        input.value = String(bookingPolicy.cancellationPolicyHours);
+      }
+    });
+    settingsBookingPolicyJsonInputs.forEach((input) => {
+      const mapKey = normalizeKey(input.dataset.settingsBookingPolicyJson);
+      if (mapKey === "serviceoverrides") {
+        input.value = serializeBookingPolicyJson(bookingPolicy.serviceOverrides);
+      }
+    });
+
     const activeGuardrails = [
       state.settingsRuntime.toggles.desktop_notifications,
       state.settingsRuntime.toggles.sla_alerts,
@@ -28564,6 +28692,45 @@
     renderSettings();
     saveSettingsRuntime("Lead time override sparades i nya CCO.").catch((error) => {
       console.warn("Settings lead-time JSON save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsBookingPolicyField(fieldKey, rawValue) {
+    const bookingPolicy = normalizeBookingPolicyView(state.settingsRuntime.bookingPolicy);
+    const key = normalizeKey(fieldKey);
+    const parsed = Number(rawValue);
+    if (key === "minnoticeonlinehours" && Number.isFinite(parsed)) {
+      bookingPolicy.minNoticeOnlineHours = Math.max(0, Math.min(168, Math.round(parsed)));
+    } else if (key === "minnoticephysicalhours" && Number.isFinite(parsed)) {
+      bookingPolicy.minNoticePhysicalHours = Math.max(0, Math.min(168, Math.round(parsed)));
+    } else if (key === "maxbookingdaysahead" && Number.isFinite(parsed)) {
+      bookingPolicy.maxBookingDaysAhead = Math.max(1, Math.min(365, Math.round(parsed)));
+    } else if (key === "cancellationpolicyhours" && Number.isFinite(parsed)) {
+      bookingPolicy.cancellationPolicyHours = Math.max(0, Math.min(168, Math.round(parsed)));
+    }
+    state.settingsRuntime.bookingPolicy = bookingPolicy;
+    renderSettings();
+    saveSettingsRuntime("Bokningspolicy sparades i nya CCO.").catch((error) => {
+      console.warn("Settings booking-policy save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsBookingPolicyJson(mapKey, rawValue) {
+    const bookingPolicy = normalizeBookingPolicyView(state.settingsRuntime.bookingPolicy);
+    const key = normalizeKey(mapKey);
+    const parsed =
+      key === "serviceoverrides"
+        ? parseBookingPolicyServiceOverridesJson(rawValue)
+        : null;
+    if (parsed === null) {
+      setAuxStatus(settingsStatus, "Ogiltig JSON för bokningspolicy override.", "error");
+      return;
+    }
+    bookingPolicy.serviceOverrides = parsed;
+    state.settingsRuntime.bookingPolicy = bookingPolicy;
+    renderSettings();
+    saveSettingsRuntime("Bokningspolicy override sparades i nya CCO.").catch((error) => {
+      console.warn("Settings booking-policy JSON save misslyckades.", error);
     });
   }
 
@@ -42457,6 +42624,18 @@
   settingsLeadTimeJsonInputs.forEach((input) => {
     input.addEventListener("change", () => {
       handleSettingsLeadTimeJson(input.dataset.settingsLeadTimeJson, input.value);
+    });
+  });
+
+  settingsBookingPolicyInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsBookingPolicyField(input.dataset.settingsBookingPolicy, input.value);
+    });
+  });
+
+  settingsBookingPolicyJsonInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsBookingPolicyJson(input.dataset.settingsBookingPolicyJson, input.value);
     });
   });
 

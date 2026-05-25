@@ -1310,6 +1310,18 @@ process.once('SIGTERM', () => {
   const ccoSettingsStore = await createCcoSettingsStore({
     filePath: config.ccoSettingsStorePath,
   });
+  if (typeof ccoBookingEngineStore.setBookingPolicySettings === 'function') {
+    try {
+      const bootstrapSettings = await ccoSettingsStore.getTenantSettings({
+        tenantId: config.defaultTenantId,
+      });
+      if (bootstrapSettings?.bookingPolicy) {
+        ccoBookingEngineStore.setBookingPolicySettings(bootstrapSettings.bookingPolicy);
+      }
+    } catch (error) {
+      console.warn('[booking-engine] kunde inte ladda bookingPolicy från settings:', error?.message || error);
+    }
+  }
   const ccoMacroStore = await createCcoMacroStore({
     filePath: config.ccoMacroStorePath,
   });
@@ -1973,6 +1985,7 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoSettingsRouter({
       settingsStore: ccoSettingsStore,
+      bookingEngineStore: ccoBookingEngineStore,
       authStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
