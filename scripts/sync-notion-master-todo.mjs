@@ -53,8 +53,8 @@ const UPDATES = [
   {
     pageId: '36a060ccc15b8199bdfcc893d723d388',
     Task: 'Plan A valfritt: Resend patient-mail + bokning→journal',
-    Status: 'In progress',
-    Notes: 'J-6.3 Done. Resend Blocked tills RESEND_API_KEY på Render.',
+    Status: 'Done',
+    Notes: 'J-6.3 + U5A.4 Resend PASS. Publik webb-API av (503 policy).',
   },
   {
     pageId: '36a060ccc15b81efb78ad36a33abb1ac',
@@ -89,11 +89,11 @@ const CREATE = [
   },
   {
     Task: 'J-8 CCO-care (formulär + draft-godkännande)',
-    Status: 'Done',
+    Status: 'In progress',
     Area: 'Backlog',
     Priority: 'P1',
     Owner: 'Agent',
-    Notes: 'Scheduler + ops API + UI. Ej full autonom agent.',
+    Notes: 'J-8.1 Done (CC-09). J-8.2 backend Done (CC-10); UI CC-06 FAIL.',
   },
   {
     Task: 'TL-B Tidslinje tillfälle (foto + flik)',
@@ -112,20 +112,20 @@ const CREATE = [
     Notes: 'Journaltyper grupperade per tillfälle i UI.',
   },
   {
-    Task: 'U3.2 Drive enrich 98% (~1004 kvar)',
-    Status: 'In progress',
+    Task: 'U3.2 Drive enrich 99% (570 utan match)',
+    Status: 'Done',
     Area: 'Infra',
     Priority: 'P1',
     Owner: 'Agent',
-    Notes: '56554/57558 driveFileId. Push endast --index-only.',
+    Notes: '56988/57558 driveFileId. Push --index-only 2026-05-25.',
   },
   {
     Task: 'U5A.4 Resend patient-mail',
-    Status: 'Blocked',
+    Status: 'Done',
     Area: 'Booking',
     Priority: 'P1',
-    Owner: 'Du',
-    Notes: 'RESEND_API_KEY saknas på Render. Se docs/ops/resend-domain-go-live.md',
+    Owner: 'Agent',
+    Notes: 'Render env + verify PASS 2026-05-25.',
   },
   {
     Task: 'U2.2 OWNER MFA enforced prod',
@@ -133,7 +133,7 @@ const CREATE = [
     Area: 'Auth',
     Priority: 'P1',
     Owner: 'Du',
-    Notes: 'Kör npm run apply:auth-go-live-prod när redo.',
+    Notes: 'Prod MFA av (byggfas). apply:auth-go-live-prod vid go-live.',
   },
 ];
 
