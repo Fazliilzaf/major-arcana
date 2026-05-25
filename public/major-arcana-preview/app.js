@@ -23147,7 +23147,7 @@
       portalOwnerHistory.innerHTML = `
         <article class="customers-portal-owner-empty">
           <strong>Ingen versionshistorik ännu</strong>
-          <p>Spara eller publicera en layers-sketch för att se ägarhistoriken här.</p>
+          <p>Spara eller publicera en kundportal-version för att se ägarhistoriken här.</p>
         </article>
       `;
       return;
@@ -23179,7 +23179,7 @@
       portalOwnerActivity.innerHTML = `
         <article class="customers-portal-empty">
           <strong>Ingen aktivitet ännu</strong>
-          <p>Publicera eller öppna en layers-sketch för att börja se händelser här.</p>
+          <p>Publicera eller öppna en kundportal-version för att börja se händelser här.</p>
         </article>
       `;
       return;
@@ -23287,7 +23287,7 @@
             ? "Kunden ser den senaste publicerade layers-skissen."
             : portalState === "draft"
               ? "Ägaren har ett sparat utkast som ännu inte publicerats."
-              : "Publicera en layers-sketch för att fylla kundportalen.";
+              : "Publicera en kundportal-version för att fylla kundportalen.";
       const latestVersionLabel = selectedVersion
         ? `Version ${selectedVersion.versionNumber}`
         : "Version —";
