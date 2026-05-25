@@ -3600,6 +3600,33 @@
     }
   }
 
+  function signalDeepLinkDetailReady(patientId) {
+    try {
+      const nav = performance.getEntriesByType('navigation')[0];
+      if (nav && isMobileViewport() && normalizeText(parseStartupParams().patientId) === normalizeText(patientId)) {
+        window.__ARCANA_DEEPLINK_DETAIL_READY_MS__ = performance.now() - nav.startTime;
+      }
+    } catch {
+      /* best-effort */
+    }
+    try {
+      window.dispatchEvent(
+        new CustomEvent('arcana-deeplink-detail-ready', {
+          detail: { patientId: normalizeText(patientId) },
+        })
+      );
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  function railHasHydratedDeepLinkShell(patientId) {
+    return (
+      normalizeText(window.__ARCANA_DEEPLINK_HYDRATED__) === normalizeText(patientId) &&
+      Boolean(document.querySelector('[data-patient-master-rail] .patient-master-camera-button'))
+    );
+  }
+
   async function loadPatientDetailInternal(patientId) {
     resolveElements();
     if (!patientId || runtime.mode !== 'register') return;
@@ -3626,7 +3653,8 @@
     const alreadyPrimed =
       normalizeText(window.__ARCANA_MOBILE_DEEPLINK_PRIME__) === normalizeText(patientId) &&
       Boolean(els.patientRail?.querySelector('[data-patient-loading="true"]'));
-    if (!alreadyPrimed) {
+    const alreadyHydrated = railHasHydratedDeepLinkShell(patientId);
+    if (!alreadyPrimed && !alreadyHydrated) {
       renderDetailLoadingSkeleton(patientId);
     }
     syncMobilePatientLayout();
@@ -3639,7 +3667,9 @@
       syncTimelineFocusFromEntries(payload.journalEntries);
       runtime.detailLoading = false;
       if (isMobileViewport() && runtime.preferJournalOnMobile) {
-        renderDetailShellLite();
+        if (!alreadyHydrated) {
+          renderDetailShellLite();
+        }
         scheduleFullDetailPanelHydration(patientId);
       } else {
         scheduleDetailPanelPaint(patientId);
@@ -3647,14 +3677,7 @@
       if (isMobileViewport()) {
         void enrichPatientDriveFiles(patientId);
       }
-      try {
-        const nav = performance.getEntriesByType('navigation')[0];
-        if (nav && isMobileViewport() && normalizeText(parseStartupParams().patientId) === normalizeText(patientId)) {
-          window.__ARCANA_DEEPLINK_DETAIL_READY_MS__ = performance.now() - nav.startTime;
-        }
-      } catch {
-        /* best-effort */
-      }
+      signalDeepLinkDetailReady(patientId);
       if (isMobileViewport()) {
         void Promise.all([
           loadPatientCommercialCase(patientId),
@@ -4976,8 +4999,15 @@
         void loadOfferTemplates();
         const mobileDeepLink = deepLinkId && isMobileViewport();
         if (mobileDeepLink) {
-          void loadPatientList();
-          void loadStats();
+          const loadListLater = () => {
+            void loadPatientList();
+            void loadStats();
+          };
+          if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(loadListLater, { timeout: 2400 });
+          } else {
+            window.setTimeout(loadListLater, 320);
+          }
         } else {
           void loadStats();
           void loadPatientList();
@@ -5025,7 +5055,14 @@
       runtime.selectedPatientId = startup.patientId;
       runtime.preferJournalOnMobile = true;
       runtime.detailTab = 'journal';
-      if (!primedPatientId && !railHasPatientDetailShell()) {
+      const hydratedPayload = window.__ARCANA_DEEPLINK_HYDRATED_PAYLOAD__;
+      if (
+        hydratedPayload &&
+        normalizeText(window.__ARCANA_DEEPLINK_HYDRATED__) === normalizeText(startup.patientId)
+      ) {
+        runtime.detail = hydratedPayload;
+        runtime.detailLoading = false;
+      } else if (!primedPatientId && !railHasPatientDetailShell()) {
         renderDetailLoadingSkeleton(startup.patientId);
       }
       if (!needsStaffLogin()) {

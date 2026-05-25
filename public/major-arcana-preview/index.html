@@ -5,7 +5,8 @@
   <meta charset="UTF-8" />
     <!-- Bundlade scripts preload (content-hash: d9a770ff9d) -->
     <link rel="preload" as="script" href="./app.bundle.d9a770ff9d.min.js" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-detail-lite-a" />
+    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-deeplink-boot-a" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-deeplink-boot-a" />
     <script>
     (function mobileDeferInboxUntilNeeded() {
       try {
@@ -47,76 +48,7 @@
       }
     })();
   </script>
-  <script>
-    (function headPrefetchMobilePatientDeepLink() {
-      try {
-        if (!window.matchMedia('(max-width: 768px)').matches) return;
-        var params = new URLSearchParams(window.location.search || '');
-        var view = String(params.get('view') || 'customers').trim();
-        var patientId = String(params.get('patientId') || '').trim();
-        if (view !== 'customers' || !patientId) return;
-        if (window.__ARCANA_PATIENT_PREFETCH__ || window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) return;
-        var token = '';
-        try {
-          token =
-            localStorage.getItem('ARCANA_ADMIN_TOKEN') ||
-            sessionStorage.getItem('ARCANA_ADMIN_TOKEN') ||
-            '';
-        } catch (tokenError) {
-          token = '';
-        }
-        if (token.length <= 8) return;
-        window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = true;
-        fetch(
-          new URL(
-            '/api/v1/cco-patient-master/patient?patientId=' +
-              encodeURIComponent(patientId) +
-              '&includeDriveFiles=0',
-            window.location.origin
-          ).toString(),
-          {
-            headers: {
-              Accept: 'application/json',
-              Authorization: 'Bearer ' + token,
-            },
-          }
-        )
-          .then(function (response) {
-            return response.ok ? response.json() : null;
-          })
-          .then(function (payload) {
-            if (payload && !window.__ARCANA_PATIENT_PREFETCH__) {
-              window.__ARCANA_PATIENT_PREFETCH__ = {
-                patientId: patientId,
-                payload: payload,
-              };
-            }
-          })
-          .catch(function () { })
-          .finally(function () {
-            window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__ = false;
-          });
-      } catch (prefetchError) {
-        /* best-effort */
-      }
-    })();
-  </script>
-  <script>
-    (function headMarkDeepLinkPrime() {
-      try {
-        if (!window.matchMedia('(max-width: 768px)').matches) return;
-        var params = new URLSearchParams(window.location.search || '');
-        var view = String(params.get('view') || 'customers').trim();
-        var patientId = String(params.get('patientId') || '').trim();
-        if (view !== 'customers' || !patientId) return;
-        window.__ARCANA_MOBILE_DEEPLINK_PRIME__ = patientId;
-        window.__ARCANA_DEEPLINK_PRIME_MS__ = performance.now();
-        document.documentElement.setAttribute('data-cco-patient-detail', 'on');
-      } catch (markError) {
-        /* best-effort */
-      }
-    })();
-  </script>
+  <script src="./app/mobile-deeplink-boot.js?v=build-deeplink-boot-a"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>HairTP Clinic CCO</title>
   <meta name="theme-color" content="#fbf7f1" />
@@ -2007,7 +1939,7 @@
                 </script>
                 <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-modal-c"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=build-detail-lite-a"></script>
+                  <script async src="./app/patient-master-ui.js?v=build-deeplink-boot-a"></script>
 <div data-patient-identity-rail hidden>
                   <section class="customers-rail-panel customers-rail-panel-suggestions">
                     <div class="customers-rail-panel-head">
@@ -7027,7 +6959,32 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
   <script src="./app/thread-cache-idb.js?v=build-idb-v2"></script>
     <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: d9a770ff9d) -->
-    <script src="./app.bundle.d9a770ff9d.min.js"></script>
+    <script>
+      (function arcanaLoadAppBundle() {
+        var src = './app.bundle.d9a770ff9d.min.js';
+        function inject() {
+          if (window.__ARCANA_APP_BUNDLE_LOADING__) return;
+          window.__ARCANA_APP_BUNDLE_LOADING__ = true;
+          var script = document.createElement('script');
+          script.src = src;
+          script.async = false;
+          document.body.appendChild(script);
+        }
+        if (window.__ARCANA_DEFER_APP_BUNDLE__) {
+          var loaded = false;
+          function finish() {
+            if (loaded) return;
+            loaded = true;
+            inject();
+          }
+          window.addEventListener('arcana-deeplink-detail-ready', finish, { once: true });
+          window.setTimeout(finish, 3200);
+          if (window.__ARCANA_DEEPLINK_HYDRATED__) finish();
+        } else {
+          inject();
+        }
+      })();
+    </script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's

@@ -29,15 +29,16 @@ console.log(`Senaste bundle: ${latest.filename} (hash=${latest.hash})`);
 const html = fs.readFileSync(INDEX_HTML, 'utf8');
 
 const EXISTING_BUNDLE_RE =
-  /\s*(?:<!--[^>]*Bundlade scripts[^>]*-->\s*)?<script\s+src="\.\/app\.bundle(?:\.[a-f0-9]+)?(?:\.min)?\.js(?:\?[^"]*)?"\s*><\/script>\s*/g;
+  /\s*(?:<!--[^>]*Bundlade scripts[^>]*-->\s*)?(?:<script\s+src="\.\/app\.bundle(?:\.[a-f0-9]+)?(?:\.min)?\.js(?:\?[^"]*)?"\s*><\/script>|<script>\s*\(function arcanaLoadAppBundle\(\)[\s\S]*?\}\)\(\);\s*<\/script>)\s*/g;
 const EXISTING_PRELOAD_RE =
   /\s*<!-- Bundlade scripts preload[^>]*-->\s*\n?(?:\s*<link\s+rel="preload"\s+as="script"\s+href="\.\/[^"]+"\s*\/?>\s*)+/g;
 const EARLY_PATIENT_UI_RE =
   /\s*<!-- Early patient-master-ui[^>]*-->\s*\n?\s*<script(?:\s+async)?\s+src="\.\/app\/patient-master-ui\.js[^"]*"\s*><\/script>\s*/g;
-const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-detail-lite-a';
+const PATIENT_UI_PRELOAD = './app/patient-master-ui.js?v=build-deeplink-boot-a';
+const MOBILE_DEEPLINK_BOOT = './app/mobile-deeplink-boot.js?v=build-deeplink-boot-a';
 
 function injectBundlePreload(html, bundleRel, hash) {
-  const preloadBlock = `\n    <!-- Bundlade scripts preload (content-hash: ${hash}) -->\n    <link rel="preload" as="script" href="${bundleRel}" />\n    <link rel="preload" as="script" href="${PATIENT_UI_PRELOAD}" />\n    `;
+  const preloadBlock = `\n    <!-- Bundlade scripts preload (content-hash: ${hash}) -->\n    <link rel="preload" as="script" href="${bundleRel}" />\n    <link rel="preload" as="script" href="${MOBILE_DEEPLINK_BOOT}" />\n    <link rel="preload" as="script" href="${PATIENT_UI_PRELOAD}" />\n    `;
   if (EXISTING_PRELOAD_RE.test(html)) {
     EXISTING_PRELOAD_RE.lastIndex = 0;
     return html.replace(EXISTING_PRELOAD_RE, preloadBlock);
@@ -62,6 +63,10 @@ function injectEarlyPatientUiScript(html) {
   return html;
 }
 
+function buildDeferredBundleLoaderTag(bundleRel, hash) {
+  return `\n    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: ${hash}) -->\n    <script>\n      (function arcanaLoadAppBundle() {\n        var src = '${bundleRel}';\n        function inject() {\n          if (window.__ARCANA_APP_BUNDLE_LOADING__) return;\n          window.__ARCANA_APP_BUNDLE_LOADING__ = true;\n          var script = document.createElement('script');\n          script.src = src;\n          script.async = false;\n          document.body.appendChild(script);\n        }\n        if (window.__ARCANA_DEFER_APP_BUNDLE__) {\n          var loaded = false;\n          function finish() {\n            if (loaded) return;\n            loaded = true;\n            inject();\n          }\n          window.addEventListener('arcana-deeplink-detail-ready', finish, { once: true });\n          window.setTimeout(finish, 3200);\n          if (window.__ARCANA_DEEPLINK_HYDRATED__) finish();\n        } else {\n          inject();\n        }\n      })();\n    </script>\n    `;
+}
+
 let newHtml = html;
 const existingMatches = [...html.matchAll(EXISTING_BUNDLE_RE)];
 
@@ -73,7 +78,7 @@ if (existingMatches.length > 0) {
     const mm = existingMatches[i];
     stripped = stripped.slice(0, mm.index) + stripped.slice(mm.index + mm[0].length);
   }
-  const newTag = `\n    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: ${latest.hash}) -->\n    <script src="${newBundleRel}"></script>\n    `;
+  const newTag = buildDeferredBundleLoaderTag(newBundleRel, latest.hash);
   newHtml = stripped.slice(0, firstMatchStart) + newTag + stripped.slice(firstMatchStart);
 } else {
   const SCRIPT_BLOCK_RE = /(\s*<script\s+src="\.\/[^"]+"\s*><\/script>\s*){5,}/g;
