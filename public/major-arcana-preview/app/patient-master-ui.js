@@ -5765,6 +5765,37 @@
     setStatus(message, 'info');
   }
 
+  async function openPatient(patientId, options = {}) {
+    const id = normalizeText(patientId);
+    if (!id) return false;
+    runtime.selectedPatientId = id;
+    updatePatientRowSelection('', id);
+    syncMobilePatientLayout();
+    await loadPatientDetail(id);
+    if (options.tab) setPatientTab(options.tab);
+    return true;
+  }
+
+  async function openPatientByEmail(customerEmail, customerName = '', options = {}) {
+    const email = normalizeText(customerEmail).toLowerCase();
+    const nameHint = normalizeText(customerName);
+    if (!email && !nameHint) return false;
+    runtime.query = email || nameHint;
+    const searchInput = document.querySelector('[data-customer-search]');
+    if (searchInput) searchInput.value = runtime.query;
+    await loadPatientList();
+    const match =
+      runtime.patients.find((patient) => normalizeText(patient.primaryEmail).toLowerCase() === email) ||
+      runtime.patients.find((patient) =>
+        nameHint ? normalizeText(patient.displayName).toLowerCase().includes(nameHint.toLowerCase()) : false
+      );
+    if (!match) {
+      showMobileToast(`Ingen kund hittades${email ? ` för ${email}` : ''}.`);
+      return false;
+    }
+    return openPatient(match.patientId, options);
+  }
+
   function renderStaffAuth() {
     resolveElements();
     if (runtime.mode !== 'register') return false;
@@ -5784,6 +5815,8 @@
     syncMobilePatientLayout,
     setPatientTab,
     showMobileToast,
+    openPatient,
+    openPatientByEmail,
   };
 
   function shouldBootstrapMobileDeepLinkNow() {

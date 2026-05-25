@@ -484,3 +484,47 @@ test('ccoBookingEngineStore listPublicResources returnerar Plan A-läkare utan s
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('ccoBookingEngineStore calendar blocks döljer tider och expanderar till kalenderposter', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-booking-blocks-'));
+  try {
+    const store = await createCcoBookingEngineStore({
+      filePath: path.join(tempDir, 'booking-engine.json'),
+    });
+    const iso = nextBookableWeekday(1);
+    const weekday = new Date(`${iso}T12:00:00.000Z`).getUTCDay();
+    await store.upsertCalendarBlock({
+      blockId: 'vacation-egzona-test',
+      label: 'Semester',
+      blockType: 'vacation',
+      resourceIds: ['egzona'],
+      weekdays: [weekday],
+      startTime: '08:00',
+      endTime: '20:00',
+      dateFrom: iso,
+      dateTo: iso,
+    });
+    const blocks = await store.listCalendarBlocks({
+      fromDate: iso,
+      toDate: iso,
+      resIds: 'egzona',
+    });
+    assert.ok(blocks.length >= 1);
+    assert.equal(blocks[0].blockType, 'vacation');
+    const availability = await store.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate: iso,
+      toDate: iso,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    assert.equal(availability.length, 0);
+    const lunchBlocks = await store.listCalendarBlocks({
+      fromDate: iso,
+      toDate: iso,
+    });
+    assert.ok(lunchBlocks.some((item) => item.blockType === 'lunch'));
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

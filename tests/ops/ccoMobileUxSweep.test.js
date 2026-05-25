@@ -100,6 +100,20 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
 
   const desktopWeekJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-desktop-week.js'), 'utf8');
   assert.match(desktopWeekJs, /ArcanaBookingDesktopWeek/, 'BL.5 Fas 5: desktop week calendar saknas');
+  assert.match(desktopWeekJs, /cco-cal-workstation/, 'BL.5 Fas 5: Hair TP calendar workstation saknas');
+  const calendarSharedJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-calendar-shared.js'), 'utf8');
+  assert.match(calendarSharedJs, /fetchCalendarRange/, 'Kalender: merge slots + cases saknas');
+  assert.match(calendarSharedJs, /ArcanaBookingCalendarShared/, 'Kalender: shared helpers saknas');
+  assert.match(desktopWeekJs, /openDayView|data-cal-open-day/, 'Kalender: dubbelklick dag → dagvy saknas');
+  assert.match(desktopWeekJs, /cco-cal-day-hint/, 'Kalender: dagvy-hint i veckorutnät saknas');
+  assert.match(calendarSharedJs, /buildBlockCalendarEvent|rebookCalendarBooking/, 'Kalender P1: block/rebook shared saknas');
+  const calendarCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-calendar.css'), 'utf8');
+  assert.match(calendarCss, /--cco-cal-accent/, 'Kalender: Hair TP tokens saknas');
+  const polishCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-polish.css'), 'utf8');
+  assert.match(polishCss, /\.schedule-shell[\s\S]*--schedule-espresso/, 'Schedule-shell: Hair TP taupe tokens saknas');
+  const html = fs.readFileSync(INDEX, 'utf8');
+  assert.match(html, /data-nav-view="calendar"/, 'Kalender: desktop nav-flik saknas');
+  assert.match(html, /data-shell-view="calendar"/, 'Kalender: egen shell-vy saknas');
   assert.match(patientUi, /renderDriveFiles/, 'Filer: renderDriveFiles helper saknas');
   assert.match(patientUi, /Inga indexerade Drive-filer/, 'Filer: tom-state copy saknas');
 });
