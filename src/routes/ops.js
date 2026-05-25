@@ -44,6 +44,8 @@ const {
   buildMissingFormsReport,
   resolveMaintenanceWindow,
 } = require('../ops/ccoPatientCareOps');
+const { createTransactionalMailer } = require('../infra/transactionalMailer');
+const { resolveResendFrom } = require('../infra/resendConfig');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -302,6 +304,33 @@ function createOpsRouter({
       maintenance: window,
     });
   });
+
+  router.post(
+    '/ops/mail/transactional-probe',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const to =
+        normalizeText(req.body?.to) ||
+        normalizeText(process.env.OPERATOR_NOTIFY_TO) ||
+        'contact@hairtpclinic.com';
+      const mailer = createTransactionalMailer({ graphSendConnector });
+      const result = await mailer.sendEmail({
+        to,
+        from: resolveResendFrom(),
+        subject: '[Arcana] transactional mail probe',
+        html: '<p>Prod transactional mail probe — Resend eller Graph fallback.</p>',
+        text: 'Prod transactional mail probe — Resend eller Graph fallback.',
+        idempotencyKey: `ops-mail-probe-${new Date().toISOString().slice(0, 13)}`,
+      });
+      return res.json({
+        ok: result.ok !== false,
+        generatedAt: new Date().toISOString(),
+        to,
+        email: result,
+      });
+    }
+  );
 
   router.get(
     '/ops/cco-care/missing-forms-report',

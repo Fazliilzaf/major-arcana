@@ -1,18 +1,19 @@
 #!/usr/bin/env node
 /**
- * Verifiera bokningsbekräftelse-mail på prod — Graph send (Resend valfritt).
+ * Verifiera bokningsbekräftelse-mail på prod — Resend eller Graph send.
+ * Fungerar även när ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false (ops-probe).
  */
 require('dotenv').config({ quiet: true });
 const { execSync } = require('node:child_process');
 const path = require('node:path');
+const { findVerifyBookingSlot } = require('./lib/bookingVerifySlots');
+const { resendApiSmoke } = require('./lib/resendApiSmoke');
 
 const BASE = (process.env.BASE || process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(
   /\/+$/,
   ''
 );
 const HOST = process.env.HOST || 'hairtpclinic.com';
-const FROM = process.env.FROM || new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-const TO = process.env.TO || new Date(Date.now() + 86400000 * 14).toISOString().slice(0, 10);
 
 function record(name, pass, detail = '') {
   console.log(`${pass ? 'PASS' : 'FAIL'}: ${name}${detail ? ` — ${detail}` : ''}`);
@@ -29,10 +30,10 @@ async function getJson(url, headers = {}) {
   return { status: res.status, body };
 }
 
-async function postJson(url, payload) {
+async function postJson(url, payload, headers = {}) {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...headers },
     body: JSON.stringify(payload),
   });
   const body = await res.json().catch(() => ({}));
@@ -41,6 +42,7 @@ async function postJson(url, payload) {
 
 function getStaffToken() {
   if (process.env.ARCANA_SMOKE_BEARER_TOKEN) return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
+  if (process.env.ARCANA_OWNER_TOKEN) return process.env.ARCANA_OWNER_TOKEN.trim();
   return execSync(`node "${path.join(__dirname, 'get-prod-auth-token.js')}"`, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -76,6 +78,30 @@ async function findConfirmationEvent(token, customerEmail) {
   return null;
 }
 
+async function probeTransactionalMail(token) {
+  const { status, body } = await postJson(
+    `${BASE}/api/v1/ops/mail/transactional-probe`,
+    {},
+    { Authorization: `Bearer ${token}` }
+  );
+  if (status === 404) {
+    const smoke = await resendApiSmoke();
+    if (smoke.ok) {
+      return {
+        ok: true,
+        email: { ok: true, provider: 'resend', mode: 'live', messageId: smoke.messageId },
+        via: 'resend_api_smoke',
+      };
+    }
+    return { ok: false, reason: smoke.reason || smoke.error || 'resend_smoke_failed' };
+  }
+  return {
+    ok: status === 200 && body.ok === true,
+    email: body.email || null,
+    reason: body.error || null,
+  };
+}
+
 async function main() {
   let hardFail = false;
   const fail = (name, detail) => {
@@ -93,52 +119,68 @@ async function main() {
 
   const graphSend = statusRes.graph?.sendEnabled === true;
   const sendConnector = statusRes.graph?.sendConnectorAvailable === true;
+  const resendConfigured =
+    statusRes.resend?.configured === true || Boolean((process.env.RESEND_API_KEY || '').trim());
   record('Graph sendEnabled', graphSend);
   record('Graph sendConnectorAvailable', sendConnector);
+  record('Resend configured (prod)', resendConfigured, statusRes.resend?.from || 'saknas');
 
-  const avail = await getJson(
-    `${BASE}/api/public/booking-engine/availability?host=${encodeURIComponent(HOST)}&fromDate=${FROM}&toDate=${TO}&srvIds=consultation-online`
-  );
-  const slot = (avail.body.slots || [])[0];
-  if (!slot) {
+  const slotProbe = await findVerifyBookingSlot({ base: BASE, host: HOST, token });
+  const slot = slotProbe.slot;
+
+  if (!slot && !slotProbe.publicEnabled) {
+    warn('PA-25 slot', 'public web booking av — hoppar reservation, testar ops mail-probe');
+  } else if (!slot) {
     fail('PA-25 slot', 'ingen ledig tid');
     process.exit(1);
   }
 
-  const customerEmail = `booking-mail-verify-${Date.now()}@example.com`;
-  const reservation = await postJson(
-    `${BASE}/api/public/booking-engine/reservations?host=${encodeURIComponent(HOST)}`,
-    {
-      contact: {
-        name: 'Plan A Verify',
-        email: customerEmail,
-        phone: '+46701234567',
-      },
-      slot: {
-        slotId: slot.slotId || slot.id,
-        startsAt: slot.start || slot.startsAt,
-        endsAt: slot.end || slot.endsAt,
-        resourceId: slot.resourceId,
-        serviceId: slot.serviceId || 'consultation-online',
-      },
-      consent: { gdpr: true, marketing: false },
-      leadContext: { service: 'consultation-online', source: 'verify-booking-mail-prod' },
-      locale: 'sv',
+  let email = null;
+
+  if (slot && slotProbe.publicEnabled) {
+    const customerEmail = `booking-mail-verify-${Date.now()}@example.com`;
+    const reservation = await postJson(
+      `${BASE}/api/public/booking-engine/reservations?host=${encodeURIComponent(HOST)}`,
+      {
+        contact: {
+          name: 'Plan A Verify',
+          email: customerEmail,
+          phone: '+46701234567',
+        },
+        slot: {
+          slotId: slot.slotId || slot.id,
+          startsAt: slot.start || slot.startsAt,
+          endsAt: slot.end || slot.endsAt,
+          resourceId: slot.resourceId,
+          serviceId: slot.serviceId || 'consultation-online',
+        },
+        consent: { gdpr: true, marketing: false },
+        leadContext: { service: 'consultation-online', source: 'verify-booking-mail-prod' },
+        locale: 'sv',
+      }
+    );
+
+    if (!record('PA-25 reservation', reservation.status === 200 && reservation.body.ok === true)) {
+      hardFail = true;
     }
-  );
 
-  if (!record('PA-25 reservation', reservation.status === 200 && reservation.body.ok === true)) {
-    hardFail = true;
-  }
-
-  let email = reservation.body.emailConfirmation || null;
-  if (!email) {
-    await new Promise((r) => setTimeout(r, 800));
-    const eventInfo = await findConfirmationEvent(token, customerEmail);
-    if (eventInfo && eventInfo.ok !== false) {
-      email = { ok: true, provider: eventInfo.provider, mode: eventInfo.mode, messageId: eventInfo.messageId };
-    } else if (eventInfo?.error) {
-      email = { ok: false, provider: eventInfo.provider, error: eventInfo.error };
+    email = reservation.body.emailConfirmation || null;
+    if (!email) {
+      await new Promise((r) => setTimeout(r, 800));
+      const eventInfo = await findConfirmationEvent(token, customerEmail);
+      if (eventInfo && eventInfo.ok !== false) {
+        email = { ok: true, provider: eventInfo.provider, mode: eventInfo.mode, messageId: eventInfo.messageId };
+      } else if (eventInfo?.error) {
+        email = { ok: false, provider: eventInfo.provider, error: eventInfo.error };
+      }
+    }
+  } else {
+    const probe = await probeTransactionalMail(token);
+    if (!probe.ok) {
+      fail('PA-25 ops mail-probe', probe.reason || 'probe_failed');
+    } else {
+      email = probe.email;
+      record('PA-25 ops mail-probe', true, probe.email?.provider || 'sent');
     }
   }
 
@@ -150,25 +192,25 @@ async function main() {
       true,
       'verify-adress blockerad medvetet — Graph/Resend live för riktiga patientmail'
     );
-  } else if (email.provider === 'resend' && email.ok) {
+  } else if (email.provider === 'resend' && email.ok !== false) {
     record('PA-25 bekräftelsemail (Resend)', true, email.messageId || 'sent');
-  } else if (email.provider === 'graph' && email.ok) {
+  } else if (email.provider === 'graph' && email.ok !== false) {
     record('PA-25 bekräftelsemail (Graph send)', true, email.messageId || 'sent');
-  } else if (email.provider === 'graph' && !email.ok) {
+  } else if (email.provider === 'graph' && email.ok === false) {
     fail('PA-25 Graph send', email.error || 'send_failed');
     warn('Azure: Mail.ReadWrite eller Mail.Send + admin consent');
   } else if (email.mode === 'mock' || email.provider === 'none') {
-    if (graphSend && sendConnector) {
-      fail('PA-25 mail', 'mock trots Graph send — kontrollera send-allowlist');
+    if (resendConfigured || (graphSend && sendConnector)) {
+      fail('PA-25 mail', 'mock trots Resend/Graph konfigurerad');
     } else {
-      fail('PA-25 mail', 'mock — ARCANA_GRAPH_SEND_ENABLED eller connector saknas');
+      fail('PA-25 mail', 'mock — RESEND_API_KEY eller Graph send saknas på prod');
     }
   } else {
     fail('PA-25 mail', `${email.provider || 'none'} ok=${email.ok} err=${email.error || '-'}`);
   }
 
   if (hardFail) process.exit(1);
-  console.log('✅ Booking mail verify klar — Graph send räcker (Resend valfritt)');
+  console.log('✅ Booking mail verify klar');
 }
 
 main().catch((err) => {

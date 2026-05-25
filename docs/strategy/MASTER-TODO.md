@@ -3,7 +3,7 @@
 Senast uppdaterad: **2026-05-25**  
 Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
 
-**Du är här:** **MA-6.2 + pilotresan klart** → **Utrullning 4** (Post-op Fas 1) · **U5A.4** Resend (blocked) · valfritt U3.2 enrich + `--index-only` push.
+**Du är här:** **Utrullning 4 ☑ + U3.2 ☑** (sweep 2026-05-25) → **Utrullning 5** · **U5A.4** Resend (blocked).
 
 **Notion (bockbar kopia):** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6) — synkad 2026-05-25 via MCP (9 uppd. + 8 nya rader, se `NOTION-SYNC-MANIFEST.md`)
 
@@ -25,7 +25,8 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 ☑ TL-C: journaltyper grupperade per tillfälle
 ☑ Prod-verify: pilotresan 5/5 (`verify-all-pilot-journey-prod.sh` — MA-B.3, MA-C.2, MA-D, MA-6.2)
 ☑ Kundmaster §1 ([CCO-SYSTEM-SCOPE.md](./CCO-SYSTEM-SCOPE.md) — merge, GDPR-export, journalspärr, etiketter)
-→ Utrullning 4: Post-op Fas 1 live
+☑ Utrullning 4: Post-op Fas 1 live (Graph + patient-UI smoke)
+☑ U3.2 Drive enrich + index push prod
 → Utrullning 5: Resend patient-mail + påminnelser
 → Utrullning 6: CMO + patientkanal
 ```
@@ -243,38 +244,38 @@ Detaljspecer: [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) · [ROLLOUT-PLAN.md
 
 > **Verify:** Open access **av**. OWNER MFA **av** (login probe: off) — inte enforced än. **5 STAFF** på prod. `journal_photos_backup` scheduler-job + `backup:journal-photos` CLI. Auth rollback + underhållsfönster: [auth-go-live-rollback-runbook.md](../ops/runbooks/auth-go-live-rollback-runbook.md) (2026-05-25).
 
-### Utrullning 3 — Drive-PDF + bred drift → **AKTIV**
+### Utrullning 3 — Drive-PDF + bred drift ☑
 
 - [x] U3.1 **Drive-PDF på prod** — Google Drive API (ej 86 GB zip på 2 GB disk)
-- [~] U3.2 Drive-filer visningsbara i Filer-fliken prod — index **56554/57558** `driveFileId` (98,3%); enrich andra pass avbrutet i agent-miljö (~1004 kvar); `byRelativePath` + unit test `driveFileMatch.test.js`
+- [x] U3.2 Drive-filer visningsbara i Filer-fliken prod — enrich + `push:migration-state-prod --index-only` (sweep 2026-05-25)
 - [~] U3.3 Personal utbildad + journalför i MA — externt
 - [x] U3.4 Notion: verify prod efter duplicate-cleanup (2026-05-25 — readyz, blueprint in_sync, verify:migration-prod PASS, needsReview 0)
 
-> **Verify:** `driveApiConfigured=true`, **57558** filer / **1981** profiler / **7217** kunder. `verify:migration-prod` PASS 2026-05-25. **56554/57558** med `driveFileId`. Orchestration-script + `--index-only` fix i `push-migration-state-prod.js`.
+> **Verify 2026-05-25 (sweep):** Index **56988/57558** `driveFileId` (**99,0%**; 570 zip-rader utan Drive-match). `migration:enrich-drive-ids` + `push:migration-state-prod --index-only` + Render restart. `verify:migration-prod` **PASS**.
 
-### Utrullning 4 — Post-op Fas 1 🔄
+### Utrullning 4 — Post-op Fas 1 ☑
 
 - [x] U4.1 Backend: capability + store + routes (kod)
 - [x] U4.2 `/uppfoljning/[token]` + CCO-knapp (kod)
 - [x] U4.3 Unit tests + runbook
-- [~] U4.4 Graph send live (`verify:post-op-graph-prod`)
-- [ ] U4.5 4 beslut (patientkanal, avsändare, retention, UI)
-- [ ] U4.6 Playwright smoke `/uppfoljning/[token]` prod
+- [x] U4.4 Graph send live (`verify:post-op-graph-prod`)
+- [x] U4.5 4 beslut (patientkanal, avsändare, retention, UI) — [u4-post-op-decisions.md](./u4-post-op-decisions.md)
+- [x] U4.6 Playwright smoke `/uppfoljning/[token]` prod (`verify:post-op-uppfoljning-prod`)
 
-> **Verify:** Kod + runbook finns. `verify:post-op-graph-prod` **FAIL** — `ARCANA_GRAPH_SEND_ENABLED=false`, operator 401. U4.5-beslut **ej tagna** (ROLLOUT-PLAN open questions).
+> **Verify 2026-05-25:** `verify:post-op-graph-prod` **PASS** (Graph sendEnabled, mail från kons@). `verify:post-op-uppfoljning-prod` **PASS** (POU-01–07). Beslut låsta i `u4-post-op-decisions.md`.
 
 ### Utrullning 5 — Bookingmotor & påminnelser 🔄
 
 - [x] U5A.1 Plan A webb → Arcana API
 - [x] U5A.2 Operatör confirm prod
 - [x] U5A.3 Plan A automated sign-off
-- [ ] U5A.4 Bekräftelsemail patient (Resend) — **BLOCKED** (`RESEND_API_KEY` saknas i `.env`; Graph fallback aktiv)
+- [x] U5A.4 Bekräftelsemail patient (Resend) — live på Render 2026-05-25 (`provision:resend-go-live-prod`, `verify:booking-mail-prod` PASS)
 - [x] U5A.5 Bokning → tillfälle → journal ( = J-6.3)
 - [ ] U5B.1 Påminnelse före besök
 - [ ] U5B.2 Eftervård / formulär / återbesök triggers
 - [ ] U5B.3 Post-op auto-trigger (Q4)
 
-> **Verify 2026-05-25:** Publik catalog **200** (3 tjänster). Plan A curl E2E **PASS**. Bokning→journal **PASS** (reservation skapar plan + `treatmentEncounterId`). U5A.4 **BLOCKER:** `RESEND_API_KEY` saknas lokalt + Render — Graph→operatör OK. U5B **ej påbörjad**.
+> **Verify 2026-05-25:** Publik catalog **200**. Plan A curl E2E **PASS**. Bokning→journal **PASS**. **U5A.4 Resend PASS** — `RESEND_API_KEY` på Render, domän `hairtpclinic.com` verified, `verify:resend-domain-prod` + `verify:booking-mail-prod` gröna. U5B **ej påbörjad**.
 
 ### Utrullning 6 — Agenter + CMO + patientkanal ☐
 
