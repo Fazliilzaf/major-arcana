@@ -1313,11 +1313,6 @@ process.once('SIGTERM', () => {
   const ccoJournalStore = await createCcoJournalStore({
     filePath: config.ccoJournalStorePath,
   });
-  // Tillfällig PII-fri uppstartslogg för migreringsverifiering (endast antal).
-  ccoJournalStore
-    .getStats({ tenantId: process.env.CCO_DEFAULT_TENANT_ID || 'hair-tp-clinic' })
-    .then((s) => console.log('[CCO_JOURNAL_STATS]', JSON.stringify(s)))
-    .catch((e) => console.log('[CCO_JOURNAL_STATS] error', e && e.message));
   const ccoTreatmentEncounterStore = await createCcoTreatmentEncounterStore({
     filePath: config.ccoTreatmentEncounterStorePath,
   });
