@@ -16,6 +16,7 @@ const {
   splitName,
   nameOverlapScore,
 } = require('../../scripts/migration/lib/migrationUtils');
+const { normalizePhotoPublishConsent } = require('./ccoPhotoPublishConsent');
 
 const PATIENT_FLAGS = Object.freeze([
   'missing_email',
@@ -392,6 +393,7 @@ function normalizePatientRecord(input = {}, existing = {}) {
         Number(asObject(safe.fileSummary).images || asObject(existingSafe.fileSummary).images) || 0,
     },
     access: normalizePatientAccess(safe.access, existingSafe.access),
+    consents: normalizePhotoPublishConsent(safe.consents, existingSafe.consents),
     flags: [],
     createdAt: normalizeText(existingSafe.createdAt) || nowIso(),
     updatedAt: nowIso(),

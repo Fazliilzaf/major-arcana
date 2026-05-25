@@ -13,6 +13,7 @@ const {
   classifyMissingForms,
   dispatchCustomerReminderDigest,
   resolveMaintenanceWindow,
+  applyApprovedDraftProposal,
 } = require('../../src/ops/ccoPatientCareOps');
 const { createCcoPatientCareStateStore } = require('../../src/ops/ccoPatientCareStateStore');
 
@@ -249,4 +250,51 @@ test('dispatchCustomerReminderDigest sends when queue has items', async () => {
   assert.equal(result.skipped, false);
   assert.equal(sent.to[0].emailAddress.address, 'ops@example.com');
   assert.match(sent.subject, /CCO påminnelser/);
+});
+
+test('applyApprovedDraftProposal skapar journalutkast från godkänt förslag', async () => {
+  const created = [];
+  const journalStore = {
+    async listEntries({ patientId }) {
+      return { entries: created.filter((entry) => entry.patientId === patientId) };
+    },
+    async upsertEntry(input) {
+      const entry = {
+        entryId: `entry-${created.length + 1}`,
+        patientId: input.patientId,
+        journalType: input.journalType,
+        status: input.status,
+        locked: false,
+      };
+      created.push(entry);
+      return entry;
+    },
+  };
+  const result = await applyApprovedDraftProposal({
+    proposal: {
+      status: 'approved',
+      tenantId: 'hair-tp-clinic',
+      patientId: 'p1',
+      proposalId: 'prop-1',
+      draftFields: {
+        healthDeclaration: {
+          journalType: 'health_declaration',
+          title: 'Hälsodeklaration',
+        },
+      },
+    },
+    journalStore,
+  });
+  assert.equal(result.applied, true);
+  assert.equal(result.created[0].action, 'created');
+  assert.equal(created.length, 1);
+});
+
+test('applyApprovedDraftProposal hoppar över när status inte är approved', async () => {
+  const result = await applyApprovedDraftProposal({
+    proposal: { status: 'pending' },
+    journalStore: { async upsertEntry() {} },
+  });
+  assert.equal(result.applied, false);
+  assert.equal(result.reason, 'not_approved');
 });

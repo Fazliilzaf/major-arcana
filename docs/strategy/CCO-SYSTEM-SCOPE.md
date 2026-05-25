@@ -43,14 +43,14 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ Bokningsärende i CCO med kandidat-tider, validering, status
 - 🔲 Kalendervy per behandlare och resurs
-- 🔲 Smart slots: min-notice, max 180 dagar, kväll/helg-prisregler
-- 🔲 Koppling bokning → behandlingstillfälle (encounter) automatiskt
+- [~] Smart slots: min-notice, max 180 dagar ☑; kväll/helg-prisregler kvar
+- ✅ Koppling bokning → behandlingstillfälle (encounter) automatiskt (J-6.3 / TL-B)
 
 ### 2.3 Regler & resurser
 
 - ✅ Virtuella bokningsbanor (online / fysisk) + läkare som publika resurser
 - 🔲 Scheman per resurs och per tjänst
-- 🔲 Avbokningspolicy per tjänst (timmar före)
+- ✅ Avbokningspolicy per tjänst (timmar före)
 
 ---
 
@@ -58,7 +58,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ Encounter-store kopplad till bokning
 - ✅ Tidslinje (TL-B): gruppering per encounter i journal
-- 🔲 TL-C: alla journaltyper + foton + avtal + betalning under samma encounter
+- [~] TL-C: journaltyper + foton under encounter ☑; avtal + betalning kvar
 - 🔲 Encounter-typer: konsultation, transplant, PRP, microneedling, uppföljning, ögonlocksplastik, Curatiio-estetik
 
 ---
@@ -92,9 +92,9 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ Auditlogg på läsning och skrivning
 - 🔲 PDF genereras och arkiveras vid signering
 - ✅ Foto flöde (Ta bild, HEIC, mobil) kopplat till encounter
-- 🔲 Före/efter-bilder som egen sektion på patientkort
+- ✅ Före/efter-bilder som egen sektion på patientkort (API `/cco-journal/before-after-photos`)
 - 🔲 NRS-smärtskala (valfritt i behandlingsjournal)
-- 🔲 Journaltextmallar (konsultation, ordination, signatur)
+- ✅ Journaltextmallar (konsultation, ordination, signatur) — `/cco-journal/text-templates`
 
 ---
 
@@ -106,7 +106,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - 🔲 Behandlingsavtal per tjänst: TP, PRP hår, PRP hud, microneedling
 - 🔲 Curatiio-avtal: Botox, fillers, Profhilo, ögonlocksplastik, ortopedi
 - 🔲 Samtycke bokning inom 14 dagar + samtycke behandling under ångerfrist
-- 🔲 Foto-publiceringssamtycke (före/efter)
+- ✅ Foto-publiceringssamtycke (före/efter) — `/cco-journal/photo-publish-consent`
 - 🔲 Importerade signerade samtycken från Meridiq (historik)
 
 ---
@@ -125,19 +125,19 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 ### 7.1 Transaktionellt (kring bokning & vård)
 
-- ⚠️ Bokningsbekräftelse e-post (Resend — ⚠️ ej live, saknar API-nyckel)
+- ✅ Bokningsbekräftelse e-post (Resend live prod — U5A.4)
 - ✅ Bokningsbekräftelse Graph (intern/mechanism live)
 - 🔲 Bokningspåminnelse SMS (4 h online / 24 h fysisk — Cliento-standard)
 - 🔲 Bokningspåminnelse e-post + ICS-kalenderinbjudan
 - 🔲 Avbokningsbekräftelse SMS + e-post
 - 🔲 "Fyll i begärd information" före besök
-- 🔲 Skicka formulär / samtycke / fil till patient (en knapp + audit)
+- ✅ Skicka formulär / samtycke / fil till patient (en knapp + audit) — `POST /ops/cco-care/patient-outreach`
 
 ### 7.2 Mallar
 
 - 🔲 SMS-mallar Hair TP + Curatiio (merge-fält: namn, datum, tid, tjänst, behandlare)
 - 🔲 E-postmallar: offert, behandlingsplan, bokning, avbokning
-- 🔲 Intern notis till personal vid bokning/avbokning
+- ✅ Intern notis till personal vid bokning/avbokning (Graph)
 
 ### 7.3 Marknadsföring
 
@@ -167,7 +167,7 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 - ✅ Roller: owner, staff, patient
 - ✅ MFA + session
 - 🔲 Kalender-/dagvy för mottagning
-- 🔲 CCO-agent: daglig rapport, saknade formulär/samtycken, utkast (human approval)
+- [~] CCO-agent: J-8.1 ☑; J-8.2 godkänn utkast → journalpost ☑; full autonom agent kvar (U6A)
 
 ---
 
@@ -175,11 +175,11 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 
 - ✅ Åtkomstlogg (audit events)
 - ✅ EU-lagring (Render Frankfurt)
-- 🔲 Retention 10 år konfigurerad
-- 🔲 GDPR export + rättelseprocess dokumenterad i app
+- ✅ Retention 10 år konfigurerad (J-9.1)
+- ✅ GDPR export + journalspärr i app (J-9.2–9.3)
 - 🔲 QA-dashboard: formulärcompletion, signeringar, export
 - 🔲 ID-verifiering (legitimation) på patientkort
-- 🔲 Inget journalinnehåll till extern AI
+- ✅ Inget journalinnehåll till extern AI (SummarizeThread guard)
 
 ---
 
@@ -230,7 +230,10 @@ Detta dokument är **innehållslistan** — vad Major Arcana/CCO ska kunna göra
 1. **P0 — Gå live med kärnan:** bokning prod, hälsodekl + friskförsäkran + TP-journal signering, Resend, Drive-PDF, tidslinje
 2. **P1 — Paritet vardag:** SMS-påminnelser, PDF vid sign, full tjänstekatalog, offer accept/reject, POS minimum (kvitto + tjänst)
 3. **P2 — Curatiio + QA:** Curatiio-formulär, kassa full, Meridiq cutover, agent-påminnelser
+4. **P3 — Marknadsföring:** marknads-SMS, CMO live connectors
 
 ---
 
-*Nästa steg efter godkänd punklista: bocka av moduler i [MASTER-TODO.md](./MASTER-TODO.md) och bygg i ordning §15.*
+**Fullständig punktlista (klart + kvar):** [MASTER-TODO.md](./MASTER-TODO.md) — **DEL 6** (alla Cliento/Meridiq-paritetspunkter).
+
+*Uppdatera DEL 6 i MASTER-TODO vid varje export eller ny modul i kod.*

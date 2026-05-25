@@ -11,6 +11,10 @@ const {
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
 const { syncBookingConfirmedToJournal } = require('../ops/ccoJournalBookingBridge');
 const {
+  notifyStaffBookingCancelled,
+  notifyStaffBookingConfirmed,
+} = require('../ops/ccoBookingStaffNotify');
+const {
   assertTreatmentBookingAllowed,
   buildTreatmentAgreementBookingBlocker,
   checkTreatmentBookingGate,
@@ -380,6 +384,7 @@ function createCcoBookingEngineRouter({
   treatmentEncounterStore = null,
   authStore,
   config,
+  graphSendConnector = null,
 }) {
   const router = express.Router();
 
@@ -393,6 +398,34 @@ function createCcoBookingEngineRouter({
       includeTimelineEvent: options.includeTimelineEvent === true,
       event: options.event || latestEvent,
     });
+  }
+
+  async function notifyStaffBookingEvent(kind, booking, extra = {}) {
+    const toEmail = normalizeText(config?.ccoCareReminderDigestEmail);
+    const fromEmail = normalizeText(config?.ccoCareReminderFromEmail);
+    try {
+      if (kind === 'cancel') {
+        return await notifyStaffBookingCancelled({
+          graphSendConnector,
+          booking,
+          reason: extra.reason,
+          toEmail,
+          fromEmail,
+        });
+      }
+      return await notifyStaffBookingConfirmed({
+        graphSendConnector,
+        booking,
+        toEmail,
+        fromEmail,
+      });
+    } catch (error) {
+      console.warn(
+        `[cco-booking-engine/${kind}] staff notify failed:`,
+        error && error.message ? error.message : error
+      );
+      return { skipped: true, reason: 'notify_failed' };
+    }
   }
 
   async function enforceTreatmentBookingGate(context, body = {}) {
@@ -651,6 +684,11 @@ function createCcoBookingEngineRouter({
           }
         }
       }
+      const staffNotify = await notifyStaffBookingEvent('confirm', {
+        ...booking,
+        customerName: context.customerName,
+        customerEmail: context.customerEmail,
+      });
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -659,6 +697,7 @@ function createCcoBookingEngineRouter({
         bookingEngine: summaryPayload(bookingEngine, bookingCase),
         patient360: patientPayload(patientRecord),
         journalSync,
+        staffNotify,
       });
     })
   );
@@ -685,6 +724,15 @@ function createCcoBookingEngineRouter({
         source: 'cco_booking_engine_cancel',
         includeTimelineEvent: true,
       });
+      const staffNotify = await notifyStaffBookingEvent(
+        'cancel',
+        {
+          ...(result?.booking || {}),
+          customerName: context.customerName,
+          customerEmail: context.customerEmail,
+        },
+        { reason: normalizeText(req.body?.reason) }
+      );
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -692,6 +740,7 @@ function createCcoBookingEngineRouter({
         bookingCase,
         bookingEngine: summaryPayload(bookingEngine, bookingCase),
         patient360: patientPayload(patientRecord),
+        staffNotify,
       });
     })
   );

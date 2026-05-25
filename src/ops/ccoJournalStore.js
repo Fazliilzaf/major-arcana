@@ -299,6 +299,9 @@ function normalizeAttachment(input = {}) {
     hasAnnotation: Boolean(safe.hasAnnotation),
     annotatedPreviewAvailable: Boolean(safe.annotatedPreviewAvailable),
     treatmentEncounterId: normalizeText(safe.treatmentEncounterId || safe.encounterId),
+    photoPhase: ['before', 'after'].includes(normalizeKey(safe.photoPhase))
+      ? normalizeKey(safe.photoPhase)
+      : '',
   };
 }
 
@@ -625,6 +628,7 @@ async function createCcoJournalStore({ filePath }) {
       mimeType: photo.mimeType,
       label: photo.label,
       capturedAt: photo.storedAt,
+      photoPhase: photo.photoPhase,
     });
     const attachments = [...asArray(entry.attachments), attachment];
     return upsertEntry(

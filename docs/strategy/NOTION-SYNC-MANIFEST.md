@@ -2,7 +2,7 @@
 
 **Database:** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)  
 **Data source:** `collection://7e2211ad-1af3-4d10-9e73-9c330fdce0d0`  
-**Repo-sanningskälla:** `docs/strategy/MASTER-TODO.md` (2026-05-25 Resend-svep)  
+**Repo-sanningskälla:** `docs/strategy/MASTER-TODO.md` (2026-05-25 DEL 6 paritet)  
 **Prod:** https://arcana.hairtpclinic.se
 
 Egenskaper i Notion: `Task` (title), `Status`, `Priority`, `Area`, `Owner`, `Notes`
@@ -82,6 +82,31 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 
 ---
 
+## DEL 6 — Full paritet Cliento + Meridiq (2026-05-25 MCP)
+
+**Referensrad:** [DEL 6 — Full paritet Cliento + Meridiq (referens)](https://www.notion.so/36b060ccc15b81a8b513fad39fd12d02) · Page ID `36b060cc-c15b-81a8-b513-fad39fd12d02`
+
+**169 delpunkter** (P6.1.1 → P6.18.6) skapade i databasen. Filtrera: Task börjar med `P6.` eller Notes innehåller `DEL 6`.
+
+| Område | Antal | Status-fördelning |
+|--------|-------|-------------------|
+| Pilot | 52 | Done + Not started |
+| Booking | 38 | Done + Not started |
+| Compliance | 19 | Done + Not started |
+| Backlog | 35 | Done + Not started |
+| Infra | 13 | Done + In progress + Not started |
+| Auth | 6 | In progress + Not started |
+| Referens | 1 | In progress |
+
+**Exempel page IDs:**
+
+| Task | Page ID |
+|------|---------|
+| P6.1.1 Kundmaster | `36b060cc-c15b-8172-9e8e-f87f99dffdfa` |
+| P6.18.6 U6A–U6D | `36b060cc-c15b-81de-a099-d2475562a7ec` |
+
+---
+
 ## Verifiering efter sync
 
 1. Notion-vy sorterad på Status → Done ska matcha ☑ i MASTER-TODO (~95 % kärnspår).
@@ -96,6 +121,7 @@ Status-värden: `Done` | `In progress` | `Not started` | `Blocked`
 
 | Datum | Resultat | Evidens |
 |-------|----------|---------|
+| 2026-05-25 | **PASS (DEL 6 svep)** | 169× `notion-create-pages` P6.1.1–P6.18.6 + referensrad. MASTER-TODO DEL 6. |
 | 2026-05-25 | **PASS (BL.3 svep)** | Android Playwright: mobilePlaywrightDevices + verify:android-staff-prod + playwright.android.config. MASTER-TODO BL.3 ☑. |
 | 2026-05-25 | **PASS (MCP agent-sweep)** | 5× update (U5A.4 Blocked→Done, U3.2 In progress→Done, Underhållsfönster notes, J-7/J-8→Not started) + 5× create (J-9.1, J-9.4, J-10.3, TL-C, TL-D.2). TL-C page ID korrigerad. |
 | 2026-05-25 | **Doc-sync svep** | MASTER-TODO: J-7/U5B.1–2 ☑, J-8.1 ☑, J-8.2 ~, U2.2 ~. `verify:cco-care-sweep-prod` (CC-06 UI fail). |

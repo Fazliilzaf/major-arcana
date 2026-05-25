@@ -1,4 +1,11 @@
 const crypto = require('node:crypto');
+const {
+  applyBookingPolicyToService,
+  assertCancellationAllowed,
+  capAvailabilityToDate,
+  isSlotWithinBookingPolicy,
+  resolveServiceBookingPolicy,
+} = require('./ccoBookingPolicy');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
@@ -605,14 +612,17 @@ function normalizeService(input = {}) {
   const safe = asObject(input);
   const id = normalizeText(safe.id);
   if (!id) return null;
-  return {
+  return applyBookingPolicyToService({
     id,
     label: normalizeText(safe.label || safe.title || safe.name || id),
     durationMinutes: Math.max(15, Number(safe.durationMinutes) || 60),
     active: safe.active !== false,
     publicBookable: safe.publicBookable === true,
     meetingMode: normalizeText(safe.meetingMode) || undefined,
-  };
+    minNoticeMinutes: safe.minNoticeMinutes,
+    maxBookingDaysAhead: safe.maxBookingDaysAhead,
+    cancellationPolicyHours: safe.cancellationPolicyHours,
+  });
 }
 
 function normalizeAvailabilityRule(input = {}) {
@@ -917,7 +927,8 @@ async function createCcoBookingEngineStore({ filePath }) {
           .map((item) => item.trim())
           .filter(Boolean)
       : [];
-    const days = buildDateRange(fromDate, toDate);
+    const days = buildDateRange(fromDate, capAvailabilityToDate(toDate));
+    const nowMs = Date.now();
     const slots = [];
     days.forEach((day) => {
       const weekday = day.getUTCDay();
@@ -929,7 +940,8 @@ async function createCcoBookingEngineStore({ filePath }) {
         .forEach((rule) => {
           asArray(rule.startTimes).forEach((timeLabel) => {
             const slot = buildAvailabilitySlot(rule, day, timeLabel);
-            if (slot && !isSlotTaken(slot, { excludeConversationId })) {
+            const service = getServiceById(rule.serviceId) || {};
+            if (slot && isSlotWithinBookingPolicy(slot, service, nowMs) && !isSlotTaken(slot, { excludeConversationId })) {
               slots.push(slot);
             }
           });
@@ -954,6 +966,12 @@ async function createCcoBookingEngineStore({ filePath }) {
     selectedSlots.forEach((slot) => {
       if (isSlotTaken(slot, { excludeConversationId: conversationId })) {
         const error = new Error(`Tiden ${slot.startsAt} är inte längre ledig.`);
+        error.statusCode = 409;
+        throw error;
+      }
+      const service = getServiceById(slot.serviceId) || {};
+      if (!isSlotWithinBookingPolicy(slot, service)) {
+        const error = new Error('Tiden ligger utanför bokningspolicy (min-notice eller max-fönster).');
         error.statusCode = 409;
         throw error;
       }
@@ -1209,12 +1227,20 @@ async function createCcoBookingEngineStore({ filePath }) {
     const conversationId = normalizeText(input.conversationId);
     const customerEmail = normalizeKey(input.customerEmail || input.customerId);
     const reason = normalizeText(input.reason) || 'Avbokad i CCO';
+    const force = input.force === true;
     let changed = false;
+    let blockedPolicy = null;
     state.bookings = state.bookings.map((item) => {
       if (tenantId && item.tenantId !== tenantId) return item;
       if (conversationId && item.conversationId !== conversationId) return item;
       if (customerEmail && item.customerEmail !== customerEmail) return item;
       if (normalizeKey(item.status) !== 'confirmed') return item;
+      const service = getServiceById(item?.slot?.serviceId) || {};
+      const policy = assertCancellationAllowed(item, service);
+      if (!policy.allowed && !force) {
+        blockedPolicy = policy;
+        return item;
+      }
       changed = true;
       return {
         ...item,
@@ -1224,6 +1250,12 @@ async function createCcoBookingEngineStore({ filePath }) {
         updatedAt: nowIso(),
       };
     });
+    if (blockedPolicy) {
+      const error = new Error(blockedPolicy.reason || 'Avbokning tillåts inte enligt policy.');
+      error.statusCode = 409;
+      error.policy = blockedPolicy;
+      throw error;
+    }
     state.reservations = state.reservations.map((item) => {
       if (tenantId && item.tenantId !== tenantId) return item;
       if (conversationId && item.conversationId !== conversationId) return item;
@@ -1339,4 +1371,5 @@ module.exports = {
   createCcoBookingEngineStore,
   PLAN_A_PUBLIC_SERVICE_IDS,
   PLAN_A_PUBLIC_RESOURCE_IDS,
+  resolveServiceBookingPolicy,
 };

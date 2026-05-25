@@ -39,11 +39,13 @@ const {
 } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
 const {
+  applyApprovedDraftProposal,
   buildCustomerReminderQueue,
   buildJournalDraftProposals,
   buildMissingFormsReport,
   resolveMaintenanceWindow,
 } = require('../ops/ccoPatientCareOps');
+const { sendPatientOutreach, OUTREACH_TYPES } = require('../ops/ccoPatientOutreach');
 const { createTransactionalMailer } = require('../infra/transactionalMailer');
 const { resolveResendFrom } = require('../infra/resendConfig');
 
@@ -559,6 +561,19 @@ function createOpsRouter({
         if (!updated) {
           return res.status(404).json({ error: 'Utkast hittades inte.' });
         }
+        let journalApply = null;
+        if (status === 'approved' && journalStore) {
+          journalApply = await applyApprovedDraftProposal({
+            proposal: updated,
+            journalStore,
+            patientMasterStore,
+            actor: {
+              userId: req.auth.userId,
+              displayName: req.auth.displayName || req.auth.userId,
+              role: req.auth.role,
+            },
+          });
+        }
         await authStore.addAuditEvent({
           tenantId,
           actorUserId: req.auth.userId,
@@ -566,12 +581,69 @@ function createOpsRouter({
           outcome: 'success',
           targetType: 'journal_draft_proposal',
           targetId: proposalId,
-          metadata: { status, patientId: updated.patientId },
+          metadata: { status, patientId: updated.patientId, journalApply },
         });
-        return res.json({ ok: true, proposal: updated });
+        return res.json({ ok: true, proposal: updated, journalApply });
       } catch (error) {
         console.error('[ops/cco-care/draft-proposals/review]', error);
         return res.status(500).json({ error: 'Kunde inte uppdatera journalutkast.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cco-care/patient-outreach',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!patientMasterStore) {
+        return res.status(503).json({ error: 'Patientmaster saknas.' });
+      }
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const patientId = normalizeText(req.body?.patientId);
+      const outreachType = normalizeText(req.body?.outreachType).toLowerCase() || 'custom';
+      if (!patientId) {
+        return res.status(400).json({ error: 'patientId krävs.' });
+      }
+      if (!OUTREACH_TYPES.includes(outreachType)) {
+        return res.status(400).json({ error: 'Ogiltig outreachType.', allowed: OUTREACH_TYPES });
+      }
+      try {
+        const patient = await patientMasterStore.getPatient({ tenantId, patientId });
+        if (!patient) {
+          return res.status(404).json({ error: 'Patient hittades inte.' });
+        }
+        const origin = normalizeText(req.body?.origin) || `${req.protocol}://${req.get('host')}`;
+        const result = await sendPatientOutreach({
+          patient,
+          outreachType,
+          linkUrl: normalizeText(req.body?.linkUrl),
+          note: normalizeText(req.body?.note),
+          toEmail: normalizeText(req.body?.toEmail),
+          fromEmail: resolveResendFrom() || 'booking@hairtpclinic.com',
+          graphSendConnector,
+          origin,
+        });
+        await authStore.addAuditEvent({
+          tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco_care.patient_outreach',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+          metadata: {
+            outreachType,
+            to: result.to,
+            provider: result.delivery?.provider || 'none',
+          },
+        });
+        return res.json({ ok: true, outreach: result });
+      } catch (error) {
+        console.error('[ops/cco-care/patient-outreach]', error);
+        const statusCode = Number(error?.statusCode || 500);
+        return res.status(statusCode).json({
+          error: error?.message || 'Kunde inte skicka till patient.',
+        });
       }
     }
   );

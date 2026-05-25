@@ -1908,6 +1908,7 @@ process.once('SIGTERM', () => {
       treatmentEncounterStore: ccoTreatmentEncounterStore,
       authStore,
       config,
+      graphSendConnector,
     })
   );
 

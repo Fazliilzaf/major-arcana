@@ -13,6 +13,10 @@ function parseIso(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
 function hoursUntil(iso) {
   const date = parseIso(iso);
   if (!date) return null;
@@ -62,6 +66,8 @@ function buildDraftProposalFields(missing = []) {
     fields.healthDeclaration = {
       title: 'Hälsodeklaration',
       journalType: 'health_declaration',
+      formVariant: 'hair_tp',
+      sourceQuestionaryId: '16414',
       note: 'Föreslagen utkast — kräver personalgodkännande innan signering.',
     };
   }
@@ -73,6 +79,78 @@ function buildDraftProposalFields(missing = []) {
     };
   }
   return fields;
+}
+
+async function applyApprovedDraftProposal({
+  proposal,
+  journalStore,
+  patientMasterStore,
+  actor = {},
+} = {}) {
+  if (!proposal || normalizeText(proposal.status).toLowerCase() !== 'approved') {
+    return { applied: false, reason: 'not_approved' };
+  }
+  if (!journalStore?.upsertEntry) {
+    return { applied: false, reason: 'journal_store_missing' };
+  }
+
+  const tenantId = normalizeText(proposal.tenantId);
+  const patientId = normalizeText(proposal.patientId);
+  if (!tenantId || !patientId) {
+    return { applied: false, reason: 'missing_patient' };
+  }
+
+  let personnummer = '';
+  if (patientMasterStore?.getPatient) {
+    const patient = await patientMasterStore.getPatient({ tenantId, patientId });
+    personnummer = normalizeText(patient?.personnummer || patient?.personalId);
+  }
+
+  const entries = await listJournalEntriesSafe(journalStore, tenantId, patientId);
+  const draftFields = asObject(proposal.draftFields);
+  const created = [];
+
+  for (const spec of Object.values(draftFields)) {
+    const journalType = normalizeText(spec?.journalType);
+    if (!journalType) continue;
+    const hasSigned = entries.some(
+      (entry) => entry.journalType === journalType && isSignedEntry(entry)
+    );
+    if (hasSigned) {
+      created.push({ journalType, action: 'skipped_signed_exists' });
+      continue;
+    }
+    const openDraft = entries.find(
+      (entry) => entry.journalType === journalType && !isSignedEntry(entry)
+    );
+    if (openDraft) {
+      created.push({ journalType, entryId: openDraft.entryId, action: 'existing_draft' });
+      continue;
+    }
+    const entry = await journalStore.upsertEntry(
+      {
+        tenantId,
+        patientId,
+        personnummer,
+        journalType,
+        formVariant: normalizeText(spec.formVariant) || undefined,
+        sourceQuestionaryId: normalizeText(spec.sourceQuestionaryId) || undefined,
+        title: normalizeText(spec.title) || journalType,
+        source: 'cco_draft_proposal_approved',
+        status: 'draft',
+        fields: asObject(spec.fields),
+      },
+      { actor }
+    );
+    created.push({ journalType, entryId: entry.entryId, action: 'created' });
+  }
+
+  return {
+    applied: true,
+    proposalId: proposal.proposalId,
+    patientId,
+    created,
+  };
 }
 
 async function buildMissingFormsReport({
@@ -349,6 +427,7 @@ function resolveMaintenanceWindow(config = {}) {
 }
 
 module.exports = {
+  applyApprovedDraftProposal,
   buildCustomerReminderQueue,
   buildJournalDraftProposals,
   buildMissingFormsReport,
