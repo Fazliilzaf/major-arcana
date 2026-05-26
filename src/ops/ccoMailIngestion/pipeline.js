@@ -5,6 +5,7 @@ const {
   resolveCounterpartyIdentity,
 } = require('../ccoCounterpartyTruth');
 const { buildPipedrivePatientLookup } = require('../ccoPatientMasterStore');
+const { isNonPatientCounterpartyEmail } = require('./nonPatientRules');
 const { FILTER_VERSION, MATCH_VERSION, PROCESSOR_VERSION } = require('./constants');
 
 function normalizeText(value) {
@@ -203,6 +204,28 @@ async function processRawMessage({
 
     const security = evaluateSecurityFilter(rawMessage);
     const classification = classifyMailType(rawMessage);
+    const counterpartyEmail = resolveCounterpartyEmail(rawMessage);
+    if (isNonPatientCounterpartyEmail(counterpartyEmail)) {
+      activeLedger = await store.updateLedger(activeLedger.id, {
+        status: 'DUPLICATE_SKIPPED',
+        patientMatchStatus: 'DISMISSED',
+        errorCode: 'non_patient_mail',
+        errorMessage: 'non_patient_counterparty',
+        processedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      }, { persist });
+      await store.appendAudit({
+        type: 'mail_ingestion_dismissed_non_patient',
+        rawMessageId: rawMessage.id,
+        counterpartyEmail,
+      }, { persist });
+      return {
+        skipped: true,
+        reason: 'non_patient_counterparty',
+        ledger: activeLedger,
+        rawMessage,
+      };
+    }
     const match = matchPatientOrEntity(rawMessage, { patientDirectory });
 
     let status = 'FILTERED';
