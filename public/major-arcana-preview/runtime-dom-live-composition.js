@@ -1348,7 +1348,6 @@
     }
 
     function shouldDeferHeavyWorkspaceBootstrap() {
-      if (!isMobileShellViewport()) return false;
       const view = readInitialShellViewFromLocation();
       if (view === "conversations" || view === "inbox" || view === "home" || view === "queue") {
         return false;

@@ -4,17 +4,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <!-- ARCANA bundle URLs (content-hash: 0bee8a1fb5) -->
-    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.0bee8a1fb5.min.js","staffCore":"./app.bundle.staff-core.ac20660d87.min.js","staffDeferred":"./app.bundle.staff-deferred.5ac8c48f45.min.js"};</script>
+    <!-- ARCANA bundle URLs (content-hash: ca6f735a3b) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.ca6f735a3b.min.js","staffCore":"./app.bundle.staff-core.930550d931.min.js","staffDeferred":"./app.bundle.staff-deferred.70f30879ad.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
         try {
-          var href = './app.bundle.d9a770ff9d.min.js';
-          var mobile = window.matchMedia('(max-width: 768px)').matches;
+          var urls = window.__ARCANA_BUNDLE_URLS__ || {};
+          var href = urls.full || './app.bundle.0bee8a1fb5.min.js';
           var view = String(new URLSearchParams(window.location.search || '').get('view') || 'customers').trim();
-          if (true && mobile && view === 'customers') {
-            href = './app.bundle.staff-core.d20f6491c0.min.js';
+          var inboxViews = { conversations: 1, inbox: 1, home: 1, queue: 1 };
+          if (!inboxViews[view] && urls.staffCore) {
+            href = urls.staffCore;
             window.__ARCANA_STAFF_BUNDLE_SPLIT__ = true;
             window.__ARCANA_DEFER_APP_BUNDLE__ = true;
           }
@@ -31,11 +32,10 @@
     
     <!-- Bundlade scripts preload (content-hash: d9a770ff9d) -->
     <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-bundle-split-a" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-bundle-split-a" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-perf-a" />
     <script>
-    (function mobileDeferInboxUntilNeeded() {
+    (function deferInboxUntilNeeded() {
       try {
-        if (!window.matchMedia('(max-width: 768px)').matches) return;
         var params = new URLSearchParams(window.location.search || '');
         var view = String(params.get('view') || 'customers').trim();
         if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
@@ -106,9 +106,9 @@
   <script src="./cco-tablet-shell.js?v=build-tablet-cal-b" defer></script>
   <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
   <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
-  <script src="./booking-calendar-shared.js?v=build-cal-p3-a" defer></script>
+  <script src="./booking-calendar-shared.js?v=build-perf-a" defer></script>
   <script src="./booking-mobile-calendar-day.js?v=build-cal-p3-a" defer></script>
-  <script src="./booking-desktop-week.js?v=build-cal-p3-a" defer></script>
+  <script src="./booking-desktop-week.js?v=build-perf-a" defer></script>
   <script src="./app/cco-care-panel.js?v=build-ai-care-sweep-a" defer></script>
   <script src="./app/thread-ai-summary.js?v=build-ai-care-sweep-a" defer></script>
   <script src="./cco-mobile-queue.js?v=build-mobile-shell-e" defer></script>
@@ -1999,9 +1999,9 @@
                     }
                   })();
                 </script>
-                <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-modal-c"></script>
+                <script src="./app/post-op-internal-reviews-ui.js?v=build-perf-a"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
-                  <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
+                  <script async src="./app/patient-master-ui.js?v=build-perf-a"></script>
 <div data-patient-identity-rail hidden>
                   <section class="customers-rail-panel customers-rail-panel-suggestions">
                     <div class="customers-rail-panel-head">
@@ -7121,13 +7121,13 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
   <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
   <script src="./app/thread-cache-idb.js?v=build-idb-v2"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 0bee8a1fb5) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: ca6f735a3b) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.0bee8a1fb5.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.ac20660d87.min.js';
-        var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.5ac8c48f45.min.js';
+        var fullSrc = urls.full || './app.bundle.ca6f735a3b.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.930550d931.min.js';
+        var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.70f30879ad.min.js';
 
         function injectScript(src, onload) {
           var script = document.createElement('script');
