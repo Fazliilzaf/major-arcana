@@ -84,6 +84,20 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
   state = { ...createEmptyState(), ...(await readJson(resolvedPath, createEmptyState())) };
   state.updatedAt = nowIso();
 
+  const ledgerByRawMessageId = new Map();
+  for (const ledger of Object.values(state.mailProcessingLedger || {})) {
+    const rawMessageId = normalizeText(ledger?.rawMessageId);
+    if (rawMessageId) {
+      ledgerByRawMessageId.set(rawMessageId, ledger);
+    }
+  }
+
+  function indexLedger(ledger = null) {
+    const rawMessageId = normalizeText(ledger?.rawMessageId);
+    if (!rawMessageId || !ledger) return;
+    ledgerByRawMessageId.set(rawMessageId, ledger);
+  }
+
   async function save() {
     state.updatedAt = nowIso();
     await writeJsonAtomic(resolvedPath, state);
@@ -225,10 +239,20 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
   }
 
   function getLedgerByRawMessageId(rawMessageId = '') {
-    return (
-      Object.values(state.mailProcessingLedger).find((item) => item.rawMessageId === rawMessageId) ||
-      null
-    );
+    const normalized = normalizeText(rawMessageId);
+    if (!normalized) return null;
+    return ledgerByRawMessageId.get(normalized) || null;
+  }
+
+  function getQueueLength({ mailboxEmail = '' } = {}) {
+    const normalized = normalizeEmail(mailboxEmail);
+    if (!normalized) {
+      return state.processingQueue.length;
+    }
+    return state.processingQueue.filter((rawMessageId) => {
+      const raw = state.mailRawMessages[rawMessageId];
+      return raw && normalizeEmail(raw.mailboxId) === normalized;
+    }).length;
   }
 
   function shouldSkipProcessing(ledger = {}) {
@@ -339,6 +363,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       updatedAt: nowIso(),
     };
     state.mailProcessingLedger[ledger.id] = ledger;
+    indexLedger(ledger);
 
     if (!state.processingQueue.includes(rawMessage.id)) {
       state.processingQueue.push(rawMessage.id);
@@ -352,6 +377,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     if (!ledger.id) return null;
     Object.assign(ledger, patch, { updatedAt: nowIso() });
     state.mailProcessingLedger[ledger.id] = ledger;
+    indexLedger(ledger);
     if (persist) {
       await save();
     }
@@ -578,6 +604,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     appendAudit,
     resetMailboxLocalState,
     buildDashboardSummary,
+    getQueueLength,
     listNeedsReview,
     dequeueNextRawMessageId,
     completeQueuedMessage,
