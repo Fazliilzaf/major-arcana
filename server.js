@@ -25,7 +25,7 @@ function getChromium() {
 const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
 const { resolveCcoNextCanonicalUrl } = require('./src/brand/resolveCcoNextCanonicalUrl');
-const { resolveCcoNextPreviewPath } = require('./src/brand/resolveCcoNextPreviewRedirect');
+
 const { getClientoConfigForBrand, getKnowledgeDirForBrand } = require('./src/brand/runtimeConfig');
 const { createCorsPolicy } = require('./src/security/corsPolicy');
 const { requestContextMiddleware } = require('./src/observability/requestContext');
@@ -36,10 +36,6 @@ app.use(cors(createCorsPolicy(config)));
 app.use(express.json({ limit: '10mb' }));
 
 const ADMIN_HTML_PATH = path.join(__dirname, 'public', 'admin.html');
-const CCO_NEXT_RELEASE_DIST_DIR = path.join(__dirname, 'public', 'cco-next-release');
-const CCO_NEXT_RELEASE_HTML_PATH = path.join(CCO_NEXT_RELEASE_DIST_DIR, 'index.html');
-const CCO_NEXT_UPSTREAM_DIST_DIR = path.join(__dirname, 'vendor', 'cconext-upstream', 'dist');
-const CCO_NEXT_UPSTREAM_HTML_PATH = path.join(CCO_NEXT_UPSTREAM_DIST_DIR, 'index.html');
 const rawAdminHtmlTemplate = fs.readFileSync(ADMIN_HTML_PATH, 'utf8');
 const uiBuildId = String(
   process.env.ARCANA_UI_BUILD_ID ||
@@ -59,41 +55,6 @@ function sendAdminHtml(res) {
   res.setHeader('Surrogate-Control', 'no-store');
   res.setHeader('X-Arcana-UI-Build', uiBuildId);
   res.type('html').send(renderAdminHtml());
-}
-
-function getCcoNextBuild() {
-  if (fs.existsSync(CCO_NEXT_RELEASE_HTML_PATH)) {
-    return {
-      dir: CCO_NEXT_RELEASE_DIST_DIR,
-      htmlPath: CCO_NEXT_RELEASE_HTML_PATH,
-      source: 'release-snapshot',
-    };
-  }
-  if (fs.existsSync(CCO_NEXT_UPSTREAM_HTML_PATH)) {
-    return {
-      dir: CCO_NEXT_UPSTREAM_DIST_DIR,
-      htmlPath: CCO_NEXT_UPSTREAM_HTML_PATH,
-      source: 'upstream-vendor',
-    };
-  }
-  return null;
-}
-
-function hasCcoNextBuild() {
-  return Boolean(getCcoNextBuild());
-}
-
-function sendCcoNextUpstreamHtml(res) {
-  const ccoNextBuild = getCcoNextBuild();
-  if (!ccoNextBuild) {
-    return sendAdminHtml(res);
-  }
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
-  res.setHeader('X-Arcana-Cco-Next-Source', ccoNextBuild.source);
-  res.type('html').send(fs.readFileSync(ccoNextBuild.htmlPath, 'utf8'));
 }
 
 async function sendStaticPagePdf(
@@ -353,10 +314,7 @@ app.use((req, res, next) => {
     path.startsWith('/major-arcana-preview/') ||
     path.startsWith('/staff') ||
     path.startsWith('/mobil');
-  const isCcoNextHtmlPath =
-    path === '/cco-next' ||
-    (path.startsWith('/cco-next/') && !path.startsWith('/cco-next/assets/'));
-  if (disableCachePaths.has(path) || isCcoNextHtmlPath || isPreviewAssetPath) {
+  if (disableCachePaths.has(path) || isPreviewAssetPath) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -500,17 +458,6 @@ app.use(
     },
   })
 );
-const activeCcoNextBuild = getCcoNextBuild();
-if (activeCcoNextBuild) {
-  app.use(
-    '/cco-next',
-    express.static(activeCcoNextBuild.dir, {
-      index: false,
-      fallthrough: true,
-      redirect: false,
-    })
-  );
-}
 app.use(requestContextMiddleware({ headerName: 'x-correlation-id' }));
 
 const { openai } = require('./src/openai/client');
@@ -813,18 +760,6 @@ app.get('/cco', (req, res) => {
     ? String(req.url).slice(String(req.url).indexOf('?'))
     : '';
   res.redirect(302, `/admin${query}#cco`);
-});
-
-app.get(/^\/cco-next(?:\/.*)?$/, (req, res) => {
-  const search = String(req.url || '').includes('?')
-    ? String(req.url).slice(String(req.url).indexOf('?'))
-    : '';
-  const previewPath = resolveCcoNextPreviewPath(req.path, search);
-  if (previewPath) {
-    res.setHeader('X-Arcana-Cco-Next-Redirect', 'major-arcana-preview');
-    return res.redirect(302, previewPath);
-  }
-  return sendCcoNextUpstreamHtml(res);
 });
 
 app.get('/unanswered', (req, res) => {
