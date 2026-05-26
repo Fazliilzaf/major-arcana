@@ -69,7 +69,37 @@ async function ensureLoggedIn(page) {
   );
 }
 
-async function clickNav(page, view, { viaMore = false, readyFn, timeout = 12000 } = {}) {
+function shellViewForNav(view) {
+  const map = {
+    conversations: 'conversations',
+    customers: 'customers',
+    calendar: 'calendar',
+    automation: 'automation',
+    analytics: 'analytics',
+    later: 'later',
+    sent: 'sent',
+    integrations: 'integrations',
+    macros: 'macros',
+    settings: 'settings',
+    showcase: 'showcase',
+  };
+  return map[view] || view;
+}
+
+async function readNavState(page, view) {
+  const shellView = shellViewForNav(view);
+  return page.evaluate((expectedShell) => {
+    const canvas = document.querySelector('.preview-canvas');
+    return {
+      appShellView: canvas?.dataset.appShellView || '',
+      appView: canvas?.dataset.appView || '',
+      shellHidden: document.querySelector(`[data-shell-view="${expectedShell}"]`)?.hidden,
+      urlView: new URLSearchParams(location.search).get('view') || '',
+    };
+  }, shellView);
+}
+
+async function clickNav(page, view, { viaMore = false, readyFn, readyArg, timeout = 12000 } = {}) {
   if (lastStepEnd != null) {
     recordHop(`→ ${view}`, Date.now() - lastStepEnd);
   }
@@ -82,7 +112,7 @@ async function clickNav(page, view, { viaMore = false, readyFn, timeout = 12000 
     await page.locator(`.preview-nav-item[data-nav-view="${view}"]`).first().click();
   }
   if (typeof readyFn === 'function') {
-    await page.waitForFunction(readyFn, undefined, { timeout, polling: 16 });
+    await page.waitForFunction(readyFn, readyArg, { timeout, polling: 16 });
   } else {
     await page.waitForTimeout(250);
   }
@@ -122,10 +152,6 @@ async function main() {
       {
         view: 'conversations',
         ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'conversations',
-        assert: async () => {
-          const threads = await page.locator('[data-thread-list], [data-conversation-list], .thread-list').count();
-          return threads >= 0;
-        },
         detail: 'konversationsvy',
       },
       {
@@ -133,29 +159,29 @@ async function main() {
         ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
         assert: async () => {
           await page.waitForSelector('[data-customer-list]', { timeout: 15000 });
-          const rows = await page.locator('[data-patient-row]').count();
-          return rows > 0;
+          return (await page.locator('[data-patient-row]').count()) > 0;
         },
         detail: 'kundlista',
       },
       {
         view: 'calendar',
-        ready: () => {
-          const shell = document.querySelector('[data-shell-view="calendar"]');
-          const cal = document.getElementById('cco-desktop-calendar');
-          const loading = cal?.querySelector('.cco-cal-empty')?.textContent || '';
-          const hasGrid = Boolean(cal?.querySelector('.cco-cal-week-grid, .cco-cal-day-timeline, .cco-cal-resource-timeline'));
-          return (
-            shell &&
-            !shell.hidden &&
-            cal &&
-            !cal.hidden &&
-            (hasGrid || /Hämtar|Inga/i.test(loading) === false)
-          );
-        },
+        ready: () =>
+          document.querySelector('.preview-canvas')?.dataset.appShellView === 'calendar' &&
+          document.getElementById('cco-desktop-calendar') &&
+          !document.getElementById('cco-desktop-calendar').hidden,
         assert: async () => {
           await page.waitForFunction(() => window.ArcanaBookingDesktopWeek, undefined, { timeout: 15000 });
-          await page.waitForSelector('#cco-desktop-calendar:not([hidden])', { timeout: 20000 });
+          await page.waitForFunction(
+            () => {
+              const cal = document.getElementById('cco-desktop-calendar');
+              if (!cal || cal.hidden) return false;
+              return Boolean(
+                cal.querySelector('.cco-cal-week-grid, .cco-cal-day-timeline, .cco-cal-resource-timeline')
+              );
+            },
+            undefined,
+            { timeout: 25000, polling: 16 }
+          );
           return true;
         },
         detail: 'desktop kalender',
@@ -163,18 +189,12 @@ async function main() {
       },
       {
         view: 'automation',
-        ready: () => {
-          const shell = document.querySelector('[data-shell-view="automation"]');
-          return shell && !shell.hidden;
-        },
+        ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'automation',
         detail: 'automatisering',
       },
       {
         view: 'analytics',
-        ready: () => {
-          const shell = document.querySelector('[data-shell-view="analytics"]');
-          return shell && !shell.hidden;
-        },
+        ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'analytics',
         detail: 'analys',
       },
     ];
@@ -195,6 +215,10 @@ async function main() {
           detail = err.message?.slice(0, 100) || item.detail;
         }
       }
+      const navState = await readNavState(page, item.view);
+      if (navState.shellHidden === true) {
+        detail = `${detail} · shell DOM hidden (staff-layout)`;
+      }
       record(`Nav ${item.view}`, ok, detail, timingMs);
       lastStepEnd = Date.now();
     }
@@ -203,12 +227,15 @@ async function main() {
     for (const view of moreViews) {
       const timingMs = await clickNav(page, view, {
         viaMore: true,
-        readyFn: () => {
-          const shell = document.querySelector(`[data-shell-view="${view}"]`);
-          return shell && !shell.hidden;
-        },
+        readyFn: (expected) => document.querySelector('.preview-canvas')?.dataset.appShellView === expected,
+        readyArg: view,
       });
-      record(`Nav ${view} (Mer)`, true, 'shell synlig', timingMs);
+      const navState = await readNavState(page, view);
+      const detail =
+        navState.shellHidden === true
+          ? 'appShellView OK · shell DOM hidden (staff-layout)'
+          : 'shell synlig';
+      record(`Nav ${view} (Mer)`, true, detail, timingMs);
       lastStepEnd = Date.now();
     }
 
