@@ -1293,10 +1293,32 @@ process.once('SIGTERM', () => {
       const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
       return `${String(req.ip || 'unknown-ip')}|${email || 'no-email'}`;
     },
-    message: 'För många inloggningsförsök. Vänta en stund och prova igen.',
+    message: 'För många inloggningsförsök. Vänta 15 minuter och prova igen.',
     store: rateLimitStore,
     scope: 'auth_login',
   });
+
+  // Log brute-force attempts to audit
+  const originalLoginRateLimiter = loginRateLimiter;
+  const loginRateLimiterWithAudit = async (req, res, next) => {
+    const origJson = res.json.bind(res);
+    res.json = function (body) {
+      if (res.statusCode === 429) {
+        const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+        console.warn(`[auth-rate-limit] BLOCKED login brute-force: ip=${req.ip} email=${email}`);
+        if (authStore && typeof authStore.addAuditEvent === 'function') {
+          authStore.addAuditEvent({
+            action: 'auth.login.rate_limited',
+            outcome: 'blocked',
+            actorIp: req.ip,
+            metadata: { email, ip: req.ip, userAgent: req.get('user-agent') },
+          }).catch(() => {});
+        }
+      }
+      return origJson(body);
+    };
+    return originalLoginRateLimiter(req, res, next);
+  };
   const selectTenantRateLimiter = createRateLimiter({
     windowMs: config.authLoginRateLimitWindowSec * 1000,
     max: config.authSelectTenantRateLimitMax,
@@ -1913,7 +1935,7 @@ process.once('SIGTERM', () => {
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
       requireTenantScope: auth.requireTenantScope,
-      loginRateLimiter,
+      loginRateLimiter: loginRateLimiterWithAudit,
       selectTenantRateLimiter,
       ownerMfaRequired: config.authOwnerMfaRequired,
       ownerMfaBypassHosts: config.authOwnerMfaBypassHosts,
