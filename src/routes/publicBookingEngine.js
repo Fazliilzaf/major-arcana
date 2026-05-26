@@ -189,9 +189,11 @@ function createPublicBookingEngineRouter({
 
     try {
       const brand = resolveBrandFromRequest(req, config);
+      const brandKey = normalizeText(brand?.id || brand) || '';
       const slots = bookingEngineStore.listPublicAvailability
         ? await bookingEngineStore.listPublicAvailability({
             tenantId: brand?.id || brand,
+            brand: brandKey,
             fromDate,
             toDate,
             resIds: normalizeText(req.query.resIds) || undefined,
@@ -199,6 +201,7 @@ function createPublicBookingEngineRouter({
           })
         : await bookingEngineStore.listAvailability({
             tenantId: brand?.id || brand,
+            brand: brandKey,
             fromDate,
             toDate,
             resIds: normalizeText(req.query.resIds) || undefined,

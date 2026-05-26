@@ -1003,6 +1003,7 @@ async function createCcoBookingEngineStore({ filePath }) {
     srvIds = '',
     excludeConversationId = '',
     publicOnly = false,
+    brand = '',
   } = {}) {
     await expireStaleReservations();
     const tenant = normalizeText(tenantId);
@@ -1039,6 +1040,16 @@ async function createCcoBookingEngineStore({ filePath }) {
         .filter((rule) => !resourceIds.length || resourceIds.includes(rule.resourceId))
         .filter((rule) => !serviceIds.length || serviceIds.includes(rule.serviceId))
         .filter((rule) => asArray(rule.weekdays).includes(weekday))
+        .filter((rule) => {
+          if (!normalizeText(brand)) return true;
+          // Curatiio Fas 1 — brand-isolation enforcad på service-nivå.
+          const service = getServiceById(rule.serviceId);
+          const resource = getResourceById(rule.resourceId);
+          return (
+            serviceMatchesBrand(service || {}, brand) &&
+            resourceMatchesBrand(resource || {}, brand)
+          );
+        })
         .forEach((rule) => {
           asArray(rule.startTimes).forEach((timeLabel) => {
             const slot = buildAvailabilitySlot(rule, day, timeLabel);
@@ -1427,16 +1438,18 @@ async function createCcoBookingEngineStore({ filePath }) {
           (item) =>
             item.active !== false &&
             (item.publicBookable === true ||
-              PLAN_A_PUBLIC_SERVICE_IDS.includes(normalizeText(item.id)))
+              PLAN_A_PUBLIC_SERVICE_IDS.includes(normalizeText(item.id))) &&
+            serviceMatchesBrand(item, brand)
         )
       ),
-    listPublicResources: async () =>
+    listPublicResources: async ({ brand = '' } = {}) =>
       clone(
         state.resources.filter(
           (item) =>
             item.active !== false &&
             (item.publicBookable === true ||
-              PLAN_A_PUBLIC_RESOURCE_IDS.includes(normalizeText(item.id)))
+              PLAN_A_PUBLIC_RESOURCE_IDS.includes(normalizeText(item.id))) &&
+            resourceMatchesBrand(item, brand)
         )
       ),
     listPublicAvailability: async (input = {}) =>
