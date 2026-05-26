@@ -570,6 +570,8 @@ const { createSignalingService } = require('./src/video/signalingServer');
 const { createMeetingTranscriptionService } = require('./src/video/meetingTranscription');
 const { createQmsRouter } = require('./src/routes/qms');
 const { createQmsStore } = require('./src/qms/qmsStore');
+const { createReconciliationRouter } = require('./src/routes/reconciliation');
+const { createSafeMergeService } = require('./src/migration/safeMergeService');
 const { createBillingService } = require('./src/billing/billingService');
 const { createStripeClient } = require('./src/billing/stripeClient');
 const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
@@ -2330,6 +2332,23 @@ process.once('SIGTERM', () => {
     createQmsRouter({
       authStore: auth,
       qmsStore,
+    })
+  );
+
+  const mergeServicePath = config.stateRoot
+    ? `${config.stateRoot}/cco-merge-service.json`
+    : './data/cco-merge-service.json';
+  const mergeService = createSafeMergeService({ filePath: mergeServicePath });
+  mergeService.load().catch((err) => console.warn('[merge-service] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createReconciliationRouter({
+      authStore: auth,
+      patientMasterStore: ccoPatientMasterStore || null,
+      migrationIndexStore: ccoMigrationIndexStore || null,
+      journalStore: ccoJournalStore || null,
+      mergeService,
     })
   );
 
