@@ -48,10 +48,15 @@ function resolveBrandForHost(host, { defaultBrand, brandByHost } = {}) {
   if (mapped) return mapped;
 
   const hostNoWww = stripWww(normalized);
-  if (hostNoWww.endsWith('curatiio.se') || hostNoWww.includes('curatiio')) {
+  if (
+    hostNoWww.endsWith('curatiio.com') ||
+    hostNoWww.endsWith('curatiio.se') ||
+    hostNoWww.includes('curatiio')
+  ) {
     return 'curatiio';
   }
   if (
+    hostNoWww.endsWith('hairtpclinic.com') ||
     hostNoWww.endsWith('hairtpclinic.se') ||
     hostNoWww.includes('hairtpclinic') ||
     hostNoWww.includes('hair-tp')
