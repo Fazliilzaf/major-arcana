@@ -13,7 +13,19 @@ const NON_PATIENT_DOMAIN_SUFFIXES = Object.freeze([
   'tieto.com',
   'molnlycke.com',
   'npgroup.eu',
-  '16weeksofhell.com',
+  'yoast.com',
+  'futurepedia.io',
+  'gilead.com',
+  'markydot.com',
+  'sigmatechnology.com',
+  'militum.se',
+  'mynextmove.se',
+  'dhiglobal.com',
+  'alphanex.se',
+  'westva.se',
+  'skanska.se',
+  'castellum.se',
+  'info.hairtpclinic.se',
 ]);
 
 const NON_PATIENT_LOCAL_PREFIXES = Object.freeze([

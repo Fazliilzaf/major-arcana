@@ -716,6 +716,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     rawMessageId = '',
     patientId = '',
     actorUserId = '',
+    persist = true,
   } = {}) {
     const safeRawMessageId = normalizeText(rawMessageId);
     const safePatientId = normalizeText(patientId);
@@ -735,7 +736,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       processedAt: nowIso(),
       completedAt: nowIso(),
       matchVersion: MATCH_VERSION,
-    });
+    }, { persist });
     const patientMatch = await savePatientMatch({
       id: `${safeRawMessageId}:match`,
       rawMessageId: safeRawMessageId,
@@ -747,13 +748,13 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       linkedBy: normalizeText(actorUserId) || null,
       linkedAt: nowIso(),
       matchVersion: MATCH_VERSION,
-    });
+    }, { persist });
     await appendAudit({
       type: 'mail_ingestion_patient_linked',
       rawMessageId: safeRawMessageId,
       patientId: safePatientId,
       actorUserId: normalizeText(actorUserId) || null,
-    });
+    }, { persist });
     return {
       rawMessage: raw,
       ledger: getLedgerByRawMessageId(safeRawMessageId),

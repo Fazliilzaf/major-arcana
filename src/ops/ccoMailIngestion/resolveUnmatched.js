@@ -88,6 +88,7 @@ async function dismissRawMessages({
   rawMessageIds = [],
   reason = 'non_patient_mail',
   actorUserId = '',
+  persist = true,
 } = {}) {
   if (!ingestionStore) return { dismissed: 0 };
   let dismissed = 0;
@@ -107,7 +108,7 @@ async function dismissRawMessages({
     );
     dismissed += 1;
   }
-  if (dismissed > 0) {
+  if (dismissed > 0 && persist) {
     await ingestionStore.save();
   }
   return { dismissed };
@@ -180,6 +181,11 @@ async function runUnmatchedResolutionSweep({
     groups: [],
   };
 
+  let dirty = false;
+  const markDirty = () => {
+    dirty = true;
+  };
+
   for (const group of groups) {
     const groupResult = {
       email: group.email,
@@ -197,8 +203,10 @@ async function runUnmatchedResolutionSweep({
           rawMessageIds: group.rawMessageIds,
           reason: 'non_patient_counterparty',
           actorUserId,
+          persist: false,
         });
         result.dismissed += dismissed.dismissed;
+        markDirty();
       } else {
         result.dismissed += group.count;
       }
@@ -227,8 +235,10 @@ async function runUnmatchedResolutionSweep({
             rawMessageIds: group.rawMessageIds,
             reason: 'no_patient_record',
             actorUserId,
+            persist: false,
           });
           result.closedWithoutPatient += dismissed.dismissed;
+          markDirty();
         } else {
           result.closedWithoutPatient += group.count;
         }
@@ -258,12 +268,18 @@ async function runUnmatchedResolutionSweep({
           rawMessageId,
           patientId: suggestion.patient.id,
           actorUserId,
+          persist: false,
         });
       }
+      markDirty();
     }
     groupResult.action = 'linked';
     result.linked += group.count;
     result.groups.push(groupResult);
+  }
+
+  if (!dryRun && dirty) {
+    await ingestionStore.save();
   }
 
   result.remaining = Math.max(
