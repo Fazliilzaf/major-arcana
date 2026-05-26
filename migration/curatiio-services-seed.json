@@ -1,0 +1,98 @@
+{
+  "exportedAt": "2026-05-26",
+  "source": "curatiio_brand_separation_phase_1",
+  "brand": "curatiio",
+  "notes": "Curatiio Fas 1 — seed med fem första-vågs estetiska tjänster (separat brand i ccoBookingEngineStore). Pris/varaktighet är preliminära baseline-värden; justeras innan Fas 2 (curatiio.se widget). Brand-isolation enforced i listPublicServices/listPublicResources via service.brand === 'curatiio'.",
+  "globalRules": {
+    "eveningStartHour": 17,
+    "weekendDays": [0, 6],
+    "currency": "SEK"
+  },
+  "services": [
+    {
+      "id": "curatiio-botox",
+      "label": "Botox (rynkbehandling)",
+      "brand": "curatiio",
+      "durationMinutes": 30,
+      "active": true,
+      "publicBookable": true,
+      "catalogSource": "curatiio_seed",
+      "meetingMode": "physical",
+      "pricing": {
+        "basePriceSek": 3200,
+        "eveningPriceSek": 3500,
+        "weekendPriceSek": 3700,
+        "currency": "SEK"
+      },
+      "fromPriceSek": 3200
+    },
+    {
+      "id": "curatiio-fillers",
+      "label": "Fillers (hyaluronsyra)",
+      "brand": "curatiio",
+      "durationMinutes": 45,
+      "active": true,
+      "publicBookable": true,
+      "catalogSource": "curatiio_seed",
+      "meetingMode": "physical",
+      "pricing": {
+        "basePriceSek": 4800,
+        "eveningPriceSek": 5300,
+        "weekendPriceSek": 5600,
+        "currency": "SEK"
+      },
+      "fromPriceSek": 4800
+    },
+    {
+      "id": "curatiio-profhilo",
+      "label": "Profhilo (skin booster)",
+      "brand": "curatiio",
+      "durationMinutes": 45,
+      "active": true,
+      "publicBookable": true,
+      "catalogSource": "curatiio_seed",
+      "meetingMode": "physical",
+      "pricing": {
+        "basePriceSek": 5500,
+        "eveningPriceSek": 5900,
+        "weekendPriceSek": 6300,
+        "currency": "SEK"
+      },
+      "fromPriceSek": 5500
+    },
+    {
+      "id": "curatiio-eyelid-surgery",
+      "label": "Ögonlocksplastik (övre)",
+      "brand": "curatiio",
+      "durationMinutes": 90,
+      "active": true,
+      "publicBookable": true,
+      "catalogSource": "curatiio_seed",
+      "meetingMode": "physical",
+      "pricing": {
+        "basePriceSek": 28000,
+        "eveningPriceSek": 28000,
+        "weekendPriceSek": 30000,
+        "currency": "SEK"
+      },
+      "fromPriceSek": 28000
+    },
+    {
+      "id": "curatiio-microneedling",
+      "label": "Microneedling Curatiio",
+      "brand": "curatiio",
+      "durationMinutes": 60,
+      "active": true,
+      "publicBookable": true,
+      "catalogSource": "curatiio_seed",
+      "meetingMode": "physical",
+      "pricing": {
+        "basePriceSek": 4200,
+        "eveningPriceSek": 4600,
+        "weekendPriceSek": 4900,
+        "currency": "SEK"
+      },
+      "fromPriceSek": 4200
+    }
+  ]
+}

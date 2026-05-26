@@ -497,13 +497,16 @@ function createPublicBookingEngineRouter({
 
   async function loadCatalogForTenant(brand) {
     const tenantId = brand?.id || brand;
+    // Curatiio Fas 1 — brand-isolation: skicka brand-key till engine så att
+    // listPublicServices/listPublicResources filtrerar bort andra brands.
+    const brandKey = normalizeText(brand?.id || brand) || '';
     const [resourcesRaw, servicesRaw] = await Promise.all([
       bookingEngineStore.listPublicResources
-        ? bookingEngineStore.listPublicResources({ tenantId })
-        : bookingEngineStore.listResources({ tenantId }),
+        ? bookingEngineStore.listPublicResources({ tenantId, brand: brandKey })
+        : bookingEngineStore.listResources({ tenantId, brand: brandKey }),
       bookingEngineStore.listPublicServices
-        ? bookingEngineStore.listPublicServices({ tenantId })
-        : bookingEngineStore.listServices({ tenantId }),
+        ? bookingEngineStore.listPublicServices({ tenantId, brand: brandKey })
+        : bookingEngineStore.listServices({ tenantId, brand: brandKey }),
     ]);
     return {
       resources: (Array.isArray(resourcesRaw) ? resourcesRaw : []).map(sanitizeResource),
@@ -599,9 +602,11 @@ function createPublicBookingEngineRouter({
 
     try {
       const brand = resolveBrandFromRequest(req, config);
+      const brandKey = normalizeText(brand?.id || brand) || '';
       const slots = bookingEngineStore.listPublicAvailability
         ? await bookingEngineStore.listPublicAvailability({
             tenantId: brand?.id || brand,
+            brand: brandKey,
             fromDate,
             toDate,
             resIds: normalizeText(req.query.resIds) || undefined,
@@ -609,6 +614,7 @@ function createPublicBookingEngineRouter({
           })
         : await bookingEngineStore.listAvailability({
             tenantId: brand?.id || brand,
+            brand: brandKey,
             fromDate,
             toDate,
             resIds: normalizeText(req.query.resIds) || undefined,

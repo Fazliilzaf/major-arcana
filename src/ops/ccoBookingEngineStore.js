@@ -29,6 +29,11 @@ const {
   applyPricingToSlot,
   normalizePricingRules,
 } = require('./bookingPricingRules');
+const {
+  mergeCuratiioCatalogIntoEngineState,
+  serviceMatchesBrand,
+  resourceMatchesBrand,
+} = require('./curatiioCatalogRuntime');
 
 /** Plan A — endast tre möten exponeras via /api/public/booking-engine/catalog */
 const PLAN_A_PUBLIC_SERVICE_IDS = [
@@ -947,6 +952,8 @@ async function createCcoBookingEngineStore({ filePath }) {
   state.calendarBlocks = asArray(state.calendarBlocks).map(normalizeCalendarBlock).filter(Boolean);
 
   const migrated = migratePlanASchema(state);
+  // Curatiio Fas 1 — slå ihop Curatiio seed-tjänster (additivt; egen brand).
+  const curatiioMerged = mergeCuratiioCatalogIntoEngineState(state);
   const legacyMerged = mergeLegacyCatalogIntoEngineState(state, {
     planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
   });
@@ -961,7 +968,8 @@ async function createCcoBookingEngineStore({ filePath }) {
     resourceMerged.changed ||
     scheduleMerged.changed ||
     pricingMerged.changed ||
-    addonMerged.changed
+    addonMerged.changed ||
+    curatiioMerged.changed
   ) {
     state.resources = asArray(state.resources).map(normalizeResource).filter(Boolean);
     state.services = applyBookingPolicyMigrationToServices(
@@ -978,7 +986,15 @@ async function createCcoBookingEngineStore({ filePath }) {
     await writeJsonAtomic(filePath, state);
   }
 
-  if (migrated || legacyMerged.changed || resourceMerged.changed || scheduleMerged.changed || pricingMerged.changed || addonMerged.changed) {
+  if (
+    migrated ||
+    legacyMerged.changed ||
+    resourceMerged.changed ||
+    scheduleMerged.changed ||
+    pricingMerged.changed ||
+    addonMerged.changed ||
+    curatiioMerged.changed
+  ) {
     await save();
   }
 
@@ -1088,6 +1104,7 @@ async function createCcoBookingEngineStore({ filePath }) {
     srvIds = '',
     excludeConversationId = '',
     publicOnly = false,
+    brand = '',
   } = {}) {
     await expireStaleReservations();
     const tenant = normalizeText(tenantId);
@@ -1127,6 +1144,16 @@ async function createCcoBookingEngineStore({ filePath }) {
         .filter((rule) => !resourceIds.length || resourceIds.includes(rule.resourceId))
         .filter((rule) => !serviceIds.length || serviceIds.includes(rule.serviceId))
         .filter((rule) => asArray(rule.weekdays).includes(weekday))
+        .filter((rule) => {
+          if (!normalizeText(brand)) return true;
+          // Curatiio Fas 1 — brand-isolation enforcad på service-nivå.
+          const service = getServiceById(rule.serviceId);
+          const resource = getResourceById(rule.resourceId);
+          return (
+            serviceMatchesBrand(service || {}, brand) &&
+            resourceMatchesBrand(resource || {}, brand)
+          );
+        })
         .forEach((rule) => {
           asArray(rule.startTimes).forEach((timeLabel) => {
             const slot = buildAvailabilitySlot(rule, day, timeLabel);
@@ -1559,24 +1586,36 @@ async function createCcoBookingEngineStore({ filePath }) {
     getCaseSummary,
     listCalendarBlocks,
     upsertCalendarBlock,
-    listResources: async () => clone(state.resources.filter((item) => item.active !== false)),
-    listServices: async () => clone(state.services.filter((item) => item.active !== false)),
-    listPublicServices: async () =>
+    listResources: async ({ brand = '' } = {}) =>
+      clone(
+        state.resources.filter(
+          (item) => item.active !== false && resourceMatchesBrand(item, brand)
+        )
+      ),
+    listServices: async ({ brand = '' } = {}) =>
+      clone(
+        state.services.filter(
+          (item) => item.active !== false && serviceMatchesBrand(item, brand)
+        )
+      ),
+    listPublicServices: async ({ brand = '' } = {}) =>
       clone(
         state.services.filter(
           (item) =>
             item.active !== false &&
             (item.publicBookable === true ||
-              PLAN_A_PUBLIC_SERVICE_IDS.includes(normalizeText(item.id)))
+              PLAN_A_PUBLIC_SERVICE_IDS.includes(normalizeText(item.id))) &&
+            serviceMatchesBrand(item, brand)
         )
       ),
-    listPublicResources: async () =>
+    listPublicResources: async ({ brand = '' } = {}) =>
       clone(
         state.resources.filter(
           (item) =>
             item.active !== false &&
             (item.publicBookable === true ||
-              PLAN_A_PUBLIC_RESOURCE_IDS.includes(normalizeText(item.id)))
+              PLAN_A_PUBLIC_RESOURCE_IDS.includes(normalizeText(item.id))) &&
+            resourceMatchesBrand(item, brand)
         )
       ),
     listPublicAvailability: async (input = {}) =>
