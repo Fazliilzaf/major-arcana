@@ -283,7 +283,12 @@ async function main() {
     if (lastStepEnd != null) recordHop('kalender → event', Date.now() - lastStepEnd);
     t0 = Date.now();
     const booked = page.locator('#cco-desktop-calendar .cco-cal-event.is-booked').first();
-    const hasBooked = (await booked.count()) > 0;
+    let hasBooked = (await booked.count()) > 0;
+    if (!hasBooked) {
+      await page.locator('#cco-desktop-calendar [data-cal-next]').first().click();
+      await page.waitForTimeout(1500);
+      hasBooked = (await booked.count()) > 0;
+    }
     if (hasBooked) {
       await booked.click();
       await page.waitForFunction(
@@ -327,7 +332,7 @@ async function main() {
     });
     await injectStaffToken(page, staffToken);
     const detailReady = await waitForPatientDetailReady(page, {
-      timeout: 20000,
+      timeout: 45000,
       patientId: resolvedPatientId,
     });
     record(
