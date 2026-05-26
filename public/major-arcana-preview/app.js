@@ -40339,6 +40339,14 @@
     const runViewLoads = () => {
       closeConversationPanels();
 
+      if (shellView === "conversations") {
+        if (typeof window.__ARCANA_ENSURE_INBOX_SCRIPTS__ === "function") {
+          window.__ARCANA_ENSURE_INBOX_SCRIPTS__().catch((error) => {
+            console.warn("Inbox-skript kunde inte laddas.", error);
+          });
+        }
+      }
+
       if (shellView === "customers") {
         if (!mobileDeepLink && !mobileShell) {
           const deferLegacyCustomers = () => {
@@ -40363,8 +40371,19 @@
       }
 
       if (shellView === "calendar") {
-        window.ArcanaBookingDesktopWeek?.syncVisibility?.();
-        window.ArcanaBookingDesktopWeek?.refresh?.();
+        const runCalendarView = () => {
+          window.ArcanaBookingDesktopWeek?.syncVisibility?.();
+          window.ArcanaBookingDesktopWeek?.refresh?.();
+        };
+        if (typeof window.__ARCANA_ENSURE_BOOKING_SCRIPTS__ === "function") {
+          window.__ARCANA_ENSURE_BOOKING_SCRIPTS__()
+            .then(runCalendarView)
+            .catch((error) => {
+              console.warn("Kalender kunde inte laddas.", error);
+            });
+        } else {
+          runCalendarView();
+        }
       }
 
       if (shellView === "analytics") {

@@ -244,7 +244,7 @@
         break;
       case 'calendar':
         document.documentElement.setAttribute('data-cco-calendar-open', '');
-        window.ArcanaBookingMobileCalendar?.open?.();
+        void window.__ARCANA_OPEN_MOBILE_CALENDAR__?.();
         break;
       default:
         break;
@@ -282,7 +282,7 @@
       syncFromApp();
       return;
     }
-    window.ArcanaBookingMobileCalendar?.open?.();
+    void window.__ARCANA_OPEN_MOBILE_CALENDAR__?.();
     syncFromApp();
   }
 
