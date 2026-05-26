@@ -110,9 +110,10 @@ test('processRawMessage is idempotent for completed ledger versions', async () =
   await fs.unlink(filePath).catch(() => {});
 });
 
-test('evaluateSourceFilter blocks non-inbox folders', () => {
-  assert.equal(evaluateSourceFilter({ folderType: 'sent' }).allowed, false);
+test('evaluateSourceFilter allows standard mailbox folders', () => {
+  assert.equal(evaluateSourceFilter({ folderType: 'sent' }).allowed, true);
   assert.equal(evaluateSourceFilter({ folderType: 'inbox' }).allowed, true);
+  assert.equal(evaluateSourceFilter({ folderType: 'unknown' }).allowed, false);
 });
 
 test('graph webhook clientState validation', () => {

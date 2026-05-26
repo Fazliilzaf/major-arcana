@@ -26,6 +26,8 @@ const IMPORT_RUN_MODES = Object.freeze(['initial_sync', 'delta_sync', 'reset', '
 
 const IMPORT_RUN_STATUSES = Object.freeze(['pending', 'running', 'completed', 'failed', 'cancelled']);
 
+const MAILBOX_FOLDER_TYPES = Object.freeze(['inbox', 'sent', 'drafts', 'deleted']);
+
 const MAIL_TYPES = Object.freeze([
   'booking_request',
   'cancellation',
@@ -48,6 +50,7 @@ module.exports = {
   INGESTION_MODES,
   LEDGER_STATUSES,
   MAIL_TYPES,
+  MAILBOX_FOLDER_TYPES,
   MATCH_VERSION,
   PROCESSOR_VERSION,
 };

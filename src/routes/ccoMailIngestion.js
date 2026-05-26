@@ -27,6 +27,7 @@ function createCcoMailIngestionRouter({
   requireRole,
   ingestionStore,
   syncService,
+  ingestionWorker,
   graphNotifications,
   logger = console,
 }) {
@@ -109,13 +110,74 @@ ${needsReview
       if (!mailboxEmail) {
         return res.status(400).json({ error: 'mailboxEmail krävs.' });
       }
-      const result = await syncService.runMailboxCycle({
+      const mode = normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only';
+      const asyncMode = req.body?.async !== false;
+      if (asyncMode && ingestionWorker) {
+        const job = ingestionWorker.enqueueImportJob({
+          mailboxEmail,
+          mode,
+          trigger: 'manual_async',
+          createdBy: actor.userId || actor.email || 'owner',
+          skipDelta: req.body?.skipDelta === true,
+        });
+        return res.status(202).json({
+          ok: true,
+          accepted: true,
+          jobId: job.id,
+          mailboxEmail,
+          message: 'Import körs i bakgrunden. Processing sker via kö-jobb.',
+        });
+      }
+      const result = await syncService.runMailboxImport({
         mailboxEmail,
-        mode: normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only',
+        mode,
         trigger: 'manual',
         createdBy: actor.userId || actor.email || 'owner',
+        skipDelta: req.body?.skipDelta === true,
       });
       return res.json({ ok: true, result });
+    })
+  );
+
+  router.post('/cco/mail-ingestion/process', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+    handle(req, res, async () => {
+      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
+      if (!mailboxEmail) {
+        return res.status(400).json({ error: 'mailboxEmail krävs.' });
+      }
+      if (!ingestionWorker) {
+        return res.status(503).json({ error: 'Mail ingestion worker saknas.' });
+      }
+      const result = await ingestionWorker.runProcessBatch({
+        mailboxEmail,
+        mode: normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only',
+        maxMessages: Number(req.body?.maxMessages || config.ccoMailIngestionQueueBatchSize || 75),
+      });
+      return res.json({ ok: true, result, dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }) });
+    })
+  );
+
+  router.post('/cco/mail-ingestion/process-all', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+    handle(req, res, async () => {
+      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
+      if (!mailboxEmail || !ingestionWorker) {
+        return res.status(400).json({ error: 'mailboxEmail krävs och worker måste finnas.' });
+      }
+      const mode = normalizeText(req.body?.mode) || config.ccoMailIngestionMode || 'read_only';
+      await ingestionWorker.ensureQueueIntegrity({ mailboxEmail });
+      const job = ingestionWorker.enqueueProcessDrain({
+        mailboxEmail,
+        mode,
+        maxBatches: Number(req.body?.maxBatches || 500),
+      });
+      return res.status(202).json({
+        ok: true,
+        accepted: true,
+        jobId: job.id,
+        mailboxEmail,
+        queueLength: ingestionStore.buildDashboardSummary({ mailboxEmail }).queueLength,
+        message: 'Processing körs i bakgrunden tills kön är tom.',
+      });
     })
   );
 

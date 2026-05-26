@@ -14,7 +14,7 @@ const RISKY_ATTACHMENT_TYPES = /\.(exe|bat|cmd|scr|js|vbs|zip|rar|7z)$/i;
 
 function evaluateSourceFilter(rawMessage = {}) {
   const folderType = normalizeText(rawMessage.folderType).toLowerCase();
-  const enabledFolders = new Set(['inbox']);
+  const enabledFolders = new Set(['inbox', 'sent', 'drafts', 'deleted']);
   if (!enabledFolders.has(folderType)) {
     return {
       allowed: false,
@@ -85,8 +85,10 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
     const emails = [
       item?.email,
       item?.personalEmail,
+      item?.primaryEmail,
       item?.verifiedPersonalEmailNormalized,
       item?.contactEmail,
+      ...(item?.emails || []),
     ]
       .map((value) => normalizeEmail(value))
       .filter(Boolean);
@@ -226,6 +228,8 @@ async function processRawMessage({
       patientMatchStatus: match.status,
       mode,
     });
+
+    await store.savePatientMatch(patientMatchRecord);
 
     logger?.log?.(
       `[mail-ingestion] processed raw=${rawMessage.id} status=${activeLedger.status} mailType=${classification.mailType}`

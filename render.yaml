@@ -162,3 +162,7 @@ services:
         value: "false"
       - key: ARCANA_GRAPH_CHANGE_NOTIFICATION_CLIENT_STATE
         value: "arcana-cco-mail-ingestion"
+      - key: ARCANA_CCO_MAIL_INGESTION_QUEUE_BATCH_SIZE
+        value: "75"
+      - key: ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES
+        value: "1"

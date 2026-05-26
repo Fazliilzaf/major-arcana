@@ -590,6 +590,7 @@ const { createCcoHistoryStore } = require('./src/ops/ccoHistoryStore');
 const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore');
 const { createCcoMailIngestionStore } = require('./src/ops/ccoMailIngestion/store');
 const { createCcoMailIngestionSyncService } = require('./src/ops/ccoMailIngestion/syncService');
+const { createCcoMailIngestionWorker } = require('./src/ops/ccoMailIngestion/worker');
 const { createMicrosoftGraphChangeNotifications } = require('./src/infra/microsoftGraphChangeNotifications');
 const { createCcoMailIngestionRouter } = require('./src/routes/ccoMailIngestion');
 const { createMessageIntelligenceStore } = require('./src/ops/messageIntelligenceStore');
@@ -1553,7 +1554,26 @@ process.once('SIGTERM', () => {
     graphReadConnector,
     ingestionStore: ccoMailIngestionStore,
     truthStore: ccoMailboxTruthStore,
-    patientDirectoryProvider: async () => [],
+    patientDirectoryProvider: async () => {
+      const tenantId = config.defaultTenantId || 'hair-tp-clinic';
+      const listed = await ccoPatientMasterStore.listPatients({ tenantId, limit: 20000 });
+      return (listed.patients || []).map((patient) => ({
+        id: patient.id,
+        patientId: patient.id,
+        primaryEmail: patient.primaryEmail,
+        personalEmail: patient.primaryEmail,
+        verifiedPersonalEmailNormalized: String(patient.primaryEmail || '')
+          .trim()
+          .toLowerCase(),
+        emails: patient.emails,
+      }));
+    },
+    logger: console,
+  });
+  const ccoMailIngestionWorker = createCcoMailIngestionWorker({
+    config,
+    ingestionStore: ccoMailIngestionStore,
+    syncService: ccoMailIngestionSyncService,
     logger: console,
   });
   const ccoGraphChangeNotifications = createMicrosoftGraphChangeNotifications({
@@ -1614,6 +1634,7 @@ process.once('SIGTERM', () => {
     mailIngestionSyncService: ccoMailIngestionSyncService,
     graphChangeNotifications: ccoGraphChangeNotifications,
     ccoMailIngestionStore,
+    mailIngestionWorker: ccoMailIngestionWorker,
     logger: console,
   });
 
@@ -2459,6 +2480,7 @@ process.once('SIGTERM', () => {
       requireRole: auth.requireRole,
       ingestionStore: ccoMailIngestionStore,
       syncService: ccoMailIngestionSyncService,
+      ingestionWorker: ccoMailIngestionWorker,
       graphNotifications: ccoGraphChangeNotifications,
       logger: console,
     })
@@ -2527,6 +2549,30 @@ process.once('SIGTERM', () => {
     console.log(
       '[bootstrap] mailbox-backfill inaktiv (sätt ARCANA_BOOTSTRAP_MAILBOX_BACKFILL=true för att aktivera)'
     );
+  }
+
+  if (config.ccoMailIngestionEnabled === true) {
+    ccoMailIngestionWorker
+      .reconcileStuckImportRuns()
+      .then(async () => {
+        const mailboxEmail = config.ccoMailIngestionDefaultMailbox;
+        if (!mailboxEmail) return;
+        await ccoMailIngestionWorker.ensureQueueIntegrity({ mailboxEmail });
+        const summary = ccoMailIngestionStore.buildDashboardSummary({ mailboxEmail });
+        const queueLength = Number(summary.queueLength || 0);
+        if (queueLength > 0) {
+          console.log(
+            `[mail-ingestion] återupptar kö-processing för ${mailboxEmail} (${queueLength} i kö)`
+          );
+          ccoMailIngestionWorker.enqueueProcessDrain({
+            mailboxEmail,
+            mode: config.ccoMailIngestionMode || 'read_only',
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('[mail-ingestion] startup heal failed', error?.message || error);
+      });
   }
 })().catch((error) => {
   runtimeState.ready = false;
