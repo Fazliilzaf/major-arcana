@@ -22,6 +22,21 @@
     --cco-cal-font-ui: var(--cco-font-sans, "Inter", system-ui, sans-serif);
   }
 
+  /* R5b: calendar-shell ligger i .preview-workspace som är 2-col grid
+   * (500px kö / 1058px fokus). När kalender-vyn är aktiv måste shellen
+   * spänna båda kolumnerna så hela viewporten används. Annars klämms
+   * kalendern till 500px (4 dagar synliga, toolbar staplad). */
+  .preview-workspace > .calendar-shell,
+  .preview-workspace > .calendar-shell .calendar-shell-surface,
+  .preview-workspace > .calendar-shell .cco-cal-host {
+    grid-column: 1 / -1;
+  }
+  .preview-workspace > .calendar-shell {
+    width: 100%;
+    max-width: 100%;
+  }
+
+
   .cco-cal-host {
     display: contents;
   }
