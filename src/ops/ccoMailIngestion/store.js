@@ -614,6 +614,191 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     return null;
   }
 
+  function listReviewQueue({
+    mailboxEmail = '',
+    statuses = ['UNMATCHED', 'NEEDS_REVIEW', 'SECURITY_REVIEW'],
+    limit = 50,
+  } = {}) {
+    const normalized = normalizeEmail(mailboxEmail);
+    const allowed = new Set(
+      asArray(statuses)
+        .map((item) => normalizeText(item).toUpperCase())
+        .filter(Boolean)
+    );
+    const safeLimit = Math.max(1, Math.min(500, Number(limit) || 50));
+    return Object.values(state.mailProcessingLedger)
+      .filter((ledger) => allowed.has(normalizeText(ledger.status).toUpperCase()))
+      .map((ledger) => {
+        const raw = state.mailRawMessages[ledger.rawMessageId];
+        const match = Object.values(state.mailPatientMatches).find(
+          (item) => item.rawMessageId === ledger.rawMessageId
+        );
+        return {
+          ledger,
+          rawMessage: raw || null,
+          patientMatch: match || null,
+          reviewSummary: {
+            subject: raw?.subject || '',
+            fromEmail: raw?.fromEmail || '',
+            counterpartyEmail: match?.counterpartyEmail || raw?.fromEmail || '',
+            receivedDateTime: raw?.receivedDateTime || null,
+            folderType: raw?.folderType || null,
+          },
+        };
+      })
+      .filter((row) => {
+        if (!normalized) return true;
+        return normalizeEmail(row.rawMessage?.mailboxId) === normalized;
+      })
+      .sort((left, right) =>
+        String(right.rawMessage?.receivedDateTime || '').localeCompare(
+          String(left.rawMessage?.receivedDateTime || '')
+        )
+      )
+      .slice(0, safeLimit);
+  }
+
+  function getConversationIngestionMap({ mailboxEmail = '' } = {}) {
+    const { toCanonicalMailboxConversationKey } = require('./ccoMailboxTruthWorklistReadModel');
+    const normalized = normalizeEmail(mailboxEmail);
+    const statusPriority = {
+      SECURITY_REVIEW: 5,
+      NEEDS_REVIEW: 4,
+      UNMATCHED: 3,
+      FAILED: 2,
+      MATCHED: 1,
+    };
+    const map = {};
+    for (const ledger of Object.values(state.mailProcessingLedger || {})) {
+      const raw = state.mailRawMessages[ledger.rawMessageId];
+      if (!raw) continue;
+      if (normalized && normalizeEmail(raw.mailboxId) !== normalized) continue;
+      const key = toCanonicalMailboxConversationKey({
+        mailboxId: raw.mailboxId,
+        conversationId: raw.conversationId,
+        mailboxConversationId: raw.conversationId,
+        messageId: raw.graphMessageId,
+      });
+      if (!key) continue;
+      const status = normalizeText(ledger.status);
+      const current = map[key] || {
+        conversationKey: key,
+        mailboxId: normalizeEmail(raw.mailboxId),
+        messageCount: 0,
+        unmatchedCount: 0,
+        needsReviewCount: 0,
+        matchedCount: 0,
+        dominantStatus: null,
+        needsReview: false,
+        hasUnmatched: false,
+        latestRawMessageId: null,
+      };
+      current.messageCount += 1;
+      if (status === 'UNMATCHED') current.unmatchedCount += 1;
+      if (status === 'NEEDS_REVIEW' || status === 'SECURITY_REVIEW') {
+        current.needsReviewCount += 1;
+      }
+      if (status === 'MATCHED') current.matchedCount += 1;
+      const prevPriority = statusPriority[current.dominantStatus] || 0;
+      const nextPriority = statusPriority[status] || 0;
+      if (nextPriority >= prevPriority) {
+        current.dominantStatus = status;
+        current.latestRawMessageId = ledger.rawMessageId;
+      }
+      current.needsReview = current.needsReviewCount > 0 || current.unmatchedCount > 0;
+      current.hasUnmatched = current.unmatchedCount > 0;
+      map[key] = current;
+    }
+    return map;
+  }
+
+  async function linkPatientToMessage({
+    rawMessageId = '',
+    patientId = '',
+    actorUserId = '',
+  } = {}) {
+    const safeRawMessageId = normalizeText(rawMessageId);
+    const safePatientId = normalizeText(patientId);
+    if (!safeRawMessageId || !safePatientId) {
+      throw Object.assign(new Error('rawMessageId och patientId krävs.'), { statusCode: 400 });
+    }
+    const raw = getRawMessage(safeRawMessageId);
+    const ledger = getLedgerByRawMessageId(safeRawMessageId);
+    if (!raw || !ledger) {
+      throw Object.assign(new Error('Raw message hittades inte.'), { statusCode: 404 });
+    }
+
+    await updateLedger(ledger.id, {
+      status: 'MATCHED',
+      patientMatchStatus: 'MATCHED',
+      patientId: safePatientId,
+      processedAt: nowIso(),
+      completedAt: nowIso(),
+      matchVersion: MATCH_VERSION,
+    });
+    const patientMatch = await savePatientMatch({
+      id: `${safeRawMessageId}:match`,
+      rawMessageId: safeRawMessageId,
+      status: 'MATCHED',
+      confidence: 1,
+      patientId: safePatientId,
+      reason: 'manual_link',
+      source: 'manual_link',
+      linkedBy: normalizeText(actorUserId) || null,
+      linkedAt: nowIso(),
+      matchVersion: MATCH_VERSION,
+    });
+    await appendAudit({
+      type: 'mail_ingestion_patient_linked',
+      rawMessageId: safeRawMessageId,
+      patientId: safePatientId,
+      actorUserId: normalizeText(actorUserId) || null,
+    });
+    return {
+      rawMessage: raw,
+      ledger: getLedgerByRawMessageId(safeRawMessageId),
+      patientMatch,
+    };
+  }
+
+  async function requestReprocessUnmatched({
+    mailboxEmail = '',
+    includeOldMatchVersion = true,
+  } = {}) {
+    const normalized = normalizeEmail(mailboxEmail);
+    let requeued = 0;
+    for (const ledger of Object.values(state.mailProcessingLedger || {})) {
+      const raw = state.mailRawMessages[ledger.rawMessageId];
+      if (!raw) continue;
+      if (normalized && normalizeEmail(raw.mailboxId) !== normalized) continue;
+      const status = normalizeText(ledger.status).toUpperCase();
+      const staleMatch =
+        includeOldMatchVersion === true &&
+        normalizeText(ledger.matchVersion) &&
+        normalizeText(ledger.matchVersion) !== MATCH_VERSION;
+      if (status !== 'UNMATCHED' && !staleMatch) continue;
+      await updateLedger(
+        ledger.id,
+        {
+          status: 'REPROCESS_REQUESTED',
+          patientMatchStatus: null,
+          patientId: null,
+          completedAt: null,
+          processedAt: null,
+          matchVersion: null,
+        },
+        { persist: false }
+      );
+      if (enqueueRawMessageId(ledger.rawMessageId)) {
+        requeued += 1;
+      }
+    }
+    if (requeued > 0) {
+      await save();
+    }
+    return { requeued };
+  }
+
   async function completeQueuedMessage(rawMessageId = '') {
     state.processingQueue = state.processingQueue.filter((item) => item !== rawMessageId);
     await save();
@@ -671,6 +856,10 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     buildDashboardSummary,
     compactProcessingQueue,
     getQueueLength,
+    listReviewQueue,
+    getConversationIngestionMap,
+    linkPatientToMessage,
+    requestReprocessUnmatched,
     isQueued,
     enqueueRawMessageId,
     reconcileProcessingQueue,

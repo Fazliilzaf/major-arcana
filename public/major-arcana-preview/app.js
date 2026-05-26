@@ -13005,7 +13005,11 @@
       fallback: "Ingen förhandsvisning tillgänglig.",
     });
     const laneSignals = mapTruthConsumerLaneToRuntimeSignals(item);
-    const needsReply = item?.state?.needsReply === true;
+    const ingestion = item?.state?.ingestion || item?.provenance?.ingestion || null;
+    let needsReply = item?.state?.needsReply === true;
+    if (ingestion?.needsReview === true || Number(ingestion?.unmatchedCount || 0) > 0) {
+      needsReply = true;
+    }
     const hasUnreadInbound = item?.state?.hasUnreadInbound === true;
 
     return {
@@ -13036,7 +13040,9 @@
         ? "Unread inbound och needs reply läses från mejlsanning i wave 1."
         : "Raden kommer från mejlsanning i wave 1.",
       operatorCue: needsReply
-        ? "Sanningsstyrd rad: svara kunden via arbetslistan."
+        ? ingestion?.hasUnmatched === true
+          ? "Sanningsstyrd rad: koppla mail till patient i ingestion-kön."
+          : "Sanningsstyrd rad: svara kunden via arbetslistan."
         : "Sanningsstyrd rad: kontrollera senaste aktivitet.",
       primaryLaneId: laneSignals.primaryLaneId,
       workflowLane: laneSignals.workflowLane,
@@ -13044,7 +13050,16 @@
       priorityLevel: laneSignals.priorityLevel,
       slaStatus: laneSignals.slaStatus,
       dominantRisk: laneSignals.dominantRisk,
-      needsReview: laneSignals.needsReview === true,
+      needsReview: laneSignals.needsReview === true || ingestion?.needsReview === true,
+      ingestionReview:
+        ingestion && typeof ingestion === "object"
+          ? {
+              dominantStatus: asText(ingestion.dominantStatus),
+              unmatchedCount: Number(ingestion.unmatchedCount || 0),
+              needsReviewCount: Number(ingestion.needsReviewCount || 0),
+              latestRawMessageId: asText(ingestion.latestRawMessageId),
+            }
+          : null,
       customerEmail,
       sender: customerEmail || customerName,
       senderName: customerName,

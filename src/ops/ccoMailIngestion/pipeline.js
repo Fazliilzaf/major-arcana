@@ -1,5 +1,10 @@
 const { classifyConversationMessage } = require('../../intelligence/messageClassification');
 const { runDeterministicIntent } = require('../../intelligence/intentClassifier');
+const {
+  normalizeCounterpartyDirection,
+  resolveCounterpartyIdentity,
+} = require('../ccoCounterpartyTruth');
+const { buildPipedrivePatientLookup } = require('../ccoPatientMasterStore');
 const { FILTER_VERSION, MATCH_VERSION, PROCESSOR_VERSION } = require('./constants');
 
 function normalizeText(value) {
@@ -70,48 +75,67 @@ function classifyMailType(rawMessage = {}) {
   };
 }
 
+function resolveCounterpartyEmail(rawMessage = {}) {
+  const folderType = normalizeText(rawMessage.folderType).toLowerCase();
+  const direction =
+    folderType === 'sent' || folderType === 'drafts'
+      ? 'outbound'
+      : folderType === 'inbox' || folderType === 'deleted'
+        ? 'inbound'
+        : normalizeCounterpartyDirection(rawMessage.direction);
+  const counterparty = resolveCounterpartyIdentity(
+    {
+      from: { address: rawMessage.fromEmail, name: rawMessage.fromName },
+      toRecipients: asArray(rawMessage.toEmails).map((email) => ({ address: email })),
+      ccRecipients: asArray(rawMessage.ccEmails).map((email) => ({ address: email })),
+    },
+    {
+      mailboxId: rawMessage.mailboxId,
+      direction,
+    }
+  );
+  return normalizeEmail(counterparty.email || rawMessage.fromEmail);
+}
+
 function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
-  const fromEmail = normalizeEmail(rawMessage.fromEmail);
-  if (!fromEmail) {
+  const counterpartyEmail = resolveCounterpartyEmail(rawMessage);
+  if (!counterpartyEmail) {
     return {
       status: 'UNMATCHED',
       confidence: 0,
       patientId: null,
-      reason: 'missing_sender_email',
+      reason: 'missing_counterparty_email',
+      candidates: [],
     };
   }
 
-  const candidates = asArray(patientDirectory).filter((item) => {
-    const emails = [
-      item?.email,
-      item?.personalEmail,
-      item?.primaryEmail,
-      item?.verifiedPersonalEmailNormalized,
-      item?.contactEmail,
-      ...(item?.emails || []),
-    ]
-      .map((value) => normalizeEmail(value))
-      .filter(Boolean);
-    return emails.includes(fromEmail);
-  });
-
-  if (candidates.length === 1) {
+  const lookup = buildPipedrivePatientLookup(patientDirectory);
+  const emailMatches = asArray(lookup.byEmail.get(counterpartyEmail));
+  if (emailMatches.length === 1) {
+    const patient = emailMatches[0];
     return {
       status: 'MATCHED',
       confidence: 0.95,
-      patientId: candidates[0].id || candidates[0].patientId || candidates[0].canonicalCustomerId,
+      patientId: patient.id || patient.patientId,
       reason: 'exact_email_match',
-      candidate: candidates[0],
+      counterpartyEmail,
+      candidate: patient,
+      candidates: [patient],
     };
   }
-
-  if (candidates.length > 1) {
+  if (emailMatches.length > 1) {
     return {
       status: 'NEEDS_REVIEW',
       confidence: 0.45,
       patientId: null,
       reason: 'multiple_email_matches',
-      candidates,
+      counterpartyEmail,
+      candidates: emailMatches.map((patient) => ({
+        patientId: patient.id || patient.patientId,
+        method: 'email',
+        confidence: 0.45,
+        email: counterpartyEmail,
+      })),
     };
   }
 
@@ -120,6 +144,8 @@ function matchPatientOrEntity(rawMessage = {}, { patientDirectory = [] } = {}) {
     confidence: 0,
     patientId: null,
     reason: 'no_directory_match',
+    counterpartyEmail,
+    candidates: [],
   };
 }
 
@@ -193,6 +219,8 @@ async function processRawMessage({
       confidence: match.confidence,
       patientId: match.patientId,
       reason: match.reason,
+      counterpartyEmail: match.counterpartyEmail || null,
+      candidates: asArray(match.candidates).slice(0, 10),
       matchVersion: MATCH_VERSION,
       createdAt: new Date().toISOString(),
     };

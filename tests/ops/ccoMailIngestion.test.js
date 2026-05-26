@@ -6,7 +6,7 @@ const fs = require('node:fs/promises');
 
 const { buildDedupeKey, buildDedupeKeyFromTruthMessage } = require('../../src/ops/ccoMailIngestion/dedupe');
 const { createCcoMailIngestionStore } = require('../../src/ops/ccoMailIngestion/store');
-const { processRawMessage, evaluateSourceFilter } = require('../../src/ops/ccoMailIngestion/pipeline');
+const { processRawMessage, evaluateSourceFilter, matchPatientOrEntity } = require('../../src/ops/ccoMailIngestion/pipeline');
 const {
   validateClientState,
   parseNotificationMailboxEmail,
@@ -114,6 +114,99 @@ test('evaluateSourceFilter allows standard mailbox folders', () => {
   assert.equal(evaluateSourceFilter({ folderType: 'sent' }).allowed, true);
   assert.equal(evaluateSourceFilter({ folderType: 'inbox' }).allowed, true);
   assert.equal(evaluateSourceFilter({ folderType: 'unknown' }).allowed, false);
+});
+
+test('matchPatientOrEntity matches sent-mail counterparty recipient', () => {
+  const result = matchPatientOrEntity(
+    {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'sent',
+      fromEmail: 'contact@hairtpclinic.com',
+      toEmails: ['patient@example.com'],
+    },
+    {
+      patientDirectory: [
+        {
+          id: 'patient-1',
+          primaryEmail: 'patient@example.com',
+          emails: ['patient@example.com'],
+        },
+      ],
+    }
+  );
+  assert.equal(result.status, 'MATCHED');
+  assert.equal(result.patientId, 'patient-1');
+  assert.equal(result.counterpartyEmail, 'patient@example.com');
+});
+
+test('linkPatientToMessage marks UNMATCHED ledger as MATCHED', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-link-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'contact@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id });
+  const saved = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      graphMessageId: 'graph-msg-link',
+      internetMessageId: '<link@example.com>',
+      subject: 'Omatchat',
+      bodyPreview: 'Hej',
+      from: { address: 'unknown@example.com' },
+      receivedAt: '2026-05-26T12:00:00.000Z',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+  await store.updateLedger(saved.ledger.id, {
+    status: 'UNMATCHED',
+    patientMatchStatus: 'UNMATCHED',
+    completedAt: new Date().toISOString(),
+  });
+
+  const linked = await store.linkPatientToMessage({
+    rawMessageId: saved.rawMessage.id,
+    patientId: 'patient-99',
+    actorUserId: 'owner@test',
+  });
+  assert.equal(linked.ledger.status, 'MATCHED');
+  assert.equal(linked.ledger.patientId, 'patient-99');
+  assert.equal(linked.patientMatch.reason, 'manual_link');
+  await fs.unlink(filePath).catch(() => {});
+});
+
+test('listReviewQueue returns unmatched rows', async () => {
+  const filePath = path.join(os.tmpdir(), `cco-mail-ingestion-review-${Date.now()}.json`);
+  const store = await createCcoMailIngestionStore({ filePath });
+  const account = store.ensureMailAccount({ email: 'contact@hairtpclinic.com' });
+  const run = await store.startImportRun({ mailAccountId: account.id });
+  const saved = await store.saveRawMessageFromTruth({
+    truthMessage: {
+      mailboxId: 'contact@hairtpclinic.com',
+      folderType: 'inbox',
+      graphMessageId: 'graph-msg-review',
+      internetMessageId: '<review@example.com>',
+      subject: 'Review',
+      bodyPreview: 'Hej',
+      from: { address: 'unknown@example.com' },
+      receivedAt: '2026-05-26T13:00:00.000Z',
+    },
+    mailAccountId: account.id,
+    importRunId: run.id,
+  });
+  await store.updateLedger(saved.ledger.id, {
+    status: 'UNMATCHED',
+    patientMatchStatus: 'UNMATCHED',
+    completedAt: new Date().toISOString(),
+  });
+  const rows = store.listReviewQueue({
+    mailboxEmail: 'contact@hairtpclinic.com',
+    statuses: ['UNMATCHED'],
+    limit: 10,
+  });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].ledger.status, 'UNMATCHED');
+  await fs.unlink(filePath).catch(() => {});
 });
 
 test('graph webhook clientState validation', () => {

@@ -835,11 +835,37 @@ function applyConversationStateProjection({
   }));
 }
 
+function applyIngestionLedgerProjection({
+  rollupRows = [],
+  ingestionStore = null,
+  mailboxEmail = '',
+} = {}) {
+  if (!ingestionStore || typeof ingestionStore.getConversationIngestionMap !== 'function') {
+    return asArray(rollupRows);
+  }
+  const ingestionByKey = ingestionStore.getConversationIngestionMap({ mailboxEmail });
+  return asArray(rollupRows).map((row) => {
+    const ingestion = ingestionByKey[normalizeText(row?.conversationKey)] || null;
+    if (!ingestion) return row;
+    const lane =
+      ingestion.needsReview === true && normalizeText(row?.lane) !== 'act-now'
+        ? 'review'
+        : row.lane;
+    return {
+      ...row,
+      lane,
+      needsReply: row.needsReply === true || ingestion.needsReview === true,
+      ingestion,
+    };
+  });
+}
+
 function createCcoMailboxTruthWorklistReadModel({
   store = null,
   customerState = null,
   tenantId = '',
   conversationStateStore = null,
+  ingestionStore = null,
 } = {}) {
   if (!store || typeof store.listMessages !== 'function') {
     return null;
@@ -1150,10 +1176,14 @@ function createCcoMailboxTruthWorklistReadModel({
     const n = Number(limit);
     const readLimit = n === 1000 ? 5000 : Number.isFinite(n) && n > 0 ? n : 5000;
     const readModel = buildReadModel({ mailboxIds, limit: readLimit });
-    const rollupRows = applyConversationStateProjection({
-      tenantId,
-      rollupRows: buildCustomerRollupRows(readModel.rows),
-      conversationStateStore,
+    const rollupRows = applyIngestionLedgerProjection({
+      rollupRows: applyConversationStateProjection({
+        tenantId,
+        rollupRows: buildCustomerRollupRows(readModel.rows),
+        conversationStateStore,
+      }),
+      ingestionStore,
+      mailboxEmail: asArray(mailboxIds)[0] || '',
     });
     const todayCount = rollupRows.filter(
       (row) => getCalendarDayBucket(row.lastInboundAt, 'Europe/Stockholm') === 'today'
@@ -1243,11 +1273,13 @@ function createCcoMailboxTruthWorklistReadModel({
           messageCount: row.messageCount,
           folderPresence: asObject(row.folderPresence),
           operatorState: asObject(row.operatorState),
+          ingestion: asObject(row.ingestion),
         },
         provenance: {
           source: 'mailbox_truth_store',
           parityScope: 'in_scope',
           rollup: row.rollup,
+          ingestion: asObject(row.ingestion),
           operatorStateSource:
             row?.operatorState && Object.keys(asObject(row.operatorState)).length > 0
               ? 'cco_conversation_state_store'
@@ -1267,6 +1299,7 @@ function createCcoMailboxTruthWorklistReadModel({
 
 module.exports = {
   createCcoMailboxTruthWorklistReadModel,
+  applyIngestionLedgerProjection,
   isOutOfScopeDraftReview,
   toCanonicalMailboxConversationKey,
 };
