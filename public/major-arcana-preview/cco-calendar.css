@@ -827,4 +827,55 @@
     .cco-cal-capacity-hours { display: none; }
   }
 
+
+  /* === R4-final (2026-05-26): källfärg på rail + expiry-pulse ===== */
+
+  /* Källa på vänsterkant: cliento = cyan, web = violet, operator = brand,
+   * cco_engine = accent (default), pipedrive = orange. Använder samma palett
+   * som mailbox-railen i kö-vyn så samma färg signalerar samma kanal. */
+  .cco-cal-event[data-source="cliento"] {
+    border-left-color: #0ea5e9;
+  }
+  .cco-cal-event[data-source="web"] {
+    border-left-color: #8b5cf6;
+  }
+  .cco-cal-event[data-source="operator"] {
+    border-left-color: var(--cco-color-brand, #2b251f);
+  }
+  .cco-cal-event[data-source="pipedrive"] {
+    border-left-color: #f97316;
+  }
+  /* cco_engine = accent (default), inget override behövs */
+
+  /* Expiry-pulse: tentativ bokning nära expiresAt får pulsande warning-ring. */
+  @keyframes cco-cal-expiry-pulse {
+    0%   { box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43,37,31,0.08)), 0 0 0 0 var(--cco-status-warning, #c8821e); }
+    70%  { box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43,37,31,0.08)), 0 0 0 6px rgba(200, 130, 30, 0); }
+    100% { box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43,37,31,0.08)), 0 0 0 0 rgba(200, 130, 30, 0); }
+  }
+  .cco-cal-event.is-expiring {
+    border-color: var(--cco-status-warning, #c8821e);
+    animation: cco-cal-expiry-pulse 1.6s var(--cco-ease-out, ease-out) infinite;
+  }
+  .cco-cal-event.is-expiring .cco-cal-event-title::before {
+    content: "⏱ ";
+    color: var(--cco-status-warning, #c8821e);
+    font-weight: 700;
+  }
+  /* Konflikt slår expiry — ⚠ får inte stå tillsammans med ⏱ */
+  .cco-cal-event.is-conflict.is-expiring {
+    animation: none;
+  }
+  .cco-cal-event.is-conflict.is-expiring .cco-cal-event-title::before {
+    content: "⚠ ";
+  }
+
+  /* Respektera reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    .cco-cal-event.is-expiring {
+      animation: none;
+      box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43,37,31,0.08)), 0 0 0 2px var(--cco-status-warning, #c8821e);
+    }
+  }
+
 }

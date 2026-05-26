@@ -382,6 +382,11 @@
       missingForms: signals.missingForms,
       missingFormLabels: signals.missingFormLabels,
       patientId: signals.patientId,
+      // R4: surface source + expiry från bookingCase till slot
+      source: bookingCase?.source || 'cco_engine',
+      expiresAt: bookingCase?.nextExpiryAt || null,
+      expiresInMinutes: bookingCase?.expiresInMinutes ?? null,
+      expiresSoon: bookingCase?.expiresSoon === true,
       durationMinutes: slotDurationMinutes(slot),
       bookingCaseSnapshot: {
         bookingCaseId: bookingCase?.bookingCaseId || '',
@@ -773,8 +778,10 @@
             : '';
     const payload = { ...slot, eventKey: eventKey(slot) };
     const conflictClass = conflict ? ' is-conflict' : '';
+    const expiringClass = slot?.expiresSoon === true ? ' is-expiring' : '';
     const serviceType = serviceTypeFor(slot);
-    return `<${tag} class="cco-cal-event${selectedClass}${compactClass}${kindClass}${conflictClass}"${typeAttr}${dragAttr} data-cal-event="${escapeAttr(JSON.stringify(payload))}" data-service-type="${serviceType}" style="--cco-cal-event-accent:${meta.accent}">
+    const source = String(slot?.source || '').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'cco_engine';
+    return `<${tag} class="cco-cal-event${selectedClass}${compactClass}${kindClass}${conflictClass}${expiringClass}"${typeAttr}${dragAttr} data-cal-event="${escapeAttr(JSON.stringify(payload))}" data-service-type="${serviceType}" data-source="${source}" style="--cco-cal-event-accent:${meta.accent}">
       <span class="cco-cal-event-time">${escapeHtml(formatTimeRange(slot))}</span>
       <span class="cco-cal-event-body">
         <strong class="cco-cal-event-title">${escapeHtml(eventTitle(slot))}</strong>
