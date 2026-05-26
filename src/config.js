@@ -27,8 +27,8 @@ const RENDER_RUNTIME_DEFAULTS = Object.freeze({
   ARCANA_PREFLIGHT_READINESS_CHECKS: 'cors_strict',
   ARCANA_BOOTSTRAP_RESET_OWNER_MFA: 'false',
   ARCANA_MARKETING_CONNECTORS_ENABLED: 'true',
-  ARCANA_MARKETING_CONNECTORS_MODE: 'fixture',
-  ARCANA_MARKETING_CONNECTORS_LIVE_FETCH: 'false',
+  ARCANA_MARKETING_CONNECTORS_MODE: 'live',
+  ARCANA_MARKETING_CONNECTORS_LIVE_FETCH: 'true',
   ARCANA_MARKETING_GOOGLE_ADS_ENABLED: 'true',
   ARCANA_MARKETING_META_ENABLED: 'true',
   ARCANA_MARKETING_LINKEDIN_ENABLED: 'true',
@@ -500,13 +500,13 @@ const config = {
     stateRoot,
     fileName: 'marketing-content-assets.json',
   }),
-  marketingConnectorsEnabled: asBool(process.env.ARCANA_MARKETING_CONNECTORS_ENABLED, false),
+  marketingConnectorsEnabled: asBool(process.env.ARCANA_MARKETING_CONNECTORS_ENABLED, true),
   marketingConnectorsMode: asNonEmptyString(
     process.env.ARCANA_MARKETING_CONNECTORS_MODE,
-    'fixture'
+    'live'
   ),
-  marketingConnectorsLiveFetch: asBool(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH, false),
-  marketingPublishPilotEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_PILOT_ENABLED, false),
+  marketingConnectorsLiveFetch: asBool(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH, true),
+  marketingPublishPilotEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_PILOT_ENABLED, true),
   marketingAutoPublishPilotChannels: asStringArray(
     process.env.ARCANA_MARKETING_AUTO_PUBLISH_PILOT_CHANNELS
   ),
