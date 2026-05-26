@@ -186,8 +186,8 @@
   /* Tablet density (768–1023) — adaptive layout spec 2026-05-25 */
   --cco-tablet-gutter: 20px;
   --cco-tablet-panel-gap: 20px;
-  --cco-tablet-split-min: 320px;
-  --cco-tablet-split-max: 420px;
+  --cco-tablet-split-min: 220px;
+  --cco-tablet-split-max: 280px;
   --cco-tablet-topbar-h: 60px;
 
   /* Active density aliases (overridden per breakpoint below) */
