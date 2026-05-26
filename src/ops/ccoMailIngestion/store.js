@@ -244,14 +244,40 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     return ledgerByRawMessageId.get(normalized) || null;
   }
 
+  function compactProcessingQueue({ mailboxEmail = '' } = {}) {
+    const normalized = normalizeEmail(mailboxEmail);
+    const kept = [];
+    let removed = 0;
+    for (const rawMessageId of state.processingQueue) {
+      const raw = state.mailRawMessages[rawMessageId];
+      if (!raw) {
+        removed += 1;
+        continue;
+      }
+      if (normalized && normalizeEmail(raw.mailboxId) !== normalized) {
+        kept.push(rawMessageId);
+        continue;
+      }
+      const ledger = getLedgerByRawMessageId(rawMessageId);
+      if (ledger && shouldSkipProcessing(ledger)) {
+        removed += 1;
+        continue;
+      }
+      kept.push(rawMessageId);
+    }
+    state.processingQueue = kept;
+    return removed;
+  }
+
   function getQueueLength({ mailboxEmail = '' } = {}) {
     const normalized = normalizeEmail(mailboxEmail);
-    if (!normalized) {
-      return state.processingQueue.length;
-    }
     return state.processingQueue.filter((rawMessageId) => {
       const raw = state.mailRawMessages[rawMessageId];
-      return raw && normalizeEmail(raw.mailboxId) === normalized;
+      if (!raw) return false;
+      if (normalized && normalizeEmail(raw.mailboxId) !== normalized) return false;
+      const ledger = getLedgerByRawMessageId(rawMessageId);
+      if (ledger && shouldSkipProcessing(ledger)) return false;
+      return true;
     }).length;
   }
 
@@ -492,7 +518,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       mailboxEmail: normalized || null,
       account,
       syncState,
-      queueLength: state.processingQueue.length,
+      queueLength: getQueueLength({ mailboxEmail: normalized }),
       counts: {
         rawMessages: rawMessages.length,
         duplicates: countByStatus('DUPLICATE_SKIPPED'),
@@ -501,7 +527,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
         needsReview: countByStatus('NEEDS_REVIEW'),
         matched: countByStatus('MATCHED'),
         unmatched: countByStatus('UNMATCHED'),
-        queued: state.processingQueue.length,
+        queued: getQueueLength({ mailboxEmail: normalized }),
       },
       versions: {
         processorVersion: PROCESSOR_VERSION,
@@ -533,15 +559,53 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       .slice(0, safeLimit);
   }
 
-  function dequeueNextRawMessageId({ mailboxEmail = '' } = {}) {
+  function isQueued(rawMessageId = '') {
+    const normalized = normalizeText(rawMessageId);
+    return normalized ? state.processingQueue.includes(normalized) : false;
+  }
+
+  function enqueueRawMessageId(rawMessageId = '') {
+    const normalized = normalizeText(rawMessageId);
+    if (!normalized || state.processingQueue.includes(normalized)) return false;
+    state.processingQueue.push(normalized);
+    return true;
+  }
+
+  function getRawMessage(rawMessageId = '') {
+    return state.mailRawMessages[normalizeText(rawMessageId)] || null;
+  }
+
+  async function reconcileProcessingQueue({ mailboxEmail = '' } = {}) {
     const normalized = normalizeEmail(mailboxEmail);
-    for (const rawMessageId of state.processingQueue) {
-      const raw = state.mailRawMessages[rawMessageId];
+    const removed = compactProcessingQueue({ mailboxEmail: normalized });
+    let requeued = 0;
+    for (const ledger of Object.values(state.mailProcessingLedger || {})) {
+      const raw = state.mailRawMessages[ledger.rawMessageId];
       if (!raw) continue;
       if (normalized && normalizeEmail(raw.mailboxId) !== normalized) continue;
-      const ledger = Object.values(state.mailProcessingLedger).find(
-        (item) => item.rawMessageId === rawMessageId
-      );
+      if (shouldSkipProcessing(ledger)) continue;
+      if (enqueueRawMessageId(ledger.rawMessageId)) {
+        requeued += 1;
+      }
+    }
+    if (removed > 0 || requeued > 0) {
+      await save();
+    }
+    return { removed, requeued };
+  }
+
+  function dequeueNextRawMessageId({ mailboxEmail = '' } = {}) {
+    const normalized = normalizeEmail(mailboxEmail);
+    while (state.processingQueue.length > 0) {
+      const rawMessageId = state.processingQueue[0];
+      state.processingQueue.shift();
+      const raw = state.mailRawMessages[rawMessageId];
+      if (!raw) continue;
+      if (normalized && normalizeEmail(raw.mailboxId) !== normalized) {
+        state.processingQueue.push(rawMessageId);
+        continue;
+      }
+      const ledger = getLedgerByRawMessageId(rawMessageId);
       if (ledger && shouldSkipProcessing(ledger)) {
         continue;
       }
@@ -600,11 +664,16 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     saveRawMessageFromTruth,
     updateLedger,
     getLedgerByRawMessageId,
+    getRawMessage,
     shouldSkipProcessing,
     appendAudit,
     resetMailboxLocalState,
     buildDashboardSummary,
+    compactProcessingQueue,
     getQueueLength,
+    isQueued,
+    enqueueRawMessageId,
+    reconcileProcessingQueue,
     listNeedsReview,
     dequeueNextRawMessageId,
     completeQueuedMessage,

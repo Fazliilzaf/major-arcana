@@ -42,25 +42,13 @@ function createCcoMailIngestionWorker({
   }
 
   async function ensureQueueIntegrity({ mailboxEmail = '' } = {}) {
-    const normalized = normalizeEmail(mailboxEmail);
-    const state = ingestionStore.getState();
-    const queue = new Set(state.processingQueue || []);
-    let requeued = 0;
-    for (const ledger of Object.values(state.mailProcessingLedger || {})) {
-      const raw = state.mailRawMessages[ledger.rawMessageId];
-      if (!raw) continue;
-      if (normalized && normalizeEmail(raw.mailboxId) !== normalized) continue;
-      if (ingestionStore.shouldSkipProcessing(ledger)) continue;
-      if (queue.has(ledger.rawMessageId)) continue;
-      state.processingQueue.push(ledger.rawMessageId);
-      queue.add(ledger.rawMessageId);
-      requeued += 1;
+    const result = await ingestionStore.reconcileProcessingQueue({ mailboxEmail });
+    if (result.removed > 0 || result.requeued > 0) {
+      logger?.log?.(
+        `[mail-ingestion-worker] queue integrity ${normalizeEmail(mailboxEmail) || 'all'}: removed ${result.removed}, requeued ${result.requeued}`
+      );
     }
-    if (requeued > 0) {
-      await ingestionStore.save();
-      logger?.log?.(`[mail-ingestion-worker] requeued ${requeued} raw message(s) for ${normalized || 'all'}`);
-    }
-    return requeued;
+    return result;
   }
 
   function getJob(jobId = '') {
