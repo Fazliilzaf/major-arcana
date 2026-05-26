@@ -1371,6 +1371,9 @@
       return shouldDeferHeavyWorkspaceBootstrap();
     }
 
+    let __lastMobileInboxRefreshTs = 0;
+    const MOBILE_INBOX_REFRESH_COOLDOWN_MS = 5000;
+
     async function ensureMobileInboxReady({ backgroundRefresh = true } = {}) {
       if (!isMobileShellViewport() || isStaffJournalOpenAccessClient()) {
         return { ready: false, deferred: false };
@@ -1393,7 +1396,10 @@
       };
 
       if (paintQueueIfAvailable()) {
-        if (backgroundRefresh && state.runtime?.loading !== true) {
+        const now = Date.now();
+        const withinCooldown = now - __lastMobileInboxRefreshTs < MOBILE_INBOX_REFRESH_COOLDOWN_MS;
+        if (backgroundRefresh && state.runtime?.loading !== true && !withinCooldown) {
+          __lastMobileInboxRefreshTs = now;
           void loadLiveRuntime({
             staleWhileRevalidate: true,
             isBackgroundRefresh: true,
