@@ -615,4 +615,68 @@
       display: none !important;
     }
   }
+
+  /* === R3 (2026-05-26): konflikt, behandlingstyp-band, NU-badge ===== */
+
+  /* Konflikt: överlappande bokningar på samma resurs får röd ram + ⚠. */
+  .cco-cal-event.is-conflict {
+    border-color: var(--cco-status-danger, #b94a4a);
+    background: var(--cco-status-danger-bg, rgba(185, 74, 74, 0.08));
+  }
+  .cco-cal-event.is-conflict .cco-cal-event-title::before {
+    content: "⚠ ";
+    color: var(--cco-status-danger, #b94a4a);
+    font-weight: 700;
+  }
+
+  /* Behandlingstyp som tunn färgband i nederkant av kortet. */
+  .cco-cal-event[data-service-type]:not([data-service-type="other"])::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: var(--cco-radius-md, 8px);
+    right: var(--cco-radius-md, 8px);
+    height: 2px;
+    border-radius: 1px;
+    opacity: 0.78;
+    pointer-events: none;
+  }
+  .cco-cal-event[data-service-type="hairtx"]::after { background: #7c3aed; }
+  .cco-cal-event[data-service-type="prp"]::after { background: #f97316; }
+  .cco-cal-event[data-service-type="consultation"]::after { background: #0ea5e9; }
+  .cco-cal-event[data-service-type="aftercare"]::after { background: #14b8a6; }
+  .cco-cal-event[data-service-type="video"]::after { background: var(--cco-status-info, #4a7ba8); }
+
+  /* "NU HH:MM"-badge i todays kolumn-header i vecka-vyn. */
+  .cco-cal-now-badge {
+    display: inline-block;
+    margin-left: var(--cco-space-2, 8px);
+    padding: 2px var(--cco-space-2, 8px);
+    background: var(--cco-color-accent, #4a8268);
+    color: var(--cco-text-on-accent, #ffffff);
+    border-radius: var(--cco-radius-full, 9999px);
+    font-size: var(--cco-text-xs, 11px);
+    font-weight: var(--cco-weight-semibold, 600);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+  }
+
+  /* Behandlingstypsfilter — visuell distinktion mot resursfiltret. */
+  .cco-cal-filters-type {
+    border-left: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    padding-left: var(--cco-space-2, 8px);
+    margin-left: var(--cco-space-2, 8px);
+  }
+  .cco-cal-filter-chip-type.is-active {
+    background: var(--cco-color-accent, #4a8268);
+    color: var(--cco-text-on-accent, #ffffff);
+    border-color: var(--cco-color-accent, #4a8268);
+  }
+  .cco-cal-filter-chip-type small {
+    margin-left: 4px;
+    opacity: 0.7;
+    font-weight: var(--cco-weight-regular, 400);
+  }
+
 }

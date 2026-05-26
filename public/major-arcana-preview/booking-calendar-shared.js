@@ -718,7 +718,44 @@
     return parts.join(' · ');
   }
 
-  function renderEventCard(slot, { compact = false, selected = false, interactive = true, draggable = false } = {}) {
+  // R3: bestäm behandlingstyp av slot för filter + bottom-band-färg.
+  function serviceTypeFor(slot) {
+    const txt = String(slot?.serviceLabel || slot?.service || slot?.serviceId || '').toLowerCase();
+    if (!txt) return 'other';
+    if (txt.includes('hårtx') || txt.includes('hairtx') || txt.includes('transplant') || txt.includes('hår tp') || txt.includes('hartp')) return 'hairtx';
+    if (txt.includes('prp')) return 'prp';
+    if (txt.includes('konsult')) return 'consultation';
+    if (txt.includes('återbesök') || txt.includes('aterbesok') || txt.includes('uppföljning') || txt.includes('uppfoljning') || txt.includes('follow')) return 'aftercare';
+    if (txt.includes('online') || txt.includes('video') || txt.includes('digital')) return 'video';
+    return 'other';
+  }
+
+  // R3: hitta överlappande bokningar (samma resurs + överlappande tid).
+  // Returnerar Set av eventKey för bokningar som är i konflikt med någon annan.
+  function findConflictKeys(slots) {
+    const conflicts = new Set();
+    const booked = (slots || []).filter((s) => s?.kind === 'booked');
+    for (let i = 0; i < booked.length; i++) {
+      const a = booked[i];
+      const aStart = slotStartMinutes(a);
+      const aEnd = aStart + slotDurationMinutes(a);
+      const aResource = String(a?.resourceLabel || a?.resource || '').trim();
+      for (let j = i + 1; j < booked.length; j++) {
+        const b = booked[j];
+        const bResource = String(b?.resourceLabel || b?.resource || '').trim();
+        if (aResource !== bResource) continue;
+        const bStart = slotStartMinutes(b);
+        const bEnd = bStart + slotDurationMinutes(b);
+        if (aStart < bEnd && bStart < aEnd) {
+          conflicts.add(eventKey(a));
+          conflicts.add(eventKey(b));
+        }
+      }
+    }
+    return conflicts;
+  }
+
+  function renderEventCard(slot, { compact = false, selected = false, interactive = true, draggable = false, conflict = false } = {}) {
     const meta = classifyCalendarEvent(slot);
     const isBlock = slot?.kind === 'block';
     const tag = interactive && !isBlock ? 'button' : 'article';
@@ -735,7 +772,9 @@
             ? ' is-block'
             : '';
     const payload = { ...slot, eventKey: eventKey(slot) };
-    return `<${tag} class="cco-cal-event${selectedClass}${compactClass}${kindClass}"${typeAttr}${dragAttr} data-cal-event="${escapeAttr(JSON.stringify(payload))}" style="--cco-cal-event-accent:${meta.accent}">
+    const conflictClass = conflict ? ' is-conflict' : '';
+    const serviceType = serviceTypeFor(slot);
+    return `<${tag} class="cco-cal-event${selectedClass}${compactClass}${kindClass}${conflictClass}"${typeAttr}${dragAttr} data-cal-event="${escapeAttr(JSON.stringify(payload))}" data-service-type="${serviceType}" style="--cco-cal-event-accent:${meta.accent}">
       <span class="cco-cal-event-time">${escapeHtml(formatTimeRange(slot))}</span>
       <span class="cco-cal-event-body">
         <strong class="cco-cal-event-title">${escapeHtml(eventTitle(slot))}</strong>
@@ -793,6 +832,8 @@
     rebookCalendarBooking,
     buildBlockCalendarEvent,
     classifyCalendarEvent,
+    serviceTypeFor,
+    findConflictKeys,
     renderEventIcons,
     renderEventCard,
     eventTitle,
