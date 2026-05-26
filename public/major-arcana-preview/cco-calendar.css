@@ -1,26 +1,25 @@
 @layer components {
+  /* R1 (2026-05-26): Cursor's calendar tokens now bridge to CCO master tokens
+   * so calendar inherits theming, dark-mode, and canonical colors/typography
+   * from design-tokens.css. Existing --cco-cal-* references keep working. */
   :root {
-    --cco-cal-accent: #cabbae;
-    --cco-cal-accent-soft: #efe5de;
-    --cco-cal-espresso: #513d34;
-    --cco-cal-espresso-soft: #7f6557;
-    --cco-cal-canvas: #faf6f3;
-    --cco-cal-panel: rgba(250, 246, 242, 0.94);
-    --cco-cal-card: rgba(252, 248, 244, 0.96);
-    --cco-cal-border: rgba(120, 105, 90, 0.16);
-    --cco-cal-border-strong: rgba(81, 61, 52, 0.22);
-    --cco-cal-success: var(--warm-green, #16a34a);
-    --cco-cal-warn: var(--warm-orange, #f97316);
-    --cco-cal-info: var(--warm-indigo, #4f46e5);
+    --cco-cal-accent: var(--cco-color-accent, #4a8268);
+    --cco-cal-accent-soft: var(--cco-color-accent-soft, #6fa68a);
+    --cco-cal-espresso: var(--cco-color-brand, #2b251f);
+    --cco-cal-espresso-soft: var(--cco-text-secondary, #5d544a);
+    --cco-cal-canvas: var(--cco-bg-page, #fbf7f1);
+    --cco-cal-panel: var(--cco-bg-surface, #ffffff);
+    --cco-cal-card: var(--cco-bg-surface, #ffffff);
+    --cco-cal-border: var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    --cco-cal-border-strong: var(--cco-border-default, rgba(43, 37, 31, 0.15));
+    --cco-cal-success: var(--cco-status-success, #4a8268);
+    --cco-cal-warn: var(--cco-status-warning, #c8821e);
+    --cco-cal-info: var(--cco-status-info, #4a7ba8);
     --cco-cal-video: var(--cco-status-info, #4a7ba8);
-    --cco-cal-shadow:
-      0 8px 24px rgba(70, 50, 30, 0.08),
-      0 2px 6px rgba(70, 50, 30, 0.05);
-    --cco-cal-shadow-hover:
-      0 12px 28px rgba(70, 50, 30, 0.12),
-      0 4px 10px rgba(70, 50, 30, 0.07);
-    --cco-cal-font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-    --cco-cal-font-ui: "Jost", var(--cco-font-sans, Inter), system-ui, sans-serif;
+    --cco-cal-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08));
+    --cco-cal-shadow-hover: var(--cco-shadow-md, 0 4px 8px rgba(43, 37, 31, 0.08));
+    --cco-cal-font-display: var(--cco-font-display, "Inter", system-ui, sans-serif);
+    --cco-cal-font-ui: var(--cco-font-sans, "Inter", system-ui, sans-serif);
   }
 
   .cco-cal-host {
@@ -400,51 +399,48 @@
     transform: translate(-50%, -50%);
   }
 
+  /* R1: warm-row-parity. Flat surface, 8px radius, 3px rail, --cco-shadow-sm.
+   * Visuellt syskon till kö-kort: samma yta, kant, typografi. */
   .cco-cal-event {
     appearance: none;
     width: 100%;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 10px;
+    gap: var(--cco-space-3, 12px);
     align-items: start;
     text-align: left;
-    padding: 10px 12px 10px 10px;
-    border: 1px solid rgba(202, 186, 174, 0.28);
-    border-left: 4px solid var(--cco-cal-event-accent, var(--cco-cal-accent));
-    border-radius: 12px;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(252, 248, 244, 0.94) 100%);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.85),
-      0 2px 8px rgba(70, 50, 30, 0.06);
+    padding: var(--cco-space-3, 12px);
+    border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    border-left: 3px solid var(--cco-cal-event-accent, var(--cco-color-accent, #4a8268));
+    border-radius: var(--cco-radius-md, 8px);
+    background: var(--cco-bg-surface, #ffffff);
+    box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08));
     cursor: pointer;
     transition:
-      box-shadow 160ms ease,
-      transform 160ms ease,
-      border-color 160ms ease;
+      box-shadow var(--cco-duration-fast, 150ms) var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1)),
+      transform var(--cco-duration-fast, 150ms) var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1)),
+      border-color var(--cco-duration-fast, 150ms) var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1));
   }
 
   .cco-cal-event:hover,
   .cco-cal-event.is-selected {
-    box-shadow: var(--cco-cal-shadow-hover);
+    box-shadow: var(--cco-shadow-md, 0 4px 8px rgba(43, 37, 31, 0.08));
     transform: translateY(-1px);
-    border-color: rgba(202, 186, 174, 0.55);
+    border-color: var(--cco-border-default, rgba(43, 37, 31, 0.15));
   }
 
   .cco-cal-event.is-compact {
-    padding: 8px 10px 8px 8px;
+    padding: var(--cco-space-2, 8px) var(--cco-space-3, 12px);
   }
 
   .cco-cal-event.is-booked {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(252, 248, 244, 0.98) 100%);
+    background: var(--cco-bg-surface, #ffffff);
   }
 
   .cco-cal-event.is-available {
     border-style: dashed;
+    background: var(--cco-bg-surface-sunken, #f5efe6);
     opacity: 0.92;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(250, 246, 242, 0.82) 100%);
   }
 
   .cco-cal-event.is-available .cco-cal-event-title {
