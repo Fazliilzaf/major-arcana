@@ -146,7 +146,7 @@
     font: inherit;
     font-size: 13px;
     font-weight: 600;
-    color: var(--cco-cal-espresso-soft);
+    color: var(--cco-text-secondary, #5d544a);
     background: transparent;
     cursor: pointer;
     transition:
@@ -178,14 +178,14 @@
 
   .cco-cal-filter-chip {
     appearance: none;
-    border: 1px solid var(--cco-cal-border);
+    border: 1px solid var(--cco-border-default, rgba(43, 37, 31, 0.15));
     border-radius: 999px;
     padding: 7px 12px;
     font: inherit;
     font-size: 12px;
     font-weight: 600;
     color: var(--cco-cal-espresso);
-    background: linear-gradient(180deg, #fffefa 0%, #fbf5ea 100%);
+    background: var(--cco-bg-surface, #ffffff);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.95),
       0 2px 6px rgba(80, 60, 40, 0.06);
@@ -207,16 +207,21 @@
     min-width: 0;
   }
 
+  /* R5e: starkare border + hover-state så knapparna inte ser disabled ut. */
+  .cco-cal-nav-btn:hover {
+    background: var(--cco-bg-surface-sunken, #f5efe6);
+    border-color: var(--cco-color-accent, #4a8268);
+  }
   .cco-cal-nav-btn {
     appearance: none;
-    border: 1px solid var(--cco-cal-border);
+    border: 1px solid var(--cco-border-default, rgba(43, 37, 31, 0.15));
     border-radius: 12px;
     padding: 8px 12px;
     font: inherit;
     font-size: 13px;
     font-weight: 600;
     color: var(--cco-cal-espresso);
-    background: rgba(255, 255, 255, 0.72);
+    background: var(--cco-bg-surface, #ffffff);
     cursor: pointer;
   }
 
