@@ -97,7 +97,7 @@ async function main() {
 
   const availability = await getJson(
     `${BASE}/api/v1/cco-booking-engine/availability?${caseQs}&fromDate=${fromDate}&toDate=${toDate}&srvIds=${encodeURIComponent(SERVICE_ID)}`,
-    { token }
+    token
   );
   if (availability.status !== 200) {
     throw new Error(availability.body?.error || `availability_${availability.status}`);
