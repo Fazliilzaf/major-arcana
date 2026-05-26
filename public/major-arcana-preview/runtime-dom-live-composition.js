@@ -249,7 +249,7 @@
     let liveThreadHydrationSequence = 0;
     let runtimeAnalyzeInboxFlight = null;
     let runtimeAnalyzeInboxCompletedAt = 0;
-    const RUNTIME_ANALYZE_INBOX_MIN_INTERVAL_MS = 55000;
+    const RUNTIME_ANALYZE_INBOX_MIN_INTERVAL_MS = 20000;
     let runtimeMailboxScopeLoadTimer = 0;
     const RUNTIME_MAILBOX_SCOPE_DEBOUNCE_MS = 450;
     let mobileInboxLoadPromise = null;

@@ -24,7 +24,7 @@
 const express = require('express');
 
 function createCcoRuntimeStreamRouter({
-  pollIntervalMs = 10000,
+  pollIntervalMs = 5000,
   heartbeatIntervalMs = 30000,
 } = {}) {
   const router = express.Router();
