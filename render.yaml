@@ -151,3 +151,14 @@ services:
         value: "3"
       - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER
         value: "20"
+      # CCO Mail Ingestion Pipeline (read-only default; webhooks off until subscription created).
+      - key: ARCANA_CCO_MAIL_INGESTION_ENABLED
+        value: "true"
+      - key: ARCANA_CCO_MAIL_INGESTION_MODE
+        value: "read_only"
+      - key: ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX
+        value: "contact@hairtpclinic.com"
+      - key: ARCANA_GRAPH_CHANGE_NOTIFICATIONS_ENABLED
+        value: "false"
+      - key: ARCANA_GRAPH_CHANGE_NOTIFICATION_CLIENT_STATE
+        value: "arcana-cco-mail-ingestion"

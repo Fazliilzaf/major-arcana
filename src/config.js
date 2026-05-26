@@ -250,6 +250,36 @@ const config = {
     stateRoot,
     fileName: 'cco-mailbox-truth.json',
   }),
+  ccoMailIngestionStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MAIL_INGESTION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-mail-ingestion.json',
+  }),
+  ccoMailIngestionEnabled: asBool(process.env.ARCANA_CCO_MAIL_INGESTION_ENABLED, true),
+  ccoMailIngestionMode: asNonEmptyString(
+    process.env.ARCANA_CCO_MAIL_INGESTION_MODE,
+    'read_only'
+  ),
+  ccoMailIngestionDefaultMailbox: asNonEmptyString(
+    process.env.ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX,
+    'contact@hairtpclinic.com'
+  ),
+  ccoMailIngestionMaxProcessPerCycle: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_MAX_PROCESS_PER_CYCLE,
+    25
+  ),
+  graphChangeNotificationsEnabled: asBool(
+    process.env.ARCANA_GRAPH_CHANGE_NOTIFICATIONS_ENABLED,
+    false
+  ),
+  graphChangeNotificationClientState: asNonEmptyString(
+    process.env.ARCANA_GRAPH_CHANGE_NOTIFICATION_CLIENT_STATE,
+    'arcana-cco-mail-ingestion'
+  ),
+  graphBaseUrl: asNonEmptyString(
+    process.env.ARCANA_GRAPH_BASE_URL,
+    'https://graph.microsoft.com/v1.0'
+  ),
   ccoConversationStateStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_CONVERSATION_STATE_STORE_PATH,
     stateRoot,
@@ -817,6 +847,10 @@ const config = {
   schedulerCcoInboxScopedMaxMessagesPerUser: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER,
     20
+  ),
+  schedulerCcoGraphSubscriptionRenewalIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_GRAPH_SUBSCRIPTION_RENEWAL_INTERVAL_HOURS,
+    24
   ),
   schedulerCcoInboxFullBackfillBatchSize: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_BATCH_SIZE,
