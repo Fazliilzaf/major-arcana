@@ -805,6 +805,10 @@
   }
 
   function bindShell(shell) {
+    // R7: defensiv reset av busy-flagga vid varje bind. Skyddar mot att
+    // en hängande busy-state ([data-cal-busy='true']) gör hela kalendern
+    // halvtransparent. Säker — vi sätter den bara false, aldrig true här.
+    shell.dataset.calBusy = 'false';
     shell.querySelectorAll('[data-cal-view]').forEach((button) => {
       button.addEventListener('click', () => {
         setViewMode(button.getAttribute('data-cal-view') || 'week');

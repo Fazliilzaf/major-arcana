@@ -561,9 +561,32 @@
     background: rgba(255, 245, 232, 0.35);
   }
 
+  /* R7: tidigare 0.82 opacity gjorde hela kalendern blek när busy-state
+   * råkade hänga sig. Mildare 0.96 + en subtil grön accent-rand i toppen
+   * signalerar pågående action utan att tona ner hela ytan. */
   .cco-cal-workstation[data-cal-busy='true'] {
-    opacity: 0.82;
+    opacity: 0.96;
     pointer-events: none;
+    position: relative;
+  }
+  .cco-cal-workstation[data-cal-busy='true']::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--cco-color-accent, #4a8268) 50%,
+      transparent 100%);
+    animation: cco-cal-busy-bar 1.4s ease-in-out infinite;
+    border-radius: var(--cco-radius-md, 8px) var(--cco-radius-md, 8px) 0 0;
+  }
+  @keyframes cco-cal-busy-bar {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cco-cal-workstation[data-cal-busy='true']::before { animation: none; opacity: 0.8; }
   }
 
   :root {
