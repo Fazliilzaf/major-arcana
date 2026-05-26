@@ -8,10 +8,22 @@
 
   function isMobile() {
     try {
-      return window.matchMedia(MQ).matches;
+      return window.matchMedia(MQ_MOBILE).matches;
     } catch {
       return false;
     }
+  }
+
+  function isTablet() {
+    try {
+      return window.matchMedia(MQ_TABLET).matches;
+    } catch {
+      return false;
+    }
+  }
+
+  function isCompactViewport() {
+    return isMobile() || isTablet();
   }
 
   function lockBodyScroll() {

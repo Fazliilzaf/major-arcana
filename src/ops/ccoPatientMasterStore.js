@@ -16,6 +16,17 @@ const {
   splitName,
   nameOverlapScore,
 } = require('../../scripts/migration/lib/migrationUtils');
+const { normalizePhotoPublishConsent } = require('./ccoPhotoPublishConsent');
+const { normalizeFortnoxPatientRef } = require('./ccoFortnoxPatientSync');
+const {
+  normalizePatientDemographics,
+  buildDemographicsReadout,
+} = require('./patientDemographics');
+const {
+  rebuildPatientMasterIndexes,
+  lookupPatientsByQuery,
+  resolvePatientIndex,
+} = require('./ccoStoreIndexes');
 
 const PATIENT_FLAGS = Object.freeze([
   'missing_email',
@@ -392,6 +403,9 @@ function normalizePatientRecord(input = {}, existing = {}) {
         Number(asObject(safe.fileSummary).images || asObject(existingSafe.fileSummary).images) || 0,
     },
     access: normalizePatientAccess(safe.access, existingSafe.access),
+    consents: normalizePhotoPublishConsent(safe.consents, existingSafe.consents),
+    fortnox: normalizeFortnoxPatientRef(safe.fortnox, existingSafe.fortnox),
+    demographics: normalizePatientDemographics(safe.demographics, existingSafe.demographics),
     flags: [],
     createdAt: normalizeText(existingSafe.createdAt) || nowIso(),
     updatedAt: nowIso(),
@@ -519,20 +533,30 @@ function buildPatientCardReadout(patient) {
     pipedriveDealCount: asArray(asObject(safe.pipedrive).deals).length,
     journalBlocked: access.journalBlocked,
     journalBlockReason: access.journalBlockReason,
+    fortnoxCustomerId: normalizeText(asObject(safe.fortnox).customerNumber),
+    fortnoxSyncedAt: normalizeText(asObject(safe.fortnox).syncedAt) || null,
+    fortnoxSyncError: normalizeText(asObject(safe.fortnox).lastError) || '',
+    demographics: buildDemographicsReadout(safe.demographics),
     updatedAt: safe.updatedAt || null,
   };
 }
 
 async function createCcoPatientMasterStore({ filePath }) {
   const state = await readJson(filePath, emptyState());
+  Object.values(state.tenants || {}).forEach((bucket) => rebuildPatientMasterIndexes(bucket));
 
   async function save() {
     state.updatedAt = nowIso();
+    Object.values(state.tenants || {}).forEach((bucket) => rebuildPatientMasterIndexes(bucket));
     await writeJsonAtomic(filePath, state);
   }
 
   async function getPatient({ tenantId, patientId, personnummer } = {}) {
     const bucket = tenantBucket(state, tenantId);
+    const index = resolvePatientIndex(bucket, { patientId, personnummer });
+    if (index >= 0 && bucket.patients[index]) {
+      return clonePatient(bucket.patients[index]);
+    }
     const byId = normalizeText(patientId);
     const pnr = normalizePersonnummer(personnummer);
     const found = bucket.patients.find((item) => {
@@ -547,6 +571,10 @@ async function createCcoPatientMasterStore({ filePath }) {
     const normalizedEmail = normalizeEmail(email);
     if (!normalizedEmail) return null;
     const bucket = tenantBucket(state, tenantId);
+    const index = resolvePatientIndex(bucket, { email: normalizedEmail });
+    if (index >= 0 && bucket.patients[index]) {
+      return clonePatient(bucket.patients[index]);
+    }
     const found = bucket.patients.find((item) => {
       if (normalizeEmail(item.primaryEmail) === normalizedEmail) return true;
       return asArray(item.emails).some((value) => normalizeEmail(value) === normalizedEmail);
@@ -589,7 +617,11 @@ async function createCcoPatientMasterStore({ filePath }) {
     const q = normalizeKey(query);
     const flagSet = new Set(asArray(flags).map(normalizeKey).filter(Boolean));
     let rows = bucket.patients.slice();
-    if (q) {
+
+    const indexedMatches = lookupPatientsByQuery(bucket, query);
+    if (indexedMatches) {
+      rows = indexedMatches.map((index) => bucket.patients[index]).filter(Boolean);
+    } else if (q) {
       rows = rows.filter((item) => {
         const haystack = [
           item.displayName,

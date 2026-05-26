@@ -68,6 +68,7 @@ function createTransactionalMailer({ graphSendConnector = null } = {}) {
           provider: 'graph',
           messageId: sent?.replyToMessageId || sent?.mailboxId || null,
           sendMode: sent?.sendMode || 'send_mail',
+          attachmentsSkipped: Array.isArray(input.attachments) && input.attachments.length > 0,
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

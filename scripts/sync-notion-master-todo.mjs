@@ -54,7 +54,31 @@ const UPDATES = [
     pageId: '36a060ccc15b8199bdfcc893d723d388',
     Task: 'Plan A valfritt: Resend patient-mail + bokning→journal',
     Status: 'Done',
-    Notes: 'J-6.3 + U5A.4 Resend PASS. Publik webb-API av (503 policy).',
+    Notes: 'J-6.3 + U5A.4 ☑. Render RESEND_API_KEY live. transactional-probe provider:resend. Plan A 3 tjänster.',
+  },
+  {
+    pageId: '36b060ccc15b8141b6f2eecd8a07c2f8',
+    Task: 'U5A.4 Resend patient-mail',
+    Status: 'Done',
+    Notes: 'Render RESEND_API_KEY live. Domän verified. OWNER transactional-probe provider:resend.',
+  },
+  {
+    pageId: '36b060ccc15b81f8a9f5dc3799074679',
+    Task: 'J-8 CCO-care (formulär + draft-godkännande)',
+    Status: 'Done',
+    Notes: 'J-8.1–8.2 ☑ prod. CC-06 UI + CC-09/10/11 PASS.',
+  },
+  {
+    pageId: '36a060ccc15b8109b433dbafa6475a86',
+    Task: 'Fas 5.5 — Android Chrome + iPad',
+    Status: 'In progress',
+    Notes: 'BL.3 Playwright Pixel 5 ☑. Fysisk Android + iPad kvar.',
+  },
+  {
+    pageId: '36b060ccc15b81048b25fab750c15b6a',
+    Task: 'BL.3 Android Playwright (Pixel 5)',
+    Status: 'Done',
+    Notes: 'verify:android-staff-prod PASS (shell, login, tabs @ Pixel 5).',
   },
   {
     pageId: '36a060ccc15b81efb78ad36a33abb1ac',
@@ -88,14 +112,6 @@ const CREATE = [
     Notes: 'cco_customer_reminders. Ej patient-SMS.',
   },
   {
-    Task: 'J-8 CCO-care (formulär + draft-godkännande)',
-    Status: 'In progress',
-    Area: 'Backlog',
-    Priority: 'P1',
-    Owner: 'Agent',
-    Notes: 'J-8.1 Done (CC-09). J-8.2 backend Done (CC-10); UI CC-06 FAIL.',
-  },
-  {
     Task: 'TL-B Tidslinje tillfälle (foto + flik)',
     Status: 'Done',
     Area: 'Pilot',
@@ -118,14 +134,6 @@ const CREATE = [
     Priority: 'P1',
     Owner: 'Agent',
     Notes: '56988/57558 driveFileId. Push --index-only 2026-05-25.',
-  },
-  {
-    Task: 'U5A.4 Resend patient-mail',
-    Status: 'Done',
-    Area: 'Booking',
-    Priority: 'P1',
-    Owner: 'Agent',
-    Notes: 'Render env + verify PASS 2026-05-25.',
   },
   {
     Task: 'U2.2 OWNER MFA enforced prod',

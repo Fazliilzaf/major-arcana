@@ -9,6 +9,7 @@ const {
   resolveFormVariantFromMeridiq,
   buildImportMeta,
 } = require('./ccoJournalSchemas');
+const { rebuildJournalIndexes } = require('./ccoStoreIndexes');
 
 const JOURNAL_TYPES = Object.freeze([
   'historical_import',
@@ -156,9 +157,11 @@ function normalizeJournalEntry(input = {}, existing = {}) {
   if (!JOURNAL_TYPES.includes(journalType)) {
     throw new Error('Ogiltig journaltyp.');
   }
+  const rawImportMeta = asObject(safe.importMeta || existingSafe.importMeta);
   const importMeta = {
     ...asObject(existingSafe.importMeta),
-    ...buildImportMeta(safe.importMeta || existingSafe.importMeta),
+    ...rawImportMeta,
+    ...buildImportMeta(rawImportMeta),
   };
   const sourceQuestionaryIdRaw =
     safe.sourceQuestionaryId ??
@@ -299,6 +302,9 @@ function normalizeAttachment(input = {}) {
     hasAnnotation: Boolean(safe.hasAnnotation),
     annotatedPreviewAvailable: Boolean(safe.annotatedPreviewAvailable),
     treatmentEncounterId: normalizeText(safe.treatmentEncounterId || safe.encounterId),
+    photoPhase: ['before', 'after'].includes(normalizeKey(safe.photoPhase))
+      ? normalizeKey(safe.photoPhase)
+      : '',
   };
 }
 
@@ -328,9 +334,11 @@ function buildJournalReadout(entry) {
 
 async function createCcoJournalStore({ filePath }) {
   const state = await readJson(filePath, emptyState());
+  rebuildJournalIndexes(state);
 
   async function save() {
     state.updatedAt = nowIso();
+    rebuildJournalIndexes(state);
     await writeJsonAtomic(filePath, state);
   }
 
@@ -348,6 +356,18 @@ async function createCcoJournalStore({ filePath }) {
       .filter((item) => !typeFilter || normalizeKey(item.journalType) === typeFilter)
       .sort((a, b) => Date.parse(b.updatedAt || 0) - Date.parse(a.updatedAt || 0))
       .map(cloneEntry);
+  }
+
+  async function listEntriesPage({ tenantId, patientId, journalType, limit = 50, offset = 0 } = {}) {
+    const rows = await listEntries({ tenantId, patientId, journalType });
+    const start = Math.max(0, Number(offset) || 0);
+    const max = Math.max(1, Math.min(500, Number(limit) || 50));
+    return {
+      total: rows.length,
+      offset: start,
+      limit: max,
+      entries: rows.slice(start, start + max),
+    };
   }
 
   async function upsertEntry(input = {}, { actor = {} } = {}) {
@@ -625,6 +645,7 @@ async function createCcoJournalStore({ filePath }) {
       mimeType: photo.mimeType,
       label: photo.label,
       capturedAt: photo.storedAt,
+      photoPhase: photo.photoPhase,
     });
     const attachments = [...asArray(entry.attachments), attachment];
     return upsertEntry(
@@ -923,6 +944,7 @@ async function createCcoJournalStore({ filePath }) {
     importHistoricalForPatients,
     isSmokeTestPhotoLabel,
     listEntries,
+    listEntriesPage,
     markAttachmentAnnotatedPreview,
     removeConsultationPhotoAttachment,
     signEntry,

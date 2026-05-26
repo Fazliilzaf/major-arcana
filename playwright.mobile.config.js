@@ -1,7 +1,12 @@
 /**
  * Playwright — mobil UX (iPhone 13 / 390px).
  */
-const { devices } = require('@playwright/test');
+const {
+  resolveMobileDeviceProfile,
+  mobileBrowserContextOptions,
+} = require('./scripts/lib/mobilePlaywrightDevices');
+
+const profile = resolveMobileDeviceProfile(process.env.ARCANA_MOBILE_DEVICE);
 
 module.exports = {
   testDir: './tests/visual',
@@ -17,8 +22,7 @@ module.exports = {
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3100',
     ignoreHTTPSErrors: true,
-    ...devices['iPhone 13'],
-    locale: 'sv-SE',
+    ...mobileBrowserContextOptions(profile),
   },
   reporter: [['list']],
   retries: 0,

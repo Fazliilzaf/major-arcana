@@ -61,6 +61,17 @@ test('public booking-engine endpoints return 503 when ARCANA_PUBLIC_WEB_BOOKING_
       assert.equal(postRes.status, 503);
       const postBody = await postRes.json();
       assert.equal(postBody.error, 'public_web_booking_disabled');
+
+      const vipPostRes = await fetch(
+        `${baseUrl}/api/public/booking-engine/vip/not-a-real-token/reservations`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ consent: { gdpr: true } }),
+        }
+      );
+      assert.equal(vipPostRes.status, 404);
+      assert.equal((await vipPostRes.json()).error, 'vip_token_invalid');
     });
   } finally {
     if (prev === undefined) delete process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED;

@@ -183,6 +183,18 @@
   --cco-vh-full: 100vh;
   --cco-vh-dynamic: 100dvh;
 
+  /* Tablet density (768–1023) — adaptive layout spec 2026-05-25 */
+  --cco-tablet-gutter: 20px;
+  --cco-tablet-panel-gap: 20px;
+  --cco-tablet-split-min: 220px;
+  --cco-tablet-split-max: 280px;
+  --cco-tablet-topbar-h: 60px;
+
+  /* Active density aliases (overridden per breakpoint below) */
+  --cco-density-gutter: var(--cco-space-8);
+  --cco-density-panel-gap: var(--cco-space-6);
+  --cco-density-page-title: var(--cco-text-2xl);
+
   /* === WARM-ROW TOKENS (Fas 3, 2026-05-08) ============================
    * Dedikerad palett för CCO inkorgs-rader. Varm beige/peach-stil.
    * Ändra HÄR för att uppdatera hela inkorgen — INTE i cco-polish.css.
@@ -333,13 +345,32 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   :root {
     --cco-text-base: 15px;
     --cco-text-md: 16px;
     --cco-text-sm: 13px;
     --cco-vh-full: 100dvh;
     --cco-mobile-gutter: 16px;
+    --cco-density-gutter: var(--cco-mobile-gutter);
+    --cco-density-panel-gap: var(--cco-mobile-space-lg);
+    --cco-density-page-title: var(--cco-mobile-page-title);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --cco-density-gutter: var(--cco-tablet-gutter);
+    --cco-density-panel-gap: var(--cco-tablet-panel-gap);
+    --cco-density-page-title: var(--cco-text-xl);
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --cco-density-gutter: var(--cco-space-8);
+    --cco-density-panel-gap: var(--cco-space-6);
+    --cco-density-page-title: var(--cco-text-2xl);
   }
 }
 
