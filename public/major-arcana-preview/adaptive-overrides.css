@@ -80,6 +80,44 @@
     min-height: 0 !important;
     max-height: none !important;
     flex: none !important;
+    display: block !important;
+  }
+
+  /* Force content visible on mobile even without runtime auth */
+  .preview-shell[hidden],
+  .focus-shell[hidden],
+  section[data-shell-view][hidden] {
+    display: none !important;
+  }
+
+  /* Show conversations shell content by default */
+  html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="conversations"] .preview-shell,
+  html[data-cco-mobile-shell="on"] .preview-canvas:not([data-app-shell-view]) .preview-shell {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Ensure queue content area is visible */
+  .queue-content,
+  .queue-stream,
+  .queue-history-list {
+    display: block !important;
+    min-height: 100px;
+    visibility: visible !important;
+  }
+
+  /* Show focus when workspace is focus mode */
+  html[data-cco-mobile-shell="on"] .preview-canvas[data-mobile-workspace-view="focus"] .focus-shell {
+    display: block !important;
+  }
+
+  /* Mobile workspace switch always visible */
+  html[data-cco-mobile-shell="on"] .mobile-workspace-switch {
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    padding: 8px var(--cco-mobile-gutter, 16px);
   }
 
   /* === STATUS CHIPS: wrap cleanly === */
