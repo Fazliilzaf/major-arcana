@@ -212,7 +212,7 @@ function createCcoMailIngestionWorker({
           job.totalProcessed += Number(batch.processed || 0);
           job.totalFailed += Number(batch.failed || 0);
           jobs.set(jobId, job);
-          const remaining = ingestionStore.buildDashboardSummary({ mailboxEmail: normalized }).queueLength;
+          const remaining = ingestionStore.getQueueLength({ mailboxEmail: normalized });
           if (remaining <= 0) break;
           if (Number(batch.processed || 0) === 0 && Number(batch.failed || 0) === 0) break;
         }

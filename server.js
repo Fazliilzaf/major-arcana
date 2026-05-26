@@ -2561,13 +2561,16 @@ process.once('SIGTERM', () => {
         const summary = ccoMailIngestionStore.buildDashboardSummary({ mailboxEmail });
         const queueLength = Number(summary.queueLength || 0);
         if (queueLength > 0) {
+          const resumeDelayMs = Number(config.ccoMailIngestionStartupResumeDelayMs || 120000);
           console.log(
-            `[mail-ingestion] återupptar kö-processing för ${mailboxEmail} (${queueLength} i kö)`
+            `[mail-ingestion] schemalägger kö-processing för ${mailboxEmail} (${queueLength} i kö) om ${resumeDelayMs}ms`
           );
-          ccoMailIngestionWorker.enqueueProcessDrain({
-            mailboxEmail,
-            mode: config.ccoMailIngestionMode || 'read_only',
-          });
+          setTimeout(() => {
+            ccoMailIngestionWorker.enqueueProcessDrain({
+              mailboxEmail,
+              mode: config.ccoMailIngestionMode || 'read_only',
+            });
+          }, resumeDelayMs);
         }
       })
       .catch((error) => {

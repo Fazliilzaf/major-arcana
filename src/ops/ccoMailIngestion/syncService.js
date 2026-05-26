@@ -128,9 +128,7 @@ function createCcoMailIngestionSyncService({
 
       const state = ingestionStore.getState();
       const rawMessage = state.mailRawMessages[rawMessageId];
-      const ledger = Object.values(state.mailProcessingLedger).find(
-        (item) => item.rawMessageId === rawMessageId
-      );
+      const ledger = ingestionStore.getLedgerByRawMessageId(rawMessageId);
       if (!rawMessage || !ledger) {
         completedIds.push(rawMessageId);
         continue;

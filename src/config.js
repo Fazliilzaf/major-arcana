@@ -272,6 +272,10 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_QUEUE_BATCH_SIZE,
     75
   ),
+  ccoMailIngestionStartupResumeDelayMs: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS,
+    120000
+  ),
   schedulerCcoMailIngestionQueueIntervalMinutes: asInt(
     process.env.ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES,
     1
