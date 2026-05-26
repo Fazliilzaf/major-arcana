@@ -621,6 +621,7 @@ const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
 const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
 const { createCcoStaffRouter } = require('./src/routes/ccoStaff');
+const { createCcoPatientMasterRouter } = require('./src/routes/ccoPatientMaster');
 const { createCcoReadCache } = require('./src/infra/ccoReadCache');
 const {
   createCcoStaffDashboardSnapshot,
