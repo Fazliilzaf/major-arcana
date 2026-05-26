@@ -76,9 +76,7 @@
     padding: 20px 22px 22px;
     border-radius: 20px;
     border: 1px solid var(--cco-cal-border);
-    background:
-      radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.42), transparent 34%),
-      linear-gradient(180deg, rgba(250, 246, 242, 0.98) 0%, rgba(245, 239, 232, 0.94) 100%);
+    background: var(--cco-bg-page, #fbf7f1);
     box-shadow: var(--cco-cal-shadow);
     font-family: var(--cco-cal-font-ui);
     color: var(--cco-text-primary, #2b251f);
@@ -308,18 +306,16 @@
     align-content: start;
     min-height: 280px;
     padding: 12px;
-    border-radius: 14px;
-    border: 1px solid var(--cco-cal-border);
-    background: rgba(255, 255, 255, 0.42);
+    border-radius: var(--cco-radius-md, 8px); border: 1px solid var(--cco-cal-border);
+    background: var(--cco-bg-surface, #ffffff);
   }
 
   .cco-cal-day-col.is-today {
-    border-color: rgba(202, 186, 174, 0.85);
-    box-shadow: inset 0 0 0 1px rgba(202, 186, 174, 0.35);
+    border-color: var(--cco-color-accent, #4a8268); box-shadow: inset 0 0 0 1px var(--cco-color-accent-soft, #6fa68a);
   }
 
   .cco-cal-day-col.is-selected {
-    background: rgba(255, 235, 216, 0.42);
+    background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.08));
   }
 
   .cco-cal-col-head {
