@@ -1,43 +1,45 @@
-'use strict';
+"use strict";
 
 (function initCcoMobileShell() {
-  const MQ = '(max-width: 768px)';
+  const MQ = "(max-width: 1023px)";
   const AUX_VIEWS = new Set([
-    'later',
-    'sent',
-    'integrations',
-    'macros',
-    'settings',
-    'showcase',
-    'automation',
-    'analytics',
+    "later",
+    "sent",
+    "integrations",
+    "macros",
+    "settings",
+    "showcase",
+    "automation",
+    "analytics",
   ]);
 
   const VIEW_LABELS = Object.freeze({
-    conversations: 'Hem',
-    customers: 'Kunder',
-    automation: 'Automatisering',
-    analytics: 'Analys',
-    later: 'Senare',
-    sent: 'Skickat',
-    integrations: 'Integrationer',
-    macros: 'Makron',
-    settings: 'Inställningar',
-    showcase: 'Showcase',
-    booking: 'Boka',
-    calendar: 'Kalender',
-    journal: 'Journal',
+    conversations: "Hem",
+    customers: "Kunder",
+    automation: "Automatisering",
+    analytics: "Analys",
+    later: "Senare",
+    sent: "Skickat",
+    integrations: "Integrationer",
+    macros: "Makron",
+    settings: "Inställningar",
+    showcase: "Showcase",
+    booking: "Boka",
+    calendar: "Kalender",
+    journal: "Journal",
   });
 
-  const canvas = document.querySelector('.preview-canvas');
-  const appTitleEl = document.getElementById('cco-mobile-app-title');
-  const backButtonEl = document.getElementById('cco-mobile-back-button');
-  const menuButtonEl = document.getElementById('cco-mobile-menu-button');
-  const tabbar = document.querySelector('[data-cco-mobile-tabbar]');
-  const tabButtons = Array.from(document.querySelectorAll('.cco-mobile-tabbar-item[data-mobile-tab]'));
-  const moreSheet = document.getElementById('cco-mobile-more-sheet');
-  const moreItems = Array.from(document.querySelectorAll('.cco-mobile-more-item[data-nav-view]'));
-  const moreActions = Array.from(document.querySelectorAll('[data-mobile-more-action]'));
+  const canvas = document.querySelector(".preview-canvas");
+  const appTitleEl = document.getElementById("cco-mobile-app-title");
+  const backButtonEl = document.getElementById("cco-mobile-back-button");
+  const menuButtonEl = document.getElementById("cco-mobile-menu-button");
+  const tabbar = document.querySelector("[data-cco-mobile-tabbar]");
+  const tabButtons = Array.from(
+    document.querySelectorAll(".cco-mobile-tabbar-item[data-mobile-tab]")
+  );
+  const moreSheet = document.getElementById("cco-mobile-more-sheet");
+  const moreItems = Array.from(document.querySelectorAll(".cco-mobile-more-item[data-nav-view]"));
+  const moreActions = Array.from(document.querySelectorAll("[data-mobile-more-action]"));
 
   let moreOpen = false;
   let explicitBookingTab = false;
@@ -61,7 +63,7 @@
 
   function setShellFlag(name, on) {
     if (on) {
-      document.documentElement.setAttribute(name, 'on');
+      document.documentElement.setAttribute(name, "on");
     } else {
       document.documentElement.removeAttribute(name);
     }
@@ -69,8 +71,8 @@
 
   function applyMobileShellState() {
     const on = isMobile();
-    setShellFlag('data-cco-mobile-shell', on);
-    setShellFlag('data-cco-mobile-tabbar', on);
+    setShellFlag("data-cco-mobile-shell", on);
+    setShellFlag("data-cco-mobile-tabbar", on);
     if (!on) {
       setMoreOpen(false);
       explicitBookingTab = false;
@@ -91,35 +93,36 @@
 
   function syncMoreActions() {
     const sprintItem = document.querySelector('[data-mobile-more-action="sprint"]');
-    const sprintPill = document.querySelector('.preview-sprint-pill');
+    const sprintPill = document.querySelector(".preview-sprint-pill");
     if (sprintItem && sprintPill) {
-      const label = sprintPill.querySelector('span')?.textContent?.trim();
+      const label = sprintPill.querySelector("span")?.textContent?.trim();
       if (label) sprintItem.textContent = label;
     }
 
     const langItem = document.querySelector('[data-mobile-more-action="language"]');
-    const langRoot = document.getElementById('cco-langpicker-root');
-    const langControl = langRoot?.querySelector('button, select, [role="combobox"], [role="button"]');
+    const langRoot = document.getElementById("cco-langpicker-root");
+    const langControl = langRoot?.querySelector(
+      'button, select, [role="combobox"], [role="button"]'
+    );
     if (langItem) {
       langItem.hidden = !langControl;
     }
   }
 
   function runMoreAction(action) {
-    const key = String(action || '').trim();
+    const key = String(action || "").trim();
     if (!key) return false;
     switch (key) {
-      case 'compose':
-        return proxyTopbarClick('.preview-compose-pill');
-      case 'sprint':
-        return proxyTopbarClick('.preview-sprint-pill');
-      case 'language':
+      case "compose":
+        return proxyTopbarClick(".preview-compose-pill");
+      case "sprint":
+        return proxyTopbarClick(".preview-sprint-pill");
+      case "language":
         return proxyTopbarClick(
           '#cco-langpicker-root button, #cco-langpicker-root select, #cco-langpicker-root [role="combobox"], #cco-langpicker-root [role="button"]'
         );
-      case 'cco-care':
-      case 'missing-forms':
-        window.ArcanaCcoCarePanel?.open?.('forms');
+      case "missing-forms":
+        window.ArcanaMissingFormsOps?.open?.();
         return true;
       default:
         return false;
@@ -127,7 +130,7 @@
   }
 
   function clickNavView(viewKey) {
-    const key = String(viewKey || '').trim();
+    const key = String(viewKey || "").trim();
     if (!key) return false;
     if (window.ArcanaAppNav?.setAppView) {
       window.ArcanaAppNav.setAppView(key);
@@ -153,29 +156,36 @@
   }
 
   function optimisticTab(tab) {
-    if (!tab || tab === 'more') return;
+    if (!tab || tab === "more") return;
     syncTabbar(tab);
+    tabButtons.forEach((button) => {
+      const isTarget =
+        (button.dataset.mobileTab || "") === tab ||
+        (tab === "queue" && button.dataset.mobileTab === "home");
+      button.classList.toggle("is-loading", isTarget);
+      button.setAttribute("aria-busy", isTarget ? "true" : "false");
+    });
     const title =
-      tab === 'home'
+      tab === "home"
         ? VIEW_LABELS.conversations
-        : tab === 'customers'
+        : tab === "customers"
           ? VIEW_LABELS.customers
-          : tab === 'booking'
+          : tab === "booking"
             ? VIEW_LABELS.booking
-            : tab === 'calendar'
+            : tab === "calendar"
               ? VIEW_LABELS.calendar
-              : tab === 'journal'
+              : tab === "journal"
                 ? VIEW_LABELS.journal
-                : '';
+                : "";
     if (title) syncAppTitle(title);
   }
 
   function setMobileWorkspaceFocus() {
-    setMobileWorkspace('focus', WORKSPACE_OPTS);
+    setMobileWorkspace("focus", WORKSPACE_OPTS);
   }
 
   function setMobileWorkspaceQueue() {
-    setMobileWorkspace('queue', WORKSPACE_OPTS);
+    setMobileWorkspace("queue", WORKSPACE_OPTS);
   }
 
   function deferMobileTabWork(fn) {
@@ -184,7 +194,7 @@
       if (generation !== mobileNavGeneration) return;
       fn();
     };
-    if (typeof queueMicrotask === 'function') {
+    if (typeof queueMicrotask === "function") {
       queueMicrotask(run);
     } else {
       setTimeout(run, 0);
@@ -192,21 +202,21 @@
   }
 
   function closeCalendarSheet() {
-    document.documentElement.removeAttribute('data-cco-calendar-open');
+    document.documentElement.removeAttribute("data-cco-calendar-open");
     window.ArcanaBookingMobileCalendar?.close?.();
   }
 
   function showConversationShell(workspaceView) {
     if (!canvas) return;
     closeCalendarSheet();
-    canvas.dataset.appShellView = 'conversations';
-    canvas.dataset.appView = 'conversations';
-    canvas.dataset.mobileWorkspaceView = workspaceView === 'focus' ? 'focus' : 'queue';
-    document.querySelectorAll('[data-shell-view]').forEach((section) => {
+    canvas.dataset.appShellView = "conversations";
+    canvas.dataset.appView = "conversations";
+    canvas.dataset.mobileWorkspaceView = workspaceView === "focus" ? "focus" : "queue";
+    document.querySelectorAll("[data-shell-view]").forEach((section) => {
       section.hidden = true;
     });
-    const previewShell = document.querySelector('.preview-shell');
-    const focusShell = document.querySelector('.focus-shell');
+    const previewShell = document.querySelector(".preview-shell");
+    const focusShell = document.querySelector(".focus-shell");
     if (previewShell) previewShell.hidden = false;
     if (focusShell) focusShell.hidden = false;
   }
@@ -214,13 +224,13 @@
   function showCustomersShell() {
     if (!canvas) return;
     closeCalendarSheet();
-    canvas.dataset.appShellView = 'customers';
-    canvas.dataset.appView = 'customers';
-    document.querySelectorAll('[data-shell-view]').forEach((section) => {
-      section.hidden = section.dataset.shellView !== 'customers';
+    canvas.dataset.appShellView = "customers";
+    canvas.dataset.appView = "customers";
+    document.querySelectorAll("[data-shell-view]").forEach((section) => {
+      section.hidden = section.dataset.shellView !== "customers";
     });
-    const previewShell = document.querySelector('.preview-shell');
-    const focusShell = document.querySelector('.focus-shell');
+    const previewShell = document.querySelector(".preview-shell");
+    const focusShell = document.querySelector(".focus-shell");
     if (previewShell) previewShell.hidden = true;
     if (focusShell) focusShell.hidden = true;
   }
@@ -229,22 +239,22 @@
     window.ArcanaAppNav?.cancelMobileNavigationWork?.();
     if (!canvas) return;
     switch (tab) {
-      case 'home':
-      case 'queue':
-        showConversationShell('queue');
+      case "home":
+      case "queue":
+        showConversationShell("queue");
         break;
-      case 'customers':
+      case "customers":
         showCustomersShell();
         break;
-      case 'booking':
-        showConversationShell('focus');
+      case "booking":
+        showConversationShell("focus");
         break;
-      case 'journal':
+      case "journal":
         showCustomersShell();
         break;
-      case 'calendar':
-        document.documentElement.setAttribute('data-cco-calendar-open', '');
-        void window.__ARCANA_OPEN_MOBILE_CALENDAR__?.();
+      case "calendar":
+        document.documentElement.setAttribute("data-cco-calendar-open", "");
+        window.ArcanaBookingMobileCalendar?.open?.();
         break;
       default:
         break;
@@ -256,18 +266,18 @@
     explicitCalendarTab = false;
     explicitJournalTab = false;
     window.ArcanaBookingMobileCalendar?.close?.();
-    optimisticTab('booking');
-    const shellView = canvas?.dataset.appShellView || '';
-    const workspaceView = canvas?.dataset.mobileWorkspaceView || '';
-    if (shellView === 'conversations') {
-      if (workspaceView !== 'focus') {
+    optimisticTab("booking");
+    const shellView = canvas?.dataset.appShellView || "";
+    const workspaceView = canvas?.dataset.mobileWorkspaceView || "";
+    if (shellView === "conversations") {
+      if (workspaceView !== "focus") {
         setMobileWorkspaceFocus();
       }
       syncFromApp();
       return;
     }
-    showConversationShell('focus');
-    clickNavView('conversations');
+    showConversationShell("focus");
+    clickNavView("conversations");
     setMobileWorkspaceFocus();
     syncFromApp();
   }
@@ -277,8 +287,8 @@
     explicitBookingTab = false;
     explicitJournalTab = false;
     setMoreOpen(false);
-    optimisticTab('calendar');
-    if (document.documentElement.hasAttribute('data-cco-calendar-open')) {
+    optimisticTab("calendar");
+    if (document.documentElement.hasAttribute("data-cco-calendar-open")) {
       syncFromApp();
       return;
     }
@@ -291,16 +301,16 @@
     explicitBookingTab = false;
     explicitCalendarTab = false;
     window.ArcanaBookingMobileCalendar?.close?.();
-    optimisticTab('journal');
-    clickNavView('customers');
+    optimisticTab("journal");
+    clickNavView("customers");
     const ui = window.ArcanaPatientMasterUi;
     const runtime = ui?.getRuntime?.();
     if (runtime?.selectedPatientId && runtime?.detail?.card) {
-      ui?.setPatientTab?.('journal');
+      ui?.setPatientTab?.("journal");
     } else if (ui?.needsStaffLogin?.()) {
       /* login form handles itself */
     } else {
-      ui?.showMobileToast?.('Välj en kund för att öppna journalen.');
+      ui?.showMobileToast?.("Välj en kund för att öppna journalen.");
     }
     syncFromApp();
   }
@@ -309,55 +319,56 @@
     moreOpen = open === true;
     if (!moreSheet) return;
     moreSheet.hidden = !moreOpen;
-    setShellFlag('data-cco-mobile-more-open', moreOpen);
+    setShellFlag("data-cco-mobile-more-open", moreOpen);
     if (moreOpen) {
       syncMoreActions();
-      moreSheet.querySelector('.cco-mobile-more-item:not([hidden])')?.focus?.();
+      moreSheet.querySelector(".cco-mobile-more-item:not([hidden])")?.focus?.();
     } else {
       window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
     }
   }
 
   function resolveActiveTab(shellView, mobileWorkspaceView) {
-    if (document.documentElement.hasAttribute('data-cco-calendar-open')) return 'calendar';
-    if (explicitBookingTab && shellView === 'conversations' && mobileWorkspaceView === 'focus') {
-      return 'booking';
+    if (document.documentElement.hasAttribute("data-cco-calendar-open")) return "calendar";
+    if (explicitBookingTab && shellView === "conversations" && mobileWorkspaceView === "focus") {
+      return "booking";
     }
-    if (shellView === 'customers') {
+    if (shellView === "customers") {
       if (
-        document.documentElement.hasAttribute('data-cco-patient-detail') &&
+        document.documentElement.hasAttribute("data-cco-patient-detail") &&
         runtimeDetailTabIsJournal()
       ) {
-        return 'journal';
+        return "journal";
       }
-      if (explicitJournalTab) return 'journal';
-      return 'customers';
+      if (explicitJournalTab) return "journal";
+      return "customers";
     }
-    if (AUX_VIEWS.has(shellView)) return 'more';
-    if (shellView === 'conversations' && mobileWorkspaceView === 'focus') return 'booking';
-    return 'home';
+    if (AUX_VIEWS.has(shellView)) return "more";
+    if (shellView === "conversations" && mobileWorkspaceView === "focus") return "booking";
+    return "home";
   }
 
   function runtimeDetailTabIsJournal() {
     const runtime = window.ArcanaPatientMasterUi?.getRuntime?.();
-    return runtime?.detailTab === 'journal';
+    return runtime?.detailTab === "journal";
   }
 
   function resolveAppTitle(shellView, mobileWorkspaceView) {
-    if (document.documentElement.hasAttribute('data-cco-calendar-open')) {
+    if (document.documentElement.hasAttribute("data-cco-calendar-open")) {
       return VIEW_LABELS.calendar;
     }
-    if (shellView === 'customers') {
-      if (document.documentElement.hasAttribute('data-cco-patient-detail')) {
+    if (shellView === "customers") {
+      if (document.documentElement.hasAttribute("data-cco-patient-detail")) {
         const runtime = window.ArcanaPatientMasterUi?.getRuntime?.();
-        if (runtime?.detailTab === 'journal') return VIEW_LABELS.journal;
-        const name = document.querySelector('[data-patient-detail] h2, .patient-master-hero h2')
+        if (runtime?.detailTab === "journal") return VIEW_LABELS.journal;
+        const name = document
+          .querySelector("[data-patient-detail] h2, .patient-master-hero h2")
           ?.textContent?.trim();
         return name || VIEW_LABELS.customers;
       }
       return VIEW_LABELS.customers;
     }
-    if (shellView === 'conversations' && mobileWorkspaceView === 'focus') {
+    if (shellView === "conversations" && mobileWorkspaceView === "focus") {
       return VIEW_LABELS.booking;
     }
     if (shellView && VIEW_LABELS[shellView]) return VIEW_LABELS[shellView];
@@ -368,24 +379,26 @@
     if (!backButtonEl) return;
     const showBack =
       isMobile() &&
-      canvas?.dataset.appShellView === 'customers' &&
-      document.documentElement.hasAttribute('data-cco-patient-detail');
+      canvas?.dataset.appShellView === "customers" &&
+      document.documentElement.hasAttribute("data-cco-patient-detail");
     backButtonEl.hidden = !showBack;
-    backButtonEl.setAttribute('aria-hidden', showBack ? 'false' : 'true');
+    backButtonEl.setAttribute("aria-hidden", showBack ? "false" : "true");
   }
 
   function syncTabbar(activeTab) {
     tabButtons.forEach((button) => {
-      const tab = button.dataset.mobileTab || '';
+      const tab = button.dataset.mobileTab || "";
       const isActive = tab === activeTab;
-      button.classList.toggle('is-active', isActive);
-      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      button.classList.toggle("is-active", isActive);
+      button.classList.remove("is-loading");
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      button.setAttribute("aria-busy", "false");
     });
   }
 
   function syncAppTitle(title) {
     if (!appTitleEl) return;
-    const text = String(title || '').trim();
+    const text = String(title || "").trim();
     appTitleEl.textContent = text;
     appTitleEl.hidden = !text;
   }
@@ -393,35 +406,35 @@
   function syncFromAppNow() {
     if (!isMobile() || !canvas) return;
 
-    const shellView = canvas.dataset.appShellView || 'conversations';
-    const normalizedView = canvas.dataset.appView || 'conversations';
-    const mobileWorkspaceView = canvas.dataset.mobileWorkspaceView || 'queue';
+    const shellView = canvas.dataset.appShellView || "conversations";
+    const normalizedView = canvas.dataset.appView || "conversations";
+    const mobileWorkspaceView = canvas.dataset.mobileWorkspaceView || "queue";
 
-    if (shellView !== 'conversations' || mobileWorkspaceView !== 'focus') {
+    if (shellView !== "conversations" || mobileWorkspaceView !== "focus") {
       explicitBookingTab = false;
     }
-    if (shellView !== 'customers') {
+    if (shellView !== "customers") {
       explicitJournalTab = false;
     } else if (
-      document.documentElement.hasAttribute('data-cco-patient-detail') &&
+      document.documentElement.hasAttribute("data-cco-patient-detail") &&
       !runtimeDetailTabIsJournal()
     ) {
       explicitJournalTab = false;
     }
 
     const activeTab = resolveActiveTab(shellView, mobileWorkspaceView);
-    if (activeTab === 'booking') {
-      document.documentElement.setAttribute('data-cco-mobile-booking-tab', 'on');
+    if (activeTab === "booking") {
+      document.documentElement.setAttribute("data-cco-mobile-booking-tab", "on");
     } else {
-      document.documentElement.removeAttribute('data-cco-mobile-booking-tab');
+      document.documentElement.removeAttribute("data-cco-mobile-booking-tab");
     }
     syncTabbar(activeTab);
     syncBackButton();
     syncAppTitle(resolveAppTitle(shellView, mobileWorkspaceView));
 
     moreItems.forEach((item) => {
-      const view = item.dataset.navView || '';
-      item.classList.toggle('is-active', normalizeView(view) === normalizeView(normalizedView));
+      const view = item.dataset.navView || "";
+      item.classList.toggle("is-active", normalizeView(view) === normalizeView(normalizedView));
     });
     syncMoreActions();
   }
@@ -430,7 +443,9 @@
     if (!isMobile() || !canvas) return;
     if (syncFromAppRaf) return;
     const schedule =
-      typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (cb) => setTimeout(cb, 0);
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (cb) => setTimeout(cb, 0);
     syncFromAppRaf = schedule(() => {
       syncFromAppRaf = 0;
       syncFromAppNow();
@@ -438,27 +453,27 @@
   }
 
   function normalizeView(value) {
-    return String(value || '')
+    return String(value || "")
       .trim()
       .toLowerCase();
   }
 
-  function activateMobileTab(tab, { shellBefore = '', workspaceBefore = '' } = {}) {
-    if (tab !== 'calendar') {
+  function activateMobileTab(tab, { shellBefore = "", workspaceBefore = "" } = {}) {
+    if (tab !== "calendar") {
       explicitCalendarTab = false;
       window.ArcanaBookingMobileCalendar?.close?.();
     }
     window.ArcanaMobileCore?.forceUnlockBodyScroll?.();
 
-    if (tab === 'more') {
+    if (tab === "more") {
       setMoreOpen(!moreOpen);
       syncFromApp();
       return;
     }
     setMoreOpen(false);
 
-    if (tab === 'booking') {
-      if (shellBefore === 'conversations' && workspaceBefore === 'focus') {
+    if (tab === "booking") {
+      if (shellBefore === "conversations" && workspaceBefore === "focus") {
         explicitBookingTab = true;
         explicitCalendarTab = false;
         explicitJournalTab = false;
@@ -468,11 +483,11 @@
       navigateToBooking();
       return;
     }
-    if (tab === 'calendar') {
+    if (tab === "calendar") {
       navigateToCalendar();
       return;
     }
-    if (tab === 'journal') {
+    if (tab === "journal") {
       navigateToJournal();
       return;
     }
@@ -480,30 +495,34 @@
     explicitBookingTab = false;
     explicitJournalTab = false;
     const viewKey =
-      tab === 'home' || tab === 'queue'
-        ? 'conversations'
+      tab === "home" || tab === "queue"
+        ? "conversations"
         : String(
-          tabButtons.find((node) => node.dataset.mobileTab === tab)?.dataset.navView || tab
-        ).trim();
+            tabButtons.find((node) => node.dataset.mobileTab === tab)?.dataset.navView || tab
+          ).trim();
 
-    if (tab === 'customers' && shellBefore === 'customers') {
+    if (tab === "customers" && shellBefore === "customers") {
       syncFromApp();
       return;
     }
 
-    if (tab === 'home' || tab === 'queue') {
+    if (tab === "home" || tab === "queue") {
       explicitBookingTab = false;
       explicitJournalTab = false;
-      if (shellBefore === 'conversations') {
-        if (workspaceBefore !== 'queue') {
+      if (shellBefore === "conversations") {
+        if (workspaceBefore !== "queue") {
           setMobileWorkspaceQueue();
         }
         syncFromApp();
         return;
       }
-      showConversationShell('queue');
-      clickNavView('conversations');
+      showConversationShell("queue");
       setMobileWorkspaceQueue();
+      syncFromApp();
+      return;
+    }
+
+    if (tab === "customers" && canvas?.dataset.appShellView === "customers") {
       syncFromApp();
       return;
     }
@@ -514,29 +533,29 @@
 
   function bindTabbar() {
     tabButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        const tab = button.dataset.mobileTab || '';
-        if (tab === 'more') {
+      button.addEventListener("click", () => {
+        const tab = button.dataset.mobileTab || "";
+        if (tab === "more") {
           activateMobileTab(tab);
           return;
         }
 
-        const shellBefore = canvas?.dataset.appShellView || '';
-        const workspaceBefore = canvas?.dataset.mobileWorkspaceView || '';
+        const shellBefore = canvas?.dataset.appShellView || "";
+        const workspaceBefore = canvas?.dataset.mobileWorkspaceView || "";
         primeMobileTabNavigation(tab);
-        optimisticTab(tab === 'queue' ? 'home' : tab);
+        optimisticTab(tab === "queue" ? "home" : tab);
         deferMobileTabWork(() => activateMobileTab(tab, { shellBefore, workspaceBefore }));
       });
     });
   }
 
   function bindMoreSheet() {
-    moreSheet?.querySelectorAll('[data-mobile-more-close]').forEach((node) => {
-      node.addEventListener('click', () => setMoreOpen(false));
+    moreSheet?.querySelectorAll("[data-mobile-more-close]").forEach((node) => {
+      node.addEventListener("click", () => setMoreOpen(false));
     });
 
     moreItems.forEach((item) => {
-      item.addEventListener('click', () => {
+      item.addEventListener("click", () => {
         explicitBookingTab = false;
         explicitJournalTab = false;
         explicitCalendarTab = false;
@@ -548,22 +567,22 @@
     });
 
     moreActions.forEach((item) => {
-      item.addEventListener('click', () => {
+      item.addEventListener("click", () => {
         runMoreAction(item.dataset.mobileMoreAction);
         setMoreOpen(false);
         syncFromApp();
       });
     });
 
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && moreOpen) {
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && moreOpen) {
         setMoreOpen(false);
       }
     });
   }
 
   function bindMenuButton() {
-    menuButtonEl?.addEventListener('click', () => {
+    menuButtonEl?.addEventListener("click", () => {
       setMoreOpen(!moreOpen);
       syncFromApp();
     });
@@ -576,18 +595,18 @@
     });
     observer.observe(canvas, {
       attributes: true,
-      attributeFilter: ['data-app-shell-view', 'data-app-view', 'data-mobile-workspace-view'],
+      attributeFilter: ["data-app-shell-view", "data-app-view", "data-mobile-workspace-view"],
     });
 
-    const patientRail = document.querySelector('[data-patient-master-rail]');
+    const patientRail = document.querySelector("[data-patient-master-rail]");
     if (patientRail) {
       const patientObserver = new MutationObserver(() => syncFromApp());
-      patientObserver.observe(patientRail, { childList: true, subtree: true, characterData: true });
+      patientObserver.observe(patientRail, { childList: true, subtree: false });
     }
   }
 
   function bindBackButton() {
-    backButtonEl?.addEventListener('click', () => {
+    backButtonEl?.addEventListener("click", () => {
       explicitJournalTab = false;
       window.ArcanaPatientMasterUi?.goBackToPatientList?.();
     });
@@ -597,7 +616,23 @@
     const observer = new MutationObserver(() => syncFromApp());
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-cco-patient-detail', 'data-cco-calendar-open'],
+      attributeFilter: ["data-cco-patient-detail", "data-cco-calendar-open"],
+    });
+  }
+
+  function bindSprintPill() {
+    const sprintPill = document.querySelector(".preview-sprint-pill");
+    if (!sprintPill) return;
+    sprintPill.addEventListener("click", () => {
+      const isActive = document.documentElement.hasAttribute("data-cco-sprint-active");
+      if (isActive) {
+        document.documentElement.removeAttribute("data-cco-sprint-active");
+        window.ArcanaAppNav?.setActiveRuntimeLane?.("all");
+      } else {
+        document.documentElement.setAttribute("data-cco-sprint-active", "on");
+        window.ArcanaAppNav?.setActiveRuntimeLane?.("sprint");
+      }
+      sprintPill.setAttribute("aria-pressed", isActive ? "false" : "true");
     });
   }
 
@@ -605,14 +640,15 @@
   bindMoreSheet();
   bindMenuButton();
   bindBackButton();
+  bindSprintPill();
   applyMobileShellState();
   observeCanvas();
   observePatientDetailState();
 
   try {
-    window.matchMedia(MQ).addEventListener('change', applyMobileShellState);
+    window.matchMedia(MQ).addEventListener("change", applyMobileShellState);
   } catch {
-    window.addEventListener('resize', applyMobileShellState);
+    window.addEventListener("resize", applyMobileShellState);
   }
 
   window.ArcanaMobileShell = Object.freeze({

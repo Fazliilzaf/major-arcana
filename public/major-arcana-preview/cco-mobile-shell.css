@@ -1,6 +1,6 @@
 /* ============================================================
    CCO Mobile Shell — phone-first app chrome (UX sweep Fas A–B)
-   Breakpoint: max-width 768px (see design-tokens --cco-bp-phone-max)
+   Breakpoint: max-width 1023px (phone ≤768px, tablet 769–1023px; see design-tokens)
    Loaded after cco-polish.css in @layer components.
    ============================================================ */
 
@@ -31,6 +31,8 @@
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y;
       overscroll-behavior-y: contain;
+      contain: layout style;
+      will-change: scroll-position;
     }
 
     html[data-cco-mobile-shell="on"] .preview-canvas {
@@ -58,9 +60,7 @@
     }
 
     html[data-cco-mobile-tabbar="on"] body.is-preview-ready {
-      padding-bottom: calc(
-        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px)
-      );
+      padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
     }
 
     .preview-canvas {
@@ -204,7 +204,7 @@
       box-shadow:
         0 5px 14px rgba(70, 50, 30, 0.07),
         inset 0 1px 0 rgba(255, 255, 255, 0.72);
-      backdrop-filter: blur(18px) saturate(1.12);
+      background-color: rgba(250, 246, 242, 0.97);
     }
 
     html[data-cco-mobile-shell="on"]
@@ -287,8 +287,7 @@
       padding-inline: max(env(safe-area-inset-left, 0px), 4px)
         max(env(safe-area-inset-right, 0px), 4px);
       border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
-      background: color-mix(in srgb, var(--cco-bg-surface, #fff) 94%, transparent);
-      backdrop-filter: blur(16px) saturate(1.08);
+      background: rgba(250, 246, 242, 0.98);
     }
 
     html[data-cco-mobile-tabbar="on"] .cco-mobile-tabbar {
@@ -319,7 +318,29 @@
       color: var(--cco-color-accent-strong, #2e5a47);
     }
 
+    .cco-mobile-tabbar-item.is-loading {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .cco-mobile-tabbar-item.is-loading .cco-mobile-tabbar-icon::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      animation: cco-tab-spin 0.6s linear infinite;
+    }
+
+    @keyframes cco-tab-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     .cco-mobile-tabbar-icon {
+      position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -378,7 +399,7 @@
       box-shadow: var(--cco-shadow-xl);
       overflow: auto;
       transform: translateY(100%);
-      transition: transform 220ms var(--cco-ease-out, ease-out);
+      transition: transform 140ms var(--cco-ease-out, ease-out);
     }
 
     html[data-cco-mobile-more-open="on"] .cco-mobile-more-panel {
@@ -484,7 +505,8 @@
       height: 22px;
     }
 
-    html[data-cco-mobile-shell="on"] .preview-topbar-left:has(.cco-mobile-back-button:not([hidden])) {
+    html[data-cco-mobile-shell="on"]
+      .preview-topbar-left:has(.cco-mobile-back-button:not([hidden])) {
       gap: 4px;
     }
 
@@ -578,7 +600,9 @@
       overflow: hidden;
     }
 
-    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse + .patient-master-journal-collapse {
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse
+      + .patient-master-journal-collapse {
       margin-top: 0.65rem;
     }
 
@@ -593,12 +617,13 @@
       list-style: none;
     }
 
-    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-summary::-webkit-details-marker {
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse-summary::-webkit-details-marker {
       display: none;
     }
 
     html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-summary::after {
-      content: '›';
+      content: "›";
       margin-left: auto;
       font-size: 18px;
       line-height: 1;
@@ -607,7 +632,9 @@
       color: var(--cco-text-tertiary, #8a8174);
     }
 
-    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse[open] .patient-master-journal-collapse-summary::after {
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse[open]
+      .patient-master-journal-collapse-summary::after {
       transform: rotate(-90deg);
     }
 
@@ -615,8 +642,12 @@
       padding: 0 10px 12px;
     }
 
-    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-body .patient-master-plan-card,
-    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-body .patient-master-offer-box {
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse-body
+      .patient-master-plan-card,
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse-body
+      .patient-master-offer-box {
       border: 0;
       box-shadow: none;
       padding: 0;
@@ -652,10 +683,14 @@
 
     /* iOS Safari: fixed backdrop-filter på stängda modaler suddar + blockerar hela sidan.
        Backdrop ska bara existera när shell har [data-open]. */
-    html[data-cco-mobile-shell="on"] .customers-modal-shell:not([data-open]) .customers-modal-backdrop,
+    html[data-cco-mobile-shell="on"]
+      .customers-modal-shell:not([data-open])
+      .customers-modal-backdrop,
     html[data-cco-mobile-shell="on"] .mailbox-admin-shell:not([data-open]) .mailbox-admin-backdrop,
     html[data-cco-mobile-shell="on"] #note-mode-shell:not([data-open]) .note-mode-backdrop,
-    html[data-cco-mobile-shell="on"] #shell-confirm-shell:not([data-open]) .customers-modal-backdrop {
+    html[data-cco-mobile-shell="on"]
+      #shell-confirm-shell:not([data-open])
+      .customers-modal-backdrop {
       display: none !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
@@ -710,7 +745,7 @@
       padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
       overflow: auto;
       -webkit-overflow-scrolling: touch;
-      transition: transform 220ms var(--cco-ease-out, ease-out);
+      transition: transform 140ms var(--cco-ease-out, ease-out);
       box-shadow: var(--cco-shadow-xl);
     }
 
@@ -730,7 +765,7 @@
     html[data-cco-mobile-shell="on"] .mailbox-admin-surface::before,
     html[data-cco-mobile-shell="on"] .shell-modal-surface::before,
     html[data-cco-mobile-shell="on"] .note-mode-surface::before {
-      content: '';
+      content: "";
       display: block;
       width: 36px;
       height: 4px;
@@ -879,7 +914,10 @@
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .booking-shell [data-booking-surface] {
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas.is-booking-open
+      .booking-shell
+      [data-booking-surface] {
       flex: 1 1 auto;
       min-height: 0;
       width: 100%;
@@ -899,15 +937,31 @@
     }
 
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-head,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-head h3,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-operator-head
+      h3,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] p,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-source-line,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-health-line,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-next-action-line,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-source-line,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-next-action-line,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-decision-source-line,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-note,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-status-filter-note,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-slot-overview-copy,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-status-filter-note,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-slot-overview-copy,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-feedback,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-action-hint {
       text-align: left;
@@ -921,23 +975,50 @@
 
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-attention-grid,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-grid,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-handoff-checklist,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-handoff-checklist,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-status-flow {
       grid-template-columns: 1fr;
       gap: 8px;
     }
 
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-attention-grid > div,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-attention-grid
+      > div,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-card,
     html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-slot-overview {
       text-align: left;
     }
 
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-attention-grid span,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-attention-grid strong,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-card span,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-card strong,
-    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-card p {
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-attention-grid
+      span,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-attention-grid
+      strong,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-decision-card
+      span,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-decision-card
+      strong,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-decision-card
+      p {
       text-align: left;
     }
 
@@ -1076,7 +1157,7 @@
     }
 
     html[data-cco-mobile-shell="on"] .cco-booking-date-chip {
-      min-height: 40px;
+      min-height: 44px;
       padding: 0 14px;
       border: 1px solid rgba(154, 126, 104, 0.22);
       border-radius: 999px;
@@ -1178,6 +1259,10 @@
        ============================================================ */
 
     /* E1.1 — compact queue rows */
+    html[data-cco-mobile-shell="on"] .thread-card {
+      contain: content;
+    }
+
     html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row,
     html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row--mobile-compact {
       min-height: 72px;
@@ -1191,7 +1276,9 @@
     }
 
     html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-avatar .avatar,
-    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-avatar.avatar-wrap {
+    html[data-cco-mobile-shell="on"]
+      .thread-card.unified-queue-card.warm-row
+      .warm-avatar.avatar-wrap {
       width: 32px;
       height: 32px;
       min-width: 32px;
@@ -1213,12 +1300,18 @@
       display: none !important;
     }
 
-    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-actions .action-icon {
+    html[data-cco-mobile-shell="on"]
+      .thread-card.unified-queue-card.warm-row
+      .warm-actions
+      .action-icon {
       display: none !important;
     }
 
-    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-actions .primary-action {
-      min-height: 40px;
+    html[data-cco-mobile-shell="on"]
+      .thread-card.unified-queue-card.warm-row
+      .warm-actions
+      .primary-action {
+      min-height: 44px;
       padding: 0 12px;
       font-size: 13px;
     }
@@ -1227,10 +1320,10 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
-      min-width: 40px;
-      min-height: 40px;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
       border: 1px solid rgba(154, 126, 104, 0.18);
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.92);
@@ -1302,7 +1395,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      min-height: 40px;
+      min-height: 44px;
       margin: 0 var(--cco-mobile-gutter, 16px) 8px;
       padding: 0 14px;
       border: 1px solid rgba(154, 126, 104, 0.2);
@@ -1314,9 +1407,18 @@
       cursor: pointer;
     }
 
-    html[data-cco-mobile-shell="on"] body.has-inbox-filters-collapsed .queue-stream-tools .queue-scope-strip,
-    html[data-cco-mobile-shell="on"] body.has-inbox-filters-collapsed .queue-stream-tools .queue-secondary-signal-strip,
-    html[data-cco-mobile-shell="on"] body.has-inbox-filters-collapsed .queue-stream-tools .queue-action-row {
+    html[data-cco-mobile-shell="on"]
+      body.has-inbox-filters-collapsed
+      .queue-stream-tools
+      .queue-scope-strip,
+    html[data-cco-mobile-shell="on"]
+      body.has-inbox-filters-collapsed
+      .queue-stream-tools
+      .queue-secondary-signal-strip,
+    html[data-cco-mobile-shell="on"]
+      body.has-inbox-filters-collapsed
+      .queue-stream-tools
+      .queue-action-row {
       display: none !important;
     }
 
@@ -1498,7 +1600,9 @@
     }
 
     /* E4 — forms pass + TP sticky save */
-    html[data-cco-mobile-shell="on"] .preview-canvas input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas
+      input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
     html[data-cco-mobile-shell="on"] .preview-canvas select,
     html[data-cco-mobile-shell="on"] .preview-canvas textarea,
     html[data-cco-mobile-shell="on"] .patient-master-tp-field input,
@@ -1534,13 +1638,17 @@
        ============================================================ */
 
     /* Dölj arbetsyte-växlare i kundvy (hör bara till mejl/kö) */
-    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .mobile-workspace-switch {
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .mobile-workspace-switch {
       display: none !important;
     }
 
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-mode-toggle,
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-head-actions,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-title-group > p:not(.customers-kicker) {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .customers-title-group
+      > p:not(.customers-kicker) {
       display: none !important;
     }
 
@@ -1582,14 +1690,19 @@
       border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-data-card + .focus-customer-data-card,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-collapse + .patient-master-journal-collapse {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .focus-customer-data-card
+      + .focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-collapse
+      + .patient-master-journal-collapse {
       border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
       margin-top: 0;
       padding-top: 12px;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-collapse {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-collapse {
       border: 0;
       border-radius: 0;
       background: transparent;
@@ -1601,7 +1714,9 @@
       gap: 4px;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-material-head h4 {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-material-head
+      h4 {
       font-size: 13px;
     }
 
@@ -1633,8 +1748,12 @@
       gap: 8px;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-toolbar .customers-utility-button,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-toolbar .patient-master-upload-button {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-toolbar
+      .customers-utility-button,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-toolbar
+      .patient-master-upload-button {
       min-height: var(--cco-touch-min, 44px);
       padding: 0 10px;
       font-size: var(--cco-mobile-text-label, 13px);
@@ -1660,13 +1779,20 @@
       border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-item > div:first-child {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-item
+      > div:first-child {
       min-width: 0;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-item strong,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-item
+      strong,
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-file-list li a,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-file-list li strong {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-file-list
+      li
+      strong {
       overflow-wrap: anywhere;
       word-break: break-word;
       hyphens: auto;
@@ -1681,7 +1807,9 @@
       padding-top: 2px;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-actions .focus-customer-chip {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-actions
+      .focus-customer-chip {
       min-height: 28px;
       padding: 4px 10px;
       font-size: 12px;
@@ -1690,13 +1818,16 @@
       overflow-wrap: anywhere;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-actions .customers-utility-button {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-actions
+      .customers-utility-button {
       min-height: var(--cco-touch-min, 44px);
       padding: 0 12px;
       font-size: var(--cco-mobile-text-label, 13px);
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo-actions {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-plan-photo-actions {
       flex-wrap: wrap;
     }
 
@@ -1716,7 +1847,8 @@
       background: var(--cco-bg-surface-sunken, #f5efe6);
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo-remove {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-plan-photo-remove {
       top: 8px;
       right: 8px;
       width: var(--cco-touch-min, 44px);
@@ -1741,7 +1873,10 @@
     }
 
     /* Topbar: undvik att streak/live-pill klipper kundnamn */
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-topbar-right .inbox-streak-pill .inbox-streak-label {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-topbar-right
+      .inbox-streak-pill
+      .inbox-streak-label {
       display: none;
     }
 
@@ -1793,13 +1928,17 @@
       padding-inline: 12px;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .patient-master-identity-card.focus-customer-data-card,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .patient-master-workflow-card.focus-customer-data-card,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .patient-master-plan-card.focus-customer-data-card,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .patient-master-history-card.focus-customer-data-card {
       background: transparent !important;
       border: 0 !important;
@@ -1884,7 +2023,8 @@
       white-space: nowrap;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-colleague-link-copy {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-colleague-link-copy {
       color: #1f6b4f;
       border-color: rgba(74, 130, 104, 0.38);
       background: linear-gradient(
@@ -1897,7 +2037,8 @@
         inset 0 1px 1px rgba(255, 255, 255, 0.95);
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-colleague-link-qr {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-colleague-link-qr {
       color: #6d28d9;
       border-color: rgba(124, 58, 237, 0.34);
       background: linear-gradient(
@@ -1910,7 +2051,9 @@
         inset 0 1px 1px rgba(255, 255, 255, 0.95);
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero-main > .patient-master-copy-link
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .focus-customer-hero-main
+      > .patient-master-copy-link
       + .patient-master-copy-link {
       margin-left: 0;
     }
@@ -1926,12 +2069,15 @@
       color: var(--cco-text-secondary, #5d544a);
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-intro h4 {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-intro
+      h4 {
       font-size: 12px;
       letter-spacing: 0.06em;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-collapse {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-collapse {
       border: 0;
       border-radius: 0;
       border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
@@ -1966,8 +2112,7 @@
       .customers-rail
       .patient-master-card,
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card {
-      padding: 0 0
-        calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 20px) !important;
+      padding: 0 0 calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 20px) !important;
       margin: 0;
       border: 0 !important;
       border-radius: 0 !important;
@@ -1978,15 +2123,20 @@
 
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero,
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab-panel,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .focus-customer-data-card,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .patient-master-identity-card.focus-customer-data-card,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .patient-master-workflow-card.focus-customer-data-card,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .patient-master-plan-card.focus-customer-data-card,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .patient-master-history-card.focus-customer-data-card,
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-collapse,
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-offer-box {
@@ -1996,12 +2146,14 @@
       box-shadow: none !important;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-data-card::before {
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .focus-customer-data-card::before {
       display: none !important;
     }
 
     html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero,
-    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
       .focus-customer-data-card {
       padding-inline: 12px !important;
     }
@@ -2046,7 +2198,8 @@
     }
 
     /* Kundregister mobil: hela sidan scrollar (login + profil) via .preview-page */
-    html[data-cco-mobile-shell="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+    html[data-cco-mobile-shell="on"]
+      .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
     }
@@ -2057,21 +2210,33 @@
       max-height: none !important;
     }
 
-    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-list,
-    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-rail,
-    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout {
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-list,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-rail,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-layout {
       max-height: none !important;
       overflow: visible !important;
       position: static !important;
     }
 
-    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] .customers-shell {
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-shell {
       overflow: visible;
-      padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 24px);
+      padding-bottom: calc(
+        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 24px
+      );
     }
 
     html[data-cco-mobile-shell="on"] .patient-master-auth-card {
-      padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 16px);
+      padding-bottom: calc(
+        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 16px
+      );
     }
 
     html[data-cco-mobile-shell="on"] .patient-master-login-field--tenant {
@@ -2097,7 +2262,8 @@
       display: none !important;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"]
+      .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
     }
@@ -2112,7 +2278,9 @@
       gap: 0.85rem;
     }
 
-    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-login-field input {
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"]
+      .patient-master-login-field
+      input {
       min-height: 48px;
       font-size: 16px;
     }
@@ -2260,30 +2428,34 @@
       pointer-events: none;
     }
 
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-register-top-main,
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-register-top-main,
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head-actions {
       display: none !important;
     }
 
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head,
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-register-header {
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-register-header {
       flex-direction: column;
       align-items: stretch;
       gap: 8px;
       margin-bottom: 0.35rem;
     }
 
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .patient-master-mode-toggle {
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .patient-master-mode-toggle {
       width: 100%;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px;
     }
 
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .patient-master-mode-button {
-      min-height: 34px;
-      padding: 0 8px;
-      font-size: 12px;
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .patient-master-mode-button {
+      min-height: 44px;
+      padding: 0 12px;
+      font-size: 13px;
     }
 
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-row {
@@ -2296,12 +2468,16 @@
       min-height: 0;
     }
 
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-card span {
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-metric-card
+      span {
       font-size: 0.68rem;
       line-height: 1.25;
     }
 
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-card strong {
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-metric-card
+      strong {
       font-size: 1.05rem;
     }
 
@@ -2314,10 +2490,11 @@
 
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-search,
     html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-filter {
-      min-height: 40px;
+      min-height: 44px;
     }
 
-    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-toolbar-settings {
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-toolbar-settings {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -2331,7 +2508,8 @@
       flex: 1 1 100%;
     }
 
-    html[data-cco-mobile-shell="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+    html[data-cco-mobile-shell="on"]
+      .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
       overflow-y: auto !important;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
@@ -2367,8 +2545,7 @@
       gap: 8px;
       padding: 10px var(--cco-mobile-gutter, 16px);
       border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
-      background: color-mix(in srgb, var(--cco-bg-surface, #fff) 96%, transparent);
-      backdrop-filter: blur(12px);
+      background: rgba(252, 248, 244, 0.98);
     }
 
     html[data-cco-mobile-shell="on"] .cco-mobile-sticky-cta-bar {
@@ -2390,9 +2567,12 @@
     html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) [data-staff-login-form],
     html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) .booking-shell-body,
     html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) [data-tp-journal-save-form],
-    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) [data-clinical-journal-save-form],
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar)
+      [data-clinical-journal-save-form],
     html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) #cco-mobile-offer-wizard {
-      padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 72px);
+      padding-bottom: calc(
+        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 72px
+      );
     }
 
     /* Offline-banner */
@@ -2540,7 +2720,7 @@
       background: var(--cco-bg-surface, #fff);
       box-shadow: var(--cco-shadow-xl);
       transform: translateY(110%);
-      transition: transform 220ms var(--cco-ease-out, ease-out);
+      transition: transform 140ms var(--cco-ease-out, ease-out);
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
@@ -2857,40 +3037,40 @@
       line-height: 1.35;
     }
 
-    .cco-mobile-autosave-indicator[data-tone='success'] {
+    .cco-mobile-autosave-indicator[data-tone="success"] {
       color: var(--cco-status-success, #4a8268);
     }
 
-    .cco-mobile-autosave-indicator[data-tone='local'],
-    .cco-mobile-autosave-indicator[data-tone='info'] {
+    .cco-mobile-autosave-indicator[data-tone="local"],
+    .cco-mobile-autosave-indicator[data-tone="info"] {
       color: var(--cco-status-info, #4a7ba8);
     }
 
-    .cco-mobile-autosave-indicator[data-tone='error'] {
+    .cco-mobile-autosave-indicator[data-tone="error"] {
       color: var(--cco-status-danger, #b94a4a);
     }
 
-    .cco-mobile-autosave-indicator[data-tone='loading'] {
+    .cco-mobile-autosave-indicator[data-tone="loading"] {
       color: var(--cco-text-secondary, #5d544a);
     }
 
     /* Kallstart kundvy — skippa layout/paint av tung inbox tills användaren byter flik */
-    html[data-cco-mobile-defer-inbox='on'] .preview-workspace > #workspace-queue,
-    html[data-cco-mobile-defer-inbox='on']
+    html[data-cco-mobile-defer-inbox="on"] .preview-workspace > #workspace-queue,
+    html[data-cco-mobile-defer-inbox="on"]
       .preview-workspace
-      > section[data-shell-view]:not([data-shell-view='customers']) {
+      > section[data-shell-view]:not([data-shell-view="customers"]) {
       content-visibility: hidden;
       contain-intrinsic-size: auto 640px;
     }
 
-    html[data-cco-mobile-shell='on'] .patient-master-card-error {
+    html[data-cco-mobile-shell="on"] .patient-master-card-error {
       display: flex;
       flex-direction: column;
       gap: 12px;
       padding: 20px 16px;
     }
 
-    html[data-cco-mobile-shell='on'] .patient-master-card-error h2 {
+    html[data-cco-mobile-shell="on"] .patient-master-card-error h2 {
       margin: 0;
       font-size: 1.05rem;
     }
@@ -2910,7 +3090,7 @@
       display: none !important;
     }
 
-    .cco-missing-forms-sheet[data-open='true'] {
+    .cco-missing-forms-sheet[data-open="true"] {
       pointer-events: auto;
     }
 
@@ -2938,7 +3118,7 @@
       transition: transform 180ms ease;
     }
 
-    .cco-missing-forms-sheet[data-open='true'] .cco-missing-forms-panel {
+    .cco-missing-forms-sheet[data-open="true"] .cco-missing-forms-panel {
       transform: translateY(0);
     }
 
@@ -3013,190 +3193,153 @@
     }
   }
 
-  /* CCO Care + AI summary — shared mobile + desktop */
-  .cco-care-panel-sheet {
-    position: fixed;
-    inset: 0;
-    z-index: 12060;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    pointer-events: none;
+  /* ============================================================
+     Tablet shell (769–1023px) — bottom nav + touch targets + split views
+     iPad portrait/landscape gets app-like chrome, not squeezed desktop.
+     ============================================================ */
+  @media (min-width: 769px) and (max-width: 1023px) {
+    html[data-cco-mobile-shell="on"] {
+      --cco-shell-active: 1;
+      --cco-tablet-active: 1;
+    }
+
+    /* Bottom tab bar on tablet */
+    .cco-mobile-tabbar {
+      display: flex !important;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      z-index: 900;
+      background: rgba(250, 246, 242, 0.96);
+      border-top: 1px solid rgba(120, 105, 90, 0.14);
+      box-shadow: 0 -2px 8px rgba(70, 50, 30, 0.06);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .cco-mobile-tabbar button {
+      min-width: 64px;
+      min-height: 48px;
+      font-size: 12px;
+    }
+
+    /* More sheet on tablet */
+    .cco-mobile-more-sheet {
+      display: block;
+    }
+
+    /* Back button */
+    #cco-mobile-back-button {
+      display: flex;
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* App title */
+    #cco-mobile-app-title {
+      display: block;
+    }
+
+    /* Body padding for bottom bar */
+    html[data-cco-mobile-shell="on"] .preview-page {
+      padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Hide desktop topbar nav on tablet */
+    html[data-cco-mobile-shell="on"] .preview-topbar {
+      display: none !important;
+    }
+
+    /* Touch targets — minimum 44px everywhere */
+    button,
+    [role="button"],
+    a[href],
+    input[type="checkbox"],
+    input[type="radio"],
+    select {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Two-column split where useful */
+    .cco-tablet-split {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+      height: 100%;
+    }
+
+    /* Cards: don't stretch full width — max 600px */
+    .thread-card,
+    .queue-history-list > * {
+      max-width: 600px;
+    }
+
+    /* Compact topbar replacement */
+    .cco-mobile-compact-header {
+      display: flex;
+      align-items: center;
+      height: 52px;
+      padding: 0 16px;
+      background: rgba(250, 246, 242, 0.96);
+      border-bottom: 1px solid rgba(120, 105, 90, 0.12);
+    }
+
+    /* Fix legacy 760-820px conflicts — mobile shell owns layout */
+    html[data-cco-mobile-shell="on"] .preview-shell-queue-band {
+      min-height: auto !important;
+      max-height: none !important;
+      height: auto !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .conversation-focus-panel {
+      min-height: auto !important;
+      max-height: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas {
+      --workspace-gap: 0px;
+      --workspace-focus-gap: 0px;
+      overflow: visible !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-workspace {
+      flex-direction: column;
+      gap: 0;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      overflow: visible;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-shell {
+      position: relative;
+      top: auto;
+      left: auto;
+      right: auto;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      flex: 1 1 auto;
+    }
+
+    html[data-cco-mobile-shell="on"] .workspace-resizer {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .focus-shell {
+      position: relative;
+      top: auto;
+      left: auto;
+      width: 100%;
+      flex: 0 0 auto;
+    }
   }
 
-  .cco-care-panel-sheet[hidden] {
-    display: none !important;
-  }
-
-  html[data-cco-care-open='on'] .cco-care-panel-sheet {
-    pointer-events: auto;
-  }
-
-  .cco-care-panel-backdrop {
-    position: absolute;
-    inset: 0;
-    border: 0;
-    background: rgba(35, 22, 15, 0.28);
-    backdrop-filter: blur(4px);
-  }
-
-  .cco-care-panel-panel {
-    position: relative;
-    width: min(100%, 560px);
-    max-height: min(88vh, 760px);
-    margin: 0 auto;
-    padding: 20px 16px 24px;
-    border-radius: 20px 20px 0 0;
-    background: rgba(250, 246, 242, 0.96);
-    box-shadow:
-      0 -8px 24px rgba(70, 50, 30, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.55);
-    overflow: hidden auto;
-    transform: translateY(100%);
-    transition: transform 180ms ease;
-  }
-
-  html[data-cco-care-open='on'] .cco-care-panel-panel {
-    transform: translateY(0);
-  }
-
-  .cco-care-panel-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  .cco-care-panel-kicker {
-    margin: 0 0 4px;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: rgba(70, 60, 50, 0.55);
-  }
-
-  .cco-care-panel-tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-  }
-
-  .cco-care-panel-tab {
-    min-height: 44px;
-    padding: 8px 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(120, 105, 90, 0.16);
-    background: rgba(255, 255, 255, 0.82);
-  }
-
-  .cco-care-panel-tab.is-active {
-    background: rgba(252, 248, 244, 0.96);
-    box-shadow: 0 4px 10px rgba(45, 28, 18, 0.12);
-  }
-
-  .cco-care-panel-summary,
-  .cco-care-panel-digest {
-    margin: 0 0 12px;
-    color: rgba(70, 60, 50, 0.72);
-  }
-
-  .cco-care-panel-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .cco-care-panel-item-button {
-    width: 100%;
-    min-height: 48px;
-    padding: 12px 14px;
-    border: 1px solid rgba(120, 105, 90, 0.16);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.82);
-    text-align: left;
-  }
-
-  .cco-care-panel-item-name {
-    display: block;
-    font-weight: 600;
-  }
-
-  .cco-care-panel-item-meta {
-    display: block;
-    margin-top: 4px;
-    font-size: 0.875rem;
-    color: rgba(70, 60, 50, 0.72);
-  }
-
-  .cco-care-panel-refresh {
-    min-height: 44px;
-    padding: 10px 14px;
-    border-radius: 14px;
-    border: 0;
-    background: rgba(70, 50, 30, 0.9);
-    color: #fff;
-  }
-
-  .preview-utility-badge,
-  .cco-care-mobile-badge {
-    margin-left: 6px;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: rgba(181, 86, 75, 0.92);
-    color: #fff;
-    font-size: 0.75rem;
-    font-weight: 700;
-  }
-
-  .thread-ai-summary-host {
-    margin: 12px 0 0;
-  }
-
-  .thread-ai-summary-panel {
-    padding: 16px;
-    border-radius: 14px;
-    background: rgba(252, 248, 244, 0.9);
-    border: 1px solid rgba(120, 105, 90, 0.16);
-    box-shadow: 0 4px 10px rgba(45, 28, 18, 0.08);
-  }
-
-  .thread-ai-summary-kicker {
-    margin: 0 0 4px;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: rgba(70, 60, 50, 0.55);
-  }
-
-  .thread-ai-summary-title {
-    margin: 0 0 8px;
-    font-size: 1rem;
-    font-weight: 650;
-  }
-
-  .thread-ai-summary-bullets {
-    margin: 0 0 8px;
-    padding-left: 18px;
-  }
-
-  .thread-ai-summary-next,
-  .thread-ai-summary-risk {
-    margin: 0 0 6px;
-    font-size: 0.875rem;
-    color: rgba(70, 60, 50, 0.78);
-  }
-
-  .studio-choice.is-loading {
-    opacity: 0.55;
-  }
-
-  /* Desktop/tablet — mobil-only chrome ska aldrig synas ≥769px */
-  @media (min-width: 769px) {
+  /* Desktop only — hide mobile/tablet chrome ≥1024px */
+  @media (min-width: 1024px) {
     .customers-toolbar-settings {
       display: none !important;
     }
