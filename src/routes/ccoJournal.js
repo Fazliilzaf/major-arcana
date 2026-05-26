@@ -172,6 +172,25 @@ function createCcoJournalRouter({
         if (!patientId) {
           return res.status(400).json({ error: 'patientId saknas.' });
         }
+        const hasPagination =
+          req.query.limit !== undefined ||
+          req.query.offset !== undefined ||
+          req.query.page !== undefined;
+        if (hasPagination && typeof journalStore.listEntriesPage === 'function') {
+          const page = await journalStore.listEntriesPage({
+            tenantId: actor.tenantId,
+            patientId,
+            journalType: normalizeText(req.query.journalType),
+            limit: req.query.limit,
+            offset: req.query.offset,
+          });
+          await auditJournal(actor, 'cco.journal.entries.read', patientId);
+          return res.json({
+            ...page,
+            entries: page.entries.map((entry) => journalStore.buildJournalReadout(entry)),
+            journalTypes: JOURNAL_TYPES,
+          });
+        }
         const entries = await journalStore.listEntries({
           tenantId: actor.tenantId,
           patientId,

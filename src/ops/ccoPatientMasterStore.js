@@ -22,6 +22,11 @@ const {
   normalizePatientDemographics,
   buildDemographicsReadout,
 } = require('./patientDemographics');
+const {
+  rebuildPatientMasterIndexes,
+  lookupPatientsByQuery,
+  resolvePatientIndex,
+} = require('./ccoStoreIndexes');
 
 const PATIENT_FLAGS = Object.freeze([
   'missing_email',
@@ -538,14 +543,20 @@ function buildPatientCardReadout(patient) {
 
 async function createCcoPatientMasterStore({ filePath }) {
   const state = await readJson(filePath, emptyState());
+  Object.values(state.tenants || {}).forEach((bucket) => rebuildPatientMasterIndexes(bucket));
 
   async function save() {
     state.updatedAt = nowIso();
+    Object.values(state.tenants || {}).forEach((bucket) => rebuildPatientMasterIndexes(bucket));
     await writeJsonAtomic(filePath, state);
   }
 
   async function getPatient({ tenantId, patientId, personnummer } = {}) {
     const bucket = tenantBucket(state, tenantId);
+    const index = resolvePatientIndex(bucket, { patientId, personnummer });
+    if (index >= 0 && bucket.patients[index]) {
+      return clonePatient(bucket.patients[index]);
+    }
     const byId = normalizeText(patientId);
     const pnr = normalizePersonnummer(personnummer);
     const found = bucket.patients.find((item) => {
@@ -560,6 +571,10 @@ async function createCcoPatientMasterStore({ filePath }) {
     const normalizedEmail = normalizeEmail(email);
     if (!normalizedEmail) return null;
     const bucket = tenantBucket(state, tenantId);
+    const index = resolvePatientIndex(bucket, { email: normalizedEmail });
+    if (index >= 0 && bucket.patients[index]) {
+      return clonePatient(bucket.patients[index]);
+    }
     const found = bucket.patients.find((item) => {
       if (normalizeEmail(item.primaryEmail) === normalizedEmail) return true;
       return asArray(item.emails).some((value) => normalizeEmail(value) === normalizedEmail);
@@ -602,7 +617,11 @@ async function createCcoPatientMasterStore({ filePath }) {
     const q = normalizeKey(query);
     const flagSet = new Set(asArray(flags).map(normalizeKey).filter(Boolean));
     let rows = bucket.patients.slice();
-    if (q) {
+
+    const indexedMatches = lookupPatientsByQuery(bucket, query);
+    if (indexedMatches) {
+      rows = indexedMatches.map((index) => bucket.patients[index]).filter(Boolean);
+    } else if (q) {
       rows = rows.filter((item) => {
         const haystack = [
           item.displayName,

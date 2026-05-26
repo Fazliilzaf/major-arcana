@@ -104,6 +104,8 @@
     editingClinicalEntryId: '',
     journalTimelineFilter: 'all',
     focusTimelineKey: '',
+    journalLoaded: false,
+    journalLoading: false,
   };
 
   const JOURNAL_TIMELINE_FILTERS = [
@@ -702,6 +704,20 @@
   }
 
   async function apiRequest(path, options = {}) {
+    const ccoData = window.ArcanaCcoData;
+    const policy = ccoData?.policy?.PATIENT_LIST || { staleTime: 120000, gcTime: 600000 };
+    if (ccoData?.fetch && options.cacheKey) {
+      return ccoData.fetch(options.cacheKey, () => apiRequestRaw(path, options), {
+        staleTime: options.staleTime ?? policy.staleTime,
+        gcTime: options.gcTime ?? policy.gcTime,
+        force: options.force === true,
+      });
+    }
+    return apiRequestRaw(path, options);
+  }
+
+  const apiRequestRaw = (window.ArcanaCcoFetchInstrumentation?.instrumentAsyncFn || ((fn) => fn))(
+    async function apiRequestImpl(path, options = {}) {
     const token = getAdminToken();
     const headers = {
       Accept: 'application/json',
@@ -733,7 +749,9 @@
       throw error;
     }
     return payload;
-  }
+  },
+    { getPath: (path) => path }
+  );
 
   function setStatus(message = '', tone = '') {
     if (!els.status) return;
@@ -1756,35 +1774,12 @@
     return Array.isArray(value) ? value : [];
   }
 
-  function renderPatientRows() {
-    if (!els.list || runtime.mode !== 'register') return;
-    if (syncAuthRequiredChrome()) {
-      const authCard = runtime.pendingPasswordSetup
-        ? renderStaffPasswordSetupCard()
-        : renderStaffLoginCard(
-            runtime.error || 'Logga in för att läsa kundregister och journal.'
-          );
-      els.list.innerHTML = authCard;
-      renderDetailEmpty();
-      return;
-    }
-    if (runtime.loading && !runtime.patients.length) {
-      els.list.innerHTML = '<p class="patient-master-empty">Laddar kundregister…</p>';
-      return;
-    }
-    if (!runtime.patients.length) {
-      els.list.innerHTML = `<p class="patient-master-empty">${escapeHtml(
-        runtime.error || 'Inga kunder matchar sökningen.'
-      )}</p>`;
-      return;
-    }
+  let patientListVirtualHandle = null;
 
-    const rows = runtime.patients
-      .map((card) => {
-        const selected = card.patientId === runtime.selectedPatientId;
-        const journalCount = Number(card.fileSummary?.journalPdfs || 0);
-        const imageCount = Number(card.fileSummary?.images || 0);
-        return `
+  function renderPatientRowHtml(card, selected) {
+    const journalCount = Number(card.fileSummary?.journalPdfs || 0);
+    const imageCount = Number(card.fileSummary?.images || 0);
+    return `
           <button
             class="customer-record customer-record--compact${selected ? ' is-selected' : ''}"
             type="button"
@@ -1812,8 +1807,33 @@
             </div>
           </button>
         `;
-      })
-      .join('');
+  }
+
+  function renderPatientRows() {
+    if (!els.list || runtime.mode !== 'register') return;
+    if (syncAuthRequiredChrome()) {
+      const authCard = runtime.pendingPasswordSetup
+        ? renderStaffPasswordSetupCard()
+        : renderStaffLoginCard(
+            runtime.error || 'Logga in för att läsa kundregister och journal.'
+          );
+      els.list.innerHTML = authCard;
+      renderDetailEmpty();
+      return;
+    }
+    if (runtime.loading && !runtime.patients.length) {
+      els.list.innerHTML = '<p class="patient-master-empty">Laddar kundregister…</p>';
+      return;
+    }
+    if (!runtime.patients.length) {
+      els.list.innerHTML = `<p class="patient-master-empty">${escapeHtml(
+        runtime.error || 'Inga kunder matchar sökningen.'
+      )}</p>`;
+      return;
+    }
+
+    patientListVirtualHandle?.destroy?.();
+    patientListVirtualHandle = null;
 
     const hasMore = runtime.patients.length < runtime.total;
     const footer = hasMore
@@ -1822,7 +1842,26 @@
         ? `<p class="patient-master-list-meta">${runtime.total} kunder totalt</p>`
         : '';
 
-    els.list.innerHTML = rows + footer;
+    const virtual = window.ArcanaCcoPatientListVirtual;
+    if (virtual?.mountVirtualPatientList) {
+      patientListVirtualHandle = virtual.mountVirtualPatientList({
+        container: els.list,
+        items: runtime.patients,
+        selectedId: runtime.selectedPatientId,
+        renderRowHtml: (card, selected) => renderPatientRowHtml(card, selected),
+      });
+      if (footer) {
+        const footerEl = document.createElement('div');
+        footerEl.className = 'patient-master-list-footer';
+        footerEl.innerHTML = footer;
+        els.list.appendChild(footerEl);
+      }
+    } else {
+      const rows = runtime.patients
+        .map((card) => renderPatientRowHtml(card, card.patientId === runtime.selectedPatientId))
+        .join('');
+      els.list.innerHTML = rows + footer;
+    }
   }
 
   function escapeSelectorValue(value) {
@@ -3680,6 +3719,9 @@
     if (normalized === 'journal') {
       runtime.preferJournalOnMobile = true;
       window.__ARCANA_LOAD_STAFF_DEFERRED__?.();
+      void loadPatientJournalEntries(runtime.selectedPatientId);
+    } else if (normalized === 'tidslinje') {
+      void loadPatientJournalEntries(runtime.selectedPatientId);
     } else {
       runtime.preferJournalOnMobile = false;
       runtime.editingTpEntryId = '';
@@ -3902,7 +3944,10 @@
   async function loadStats() {
     if (needsStaffLogin()) return;
     try {
-      const payload = await apiRequest('/api/v1/cco-patient-master/stats');
+      const payload = await apiRequest('/api/v1/cco-patient-master/stats', {
+        cacheKey: 'patient-master:stats',
+        staleTime: window.ArcanaCcoData?.policy?.STATIC?.staleTime,
+      });
       runtime.stats = payload.stats || null;
       renderMetricCards();
     } catch (error) {
@@ -3949,12 +3994,26 @@
     if (runtime.flagFilter) params.set('flags', runtime.flagFilter);
 
     try {
-      const payload = await apiRequest(`/api/v1/cco-patient-master/patients?${params}`);
-      const batch = filterPilotPatients(asArray(payload.patients));
+      const shellKey = `customers-shell:list:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.offset}`;
+      const payload = await apiRequest(
+        `/api/v1/cco/staff/customers-shell?${params}`,
+        {
+          cacheKey: shellKey,
+          staleTime: window.ArcanaCcoData?.policy?.PATIENT_LIST?.staleTime,
+        }
+      );
+      const patientsPayload = payload.patients || payload;
+      const batch = filterPilotPatients(asArray(patientsPayload.patients));
       runtime.total = getPilotPatientIds().length
         ? batch.length
-        : Number(payload.total || batch.length);
+        : Number(patientsPayload.total || batch.length);
       runtime.patients = append ? runtime.patients.concat(batch) : batch;
+      if (payload.stats) runtime.stats = payload.stats;
+      if (Array.isArray(payload.offerTemplates?.templates)) {
+        runtime.offerTemplates = payload.offerTemplates.templates;
+      } else if (Array.isArray(payload.offerTemplates)) {
+        runtime.offerTemplates = payload.offerTemplates;
+      }
       runtime.loaded = true;
       runtime.authRequired = false;
       setStatus('', '');
@@ -4114,15 +4173,52 @@
     return null;
   }
 
-  async function fetchPatientDetailFromApi(patientId, { includeDriveFiles = true } = {}) {
+  async function loadPatientJournalEntries(patientId, { force = false } = {}) {
+    const key = normalizeText(patientId);
+    if (!key || !runtime.detail?.card) return;
+    if (!force && runtime.journalLoaded && normalizeText(runtime.selectedPatientId) === key) return;
+    if (runtime.journalLoading) return;
+    runtime.journalLoading = true;
+    try {
+      const journalPolicy = window.ArcanaCcoData?.policy?.JOURNAL || { staleTime: 0, gcTime: 120000 };
+      const payload = await apiRequest(
+        `/api/v1/cco-journal/entries?patientId=${encodeURIComponent(key)}&limit=120`,
+        {
+          cacheKey: `journal:${key}`,
+          staleTime: journalPolicy.staleTime,
+          gcTime: journalPolicy.gcTime,
+          force,
+        }
+      );
+      if (normalizeText(runtime.selectedPatientId) !== key || !runtime.detail) return;
+      runtime.detail.journalEntries = asArray(payload.entries);
+      runtime.journalLoaded = true;
+      syncTimelineFocusFromEntries(runtime.detail.journalEntries);
+      if (runtime.detailTab === 'journal' || runtime.detailTab === 'tidslinje') {
+        renderDetailPanel();
+      }
+    } catch (error) {
+      console.warn('Journal kunde inte laddas.', error);
+    } finally {
+      runtime.journalLoading = false;
+    }
+  }
+
+  async function fetchPatientDetailFromApi(patientId, { includeDriveFiles = true, includeJournal = false } = {}) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timeoutId = controller ? window.setTimeout(() => controller.abort(), 8000) : 0;
     const driveQuery = includeDriveFiles ? '1' : '0';
+    const endpoint = includeJournal
+      ? `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}&includeJournal=1`
+      : `/api/v1/cco-patient-master/patient/summary?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}`;
+    const detailPolicy = window.ArcanaCcoData?.policy?.PATIENT_DETAIL || { staleTime: 90000, gcTime: 300000 };
     try {
-      return await apiRequest(
-        `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}`,
-        controller ? { signal: controller.signal } : {}
-      );
+      return await apiRequest(endpoint, {
+        ...(controller ? { signal: controller.signal } : {}),
+        cacheKey: `patient-detail:${normalizeText(patientId)}:${includeJournal ? 'full' : 'summary'}:${driveQuery}`,
+        staleTime: detailPolicy.staleTime,
+        gcTime: detailPolicy.gcTime,
+      });
     } finally {
       if (timeoutId) window.clearTimeout(timeoutId);
     }
@@ -4251,6 +4347,8 @@
       runtime.draftProposals = null;
       runtime.draftProposalsPatientId = '';
       runtime.draftProposalsLoading = false;
+      runtime.journalLoaded = false;
+      runtime.journalLoading = false;
     }
     runtime.selectedPatientId = patientId;
     if (isMobileViewport() && runtime.preferJournalOnMobile) {
@@ -4276,6 +4374,10 @@
     try {
       const payload = await resolvePatientDetailPayload(patientId, { preferLite: isMobileViewport() });
       runtime.detail = payload;
+      runtime.journalLoaded = asArray(payload.journalEntries).length > 0;
+      if (!runtime.journalLoaded) {
+        runtime.detail.journalEntries = [];
+      }
       syncTimelineFocusFromEntries(payload.journalEntries);
       runtime.detailLoading = false;
       if (isMobileViewport() && runtime.preferJournalOnMobile) {
@@ -4290,6 +4392,13 @@
         void enrichPatientDriveFiles(patientId);
       }
       signalDeepLinkDetailReady(patientId);
+      if (
+        runtime.detailTab === 'journal' ||
+        runtime.detailTab === 'tidslinje' ||
+        (isMobileViewport() && runtime.preferJournalOnMobile)
+      ) {
+        void loadPatientJournalEntries(patientId);
+      }
       if (isMobileViewport()) {
         void Promise.all([
           loadPatientCommercialCase(patientId),
