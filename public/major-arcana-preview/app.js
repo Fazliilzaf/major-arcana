@@ -8733,7 +8733,25 @@
     return studioState;
   }
 
+  // R6: recursion-guard + try/catch så studio-policy-utvärdering aldrig
+  // kan kraschera appen. En render-loop någonstans i state-systemet hamnar
+  // i regex.test stack-overflow vid djup recursion — guard bryter cykeln.
+  let __evalStudioPolicyInFlight = false;
   function evaluateStudioPolicy(thread, draftBody) {
+    if (__evalStudioPolicyInFlight) {
+      return { label: "Policy hoppas över", summary: "Utkast utvärderas redan.", tone: "warning" };
+    }
+    __evalStudioPolicyInFlight = true;
+    try {
+      return __evaluateStudioPolicyImpl(thread, draftBody);
+    } catch (err) {
+      if (typeof console !== "undefined") console.warn("[evaluateStudioPolicy] krasch:", err && err.message);
+      return { label: "Policy-fel", summary: "Kunde inte utvärdera utkastet just nu.", tone: "warning" };
+    } finally {
+      __evalStudioPolicyInFlight = false;
+    }
+  }
+  function __evaluateStudioPolicyImpl(thread, draftBody) {
     const body = String(draftBody || "");
     const words = countWords(body);
     const bookingKeywords = /\b(bok|tid|appointment|book)\b/i.test(body);
