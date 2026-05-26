@@ -1566,6 +1566,8 @@ process.once('SIGTERM', () => {
           .trim()
           .toLowerCase(),
         emails: patient.emails,
+        phones: patient.phones,
+        primaryPhone: patient.primaryPhone,
       }));
     },
     logger: console,
@@ -2301,6 +2303,7 @@ process.once('SIGTERM', () => {
       tenantConfigStore,
       ccoSettingsStore,
       ccoConversationStateStore,
+      ccoMailIngestionStore,
       templateStore,
       adminTasksStore,
       requireAuth: auth.requireAuth,

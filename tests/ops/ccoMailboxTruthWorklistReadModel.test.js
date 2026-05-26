@@ -146,3 +146,31 @@ test('worklist read model keeps human replies actionable even after automated re
   assert.equal(consumer.rows[0].state.needsReply, true);
   assert.equal(consumer.rows[0].state.messageClassification, 'actionable');
 });
+
+test('applyIngestionLedgerProjection bumps lane to review for unmatched ingestion', () => {
+  const { applyIngestionLedgerProjection } = require('../../src/ops/ccoMailboxTruthWorklistReadModel');
+  const conversationKey = 'contact@hairtpclinic.com:thread-1';
+  const projected = applyIngestionLedgerProjection({
+    rollupRows: [
+      {
+        conversationKey,
+        lane: 'all',
+        needsReply: false,
+      },
+    ],
+    ingestionStore: {
+      getConversationIngestionMap: () => ({
+        [conversationKey]: {
+          conversationKey,
+          unmatchedCount: 2,
+          needsReviewCount: 0,
+          needsReview: true,
+          hasUnmatched: true,
+          dominantStatus: 'UNMATCHED',
+        },
+      }),
+    },
+  });
+  assert.equal(projected[0].lane, 'review');
+  assert.equal(projected[0].ingestion.hasUnmatched, true);
+});

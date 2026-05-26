@@ -158,6 +158,7 @@ services:
         value: "read_only"
       - key: ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX
         value: "contact@hairtpclinic.com"
+      # Graph webhooks stay off until ingestion pipeline is stable; delta + scheduler is enough.
       - key: ARCANA_GRAPH_CHANGE_NOTIFICATIONS_ENABLED
         value: "false"
       - key: ARCANA_GRAPH_CHANGE_NOTIFICATION_CLIENT_STATE

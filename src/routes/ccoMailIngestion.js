@@ -69,12 +69,16 @@ function createCcoMailIngestionRouter({
       const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
       const dashboard = ingestionStore.buildDashboardSummary({ mailboxEmail });
       const needsReview = ingestionStore.listNeedsReview({ mailboxEmail, limit: 25 });
+      const unmatched = ingestionStore.listReviewQueue
+        ? ingestionStore.listReviewQueue({ mailboxEmail, statuses: ['UNMATCHED'], limit: 25 })
+        : [];
       const html = `<!doctype html>
 <html lang="sv"><head><meta charset="utf-8"><title>CCO Mail Ingestion</title>
-<style>body{font-family:system-ui,sans-serif;margin:24px;max-width:960px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px;text-align:left}code{background:#f5f5f5;padding:2px 4px}</style>
+<style>body{font-family:system-ui,sans-serif;margin:24px;max-width:960px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px;text-align:left}code{background:#f5f5f5;padding:2px 4px}.note{background:#f7f7f7;padding:12px;border-radius:8px;margin:12px 0}</style>
 </head><body>
 <h1>CCO Mail Ingestion Dashboard</h1>
 <p>Read-only auditvy. Microsoft Outlook rörs inte här.</p>
+<div class="note"><strong>Transport:</strong> Graph delta + scheduler (webhooks av medvetet tills pipelinen är stabil).</div>
 <p><strong>Mailbox:</strong> ${escapeHtml(mailboxEmail || 'alla')} · <strong>Mode:</strong> ${escapeHtml(config.ccoMailIngestionMode || 'read_only')}</p>
 <h2>Status</h2>
 <ul>
@@ -82,6 +86,7 @@ function createCcoMailIngestionRouter({
   <li>Processed: ${Number(dashboard.counts?.processed || 0)}</li>
   <li>Duplicates: ${Number(dashboard.counts?.duplicates || 0)}</li>
   <li>Needs review: ${Number(dashboard.counts?.needsReview || 0)}</li>
+  <li>Unmatched: ${Number(dashboard.counts?.unmatched || 0)}</li>
   <li>Failed: ${Number(dashboard.counts?.failed || 0)}</li>
   <li>Queue: ${Number(dashboard.queueLength || 0)}</li>
 </ul>
@@ -98,9 +103,86 @@ ${needsReview
   )
   .join('')}
 </tbody></table>
+<h2>Unmatched</h2>
+<table><thead><tr><th>Subject</th><th>Counterparty</th><th>Folder</th><th>Received</th><th>Link</th></tr></thead><tbody>
+${unmatched
+  .map(
+    (row) => `<tr>
+      <td>${escapeHtml(row.rawMessage?.subject || '')}</td>
+      <td>${escapeHtml(row.reviewSummary?.counterpartyEmail || row.rawMessage?.fromEmail || '')}</td>
+      <td>${escapeHtml(row.rawMessage?.folderType || '')}</td>
+      <td>${escapeHtml(row.rawMessage?.receivedDateTime || '')}</td>
+      <td><code>PATCH /api/v1/cco/mail-ingestion/link-patient</code></td>
+    </tr>`
+  )
+  .join('')}
+</tbody></table>
 </body></html>`;
       res.setHeader('content-type', 'text/html; charset=utf-8');
       return res.send(html);
+    })
+  );
+
+  router.get('/cco/mail-ingestion/review-queue', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+    handle(req, res, async () => {
+      const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
+      const status = normalizeText(req.query.status || 'all').toLowerCase();
+      const limit = Number(req.query.limit || 50);
+      const statuses =
+        status === 'unmatched'
+          ? ['UNMATCHED']
+          : status === 'needs_review'
+            ? ['NEEDS_REVIEW', 'SECURITY_REVIEW']
+            : ['UNMATCHED', 'NEEDS_REVIEW', 'SECURITY_REVIEW'];
+      const rows = ingestionStore.listReviewQueue({ mailboxEmail, statuses, limit });
+      return res.json({
+        ok: true,
+        mailboxEmail: mailboxEmail || null,
+        status,
+        count: rows.length,
+        rows,
+      });
+    })
+  );
+
+  router.patch('/cco/mail-ingestion/link-patient', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+    handle(req, res, async (actor) => {
+      const rawMessageId = normalizeText(req.body?.rawMessageId);
+      const patientId = normalizeText(req.body?.patientId);
+      if (!rawMessageId || !patientId) {
+        return res.status(400).json({ error: 'rawMessageId och patientId krävs.' });
+      }
+      const result = await ingestionStore.linkPatientToMessage({
+        rawMessageId,
+        patientId,
+        actorUserId: actor.userId || actor.email || 'owner',
+      });
+      return res.json({ ok: true, result });
+    })
+  );
+
+  router.post('/cco/mail-ingestion/reprocess-unmatched', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+    handle(req, res, async () => {
+      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
+      if (!mailboxEmail) {
+        return res.status(400).json({ error: 'mailboxEmail krävs.' });
+      }
+      const result = await ingestionStore.requestReprocessUnmatched({
+        mailboxEmail,
+        includeOldMatchVersion: req.body?.includeOldMatchVersion !== false,
+      });
+      if (ingestionWorker && Number(result.requeued || 0) > 0) {
+        ingestionWorker.enqueueProcessDrain({
+          mailboxEmail,
+          mode: config.ccoMailIngestionMode || 'read_only',
+        });
+      }
+      return res.json({
+        ok: true,
+        mailboxEmail,
+        ...result,
+        dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
+      });
     })
   );
 

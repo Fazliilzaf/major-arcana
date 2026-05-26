@@ -1,6 +1,6 @@
 const PROCESSOR_VERSION = '1.0.0';
 const FILTER_VERSION = 'cco-mail-filter-2026-05-26';
-const MATCH_VERSION = 'patient-match-v1';
+const MATCH_VERSION = 'patient-match-v2';
 
 const INGESTION_MODES = Object.freeze(['dry_run', 'read_only', 'active']);
 

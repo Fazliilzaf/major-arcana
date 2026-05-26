@@ -205,6 +205,33 @@ async function listWorklistEnrichmentEntries({
   return [...asArray(ccoEntries), ...asArray(analyzeEntries)];
 }
 
+function buildWorklistIngestionPayload({
+  ingestionStore = null,
+  mailboxIds = [],
+} = {}) {
+  if (!ingestionStore || typeof ingestionStore.buildDashboardSummary !== 'function') {
+    return null;
+  }
+  const mailboxEmail = normalizeText(asArray(mailboxIds)[0]).toLowerCase();
+  const dashboard = ingestionStore.buildDashboardSummary({ mailboxEmail });
+  const reviewQueue = ingestionStore.listReviewQueue
+    ? ingestionStore.listReviewQueue({
+        mailboxEmail,
+        statuses: ['UNMATCHED', 'NEEDS_REVIEW', 'SECURITY_REVIEW'],
+        limit: 25,
+      })
+    : [];
+  return {
+    generatedAt: dashboard.generatedAt || new Date().toISOString(),
+    mailboxEmail: mailboxEmail || null,
+    counts: dashboard.counts || {},
+    queueLength: dashboard.queueLength || 0,
+    reviewQueue,
+    webhookEnabled: false,
+    transportMode: 'delta_scheduler',
+  };
+}
+
 function buildWorklistEnrichmentPayload({
   latestEntry = null,
   latestOutputData = null,
@@ -8045,6 +8072,7 @@ async function buildWorklistConsumerContext({
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
+  ccoMailIngestionStore = null,
   customerState = null,
   mailboxIds = [],
   limit = 120,
@@ -8059,6 +8087,7 @@ async function buildWorklistConsumerContext({
     customerState: resolvedCustomerState,
     tenantId,
     conversationStateStore: ccoConversationStateStore,
+    ingestionStore: ccoMailIngestionStore,
   });
   const truthContext = await buildWorklistTruthContext({
     tenantId,
@@ -9061,6 +9090,7 @@ function toCcoRuntimeWorklistConsumerHandler({
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
+  ccoMailIngestionStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -9083,6 +9113,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         ccoMailboxTruthStore,
         ccoCustomerStore,
         ccoConversationStateStore,
+        ccoMailIngestionStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -9098,6 +9129,10 @@ function toCcoRuntimeWorklistConsumerHandler({
         latestOutputData: context.latestOutputData,
         baselineSelection: context.baselineSelection,
       });
+      const ingestion = buildWorklistIngestionPayload({
+        ingestionStore: ccoMailIngestionStore,
+        mailboxIds: query.mailboxIds,
+      });
 
       const responsePayload = {
         ok: true,
@@ -9111,6 +9146,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         summary: context.consumerModel.summary,
         rows: context.consumerModel.rows,
         enrichment,
+        ingestion,
         truthCoverage: context.truthCoverage,
         deltaCoverage: context.deltaCoverage,
         consumerExposure: {
@@ -9173,6 +9209,7 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
+  ccoMailIngestionStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -9184,6 +9221,7 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
         ccoMailboxTruthStore,
         ccoCustomerStore,
         ccoConversationStateStore,
+        ccoMailIngestionStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -9422,6 +9460,7 @@ function createCapabilitiesRouter({
   tenantConfigStore: tenantConfigStoreParam,
   ccoSettingsStore = null,
   ccoConversationStateStore = null,
+  ccoMailIngestionStore = null,
   requireAuth,
   requireRole,
   executionGateway = null,
@@ -9751,6 +9790,7 @@ function createCapabilitiesRouter({
         ccoMailboxTruthStore,
         ccoCustomerStore,
         ccoConversationStateStore,
+        ccoMailIngestionStore,
       })
     )
   );
@@ -9765,6 +9805,7 @@ function createCapabilitiesRouter({
         ccoMailboxTruthStore,
         ccoCustomerStore,
         ccoConversationStateStore,
+        ccoMailIngestionStore,
       })
     )
   );
