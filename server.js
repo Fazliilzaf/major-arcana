@@ -588,6 +588,10 @@ const { createPatientConversionStore } = require('./src/ops/patientConversionSto
 const { createWebBridgeAuditStore } = require('./src/ops/webBridgeAuditStore');
 const { createCcoHistoryStore } = require('./src/ops/ccoHistoryStore');
 const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore');
+const { createCcoMailIngestionStore } = require('./src/ops/ccoMailIngestion/store');
+const { createCcoMailIngestionSyncService } = require('./src/ops/ccoMailIngestion/syncService');
+const { createMicrosoftGraphChangeNotifications } = require('./src/infra/microsoftGraphChangeNotifications');
+const { createCcoMailIngestionRouter } = require('./src/routes/ccoMailIngestion');
 const { createMessageIntelligenceStore } = require('./src/ops/messageIntelligenceStore');
 const { createCustomerPreferenceStore } = require('./src/ops/customerPreferenceStore');
 const { createClientoBookingStore } = require('./src/ops/clientoBookingStore');
@@ -1346,6 +1350,9 @@ process.once('SIGTERM', () => {
   const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
     filePath: config.ccoMailboxTruthStorePath,
   });
+  const ccoMailIngestionStore = await createCcoMailIngestionStore({
+    filePath: config.ccoMailIngestionStorePath,
+  });
   const messageIntelligenceStore = await createMessageIntelligenceStore({
     filePath:
       config.messageIntelligenceStorePath ||
@@ -1541,6 +1548,25 @@ process.once('SIGTERM', () => {
     }
   })();
 
+  const ccoMailIngestionSyncService = createCcoMailIngestionSyncService({
+    config,
+    graphReadConnector,
+    ingestionStore: ccoMailIngestionStore,
+    truthStore: ccoMailboxTruthStore,
+    patientDirectoryProvider: async () => [],
+    logger: console,
+  });
+  const ccoGraphChangeNotifications = createMicrosoftGraphChangeNotifications({
+    config: {
+      ...config,
+      graphBaseUrl: graphReadConnector?.graphBaseUrl || config.graphBaseUrl,
+    },
+    graphReadConnector,
+    ingestionStore: ccoMailIngestionStore,
+    syncService: ccoMailIngestionSyncService,
+    logger: console,
+  });
+
   const postOpAutoTriggerDeps = {
     bookingStore: ccoBookingStore,
     capabilityExecutor: null,
@@ -1585,6 +1611,9 @@ process.once('SIGTERM', () => {
     dashboardSnapshot: ccoDashboardSnapshot,
     worklistSnapshot: ccoWorklistSnapshot,
     readCache: ccoReadCache,
+    mailIngestionSyncService: ccoMailIngestionSyncService,
+    graphChangeNotifications: ccoGraphChangeNotifications,
+    ccoMailIngestionStore,
     logger: console,
   });
 
@@ -2418,6 +2447,20 @@ process.once('SIGTERM', () => {
       authStore: auth,
       signalingService,
       transcriptionService,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoMailIngestionRouter({
+      config,
+      authStore,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+      ingestionStore: ccoMailIngestionStore,
+      syncService: ccoMailIngestionSyncService,
+      graphNotifications: ccoGraphChangeNotifications,
+      logger: console,
     })
   );
 

@@ -1,0 +1,89 @@
+---
+description: CCO Microsoft Graph mail ingestion rules
+alwaysApply: true
+---
+# CCO Microsoft Mail Ingestion Rules
+
+CCO integrates Microsoft Outlook mail through Microsoft Graph.
+
+## Core principle
+
+Mail must be ingested once, stored once, deduplicated, processed through CCO filters and never reprocessed unnecessarily.
+
+Do not build random component-level mail fetching.
+All mail must go through the central ingestion pipeline in `src/ops/ccoMailIngestion/`.
+
+## Source control
+
+- Import one mailbox/account at a time.
+- Each mailbox has its own sync state.
+- Each folder has its own delta token/deltaLink in truth store.
+- Do not delete mail from Microsoft during import.
+- Reset only local CCO import state when starting from scratch.
+- Keep import runs auditable.
+
+## Microsoft Graph
+
+- Use Microsoft Graph for mailbox access.
+- Use delta query for incremental sync.
+- Use change notifications/webhooks only as a trigger for sync.
+- Use immutable IDs where available (`Prefer: IdType="ImmutableId"`).
+- Store internetMessageId, conversationId and receivedDateTime.
+- Handle throttling and Retry-After.
+- Handle expired delta tokens by forcing a controlled resync.
+
+## Idempotency
+
+- Every raw message must have a dedupeKey.
+- Every processing step must be idempotent.
+- If a message is already processed with the same processorVersion and filterVersion, skip it.
+- Reprocess only if explicitly requested or if filterVersion changes.
+- Never create duplicate patients, duplicate tasks or duplicate timeline events from the same mail.
+
+## Processing pipeline
+
+Required steps:
+
+1. fetch_from_graph
+2. save_raw_message
+3. save_attachments_metadata
+4. deduplicate
+5. security_filter
+6. classify_mail_type
+7. match_patient_or_entity
+8. create_cco_action
+9. audit
+10. mark_completed
+
+## Safety
+
+- Do not send journal content or sensitive patient data to external AI.
+- Do not auto-link uncertain patient matches.
+- Do not auto-open/interpret risky attachments.
+- Do not auto-reply externally without human approval.
+- All patient-related mail must be traceable on the patient timeline.
+
+## Performance
+
+- Do not fetch all mail on every page load.
+- UI must read from CCO mail tables, not directly from Microsoft Graph.
+- Use background jobs for sync and processing.
+- Use pagination and indexed queries.
+- Cache read-only mailbox statistics where safe.
+
+## Required UI
+
+Build and maintain a Mail Ingestion Dashboard:
+
+- mailbox selector
+- sync status
+- import run history
+- queue status
+- processed/skipped/failed counts
+- needs review queue
+- unmatched mail
+- patient match suggestions
+- failed jobs
+- reprocess controls
+
+Dashboard routes live under `/api/v1/cco/mail-ingestion/*`.

@@ -312,6 +312,9 @@ function createScheduler({
   dashboardSnapshot = null,
   worklistSnapshot = null,
   readCache = null,
+  mailIngestionSyncService = null,
+  graphChangeNotifications = null,
+  ccoMailIngestionStore = null,
   logger = console,
 } = {}) {
   if (!incomingConfig) throw new Error('config saknas för scheduler.');
@@ -3290,6 +3293,39 @@ function createScheduler({
     );
   }
 
+  async function runCcoGraphSubscriptionRenewal({ tenantId }) {
+    if (!config.graphChangeNotificationsEnabled) {
+      return { tenantId, skipped: true, reason: 'graph_change_notifications_disabled' };
+    }
+    if (!graphChangeNotifications || typeof graphChangeNotifications.renewSubscription !== 'function') {
+      return { tenantId, skipped: true, reason: 'graph_change_notifications_unavailable' };
+    }
+    const mailboxEmail = normalizeText(config.ccoMailIngestionDefaultMailbox);
+    if (!mailboxEmail) {
+      return { tenantId, skipped: true, reason: 'default_mailbox_missing' };
+    }
+    try {
+      const state = ccoMailIngestionStore?.getState?.() || {};
+      const subscriptions = Object.values(state.graphSubscriptions || {});
+      if (subscriptions.length === 0 && typeof graphChangeNotifications.createInboxSubscription === 'function') {
+        const created = await graphChangeNotifications.createInboxSubscription({
+          mailboxEmail,
+          graphUserId: mailboxEmail,
+        });
+        return { tenantId, skipped: false, created: true, subscriptionId: created?.id || null };
+      }
+      const renewed = [];
+      for (const subscription of subscriptions) {
+        const result = await graphChangeNotifications.renewSubscription(subscription.id);
+        renewed.push({ id: subscription.id, expirationDateTime: result?.expirationDateTime || null });
+      }
+      return { tenantId, skipped: false, renewedCount: renewed.length, renewed };
+    } catch (error) {
+      logger?.error?.('[scheduler] cco_graph_subscription_renewal failed', sanitizeError(error));
+      throw error;
+    }
+  }
+
   async function runCcoTruthDeltaSync({ tenantId }) {
     if (!config.graphReadEnabled) {
       logger?.log?.('[scheduler] cco_truth_delta_sync skipped: graph_read_disabled');
@@ -3404,12 +3440,40 @@ function createScheduler({
         }
       }
 
+      let mailIngestion = null;
+      if (
+        newMessages > 0 &&
+        config.ccoMailIngestionEnabled === true &&
+        mailIngestionSyncService &&
+        typeof mailIngestionSyncService.runMailboxCycle === 'function'
+      ) {
+        try {
+          mailIngestion = [];
+          for (const mailboxEmail of mailboxIds.slice(0, 1)) {
+            const cycle = await mailIngestionSyncService.runMailboxCycle({
+              mailboxEmail,
+              mode: config.ccoMailIngestionMode || 'read_only',
+              trigger: 'delta_sync',
+              skipDelta: true,
+              createdBy: 'cco_truth_delta_sync',
+            });
+            mailIngestion.push(cycle);
+          }
+        } catch (ingestionError) {
+          logger?.error?.(
+            '[scheduler] cco_truth_delta_sync mail ingestion failed',
+            sanitizeError(ingestionError)
+          );
+        }
+      }
+
       return {
         tenantId,
         skipped: false,
         newMessages,
         affectedConversationIds,
         inboxRefresh,
+        mailIngestion,
         ...result,
       };
     } catch (error) {
@@ -3568,6 +3632,15 @@ function createScheduler({
         ? toMinutesMs(config.schedulerCcoTruthDeltaIntervalMinutes, 5)
         : 0,
       run: runCcoTruthDeltaSync,
+    },
+    {
+      id: 'cco_graph_subscription_renewal',
+      name: 'CCO Graph mail webhook subscription renewal',
+      intervalMs:
+        config.graphReadEnabled && config.graphChangeNotificationsEnabled
+          ? toHoursMs(config.schedulerCcoGraphSubscriptionRenewalIntervalHours, 24)
+          : 0,
+      run: runCcoGraphSubscriptionRenewal,
     },
     {
       id: 'cco_inbox_enrichment_bootstrap',
