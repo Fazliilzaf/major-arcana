@@ -88,11 +88,26 @@
     display: none !important;
   }
 
+  /* R5c: 5 children (brand + segments + resource-filter + type-filter + nav)
+   * passade inte i 4-col grid. Flex-row-wrap istället: brand vänster, nav höger,
+   * mitten-kluster (segments + båda filter) i mitten. */
   .cco-cal-toolbar {
-    display: grid;
-    gap: 14px;
-    grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr) auto;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    gap: var(--cco-space-3, 12px) var(--cco-space-4, 16px);
+  }
+  .cco-cal-toolbar > .cco-cal-toolbar-brand {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-right: auto;
+  }
+  .cco-cal-toolbar > .cco-cal-segments,
+  .cco-cal-toolbar > .cco-cal-filters {
+    flex: 0 0 auto;
+  }
+  .cco-cal-toolbar > .cco-cal-nav {
+    flex: 0 0 auto;
   }
 
   .cco-cal-toolbar-brand h2 {
