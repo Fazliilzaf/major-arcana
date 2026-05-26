@@ -373,11 +373,10 @@
         const todayBadge = iso === today
           ? `<span class="cco-cal-now-badge" title="Aktuell tid">${s.escapeHtml(nowBadge)}</span>`
           : '';
-        return `<section class="${classes}" data-cal-day="${s.escapeAttr(iso)}" data-cal-drop-day="${s.escapeAttr(iso)}" title="Dubbelklick öppnar dagvy">
+        return `<section class="${classes}" data-cal-day="${s.escapeAttr(iso)}" data-cal-drop-day="${s.escapeAttr(iso)}">
           <header class="cco-cal-col-head cco-cal-day-open" data-cal-open-day="${s.escapeAttr(iso)}" role="button" tabindex="0" aria-label="Öppna dagvy ${s.escapeAttr(formatDayLabel(day))}">
             <strong>${s.escapeHtml(formatDayLabel(day))}${todayBadge}</strong>
             <span>${bookedCount} bokade · ${openCount} lediga</span>
-            <small class="cco-cal-day-hint">Dubbelklick → dagvy</small>
           </header>
           <div class="cco-cal-day-stack cco-cal-drop-zone" data-cal-drop-day="${s.escapeAttr(iso)}">
             ${
@@ -393,7 +392,7 @@
                       })
                     )
                     .join('')
-                : `<div class="cco-cal-empty cco-cal-drop-zone" data-cal-drop-day="${s.escapeAttr(iso)}">Släpp bokning här · dubbelklicka kolumnen för dagvy</div>`
+                : `<div class="cco-cal-empty cco-cal-drop-zone" data-cal-drop-day="${s.escapeAttr(iso)}">Släpp bokning här</div>`
             }
           </div>
         </section>`;
@@ -754,7 +753,18 @@
     if (wrap) wrap.innerHTML = '<div class="cco-cal-empty">Hämtar kalender…</div>';
     const { from, to } = rangeForMode();
     const s = shared();
-    const merged = await s.fetchCalendarRange(from, to);
+    let paintedPartial = false;
+    const merged = await s.fetchCalendarRange(from, to, {
+      onPartial(partial) {
+        if (paintedPartial) return;
+        paintedPartial = true;
+        allSlots = partial.events;
+        slotsByDate = partial.slotsByDate;
+        renderResourceFilters();
+        renderServiceTypeFilters();
+        renderGrid();
+      },
+    });
     allSlots = merged.events;
     slotsByDate = merged.slotsByDate;
     renderResourceFilters();

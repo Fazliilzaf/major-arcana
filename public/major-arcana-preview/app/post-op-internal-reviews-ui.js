@@ -270,16 +270,22 @@
 
   hidePanel();
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => void refresh());
-  } else {
-    void refresh();
+  let postOpRefreshTimer = null;
+  function schedulePostOpRefresh() {
+    if (!staffSessionReady()) {
+      hidePanel();
+      return;
+    }
+    if (postOpRefreshTimer) window.clearTimeout(postOpRefreshTimer);
+    postOpRefreshTimer = window.setTimeout(() => {
+      postOpRefreshTimer = null;
+      void refresh();
+    }, 1200);
   }
 
   try {
     new MutationObserver(() => {
-      if (!staffSessionReady()) hidePanel();
-      else void refresh();
+      schedulePostOpRefresh();
     }).observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['data-cco-auth-required'],

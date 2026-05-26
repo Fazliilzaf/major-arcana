@@ -3972,7 +3972,7 @@
           }
         }
       }
-      if (!runtime.selectedPatientId && runtime.patients[0] && !isMobileViewport()) {
+      if (!runtime.selectedPatientId && runtime.patients[0] && !isCompactFormViewport()) {
         runtime.selectedPatientId = runtime.patients[0].patientId;
         await loadPatientDetail(runtime.selectedPatientId);
       }
@@ -5613,7 +5613,14 @@
         renderPatientRows();
         return;
       }
-      window.ArcanaPostOpInternalReviews?.refresh?.();
+      const deferPostOpRefresh = () => {
+        window.ArcanaPostOpInternalReviews?.refresh?.();
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(deferPostOpRefresh, { timeout: 5000 });
+      } else {
+        window.setTimeout(deferPostOpRefresh, 1800);
+      }
       const deepLinkId = normalizeText(runtime.pendingPatientId || startup.patientId);
       const preserveDetail =
         deepLinkId &&
@@ -5638,12 +5645,19 @@
         syncMobilePatientLayout();
       }
       if (!runtime.loaded && !runtime.loading) {
-        void loadOfferTemplates();
+        const deferSecondaryLoads = () => {
+          void loadOfferTemplates();
+          void loadStats();
+        };
+        if (typeof requestIdleCallback === 'function') {
+          requestIdleCallback(deferSecondaryLoads, { timeout: 3500 });
+        } else {
+          window.setTimeout(deferSecondaryLoads, 400);
+        }
         const mobileDeepLink = deepLinkId && isMobileViewport();
         if (mobileDeepLink) {
           const loadListLater = () => {
             void loadPatientList();
-            void loadStats();
           };
           if (typeof requestIdleCallback === 'function') {
             requestIdleCallback(loadListLater, { timeout: 2400 });
@@ -5651,7 +5665,6 @@
             window.setTimeout(loadListLater, 320);
           }
         } else {
-          void loadStats();
           void loadPatientList();
         }
       } else {
@@ -5716,8 +5729,15 @@
       renderDetailEmpty();
     }
     bindEvents();
-    if (!(startup.patientId && isMobileViewport())) {
-      void loadOfferTemplates();
+    if (!(startup.patientId && isMobileViewport()) && !isCustomersShellActive()) {
+      const deferOfferTemplates = () => {
+        void loadOfferTemplates();
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(deferOfferTemplates, { timeout: 4000 });
+      } else {
+        window.setTimeout(deferOfferTemplates, 600);
+      }
     }
     if ('serviceWorker' in navigator) {
       const unregisterWorkers = () => {

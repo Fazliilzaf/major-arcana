@@ -218,6 +218,17 @@
 
   async function fetchRefData() {
     try {
+      const cachedRaw = sessionStorage.getItem('arcana_cal_ref_data_v1');
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached?.expiresAt > Date.now() && cached?.payload) {
+          return cached.payload;
+        }
+      }
+    } catch {
+      /* ignore cache read */
+    }
+    try {
       const response = await fetch('/api/v1/cco-bookings/ref-data', {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
@@ -229,10 +240,19 @@
         if (!service?.id) return;
         services[service.id] = service;
       });
-      return {
+      const result = {
         services,
         resources: Array.isArray(payload?.resources) ? payload.resources : [],
       };
+      try {
+        sessionStorage.setItem(
+          'arcana_cal_ref_data_v1',
+          JSON.stringify({ expiresAt: Date.now() + 10 * 60 * 1000, payload: result })
+        );
+      } catch {
+        /* ignore cache write */
+      }
+      return result;
     } catch {
       return { services: {}, resources: [] };
     }
@@ -526,11 +546,38 @@
     };
   }
 
-  async function fetchCalendarRange(fromDate, toDate) {
-    const [rangePayload, bookingCases, refData, missingByEmail, calendarSignals] = await Promise.all([
+  async function fetchCalendarRange(fromDate, toDate, options = {}) {
+    const onPartial = typeof options.onPartial === 'function' ? options.onPartial : null;
+    const [rangePayload, bookingCases] = await Promise.all([
       fetchRangeSlots(fromDate, toDate),
       fetchBookingCases(fromDate, toDate),
-      fetchRefData(),
+    ]);
+    let refData = { services: {}, resources: [] };
+    try {
+      const cachedRaw = sessionStorage.getItem('arcana_cal_ref_data_v1');
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached?.expiresAt > Date.now() && cached?.payload) {
+          refData = cached.payload;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    if (onPartial) {
+      onPartial(
+        mergeCalendarEvents(
+          rangePayload.slots,
+          bookingCases,
+          rangePayload.blocks,
+          fromDate,
+          toDate,
+          { services: refData.services }
+        )
+      );
+    }
+    const [resolvedRefData, missingByEmail, calendarSignals] = await Promise.all([
+      refData.services && Object.keys(refData.services).length ? Promise.resolve(refData) : fetchRefData(),
       fetchMissingFormsByEmail(),
       fetchCalendarSignals(fromDate, toDate),
     ]);
@@ -541,7 +588,7 @@
       fromDate,
       toDate,
       {
-        services: refData.services,
+        services: resolvedRefData.services,
         missingByEmail,
         signalsByCaseId: calendarSignals.byCaseId,
       }

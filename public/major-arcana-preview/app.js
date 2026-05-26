@@ -5001,9 +5001,6 @@
     }
     const existing = normalizeText(getAdminToken());
     if (existing && existing !== "__preview_local__") {
-      if (isMobileCustomersDeepLinkRoute()) {
-        return;
-      }
       const valid = await validateStoredAdminSession();
       if (valid) {
         return;
@@ -40344,10 +40341,21 @@
 
       if (shellView === "customers") {
         if (!mobileDeepLink && !mobileShell) {
-          loadCustomersRuntime().catch((error) => {
-            console.warn("Kundernas live-laddning misslyckades.", error);
-            applyCustomerFilters();
-          });
+          const deferLegacyCustomers = () => {
+            loadCustomersRuntime().catch((error) => {
+              console.warn("Kundernas live-laddning misslyckades.", error);
+              applyCustomerFilters();
+            });
+          };
+          if (window.ArcanaPatientMasterUi) {
+            if (typeof requestIdleCallback === "function") {
+              requestIdleCallback(deferLegacyCustomers, { timeout: 4500 });
+            } else {
+              window.setTimeout(deferLegacyCustomers, 1500);
+            }
+          } else {
+            deferLegacyCustomers();
+          }
         }
         if (window.ArcanaPatientMasterUi?.onCustomersViewOpen) {
           window.ArcanaPatientMasterUi.onCustomersViewOpen();
