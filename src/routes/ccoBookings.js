@@ -259,6 +259,11 @@ async function enrichBookingCaseWithEngine(bookingCase, bookingEngineStore) {
     recommendedAction: normalizeText(blocker.action),
     ...recommendationMeta,
     bookingEngineState: normalizeText(bookingEngine?.state),
+    // R4-passthrough: exponera reservation-expiry till frontend så
+    // kalendern kan visa pulsande warning på tentativa nära expiresAt.
+    nextExpiryAt: bookingEngine?.nextExpiryAt || null,
+    expiresInMinutes: bookingEngine?.expiresInMinutes ?? null,
+    expiresSoon: bookingEngine?.expiresSoon === true,
     postConfirmation,
     waitingCustomer,
   };
