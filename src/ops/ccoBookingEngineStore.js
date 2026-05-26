@@ -1,8 +1,39 @@
 const crypto = require('node:crypto');
+const {
+  applyBookingPolicyToService,
+  assertCancellationAllowed,
+  capAvailabilityToDate,
+  isSlotWithinBookingPolicy,
+  resolveServiceBookingPolicy,
+} = require('./ccoBookingPolicy');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { ensureDirectoryWithRetry } = require('./persistentDir');
+const {
+  mergeLegacyCatalogIntoEngineState,
+  mergeLegacyResourcesIntoEngineState,
+  mergeClientoPricingIntoServices,
+  mergeClientoSchedulesIntoEngineState,
+  wireAddonServicesIntoEngineState,
+  buildStaffRuntimeCatalogReadout,
+} = require('./legacyCatalogRuntime');
+const {
+  applyBookingPolicyMigrationToServices,
+  applyBookingPolicySettingsToService,
+  loadBookingPolicyMigrationDefaults,
+  normalizeBookingPolicySettings,
+} = require('./bookingPolicySettings');
+const {
+  applyBookingPricingMigrationToService,
+  applyPricingToSlot,
+  normalizePricingRules,
+} = require('./bookingPricingRules');
+const {
+  mergeCuratiioCatalogIntoEngineState,
+  serviceMatchesBrand,
+  resourceMatchesBrand,
+} = require('./curatiioCatalogRuntime');
 
 /** Full publik katalog — alla tjänster exponeras via /api/public/booking-engine/catalog */
 const PLAN_A_PUBLIC_SERVICE_IDS = [
@@ -16,7 +47,6 @@ const PLAN_A_PUBLIC_SERVICE_IDS = [
   'prp-hair',
   'prp-skin',
   'microneedling',
-  'followup',
 ];
 
 /** Plan A web — läkare/konsulter som får synas i publik katalog (ej sjuksköterskor). */
@@ -635,6 +665,20 @@ function defaultState() {
     ],
     reservations: [],
     bookings: [],
+    calendarBlocks: [
+      {
+        blockId: 'block-lunch-all',
+        label: 'Lunch',
+        blockType: 'lunch',
+        resourceIds: [],
+        weekdays: [1, 2, 3, 4, 5],
+        startTime: '12:00',
+        endTime: '13:00',
+        dateFrom: '2024-01-01',
+        dateTo: '2030-12-31',
+        active: true,
+      },
+    ],
   };
 }
 
@@ -704,13 +748,16 @@ function normalizeResource(input = {}) {
   const safe = asObject(input);
   const id = normalizeText(safe.id);
   if (!id) return null;
-  const publicBookable = safe.publicBookable === true || PLAN_A_PUBLIC_RESOURCE_IDS.includes(id);
+  const publicBookable =
+    safe.publicBookable === true || PLAN_A_PUBLIC_RESOURCE_IDS.includes(id);
   return {
     id,
     label: normalizeText(safe.label || safe.name || id),
     active: safe.active !== false,
     publicBookable,
     role: normalizeText(safe.role) || undefined,
+    catalogSource: normalizeText(safe.catalogSource) || undefined,
+    legacyMapping: asObject(safe.legacyMapping).cliento ? asObject(safe.legacyMapping) : undefined,
   };
 }
 
@@ -718,14 +765,24 @@ function normalizeService(input = {}) {
   const safe = asObject(input);
   const id = normalizeText(safe.id);
   if (!id) return null;
-  return {
+  return applyBookingPolicyToService({
     id,
     label: normalizeText(safe.label || safe.title || safe.name || id),
     durationMinutes: Math.max(15, Number(safe.durationMinutes) || 60),
     active: safe.active !== false,
     publicBookable: safe.publicBookable === true,
     meetingMode: normalizeText(safe.meetingMode) || undefined,
-  };
+    minNoticeMinutes: safe.minNoticeMinutes,
+    maxBookingDaysAhead: safe.maxBookingDaysAhead,
+    cancellationPolicyHours: safe.cancellationPolicyHours,
+    brand: normalizeText(safe.brand) || undefined,
+    legacyMapping: asObject(safe.legacyMapping).arcanaServiceId ? asObject(safe.legacyMapping) : undefined,
+    catalogSource: normalizeText(safe.catalogSource) || undefined,
+    vipTokenRequired: safe.vipTokenRequired === true,
+    isAddon: safe.isAddon === true,
+    pricing: asObject(safe.pricing).basePriceSek != null ? asObject(safe.pricing) : undefined,
+    fromPriceSek: safe.fromPriceSek,
+  });
 }
 
 function normalizeAvailabilityRule(input = {}) {
@@ -767,6 +824,8 @@ function normalizeEngineSlot(slot = {}, services = [], resources = []) {
     serviceId,
     serviceLabel: normalizeText(safe.serviceLabel || service.label || service.title),
     locationLabel: normalizeText(safe.locationLabel || safe.locationName || 'Hair TP Clinic'),
+    meetingMode: normalizeText(safe.meetingMode || service.meetingMode) || undefined,
+    durationMinutes: Number(service.durationMinutes) || 60,
     source: 'cco_engine',
   };
 }
@@ -876,6 +935,107 @@ function buildDateRange(fromDate, toDate) {
   return days;
 }
 
+function normalizeCalendarBlock(input = {}) {
+  const safe = asObject(input);
+  const blockId = normalizeText(safe.blockId) || crypto.randomUUID();
+  const dateFrom = normalizeDateOnly(safe.dateFrom) || '2024-01-01';
+  const dateTo = normalizeDateOnly(safe.dateTo) || dateFrom;
+  const startTime = normalizeStartTimes([safe.startTime || safe.start || '09:00'])[0];
+  const endTime = normalizeStartTimes([safe.endTime || safe.end || '10:00'])[0];
+  if (!blockId || !startTime || !endTime) return null;
+  return {
+    blockId,
+    label: normalizeText(safe.label) || 'Blockerad tid',
+    blockType: normalizeText(safe.blockType) || 'closed',
+    resourceIds: asArray(safe.resourceIds || safe.resourceId)
+      .map((item) => normalizeText(item))
+      .filter(Boolean),
+    weekdays: normalizeWeekdays(safe.weekdays),
+    startTime,
+    endTime,
+    dateFrom,
+    dateTo: dateTo >= dateFrom ? dateTo : dateFrom,
+    active: safe.active !== false,
+  };
+}
+
+function buildBlockInterval({ day, block, resourceId, resourceLabel }) {
+  const dateOnly = day.toISOString().slice(0, 10);
+  const startsAt = `${dateOnly}T${block.startTime}:00.000Z`;
+  const endsAt = `${dateOnly}T${block.endTime}:00.000Z`;
+  if (Date.parse(startsAt) >= Date.parse(endsAt)) return null;
+  return {
+    blockId: block.blockId,
+    label: block.label,
+    blockType: block.blockType,
+    resourceId: normalizeText(resourceId),
+    resourceLabel: normalizeText(resourceLabel),
+    startsAt,
+    endsAt,
+    kind: 'block',
+  };
+}
+
+function expandCalendarBlocksForRange(blocks = [], fromDate, toDate, resources = [], resIds = []) {
+  const wantedResourceIds = normalizeText(resIds)
+    ? normalizeText(resIds)
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+  const activeResources = asArray(resources).filter((item) => item.active !== false);
+  const targetResources = wantedResourceIds.length
+    ? activeResources.filter((item) => wantedResourceIds.includes(item.id))
+    : activeResources;
+  const expanded = [];
+  buildDateRange(fromDate, toDate).forEach((day) => {
+    const iso = day.toISOString().slice(0, 10);
+    const weekday = day.getUTCDay();
+    asArray(blocks)
+      .filter((block) => block.active !== false)
+      .filter((block) => iso >= block.dateFrom && iso <= block.dateTo)
+      .filter((block) => asArray(block.weekdays).includes(weekday))
+      .forEach((block) => {
+        const scopedResources = block.resourceIds.length
+          ? targetResources.filter((item) => block.resourceIds.includes(item.id))
+          : targetResources;
+        scopedResources.forEach((resource) => {
+          const interval = buildBlockInterval({
+            day,
+            block,
+            resourceId: resource.id,
+            resourceLabel: resource.label,
+          });
+          if (interval) expanded.push(interval);
+        });
+      });
+  });
+  expanded.sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt));
+  return expanded;
+}
+
+function intervalsOverlap(left = {}, right = {}) {
+  const leftResourceId = normalizeText(left.resourceId);
+  const rightResourceId = normalizeText(right.resourceId);
+  if (!leftResourceId || !rightResourceId || leftResourceId !== rightResourceId) return false;
+  const leftStart = Date.parse(normalizeText(left.startsAt));
+  const leftEnd = Date.parse(normalizeText(left.endsAt));
+  const rightStart = Date.parse(normalizeText(right.startsAt));
+  const rightEnd = Date.parse(normalizeText(right.endsAt));
+  if (!Number.isFinite(leftStart) || !Number.isFinite(leftEnd)) return false;
+  if (!Number.isFinite(rightStart) || !Number.isFinite(rightEnd)) return false;
+  return leftStart < rightEnd && rightStart < leftEnd;
+}
+
+function isSlotBlockedByCalendar(slot = {}, blocks = [], resources = []) {
+  const resourceId = normalizeText(slot.resourceId);
+  if (!resourceId) return false;
+  const iso = normalizeDateOnly(slot.startsAt);
+  if (!iso) return false;
+  const expanded = expandCalendarBlocksForRange(blocks, iso, iso, resources);
+  return expanded.some((block) => intervalsOverlap(slot, block));
+}
+
 async function createCcoBookingEngineStore({ filePath }) {
   if (!normalizeText(filePath)) {
     throw new Error('filePath krävs för ccoBookingEngineStore.');
@@ -887,7 +1047,9 @@ async function createCcoBookingEngineStore({ filePath }) {
     ...(asObject(initial) || {}),
   };
   state.resources = asArray(state.resources).map(normalizeResource).filter(Boolean);
-  state.services = asArray(state.services).map(normalizeService).filter(Boolean);
+  state.services = applyBookingPolicyMigrationToServices(
+    asArray(state.services).map(normalizeService).filter(Boolean)
+  );
   state.availabilityRules = asArray(state.availabilityRules)
     .map(normalizeAvailabilityRule)
     .filter(Boolean);
@@ -897,16 +1059,64 @@ async function createCcoBookingEngineStore({ filePath }) {
   state.bookings = asArray(state.bookings)
     .map((item) => normalizeBookingRecord(item, state))
     .filter(Boolean);
+  if (!asArray(state.calendarBlocks).length) {
+    state.calendarBlocks = defaultState().calendarBlocks;
+  }
+  state.calendarBlocks = asArray(state.calendarBlocks).map(normalizeCalendarBlock).filter(Boolean);
 
   const migrated = migratePlanASchema(state);
+  // Curatiio Fas 1 — slå ihop Curatiio seed-tjänster (additivt; egen brand).
+  const curatiioMerged = mergeCuratiioCatalogIntoEngineState(state);
+  const legacyMerged = mergeLegacyCatalogIntoEngineState(state, {
+    planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
+  });
+  const resourceMerged = mergeLegacyResourcesIntoEngineState(state, {
+    planAPublicResourceIds: PLAN_A_PUBLIC_RESOURCE_IDS,
+  });
+  const scheduleMerged = mergeClientoSchedulesIntoEngineState(state);
+  const pricingMerged = mergeClientoPricingIntoServices(state);
+  const addonMerged = wireAddonServicesIntoEngineState(state);
+  if (
+    legacyMerged.changed ||
+    resourceMerged.changed ||
+    scheduleMerged.changed ||
+    pricingMerged.changed ||
+    addonMerged.changed ||
+    curatiioMerged.changed
+  ) {
+    state.resources = asArray(state.resources).map(normalizeResource).filter(Boolean);
+    state.services = applyBookingPolicyMigrationToServices(
+      asArray(state.services).map(normalizeService).filter(Boolean)
+    );
+    mergeClientoPricingIntoServices(state);
+    state.availabilityRules = asArray(state.availabilityRules)
+      .map(normalizeAvailabilityRule)
+      .filter(Boolean);
+  }
 
   async function save() {
     state.updatedAt = nowIso();
     await writeJsonAtomic(filePath, state);
   }
 
-  if (migrated) {
+  if (
+    migrated ||
+    legacyMerged.changed ||
+    resourceMerged.changed ||
+    scheduleMerged.changed ||
+    pricingMerged.changed ||
+    addonMerged.changed ||
+    curatiioMerged.changed
+  ) {
     await save();
+  }
+
+  let bookingPolicySettings = normalizeBookingPolicySettings(loadBookingPolicyMigrationDefaults());
+  let pricingRules = normalizePricingRules();
+
+  function setBookingPolicySettings(settings = {}) {
+    bookingPolicySettings = normalizeBookingPolicySettings(settings, bookingPolicySettings);
+    return clone(bookingPolicySettings);
   }
 
   async function expireStaleReservations() {
@@ -933,7 +1143,10 @@ async function createCcoBookingEngineStore({ filePath }) {
   }
 
   function getServiceById(serviceId) {
-    return state.services.find((item) => item.id === normalizeText(serviceId)) || null;
+    const raw = state.services.find((item) => item.id === normalizeText(serviceId)) || null;
+    if (!raw) return null;
+    const withPolicy = applyBookingPolicySettingsToService(raw, bookingPolicySettings);
+    return applyBookingPricingMigrationToService(withPolicy, pricingRules);
   }
 
   function slotsOverlap(left = {}, right = {}) {
@@ -951,6 +1164,7 @@ async function createCcoBookingEngineStore({ filePath }) {
 
   function isSlotTaken(slot = {}, { excludeConversationId = '' } = {}) {
     const slotId = normalizeText(slot.slotId);
+    if (isSlotBlockedByCalendar(slot, state.calendarBlocks, state.resources)) return true;
     return (
       state.reservations.some((item) => {
         if (normalizeKey(item.status) !== 'active') return false;
@@ -1031,7 +1245,10 @@ async function createCcoBookingEngineStore({ filePath }) {
           .map((item) => item.trim())
           .filter(Boolean)
       : [];
-    const days = buildDateRange(fromDate, toDate);
+    const globalMaxDays =
+      Number(bookingPolicySettings?.globalDefaults?.maxBookingDaysAhead) || 180;
+    const days = buildDateRange(fromDate, capAvailabilityToDate(toDate, globalMaxDays));
+    const nowMs = Date.now();
     const slots = [];
     days.forEach((day) => {
       const weekday = day.getUTCDay();
@@ -1053,14 +1270,43 @@ async function createCcoBookingEngineStore({ filePath }) {
         .forEach((rule) => {
           asArray(rule.startTimes).forEach((timeLabel) => {
             const slot = buildAvailabilitySlot(rule, day, timeLabel);
-            if (slot && !isSlotTaken(slot, { excludeConversationId })) {
-              slots.push(slot);
+            const service = getServiceById(rule.serviceId) || {};
+            if (slot && isSlotWithinBookingPolicy(slot, service, nowMs) && !isSlotTaken(slot, { excludeConversationId })) {
+              slots.push(applyPricingToSlot(slot, service, pricingRules));
             }
           });
         });
     });
     slots.sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt));
     return clone(slots);
+  }
+
+  async function listCalendarBlocks({
+    fromDate,
+    toDate,
+    resIds = '',
+  } = {}) {
+    return expandCalendarBlocksForRange(
+      state.calendarBlocks,
+      fromDate,
+      toDate,
+      state.resources,
+      resIds
+    );
+  }
+
+  async function upsertCalendarBlock(input = {}) {
+    const nextBlock = normalizeCalendarBlock(input);
+    if (!nextBlock) {
+      throw new Error('Kalenderblock kunde inte normaliseras.');
+    }
+    const index = state.calendarBlocks.findIndex(
+      (item) => normalizeText(item.blockId) === normalizeText(nextBlock.blockId)
+    );
+    if (index >= 0) state.calendarBlocks[index] = nextBlock;
+    else state.calendarBlocks.push(nextBlock);
+    await save();
+    return clone(nextBlock);
   }
 
   async function reserveSlots(input = {}) {
@@ -1078,6 +1324,12 @@ async function createCcoBookingEngineStore({ filePath }) {
     selectedSlots.forEach((slot) => {
       if (isSlotTaken(slot, { excludeConversationId: conversationId })) {
         const error = new Error(`Tiden ${slot.startsAt} är inte längre ledig.`);
+        error.statusCode = 409;
+        throw error;
+      }
+      const service = getServiceById(slot.serviceId) || {};
+      if (!isSlotWithinBookingPolicy(slot, service)) {
+        const error = new Error('Tiden ligger utanför bokningspolicy (min-notice eller max-fönster).');
         error.statusCode = 409;
         throw error;
       }
@@ -1333,12 +1585,20 @@ async function createCcoBookingEngineStore({ filePath }) {
     const conversationId = normalizeText(input.conversationId);
     const customerEmail = normalizeKey(input.customerEmail || input.customerId);
     const reason = normalizeText(input.reason) || 'Avbokad i CCO';
+    const force = input.force === true;
     let changed = false;
+    let blockedPolicy = null;
     state.bookings = state.bookings.map((item) => {
       if (tenantId && item.tenantId !== tenantId) return item;
       if (conversationId && item.conversationId !== conversationId) return item;
       if (customerEmail && item.customerEmail !== customerEmail) return item;
       if (normalizeKey(item.status) !== 'confirmed') return item;
+      const service = getServiceById(item?.slot?.serviceId) || {};
+      const policy = assertCancellationAllowed(item, service);
+      if (!policy.allowed && !force) {
+        blockedPolicy = policy;
+        return item;
+      }
       changed = true;
       return {
         ...item,
@@ -1348,6 +1608,12 @@ async function createCcoBookingEngineStore({ filePath }) {
         updatedAt: nowIso(),
       };
     });
+    if (blockedPolicy) {
+      const error = new Error(blockedPolicy.reason || 'Avbokning tillåts inte enligt policy.');
+      error.statusCode = 409;
+      error.policy = blockedPolicy;
+      throw error;
+    }
     state.reservations = state.reservations.map((item) => {
       if (tenantId && item.tenantId !== tenantId) return item;
       if (conversationId && item.conversationId !== conversationId) return item;
@@ -1422,6 +1688,7 @@ async function createCcoBookingEngineStore({ filePath }) {
   }
 
   return {
+    setBookingPolicySettings,
     listAvailability,
     reserveSlots,
     renewReservations,
@@ -1430,9 +1697,21 @@ async function createCcoBookingEngineStore({ filePath }) {
     cancelBooking,
     rebookBooking,
     getCaseSummary,
-    listResources: async () => clone(state.resources.filter((item) => item.active !== false)),
-    listServices: async () => clone(state.services.filter((item) => item.active !== false)),
-    listPublicServices: async () =>
+    listCalendarBlocks,
+    upsertCalendarBlock,
+    listResources: async ({ brand = '' } = {}) =>
+      clone(
+        state.resources.filter(
+          (item) => item.active !== false && resourceMatchesBrand(item, brand)
+        )
+      ),
+    listServices: async ({ brand = '' } = {}) =>
+      clone(
+        state.services.filter(
+          (item) => item.active !== false && serviceMatchesBrand(item, brand)
+        )
+      ),
+    listPublicServices: async ({ brand = '' } = {}) =>
       clone(
         state.services.filter(
           (item) =>
@@ -1457,49 +1736,13 @@ async function createCcoBookingEngineStore({ filePath }) {
         ...input,
         publicOnly: true,
       }),
-    createVipToken: async ({
-      patientId,
-      patientName,
-      serviceId,
-      serviceLabel,
-      resourceId,
-      contact,
-      expiresInDays = 30,
-    } = {}) => {
-      const token = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
-      const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString();
-      if (!state.vipTokens) state.vipTokens = [];
-      state.vipTokens.push({
-        token,
-        patientId,
-        patientName,
-        serviceId,
-        serviceLabel,
-        resourceId,
-        contact,
-        expiresAt,
-        consumed: false,
-        createdAt: nowIso(),
-      });
-      await save();
-      return { token, expiresAt };
-    },
-    findVipToken: async (token) => {
-      if (!state.vipTokens) return null;
-      const entry = state.vipTokens.find((t) => t.token === token && !t.consumed);
-      if (!entry) return null;
-      if (entry.expiresAt && new Date(entry.expiresAt) < new Date()) return null;
-      return entry;
-    },
-    consumeVipToken: async (token) => {
-      if (!state.vipTokens) return;
-      const entry = state.vipTokens.find((t) => t.token === token);
-      if (entry) {
-        entry.consumed = true;
-        entry.consumedAt = nowIso();
-        await save();
-      }
-    },
+    getRuntimeCatalog: async () =>
+      buildStaffRuntimeCatalogReadout(state, {
+        planAPublicServiceIds: PLAN_A_PUBLIC_SERVICE_IDS,
+        planAPublicResourceIds: PLAN_A_PUBLIC_RESOURCE_IDS,
+        bookingPolicySettings,
+      }),
+    getBookingPolicySummary: async () => clone(bookingPolicySettings.globalDefaults),
     _state: state,
   };
 }
@@ -1508,4 +1751,7 @@ module.exports = {
   createCcoBookingEngineStore,
   PLAN_A_PUBLIC_SERVICE_IDS,
   PLAN_A_PUBLIC_RESOURCE_IDS,
+  resolveServiceBookingPolicy,
+  expandCalendarBlocksForRange,
+  isSlotBlockedByCalendar,
 };

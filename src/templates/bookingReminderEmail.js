@@ -1,174 +1,126 @@
 'use strict';
 
-/**
- * Booking reminder email with ICS calendar attachment.
- *
- * Generates:
- * - HTML email body (påminnelse)
- * - ICS/iCalendar attachment (adds event to patient's calendar)
- * - Plain text fallback
- */
+const { renderEmailShell, escapeHtml, BRAND } = require('./emailLayout');
 
-function normalizeText(v) {
-  return typeof v === 'string' ? v.trim() : '';
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
-function buildIcsEvent({
-  summary,
-  description,
-  startDate,
-  startTime,
-  durationMinutes = 30,
-  location,
-  organizerEmail,
-  uid,
-}) {
-  const start = `${startDate.replace(/-/g, '')}T${startTime.replace(/:/g, '')}00`;
-  const endDate = new Date(`${startDate}T${startTime}:00`);
-  endDate.setMinutes(endDate.getMinutes() + durationMinutes);
-  const end = endDate
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\.\d{3}/, '');
+function formatSlotForLocale(isoStart, locale = 'sv') {
+  const d = new Date(isoStart);
+  if (Number.isNaN(d.getTime())) return isoStart;
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'sv-SE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Stockholm',
+  }).format(d);
+}
+
+function firstName(fullName) {
+  return String(fullName ?? '').trim().split(/\s+/)[0] || '';
+}
+
+function formatIcsUtc(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+}
+
+function buildIcsCalendarInvite({
+  uid = '',
+  startsAt = '',
+  durationMinutes = 60,
+  summary = '',
+  description = '',
+  location = '',
+  organizerEmail = 'booking@hairtpclinic.com',
+} = {}) {
+  const startMs = Date.parse(startsAt);
+  const endMs = Number.isFinite(startMs)
+    ? startMs + Math.max(15, Number(durationMinutes) || 60) * 60 * 1000
+    : startMs;
+  const eventUid = normalizeText(uid) || `arcana-${Date.now()}@hairtpclinic.com`;
+  const dtStamp = formatIcsUtc(new Date().toISOString());
+  const dtStart = formatIcsUtc(startsAt);
+  const dtEnd = formatIcsUtc(new Date(endMs).toISOString());
 
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Arcana//HairTP Booking//SV',
+    'PRODID:-//Hair TP Clinic//Arcana Booking//SV',
     'CALSCALE:GREGORIAN',
-    'METHOD:REQUEST',
+    'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:${uid || `${startDate}-${startTime}@arcana.hairtpclinic.se`}`,
-    `DTSTART:${start}`,
-    `DTEND:${end}`,
-    `SUMMARY:${normalizeText(summary)}`,
-    `DESCRIPTION:${normalizeText(description).replace(/\n/g, '\\n')}`,
-    `LOCATION:${normalizeText(location) || 'Hair TP Clinic, Stockholm'}`,
-    `ORGANIZER;CN=Hair TP Clinic:mailto:${normalizeText(organizerEmail) || 'contact@hairtpclinic.com'}`,
-    'STATUS:CONFIRMED',
-    'BEGIN:VALARM',
-    'TRIGGER:-PT60M',
-    'ACTION:DISPLAY',
-    'DESCRIPTION:Påminnelse: din tid på Hair TP Clinic',
-    'END:VALARM',
+    `UID:${eventUid}`,
+    `DTSTAMP:${dtStamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${String(summary || 'Besök Hair TP Clinic').replace(/\n/g, ' ')}`,
+    `DESCRIPTION:${String(description || '').replace(/\n/g, '\\n')}`,
+    location ? `LOCATION:${String(location).replace(/\n/g, ' ')}` : '',
+    `ORGANIZER;CN=Hair TP Clinic:mailto:${organizerEmail}`,
     'END:VEVENT',
     'END:VCALENDAR',
-  ].join('\r\n');
+  ]
+    .filter(Boolean)
+    .join('\r\n');
 }
 
-function buildReminderEmailHtml({
-  patientName,
-  serviceName,
-  date,
-  time,
-  resourceName,
-  location,
-  portalUrl,
-  cancellationHours = 24,
-}) {
-  return `<!DOCTYPE html>
-<html lang="sv">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="font-family:-apple-system,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2d2015;background:#faf6f2;">
-  <div style="background:#fff;border-radius:16px;padding:32px;box-shadow:0 4px 12px rgba(70,50,30,0.06);">
-    <h1 style="font-size:22px;margin:0 0 8px;color:#1a4d35;">Påminnelse om din tid</h1>
-    <p style="margin:0 0 20px;color:#5c473c;font-size:15px;">Hej ${normalizeText(patientName)}!</p>
-    <table style="width:100%;border-collapse:collapse;margin:0 0 20px;">
-      <tr><td style="padding:8px 0;color:#8a7560;font-size:13px;">Behandling</td><td style="padding:8px 0;font-weight:600;">${normalizeText(serviceName)}</td></tr>
-      <tr><td style="padding:8px 0;color:#8a7560;font-size:13px;">Datum</td><td style="padding:8px 0;font-weight:600;">${normalizeText(date)}</td></tr>
-      <tr><td style="padding:8px 0;color:#8a7560;font-size:13px;">Tid</td><td style="padding:8px 0;font-weight:600;">${normalizeText(time)}</td></tr>
-      <tr><td style="padding:8px 0;color:#8a7560;font-size:13px;">Behandlare</td><td style="padding:8px 0;font-weight:600;">${normalizeText(resourceName)}</td></tr>
-      <tr><td style="padding:8px 0;color:#8a7560;font-size:13px;">Plats</td><td style="padding:8px 0;">${normalizeText(location) || 'Hair TP Clinic'}</td></tr>
-    </table>
-    ${portalUrl ? `<p style="margin:0 0 16px;"><a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#1a4d35;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;">Fyll i formulär före besöket →</a></p>` : ''}
-    <p style="margin:0;font-size:13px;color:#8a7560;">Avboka senast ${cancellationHours}h före. Kontakta oss på contact@hairtpclinic.com vid frågor.</p>
-  </div>
-  <p style="text-align:center;margin:20px 0 0;font-size:11px;color:#b0a090;">Hair TP Clinic · Stockholm · arcana.hairtpclinic.se</p>
-</body>
-</html>`;
-}
+function buildBookingReminderEmail({
+  customerName = '',
+  serviceLabel = '',
+  startsAt = '',
+  leadTimeHours = 24,
+  clinicName = BRAND.clinicName || 'Hair TP Clinic',
+  locale = 'sv',
+} = {}) {
+  const isEn = locale === 'en';
+  const name = firstName(customerName) || (isEn ? 'there' : 'där');
+  const when = formatSlotForLocale(startsAt, locale);
+  const service = normalizeText(serviceLabel) || (isEn ? 'your appointment' : 'ditt besök');
 
-function buildReminderEmailPlainText({
-  patientName,
-  serviceName,
-  date,
-  time,
-  resourceName,
-  location,
-  cancellationHours = 24,
-}) {
-  return `Hej ${normalizeText(patientName)}!
+  const subject = isEn
+    ? `Reminder: ${service} — ${when}`
+    : `Påminnelse: ${service} — ${when}`;
 
-Påminnelse om din tid:
-- Behandling: ${normalizeText(serviceName)}
-- Datum: ${normalizeText(date)}
-- Tid: ${normalizeText(time)}
-- Behandlare: ${normalizeText(resourceName)}
-- Plats: ${normalizeText(location) || 'Hair TP Clinic'}
+  const intro = isEn
+    ? `Hi ${escapeHtml(name)}, this is a friendly reminder about your upcoming visit (${leadTimeHours}h notice).`
+    : `Hej ${escapeHtml(name)}, här kommer en påminnelse om ditt kommande besök (${leadTimeHours} timmar före).`;
 
-Avboka senast ${cancellationHours}h före.
-Kontakta oss på contact@hairtpclinic.com vid frågor.
+  const bodyHtml = `
+    <p>${intro}</p>
+    <p><strong>${isEn ? 'When' : 'När'}:</strong> ${escapeHtml(when)}</p>
+    <p><strong>${isEn ? 'Service' : 'Tjänst'}:</strong> ${escapeHtml(service)}</p>
+    <p>${isEn ? 'Need to reschedule? Reply to this email or call the clinic.' : 'Behöver du omboka? Svara på detta mejl eller ring kliniken.'}</p>
+  `.trim();
 
-Välkommen!
-Hair TP Clinic`;
-}
+  const text = isEn
+    ? `Hi ${name},\n\nReminder: ${service} on ${when}.\n\n${clinicName}`
+    : `Hej ${name},\n\nPåminnelse: ${service} ${when}.\n\n${clinicName}`;
 
-function buildCancellationEmailHtml({ patientName, serviceName, date, time }) {
-  return `<!DOCTYPE html>
-<html lang="sv">
-<head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2d2015;background:#faf6f2;">
-  <div style="background:#fff;border-radius:16px;padding:32px;">
-    <h1 style="font-size:20px;margin:0 0 12px;color:#7a3030;">Avbokningsbekräftelse</h1>
-    <p>Hej ${normalizeText(patientName)},</p>
-    <p>Din bokning <strong>${normalizeText(serviceName)}</strong> den ${normalizeText(date)} kl ${normalizeText(time)} är nu avbokad.</p>
-    <p>Kontakta oss om du vill boka en ny tid: contact@hairtpclinic.com</p>
-  </div>
-</body>
-</html>`;
-}
+  const html = renderEmailShell({
+    title: subject,
+    preheader: isEn ? 'Your appointment is coming up' : 'Ditt besök närmar sig',
+    bodyHtml,
+    locale,
+  });
 
-function buildOfferEmailHtml({ patientName, offerTitle, totalPrice, validUntil, signUrl }) {
-  return `<!DOCTYPE html>
-<html lang="sv">
-<head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2d2015;background:#faf6f2;">
-  <div style="background:#fff;border-radius:16px;padding:32px;">
-    <h1 style="font-size:20px;margin:0 0 12px;color:#1a4d35;">Din offert från Hair TP Clinic</h1>
-    <p>Hej ${normalizeText(patientName)},</p>
-    <p>Vi har tagit fram en offert till dig:</p>
-    <table style="width:100%;margin:16px 0;">
-      <tr><td style="padding:6px 0;color:#8a7560;">Behandling</td><td style="font-weight:600;">${normalizeText(offerTitle)}</td></tr>
-      <tr><td style="padding:6px 0;color:#8a7560;">Pris</td><td style="font-weight:600;">${totalPrice} kr</td></tr>
-      <tr><td style="padding:6px 0;color:#8a7560;">Giltig till</td><td>${normalizeText(validUntil)}</td></tr>
-    </table>
-    ${signUrl ? `<p><a href="${signUrl}" style="display:inline-block;padding:12px 24px;background:#1a4d35;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;">Granska och acceptera →</a></p>` : ''}
-    <p style="font-size:13px;color:#8a7560;">Offerten gäller 14 dagar. Kontakta oss vid frågor.</p>
-  </div>
-</body>
-</html>`;
-}
+  const ics = buildIcsCalendarInvite({
+    uid: `reminder-${startsAt}-${service}`.replace(/\s+/g, '-').slice(0, 120),
+    startsAt,
+    summary: `${service} — ${clinicName}`,
+    description: isEn ? 'Appointment reminder from Hair TP Clinic' : 'Bokningspåminnelse från Hair TP Clinic',
+    location: clinicName,
+  });
 
-function buildTreatmentPlanEmailHtml({ patientName, planSummary, portalUrl }) {
-  return `<!DOCTYPE html>
-<html lang="sv">
-<head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2d2015;background:#faf6f2;">
-  <div style="background:#fff;border-radius:16px;padding:32px;">
-    <h1 style="font-size:20px;margin:0 0 12px;color:#1a4d35;">Din behandlingsplan</h1>
-    <p>Hej ${normalizeText(patientName)},</p>
-    <p>${normalizeText(planSummary) || 'Din behandlingsplan är nu klar. Granska informationen nedan och fyll i eventuella formulär innan ditt besök.'}</p>
-    ${portalUrl ? `<p><a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#1a4d35;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;">Se plan och fyll i formulär →</a></p>` : ''}
-  </div>
-</body>
-</html>`;
+  return { subject, html, text, ics };
 }
 
 module.exports = {
-  buildIcsEvent,
-  buildReminderEmailHtml,
-  buildReminderEmailPlainText,
-  buildCancellationEmailHtml,
-  buildOfferEmailHtml,
-  buildTreatmentPlanEmailHtml,
+  buildBookingReminderEmail,
+  buildIcsCalendarInvite,
+  formatSlotForLocale,
 };

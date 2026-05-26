@@ -50,8 +50,8 @@ test('legacy catalog runtime merges triple-map entries into engine state', () =>
 
   const draft = state.services.find((item) => item.id === 'fue');
   if (draft) {
-    assert.equal(draft.publicBookable, false);
-    assert.equal(draft.active, false);
+    assert.equal(draft.publicBookable, PLAN_A_PUBLIC_SERVICE_IDS.includes('fue'));
+    assert.equal(draft.active, PLAN_A_PUBLIC_SERVICE_IDS.includes('fue'));
   }
 });
 

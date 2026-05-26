@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
+const { createCcoBookingEngineStore, PLAN_A_PUBLIC_SERVICE_IDS } = require('../../src/ops/ccoBookingEngineStore');
 const {
   bookingMondayWindow,
   buildSlotId,
@@ -417,12 +417,8 @@ test('ccoBookingEngineStore migrerar legacy store till Plan A schema', async () 
       'utf8'
     );
     const store = await createCcoBookingEngineStore({ filePath });
-    const publicServices = await store.listPublicServices();
-    assert.deepEqual(publicServices.map((item) => item.id).sort(), [
-      'consultation-online',
-      'consultation-physical',
-      'followup-transplant',
-    ]);
+    const publicServices = await store.listPublicServices({ brand: 'hair-tp-clinic' });
+    assert.deepEqual(publicServices.map((item) => item.id).sort(), [...PLAN_A_PUBLIC_SERVICE_IDS].sort());
     const persisted = JSON.parse(await fs.readFile(filePath, 'utf8'));
     assert.ok(
       persisted.availabilityRules.some(
@@ -441,12 +437,12 @@ test('ccoBookingEngineStore listPublicServices returnerar endast Plan A-tjänste
     const store = await createCcoBookingEngineStore({
       filePath: path.join(tempDir, 'booking-engine.json'),
     });
-    const allServices = await store.listServices();
-    const publicServices = await store.listPublicServices();
-    assert.equal(allServices.length, 3);
-    assert.equal(publicServices.length, 3);
+    const allServices = await store.listServices({ brand: 'hair-tp-clinic' });
+    const publicServices = await store.listPublicServices({ brand: 'hair-tp-clinic' });
+    assert.equal(allServices.length, PLAN_A_PUBLIC_SERVICE_IDS.length);
+    assert.equal(publicServices.length, PLAN_A_PUBLIC_SERVICE_IDS.length);
     const ids = publicServices.map((item) => item.id).sort();
-    assert.deepEqual(ids, ['consultation-online', 'consultation-physical', 'followup-transplant']);
+    assert.deepEqual(ids, [...PLAN_A_PUBLIC_SERVICE_IDS].sort());
     assert.ok(publicServices.every((item) => item.publicBookable === true));
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
