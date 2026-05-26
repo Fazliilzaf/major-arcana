@@ -685,9 +685,8 @@
   /* Veckosammanfattning högst upp i vecka-vyn — speglar mailbox-summary-känsla. */
   .cco-cal-week-summary {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--cco-space-4, 16px);
+    flex-direction: column;
+    gap: var(--cco-space-3, 12px);
     padding: var(--cco-space-3, 12px) var(--cco-space-4, 16px);
     margin-bottom: var(--cco-space-3, 12px);
     background: var(--cco-bg-surface-sunken, #f5efe6);
@@ -695,6 +694,13 @@
     border-radius: var(--cco-radius-md, 8px);
     font-size: var(--cco-text-sm, 12px);
     color: var(--cco-text-secondary, #5d544a);
+  }
+
+  .cco-cal-week-summary-totals {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--cco-space-4, 16px);
   }
   .cco-cal-week-summary-kicker {
     font-size: var(--cco-text-xs, 11px);
@@ -755,6 +761,70 @@
       size: A4 landscape;
       margin: 12mm;
     }
+  }
+
+
+  /* === R4-13 (2026-05-26): kapacitetsöversikt per behandlare ===== */
+  .cco-cal-capacity {
+    display: grid;
+    gap: 4px;
+    padding-top: var(--cco-space-2, 8px);
+    border-top: 1px dashed var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+  }
+  .cco-cal-capacity-row {
+    display: grid;
+    grid-template-columns: minmax(90px, 120px) 1fr minmax(36px, auto) minmax(60px, auto);
+    align-items: center;
+    gap: var(--cco-space-3, 12px);
+    font-size: var(--cco-text-xs, 11px);
+    line-height: 1.4;
+  }
+  .cco-cal-capacity-name {
+    color: var(--cco-text-primary, #2b251f);
+    font-weight: var(--cco-weight-medium, 500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cco-cal-capacity-bar {
+    position: relative;
+    height: 6px;
+    background: rgba(43, 37, 31, 0.06);
+    border-radius: var(--cco-radius-full, 9999px);
+    overflow: hidden;
+  }
+  .cco-cal-capacity-bar > span {
+    display: block;
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--util-pct, 0%);
+    background: var(--cco-color-accent, #4a8268);
+    border-radius: var(--cco-radius-full, 9999px);
+    transition: width var(--cco-duration-normal, 240ms) var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1));
+  }
+  .cco-cal-capacity-row[data-util-tone="warn"] .cco-cal-capacity-bar > span {
+    background: var(--cco-status-warning, #c8821e);
+  }
+  .cco-cal-capacity-row[data-util-tone="danger"] .cco-cal-capacity-bar > span {
+    background: var(--cco-status-danger, #b94a4a);
+  }
+  .cco-cal-capacity-pct {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--cco-text-secondary, #5d544a);
+    font-weight: var(--cco-weight-medium, 500);
+  }
+  .cco-cal-capacity-hours {
+    text-align: right;
+    color: var(--cco-text-tertiary, #8a8174);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 720px) {
+    .cco-cal-capacity-row {
+      grid-template-columns: 80px 1fr 36px;
+    }
+    .cco-cal-capacity-hours { display: none; }
   }
 
 }

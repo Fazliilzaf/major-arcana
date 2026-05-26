@@ -316,12 +316,45 @@
         .reduce((sum, slot) => sum + s.slotDurationMinutes(slot), 0) / 60) * 10
     ) / 10;
     const weekLabel = `v ${getIsoWeek(viewAnchor)}`;
+
+    // R4-13: kapacitetsöversikt — per behandlare, bokade vs (bokade+lediga) min.
+    const resourceUtil = new Map();
+    weekSlots.forEach((slot) => {
+      if (slot?.kind !== 'booked' && slot?.kind !== 'available') return;
+      const r = String(slot?.resourceLabel || slot?.resource || 'Övrigt').trim();
+      if (!resourceUtil.has(r)) resourceUtil.set(r, { booked: 0, available: 0 });
+      resourceUtil.get(r)[slot.kind] += s.slotDurationMinutes(slot);
+    });
+    const utilRows = [...resourceUtil.entries()]
+      .sort((a, b) => (b[1].booked + b[1].available) - (a[1].booked + a[1].available))
+      .slice(0, 8)
+      .map(([label, mins]) => {
+        const total = mins.booked + mins.available;
+        const pct = total > 0 ? Math.round((mins.booked / total) * 100) : 0;
+        const bookedH = (mins.booked / 60).toFixed(1).replace(/\.0$/, '');
+        const totalH = (total / 60).toFixed(1).replace(/\.0$/, '');
+        const tone = pct >= 95 ? 'danger' : pct >= 85 ? 'warn' : 'normal';
+        return `<div class="cco-cal-capacity-row" data-util-tone="${tone}" style="--util-pct: ${pct}%">
+          <span class="cco-cal-capacity-name">${s.escapeHtml(label)}</span>
+          <div class="cco-cal-capacity-bar" aria-hidden="true"><span></span></div>
+          <span class="cco-cal-capacity-pct">${pct}%</span>
+          <span class="cco-cal-capacity-hours">${bookedH}/${totalH}h</span>
+        </div>`;
+      })
+      .join('');
+    const capacityHtml = utilRows
+      ? `<div class="cco-cal-capacity" aria-label="Kapacitet per behandlare">${utilRows}</div>`
+      : '';
+
     const summaryHtml = `<aside class="cco-cal-week-summary" aria-label="Veckosammanfattning">
-      <span class="cco-cal-week-summary-kicker">${s.escapeHtml(weekLabel)}</span>
-      <span class="cco-cal-week-summary-item is-confirmed"><strong>${confirmedCount}</strong> bekräftade</span>
-      <span class="cco-cal-week-summary-item is-tentative"><strong>${tentativeCount}</strong> tentativa</span>
-      <span class="cco-cal-week-summary-item is-open"><strong>${openHours}</strong> lediga timmar</span>
-      ${conflictCount > 0 ? `<span class="cco-cal-week-summary-item is-conflict"><strong>${conflictCount}</strong> i konflikt</span>` : ''}
+      <div class="cco-cal-week-summary-totals">
+        <span class="cco-cal-week-summary-kicker">${s.escapeHtml(weekLabel)}</span>
+        <span class="cco-cal-week-summary-item is-confirmed"><strong>${confirmedCount}</strong> bekräftade</span>
+        <span class="cco-cal-week-summary-item is-tentative"><strong>${tentativeCount}</strong> tentativa</span>
+        <span class="cco-cal-week-summary-item is-open"><strong>${openHours}</strong> lediga timmar</span>
+        ${conflictCount > 0 ? `<span class="cco-cal-week-summary-item is-conflict"><strong>${conflictCount}</strong> i konflikt</span>` : ''}
+      </div>
+      ${capacityHtml}
     </aside>`;
     container.innerHTML = `${summaryHtml}<div class="cco-cal-week-grid">${days
       .map((day) => {
