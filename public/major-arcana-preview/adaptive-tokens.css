@@ -1,0 +1,113 @@
+/* ============================================================
+   CCO Adaptive Design Tokens
+   Same system, different layout — mobile/tablet/desktop.
+   ============================================================ */
+
+:root {
+  /* ─── SPACING SCALE ─── */
+  --cco-space-xs: 4px;
+  --cco-space-sm: 8px;
+  --cco-space-md: 12px;
+  --cco-space-lg: 16px;
+  --cco-space-xl: 20px;
+  --cco-space-2xl: 24px;
+  --cco-space-3xl: 32px;
+  --cco-space-4xl: 40px;
+  --cco-space-5xl: 48px;
+
+  /* ─── TYPOGRAPHY ─── */
+  --cco-text-xs: 11px;
+  --cco-text-sm: 13px;
+  --cco-text-base: 15px;
+  --cco-text-md: 16px;
+  --cco-text-lg: 18px;
+  --cco-text-xl: 22px;
+  --cco-text-2xl: 28px;
+  --cco-text-3xl: 36px;
+  --cco-line-tight: 1.2;
+  --cco-line-normal: 1.45;
+  --cco-line-relaxed: 1.6;
+
+  /* ─── RADIUS ─── */
+  --cco-radius-sm: 6px;
+  --cco-radius-md: 10px;
+  --cco-radius-lg: 14px;
+  --cco-radius-xl: 20px;
+  --cco-radius-full: 999px;
+
+  /* ─── CARD ─── */
+  --cco-card-padding: 20px;
+  --cco-card-gap: 16px;
+  --cco-card-radius: var(--cco-radius-lg);
+
+  /* ─── BUTTON ─── */
+  --cco-btn-height: 44px;
+  --cco-btn-padding-x: 16px;
+  --cco-btn-radius: var(--cco-radius-md);
+  --cco-btn-font: var(--cco-text-base);
+
+  /* ─── CHIP / STATUS BADGE ─── */
+  --cco-chip-height: 28px;
+  --cco-chip-padding-x: 10px;
+  --cco-chip-radius: var(--cco-radius-full);
+  --cco-chip-font: var(--cco-text-sm);
+
+  /* ─── LAYOUT ─── */
+  --cco-page-max-width: 1440px;
+  --cco-sidebar-width: 240px;
+  --cco-rail-width: 64px;
+  --cco-bottom-nav-height: 56px;
+  --cco-header-height: 56px;
+  --cco-sticky-bar-height: 56px;
+
+  /* ─── COLORS (from Major Arcana tokens) ─── */
+  --cco-bg-page: #faf6f2;
+  --cco-bg-card: rgba(250, 246, 242, 0.92);
+  --cco-bg-card-nested: rgba(252, 248, 244, 0.90);
+  --cco-bg-input: rgba(255, 255, 255, 0.82);
+  --cco-border: rgba(120, 105, 90, 0.16);
+  --cco-text-primary: #231f1d;
+  --cco-text-secondary: rgba(70, 60, 50, 0.55);
+  --cco-accent: #1a4d35;
+  --cco-accent-light: rgba(46, 90, 71, 0.12);
+}
+
+/* ─── MOBILE (320–767px) ─── */
+@media (max-width: 767px) {
+  :root {
+    --cco-card-padding: 14px;
+    --cco-card-gap: 12px;
+    --cco-text-base: 14px;
+    --cco-text-lg: 16px;
+    --cco-text-xl: 20px;
+    --cco-text-2xl: 24px;
+    --cco-space-2xl: 16px;
+    --cco-space-3xl: 24px;
+    --cco-btn-height: 48px;
+    --cco-chip-height: 30px;
+    --cco-header-height: 52px;
+  }
+}
+
+/* ─── TABLET / IPAD (768–1023px) ─── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --cco-card-padding: 18px;
+    --cco-card-gap: 14px;
+    --cco-text-base: 15px;
+    --cco-text-xl: 21px;
+    --cco-text-2xl: 26px;
+    --cco-sidebar-width: 0px;
+    --cco-rail-width: 56px;
+  }
+}
+
+/* ─── LARGE DESKTOP (1440px+) ─── */
+@media (min-width: 1440px) {
+  :root {
+    --cco-card-padding: 24px;
+    --cco-card-gap: 20px;
+    --cco-sidebar-width: 260px;
+    --cco-page-max-width: 1600px;
+  }
+}
