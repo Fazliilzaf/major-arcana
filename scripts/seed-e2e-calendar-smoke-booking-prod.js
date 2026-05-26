@@ -31,13 +31,16 @@ function authHeaders(token) {
 }
 
 function dateRange() {
-  const from = new Date();
-  from.setDate(from.getDate() + 1);
-  const to = new Date(from);
-  to.setDate(to.getDate() + 13);
+  const now = new Date();
+  const mondayOffset = (now.getDay() + 6) % 7;
+  const monday = new Date(now);
+  monday.setHours(12, 0, 0, 0);
+  monday.setDate(monday.getDate() - mondayOffset);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 13);
   return {
-    fromDate: from.toISOString().slice(0, 10),
-    toDate: to.toISOString().slice(0, 10),
+    fromDate: monday.toISOString().slice(0, 10),
+    toDate: sunday.toISOString().slice(0, 10),
   };
 }
 
