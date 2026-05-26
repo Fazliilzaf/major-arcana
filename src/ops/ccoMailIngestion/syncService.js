@@ -118,6 +118,7 @@ function createCcoMailIngestionSyncService({
     let processed = 0;
     let failed = 0;
     const results = [];
+    const completedIds = [];
 
     while (processed + failed < maxMessages) {
       const rawMessageId = ingestionStore.dequeueNextRawMessageId({
@@ -131,7 +132,7 @@ function createCcoMailIngestionSyncService({
         (item) => item.rawMessageId === rawMessageId
       );
       if (!rawMessage || !ledger) {
-        await ingestionStore.completeQueuedMessage(rawMessageId);
+        completedIds.push(rawMessageId);
         continue;
       }
 
@@ -143,19 +144,25 @@ function createCcoMailIngestionSyncService({
           mode,
           patientDirectory,
           logger,
+          persist: false,
         });
         results.push(result);
         if (result.skipped) {
-          await ingestionStore.completeQueuedMessage(rawMessageId);
+          completedIds.push(rawMessageId);
         } else {
           processed += 1;
-          await ingestionStore.completeQueuedMessage(rawMessageId);
+          completedIds.push(rawMessageId);
         }
       } catch (_error) {
         failed += 1;
-        await ingestionStore.completeQueuedMessage(rawMessageId);
+        completedIds.push(rawMessageId);
       }
     }
+
+    if (completedIds.length > 0) {
+      await ingestionStore.completeQueuedMessages(completedIds, { persist: false });
+    }
+    await ingestionStore.save();
 
     return { processed, failed, results };
   }

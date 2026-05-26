@@ -347,16 +347,18 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     return { rawMessage, ledger, duplicate: false, created: true };
   }
 
-  async function updateLedger(ledgerId = '', patch = {}) {
+  async function updateLedger(ledgerId = '', patch = {}, { persist = true } = {}) {
     const ledger = asObject(state.mailProcessingLedger[normalizeText(ledgerId)]);
     if (!ledger.id) return null;
     Object.assign(ledger, patch, { updatedAt: nowIso() });
     state.mailProcessingLedger[ledger.id] = ledger;
-    await save();
+    if (persist) {
+      await save();
+    }
     return ledger;
   }
 
-  async function appendAudit(event = {}) {
+  async function appendAudit(event = {}, { persist = true } = {}) {
     state.auditEvents.unshift({
       id: crypto.randomUUID(),
       at: nowIso(),
@@ -365,7 +367,9 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     if (state.auditEvents.length > 5000) {
       state.auditEvents = state.auditEvents.slice(0, 5000);
     }
-    await save();
+    if (persist) {
+      await save();
+    }
   }
 
   async function resetMailboxLocalState({
@@ -536,7 +540,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     return state.graphSubscriptions[id];
   }
 
-  async function savePatientMatch(record = {}) {
+  async function savePatientMatch(record = {}, { persist = true } = {}) {
     const rawMessageId = normalizeText(record.rawMessageId);
     if (!rawMessageId) return null;
     const id = normalizeText(record.id) || `${rawMessageId}:match`;
@@ -545,8 +549,19 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       id,
       updatedAt: nowIso(),
     };
-    await save();
+    if (persist) {
+      await save();
+    }
     return state.mailPatientMatches[id];
+  }
+
+  async function completeQueuedMessages(rawMessageIds = [], { persist = true } = {}) {
+    const remove = new Set(asArray(rawMessageIds).filter(Boolean));
+    if (remove.size === 0) return;
+    state.processingQueue = state.processingQueue.filter((item) => !remove.has(item));
+    if (persist) {
+      await save();
+    }
   }
 
   return {
@@ -566,6 +581,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     listNeedsReview,
     dequeueNextRawMessageId,
     completeQueuedMessage,
+    completeQueuedMessages,
     saveGraphSubscription,
     getAccountByEmail,
     savePatientMatch,

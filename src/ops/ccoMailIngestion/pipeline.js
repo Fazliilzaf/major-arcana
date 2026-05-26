@@ -134,6 +134,7 @@ async function processRawMessage({
   mode = 'read_only',
   patientDirectory = [],
   logger = console,
+  persist = true,
 } = {}) {
   if (!store || !rawMessage?.id) {
     throw new Error('processRawMessage requires store and rawMessage.id');
@@ -155,7 +156,7 @@ async function processRawMessage({
     processorVersion: PROCESSOR_VERSION,
     filterVersion: FILTER_VERSION,
     matchVersion: MATCH_VERSION,
-  });
+  }, { persist });
 
   try {
     const source = evaluateSourceFilter(rawMessage);
@@ -165,12 +166,12 @@ async function processRawMessage({
         errorCode: 'source_filter_blocked',
         errorMessage: source.reason,
         completedAt: new Date().toISOString(),
-      });
+      }, { persist });
       await store.appendAudit({
         type: 'mail_ingestion_skipped',
         rawMessageId: rawMessage.id,
         reason: source.reason,
-      });
+      }, { persist });
       return { skipped: true, reason: source.reason, ledger: activeLedger, rawMessage };
     }
 
@@ -206,18 +207,18 @@ async function processRawMessage({
       )
         ? new Date().toISOString()
         : null,
-    });
+    }, { persist });
 
     if (mode === 'active' && status === 'MATCHED' && match.patientId) {
       activeLedger = await store.updateLedger(activeLedger.id, {
         status: 'ACTION_CREATED',
         completedAt: new Date().toISOString(),
-      });
+      }, { persist });
     } else if (mode !== 'dry_run') {
       activeLedger = await store.updateLedger(activeLedger.id, {
         status: status === 'DUPLICATE_SKIPPED' ? 'DUPLICATE_SKIPPED' : status,
         completedAt: new Date().toISOString(),
-      });
+      }, { persist });
     }
 
     await store.appendAudit({
@@ -227,9 +228,9 @@ async function processRawMessage({
       mailType: classification.mailType,
       patientMatchStatus: match.status,
       mode,
-    });
+    }, { persist });
 
-    await store.savePatientMatch(patientMatchRecord);
+    await store.savePatientMatch(patientMatchRecord, { persist });
 
     logger?.log?.(
       `[mail-ingestion] processed raw=${rawMessage.id} status=${activeLedger.status} mailType=${classification.mailType}`
@@ -250,12 +251,12 @@ async function processRawMessage({
       errorCode: 'processing_failed',
       errorMessage: normalizeText(error?.message) || 'processing_failed',
       completedAt: new Date().toISOString(),
-    });
+    }, { persist });
     await store.appendAudit({
       type: 'mail_ingestion_failed',
       rawMessageId: rawMessage.id,
       error: activeLedger.errorMessage,
-    });
+    }, { persist });
     throw error;
   }
 }
