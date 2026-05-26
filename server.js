@@ -981,6 +981,25 @@ app.get('/api/v1/executive/agents/status', (req, res) => {
 
 const { computeQaDashboard } = require('./src/ops/qaDashboard');
 const { buildDayView, buildWeekView } = require('./src/ops/clinicCalendarView');
+const { getDocContent, getDocsForSection, getAllSections } = require('./src/ops/contextualDocs');
+
+app.get('/api/v1/docs/sections', (req, res) => {
+  return res.json({ ok: true, sections: getAllSections() });
+});
+
+app.get('/api/v1/docs/section/:sectionId', (req, res) => {
+  const docs = getDocsForSection(req.params.sectionId);
+  if (!docs.length) return res.status(404).json({ ok: false, error: 'section_not_found' });
+  return res.json({ ok: true, sectionId: req.params.sectionId, documents: docs });
+});
+
+app.get('/api/v1/docs/content', async (req, res) => {
+  const docPath = (req.query?.path || '').trim();
+  if (!docPath || !docPath.startsWith('docs/')) return res.status(400).json({ ok: false, error: 'invalid_path' });
+  const result = await getDocContent(docPath);
+  if (!result.ok) return res.status(404).json(result);
+  return res.json(result);
+});
 
 app.get('/api/v1/qa/dashboard', (req, res) => {
   const dashboard = computeQaDashboard({
