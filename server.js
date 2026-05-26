@@ -2485,6 +2485,7 @@ process.once('SIGTERM', () => {
       syncService: ccoMailIngestionSyncService,
       ingestionWorker: ccoMailIngestionWorker,
       graphNotifications: ccoGraphChangeNotifications,
+      patientMasterStore: ccoPatientMasterStore,
       logger: console,
     })
   );

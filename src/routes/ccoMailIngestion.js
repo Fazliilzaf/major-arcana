@@ -3,6 +3,7 @@
 const express = require('express');
 const { ROLE_OWNER } = require('../security/roles');
 const { resolveCcoRouteActor } = require('./ccoRouteShared');
+const { runUnmatchedResolutionSweep, summarizeReviewGroups } = require('../ops/ccoMailIngestion/resolveUnmatched');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -29,6 +30,7 @@ function createCcoMailIngestionRouter({
   syncService,
   ingestionWorker,
   graphNotifications,
+  patientMasterStore = null,
   logger = console,
 }) {
   const router = express.Router();
@@ -120,6 +122,58 @@ ${unmatched
 </body></html>`;
       res.setHeader('content-type', 'text/html; charset=utf-8');
       return res.send(html);
+    })
+  );
+
+  router.get('/cco/mail-ingestion/review-queue/summary', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+    handle(req, res, async () => {
+      const mailboxEmail = normalizeEmail(req.query.mailboxEmail);
+      const rows = ingestionStore.listReviewQueue({
+        mailboxEmail,
+        statuses: ['UNMATCHED'],
+        limit: 10000,
+      });
+      const groups = summarizeReviewGroups(rows);
+      return res.json({
+        ok: true,
+        mailboxEmail: mailboxEmail || null,
+        totalUnmatched: rows.length,
+        uniqueCounterparties: groups.length,
+        nonPatientCount: groups.filter((item) => item.nonPatient).reduce((sum, item) => sum + item.count, 0),
+        patientLikeCount: groups.filter((item) => !item.nonPatient).reduce((sum, item) => sum + item.count, 0),
+        groups: groups.slice(0, 100),
+      });
+    })
+  );
+
+  router.post('/cco/mail-ingestion/resolve-unmatched-sweep', requireAuth, requireRole(ROLE_OWNER), async (req, res) =>
+    handle(req, res, async (actor) => {
+      const mailboxEmail = normalizeEmail(req.body?.mailboxEmail || config.ccoMailIngestionDefaultMailbox);
+      if (!mailboxEmail) {
+        return res.status(400).json({ error: 'mailboxEmail krävs.' });
+      }
+      const dryRun = req.body?.dryRun === true;
+      const result = await runUnmatchedResolutionSweep({
+        ingestionStore,
+        patientMasterStore,
+        tenantId: config.defaultTenantId || config.defaultTenant || 'hair-tp-clinic',
+        mailboxEmail,
+        actorUserId: actor.userId || actor.email || 'owner',
+        autoEnrichPatientEmails: req.body?.autoEnrichPatientEmails !== false,
+        dryRun,
+      });
+      if (!dryRun && ingestionWorker && Number(result.linked || 0) + Number(result.dismissed || 0) > 0) {
+        await ingestionStore.requestReprocessUnmatched({
+          mailboxEmail,
+          includeOldMatchVersion: false,
+        });
+      }
+      return res.json({
+        ok: true,
+        dryRun,
+        result,
+        dashboard: ingestionStore.buildDashboardSummary({ mailboxEmail }),
+      });
     })
   );
 

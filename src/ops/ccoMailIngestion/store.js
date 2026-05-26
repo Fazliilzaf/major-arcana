@@ -625,7 +625,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
         .map((item) => normalizeText(item).toUpperCase())
         .filter(Boolean)
     );
-    const safeLimit = Math.max(1, Math.min(500, Number(limit) || 50));
+    const safeLimit = Math.max(1, Math.min(10000, Number(limit) || 50));
     return Object.values(state.mailProcessingLedger)
       .filter((ledger) => allowed.has(normalizeText(ledger.status).toUpperCase()))
       .map((ledger) => {
