@@ -1,0 +1,59 @@
+---
+description: Regel för att alltid använda befintligt arkivinnehåll före nya texter
+alwaysApply: true
+---
+# CCO Content Rule — Arkiv först, skapa sen
+
+## Grundregel
+
+**Innan du skapar nytt textinnehåll (mallar, e-post, SMS, samtycken, avtal, formulärtexter, instruktioner), MÅSTE du:**
+
+1. **Sök i arkivet** — kolla om texten redan finns i någon av dessa källor:
+   - `src/templates/` — befintliga kodade mallar
+   - `src/sms/smsConnector.js` — SMS-malltexter
+   - `migration/meridiq/consent-catalog.json` — 39 samtyckestexter
+   - `migration/meridiq/questionary-catalog.json` — formulärtexter
+   - `MA-Archive/offert-word/Offertmallar/` — 14 Word-offertmallar
+   - `docs/strategy/MERIDIQ-INVENTORY.md` — Meridiq mallar (SMS, e-post, journal)
+   - `docs/strategy/CLIENTO-INVENTORY.md` — Cliento mallar
+   - `docs/wordpress/` — WordPress-innehåll (patientinformation)
+   - `public/` — befintliga HTML-texter i frontend
+
+2. **Om texten finns** → använd den befintliga texten som bas. Anpassa vid behov.
+
+3. **Om texten INTE finns** → då och BARA då, skapa ny text.
+
+4. **Dokumentera källan** — ange alltid varifrån texten kom:
+   - `source: migration/meridiq/consent-catalog.json` (befintlig)
+   - `source: new` (nyskriven)
+
+## Sökordning (prioritet)
+
+1. Meridiq-export (consent-catalog, questionary-catalog, service-bindings)
+2. Cliento SMS/e-post-mallar (dokumenterade i CLIENTO-INVENTORY)
+3. Offertmallar (MA-Archive/offert-word/)
+4. Befintlig kod (src/templates/, src/sms/)
+5. WordPress-texter (docs/wordpress/)
+6. Nyskrivet (sista utväg)
+
+## Merge-fält standard
+
+Använd samma merge-fält som Meridiq/Cliento:
+- `{namn}` eller `{{client_first_name}}` — patientens förnamn
+- `{datum}` eller `{{booking_date}}` — bokningsdatum
+- `{tid}` eller `{{booking_start_time}}` — tid
+- `{behandling}` eller `{{service_name}}` — tjänstnamn
+- `{behandlare}` eller `{{practitioner_name}}` — personal
+- `{klinik}` eller `{{clinic_name}}` — kliniknamn
+
+## Varumärke
+
+- Hair TP Clinic — alla TP/PRP/microneedling-mallar
+- Curatiio — alla ögonlock/ortopedi/estetik-mallar
+- Blanda ALDRIG varumärken i samma mall
+
+## Språk
+
+- Svenska som standard (sv-SE)
+- Engelska varianter bara om de redan finns i arkivet (Meridiq ENG-mallar)
+- Skapa ALDRIG engelska versioner utan att först kolla om Meridiq redan har dem
