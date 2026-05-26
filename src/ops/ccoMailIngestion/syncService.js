@@ -1,6 +1,7 @@
 const { createCcoMailboxTruthStore } = require('../ccoMailboxTruthStore');
 const { createMicrosoftGraphMailboxTruthDelta } = require('../../infra/microsoftGraphMailboxTruthDelta');
 const { processRawMessage } = require('./pipeline');
+const { MAILBOX_FOLDER_TYPES } = require('./constants');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -35,7 +36,7 @@ function createCcoMailIngestionSyncService({
     return createCcoMailboxTruthStore({ filePath: truthPath });
   }
 
-  async function runDeltaSync({ mailboxIds = [] } = {}) {
+  async function runDeltaSync({ mailboxIds = [], folderTypes = MAILBOX_FOLDER_TYPES } = {}) {
     const store = await openTruthStore();
     const delta = createMicrosoftGraphMailboxTruthDelta({
       connectorFactory: () => graphReadConnector,
@@ -43,7 +44,7 @@ function createCcoMailIngestionSyncService({
     });
     return delta.runDeltaSync({
       mailboxIds,
-      folderTypes: ['inbox'],
+      folderTypes,
     });
   }
 
@@ -52,6 +53,7 @@ function createCcoMailIngestionSyncService({
     importRunId = '',
     sinceIso = null,
     mode = 'read_only',
+    folderTypes = MAILBOX_FOLDER_TYPES,
   } = {}) {
     const normalizedMailbox = normalizeEmail(mailboxEmail);
     const truth = await openTruthStore();
@@ -64,7 +66,7 @@ function createCcoMailIngestionSyncService({
 
     const messages = truth.listMessages({
       mailboxIds: [normalizedMailbox],
-      folderTypes: ['inbox'],
+      folderTypes,
       sinceIso,
       limit: 0,
     });
@@ -72,6 +74,7 @@ function createCcoMailIngestionSyncService({
     let totalFetched = messages.length;
     let totalSaved = 0;
     let totalDuplicates = 0;
+    let saveEvery = 0;
 
     for (const message of messages) {
       const result = await ingestionStore.saveRawMessageFromTruth({
@@ -82,6 +85,14 @@ function createCcoMailIngestionSyncService({
       });
       if (result.duplicate) totalDuplicates += 1;
       else if (result.created) totalSaved += 1;
+      saveEvery += 1;
+      if (saveEvery >= 100) {
+        await ingestionStore.save();
+        saveEvery = 0;
+      }
+    }
+    if (saveEvery > 0) {
+      await ingestionStore.save();
     }
 
     return {
@@ -149,12 +160,13 @@ function createCcoMailIngestionSyncService({
     return { processed, failed, results };
   }
 
-  async function runMailboxCycle({
+  async function runMailboxImport({
     mailboxEmail = '',
     mode = 'read_only',
     trigger = 'manual',
     skipDelta = false,
     createdBy = 'system',
+    folderTypes = MAILBOX_FOLDER_TYPES,
   } = {}) {
     const normalizedMailbox = normalizeEmail(mailboxEmail);
     if (!normalizedMailbox) {
@@ -168,7 +180,84 @@ function createCcoMailIngestionSyncService({
 
     const account = ingestionStore.ensureMailAccount({
       email: normalizedMailbox,
-      tenantId: config.defaultTenant || 'hair-tp-clinic',
+      tenantId: config.defaultTenant || config.defaultTenantId || 'hair-tp-clinic',
+    });
+    const importRun = await ingestionStore.startImportRun({
+      mailAccountId: account.id,
+      mode: trigger === 'webhook' ? 'webhook_trigger' : 'initial_sync',
+      createdBy,
+    });
+
+    let deltaResult = null;
+    try {
+      if (!skipDelta && graphReadConnector) {
+        deltaResult = await runDeltaSync({
+          mailboxIds: [normalizedMailbox],
+          folderTypes,
+        });
+      }
+
+      const ingestResult = await ingestTruthMessages({
+        mailboxEmail: normalizedMailbox,
+        importRunId: importRun.id,
+        mode,
+        folderTypes,
+      });
+
+      await ingestionStore.finishImportRun(importRun.id, {
+        status: 'completed',
+        totalFetched: ingestResult.totalFetched,
+        totalSaved: ingestResult.totalSaved,
+        totalDuplicates: ingestResult.totalDuplicates,
+        totalProcessed: 0,
+        totalFailed: 0,
+      });
+
+      await ingestionStore.appendAudit({
+        type: 'mail_ingestion_import_completed',
+        mailboxEmail: normalizedMailbox,
+        trigger,
+        mode,
+        importRunId: importRun.id,
+      });
+
+      return {
+        skipped: false,
+        mailboxEmail: normalizedMailbox,
+        importRunId: importRun.id,
+        deltaResult,
+        ingestResult,
+      };
+    } catch (error) {
+      await ingestionStore.finishImportRun(importRun.id, {
+        status: 'failed',
+        error: normalizeText(error?.message) || 'import_failed',
+      });
+      throw error;
+    }
+  }
+
+  async function runMailboxCycle({
+    mailboxEmail = '',
+    mode = 'read_only',
+    trigger = 'manual',
+    skipDelta = false,
+    createdBy = 'system',
+    folderTypes = MAILBOX_FOLDER_TYPES,
+  } = {}) {
+    const normalizedMailbox = normalizeEmail(mailboxEmail);
+    if (!normalizedMailbox) {
+      return { skipped: true, reason: 'mailbox_email_missing' };
+    }
+
+    const syncState = ingestionStore.getState()?.mailSyncState?.[normalizedMailbox];
+    if (syncState?.paused === true) {
+      return { skipped: true, reason: 'mailbox_paused' };
+    }
+
+    const account = ingestionStore.ensureMailAccount({
+      email: normalizedMailbox,
+      tenantId: config.defaultTenant || config.defaultTenantId || 'hair-tp-clinic',
     });
     const importRun = await ingestionStore.startImportRun({
       mailAccountId: account.id,
@@ -177,56 +266,69 @@ function createCcoMailIngestionSyncService({
     });
 
     let deltaResult = null;
-    if (!skipDelta && graphReadConnector) {
-      deltaResult = await runDeltaSync({ mailboxIds: [normalizedMailbox] });
+    try {
+      if (!skipDelta && graphReadConnector) {
+        deltaResult = await runDeltaSync({
+          mailboxIds: [normalizedMailbox],
+          folderTypes,
+        });
+      }
+
+      const ingestResult = await ingestTruthMessages({
+        mailboxEmail: normalizedMailbox,
+        importRunId: importRun.id,
+        mode,
+        folderTypes,
+      });
+
+      const processResult =
+        mode === 'dry_run'
+          ? { processed: 0, failed: 0, results: [] }
+          : await processQueue({
+              mailboxEmail: normalizedMailbox,
+              mode,
+              maxMessages: Number(config.ccoMailIngestionMaxProcessPerCycle || 25),
+            });
+
+      await ingestionStore.finishImportRun(importRun.id, {
+        status: 'completed',
+        totalFetched: ingestResult.totalFetched,
+        totalSaved: ingestResult.totalSaved,
+        totalDuplicates: ingestResult.totalDuplicates,
+        totalProcessed: processResult.processed,
+        totalFailed: processResult.failed,
+      });
+
+      await ingestionStore.appendAudit({
+        type: 'mail_ingestion_cycle_completed',
+        mailboxEmail: normalizedMailbox,
+        trigger,
+        mode,
+        importRunId: importRun.id,
+      });
+
+      return {
+        skipped: false,
+        mailboxEmail: normalizedMailbox,
+        importRunId: importRun.id,
+        deltaResult,
+        ingestResult,
+        processResult,
+      };
+    } catch (error) {
+      await ingestionStore.finishImportRun(importRun.id, {
+        status: 'failed',
+        error: normalizeText(error?.message) || 'cycle_failed',
+      });
+      throw error;
     }
-
-    const ingestResult = await ingestTruthMessages({
-      mailboxEmail: normalizedMailbox,
-      importRunId: importRun.id,
-      mode,
-    });
-
-    const processResult =
-      mode === 'dry_run'
-        ? { processed: 0, failed: 0, results: [] }
-        : await processQueue({
-            mailboxEmail: normalizedMailbox,
-            mode,
-            maxMessages: Number(config.ccoMailIngestionMaxProcessPerCycle || 25),
-          });
-
-    await ingestionStore.finishImportRun(importRun.id, {
-      status: 'completed',
-      totalFetched: ingestResult.totalFetched,
-      totalSaved: ingestResult.totalSaved,
-      totalDuplicates: ingestResult.totalDuplicates,
-      totalProcessed: processResult.processed,
-      totalFailed: processResult.failed,
-    });
-
-    await ingestionStore.appendAudit({
-      type: 'mail_ingestion_cycle_completed',
-      mailboxEmail: normalizedMailbox,
-      trigger,
-      mode,
-      importRunId: importRun.id,
-    });
-
-    return {
-      skipped: false,
-      mailboxEmail: normalizedMailbox,
-      importRunId: importRun.id,
-      deltaResult,
-      ingestResult,
-      processResult,
-    };
   }
 
   return {
     runDeltaSync,
     ingestTruthMessages,
     processQueue,
+    runMailboxImport,
     runMailboxCycle,
   };
 }

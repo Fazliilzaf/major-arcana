@@ -315,6 +315,7 @@ function createScheduler({
   mailIngestionSyncService = null,
   graphChangeNotifications = null,
   ccoMailIngestionStore = null,
+  mailIngestionWorker = null,
   logger = console,
 } = {}) {
   if (!incomingConfig) throw new Error('config saknas för scheduler.');
@@ -3293,6 +3294,36 @@ function createScheduler({
     );
   }
 
+  async function runCcoMailIngestionQueue({ tenantId }) {
+    if (!config.ccoMailIngestionEnabled) {
+      return { tenantId, skipped: true, reason: 'mail_ingestion_disabled' };
+    }
+    if (!mailIngestionWorker || typeof mailIngestionWorker.runProcessBatch !== 'function') {
+      return { tenantId, skipped: true, reason: 'mail_ingestion_worker_unavailable' };
+    }
+    const mailboxEmail = normalizeText(config.ccoMailIngestionDefaultMailbox);
+    if (!mailboxEmail) {
+      return { tenantId, skipped: true, reason: 'default_mailbox_missing' };
+    }
+    const before = ccoMailIngestionStore?.buildDashboardSummary?.({ mailboxEmail });
+    if (!before || Number(before.queueLength || 0) <= 0) {
+      return { tenantId, skipped: true, reason: 'queue_empty', mailboxEmail };
+    }
+    const result = await mailIngestionWorker.runProcessBatch({
+      mailboxEmail,
+      mode: config.ccoMailIngestionMode || 'read_only',
+    });
+    const after = ccoMailIngestionStore?.buildDashboardSummary?.({ mailboxEmail });
+    return {
+      tenantId,
+      skipped: false,
+      mailboxEmail,
+      result,
+      queueBefore: Number(before.queueLength || 0),
+      queueAfter: Number(after?.queueLength || 0),
+    };
+  }
+
   async function runCcoGraphSubscriptionRenewal({ tenantId }) {
     if (!config.graphChangeNotificationsEnabled) {
       return { tenantId, skipped: true, reason: 'graph_change_notifications_disabled' };
@@ -3442,28 +3473,24 @@ function createScheduler({
 
       let mailIngestion = null;
       if (
-        newMessages > 0 &&
         config.ccoMailIngestionEnabled === true &&
-        mailIngestionSyncService &&
-        typeof mailIngestionSyncService.runMailboxCycle === 'function'
+        mailIngestionWorker &&
+        typeof mailIngestionWorker.runProcessBatch === 'function'
       ) {
-        try {
-          mailIngestion = [];
-          for (const mailboxEmail of mailboxIds.slice(0, 1)) {
-            const cycle = await mailIngestionSyncService.runMailboxCycle({
-              mailboxEmail,
+        const defaultMailbox = normalizeText(config.ccoMailIngestionDefaultMailbox);
+        const targetMailbox = mailboxIds.includes(defaultMailbox) ? defaultMailbox : mailboxIds[0];
+        if (targetMailbox) {
+          try {
+            mailIngestion = await mailIngestionWorker.runProcessBatch({
+              mailboxEmail: targetMailbox,
               mode: config.ccoMailIngestionMode || 'read_only',
-              trigger: 'delta_sync',
-              skipDelta: true,
-              createdBy: 'cco_truth_delta_sync',
             });
-            mailIngestion.push(cycle);
+          } catch (ingestionError) {
+            logger?.error?.(
+              '[scheduler] cco_truth_delta_sync mail ingestion batch failed',
+              sanitizeError(ingestionError)
+            );
           }
-        } catch (ingestionError) {
-          logger?.error?.(
-            '[scheduler] cco_truth_delta_sync mail ingestion failed',
-            sanitizeError(ingestionError)
-          );
         }
       }
 
@@ -3641,6 +3668,15 @@ function createScheduler({
           ? toHoursMs(config.schedulerCcoGraphSubscriptionRenewalIntervalHours, 24)
           : 0,
       run: runCcoGraphSubscriptionRenewal,
+    },
+    {
+      id: 'cco_mail_ingestion_queue',
+      name: 'CCO mail ingestion queue processor',
+      intervalMs:
+        config.ccoMailIngestionEnabled === true
+          ? toMinutesMs(config.schedulerCcoMailIngestionQueueIntervalMinutes, 1)
+          : 0,
+      run: runCcoMailIngestionQueue,
     },
     {
       id: 'cco_inbox_enrichment_bootstrap',

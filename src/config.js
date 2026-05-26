@@ -268,6 +268,14 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_MAX_PROCESS_PER_CYCLE,
     25
   ),
+  ccoMailIngestionQueueBatchSize: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_QUEUE_BATCH_SIZE,
+    75
+  ),
+  schedulerCcoMailIngestionQueueIntervalMinutes: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES,
+    1
+  ),
   graphChangeNotificationsEnabled: asBool(
     process.env.ARCANA_GRAPH_CHANGE_NOTIFICATIONS_ENABLED,
     false

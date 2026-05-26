@@ -254,10 +254,20 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     const dedupeKey = buildDedupeKeyFromTruthMessage(truthMessage);
     const existingRawId = state.dedupeIndex[dedupeKey];
     if (existingRawId && state.mailRawMessages[existingRawId]) {
+      const existingLedger = getLedgerByRawMessageId(existingRawId);
+      if (
+        existingLedger &&
+        !shouldSkipProcessing(existingLedger) &&
+        !state.processingQueue.includes(existingRawId)
+      ) {
+        state.processingQueue.push(existingRawId);
+        await save();
+      }
       return {
         rawMessage: state.mailRawMessages[existingRawId],
         duplicate: true,
         created: false,
+        ledger: existingLedger,
       };
     }
 
@@ -437,6 +447,8 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     const countByStatus = (status) =>
       filteredLedgers.filter((item) => normalizeText(item.status) === status).length;
 
+    const processedCount = filteredLedgers.filter((ledger) => shouldSkipProcessing(ledger)).length;
+
     const account = normalized ? getAccountByEmail(normalized) : null;
     const syncState = normalized ? asObject(state.mailSyncState[normalized]) : null;
     const recentRuns = state.importRunOrder
@@ -454,7 +466,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       counts: {
         rawMessages: rawMessages.length,
         duplicates: countByStatus('DUPLICATE_SKIPPED'),
-        processed: countByStatus('COMPLETED'),
+        processed: processedCount,
         failed: countByStatus('FAILED'),
         needsReview: countByStatus('NEEDS_REVIEW'),
         matched: countByStatus('MATCHED'),
@@ -524,6 +536,19 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     return state.graphSubscriptions[id];
   }
 
+  async function savePatientMatch(record = {}) {
+    const rawMessageId = normalizeText(record.rawMessageId);
+    if (!rawMessageId) return null;
+    const id = normalizeText(record.id) || `${rawMessageId}:match`;
+    state.mailPatientMatches[id] = {
+      ...record,
+      id,
+      updatedAt: nowIso(),
+    };
+    await save();
+    return state.mailPatientMatches[id];
+  }
+
   return {
     filePath: resolvedPath,
     save,
@@ -543,6 +568,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     completeQueuedMessage,
     saveGraphSubscription,
     getAccountByEmail,
+    savePatientMatch,
     getState: () => cloneJson(state),
   };
 }
