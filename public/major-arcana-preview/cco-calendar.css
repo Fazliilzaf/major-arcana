@@ -568,50 +568,10 @@
     display: none !important;
   }
 
-  .cco-cal-detail-kicker {
-    margin: 0;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--cco-cal-espresso-soft);
-  }
-
-  .cco-cal-detail h3 {
-    margin: 0;
-    font-family: var(--cco-cal-font-display);
-    font-size: 1.5rem;
-    color: var(--cco-cal-espresso);
-  }
-
-  .cco-cal-detail-meta {
-    display: grid;
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .cco-cal-detail-meta li {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 13px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--cco-cal-border);
-  }
-
-  .cco-cal-detail-meta span {
-    color: var(--cco-cal-espresso-soft);
-  }
-
-  .cco-cal-detail-actions {
-    display: grid;
-    gap: 8px;
-  }
-
-  .cco-cal-detail-actions .customers-utility-button {
-    width: 100%;
-  }
+  /* R2 (2026-05-26): cco-cal-detail-kicker/-meta/-actions removed.
+   * Detail-pane använder nu Kundintelligens-mönstret (focus-intel-*) som
+   * definieras i styles.css. Den outer .cco-cal-detail-containern behåller
+   * sin yta/skugga ovan, men inre layout styrs av focus-intel-reglerna. */
 
   .cco-mobile-calendar-item-button.cco-cal-event {
     grid-template-columns: 72px minmax(0, 1fr) auto;

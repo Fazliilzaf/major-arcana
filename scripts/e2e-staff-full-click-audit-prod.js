@@ -303,9 +303,11 @@ async function main() {
       lastStepEnd = Date.now();
 
       const signalRows = await page.evaluate(() => {
-        const items = [...document.querySelectorAll('[data-cal-detail-meta] li strong')].map((n) =>
-          n.textContent?.trim()
-        );
+        // R2: detail-pane använder nu Kundintelligens-mönstret
+        // (focus-intel-grid med focus-intel-item strong-värden).
+        const items = [
+          ...document.querySelectorAll('[data-cal-detail-grid] .focus-intel-item strong'),
+        ].map((n) => n.textContent?.trim());
         return items.filter(Boolean);
       });
       record(

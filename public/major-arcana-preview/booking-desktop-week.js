@@ -115,16 +115,34 @@
         <div class="cco-cal-grid-wrap" data-cal-grid-wrap>
           <div class="cco-cal-empty">Hämtar kalender…</div>
         </div>
-        <aside class="cco-cal-detail" data-cal-detail hidden>
-          <p class="cco-cal-detail-kicker">Bokningsdetalj</p>
-          <h3 data-cal-detail-title>Välj en tid</h3>
-          <ul class="cco-cal-detail-meta" data-cal-detail-meta></ul>
-          <div class="cco-cal-detail-actions">
-            <button class="customers-utility-button" type="button" data-cal-action="case">Bokningsärende</button>
-            <button class="customers-utility-button" type="button" data-cal-action="customer">Kundkort</button>
-            <button class="customers-utility-button" type="button" data-cal-action="journal">Journal</button>
-            <button class="customers-utility-button" type="button" data-cal-action="book">Ny bokning</button>
-            <button class="customers-utility-button" type="button" data-cal-action="mobile-day">Daglista</button>
+        <aside class="cco-cal-detail focus-intel" data-cal-detail hidden aria-labelledby="cco-cal-detail-title">
+          <div class="focus-intel-primary">
+            <div class="focus-intel-topline">
+              <div class="focus-intel-title-row">
+                <p class="focus-intel-kicker">BOKNING</p>
+                <h3 id="cco-cal-detail-title" data-cal-detail-title>Välj en tid</h3>
+              </div>
+            </div>
+            <div class="focus-intel-primary-body">
+              <div class="focus-intel-customer">
+                <div class="focus-intel-monogram" data-cal-detail-monogram>—</div>
+                <div class="focus-intel-customer-copy">
+                  <div class="focus-intel-name-row">
+                    <h4 data-cal-detail-name>—</h4>
+                    <span class="focus-intel-queue-pill" data-pill-icon="calendar" data-cal-detail-status>—</span>
+                  </div>
+                  <p data-cal-detail-subline>—</p>
+                </div>
+              </div>
+              <div class="focus-intel-grid" data-cal-detail-grid></div>
+              <div class="focus-intel-action-row" data-cal-detail-actions aria-label="Bokningsåtgärder">
+                <button class="quick-action-pill" type="button" data-cal-action="case">Bokningsärende</button>
+                <button class="quick-action-pill" type="button" data-cal-action="customer">Kundkort</button>
+                <button class="quick-action-pill" type="button" data-cal-action="journal">Journal</button>
+                <button class="quick-action-pill" type="button" data-cal-action="book">Ny bokning</button>
+                <button class="quick-action-pill" type="button" data-cal-action="mobile-day">Daglista</button>
+              </div>
+            </div>
           </div>
         </aside>
       </div>
@@ -326,48 +344,99 @@
     </div>`;
   }
 
+  // R2: monogram-helper för Kundintelligens-stil avatar.
+  function monogramFor(name) {
+    const text = String(name || '').trim();
+    if (!text) return '—';
+    const parts = text.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  // R2: ersätter platt list-meta med Kundintelligens-mönstret:
+  // monogram + namn + status-pill + 2-kolumns grid + action-row med quick-action-pills.
   function renderDetailPanel() {
     const shell = ensureShell();
     const body = shell.querySelector('[data-cal-body]');
     const detail = shell.querySelector('[data-cal-detail]');
-    const title = shell.querySelector('[data-cal-detail-title]');
-    const meta = shell.querySelector('[data-cal-detail-meta]');
+    const titleEl = shell.querySelector('[data-cal-detail-title]');
+    const nameEl = shell.querySelector('[data-cal-detail-name]');
+    const monogramEl = shell.querySelector('[data-cal-detail-monogram]');
+    const statusEl = shell.querySelector('[data-cal-detail-status]');
+    const sublineEl = shell.querySelector('[data-cal-detail-subline]');
+    const gridEl = shell.querySelector('[data-cal-detail-grid]');
     const caseBtn = shell.querySelector('[data-cal-action="case"]');
     const customerBtn = shell.querySelector('[data-cal-action="customer"]');
     const journalBtn = shell.querySelector('[data-cal-action="journal"]');
     const bookBtn = shell.querySelector('[data-cal-action="book"]');
-    if (!detail || !title || !meta) return;
+    if (!detail || !titleEl) return;
 
     if (!selectedEvent) {
       detail.hidden = true;
       if (body) body.dataset.detailOpen = 'false';
-      title.textContent = 'Välj en tid';
-      meta.innerHTML = '';
+      titleEl.textContent = 'Välj en tid';
+      if (nameEl) nameEl.textContent = '—';
+      if (monogramEl) monogramEl.textContent = '—';
+      if (statusEl) {
+        statusEl.textContent = '—';
+        delete statusEl.dataset.tone;
+      }
+      if (sublineEl) sublineEl.textContent = '—';
+      if (gridEl) gridEl.innerHTML = '';
       return;
     }
 
     const s = shared();
     const isBooked = selectedEvent.kind === 'booked';
+    const isAvailable = selectedEvent.kind === 'available';
+    const isBlock = selectedEvent.kind === 'block';
     detail.hidden = false;
     if (body) body.dataset.detailOpen = 'true';
-    title.textContent = s.eventTitle(selectedEvent);
-    meta.innerHTML = [
-      ['Tid', s.formatTimeRange(selectedEvent)],
-      ['Tjänst', selectedEvent.serviceLabel || selectedEvent.service || '—'],
-      ['Resurs', selectedEvent.resourceLabel || selectedEvent.resource || '—'],
-      ['Plats', selectedEvent.locationLabel || selectedEvent.location || '—'],
-      ['Status', isBooked ? s.formatCaseStatus(selectedEvent.caseStatus || selectedEvent.status) : 'Ledig'],
-      isBooked ? ['Kund', selectedEvent.customerName || selectedEvent.customerEmail || '—'] : null,
-      ...(isBooked && s.formatCalendarSignalSummary
-        ? s.formatCalendarSignalSummary(selectedEvent).map(([label, value]) => [label, value])
-        : []),
-    ]
-      .filter(Boolean)
-      .map(
-        ([label, value]) =>
-          `<li><span>${s.escapeHtml(label)}</span><strong>${s.escapeHtml(value || '—')}</strong></li>`
-      )
-      .join('');
+
+    const titleText = s.eventTitle(selectedEvent);
+    const customerName = selectedEvent.customerName || selectedEvent.customerEmail || '';
+    titleEl.textContent = titleText;
+    if (nameEl) nameEl.textContent = customerName || titleText;
+    if (monogramEl) monogramEl.textContent = monogramFor(customerName || titleText);
+
+    const statusText = isBooked
+      ? s.formatCaseStatus(selectedEvent.caseStatus || selectedEvent.status) || 'Bokad'
+      : isAvailable
+        ? 'Ledig'
+        : isBlock
+          ? 'Blockerad'
+          : 'Bokning';
+    if (statusEl) {
+      statusEl.textContent = statusText;
+      statusEl.dataset.tone = isBooked ? 'booked' : isAvailable ? 'available' : isBlock ? 'block' : 'default';
+    }
+
+    if (sublineEl) {
+      const parts = [
+        selectedEvent.serviceLabel || selectedEvent.service,
+        selectedEvent.resourceLabel || selectedEvent.resource,
+      ].filter(Boolean);
+      sublineEl.textContent = parts.join(' · ') || '—';
+    }
+
+    if (gridEl) {
+      const items = [
+        ['lifecycle', 'TID', s.formatTimeRange(selectedEvent)],
+        ['status', 'BEHANDLING', selectedEvent.serviceLabel || selectedEvent.service || '—'],
+        ['owner', 'BEHANDLARE', selectedEvent.resourceLabel || selectedEvent.resource || '—'],
+        ['waiting', 'STATUS', statusText],
+        ['followup', 'PLATS', selectedEvent.locationLabel || selectedEvent.location || '—'],
+      ];
+      const signals = isBooked && s.formatCalendarSignalSummary
+        ? s.formatCalendarSignalSummary(selectedEvent)
+            .map(([label, value]) => ['risk', String(label).toUpperCase(), value])
+        : [];
+      gridEl.innerHTML = [...items, ...signals]
+        .map(([kind, label, value]) =>
+          `<div class="focus-intel-item focus-intel-item-${kind}"><span class="focus-intel-label">${s.escapeHtml(label)}</span><strong>${s.escapeHtml(value || '—')}</strong></div>`
+        )
+        .join('');
+    }
 
     if (caseBtn) caseBtn.hidden = !isBooked;
     if (customerBtn) customerBtn.hidden = !isBooked;
