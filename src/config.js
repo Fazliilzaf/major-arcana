@@ -792,7 +792,7 @@ const config = {
   ),
   schedulerCcoTruthDeltaIntervalMinutes: asInt(
     process.env.ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES,
-    5
+    3
   ),
   schedulerCcoInboxBootstrapOnStart: asBool(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_ON_START,
@@ -812,11 +812,11 @@ const config = {
   ),
   schedulerCcoInboxScopedLookbackDays: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_SCOPED_LOOKBACK_DAYS,
-    7
+    3
   ),
   schedulerCcoInboxScopedMaxMessagesPerUser: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER,
-    25
+    20
   ),
   schedulerCcoInboxFullBackfillBatchSize: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_BATCH_SIZE,

@@ -29,7 +29,7 @@ const HAIR_TP_BRAND_KEY = 'hair-tp-clinic';
 function normalizeBrandKey(value) {
   const key = normalizeText(value).toLowerCase();
   if (!key) return '';
-  if (key === HAIR_TP_BRAND_KEY || key === 'hair tp clinic') {
+  if (key === HAIR_TP_BRAND_KEY || key === 'hair tp clinic' || key === 'hairtp') {
     return HAIR_TP_BRAND_KEY;
   }
   return key;
