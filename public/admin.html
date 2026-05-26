@@ -2193,6 +2193,41 @@
         }
       }
       }
+
+      /* ─── ADMIN ADAPTIVE RESPONSIVE ─── */
+
+      /* Mobile (≤767px) */
+      @media (max-width: 767px) {
+        body { padding: 8px !important; }
+        .dashboardPanel { padding: 12px !important; }
+        .sectionNavRow { flex-wrap: wrap !important; gap: 6px !important; overflow-x: auto; }
+        .sectionNavBtn { font-size: 12px !important; padding: 6px 10px !important; min-height: 36px; }
+        h1 { font-size: 22px !important; }
+        h2 { font-size: 18px !important; }
+        .kpiRow, .kpiGrid { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+        .kpiCard { width: 100% !important; min-width: 0 !important; }
+        table { display: block !important; overflow-x: auto !important; font-size: 12px !important; }
+        table th, table td { padding: 6px 8px !important; white-space: nowrap; }
+        textarea { min-height: 80px !important; }
+        input, select, textarea, button { min-height: 44px; font-size: 14px !important; }
+        .glass-panel, .glassSectionPanel { padding: 14px !important; }
+        pre { font-size: 11px !important; overflow-x: auto !important; }
+      }
+
+      /* Tablet (768–1023px) */
+      @media (min-width: 768px) and (max-width: 1023px) {
+        body { padding: 16px !important; }
+        .kpiRow, .kpiGrid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+        .sectionNavRow { flex-wrap: wrap !important; }
+      }
+
+      /* Touch targets */
+      @media (max-width: 1023px) {
+        button, [role="button"], a, select, input[type="checkbox"] {
+          min-height: 44px;
+          min-width: 44px;
+        }
+      }
     </style>
   </head>
   <body>
