@@ -157,8 +157,6 @@ async function main() {
     record('Inloggning', true, 'session klar', Date.now() - t0);
     lastStepEnd = Date.now();
     await injectStaffToken(page, staffToken);
-
-    await injectStaffToken(page, staffToken);
     const resolvedPatientId = await resolveSmokePatientId({
       base,
       token: staffToken,
