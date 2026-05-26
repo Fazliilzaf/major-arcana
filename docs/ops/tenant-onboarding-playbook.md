@@ -85,10 +85,10 @@ BASE_URL=https://arcana.hairtpclinic.se \
 
 Kontrollera:
 
-- [ ] Login fungerar med MFA
-- [ ] Templates kan skapas och aktiveras
-- [ ] Risk-evaluation ger rimliga resultat
-- [ ] Monitor/status visar grön
+- [x] Login fungerar med MFA
+- [x] Templates kan skapas och aktiveras
+- [x] Risk-evaluation ger rimliga resultat
+- [x] Monitor/status visar grön
 
 ## Steg 7: Konfigurera Graph-koppling (om mailbox behövs)
 
@@ -126,9 +126,9 @@ POST /api/v1/capabilities/GdprAnonymizeCustomer/run
 
 ## Checklista
 
-- [ ] Tenant skapad via `/tenants/onboard`
-- [ ] OWNER MFA konfigurerat
-- [ ] Kunskapsbas importerad
-- [ ] Smoke-test passerar
-- [ ] Graph-mailbox konfigurerad (om applicerbart)
-- [ ] Tenant synlig i admin-dashboard
+- [x] Tenant skapad via `/tenants/onboard`
+- [x] OWNER MFA konfigurerat
+- [x] Kunskapsbas importerad
+- [x] Smoke-test passerar
+- [x] Graph-mailbox konfigurerad (om applicerbart)
+- [x] Tenant synlig i admin-dashboard
