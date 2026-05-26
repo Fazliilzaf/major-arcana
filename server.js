@@ -557,6 +557,21 @@ const { createPostOpReviewStore } = require('./src/ops/postOpReviewStore');
 const { createPostOpReviewRouter } = require('./src/routes/postOpReview');
 const { createBillingRouter } = require('./src/routes/billing');
 const { createKnowledgeRouter } = require('./src/routes/knowledge');
+const { createPosRouter } = require('./src/routes/pos');
+const { createPosStore } = require('./src/pos/posStore');
+const {
+  createPatientPortalRouter,
+  createPatientPortalStore,
+} = require('./src/routes/patientPortal');
+const { createPatientIdentityRouter } = require('./src/routes/patientIdentity');
+const { createPatientIdentityStore } = require('./src/ops/patientIdentityVerification');
+const { createVideoRouter } = require('./src/routes/video');
+const { createSignalingService } = require('./src/video/signalingServer');
+const { createMeetingTranscriptionService } = require('./src/video/meetingTranscription');
+const { createQmsRouter } = require('./src/routes/qms');
+const { createQmsStore } = require('./src/qms/qmsStore');
+const { createReconciliationRouter } = require('./src/routes/reconciliation');
+const { createSafeMergeService } = require('./src/migration/safeMergeService');
 const { createBillingService } = require('./src/billing/billingService');
 const { createStripeClient } = require('./src/billing/stripeClient');
 const { createStripeWebhookHandler } = require('./src/billing/stripeWebhook');
@@ -962,6 +977,40 @@ app.get('/api/v1/executive/agents/status', (req, res) => {
     status: feedSummary.byAgent?.[name] > 0 ? 'action_required' : 'idle',
   }));
   return res.json({ ok: true, agents, feedSummary });
+});
+
+const { computeQaDashboard } = require('./src/ops/qaDashboard');
+const { buildDayView, buildWeekView } = require('./src/ops/clinicCalendarView');
+
+app.get('/api/v1/qa/dashboard', (req, res) => {
+  const dashboard = computeQaDashboard({
+    journalStore: null,
+    patientMasterStore: null,
+    encounterStore: null,
+    identityStore: null,
+    tenantId: req.query?.tenantId || '',
+  });
+  return res.json({ ok: true, ...dashboard });
+});
+
+app.get('/api/v1/calendar/day', (req, res) => {
+  const view = buildDayView({
+    date: req.query?.date,
+    bookingEngineStore: null,
+    encounterStore: null,
+    tenantId: req.query?.tenantId || '',
+  });
+  return res.json({ ok: true, ...view });
+});
+
+app.get('/api/v1/calendar/week', (req, res) => {
+  const view = buildWeekView({
+    startDate: req.query?.startDate,
+    bookingEngineStore: null,
+    encounterStore: null,
+    tenantId: req.query?.tenantId || '',
+  });
+  return res.json({ ok: true, ...view });
 });
 
 app.get('/api/public/status', (req, res) => {
@@ -2263,6 +2312,93 @@ process.once('SIGTERM', () => {
       knowledgeStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
+    })
+  );
+
+  const posStorePath = config.stateRoot
+    ? `${config.stateRoot}/cco-pos.json`
+    : './data/cco-pos.json';
+  const posStore = createPosStore({ filePath: posStorePath });
+  posStore.load().catch((err) => console.warn('[pos-store] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createPosRouter({
+      authStore: auth,
+      posStore,
+    })
+  );
+
+  const patientPortalStorePath = config.stateRoot
+    ? `${config.stateRoot}/cco-patient-portal.json`
+    : './data/cco-patient-portal.json';
+  const patientPortalStore = createPatientPortalStore({ filePath: patientPortalStorePath });
+  patientPortalStore
+    .load()
+    .catch((err) => console.warn('[patient-portal] Load failed:', err?.message));
+
+  app.use(
+    '/api',
+    createPatientPortalRouter({
+      patientPortalStore,
+      journalStore: ccoJournalStore || null,
+    })
+  );
+
+  const identityStorePath = config.stateRoot
+    ? `${config.stateRoot}/cco-patient-identity.json`
+    : './data/cco-patient-identity.json';
+  const identityStore = createPatientIdentityStore({ filePath: identityStorePath });
+  identityStore.load().catch((err) => console.warn('[identity-store] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createPatientIdentityRouter({
+      authStore: auth,
+      identityStore,
+    })
+  );
+
+  const signalingService = createSignalingService();
+  const transcriptionService = createMeetingTranscriptionService();
+
+  const qmsStorePath = config.stateRoot
+    ? `${config.stateRoot}/cco-qms.json`
+    : './data/cco-qms.json';
+  const qmsStore = createQmsStore({ filePath: qmsStorePath });
+  qmsStore.load().catch((err) => console.warn('[qms-store] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createQmsRouter({
+      authStore: auth,
+      qmsStore,
+    })
+  );
+
+  const mergeServicePath = config.stateRoot
+    ? `${config.stateRoot}/cco-merge-service.json`
+    : './data/cco-merge-service.json';
+  const mergeService = createSafeMergeService({ filePath: mergeServicePath });
+  mergeService.load().catch((err) => console.warn('[merge-service] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createReconciliationRouter({
+      authStore: auth,
+      patientMasterStore: ccoPatientMasterStore || null,
+      migrationIndexStore: ccoMigrationIndexStore || null,
+      journalStore: ccoJournalStore || null,
+      mergeService,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createVideoRouter({
+      authStore: auth,
+      signalingService,
+      transcriptionService,
     })
   );
 

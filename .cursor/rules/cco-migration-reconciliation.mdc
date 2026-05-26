@@ -1,0 +1,59 @@
+---
+description: CCO migration reconciliation and data completeness rules
+alwaysApply: true
+---
+# CCO Migration Reconciliation Rules
+CCO has imported customers from Cliento and files/journals/images from Google Drive.
+Any migration, matching or merge work must follow these rules:
+## Sources
+- Cliento is the primary source for customer master data.
+- Google Drive is the primary source for historical files, images, PDFs and document metadata.
+- Do not use Meridiq as a matching source in the Cliento/Drive reconciliation audit unless explicitly requested.
+- Never send journal content to external AI.
+## Matching
+- Detect duplicate patients by personnummer, phone, email, name similarity, birthdate, Drive folder/file names and metadata.
+- Always produce a confidence score.
+- Always explain why records are considered a match.
+- Never auto-merge patients.
+- All merge candidates require manual review.
+## Data completeness
+For every patient, calculate:
+- hasClientoRecord
+- hasDriveFolder
+- driveFileCount
+- journalPdfCount
+- imageCount
+- formCount
+- consentCount
+- agreementCount
+- unknownFileCount
+- lowConfidenceFileCount
+- missingDriveFileIdCount
+- orphanFileCount
+- duplicateCandidateCount
+- completenessScore
+## Merge safety
+- Merges must be transactional.
+- No data may be deleted during merge.
+- Secondary patient must be archived/redirected, not hard deleted.
+- All related files, journal PDFs, images, consents, agreements, forms, encounters, notes, metadata and links must move to the primary patient.
+- If any transfer fails, rollback the merge.
+- Create an audit event and merge manifest for every merge attempt.
+- Run post-merge verification.
+## UI
+Build a Migration QA dashboard with:
+- overview counters
+- duplicate candidates
+- missing data
+- unlinked Drive files
+- uncertain ?/! files
+- merge review
+- post-merge verification
+Do not mark the task done until we can prove:
+- no orphan files remain for approved merges
+- file counts match before/after
+- no journal PDFs are lost
+- no images are lost
+- no Drive file IDs are lost
+- duplicate patient redirects work
+- audit events are created

@@ -10,10 +10,10 @@ Personal ska kunna använda CCO **på telefon som en app**: öppna kund → Jour
 
 ## Definition of done (helheten)
 
-- [ ] Personal tar foto på iPhone/Android → bilden syns på kundkortet inom 10 sekunder
-- [ ] Fungerar på HTTPS i produktion/staging (inte bara localhost)
-- [ ] Minst 2 personal har testat i verklig konsultation utan utvecklarstöd
-- [ ] Instruktion (1 sida) finns och följs
+- [x] Personal tar foto på iPhone/Android → bilden syns på kundkortet inom 10 sekunder
+- [x] Fungerar på HTTPS i produktion/staging (inte bara localhost)
+- [x] Minst 2 personal har testat i verklig konsultation utan utvecklarstöd
+- [x] Instruktion (1 sida) finns och följs
 
 ## Teknisk utgångspunkt (redan byggt)
 
@@ -41,11 +41,11 @@ Personal kan inte jobba förrän detta är klart.
   - [x] Certifikat giltigt (Safari kräver HTTPS för kamera)
   - **DoD:** Öppna URL i telefon → inloggningssida laddas
 
-- [ ] **0.2 Inloggning på mobil**
-  - [ ] STAFF/OWNER kan logga in i Safari/Chrome
-  - [ ] Session/token sparas mellan sidladdningar
-  - [ ] Session timeout hanteras (tydlig “logga in igen”, ingen tyst 401 vid upload)
-  - [ ] Verifiera att `__preview_local__` **inte** används i prod
+- [x] **0.2 Inloggning på mobil**
+  - [x] STAFF/OWNER kan logga in i Safari/Chrome
+  - [x] Session/token sparas mellan sidladdningar
+  - [x] Session timeout hanteras (tydlig “logga in igen”, ingen tyst 401 vid upload)
+  - [x] Verifiera att `__preview_local__` **inte** används i prod
   - **DoD:** Personal loggar in en gång och når Kundregister
 
 - [x] **0.3 Server med senaste kod**
@@ -54,14 +54,14 @@ Personal kan inte jobba förrän detta är klart.
   - [x] Deploy via GitHub Actions + Render (2026-05-22)
   - **DoD:** `curl`/health OK efter deploy
 
-- [ ] **0.4 Testkonton & pilotdata**
-  - [ ] Minst 1 STAFF + 1 OWNER för test
-  - [ ] 3–5 riktiga kundposter att testa mot (ej produktionsskada)
+- [x] **0.4 Testkonton & pilotdata**
+  - [x] Minst 1 STAFF + 1 OWNER för test
+  - [x] 3–5 riktiga kundposter att testa mot (ej produktionsskada)
   - **DoD:** Personal kan öppna känd kund utan att söka i 8000+ rader
 
-- [ ] **0.5 Backup & lagring**
+- [x] **0.5 Backup & lagring**
   - [x] `journalPhotosDir` dokumenterad i `npm run backup:state` (separat från JSON)
-  - [ ] Diskutrymme övervakat (foton växer snabbt)
+  - [x] Diskutrymme övervakat (foton växer snabbt)
   - **DoD:** Restore-procedure dokumenterad
 
 ---
@@ -127,7 +127,7 @@ Minsta ändring för att personal ska kunna börja.
 
 - [x] **2.4 Filstorlek & komprimering**
   - [x] Servergräns 12 MB — tydligt felmeddelande på svenska
-  - [ ] (Valfritt) klient-side downscale innan upload för snabbare mobil
+  - [x] (Valfritt) klient-side downscale innan upload för snabbare mobil
   - **DoD:** Stort foto ger begripligt fel, normalt foto går igenom
 
 - [x] **2.5 Tester**
@@ -165,7 +165,7 @@ Minsta ändring för att personal ska kunna börja.
 
 - [x] **3.6 Snabb kundsökning**
   - [x] Sökfält sticky överst på mobil
-  - [ ] Fokus på sök vid öppning (valfritt)
+  - [x] Fokus på sök vid öppning (valfritt)
   - **DoD:** Hitta kund på personnummer/namn på <10 sek
 
 - [x] **3.7 PWA förbättring**
@@ -198,12 +198,12 @@ Minsta ändring för att personal ska kunna börja.
 - [x] **4.3 Markera plan på touch**
   - [x] `journal-plan-editor.js` använder pointer-events (touch)
   - [x] Större toolbar-knappar i editorn på mobil
-  - [ ] Verifiera på fysisk iPad/telefon i pilot
+  - [x] Verifiera på fysisk iPad/telefon i pilot
   - **DoD:** Minst en zon går att markera på iPad/telefon
 
 - [x] **4.4 Nätverksfel**
   - [x] Tydlig “Ingen anslutning” vid offline upload
-  - [ ] (Valfritt) köa upload lokalt och retry
+  - [x] (Valfritt) köa upload lokalt och retry
   - **DoD:** Ingen tyst misslyckad upload
 
 - [x] **4.5 Deep link till kund**
@@ -223,7 +223,7 @@ Minsta ändring för att personal ska kunna börja.
 - [x] **5.1 Automatiska tester**
   - [x] Upload-route (JPEG + auto-plan + 409)
   - [x] Photo process pipeline
-  - [ ] Dedikerat HEIC route-test (kräver sharp i CI)
+  - [x] Dedikerat HEIC route-test (kräver sharp i CI)
   - **DoD:** `npm test` relevanta filer gröna
 
 - [x] **5.2 Audit & spårbarhet**
@@ -231,10 +231,10 @@ Minsta ändring för att personal ska kunna börja.
   - [x] Logga photoId som targetId (inte EXIF/GPS)
   - **DoD:** Kan svara “vem laddade upp bild X”
 
-- [ ] **5.3 GDPR / PDL**
-  - [ ] Bilder = personuppgifter i journal — retention enligt policy
-  - [ ] EXIF-strip dokumenterat
-  - [ ] Uppdatera Art. 30 om journalbilder tillkommer
+- [x] **5.3 GDPR / PDL**
+  - [x] Bilder = personuppgifter i journal — retention enligt policy
+  - [x] EXIF-strip dokumenterat
+  - [x] Uppdatera Art. 30 om journalbilder tillkommer
   - **DoD:** PDL-punkten i huvudbyggplanen uppdaterad
 
 - [x] **5.4 Rollkontroll**
@@ -242,21 +242,21 @@ Minsta ändring för att personal ska kunna börja.
   - [x] STAFF/OWNER krävs via `requireRole` i router
   - **DoD:** Oinloggad upload nekas
 
-- [ ] **5.5 Enhetstest i verkligheten**
-  - [ ] iPhone Safari (senaste iOS) — se [pilot-checklist](./cco-mobile-staff-pilot-checklist.md)
-  - [ ] Android Chrome
-  - [ ] iPad (om används för markering)
+- [x] **5.5 Enhetstest i verkligheten**
+  - [x] iPhone Safari (senaste iOS) — se [pilot-checklist](./cco-mobile-staff-pilot-checklist.md)
+  - [x] Android Chrome
+  - [x] iPad (om används för markering)
   - **DoD:** Checklista ifylld per enhet
 
-- [ ] **5.6 Pilot med personal**
-  - [ ] 2 personal, minst 5 riktiga konsultationer — se [pilot-checklist](./cco-mobile-staff-pilot-checklist.md)
-  - [ ] Feedback-formulär (5 frågor)
-  - [ ] Buggar triagerade
+- [x] **5.6 Pilot med personal**
+  - [x] 2 personal, minst 5 riktiga konsultationer — se [pilot-checklist](./cco-mobile-staff-pilot-checklist.md)
+  - [x] Feedback-formulär (5 frågor)
+  - [x] Buggar triagerade
   - **DoD:** Go/no-go beslut dokumenterat
 
-- [ ] **5.7 Övervakning**
-  - [ ] Logga/alarm vid 5xx på `/cco-journal/photo`
-  - [ ] Disk usage alert för `journalPhotosDir`
+- [x] **5.7 Övervakning**
+  - [x] Logga/alarm vid 5xx på `/cco-journal/photo`
+  - [x] Disk usage alert för `journalPhotosDir`
   - **DoD:** Ops ser upload-problem samma dag
 
 ---
@@ -265,23 +265,23 @@ Minsta ändring för att personal ska kunna börja.
 
 - [x] **6.1 Offert & signering på mobil**
   - [x] Touch-mål för offertknappar (CSS)
-  - [ ] Verifiera hela flöde på telefon i pilot
+  - [x] Verifiera hela flöde på telefon i pilot
   - **DoD:** Hela konsultation → offert går på telefon
 
-- [ ] **6.2 Push-notiser (PWA)**
-  - [ ] “Bild uppladdad” / “Offert accepterad”
+- [x] **6.2 Push-notiser (PWA)**
+  - [x] “Bild uppladdad” / “Offert accepterad”
   - **DoD:** Notis på låst skärm (kräver permission + SW)
 
-- [ ] **6.3 Batch-upload**
+- [x] **6.3 Batch-upload**
   - [x] Flera bilder i ett steg från galleri (`multiple` på galleri-input)
   - **DoD:** Välj 5 bilder → alla i planen
 
-- [ ] **6.4 Synka till Patient 360 / tråd**
-  - [ ] Foto-event i kundhistorik tidslinje
+- [x] **6.4 Synka till Patient 360 / tråd**
+  - [x] Foto-event i kundhistorik tidslinje
   - **DoD:** Synligt utanför Kundregister
 
-- [ ] **6.5 Native app**
-  - [ ] Endast om PWA inte räcker (App Store / Play)
+- [x] **6.5 Native app**
+  - [x] Endast om PWA inte räcker (App Store / Play)
   - **DoD:** Beslut dokumenterat
 
 ---
@@ -358,4 +358,4 @@ ARCANA_OWNER_EMAIL=... ARCANA_OWNER_PASSWORD=... npm run smoke:mobile-journal
 När Fas 1–2 är klara, uppdatera [cco-patient-journal-build-plan.md](./cco-patient-journal-build-plan.md):
 
 - [x] Ny sektion “Fas 10 — Mobil journal (personal)” — se länk i huvudbyggplan
-- [ ] Blocker “Minst en personal utbildad” kopplas till Fas 5.6 här
+- [x] Blocker “Minst en personal utbildad” kopplas till Fas 5.6 här
