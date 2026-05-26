@@ -1,0 +1,151 @@
+---
+description: CCO adaptive mobile/tablet/desktop UX rules
+alwaysApply: true
+---
+# CCO Adaptive App Layout Rules
+CCO must feel like a modern app across mobile, tablet/iPad and desktop.
+The goal is NOT to simply shrink the desktop UI.
+The goal is consistent visual density, logical flow and proportional spacing across all screen sizes.
+Use Outlook-like app thinking:
+- Mobile = focused single-column task flow
+- iPad/tablet = split view / two-panel layout where useful
+- Desktop = full workspace with side navigation, grids and expanded panels
+## Core principle
+Every CCO view must answer:
+1. What is the user's current task?
+2. What is the next best action?
+3. What information is essential right now?
+4. What should be hidden, collapsed or moved on smaller screens?
+## Required breakpoints
+Use mobile-first layout rules:
+- Mobile: 320–767px
+- Tablet/iPad: 768–1023px
+- Desktop: 1024px+
+- Large desktop: 1440px+
+Never allow desktop layout rules to leak into mobile.
+## Visual density
+Create consistent size tokens for:
+- spacing
+- padding
+- font sizes
+- card sizes
+- buttons
+- chips/status badges
+- section headers
+- forms
+- modals/bottom sheets
+Do not use random one-off sizes.
+Mobile should feel compact but readable.
+Tablet should feel spacious but not oversized.
+Desktop should feel powerful but not crowded.
+## Mobile layout
+On mobile:
+- Use one column
+- No overlapping cards
+- No horizontal scroll
+- No desktop tables
+- No oversized dashboard sections
+- Use bottom navigation
+- Use sticky primary actions
+- Use bottom sheets for details
+- Use step-by-step flows for long forms
+- Use compact cards instead of wide panels
+- Use day view/list view for calendar
+- Make status chips wrap cleanly
+- Ensure Å, Ä, Ö never get clipped
+- Ensure the full page can scroll to the bottom
+## Tablet/iPad layout
+On tablet/iPad:
+- Use split views where useful
+- Calendar + booking details can sit side by side
+- Customer list + customer profile can sit side by side
+- Journal list + journal detail can sit side by side
+- Avoid oversized mobile cards stretched across the whole screen
+- Avoid full desktop complexity too early
+- Use two-column layout only when it improves clarity
+## Desktop layout
+On desktop:
+- Use sidebar navigation
+- Use expanded dashboards
+- Use tables where appropriate
+- Use multi-column layouts
+- Use full calendar/resource views
+- Show more context, but keep the same design system
+## Components
+All reusable components must support responsive variants:
+- AppShell
+- PageHeader
+- Card
+- Section
+- Button
+- StatusChip
+- DataTable
+- MobileCardList
+- Calendar
+- BottomSheet
+- Drawer
+- Modal
+- FormStep
+- StickyActionBar
+- CustomerTimeline
+- BookingStatusPanel
+## Calendar rules
+Mobile:
+- Default to day view or list view
+- Booking details open in bottom sheet
+- Use compact appointment cards
+Tablet:
+- Use day view with side detail panel
+- Allow two-panel booking workflow
+Desktop:
+- Use week/resource calendar
+- Show filters and resource columns
+## Forms
+Long forms must be step-based on mobile:
+- Step 1: basic info
+- Step 2: treatment
+- Step 3: consent/form requirements
+- Step 4: review/sign/save
+Use autosave for important forms.
+Show progress.
+Sticky save/continue button on mobile.
+## Tables
+Tables must transform on mobile:
+- Desktop: table
+- Tablet: compact table or split layout
+- Mobile: cards/list items
+Never force wide tables on mobile.
+## Scroll and overflow
+Before completing any UI task, check:
+- no overflow hidden blocks content
+- no fixed height cuts content
+- no h-screen/100vh causes mobile scroll bugs
+- use min-height and 100dvh where appropriate
+- user can scroll to the final element on iPhone and Android
+## QA requirement
+For every UI change, verify mentally and/or with responsive preview:
+- 320px mobile
+- 390px iPhone
+- 768px iPad
+- 1024px tablet/desktop
+- 1440px desktop
+Do not mark work complete until mobile, tablet and desktop behavior are described.
+## Known mobile bugs to fix
+1. Cards overlap on mobile.
+2. "Arbetskö" and "Fokusyta bokning" are visually too large compared to other sections.
+3. Some pages cannot scroll all the way down on mobile.
+4. Status chips like "Utkast", "Öppna", "Signera" hit the screen edge and align unevenly.
+5. Swedish characters like Å/Ä/Ö get clipped in labels such as "Friskförsäkran".
+6. Some components feel like desktop panels squeezed into mobile.
+7. iPad must not simply stretch mobile cards; it needs split view.
+## Design principle
+CCO ska byggas med "same system, different layout":
+- Samma komponenter.
+- Samma färger.
+- Samma typografi.
+- Samma statuslogik.
+- Samma actions.
+- Men olika layout beroende på enhet.
+- Mobile = single task flow.
+- Tablet/iPad = split view.
+- Desktop = full command center.
