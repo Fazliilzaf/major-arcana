@@ -1,10 +1,11 @@
 'use strict';
 
-const { PLAN_A_PUBLIC_SERVICE_IDS } = require('./ccoBookingEngineStore');
 const { buildTreatmentAgreementReadout } = require('./ccoTreatmentAgreementStore');
 
 const CONSULTATION_SERVICE_IDS = new Set([
-  ...PLAN_A_PUBLIC_SERVICE_IDS,
+  'consultation-online',
+  'consultation-physical',
+  'followup-transplant',
   'consultation',
   'konsultation',
 ]);

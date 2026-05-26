@@ -16,7 +16,7 @@ test('tablet calendar split assets wired in index.html', () => {
   const html = readPreview('index.html');
   assert.match(html, /data-cco-tablet-calendar-open/);
   assert.match(html, /cco-tablet-shell\.js/);
-  assert.match(html, /booking-mobile-calendar-day\.js/);
+  assert.match(html, /booking-lazy-load\.js/);
 });
 
 test('booking-mobile-calendar supports tablet viewport', () => {
