@@ -986,6 +986,9 @@ app.get('/api/v1/executive/agents/status', (req, res) => {
 
 const { computeQaDashboard } = require('./src/ops/qaDashboard');
 const { buildDayView, buildWeekView } = require('./src/ops/clinicCalendarView');
+const { runBackup, listBackups, verifyBackup, restoreFromLocal, resolveConfig: resolveBackupConfig } = require('./src/ops/backupService');
+const { getStatus: getUptimeStatus, startMonitoring, runCheck: runUptimeCheck } = require('./src/ops/uptimeMonitor');
+const { createOnboardingStore } = require('./src/ops/staffOnboarding');
 const { getDocContent, getDocsForSection, getAllSections } = require('./src/ops/contextualDocs');
 
 app.get('/api/v1/docs/sections', (req, res) => {
@@ -1036,6 +1039,57 @@ app.get('/api/v1/calendar/week', (req, res) => {
   });
   return res.json({ ok: true, ...view });
 });
+
+// ─── BACKUP ───
+app.post('/api/v1/ops/backup/run', async (req, res) => {
+  const result = await runBackup();
+  return res.json({ ok: true, ...result });
+});
+app.get('/api/v1/ops/backup/list', async (req, res) => {
+  const result = await listBackups();
+  return res.json(result);
+});
+app.get('/api/v1/ops/backup/verify/:date', async (req, res) => {
+  const result = await verifyBackup(req.params.date, resolveBackupConfig());
+  return res.json(result);
+});
+app.post('/api/v1/ops/backup/restore/:date', async (req, res) => {
+  const result = await restoreFromLocal(req.params.date, resolveBackupConfig());
+  return res.json(result);
+});
+
+// ─── UPTIME MONITOR ───
+app.get('/api/v1/ops/uptime', (req, res) => {
+  return res.json({ ok: true, ...getUptimeStatus() });
+});
+app.post('/api/v1/ops/uptime/check', async (req, res) => {
+  const result = await runUptimeCheck();
+  return res.json({ ok: true, ...result });
+});
+
+// ─── ONBOARDING ───
+const onboardingStorePath = './data/cco-onboarding.json';
+const onboardingStore = createOnboardingStore({ filePath: onboardingStorePath });
+onboardingStore.load().catch((err) => console.warn('[onboarding] Load failed:', err?.message));
+
+app.get('/api/v1/onboarding/:userId', (req, res) => {
+  const status = onboardingStore.getStatus(req.params.userId);
+  return res.json({ ok: true, ...status });
+});
+app.post('/api/v1/onboarding/:userId/step/:stepId', async (req, res) => {
+  const result = await onboardingStore.completeStep(req.params.userId, req.params.stepId, req.body?.verification);
+  return res.json(result);
+});
+app.post('/api/v1/onboarding/:userId/reset', async (req, res) => {
+  const result = await onboardingStore.resetProgress(req.params.userId);
+  return res.json(result);
+});
+app.get('/api/v1/onboarding/admin/incomplete', (req, res) => {
+  return res.json({ ok: true, users: onboardingStore.listIncomplete() });
+});
+
+// Start uptime monitoring
+startMonitoring();
 
 app.get('/api/public/status', (req, res) => {
   const uptimeSec = runtimeState.startedAt
