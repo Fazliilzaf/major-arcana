@@ -26,8 +26,8 @@ const REQUIRED_INDEX_MARKERS = [
   'cco-mobile-core.js',
   'cco-mobile-autosave.js',
   'cco-mobile-shell.js',
-  'cco-mobile-queue.js',
-  'booking-mobile-calendar-day.js',
+  'booking-lazy-load.js',
+  '__ARCANA_ENSURE_INBOX_SCRIPTS__',
   'cco-care-panel.js',
   'thread-ai-summary.js',
   'data-cco-care-open',
@@ -58,6 +58,10 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const shellJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-shell.js'), 'utf8');
   assert.match(shellJs, /window\.ArcanaMobileShell/, 'ArcanaMobileShell export saknas');
   assert.match(shellJs, /navigateToCalendar/, 'navigateToCalendar saknas');
+  assert.match(shellJs, /__ARCANA_OPEN_MOBILE_CALENDAR__/, 'lazy calendar open saknas');
+
+  const lazyLoadJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-lazy-load.js'), 'utf8');
+  assert.match(lazyLoadJs, /__ARCANA_ENSURE_BOOKING_SCRIPTS__/, 'booking lazy loader saknas');
 
   const calendarJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-mobile-calendar-day.js'), 'utf8');
   assert.match(calendarJs, /data-calendar-grid/, 'BL.1: månadsvy grid saknas');
@@ -105,7 +109,7 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   assert.match(calendarSharedJs, /fetchCalendarRange/, 'Kalender: merge slots + cases saknas');
   assert.match(calendarSharedJs, /ArcanaBookingCalendarShared/, 'Kalender: shared helpers saknas');
   assert.match(desktopWeekJs, /openDayView|data-cal-open-day/, 'Kalender: dubbelklick dag → dagvy saknas');
-  assert.match(desktopWeekJs, /cco-cal-day-hint/, 'Kalender: dagvy-hint i veckorutnät saknas');
+  assert.doesNotMatch(desktopWeekJs, /cco-cal-day-hint/, 'Kalender: dagvy-hint ska vara borttagen');
   assert.match(calendarSharedJs, /buildBlockCalendarEvent|rebookCalendarBooking/, 'Kalender P1: block/rebook shared saknas');
   assert.match(calendarSharedJs, /fetchCalendarSignals/, 'P6.10: calendar-signals API saknas');
   assert.match(calendarSharedJs, /buildOperationalIconSpecs/, 'P6.10: operativa kalenderikoner saknas');
