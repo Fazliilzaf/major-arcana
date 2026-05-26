@@ -3053,7 +3053,24 @@
     }
   }
 
+  // R6b: throttle scheduleRender så vi inte hamnar i render-loop. Tak vid
+  // 30 render per sekund — om vi når det signal:erar vi bara backoff istället.
+  let __renderBudget = { count: 0, windowStart: 0 };
   function __doRender() {
+    const now = Date.now();
+    if (now - __renderBudget.windowStart > 1000) {
+      __renderBudget.windowStart = now;
+      __renderBudget.count = 0;
+    }
+    __renderBudget.count++;
+    if (__renderBudget.count > 30) {
+      // Vi är i en render-loop — skippa denna och rensa scheduled-flaggan
+      __renderScheduled = false;
+      if (__renderBudget.count === 31 && typeof console !== 'undefined') {
+        console.warn('[render] >30 renders/sec, throttlar — render-loop misstänkt');
+      }
+      return;
+    }
     __renderScheduled = false;
     const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
     try {
