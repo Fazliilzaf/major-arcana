@@ -4,6 +4,7 @@ const {
   resolveCounterpartyDisplayName,
   resolveCounterpartyIdentity,
 } = require('./ccoCounterpartyTruth');
+const { classifyConversationMessage } = require('../intelligence/messageClassification');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -1005,22 +1006,32 @@ function createCcoMailboxTruthWorklistReadModel({
     return Array.from(grouped.values())
       .map((entry) => {
         const deletedOnly = entry.hasDeleted && !entry.hasInbox && !entry.hasSent && !entry.hasDrafts;
-        const needsReply =
+        const messageClassification = classifyConversationMessage({
+          subject: entry.subject,
+          inboundPreview: entry.latestPreview,
+          sender: entry.customerEmail,
+        });
+        const isSystemMail = messageClassification === 'system_mail';
+        const rawNeedsReply =
           Boolean(entry.lastInboundAt) &&
           (!entry.lastOutboundAt || entry.lastOutboundAt < entry.lastInboundAt);
+        const needsReply = !isSystemMail && rawNeedsReply;
         const hoursSinceInbound = entry.lastInboundAt
           ? Math.max(
               0,
               Math.round(((Date.now() - Date.parse(entry.lastInboundAt)) / (60 * 60 * 1000)) * 10) / 10
             )
           : 0;
-        const activeCandidate = !deletedOnly && (entry.hasUnreadInbound || needsReply || entry.hasDrafts);
+        const activeCandidate =
+          !deletedOnly &&
+          (entry.hasUnreadInbound || needsReply || entry.hasDrafts) &&
+          (!isSystemMail || entry.hasUnreadInbound || entry.hasDrafts);
         const outOfScopeDraftReview =
           activeCandidate && isOutOfScopeDraftReview({ ...entry, needsReply });
         let lane = null;
         if (activeCandidate) {
           if (outOfScopeDraftReview) lane = 'review';
-          else if (entry.hasUnreadInbound && hoursSinceInbound >= 24) lane = 'act-now';
+          else if (!isSystemMail && entry.hasUnreadInbound && hoursSinceInbound >= 24) lane = 'act-now';
           else lane = 'all';
         }
 
@@ -1028,6 +1039,7 @@ function createCcoMailboxTruthWorklistReadModel({
           ...entry,
           ownershipMailbox: entry.mailboxId,
           deletedOnly,
+          messageClassification,
           needsReply,
           hoursSinceInbound,
           activeCandidate,
@@ -1227,6 +1239,7 @@ function createCcoMailboxTruthWorklistReadModel({
         state: {
           hasUnreadInbound: row.hasUnreadInbound === true,
           needsReply: row.needsReply === true,
+          messageClassification: row.messageClassification || 'actionable',
           messageCount: row.messageCount,
           folderPresence: asObject(row.folderPresence),
           operatorState: asObject(row.operatorState),

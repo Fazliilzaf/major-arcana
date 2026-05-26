@@ -2,6 +2,10 @@ const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
 const { maskInboxText } = require('../privacy/inboxMasking');
 const { classifyIntent } = require('../intelligence/intentClassifier');
+const {
+  classifyConversationMessage,
+  normalizeMessageClassification,
+} = require('../intelligence/messageClassification');
 const { detectTone } = require('../intelligence/toneDetector');
 const { resolveWritingIdentityProfile } = require('../intelligence/writingIdentityRegistry');
 const {
@@ -400,51 +404,6 @@ const INTENT_ACTIONS = Object.freeze({
   follow_up: 'Ge statusuppdatering',
   unclear: 'Be om mer info',
 });
-
-const SYSTEM_MAIL_PATTERNS = Object.freeze([
-  'no-reply@',
-  'noreply@',
-  'do-not-reply',
-  'unsubscribe',
-  'newsletter',
-  'nyheter:',
-  'kampanj',
-  'campaign',
-  'erbjudande',
-  'cashback',
-  'påminnelse',
-  'paminnelse',
-  'verify your email',
-  'bekräfta din e-post',
-  'bekrafta din e-post',
-  'orderbekräftelse',
-  'orderbekraftelse',
-  'beställningsbekräftelse',
-  'bestallningsbekraftelse',
-  'kvitto',
-  'receipt',
-  'faktura',
-  'invoice',
-  'förfaller snart',
-  'forfaller snart',
-  'microsoft 365',
-  'du får inte ofta e-post',
-  'du far inte ofta e-post',
-  'power up your productivity with microsoft 365',
-  'get more done with apps like word',
-]);
-
-const HUMAN_INQUIRY_PATTERN =
-  /\?|fråga|fraga|förfrågan|forfragan|behandling|ingrepp|hårtransplantation|hartransplantation|hårbotten|harbotten|symptom|svullnad|smärta|smarta|pris|bokning|boka|avboka|omboka|konsultation|patient/i;
-
-const ACTIONABLE_SYSTEM_INTENTS = new Set([
-  'booking_request',
-  'pricing_question',
-  'anxiety_pre_op',
-  'complaint',
-  'cancellation',
-  'follow_up',
-]);
 
 const CCO_DEFAULT_SENDER_MAILBOX =
   normalizeText(process.env.ARCANA_CCO_DEFAULT_SENDER_MAILBOX) || 'contact@hairtpclinic.com';
@@ -1014,32 +973,6 @@ function resolveWorkloadWarmth(summary = {}) {
     return 'returning';
   }
   return 'new';
-}
-
-function normalizeMessageClassification(value = '') {
-  return normalizeText(value).toLowerCase() === 'system_mail'
-    ? 'system_mail'
-    : 'actionable';
-}
-
-function classifyConversationMessage({
-  subject = '',
-  inboundPreview = '',
-  sender = '',
-  intent = 'unclear',
-} = {}) {
-  const haystack = [subject, inboundPreview, sender]
-    .map((item) => normalizeText(item).toLowerCase())
-    .filter(Boolean)
-    .join(' ');
-  if (!haystack) return 'actionable';
-  const looksLikeSystemMail = SYSTEM_MAIL_PATTERNS.some((pattern) => haystack.includes(pattern));
-  if (!looksLikeSystemMail) return 'actionable';
-
-  const normalizedIntent = normalizeText(intent).toLowerCase();
-  const looksHumanInquiry = HUMAN_INQUIRY_PATTERN.test(haystack);
-  if (ACTIONABLE_SYSTEM_INTENTS.has(normalizedIntent) || looksHumanInquiry) return 'actionable';
-  return 'system_mail';
 }
 
 function buildCustomerIndex(conversations = [], nowMs = Date.now()) {

@@ -144,3 +144,10 @@ services:
         sync: false
       - key: ARCANA_MIGRATION_INDEX_PATH
         value: /var/data/arcana/migration-index.json
+      # CCO inkorg: snabbare delta-sync och smalare scoped-analys (2026-05-20).
+      - key: ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES
+        value: "3"
+      - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_LOOKBACK_DAYS
+        value: "3"
+      - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER
+        value: "20"
