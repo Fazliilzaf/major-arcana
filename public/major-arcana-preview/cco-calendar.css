@@ -157,7 +157,7 @@
   }
 
   .cco-cal-segment:hover {
-    background: rgba(202, 186, 174, 0.18);
+    background: var(--cco-bg-surface-sunken, #f5efe6);
   }
 
   .cco-cal-segment.is-active {
@@ -193,7 +193,7 @@
   }
 
   .cco-cal-filter-chip.is-active {
-    border-color: rgba(202, 186, 174, 0.8);
+    border-color: var(--cco-border-default, rgba(43, 37, 31, 0.15));
     background: var(--cco-cal-accent-soft);
   }
 
@@ -351,8 +351,8 @@
   .cco-cal-day-open:hover,
   .cco-cal-day-open:focus-visible {
     outline: none;
-    background: rgba(202, 186, 174, 0.16);
-    box-shadow: inset 0 0 0 1px rgba(202, 186, 174, 0.35);
+    background: var(--cco-bg-surface-sunken, #f5efe6);
+    box-shadow: inset 0 0 0 1px var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
   }
 
   .cco-cal-day-hint {
@@ -422,7 +422,7 @@
     right: 0;
     height: 2px;
     background: var(--cco-cal-accent);
-    box-shadow: 0 0 0 3px rgba(202, 186, 174, 0.22);
+    box-shadow: 0 0 0 3px var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
     z-index: 2;
   }
 
@@ -510,7 +510,7 @@
   }
 
   .cco-cal-drop-zone.is-drop-target {
-    outline: 2px dashed rgba(202, 186, 174, 0.85);
+    outline: 2px dashed var(--cco-color-accent, #4a8268);
     outline-offset: -2px;
     background: rgba(255, 245, 232, 0.35);
   }
@@ -619,7 +619,7 @@
 
   .cco-mobile-calendar-day.is-selected {
     background: rgba(255, 235, 216, 0.55);
-    border-color: rgba(202, 186, 174, 0.75);
+    border-color: var(--cco-border-default, rgba(43, 37, 31, 0.15));
   }
 
   .cco-mobile-calendar-day.is-today .cco-mobile-calendar-day-num {
@@ -634,7 +634,7 @@
 
   .schedule-status-pill-rose {
     background: linear-gradient(180deg, rgba(239, 229, 222, 0.98) 0%, rgba(202, 186, 174, 0.28) 100%) !important;
-    border: 1px solid rgba(202, 186, 174, 0.35);
+    border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
   }
 
   /* R5: tog bort tidigare @media (max-width: 1279px)-regel som stackade
