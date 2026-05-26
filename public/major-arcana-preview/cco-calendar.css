@@ -679,4 +679,82 @@
     font-weight: var(--cco-weight-regular, 400);
   }
 
+
+  /* === R4 (2026-05-26): veckosammanfattning, print-knapp, kortkommandon ===== */
+
+  /* Veckosammanfattning högst upp i vecka-vyn — speglar mailbox-summary-känsla. */
+  .cco-cal-week-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--cco-space-4, 16px);
+    padding: var(--cco-space-3, 12px) var(--cco-space-4, 16px);
+    margin-bottom: var(--cco-space-3, 12px);
+    background: var(--cco-bg-surface-sunken, #f5efe6);
+    border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    border-radius: var(--cco-radius-md, 8px);
+    font-size: var(--cco-text-sm, 12px);
+    color: var(--cco-text-secondary, #5d544a);
+  }
+  .cco-cal-week-summary-kicker {
+    font-size: var(--cco-text-xs, 11px);
+    font-weight: var(--cco-weight-semibold, 600);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cco-text-tertiary, #8a8174);
+  }
+  .cco-cal-week-summary-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .cco-cal-week-summary-item strong {
+    font-size: var(--cco-text-base, 14px);
+    color: var(--cco-text-primary, #2b251f);
+    font-variant-numeric: tabular-nums;
+  }
+  .cco-cal-week-summary-item.is-confirmed strong { color: var(--cco-status-success, #4a8268); }
+  .cco-cal-week-summary-item.is-tentative strong { color: var(--cco-status-warning, #c8821e); }
+  .cco-cal-week-summary-item.is-conflict strong { color: var(--cco-status-danger, #b94a4a); }
+
+  /* Print-knapp: dämpad, separerad från nav-knappar. */
+  .cco-cal-nav-btn-print {
+    margin-left: var(--cco-space-2, 8px);
+    border-left: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    padding-left: var(--cco-space-3, 12px);
+  }
+
+  /* @media print: göm allt utom kalender-shellen.
+   * Behåll bara grid + summary, ta bort drag-zoner, hover, skuggor. */
+  @media print {
+    body.cco-cal-printing > *:not(#cco-desktop-calendar):not(script):not(style) {
+      display: none !important;
+    }
+    body.cco-cal-printing #cco-desktop-calendar {
+      display: block !important;
+      position: static !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      background: white !important;
+    }
+    body.cco-cal-printing .cco-cal-toolbar,
+    body.cco-cal-printing .cco-cal-detail,
+    body.cco-cal-printing .cco-cal-day-hint,
+    body.cco-cal-printing .cco-cal-nav-btn-print {
+      display: none !important;
+    }
+    body.cco-cal-printing .cco-cal-event {
+      box-shadow: none !important;
+      break-inside: avoid;
+    }
+    body.cco-cal-printing .cco-cal-week-summary {
+      background: white !important;
+      border: 1px solid #ccc !important;
+    }
+    @page {
+      size: A4 landscape;
+      margin: 12mm;
+    }
+  }
+
 }

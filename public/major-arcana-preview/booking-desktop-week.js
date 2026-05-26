@@ -39,6 +39,15 @@
     return d;
   }
 
+  // R4: ISO-veckonummer (1-53) — för veckosammanfattning.
+  function getIsoWeek(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const day = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  }
+
   function isoFromDate(date) {
     return date.toISOString().slice(0, 10);
   }
@@ -108,9 +117,10 @@
         <div class="cco-cal-filters" data-cal-filters aria-label="Resursfilter"></div>
         <div class="cco-cal-filters cco-cal-filters-type" data-cal-type-filters aria-label="Behandlingstypfilter"></div>
         <div class="cco-cal-nav">
-          <button class="cco-cal-nav-btn" type="button" data-cal-prev>Föregående</button>
-          <button class="cco-cal-nav-btn" type="button" data-cal-today>Idag</button>
-          <button class="cco-cal-nav-btn" type="button" data-cal-next>Nästa</button>
+          <button class="cco-cal-nav-btn" type="button" data-cal-prev title="Föregående (←)">Föregående</button>
+          <button class="cco-cal-nav-btn" type="button" data-cal-today title="Idag (T)">Idag</button>
+          <button class="cco-cal-nav-btn" type="button" data-cal-next title="Nästa (→)">Nästa</button>
+          <button class="cco-cal-nav-btn cco-cal-nav-btn-print" type="button" data-cal-print title="Skriv ut (P)">Skriv ut</button>
         </div>
       </header>
       <div class="cco-cal-body" data-cal-body>
@@ -287,7 +297,33 @@
     const today = s.todayIso();
     const now = new Date();
     const nowBadge = `NU ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    container.innerHTML = `<div class="cco-cal-week-grid">${days
+    // R4: veckosammanfattning - räkna totals över ALLA slots i veckan.
+    const weekSlots = days.flatMap((day) => filterSlots(slotsByDate.get(isoFromDate(day)) || []));
+    const confirmedCount = weekSlots.filter((slot) => {
+      const st = String(slot?.status || slot?.caseStatus || '').toLowerCase();
+      return slot?.kind === 'booked' && (st.includes('confirm') || st.includes('bekräft'));
+    }).length;
+    const tentativeCount = weekSlots.filter((slot) => {
+      const st = String(slot?.status || slot?.caseStatus || '').toLowerCase();
+      return slot?.kind === 'booked' && !(st.includes('confirm') || st.includes('bekräft'));
+    }).length;
+    const openCount = weekSlots.filter((slot) => slot?.kind === 'available').length;
+    const weekConflicts = s.findConflictKeys(weekSlots);
+    const conflictCount = weekConflicts.size;
+    const openHours = Math.round(
+      (weekSlots
+        .filter((slot) => slot?.kind === 'available')
+        .reduce((sum, slot) => sum + s.slotDurationMinutes(slot), 0) / 60) * 10
+    ) / 10;
+    const weekLabel = `v ${getIsoWeek(viewAnchor)}`;
+    const summaryHtml = `<aside class="cco-cal-week-summary" aria-label="Veckosammanfattning">
+      <span class="cco-cal-week-summary-kicker">${s.escapeHtml(weekLabel)}</span>
+      <span class="cco-cal-week-summary-item is-confirmed"><strong>${confirmedCount}</strong> bekräftade</span>
+      <span class="cco-cal-week-summary-item is-tentative"><strong>${tentativeCount}</strong> tentativa</span>
+      <span class="cco-cal-week-summary-item is-open"><strong>${openHours}</strong> lediga timmar</span>
+      ${conflictCount > 0 ? `<span class="cco-cal-week-summary-item is-conflict"><strong>${conflictCount}</strong> i konflikt</span>` : ''}
+    </aside>`;
+    container.innerHTML = `${summaryHtml}<div class="cco-cal-week-grid">${days
       .map((day) => {
         const iso = isoFromDate(day);
         const slots = filterSlots(slotsByDate.get(iso) || []);
@@ -779,8 +815,64 @@
       const actionButton = event.target.closest('[data-cal-action]');
       if (actionButton) {
         runCalendarAction(actionButton.getAttribute('data-cal-action'));
+        return;
+      }
+
+      // R4: Skriv ut
+      if (event.target.closest('[data-cal-print]')) {
+        document.body.classList.add('cco-cal-printing');
+        try { window.print(); } finally {
+          // Class hangs en frame så onafterprint hinner triggas
+          setTimeout(() => document.body.classList.remove('cco-cal-printing'), 500);
+        }
       }
     });
+
+    // R4: tangentbordsnavigering — aktiv bara när desktop-kalendern är synlig.
+    if (!window.__ccoCalendarKeyboardBound) {
+      window.__ccoCalendarKeyboardBound = true;
+      document.addEventListener('keydown', (event) => {
+        const calendarShell = document.getElementById('cco-desktop-calendar');
+        if (!calendarShell || calendarShell.hidden) return;
+        // Skippa när användaren skriver i ett input/textarea/contenteditable
+        const t = event.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+        const key = event.key;
+        if (key === 'ArrowLeft') {
+          event.preventDefault();
+          calendarShell.querySelector('[data-cal-prev]')?.click();
+        } else if (key === 'ArrowRight') {
+          event.preventDefault();
+          calendarShell.querySelector('[data-cal-next]')?.click();
+        } else if (key === 't' || key === 'T') {
+          event.preventDefault();
+          calendarShell.querySelector('[data-cal-today]')?.click();
+        } else if (key === 'v' || key === 'V') {
+          event.preventDefault();
+          setViewMode('week'); void refresh();
+        } else if (key === 'd' || key === 'D') {
+          event.preventDefault();
+          setViewMode('day'); void refresh();
+        } else if (key === 'r' || key === 'R') {
+          event.preventDefault();
+          setViewMode('resource'); void refresh();
+        } else if (key === 'n' || key === 'N') {
+          event.preventDefault();
+          window.ArcanaBookingCalendarActions?.openNewBookingFromSlot?.(selectedEvent);
+        } else if (key === 'p' || key === 'P') {
+          event.preventDefault();
+          calendarShell.querySelector('[data-cal-print]')?.click();
+        } else if (key === 'Escape') {
+          if (selectedEvent) {
+            event.preventDefault();
+            selectedEvent = null;
+            renderDetailPanel();
+          }
+        }
+      });
+    }
   }
 
   function syncVisibility() {
