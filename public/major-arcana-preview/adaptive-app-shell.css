@@ -1,0 +1,367 @@
+/* ============================================================
+   CCO Adaptive App Shell
+   Mobile = bottom nav + single column
+   Tablet = rail nav + split view
+   Desktop = sidebar + multi-column workspace
+   ============================================================ */
+
+/* ─── BASE APP SHELL ─── */
+.cco-app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--cco-bg-page);
+}
+
+.cco-app-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--cco-header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--cco-space-lg);
+  background: var(--cco-bg-card);
+  border-bottom: 1px solid var(--cco-border);
+}
+
+.cco-app-shell-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.cco-app-shell-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--cco-space-lg);
+}
+
+/* ─── MOBILE (single column + bottom nav) ─── */
+@media (max-width: 767px) {
+  .cco-app-shell-sidebar,
+  .cco-app-shell-rail {
+    display: none !important;
+  }
+
+  .cco-app-shell-content {
+    padding: var(--cco-space-md);
+    padding-bottom: calc(var(--cco-bottom-nav-height) + var(--cco-space-lg) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .cco-app-shell-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--cco-bottom-nav-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: var(--cco-bg-card);
+    border-top: 1px solid var(--cco-border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 200;
+  }
+
+  .cco-app-shell-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 12px;
+    border-radius: var(--cco-radius-md);
+    font-size: var(--cco-text-xs);
+    color: var(--cco-text-secondary);
+    min-width: 48px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .cco-app-shell-bottom-nav-item.is-active {
+    color: var(--cco-accent);
+    background: var(--cco-accent-light);
+  }
+
+  /* Sticky action bar */
+  .cco-sticky-action-bar {
+    position: fixed;
+    bottom: calc(var(--cco-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+    height: var(--cco-sticky-bar-height);
+    display: flex;
+    align-items: center;
+    gap: var(--cco-space-sm);
+    padding: 0 var(--cco-space-lg);
+    background: var(--cco-bg-card);
+    border-top: 1px solid var(--cco-border);
+    z-index: 150;
+  }
+
+  /* Bottom sheet */
+  .cco-bottom-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background: rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease;
+  }
+
+  .cco-bottom-sheet[data-open="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .cco-bottom-sheet-panel {
+    background: var(--cco-bg-card);
+    border-radius: var(--cco-radius-xl) var(--cco-radius-xl) 0 0;
+    padding: var(--cco-space-xl) var(--cco-space-lg) calc(var(--cco-space-xl) + env(safe-area-inset-bottom, 0px));
+    max-height: 85dvh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 160ms ease-out;
+  }
+
+  .cco-bottom-sheet[data-open="true"] .cco-bottom-sheet-panel {
+    transform: translateY(0);
+  }
+
+  /* Cards: single column, no overlap */
+  .cco-card-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cco-card-gap);
+  }
+
+  /* Tables → card list on mobile */
+  .cco-responsive-table {
+    display: none !important;
+  }
+  .cco-mobile-card-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: var(--cco-space-sm);
+  }
+}
+
+/* ─── TABLET / IPAD (rail + split view) ─── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .cco-app-shell-sidebar {
+    display: none !important;
+  }
+
+  .cco-app-shell-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: var(--cco-rail-width);
+    padding: var(--cco-space-md) 0;
+    background: var(--cco-bg-card);
+    border-right: 1px solid var(--cco-border);
+    gap: var(--cco-space-sm);
+  }
+
+  .cco-app-shell-bottom-nav {
+    display: none !important;
+  }
+
+  .cco-app-shell-content {
+    padding: var(--cco-space-lg);
+  }
+
+  /* Split view */
+  .cco-split-view {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: var(--cco-space-lg);
+    height: 100%;
+  }
+
+  .cco-split-view-master {
+    overflow-y: auto;
+    border-right: 1px solid var(--cco-border);
+    padding-right: var(--cco-space-lg);
+  }
+
+  .cco-split-view-detail {
+    overflow-y: auto;
+  }
+
+  /* Cards: two columns where useful */
+  .cco-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--cco-card-gap);
+  }
+
+  .cco-card-grid--single {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tables: compact on tablet */
+  .cco-responsive-table {
+    display: table !important;
+    font-size: var(--cco-text-sm);
+  }
+  .cco-mobile-card-list {
+    display: none !important;
+  }
+}
+
+/* ─── DESKTOP (sidebar + multi-column) ─── */
+@media (min-width: 1024px) {
+  .cco-app-shell-rail {
+    display: none !important;
+  }
+
+  .cco-app-shell-bottom-nav {
+    display: none !important;
+  }
+
+  .cco-app-shell-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: var(--cco-sidebar-width);
+    padding: var(--cco-space-lg);
+    background: var(--cco-bg-card);
+    border-right: 1px solid var(--cco-border);
+    overflow-y: auto;
+    gap: var(--cco-space-sm);
+  }
+
+  .cco-app-shell-content {
+    padding: var(--cco-space-2xl);
+  }
+
+  /* Cards: multi-column grid */
+  .cco-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--cco-card-gap);
+  }
+
+  /* Split view: wider master */
+  .cco-split-view {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: var(--cco-space-2xl);
+    height: 100%;
+  }
+
+  /* Tables: full on desktop */
+  .cco-responsive-table {
+    display: table !important;
+    width: 100%;
+  }
+  .cco-mobile-card-list {
+    display: none !important;
+  }
+}
+
+/* ─── SHARED ADAPTIVE COMPONENTS ─── */
+
+/* Card */
+.cco-adaptive-card {
+  background: var(--cco-bg-card);
+  border-radius: var(--cco-card-radius);
+  padding: var(--cco-card-padding);
+  border: 1px solid var(--cco-border);
+}
+
+/* Section header */
+.cco-section-header {
+  font-size: var(--cco-text-xl);
+  font-weight: 650;
+  line-height: var(--cco-line-tight);
+  margin: 0 0 var(--cco-space-lg);
+  color: var(--cco-text-primary);
+}
+
+/* Status chip */
+.cco-status-chip {
+  display: inline-flex;
+  align-items: center;
+  height: var(--cco-chip-height);
+  padding: 0 var(--cco-chip-padding-x);
+  border-radius: var(--cco-chip-radius);
+  font-size: var(--cco-chip-font);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Button */
+.cco-adaptive-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--cco-btn-height);
+  padding: 0 var(--cco-btn-padding-x);
+  border-radius: var(--cco-btn-radius);
+  font-size: var(--cco-btn-font);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: var(--cco-accent);
+  color: #fff;
+}
+
+/* Form step (mobile multi-step) */
+@media (max-width: 767px) {
+  .cco-form-steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cco-space-lg);
+  }
+
+  .cco-form-step {
+    display: none;
+  }
+
+  .cco-form-step.is-active {
+    display: block;
+  }
+
+  .cco-form-progress {
+    display: flex;
+    gap: var(--cco-space-xs);
+    margin-bottom: var(--cco-space-lg);
+  }
+
+  .cco-form-progress-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cco-border);
+  }
+
+  .cco-form-progress-dot.is-active {
+    background: var(--cco-accent);
+  }
+
+  .cco-form-progress-dot.is-done {
+    background: var(--cco-accent);
+    opacity: 0.5;
+  }
+}
+
+@media (min-width: 768px) {
+  .cco-form-steps {
+    display: block;
+  }
+  .cco-form-step {
+    display: block !important;
+  }
+  .cco-form-progress {
+    display: none;
+  }
+}
