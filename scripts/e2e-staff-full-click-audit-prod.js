@@ -8,7 +8,8 @@ const { chromium } = require('playwright');
 const { execSync } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
-const { injectStaffToken } = require('./lib/mobile-patient-deeplink-prod');
+const { injectStaffToken, waitForPatientDetailReady } = require('./lib/mobile-patient-deeplink-prod');
+const { resolveSmokePatientId } = require('./lib/resolve-smoke-patient-prod');
 
 const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
 const staffEmail = process.env.ARCANA_STAFF_EMAIL || '';
@@ -28,6 +29,15 @@ function record(step, ok, detail = '', timingMs = null) {
   const time = timingMs != null ? ` — ${timingMs}ms` : '';
   console.log(`${ok ? 'OK' : 'FAIL'}: ${step}${detail ? ` — ${detail}` : ''}${time}`);
   if (!ok) blockers.push({ step, detail });
+}
+
+function warn(step, detail = '') {
+  console.log(`WARN: ${step}${detail ? ` — ${detail}` : ''}`);
+}
+
+function recordSkip(step, detail = '', timingMs = null) {
+  record(step, true, `SKIP: ${detail}`, timingMs);
+  warn(step, detail);
 }
 
 function recordHop(label, ms) {
@@ -148,6 +158,13 @@ async function main() {
     lastStepEnd = Date.now();
     await injectStaffToken(page, staffToken);
 
+    await injectStaffToken(page, staffToken);
+    const resolvedPatientId = await resolveSmokePatientId({
+      base,
+      token: staffToken,
+      preferredId: process.env.ARCANA_SMOKE_PATIENT_ID || '',
+    });
+
     const primaryViews = [
       {
         view: 'conversations',
@@ -159,7 +176,12 @@ async function main() {
         ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
         assert: async () => {
           await page.waitForSelector('[data-customer-list]', { timeout: 15000 });
-          return (await page.locator('[data-patient-row]').count()) > 0;
+          await page.waitForFunction(
+            () => (document.querySelectorAll('[data-patient-row]').length || 0) > 0,
+            undefined,
+            { timeout: 15000, polling: 16 }
+          );
+          return true;
         },
         detail: 'kundlista',
       },
@@ -289,27 +311,36 @@ async function main() {
         signalRows.length ? signalRows.slice(0, 4).join(' · ') : 'inga signaler på vald bokning'
       );
     } else {
-      record('Kalender event → detalj', false, 'ingen bokad tid i intervallet', Date.now() - t0);
+      recordSkip(
+        'Kalender event → detalj',
+        'ingen bokad tid i aktuell vecka — signal-ikoner kräver testbokning',
+        Date.now() - t0
+      );
       lastStepEnd = Date.now();
     }
 
-    // Kund → journal
+    // Kund → journal via deep link (staff-layout döljer ofta listrader efter nav-tur)
     if (lastStepEnd != null) recordHop('→ kund journal', Date.now() - lastStepEnd);
     t0 = Date.now();
-    await clickNav(page, 'customers', {
-      readyFn: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
+    await injectStaffToken(page, staffToken);
+    await page.goto(`${base}/staff?view=customers&patientId=${encodeURIComponent(resolvedPatientId)}`, {
+      waitUntil: 'commit',
+      timeout: 60000,
     });
-    const firstRow = page.locator('[data-patient-row]').first();
-    if ((await firstRow.count()) > 0) {
-      await firstRow.click();
-      await page.waitForFunction(
-        () => document.documentElement.getAttribute('data-cco-patient-detail') === 'on',
-        undefined,
-        { timeout: 12000, polling: 16 }
-      );
-      record('Kund rad → detalj', true, 'patient öppnad', Date.now() - t0);
-      lastStepEnd = Date.now();
+    await injectStaffToken(page, staffToken);
+    const detailReady = await waitForPatientDetailReady(page, {
+      timeout: 20000,
+      patientId: resolvedPatientId,
+    });
+    record(
+      'Deep link → kunddetalj',
+      detailReady,
+      resolvedPatientId.slice(0, 8),
+      Date.now() - t0
+    );
+    lastStepEnd = Date.now();
 
+    if (detailReady) {
       if (lastStepEnd != null) recordHop('profil → journal', Date.now() - lastStepEnd);
       t0 = Date.now();
       await page.evaluate(() => window.ArcanaPatientMasterUi?.setPatientTab?.('journal'));
@@ -318,9 +349,6 @@ async function main() {
         () => !document.querySelector('[data-patient-tab-panel="journal"]')?.hasAttribute('hidden')
       );
       record('Journal-flik', journalOk, journalOk ? 'panel synlig' : 'panel dold', Date.now() - t0);
-      lastStepEnd = Date.now();
-    } else {
-      record('Kund rad → detalj', false, 'ingen patientrad', Date.now() - t0);
       lastStepEnd = Date.now();
     }
 

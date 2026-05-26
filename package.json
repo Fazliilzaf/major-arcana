@@ -93,6 +93,7 @@
     "verify:graph-read-prod": "node ./scripts/verify-graph-read-prod.js",
     "verify:e2e-mobile-staff-click-audit-prod": "node ./scripts/e2e-mobile-staff-click-audit-prod.js",
     "verify:e2e-full-staff-click-audit-prod": "node ./scripts/e2e-staff-full-click-audit-prod.js",
+    "seed:e2e-calendar-smoke-booking-prod": "ARCANA_E2E_KEEP_BOOKING=1 node ./scripts/seed-e2e-calendar-smoke-booking-prod.js",
     "kickoff:cco-field-pilot": "bash ./scripts/kickoff-cco-field-pilot.sh",
     "cleanup:pilot-journal-duplicates-prod": "bash ./scripts/cleanup-pilot-journal-duplicates-prod.sh",
     "verify:field-pilot-consultations-prod": "node ./scripts/verify-field-pilot-consultations-prod.js",
