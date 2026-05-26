@@ -719,7 +719,7 @@ function createCcoCommercialRouter({
         if (!gate.allowed) {
           return res.status(409).send(gate.reason);
         }
-        await commercialStore.upsertCase({
+        const updatedCase = await commercialStore.upsertCase({
           ...existing,
           quoteStatus: 'accepted',
           commercialStatus: 'ready',
@@ -735,9 +735,21 @@ function createCcoCommercialRouter({
             },
           ],
         });
+
+        // Trigger auto-flow: avtal → bokningslänk → SMS/e-post
+        try {
+          const { triggerAutoFlowIfEnabled } = require('../ops/offerAutoFlow');
+          await triggerAutoFlowIfEnabled(updatedCase || { ...existing, quoteStatus: 'accepted', customerSignedName }, {
+            treatmentAgreementStore,
+            bookingEngineStore,
+            graphSendConnector,
+            patientMasterStore,
+          });
+        } catch (_autoFlowErr) { /* non-blocking */ }
+
         return res
           .status(200)
-          .send('<html lang="sv"><body><h1>Tack!</h1><p>Offerten är accepterad.</p></body></html>');
+          .send('<html lang="sv"><body><h1>Tack!</h1><p>Offerten är accepterad. Du får snart en bokningslänk via SMS och e-post.</p></body></html>');
       } catch (error) {
         console.error(error);
         return res.status(500).send('Kunde inte acceptera offert.');
