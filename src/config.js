@@ -690,8 +690,8 @@ const config = {
   authLoginTicketTtlMinutes: asInt(process.env.AUTH_LOGIN_TICKET_TTL_MINUTES, 10),
   authAuditMaxEntries: asInt(process.env.AUTH_AUDIT_MAX_ENTRIES, 5000),
   authAuditAppendOnly: isProduction ? true : asBool(process.env.AUTH_AUDIT_APPEND_ONLY, true),
-  authLoginRateLimitWindowSec: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_SEC, 60),
-  authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 20),
+  authLoginRateLimitWindowSec: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_SEC, 900),
+  authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 5),
   authSelectTenantRateLimitMax: asInt(process.env.AUTH_SELECT_TENANT_RATE_LIMIT_MAX, 30),
   authOwnerMfaRequired: asBool(process.env.ARCANA_AUTH_OWNER_MFA_REQUIRED, false),
   authOwnerMfaBypassHosts: (() => {
