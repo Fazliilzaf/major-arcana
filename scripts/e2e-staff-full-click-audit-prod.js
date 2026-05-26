@@ -109,15 +109,64 @@ async function readNavState(page, view) {
   }, shellView);
 }
 
-async function clickNav(page, view, { viaMore = false, readyFn, readyArg, timeout = 12000 } = {}) {
+async function isMoreMenuOpen(page) {
+  return page.evaluate(() => {
+    const menu = document.getElementById('preview-more-menu');
+    const more = document.querySelector('.preview-more');
+    if (!menu) return false;
+    return (
+      menu.getAttribute('aria-hidden') === 'false' ||
+      more?.hasAttribute('data-open') ||
+      (!menu.hidden && menu.classList.contains('is-open'))
+    );
+  });
+}
+
+async function openMoreMenu(page) {
+  const toggle = page.locator('[data-more-toggle]').first();
+  if ((await toggle.count()) === 0) return false;
+  try {
+    await toggle.waitFor({ state: 'visible', timeout: 8000 });
+    await toggle.scrollIntoViewIfNeeded();
+  } catch {
+    return false;
+  }
+  if (!(await isMoreMenuOpen(page))) {
+    await toggle.click({ timeout: 10000 });
+    await page.waitForTimeout(150);
+  }
+  return true;
+}
+
+async function navigateViaStaffView(page, view, staffToken) {
+  await page.goto(`${base}/staff?view=${encodeURIComponent(view)}`, {
+    waitUntil: 'commit',
+    timeout: 60000,
+  });
+  if (staffToken) await injectStaffToken(page, staffToken);
+}
+
+async function clickNav(
+  page,
+  view,
+  { viaMore = false, readyFn, readyArg, timeout = 12000, staffToken = null } = {}
+) {
   if (lastStepEnd != null) {
     recordHop(`→ ${view}`, Date.now() - lastStepEnd);
   }
   const t0 = Date.now();
   if (viaMore) {
-    await page.locator('[data-more-toggle]').first().click();
-    await page.waitForTimeout(120);
-    await page.locator(`.preview-more-item[data-nav-view="${view}"]`).first().click();
+    const opened = await openMoreMenu(page);
+    const item = page.locator(`.preview-more-item[data-nav-view="${view}"]`).first();
+    const itemVisible =
+      opened && (await item.count()) > 0 && (await item.isVisible().catch(() => false));
+    if (itemVisible) {
+      await item.click({ timeout: 10000 });
+    } else if (staffToken) {
+      await navigateViaStaffView(page, view, staffToken);
+    } else {
+      throw new Error(`Mer-meny otillgänglig för ${view} (saknar URL-fallback)`);
+    }
   } else {
     await page.locator(`.preview-nav-item[data-nav-view="${view}"]`).first().click();
   }
@@ -247,6 +296,7 @@ async function main() {
     for (const view of moreViews) {
       const timingMs = await clickNav(page, view, {
         viaMore: true,
+        staffToken,
         readyFn: (expected) => document.querySelector('.preview-canvas')?.dataset.appShellView === expected,
         readyArg: view,
       });
@@ -261,6 +311,7 @@ async function main() {
 
     // Kalender sub-vyer
     await clickNav(page, 'calendar', {
+      staffToken,
       readyFn: () => {
         const cal = document.getElementById('cco-desktop-calendar');
         return cal && !cal.hidden;
