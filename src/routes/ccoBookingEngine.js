@@ -10,6 +10,15 @@ const {
 } = require('../ops/ccoBookingStore');
 const { syncPatient360FromBookingCase } = require('../ops/ccoPatient360Bridge');
 const { syncBookingConfirmedToJournal } = require('../ops/ccoJournalBookingBridge');
+const { loadLegacyCatalogBundle } = require('../ops/legacyCatalogLoader');
+const {
+  notifyStaffBookingCancelled,
+  notifyStaffBookingConfirmed,
+} = require('../ops/ccoBookingStaffNotify');
+const { dispatchBookingCancellationEmail } = require('../ops/ccoPatientCareOps');
+const {
+  buildMeridiqConsentReadout,
+} = require('../ops/meridiqConsentCatalogRuntime');
 const {
   assertTreatmentBookingAllowed,
   buildTreatmentAgreementBookingBlocker,
@@ -21,6 +30,8 @@ const WORKSPACE_ID = 'major-arcana-preview';
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
+
+const STAFF_ROLES = new Set(['OWNER', 'STAFF']);
 
 function normalizeKey(value) {
   return normalizeText(value).toLowerCase();
@@ -295,6 +306,14 @@ function requireBookingContext(context) {
   throw error;
 }
 
+function requireStaffRole(context) {
+  const role = normalizeText(context?.actor?.role).toUpperCase();
+  if (STAFF_ROLES.has(role)) return;
+  const error = new Error('Otillräcklig behörighet.');
+  error.statusCode = 403;
+  throw error;
+}
+
 function toCaseInput(context, body = {}) {
   return {
     tenantId: context.tenantId,
@@ -378,8 +397,10 @@ function createCcoBookingEngineRouter({
   patientMasterStore = null,
   journalStore = null,
   treatmentEncounterStore = null,
+  patientCareStateStore = null,
   authStore,
   config,
+  graphSendConnector = null,
 }) {
   const router = express.Router();
 
@@ -393,6 +414,34 @@ function createCcoBookingEngineRouter({
       includeTimelineEvent: options.includeTimelineEvent === true,
       event: options.event || latestEvent,
     });
+  }
+
+  async function notifyStaffBookingEvent(kind, booking, extra = {}) {
+    const toEmail = normalizeText(config?.ccoCareReminderDigestEmail);
+    const fromEmail = normalizeText(config?.ccoCareReminderFromEmail);
+    try {
+      if (kind === 'cancel') {
+        return await notifyStaffBookingCancelled({
+          graphSendConnector,
+          booking,
+          reason: extra.reason,
+          toEmail,
+          fromEmail,
+        });
+      }
+      return await notifyStaffBookingConfirmed({
+        graphSendConnector,
+        booking,
+        toEmail,
+        fromEmail,
+      });
+    } catch (error) {
+      console.warn(
+        `[cco-booking-engine/${kind}] staff notify failed:`,
+        error && error.message ? error.message : error
+      );
+      return { skipped: true, reason: 'notify_failed' };
+    }
   }
 
   async function enforceTreatmentBookingGate(context, body = {}) {
@@ -463,6 +512,53 @@ function createCcoBookingEngineRouter({
       return res.status(500).json({ error: 'Kunde inte hantera CCO booking engine.' });
     }
   }
+
+  router.get('/cco-booking-engine/legacy-catalog', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireStaffRole(context);
+      const bundle = loadLegacyCatalogBundle();
+      const includeDetails = normalizeText(req.query.details) === '1';
+      return res.json({
+        ok: true,
+        provider: 'legacy_migration_catalogs',
+        exportedAt: bundle.exportedAt,
+        counts: bundle.counts,
+        catalogs: includeDetails ? bundle.catalogs : undefined,
+        policyNote:
+          'Staff read-only. Publik webb-bokning förblir av tills explicit go-live (ARCANA_PUBLIC_WEB_BOOKING_ENABLED).',
+      });
+    })
+  );
+
+  router.get('/cco-booking-engine/runtime-catalog', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireStaffRole(context);
+      const readout = await bookingEngineStore.getRuntimeCatalog();
+      return res.json({
+        ok: true,
+        provider: 'cco_engine_runtime_catalog',
+        ...readout,
+      });
+    })
+  );
+
+  // P6.8.8 — Meridiq-samtycken (39 st) staff-readout. Per-tjänst-bindning
+  // (P6.8.9) sker separat när service-bindings-catalog.json mappar
+  // consent → service. Här returnerar vi katalogen grupperad per brand.
+  router.get('/cco-booking-engine/consent-catalog', async (req, res) =>
+    handle(req, res, async (context) => {
+      requireStaffRole(context);
+      const activeOnly = normalizeText(req.query?.activeOnly) !== '0';
+      const readout = buildMeridiqConsentReadout({ activeOnly });
+      return res.json({
+        ok: true,
+        provider: 'meridiq_consent_catalog',
+        policyNote:
+          'Staff read-only. Per-tjänst-bindning (P6.8.9) levereras separat när service-bindings-catalog.json mappar consent → service.',
+        ...readout,
+      });
+    })
+  );
 
   router.get('/cco-booking-engine/catalog', async (req, res) =>
     handle(req, res, async () => {
@@ -651,6 +747,11 @@ function createCcoBookingEngineRouter({
           }
         }
       }
+      const staffNotify = await notifyStaffBookingEvent('confirm', {
+        ...booking,
+        customerName: context.customerName,
+        customerEmail: context.customerEmail,
+      });
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -659,6 +760,7 @@ function createCcoBookingEngineRouter({
         bookingEngine: summaryPayload(bookingEngine, bookingCase),
         patient360: patientPayload(patientRecord),
         journalSync,
+        staffNotify,
       });
     })
   );
@@ -666,9 +768,12 @@ function createCcoBookingEngineRouter({
   router.post('/cco-booking-engine/cancel', async (req, res) =>
     handle(req, res, async (context) => {
       requireBookingContext(context);
+      const cancelReason = normalizeText(req.body?.reason);
+      const summaryBeforeCancel = await bookingEngineStore.getCaseSummary(context);
+      const cancelledBooking = summaryBeforeCancel?.booking || null;
       const result = await bookingEngineStore.cancelBooking({
         ...context,
-        reason: normalizeText(req.body?.reason),
+        reason: cancelReason,
       });
       let bookingCase = await bookingStore.updateStatus({
         ...toCaseInput(context, req.body),
@@ -678,13 +783,45 @@ function createCcoBookingEngineRouter({
         ...toCaseInput(context, req.body),
         type: 'engine_booking_cancelled',
         label: 'Bokning avbokad i CCO',
-        detail:
-          normalizeText(req.body?.reason) || 'Bokningen avbokades i CCO:s egen bokningsmotor.',
+        detail: cancelReason || 'Bokningen avbokades i CCO:s egen bokningsmotor.',
       });
       const patientRecord = await syncBookingPatient360(context, bookingCase, {
         source: 'cco_booking_engine_cancel',
         includeTimelineEvent: true,
       });
+      const cancelledBookingForMail = {
+        ...(cancelledBooking || {}),
+        ...(result?.booking || {}),
+        customerName: context.customerName || cancelledBooking?.customerName,
+        customerEmail: context.customerEmail || cancelledBooking?.customerEmail,
+        tenantId: context.tenantId,
+      };
+      const staffNotify = await notifyStaffBookingEvent('cancel', cancelledBookingForMail, {
+        reason: cancelReason,
+      });
+      let customerCancellationEmail = { skipped: true, reason: 'no_booking' };
+      if (cancelledBooking && cancelledBookingForMail.customerEmail) {
+        try {
+          customerCancellationEmail = await dispatchBookingCancellationEmail({
+            booking: cancelledBookingForMail,
+            graphSendConnector,
+            patientCareStateStore,
+            fromEmail:
+              normalizeText(config?.bookingReminderFromEmail) ||
+              normalizeText(config?.ccoCareReminderFromEmail),
+            locale: normalizeText(req.body?.locale).toLowerCase() === 'en' ? 'en' : 'sv',
+            reason: cancelReason,
+            tenantId: context.tenantId,
+            bookingEngineStore,
+          });
+        } catch (error) {
+          console.warn(
+            '[cco-booking-engine/cancel] customer cancellation email failed:',
+            error && error.message ? error.message : error
+          );
+          customerCancellationEmail = { skipped: true, reason: 'send_failed' };
+        }
+      }
       const bookingEngine = await bookingEngineStore.getCaseSummary(context);
       return res.json({
         provider: 'cco_engine',
@@ -692,6 +829,8 @@ function createCcoBookingEngineRouter({
         bookingCase,
         bookingEngine: summaryPayload(bookingEngine, bookingCase),
         patient360: patientPayload(patientRecord),
+        staffNotify,
+        customerCancellationEmail,
       });
     })
   );

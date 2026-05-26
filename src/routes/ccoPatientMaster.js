@@ -33,6 +33,7 @@ function createCcoPatientMasterRouter({
   journalStore = null,
   migrationIndexStore = null,
   patientSystemStore = null,
+  readCache = null,
   authStore,
   config,
   requireAuth,
@@ -73,7 +74,13 @@ function createCcoPatientMasterRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) =>
       handle(req, res, async (actor) => {
-        const stats = await patientMasterStore.getTenantStats({ tenantId: actor.tenantId });
+        const cacheKey = readCache ? readCache.buildKey('patient-stats', actor.tenantId) : '';
+        const load = async () =>
+          patientMasterStore.getTenantStats({ tenantId: actor.tenantId });
+        const stats =
+          readCache && cacheKey
+            ? (await readCache.wrap(cacheKey, 60_000, load)).value
+            : await load();
         await auditRead(req, actor, actor.tenantId, 'cco.patient_master.stats.read');
         return res.json({ stats });
       })
@@ -85,16 +92,32 @@ function createCcoPatientMasterRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) =>
       handle(req, res, async (actor) => {
-        const result = await patientMasterStore.listPatients({
-          tenantId: actor.tenantId,
-          query: normalizeText(req.query.q || req.query.query),
-          flags: String(req.query.flags || '')
-            .split(',')
-            .map((item) => item.trim())
-            .filter(Boolean),
-          limit: req.query.limit,
-          offset: req.query.offset,
-        });
+        const query = normalizeText(req.query.q || req.query.query);
+        const flags = String(req.query.flags || '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const limit = req.query.limit;
+        const offset = req.query.offset;
+        const cacheKey = readCache
+          ? readCache.buildKey(
+              'patient-list',
+              actor.tenantId,
+              JSON.stringify({ query, flags, limit, offset })
+            )
+          : '';
+        const load = async () =>
+          patientMasterStore.listPatients({
+            tenantId: actor.tenantId,
+            query,
+            flags,
+            limit,
+            offset,
+          });
+        const result =
+          readCache && cacheKey
+            ? (await readCache.wrap(cacheKey, 30_000, load)).value
+            : await load();
         await auditRead(req, actor, actor.tenantId, 'cco.patient_master.list.read');
         return res.json({
           ...result,
@@ -102,6 +125,67 @@ function createCcoPatientMasterRouter({
             patientMasterStore.buildPatientCardReadout(patient)
           ),
         });
+      })
+  );
+
+  async function buildPatientPayload(actor, patient, { includeJournal = true, includeDriveFiles = true } = {}) {
+    let journalEntries = [];
+    if (includeJournal && journalStore) {
+      journalEntries = await journalStore.listEntries({
+        tenantId: actor.tenantId,
+        patientId: patient.id,
+      });
+    }
+
+    let driveFiles = [];
+    if (includeDriveFiles && migrationIndexStore && patient.personnummer) {
+      driveFiles = await migrationIndexStore.getFilesForPersonnummer(patient.personnummer);
+    }
+    const enrichedDriveFiles = driveFiles.map((file) => {
+      const occasionContext = extractFileOccasionContext(file);
+      return {
+        ...file,
+        occasionContext,
+        viewUrl: `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`,
+      };
+    });
+
+    return {
+      patient,
+      card: patientMasterStore.buildPatientCardReadout(patient),
+      journalEntries: journalStore
+        ? journalEntries.map((entry) => journalStore.buildJournalReadout(entry))
+        : [],
+      driveFiles: enrichedDriveFiles,
+      occasionTimeline: buildOccasionTimeline(enrichedDriveFiles),
+    };
+  }
+
+  router.get(
+    '/cco-patient-master/patient/summary',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId: normalizeText(req.query.patientId),
+          personnummer: normalizeText(req.query.personnummer),
+        });
+        if (!patient) {
+          return res.status(404).json({ error: 'Patienten hittades inte.' });
+        }
+        const includeDriveFiles = parseIncludeDriveFiles(req.query.includeDriveFiles);
+        void auditRead(req, actor, patient.id, 'cco.patient_master.patient.summary.read').catch(
+          (error) => {
+            console.error('[cco.patient_master] audit summary read failed', error);
+          }
+        );
+        const payload = await buildPatientPayload(actor, patient, {
+          includeJournal: false,
+          includeDriveFiles,
+        });
+        return res.json(payload);
       })
   );
 
@@ -120,39 +204,22 @@ function createCcoPatientMasterRouter({
           return res.status(404).json({ error: 'Patienten hittades inte.' });
         }
 
-        let journalEntries = [];
-        if (journalStore) {
-          journalEntries = await journalStore.listEntries({
-            tenantId: actor.tenantId,
-            patientId: patient.id,
-          });
-        }
-
+        const includeJournal = !['0', 'false', 'no', 'off'].includes(
+          String(req.query.includeJournal ?? '1')
+            .trim()
+            .toLowerCase()
+        );
         const includeDriveFiles = parseIncludeDriveFiles(req.query.includeDriveFiles);
-        let driveFiles = [];
-        if (includeDriveFiles && migrationIndexStore && patient.personnummer) {
-          driveFiles = await migrationIndexStore.getFilesForPersonnummer(patient.personnummer);
-        }
-        const enrichedDriveFiles = driveFiles.map((file) => {
-          const occasionContext = extractFileOccasionContext(file);
-          return {
-            ...file,
-            occasionContext,
-            viewUrl: `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`,
-          };
-        });
 
         void auditRead(req, actor, patient.id, 'cco.patient_master.patient.read').catch((error) => {
           console.error('[cco.patient_master] audit read failed', error);
         });
 
-        return res.json({
-          patient,
-          card: patientMasterStore.buildPatientCardReadout(patient),
-          journalEntries: journalEntries.map((entry) => journalStore.buildJournalReadout(entry)),
-          driveFiles: enrichedDriveFiles,
-          occasionTimeline: buildOccasionTimeline(enrichedDriveFiles),
+        const payload = await buildPatientPayload(actor, patient, {
+          includeJournal,
+          includeDriveFiles,
         });
+        return res.json(payload);
       })
   );
 
@@ -305,6 +372,38 @@ function createCcoPatientMasterRouter({
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         return res.send(JSON.stringify(payload, null, 2));
+      })
+  );
+
+  router.put(
+    '/cco-patient-master/patient/demographics',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const patientId = normalizeText(body.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const existing = await patientMasterStore.getPatient({ tenantId: actor.tenantId, patientId });
+        if (!existing) return res.status(404).json({ error: 'Patient hittades inte.' });
+        const patient = await patientMasterStore.upsertPatient({
+          ...existing,
+          tenantId: actor.tenantId,
+          id: patientId,
+          demographics: body.demographics || {},
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.demographics.update',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+        });
+        return res.json({
+          patient,
+          card: patientMasterStore.buildPatientCardReadout(patient),
+        });
       })
   );
 

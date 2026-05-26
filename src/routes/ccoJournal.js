@@ -16,6 +16,12 @@ const {
   isAllowedJournalPhotoMime,
   normalizeJournalPhotoUpload,
 } = require('../ops/ccoJournalPhotoProcess');
+const { listJournalTextTemplates } = require('../ops/ccoJournalTextTemplates');
+const { listBeforeAfterPhotos, normalizePhotoPhase } = require('../ops/ccoJournalBeforeAfter');
+const {
+  getPhotoPublishConsent,
+  setPhotoPublishConsent,
+} = require('../ops/ccoPhotoPublishConsent');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -165,6 +171,25 @@ function createCcoJournalRouter({
         const patientId = normalizeText(req.query.patientId);
         if (!patientId) {
           return res.status(400).json({ error: 'patientId saknas.' });
+        }
+        const hasPagination =
+          req.query.limit !== undefined ||
+          req.query.offset !== undefined ||
+          req.query.page !== undefined;
+        if (hasPagination && typeof journalStore.listEntriesPage === 'function') {
+          const page = await journalStore.listEntriesPage({
+            tenantId: actor.tenantId,
+            patientId,
+            journalType: normalizeText(req.query.journalType),
+            limit: req.query.limit,
+            offset: req.query.offset,
+          });
+          await auditJournal(actor, 'cco.journal.entries.read', patientId);
+          return res.json({
+            ...page,
+            entries: page.entries.map((entry) => journalStore.buildJournalReadout(entry)),
+            journalTypes: JOURNAL_TYPES,
+          });
         }
         const entries = await journalStore.listEntries({
           tenantId: actor.tenantId,
@@ -378,6 +403,7 @@ function createCcoJournalRouter({
         const patientId = normalizeText(req.body?.patientId);
         const entryId = normalizeText(req.body?.entryId);
         const label = normalizeText(req.body?.label);
+        const photoPhase = normalizePhotoPhase(req.body?.photoPhase);
         if (!patientId) return res.status(400).json({ error: 'patientId saknas.' });
         await requirePatientJournalWritable(actor, patientId);
         if (!req.file?.buffer?.length) {
@@ -424,7 +450,11 @@ function createCcoJournalRouter({
           patientId,
           personnummer,
           entryId,
-          photo: { ...stored, label: label || normalized.fileName || 'Konsultationsbild' },
+          photo: {
+            ...stored,
+            label: label || normalized.fileName || 'Konsultationsbild',
+            photoPhase,
+          },
           actor: photoActor,
         });
 
@@ -687,6 +717,77 @@ function createCcoJournalRouter({
           photoId,
         });
         return res.json({ annotation: payload });
+      })
+  );
+
+  router.get(
+    '/cco-journal/text-templates',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async () => {
+        const journalType = normalizeText(req.query.journalType);
+        const templates = await listJournalTextTemplates({ journalType });
+        return res.json({ templates });
+      })
+  );
+
+  router.get(
+    '/cco-journal/before-after-photos',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.query.patientId);
+        if (!patientId) {
+          return res.status(400).json({ error: 'patientId krävs.' });
+        }
+        await requirePatientJournalWritable(actor, patientId);
+        const gallery = await listBeforeAfterPhotos({
+          journalStore,
+          tenantId: actor.tenantId,
+          patientId,
+        });
+        let publishConsent = null;
+        if (patientMasterStore) {
+          publishConsent = await getPhotoPublishConsent({
+            patientMasterStore,
+            tenantId: actor.tenantId,
+            patientId,
+          });
+        }
+        return res.json({ ...gallery, publishConsent });
+      })
+  );
+
+  router.patch(
+    '/cco-journal/photo-publish-consent',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        if (!patientMasterStore) {
+          return res.status(503).json({ error: 'Patientmaster saknas.' });
+        }
+        const patientId = normalizeText(req.body?.patientId);
+        if (!patientId) {
+          return res.status(400).json({ error: 'patientId krävs.' });
+        }
+        await requirePatientJournalWritable(actor, patientId);
+        const result = await setPhotoPublishConsent({
+          patientMasterStore,
+          tenantId: actor.tenantId,
+          patientId,
+          granted: req.body?.granted === true,
+          note: normalizeText(req.body?.note),
+          actor: {
+            userId: actor.userId,
+            displayName: actor.userId,
+            role: actor.role,
+          },
+        });
+        await auditJournal(actor, 'cco.journal.photo_publish_consent', patientId);
+        return res.json(result);
       })
   );
 

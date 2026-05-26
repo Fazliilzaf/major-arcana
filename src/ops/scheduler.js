@@ -32,7 +32,10 @@ const {
   buildJournalDraftProposals,
   buildMissingFormsReport,
   dispatchCustomerReminderDigest,
+  dispatchPatientVisitReminderEmails,
+  runFollowupDraftGenerator,
 } = require('./ccoPatientCareOps');
+const { runPostOpAutoTrigger } = require('./postOpAutoTrigger');
 const {
   computeUsageAnalytics,
   computeWorklistSnapshotMetrics,
@@ -293,6 +296,8 @@ function createScheduler({
   sloTicketStore = null,
   releaseGovernanceStore = null,
   postOpReviewStore = null,
+  postOpAutoTriggerDeps = null,
+  bookingStore = null,
   marketingCampaignDraftsStore = null,
   marketingContentAssetsStore = null,
   connectorHealthStateStore = null,
@@ -303,6 +308,10 @@ function createScheduler({
   bookingEngineStore = null,
   treatmentAgreementStore = null,
   patientCareStateStore = null,
+  ccoSettingsStore = null,
+  dashboardSnapshot = null,
+  worklistSnapshot = null,
+  readCache = null,
   logger = console,
 } = {}) {
   if (!incomingConfig) throw new Error('config saknas för scheduler.');
@@ -513,6 +522,24 @@ function createScheduler({
     };
   }
 
+  async function runCcoFollowupDraftGenerator({ tenantId }) {
+    if (!journalStore || !patientMasterStore || !patientCareStateStore) {
+      return { tenantId, skipped: true, reason: 'care_stores_missing' };
+    }
+    const leadDays = Math.max(
+      0,
+      Number(config.schedulerCcoFollowupDraftLeadDays) || 30
+    );
+    const result = await runFollowupDraftGenerator({
+      journalStore,
+      patientMasterStore,
+      patientCareStateStore,
+      tenantId,
+      leadDays,
+    });
+    return result;
+  }
+
   async function runCcoCustomerReminders({ tenantId }) {
     if (!bookingEngineStore || !patientCareStateStore) {
       return { tenantId, skipped: true, reason: 'booking_or_care_store_missing' };
@@ -522,6 +549,7 @@ function createScheduler({
       journalStore,
       patientMasterStore,
       patientCareStateStore,
+      settingsStore: ccoSettingsStore,
       tenantId,
     });
     let logged = 0;
@@ -531,6 +559,7 @@ function createScheduler({
         reminderKey: reminder.reminderKey,
         reminderType: reminder.reminderType,
         patientId: reminder.patientId,
+        channel: 'operator_digest',
         metadata: { message: reminder.message, startsAt: reminder.startsAt || null },
       });
       logged += 1;
@@ -547,7 +576,15 @@ function createScheduler({
       });
     }
     let digest = { skipped: true, reason: 'empty_queue' };
+    let patientEmails = { sent: 0, skipped: 0 };
     if (queue.total > 0) {
+      patientEmails = await dispatchPatientVisitReminderEmails({
+        queue,
+        bookingEngineStore,
+        graphSendConnector,
+        patientCareStateStore,
+        fromEmail: config.bookingReminderFromEmail || config.ccoCareReminderFromEmail,
+      });
       digest = await dispatchCustomerReminderDigest({
         graphSendConnector,
         queue,
@@ -561,6 +598,7 @@ function createScheduler({
       visitReminders: queue.visitReminders.length,
       aftercareReminders: queue.aftercareReminders.length,
       logged,
+      patientEmails,
       digest,
     };
   }
@@ -646,6 +684,30 @@ function createScheduler({
       dirsDeleted,
       diskErrors,
     };
+  }
+
+  async function runPostOpAutoTriggerJob({ tenantId }) {
+    const deps = postOpAutoTriggerDeps || {};
+    const resolvedBookingStore = deps.bookingStore || bookingStore;
+    const resolvedExecutor = deps.capabilityExecutor || null;
+    const resolvedGraphSend = deps.graphSendConnector || graphSendConnector;
+    if (!resolvedBookingStore || !resolvedExecutor || !postOpReviewStore) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'post_op_auto_trigger_deps_missing',
+      };
+    }
+    return runPostOpAutoTrigger({
+      bookingStore: resolvedBookingStore,
+      postOpReviewStore,
+      patientMasterStore,
+      capabilityExecutor: resolvedExecutor,
+      graphSendConnector: resolvedGraphSend,
+      config,
+      tenantId,
+      logger,
+    });
   }
 
   async function runRestoreDrillPreview({ tenantId }) {
@@ -3387,6 +3449,46 @@ function createScheduler({
     }
   }
 
+  async function runCcoDashboardSnapshotRefresh({ tenantId } = {}) {
+    if (!dashboardSnapshot || typeof dashboardSnapshot.saveTenantSnapshot !== 'function') {
+      return { skipped: true, reason: 'dashboard_snapshot_store_missing' };
+    }
+    const tenant = tenantId || config.defaultTenantId;
+    let patientStats = null;
+    if (patientMasterStore && typeof patientMasterStore.getTenantStats === 'function') {
+      patientStats = await patientMasterStore.getTenantStats({ tenantId: tenant });
+    }
+    const snapshot = await dashboardSnapshot.buildSnapshot({
+      tenantId: tenant,
+      monitorMetrics:
+        runtimeMetricsStore && typeof runtimeMetricsStore.getSnapshot === 'function'
+          ? runtimeMetricsStore.getSnapshot()
+          : null,
+      ownerDashboard: patientStats ? { patientStats } : null,
+    });
+    await dashboardSnapshot.saveTenantSnapshot(tenant, snapshot);
+    if (readCache?.del) {
+      await readCache.del(readCache.buildKey('dashboard-snapshot', tenant));
+    }
+    return { tenantId: tenant, saved: true };
+  }
+
+  async function runCcoWorklistSnapshotRefresh({ tenantId } = {}) {
+    if (!worklistSnapshot || typeof worklistSnapshot.saveTenantSnapshot !== 'function') {
+      return { skipped: true, reason: 'worklist_snapshot_store_missing' };
+    }
+    const tenant = tenantId || config.defaultTenantId;
+    await worklistSnapshot.saveTenantSnapshot(tenant, {
+      tenantId: tenant,
+      provider: 'scheduler',
+      builtAt: nowIso(),
+    });
+    if (readCache?.del) {
+      await readCache.del(readCache.buildKey('worklist-snapshot', tenant));
+    }
+    return { tenantId: tenant, saved: true };
+  }
+
   async function runCmoPilotPublishDueJob({ tenantId, trigger, actorUserId } = {}) {
     if (
       !marketingCampaignDraftsStore ||
@@ -3540,6 +3642,15 @@ function createScheduler({
       run: runCcoJournalDraftProposals,
     },
     {
+      id: 'cco_followup_draft_generator',
+      name: 'CCO follow-up draft generator 4/6/12 mån (P6.4.8)',
+      intervalMs:
+        journalStore && patientMasterStore && patientCareStateStore
+          ? toHoursMs(config.schedulerCcoFollowupDraftIntervalHours, 24)
+          : 0,
+      run: runCcoFollowupDraftGenerator,
+    },
+    {
       id: 'cco_customer_reminders',
       name: 'CCO customer reminders (J-7 / U5B)',
       intervalMs:
@@ -3585,12 +3696,33 @@ function createScheduler({
       run: runAlertProbe,
     },
     {
+      id: 'post_op_auto_trigger',
+      name: 'Post-op review auto-trigger (U5B.3)',
+      intervalMs:
+        postOpReviewStore && (postOpAutoTriggerDeps?.capabilityExecutor || bookingStore)
+          ? toHoursMs(config.schedulerPostOpAutoTriggerIntervalHours, 6)
+          : 0,
+      run: runPostOpAutoTriggerJob,
+    },
+    {
       id: 'post_op_photo_prune',
       name: 'Post-op photo GDPR prune (no-consent + age > 12 mån)',
       intervalMs: postOpReviewStore
         ? toHoursMs(config.schedulerPostOpPhotoPruneIntervalHours, 24)
         : 0,
       run: runPostOpPhotoPrune,
+    },
+    {
+      id: 'cco_dashboard_snapshot_refresh',
+      name: 'CCO dashboard snapshot refresh',
+      intervalMs: dashboardSnapshot ? toMinutesMs(5, 5) : 0,
+      run: runCcoDashboardSnapshotRefresh,
+    },
+    {
+      id: 'cco_worklist_snapshot_refresh',
+      name: 'CCO worklist snapshot refresh',
+      intervalMs: worklistSnapshot ? toMinutesMs(2, 2) : 0,
+      run: runCcoWorklistSnapshotRefresh,
     },
     {
       id: 'cmo_pilot_publish_due',

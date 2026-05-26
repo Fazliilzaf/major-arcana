@@ -139,6 +139,21 @@ test('requestDeleteAccount sets deleteRequestedAt and trims actor', async () => 
   }
 });
 
+test('default tenant settings include Cliento migration lead time defaults', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-settings-lead-time-'));
+  try {
+    const store = await createCcoSettingsStore({
+      filePath: path.join(tempDir, 'settings.json'),
+    });
+    const settings = await store.getTenantSettings({ tenantId: 'hair-tp-clinic' });
+    assert.equal(settings.bookingReminderLeadTime.globalDefaultHours, 24);
+    assert.equal(settings.bookingReminderLeadTime.channelDefaults.online, 4);
+    assert.equal(settings.bookingReminderLeadTime.channelDefaults.physical, 24);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('getTenantSettings returns a shallow copy of settings', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-cco-settings-copy-'));
   try {

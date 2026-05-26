@@ -13,6 +13,7 @@ const {
   classifyMissingForms,
   dispatchCustomerReminderDigest,
   resolveMaintenanceWindow,
+  applyApprovedDraftProposal,
 } = require('../../src/ops/ccoPatientCareOps');
 const { createCcoPatientCareStateStore } = require('../../src/ops/ccoPatientCareStateStore');
 
@@ -106,20 +107,51 @@ test('buildJournalDraftProposals sparar pending-förslag i care state store', as
   }
 });
 
-test('buildCustomerReminderQueue hittar kommande besök och undviker dubbletter', async () => {
+test('buildJournalDraftProposals med persist=false skriver inte till care state store', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-care-ops-preview-'));
+  try {
+    const patientCareStateStore = await createCcoPatientCareStateStore({
+      filePath: path.join(tempDir, 'care-state.json'),
+    });
+    const result = await buildJournalDraftProposals({
+      tenantId: 'hair-tp-clinic',
+      patientMasterStore: mockPatientMasterStore([{ patientId: 'p1', displayName: 'Anna' }]),
+      journalStore: mockJournalStore({
+        p1: [{ journalType: 'health_declaration', status: 'draft' }],
+      }),
+      patientCareStateStore,
+      persist: false,
+    });
+    assert.equal(result.proposalCount, 1);
+    assert.match(result.proposals[0].proposalId, /^preview-/);
+    const stored = await patientCareStateStore.listDraftProposals({
+      tenantId: 'hair-tp-clinic',
+      status: 'pending',
+    });
+    assert.equal(stored.length, 0);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('buildCustomerReminderQueue hittar kommande besök vid konfigurerad lead time och undviker dubbletter', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-care-reminders-'));
   try {
     const patientCareStateStore = await createCcoPatientCareStateStore({
       filePath: path.join(tempDir, 'care-state.json'),
     });
-    const startsAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+    const startsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const bookingEngineStore = mockBookingEngineStore({
       bookings: [
         {
           bookingId: 'b1',
           patientId: 'p1',
           customerName: 'Anna',
-          startsAt,
+          slot: {
+            startsAt,
+            serviceId: 'consultation-physical',
+            resourceId: 'fazli',
+          },
         },
       ],
     });
@@ -128,8 +160,13 @@ test('buildCustomerReminderQueue hittar kommande besök och undviker dubbletter'
       tenantId: 'hair-tp-clinic',
       bookingEngineStore,
       patientCareStateStore,
+      leadTimeConfig: {
+        globalDefaultHours: 24,
+        channelDefaults: { online: 4, physical: 24, default: 24 },
+      },
     });
     assert.equal(first.visitReminders.length, 1);
+    assert.equal(first.visitReminders[0].leadTimeHours, 24);
     assert.equal(first.total, 1);
 
     await patientCareStateStore.logReminder({
@@ -143,6 +180,10 @@ test('buildCustomerReminderQueue hittar kommande besök och undviker dubbletter'
       tenantId: 'hair-tp-clinic',
       bookingEngineStore,
       patientCareStateStore,
+      leadTimeConfig: {
+        globalDefaultHours: 24,
+        channelDefaults: { online: 4, physical: 24, default: 24 },
+      },
     });
     assert.equal(second.visitReminders.length, 0);
   } finally {
@@ -222,4 +263,51 @@ test('dispatchCustomerReminderDigest sends when queue has items', async () => {
   assert.equal(result.skipped, false);
   assert.equal(sent.to[0].emailAddress.address, 'ops@example.com');
   assert.match(sent.subject, /CCO påminnelser/);
+});
+
+test('applyApprovedDraftProposal skapar journalutkast från godkänt förslag', async () => {
+  const created = [];
+  const journalStore = {
+    async listEntries({ patientId }) {
+      return { entries: created.filter((entry) => entry.patientId === patientId) };
+    },
+    async upsertEntry(input) {
+      const entry = {
+        entryId: `entry-${created.length + 1}`,
+        patientId: input.patientId,
+        journalType: input.journalType,
+        status: input.status,
+        locked: false,
+      };
+      created.push(entry);
+      return entry;
+    },
+  };
+  const result = await applyApprovedDraftProposal({
+    proposal: {
+      status: 'approved',
+      tenantId: 'hair-tp-clinic',
+      patientId: 'p1',
+      proposalId: 'prop-1',
+      draftFields: {
+        healthDeclaration: {
+          journalType: 'health_declaration',
+          title: 'Hälsodeklaration',
+        },
+      },
+    },
+    journalStore,
+  });
+  assert.equal(result.applied, true);
+  assert.equal(result.created[0].action, 'created');
+  assert.equal(created.length, 1);
+});
+
+test('applyApprovedDraftProposal hoppar över när status inte är approved', async () => {
+  const result = await applyApprovedDraftProposal({
+    proposal: { status: 'pending' },
+    journalStore: { async upsertEntry() {} },
+  });
+  assert.equal(result.applied, false);
+  assert.equal(result.reason, 'not_approved');
 });

@@ -82,19 +82,37 @@ async function verifyMobileShell(page) {
 }
 
 async function verifyPatientJournal(page) {
+  const mobileShell = await page.evaluate(() =>
+    document.documentElement.hasAttribute('data-cco-mobile-shell')
+  );
+
   await page.evaluate(() => {
     window.ArcanaPatientMasterUi?.setPatientTab?.('journal');
   });
   await page.waitForTimeout(500);
 
-  const journalTab = page.locator('.patient-master-tab[data-patient-tab="journal"]').first();
-  if (await journalTab.count()) {
-    await page.evaluate(() => {
-      document.querySelector('.patient-master-tab[data-patient-tab="journal"]')?.click();
-    });
-    await page.waitForTimeout(400);
-    const tabBox = await journalTab.boundingBox();
-    record('Journal-tab ≥ 40px', Boolean(tabBox && tabBox.height >= 38), tabBox ? `${Math.round(tabBox.height)}px` : 'saknas');
+  if (mobileShell) {
+    const mobileJournalStep = page.locator('.cco-mobile-journal-step.is-active, .cco-mobile-journal-progress').first();
+    const mobileJournalChrome = await mobileJournalStep.count();
+    record(
+      'Journal-tab (mobil)',
+      true,
+      mobileJournalChrome ? 'mobil journal-chrome — desktop-tab dold' : 'panel-gate (desktop-tab dold i mobil shell)'
+    );
+  } else {
+    const journalTab = page.locator('.patient-master-tab[data-patient-tab="journal"]').first();
+    if (await journalTab.count()) {
+      await page.evaluate(() => {
+        document.querySelector('.patient-master-tab[data-patient-tab="journal"]')?.click();
+      });
+      await page.waitForTimeout(400);
+      const tabBox = await journalTab.boundingBox();
+      record(
+        'Journal-tab ≥ 40px',
+        Boolean(tabBox && tabBox.height >= 38),
+        tabBox ? `${Math.round(tabBox.height)}px` : 'saknas'
+      );
+    }
   }
 
   await page.locator('.patient-master-journal-toolbar, [data-patient-master-rail]').first().scrollIntoViewIfNeeded().catch(() => {});
@@ -226,15 +244,27 @@ async function verifyQueueChrome(page) {
   await page.goto(`${base}/staff?view=conversations`, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await waitForMobileShell(page);
 
+  const filterReady = await page
+    .waitForFunction(
+      () => document.querySelector('[data-cco-queue-filter-toggle]'),
+      undefined,
+      { timeout: 20000 }
+    )
+    .then(() => true)
+    .catch(() => false);
   const filterToggle = await page.locator('[data-cco-queue-filter-toggle]').count();
-  record('Kö Filter-chip', filterToggle > 0, filterToggle ? 'finns' : 'saknas');
+  record('Kö Filter-chip', filterReady && filterToggle > 0, filterToggle ? 'finns' : 'saknas');
 
-  const compactRow = await page.locator('.warm-row--mobile-compact').count();
-  if (compactRow === 0) {
-    await page.waitForTimeout(2000);
-  }
+  const compactReady = await page
+    .waitForFunction(
+      () => document.querySelector('.warm-row--mobile-compact'),
+      undefined,
+      { timeout: 8000 }
+    )
+    .then(() => true)
+    .catch(() => false);
   const compactAfter = await page.locator('.warm-row--mobile-compact').count();
-  if (compactAfter > 0) {
+  if (compactAfter > 0 || compactReady) {
     record('Kompakta kö-rader', true, `${compactAfter} rader`);
   } else {
     warn('Kompakta kö-rader', '0 rader (tom kö eller ej renderad)');

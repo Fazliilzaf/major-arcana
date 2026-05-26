@@ -11,6 +11,18 @@ const { createCcoBookingStore } = require('../../src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('../../src/ops/ccoBookingEngineStore');
 const { createCcoHistoryStore } = require('../../src/ops/ccoHistoryStore');
 const { createCcoPatientSystemStore } = require('../../src/ops/ccoPatientSystemStore');
+const { bookingMondayWindow, nextBookableWeekday } = require('../helpers/bookingTestDates');
+
+async function withClientoIntegrationEnabled(run) {
+  const previous = process.env.ARCANA_CLIENTO_INTEGRATION_ENABLED;
+  process.env.ARCANA_CLIENTO_INTEGRATION_ENABLED = 'true';
+  try {
+    return await run();
+  } finally {
+    if (previous === undefined) delete process.env.ARCANA_CLIENTO_INTEGRATION_ENABLED;
+    else process.env.ARCANA_CLIENTO_INTEGRATION_ENABLED = previous;
+  }
+}
 
 async function withServer(app, run) {
   const server = http.createServer(app);
@@ -216,91 +228,95 @@ test('cco bookings route hämtar och normaliserar Cliento-slots utan booking-wri
   const fixture = await createFixture();
   const originalFetch = global.fetch;
   let capturedUrl = '';
-  try {
-    global.fetch = async (url, options) => {
-      capturedUrl = String(url);
-      if (!capturedUrl.includes('cliento.com')) {
-        return originalFetch(url, options);
-      }
-      return {
-        ok: true,
-        text: async () =>
-          JSON.stringify({
-            resources: [
-              {
-                id: 'res-1',
-                name: 'Dr. Eriksson',
-                slots: [
-                  {
-                    id: 'slot-1',
-                    start: '2026-05-08T09:30:00.000Z',
-                    end: '2026-05-08T10:30:00.000Z',
-                    serviceId: 'srv-1',
-                    serviceName: 'Konsultation',
-                  },
-                ],
-              },
-            ],
-          }),
+  await withClientoIntegrationEnabled(async () => {
+    try {
+      global.fetch = async (url, options) => {
+        capturedUrl = String(url);
+        if (!capturedUrl.includes('cliento.com')) {
+          return originalFetch(url, options);
+        }
+        return {
+          ok: true,
+          text: async () =>
+            JSON.stringify({
+              resources: [
+                {
+                  id: 'res-1',
+                  name: 'Dr. Eriksson',
+                  slots: [
+                    {
+                      id: 'slot-1',
+                      start: '2026-05-08T09:30:00.000Z',
+                      end: '2026-05-08T10:30:00.000Z',
+                      serviceId: 'srv-1',
+                      serviceName: 'Konsultation',
+                    },
+                  ],
+                },
+              ],
+            }),
+        };
       };
-    };
-    await withServer(fixture.app, async (baseUrl) => {
-      const response = await fetch(
-        `${baseUrl}/cco-bookings/slots?fromDate=2026-05-08&toDate=2026-05-22&resIds=res-1&srvIds=srv-1`
-      );
-      assert.equal(response.status, 200);
-      const payload = await response.json();
-      assert.equal(payload.slots.length, 1);
-      assert.equal(payload.slots[0].slotId, 'slot-1');
-      assert.equal(payload.slots[0].resourceLabel, 'Dr. Eriksson');
-      assert.equal(payload.slots[0].serviceLabel, 'Konsultation');
-      assert.match(capturedUrl, /resources\/slots/);
-      assert.match(capturedUrl, /resIds=res-1/);
-      assert.match(capturedUrl, /srvIds=srv-1/);
-    });
-  } finally {
-    global.fetch = originalFetch;
-    await fs.rm(fixture.tempDir, { recursive: true, force: true });
-  }
+      await withServer(fixture.app, async (baseUrl) => {
+        const response = await fetch(
+          `${baseUrl}/cco-bookings/slots?provider=external&fromDate=2026-05-08&toDate=2026-05-22&resIds=res-1&srvIds=srv-1`
+        );
+        assert.equal(response.status, 200);
+        const payload = await response.json();
+        assert.equal(payload.slots.length, 1);
+        assert.equal(payload.slots[0].slotId, 'slot-1');
+        assert.equal(payload.slots[0].resourceLabel, 'Dr. Eriksson');
+        assert.equal(payload.slots[0].serviceLabel, 'Konsultation');
+        assert.match(capturedUrl, /resources\/slots/);
+        assert.match(capturedUrl, /resIds=res-1/);
+        assert.match(capturedUrl, /srvIds=srv-1/);
+      });
+    } finally {
+      global.fetch = originalFetch;
+      await fs.rm(fixture.tempDir, { recursive: true, force: true });
+    }
+  });
 });
 
 test('cco bookings route hämtar normaliserad Cliento ref-data', async () => {
   const fixture = await createFixture();
   const originalFetch = global.fetch;
-  try {
-    global.fetch = async (url, options) => {
-      const capturedUrl = String(url);
-      if (!capturedUrl.includes('cliento.com')) {
-        return originalFetch(url, options);
-      }
-      return {
-        ok: true,
-        text: async () =>
-          JSON.stringify({
-            resources: [{ id: 'res-1', name: 'Dr. Eriksson' }],
-            services: [{ id: 'srv-1', title: 'Konsultation' }],
-          }),
+  await withClientoIntegrationEnabled(async () => {
+    try {
+      global.fetch = async (url, options) => {
+        const capturedUrl = String(url);
+        if (!capturedUrl.includes('cliento.com')) {
+          return originalFetch(url, options);
+        }
+        return {
+          ok: true,
+          text: async () =>
+            JSON.stringify({
+              resources: [{ id: 'res-1', name: 'Dr. Eriksson' }],
+              services: [{ id: 'srv-1', title: 'Konsultation' }],
+            }),
+        };
       };
-    };
-    await withServer(fixture.app, async (baseUrl) => {
-      const response = await fetch(`${baseUrl}/cco-bookings/ref-data`);
-      assert.equal(response.status, 200);
-      const payload = await response.json();
-      assert.deepEqual(
-        payload.resources.map((item) => item.id),
-        ['res-1']
-      );
-      assert.deepEqual(
-        payload.services.map((item) => item.id),
-        ['srv-1']
-      );
-      assert.equal(payload.resources[0].label, 'Dr. Eriksson');
-      assert.equal(payload.services[0].label, 'Konsultation');
-    });
-  } finally {
-    global.fetch = originalFetch;
-    await fs.rm(fixture.tempDir, { recursive: true, force: true });
-  }
+      await withServer(fixture.app, async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/cco-bookings/ref-data?provider=external`);
+        assert.equal(response.status, 200);
+        const payload = await response.json();
+        assert.deepEqual(
+          payload.resources.map((item) => item.id),
+          ['res-1']
+        );
+        assert.deepEqual(
+          payload.services.map((item) => item.id),
+          ['srv-1']
+        );
+        assert.equal(payload.resources[0].label, 'Dr. Eriksson');
+        assert.equal(payload.services[0].label, 'Konsultation');
+      });
+    } finally {
+      global.fetch = originalFetch;
+      await fs.rm(fixture.tempDir, { recursive: true, force: true });
+    }
+  });
 });
 
 test('cco bookings route uppdaterar handoff-statusar', async () => {
@@ -569,6 +585,17 @@ test('cco bookings route bryter blocker-likaläge med arbetsläge före updatedA
 test('cco bookings route låter case-listan följa engine-blocker när tider är reserverade men ännu inte erbjudna', async () => {
   const fixture = await createEngineFixture();
   try {
+    const { fromDate, toDate } = bookingMondayWindow();
+    const availability = await fixture.bookingEngineStore.listAvailability({
+      tenantId: 'tenant-a',
+      fromDate,
+      toDate,
+      resIds: 'egzona',
+      srvIds: 'consultation-physical',
+    });
+    const slot = availability[0];
+    assert.ok(slot);
+
     await withServer(fixture.app, async (baseUrl) => {
       const qs =
         'workspaceId=major-arcana-preview&conversationId=conv-engine-backed-list&customerEmail=engine-list%40example.com&customerName=Engine%20List';
@@ -576,18 +603,7 @@ test('cco bookings route låter case-listan följa engine-blocker när tider är
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          selectedSlots: [
-            {
-              slotId: 'egzona::consultation::2026-05-11T09:30:00.000Z',
-              startsAt: '2026-05-11T09:30:00.000Z',
-              endsAt: '2026-05-11T10:30:00.000Z',
-              resourceId: 'egzona',
-              resourceLabel: 'Egzona',
-              serviceId: 'consultation-physical',
-              serviceLabel: 'Konsultation',
-              source: 'cco_engine',
-            },
-          ],
+          selectedSlots: [slot],
         }),
       });
       assert.equal(candidatesResponse.status, 200);
@@ -1115,10 +1131,11 @@ test('cco bookings route låter case-listan visa confirm_external när CCO redan
       ownerUserId: 'preview-local',
       ownerName: 'Preview',
     };
+    const { fromDate, toDate } = bookingMondayWindow();
     const availability = await fixture.bookingEngineStore.listAvailability({
       tenantId: context.tenantId,
-      fromDate: '2026-05-11',
-      toDate: '2026-05-11',
+      fromDate,
+      toDate,
       resIds: 'egzona',
       srvIds: 'consultation-physical',
     });
@@ -1185,6 +1202,7 @@ test('cco bookings route kan läsa egen booking engine som source of truth för 
       })
     );
     await withServer(app, async (baseUrl) => {
+      const { fromDate, toDate } = bookingMondayWindow();
       const refResponse = await fetch(`${baseUrl}/cco-bookings/ref-data`);
       assert.equal(refResponse.status, 200);
       const refPayload = await refResponse.json();
@@ -1193,15 +1211,109 @@ test('cco bookings route kan läsa egen booking engine som source of truth för 
       assert.ok(refPayload.services.length >= 1);
 
       const slotsResponse = await fetch(
-        `${baseUrl}/cco-bookings/slots?fromDate=2026-05-11&toDate=2026-05-11&resIds=egzona&srvIds=consultation-physical`
+        `${baseUrl}/cco-bookings/slots?fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
       );
       assert.equal(slotsResponse.status, 200);
       const slotsPayload = await slotsResponse.json();
       assert.equal(slotsPayload.provider, 'cco_engine');
       assert.ok(slotsPayload.slots.length >= 1);
       assert.equal(slotsPayload.slots[0].source, 'cco_engine');
+      assert.ok(Array.isArray(slotsPayload.blocks));
+      assert.ok(slotsPayload.blocks.some((item) => item.blockType === 'lunch'));
+
+      const blocksResponse = await fetch(
+        `${baseUrl}/cco-bookings/calendar-blocks?fromDate=${fromDate}&toDate=${toDate}`
+      );
+      assert.equal(blocksResponse.status, 200);
+      const blocksPayload = await blocksResponse.json();
+      assert.ok(Array.isArray(blocksPayload.blocks));
+      assert.ok(blocksPayload.blocks.length >= 1);
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings calendar rebook uppdaterar ärende via bookingCaseId', async () => {
+  const fixture = await createEngineFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const fromDate = nextBookableWeekday(1);
+      const toDate = nextBookableWeekday(2, { minDaysAhead: 3 });
+      const qs =
+        'workspaceId=major-arcana-preview&conversationId=conv-cal-rebook&customerEmail=cal%40example.com&customerName=Cal';
+      const availabilityResponse = await fetch(
+        `${baseUrl}/cco-bookings/slots?fromDate=${fromDate}&toDate=${toDate}&resIds=egzona&srvIds=consultation-physical`
+      );
+      assert.equal(availabilityResponse.status, 200);
+      const availabilityPayload = await availabilityResponse.json();
+      assert.ok(availabilityPayload.slots.length >= 2);
+      const firstSlot = availabilityPayload.slots[0];
+      const secondSlot = availabilityPayload.slots[1];
+
+      const candidatesResponse = await fetch(`${baseUrl}/cco-bookings/candidates?${qs}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ selectedSlots: [firstSlot] }),
+      });
+      assert.equal(candidatesResponse.status, 200);
+      const candidatesPayload = await candidatesResponse.json();
+      const bookingCaseId = candidatesPayload.bookingCase.bookingCaseId;
+
+      await fixture.bookingEngineStore.confirmBooking({
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-cal-rebook',
+        customerEmail: 'cal@example.com',
+        customerName: 'Cal',
+        slot: firstSlot,
+      });
+      await fixture.bookingStore.updateStatus({
+        tenantId: 'tenant-a',
+        workspaceId: 'major-arcana-preview',
+        conversationId: 'conv-cal-rebook',
+        customerEmail: 'cal@example.com',
+        status: 'confirmed_external',
+      });
+
+      const rebookResponse = await fetch(`${baseUrl}/cco-bookings/calendar/rebook`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          bookingCaseId,
+          slot: secondSlot,
+          reason: 'Flyttad i kalender',
+        }),
+      });
+      assert.equal(rebookResponse.status, 200);
+      const rebookPayload = await rebookResponse.json();
+      assert.equal(rebookPayload.booking.slot.slotId, secondSlot.slotId);
+      assert.equal(rebookPayload.bookingCase.selectedSlots[0].slotId, secondSlot.slotId);
+      assert.equal(rebookPayload.bookingCase.events.at(-1).type, 'engine_booking_rebooked');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cco bookings calendar-signals returns operational signals for date range', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const fromDate = '2030-06-01';
+      const toDate = '2030-06-30';
+      const response = await fetch(
+        `${baseUrl}/cco-bookings/calendar-signals?fromDate=${fromDate}&toDate=${toDate}`
+      );
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+      assert.equal(payload.ok, true);
+      assert.equal(payload.provider, 'cco_calendar_signals');
+      assert.equal(payload.fromDate, fromDate);
+      assert.equal(payload.toDate, toDate);
+      assert.ok(payload.byCaseId && typeof payload.byCaseId === 'object');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
   }
 });

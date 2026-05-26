@@ -1,0 +1,32 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "cliento_migration",
+  "notes": "Cliento min-notice: 120 min online / 60 min fysisk. Max bokningsfönster 180 dagar. Avbokning 24 h default.",
+  "globalDefaults": {
+    "minNoticeOnlineMinutes": 120,
+    "minNoticePhysicalMinutes": 60,
+    "maxBookingDaysAhead": 180,
+    "cancellationPolicyHours": 24
+  },
+  "serviceOverrides": {
+    "consultation-online": {
+      "meetingMode": "online",
+      "minNoticeMinutes": 120,
+      "maxBookingDaysAhead": 180,
+      "cancellationPolicyHours": 24
+    },
+    "consultation-physical": {
+      "meetingMode": "physical",
+      "minNoticeMinutes": 60,
+      "maxBookingDaysAhead": 180,
+      "cancellationPolicyHours": 24
+    },
+    "followup-transplant": {
+      "meetingMode": "physical",
+      "minNoticeMinutes": 60,
+      "maxBookingDaysAhead": 180,
+      "cancellationPolicyHours": 24,
+      "vipTokenRequired": true
+    }
+  }
+}

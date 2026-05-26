@@ -28,6 +28,27 @@ function emptyState() {
     draftProposals: [],
     reminderLog: [],
     lastReports: {},
+    followupPlanState: [],
+  };
+}
+
+function normalizeFollowupPlanEntry(input = {}) {
+  const safe = asObject(input);
+  const tenantId = normalizeText(safe.tenantId);
+  const encounterId = normalizeText(safe.encounterId);
+  const followupMonth = Number(safe.followupMonth);
+  if (!tenantId || !encounterId || !Number.isFinite(followupMonth)) return null;
+  return {
+    tenantId,
+    encounterId,
+    followupMonth,
+    patientId: normalizeText(safe.patientId),
+    formVariant: normalizeText(safe.formVariant),
+    dueAt: normalizeText(safe.dueAt),
+    plannedAt: normalizeText(safe.plannedAt) || nowIso(),
+    draftEntryId: normalizeText(safe.draftEntryId) || '',
+    status: normalizeText(safe.status) || 'planned',
+    source: normalizeText(safe.source) || 'cco_followup_draft_planner',
   };
 }
 
@@ -51,6 +72,9 @@ async function writeJsonAtomic(filePath, data) {
 
 async function createCcoPatientCareStateStore({ filePath }) {
   const state = await readJson(filePath, emptyState());
+  if (!Array.isArray(state.followupPlanState)) {
+    state.followupPlanState = [];
+  }
 
   async function save() {
     state.updatedAt = nowIso();
@@ -164,10 +188,54 @@ async function createCcoPatientCareStateStore({ filePath }) {
     return asObject(asObject(state.lastReports)[tenant])[type] || null;
   }
 
+  async function listFollowupPlanState({ tenantId, encounterId = '', limit = 1000 } = {}) {
+    const tenant = normalizeText(tenantId);
+    const encounter = normalizeText(encounterId);
+    if (!tenant) return [];
+    return asArray(state.followupPlanState)
+      .filter((row) => normalizeText(row.tenantId) === tenant)
+      .filter((row) => (encounter ? normalizeText(row.encounterId) === encounter : true))
+      .slice(0, Math.max(1, Math.min(5000, Number(limit) || 1000)));
+  }
+
+  async function recordFollowupPlanEntry(input = {}) {
+    const next = normalizeFollowupPlanEntry(input);
+    if (!next) return null;
+    const index = asArray(state.followupPlanState).findIndex(
+      (row) =>
+        normalizeText(row.tenantId) === next.tenantId &&
+        normalizeText(row.encounterId) === next.encounterId &&
+        Number(row.followupMonth) === next.followupMonth
+    );
+    if (index >= 0) {
+      state.followupPlanState[index] = { ...state.followupPlanState[index], ...next };
+    } else {
+      state.followupPlanState.push(next);
+    }
+    await save();
+    return next;
+  }
+
+  async function listReminderLog({ tenantId, sinceHours = 720, limit = 500 } = {}) {
+    const tenant = normalizeText(tenantId);
+    if (!tenant) return [];
+    const cutoff = Date.now() - Math.max(1, Number(sinceHours) || 720) * 60 * 60 * 1000;
+    return asArray(state.reminderLog)
+      .filter(
+        (row) =>
+          normalizeText(row.tenantId) === tenant && Date.parse(row.sentAt || 0) >= cutoff
+      )
+      .sort((left, right) => Date.parse(right.sentAt || 0) - Date.parse(left.sentAt || 0))
+      .slice(0, Math.max(1, Math.min(5000, Number(limit) || 500)));
+  }
+
   return {
     getLastReport,
     listDraftProposals,
+    listFollowupPlanState,
+    listReminderLog,
     logReminder,
+    recordFollowupPlanEntry,
     reviewDraftProposal,
     setLastReport,
     upsertDraftProposal,

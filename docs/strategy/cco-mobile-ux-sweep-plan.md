@@ -4,13 +4,14 @@
 **Senast uppdaterad:** 2026-05-24  
 **Relaterad audit:** mobil UX-audit 2026-05-23 (chat)  
 **Bygger på:** [cco-mobile-staff-journal-plan.md](./cco-mobile-staff-journal-plan.md)  
+**Nästa fas:** [cco-adaptive-layout-rules.md](./cco-adaptive-layout-rules.md) (tablet split + density)  
 **Mål:** CCO ska kännas som en **modern mobilapp** på telefon — inte desktop inskalerad.
 
 ---
 
 ## Definition of done (helheten)
 
-- [ ] iPhone 13 (390×844) och Android Chrome: alla primära personalflöden utan zoom/pinch *(Android + Fas 5.6 manuellt)*
+- [ ] iPhone 13 (390×844) och Android Chrome: primära personalflöden *(Android: Playwright BL.3 ☑; fysisk enhet valfritt i checklista)*
 - [x] Ingen primär touch target under **44×44px** *(B4 deployad prod `c98ea1b`)*
 - [x] Max **en** sticky header-rad per vy (ingen staplad chrome)
 - [x] Topbar ≤ **56px** på phone; bottom tab bar synlig
@@ -339,7 +340,7 @@ Alla audit-punkter mappade till sweep-uppgifter:
 | 15 | Avtal checklist | Medium | E |
 | 16 | Cmd+K dölj | Medium | D |
 | 17 | Full månadskalender | Low | **klart** (BL.1 2026-05-25) |
-| 18 | cco-next-release parity | Low | backlog |
+| 18 | cco-next-release parity | Low | done (redirect → major-arcana-preview) |
 
 ---
 
@@ -376,9 +377,9 @@ Alla audit-punkter mappade till sweep-uppgifter:
 - [x] `run:rollout-sweep` grön — 2026-05-24
 - [x] `verify-staff-ui-prod` grön — 2026-05-24
 
-### Enhet *(manuellt kvar)*
-- [ ] iPhone Safari 390×844 *(Fas 5.6)*
-- [ ] Android Chrome
+### Enhet *(Playwright + valfritt manuellt)*
+- [ ] iPhone Safari 390×844 *(Fas 5.6 fysisk)*
+- [x] Android Chrome *(BL.3 Playwright Pixel 5 — `verify:android-staff-prod`)*
 - [ ] PWA Add to Home Screen från `/staff`
 - [ ] Notch/home indicator — inget klippt
 

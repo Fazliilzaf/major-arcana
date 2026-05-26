@@ -308,6 +308,14 @@ const config = {
     Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS) > 0
       ? Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS)
       : 24,
+  schedulerPostOpAutoTriggerIntervalHours:
+    Number(process.env.ARCANA_SCHED_POST_OP_AUTO_TRIGGER_HOURS) > 0
+      ? Number(process.env.ARCANA_SCHED_POST_OP_AUTO_TRIGGER_HOURS)
+      : 6,
+  postOpAutoTriggerGraceHours:
+    Number(process.env.ARCANA_POST_OP_AUTO_TRIGGER_GRACE_HOURS) >= 0
+      ? Number(process.env.ARCANA_POST_OP_AUTO_TRIGGER_GRACE_HOURS)
+      : 24,
   // Sender-mailbox för auto-send av post-op review-email via M365 Graph.
   // Locked default per docs/strategy/u4-post-op-decisions.md (U4.5).
   postOpReviewFromMailbox: asNonEmptyString(
@@ -333,6 +341,16 @@ const config = {
     explicitPath: process.env.ARCANA_CCO_INTEGRATION_STORE_PATH,
     stateRoot,
     fileName: 'cco-integrations.json',
+  }),
+  ccoFortnoxStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_FORTNOX_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-fortnox.json',
+  }),
+  ccoSwishStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_SWISH_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-swish.json',
   }),
   ccoSettingsStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_SETTINGS_STORE_PATH,
@@ -899,6 +917,14 @@ const config = {
     process.env.ARCANA_SCHEDULER_CCO_JOURNAL_DRAFT_INTERVAL_HOURS,
     24
   ),
+  schedulerCcoFollowupDraftIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_FOLLOWUP_DRAFT_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoFollowupDraftLeadDays: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_FOLLOWUP_DRAFT_LEAD_DAYS,
+    30
+  ),
   schedulerCcoCustomerRemindersIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_CCO_CUSTOMER_REMINDERS_INTERVAL_HOURS,
     6
@@ -1009,6 +1035,28 @@ const config = {
   clientoApiAuthHeader: asNonEmptyString(process.env.CLIENTO_API_AUTH_HEADER, 'Authorization'),
   clientoApiAuthScheme: asNonEmptyString(process.env.CLIENTO_API_AUTH_SCHEME, 'Bearer'),
   clientoApiTimeoutMs: asInt(process.env.CLIENTO_API_TIMEOUT_MS, 10000),
+  fortnoxEnabled: asBool(process.env.ARCANA_FORTNOX_ENABLED, false),
+  fortnoxClientId: asNonEmptyString(process.env.FORTNOX_CLIENT_ID),
+  fortnoxClientSecret: asNonEmptyString(process.env.FORTNOX_CLIENT_SECRET),
+  fortnoxScope: asNonEmptyString(process.env.FORTNOX_SCOPE, 'customer invoice'),
+  fortnoxRedirectUri: asNonEmptyString(
+    process.env.FORTNOX_REDIRECT_URI,
+    `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-fortnox/oauth/callback`
+  ),
+  swishEnabled: asBool(process.env.ARCANA_SWISH_ENABLED, false),
+  swishApiBaseUrl: asNonEmptyString(
+    process.env.SWISH_API_BASE_URL,
+    'https://mss.cpc.getswish.net/swish-cpcapi'
+  ),
+  swishCertPath: asNonEmptyString(process.env.SWISH_CERT_PATH),
+  swishKeyPath: asNonEmptyString(process.env.SWISH_KEY_PATH),
+  swishP12Path: asNonEmptyString(process.env.SWISH_P12_PATH),
+  swishCertPassphrase: asNonEmptyString(process.env.SWISH_CERT_PASSPHRASE),
+  swishCaPath: asNonEmptyString(process.env.SWISH_CA_PATH),
+  swishCallbackUrl: asNonEmptyString(
+    process.env.SWISH_CALLBACK_URL,
+    `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-swish/callback`
+  ),
 };
 
 if (

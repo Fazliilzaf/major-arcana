@@ -1,0 +1,14 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "Cliento locations API /services/ groups",
+  "group": {
+    "id": 8504,
+    "name": "Tilläggstjänster",
+    "color": null,
+    "serviceIds": [],
+    "addon": true
+  },
+  "count": 0,
+  "services": [],
+  "note": "Tilläggstjänster-grupp (id 8504) finns men har inga serviceIds konfigurerade 2026-05-25."
+}

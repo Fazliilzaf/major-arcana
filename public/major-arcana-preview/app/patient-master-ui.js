@@ -104,6 +104,8 @@
     editingClinicalEntryId: '',
     journalTimelineFilter: 'all',
     focusTimelineKey: '',
+    journalLoaded: false,
+    journalLoading: false,
   };
 
   const JOURNAL_TIMELINE_FILTERS = [
@@ -485,6 +487,14 @@
     }
   }
 
+  function isCompactFormViewport() {
+    try {
+      return window.matchMedia('(max-width: 1023px)').matches;
+    } catch {
+      return false;
+    }
+  }
+
   let mobilePatientHistoryDepth = 0;
   let suppressMobilePatientPopstate = false;
 
@@ -694,6 +704,20 @@
   }
 
   async function apiRequest(path, options = {}) {
+    const ccoData = window.ArcanaCcoData;
+    const policy = ccoData?.policy?.PATIENT_LIST || { staleTime: 120000, gcTime: 600000 };
+    if (ccoData?.fetch && options.cacheKey) {
+      return ccoData.fetch(options.cacheKey, () => apiRequestRaw(path, options), {
+        staleTime: options.staleTime ?? policy.staleTime,
+        gcTime: options.gcTime ?? policy.gcTime,
+        force: options.force === true,
+      });
+    }
+    return apiRequestRaw(path, options);
+  }
+
+  const apiRequestRaw = (window.ArcanaCcoFetchInstrumentation?.instrumentAsyncFn || ((fn) => fn))(
+    async function apiRequestImpl(path, options = {}) {
     const token = getAdminToken();
     const headers = {
       Accept: 'application/json',
@@ -725,7 +749,9 @@
       throw error;
     }
     return payload;
-  }
+  },
+    { getPath: (path) => path }
+  );
 
   function setStatus(message = '', tone = '') {
     if (!els.status) return;
@@ -1217,6 +1243,201 @@
           </article>`;
   }
 
+  function renderPatientDemographicsCard(card) {
+    if (!card?.patientId) return '';
+    const demo = card.demographics || {};
+    const idStatus = escapeHtml(demo.idVerificationStatus || 'unverified');
+    const idDoc = escapeHtml(demo.idVerificationDocumentType || '');
+    const nextOfKinName = escapeHtml(demo.nextOfKinName || '');
+    const nextOfKinPhone = escapeHtml(demo.nextOfKinPhone || '');
+    const importantNote = escapeHtml(demo.importantNote || '');
+    const primaryAddress = demo.primaryAddress || {};
+    const addressLine = escapeHtml(
+      [primaryAddress.line1, primaryAddress.postalCode, primaryAddress.city].filter(Boolean).join(', ')
+    );
+    return `
+          <article class="focus-customer-data-card patient-master-demographics-card">
+            <h4>Demografi &amp; ID-verifiering</h4>
+            <p class="patient-master-muted">Meridiq-paritet: legitimation, närmaste anhörig, viktig notering och adress.</p>
+            <label class="patient-master-access-reason">
+              <span>ID-status</span>
+              <select data-patient-id-status>
+                <option value="unverified"${idStatus === 'unverified' ? ' selected' : ''}>Overifierad</option>
+                <option value="pending"${idStatus === 'pending' ? ' selected' : ''}>Väntar</option>
+                <option value="verified"${idStatus === 'verified' ? ' selected' : ''}>Verifierad</option>
+                <option value="rejected"${idStatus === 'rejected' ? ' selected' : ''}>Avvisad</option>
+              </select>
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Legitimationstyp</span>
+              <input type="text" data-patient-id-document value="${idDoc}" placeholder="t.ex. pass, körkort, ID-kort" />
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Närmaste anhörig</span>
+              <input type="text" data-patient-next-of-kin-name value="${nextOfKinName}" placeholder="Namn" />
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Anhörig telefon</span>
+              <input type="tel" data-patient-next-of-kin-phone value="${nextOfKinPhone}" placeholder="+46…" />
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Viktig notering</span>
+              <textarea rows="2" data-patient-important-note placeholder="Synlig för personal">${importantNote}</textarea>
+            </label>
+            <label class="patient-master-access-reason">
+              <span>Adress</span>
+              <input type="text" data-patient-address-line1 value="${escapeHtml(primaryAddress.line1 || '')}" placeholder="Gatuadress" />
+            </label>
+            <div class="patient-master-compliance-actions">
+              <input type="text" data-patient-address-postal value="${escapeHtml(primaryAddress.postalCode || '')}" placeholder="Postnr" />
+              <input type="text" data-patient-address-city value="${escapeHtml(primaryAddress.city || '')}" placeholder="Ort" />
+            </div>
+            ${addressLine ? `<p class="patient-master-muted">Nuvarande: ${addressLine}</p>` : ''}
+            <button type="button" class="customers-utility-button" data-patient-action="save-demographics">
+              Spara demografi
+            </button>
+          </article>`;
+  }
+
+  async function savePatientDemographics(root) {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId || !root) return;
+    setStatus('Sparar demografi…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-patient-master/patient/demographics', {
+        method: 'PUT',
+        body: {
+          patientId,
+          demographics: {
+            idVerification: {
+              status: root.querySelector('[data-patient-id-status]')?.value || 'unverified',
+              documentType: root.querySelector('[data-patient-id-document]')?.value || '',
+              verifiedAt:
+                root.querySelector('[data-patient-id-status]')?.value === 'verified'
+                  ? new Date().toISOString()
+                  : null,
+            },
+            nextOfKin: {
+              name: root.querySelector('[data-patient-next-of-kin-name]')?.value || '',
+              phone: root.querySelector('[data-patient-next-of-kin-phone]')?.value || '',
+            },
+            importantNote: root.querySelector('[data-patient-important-note]')?.value || '',
+            addresses: {
+              items: [
+                {
+                  type: 'home',
+                  line1: root.querySelector('[data-patient-address-line1]')?.value || '',
+                  postalCode: root.querySelector('[data-patient-address-postal]')?.value || '',
+                  city: root.querySelector('[data-patient-address-city]')?.value || '',
+                  country: 'SE',
+                },
+              ],
+            },
+          },
+        },
+      });
+      if (payload?.card) runtime.detail.card = payload.card;
+      if (payload?.patient) runtime.detail.patient = payload.patient;
+      setStatus('Demografi sparad.', 'success');
+      renderDetailPanel();
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte spara demografi.', 'error');
+    }
+  }
+
+  function renderPatientIntegrationsCard(card) {
+    if (!card?.patientId) return '';
+    const fortnoxCustomerId = escapeHtml(card.fortnoxCustomerId || '');
+    const fortnoxSyncedAt = card.fortnoxSyncedAt
+      ? escapeHtml(String(card.fortnoxSyncedAt).slice(0, 19).replace('T', ' '))
+      : '';
+    const fortnoxSyncError = escapeHtml(card.fortnoxSyncError || '');
+    const fortnoxMeta = fortnoxCustomerId
+      ? `<p class="patient-master-muted">Fortnox kundnr: <strong>${fortnoxCustomerId}</strong>${fortnoxSyncedAt ? ` · synkad ${fortnoxSyncedAt}` : ''}</p>`
+      : `<p class="patient-master-muted">Patienten är inte synkad till Fortnox ännu.</p>`;
+    const fortnoxError = fortnoxSyncError
+      ? `<p class="patient-master-status is-error">${fortnoxSyncError}</p>`
+      : '';
+    return `
+          <article class="focus-customer-data-card patient-master-integrations-card">
+            <h4>Fortnox &amp; Swish</h4>
+            <p class="patient-master-muted">Koppla patienten till Fortnox och ta betalt med Swish Handel direkt från kundkortet.</p>
+            ${fortnoxMeta}
+            ${fortnoxError}
+            <div class="patient-master-compliance-actions">
+              <button type="button" class="customers-utility-button" data-patient-action="sync-fortnox">
+                Synka till Fortnox
+              </button>
+              <button type="button" class="customers-utility-button" data-patient-action="swish-payment">
+                Swish-betalning
+              </button>
+            </div>
+          </article>`;
+  }
+
+  async function syncPatientToFortnox() {
+    const patientId = runtime.selectedPatientId;
+    if (!patientId) return;
+    setStatus('Synkar patient till Fortnox…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-fortnox/sync-patient', {
+        method: 'POST',
+        body: { patientId },
+      });
+      if (payload?.patient && runtime.detail?.card) {
+        runtime.detail.card = { ...runtime.detail.card, ...payload.patient };
+      }
+      setStatus(
+        `Fortnox ${payload.action === 'updated' ? 'uppdaterad' : 'kopplad'} (kundnr ${payload.customerNumber || '—'}).`,
+        'success'
+      );
+      renderDetailPanel();
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte synka till Fortnox.', 'error');
+    }
+  }
+
+  async function createSwishPaymentForPatient() {
+    const patientId = runtime.selectedPatientId;
+    const card = runtime.detail?.card;
+    if (!patientId || !card) return;
+    const amountRaw = window.prompt('Belopp i SEK (t.ex. 500 eller 499.50):', '');
+    if (!amountRaw) return;
+    const message = window.prompt(
+      'Meddelande till betalaren (max 50 tecken):',
+      `Arcana ${card.displayName || 'patient'}`.slice(0, 50)
+    );
+    if (message === null) return;
+    setStatus('Skapar Swish-betalningsförfrågan…', 'loading');
+    try {
+      const payload = await apiRequest('/api/v1/cco-swish/payment-request', {
+        method: 'POST',
+        body: {
+          patientId,
+          amount: amountRaw,
+          message,
+          payerAlias: card.primaryPhone || '',
+          payeePaymentReference: patientId.slice(0, 35),
+        },
+      });
+      const swishUrl = payload?.swishUrl || '';
+      if (swishUrl) {
+        const openSwish = window.confirm(
+          `Swish-förfrågan skapad (${payload.payment?.amount || amountRaw} SEK). Öppna Swish-appen nu?`
+        );
+        if (openSwish) {
+          window.location.href = swishUrl;
+        }
+      }
+      setStatus(
+        `Swish-förfrågan skapad${payload.payment?.id ? ` (${payload.payment.id})` : ''}.`,
+        'success'
+      );
+    } catch (error) {
+      setStatus(error.message || 'Kunde inte skapa Swish-betalning.', 'error');
+    }
+  }
+
   async function mergeReviewGroup(primaryPatientId, secondaryPatientIds) {
     if (!primaryPatientId || !asArray(secondaryPatientIds).length) return;
     setStatus('Slår ihop patientposter…', 'loading');
@@ -1553,35 +1774,12 @@
     return Array.isArray(value) ? value : [];
   }
 
-  function renderPatientRows() {
-    if (!els.list || runtime.mode !== 'register') return;
-    if (syncAuthRequiredChrome()) {
-      const authCard = runtime.pendingPasswordSetup
-        ? renderStaffPasswordSetupCard()
-        : renderStaffLoginCard(
-            runtime.error || 'Logga in för att läsa kundregister och journal.'
-          );
-      els.list.innerHTML = authCard;
-      renderDetailEmpty();
-      return;
-    }
-    if (runtime.loading && !runtime.patients.length) {
-      els.list.innerHTML = '<p class="patient-master-empty">Laddar kundregister…</p>';
-      return;
-    }
-    if (!runtime.patients.length) {
-      els.list.innerHTML = `<p class="patient-master-empty">${escapeHtml(
-        runtime.error || 'Inga kunder matchar sökningen.'
-      )}</p>`;
-      return;
-    }
+  let patientListVirtualHandle = null;
 
-    const rows = runtime.patients
-      .map((card) => {
-        const selected = card.patientId === runtime.selectedPatientId;
-        const journalCount = Number(card.fileSummary?.journalPdfs || 0);
-        const imageCount = Number(card.fileSummary?.images || 0);
-        return `
+  function renderPatientRowHtml(card, selected) {
+    const journalCount = Number(card.fileSummary?.journalPdfs || 0);
+    const imageCount = Number(card.fileSummary?.images || 0);
+    return `
           <button
             class="customer-record customer-record--compact${selected ? ' is-selected' : ''}"
             type="button"
@@ -1609,8 +1807,33 @@
             </div>
           </button>
         `;
-      })
-      .join('');
+  }
+
+  function renderPatientRows() {
+    if (!els.list || runtime.mode !== 'register') return;
+    if (syncAuthRequiredChrome()) {
+      const authCard = runtime.pendingPasswordSetup
+        ? renderStaffPasswordSetupCard()
+        : renderStaffLoginCard(
+            runtime.error || 'Logga in för att läsa kundregister och journal.'
+          );
+      els.list.innerHTML = authCard;
+      renderDetailEmpty();
+      return;
+    }
+    if (runtime.loading && !runtime.patients.length) {
+      els.list.innerHTML = '<p class="patient-master-empty">Laddar kundregister…</p>';
+      return;
+    }
+    if (!runtime.patients.length) {
+      els.list.innerHTML = `<p class="patient-master-empty">${escapeHtml(
+        runtime.error || 'Inga kunder matchar sökningen.'
+      )}</p>`;
+      return;
+    }
+
+    patientListVirtualHandle?.destroy?.();
+    patientListVirtualHandle = null;
 
     const hasMore = runtime.patients.length < runtime.total;
     const footer = hasMore
@@ -1619,7 +1842,26 @@
         ? `<p class="patient-master-list-meta">${runtime.total} kunder totalt</p>`
         : '';
 
-    els.list.innerHTML = rows + footer;
+    const virtual = window.ArcanaCcoPatientListVirtual;
+    if (virtual?.mountVirtualPatientList) {
+      patientListVirtualHandle = virtual.mountVirtualPatientList({
+        container: els.list,
+        items: runtime.patients,
+        selectedId: runtime.selectedPatientId,
+        renderRowHtml: (card, selected) => renderPatientRowHtml(card, selected),
+      });
+      if (footer) {
+        const footerEl = document.createElement('div');
+        footerEl.className = 'patient-master-list-footer';
+        footerEl.innerHTML = footer;
+        els.list.appendChild(footerEl);
+      }
+    } else {
+      const rows = runtime.patients
+        .map((card) => renderPatientRowHtml(card, card.patientId === runtime.selectedPatientId))
+        .join('');
+      els.list.innerHTML = rows + footer;
+    }
   }
 
   function escapeSelectorValue(value) {
@@ -2194,6 +2436,15 @@
         <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="health_curatiio_bleph">
           Hälsodekl ögonlock
         </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="health_curatiio_ortho">
+          Hälsodekl ortopedi
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="health_curatiio_injection">
+          Hälsodekl injektion
+        </button>
+        <button class="customers-utility-button" type="button" data-patient-action="new-clinical-form" data-clinical-form-key="health_eng">
+          Hälsodekl ENG
+        </button>
         <button class="customers-utility-button" type="button" data-patient-action="new-fitness-certificate">
           Friskförsäkran TP
         </button>
@@ -2759,7 +3010,7 @@
   }
 
   function bindJournalAutosaveForms() {
-    if (!isMobileViewport() || !window.ArcanaMobileAutosave?.bindForm) return;
+    if (!isCompactFormViewport() || !window.ArcanaMobileAutosave?.bindForm) return;
     const patientId = runtime.selectedPatientId;
     const card = runtime.detail?.card;
     if (!patientId || !card) return;
@@ -2947,7 +3198,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-clinical-journal-save-form data-clinical-form-key="${escapeHtml(formKey)}" data-clinical-entry-id="${escapeHtml(entry.entryId)}">
-        ${config.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${config.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
@@ -2969,7 +3220,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-tp-journal-save-form data-tp-entry-id="${escapeHtml(entry.entryId)}">
-        ${tpForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${tpForm.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
@@ -2991,7 +3242,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-prp-journal-save-form data-prp-entry-id="${escapeHtml(entry.entryId)}" data-prp-form-variant="${escapeHtml(entry.formVariant || 'prp_skin')}">
-        ${prpForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${prpForm.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
@@ -3013,7 +3264,7 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-follow-journal-save-form data-follow-entry-id="${escapeHtml(entry.entryId)}" data-follow-form-variant="${escapeHtml(entry.formVariant || '4_manader')}">
-        ${followForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${followForm.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
@@ -3035,14 +3286,14 @@
         : '';
     return `
       <form class="patient-master-tp-form-wrap" data-bleph-journal-save-form data-bleph-entry-id="${escapeHtml(entry.entryId)}">
-        ${blephForm.render(entry, { locked: entry.locked, mobileSteps: isMobileViewport() })}
+        ${blephForm.render(entry, { locked: entry.locked, mobileSteps: isCompactFormViewport() })}
         ${signFooter}
       </form>
     `;
   }
 
   function renderMobileJournalSteps(entries) {
-    if (!isMobileViewport()) return '';
+    if (!isCompactFormViewport()) return '';
     const rows = asArray(entries);
     const hasHealth = rows.some(
       (entry) => entry.journalType === 'health_declaration' && entry.locked
@@ -3227,22 +3478,37 @@
               ? 'Nästa: Få offerten accepterad av kunden.'
               : readout?.nextStep || 'Följ juristflödet steg för steg.';
 
-    return `
-      <article class="focus-customer-data-card patient-master-agreement-card">
+    const agreementStepTitles = [
+      'Patientinformation (bilaga 1)',
+      'Offert accepterad',
+      'Avtal skapat',
+      'Signerat — bokningsbart',
+    ];
+    const agreementStepDone = [
+      Boolean(readout?.patientInfoSent),
+      Boolean(offerAccepted),
+      Boolean(agreement?.agreementDocumentId),
+      Boolean(readout?.bookable),
+    ];
+
+    const headerHtml = `
         <div class="patient-master-material-head">
           <h4>Behandlingsavtal</h4>
           ${readout?.phase
         ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(readout.phase)}</span>`
         : ''
       }
-        </div>
-        <p class="patient-master-next-action">${escapeHtml(nextActionLabel)}</p>
+        </div>`;
+
+    const checklistHtml = `
         <ol class="patient-master-agreement-checklist patient-master-workflow-steps">
           <li class="${readout?.patientInfoSent ? 'is-done' : ''}">Patientinformation (bilaga 1)</li>
           <li class="${offerAccepted ? 'is-done' : ''}">Offert accepterad</li>
           <li class="${agreement?.agreementDocumentId ? 'is-done' : ''}">Avtal skapat</li>
           <li class="${readout?.bookable ? 'is-done' : ''}">Signerat — bokningsbart</li>
-        </ol>
+        </ol>`;
+
+    const badgesHtml = `
         ${readout?.patientInfoSentAt
         ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Patientinfo ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))}</span></div>`
         : ''
@@ -3254,7 +3520,127 @@
         ${coolingActive
         ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</span></div>`
         : ''
+      }`;
+
+    const documentLinksHtml = `
+        ${runtime.agreementDocumentUrl
+        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementDocumentUrl)}" target="_blank" rel="noopener">Öppna avtal (HTML)</a>${runtime.agreementDocumentPdfUrl
+          ? ` · <a href="${escapeHtml(runtime.agreementDocumentPdfUrl)}" target="_blank" rel="noopener">PDF</a>`
+          : ''
+        }</p>`
+        : ''
       }
+        ${runtime.agreementSignUrl
+        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementSignUrl)}" target="_blank" rel="noopener">Signeringssida för kund</a></p>`
+        : ''
+      }
+        ${angerUrl
+        ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
+        : ''
+      }`;
+
+    const bookingHtml = readout?.bookable
+      ? `<div class="patient-master-booking-ready">
+                <p class="patient-master-muted"><strong>Behandlingsbokning öppen.</strong> Boka behandlingstid i CCO-tråden med kundens e-post (${escapeHtml(card?.primaryEmail || 'saknas')}). Endast behandlingstjänster (FUE/DHI m.fl.) — inte konsultation.</p>
+              </div>`
+      : `<p class="patient-master-muted">Behandlingsbokning spärrad tills avtalet är signerat och bokningsbart.</p>`;
+
+    if (isCompactFormViewport()) {
+      const activeStepIndex = Math.max(
+        0,
+        agreementStepDone.findIndex((done) => !done) === -1
+          ? agreementStepTitles.length - 1
+          : agreementStepDone.findIndex((done) => !done)
+      );
+      return `
+      <div data-agreement-mobile-shell class="patient-master-agreement-mobile-shell" data-journal-active-step="${activeStepIndex}">
+        <article class="focus-customer-data-card patient-master-agreement-card">
+          ${headerHtml}
+          <div class="cco-clinical-mobile-stepper" data-agreement-stepper>
+            <div class="cco-clinical-mobile-stepper-head">
+              <p class="cco-clinical-mobile-stepper-progress" data-agreement-step-progress aria-live="polite">
+                Steg ${activeStepIndex + 1} av ${agreementStepTitles.length}
+              </p>
+              <p class="cco-clinical-mobile-stepper-title" data-agreement-step-title>
+                ${escapeHtml(agreementStepTitles[activeStepIndex] || '')}
+              </p>
+            </div>
+            <div class="cco-clinical-mobile-stepper-actions">
+              <button type="button" class="customers-utility-button" data-agreement-step-prev disabled>
+                Föregående
+              </button>
+              <button type="button" class="customers-utility-button" data-agreement-step-next>
+                Nästa
+              </button>
+            </div>
+          </div>
+          <section
+            class="patient-master-agreement-step cco-clinical-step-panel"
+            data-agreement-step-panel="0"
+            data-step-title="${escapeHtml(agreementStepTitles[0])}"
+            ${activeStepIndex === 0 ? '' : ' hidden'}
+          >
+            <p class="patient-master-next-action">${escapeHtml(nextActionLabel)}</p>
+            ${checklistHtml}
+            <div class="patient-master-plan-photo-actions">
+              <a class="customers-utility-button" href="${escapeHtml(patientInfoPdf)}" target="_blank" rel="noopener">Bilaga 1 PDF</a>
+              <button type="button" class="customers-utility-button" data-patient-action="send-patient-info">Logga skickad patientinfo</button>
+            </div>
+            ${badgesHtml}
+          </section>
+          <section
+            class="patient-master-agreement-step cco-clinical-step-panel"
+            data-agreement-step-panel="1"
+            data-step-title="${escapeHtml(agreementStepTitles[1])}"
+            ${activeStepIndex === 1 ? '' : ' hidden'}
+          >
+            <p class="patient-master-muted">${offerAccepted ? 'Offerten är accepterad.' : 'Väntar på att kunden accepterar offerten.'}</p>
+            ${canCreate
+        ? `<div class="patient-master-plan-photo-actions"><button type="button" class="customers-utility-button" data-patient-action="create-agreement-from-offer">Skapa avtal från offert</button></div>`
+        : ''
+      }
+          </section>
+          <section
+            class="patient-master-agreement-step cco-clinical-step-panel"
+            data-agreement-step-panel="2"
+            data-step-title="${escapeHtml(agreementStepTitles[2])}"
+            ${activeStepIndex === 2 ? '' : ' hidden'}
+          >
+            <div class="patient-master-plan-photo-actions">
+              ${canSendSign
+        ? `<button type="button" class="customers-utility-button" data-patient-action="send-agreement-for-sign">Skicka för signering</button>`
+        : ''
+      }
+              ${canAcceptAgreement
+        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement">Signera avtal (staff)</button>`
+        : ''
+      }
+              ${canAcceptAgreement && coolingActive
+        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement" data-patient-force-agreement="1">Tvinga signering</button>`
+        : ''
+      }
+            </div>
+            ${documentLinksHtml}
+          </section>
+          <section
+            class="patient-master-agreement-step cco-clinical-step-panel"
+            data-agreement-step-panel="3"
+            data-step-title="${escapeHtml(agreementStepTitles[3])}"
+            ${activeStepIndex === 3 ? '' : ' hidden'}
+          >
+            ${bookingHtml}
+          </section>
+        </article>
+      </div>
+    `;
+    }
+
+    return `
+      <article class="focus-customer-data-card patient-master-agreement-card">
+        ${headerHtml}
+        <p class="patient-master-next-action">${escapeHtml(nextActionLabel)}</p>
+        ${checklistHtml}
+        ${badgesHtml}
         <div class="patient-master-plan-photo-actions">
           <a class="customers-utility-button" href="${escapeHtml(patientInfoPdf)}" target="_blank" rel="noopener">Bilaga 1 PDF</a>
           <button type="button" class="customers-utility-button" data-patient-action="send-patient-info">Logga skickad patientinfo</button>
@@ -3275,27 +3661,8 @@
         : ''
       }
         </div>
-        ${runtime.agreementDocumentUrl
-        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementDocumentUrl)}" target="_blank" rel="noopener">Öppna avtal (HTML)</a>${runtime.agreementDocumentPdfUrl
-          ? ` · <a href="${escapeHtml(runtime.agreementDocumentPdfUrl)}" target="_blank" rel="noopener">PDF</a>`
-          : ''
-        }</p>`
-        : ''
-      }
-        ${runtime.agreementSignUrl
-        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementSignUrl)}" target="_blank" rel="noopener">Signeringssida för kund</a></p>`
-        : ''
-      }
-        ${angerUrl
-        ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
-        : ''
-      }
-        ${readout?.bookable
-        ? `<div class="patient-master-booking-ready">
-                <p class="patient-master-muted"><strong>Behandlingsbokning öppen.</strong> Boka behandlingstid i CCO-tråden med kundens e-post (${escapeHtml(card.primaryEmail || 'saknas')}). Endast behandlingstjänster (FUE/DHI m.fl.) — inte konsultation.</p>
-              </div>`
-        : `<p class="patient-master-muted">Behandlingsbokning spärrad tills avtalet är signerat och bokningsbart.</p>`
-      }
+        ${documentLinksHtml}
+        ${bookingHtml}
       </article>
     `;
   }
@@ -3352,6 +3719,9 @@
     if (normalized === 'journal') {
       runtime.preferJournalOnMobile = true;
       window.__ARCANA_LOAD_STAFF_DEFERRED__?.();
+      void loadPatientJournalEntries(runtime.selectedPatientId);
+    } else if (normalized === 'tidslinje') {
+      void loadPatientJournalEntries(runtime.selectedPatientId);
     } else {
       runtime.preferJournalOnMobile = false;
       runtime.editingTpEntryId = '';
@@ -3512,7 +3882,9 @@
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">
           ${renderJournalWorkflowCallout(journalEntries)}
+          ${renderPatientIntegrationsCard(card)}
           ${renderPatientComplianceCard(card)}
+          ${renderPatientDemographicsCard(card)}
           <article class="focus-customer-data-card patient-master-identity-card">
             <h4>Identitet</h4>
             <dl class="focus-customer-dl">
@@ -3572,7 +3944,10 @@
   async function loadStats() {
     if (needsStaffLogin()) return;
     try {
-      const payload = await apiRequest('/api/v1/cco-patient-master/stats');
+      const payload = await apiRequest('/api/v1/cco-patient-master/stats', {
+        cacheKey: 'patient-master:stats',
+        staleTime: window.ArcanaCcoData?.policy?.STATIC?.staleTime,
+      });
       runtime.stats = payload.stats || null;
       renderMetricCards();
     } catch (error) {
@@ -3619,12 +3994,26 @@
     if (runtime.flagFilter) params.set('flags', runtime.flagFilter);
 
     try {
-      const payload = await apiRequest(`/api/v1/cco-patient-master/patients?${params}`);
-      const batch = filterPilotPatients(asArray(payload.patients));
+      const shellKey = `customers-shell:list:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.offset}`;
+      const payload = await apiRequest(
+        `/api/v1/cco/staff/customers-shell?${params}`,
+        {
+          cacheKey: shellKey,
+          staleTime: window.ArcanaCcoData?.policy?.PATIENT_LIST?.staleTime,
+        }
+      );
+      const patientsPayload = payload.patients || payload;
+      const batch = filterPilotPatients(asArray(patientsPayload.patients));
       runtime.total = getPilotPatientIds().length
         ? batch.length
-        : Number(payload.total || batch.length);
+        : Number(patientsPayload.total || batch.length);
       runtime.patients = append ? runtime.patients.concat(batch) : batch;
+      if (payload.stats) runtime.stats = payload.stats;
+      if (Array.isArray(payload.offerTemplates?.templates)) {
+        runtime.offerTemplates = payload.offerTemplates.templates;
+      } else if (Array.isArray(payload.offerTemplates)) {
+        runtime.offerTemplates = payload.offerTemplates;
+      }
       runtime.loaded = true;
       runtime.authRequired = false;
       setStatus('', '');
@@ -3642,7 +4031,7 @@
           }
         }
       }
-      if (!runtime.selectedPatientId && runtime.patients[0] && !isMobileViewport()) {
+      if (!runtime.selectedPatientId && runtime.patients[0] && !isCompactFormViewport()) {
         runtime.selectedPatientId = runtime.patients[0].patientId;
         await loadPatientDetail(runtime.selectedPatientId);
       }
@@ -3784,15 +4173,52 @@
     return null;
   }
 
-  async function fetchPatientDetailFromApi(patientId, { includeDriveFiles = true } = {}) {
+  async function loadPatientJournalEntries(patientId, { force = false } = {}) {
+    const key = normalizeText(patientId);
+    if (!key || !runtime.detail?.card) return;
+    if (!force && runtime.journalLoaded && normalizeText(runtime.selectedPatientId) === key) return;
+    if (runtime.journalLoading) return;
+    runtime.journalLoading = true;
+    try {
+      const journalPolicy = window.ArcanaCcoData?.policy?.JOURNAL || { staleTime: 0, gcTime: 120000 };
+      const payload = await apiRequest(
+        `/api/v1/cco-journal/entries?patientId=${encodeURIComponent(key)}&limit=120`,
+        {
+          cacheKey: `journal:${key}`,
+          staleTime: journalPolicy.staleTime,
+          gcTime: journalPolicy.gcTime,
+          force,
+        }
+      );
+      if (normalizeText(runtime.selectedPatientId) !== key || !runtime.detail) return;
+      runtime.detail.journalEntries = asArray(payload.entries);
+      runtime.journalLoaded = true;
+      syncTimelineFocusFromEntries(runtime.detail.journalEntries);
+      if (runtime.detailTab === 'journal' || runtime.detailTab === 'tidslinje') {
+        renderDetailPanel();
+      }
+    } catch (error) {
+      console.warn('Journal kunde inte laddas.', error);
+    } finally {
+      runtime.journalLoading = false;
+    }
+  }
+
+  async function fetchPatientDetailFromApi(patientId, { includeDriveFiles = true, includeJournal = false } = {}) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timeoutId = controller ? window.setTimeout(() => controller.abort(), 8000) : 0;
     const driveQuery = includeDriveFiles ? '1' : '0';
+    const endpoint = includeJournal
+      ? `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}&includeJournal=1`
+      : `/api/v1/cco-patient-master/patient/summary?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}`;
+    const detailPolicy = window.ArcanaCcoData?.policy?.PATIENT_DETAIL || { staleTime: 90000, gcTime: 300000 };
     try {
-      return await apiRequest(
-        `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}`,
-        controller ? { signal: controller.signal } : {}
-      );
+      return await apiRequest(endpoint, {
+        ...(controller ? { signal: controller.signal } : {}),
+        cacheKey: `patient-detail:${normalizeText(patientId)}:${includeJournal ? 'full' : 'summary'}:${driveQuery}`,
+        staleTime: detailPolicy.staleTime,
+        gcTime: detailPolicy.gcTime,
+      });
     } finally {
       if (timeoutId) window.clearTimeout(timeoutId);
     }
@@ -3921,6 +4347,8 @@
       runtime.draftProposals = null;
       runtime.draftProposalsPatientId = '';
       runtime.draftProposalsLoading = false;
+      runtime.journalLoaded = false;
+      runtime.journalLoading = false;
     }
     runtime.selectedPatientId = patientId;
     if (isMobileViewport() && runtime.preferJournalOnMobile) {
@@ -3946,6 +4374,10 @@
     try {
       const payload = await resolvePatientDetailPayload(patientId, { preferLite: isMobileViewport() });
       runtime.detail = payload;
+      runtime.journalLoaded = asArray(payload.journalEntries).length > 0;
+      if (!runtime.journalLoaded) {
+        runtime.detail.journalEntries = [];
+      }
       syncTimelineFocusFromEntries(payload.journalEntries);
       runtime.detailLoading = false;
       if (isMobileViewport() && runtime.preferJournalOnMobile) {
@@ -3960,6 +4392,13 @@
         void enrichPatientDriveFiles(patientId);
       }
       signalDeepLinkDetailReady(patientId);
+      if (
+        runtime.detailTab === 'journal' ||
+        runtime.detailTab === 'tidslinje' ||
+        (isMobileViewport() && runtime.preferJournalOnMobile)
+      ) {
+        void loadPatientJournalEntries(patientId);
+      }
       if (isMobileViewport()) {
         void Promise.all([
           loadPatientCommercialCase(patientId),
@@ -5099,6 +5538,12 @@
           }
         } else if (actionButton.dataset.patientAction === 'gdpr-export') {
           void downloadGdprExport(runtime.selectedPatientId);
+        } else if (actionButton.dataset.patientAction === 'sync-fortnox') {
+          void syncPatientToFortnox();
+        } else if (actionButton.dataset.patientAction === 'swish-payment') {
+          void createSwishPaymentForPatient();
+        } else if (actionButton.dataset.patientAction === 'save-demographics') {
+          void savePatientDemographics(els.patientRail);
         } else if (actionButton.dataset.patientAction === 'save-journal-access') {
           const toggle = els.patientRail?.querySelector('[data-patient-journal-block-toggle]');
           const reasonInput = els.patientRail?.querySelector('[data-patient-journal-block-reason]');
@@ -5277,7 +5722,14 @@
         renderPatientRows();
         return;
       }
-      window.ArcanaPostOpInternalReviews?.refresh?.();
+      const deferPostOpRefresh = () => {
+        window.ArcanaPostOpInternalReviews?.refresh?.();
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(deferPostOpRefresh, { timeout: 5000 });
+      } else {
+        window.setTimeout(deferPostOpRefresh, 1800);
+      }
       const deepLinkId = normalizeText(runtime.pendingPatientId || startup.patientId);
       const preserveDetail =
         deepLinkId &&
@@ -5302,12 +5754,19 @@
         syncMobilePatientLayout();
       }
       if (!runtime.loaded && !runtime.loading) {
-        void loadOfferTemplates();
+        const deferSecondaryLoads = () => {
+          void loadOfferTemplates();
+          void loadStats();
+        };
+        if (typeof requestIdleCallback === 'function') {
+          requestIdleCallback(deferSecondaryLoads, { timeout: 3500 });
+        } else {
+          window.setTimeout(deferSecondaryLoads, 400);
+        }
         const mobileDeepLink = deepLinkId && isMobileViewport();
         if (mobileDeepLink) {
           const loadListLater = () => {
             void loadPatientList();
-            void loadStats();
           };
           if (typeof requestIdleCallback === 'function') {
             requestIdleCallback(loadListLater, { timeout: 2400 });
@@ -5315,7 +5774,6 @@
             window.setTimeout(loadListLater, 320);
           }
         } else {
-          void loadStats();
           void loadPatientList();
         }
       } else {
@@ -5380,8 +5838,15 @@
       renderDetailEmpty();
     }
     bindEvents();
-    if (!(startup.patientId && isMobileViewport())) {
-      void loadOfferTemplates();
+    if (!(startup.patientId && isMobileViewport()) && !isCustomersShellActive()) {
+      const deferOfferTemplates = () => {
+        void loadOfferTemplates();
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(deferOfferTemplates, { timeout: 4000 });
+      } else {
+        window.setTimeout(deferOfferTemplates, 600);
+      }
     }
     if ('serviceWorker' in navigator) {
       const unregisterWorkers = () => {
@@ -5429,6 +5894,37 @@
     setStatus(message, 'info');
   }
 
+  async function openPatient(patientId, options = {}) {
+    const id = normalizeText(patientId);
+    if (!id) return false;
+    runtime.selectedPatientId = id;
+    updatePatientRowSelection('', id);
+    syncMobilePatientLayout();
+    await loadPatientDetail(id);
+    if (options.tab) setPatientTab(options.tab);
+    return true;
+  }
+
+  async function openPatientByEmail(customerEmail, customerName = '', options = {}) {
+    const email = normalizeText(customerEmail).toLowerCase();
+    const nameHint = normalizeText(customerName);
+    if (!email && !nameHint) return false;
+    runtime.query = email || nameHint;
+    const searchInput = document.querySelector('[data-customer-search]');
+    if (searchInput) searchInput.value = runtime.query;
+    await loadPatientList();
+    const match =
+      runtime.patients.find((patient) => normalizeText(patient.primaryEmail).toLowerCase() === email) ||
+      runtime.patients.find((patient) =>
+        nameHint ? normalizeText(patient.displayName).toLowerCase().includes(nameHint.toLowerCase()) : false
+      );
+    if (!match) {
+      showMobileToast(`Ingen kund hittades${email ? ` för ${email}` : ''}.`);
+      return false;
+    }
+    return openPatient(match.patientId, options);
+  }
+
   function renderStaffAuth() {
     resolveElements();
     if (runtime.mode !== 'register') return false;
@@ -5448,6 +5944,8 @@
     syncMobilePatientLayout,
     setPatientTab,
     showMobileToast,
+    openPatient,
+    openPatientByEmail,
   };
 
   function shouldBootstrapMobileDeepLinkNow() {

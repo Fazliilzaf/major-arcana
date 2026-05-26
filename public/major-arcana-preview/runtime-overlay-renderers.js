@@ -1062,8 +1062,13 @@
         const isRecommended = hasBookingUpdateStudioContext && toneKey === recommendedToneKey;
         const baseLabel = asText(button.textContent, "Ton");
         button.classList.toggle("is-recommended", isRecommended);
+        button.classList.toggle("is-loading", Boolean(studioState?.draftModesLoading));
         button.dataset.recommended = isRecommended ? "true" : "false";
-        button.title = isRecommended ? `${baseLabel} · rekommenderat i detta läge` : baseLabel;
+        button.title = studioState?.draftModesLoading
+          ? `${baseLabel} · laddar AI-utkast`
+          : isRecommended
+            ? `${baseLabel} · rekommenderat i detta läge`
+            : baseLabel;
       });
       studioRefineButtons.forEach((button) => {
         const refineKey = normalizeKey(button.dataset.studioRefine);
@@ -1309,7 +1314,9 @@
     }
 
     function openFocusContextPanel(payload = {}) {
-      state.runtime = state.runtime || {};
+      if (!state.runtime || typeof state.runtime !== "object") {
+        state.runtime = {};
+      }
       state.runtime.focusContextPayload = {
         label: asText(payload.label, "Kontext"),
         title: asText(payload.title, payload.label || "Kontext"),
@@ -1332,7 +1339,9 @@
 
     function setBookingOpen(open) {
       const isOpen = workspaceSourceOfTruth.setOverlayOpen("booking", open);
-      state.runtime = state.runtime || {};
+      if (!state.runtime || typeof state.runtime !== "object") {
+        state.runtime = {};
+      }
       state.runtime.bookingShellOpen = isOpen;
       if (!isOpen) {
         state.runtime.bookingShellDismissed = true;
@@ -2029,11 +2038,15 @@
         };
       }
       if (normalizedOption === "ai-summary") {
-        return {
+        const heuristicPreset = {
           templateKey: null,
           text: `AI-sammanfattning:\n- Kund: ${thread.customerName}\n- Nu i: ${thread.statusLabel}\n- Nästa steg: ${thread.nextActionLabel}\n- Fokus: ${compactRuntimeCopy(thread.whyInFocus, "Ingen fokusmotivering.", 96)}`,
           tags: ["AI", "Sammanfattning", thread.intentLabel || "Signal"],
         };
+        if (typeof windowObject.ArcanaThreadAiSummary?.buildNotePreset === "function") {
+          return windowObject.ArcanaThreadAiSummary.buildNotePreset(thread, heuristicPreset);
+        }
+        return heuristicPreset;
       }
       if (normalizedOption === "ai-extract") {
         return {
