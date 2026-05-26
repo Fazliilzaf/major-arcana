@@ -444,6 +444,7 @@ function createCcoBookingsRouter({
   patientCareStateStore = null,
   journalStore = null,
   settingsStore = null,
+  readCache = null,
   authStore,
   config,
 }) {
@@ -757,6 +758,129 @@ function createCcoBookingsRouter({
           : null,
         draft: buildOfferDraft({ bookingCase }),
       });
+    })
+  );
+
+  router.get('/cco-bookings/calendar-bundle', async (req, res) =>
+    handle(req, res, async (context) => {
+      const fromDate = normalizeText(req.query.fromDate || req.query.from);
+      const toDate = normalizeText(req.query.toDate || req.query.to);
+      const resIds = normalizeCsvParam(req.query.resIds);
+      const srvIds = normalizeCsvParam(req.query.srvIds);
+      if (!fromDate || !toDate) {
+        return res.status(400).json({ error: 'availability_range_missing' });
+      }
+
+      const cacheKey = readCache
+        ? readCache.buildKey(
+            'calendar-bundle',
+            context.tenantId,
+            JSON.stringify({ fromDate, toDate, resIds, srvIds })
+          )
+        : '';
+
+      const build = async () => {
+        let slots = [];
+        let blocks = [];
+        if (bookingEngineStore && normalizeKey(req.query.provider) !== 'external') {
+          [slots, blocks] = await Promise.all([
+            bookingEngineStore.listAvailability({
+              tenantId: context.tenantId,
+              fromDate,
+              toDate,
+              resIds: resIds || '',
+              srvIds: srvIds || '',
+              excludeConversationId: normalizeText(req.query.conversationId),
+            }),
+            bookingEngineStore.listCalendarBlocks({
+              fromDate,
+              toDate,
+              resIds: resIds || '',
+            }),
+          ]);
+        }
+
+        const cases =
+          typeof bookingStore.listCasesInRange === 'function'
+            ? await bookingStore.listCasesInRange({
+                tenantId: context.tenantId,
+                fromDate,
+                toDate,
+                limit: 200,
+              })
+            : await bookingStore.listCases({
+                tenantId: context.tenantId,
+                sort: 'recent',
+                limit: 200,
+              });
+
+        let leadTimeConfig = normalizeBookingReminderLeadTimeConfig({});
+        if (settingsStore && typeof settingsStore.getTenantSettings === 'function') {
+          const settings = await settingsStore.getTenantSettings({ tenantId: context.tenantId });
+          leadTimeConfig = normalizeBookingReminderLeadTimeConfig(settings?.bookingReminderLeadTime);
+        }
+
+        const servicesById = new Map();
+        if (bookingEngineStore && typeof bookingEngineStore.listServices === 'function') {
+          const services = await bookingEngineStore.listServices();
+          asArray(services).forEach((service) => {
+            const id = normalizeText(service?.id);
+            if (id) servicesById.set(id, service);
+          });
+        }
+
+        const missingByEmail = new Map();
+        if (journalStore && patientMasterStore) {
+          const report = await buildMissingFormsReport({
+            patientMasterStore,
+            journalStore,
+            treatmentAgreementStore,
+            tenantId: context.tenantId,
+          });
+          asArray(report?.rows).forEach((row) => {
+            const email = normalizeKey(row?.primaryEmail);
+            if (!email) return;
+            missingByEmail.set(email, {
+              patientId: row.patientId || '',
+              missing: asArray(row.missing),
+            });
+          });
+        }
+
+        const reminderLog =
+          patientCareStateStore && typeof patientCareStateStore.listReminderLog === 'function'
+            ? await patientCareStateStore.listReminderLog({ tenantId: context.tenantId })
+            : [];
+
+        const signals = buildCalendarSignalsIndex({
+          bookingCases: cases,
+          servicesById,
+          missingByEmail,
+          reminderLog,
+          leadTimeConfig,
+          fromDate,
+          toDate,
+        });
+
+        return {
+          ok: true,
+          provider: 'cco_calendar_bundle',
+          fromDate,
+          toDate,
+          slots,
+          blocks,
+          cases,
+          leadTime: signals.leadTime,
+          byCaseId: signals.byCaseId,
+        };
+      };
+
+      if (readCache && cacheKey) {
+        const { value, cacheHit } = await readCache.wrap(cacheKey, 45_000, build);
+        return res.json({ ...value, cacheHit });
+      }
+      const payload = await build();
+      return res.json({ ...payload, cacheHit: false });
     })
   );
 

@@ -1,0 +1,50 @@
+---
+description: CCO performance architecture guardrails (vanilla JS data layer, cache policy, GDPR journal rules)
+globs:
+  - public/major-arcana-preview/**
+  - src/routes/cco*.js
+  - src/ops/cco*.js
+  - src/infra/ccoReadCache.js
+alwaysApply: false
+---
+
+# CCO Performance Architecture
+
+## Client data layer
+
+- Use `window.ArcanaCcoData` / `CcoRequestCache` — **not** TanStack Query or React Query.
+- Stale times live in `app/cco-cache-policy.js` (`STATIC`, `WORKLIST`, `PATIENT_LIST`, `JOURNAL`, `CALENDAR`, `ANALYTICS`).
+- Instrument fetch via `app/cco-fetch-instrumentation.js`; verify with `window.__getFetchStats()` alongside `window.__getRenderStats()`.
+
+## Consolidated endpoints (prefer over N+1)
+
+- Customers view: `GET /api/v1/cco/staff/customers-shell`
+- Calendar: `GET /api/v1/cco-bookings/calendar-bundle?fromDate&toDate`
+- Analytics: `GET /api/v1/cco/staff/dashboard-snapshot` (fallback to individual monitor routes)
+- Patient detail (no journal): `GET /api/v1/cco-patient-master/patient/summary`
+- Journal lazy: `GET /api/v1/cco-journal/entries?patientId&limit&offset`
+
+## Server cache (Redis + memory)
+
+- Use `src/infra/ccoReadCache.js` for short-TTL read caches.
+- **Never** cache full journal content cross-user in Redis.
+- Journal remains lazy-loaded, private per session; `JOURNAL` policy uses `staleTime: 0`.
+
+## Lists
+
+- Patient list virtual scroll: `app/cco-patient-list-virtual.js` (threshold 80 rows).
+- Mail queue virtual scroll: existing `lit-switchover.js` pattern (>150).
+
+## Before claiming perf regressions
+
+1. Run `npm run verify:cco-performance-baseline-prod` (or local equivalent).
+2. Check DevTools: `__getFetchStats()` dedupe/cache hits.
+3. Rebuild bundle after app.js / manifest changes: `npm run build:bundle`.
+
+## QA checklist
+
+- [ ] Hard reload `/admin#cco` — mail list clickable <200ms
+- [ ] Customers shell: one `customers-shell` request on first visit (not separate stats+patients+templates)
+- [ ] Patient detail opens without journal payload until Journal tab
+- [ ] Calendar month: one `calendar-bundle` per range (not separate slots+cases+signals)
+- [ ] `node scripts/rebuild-cco-indexes.js` after bulk patient/booking imports

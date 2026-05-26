@@ -1314,7 +1314,9 @@
     }
 
     function openFocusContextPanel(payload = {}) {
-      state.runtime = state.runtime || {};
+      if (!state.runtime || typeof state.runtime !== "object") {
+        state.runtime = {};
+      }
       state.runtime.focusContextPayload = {
         label: asText(payload.label, "Kontext"),
         title: asText(payload.title, payload.label || "Kontext"),
@@ -1337,7 +1339,9 @@
 
     function setBookingOpen(open) {
       const isOpen = workspaceSourceOfTruth.setOverlayOpen("booking", open);
-      state.runtime = state.runtime || {};
+      if (!state.runtime || typeof state.runtime !== "object") {
+        state.runtime = {};
+      }
       state.runtime.bookingShellOpen = isOpen;
       if (!isOpen) {
         state.runtime.bookingShellDismissed = true;

@@ -3041,7 +3041,16 @@
   }
 
   let __renderScheduled = false;
+  let __renderDepth = 0;
+  let __renderDeferred = false;
   function scheduleRender(reason) {
+    // Under pågående render: mutera inte schemaläggning direkt — köa en flush
+    // efter nuvarande renderApp så state-proxy-setters inte driver sync-loop.
+    if (__renderDepth > 0) {
+      __renderDeferred = true;
+      __renderStats.deferred = (__renderStats.deferred || 0) + 1;
+      return;
+    }
     if (__renderScheduled) return;
     __renderScheduled = true;
     __renderStats.scheduled++;
@@ -3073,10 +3082,17 @@
     }
     __renderScheduled = false;
     const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    __renderDepth++;
     try {
       renderApp(state);
     } catch (e) {
       if (typeof console !== 'undefined') console.warn('[render] fel:', e);
+    } finally {
+      __renderDepth--;
+      if (__renderDeferred) {
+        __renderDeferred = false;
+        scheduleRender('deferred');
+      }
     }
     const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
     __renderStats.lastDurationMs = t1 - t0;
@@ -3108,6 +3124,11 @@
   function renderRuntimeShellHook(state) {
     if (!__renderHooks.runtimeShell) return;
     if (state.status.bootstrapped !== true) return;
+    const shellView = normalizeKey(canvas?.dataset?.appShellView || "");
+    if (shellView && shellView !== "conversations") {
+      __renderStats.runtimeShellSkipped++;
+      return;
+    }
     if (__runtimeShellInProgress) {
       __renderStats.runtimeShellSkipped++;
       return;
@@ -3159,6 +3180,14 @@
       bootstrapLastDurationMs: Number(asyncRuntimeRefs.bootstrapLastDurationMs || 0),
       bootstrapNetworkLoads: Number(asyncRuntimeRefs.bootstrapNetworkLoads || 0),
     });
+    if (typeof window.__getFetchStats !== "function") {
+      window.__getFetchStats = () => ({
+        total: 0,
+        ok: 0,
+        error: 0,
+        note: "cco-fetch-instrumentation not loaded",
+      });
+    }
     window.__scheduleRuntimeConversationShell = scheduleRuntimeConversationShell;
     window.__renderApp = () => {
       __doRender();
@@ -13697,24 +13726,31 @@
     };
   }
 
+  function assignStudioStateInPlace(nextStudioState) {
+    const existing = __stateInternal.studio;
+    if (existing && typeof existing === "object") {
+      Object.assign(existing, nextStudioState);
+      return existing;
+    }
+    state.studio = nextStudioState;
+    return nextStudioState;
+  }
+
   function prepareComposeStudioState(thread = null) {
-    state.studio = createComposeStudioState(thread);
-    return state.studio;
+    return assignStudioStateInPlace(createComposeStudioState(thread));
   }
 
   function ensureStudioState(thread) {
     if (!thread) return null;
-    const replyContextThreadId = asText(state.studio.replyContextThreadId);
+    const isComposeMode = normalizeKey(state.forms.studioMode) === "compose";
+    const threadMatches = runtimeConversationIdsMatch(state.forms.studioThreadId, thread.id);
+    const replyContextThreadId = asText(state.studio?.replyContextThreadId);
     const hasReplyContextMismatch =
-      normalizeKey(state.forms.studioMode) !== "compose" &&
+      !isComposeMode &&
       replyContextThreadId &&
       !runtimeConversationIdsMatch(replyContextThreadId, thread.id);
-    if (
-      normalizeKey(state.forms.studioMode) === "compose" ||
-      !runtimeConversationIdsMatch(state.forms.studioThreadId, thread.id) ||
-      hasReplyContextMismatch
-    ) {
-      state.studio = createStudioState(thread);
+    if (isComposeMode || !threadMatches || hasReplyContextMismatch) {
+      assignStudioStateInPlace(createStudioState(thread));
     }
     if (!normalizeText(state.forms.studioDraftBody)) {
       state.forms.studioDraftBody =
@@ -26609,21 +26645,39 @@
     renderAnalyticsRuntime();
 
     const days = getAnalyticsDaysForPeriod();
-    const requests = [
-      ["monitorMetrics", "/api/v1/monitor/metrics"],
-      ["readiness", "/api/v1/monitor/readiness"],
-      ["ownerDashboard", "/api/v1/dashboard/owner"],
-      ["pilotReport", `/api/v1/reports/pilot?days=${days}`],
-      ["riskSummary", "/api/v1/risk/summary"],
-      ["incidentSummary", "/api/v1/incidents/summary"],
-      ["mailInsights", "/api/v1/mail/insights"],
-    ];
+    let snapshotPayload = null;
+    try {
+      const snapshotPolicy = window.ArcanaCcoData?.policy?.ANALYTICS || { staleTime: 300000 };
+      const snapshotResult = window.ArcanaCcoData?.fetch
+        ? await window.ArcanaCcoData.fetch(
+            "dashboard-snapshot",
+            () => apiRequest("/api/v1/cco/staff/dashboard-snapshot"),
+            { staleTime: snapshotPolicy.staleTime, force }
+          )
+        : await apiRequest("/api/v1/cco/staff/dashboard-snapshot");
+      snapshotPayload = snapshotResult?.snapshot || null;
+    } catch {
+      snapshotPayload = null;
+    }
 
-    const settled = await Promise.allSettled(
-      requests.map(([, path]) => apiRequest(path))
-    ).catch((error) => {
-      throw error;
-    });
+    const requests = snapshotPayload
+      ? []
+      : [
+          ["monitorMetrics", "/api/v1/monitor/metrics"],
+          ["readiness", "/api/v1/monitor/readiness"],
+          ["ownerDashboard", "/api/v1/dashboard/owner"],
+          ["pilotReport", `/api/v1/reports/pilot?days=${days}`],
+          ["riskSummary", "/api/v1/risk/summary"],
+          ["incidentSummary", "/api/v1/incidents/summary"],
+          ["mailInsights", "/api/v1/mail/insights"],
+        ];
+
+    const settled =
+      requests.length > 0
+        ? await Promise.allSettled(requests.map(([, path]) => apiRequest(path))).catch((error) => {
+            throw error;
+          })
+        : [];
 
     if (requestId !== state.analyticsRuntime.requestId) return;
 
@@ -26632,21 +26686,34 @@
     const failures = [];
     let hasAuthFailure = false;
 
-    settled.forEach((result, index) => {
-      const [key] = requests[index];
-      if (result.status === "fulfilled") {
-        nextValues[key] = result.value;
-        successCount += 1;
-        return;
-      }
-      nextValues[key] = state.analyticsRuntime[key] || null;
-      const statusCode = Number(result.reason?.statusCode || result.reason?.status || 0);
-      const message = result.reason instanceof Error ? result.reason.message : String(result.reason || "");
-      if (isAuthFailure(statusCode, message)) {
-        hasAuthFailure = true;
-      }
-      failures.push(result.reason);
-    });
+    if (snapshotPayload) {
+      Object.assign(nextValues, {
+        monitorMetrics: snapshotPayload.monitorMetrics || null,
+        readiness: snapshotPayload.readiness || null,
+        ownerDashboard: snapshotPayload.ownerDashboard || null,
+        pilotReport: snapshotPayload.pilotReport || null,
+        riskSummary: snapshotPayload.riskSummary || null,
+        incidentSummary: snapshotPayload.incidentSummary || null,
+        mailInsights: snapshotPayload.mailInsights || null,
+      });
+      successCount = Object.values(nextValues).filter(Boolean).length;
+    } else {
+      settled.forEach((result, index) => {
+        const [key] = requests[index];
+        if (result.status === "fulfilled") {
+          nextValues[key] = result.value;
+          successCount += 1;
+          return;
+        }
+        nextValues[key] = state.analyticsRuntime[key] || null;
+        const statusCode = Number(result.reason?.statusCode || result.reason?.status || 0);
+        const message = result.reason instanceof Error ? result.reason.message : String(result.reason || "");
+        if (isAuthFailure(statusCode, message)) {
+          hasAuthFailure = true;
+        }
+        failures.push(result.reason);
+      });
+    }
 
     if (!successCount && !state.analyticsRuntime.loaded) {
       const firstFailure = failures[0];
@@ -41021,7 +41088,8 @@
     renderNoteDestination(state.note?.activeKey);
   }
 
-  async function apiRequest(path, options = {}) {
+  const apiRequest = (window.ArcanaCcoFetchInstrumentation?.instrumentAsyncFn || ((fn) => fn))(
+    async function apiRequestImpl(path, options = {}) {
     const url = new URL(path, window.location.origin);
     const isWorkspaceRequest = path.includes("/api/v1/cco-workspace/");
     const context = getActiveWorkspaceContext();
@@ -41103,7 +41171,9 @@
       authToken: getAdminToken(),
       allowRetry: true,
     });
-  }
+  },
+    { getPath: (path) => path }
+  );
 
   function applyStudioTemplateSelection(templateKey) {
     if (normalizeKey(state.forms.studioMode) === "compose") {

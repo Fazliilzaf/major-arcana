@@ -163,33 +163,61 @@
     return map;
   }
 
-  async function fetchRangeSlots(fromDate, toDate) {
-    const params = new URLSearchParams({ fromDate, toDate });
-    try {
-      const response = await fetch(`/api/v1/cco-bookings/slots?${params.toString()}`, {
+  let calendarBundleReuse = null;
+
+  async function fetchCalendarBundle(fromDate, toDate) {
+    const cacheKey = `calendar-bundle:${fromDate}:${toDate}`;
+    const policy = window.ArcanaCcoData?.policy?.CALENDAR || { staleTime: 60_000, gcTime: 300_000 };
+    const load = async () => {
+      const params = new URLSearchParams({ fromDate, toDate });
+      const response = await fetch(`/api/v1/cco-bookings/calendar-bundle?${params.toString()}`, {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
       });
-      if (!response.ok) throw new Error('slots_unavailable');
+      if (!response.ok) throw new Error('calendar_bundle_unavailable');
       const payload = await response.json();
+      calendarBundleReuse = payload;
+      return payload;
+    };
+    if (window.ArcanaCcoData?.fetch) {
+      return window.ArcanaCcoData.fetch(cacheKey, load, {
+        staleTime: policy.staleTime,
+        gcTime: policy.gcTime,
+      });
+    }
+    return load();
+  }
+
+  async function fetchRangeSlots(fromDate, toDate) {
+    try {
+      const bundle = await fetchCalendarBundle(fromDate, toDate);
       return {
-        slots: Array.isArray(payload?.slots) ? payload.slots : [],
-        blocks: Array.isArray(payload?.blocks) ? payload.blocks : [],
+        slots: Array.isArray(bundle?.slots) ? bundle.slots : [],
+        blocks: Array.isArray(bundle?.blocks) ? bundle.blocks : [],
       };
     } catch {
-      return { slots: [], blocks: [] };
+      const params = new URLSearchParams({ fromDate, toDate });
+      try {
+        const response = await fetch(`/api/v1/cco-bookings/slots?${params.toString()}`, {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error('slots_unavailable');
+        const payload = await response.json();
+        return {
+          slots: Array.isArray(payload?.slots) ? payload.slots : [],
+          blocks: Array.isArray(payload?.blocks) ? payload.blocks : [],
+        };
+      } catch {
+        return { slots: [], blocks: [] };
+      }
     }
   }
 
   async function fetchBookingCases(fromDate, toDate) {
     try {
-      const response = await fetch('/api/v1/cco-bookings/cases?limit=200&sort=recent', {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) return [];
-      const payload = await response.json();
-      const cases = Array.isArray(payload?.cases) ? payload.cases : [];
+      const bundle = await fetchCalendarBundle(fromDate, toDate);
+      const cases = Array.isArray(bundle?.cases) ? bundle.cases : [];
       return cases.filter((bookingCase) => {
         const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
         return slots.some((slot) => {
@@ -198,13 +226,38 @@
         });
       });
     } catch {
-      return [];
+      try {
+        const response = await fetch('/api/v1/cco-bookings/cases?limit=200&sort=recent', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) return [];
+        const payload = await response.json();
+        const cases = Array.isArray(payload?.cases) ? payload.cases : [];
+        return cases.filter((bookingCase) => {
+          const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
+          return slots.some((slot) => {
+            const iso = slotIsoDate(slot);
+            return iso && iso >= fromDate && iso <= toDate;
+          });
+        });
+      } catch {
+        return [];
+      }
     }
   }
 
   async function fetchBookedCounts(fromDate, toDate) {
     const counts = new Map();
-    const cases = await fetchBookingCases(fromDate, toDate);
+    const cases = calendarBundleReuse?.cases
+      ? calendarBundleReuse.cases.filter((bookingCase) => {
+          const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
+          return slots.some((slot) => {
+            const iso = slotIsoDate(slot);
+            return iso && iso >= fromDate && iso <= toDate;
+          });
+        })
+      : await fetchBookingCases(fromDate, toDate);
     cases.forEach((bookingCase) => {
       const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
       slots.forEach((slot) => {
@@ -259,6 +312,17 @@
   }
 
   async function fetchCalendarSignals(fromDate, toDate) {
+    try {
+      const bundle = await fetchCalendarBundle(fromDate, toDate);
+      if (bundle?.byCaseId) {
+        return {
+          byCaseId: bundle.byCaseId && typeof bundle.byCaseId === 'object' ? bundle.byCaseId : {},
+          leadTime: bundle.leadTime || null,
+        };
+      }
+    } catch {
+      /* fallback */
+    }
     try {
       const params = new URLSearchParams({ fromDate, toDate });
       const response = await fetch(`/api/v1/cco-bookings/calendar-signals?${params.toString()}`, {

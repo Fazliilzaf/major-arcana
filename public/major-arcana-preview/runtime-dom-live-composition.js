@@ -297,6 +297,18 @@
       return `${generatedAt}|${rowCount}|${deltaAt}`;
     }
 
+    async function fetchTruthPrimaryWorklistConsumer(href) {
+      const path = asText(href);
+      const policy = window.ArcanaCcoData?.policy?.WORKLIST || { staleTime: 45000, gcTime: 180000 };
+      if (window.ArcanaCcoData?.fetch && path) {
+        return window.ArcanaCcoData.fetch(`worklist-consumer:${path}`, () => apiRequest(path), {
+          staleTime: policy.staleTime,
+          gcTime: policy.gcTime,
+        });
+      }
+      return apiRequest(path);
+    }
+
     function resolveTruthPrimaryEnrichmentLegacyData(truthPrimaryPayload) {
       const enrichment =
         truthPrimaryPayload?.enrichment && typeof truthPrimaryPayload.enrichment === "object"
@@ -483,7 +495,7 @@
         return { refreshed: false, hasNewMail: false };
       }
 
-      const truthPrimaryPayload = await apiRequest(
+      const truthPrimaryPayload = await fetchTruthPrimaryWorklistConsumer(
         buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
       );
       const consumerSig = getTruthConsumerSignature(truthPrimaryPayload);
@@ -3724,7 +3736,7 @@
         ) {
           if (canUseTruthPrimaryFastPath) {
             try {
-              truthPrimaryPayload = await apiRequest(
+              truthPrimaryPayload = await fetchTruthPrimaryWorklistConsumer(
                 buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
               );
               if (!isCurrentRequest()) return;
@@ -3778,7 +3790,7 @@
               );
             }
           } else {
-            truthPrimaryPromise = apiRequest(
+            truthPrimaryPromise = fetchTruthPrimaryWorklistConsumer(
               buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
             ).then(
               (payload) => ({ ok: true, payload }),
@@ -3814,7 +3826,7 @@
                 configuredTruthPrimaryMailboxIds.length &&
                 typeof buildTruthPrimaryWorklistConsumerHref === "function"
               ) {
-                truthPrimaryPayload = await apiRequest(
+                truthPrimaryPayload = await fetchTruthPrimaryWorklistConsumer(
                   buildTruthPrimaryWorklistConsumerHref(configuredTruthPrimaryMailboxIds)
                 );
                 if (deferredSequence !== liveRuntimeRequestSequence) return;
