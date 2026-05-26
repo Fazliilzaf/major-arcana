@@ -10,6 +10,7 @@
   let viewAnchor = startOfWeek(new Date());
   let selectedDayIso = shared()?.todayIso?.() || new Date().toISOString().slice(0, 10);
   let selectedResource = 'all';
+  let selectedServiceType = 'all'; // R3
   let selectedEvent = null;
   let slotsByDate = new Map();
   let allSlots = [];
@@ -105,6 +106,7 @@
           <button class="cco-cal-segment" type="button" role="tab" data-cal-view="resource" aria-selected="false">Resurs</button>
         </div>
         <div class="cco-cal-filters" data-cal-filters aria-label="Resursfilter"></div>
+        <div class="cco-cal-filters cco-cal-filters-type" data-cal-type-filters aria-label="Behandlingstypfilter"></div>
         <div class="cco-cal-nav">
           <button class="cco-cal-nav-btn" type="button" data-cal-prev>Föregående</button>
           <button class="cco-cal-nav-btn" type="button" data-cal-today>Idag</button>
@@ -195,12 +197,55 @@
     filters.innerHTML = chips.join('');
   }
 
-  function filterSlots(slots) {
-    if (selectedResource === 'all') return slots;
-    return slots.filter((slot) => {
-      const label = String(slot?.resourceLabel || slot?.resource || 'Övrigt').trim();
-      return label === selectedResource;
+  // R3: filter-chips per behandlingstyp.
+  function renderServiceTypeFilters() {
+    const shell = ensureShell();
+    const filters = shell.querySelector('[data-cal-type-filters]');
+    if (!filters) return;
+    const s = shared();
+    const counts = new Map();
+    (allSlots || []).forEach((slot) => {
+      if (slot?.kind !== 'booked') return;
+      const t = s.serviceTypeFor(slot);
+      counts.set(t, (counts.get(t) || 0) + 1);
     });
+    const labels = {
+      hairtx: 'Hårtx',
+      prp: 'PRP',
+      consultation: 'Konsult',
+      aftercare: 'Återbesök',
+      video: 'Online',
+      other: 'Övrigt',
+    };
+    const order = ['hairtx', 'prp', 'consultation', 'aftercare', 'video', 'other'];
+    const present = order.filter((t) => counts.has(t));
+    if (!present.length) {
+      filters.innerHTML = '';
+      return;
+    }
+    const chips = [
+      `<button class="cco-cal-filter-chip${selectedServiceType === 'all' ? ' is-active' : ''}" type="button" data-cal-type="all">Alla typer</button>`,
+      ...present.map(
+        (t) =>
+          `<button class="cco-cal-filter-chip cco-cal-filter-chip-type${selectedServiceType === t ? ' is-active' : ''}" data-service-type="${t}" type="button" data-cal-type="${t}">${s.escapeHtml(labels[t])} <small>${counts.get(t)}</small></button>`
+      ),
+    ];
+    filters.innerHTML = chips.join('');
+  }
+
+  function filterSlots(slots) {
+    const s = shared();
+    let out = slots;
+    if (selectedResource !== 'all') {
+      out = out.filter((slot) => {
+        const label = String(slot?.resourceLabel || slot?.resource || 'Övrigt').trim();
+        return label === selectedResource;
+      });
+    }
+    if (selectedServiceType !== 'all') {
+      out = out.filter((slot) => s.serviceTypeFor(slot) === selectedServiceType);
+    }
+    return out;
   }
 
   function isSelectedEvent(slot) {
@@ -210,6 +255,7 @@
 
   function renderTimelineEvents(slots, { absolute = true } = {}) {
     const s = shared();
+    const conflictKeys = s.findConflictKeys(slots); // R3
     return slots
       .map((slot) => {
         const start = s.slotStartMinutes(slot);
@@ -229,6 +275,7 @@
           selected: isSelectedEvent(slot),
           draggable: slot?.kind === 'booked',
           interactive: slot?.kind !== 'block',
+          conflict: conflictKeys.has(s.eventKey(slot)),
         })}</div>`;
       })
       .join('');
@@ -238,12 +285,15 @@
     const s = shared();
     const days = Array.from({ length: 7 }, (_, index) => addDays(viewAnchor, index));
     const today = s.todayIso();
+    const now = new Date();
+    const nowBadge = `NU ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     container.innerHTML = `<div class="cco-cal-week-grid">${days
       .map((day) => {
         const iso = isoFromDate(day);
         const slots = filterSlots(slotsByDate.get(iso) || []);
         const bookedCount = slots.filter((slot) => slot.kind === 'booked').length;
         const openCount = slots.filter((slot) => slot.kind === 'available').length;
+        const conflictKeys = s.findConflictKeys(slots); // R3
         const classes = [
           'cco-cal-day-col',
           iso === today ? 'is-today' : '',
@@ -251,9 +301,12 @@
         ]
           .filter(Boolean)
           .join(' ');
+        const todayBadge = iso === today
+          ? `<span class="cco-cal-now-badge" title="Aktuell tid">${s.escapeHtml(nowBadge)}</span>`
+          : '';
         return `<section class="${classes}" data-cal-day="${s.escapeAttr(iso)}" data-cal-drop-day="${s.escapeAttr(iso)}" title="Dubbelklick öppnar dagvy">
           <header class="cco-cal-col-head cco-cal-day-open" data-cal-open-day="${s.escapeAttr(iso)}" role="button" tabindex="0" aria-label="Öppna dagvy ${s.escapeAttr(formatDayLabel(day))}">
-            <strong>${s.escapeHtml(formatDayLabel(day))}</strong>
+            <strong>${s.escapeHtml(formatDayLabel(day))}${todayBadge}</strong>
             <span>${bookedCount} bokade · ${openCount} lediga</span>
             <small class="cco-cal-day-hint">Dubbelklick → dagvy</small>
           </header>
@@ -267,6 +320,7 @@
                         selected: isSelectedEvent(slot),
                         draggable: slot?.kind === 'booked',
                         interactive: slot?.kind !== 'block',
+                        conflict: conflictKeys.has(s.eventKey(slot)),
                       })
                     )
                     .join('')
@@ -635,6 +689,7 @@
     allSlots = merged.events;
     slotsByDate = merged.slotsByDate;
     renderResourceFilters();
+    renderServiceTypeFilters(); // R3
     renderGrid();
   }
 
@@ -707,6 +762,16 @@
       if (resourceButton) {
         selectedResource = resourceButton.getAttribute('data-cal-resource') || 'all';
         renderResourceFilters();
+        renderServiceTypeFilters(); // R3
+        renderGrid();
+        return;
+      }
+
+      // R3: filter per behandlingstyp
+      const typeButton = event.target.closest('[data-cal-type]');
+      if (typeButton) {
+        selectedServiceType = typeButton.getAttribute('data-cal-type') || 'all';
+        renderServiceTypeFilters();
         renderGrid();
         return;
       }
