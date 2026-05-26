@@ -163,33 +163,61 @@
     return map;
   }
 
-  async function fetchRangeSlots(fromDate, toDate) {
-    const params = new URLSearchParams({ fromDate, toDate });
-    try {
-      const response = await fetch(`/api/v1/cco-bookings/slots?${params.toString()}`, {
+  let calendarBundleReuse = null;
+
+  async function fetchCalendarBundle(fromDate, toDate) {
+    const cacheKey = `calendar-bundle:${fromDate}:${toDate}`;
+    const policy = window.ArcanaCcoData?.policy?.CALENDAR || { staleTime: 60_000, gcTime: 300_000 };
+    const load = async () => {
+      const params = new URLSearchParams({ fromDate, toDate });
+      const response = await fetch(`/api/v1/cco-bookings/calendar-bundle?${params.toString()}`, {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
       });
-      if (!response.ok) throw new Error('slots_unavailable');
+      if (!response.ok) throw new Error('calendar_bundle_unavailable');
       const payload = await response.json();
+      calendarBundleReuse = payload;
+      return payload;
+    };
+    if (window.ArcanaCcoData?.fetch) {
+      return window.ArcanaCcoData.fetch(cacheKey, load, {
+        staleTime: policy.staleTime,
+        gcTime: policy.gcTime,
+      });
+    }
+    return load();
+  }
+
+  async function fetchRangeSlots(fromDate, toDate) {
+    try {
+      const bundle = await fetchCalendarBundle(fromDate, toDate);
       return {
-        slots: Array.isArray(payload?.slots) ? payload.slots : [],
-        blocks: Array.isArray(payload?.blocks) ? payload.blocks : [],
+        slots: Array.isArray(bundle?.slots) ? bundle.slots : [],
+        blocks: Array.isArray(bundle?.blocks) ? bundle.blocks : [],
       };
     } catch {
-      return { slots: [], blocks: [] };
+      const params = new URLSearchParams({ fromDate, toDate });
+      try {
+        const response = await fetch(`/api/v1/cco-bookings/slots?${params.toString()}`, {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error('slots_unavailable');
+        const payload = await response.json();
+        return {
+          slots: Array.isArray(payload?.slots) ? payload.slots : [],
+          blocks: Array.isArray(payload?.blocks) ? payload.blocks : [],
+        };
+      } catch {
+        return { slots: [], blocks: [] };
+      }
     }
   }
 
   async function fetchBookingCases(fromDate, toDate) {
     try {
-      const response = await fetch('/api/v1/cco-bookings/cases?limit=200&sort=recent', {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) return [];
-      const payload = await response.json();
-      const cases = Array.isArray(payload?.cases) ? payload.cases : [];
+      const bundle = await fetchCalendarBundle(fromDate, toDate);
+      const cases = Array.isArray(bundle?.cases) ? bundle.cases : [];
       return cases.filter((bookingCase) => {
         const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
         return slots.some((slot) => {
@@ -198,13 +226,38 @@
         });
       });
     } catch {
-      return [];
+      try {
+        const response = await fetch('/api/v1/cco-bookings/cases?limit=200&sort=recent', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) return [];
+        const payload = await response.json();
+        const cases = Array.isArray(payload?.cases) ? payload.cases : [];
+        return cases.filter((bookingCase) => {
+          const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
+          return slots.some((slot) => {
+            const iso = slotIsoDate(slot);
+            return iso && iso >= fromDate && iso <= toDate;
+          });
+        });
+      } catch {
+        return [];
+      }
     }
   }
 
   async function fetchBookedCounts(fromDate, toDate) {
     const counts = new Map();
-    const cases = await fetchBookingCases(fromDate, toDate);
+    const cases = calendarBundleReuse?.cases
+      ? calendarBundleReuse.cases.filter((bookingCase) => {
+          const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
+          return slots.some((slot) => {
+            const iso = slotIsoDate(slot);
+            return iso && iso >= fromDate && iso <= toDate;
+          });
+        })
+      : await fetchBookingCases(fromDate, toDate);
     cases.forEach((bookingCase) => {
       const slots = Array.isArray(bookingCase?.selectedSlots) ? bookingCase.selectedSlots : [];
       slots.forEach((slot) => {
@@ -218,6 +271,17 @@
 
   async function fetchRefData() {
     try {
+      const cachedRaw = sessionStorage.getItem('arcana_cal_ref_data_v1');
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached?.expiresAt > Date.now() && cached?.payload) {
+          return cached.payload;
+        }
+      }
+    } catch {
+      /* ignore cache read */
+    }
+    try {
       const response = await fetch('/api/v1/cco-bookings/ref-data', {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
@@ -229,16 +293,36 @@
         if (!service?.id) return;
         services[service.id] = service;
       });
-      return {
+      const result = {
         services,
         resources: Array.isArray(payload?.resources) ? payload.resources : [],
       };
+      try {
+        sessionStorage.setItem(
+          'arcana_cal_ref_data_v1',
+          JSON.stringify({ expiresAt: Date.now() + 10 * 60 * 1000, payload: result })
+        );
+      } catch {
+        /* ignore cache write */
+      }
+      return result;
     } catch {
       return { services: {}, resources: [] };
     }
   }
 
   async function fetchCalendarSignals(fromDate, toDate) {
+    try {
+      const bundle = await fetchCalendarBundle(fromDate, toDate);
+      if (bundle?.byCaseId) {
+        return {
+          byCaseId: bundle.byCaseId && typeof bundle.byCaseId === 'object' ? bundle.byCaseId : {},
+          leadTime: bundle.leadTime || null,
+        };
+      }
+    } catch {
+      /* fallback */
+    }
     try {
       const params = new URLSearchParams({ fromDate, toDate });
       const response = await fetch(`/api/v1/cco-bookings/calendar-signals?${params.toString()}`, {
@@ -382,6 +466,11 @@
       missingForms: signals.missingForms,
       missingFormLabels: signals.missingFormLabels,
       patientId: signals.patientId,
+      // R4: surface source + expiry från bookingCase till slot
+      source: bookingCase?.source || 'cco_engine',
+      expiresAt: bookingCase?.nextExpiryAt || null,
+      expiresInMinutes: bookingCase?.expiresInMinutes ?? null,
+      expiresSoon: bookingCase?.expiresSoon === true,
       durationMinutes: slotDurationMinutes(slot),
       bookingCaseSnapshot: {
         bookingCaseId: bookingCase?.bookingCaseId || '',
@@ -521,11 +610,38 @@
     };
   }
 
-  async function fetchCalendarRange(fromDate, toDate) {
-    const [rangePayload, bookingCases, refData, missingByEmail, calendarSignals] = await Promise.all([
+  async function fetchCalendarRange(fromDate, toDate, options = {}) {
+    const onPartial = typeof options.onPartial === 'function' ? options.onPartial : null;
+    const [rangePayload, bookingCases] = await Promise.all([
       fetchRangeSlots(fromDate, toDate),
       fetchBookingCases(fromDate, toDate),
-      fetchRefData(),
+    ]);
+    let refData = { services: {}, resources: [] };
+    try {
+      const cachedRaw = sessionStorage.getItem('arcana_cal_ref_data_v1');
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached?.expiresAt > Date.now() && cached?.payload) {
+          refData = cached.payload;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    if (onPartial) {
+      onPartial(
+        mergeCalendarEvents(
+          rangePayload.slots,
+          bookingCases,
+          rangePayload.blocks,
+          fromDate,
+          toDate,
+          { services: refData.services }
+        )
+      );
+    }
+    const [resolvedRefData, missingByEmail, calendarSignals] = await Promise.all([
+      refData.services && Object.keys(refData.services).length ? Promise.resolve(refData) : fetchRefData(),
       fetchMissingFormsByEmail(),
       fetchCalendarSignals(fromDate, toDate),
     ]);
@@ -536,7 +652,7 @@
       fromDate,
       toDate,
       {
-        services: refData.services,
+        services: resolvedRefData.services,
         missingByEmail,
         signalsByCaseId: calendarSignals.byCaseId,
       }
@@ -718,7 +834,44 @@
     return parts.join(' · ');
   }
 
-  function renderEventCard(slot, { compact = false, selected = false, interactive = true, draggable = false } = {}) {
+  // R3: bestäm behandlingstyp av slot för filter + bottom-band-färg.
+  function serviceTypeFor(slot) {
+    const txt = String(slot?.serviceLabel || slot?.service || slot?.serviceId || '').toLowerCase();
+    if (!txt) return 'other';
+    if (txt.includes('hårtx') || txt.includes('hairtx') || txt.includes('transplant') || txt.includes('hår tp') || txt.includes('hartp')) return 'hairtx';
+    if (txt.includes('prp')) return 'prp';
+    if (txt.includes('konsult')) return 'consultation';
+    if (txt.includes('återbesök') || txt.includes('aterbesok') || txt.includes('uppföljning') || txt.includes('uppfoljning') || txt.includes('follow')) return 'aftercare';
+    if (txt.includes('online') || txt.includes('video') || txt.includes('digital')) return 'video';
+    return 'other';
+  }
+
+  // R3: hitta överlappande bokningar (samma resurs + överlappande tid).
+  // Returnerar Set av eventKey för bokningar som är i konflikt med någon annan.
+  function findConflictKeys(slots) {
+    const conflicts = new Set();
+    const booked = (slots || []).filter((s) => s?.kind === 'booked');
+    for (let i = 0; i < booked.length; i++) {
+      const a = booked[i];
+      const aStart = slotStartMinutes(a);
+      const aEnd = aStart + slotDurationMinutes(a);
+      const aResource = String(a?.resourceLabel || a?.resource || '').trim();
+      for (let j = i + 1; j < booked.length; j++) {
+        const b = booked[j];
+        const bResource = String(b?.resourceLabel || b?.resource || '').trim();
+        if (aResource !== bResource) continue;
+        const bStart = slotStartMinutes(b);
+        const bEnd = bStart + slotDurationMinutes(b);
+        if (aStart < bEnd && bStart < aEnd) {
+          conflicts.add(eventKey(a));
+          conflicts.add(eventKey(b));
+        }
+      }
+    }
+    return conflicts;
+  }
+
+  function renderEventCard(slot, { compact = false, selected = false, interactive = true, draggable = false, conflict = false } = {}) {
     const meta = classifyCalendarEvent(slot);
     const isBlock = slot?.kind === 'block';
     const tag = interactive && !isBlock ? 'button' : 'article';
@@ -735,7 +888,11 @@
             ? ' is-block'
             : '';
     const payload = { ...slot, eventKey: eventKey(slot) };
-    return `<${tag} class="cco-cal-event${selectedClass}${compactClass}${kindClass}"${typeAttr}${dragAttr} data-cal-event="${escapeAttr(JSON.stringify(payload))}" style="--cco-cal-event-accent:${meta.accent}">
+    const conflictClass = conflict ? ' is-conflict' : '';
+    const expiringClass = slot?.expiresSoon === true ? ' is-expiring' : '';
+    const serviceType = serviceTypeFor(slot);
+    const source = String(slot?.source || '').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'cco_engine';
+    return `<${tag} class="cco-cal-event${selectedClass}${compactClass}${kindClass}${conflictClass}${expiringClass}"${typeAttr}${dragAttr} data-cal-event="${escapeAttr(JSON.stringify(payload))}" data-service-type="${serviceType}" data-source="${source}" style="--cco-cal-event-accent:${meta.accent}">
       <span class="cco-cal-event-time">${escapeHtml(formatTimeRange(slot))}</span>
       <span class="cco-cal-event-body">
         <strong class="cco-cal-event-title">${escapeHtml(eventTitle(slot))}</strong>
@@ -793,6 +950,8 @@
     rebookCalendarBooking,
     buildBlockCalendarEvent,
     classifyCalendarEvent,
+    serviceTypeFor,
+    findConflictKeys,
     renderEventIcons,
     renderEventCard,
     eventTitle,

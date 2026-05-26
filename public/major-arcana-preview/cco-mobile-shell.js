@@ -292,7 +292,7 @@
       syncFromApp();
       return;
     }
-    window.ArcanaBookingMobileCalendar?.open?.();
+    void window.__ARCANA_OPEN_MOBILE_CALENDAR__?.();
     syncFromApp();
   }
 

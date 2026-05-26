@@ -33,6 +33,7 @@ const {
   buildMissingFormsReport,
   dispatchCustomerReminderDigest,
   dispatchPatientVisitReminderEmails,
+  runFollowupDraftGenerator,
 } = require('./ccoPatientCareOps');
 const { runPostOpAutoTrigger } = require('./postOpAutoTrigger');
 const {
@@ -308,6 +309,9 @@ function createScheduler({
   treatmentAgreementStore = null,
   patientCareStateStore = null,
   ccoSettingsStore = null,
+  dashboardSnapshot = null,
+  worklistSnapshot = null,
+  readCache = null,
   logger = console,
 } = {}) {
   if (!incomingConfig) throw new Error('config saknas för scheduler.');
@@ -516,6 +520,24 @@ function createScheduler({
       proposalCount: result.proposalCount,
       patientsWithMissing: result.reportSummary.patientsWithMissing,
     };
+  }
+
+  async function runCcoFollowupDraftGenerator({ tenantId }) {
+    if (!journalStore || !patientMasterStore || !patientCareStateStore) {
+      return { tenantId, skipped: true, reason: 'care_stores_missing' };
+    }
+    const leadDays = Math.max(
+      0,
+      Number(config.schedulerCcoFollowupDraftLeadDays) || 30
+    );
+    const result = await runFollowupDraftGenerator({
+      journalStore,
+      patientMasterStore,
+      patientCareStateStore,
+      tenantId,
+      leadDays,
+    });
+    return result;
   }
 
   async function runCcoCustomerReminders({ tenantId }) {
@@ -3427,6 +3449,46 @@ function createScheduler({
     }
   }
 
+  async function runCcoDashboardSnapshotRefresh({ tenantId } = {}) {
+    if (!dashboardSnapshot || typeof dashboardSnapshot.saveTenantSnapshot !== 'function') {
+      return { skipped: true, reason: 'dashboard_snapshot_store_missing' };
+    }
+    const tenant = tenantId || config.defaultTenantId;
+    let patientStats = null;
+    if (patientMasterStore && typeof patientMasterStore.getTenantStats === 'function') {
+      patientStats = await patientMasterStore.getTenantStats({ tenantId: tenant });
+    }
+    const snapshot = await dashboardSnapshot.buildSnapshot({
+      tenantId: tenant,
+      monitorMetrics:
+        runtimeMetricsStore && typeof runtimeMetricsStore.getSnapshot === 'function'
+          ? runtimeMetricsStore.getSnapshot()
+          : null,
+      ownerDashboard: patientStats ? { patientStats } : null,
+    });
+    await dashboardSnapshot.saveTenantSnapshot(tenant, snapshot);
+    if (readCache?.del) {
+      await readCache.del(readCache.buildKey('dashboard-snapshot', tenant));
+    }
+    return { tenantId: tenant, saved: true };
+  }
+
+  async function runCcoWorklistSnapshotRefresh({ tenantId } = {}) {
+    if (!worklistSnapshot || typeof worklistSnapshot.saveTenantSnapshot !== 'function') {
+      return { skipped: true, reason: 'worklist_snapshot_store_missing' };
+    }
+    const tenant = tenantId || config.defaultTenantId;
+    await worklistSnapshot.saveTenantSnapshot(tenant, {
+      tenantId: tenant,
+      provider: 'scheduler',
+      builtAt: nowIso(),
+    });
+    if (readCache?.del) {
+      await readCache.del(readCache.buildKey('worklist-snapshot', tenant));
+    }
+    return { tenantId: tenant, saved: true };
+  }
+
   async function runCmoPilotPublishDueJob({ tenantId, trigger, actorUserId } = {}) {
     if (
       !marketingCampaignDraftsStore ||
@@ -3580,6 +3642,15 @@ function createScheduler({
       run: runCcoJournalDraftProposals,
     },
     {
+      id: 'cco_followup_draft_generator',
+      name: 'CCO follow-up draft generator 4/6/12 mån (P6.4.8)',
+      intervalMs:
+        journalStore && patientMasterStore && patientCareStateStore
+          ? toHoursMs(config.schedulerCcoFollowupDraftIntervalHours, 24)
+          : 0,
+      run: runCcoFollowupDraftGenerator,
+    },
+    {
       id: 'cco_customer_reminders',
       name: 'CCO customer reminders (J-7 / U5B)',
       intervalMs:
@@ -3640,6 +3711,18 @@ function createScheduler({
         ? toHoursMs(config.schedulerPostOpPhotoPruneIntervalHours, 24)
         : 0,
       run: runPostOpPhotoPrune,
+    },
+    {
+      id: 'cco_dashboard_snapshot_refresh',
+      name: 'CCO dashboard snapshot refresh',
+      intervalMs: dashboardSnapshot ? toMinutesMs(5, 5) : 0,
+      run: runCcoDashboardSnapshotRefresh,
+    },
+    {
+      id: 'cco_worklist_snapshot_refresh',
+      name: 'CCO worklist snapshot refresh',
+      intervalMs: worklistSnapshot ? toMinutesMs(2, 2) : 0,
+      run: runCcoWorklistSnapshotRefresh,
     },
     {
       id: 'cmo_pilot_publish_due',

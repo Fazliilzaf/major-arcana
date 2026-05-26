@@ -12,6 +12,7 @@
     function normalizeView(view) {
       const requestedView = normalizeKey(view);
       return requestedView === "customers" ||
+        requestedView === "calendar" ||
         requestedView === "automation" ||
         requestedView === "templates" ||
         requestedView === "workflows" ||

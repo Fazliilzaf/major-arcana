@@ -3,6 +3,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { ensureDirectoryWithRetry } = require('./persistentDir');
+const { rebuildBookingCasesByDate, listCasesInDateRange } = require('./ccoStoreIndexes');
 
 const BOOKING_STATUSES = Object.freeze([
   'needs_triage',
@@ -875,9 +876,11 @@ async function createCcoBookingStore({ filePath }) {
       .map((item) => normalizeBookingCase(item))
       .filter(Boolean),
   };
+  rebuildBookingCasesByDate(state);
 
   async function save() {
     state.updatedAt = nowIso();
+    rebuildBookingCasesByDate(state);
     await writeJsonAtomic(filePath, state);
   }
 
@@ -1047,12 +1050,19 @@ async function createCcoBookingStore({ filePath }) {
       .map((item) => cloneBookingCase(item));
   }
 
+  async function listCasesInRange({ tenantId, fromDate, toDate, limit = 200 } = {}) {
+    return listCasesInDateRange(state, { tenantId, fromDate, toDate, limit }).map((item) =>
+      cloneBookingCase(item)
+    );
+  }
+
   return {
     addEvent,
     ensureCase,
     findCaseByRef,
     getCase,
     listCases,
+    listCasesInRange,
     setCandidateSlots,
     updateStatus,
     upsertCase,

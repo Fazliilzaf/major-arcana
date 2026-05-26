@@ -4,17 +4,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <!-- ARCANA bundle URLs (content-hash: 0bee8a1fb5) -->
-    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.0bee8a1fb5.min.js","staffCore":"./app.bundle.staff-core.ac20660d87.min.js","staffDeferred":"./app.bundle.staff-deferred.5ac8c48f45.min.js"};</script>
+    <!-- ARCANA bundle URLs (content-hash: c0c1fa4145) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.c0c1fa4145.min.js","staffCore":"./app.bundle.staff-core.ac82519322.min.js","staffDeferred":"./app.bundle.staff-deferred.70f30879ad.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
         try {
-          var href = './app.bundle.d9a770ff9d.min.js';
-          var mobile = window.matchMedia('(max-width: 768px)').matches;
+          var urls = window.__ARCANA_BUNDLE_URLS__ || {};
+          var href = urls.full || './app.bundle.0bee8a1fb5.min.js';
           var view = String(new URLSearchParams(window.location.search || '').get('view') || 'customers').trim();
-          if (true && mobile && view === 'customers') {
-            href = './app.bundle.staff-core.d20f6491c0.min.js';
+          var inboxViews = { conversations: 1, inbox: 1, home: 1, queue: 1 };
+          if (!inboxViews[view] && urls.staffCore) {
+            href = urls.staffCore;
             window.__ARCANA_STAFF_BUNDLE_SPLIT__ = true;
             window.__ARCANA_DEFER_APP_BUNDLE__ = true;
           }
@@ -33,9 +34,8 @@
     <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-bundle-split-a" />
     <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-bundle-split-a" />
     <script>
-    (function mobileDeferInboxUntilNeeded() {
+    (function deferInboxUntilNeeded() {
       try {
-        if (!window.matchMedia('(max-width: 768px)').matches) return;
         var params = new URLSearchParams(window.location.search || '');
         var view = String(params.get('view') || 'customers').trim();
         if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
@@ -85,7 +85,8 @@
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
   <link rel="stylesheet" href="./design-tokens.css" />
   <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
          (Fas 3 Steg B: gör att modern CSS i cco-polish.css kan vinna utan !important).
@@ -97,21 +98,29 @@
   <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
   <link rel="stylesheet" href="./cco-polish.css?v=build-tablet-split-b" />
   <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-staff-first-login-a" />
-  <link rel="stylesheet" href="./cco-tablet-shell.css?v=build-tablet-split-b" />
-  <link rel="stylesheet" href="./cco-calendar.css?v=build-cal-p3-a" />
+  <link rel="stylesheet" href="./cco-tablet-shell.css?v=build-tablet-split-c" />
+  <script src="./booking-lazy-load.js?v=build-perf-b"></script>
   <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
   <script src="./cco-mobile-core.js?v=build-mobile-shell-h" defer></script>
   <script src="./cco-mobile-autosave.js?v=build-mobile-shell-e" defer></script>
   <script src="./cco-mobile-shell.js?v=build-staff-first-login-a" defer></script>
   <script src="./cco-tablet-shell.js?v=build-tablet-cal-b" defer></script>
-  <script src="./booking-mobile-shell.js?v=build-mobile-shell-e" defer></script>
-  <script src="./booking-mobile-slot-picker.js?v=build-mobile-shell-e" defer></script>
-  <script src="./booking-calendar-shared.js?v=build-cal-p3-a" defer></script>
-  <script src="./booking-mobile-calendar-day.js?v=build-cal-p3-a" defer></script>
-  <script src="./booking-desktop-week.js?v=build-cal-p3-a" defer></script>
   <script src="./app/cco-care-panel.js?v=build-ai-care-sweep-a" defer></script>
   <script src="./app/thread-ai-summary.js?v=build-ai-care-sweep-a" defer></script>
-  <script src="./cco-mobile-queue.js?v=build-mobile-shell-e" defer></script>
+  <script>
+    (function loadInboxOnlyScripts() {
+      try {
+        var view = String(new URLSearchParams(window.location.search || '').get('view') || 'customers').trim();
+        if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
+          if (window.__ARCANA_ENSURE_INBOX_SCRIPTS__) {
+            void window.__ARCANA_ENSURE_INBOX_SCRIPTS__();
+          }
+        }
+      } catch (loadInboxScriptsError) {
+        /* best-effort */
+      }
+    })();
+  </script>
 </head>
 
 <body class="is-preview-ready is-runtime-loading">
@@ -1999,9 +2008,14 @@
                     }
                   })();
                 </script>
-                <script src="./app/post-op-internal-reviews-ui.js?v=build-post-op-modal-c"></script>
+                <script src="./app/post-op-internal-reviews-ui.js?v=build-perf-a"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
+                  <script src="./app/cco-fetch-instrumentation.js?v=build-perf-arch"></script>
+                  <script src="./app/cco-cache-policy.js?v=build-perf-arch"></script>
+                  <script src="./app/cco-request-cache.js?v=build-perf-arch"></script>
+                  <script src="./app/cco-patient-list-virtual.js?v=build-perf-arch"></script>
                   <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
+
 <div data-patient-identity-rail hidden>
                   <section class="customers-rail-panel customers-rail-panel-suggestions">
                     <div class="customers-rail-panel-head">
@@ -7114,20 +7128,37 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
     </div>
   </div>
 
-  <script src="/cco-next-customer-intelligence.js"></script>
-  <script src="/cco-next-collaboration.js"></script>
+  <script>
+    (function deferNextScripts() {
+      function inject(src) {
+        var script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        document.body.appendChild(script);
+      }
+      function loadNextScripts() {
+        inject('/cco-next-customer-intelligence.js');
+        inject('/cco-next-collaboration.js');
+      }
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(loadNextScripts, { timeout: 8000 });
+      } else {
+        window.setTimeout(loadNextScripts, 1800);
+      }
+    })();
+  </script>
   <!-- Previewn kör nu på explicita källfiler.
          Den gamla bundlen låg efter källan och kunde visa en äldre booking-surface i browsern. -->
   <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
   <script src="./app/thread-cache-idb.js?v=build-idb-v2"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 0bee8a1fb5) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: c0c1fa4145) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.0bee8a1fb5.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.ac20660d87.min.js';
-        var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.5ac8c48f45.min.js';
+        var fullSrc = urls.full || './app.bundle.c0c1fa4145.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.ac82519322.min.js';
+        var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.70f30879ad.min.js';
 
         function injectScript(src, onload) {
           var script = document.createElement('script');

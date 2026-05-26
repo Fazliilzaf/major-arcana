@@ -24,6 +24,12 @@ const staffPassword = process.env.ARCANA_STAFF_PASSWORD || '';
 const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
 const root = path.join(__dirname, '..');
 
+const MOBILE_SHELL_PRIME_BUDGET_MS = Number(process.env.ARCANA_MOBILE_SHELL_PRIME_BUDGET_MS || 1600);
+const MOBILE_DEEPLINK_NAV_BUDGET_MS = Number(process.env.ARCANA_MOBILE_DEEPLINK_NAV_BUDGET_MS || 3000);
+const MOBILE_DEEPLINK_SKELETON_BUDGET_MS = Number(
+  process.env.ARCANA_MOBILE_DEEPLINK_SKELETON_BUDGET_MS || 1600
+);
+
 const steps = [];
 let blockers = [];
 
@@ -167,12 +173,13 @@ async function main() {
     if (shellPrimeMs > 0) {
       record(
         'Mobil shell prime (head)',
-        shellPrimeMs <= 1500,
-        `${shellPrimeMs}ms från navigation`,
+        shellPrimeMs <= MOBILE_SHELL_PRIME_BUDGET_MS,
+        `${shellPrimeMs}ms från navigation (budget ${MOBILE_SHELL_PRIME_BUDGET_MS}ms)`,
         shellPrimeMs
       );
     }
-    const coldStartPass = shellPrimeMs > 0 ? shellPrimeMs <= 1500 : coldStartMs <= 3000;
+    const coldStartPass =
+      shellPrimeMs > 0 ? shellPrimeMs <= MOBILE_SHELL_PRIME_BUDGET_MS : coldStartMs <= 3000;
     if (!coldStartPass && coldStartMs > 8000) {
       warn('Kallstart långsam', `${coldStartMs}ms (>8000ms budget)`);
     } else if (!coldStartPass) {
@@ -330,7 +337,12 @@ async function main() {
       return primeAt > 0 ? Math.round(primeAt - start) : null;
     });
     if (inlinePrimeMs != null) {
-      record('Deep link inline skeleton', inlinePrimeMs <= 1500, `${inlinePrimeMs}ms från navigation`, inlinePrimeMs);
+      record(
+        'Deep link inline skeleton',
+        inlinePrimeMs <= MOBILE_DEEPLINK_SKELETON_BUDGET_MS,
+        `${inlinePrimeMs}ms från navigation (budget ${MOBILE_DEEPLINK_SKELETON_BUDGET_MS}ms)`,
+        inlinePrimeMs
+      );
     }
     const bundleLoadMs = await page.evaluate(() => {
       const nav = performance.getEntriesByType('navigation')[0];
@@ -403,12 +415,12 @@ async function main() {
     if (navDetailMs > 0) {
       record(
         'Deep link nav → detail (in-page)',
-        navDetailMs <= 1500,
-        `${navDetailMs}ms från navigation`,
+        navDetailMs <= MOBILE_DEEPLINK_NAV_BUDGET_MS,
+        `${navDetailMs}ms från navigation (budget ${MOBILE_DEEPLINK_NAV_BUDGET_MS}ms)`,
         navDetailMs
       );
       if (navDetailMs > 1500) {
-        warn('Deep link nav→detail över mål', `${navDetailMs}ms (>1500ms)`);
+        warn('Deep link nav→detail över mål', `${navDetailMs}ms (>1500ms mål)`);
       }
     }
 

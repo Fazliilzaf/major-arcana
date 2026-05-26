@@ -13,7 +13,7 @@
 
     /* Customers — split list + detail (overrides max-width:1100px single column) */
     html[data-cco-tablet-shell='on'] .customers-layout {
-      grid-template-columns: minmax(var(--cco-tablet-split-min, 320px), var(--cco-tablet-split-max, 420px)) minmax(
+      grid-template-columns: minmax(var(--cco-tablet-split-min, 220px), min(var(--cco-tablet-split-max, 280px), 34vw)) minmax(
         0,
         1fr
       ) !important;
@@ -68,7 +68,7 @@
       top: calc(var(--topbar-height, 60px) + 12px);
       right: var(--cco-tablet-gutter, 20px);
       left: auto;
-      width: min(420px, calc(100vw - var(--cco-tablet-split-min, 320px) - (var(--cco-tablet-gutter, 20px) * 3)));
+      width: min(420px, calc(100vw - var(--cco-tablet-split-min, 220px) - (var(--cco-tablet-gutter, 20px) * 3)));
       bottom: 12px;
       opacity: 1;
       visibility: visible;
