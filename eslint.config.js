@@ -19,7 +19,6 @@ module.exports = [
       'data/**',
       'public/cco-next-release/**',
       'public/cco-next/**',
-      'major-arcana-cco-next/**',
       'dist/**',
       'build/**',
       'coverage/**',
