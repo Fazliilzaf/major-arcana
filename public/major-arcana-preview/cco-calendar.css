@@ -87,6 +87,9 @@
     font-weight: 600;
     line-height: 1.1;
     color: var(--cco-cal-espresso);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .cco-cal-kicker {
@@ -168,9 +171,12 @@
 
   .cco-cal-nav {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     justify-content: flex-end;
+    /* R5: tillåt navet att krympa under minmax-tracken så det inte
+     * pressas över en rad var. */
+    min-width: 0;
   }
 
   .cco-cal-nav-btn {
@@ -213,7 +219,9 @@
   }
 
   .cco-cal-week-grid {
-    grid-template-columns: repeat(7, minmax(120px, 1fr));
+    /* R5: minmax(0, 1fr) ist f minmax(120px, 1fr) — 7 dagar får alltid plats
+     * även när host-containern är smal (Claude/sidebar öppen). */
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 
   .cco-cal-resource-grid {
@@ -598,18 +606,10 @@
     border: 1px solid rgba(202, 186, 174, 0.35);
   }
 
-  @media (max-width: 1279px) {
-    .cco-cal-toolbar {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .cco-cal-filters,
-    .cco-cal-nav,
-    .cco-cal-segments {
-      justify-content: flex-start;
-    }
-  }
-
+  /* R5: tog bort tidigare @media (max-width: 1279px)-regel som stackade
+   * toolbaren vertikalt. Den triggade på 1024-1279px desktop-viewports
+   * (vanligt när Claude-fönster eller sidebar är öppen) och stryper hela
+   * kalendern. 1023px-regeln nedan tar över när det verkligen behövs. */
   @media (max-width: 1023px) {
     .cco-cal-workstation {
       display: none !important;
