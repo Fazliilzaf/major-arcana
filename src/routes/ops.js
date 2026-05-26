@@ -43,6 +43,7 @@ const {
   buildCustomerReminderQueue,
   buildJournalDraftProposals,
   buildMissingFormsReport,
+  promoteApprovedDraftToJournalEntry,
   resolveMaintenanceWindow,
 } = require('../ops/ccoPatientCareOps');
 const { sendPatientOutreach, OUTREACH_TYPES } = require('../ops/ccoPatientOutreach');
@@ -552,6 +553,10 @@ function createOpsRouter({
       if (!proposalId || !['approved', 'dismissed'].includes(status)) {
         return res.status(400).json({ error: 'proposalId och status (approved|dismissed) krävs.' });
       }
+      const promoteRequested =
+        normalizeText(req.query?.promote) === 'true' ||
+        normalizeText(req.query?.promote) === '1' ||
+        req.body?.promote === true;
       try {
         const updated = await patientCareStateStore.reviewDraftProposal({
           tenantId,
@@ -564,7 +569,7 @@ function createOpsRouter({
           return res.status(404).json({ error: 'Utkast hittades inte.' });
         }
         let journalApply = null;
-        if (status === 'approved' && journalStore) {
+        if (status === 'approved' && journalStore && !promoteRequested) {
           journalApply = await applyApprovedDraftProposal({
             proposal: updated,
             journalStore,
@@ -576,6 +581,36 @@ function createOpsRouter({
             },
           });
         }
+        let journalPromote = null;
+        if (status === 'approved' && promoteRequested && journalStore) {
+          journalPromote = await promoteApprovedDraftToJournalEntry({
+            proposalId,
+            tenantId,
+            ownerUserId: req.auth.userId,
+            patientCareStateStore,
+            journalStore,
+            patientMasterStore,
+            actor: {
+              userId: req.auth.userId,
+              displayName: req.auth.displayName || req.auth.userId,
+              role: req.auth.role,
+            },
+          });
+          if (journalPromote?.promoted) {
+            await authStore.addAuditEvent({
+              tenantId,
+              actorUserId: req.auth.userId,
+              action: 'journal_draft_promoted',
+              outcome: 'success',
+              targetType: 'journal_draft_proposal',
+              targetId: proposalId,
+              metadata: {
+                patientId: journalPromote.patientId,
+                journalEntryIds: journalPromote.journalEntryIds,
+              },
+            });
+          }
+        }
         await authStore.addAuditEvent({
           tenantId,
           actorUserId: req.auth.userId,
@@ -583,12 +618,85 @@ function createOpsRouter({
           outcome: 'success',
           targetType: 'journal_draft_proposal',
           targetId: proposalId,
-          metadata: { status, patientId: updated.patientId, journalApply },
+          metadata: { status, patientId: updated.patientId, journalApply, journalPromote },
         });
-        return res.json({ ok: true, proposal: updated, journalApply });
+        return res.json({
+          ok: true,
+          proposal: journalPromote?.proposal || updated,
+          journalApply,
+          journalPromote,
+        });
       } catch (error) {
         console.error('[ops/cco-care/draft-proposals/review]', error);
         return res.status(500).json({ error: 'Kunde inte uppdatera journalutkast.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cco-care/draft-proposals/:proposalId/promote',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      if (!patientCareStateStore) {
+        return res.status(503).json({ error: 'Patient care store saknas.' });
+      }
+      if (!journalStore) {
+        return res.status(503).json({ error: 'Journalstore saknas — promotion kan inte ske.' });
+      }
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const proposalId = normalizeText(req.params?.proposalId);
+      if (!proposalId) {
+        return res.status(400).json({ error: 'proposalId krävs.' });
+      }
+      try {
+        const result = await promoteApprovedDraftToJournalEntry({
+          proposalId,
+          tenantId,
+          ownerUserId: req.auth.userId,
+          patientCareStateStore,
+          journalStore,
+          patientMasterStore,
+          actor: {
+            userId: req.auth.userId,
+            displayName: req.auth.displayName || req.auth.userId,
+            role: req.auth.role,
+          },
+        });
+        if (!result.promoted) {
+          if (result.reason === 'proposal_not_found') {
+            return res.status(404).json({ error: 'Utkast hittades inte.', detail: result });
+          }
+          if (result.reason === 'already_promoted') {
+            return res.status(409).json({
+              error: 'Utkastet är redan promoverat till journalpost.',
+              detail: result,
+            });
+          }
+          if (result.reason === 'not_approved') {
+            return res.status(409).json({
+              error: 'Utkastet måste först sättas till status=approved.',
+              detail: result,
+            });
+          }
+          return res.status(400).json({ error: 'Kunde inte promovera utkast.', detail: result });
+        }
+        await authStore.addAuditEvent({
+          tenantId,
+          actorUserId: req.auth.userId,
+          action: 'journal_draft_promoted',
+          outcome: 'success',
+          targetType: 'journal_draft_proposal',
+          targetId: proposalId,
+          metadata: {
+            patientId: result.patientId,
+            journalEntryIds: result.journalEntryIds,
+          },
+        });
+        return res.json({ ok: true, ...result });
+      } catch (error) {
+        console.error('[ops/cco-care/draft-proposals/promote]', error);
+        return res.status(500).json({ error: 'Kunde inte promovera utkast till journalpost.' });
       }
     }
   );

@@ -10,6 +10,7 @@
   let viewAnchor = startOfWeek(new Date());
   let selectedDayIso = shared()?.todayIso?.() || new Date().toISOString().slice(0, 10);
   let selectedResource = 'all';
+  let selectedServiceType = 'all'; // R3
   let selectedEvent = null;
   let slotsByDate = new Map();
   let allSlots = [];
@@ -36,6 +37,15 @@
     const d = new Date(date);
     d.setDate(d.getDate() + days);
     return d;
+  }
+
+  // R4: ISO-veckonummer (1-53) — för veckosammanfattning.
+  function getIsoWeek(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const day = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
   }
 
   function isoFromDate(date) {
@@ -105,26 +115,46 @@
           <button class="cco-cal-segment" type="button" role="tab" data-cal-view="resource" aria-selected="false">Resurs</button>
         </div>
         <div class="cco-cal-filters" data-cal-filters aria-label="Resursfilter"></div>
+        <div class="cco-cal-filters cco-cal-filters-type" data-cal-type-filters aria-label="Behandlingstypfilter"></div>
         <div class="cco-cal-nav">
-          <button class="cco-cal-nav-btn" type="button" data-cal-prev>Föregående</button>
-          <button class="cco-cal-nav-btn" type="button" data-cal-today>Idag</button>
-          <button class="cco-cal-nav-btn" type="button" data-cal-next>Nästa</button>
+          <button class="cco-cal-nav-btn" type="button" data-cal-prev title="Föregående (←)">Föregående</button>
+          <button class="cco-cal-nav-btn" type="button" data-cal-today title="Idag (T)">Idag</button>
+          <button class="cco-cal-nav-btn" type="button" data-cal-next title="Nästa (→)">Nästa</button>
+          <button class="cco-cal-nav-btn cco-cal-nav-btn-print" type="button" data-cal-print title="Skriv ut (P)">Skriv ut</button>
         </div>
       </header>
       <div class="cco-cal-body" data-cal-body>
         <div class="cco-cal-grid-wrap" data-cal-grid-wrap>
           <div class="cco-cal-empty">Hämtar kalender…</div>
         </div>
-        <aside class="cco-cal-detail" data-cal-detail hidden>
-          <p class="cco-cal-detail-kicker">Bokningsdetalj</p>
-          <h3 data-cal-detail-title>Välj en tid</h3>
-          <ul class="cco-cal-detail-meta" data-cal-detail-meta></ul>
-          <div class="cco-cal-detail-actions">
-            <button class="customers-utility-button" type="button" data-cal-action="case">Bokningsärende</button>
-            <button class="customers-utility-button" type="button" data-cal-action="customer">Kundkort</button>
-            <button class="customers-utility-button" type="button" data-cal-action="journal">Journal</button>
-            <button class="customers-utility-button" type="button" data-cal-action="book">Ny bokning</button>
-            <button class="customers-utility-button" type="button" data-cal-action="mobile-day">Daglista</button>
+        <aside class="cco-cal-detail focus-intel" data-cal-detail hidden aria-labelledby="cco-cal-detail-title">
+          <div class="focus-intel-primary">
+            <div class="focus-intel-topline">
+              <div class="focus-intel-title-row">
+                <p class="focus-intel-kicker">BOKNING</p>
+                <h3 id="cco-cal-detail-title" data-cal-detail-title>Välj en tid</h3>
+              </div>
+            </div>
+            <div class="focus-intel-primary-body">
+              <div class="focus-intel-customer">
+                <div class="focus-intel-monogram" data-cal-detail-monogram>—</div>
+                <div class="focus-intel-customer-copy">
+                  <div class="focus-intel-name-row">
+                    <h4 data-cal-detail-name>—</h4>
+                    <span class="focus-intel-queue-pill" data-pill-icon="calendar" data-cal-detail-status>—</span>
+                  </div>
+                  <p data-cal-detail-subline>—</p>
+                </div>
+              </div>
+              <div class="focus-intel-grid" data-cal-detail-grid></div>
+              <div class="focus-intel-action-row" data-cal-detail-actions aria-label="Bokningsåtgärder">
+                <button class="quick-action-pill" type="button" data-cal-action="case">Bokningsärende</button>
+                <button class="quick-action-pill" type="button" data-cal-action="customer">Kundkort</button>
+                <button class="quick-action-pill" type="button" data-cal-action="journal">Journal</button>
+                <button class="quick-action-pill" type="button" data-cal-action="book">Ny bokning</button>
+                <button class="quick-action-pill" type="button" data-cal-action="mobile-day">Daglista</button>
+              </div>
+            </div>
           </div>
         </aside>
       </div>
@@ -177,12 +207,55 @@
     filters.innerHTML = chips.join('');
   }
 
-  function filterSlots(slots) {
-    if (selectedResource === 'all') return slots;
-    return slots.filter((slot) => {
-      const label = String(slot?.resourceLabel || slot?.resource || 'Övrigt').trim();
-      return label === selectedResource;
+  // R3: filter-chips per behandlingstyp.
+  function renderServiceTypeFilters() {
+    const shell = ensureShell();
+    const filters = shell.querySelector('[data-cal-type-filters]');
+    if (!filters) return;
+    const s = shared();
+    const counts = new Map();
+    (allSlots || []).forEach((slot) => {
+      if (slot?.kind !== 'booked') return;
+      const t = s.serviceTypeFor(slot);
+      counts.set(t, (counts.get(t) || 0) + 1);
     });
+    const labels = {
+      hairtx: 'Hårtx',
+      prp: 'PRP',
+      consultation: 'Konsult',
+      aftercare: 'Återbesök',
+      video: 'Online',
+      other: 'Övrigt',
+    };
+    const order = ['hairtx', 'prp', 'consultation', 'aftercare', 'video', 'other'];
+    const present = order.filter((t) => counts.has(t));
+    if (!present.length) {
+      filters.innerHTML = '';
+      return;
+    }
+    const chips = [
+      `<button class="cco-cal-filter-chip${selectedServiceType === 'all' ? ' is-active' : ''}" type="button" data-cal-type="all">Alla typer</button>`,
+      ...present.map(
+        (t) =>
+          `<button class="cco-cal-filter-chip cco-cal-filter-chip-type${selectedServiceType === t ? ' is-active' : ''}" data-service-type="${t}" type="button" data-cal-type="${t}">${s.escapeHtml(labels[t])} <small>${counts.get(t)}</small></button>`
+      ),
+    ];
+    filters.innerHTML = chips.join('');
+  }
+
+  function filterSlots(slots) {
+    const s = shared();
+    let out = slots;
+    if (selectedResource !== 'all') {
+      out = out.filter((slot) => {
+        const label = String(slot?.resourceLabel || slot?.resource || 'Övrigt').trim();
+        return label === selectedResource;
+      });
+    }
+    if (selectedServiceType !== 'all') {
+      out = out.filter((slot) => s.serviceTypeFor(slot) === selectedServiceType);
+    }
+    return out;
   }
 
   function isSelectedEvent(slot) {
@@ -192,6 +265,7 @@
 
   function renderTimelineEvents(slots, { absolute = true } = {}) {
     const s = shared();
+    const conflictKeys = s.findConflictKeys(slots); // R3
     return slots
       .map((slot) => {
         const start = s.slotStartMinutes(slot);
@@ -211,6 +285,7 @@
           selected: isSelectedEvent(slot),
           draggable: slot?.kind === 'booked',
           interactive: slot?.kind !== 'block',
+          conflict: conflictKeys.has(s.eventKey(slot)),
         })}</div>`;
       })
       .join('');
@@ -220,12 +295,74 @@
     const s = shared();
     const days = Array.from({ length: 7 }, (_, index) => addDays(viewAnchor, index));
     const today = s.todayIso();
-    container.innerHTML = `<div class="cco-cal-week-grid">${days
+    const now = new Date();
+    const nowBadge = `NU ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    // R4: veckosammanfattning - räkna totals över ALLA slots i veckan.
+    const weekSlots = days.flatMap((day) => filterSlots(slotsByDate.get(isoFromDate(day)) || []));
+    const confirmedCount = weekSlots.filter((slot) => {
+      const st = String(slot?.status || slot?.caseStatus || '').toLowerCase();
+      return slot?.kind === 'booked' && (st.includes('confirm') || st.includes('bekräft'));
+    }).length;
+    const tentativeCount = weekSlots.filter((slot) => {
+      const st = String(slot?.status || slot?.caseStatus || '').toLowerCase();
+      return slot?.kind === 'booked' && !(st.includes('confirm') || st.includes('bekräft'));
+    }).length;
+    const openCount = weekSlots.filter((slot) => slot?.kind === 'available').length;
+    const weekConflicts = s.findConflictKeys(weekSlots);
+    const conflictCount = weekConflicts.size;
+    const openHours = Math.round(
+      (weekSlots
+        .filter((slot) => slot?.kind === 'available')
+        .reduce((sum, slot) => sum + s.slotDurationMinutes(slot), 0) / 60) * 10
+    ) / 10;
+    const weekLabel = `v ${getIsoWeek(viewAnchor)}`;
+
+    // R4-13: kapacitetsöversikt — per behandlare, bokade vs (bokade+lediga) min.
+    const resourceUtil = new Map();
+    weekSlots.forEach((slot) => {
+      if (slot?.kind !== 'booked' && slot?.kind !== 'available') return;
+      const r = String(slot?.resourceLabel || slot?.resource || 'Övrigt').trim();
+      if (!resourceUtil.has(r)) resourceUtil.set(r, { booked: 0, available: 0 });
+      resourceUtil.get(r)[slot.kind] += s.slotDurationMinutes(slot);
+    });
+    const utilRows = [...resourceUtil.entries()]
+      .sort((a, b) => (b[1].booked + b[1].available) - (a[1].booked + a[1].available))
+      .slice(0, 8)
+      .map(([label, mins]) => {
+        const total = mins.booked + mins.available;
+        const pct = total > 0 ? Math.round((mins.booked / total) * 100) : 0;
+        const bookedH = (mins.booked / 60).toFixed(1).replace(/\.0$/, '');
+        const totalH = (total / 60).toFixed(1).replace(/\.0$/, '');
+        const tone = pct >= 95 ? 'danger' : pct >= 85 ? 'warn' : 'normal';
+        return `<div class="cco-cal-capacity-row" data-util-tone="${tone}" style="--util-pct: ${pct}%">
+          <span class="cco-cal-capacity-name">${s.escapeHtml(label)}</span>
+          <div class="cco-cal-capacity-bar" aria-hidden="true"><span></span></div>
+          <span class="cco-cal-capacity-pct">${pct}%</span>
+          <span class="cco-cal-capacity-hours">${bookedH}/${totalH}h</span>
+        </div>`;
+      })
+      .join('');
+    const capacityHtml = utilRows
+      ? `<div class="cco-cal-capacity" aria-label="Kapacitet per behandlare">${utilRows}</div>`
+      : '';
+
+    const summaryHtml = `<aside class="cco-cal-week-summary" aria-label="Veckosammanfattning">
+      <div class="cco-cal-week-summary-totals">
+        <span class="cco-cal-week-summary-kicker">${s.escapeHtml(weekLabel)}</span>
+        <span class="cco-cal-week-summary-item is-confirmed"><strong>${confirmedCount}</strong> bekräftade</span>
+        <span class="cco-cal-week-summary-item is-tentative"><strong>${tentativeCount}</strong> tentativa</span>
+        <span class="cco-cal-week-summary-item is-open"><strong>${openHours}</strong> lediga timmar</span>
+        ${conflictCount > 0 ? `<span class="cco-cal-week-summary-item is-conflict"><strong>${conflictCount}</strong> i konflikt</span>` : ''}
+      </div>
+      ${capacityHtml}
+    </aside>`;
+    container.innerHTML = `${summaryHtml}<div class="cco-cal-week-grid">${days
       .map((day) => {
         const iso = isoFromDate(day);
         const slots = filterSlots(slotsByDate.get(iso) || []);
         const bookedCount = slots.filter((slot) => slot.kind === 'booked').length;
         const openCount = slots.filter((slot) => slot.kind === 'available').length;
+        const conflictKeys = s.findConflictKeys(slots); // R3
         const classes = [
           'cco-cal-day-col',
           iso === today ? 'is-today' : '',
@@ -233,11 +370,13 @@
         ]
           .filter(Boolean)
           .join(' ');
-        return `<section class="${classes}" data-cal-day="${s.escapeAttr(iso)}" data-cal-drop-day="${s.escapeAttr(iso)}" title="Dubbelklick öppnar dagvy">
+        const todayBadge = iso === today
+          ? `<span class="cco-cal-now-badge" title="Aktuell tid">${s.escapeHtml(nowBadge)}</span>`
+          : '';
+        return `<section class="${classes}" data-cal-day="${s.escapeAttr(iso)}" data-cal-drop-day="${s.escapeAttr(iso)}">
           <header class="cco-cal-col-head cco-cal-day-open" data-cal-open-day="${s.escapeAttr(iso)}" role="button" tabindex="0" aria-label="Öppna dagvy ${s.escapeAttr(formatDayLabel(day))}">
-            <strong>${s.escapeHtml(formatDayLabel(day))}</strong>
+            <strong>${s.escapeHtml(formatDayLabel(day))}${todayBadge}</strong>
             <span>${bookedCount} bokade · ${openCount} lediga</span>
-            <small class="cco-cal-day-hint">Dubbelklick → dagvy</small>
           </header>
           <div class="cco-cal-day-stack cco-cal-drop-zone" data-cal-drop-day="${s.escapeAttr(iso)}">
             ${
@@ -249,10 +388,11 @@
                         selected: isSelectedEvent(slot),
                         draggable: slot?.kind === 'booked',
                         interactive: slot?.kind !== 'block',
+                        conflict: conflictKeys.has(s.eventKey(slot)),
                       })
                     )
                     .join('')
-                : `<div class="cco-cal-empty cco-cal-drop-zone" data-cal-drop-day="${s.escapeAttr(iso)}">Släpp bokning här · dubbelklicka kolumnen för dagvy</div>`
+                : `<div class="cco-cal-empty cco-cal-drop-zone" data-cal-drop-day="${s.escapeAttr(iso)}">Släpp bokning här</div>`
             }
           </div>
         </section>`;
@@ -326,48 +466,99 @@
     </div>`;
   }
 
+  // R2: monogram-helper för Kundintelligens-stil avatar.
+  function monogramFor(name) {
+    const text = String(name || '').trim();
+    if (!text) return '—';
+    const parts = text.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  // R2: ersätter platt list-meta med Kundintelligens-mönstret:
+  // monogram + namn + status-pill + 2-kolumns grid + action-row med quick-action-pills.
   function renderDetailPanel() {
     const shell = ensureShell();
     const body = shell.querySelector('[data-cal-body]');
     const detail = shell.querySelector('[data-cal-detail]');
-    const title = shell.querySelector('[data-cal-detail-title]');
-    const meta = shell.querySelector('[data-cal-detail-meta]');
+    const titleEl = shell.querySelector('[data-cal-detail-title]');
+    const nameEl = shell.querySelector('[data-cal-detail-name]');
+    const monogramEl = shell.querySelector('[data-cal-detail-monogram]');
+    const statusEl = shell.querySelector('[data-cal-detail-status]');
+    const sublineEl = shell.querySelector('[data-cal-detail-subline]');
+    const gridEl = shell.querySelector('[data-cal-detail-grid]');
     const caseBtn = shell.querySelector('[data-cal-action="case"]');
     const customerBtn = shell.querySelector('[data-cal-action="customer"]');
     const journalBtn = shell.querySelector('[data-cal-action="journal"]');
     const bookBtn = shell.querySelector('[data-cal-action="book"]');
-    if (!detail || !title || !meta) return;
+    if (!detail || !titleEl) return;
 
     if (!selectedEvent) {
       detail.hidden = true;
       if (body) body.dataset.detailOpen = 'false';
-      title.textContent = 'Välj en tid';
-      meta.innerHTML = '';
+      titleEl.textContent = 'Välj en tid';
+      if (nameEl) nameEl.textContent = '—';
+      if (monogramEl) monogramEl.textContent = '—';
+      if (statusEl) {
+        statusEl.textContent = '—';
+        delete statusEl.dataset.tone;
+      }
+      if (sublineEl) sublineEl.textContent = '—';
+      if (gridEl) gridEl.innerHTML = '';
       return;
     }
 
     const s = shared();
     const isBooked = selectedEvent.kind === 'booked';
+    const isAvailable = selectedEvent.kind === 'available';
+    const isBlock = selectedEvent.kind === 'block';
     detail.hidden = false;
     if (body) body.dataset.detailOpen = 'true';
-    title.textContent = s.eventTitle(selectedEvent);
-    meta.innerHTML = [
-      ['Tid', s.formatTimeRange(selectedEvent)],
-      ['Tjänst', selectedEvent.serviceLabel || selectedEvent.service || '—'],
-      ['Resurs', selectedEvent.resourceLabel || selectedEvent.resource || '—'],
-      ['Plats', selectedEvent.locationLabel || selectedEvent.location || '—'],
-      ['Status', isBooked ? s.formatCaseStatus(selectedEvent.caseStatus || selectedEvent.status) : 'Ledig'],
-      isBooked ? ['Kund', selectedEvent.customerName || selectedEvent.customerEmail || '—'] : null,
-      ...(isBooked && s.formatCalendarSignalSummary
-        ? s.formatCalendarSignalSummary(selectedEvent).map(([label, value]) => [label, value])
-        : []),
-    ]
-      .filter(Boolean)
-      .map(
-        ([label, value]) =>
-          `<li><span>${s.escapeHtml(label)}</span><strong>${s.escapeHtml(value || '—')}</strong></li>`
-      )
-      .join('');
+
+    const titleText = s.eventTitle(selectedEvent);
+    const customerName = selectedEvent.customerName || selectedEvent.customerEmail || '';
+    titleEl.textContent = titleText;
+    if (nameEl) nameEl.textContent = customerName || titleText;
+    if (monogramEl) monogramEl.textContent = monogramFor(customerName || titleText);
+
+    const statusText = isBooked
+      ? s.formatCaseStatus(selectedEvent.caseStatus || selectedEvent.status) || 'Bokad'
+      : isAvailable
+        ? 'Ledig'
+        : isBlock
+          ? 'Blockerad'
+          : 'Bokning';
+    if (statusEl) {
+      statusEl.textContent = statusText;
+      statusEl.dataset.tone = isBooked ? 'booked' : isAvailable ? 'available' : isBlock ? 'block' : 'default';
+    }
+
+    if (sublineEl) {
+      const parts = [
+        selectedEvent.serviceLabel || selectedEvent.service,
+        selectedEvent.resourceLabel || selectedEvent.resource,
+      ].filter(Boolean);
+      sublineEl.textContent = parts.join(' · ') || '—';
+    }
+
+    if (gridEl) {
+      const items = [
+        ['lifecycle', 'TID', s.formatTimeRange(selectedEvent)],
+        ['status', 'BEHANDLING', selectedEvent.serviceLabel || selectedEvent.service || '—'],
+        ['owner', 'BEHANDLARE', selectedEvent.resourceLabel || selectedEvent.resource || '—'],
+        ['waiting', 'STATUS', statusText],
+        ['followup', 'PLATS', selectedEvent.locationLabel || selectedEvent.location || '—'],
+      ];
+      const signals = isBooked && s.formatCalendarSignalSummary
+        ? s.formatCalendarSignalSummary(selectedEvent)
+            .map(([label, value]) => ['risk', String(label).toUpperCase(), value])
+        : [];
+      gridEl.innerHTML = [...items, ...signals]
+        .map(([kind, label, value]) =>
+          `<div class="focus-intel-item focus-intel-item-${kind}"><span class="focus-intel-label">${s.escapeHtml(label)}</span><strong>${s.escapeHtml(value || '—')}</strong></div>`
+        )
+        .join('');
+    }
 
     if (caseBtn) caseBtn.hidden = !isBooked;
     if (customerBtn) customerBtn.hidden = !isBooked;
@@ -562,10 +753,22 @@
     if (wrap) wrap.innerHTML = '<div class="cco-cal-empty">Hämtar kalender…</div>';
     const { from, to } = rangeForMode();
     const s = shared();
-    const merged = await s.fetchCalendarRange(from, to);
+    let paintedPartial = false;
+    const merged = await s.fetchCalendarRange(from, to, {
+      onPartial(partial) {
+        if (paintedPartial) return;
+        paintedPartial = true;
+        allSlots = partial.events;
+        slotsByDate = partial.slotsByDate;
+        renderResourceFilters();
+        renderServiceTypeFilters();
+        renderGrid();
+      },
+    });
     allSlots = merged.events;
     slotsByDate = merged.slotsByDate;
     renderResourceFilters();
+    renderServiceTypeFilters(); // R3
     renderGrid();
   }
 
@@ -602,6 +805,10 @@
   }
 
   function bindShell(shell) {
+    // R7: defensiv reset av busy-flagga vid varje bind. Skyddar mot att
+    // en hängande busy-state ([data-cal-busy='true']) gör hela kalendern
+    // halvtransparent. Säker — vi sätter den bara false, aldrig true här.
+    shell.dataset.calBusy = 'false';
     shell.querySelectorAll('[data-cal-view]').forEach((button) => {
       button.addEventListener('click', () => {
         setViewMode(button.getAttribute('data-cal-view') || 'week');
@@ -638,6 +845,16 @@
       if (resourceButton) {
         selectedResource = resourceButton.getAttribute('data-cal-resource') || 'all';
         renderResourceFilters();
+        renderServiceTypeFilters(); // R3
+        renderGrid();
+        return;
+      }
+
+      // R3: filter per behandlingstyp
+      const typeButton = event.target.closest('[data-cal-type]');
+      if (typeButton) {
+        selectedServiceType = typeButton.getAttribute('data-cal-type') || 'all';
+        renderServiceTypeFilters();
         renderGrid();
         return;
       }
@@ -645,8 +862,64 @@
       const actionButton = event.target.closest('[data-cal-action]');
       if (actionButton) {
         runCalendarAction(actionButton.getAttribute('data-cal-action'));
+        return;
+      }
+
+      // R4: Skriv ut
+      if (event.target.closest('[data-cal-print]')) {
+        document.body.classList.add('cco-cal-printing');
+        try { window.print(); } finally {
+          // Class hangs en frame så onafterprint hinner triggas
+          setTimeout(() => document.body.classList.remove('cco-cal-printing'), 500);
+        }
       }
     });
+
+    // R4: tangentbordsnavigering — aktiv bara när desktop-kalendern är synlig.
+    if (!window.__ccoCalendarKeyboardBound) {
+      window.__ccoCalendarKeyboardBound = true;
+      document.addEventListener('keydown', (event) => {
+        const calendarShell = document.getElementById('cco-desktop-calendar');
+        if (!calendarShell || calendarShell.hidden) return;
+        // Skippa när användaren skriver i ett input/textarea/contenteditable
+        const t = event.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+        const key = event.key;
+        if (key === 'ArrowLeft') {
+          event.preventDefault();
+          calendarShell.querySelector('[data-cal-prev]')?.click();
+        } else if (key === 'ArrowRight') {
+          event.preventDefault();
+          calendarShell.querySelector('[data-cal-next]')?.click();
+        } else if (key === 't' || key === 'T') {
+          event.preventDefault();
+          calendarShell.querySelector('[data-cal-today]')?.click();
+        } else if (key === 'v' || key === 'V') {
+          event.preventDefault();
+          setViewMode('week'); void refresh();
+        } else if (key === 'd' || key === 'D') {
+          event.preventDefault();
+          setViewMode('day'); void refresh();
+        } else if (key === 'r' || key === 'R') {
+          event.preventDefault();
+          setViewMode('resource'); void refresh();
+        } else if (key === 'n' || key === 'N') {
+          event.preventDefault();
+          window.ArcanaBookingCalendarActions?.openNewBookingFromSlot?.(selectedEvent);
+        } else if (key === 'p' || key === 'P') {
+          event.preventDefault();
+          calendarShell.querySelector('[data-cal-print]')?.click();
+        } else if (key === 'Escape') {
+          if (selectedEvent) {
+            event.preventDefault();
+            selectedEvent = null;
+            renderDetailPanel();
+          }
+        }
+      });
+    }
   }
 
   function syncVisibility() {
