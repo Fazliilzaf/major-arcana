@@ -3216,10 +3216,61 @@
     html[data-cco-mobile-shell="on"] .preview-canvas {
       padding-inline: 0;
       margin-inline: 0;
+      /* Återta den tomma toppbanden ovanför app-baren. Topbaren hanterar redan
+         notch/säker zon via env(safe-area-inset-top), så canvasens extra
+         topp-padding var bara dubbel/död yta (särskilt i Safari där webbläsaren
+         redan håller statusfältet). */
+      padding-top: 0;
     }
     html[data-cco-mobile-shell="on"] .preview-canvas .preview-workspace {
       margin-inline: 0;
       padding-inline: var(--cco-mobile-gutter);
+    }
+
+    /* STRUKTUR: gör Arbetskö/Fokus-toggeln till en ÄKTA vy-växling. Tidigare
+       låg kö-panelen (.preview-shell) och fokus-panelen (.focus-shell) alltid
+       staplade på varandra → man fick skrolla förbi hela kön för att nå
+       Fokusytan. Visa nu EN panel i taget, fullskärm, beroende på toggeln. */
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-mobile-workspace-view="queue"]
+      .preview-workspace
+      > .focus-shell {
+      display: none !important;
+    }
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-mobile-workspace-view="focus"]
+      .preview-workspace
+      > .preview-shell {
+      display: none !important;
+    }
+
+    /* DENSITET: Kundintelligens-fälten (LIVSCYKEL/VÄNTAR PÅ/UPPFÖLJNING/STATUS/
+       ÄGARE/RISK) staplades i EN kolumn på mobil (max-width:760/980px-reglerna
+       i styles.css) → halva bredden tom, lång höjd. Använd 2 kolumner så de sex
+       fälten blir tre rader och utnyttjar bredden. */
+    html[data-cco-mobile-shell="on"] .focus-intel-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 12px;
+      row-gap: 10px;
+    }
+
+    /* DENSITET: tightare vertikal rytm i fokusytan på mobil — mindre luft mellan
+       kort/sektioner och mindre kort-padding → mer info per skärm, mindre scroll.
+       Konservativa minskningar (bryter inte innehåll, bara tätare). */
+    html[data-cco-mobile-shell="on"] .focus-layout {
+      gap: 10px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-data-card {
+      padding: 10px 12px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-data-card h4 {
+      margin-bottom: 6px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-data-card dl {
+      gap: 6px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-grid {
+      gap: 10px;
     }
   }
 
