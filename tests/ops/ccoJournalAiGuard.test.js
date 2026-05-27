@@ -86,6 +86,30 @@ test('guardOpenAiChatCompletions: redacts journal content at the create() bounda
   assert.match(captured.messages[2].content, /utelämnat enligt policy/); // tool-resultat täcks
 });
 
+test('redactChatCompletionParams: allowlistad context (patient_chat) skippar redaktering', () => {
+  const params = {
+    model: 'gpt-x',
+    __aiContext: 'patient_chat',
+    messages: [{ role: 'user', content: 'Hur fyller jag i hälsodeklarationen inför besöket?' }],
+  };
+  const out = redactChatCompletionParams(params);
+  // INTE redaktat — patient_chat är allowlistad
+  assert.match(out.messages[0].content, /hälsodeklarationen/);
+  // hint-fältet strippat så det aldrig når API:t
+  assert.equal('__aiContext' in out, false);
+});
+
+test('redactChatCompletionParams: ej-allowlistad context redaktas ändå + strippar hint', () => {
+  const params = {
+    model: 'gpt-x',
+    __aiContext: 'some_random_context',
+    messages: [{ role: 'user', content: 'Patientens hälsodeklaration ...' }],
+  };
+  const out = redactChatCompletionParams(params);
+  assert.match(out.messages[0].content, /utelämnat enligt policy/);
+  assert.equal('__aiContext' in out, false);
+});
+
 test('guardOpenAiChatCompletions: idempotent + tål null/ofullständig instans', () => {
   const fake = { chat: { completions: { create: async () => ({}) } } };
   guardOpenAiChatCompletions(fake);
