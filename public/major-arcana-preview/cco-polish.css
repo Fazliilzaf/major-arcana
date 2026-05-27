@@ -5662,3 +5662,12 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   border-radius: 0.65rem;
   overflow: hidden;
 }
+
+/* Journalutkast-förslag: notis på egen rad under titeln (annars klistras
+   "Hälsodeklaration" + "Föreslagen utkast …" ihop utan mellanrum). */
+.patient-master-draft-proposal-fields .patient-master-draft-proposal-field-note {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+  color: var(--ink-muted, rgba(43, 37, 31, 0.62));
+}
