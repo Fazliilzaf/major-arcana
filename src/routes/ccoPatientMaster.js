@@ -90,8 +90,24 @@ function createCcoPatientMasterRouter({
     '/cco-patient-master/patients',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
-    async (req, res) =>
-      handle(req, res, async (actor) => {
+    async (req, res) => {
+      // Diagnostic: localize where slow (>1.5s) list responses spend their time.
+      // Only logs slow requests, so fast/cached calls stay silent. See PR for the
+      // 9.4s prod list-latency investigation.
+      const requestStart = process.hrtime.bigint();
+      const timing = { loadMs: 0, auditMs: 0, cardMs: 0, rows: 0, cached: false };
+      const elapsedMs = (from) => Number(process.hrtime.bigint() - from) / 1e6;
+      res.on('finish', () => {
+        const totalMs = elapsedMs(requestStart);
+        if (totalMs > 1500) {
+          console.warn(
+            `[patient-list-timing] total=${totalMs.toFixed(0)}ms ` +
+              `load=${timing.loadMs.toFixed(0)}ms audit=${timing.auditMs.toFixed(0)}ms ` +
+              `card=${timing.cardMs.toFixed(0)}ms rows=${timing.rows} cached=${timing.cached}`
+          );
+        }
+      });
+      return handle(req, res, async (actor) => {
         const query = normalizeText(req.query.q || req.query.query);
         const flags = String(req.query.flags || '')
           .split(',')
@@ -114,18 +130,31 @@ function createCcoPatientMasterRouter({
             limit,
             offset,
           });
-        const result =
-          readCache && cacheKey
-            ? (await readCache.wrap(cacheKey, 30_000, load)).value
-            : await load();
+        const loadStart = process.hrtime.bigint();
+        let result;
+        if (readCache && cacheKey) {
+          const wrapped = await readCache.wrap(cacheKey, 30_000, load);
+          result = wrapped.value;
+          timing.cached = Boolean(wrapped.cacheHit);
+        } else {
+          result = await load();
+        }
+        timing.loadMs = elapsedMs(loadStart);
+        timing.rows = Number(result.total) || 0;
+
+        const auditStart = process.hrtime.bigint();
         await auditRead(req, actor, actor.tenantId, 'cco.patient_master.list.read');
-        return res.json({
-          ...result,
-          patients: result.patients.map((patient) =>
-            patientMasterStore.buildPatientCardReadout(patient)
-          ),
-        });
-      })
+        timing.auditMs = elapsedMs(auditStart);
+
+        const cardStart = process.hrtime.bigint();
+        const patients = result.patients.map((patient) =>
+          patientMasterStore.buildPatientCardReadout(patient)
+        );
+        timing.cardMs = elapsedMs(cardStart);
+
+        return res.json({ ...result, patients });
+      });
+    }
   );
 
   async function buildPatientPayload(actor, patient, { includeJournal = true, includeDriveFiles = true } = {}) {
