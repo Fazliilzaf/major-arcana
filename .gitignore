@@ -57,3 +57,4 @@ test-results/
 
 # Temp baseline screenshots
 tmp-*.png
+data/arcana.sqlite
