@@ -5812,3 +5812,102 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
     inset 0 1px 0 rgba(255,255,255,0.9),
     0 1px 2px rgba(56,40,28,0.06);
 }
+
+
+/* =====================================================
+   v8: CCO Journalutkast + Journalverktyg-färger
+   Använder RÄTT klasser identifierade i live-bundle:
+   - .patient-master-draft-proposals-card (container)
+   - .patient-master-draft-proposal (kort)
+   - .patient-master-journal-toolbar (button-grupp)
+   Scoped, ingen !important.
+   ===================================================== */
+
+/* CCO Journalutkast — kort-grid */
+.patient-master-draft-proposals-card[data-patient-draft-proposals-host] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.7rem;
+}
+.patient-master-draft-proposals-card[data-patient-draft-proposals-host] > h4,
+.patient-master-draft-proposals-card[data-patient-draft-proposals-host] > p {
+  grid-column: 1 / -1;
+}
+
+.patient-master-draft-proposal.review-draft-proposal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem 0.95rem 0.75rem 2.95rem;
+  border-radius: 14px;
+  border: 1px solid rgba(223, 212, 203, 0.55);
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(248, 243, 238, 0.92) 100%);
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  position: relative;
+}
+
+.patient-master-draft-proposal.review-draft-proposal::before {
+  content: "";
+  position: absolute;
+  left: 0.85rem;
+  top: 0.9rem;
+  width: 26px;
+  height: 32px;
+  border-radius: 4px 4px 7px 7px;
+  background: linear-gradient(135deg,
+    rgba(255,255,255,0.96) 60%,
+    rgba(244,238,232,0.94) 100%);
+  border: 1px solid rgba(154, 126, 104, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    0 1px 2px rgba(56,40,28,0.06);
+}
+
+.patient-master-draft-proposal-actions {
+  margin-top: auto;
+}
+
+
+/* Journalverktyg — kategori-färger (scoped till toolbar) */
+.patient-master-journal-toolbar .customers-utility-button {
+  font-weight: 600;
+}
+
+.patient-master-journal-toolbar label.patient-master-camera-button,
+.patient-master-journal-toolbar label.patient-master-upload-button {
+  color: #be185d;
+}
+
+.patient-master-journal-toolbar [data-patient-action="new-consultation-plan"],
+.patient-master-journal-toolbar [data-patient-action="import-historical"] {
+  color: #475569;
+}
+
+.patient-master-journal-toolbar [data-patient-action="new-health-declaration"],
+.patient-master-journal-toolbar [data-patient-action="new-clinical-form"] {
+  color: #15803d;
+}
+
+.patient-master-journal-toolbar [data-patient-action="new-fitness-certificate"] {
+  color: #4338ca;
+}
+
+.patient-master-journal-toolbar [data-patient-action="new-tp-journal"] {
+  color: #0891b2;
+}
+
+.patient-master-journal-toolbar [data-patient-action="new-prp-journal"] {
+  color: #d97706;
+}
+
+.patient-master-journal-toolbar [data-patient-action="new-follow-up-journal"] {
+  color: #7c3aed;
+}
+
+.patient-master-journal-toolbar [data-patient-action="new-bleph-journal"] {
+  color: #db2777;
+}
