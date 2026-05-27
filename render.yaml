@@ -170,3 +170,6 @@ services:
         value: "180000"
       - key: ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES
         value: "2"
+      # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
+      - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
+        value: "2147483648"

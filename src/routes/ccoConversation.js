@@ -21,6 +21,7 @@
 
 const express = require('express');
 const { runSummarizeThreadCapability } = require('../capabilities/summarizeThread');
+const { computeReplyConfidence } = require('../ops/replyConfidencePanel');
 
 // Heuristisk fallback om OpenAI inte är konfigurerad — säker, generisk
 function buildHeuristicDraft({ customerName, latestInboundBody, ownerName }) {
@@ -31,7 +32,12 @@ function buildHeuristicDraft({ customerName, latestInboundBody, ownerName }) {
 
 // Generera nästa N lediga slots (heuristisk — antar arbetsdagar mån-fre 09-17 med lunch 12-13).
 // Hoppar över datum då kunden redan har en bokning.
-function generateSuggestedSlots({ existingBookings = [], count = 6, startFromIso = null, slotMinutes = 30 } = {}) {
+function generateSuggestedSlots({
+  existingBookings = [],
+  count = 6,
+  startFromIso = null,
+  slotMinutes = 30,
+} = {}) {
   const startMs = startFromIso ? Date.parse(startFromIso) : Date.now();
   const safeStart = Number.isFinite(startMs) ? startMs : Date.now();
   // Börja från nästa heltimme + minst 24h framåt (klinik behöver ledtid)
@@ -82,12 +88,22 @@ function describeSlotSv(iso) {
   if (Number.isNaN(d.getTime())) return '';
   const wd = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'][d.getDay()];
   const day = d.getDate();
-  const mon = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'][d.getMonth()];
+  const mon = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'][
+    d.getMonth()
+  ];
   const time = d.toLocaleTimeString('sv', { hour: '2-digit', minute: '2-digit' });
   return `${wd} ${day} ${mon} kl ${time}`;
 }
 
-async function generateOpenAIReply({ openai, model, messages, customerName, ownerName, subject, tone = 'warm' }) {
+async function generateOpenAIReply({
+  openai,
+  model,
+  messages,
+  customerName,
+  ownerName,
+  subject,
+  tone = 'warm',
+}) {
   if (!openai || !model) return null;
   const toneInstruction = (() => {
     if (tone === 'concise') return 'Skriv kort och rakt på sak. Max 4 meningar.';
@@ -97,7 +113,8 @@ async function generateOpenAIReply({ openai, model, messages, customerName, owne
   const safeMessages = (Array.isArray(messages) ? messages : [])
     .slice(-12) // bara senaste 12 för att hålla prompten kort
     .map((m) => {
-      const dir = String(m.direction || m.dir || '').toLowerCase() === 'outbound' ? 'KLINIK' : 'KUND';
+      const dir =
+        String(m.direction || m.dir || '').toLowerCase() === 'outbound' ? 'KLINIK' : 'KUND';
       const time = String(m.sentAt || m.recordedAt || m.time || '').slice(0, 19);
       const body = String(m.body || m.bodyPreview || m.text || '').slice(0, 1200);
       return `[${dir} · ${time}] ${body}`;
@@ -185,18 +202,17 @@ function deriveInitials(name) {
     .filter(Boolean)
     .slice(0, 2);
   if (!parts.length) return '?';
-  return parts.map((p) => p[0]).join('').toUpperCase();
+  return parts
+    .map((p) => p[0])
+    .join('')
+    .toUpperCase();
 }
 
 function fetchSortedConversationMessages(store, key) {
   if (!store || typeof store.listMessages !== 'function') return [];
   const all = store.listMessages({});
-  const matches = all.filter(
-    (m) => normalizeText(asObject(m).mailboxConversationId) === key
-  );
-  return [...matches].sort((a, b) =>
-    String(deriveTime(a)).localeCompare(String(deriveTime(b)))
-  );
+  const matches = all.filter((m) => normalizeText(asObject(m).mailboxConversationId) === key);
+  return [...matches].sort((a, b) => String(deriveTime(a)).localeCompare(String(deriveTime(b))));
 }
 
 // Mappa lagrade meddelanden → SummarizeThread input-shape
@@ -235,236 +251,218 @@ function createCcoConversationRouter({
   const authMiddleware =
     typeof requireAuth === 'function' ? requireAuth : (_req, _res, next) => next();
 
-  router.get(
-    '/cco/runtime/conversation/:key/messages',
-    authMiddleware,
-    (req, res) => {
-      try {
-        if (
-          !ccoMailboxTruthStore ||
-          typeof ccoMailboxTruthStore.listMessages !== 'function'
-        ) {
-          return res
-            .status(503)
-            .json({ ok: false, error: 'mailbox_truth_store_unavailable' });
-        }
-        const key = normalizeText(req.params.key);
-        if (!key) {
-          return res
-            .status(400)
-            .json({ ok: false, error: 'missing_conversation_key' });
-        }
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
-        const messages = sorted.map((m) => {
-          const safe = asObject(m);
-          const from = deriveFromName(safe);
-          return {
-            id: normalizeText(safe.graphMessageId) || normalizeText(safe.messageId) || null,
-            from,
-            initials: deriveInitials(from),
-            dir: deriveDir(safe.folderType),
-            time: deriveTime(safe),
-            body: deriveBody(safe),
-            subject: normalizeText(safe.subject) || null,
-            mailboxId: normalizeText(safe.mailboxId) || null,
-            folderType: normalizeText(safe.folderType) || null,
-          };
-        });
-        return res.json({
-          ok: true,
-          conversationKey: key,
-          messageCount: messages.length,
-          messages,
-        });
-      } catch (err) {
-        return res.status(500).json({
-          ok: false,
-          error: 'internal_error',
-          detail: String((err && err.message) || err),
-        });
+  router.get('/cco/runtime/conversation/:key/messages', authMiddleware, (req, res) => {
+    try {
+      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
       }
+      const key = normalizeText(req.params.key);
+      if (!key) {
+        return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+      }
+      const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+      const messages = sorted.map((m) => {
+        const safe = asObject(m);
+        const from = deriveFromName(safe);
+        return {
+          id: normalizeText(safe.graphMessageId) || normalizeText(safe.messageId) || null,
+          from,
+          initials: deriveInitials(from),
+          dir: deriveDir(safe.folderType),
+          time: deriveTime(safe),
+          body: deriveBody(safe),
+          subject: normalizeText(safe.subject) || null,
+          mailboxId: normalizeText(safe.mailboxId) || null,
+          folderType: normalizeText(safe.folderType) || null,
+        };
+      });
+      return res.json({
+        ok: true,
+        conversationKey: key,
+        messageCount: messages.length,
+        messages,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        ok: false,
+        error: 'internal_error',
+        detail: String((err && err.message) || err),
+      });
     }
-  );
+  });
 
   // ----- AI-summary + nextBestAction -----
   // GET /cco/runtime/conversation/:key/summary
   // Kör SummarizeThread-capabilityn på trådens meddelanden och returnerar
   // headline + bullets + nextBestAction + sentiment + intent. Frontend kan
   // använda detta för att fylla AI-summary-blocket samt risk/nästa-steg.
-  router.get(
-    '/cco/runtime/conversation/:key/summary',
-    authMiddleware,
-    async (req, res) => {
-      try {
-        if (
-          !ccoMailboxTruthStore ||
-          typeof ccoMailboxTruthStore.listMessages !== 'function'
-        ) {
-          return res
-            .status(503)
-            .json({ ok: false, error: 'mailbox_truth_store_unavailable' });
-        }
-        const key = normalizeText(req.params.key);
-        if (!key) {
-          return res
-            .status(400)
-            .json({ ok: false, error: 'missing_conversation_key' });
-        }
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
-        if (sorted.length === 0) {
-          return res.json({
-            ok: true,
-            conversationKey: key,
-            summary: null,
-            note: 'no_messages',
-          });
-        }
-        // Härled customerName + subject från första inkommande meddelandet
-        const firstInbound =
-          sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
-        const customerName = deriveFromName(firstInbound);
-        const subject = normalizeText(asObject(firstInbound).subject) || '';
-
-        const inputMessages = sorted.map(toSummarizeInputMessage);
-
-        const result = await runSummarizeThreadCapability({
-          channel: 'admin',
-          tenantId: normalizeText(req.tenantId) || 'cco',
-          // OpenAI passas in om servern har en konfigurerad client; annars
-          // faller capabilityn tillbaka på heuristiken automatiskt.
-          openai: openai || null,
-          openaiModel: normalizeText(openaiModel) || '',
-          input: {
-            conversationId: key,
-            customerName,
-            subject,
-            messages: inputMessages,
-          },
-        });
-        const data = asObject(result?.data);
-        const nba = asObject(data.nextBestAction);
-        const primary = asObject(nba.primaryAction);
-        // Bygg en kort risk-text baserat på sentiment + intent + anomalies
-        const sentimentLabel = normalizeText(asObject(data.sentiment).label);
-        const intentLabel = normalizeText(asObject(data.intent).label);
-        const anomalies = Array.isArray(data.anomalies) ? data.anomalies : [];
-        const riskParts = [];
-        if (sentimentLabel && sentimentLabel.toLowerCase() !== 'neutral') {
-          riskParts.push(`Stämning: ${sentimentLabel}`);
-        }
-        if (intentLabel && intentLabel.toLowerCase() !== 'oklart') {
-          riskParts.push(`Avsikt: ${intentLabel}`);
-        }
-        if (anomalies.length > 0) {
-          riskParts.push(`${anomalies.length} avvikelse${anomalies.length === 1 ? '' : 'r'} upptäckta`);
-        }
-        const risk = riskParts.length > 0 ? riskParts.join(' · ') : '';
-        // nextStep = primaryButton + ev. första-reasoning som förklaring
-        const nextStepLabel = normalizeText(primary.primaryButton) || normalizeText(primary.label);
-        const reasoning = Array.isArray(primary.reasoning) ? primary.reasoning : [];
-        const nextStep = nextStepLabel
-          ? reasoning.length > 0
-            ? `${nextStepLabel} — ${reasoning[0]}`
-            : nextStepLabel
-          : '';
+  router.get('/cco/runtime/conversation/:key/summary', authMiddleware, async (req, res) => {
+    try {
+      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+      }
+      const key = normalizeText(req.params.key);
+      if (!key) {
+        return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+      }
+      const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+      if (sorted.length === 0) {
         return res.json({
           ok: true,
           conversationKey: key,
-          summary: {
-            headline: normalizeText(data.headline),
-            bullets: Array.isArray(data.bullets) ? data.bullets.filter(Boolean) : [],
-            risk,
-            nextStep,
-            sentiment: data.sentiment || null,
-            intent: data.intent || null,
-            primaryAction: primary || null,
-            secondaryActions: Array.isArray(nba.secondaryActions) ? nba.secondaryActions : [],
-            source: normalizeText(data.source) || 'heuristic',
-            generatedAt: normalizeText(data.generatedAt),
-          },
-          warnings: Array.isArray(result?.warnings) ? result.warnings : [],
-        });
-      } catch (err) {
-        return res.status(500).json({
-          ok: false,
-          error: 'internal_error',
-          detail: String((err && err.message) || err),
+          summary: null,
+          note: 'no_messages',
         });
       }
+      // Härled customerName + subject från första inkommande meddelandet
+      const firstInbound =
+        sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
+      const customerName = deriveFromName(firstInbound);
+      const subject = normalizeText(asObject(firstInbound).subject) || '';
+
+      const inputMessages = sorted.map(toSummarizeInputMessage);
+
+      const result = await runSummarizeThreadCapability({
+        channel: 'admin',
+        tenantId: normalizeText(req.tenantId) || 'cco',
+        // OpenAI passas in om servern har en konfigurerad client; annars
+        // faller capabilityn tillbaka på heuristiken automatiskt.
+        openai: openai || null,
+        openaiModel: normalizeText(openaiModel) || '',
+        input: {
+          conversationId: key,
+          customerName,
+          subject,
+          messages: inputMessages,
+        },
+      });
+      const data = asObject(result?.data);
+      const nba = asObject(data.nextBestAction);
+      const primary = asObject(nba.primaryAction);
+      // Bygg en kort risk-text baserat på sentiment + intent + anomalies
+      const sentimentLabel = normalizeText(asObject(data.sentiment).label);
+      const intentLabel = normalizeText(asObject(data.intent).label);
+      const anomalies = Array.isArray(data.anomalies) ? data.anomalies : [];
+      const riskParts = [];
+      if (sentimentLabel && sentimentLabel.toLowerCase() !== 'neutral') {
+        riskParts.push(`Stämning: ${sentimentLabel}`);
+      }
+      if (intentLabel && intentLabel.toLowerCase() !== 'oklart') {
+        riskParts.push(`Avsikt: ${intentLabel}`);
+      }
+      if (anomalies.length > 0) {
+        riskParts.push(
+          `${anomalies.length} avvikelse${anomalies.length === 1 ? '' : 'r'} upptäckta`
+        );
+      }
+      const risk = riskParts.length > 0 ? riskParts.join(' · ') : '';
+      // nextStep = primaryButton + ev. första-reasoning som förklaring
+      const nextStepLabel = normalizeText(primary.primaryButton) || normalizeText(primary.label);
+      const reasoning = Array.isArray(primary.reasoning) ? primary.reasoning : [];
+      const nextStep = nextStepLabel
+        ? reasoning.length > 0
+          ? `${nextStepLabel} — ${reasoning[0]}`
+          : nextStepLabel
+        : '';
+      return res.json({
+        ok: true,
+        conversationKey: key,
+        summary: {
+          headline: normalizeText(data.headline),
+          bullets: Array.isArray(data.bullets) ? data.bullets.filter(Boolean) : [],
+          risk,
+          nextStep,
+          sentiment: data.sentiment || null,
+          intent: data.intent || null,
+          primaryAction: primary || null,
+          secondaryActions: Array.isArray(nba.secondaryActions) ? nba.secondaryActions : [],
+          source: normalizeText(data.source) || 'heuristic',
+          generatedAt: normalizeText(data.generatedAt),
+        },
+        warnings: Array.isArray(result?.warnings) ? result.warnings : [],
+      });
+    } catch (err) {
+      return res.status(500).json({
+        ok: false,
+        error: 'internal_error',
+        detail: String((err && err.message) || err),
+      });
     }
-  );
+  });
 
   // ----- Cliento-bokningar: kund-historik + föreslagna lediga tider -----
   // GET /cco/runtime/conversation/:key/bookings  → { existingBookings, suggestedSlots }
-  router.get(
-    '/cco/runtime/conversation/:key/bookings',
-    authMiddleware,
-    (req, res) => {
-      try {
-        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
-          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
-        }
-        const key = normalizeText(req.params.key);
-        if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
-        const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
-        const firstInbound = sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0] || {};
-        const customerEmail =
-          normalizeText(asObject(asObject(firstInbound).from).emailAddress?.address) ||
-          normalizeText(firstInbound.senderEmail) ||
-          normalizeText(firstInbound.fromAddress) ||
-          '';
-        let existingBookings = [];
-        if (clientoBookingStore && typeof clientoBookingStore.getBookingsForCustomer === 'function' && customerEmail) {
-          existingBookings = clientoBookingStore.getBookingsForCustomer({
+  router.get('/cco/runtime/conversation/:key/bookings', authMiddleware, (req, res) => {
+    try {
+      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+      }
+      const key = normalizeText(req.params.key);
+      if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+      const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
+      const firstInbound =
+        sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0] || {};
+      const customerEmail =
+        normalizeText(asObject(asObject(firstInbound).from).emailAddress?.address) ||
+        normalizeText(firstInbound.senderEmail) ||
+        normalizeText(firstInbound.fromAddress) ||
+        '';
+      let existingBookings = [];
+      if (
+        clientoBookingStore &&
+        typeof clientoBookingStore.getBookingsForCustomer === 'function' &&
+        customerEmail
+      ) {
+        existingBookings =
+          clientoBookingStore.getBookingsForCustomer({
             tenantId: defaultTenantId,
             customerEmail,
           }) || [];
-        }
-        const suggestedSlots = generateSuggestedSlots({
-          existingBookings,
-          count: 6,
-          slotMinutes: 30,
-        }).map((s) => ({
-          ...s,
-          label: describeSlotSv(s.startsAt),
-        }));
-        // Sortera existerande bokningar — kommande först (status='upcoming' eller startsAt > now)
-        const nowMs = Date.now();
-        const sortedBookings = [...existingBookings]
-          .map((b) => ({
-            bookingId: normalizeText(b.bookingId),
-            startsAt: normalizeText(b.startsAt),
-            durationMinutes: Number(b.durationMinutes) || null,
-            service: normalizeText(b.service) || normalizeText(b.serviceType) || null,
-            staff: normalizeText(b.staff) || normalizeText(b.staffName) || null,
-            status: normalizeText(b.status) || 'unknown',
-            label: describeSlotSv(b.startsAt),
-            isUpcoming: b.startsAt && Date.parse(b.startsAt) > nowMs && b.status !== 'cancelled',
-          }))
-          .sort((a, b) => {
-            // upcoming först (asc), sen past (desc)
-            if (a.isUpcoming && !b.isUpcoming) return -1;
-            if (!a.isUpcoming && b.isUpcoming) return 1;
-            return String(a.isUpcoming ? a.startsAt : b.startsAt).localeCompare(
-              String(a.isUpcoming ? b.startsAt : a.startsAt)
-            );
-          });
-        return res.json({
-          ok: true,
-          conversationKey: key,
-          customerEmail: customerEmail || null,
-          existingBookings: sortedBookings,
-          suggestedSlots,
-        });
-      } catch (err) {
-        return res.status(500).json({
-          ok: false,
-          error: 'internal_error',
-          detail: String((err && err.message) || err),
-        });
       }
+      const suggestedSlots = generateSuggestedSlots({
+        existingBookings,
+        count: 6,
+        slotMinutes: 30,
+      }).map((s) => ({
+        ...s,
+        label: describeSlotSv(s.startsAt),
+      }));
+      // Sortera existerande bokningar — kommande först (status='upcoming' eller startsAt > now)
+      const nowMs = Date.now();
+      const sortedBookings = [...existingBookings]
+        .map((b) => ({
+          bookingId: normalizeText(b.bookingId),
+          startsAt: normalizeText(b.startsAt),
+          durationMinutes: Number(b.durationMinutes) || null,
+          service: normalizeText(b.service) || normalizeText(b.serviceType) || null,
+          staff: normalizeText(b.staff) || normalizeText(b.staffName) || null,
+          status: normalizeText(b.status) || 'unknown',
+          label: describeSlotSv(b.startsAt),
+          isUpcoming: b.startsAt && Date.parse(b.startsAt) > nowMs && b.status !== 'cancelled',
+        }))
+        .sort((a, b) => {
+          // upcoming först (asc), sen past (desc)
+          if (a.isUpcoming && !b.isUpcoming) return -1;
+          if (!a.isUpcoming && b.isUpcoming) return 1;
+          return String(a.isUpcoming ? a.startsAt : b.startsAt).localeCompare(
+            String(a.isUpcoming ? b.startsAt : a.startsAt)
+          );
+        });
+      return res.json({
+        ok: true,
+        conversationKey: key,
+        customerEmail: customerEmail || null,
+        existingBookings: sortedBookings,
+        suggestedSlots,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        ok: false,
+        error: 'internal_error',
+        detail: String((err && err.message) || err),
+      });
     }
-  );
+  });
 
   // ----- Generera bekräftelse-utkast med vald tid -----
   // POST /cco/runtime/conversation/:key/booking-confirm  body: { slot: ISO }
@@ -482,16 +480,21 @@ function createCcoConversationRouter({
         if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
         const slotIso = normalizeText(asObject(req.body).slot);
         if (!slotIso || Number.isNaN(Date.parse(slotIso))) {
-          return res.status(400).json({ ok: false, error: 'invalid_slot', detail: 'slot måste vara giltig ISO-tid.' });
+          return res
+            .status(400)
+            .json({ ok: false, error: 'invalid_slot', detail: 'slot måste vara giltig ISO-tid.' });
         }
         const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
         if (sorted.length === 0) {
           return res.status(404).json({ ok: false, error: 'conversation_not_found' });
         }
-        const firstInbound = sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
+        const firstInbound =
+          sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
         const customerName = deriveFromName(firstInbound);
         const subject = normalizeText(asObject(firstInbound).subject) || '';
-        const lastOutbound = [...sorted].reverse().find((m) => deriveDir(asObject(m).folderType) === 'outbound');
+        const lastOutbound = [...sorted]
+          .reverse()
+          .find((m) => deriveDir(asObject(m).folderType) === 'outbound');
         const ownerName = lastOutbound ? deriveFromName(lastOutbound) : '';
         const inputMessages = sorted.map(toSummarizeInputMessage);
         const slotLabel = describeSlotSv(slotIso);
@@ -499,7 +502,8 @@ function createCcoConversationRouter({
         // Bygg en mer specifik prompt — be GPT bekräfta valda tiden
         let draft = null;
         if (openai && openaiModel) {
-          const sys = 'Du är AI-assistent för Hair TP Clinic. Skriv ett kort bekräftelse-mejl på svenska som bekräftar en föreslagen bokningstid. Behåll varm och professionell ton. Skriv inget om priser eller behandlingsdetaljer som inte står i tråden.';
+          const sys =
+            'Du är AI-assistent för Hair TP Clinic. Skriv ett kort bekräftelse-mejl på svenska som bekräftar en föreslagen bokningstid. Behåll varm och professionell ton. Skriv inget om priser eller behandlingsdetaljer som inte står i tråden.';
           const userMsg = `Kund: ${customerName}\nÄmne: ${subject || '(utan ämne)'}\nKundens senaste mejl: ${deriveBody(firstInbound).slice(0, 600)}\n\nUppgift: Skriv ett bekräftelse-mejl till kunden. Föreslå tiden: ${slotLabel}. Be kunden bekräfta. Avsluta med "Mvh, ${ownerName || 'Hair TP Clinic'}". Returnera ENDAST mejltext (max 5 meningar, ingen ämnesrad).`;
           try {
             const completion = await openai.chat.completions.create({
@@ -513,7 +517,9 @@ function createCcoConversationRouter({
             });
             const text = completion?.choices?.[0]?.message?.content;
             if (typeof text === 'string' && text.trim()) draft = text.trim();
-          } catch (_e) { /* fall through */ }
+          } catch (_e) {
+            /* fall through */
+          }
         }
         if (!draft) {
           // Heuristisk fallback
@@ -557,11 +563,14 @@ function createCcoConversationRouter({
         if (sorted.length === 0) {
           return res.status(404).json({ ok: false, error: 'conversation_not_found' });
         }
-        const firstInbound = sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
+        const firstInbound =
+          sorted.find((m) => deriveDir(asObject(m).folderType) === 'inbound') || sorted[0];
         const customerName = deriveFromName(firstInbound);
         const subject = normalizeText(asObject(firstInbound).subject) || '';
         // Hitta ägaren av aktuell mailbox (sista skickade meddelandet visar oftast vem som svarar)
-        const lastOutbound = [...sorted].reverse().find((m) => deriveDir(asObject(m).folderType) === 'outbound');
+        const lastOutbound = [...sorted]
+          .reverse()
+          .find((m) => deriveDir(asObject(m).folderType) === 'outbound');
         const ownerName = lastOutbound ? deriveFromName(lastOutbound) : '';
         const tone = normalizeText(asObject(req.body).tone).toLowerCase() || 'warm';
         const inputMessages = sorted.map(toSummarizeInputMessage);
@@ -581,7 +590,9 @@ function createCcoConversationRouter({
           if (draft) source = 'openai';
         }
         if (!draft) {
-          const latestInbound = [...sorted].reverse().find((m) => deriveDir(asObject(m).folderType) === 'inbound') || firstInbound;
+          const latestInbound =
+            [...sorted].reverse().find((m) => deriveDir(asObject(m).folderType) === 'inbound') ||
+            firstInbound;
           draft = buildHeuristicDraft({
             customerName,
             latestInboundBody: deriveBody(latestInbound),
@@ -589,12 +600,24 @@ function createCcoConversationRouter({
           });
           source = 'heuristic';
         }
+        // Reply Confidence Panel — advisory confidence/risk/tone for the operator.
+        // Additive field; the draft itself is unchanged. No journal content leaves here.
+        const latestInboundForConfidence =
+          [...sorted].reverse().find((m) => deriveDir(asObject(m).folderType) === 'inbound') ||
+          firstInbound;
+        const confidence = computeReplyConfidence({
+          thread: { customerName, latestInboundBody: deriveBody(latestInboundForConfidence) },
+          draft: { body: draft },
+          conversationHistory: sorted,
+          templateMatched: false,
+        });
         return res.json({
           ok: true,
           conversationKey: key,
           draft,
           source,
           tone,
+          confidence,
           generatedAt: new Date().toISOString(),
         });
       } catch (err) {
@@ -621,35 +644,25 @@ function createCcoConversationRouter({
           return res.status(503).json({
             ok: false,
             error: 'graph_send_unavailable',
-            detail: 'ARCANA_GRAPH_SEND_ENABLED måste vara true och Graph-credentials konfigurerade.',
+            detail:
+              'ARCANA_GRAPH_SEND_ENABLED måste vara true och Graph-credentials konfigurerade.',
           });
         }
-        if (
-          !ccoMailboxTruthStore ||
-          typeof ccoMailboxTruthStore.listMessages !== 'function'
-        ) {
-          return res
-            .status(503)
-            .json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
         }
         const key = normalizeText(req.params.key);
         if (!key) {
-          return res
-            .status(400)
-            .json({ ok: false, error: 'missing_conversation_key' });
+          return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
         }
         const body = normalizeText(asObject(req.body).body);
         const bodyHtml = normalizeText(asObject(req.body).bodyHtml);
         if (!body) {
-          return res
-            .status(400)
-            .json({ ok: false, error: 'missing_body' });
+          return res.status(400).json({ ok: false, error: 'missing_body' });
         }
         const sorted = fetchSortedConversationMessages(ccoMailboxTruthStore, key);
         if (sorted.length === 0) {
-          return res
-            .status(404)
-            .json({ ok: false, error: 'conversation_not_found' });
+          return res.status(404).json({ ok: false, error: 'conversation_not_found' });
         }
         // Hitta senaste inkommande meddelande — det är vad vi svarar på
         const latestInbound = [...sorted]
@@ -665,8 +678,10 @@ function createCcoConversationRouter({
         const target = asObject(latestInbound);
         const senderMailboxId =
           normalizeText(target.mailboxId) || normalizeText(target.mailboxAddress);
-        const replyToMessageId = normalizeText(target.graphMessageId) || normalizeText(target.messageId);
-        const conversationId = normalizeText(target.conversationId) || normalizeText(target.mailboxConversationId);
+        const replyToMessageId =
+          normalizeText(target.graphMessageId) || normalizeText(target.messageId);
+        const conversationId =
+          normalizeText(target.conversationId) || normalizeText(target.mailboxConversationId);
         if (!senderMailboxId || !replyToMessageId) {
           return res.status(409).json({
             ok: false,
@@ -720,21 +735,18 @@ function createCcoConversationRouter({
     express.json({ limit: '32kb' }),
     async (req, res) => {
       try {
-        if (!ccoConversationStateStore || typeof ccoConversationStateStore.writeConversationState !== 'function') {
-          return res
-            .status(503)
-            .json({ ok: false, error: 'conversation_state_store_unavailable' });
+        if (
+          !ccoConversationStateStore ||
+          typeof ccoConversationStateStore.writeConversationState !== 'function'
+        ) {
+          return res.status(503).json({ ok: false, error: 'conversation_state_store_unavailable' });
         }
         if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
-          return res
-            .status(503)
-            .json({ ok: false, error: 'mailbox_truth_store_unavailable' });
+          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
         }
         const key = normalizeText(req.params.key);
         if (!key) {
-          return res
-            .status(400)
-            .json({ ok: false, error: 'missing_conversation_key' });
+          return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
         }
         const body = asObject(req.body);
         const action = normalizeText(body.action).toLowerCase();
@@ -750,9 +762,7 @@ function createCcoConversationRouter({
         // Reopen → supersede existing state
         if (action === 'reopen') {
           if (typeof ccoConversationStateStore.supersedeConversationState !== 'function') {
-            return res
-              .status(503)
-              .json({ ok: false, error: 'supersede_unavailable' });
+            return res.status(503).json({ ok: false, error: 'supersede_unavailable' });
           }
           const result = await ccoConversationStateStore.supersedeConversationState({
             tenantId: defaultTenantId,
@@ -773,7 +783,8 @@ function createCcoConversationRouter({
           .map((m) => normalizeText(asObject(m).conversationId))
           .filter(Boolean);
         const primaryConversationId =
-          normalizeText(firstMessage.conversationId) || normalizeText(firstMessage.mailboxConversationId);
+          normalizeText(firstMessage.conversationId) ||
+          normalizeText(firstMessage.mailboxConversationId);
 
         // followUpDueAt: använd från body om finns, annars nu+24h för reply_later
         let followUpDueAt = null;
@@ -791,7 +802,9 @@ function createCcoConversationRouter({
         const nextActionLabel = action === 'handled' ? 'Markerad som klar' : 'Påminnelse senare';
 
         // Identifiera operatör från req.session/auth
-        const actorUserId = normalizeText(req?.user?.id || req?.user?.userId || req?.session?.userId);
+        const actorUserId = normalizeText(
+          req?.user?.id || req?.user?.userId || req?.session?.userId
+        );
         const actorEmail = normalizeText(req?.user?.email || req?.session?.email).toLowerCase();
 
         const result = await ccoConversationStateStore.writeConversationState({
@@ -831,27 +844,23 @@ function createCcoConversationRouter({
   // ----- Anteckningar (interna, per tråd) -----
   // GET  /cco/runtime/conversation/:key/notes        → lista nyaste först
   // POST /cco/runtime/conversation/:key/notes { body }  → lägg till anteckning
-  router.get(
-    '/cco/runtime/conversation/:key/notes',
-    authMiddleware,
-    (req, res) => {
-      try {
-        if (!ccoConversationNotesStore || typeof ccoConversationNotesStore.listNotes !== 'function') {
-          return res.status(503).json({ ok: false, error: 'notes_store_unavailable' });
-        }
-        const key = normalizeText(req.params.key);
-        if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
-        const notes = ccoConversationNotesStore.listNotes({ conversationKey: key });
-        return res.json({ ok: true, conversationKey: key, count: notes.length, notes });
-      } catch (err) {
-        return res.status(500).json({
-          ok: false,
-          error: 'internal_error',
-          detail: String((err && err.message) || err),
-        });
+  router.get('/cco/runtime/conversation/:key/notes', authMiddleware, (req, res) => {
+    try {
+      if (!ccoConversationNotesStore || typeof ccoConversationNotesStore.listNotes !== 'function') {
+        return res.status(503).json({ ok: false, error: 'notes_store_unavailable' });
       }
+      const key = normalizeText(req.params.key);
+      if (!key) return res.status(400).json({ ok: false, error: 'missing_conversation_key' });
+      const notes = ccoConversationNotesStore.listNotes({ conversationKey: key });
+      return res.json({ ok: true, conversationKey: key, count: notes.length, notes });
+    } catch (err) {
+      return res.status(500).json({
+        ok: false,
+        error: 'internal_error',
+        detail: String((err && err.message) || err),
+      });
     }
-  );
+  });
   router.post(
     '/cco/runtime/conversation/:key/notes',
     authMiddleware,
@@ -899,10 +908,18 @@ function createCcoConversationRouter({
     async (req, res) => {
       try {
         if (syncInFlight) {
-          return res.status(429).json({ ok: false, error: 'sync_in_flight', detail: 'En sync pågår redan.' });
+          return res
+            .status(429)
+            .json({ ok: false, error: 'sync_in_flight', detail: 'En sync pågår redan.' });
         }
         if (!graphReadConnector) {
-          return res.status(503).json({ ok: false, error: 'graph_read_unavailable', detail: 'ARCANA_GRAPH_READ_ENABLED måste vara true.' });
+          return res
+            .status(503)
+            .json({
+              ok: false,
+              error: 'graph_read_unavailable',
+              detail: 'ARCANA_GRAPH_READ_ENABLED måste vara true.',
+            });
         }
         if (!ccoMailboxTruthStore) {
           return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
@@ -910,11 +927,16 @@ function createCcoConversationRouter({
         const reqMailboxIds = Array.isArray(asObject(req.body).mailboxIds)
           ? req.body.mailboxIds.map((s) => normalizeText(s).toLowerCase()).filter(Boolean)
           : [];
-        const mailboxIds = reqMailboxIds.length > 0 ? reqMailboxIds : (mailboxIdsForSync || []);
+        const mailboxIds = reqMailboxIds.length > 0 ? reqMailboxIds : mailboxIdsForSync || [];
         if (mailboxIds.length === 0) {
-          return res.status(400).json({ ok: false, error: 'no_mailboxes', detail: 'Inga mailboxar att synca.' });
+          return res
+            .status(400)
+            .json({ ok: false, error: 'no_mailboxes', detail: 'Inga mailboxar att synca.' });
         }
-        const lookbackDays = Math.max(1, Math.min(90, Number(asObject(req.body).lookbackDays) || syncLookbackDays || 14));
+        const lookbackDays = Math.max(
+          1,
+          Math.min(90, Number(asObject(req.body).lookbackDays) || syncLookbackDays || 14)
+        );
         syncInFlight = true;
         const startedAt = new Date().toISOString();
         // Kör bakgrundskörningen — vi väntar inte på fullt resultat innan
@@ -974,243 +996,257 @@ function createCcoConversationRouter({
   // GET /cco/runtime/health/mailboxes
   // Visar antal mejl per mailbox + senaste mejlets timestamp.
   // Inga email-bodies eller customer-data exponeras — bara counts.
-  router.get(
-    '/cco/runtime/health/mailboxes',
-    (_req, res) => {
-      try {
-        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
-          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
-        }
-        const all = ccoMailboxTruthStore.listMessages({});
-        const byMailbox = {};
-        for (const raw of all) {
-          const m = asObject(raw);
-          const mb = normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'unknown';
-          if (!byMailbox[mb]) byMailbox[mb] = { mailboxId: mb, count: 0, latestAt: null };
-          byMailbox[mb].count += 1;
-          const tIso = normalizeText(m.sentAt) || normalizeText(m.receivedAt) || normalizeText(m.lastModifiedAt);
-          if (tIso) {
-            const cur = byMailbox[mb].latestAt ? Date.parse(byMailbox[mb].latestAt) : 0;
-            if (Date.parse(tIso) > cur) byMailbox[mb].latestAt = tIso;
-          }
-        }
-        return res.json({
-          ok: true,
-          totalMessages: all.length,
-          mailboxes: Object.values(byMailbox).sort((a, b) => b.count - a.count),
-          generatedAt: new Date().toISOString(),
-          graphReadEnabled: process.env.ARCANA_GRAPH_READ_ENABLED === 'true',
-          syncEnabled: Boolean(graphReadConnector),
-        });
-      } catch (err) {
-        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+  router.get('/cco/runtime/health/mailboxes', (_req, res) => {
+    try {
+      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
       }
+      const all = ccoMailboxTruthStore.listMessages({});
+      const byMailbox = {};
+      for (const raw of all) {
+        const m = asObject(raw);
+        const mb = normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'unknown';
+        if (!byMailbox[mb]) byMailbox[mb] = { mailboxId: mb, count: 0, latestAt: null };
+        byMailbox[mb].count += 1;
+        const tIso =
+          normalizeText(m.sentAt) || normalizeText(m.receivedAt) || normalizeText(m.lastModifiedAt);
+        if (tIso) {
+          const cur = byMailbox[mb].latestAt ? Date.parse(byMailbox[mb].latestAt) : 0;
+          if (Date.parse(tIso) > cur) byMailbox[mb].latestAt = tIso;
+        }
+      }
+      return res.json({
+        ok: true,
+        totalMessages: all.length,
+        mailboxes: Object.values(byMailbox).sort((a, b) => b.count - a.count),
+        generatedAt: new Date().toISOString(),
+        graphReadEnabled: process.env.ARCANA_GRAPH_READ_ENABLED === 'true',
+        syncEnabled: Boolean(graphReadConnector),
+      });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
     }
-  );
+  });
 
   // ----- Dashboard: KPI-aggregat -----
   // GET /cco/runtime/dashboard?days=7
-  router.get(
-    '/cco/runtime/dashboard',
-    authMiddleware,
-    (req, res) => {
-      try {
-        if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
-          return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
-        }
-        const days = Math.max(1, Math.min(90, Number(req.query.days) || 7));
-        const nowMs = Date.now();
-        const dayMs = 24 * 60 * 60 * 1000;
-        const startMs = nowMs - days * dayMs;
-        const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-        const yesterdayStart = todayStart.getTime() - dayMs;
-
-        const allMessages = ccoMailboxTruthStore.listMessages({});
-        // Filter: alla i intervallet
-        const inWindow = allMessages.filter((m) => {
-          const safe = asObject(m);
-          const t = Date.parse(safe.sentAt || safe.receivedAt || safe.lastModifiedAt || '');
-          return Number.isFinite(t) && t >= startMs;
-        });
-
-        // Volym per dag (senaste N dagar) — för chart
-        const volumePerDay = {};
-        for (let i = 0; i < days; i += 1) {
-          const dKey = new Date(nowMs - i * dayMs).toISOString().slice(0, 10);
-          volumePerDay[dKey] = { inbound: 0, outbound: 0 };
-        }
-        let inboundCount = 0;
-        let outboundCount = 0;
-        let todayInboundCount = 0;
-        let yesterdayInboundCount = 0;
-        const perMailboxCount = {};
-        const customerActivity = {};
-        for (const raw of inWindow) {
-          const m = asObject(raw);
-          const tIso = m.sentAt || m.receivedAt || m.lastModifiedAt || '';
-          const tMs = Date.parse(tIso);
-          if (!Number.isFinite(tMs)) continue;
-          const dir = deriveDir(m.folderType);
-          const dKey = new Date(tMs).toISOString().slice(0, 10);
-          if (!volumePerDay[dKey]) volumePerDay[dKey] = { inbound: 0, outbound: 0 };
-          if (dir === 'outbound') {
-            volumePerDay[dKey].outbound += 1;
-            outboundCount += 1;
-          } else if (dir === 'inbound') {
-            volumePerDay[dKey].inbound += 1;
-            inboundCount += 1;
-            if (tMs >= todayStart.getTime()) todayInboundCount += 1;
-            else if (tMs >= yesterdayStart) yesterdayInboundCount += 1;
-          }
-          // Per mailbox (sender mailbox)
-          const mailboxAddr = normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'okänd';
-          if (!perMailboxCount[mailboxAddr]) perMailboxCount[mailboxAddr] = { total: 0, inbound: 0, outbound: 0 };
-          perMailboxCount[mailboxAddr].total += 1;
-          if (dir === 'outbound') perMailboxCount[mailboxAddr].outbound += 1;
-          else if (dir === 'inbound') perMailboxCount[mailboxAddr].inbound += 1;
-          // Per kund (customer email)
-          const customerEmail =
-            normalizeText(asObject(asObject(m.from).emailAddress).address) ||
-            normalizeText(m.senderEmail) ||
-            normalizeText(m.fromAddress);
-          if (customerEmail && dir === 'inbound') {
-            const fromName =
-              normalizeText(asObject(asObject(m.from).emailAddress).name) ||
-              normalizeText(m.senderName) ||
-              customerEmail;
-            if (!customerActivity[customerEmail]) customerActivity[customerEmail] = { email: customerEmail, name: fromName, count: 0, lastAt: null };
-            customerActivity[customerEmail].count += 1;
-            const cur = customerActivity[customerEmail].lastAt ? Date.parse(customerActivity[customerEmail].lastAt) : 0;
-            if (tMs > cur) customerActivity[customerEmail].lastAt = tIso;
-          }
-        }
-
-        // Snitt-svartid: för varje konversation, hitta första outbound efter senaste inbound
-        const conversationLatest = {};
-        for (const raw of allMessages) {
-          const m = asObject(raw);
-          const key = normalizeText(m.mailboxConversationId);
-          if (!key) continue;
-          const tMs = Date.parse(m.sentAt || m.receivedAt || m.lastModifiedAt || '');
-          if (!Number.isFinite(tMs)) continue;
-          if (!conversationLatest[key]) conversationLatest[key] = { inbounds: [], outbounds: [] };
-          const dir = deriveDir(m.folderType);
-          if (dir === 'inbound') conversationLatest[key].inbounds.push(tMs);
-          else if (dir === 'outbound') conversationLatest[key].outbounds.push(tMs);
-        }
-        const responseTimes = [];
-        for (const key of Object.keys(conversationLatest)) {
-          const { inbounds, outbounds } = conversationLatest[key];
-          if (!inbounds.length || !outbounds.length) continue;
-          inbounds.sort((a, b) => a - b);
-          outbounds.sort((a, b) => a - b);
-          for (const inb of inbounds) {
-            const reply = outbounds.find((o) => o > inb);
-            if (reply) {
-              const diffH = (reply - inb) / 3600000;
-              if (diffH >= 0 && diffH < 168) responseTimes.push(diffH);
-              break;
-            }
-          }
-        }
-        responseTimes.sort((a, b) => a - b);
-        const avgResponseHours = responseTimes.length ? responseTimes.reduce((s, v) => s + v, 0) / responseTimes.length : null;
-        const medianResponseHours = responseTimes.length ? responseTimes[Math.floor(responseTimes.length / 2)] : null;
-
-        // Topp-kunder (efter aktivitet senaste N dagar)
-        const topCustomers = Object.values(customerActivity)
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 8);
-
-        // Volume-array (sorterad äldst → nyast för chart)
-        const volumeChart = Object.entries(volumePerDay)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([date, counts]) => ({ date, ...counts }));
-
-        return res.json({
-          ok: true,
-          windowDays: days,
-          generatedAt: new Date().toISOString(),
-          today: { inboundCount: todayInboundCount },
-          yesterday: { inboundCount: yesterdayInboundCount },
-          totals: {
-            inbound: inboundCount,
-            outbound: outboundCount,
-            total: inboundCount + outboundCount,
-          },
-          responseTime: {
-            count: responseTimes.length,
-            avgHours: avgResponseHours,
-            medianHours: medianResponseHours,
-          },
-          perMailbox: perMailboxCount,
-          topCustomers,
-          volumeChart,
-        });
-      } catch (err) {
-        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+  router.get('/cco/runtime/dashboard', authMiddleware, (req, res) => {
+    try {
+      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.listMessages !== 'function') {
+        return res.status(503).json({ ok: false, error: 'mailbox_truth_store_unavailable' });
       }
+      const days = Math.max(1, Math.min(90, Number(req.query.days) || 7));
+      const nowMs = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+      const startMs = nowMs - days * dayMs;
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const yesterdayStart = todayStart.getTime() - dayMs;
+
+      const allMessages = ccoMailboxTruthStore.listMessages({});
+      // Filter: alla i intervallet
+      const inWindow = allMessages.filter((m) => {
+        const safe = asObject(m);
+        const t = Date.parse(safe.sentAt || safe.receivedAt || safe.lastModifiedAt || '');
+        return Number.isFinite(t) && t >= startMs;
+      });
+
+      // Volym per dag (senaste N dagar) — för chart
+      const volumePerDay = {};
+      for (let i = 0; i < days; i += 1) {
+        const dKey = new Date(nowMs - i * dayMs).toISOString().slice(0, 10);
+        volumePerDay[dKey] = { inbound: 0, outbound: 0 };
+      }
+      let inboundCount = 0;
+      let outboundCount = 0;
+      let todayInboundCount = 0;
+      let yesterdayInboundCount = 0;
+      const perMailboxCount = {};
+      const customerActivity = {};
+      for (const raw of inWindow) {
+        const m = asObject(raw);
+        const tIso = m.sentAt || m.receivedAt || m.lastModifiedAt || '';
+        const tMs = Date.parse(tIso);
+        if (!Number.isFinite(tMs)) continue;
+        const dir = deriveDir(m.folderType);
+        const dKey = new Date(tMs).toISOString().slice(0, 10);
+        if (!volumePerDay[dKey]) volumePerDay[dKey] = { inbound: 0, outbound: 0 };
+        if (dir === 'outbound') {
+          volumePerDay[dKey].outbound += 1;
+          outboundCount += 1;
+        } else if (dir === 'inbound') {
+          volumePerDay[dKey].inbound += 1;
+          inboundCount += 1;
+          if (tMs >= todayStart.getTime()) todayInboundCount += 1;
+          else if (tMs >= yesterdayStart) yesterdayInboundCount += 1;
+        }
+        // Per mailbox (sender mailbox)
+        const mailboxAddr =
+          normalizeText(m.mailboxAddress) || normalizeText(m.mailboxId) || 'okänd';
+        if (!perMailboxCount[mailboxAddr])
+          perMailboxCount[mailboxAddr] = { total: 0, inbound: 0, outbound: 0 };
+        perMailboxCount[mailboxAddr].total += 1;
+        if (dir === 'outbound') perMailboxCount[mailboxAddr].outbound += 1;
+        else if (dir === 'inbound') perMailboxCount[mailboxAddr].inbound += 1;
+        // Per kund (customer email)
+        const customerEmail =
+          normalizeText(asObject(asObject(m.from).emailAddress).address) ||
+          normalizeText(m.senderEmail) ||
+          normalizeText(m.fromAddress);
+        if (customerEmail && dir === 'inbound') {
+          const fromName =
+            normalizeText(asObject(asObject(m.from).emailAddress).name) ||
+            normalizeText(m.senderName) ||
+            customerEmail;
+          if (!customerActivity[customerEmail])
+            customerActivity[customerEmail] = {
+              email: customerEmail,
+              name: fromName,
+              count: 0,
+              lastAt: null,
+            };
+          customerActivity[customerEmail].count += 1;
+          const cur = customerActivity[customerEmail].lastAt
+            ? Date.parse(customerActivity[customerEmail].lastAt)
+            : 0;
+          if (tMs > cur) customerActivity[customerEmail].lastAt = tIso;
+        }
+      }
+
+      // Snitt-svartid: för varje konversation, hitta första outbound efter senaste inbound
+      const conversationLatest = {};
+      for (const raw of allMessages) {
+        const m = asObject(raw);
+        const key = normalizeText(m.mailboxConversationId);
+        if (!key) continue;
+        const tMs = Date.parse(m.sentAt || m.receivedAt || m.lastModifiedAt || '');
+        if (!Number.isFinite(tMs)) continue;
+        if (!conversationLatest[key]) conversationLatest[key] = { inbounds: [], outbounds: [] };
+        const dir = deriveDir(m.folderType);
+        if (dir === 'inbound') conversationLatest[key].inbounds.push(tMs);
+        else if (dir === 'outbound') conversationLatest[key].outbounds.push(tMs);
+      }
+      const responseTimes = [];
+      for (const key of Object.keys(conversationLatest)) {
+        const { inbounds, outbounds } = conversationLatest[key];
+        if (!inbounds.length || !outbounds.length) continue;
+        inbounds.sort((a, b) => a - b);
+        outbounds.sort((a, b) => a - b);
+        for (const inb of inbounds) {
+          const reply = outbounds.find((o) => o > inb);
+          if (reply) {
+            const diffH = (reply - inb) / 3600000;
+            if (diffH >= 0 && diffH < 168) responseTimes.push(diffH);
+            break;
+          }
+        }
+      }
+      responseTimes.sort((a, b) => a - b);
+      const avgResponseHours = responseTimes.length
+        ? responseTimes.reduce((s, v) => s + v, 0) / responseTimes.length
+        : null;
+      const medianResponseHours = responseTimes.length
+        ? responseTimes[Math.floor(responseTimes.length / 2)]
+        : null;
+
+      // Topp-kunder (efter aktivitet senaste N dagar)
+      const topCustomers = Object.values(customerActivity)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8);
+
+      // Volume-array (sorterad äldst → nyast för chart)
+      const volumeChart = Object.entries(volumePerDay)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, counts]) => ({ date, ...counts }));
+
+      return res.json({
+        ok: true,
+        windowDays: days,
+        generatedAt: new Date().toISOString(),
+        today: { inboundCount: todayInboundCount },
+        yesterday: { inboundCount: yesterdayInboundCount },
+        totals: {
+          inbound: inboundCount,
+          outbound: outboundCount,
+          total: inboundCount + outboundCount,
+        },
+        responseTime: {
+          count: responseTimes.length,
+          avgHours: avgResponseHours,
+          medianHours: medianResponseHours,
+        },
+        perMailbox: perMailboxCount,
+        topCustomers,
+        volumeChart,
+      });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
     }
-  );
+  });
 
   // ----- Settings-info: mailboxar + AI-konfiguration -----
   // GET /cco/runtime/settings/info
-  router.get(
-    '/cco/runtime/settings/info',
-    authMiddleware,
-    (_req, res) => {
-      try {
-        // Sammanställ mailbox-info från allowlist + senaste sync
-        const allowlistRaw = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
-          .split(',').map((s) => s.trim()).filter(Boolean);
-        const mailboxIds = allowlistRaw.length > 0 ? allowlistRaw : (mailboxIdsForSync || []);
-        const ai = {
-          provider: openai && openaiModel ? 'openai' : 'heuristic',
-          model: openai && openaiModel ? openaiModel : null,
-          status: openai && openaiModel ? 'aktiv' : 'fallback',
-        };
-        const send = {
-          enabled: Boolean(graphSendConnector && typeof graphSendConnector.sendReply === 'function'),
-          status: graphSendConnector && typeof graphSendConnector.sendReply === 'function' ? 'aktiv' : 'avstängd',
-        };
-        const sync = {
-          enabled: Boolean(graphReadConnector),
-          status: graphReadConnector ? 'aktiv' : 'avstängd',
-          lookbackDays: syncLookbackDays || 14,
-        };
-        return res.json({
-          ok: true,
-          mailboxes: mailboxIds.map((id) => ({ mailboxId: id, mailboxAddress: id })),
-          ai,
-          send,
-          sync,
-          tenantId: defaultTenantId,
-        });
-      } catch (err) {
-        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
-      }
+  router.get('/cco/runtime/settings/info', authMiddleware, (_req, res) => {
+    try {
+      // Sammanställ mailbox-info från allowlist + senaste sync
+      const allowlistRaw = String(process.env.ARCANA_MAILBOX_ALLOWLIST || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const mailboxIds = allowlistRaw.length > 0 ? allowlistRaw : mailboxIdsForSync || [];
+      const ai = {
+        provider: openai && openaiModel ? 'openai' : 'heuristic',
+        model: openai && openaiModel ? openaiModel : null,
+        status: openai && openaiModel ? 'aktiv' : 'fallback',
+      };
+      const send = {
+        enabled: Boolean(graphSendConnector && typeof graphSendConnector.sendReply === 'function'),
+        status:
+          graphSendConnector && typeof graphSendConnector.sendReply === 'function'
+            ? 'aktiv'
+            : 'avstängd',
+      };
+      const sync = {
+        enabled: Boolean(graphReadConnector),
+        status: graphReadConnector ? 'aktiv' : 'avstängd',
+        lookbackDays: syncLookbackDays || 14,
+      };
+      return res.json({
+        ok: true,
+        mailboxes: mailboxIds.map((id) => ({ mailboxId: id, mailboxAddress: id })),
+        ai,
+        send,
+        sync,
+        tenantId: defaultTenantId,
+      });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
     }
-  );
+  });
 
   // ----- Mejl-mallar -----
   // GET /cco/runtime/mail-templates                          → lista alla
   // POST /cco/runtime/mail-templates                         → upsert (templateId optional)
   // DELETE /cco/runtime/mail-templates/:templateId           → ta bort
-  router.get(
-    '/cco/runtime/mail-templates',
-    authMiddleware,
-    (_req, res) => {
-      try {
-        if (!ccoMailTemplateStore) {
-          return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
-        }
-        const templates = ccoMailTemplateStore.listTemplates();
-        return res.json({ ok: true, count: templates.length, templates });
-      } catch (err) {
-        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+  router.get('/cco/runtime/mail-templates', authMiddleware, (_req, res) => {
+    try {
+      if (!ccoMailTemplateStore) {
+        return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
       }
+      const templates = ccoMailTemplateStore.listTemplates();
+      return res.json({ ok: true, count: templates.length, templates });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
     }
-  );
+  });
   router.post(
     '/cco/runtime/mail-templates',
     authMiddleware,
@@ -1239,22 +1275,20 @@ function createCcoConversationRouter({
       }
     }
   );
-  router.delete(
-    '/cco/runtime/mail-templates/:templateId',
-    authMiddleware,
-    async (req, res) => {
-      try {
-        if (!ccoMailTemplateStore) {
-          return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
-        }
-        const ok = await ccoMailTemplateStore.deleteTemplate(req.params.templateId);
-        if (!ok) return res.status(404).json({ ok: false, error: 'not_found' });
-        return res.json({ ok: true });
-      } catch (err) {
-        return res.status(500).json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
+  router.delete('/cco/runtime/mail-templates/:templateId', authMiddleware, async (req, res) => {
+    try {
+      if (!ccoMailTemplateStore) {
+        return res.status(503).json({ ok: false, error: 'template_store_unavailable' });
       }
+      const ok = await ccoMailTemplateStore.deleteTemplate(req.params.templateId);
+      if (!ok) return res.status(404).json({ ok: false, error: 'not_found' });
+      return res.json({ ok: true });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ ok: false, error: 'internal_error', detail: String((err && err.message) || err) });
     }
-  );
+  });
 
   return router;
 }

@@ -72,6 +72,22 @@ function computeNameSimilarity(a, b) {
   return Math.round((common.length / maxParts) * 100);
 }
 
+// Below this name-similarity score we don't surface a fuzzy candidate at all.
+const NAME_REVIEW_MIN = 50;
+
+// Derive a comparable YYMMDD birthdate key from a Swedish personnummer
+// (handles both 12-digit YYYYMMDDNNNN and 10-digit YYMMDDNNNN forms).
+function birthdateKeyFromPersonnummer(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length >= 12) return digits.slice(2, 8);
+  if (digits.length >= 10) return digits.slice(0, 6);
+  return '';
+}
+
+function patientDisplayName(p) {
+  return normalizeText(p.name || `${p.firstName || ''} ${p.lastName || ''}`).toLowerCase();
+}
+
 function findDuplicateCandidates(patients) {
   const candidates = [];
   const byPersonnummer = new Map();
@@ -142,6 +158,63 @@ function findDuplicateCandidates(patients) {
       confidence: 82,
       flag: FLAGS.DUPLICATE_PATIENT_SAME_EMAIL,
     });
+  }
+
+  // ─── FUZZY NAME MATCHING (tier 2/3) ───
+  // Surfaces likely duplicates that share no exact pnr/phone/email — e.g. a
+  // Drive-only profile created from a folder name vs the Cliento patient.
+  // Never as confident as an exact match; always flagged for manual review.
+  const exactPairs = new Set();
+  for (const candidate of candidates) {
+    const ids = candidate.patients.slice().sort();
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) exactPairs.add(`${ids[i]}::${ids[j]}`);
+    }
+  }
+
+  // Block by name token to avoid comparing every pair across the whole set.
+  const byToken = new Map();
+  patients.forEach((patient, idx) => {
+    for (const token of new Set(patientDisplayName(patient).split(/\s+/).filter((t) => t.length >= 2))) {
+      if (!byToken.has(token)) byToken.set(token, []);
+      byToken.get(token).push(idx);
+    }
+  });
+
+  const fuzzySeen = new Set();
+  for (const idxs of byToken.values()) {
+    if (idxs.length < 2) continue;
+    for (let i = 0; i < idxs.length; i += 1) {
+      for (let j = i + 1; j < idxs.length; j += 1) {
+        const a = patients[idxs[i]];
+        const b = patients[idxs[j]];
+        const pairKey = [a.patientId, b.patientId].sort().join('::');
+        if (exactPairs.has(pairKey) || fuzzySeen.has(pairKey)) continue;
+        fuzzySeen.add(pairKey);
+
+        const similarity = computeNameSimilarity(patientDisplayName(a), patientDisplayName(b));
+        if (similarity < NAME_REVIEW_MIN) continue;
+
+        const bdA = birthdateKeyFromPersonnummer(a.personnummer || a.socialSecurityNumber);
+        const bdB = birthdateKeyFromPersonnummer(b.personnummer || b.socialSecurityNumber);
+        const sameBirthdate = Boolean(bdA && bdB && bdA === bdB);
+
+        // Cap below exact-match confidence; corroborating birthdate nudges it up.
+        let confidence = Math.min(similarity, 94);
+        if (sameBirthdate) confidence = Math.min(confidence + 8, 94);
+
+        candidates.push({
+          candidateId: crypto.randomUUID(),
+          patients: [a.patientId, b.patientId],
+          matchReason: sameBirthdate
+            ? `Liknande namn (${similarity}%) + samma födelsedatum`
+            : `Liknande namn (${similarity}%)`,
+          matchField: 'name',
+          confidence,
+          flag: FLAGS.DUPLICATE_PATIENT_SIMILAR_NAME,
+        });
+      }
+    }
   }
 
   return candidates;
@@ -294,6 +367,82 @@ function buildReconciliationOverview(patients, driveFiles, journalEntries = []) 
   };
 }
 
+// ─── #9: MATCH UNLINKED DRIVE PROFILES → CLIENTO PATIENTS ───
+// For Drive files whose personnummer matches NO patient (or that carry no
+// personnummer), suggest the most likely Cliento patient by folder/file display
+// name ↔ patient name similarity, corroborated by birthdate (from personnummer).
+// Read-only SUGGESTIONS only — never auto-links. Every result is for manual review.
+function matchUnlinkedDriveProfilesToPatients(driveFiles = [], patients = []) {
+  const patientPnr = new Set(
+    patients
+      .map((p) => normalizePersonnummer(p.personnummer || p.socialSecurityNumber || ''))
+      .filter(Boolean)
+  );
+
+  const nameOf = (entity) =>
+    normalizeText(
+      entity.name ||
+        entity.displayName ||
+        `${entity.firstName || ''} ${entity.lastName || ''}`
+    );
+
+  // Group unlinked files into profiles (by personnummer, else by folder/display name).
+  const profiles = new Map();
+  for (const file of driveFiles) {
+    const pnr = normalizePersonnummer(file.personnummer || '');
+    if (pnr && patientPnr.has(pnr)) continue; // already linked to a patient
+    const display = normalizeText(file.displayName || file.folderName || '');
+    const key = pnr || display.toLowerCase();
+    if (!key) continue; // unidentifiable — no pnr and no name to match on
+    if (!profiles.has(key)) {
+      profiles.set(key, { profileKey: key, personnummer: pnr || null, displayName: display, fileCount: 0, fileIds: [] });
+    }
+    const profile = profiles.get(key);
+    profile.fileCount += 1;
+    if (file.id) profile.fileIds.push(file.id);
+    if (!profile.displayName && display) profile.displayName = display;
+  }
+
+  const results = [];
+  for (const profile of profiles.values()) {
+    const profileBirthdate = birthdateKeyFromPersonnummer(profile.personnummer);
+    const suggestions = [];
+    for (const patient of patients) {
+      const patientName = nameOf(patient);
+      if (!profile.displayName || !patientName) continue;
+      const similarity = computeNameSimilarity(profile.displayName, patientName);
+      if (similarity < NAME_REVIEW_MIN) continue;
+      const patientBirthdate = birthdateKeyFromPersonnummer(patient.personnummer || patient.socialSecurityNumber);
+      const sameBirthdate = Boolean(profileBirthdate && patientBirthdate && profileBirthdate === patientBirthdate);
+      let confidence = Math.min(similarity, 94);
+      if (sameBirthdate) confidence = Math.min(confidence + 8, 94);
+      suggestions.push({
+        patientId: patient.patientId || patient.id,
+        patientName,
+        confidence,
+        reason: sameBirthdate
+          ? `Mappnamn liknar patientnamn (${similarity}%) + samma födelsedatum`
+          : `Mappnamn liknar patientnamn (${similarity}%)`,
+      });
+    }
+    suggestions.sort((a, b) => b.confidence - a.confidence);
+    results.push({
+      profileKey: profile.profileKey,
+      personnummer: profile.personnummer,
+      displayName: profile.displayName,
+      fileCount: profile.fileCount,
+      fileIds: profile.fileIds.slice(0, 50),
+      // pnr present but matched no patient → maybe a patient is missing from the master
+      personnummerNotInMaster: Boolean(profile.personnummer),
+      suggestions: suggestions.slice(0, 5),
+      flag: suggestions.length ? FLAGS.NEEDS_MANUAL_REVIEW : FLAGS.DRIVE_ONLY_PATIENT_NO_CLIENTO_MATCH,
+    });
+  }
+
+  results.sort((a, b) => (b.suggestions[0]?.confidence || 0) - (a.suggestions[0]?.confidence || 0));
+  return results;
+}
+
 module.exports = {
   FLAGS,
   computeNameSimilarity,
@@ -301,6 +450,7 @@ module.exports = {
   computePatientCompleteness,
   auditDriveFiles,
   buildReconciliationOverview,
+  matchUnlinkedDriveProfilesToPatients,
   normalizePhone,
   normalizePersonnummer,
 };
