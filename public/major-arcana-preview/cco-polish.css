@@ -5686,94 +5686,70 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 }
 
 
+
 /* ============================================================
-   UI-redesign v2 (2026-05-27) — individuella färger per knapp, dämpat
+   UI-redesign v3 (2026-05-27) — vita bubblor + färgad text per knapp
    ============================================================ */
 
-/* === Journalverktyg: individuell färg per knapp, dämpat === */
+/* === Journalverktyg: vit bubbla + tunn ram + färgad text per kategori === */
 .patient-master-journal-toolbar .customers-utility-button,
 .patient-master-journal-toolbar .patient-master-upload-button {
-  border-width: 1px;
-  font-weight: 500;
+  background: #ffffff;
+  border: 1px solid rgba(43, 37, 31, 0.14);
+  font-weight: 600;
 }
 
 /* Foto-actions */
-.patient-master-journal-toolbar .patient-master-camera-button {
-  background: #eff6ff; border-color: #bfdbfe; color: #1e40af;
-}
-.patient-master-journal-toolbar .patient-master-upload-button:not(.patient-master-camera-button) {
-  background: #ecfeff; border-color: #a5f3fc; color: #155e75;
-}
+.patient-master-journal-toolbar .patient-master-camera-button { color: #2563eb; }
+.patient-master-journal-toolbar .patient-master-upload-button:not(.patient-master-camera-button) { color: #0891b2; }
 
 /* Behandlingsplan-relaterat */
-.patient-master-journal-toolbar [data-patient-action="new-consultation-plan"] {
-  background: #f5f3ff; border-color: #ddd6fe; color: #6d28d9;
-}
-.patient-master-journal-toolbar [data-patient-action="import-historical"] {
-  background: #faf5ff; border-color: #e9d5ff; color: #7e22ce;
-}
+.patient-master-journal-toolbar [data-patient-action="new-consultation-plan"] { color: #7c3aed; }
+.patient-master-journal-toolbar [data-patient-action="import-historical"] { color: #9333ea; }
 
-/* Hälsodeklarationer - en färg per variant */
-.patient-master-journal-toolbar [data-patient-action="new-health-declaration"] {
-  background: #f0fdf4; border-color: #bbf7d0; color: #15803d;
-}
-.patient-master-journal-toolbar [data-clinical-form-key="health_curatiio_bleph"] {
-  background: #ecfdf5; border-color: #a7f3d0; color: #047857;
-}
-.patient-master-journal-toolbar [data-clinical-form-key="health_curatiio_ortho"] {
-  background: #f0fdfa; border-color: #99f6e4; color: #0f766e;
-}
-.patient-master-journal-toolbar [data-clinical-form-key="health_curatiio_injection"] {
-  background: #ecfeff; border-color: #a5f3fc; color: #0e7490;
-}
-.patient-master-journal-toolbar [data-clinical-form-key="health_eng"] {
-  background: #fafaf9; border-color: #e7e5e4; color: #44403c;
-}
+/* Hälsodeklarationer */
+.patient-master-journal-toolbar [data-patient-action="new-health-declaration"] { color: #16a34a; }
+.patient-master-journal-toolbar [data-clinical-form-key="health_curatiio_bleph"] { color: #059669; }
+.patient-master-journal-toolbar [data-clinical-form-key="health_curatiio_ortho"] { color: #0d9488; }
+.patient-master-journal-toolbar [data-clinical-form-key="health_curatiio_injection"] { color: #0e7490; }
+.patient-master-journal-toolbar [data-clinical-form-key="health_eng"] { color: #57534e; }
 
 /* Friskförsäkran */
-.patient-master-journal-toolbar [data-patient-action="new-fitness-certificate"] {
-  background: #ecfccb; border-color: #d9f99d; color: #4d7c0f;
-}
-.patient-master-journal-toolbar [data-clinical-form-key="fitness_curatiio_bleph"] {
-  background: #f7fee7; border-color: #ecfccb; color: #65a30d;
-}
+.patient-master-journal-toolbar [data-patient-action="new-fitness-certificate"] { color: #65a30d; }
+.patient-master-journal-toolbar [data-clinical-form-key="fitness_curatiio_bleph"] { color: #84cc16; }
 
-/* TP/PRP-journaler - olika nyanser av varm */
-.patient-master-journal-toolbar [data-patient-action="new-tp-journal"] {
-  background: #fef3c7; border-color: #fde68a; color: #b45309;
-}
-.patient-master-journal-toolbar [data-patient-action="new-prp-journal"][data-prp-form-variant="prp_skin"] {
-  background: #ffedd5; border-color: #fed7aa; color: #c2410c;
-}
-.patient-master-journal-toolbar [data-patient-action="new-prp-journal"][data-prp-form-variant="tp_post_op"] {
-  background: #fff7ed; border-color: #ffedd5; color: #ea580c;
-}
+/* TP/PRP-journaler - egna färger var och en */
+.patient-master-journal-toolbar [data-patient-action="new-tp-journal"] { color: #d97706; }
+.patient-master-journal-toolbar [data-patient-action="new-prp-journal"][data-prp-form-variant="prp_skin"] { color: #ea580c; }
+.patient-master-journal-toolbar [data-patient-action="new-prp-journal"][data-prp-form-variant="tp_post_op"] { color: #f97316; }
 
-/* Uppföljningar - en färg per månad */
-.patient-master-journal-toolbar [data-follow-form-variant="4_manader"] {
-  background: #fdf2f8; border-color: #fbcfe8; color: #be185d;
-}
-.patient-master-journal-toolbar [data-follow-form-variant="6_manader"] {
-  background: #fce7f3; border-color: #fbcfe8; color: #9d174d;
-}
-.patient-master-journal-toolbar [data-follow-form-variant="12_manader"] {
-  background: #fdf4ff; border-color: #f5d0fe; color: #a21caf;
-}
+/* Uppföljningar - egna färger per månad */
+.patient-master-journal-toolbar [data-follow-form-variant="4_manader"] { color: #db2777; }
+.patient-master-journal-toolbar [data-follow-form-variant="6_manader"] { color: #c026d3; }
+.patient-master-journal-toolbar [data-follow-form-variant="12_manader"] { color: #a21caf; }
 
 /* Ögonlocksjournal */
 .patient-master-journal-toolbar [data-patient-action="new-bleph-journal"],
-.patient-master-journal-toolbar [data-patient-action*="bleph"] {
-  background: #f8fafc; border-color: #e2e8f0; color: #475569;
-}
+.patient-master-journal-toolbar [data-patient-action*="bleph"]:not([data-clinical-form-key]) { color: #475569; }
 
-/* Hover-effekt: lätt mörkare bakgrund */
+/* Hover: lätt färgad bakgrund för affordance */
 .patient-master-journal-toolbar .customers-utility-button:hover,
 .patient-master-journal-toolbar .patient-master-upload-button:hover {
-  filter: brightness(0.96);
+  background: #fafafa;
+  border-color: rgba(43, 37, 31, 0.24);
 }
 
 .patient-master-journal-toolbar {
   gap: 8px;
+}
+
+
+
+/* Pill-form på journalverktyg-knappar */
+.patient-master-journal-toolbar .customers-utility-button,
+.patient-master-journal-toolbar .patient-master-upload-button {
+  border-radius: 999px;
+  padding: 8px 16px;
 }
 
 /* === Draft-proposals i grid (Hälsodeklaration draft-listan) === */
