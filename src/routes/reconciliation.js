@@ -46,10 +46,29 @@ function createReconciliationRouter({
     };
   }
 
-  // The reconciliation engine reads patient.patientId; the master store uses
-  // patient.id. Adapter (no clone — engine only reads).
+  // The reconciliation engine reads { patientId, name, phone, email, source,
+  // clientoId }; the master store uses { id, displayName, primaryPhone,
+  // primaryEmail, matchStatus, cliento }. Map the fields the engine matches on
+  // so exact phone/email dedup and name matching work on real records (engine
+  // only reads — safe to enrich).
   function adaptPatient(p) {
-    return p && p.patientId ? p : { ...p, patientId: p?.id };
+    if (!p) return p;
+    const matchStatus = p.matchStatus || '';
+    return {
+      ...p,
+      patientId: p.patientId || p.id,
+      name: p.name || p.displayName || `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+      phone: p.phone || p.primaryPhone || (Array.isArray(p.phones) ? p.phones[0] : '') || '',
+      email: p.email || p.primaryEmail || (Array.isArray(p.emails) ? p.emails[0] : '') || '',
+      source:
+        p.source ||
+        (matchStatus === 'drive_only'
+          ? 'google_drive'
+          : p.cliento || matchStatus === 'cliento_only' || matchStatus === 'matched'
+            ? 'cliento'
+            : 'unknown'),
+      clientoId: p.clientoId || (p.cliento && (p.cliento.id || p.cliento.clientoId)) || null,
+    };
   }
 
   async function loadPatients(tenantId) {
