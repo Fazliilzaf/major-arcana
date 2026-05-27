@@ -537,6 +537,7 @@ const { createPatientConversionStore } = require('./src/ops/patientConversionSto
 const { createWebBridgeAuditStore } = require('./src/ops/webBridgeAuditStore');
 const { createCcoHistoryStore } = require('./src/ops/ccoHistoryStore');
 const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore');
+const { createConfiguredCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStoreFactory');
 const { createCcoMailIngestionStore } = require('./src/ops/ccoMailIngestion/store');
 const { createCcoMailIngestionSyncService } = require('./src/ops/ccoMailIngestion/syncService');
 const { createCcoMailIngestionWorker } = require('./src/ops/ccoMailIngestion/worker');
@@ -1381,9 +1382,7 @@ process.once('SIGTERM', () => {
   const ccoHistoryStore = await createCcoHistoryStore({
     filePath: config.ccoHistoryStorePath,
   });
-  const ccoMailboxTruthStore = await createCcoMailboxTruthStore({
-    filePath: config.ccoMailboxTruthStorePath,
-  });
+  const ccoMailboxTruthStore = await createConfiguredCcoMailboxTruthStore(config);
   const ccoMailIngestionStore = await createCcoMailIngestionStore({
     filePath: config.ccoMailIngestionStorePath,
   });

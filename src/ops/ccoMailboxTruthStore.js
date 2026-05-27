@@ -42,7 +42,9 @@ function normalizeIdentityCarrier(value = {}) {
     mergeReviewDecisionsByPairId: Object.keys(mergeReviewDecisionsByPairId).length
       ? cloneJson(mergeReviewDecisionsByPairId)
       : {},
-    identityProvenance: Object.keys(identityProvenance).length ? cloneJson(identityProvenance) : null,
+    identityProvenance: Object.keys(identityProvenance).length
+      ? cloneJson(identityProvenance)
+      : null,
   };
 }
 
@@ -108,6 +110,15 @@ async function readJsonWithRecovery(filePath, fallbackValue, scopeLabel = 'json_
   }
 }
 
+function toPersistedState(state = {}) {
+  // Conversations are derived from messages and rebuilt lazily on read.
+  // Omitting them keeps each save well under V8's JSON.stringify size cap.
+  return {
+    ...state,
+    conversations: {},
+  };
+}
+
 async function writeJsonAtomic(filePath, data) {
   const dir = path.dirname(filePath);
   await fs.mkdir(dir, { recursive: true });
@@ -115,7 +126,7 @@ async function writeJsonAtomic(filePath, data) {
   // Keep this store compact: the mailbox truth file can grow very large, and
   // pretty-printing the full state pushes JSON serialization close to V8's
   // string-size limits during backfill refreshes.
-  await fs.writeFile(tmpPath, `${JSON.stringify(data)}\n`, 'utf8');
+  await fs.writeFile(tmpPath, `${JSON.stringify(toPersistedState(data))}\n`, 'utf8');
   await fs.rename(tmpPath, filePath);
 }
 
@@ -240,8 +251,7 @@ function toMessageSortIso(message = {}) {
 
 function hydrateStoredMessage(message = {}, fallbackMailboxId = '') {
   const safeMessage = asObject(message);
-  const mailboxId =
-    normalizeMailboxId(safeMessage.mailboxId || fallbackMailboxId) || null;
+  const mailboxId = normalizeMailboxId(safeMessage.mailboxId || fallbackMailboxId) || null;
   const graphMessageId = normalizeText(safeMessage.graphMessageId) || null;
   if (!mailboxId || !graphMessageId) return null;
   const conversationId = normalizeText(safeMessage.conversationId) || null;
@@ -258,10 +268,7 @@ function hydrateStoredMessage(message = {}, fallbackMailboxId = '') {
   // SLIMMA — rå body-text tas aldrig in i truth-store. Rik HTML med inline-
   // assets behålls däremot som reparationshint för CCO:s läsyta.
   // bodyPreview cap:as till 500 tecken (räcker för worklist-preview).
-  const {
-    body, uniqueBody, body_text, body_html, mailDocument,
-    ...rest
-  } = safeMessage;
+  const { body, uniqueBody, body_text, body_html, mailDocument, ...rest } = safeMessage;
   if (rest.bodyPreview && typeof rest.bodyPreview === 'string' && rest.bodyPreview.length > 500) {
     rest.bodyPreview = rest.bodyPreview.slice(0, 500);
   }
@@ -299,6 +306,7 @@ function mergeConversationIdentityCarrier(messages = [], existingConversation = 
 async function createCcoMailboxTruthStore({
   filePath = '',
   maxSyncRuns = 200,
+  deferConversationRebuild = false,
 } = {}) {
   const resolvedPath = path.resolve(String(filePath || '').trim());
   if (!resolvedPath) throw new Error('ccoMailboxTruthStore filePath saknas.');
@@ -319,13 +327,37 @@ async function createCcoMailboxTruthStore({
   if (!state.messages || typeof state.messages !== 'object' || Array.isArray(state.messages)) {
     state.messages = {};
   }
-  if (!state.conversations || typeof state.conversations !== 'object' || Array.isArray(state.conversations)) {
+  if (
+    !state.conversations ||
+    typeof state.conversations !== 'object' ||
+    Array.isArray(state.conversations)
+  ) {
     state.conversations = {};
   }
-  if (!state.syncCheckpoints || typeof state.syncCheckpoints !== 'object' || Array.isArray(state.syncCheckpoints)) {
+  if (
+    !state.syncCheckpoints ||
+    typeof state.syncCheckpoints !== 'object' ||
+    Array.isArray(state.syncCheckpoints)
+  ) {
     state.syncCheckpoints = {};
   }
   if (!Array.isArray(state.syncRuns)) state.syncRuns = [];
+
+  function conversationsForModel() {
+    if (deferConversationRebuild !== true && Object.keys(state.conversations || {}).length > 0) {
+      return Object.values(state.conversations)
+        .map((conversation) => ({ ...conversation }))
+        .sort((left, right) =>
+          String(right.latestMessageAt || '').localeCompare(String(left.latestMessageAt || ''))
+        );
+    }
+    return buildMailboxTruthConversations(Object.values(state.messages));
+  }
+
+  function maybeRebuildMailboxConversations(mailboxId = '') {
+    if (deferConversationRebuild === true) return;
+    rebuildMailboxConversations(mailboxId);
+  }
 
   let initialStateMutated = false;
   const mailboxIdsToRebuild = new Set();
@@ -417,7 +449,8 @@ async function createCcoMailboxTruthStore({
       state.conversations[conversation.mailboxConversationId] = {
         ...mergeConversationIdentityCarrier(
           mailboxMessages.filter(
-            (message) => normalizeText(message.mailboxConversationId) === conversation.mailboxConversationId
+            (message) =>
+              normalizeText(message.mailboxConversationId) === conversation.mailboxConversationId
           ),
           conversation
         ),
@@ -456,7 +489,7 @@ async function createCcoMailboxTruthStore({
         delete state.messages[messageKey];
       }
     }
-    rebuildMailboxConversations(safeMailboxId);
+    maybeRebuildMailboxConversations(safeMailboxId);
     await save();
   }
 
@@ -468,8 +501,12 @@ async function createCcoMailboxTruthStore({
     const run = {
       runId: crypto.randomUUID(),
       mode: normalizeText(mode) || 'folder_backfill',
-      mailboxIds: asArray(mailboxIds).map((item) => normalizeMailboxId(item)).filter(Boolean),
-      folderTypes: asArray(folderTypes).map((item) => normalizeFolderType(item)).filter((item) => item !== 'unknown'),
+      mailboxIds: asArray(mailboxIds)
+        .map((item) => normalizeMailboxId(item))
+        .filter(Boolean),
+      folderTypes: asArray(folderTypes)
+        .map((item) => normalizeFolderType(item))
+        .filter((item) => item !== 'unknown'),
       startedAt: nowIso(),
       completedAt: null,
       status: 'running',
@@ -556,8 +593,7 @@ async function createCcoMailboxTruthStore({
       nextPageUrl: normalizeText(nextPageUrl) || null,
       syncState: complete ? 'complete' : 'backfilling',
       lastBackfillRunId: normalizeText(runId) || null,
-      lastBackfillStartedAt:
-        state.folders[folderKey]?.lastBackfillStartedAt || nowIso(),
+      lastBackfillStartedAt: state.folders[folderKey]?.lastBackfillStartedAt || nowIso(),
       lastBackfillUpdatedAt: nowIso(),
       lastBackfillCompletedAt: complete ? nowIso() : null,
       pagesFetched: toNumber(state.folders[folderKey]?.pagesFetched, 0) + 1,
@@ -579,7 +615,7 @@ async function createCcoMailboxTruthStore({
       updatedAt: nowIso(),
     };
 
-    rebuildMailboxConversations(safeAccount.mailboxId);
+    maybeRebuildMailboxConversations(safeAccount.mailboxId);
     await save();
     return { ...next };
   }
@@ -626,10 +662,7 @@ async function createCcoMailboxTruthStore({
           state.messages[messageKey],
           safeAccount.mailboxId
         );
-        if (
-          existingMessage &&
-          normalizeFolderType(existingMessage.folderType) === folderType
-        ) {
+        if (existingMessage && normalizeFolderType(existingMessage.folderType) === folderType) {
           delete state.messages[messageKey];
           deletesApplied += 1;
         }
@@ -668,10 +701,8 @@ async function createCcoMailboxTruthStore({
       ...existingFolder,
       mailboxId: safeAccount.mailboxId,
       graphUserId: safeAccount.graphUserId,
-      folderId:
-        normalizeText(safeFolder.folderId) || existingFolder.folderId || null,
-      folderName:
-        normalizeText(safeFolder.folderName) || existingFolder.folderName || null,
+      folderId: normalizeText(safeFolder.folderId) || existingFolder.folderId || null,
+      folderName: normalizeText(safeFolder.folderName) || existingFolder.folderName || null,
       folderType,
       wellKnownName:
         normalizeText(safeFolder.wellKnownName) || existingFolder.wellKnownName || null,
@@ -702,16 +733,10 @@ async function createCcoMailboxTruthStore({
       folderType,
       lastRunId: safeRunId,
       roundType: normalizeText(roundType) || 'initial_delta_round',
-      syncStatus:
-        safeNextPageUrl
-          ? 'running'
-          : safeDeltaLink
-            ? 'delta_armed'
-            : 'error',
-      deltaLink:
-        safeNextPageUrl
-          ? normalizeText(previousCheckpoint.deltaLink) || null
-          : safeDeltaLink,
+      syncStatus: safeNextPageUrl ? 'running' : safeDeltaLink ? 'delta_armed' : 'error',
+      deltaLink: safeNextPageUrl
+        ? normalizeText(previousCheckpoint.deltaLink) || null
+        : safeDeltaLink,
       nextPageUrl: safeNextPageUrl,
       lastAttemptedAt:
         previousCheckpoint.lastAttemptedAt && previousCheckpoint.lastRunId === safeRunId
@@ -719,8 +744,7 @@ async function createCcoMailboxTruthStore({
           : nowIso(),
       lastUpdatedAt: nowIso(),
       lastSuccessfulAt: nowIso(),
-      lastCompletedAt:
-        complete && !safeNextPageUrl && safeDeltaLink ? nowIso() : null,
+      lastCompletedAt: complete && !safeNextPageUrl && safeDeltaLink ? nowIso() : null,
       pageSize: toNumber(pageSize, 0),
       pagesFetched:
         previousCheckpoint.lastRunId === safeRunId
@@ -741,8 +765,7 @@ async function createCcoMailboxTruthStore({
           ? toNumber(previousCheckpoint.deletesApplied, 0)
           : 0) + deletesApplied,
       lastSourcePageUrl: normalizeText(sourcePageUrl) || null,
-      lastErrorCode:
-        !safeNextPageUrl && !safeDeltaLink ? 'missing_delta_link' : null,
+      lastErrorCode: !safeNextPageUrl && !safeDeltaLink ? 'missing_delta_link' : null,
       lastErrorMessage:
         !safeNextPageUrl && !safeDeltaLink
           ? 'Graph delta-rundan avslutades utan deltaLink eller fortsatt nextLink.'
@@ -750,7 +773,7 @@ async function createCcoMailboxTruthStore({
     };
     state.syncCheckpoints[checkpointKey] = nextCheckpoint;
 
-    rebuildMailboxConversations(safeAccount.mailboxId);
+    maybeRebuildMailboxConversations(safeAccount.mailboxId);
     await save();
     return {
       folder: { ...nextFolder },
@@ -778,8 +801,7 @@ async function createCcoMailboxTruthStore({
       syncState: 'error',
       nextPageUrl: null,
       lastBackfillRunId: normalizeText(runId) || null,
-      lastBackfillStartedAt:
-        state.folders[folderKey]?.lastBackfillStartedAt || nowIso(),
+      lastBackfillStartedAt: state.folders[folderKey]?.lastBackfillStartedAt || nowIso(),
       lastBackfillUpdatedAt: nowIso(),
       lastBackfillCompletedAt: nowIso(),
       errorCode: normalizeText(errorCode) || 'fetch_error',
@@ -810,12 +832,9 @@ async function createCcoMailboxTruthStore({
       mailboxId: safeAccount.mailboxId,
       folderType: safeFolderType,
       lastRunId: normalizeText(runId) || null,
-      roundType:
-        normalizeText(previousCheckpoint.roundType) || 'incremental_delta_round',
+      roundType: normalizeText(previousCheckpoint.roundType) || 'incremental_delta_round',
       syncStatus: resyncRequired ? 'resync_required' : 'error',
-      deltaLink: resyncRequired
-        ? null
-        : normalizeText(previousCheckpoint.deltaLink) || null,
+      deltaLink: resyncRequired ? null : normalizeText(previousCheckpoint.deltaLink) || null,
       nextPageUrl: null,
       lastAttemptedAt:
         previousCheckpoint.lastAttemptedAt && previousCheckpoint.lastRunId === normalizeText(runId)
@@ -891,7 +910,9 @@ async function createCcoMailboxTruthStore({
     untilIso = null,
     limit = 0,
   } = {}) {
-    const safeMailboxIds = asArray(mailboxIds).map((item) => normalizeMailboxId(item)).filter(Boolean);
+    const safeMailboxIds = asArray(mailboxIds)
+      .map((item) => normalizeMailboxId(item))
+      .filter(Boolean);
     const mailboxIdSet = safeMailboxIds.length > 0 ? new Set(safeMailboxIds) : null;
     const safeFolderTypes = asArray(folderTypes)
       .map((item) => normalizeFolderType(item))
@@ -912,8 +933,10 @@ async function createCcoMailboxTruthStore({
         if (folderTypeSet && !folderTypeSet.has(folderType)) return false;
         const sortIso = toMessageSortIso(safeMessage);
         const sortMs = Date.parse(sortIso);
-        if (Number.isFinite(sinceMs) && (!Number.isFinite(sortMs) || sortMs < sinceMs)) return false;
-        if (Number.isFinite(untilMs) && (!Number.isFinite(sortMs) || sortMs > untilMs)) return false;
+        if (Number.isFinite(sinceMs) && (!Number.isFinite(sortMs) || sortMs < sinceMs))
+          return false;
+        if (Number.isFinite(untilMs) && (!Number.isFinite(sortMs) || sortMs > untilMs))
+          return false;
         return true;
       })
       .map((message) => {
@@ -928,11 +951,15 @@ async function createCcoMailboxTruthStore({
   function toNormalizedModel() {
     const accounts = Object.values(state.accounts)
       .map((account) => ({ ...account }))
-      .sort((left, right) => String(left.mailboxId || '').localeCompare(String(right.mailboxId || '')));
+      .sort((left, right) =>
+        String(left.mailboxId || '').localeCompare(String(right.mailboxId || ''))
+      );
     const folders = Object.values(state.folders)
       .map((folder) => ({ ...folder }))
       .sort((left, right) => {
-        const mailboxSort = String(left.mailboxId || '').localeCompare(String(right.mailboxId || ''));
+        const mailboxSort = String(left.mailboxId || '').localeCompare(
+          String(right.mailboxId || '')
+        );
         if (mailboxSort !== 0) return mailboxSort;
         return String(left.folderType || '').localeCompare(String(right.folderType || ''));
       });
@@ -941,10 +968,12 @@ async function createCcoMailboxTruthStore({
         const { persistedAt, ...rest } = message;
         return { ...rest };
       })
-      .sort((left, right) => String(right.lastModifiedAt || right.receivedAt || right.sentAt || '').localeCompare(String(left.lastModifiedAt || left.receivedAt || left.sentAt || '')));
-    const conversations = Object.values(state.conversations)
-      .map((conversation) => ({ ...conversation }))
-      .sort((left, right) => String(right.latestMessageAt || '').localeCompare(String(left.latestMessageAt || '')));
+      .sort((left, right) =>
+        String(right.lastModifiedAt || right.receivedAt || right.sentAt || '').localeCompare(
+          String(left.lastModifiedAt || left.receivedAt || left.sentAt || '')
+        )
+      );
+    const conversations = conversationsForModel();
 
     return {
       modelVersion: 'cco.mailbox.truth.v1',
@@ -971,10 +1000,15 @@ async function createCcoMailboxTruthStore({
   }
 
   function getCompletenessReport({ mailboxIds = [] } = {}) {
-    const requestedMailboxIds = asArray(mailboxIds).map((item) => normalizeMailboxId(item)).filter(Boolean);
-    const effectiveMailboxIds = requestedMailboxIds.length > 0
-      ? requestedMailboxIds
-      : Object.keys(state.accounts).map((item) => normalizeMailboxId(item)).filter(Boolean);
+    const requestedMailboxIds = asArray(mailboxIds)
+      .map((item) => normalizeMailboxId(item))
+      .filter(Boolean);
+    const effectiveMailboxIds =
+      requestedMailboxIds.length > 0
+        ? requestedMailboxIds
+        : Object.keys(state.accounts)
+            .map((item) => normalizeMailboxId(item))
+            .filter(Boolean);
 
     const accountReports = effectiveMailboxIds.map((mailboxId) => {
       const account = asObject(state.accounts[mailboxId]);
@@ -989,7 +1023,8 @@ async function createCcoMailboxTruthStore({
         if (!folderKey || Object.keys(folder).length === 0) {
           statusByFolderType[folderType] = 'NOT VERIFIED';
           reasonByFolderType[folderType] = 'folder_not_backfilled';
-          detailByFolderType[folderType] = 'Foldern har inte backfillats till persistence-lagret ännu.';
+          detailByFolderType[folderType] =
+            'Foldern har inte backfillats till persistence-lagret ännu.';
           continue;
         }
         statusByFolderType[folderType] = normalizeText(folder.completenessStatus) || 'NOT VERIFIED';
@@ -1049,10 +1084,15 @@ async function createCcoMailboxTruthStore({
   }
 
   function getDeltaSyncReport({ mailboxIds = [] } = {}) {
-    const requestedMailboxIds = asArray(mailboxIds).map((item) => normalizeMailboxId(item)).filter(Boolean);
-    const effectiveMailboxIds = requestedMailboxIds.length > 0
-      ? requestedMailboxIds
-      : Object.keys(state.accounts).map((item) => normalizeMailboxId(item)).filter(Boolean);
+    const requestedMailboxIds = asArray(mailboxIds)
+      .map((item) => normalizeMailboxId(item))
+      .filter(Boolean);
+    const effectiveMailboxIds =
+      requestedMailboxIds.length > 0
+        ? requestedMailboxIds
+        : Object.keys(state.accounts)
+            .map((item) => normalizeMailboxId(item))
+            .filter(Boolean);
 
     const accountReports = effectiveMailboxIds.map((mailboxId) => {
       const account = asObject(state.accounts[mailboxId]);
@@ -1063,7 +1103,9 @@ async function createCcoMailboxTruthStore({
 
       for (const folderType of ['inbox', 'sent', 'drafts', 'deleted']) {
         const folder = asObject(state.folders[toFolderKey(mailboxId, folderType)]);
-        const checkpoint = asObject(state.syncCheckpoints[toSyncCheckpointKey(mailboxId, folderType)]);
+        const checkpoint = asObject(
+          state.syncCheckpoints[toSyncCheckpointKey(mailboxId, folderType)]
+        );
 
         if (!folder || Object.keys(folder).length === 0) {
           statusByFolderType[folderType] = 'NOT READY';
@@ -1084,7 +1126,10 @@ async function createCcoMailboxTruthStore({
           continue;
         }
 
-        if (normalizeText(folder.completenessReason) === 'empty_verified' && (!checkpoint || Object.keys(checkpoint).length === 0)) {
+        if (
+          normalizeText(folder.completenessReason) === 'empty_verified' &&
+          (!checkpoint || Object.keys(checkpoint).length === 0)
+        ) {
           statusByFolderType[folderType] = 'VERIFIED EMPTY';
           reasonByFolderType[folderType] = 'empty_verified';
           detailByFolderType[folderType] =
