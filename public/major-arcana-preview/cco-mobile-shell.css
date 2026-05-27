@@ -3243,6 +3243,16 @@
       > .preview-shell {
       display: none !important;
     }
+
+    /* DENSITET: Kundintelligens-fälten (LIVSCYKEL/VÄNTAR PÅ/UPPFÖLJNING/STATUS/
+       ÄGARE/RISK) staplades i EN kolumn på mobil (max-width:760/980px-reglerna
+       i styles.css) → halva bredden tom, lång höjd. Använd 2 kolumner så de sex
+       fälten blir tre rader och utnyttjar bredden. */
+    html[data-cco-mobile-shell="on"] .focus-intel-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 12px;
+      row-gap: 10px;
+    }
   }
 
   /* ============================================================
