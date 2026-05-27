@@ -998,4 +998,34 @@
     }
   }
 
+  /* === R4: SLA-prick — röd/orange punkt på bokningar med SLA-risk ===== */
+  .cco-cal-event-icon[data-icon="sla"] {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--cco-status-danger, #b94a4a);
+    box-shadow: 0 0 0 2px rgba(185, 74, 74, 0.2);
+  }
+  .cco-cal-event-icon[data-icon="sla"].is-warning {
+    background: var(--cco-status-warning, #c8821e);
+    box-shadow: 0 0 0 2px rgba(200, 130, 30, 0.2);
+  }
+  .cco-cal-event-icon[data-icon="sla"].is-breach {
+    background: var(--cco-status-danger, #b94a4a);
+    animation: cco-cal-expiry-pulse 1.6s ease-out infinite;
+  }
+
+  /* === R4: Återbesöks-hint — info-prick för aktiv aftercare ===== */
+  .cco-cal-event-icon[data-icon="aftercare"] {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--cco-status-info, #4a7ba8);
+    box-shadow: 0 0 0 2px rgba(74, 123, 168, 0.15);
+  }
+  .cco-cal-event-icon[data-icon="aftercare"].is-active {
+    background: #14b8a6;
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.15);
+  }
+
 }
