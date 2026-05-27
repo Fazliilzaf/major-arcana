@@ -144,7 +144,7 @@ function createSafeMergeService({ filePath }) {
 
   // ─── EXECUTE MERGE (transactional) ───
 
-  async function executeMerge(mergeId, { transferFn }) {
+  async function executeMerge(mergeId, { transferFn, rollbackFn } = {}) {
     const merge = state.merges.find((m) => m.mergeId === mergeId);
     if (!merge) return { ok: false, error: 'merge_not_found' };
     if (merge.status !== 'approved') return { ok: false, error: 'merge_not_approved' };
@@ -196,12 +196,34 @@ function createSafeMergeService({ filePath }) {
       return { ok: true, merge };
 
     } catch (err) {
-      merge.status = 'failed';
+      // Auto-rollback: a failed transfer must leave NO partial state behind.
+      // "Either everything moves or nothing" — so we always attempt rollback
+      // before recording the failure.
+      let rollbackOutcome = 'not_attempted';
+      if (typeof rollbackFn === 'function') {
+        try {
+          await rollbackFn({
+            primaryPatientId: merge.primaryPatientId,
+            secondaryPatientId: merge.secondaryPatientId,
+            toMove: merge.toMove,
+          });
+          rollbackOutcome = 'completed';
+        } catch (rollbackErr) {
+          rollbackOutcome = `failed: ${rollbackErr.message}`;
+        }
+      }
+
+      merge.status = rollbackOutcome === 'completed' ? 'rolled_back' : 'failed';
       merge.failedAt = nowIso();
       merge.failureReason = err.message;
-      audit('merge_failed', { mergeId, error: err.message });
+      merge.autoRollback = rollbackOutcome;
+      if (rollbackOutcome === 'completed') {
+        merge.rolledBackAt = nowIso();
+        merge.rollbackReason = `auto-rollback after transfer failure: ${err.message}`;
+      }
+      audit('merge_failed', { mergeId, error: err.message, autoRollback: rollbackOutcome });
       await persist();
-      return { ok: false, error: 'merge_execution_failed', message: err.message, merge };
+      return { ok: false, error: 'merge_execution_failed', message: err.message, autoRollback: rollbackOutcome, merge };
     }
   }
 
