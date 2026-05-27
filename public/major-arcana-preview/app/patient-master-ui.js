@@ -1047,7 +1047,7 @@
       .map((field) => {
         const title = normalizeText(field?.title) || normalizeText(field?.journalType) || 'Utkast';
         const note = normalizeText(field?.note);
-        return `<li><strong>${escapeHtml(title)}</strong>${note ? `<span>${escapeHtml(note)}</span>` : ''}</li>`;
+        return `<li><strong>${escapeHtml(title)}</strong>${note ? `<span class="patient-master-draft-proposal-field-note">${escapeHtml(note)}</span>` : ''}</li>`;
       })
       .join('');
     return rows || '<li>Föreslaget journalutkast</li>';
