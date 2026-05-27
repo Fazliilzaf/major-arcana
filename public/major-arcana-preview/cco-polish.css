@@ -5684,3 +5684,154 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
     gap: 16px;
   }
 }
+
+/* ============================================================
+   UI-redesign v1 (2026-05-27) — filkort + färgkategorier
+   ============================================================ */
+
+/* === Journalverktyg: kategoriserad färgskala === */
+/* Foto-actions (blå-cyan) */
+.patient-master-journal-toolbar .patient-master-camera-button,
+.patient-master-journal-toolbar .patient-master-upload-button {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  border-color: #7dd3fc;
+  color: #0c4a6e;
+}
+.patient-master-journal-toolbar .patient-master-camera-button:hover,
+.patient-master-journal-toolbar .patient-master-upload-button:hover {
+  background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%);
+}
+
+/* Behandlingsplan (violett) */
+.patient-master-journal-toolbar [data-patient-action="new-consultation-plan"],
+.patient-master-journal-toolbar [data-patient-action="import-historical"] {
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+  border-color: #c4b5fd;
+  color: #5b21b6;
+}
+.patient-master-journal-toolbar [data-patient-action="new-consultation-plan"]:hover,
+.patient-master-journal-toolbar [data-patient-action="import-historical"]:hover {
+  background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
+}
+
+/* Hälsodeklaration (grön) */
+.patient-master-journal-toolbar [data-patient-action="new-health-declaration"],
+.patient-master-journal-toolbar [data-clinical-form-key^="health_"] {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  border-color: #86efac;
+  color: #166534;
+}
+.patient-master-journal-toolbar [data-patient-action="new-health-declaration"]:hover,
+.patient-master-journal-toolbar [data-clinical-form-key^="health_"]:hover {
+  background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+}
+
+/* Friskförsäkran (smaragdgrön) */
+.patient-master-journal-toolbar [data-patient-action="new-fitness-certificate"],
+.patient-master-journal-toolbar [data-clinical-form-key^="fitness_"] {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+.patient-master-journal-toolbar [data-patient-action="new-fitness-certificate"]:hover,
+.patient-master-journal-toolbar [data-clinical-form-key^="fitness_"]:hover {
+  background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
+}
+
+/* TP/PRP-journaler (bärnsten) */
+.patient-master-journal-toolbar [data-patient-action="new-tp-journal"],
+.patient-master-journal-toolbar [data-patient-action="new-prp-journal"] {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #fcd34d;
+  color: #92400e;
+}
+.patient-master-journal-toolbar [data-patient-action="new-tp-journal"]:hover,
+.patient-master-journal-toolbar [data-patient-action="new-prp-journal"]:hover {
+  background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+}
+
+/* Uppföljning (rosa) */
+.patient-master-journal-toolbar [data-patient-action="new-follow-up-journal"] {
+  background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+  border-color: #f9a8d4;
+  color: #9d174d;
+}
+.patient-master-journal-toolbar [data-patient-action="new-follow-up-journal"]:hover {
+  background: linear-gradient(135deg, #fbcfe8 0%, #f9a8d4 100%);
+}
+
+/* Ögonlocksjournal + ENG-relaterat (varmgrå) */
+.patient-master-journal-toolbar [data-patient-action="new-bleph-journal"],
+.patient-master-journal-toolbar [data-clinical-form-key="health_eng"] {
+  background: linear-gradient(135deg, #f5f5f4 0%, #e7e5e4 100%);
+  border-color: #d6d3d1;
+  color: #44403c;
+}
+
+/* Större gap mellan knappar för att grupperna ska synas tydligare */
+.patient-master-journal-toolbar {
+  gap: 8px;
+}
+
+/* === Draft-proposals i grid (Hälsodeklaration draft-listan) === */
+.patient-master-draft-proposals-card {
+  display: block;
+}
+.patient-master-draft-proposals-card .patient-master-draft-proposal {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 240px;
+  max-width: 320px;
+  margin: 6px 6px 0 0;
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--surface-line-soft, rgba(80, 64, 48, 0.14));
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  box-shadow: 0 1px 2px rgba(80, 64, 48, 0.06);
+  vertical-align: top;
+}
+.patient-master-draft-proposals-card .patient-master-draft-proposal::before {
+  content: "📋";
+  display: block;
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+.patient-master-draft-proposals-card .patient-master-draft-proposal .patient-master-draft-proposal-fields {
+  list-style: none;
+  margin: 4px 0 10px;
+  padding: 0;
+}
+.patient-master-draft-proposals-card .patient-master-draft-proposal .patient-master-draft-proposal-fields li {
+  padding: 4px 0;
+  font-size: 13px;
+}
+.patient-master-draft-proposals-card .patient-master-draft-proposal-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+.patient-master-draft-proposals-card .patient-master-draft-proposal-actions .customers-utility-button {
+  flex: 1;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.patient-master-draft-proposals-card .patient-master-draft-proposal-actions .customers-utility-button[data-review-draft-proposal="approved"] {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+.patient-master-draft-proposals-card .patient-master-draft-proposal-actions .customers-utility-button[data-review-draft-proposal="dismissed"] {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-color: #fca5a5;
+  color: #7f1d1d;
+}
+
+/* Mobil-anpassning: kort tar full bredd under 600px */
+@media (max-width: 600px) {
+  .patient-master-draft-proposals-card .patient-master-draft-proposal {
+    display: flex;
+    min-width: 100%;
+    max-width: 100%;
+    margin-right: 0;
+  }
+}
