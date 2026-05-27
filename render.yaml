@@ -29,9 +29,8 @@ services:
     disk:
       name: arcana-state
       mountPath: /var/data
-      # Akut: höjt från 2 till 5 GB 2026-05-27. Disken var 100% full (2.0G/2.0G).
-      # 834 MB faktiskt innehåll i /var/data/arcana + headroom för photos/journal-tillväxt.
-      sizeGB: 5
+      # Höjt till 10 GB 2026-05-27 (truth-backfill contact@ + egzona@).
+      sizeGB: 10
     envVars:
       - key: ARCANA_STATE_ROOT
         value: /var/data
