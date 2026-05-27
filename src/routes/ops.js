@@ -544,6 +544,18 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
+      const __reqStart = process.hrtime.bigint();
+      const __ms = (from) => Number(process.hrtime.bigint() - from) / 1e6;
+      const __timing = { reviewMs: 0, applyMs: 0, promoteMs: 0, auditMs: 0 };
+      res.on('finish', () => {
+        const totalMs = __ms(__reqStart);
+        console.warn(
+          `[draft-proposal-review-timing] total=${totalMs.toFixed(0)}ms ` +
+            `review=${__timing.reviewMs.toFixed(0)}ms apply=${__timing.applyMs.toFixed(0)}ms ` +
+            `promote=${__timing.promoteMs.toFixed(0)}ms audit=${__timing.auditMs.toFixed(0)}ms ` +
+            `status=${res.statusCode}`
+        );
+      });
       if (!patientCareStateStore) {
         return res.status(503).json({ error: 'Patient care store saknas.' });
       }
@@ -558,6 +570,7 @@ function createOpsRouter({
         normalizeText(req.query?.promote) === '1' ||
         req.body?.promote === true;
       try {
+        const __reviewStart = process.hrtime.bigint();
         const updated = await patientCareStateStore.reviewDraftProposal({
           tenantId,
           proposalId,
@@ -565,9 +578,11 @@ function createOpsRouter({
           reviewedBy: req.auth.userId,
           note: normalizeText(req.body?.note),
         });
+        __timing.reviewMs = __ms(__reviewStart);
         if (!updated) {
           return res.status(404).json({ error: 'Utkast hittades inte.' });
         }
+        const __applyStart = process.hrtime.bigint();
         let journalApply = null;
         if (status === 'approved' && journalStore && !promoteRequested) {
           journalApply = await applyApprovedDraftProposal({
@@ -581,6 +596,8 @@ function createOpsRouter({
             },
           });
         }
+        __timing.applyMs = __ms(__applyStart);
+        const __promoteStart = process.hrtime.bigint();
         let journalPromote = null;
         if (status === 'approved' && promoteRequested && journalStore) {
           journalPromote = await promoteApprovedDraftToJournalEntry({
@@ -611,6 +628,8 @@ function createOpsRouter({
             });
           }
         }
+        __timing.promoteMs = __ms(__promoteStart);
+        const __auditStart = process.hrtime.bigint();
         await authStore.addAuditEvent({
           tenantId,
           actorUserId: req.auth.userId,
@@ -620,6 +639,7 @@ function createOpsRouter({
           targetId: proposalId,
           metadata: { status, patientId: updated.patientId, journalApply, journalPromote },
         });
+        __timing.auditMs = __ms(__auditStart);
         return res.json({
           ok: true,
           proposal: journalPromote?.proposal || updated,
