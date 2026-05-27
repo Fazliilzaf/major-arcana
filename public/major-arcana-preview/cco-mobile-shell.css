@@ -2228,9 +2228,22 @@
       .preview-canvas[data-app-shell-view="customers"]
       .customers-shell {
       overflow: visible;
+      padding-inline: var(--cco-mobile-gutter);
       padding-bottom: calc(
         var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 24px
       );
+    }
+
+    /* Kundregister: låt grid/listor fylla bredden (annars kvarstår desktop-
+       marginaler → innehåll trängs i mitten). */
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-layout,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-rail {
+      margin-inline: 0;
+      padding-inline: 0;
     }
 
     html[data-cco-mobile-shell="on"] .patient-master-auth-card {
@@ -3190,6 +3203,23 @@
     .cco-missing-forms-empty {
       padding: 12px 0;
       color: rgba(70, 60, 50, 0.72);
+    }
+
+    /* Fyll skärmbredden på mobil. Tidigare staplades fyra nästlade sido-
+       marginaler (preview-page + preview-canvas + preview-workspace margin +
+       padding ≈ 54px/sida → innehåll bara ~72% av bredden, allt klämt i
+       mitten). Kollapsa till EN gutter så kö-/fokus-/boknings-innehållet
+       fyller skärmen. */
+    html[data-cco-mobile-shell="on"] .preview-page {
+      padding-inline: 0;
+    }
+    html[data-cco-mobile-shell="on"] .preview-canvas {
+      padding-inline: 0;
+      margin-inline: 0;
+    }
+    html[data-cco-mobile-shell="on"] .preview-canvas .preview-workspace {
+      margin-inline: 0;
+      padding-inline: var(--cco-mobile-gutter);
     }
   }
 
