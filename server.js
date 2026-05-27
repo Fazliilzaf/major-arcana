@@ -518,6 +518,8 @@ const { createSignalingService } = require('./src/video/signalingServer');
 const { createMeetingTranscriptionService } = require('./src/video/meetingTranscription');
 const { createQmsRouter } = require('./src/routes/qms');
 const { createQmsStore } = require('./src/qms/qmsStore');
+const { createCmRouter } = require('./src/routes/cm');
+const { createCmStore } = require('./src/cm/cmStore');
 const { createReconciliationRouter } = require('./src/routes/reconciliation');
 const { createComplianceRouter } = require('./src/routes/compliance');
 const { createSafeMergeService } = require('./src/migration/safeMergeService');
@@ -2485,6 +2487,20 @@ process.once('SIGTERM', () => {
     createQmsRouter({
       authStore: auth,
       qmsStore,
+    })
+  );
+
+  const cmStorePath = config.stateRoot
+    ? `${config.stateRoot}/cm-expense.json`
+    : './data/cm-expense.json';
+  const cmStore = createCmStore({ filePath: cmStorePath });
+  cmStore.load().catch((err) => console.warn('[cm-store] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createCmRouter({
+      authStore: auth,
+      cmStore,
     })
   );
 
