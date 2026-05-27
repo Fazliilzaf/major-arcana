@@ -555,6 +555,7 @@ const { createCcoConversationNotesStore } = require('./src/ops/ccoConversationNo
 const { createCcoMailTemplateStore } = require('./src/ops/ccoMailTemplateStore');
 const { createCcoNoteStore } = require('./src/ops/ccoNoteStore');
 const { createCcoFollowUpStore } = require('./src/ops/ccoFollowUpStore');
+const { createCcoPortalStore } = require('./src/ops/ccoPortalStore');
 const { createCcoBookingStore } = require('./src/ops/ccoBookingStore');
 const { createCcoBookingEngineStore } = require('./src/ops/ccoBookingEngineStore');
 const { createCcoWorkspacePrefsStore } = require('./src/ops/ccoWorkspacePrefsStore');
@@ -1422,6 +1423,9 @@ process.once('SIGTERM', () => {
   const ccoFollowUpStore = await createCcoFollowUpStore({
     filePath: config.ccoFollowUpStorePath,
   });
+  const ccoPortalStore = await createCcoPortalStore({
+    filePath: config.ccoPortalStorePath,
+  });
   const ccoBookingStore = await createCcoBookingStore({
     filePath: config.ccoBookingStorePath,
   });
@@ -2093,6 +2097,7 @@ process.once('SIGTERM', () => {
       patientMasterStore: ccoPatientMasterStore,
       journalStore: ccoJournalStore,
       workspacePrefsStore: ccoWorkspacePrefsStore,
+      portalStore: ccoPortalStore,
       authStore,
       config,
     })
@@ -2220,6 +2225,7 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoCustomersRouter({
       customerStore: ccoCustomerStore,
+      portalStore: ccoPortalStore,
       authStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,

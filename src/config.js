@@ -317,6 +317,11 @@ const config = {
     stateRoot,
     fileName: 'cco-followups.json',
   }),
+  ccoPortalStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PORTAL_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-portal.json',
+  }),
   ccoBookingStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_BOOKING_STORE_PATH,
     stateRoot,
@@ -652,6 +657,10 @@ const config = {
   ),
   startupCcoFollowUpStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_CCO_FOLLOWUP_STORE_MAX_BYTES,
+    12 * 1024 * 1024
+  ),
+  startupCcoPortalStoreMaxBytes: asInt(
+    process.env.ARCANA_STARTUP_CCO_PORTAL_STORE_MAX_BYTES,
     12 * 1024 * 1024
   ),
   startupCcoWorkspacePrefsStoreMaxBytes: asInt(
