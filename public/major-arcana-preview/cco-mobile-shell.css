@@ -3253,6 +3253,25 @@
       column-gap: 12px;
       row-gap: 10px;
     }
+
+    /* DENSITET: tightare vertikal rytm i fokusytan på mobil — mindre luft mellan
+       kort/sektioner och mindre kort-padding → mer info per skärm, mindre scroll.
+       Konservativa minskningar (bryter inte innehåll, bara tätare). */
+    html[data-cco-mobile-shell="on"] .focus-layout {
+      gap: 10px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-data-card {
+      padding: 10px 12px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-data-card h4 {
+      margin-bottom: 6px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-data-card dl {
+      gap: 6px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-grid {
+      gap: 10px;
+    }
   }
 
   /* ============================================================
