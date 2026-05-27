@@ -51,3 +51,9 @@ reports/stryker/
 .tmp_*
 /false
 /true
+
+# Playwright generated artifacts (should not be committed)
+test-results/
+
+# Temp baseline screenshots
+tmp-*.png
