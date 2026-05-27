@@ -231,7 +231,10 @@
     "i18n:cleanup": "node scripts/i18n-cleanup.js",
     "i18n:merge": "node scripts/i18n-merge.js",
     "i18n:all": "npm run i18n:extract && npm run i18n:cleanup && npm run i18n:merge",
-    "check:bundle": "node bin/check-bundle-fresh.js"
+    "check:bundle": "node bin/check-bundle-fresh.js",
+    "db:migrate": "node scripts/migrate-json-to-sqlite.js",
+    "db:verify": "node scripts/migrate-json-to-sqlite.js --verify",
+    "db:dry-run": "node scripts/migrate-json-to-sqlite.js --dry-run"
   },
   "keywords": [],
   "author": "",
@@ -239,6 +242,7 @@
   "type": "commonjs",
   "dependencies": {
     "@e965/xlsx": "^0.20.3",
+    "better-sqlite3": "^12.10.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
