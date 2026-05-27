@@ -127,15 +127,16 @@ Fas A ──► Fas B ──► Fas C ──► Fas 6
 
 ---
 
-## Fas C, Inline-docs i admin per sektion (planerat 2026-06-01, måndag efter Frankfurt-cutover)
+## Fas C, Inline-docs i admin per sektion (planerat 2026-05-28, onsdag förmiddag)
 
 **Mål:** Varje dokument visas inline i den admin-sektion det beskriver, inte gömt
 i CAO-Workspace-fliken. Booking-docs vid bokningsmotorn, journal-docs vid journal,
 legal-docs vid GDPR-vyn, osv.
 
 **Förkrav:**
-- Frankfurt-cutover klar och stabil (söndag 2026-05-31).
-- 24 h utan post-migration-incident.
+- Dagtid (personal i beredskap för snabb rollback om något bryts).
+- Frankfurt-migrationen rör inte admin.html, så detta arbete kan göras parallellt
+  innan söndagens cutover utan att blockas av den.
 
 **Steg:**
 1. Bygg reusable `<DocsForSection sectionId="...">`-widget (vanilla JS,
