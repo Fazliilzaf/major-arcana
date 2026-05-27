@@ -83,3 +83,40 @@ test('computeNameSimilarity: exakt = 100, delvis < 100, tomt = 0', () => {
   assert.ok(computeNameSimilarity('Anna Andersson', 'Anna Svensson') < 100);
   assert.equal(computeNameSimilarity('', 'x'), 0);
 });
+
+test('findDuplicateCandidates: fuzzy namn-matchning ger SIMILAR_NAME-kandidat (tier 2/3)', () => {
+  const patients = [
+    { patientId: 'a', name: 'Anna Andersson' }, // drive-only, ingen pnr/telefon/epost
+    { patientId: 'b', name: 'Anna Andersson', personnummer: '199001011234' },
+    { patientId: 'c', name: 'Bo Bengtsson' }, // delar ingen namn-token → ingen träff
+  ];
+  const cands = findDuplicateCandidates(patients);
+  const nameCand = cands.find((x) => x.matchField === 'name');
+  assert.ok(nameCand, 'ska hitta namn-baserad kandidat');
+  assert.deepEqual(nameCand.patients.slice().sort(), ['a', 'b']);
+  assert.equal(nameCand.flag, 'DUPLICATE_PATIENT_SIMILAR_NAME');
+  assert.ok(nameCand.confidence <= 94, 'aldrig lika säker som exakt match');
+  assert.ok(!cands.some((x) => x.patients.includes('c')), 'olika namn ska inte matcha');
+});
+
+test('findDuplicateCandidates: samma födelsedatum (ur pnr) höjer namn-confidence', () => {
+  const patients = [
+    { patientId: 'a', name: 'Anna Maria Andersson', personnummer: '19900101-1234' },
+    { patientId: 'b', name: 'Anna Andersson', personnummer: '19900101-9999' }, // samma datum, annat pnr
+  ];
+  const cands = findDuplicateCandidates(patients);
+  const nameCand = cands.find((x) => x.matchField === 'name');
+  assert.ok(nameCand);
+  assert.match(nameCand.matchReason, /samma födelsedatum/);
+});
+
+test('findDuplicateCandidates: exakt pnr-par dubbleras inte som fuzzy namn-kandidat', () => {
+  const patients = [
+    { patientId: 'a', name: 'Anna Andersson', personnummer: '199001011234' },
+    { patientId: 'b', name: 'Anna Andersson', personnummer: '199001011234' },
+  ];
+  const cands = findDuplicateCandidates(patients);
+  const pairCands = cands.filter((x) => x.patients.slice().sort().join() === 'a,b');
+  assert.equal(pairCands.length, 1, 'paret ska bara finnas en gång (pnr), inte även fuzzy');
+  assert.equal(pairCands[0].matchField, 'personnummer');
+});

@@ -72,6 +72,22 @@ function computeNameSimilarity(a, b) {
   return Math.round((common.length / maxParts) * 100);
 }
 
+// Below this name-similarity score we don't surface a fuzzy candidate at all.
+const NAME_REVIEW_MIN = 50;
+
+// Derive a comparable YYMMDD birthdate key from a Swedish personnummer
+// (handles both 12-digit YYYYMMDDNNNN and 10-digit YYMMDDNNNN forms).
+function birthdateKeyFromPersonnummer(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length >= 12) return digits.slice(2, 8);
+  if (digits.length >= 10) return digits.slice(0, 6);
+  return '';
+}
+
+function patientDisplayName(p) {
+  return normalizeText(p.name || `${p.firstName || ''} ${p.lastName || ''}`).toLowerCase();
+}
+
 function findDuplicateCandidates(patients) {
   const candidates = [];
   const byPersonnummer = new Map();
@@ -142,6 +158,63 @@ function findDuplicateCandidates(patients) {
       confidence: 82,
       flag: FLAGS.DUPLICATE_PATIENT_SAME_EMAIL,
     });
+  }
+
+  // ─── FUZZY NAME MATCHING (tier 2/3) ───
+  // Surfaces likely duplicates that share no exact pnr/phone/email — e.g. a
+  // Drive-only profile created from a folder name vs the Cliento patient.
+  // Never as confident as an exact match; always flagged for manual review.
+  const exactPairs = new Set();
+  for (const candidate of candidates) {
+    const ids = candidate.patients.slice().sort();
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) exactPairs.add(`${ids[i]}::${ids[j]}`);
+    }
+  }
+
+  // Block by name token to avoid comparing every pair across the whole set.
+  const byToken = new Map();
+  patients.forEach((patient, idx) => {
+    for (const token of new Set(patientDisplayName(patient).split(/\s+/).filter((t) => t.length >= 2))) {
+      if (!byToken.has(token)) byToken.set(token, []);
+      byToken.get(token).push(idx);
+    }
+  });
+
+  const fuzzySeen = new Set();
+  for (const idxs of byToken.values()) {
+    if (idxs.length < 2) continue;
+    for (let i = 0; i < idxs.length; i += 1) {
+      for (let j = i + 1; j < idxs.length; j += 1) {
+        const a = patients[idxs[i]];
+        const b = patients[idxs[j]];
+        const pairKey = [a.patientId, b.patientId].sort().join('::');
+        if (exactPairs.has(pairKey) || fuzzySeen.has(pairKey)) continue;
+        fuzzySeen.add(pairKey);
+
+        const similarity = computeNameSimilarity(patientDisplayName(a), patientDisplayName(b));
+        if (similarity < NAME_REVIEW_MIN) continue;
+
+        const bdA = birthdateKeyFromPersonnummer(a.personnummer || a.socialSecurityNumber);
+        const bdB = birthdateKeyFromPersonnummer(b.personnummer || b.socialSecurityNumber);
+        const sameBirthdate = Boolean(bdA && bdB && bdA === bdB);
+
+        // Cap below exact-match confidence; corroborating birthdate nudges it up.
+        let confidence = Math.min(similarity, 94);
+        if (sameBirthdate) confidence = Math.min(confidence + 8, 94);
+
+        candidates.push({
+          candidateId: crypto.randomUUID(),
+          patients: [a.patientId, b.patientId],
+          matchReason: sameBirthdate
+            ? `Liknande namn (${similarity}%) + samma födelsedatum`
+            : `Liknande namn (${similarity}%)`,
+          matchField: 'name',
+          confidence,
+          flag: FLAGS.DUPLICATE_PATIENT_SIMILAR_NAME,
+        });
+      }
+    }
   }
 
   return candidates;
