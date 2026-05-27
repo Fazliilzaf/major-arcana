@@ -14246,6 +14246,16 @@
     windowObject: window,
   });
 
+  // Defined here (referencing the hoisted apiRequestImpl) so it is initialized
+  // before the workspace orchestration helpers below capture it. Previously the
+  // `const apiRequest` lived ~27k lines later, causing a temporal-dead-zone
+  // crash that aborted view-switching wiring (desktop/tablet stuck on
+  // conversations, /staff?view=customers ignored).
+  const apiRequest = (window.ArcanaCcoFetchInstrumentation?.instrumentAsyncFn || ((fn) => fn))(
+    apiRequestImpl,
+    { getPath: (path) => path }
+  );
+
   const {
     deleteRuntimeThread,
     handleFocusHistoryDelete,
@@ -41103,8 +41113,7 @@
     renderNoteDestination(state.note?.activeKey);
   }
 
-  const apiRequest = (window.ArcanaCcoFetchInstrumentation?.instrumentAsyncFn || ((fn) => fn))(
-    async function apiRequestImpl(path, options = {}) {
+  async function apiRequestImpl(path, options = {}) {
     const url = new URL(path, window.location.origin);
     const isWorkspaceRequest = path.includes("/api/v1/cco-workspace/");
     const context = getActiveWorkspaceContext();
@@ -41186,9 +41195,7 @@
       authToken: getAdminToken(),
       allowRetry: true,
     });
-  },
-    { getPath: (path) => path }
-  );
+  }
 
   function applyStudioTemplateSelection(templateKey) {
     if (normalizeKey(state.forms.studioMode) === "compose") {
