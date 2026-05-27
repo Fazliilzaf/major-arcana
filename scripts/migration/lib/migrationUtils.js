@@ -109,12 +109,30 @@ function discoverPipedriveCsvPair(rootDir) {
   };
 }
 
+// The 8+4 digit pattern alone matches stray numbers in filenames (timestamps,
+// invoice ids), which is how mojibake filenames like "...-1771596438-2394.pdf"
+// spawned phantom patient profiles with impossible pnr (e.g. 76413983-1433).
+// Require the leading 8 digits to be a real YYYYMMDD before accepting the match.
+function isPlausiblePersonnummerDate(yyyymmdd) {
+  const year = Number(yyyymmdd.slice(0, 4));
+  const month = Number(yyyymmdd.slice(4, 6));
+  let day = Number(yyyymmdd.slice(6, 8));
+  if (!Number.isInteger(year) || year < 1900 || year > new Date().getFullYear()) return false;
+  if (!Number.isInteger(month) || month < 1 || month > 12) return false;
+  // Samordningsnummer carry a +60 offset on the day component.
+  if (day > 60) day -= 60;
+  return Number.isInteger(day) && day >= 1 && day <= 31;
+}
+
 function normalizePersonnummer(value) {
   const raw = normalizeText(value);
   if (!raw) return '';
-  const match = raw.match(PERSONNUMMER_RE);
-  if (!match) return '';
-  return `${match[1]}-${match[2]}`;
+  // Scan all 8+4 candidates and take the first with a plausible date, so a stray
+  // number earlier in the string doesn't shadow a real pnr later in it.
+  for (const match of raw.matchAll(/(\d{8})[- ]?(\d{4})/g)) {
+    if (isPlausiblePersonnummerDate(match[1])) return `${match[1]}-${match[2]}`;
+  }
+  return '';
 }
 
 function splitName(fullName) {
