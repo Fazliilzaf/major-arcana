@@ -5404,5 +5404,65 @@ const BOOKING_STATUSES = Object.freeze([
     <script src="/admin/executive-feed.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/cao-workspace.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin.js?v=__ARCANA_UI_BUILD__"></script>
+    <script>
+      // Inline contextual docs per section
+      (function() {
+        const SECTION_MAP = {
+          overviewSection: 'overview',
+          templateLifecycleSection: 'booking',
+          cooSection: 'coo',
+          caoSection: 'cao',
+          cfoSection: 'cfo',
+          cmoSection: 'cmo',
+          opsSection: 'ops',
+          cmSection: 'compliance',
+        };
+        let docsPanel = null;
+        function ensureDocsPanel() {
+          if (docsPanel) return docsPanel;
+          docsPanel = document.createElement('div');
+          docsPanel.id = 'adminContextDocs';
+          docsPanel.style.cssText = 'position:fixed;bottom:0;right:0;width:340px;max-height:40vh;overflow-y:auto;background:var(--panel,#23201D);border:1px solid var(--line,#3A332C);border-radius:14px 0 0 0;padding:16px;font-size:12px;z-index:500;display:none;color:var(--muted,#E8DDD5);';
+          docsPanel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><strong style="color:var(--text);">Relevant dokumentation</strong><button onclick="this.parentElement.parentElement.style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;">×</button></div><div id="adminContextDocsList"></div>';
+          document.body.appendChild(docsPanel);
+          return docsPanel;
+        }
+        async function loadDocsForSection(sectionKey) {
+          const panel = ensureDocsPanel();
+          const list = document.getElementById('adminContextDocsList');
+          if (!list) return;
+          try {
+            const res = await fetch('/api/v1/docs/section/' + sectionKey);
+            if (!res.ok) { panel.style.display = 'none'; return; }
+            const data = await res.json();
+            if (!data.documents?.length) { panel.style.display = 'none'; return; }
+            list.innerHTML = data.documents.map(function(doc) {
+              return '<div style="margin-bottom:8px;padding:8px;background:var(--panel-soft,#2F2A25);border-radius:8px;"><a href="#" onclick="event.preventDefault();loadDocContent(\'' + doc.path + '\')" style="color:var(--accent,#C2AA9C);font-weight:500;text-decoration:none;">' + doc.title + '</a><br><span style="font-size:11px;opacity:0.7;">' + (doc.description||'') + '</span></div>';
+            }).join('');
+            panel.style.display = 'block';
+          } catch { panel.style.display = 'none'; }
+        }
+        window.loadDocContent = async function(docPath) {
+          const list = document.getElementById('adminContextDocsList');
+          if (!list) return;
+          try {
+            const res = await fetch('/api/v1/docs/content?path=' + encodeURIComponent(docPath));
+            if (!res.ok) return;
+            const data = await res.json();
+            list.innerHTML = '<button onclick="history.back();location.reload();" style="background:none;border:none;color:var(--accent);cursor:pointer;margin-bottom:8px;">← Tillbaka</button><pre style="white-space:pre-wrap;font-size:11px;line-height:1.4;max-height:30vh;overflow-y:auto;">' + (data.content||'').replace(/</g,'&lt;').slice(0,5000) + '</pre>';
+          } catch {}
+        };
+        const observer = new MutationObserver(function() {
+          document.querySelectorAll('[data-section-group]').forEach(function(section) {
+            if (!section.hidden) {
+              const target = section.getAttribute('data-section-group');
+              const key = SECTION_MAP[target];
+              if (key) loadDocsForSection(key);
+            }
+          });
+        });
+        observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+      })();
+    </script>
   </body>
 </html>
