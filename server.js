@@ -506,6 +506,8 @@ const { createBillingRouter } = require('./src/routes/billing');
 const { createKnowledgeRouter } = require('./src/routes/knowledge');
 const { createPosRouter } = require('./src/routes/pos');
 const { createPosStore } = require('./src/pos/posStore');
+const { createGiftCardRouter } = require('./src/routes/giftCards');
+const { createGiftCardStore } = require('./src/pos/giftCardStore');
 const {
   createPatientPortalRouter,
   createPatientPortalStore,
@@ -2438,6 +2440,20 @@ process.once('SIGTERM', () => {
     createPosRouter({
       authStore: auth,
       posStore,
+    })
+  );
+
+  const giftCardStorePath = config.stateRoot
+    ? `${config.stateRoot}/cco-gift-cards.json`
+    : './data/cco-gift-cards.json';
+  const giftCardStore = createGiftCardStore({ filePath: giftCardStorePath });
+  giftCardStore.load().catch((err) => console.warn('[gift-card-store] Load failed:', err?.message));
+
+  app.use(
+    '/api/v1',
+    createGiftCardRouter({
+      authStore: auth,
+      giftCardStore,
     })
   );
 
