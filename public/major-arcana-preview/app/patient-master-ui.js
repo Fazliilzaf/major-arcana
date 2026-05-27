@@ -1133,19 +1133,62 @@
     }
   }
 
-  async function reviewDraftProposal(proposalId, status) {
+  async function reviewDraftProposal(proposalId, status, sourceButton = null) {
     const id = normalizeText(proposalId);
     const nextStatus = normalizeText(status).toLowerCase();
     if (!id || !['approved', 'dismissed'].includes(nextStatus)) return;
+
+    // Optimistic UI: lock the card and show feedback so users never feel
+    // "nothing happened" while the PATCH is in flight.
+    const card =
+      (sourceButton && sourceButton.closest('.patient-master-draft-proposal')) || null;
+    const buttons = card ? Array.from(card.querySelectorAll('[data-review-draft-proposal]')) : [];
+    const originalLabels = new Map();
+    buttons.forEach((btn) => {
+      originalLabels.set(btn, btn.textContent);
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      if (btn === sourceButton) {
+        btn.textContent = 'Sparar…';
+      }
+    });
+    if (card) {
+      card.style.opacity = '0.55';
+      card.style.pointerEvents = 'none';
+      card.setAttribute('aria-busy', 'true');
+    }
+    const statusMessage =
+      nextStatus === 'approved' ? 'Godkänner journalutkast…' : 'Avvisar journalutkast…';
+    setStatus(statusMessage, 'loading');
+
     try {
       await apiRequest(`/api/v1/ops/cco-care/draft-proposals/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         body: { status: nextStatus },
       });
       setStatus(nextStatus === 'approved' ? 'Journalutkast godkänt.' : 'Journalutkast avvisat.', 'success');
+      // Fade card out then remove to give a confirmation beat before refresh.
+      if (card) {
+        card.style.transition = 'opacity 180ms ease, transform 180ms ease';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.97)';
+      }
       await loadDraftProposals(runtime.selectedPatientId);
     } catch (error) {
       setStatus(error.message || 'Kunde inte uppdatera journalutkast.', 'error');
+      // Restore the card so user can retry.
+      if (card) {
+        card.style.opacity = '';
+        card.style.pointerEvents = '';
+        card.removeAttribute('aria-busy');
+      }
+      buttons.forEach((btn) => {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+        if (originalLabels.has(btn)) {
+          btn.textContent = originalLabels.get(btn);
+        }
+      });
     }
   }
 
@@ -5489,7 +5532,8 @@
       if (draftReviewButton && runtime.mode === 'register') {
         void reviewDraftProposal(
           draftReviewButton.dataset.reviewDraftProposalId,
-          draftReviewButton.dataset.reviewDraftProposal
+          draftReviewButton.dataset.reviewDraftProposal,
+          draftReviewButton
         );
         return;
       }
