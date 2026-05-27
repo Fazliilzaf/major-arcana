@@ -5685,214 +5685,37 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   }
 }
 
-
-
 /* ============================================================
-   UI-redesign v3 (2026-05-27) — vita bubblor + färgad text per knapp
+   UI-redesign v6 (2026-05-27) — minimal: bara textfärg + grid
+   Respekterar original .customers-utility-button och .chip-* design.
    ============================================================ */
 
-/* === Journalverktyg: vit bubbla + tunn ram + färgad text per kategori === */
-.patient-master-journal-toolbar .customers-utility-button,
-.patient-master-journal-toolbar .patient-master-upload-button {
-  background: #ffffff;
-  border: 1px solid rgba(43, 37, 31, 0.14);
-  font-weight: 600;
-}
-
-/* Foto-actions */
+/* Textfärg per kategori på journalverktyg (INGEN bg-override, INGEN border-override) */
 .patient-master-journal-toolbar .patient-master-camera-button { color: #2563eb; }
 .patient-master-journal-toolbar .patient-master-upload-button:not(.patient-master-camera-button) { color: #0891b2; }
-
-/* Behandlingsplan-relaterat */
 .patient-master-journal-toolbar [data-patient-action="new-consultation-plan"] { color: #7c3aed; }
 .patient-master-journal-toolbar [data-patient-action="import-historical"] { color: #9333ea; }
-
-/* Hälsodeklarationer */
 .patient-master-journal-toolbar [data-patient-action="new-health-declaration"] { color: #16a34a; }
 .patient-master-journal-toolbar [data-clinical-form-key="health_curatiio_bleph"] { color: #059669; }
 .patient-master-journal-toolbar [data-clinical-form-key="health_curatiio_ortho"] { color: #0d9488; }
 .patient-master-journal-toolbar [data-clinical-form-key="health_curatiio_injection"] { color: #0e7490; }
 .patient-master-journal-toolbar [data-clinical-form-key="health_eng"] { color: #57534e; }
-
-/* Friskförsäkran */
 .patient-master-journal-toolbar [data-patient-action="new-fitness-certificate"] { color: #65a30d; }
 .patient-master-journal-toolbar [data-clinical-form-key="fitness_curatiio_bleph"] { color: #84cc16; }
-
-/* TP/PRP-journaler - egna färger var och en */
 .patient-master-journal-toolbar [data-patient-action="new-tp-journal"] { color: #d97706; }
 .patient-master-journal-toolbar [data-patient-action="new-prp-journal"][data-prp-form-variant="prp_skin"] { color: #ea580c; }
 .patient-master-journal-toolbar [data-patient-action="new-prp-journal"][data-prp-form-variant="tp_post_op"] { color: #f97316; }
-
-/* Uppföljningar - egna färger per månad */
 .patient-master-journal-toolbar [data-follow-form-variant="4_manader"] { color: #db2777; }
 .patient-master-journal-toolbar [data-follow-form-variant="6_manader"] { color: #c026d3; }
 .patient-master-journal-toolbar [data-follow-form-variant="12_manader"] { color: #a21caf; }
 
-/* Ögonlocksjournal */
-.patient-master-journal-toolbar [data-patient-action="new-bleph-journal"],
-.patient-master-journal-toolbar [data-patient-action*="bleph"]:not([data-clinical-form-key]) { color: #475569; }
-
-/* Hover: lätt färgad bakgrund för affordance */
-.patient-master-journal-toolbar .customers-utility-button:hover,
-.patient-master-journal-toolbar .patient-master-upload-button:hover {
-  background: #fafafa;
-  border-color: rgba(43, 37, 31, 0.24);
+/* Grid-vy för Hälsodeklaration-listan (kort-stil, ingen ändring på knappar inom) */
+.patient-master-journal-list:not(.patient-master-timeline-list) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
 }
-
-.patient-master-journal-toolbar {
-  gap: 8px;
-}
-
-
-
-/* Pill-form på journalverktyg-knappar */
-.patient-master-journal-toolbar .customers-utility-button,
-.patient-master-journal-toolbar .patient-master-upload-button {
-  border-radius: 999px;
-  padding: 8px 16px;
-}
-
-/* === Draft-proposals i grid (Hälsodeklaration draft-listan) === */
-.patient-master-draft-proposals-card {
-  display: block;
-}
-.patient-master-draft-proposals-card .patient-master-draft-proposal {
-  display: inline-flex;
-  flex-direction: column;
-  min-width: 240px;
-  max-width: 320px;
-  margin: 6px 6px 0 0;
-  padding: 14px 14px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--surface-line-soft, rgba(80, 64, 48, 0.14));
-  background: #fffdf5;
-  box-shadow: 0 1px 2px rgba(80, 64, 48, 0.06);
-  vertical-align: top;
-}
-.patient-master-draft-proposals-card .patient-master-draft-proposal::before {
-  content: "📋";
-  display: block;
-  font-size: 28px;
-  margin-bottom: 6px;
-}
-.patient-master-draft-proposals-card .patient-master-draft-proposal .patient-master-draft-proposal-fields {
-  list-style: none;
-  margin: 4px 0 10px;
-  padding: 0;
-}
-.patient-master-draft-proposals-card .patient-master-draft-proposal .patient-master-draft-proposal-fields li {
-  padding: 4px 0;
-  font-size: 13px;
-}
-.patient-master-draft-proposals-card .patient-master-draft-proposal-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: auto;
-}
-.patient-master-draft-proposals-card .patient-master-draft-proposal-actions .customers-utility-button {
-  flex: 1;
-  font-size: 12px;
-  padding: 6px 10px;
-}
-.patient-master-draft-proposals-card .patient-master-draft-proposal-actions .customers-utility-button[data-review-draft-proposal="approved"] {
-  background: #ecfdf5;
-  border-color: #6ee7b7;
-  color: #047857;
-}
-.patient-master-draft-proposals-card .patient-master-draft-proposal-actions .customers-utility-button[data-review-draft-proposal="dismissed"] {
-  background: #fef2f2;
-  border-color: #fca5a5;
-  color: #b91c1c;
-}
-
-/* Mobil-anpassning: kort tar full bredd under 600px */
-@media (max-width: 600px) {
-  .patient-master-draft-proposals-card .patient-master-draft-proposal {
-    display: flex;
-    min-width: 100%;
-    max-width: 100%;
-    margin-right: 0;
-  }
-}
-
-
-/* ============================================================
-   UI-redesign v5 (2026-05-27) — GLOBALT designsystem
-   Genomgående tillämpning: vita pill-bubblor + kort-grid på allt
-   ============================================================ */
-
-/* === GENERELL PILL-STIL för ALLA utility-buttons === */
-.customers-utility-button {
-  background: #ffffff !important;
-  border: 1px solid rgba(43, 37, 31, 0.14) !important;
-  border-radius: 999px !important;
-  padding: 7px 14px !important;
-  font-weight: 600 !important;
-  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
-}
-.customers-utility-button:hover {
-  background: #fafafa !important;
-  border-color: rgba(43, 37, 31, 0.24) !important;
-}
-.customers-utility-button:active {
-  transform: scale(0.97);
-}
-.customers-utility-button.is-active,
-.customers-utility-button[aria-pressed="true"] {
-  background: #f5f5f4 !important;
-  border-color: rgba(43, 37, 31, 0.32) !important;
-}
-.customers-utility-button[disabled],
-.customers-utility-button.is-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* === CHIPS: vita pill + färgad text (alla färgvarianter) === */
-.chip,
-.patient-master-chip,
-[class*="chip-"] {
-  background: #ffffff;
-  border: 1px solid rgba(43, 37, 31, 0.14);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-}
-.chip-blue, [class*="chip-blue"] { color: #2563eb; }
-.chip-gold, [class*="chip-gold"] { color: #b45309; }
-.chip-violet, [class*="chip-violet"] { color: #7c3aed; }
-.chip-green, [class*="chip-green"] { color: #15803d; }
-.chip-red, [class*="chip-red"] { color: #dc2626; }
-.chip-rose, [class*="chip-rose"] { color: #e11d48; }
-.chip-emerald, [class*="chip-emerald"] { color: #047857; }
-.chip-amber, [class*="chip-amber"] { color: #d97706; }
-.chip-slate, [class*="chip-slate"] { color: #475569; }
-.chip-gray, [class*="chip-gray"] { color: #57534e; }
-
-/* === LISTOR SOM GRID (kort-vy på alla list-items) === */
-.patient-master-journal-list:not(.patient-master-timeline-list),
-.patient-master-photo-list,
-.patient-master-files-list,
-.patient-master-encounter-list,
-.cco-care-draft-list,
-.customers-card-grid {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
-  gap: 10px !important;
-  list-style: none;
-  padding: 0;
-  margin: 8px 0;
-}
-
-/* Items i listor blir kort */
-.patient-master-journal-item,
-.patient-master-photo-item,
-.patient-master-file-item,
-.patient-master-encounter-item,
-.cco-care-draft-card {
+.patient-master-journal-item {
   background: #ffffff;
   border: 1px solid rgba(43, 37, 31, 0.10);
   border-radius: 14px;
@@ -5900,56 +5723,9 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  box-shadow: 0 1px 2px rgba(80, 64, 48, 0.04);
-  transition: box-shadow 140ms ease, border-color 140ms ease;
-}
-.patient-master-journal-item:hover,
-.patient-master-photo-item:hover,
-.patient-master-file-item:hover,
-.patient-master-encounter-item:hover {
-  border-color: rgba(43, 37, 31, 0.22);
-  box-shadow: 0 2px 6px rgba(80, 64, 48, 0.08);
-}
-.patient-master-journal-item.is-locked,
-.patient-master-encounter-item.is-locked { opacity: 0.72; }
-.patient-master-journal-item.is-editing,
-.patient-master-encounter-item.is-editing {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
-}
-.patient-master-journal-item > div:first-child {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.patient-master-journal-item strong,
-.patient-master-encounter-item strong {
-  font-size: 14px;
-  font-weight: 700;
-}
-.patient-master-journal-item span,
-.patient-master-encounter-item span {
-  font-size: 12px;
-  color: rgba(43, 37, 31, 0.55);
-}
-.patient-master-journal-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: auto;
 }
 
-/* === Specifik färg per knapp-typ i journal-actions === */
-.patient-master-journal-actions [data-patient-open-tp],
-.patient-master-journal-actions [data-patient-open-prp],
-.patient-master-journal-actions [data-patient-open-follow-up],
-.patient-master-journal-actions [data-patient-open-bleph],
-.patient-master-journal-actions [data-patient-open-clinical] { color: #0891b2; }
-.patient-master-journal-actions [data-patient-sign-entry] { color: #d97706; }
-.patient-master-journal-actions .is-active { color: #16a34a; }
-.patient-master-open-link { color: #2563eb; }
-
-/* === TIDSLINJE: segments som stora kort i grid === */
+/* Tidslinje-segments som kort i grid */
 .patient-master-history-segments {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -5960,73 +5736,12 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   border: 1px solid rgba(43, 37, 31, 0.10);
   border-radius: 16px;
   padding: 14px 16px;
-  box-shadow: 0 1px 2px rgba(80, 64, 48, 0.04);
-}
-.patient-master-history-segment-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(43, 37, 31, 0.08);
-}
-.patient-master-history-segment-head h4 {
-  font-size: 14px;
-  font-weight: 700;
-  margin: 0;
-  color: #1f1d1a;
-}
-.patient-master-history-segment-head span {
-  font-size: 11px;
-  color: rgba(43, 37, 31, 0.55);
-  white-space: nowrap;
-}
-.patient-master-history-segment.is-encounter-locked { opacity: 0.88; }
-.patient-master-timeline-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.patient-master-timeline-item {
-  background: #fafaf9;
-  border: 1px solid rgba(43, 37, 31, 0.08);
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 13px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.patient-master-timeline-item strong { font-size: 13px; font-weight: 600; }
-.patient-master-timeline-item span { font-size: 11px; color: rgba(43, 37, 31, 0.55); }
-
-/* Filer i tidslinjen visas som mini-kort */
-.patient-master-timeline-files {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(43, 37, 31, 0.06);
 }
 
-/* === Mobil-anpassning genomgående === */
+/* Mobil */
 @media (max-width: 720px) {
   .patient-master-journal-list:not(.patient-master-timeline-list),
-  .patient-master-photo-list,
-  .patient-master-files-list,
-  .patient-master-encounter-list,
-  .cco-care-draft-list,
-  .customers-card-grid,
   .patient-master-history-segments {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .customers-utility-button {
-    padding: 6px 12px !important;
-    font-size: 13px !important;
+    grid-template-columns: 1fr;
   }
 }
