@@ -497,6 +497,7 @@ const { createMailInsightsRouter } = require('./src/routes/mailInsights');
 const { createCapabilitiesRouter } = require('./src/routes/capabilities');
 const { createPublicClinicRouter } = require('./src/routes/publicClinic');
 const { createPublicBookingEngineRouter } = require('./src/routes/publicBookingEngine');
+const { createBookingPublicActionsRouter } = require('./src/routes/bookingPublicActions');
 const { createPublicWebEventsRouter } = require('./src/routes/publicWebEvents');
 const { createMarketingConnectorBridgeRouter } = require('./src/routes/marketingConnectorBridge');
 const { createCmoConnectorHealthStateStore } = require('./src/ops/cmoConnectorHealthState');
@@ -1779,6 +1780,12 @@ process.once('SIGTERM', () => {
       treatmentEncounterStore: ccoTreatmentEncounterStore,
       config,
       graphSendConnector,
+    })
+  );
+
+  app.use(
+    createBookingPublicActionsRouter({
+      bookingEngineStore: ccoBookingEngineStore,
     })
   );
 
