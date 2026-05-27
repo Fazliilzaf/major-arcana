@@ -348,6 +348,13 @@ async function createCcoJournalStore({ filePath }) {
     return found ? cloneEntry(found) : null;
   }
 
+  async function listAllEntries({ tenantId } = {}) {
+    const t = normalizeText(tenantId);
+    return state.entries
+      .filter((item) => !t || normalizeText(item.tenantId) === t)
+      .map(cloneEntry);
+  }
+
   async function listEntries({ tenantId, patientId, journalType } = {}) {
     const typeFilter = normalizeKey(journalType);
     return state.entries
@@ -943,6 +950,7 @@ async function createCcoJournalStore({ filePath }) {
     importHistoricalEntries,
     importHistoricalForPatients,
     isSmokeTestPhotoLabel,
+    listAllEntries,
     listEntries,
     listEntriesPage,
     markAttachmentAnnotatedPreview,
