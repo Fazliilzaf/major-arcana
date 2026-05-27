@@ -5166,11 +5166,20 @@ function toCcoRuntimeHistoryBackfillInput(input = {}) {
     CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS
   );
   const refresh = toBoolean(safeInput.refresh, false);
+  const maxPagesPerFolder = clampInteger(safeInput.maxPagesPerFolder, 1, 10000, 0) || null;
+  const pageSize = clampInteger(safeInput.pageSize, 1, 500, 0) || null;
+  const folderTypes = normalizeMailboxIdList(
+    parseMailboxIdValues(safeInput.folderTypes, 4),
+    4
+  ).filter((folderType) => ['inbox', 'sent', 'drafts', 'deleted'].includes(folderType));
   return {
     mailboxId: mailboxIds[0] || CCO_KONS_HISTORY_DEFAULT_MAILBOX,
     mailboxIds,
     lookbackDays,
     refresh,
+    maxPagesPerFolder,
+    pageSize,
+    folderTypes: folderTypes.length > 0 ? folderTypes : null,
   };
 }
 
@@ -5872,8 +5881,10 @@ function toCcoRuntimeHistoryBackfillHandler({
         });
         const result = await backfill.runBackfill({
           mailboxIds: input.mailboxIds,
-          folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
+          folderTypes: input.folderTypes || ['inbox', 'sent', 'drafts', 'deleted'],
           resume: input.refresh !== true,
+          ...(input.maxPagesPerFolder ? { maxPagesPerFolder: input.maxPagesPerFolder } : {}),
+          ...(input.pageSize ? { pageSize: input.pageSize } : {}),
         });
         const nextCoverage = mailboxTruthHistory.getHistoryCoverage({
           mailboxIds: input.mailboxIds,
