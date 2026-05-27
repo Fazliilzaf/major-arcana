@@ -39,6 +39,7 @@
     "migration:scan-folder": "node scripts/migration/scanDriveFolder.js",
     "migration:scan-drive-api": "node scripts/migration/scanGoogleDriveApi.js",
     "migration:enrich-drive-ids": "node scripts/migration/enrichIndexWithDriveIds.js",
+    "migration:propose-drive-matches": "node scripts/migration/proposeMojibakeDriveMatches.js",
     "audit:drive-file-ids": "node scripts/audit-missing-drive-file-ids.js",
     "backfill:drive-file-ids": "node scripts/backfill-drive-file-ids.js",
     "backfill:drive-file-ids:apply": "node scripts/backfill-drive-file-ids.js --apply",
