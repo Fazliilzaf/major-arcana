@@ -124,3 +124,29 @@ Fas A ──► Fas B ──► Fas C ──► Fas 6
 - [PROJECT-CHECKLIST.md](./PROJECT-CHECKLIST.md) — samlad projektchecklista
 - `Juridik-GDPR/INNEHALL-OCH-NYCKELPUNKTER.md`
 - Jurist: Gabrielle Handler, Nordbro — processmail 2025
+
+---
+
+## Fas C, Inline-docs i admin per sektion (planerat 2026-06-01, måndag efter Frankfurt-cutover)
+
+**Mål:** Varje dokument visas inline i den admin-sektion det beskriver, inte gömt
+i CAO-Workspace-fliken. Booking-docs vid bokningsmotorn, journal-docs vid journal,
+legal-docs vid GDPR-vyn, osv.
+
+**Förkrav:**
+- Frankfurt-cutover klar och stabil (söndag 2026-05-31).
+- 24 h utan post-migration-incident.
+
+**Steg:**
+1. Bygg reusable `<DocsForSection sectionId="...">`-widget (vanilla JS,
+   anropar GET `/api/v1/docs/section/:sectionId` och renderar collapse-lista).
+2. Mockup på 1 sektion (Journal) → fazli godkänner visuellt.
+3. Rulla ut samma pattern till de 17 andra sektionerna (Booking, Settings,
+   Team, Ops, Templates, Reviews, Audit, CCO, COO, CAO, CFO, CMO, Legal, etc).
+4. Behåll CAO-Workspace-fliken som översikt-vy parallellt.
+5. Lägg topp-nivå "Docs"-länk i admin som hoppar till CAO-översikten.
+
+**Backend:** redan på plats (`src/ops/contextualDocs.js` + 3 endpoints under
+`/api/v1/docs/`). Inga backend-ändringar krävs, bara UI-integration.
+
+**Beslut:** sparat på Fazlis begäran 2026-05-27 sent kväll.
