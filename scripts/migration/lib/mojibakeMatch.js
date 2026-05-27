@@ -84,7 +84,14 @@ function summarizeDrive(file = {}) {
 // - missingFiles: index files lacking driveFileId.
 // - driveFiles:   Drive-API files (each with driveFileId + personnummer).
 // Returns { proposed, ambiguous, unresolved, stats }. Nothing is mutated.
-function proposeDriveMatches({ missingFiles = [], driveFiles = [], minScore = 0.82, scoreMargin = 0.1 } = {}) {
+function proposeDriveMatches({
+  missingFiles = [],
+  driveFiles = [],
+  minScore = 0.82,
+  scoreMargin = 0.1,
+  partialFloor = 0.6,
+  partialMargin = 0.15,
+} = {}) {
   const driveByPnr = new Map();
   for (const drive of driveFiles) {
     const pnr = String(drive.personnummer || '').trim();
@@ -151,16 +158,39 @@ function proposeDriveMatches({ missingFiles = [], driveFiles = [], minScore = 0.
 
     const best = scored[0];
     const second = scored[1];
+    const bestSkeleton = skeletonName(fileNameOf(best.drive));
     const clearWinner = !second || best.score - second.score >= scoreMargin;
+    // A near-tie is only genuinely ambiguous when a contender is a DIFFERENT
+    // document (different driveFileId AND name skeleton). Ties between duplicate
+    // copies of the same doc under the patient are safe to take.
+    const tiedDistinct = scored
+      .slice(1)
+      .filter((entry) => best.score - entry.score < scoreMargin)
+      .some(
+        (entry) =>
+          entry.drive.driveFileId !== best.drive.driveFileId &&
+          skeletonName(fileNameOf(entry.drive)) !== bestSkeleton
+      );
 
-    if (best.score >= minScore && clearWinner) {
+    if (best.score >= minScore && (clearWinner || !tiedDistinct)) {
       claimed.add(best.drive.driveFileId);
       proposed.push({
         file: summarizeMissing(missing),
         match: summarizeDrive(best.drive),
         score: Number(best.score.toFixed(3)),
         confidence: 'high',
-        reason: 'name_skeleton_match',
+        reason: clearWinner ? 'name_skeleton_match' : 'duplicate_tie',
+      });
+    } else if (best.score >= partialFloor && second && best.score - second.score >= partialMargin) {
+      // Decisive winner whose name only partially confirms (e.g. a health
+      // declaration with an extra "NY"/numeric suffix beating an unrelated doc).
+      claimed.add(best.drive.driveFileId);
+      proposed.push({
+        file: summarizeMissing(missing),
+        match: summarizeDrive(best.drive),
+        score: Number(best.score.toFixed(3)),
+        confidence: 'medium',
+        reason: 'clear_winner_partial_name',
       });
     } else if (sameType.length === 1) {
       // Exactly one Drive file of this type under the patient: strong structural
