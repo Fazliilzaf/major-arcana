@@ -6029,3 +6029,41 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 .customers-utility-button[data-patient-action="retry-detail-load"] {
   color: #d97706;
 }
+
+
+/* =====================================================
+   v10: Kategori-färger på customers-head + detail actions
+   Massammanfoga, Exportera, Importera, Omdömen, Inställningar
+   + customer-detail-actions (merge/split/primary-email/toggle)
+   ===================================================== */
+
+/* Customers-head verktygsbar */
+.customers-utility-button[data-customer-command="bulk_merge"] {
+  color: #4338ca;
+}
+.customers-utility-button[data-customer-command="export"] {
+  color: #0891b2;
+}
+.customers-utility-button[data-customer-command="import"] {
+  color: #d97706;
+}
+.customers-utility-button[data-post-op-reviews-open] {
+  color: #db2777;
+}
+.customers-utility-button[data-customer-command="settings"] {
+  color: #475569;
+}
+
+/* Per-kund detail-actions */
+.customers-utility-button[data-customer-detail-action="merge_settings"] {
+  color: #4338ca;
+}
+.customers-utility-button[data-customer-detail-action="primary_email"] {
+  color: #0891b2;
+}
+.customers-utility-button[data-customer-detail-action="split_profile"] {
+  color: #b45309;
+}
+.customers-utility-button[data-customer-detail-action="toggle_batch"] {
+  color: #15803d;
+}
