@@ -100,9 +100,11 @@ services:
       - key: ARCANA_BOOTSTRAP_PHASE1_ONLY
         value: "true"
       # Byggfas: MFA av tills allt är klart (sätt true + owner_mfa_enforced vid go-live).
-      # Webb-bokning LIVE 2026-05-27 (Fazli godkänt — alla prerequisites klara).
-      - key: ARCANA_PUBLIC_WEB_BOOKING_ENABLED
-        value: "true"
+      # Webb-bokning: styrs av config.js default (true) — ingen env-override.
+      # Render Blueprint syncar INTE bort befintliga env-vars.
+      # Om Render Dashboard fortfarande har ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false:
+      # → TA BORT variabeln i Dashboard (inte ändra till true, TA BORT den).
+      # Då tar config.js default=true över.
       - key: ARCANA_CLIENTO_INTEGRATION_ENABLED
         value: "false"
       - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
