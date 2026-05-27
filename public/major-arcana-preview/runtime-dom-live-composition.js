@@ -285,6 +285,39 @@
       );
     }
 
+    function runtimeThreadIdsSignature(threads = state.runtime?.threads) {
+      return asArray(threads)
+        .map((thread) => asText(thread?.id))
+        .filter(Boolean)
+        .sort()
+        .join("|");
+    }
+
+    function runtimeQueueDomMatchesThreads(threads = state.runtime?.threads) {
+      try {
+        const expectedIds = new Set(
+          asArray(threads)
+            .map((thread) => asText(thread?.id))
+            .filter(Boolean)
+        );
+        if (!expectedIds.size) return false;
+        const domIds = Array.from(
+          windowObject.document?.querySelectorAll?.(
+            ".queue-history-list [data-runtime-thread], .queue-history-list [data-thread-id]"
+          ) || []
+        )
+          .map((node) =>
+            asText(node.getAttribute("data-runtime-thread") || node.getAttribute("data-thread-id"))
+          )
+          .filter((id) => id && id !== "runtime-empty" && id !== "runtime-unified-empty");
+        if (!domIds.length) return false;
+        if (domIds.length !== expectedIds.size) return false;
+        return domIds.every((id) => expectedIds.has(id));
+      } catch {
+        return false;
+      }
+    }
+
     function getTruthConsumerSignature(payload) {
       if (!payload || typeof payload !== "object") return "";
       const generatedAt = asText(payload.generatedAt || payload.metadata?.generatedAt);
@@ -1828,7 +1861,29 @@
           console.warn("CCO bokningsärenden kunde inte förladdas.", error);
         });
       }
-      paintRuntimeShell("all");
+      const threadRows = Array.isArray(state.runtime?.threads) ? state.runtime.threads : [];
+      const currentSignature = threadRows
+        .map((thread) => String(thread?.id || "").trim())
+        .filter(Boolean)
+        .sort()
+        .join("|");
+      const cachedSignature = String(state.runtime?.cachedQueuePaintSignature || "").trim();
+      const skipQueueRepaint =
+        state.runtime?.staleCacheActive === true &&
+        cachedSignature &&
+        cachedSignature === currentSignature;
+      if (skipQueueRepaint) {
+        paintRuntimeShell("chrome");
+        paintRuntimeShell("focus");
+      } else {
+        paintRuntimeShell("all");
+      }
+      if (state.runtime) {
+        state.runtime.cachedQueuePaintSignature = currentSignature;
+        if (state.runtime.staleCacheActive === true && currentSignature) {
+          state.runtime.staleCacheActive = false;
+        }
+      }
     }
 
     function getRuntimeThreadHydrationMailboxIds(thread, fallbackMailboxIds = []) {
@@ -4119,8 +4174,13 @@
               authRequired: false,
               error: "",
             });
+            state.runtime.cachedQueuePaintSignature = runtimeThreadIdsSignature(
+              state.runtime.threads
+            );
             paintRuntimeShell("chrome");
-            paintRuntimeShell("queue");
+            if (!runtimeQueueDomMatchesThreads(state.runtime.threads)) {
+              paintRuntimeShell("queue");
+            }
             if (typeof syncRuntimeVisualStateMachine === "function") {
               syncRuntimeVisualStateMachine();
             }

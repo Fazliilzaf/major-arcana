@@ -1641,7 +1641,14 @@ test('Mail-lik start låser lane vid boot och cache-first paint', () => {
   const appSource = fs.readFileSync(APP_PATH, 'utf8');
   const domLiveSource = fs.readFileSync(DOM_LIVE_COMPOSITION_PATH, 'utf8');
   const renderersSource = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'runtime-queue-renderers.js'),
+    path.join(
+      __dirname,
+      '..',
+      '..',
+      'public',
+      'major-arcana-preview',
+      'runtime-queue-renderers.js'
+    ),
     'utf8'
   );
 
@@ -1673,5 +1680,31 @@ test('Mail-lik start låser lane vid boot och cache-first paint', () => {
     renderersSource,
     /pillMode === "sync"[\s\S]*Synkar/,
     'Live-pill ska visa Synkar… under stale/background sync.'
+  );
+});
+
+test('Mail-lik Fas 2 skippar queue-repaint när cache-signatur matchar DOM', () => {
+  const domLiveSource = fs.readFileSync(DOM_LIVE_COMPOSITION_PATH, 'utf8');
+  const shimsSource = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'public', 'major-arcana-preview', 'app', 'cco-shims.js'),
+    'utf8'
+  );
+
+  assertMatchFast(
+    domLiveSource,
+    /function runtimeQueueDomMatchesThreads/,
+    'Runtime ska kunna detektera om kö-DOM redan matchar cachade trådar.'
+  );
+
+  assertMatchFast(
+    domLiveSource,
+    /cachedQueuePaintSignature[\s\S]*skipQueueRepaint[\s\S]*paintRuntimeShell\("chrome"\)[\s\S]*paintRuntimeShell\("focus"\)/,
+    'finalizeRuntimeLoad ska undvika full queue-repaint när cache-signatur är oförändrad.'
+  );
+
+  assertMatchFast(
+    shimsSource,
+    /bootstrapStatusPresentationFix[\s\S]*aggressiveStatusAndUndefinedFix/,
+    'cco-shims ska sanera undefined-exposure och översätta rå status-koder.'
   );
 });

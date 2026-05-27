@@ -1,7 +1,7 @@
 # CCO Mail-lik start — 1-sides plan
 
-**Status:** Fas 1 implementerad (2026-05-20) — väntar prod-verify  
-**Senast uppdaterad:** 2026-05-20  
+**Status:** Fas 1 live · Fas 2 pågår (2026-05-28)  
+**Senast uppdaterad:** 2026-05-28  
 **Relaterat:** [cco-mobile-ux-sweep-plan.md](./cco-mobile-ux-sweep-plan.md) (klar), mobil field pilot (parallellt)  
 **Mål:** CCO ska kännas som **Mac Mail vid öppning** — inbox synlig direkt, en diskret sync-indikator, inga hopp mellan tom/laddar/färdig.
 
@@ -33,6 +33,18 @@
 - [x] **Ingen auto-lane-switch** vid start (`bootLaneLocked`)
 - [x] **Ingen list-hop:** merge-skydd vid staleWhileRevalidate (queue paint endast vid diff)
 - [x] Desktop + mobil regression: kör `verify:cco-mobile-pilot-prod` efter merge
+
+---
+
+## Fas 2 (pågår)
+
+| #   | Uppgift                                                                        | Status                               |
+| --- | ------------------------------------------------------------------------------ | ------------------------------------ |
+| 2a  | Queue paint endast vid DOM-diff efter cache-hit                                | ✅ `runtimeQueueDomMatchesThreads`   |
+| 2b  | `finalizeRuntimeLoad` skippar full queue-repaint vid oförändrad cache-signatur | ✅                                   |
+| 2c  | Explicit mailbox-widen (`data-mailbox-widen-all`)                              | ✅ redan på main                     |
+| 2d  | Utöka verify (tråd-restore, sync-pill, mobil)                                  | ✅ i `verify-cco-mail-start-prod.js` |
+| 2e  | IDB workspace snapshot v2                                                      | ⏳ senare                            |
 
 ---
 
