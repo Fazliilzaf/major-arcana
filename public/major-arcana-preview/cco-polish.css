@@ -4887,6 +4887,7 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 .preview-canvas[data-app-shell-view="customers"] {
   height: auto;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   overflow-y: visible;
 }
