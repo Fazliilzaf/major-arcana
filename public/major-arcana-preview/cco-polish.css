@@ -5662,3 +5662,25 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   border-radius: 0.65rem;
   overflow: hidden;
 }
+
+/* Journalutkast-förslag: notis på egen rad under titeln (annars klistras
+   "Hälsodeklaration" + "Föreslagen utkast …" ihop utan mellanrum). */
+.patient-master-draft-proposal-fields .patient-master-draft-proposal-field-note {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+  color: var(--ink-muted, rgba(43, 37, 31, 0.62));
+}
+
+/* iPad-stående → liten laptop (1024–1279px): desktop-layoutens tre kolumner
+   (Arbetskö 500 + konversation 420 + Kundintelligens 260) får inte plats, så
+   höger-railen klipptes utanför skärmkanten. Stapla fokusytan vertikalt i
+   detta intervall — Kundintelligens hamnar under konversationen i stället för
+   bredvid. ≥1280px behåller tre kolumner (får plats), ≤1023px hanteras av
+   tablet-/mobil-shell. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .preview-canvas[data-app-shell-view="conversations"] .focus-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
