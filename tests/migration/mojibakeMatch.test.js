@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const {
   skeletonName,
   nameSimilarity,
+  extractDates,
   proposeDriveMatches,
 } = require('../../scripts/migration/lib/mojibakeMatch');
 const { applyProposals } = require('../../scripts/migration/proposeMojibakeDriveMatches');
@@ -73,6 +74,29 @@ test('proposeDriveMatches flags ambiguous when multiple journals of the same typ
   });
   assert.equal(result.stats.ambiguous, 1);
   assert.equal(result.stats.proposedHigh, 0);
+});
+
+test('extractDates finds encounter dates and excludes the patient birthdate', () => {
+  const dates = extractDates('Journal ??? 2023-11-11.pdf', '19671214');
+  assert.deepEqual([...dates], ['20231111']);
+  // pnr birthdate present in the path is excluded.
+  assert.deepEqual([...extractDates('19671214-2626/Journal 2023-11-11.pdf', '19671214')], ['20231111']);
+});
+
+test('proposeDriveMatches disambiguates competing journals by encounter date', () => {
+  const result = proposeDriveMatches({
+    missingFiles: [
+      // Unreadable name, but the date survives — must pick the 2023-11-11 journal.
+      { id: 'm1', fileName: 'Journal ??? +? 2023-11-11.pdf', fileType: 'journal_pdf', personnummer: '19671214-2626' },
+    ],
+    driveFiles: [
+      { driveFileId: 'd1', fileName: 'Journal Anna 2023-11-11.pdf', fileType: 'journal_pdf', personnummer: '19671214-2626' },
+      { driveFileId: 'd2', fileName: 'Journal Anna 2024-05-02.pdf', fileType: 'journal_pdf', personnummer: '19671214-2626' },
+    ],
+  });
+  assert.equal(result.stats.proposedHigh, 1);
+  assert.equal(result.proposed[0].match.driveFileId, 'd1');
+  assert.equal(result.proposed[0].reason, 'date_match');
 });
 
 test('proposeDriveMatches marks no-personnummer and no-drive cases unresolved', () => {
