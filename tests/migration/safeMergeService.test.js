@@ -66,6 +66,11 @@ test('lyckad execute → completed + manifest + after', async () => {
   assert.equal(res.merge.status, 'completed');
   assert.ok(res.merge.manifest);
   assert.equal(res.merge.after.secondaryArchived, true);
+  // manifest.moved must reflect ACTUAL moved counts (from transferFn), not the plan
+  assert.equal(res.merge.manifest.moved.filesMovedFromSecondary, 7);
+  assert.equal(res.merge.manifest.moved.totalFilesAfter, 17);
+  // the plan is preserved separately for reference
+  assert.ok(res.merge.manifest.planned);
 });
 
 test('misslyckad transfer MED rollbackFn → auto-rollback körs, status rolled_back', async () => {

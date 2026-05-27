@@ -185,7 +185,16 @@ function createSafeMergeService({ filePath }) {
         secondaryPatientId: merge.secondaryPatientId,
         reason: merge.reason,
         confidence: merge.confidence,
-        moved: merge.toMove,
+        // What we PLANNED to move (from the preview) vs what ACTUALLY moved
+        // (reported by transferFn). The manifest is proof, so it must reflect
+        // reality — not just the plan.
+        planned: merge.toMove,
+        moved: {
+          filesMovedFromSecondary: merge.after.filesMovedFromSecondary,
+          totalFilesAfter: merge.after.totalFilesAfter,
+          journalPdfsAfter: merge.after.journalPdfsAfter,
+          imagesAfter: merge.after.imagesAfter,
+        },
         blocked: [],
         warnings: merge.warnings,
         verification: null,
