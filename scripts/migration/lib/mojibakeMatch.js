@@ -42,6 +42,21 @@ function nameSimilarity(a, b) {
   return (2 * intersection) / (setA.size + setB.size);
 }
 
+// Encounter dates (YYYY-MM-DD / YYYYMMDD etc.) found in a filename, normalized to
+// YYYYMMDD. excludeYmd drops the patient's birthdate (from the pnr) so it doesn't
+// count as a distinguishing date — every file under a patient carries that.
+function extractDates(name, excludeYmd = '') {
+  const dates = new Set();
+  for (const match of String(name || '').matchAll(/((?:19|20)\d{2})[-._]?(\d{2})[-._]?(\d{2})/g)) {
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+    const ymd = `${match[1]}${match[2]}${match[3]}`;
+    if (ymd !== excludeYmd) dates.add(ymd);
+  }
+  return dates;
+}
+
 function fileNameOf(file = {}) {
   return String(file.fileName || path.basename(String(file.relativePath || ''))).trim();
 }
@@ -99,10 +114,38 @@ function proposeDriveMatches({ missingFiles = [], driveFiles = [], minScore = 0.
     }
 
     const sameType = pool.filter((drive) => drive.fileType === missing.fileType);
-    const candidates = sameType.length ? sameType : pool;
+    let candidatePool = sameType.length ? sameType : pool;
+
+    // A shared encounter date (e.g. 2023-11-11) — excluding the patient's
+    // birthdate from the pnr — strongly disambiguates dated journals whose names
+    // are otherwise unreadable mojibake.
+    const pnrYmd = String(missing.personnummer || '').replace(/\D/g, '').slice(0, 8);
+    const missingDates = extractDates(fileNameOf(missing), pnrYmd);
+    if (missingDates.size) {
+      const dateMatched = candidatePool.filter((drive) => {
+        const driveDates = extractDates(fileNameOf(drive), pnrYmd);
+        for (const ymd of missingDates) if (driveDates.has(ymd)) return true;
+        return false;
+      });
+      if (dateMatched.length === 1) {
+        claimed.add(dateMatched[0].driveFileId);
+        proposed.push({
+          file: summarizeMissing(missing),
+          match: summarizeDrive(dateMatched[0]),
+          score: Number(
+            nameSimilarity(skeletonName(fileNameOf(missing)), skeletonName(fileNameOf(dateMatched[0]))).toFixed(3)
+          ),
+          confidence: 'high',
+          reason: 'date_match',
+        });
+        continue;
+      }
+      if (dateMatched.length > 1) candidatePool = dateMatched;
+    }
+
     const missingSkeleton = skeletonName(fileNameOf(missing));
 
-    const scored = candidates
+    const scored = candidatePool
       .map((drive) => ({ drive, score: nameSimilarity(missingSkeleton, skeletonName(fileNameOf(drive))) }))
       .sort((left, right) => right.score - left.score);
 
@@ -159,5 +202,6 @@ function proposeDriveMatches({ missingFiles = [], driveFiles = [], minScore = 0.
 module.exports = {
   skeletonName,
   nameSimilarity,
+  extractDates,
   proposeDriveMatches,
 };
