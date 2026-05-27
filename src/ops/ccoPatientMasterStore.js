@@ -616,7 +616,8 @@ async function createCcoPatientMasterStore({ filePath }) {
     const bucket = tenantBucket(state, tenantId);
     const q = normalizeKey(query);
     const flagSet = new Set(asArray(flags).map(normalizeKey).filter(Boolean));
-    let rows = bucket.patients.slice();
+    // Hide merged-away secondaries from active views (kept in bucket for audit).
+    let rows = bucket.patients.slice().filter((item) => item.matchStatus !== 'merged');
 
     const indexedMatches = lookupPatientsByQuery(bucket, query);
     if (indexedMatches) {
@@ -1136,7 +1137,22 @@ async function createCcoPatientMasterStore({ filePath }) {
     }
 
     applyPatientPatch({ ...merged, tenantId, id: primaryId });
-    bucket.patients = bucket.patients.filter((item) => !secondaryIds.includes(item.id));
+    // ARCHIVE (do not delete) secondaries so the audit trail survives and verify/
+    // rollback can still find them. matchStatus='merged' + mergedInto + archivedAt
+    // is the signal listPatients/completeness use to hide them from active views.
+    const archiveTs = nowIso();
+    for (const sid of secondaryIds) {
+      const idx = bucket.patients.findIndex((item) => item.id === sid);
+      if (idx >= 0) {
+        bucket.patients[idx] = {
+          ...bucket.patients[idx],
+          matchStatus: 'merged',
+          mergedInto: primaryId,
+          archivedAt: archiveTs,
+          updatedAt: archiveTs,
+        };
+      }
+    }
     bucket.imports.patientMerge = bucket.imports.patientMerge || {
       mergedGroups: 0,
       removedPatients: 0,
@@ -1148,7 +1164,8 @@ async function createCcoPatientMasterStore({ filePath }) {
 
     return {
       primaryPatientId: primaryId,
-      removedPatientIds: secondaryIds,
+      removedPatientIds: secondaryIds, // legacy alias
+      archivedPatientIds: secondaryIds,
       patient: clonePatient(
         bucket.patients.find((item) => item.id === primaryId) || merged
       ),
@@ -1157,7 +1174,10 @@ async function createCcoPatientMasterStore({ filePath }) {
 
   async function getTenantStats({ tenantId } = {}) {
     const bucket = tenantBucket(state, tenantId);
-    const patients = asArray(bucket.patients);
+    // Active stats exclude archived (merged-away) secondaries; archived count tracked separately.
+    const allPatients = asArray(bucket.patients);
+    const archived = allPatients.filter((item) => item.matchStatus === 'merged');
+    const patients = allPatients.filter((item) => item.matchStatus !== 'merged');
     return {
       totalPatients: patients.length,
       withPersonnummer: patients.filter((item) => item.personnummer).length,
@@ -1166,6 +1186,7 @@ async function createCcoPatientMasterStore({ filePath }) {
       driveOnly: patients.filter((item) => item.matchStatus === 'drive_only').length,
       needsReview: patients.filter((item) => item.matchStatus === 'needs_review').length,
       pipedriveLinked: patients.filter((item) => item.pipedrive).length,
+      archivedPatients: archived.length,
       imports: bucket.imports || {},
       updatedAt: state.updatedAt,
     };
