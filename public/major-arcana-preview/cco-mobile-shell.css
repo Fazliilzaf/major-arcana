@@ -1,11 +1,11 @@
 /* ============================================================
    CCO Mobile Shell — phone-first app chrome (UX sweep Fas A–B)
-   Breakpoint: max-width 1023px (phone ≤768px, tablet 769–1023px; see design-tokens)
+   Breakpoint: max-width 1023px (phone ≤767px, tablet 768–1023px; see design-tokens)
    Loaded after cco-polish.css in @layer components.
    ============================================================ */
 
 @layer components {
-  @media (max-width: 768px) {
+  @media (max-width: 767px) {
     html {
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
@@ -3194,10 +3194,10 @@
   }
 
   /* ============================================================
-     Tablet shell (769–1023px) — bottom nav + touch targets + split views
+     Tablet shell (768–1023px) — bottom nav + touch targets + split views
      iPad portrait/landscape gets app-like chrome, not squeezed desktop.
      ============================================================ */
-  @media (min-width: 769px) and (max-width: 1023px) {
+  @media (min-width: 768px) and (max-width: 1023px) {
     html[data-cco-mobile-shell="on"] {
       --cco-shell-active: 1;
       --cco-tablet-active: 1;

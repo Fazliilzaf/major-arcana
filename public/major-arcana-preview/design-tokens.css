@@ -156,7 +156,7 @@
 
   /* Layout breakpoints (canonical — mobile-first 2026-05) */
   --cco-bp-mobile-max: 767px;
-  --cco-bp-phone-max: 768px;
+  --cco-bp-phone-max: 767px;
   --cco-bp-tablet-min: 768px;
   --cco-bp-tablet-max: 1023px;
   --cco-bp-desktop-min: 1024px;
