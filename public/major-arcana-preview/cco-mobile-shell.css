@@ -3272,6 +3272,18 @@
     html[data-cco-mobile-shell="on"] .focus-customer-grid {
       gap: 10px;
     }
+
+    /* DENSITET: bokningsåtgärderna (~10 knappar) staplades i en lång kolumn
+       (~395px). Lägg i 2 kolumner → halverad höjd och utnyttjar bredden. */
+    html[data-cco-mobile-shell="on"] .booking-action-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+    /* tightare avstånd mellan bokningsytans sektioner */
+    html[data-cco-mobile-shell="on"] .booking-operator-surface {
+      gap: 10px;
+    }
   }
 
   /* ============================================================
