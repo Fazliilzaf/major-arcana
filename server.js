@@ -518,6 +518,7 @@ const { createMeetingTranscriptionService } = require('./src/video/meetingTransc
 const { createQmsRouter } = require('./src/routes/qms');
 const { createQmsStore } = require('./src/qms/qmsStore');
 const { createReconciliationRouter } = require('./src/routes/reconciliation');
+const { createComplianceRouter } = require('./src/routes/compliance');
 const { createSafeMergeService } = require('./src/migration/safeMergeService');
 const { createBillingService } = require('./src/billing/billingService');
 const { createStripeClient } = require('./src/billing/stripeClient');
@@ -538,7 +539,9 @@ const { createCcoMailboxTruthStore } = require('./src/ops/ccoMailboxTruthStore')
 const { createCcoMailIngestionStore } = require('./src/ops/ccoMailIngestion/store');
 const { createCcoMailIngestionSyncService } = require('./src/ops/ccoMailIngestion/syncService');
 const { createCcoMailIngestionWorker } = require('./src/ops/ccoMailIngestion/worker');
-const { createMicrosoftGraphChangeNotifications } = require('./src/infra/microsoftGraphChangeNotifications');
+const {
+  createMicrosoftGraphChangeNotifications,
+} = require('./src/infra/microsoftGraphChangeNotifications');
 const { createCcoMailIngestionRouter } = require('./src/routes/ccoMailIngestion');
 const { createMessageIntelligenceStore } = require('./src/ops/messageIntelligenceStore');
 const { createCustomerPreferenceStore } = require('./src/ops/customerPreferenceStore');
@@ -921,8 +924,18 @@ app.get('/api/v1/executive/agents/status', (req, res) => {
 
 const { computeQaDashboard } = require('./src/ops/qaDashboard');
 const { buildDayView, buildWeekView } = require('./src/ops/clinicCalendarView');
-const { runBackup, listBackups, verifyBackup, restoreFromLocal, resolveConfig: resolveBackupConfig } = require('./src/ops/backupService');
-const { getStatus: getUptimeStatus, startMonitoring, runCheck: runUptimeCheck } = require('./src/ops/uptimeMonitor');
+const {
+  runBackup,
+  listBackups,
+  verifyBackup,
+  restoreFromLocal,
+  resolveConfig: resolveBackupConfig,
+} = require('./src/ops/backupService');
+const {
+  getStatus: getUptimeStatus,
+  startMonitoring,
+  runCheck: runUptimeCheck,
+} = require('./src/ops/uptimeMonitor');
 const { createOnboardingStore } = require('./src/ops/staffOnboarding');
 const { getDocContent, getDocsForSection, getAllSections } = require('./src/ops/contextualDocs');
 
@@ -938,7 +951,8 @@ app.get('/api/v1/docs/section/:sectionId', (req, res) => {
 
 app.get('/api/v1/docs/content', async (req, res) => {
   const docPath = (req.query?.path || '').trim();
-  if (!docPath || !docPath.startsWith('docs/')) return res.status(400).json({ ok: false, error: 'invalid_path' });
+  if (!docPath || !docPath.startsWith('docs/'))
+    return res.status(400).json({ ok: false, error: 'invalid_path' });
   const result = await getDocContent(docPath);
   if (!result.ok) return res.status(404).json(result);
   return res.json(result);
@@ -1012,7 +1026,11 @@ app.get('/api/v1/onboarding/:userId', (req, res) => {
   return res.json({ ok: true, ...status });
 });
 app.post('/api/v1/onboarding/:userId/step/:stepId', async (req, res) => {
-  const result = await onboardingStore.completeStep(req.params.userId, req.params.stepId, req.body?.verification);
+  const result = await onboardingStore.completeStep(
+    req.params.userId,
+    req.params.stepId,
+    req.body?.verification
+  );
   return res.json(result);
 });
 app.post('/api/v1/onboarding/:userId/reset', async (req, res) => {
@@ -1239,15 +1257,18 @@ process.once('SIGTERM', () => {
     const origJson = res.json.bind(res);
     res.json = function (body) {
       if (res.statusCode === 429) {
-        const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+        const email =
+          typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
         console.warn(`[auth-rate-limit] BLOCKED login brute-force: ip=${req.ip} email=${email}`);
         if (authStore && typeof authStore.addAuditEvent === 'function') {
-          authStore.addAuditEvent({
-            action: 'auth.login.rate_limited',
-            outcome: 'blocked',
-            actorIp: req.ip,
-            metadata: { email, ip: req.ip, userAgent: req.get('user-agent') },
-          }).catch(() => {});
+          authStore
+            .addAuditEvent({
+              action: 'auth.login.rate_limited',
+              outcome: 'blocked',
+              actorIp: req.ip,
+              metadata: { email, ip: req.ip, userAgent: req.get('user-agent') },
+            })
+            .catch(() => {});
         }
       }
       return origJson(body);
@@ -1435,7 +1456,10 @@ process.once('SIGTERM', () => {
         ccoBookingEngineStore.setBookingPolicySettings(bootstrapSettings.bookingPolicy);
       }
     } catch (error) {
-      console.warn('[booking-engine] kunde inte ladda bookingPolicy från settings:', error?.message || error);
+      console.warn(
+        '[booking-engine] kunde inte ladda bookingPolicy från settings:',
+        error?.message || error
+      );
     }
   }
   const ccoMacroStore = await createCcoMacroStore({
@@ -1640,7 +1664,6 @@ process.once('SIGTERM', () => {
     treatmentAgreementStore: ccoTreatmentAgreementStore,
     patientCareStateStore,
     ccoSettingsStore,
-    runtimeMetricsStore,
     dashboardSnapshot: ccoDashboardSnapshot,
     worklistSnapshot: ccoWorklistSnapshot,
     readCache: ccoReadCache,
@@ -2475,6 +2498,8 @@ process.once('SIGTERM', () => {
       mergeService,
     })
   );
+
+  app.use('/api/v1', createComplianceRouter({ authStore: auth, config }));
 
   app.use(
     '/api/v1',
