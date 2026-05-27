@@ -24,6 +24,22 @@ test('normalizePersonnummer formats Swedish personnummer', () => {
   assert.equal(normalizePersonnummer('198012245513'), '19801224-5513');
 });
 
+test('normalizePersonnummer accepts samordningsnummer (+60 day offset)', () => {
+  assert.equal(normalizePersonnummer('19450161-1234'), '19450161-1234');
+});
+
+test('normalizePersonnummer rejects stray numbers with impossible dates', () => {
+  // These spawned phantom patient profiles before date validation.
+  assert.equal(normalizePersonnummer('76413983-1433'), ''); // year 7641
+  assert.equal(normalizePersonnummer('19963220-8679'), ''); // month 32
+  assert.equal(normalizePersonnummer('19960399-8679'), ''); // day 99
+  assert.equal(normalizePersonnummer('Hellmark-1771596438-2394'), ''); // timestamp in filename
+});
+
+test('normalizePersonnummer recovers a real pnr after a stray number', () => {
+  assert.equal(normalizePersonnummer('INV-12345678-9999_pnr-19960320-8679'), '19960320-8679');
+});
+
 test('nameOverlapScore finds likely same person', () => {
   const score = nameOverlapScore('David Persson', 'David Persson - 19801224-5513');
   assert.ok(score >= 0.5);
