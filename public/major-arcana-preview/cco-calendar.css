@@ -987,7 +987,7 @@
     }
   }
 
-  @media (max-width: 900px) and (min-width: 1024px) {
+  @media (max-width: 900px) {
     .cco-cal-toolbar-brand h2 {
       font-size: 1.2rem;
     }
