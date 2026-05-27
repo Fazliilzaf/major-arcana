@@ -83,6 +83,49 @@ test('extractDates finds encounter dates and excludes the patient birthdate', ()
   assert.deepEqual([...extractDates('19671214-2626/Journal 2023-11-11.pdf', '19671214')], ['20231111']);
 });
 
+test('proposeDriveMatches treats a tie between duplicate copies as high confidence', () => {
+  const result = proposeDriveMatches({
+    missingFiles: [
+      { id: 'm1', fileName: 'Journal Johannes Algeback.pdf', fileType: 'journal_pdf', personnummer: '19920129-2779' },
+    ],
+    driveFiles: [
+      { driveFileId: 'd1', fileName: 'Journal Johannes Algebäck.pdf', fileType: 'journal_pdf', personnummer: '19920129-2779' },
+      { driveFileId: 'd2', fileName: 'Journal Johannes Algebäck.pdf', fileType: 'journal_pdf', personnummer: '19920129-2779' },
+    ],
+  });
+  assert.equal(result.stats.proposedHigh, 1);
+  assert.equal(result.proposed[0].reason, 'duplicate_tie');
+});
+
+test('proposeDriveMatches proposes a decisive sub-threshold winner as medium', () => {
+  const result = proposeDriveMatches({
+    missingFiles: [
+      { id: 'm1', fileName: 'Halsodeklaration Johannes Algeback.pdf', fileType: 'document_pdf', personnummer: '19920129-2779' },
+    ],
+    driveFiles: [
+      { driveFileId: 'd1', fileName: 'HalsodeklarationNY-Johannes-Algeback-1736917377-402.pdf', fileType: 'document_pdf', personnummer: '19920129-2779' },
+      { driveFileId: 'd2', fileName: 'Medication timing Johannes Algeback 2023-09-20.pdf', fileType: 'document_pdf', personnummer: '19920129-2779' },
+    ],
+  });
+  assert.equal(result.stats.proposedMedium, 1);
+  assert.equal(result.proposed[0].match.driveFileId, 'd1');
+  assert.equal(result.proposed[0].reason, 'clear_winner_partial_name');
+});
+
+test('proposeDriveMatches keeps distinct near-ties ambiguous (no forced pick)', () => {
+  const result = proposeDriveMatches({
+    missingFiles: [
+      { id: 'm1', fileName: 'Fore framifran', fileType: 'other', personnummer: '19920129-2779' },
+    ],
+    driveFiles: [
+      { driveFileId: 'd1', fileName: 'Fyra framifron', fileType: 'other', personnummer: '19920129-2779' },
+      { driveFileId: 'd2', fileName: 'Fjra framifron', fileType: 'other', personnummer: '19920129-2779' },
+    ],
+  });
+  assert.equal(result.stats.ambiguous, 1);
+  assert.equal(result.stats.proposedHigh + result.stats.proposedMedium, 0);
+});
+
 test('proposeDriveMatches disambiguates competing journals by encounter date', () => {
   const result = proposeDriveMatches({
     missingFiles: [
