@@ -5911,3 +5911,121 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 .patient-master-journal-toolbar [data-patient-action="new-bleph-journal"] {
   color: #db2777;
 }
+
+
+/* =====================================================
+   v9: Komprimera CCO-utkast + kategori-färger på bubblor
+   - Mindre padding/gap i utkast-korten
+   - Vänsterställ all text (ingen centrering)
+   - Färgad text per typ av knapp
+   ===================================================== */
+
+.patient-master-draft-proposal.review-draft-proposal {
+  gap: 0.3rem;
+  padding: 0.55rem 0.65rem 0.5rem 2.35rem;
+  text-align: left;
+}
+
+.patient-master-draft-proposal.review-draft-proposal::before {
+  left: 0.55rem;
+  top: 0.6rem;
+  width: 22px;
+  height: 27px;
+}
+
+.patient-master-draft-proposal.review-draft-proposal > p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.patient-master-draft-proposal-fields {
+  margin: 0;
+  padding-left: 0.95rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.patient-master-draft-proposal-fields li {
+  margin: 0;
+  padding: 0;
+}
+
+.patient-master-draft-proposal-field-note {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--warm-text-3, #6b7280);
+  line-height: 1.25;
+}
+
+.patient-master-draft-proposal-actions {
+  gap: 0.3rem;
+  justify-content: flex-start;
+}
+
+
+/* Godkänn / Avvisa */
+.customers-utility-button[data-review-draft-proposal="approved"] {
+  color: #15803d;
+}
+.customers-utility-button[data-review-draft-proposal="dismissed"] {
+  color: #dc2626;
+}
+
+/* Signera (gul/amber) */
+.customers-utility-button[data-patient-sign-entry] {
+  color: #d97706;
+}
+
+/* Öppna olika journaltyper */
+.customers-utility-button[data-patient-open-tp] { color: #0891b2; }
+.customers-utility-button[data-patient-open-prp] { color: #d97706; }
+.customers-utility-button[data-patient-open-bleph] { color: #db2777; }
+.customers-utility-button[data-patient-open-follow-up] { color: #7c3aed; }
+.customers-utility-button[data-patient-open-clinical] { color: #15803d; }
+
+/* Generisk öppna-länk */
+.patient-master-open-link { color: #2563eb; }
+
+
+/* Offert / Avtal actions */
+.customers-utility-button[data-patient-action="accept-offer"],
+.customers-utility-button[data-patient-action="accept-agreement"] {
+  color: #15803d;
+}
+.customers-utility-button[data-patient-action="send-offer-for-sign"],
+.customers-utility-button[data-patient-action="send-agreement-for-sign"],
+.customers-utility-button[data-patient-action="send-patient-info"] {
+  color: #4338ca;
+}
+.customers-utility-button[data-patient-action="create-offer-from-plan"],
+.customers-utility-button[data-patient-action="create-agreement-from-offer"] {
+  color: #0891b2;
+}
+
+/* Patient management */
+.customers-utility-button[data-patient-action="copy-patient-link"],
+.customers-utility-button[data-patient-action="show-patient-qr"],
+.customers-utility-button[data-patient-action="gdpr-export"] {
+  color: #475569;
+}
+
+/* Finansiella */
+.customers-utility-button[data-patient-action="swish-payment"] {
+  color: #15803d;
+}
+.customers-utility-button[data-patient-action="sync-fortnox"] {
+  color: #4338ca;
+}
+
+/* Spara */
+.customers-utility-button[data-patient-action="save-demographics"],
+.customers-utility-button[data-patient-action="save-journal-access"] {
+  color: #0891b2;
+}
+
+/* Retry */
+.customers-utility-button[data-patient-action="retry-detail-load"] {
+  color: #d97706;
+}
