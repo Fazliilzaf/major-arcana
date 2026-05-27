@@ -50,6 +50,7 @@ const {
   createMicrosoftGraphMailboxTruthDelta,
 } = require('../infra/microsoftGraphMailboxTruthDelta');
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
+const { createConfiguredCcoMailboxTruthStore } = require('./ccoMailboxTruthStoreFactory');
 const { computeCcoInboxEnrichmentCoverage } = require('./ccoInboxEnrichmentCoverage');
 const { config: defaultSchedulerConfig } = require('../config');
 
@@ -530,10 +531,7 @@ function createScheduler({
     if (!journalStore || !patientMasterStore || !patientCareStateStore) {
       return { tenantId, skipped: true, reason: 'care_stores_missing' };
     }
-    const leadDays = Math.max(
-      0,
-      Number(config.schedulerCcoFollowupDraftLeadDays) || 30
-    );
+    const leadDays = Math.max(0, Number(config.schedulerCcoFollowupDraftLeadDays) || 30);
     const result = await runFollowupDraftGenerator({
       journalStore,
       patientMasterStore,
@@ -581,7 +579,7 @@ function createScheduler({
     }
     let digest = { skipped: true, reason: 'empty_queue' };
     let patientEmails = { sent: 0, skipped: 0 };
-    let patientSms = { sent: 0, skipped: 0 };
+    const patientSms = { sent: 0, skipped: 0 };
     if (queue.total > 0) {
       patientEmails = await dispatchPatientVisitReminderEmails({
         queue,
@@ -597,11 +595,20 @@ function createScheduler({
         if (isConfigured()) {
           for (const reminder of queue.visitReminders) {
             const phone = reminder.phone || reminder.customerPhone;
-            if (!phone) { patientSms.skipped++; continue; }
+            if (!phone) {
+              patientSms.skipped++;
+              continue;
+            }
             const alreadySent = await patientCareStateStore.wasReminderSent?.({
-              tenantId, patientId: reminder.patientId, reminderKey: reminder.reminderKey, channel: 'sms',
+              tenantId,
+              patientId: reminder.patientId,
+              reminderKey: reminder.reminderKey,
+              channel: 'sms',
             });
-            if (alreadySent) { patientSms.skipped++; continue; }
+            if (alreadySent) {
+              patientSms.skipped++;
+              continue;
+            }
             const message = buildBookingReminderSms({
               patientName: reminder.patientName || reminder.customerName || '',
               serviceName: reminder.serviceLabel || reminder.serviceName || 'ditt besök',
@@ -612,8 +619,11 @@ function createScheduler({
             if (result.ok) {
               patientSms.sent++;
               await patientCareStateStore.logReminder?.({
-                tenantId, reminderKey: reminder.reminderKey, reminderType: 'visit_sms',
-                patientId: reminder.patientId, channel: 'sms',
+                tenantId,
+                reminderKey: reminder.reminderKey,
+                reminderType: 'visit_sms',
+                patientId: reminder.patientId,
+                channel: 'sms',
                 metadata: { messageId: result.messageId, phone },
               });
             } else {
@@ -698,7 +708,8 @@ function createScheduler({
     const pruned = await postOpReviewStore.pruneNoConsentPhotos({ ttlDays });
     const fsPromises = require('node:fs/promises');
     const pathLib = require('node:path');
-    const photosDir = config.postOpPhotosDir || pathLib.join(config.stateRoot || process.cwd(), 'post-op-photos');
+    const photosDir =
+      config.postOpPhotosDir || pathLib.join(config.stateRoot || process.cwd(), 'post-op-photos');
     let filesDeleted = 0;
     let dirsDeleted = 0;
     let diskErrors = 0;
@@ -707,10 +718,14 @@ function createScheduler({
       try {
         const entries = await fsPromises.readdir(subDir).catch(() => []);
         for (const f of entries) {
-          await fsPromises.unlink(pathLib.join(subDir, f)).catch(() => { diskErrors++; });
+          await fsPromises.unlink(pathLib.join(subDir, f)).catch(() => {
+            diskErrors++;
+          });
           filesDeleted++;
         }
-        await fsPromises.rmdir(subDir).catch(() => { /* non-fatal */ });
+        await fsPromises.rmdir(subDir).catch(() => {
+          /* non-fatal */
+        });
         dirsDeleted++;
       } catch (err) {
         diskErrors++;
@@ -2873,13 +2888,7 @@ function createScheduler({
 
     const lookbackDays = (() => {
       if (useScopedMerge && baselineOutputData) {
-        return Math.max(
-          1,
-          Math.min(
-            30,
-            Number(config?.schedulerCcoInboxScopedLookbackDays) || 7
-          )
-        );
+        return Math.max(1, Math.min(30, Number(config?.schedulerCcoInboxScopedLookbackDays) || 7));
       }
       const bootstrapTriggers = new Set([
         'startup',
@@ -2892,39 +2901,24 @@ function createScheduler({
       if (mode === 'full' && normalizedTrigger === 'cco_full_backfill') {
         return Math.max(
           7,
-          Math.min(
-            365,
-            Number(config?.schedulerCcoInboxFullBackfillLookbackDays) || 365
-          )
+          Math.min(365, Number(config?.schedulerCcoInboxFullBackfillLookbackDays) || 365)
         );
       }
       if (mode === 'full' && bootstrapTriggers.has(normalizedTrigger)) {
         return Math.max(
           7,
-          Math.min(
-            90,
-            Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90
-          )
+          Math.min(90, Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90)
         );
       }
-      return Math.max(
-        7,
-        Math.min(30, Number(config?.schedulerCcoShadowLookbackDays) || 14)
-      );
+      return Math.max(7, Math.min(30, Number(config?.schedulerCcoShadowLookbackDays) || 14));
     })();
     const scopedMaxMessagesPerUser = Math.max(
       10,
-      Math.min(
-        50,
-        Number(config?.schedulerCcoInboxScopedMaxMessagesPerUser) || 25
-      )
+      Math.min(50, Number(config?.schedulerCcoInboxScopedMaxMessagesPerUser) || 25)
     );
     const bootstrapMaxMessagesPerUser = Math.max(
       10,
-      Math.min(
-        200,
-        Number(config?.schedulerCcoInboxBootstrapMaxMessagesPerUser) || 200
-      )
+      Math.min(200, Number(config?.schedulerCcoInboxBootstrapMaxMessagesPerUser) || 200)
     );
     const normalizedTrigger = normalizeText(trigger);
     const useElevatedBootstrapCaps =
@@ -2962,14 +2956,8 @@ function createScheduler({
               skipGraphSnapshotCache: true,
               runTimeoutMs: 90000,
               maxMessagesPerUser: scopedMaxMessagesPerUser,
-              maxInboxMessagesPerUser: Math.max(
-                8,
-                Math.floor(scopedMaxMessagesPerUser * 0.6)
-              ),
-              maxSentMessagesPerUser: Math.max(
-                5,
-                Math.floor(scopedMaxMessagesPerUser * 0.4)
-              ),
+              maxInboxMessagesPerUser: Math.max(8, Math.floor(scopedMaxMessagesPerUser * 0.6)),
+              maxSentMessagesPerUser: Math.max(5, Math.floor(scopedMaxMessagesPerUser * 0.4)),
             }
           : useElevatedBootstrapCaps
             ? {
@@ -2979,10 +2967,7 @@ function createScheduler({
                   20,
                   Math.floor(bootstrapMaxMessagesPerUser * 0.6)
                 ),
-                maxSentMessagesPerUser: Math.max(
-                  15,
-                  Math.floor(bootstrapMaxMessagesPerUser * 0.4)
-                ),
+                maxSentMessagesPerUser: Math.max(15, Math.floor(bootstrapMaxMessagesPerUser * 0.4)),
               }
             : {}),
       },
@@ -2996,10 +2981,7 @@ function createScheduler({
       requestId,
       correlationId,
     });
-    let outputData =
-      analyzeResult?.data ||
-      analyzeResult?.output?.data ||
-      null;
+    let outputData = analyzeResult?.data || analyzeResult?.output?.data || null;
     if (!outputData || typeof outputData !== 'object') {
       return {
         tenantId,
@@ -3008,8 +2990,7 @@ function createScheduler({
       };
     }
 
-    const effectiveMode =
-      useScopedMerge && baselineOutputData ? 'scoped_merge' : 'full';
+    const effectiveMode = useScopedMerge && baselineOutputData ? 'scoped_merge' : 'full';
     if (effectiveMode === 'scoped_merge') {
       outputData = mergeWorklistEnrichmentOutput(baselineOutputData, outputData, {
         scopeConversationIds: scopedIds,
@@ -3046,8 +3027,7 @@ function createScheduler({
         lookbackDays,
         trigger,
         mode: effectiveMode,
-        scopedConversationCount:
-          effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
+        scopedConversationCount: effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
       },
       riskSummary: {},
       policySummary: {},
@@ -3098,10 +3078,7 @@ function createScheduler({
     );
     const requiredBootstrapLookbackDays = Math.max(
       7,
-      Math.min(
-        90,
-        Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90
-      )
+      Math.min(90, Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90)
     );
     const baseline = await resolveLatestWorklistEnrichmentBaseline({
       capabilityAnalysisStore,
@@ -3124,8 +3101,7 @@ function createScheduler({
       storedLookbackDays > 0 &&
       storedLookbackDays < requiredBootstrapLookbackDays;
     const forceRefresh =
-      normalizeText(trigger) === 'manual_api' ||
-      normalizeText(trigger) === 'manual_api_suite';
+      normalizeText(trigger) === 'manual_api' || normalizeText(trigger) === 'manual_api_suite';
     const generatedAtMs = Date.parse(generatedAt);
     const ageHours =
       Number.isFinite(generatedAtMs) && generatedAtMs > 0
@@ -3166,9 +3142,15 @@ function createScheduler({
   }
 
   async function resolveSchedulerTruthStore() {
+    if (config.ccoMailboxTruthSharded !== false) {
+      return createConfiguredCcoMailboxTruthStore(config);
+    }
     const truthPath = normalizeText(config.ccoMailboxTruthStorePath);
     if (!truthPath) return null;
-    return createCcoMailboxTruthStore({ filePath: truthPath });
+    return createCcoMailboxTruthStore({
+      filePath: truthPath,
+      deferConversationRebuild: true,
+    });
   }
 
   async function runCcoInboxEnrichmentFullBackfill({
@@ -3198,17 +3180,11 @@ function createScheduler({
     );
     const maxStallRounds = Math.max(
       1,
-      Math.min(
-        20,
-        Number(config?.schedulerCcoInboxFullBackfillMaxStallRounds) || 8
-      )
+      Math.min(20, Number(config?.schedulerCcoInboxFullBackfillMaxStallRounds) || 8)
     );
     const maxBatchRounds = Math.max(
       10,
-      Math.min(
-        500,
-        Number(config?.schedulerCcoInboxFullBackfillMaxBatchRounds) || 200
-      )
+      Math.min(500, Number(config?.schedulerCcoInboxFullBackfillMaxBatchRounds) || 200)
     );
     const incomingTrigger = normalizeText(trigger);
     const effectiveTrigger = CCO_INBOX_FULL_BACKFILL_TRIGGER;
@@ -3238,7 +3214,7 @@ function createScheduler({
         ccoCustomerStore,
       });
 
-    let coverageBefore = await computeCoverage();
+    const coverageBefore = await computeCoverage();
     logger?.log?.(
       `[scheduler] cco_inbox_enrichment_full_backfill START incomingTrigger=${incomingTrigger || 'none'} effectiveTrigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}% maxStallRounds=${maxStallRounds} maxBatchRounds=${maxBatchRounds}`
     );
@@ -3324,9 +3300,7 @@ function createScheduler({
   function asSchedulerStringArray(value) {
     return Array.from(
       new Set(
-        (Array.isArray(value) ? value : [])
-          .map((item) => normalizeText(item))
-          .filter(Boolean)
+        (Array.isArray(value) ? value : []).map((item) => normalizeText(item)).filter(Boolean)
       )
     );
   }
@@ -3365,7 +3339,10 @@ function createScheduler({
     if (!config.graphChangeNotificationsEnabled) {
       return { tenantId, skipped: true, reason: 'graph_change_notifications_disabled' };
     }
-    if (!graphChangeNotifications || typeof graphChangeNotifications.renewSubscription !== 'function') {
+    if (
+      !graphChangeNotifications ||
+      typeof graphChangeNotifications.renewSubscription !== 'function'
+    ) {
       return { tenantId, skipped: true, reason: 'graph_change_notifications_unavailable' };
     }
     const mailboxEmail = normalizeText(config.ccoMailIngestionDefaultMailbox);
@@ -3375,7 +3352,10 @@ function createScheduler({
     try {
       const state = ccoMailIngestionStore?.getState?.() || {};
       const subscriptions = Object.values(state.graphSubscriptions || {});
-      if (subscriptions.length === 0 && typeof graphChangeNotifications.createInboxSubscription === 'function') {
+      if (
+        subscriptions.length === 0 &&
+        typeof graphChangeNotifications.createInboxSubscription === 'function'
+      ) {
         const created = await graphChangeNotifications.createInboxSubscription({
           mailboxEmail,
           graphUserId: mailboxEmail,
@@ -3385,7 +3365,10 @@ function createScheduler({
       const renewed = [];
       for (const subscription of subscriptions) {
         const result = await graphChangeNotifications.renewSubscription(subscription.id);
-        renewed.push({ id: subscription.id, expirationDateTime: result?.expirationDateTime || null });
+        renewed.push({
+          id: subscription.id,
+          expirationDateTime: result?.expirationDateTime || null,
+        });
       }
       return { tenantId, skipped: false, renewedCount: renewed.length, renewed };
     } catch (error) {
@@ -3435,9 +3418,7 @@ function createScheduler({
 
     let truthStore;
     try {
-      truthStore = await createCcoMailboxTruthStore({
-        filePath: truthPath,
-      });
+      truthStore = await createConfiguredCcoMailboxTruthStore(config);
     } catch (error) {
       logger?.log?.(
         `[scheduler] cco_truth_delta_sync skipped: truth_store_open_failed (${sanitizeError(error)})`
@@ -4093,19 +4074,23 @@ function createScheduler({
     if (config.graphReadEnabled && config.schedulerCcoInboxFullBackfillOnStart !== false) {
       const fullBackfillDelayMs = Math.max(120000, startupDelayMs + 90000);
       clearJobTimer('cco_inbox_enrichment_full_backfill_startup');
-      setLongTimeout('cco_inbox_enrichment_full_backfill_startup', fullBackfillDelayMs, async () => {
-        try {
-          await runCcoInboxEnrichmentFullBackfill({
-            tenantId: config.defaultTenantId,
-            trigger: 'scheduler_start',
-          });
-        } catch (error) {
-          logger?.error?.(
-            '[scheduler] cco_inbox_enrichment_full_backfill startup failed',
-            sanitizeError(error)
-          );
+      setLongTimeout(
+        'cco_inbox_enrichment_full_backfill_startup',
+        fullBackfillDelayMs,
+        async () => {
+          try {
+            await runCcoInboxEnrichmentFullBackfill({
+              tenantId: config.defaultTenantId,
+              trigger: 'scheduler_start',
+            });
+          } catch (error) {
+            logger?.error?.(
+              '[scheduler] cco_inbox_enrichment_full_backfill startup failed',
+              sanitizeError(error)
+            );
+          }
         }
-      });
+      );
     }
 
     return getStatus();

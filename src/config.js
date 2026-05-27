@@ -250,16 +250,19 @@ const config = {
     stateRoot,
     fileName: 'cco-mailbox-truth.json',
   }),
+  ccoMailboxTruthSharded: asBool(process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARDED, true),
+  ccoMailboxTruthShardDir: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARD_DIR,
+    stateRoot,
+    fileName: 'cco-mailbox-truth',
+  }),
   ccoMailIngestionStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_MAIL_INGESTION_STORE_PATH,
     stateRoot,
     fileName: 'cco-mail-ingestion.json',
   }),
   ccoMailIngestionEnabled: asBool(process.env.ARCANA_CCO_MAIL_INGESTION_ENABLED, true),
-  ccoMailIngestionMode: asNonEmptyString(
-    process.env.ARCANA_CCO_MAIL_INGESTION_MODE,
-    'read_only'
-  ),
+  ccoMailIngestionMode: asNonEmptyString(process.env.ARCANA_CCO_MAIL_INGESTION_MODE, 'read_only'),
   ccoMailIngestionDefaultMailbox: asNonEmptyString(
     process.env.ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX,
     'contact@hairtpclinic.com'
@@ -268,10 +271,7 @@ const config = {
     process.env.ARCANA_CCO_MAIL_INGESTION_MAX_PROCESS_PER_CYCLE,
     25
   ),
-  ccoMailIngestionQueueBatchSize: asInt(
-    process.env.ARCANA_CCO_MAIL_INGESTION_QUEUE_BATCH_SIZE,
-    75
-  ),
+  ccoMailIngestionQueueBatchSize: asInt(process.env.ARCANA_CCO_MAIL_INGESTION_QUEUE_BATCH_SIZE, 75),
   ccoMailIngestionStartupResumeDelayMs: asInt(
     process.env.ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS,
     120000
@@ -501,10 +501,7 @@ const config = {
     fileName: 'marketing-content-assets.json',
   }),
   marketingConnectorsEnabled: asBool(process.env.ARCANA_MARKETING_CONNECTORS_ENABLED, true),
-  marketingConnectorsMode: asNonEmptyString(
-    process.env.ARCANA_MARKETING_CONNECTORS_MODE,
-    'live'
-  ),
+  marketingConnectorsMode: asNonEmptyString(process.env.ARCANA_MARKETING_CONNECTORS_MODE, 'live'),
   marketingConnectorsLiveFetch: asBool(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH, true),
   marketingPublishPilotEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_PILOT_ENABLED, true),
   marketingAutoPublishPilotChannels: asStringArray(
@@ -516,14 +513,20 @@ const config = {
   ),
   marketingPublishLiveEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_LIVE_ENABLED, false),
   marketingPublishSandbox: asBool(process.env.ARCANA_MARKETING_PUBLISH_SANDBOX, true),
-  marketingConnectorsCacheTtlMs: asInt(process.env.ARCANA_MARKETING_CONNECTORS_CACHE_TTL_MS, 300000),
+  marketingConnectorsCacheTtlMs: asInt(
+    process.env.ARCANA_MARKETING_CONNECTORS_CACHE_TTL_MS,
+    300000
+  ),
   marketingBridgeToken: asNonEmptyString(process.env.ARCANA_MARKETING_BRIDGE_TOKEN),
   marketingConnectorHealthStatePath: resolveStatePath({
     explicitPath: process.env.ARCANA_MARKETING_CONNECTOR_HEALTH_STATE_PATH,
     stateRoot,
     fileName: 'cmo-connector-health-state.json',
   }),
-  marketingConnectorAlertAfterMs: asInt(process.env.ARCANA_MARKETING_CONNECTOR_ALERT_AFTER_MS, 900000),
+  marketingConnectorAlertAfterMs: asInt(
+    process.env.ARCANA_MARKETING_CONNECTOR_ALERT_AFTER_MS,
+    900000
+  ),
   marketingConnectors: {
     google_ads: {
       enabled: asBool(process.env.ARCANA_MARKETING_GOOGLE_ADS_ENABLED, false),

@@ -6,14 +6,16 @@ require('dotenv').config({ quiet: true });
 const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
 const mailboxEmail = (process.env.ARCANA_MAILBOX || 'contact@hairtpclinic.com').toLowerCase();
 const maxRounds = Number(process.env.ARCANA_BACKFILL_MAX_ROUNDS || 300);
-const maxPagesPerFolder = Number(process.env.ARCANA_BACKFILL_MAX_PAGES || 1);
+const maxPagesPerFolder = Number(process.env.ARCANA_BACKFILL_MAX_PAGES || 3);
 const folderSequence = ['inbox', 'sent', 'drafts', 'deleted'];
-const pageSize = Number(process.env.ARCANA_BACKFILL_PAGE_SIZE || 200);
-const retryDelayMs = Number(process.env.ARCANA_BACKFILL_RETRY_MS || 45000);
+const pageSize = Number(process.env.ARCANA_BACKFILL_PAGE_SIZE || 150);
+const retryDelayMs = Number(process.env.ARCANA_BACKFILL_RETRY_MS || 20000);
 const folderOnly = normalizeFolderOnly(process.env.ARCANA_BACKFILL_FOLDER || '');
 
 function normalizeFolderOnly(value = '') {
-  const normalized = String(value || '').trim().toLowerCase();
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
   return folderSequence.includes(normalized) ? normalized : '';
 }
 
@@ -22,7 +24,10 @@ function folderIsVerified(coverage, folderType) {
     (item) => item.folderType === folderType
   );
   if (!row) return false;
-  return Number(row.materializedMessageCount || 0) >= Number(row.totalItemCount || 0) && row.totalItemCount > 0;
+  return (
+    Number(row.materializedMessageCount || 0) >= Number(row.totalItemCount || 0) &&
+    row.totalItemCount > 0
+  );
 }
 
 function nextFolderToBackfill(coverage) {
@@ -92,14 +97,19 @@ function summarizeCoverage(payload) {
 }
 
 async function main() {
-  const tokenScript = require('node:child_process').execSync('node scripts/get-prod-auth-token.js --owner', {
-    cwd: `${__dirname}/..`,
-    encoding: 'utf8',
-  });
+  const tokenScript = require('node:child_process').execSync(
+    'node scripts/get-prod-auth-token.js --owner',
+    {
+      cwd: `${__dirname}/..`,
+      encoding: 'utf8',
+    }
+  );
   const token = tokenScript.trim().split('\n').pop();
   if (!token) throw new Error('owner token saknas');
 
-  console.log(`== Truth backfill (${mailboxEmail}) maxPages=${maxPagesPerFolder} pageSize=${pageSize} ==`);
+  console.log(
+    `== Truth backfill (${mailboxEmail}) maxPages=${maxPagesPerFolder} pageSize=${pageSize} ==`
+  );
   const before = await getCoverage(token);
   console.log(JSON.stringify(summarizeCoverage(before), null, 2));
   if (before.coverage?.complete === true) {
