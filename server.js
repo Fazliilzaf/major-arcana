@@ -2501,6 +2501,7 @@ process.once('SIGTERM', () => {
     createCmRouter({
       authStore: auth,
       cmStore,
+      graphReadConnector: graphReadConnector || null,
     })
   );
 
