@@ -892,13 +892,19 @@
     const expiringClass = slot?.expiresSoon === true ? ' is-expiring' : '';
     const serviceType = serviceTypeFor(slot);
     const source = String(slot?.source || '').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'cco_engine';
-    return `<${tag} class="cco-cal-event${selectedClass}${compactClass}${kindClass}${conflictClass}${expiringClass}"${typeAttr}${dragAttr} data-cal-event="${escapeAttr(JSON.stringify(payload))}" data-service-type="${serviceType}" data-source="${source}" style="--cco-cal-event-accent:${meta.accent}">
-      <span class="cco-cal-event-time">${escapeHtml(formatTimeRange(slot))}</span>
-      <span class="cco-cal-event-body">
+    const status = slot?.status || 'pending';
+    const mailbox = slot?.mailbox || slot?.resourceId || source;
+    const railColor = meta.accent || 'var(--cco-color-accent, #4a8268)';
+    return `<${tag} class="cco-cal-event warm-row${selectedClass}${compactClass}${kindClass}${conflictClass}${expiringClass}"${typeAttr}${dragAttr} data-cal-event="${escapeAttr(JSON.stringify(payload))}" data-service-type="${serviceType}" data-source="${source}" data-status="${status}" data-mailbox="${mailbox}" style="--rail-color:${railColor};--cco-cal-event-accent:${meta.accent}">
+      <span class="warm-rail" style="--rail-color:${railColor}"></span>
+      <div class="warm-content">
+        <span class="cco-cal-event-time">${escapeHtml(formatTimeRange(slot))}</span>
         <strong class="cco-cal-event-title">${escapeHtml(eventTitle(slot))}</strong>
         ${eventMeta(slot) ? `<span class="cco-cal-event-meta">${escapeHtml(eventMeta(slot))}</span>` : ''}
-      </span>
-      <span class="cco-cal-event-icons">${renderEventIcons(meta.icons)}</span>
+      </div>
+      <div class="warm-actions">
+        <span class="cco-cal-event-icons">${renderEventIcons(meta.icons)}</span>
+      </div>
     </${tag}>`;
   }
 
