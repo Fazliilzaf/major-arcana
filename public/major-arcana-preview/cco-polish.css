@@ -6067,3 +6067,110 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 .customers-utility-button[data-customer-detail-action="toggle_batch"] {
   color: #15803d;
 }
+
+
+/* =====================================================
+   v11: Kategori-färger på övriga vyträd
+   Automation / Mail-feed / Macro / Integration / Portal /
+   Later / Sent / Scheduler
+   ===================================================== */
+
+/* ===== AUTOMATION: sektioner ===== */
+.customers-utility-button[data-automation-section="analys"] { color: #4338ca; }
+.customers-utility-button[data-automation-section="autopilot"] { color: #0891b2; }
+.customers-utility-button[data-automation-section="byggare"] { color: #d97706; }
+.customers-utility-button[data-automation-section="mallar"] { color: #7c3aed; }
+.customers-utility-button[data-automation-section="testing"] { color: #15803d; }
+.customers-utility-button[data-automation-section="versioner"] { color: #475569; }
+
+/* AUTOMATION: action-knappar — godkänn=grön, avvisa=röd */
+.customers-utility-button[data-automation-autopilot-action="approve"],
+.customers-utility-button[data-automation-suggestion-action="apply"],
+.customers-utility-button[data-automation-template-action="apply"],
+.customers-utility-button[data-automation-primary-action="run"],
+.customers-utility-button[data-automation-testing-action="run"] {
+  color: #15803d;
+}
+
+.customers-utility-button[data-automation-autopilot-action="dismiss"],
+.customers-utility-button[data-automation-suggestion-action="dismiss"],
+.customers-utility-button[data-automation-testing-action="skip"] {
+  color: #dc2626;
+}
+
+.customers-utility-button[data-automation-analysis-action="learn"] { color: #0891b2; }
+.customers-utility-button[data-automation-analysis-action="optimize"] { color: #d97706; }
+.customers-utility-button[data-automation-template-action="preview"] { color: #4338ca; }
+
+
+/* AUTOMATION: bibliotek/noder (node-typer i byggaren) */
+.customers-utility-button[data-automation-library="ai"],
+.customers-utility-button[data-automation-node="welcome"],
+.customers-utility-button[data-automation-suggestion="welcome"] {
+  color: #7c3aed;
+}
+.customers-utility-button[data-automation-library="email"],
+.customers-utility-button[data-automation-library="send-email"] {
+  color: #4338ca;
+}
+.customers-utility-button[data-automation-library="schedule"],
+.customers-utility-button[data-automation-library="wait"],
+.customers-utility-button[data-automation-node="wait"],
+.customers-utility-button[data-automation-node="reminder"],
+.customers-utility-button[data-automation-suggestion="wait"] {
+  color: #d97706;
+}
+.customers-utility-button[data-automation-library="if"],
+.customers-utility-button[data-automation-library="loop"],
+.customers-utility-button[data-automation-node="condition"],
+.customers-utility-button[data-automation-suggestion="condition"] {
+  color: #0891b2;
+}
+.customers-utility-button[data-automation-library="http"],
+.customers-utility-button[data-automation-library="webhook"] {
+  color: #b45309;
+}
+.customers-utility-button[data-automation-library="tag"],
+.customers-utility-button[data-automation-library="assign"],
+.customers-utility-button[data-automation-node="assign"],
+.customers-utility-button[data-automation-suggestion="assign"] {
+  color: #15803d;
+}
+.customers-utility-button[data-automation-library="calc"],
+.customers-utility-button[data-automation-library="merge"],
+.customers-utility-button[data-automation-library="update-db"] {
+  color: #475569;
+}
+.customers-utility-button[data-automation-node="trigger"],
+.customers-utility-button[data-automation-suggestion="trigger"],
+.customers-utility-button[data-automation-node="guide"] {
+  color: #db2777;
+}
+
+
+/* ===== MAIL-FEED kommandon ===== */
+.customers-utility-button[data-mail-feed-command="open_conversations"] { color: #0891b2; }
+.customers-utility-button[data-mail-feed-command="history"] { color: #475569; }
+.customers-utility-button[data-mail-feed-command="resume"] { color: #15803d; }
+
+.customers-utility-button[data-mail-feed-bulk-command="handled"] { color: #15803d; }
+.customers-utility-button[data-mail-feed-bulk-command="resume"] { color: #0891b2; }
+.customers-utility-button[data-mail-feed-bulk-command="snooze"] { color: #d97706; }
+.customers-utility-button[data-mail-feed-bulk-command="history"] { color: #475569; }
+.customers-utility-button[data-mail-feed-bulk-command="delete"] { color: #dc2626; }
+
+/* ===== MACRO ===== */
+.customers-utility-button[data-macro-command="create"] { color: #4338ca; }
+
+/* ===== INTEGRATION ===== */
+.customers-utility-button[data-integration-command="docs"] { color: #475569; }
+.customers-utility-button[data-integration-command="sales"] { color: #15803d; }
+
+/* ===== PORTAL ===== */
+.customers-utility-button[data-portal-action="publish"] { color: #15803d; }
+.customers-utility-button[data-portal-action="ack"] { color: #0891b2; }
+
+/* ===== LATER (snooze-alternativ) ===== */
+.customers-utility-button[data-later-option="one_hour"] { color: #d97706; }
+.customers-utility-button[data-later-option="tomorrow_morning"] { color: #0891b2; }
+.customers-utility-button[data-later-option="monday_morning"] { color: #4338ca; }
