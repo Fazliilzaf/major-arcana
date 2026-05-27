@@ -154,12 +154,41 @@ async function createCcoMigrationIndexStore({ filePath }) {
     return state.files.find((item) => item.id === id) || null;
   }
 
+  function listAllFiles() {
+    return asArray(state.files);
+  }
+
+  // Re-point every file from one personnummer to another. Used when merging a
+  // secondary patient (different/blank personnummer) into a primary so that the
+  // secondary's Drive files follow the patient. No-op when the personnummer are
+  // equal (files already resolve to the same profile).
+  async function reassignPersonnummer({ from, to } = {}) {
+    const fromPnr = normalizePersonnummer(from);
+    const toPnr = normalizePersonnummer(to);
+    if (!fromPnr || !toPnr || fromPnr === toPnr) return { moved: 0 };
+    let moved = 0;
+    for (const file of asArray(state.files)) {
+      if (normalizePersonnummer(file.personnummer) === fromPnr) {
+        file.personnummer = toPnr;
+        moved += 1;
+      }
+    }
+    if (moved > 0) {
+      state.profilesByPersonnummer = aggregateProfiles(state.files);
+      rebuildFileIndex();
+      await save();
+    }
+    return { moved };
+  }
+
   return {
     getFileById,
     getFilesForPersonnummer,
     getProfile,
     getStats,
+    listAllFiles,
     listProfiles,
+    reassignPersonnummer,
     replaceScanResult,
   };
 }
