@@ -1,7 +1,7 @@
 # Major Arcana — samlad faslista (en sida)
 
-Senast uppdaterad: **2026-05-25** (doc-sync svep + prod-audit)  
-Prod: **https://arcana.hairtpclinic.se** · Repo: `~/Code/major-arcana`
+Senast uppdaterad: **2026-05-27** (Frankfurt-cutover + flyttad till .com)  
+Prod: **https://ma.hairtpclinic.com** (Frankfurt, EU) · Legacy-alias: `ma.hairtpclinic.se` + `arcana.hairtpclinic.se` (samma Frankfurt-service) · Repo: `~/Code/major-arcana`
 
 **Du är här:** **J-8.2 ☑** (UI) · **U2.2 MFA** (väntar go-live) · **J-6.2 ☑** (guards) · **U5B.3** Q4.
 
@@ -129,7 +129,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] J-0.1 Migration-scripts + npm (`migration:scan`, `migration:import`, `migration:test`)
 - [x] J-0.2 Zip-nedlading ersatt med Drive API / lokal mirror
 - [x] J-0.3 PDL-bedömning — advokatgodkänd 2026-05-24
-- [x] J-0.4 Render EU Frankfurt verifierad
+- [x] J-0.4 Render EU Frankfurt **cutover KOMPLETT 2026-05-27 ~16:55 CEST** — patientdata nu i EU, srv-d8b3i3tckfvc73clgeng på major-arcana-frankfurt.onrender.com (962 MB /var/data migrerade, 103 envs). Oregon srv-d6b11o0boq4c73chm7f0 suspended som rollback-buffer.
 - [x] J-0.5 **Pipedrive People+Deals export** (2026-05-24) — `migration/pipedrive/personer-2026-05-24.csv` (**3 693 personer**) + `affarer-2026-05-24.csv` (**3 487 affärer**), validerad enligt [migration/pipedrive/README.md](../../migration/pipedrive/README.md)
 
 > **Scope J-0.5:** export + validering i repo. Valfri berikning av kundmaster: `npm run migration:import-pipedrive` (körs separat, inte blocker för go-live).
