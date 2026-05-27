@@ -1,0 +1,107 @@
+---
+description: CM Corporate Expense Management rules
+alwaysApply: true
+---
+# CM — Corporate Expense Management Rules
+
+CM handles company expense documents, invoices, receipts, travel documents and purchase confirmations.
+
+## Core principle
+
+Every financial source item must be imported once, stored once, deduplicated, processed through CM filters and never reprocessed unnecessarily.
+
+## Sources
+
+CM must support:
+- Microsoft Graph mail
+- PDF attachments
+- image attachments
+- email body text if no PDF exists
+- manual upload
+- scanner/mobile camera upload
+
+## Ingestion
+
+- Save raw source first.
+- Never delete original source.
+- Create dedupeKey.
+- Create processing ledger.
+- Store processorVersion and filterVersion.
+- Skip already processed items unless reprocess is requested.
+- Use delta sync for Microsoft mail.
+- Process one mailbox at a time during rollout.
+- Process one mail at a time during initial rollout.
+
+## Document handling
+
+If PDF exists:
+- save PDF
+- run extraction
+- create document record
+
+If no PDF exists:
+- flag NO_PDF_FOUND
+- use email body text
+- flag BODY_TEXT_USED_AS_SOURCE
+- require manual review if confidence is low
+
+If image exists:
+- save original image
+- run OCR
+- create receipt/invoice candidate
+
+## Extraction fields
+
+Extract:
+- supplier
+- org number
+- invoice number
+- receipt number
+- order number
+- issue date
+- due date
+- total amount
+- VAT amount
+- VAT rate
+- currency
+- line items
+- payment method
+- payment status
+- category
+- cost center
+- project
+- responsible person
+- confidence score
+
+## Safety
+
+- Do not auto-pay invoices.
+- Do not final-bookkeep without human approval.
+- Do not overwrite original data.
+- Do not delete source documents.
+- All human changes must be audit logged.
+- Low confidence extraction must go to manual review.
+- Duplicate candidates must not be auto-approved.
+
+## UI
+
+CM must include:
+- Inbox
+- Needs Review
+- Invoices
+- Receipts
+- Travel
+- Approvals
+- Ready for Bookkeeping
+- Exported
+- Duplicates
+- Import Errors
+
+## Accounting export
+
+Prepare for:
+- Fortnox
+- Visma
+- CSV/SIE export
+
+Store externalAccountingId when exported.
