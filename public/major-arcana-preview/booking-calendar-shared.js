@@ -704,6 +704,26 @@
       });
     }
 
+    // R4: SLA-prick — röd prick om SLA-risk (followUpDueAt nära/passerad)
+    if (slot?.slaRisk === true || slot?.slaBreach === true) {
+      icons.push({
+        name: 'sla',
+        state: slot.slaBreach ? 'breach' : 'warning',
+        title: slot.slaBreach ? 'SLA-brott — åtgärda omedelbart' : 'SLA-risk — uppföljning krävs snart',
+        ariaLabel: slot.slaBreach ? 'SLA-brott' : 'SLA-risk',
+      });
+    }
+
+    // R4: Återbesöks-hint — info-prick om aftercare/followup journey aktiv
+    if (slot?.journeyAftercare === true || slot?.isFollowUp === true) {
+      icons.push({
+        name: 'aftercare',
+        state: 'active',
+        title: 'Eftervårds-resa aktiv — uppföljning planerad',
+        ariaLabel: 'Eftervårdsresa aktiv',
+      });
+    }
+
     return icons;
   }
 
