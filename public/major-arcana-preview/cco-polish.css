@@ -875,7 +875,7 @@
   }
 
   /* Single-workspace: behåll kundintelligensen under mailet i stället för att gömma den. */
-  @media (max-width: 768px) {
+  @media (max-width: 767px) {
     .focus-intel {
       display: flex;
       width: 100%;
@@ -885,7 +885,7 @@
   }
 
   /* Narrow CCO: gör underliggande intelligens mer som mailmetadata än sidopanel. */
-  @media (max-width: 768px) {
+  @media (max-width: 767px) {
     .focus-intel-primary {
       min-height: 0;
       padding-bottom: 10px;
@@ -4905,7 +4905,7 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   align-self: start;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   html[data-cco-mobile-shell="on"] .preview-page {
     overflow-y: auto !important;
     overflow-x: hidden;
@@ -5361,7 +5361,7 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
 }
 
 /* Mobil journal & kundregister (personal) */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .customers-toolbar,
   .customers-search {
     position: static;
@@ -5582,7 +5582,7 @@ html[data-cco-auth-required='on'] .customers-rail .patient-master-auth-card {
   }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 768px) {
   .patient-master-agreement-checklist {
     list-style: decimal;
     padding-left: 1.1rem;
