@@ -52,8 +52,37 @@ function assertExternalAiJournalPolicy(input = {}) {
   return input;
 }
 
+const JOURNAL_REDACTION_PLACEHOLDER =
+  '[Journalinnehåll utelämnat enligt policy — ingen extern AI.]';
+
+/**
+ * Redact journal/clinical content from OpenAI chat-completion params before they
+ * leave for the external provider. Unlike stripJournalPayloadForExternalAi this
+ * preserves the strict OpenAI message shape (only the `content` string is
+ * replaced — no extra body/text fields that the API would reject). Covers tool
+ * messages too, whose JSON content can carry fetched journal data. Fail-safe:
+ * returns the same object reference untouched when there is nothing to redact.
+ */
+function redactChatCompletionParams(params = {}) {
+  if (!params || typeof params !== 'object' || !Array.isArray(params.messages)) {
+    return params;
+  }
+  let redacted = false;
+  const messages = params.messages.map((message) => {
+    const content = typeof message?.content === 'string' ? message.content : '';
+    if (content && containsJournalLikeContent(content)) {
+      redacted = true;
+      return { ...message, content: JOURNAL_REDACTION_PLACEHOLDER };
+    }
+    return message;
+  });
+  return redacted ? { ...params, messages } : params;
+}
+
 module.exports = {
   assertExternalAiJournalPolicy,
   containsJournalLikeContent,
+  redactChatCompletionParams,
   stripJournalPayloadForExternalAi,
+  JOURNAL_REDACTION_PLACEHOLDER,
 };
