@@ -47,6 +47,8 @@ const PLAN_A_PUBLIC_SERVICE_IDS = [
   'prp-hair',
   'prp-skin',
   'microneedling',
+  'followup',
+  'consultation',
 ];
 
 /** Plan A web — läkare/konsulter som får synas i publik katalog (ej sjuksköterskor). */
