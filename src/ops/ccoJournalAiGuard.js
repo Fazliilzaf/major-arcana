@@ -79,10 +79,30 @@ function redactChatCompletionParams(params = {}) {
   return redacted ? { ...params, messages } : params;
 }
 
+/**
+ * Wrap an OpenAI-SDK-like instance so every chat.completions.create call has its
+ * messages run through redactChatCompletionParams first. Centralises the journal
+ * guard at the single SDK choke point (covers all callers + tool results).
+ * Idempotent, tolerant of a missing/!provider shape, and never throws.
+ */
+function guardOpenAiChatCompletions(openaiInstance) {
+  const completions =
+    openaiInstance && openaiInstance.chat && openaiInstance.chat.completions;
+  if (!completions || typeof completions.create !== 'function' || completions.__journalGuarded) {
+    return openaiInstance;
+  }
+  const originalCreate = completions.create.bind(completions);
+  completions.create = (params, ...rest) =>
+    originalCreate(redactChatCompletionParams(params), ...rest);
+  completions.__journalGuarded = true;
+  return openaiInstance;
+}
+
 module.exports = {
   assertExternalAiJournalPolicy,
   containsJournalLikeContent,
   redactChatCompletionParams,
+  guardOpenAiChatCompletions,
   stripJournalPayloadForExternalAi,
   JOURNAL_REDACTION_PLACEHOLDER,
 };

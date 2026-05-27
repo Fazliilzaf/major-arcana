@@ -7,6 +7,7 @@ const {
   assertExternalAiJournalPolicy,
   containsJournalLikeContent,
   redactChatCompletionParams,
+  guardOpenAiChatCompletions,
 } = require('../../src/ops/ccoJournalAiGuard');
 
 test('containsJournalLikeContent detects journal keywords', () => {
@@ -59,4 +60,38 @@ test('redactChatCompletionParams leaves clean params as same reference', () => {
 test('redactChatCompletionParams handles missing/invalid messages gracefully', () => {
   assert.deepEqual(redactChatCompletionParams({ model: 'x' }), { model: 'x' });
   assert.equal(redactChatCompletionParams(null), null);
+});
+
+// Integration test for the SDK choke-point wrap — proves journal content is
+// redacted at the actual create() boundary, using a fake OpenAI instance
+// (no real key, no cost, no network). This is the automated stand-in for the
+// manual AI smoke-test.
+test('guardOpenAiChatCompletions: redacts journal content at the create() boundary', async () => {
+  let captured = null;
+  const fakeOpenai = {
+    chat: { completions: { create: async (params) => { captured = params; return { ok: true }; } } },
+  };
+  guardOpenAiChatCompletions(fakeOpenai);
+  await fakeOpenai.chat.completions.create({
+    model: 'gpt-x',
+    messages: [
+      { role: 'user', content: 'Patientens hälsodeklaration och personnummer 19900101-1234.' },
+      { role: 'system', content: 'Du är en hjälpsam assistent.' },
+      { role: 'tool', tool_call_id: 't1', content: '{"journalpost":"tp_treatment dag 1"}' },
+    ],
+  });
+  assert.ok(captured, 'create ska ha anropats');
+  assert.match(captured.messages[0].content, /utelämnat enligt policy/);
+  assert.equal(captured.messages[1].content, 'Du är en hjälpsam assistent.'); // ren text orörd
+  assert.match(captured.messages[2].content, /utelämnat enligt policy/); // tool-resultat täcks
+});
+
+test('guardOpenAiChatCompletions: idempotent + tål null/ofullständig instans', () => {
+  const fake = { chat: { completions: { create: async () => ({}) } } };
+  guardOpenAiChatCompletions(fake);
+  const wrappedOnce = fake.chat.completions.create;
+  guardOpenAiChatCompletions(fake); // andra gången → ingen dubbel-wrap
+  assert.equal(fake.chat.completions.create, wrappedOnce);
+  assert.doesNotThrow(() => guardOpenAiChatCompletions(null));
+  assert.doesNotThrow(() => guardOpenAiChatCompletions({}));
 });
