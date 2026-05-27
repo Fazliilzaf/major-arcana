@@ -204,7 +204,7 @@
       box-shadow:
         0 5px 14px rgba(70, 50, 30, 0.07),
         inset 0 1px 0 rgba(255, 255, 255, 0.72);
-      background-color: rgba(250, 246, 242, 0.97);
+      background-color: rgb(250, 246, 242);
     }
 
     html[data-cco-mobile-shell="on"]
@@ -554,7 +554,7 @@
       -webkit-overflow-scrolling: touch;
       margin-inline: calc(-1 * var(--cco-mobile-gutter, 16px));
       padding: 4px var(--cco-mobile-gutter, 16px) 8px;
-      background: color-mix(in srgb, var(--warm-bg, #f7f2ec) 92%, transparent);
+      background: var(--warm-bg, #f7f2ec);
       border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
     }
 
