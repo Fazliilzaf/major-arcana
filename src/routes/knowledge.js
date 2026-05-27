@@ -2,6 +2,7 @@
 
 const express = require('express');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
+const { enrichRetrievalResults, buildRetrievalSummary } = require('../knowledge/retrievalQuality');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -63,13 +64,19 @@ function createKnowledgeRouter({ knowledgeStore, requireAuth, requireRole } = {}
 
   router.post('/knowledge/search', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
     try {
-      const results = knowledgeStore.search({
+      const query = normalizeText(req.body?.query);
+      const rawResults = knowledgeStore.search({
         tenantId: req.auth?.activeTenantId,
-        query: normalizeText(req.body?.query),
+        query,
         maxResults: Math.min(20, Math.max(1, Number(req.body?.maxResults) || 5)),
         category: normalizeText(req.body?.category) || undefined,
       });
-      return res.json({ ok: true, results, count: results.length });
+      const results = enrichRetrievalResults(rawResults, {
+        query,
+        tenantId: req.auth?.activeTenantId,
+      });
+      const summary = buildRetrievalSummary(results);
+      return res.json({ ok: true, results, summary, count: results.length });
     } catch (error) {
       return res.status(500).json({ error: normalizeText(error?.message) || 'Sökning misslyckades.' });
     }

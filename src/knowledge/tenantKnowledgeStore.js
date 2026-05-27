@@ -198,6 +198,8 @@ function createTenantKnowledgeStore({ storePath = './data/knowledge.json' } = {}
             text: chunk.text,
             score,
             tokenCount: chunk.tokenCount,
+            position: chunk.position,
+            updatedAt: doc.updatedAt,
           });
         }
       }
