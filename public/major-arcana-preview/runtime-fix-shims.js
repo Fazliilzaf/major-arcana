@@ -930,6 +930,60 @@
   }
 
   // ============================================================
+  // P2-1+ : Aggressiv text-walker som fångar raw codes och "undefined"
+  // i nestlade element (focus-intel-item-status > strong, dl/dd, etc)
+  // ============================================================
+
+  function aggressiveStatusAndUndefinedFix() {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => {
+        const txt = (n.nodeValue || '').trim();
+        if (!txt) return NodeFilter.FILTER_REJECT;
+        // Bara acceptera leaf-textnoder med raw codes ELLER "undefined"
+        if (STATUS_LABEL_MAP[txt.toLowerCase()]) return NodeFilter.FILTER_ACCEPT;
+        if (STATUS_LABEL_TITLECASE[txt]) return NodeFilter.FILTER_ACCEPT;
+        if (/\bundefined\b/.test(txt)) return NodeFilter.FILTER_ACCEPT;
+        return NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    let n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(node => {
+      const original = node.nodeValue;
+      let updated = original;
+      const trimmed = updated.trim();
+      const lower = trimmed.toLowerCase();
+      // Translate raw status code (om hela textnoden är ett raw kod)
+      if (STATUS_LABEL_MAP[lower]) {
+        updated = updated.replace(trimmed, STATUS_LABEL_MAP[lower]);
+      } else if (STATUS_LABEL_TITLECASE[trimmed]) {
+        updated = updated.replace(trimmed, STATUS_LABEL_TITLECASE[trimmed]);
+      }
+      // Hantera "undefined · X" och "X · undefined"
+      updated = updated.replace(/\bundefined\s*·\s*undefined\b/gi, '—');
+      updated = updated.replace(/\bundefined\s*·/gi, '— ·');
+      updated = updated.replace(/·\s*undefined\b/gi, '· —');
+      updated = updated.replace(/^undefined$/gi, '—');
+      if (updated !== original) {
+        node.nodeValue = updated;
+      }
+    });
+  }
+
+  function bootstrapAggressiveStatusFix() {
+    aggressiveStatusAndUndefinedFix();
+    const obs = new MutationObserver(() => {
+      if (bootstrapAggressiveStatusFix._t) return;
+      bootstrapAggressiveStatusFix._t = setTimeout(() => {
+        aggressiveStatusAndUndefinedFix();
+        bootstrapAggressiveStatusFix._t = null;
+      }, 100);
+    });
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+
+  // ============================================================
   // Bootstrap
   // ============================================================
 
@@ -944,6 +998,7 @@
     try { bootstrapThreadCardClickFix(); } catch (e) { console.warn('[fix-shim] thread-card-click fel:', e); }
     try { bootstrapLivePill(); } catch (e) { console.warn('[fix-shim] live-pill fel:', e); }
     try { bootstrapStatusLabelFix(); } catch (e) { console.warn('[fix-shim] status-label-fix fel:', e); }
+    try { bootstrapAggressiveStatusFix(); } catch (e) { console.warn('[fix-shim] aggressive-status-fix fel:', e); }
     try { bootstrapMailboxCounts(); } catch (e) { console.warn('[fix-shim] mailbox-counts fel:', e); }
     try { bootstrapLogout(); } catch (e) { console.warn('[fix-shim] logout fel:', e); }
     try { bootstrapThemeSwitcher(); } catch (e) { console.warn('[fix-shim] theme-switcher fel:', e); }
