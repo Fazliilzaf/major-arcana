@@ -1,3 +1,12 @@
+/**
+ * @deprecated LEGACY routes — använd ccoBookingEngine.js istället.
+ *
+ * Hanterar äldre bokningsärenden (cases). Nya bokningar ska gå via
+ * /api/v1/cco-booking-engine/* endpoints.
+ *
+ * Behålls för bakåtkompatibilitet med befintliga CCO-trådar som redan
+ * har booking-cases skapade via detta API.
+ */
 const express = require('express');
 
 const { getClientoApiConfigForBrand, getClientoConfigForBrand } = require('../brand/runtimeConfig');

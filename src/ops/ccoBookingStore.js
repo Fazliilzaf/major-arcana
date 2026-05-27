@@ -1,3 +1,12 @@
+/**
+ * @deprecated LEGACY — använd ccoBookingEngineStore.js istället.
+ *
+ * Denna store hanterar äldre bokningsärenden (cases) och används fortfarande
+ * av ccoBookings.js router. Alla NYA bokningar ska gå via ccoBookingEngineStore.
+ *
+ * Plan: migrera kvarvarande cases till engine-store och ta bort denna fil.
+ * Se docs/strategy/CCO-KALENDER-MASTER.md §11 punkt 8.
+ */
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
