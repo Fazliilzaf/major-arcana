@@ -2,8 +2,9 @@
 
 const express = require('express');
 const { extractDocument } = require('../cm/cmAiExtractor');
+const { createCmMailSync } = require('../cm/cmMailSync');
 
-function createCmRouter({ authStore, cmStore }) {
+function createCmRouter({ authStore, cmStore, graphReadConnector }) {
   const router = express.Router();
   const requireAuth = authStore.requireAuth;
   const requireRole = authStore.requireRole;
@@ -109,6 +110,15 @@ function createCmRouter({ authStore, cmStore }) {
     if (!record) return res.status(404).json({ ok: false, error: 'not_found' });
     await cmStore.persist();
     return res.json({ ok: true, record });
+  });
+
+  // Mail sync
+  router.post('/cm/mail-sync', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    const mailSync = createCmMailSync({ graphReadConnector, cmStore });
+    const mailboxId = req.body?.mailboxId || process.env.CM_MAIL_ACCOUNT || process.env.ARCANA_GRAPH_USER_ID || '';
+    if (!mailboxId) return res.status(400).json({ ok: false, error: 'Inget mailkonto konfigurerat (CM_MAIL_ACCOUNT)' });
+    const result = await mailSync.syncAll(mailboxId);
+    return res.json({ ok: true, ...result });
   });
 
   // AI extraction — skicka bild eller text, få strukturerad data tillbaka

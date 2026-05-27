@@ -2422,6 +2422,9 @@
             >
               CCO
             </button>
+            <button class="btn small sectionNavBtn" data-target="cmSection" data-i18n="nav_cm">
+              CM
+            </button>
           </nav>
         </div>
 
@@ -2532,6 +2535,67 @@
               referrerpolicy="same-origin"
             ></iframe>
           </div>
+        </section>
+
+        <!-- CM Corporate Expense Management -->
+        <section data-section-group="cmSection" hidden aria-hidden="true">
+          <h2 style="margin-bottom:16px;">CM — Corporate Expense Management</h2>
+          <div class="kpiRow" id="cmKpiRow">
+            <div class="kpiCard"><div class="kpiLabel">Inbox</div><div class="kpiValue" id="cmInbox">—</div></div>
+            <div class="kpiCard"><div class="kpiLabel">Granskning</div><div class="kpiValue" id="cmReview">—</div></div>
+            <div class="kpiCard"><div class="kpiLabel">Fakturor</div><div class="kpiValue" id="cmInvoices">—</div></div>
+            <div class="kpiCard"><div class="kpiLabel">Kvitton</div><div class="kpiValue" id="cmReceipts">—</div></div>
+            <div class="kpiCard"><div class="kpiLabel">Resor</div><div class="kpiValue" id="cmTravel">—</div></div>
+            <div class="kpiCard"><div class="kpiLabel">Godkännande</div><div class="kpiValue" id="cmApprovals">—</div></div>
+            <div class="kpiCard"><div class="kpiLabel">Redo bokföring</div><div class="kpiValue" id="cmReady">—</div></div>
+            <div class="kpiCard"><div class="kpiLabel">Exporterat</div><div class="kpiValue" id="cmExported">—</div></div>
+            <div class="kpiCard"><div class="kpiLabel">Dubbletter</div><div class="kpiValue" id="cmDuplicates">—</div></div>
+            <div class="kpiCard"><div class="kpiLabel">Fel</div><div class="kpiValue" id="cmErrors">—</div></div>
+          </div>
+          <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;">
+            <button class="btn" id="cmSyncMailBtn" type="button">Synka mail</button>
+            <button class="btn" id="cmUploadBtn" type="button">Ladda upp kvitto/faktura</button>
+          </div>
+          <div id="cmStatus" style="margin-top:12px;font-size:13px;color:var(--muted);"></div>
+          <script>
+            (function() {
+              async function loadCmDashboard() {
+                try {
+                  const token = typeof getToken === 'function' ? getToken() : state?.token;
+                  if (!token) return;
+                  const res = await fetch('/api/v1/cm/dashboard', { headers: { Authorization: 'Bearer ' + token } });
+                  if (!res.ok) return;
+                  const d = await res.json();
+                  document.getElementById('cmInbox').textContent = d.inbox ?? '—';
+                  document.getElementById('cmReview').textContent = d.needsReview ?? '—';
+                  document.getElementById('cmInvoices').textContent = d.invoices ?? '—';
+                  document.getElementById('cmReceipts').textContent = d.receipts ?? '—';
+                  document.getElementById('cmTravel').textContent = d.travel ?? '—';
+                  document.getElementById('cmApprovals').textContent = d.approvalQueue ?? '—';
+                  document.getElementById('cmReady').textContent = d.readyForBookkeeping ?? '—';
+                  document.getElementById('cmExported').textContent = d.exported ?? '—';
+                  document.getElementById('cmDuplicates').textContent = d.duplicates ?? '—';
+                  document.getElementById('cmErrors').textContent = d.importErrors ?? '—';
+                } catch {}
+              }
+              document.getElementById('cmSyncMailBtn')?.addEventListener('click', async () => {
+                const token = typeof getToken === 'function' ? getToken() : state?.token;
+                document.getElementById('cmStatus').textContent = 'Synkar mail...';
+                try {
+                  const res = await fetch('/api/v1/cm/mail-sync', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } });
+                  const d = await res.json();
+                  document.getElementById('cmStatus').textContent = d.ok ? 'Synk klar: ' + (d.totalImported || 0) + ' importerade' : 'Fel: ' + (d.error || '');
+                  loadCmDashboard();
+                } catch(e) { document.getElementById('cmStatus').textContent = 'Fel: ' + e.message; }
+              });
+              const observer = new MutationObserver(() => {
+                const visible = !document.querySelector('[data-section-group="cmSection"]')?.hidden;
+                if (visible) loadCmDashboard();
+              });
+              const section = document.querySelector('[data-section-group="cmSection"]');
+              if (section) observer.observe(section, { attributes: true, attributeFilter: ['hidden'] });
+            })();
+          </script>
         </section>
 
         <div
