@@ -2,8 +2,14 @@
    CCO Adaptive Overrides
    Applies adaptive layout rules to EXISTING views without modifying
    the original styles.css or app.js.
-   Loaded AFTER adaptive-app-shell.css.
    ============================================================ */
+
+.cco-adaptive-card {
+  background: var(--cco-bg-card);
+  border-radius: var(--cco-card-radius);
+  padding: var(--cco-card-padding);
+  border: 1px solid var(--cco-border);
+}
 
 /* ─────────────────────────────────────────────
    MOBILE OVERRIDES (320–767px)
@@ -58,6 +64,12 @@
     white-space: nowrap;
     padding: 8px 10px !important;
     font-size: var(--cco-text-sm, 13px) !important;
+  }
+
+  .cco-mobile-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cco-space-sm, 8px);
   }
 
   /* === CARDS: no overlap, single column === */
