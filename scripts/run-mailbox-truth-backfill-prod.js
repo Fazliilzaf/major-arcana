@@ -5,31 +5,48 @@ require('dotenv').config({ quiet: true });
 
 const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
 const mailboxEmail = (process.env.ARCANA_MAILBOX || 'contact@hairtpclinic.com').toLowerCase();
-const maxRounds = Number(process.env.ARCANA_BACKFILL_MAX_ROUNDS || 200);
-const maxPagesPerFolder = Number(process.env.ARCANA_BACKFILL_MAX_PAGES || 2);
+const maxRounds = Number(process.env.ARCANA_BACKFILL_MAX_ROUNDS || 300);
+const maxPagesPerFolder = Number(process.env.ARCANA_BACKFILL_MAX_PAGES || 1);
 const pageSize = Number(process.env.ARCANA_BACKFILL_PAGE_SIZE || 200);
+const retryDelayMs = Number(process.env.ARCANA_BACKFILL_RETRY_MS || 45000);
 
-async function fetchJson(path, { method = 'GET', token = '', body = null } = {}) {
-  const res = await fetch(`${base}${path}`, {
-    method,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  let payload = {};
-  try {
-    payload = text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error(text.slice(0, 200) || `${res.status}`);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchJson(path, { method = 'GET', token = '', body = null, retries = 5 } = {}) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      const res = await fetch(`${base}${path}`, {
+        method,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const text = await res.text();
+      let payload = {};
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(text.slice(0, 120) || `${res.status}`);
+      }
+      if (!res.ok) {
+        throw new Error(payload.error || `${res.status}`);
+      }
+      return payload;
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        console.warn(`retry ${attempt}/${retries}: ${error.message || error}`);
+        await sleep(retryDelayMs);
+      }
+    }
   }
-  if (!res.ok) {
-    throw new Error(payload.error || `${res.status}`);
-  }
-  return payload;
+  throw lastError;
 }
 
 async function getCoverage(token) {
@@ -37,6 +54,18 @@ async function getCoverage(token) {
     `/api/v1/cco/runtime/history/status?mailboxId=${encodeURIComponent(mailboxEmail)}`,
     { token }
   );
+}
+
+function summarizeCoverage(payload) {
+  return {
+    complete: payload.coverage?.complete,
+    missing: payload.coverage?.missingWindowCount,
+    folders: payload.mailboxes?.[0]?.folderCounts?.map((f) => ({
+      folderType: f.folderType,
+      materialized: f.materializedMessageCount,
+      total: f.totalItemCount,
+    })),
+  };
 }
 
 async function main() {
@@ -48,18 +77,8 @@ async function main() {
   if (!token) throw new Error('owner token saknas');
 
   console.log(`== Truth backfill (${mailboxEmail}) maxPages=${maxPagesPerFolder} pageSize=${pageSize} ==`);
-  let before = await getCoverage(token);
-  console.log(
-    JSON.stringify(
-      {
-        complete: before.coverage?.complete,
-        missing: before.coverage?.missingWindowCount,
-        folders: before.mailboxes?.[0]?.folderCounts,
-      },
-      null,
-      2
-    )
-  );
+  const before = await getCoverage(token);
+  console.log(JSON.stringify(summarizeCoverage(before), null, 2));
   if (before.coverage?.complete === true) {
     console.log('Redan komplett.');
     return;
@@ -67,48 +86,44 @@ async function main() {
 
   for (let round = 1; round <= maxRounds; round += 1) {
     console.log(`-- round ${round} --`);
-    const result = await fetchJson('/api/v1/cco/runtime/history/backfill', {
-      method: 'POST',
-      token,
-      body: {
-        mailboxId: mailboxEmail,
-        mailboxIds: [mailboxEmail],
-        lookbackDays: 365,
-        maxPagesPerFolder,
-        pageSize,
-      },
-    });
-    console.log(
-      JSON.stringify(
-        {
-          missingWindowCount: result.missingWindowCount,
-          backfilledFolderCount: result.backfilledFolderCount,
+    try {
+      const result = await fetchJson('/api/v1/cco/runtime/history/backfill', {
+        method: 'POST',
+        token,
+        body: {
+          mailboxId: mailboxEmail,
+          mailboxIds: [mailboxEmail],
+          lookbackDays: 365,
+          maxPagesPerFolder,
+          pageSize,
         },
-        null,
-        2
-      )
-    );
-    const after = await getCoverage(token);
-    console.log(
-      JSON.stringify(
-        {
-          complete: after.coverage?.complete,
-          missing: after.coverage?.missingWindowCount,
-          folders: after.mailboxes?.[0]?.folderCounts?.map((f) => ({
-            folderType: f.folderType,
-            materialized: f.materializedMessageCount,
-            total: f.totalItemCount,
-          })),
-        },
-        null,
-        2
-      )
-    );
-    if (after.coverage?.complete === true) {
-      console.log('Klart.');
-      return;
+      });
+      console.log(
+        JSON.stringify(
+          {
+            missingWindowCount: result.missingWindowCount,
+            backfilledFolderCount: result.backfilledFolderCount,
+          },
+          null,
+          2
+        )
+      );
+    } catch (error) {
+      console.warn(`round ${round} backfill failed: ${error.message || error}`);
     }
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    try {
+      const after = await getCoverage(token);
+      console.log(JSON.stringify(summarizeCoverage(after), null, 2));
+      if (after.coverage?.complete === true) {
+        console.log('Klart.');
+        return;
+      }
+    } catch (error) {
+      console.warn(`round ${round} coverage failed: ${error.message || error}`);
+    }
+
+    await sleep(5000);
   }
   throw new Error('Backfill nådde max rundor utan complete=true');
 }
