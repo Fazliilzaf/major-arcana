@@ -7,8 +7,31 @@ const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').r
 const mailboxEmail = (process.env.ARCANA_MAILBOX || 'contact@hairtpclinic.com').toLowerCase();
 const maxRounds = Number(process.env.ARCANA_BACKFILL_MAX_ROUNDS || 300);
 const maxPagesPerFolder = Number(process.env.ARCANA_BACKFILL_MAX_PAGES || 1);
+const folderSequence = ['inbox', 'sent', 'drafts', 'deleted'];
 const pageSize = Number(process.env.ARCANA_BACKFILL_PAGE_SIZE || 200);
 const retryDelayMs = Number(process.env.ARCANA_BACKFILL_RETRY_MS || 45000);
+const folderOnly = normalizeFolderOnly(process.env.ARCANA_BACKFILL_FOLDER || '');
+
+function normalizeFolderOnly(value = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  return folderSequence.includes(normalized) ? normalized : '';
+}
+
+function folderIsVerified(coverage, folderType) {
+  const row = (coverage.mailboxes?.[0]?.folderCounts || []).find(
+    (item) => item.folderType === folderType
+  );
+  if (!row) return false;
+  return Number(row.materializedMessageCount || 0) >= Number(row.totalItemCount || 0) && row.totalItemCount > 0;
+}
+
+function nextFolderToBackfill(coverage) {
+  if (folderOnly) return folderOnly;
+  for (const folderType of folderSequence) {
+    if (!folderIsVerified(coverage, folderType)) return folderType;
+  }
+  return null;
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -85,7 +108,13 @@ async function main() {
   }
 
   for (let round = 1; round <= maxRounds; round += 1) {
-    console.log(`-- round ${round} --`);
+    const coverageBefore = await getCoverage(token);
+    const folderType = nextFolderToBackfill(coverageBefore);
+    if (!folderType) {
+      console.log('Klart.');
+      return;
+    }
+    console.log(`-- round ${round} (${folderType}) --`);
     try {
       const result = await fetchJson('/api/v1/cco/runtime/history/backfill', {
         method: 'POST',
@@ -96,6 +125,7 @@ async function main() {
           lookbackDays: 365,
           maxPagesPerFolder,
           pageSize,
+          folderTypes: [folderType],
         },
       });
       console.log(

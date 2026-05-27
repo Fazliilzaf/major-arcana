@@ -642,6 +642,10 @@ const config = {
     process.env.ARCANA_STARTUP_CCO_HISTORY_STORE_MAX_BYTES,
     250 * 1024 * 1024
   ),
+  startupCcoMailboxTruthStoreMaxBytes: asInt(
+    process.env.ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES,
+    2 * 1024 * 1024 * 1024
+  ),
   startupCcoNoteStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_CCO_NOTE_STORE_MAX_BYTES,
     12 * 1024 * 1024
