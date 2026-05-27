@@ -6,6 +6,7 @@ const {
   findDuplicateCandidates,
   computePatientCompleteness,
   auditDriveFiles,
+  matchUnlinkedDriveProfilesToPatients,
 } = require('../migration/reconciliationEngine');
 
 /**
@@ -286,6 +287,26 @@ function createReconciliationRouter({
       count: uncertain.length,
       files: uncertain.slice(0, Number(req.query?.limit) || 100),
     });
+  });
+
+  // #9: suggest which Cliento patient each UNLINKED Drive profile likely belongs
+  // to (folder/file name ↔ patient name + birthdate). Read-only suggestions —
+  // linking still happens via the manual merge flow, never automatically.
+  router.get('/reconciliation/file-matches', requireAuth, requireRole(ROLE_OWNER), async (req, res, next) => {
+    try {
+      const tenantId = tenantOf(req);
+      const patients = await loadPatients(tenantId);
+      const driveFiles = loadDriveFiles();
+      const profiles = matchUnlinkedDriveProfilesToPatients(driveFiles, patients);
+      return res.json({
+        ok: true,
+        tenantId,
+        count: profiles.length,
+        profiles: profiles.slice(0, Number(req.query?.limit) || 200),
+      });
+    } catch (err) {
+      return next(err);
+    }
   });
 
   // ── MERGE PREVIEW + EXECUTION ──────────────────────────────────────────

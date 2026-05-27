@@ -8,6 +8,7 @@ const {
   computePatientCompleteness,
   auditDriveFiles,
   computeNameSimilarity,
+  matchUnlinkedDriveProfilesToPatients,
   normalizePhone,
   normalizePersonnummer,
 } = require('../../src/migration/reconciliationEngine');
@@ -119,4 +120,36 @@ test('findDuplicateCandidates: exakt pnr-par dubbleras inte som fuzzy namn-kandi
   const pairCands = cands.filter((x) => x.patients.slice().sort().join() === 'a,b');
   assert.equal(pairCands.length, 1, 'paret ska bara finnas en gång (pnr), inte även fuzzy');
   assert.equal(pairCands[0].matchField, 'personnummer');
+});
+
+test('#9 matchUnlinkedDriveProfilesToPatients: föreslår patient för okopplad profil via namn', () => {
+  const patients = [
+    { patientId: 'p1', name: 'Anna Andersson', personnummer: '199001011234' },
+    { patientId: 'p2', name: 'Bo Bengtsson', personnummer: '198505055678' },
+  ];
+  const driveFiles = [
+    { id: 'f1', personnummer: '20000101-0000', displayName: 'Anna Andersson', fileType: 'journal_pdf' }, // pnr ej i master
+    { id: 'f2', personnummer: '199001011234', displayName: 'Anna A', fileType: 'image' }, // kopplad → exkluderas
+  ];
+  const results = matchUnlinkedDriveProfilesToPatients(driveFiles, patients);
+  assert.equal(results.length, 1, 'bara den okopplade profilen');
+  assert.equal(results[0].fileCount, 1);
+  assert.equal(results[0].suggestions[0].patientId, 'p1');
+  assert.ok(results[0].suggestions[0].confidence >= 50);
+  assert.equal(results[0].flag, 'NEEDS_MANUAL_REVIEW');
+});
+
+test('#9 matchUnlinkedDriveProfilesToPatients: samma födelsedatum höjer confidence', () => {
+  const patients = [{ patientId: 'p1', name: 'Anna Andersson', personnummer: '19900101-1234' }];
+  const driveFiles = [{ id: 'f1', personnummer: '19900101-9999', displayName: 'Anna Andersson' }]; // samma datum, annat pnr
+  const [prof] = matchUnlinkedDriveProfilesToPatients(driveFiles, patients);
+  assert.match(prof.suggestions[0].reason, /samma födelsedatum/);
+});
+
+test('#9 matchUnlinkedDriveProfilesToPatients: ingen namn-match → DRIVE_ONLY-flagga, inga förslag', () => {
+  const patients = [{ patientId: 'p1', name: 'Anna Andersson', personnummer: '199001011234' }];
+  const driveFiles = [{ id: 'f1', personnummer: '20101212-0000', displayName: 'Helt Annat Namn' }];
+  const [prof] = matchUnlinkedDriveProfilesToPatients(driveFiles, patients);
+  assert.equal(prof.suggestions.length, 0);
+  assert.equal(prof.flag, 'DRIVE_ONLY_PATIENT_NO_CLIENTO_MATCH');
 });

@@ -367,6 +367,82 @@ function buildReconciliationOverview(patients, driveFiles, journalEntries = []) 
   };
 }
 
+// ─── #9: MATCH UNLINKED DRIVE PROFILES → CLIENTO PATIENTS ───
+// For Drive files whose personnummer matches NO patient (or that carry no
+// personnummer), suggest the most likely Cliento patient by folder/file display
+// name ↔ patient name similarity, corroborated by birthdate (from personnummer).
+// Read-only SUGGESTIONS only — never auto-links. Every result is for manual review.
+function matchUnlinkedDriveProfilesToPatients(driveFiles = [], patients = []) {
+  const patientPnr = new Set(
+    patients
+      .map((p) => normalizePersonnummer(p.personnummer || p.socialSecurityNumber || ''))
+      .filter(Boolean)
+  );
+
+  const nameOf = (entity) =>
+    normalizeText(
+      entity.name ||
+        entity.displayName ||
+        `${entity.firstName || ''} ${entity.lastName || ''}`
+    );
+
+  // Group unlinked files into profiles (by personnummer, else by folder/display name).
+  const profiles = new Map();
+  for (const file of driveFiles) {
+    const pnr = normalizePersonnummer(file.personnummer || '');
+    if (pnr && patientPnr.has(pnr)) continue; // already linked to a patient
+    const display = normalizeText(file.displayName || file.folderName || '');
+    const key = pnr || display.toLowerCase();
+    if (!key) continue; // unidentifiable — no pnr and no name to match on
+    if (!profiles.has(key)) {
+      profiles.set(key, { profileKey: key, personnummer: pnr || null, displayName: display, fileCount: 0, fileIds: [] });
+    }
+    const profile = profiles.get(key);
+    profile.fileCount += 1;
+    if (file.id) profile.fileIds.push(file.id);
+    if (!profile.displayName && display) profile.displayName = display;
+  }
+
+  const results = [];
+  for (const profile of profiles.values()) {
+    const profileBirthdate = birthdateKeyFromPersonnummer(profile.personnummer);
+    const suggestions = [];
+    for (const patient of patients) {
+      const patientName = nameOf(patient);
+      if (!profile.displayName || !patientName) continue;
+      const similarity = computeNameSimilarity(profile.displayName, patientName);
+      if (similarity < NAME_REVIEW_MIN) continue;
+      const patientBirthdate = birthdateKeyFromPersonnummer(patient.personnummer || patient.socialSecurityNumber);
+      const sameBirthdate = Boolean(profileBirthdate && patientBirthdate && profileBirthdate === patientBirthdate);
+      let confidence = Math.min(similarity, 94);
+      if (sameBirthdate) confidence = Math.min(confidence + 8, 94);
+      suggestions.push({
+        patientId: patient.patientId || patient.id,
+        patientName,
+        confidence,
+        reason: sameBirthdate
+          ? `Mappnamn liknar patientnamn (${similarity}%) + samma födelsedatum`
+          : `Mappnamn liknar patientnamn (${similarity}%)`,
+      });
+    }
+    suggestions.sort((a, b) => b.confidence - a.confidence);
+    results.push({
+      profileKey: profile.profileKey,
+      personnummer: profile.personnummer,
+      displayName: profile.displayName,
+      fileCount: profile.fileCount,
+      fileIds: profile.fileIds.slice(0, 50),
+      // pnr present but matched no patient → maybe a patient is missing from the master
+      personnummerNotInMaster: Boolean(profile.personnummer),
+      suggestions: suggestions.slice(0, 5),
+      flag: suggestions.length ? FLAGS.NEEDS_MANUAL_REVIEW : FLAGS.DRIVE_ONLY_PATIENT_NO_CLIENTO_MATCH,
+    });
+  }
+
+  results.sort((a, b) => (b.suggestions[0]?.confidence || 0) - (a.suggestions[0]?.confidence || 0));
+  return results;
+}
+
 module.exports = {
   FLAGS,
   computeNameSimilarity,
@@ -374,6 +450,7 @@ module.exports = {
   computePatientCompleteness,
   auditDriveFiles,
   buildReconciliationOverview,
+  matchUnlinkedDriveProfilesToPatients,
   normalizePhone,
   normalizePersonnummer,
 };
