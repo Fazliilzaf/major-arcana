@@ -3226,6 +3226,23 @@
       margin-inline: 0;
       padding-inline: var(--cco-mobile-gutter);
     }
+
+    /* STRUKTUR: gör Arbetskö/Fokus-toggeln till en ÄKTA vy-växling. Tidigare
+       låg kö-panelen (.preview-shell) och fokus-panelen (.focus-shell) alltid
+       staplade på varandra → man fick skrolla förbi hela kön för att nå
+       Fokusytan. Visa nu EN panel i taget, fullskärm, beroende på toggeln. */
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-mobile-workspace-view="queue"]
+      .preview-workspace
+      > .focus-shell {
+      display: none !important;
+    }
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-mobile-workspace-view="focus"]
+      .preview-workspace
+      > .preview-shell {
+      display: none !important;
+    }
   }
 
   /* ============================================================
