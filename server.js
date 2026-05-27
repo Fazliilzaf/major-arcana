@@ -993,6 +993,30 @@ app.get('/api/v1/calendar/week', (req, res) => {
   return res.json({ ok: true, ...view });
 });
 
+// ─── iCAL EXPORT ───
+const { buildIcalFeed, getBookingsForResource } = require('./src/ops/icalExport');
+const { createRecurringSeries, getSeriesProgress, SERIES_TEMPLATES } = require('./src/ops/recurringBookings');
+
+app.get('/api/v1/calendar/ical/:resourceId.ics', (req, res) => {
+  const resourceId = req.params.resourceId || 'all';
+  const bookings = getBookingsForResource(null, resourceId, { days: Number(req.query?.days) || 30 });
+  const resourceLabel = resourceId === 'all' ? 'Alla behandlare' : resourceId;
+  const ical = buildIcalFeed({ resourceLabel, bookings });
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${resourceId}-schema.ics"`);
+  return res.send(ical);
+});
+
+// ─── RECURRING BOOKINGS ───
+app.get('/api/v1/booking/series/templates', (req, res) => {
+  return res.json({ ok: true, templates: SERIES_TEMPLATES });
+});
+
+app.post('/api/v1/booking/series', (req, res) => {
+  const series = createRecurringSeries(req.body || {});
+  return res.json({ ok: true, series, progress: getSeriesProgress(series) });
+});
+
 // ─── BACKUP ───
 app.post('/api/v1/ops/backup/run', async (req, res) => {
   const result = await runBackup();
