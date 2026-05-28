@@ -1024,6 +1024,25 @@ app.get('/api/v1/knowledge/role/:role', async (req, res) => {
   }
 });
 
+app.get('/api/v1/knowledge/embeddings/status', async (req, res) => {
+  try {
+    const embeddings = require('./src/ops/knowledgeEmbeddings');
+    const store = await embeddings.loadEmbeddingStore(
+      path.join(process.cwd(), 'data', 'knowledge-embeddings.json')
+    );
+    return res.json({
+      ok: true,
+      configured: embeddings.isEmbeddingsConfigured(config),
+      mode: store ? 'hybrid' : 'keyword',
+      store: store
+        ? { model: store.model, dim: store.dim, chunkCount: store.chunkCount, generatedAt: store.generatedAt }
+        : null,
+    });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'status_failed' });
+  }
+});
+
 app.get('/api/v1/knowledge/search', async (req, res) => {
   const query = (req.query?.q || req.query?.query || '').trim();
   if (!query) return res.status(400).json({ ok: false, error: 'missing_query' });

@@ -109,29 +109,64 @@ function toRepoDocPath(source) {
   return idx >= 0 ? raw.slice(idx) : `docs/${raw}`;
 }
 
-// Grounding for an agent/role: keyword search across ALL docs, annotated with
-// role/tags, optionally narrowed to the agent's role.
+function annotateHit(docPath, content, score) {
+  return { path: docPath, content, score, roles: rolesForPath(docPath), tags: tagsForPath(docPath) };
+}
+
+// Best-effort semantic hits — empty unless an embeddings store + OpenAI key
+// exist. Never throws (callers degrade to keyword-only).
+async function semanticHitsFor(query, limit, repoRoot) {
+  try {
+    const embeddings = require('./knowledgeEmbeddings');
+    const store = await embeddings.loadEmbeddingStore(
+      path.join(repoRoot, 'data', 'knowledge-embeddings.json')
+    );
+    if (!store) return [];
+    let config;
+    try {
+      config = require('../config');
+    } catch {
+      return [];
+    }
+    if (!embeddings.isEmbeddingsConfigured(config)) return [];
+    const queryVector = await embeddings.embedQuery(query, { model: store.model });
+    if (!queryVector) return [];
+    return embeddings
+      .semanticSearch(queryVector, store, { limit })
+      .map((hit) => annotateHit(hit.path, hit.content, hit.score));
+  } catch {
+    return [];
+  }
+}
+
+// Grounding for an agent/role: HYBRID keyword + semantic search across ALL docs,
+// annotated with role/tags, optionally narrowed to the agent's role. Degrades to
+// keyword-only when embeddings aren't configured/built.
 async function searchKnowledge(query, { limit = 6, role = '', repoRoot = process.cwd() } = {}) {
   const q = String(query || '').trim();
   if (!q) return [];
   const retriever = await getDocsRetriever(repoRoot);
-  const hits = await retriever.search(q, { limit: role ? limit * 2 : limit });
-  const annotated = hits.map((hit) => {
-    const docPath = toRepoDocPath(hit.source);
-    return {
-      path: docPath,
-      content: hit.content,
-      score: hit.score,
-      roles: rolesForPath(docPath),
-      tags: tagsForPath(docPath),
-    };
-  });
+  const keywordHits = (await retriever.search(q, { limit: limit * 2 })).map((hit) =>
+    annotateHit(toRepoDocPath(hit.source), hit.content, hit.score)
+  );
+  const semanticHits = await semanticHitsFor(q, limit * 2, repoRoot);
+
+  let merged;
+  if (semanticHits.length) {
+    const embeddings = require('./knowledgeEmbeddings');
+    const hybrid = embeddings.mergeHybrid(keywordHits, semanticHits, { limit: role ? limit * 2 : limit });
+    // mergeHybrid keeps path+score; re-annotate roles/tags for consistency.
+    merged = hybrid.map((h) => ({ ...annotateHit(h.path, h.content, h.score), sources: h.sources }));
+  } else {
+    merged = keywordHits;
+  }
+
   if (role) {
     const key = String(role).toLowerCase();
-    const matched = annotated.filter((h) => h.roles.includes(key) || h.path.includes(`/${key}/`));
-    return (matched.length ? matched : annotated).slice(0, limit);
+    const matched = merged.filter((h) => h.roles.includes(key) || h.path.includes(`/${key}/`));
+    return (matched.length ? matched : merged).slice(0, limit);
   }
-  return annotated.slice(0, limit);
+  return merged.slice(0, limit);
 }
 
 module.exports = {

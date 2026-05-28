@@ -81,6 +81,7 @@
     "verify:cco-care-sweep-prod": "node ./scripts/verify-cco-care-sweep-prod.js",
     "verify:cco-performance-baseline-prod": "node ./scripts/verify-cco-performance-baseline-prod.js",
     "rebuild:cco-indexes": "node ./scripts/rebuild-cco-indexes.js",
+    "build:knowledge-embeddings": "node ./scripts/build-knowledge-embeddings.js",
     "verify:adaptive-layout-prod": "node ./scripts/verify-adaptive-layout-prod.js",
     "apply:auth-go-live-prod": "bash ./scripts/apply-auth-go-live-prod.sh",
     "apply:graph-resend-go-live-prod": "bash ./scripts/apply-graph-resend-go-live-prod.sh",
