@@ -41,6 +41,7 @@ const {
   inspectMailboxTruthLayout,
   restoreMailboxTruthShards,
 } = require('../ops/ccoMailboxTruthRestore');
+const { decodeMailboxIdFromShardFileName } = require('../ops/ccoMailboxTruthShardedStore');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -2507,6 +2508,75 @@ function createOpsRouter({
   );
 
   router.post(
+    '/ops/mailbox-truth/reload-shards',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      if (!ccoMailboxTruthStore || ccoMailboxTruthStore.sharded !== true) {
+        return res.status(503).json({ error: 'Sharded mailbox-truth-store saknas.' });
+      }
+      if (typeof ccoMailboxTruthStore.ensureMailboxLoaded !== 'function') {
+        return res.status(503).json({ error: 'Mailbox-truth reload stöds inte i denna version.' });
+      }
+      try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const mailboxIds = Array.isArray(body.mailboxIds)
+          ? body.mailboxIds.map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
+          : [];
+        const layout = await inspectMailboxTruthLayout(config);
+        const targets =
+          mailboxIds.length > 0
+            ? mailboxIds
+            : layout.shards
+                .map((shard) => decodeMailboxIdFromShardFileName(shard.fileName))
+                .filter(Boolean);
+
+        const results = [];
+        for (const mailboxId of targets) {
+          const beforeCount = ccoMailboxTruthStore.listMessages({ mailboxIds: [mailboxId] }).length;
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+            const afterCount = ccoMailboxTruthStore.listMessages({
+              mailboxIds: [mailboxId],
+            }).length;
+            results.push({ mailboxId, ok: true, beforeCount, afterCount });
+          } catch (error) {
+            results.push({
+              mailboxId,
+              ok: false,
+              beforeCount,
+              afterCount: beforeCount,
+              error: error?.message || String(error),
+            });
+          }
+        }
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.mailbox_truth.reload_shards',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'mailbox_truth_reload',
+          metadata: {
+            targets,
+            loadedMailboxes: ccoMailboxTruthStore.listLoadedMailboxes?.() || [],
+          },
+        });
+
+        return res.json({
+          ok: true,
+          loadedMailboxes: ccoMailboxTruthStore.listLoadedMailboxes?.() || [],
+          results,
+        });
+      } catch (error) {
+        console.error('[ops/mailbox-truth/reload-shards]', error);
+        return res.status(500).json({ error: error?.message || 'Kunde inte reloada shards.' });
+      }
+    }
+  );
+
+  router.post(
     '/ops/mailbox-truth/restore',
     requireAuth,
     requireRole(ROLE_OWNER),
@@ -2974,12 +3044,10 @@ function createOpsRouter({
         return res.status(503).json({ error: 'tenantConfigStore är inte tillgänglig.' });
       }
       if (!graphSendConnector) {
-        return res
-          .status(503)
-          .json({
-            error:
-              'graphSendConnector saknas (ARCANA_GRAPH_SEND_ENABLED ej satt eller credentials saknas).',
-          });
+        return res.status(503).json({
+          error:
+            'graphSendConnector saknas (ARCANA_GRAPH_SEND_ENABLED ej satt eller credentials saknas).',
+        });
       }
       try {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
