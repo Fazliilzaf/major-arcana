@@ -14,7 +14,7 @@ const BRANDS = Object.freeze({
     shortName: 'HairTP',
     domain: 'hairtpclinic.com',
     domains: ['hairtpclinic.com', 'hairtpclinic.se', 'arcana.hairtpclinic.se'],
-    logoUrl: 'https://ma.hairtpclinic.se/htp-logo-email.png',
+    logoUrl: 'https://arcana.hairtpclinic.com/htp-logo-email.png',
     logoAlt: 'Hair TP Clinic',
     colors: {
       primary: '#1a4d35',
@@ -35,7 +35,19 @@ const BRANDS = Object.freeze({
     website: 'https://hairtpclinic.com',
     bookingUrl: 'https://hairtpclinic.com/boka',
     patientPortalUrl: 'https://arcana.hairtpclinic.se/patient/',
-    services: ['fue', 'dhi', 'beard', 'eyebrow', 'prp-hair', 'prp-skin', 'microneedling', 'followup', 'consultation-online', 'consultation-physical', 'followup-transplant'],
+    services: [
+      'fue',
+      'dhi',
+      'beard',
+      'eyebrow',
+      'prp-hair',
+      'prp-skin',
+      'microneedling',
+      'followup',
+      'consultation-online',
+      'consultation-physical',
+      'followup-transplant',
+    ],
     locale: 'sv-SE',
   },
   curatiio: {
@@ -65,13 +77,26 @@ const BRANDS = Object.freeze({
     website: 'https://curatiio.com',
     bookingUrl: 'https://curatiio.com/boka',
     patientPortalUrl: 'https://curatiio.com/patient/',
-    services: ['consultation-curatiio-aesthetic', 'consultation-bleph', 'consultation-ortho', 'bleph-upper', 'bleph-lower', 'bleph-combined', 'botox', 'fillers', 'profhilo', 'ortho-treatment'],
+    services: [
+      'consultation-curatiio-aesthetic',
+      'consultation-bleph',
+      'consultation-ortho',
+      'bleph-upper',
+      'bleph-lower',
+      'bleph-combined',
+      'botox',
+      'fillers',
+      'profhilo',
+      'ortho-treatment',
+    ],
     locale: 'sv-SE',
   },
 });
 
 function getBrandConfig(brandId) {
-  const id = String(brandId || '').trim().toLowerCase();
+  const id = String(brandId || '')
+    .trim()
+    .toLowerCase();
   return BRANDS[id] || BRANDS['hair-tp-clinic'];
 }
 
@@ -94,4 +119,11 @@ function getBrandEmailFrom(brandId) {
   return { email: brand.emailFrom, name: brand.emailFromName };
 }
 
-module.exports = { BRANDS, getBrandConfig, getBrandForHost, getAllBrands, getBrandSmsFrom, getBrandEmailFrom };
+module.exports = {
+  BRANDS,
+  getBrandConfig,
+  getBrandForHost,
+  getAllBrands,
+  getBrandSmsFrom,
+  getBrandEmailFrom,
+};
