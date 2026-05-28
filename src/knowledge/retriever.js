@@ -279,4 +279,4 @@ async function createKnowledgeRetriever({ knowledgeDir }) {
   };
 }
 
-module.exports = { createKnowledgeRetriever };
+module.exports = { createKnowledgeRetriever, chunkText };
