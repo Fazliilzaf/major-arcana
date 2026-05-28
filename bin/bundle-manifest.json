@@ -25,6 +25,7 @@
     "app/keyboard-nav.js",
     "app/bulk-actions.js",
     "app/inbox-streak.js",
+    "app/staff-onboarding-tour.js",
     "app/system-mail-parser.js",
     "app/showcase-banner.js",
     "app/maintenance-banner.js",
