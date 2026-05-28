@@ -13,11 +13,13 @@
  *                           som "roller" så vi slipper tagga 150 filer för hand)
  */
 
+const path = require('node:path');
 const {
   getDocumentLibrary,
   getDocContent,
   SECTION_DOCS,
 } = require('./contextualDocs');
+const { createKnowledgeRetriever } = require('../knowledge/retriever');
 
 // Taggar härleds ur sökväg/filnamn — billig, deterministisk berikning.
 const TAG_KEYWORDS = Object.freeze([
@@ -88,10 +90,55 @@ function availableRoles() {
   return Object.keys(SECTION_DOCS);
 }
 
+// Shared docs retriever (keyword search over docs/) — a lazy singleton, SEPARATE
+// from the patient-chat retriever so internal ops/strategy docs never leak into
+// patient-facing answers. This is what agents call to ground themselves.
+let docsRetrieverPromise = null;
+function getDocsRetriever(repoRoot = process.cwd()) {
+  if (!docsRetrieverPromise) {
+    docsRetrieverPromise = createKnowledgeRetriever({
+      knowledgeDir: path.join(repoRoot, 'docs'),
+    });
+  }
+  return docsRetrieverPromise;
+}
+
+function toRepoDocPath(source) {
+  const raw = String(source || '');
+  const idx = raw.lastIndexOf('docs/');
+  return idx >= 0 ? raw.slice(idx) : `docs/${raw}`;
+}
+
+// Grounding for an agent/role: keyword search across ALL docs, annotated with
+// role/tags, optionally narrowed to the agent's role.
+async function searchKnowledge(query, { limit = 6, role = '', repoRoot = process.cwd() } = {}) {
+  const q = String(query || '').trim();
+  if (!q) return [];
+  const retriever = await getDocsRetriever(repoRoot);
+  const hits = await retriever.search(q, { limit: role ? limit * 2 : limit });
+  const annotated = hits.map((hit) => {
+    const docPath = toRepoDocPath(hit.source);
+    return {
+      path: docPath,
+      content: hit.content,
+      score: hit.score,
+      roles: rolesForPath(docPath),
+      tags: tagsForPath(docPath),
+    };
+  });
+  if (role) {
+    const key = String(role).toLowerCase();
+    const matched = annotated.filter((h) => h.roles.includes(key) || h.path.includes(`/${key}/`));
+    return (matched.length ? matched : annotated).slice(0, limit);
+  }
+  return annotated.slice(0, limit);
+}
+
 module.exports = {
   buildKnowledgeIndex,
   docsForRole,
   docsForTag,
+  searchKnowledge,
   availableRoles,
   rolesForPath,
   tagsForPath,

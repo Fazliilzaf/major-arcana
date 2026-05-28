@@ -999,6 +999,7 @@ const {
   buildKnowledgeIndex,
   docsForRole,
   availableRoles,
+  searchKnowledge,
 } = require('./src/ops/knowledgeAccessor');
 
 app.get('/api/v1/knowledge/index', async (req, res) => {
@@ -1020,6 +1021,20 @@ app.get('/api/v1/knowledge/role/:role', async (req, res) => {
     return res.json({ ok: true, role: req.params.role, documents });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error?.message || 'role_failed' });
+  }
+});
+
+app.get('/api/v1/knowledge/search', async (req, res) => {
+  const query = (req.query?.q || req.query?.query || '').trim();
+  if (!query) return res.status(400).json({ ok: false, error: 'missing_query' });
+  try {
+    const results = await searchKnowledge(query, {
+      role: (req.query?.role || '').trim(),
+      limit: Math.min(20, Math.max(1, Number(req.query?.limit) || 6)),
+    });
+    return res.json({ ok: true, query, results });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'search_failed' });
   }
 });
 
