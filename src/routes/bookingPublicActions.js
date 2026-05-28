@@ -291,7 +291,7 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <img src="https://ma.hairtpclinic.se/htp-logo-email.png" alt="Hair TP Clinic" style="height:48px;margin-bottom:8px;">
+  <img src="https://arcana.hairtpclinic.com/htp-logo-email.png" alt="Hair TP Clinic" style="height:48px;margin-bottom:8px;">
   <div class="card"><h1>${title}</h1>${body}</div>
 </body></html>`;
   }
