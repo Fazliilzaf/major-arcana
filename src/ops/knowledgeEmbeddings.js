@@ -98,6 +98,35 @@ async function embedQuery(query, options = {}) {
   return vector || null;
 }
 
+// Newest mtime (ms) across every indexed doc — used to tell if the embeddings
+// store has fallen behind the docs it was built from.
+async function newestDocMtime(repoRoot = process.cwd()) {
+  const path = require('node:path');
+  const { getDocumentLibrary } = require('./contextualDocs');
+  const library = await getDocumentLibrary(repoRoot);
+  let newest = 0;
+  for (const segment of library.segments) {
+    for (const doc of segment.documents) {
+      try {
+        const stat = await fs.stat(path.join(repoRoot, doc.path));
+        if (stat.mtimeMs > newest) newest = stat.mtimeMs;
+      } catch {
+        /* ignore unreadable doc */
+      }
+    }
+  }
+  return newest;
+}
+
+// Stale = no store, unparsable timestamp, or a doc changed after it was built.
+async function isStoreStale(store, repoRoot = process.cwd()) {
+  if (!store || !store.generatedAt) return true;
+  const generated = Date.parse(store.generatedAt);
+  if (Number.isNaN(generated)) return true;
+  const newest = await newestDocMtime(repoRoot);
+  return newest > generated;
+}
+
 module.exports = {
   cosineSimilarity,
   loadEmbeddingStore,
@@ -106,4 +135,6 @@ module.exports = {
   isEmbeddingsConfigured,
   embedTexts,
   embedQuery,
+  newestDocMtime,
+  isStoreStale,
 };

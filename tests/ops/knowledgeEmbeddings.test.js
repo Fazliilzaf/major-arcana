@@ -3,13 +3,38 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
+
 const {
   cosineSimilarity,
   semanticSearch,
   mergeHybrid,
   isEmbeddingsConfigured,
   loadEmbeddingStore,
+  isStoreStale,
 } = require('../../src/ops/knowledgeEmbeddings');
+
+test('isStoreStale: missing/unparsable store is stale; fresh vs old by mtime', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'emb-stale-'));
+  try {
+    await fs.mkdir(path.join(root, 'docs', 'strategy'), { recursive: true });
+    await fs.writeFile(path.join(root, 'docs', 'strategy', 'a.md'), '# A\n', 'utf8');
+
+    assert.equal(await isStoreStale(null, root), true);
+    assert.equal(await isStoreStale({}, root), true);
+    assert.equal(await isStoreStale({ generatedAt: 'not-a-date' }, root), true);
+
+    const future = new Date(Date.now() + 3600_000).toISOString();
+    assert.equal(await isStoreStale({ generatedAt: future }, root), false);
+
+    const past = new Date(Date.now() - 3600_000).toISOString();
+    assert.equal(await isStoreStale({ generatedAt: past }, root), true);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
 
 test('cosineSimilarity handles identical, orthogonal, and bad input', () => {
   assert.equal(Number(cosineSimilarity([1, 2, 3], [1, 2, 3]).toFixed(3)), 1);
@@ -37,8 +62,14 @@ test('semanticSearch ranks by cosine and respects limit', () => {
 
 test('mergeHybrid dedupes by path and boosts docs found by both', () => {
   const merged = mergeHybrid(
-    [{ path: 'a.md', score: 10 }, { path: 'c.md', score: 5 }],
-    [{ path: 'a.md', score: 0.9 }, { path: 'b.md', score: 0.8 }],
+    [
+      { path: 'a.md', score: 10 },
+      { path: 'c.md', score: 5 },
+    ],
+    [
+      { path: 'a.md', score: 0.9 },
+      { path: 'b.md', score: 0.8 },
+    ],
     { limit: 5 }
   );
   const paths = merged.map((h) => h.path);

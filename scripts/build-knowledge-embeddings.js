@@ -13,7 +13,11 @@
  *   npm run build:knowledge-embeddings
  */
 
-require('dotenv').config({ quiet: true });
+try {
+  require('dotenv').config({ quiet: true });
+} catch {
+  /* dotenv optional — env vars may come straight from the shell/CI */
+}
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -27,8 +31,11 @@ const BATCH = 96;
 const OUT = path.resolve(process.cwd(), 'data', 'knowledge-embeddings.json');
 
 async function main() {
-  if (!process.env.OPENAI_API_KEY) {
-    console.error('❌ OPENAI_API_KEY saknas — kan inte bygga embeddings. (Sökning kör keyword-only utan store.)');
+  const dryRun = process.argv.includes('--dry-run');
+  if (!dryRun && !process.env.OPENAI_API_KEY) {
+    console.error(
+      '❌ OPENAI_API_KEY saknas — kan inte bygga embeddings. (Sökning kör keyword-only utan store.)'
+    );
     process.exit(1);
   }
 
@@ -43,12 +50,28 @@ async function main() {
       });
     }
   }
-  console.log(`Dokument: ${library.totalDocuments} → ${pending.length} chunks. Embeddar (${MODEL})…`);
+
+  if (dryRun) {
+    const chars = pending.reduce((sum, c) => sum + c.content.length, 0);
+    console.log(
+      `DRY-RUN: ${library.totalDocuments} dokument → ${pending.length} chunks, ` +
+        `~${Math.round(chars / 4).toLocaleString('sv-SE')} tokens (est, ${MODEL}). ` +
+        'Inget OpenAI-anrop, ingen store skriven.'
+    );
+    return;
+  }
+
+  console.log(
+    `Dokument: ${library.totalDocuments} → ${pending.length} chunks. Embeddar (${MODEL})…`
+  );
 
   const entries = [];
   for (let i = 0; i < pending.length; i += BATCH) {
     const batch = pending.slice(i, i + BATCH);
-    const vectors = await embedTexts(batch.map((c) => c.content), { model: MODEL });
+    const vectors = await embedTexts(
+      batch.map((c) => c.content),
+      { model: MODEL }
+    );
     batch.forEach((c, j) => entries.push({ ...c, vector: vectors[j] }));
     console.log(`  ${Math.min(i + BATCH, pending.length)}/${pending.length}`);
   }

@@ -959,7 +959,7 @@ const {
 const { createOnboardingStore } = require('./src/ops/staffOnboarding');
 const {
   getDocContent,
-  getDocsForSection,
+  getSectionDocs,
   getAllSections,
   getDocumentLibrary,
   isAllowedDocPath,
@@ -979,8 +979,8 @@ app.get('/api/v1/docs/library', async (req, res) => {
   }
 });
 
-app.get('/api/v1/docs/section/:sectionId', (req, res) => {
-  const docs = getDocsForSection(req.params.sectionId);
+app.get('/api/v1/docs/section/:sectionId', async (req, res) => {
+  const docs = await getSectionDocs(req.params.sectionId);
   if (!docs.length) return res.status(404).json({ ok: false, error: 'section_not_found' });
   return res.json({ ok: true, sectionId: req.params.sectionId, documents: docs });
 });
@@ -1033,11 +1033,13 @@ app.get('/api/v1/knowledge/embeddings/status', async (req, res) => {
       ok: true,
       configured: embeddings.isEmbeddingsConfigured(config),
       mode: store ? 'hybrid' : 'keyword',
+      stale: store ? await embeddings.isStoreStale(store) : true,
       store: store
         ? {
             model: store.model,
             dim: store.dim,
             chunkCount: store.chunkCount,
+            documentCount: store.documentCount,
             generatedAt: store.generatedAt,
           }
         : null,

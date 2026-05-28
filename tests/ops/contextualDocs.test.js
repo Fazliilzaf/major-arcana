@@ -3,10 +3,16 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
+
 const {
   getDocumentLibrary,
   isAllowedDocPath,
   getDocContent,
+  getSectionDocs,
+  parseFrontmatter,
 } = require('../../src/ops/contextualDocs');
 
 test('document library catalogs every repo doc, grouped by segment', async () => {
@@ -40,4 +46,49 @@ test('isAllowedDocPath allows docs + top-level md, blocks traversal/absolute/non
 test('getDocContent refuses path traversal', async () => {
   const result = await getDocContent('../package.json');
   assert.equal(result.ok, false);
+});
+
+test('parseFrontmatter reads fields; no frontmatter → empty', () => {
+  const meta = parseFrontmatter('---\nowner: COO\nsection: ops\n---\n# Title\nbody');
+  assert.equal(meta.owner, 'COO');
+  assert.equal(meta.section, 'ops');
+  assert.deepEqual(parseFrontmatter('# No frontmatter\n'), {});
+});
+
+test('getSectionDocs merges curated + frontmatter-declared docs', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'docs-fm-'));
+  try {
+    await fs.mkdir(path.join(root, 'docs', 'strategy'), { recursive: true });
+    await fs.writeFile(
+      path.join(root, 'docs', 'strategy', 'demo.md'),
+      '---\nsection: booking\ntitle: Demo Doc\n---\n# Demo\n',
+      'utf8'
+    );
+    await fs.writeFile(
+      path.join(root, 'docs', 'strategy', 'plain.md'),
+      '# Plain, no frontmatter\n',
+      'utf8'
+    );
+    const booking = await getSectionDocs('booking', root);
+    const paths = booking.map((d) => d.path);
+    // Curated booking docs are still present…
+    assert.ok(paths.includes('docs/strategy/cco-booking-mvp-spec.md'));
+    // …and the frontmatter-declared doc was appended with its title override.
+    const demo = booking.find((d) => d.path === 'docs/strategy/demo.md');
+    assert.ok(demo, 'frontmatter doc placed into booking');
+    assert.equal(demo.title, 'Demo Doc');
+    // A doc without a section declaration stays out.
+    assert.ok(!paths.includes('docs/strategy/plain.md'));
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test('frontmatter section placement works against the live repo', async () => {
+  // The embeddings runbook declares `section: ops` — it should self-place.
+  const ops = await getSectionDocs('ops');
+  assert.ok(
+    ops.some((d) => d.path === 'docs/ops/runbooks/knowledge-embeddings-runbook.md'),
+    'runbook auto-appears in ops via frontmatter'
+  );
 });
