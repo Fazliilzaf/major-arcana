@@ -42,7 +42,11 @@ const REQUIRED_INDEX_MARKERS = [
 test('mobile UX sweep — preview index länkar shell assets', () => {
   const html = fs.readFileSync(INDEX, 'utf8');
   for (const marker of REQUIRED_INDEX_MARKERS) {
-    assert.match(html, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `index.html saknar ${marker}`);
+    assert.match(
+      html,
+      new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `index.html saknar ${marker}`
+    );
   }
 });
 
@@ -63,7 +67,10 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const lazyLoadJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-lazy-load.js'), 'utf8');
   assert.match(lazyLoadJs, /__ARCANA_ENSURE_BOOKING_SCRIPTS__/, 'booking lazy loader saknas');
 
-  const calendarJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-mobile-calendar-day.js'), 'utf8');
+  const calendarJs = fs.readFileSync(
+    path.join(PREVIEW_DIR, 'booking-mobile-calendar-day.js'),
+    'utf8'
+  );
   assert.match(calendarJs, /data-calendar-grid/, 'BL.1: månadsvy grid saknas');
   assert.match(calendarJs, /getViewMonth/, 'BL.1: månadsvy API saknas');
 
@@ -73,19 +80,29 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   const coreJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-core.js'), 'utf8');
   assert.match(coreJs, /window\.ArcanaMobileCore/, 'ArcanaMobileCore export saknas');
 
-  const clinicalJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-pre-treatment-forms.js'), 'utf8');
+  const clinicalJs = fs.readFileSync(
+    path.join(PREVIEW_DIR, 'app', 'journal-pre-treatment-forms.js'),
+    'utf8'
+  );
   assert.match(clinicalJs, /data-clinical-step-panel/, 'pre-treatment mobil steg saknas');
 
   const prpJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-prp-form.js'), 'utf8');
   assert.match(prpJs, /data-prp-step-panel/, 'BL.5 Fas 3: PRP mobil steg saknas');
 
-  const followJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-follow-up-form.js'), 'utf8');
+  const followJs = fs.readFileSync(
+    path.join(PREVIEW_DIR, 'app', 'journal-follow-up-form.js'),
+    'utf8'
+  );
   assert.match(followJs, /data-follow-step-panel/, 'BL.5 Fas 3: uppföljning mobil steg saknas');
 
   const blephJs = fs.readFileSync(path.join(PREVIEW_DIR, 'app', 'journal-bleph-form.js'), 'utf8');
   assert.match(blephJs, /data-bleph-step-panel/, 'BL.5 Fas 3: ögonlock mobil steg saknas');
 
-  assert.match(autosaveJs, /data-prp-journal-save-form/, 'BL.5 Fas 3: autosave PRP selector saknas');
+  assert.match(
+    autosaveJs,
+    /data-prp-journal-save-form/,
+    'BL.5 Fas 3: autosave PRP selector saknas'
+  );
   assert.match(autosaveJs, /max-width: 1023px/, 'BL.5 Fas 3: tablet form viewport saknas');
 
   const queueJs = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-mobile-queue.js'), 'utf8');
@@ -103,24 +120,59 @@ test('mobile UX sweep — shell JS exporterar API-ytor', () => {
   assert.match(patientUi, /data-agreement-step-panel/, 'BL.5 Fas 3: avtal mobil steg saknas');
 
   const desktopWeekJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-desktop-week.js'), 'utf8');
-  assert.match(desktopWeekJs, /ArcanaBookingDesktopWeek/, 'BL.5 Fas 5: desktop week calendar saknas');
-  assert.match(desktopWeekJs, /cco-cal-workstation/, 'BL.5 Fas 5: Hair TP calendar workstation saknas');
-  const calendarSharedJs = fs.readFileSync(path.join(PREVIEW_DIR, 'booking-calendar-shared.js'), 'utf8');
+  assert.match(
+    desktopWeekJs,
+    /ArcanaBookingDesktopWeek/,
+    'BL.5 Fas 5: desktop week calendar saknas'
+  );
+  assert.match(
+    desktopWeekJs,
+    /cco-cal-workstation/,
+    'BL.5 Fas 5: Hair TP calendar workstation saknas'
+  );
+  const calendarSharedJs = fs.readFileSync(
+    path.join(PREVIEW_DIR, 'booking-calendar-shared.js'),
+    'utf8'
+  );
   assert.match(calendarSharedJs, /fetchCalendarRange/, 'Kalender: merge slots + cases saknas');
   assert.match(calendarSharedJs, /ArcanaBookingCalendarShared/, 'Kalender: shared helpers saknas');
-  assert.match(desktopWeekJs, /openDayView|data-cal-open-day/, 'Kalender: dubbelklick dag → dagvy saknas');
+  assert.match(
+    desktopWeekJs,
+    /openDayView|data-cal-open-day/,
+    'Kalender: dubbelklick dag → dagvy saknas'
+  );
   assert.doesNotMatch(desktopWeekJs, /cco-cal-day-hint/, 'Kalender: dagvy-hint ska vara borttagen');
-  assert.match(calendarSharedJs, /buildBlockCalendarEvent|rebookCalendarBooking/, 'Kalender P1: block/rebook shared saknas');
+  assert.match(
+    calendarSharedJs,
+    /buildBlockCalendarEvent|rebookCalendarBooking/,
+    'Kalender P1: block/rebook shared saknas'
+  );
   assert.match(calendarSharedJs, /fetchCalendarSignals/, 'P6.10: calendar-signals API saknas');
-  assert.match(calendarSharedJs, /buildOperationalIconSpecs/, 'P6.10: operativa kalenderikoner saknas');
-  assert.match(calendarSharedJs, /data-icon="invite"|name: 'invite'/, 'P6.10.5: ICS-inbjudningsikon saknas');
+  assert.match(
+    calendarSharedJs,
+    /buildOperationalIconSpecs/,
+    'P6.10: operativa kalenderikoner saknas'
+  );
+  assert.match(
+    calendarSharedJs,
+    /data-icon="invite"|name: ['"]invite['"]/,
+    'P6.10.5: ICS-inbjudningsikon saknas'
+  );
   assert.match(calendarSharedJs, /Saknar hälsodeklaration/, 'P6.5.8: hälsodekl-ikon copy saknas');
-  assert.match(desktopWeekJs, /formatCalendarSignalSummary/, 'Kalender: signalrad i detaljpanel saknas');
+  assert.match(
+    desktopWeekJs,
+    /formatCalendarSignalSummary/,
+    'Kalender: signalrad i detaljpanel saknas'
+  );
   const calendarCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-calendar.css'), 'utf8');
   assert.match(calendarCss, /--cco-cal-accent/, 'Kalender: Hair TP tokens saknas');
   assert.match(calendarCss, /\.cco-cal-event-icon\.is-due/, 'P6.10: ikon-state CSS saknas');
   const polishCss = fs.readFileSync(path.join(PREVIEW_DIR, 'cco-polish.css'), 'utf8');
-  assert.match(polishCss, /\.schedule-shell[\s\S]*--schedule-espresso/, 'Schedule-shell: Hair TP taupe tokens saknas');
+  assert.match(
+    polishCss,
+    /\.schedule-shell[\s\S]*--schedule-espresso/,
+    'Schedule-shell: Hair TP taupe tokens saknas'
+  );
   const html = fs.readFileSync(INDEX, 'utf8');
   assert.match(html, /data-nav-view="calendar"/, 'Kalender: desktop nav-flik saknas');
   assert.match(html, /data-shell-view="calendar"/, 'Kalender: egen shell-vy saknas');
@@ -163,7 +215,11 @@ test('mobile UX sweep — B4 utility touch + Mer-sheet actions', () => {
     'B4.2: compose ska döljas i app-bar'
   );
   assert.match(html, /data-mobile-more-action="compose"/, 'B4.2: Nytt mejl i Mer-sheet');
-  assert.match(shellJs, /runMoreAction|data-mobile-more-action/, 'B4.2: Mer-sheet proxy till topbar');
+  assert.match(
+    shellJs,
+    /runMoreAction|data-mobile-more-action/,
+    'B4.2: Mer-sheet proxy till topbar'
+  );
 });
 
 test('mobile UX sweep — stängda modal-backdrops suddar inte iOS-vy', () => {
