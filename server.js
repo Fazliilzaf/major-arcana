@@ -987,8 +987,7 @@ app.get('/api/v1/docs/section/:sectionId', (req, res) => {
 
 app.get('/api/v1/docs/content', async (req, res) => {
   const docPath = (req.query?.path || '').trim();
-  if (!isAllowedDocPath(docPath))
-    return res.status(400).json({ ok: false, error: 'invalid_path' });
+  if (!isAllowedDocPath(docPath)) return res.status(400).json({ ok: false, error: 'invalid_path' });
   const result = await getDocContent(docPath);
   if (!result.ok) return res.status(404).json(result);
   return res.json(result);
@@ -1035,7 +1034,12 @@ app.get('/api/v1/knowledge/embeddings/status', async (req, res) => {
       configured: embeddings.isEmbeddingsConfigured(config),
       mode: store ? 'hybrid' : 'keyword',
       store: store
-        ? { model: store.model, dim: store.dim, chunkCount: store.chunkCount, generatedAt: store.generatedAt }
+        ? {
+            model: store.model,
+            dim: store.dim,
+            chunkCount: store.chunkCount,
+            generatedAt: store.generatedAt,
+          }
         : null,
     });
   } catch (error) {
@@ -1255,18 +1259,6 @@ async function shutdown(signal) {
 server = app.listen(config.port, () => {
   console.log(`Arcana kör på ${config.publicBaseUrl}`);
 });
-
-// --- Memory observability ---------------------------------------------
-// Periodisk minnes-telemetri + SIGUSR2 heap-snapshot för att fånga nästa
-// OOM-läcka tidigt (se project_arcana_oom_134). No-op om
-// ARCANA_MEMORY_TELEMETRY_ENABLED=false.
-try {
-  const { startMemoryTelemetry, installHeapSnapshotHandler } = require('./src/ops/memoryTelemetry');
-  startMemoryTelemetry({ logger: console });
-  installHeapSnapshotHandler({ logger: console });
-} catch (err) {
-  console.error('[memory-telemetry] init failed:', err && err.message);
-}
 
 process.once('SIGINT', () => {
   void shutdown('SIGINT');
@@ -2721,6 +2713,18 @@ process.once('SIGTERM', () => {
   runtimeState.ready = true;
   runtimeState.lastError = null;
   setStartupPhase('ready');
+
+  // Memory observability: start AFTER ready so SIGUSR2 heap snapshots never
+  // block boot /readyz (PR #91 post-mortem 2026-05-28).
+  try {
+    const { startMemoryObservability } = require('./src/ops/memoryTelemetry');
+    startMemoryObservability({
+      logger: console,
+      isReady: () => runtimeState.ready === true,
+    });
+  } catch (err) {
+    console.error('[memory-telemetry] init failed:', err && err.message);
+  }
 
   const schedulerStatus = await scheduler.start();
   if (schedulerStatus?.enabled) {

@@ -3,17 +3,14 @@
 const v8 = require('node:v8');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 
 /**
  * Memory telemetry + heap-snapshot tooling.
  *
- * Bakgrund: 2026-05-27/28 hade Frankfurt-Arcana en OOM-loop som löstes via
- * "lazy sharded mailbox truth reads" (commit d448ea1). För att fånga nästa
- * läcka tidigt loggar vi process-minne periodiskt så vi ser en växande heap
- * timmar innan kerneln kill:ar processen. SIGUSR2-handlern låter oss
- * dumpa en heap-snapshot från en levande pod via Render-shell.
- *
- * Allt är opt-in via env och no-op om inaktiverat.
+ * Viktigt: initiera först EFTER runtimeState.ready (se server.js). SIGUSR2 +
+ * v8.writeHeapSnapshot blockerar event loop — om det triggas under boot
+ * svarar inte /readyz i tid och Render avbryter deploy (status 143).
  */
 
 function readInt(name, fallback) {
@@ -22,6 +19,12 @@ function readInt(name, fallback) {
   const n = Number.parseInt(String(raw).trim(), 10);
   if (!Number.isFinite(n)) return fallback;
   return n;
+}
+
+function readBool(name, fallback) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  return String(raw).trim().toLowerCase() !== 'false';
 }
 
 function toMb(bytes) {
@@ -48,25 +51,28 @@ function buildSample() {
   };
 }
 
+function resolveHeapSnapshotDir(options = {}) {
+  if (process.env.ARCANA_HEAP_SNAPSHOT_DIR) {
+    return process.env.ARCANA_HEAP_SNAPSHOT_DIR;
+  }
+  if (options.dir) return options.dir;
+  return path.join(os.tmpdir(), 'arcana-heap-snapshots');
+}
+
 function startMemoryTelemetry(options = {}) {
-  const intervalMs = readInt(
-    'ARCANA_MEMORY_TELEMETRY_INTERVAL_MS',
-    options.intervalMs ?? 60000
-  );
-  const enabled = String(process.env.ARCANA_MEMORY_TELEMETRY_ENABLED ?? 'true')
-    .trim()
-    .toLowerCase() !== 'false';
+  const intervalMs = readInt('ARCANA_MEMORY_TELEMETRY_INTERVAL_MS', options.intervalMs ?? 60000);
+  const enabled = readBool('ARCANA_MEMORY_TELEMETRY_ENABLED', true);
+  const isReady = typeof options.isReady === 'function' ? options.isReady : () => true;
   if (!enabled || intervalMs <= 0) {
     return { stop() {} };
   }
   const logger = options.logger || console;
   let last = null;
   const timer = setInterval(() => {
+    if (!isReady()) return;
     try {
       const sample = buildSample();
-      // Compact one-line JSON så det är lätt att grep:a i Render-loggar.
       logger.log(JSON.stringify(sample));
-      // Larm-tröskel: heap > 75 % av limit ELLER rss > 6 GB.
       const limit = sample.heap_size_limit_mb || 0;
       const heapPctOfLimit = limit ? sample.heap_used_mb / limit : 0;
       if (heapPctOfLimit > 0.75 || sample.rss_mb > 6144) {
@@ -82,7 +88,6 @@ function startMemoryTelemetry(options = {}) {
       }
       if (last) {
         const deltaRssMb = sample.rss_mb - last.rss_mb;
-        // Stor abrupt ökning kan vara en läck-trigger; flagga i loggen.
         if (deltaRssMb >= 512) {
           logger.warn(
             JSON.stringify({
@@ -100,11 +105,10 @@ function startMemoryTelemetry(options = {}) {
       try {
         logger.error('[memory-telemetry] sample error', err && err.message);
       } catch (_) {
-        // swallow — loggning får aldrig krascha appen
+        // swallow
       }
     }
   }, intervalMs);
-  // Tillåt processen att avslutas även om timern är aktiv.
   if (typeof timer.unref === 'function') timer.unref();
   return {
     stop() {
@@ -114,39 +118,60 @@ function startMemoryTelemetry(options = {}) {
 }
 
 function installHeapSnapshotHandler(options = {}) {
-  const enabled = String(
-    process.env.ARCANA_HEAP_SNAPSHOT_SIGUSR2_ENABLED ?? 'true'
-  )
-    .trim()
-    .toLowerCase() !== 'false';
+  // Opt-in: synkron writeHeapSnapshot får aldrig köras under boot.
+  const enabled = readBool('ARCANA_HEAP_SNAPSHOT_SIGUSR2_ENABLED', false);
   if (!enabled) return { uninstall() {} };
   const logger = options.logger || console;
-  const dir =
-    process.env.ARCANA_HEAP_SNAPSHOT_DIR ||
-    options.dir ||
-    (fs.existsSync('/var/data') ? '/var/data/heap-snapshots' : path.join(require('node:os').tmpdir(), 'arcana-heap-snapshots'));
+  const isReady = typeof options.isReady === 'function' ? options.isReady : () => true;
+  let snapshotInProgress = false;
   const handler = () => {
-    try {
-      fs.mkdirSync(dir, { recursive: true });
-      const filename = `heap-${new Date().toISOString().replace(/[:.]/g, '-')}-pid${process.pid}.heapsnapshot`;
-      const target = path.join(dir, filename);
-      const written = v8.writeHeapSnapshot(target);
+    if (!isReady()) {
       logger.warn(
         JSON.stringify({
-          type: 'heap_snapshot_written',
+          type: 'heap_snapshot_skipped',
           ts: new Date().toISOString(),
-          path: written,
+          reason: 'not_ready',
         })
       );
-    } catch (err) {
-      logger.error(
-        JSON.stringify({
-          type: 'heap_snapshot_error',
-          ts: new Date().toISOString(),
-          error: err && err.message,
-        })
-      );
+      return;
     }
+    if (snapshotInProgress) {
+      logger.warn(
+        JSON.stringify({
+          type: 'heap_snapshot_skipped',
+          ts: new Date().toISOString(),
+          reason: 'in_progress',
+        })
+      );
+      return;
+    }
+    snapshotInProgress = true;
+    setImmediate(() => {
+      try {
+        const dir = resolveHeapSnapshotDir(options);
+        fs.mkdirSync(dir, { recursive: true });
+        const filename = `heap-${new Date().toISOString().replace(/[:.]/g, '-')}-pid${process.pid}.heapsnapshot`;
+        const target = path.join(dir, filename);
+        const written = v8.writeHeapSnapshot(target);
+        logger.warn(
+          JSON.stringify({
+            type: 'heap_snapshot_written',
+            ts: new Date().toISOString(),
+            path: written,
+          })
+        );
+      } catch (err) {
+        logger.error(
+          JSON.stringify({
+            type: 'heap_snapshot_error',
+            ts: new Date().toISOString(),
+            error: err && err.message,
+          })
+        );
+      } finally {
+        snapshotInProgress = false;
+      }
+    });
   };
   process.on('SIGUSR2', handler);
   return {
@@ -156,7 +181,25 @@ function installHeapSnapshotHandler(options = {}) {
   };
 }
 
+/**
+ * Start memory telemetry + optional SIGUSR2 snapshot handler.
+ * Call only after the app is ready to serve traffic.
+ */
+function startMemoryObservability(options = {}) {
+  const telemetry = startMemoryTelemetry(options);
+  const snapshot = installHeapSnapshotHandler(options);
+  return {
+    stop() {
+      telemetry.stop();
+      snapshot.uninstall();
+    },
+  };
+}
+
 module.exports = {
+  buildSample,
   startMemoryTelemetry,
   installHeapSnapshotHandler,
+  startMemoryObservability,
+  resolveHeapSnapshotDir,
 };
