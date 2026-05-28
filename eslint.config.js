@@ -118,6 +118,24 @@ module.exports = [
     },
   },
   {
+    files: ['public/major-arcana-preview/booking-*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
+      'no-undef': 'warn',
+      'no-redeclare': 'off',
+      'prefer-const': 'off',
+      'no-var': 'off',
+    },
+  },
+  {
     files: ['public/major-arcana-preview/app/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
@@ -157,6 +175,25 @@ module.exports = [
         MajorArcanaPreviewAnimations: 'readonly',
         MajorArcanaPreviewToast: 'readonly',
         state: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
+      'no-undef': 'warn',
+      'no-redeclare': 'off',
+      'prefer-const': 'off',
+      'no-var': 'off',
+    },
+  },
+  {
+    files: ['public/app.js', 'public/arcana-page-titles.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+        ArcanaPageTitles: 'readonly',
       },
     },
     rules: {
@@ -234,6 +271,7 @@ module.exports = [
       globals: {
         ...globals.node,
         ...globals.jest,
+        ...globals.browser,
       },
     },
     rules: {

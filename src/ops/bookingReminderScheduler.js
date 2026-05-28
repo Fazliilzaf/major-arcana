@@ -1,6 +1,30 @@
 'use strict';
 
 /**
+ * @deprecated 2026-05-28 — denna scheduler är SUPERSEDED av
+ * `cco_customer_reminders` (src/ops/scheduler.js → buildCustomerReminderQueue +
+ * dispatchPatientVisitReminderEmails i src/ops/ccoPatientCareOps.js).
+ *
+ * cco_customer_reminders körs var 6:e timme, har:
+ *   - per-service lead-time-config via bookingReminderLeadTime
+ *   - dedup via patientCareStateStore.wasReminderSent (72h-fönster)
+ *   - email + SMS (46elks/Twilio) i samma pipeline
+ *   - aftercare-reminders ovanpå besöks-reminders
+ *
+ * runBookingReminders nedan är en enklare variant utan dessa features och
+ * lider av:
+ *   - F2-1: bookingEngineStore.save är inte exporterad → ingen persistens
+ *     av reminders-fältet
+ *   - F2-3: store normaliserar bort booking.reminders vid load → dedup
+ *     omöjlig efter restart
+ *   - F2-4: funktionen registrerades aldrig i scheduler (säkerligen för
+ *     att undvika dubbla mail till samma kund)
+ *
+ * Behåller modulen för bakåtkompatibilitet med tester men anropa den INTE
+ * från scheduler eller HTTP-routes. Spec-kraven i CCO-BOOKING-FAS-2-SPEC.md
+ * Block 4 uppfylls av cco_customer_reminders.
+ *
+ * --- ursprunglig dokumentation ---
  * Booking Reminder Scheduler — Fas 2 Block 4.
  *
  * Skickar påminnelse-mejl:
@@ -13,8 +37,12 @@
 
 const { buildBookingReminderEmail } = require('../templates/bookingReminderEmail');
 
-function normalizeText(v) { return typeof v === 'string' ? v.trim() : ''; }
-function nowIso() { return new Date().toISOString(); }
+function normalizeText(v) {
+  return typeof v === 'string' ? v.trim() : '';
+}
+function nowIso() {
+  return new Date().toISOString();
+}
 
 async function runBookingReminders({ bookingEngineStore, graphSendConnector, config = {} }) {
   const results = { checked: 0, sent72h: 0, sent24h: 0, skipped: 0, errors: [] };
@@ -29,15 +57,24 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
   for (const booking of bookings) {
     results.checked++;
     const startsAt = normalizeText(booking.slot?.startsAt || booking.startsAt);
-    if (!startsAt) { results.skipped++; continue; }
+    if (!startsAt) {
+      results.skipped++;
+      continue;
+    }
 
     const startMs = Date.parse(startsAt);
-    if (!Number.isFinite(startMs) || startMs < now) { results.skipped++; continue; }
+    if (!Number.isFinite(startMs) || startMs < now) {
+      results.skipped++;
+      continue;
+    }
 
     const hoursUntil = (startMs - now) / 3600000;
     const customerEmail = normalizeText(booking.customerEmail || booking.contact?.email);
     const customerName = normalizeText(booking.customerName || booking.contact?.name);
-    if (!customerEmail) { results.skipped++; continue; }
+    if (!customerEmail) {
+      results.skipped++;
+      continue;
+    }
 
     if (!booking.reminders) booking.reminders = {};
 
@@ -56,7 +93,15 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
             to: customerEmail,
             subject: email.subject,
             html: email.html,
-            attachments: email.ics ? [{ name: 'paminnelse.ics', contentType: 'text/calendar', content: Buffer.from(email.ics).toString('base64') }] : [],
+            attachments: email.ics
+              ? [
+                  {
+                    name: 'paminnelse.ics',
+                    contentType: 'text/calendar',
+                    content: Buffer.from(email.ics).toString('base64'),
+                  },
+                ]
+              : [],
           });
           booking.reminders['72h'] = nowIso();
           results.sent72h++;
@@ -81,7 +126,15 @@ async function runBookingReminders({ bookingEngineStore, graphSendConnector, con
             to: customerEmail,
             subject: email.subject,
             html: email.html,
-            attachments: email.ics ? [{ name: 'paminnelse.ics', contentType: 'text/calendar', content: Buffer.from(email.ics).toString('base64') }] : [],
+            attachments: email.ics
+              ? [
+                  {
+                    name: 'paminnelse.ics',
+                    contentType: 'text/calendar',
+                    content: Buffer.from(email.ics).toString('base64'),
+                  },
+                ]
+              : [],
           });
           booking.reminders['24h'] = nowIso();
           results.sent24h++;

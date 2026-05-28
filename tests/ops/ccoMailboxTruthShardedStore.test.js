@@ -78,6 +78,7 @@ test('sharded mailbox truth store migrates monolith and saves per mailbox', asyn
   const store = await createCcoMailboxTruthShardedStore({
     baseDir,
     legacyFilePath: legacyPath,
+    lazyPreload: false,
   });
 
   assert.equal(store.sharded, true);

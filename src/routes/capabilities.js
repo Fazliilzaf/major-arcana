@@ -205,10 +205,7 @@ async function listWorklistEnrichmentEntries({
   return [...asArray(ccoEntries), ...asArray(analyzeEntries)];
 }
 
-function buildWorklistIngestionPayload({
-  ingestionStore = null,
-  mailboxIds = [],
-} = {}) {
+function buildWorklistIngestionPayload({ ingestionStore = null, mailboxIds = [] } = {}) {
   if (!ingestionStore || typeof ingestionStore.buildDashboardSummary !== 'function') {
     return null;
   }
@@ -7141,6 +7138,14 @@ function toCcoRuntimeHistoryStatusHandler({
       });
       if (mailboxTruthHistory) {
         const { mailboxId, mailboxIds, lookbackDays } = toCcoRuntimeHistoryStatusQuery(req.query);
+        if (
+          ccoMailboxTruthStore &&
+          typeof ccoMailboxTruthStore.ensureMailboxLoaded === 'function'
+        ) {
+          for (const currentMailboxId of mailboxIds) {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(currentMailboxId);
+          }
+        }
         const historyCoverage = mailboxTruthHistory.getHistoryCoverage({ mailboxIds });
         const schedulerStatus =
           scheduler && typeof scheduler.getStatus === 'function' ? scheduler.getStatus() : null;
