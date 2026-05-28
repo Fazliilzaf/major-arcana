@@ -5520,53 +5520,139 @@ const BOOKING_STATUSES = Object.freeze([
           } catch {}
         };
         // Komplett dokumentbibliotek — ALLA docs i repot, grupperade per segment.
-        window.loadDocLibrary = async function () {
-          const panel = ensureDocsPanel();
-          const list = document.getElementById('adminContextDocsList');
-          if (!list) return;
-          panel.style.width = '460px';
-          panel.style.maxHeight = '72vh';
-          list.innerHTML = 'Laddar dokument…';
-          panel.style.display = 'block';
+        window.__kbDocLink = function (docPath, label, snippet) {
+          const safeSnippet = snippet
+            ? '<br><span style="font-size:11px;opacity:0.6;">' + String(snippet).replace(/</g, '&lt;') + '</span>'
+            : '';
+          return (
+            '<div style="margin:4px 0 4px 12px;"><a href="#" onclick="event.preventDefault();loadDocContent(\'' +
+            docPath +
+            '\')" style="color:var(--accent,#C2AA9C);text-decoration:none;font-size:12px;">' +
+            (label || docPath) +
+            '</a>' +
+            safeSnippet +
+            '</div>'
+          );
+        };
+        window.kbShowAll = async function () {
+          const body = document.getElementById('adminKbBody');
+          if (!body) return;
+          body.innerHTML = 'Laddar…';
           try {
-            const res = await fetch('/api/v1/docs/library');
-            const data = await res.json();
+            const data = await (await fetch('/api/v1/docs/library')).json();
             if (!data.ok || !Array.isArray(data.segments)) {
-              list.innerHTML = 'Kunde inte ladda dokumentbiblioteket.';
+              body.innerHTML = 'Kunde inte ladda dokumentbiblioteket.';
               return;
             }
-            list.innerHTML =
-              '<div style="font-size:11px;opacity:0.7;margin-bottom:8px;">' +
-              data.totalDocuments +
-              ' dokument i ' +
-              data.totalSegments +
-              ' kategorier</div>' +
+            body.innerHTML =
+              '<div style="font-size:11px;opacity:0.7;margin-bottom:6px;">' +
+              data.totalDocuments + ' dokument i ' + data.totalSegments + ' kategorier</div>' +
               data.segments
                 .map(function (seg) {
                   return (
                     '<details style="margin-bottom:6px;"><summary style="cursor:pointer;color:var(--text);font-weight:600;padding:4px 0;">' +
-                    seg.title +
-                    ' (' +
-                    seg.documentCount +
-                    ')</summary>' +
-                    seg.documents
-                      .map(function (doc) {
-                        return (
-                          '<div style="margin:4px 0 4px 12px;"><a href="#" onclick="event.preventDefault();loadDocContent(\'' +
-                          doc.path +
-                          '\')" style="color:var(--accent,#C2AA9C);text-decoration:none;font-size:12px;">' +
-                          doc.title +
-                          '</a></div>'
-                        );
-                      })
-                      .join('') +
+                    seg.title + ' (' + seg.documentCount + ')</summary>' +
+                    seg.documents.map(function (doc) { return window.__kbDocLink(doc.path, doc.title); }).join('') +
                     '</details>'
                   );
                 })
                 .join('');
           } catch {
-            list.innerHTML = 'Fel vid laddning.';
+            body.innerHTML = 'Fel vid laddning.';
           }
+        };
+        window.kbShowRole = async function (role) {
+          const body = document.getElementById('adminKbBody');
+          if (!body) return;
+          body.innerHTML = 'Laddar ' + role + '…';
+          try {
+            const data = await (await fetch('/api/v1/knowledge/role/' + encodeURIComponent(role))).json();
+            if (!data.ok) { body.innerHTML = 'Ingen roll.'; return; }
+            body.innerHTML =
+              '<div style="font-size:11px;opacity:0.7;margin-bottom:6px;">Roll: ' + role + ' — ' + data.documents.length + ' dokument</div>' +
+              data.documents.map(function (doc) { return window.__kbDocLink(doc.path, doc.title); }).join('');
+          } catch {
+            body.innerHTML = 'Fel.';
+          }
+        };
+        window.kbSearch = async function (q) {
+          const body = document.getElementById('adminKbBody');
+          if (!body) return;
+          body.innerHTML = 'Söker…';
+          try {
+            const data = await (await fetch('/api/v1/knowledge/search?q=' + encodeURIComponent(q) + '&limit=10')).json();
+            if (!data.ok) { body.innerHTML = 'Sökfel.'; return; }
+            if (!data.results || !data.results.length) {
+              body.innerHTML = 'Inga träffar för "' + String(q).replace(/</g, '&lt;') + '".';
+              return;
+            }
+            body.innerHTML =
+              '<div style="font-size:11px;opacity:0.7;margin-bottom:6px;">' + data.results.length + ' träffar</div>' +
+              data.results.map(function (hit) {
+                return window.__kbDocLink(hit.path, hit.path.split('/').pop(), (hit.content || '').slice(0, 140));
+              }).join('');
+          } catch {
+            body.innerHTML = 'Fel.';
+          }
+        };
+        window.loadDocLibrary = async function () {
+          const panel = ensureDocsPanel();
+          const list = document.getElementById('adminContextDocsList');
+          if (!list) return;
+          panel.style.width = '480px';
+          panel.style.maxHeight = '78vh';
+          list.innerHTML =
+            '<input id="adminKbSearch" type="search" placeholder="Sök i kunskapsbasen…" style="width:100%;box-sizing:border-box;padding:7px 9px;margin-bottom:8px;border-radius:8px;border:1px solid var(--line,#3A332C);background:var(--panel-soft,#2F2A25);color:var(--text);font-size:12px;" />' +
+            '<div id="adminKbStatus" style="font-size:11px;opacity:0.7;margin-bottom:6px;">RAG: …</div>' +
+            '<div id="adminKbRoles" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;"></div>' +
+            '<div id="adminKbBody">Laddar…</div>';
+          panel.style.display = 'block';
+
+          const searchEl = document.getElementById('adminKbSearch');
+          let timer = null;
+          searchEl.addEventListener('input', function () {
+            clearTimeout(timer);
+            const q = searchEl.value.trim();
+            timer = setTimeout(function () {
+              if (q.length >= 2) window.kbSearch(q);
+              else window.kbShowAll();
+            }, 350);
+          });
+
+          fetch('/api/v1/knowledge/embeddings/status')
+            .then(function (r) { return r.json(); })
+            .then(function (s) {
+              const el = document.getElementById('adminKbStatus');
+              if (!el) return;
+              if (s && s.ok) {
+                el.textContent =
+                  'RAG: ' + (s.mode === 'hybrid' ? 'hybrid (semantisk)' : 'keyword') +
+                  (s.store ? ' · ' + s.store.chunkCount + ' vektorer' : '') +
+                  (s.configured ? '' : ' · OPENAI_API_KEY saknas');
+              } else {
+                el.textContent = 'RAG: status okänd';
+              }
+            })
+            .catch(function () {});
+
+          fetch('/api/v1/knowledge/roles')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              const el = document.getElementById('adminKbRoles');
+              if (!el) return;
+              const chip = function (label, onclick) {
+                return (
+                  '<button type="button" onclick="' + onclick + '" style="background:var(--panel-soft,#2F2A25);border:1px solid var(--line,#3A332C);color:var(--muted);border-radius:999px;padding:3px 9px;font-size:11px;cursor:pointer;">' +
+                  label + '</button>'
+                );
+              };
+              el.innerHTML =
+                chip('Alla', 'window.kbShowAll()') +
+                (data.roles || []).map(function (r) { return chip(r, "window.kbShowRole('" + r + "')"); }).join('');
+            })
+            .catch(function () {});
+
+          window.kbShowAll();
         };
         // Alltid tillgänglig launcher-knapp för hela dokumentytan.
         (function ensureDocsLauncher() {
