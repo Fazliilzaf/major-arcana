@@ -957,10 +957,26 @@ const {
   runCheck: runUptimeCheck,
 } = require('./src/ops/uptimeMonitor');
 const { createOnboardingStore } = require('./src/ops/staffOnboarding');
-const { getDocContent, getDocsForSection, getAllSections } = require('./src/ops/contextualDocs');
+const {
+  getDocContent,
+  getDocsForSection,
+  getAllSections,
+  getDocumentLibrary,
+  isAllowedDocPath,
+} = require('./src/ops/contextualDocs');
 
 app.get('/api/v1/docs/sections', (req, res) => {
   return res.json({ ok: true, sections: getAllSections() });
+});
+
+// Complete document library — every doc in the repo, grouped by segment.
+app.get('/api/v1/docs/library', async (req, res) => {
+  try {
+    const library = await getDocumentLibrary();
+    return res.json({ ok: true, ...library });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'library_failed' });
+  }
 });
 
 app.get('/api/v1/docs/section/:sectionId', (req, res) => {
@@ -971,11 +987,55 @@ app.get('/api/v1/docs/section/:sectionId', (req, res) => {
 
 app.get('/api/v1/docs/content', async (req, res) => {
   const docPath = (req.query?.path || '').trim();
-  if (!docPath || !docPath.startsWith('docs/'))
+  if (!isAllowedDocPath(docPath))
     return res.status(400).json({ ok: false, error: 'invalid_path' });
   const result = await getDocContent(docPath);
   if (!result.ok) return res.status(404).json(result);
   return res.json(result);
+});
+
+// Knowledge layer (Fas 1) — ett enat index som admin OCH agenter läser från.
+const {
+  buildKnowledgeIndex,
+  docsForRole,
+  availableRoles,
+  searchKnowledge,
+} = require('./src/ops/knowledgeAccessor');
+
+app.get('/api/v1/knowledge/index', async (req, res) => {
+  try {
+    const index = await buildKnowledgeIndex();
+    return res.json({ ok: true, ...index });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'index_failed' });
+  }
+});
+
+app.get('/api/v1/knowledge/roles', (req, res) => {
+  return res.json({ ok: true, roles: availableRoles() });
+});
+
+app.get('/api/v1/knowledge/role/:role', async (req, res) => {
+  try {
+    const documents = await docsForRole(req.params.role);
+    return res.json({ ok: true, role: req.params.role, documents });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'role_failed' });
+  }
+});
+
+app.get('/api/v1/knowledge/search', async (req, res) => {
+  const query = (req.query?.q || req.query?.query || '').trim();
+  if (!query) return res.status(400).json({ ok: false, error: 'missing_query' });
+  try {
+    const results = await searchKnowledge(query, {
+      role: (req.query?.role || '').trim(),
+      limit: Math.min(20, Math.max(1, Number(req.query?.limit) || 6)),
+    });
+    return res.json({ ok: true, query, results });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'search_failed' });
+  }
 });
 
 app.get('/api/v1/qa/dashboard', (req, res) => {

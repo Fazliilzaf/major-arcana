@@ -114,8 +114,118 @@ const SECTION_DOCS = Object.freeze({
 
 const ALL_SECTIONS = Object.keys(SECTION_DOCS);
 
+// ---- Complete document library (every doc in the repo, grouped by folder) ----
+// "ALLT måste med" — surfaces the full docs/ tree + top-level *.md so the admin
+// workspace can reach every document, and new docs appear automatically.
+
+const SEGMENT_TITLES = Object.freeze({
+  strategy: 'Strategi',
+  ops: 'Drift & Runbooks',
+  legal: 'Juridik & GDPR',
+  adr: 'Arkitekturbeslut (ADR)',
+  uiux: 'UI/UX',
+  architecture: 'Arkitektur',
+  security: 'Säkerhet',
+  a11y: 'Tillgänglighet',
+  risk: 'Risk',
+  wordpress: 'WordPress',
+  'design-specs': 'Designspecar',
+  archives: 'Arkiv',
+  docs: 'Allmänt',
+  rot: 'Repo-rot',
+});
+
+function humanizeTitle(filePath) {
+  const base = path.basename(filePath).replace(/\.md$/i, '');
+  const cleaned = base.replace(/[-_]+/g, ' ').trim();
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : base;
+}
+
+function segmentForPath(relPath) {
+  if (!relPath.includes('/')) return 'rot'; // top-level *.md in repo root
+  const parts = relPath.split('/'); // docs/<segment>/...
+  if (parts[0] === 'docs') {
+    return parts.length > 2 ? parts[1] : 'docs'; // docs/x.md → 'docs'
+  }
+  return parts[0];
+}
+
+// Only .md, only inside docs/ or a top-level repo *.md, no traversal.
+function isAllowedDocPath(docPath) {
+  const rel = normalizeText(docPath).replace(/\\/g, '/');
+  if (!rel || rel.includes('..') || !/\.md$/i.test(rel)) return false;
+  if (rel.startsWith('/')) return false;
+  if (rel.startsWith('docs/')) return true;
+  return !rel.includes('/'); // top-level *.md
+}
+
+async function walkMarkdown(dir, repoRoot, out) {
+  let entries;
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await walkMarkdown(full, repoRoot, out);
+    } else if (entry.isFile() && /\.md$/i.test(entry.name)) {
+      out.push(path.relative(repoRoot, full).split(path.sep).join('/'));
+    }
+  }
+}
+
+async function getDocumentLibrary(repoRoot = process.cwd()) {
+  const paths = [];
+  await walkMarkdown(path.join(repoRoot, 'docs'), repoRoot, paths);
+  // Top-level *.md (README, CCO-STATUS, AGENTS, …).
+  try {
+    const rootEntries = await fs.readdir(repoRoot, { withFileTypes: true });
+    for (const entry of rootEntries) {
+      if (entry.isFile() && /\.md$/i.test(entry.name)) paths.push(entry.name);
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const groups = new Map();
+  for (const rel of paths.sort()) {
+    const seg = segmentForPath(rel);
+    if (!groups.has(seg)) groups.set(seg, []);
+    groups.get(seg).push({
+      path: rel,
+      title: humanizeTitle(rel),
+      description: rel,
+    });
+  }
+
+  const segments = [...groups.entries()]
+    .map(([id, documents]) => ({
+      sectionId: id,
+      title: SEGMENT_TITLES[id] || id,
+      documentCount: documents.length,
+      documents,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title, 'sv'));
+
+  return {
+    totalDocuments: paths.length,
+    totalSegments: segments.length,
+    segments,
+  };
+}
+
 async function getDocContent(docPath, repoRoot = process.cwd()) {
+  if (!isAllowedDocPath(docPath)) {
+    return { ok: false, path: docPath, error: 'Otillåten sökväg' };
+  }
   const fullPath = path.resolve(repoRoot, docPath);
+  // Defence-in-depth: resolved path must stay inside the repo.
+  if (!fullPath.startsWith(path.resolve(repoRoot) + path.sep)) {
+    return { ok: false, path: docPath, error: 'Otillåten sökväg' };
+  }
   try {
     const content = await fs.readFile(fullPath, 'utf8');
     return { ok: true, path: docPath, content };
@@ -137,4 +247,12 @@ function getAllSections() {
   }));
 }
 
-module.exports = { SECTION_DOCS, ALL_SECTIONS, getDocContent, getDocsForSection, getAllSections };
+module.exports = {
+  SECTION_DOCS,
+  ALL_SECTIONS,
+  getDocContent,
+  getDocsForSection,
+  getAllSections,
+  getDocumentLibrary,
+  isAllowedDocPath,
+};
