@@ -1177,6 +1177,18 @@ server = app.listen(config.port, () => {
   console.log(`Arcana kör på ${config.publicBaseUrl}`);
 });
 
+// --- Memory observability ---------------------------------------------
+// Periodisk minnes-telemetri + SIGUSR2 heap-snapshot för att fånga nästa
+// OOM-läcka tidigt (se project_arcana_oom_134). No-op om
+// ARCANA_MEMORY_TELEMETRY_ENABLED=false.
+try {
+  const { startMemoryTelemetry, installHeapSnapshotHandler } = require('./src/ops/memoryTelemetry');
+  startMemoryTelemetry({ logger: console });
+  installHeapSnapshotHandler({ logger: console });
+} catch (err) {
+  console.error('[memory-telemetry] init failed:', err && err.message);
+}
+
 process.once('SIGINT', () => {
   void shutdown('SIGINT');
 });
