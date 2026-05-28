@@ -164,6 +164,7 @@ async function createCcoMailboxTruthShardedStore({
   baseDir = '',
   legacyFilePath = '',
   maxSyncRuns = 200,
+  lazyPreload = true,
 } = {}) {
   const resolvedBase = path.resolve(String(baseDir || '').trim());
   if (!resolvedBase) {
@@ -203,6 +204,7 @@ async function createCcoMailboxTruthShardedStore({
       filePath: shardPath,
       maxSyncRuns,
       deferConversationRebuild: true,
+      deferInitialSave: true,
     });
     shardCache.set(safeMailboxId, store);
     return store;
@@ -237,6 +239,9 @@ async function createCcoMailboxTruthShardedStore({
   }
 
   async function preloadShards() {
+    if (lazyPreload === true) {
+      return;
+    }
     const entries = await fs.readdir(mailboxesDir, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.endsWith('.json') || entry.name.startsWith('.')) {
