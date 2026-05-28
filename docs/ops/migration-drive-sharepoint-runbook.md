@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Migration — Drive / SharePoint runbook (C1–C5)
 
 Uppdaterad: 2026-05-20  

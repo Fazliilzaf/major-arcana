@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Wiring-backlog — scaffolds som väntar på att kopplas in
 
 Filer som finns i repot men **inte är wirade in** i `server.js` eller anropas

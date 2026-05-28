@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Tenant Onboarding Playbook
 
 Senast uppdaterad: 2026-05-13

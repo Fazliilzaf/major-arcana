@@ -1,3 +1,8 @@
+---
+owner: Design
+status: active
+---
+
 # 🎯 Cursor-prompt: Historik-kort för CCO-appen
 
 ## Kontext till Cursor

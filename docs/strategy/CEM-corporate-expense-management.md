@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 Ja � det h�r ska byggas som ett eget segment i Major Arcana:
 CM / Corporate Expense Management
 Eller �nnu tydligare i systemet:

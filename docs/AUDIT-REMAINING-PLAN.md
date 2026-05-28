@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Audit-actionplan — kvarvarande tekniska planer
 
 Detta dokument innehåller **konkreta implementations-planer** för de två

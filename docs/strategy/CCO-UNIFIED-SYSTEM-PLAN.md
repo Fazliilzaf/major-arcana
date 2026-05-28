@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Unified System Plan — Bokning + Kassa + Journal
 
 **Status:** ✅ KOMPLETT — alla faser levererade  

@@ -1,3 +1,8 @@
+---
+owner: Design
+status: active
+---
+
 # Arcana Executive OS — UI/UX Design Pack (Pilot 0.1)
 
 Detta paket mappar direkt mot leverablerna i `Arcana Executive OS Design.txt`.

@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # ISO 27001 / SOC 2 Readiness — Gap-analys & Kontrollmappning
 
 Version: 1.0

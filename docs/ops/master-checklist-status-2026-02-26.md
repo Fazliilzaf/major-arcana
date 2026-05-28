@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Arcana Master-Checklist Status (2026-02-26)
 
 Statusformat:

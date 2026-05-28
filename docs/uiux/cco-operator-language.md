@@ -1,3 +1,8 @@
+---
+owner: Design
+status: active
+---
+
 # CCO Operator Language
 
 Den här ordlistan låser vilka systemord operatören ska se i CCO-ytan. Målet är att gränssnittet ska kännas som en intern mail- och bokningsyta, inte som ett tekniskt runtime-verktyg.

@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # ADR-0001: Capabilities-pattern för all server-side affärslogik
 
 - Status: accepted

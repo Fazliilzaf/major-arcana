@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # Personuppgiftspolicy — Hair TP Clinic (PUB / integritetstext)
 
 **Version:** 2026-05-25 (repo-utkast för webb + patientkanaler)  

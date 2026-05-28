@@ -1,3 +1,8 @@
+---
+owner: CAO
+status: active
+---
+
 # Implementation Plan: CAO — Arcana Admin Operator
 
 Skapad: 2026-05-20  

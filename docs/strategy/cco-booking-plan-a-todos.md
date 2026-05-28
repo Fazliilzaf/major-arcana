@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Booking Plan A — Todo (koda en punkt i taget)
 
 Status: **KLAR** — prod sign-off automated 2026-05-24 (`verify:booking-*-prod`)  

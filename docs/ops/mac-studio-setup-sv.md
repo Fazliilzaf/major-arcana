@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Mac Studio Setup för Arcana
 
 Den här guiden är till för din nya Mac Studio.

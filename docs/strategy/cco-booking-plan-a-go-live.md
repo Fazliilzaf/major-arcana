@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Booking — Plan A (Go-live)
 
 Status: **PROD SIGN-OFF KLAR** (automated 2026-05-24) — operatör manuell sign-off valfri  

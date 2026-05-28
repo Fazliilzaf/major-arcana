@@ -1,3 +1,8 @@
+---
+owner: Design
+status: active
+---
+
 # CCO Adaptive Layout Matrix
 
 | Vy | Mobil (320–767) | iPad/Tablet (768–1023) | Desktop (1024+) | Primär action | Göm på mobil | Bottom sheet | Split view (iPad) |

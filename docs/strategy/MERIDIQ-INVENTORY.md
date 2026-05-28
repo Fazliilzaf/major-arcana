@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Meridiq — Fullständig inventering (Hair TP Clinic + Curatiio)
 
 **Status:** Legacy journalsystem / klinik-OS (referens + migreringskälla)  

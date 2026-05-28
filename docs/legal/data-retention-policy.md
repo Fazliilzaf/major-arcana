@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # Arcana Data Retention Policy
 
 Version: 1.0

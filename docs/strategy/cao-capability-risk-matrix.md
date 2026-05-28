@@ -1,3 +1,8 @@
+---
+owner: CAO
+status: active
+---
+
 # CAO — Risktabell (15 kapacitetsområden)
 
 Datum: 2026-05-20  

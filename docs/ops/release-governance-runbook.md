@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Release Governance Runbook (P4)
 
 Detta runbook operationaliserar P4-gates: release-gate, 3-signoff, staged launch, post-go-live review och kvartalsvis reality-audit.

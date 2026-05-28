@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Mobil UX/UI — Sweep-plan (ett svep)
 
 **Status:** Fas 0 + A + B + C + D + E + **F klara** (2026-05-24) — sweep **klar för pilot**  

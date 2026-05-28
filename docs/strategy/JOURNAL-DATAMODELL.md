@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Journal-datamodell, Hair TP Clinic bokningssystem
 
 Underlag för journalföringen i Fazlis egna bokningssystem (Major Arcana / CCO). **Meridiq hålls utanför**, det egna systemet äger journalen.

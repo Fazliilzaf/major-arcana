@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # CCO Activation Evidence (2026-02-27)
 
 ## Scope

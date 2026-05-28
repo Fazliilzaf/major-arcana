@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Cliento — Fullständig inventering (Hair TP Clinic + Curatiio)
 
 **Status:** Legacy-system (referens tills Arcana ersätter)  

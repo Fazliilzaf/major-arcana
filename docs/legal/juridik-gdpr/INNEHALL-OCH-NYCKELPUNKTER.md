@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # Juridik & GDPR, Hair TP Clinic, dokumentindex + nyckelpunkter
 
 Sparat 2026-05-21. Samma uppsättning ligger även i mappen "Hairtpclinic webb/Juridik-GDPR".

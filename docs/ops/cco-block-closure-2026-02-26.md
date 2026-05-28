@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # CCO Block Closure (2026-02-26)
 
 ## Scope (points 1-6)

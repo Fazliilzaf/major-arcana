@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Kalender — Master-dokument
 
 **Skapat:** 2026-05-27

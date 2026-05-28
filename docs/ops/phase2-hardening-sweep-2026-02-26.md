@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Phase 2 Hardening Sweep (2026-02-26)
 
 Denna sweep stänger flera kvarvarande P1/P2-gap med kod + test-evidens.

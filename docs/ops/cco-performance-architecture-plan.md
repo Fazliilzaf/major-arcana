@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # CCO prestanda-arkitektur — Fas 1–12
 
 > Vanilla JS runtime (`major-arcana-preview`). Data layer: `CcoRequestCache` (inte React Query).  

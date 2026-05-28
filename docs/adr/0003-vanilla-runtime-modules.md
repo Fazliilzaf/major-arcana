@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # ADR-0003: Vanilla JS runtime-moduler (ej React/Vue) i preview-vyn
 
 - Status: accepted

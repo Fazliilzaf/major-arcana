@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Major Arcana Index
 
 Det här är en samlad ingång till Major Arcana-materialet i repo:t.

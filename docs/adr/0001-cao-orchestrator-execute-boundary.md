@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # ADR: CAO Orchestrator Execute Boundary
 
 Status: ACCEPTED  

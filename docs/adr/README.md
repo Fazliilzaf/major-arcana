@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # Architecture Decision Records (ADRs)
 
 Detta är "varför"-dokumentationen för CCO. Kod säger "hur"; ADRs säger "varför vi valde det här över alternativen".

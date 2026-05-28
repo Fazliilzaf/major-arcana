@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # Arcana Capability Base Class Contract (V1)
 
 Detta dokument låser den enda tillåtna strukturen för capabilities i Arcana.

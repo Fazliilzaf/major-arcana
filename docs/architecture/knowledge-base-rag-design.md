@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # Kunskapsbas per Tenant — RAG Architecture Design
 
 Version: 1.0

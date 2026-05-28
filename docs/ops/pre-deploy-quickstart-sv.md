@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Pre-deploy snabbcheck (nybörjarvänlig)
 
 Kör dessa 3 kommandon i ordning innan deploy.

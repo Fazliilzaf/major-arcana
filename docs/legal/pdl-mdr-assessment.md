@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # PDL / MDR Bedömning — Arcana Executive OS
 
 Version: 1.0

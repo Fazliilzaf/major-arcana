@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Handoff: Codex ↔ GitHub ↔ Cursor/ChatGPT
 
 Praktisk referens när arbetet flyttas mellan Codex (Mac Studio), GitHub och andra agenter.

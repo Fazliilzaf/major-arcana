@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Rollback Runbook (Arcana)
 
 ## Trigger

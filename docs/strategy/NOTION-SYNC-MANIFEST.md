@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Notion ↔ MASTER-TODO sync-manifest
 
 **Database:** [Major Arcana — Master TODO](https://www.notion.so/6d5ae9dabf314678959270ba86a6cbf6)  

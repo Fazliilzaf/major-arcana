@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Post-Op Review & Photo Flow — ASK MODE Spec
 
 **Datum:** 2026-05-18

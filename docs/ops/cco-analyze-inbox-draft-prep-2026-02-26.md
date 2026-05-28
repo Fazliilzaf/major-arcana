@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # CCO Block 1.1 - AnalyzeInbox + Draft Preparation (2026-02-26)
 
 ## Scope

@@ -1,3 +1,8 @@
+---
+owner: CFO
+status: active
+---
+
 # Arcana Executive OS — Affärsmodell & Billing
 
 Version: 1.0

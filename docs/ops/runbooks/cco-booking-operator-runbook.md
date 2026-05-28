@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Bokningsoperatör — Runbook
 
 Version: 1.0  

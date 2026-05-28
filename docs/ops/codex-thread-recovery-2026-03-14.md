@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Codex Thread Recovery 2026-03-14
 
 ## Broken thread

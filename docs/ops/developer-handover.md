@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Developer Handover - Major Arcana
 
 Detta dokument är ett komplett overlamningspaket for en ny utvecklare som snabbt ska kunna:

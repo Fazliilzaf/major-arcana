@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO — Vad systemet ska innehålla
 
 **Status:** ✅ KOMPLETT — alla moduler byggda  

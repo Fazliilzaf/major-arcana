@@ -1,3 +1,8 @@
+---
+owner: Security
+status: active
+---
+
 # Secret Incident Runbook
 
 ## Trigger

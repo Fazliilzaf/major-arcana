@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # U2.4 — STAFF login i fält (checklista)
 
 **Syfte:** Verifiera STAFF-inloggning på riktig mobil (iPhone/Android) efter att automation är grön.  

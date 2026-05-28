@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Arcana Executive OS — Go-To-Market Plan
 
 Version: 1.0

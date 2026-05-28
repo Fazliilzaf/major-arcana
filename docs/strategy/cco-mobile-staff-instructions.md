@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO mobil — instruktion för personal
 
 ## Snabbstart (iPhone/Android)

@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Legacy Sunset Criteria
 
 Senast uppdaterad: 2026-05-13

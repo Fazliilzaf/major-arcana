@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Microsoft 365 Activation Evidence (2026-02-27)
 
 ## Scope

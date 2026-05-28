@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Arcana från mobilen (utan dator)
 
 Mål:

@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Post-op review — runbook (Fas 1)
 
 Senast uppdaterad: 2026-05-23  

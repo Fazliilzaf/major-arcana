@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Microsoft Graph Read-Only Prep (2026-02-26)
 
 ## Scope

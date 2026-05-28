@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # P0 Checklist (Execution Gateway Lock)
 
 ## Definition of Done (P0)

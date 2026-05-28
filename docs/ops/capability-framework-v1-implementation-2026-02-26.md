@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Capability Framework V1 – Implementation Evidence (2026-02-26)
 
 ## Scope

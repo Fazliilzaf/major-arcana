@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Major Arcana — samlad faslista (en sida)
 
 Senast uppdaterad: **2026-05-28** (canonical prod `arcana.hairtpclinic.com` + legacy .se→.com 301)  

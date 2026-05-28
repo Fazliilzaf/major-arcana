@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Graph read + Resend go-live (Render prod)
 
 **Tjänst:** `major-arcana` (`srv-d6b11o0boq4c73chm7f0`)  

@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Booking — Sprint 0-checklista
 
 Status: **PÅGÅR**  

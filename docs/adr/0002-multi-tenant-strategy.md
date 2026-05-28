@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # ADR-0002: Multi-tenant via tenantId i alla stores + tenantConfigStore
 
 - Status: accepted

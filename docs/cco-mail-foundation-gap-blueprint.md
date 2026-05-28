@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Mail Foundation Gap Blueprint
 
 Senast uppdaterad: 2026-04-08
