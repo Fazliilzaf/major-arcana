@@ -750,8 +750,7 @@ function normalizeResource(input = {}) {
   const safe = asObject(input);
   const id = normalizeText(safe.id);
   if (!id) return null;
-  const publicBookable =
-    safe.publicBookable === true || PLAN_A_PUBLIC_RESOURCE_IDS.includes(id);
+  const publicBookable = safe.publicBookable === true || PLAN_A_PUBLIC_RESOURCE_IDS.includes(id);
   return {
     id,
     label: normalizeText(safe.label || safe.name || id),
@@ -778,7 +777,9 @@ function normalizeService(input = {}) {
     maxBookingDaysAhead: safe.maxBookingDaysAhead,
     cancellationPolicyHours: safe.cancellationPolicyHours,
     brand: normalizeText(safe.brand) || undefined,
-    legacyMapping: asObject(safe.legacyMapping).arcanaServiceId ? asObject(safe.legacyMapping) : undefined,
+    legacyMapping: asObject(safe.legacyMapping).arcanaServiceId
+      ? asObject(safe.legacyMapping)
+      : undefined,
     catalogSource: normalizeText(safe.catalogSource) || undefined,
     vipTokenRequired: safe.vipTokenRequired === true,
     isAddon: safe.isAddon === true,
@@ -879,6 +880,14 @@ function normalizeBookingRecord(input = {}, { services = [], resources = [] } = 
     confirmedAt: normalizeIso(safe.confirmedAt) || nowIso(),
     cancelledAt: normalizeIso(safe.cancelledAt),
     cancellationReason: normalizeText(safe.cancellationReason),
+    // F2-3 audit-fält (2026-05-28): vem avbokade och om bokningen kommer från
+    // en omboknings-sekvens (rescheduledFromBookingId pekar på den
+    // föregående cancellerade bokningen i samma kedja). cancelledBy är
+    // 'patient_token' | 'operator' | 'rebook' | 'auto' | '' — fritext för
+    // framtida kanaler. Tomma strängar = okänt / tidigt-utan-audit.
+    cancelledBy: normalizeText(safe.cancelledBy),
+    rescheduledAt: normalizeIso(safe.rescheduledAt),
+    rescheduledFromBookingId: normalizeText(safe.rescheduledFromBookingId),
     createdAt: normalizeIso(safe.createdAt) || nowIso(),
     updatedAt: normalizeIso(safe.updatedAt) || nowIso(),
   };
@@ -1114,7 +1123,7 @@ async function createCcoBookingEngineStore({ filePath }) {
   }
 
   let bookingPolicySettings = normalizeBookingPolicySettings(loadBookingPolicyMigrationDefaults());
-  let pricingRules = normalizePricingRules();
+  const pricingRules = normalizePricingRules();
 
   function setBookingPolicySettings(settings = {}) {
     bookingPolicySettings = normalizeBookingPolicySettings(settings, bookingPolicySettings);
@@ -1247,8 +1256,7 @@ async function createCcoBookingEngineStore({ filePath }) {
           .map((item) => item.trim())
           .filter(Boolean)
       : [];
-    const globalMaxDays =
-      Number(bookingPolicySettings?.globalDefaults?.maxBookingDaysAhead) || 180;
+    const globalMaxDays = Number(bookingPolicySettings?.globalDefaults?.maxBookingDaysAhead) || 180;
     const days = buildDateRange(fromDate, capAvailabilityToDate(toDate, globalMaxDays));
     const nowMs = Date.now();
     const slots = [];
@@ -1265,15 +1273,18 @@ async function createCcoBookingEngineStore({ filePath }) {
           const service = getServiceById(rule.serviceId);
           const resource = getResourceById(rule.resourceId);
           return (
-            serviceMatchesBrand(service || {}, brand) &&
-            resourceMatchesBrand(resource || {}, brand)
+            serviceMatchesBrand(service || {}, brand) && resourceMatchesBrand(resource || {}, brand)
           );
         })
         .forEach((rule) => {
           asArray(rule.startTimes).forEach((timeLabel) => {
             const slot = buildAvailabilitySlot(rule, day, timeLabel);
             const service = getServiceById(rule.serviceId) || {};
-            if (slot && isSlotWithinBookingPolicy(slot, service, nowMs) && !isSlotTaken(slot, { excludeConversationId })) {
+            if (
+              slot &&
+              isSlotWithinBookingPolicy(slot, service, nowMs) &&
+              !isSlotTaken(slot, { excludeConversationId })
+            ) {
               slots.push(applyPricingToSlot(slot, service, pricingRules));
             }
           });
@@ -1283,11 +1294,7 @@ async function createCcoBookingEngineStore({ filePath }) {
     return clone(slots);
   }
 
-  async function listCalendarBlocks({
-    fromDate,
-    toDate,
-    resIds = '',
-  } = {}) {
+  async function listCalendarBlocks({ fromDate, toDate, resIds = '' } = {}) {
     return expandCalendarBlocksForRange(
       state.calendarBlocks,
       fromDate,
@@ -1331,7 +1338,9 @@ async function createCcoBookingEngineStore({ filePath }) {
       }
       const service = getServiceById(slot.serviceId) || {};
       if (!isSlotWithinBookingPolicy(slot, service)) {
-        const error = new Error('Tiden ligger utanför bokningspolicy (min-notice eller max-fönster).');
+        const error = new Error(
+          'Tiden ligger utanför bokningspolicy (min-notice eller max-fönster).'
+        );
         error.statusCode = 409;
         throw error;
       }
@@ -1556,6 +1565,12 @@ async function createCcoBookingEngineStore({ filePath }) {
         item.conversationId === conversationId &&
         normalizeKey(item.status) === 'confirmed'
     );
+    // F2-3 (2026-05-28): rescheduledFromBookingId propageras från
+    // rebookBooking-flow så nya bokningen pekar tillbaka till den
+    // cancellerade föregående bokningen. Tom string för "normal" confirm
+    // utan föregående reschedule.
+    const rescheduledFromBookingId = normalizeText(input.rescheduledFromBookingId);
+    const rescheduledAt = rescheduledFromBookingId ? nowIso() : '';
     const bookingRecord = normalizeBookingRecord(
       {
         ...(existingBookingIndex >= 0 ? state.bookings[existingBookingIndex] : {}),
@@ -1569,6 +1584,8 @@ async function createCcoBookingEngineStore({ filePath }) {
         slot,
         status: 'confirmed',
         confirmedAt: nowIso(),
+        rescheduledFromBookingId,
+        rescheduledAt,
       },
       state
     );
@@ -1587,6 +1604,11 @@ async function createCcoBookingEngineStore({ filePath }) {
     const conversationId = normalizeText(input.conversationId);
     const customerEmail = normalizeKey(input.customerEmail || input.customerId);
     const reason = normalizeText(input.reason) || 'Avbokad i CCO';
+    // F2-3 (2026-05-28): cancelledBy är audit-info för "vem avbokade".
+    // Default 'operator' eftersom historiska CCO-flow är operatör-drivna.
+    // Patient-token-flow skickar 'patient_token', rebook-flow skickar
+    // 'rebook'. Tomt input.cancelledBy → 'operator'.
+    const cancelledBy = normalizeText(input.cancelledBy) || 'operator';
     const force = input.force === true;
     let changed = false;
     let blockedPolicy = null;
@@ -1607,6 +1629,7 @@ async function createCcoBookingEngineStore({ filePath }) {
         status: 'cancelled',
         cancelledAt: nowIso(),
         cancellationReason: reason,
+        cancelledBy,
         updatedAt: nowIso(),
       };
     });
@@ -1640,6 +1663,7 @@ async function createCcoBookingEngineStore({ filePath }) {
       customerEmail,
       status: 'cancelled',
       cancellationReason: reason,
+      cancelledBy,
     };
   }
 
@@ -1660,9 +1684,17 @@ async function createCcoBookingEngineStore({ filePath }) {
       conversationId: input.conversationId,
       customerEmail: input.customerEmail || input.customerId,
       reason: normalizeText(input.reason) || 'Ombokad i CCO',
+      // F2-3: markera tydligt att avbokningen är del av rebook-flow
+      // (skiljer sig från manuell avboka eller patient-cancel)
+      cancelledBy: normalizeText(input.cancelledBy) || 'rebook',
     });
     await reserveSlots(input);
-    const booking = await confirmBooking(input);
+    // F2-3: propagera audit-pekare till nya bokningen så vi kan tracerar
+    // hela ombokningskedjan via rescheduledFromBookingId
+    const booking = await confirmBooking({
+      ...input,
+      rescheduledFromBookingId: normalizeText(previousBooking?.bookingId) || '',
+    });
     return {
       ...booking,
       previousBooking: previousBooking ? clone(previousBooking) : null,
@@ -1703,15 +1735,11 @@ async function createCcoBookingEngineStore({ filePath }) {
     upsertCalendarBlock,
     listResources: async ({ brand = '' } = {}) =>
       clone(
-        state.resources.filter(
-          (item) => item.active !== false && resourceMatchesBrand(item, brand)
-        )
+        state.resources.filter((item) => item.active !== false && resourceMatchesBrand(item, brand))
       ),
     listServices: async ({ brand = '' } = {}) =>
       clone(
-        state.services.filter(
-          (item) => item.active !== false && serviceMatchesBrand(item, brand)
-        )
+        state.services.filter((item) => item.active !== false && serviceMatchesBrand(item, brand))
       ),
     listPublicServices: async ({ brand = '' } = {}) =>
       clone(

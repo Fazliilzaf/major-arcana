@@ -27,6 +27,24 @@
     opsSection: '#ops',
     cmoSection: '#cmo',
   });
+  const ADMIN_AGENT_SECTIONS = Object.freeze(
+    new Set(['cooSection', 'caoSection', 'cfoSection', 'cmoSection'])
+  );
+  const ADMIN_SECTION_PAGE_TITLES = Object.freeze({
+    overviewSection: 'Översikt',
+    ccoWorkspaceSection: 'Operatörsvy',
+    templateLifecycleSection: 'Mallar',
+    reviewsIncidentsSection: 'Granskningar',
+    auditSection: 'Revision',
+    teamSection: 'Team',
+    settingsSection: 'Inställningar',
+    opsSection: 'Drift',
+    cooSection: 'COO',
+    caoSection: 'CAO',
+    cfoSection: 'CFO',
+    cmoSection: 'CMO',
+    cmSection: 'CM',
+  });
   const ADMIN_PRIMARY_PATH = '/admin';
   const CCO_PRIMARY_PATH = '/admin';
   const CCO_PREVIEW_PRIMARY_PATH = '/major-arcana-preview/';
@@ -4633,10 +4651,7 @@
     }
     if (normalized === 'cmoSection') {
       const preservedSearch = buildPreservedAdminSearch();
-      if (
-        INITIAL_ADMIN_HASH === '#cmo-connectors' ||
-        INITIAL_ADMIN_HASH === '#cmo/connectors'
-      ) {
+      if (INITIAL_ADMIN_HASH === '#cmo-connectors' || INITIAL_ADMIN_HASH === '#cmo/connectors') {
         return `${ADMIN_PRIMARY_PATH}${preservedSearch}#cmo-connectors`;
       }
       return `${ADMIN_PRIMARY_PATH}${preservedSearch}#cmo`;
@@ -4722,6 +4737,25 @@
     }
   }
 
+  function syncAdminDocumentTitle(groupId) {
+    const normalized = String(groupId || '').trim() || 'overviewSection';
+    const pageName = ADMIN_SECTION_PAGE_TITLES[normalized] || 'Admin';
+    const titles = window.ArcanaPageTitles;
+    if (ADMIN_AGENT_SECTIONS.has(normalized)) {
+      if (titles?.applyArcanaTitle) {
+        titles.applyArcanaTitle(pageName);
+      } else {
+        document.title = `${pageName} · Arcana`;
+      }
+      return;
+    }
+    if (titles?.applyAdminTitle) {
+      titles.applyAdminTitle(pageName);
+      return;
+    }
+    document.title = `${pageName} · Admin · Arcana`;
+  }
+
   function setActiveSectionGroup(nextGroupId, options = {}) {
     const previousGroupId = state.activeSectionGroup;
     const groupId = resolveSectionGroupTarget(nextGroupId);
@@ -4764,6 +4798,7 @@
     if (leavingCco && isCcoEmbedMode()) {
       teardownCcoPreviewEmbed();
     }
+    syncAdminDocumentTitle(groupId);
   }
 
   function scrollToSection(sectionEl) {
@@ -10523,10 +10558,7 @@
       window.initCmoMarketingTabs();
     }
     (function applyCmoConnectorsDeepLink() {
-      if (
-        INITIAL_ADMIN_HASH !== '#cmo-connectors' &&
-        INITIAL_ADMIN_HASH !== '#cmo/connectors'
-      ) {
+      if (INITIAL_ADMIN_HASH !== '#cmo-connectors' && INITIAL_ADMIN_HASH !== '#cmo/connectors') {
         return;
       }
       if (typeof window.activateCmoTab === 'function') {

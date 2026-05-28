@@ -1,7 +1,7 @@
 # Major Arcana — samlad faslista (en sida)
 
-Senast uppdaterad: **2026-05-27** (Frankfurt-cutover + flyttad till .com)  
-Prod: **https://ma.hairtpclinic.com** (Frankfurt, EU) · Legacy-alias: `ma.hairtpclinic.se` + `arcana.hairtpclinic.se` (samma Frankfurt-service) · Repo: `~/Code/major-arcana`
+Senast uppdaterad: **2026-05-28** (canonical prod `arcana.hairtpclinic.com` + legacy .se→.com 301)  
+Prod: **https://arcana.hairtpclinic.com** (Frankfurt, EU) · Legacy-alias (301 → canonical): `arcana.hairtpclinic.se` + `ma.hairtpclinic.se` · `ma.hairtpclinic.com` avvecklad · Repo: `~/Code/major-arcana`
 
 **Du är här:** **J-8.2 ☑** (UI) · **U2.2 MFA** (väntar go-live) · **J-6.2 ☑** (guards) · **U5B.3** Q4.
 
@@ -129,7 +129,7 @@ Prod-audit + `npm run verify:cco-care-sweep-prod` — avbockat i repo:
 - [x] J-0.1 Migration-scripts + npm (`migration:scan`, `migration:import`, `migration:test`)
 - [x] J-0.2 Zip-nedlading ersatt med Drive API / lokal mirror
 - [x] J-0.3 PDL-bedömning — advokatgodkänd 2026-05-24
-- [x] J-0.4 Render EU Frankfurt **cutover KOMPLETT 2026-05-27 ~16:55 CEST** — patientdata nu i EU, srv-d8b3i3tckfvc73clgeng på major-arcana-frankfurt.onrender.com (962 MB /var/data migrerade, 103 envs). Oregon srv-d6b11o0boq4c73chm7f0 suspended som rollback-buffer.
+- [x] J-0.4 Render EU Frankfurt **cutover KOMPLETT 2026-05-27 ~16:55 CEST** — patientdata nu i EU, srv-d8b3i3tckfvc73clgeng på major-arcana-frankfurt.onrender.com (962 MB /var/data migrerade, 103 envs). Oregon srv-d6b11o0boq4c73chm7f0 suspended som rollback-buffer. Canonical prod-domän: **arcana.hairtpclinic.com** (`resolveLegacyHostRedirectUrl.js` — 301 från `.se`-alias).
 - [x] J-0.5 **Pipedrive People+Deals export** (2026-05-24) — `migration/pipedrive/personer-2026-05-24.csv` (**3 693 personer**) + `affarer-2026-05-24.csv` (**3 487 affärer**), validerad enligt [migration/pipedrive/README.md](../../migration/pipedrive/README.md)
 
 > **Scope J-0.5:** export + validering i repo. Valfri berikning av kundmaster: `npm run migration:import-pipedrive` (körs separat, inte blocker för go-live).
@@ -375,7 +375,7 @@ Mål: all info (bilder, formulär, journal, offert) i **segment per behandlingst
 - [x] INF.4 Pilot-verify scripts
 - [x] INF.5 Full Drive-historik på prod ( = U3.1)
 
-> **Verify INF.1:** `arcana.hairtpclinic.se` + `ma.hairtpclinic.se` → **200** readyz. Service `srv-d6b11o0boq4c73chm7f0`.
+> **Verify INF.1:** Canonical `arcana.hairtpclinic.com` → **200** readyz. Legacy `arcana.hairtpclinic.se` + `ma.hairtpclinic.se` → **301** → `.com` (efter deploy av legacy-redirect). Frankfurt-service `srv-d8b3i3tckfvc73clgeng`.
 > **Verify INF.2:** `verify-render-blueprint-link.sh` **PASS** (in_sync, autoSync=true). Workflow `arcana-post-deploy-heal` + `post-deploy-prod-heal.sh` finns.
 > **Verify INF.3:** `POST /api/v1/cco-migration/push-state-file` i `ccoMigration.js`; `npm run push:migration-state-prod`. Push + restart verifierad (migration-index 51 MB).
 > **Verify INF.4:** 10+ verify-skript (`verify-pilot-journey-prod`, `verify-all-pilot-journey-prod`, `verify-cco-mobile-pilot-prod`, m.fl.) + npm scripts i `package.json`.
@@ -405,8 +405,9 @@ npm run verify:cco-care-sweep-prod
 npm run verify:customer-list-prod
 npm run verify:auth-go-live-prod
 npm run verify:booking-plan-a-prod
-curl -fsS https://arcana.hairtpclinic.se/readyz
-curl -fsS "https://arcana.hairtpclinic.se/api/public/booking-engine/catalog?host=hairtpclinic.com" | head -c 120
+curl -fsS https://arcana.hairtpclinic.com/readyz
+curl -fsS "https://arcana.hairtpclinic.com/api/public/booking-engine/catalog?host=hairtpclinic.com" | head -c 120
+curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' https://ma.hairtpclinic.se/
 ```
 
 ---
