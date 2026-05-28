@@ -25,6 +25,7 @@ function getChromium() {
 const { config } = require('./src/config');
 const { resolveBrandForHost, resolveBrandFromMap } = require('./src/brand/resolveBrand');
 const { resolveCcoNextCanonicalUrl } = require('./src/brand/resolveCcoNextCanonicalUrl');
+const { resolveLegacyHostRedirectUrl } = require('./src/brand/resolveLegacyHostRedirectUrl');
 
 const { getClientoConfigForBrand, getKnowledgeDirForBrand } = require('./src/brand/runtimeConfig');
 const { createCorsPolicy } = require('./src/security/corsPolicy');
@@ -223,6 +224,21 @@ async function sendStaticPagePdf(
     }
   }
 }
+
+// Frankfurt-cutover: legacy .se-alias → canonical .com (301).
+app.use((req, res, next) => {
+  const legacyRedirectUrl = resolveLegacyHostRedirectUrl({
+    requestHost: req.get('host') || req.hostname,
+    requestPath: req.path,
+    requestSearch: req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '',
+    redirectMap: config.legacyHostRedirects,
+    enabled: config.legacySeHostRedirectEnabled,
+  });
+  if (legacyRedirectUrl) {
+    return res.redirect(301, legacyRedirectUrl);
+  }
+  return next();
+});
 
 // Avoid stale admin/CCO UI assets between local/staging/prod deployments.
 app.use((req, res, next) => {
@@ -995,11 +1011,17 @@ app.get('/api/v1/calendar/week', (req, res) => {
 
 // ─── iCAL EXPORT ───
 const { buildIcalFeed, getBookingsForResource } = require('./src/ops/icalExport');
-const { createRecurringSeries, getSeriesProgress, SERIES_TEMPLATES } = require('./src/ops/recurringBookings');
+const {
+  createRecurringSeries,
+  getSeriesProgress,
+  SERIES_TEMPLATES,
+} = require('./src/ops/recurringBookings');
 
 app.get('/api/v1/calendar/ical/:resourceId.ics', (req, res) => {
   const resourceId = req.params.resourceId || 'all';
-  const bookings = getBookingsForResource(null, resourceId, { days: Number(req.query?.days) || 30 });
+  const bookings = getBookingsForResource(null, resourceId, {
+    days: Number(req.query?.days) || 30,
+  });
   const resourceLabel = resourceId === 'all' ? 'Alla behandlare' : resourceId;
   const ical = buildIcalFeed({ resourceLabel, bookings });
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
