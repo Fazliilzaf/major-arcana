@@ -92,6 +92,9 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
         conversationId: booking.conversationId,
         customerEmail: booking.customerEmail,
         reason: normalizeText(req.body?.reason) || 'Avbokad via patientlänk',
+        // F2-3 audit: attribuera avbokningen till patient-token-flowet
+        // (annars defaultar cancelledBy till 'operator' i store)
+        cancelledBy: 'patient_token',
         force: true,
       });
 
@@ -245,6 +248,10 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
         customerName: booking.customerName,
         selectedSlots: [matchingSlot],
         reason: 'Ombokad via patientlänk',
+        // F2-3 audit: aktören är patienten via token. Att det var en
+        // ombokning (inte ren avboka) framgår av rescheduledFromBookingId
+        // på den nya bokningen.
+        cancelledBy: 'patient_token',
       });
 
       const newDateLabel = formatLocalDate(matchingSlot.startsAt);
