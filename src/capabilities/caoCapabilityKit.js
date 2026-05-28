@@ -7,7 +7,7 @@ const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
 const { isAdminSeedTemplate } = require('../ops/adminTemplateSeeds');
 const { parseSimpleFrontmatter } = require('../ops/docFrontmatter');
-const { buildKnowledgeIndex } = require('../ops/knowledgeAccessor');
+const { buildKnowledgeIndex, searchKnowledge } = require('../ops/knowledgeAccessor');
 const { buildAdminIncidentAdminView } = require('../ops/adminIncidentReadModel');
 
 function normalizeText(value) {
@@ -32,6 +32,30 @@ function capabilityResult(data, metadata = {}, warnings = []) {
 
 function readSnapshot(context) {
   return asObject(context?.systemStateSnapshot);
+}
+
+// Grounding: most-relevant docs from the unified knowledge layer. Broad relevance
+// (not role-locked — a go-live checklist may live under strategy, not cao), but
+// citations are restricted to real .md docs and exclude archive dumps. Deduped.
+// Best-effort — searchKnowledge degrades to keyword and returns [] on any error,
+// so a brief never fails because of grounding.
+async function groundingReferences(query, { limit = 3 } = {}) {
+  try {
+    const hits = await searchKnowledge(query, { limit: limit * 3 });
+    const seen = new Set();
+    const refs = [];
+    for (const hit of hits) {
+      const docPath = normalizeText(hit.path);
+      if (!/\.md$/i.test(docPath) || docPath.startsWith('docs/archives/')) continue;
+      if (seen.has(docPath)) continue;
+      seen.add(docPath);
+      refs.push({ path: docPath, snippet: normalizeText(hit.content).slice(0, 160) });
+      if (refs.length >= limit) break;
+    }
+    return refs;
+  } catch {
+    return [];
+  }
 }
 
 class GenerateAdminTemplateDraftCapability extends BaseCapability {
@@ -528,12 +552,14 @@ class GenerateAdminDailyBriefCapability extends BaseCapability {
         : null,
       'Kör Arcana Admin Operator quality gate',
     ].filter(Boolean);
+    const references = await groundingReferences('admin operatör incident prioritet quality gate runbook');
     return capabilityResult(
       {
         outputType: 'AdminBrief',
         priorities: priorities.slice(0, 5),
         openTasks: openTasks.length,
         openIncidents: openIncidents.length,
+        references,
         summary: `Admin brief: ${priorities.length} prioriterade punkter.`,
       },
       { capability: GenerateAdminDailyBriefCapability.name }
@@ -608,12 +634,14 @@ class GenerateAdminWeeklyBriefCapability extends BaseCapability {
       'Kör veckovis CAO quality gate och dokumentera owner-beslut',
     ].filter(Boolean);
 
+    const references = await groundingReferences('readiness incidenter veckobrief admin owner runbook');
     return capabilityResult(
       {
         outputType: 'AdminWeeklyBrief',
         windowDays,
         weekSummary: `Vecka (${windowDays}d): ${openTasks.length} öppna tasks, ${openIncidents.length} incidenter, readiness ${trends.readinessScore ?? 'n/a'}.`,
         trends,
+        references,
         overdueTasks: overdueTasks.slice(0, 10).map((task) => ({
           id: normalizeText(task.id),
           title: normalizeText(task.title),
@@ -720,6 +748,7 @@ class GenerateGoNoGoBriefCapability extends BaseCapability {
       'Bekräfta slutligt beslut mot /api/v1/monitor/readiness',
     ].filter(Boolean);
 
+    const references = await groundingReferences('go-live go no-go readiness checklista blockers runbook');
     return capabilityResult(
       {
         outputType: 'GoNoGoBrief',
@@ -731,6 +760,7 @@ class GenerateGoNoGoBriefCapability extends BaseCapability {
         blockers: blockers.slice(0, 12),
         highlights,
         recommendations: recommendations.slice(0, 6),
+        references,
         summary: `Go/No-Go: ${goRecommendation.replace(/_/g, ' ')} — ${Number.isFinite(score) ? score + '/100' : 'score saknas'}. Beslut kvarstår hos OWNER.`,
         source: normalizeText(readiness.source) || 'shared_operational_core',
         authoritativeEndpoint: normalizeText(readiness.monitorEndpoint) || '/api/v1/monitor/readiness',

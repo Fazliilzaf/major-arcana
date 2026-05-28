@@ -6,6 +6,9 @@ const assert = require('node:assert/strict');
 const {
   AuditDocumentationMetadataCapability,
   ProposeDocumentStructureCapability,
+  GenerateAdminDailyBriefCapability,
+  GenerateAdminWeeklyBriefCapability,
+  GenerateGoNoGoBriefCapability,
 } = require('../../src/capabilities/caoCapabilityKit');
 
 test('AuditDocumentationMetadata now audits the full knowledge corpus', async () => {
@@ -33,4 +36,21 @@ test('ProposeDocumentStructure reflects the live segments + flags uncurated docs
   assert.ok(result.data.proposals.length === result.data.totalSegments);
   assert.ok(result.data.proposals.every((p) => p.path && typeof p.count === 'number'));
   assert.equal(typeof result.data.uncuratedDocuments, 'number');
+});
+
+test('CAO briefs are grounded with deduped, real-md references', async () => {
+  for (const Cls of [
+    GenerateAdminDailyBriefCapability,
+    GenerateAdminWeeklyBriefCapability,
+    GenerateGoNoGoBriefCapability,
+  ]) {
+    const result = await new Cls().execute({});
+    const refs = result.data.references;
+    assert.ok(Array.isArray(refs) && refs.length >= 1, `${Cls.name} has references`);
+    const paths = refs.map((r) => r.path);
+    assert.equal(new Set(paths).size, paths.length, 'references are deduped');
+    assert.ok(refs.every((r) => /\.md$/i.test(r.path)), 'citations are markdown');
+    assert.ok(refs.every((r) => !r.path.startsWith('docs/archives/')), 'no archive dumps');
+    assert.ok(refs.every((r) => typeof r.snippet === 'string'));
+  }
 });
