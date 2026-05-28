@@ -13,8 +13,9 @@
 const express = require('express');
 const crypto = require('node:crypto');
 
-function normalizeText(v) { return typeof v === 'string' ? v.trim() : ''; }
-function nowIso() { return new Date().toISOString(); }
+function normalizeText(v) {
+  return typeof v === 'string' ? v.trim() : '';
+}
 
 function createBookingPublicActionsRouter({ bookingEngineStore }) {
   const router = express.Router();
@@ -22,7 +23,11 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
   // ─── TOKEN GENERATION (internal, called by confirm-flow) ───
 
   function generateActionToken(bookingId) {
-    return crypto.createHash('sha256').update(`${bookingId}:${process.env.ARCANA_TOKEN_SALT || 'arcana-booking-salt'}`).digest('hex').slice(0, 32);
+    return crypto
+      .createHash('sha256')
+      .update(`${bookingId}:${process.env.ARCANA_TOKEN_SALT || 'arcana-booking-salt'}`)
+      .digest('hex')
+      .slice(0, 32);
   }
 
   function findBookingByToken(token) {
@@ -39,7 +44,11 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
     const token = normalizeText(req.params.token);
     const booking = findBookingByToken(token);
     if (!booking) {
-      return res.status(404).send(renderPage('Bokningen hittades inte', '<p>Länken är ogiltig eller har redan använts.</p>'));
+      return res
+        .status(404)
+        .send(
+          renderPage('Bokningen hittades inte', '<p>Länken är ogiltig eller har redan använts.</p>')
+        );
     }
     if (booking.status === 'cancelled') {
       return res.send(renderPage('Redan avbokad', '<p>Denna bokning är redan avbokad.</p>'));
@@ -47,7 +56,10 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
     const service = normalizeText(booking.serviceLabel || booking.slot?.serviceLabel || 'Besök');
     const date = normalizeText(booking.slot?.date || (booking.slot?.startsAt || '').slice(0, 10));
     const time = normalizeText(booking.slot?.time || (booking.slot?.startsAt || '').slice(11, 16));
-    res.send(renderPage('Avboka din tid', `
+    res.send(
+      renderPage(
+        'Avboka din tid',
+        `
       <p>Vill du avboka följande tid?</p>
       <div style="background:#f5f0eb;padding:16px;border-radius:12px;margin:16px 0;">
         <strong>${service}</strong><br>
@@ -58,108 +70,213 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
         <button type="submit" style="width:100%;min-height:48px;padding:14px 24px;background:#b94a4a;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">Avboka</button>
       </form>
       <p style="margin-top:16px;font-size:13px;color:#6b5f58;">Avbokning måste ske senast 24h före besöket.</p>
-    `));
+    `
+      )
+    );
   });
 
   router.post('/avboka/:token', express.urlencoded({ extended: false }), async (req, res) => {
     const token = normalizeText(req.params.token);
     const booking = findBookingByToken(token);
-    if (!booking) return res.status(404).send(renderPage('Hittades inte', '<p>Bokningen hittades inte.</p>'));
-    if (booking.status === 'cancelled') return res.send(renderPage('Redan avbokad', '<p>Denna bokning är redan avbokad.</p>'));
+    if (!booking)
+      return res.status(404).send(renderPage('Hittades inte', '<p>Bokningen hittades inte.</p>'));
+    if (booking.status === 'cancelled')
+      return res.send(renderPage('Redan avbokad', '<p>Denna bokning är redan avbokad.</p>'));
 
     try {
-      booking.status = 'cancelled';
-      booking.cancelledAt = nowIso();
-      booking.cancelledBy = 'patient_token';
-      booking.cancelReason = normalizeText(req.body?.reason) || 'Avbokad via länk';
-      if (bookingEngineStore?.save) await bookingEngineStore.save();
+      // Patienten har redan bekräftat via tokenen — force-flagga skippar
+      // 24h-policyn så att avbokningar via länk inte ramlar i 409 om kunden
+      // hinner klicka inom deadline-zonen. UI:n visar disclaimern.
+      await bookingEngineStore.cancelBooking({
+        tenantId: booking.tenantId,
+        conversationId: booking.conversationId,
+        customerEmail: booking.customerEmail,
+        reason: normalizeText(req.body?.reason) || 'Avbokad via patientlänk',
+        force: true,
+      });
 
-      res.send(renderPage('Avbokad ✓', `
+      res.send(
+        renderPage(
+          'Avbokad ✓',
+          `
         <p>Din bokning är nu avbokad.</p>
         <p>Vill du boka en ny tid? <a href="/boka" style="color:#1a4d35;font-weight:600;">Boka här</a></p>
-      `));
+      `
+        )
+      );
     } catch (err) {
+      if (err?.statusCode === 404) {
+        return res
+          .status(404)
+          .send(renderPage('Hittades inte', '<p>Ingen aktiv bokning att avboka.</p>'));
+      }
       res.status(500).send(renderPage('Fel', '<p>Kunde inte avboka. Kontakta kliniken.</p>'));
     }
   });
 
   // ─── OMBOKA (Block 3) ───
 
+  function isoDateOnly(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function formatLocalTime(startsAt) {
+    if (!startsAt) return '';
+    const d = new Date(startsAt);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  function formatLocalDate(startsAt) {
+    if (!startsAt) return '';
+    const d = new Date(startsAt);
+    if (Number.isNaN(d.getTime())) return '';
+    return isoDateOnly(d);
+  }
+
+  async function fetchAvailableSlots({ tenantId, serviceId, brand = '' }) {
+    if (!bookingEngineStore?.listAvailability) return [];
+    if (!tenantId) return [];
+    const now = new Date();
+    const fromDate = isoDateOnly(now);
+    const to = new Date(now.getTime() + 14 * 86400000);
+    const toDate = isoDateOnly(to);
+    try {
+      // listAvailability tar srvIds som comma-separated string (rad ~1244
+      // i ccoBookingEngineStore.js — normalizeText(srvIds).split(',')),
+      // inte array. Tom string = ingen filtrering.
+      const result = await bookingEngineStore.listAvailability({
+        tenantId,
+        fromDate,
+        toDate,
+        srvIds: serviceId || '',
+        brand,
+      });
+      return Array.isArray(result) ? result : result?.slots || [];
+    } catch (err) {
+      console.warn('[bookingPublicActions] listAvailability misslyckades:', err.message);
+      return [];
+    }
+  }
+
   router.get('/omboka/:token', async (req, res) => {
     const token = normalizeText(req.params.token);
     const booking = findBookingByToken(token);
-    if (!booking) return res.status(404).send(renderPage('Hittades inte', '<p>Länken är ogiltig.</p>'));
-    if (booking.status === 'cancelled') return res.send(renderPage('Avbokad', '<p>Bokningen är avbokad och kan inte ombokas.</p>'));
+    if (!booking)
+      return res.status(404).send(renderPage('Hittades inte', '<p>Länken är ogiltig.</p>'));
+    if (booking.status === 'cancelled')
+      return res.send(renderPage('Avbokad', '<p>Bokningen är avbokad och kan inte ombokas.</p>'));
 
     const service = normalizeText(booking.serviceLabel || booking.slot?.serviceLabel || 'Besök');
     const serviceId = normalizeText(booking.serviceId || booking.slot?.serviceId || '');
 
-    // Hämta lediga tider
-    let availableSlots = [];
-    if (bookingEngineStore?.listAvailability) {
-      try {
-        availableSlots = await bookingEngineStore.listAvailability({
-          serviceId,
-          days: 14,
-        });
-      } catch { /* fallback empty */ }
-    }
+    const availableSlots = await fetchAvailableSlots({ tenantId: booking.tenantId, serviceId });
 
-    const slotsHtml = availableSlots.slice(0, 20).map((slot) => {
-      const d = normalizeText(slot.date);
-      const t = normalizeText(slot.time || (slot.startsAt || '').slice(11, 16));
-      return `<label style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #efe6e0;border-radius:10px;margin-bottom:8px;cursor:pointer;">
-        <input type="radio" name="newSlot" value="${d}T${t}" required>
-        <span><strong>${d}</strong> kl ${t}</span>
+    const slotsHtml =
+      availableSlots
+        .slice(0, 20)
+        .map((slot) => {
+          const startsAt = normalizeText(slot.startsAt);
+          const dateLabel = formatLocalDate(startsAt);
+          const timeLabel = formatLocalTime(startsAt);
+          return `<label style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #efe6e0;border-radius:10px;margin-bottom:8px;cursor:pointer;">
+        <input type="radio" name="newSlot" value="${startsAt}" required>
+        <span><strong>${dateLabel}</strong> kl ${timeLabel}</span>
       </label>`;
-    }).join('') || '<p>Inga lediga tider just nu. Kontakta kliniken.</p>';
+        })
+        .join('') || '<p>Inga lediga tider just nu. Kontakta kliniken.</p>';
 
-    res.send(renderPage('Omboka din tid', `
-      <p>Nuvarande tid: <strong>${service}</strong> ${booking.slot?.date || ''} kl ${booking.slot?.time || ''}</p>
+    const currentDateLabel = formatLocalDate(booking.slot?.startsAt);
+    const currentTimeLabel = formatLocalTime(booking.slot?.startsAt);
+
+    res.send(
+      renderPage(
+        'Omboka din tid',
+        `
+      <p>Nuvarande tid: <strong>${service}</strong> ${currentDateLabel} kl ${currentTimeLabel}</p>
       <p>Välj ny tid:</p>
       <form method="POST" action="/omboka/${token}">
         ${slotsHtml}
         <button type="submit" style="width:100%;min-height:48px;padding:14px 24px;background:#1a4d35;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;margin-top:12px;">Bekräfta ny tid</button>
       </form>
-    `));
+    `
+      )
+    );
   });
 
   router.post('/omboka/:token', express.urlencoded({ extended: false }), async (req, res) => {
     const token = normalizeText(req.params.token);
     const booking = findBookingByToken(token);
-    if (!booking) return res.status(404).send(renderPage('Hittades inte', '<p>Bokningen hittades inte.</p>'));
+    if (!booking)
+      return res.status(404).send(renderPage('Hittades inte', '<p>Bokningen hittades inte.</p>'));
+    if (booking.status === 'cancelled')
+      return res.send(renderPage('Avbokad', '<p>Bokningen är avbokad och kan inte ombokas.</p>'));
 
-    const newSlotValue = normalizeText(req.body?.newSlot);
-    if (!newSlotValue) return res.status(400).send(renderPage('Välj tid', '<p>Du måste välja en ny tid.</p>'));
-
-    const [newDate, newTime] = newSlotValue.split('T');
+    const newSlotStartsAt = normalizeText(req.body?.newSlot);
+    if (!newSlotStartsAt)
+      return res.status(400).send(renderPage('Välj tid', '<p>Du måste välja en ny tid.</p>'));
 
     try {
-      // Atomiskt: spara gamla slot-info, uppdatera till ny
-      const oldSlot = { ...booking.slot };
-      booking.slot = {
-        ...booking.slot,
-        date: newDate,
-        time: newTime,
-        startsAt: `${newDate}T${newTime}:00`,
-      };
-      booking.status = 'confirmed';
-      booking.rescheduledAt = nowIso();
-      booking.rescheduledFrom = oldSlot;
-      booking.reminders = {}; // Reset påminnelser
+      const serviceId = normalizeText(booking.serviceId || booking.slot?.serviceId || '');
+      const availableSlots = await fetchAvailableSlots({ tenantId: booking.tenantId, serviceId });
+      const matchingSlot = availableSlots.find(
+        (s) => normalizeText(s.startsAt) === newSlotStartsAt
+      );
+      if (!matchingSlot) {
+        return res
+          .status(409)
+          .send(
+            renderPage(
+              'Tiden inte ledig',
+              '<p>Den valda tiden är inte längre tillgänglig. <a href="/omboka/' +
+                token +
+                '">Välj en annan tid</a></p>'
+            )
+          );
+      }
 
-      if (bookingEngineStore?.save) await bookingEngineStore.save();
+      // rebookBooking sköter cancel-old + reserve-new + confirm i en sekvens
+      // och anropar save() på varje steg, vilket håller disk-state korrekt.
+      await bookingEngineStore.rebookBooking({
+        tenantId: booking.tenantId,
+        workspaceId: booking.workspaceId,
+        conversationId: booking.conversationId,
+        customerEmail: booking.customerEmail,
+        customerName: booking.customerName,
+        selectedSlots: [matchingSlot],
+        reason: 'Ombokad via patientlänk',
+      });
 
-      res.send(renderPage('Ombokad ✓', `
+      const newDateLabel = formatLocalDate(matchingSlot.startsAt);
+      const newTimeLabel = formatLocalTime(matchingSlot.startsAt);
+
+      res.send(
+        renderPage(
+          'Ombokad ✓',
+          `
         <p>Din nya tid är bekräftad:</p>
         <div style="background:#f0f8f4;padding:16px;border-radius:12px;margin:16px 0;">
-          <strong>${booking.serviceLabel || 'Besök'}</strong><br>
-          ${newDate} kl ${newTime}<br>
+          <strong>${booking.slot?.serviceLabel || 'Besök'}</strong><br>
+          ${newDateLabel} kl ${newTimeLabel}<br>
           Hair TP Clinic
         </div>
         <p style="font-size:13px;color:#6b5f58;">Du får ett nytt bekräftelsemejl inom kort.</p>
-      `));
+      `
+        )
+      );
     } catch (err) {
+      if (err?.statusCode === 409) {
+        return res
+          .status(409)
+          .send(
+            renderPage(
+              'Tiden inte ledig',
+              '<p>Tiden hann bli upptagen. <a href="/omboka/' +
+                token +
+                '">Välj en annan tid</a></p>'
+            )
+          );
+      }
       res.status(500).send(renderPage('Fel', '<p>Kunde inte omboka. Kontakta kliniken.</p>'));
     }
   });
