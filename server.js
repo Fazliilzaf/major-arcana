@@ -994,6 +994,35 @@ app.get('/api/v1/docs/content', async (req, res) => {
   return res.json(result);
 });
 
+// Knowledge layer (Fas 1) — ett enat index som admin OCH agenter läser från.
+const {
+  buildKnowledgeIndex,
+  docsForRole,
+  availableRoles,
+} = require('./src/ops/knowledgeAccessor');
+
+app.get('/api/v1/knowledge/index', async (req, res) => {
+  try {
+    const index = await buildKnowledgeIndex();
+    return res.json({ ok: true, ...index });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'index_failed' });
+  }
+});
+
+app.get('/api/v1/knowledge/roles', (req, res) => {
+  return res.json({ ok: true, roles: availableRoles() });
+});
+
+app.get('/api/v1/knowledge/role/:role', async (req, res) => {
+  try {
+    const documents = await docsForRole(req.params.role);
+    return res.json({ ok: true, role: req.params.role, documents });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'role_failed' });
+  }
+});
+
 app.get('/api/v1/qa/dashboard', (req, res) => {
   const dashboard = computeQaDashboard({
     journalStore: null,
