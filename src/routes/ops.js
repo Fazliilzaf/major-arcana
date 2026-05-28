@@ -12,20 +12,11 @@ const {
   inspectBackupRestore,
   restoreFromBackup,
 } = require('../ops/stateBackup');
-const {
-  listSchedulerPilotReports,
-  pruneSchedulerPilotReports,
-} = require('../ops/pilotReports');
-const {
-  validateTemplateVariables,
-  applyChannelSignature,
-} = require('../templates/variables');
+const { listSchedulerPilotReports, pruneSchedulerPilotReports } = require('../ops/pilotReports');
+const { validateTemplateVariables, applyChannelSignature } = require('../templates/variables');
 const { evaluateTemplateRisk } = require('../risk/templateRisk');
 const { buildDigest } = require('../ops/dailyDigest');
-const {
-  runDigestForTenant,
-  runDailyDigestForAllTenants,
-} = require('../ops/dailyDigestRunner');
+const { runDigestForTenant, runDailyDigestForAllTenants } = require('../ops/dailyDigestRunner');
 const { runEnrichment } = require('../ops/messageEnrichmentRunner');
 const { seedFromMailboxTruth: seedClientoMockBookings } = require('../ops/clientoMockSeeder');
 const {
@@ -33,10 +24,7 @@ const {
   findCrossMailboxCustomers,
   summarizeAggregation,
 } = require('../ops/crossMailboxAggregator');
-const {
-  getBootstrapStatus,
-  isEnabled: isBootstrapEnabled,
-} = require('../ops/bootstrapRunner');
+const { getBootstrapStatus, isEnabled: isBootstrapEnabled } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
 const {
   applyApprovedDraftProposal,
@@ -49,6 +37,10 @@ const {
 const { sendPatientOutreach, OUTREACH_TYPES } = require('../ops/ccoPatientOutreach');
 const { createTransactionalMailer } = require('../infra/transactionalMailer');
 const { resolveResendFrom } = require('../infra/resendConfig');
+const {
+  inspectMailboxTruthLayout,
+  restoreMailboxTruthShards,
+} = require('../ops/ccoMailboxTruthRestore');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -93,8 +85,7 @@ function parseNoGoWindowFromAuditEvents(events = [], minDays = 14) {
   let clean = relevant.length > 0;
   let maxTriggeredNoGo = 0;
   for (const event of relevant) {
-    const metadata =
-      event?.metadata && typeof event.metadata === 'object' ? event.metadata : {};
+    const metadata = event?.metadata && typeof event.metadata === 'object' ? event.metadata : {};
     const triggeredNoGo = Number(metadata?.triggeredNoGo || 0);
     if (triggeredNoGo > 0) clean = false;
     if (Number.isFinite(triggeredNoGo) && triggeredNoGo > maxTriggeredNoGo) {
@@ -144,10 +135,8 @@ async function getTenantTemplateRuntime(tenantConfigStore, tenantId) {
         : 0,
       riskThresholdVersion:
         Number.isFinite(thresholdVersion) && thresholdVersion > 0 ? thresholdVersion : 1,
-      templateVariableAllowlistByCategory:
-        tenantConfig?.templateVariableAllowlistByCategory || {},
-      templateRequiredVariablesByCategory:
-        tenantConfig?.templateRequiredVariablesByCategory || {},
+      templateVariableAllowlistByCategory: tenantConfig?.templateVariableAllowlistByCategory || {},
+      templateRequiredVariablesByCategory: tenantConfig?.templateRequiredVariablesByCategory || {},
       templateSignaturesByChannel: tenantConfig?.templateSignaturesByChannel || {},
     };
   } catch {
@@ -165,11 +154,9 @@ function analyzeOutputGate(snapshot = null) {
   const risk = snapshot?.risk && typeof snapshot.risk === 'object' ? snapshot.risk : null;
   const decision = normalizeText(risk?.decision).toLowerCase();
   const ownerDecision = normalizeText(risk?.ownerDecision).toLowerCase();
-  const outputEvaluation =
-    risk?.output && typeof risk.output === 'object' ? risk.output : null;
+  const outputEvaluation = risk?.output && typeof risk.output === 'object' ? risk.output : null;
   const hasOutputEvaluation =
-    Boolean(outputEvaluation) &&
-    normalizeText(outputEvaluation?.scope).toLowerCase() === 'output';
+    Boolean(outputEvaluation) && normalizeText(outputEvaluation?.scope).toLowerCase() === 'output';
   const hasPolicyMetadata =
     hasOutputEvaluation &&
     Array.isArray(outputEvaluation?.policyHits) &&
@@ -215,7 +202,9 @@ function classifyOwnerMfaMembers(members = [], { currentMembershipId = '' } = {}
     .sort((a, b) => String(a.email || '').localeCompare(String(b.email || '')));
 
   const compliantOwners = activeOwners.filter((item) => item.mfaRequired && item.mfaConfigured);
-  const nonCompliantOwners = activeOwners.filter((item) => !item.mfaRequired || !item.mfaConfigured);
+  const nonCompliantOwners = activeOwners.filter(
+    (item) => !item.mfaRequired || !item.mfaConfigured
+  );
   const canDisableNonCompliant = compliantOwners.length >= 1;
   const protectedCurrentOwnerCandidates = [];
   const disableCandidates = [];
@@ -285,8 +274,9 @@ function createOpsRouter({
   requireAuth,
   requireRole,
 }) {
-  const DEFAULT_PREFERRED_MAILBOX =
-    String(process.env.CCO_DEFAULT_PREFERRED_MAILBOX || 'contact@hairtpclinic.com').toLowerCase();
+  const DEFAULT_PREFERRED_MAILBOX = String(
+    process.env.CCO_DEFAULT_PREFERRED_MAILBOX || 'contact@hairtpclinic.com'
+  ).toLowerCase();
   const router = express.Router();
   const REQUIRED_SCHEDULER_SUITE_JOB_IDS = Object.freeze([
     'nightly_pilot_report',
@@ -386,8 +376,7 @@ function createOpsRouter({
           ? await patientCareStateStore.listDraftProposals({ tenantId, status, patientId, limit })
           : [];
         let live = null;
-        const includeLivePreview =
-          !patientId && normalizeText(req.query?.livePreview) !== '0';
+        const includeLivePreview = !patientId && normalizeText(req.query?.livePreview) !== '0';
         if (includeLivePreview && journalStore && patientMasterStore && patientCareStateStore) {
           live = await buildJournalDraftProposals({
             journalStore,
@@ -522,21 +511,29 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER),
     (req, res) =>
-      runCareSchedulerJob(req, res, 'cco_journal_draft_proposals', 'ops.cco_care.run_journal_drafts')
+      runCareSchedulerJob(
+        req,
+        res,
+        'cco_journal_draft_proposals',
+        'ops.cco_care.run_journal_drafts'
+      )
   );
 
-  router.post(
-    '/ops/cco-care/run-reminders',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    (req, res) => runCareSchedulerJob(req, res, 'cco_customer_reminders', 'ops.cco_care.run_reminders')
+  router.post('/ops/cco-care/run-reminders', requireAuth, requireRole(ROLE_OWNER), (req, res) =>
+    runCareSchedulerJob(req, res, 'cco_customer_reminders', 'ops.cco_care.run_reminders')
   );
 
   router.post(
     '/ops/cco-care/run-journal-photos-backup',
     requireAuth,
     requireRole(ROLE_OWNER),
-    (req, res) => runCareSchedulerJob(req, res, 'journal_photos_backup', 'ops.cco_care.run_journal_photos_backup')
+    (req, res) =>
+      runCareSchedulerJob(
+        req,
+        res,
+        'journal_photos_backup',
+        'ops.cco_care.run_journal_photos_backup'
+      )
   );
 
   router.patch(
@@ -778,42 +775,37 @@ function createOpsRouter({
     }
   );
 
-  router.get(
-    '/ops/scheduler/status',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      if (!scheduler || typeof scheduler.getStatus !== 'function') {
-        return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
-      }
-      try {
-        const status = scheduler.getStatus();
-
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: 'ops.scheduler.status.read',
-          outcome: 'success',
-          targetType: 'ops',
-          targetId: 'scheduler_status',
-          metadata: {
-            enabled: Boolean(status?.enabled),
-            started: Boolean(status?.started),
-            jobs: Array.isArray(status?.jobs) ? status.jobs.length : 0,
-          },
-        });
-
-        return res.json({
-          ok: true,
-          generatedAt: new Date().toISOString(),
-          scheduler: status,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte läsa scheduler-status.' });
-      }
+  router.get('/ops/scheduler/status', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    if (!scheduler || typeof scheduler.getStatus !== 'function') {
+      return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
     }
-  );
+    try {
+      const status = scheduler.getStatus();
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.scheduler.status.read',
+        outcome: 'success',
+        targetType: 'ops',
+        targetId: 'scheduler_status',
+        metadata: {
+          enabled: Boolean(status?.enabled),
+          started: Boolean(status?.started),
+          jobs: Array.isArray(status?.jobs) ? status.jobs.length : 0,
+        },
+      });
+
+      return res.json({
+        ok: true,
+        generatedAt: new Date().toISOString(),
+        scheduler: status,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte läsa scheduler-status.' });
+    }
+  });
 
   router.get(
     '/ops/cco/enrichment/coverage',
@@ -862,91 +854,89 @@ function createOpsRouter({
     }
   );
 
-  router.post(
-    '/ops/scheduler/run',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      if (!scheduler || typeof scheduler.runJob !== 'function') {
-        return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
-      }
+  router.post('/ops/scheduler/run', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    if (!scheduler || typeof scheduler.runJob !== 'function') {
+      return res.status(503).json({ error: 'Scheduler är inte tillgänglig.' });
+    }
 
-      const jobId = normalizeText(req.body?.jobId);
-      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
-      if (!jobId) {
-        return res.status(400).json({ error: 'jobId krävs.' });
-      }
+    const jobId = normalizeText(req.body?.jobId);
+    const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+    if (!jobId) {
+      return res.status(400).json({ error: 'jobId krävs.' });
+    }
 
-      try {
-        const runSuite = jobId === 'required_suite';
-        let payload = null;
-        let success = false;
-        let statusCode = 200;
+    try {
+      const runSuite = jobId === 'required_suite';
+      let payload = null;
+      let success = false;
+      let statusCode = 200;
 
-        if (runSuite) {
-          const suiteResults = [];
-          for (const suiteJobId of REQUIRED_SCHEDULER_SUITE_JOB_IDS) {
-            const suiteResult = await scheduler.runJob(suiteJobId, {
-              trigger: 'manual_api_suite',
-              actorUserId: req.auth.userId,
-              tenantId,
-            });
-            suiteResults.push({
-              requestedJobId: suiteJobId,
-              ...suiteResult,
-            });
-          }
-          const failed = suiteResults.filter((item) => item?.ok !== true);
-          const succeeded = suiteResults.length - failed.length;
-          success = failed.length === 0;
-          statusCode = success ? 200 : 409;
-          payload = {
-            ok: success,
-            jobId: 'required_suite',
+      if (runSuite) {
+        const suiteResults = [];
+        for (const suiteJobId of REQUIRED_SCHEDULER_SUITE_JOB_IDS) {
+          const suiteResult = await scheduler.runJob(suiteJobId, {
             trigger: 'manual_api_suite',
-            suite: {
-              total: suiteResults.length,
-              succeeded,
-              failed: failed.length,
-              results: suiteResults,
-            },
-          };
-        } else {
-          const result = await scheduler.runJob(jobId, {
-            trigger: 'manual_api',
             actorUserId: req.auth.userId,
             tenantId,
           });
-          success = result?.ok === true;
-          const errorCode = String(result?.error || '');
-          statusCode =
-            success ? 200 : errorCode === 'job_running' || errorCode === 'disabled_job' ? 409 : 400;
-          payload = {
-            ok: success,
-            ...result,
-          };
+          suiteResults.push({
+            requestedJobId: suiteJobId,
+            ...suiteResult,
+          });
         }
-
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: 'ops.scheduler.run',
-          outcome: success ? 'success' : 'failure',
-          targetType: 'scheduler_job',
-          targetId: jobId,
-          metadata: {
-            requestedTenantId: tenantId,
-            result: payload,
+        const failed = suiteResults.filter((item) => item?.ok !== true);
+        const succeeded = suiteResults.length - failed.length;
+        success = failed.length === 0;
+        statusCode = success ? 200 : 409;
+        payload = {
+          ok: success,
+          jobId: 'required_suite',
+          trigger: 'manual_api_suite',
+          suite: {
+            total: suiteResults.length,
+            succeeded,
+            failed: failed.length,
+            results: suiteResults,
           },
+        };
+      } else {
+        const result = await scheduler.runJob(jobId, {
+          trigger: 'manual_api',
+          actorUserId: req.auth.userId,
+          tenantId,
         });
-
-        return res.status(statusCode).json(payload);
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte köra scheduler-jobb.' });
+        success = result?.ok === true;
+        const errorCode = String(result?.error || '');
+        statusCode = success
+          ? 200
+          : errorCode === 'job_running' || errorCode === 'disabled_job'
+            ? 409
+            : 400;
+        payload = {
+          ok: success,
+          ...result,
+        };
       }
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.scheduler.run',
+        outcome: success ? 'success' : 'failure',
+        targetType: 'scheduler_job',
+        targetId: jobId,
+        metadata: {
+          requestedTenantId: tenantId,
+          result: payload,
+        },
+      });
+
+      return res.status(statusCode).json(payload);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte köra scheduler-jobb.' });
     }
-  );
+  });
 
   router.get(
     '/ops/release/cycles',
@@ -989,50 +979,45 @@ function createOpsRouter({
     }
   );
 
-  router.post(
-    '/ops/release/cycles',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      if (!releaseGovernanceStore || typeof releaseGovernanceStore.startCycle !== 'function') {
-        return res.status(503).json({ error: 'Release governance store är inte tillgänglig.' });
-      }
-      try {
-        const tenantId = req.auth.tenantId;
-        const targetEnvironment = normalizeText(req.body?.targetEnvironment || 'production');
-        const rolloutStrategy = normalizeText(req.body?.rolloutStrategy || 'tenant_batch');
-        const note = normalizeText(req.body?.note || '');
-        const cycle = await releaseGovernanceStore.startCycle({
-          tenantId,
-          actorUserId: req.auth.userId,
-          targetEnvironment,
-          rolloutStrategy,
-          note,
-        });
-
-        await authStore.addAuditEvent({
-          tenantId,
-          actorUserId: req.auth.userId,
-          action: 'ops.release.cycle.start',
-          outcome: 'success',
-          targetType: 'release_cycle',
-          targetId: cycle.id,
-          metadata: {
-            targetEnvironment: cycle.targetEnvironment,
-            rolloutStrategy: cycle.rolloutStrategy,
-          },
-        });
-
-        return res.status(201).json({
-          ok: true,
-          cycle,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte starta release-cykel.' });
-      }
+  router.post('/ops/release/cycles', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    if (!releaseGovernanceStore || typeof releaseGovernanceStore.startCycle !== 'function') {
+      return res.status(503).json({ error: 'Release governance store är inte tillgänglig.' });
     }
-  );
+    try {
+      const tenantId = req.auth.tenantId;
+      const targetEnvironment = normalizeText(req.body?.targetEnvironment || 'production');
+      const rolloutStrategy = normalizeText(req.body?.rolloutStrategy || 'tenant_batch');
+      const note = normalizeText(req.body?.note || '');
+      const cycle = await releaseGovernanceStore.startCycle({
+        tenantId,
+        actorUserId: req.auth.userId,
+        targetEnvironment,
+        rolloutStrategy,
+        note,
+      });
+
+      await authStore.addAuditEvent({
+        tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.release.cycle.start',
+        outcome: 'success',
+        targetType: 'release_cycle',
+        targetId: cycle.id,
+        metadata: {
+          targetEnvironment: cycle.targetEnvironment,
+          rolloutStrategy: cycle.rolloutStrategy,
+        },
+      });
+
+      return res.status(201).json({
+        ok: true,
+        cycle,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte starta release-cykel.' });
+    }
+  });
 
   router.get(
     '/ops/release/status',
@@ -1106,7 +1091,10 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) => {
-      if (!releaseGovernanceStore || typeof releaseGovernanceStore.recordGateEvidence !== 'function') {
+      if (
+        !releaseGovernanceStore ||
+        typeof releaseGovernanceStore.recordGateEvidence !== 'function'
+      ) {
         return res.status(503).json({ error: 'Release governance store är inte tillgänglig.' });
       }
       try {
@@ -1133,13 +1121,9 @@ function createOpsRouter({
             : {};
 
         const readinessInput =
-          req.body?.readiness && typeof req.body.readiness === 'object'
-            ? req.body.readiness
-            : {};
+          req.body?.readiness && typeof req.body.readiness === 'object' ? req.body.readiness : {};
         const strictInput =
-          req.body?.strict && typeof req.body.strict === 'object'
-            ? req.body.strict
-            : {};
+          req.body?.strict && typeof req.body.strict === 'object' ? req.body.strict : {};
         const requiredChecksInput =
           req.body?.requiredChecks && typeof req.body.requiredChecks === 'object'
             ? req.body.requiredChecks
@@ -1148,8 +1132,7 @@ function createOpsRouter({
         const readiness = {
           score: Number(readinessInput.score ?? latestReadinessMeta.score ?? 0),
           band: normalizeText(readinessInput.band || latestReadinessMeta.band || ''),
-          goAllowed:
-            readinessInput.goAllowed === true || latestReadinessMeta.goAllowed === true,
+          goAllowed: readinessInput.goAllowed === true || latestReadinessMeta.goAllowed === true,
           blockerChecksCount: Number(
             readinessInput.blockerChecksCount ?? latestReadinessMeta.blockingRequiredChecks ?? 0
           ),
@@ -1170,8 +1153,7 @@ function createOpsRouter({
         };
         const requiredChecks = {
           noP0P1Blockers:
-            requiredChecksInput.noP0P1Blockers === true ||
-            req.body?.noP0P1Blockers === true,
+            requiredChecksInput.noP0P1Blockers === true || req.body?.noP0P1Blockers === true,
           patientSafetyApproved:
             requiredChecksInput.patientSafetyApproved === true ||
             req.body?.patientSafetyApproved === true,
@@ -1309,8 +1291,11 @@ function createOpsRouter({
       } catch (error) {
         console.error(error);
         const message = normalizeText(error?.message || '');
-        const statusCode =
-          message.includes('hittades inte') ? 404 : message.includes('Sign-off kräver') ? 409 : 500;
+        const statusCode = message.includes('hittades inte')
+          ? 404
+          : message.includes('Sign-off kräver')
+            ? 409
+            : 500;
         return res
           .status(statusCode)
           .json({ error: message || 'Kunde inte spara release sign-off.' });
@@ -1387,7 +1372,10 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      if (!releaseGovernanceStore || typeof releaseGovernanceStore.addPostLaunchReview !== 'function') {
+      if (
+        !releaseGovernanceStore ||
+        typeof releaseGovernanceStore.addPostLaunchReview !== 'function'
+      ) {
         return res.status(503).json({ error: 'Release governance store är inte tillgänglig.' });
       }
       try {
@@ -1449,7 +1437,10 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
-      if (!releaseGovernanceStore || typeof releaseGovernanceStore.recordRealityAudit !== 'function') {
+      if (
+        !releaseGovernanceStore ||
+        typeof releaseGovernanceStore.recordRealityAudit !== 'function'
+      ) {
         return res.status(503).json({ error: 'Release governance store är inte tillgänglig.' });
       }
       try {
@@ -1536,7 +1527,9 @@ function createOpsRouter({
         }
 
         const stabilization = releaseEval.postLaunchStabilization || {};
-        const requiredDays = Number(stabilization?.requiredDays || config?.releasePostLaunchStabilizationDays || 14);
+        const requiredDays = Number(
+          stabilization?.requiredDays || config?.releasePostLaunchStabilizationDays || 14
+        );
         const actualReviews = Number(stabilization?.actualReviews || 0);
         const stabilizationReady =
           stabilization?.completed === true &&
@@ -1596,48 +1589,43 @@ function createOpsRouter({
     }
   );
 
-  router.get(
-    '/ops/secrets/status',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      if (!secretRotationStore || typeof secretRotationStore.getSecretsStatus !== 'function') {
-        return res.status(503).json({ error: 'Secret rotation store är inte tillgänglig.' });
-      }
-      try {
-        const maxAgeDays = parseDays(
-          req.query?.maxAgeDays,
-          parseDays(config?.secretRotationMaxAgeDays, 90)
-        );
-        const status = await secretRotationStore.getSecretsStatus({ maxAgeDays });
-
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: 'ops.secrets.status.read',
-          outcome: 'success',
-          targetType: 'ops',
-          targetId: 'secrets_status',
-          metadata: {
-            tracked: Number(status?.totals?.tracked || 0),
-            required: Number(status?.totals?.required || 0),
-            staleRequired: Number(status?.totals?.staleRequired || 0),
-            pendingRotation: Number(status?.totals?.pendingRotation || 0),
-            maxAgeDays,
-          },
-        });
-
-        return res.json({
-          ok: true,
-          maxAgeDays,
-          ...status,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte läsa secret-rotation status.' });
-      }
+  router.get('/ops/secrets/status', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    if (!secretRotationStore || typeof secretRotationStore.getSecretsStatus !== 'function') {
+      return res.status(503).json({ error: 'Secret rotation store är inte tillgänglig.' });
     }
-  );
+    try {
+      const maxAgeDays = parseDays(
+        req.query?.maxAgeDays,
+        parseDays(config?.secretRotationMaxAgeDays, 90)
+      );
+      const status = await secretRotationStore.getSecretsStatus({ maxAgeDays });
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.secrets.status.read',
+        outcome: 'success',
+        targetType: 'ops',
+        targetId: 'secrets_status',
+        metadata: {
+          tracked: Number(status?.totals?.tracked || 0),
+          required: Number(status?.totals?.required || 0),
+          staleRequired: Number(status?.totals?.staleRequired || 0),
+          pendingRotation: Number(status?.totals?.pendingRotation || 0),
+          maxAgeDays,
+        },
+      });
+
+      return res.json({
+        ok: true,
+        maxAgeDays,
+        ...status,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte läsa secret-rotation status.' });
+    }
+  });
 
   router.post(
     '/ops/readiness/remediate-output-gates',
@@ -1680,7 +1668,9 @@ function createOpsRouter({
 
         const limitedCandidates = candidates.slice(0, limit);
         const fixableCandidates = limitedCandidates.filter((item) => item.fixableIssues.length > 0);
-        const manualCandidates = limitedCandidates.filter((item) => item.fixableIssues.length === 0);
+        const manualCandidates = limitedCandidates.filter(
+          (item) => item.fixableIssues.length === 0
+        );
 
         const fixed = [];
         const skipped = [];
@@ -1730,10 +1720,8 @@ function createOpsRouter({
               category: template.category,
               content: contentForEvaluation,
               variables: version.variablesUsed,
-              allowlistOverridesByCategory:
-                tenantRuntime.templateVariableAllowlistByCategory,
-              requiredOverridesByCategory:
-                tenantRuntime.templateRequiredVariablesByCategory,
+              allowlistOverridesByCategory: tenantRuntime.templateVariableAllowlistByCategory,
+              requiredOverridesByCategory: tenantRuntime.templateRequiredVariablesByCategory,
             });
             const inputEvaluation = evaluateTemplateRisk({
               scope: 'input',
@@ -1788,9 +1776,7 @@ function createOpsRouter({
                 (issue) => issue !== 'owner_override_missing'
               )
             ).length;
-        const resolvedFixableCount = dryRun
-          ? 0
-          : fixed.length - remainingFixableAfterApply;
+        const resolvedFixableCount = dryRun ? 0 : fixed.length - remainingFixableAfterApply;
 
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
@@ -1854,9 +1840,7 @@ function createOpsRouter({
         typeof authStore.updateMembership !== 'function' ||
         typeof authStore.revokeSessionsByMembership !== 'function'
       ) {
-        return res
-          .status(503)
-          .json({ error: 'Auth store saknas för OWNER MFA remediation.' });
+        return res.status(503).json({ error: 'Auth store saknas för OWNER MFA remediation.' });
       }
 
       try {
@@ -1921,9 +1905,7 @@ function createOpsRouter({
           }
         }
 
-        const membersAfter = dryRun
-          ? membersBefore
-          : await authStore.listTenantMembers(tenantId);
+        const membersAfter = dryRun ? membersBefore : await authStore.listTenantMembers(tenantId);
         const reportAfter = classifyOwnerMfaMembers(membersAfter, {
           currentMembershipId: req.auth.membershipId,
         });
@@ -1986,101 +1968,89 @@ function createOpsRouter({
         });
       } catch (error) {
         console.error(error);
-        return res
-          .status(500)
-          .json({ error: 'Kunde inte köra OWNER MFA remediation.' });
+        return res.status(500).json({ error: 'Kunde inte köra OWNER MFA remediation.' });
       }
     }
   );
 
-  router.post(
-    '/ops/secrets/snapshot',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      if (!secretRotationStore || typeof secretRotationStore.captureSnapshot !== 'function') {
-        return res.status(503).json({ error: 'Secret rotation store är inte tillgänglig.' });
-      }
-      try {
-        const dryRun = parseBoolean(req.body?.dryRun, true);
-        const force = parseBoolean(req.body?.force, false);
-        const note = normalizeText(req.body?.note || '');
-        const source = dryRun ? 'ops_snapshot_preview' : 'ops_snapshot_commit';
-        const snapshot = await secretRotationStore.captureSnapshot({
-          actorUserId: req.auth.userId,
-          source,
-          note,
+  router.post('/ops/secrets/snapshot', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    if (!secretRotationStore || typeof secretRotationStore.captureSnapshot !== 'function') {
+      return res.status(503).json({ error: 'Secret rotation store är inte tillgänglig.' });
+    }
+    try {
+      const dryRun = parseBoolean(req.body?.dryRun, true);
+      const force = parseBoolean(req.body?.force, false);
+      const note = normalizeText(req.body?.note || '');
+      const source = dryRun ? 'ops_snapshot_preview' : 'ops_snapshot_commit';
+      const snapshot = await secretRotationStore.captureSnapshot({
+        actorUserId: req.auth.userId,
+        source,
+        note,
+        dryRun,
+        force,
+      });
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: dryRun ? 'ops.secrets.snapshot.preview' : 'ops.secrets.snapshot.run',
+        outcome: 'success',
+        targetType: 'ops',
+        targetId: 'secrets_snapshot',
+        metadata: {
           dryRun,
           force,
-        });
+          changedCount: Number(snapshot?.totals?.changedCount || 0),
+          staleRequired: Number(snapshot?.totals?.staleRequired || 0),
+          pendingRotation: Number(snapshot?.totals?.pendingRotation || 0),
+        },
+      });
 
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: dryRun ? 'ops.secrets.snapshot.preview' : 'ops.secrets.snapshot.run',
-          outcome: 'success',
-          targetType: 'ops',
-          targetId: 'secrets_snapshot',
-          metadata: {
-            dryRun,
-            force,
-            changedCount: Number(snapshot?.totals?.changedCount || 0),
-            staleRequired: Number(snapshot?.totals?.staleRequired || 0),
-            pendingRotation: Number(snapshot?.totals?.pendingRotation || 0),
-          },
-        });
-
-        return res.json({
-          ok: true,
-          ...snapshot,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte skapa secret-rotation snapshot.' });
-      }
+      return res.json({
+        ok: true,
+        ...snapshot,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte skapa secret-rotation snapshot.' });
     }
-  );
+  });
 
-  router.get(
-    '/ops/secrets/history',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      if (!secretRotationStore || typeof secretRotationStore.listSecretHistory !== 'function') {
-        return res.status(503).json({ error: 'Secret rotation store är inte tillgänglig.' });
-      }
-      try {
-        const secretId = normalizeText(req.query?.secretId || '');
-        const limit = parseLimit(req.query?.limit, 50);
-        const history = await secretRotationStore.listSecretHistory({
-          secretId,
-          limit,
-        });
-
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: 'ops.secrets.history.read',
-          outcome: 'success',
-          targetType: 'ops',
-          targetId: secretId || 'all',
-          metadata: {
-            limit,
-            count: Number(history?.count || 0),
-          },
-        });
-
-        return res.json({
-          secretId: secretId || null,
-          limit,
-          ...history,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte läsa secret-rotation historik.' });
-      }
+  router.get('/ops/secrets/history', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    if (!secretRotationStore || typeof secretRotationStore.listSecretHistory !== 'function') {
+      return res.status(503).json({ error: 'Secret rotation store är inte tillgänglig.' });
     }
-  );
+    try {
+      const secretId = normalizeText(req.query?.secretId || '');
+      const limit = parseLimit(req.query?.limit, 50);
+      const history = await secretRotationStore.listSecretHistory({
+        secretId,
+        limit,
+      });
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.secrets.history.read',
+        outcome: 'success',
+        targetType: 'ops',
+        targetId: secretId || 'all',
+        metadata: {
+          limit,
+          count: Number(history?.count || 0),
+        },
+      });
+
+      return res.json({
+        secretId: secretId || null,
+        limit,
+        ...history,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte läsa secret-rotation historik.' });
+    }
+  });
 
   router.get(
     '/ops/slo-tickets',
@@ -2210,204 +2180,179 @@ function createOpsRouter({
     }
   );
 
-  router.get(
-    '/ops/reports',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      try {
-        const limit = parseLimit(req.query?.limit, 20);
-        const reports = await listSchedulerPilotReports({
-          reportsDir: config.reportsDir,
-          limit,
-        });
+  router.get('/ops/reports', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const limit = parseLimit(req.query?.limit, 20);
+      const reports = await listSchedulerPilotReports({
+        reportsDir: config.reportsDir,
+        limit,
+      });
 
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: 'ops.reports.read',
-          outcome: 'success',
-          targetType: 'ops',
-          targetId: 'scheduler_reports',
-          metadata: {
-            count: reports.length,
-            limit,
-          },
-        });
-
-        return res.json({
-          reportsDir: config.reportsDir,
-          retention: {
-            maxFiles: config.reportRetentionMaxFiles,
-            maxAgeDays: config.reportRetentionMaxAgeDays,
-          },
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.reports.read',
+        outcome: 'success',
+        targetType: 'ops',
+        targetId: 'scheduler_reports',
+        metadata: {
           count: reports.length,
-          reports,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte läsa scheduler-rapporter.' });
-      }
-    }
-  );
+          limit,
+        },
+      });
 
-  router.post(
-    '/ops/reports/prune',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      try {
-        const dryRun = parseBoolean(req.body?.dryRun, true);
-        const result = await pruneSchedulerPilotReports({
-          reportsDir: config.reportsDir,
+      return res.json({
+        reportsDir: config.reportsDir,
+        retention: {
           maxFiles: config.reportRetentionMaxFiles,
           maxAgeDays: config.reportRetentionMaxAgeDays,
-          dryRun,
-        });
-
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: dryRun ? 'ops.reports.prune.preview' : 'ops.reports.prune.run',
-          outcome: 'success',
-          targetType: 'ops',
-          targetId: 'scheduler_reports',
-          metadata: {
-            deletedCount: result.deletedCount,
-            scannedCount: result.scannedCount,
-            maxFiles: result.settings.maxFiles,
-            maxAgeDays: result.settings.maxAgeDays,
-          },
-        });
-
-        return res.json({
-          ok: true,
-          ...result,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte pruna scheduler-rapporter.' });
-      }
+        },
+        count: reports.length,
+        reports,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte läsa scheduler-rapporter.' });
     }
-  );
+  });
 
-  router.get(
-    '/ops/state/manifest',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      try {
-        const stateFileMap = getStateFileMap(config);
-        const manifest = await buildStateManifest({ stateFileMap });
+  router.post('/ops/reports/prune', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const dryRun = parseBoolean(req.body?.dryRun, true);
+      const result = await pruneSchedulerPilotReports({
+        reportsDir: config.reportsDir,
+        maxFiles: config.reportRetentionMaxFiles,
+        maxAgeDays: config.reportRetentionMaxAgeDays,
+        dryRun,
+      });
 
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: 'ops.state.manifest.read',
-          outcome: 'success',
-          targetType: 'ops',
-          targetId: 'state_manifest',
-        });
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: dryRun ? 'ops.reports.prune.preview' : 'ops.reports.prune.run',
+        outcome: 'success',
+        targetType: 'ops',
+        targetId: 'scheduler_reports',
+        metadata: {
+          deletedCount: result.deletedCount,
+          scannedCount: result.scannedCount,
+          maxFiles: result.settings.maxFiles,
+          maxAgeDays: result.settings.maxAgeDays,
+        },
+      });
 
-        return res.json({
-          backupDir: config.backupDir,
-          retention: {
-            maxFiles: config.backupRetentionMaxFiles,
-            maxAgeDays: config.backupRetentionMaxAgeDays,
-          },
-          ...manifest,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte läsa state manifest.' });
-      }
+      return res.json({
+        ok: true,
+        ...result,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte pruna scheduler-rapporter.' });
     }
-  );
+  });
 
-  router.get(
-    '/ops/state/backups',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      try {
-        const limit = parseLimit(req.query?.limit, 20);
-        const backups = await listBackups({
-          backupDir: config.backupDir,
-          limit,
-        });
+  router.get('/ops/state/manifest', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const stateFileMap = getStateFileMap(config);
+      const manifest = await buildStateManifest({ stateFileMap });
 
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: 'ops.state.backups.read',
-          outcome: 'success',
-          targetType: 'ops',
-          targetId: 'state_backups',
-          metadata: { count: backups.length, limit },
-        });
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.state.manifest.read',
+        outcome: 'success',
+        targetType: 'ops',
+        targetId: 'state_manifest',
+      });
 
-        return res.json({
-          backupDir: config.backupDir,
-          retention: {
-            maxFiles: config.backupRetentionMaxFiles,
-            maxAgeDays: config.backupRetentionMaxAgeDays,
-          },
-          count: backups.length,
-          backups,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte läsa backups.' });
-      }
-    }
-  );
-
-  router.post(
-    '/ops/state/backup',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      try {
-        const stateFileMap = getStateFileMap(config);
-        const backup = await createStateBackup({
-          stateFileMap,
-          backupDir: config.backupDir,
-          createdBy: req.currentUser?.email || req.auth.userId || 'owner',
-        });
-
-        const pruneResult = await pruneBackups({
-          backupDir: config.backupDir,
+      return res.json({
+        backupDir: config.backupDir,
+        retention: {
           maxFiles: config.backupRetentionMaxFiles,
           maxAgeDays: config.backupRetentionMaxAgeDays,
-          dryRun: false,
-        });
-
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: 'ops.state.backup.create',
-          outcome: 'success',
-          targetType: 'backup',
-          targetId: backup.fileName,
-          metadata: {
-            filePath: backup.filePath,
-            sizeBytes: backup.sizeBytes,
-            stores: backup.stores.length,
-            pruneDeletedCount: pruneResult.deletedCount,
-          },
-        });
-
-        return res.status(201).json({
-          ok: true,
-          backup,
-          prune: pruneResult,
-        });
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte skapa backup.' });
-      }
+        },
+        ...manifest,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte läsa state manifest.' });
     }
-  );
+  });
+
+  router.get('/ops/state/backups', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const limit = parseLimit(req.query?.limit, 20);
+      const backups = await listBackups({
+        backupDir: config.backupDir,
+        limit,
+      });
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.state.backups.read',
+        outcome: 'success',
+        targetType: 'ops',
+        targetId: 'state_backups',
+        metadata: { count: backups.length, limit },
+      });
+
+      return res.json({
+        backupDir: config.backupDir,
+        retention: {
+          maxFiles: config.backupRetentionMaxFiles,
+          maxAgeDays: config.backupRetentionMaxAgeDays,
+        },
+        count: backups.length,
+        backups,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte läsa backups.' });
+    }
+  });
+
+  router.post('/ops/state/backup', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const stateFileMap = getStateFileMap(config);
+      const backup = await createStateBackup({
+        stateFileMap,
+        backupDir: config.backupDir,
+        createdBy: req.currentUser?.email || req.auth.userId || 'owner',
+      });
+
+      const pruneResult = await pruneBackups({
+        backupDir: config.backupDir,
+        maxFiles: config.backupRetentionMaxFiles,
+        maxAgeDays: config.backupRetentionMaxAgeDays,
+        dryRun: false,
+      });
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.state.backup.create',
+        outcome: 'success',
+        targetType: 'backup',
+        targetId: backup.fileName,
+        metadata: {
+          filePath: backup.filePath,
+          sizeBytes: backup.sizeBytes,
+          stores: backup.stores.length,
+          pruneDeletedCount: pruneResult.deletedCount,
+        },
+      });
+
+      return res.status(201).json({
+        ok: true,
+        backup,
+        prune: pruneResult,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte skapa backup.' });
+    }
+  });
 
   router.post(
     '/ops/state/backups/prune',
@@ -2449,94 +2394,166 @@ function createOpsRouter({
     }
   );
 
-  router.post(
-    '/ops/state/restore',
-    requireAuth,
-    requireRole(ROLE_OWNER),
-    async (req, res) => {
-      try {
-        const fileName = normalizeText(req.body?.fileName);
-        const dryRun = parseBoolean(req.body?.dryRun, false);
-        const confirmText = normalizeText(req.body?.confirmText);
+  router.post('/ops/state/restore', requireAuth, requireRole(ROLE_OWNER), async (req, res) => {
+    try {
+      const fileName = normalizeText(req.body?.fileName);
+      const dryRun = parseBoolean(req.body?.dryRun, false);
+      const confirmText = normalizeText(req.body?.confirmText);
 
-        if (!fileName) {
-          return res.status(400).json({ error: 'fileName krävs.' });
-        }
+      if (!fileName) {
+        return res.status(400).json({ error: 'fileName krävs.' });
+      }
 
-        const backupFilePath = resolveBackupFilePath({
-          backupDir: config.backupDir,
-          fileName,
-        });
-        const stateFileMap = getStateFileMap(config);
-        const preview = await inspectBackupRestore({
-          backupFilePath,
-          stateFileMap,
-        });
+      const backupFilePath = resolveBackupFilePath({
+        backupDir: config.backupDir,
+        fileName,
+      });
+      const stateFileMap = getStateFileMap(config);
+      const preview = await inspectBackupRestore({
+        backupFilePath,
+        stateFileMap,
+      });
 
-        if (dryRun) {
-          await authStore.addAuditEvent({
-            tenantId: req.auth.tenantId,
-            actorUserId: req.auth.userId,
-            action: 'ops.state.restore.preview',
-            outcome: 'success',
-            targetType: 'backup',
-            targetId: fileName,
-            metadata: {
-              willRestoreCount: preview.stores.filter((store) => store.willRestore).length,
-              missingCount: preview.stores.filter((store) => !store.existsInBackup).length,
-              unknownStores: preview.unknownStores.length,
-            },
-          });
-
-          return res.json({
-            ok: true,
-            dryRun: true,
-            fileName,
-            preview,
-          });
-        }
-
-        const expectedConfirm = `RESTORE ${fileName}`;
-        if (confirmText !== expectedConfirm) {
-          return res.status(400).json({
-            error: `Bekräftelse saknas. Sätt confirmText till exakt "${expectedConfirm}".`,
-          });
-        }
-
-        const restore = await restoreFromBackup({
-          backupFilePath,
-          stateFileMap,
-        });
-
+      if (dryRun) {
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
           actorUserId: req.auth.userId,
-          action: 'ops.state.restore.run',
+          action: 'ops.state.restore.preview',
           outcome: 'success',
           targetType: 'backup',
           targetId: fileName,
           metadata: {
-            restoredCount: restore.stores.filter((store) => store.restored).length,
-            skippedCount: restore.stores.filter((store) => !store.restored).length,
+            willRestoreCount: preview.stores.filter((store) => store.willRestore).length,
+            missingCount: preview.stores.filter((store) => !store.existsInBackup).length,
+            unknownStores: preview.unknownStores.length,
           },
         });
 
         return res.json({
           ok: true,
-          dryRun: false,
+          dryRun: true,
           fileName,
           preview,
-          restore,
         });
+      }
+
+      const expectedConfirm = `RESTORE ${fileName}`;
+      if (confirmText !== expectedConfirm) {
+        return res.status(400).json({
+          error: `Bekräftelse saknas. Sätt confirmText till exakt "${expectedConfirm}".`,
+        });
+      }
+
+      const restore = await restoreFromBackup({
+        backupFilePath,
+        stateFileMap,
+      });
+
+      await authStore.addAuditEvent({
+        tenantId: req.auth.tenantId,
+        actorUserId: req.auth.userId,
+        action: 'ops.state.restore.run',
+        outcome: 'success',
+        targetType: 'backup',
+        targetId: fileName,
+        metadata: {
+          restoredCount: restore.stores.filter((store) => store.restored).length,
+          skippedCount: restore.stores.filter((store) => !store.restored).length,
+        },
+      });
+
+      return res.json({
+        ok: true,
+        dryRun: false,
+        fileName,
+        preview,
+        restore,
+      });
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        return res.status(404).json({ error: 'Backupfilen hittades inte.' });
+      }
+      if (error?.message) {
+        return res.status(400).json({ error: error.message });
+      }
+      console.error(error);
+      return res.status(500).json({ error: 'Kunde inte återställa backup.' });
+    }
+  });
+
+  router.get(
+    '/ops/mailbox-truth/restore/inspect',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const layout = await inspectMailboxTruthLayout(config);
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.mailbox_truth.restore.inspect',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'mailbox_truth_restore',
+        });
+        return res.json({ ok: true, layout });
       } catch (error) {
-        if (error?.code === 'ENOENT') {
-          return res.status(404).json({ error: 'Backupfilen hittades inte.' });
+        console.error('[ops/mailbox-truth/restore/inspect]', error);
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte inspektera truth-backup.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/mailbox-truth/restore',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      try {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const dryRun = parseBoolean(body.dryRun, true);
+        const confirmText = normalizeText(body.confirmText);
+        const mailboxIds = Array.isArray(body.mailboxIds)
+          ? body.mailboxIds.map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
+          : [];
+        const backupPath = normalizeText(body.backupPath);
+
+        if (!dryRun && confirmText !== 'RESTORE MAILBOX TRUTH') {
+          return res.status(400).json({
+            error: 'confirmText måste vara exakt "RESTORE MAILBOX TRUTH" för apply.',
+          });
         }
-        if (error?.message) {
-          return res.status(400).json({ error: error.message });
-        }
-        console.error(error);
-        return res.status(500).json({ error: 'Kunde inte återställa backup.' });
+
+        const result = await restoreMailboxTruthShards({
+          config,
+          backupPath,
+          mailboxIds,
+          apply: !dryRun,
+        });
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: dryRun ? 'ops.mailbox_truth.restore.preview' : 'ops.mailbox_truth.restore.apply',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'mailbox_truth_restore',
+          metadata: {
+            dryRun,
+            backupPath: result.backupPath,
+            restoredCount: result.actions.filter((action) => action.restored).length,
+            mailboxIds: result.targets,
+          },
+        });
+
+        return res.json({ ok: true, ...result });
+      } catch (error) {
+        console.error('[ops/mailbox-truth/restore]', error);
+        return res
+          .status(500)
+          .json({ error: error?.message || 'Kunde inte återställa mailbox truth.' });
       }
     }
   );
@@ -2551,7 +2568,10 @@ function createOpsRouter({
         return res.status(503).json({ error: 'clientoBookingStore saknas.' });
       }
       try {
-        return res.json({ ok: true, summary: clientoBookingStore.summarize({ tenantId: req.auth?.tenantId }) });
+        return res.json({
+          ok: true,
+          summary: clientoBookingStore.summarize({ tenantId: req.auth?.tenantId }),
+        });
       } catch (error) {
         console.error('[ops/cliento/summary]', error);
         return res.status(500).json({ error: 'Kunde inte hämta summary.' });
@@ -2669,9 +2689,7 @@ function createOpsRouter({
         return res.status(503).json({ error: 'Mailbox-truth-store är inte tillgänglig.' });
       }
       if (!messageIntelligenceStore) {
-        return res
-          .status(503)
-          .json({ error: 'Message-intelligence-store är inte tillgänglig.' });
+        return res.status(503).json({ error: 'Message-intelligence-store är inte tillgänglig.' });
       }
       try {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -2710,9 +2728,7 @@ function createOpsRouter({
         return res.json({ ok: true, result });
       } catch (error) {
         console.error('[ops/intelligence/run]', error);
-        return res
-          .status(500)
-          .json({ error: error?.message || 'Kunde inte köra enrichment.' });
+        return res.status(500).json({ error: error?.message || 'Kunde inte köra enrichment.' });
       }
     }
   );
@@ -2723,15 +2739,13 @@ function createOpsRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
       if (!messageIntelligenceStore) {
-        return res
-          .status(503)
-          .json({ error: 'Message-intelligence-store är inte tillgänglig.' });
+        return res.status(503).json({ error: 'Message-intelligence-store är inte tillgänglig.' });
       }
       try {
         const tenantId = req.auth?.tenantId;
         const enrichmentCount = messageIntelligenceStore.countEnrichments({ tenantId });
         const totalMessages = ccoMailboxTruthStore
-          ? (ccoMailboxTruthStore.listMessages({})?.length || 0)
+          ? ccoMailboxTruthStore.listMessages({})?.length || 0
           : null;
         const runInfo = messageIntelligenceStore.getRunInfo(tenantId);
         return res.json({
@@ -2820,9 +2834,7 @@ function createOpsRouter({
         return res.status(503).json({ error: 'Mailbox-truth-store är inte tillgänglig.' });
       }
       if (!customerPreferenceStore) {
-        return res
-          .status(503)
-          .json({ error: 'Customer-preference-store är inte tillgänglig.' });
+        return res.status(503).json({ error: 'Customer-preference-store är inte tillgänglig.' });
       }
       try {
         const tenantId = req.auth?.tenantId;
@@ -2830,9 +2842,7 @@ function createOpsRouter({
           return res.status(400).json({ error: 'tenantId saknas i auth-context.' });
         }
         const body = req.body && typeof req.body === 'object' ? req.body : {};
-        const preferred = String(
-          body.preferredMailbox || DEFAULT_PREFERRED_MAILBOX
-        ).toLowerCase();
+        const preferred = String(body.preferredMailbox || DEFAULT_PREFERRED_MAILBOX).toLowerCase();
         const dryRun = Boolean(body.dryRun);
         const limit = Math.max(0, Number(body.limit) || 0);
 
@@ -2894,9 +2904,7 @@ function createOpsRouter({
         });
       } catch (error) {
         console.error('[ops/customers/consolidate]', error);
-        return res
-          .status(500)
-          .json({ error: error?.message || 'Kunde inte konsolidera kunder.' });
+        return res.status(500).json({ error: error?.message || 'Kunde inte konsolidera kunder.' });
       }
     }
   );
@@ -2905,41 +2913,54 @@ function createOpsRouter({
   // klienten redan hämtat. Tar `{ kpis, locale }` i bodyn, returnerar
   // antingen JSON {subject, html, text} eller direkt HTML när
   // `?format=html` skickas.
-  router.post('/ops/digest/preview', requireAuth, requireRole(ROLE_OWNER, ROLE_STAFF), async (req, res) => {
-    try {
-      const body = req.body && typeof req.body === 'object' ? req.body : {};
-      const kpis = body.kpis && typeof body.kpis === 'object' ? body.kpis : {};
-      const locale = typeof body.locale === 'string' ? body.locale : 'sv';
-      const tenantId = req.auth?.tenantId || kpis?.data?.tenantId || '';
-      let tenantBrand = body.tenantBrand && typeof body.tenantBrand === 'object' ? body.tenantBrand : null;
-      if (!tenantBrand && tenantConfigStore && typeof tenantConfigStore.getTenantConfig === 'function') {
-        try {
-          const cfg = await tenantConfigStore.getTenantConfig(tenantId);
-          tenantBrand = cfg?.brand || null;
-        } catch (_e) {}
-      }
-      const digest = buildDigest({ tenantBrand: tenantBrand || {}, kpis, locale });
+  router.post(
+    '/ops/digest/preview',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
       try {
-        await authStore.addAuditEvent({
-          tenantId,
-          actorUserId: req.auth?.userId,
-          action: 'ops.digest.preview',
-          outcome: 'success',
-          targetType: 'ops',
-          targetId: 'daily_digest',
-          metadata: { locale, hasAlerts: Array.isArray(kpis?.data?.alerts) && kpis.data.alerts.length > 0 },
-        });
-      } catch (_e) {}
-      if (String(req.query?.format || '').toLowerCase() === 'html') {
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        return res.send(digest.html);
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const kpis = body.kpis && typeof body.kpis === 'object' ? body.kpis : {};
+        const locale = typeof body.locale === 'string' ? body.locale : 'sv';
+        const tenantId = req.auth?.tenantId || kpis?.data?.tenantId || '';
+        let tenantBrand =
+          body.tenantBrand && typeof body.tenantBrand === 'object' ? body.tenantBrand : null;
+        if (
+          !tenantBrand &&
+          tenantConfigStore &&
+          typeof tenantConfigStore.getTenantConfig === 'function'
+        ) {
+          try {
+            const cfg = await tenantConfigStore.getTenantConfig(tenantId);
+            tenantBrand = cfg?.brand || null;
+          } catch (_e) {}
+        }
+        const digest = buildDigest({ tenantBrand: tenantBrand || {}, kpis, locale });
+        try {
+          await authStore.addAuditEvent({
+            tenantId,
+            actorUserId: req.auth?.userId,
+            action: 'ops.digest.preview',
+            outcome: 'success',
+            targetType: 'ops',
+            targetId: 'daily_digest',
+            metadata: {
+              locale,
+              hasAlerts: Array.isArray(kpis?.data?.alerts) && kpis.data.alerts.length > 0,
+            },
+          });
+        } catch (_e) {}
+        if (String(req.query?.format || '').toLowerCase() === 'html') {
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          return res.send(digest.html);
+        }
+        return res.json({ ok: true, digest });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Kunde inte bygga digest.' });
       }
-      return res.json({ ok: true, digest });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Kunde inte bygga digest.' });
     }
-  });
+  );
 
   // DD2: manuell trigger för daily-digest (skickar e-post via Graph). Body:
   //   { tenantId?: string, recipients?: string[], dryRun?: boolean, allTenants?: boolean }
@@ -2955,14 +2976,16 @@ function createOpsRouter({
       if (!graphSendConnector) {
         return res
           .status(503)
-          .json({ error: 'graphSendConnector saknas (ARCANA_GRAPH_SEND_ENABLED ej satt eller credentials saknas).' });
+          .json({
+            error:
+              'graphSendConnector saknas (ARCANA_GRAPH_SEND_ENABLED ej satt eller credentials saknas).',
+          });
       }
       try {
         const body = req.body && typeof req.body === 'object' ? req.body : {};
         const dryRun = Boolean(body.dryRun);
-        const recipientsOverride = Array.isArray(body.recipients) && body.recipients.length > 0
-          ? body.recipients
-          : null;
+        const recipientsOverride =
+          Array.isArray(body.recipients) && body.recipients.length > 0 ? body.recipients : null;
 
         if (body.allTenants === true) {
           const result = await runDailyDigestForAllTenants({
@@ -3029,9 +3052,7 @@ function createOpsRouter({
         return res.json({ ok: true, result });
       } catch (error) {
         console.error('[ops/digest/send]', error);
-        return res
-          .status(500)
-          .json({ error: error?.message || 'Kunde inte skicka digest.' });
+        return res.status(500).json({ error: error?.message || 'Kunde inte skicka digest.' });
       }
     }
   );
