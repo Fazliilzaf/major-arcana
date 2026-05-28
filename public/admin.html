@@ -1583,6 +1583,56 @@
         white-space: pre-wrap;
         word-break: break-word;
       }
+      /* Fas C — inline contextual docs per section */
+      .section-docs-card {
+        margin-top: 14px;
+        border-color: rgba(255, 233, 212, 0.45);
+        background:
+          linear-gradient(160deg, rgba(255, 240, 228, 0.1), rgba(255, 220, 196, 0.05)),
+          linear-gradient(160deg, rgba(52, 44, 38, 0.3), rgba(40, 34, 29, 0.26));
+      }
+      .section-docs-card > summary {
+        list-style: none;
+        padding: 10px 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .section-docs-card > summary::-webkit-details-marker {
+        display: none;
+      }
+      .section-docs-list {
+        padding: 0 12px 12px;
+      }
+      .section-doc-item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin: 8px 0;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .section-doc-item > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .section-doc-item > summary::-webkit-details-marker {
+        display: none;
+      }
+      .section-doc-title {
+        font-weight: 600;
+        color: var(--accent, #c2aa9c);
+      }
+      .section-doc-desc {
+        font-size: 11px;
+        opacity: 0.7;
+      }
+      .section-doc-content {
+        max-height: 360px;
+        overflow-y: auto;
+        border-top: 1px solid var(--line);
+      }
       .cco-preview-embed-section {
         padding: 0;
         margin: 0;
@@ -2514,6 +2564,8 @@
               <summary>CCO Booking — vad det är (referens)</summary>
               <div id="ccoBookingDocOverviewMount" class="cco-booking-doc-mount"></div>
             </details>
+            <!-- Fas C — inline contextual docs (reusable widget mount). Mockup: Översikt. -->
+            <div data-docs-section="overview"></div>
           </section>
         </div>
 
@@ -5596,6 +5648,210 @@ const BOOKING_STATUSES = Object.freeze([
           attributes: true,
           attributeFilter: ['hidden'],
         });
+      })();
+    </script>
+    <script>
+      // Fas C — inline contextual docs per admin section (reusable widget).
+      // Renders the section's docs inline in the section itself (not in a
+      // floating panel). Any element with [data-docs-section="<id>"] gets a
+      // collapsible list of that section's docs; each doc lazy-loads its
+      // content on first open. Rollout to more sections = add the attribute.
+      (function () {
+        function esc(value) {
+          return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        }
+        // Inline formatting on already HTML-escaped text (safe: links restricted to http/https).
+        function renderInline(escaped) {
+          return escaped
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(
+              /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+              '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+            );
+        }
+        function splitRow(line) {
+          return line
+            .trim()
+            .replace(/^\||\|$/g, '')
+            .split('|')
+            .map(function (cell) {
+              return cell.trim();
+            });
+        }
+        // Minimal, safe Markdown → HTML (escape first, then format).
+        function markdownToHtml(md) {
+          var lines = esc(md).replace(/\r\n/g, '\n').split('\n');
+          var out = [];
+          var i = 0;
+          while (i < lines.length) {
+            var line = lines[i];
+            if (/^```/.test(line.trim())) {
+              var code = [];
+              i += 1;
+              while (i < lines.length && !/^```/.test(lines[i].trim())) {
+                code.push(lines[i]);
+                i += 1;
+              }
+              i += 1;
+              out.push('<pre>' + code.join('\n') + '</pre>');
+              continue;
+            }
+            if (
+              /^\s*\|.*\|\s*$/.test(line) &&
+              i + 1 < lines.length &&
+              /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])
+            ) {
+              var header = splitRow(line);
+              i += 2;
+              var body = [];
+              while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
+                body.push(splitRow(lines[i]));
+                i += 1;
+              }
+              var thead =
+                '<tr>' +
+                header
+                  .map(function (cell) {
+                    return '<th>' + renderInline(cell) + '</th>';
+                  })
+                  .join('') +
+                '</tr>';
+              var tbody = body
+                .map(function (row) {
+                  return (
+                    '<tr>' +
+                    row
+                      .map(function (cell) {
+                        return '<td>' + renderInline(cell) + '</td>';
+                      })
+                      .join('') +
+                    '</tr>'
+                  );
+                })
+                .join('');
+              out.push('<table>' + thead + tbody + '</table>');
+              continue;
+            }
+            var heading = line.match(/^(#{1,6})\s+(.*)$/);
+            if (heading) {
+              out.push('<h4>' + renderInline(heading[2]) + '</h4>');
+              i += 1;
+              continue;
+            }
+            if (/^\s*[-*]\s+/.test(line)) {
+              var items = [];
+              while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+                items.push('<li>' + renderInline(lines[i].replace(/^\s*[-*]\s+/, '')) + '</li>');
+                i += 1;
+              }
+              out.push('<ul>' + items.join('') + '</ul>');
+              continue;
+            }
+            if (!line.trim()) {
+              i += 1;
+              continue;
+            }
+            var para = [];
+            while (
+              i < lines.length &&
+              lines[i].trim() &&
+              !/^```/.test(lines[i].trim()) &&
+              !/^(#{1,6})\s+/.test(lines[i]) &&
+              !/^\s*[-*]\s+/.test(lines[i]) &&
+              !/^\s*\|.*\|\s*$/.test(lines[i])
+            ) {
+              para.push(renderInline(lines[i].trim()));
+              i += 1;
+            }
+            if (para.length) out.push('<p>' + para.join('<br>') + '</p>');
+          }
+          return out.join('');
+        }
+        function buildDocItem(doc) {
+          var item = document.createElement('details');
+          item.className = 'section-doc-item';
+          var summary = document.createElement('summary');
+          summary.innerHTML =
+            '<span class="section-doc-title">' +
+            esc(doc.title || doc.path) +
+            '</span>' +
+            (doc.description
+              ? '<span class="section-doc-desc">' + esc(doc.description) + '</span>'
+              : '');
+          item.appendChild(summary);
+          var content = document.createElement('div');
+          content.className = 'cco-booking-doc-mount section-doc-content';
+          content.textContent = 'Laddar…';
+          item.appendChild(content);
+          var loaded = false;
+          item.addEventListener('toggle', function () {
+            if (!item.open || loaded) return;
+            loaded = true;
+            fetch('/api/v1/docs/content?path=' + encodeURIComponent(doc.path), {
+              credentials: 'same-origin',
+            })
+              .then(function (res) {
+                return res.ok ? res.json() : null;
+              })
+              .then(function (data) {
+                if (data && data.ok && typeof data.content === 'string') {
+                  content.innerHTML = markdownToHtml(data.content);
+                } else {
+                  content.textContent = 'Kunde inte ladda dokumentet.';
+                }
+              })
+              .catch(function () {
+                content.textContent = 'Fel vid laddning.';
+              });
+          });
+          return item;
+        }
+        function mountSectionDocs(container) {
+          if (!container || container.getAttribute('data-docs-mounted') === '1') return;
+          var sectionId = container.getAttribute('data-docs-section');
+          if (!sectionId) return;
+          container.setAttribute('data-docs-mounted', '1');
+          fetch('/api/v1/docs/section/' + encodeURIComponent(sectionId), {
+            credentials: 'same-origin',
+          })
+            .then(function (res) {
+              return res.ok ? res.json() : null;
+            })
+            .then(function (data) {
+              var docs = (data && data.documents) || [];
+              if (!docs.length) {
+                container.removeAttribute('data-docs-mounted');
+                return;
+              }
+              var card = document.createElement('details');
+              card.className = 'overview-card section-docs-card';
+              var summary = document.createElement('summary');
+              summary.textContent = '📚 Dokumentation för denna vy (' + docs.length + ')';
+              card.appendChild(summary);
+              var list = document.createElement('div');
+              list.className = 'section-docs-list';
+              docs.forEach(function (doc) {
+                list.appendChild(buildDocItem(doc));
+              });
+              card.appendChild(list);
+              container.appendChild(card);
+            })
+            .catch(function () {
+              container.removeAttribute('data-docs-mounted');
+            });
+        }
+        function boot() {
+          document.querySelectorAll('[data-docs-section]').forEach(mountSectionDocs);
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', boot);
+        } else {
+          boot();
+        }
       })();
     </script>
   </body>

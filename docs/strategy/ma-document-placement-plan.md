@@ -156,3 +156,18 @@ legal-docs vid GDPR-vyn, osv.
 `/api/v1/docs/`). Inga backend-ändringar krävs, bara UI-integration.
 
 **Beslut:** sparat på Fazlis begäran 2026-05-27 sent kväll.
+
+**Status 2026-05-28:**
+
+- [x] Steg 1 — reusable inline-docs-widget byggd (vanilla JS i `public/admin.html`):
+  varje element med `[data-docs-section="<id>"]` får en collapse-lista över
+  sektionens dokument; varje dok lazy-laddar sitt innehåll på första öppning
+  (lätt markdown-rendering, escape-first, inga nya beroenden).
+- [~] Steg 2 — mockup monterad på **Översikt**-sektionen (admin saknar en egen
+  "Journal"-vy — journal bor i `/staff` — så Översikt valdes som mest synlig
+  mockup). **Väntar på Fazlis visuella godkännande** innan rollout.
+- [ ] Steg 3 — rulla ut `[data-docs-section]` till övriga sektioner (booking,
+  ops, coo, cao, cfo, cmo, compliance). Rollout = lägg till attributet, ingen
+  ny JS.
+- [ ] Steg 4 — behåll CAO-Workspace-fliken som översikt-vy (orörd).
+- [ ] Steg 5 — topp-nivå "Docs"-länk i admin.
