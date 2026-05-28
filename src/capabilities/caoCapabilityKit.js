@@ -7,7 +7,8 @@ const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
 const { isAdminSeedTemplate } = require('../ops/adminTemplateSeeds');
 const { parseSimpleFrontmatter } = require('../ops/docFrontmatter');
-const { buildKnowledgeIndex, searchKnowledge } = require('../ops/knowledgeAccessor');
+const { buildKnowledgeIndex } = require('../ops/knowledgeAccessor');
+const { groundingReferences } = require('../ops/knowledgeGrounding');
 const { buildAdminIncidentAdminView } = require('../ops/adminIncidentReadModel');
 
 function normalizeText(value) {
@@ -32,30 +33,6 @@ function capabilityResult(data, metadata = {}, warnings = []) {
 
 function readSnapshot(context) {
   return asObject(context?.systemStateSnapshot);
-}
-
-// Grounding: most-relevant docs from the unified knowledge layer. Broad relevance
-// (not role-locked — a go-live checklist may live under strategy, not cao), but
-// citations are restricted to real .md docs and exclude archive dumps. Deduped.
-// Best-effort — searchKnowledge degrades to keyword and returns [] on any error,
-// so a brief never fails because of grounding.
-async function groundingReferences(query, { limit = 3 } = {}) {
-  try {
-    const hits = await searchKnowledge(query, { limit: limit * 3 });
-    const seen = new Set();
-    const refs = [];
-    for (const hit of hits) {
-      const docPath = normalizeText(hit.path);
-      if (!/\.md$/i.test(docPath) || docPath.startsWith('docs/archives/')) continue;
-      if (seen.has(docPath)) continue;
-      seen.add(docPath);
-      refs.push({ path: docPath, snippet: normalizeText(hit.content).slice(0, 160) });
-      if (refs.length >= limit) break;
-    }
-    return refs;
-  } catch {
-    return [];
-  }
 }
 
 class GenerateAdminTemplateDraftCapability extends BaseCapability {

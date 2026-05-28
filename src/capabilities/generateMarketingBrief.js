@@ -7,6 +7,7 @@ const {
   buildMarketingBrief,
 } = require('../ops/cmoMarketingMetrics');
 const { normalizeText, toNumber, asObject, capabilityMeta } = require('./cmoCapabilityHelpers');
+const { groundingReferences } = require('../ops/knowledgeGrounding');
 
 class GenerateMarketingBriefCapability extends BaseCapability {
   static name = 'GenerateMarketingBrief';
@@ -63,8 +64,10 @@ class GenerateMarketingBriefCapability extends BaseCapability {
       warnings.push(brief.recommendation);
     }
 
+    const references = await groundingReferences('marketing rollout connectors kampanj strategi runbook');
+
     return {
-      data: brief,
+      data: { ...brief, references },
       metadata: {
         ...capabilityMeta(GenerateMarketingBriefCapability, safeContext),
         readOnly: true,

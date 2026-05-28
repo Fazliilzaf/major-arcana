@@ -2,6 +2,7 @@
 
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
+const { groundingReferences } = require('../ops/knowledgeGrounding');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -157,12 +158,15 @@ class GenerateContentBriefCapability extends BaseCapability {
       `Kallor: ${[...new Set(topics.map((t) => t.source))].join(', ')}. ` +
       `Forsta amne: ${topics[0]?.topic || 'inget'}.`;
 
+    const references = await groundingReferences('content innehåll marknadsföring kalender strategi');
+
     return {
       data: {
         topics,
         contentCalendar,
         targetAudience,
         summary,
+        references,
         generatedAt: new Date().toISOString(),
       },
       metadata: {

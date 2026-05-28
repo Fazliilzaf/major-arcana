@@ -12,6 +12,7 @@ const {
   capabilityMeta,
   CMO_DRAFT_DISCLAIMER,
 } = require('./cmoCapabilityHelpers');
+const { groundingReferences } = require('../ops/knowledgeGrounding');
 
 function slugify(value) {
   return normalizeText(value)
@@ -97,11 +98,14 @@ class GenerateSeoBriefCapability extends BaseCapability {
       'Trust: säkerhet och compliance för vård-SaaS',
     ];
 
+    const references = await groundingReferences('seo sökmotor content strategi marknadsföring');
+
     return {
       data: {
         articles,
         keywordGaps: gaps,
         summary: `${articles.length} SEO-briefs för ${audience}.`,
+        references,
         disclaimer: CMO_DRAFT_DISCLAIMER,
         generatedAt: new Date().toISOString(),
       },
