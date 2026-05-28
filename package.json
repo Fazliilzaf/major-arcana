@@ -71,6 +71,7 @@
     "install-hooks": "ln -sf ../../bin/pre-commit-cco.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit && echo 'Hook installerad: pre-commit'",
     "cco-next:sync-release": "bash ./scripts/sync-cco-next-release.sh",
     "check:syntax": "find ./src ./scripts ./public \\( -path \"./public/cco-next-release\" -o -path \"./public/cco-next-release/*\" \\) -prune -o -type f -name \"*.js\" -print0 | xargs -0 -n1 node --check && node --check server.js && node ./scripts/check-major-arcana-preview-html.js",
+    "check:requires": "node ./scripts/check-require-paths.js",
     "smoke": "bash ./scripts/smoke-template.sh",
     "smoke:local": "bash ./scripts/run-smoke-local.sh",
     "predeploy:quick": "bash ./scripts/predeploy-quick.sh",
