@@ -187,6 +187,25 @@ module.exports = [
     },
   },
   {
+    files: ['public/app.js', 'public/arcana-page-titles.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+        ArcanaPageTitles: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
+      'no-undef': 'warn',
+      'no-redeclare': 'off',
+      'prefer-const': 'off',
+      'no-var': 'off',
+    },
+  },
+  {
     files: ['public/admin/**/*.js', 'public/admin.js'],
     languageOptions: {
       ecmaVersion: 2022,
@@ -252,6 +271,7 @@ module.exports = [
       globals: {
         ...globals.node,
         ...globals.jest,
+        ...globals.browser,
       },
     },
     rules: {

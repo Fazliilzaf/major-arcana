@@ -1,460 +1,713 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="sv">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Arcana · Hair TP Clinic</title>
-  <link rel="icon" type="image/svg+xml" href="/assets/hair-tp-clinic/hairtpclinic-mark-light.svg" />
-  <link rel="apple-touch-icon" href="/assets/hair-tp-clinic/hairtpclinic-mark-light.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
-</head>
-<body class="cliento-custom-theme min-h-screen text-[color:var(--arcana-text)]">
-  <div class="mx-auto flex min-h-screen max-w-3xl flex-col">
-    <header class="glass-surface glass-header sticky top-0 z-10 border-b border-[color:var(--arcana-border)] px-4 py-4 backdrop-blur">
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex min-w-0 items-center gap-3">
-          <img
-            id="brandMark"
-            src="/assets/hair-tp-clinic/hairtpclinic-mark-light.svg"
-            alt=""
-            class="brand-mark-flat h-[108px] w-[108px] shrink-0 opacity-100"
-            loading="eager"
-            decoding="async"
-          />
-          <div class="min-w-0">
-            <div class="brand-display text-lg leading-tight">Arcana</div>
-            <div id="brandSubtitle" class="text-sm text-[color:var(--arcana-text-muted)]">Hair TP Clinic · chat & bokning</div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Arcana · Hair TP Clinic</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/assets/hair-tp-clinic/hairtpclinic-mark-light.svg"
+    />
+    <link rel="apple-touch-icon" href="/assets/hair-tp-clinic/hairtpclinic-mark-light.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="cliento-custom-theme min-h-screen text-[color:var(--arcana-text)]">
+    <div class="mx-auto flex min-h-screen max-w-3xl flex-col">
+      <header
+        class="glass-surface glass-header sticky top-0 z-10 border-b border-[color:var(--arcana-border)] px-4 py-4 backdrop-blur"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-3">
+            <img
+              id="brandMark"
+              src="/assets/hair-tp-clinic/hairtpclinic-mark-light.svg"
+              alt=""
+              class="brand-mark-flat h-[108px] w-[108px] shrink-0 opacity-100"
+              loading="eager"
+              decoding="async"
+            />
+            <div class="min-w-0">
+              <div class="brand-display text-lg leading-tight">Arcana</div>
+              <div id="brandSubtitle" class="text-sm text-[color:var(--arcana-text-muted)]">
+                Hair TP Clinic · chat & bokning
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="newChatBtn" class="btn-ghost rounded-lg px-3 py-2 text-sm">Ny chatt</button>
+            <button id="bookBtn" class="btn-primary rounded-lg px-3 py-2 text-sm font-medium">
+              Boka tid
+            </button>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button id="newChatBtn" class="btn-ghost rounded-lg px-3 py-2 text-sm">
-            Ny chatt
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button class="chip" data-chip="prices" data-suggest="Vad kostar en konsultation?">
+            Priser
           </button>
-          <button id="bookBtn" class="btn-primary rounded-lg px-3 py-2 text-sm font-medium">
-            Boka tid
+          <button class="chip" data-chip="process" data-suggest="Hur går en konsultation till?">
+            Behandling
+          </button>
+          <button
+            class="chip"
+            data-chip="aftercare"
+            data-suggest="Vad ska jag tänka på efter en behandling?"
+          >
+            Eftervård
+          </button>
+          <button class="chip" data-action="open-booking">Boka konsultation</button>
+        </div>
+      </header>
+
+      <main class="flex-1 px-4 py-6">
+        <div class="panel glass-panel p-4 sm:p-5">
+          <div id="messages" class="space-y-4"></div>
+        </div>
+      </main>
+
+      <footer
+        class="glass-surface glass-footer sticky bottom-0 border-t border-[color:var(--arcana-border)] px-4 py-4 backdrop-blur"
+      >
+        <div class="flex items-end gap-2">
+          <textarea
+            id="messageInput"
+            rows="2"
+            placeholder="Skriv din fråga…"
+            class="input brand-focus min-h-[44px] flex-1 resize-none rounded-xl px-3 py-2 text-sm focus:outline-none"
+          ></textarea>
+          <button
+            id="sendBtn"
+            class="btn-primary h-[44px] rounded-xl px-4 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Skicka
           </button>
         </div>
-      </div>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <button class="chip" data-chip="prices" data-suggest="Vad kostar en konsultation?">Priser</button>
-        <button class="chip" data-chip="process" data-suggest="Hur går en konsultation till?">Behandling</button>
-        <button class="chip" data-chip="aftercare" data-suggest="Vad ska jag tänka på efter en behandling?">Eftervård</button>
-        <button class="chip" data-action="open-booking">Boka konsultation</button>
-      </div>
-    </header>
+        <div class="mt-2 text-xs text-[color:var(--arcana-text-muted)]">
+          Vid medicinska frågor: rådgör med kliniken. Vid akuta symtom: ring 112.
+        </div>
+      </footer>
+    </div>
 
-    <main class="flex-1 px-4 py-6">
-      <div class="panel glass-panel p-4 sm:p-5">
-        <div id="messages" class="space-y-4"></div>
-      </div>
-    </main>
-
-    <footer class="glass-surface glass-footer sticky bottom-0 border-t border-[color:var(--arcana-border)] px-4 py-4 backdrop-blur">
-      <div class="flex items-end gap-2">
-        <textarea
-          id="messageInput"
-          rows="2"
-          placeholder="Skriv din fråga…"
-          class="input brand-focus min-h-[44px] flex-1 resize-none rounded-xl px-3 py-2 text-sm focus:outline-none"
-        ></textarea>
-        <button
-          id="sendBtn"
-          class="btn-primary h-[44px] rounded-xl px-4 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+    <!-- Booking modal (Cliento widget) -->
+    <div id="bookingModal" class="fixed inset-0 z-50 hidden">
+      <div id="bookingBackdrop" class="absolute inset-0 bg-black/70"></div>
+      <div class="relative mx-auto flex h-full max-w-3xl flex-col p-4">
+        <div
+          class="glass-surface glass-modal-top flex items-center justify-between rounded-t-2xl border border-[color:var(--arcana-border)] px-5 py-4 backdrop-blur sm:px-6"
         >
-          Skicka
-        </button>
-      </div>
-      <div class="mt-2 text-xs text-[color:var(--arcana-text-muted)]">
-        Vid medicinska frågor: rådgör med kliniken. Vid akuta symtom: ring 112.
-      </div>
-    </footer>
-  </div>
-
-  <!-- Booking modal (Cliento widget) -->
-  <div id="bookingModal" class="fixed inset-0 z-50 hidden">
-    <div id="bookingBackdrop" class="absolute inset-0 bg-black/70"></div>
-    <div class="relative mx-auto flex h-full max-w-3xl flex-col p-4">
-      <div class="glass-surface glass-modal-top flex items-center justify-between rounded-t-2xl border border-[color:var(--arcana-border)] px-5 py-4 backdrop-blur sm:px-6">
-        <div class="flex min-w-0 items-center gap-4">
-          <img
-            id="bookingBrandMark"
-            src="/assets/hair-tp-clinic/hairtpclinic-mark-light.svg"
-            alt=""
-            class="brand-mark-flat h-20 w-20 shrink-0 opacity-100"
-            loading="lazy"
-            decoding="async"
-          />
-          <div class="min-w-0">
-            <div class="text-base font-semibold leading-tight text-[color:var(--arcana-text)]">Boka tid</div>
-            <div class="mt-0.5 text-sm leading-tight text-[color:var(--arcana-text-muted)]">Öppnas via Cliento</div>
+          <div class="flex min-w-0 items-center gap-4">
+            <img
+              id="bookingBrandMark"
+              src="/assets/hair-tp-clinic/hairtpclinic-mark-light.svg"
+              alt=""
+              class="brand-mark-flat h-20 w-20 shrink-0 opacity-100"
+              loading="lazy"
+              decoding="async"
+            />
+            <div class="min-w-0">
+              <div class="text-base font-semibold leading-tight text-[color:var(--arcana-text)]">
+                Boka tid
+              </div>
+              <div class="mt-0.5 text-sm leading-tight text-[color:var(--arcana-text-muted)]">
+                Öppnas via Cliento
+              </div>
+            </div>
+          </div>
+          <button id="bookingCloseBtn" class="btn-ghost self-start rounded-lg px-4 py-2 text-sm">
+            Stäng
+          </button>
+        </div>
+        <div
+          class="glass-booking-body flex-1 overflow-auto rounded-b-2xl border border-t-0 border-[color:rgba(15,10,9,0.16)] bg-white text-slate-900"
+        >
+          <div id="clientoMount" class="min-h-full p-2">
+            <div class="p-4 text-sm text-slate-700">Laddar bokning…</div>
           </div>
         </div>
-        <button id="bookingCloseBtn" class="btn-ghost self-start rounded-lg px-4 py-2 text-sm">
-          Stäng
-        </button>
-      </div>
-      <div class="glass-booking-body flex-1 overflow-auto rounded-b-2xl border border-t-0 border-[color:rgba(15,10,9,0.16)] bg-white text-slate-900">
-        <div id="clientoMount" class="min-h-full p-2">
-          <div class="p-4 text-sm text-slate-700">Laddar bokning…</div>
+        <div class="mt-2 text-xs text-[color:var(--arcana-text-muted)]">
+          Tips: om du inte hittar en tid som passar kan du skriva här så hjälper vi dig vidare.
         </div>
-      </div>
-      <div class="mt-2 text-xs text-[color:var(--arcana-text-muted)]">
-        Tips: om du inte hittar en tid som passar kan du skriva här så hjälper vi dig vidare.
       </div>
     </div>
-  </div>
 
-  <style>
-    /* Local utility layer so the public chat does not depend on Tailwind CDN. */
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-    }
-
-    .absolute { position: absolute; }
-    .fixed { position: fixed; }
-    .relative { position: relative; }
-    .sticky { position: sticky; }
-    .inset-0 { inset: 0; }
-    .top-0 { top: 0; }
-    .bottom-0 { bottom: 0; }
-    .z-10 { z-index: 10; }
-    .z-50 { z-index: 50; }
-
-    .mx-auto { margin-left: auto; margin-right: auto; }
-    .mt-0\.5 { margin-top: 0.125rem; }
-    .mt-2 { margin-top: 0.5rem; }
-    .mt-3 { margin-top: 0.75rem; }
-
-    .flex { display: flex; }
-    .hidden { display: none; }
-    .flex-1 { flex: 1 1 0%; }
-    .flex-col { flex-direction: column; }
-    .flex-wrap { flex-wrap: wrap; }
-    .items-center { align-items: center; }
-    .items-end { align-items: flex-end; }
-    .justify-between { justify-content: space-between; }
-    .self-start { align-self: flex-start; }
-    .shrink-0 { flex-shrink: 0; }
-
-    .gap-2 { gap: 0.5rem; }
-    .gap-3 { gap: 0.75rem; }
-    .gap-4 { gap: 1rem; }
-    .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem; }
-
-    .min-w-0 { min-width: 0; }
-    .max-w-3xl { max-width: 48rem; }
-    .w-20 { width: 5rem; }
-    .h-20 { height: 5rem; }
-    .w-\[108px\] { width: 108px; }
-    .h-\[108px\] { height: 108px; }
-
-    @media (max-width: 767px) {
-      #brandMark.brand-mark-flat,
-      #brandMark {
-        width: 48px !important;
-        height: 48px !important;
+    <style>
+      /* Local utility layer so the public chat does not depend on Tailwind CDN. */
+      * {
+        box-sizing: border-box;
       }
 
-      #bookingModal .relative.mx-auto {
-        padding:
-          max(1rem, env(safe-area-inset-top, 0px))
-          max(1rem, env(safe-area-inset-right, 0px))
-          max(1rem, env(safe-area-inset-bottom, 0px))
-          max(1rem, env(safe-area-inset-left, 0px));
+      html,
+      body {
+        margin: 0;
+        padding: 0;
       }
 
-      #bookingModal .glass-booking-body {
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+      .absolute {
+        position: absolute;
       }
-    }
-    .h-\[44px\] { height: 44px; }
-    .min-h-\[44px\] { min-height: 44px; }
-    .min-h-full { min-height: 100%; }
-    .min-h-screen { min-height: 100vh; }
-    .h-full { height: 100%; }
+      .fixed {
+        position: fixed;
+      }
+      .relative {
+        position: relative;
+      }
+      .sticky {
+        position: sticky;
+      }
+      .inset-0 {
+        inset: 0;
+      }
+      .top-0 {
+        top: 0;
+      }
+      .bottom-0 {
+        bottom: 0;
+      }
+      .z-10 {
+        z-index: 10;
+      }
+      .z-50 {
+        z-index: 50;
+      }
 
-    .overflow-auto { overflow: auto; }
-    .resize-none { resize: none; }
+      .mx-auto {
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .mt-0\.5 {
+        margin-top: 0.125rem;
+      }
+      .mt-2 {
+        margin-top: 0.5rem;
+      }
+      .mt-3 {
+        margin-top: 0.75rem;
+      }
 
-    .rounded-lg { border-radius: 0.5rem; }
-    .rounded-xl { border-radius: 0.75rem; }
-    .rounded-t-2xl { border-top-left-radius: 1rem; border-top-right-radius: 1rem; }
-    .rounded-b-2xl { border-bottom-left-radius: 1rem; border-bottom-right-radius: 1rem; }
+      .flex {
+        display: flex;
+      }
+      .hidden {
+        display: none;
+      }
+      .flex-1 {
+        flex: 1 1 0%;
+      }
+      .flex-col {
+        flex-direction: column;
+      }
+      .flex-wrap {
+        flex-wrap: wrap;
+      }
+      .items-center {
+        align-items: center;
+      }
+      .items-end {
+        align-items: flex-end;
+      }
+      .justify-between {
+        justify-content: space-between;
+      }
+      .self-start {
+        align-self: flex-start;
+      }
+      .shrink-0 {
+        flex-shrink: 0;
+      }
 
-    .border { border-width: 1px; border-style: solid; }
-    .border-b { border-bottom-width: 1px; border-bottom-style: solid; }
-    .border-t { border-top-width: 1px; border-top-style: solid; }
-    .border-t-0 { border-top-width: 0; }
-    .border-\[color\:var\(--arcana-border\)\] { border-color: var(--arcana-border); }
-    .border-\[color\:rgba\(15\,10\,9\,0\.16\)\] { border-color: rgba(15, 10, 9, 0.16); }
+      .gap-2 {
+        gap: 0.5rem;
+      }
+      .gap-3 {
+        gap: 0.75rem;
+      }
+      .gap-4 {
+        gap: 1rem;
+      }
+      .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 1rem;
+      }
 
-    .bg-white { background-color: #ffffff; }
-    .bg-black\/70 { background-color: rgba(0, 0, 0, 0.7); }
-    .backdrop-blur {
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
+      .min-w-0 {
+        min-width: 0;
+      }
+      .max-w-3xl {
+        max-width: 48rem;
+      }
+      .w-20 {
+        width: 5rem;
+      }
+      .h-20 {
+        height: 5rem;
+      }
+      .w-\[108px\] {
+        width: 108px;
+      }
+      .h-\[108px\] {
+        height: 108px;
+      }
 
-    .p-2 { padding: 0.5rem; }
-    .p-4 { padding: 1rem; }
-    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
-    .px-4 { padding-left: 1rem; padding-right: 1rem; }
-    .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
-    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-    .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
-    .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+      @media (max-width: 767px) {
+        #brandMark.brand-mark-flat,
+        #brandMark {
+          width: 48px !important;
+          height: 48px !important;
+        }
 
-    .leading-tight { line-height: 1.25; }
-    .text-xs { font-size: 0.75rem; line-height: 1rem; }
-    .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-    .text-base { font-size: 1rem; line-height: 1.5rem; }
-    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-    .font-medium { font-weight: 500; }
-    .font-semibold { font-weight: 600; }
-    .text-slate-700 { color: #334155; }
-    .text-slate-900 { color: #0f172a; }
-    .text-\[color\:var\(--arcana-text\)\] { color: var(--arcana-text); }
-    .text-\[color\:var\(--arcana-text-muted\)\] { color: var(--arcana-text-muted); }
-    .opacity-100 { opacity: 1; }
+        #bookingModal .relative.mx-auto {
+          padding: max(1rem, env(safe-area-inset-top, 0px))
+            max(1rem, env(safe-area-inset-right, 0px)) max(1rem, env(safe-area-inset-bottom, 0px))
+            max(1rem, env(safe-area-inset-left, 0px));
+        }
 
-    .focus\:outline-none:focus { outline: none; }
-    .disabled\:cursor-not-allowed:disabled { cursor: not-allowed; }
-    .disabled\:opacity-60:disabled { opacity: 0.6; }
+        #bookingModal .glass-booking-body {
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+      }
+      .h-\[44px\] {
+        height: 44px;
+      }
+      .min-h-\[44px\] {
+        min-height: 44px;
+      }
+      .min-h-full {
+        min-height: 100%;
+      }
+      .min-h-screen {
+        min-height: 100vh;
+      }
+      .h-full {
+        height: 100%;
+      }
 
-    @media (min-width: 640px) {
-      .sm\:p-5 { padding: 1.25rem; }
-      .sm\:px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
-    }
+      .overflow-auto {
+        overflow: auto;
+      }
+      .resize-none {
+        resize: none;
+      }
 
-    /* Cliento theming (via CSS vars) */
-    .cliento-custom-theme {
-      /* Defaults overridden per brand in public/app.js */
-      --arcana-primary: #cabaae;
-      --arcana-primary-hover: #d7c9be;
-      --arcana-primary-text: #303030;
-      --arcana-primary-rgb: 202, 186, 174;
+      .rounded-lg {
+        border-radius: 0.5rem;
+      }
+      .rounded-xl {
+        border-radius: 0.75rem;
+      }
+      .rounded-t-2xl {
+        border-top-left-radius: 1rem;
+        border-top-right-radius: 1rem;
+      }
+      .rounded-b-2xl {
+        border-bottom-left-radius: 1rem;
+        border-bottom-right-radius: 1rem;
+      }
 
-      --arcana-bg: #303030;
-      --arcana-surface: rgba(48, 48, 48, 0.72);
-      --arcana-surface-solid: rgba(38, 38, 38, 0.76);
-      --arcana-text: #f6f1ee;
-      --arcana-text-muted: rgba(246, 241, 238, 0.72);
-      --arcana-border: rgba(246, 241, 238, 0.14);
-      --arcana-glow: rgba(202, 186, 174, 0.22);
-      --arcana-glass-edge: rgba(246, 241, 238, 0.2);
-      --arcana-glass-highlight: rgba(255, 255, 255, 0.16);
-      --arcana-glass-layer-a: rgba(255, 255, 255, 0.12);
-      --arcana-glass-layer-b: rgba(255, 255, 255, 0.03);
-      --arcana-shadow-3d: 0 18px 36px rgba(0, 0, 0, 0.42), 0 6px 12px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      .border {
+        border-width: 1px;
+        border-style: solid;
+      }
+      .border-b {
+        border-bottom-width: 1px;
+        border-bottom-style: solid;
+      }
+      .border-t {
+        border-top-width: 1px;
+        border-top-style: solid;
+      }
+      .border-t-0 {
+        border-top-width: 0;
+      }
+      .border-\[color\:var\(--arcana-border\)\] {
+        border-color: var(--arcana-border);
+      }
+      .border-\[color\:rgba\(15\,10\,9\,0\.16\)\] {
+        border-color: rgba(15, 10, 9, 0.16);
+      }
 
-      --cb-color-primary: var(--arcana-primary);
-      --cb-color-secondary: #0f172a; /* slate-900 */
-      --cb-color-text: #0f172a;
-      --cb-color-background: #ffffff;
-      --cb-color-muted: #64748b; /* slate-500 */
-    }
+      .bg-white {
+        background-color: #ffffff;
+      }
+      .bg-black\/70 {
+        background-color: rgba(0, 0, 0, 0.7);
+      }
+      .backdrop-blur {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
 
-    body {
-      font-family: "Jost", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      background:
-        radial-gradient(900px 500px at 15% -10%, var(--arcana-glow) 0%, transparent 60%),
-        radial-gradient(900px 500px at 95% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
-        var(--arcana-bg);
-    }
+      .p-2 {
+        padding: 0.5rem;
+      }
+      .p-4 {
+        padding: 1rem;
+      }
+      .px-3 {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+      }
+      .px-4 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      .px-5 {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+      }
+      .py-2 {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+      }
+      .py-4 {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+      }
+      .py-6 {
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+      }
 
-    .brand-display {
-      font-family: "Cormorant Garamond", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-    }
+      .leading-tight {
+        line-height: 1.25;
+      }
+      .text-xs {
+        font-size: 0.75rem;
+        line-height: 1rem;
+      }
+      .text-sm {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+      }
+      .text-base {
+        font-size: 1rem;
+        line-height: 1.5rem;
+      }
+      .text-lg {
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+      }
+      .font-medium {
+        font-weight: 500;
+      }
+      .font-semibold {
+        font-weight: 600;
+      }
+      .text-slate-700 {
+        color: #334155;
+      }
+      .text-slate-900 {
+        color: #0f172a;
+      }
+      .text-\[color\:var\(--arcana-text\)\] {
+        color: var(--arcana-text);
+      }
+      .text-\[color\:var\(--arcana-text-muted\)\] {
+        color: var(--arcana-text-muted);
+      }
+      .opacity-100 {
+        opacity: 1;
+      }
 
-    .brand-mark-flat {
-      filter: none !important;
-      box-shadow: none !important;
-      transform: none !important;
-    }
+      .focus\:outline-none:focus {
+        outline: none;
+      }
+      .disabled\:cursor-not-allowed:disabled {
+        cursor: not-allowed;
+      }
+      .disabled\:opacity-60:disabled {
+        opacity: 0.6;
+      }
 
-    .panel {
-      border: 1px solid var(--arcana-border);
-      background:
-        linear-gradient(160deg, var(--arcana-glass-layer-a), var(--arcana-glass-layer-b)),
-        var(--arcana-surface-solid);
-      border-radius: 24px;
-      box-shadow: var(--arcana-shadow-3d);
-      backdrop-filter: blur(14px) saturate(130%);
-      -webkit-backdrop-filter: blur(14px) saturate(130%);
-    }
+      @media (min-width: 640px) {
+        .sm\:p-5 {
+          padding: 1.25rem;
+        }
+        .sm\:px-6 {
+          padding-left: 1.5rem;
+          padding-right: 1.5rem;
+        }
+      }
 
-    .glass-surface {
-      background:
-        linear-gradient(155deg, var(--arcana-glass-layer-a), var(--arcana-glass-layer-b)),
-        var(--arcana-surface);
-      border-color: var(--arcana-glass-edge) !important;
-      box-shadow: var(--arcana-shadow-3d);
-      backdrop-filter: blur(14px) saturate(132%);
-      -webkit-backdrop-filter: blur(14px) saturate(132%);
-    }
+      /* Cliento theming (via CSS vars) */
+      .cliento-custom-theme {
+        /* Defaults overridden per brand in public/app.js */
+        --arcana-primary: #cabaae;
+        --arcana-primary-hover: #d7c9be;
+        --arcana-primary-text: #303030;
+        --arcana-primary-rgb: 202, 186, 174;
 
-    .glass-header,
-    .glass-footer {
-      border-left: 1px solid transparent;
-      border-right: 1px solid transparent;
-    }
+        --arcana-bg: #303030;
+        --arcana-surface: rgba(48, 48, 48, 0.72);
+        --arcana-surface-solid: rgba(38, 38, 38, 0.76);
+        --arcana-text: #f6f1ee;
+        --arcana-text-muted: rgba(246, 241, 238, 0.72);
+        --arcana-border: rgba(246, 241, 238, 0.14);
+        --arcana-glow: rgba(202, 186, 174, 0.22);
+        --arcana-glass-edge: rgba(246, 241, 238, 0.2);
+        --arcana-glass-highlight: rgba(255, 255, 255, 0.16);
+        --arcana-glass-layer-a: rgba(255, 255, 255, 0.12);
+        --arcana-glass-layer-b: rgba(255, 255, 255, 0.03);
+        --arcana-shadow-3d:
+          0 18px 36px rgba(0, 0, 0, 0.42), 0 6px 12px rgba(0, 0, 0, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.14);
 
-    .glass-panel {
-      border-color: var(--arcana-glass-edge);
-    }
+        --cb-color-primary: var(--arcana-primary);
+        --cb-color-secondary: #0f172a; /* slate-900 */
+        --cb-color-text: #0f172a;
+        --cb-color-background: #ffffff;
+        --cb-color-muted: #64748b; /* slate-500 */
+      }
 
-    .glass-modal-top {
-      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 var(--arcana-glass-highlight);
-    }
+      body {
+        font-family:
+          'Jost',
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          'Apple Color Emoji',
+          'Segoe UI Emoji';
+        background:
+          radial-gradient(900px 500px at 15% -10%, var(--arcana-glow) 0%, transparent 60%),
+          radial-gradient(900px 500px at 95% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
+          var(--arcana-bg);
+      }
 
-    .glass-booking-body {
-      box-shadow: 0 22px 42px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
+      .brand-display {
+        font-family:
+          'Cormorant Garamond', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
 
-    .btn-primary {
-      border: 1px solid rgba(var(--arcana-primary-rgb), 0.5);
-      background: linear-gradient(
-        160deg,
-        rgba(var(--arcana-primary-rgb), 0.82),
-        rgba(var(--arcana-primary-rgb), 0.66)
-      );
-      color: var(--arcana-primary-text);
-      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.26);
-      backdrop-filter: blur(10px) saturate(138%);
-      -webkit-backdrop-filter: blur(10px) saturate(138%);
-      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, filter 160ms ease;
-    }
-    .btn-primary:hover {
-      border-color: rgba(var(--arcana-primary-rgb), 0.62);
-      filter: brightness(1.03);
-      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.32);
-    }
-    .btn-primary:active { transform: translateY(1px); }
+      .brand-mark-flat {
+        filter: none !important;
+        box-shadow: none !important;
+        transform: none !important;
+      }
 
-    .btn-ghost {
-      border: 1px solid var(--arcana-glass-edge);
-      color: var(--arcana-text);
-      background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.28), inset 0 1px 0 var(--arcana-glass-highlight);
-      backdrop-filter: blur(10px) saturate(128%);
-      -webkit-backdrop-filter: blur(10px) saturate(128%);
-      transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-    }
-    .btn-ghost:hover {
-      transform: translateY(-1px);
-      background: linear-gradient(160deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
-      border-color: rgba(var(--arcana-primary-rgb), 0.4);
-      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.22);
-    }
+      .panel {
+        border: 1px solid var(--arcana-border);
+        background:
+          linear-gradient(160deg, var(--arcana-glass-layer-a), var(--arcana-glass-layer-b)),
+          var(--arcana-surface-solid);
+        border-radius: 24px;
+        box-shadow: var(--arcana-shadow-3d);
+        backdrop-filter: blur(14px) saturate(130%);
+        -webkit-backdrop-filter: blur(14px) saturate(130%);
+      }
 
-    .input {
-      border: 1px solid var(--arcana-glass-edge);
-      background:
-        linear-gradient(160deg, rgba(12, 10, 9, 0.68), rgba(12, 10, 9, 0.52));
-      color: var(--arcana-text);
-      box-shadow: 0 12px 22px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px) saturate(128%);
-      -webkit-backdrop-filter: blur(10px) saturate(128%);
-    }
-    .input::placeholder {
-      color: var(--arcana-text-muted);
-      opacity: 0.9;
-    }
+      .glass-surface {
+        background:
+          linear-gradient(155deg, var(--arcana-glass-layer-a), var(--arcana-glass-layer-b)),
+          var(--arcana-surface);
+        border-color: var(--arcana-glass-edge) !important;
+        box-shadow: var(--arcana-shadow-3d);
+        backdrop-filter: blur(14px) saturate(132%);
+        -webkit-backdrop-filter: blur(14px) saturate(132%);
+      }
 
-    .brand-focus:focus {
-      border-color: var(--arcana-primary);
-      box-shadow: 0 0 0 2px var(--arcana-primary);
-    }
+      .glass-header,
+      .glass-footer {
+        border-left: 1px solid transparent;
+        border-right: 1px solid transparent;
+      }
 
-    .bubble-user {
-      border: 1px solid rgba(var(--arcana-primary-rgb), 0.5);
-      background: linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.84), rgba(var(--arcana-primary-rgb), 0.64));
-      color: var(--arcana-primary-text);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.24);
-    }
+      .glass-panel {
+        border-color: var(--arcana-glass-edge);
+      }
 
-    .bubble-assistant {
-      border: 1px solid var(--arcana-glass-edge);
-      background: linear-gradient(160deg, rgba(12, 10, 9, 0.72), rgba(12, 10, 9, 0.52));
-      color: var(--arcana-text);
-      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(8px) saturate(122%);
-      -webkit-backdrop-filter: blur(8px) saturate(122%);
-    }
+      .glass-modal-top {
+        box-shadow:
+          0 14px 24px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 var(--arcana-glass-highlight);
+      }
 
-    .link-brand { color: var(--arcana-primary); }
+      .glass-booking-body {
+        box-shadow:
+          0 22px 42px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      }
 
-    .chip {
-      border: 1px solid var(--arcana-glass-edge);
-      color: var(--arcana-primary);
-      background: linear-gradient(160deg, rgba(12, 10, 9, 0.58), rgba(12, 10, 9, 0.34));
-      padding: 6px 10px;
-      border-radius: 9999px;
-      font-size: 12px;
-      line-height: 16px;
-      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(8px) saturate(122%);
-      -webkit-backdrop-filter: blur(8px) saturate(122%);
-      transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-    }
-    .chip:hover {
-      transform: translateY(-1px);
-      background: linear-gradient(160deg, rgba(12, 10, 9, 0.68), rgba(12, 10, 9, 0.44));
-      border-color: rgba(var(--arcana-primary-rgb), 0.5);
-      box-shadow: 0 14px 22px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    }
+      .btn-primary {
+        border: 1px solid rgba(var(--arcana-primary-rgb), 0.5);
+        background: linear-gradient(
+          160deg,
+          rgba(var(--arcana-primary-rgb), 0.82),
+          rgba(var(--arcana-primary-rgb), 0.66)
+        );
+        color: var(--arcana-primary-text);
+        box-shadow:
+          0 14px 24px rgba(0, 0, 0, 0.32),
+          inset 0 1px 0 rgba(255, 255, 255, 0.26);
+        backdrop-filter: blur(10px) saturate(138%);
+        -webkit-backdrop-filter: blur(10px) saturate(138%);
+        transition:
+          transform 160ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          filter 160ms ease;
+      }
+      .btn-primary:hover {
+        border-color: rgba(var(--arcana-primary-rgb), 0.62);
+        filter: brightness(1.03);
+        box-shadow:
+          0 18px 30px rgba(0, 0, 0, 0.36),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+      .btn-primary:active {
+        transform: translateY(1px);
+      }
 
-    #bookingBackdrop {
-      background: rgba(0, 0, 0, 0.58);
-      backdrop-filter: blur(3px) saturate(118%);
-      -webkit-backdrop-filter: blur(3px) saturate(118%);
-    }
+      .btn-ghost {
+        border: 1px solid var(--arcana-glass-edge);
+        color: var(--arcana-text);
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+        box-shadow:
+          0 10px 20px rgba(0, 0, 0, 0.28),
+          inset 0 1px 0 var(--arcana-glass-highlight);
+        backdrop-filter: blur(10px) saturate(128%);
+        -webkit-backdrop-filter: blur(10px) saturate(128%);
+        transition:
+          transform 160ms ease,
+          background-color 160ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+      .btn-ghost:hover {
+        transform: translateY(-1px);
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+        border-color: rgba(var(--arcana-primary-rgb), 0.4);
+        box-shadow:
+          0 14px 24px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.22);
+      }
 
-    @media (prefers-reduced-motion: reduce) {
-      .btn-primary,
-      .btn-ghost,
+      .input {
+        border: 1px solid var(--arcana-glass-edge);
+        background: linear-gradient(160deg, rgba(12, 10, 9, 0.68), rgba(12, 10, 9, 0.52));
+        color: var(--arcana-text);
+        box-shadow:
+          0 12px 22px rgba(0, 0, 0, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px) saturate(128%);
+        -webkit-backdrop-filter: blur(10px) saturate(128%);
+      }
+      .input::placeholder {
+        color: var(--arcana-text-muted);
+        opacity: 0.9;
+      }
+
+      .brand-focus:focus {
+        border-color: var(--arcana-primary);
+        box-shadow: 0 0 0 2px var(--arcana-primary);
+      }
+
+      .bubble-user {
+        border: 1px solid rgba(var(--arcana-primary-rgb), 0.5);
+        background: linear-gradient(
+          160deg,
+          rgba(var(--arcana-primary-rgb), 0.84),
+          rgba(var(--arcana-primary-rgb), 0.64)
+        );
+        color: var(--arcana-primary-text);
+        box-shadow:
+          0 10px 20px rgba(0, 0, 0, 0.25),
+          inset 0 1px 0 rgba(255, 255, 255, 0.24);
+      }
+
+      .bubble-assistant {
+        border: 1px solid var(--arcana-glass-edge);
+        background: linear-gradient(160deg, rgba(12, 10, 9, 0.72), rgba(12, 10, 9, 0.52));
+        color: var(--arcana-text);
+        box-shadow:
+          0 14px 24px rgba(0, 0, 0, 0.32),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(8px) saturate(122%);
+        -webkit-backdrop-filter: blur(8px) saturate(122%);
+      }
+
+      .link-brand {
+        color: var(--arcana-primary);
+      }
+
       .chip {
-        transition: none;
+        border: 1px solid var(--arcana-glass-edge);
+        color: var(--arcana-primary);
+        background: linear-gradient(160deg, rgba(12, 10, 9, 0.58), rgba(12, 10, 9, 0.34));
+        padding: 6px 10px;
+        border-radius: 9999px;
+        font-size: 12px;
+        line-height: 16px;
+        box-shadow:
+          0 10px 18px rgba(0, 0, 0, 0.24),
+          inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(8px) saturate(122%);
+        -webkit-backdrop-filter: blur(8px) saturate(122%);
+        transition:
+          transform 160ms ease,
+          background-color 160ms ease,
+          border-color 160ms ease,
+          box-shadow 160ms ease;
       }
-    }
+      .chip:hover {
+        transform: translateY(-1px);
+        background: linear-gradient(160deg, rgba(12, 10, 9, 0.68), rgba(12, 10, 9, 0.44));
+        border-color: rgba(var(--arcana-primary-rgb), 0.5);
+        box-shadow:
+          0 14px 22px rgba(0, 0, 0, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
 
-    /* Generic Cliento widget styling */
-    #cliento-booking .cb-nav-item.active {
-      background: var(--cb-color-primary) !important;
-      color: var(--arcana-primary-text) !important;
-    }
+      #bookingBackdrop {
+        background: rgba(0, 0, 0, 0.58);
+        backdrop-filter: blur(3px) saturate(118%);
+        -webkit-backdrop-filter: blur(3px) saturate(118%);
+      }
 
-    #cliento-booking .cb-day-header.today,
-    #cliento-booking .cb-summary-table .cb-details,
-    #cliento-booking .cb-slot strong {
-      color: var(--cb-color-primary) !important;
-    }
+      @media (prefers-reduced-motion: reduce) {
+        .btn-primary,
+        .btn-ghost,
+        .chip {
+          transition: none;
+        }
+      }
 
-    #cliento-booking .cb-button,
-    #cliento-booking button[type=button].cb-button,
-    #cliento-booking button[type=submit].cb-button {
-      background: var(--cb-color-primary) !important;
-      border-color: var(--cb-color-primary) !important;
-      color: var(--arcana-primary-text) !important;
-      border-radius: 12px !important;
-    }
+      /* Generic Cliento widget styling */
+      #cliento-booking .cb-nav-item.active {
+        background: var(--cb-color-primary) !important;
+        color: var(--arcana-primary-text) !important;
+      }
 
-    #cliento-booking .cb-checkbox.checked {
-      background: var(--cb-color-primary) !important;
-      border-color: var(--cb-color-primary) !important;
-    }
-  </style>
+      #cliento-booking .cb-day-header.today,
+      #cliento-booking .cb-summary-table .cb-details,
+      #cliento-booking .cb-slot strong {
+        color: var(--cb-color-primary) !important;
+      }
 
-  <script src="/app.js"></script>
-</body>
+      #cliento-booking .cb-button,
+      #cliento-booking button[type='button'].cb-button,
+      #cliento-booking button[type='submit'].cb-button {
+        background: var(--cb-color-primary) !important;
+        border-color: var(--cb-color-primary) !important;
+        color: var(--arcana-primary-text) !important;
+        border-radius: 12px !important;
+      }
+
+      #cliento-booking .cb-checkbox.checked {
+        background: var(--cb-color-primary) !important;
+        border-color: var(--cb-color-primary) !important;
+      }
+    </style>
+
+    <script src="/arcana-page-titles.js"></script>
+    <script src="/app.js"></script>
+  </body>
 </html>
