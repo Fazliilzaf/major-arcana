@@ -431,18 +431,14 @@
     }
 
     detail.hidden = false;
-    sheetEl
-      .querySelector(".cco-mobile-calendar-panel")
-      ?.setAttribute("data-detail-open", "true");
+    sheetEl.querySelector(".cco-mobile-calendar-panel")?.setAttribute("data-detail-open", "true");
   }
 
   function closeSlotDetail() {
     selectedSlot = null;
     const detail = sheetEl?.querySelector("[data-calendar-detail]");
     if (detail) detail.hidden = true;
-    sheetEl
-      ?.querySelector(".cco-mobile-calendar-panel")
-      ?.removeAttribute("data-detail-open");
+    sheetEl?.querySelector(".cco-mobile-calendar-panel")?.removeAttribute("data-detail-open");
   }
 
   async function renderSelectedDay() {
@@ -456,6 +452,7 @@
 
   async function refresh() {
     ensureSheet();
+    const shared = window.ArcanaBookingCalendarShared;
     if (viewYear == null || viewMonth == null) ensureViewMonth(selectedIso || todayIso());
     const { first, last } = monthRange(viewYear, viewMonth);
     if (listEl) {
