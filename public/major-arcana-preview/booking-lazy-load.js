@@ -1,7 +1,7 @@
 'use strict';
 
 (function initBookingLazyLoad() {
-  const VERSION = 'build-cal-p4-fullscreen';
+  const VERSION = 'build-cal-p5-no-frame';
   const CSS_HREF = `./cco-calendar.css?v=${VERSION}`;
   const SCRIPTS = Object.freeze({
     shared: `./booking-calendar-shared.js?v=${VERSION}`,

@@ -12,3 +12,5 @@ reports/
 package-lock.json
 public/major-arcana-preview/app.js
 public/major-arcana-preview/runtime-v5-layout-guard.js
+public/major-arcana-preview/cco-calendar.css
+public/major-arcana-preview/booking-lazy-load.js
