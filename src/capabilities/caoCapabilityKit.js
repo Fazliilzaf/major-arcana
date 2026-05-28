@@ -7,6 +7,7 @@ const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
 const { isAdminSeedTemplate } = require('../ops/adminTemplateSeeds');
 const { parseSimpleFrontmatter } = require('../ops/docFrontmatter');
+const { buildKnowledgeIndex } = require('../ops/knowledgeAccessor');
 const { buildAdminIncidentAdminView } = require('../ops/adminIncidentReadModel');
 
 function normalizeText(value) {
@@ -140,16 +141,31 @@ class AuditDocumentationMetadataCapability extends BaseCapability {
 
   async execute(context = {}) {
     const snapshot = readSnapshot(context);
-    const docs = asArray(snapshot.documentationIndex?.links);
     const repoRoot = normalizeText(snapshot.repoRoot) || path.join(process.cwd());
-    const loaded = docs.length ? { links: docs } : await loadDocumentationIndex(repoRoot);
-    const gaps = [];
-    const documents = [];
 
-    for (const link of loaded.links.slice(0, 40)) {
-      const relPath = normalizeText(link);
-      if (!relPath) continue;
-      const fullPath = path.join(repoRoot, 'docs', relPath);
+    // Source of truth: the unified knowledge index (ALL docs). Honor an explicit
+    // snapshot.documentationIndex.links override for back-compat / tests.
+    const overrideLinks = asArray(snapshot.documentationIndex?.links)
+      .map((l) => normalizeText(l))
+      .filter(Boolean)
+      .map((l) => (l.startsWith('docs/') ? l : `docs/${l}`));
+
+    let docPaths = overrideLinks;
+    if (!docPaths.length) {
+      const index = await buildKnowledgeIndex(repoRoot);
+      // Audit owned operational docs; skip repo-root readmes and archives.
+      docPaths = index.documents
+        .filter((d) => d.segment !== 'rot' && d.segment !== 'archives')
+        .map((d) => d.path);
+    }
+
+    const documents = [];
+    const gaps = [];
+    let withOwner = 0;
+    let withNextStep = 0;
+
+    for (const relPath of docPaths) {
+      const fullPath = path.join(repoRoot, relPath);
       let owner = null;
       let status = 'indexed';
       let lastUpdated = null;
@@ -164,45 +180,42 @@ class AuditDocumentationMetadataCapability extends BaseCapability {
         issues.push('file_missing');
       }
 
-      try {
-        const raw = await fs.readFile(fullPath, 'utf8');
-        const parsed = parseSimpleFrontmatter(raw);
-        owner = normalizeText(parsed.attributes.owner) || null;
-        status = normalizeText(parsed.attributes.status).toLowerCase() || status;
-        nextStep =
-          normalizeText(parsed.attributes.next_step) ||
-          normalizeText(parsed.attributes.nextstep) ||
-          null;
-      } catch {
-        if (!issues.includes('file_missing')) issues.push('unreadable');
+      if (!issues.includes('file_missing')) {
+        try {
+          const raw = await fs.readFile(fullPath, 'utf8');
+          const parsed = parseSimpleFrontmatter(raw);
+          owner = normalizeText(parsed.attributes.owner) || null;
+          status = normalizeText(parsed.attributes.status).toLowerCase() || status;
+          nextStep =
+            normalizeText(parsed.attributes.next_step) ||
+            normalizeText(parsed.attributes.nextstep) ||
+            null;
+        } catch {
+          issues.push('unreadable');
+        }
       }
 
-      if (!owner) {
+      if (owner) withOwner += 1;
+      else {
         issues.push('missing_owner');
         gaps.push({ issue: 'missing_owner', label: relPath });
       }
-      if (!nextStep) issues.push('missing_next_step');
+      if (nextStep) withNextStep += 1;
+      else issues.push('missing_next_step');
 
-      documents.push({
-        path: relPath,
-        owner,
-        status,
-        lastUpdated,
-        nextStep,
-        issues,
-      });
+      documents.push({ path: relPath, owner, status, lastUpdated, nextStep, issues });
     }
 
-    if (loaded.links.length < 5) {
-      gaps.push({ issue: 'thin_index', label: 'Dokumentationsindex har få länkar' });
-    }
-
+    const total = docPaths.length;
+    const pct = (n) => (total ? Math.round((n / total) * 100) : 0);
     return capabilityResult(
       {
-        indexedDocuments: loaded.links.length,
-        documents: documents.slice(0, 25),
-        gaps: gaps.slice(0, 20),
-        summary: `Dokumentationsindex: ${loaded.links.length} länkade dokument, ${gaps.length} gap(s).`,
+        indexedDocuments: total,
+        ownerCoverage: pct(withOwner),
+        nextStepCoverage: pct(withNextStep),
+        documentsWithGaps: documents.filter((d) => d.issues.length).slice(0, 40),
+        gaps: gaps.slice(0, 40),
+        summary: `Granskade ${total} dokument — ${withOwner} har owner (${pct(withOwner)}%), ${withNextStep} har next_step (${pct(withNextStep)}%), ${gaps.length} saknar owner.`,
       },
       { capability: AuditDocumentationMetadataCapability.name }
     );
@@ -227,16 +240,28 @@ class ProposeDocumentStructureCapability extends BaseCapability {
     properties: { data: { type: 'object' }, metadata: { type: 'object' }, warnings: { type: 'array' } },
   };
 
-  async execute() {
-    const proposals = [
-      { path: 'docs/strategy/', purpose: 'Produkt- och agentstrategi' },
-      { path: 'docs/ops/runbooks/', purpose: 'Drift och incident' },
-      { path: 'docs/adr/', purpose: 'Arkitekturbeslut' },
-    ];
+  async execute(context = {}) {
+    const snapshot = readSnapshot(context);
+    const repoRoot = normalizeText(snapshot.repoRoot) || path.join(process.cwd());
+    const index = await buildKnowledgeIndex(repoRoot);
+
+    // Reflect the ACTUAL structure (live segments + counts), not a static list.
+    const proposals = index.segments.map((segment) => ({
+      path: segment.id === 'rot' ? '(repo root)' : `docs/${segment.id}/`,
+      segment: segment.title,
+      count: segment.count,
+      purpose: segment.title,
+    }));
+    const uncurated = index.documents.filter((d) => d.roles.length === 0);
+
     return capabilityResult(
       {
         proposals,
-        summary: 'Foreslagen dokumentstruktur — inga filer flyttas automatiskt.',
+        totalDocuments: index.totalDocuments,
+        totalSegments: index.segments.length,
+        uncuratedDocuments: uncurated.length,
+        uncuratedSample: uncurated.slice(0, 15).map((d) => d.path),
+        summary: `${index.totalDocuments} dokument i ${index.segments.length} segment; ${uncurated.length} saknar roll-koppling (syns bara via segment). Inga filer flyttas automatiskt.`,
       },
       { capability: ProposeDocumentStructureCapability.name }
     );
