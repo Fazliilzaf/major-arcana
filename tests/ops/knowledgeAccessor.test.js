@@ -9,6 +9,7 @@ const {
   availableRoles,
   rolesForPath,
   tagsForPath,
+  searchKnowledge,
 } = require('../../src/ops/knowledgeAccessor');
 
 test('knowledge index covers every doc with metadata', async () => {
@@ -43,4 +44,17 @@ test('rolesForPath maps curated docs; tagsForPath derives from path', () => {
 test('availableRoles lists the curated sections', () => {
   const roles = availableRoles();
   assert.ok(roles.includes('cmo') && roles.includes('compliance') && roles.includes('ops'));
+});
+
+test('searchKnowledge retrieves doc chunks and respects role + empty query', async () => {
+  const gdpr = await searchKnowledge('gdpr personuppgifter', { limit: 3 });
+  assert.ok(gdpr.length >= 1);
+  assert.ok(gdpr.every((h) => h.path.startsWith('docs/') && typeof h.content === 'string'));
+  assert.ok(gdpr.some((h) => /legal\//.test(h.path)), 'gdpr query surfaces legal docs');
+
+  const cmo = await searchKnowledge('marketing rollout', { role: 'cmo', limit: 3 });
+  assert.ok(cmo.length >= 1);
+  assert.ok(cmo.every((h) => h.roles.includes('cmo') || h.path.includes('/cmo/')));
+
+  assert.deepEqual(await searchKnowledge(''), []);
 });
