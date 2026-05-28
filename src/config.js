@@ -250,12 +250,9 @@ const config = {
     stateRoot,
     fileName: 'cco-mailbox-truth.json',
   }),
-  // Default OFF: the sharded store eager-loads every shard into memory at
-  // construction (preloadShards), which OOM'd the 8GB pod when the
-  // cco_inbox_enrichment_full_backfill job opened it at scheduler start.
-  // Re-enable with ARCANA_CCO_MAILBOX_TRUTH_SHARDED=true once preloadShards is
-  // made lazy (the sync shardFor path needs an async refactor first).
-  ccoMailboxTruthSharded: asBool(process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARDED, false),
+  // Sharded store reads per-mailbox files on disk. Lazy preload avoids OOM on boot.
+  ccoMailboxTruthSharded: asBool(process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARDED, true),
+  ccoMailboxTruthLazyPreload: asBool(process.env.ARCANA_CCO_MAILBOX_TRUTH_LAZY_PRELOAD, true),
   ccoMailboxTruthShardDir: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARD_DIR,
     stateRoot,
