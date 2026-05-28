@@ -133,18 +133,10 @@
     min-height: 0;
     margin: 0;
     padding: 14px 18px 16px;
-    border-radius: 28px;
+    border-radius: 0;
     border: 0;
-    /* studio/note-ytan: gradient + mjuka radial-highlights staplade i samma
-     * background (slipper ::before-krock med busy-baren nedan). */
-    background:
-      radial-gradient(circle at 16% 8%, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0) 26%),
-      radial-gradient(circle at 60% 12%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 24%),
-      radial-gradient(circle at 85% 18%, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0) 22%),
-      linear-gradient(180deg, var(--panel-shell-top) 0%, var(--panel-shell-bottom) 100%);
-    box-shadow: var(--panel-shell-shadow-strong);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    background: transparent;
+    box-shadow: none;
     overflow: hidden;
     font-family: var(--cco-cal-font-ui);
     color: var(--cco-text-primary, #2b251f);
