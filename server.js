@@ -957,10 +957,26 @@ const {
   runCheck: runUptimeCheck,
 } = require('./src/ops/uptimeMonitor');
 const { createOnboardingStore } = require('./src/ops/staffOnboarding');
-const { getDocContent, getDocsForSection, getAllSections } = require('./src/ops/contextualDocs');
+const {
+  getDocContent,
+  getDocsForSection,
+  getAllSections,
+  getDocumentLibrary,
+  isAllowedDocPath,
+} = require('./src/ops/contextualDocs');
 
 app.get('/api/v1/docs/sections', (req, res) => {
   return res.json({ ok: true, sections: getAllSections() });
+});
+
+// Complete document library — every doc in the repo, grouped by segment.
+app.get('/api/v1/docs/library', async (req, res) => {
+  try {
+    const library = await getDocumentLibrary();
+    return res.json({ ok: true, ...library });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'library_failed' });
+  }
 });
 
 app.get('/api/v1/docs/section/:sectionId', (req, res) => {
@@ -971,7 +987,7 @@ app.get('/api/v1/docs/section/:sectionId', (req, res) => {
 
 app.get('/api/v1/docs/content', async (req, res) => {
   const docPath = (req.query?.path || '').trim();
-  if (!docPath || !docPath.startsWith('docs/'))
+  if (!isAllowedDocPath(docPath))
     return res.status(400).json({ ok: false, error: 'invalid_path' });
   const result = await getDocContent(docPath);
   if (!result.ok) return res.status(404).json(result);
