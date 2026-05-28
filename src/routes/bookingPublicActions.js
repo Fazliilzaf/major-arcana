@@ -54,8 +54,15 @@ function createBookingPublicActionsRouter({ bookingEngineStore }) {
       return res.send(renderPage('Redan avbokad', '<p>Denna bokning är redan avbokad.</p>'));
     }
     const service = normalizeText(booking.serviceLabel || booking.slot?.serviceLabel || 'Besök');
-    const date = normalizeText(booking.slot?.date || (booking.slot?.startsAt || '').slice(0, 10));
-    const time = normalizeText(booking.slot?.time || (booking.slot?.startsAt || '').slice(11, 16));
+    // F2-3: store normaliserar bort slot.date/slot.time, så använd lokala
+    // helpers på slot.startsAt (samma som omboka-sidan) — annars visas UTC-tid
+    // (t.ex. "09:00" för en 11:00-bokning i CEST) på patientens avboknings-sida.
+    const date =
+      formatLocalDate(booking.slot?.startsAt) ||
+      normalizeText((booking.slot?.startsAt || '').slice(0, 10));
+    const time =
+      formatLocalTime(booking.slot?.startsAt) ||
+      normalizeText((booking.slot?.startsAt || '').slice(11, 16));
     res.send(
       renderPage(
         'Avboka din tid',
