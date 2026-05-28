@@ -15,6 +15,7 @@
   let viewMonth = null;
   let selectedIso = "";
   let monthSlotsByDate = new Map();
+  let selectedSlot = null;
 
   function isMobile() {
     try {
@@ -115,9 +116,14 @@
       <button type="button" class="cco-mobile-calendar-backdrop" data-calendar-close aria-label="Stäng"></button>
       <div class="cco-mobile-calendar-panel" role="dialog" aria-modal="true" aria-labelledby="cco-mobile-calendar-title">
         <header class="cco-mobile-calendar-head">
-          <div>
-            <p class="cco-mobile-calendar-kicker">Kalender</p>
-            <h2 id="cco-mobile-calendar-title">Dagens bokningar</h2>
+          <div class="cco-mobile-calendar-head-main">
+            <span class="cco-mobile-calendar-mark" aria-hidden="true">
+              <svg viewBox="0 0 16 16"><rect x="2.6" y="3.4" width="10.8" height="10" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.4v2M10.8 2.4v2M2.7 6.4h10.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3"/></svg>
+            </span>
+            <div>
+              <p class="cco-mobile-calendar-kicker">Kalender</p>
+              <h2 id="cco-mobile-calendar-title">Dagens bokningar</h2>
+            </div>
           </div>
           <button type="button" class="cco-mobile-calendar-close" data-calendar-close aria-label="Stäng">✕</button>
         </header>
@@ -135,6 +141,25 @@
         </div>
         <div class="cco-mobile-calendar-next" data-calendar-next hidden></div>
         <ul class="cco-mobile-calendar-list" data-calendar-list aria-label="Tider för vald dag"></ul>
+        <section class="cco-mobile-calendar-detail" data-calendar-detail hidden aria-label="Vald tid">
+          <button type="button" class="cco-mobile-calendar-detail-back" data-calendar-detail-back>‹ Tillbaka</button>
+          <div class="cco-mobile-calendar-detail-head">
+            <strong data-calendar-detail-title>—</strong>
+            <span class="cco-mobile-calendar-detail-status" data-calendar-detail-status>—</span>
+          </div>
+          <p class="cco-mobile-calendar-detail-sub" data-calendar-detail-sub></p>
+          <div class="cco-mobile-calendar-detail-reco" data-calendar-detail-reco hidden>
+            <span>Rekommenderat drag</span>
+            <strong data-calendar-detail-reco-title>—</strong>
+            <p data-calendar-detail-reco-copy>—</p>
+          </div>
+          <ul class="cco-mobile-calendar-detail-signals" data-calendar-detail-signals></ul>
+          <div class="cco-mobile-calendar-detail-actions">
+            <button type="button" class="customers-utility-button cco-mobile-cal-studio" data-calendar-detail-action="studio">Svarstudio</button>
+            <button type="button" class="customers-utility-button" data-calendar-detail-action="note">Smart anteckning</button>
+            <button type="button" class="customers-utility-button" data-calendar-detail-action="case">Bokningsärende</button>
+          </div>
+        </section>
         <footer class="cco-mobile-calendar-foot">
           <button type="button" class="customers-utility-button cco-mobile-calendar-book" data-calendar-book>
             Ny bokning
@@ -166,8 +191,27 @@
       void refresh();
     });
 
+    sheetEl
+      .querySelector("[data-calendar-detail-back]")
+      ?.addEventListener("click", () => closeSlotDetail());
+    sheetEl.querySelectorAll("[data-calendar-detail-action]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const action = btn.getAttribute("data-calendar-detail-action");
+        const slot = selectedSlot;
+        if (!slot) return;
+        const actions = window.ArcanaBookingCalendarActions;
+        const payload = slot.bookingCaseSnapshot || slot;
+        setOpen(false);
+        if (action === "studio") actions?.openStudioForBooking?.(payload);
+        else if (action === "note") actions?.openNoteForBooking?.(payload);
+        else actions?.openBookingCase?.(payload);
+      });
+    });
+
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && open) setOpen(false);
+      if (event.key !== "Escape" || !open) return;
+      if (selectedSlot) closeSlotDetail();
+      else setOpen(false);
     });
 
     ensureViewMonth(todayIso());
@@ -300,16 +344,19 @@
         } catch {
           event = null;
         }
-        setOpen(false);
         const actions = window.ArcanaBookingCalendarActions;
         if (event?.kind === "booked") {
-          actions?.openBookingCase?.(event.bookingCaseSnapshot || event);
+          // R8: visa smart detalj (Svarstudio/Smart anteckning/nästa steg)
+          // istället för att direkt lämna kalendern.
+          openSlotDetail(event);
           return;
         }
         if (event?.kind === "available") {
+          setOpen(false);
           actions?.openNewBookingFromSlot?.(event);
           return;
         }
+        setOpen(false);
         window.ArcanaMobileShell?.navigateToBooking?.();
       });
     });
@@ -330,7 +377,76 @@
     nextEl.innerHTML = `<strong>Nästa tid:</strong> ${escapeHtml(time || "Se bokningsflödet")}`;
   }
 
+  // R8: smart detalj för en vald bokning — speglar desktop-detaljpanelen
+  // (status, nästa-steg, signaler) och Svarstudio/Smart anteckning.
+  function openSlotDetail(event) {
+    ensureSheet();
+    selectedSlot = event;
+    const shared = window.ArcanaBookingCalendarShared;
+    const detail = sheetEl.querySelector("[data-calendar-detail]");
+    if (!detail) return;
+    const titleNode = sheetEl.querySelector("[data-calendar-detail-title]");
+    const statusNode = sheetEl.querySelector("[data-calendar-detail-status]");
+    const subNode = sheetEl.querySelector("[data-calendar-detail-sub]");
+    const recoNode = sheetEl.querySelector("[data-calendar-detail-reco]");
+    const recoTitleNode = sheetEl.querySelector("[data-calendar-detail-reco-title]");
+    const recoCopyNode = sheetEl.querySelector("[data-calendar-detail-reco-copy]");
+    const signalsNode = sheetEl.querySelector("[data-calendar-detail-signals]");
+
+    const title =
+      event.customerName || event.title || event.serviceLabel || event.service || "Bokning";
+    if (titleNode) titleNode.textContent = title;
+    if (statusNode) {
+      statusNode.textContent =
+        shared?.formatCaseStatus?.(event.caseStatus || event.status) || "Bokad";
+    }
+    if (subNode) {
+      const parts = [
+        formatTimeLabel(event.startAt || event.startsAt || event.start || event.time),
+        event.serviceLabel || event.service,
+        event.resourceLabel || event.resource,
+      ].filter(Boolean);
+      subNode.textContent = parts.join(" · ");
+    }
+
+    const reco = shared?.recommendBookingNextAction?.(event);
+    if (recoNode && recoTitleNode && recoCopyNode) {
+      if (reco) {
+        recoNode.hidden = false;
+        recoTitleNode.textContent = reco.title;
+        recoCopyNode.textContent = reco.copy;
+      } else {
+        recoNode.hidden = true;
+      }
+    }
+
+    if (signalsNode) {
+      const rows = shared?.formatCalendarSignalSummary?.(event) || [];
+      signalsNode.innerHTML = rows
+        .map(
+          ([label, value]) =>
+            `<li><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></li>`
+        )
+        .join("");
+    }
+
+    detail.hidden = false;
+    sheetEl
+      .querySelector(".cco-mobile-calendar-panel")
+      ?.setAttribute("data-detail-open", "true");
+  }
+
+  function closeSlotDetail() {
+    selectedSlot = null;
+    const detail = sheetEl?.querySelector("[data-calendar-detail]");
+    if (detail) detail.hidden = true;
+    sheetEl
+      ?.querySelector(".cco-mobile-calendar-panel")
+      ?.removeAttribute("data-detail-open");
+  }
+
   async function renderSelectedDay() {
+    closeSlotDetail();
     if (!selectedIso) selectedIso = todayIso();
     if (titleEl) titleEl.textContent = formatDayTitle(selectedIso);
     const slots = monthSlotsByDate.get(selectedIso) || [];

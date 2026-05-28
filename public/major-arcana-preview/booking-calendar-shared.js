@@ -766,6 +766,57 @@
     return rows;
   }
 
+  // R8 (2026-05-28): AI nästa-steg — härleder ett rekommenderat drag ur
+  // bokningens signaler/status. Delas av desktop- och mobilkalendern och
+  // speglar konversationsvyns "Rekommenderat drag".
+  function recommendBookingNextAction(event) {
+    if (!event) return null;
+    if (event.kind === "available") {
+      return {
+        title: "Boka in kund",
+        copy: "Tiden är ledig — tryck Ny bokning för att fylla den.",
+      };
+    }
+    if (event.kind === "block") return null;
+    const status = String(event.status || event.caseStatus || "").toLowerCase();
+    const confirmed = status.includes("confirm") || status.includes("bekräft");
+    const reminderSent = event.smsReminderSent || event.reminderSent || event.smsSent;
+    if (event.needsHealthDeclaration) {
+      return {
+        title: "Begär hälsodeklaration",
+        copy: "Patienten saknar hälsodeklaration inför besöket. Öppna Svarstudio och be om den.",
+      };
+    }
+    if (event.missingForms) {
+      return {
+        title: "Be om formulär",
+        copy: "Formulär saknas före besöket. Skicka en påminnelse via Svarstudio.",
+      };
+    }
+    if (event.isExpiring || (!confirmed && event.expiresAt)) {
+      return {
+        title: "Bekräfta tiden",
+        copy: "Den tentativa tiden håller på att förfalla — bekräfta eller följ upp med kunden.",
+      };
+    }
+    if (event.smsReminderDue && !reminderSent) {
+      return {
+        title: "Skicka påminnelse",
+        copy: "SMS-påminnelsen är förfallen. Skicka den via Svarstudio eller fånga den i Smart anteckning.",
+      };
+    }
+    if (!confirmed) {
+      return {
+        title: "Följ upp bokningen",
+        copy: "Bokningen är inte bekräftad ännu. Stäm av med kunden via Svarstudio.",
+      };
+    }
+    return {
+      title: "Bekräftad bokning",
+      copy: "Allt ser bra ut. Öppna bokningsärendet om du behöver justera detaljer.",
+    };
+  }
+
   function classifyCalendarEvent(slot) {
     const service = String(slot?.serviceLabel || slot?.service || slot?.title || "").toLowerCase();
     const location = String(slot?.locationLabel || slot?.location || "").toLowerCase();
@@ -1020,6 +1071,7 @@
     deriveCalendarSignals,
     buildOperationalIconSpecs,
     formatCalendarSignalSummary,
+    recommendBookingNextAction,
     dedupeIconSpecs,
     buildSlotAtTime,
     rebookCalendarBooking,

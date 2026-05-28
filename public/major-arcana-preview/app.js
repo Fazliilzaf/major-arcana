@@ -43534,6 +43534,44 @@
         message: "Bokningsärendet öppnades från kalendern.",
       });
     },
+    // R8: öppna Svarstudio för en bokning — landa operatören i conversations
+    // på rätt bokningskontext och öppna sedan studio-overlayen (nästa tick så
+    // arbetsytan hunnit rendera den valda tråden).
+    openStudioForBooking(bookingCase = {}) {
+      const payload =
+        bookingCase?.bookingCaseSnapshot && typeof bookingCase.bookingCaseSnapshot === "object"
+          ? bookingCase.bookingCaseSnapshot
+          : bookingCase;
+      setAppView("conversations");
+      if (asText(payload?.bookingCaseId)) {
+        syncBookingCaseListItem(payload);
+        openBookingCaseInWorkspace(payload, { message: "Bokningen öppnades i Svarstudio." });
+      }
+      window.setTimeout(() => {
+        try {
+          runtimeActionEngine?.openRuntimeStudio?.("reply");
+        } catch {
+          setStudioOpen(true);
+        }
+      }, 0);
+      return true;
+    },
+    // R8: öppna Smart anteckning för en bokning (samma overlay som i FOKUSYTA).
+    openNoteForBooking(bookingCase = {}) {
+      const payload =
+        bookingCase?.bookingCaseSnapshot && typeof bookingCase.bookingCaseSnapshot === "object"
+          ? bookingCase.bookingCaseSnapshot
+          : bookingCase;
+      setAppView("conversations");
+      if (asText(payload?.bookingCaseId)) {
+        syncBookingCaseListItem(payload);
+        openBookingCaseInWorkspace(payload, { message: "Bokningen öppnades i Smart anteckning." });
+      }
+      window.setTimeout(() => {
+        runtimeActionEngine?.openRuntimeNote?.().catch(() => {});
+      }, 0);
+      return true;
+    },
     openCustomerCard({ patientId = "", customerEmail = "", customerName = "" } = {}) {
       setAppView("customers");
       const ui = window.ArcanaPatientMasterUi;
