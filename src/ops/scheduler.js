@@ -546,6 +546,15 @@ function createScheduler({
     if (!bookingEngineStore || !patientCareStateStore) {
       return { tenantId, skipped: true, reason: 'booking_or_care_store_missing' };
     }
+    // Reminder-fönstret är |timmar-kvar − lead| <= tolerans. Med standard-
+    // toleransen (1h) blir fönstret 2h brett, men jobbet kör bara var N:e
+    // timme (default 6h) — då hamnar ~2/3 av påminnelserna mellan körningarna
+    // och skickas aldrig. Härled toleransen från intervallet så fönstret
+    // (2*tolerans) alltid täcker intervallet (+0.5h marginal för exekvering/
+    // drift). Dedup (wasReminderSent) hindrar dubbletter om två körningar
+    // råkar landa i samma fönster.
+    const reminderIntervalHours = Number(config.schedulerCcoCustomerRemindersIntervalHours) || 6;
+    const leadTimeToleranceHours = Math.max(1, reminderIntervalHours / 2 + 0.5);
     const queue = await buildCustomerReminderQueue({
       bookingEngineStore,
       journalStore,
@@ -553,6 +562,7 @@ function createScheduler({
       patientCareStateStore,
       settingsStore: ccoSettingsStore,
       tenantId,
+      leadTimeToleranceHours,
     });
     let logged = 0;
     for (const reminder of [...queue.visitReminders, ...queue.aftercareReminders]) {
