@@ -1,3 +1,8 @@
+---
+owner: COO
+status: active
+---
+
 # Incident Runbook (Arcana)
 
 ## Trigger

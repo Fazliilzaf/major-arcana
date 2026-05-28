@@ -1,3 +1,8 @@
+---
+owner: CMO
+status: active
+---
+
 # CMO Marketing Copilot Runbook
 
 Version: 1.0  

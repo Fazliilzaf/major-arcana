@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # hairtpclinic.com — nuläge och nästa leveranser
 
 Datum: 2026-05-19

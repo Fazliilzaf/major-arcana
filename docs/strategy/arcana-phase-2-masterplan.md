@@ -1,3 +1,8 @@
+---
+owner: COO
+status: active
+---
+
 # Arcana Executive OS — Phase 2 Masterplan
 
 Status: `STABILISERA`  

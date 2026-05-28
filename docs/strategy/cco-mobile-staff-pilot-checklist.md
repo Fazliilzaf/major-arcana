@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Mobil journal — Pilotchecklista (Fas 5.5–5.6 + UX sweep)
 
 > **Status 2026-05-20:** Fas 5.5–5.6 **uppskjuten** — automation smoke GO (`verify:staff-ui-prod`).  

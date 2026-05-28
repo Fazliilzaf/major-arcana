@@ -1,3 +1,8 @@
+---
+owner: Design
+status: active
+---
+
 # Interaction Spec (Pilot 0.1)
 
 ## Search + filters

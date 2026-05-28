@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # U4.5 — Post-op Fas 1: låsta produktbeslut
 
 **Status:** Låst 2026-05-25 (sweep P1 Post-op live)  

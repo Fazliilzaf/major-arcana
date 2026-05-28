@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Fas B — pilotkunder
 
 Valda 2026-05-22 efter `npm run migration:import` + `node scripts/select-pilot-patients.js`.

@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # ADR 0002: CMO publish and spend boundary
 
 **Status:** Accepted (design)  

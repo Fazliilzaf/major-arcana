@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # Risk Precision Assets
 
 Detta bibliotek innehåller benchmark-data för riskprecision i Arcana.

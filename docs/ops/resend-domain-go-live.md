@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # B3b — Separat Resend-domän / leverans
 
 **Relaterat:** [graph-resend-go-live.md](./graph-resend-go-live.md) (Graph = B3, Resend = B3b valfritt)

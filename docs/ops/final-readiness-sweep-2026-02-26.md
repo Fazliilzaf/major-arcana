@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Final Readiness Sweep (2026-02-26)
 
 Denna sweep verifierar att hela blockkedjan (P0-P4) är körd end-to-end med aktuell evidens.

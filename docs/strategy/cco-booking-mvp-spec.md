@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Booking — MVP-specifikation
 
 Status: **UTKAST (godkänd för Sprint 0)**  

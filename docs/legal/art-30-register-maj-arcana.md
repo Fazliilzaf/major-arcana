@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # Registerförteckning (GDPR Art. 30) — Major Arcana / Hair TP Clinic
 
 **Version:** 2026-05-25 (repo-kopia, kompletterar Excel i `MA-Archive/juridik-gdpr/`)  

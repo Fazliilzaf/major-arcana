@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # AnalyzeInbox Snapshot Contract v1
 
 ## Purpose

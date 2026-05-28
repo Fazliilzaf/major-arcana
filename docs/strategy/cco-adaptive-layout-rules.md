@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Adaptive App Layout Rules
 
 **Status:** Spec låst · Implementation pågår i faser  

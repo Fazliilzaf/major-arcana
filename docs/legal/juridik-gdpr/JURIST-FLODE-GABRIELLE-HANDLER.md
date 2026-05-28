@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # Juristflöde — Gabrielle Handler (Nordbro)
 
 Tillägg till `INNEHALL-OCH-NYCKELPUNKTER.md`. Sparat 2026-05-23.

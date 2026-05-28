@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Failover Runbook (Arcana)
 
 ## Trigger

@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # Personuppgiftsbiträdesavtal (DPA) — Mall
 
 Version: 1.0

@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Behandlingsavtal — spec (Fas C)
 
 Baserat på Gabrielle Handler / Nordbro (`JURIST-FLODE-GABRIELLE-HANDLER.md`).

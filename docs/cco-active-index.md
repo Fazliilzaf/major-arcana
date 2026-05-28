@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Active Index
 
 This file lists the active CCO planning and foundation docs that remain in the repo root.

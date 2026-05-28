@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # MA — dokumentplacering & genomförandeplan
 
 Skapad 2026-05-22. Master-plan för att få in arkiv, juridik och journal i Major Arcana.

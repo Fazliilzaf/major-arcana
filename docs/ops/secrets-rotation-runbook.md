@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Arcana Secrets Rotation Runbook
 
 Denna runbook beskriver hur Arcana hanterar rotation av känsliga nycklar utan att lagra råa hemligheter i app-state.

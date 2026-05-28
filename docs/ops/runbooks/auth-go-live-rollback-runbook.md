@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Auth go-live — underhållsfönster & rollback (Arcana prod)
 
 **Tjänst:** `major-arcana` · `srv-d6b11o0boq4c73chm7f0` · https://arcana.hairtpclinic.se  

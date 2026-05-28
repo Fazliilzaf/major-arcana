@@ -1,3 +1,8 @@
+---
+owner: Compliance
+status: active
+---
+
 # WCAG 2.2 AA Tillgänglighetsrevision — Arcana
 
 Version: 1.0

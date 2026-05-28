@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Arcana — fem parallella spår (A–E)
 
 **Status:** Aktiv koordinering  

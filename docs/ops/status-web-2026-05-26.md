@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # hairtpclinic.com + Arcana CCO — status 2026-05-26
 
 Datum: 2026-05-26 (planerad publicering; skissat 2026-05-19 efter sista

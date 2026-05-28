@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # ADR-0004: CAO som Arcana Admin Operator
 
 Status: Accepted (Fas 0–7 implementerad i kod, 2026-05-20)  

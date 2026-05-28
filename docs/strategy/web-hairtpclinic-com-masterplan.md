@@ -1,3 +1,8 @@
+---
+owner: CMO
+status: active
+---
+
 # Hair TP Clinic Webb (hairtpclinic.com) — Punktvis Masterplan
 
 Skapad: 2026-05-18

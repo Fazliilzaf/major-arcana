@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Major Arcana – Färginventering
 
 - Genererad: 2026-02-24T01:47:12.164Z

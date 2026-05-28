@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # ADR-NNNN: <kort titel>
 
 - Status: proposed | accepted | superseded by ADR-XXXX | deprecated

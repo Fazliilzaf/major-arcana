@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # External Blocker Closure (Final 3 Points)
 
 Denna runbook stänger de enda kvarvarande punkterna som inte kan färdigställas enbart med kod.

@@ -1,3 +1,8 @@
+---
+owner: Design
+status: active
+---
+
 # User Journeys (Pilot 0.1)
 
 ## 1) Staff — Create and evaluate draft

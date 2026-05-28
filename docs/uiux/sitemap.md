@@ -1,3 +1,8 @@
+---
+owner: Design
+status: active
+---
+
 # Navigation Map (Pilot 0.1)
 
 ```mermaid

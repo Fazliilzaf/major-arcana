@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # iMac-flode for Arcana
 
 Det har ar samma arbetsmodell som for Mac Studio, men riktad mot din iMac.

@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # ExecutionGateway Contract (P0)
 
 ## Definition of Done (P0)

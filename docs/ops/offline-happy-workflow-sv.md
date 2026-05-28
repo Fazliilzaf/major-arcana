@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Arcana utan WiFi (Happy-flöde)
 
 Den här guiden är för när du:

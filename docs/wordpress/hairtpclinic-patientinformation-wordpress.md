@@ -1,3 +1,8 @@
+---
+owner: CMO
+status: active
+---
+
 # Hair TP Clinic · Patientinformation i WordPress
 
 ## Rekommenderad lösning

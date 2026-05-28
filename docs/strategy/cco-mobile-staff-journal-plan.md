@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Mobil journal & foto — Byggplan (personal)
 
 Status: **LIVE (prod)** — pilot Fas 5.5–5.6 pågår  

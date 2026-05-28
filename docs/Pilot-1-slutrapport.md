@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Arcana Executive OS — Pilot 1 Slutrapport
 
 Datum: 2026-02-22  

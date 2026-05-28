@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Arcana Phase 2 Hardening Sweep (2026-02-25)
 
 Status: `PASS`

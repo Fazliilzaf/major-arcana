@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Mail-lik start — 1-sides plan
 
 **Status:** Fas 1 implementerad (2026-05-20) — väntar prod-verify  

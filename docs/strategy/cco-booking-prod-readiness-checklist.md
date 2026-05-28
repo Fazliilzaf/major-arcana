@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Booking Prod Readiness Checklist
 
 ## Status

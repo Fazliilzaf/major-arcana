@@ -1,3 +1,8 @@
+---
+owner: COO
+status: active
+---
+
 # Arcana Executive OS — Punktvis Masterplan (ursprung → slutmål)
 
 Skapad: 2026-04-25

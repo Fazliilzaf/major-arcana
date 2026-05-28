@@ -1,3 +1,8 @@
+---
+owner: CMO
+status: active
+---
+
 # Implementation Plan: CMO — Arcana Marketing Copilot
 
 Skapad: 2026-05-20  

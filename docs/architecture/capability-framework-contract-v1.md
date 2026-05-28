@@ -1,3 +1,8 @@
+---
+owner: Arkitektur
+status: active
+---
+
 # Arcana Capability Framework Contract (V1)
 
 Detta dokument låser Capability-lagret ovanpå `ExecutionGateway`.

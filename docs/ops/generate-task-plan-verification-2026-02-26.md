@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # GenerateTaskPlan Verification (2026-02-26)
 
 ## Scope

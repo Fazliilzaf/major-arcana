@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Major Arcana — utrullningsplan (6 faser)
 
 Skapad: **2026-05-23**  

@@ -1,3 +1,8 @@
+---
+owner: CMO
+status: active
+---
+
 # Web-to-Arcana Bridge
 
 Skapad: 2026-05-18

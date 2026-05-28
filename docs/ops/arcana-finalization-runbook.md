@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Arcana Finalization Runbook
 
 Detta runbook dokumenterar de sista leverablerna innan Arcana anses helt produktionsklar:

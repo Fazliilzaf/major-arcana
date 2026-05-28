@@ -1,3 +1,8 @@
+---
+owner: CMO
+status: active
+---
+
 # CMO v3 — Rollout-plan (commit, prod-connectors, produktscope)
 
 **Status:** BYGGFAS (Fas N klar; Fas O–R pågår — prod secrets medvetet av)  

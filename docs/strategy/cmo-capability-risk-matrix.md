@@ -1,3 +1,8 @@
+---
+owner: CMO
+status: active
+---
+
 # CMO — Risktabell (22 kapacitetsområden)
 
 Datum: 2026-05-20  

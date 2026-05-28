@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Patient, Journal & Migration — Byggplan
 
 Status: **PÅGÅR**  

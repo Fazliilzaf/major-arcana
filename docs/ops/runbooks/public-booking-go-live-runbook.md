@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # Public Booking Go-Live Runbook
 
 ## Förutsättningar

@@ -1,3 +1,8 @@
+---
+owner: Design
+status: active
+---
+
 # Component Library (Pilot 0.1)
 
 ## Cards

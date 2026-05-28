@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # Arcana — fem-spårssvep (A–E)
 
 **Status:** Full prod-svep auto · Graph live · bootstrap fas 2 · Resend valfritt  

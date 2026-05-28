@@ -1,3 +1,8 @@
+---
+owner: Design
+status: active
+---
+
 # CCO Adaptive QA Checklist
 
 Kör vid varje UI-ändring. Verifiera per breakpoint.

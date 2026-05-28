@@ -1,3 +1,8 @@
+---
+owner: Ops
+status: active
+---
+
 # P0 Reality Audit Re-Run (2026-02-25)
 
 ## Scope

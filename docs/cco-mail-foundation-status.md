@@ -1,3 +1,8 @@
+---
+owner: CCO
+status: active
+---
+
 # CCO Mail Foundation Status
 
 Senast uppdaterad: 2026-04-09
