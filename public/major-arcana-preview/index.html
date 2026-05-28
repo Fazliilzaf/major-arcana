@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <!-- ARCANA bundle URLs (content-hash: 302cbd1d08) -->
-    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.302cbd1d08.min.js","staffCore":"./app.bundle.staff-core.bcc735ad47.min.js","staffDeferred":"./app.bundle.staff-deferred.70f30879ad.min.js"};</script>
+    <!-- ARCANA bundle URLs (content-hash: 92b01e18b2) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.92b01e18b2.min.js","staffCore":"./app.bundle.staff-core.5d06b5f20b.min.js","staffDeferred":"./app.bundle.staff-deferred.70f30879ad.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -231,6 +231,9 @@
                 <button class="preview-nav-item preview-more-item" type="button" data-nav-view="later" role="menuitem"
                   data-i18n="ui.senare.c185bb">
                   Senare
+                </button>
+                <button class="preview-nav-item preview-more-item" type="button" data-tour-start role="menuitem">
+                  Rundtur
                 </button>
                 <button class="preview-nav-item preview-more-item" type="button" data-nav-view="sent" role="menuitem"
                   data-i18n="ui.skickat.324faa">
@@ -2020,7 +2023,6 @@
                   <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
                   <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
-
 <div data-patient-identity-rail hidden>
                   <section class="customers-rail-panel customers-rail-panel-suggestions">
                     <div class="customers-rail-panel-head">
@@ -7157,12 +7159,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
   <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
   <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 302cbd1d08) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 92b01e18b2) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.302cbd1d08.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.bcc735ad47.min.js';
+        var fullSrc = urls.full || './app.bundle.92b01e18b2.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.5d06b5f20b.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.70f30879ad.min.js';
 
         function injectScript(src, onload) {

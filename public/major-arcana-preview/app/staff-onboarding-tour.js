@@ -103,6 +103,59 @@
   let overlayEl = null;
   let spotlightEl = null;
   let cardEl = null;
+  let currentUserId = '';
+
+  // ---- Best-effort server progress (per-user, cross-browser) ----
+  // All calls are wrapped by callers in try/catch — the tour always works on the
+  // localStorage gate even if these fail.
+  function authToken() {
+    try {
+      return localStorage.getItem('ARCANA_ADMIN_TOKEN') || '';
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  async function api(path, options = {}) {
+    const token = authToken();
+    const res = await fetch(path, {
+      ...options,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  async function fetchUserId() {
+    if (currentUserId) return currentUserId;
+    const me = await api('/api/v1/auth/me');
+    currentUserId = String((me && me.user && me.user.id) || '');
+    return currentUserId;
+  }
+
+  async function serverIsComplete() {
+    const uid = await fetchUserId();
+    if (!uid) return false;
+    const status = await api(`/api/v1/onboarding/${encodeURIComponent(uid)}`);
+    return Boolean(status && status.isComplete);
+  }
+
+  function markServerComplete() {
+    fetchUserId()
+      .then((uid) => {
+        if (!uid) return null;
+        return api(`/api/v1/onboarding/${encodeURIComponent(uid)}/step/complete`, {
+          method: 'POST',
+          body: '{}',
+        });
+      })
+      .catch(() => {});
+  }
 
   function injectStylesOnce() {
     if (document.getElementById('arcana-tour-styles')) return;
@@ -137,6 +190,7 @@
 
   function finish() {
     markCompleted();
+    markServerComplete();
     teardown();
   }
 
@@ -259,11 +313,31 @@
 
   window.ArcanaStaffTour = { start, reset, shouldAutoStart, STEPS };
 
-  // Auto-starta efter att appen hunnit rendera (en gång per inloggad användare).
-  function boot() {
-    if (shouldAutoStart()) {
-      window.setTimeout(start, 1600);
+  // Re-trigga rundturen från valfri [data-tour-start]-knapp (t.ex. i Mer-menyn).
+  document.addEventListener('click', (event) => {
+    const trigger =
+      event.target && event.target.closest ? event.target.closest('[data-tour-start]') : null;
+    if (trigger) {
+      event.preventDefault();
+      start();
     }
+  });
+
+  // Auto-starta efter att appen hunnit rendera (en gång per inloggad användare).
+  async function boot() {
+    if (isDemoSession() || tourCompleted()) return;
+    // Bästa-möjliga: hoppa över om servern säger att användaren redan kört den
+    // (så den inte dyker upp igen på en annan dator). Faller tillbaka på
+    // localStorage-gaten om anropet fallerar.
+    try {
+      if (await serverIsComplete()) {
+        markCompleted();
+        return;
+      }
+    } catch (_e) {
+      /* localStorage-gaten gäller */
+    }
+    window.setTimeout(start, 1600);
   }
   if (document.readyState === 'complete') boot();
   else window.addEventListener('load', boot);
