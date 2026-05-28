@@ -1,586 +1,900 @@
 <!doctype html>
 <html lang="sv">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
-  <title data-i18n="title">Hair TP Clinic — Uppföljning</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:wght@200;300;400&family=Inter:wght@400;500;600&display=swap">
-  <!-- heic2any: konverterar iPhone HEIC/HEIF till JPEG i browsern.
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title data-i18n="title">Uppföljning · Arcana</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:wght@200;300;400&family=Inter:wght@400;500;600&display=swap"
+    />
+    <!-- heic2any: konverterar iPhone HEIC/HEIF till JPEG i browsern.
        Laddas async eftersom de flesta patienter laddar PNG/JPEG och inte
        behöver libheif-WASM. Vi gate:ar konvertering på MIME type. -->
-  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js" async></script>
-  <style>
-    *,*::before,*::after{box-sizing:border-box}
-    html,body{margin:0;padding:0}
-    body{
-      font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
-      color:#231F1D;background:#FAF6F2;
-      min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased;
-    }
-    .wrap{max-width:620px;margin:0 auto;padding:32px 20px 80px}
-    .brand{
-      display:flex;align-items:center;gap:12px;margin-bottom:32px;
-      color:#6B5F58;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;
-    }
-    .brand-dot{width:32px;height:32px;border-radius:50%;background:#231F1D}
-    h1{
-      font-family:Newsreader,Georgia,serif;font-weight:200;font-size:32px;
-      line-height:1.2;margin:0 0 12px;color:#231F1D;
-    }
-    h1 em{font-style:italic;font-weight:300;color:#8B6D5E}
-    .lead{font-size:16px;color:#231F1D;margin:0 0 28px}
-    .card{
-      background:#fff;border-radius:20px;padding:28px;
-      box-shadow:0 2px 12px rgba(35,31,29,0.06);margin-bottom:20px;
-    }
-    .card h2{
-      font-family:Newsreader,Georgia,serif;font-weight:300;font-size:22px;
-      margin:0 0 12px;color:#231F1D;
-    }
-    .muted{color:#6B5F58;font-size:14px;line-height:1.6}
-    textarea{
-      width:100%;padding:14px;border:1px solid #E5DDD3;border-radius:12px;
-      font:inherit;font-size:15px;color:#231F1D;background:#FCFAF8;
-      resize:vertical;min-height:96px;
-    }
-    textarea:focus{outline:none;border-color:#231F1D;background:#fff}
-    label.consent{
-      display:flex;align-items:flex-start;gap:12px;padding:16px;
-      border:1px solid #E5DDD3;border-radius:12px;cursor:pointer;
-      background:#FCFAF8;transition:all .15s;
-    }
-    label.consent:hover{background:#fff;border-color:#231F1D}
-    label.consent input{margin-top:3px;width:18px;height:18px;cursor:pointer;flex-shrink:0}
-    label.consent .text{font-size:14px;color:#231F1D;line-height:1.55}
-    .btn{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:14px 28px;font:inherit;font-weight:600;font-size:14px;
-      letter-spacing:0.05em;text-transform:uppercase;
-      border:0;border-radius:999px;cursor:pointer;transition:all .15s;
-    }
-    .btn-primary{background:#231F1D;color:#FAF6F2}
-    .btn-primary:hover{background:#000}
-    .btn-primary:disabled{opacity:.4;cursor:not-allowed}
-    .btn-secondary{background:#fff;color:#231F1D;border:1px solid #231F1D}
-    .btn-secondary:hover{background:#231F1D;color:#FAF6F2}
-    .error{
-      padding:16px;background:#FAE6E2;color:#9A4A38;border-radius:12px;
-      font-size:14px;margin-bottom:20px;
-    }
-    .success-hero{
-      text-align:center;padding:40px 24px;
-      background:linear-gradient(180deg,#fff 0%,#FCFAF8 100%);
-      border-radius:20px;box-shadow:0 2px 12px rgba(35,31,29,0.06);margin-bottom:20px;
-    }
-    .success-hero h2{
-      font-family:Newsreader,Georgia,serif;font-weight:200;font-size:28px;
-      margin:0 0 12px;color:#231F1D;
-    }
-    .checkmark{
-      width:64px;height:64px;border-radius:50%;background:#E8DDD4;
-      display:flex;align-items:center;justify-content:center;
-      margin:0 auto 20px;color:#231F1D;
-    }
-    .checkmark svg{width:32px;height:32px}
-    .footer{margin-top:32px;font-size:13px;color:#6B5F58;text-align:center;line-height:1.6}
-    .footer a{color:#6B5F58}
-    .lang-switch{
-      position:absolute;top:24px;right:24px;font-size:12px;
-      text-transform:uppercase;letter-spacing:0.12em;
-    }
-    .lang-switch a{color:#6B5F58;text-decoration:none;padding:0 6px}
-    .lang-switch a.active{color:#231F1D;font-weight:600;text-decoration:underline}
-    .hidden{display:none}
-    .photos-note{
-      padding:14px 18px;background:#F0EAE3;border-radius:12px;
-      font-size:13px;color:#6B5F58;line-height:1.6;margin:16px 0;
-    }
-    .photo-upload{margin:16px 0 4px}
-    .photo-upload .label{
-      font-size:14px;color:#231F1D;font-weight:600;margin-bottom:8px;display:block;
-    }
-    .photo-upload .helper{font-size:12px;color:#8B8079;line-height:1.5;margin:0 0 12px}
-    .photo-upload input[type=file]{display:none}
-    .photo-upload .add-btn{
-      display:inline-flex;align-items:center;gap:8px;padding:10px 18px;
-      border:1px dashed #C2AA9C;border-radius:24px;background:#fff;
-      font-size:13px;color:#6B5F58;cursor:pointer;
-      text-transform:uppercase;letter-spacing:0.08em;
-    }
-    .photo-upload .add-btn:hover{background:#F8F4F0;border-color:#231F1D;color:#231F1D}
-    .photo-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-    .photo-chip{
-      display:inline-flex;align-items:center;gap:6px;
-      padding:6px 10px 6px 12px;background:#fff;border:1px solid #E5DACE;
-      border-radius:20px;font-size:12px;color:#231F1D;max-width:240px;
-    }
-    .photo-chip .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
-    .photo-chip .size{color:#8B8079;font-size:11px}
-    .photo-chip button{
-      background:none;border:none;cursor:pointer;color:#8B8079;font-size:16px;
-      line-height:1;padding:0 4px;
-    }
-    .photo-chip button:hover{color:#231F1D}
-    @media (max-width:520px){
-      .wrap{padding:20px 16px 60px}
-      h1{font-size:26px}
-      .card{padding:20px}
-      .lang-switch{top:16px;right:16px}
-    }
-  </style>
-</head>
-<body>
-  <div class="lang-switch">
-    <a href="?lang=sv" id="lang-sv">SV</a><span style="color:#D4C7B8">/</span><a href="?lang=en" id="lang-en">EN</a>
-  </div>
-  <div class="wrap">
-    <div class="brand">
-      <span class="brand-dot"></span>
-      <span data-i18n="brandLabel">Hair TP Clinic — Uppföljning</span>
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js" async></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        color: #231f1d;
+        background: #faf6f2;
+        min-height: 100vh;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 620px;
+        margin: 0 auto;
+        padding: 32px 20px 80px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 32px;
+        color: #6b5f58;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .brand-dot {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #231f1d;
+      }
+      h1 {
+        font-family: Newsreader, Georgia, serif;
+        font-weight: 200;
+        font-size: 32px;
+        line-height: 1.2;
+        margin: 0 0 12px;
+        color: #231f1d;
+      }
+      h1 em {
+        font-style: italic;
+        font-weight: 300;
+        color: #8b6d5e;
+      }
+      .lead {
+        font-size: 16px;
+        color: #231f1d;
+        margin: 0 0 28px;
+      }
+      .card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 2px 12px rgba(35, 31, 29, 0.06);
+        margin-bottom: 20px;
+      }
+      .card h2 {
+        font-family: Newsreader, Georgia, serif;
+        font-weight: 300;
+        font-size: 22px;
+        margin: 0 0 12px;
+        color: #231f1d;
+      }
+      .muted {
+        color: #6b5f58;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      textarea {
+        width: 100%;
+        padding: 14px;
+        border: 1px solid #e5ddd3;
+        border-radius: 12px;
+        font: inherit;
+        font-size: 15px;
+        color: #231f1d;
+        background: #fcfaf8;
+        resize: vertical;
+        min-height: 96px;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: #231f1d;
+        background: #fff;
+      }
+      label.consent {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid #e5ddd3;
+        border-radius: 12px;
+        cursor: pointer;
+        background: #fcfaf8;
+        transition: all 0.15s;
+      }
+      label.consent:hover {
+        background: #fff;
+        border-color: #231f1d;
+      }
+      label.consent input {
+        margin-top: 3px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      label.consent .text {
+        font-size: 14px;
+        color: #231f1d;
+        line-height: 1.55;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 28px;
+        font: inherit;
+        font-weight: 600;
+        font-size: 14px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn-primary {
+        background: #231f1d;
+        color: #faf6f2;
+      }
+      .btn-primary:hover {
+        background: #000;
+      }
+      .btn-primary:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .btn-secondary {
+        background: #fff;
+        color: #231f1d;
+        border: 1px solid #231f1d;
+      }
+      .btn-secondary:hover {
+        background: #231f1d;
+        color: #faf6f2;
+      }
+      .error {
+        padding: 16px;
+        background: #fae6e2;
+        color: #9a4a38;
+        border-radius: 12px;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+      .success-hero {
+        text-align: center;
+        padding: 40px 24px;
+        background: linear-gradient(180deg, #fff 0%, #fcfaf8 100%);
+        border-radius: 20px;
+        box-shadow: 0 2px 12px rgba(35, 31, 29, 0.06);
+        margin-bottom: 20px;
+      }
+      .success-hero h2 {
+        font-family: Newsreader, Georgia, serif;
+        font-weight: 200;
+        font-size: 28px;
+        margin: 0 0 12px;
+        color: #231f1d;
+      }
+      .checkmark {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: #e8ddd4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        color: #231f1d;
+      }
+      .checkmark svg {
+        width: 32px;
+        height: 32px;
+      }
+      .footer {
+        margin-top: 32px;
+        font-size: 13px;
+        color: #6b5f58;
+        text-align: center;
+        line-height: 1.6;
+      }
+      .footer a {
+        color: #6b5f58;
+      }
+      .lang-switch {
+        position: absolute;
+        top: 24px;
+        right: 24px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .lang-switch a {
+        color: #6b5f58;
+        text-decoration: none;
+        padding: 0 6px;
+      }
+      .lang-switch a.active {
+        color: #231f1d;
+        font-weight: 600;
+        text-decoration: underline;
+      }
+      .hidden {
+        display: none;
+      }
+      .photos-note {
+        padding: 14px 18px;
+        background: #f0eae3;
+        border-radius: 12px;
+        font-size: 13px;
+        color: #6b5f58;
+        line-height: 1.6;
+        margin: 16px 0;
+      }
+      .photo-upload {
+        margin: 16px 0 4px;
+      }
+      .photo-upload .label {
+        font-size: 14px;
+        color: #231f1d;
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: block;
+      }
+      .photo-upload .helper {
+        font-size: 12px;
+        color: #8b8079;
+        line-height: 1.5;
+        margin: 0 0 12px;
+      }
+      .photo-upload input[type='file'] {
+        display: none;
+      }
+      .photo-upload .add-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border: 1px dashed #c2aa9c;
+        border-radius: 24px;
+        background: #fff;
+        font-size: 13px;
+        color: #6b5f58;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .photo-upload .add-btn:hover {
+        background: #f8f4f0;
+        border-color: #231f1d;
+        color: #231f1d;
+      }
+      .photo-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .photo-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px 6px 12px;
+        background: #fff;
+        border: 1px solid #e5dace;
+        border-radius: 20px;
+        font-size: 12px;
+        color: #231f1d;
+        max-width: 240px;
+      }
+      .photo-chip .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 160px;
+      }
+      .photo-chip .size {
+        color: #8b8079;
+        font-size: 11px;
+      }
+      .photo-chip button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #8b8079;
+        font-size: 16px;
+        line-height: 1;
+        padding: 0 4px;
+      }
+      .photo-chip button:hover {
+        color: #231f1d;
+      }
+      @media (max-width: 520px) {
+        .wrap {
+          padding: 20px 16px 60px;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        .card {
+          padding: 20px;
+        }
+        .lang-switch {
+          top: 16px;
+          right: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="lang-switch">
+      <a href="?lang=sv" id="lang-sv">SV</a><span style="color: #d4c7b8">/</span
+      ><a href="?lang=en" id="lang-en">EN</a>
     </div>
+    <div class="wrap">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span data-i18n="brandLabel">Hair TP Clinic — Uppföljning</span>
+      </div>
 
-    <div id="loading-state">
-      <p class="muted" data-i18n="loading">Hämtar din uppföljning…</p>
-    </div>
+      <div id="loading-state">
+        <p class="muted" data-i18n="loading">Hämtar din uppföljning…</p>
+      </div>
 
-    <div id="invalid-state" class="hidden">
-      <div class="card">
-        <h2 data-i18n="invalidTitle">Länken är inte giltig längre</h2>
-        <p class="muted">
-          <span data-i18n="invalidBody">Den här länken har gått ut eller är inte korrekt. Ring oss gärna på </span>
-          <a href="tel:+46318811166" style="color:#231F1D">031 88 11 66</a>
-          <span data-i18n="invalidBodyTail"> så hjälper vi dig direkt.</span>
+      <div id="invalid-state" class="hidden">
+        <div class="card">
+          <h2 data-i18n="invalidTitle">Länken är inte giltig längre</h2>
+          <p class="muted">
+            <span data-i18n="invalidBody"
+              >Den här länken har gått ut eller är inte korrekt. Ring oss gärna på
+            </span>
+            <a href="tel:+46318811166" style="color: #231f1d">031 88 11 66</a>
+            <span data-i18n="invalidBodyTail"> så hjälper vi dig direkt.</span>
+          </p>
+        </div>
+      </div>
+
+      <div id="form-state" class="hidden">
+        <h1>
+          <span data-i18n="formGreetingPre">Tack </span>
+          <em id="patient-name" data-i18n-default="för förtroendet">för förtroendet</em>
+        </h1>
+        <p class="lead" data-i18n="formLead">
+          Vi hoppas att resultatet känns bra. Få ord från dig betyder mycket för oss — och hjälper
+          andra som funderar på samma resa.
         </p>
-      </div>
-    </div>
 
-    <div id="form-state" class="hidden">
-      <h1>
-        <span data-i18n="formGreetingPre">Tack </span>
-        <em id="patient-name" data-i18n-default="för förtroendet">för förtroendet</em>
-      </h1>
-      <p class="lead" data-i18n="formLead">Vi hoppas att resultatet känns bra. Få ord från dig betyder mycket för oss — och hjälper andra som funderar på samma resa.</p>
+        <div id="error-box" class="hidden"></div>
 
-      <div id="error-box" class="hidden"></div>
+        <form id="submit-form" class="card">
+          <h2 data-i18n="formCardTitle">Hur har det gått?</h2>
+          <p class="muted" style="margin: 0 0 16px" data-i18n="formCardSub">
+            Skriv gärna en mening eller två — helt frivilligt.
+          </p>
+          <textarea
+            id="patient-note"
+            maxlength="2000"
+            data-i18n-placeholder="formPlaceholder"
+            placeholder="Hur upplevde du behandlingen och resultatet?"
+          ></textarea>
 
-      <form id="submit-form" class="card">
-        <h2 data-i18n="formCardTitle">Hur har det gått?</h2>
-        <p class="muted" style="margin:0 0 16px" data-i18n="formCardSub">Skriv gärna en mening eller två — helt frivilligt.</p>
-        <textarea id="patient-note" maxlength="2000" data-i18n-placeholder="formPlaceholder" placeholder="Hur upplevde du behandlingen och resultatet?"></textarea>
-
-        <div class="photo-upload">
-          <span class="label" data-i18n="photosLabel">📸 Lägg till efter-bilder (frivilligt)</span>
-          <p class="helper" data-i18n="photosHelper">Upp till 6 bilder, JPEG eller PNG, max 8 MB per bild. Vi tar automatiskt bort plats- och kameradata innan vi sparar.</p>
-          <label for="photo-input" class="add-btn">
-            <span>+</span>
-            <span data-i18n="photosAddBtn">Välj bilder</span>
-          </label>
-          <!-- accept inkluderar HEIC/HEIF; iPhone-foton heter .heic men många browsers
+          <div class="photo-upload">
+            <span class="label" data-i18n="photosLabel"
+              >📸 Lägg till efter-bilder (frivilligt)</span
+            >
+            <p class="helper" data-i18n="photosHelper">
+              Upp till 6 bilder, JPEG eller PNG, max 8 MB per bild. Vi tar automatiskt bort plats-
+              och kameradata innan vi sparar.
+            </p>
+            <label for="photo-input" class="add-btn">
+              <span>+</span>
+              <span data-i18n="photosAddBtn">Välj bilder</span>
+            </label>
+            <!-- accept inkluderar HEIC/HEIF; iPhone-foton heter .heic men många browsers
                rapporterar mime som tomt eller image/heic. Vi konverterar i JS innan upload. -->
-          <input id="photo-input" type="file" accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif" multiple>
-          <div id="photo-chips" class="photo-chips"></div>
-        </div>
+            <input
+              id="photo-input"
+              type="file"
+              accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif"
+              multiple
+            />
+            <div id="photo-chips" class="photo-chips"></div>
+          </div>
 
-        <label class="consent">
-          <input type="checkbox" id="consent-publish">
-          <span class="text" data-i18n="consentHtml">
-            <strong>Jag samtycker till att Hair TP Clinic får använda mina bilder anonymt</strong> i marknadsföring (hairtpclinic.com, Instagram, övriga digitala kanaler). Endast bildutsnitt <strong>från ögonbryn och uppåt</strong> publiceras — inga drag som kan identifiera mig som person. Jag kan när som helst återkalla samtycket genom att kontakta contact@hairtpclinic.com.
-          </span>
-        </label>
+          <label class="consent">
+            <input type="checkbox" id="consent-publish" />
+            <span class="text" data-i18n="consentHtml">
+              <strong>Jag samtycker till att Hair TP Clinic får använda mina bilder anonymt</strong>
+              i marknadsföring (hairtpclinic.com, Instagram, övriga digitala kanaler). Endast
+              bildutsnitt <strong>från ögonbryn och uppåt</strong> publiceras — inga drag som kan
+              identifiera mig som person. Jag kan när som helst återkalla samtycket genom att
+              kontakta contact@hairtpclinic.com.
+            </span>
+          </label>
 
-        <div style="margin-top:24px;display:flex;justify-content:flex-end">
-          <button type="submit" id="submit-btn" class="btn btn-primary" data-i18n="submitBtn">Skicka in</button>
-        </div>
-      </form>
-    </div>
-
-    <div id="success-state" class="hidden">
-      <div class="success-hero">
-        <div class="checkmark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-        <h2 data-i18n="successTitle">Tack, det betyder mycket</h2>
-        <p class="muted" style="max-width:420px;margin:0 auto" data-i18n="successBody">Vi har sparat din återkoppling. Om du har en stund vore vi tacksamma om du även lämnade ett kort omdöme på Google — det hjälper fler hitta hit.</p>
+          <div style="margin-top: 24px; display: flex; justify-content: flex-end">
+            <button type="submit" id="submit-btn" class="btn btn-primary" data-i18n="submitBtn">
+              Skicka in
+            </button>
+          </div>
+        </form>
       </div>
 
-      <div class="card" style="text-align:center">
-        <h2 style="margin-bottom:16px" data-i18n="gbpTitle">Lämna ett Google-omdöme?</h2>
-        <p class="muted" style="margin:0 0 24px;max-width:380px;margin-left:auto;margin-right:auto" data-i18n="gbpBody">Det tar mindre än en minut. Vi har redan 197 omdömen med snittet 4,8★ — varje ny röst räknas.</p>
-        <a id="gbp-link" href="#" class="btn btn-primary" style="text-decoration:none" data-i18n="gbpCta">Dela din upplevelse →</a>
+      <div id="success-state" class="hidden">
+        <div class="success-hero">
+          <div class="checkmark">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <h2 data-i18n="successTitle">Tack, det betyder mycket</h2>
+          <p class="muted" style="max-width: 420px; margin: 0 auto" data-i18n="successBody">
+            Vi har sparat din återkoppling. Om du har en stund vore vi tacksamma om du även lämnade
+            ett kort omdöme på Google — det hjälper fler hitta hit.
+          </p>
+        </div>
+
+        <div class="card" style="text-align: center">
+          <h2 style="margin-bottom: 16px" data-i18n="gbpTitle">Lämna ett Google-omdöme?</h2>
+          <p
+            class="muted"
+            style="margin: 0 0 24px; max-width: 380px; margin-left: auto; margin-right: auto"
+            data-i18n="gbpBody"
+          >
+            Det tar mindre än en minut. Vi har redan 197 omdömen med snittet 4,8★ — varje ny röst
+            räknas.
+          </p>
+          <a
+            id="gbp-link"
+            href="#"
+            class="btn btn-primary"
+            style="text-decoration: none"
+            data-i18n="gbpCta"
+            >Dela din upplevelse →</a
+          >
+        </div>
       </div>
+
+      <p class="footer">
+        Hair TP Clinic · Vasaplatsen 2, 411 34 <span data-i18n="city">Göteborg</span><br />
+        <a href="tel:+46318811166">031 88 11 66</a> ·
+        <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a>
+      </p>
     </div>
 
-    <p class="footer">
-      Hair TP Clinic · Vasaplatsen 2, 411 34 <span data-i18n="city">Göteborg</span><br>
-      <a href="tel:+46318811166">031 88 11 66</a> · <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a>
-    </p>
-  </div>
+    <script>
+      (function () {
+        'use strict';
 
-  <script>
-    (function(){
-      'use strict';
+        // ── i18n: SV (default) + EN ─────────────────────────────────────
+        var I18N = {
+          sv: {
+            title: 'Uppföljning · Arcana',
+            brandLabel: 'Hair TP Clinic — Uppföljning',
+            loading: 'Hämtar din uppföljning…',
+            invalidTitle: 'Länken är inte giltig längre',
+            invalidBody: 'Den här länken har gått ut eller är inte korrekt. Ring oss gärna på ',
+            invalidBodyTail: ' så hjälper vi dig direkt.',
+            formGreetingPre: 'Tack ',
+            greetingFallback: 'för förtroendet',
+            formLead:
+              'Vi hoppas att resultatet känns bra. Få ord från dig betyder mycket för oss — och hjälper andra som funderar på samma resa.',
+            formCardTitle: 'Hur har det gått?',
+            formCardSub: 'Skriv gärna en mening eller två — helt frivilligt.',
+            formPlaceholder: 'Hur upplevde du behandlingen och resultatet?',
+            photosLabel: '📸 Lägg till efter-bilder (frivilligt)',
+            photosHelper:
+              'Upp till 6 bilder, JPEG eller PNG, max 8 MB per bild. Vi tar automatiskt bort plats- och kameradata innan vi sparar.',
+            photosAddBtn: 'Välj bilder',
+            photoTooLarge: 'För stor fil (max 8 MB):',
+            photoBadType: 'Filtypen stöds inte (endast JPEG/PNG/HEIC):',
+            photoLimitMsg: 'Max 6 bilder totalt.',
+            photoUploadErr: 'Kunde inte ladda upp bilderna just nu. Försök igen.',
+            photoUploading: 'Laddar upp bilder…',
+            photoConverting: 'Konverterar iPhone-bild…',
+            photoConvertFail:
+              'Kunde inte konvertera iPhone-bild. Spara om i Foton som JPEG och försök igen.',
+            consentHtml:
+              '<strong>Jag samtycker till att Hair TP Clinic får använda mina bilder anonymt</strong> i marknadsföring (hairtpclinic.com, Instagram, övriga digitala kanaler). Endast bildutsnitt <strong>från ögonbryn och uppåt</strong> publiceras — inga drag som kan identifiera mig som person. Jag kan när som helst återkalla samtycket genom att kontakta contact@hairtpclinic.com.',
+            submitBtn: 'Skicka in',
+            submitSending: 'Skickar…',
+            submitError:
+              'Kunde inte skicka just nu. Försök igen eller mejla contact@hairtpclinic.com.',
+            successTitle: 'Tack, det betyder mycket',
+            successBody:
+              'Vi har sparat din återkoppling. Om du har en stund vore vi tacksamma om du även lämnade ett kort omdöme på Google — det hjälper fler hitta hit.',
+            gbpTitle: 'Dela din upplevelse',
+            gbpBody:
+              'Berätta hur det gick — positiva omdömen kan du välja att publicera på Google via vår sida.',
+            gbpCta: 'Dela din upplevelse →',
+            city: 'Göteborg',
+          },
+          en: {
+            title: 'Follow-up · Arcana',
+            brandLabel: 'Hair TP Clinic — Follow-up',
+            loading: 'Loading your follow-up…',
+            invalidTitle: 'This link is no longer valid',
+            invalidBody: 'The link has expired or is not correct. Please call us at ',
+            invalidBodyTail: ' and we will help you directly.',
+            formGreetingPre: 'Thank you ',
+            greetingFallback: 'for your trust',
+            formLead:
+              'We hope you are happy with the result. A few words from you mean a lot — and help others considering the same journey.',
+            formCardTitle: 'How did it go?',
+            formCardSub: 'Write a sentence or two if you like — completely optional.',
+            formPlaceholder: 'How did you experience the treatment and the result?',
+            photosLabel: '📸 Add after-photos (optional)',
+            photosHelper:
+              'Up to 6 photos, JPEG or PNG, max 8 MB per photo. We automatically remove location and camera data before saving.',
+            photosAddBtn: 'Choose photos',
+            photoTooLarge: 'File too large (max 8 MB):',
+            photoBadType: 'File type not supported (JPEG/PNG/HEIC only):',
+            photoLimitMsg: 'Max 6 photos total.',
+            photoUploadErr: 'Could not upload photos right now. Please try again.',
+            photoUploading: 'Uploading photos…',
+            photoConverting: 'Converting iPhone photo…',
+            photoConvertFail:
+              'Could not convert iPhone photo. Re-save as JPEG in Photos and try again.',
+            consentHtml:
+              '<strong>I consent to Hair TP Clinic using my photos anonymously</strong> in marketing (hairtpclinic.com, Instagram, other digital channels). Only the area <strong>from the eyebrows up</strong> is published — no features that could identify me. I can withdraw consent at any time by contacting contact@hairtpclinic.com.',
+            submitBtn: 'Submit',
+            submitSending: 'Sending…',
+            submitError: 'Could not send right now. Try again or email contact@hairtpclinic.com.',
+            successTitle: 'Thank you, this means a lot',
+            successBody:
+              'We have saved your feedback. If you have a moment, we would be grateful if you also left a short review on Google — it helps others find us.',
+            gbpTitle: 'Share your experience',
+            gbpBody:
+              'Tell us how it went — positive reviews can be published on Google via our page.',
+            gbpCta: 'Share your experience →',
+            city: 'Gothenburg',
+          },
+        };
 
-      // ── i18n: SV (default) + EN ─────────────────────────────────────
-      var I18N = {
-        sv: {
-          title:           'Hair TP Clinic — Uppföljning',
-          brandLabel:      'Hair TP Clinic — Uppföljning',
-          loading:         'Hämtar din uppföljning…',
-          invalidTitle:    'Länken är inte giltig längre',
-          invalidBody:     'Den här länken har gått ut eller är inte korrekt. Ring oss gärna på ',
-          invalidBodyTail: ' så hjälper vi dig direkt.',
-          formGreetingPre: 'Tack ',
-          greetingFallback:'för förtroendet',
-          formLead:        'Vi hoppas att resultatet känns bra. Få ord från dig betyder mycket för oss — och hjälper andra som funderar på samma resa.',
-          formCardTitle:   'Hur har det gått?',
-          formCardSub:     'Skriv gärna en mening eller två — helt frivilligt.',
-          formPlaceholder: 'Hur upplevde du behandlingen och resultatet?',
-          photosLabel:     '📸 Lägg till efter-bilder (frivilligt)',
-          photosHelper:    'Upp till 6 bilder, JPEG eller PNG, max 8 MB per bild. Vi tar automatiskt bort plats- och kameradata innan vi sparar.',
-          photosAddBtn:    'Välj bilder',
-          photoTooLarge:   'För stor fil (max 8 MB):',
-          photoBadType:    'Filtypen stöds inte (endast JPEG/PNG/HEIC):',
-          photoLimitMsg:   'Max 6 bilder totalt.',
-          photoUploadErr:  'Kunde inte ladda upp bilderna just nu. Försök igen.',
-          photoUploading:  'Laddar upp bilder…',
-          photoConverting: 'Konverterar iPhone-bild…',
-          photoConvertFail:'Kunde inte konvertera iPhone-bild. Spara om i Foton som JPEG och försök igen.',
-          consentHtml:     '<strong>Jag samtycker till att Hair TP Clinic får använda mina bilder anonymt</strong> i marknadsföring (hairtpclinic.com, Instagram, övriga digitala kanaler). Endast bildutsnitt <strong>från ögonbryn och uppåt</strong> publiceras — inga drag som kan identifiera mig som person. Jag kan när som helst återkalla samtycket genom att kontakta contact@hairtpclinic.com.',
-          submitBtn:       'Skicka in',
-          submitSending:   'Skickar…',
-          submitError:     'Kunde inte skicka just nu. Försök igen eller mejla contact@hairtpclinic.com.',
-          successTitle:    'Tack, det betyder mycket',
-          successBody:     'Vi har sparat din återkoppling. Om du har en stund vore vi tacksamma om du även lämnade ett kort omdöme på Google — det hjälper fler hitta hit.',
-          gbpTitle:        'Dela din upplevelse',
-          gbpBody:         'Berätta hur det gick — positiva omdömen kan du välja att publicera på Google via vår sida.',
-          gbpCta:          'Dela din upplevelse →',
-          city:            'Göteborg',
-        },
-        en: {
-          title:           'Hair TP Clinic — Follow-up',
-          brandLabel:      'Hair TP Clinic — Follow-up',
-          loading:         'Loading your follow-up…',
-          invalidTitle:    'This link is no longer valid',
-          invalidBody:     'The link has expired or is not correct. Please call us at ',
-          invalidBodyTail: ' and we will help you directly.',
-          formGreetingPre: 'Thank you ',
-          greetingFallback:'for your trust',
-          formLead:        'We hope you are happy with the result. A few words from you mean a lot — and help others considering the same journey.',
-          formCardTitle:   'How did it go?',
-          formCardSub:     'Write a sentence or two if you like — completely optional.',
-          formPlaceholder: 'How did you experience the treatment and the result?',
-          photosLabel:     '📸 Add after-photos (optional)',
-          photosHelper:    'Up to 6 photos, JPEG or PNG, max 8 MB per photo. We automatically remove location and camera data before saving.',
-          photosAddBtn:    'Choose photos',
-          photoTooLarge:   'File too large (max 8 MB):',
-          photoBadType:    'File type not supported (JPEG/PNG/HEIC only):',
-          photoLimitMsg:   'Max 6 photos total.',
-          photoUploadErr:  'Could not upload photos right now. Please try again.',
-          photoUploading:  'Uploading photos…',
-          photoConverting: 'Converting iPhone photo…',
-          photoConvertFail:'Could not convert iPhone photo. Re-save as JPEG in Photos and try again.',
-          consentHtml:     '<strong>I consent to Hair TP Clinic using my photos anonymously</strong> in marketing (hairtpclinic.com, Instagram, other digital channels). Only the area <strong>from the eyebrows up</strong> is published — no features that could identify me. I can withdraw consent at any time by contacting contact@hairtpclinic.com.',
-          submitBtn:       'Submit',
-          submitSending:   'Sending…',
-          submitError:     'Could not send right now. Try again or email contact@hairtpclinic.com.',
-          successTitle:    'Thank you, this means a lot',
-          successBody:     'We have saved your feedback. If you have a moment, we would be grateful if you also left a short review on Google — it helps others find us.',
-          gbpTitle:        'Share your experience',
-          gbpBody:         'Tell us how it went — positive reviews can be published on Google via our page.',
-          gbpCta:          'Share your experience →',
-          city:            'Gothenburg',
-        },
-      };
+        function detectLocale() {
+          // Prio: ?lang=en URL param → navigator.language → 'sv'
+          var params = new URLSearchParams(window.location.search);
+          var lang = (params.get('lang') || '').toLowerCase();
+          if (lang === 'en' || lang === 'sv') return lang;
+          var nav = (navigator.language || 'sv').toLowerCase();
+          return nav.startsWith('en') ? 'en' : 'sv';
+        }
 
-      function detectLocale() {
-        // Prio: ?lang=en URL param → navigator.language → 'sv'
-        var params = new URLSearchParams(window.location.search);
-        var lang = (params.get('lang') || '').toLowerCase();
-        if (lang === 'en' || lang === 'sv') return lang;
-        var nav = (navigator.language || 'sv').toLowerCase();
-        return nav.startsWith('en') ? 'en' : 'sv';
-      }
+        var locale = detectLocale();
+        var t = I18N[locale] || I18N.sv;
 
-      var locale = detectLocale();
-      var t = I18N[locale] || I18N.sv;
+        // Sätt <html lang> + title + applicera översättningar
+        document.documentElement.lang = locale;
+        document.title = t.title;
+        Array.from(document.querySelectorAll('[data-i18n]')).forEach(function (el) {
+          var key = el.getAttribute('data-i18n');
+          if (t[key] !== undefined) el.innerHTML = t[key];
+        });
+        Array.from(document.querySelectorAll('[data-i18n-placeholder]')).forEach(function (el) {
+          var key = el.getAttribute('data-i18n-placeholder');
+          if (t[key] !== undefined) el.setAttribute('placeholder', t[key]);
+        });
+        // Markera aktiv lang i switchen
+        var langActive = document.getElementById('lang-' + locale);
+        if (langActive) langActive.classList.add('active');
 
-      // Sätt <html lang> + title + applicera översättningar
-      document.documentElement.lang = locale;
-      document.title = t.title;
-      Array.from(document.querySelectorAll('[data-i18n]')).forEach(function(el){
-        var key = el.getAttribute('data-i18n');
-        if (t[key] !== undefined) el.innerHTML = t[key];
-      });
-      Array.from(document.querySelectorAll('[data-i18n-placeholder]')).forEach(function(el){
-        var key = el.getAttribute('data-i18n-placeholder');
-        if (t[key] !== undefined) el.setAttribute('placeholder', t[key]);
-      });
-      // Markera aktiv lang i switchen
-      var langActive = document.getElementById('lang-' + locale);
-      if (langActive) langActive.classList.add('active');
+        // ── Patient flow ────────────────────────────────────────────────
+        var parts = window.location.pathname.split('/').filter(Boolean);
+        var token =
+          parts[0] === 'uppfoljning' && parts[1] ? parts[1] : parts[parts.length - 1] || '';
 
-      // ── Patient flow ────────────────────────────────────────────────
-      var parts = window.location.pathname.split('/').filter(Boolean);
-      var token = (parts[0] === 'uppfoljning' && parts[1]) ? parts[1] : (parts[parts.length - 1] || '');
+        var $loading = document.getElementById('loading-state');
+        var $invalid = document.getElementById('invalid-state');
+        var $form = document.getElementById('form-state');
+        var $success = document.getElementById('success-state');
+        var $name = document.getElementById('patient-name');
+        var $error = document.getElementById('error-box');
+        var $submitForm = document.getElementById('submit-form');
+        var $submitBtn = document.getElementById('submit-btn');
+        var $gbp = document.getElementById('gbp-link');
 
-      var $loading = document.getElementById('loading-state');
-      var $invalid = document.getElementById('invalid-state');
-      var $form = document.getElementById('form-state');
-      var $success = document.getElementById('success-state');
-      var $name = document.getElementById('patient-name');
-      var $error = document.getElementById('error-box');
-      var $submitForm = document.getElementById('submit-form');
-      var $submitBtn = document.getElementById('submit-btn');
-      var $gbp = document.getElementById('gbp-link');
+        function show(el) {
+          el.classList.remove('hidden');
+        }
+        function hide(el) {
+          el.classList.add('hidden');
+        }
+        function showError(msg) {
+          $error.textContent = msg;
+          $error.className = 'error';
+          show($error);
+        }
 
-      function show(el){ el.classList.remove('hidden'); }
-      function hide(el){ el.classList.add('hidden'); }
-      function showError(msg){
-        $error.textContent = msg;
-        $error.className = 'error';
-        show($error);
-      }
-
-      if (!token || token.length < 8) {
-        hide($loading);
-        show($invalid);
-        return;
-      }
-
-      fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/lookup', { credentials: 'omit' })
-        .then(function(r){
-          if (!r.ok) throw new Error('lookup_failed_' + r.status);
-          return r.json();
-        })
-        .then(function(data){
+        if (!token || token.length < 8) {
           hide($loading);
-          if (!data.ok || !data.submission) {
-            show($invalid);
-            return;
-          }
-          if (data.submission.submittedAt) {
+          show($invalid);
+          return;
+        }
+
+        fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/lookup', {
+          credentials: 'omit',
+        })
+          .then(function (r) {
+            if (!r.ok) throw new Error('lookup_failed_' + r.status);
+            return r.json();
+          })
+          .then(function (data) {
+            hide($loading);
+            if (!data.ok || !data.submission) {
+              show($invalid);
+              return;
+            }
+            if (data.submission.submittedAt) {
+              if ($gbp) {
+                $gbp.href = '/uppfoljning/' + encodeURIComponent(token) + '/omdome';
+              }
+              show($success);
+              return;
+            }
             if ($gbp) {
               $gbp.href = '/uppfoljning/' + encodeURIComponent(token) + '/omdome';
             }
-            show($success);
-            return;
-          }
-          if ($gbp) {
-            $gbp.href = '/uppfoljning/' + encodeURIComponent(token) + '/omdome';
-          }
-          var first = (data.submission.patientName || '').trim().split(/\s+/)[0];
-          $name.textContent = first || t.greetingFallback;
-          show($form);
-        })
-        .catch(function(){
-          hide($loading);
-          show($invalid);
-        });
-
-      // ── Photo picker state ──────────────────────────────────────────
-      var MAX_PHOTO_BYTES = 8 * 1024 * 1024;
-      var MAX_PHOTOS = 6;
-      var ALLOWED_TYPES = ['image/jpeg', 'image/png'];
-      // iPhone-foton: vissa browsers rapporterar 'image/heic', andra '' (tom string).
-      // Vi använder file-namnsslutfix som fallback.
-      var HEIC_TYPES = ['image/heic', 'image/heif'];
-      function isHeicFile(f) {
-        var type = String(f && f.type || '').toLowerCase();
-        if (HEIC_TYPES.indexOf(type) !== -1) return true;
-        var name = String(f && f.name || '').toLowerCase();
-        return /\.(heic|heif)$/.test(name);
-      }
-
-      // Magic-byte detektering: HEIC/HEIF har "ftyp" + brand-kod vid offset 4-16.
-      // Detta fångar fall där iPhone-foton har döpts om till .jpg/.png men
-      // fortfarande är HEIC-content (vanligt vid kopiera-från-Foton i macOS).
-      // ISO base media file format: 4 bytes box-size + "ftyp" + 4 bytes major brand.
-      async function detectHeicByMagicBytes(file) {
-        try {
-          var head = await file.slice(0, 16).arrayBuffer();
-          var bytes = new Uint8Array(head);
-          // Position 4-7: "ftyp"
-          if (bytes[4] !== 0x66 || bytes[5] !== 0x74 || bytes[6] !== 0x79 || bytes[7] !== 0x70) return false;
-          // Position 8-11: major brand. HEIC-varianter: "heic","heix","hevc","hevx","heim","heis","hevm","hevs","mif1","msf1".
-          var brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]).toLowerCase();
-          return ['heic','heix','hevc','hevx','heim','heis','hevm','hevs','mif1','msf1'].indexOf(brand) !== -1;
-        } catch (_) {
-          return false;
-        }
-      }
-      var $photoInput = document.getElementById('photo-input');
-      var $photoChips = document.getElementById('photo-chips');
-      var pickedFiles = [];
-
-      function fmtBytes(n){
-        if (n < 1024) return n + ' B';
-        if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' kB';
-        return (n / (1024 * 1024)).toFixed(1) + ' MB';
-      }
-
-      function renderChips(){
-        $photoChips.innerHTML = '';
-        pickedFiles.forEach(function(f, i){
-          var chip = document.createElement('div');
-          chip.className = 'photo-chip';
-          var name = document.createElement('span');
-          name.className = 'name';
-          name.textContent = f.name;
-          var size = document.createElement('span');
-          size.className = 'size';
-          // För HEIC-placeholders som konverteras: visa "Konverterar…" istället för size.
-          size.textContent = f._converting ? (t.photoConverting || 'Konverterar…') : fmtBytes(f.size);
-          var remove = document.createElement('button');
-          remove.type = 'button';
-          remove.setAttribute('aria-label', 'Remove');
-          remove.textContent = '×';
-          remove.addEventListener('click', function(){
-            pickedFiles.splice(i, 1);
-            renderChips();
+            var first = (data.submission.patientName || '').trim().split(/\s+/)[0];
+            $name.textContent = first || t.greetingFallback;
+            show($form);
+          })
+          .catch(function () {
+            hide($loading);
+            show($invalid);
           });
-          chip.appendChild(name);
-          chip.appendChild(size);
-          chip.appendChild(remove);
-          $photoChips.appendChild(chip);
-        });
-      }
 
-      // Lazy-loadar heic2any vid behov; libheif-WASM är ~600KB så vi väntar
-      // med konvertering tills patient faktiskt valt HEIC-bild.
-      async function convertHeicToJpeg(file) {
-        // heic2any-skripttaggen är async så den kanske inte är klar ännu.
-        // Vänta upp till 8s på att den dyker upp.
-        var deadline = Date.now() + 8000;
-        while (typeof window.heic2any !== 'function' && Date.now() < deadline) {
-          await new Promise(function(r){ setTimeout(r, 200); });
+        // ── Photo picker state ──────────────────────────────────────────
+        var MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+        var MAX_PHOTOS = 6;
+        var ALLOWED_TYPES = ['image/jpeg', 'image/png'];
+        // iPhone-foton: vissa browsers rapporterar 'image/heic', andra '' (tom string).
+        // Vi använder file-namnsslutfix som fallback.
+        var HEIC_TYPES = ['image/heic', 'image/heif'];
+        function isHeicFile(f) {
+          var type = String((f && f.type) || '').toLowerCase();
+          if (HEIC_TYPES.indexOf(type) !== -1) return true;
+          var name = String((f && f.name) || '').toLowerCase();
+          return /\.(heic|heif)$/.test(name);
         }
-        if (typeof window.heic2any !== 'function') {
-          throw new Error('heic2any_not_loaded');
-        }
-        var blob = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
-        // heic2any returnerar Blob eller Array<Blob> för multi-frame HEIC; vi tar första.
-        var jpegBlob = Array.isArray(blob) ? blob[0] : blob;
-        // Bygg en File med .jpg-suffix så server får rätt extension.
-        var newName = String(file.name || 'photo').replace(/\.(heic|heif)$/i, '') + '.jpg';
-        return new File([jpegBlob], newName, { type: 'image/jpeg' });
-      }
 
-      $photoInput.addEventListener('change', async function(ev){
-        hide($error);
-        var newFiles = Array.from(ev.target.files || []);
-        // Tillåt re-pick av samma fil; rensa input nu så vi inte triggar
-        // change igen om vi modifierar pickedFiles.
-        ev.target.value = '';
-
-        for (var i = 0; i < newFiles.length; i++) {
-          var f = newFiles[i];
-          var heic = isHeicFile(f);
-          // Fallback för iPhone-foton som döpts om till .jpg/.png:
-          // läs första 16 bytes och kolla efter HEIC magic-bytes.
-          if (!heic) {
-            heic = await detectHeicByMagicBytes(f);
-          }
-
-          if (!heic && ALLOWED_TYPES.indexOf(f.type) === -1) {
-            showError(t.photoBadType + ' ' + f.name);
-            continue;
-          }
-          if (f.size > MAX_PHOTO_BYTES) {
-            showError(t.photoTooLarge + ' ' + f.name);
-            continue;
-          }
-          if (pickedFiles.length >= MAX_PHOTOS) {
-            showError(t.photoLimitMsg);
-            break;
-          }
-
-          if (heic) {
-            // Visa "konverterar"-statust i chip-listan medan libheif jobbar.
-            var placeholder = { name: f.name, size: f.size, _converting: true };
-            pickedFiles.push(placeholder);
-            renderChips();
-            try {
-              var converted = await convertHeicToJpeg(f);
-              // Ersätt placeholdern med konverterade filen
-              var idx = pickedFiles.indexOf(placeholder);
-              if (idx !== -1) pickedFiles[idx] = converted;
-            } catch (err) {
-              var idx2 = pickedFiles.indexOf(placeholder);
-              if (idx2 !== -1) pickedFiles.splice(idx2, 1);
-              showError(t.photoConvertFail + ' ' + f.name);
-            }
-            renderChips();
-          } else {
-            pickedFiles.push(f);
-            renderChips();
+        // Magic-byte detektering: HEIC/HEIF har "ftyp" + brand-kod vid offset 4-16.
+        // Detta fångar fall där iPhone-foton har döpts om till .jpg/.png men
+        // fortfarande är HEIC-content (vanligt vid kopiera-från-Foton i macOS).
+        // ISO base media file format: 4 bytes box-size + "ftyp" + 4 bytes major brand.
+        async function detectHeicByMagicBytes(file) {
+          try {
+            var head = await file.slice(0, 16).arrayBuffer();
+            var bytes = new Uint8Array(head);
+            // Position 4-7: "ftyp"
+            if (bytes[4] !== 0x66 || bytes[5] !== 0x74 || bytes[6] !== 0x79 || bytes[7] !== 0x70)
+              return false;
+            // Position 8-11: major brand. HEIC-varianter: "heic","heix","hevc","hevx","heim","heis","hevm","hevs","mif1","msf1".
+            var brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]).toLowerCase();
+            return (
+              [
+                'heic',
+                'heix',
+                'hevc',
+                'hevx',
+                'heim',
+                'heis',
+                'hevm',
+                'hevs',
+                'mif1',
+                'msf1',
+              ].indexOf(brand) !== -1
+            );
+          } catch (_) {
+            return false;
           }
         }
-      });
+        var $photoInput = document.getElementById('photo-input');
+        var $photoChips = document.getElementById('photo-chips');
+        var pickedFiles = [];
 
-      function uploadPhotos(){
-        // Filtrera bort placeholders som fortfarande konverteras — annars
-        // POST:ar vi ett objekt utan binary data och servern svarar 400.
-        var ready = pickedFiles.filter(function(f){ return !f._converting && f instanceof File; });
-        if (ready.length === 0) return Promise.resolve({ ok: true, uploaded: [] });
-        var fd = new FormData();
-        ready.forEach(function(f){ fd.append('photos', f, f.name); });
-        return fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/photos', {
-          method: 'POST',
-          credentials: 'omit',
-          body: fd
-        }).then(function(r){
-          if (!r.ok) throw new Error('photo_upload_failed_' + r.status);
-          return r.json();
-        });
-      }
+        function fmtBytes(n) {
+          if (n < 1024) return n + ' B';
+          if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' kB';
+          return (n / (1024 * 1024)).toFixed(1) + ' MB';
+        }
 
-      $submitForm.addEventListener('submit', function(ev){
-        ev.preventDefault();
-        hide($error);
-        $submitBtn.disabled = true;
-        $submitBtn.textContent = pickedFiles.length > 0 ? t.photoUploading : t.submitSending;
-        var consent = document.getElementById('consent-publish').checked;
-        var note = document.getElementById('patient-note').value;
-
-        uploadPhotos()
-          .then(function(){
-            $submitBtn.textContent = t.submitSending;
-            return fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/submit', {
-              method: 'POST',
-              credentials: 'omit',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ consentToPublish: consent, patientNote: note })
+        function renderChips() {
+          $photoChips.innerHTML = '';
+          pickedFiles.forEach(function (f, i) {
+            var chip = document.createElement('div');
+            chip.className = 'photo-chip';
+            var name = document.createElement('span');
+            name.className = 'name';
+            name.textContent = f.name;
+            var size = document.createElement('span');
+            size.className = 'size';
+            // För HEIC-placeholders som konverteras: visa "Konverterar…" istället för size.
+            size.textContent = f._converting
+              ? t.photoConverting || 'Konverterar…'
+              : fmtBytes(f.size);
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.setAttribute('aria-label', 'Remove');
+            remove.textContent = '×';
+            remove.addEventListener('click', function () {
+              pickedFiles.splice(i, 1);
+              renderChips();
             });
-          })
-          .then(function(r){
-            if (!r.ok) throw new Error('submit_failed_' + r.status);
-            return r.json();
-          })
-          .then(function(data){
-            if (!data.ok) throw new Error('submit_not_ok');
-            hide($form);
-            show($success);
-          })
-          .catch(function(err){
-            $submitBtn.disabled = false;
-            $submitBtn.textContent = t.submitBtn;
-            // Använd photo-specifikt error om upload var problemet
-            if (String(err && err.message || '').indexOf('photo_upload_failed') === 0) {
-              showError(t.photoUploadErr);
-            } else {
-              showError(t.submitError);
-            }
+            chip.appendChild(name);
+            chip.appendChild(size);
+            chip.appendChild(remove);
+            $photoChips.appendChild(chip);
           });
-      });
+        }
 
-      // Google endast via omdömessidan (staff-godkännande krävs innan redirect)
-      if ($gbp && token) {
-        $gbp.setAttribute('href', '/uppfoljning/' + encodeURIComponent(token) + '/omdome');
-      }
-    })();
-  </script>
-</body>
+        // Lazy-loadar heic2any vid behov; libheif-WASM är ~600KB så vi väntar
+        // med konvertering tills patient faktiskt valt HEIC-bild.
+        async function convertHeicToJpeg(file) {
+          // heic2any-skripttaggen är async så den kanske inte är klar ännu.
+          // Vänta upp till 8s på att den dyker upp.
+          var deadline = Date.now() + 8000;
+          while (typeof window.heic2any !== 'function' && Date.now() < deadline) {
+            await new Promise(function (r) {
+              setTimeout(r, 200);
+            });
+          }
+          if (typeof window.heic2any !== 'function') {
+            throw new Error('heic2any_not_loaded');
+          }
+          var blob = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+          // heic2any returnerar Blob eller Array<Blob> för multi-frame HEIC; vi tar första.
+          var jpegBlob = Array.isArray(blob) ? blob[0] : blob;
+          // Bygg en File med .jpg-suffix så server får rätt extension.
+          var newName = String(file.name || 'photo').replace(/\.(heic|heif)$/i, '') + '.jpg';
+          return new File([jpegBlob], newName, { type: 'image/jpeg' });
+        }
+
+        $photoInput.addEventListener('change', async function (ev) {
+          hide($error);
+          var newFiles = Array.from(ev.target.files || []);
+          // Tillåt re-pick av samma fil; rensa input nu så vi inte triggar
+          // change igen om vi modifierar pickedFiles.
+          ev.target.value = '';
+
+          for (var i = 0; i < newFiles.length; i++) {
+            var f = newFiles[i];
+            var heic = isHeicFile(f);
+            // Fallback för iPhone-foton som döpts om till .jpg/.png:
+            // läs första 16 bytes och kolla efter HEIC magic-bytes.
+            if (!heic) {
+              heic = await detectHeicByMagicBytes(f);
+            }
+
+            if (!heic && ALLOWED_TYPES.indexOf(f.type) === -1) {
+              showError(t.photoBadType + ' ' + f.name);
+              continue;
+            }
+            if (f.size > MAX_PHOTO_BYTES) {
+              showError(t.photoTooLarge + ' ' + f.name);
+              continue;
+            }
+            if (pickedFiles.length >= MAX_PHOTOS) {
+              showError(t.photoLimitMsg);
+              break;
+            }
+
+            if (heic) {
+              // Visa "konverterar"-statust i chip-listan medan libheif jobbar.
+              var placeholder = { name: f.name, size: f.size, _converting: true };
+              pickedFiles.push(placeholder);
+              renderChips();
+              try {
+                var converted = await convertHeicToJpeg(f);
+                // Ersätt placeholdern med konverterade filen
+                var idx = pickedFiles.indexOf(placeholder);
+                if (idx !== -1) pickedFiles[idx] = converted;
+              } catch (err) {
+                var idx2 = pickedFiles.indexOf(placeholder);
+                if (idx2 !== -1) pickedFiles.splice(idx2, 1);
+                showError(t.photoConvertFail + ' ' + f.name);
+              }
+              renderChips();
+            } else {
+              pickedFiles.push(f);
+              renderChips();
+            }
+          }
+        });
+
+        function uploadPhotos() {
+          // Filtrera bort placeholders som fortfarande konverteras — annars
+          // POST:ar vi ett objekt utan binary data och servern svarar 400.
+          var ready = pickedFiles.filter(function (f) {
+            return !f._converting && f instanceof File;
+          });
+          if (ready.length === 0) return Promise.resolve({ ok: true, uploaded: [] });
+          var fd = new FormData();
+          ready.forEach(function (f) {
+            fd.append('photos', f, f.name);
+          });
+          return fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/photos', {
+            method: 'POST',
+            credentials: 'omit',
+            body: fd,
+          }).then(function (r) {
+            if (!r.ok) throw new Error('photo_upload_failed_' + r.status);
+            return r.json();
+          });
+        }
+
+        $submitForm.addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          hide($error);
+          $submitBtn.disabled = true;
+          $submitBtn.textContent = pickedFiles.length > 0 ? t.photoUploading : t.submitSending;
+          var consent = document.getElementById('consent-publish').checked;
+          var note = document.getElementById('patient-note').value;
+
+          uploadPhotos()
+            .then(function () {
+              $submitBtn.textContent = t.submitSending;
+              return fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/submit', {
+                method: 'POST',
+                credentials: 'omit',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ consentToPublish: consent, patientNote: note }),
+              });
+            })
+            .then(function (r) {
+              if (!r.ok) throw new Error('submit_failed_' + r.status);
+              return r.json();
+            })
+            .then(function (data) {
+              if (!data.ok) throw new Error('submit_not_ok');
+              hide($form);
+              show($success);
+            })
+            .catch(function (err) {
+              $submitBtn.disabled = false;
+              $submitBtn.textContent = t.submitBtn;
+              // Använd photo-specifikt error om upload var problemet
+              if (String((err && err.message) || '').indexOf('photo_upload_failed') === 0) {
+                showError(t.photoUploadErr);
+              } else {
+                showError(t.submitError);
+              }
+            });
+        });
+
+        // Google endast via omdömessidan (staff-godkännande krävs innan redirect)
+        if ($gbp && token) {
+          $gbp.setAttribute('href', '/uppfoljning/' + encodeURIComponent(token) + '/omdome');
+        }
+      })();
+    </script>
+  </body>
 </html>

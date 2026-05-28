@@ -40,11 +40,30 @@ function brandLabel() {
   return brand || 'kliniken';
 }
 
+const CHAT_PAGE_TITLE = 'Chatt · Arcana';
+const BOOKING_PAGE_TITLE = 'Bokning · Arcana';
+
+function applyChatPageTitle() {
+  if (window.ArcanaPageTitles?.applyArcanaTitle) {
+    window.ArcanaPageTitles.applyArcanaTitle('Chatt');
+    return;
+  }
+  document.title = CHAT_PAGE_TITLE;
+}
+
+function applyBookingPageTitle() {
+  if (window.ArcanaPageTitles?.applyArcanaTitle) {
+    window.ArcanaPageTitles.applyArcanaTitle('Bokning');
+    return;
+  }
+  document.title = BOOKING_PAGE_TITLE;
+}
+
 function applyBrandUi() {
   const brand = publicConfig?.brand;
   const subtitle = document.getElementById('brandSubtitle');
   if (subtitle) subtitle.textContent = `${brandLabel()} · chat & bokning`;
-  document.title = `Arcana · ${brandLabel()}`;
+  applyChatPageTitle();
 
   if (els.brandMark) {
     if (brand === 'hair-tp-clinic') {
@@ -87,7 +106,10 @@ function applyBrandTheme() {
     document.body.style.setProperty('--arcana-glass-highlight', 'rgba(255, 255, 255, 0.16)');
     document.body.style.setProperty('--arcana-glass-layer-a', 'rgba(255, 255, 255, 0.12)');
     document.body.style.setProperty('--arcana-glass-layer-b', 'rgba(255, 255, 255, 0.03)');
-    document.body.style.setProperty('--arcana-shadow-3d', '0 18px 36px rgba(0, 0, 0, 0.42), 0 6px 12px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14)');
+    document.body.style.setProperty(
+      '--arcana-shadow-3d',
+      '0 18px 36px rgba(0, 0, 0, 0.42), 0 6px 12px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14)'
+    );
   } else if (brand === 'curatiio') {
     document.body.style.setProperty('--arcana-primary', '#4e6f68');
     document.body.style.setProperty('--arcana-primary-hover', '#5a837b');
@@ -106,7 +128,10 @@ function applyBrandTheme() {
     document.body.style.setProperty('--arcana-glass-highlight', 'rgba(255, 255, 255, 0.16)');
     document.body.style.setProperty('--arcana-glass-layer-a', 'rgba(242, 247, 246, 0.11)');
     document.body.style.setProperty('--arcana-glass-layer-b', 'rgba(242, 247, 246, 0.03)');
-    document.body.style.setProperty('--arcana-shadow-3d', '0 18px 36px rgba(0, 0, 0, 0.48), 0 6px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.13)');
+    document.body.style.setProperty(
+      '--arcana-shadow-3d',
+      '0 18px 36px rgba(0, 0, 0, 0.48), 0 6px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.13)'
+    );
   } else {
     document.body.style.removeProperty('--arcana-primary');
     document.body.style.removeProperty('--arcana-primary-hover');
@@ -278,10 +303,9 @@ function startNewChat() {
 
   if (oldId) {
     const sourceUrl = getSourceUrl();
-    fetch(
-      `/conversation/${encodeURIComponent(oldId)}?sourceUrl=${encodeURIComponent(sourceUrl)}`,
-      { method: 'DELETE' }
-    ).catch(() => {});
+    fetch(`/conversation/${encodeURIComponent(oldId)}?sourceUrl=${encodeURIComponent(sourceUrl)}`, {
+      method: 'DELETE',
+    }).catch(() => {});
   }
 }
 
@@ -330,12 +354,14 @@ function openModal() {
   if (!els.bookingModal) return;
   els.bookingModal.classList.remove('hidden');
   document.body.classList.add('overflow-hidden');
+  applyBookingPageTitle();
 }
 
 function closeModal() {
   if (!els.bookingModal) return;
   els.bookingModal.classList.add('hidden');
   document.body.classList.remove('overflow-hidden');
+  applyChatPageTitle();
 }
 
 function showBookingStatus(html) {
@@ -492,12 +518,20 @@ function isClientoActionLabel(label) {
 function forceBrandActionStyle(el) {
   if (!el) return;
   el.classList.add('arcana-cliento-action');
-  el.style.setProperty('background', 'linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.28), rgba(var(--arcana-primary-rgb), 0.13))', 'important');
+  el.style.setProperty(
+    'background',
+    'linear-gradient(160deg, rgba(var(--arcana-primary-rgb), 0.28), rgba(var(--arcana-primary-rgb), 0.13))',
+    'important'
+  );
   el.style.setProperty('border', '1px solid rgba(var(--arcana-primary-rgb), 0.54)', 'important');
   el.style.setProperty('color', 'var(--arcana-primary)', 'important');
   el.style.setProperty('border-radius', '9999px', 'important');
   el.style.setProperty('font-weight', '600', 'important');
-  el.style.setProperty('box-shadow', '0 10px 18px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)', 'important');
+  el.style.setProperty(
+    'box-shadow',
+    '0 10px 18px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+    'important'
+  );
   el.style.setProperty('backdrop-filter', 'blur(8px) saturate(128%)', 'important');
   el.style.setProperty('-webkit-backdrop-filter', 'blur(8px) saturate(128%)', 'important');
 }
@@ -589,7 +623,9 @@ function decorateClientoWidgetDom() {
     if (text.length > 48) continue;
     if (text.includes('\n')) continue;
 
-    const normalized = normalizeUiText(text).replace(/[^a-z0-9]+/g, ' ').trim();
+    const normalized = normalizeUiText(text)
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
     const hit = blocked.find((name) => {
       const expected = name.replace(/[^a-z0-9]+/g, ' ').trim();
       if (!expected) return false;
@@ -633,9 +669,10 @@ function ensureClientoLoaded() {
   const cliento = publicConfig?.cliento || {};
   const accountIds = Array.isArray(cliento.accountIds) ? cliento.accountIds : [];
   const bookingUrl = typeof cliento.bookingUrl === 'string' ? cliento.bookingUrl : '';
-  const widgetSrc = typeof cliento.widgetSrc === 'string' && cliento.widgetSrc
-    ? cliento.widgetSrc
-    : 'https://cliento.com/widget-v2/cliento.js';
+  const widgetSrc =
+    typeof cliento.widgetSrc === 'string' && cliento.widgetSrc
+      ? cliento.widgetSrc
+      : 'https://cliento.com/widget-v2/cliento.js';
   const serviceFilters = Array.isArray(cliento.serviceFilters)
     ? cliento.serviceFilters.map((value) => String(value || '').trim()).filter(Boolean)
     : [];
@@ -689,7 +726,10 @@ function ensureClientoLoaded() {
   window.cbk('mergeLocations', mergeLocations);
   window.cbk('onCompleted', () => {
     closeModal();
-    addMessage('assistant', 'Toppen! Om du vill kan jag även svara på frågor om förberedelser och eftervård.');
+    addMessage(
+      'assistant',
+      'Toppen! Om du vill kan jag även svara på frågor om förberedelser och eftervård.'
+    );
   });
 
   const scriptId = 'cliento-widget-script';

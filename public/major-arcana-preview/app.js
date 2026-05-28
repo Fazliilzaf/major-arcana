@@ -5101,6 +5101,30 @@
     return AUTOMATION_VIEW_ALIASES[normalizedView] ? "automation" : normalizedView || "conversations";
   }
 
+  const CCO_SHELL_PAGE_TITLES = Object.freeze({
+    conversations: "Konversationer",
+    customers: "Kundregister",
+    calendar: "Kalender",
+    automation: "Automatisering",
+    analytics: "Analys",
+    later: "Senare",
+    sent: "Skickat",
+    integrations: "Integrationer",
+    macros: "Makron",
+    settings: "Inställningar",
+    showcase: "Showcase",
+  });
+
+  function syncCcoDocumentTitle(view) {
+    const shellView = resolveShellView(view);
+    const pageName = CCO_SHELL_PAGE_TITLES[shellView] || "Operatörsvy";
+    if (window.ArcanaPageTitles?.applyArcanaTitle) {
+      window.ArcanaPageTitles.applyArcanaTitle(pageName);
+      return;
+    }
+    document.title = `${pageName} · Arcana`;
+  }
+
   function resolveAutomationSectionForView(view) {
     return AUTOMATION_VIEW_ALIASES[normalizeKey(view)] || "";
   }
@@ -40426,6 +40450,7 @@
     const finalizeAppView = () => {
       normalizeWorkspaceState();
       syncShellViewToLocation();
+      syncCcoDocumentTitle(normalizedView);
       window.ArcanaMobileShell?.syncFromApp?.();
     };
 

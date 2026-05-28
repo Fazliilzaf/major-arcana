@@ -6,7 +6,7 @@ const { test, expect } = require('@playwright/test');
 test.describe('CCO huvudflöden', () => {
   test('homepage laddar med rätt titel', async ({ page }) => {
     await page.goto('/major-arcana-preview/');
-    await expect(page).toHaveTitle(/HairTP Clinic CCO/i);
+    await expect(page).toHaveTitle(/Operatörsvy · Arcana/i);
   });
 
   test('alla 30+ runtime-moduler laddas', async ({ page }) => {
@@ -22,8 +22,8 @@ test.describe('CCO huvudflöden', () => {
     await page.goto('/major-arcana-preview/');
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => window.MajorArcanaPreviewCommandPalette?.open());
-    const visible = await page.evaluate(() =>
-      !!document.querySelector('.cco-cmdk-backdrop:not([hidden])')
+    const visible = await page.evaluate(
+      () => !!document.querySelector('.cco-cmdk-backdrop:not([hidden])')
     );
     expect(visible).toBe(true);
   });
