@@ -105,7 +105,10 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
 
   function getAccountByEmail(email = '') {
     const normalized = normalizeEmail(email);
-    return Object.values(state.mailAccounts).find((item) => normalizeEmail(item.email) === normalized) || null;
+    return (
+      Object.values(state.mailAccounts).find((item) => normalizeEmail(item.email) === normalized) ||
+      null
+    );
   }
 
   function ensureMailAccount({
@@ -289,9 +292,15 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       normalizeText(ledger.processorVersion) === PROCESSOR_VERSION &&
       normalizeText(ledger.filterVersion) === FILTER_VERSION &&
       normalizeText(ledger.matchVersion) === MATCH_VERSION &&
-      ['COMPLETED', 'DUPLICATE_SKIPPED', 'ACTION_CREATED', 'MATCHED', 'UNMATCHED', 'NEEDS_REVIEW', 'SECURITY_REVIEW'].includes(
-        status
-      )
+      [
+        'COMPLETED',
+        'DUPLICATE_SKIPPED',
+        'ACTION_CREATED',
+        'MATCHED',
+        'UNMATCHED',
+        'NEEDS_REVIEW',
+        'SECURITY_REVIEW',
+      ].includes(status)
     );
   }
 
@@ -434,7 +443,10 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     const removedRawIds = new Set();
 
     for (const [rawId, rawMessage] of Object.entries(state.mailRawMessages)) {
-      if (normalizeEmail(rawMessage.mailboxId) !== normalized && normalizeEmail(account?.email) !== normalized) {
+      if (
+        normalizeEmail(rawMessage.mailboxId) !== normalized &&
+        normalizeEmail(account?.email) !== normalized
+      ) {
         continue;
       }
       if (hardResetRaw) {
@@ -659,7 +671,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
   }
 
   function getConversationIngestionMap({ mailboxEmail = '' } = {}) {
-    const { toCanonicalMailboxConversationKey } = require('./ccoMailboxTruthWorklistReadModel');
+    const { toCanonicalMailboxConversationKey } = require('../ccoMailboxTruthWorklistReadModel');
     const normalized = normalizeEmail(mailboxEmail);
     const statusPriority = {
       SECURITY_REVIEW: 5,
@@ -729,32 +741,42 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       throw Object.assign(new Error('Raw message hittades inte.'), { statusCode: 404 });
     }
 
-    await updateLedger(ledger.id, {
-      status: 'MATCHED',
-      patientMatchStatus: 'MATCHED',
-      patientId: safePatientId,
-      processedAt: nowIso(),
-      completedAt: nowIso(),
-      matchVersion: MATCH_VERSION,
-    }, { persist });
-    const patientMatch = await savePatientMatch({
-      id: `${safeRawMessageId}:match`,
-      rawMessageId: safeRawMessageId,
-      status: 'MATCHED',
-      confidence: 1,
-      patientId: safePatientId,
-      reason: 'manual_link',
-      source: 'manual_link',
-      linkedBy: normalizeText(actorUserId) || null,
-      linkedAt: nowIso(),
-      matchVersion: MATCH_VERSION,
-    }, { persist });
-    await appendAudit({
-      type: 'mail_ingestion_patient_linked',
-      rawMessageId: safeRawMessageId,
-      patientId: safePatientId,
-      actorUserId: normalizeText(actorUserId) || null,
-    }, { persist });
+    await updateLedger(
+      ledger.id,
+      {
+        status: 'MATCHED',
+        patientMatchStatus: 'MATCHED',
+        patientId: safePatientId,
+        processedAt: nowIso(),
+        completedAt: nowIso(),
+        matchVersion: MATCH_VERSION,
+      },
+      { persist }
+    );
+    const patientMatch = await savePatientMatch(
+      {
+        id: `${safeRawMessageId}:match`,
+        rawMessageId: safeRawMessageId,
+        status: 'MATCHED',
+        confidence: 1,
+        patientId: safePatientId,
+        reason: 'manual_link',
+        source: 'manual_link',
+        linkedBy: normalizeText(actorUserId) || null,
+        linkedAt: nowIso(),
+        matchVersion: MATCH_VERSION,
+      },
+      { persist }
+    );
+    await appendAudit(
+      {
+        type: 'mail_ingestion_patient_linked',
+        rawMessageId: safeRawMessageId,
+        patientId: safePatientId,
+        actorUserId: normalizeText(actorUserId) || null,
+      },
+      { persist }
+    );
     return {
       rawMessage: raw,
       ledger: getLedgerByRawMessageId(safeRawMessageId),
