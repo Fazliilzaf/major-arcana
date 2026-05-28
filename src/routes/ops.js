@@ -2512,10 +2512,7 @@ function createOpsRouter({
     requireAuth,
     requireRole(ROLE_OWNER),
     async (req, res) => {
-      if (!ccoMailboxTruthStore || ccoMailboxTruthStore.sharded !== true) {
-        return res.status(503).json({ error: 'Sharded mailbox-truth-store saknas.' });
-      }
-      if (typeof ccoMailboxTruthStore.ensureMailboxLoaded !== 'function') {
+      if (!ccoMailboxTruthStore || typeof ccoMailboxTruthStore.ensureMailboxLoaded !== 'function') {
         return res.status(503).json({ error: 'Mailbox-truth reload stöds inte i denna version.' });
       }
       try {
