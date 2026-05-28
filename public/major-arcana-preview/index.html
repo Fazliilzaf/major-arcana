@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <!-- ARCANA bundle URLs (content-hash: c0c1fa4145) -->
-    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.c0c1fa4145.min.js","staffCore":"./app.bundle.staff-core.ac82519322.min.js","staffDeferred":"./app.bundle.staff-deferred.70f30879ad.min.js"};</script>
+    <!-- ARCANA bundle URLs (content-hash: 302cbd1d08) -->
+    <script>window.__ARCANA_BUNDLE_URLS__={"full":"./app.bundle.302cbd1d08.min.js","staffCore":"./app.bundle.staff-core.bcc735ad47.min.js","staffDeferred":"./app.bundle.staff-deferred.70f30879ad.min.js"};</script>
     <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
     <script>
       (function arcanaPreloadBundle() {
@@ -31,8 +31,8 @@
     </script>
     
     <!-- Bundlade scripts preload (content-hash: d9a770ff9d) -->
-    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-1ccb8f9" />
-    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-1ccb8f9" />
+    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-bundle-split-a" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-bundle-split-a" />
     <script>
     (function deferInboxUntilNeeded() {
       try {
@@ -73,7 +73,7 @@
       }
     })();
   </script>
-  <script src="./app/mobile-deeplink-boot.js?v=build-1ccb8f9"></script>
+  <script src="./app/mobile-deeplink-boot.js?v=build-bundle-split-a"></script>
   <title>HairTP Clinic CCO</title>
   <meta name="theme-color" content="#fbf7f1" />
   <meta name="description" content="HairTP Clinic CCO — Major Arcana Preview" />
@@ -2017,7 +2017,9 @@
                   <script src="./app/cco-cache-policy.js?v=build-1ccb8f9"></script>
                   <script src="./app/cco-request-cache.js?v=build-1ccb8f9"></script>
                   <script src="./app/cco-patient-list-virtual.js?v=build-1ccb8f9"></script>
-                  <script async src="./app/patient-master-ui.js?v=build-1ccb8f9"></script>
+                  <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
+                  <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
+                  <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
 
 <div data-patient-identity-rail hidden>
                   <section class="customers-rail-panel customers-rail-panel-suggestions">
@@ -7155,12 +7157,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea>
   <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
   <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: c0c1fa4145) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 302cbd1d08) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.c0c1fa4145.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.ac82519322.min.js';
+        var fullSrc = urls.full || './app.bundle.302cbd1d08.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.bcc735ad47.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.70f30879ad.min.js';
 
         function injectScript(src, onload) {
