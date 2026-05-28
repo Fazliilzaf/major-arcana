@@ -41,21 +41,21 @@
   }
 
   /* Fullscreen kalendervy: fyll viewport, dölj kö/fokus, minimera dubbel-chrome. */
-  .preview-page:has(.preview-canvas[data-app-shell-view='calendar']) {
+  .preview-page:has(.preview-canvas[data-app-shell-view="calendar"]) {
     height: 100dvh;
     min-height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
   }
 
-  .preview-canvas[data-app-shell-view='calendar'] {
+  .preview-canvas[data-app-shell-view="calendar"] {
     height: 100dvh;
     min-height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
   }
 
-  .preview-canvas[data-app-shell-view='calendar'] .preview-workspace {
+  .preview-canvas[data-app-shell-view="calendar"] .preview-workspace {
     display: block;
     height: calc(100dvh - var(--workspace-sticky-top, 72px) - 12px);
     min-height: 0;
@@ -64,11 +64,11 @@
     overflow: hidden;
   }
 
-  .preview-canvas[data-app-shell-view='calendar'] .preview-workspace > :not(.calendar-shell) {
+  .preview-canvas[data-app-shell-view="calendar"] .preview-workspace > :not(.calendar-shell) {
     display: none !important;
   }
 
-  .preview-canvas[data-app-shell-view='calendar'] .preview-workspace::before {
+  .preview-canvas[data-app-shell-view="calendar"] .preview-workspace::before {
     display: none;
   }
 
@@ -295,7 +295,11 @@
     font-size: 13px;
     font-weight: 650;
     color: var(--cco-cal-espresso);
-    background: linear-gradient(180deg, rgba(252, 248, 245, 0.94) 0%, rgba(243, 236, 231, 0.86) 100%);
+    background: linear-gradient(
+      180deg,
+      rgba(252, 248, 245, 0.94) 0%,
+      rgba(243, 236, 231, 0.86) 100%
+    );
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
       0 2px 6px rgba(80, 60, 40, 0.06);
@@ -321,18 +325,20 @@
     overflow: hidden;
   }
 
-  .cco-cal-body[data-detail-open='true'] {
+  .cco-cal-body[data-detail-open="true"] {
     grid-template-columns: minmax(0, 1fr) minmax(240px, min(340px, 32vw));
   }
 
+  /* R9 (2026-05-28): ramlös — gridet ligger platt direkt på studio-skalet
+   * istället för som ett eget kort-i-kort. Ett elevation-steg, lugnare yta. */
   .cco-cal-grid-wrap {
     flex: 1 1 auto;
     min-height: 0;
     height: 100%;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    background: linear-gradient(180deg, var(--panel-card-top) 0%, var(--panel-card-bottom) 100%);
-    box-shadow: var(--panel-card-shadow);
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -405,12 +411,14 @@
     align-content: start;
     min-height: 280px;
     padding: 12px;
-    border-radius: var(--cco-radius-md, 8px); border: 1px solid var(--cco-cal-border);
+    border-radius: var(--cco-radius-md, 8px);
+    border: 1px solid var(--cco-cal-border);
     background: var(--cco-bg-surface, #ffffff);
   }
 
   .cco-cal-day-col.is-today {
-    border-color: var(--cco-color-accent, #4a8268); box-shadow: inset 0 0 0 1px var(--cco-color-accent-soft, #6fa68a);
+    border-color: var(--cco-color-accent, #4a8268);
+    box-shadow: inset 0 0 0 1px var(--cco-color-accent-soft, #6fa68a);
   }
 
   .cco-cal-day-col.is-selected {
@@ -507,7 +515,7 @@
   }
 
   .cco-cal-now-marker::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     top: 50%;
@@ -580,7 +588,7 @@
     opacity: 0.95;
   }
 
-  .cco-cal-event.is-booked[draggable='true'] {
+  .cco-cal-event.is-booked[draggable="true"] {
     cursor: grab;
   }
 
@@ -598,29 +606,41 @@
   /* R7: tidigare 0.82 opacity gjorde hela kalendern blek när busy-state
    * råkade hänga sig. Mildare 0.96 + en subtil grön accent-rand i toppen
    * signalerar pågående action utan att tona ner hela ytan. */
-  .cco-cal-workstation[data-cal-busy='true'] {
+  .cco-cal-workstation[data-cal-busy="true"] {
     opacity: 0.96;
     pointer-events: none;
     position: relative;
   }
-  .cco-cal-workstation[data-cal-busy='true']::before {
+  .cco-cal-workstation[data-cal-busy="true"]::before {
     content: "";
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 2px;
-    background: linear-gradient(90deg,
+    background: linear-gradient(
+      90deg,
       transparent 0%,
       var(--cco-color-accent, #4a8268) 50%,
-      transparent 100%);
+      transparent 100%
+    );
     animation: cco-cal-busy-bar 1.4s ease-in-out infinite;
     border-radius: var(--cco-radius-md, 8px) var(--cco-radius-md, 8px) 0 0;
   }
   @keyframes cco-cal-busy-bar {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
-    .cco-cal-workstation[data-cal-busy='true']::before { animation: none; opacity: 0.8; }
+    .cco-cal-workstation[data-cal-busy="true"]::before {
+      animation: none;
+      opacity: 0.8;
+    }
   }
 
   :root {
@@ -702,7 +722,11 @@
     padding: 16px;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.5);
-    background: linear-gradient(180deg, var(--panel-card-top, rgba(255, 255, 255, 0.9)) 0%, var(--panel-card-bottom, rgba(247, 241, 236, 0.84)) 100%);
+    background: linear-gradient(
+      180deg,
+      var(--panel-card-top, rgba(255, 255, 255, 0.9)) 0%,
+      var(--panel-card-bottom, rgba(247, 241, 236, 0.84)) 100%
+    );
     box-shadow: var(--panel-card-shadow);
   }
 
@@ -715,14 +739,16 @@
    * definieras i styles.css. Den outer .cco-cal-detail-containern behåller
    * sin yta/skugga ovan, men inre layout styrs av focus-intel-reglerna. */
 
-  /* R8 (2026-05-28): AI nästa-steg-banner i detaljpanelen. */
+  /* R8 (2026-05-28): AI nästa-steg-banner i detaljpanelen.
+   * R9: ramlös — lätt vänster-accent + luft istället för en egen box. */
   .cco-cal-detail-reco {
     display: grid;
     gap: 3px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    border: 1px solid rgba(164, 70, 112, 0.22);
-    background: linear-gradient(180deg, rgba(252, 233, 240, 0.7) 0%, rgba(248, 236, 240, 0.5) 100%);
+    padding: 2px 0 2px 12px;
+    border-radius: 0;
+    border: 0;
+    border-left: 2px solid rgba(164, 70, 112, 0.5);
+    background: transparent;
   }
   .cco-cal-detail-reco[hidden] {
     display: none !important;
@@ -768,16 +794,21 @@
     display: grid;
     gap: 4px;
   }
+  /* R9 (2026-05-28): hårlinje-rader istället for pill-i-pill. */
   .cco-cal-detail-signals li {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 10px;
     font-size: 12px;
-    padding: 5px 9px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    padding: 6px 0;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--cco-cal-border);
+  }
+  .cco-cal-detail-signals li:last-child {
+    border-bottom: 0;
   }
   .cco-cal-detail-signals li span {
     color: var(--cco-cal-espresso-soft);
@@ -820,7 +851,11 @@
   }
 
   .schedule-status-pill-rose {
-    background: linear-gradient(180deg, rgba(239, 229, 222, 0.98) 0%, rgba(202, 186, 174, 0.28) 100%) !important;
+    background: linear-gradient(
+      180deg,
+      rgba(239, 229, 222, 0.98) 0%,
+      rgba(202, 186, 174, 0.28) 100%
+    ) !important;
     border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
   }
 
@@ -849,11 +884,21 @@
     opacity: 0.78;
     pointer-events: none;
   }
-  .cco-cal-event[data-service-type="hairtx"]::after { background: #7c3aed; }
-  .cco-cal-event[data-service-type="prp"]::after { background: #f97316; }
-  .cco-cal-event[data-service-type="consultation"]::after { background: #0ea5e9; }
-  .cco-cal-event[data-service-type="aftercare"]::after { background: #14b8a6; }
-  .cco-cal-event[data-service-type="video"]::after { background: var(--cco-status-info, #4a7ba8); }
+  .cco-cal-event[data-service-type="hairtx"]::after {
+    background: #7c3aed;
+  }
+  .cco-cal-event[data-service-type="prp"]::after {
+    background: #f97316;
+  }
+  .cco-cal-event[data-service-type="consultation"]::after {
+    background: #0ea5e9;
+  }
+  .cco-cal-event[data-service-type="aftercare"]::after {
+    background: #14b8a6;
+  }
+  .cco-cal-event[data-service-type="video"]::after {
+    background: var(--cco-status-info, #4a7ba8);
+  }
 
   /* "NU HH:MM"-badge i todays kolumn-header i vecka-vyn. */
   .cco-cal-now-badge {
@@ -887,20 +932,22 @@
     font-weight: var(--cco-weight-regular, 400);
   }
 
-
   /* === R4 (2026-05-26): veckosammanfattning, print-knapp, kortkommandon ===== */
 
   /* Veckosammanfattning högst upp i vecka-vyn — speglar mailbox-summary-känsla. */
+  /* R9 (2026-05-28): ramlös busy/veckosammanfattning — en platt zon på
+   * skalet, avskild med en tunn hårlinje istället för en egen kort-ram. */
   .cco-cal-week-summary {
     display: flex;
     flex-direction: column;
     gap: var(--cco-space-3, 12px);
-    padding: var(--cco-space-3, 12px) var(--cco-space-4, 16px);
+    padding: 0 2px var(--cco-space-3, 12px);
     margin-bottom: var(--cco-space-3, 12px);
-    background: linear-gradient(180deg, var(--panel-card-top, rgba(255, 255, 255, 0.9)) 0%, var(--panel-card-bottom, rgba(247, 241, 236, 0.84)) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    border-radius: 16px;
-    box-shadow: var(--panel-card-shadow);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--cco-cal-border);
+    border-radius: 0;
+    box-shadow: none;
     font-size: var(--cco-text-sm, 12px);
     color: var(--cco-text-secondary, #5d544a);
   }
@@ -928,9 +975,15 @@
     color: var(--cco-text-primary, #2b251f);
     font-variant-numeric: tabular-nums;
   }
-  .cco-cal-week-summary-item.is-confirmed strong { color: var(--cco-status-success, #4a8268); }
-  .cco-cal-week-summary-item.is-tentative strong { color: var(--cco-status-warning, #c8821e); }
-  .cco-cal-week-summary-item.is-conflict strong { color: var(--cco-status-danger, #b94a4a); }
+  .cco-cal-week-summary-item.is-confirmed strong {
+    color: var(--cco-status-success, #4a8268);
+  }
+  .cco-cal-week-summary-item.is-tentative strong {
+    color: var(--cco-status-warning, #c8821e);
+  }
+  .cco-cal-week-summary-item.is-conflict strong {
+    color: var(--cco-status-danger, #b94a4a);
+  }
 
   /* Print-knapp: dämpad, separerad från nav-knappar. */
   .cco-cal-nav-btn-print {
@@ -971,7 +1024,6 @@
     }
   }
 
-
   /* === R4-13 (2026-05-26): kapacitetsöversikt per behandlare ===== */
   .cco-cal-capacity {
     display: grid;
@@ -1008,7 +1060,8 @@
     width: var(--util-pct, 0%);
     background: var(--cco-color-accent, #4a8268);
     border-radius: var(--cco-radius-full, 9999px);
-    transition: width var(--cco-duration-normal, 240ms) var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1));
+    transition: width var(--cco-duration-normal, 240ms)
+      var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1));
   }
   .cco-cal-capacity-row[data-util-tone="warn"] .cco-cal-capacity-bar > span {
     background: var(--cco-status-warning, #c8821e);
@@ -1032,9 +1085,10 @@
     .cco-cal-capacity-row {
       grid-template-columns: 80px 1fr 36px;
     }
-    .cco-cal-capacity-hours { display: none; }
+    .cco-cal-capacity-hours {
+      display: none;
+    }
   }
-
 
   /* === R4-final (2026-05-26): källfärg på rail + expiry-pulse ===== */
 
@@ -1057,9 +1111,21 @@
 
   /* Expiry-pulse: tentativ bokning nära expiresAt får pulsande warning-ring. */
   @keyframes cco-cal-expiry-pulse {
-    0%   { box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43,37,31,0.08)), 0 0 0 0 var(--cco-status-warning, #c8821e); }
-    70%  { box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43,37,31,0.08)), 0 0 0 6px rgba(200, 130, 30, 0); }
-    100% { box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43,37,31,0.08)), 0 0 0 0 rgba(200, 130, 30, 0); }
+    0% {
+      box-shadow:
+        var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08)),
+        0 0 0 0 var(--cco-status-warning, #c8821e);
+    }
+    70% {
+      box-shadow:
+        var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08)),
+        0 0 0 6px rgba(200, 130, 30, 0);
+    }
+    100% {
+      box-shadow:
+        var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08)),
+        0 0 0 0 rgba(200, 130, 30, 0);
+    }
   }
   .cco-cal-event.is-expiring {
     border-color: var(--cco-status-warning, #c8821e);
@@ -1082,7 +1148,9 @@
   @media (prefers-reduced-motion: reduce) {
     .cco-cal-event.is-expiring {
       animation: none;
-      box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43,37,31,0.08)), 0 0 0 2px var(--cco-status-warning, #c8821e);
+      box-shadow:
+        var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08)),
+        0 0 0 2px var(--cco-status-warning, #c8821e);
     }
   }
 
@@ -1096,7 +1164,7 @@
       padding: var(--cco-space-3, 12px);
     }
 
-    .cco-cal-body[data-detail-open='true'] {
+    .cco-cal-body[data-detail-open="true"] {
       grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
     }
 
@@ -1146,5 +1214,4 @@
     background: #14b8a6;
     box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.15);
   }
-
 }
