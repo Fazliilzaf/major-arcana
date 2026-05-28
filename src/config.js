@@ -173,6 +173,10 @@ const ccoNextRedirectHosts = (() => {
     .filter(Boolean);
   return configured.length > 0 ? configured : ['arcana-qsiu.onrender.com'];
 })();
+const defaultLegacyHostRedirects = {
+  'arcana.hairtpclinic.se': 'https://arcana.hairtpclinic.com',
+  'ma.hairtpclinic.se': 'https://arcana.hairtpclinic.com',
+};
 const nodeEnv = asNonEmptyString(process.env.NODE_ENV, 'development').toLowerCase();
 const isProduction = nodeEnv === 'production';
 const aiProviderDefault =
@@ -199,6 +203,14 @@ const config = {
   publicBaseUrl,
   ccoNextCanonicalOrigin,
   ccoNextRedirectHosts,
+  legacySeHostRedirectEnabled: asBool(
+    process.env.ARCANA_LEGACY_SE_HOST_REDIRECT_ENABLED,
+    isProduction
+  ),
+  legacyHostRedirects: asJsonObject(
+    process.env.ARCANA_LEGACY_HOST_REDIRECTS,
+    defaultLegacyHostRedirects
+  ),
   brand,
   brandByHost,
   defaultMailbox,
