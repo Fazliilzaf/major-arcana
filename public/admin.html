@@ -1586,6 +1586,7 @@
       /* Fas C — inline contextual docs per section */
       .section-docs-card {
         margin-top: 14px;
+        grid-column: 1 / -1;
         border-color: rgba(255, 233, 212, 0.45);
         background:
           linear-gradient(160deg, rgba(255, 240, 228, 0.1), rgba(255, 220, 196, 0.05)),
@@ -2475,6 +2476,14 @@
             <button class="btn small sectionNavBtn" data-target="cmSection" data-i18n="nav_cm">
               CM
             </button>
+            <button
+              class="btn small sectionNavBtn"
+              data-target="caoSection"
+              data-i18n="nav_docs"
+              title="Dokumentation — hoppar till CAO-översikten"
+            >
+              Docs
+            </button>
           </nav>
         </div>
 
@@ -2590,7 +2599,12 @@
         </section>
 
         <!-- CM Corporate Expense Management -->
-        <section data-section-group="cmSection" hidden aria-hidden="true">
+        <section
+          data-section-group="cmSection"
+          data-docs-section="compliance"
+          hidden
+          aria-hidden="true"
+        >
           <h2 style="margin-bottom: 16px">CM — Corporate Expense Management</h2>
           <div class="kpiRow" id="cmKpiRow">
             <div class="kpiCard">
@@ -3520,6 +3534,7 @@
           id="opsSection"
           class="row cols-3"
           data-section-group="opsSection"
+          data-docs-section="ops"
           style="margin-top: 14px"
         >
           <section class="panel">
@@ -3848,6 +3863,7 @@
         <section
           id="templateLifecycleSection"
           data-section-group="templateLifecycleSection"
+          data-docs-section="booking"
           class="panel"
           style="margin-top: 14px"
         >
@@ -4098,6 +4114,7 @@
         <section
           id="cooSection"
           data-section-group="cooSection"
+          data-docs-section="coo"
           class="panel"
           style="margin-top: 14px"
         >
@@ -4246,6 +4263,7 @@
         <section
           id="caoAdminWorkspaceSection"
           data-section-group="caoSection"
+          data-docs-section="cao"
           class="panel"
           style="margin-top: 14px"
         >
@@ -4337,6 +4355,7 @@
         <section
           id="cfoSection"
           data-section-group="cfoSection"
+          data-docs-section="cfo"
           class="panel"
           style="margin-top: 14px"
         >
@@ -4389,6 +4408,7 @@
         <section
           id="cmoSection"
           data-section-group="cmoSection"
+          data-docs-section="cmo"
           class="panel"
           style="margin-top: 14px"
         >
@@ -5685,6 +5705,17 @@ const BOOKING_STATUSES = Object.freeze([
         // Minimal, safe Markdown → HTML (escape first, then format).
         function markdownToHtml(md) {
           var lines = esc(md).replace(/\r\n/g, '\n').split('\n');
+          // Strip YAML frontmatter (--- … ---) at the very top.
+          if (lines[0] === '---') {
+            var close = -1;
+            for (var f = 1; f < lines.length; f += 1) {
+              if (lines[f] === '---') {
+                close = f;
+                break;
+              }
+            }
+            if (close !== -1) lines = lines.slice(close + 1);
+          }
           var out = [];
           var i = 0;
           while (i < lines.length) {

@@ -162,12 +162,17 @@ legal-docs vid GDPR-vyn, osv.
 - [x] Steg 1 — reusable inline-docs-widget byggd (vanilla JS i `public/admin.html`):
   varje element med `[data-docs-section="<id>"]` får en collapse-lista över
   sektionens dokument; varje dok lazy-laddar sitt innehåll på första öppning
-  (lätt markdown-rendering, escape-first, inga nya beroenden).
-- [~] Steg 2 — mockup monterad på **Översikt**-sektionen (admin saknar en egen
-  "Journal"-vy — journal bor i `/staff` — så Översikt valdes som mest synlig
-  mockup). **Väntar på Fazlis visuella godkännande** innan rollout.
-- [ ] Steg 3 — rulla ut `[data-docs-section]` till övriga sektioner (booking,
-  ops, coo, cao, cfo, cmo, compliance). Rollout = lägg till attributet, ingen
-  ny JS.
-- [ ] Steg 4 — behåll CAO-Workspace-fliken som översikt-vy (orörd).
-- [ ] Steg 5 — topp-nivå "Docs"-länk i admin.
+  (lätt markdown-rendering, escape-first + YAML-frontmatter strippas, inga nya
+  beroenden).
+- [x] Steg 2 — mockup godkänd visuellt av Fazli (monterad först på **Översikt**;
+  admin saknar en egen "Journal"-vy — journal bor i `/staff`).
+- [x] Steg 3 — utrullad till övriga sektioner via `data-docs-section`-attribut
+  direkt på sektionselementen (booking, ops, coo, cao, cfo, cmo, compliance).
+  Rent additivt, ingen ny JS. Kortet får `grid-column: 1 / -1` så det spänner
+  full bredd även i grid-sektioner (ops).
+- [x] Steg 4 — CAO-Workspace-fliken orörd (kvar som översikt-vy).
+- [x] Steg 5 — topp-nivå "Docs"-länk i sektionsnavet som hoppar till
+  CAO-översikten (`data-target="caoSection"`).
+
+**Kvar:** visuell verifiering i riktiga `/admin` efter deploy, sedan markera
+Fas C klar.
