@@ -307,6 +307,7 @@ async function createCcoMailboxTruthStore({
   filePath = '',
   maxSyncRuns = 200,
   deferConversationRebuild = false,
+  deferInitialSave = false,
 } = {}) {
   const resolvedPath = path.resolve(String(filePath || '').trim());
   if (!resolvedPath) throw new Error('ccoMailboxTruthStore filePath saknas.');
@@ -1224,7 +1225,7 @@ async function createCcoMailboxTruthStore({
     };
   }
 
-  if (initialStateMutated) {
+  if (initialStateMutated && deferInitialSave !== true) {
     await save();
   } else {
     state.updatedAt = nowIso();

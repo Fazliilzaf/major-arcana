@@ -14,6 +14,13 @@ function encodeMailboxId(mailboxId = '') {
   return normalized.replace(/[^a-z0-9]+/g, '_');
 }
 
+function decodeMailboxIdFromShardFileName(fileName = '') {
+  const stem = String(fileName).replace(/\.json$/i, '');
+  const match = stem.match(/^(.+)_hairtpclinic_com$/i);
+  if (!match) return '';
+  return `${match[1]}@hairtpclinic.com`.toLowerCase();
+}
+
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
@@ -201,6 +208,34 @@ async function createCcoMailboxTruthShardedStore({
     return store;
   }
 
+  function registerShardMailboxes(entryName = '', store, target = []) {
+    const mailboxIdsForShard = asArray(target)
+      .map((item) => normalizeMailboxId(item))
+      .filter(Boolean);
+    if (mailboxIdsForShard.length === 0) {
+      const report = store.getCompletenessReport({ mailboxIds: [] });
+      mailboxIdsForShard.push(
+        ...asArray(report.accountReports)
+          .map((account) => normalizeMailboxId(account.mailboxId))
+          .filter(Boolean)
+      );
+    }
+    if (mailboxIdsForShard.length === 0) {
+      const sample = store.listMessages({ limit: 1 })[0];
+      if (sample?.mailboxId) {
+        mailboxIdsForShard.push(normalizeMailboxId(sample.mailboxId));
+      }
+    }
+    const fromFileName = decodeMailboxIdFromShardFileName(entryName);
+    if (fromFileName) {
+      mailboxIdsForShard.push(fromFileName);
+    }
+    for (const mailboxId of [...new Set(mailboxIdsForShard)]) {
+      shardCache.set(mailboxId, store);
+    }
+    return [...new Set(mailboxIdsForShard)];
+  }
+
   async function preloadShards() {
     const entries = await fs.readdir(mailboxesDir, { withFileTypes: true });
     for (const entry of entries) {
@@ -208,23 +243,22 @@ async function createCcoMailboxTruthShardedStore({
         continue;
       }
       const shardPath = path.join(mailboxesDir, entry.name);
-      const store = await createCcoMailboxTruthStore({
-        filePath: shardPath,
-        maxSyncRuns,
-        deferConversationRebuild: true,
-      });
-      const report = store.getCompletenessReport({ mailboxIds: [] });
-      const mailboxIdsForShard = asArray(report.accountReports)
-        .map((account) => normalizeMailboxId(account.mailboxId))
-        .filter(Boolean);
-      if (mailboxIdsForShard.length === 0) {
-        const sample = store.listMessages({ limit: 1 })[0];
-        if (sample?.mailboxId) {
-          mailboxIdsForShard.push(normalizeMailboxId(sample.mailboxId));
-        }
-      }
-      for (const mailboxId of mailboxIdsForShard) {
-        shardCache.set(mailboxId, store);
+      try {
+        const store = await createCcoMailboxTruthStore({
+          filePath: shardPath,
+          maxSyncRuns,
+          deferConversationRebuild: true,
+          deferInitialSave: true,
+        });
+        registerShardMailboxes(entry.name, store);
+      } catch (error) {
+        console.warn(
+          '[cco_mailbox_truth_store] Kunde inte preloada shard',
+          JSON.stringify({
+            shardPath,
+            message: error?.message || String(error),
+          })
+        );
       }
     }
   }
@@ -308,10 +342,25 @@ async function createCcoMailboxTruthShardedStore({
     });
   }
 
+  async function ensureMailboxLoaded(mailboxId = '') {
+    const safeMailboxId = normalizeMailboxId(mailboxId);
+    if (!safeMailboxId) return null;
+    if (shardCache.has(safeMailboxId)) {
+      return shardCache.get(safeMailboxId);
+    }
+    return loadShard(safeMailboxId);
+  }
+
+  function listLoadedMailboxes() {
+    return [...shardCache.keys()].sort();
+  }
+
   return {
     filePath: resolvedBase,
     sharded: true,
     migration,
+    ensureMailboxLoaded,
+    listLoadedMailboxes,
     startBackfillRun,
     startDeltaRun,
     async resetFolder(mailboxId = '', folderType = '') {
@@ -481,5 +530,6 @@ async function createCcoMailboxTruthShardedStore({
 module.exports = {
   createCcoMailboxTruthShardedStore,
   encodeMailboxId,
+  decodeMailboxIdFromShardFileName,
   sliceMonolithStateForMailbox,
 };
