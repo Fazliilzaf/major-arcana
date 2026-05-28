@@ -115,25 +115,38 @@
     shell.className = "cco-cal-workstation";
     shell.hidden = true;
     shell.innerHTML = `
-      <header class="cco-cal-toolbar">
-        <div class="cco-cal-toolbar-brand">
-          <p class="cco-cal-kicker">Hair TP · Mottagning</p>
+      <header class="cco-cal-toolbar studio-toolbar">
+        <div class="cco-cal-toolbar-main studio-toolbar-main">
+          <span class="studio-toolbar-kicker">KALENDER</span>
+          <span class="studio-mark cco-cal-mark" aria-hidden="true">
+            <svg viewBox="0 0 16 16"><rect x="2.6" y="3.4" width="10.8" height="10" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.4v2M10.8 2.4v2M2.7 6.4h10.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.3"/></svg>
+          </span>
           <h2 data-cal-title>Veckokalender</h2>
+          <span class="studio-status-pill studio-status-pill-green cco-cal-pill" data-cal-pill-confirmed hidden></span>
+          <span class="studio-status-pill studio-status-pill-gold cco-cal-pill" data-cal-pill-tentative hidden></span>
+          <span class="studio-status-pill studio-status-pill-neutral cco-cal-pill" data-cal-pill-open hidden></span>
+          <span class="studio-status-pill cco-cal-pill-rose cco-cal-pill" data-cal-pill-conflict hidden></span>
         </div>
-        <div class="cco-cal-segments" role="tablist" aria-label="Kalendervy">
-          <button class="cco-cal-segment is-active" type="button" role="tab" data-cal-view="week" aria-selected="true">Vecka</button>
-          <button class="cco-cal-segment" type="button" role="tab" data-cal-view="day" aria-selected="false">Dag</button>
-          <button class="cco-cal-segment" type="button" role="tab" data-cal-view="resource" aria-selected="false">Resurs</button>
-        </div>
-        <div class="cco-cal-filters" data-cal-filters aria-label="Resursfilter"></div>
-        <div class="cco-cal-filters cco-cal-filters-type" data-cal-type-filters aria-label="Behandlingstypfilter"></div>
-        <div class="cco-cal-nav">
-          <button class="cco-cal-nav-btn" type="button" data-cal-prev title="Föregående (←)">Föregående</button>
-          <button class="cco-cal-nav-btn" type="button" data-cal-today title="Idag (T)">Idag</button>
-          <button class="cco-cal-nav-btn" type="button" data-cal-next title="Nästa (→)">Nästa</button>
-          <button class="cco-cal-nav-btn cco-cal-nav-btn-print" type="button" data-cal-print title="Skriv ut (P)">Skriv ut</button>
+        <div class="cco-cal-toolbar-actions studio-toolbar-actions">
+          <div class="cco-cal-segments" role="tablist" aria-label="Kalendervy">
+            <button class="cco-cal-segment is-active" type="button" role="tab" data-cal-view="week" aria-selected="true">Vecka</button>
+            <button class="cco-cal-segment" type="button" role="tab" data-cal-view="day" aria-selected="false">Dag</button>
+            <button class="cco-cal-segment" type="button" role="tab" data-cal-view="resource" aria-selected="false">Resurs</button>
+          </div>
+          <div class="cco-cal-nav">
+            <button class="cco-cal-nav-btn" type="button" data-cal-prev title="Föregående (←)" aria-label="Föregående">‹</button>
+            <button class="cco-cal-nav-btn" type="button" data-cal-today title="Idag (T)">Idag</button>
+            <button class="cco-cal-nav-btn" type="button" data-cal-next title="Nästa (→)" aria-label="Nästa">›</button>
+            <button class="cco-cal-nav-btn cco-cal-nav-btn-print" type="button" data-cal-print title="Skriv ut (P)" aria-label="Skriv ut">
+              <svg viewBox="0 0 16 16" aria-hidden="true" width="14" height="14"><path d="M5 6V2.8h6V6M4 6h8a1 1 0 0 1 1 1v3.4a1 1 0 0 1-1 1h-1V9.4H5v3H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm1 3.4h6v3.8H5Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
         </div>
       </header>
+      <div class="cco-cal-filter-bar">
+        <div class="cco-cal-filters" data-cal-filters aria-label="Resursfilter"></div>
+        <div class="cco-cal-filters cco-cal-filters-type" data-cal-type-filters aria-label="Behandlingstypfilter"></div>
+      </div>
       <div class="cco-cal-body" data-cal-body>
         <div class="cco-cal-grid-wrap" data-cal-grid-wrap>
           <div class="cco-cal-empty">Hämtar kalender…</div>
@@ -157,8 +170,19 @@
                   <p data-cal-detail-subline>—</p>
                 </div>
               </div>
+              <div class="cco-cal-detail-reco" data-cal-detail-reco hidden>
+                <span class="cco-cal-detail-reco-kicker">Rekommenderat drag</span>
+                <strong data-cal-detail-reco-title>—</strong>
+                <p data-cal-detail-reco-copy>—</p>
+              </div>
               <div class="focus-intel-grid" data-cal-detail-grid></div>
+              <div class="cco-cal-detail-signals" data-cal-detail-signals hidden aria-label="Påminnelser och signaler">
+                <span class="cco-cal-detail-signals-kicker">Påminnelser &amp; signaler</span>
+                <ul data-cal-detail-signal-list></ul>
+              </div>
               <div class="focus-intel-action-row" data-cal-detail-actions aria-label="Bokningsåtgärder">
+                <button class="quick-action-pill quick-action-pill--studio" type="button" data-cal-action="studio">Svarstudio</button>
+                <button class="quick-action-pill quick-action-pill--note" type="button" data-cal-action="note">Smart anteckning</button>
                 <button class="quick-action-pill" type="button" data-cal-action="case">Bokningsärende</button>
                 <button class="quick-action-pill" type="button" data-cal-action="customer">Kundkort</button>
                 <button class="quick-action-pill" type="button" data-cal-action="journal">Journal</button>
@@ -495,6 +519,11 @@
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
+  // R8: AI nästa-steg — delegerar till delade heuristiken (shared).
+  function recommendNextAction(event) {
+    return shared()?.recommendBookingNextAction?.(event) || null;
+  }
+
   // R2: ersätter platt list-meta med Kundintelligens-mönstret:
   // monogram + namn + status-pill + 2-kolumns grid + action-row med quick-action-pills.
   function renderDetailPanel() {
@@ -511,6 +540,13 @@
     const customerBtn = shell.querySelector('[data-cal-action="customer"]');
     const journalBtn = shell.querySelector('[data-cal-action="journal"]');
     const bookBtn = shell.querySelector('[data-cal-action="book"]');
+    const studioBtn = shell.querySelector('[data-cal-action="studio"]');
+    const noteBtn = shell.querySelector('[data-cal-action="note"]');
+    const recoEl = shell.querySelector("[data-cal-detail-reco]");
+    const recoTitleEl = shell.querySelector("[data-cal-detail-reco-title]");
+    const recoCopyEl = shell.querySelector("[data-cal-detail-reco-copy]");
+    const signalsEl = shell.querySelector("[data-cal-detail-signals]");
+    const signalListEl = shell.querySelector("[data-cal-detail-signal-list]");
     if (!detail || !titleEl) return;
 
     if (!selectedEvent) {
@@ -525,6 +561,9 @@
       }
       if (sublineEl) sublineEl.textContent = "—";
       if (gridEl) gridEl.innerHTML = "";
+      if (recoEl) recoEl.hidden = true;
+      if (signalsEl) signalsEl.hidden = true;
+      if (signalListEl) signalListEl.innerHTML = "";
       return;
     }
 
@@ -575,13 +614,7 @@
         ["waiting", "STATUS", statusText],
         ["followup", "PLATS", selectedEvent.locationLabel || selectedEvent.location || "—"],
       ];
-      const signals =
-        isBooked && s.formatCalendarSignalSummary
-          ? s
-              .formatCalendarSignalSummary(selectedEvent)
-              .map(([label, value]) => ["risk", String(label).toUpperCase(), value])
-          : [];
-      gridEl.innerHTML = [...items, ...signals]
+      gridEl.innerHTML = items
         .map(
           ([kind, label, value]) =>
             `<div class="focus-intel-item focus-intel-item-${kind}"><span class="focus-intel-label">${s.escapeHtml(label)}</span><strong>${s.escapeHtml(value || "—")}</strong></div>`
@@ -589,9 +622,41 @@
         .join("");
     }
 
+    // R8: påminnelser & signaler i eget block (tidigare inklämt i griden).
+    const signalRows =
+      isBooked && s.formatCalendarSignalSummary ? s.formatCalendarSignalSummary(selectedEvent) : [];
+    if (signalsEl && signalListEl) {
+      if (signalRows.length) {
+        signalsEl.hidden = false;
+        signalListEl.innerHTML = signalRows
+          .map(
+            ([label, value]) =>
+              `<li><span>${s.escapeHtml(label)}</span><strong>${s.escapeHtml(value)}</strong></li>`
+          )
+          .join("");
+      } else {
+        signalsEl.hidden = true;
+        signalListEl.innerHTML = "";
+      }
+    }
+
+    // R8: AI nästa-steg — härlett ur signaler/status.
+    const reco = recommendNextAction(selectedEvent);
+    if (recoEl && recoTitleEl && recoCopyEl) {
+      if (reco) {
+        recoEl.hidden = false;
+        recoTitleEl.textContent = reco.title;
+        recoCopyEl.textContent = reco.copy;
+      } else {
+        recoEl.hidden = true;
+      }
+    }
+
     if (caseBtn) caseBtn.hidden = !isBooked;
     if (customerBtn) customerBtn.hidden = !isBooked;
     if (journalBtn) journalBtn.hidden = !isBooked;
+    if (studioBtn) studioBtn.hidden = !isBooked;
+    if (noteBtn) noteBtn.hidden = !isBooked;
     if (bookBtn) bookBtn.hidden = isBooked;
   }
 
@@ -761,6 +826,53 @@
     });
   }
 
+  // R8: status-pills i toolbaren — speglar veckans/dagens totals i studio-stil.
+  function computeRangeTotals(slots) {
+    const s = shared();
+    let confirmed = 0;
+    let tentative = 0;
+    let openCount = 0;
+    (slots || []).forEach((slot) => {
+      if (slot?.kind === "available") {
+        openCount += 1;
+        return;
+      }
+      if (slot?.kind !== "booked") return;
+      const st = String(slot?.status || slot?.caseStatus || "").toLowerCase();
+      if (st.includes("confirm") || st.includes("bekräft")) confirmed += 1;
+      else tentative += 1;
+    });
+    const conflict = s.findConflictKeys(slots || []).size;
+    return { confirmed, tentative, openCount, conflict };
+  }
+
+  function setToolbarPill(shell, key, count, label) {
+    const el = shell.querySelector(`[data-cal-pill-${key}]`);
+    if (!el) return;
+    if (!count) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.innerHTML = `<strong>${count}</strong> ${shared().escapeHtml(label)}`;
+  }
+
+  function updateToolbarPills() {
+    const shell = ensureShell();
+    let slots;
+    if (viewMode === "week") {
+      const days = Array.from({ length: 7 }, (_, index) => addDays(viewAnchor, index));
+      slots = days.flatMap((day) => filterSlots(slotsByDate.get(isoFromDate(day)) || []));
+    } else {
+      slots = filterSlots(slotsByDate.get(selectedDayIso) || []);
+    }
+    const totals = computeRangeTotals(slots);
+    setToolbarPill(shell, "confirmed", totals.confirmed, "bekräftade");
+    setToolbarPill(shell, "tentative", totals.tentative, "tentativa");
+    setToolbarPill(shell, "open", totals.openCount, "lediga");
+    setToolbarPill(shell, "conflict", totals.conflict, "konflikt");
+  }
+
   function renderGrid() {
     const shell = ensureShell();
     const title = shell.querySelector("[data-cal-title]");
@@ -785,6 +897,7 @@
 
     bindCalendarInteractions(wrap);
     renderDetailPanel();
+    updateToolbarPills();
   }
 
   async function refresh() {
@@ -817,6 +930,14 @@
     if (!selectedEvent) return;
     if (action === "case") {
       actions?.openBookingCase?.(selectedEvent.bookingCaseSnapshot || selectedEvent);
+      return;
+    }
+    if (action === "studio") {
+      actions?.openStudioForBooking?.(selectedEvent.bookingCaseSnapshot || selectedEvent);
+      return;
+    }
+    if (action === "note") {
+      actions?.openNoteForBooking?.(selectedEvent.bookingCaseSnapshot || selectedEvent);
       return;
     }
     if (action === "customer") {

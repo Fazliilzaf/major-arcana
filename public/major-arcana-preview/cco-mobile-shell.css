@@ -2723,18 +2723,46 @@
       cursor: pointer;
     }
 
+    /* R8 (2026-05-28): studio/note-ytan på mobilkalendern. */
     .cco-mobile-calendar-panel {
       position: relative;
       width: 100%;
       max-height: min(92dvh, 760px);
       display: flex;
       flex-direction: column;
-      border-radius: 16px 16px 0 0;
-      background: var(--cco-bg-surface, #fff);
-      box-shadow: var(--cco-shadow-xl);
+      border-radius: 28px 28px 0 0;
+      background:
+        radial-gradient(circle at 18% 6%, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0) 30%),
+        linear-gradient(180deg, var(--panel-shell-top, rgba(248, 244, 240, 0.94)) 0%, var(--panel-shell-bottom, rgba(242, 236, 231, 0.9)) 100%);
+      box-shadow: var(--panel-shell-shadow-strong, var(--cco-shadow-xl));
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
       transform: translateY(110%);
       transition: transform 140ms var(--cco-ease-out, ease-out);
       padding-bottom: env(safe-area-inset-bottom, 0px);
+      /* varm palett-scope */
+      --cco-color-accent: var(--accent-studio, #bb4779);
+      --cco-color-accent-soft: rgba(187, 71, 121, 0.45);
+    }
+
+    .cco-mobile-calendar-head-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .cco-mobile-calendar-mark {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-studio, #bb4779);
+    }
+    .cco-mobile-calendar-mark svg {
+      width: 18px;
+      height: 18px;
     }
 
     .cco-mobile-calendar-sheet[data-open="true"] .cco-mobile-calendar-panel {
@@ -2810,7 +2838,114 @@
       min-width: 44px;
       font-size: 14px;
       font-weight: 700;
-      color: var(--cco-status-success, #4a8268);
+      color: var(--accent-studio, #bb4779);
+    }
+
+    /* R8: vald-tid-detalj i mobilkalendern (smarta funktioner). */
+    .cco-mobile-calendar-detail {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 10px var(--cco-mobile-gutter, 16px) 16px;
+    }
+    .cco-mobile-calendar-detail[hidden] {
+      display: none !important;
+    }
+    .cco-mobile-calendar-panel[data-detail-open="true"] [data-calendar-month],
+    .cco-mobile-calendar-panel[data-detail-open="true"] [data-calendar-list],
+    .cco-mobile-calendar-panel[data-detail-open="true"] [data-calendar-next] {
+      display: none !important;
+    }
+    .cco-mobile-calendar-detail-back {
+      align-self: flex-start;
+      border: 0;
+      background: transparent;
+      color: var(--accent-studio, #bb4779);
+      font-size: 14px;
+      font-weight: 650;
+      padding: 4px 0;
+      cursor: pointer;
+    }
+    .cco-mobile-calendar-detail-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .cco-mobile-calendar-detail-head strong {
+      font-size: 17px;
+      color: var(--cco-text-primary, #2b251f);
+    }
+    .cco-mobile-calendar-detail-status {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-studio, #bb4779);
+      white-space: nowrap;
+    }
+    .cco-mobile-calendar-detail-sub {
+      margin: 0;
+      font-size: 13px;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+    .cco-mobile-calendar-detail-reco {
+      display: grid;
+      gap: 3px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(164, 70, 112, 0.22);
+      background: linear-gradient(180deg, rgba(252, 233, 240, 0.7) 0%, rgba(248, 236, 240, 0.5) 100%);
+    }
+    .cco-mobile-calendar-detail-reco[hidden] {
+      display: none !important;
+    }
+    .cco-mobile-calendar-detail-reco span {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #a1366a;
+    }
+    .cco-mobile-calendar-detail-reco strong {
+      font-size: 14px;
+      color: var(--cco-text-primary, #2b251f);
+    }
+    .cco-mobile-calendar-detail-reco p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+    .cco-mobile-calendar-detail-signals {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 4px;
+    }
+    .cco-mobile-calendar-detail-signals li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    .cco-mobile-calendar-detail-signals li span {
+      color: var(--cco-text-secondary, #5d544a);
+    }
+    .cco-mobile-calendar-detail-actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .cco-mobile-calendar-detail-actions .cco-mobile-cal-studio {
+      background: linear-gradient(180deg, rgba(156, 104, 68, 0.95) 0%, rgba(164, 70, 112, 0.96) 100%);
+      color: rgba(255, 248, 251, 0.98);
+      border-color: rgba(164, 70, 112, 0.55);
     }
 
     .cco-mobile-calendar-copy {
