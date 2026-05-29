@@ -1,0 +1,39 @@
+{
+  "$schema": "https://major-arcana.local/schemas/meridiq-brand-overrides-v1.json",
+  "description": "Brand-override-tabell för Meridiq-import. Källa: docs/strategy/CONSENT-AGREEMENT-AFTERCARE-FLOW.md Del A.3. Använd av scripts/import-meridiq-content.js för att skriva om felaktigt brand-taggade Meridiq-mallar. Audit-event 'compliance.brand_override_applied' emittas per override.",
+  "version": "1.0.0",
+  "lastUpdated": "2026-05-29",
+  "lastUpdatedBy": "meridiq-journey-extraction-audit",
+  "rationale": "Meridiq har Hair TP Clinic som default-brand på äldre samtycken/avtal som faktiskt säljs som Curatiio (eller av båda). CCO måste tagga korrekt brand vid import — annars riskerar Curatiio-patient få Hair TP-avtal vilket bryter wrong_brand_flow-blockern (Steg 3.4).",
+  "overrides": {
+    "consent": {
+      "152981": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Botulinumtoxin ENG", "reason": "Botox säljs endast av Curatiio", "boundServices": [] },
+      "152988": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Botulinumtoxin SWE", "reason": "Botox säljs endast av Curatiio", "boundServices": [] },
+      "152995": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Fat dissolving injection ENG", "reason": "Fettuplösande säljs endast av Curatiio", "boundServices": [] },
+      "152996": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Fettuplösande injektioner SWE", "reason": "Fettuplösande säljs endast av Curatiio", "boundServices": [] },
+      "152998": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "shared", "title": "Microneedling SWE", "reason": "Microneedling säljs av båda brands (Hair TP + Curatiio)", "boundServices": ["7121", "7392", "7393", "7394", "7395", "7396"] },
+      "152999": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Plasma Pen ENG", "reason": "Plasma Pen säljs endast av Curatiio", "boundServices": [] },
+      "153000": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Plasma Pen SWE (v1)", "reason": "Plasma Pen säljs endast av Curatiio. OBS duplikat-flagga vs 153001", "boundServices": [], "duplicateOf": "153001" },
+      "153001": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Plasma Pen SWE (v2)", "reason": "Plasma Pen säljs endast av Curatiio. OBS duplikat-flagga vs 153000", "boundServices": [], "duplicateOf": "153000" },
+      "153002": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Profhilo ENG", "reason": "Profhilo säljs endast av Curatiio", "boundServices": [] },
+      "153003": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Profhilo SWE", "reason": "Profhilo säljs endast av Curatiio", "boundServices": [] },
+      "170944": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Behandlingsavtal PRP hud", "reason": "PRP hud säljs som Curatiio-behandling", "boundServices": ["7117", "7118", "7119", "7120", "7121", "7122"] },
+      "170946": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "shared", "title": "Behandlingsavtal Microneedling och PRP", "reason": "Kombo Microneedling+PRP säljs av båda brands", "boundServices": ["7121", "7392", "7393", "7394", "7395", "7396"] },
+      "170947": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Behandlingsavtal PRF hud", "reason": "PRF hud säljs som Curatiio-behandling", "boundServices": [] },
+      "170948": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Behandlingsavtal Profilho", "reason": "Profhilo säljs endast av Curatiio", "boundServices": ["7379", "7380", "7381"] },
+      "170951": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Behandlingsavtal PRP hud Curatiio", "reason": "Titel anger Curatiio explicit", "boundServices": [] },
+      "170952": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Behandlingsavtal PRF hud Curatiio", "reason": "Titel anger Curatiio explicit", "boundServices": [] },
+      "170953": { "meridiqBrand": "Hair TP Clinic", "ccoBrand": "curatiio", "title": "Behandlingsavtal PRP och Microneedling Curatiio", "reason": "Titel anger Curatiio explicit", "boundServices": [] }
+    },
+    "questionary": {},
+    "journalSchema": {}
+  },
+  "stats": {
+    "totalOverrides": 17,
+    "byTargetBrand": {
+      "curatiio": 15,
+      "shared": 2
+    },
+    "duplicatesFlagged": 2
+  }
+}
