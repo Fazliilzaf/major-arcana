@@ -110,7 +110,7 @@ async function testWrongBrandFlow(treatmentKey, badAgreementBrand) {
 
 function testBrandOverridesPersisted() {
   console.log('\n▶ Test: 17/17 brand-overrides persisted i data/cco-templates.json');
-  const tpls = Object.values(ccoTemplates.templates || {});
+  const tpls = Object.values(ccoTemplates.templates || {}); // lookup via meridiqMeta.apiId, så Object.values funkar här
   const overrideTable = brandOverrides.overrides?.consent || {};
   const apiIds = Object.keys(overrideTable);
   assert(apiIds.length === 17, 'override-tabellen har 17 entries');
@@ -132,6 +132,55 @@ function testBrandOverridesPersisted() {
   assert(mismatched === 0, '0 brand-mismatches (alla ' + found + ' har korrekt brand)');
 }
 
+function testSharePointImport() {
+  console.log('\n▶ Test: SharePoint Fas C-import löste MISSING_TEMPLATE-flaggor');
+  const allTpls = Object.values(ccoTemplates.templates || {});
+  // Bygg id-baserad lookup eftersom objektnycklar är numeriska 0,1,2...
+  const tpls = {};
+  allTpls.forEach((t) => { if (t.templateId) tpls[t.templateId] = t; });
+
+  // Profhilo patient_info ska finnas med content
+  const profhiloInfo = tpls['patient_info_profhilo'];
+  assert(!!profhiloInfo, 'patient_info_profhilo finns');
+  if (profhiloInfo) {
+    const bodyLen = (profhiloInfo.body?.sv || '').length;
+    assert(bodyLen > 5000, 'patient_info_profhilo body ≥5000 chars (fick: ' + bodyLen + ')');
+    assert(!!profhiloInfo.sharePointMeta, 'patient_info_profhilo har sharePointMeta');
+  }
+
+  // Orthopedics PRP patient_info ska finnas
+  const orthoInfo = tpls['patient_info_orthopedics_prp'];
+  assert(!!orthoInfo, 'patient_info_orthopedics_prp finns');
+  if (orthoInfo) {
+    const bodyLen = (orthoInfo.body?.sv || '').length;
+    assert(bodyLen > 5000, 'patient_info_orthopedics_prp body ≥5000 chars (fick: ' + bodyLen + ')');
+  }
+
+  // Orthopedics PRP avtal ska finnas
+  const orthoAgreement = tpls['agreement_orthopedics_prp_curatiio'];
+  assert(!!orthoAgreement, 'agreement_orthopedics_prp_curatiio finns');
+  if (orthoAgreement) {
+    const bodyLen = (orthoAgreement.body?.sv || '').length;
+    assert(bodyLen > 3000, 'agreement_orthopedics_prp_curatiio body ≥3000 chars (fick: ' + bodyLen + ')');
+  }
+
+  // Nordbro 251203 DHI-avtal (2 nya)
+  const dhi2day = tpls['agreement_hair_tp_dhi_2day_nordbro'];
+  const dhi7day = tpls['agreement_hair_tp_dhi_7day_nordbro'];
+  assert(!!dhi2day, 'agreement_hair_tp_dhi_2day_nordbro finns (Nordbro 251203)');
+  assert(!!dhi7day, 'agreement_hair_tp_dhi_7day_nordbro finns (Nordbro 251203)');
+
+  // Treatment-config har EXISTS-status (inte MISSING_TEMPLATE) för profhilo + orthopedics
+  const profhiloStatus = treatmentRequirements.treatments.profhilo?.requiredDocuments?.patientInformation?.status || '';
+  assert(profhiloStatus.startsWith('EXISTS'), 'profhilo patient_info status=EXISTS (fick: "' + profhiloStatus + '")');
+  const orthoStatus = treatmentRequirements.treatments.orthopedics_prp?.requiredDocuments?.patientInformation?.status || '';
+  assert(orthoStatus.startsWith('EXISTS'), 'orthopedics_prp patient_info status=EXISTS (fick: "' + orthoStatus + '")');
+
+  // Fat dissolving ska ha sharePointGap-flagga (öppet problem)
+  const fatGap = treatmentRequirements.treatments.fat_dissolving?.sharePointGap;
+  assert(!!fatGap, 'fat_dissolving har sharePointGap-flagga (öppen blocker)');
+}
+
 function testTreatmentCount() {
   console.log('\n▶ Test: treatment-requirements har 13 treatments efter Fas A');
   const keys = Object.keys(treatmentRequirements.treatments || {});
@@ -139,7 +188,9 @@ function testTreatmentCount() {
   assert(keys.includes('profhilo'), 'profhilo finns');
   assert(keys.includes('fat_dissolving'), 'fat_dissolving finns');
   assert(keys.includes('orthopedics_prp'), 'orthopedics_prp finns');
-  assert(treatmentRequirements.version === '1.1.0', 'version=1.1.0');
+  // version bumpas över tid — kolla bara att den är ≥1.1.0 (semver)
+  const [maj, min] = (treatmentRequirements.version || '0.0.0').split('.').map(Number);
+  assert(maj > 1 || (maj === 1 && min >= 1), 'version ≥1.1.0 (fick: ' + treatmentRequirements.version + ')');
 }
 
 async function regressionCheck() {
@@ -166,6 +217,7 @@ async function regressionCheck() {
 
   testTreatmentCount();
   testBrandOverridesPersisted();
+  testSharePointImport();
 
   await testTreatmentBlocking('profhilo', 'curatiio');
   await testTreatmentBlocking('fat_dissolving', 'curatiio');
