@@ -176,9 +176,47 @@ function testSharePointImport() {
   const orthoStatus = treatmentRequirements.treatments.orthopedics_prp?.requiredDocuments?.patientInformation?.status || '';
   assert(orthoStatus.startsWith('EXISTS'), 'orthopedics_prp patient_info status=EXISTS (fick: "' + orthoStatus + '")');
 
-  // Fat dissolving ska ha sharePointGap-flagga (öppet problem)
-  const fatGap = treatmentRequirements.treatments.fat_dissolving?.sharePointGap;
-  assert(!!fatGap, 'fat_dissolving har sharePointGap-flagga (öppen blocker)');
+  // Fat dissolving — efter Fas D är den disabled av owner, sharePointGap ej längre relevant
+  const fat = treatmentRequirements.treatments.fat_dissolving;
+  const isDisabledByOwner = fat?.enabled === false;
+  const hasSharePointGap = !!fat?.sharePointGap;
+  assert(isDisabledByOwner || hasSharePointGap,
+    'fat_dissolving är antingen disabled (Fas D) eller har sharePointGap-flagga');
+}
+
+function testOwnerDecisionsFasD() {
+  console.log('\n▶ Test: Fas D owner-beslut (DHI 2-day canonical + fat_dissolving disabled)');
+  // DHI ska peka på 2-day som canonical agreement
+  const dhi = treatmentRequirements.treatments.dhi;
+  assert(!!dhi, 'dhi treatment finns');
+  if (dhi) {
+    assert(dhi.canonicalAgreementVariant === '2_day', 'dhi.canonicalAgreementVariant=2_day');
+    assert(dhi.requiredDocuments?.treatmentAgreement?.templateRef === 'agreement_hair_tp_dhi_2day_nordbro',
+      'dhi treatmentAgreement pekar på agreement_hair_tp_dhi_2day_nordbro');
+    assert(!!dhi.agreementVariants?.['7_day']?.status?.startsWith('deprecated'),
+      'dhi 7-day variant är markerad deprecated_*');
+  }
+
+  // 7-day-templatet ska ha status=deprecated_alternative
+  const allTpls = Object.values(ccoTemplates.templates || {});
+  const tpls = {};
+  allTpls.forEach((t) => { if (t.templateId) tpls[t.templateId] = t; });
+  const dhi7day = tpls['agreement_hair_tp_dhi_7day_nordbro'];
+  assert(!!dhi7day, 'agreement_hair_tp_dhi_7day_nordbro finns i registry');
+  if (dhi7day) {
+    assert(dhi7day.status === 'deprecated_alternative', '7-day template status=deprecated_alternative');
+    assert(dhi7day.replacedBy === 'agreement_hair_tp_dhi_2day_nordbro', '7-day replacedBy pekar på 2-day');
+  }
+
+  // fat_dissolving ska vara enabled=false
+  const fat = treatmentRequirements.treatments.fat_dissolving;
+  assert(!!fat, 'fat_dissolving config finns kvar (för historisk referens)');
+  if (fat) {
+    assert(fat.enabled === false, 'fat_dissolving.enabled=false');
+    assert(fat.enabledStatus === 'not_offered_currently', 'fat_dissolving.enabledStatus=not_offered_currently');
+    assert(Array.isArray(fat.reEnableChecklist) && fat.reEnableChecklist.length >= 3,
+      'fat_dissolving har re-enable-checklist (≥3 steg)');
+  }
 }
 
 function testTreatmentCount() {
@@ -218,6 +256,7 @@ async function regressionCheck() {
   testTreatmentCount();
   testBrandOverridesPersisted();
   testSharePointImport();
+  testOwnerDecisionsFasD();
 
   await testTreatmentBlocking('profhilo', 'curatiio');
   await testTreatmentBlocking('fat_dissolving', 'curatiio');

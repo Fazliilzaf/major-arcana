@@ -1,9 +1,10 @@
 {
   "$schema": "https://hairtpclinic.com/schemas/treatment-document-requirements.json",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "updatedAt": "2026-05-30",
   "description": "Per-behandling-mappning av obligatoriska dokument, betänketid och mallar. Lever i GitHub som mapping/config — INNEHÅLLER INGEN PATIENTDATA. Compliance-källa: Nordbro + Insatt + Meridiq.",
   "changelog": [
+    { "version": "1.3.0", "date": "2026-05-30", "by": "fas-d-owner-decisions", "changes": "Owner-beslut: (1) DHI 2-day är canonical (agreement_hair_tp_dhi_2day_nordbro), 7-day behålls som deprecated_alternative. (2) fat_dissolving sätts enabled=false (Curatiio erbjuder inte just nu), re-enable-checklist sparad för framtid." },
     { "version": "1.2.0", "date": "2026-05-30", "by": "sharepoint-import-FasC", "changes": "Löste 3 av 4 MISSING_TEMPLATE-flaggor via SharePoint-import (Profhilo + Orthopedics_prp patient_info + orthopedics_prp agreement). Fat_dissolving har sharePointGap-flagga: ingen 2026-tjänstespec finns på SharePoint." },
     { "version": "1.1.0", "date": "2026-05-29", "by": "meridiq-journey-extraction-audit-FasA", "changes": "Lade till 3 saknade treatments: profhilo, fat_dissolving, orthopedics_prp. Refererar till Meridiq-overrides och flaggar template-status (MISSING/PARTIAL) där Nordbro/Insatt PDF-import krävs." },
     { "version": "1.0.0", "date": "2026-05-29", "by": "initial-seed", "changes": "10 behandlingar med blocking-doc-krav." }
@@ -58,11 +59,16 @@
       "label": "DHI (Direct Hair Implantation)",
       "brand": "hair_tp",
       "category": "surgical",
+      "canonicalAgreementVariant": "2_day",
+      "agreementVariants": {
+        "2_day": { "templateRef": "agreement_hair_tp_dhi_2day_nordbro", "isCanonical": true, "note": "Canonical-version per owner-beslut 2026-05-30" },
+        "7_day": { "templateRef": "agreement_hair_tp_dhi_7day_nordbro", "isCanonical": false, "status": "deprecated_alternative", "note": "Behålls i registry för historisk referens men används inte aktivt" }
+      },
       "requiredDocuments": {
         "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
         "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_hair_tp", "deadlineHoursBefore": 48 },
         "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_dhi", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_dhi", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_hair_tp_dhi_2day_nordbro", "mustStoreVersionShownToPatient": true, "canonicalNote": "DHI 2-day är canonical per owner-beslut 2026-05-30 (Nordbro 251203-version)" },
         "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_dhi", "mustStoreVersionShownToPatient": true },
         "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
         "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
@@ -264,9 +270,19 @@
       "label": "Fettuplösande injektioner",
       "brand": "curatiio",
       "category": "injection",
+      "enabled": false,
+      "enabledStatus": "not_offered_currently",
+      "disabledReason": "Curatiio erbjuder ej fettuplösande just nu (owner-beslut 2026-05-30). Behåll config för historisk referens + framtida re-enable.",
+      "disabledAt": "2026-05-30",
+      "disabledBy": "owner",
       "addedReason": "Saknades — flaggad i MERIDIQ-CCO-GAP-ANALYSIS Fas A. Brand-mismatch fixad via meridiq-brand-overrides.json (152995/152996 hair_tp → curatiio).",
       "addedAt": "2026-05-29",
-      "sharePointGap": "Ingen fat_dissolving-specifik 2026-tjänstespec hittades på SharePoint (2026-05-30 inventory). Multi-sektions-DOCX 'NY Behandlingsavtal VIKTIG' returnerade endast ortopedi-sektion vid Graph-extrahering. Båda templates kräver manuell action: 1) be klinik om patient_info_fat_dissolving, 2) extrahera fat-dissolving-sektion ur multi-DOCX med lokal DOCX-parser.",
+      "reEnableChecklist": [
+        "1. Be klinik skapa patient_info_fat_dissolving (Curatiio 2026 PDF)",
+        "2. Extrahera fat-dissolving-sektion ur 'NY Behandlingsavtal VIKTIG.docx' (mammoth-parser)",
+        "3. Sätt enabled=true + ta bort enabledStatus",
+        "4. Verifiera Meridiq services 152995/152996 är aktiva igen"
+      ],
       "meridiqServiceIds": [],
       "meridiqConsentIds": ["152995", "152996"],
       "requiredDocuments": {
