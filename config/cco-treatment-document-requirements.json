@@ -1,0 +1,332 @@
+{
+  "$schema": "https://hairtpclinic.com/schemas/treatment-document-requirements.json",
+  "version": "1.1.0",
+  "updatedAt": "2026-05-29",
+  "description": "Per-behandling-mappning av obligatoriska dokument, betänketid och mallar. Lever i GitHub som mapping/config — INNEHÅLLER INGEN PATIENTDATA. Compliance-källa: Nordbro + Insatt + Meridiq.",
+  "changelog": [
+    { "version": "1.1.0", "date": "2026-05-29", "by": "meridiq-journey-extraction-audit-FasA", "changes": "Lade till 3 saknade treatments: profhilo, fat_dissolving, orthopedics_prp. Refererar till Meridiq-overrides och flaggar template-status (MISSING/PARTIAL) där Nordbro/Insatt PDF-import krävs." },
+    { "version": "1.0.0", "date": "2026-05-29", "by": "initial-seed", "changes": "10 behandlingar med blocking-doc-krav." }
+  ],
+  "complianceSources": {
+    "legal": ["nordbro.com", "insatt.com"],
+    "clinical": ["meridiq", "socialstyrelsen"],
+    "data_protection": ["imy", "patientdatalagen_2008_355"]
+  },
+  "brands": {
+    "hair_tp": {
+      "displayName": "Hair TP Clinic",
+      "domain": "hairtpclinic.com",
+      "category": "hair_transplant",
+      "defaultCoolingOffDays": {
+        "distance_purchase": 14,
+        "in_clinic_aesthetic": 7
+      }
+    },
+    "curatiio": {
+      "displayName": "Curatiio",
+      "domain": "curatiio.com",
+      "category": "aesthetic_medical",
+      "defaultCoolingOffDays": {
+        "distance_purchase": 14,
+        "in_clinic_aesthetic": 7
+      }
+    }
+  },
+  "treatments": {
+    "fue": {
+      "label": "FUE (Follicular Unit Extraction)",
+      "brand": "hair_tp",
+      "category": "surgical",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_hair_tp", "deadlineHoursBefore": 48 },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_fue", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_fue", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_fue", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 14,
+      "coolingOffType": "distance_purchase",
+      "journalTemplate": "tp_journal_v3",
+      "aftercareTemplate": "aftercare_fue",
+      "followupCadence": ["1m", "3m", "6m", "12m"]
+    },
+    "dhi": {
+      "label": "DHI (Direct Hair Implantation)",
+      "brand": "hair_tp",
+      "category": "surgical",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_hair_tp", "deadlineHoursBefore": 48 },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_dhi", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_dhi", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_dhi", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 14,
+      "coolingOffType": "distance_purchase",
+      "journalTemplate": "tp_journal_v3",
+      "aftercareTemplate": "aftercare_dhi",
+      "followupCadence": ["1m", "3m", "6m", "12m"]
+    },
+    "prp_hair": {
+      "label": "PRP Hår (Platelet-Rich Plasma)",
+      "brand": "hair_tp",
+      "category": "injection",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
+        "fitnessCertificate": { "required": false, "blocking": false, "templateRef": "fitness_certificate_hair_tp" },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_prp_hair", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_prp_hair", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_prp_hair", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "prp_journal_v2",
+      "aftercareTemplate": "aftercare_prp_hair",
+      "followupCadence": ["2w_after_each_session", "1m_after_final"]
+    },
+    "microneedling_hair": {
+      "label": "Microneedling Hår",
+      "brand": "hair_tp",
+      "category": "device",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
+        "fitnessCertificate": { "required": false, "blocking": false, "templateRef": "fitness_certificate_hair_tp", "onlyIfWithInjection": true },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_microneedle", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_microneedle", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_microneedle", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "microneedle_journal_v1",
+      "aftercareTemplate": "aftercare_microneedle",
+      "followupCadence": ["1w_after_each_session", "1m_after_final"]
+    },
+    "trichoscopy": {
+      "label": "Trichoscopy (Konsultation)",
+      "brand": "hair_tp",
+      "category": "consultation",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
+        "fitnessCertificate": { "required": false, "blocking": false },
+        "patientInformation": { "required": true, "blocking": false, "templateRef": "patient_info_consultation", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": false, "blocking": false },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_consultation", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": false, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false },
+        "idVerification": { "required": false, "blocking": false }
+      },
+      "coolingOffDays": 0,
+      "journalTemplate": "trichoscopy_v1",
+      "aftercareTemplate": null,
+      "followupCadence": []
+    },
+    "botox": {
+      "label": "Botox",
+      "brand": "curatiio",
+      "category": "injection",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_botox", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_botox_curatiio", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_botox", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "botox_journal_v2",
+      "aftercareTemplate": "aftercare_botox",
+      "followupCadence": ["2w_touchup_window", "3m_re_treat_window"]
+    },
+    "filler": {
+      "label": "Filler (Hyaluronsyra)",
+      "brand": "curatiio",
+      "category": "injection",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_filler", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_filler_curatiio", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_filler", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "filler_journal_v2",
+      "aftercareTemplate": "aftercare_filler",
+      "followupCadence": ["2w_check", "12m_re_treat"]
+    },
+    "bleph": {
+      "label": "Ögonlocksplastik (Blefaroplastik)",
+      "brand": "curatiio",
+      "category": "surgical",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_bleph", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_bleph_curatiio", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_bleph", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "bleph_journal_v2",
+      "aftercareTemplate": "aftercare_bleph",
+      "followupCadence": ["7d_suture_removal", "3m", "12m"]
+    },
+    "prp_skin": {
+      "label": "PRP Hud",
+      "brand": "curatiio",
+      "category": "injection",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio" },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_prp_skin", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_prp_skin_curatiio", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_prp_skin", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "prp_skin_journal_v2",
+      "aftercareTemplate": "aftercare_prp_skin",
+      "followupCadence": ["2w_after_each", "1m_after_final"]
+    },
+    "mesotherapy": {
+      "label": "Mesoterapi",
+      "brand": "curatiio",
+      "category": "injection",
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio" },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_meso", "mustStoreVersionShownToPatient": true },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_meso_curatiio", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_meso", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "meso_journal_v1",
+      "aftercareTemplate": "aftercare_meso",
+      "followupCadence": ["1w_after_each"]
+    },
+    "profhilo": {
+      "label": "Profhilo (bio-remodellering)",
+      "brand": "curatiio",
+      "category": "injection",
+      "addedReason": "Saknades — flaggad i MERIDIQ-CCO-GAP-ANALYSIS Fas A. Aktiva Meridiq-services 7379-7381, consent 170948 (Behandlingsavtal Profilho) + 153002/153003 (Profhilo ENG/SWE).",
+      "addedAt": "2026-05-29",
+      "meridiqServiceIds": ["7379", "7380", "7381"],
+      "meridiqConsentIds": ["153002", "153003", "170948"],
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_profhilo", "mustStoreVersionShownToPatient": true, "status": "MISSING_TEMPLATE — kräver Nordbro-PDF-import" },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "meridiq_consent_behandlingsavtal_profilho_170948", "mustStoreVersionShownToPatient": true },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "meridiq_consent_profhilo_swe_153003", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "profhilo_journal_v1",
+      "aftercareTemplate": "aftercare_profhilo",
+      "aftercareTemplateStatus": "MISSING — flaggad i CONSENT-AGREEMENT-AFTERCARE-FLOW",
+      "followupCadence": ["1m", "2m_second_session", "6m"]
+    },
+    "fat_dissolving": {
+      "label": "Fettuplösande injektioner",
+      "brand": "curatiio",
+      "category": "injection",
+      "addedReason": "Saknades — flaggad i MERIDIQ-CCO-GAP-ANALYSIS Fas A. Brand-mismatch fixad via meridiq-brand-overrides.json (152995/152996 hair_tp → curatiio).",
+      "addedAt": "2026-05-29",
+      "meridiqServiceIds": [],
+      "meridiqConsentIds": ["152995", "152996"],
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_fat_dissolving", "mustStoreVersionShownToPatient": true, "status": "MISSING_TEMPLATE — kräver Nordbro-PDF-import" },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_fat_dissolving_curatiio", "mustStoreVersionShownToPatient": true, "status": "MISSING_TEMPLATE — kräver Nordbro/Insatt-PDF-import" },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "meridiq_consent_fettuplosande_injektioner_swe_152996", "mustStoreVersionShownToPatient": true },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "fat_dissolving_journal_v1",
+      "aftercareTemplate": "aftercare_fat_dissolving",
+      "aftercareTemplateStatus": "MISSING — flaggad i CONSENT-AGREEMENT-AFTERCARE-FLOW",
+      "followupCadence": ["2w_each_session", "1m_after_final"]
+    },
+    "orthopedics_prp": {
+      "label": "Ortopedi — PRP/PRF (knä, axel, höft m.fl.)",
+      "brand": "curatiio",
+      "category": "injection_orthopedic",
+      "addedReason": "Saknades — flaggad i MERIDIQ-CCO-GAP-ANALYSIS Fas A. 8 Meridiq-services + 3 consents (170941/170942/170943) saknade treatment-config helt.",
+      "addedAt": "2026-05-29",
+      "meridiqServiceIds": [],
+      "meridiqConsentIds": ["170941", "170942", "170943"],
+      "requiredDocuments": {
+        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
+        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
+        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_orthopedics_prp", "mustStoreVersionShownToPatient": true, "status": "MISSING_TEMPLATE — kräver Nordbro-PDF-import" },
+        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_orthopedics_prp_curatiio", "mustStoreVersionShownToPatient": true, "status": "PARTIAL — Meridiq har 3 consent-mallar 170941/170942/170943, men avtals-text behöver Nordbro-leverans" },
+        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "meridiq_consent_orthopedics_170941", "mustStoreVersionShownToPatient": true, "alternatives": ["170942", "170943"] },
+        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
+        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
+        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+      },
+      "coolingOffDays": 7,
+      "coolingOffType": "in_clinic_aesthetic",
+      "journalTemplate": "orthopedics_journal_v1",
+      "aftercareTemplate": "aftercare_orthopedics_prp",
+      "aftercareTemplateStatus": "MISSING — flaggad i CONSENT-AGREEMENT-AFTERCARE-FLOW",
+      "followupCadence": ["1w_pain_check", "1m", "3m_outcome_assessment", "6m"]
+    }
+  },
+  "complianceFlags": {
+    "NEEDS_LEGAL_REVIEW": "New or modified legal mall not yet confirmed by Nordbro/Insatt",
+    "VERSION_CONFLICT": "Template version differs between Meridiq/CCO/Drive/GitHub",
+    "MISSING_AUDIT": "Patient-touching action has no audit-event coupling",
+    "BLOCKING_COMPLIANCE_GAP": "Required document missing before treatment-step",
+    "PII_LEAK_RISK": "Patient-data being added to GitHub-scope"
+  },
+  "documentClasses": [
+    "legal_template",
+    "consent_template",
+    "agreement_template",
+    "patient_information",
+    "privacy_notice",
+    "treatment_terms",
+    "aftercare_terms",
+    "cancellation_terms",
+    "distance_purchase_terms",
+    "photo_publication_consent",
+    "marketing_consent",
+    "transactional_communication"
+  ]
+}
