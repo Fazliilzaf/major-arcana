@@ -58,3 +58,9 @@ test-results/
 # Temp baseline screenshots
 tmp-*.png
 data/arcana.sqlite
+
+# Pipedrive person/affärs-CSV — PII får inte finnas i GitHub (compliance-regel)
+# Soft-fix 2026-05-29. Full git-history purge (git-filter-repo) väntar på owner-beslut.
+migration/pipedrive/*.csv
+migration/pipedrive/*.json
+!migration/pipedrive/README.md
