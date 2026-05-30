@@ -809,6 +809,148 @@ test('OS#2: hardDeleteAsset KASTAR om auditLog saknas', async () => {
 });
 
 // -----------------------------------------------------------------------------
+// OWNER-SKÄRPNING P0.B++++ — hardDelete audit PII-mask
+// -----------------------------------------------------------------------------
+
+test('P0.B++++: hardDeleteAsset audit payload innehåller hashad originalFileName, inte rå', async () => {
+  const { tmp, store, audit } = await makeStore();
+  try {
+    const a = await store.addAsset({
+      ...BASE_ASSET,
+      isJournalRelevant: false,
+      category: 'other',
+      // Lägg ett filnamn som ÄR PII-känsligt (skulle kunna innehålla pnr/namn)
+      originalFileName: 'pat-firstname-lastname-19000101-1234.pdf',
+    });
+    await store.hardDeleteAsset(a.id, {
+      technicalReason: 'pii_mask_test',
+      actor: { userId: 'admin-pii', role: 'admin' },
+    });
+    const ev = audit.events.find((e) => e.action === 'asset.hard_deleted');
+    assert.ok(ev, 'asset.hard_deleted saknas');
+    const snap = ev.detail.fullAssetSnapshot;
+    assert.ok(snap, 'fullAssetSnapshot saknas');
+    // Rå originalFileName får INTE finnas i snapshot
+    assert.equal(
+      snap.originalFileName,
+      undefined,
+      'rå originalFileName läckte in i audit-payload'
+    );
+    // Hash-fältet ska finnas, prefix 'sha256:', 16 hex-tecken
+    assert.ok(
+      typeof snap.originalFileName_hash === 'string' &&
+        /^sha256:[0-9a-f]{16}$/.test(snap.originalFileName_hash),
+      `förväntade sha256:<16 hex> men fick ${snap.originalFileName_hash}`
+    );
+    // Hashen är inte själva filnamnet
+    assert.ok(
+      !snap.originalFileName_hash.includes('19000101'),
+      'hash får inte innehålla pnr-fragment'
+    );
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('P0.B++++: hardDeleteAsset audit payload innehåller struktur-hashad originalDrivePath, inte rå', async () => {
+  const { tmp, store, audit } = await makeStore();
+  try {
+    const a = await store.addAsset({
+      ...BASE_ASSET,
+      isJournalRelevant: false,
+      category: 'other',
+      // 4-segments path där varje segment KAN innehålla PII
+      originalDrivePath: '/Hair TP/Patient Firstname Lastname/2026/journal.pdf',
+    });
+    await store.hardDeleteAsset(a.id, {
+      technicalReason: 'pii_mask_path_test',
+      actor: { userId: 'admin-pii', role: 'admin' },
+    });
+    const ev = audit.events.find((e) => e.action === 'asset.hard_deleted');
+    const snap = ev.detail.fullAssetSnapshot;
+    // Rå path får INTE finnas
+    assert.equal(
+      snap.originalDrivePath,
+      undefined,
+      'rå originalDrivePath läckte in i audit-payload'
+    );
+    // Struktur-hash ska finnas
+    assert.ok(
+      typeof snap.originalDrivePath_structure === 'string',
+      'originalDrivePath_structure saknas'
+    );
+    assert.equal(
+      snap.originalDrivePath_depth,
+      4,
+      'fel depth — förväntade 4 segment'
+    );
+    // Strukturformat: seg-<hash8>/seg-<hash8>/seg-<hash8>/seg-<hash8>
+    assert.match(
+      snap.originalDrivePath_structure,
+      /^seg-[0-9a-f]{8}\/seg-[0-9a-f]{8}\/seg-[0-9a-f]{8}\/seg-[0-9a-f]{8}$/,
+      `oväntat strukturformat: ${snap.originalDrivePath_structure}`
+    );
+    // Säkert: inga rå PII-fragment
+    assert.ok(
+      !snap.originalDrivePath_structure.toLowerCase().includes('firstname'),
+      'rå patient-namn läckte in i path-struktur'
+    );
+    assert.ok(
+      !snap.originalDrivePath_structure.toLowerCase().includes('lastname'),
+      'rå patient-namn läckte in i path-struktur'
+    );
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('P0.B++++: hardDeleteAsset audit bevarar originalDriveFileId (opaque ID, OK)', async () => {
+  const { tmp, store, audit } = await makeStore();
+  try {
+    const a = await store.addAsset({
+      ...BASE_ASSET,
+      isJournalRelevant: false,
+      category: 'other',
+      originalDriveFileId: 'drv-opaque-id-abc123XYZ',
+    });
+    await store.hardDeleteAsset(a.id, {
+      technicalReason: 'drive_id_preservation_test',
+      actor: { userId: 'admin-pii', role: 'admin' },
+    });
+    const ev = audit.events.find((e) => e.action === 'asset.hard_deleted');
+    const snap = ev.detail.fullAssetSnapshot;
+    // Drive-file-id är opaque och bevaras
+    assert.equal(snap.originalDriveFileId, 'drv-opaque-id-abc123XYZ');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('P0.B++++: maskPiiInAuditPayload är pure (returnerar ny objekt, muterar inte input)', async () => {
+  const { maskPiiInAuditPayload: mask } = require('../../src/ops/ccoPatientAssetStore');
+  const input = {
+    id: 'a-1',
+    patientId: 'p-1',
+    originalFileName: 'sensitive.pdf',
+    originalDrivePath: '/a/b/c',
+    originalDriveFileId: 'drv-123',
+  };
+  const out = mask(input);
+  // Input oförändrad
+  assert.equal(input.originalFileName, 'sensitive.pdf');
+  assert.equal(input.originalDrivePath, '/a/b/c');
+  // Output korrekt maskad
+  assert.equal(out.originalFileName, undefined);
+  assert.equal(out.originalDrivePath, undefined);
+  assert.ok(out.originalFileName_hash);
+  assert.ok(out.originalDrivePath_structure);
+  assert.equal(out.originalDrivePath_depth, 3);
+  assert.equal(out.originalDriveFileId, 'drv-123');
+  // patientId bevaras (är ett internt ID, inte direkt PII per asset-schema)
+  assert.equal(out.patientId, 'p-1');
+});
+
+// -----------------------------------------------------------------------------
 // stats() 9 nya counters (3)
 // -----------------------------------------------------------------------------
 

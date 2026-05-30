@@ -219,6 +219,54 @@ function normalizeAsset(input = {}, existing = {}) {
   };
 }
 
+/**
+ * OWNER-SKÄRPNING P0.B++++ — PII-mask för audit-payload.
+ *
+ * Hard-delete-audit får ALDRIG innehålla rå PII i form av:
+ *   - originalFileName (kan innehålla pnr, fullt patient-namn, etc.)
+ *   - originalDrivePath (mapp-namn kan vara patient-namn / pnr)
+ *
+ * Vi bevarar dock STRUKTUREN så att forensik kan rekonstruera djup
+ * och file-name-fingerprint utan att exponera rå PII.
+ *
+ *   - originalFileName     -> originalFileName_hash       (sha256:16-tecken)
+ *   - originalDrivePath    -> originalDrivePath_structure (seg-<hash16>/seg-<hash16>/...)
+ *                          -> originalDrivePath_depth     (heltal, antal segment)
+ *   - originalDriveFileId  bevaras (opaque Drive-ID, ingen PII)
+ *
+ * Alla övriga fält bevaras oförändrade. Returnerar en NY plain object —
+ * muterar inte input.
+ */
+function maskPiiInAuditPayload(asset = {}) {
+  const masked = { ...asset };
+  if (masked.originalFileName) {
+    masked.originalFileName_hash =
+      'sha256:' +
+      crypto
+        .createHash('sha256')
+        .update(String(masked.originalFileName))
+        .digest('hex')
+        .slice(0, 16);
+    delete masked.originalFileName;
+  }
+  if (masked.originalDrivePath) {
+    const segments = String(masked.originalDrivePath)
+      .split('/')
+      .filter(Boolean);
+    masked.originalDrivePath_structure = segments
+      .map(
+        (s) =>
+          'seg-' +
+          crypto.createHash('sha256').update(s).digest('hex').slice(0, 8)
+      )
+      .join('/');
+    masked.originalDrivePath_depth = segments.length;
+    delete masked.originalDrivePath;
+  }
+  // originalDriveFileId behålls — Drive-API:s opaque file-ID utan PII.
+  return masked;
+}
+
 function logAudit(auditLog, action, asset, actor, result = 'ok', extra = {}) {
   if (!auditLog || typeof auditLog.append !== 'function') return;
   try {
@@ -661,9 +709,13 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       throw e;
     }
     const deletedAt = nowIso();
-    // OWNER-SKÄRPNING #2: emit fullAssetSnapshot — vi raderar metadatan,
-    // så snapshot i audit-loggen är vår enda kopia.
-    const fullAssetSnapshot = { ...existing };
+    // OWNER-SKÄRPNING #2 + P0.B++++: emit fullAssetSnapshot MEN
+    // PII-maskad. Vi behöver snapshot i audit-loggen eftersom metadata
+    // raderas, men originalFileName / originalDrivePath kan innehålla
+    // patientnamn / pnr och får INTE skrivas rått till audit-trail.
+    // maskPiiInAuditPayload hashar dessa fält och bevarar struktur
+    // (depth + per-segment-hash) så att forensik fortfarande funkar.
+    const fullAssetSnapshot = maskPiiInAuditPayload(existing);
     logAudit(auditLog, 'asset.hard_deleted', existing, actor, 'ok', {
       technicalReason,
       previousStatus: existing.status,
@@ -837,6 +889,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
 
 module.exports = {
   createCcoPatientAssetStore,
+  maskPiiInAuditPayload,
   VALID_STATUSES,
   VALID_CATEGORIES,
   VALID_SOURCE_SYSTEMS,
