@@ -330,6 +330,58 @@ function createCcoAssetImportPipeline({
   if (!reviewQueueStore) throw new Error('reviewQueueStore krävs');
   if (!storage) throw new Error('storage krävs (ccoSecureStorageProvider)');
 
+  /**
+   * OWNER-SKÄRPNING #5 — kanonisk LINK_ONLY_BLOCKER-skapning.
+   *
+   * Används både för "no body" och "loadBody failed" + Drive-provenance.
+   * Inkrementerar totalLinkOnlyBlockers + emit
+   * `asset.link_only_blocker_flagged` audit-event så det syns direkt
+   * i audit-loggen utan att joinas mot status_changed-historiken.
+   */
+  async function makeLinkOnlyBlockerAsset({
+    sourceSystem,
+    sourceRecord,
+    importRunId,
+    actor,
+    reason,
+  }) {
+    await importRunStore.incrementCounter(importRunId, 'totalLinkOnlyBlockers', 1);
+    const linkOnlyAsset = await assetStore.addAsset(
+      {
+        patientId: sourceRecord.patientId || 'unknown',
+        sourceSystem,
+        sourceRecordId: sourceRecord.sourceRecordId || null,
+        originalDriveFileId: sourceRecord.originalDriveFileId || null,
+        originalDrivePath: sourceRecord.originalDrivePath || null,
+        originalFileName: sourceRecord.originalFileName || null,
+        storageProvider: storage.provider || 'local',
+        storageKey: 'pending-no-binary',
+        mimeType: sourceRecord.mimeType || 'application/octet-stream',
+        category: 'other',
+        documentDate: sourceRecord.documentDate || null,
+        importRunId,
+        status: 'LINK_ONLY_BLOCKER',
+      },
+      { actor }
+    );
+    safeAudit(auditLog, {
+      action: 'asset.link_only_blocker_flagged',
+      actor: { role: actor?.role || 'system', userId: actor?.userId || null },
+      target: { kind: 'patient_asset', id: linkOnlyAsset.id, tenantId: actor?.tenantId || null },
+      result: 'ok',
+      detail: {
+        reason: reason || 'no_binary',
+        sourceSystem,
+        hasDriveProvenance: !!(
+          sourceRecord.originalDriveFileId || sourceRecord.originalDrivePath
+        ),
+        originalDriveFileId: sourceRecord.originalDriveFileId || null,
+        importRunId,
+      },
+    });
+    return { ok: false, status: 'LINK_ONLY_BLOCKER', asset: linkOnlyAsset };
+  }
+
   async function discoverFromDrive({ tenantId = null, runId = null, limit = 0 } = {}) {
     void tenantId;
     void runId;
@@ -403,11 +455,29 @@ function createCcoAssetImportPipeline({
     // Steg 1: Discover (redan gjort av caller — vi har sourceRecord)
     await importRunStore.incrementCounter(importRunId, 'totalDiscovered', 1);
 
+    // OWNER-SKÄRPNING #5: Drive-provenance utan binär = automatisk LINK_ONLY_BLOCKER.
+    // En source-record med originalDriveFileId/Path är en "Drive-länk" — om
+    // pipelinen inte kan ladda binären (saknad body, saknad loadBody, eller
+    // loadBody-fel) får assetet INTE marknadsföras som "importerad" — det är
+    // en blocker som måste fixas innan cutover.
+    const hasDriveProvenance = !!(
+      sourceRecord.originalDriveFileId || sourceRecord.originalDrivePath
+    );
     let bodyBuffer = sourceRecord.body || null;
     if (!bodyBuffer && typeof sourceRecord.loadBody === 'function') {
       try {
         bodyBuffer = await sourceRecord.loadBody();
       } catch (err) {
+        // loadBody-fel + Drive-provenance → LINK_ONLY_BLOCKER (inte FAILED_IMPORT)
+        if (hasDriveProvenance) {
+          return makeLinkOnlyBlockerAsset({
+            sourceSystem,
+            sourceRecord,
+            importRunId,
+            actor,
+            reason: `loadBody failed: ${err.message}`,
+          });
+        }
         await importRunStore.incrementCounter(importRunId, 'totalFailed', 1);
         return {
           ok: false,
@@ -417,28 +487,13 @@ function createCcoAssetImportPipeline({
       }
     }
     if (!bodyBuffer) {
-      // Ingen binär = LINK_ONLY_BLOCKER (vi har bara Drive-link, inte fil).
-      await importRunStore.incrementCounter(importRunId, 'totalLinkOnlyBlockers', 1);
-      // Skapa minimalt asset-record som blocker
-      const linkOnlyAsset = await assetStore.addAsset(
-        {
-          patientId: sourceRecord.patientId || 'unknown',
-          sourceSystem,
-          sourceRecordId: sourceRecord.sourceRecordId || null,
-          originalDriveFileId: sourceRecord.originalDriveFileId || null,
-          originalDrivePath: sourceRecord.originalDrivePath || null,
-          originalFileName: sourceRecord.originalFileName || null,
-          storageProvider: storage.provider || 'local',
-          storageKey: 'pending-no-binary',
-          mimeType: sourceRecord.mimeType || 'application/octet-stream',
-          category: 'other',
-          documentDate: sourceRecord.documentDate || null,
-          importRunId,
-          status: 'LINK_ONLY_BLOCKER',
-        },
-        { actor }
-      );
-      return { ok: false, status: 'LINK_ONLY_BLOCKER', asset: linkOnlyAsset };
+      return makeLinkOnlyBlockerAsset({
+        sourceSystem,
+        sourceRecord,
+        importRunId,
+        actor,
+        reason: 'no_binary_body',
+      });
     }
 
     // Steg 2 + 3: Download + Checksum (putObject)

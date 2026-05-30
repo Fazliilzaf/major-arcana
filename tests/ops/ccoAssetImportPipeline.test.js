@@ -337,3 +337,85 @@ test('fullImportRun-wrapper: tom discovery för drive utan client → run klar m
   assert.equal(out.run.totalImported, 0);
   assert.ok(out.run.finishedAt);
 });
+
+// -----------------------------------------------------------------------------
+// OWNER-SKÄRPNING #5 — pipeline auto-LINK_ONLY_BLOCKER
+// -----------------------------------------------------------------------------
+
+test('OS#5: pipeline emit asset.link_only_blocker_flagged audit för Drive-record utan body', async () => {
+  const rig = await makeRig();
+  const runId = await rig.importRunStore.startRun({
+    sourceSystem: 'drive',
+    mode: 'full',
+  });
+  const result = await rig.pipeline.importSingleAsset({
+    sourceSystem: 'drive',
+    importRunId: runId,
+    sourceRecord: {
+      sourceRecordId: 'drive-os5-001',
+      originalDriveFileId: 'drive-id-abc-os5',
+      originalDrivePath: '/Kunder/some/file.pdf',
+      originalFileName: 'no-binary.pdf',
+      mimeType: 'application/pdf',
+      // body saknas
+    },
+  });
+  assert.equal(result.status, 'LINK_ONLY_BLOCKER');
+  // Audit-event ska emit:as
+  const ev = rig.audit.events.find((e) => e.action === 'asset.link_only_blocker_flagged');
+  assert.ok(ev, 'asset.link_only_blocker_flagged audit saknas');
+  assert.equal(ev.detail.hasDriveProvenance, true);
+  assert.equal(ev.detail.originalDriveFileId, 'drive-id-abc-os5');
+});
+
+test('OS#5: pipeline loadBody-fel + Drive-provenance → LINK_ONLY_BLOCKER (inte FAILED_IMPORT)', async () => {
+  const rig = await makeRig();
+  const runId = await rig.importRunStore.startRun({
+    sourceSystem: 'drive',
+    mode: 'full',
+  });
+  const result = await rig.pipeline.importSingleAsset({
+    sourceSystem: 'drive',
+    importRunId: runId,
+    sourceRecord: {
+      sourceRecordId: 'drive-os5-002',
+      originalDriveFileId: 'drive-fail-load',
+      originalFileName: 'will-fail-load.pdf',
+      mimeType: 'application/pdf',
+      loadBody: async () => {
+        throw new Error('drive_api_403');
+      },
+    },
+  });
+  assert.equal(result.status, 'LINK_ONLY_BLOCKER');
+  const run = rig.importRunStore.getRun(runId);
+  assert.equal(run.totalLinkOnlyBlockers, 1);
+  assert.equal(run.totalFailed, 0, 'med Drive-provenance: räknas som blocker, inte fail');
+});
+
+test('OS#5: pipeline utan Drive-provenance + loadBody-fel → FAILED_IMPORT (inte blocker)', async () => {
+  // Använd source 'meridiq' för run (importRunStore accepterar bara drive/meridiq/old_cco),
+  // men source-record har INGEN Drive-provenance — så loadBody-fel ska bli FAILED_IMPORT.
+  const rig = await makeRig();
+  const runId = await rig.importRunStore.startRun({
+    sourceSystem: 'meridiq',
+    mode: 'full',
+  });
+  const result = await rig.pipeline.importSingleAsset({
+    sourceSystem: 'meridiq',
+    importRunId: runId,
+    sourceRecord: {
+      sourceRecordId: 'meridiq-fail-001',
+      // INGEN originalDriveFileId/Path → ingen Drive-provenance
+      originalFileName: 'meridiq-export.pdf',
+      mimeType: 'application/pdf',
+      loadBody: async () => {
+        throw new Error('meridiq_api_timeout');
+      },
+    },
+  });
+  assert.equal(result.status, 'FAILED_IMPORT');
+  const run = rig.importRunStore.getRun(runId);
+  assert.equal(run.totalLinkOnlyBlockers, 0);
+  assert.equal(run.totalFailed, 1);
+});
