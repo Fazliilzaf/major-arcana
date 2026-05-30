@@ -979,21 +979,17 @@
 
       /* Sprint 2.3-overrides borttagna — grid styrs av första .app-grid-block */
 
-      /* Sprint 18B: Bottom action bar */
+      /* Sprint 18B: Bottom action bar — naken wrapper, bara pillen syns */
       .thread-bottom-actions {
         display: flex;
-        gap: 10px;
-        padding: 12px 14px;
-        margin-top: 10px;
+        gap: 12px;
+        padding: 8px 0;
+        margin-top: 14px;
         position: sticky;
-        bottom: 10px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 243, 235, 0.86));
-        backdrop-filter: blur(14px);
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        border-radius: 18px;
-        box-shadow:
-          0 8px 24px rgba(56, 40, 28, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        bottom: 14px;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
         z-index: 5;
       }
       .thread-bottom-actions .action-btn {
