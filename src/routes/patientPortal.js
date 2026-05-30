@@ -153,7 +153,7 @@ function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog 
     const formData = req.body?.formData || {};
     const signature = normalizeText(req.body?.signature);
 
-    // Server-side validation: minimum krav signatur
+    // Sprint 14A: Server-side form-spec validation
     if (!signature || signature.length < 2) {
       logPortalAudit('portal.submit_failed', {
         token,
@@ -166,6 +166,72 @@ function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog 
       return res
         .status(400)
         .json({ ok: false, error: 'missing_signature', message: 'Signatur krävs (namnteckning).' });
+    }
+    if (signature.length > 200) {
+      logPortalAudit('portal.submit_failed', {
+        token,
+        ip,
+        userAgent: ua,
+        outcome: 'signature_too_long',
+      });
+      return res.status(400).json({ ok: false, error: 'signature_too_long' });
+    }
+    if (formData == null || typeof formData !== 'object' || Array.isArray(formData)) {
+      logPortalAudit('portal.submit_failed', {
+        token,
+        ip,
+        userAgent: ua,
+        outcome: 'invalid_formdata_type',
+      });
+      return res.status(400).json({ ok: false, error: 'invalid_formdata_type' });
+    }
+    let formDataSize = 0;
+    try {
+      formDataSize = JSON.stringify(formData).length;
+    } catch (_e) {
+      logPortalAudit('portal.submit_failed', {
+        token,
+        ip,
+        userAgent: ua,
+        outcome: 'formdata_serialization_failed',
+      });
+      return res.status(400).json({ ok: false, error: 'invalid_formdata' });
+    }
+    if (formDataSize > 100 * 1024) {
+      logPortalAudit('portal.submit_failed', {
+        token,
+        ip,
+        userAgent: ua,
+        outcome: 'formdata_too_large',
+      });
+      return res
+        .status(413)
+        .json({
+          ok: false,
+          error: 'formdata_too_large',
+          message: 'Formuläret är för stort. Kontakta kliniken.',
+        });
+    }
+    const DANGEROUS_KEYS = ['__proto__', 'constructor', 'prototype'];
+    function hasDangerousKeys(obj, depth = 0) {
+      if (depth > 8) return true;
+      if (obj == null || typeof obj !== 'object') return false;
+      for (const key of Object.keys(obj)) {
+        if (DANGEROUS_KEYS.includes(key)) return true;
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+          if (hasDangerousKeys(obj[key], depth + 1)) return true;
+        }
+      }
+      return false;
+    }
+    if (hasDangerousKeys(formData)) {
+      logPortalAudit('portal.submit_failed', {
+        token,
+        ip,
+        userAgent: ua,
+        outcome: 'dangerous_keys_in_formdata',
+      });
+      return res.status(400).json({ ok: false, error: 'invalid_formdata' });
     }
 
     await patientPortalStore.completeInvite(token, {

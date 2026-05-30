@@ -4970,6 +4970,11 @@ try {
       requirePermission,
       auditLog: ccoAuditLog,
       writeEnabled: config.enablePhotoReviewWrite,
+      pilotConfig: {
+        patientIds: config.photoReviewPilotPatientIds,
+        maxDecisions: config.photoReviewPilotMaxDecisions,
+        maxPatients: config.photoReviewPilotMaxPatients,
+      },
       onMutation: invalidateAssetQaCache,
     })
   );
@@ -5033,7 +5038,9 @@ try {
     '[cco-asset-qa] monterad: GET /api/v1/cco/asset-qa/snapshot + invalidate · /patients/:id/assets · /assets/:id/{download,thumbnail}'
   );
   console.log(
-    '[cco-photo-review] monterad: GET /api/v1/cco/photo-review/* (Fas 1 read-only; Fas 2 write gated by ENABLE_PHOTO_REVIEW_WRITE)'
+    `[cco-photo-review] monterad: GET /api/v1/cco/photo-review/*${
+      config.enablePhotoReviewWrite ? ' + POST decide/reassign (Fas 2 pilot)' : ' (Fas 1 read-only)'
+    }`
   );
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
@@ -7988,6 +7995,87 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
       '[komm-sprint9] monterad: /cco-comm/drafts/batch-approve · /batch-cancel · /templates POST (mail.send · templates.write)'
     );
 
+    // ─── Sprint 14B — Ready-for-treatment aggregator + queue ─────────
+    const {
+      buildReadyForTreatment,
+      buildReadyForTreatmentQueue,
+    } = require('./src/ops/ccoReadyForTreatmentBuilder');
+
+    app.get(
+      '/api/v1/cco-customers/:id/ready-for-treatment',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const customerId = req.params.id;
+          const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          // Försök hämta kund-objekt om customerStore finns
+          let customer = null;
+          try {
+            if (app.locals.ccoCustomerStore?.getById) {
+              customer = app.locals.ccoCustomerStore.getById(customerId, { tenantId });
+            }
+          } catch {
+            /* ignore */
+          }
+          const result = buildReadyForTreatment({
+            customerId,
+            tenantId,
+            customer,
+            journalStore: app.locals.ccoJournalStore || null,
+            consentStore: app.locals.ccoConsentStore || null,
+            agreementStore: app.locals.ccoAgreementStore || null,
+            formStore: app.locals.ccoFormSubmissionStore || null,
+            identityStore: app.locals.ccoIdentityStore || null,
+            paymentStore: app.locals.ccoPaymentStore || null,
+            aftercareStore: app.locals.ccoAftercareSchedulerStore || null,
+          });
+          res.json({ ok: true, ...result });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-ready-for-treatment/queue',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          // Limit-clamp för perf
+          const limit = Math.min(500, Number(req.query.limit) || 100);
+          let customers = [];
+          try {
+            const cs = app.locals.ccoCustomerStore;
+            if (cs?.listAll) customers = cs.listAll({ tenantId, limit }) || [];
+            else if (cs?.list) customers = cs.list({ tenantId, limit }) || [];
+          } catch {
+            /* empty */
+          }
+          const result = buildReadyForTreatmentQueue({
+            customers,
+            tenantId,
+            journalStore: app.locals.ccoJournalStore || null,
+            consentStore: app.locals.ccoConsentStore || null,
+            agreementStore: app.locals.ccoAgreementStore || null,
+            formStore: app.locals.ccoFormSubmissionStore || null,
+            identityStore: app.locals.ccoIdentityStore || null,
+            paymentStore: app.locals.ccoPaymentStore || null,
+            aftercareStore: app.locals.ccoAftercareSchedulerStore || null,
+          });
+          res.json({ ok: true, ...result });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log(
+      '[komm-sprint14B] monterad: /cco-customers/:id/ready-for-treatment · /cco-ready-for-treatment/queue (8 checks, weighted score 0-100) (customers.read)'
+    );
+
     // ─── Komm Sprint 3 — cron dry-run queue ──────────────────────────
     // 6 deterministiska triggers genererar PROPOSALS (utan att skapa drafts).
     // Staff måste fortfarande godkänna via Svarstudio. INGET externt utskick.
@@ -8622,6 +8710,46 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
             out.mailboxStats = ingest?.listMailboxStats ? ingest.listMailboxStats() : [];
           } catch {
             out.mailboxStats = [];
+          }
+
+          // Sprint 14B: Ready-for-treatment summary
+          try {
+            const {
+              buildReadyForTreatmentQueue: _bq,
+            } = require('./src/ops/ccoReadyForTreatmentBuilder');
+            let customers = [];
+            try {
+              const cs = app.locals.ccoCustomerStore;
+              if (cs?.listAll) customers = cs.listAll({ tenantId, limit: 100 }) || [];
+              else if (cs?.list) customers = cs.list({ tenantId, limit: 100 }) || [];
+            } catch {
+              /* empty */
+            }
+            const r = _bq({
+              customers,
+              tenantId,
+              journalStore: app.locals.ccoJournalStore || null,
+              consentStore: app.locals.ccoConsentStore || null,
+              agreementStore: app.locals.ccoAgreementStore || null,
+              formStore: app.locals.ccoFormSubmissionStore || null,
+              identityStore: app.locals.ccoIdentityStore || null,
+              paymentStore: app.locals.ccoPaymentStore || null,
+              aftercareStore: app.locals.ccoAftercareSchedulerStore || null,
+            });
+            out.readyForTreatment = {
+              stats: r.stats,
+              blockedSample: (r.items || [])
+                .filter((x) => !x.ready)
+                .slice(0, 5)
+                .map((x) => ({
+                  customerId: x.customerId,
+                  customerName: x.customerName,
+                  readinessScore: x.readinessScore,
+                  missing: x.missing,
+                })),
+            };
+          } catch {
+            out.readyForTreatment = null;
           }
 
           res.json(out);
@@ -10372,8 +10500,7 @@ process.once('SIGTERM', () => {
     .load()
     .catch((err) => console.warn('[patient-portal] Load failed:', err?.message));
 
-  // Sprint 10: Rate-limit på patient-portal — skydd mot token-brute-force
-  // 60 req/min per IP (för portal browsing) + 10 submits/15 min per IP
+  // Sprint 10+14A: Rate-limit + security headers på patient-portal
   const { createRateLimiter: _createPortalRateLimiter } = require('./src/security/rateLimit');
   const portalBrowseLimit = _createPortalRateLimiter({
     windowMs: 60_000,
@@ -10387,9 +10514,57 @@ process.once('SIGTERM', () => {
     scope: 'portal-submit',
     message: 'För många försök. Vänta 15 min eller kontakta kliniken.',
   });
+  const portalRedirectLimit = _createPortalRateLimiter({
+    windowMs: 60_000,
+    max: 30,
+    scope: 'portal-redirect',
+    message: 'För många länk-klick.',
+  });
+
+  // Sprint 14A: Security headers middleware för portal-routes
+  function portalSecurityHeaders(req, res, next) {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data:; " +
+        "font-src 'self' data:; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none'; " +
+        "form-action 'self'; " +
+        "base-uri 'self'"
+    );
+    if (process.env.NODE_ENV === 'production') {
+      res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+    }
+    next();
+  }
 
   app.use('/api/patient-portal/:token/submit', portalSubmitLimit);
   app.use('/api/patient-portal/', portalBrowseLimit);
+  app.use('/api/patient-portal/', portalSecurityHeaders);
+  app.use('/portal/', portalRedirectLimit);
+  app.use('/portal/', portalSecurityHeaders);
+
+  // Sprint 14C: Globala baseline-headers på alla CCO-staff-vyer
+  function ccoBaselineSecurityHeaders(req, res, next) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN'); // staff-vyer kan embeddas same-origin
+    if (process.env.NODE_ENV === 'production') {
+      res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+    }
+    next();
+  }
+  app.use('/kunder.html', ccoBaselineSecurityHeaders);
+  app.use('/kalender.html', ccoBaselineSecurityHeaders);
+  app.use('/operator-dashboard.html', ccoBaselineSecurityHeaders);
+  app.use('/photo-review.html', ccoBaselineSecurityHeaders);
 
   app.use(
     '/api',

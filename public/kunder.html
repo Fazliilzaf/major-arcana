@@ -5073,10 +5073,9 @@
 
       .customer-row-head {
         display: grid;
-        grid-template-columns: 44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(
-            0,
-            1.1fr
-          ) minmax(0, 1.4fr) minmax(0, 2.2fr) 30px;
+        grid-template-columns:
+          44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.1fr)
+          minmax(0, 1.4fr) minmax(0, 2.2fr) 30px;
         gap: 12px;
         padding: 8px 14px;
         font-size: 9px;
@@ -5093,10 +5092,9 @@
 
       .customer-row {
         display: grid;
-        grid-template-columns: 44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(
-            0,
-            1.1fr
-          ) minmax(0, 1.4fr) minmax(0, 2.2fr) 30px;
+        grid-template-columns:
+          44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.1fr)
+          minmax(0, 1.4fr) minmax(0, 2.2fr) 30px;
         gap: 12px;
         align-items: center;
         padding: 10px 14px;
@@ -8777,13 +8775,10 @@
           'December',
         ];
 
-        const folderUrl = (id) => `https://drive.google.com/drive/folders/${id}`;
-        const searchUrl = (q, parent = null) => {
-          const enc = encodeURIComponent(q);
-          return parent
-            ? `https://drive.google.com/drive/folders/${parent}#search?q=${enc}`
-            : `https://drive.google.com/drive/search?q=${enc}`;
-        };
+        // Sprint 14C: Drive-länkar disabled per owner-mandat. Importera istället via CCO secure storage.
+        const folderUrl = (_id) => null;
+        // Sprint 14C: Drive search-länkar disabled per owner-mandat
+        const searchUrl = (_q, _parent = null) => null;
 
         function treatmentLink({ treatmentDate, brand = 'hair_tp', treatmentType = 'tp' } = {}) {
           const f = KNOWN_FOLDERS[brand] || KNOWN_FOLDERS.hair_tp;
