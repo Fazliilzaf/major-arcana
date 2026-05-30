@@ -301,6 +301,66 @@ test('P0.6 — master patient card aggregates per-encounter photos by phase', as
   assert.ok(['before', 'after', 'reference'].includes(photoEvents[0].phase));
 });
 
+test('P0.3+ — master patient card exposes predicted drive-coupling on .drive', async () => {
+  const tenantId = 'hair_tp';
+  const patientId = 'pdrive1';
+  const state = {
+    tenantId,
+    customerState: {
+      directory: { [patientId]: { name: 'D', meridiqMeta: { hasJournal: true } } },
+      details: { [patientId]: {} },
+    },
+  };
+  const journals = {
+    [`${tenantId}:${patientId}`]: [
+      {
+        entryId: 'jd1',
+        tenantId,
+        patientId,
+        journalType: 'tp_treatment',
+        treatmentDate: '2026-05-13',
+        status: 'signed',
+        signedAt: '2026-05-13T10:00:00Z',
+      },
+    ],
+  };
+  const lookup = createMasterPatientCardLookup({
+    customerStore: fakeCustomerStore(state),
+    journalStore: fakeJournalStore(journals),
+  });
+  const card = await lookup.getCard({ tenantId, patientId });
+  assert.ok(card.drive, 'card.drive should exist');
+  assert.equal(card.drive.status, 'predicted');
+  assert.equal(card.drive.predictionConfidence, 'high');
+  assert.equal(card.drive.predictedFolderId, '1Gof_xzKOvdote1DCjb-riNozlvpLgjbh');
+  assert.ok(card.drive.predictedFolderUrl.includes('drive.google.com'));
+  assert.equal(card.drive.predictionBasis, 'latest_booking_2026-05-13');
+  assert.equal(card.drive.verifiedAt, null);
+  assert.equal(card.drive.verifiedBy, null);
+});
+
+test('P0.3+ — master patient card returns drive.status=none for patient utan encounters', async () => {
+  const tenantId = 'hair_tp';
+  const patientId = 'pnone1';
+  const state = {
+    tenantId,
+    customerState: {
+      directory: { [patientId]: { name: 'N', meridiqMeta: {} } },
+      details: { [patientId]: {} },
+    },
+  };
+  const lookup = createMasterPatientCardLookup({
+    customerStore: fakeCustomerStore(state),
+    journalStore: fakeJournalStore({}),
+  });
+  const card = await lookup.getCard({ tenantId, patientId });
+  assert.ok(card.drive);
+  assert.equal(card.drive.status, 'none');
+  assert.equal(card.drive.predictionConfidence, 'none');
+  assert.equal(card.drive.predictedFolderId, null);
+  assert.equal(card.drive.predictionBasis, 'no_bookings');
+});
+
 test('deriveEncountersFromJournals creates one encounter per journal entry', () => {
   const enc = deriveEncountersFromJournals([
     { entryId: 'e1', treatmentDate: '2026-05-01', status: 'signed', locked: true, journalType: 'tp_treatment' },

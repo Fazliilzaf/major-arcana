@@ -32,6 +32,10 @@
  */
 
 const { predictDrivePath } = require('./ccoDrivePathPredictor');
+const {
+  predictDriveFolderForPatient,
+  emptyDriveCoupling,
+} = require('./ccoDriveFolderCoupler');
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -312,6 +316,23 @@ function createMasterPatientCardLookup(deps = {}) {
       treatmentType: 'tp',
     });
 
+    // P0.3+ — Predicted drive-folder-coupling per patient (Cutover #1).
+    // Använder encounters med treatmentDate som primär källa; om inga
+    // encounters har datum, faller modulen tillbaka på status='none'.
+    // Detta körs INNAN service-account är konfigurerad — folder-IDs är
+    // publika utan auth och OK att lagra/exponera i UI.
+    const drive = encounters.length > 0
+      ? predictDriveFolderForPatient({
+          patient: { key: patientId, brand },
+          encounters: encounters.map((e) => ({
+            treatmentDate: e.date || null,
+            treatmentType: 'tp',
+            brand,
+          })),
+          brand,
+        })
+      : emptyDriveCoupling('no_bookings');
+
     const consents = [...photoConsents, ...marketingConsents];
 
     return {
@@ -338,6 +359,9 @@ function createMasterPatientCardLookup(deps = {}) {
         searchUrl: topLevelDrivePred.searchUrl,
         existsConfidence: topLevelDrivePred.existsConfidence,
       },
+      // P0.3+ — predicted folder-koppling per patient (Cutover Readiness #1).
+      // Se src/ops/ccoDriveFolderCoupler.js för status/confidence-livscykel.
+      drive,
       encounters,
       journals,
       photos,
