@@ -10372,11 +10372,31 @@ process.once('SIGTERM', () => {
     .load()
     .catch((err) => console.warn('[patient-portal] Load failed:', err?.message));
 
+  // Sprint 10: Rate-limit på patient-portal — skydd mot token-brute-force
+  // 60 req/min per IP (för portal browsing) + 10 submits/15 min per IP
+  const { createRateLimiter: _createPortalRateLimiter } = require('./src/security/rateLimit');
+  const portalBrowseLimit = _createPortalRateLimiter({
+    windowMs: 60_000,
+    max: 60,
+    scope: 'portal-browse',
+    message: 'För många portal-anrop. Försök igen om en stund.',
+  });
+  const portalSubmitLimit = _createPortalRateLimiter({
+    windowMs: 15 * 60_000,
+    max: 10,
+    scope: 'portal-submit',
+    message: 'För många försök. Vänta 15 min eller kontakta kliniken.',
+  });
+
+  app.use('/api/patient-portal/:token/submit', portalSubmitLimit);
+  app.use('/api/patient-portal/', portalBrowseLimit);
+
   app.use(
     '/api',
     createPatientPortalRouter({
       patientPortalStore,
       journalStore: ccoJournalStore || null,
+      auditLog: ccoAuditLog || null,
     })
   );
   app.locals.patientPortalStore = patientPortalStore; // Beslut #2: exponera för staff-API

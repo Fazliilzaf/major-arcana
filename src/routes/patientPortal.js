@@ -19,31 +19,92 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function createPatientPortalRouter({ patientPortalStore, journalStore }) {
+function createPatientPortalRouter({ patientPortalStore, journalStore, auditLog = null }) {
   const router = express.Router();
+
+  function logPortalAudit(kind, detail = {}) {
+    try {
+      if (auditLog?.logEvent) {
+        auditLog.logEvent({
+          kind,
+          tenantId: detail.tenantId || 'hair_tp',
+          actor: 'patient:portal',
+          entityKind: 'patient_portal_invite',
+          entityId: detail.token ? detail.token.slice(0, 8) + '…' : null,
+          detail: {
+            patientId: detail.patientId || null,
+            outcome: detail.outcome || null,
+            ip: detail.ip || null,
+            userAgent: detail.userAgent ? detail.userAgent.slice(0, 80) : null,
+            formCount: detail.formCount || null,
+          },
+        });
+      }
+    } catch {
+      /* audit-bind fail ignored */
+    }
+  }
+
+  function getClientIp(req) {
+    return (
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      req.socket?.remoteAddress ||
+      'unknown'
+    );
+  }
 
   router.get('/patient-portal/:token', async (req, res) => {
     const token = normalizeText(req.params?.token);
-    if (!token) return res.status(400).json({ ok: false, error: 'missing_token' });
+    const ip = getClientIp(req);
+    const ua = req.headers['user-agent'] || '';
+
+    if (!token) {
+      logPortalAudit('portal.invite.view_failed', { ip, userAgent: ua, outcome: 'missing_token' });
+      return res.status(400).json({ ok: false, error: 'missing_token' });
+    }
 
     const invite = await patientPortalStore.findInvite(token);
     if (!invite) {
-      return res
-        .status(404)
-        .json({
-          ok: false,
-          error: 'invite_not_found',
-          message: 'Länken är ogiltig eller har utgått.',
-        });
+      logPortalAudit('portal.invite.view_failed', {
+        token,
+        ip,
+        userAgent: ua,
+        outcome: 'invite_not_found',
+      });
+      return res.status(404).json({
+        ok: false,
+        error: 'invite_not_found',
+        message: 'Länken är ogiltig eller har utgått.',
+      });
     }
     if (invite.completedAt) {
+      logPortalAudit('portal.invite.viewed', {
+        token,
+        ip,
+        userAgent: ua,
+        tenantId: invite.tenantId,
+        patientId: invite.patientId,
+        outcome: 'already_completed',
+      });
       return res.json({
         ok: true,
         status: 'completed',
         message: 'Formuläret är redan inskickat.',
-        invite,
+        invite: {
+          patientName: invite.patientName,
+          serviceLabel: invite.serviceLabel,
+        },
       });
     }
+    logPortalAudit('portal.invite.viewed', {
+      token,
+      ip,
+      userAgent: ua,
+      tenantId: invite.tenantId,
+      patientId: invite.patientId,
+      outcome: 'opened',
+      formCount: (invite.forms || []).length,
+    });
     return res.json({
       ok: true,
       status: 'pending',
@@ -59,21 +120,62 @@ function createPatientPortalRouter({ patientPortalStore, journalStore }) {
 
   router.post('/patient-portal/:token/submit', async (req, res) => {
     const token = normalizeText(req.params?.token);
-    if (!token) return res.status(400).json({ ok: false, error: 'missing_token' });
+    const ip = getClientIp(req);
+    const ua = req.headers['user-agent'] || '';
+
+    if (!token) {
+      logPortalAudit('portal.submit_failed', { ip, userAgent: ua, outcome: 'missing_token' });
+      return res.status(400).json({ ok: false, error: 'missing_token' });
+    }
 
     const invite = await patientPortalStore.findInvite(token);
     if (!invite) {
+      logPortalAudit('portal.submit_failed', {
+        token,
+        ip,
+        userAgent: ua,
+        outcome: 'invite_expired',
+      });
       return res.status(404).json({ ok: false, error: 'invite_expired' });
     }
     if (invite.completedAt) {
+      logPortalAudit('portal.submit_failed', {
+        token,
+        ip,
+        userAgent: ua,
+        tenantId: invite.tenantId,
+        patientId: invite.patientId,
+        outcome: 'already_submitted',
+      });
       return res.status(409).json({ ok: false, error: 'already_submitted' });
     }
 
     const formData = req.body?.formData || {};
     const signature = normalizeText(req.body?.signature);
 
-    await patientPortalStore.completeInvite(token, { formData, signature });
+    // Server-side validation: minimum krav signatur
+    if (!signature || signature.length < 2) {
+      logPortalAudit('portal.submit_failed', {
+        token,
+        ip,
+        userAgent: ua,
+        tenantId: invite.tenantId,
+        patientId: invite.patientId,
+        outcome: 'missing_signature',
+      });
+      return res
+        .status(400)
+        .json({ ok: false, error: 'missing_signature', message: 'Signatur krävs (namnteckning).' });
+    }
 
+    await patientPortalStore.completeInvite(token, {
+      formData,
+      signature,
+      submitIp: ip,
+      submitUserAgent: ua,
+    });
+
+    let journalEntriesCreated = 0;
     if (journalStore && invite.patientId && invite.forms?.length > 0) {
       for (const form of invite.forms) {
         try {
@@ -85,15 +187,31 @@ function createPatientPortalRouter({ patientPortalStore, journalStore }) {
             fields: formData[form.formId] || formData,
             encounterId: invite.encounterId || '',
             source: 'patient_portal',
-            metadata: { portalToken: token, submittedAt: nowIso() },
+            metadata: { portalToken: token, submittedAt: nowIso(), submitIp: ip },
           });
+          journalEntriesCreated += 1;
         } catch (_err) {
           /* journal sync failure non-blocking */
         }
       }
     }
 
-    return res.json({ ok: true, status: 'completed', message: 'Tack! Formuläret är inskickat.' });
+    logPortalAudit('portal.submitted', {
+      token,
+      ip,
+      userAgent: ua,
+      tenantId: invite.tenantId,
+      patientId: invite.patientId,
+      outcome: 'completed',
+      formCount: (invite.forms || []).length,
+    });
+
+    return res.json({
+      ok: true,
+      status: 'completed',
+      message: 'Tack! Formuläret är inskickat.',
+      journalEntriesCreated,
+    });
   });
 
   return router;
