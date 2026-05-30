@@ -4616,23 +4616,24 @@ try {
   const ASSET_QA_CACHE_TTL_MS = 60 * 1000;
 
   async function ensureAssetStores() {
+    const dataRoot = config.stateRoot || path.join(__dirname, 'data');
     if (!assetStore) {
       assetStore = await createCcoPatientAssetStore({
-        filePath: path.join(__dirname, 'data', 'cco-patient-assets.json'),
+        filePath: path.join(dataRoot, 'cco-patient-assets.json'),
         auditLog: ccoAuditLog,
       });
       app.locals.ccoPatientAssetStore = assetStore;
     }
     if (!importRunStore) {
       importRunStore = await createCcoAssetImportRunStore({
-        filePath: path.join(__dirname, 'data', 'cco-asset-import-runs.json'),
+        filePath: path.join(dataRoot, 'cco-asset-import-runs.json'),
         auditLog: ccoAuditLog,
       });
       app.locals.ccoAssetImportRunStore = importRunStore;
     }
     if (!reviewQueueStore) {
       reviewQueueStore = await createCcoAssetReviewQueueStore({
-        filePath: path.join(__dirname, 'data', 'cco-asset-review-queue.json'),
+        filePath: path.join(dataRoot, 'cco-asset-review-queue.json'),
         auditLog: ccoAuditLog,
       });
       app.locals.ccoAssetReviewQueueStore = reviewQueueStore;
