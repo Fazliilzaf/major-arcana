@@ -1900,6 +1900,144 @@
     line-height: 1.4;
   }
 
+  /* CCO Asset-listning — importerade filer & journaler (P0.G) */
+  .cco-assets-tabs {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin-bottom: 8px;
+  }
+  .cco-assets-tab {
+    appearance: none; cursor: pointer; border: 1px solid rgba(255,255,255,.55);
+    padding: 4px 11px; border-radius: 999px;
+    background: rgba(255,255,255,.6);
+    color: var(--cco-text-secondary);
+    font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+    transition: background .12s ease, color .12s ease;
+  }
+  .cco-assets-tab[aria-selected="true"] {
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio);
+    box-shadow: 0 2px 6px rgba(187,71,121,.10), inset 0 1px 0 rgba(255,255,255,.9);
+    border-color: rgba(255,255,255,.78);
+  }
+  .cco-assets-list {
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .cco-assets-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 11px;
+    background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(247,241,236,.6));
+    border: 1px solid rgba(255,255,255,.55);
+    box-shadow: var(--panel-card-shadow);
+    font-size: 11px;
+  }
+  .cco-assets-date {
+    flex-shrink: 0; font-size: 10px; color: var(--cco-text-tertiary);
+    font-variant-numeric: tabular-nums; min-width: 64px;
+  }
+  .cco-assets-cat-pill {
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 9.5px; font-weight: 800; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .cco-assets-cat-pill[data-cat="journal"] {
+    background: var(--cco-status-success-bg); color: var(--cco-status-success);
+  }
+  .cco-assets-cat-pill[data-cat="photo_before"],
+  .cco-assets-cat-pill[data-cat="photo_during"],
+  .cco-assets-cat-pill[data-cat="photo_after"] {
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio);
+  }
+  .cco-assets-cat-pill[data-cat="consent"],
+  .cco-assets-cat-pill[data-cat="agreement"],
+  .cco-assets-cat-pill[data-cat="form"] {
+    background: var(--cco-status-info-bg); color: var(--cco-status-info);
+  }
+  .cco-assets-cat-pill[data-cat="aisia_report"],
+  .cco-assets-cat-pill[data-cat="other"] {
+    background: rgba(132,117,107,.16); color: var(--cco-text-tertiary);
+  }
+  .cco-assets-thumb {
+    width: 64px; height: 64px; flex-shrink: 0;
+    border-radius: 8px; overflow: hidden;
+    background: rgba(132,117,107,.10);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cco-assets-thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .cco-assets-thumb.placeholder { font-size: 22px; color: var(--cco-text-tertiary); }
+  .cco-assets-meta { flex: 1; min-width: 0; }
+  .cco-assets-name {
+    font-size: 11.5px; font-weight: 700; color: var(--cco-color-brand);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cco-assets-sub {
+    font-size: 9.5px; color: var(--cco-text-tertiary); margin-top: 1px;
+    font-variant-numeric: tabular-nums;
+  }
+  .cco-assets-status-pill {
+    flex-shrink: 0;
+    padding: 2px 7px; border-radius: 999px;
+    font-size: 9px; font-weight: 800; letter-spacing: .04em;
+  }
+  .cco-assets-status-pill[data-status="VISIBLE_ON_PATIENT_CARD"],
+  .cco-assets-status-pill[data-status="VERIFIED_IN_CCO"],
+  .cco-assets-status-pill[data-status="IMPORTED_TO_CCO"] {
+    background: var(--cco-status-success-bg); color: var(--cco-status-success);
+  }
+  .cco-assets-status-pill[data-status="NEEDS_REVIEW"] {
+    background: var(--cco-status-warning-bg); color: var(--cco-status-warning);
+  }
+  .cco-assets-status-pill[data-status="LINK_ONLY_BLOCKER"],
+  .cco-assets-status-pill[data-status="FAILED_IMPORT"] {
+    background: var(--cco-status-danger-bg); color: var(--cco-status-danger);
+  }
+  .cco-assets-actions { display: inline-flex; gap: 4px; flex-shrink: 0; }
+  .cco-assets-action {
+    appearance: none; cursor: pointer; text-decoration: none;
+    padding: 3px 9px; border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(244,238,232,.82));
+    color: var(--cco-color-brand);
+    font-size: 9.5px; font-weight: 800; letter-spacing: .02em;
+    border: 1px solid rgba(255,255,255,.78);
+    box-shadow: 0 1px 4px rgba(56,40,28,.05), inset 0 1px 0 rgba(255,255,255,.88);
+    transition: transform .1s ease;
+  }
+  .cco-assets-action:hover { transform: translateY(-1px); }
+  .cco-assets-empty {
+    padding: 14px; text-align: center;
+    color: var(--cco-text-tertiary); font-size: 11px;
+    background: rgba(255,255,255,.4); border-radius: 10px;
+  }
+  .cco-assets-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; flex-wrap: wrap;
+    padding: 8px 10px;
+    margin-top: 8px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.42);
+    font-size: 10.5px; color: var(--cco-text-secondary);
+  }
+  .cco-assets-footer a {
+    color: var(--accent-studio); text-decoration: none; font-weight: 700;
+  }
+  .cco-assets-footer a:hover { text-decoration: underline; }
+  .cco-assets-provenance {
+    margin-top: 6px;
+    font-size: 9.5px; color: var(--cco-text-tertiary);
+    padding: 4px 10px; opacity: .82;
+  }
+  .cco-assets-loading {
+    padding: 14px; text-align: center;
+    color: var(--cco-text-tertiary); font-size: 11px;
+  }
+  .cco-assets-loading::before {
+    content: "⏳ "; margin-right: 4px;
+  }
+
   /* AI-insikter */
   .dossier-insight {
     position: relative;
@@ -4563,6 +4701,250 @@ const DRIVE_LINK = (() => {
   return { KNOWN_FOLDERS, MONTH_SV, folderUrl, searchUrl, treatmentLink, patientLink };
 })();
 
+// ============================================================
+// CCO_ASSETS — P0.G patientkort-renderare för importerade
+// filer från CCO secure storage (per cursor-regel
+// `cco-no-drive-links-import-only.mdc`). INGA Drive-länkar
+// här — endast importerade assets via
+// /api/v1/cco/patients/:id/assets med thumbnail/download via
+// /api/v1/cco/assets/:id/{thumbnail,download}.
+// ============================================================
+const CCO_ASSETS = (() => {
+  const CATEGORY_LABEL = {
+    journal: 'Journal',
+    photo_before: 'Bild · före',
+    photo_during: 'Bild · under',
+    photo_after: 'Bild · efter',
+    consent: 'Samtycke',
+    agreement: 'Avtal',
+    form: 'Formulär',
+    aisia_report: 'Aisia-rapport',
+    other: 'Övrigt',
+  };
+  const CATEGORY_ICON = {
+    journal: '🟢',
+    photo_before: '🌸',
+    photo_during: '🌸',
+    photo_after: '🌸',
+    consent: '📜',
+    agreement: '📝',
+    form: '📋',
+    aisia_report: '🤖',
+    other: '📎',
+  };
+  const TAB_ORDER = [
+    { id: 'all', label: 'Alla' },
+    { id: 'journal', label: 'Journaler' },
+    { id: 'photo', label: 'Bilder' },
+    { id: 'consent', label: 'Samtycken' },
+    { id: 'agreement', label: 'Avtal' },
+    { id: 'form', label: 'Formulär' },
+  ];
+
+  function fmtBytes(n) {
+    if (!Number.isFinite(Number(n)) || n <= 0) return '—';
+    const v = Number(n);
+    if (v < 1024) return v + ' B';
+    if (v < 1024 * 1024) return (v / 1024).toFixed(1) + ' kB';
+    return (v / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString('sv-SE');
+    } catch { return iso; }
+  }
+
+  function statusLabel(s) {
+    return ({
+      VISIBLE_ON_PATIENT_CARD: '✓',
+      VERIFIED_IN_CCO: 'verif.',
+      IMPORTED_TO_CCO: 'imp.',
+      NEEDS_REVIEW: 'review',
+      LINK_ONLY_BLOCKER: 'länk-only',
+      FAILED_IMPORT: 'fel',
+      DUPLICATE: 'dup.',
+      REJECTED: 'avvisad',
+      IMPORTING: '…',
+      DISCOVERED: 'ny',
+    })[s] || s;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Säkert visningsnamn — INGA PII utöver originalFileName (som server returnerar).
+  // Privacy-mall: trimma extension om name innehåller pnr-mönster.
+  function displayName(a) {
+    const raw = (a.originalFileName || '').trim();
+    if (!raw) return CATEGORY_LABEL[a.category] || 'Fil';
+    // Trimma ev. pnr-aktigt mönster YYMMDD-XXXX → maska
+    return raw.replace(/(\d{6})[-]?(\d{4})/g, '$1-XXXX');
+  }
+
+  function isImage(a) {
+    return /^image\//.test(a.mimeType || '')
+      || ['photo_before', 'photo_during', 'photo_after'].includes(a.category);
+  }
+
+  function renderRow(a) {
+    const cat = a.category || 'other';
+    const catLabel = CATEGORY_LABEL[cat] || cat;
+    const icon = CATEGORY_ICON[cat] || '📎';
+    const thumb = (a.hasThumbnail && isImage(a))
+      ? `<div class="cco-assets-thumb"><img loading="lazy" alt="" src="/api/v1/cco/assets/${encodeURIComponent(a.id)}/thumbnail"></div>`
+      : `<div class="cco-assets-thumb placeholder" aria-hidden="true">${icon}</div>`;
+
+    const dl = `/api/v1/cco/assets/${encodeURIComponent(a.id)}/download`;
+    const viewAction = isImage(a) || (a.mimeType || '').includes('pdf')
+      ? `<a class="cco-assets-action" href="${dl}?inline=1" target="_blank" rel="noopener">Visa</a>`
+      : '';
+    const dlAction = `<a class="cco-assets-action" href="${dl}" download>Ladda ned</a>`;
+
+    return `
+      <div class="cco-assets-row" data-asset-id="${escapeHtml(a.id)}" data-category="${escapeHtml(cat)}">
+        <div class="cco-assets-date">${fmtDate(a.documentDate || a.importedAt)}</div>
+        <span class="cco-assets-cat-pill" data-cat="${escapeHtml(cat)}">${escapeHtml(catLabel)}</span>
+        ${thumb}
+        <div class="cco-assets-meta">
+          <div class="cco-assets-name">${escapeHtml(displayName(a))}</div>
+          <div class="cco-assets-sub">${fmtBytes(a.fileSize)} · ${escapeHtml(a.sourceSystem || '—')} · imp. ${fmtDate(a.importedAt)}</div>
+        </div>
+        <span class="cco-assets-status-pill" data-status="${escapeHtml(a.status || '')}">${escapeHtml(statusLabel(a.status))}</span>
+        <div class="cco-assets-actions">${viewAction}${dlAction}</div>
+      </div>
+    `;
+  }
+
+  function categoryGroup(catId, items) {
+    if (catId === 'photo') {
+      return items.filter(a => ['photo_before', 'photo_during', 'photo_after'].includes(a.category));
+    }
+    if (catId === 'all') return items;
+    return items.filter(a => a.category === catId);
+  }
+
+  function renderBody(host, data) {
+    const items = Array.isArray(data.items) ? data.items : [];
+    const counts = data.counts || {};
+    const linkOnly = Number(data.linkOnlyCount || 0);
+    const inReview = Number(data.inReviewCount || 0);
+
+    const summaryEl = host.querySelector('[data-cco-assets-count]');
+    if (summaryEl) summaryEl.textContent = String(items.length);
+
+    const body = host.querySelector('[data-cco-assets-body]');
+    if (!body) return;
+
+    if (!items.length) {
+      body.hidden = false;
+      body.innerHTML = `
+        <div class="cco-assets-empty">
+          Inga importerade filer ännu.<br>
+          Kör <code>node scripts/run-asset-import.js --source-system drive --commit</code> eller
+          <a href="/journal-qa.html">öppna QA-dashboard</a>.
+        </div>`;
+      return;
+    }
+
+    const tabsHtml = TAB_ORDER.map((t, i) => {
+      const n = categoryGroup(t.id, items).length;
+      const selected = i === 0 ? 'true' : 'false';
+      return `<button type="button" class="cco-assets-tab" data-tab="${t.id}" aria-selected="${selected}">${t.label} · ${n}</button>`;
+    }).join('');
+
+    const rowsHtml = items.map(renderRow).join('');
+
+    const footerHtml = `
+      <div class="cco-assets-footer">
+        <span><strong>${items.length}</strong> filer importerade · <strong>${linkOnly}</strong> link-only · <strong>${inReview}</strong> i review</span>
+        <a href="/journal-qa.html">Öppna QA-dashboard ↗</a>
+      </div>
+      <div class="cco-assets-provenance">
+        Provenance: originalkällor bevarade som metadata (driveFileId/drivePath).
+        Originalfiler kvar i Drive som arkiv — CCO är arbets-UI.
+      </div>`;
+
+    body.hidden = false;
+    body.innerHTML = `
+      <div class="cco-assets-tabs" role="tablist">${tabsHtml}</div>
+      <div class="cco-assets-list" data-cco-assets-rows>${rowsHtml}</div>
+      ${footerHtml}
+    `;
+
+    // Tab-byte
+    const tabBtns = body.querySelectorAll('.cco-assets-tab');
+    const rowEls = body.querySelectorAll('.cco-assets-row');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        tabBtns.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
+        rowEls.forEach(r => {
+          const cat = r.dataset.category;
+          const matchPhoto = tab === 'photo' && ['photo_before', 'photo_during', 'photo_after'].includes(cat);
+          const matchExact = tab === cat;
+          const show = tab === 'all' || matchPhoto || matchExact;
+          r.style.display = show ? '' : 'none';
+        });
+      });
+    });
+  }
+
+  async function loadForHost(host) {
+    if (!host || host.dataset.ccoAssetsLoaded === '1') return;
+    const patientName = host.dataset.patientName || '';
+    if (!patientName) return;
+    host.dataset.ccoAssetsLoaded = '1';
+    const loading = host.querySelector('[data-cco-assets-loading]');
+    const body = host.querySelector('[data-cco-assets-body]');
+    try {
+      // KOMMENTAR: kunder.html använder namn som customer-key i mockdata.
+      // När master-patient-store är på plats byter vi till patientId.
+      const url = '/api/v1/cco/patients/' + encodeURIComponent(patientName) + '/assets?groupByCategory=1';
+      const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (loading) loading.remove();
+      renderBody(host, data);
+    } catch (err) {
+      if (loading) loading.remove();
+      if (body) {
+        body.hidden = false;
+        body.innerHTML = `
+          <div class="cco-assets-empty">
+            Kunde inte hämta importerade filer från CCO storage<br>
+            <small style="color: var(--cco-text-tertiary);">(${escapeHtml(err.message || 'fel')})</small><br>
+            <a href="/journal-qa.html">Öppna QA-dashboard ↗</a>
+          </div>`;
+      }
+      // Reset flag så användaren kan toggle:a och försöka igen
+      host.dataset.ccoAssetsLoaded = '0';
+    }
+  }
+
+  function bindAll(container) {
+    const hosts = (container || document).querySelectorAll('[data-cco-assets-host]');
+    hosts.forEach(h => {
+      // Lazy: ladda när section öppnas (eller direkt om open)
+      const isOpen = h.hasAttribute('open');
+      if (isOpen) {
+        loadForHost(h);
+      }
+      h.addEventListener('toggle', () => {
+        if (h.open) loadForHost(h);
+      });
+    });
+  }
+
+  return { bindAll, loadForHost, CATEGORY_LABEL };
+})();
+
 // Hjälp: rendera Drive-sektionen för en kund. Phase 1 = ren UI,
 // inga patient-data echoas i Drive-URL utöver namnet (publika search-URLs).
 function renderDriveSection(name, { brand = 'hair_tp', recentTreatmentDate = null, recentTreatmentType = 'tp' } = {}) {
@@ -4721,8 +5103,18 @@ function openCustomerDossier(name) {
         </div>
       </details>
 
+      <details class="dossier-section" open data-cco-assets-host data-patient-name="${name}">
+        <summary>Filer &amp; journaler <span class="count" data-cco-assets-count>…</span></summary>
+        <div class="cco-assets-loading" data-cco-assets-loading>Hämtar importerade filer från CCO secure storage…</div>
+        <div data-cco-assets-body hidden></div>
+      </details>
+
       <details class="dossier-section">
-        <summary>Drive <span class="count">${(d.driveBrand || 'hair_tp') === 'curatiio' ? 'TBD' : 'OK'}</span></summary>
+        <summary>Drive (interim) <span class="count">${(d.driveBrand || 'hair_tp') === 'curatiio' ? 'TBD' : 'arkivkälla'}</span></summary>
+        <div class="cco-assets-provenance" style="margin-bottom: 6px;">
+          ⚠️ Interim — ersätts av importerade filer ovan. Drive används endast som
+          källa + provenance, inte som arbets-UI (per cursor-regeln).
+        </div>
         ${renderDriveSection(name, {
           brand: d.driveBrand || 'hair_tp',
           recentTreatmentDate: d.driveRecentTreatmentDate || null,
@@ -4806,6 +5198,9 @@ function openCustomerDossier(name) {
   // Wire close
   document.getElementById('dossierClose').addEventListener('click', closeDossier);
   document.getElementById('bcBack').addEventListener('click', closeDossier);
+
+  // P0.G: ladda importerade assets (lazy via <details>-toggle, eller direkt om open)
+  try { CCO_ASSETS.bindAll(intelCustomerView); } catch (e) { /* non-fatal */ }
 
   // Wire bookings: klick → hoppa till booking i kalendern
   intelCustomerView.querySelectorAll('.dossier-booking[data-jump-current="1"]').forEach(b => {
