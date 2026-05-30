@@ -67,6 +67,11 @@ const ACTIONS = Object.freeze({
   ASSET_LINKED_TO_ENCOUNTER: 'asset.linked_to_encounter',
   ASSET_CHECKSUM_VERIFIED: 'asset.checksum_verified',
   ASSET_LINK_ONLY_BLOCKER_FLAGGED: 'asset.link_only_blocker_flagged',
+  // OWNER-SKÄRPNING #2 — explicita delete + reassign + visible-guard-fail
+  ASSET_SOFT_DELETED: 'asset.soft_deleted',
+  ASSET_HARD_DELETED: 'asset.hard_deleted',
+  ASSET_REASSIGNED_TO_PATIENT: 'asset.reassigned_to_patient',
+  ASSET_VISIBLE_GUARD_FAILED: 'asset.visible_guard_failed',
 });
 
 const HIGH_SEVERITY_ACTIONS = new Set([
