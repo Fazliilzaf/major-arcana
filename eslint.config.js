@@ -270,6 +270,7 @@ module.exports = [
       'public/cco-komm-panel.js',
       'public/cco-kalender-bridge.js',
       'public/cco-photo-review.js',
+      'public/konversationer-bottom-actions.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,

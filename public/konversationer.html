@@ -977,7 +977,179 @@
         font-size: 11px;
       }
 
-      /* Sprint 2.3-overrides borttagna — grid styrs av första .app-grid-block (4 spår, full bredd från CCO-logga) */
+      /* Sprint 2.3-overrides borttagna — grid styrs av första .app-grid-block */
+
+      /* Sprint 18B: Bottom action bar */
+      .thread-bottom-actions {
+        display: flex;
+        gap: 10px;
+        padding: 12px 14px;
+        margin-top: 10px;
+        position: sticky;
+        bottom: 10px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 243, 235, 0.86));
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 18px;
+        box-shadow:
+          0 8px 24px rgba(56, 40, 28, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        z-index: 5;
+      }
+      .thread-bottom-actions .action-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font:
+          700 12.5px Inter,
+          sans-serif;
+        cursor: pointer;
+        border: 1px solid rgba(187, 159, 122, 0.22);
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--cco-color-brand);
+        transition: all 0.14s ease;
+        min-height: 44px;
+      }
+      .thread-bottom-actions .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(56, 40, 28, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .thread-bottom-actions .action-btn--studio {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        border-color: rgba(187, 71, 121, 0.28);
+      }
+      .thread-bottom-actions .action-btn--booking {
+        background: linear-gradient(180deg, rgba(216, 235, 219, 0.96), rgba(184, 216, 197, 0.78));
+        color: var(--cco-status-success);
+        border-color: rgba(74, 130, 104, 0.32);
+      }
+      .thread-bottom-actions .action-btn--note {
+        background: linear-gradient(180deg, rgba(216, 228, 240, 0.96), rgba(184, 204, 224, 0.78));
+        color: var(--cco-status-info);
+        border-color: rgba(74, 123, 168, 0.32);
+      }
+      .thread-bottom-actions .action-btn--calendar {
+        background: linear-gradient(180deg, rgba(255, 244, 219, 0.96), rgba(248, 233, 198, 0.78));
+        color: var(--cco-status-warning);
+        border-color: rgba(200, 130, 30, 0.32);
+      }
+      .thread-bottom-actions .action-ico {
+        font-size: 14px;
+      }
+      .thread-bottom-actions .action-kbd {
+        margin-left: 4px;
+        padding: 2px 6px;
+        border-radius: 5px;
+        background: rgba(0, 0, 0, 0.08);
+        font:
+          700 10px ui-monospace,
+          Menlo,
+          monospace;
+        color: inherit;
+      }
+      @media (max-width: 900px) {
+        .thread-bottom-actions {
+          flex-wrap: wrap;
+          position: fixed;
+          left: 8px;
+          right: 8px;
+          bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+          margin-top: 0;
+        }
+        .thread-bottom-actions .action-btn {
+          flex: 1 1 calc(50% - 5px);
+        }
+        .thread-bottom-actions .action-kbd {
+          display: none;
+        }
+      }
+      /* Modal */
+      .action-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(56, 40, 28, 0.32);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .action-modal {
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 22px;
+        box-shadow: var(--panel-shell-shadow-strong);
+        width: 100%;
+        max-width: 720px;
+        max-height: 92vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .action-modal--wide {
+        max-width: 880px;
+      }
+      .action-modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(187, 159, 122, 0.18);
+      }
+      .action-modal-head h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .action-modal-close {
+        background: transparent;
+        border: 0;
+        font-size: 22px;
+        cursor: pointer;
+        color: var(--cco-text-tertiary);
+        padding: 4px 10px;
+        border-radius: 8px;
+      }
+      .action-modal-close:hover {
+        background: rgba(0, 0, 0, 0.06);
+      }
+      .action-modal-body {
+        padding: 18px 20px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .action-modal-foot {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        padding: 14px 20px;
+        border-top: 1px solid rgba(187, 159, 122, 0.18);
+        flex-wrap: wrap;
+      }
+      @media (max-width: 720px) {
+        .action-modal-backdrop {
+          padding: 0;
+          align-items: flex-end;
+        }
+        .action-modal {
+          max-width: 100%;
+          border-radius: 22px 22px 0 0;
+        }
+        .action-modal-foot {
+          flex-direction: column-reverse;
+        }
+        .action-modal-foot button {
+          width: 100%;
+        }
+      }
 
       /* Mobile: dölja lane-sidebar, gör tabs istället */
       @media (max-width: 880px) {
@@ -1208,18 +1380,22 @@
           </div>
         </div>
 
-        <div class="composer">
-          <div class="composer-row">
-            <textarea placeholder="Skriv ditt svar — eller klicka ★ AI för förslag…"></textarea>
-            <button class="composer-send">Skicka ▸</button>
-          </div>
-          <div class="composer-tools">
-            <button class="quick-pill quick-pill--ai">★ AI-utkast</button>
-            <button class="quick-pill">📎 Bifoga friskförsäkran</button>
-            <button class="quick-pill">📅 Ändra bokning</button>
-            <button class="quick-pill">✎ Mall</button>
-            <button class="quick-pill">😊 Personlig ton</button>
-          </div>
+        <!-- Sprint 18B: composer borttagen, ersatt med bottom action bar -->
+        <div class="thread-bottom-actions" role="toolbar" aria-label="Konversations-actions">
+          <button class="action-btn action-btn--studio" type="button" data-action="svarstudio">
+            <span class="action-ico">✱</span><span class="action-label">Svarstudio</span
+            ><kbd class="action-kbd">S</kbd>
+          </button>
+          <button class="action-btn action-btn--booking" type="button" data-action="bokningsyta">
+            <span class="action-ico">📅</span><span class="action-label">Bokningsyta</span>
+          </button>
+          <button class="action-btn action-btn--note" type="button" data-action="smart-anteckning">
+            <span class="action-ico">📄</span><span class="action-label">Smart anteckning</span
+            ><kbd class="action-kbd">N</kbd>
+          </button>
+          <button class="action-btn action-btn--calendar" type="button" data-action="kalender">
+            <span class="action-ico">📆</span><span class="action-label">Kalender</span>
+          </button>
         </div>
       </section>
 
@@ -1499,5 +1675,7 @@
         })
       );
     </script>
+    <script src="/cco-komm-panel.js?v=20260531c" defer></script>
+    <script src="/konversationer-bottom-actions.js?v=20260531a" defer></script>
   </body>
 </html>
