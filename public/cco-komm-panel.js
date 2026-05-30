@@ -34,8 +34,14 @@
     if (!iso) return '';
     try {
       const d = new Date(iso);
-      return d.toLocaleDateString('sv-SE') + ' ' + d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
-    } catch { return iso; }
+      return (
+        d.toLocaleDateString('sv-SE') +
+        ' ' +
+        d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+      );
+    } catch {
+      return iso;
+    }
   }
 
   function fmtDaysAgo(iso) {
@@ -45,15 +51,21 @@
       if (days === 0) return 'idag';
       if (days === 1) return 'igår';
       return days + ' dagar sedan';
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   async function fetchFeed(customerId, opts) {
     const tenantId = opts?.tenantId || 'hair_tp';
     const role = opts?.role || 'owner';
-    const r = await fetch('/api/v1/cco-customers/' + encodeURIComponent(customerId) +
-      '/communication-feed?tenantId=' + tenantId,
-      { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+    const r = await fetch(
+      '/api/v1/cco-customers/' +
+        encodeURIComponent(customerId) +
+        '/communication-feed?tenantId=' +
+        tenantId,
+      { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } }
+    );
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   }
@@ -61,11 +73,18 @@
   async function postInternalNote(customerId, body, opts) {
     const tenantId = opts?.tenantId || 'hair_tp';
     const role = opts?.role || 'owner';
-    const r = await fetch('/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/internal-note', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
-      body: JSON.stringify({ body, tenantId }),
-    });
+    const r = await fetch(
+      '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/internal-note',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-cco-role': role,
+          'x-cco-tenant': tenantId,
+        },
+        body: JSON.stringify({ body, tenantId }),
+      }
+    );
     return r.json();
   }
 
@@ -81,7 +100,7 @@
   }
 
   function showToast(msg, kind) {
-    document.querySelectorAll('.cco-komm-toast').forEach(n => n.remove());
+    document.querySelectorAll('.cco-komm-toast').forEach((n) => n.remove());
     const toast = el('div', { class: 'cco-komm-toast cco-komm-toast--' + (kind || 'ok') }, msg);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
@@ -92,26 +111,51 @@
     const actions = el('div', { class: 'cco-komm-actions' });
 
     const buttons = [
-      { id: 'send-hd',     label: 'Hälsodekl.',     icon: '📋',
-        onclick: () => doAction('send-hd', customerId, opts, host) },
-      { id: 'send-ff',     label: 'Friskförsäkran', icon: '⚕',
-        onclick: () => doAction('send-ff', customerId, opts, host) },
-      { id: 'send-consent', label: 'Samtycke',      icon: '✍',
-        onclick: () => doAction('send-consent', customerId, opts, host) },
-      { id: 'internal',    label: 'Intern notis',  icon: '🗒',
-        onclick: () => openInternalNoteModal(customerId, opts, host) },
+      {
+        id: 'svarstudio',
+        label: 'Svarstudio',
+        icon: '✏',
+        onclick: () => openSvarstudio(customerId, opts, host),
+      },
+      {
+        id: 'send-hd',
+        label: 'Hälsodekl.',
+        icon: '📋',
+        onclick: () => doAction('send-hd', customerId, opts, host),
+      },
+      {
+        id: 'send-ff',
+        label: 'Friskförsäkran',
+        icon: '⚕',
+        onclick: () => doAction('send-ff', customerId, opts, host),
+      },
+      {
+        id: 'send-consent',
+        label: 'Samtycke',
+        icon: '✍',
+        onclick: () => doAction('send-consent', customerId, opts, host),
+      },
+      {
+        id: 'internal',
+        label: 'Intern notis',
+        icon: '🗒',
+        onclick: () => openInternalNoteModal(customerId, opts, host),
+      },
     ];
 
     for (const b of buttons) {
-      actions.appendChild(el('button', {
-        class: 'cco-komm-action',
-        type: 'button',
-        dataset: { action: b.id },
-        onclick: b.onclick,
-      }, [
-        el('span', { class: 'cco-komm-action-icon' }, b.icon),
-        el('span', {}, b.label),
-      ]));
+      actions.appendChild(
+        el(
+          'button',
+          {
+            class: 'cco-komm-action',
+            type: 'button',
+            dataset: { action: b.id },
+            onclick: b.onclick,
+          },
+          [el('span', { class: 'cco-komm-action-icon' }, b.icon), el('span', {}, b.label)]
+        )
+      );
     }
     host.appendChild(actions);
   }
@@ -133,7 +177,11 @@
         const role = opts?.role || 'owner';
         const r = await fetch('/api/v1/cco-send/consent/' + encodeURIComponent(customerId), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-cco-role': role,
+            'x-cco-tenant': tenantId,
+          },
           body: JSON.stringify({ consentKind: 'consent_treatment', dryRun: false, tenantId }),
         });
         const j = await r.json();
@@ -147,34 +195,359 @@
     }
   }
 
+  // ─── Svarstudio (Sprint 2) — template-picker + draft + approval-flöde ───
+  let _commTemplatesCache = null;
+
+  async function loadCommTemplates(opts) {
+    if (_commTemplatesCache) return _commTemplatesCache;
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    try {
+      const r = await fetch(
+        '/api/v1/cco-comm/templates?brand=' + (tenantId === 'curatiio' ? 'curatiio' : 'hair_tp'),
+        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } }
+      );
+      const j = await r.json();
+      _commTemplatesCache = j.templates || [];
+    } catch {
+      _commTemplatesCache = [];
+    }
+    return _commTemplatesCache;
+  }
+
+  async function openSvarstudio(customerId, opts, host) {
+    const templates = await loadCommTemplates(opts);
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+
+    const state = {
+      mode: 'pick', // pick | edit
+      templateId: null,
+      template: null,
+      subject: '',
+      body: '',
+      channel: 'email',
+      journeyStep: null,
+      mergeFields: {},
+      currentDraftId: null,
+    };
+
+    document.querySelectorAll('.cco-komm-modal-backdrop').forEach((n) => n.remove());
+    const backdrop = el('div', {
+      class: 'cco-komm-modal-backdrop',
+      role: 'dialog',
+      'aria-modal': 'true',
+    });
+    const modal = el('div', { class: 'cco-komm-modal cco-komm-modal--wide' });
+    const close = () => backdrop.remove();
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
+
+    modal.appendChild(
+      el('div', { class: 'cco-komm-modal-head' }, [
+        el('h3', {}, '✏ Svarstudio — utkast'),
+        el('button', { class: 'cco-komm-modal-close', onclick: close }, '×'),
+      ])
+    );
+
+    const body = el('div', { class: 'cco-komm-modal-body cco-komm-svar-body' });
+    modal.appendChild(body);
+
+    const footer = el('div', { class: 'cco-komm-modal-foot cco-komm-svar-foot' });
+    modal.appendChild(footer);
+
+    function renderPick() {
+      body.innerHTML = '';
+      footer.innerHTML = '';
+      body.appendChild(
+        el(
+          'div',
+          { class: 'cco-komm-modal-lead' },
+          '✋ Inget skickas externt automatiskt. Utkast skapas och kräver godkännande innan utskick.'
+        )
+      );
+      body.appendChild(el('div', { class: 'cco-komm-modal-label' }, 'Välj mall · kundresesteg'));
+
+      const grid = el('div', { class: 'cco-komm-svar-templates' });
+      const STAGE_LABEL = {
+        lead_first_contact: 'Lead välkomnande',
+        booking_confirmed: 'Bokningsbekräftelse',
+        pre_treatment_reminder: '24h påminnelse',
+        post_consultation: 'Sammanfattning konsultation',
+        cancellation: 'Avbokningsbekräftelse',
+        no_show_followup: 'No-show uppföljning',
+        missing_documents_reminder: 'Saknade dokument',
+        aftercare_reminder: 'Eftervård vecka 1',
+        follow_up_reminder: 'Uppföljning 3 mån',
+      };
+      for (const tpl of templates) {
+        grid.appendChild(
+          el(
+            'button',
+            {
+              class: 'cco-komm-svar-template',
+              type: 'button',
+              onclick: () => {
+                state.templateId = tpl.templateId;
+                state.template = tpl;
+                state.subject = tpl.subject || '';
+                state.body = tpl.bodyMarkdown || '';
+                state.channel = tpl.channel || 'email';
+                state.journeyStep = tpl.journeyStep;
+                state.mode = 'edit';
+                renderEdit();
+              },
+            },
+            [
+              el(
+                'div',
+                { class: 'cco-komm-svar-template-stage' },
+                STAGE_LABEL[tpl.journeyStep] || tpl.journeyStep
+              ),
+              el(
+                'div',
+                { class: 'cco-komm-svar-template-subject' },
+                tpl.subject || '(SMS — ingen subject)'
+              ),
+              el(
+                'div',
+                { class: 'cco-komm-svar-template-meta' },
+                tpl.channel.toUpperCase() + ' · ' + tpl.mergeFields.length + ' merge fields'
+              ),
+            ]
+          )
+        );
+      }
+      body.appendChild(grid);
+
+      footer.appendChild(
+        el('button', { class: 'cco-komm-modal-cancel', type: 'button', onclick: close }, 'Avbryt')
+      );
+    }
+
+    function renderEdit() {
+      body.innerHTML = '';
+      footer.innerHTML = '';
+
+      // Back-länk + meta
+      body.appendChild(
+        el('div', { class: 'cco-komm-svar-edit-head' }, [
+          el(
+            'button',
+            {
+              class: 'cco-komm-svar-back',
+              type: 'button',
+              onclick: () => {
+                state.mode = 'pick';
+                renderPick();
+              },
+            },
+            '‹ Tillbaka till mallar'
+          ),
+          el('div', { class: 'cco-komm-svar-meta' }, [
+            el('span', { class: 'cco-komm-pill' }, state.channel.toUpperCase()),
+            el('span', {}, state.journeyStep),
+          ]),
+        ])
+      );
+
+      // AI-utkast banner (Sprint 2 P2 — finns inte än)
+      body.appendChild(
+        el('div', { class: 'cco-komm-svar-banner' }, [
+          '✋ Detta är ett utkast. Inget skickas förrän en människa godkänner. Ingen extern AI på journaltext.',
+        ])
+      );
+
+      // Subject
+      if (state.channel === 'email') {
+        body.appendChild(el('div', { class: 'cco-komm-modal-label' }, 'Ämne'));
+        const subj = el('input', {
+          class: 'cco-komm-modal-input',
+          type: 'text',
+          value: state.subject,
+        });
+        subj.addEventListener('input', (e) => {
+          state.subject = e.target.value;
+        });
+        body.appendChild(subj);
+      }
+
+      // Body
+      body.appendChild(el('div', { class: 'cco-komm-modal-label' }, 'Meddelande'));
+      const txt = el('textarea', {
+        class: 'cco-komm-modal-input cco-komm-svar-textarea',
+        rows: '10',
+      });
+      txt.value = state.body;
+      txt.addEventListener('input', (e) => {
+        state.body = e.target.value;
+      });
+      body.appendChild(txt);
+
+      // Merge fields hint
+      if (state.template?.mergeFields?.length) {
+        body.appendChild(
+          el(
+            'div',
+            { class: 'cco-komm-svar-merge-hint' },
+            'Merge fields: ' + state.template.mergeFields.map((f) => '{{' + f + '}}').join(', ')
+          )
+        );
+      }
+
+      // Footer: olika beroende på om draft skapad eller inte
+      if (!state.currentDraftId) {
+        const saveDraftBtn = el(
+          'button',
+          { class: 'cco-komm-modal-submit', type: 'button' },
+          'Spara som utkast'
+        );
+        saveDraftBtn.addEventListener('click', async () => {
+          saveDraftBtn.disabled = true;
+          saveDraftBtn.textContent = 'Sparar…';
+          try {
+            const r = await fetch('/api/v1/cco-comm/drafts', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-cco-role': role,
+                'x-cco-tenant': tenantId,
+              },
+              body: JSON.stringify({
+                customerId,
+                tenantId,
+                templateId: state.templateId,
+                subject: state.subject,
+                body: state.body,
+                channel: state.channel,
+                journeyStep: state.journeyStep,
+                mergeFields: state.mergeFields,
+                aiGenerated: false,
+              }),
+            });
+            const j = await r.json();
+            if (!j.ok) throw new Error(j.error || 'unknown');
+            state.currentDraftId = j.draft.draftId;
+            showToast('✓ Utkast sparat', 'ok');
+            renderEdit();
+            reloadFeed(host, customerId, opts);
+          } catch (err) {
+            saveDraftBtn.disabled = false;
+            saveDraftBtn.textContent = 'Spara som utkast';
+            showToast('✗ ' + err.message, 'error');
+          }
+        });
+        footer.appendChild(
+          el('button', { class: 'cco-komm-modal-cancel', type: 'button', onclick: close }, 'Avbryt')
+        );
+        footer.appendChild(saveDraftBtn);
+      } else {
+        // Draft finns → erbjuda Markera klart-för-godkännande + Godkänn + Queue
+        const requestApprovalBtn = el(
+          'button',
+          { class: 'cco-komm-modal-submit', type: 'button' },
+          'Markera klart'
+        );
+        requestApprovalBtn.addEventListener('click', () =>
+          transitionDraft('needs_approval', 'Klar för granskning')
+        );
+        const approveBtn = el(
+          'button',
+          { class: 'cco-komm-modal-submit cco-komm-modal-submit--gold', type: 'button' },
+          '✓ Godkänn'
+        );
+        approveBtn.addEventListener('click', () => transitionDraft('approved'));
+        const queueBtn = el(
+          'button',
+          { class: 'cco-komm-modal-submit cco-komm-modal-submit--queue', type: 'button' },
+          '⏳ Lägg i kö'
+        );
+        queueBtn.addEventListener('click', () => transitionDraft('queued'));
+        footer.appendChild(
+          el('button', { class: 'cco-komm-modal-cancel', type: 'button', onclick: close }, 'Stäng')
+        );
+        footer.appendChild(requestApprovalBtn);
+        footer.appendChild(approveBtn);
+        footer.appendChild(queueBtn);
+      }
+    }
+
+    async function transitionDraft(newStatus, reason) {
+      try {
+        const r = await fetch(
+          '/api/v1/cco-comm/drafts/' + encodeURIComponent(state.currentDraftId) + '/transition',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-cco-role': role,
+              'x-cco-tenant': tenantId,
+            },
+            body: JSON.stringify({ status: newStatus, reason }),
+          }
+        );
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'transition failed');
+        showToast('✓ Status: ' + newStatus, 'ok');
+        close();
+        reloadFeed(host, customerId, opts);
+      } catch (err) {
+        showToast('✗ ' + err.message, 'error');
+      }
+    }
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    renderPick();
+  }
+
   // ─── Intern notis-modal (mobile bottom-sheet) ───
   function openInternalNoteModal(customerId, opts, host) {
-    document.querySelectorAll('.cco-komm-modal-backdrop').forEach(n => n.remove());
-    const backdrop = el('div', { class: 'cco-komm-modal-backdrop', role: 'dialog', 'aria-modal': 'true' });
+    document.querySelectorAll('.cco-komm-modal-backdrop').forEach((n) => n.remove());
+    const backdrop = el('div', {
+      class: 'cco-komm-modal-backdrop',
+      role: 'dialog',
+      'aria-modal': 'true',
+    });
     const modal = el('div', { class: 'cco-komm-modal' });
     const close = () => backdrop.remove();
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
 
-    modal.appendChild(el('div', { class: 'cco-komm-modal-head' }, [
-      el('h3', {}, '🗒 Intern notis'),
-      el('button', { class: 'cco-komm-modal-close', onclick: close }, '×'),
-    ]));
+    modal.appendChild(
+      el('div', { class: 'cco-komm-modal-head' }, [
+        el('h3', {}, '🗒 Intern notis'),
+        el('button', { class: 'cco-komm-modal-close', onclick: close }, '×'),
+      ])
+    );
 
     const body = el('div', { class: 'cco-komm-modal-body' });
-    body.appendChild(el('div', { class: 'cco-komm-modal-lead' },
-      'Intern notis till personal. Visas inte för patient. Auditloggas.'));
+    body.appendChild(
+      el(
+        'div',
+        { class: 'cco-komm-modal-lead' },
+        'Intern notis till personal. Visas inte för patient. Auditloggas.'
+      )
+    );
     body.appendChild(el('div', { class: 'cco-komm-modal-label' }, 'Text (3–2000 tecken)'));
     const textarea = el('textarea', {
       class: 'cco-komm-modal-input',
       rows: '4',
-      placeholder: 'Ex: Patient nämnde allergi mot lokalbedövning under konsultation. Kolla journal innan PRP.',
+      placeholder:
+        'Ex: Patient nämnde allergi mot lokalbedövning under konsultation. Kolla journal innan PRP.',
     });
     body.appendChild(textarea);
     const errorBox = el('div', { class: 'cco-komm-modal-error', style: 'display: none;' });
     body.appendChild(errorBox);
     modal.appendChild(body);
 
-    const submitBtn = el('button', { class: 'cco-komm-modal-submit', type: 'button' }, 'Spara notis');
+    const submitBtn = el(
+      'button',
+      { class: 'cco-komm-modal-submit', type: 'button' },
+      'Spara notis'
+    );
     submitBtn.addEventListener('click', async () => {
       const text = textarea.value.trim();
       if (text.length < 3) {
@@ -198,10 +571,12 @@
       }
     });
 
-    modal.appendChild(el('div', { class: 'cco-komm-modal-foot' }, [
-      el('button', { class: 'cco-komm-modal-cancel', type: 'button', onclick: close }, 'Avbryt'),
-      submitBtn,
-    ]));
+    modal.appendChild(
+      el('div', { class: 'cco-komm-modal-foot' }, [
+        el('button', { class: 'cco-komm-modal-cancel', type: 'button', onclick: close }, 'Avbryt'),
+        submitBtn,
+      ])
+    );
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
@@ -219,52 +594,99 @@
 
     // Header med last-contact
     const lc = data.lastContactTs ? fmtDaysAgo(data.lastContactTs) : null;
-    feedRoot.appendChild(el('div', { class: 'cco-komm-feed-head' }, [
-      el('div', { class: 'cco-komm-feed-counters' }, [
-        el('span', { class: 'cco-komm-counter' }, [
-          el('strong', {}, String(data.counters?.total || 0)),
-          ' händelser',
+    feedRoot.appendChild(
+      el('div', { class: 'cco-komm-feed-head' }, [
+        el('div', { class: 'cco-komm-feed-counters' }, [
+          el('span', { class: 'cco-komm-counter' }, [
+            el('strong', {}, String(data.counters?.total || 0)),
+            ' händelser',
+          ]),
+          el('span', { class: 'cco-komm-counter' }, [
+            el('strong', {}, String(data.counters?.sends || 0)),
+            ' utskick',
+          ]),
+          el('span', { class: 'cco-komm-counter' }, [
+            el('strong', {}, String(data.counters?.internal_notes || 0)),
+            ' notiser',
+          ]),
         ]),
-        el('span', { class: 'cco-komm-counter' }, [
-          el('strong', {}, String(data.counters?.sends || 0)),
-          ' utskick',
-        ]),
-        el('span', { class: 'cco-komm-counter' }, [
-          el('strong', {}, String(data.counters?.internal_notes || 0)),
-          ' notiser',
-        ]),
-      ]),
-      lc ? el('div', { class: 'cco-komm-feed-lastcontact' }, 'Senaste kontakt: ' + lc) : null,
-    ]));
+        lc ? el('div', { class: 'cco-komm-feed-lastcontact' }, 'Senaste kontakt: ' + lc) : null,
+      ])
+    );
 
     if (!data.events || data.events.length === 0) {
-      feedRoot.appendChild(el('div', { class: 'cco-komm-empty' },
-        'Ingen kommunikation registrerad ännu. Skicka formulär eller skapa en intern notis ovan.'));
+      feedRoot.appendChild(
+        el(
+          'div',
+          { class: 'cco-komm-empty' },
+          'Ingen kommunikation registrerad ännu. Skicka formulär eller skapa en intern notis ovan.'
+        )
+      );
       return;
     }
 
     const list = el('div', { class: 'cco-komm-list' });
     for (const ev of data.events) {
-      const isSend = ev.kind === 'send';
-      const tone = ev.status === 'sent' ? 'success'
-                 : ev.status === 'dry_run' ? 'warning'
-                 : ev.kind === 'event' ? 'info' : 'info';
-      list.appendChild(el('div', {
-        class: 'cco-komm-event cco-komm-event--' + tone,
-      }, [
-        el('div', { class: 'cco-komm-event-icon' }, ev.icon || '·'),
-        el('div', { class: 'cco-komm-event-body' }, [
-          el('div', { class: 'cco-komm-event-title' }, ev.title || ev.kind),
-          el('div', { class: 'cco-komm-event-meta' }, [
-            el('span', { class: 'cco-komm-event-time' }, fmtDate(ev.ts)),
-            ev.actor ? el('span', {}, '· av ' + ev.actor) : null,
-            ev.detail?.dryRun ? el('span', { class: 'cco-komm-pill cco-komm-pill--warning' }, 'DRY-RUN') : null,
-            ev.detail?.recipientMasked ? el('span', {}, '→ ' + ev.detail.recipientMasked) : null,
-          ]),
-          (ev.kind === 'internal_note' && ev.detail?.body) ?
-            el('div', { class: 'cco-komm-event-note-body' }, ev.detail.body) : null,
-        ]),
-      ]));
+      const isDraft = ev.kind === 'comm_draft';
+      const draftStatus = isDraft ? ev.detail?.status || 'draft' : null;
+      const tone =
+        ev.status === 'sent'
+          ? 'success'
+          : ev.status === 'dry_run'
+            ? 'warning'
+            : draftStatus === 'sent'
+              ? 'success'
+              : draftStatus === 'failed'
+                ? 'danger'
+                : draftStatus === 'cancelled'
+                  ? 'muted'
+                  : draftStatus
+                    ? 'warning'
+                    : ev.kind === 'event'
+                      ? 'info'
+                      : 'info';
+      list.appendChild(
+        el(
+          'div',
+          {
+            class: 'cco-komm-event cco-komm-event--' + tone,
+          },
+          [
+            el('div', { class: 'cco-komm-event-icon' }, ev.icon || '·'),
+            el('div', { class: 'cco-komm-event-body' }, [
+              el('div', { class: 'cco-komm-event-title' }, [
+                ev.title || ev.kind,
+                draftStatus
+                  ? el(
+                      'span',
+                      { class: 'cco-komm-status cco-komm-status--' + draftStatus },
+                      draftStatus.replace('_', ' ')
+                    )
+                  : null,
+              ]),
+              el('div', { class: 'cco-komm-event-meta' }, [
+                el('span', { class: 'cco-komm-event-time' }, fmtDate(ev.ts)),
+                ev.actor ? el('span', {}, '· av ' + ev.actor) : null,
+                ev.detail?.dryRun
+                  ? el('span', { class: 'cco-komm-pill cco-komm-pill--warning' }, 'DRY-RUN')
+                  : null,
+                ev.detail?.recipientMasked
+                  ? el('span', {}, '→ ' + ev.detail.recipientMasked)
+                  : null,
+                isDraft && ev.detail?.channel
+                  ? el('span', {}, '· ' + ev.detail.channel.toUpperCase())
+                  : null,
+                isDraft && ev.detail?.journeyStep
+                  ? el('span', {}, '· ' + ev.detail.journeyStep)
+                  : null,
+              ]),
+              ev.kind === 'internal_note' && ev.detail?.body
+                ? el('div', { class: 'cco-komm-event-note-body' }, ev.detail.body)
+                : null,
+            ]),
+          ]
+        )
+      );
     }
     feedRoot.appendChild(list);
   }
@@ -276,13 +698,18 @@
       const data = await fetchFeed(customerId, opts);
       renderFeed(host, data);
     } catch (err) {
-      if (feedRoot) feedRoot.innerHTML = '<div class="cco-komm-empty">Kunde inte ladda: ' + err.message + '</div>';
+      if (feedRoot)
+        feedRoot.innerHTML =
+          '<div class="cco-komm-empty">Kunde inte ladda: ' + err.message + '</div>';
     }
   }
 
   // ─── Public mount ───
   async function mount(hostSelectorOrEl, opts) {
-    const host = typeof hostSelectorOrEl === 'string' ? document.querySelector(hostSelectorOrEl) : hostSelectorOrEl;
+    const host =
+      typeof hostSelectorOrEl === 'string'
+        ? document.querySelector(hostSelectorOrEl)
+        : hostSelectorOrEl;
     if (!host) return;
     const customerId = opts.customerId;
     if (!customerId) return;
@@ -330,7 +757,9 @@
   try {
     const observer = new MutationObserver(() => autoMount());
     observer.observe(document.body, { childList: true, subtree: true });
-  } catch (_) {}
+  } catch (_e) {
+    /* ignore observer-bind fel */
+  }
 
   global.CcoKommPanel = { mount, reload: reloadFeed, autoMount };
 })(window);

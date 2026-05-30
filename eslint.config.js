@@ -264,7 +264,11 @@ module.exports = [
     },
   },
   {
-    files: ['public/cco-scalp-analysis.js', 'public/cco-journal-feed.js'],
+    files: [
+      'public/cco-scalp-analysis.js',
+      'public/cco-journal-feed.js',
+      'public/cco-komm-panel.js',
+    ],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',
@@ -275,6 +279,15 @@ module.exports = [
     },
     rules: {
       'no-console': 'off',
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      'no-empty': ['warn', { allowEmptyCatch: true }],
     },
   },
   {

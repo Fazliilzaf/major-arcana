@@ -77,7 +77,10 @@ try {
       ...req.body,
       actor: {
         role: req.cco?.role || 'system',
-        ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim(),
+        ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+          .toString()
+          .split(',')[0]
+          .trim(),
         ...(req.body?.actor || {}),
       },
     });
@@ -104,75 +107,129 @@ let ccoBookingCaseStore = null;
     const express = require('express');
     const jsonParser = express.json({ limit: '32kb' });
 
-    app.get('/api/v1/cco-booking-cases', attachRole, requirePermission('bookings.read'), async (req, res) => {
-      try {
-        const list = await ccoBookingCaseStore.listCases({
-          tenantId: req.query.tenantId || 'hairtp-clinic',
-          state: req.query.state || null,
-          assignedTo: req.query.assignedTo || null,
-          limit: Number(req.query.limit) || 200,
-        });
-        res.json({ count: list.length, items: list, stats: ccoBookingCaseStore.stats() });
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
+    app.get(
+      '/api/v1/cco-booking-cases',
+      attachRole,
+      requirePermission('bookings.read'),
+      async (req, res) => {
+        try {
+          const list = await ccoBookingCaseStore.listCases({
+            tenantId: req.query.tenantId || 'hairtp-clinic',
+            state: req.query.state || null,
+            assignedTo: req.query.assignedTo || null,
+            limit: Number(req.query.limit) || 200,
+          });
+          res.json({ count: list.length, items: list, stats: ccoBookingCaseStore.stats() });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
       }
-    });
+    );
 
-    app.get('/api/v1/cco-booking-cases/:id', attachRole, requirePermission('bookings.read'), async (req, res) => {
-      const c = await ccoBookingCaseStore.getCase(req.params.id);
-      if (!c) return res.status(404).json({ error: 'not_found' });
-      res.json(c);
-    });
-
-    app.post('/api/v1/cco-booking-cases', attachRole, requirePermission('bookings.write'), jsonParser, async (req, res) => {
-      try {
-        const c = await ccoBookingCaseStore.createCase(req.body || {}, { role: req.cco?.role });
+    app.get(
+      '/api/v1/cco-booking-cases/:id',
+      attachRole,
+      requirePermission('bookings.read'),
+      async (req, res) => {
+        const c = await ccoBookingCaseStore.getCase(req.params.id);
+        if (!c) return res.status(404).json({ error: 'not_found' });
         res.json(c);
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
       }
-    });
+    );
 
-    app.post('/api/v1/cco-booking-cases/:id/candidates', attachRole, requirePermission('bookings.write'), jsonParser, async (req, res) => {
-      try {
-        const c = await ccoBookingCaseStore.proposeCandidate(req.params.id, req.body || {}, { role: req.cco?.role });
-        res.json(c);
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
+    app.post(
+      '/api/v1/cco-booking-cases',
+      attachRole,
+      requirePermission('bookings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const c = await ccoBookingCaseStore.createCase(req.body || {}, { role: req.cco?.role });
+          res.json(c);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
       }
-    });
+    );
 
-    app.post('/api/v1/cco-booking-cases/:id/transition', attachRole, requirePermission('bookings.case_decide'), jsonParser, async (req, res) => {
-      try {
-        const { toState, ...payload } = req.body || {};
-        if (!toState) return res.status(400).json({ error: 'toState required' });
-        const c = await ccoBookingCaseStore.transitionState(req.params.id, toState, { role: req.cco?.role }, payload);
-        res.json(c);
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
+    app.post(
+      '/api/v1/cco-booking-cases/:id/candidates',
+      attachRole,
+      requirePermission('bookings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const c = await ccoBookingCaseStore.proposeCandidate(req.params.id, req.body || {}, {
+            role: req.cco?.role,
+          });
+          res.json(c);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
       }
-    });
+    );
 
-    app.post('/api/v1/cco-booking-cases/:id/handoff', attachRole, requirePermission('bookings.handoff'), jsonParser, async (req, res) => {
-      try {
-        const c = await ccoBookingCaseStore.updateHandoffChecklist(req.params.id, req.body || {}, { role: req.cco?.role });
-        res.json(c);
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
+    app.post(
+      '/api/v1/cco-booking-cases/:id/transition',
+      attachRole,
+      requirePermission('bookings.case_decide'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const { toState, ...payload } = req.body || {};
+          if (!toState) return res.status(400).json({ error: 'toState required' });
+          const c = await ccoBookingCaseStore.transitionState(
+            req.params.id,
+            toState,
+            { role: req.cco?.role },
+            payload
+          );
+          res.json(c);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
       }
-    });
+    );
 
-    app.post('/api/v1/cco-booking-cases/:id/handoff/complete', attachRole, requirePermission('bookings.handoff'), async (req, res) => {
-      try {
-        const c = await ccoBookingCaseStore.attemptHandoffComplete(req.params.id, { role: req.cco?.role });
-        res.json(c);
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
+    app.post(
+      '/api/v1/cco-booking-cases/:id/handoff',
+      attachRole,
+      requirePermission('bookings.handoff'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const c = await ccoBookingCaseStore.updateHandoffChecklist(
+            req.params.id,
+            req.body || {},
+            { role: req.cco?.role }
+          );
+          res.json(c);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
       }
-    });
+    );
+
+    app.post(
+      '/api/v1/cco-booking-cases/:id/handoff/complete',
+      attachRole,
+      requirePermission('bookings.handoff'),
+      async (req, res) => {
+        try {
+          const c = await ccoBookingCaseStore.attemptHandoffComplete(req.params.id, {
+            role: req.cco?.role,
+          });
+          res.json(c);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     app.locals.ccoBookingCaseStore = ccoBookingCaseStore;
-    console.log('[cco-booking-cases] monterad: GET/POST /api/v1/cco-booking-cases/* (RBAC-skyddat)');
+    console.log(
+      '[cco-booking-cases] monterad: GET/POST /api/v1/cco-booking-cases/* (RBAC-skyddat)'
+    );
   } catch (err) {
     console.warn('[cco-booking-cases] kunde inte montera:', err.message);
   }
@@ -194,95 +251,179 @@ let ccoBookingCaseStore = null;
       return async (req, res) => {
         try {
           const result = await fn(req);
-          if (ccoAuditLog) ccoAuditLog.append({
-            action: `customers.${action}`,
-            actor: { role: req.cco?.role || 'unknown', ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim() },
-            target: { kind: 'customer', id: req.body?.primaryKey || req.body?.sourceKey || null, tenantId: req.body?.tenantId || DEFAULT_TENANT },
-            detail: { method: req.method, path: req.path },
-          });
+          if (ccoAuditLog)
+            ccoAuditLog.append({
+              action: `customers.${action}`,
+              actor: {
+                role: req.cco?.role || 'unknown',
+                ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+                  .toString()
+                  .split(',')[0]
+                  .trim(),
+              },
+              target: {
+                kind: 'customer',
+                id: req.body?.primaryKey || req.body?.sourceKey || null,
+                tenantId: req.body?.tenantId || DEFAULT_TENANT,
+              },
+              detail: { method: req.method, path: req.path },
+            });
           res.json(result);
         } catch (err) {
-          if (ccoAuditLog) ccoAuditLog.append({
-            action: `customers.${action}`,
-            actor: { role: req.cco?.role || 'unknown' },
-            result: 'error',
-            detail: { error: err.message, status: err.statusCode || 500 },
-          });
+          if (ccoAuditLog)
+            ccoAuditLog.append({
+              action: `customers.${action}`,
+              actor: { role: req.cco?.role || 'unknown' },
+              result: 'error',
+              detail: { error: err.message, status: err.statusCode || 500 },
+            });
           res.status(err.statusCode || 500).json({ error: err.message });
         }
       };
     }
 
     // GET state (med suggestions)
-    app.get('/api/v1/cco-customer-identity/suggestions', attachRole, requirePermission('customers.read'), withAudit('suggestions.list', async (req) => {
-      const tenantId = req.query.tenantId || DEFAULT_TENANT;
-      const data = await identityStore.previewTenantCustomerIdentity({ tenantId });
-      return {
-        suggestions: data.customerIdentitySuggestions || [],
-        count: (data.customerIdentitySuggestions || []).length,
-        tenantId,
-      };
-    }));
+    app.get(
+      '/api/v1/cco-customer-identity/suggestions',
+      attachRole,
+      requirePermission('customers.read'),
+      withAudit('suggestions.list', async (req) => {
+        const tenantId = req.query.tenantId || DEFAULT_TENANT;
+        const data = await identityStore.previewTenantCustomerIdentity({ tenantId });
+        return {
+          suggestions: data.customerIdentitySuggestions || [],
+          count: (data.customerIdentitySuggestions || []).length,
+          tenantId,
+        };
+      })
+    );
 
     // Merge
-    app.post('/api/v1/cco-customer-identity/merge', attachRole, requirePermission('customers.merge'), jsonParser, withAudit('merge', async (req) => {
-      const { tenantId = DEFAULT_TENANT, primaryKey, secondaryKeys, keepEmails = true, keepPhones = true, combineNotes = true } = req.body || {};
-      if (!primaryKey || !Array.isArray(secondaryKeys) || !secondaryKeys.length) {
-        const err = new Error('primaryKey + secondaryKeys[] krävs');
-        err.statusCode = 400;
-        throw err;
-      }
-      return identityStore.mergeTenantCustomerProfiles({
-        tenantId, primaryKey, secondaryKeys,
-        options: { keepEmails, keepPhones, combineNotes },
-      });
-    }));
+    app.post(
+      '/api/v1/cco-customer-identity/merge',
+      attachRole,
+      requirePermission('customers.merge'),
+      jsonParser,
+      withAudit('merge', async (req) => {
+        const {
+          tenantId = DEFAULT_TENANT,
+          primaryKey,
+          secondaryKeys,
+          keepEmails = true,
+          keepPhones = true,
+          combineNotes = true,
+        } = req.body || {};
+        if (!primaryKey || !Array.isArray(secondaryKeys) || !secondaryKeys.length) {
+          const err = new Error('primaryKey + secondaryKeys[] krävs');
+          err.statusCode = 400;
+          throw err;
+        }
+        return identityStore.mergeTenantCustomerProfiles({
+          tenantId,
+          primaryKey,
+          secondaryKeys,
+          options: { keepEmails, keepPhones, combineNotes },
+        });
+      })
+    );
 
     // Split
-    app.post('/api/v1/cco-customer-identity/split', attachRole, requirePermission('customers.split'), jsonParser, withAudit('split', async (req) => {
-      const { tenantId = DEFAULT_TENANT, sourceKey, aliasesToSplit } = req.body || {};
-      if (!sourceKey || !Array.isArray(aliasesToSplit) || !aliasesToSplit.length) {
-        const err = new Error('sourceKey + aliasesToSplit[] krävs');
-        err.statusCode = 400;
-        throw err;
-      }
-      return identityStore.splitTenantCustomerProfile({ tenantId, sourceKey, aliasesToSplit });
-    }));
+    app.post(
+      '/api/v1/cco-customer-identity/split',
+      attachRole,
+      requirePermission('customers.split'),
+      jsonParser,
+      withAudit('split', async (req) => {
+        const { tenantId = DEFAULT_TENANT, sourceKey, aliasesToSplit } = req.body || {};
+        if (!sourceKey || !Array.isArray(aliasesToSplit) || !aliasesToSplit.length) {
+          const err = new Error('sourceKey + aliasesToSplit[] krävs');
+          err.statusCode = 400;
+          throw err;
+        }
+        return identityStore.splitTenantCustomerProfile({ tenantId, sourceKey, aliasesToSplit });
+      })
+    );
 
     // Import — preview + commit
-    app.post('/api/v1/cco-customer-identity/import/preview', attachRole, requirePermission('customers.import'), jsonParser, withAudit('import.preview', async (req) => {
-      const { tenantId = DEFAULT_TENANT, importText = '', rows = null, binaryBase64 = '', fileName = '', defaultMailboxId = '', sourceSystem = '' } = req.body || {};
-      return identityStore.previewTenantCustomerImport({ tenantId, importText, rows, binaryBase64, fileName, defaultMailboxId, sourceSystem });
-    }));
+    app.post(
+      '/api/v1/cco-customer-identity/import/preview',
+      attachRole,
+      requirePermission('customers.import'),
+      jsonParser,
+      withAudit('import.preview', async (req) => {
+        const {
+          tenantId = DEFAULT_TENANT,
+          importText = '',
+          rows = null,
+          binaryBase64 = '',
+          fileName = '',
+          defaultMailboxId = '',
+          sourceSystem = '',
+        } = req.body || {};
+        return identityStore.previewTenantCustomerImport({
+          tenantId,
+          importText,
+          rows,
+          binaryBase64,
+          fileName,
+          defaultMailboxId,
+          sourceSystem,
+        });
+      })
+    );
 
-    app.post('/api/v1/cco-customer-identity/import/commit', attachRole, requirePermission('customers.import'), jsonParser, withAudit('import.commit', async (req) => {
-      const { tenantId = DEFAULT_TENANT, planId, ...rest } = req.body || {};
-      return identityStore.commitTenantCustomerImport({ tenantId, planId, ...rest });
-    }));
+    app.post(
+      '/api/v1/cco-customer-identity/import/commit',
+      attachRole,
+      requirePermission('customers.import'),
+      jsonParser,
+      withAudit('import.commit', async (req) => {
+        const { tenantId = DEFAULT_TENANT, planId, ...rest } = req.body || {};
+        return identityStore.commitTenantCustomerImport({ tenantId, planId, ...rest });
+      })
+    );
 
     // Dismiss / accept suggestion
-    app.post('/api/v1/cco-customer-identity/suggestion/dismiss', attachRole, requirePermission('customers.merge'), jsonParser, withAudit('suggestion.dismiss', async (req) => {
-      const { tenantId = DEFAULT_TENANT, suggestionId, reasonCode } = req.body || {};
-      if (!suggestionId) {
-        const err = new Error('suggestionId krävs');
-        err.statusCode = 400;
-        throw err;
-      }
-      return identityStore.dismissTenantCustomerSuggestion({ tenantId, suggestionId, reasonCode });
-    }));
+    app.post(
+      '/api/v1/cco-customer-identity/suggestion/dismiss',
+      attachRole,
+      requirePermission('customers.merge'),
+      jsonParser,
+      withAudit('suggestion.dismiss', async (req) => {
+        const { tenantId = DEFAULT_TENANT, suggestionId, reasonCode } = req.body || {};
+        if (!suggestionId) {
+          const err = new Error('suggestionId krävs');
+          err.statusCode = 400;
+          throw err;
+        }
+        return identityStore.dismissTenantCustomerSuggestion({
+          tenantId,
+          suggestionId,
+          reasonCode,
+        });
+      })
+    );
 
     // Primary email
-    app.post('/api/v1/cco-customer-identity/primary-email', attachRole, requirePermission('customers.merge'), jsonParser, withAudit('primary_email.set', async (req) => {
-      const { tenantId = DEFAULT_TENANT, customerKey, email } = req.body || {};
-      if (!customerKey || !email) {
-        const err = new Error('customerKey + email krävs');
-        err.statusCode = 400;
-        throw err;
-      }
-      return identityStore.setTenantCustomerPrimaryEmail({ tenantId, customerKey, email });
-    }));
+    app.post(
+      '/api/v1/cco-customer-identity/primary-email',
+      attachRole,
+      requirePermission('customers.merge'),
+      jsonParser,
+      withAudit('primary_email.set', async (req) => {
+        const { tenantId = DEFAULT_TENANT, customerKey, email } = req.body || {};
+        if (!customerKey || !email) {
+          const err = new Error('customerKey + email krävs');
+          err.statusCode = 400;
+          throw err;
+        }
+        return identityStore.setTenantCustomerPrimaryEmail({ tenantId, customerKey, email });
+      })
+    );
 
-    console.log('[cco-customer-identity] monterad: 6 routes (merge/split/import/suggestions) med RBAC + audit');
+    console.log(
+      '[cco-customer-identity] monterad: 6 routes (merge/split/import/suggestions) med RBAC + audit'
+    );
   } catch (err) {
     console.warn('[cco-customer-identity] kunde inte montera:', err.message);
   }
@@ -298,69 +439,178 @@ let ccoBookingCaseStore = null;
     const fsp = require('fs').promises;
 
     async function loadMailboxes() {
-      try { return JSON.parse(await fsp.readFile(mailboxFile, 'utf8')); }
-      catch { return { mailboxes: [], updatedAt: new Date().toISOString() }; }
+      try {
+        return JSON.parse(await fsp.readFile(mailboxFile, 'utf8'));
+      } catch {
+        return { mailboxes: [], updatedAt: new Date().toISOString() };
+      }
     }
     async function saveMailboxes(data) {
       data.updatedAt = new Date().toISOString();
       await fsp.writeFile(mailboxFile, JSON.stringify(data, null, 2));
     }
 
-    app.get('/api/v1/cco-mailboxes', attachRole, requirePermission('mailbox.admin'), async (req, res) => {
-      const data = await loadMailboxes();
-      res.json(data);
-    });
-
-    app.post('/api/v1/cco-mailboxes', attachRole, requirePermission('mailbox.admin'), jsonParser, async (req, res) => {
-      try {
-        const { id, name, email, owner, signature = '', tenantId = 'hairtp-clinic' } = req.body || {};
-        if (!id || !name || !email) return res.status(400).json({ error: 'id, name, email krävs' });
+    app.get(
+      '/api/v1/cco-mailboxes',
+      attachRole,
+      requirePermission('mailbox.admin'),
+      async (req, res) => {
         const data = await loadMailboxes();
-        const existing = data.mailboxes.find((m) => m.id === id);
-        const entry = { id, name, email, owner, signature, tenantId, updatedAt: new Date().toISOString() };
-        if (existing) Object.assign(existing, entry);
-        else { entry.createdAt = entry.updatedAt; data.mailboxes.push(entry); }
-        await saveMailboxes(data);
-        if (ccoAuditLog) ccoAuditLog.append({
-          action: existing ? 'mailbox.updated' : 'mailbox.created',
-          actor: { role: req.cco?.role },
-          target: { kind: 'mailbox', id },
-        });
-        res.json(entry);
-      } catch (err) { res.status(500).json({ error: err.message }); }
-    });
+        res.json(data);
+      }
+    );
 
-    app.delete('/api/v1/cco-mailboxes/:id', attachRole, requirePermission('mailbox.admin'), async (req, res) => {
-      try {
-        const data = await loadMailboxes();
-        const before = data.mailboxes.length;
-        data.mailboxes = data.mailboxes.filter((m) => m.id !== req.params.id);
-        if (data.mailboxes.length === before) return res.status(404).json({ error: 'not_found' });
-        await saveMailboxes(data);
-        if (ccoAuditLog) ccoAuditLog.append({
-          action: 'mailbox.deleted',
-          actor: { role: req.cco?.role },
-          target: { kind: 'mailbox', id: req.params.id },
-        });
-        res.json({ ok: true });
-      } catch (err) { res.status(500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-mailboxes',
+      attachRole,
+      requirePermission('mailbox.admin'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const {
+            id,
+            name,
+            email,
+            owner,
+            signature = '',
+            tenantId = 'hairtp-clinic',
+          } = req.body || {};
+          if (!id || !name || !email)
+            return res.status(400).json({ error: 'id, name, email krävs' });
+          const data = await loadMailboxes();
+          const existing = data.mailboxes.find((m) => m.id === id);
+          const entry = {
+            id,
+            name,
+            email,
+            owner,
+            signature,
+            tenantId,
+            updatedAt: new Date().toISOString(),
+          };
+          if (existing) Object.assign(existing, entry);
+          else {
+            entry.createdAt = entry.updatedAt;
+            data.mailboxes.push(entry);
+          }
+          await saveMailboxes(data);
+          if (ccoAuditLog)
+            ccoAuditLog.append({
+              action: existing ? 'mailbox.updated' : 'mailbox.created',
+              actor: { role: req.cco?.role },
+              target: { kind: 'mailbox', id },
+            });
+          res.json(entry);
+        } catch (err) {
+          res.status(500).json({ error: err.message });
+        }
+      }
+    );
+
+    app.delete(
+      '/api/v1/cco-mailboxes/:id',
+      attachRole,
+      requirePermission('mailbox.admin'),
+      async (req, res) => {
+        try {
+          const data = await loadMailboxes();
+          const before = data.mailboxes.length;
+          data.mailboxes = data.mailboxes.filter((m) => m.id !== req.params.id);
+          if (data.mailboxes.length === before) return res.status(404).json({ error: 'not_found' });
+          await saveMailboxes(data);
+          if (ccoAuditLog)
+            ccoAuditLog.append({
+              action: 'mailbox.deleted',
+              actor: { role: req.cco?.role },
+              target: { kind: 'mailbox', id: req.params.id },
+            });
+          res.json({ ok: true });
+        } catch (err) {
+          res.status(500).json({ error: err.message });
+        }
+      }
+    );
 
     // Seed med default mailboxes om filen är tom
     const initial = await loadMailboxes();
     if (!initial.mailboxes.length) {
       initial.mailboxes = [
-        { id: 'contact', name: 'Kontakt', email: 'contact@hairtpclinic.com', owner: 'team', signature: 'Hair TP Clinic — Sveavägen 42, 113 50 Stockholm · 08-555 123 45', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'info', name: 'Info & prisförfrågningar', email: 'info@hairtpclinic.com', owner: 'fazli', signature: 'Fazli · Hair TP Clinic\n08-555 123 45', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'egzona', name: 'Egzona (patientansvarig)', email: 'egzona@hairtpclinic.com', owner: 'egzona', signature: 'Egzona M. · Customer Lead\nHair TP Clinic · 08-555 123 45', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'fazli', name: 'Fazli (medicinskt ansvarig)', email: 'fazli@hairtpclinic.com', owner: 'fazli', signature: 'Dr. Fazli · Medical Director\nHair TP Clinic · 08-555 123 45', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'marknad', name: 'Marknad', email: 'marknad@hairtpclinic.com', owner: 'marknad', signature: 'Hair TP Clinic · marknad', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'receipt', name: 'Receipts & system', email: 'receipt@hairtpclinic.com', owner: 'system', signature: '', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'kons', name: 'Konsultationer', email: 'kons@hairtpclinic.com', owner: 'fazli', signature: 'Hair TP Clinic · konsultation', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        {
+          id: 'contact',
+          name: 'Kontakt',
+          email: 'contact@hairtpclinic.com',
+          owner: 'team',
+          signature: 'Hair TP Clinic — Sveavägen 42, 113 50 Stockholm · 08-555 123 45',
+          tenantId: 'hairtp-clinic',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'info',
+          name: 'Info & prisförfrågningar',
+          email: 'info@hairtpclinic.com',
+          owner: 'fazli',
+          signature: 'Fazli · Hair TP Clinic\n08-555 123 45',
+          tenantId: 'hairtp-clinic',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'egzona',
+          name: 'Egzona (patientansvarig)',
+          email: 'egzona@hairtpclinic.com',
+          owner: 'egzona',
+          signature: 'Egzona M. · Customer Lead\nHair TP Clinic · 08-555 123 45',
+          tenantId: 'hairtp-clinic',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'fazli',
+          name: 'Fazli (medicinskt ansvarig)',
+          email: 'fazli@hairtpclinic.com',
+          owner: 'fazli',
+          signature: 'Dr. Fazli · Medical Director\nHair TP Clinic · 08-555 123 45',
+          tenantId: 'hairtp-clinic',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'marknad',
+          name: 'Marknad',
+          email: 'marknad@hairtpclinic.com',
+          owner: 'marknad',
+          signature: 'Hair TP Clinic · marknad',
+          tenantId: 'hairtp-clinic',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'receipt',
+          name: 'Receipts & system',
+          email: 'receipt@hairtpclinic.com',
+          owner: 'system',
+          signature: '',
+          tenantId: 'hairtp-clinic',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'kons',
+          name: 'Konsultationer',
+          email: 'kons@hairtpclinic.com',
+          owner: 'fazli',
+          signature: 'Hair TP Clinic · konsultation',
+          tenantId: 'hairtp-clinic',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
       ];
       await saveMailboxes(initial);
     }
-    console.log('[cco-mailboxes] monterad: GET/POST/DELETE /api/v1/cco-mailboxes (RBAC: mailbox.admin)');
+    console.log(
+      '[cco-mailboxes] monterad: GET/POST/DELETE /api/v1/cco-mailboxes (RBAC: mailbox.admin)'
+    );
   } catch (err) {
     console.warn('[cco-mailboxes] kunde inte montera:', err.message);
   }
@@ -387,38 +637,75 @@ let ccoBookingCaseStore = null;
       res.json({ policies: policyStore.get(), updatedAt: new Date().toISOString() });
     });
 
-    app.get('/api/v1/cco-policies/:section', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json(policyStore.get(req.params.section));
-    });
+    app.get(
+      '/api/v1/cco-policies/:section',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        res.json(policyStore.get(req.params.section));
+      }
+    );
 
     // PATCH section (bara owner — settings.write)
-    app.patch('/api/v1/cco-policies/:section', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try {
-        const updated = await policyStore.update(req.params.section, req.body || {}, { role: req.cco?.role });
-        res.json(updated);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.patch(
+      '/api/v1/cco-policies/:section',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const updated = await policyStore.update(req.params.section, req.body || {}, {
+            role: req.cco?.role,
+          });
+          res.json(updated);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // Reset (bara owner)
-    app.post('/api/v1/cco-policies/:section/reset', attachRole, requireAnyRole(['owner']), async (req, res) => {
-      try {
-        const reset = await policyStore.reset(req.params.section === 'all' ? null : req.params.section, { role: req.cco?.role });
-        res.json(reset);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-policies/:section/reset',
+      attachRole,
+      requireAnyRole(['owner']),
+      async (req, res) => {
+        try {
+          const reset = await policyStore.reset(
+            req.params.section === 'all' ? null : req.params.section,
+            { role: req.cco?.role }
+          );
+          res.json(reset);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // Booking-evaluering — kan kallas innan en bok skapas
-    app.post('/api/v1/cco-policies/booking/evaluate', attachRole, requirePermission('bookings.read'), jsonParser, (req, res) => {
-      const { startsAt } = req.body || {};
-      if (!startsAt) return res.status(400).json({ error: 'startsAt krävs' });
-      res.json(policyStore.evaluateBooking(startsAt));
-    });
+    app.post(
+      '/api/v1/cco-policies/booking/evaluate',
+      attachRole,
+      requirePermission('bookings.read'),
+      jsonParser,
+      (req, res) => {
+        const { startsAt } = req.body || {};
+        if (!startsAt) return res.status(400).json({ error: 'startsAt krävs' });
+        res.json(policyStore.evaluateBooking(startsAt));
+      }
+    );
 
-    app.post('/api/v1/cco-policies/cancellation/evaluate', attachRole, requirePermission('bookings.read'), jsonParser, (req, res) => {
-      const { startsAt } = req.body || {};
-      if (!startsAt) return res.status(400).json({ error: 'startsAt krävs' });
-      res.json(policyStore.evaluateCancellation(startsAt));
-    });
+    app.post(
+      '/api/v1/cco-policies/cancellation/evaluate',
+      attachRole,
+      requirePermission('bookings.read'),
+      jsonParser,
+      (req, res) => {
+        const { startsAt } = req.body || {};
+        if (!startsAt) return res.status(400).json({ error: 'startsAt krävs' });
+        res.json(policyStore.evaluateCancellation(startsAt));
+      }
+    );
 
     // Office hours status (alla roller får läsa)
     app.get('/api/v1/cco-office-hours/status', attachRole, (req, res) => {
@@ -431,45 +718,83 @@ let ccoBookingCaseStore = null;
     });
 
     // Auto-assign — körs av mejl-pipeline
-    app.post('/api/v1/cco-policies/autoassign/evaluate', attachRole, requirePermission('mail.read'), jsonParser, (req, res) => {
-      const mail = req.body || {};
-      res.json(policyStore.assignMail(mail));
-    });
+    app.post(
+      '/api/v1/cco-policies/autoassign/evaluate',
+      attachRole,
+      requirePermission('mail.read'),
+      jsonParser,
+      (req, res) => {
+        const mail = req.body || {};
+        res.json(policyStore.assignMail(mail));
+      }
+    );
 
     // Auto-assign-regler CRUD
-    app.post('/api/v1/cco-policies/autoassign/rules', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try {
-        const r = await policyStore.upsertAutoAssignRule(req.body || {}, { role: req.cco?.role });
-        res.json(r);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-policies/autoassign/rules',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const r = await policyStore.upsertAutoAssignRule(req.body || {}, { role: req.cco?.role });
+          res.json(r);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.delete('/api/v1/cco-policies/autoassign/rules/:id', attachRole, requirePermission('settings.write'), async (req, res) => {
-      try {
-        const r = await policyStore.deleteAutoAssignRule(req.params.id, { role: req.cco?.role });
-        res.json(r);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.delete(
+      '/api/v1/cco-policies/autoassign/rules/:id',
+      attachRole,
+      requirePermission('settings.write'),
+      async (req, res) => {
+        try {
+          const r = await policyStore.deleteAutoAssignRule(req.params.id, { role: req.cco?.role });
+          res.json(r);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // ─ Mail snooze ──────────────────────────────────────
-    app.post('/api/v1/cco-mail-snooze/:threadId', attachRole, requirePermission('mail.read'), jsonParser, async (req, res) => {
-      try {
-        const { untilIso, snoozeDays } = req.body || {};
-        let until = untilIso;
-        if (!until && snoozeDays) {
-          until = new Date(Date.now() + Number(snoozeDays) * 86400000).toISOString();
+    app.post(
+      '/api/v1/cco-mail-snooze/:threadId',
+      attachRole,
+      requirePermission('mail.read'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const { untilIso, snoozeDays } = req.body || {};
+          let until = untilIso;
+          if (!until && snoozeDays) {
+            until = new Date(Date.now() + Number(snoozeDays) * 86400000).toISOString();
+          }
+          const result = await snoozeStore.snooze(req.params.threadId, until, {
+            role: req.cco?.role,
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
         }
-        const result = await snoozeStore.snooze(req.params.threadId, until, { role: req.cco?.role });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+      }
+    );
 
-    app.delete('/api/v1/cco-mail-snooze/:threadId', attachRole, requirePermission('mail.read'), async (req, res) => {
-      try {
-        await snoozeStore.unsnooze(req.params.threadId, { role: req.cco?.role });
-        res.json({ ok: true });
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.delete(
+      '/api/v1/cco-mail-snooze/:threadId',
+      attachRole,
+      requirePermission('mail.read'),
+      async (req, res) => {
+        try {
+          await snoozeStore.unsnooze(req.params.threadId, { role: req.cco?.role });
+          res.json({ ok: true });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     app.get('/api/v1/cco-mail-snooze', attachRole, requirePermission('mail.read'), (req, res) => {
       res.json({
@@ -482,7 +807,9 @@ let ccoBookingCaseStore = null;
     app.locals.ccoPolicyStore = policyStore;
     app.locals.ccoMailSnoozeStore = snoozeStore;
     console.log('[cco-policies] monterad: GET/PATCH /api/v1/cco-policies/* (Sprint 3.1-3.4)');
-    console.log('[cco-mail-snooze] monterad: POST/DELETE/GET /api/v1/cco-mail-snooze/* (Sprint 3.3)');
+    console.log(
+      '[cco-mail-snooze] monterad: POST/DELETE/GET /api/v1/cco-mail-snooze/* (Sprint 3.3)'
+    );
   } catch (err) {
     console.warn('[cco-policies] kunde inte montera:', err.message);
   }
@@ -493,7 +820,10 @@ let ccoTelemetryStore = null;
 let ccoCollabStore = null;
 (async () => {
   try {
-    const { createCcoTelemetryStore, createCcoCollaborationStore } = require('./src/ops/ccoTelemetryStore');
+    const {
+      createCcoTelemetryStore,
+      createCcoCollaborationStore,
+    } = require('./src/ops/ccoTelemetryStore');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
     ccoTelemetryStore = await createCcoTelemetryStore({
       filePath: path.join(__dirname, 'data', 'cco-telemetry.json'),
@@ -508,107 +838,240 @@ let ccoCollabStore = null;
     const jsonParser = express.json({ limit: '8kb' });
 
     // ─ Telemetry — RBAC: GET = settings.read, write = settings.write ─
-    app.get('/api/v1/cco-telemetry/live', attachRole, requirePermission('settings.read'), async (req, res) => {
-      try { res.json(await ccoTelemetryStore.liveMetrics()); }
-      catch (err) { res.status(500).json({ error: err.message }); }
-    });
+    app.get(
+      '/api/v1/cco-telemetry/live',
+      attachRole,
+      requirePermission('settings.read'),
+      async (req, res) => {
+        try {
+          res.json(await ccoTelemetryStore.liveMetrics());
+        } catch (err) {
+          res.status(500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.get('/api/v1/cco-telemetry/team', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json(ccoTelemetryStore.teamStats(req.query.period || 'week'));
-    });
+    app.get(
+      '/api/v1/cco-telemetry/team',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        res.json(ccoTelemetryStore.teamStats(req.query.period || 'week'));
+      }
+    );
 
-    app.get('/api/v1/cco-telemetry/user/:userId', attachRole, requirePermission('settings.read'), (req, res) => {
-      const u = ccoTelemetryStore.userStats(req.params.userId);
-      if (!u) return res.status(404).json({ error: 'user_not_found' });
-      res.json(u);
-    });
+    app.get(
+      '/api/v1/cco-telemetry/user/:userId',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        const u = ccoTelemetryStore.userStats(req.params.userId);
+        if (!u) return res.status(404).json({ error: 'user_not_found' });
+        res.json(u);
+      }
+    );
 
-    app.get('/api/v1/cco-telemetry/leaderboard', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json({ leaderboard: ccoTelemetryStore.leaderboard() });
-    });
+    app.get(
+      '/api/v1/cco-telemetry/leaderboard',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        res.json({ leaderboard: ccoTelemetryStore.leaderboard() });
+      }
+    );
 
-    app.get('/api/v1/cco-telemetry/top-templates', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json({ templates: ccoTelemetryStore.topTemplates() });
-    });
+    app.get(
+      '/api/v1/cco-telemetry/top-templates',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        res.json({ templates: ccoTelemetryStore.topTemplates() });
+      }
+    );
 
-    app.get('/api/v1/cco-telemetry/coaching', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json({ tips: ccoTelemetryStore.coachingInsights(req.query.userId || null) });
-    });
+    app.get(
+      '/api/v1/cco-telemetry/coaching',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        res.json({ tips: ccoTelemetryStore.coachingInsights(req.query.userId || null) });
+      }
+    );
 
     // Write — owner only
-    app.post('/api/v1/cco-telemetry/daily', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try {
-        const result = await ccoTelemetryStore.recordDaily(req.body || {}, { role: req.cco?.role });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-telemetry/daily',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const result = await ccoTelemetryStore.recordDaily(req.body || {}, {
+            role: req.cco?.role,
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.post('/api/v1/cco-telemetry/user/:userId', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try {
-        const result = await ccoTelemetryStore.updateUserStats(req.params.userId, req.body || {}, { role: req.cco?.role });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-telemetry/user/:userId',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const result = await ccoTelemetryStore.updateUserStats(
+            req.params.userId,
+            req.body || {},
+            { role: req.cco?.role }
+          );
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // ─ Collaboration — GET = mail.read; write/heartbeat = automation.edit ─
-    app.post('/api/v1/cco-collaboration/:resourceId/heartbeat', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
-      try {
-        const userId = req.body?.userId || req.cco?.role || 'unknown';
-        const result = await ccoCollabStore.heartbeat(req.params.resourceId, userId, req.cco?.role);
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-collaboration/:resourceId/heartbeat',
+      attachRole,
+      requirePermission('automation.edit'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const userId = req.body?.userId || req.cco?.role || 'unknown';
+          const result = await ccoCollabStore.heartbeat(
+            req.params.resourceId,
+            userId,
+            req.cco?.role
+          );
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.get('/api/v1/cco-collaboration/:resourceId/presence', attachRole, requirePermission('automation.read'), (req, res) => {
-      res.json({ active: ccoCollabStore.activePresence(req.params.resourceId) });
-    });
+    app.get(
+      '/api/v1/cco-collaboration/:resourceId/presence',
+      attachRole,
+      requirePermission('automation.read'),
+      (req, res) => {
+        res.json({ active: ccoCollabStore.activePresence(req.params.resourceId) });
+      }
+    );
 
-    app.post('/api/v1/cco-collaboration/:resourceId/lock', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
-      try {
-        const { nodeId } = req.body || {};
-        const userId = req.body?.userId || req.cco?.role || 'unknown';
-        const lock = await ccoCollabStore.acquireLock(req.params.resourceId, nodeId, userId, req.cco?.role);
-        res.json(lock);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message, lockedBy: err.lockedBy }); }
-    });
+    app.post(
+      '/api/v1/cco-collaboration/:resourceId/lock',
+      attachRole,
+      requirePermission('automation.edit'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const { nodeId } = req.body || {};
+          const userId = req.body?.userId || req.cco?.role || 'unknown';
+          const lock = await ccoCollabStore.acquireLock(
+            req.params.resourceId,
+            nodeId,
+            userId,
+            req.cco?.role
+          );
+          res.json(lock);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message, lockedBy: err.lockedBy });
+        }
+      }
+    );
 
-    app.delete('/api/v1/cco-collaboration/:resourceId/lock', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
-      try {
-        const userId = req.body?.userId || req.cco?.role || 'unknown';
-        await ccoCollabStore.releaseLock(req.params.resourceId, req.body?.nodeId, userId);
-        res.json({ ok: true });
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.delete(
+      '/api/v1/cco-collaboration/:resourceId/lock',
+      attachRole,
+      requirePermission('automation.edit'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const userId = req.body?.userId || req.cco?.role || 'unknown';
+          await ccoCollabStore.releaseLock(req.params.resourceId, req.body?.nodeId, userId);
+          res.json({ ok: true });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.get('/api/v1/cco-collaboration/:resourceId/locks', attachRole, requirePermission('automation.read'), (req, res) => {
-      res.json({ locks: ccoCollabStore.activeLocks(req.params.resourceId) });
-    });
+    app.get(
+      '/api/v1/cco-collaboration/:resourceId/locks',
+      attachRole,
+      requirePermission('automation.read'),
+      (req, res) => {
+        res.json({ locks: ccoCollabStore.activeLocks(req.params.resourceId) });
+      }
+    );
 
-    app.post('/api/v1/cco-collaboration/:resourceId/comments', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
-      try {
-        const { body, nodeId } = req.body || {};
-        const userId = req.body?.userId || req.cco?.role || 'unknown';
-        const c = await ccoCollabStore.postComment(req.params.resourceId, body, userId, req.cco?.role, nodeId);
-        res.json(c);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-collaboration/:resourceId/comments',
+      attachRole,
+      requirePermission('automation.edit'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const { body, nodeId } = req.body || {};
+          const userId = req.body?.userId || req.cco?.role || 'unknown';
+          const c = await ccoCollabStore.postComment(
+            req.params.resourceId,
+            body,
+            userId,
+            req.cco?.role,
+            nodeId
+          );
+          res.json(c);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.get('/api/v1/cco-collaboration/:resourceId/comments', attachRole, requirePermission('automation.read'), (req, res) => {
-      res.json({ comments: ccoCollabStore.listComments(req.params.resourceId) });
-    });
+    app.get(
+      '/api/v1/cco-collaboration/:resourceId/comments',
+      attachRole,
+      requirePermission('automation.read'),
+      (req, res) => {
+        res.json({ comments: ccoCollabStore.listComments(req.params.resourceId) });
+      }
+    );
 
-    app.post('/api/v1/cco-collaboration/:resourceId/comments/:commentId/resolve', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
-      try {
-        const userId = req.body?.userId || req.cco?.role || 'unknown';
-        const c = await ccoCollabStore.resolveComment(req.params.resourceId, req.params.commentId, userId);
-        res.json(c);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-collaboration/:resourceId/comments/:commentId/resolve',
+      attachRole,
+      requirePermission('automation.edit'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const userId = req.body?.userId || req.cco?.role || 'unknown';
+          const c = await ccoCollabStore.resolveComment(
+            req.params.resourceId,
+            req.params.commentId,
+            userId
+          );
+          res.json(c);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     app.locals.ccoTelemetryStore = ccoTelemetryStore;
     app.locals.ccoCollabStore = ccoCollabStore;
-    console.log('[cco-telemetry] monterad: 7 routes /api/v1/cco-telemetry/* (RBAC: settings.read/write)');
-    console.log('[cco-collaboration] monterad: 7 routes /api/v1/cco-collaboration/* (RBAC: automation.read/edit)');
+    console.log(
+      '[cco-telemetry] monterad: 7 routes /api/v1/cco-telemetry/* (RBAC: settings.read/write)'
+    );
+    console.log(
+      '[cco-collaboration] monterad: 7 routes /api/v1/cco-collaboration/* (RBAC: automation.read/edit)'
+    );
   } catch (err) {
     console.warn('[cco-telemetry/collaboration] kunde inte montera:', err.message);
   }
@@ -650,79 +1113,193 @@ let ccoCollabStore = null;
     app.get('/api/v1/cco-brands', attachRole, requirePermission('settings.read'), (req, res) => {
       res.json({ brands: brandStore.list() });
     });
-    app.get('/api/v1/cco-brands/:tenantId', attachRole, requirePermission('settings.read'), (req, res) => {
-      const b = brandStore.get(req.params.tenantId);
-      if (!b) return res.status(404).json({ error: 'not_found' });
-      res.json(b);
-    });
-    app.patch('/api/v1/cco-brands/:tenantId', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try { res.json(await brandStore.upsert(req.params.tenantId, req.body || {}, { role: req.cco?.role })); }
-      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
-    app.delete('/api/v1/cco-brands/:tenantId', attachRole, requirePermission('settings.write'), async (req, res) => {
-      try { res.json(await brandStore.remove(req.params.tenantId, { role: req.cco?.role })); }
-      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.get(
+      '/api/v1/cco-brands/:tenantId',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        const b = brandStore.get(req.params.tenantId);
+        if (!b) return res.status(404).json({ error: 'not_found' });
+        res.json(b);
+      }
+    );
+    app.patch(
+      '/api/v1/cco-brands/:tenantId',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          res.json(
+            await brandStore.upsert(req.params.tenantId, req.body || {}, { role: req.cco?.role })
+          );
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
+    app.delete(
+      '/api/v1/cco-brands/:tenantId',
+      attachRole,
+      requirePermission('settings.write'),
+      async (req, res) => {
+        try {
+          res.json(await brandStore.remove(req.params.tenantId, { role: req.cco?.role }));
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // ─ USER — RBAC: read=settings.read, write=settings.write (eller egen user) ─
     app.get('/api/v1/cco-users', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json({ users: userStore.list().map((u) => ({ ...u, prefs: u.prefs, signature: u.signature ? '[SET]' : '' })) });
+      res.json({
+        users: userStore
+          .list()
+          .map((u) => ({ ...u, prefs: u.prefs, signature: u.signature ? '[SET]' : '' })),
+      });
     });
-    app.get('/api/v1/cco-users/:userId', attachRole, requirePermission('settings.read'), (req, res) => {
-      const u = userStore.get(req.params.userId);
-      if (!u) return res.status(404).json({ error: 'not_found' });
-      res.json(u);
-    });
-    app.patch('/api/v1/cco-users/:userId', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try { res.json(await userStore.upsert(req.params.userId, req.body || {}, { role: req.cco?.role })); }
-      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.get(
+      '/api/v1/cco-users/:userId',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        const u = userStore.get(req.params.userId);
+        if (!u) return res.status(404).json({ error: 'not_found' });
+        res.json(u);
+      }
+    );
+    app.patch(
+      '/api/v1/cco-users/:userId',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          res.json(
+            await userStore.upsert(req.params.userId, req.body || {}, { role: req.cco?.role })
+          );
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // ─ NOTIFICATIONS (push subs + SMS-config + cron-jobs) ─
-    app.get('/api/v1/cco-notifications/push-subscriptions', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json({ subscriptions: notificationStore.listPushSubscriptions(req.query.userId || null) });
-    });
-    app.post('/api/v1/cco-notifications/push-subscriptions', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try {
-        const { subscription, userId } = req.body || {};
-        res.json(await notificationStore.subscribePush(subscription, userId, { role: req.cco?.role }));
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
-    app.delete('/api/v1/cco-notifications/push-subscriptions', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try { res.json(await notificationStore.unsubscribePush(req.body?.endpoint, { role: req.cco?.role })); }
-      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.get(
+      '/api/v1/cco-notifications/push-subscriptions',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        res.json({
+          subscriptions: notificationStore.listPushSubscriptions(req.query.userId || null),
+        });
+      }
+    );
+    app.post(
+      '/api/v1/cco-notifications/push-subscriptions',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const { subscription, userId } = req.body || {};
+          res.json(
+            await notificationStore.subscribePush(subscription, userId, { role: req.cco?.role })
+          );
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
+    app.delete(
+      '/api/v1/cco-notifications/push-subscriptions',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          res.json(
+            await notificationStore.unsubscribePush(req.body?.endpoint, { role: req.cco?.role })
+          );
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.get('/api/v1/cco-notifications/sms-config', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json(notificationStore.smsConfig());
-    });
-    app.patch('/api/v1/cco-notifications/sms-config', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try { res.json(await notificationStore.updateSmsConfig(req.body || {}, { role: req.cco?.role })); }
-      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.get(
+      '/api/v1/cco-notifications/sms-config',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        res.json(notificationStore.smsConfig());
+      }
+    );
+    app.patch(
+      '/api/v1/cco-notifications/sms-config',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          res.json(
+            await notificationStore.updateSmsConfig(req.body || {}, { role: req.cco?.role })
+          );
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.get('/api/v1/cco-notifications/cron-jobs', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json({ jobs: notificationStore.listCronJobs() });
-    });
-    app.post('/api/v1/cco-notifications/cron-jobs', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
-      try { res.json(await notificationStore.upsertCronJob(req.body || {}, { role: req.cco?.role })); }
-      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.get(
+      '/api/v1/cco-notifications/cron-jobs',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        res.json({ jobs: notificationStore.listCronJobs() });
+      }
+    );
+    app.post(
+      '/api/v1/cco-notifications/cron-jobs',
+      attachRole,
+      requirePermission('settings.write'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          res.json(await notificationStore.upsertCronJob(req.body || {}, { role: req.cco?.role }));
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.get('/api/v1/cco-notifications/sent-log', attachRole, requirePermission('settings.read'), (req, res) => {
-      res.json({ entries: notificationStore.sentLog(Number(req.query.limit) || 100) });
-    });
+    app.get(
+      '/api/v1/cco-notifications/sent-log',
+      attachRole,
+      requirePermission('settings.read'),
+      (req, res) => {
+        res.json({ entries: notificationStore.sentLog(Number(req.query.limit) || 100) });
+      }
+    );
 
     // Manuell trigger för cron-jobb (owner only) — användbar för test
-    app.post('/api/v1/cco-notifications/cron-jobs/:id/run', attachRole, requirePermission('settings.write'), async (req, res) => {
-      try {
-        const job = notificationStore.listCronJobs().find((j) => j.id === req.params.id);
-        if (!job) return res.status(404).json({ error: 'job_not_found' });
-        const result = await cronScheduler.runJob(job);
-        await notificationStore.markCronRan(job.id, { ok: true, manual: true, ...result });
-        res.json({ ok: true, result });
-      } catch (err) { res.status(500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-notifications/cron-jobs/:id/run',
+      attachRole,
+      requirePermission('settings.write'),
+      async (req, res) => {
+        try {
+          const job = notificationStore.listCronJobs().find((j) => j.id === req.params.id);
+          if (!job) return res.status(404).json({ error: 'job_not_found' });
+          const result = await cronScheduler.runJob(job);
+          await notificationStore.markCronRan(job.id, { ok: true, manual: true, ...result });
+          res.json({ ok: true, result });
+        } catch (err) {
+          res.status(500).json({ error: err.message });
+        }
+      }
+    );
 
     cronScheduler.start();
     app.locals.ccoBrandStore = brandStore;
@@ -731,8 +1308,14 @@ let ccoCollabStore = null;
     app.locals.ccoCronScheduler = cronScheduler;
     console.log('[cco-brands] monterad: 4 routes /api/v1/cco-brands/* (RBAC: settings.read/write)');
     console.log('[cco-users] monterad: 3 routes /api/v1/cco-users/* (RBAC: settings.read/write)');
-    console.log('[cco-notifications] monterad: 9 routes /api/v1/cco-notifications/* (RBAC: settings.read/write)');
-    console.log('[cco-cron-scheduler] startad — tickar var 60s · ' + notificationStore.listCronJobs().filter((j) => j.enabled).length + ' aktiva jobs');
+    console.log(
+      '[cco-notifications] monterad: 9 routes /api/v1/cco-notifications/* (RBAC: settings.read/write)'
+    );
+    console.log(
+      '[cco-cron-scheduler] startad — tickar var 60s · ' +
+        notificationStore.listCronJobs().filter((j) => j.enabled).length +
+        ' aktiva jobs'
+    );
   } catch (err) {
     console.warn('[sprint5] kunde inte montera:', err.message);
   }
@@ -752,40 +1335,65 @@ let ccoPhotoConsentStore = null;
     const express = require('express');
     const jsonParser = express.json({ limit: '4kb' });
 
-    app.get('/api/v1/cco-photo-consents', attachRole, requirePermission('customers.read'), (req, res) => {
-      const list = ccoPhotoConsentStore.listGranted({ customerId: req.query.customerId || null });
-      res.json({ count: list.length, items: list, stats: ccoPhotoConsentStore.stats() });
-    });
-
-    app.get('/api/v1/cco-photo-consents/:customerId/:photoId', attachRole, requirePermission('customers.read'), (req, res) => {
-      res.json(ccoPhotoConsentStore.getConsent(req.params.customerId, req.params.photoId));
-    });
-
-    app.post('/api/v1/cco-photo-consents/:customerId/:photoId', attachRole, requirePermission('customers.photo_consent_set'), jsonParser, async (req, res) => {
-      try {
-        const { status, note } = req.body || {};
-        const c = await ccoPhotoConsentStore.setStatus(
-          req.params.customerId,
-          req.params.photoId,
-          status,
-          { role: req.cco?.role },
-          { note }
-        );
-        res.json(c);
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
+    app.get(
+      '/api/v1/cco-photo-consents',
+      attachRole,
+      requirePermission('customers.read'),
+      (req, res) => {
+        const list = ccoPhotoConsentStore.listGranted({ customerId: req.query.customerId || null });
+        res.json({ count: list.length, items: list, stats: ccoPhotoConsentStore.stats() });
       }
-    });
+    );
 
-    app.get('/api/v1/cco-retention/:customerId', attachRole, requirePermission('customers.read'), (req, res) => {
-      const lastActivityAt = req.query.lastActivityAt || null;
-      const readout = retention.readoutForCustomer({
-        lastActivityAt,
-        isLocked: req.query.locked === 'true',
-        hasOpenCase: req.query.openCase === 'true',
-      });
-      res.json({ customerId: req.params.customerId, ...readout, retentionYears: retention.RETENTION_YEARS });
-    });
+    app.get(
+      '/api/v1/cco-photo-consents/:customerId/:photoId',
+      attachRole,
+      requirePermission('customers.read'),
+      (req, res) => {
+        res.json(ccoPhotoConsentStore.getConsent(req.params.customerId, req.params.photoId));
+      }
+    );
+
+    app.post(
+      '/api/v1/cco-photo-consents/:customerId/:photoId',
+      attachRole,
+      requirePermission('customers.photo_consent_set'),
+      jsonParser,
+      async (req, res) => {
+        try {
+          const { status, note } = req.body || {};
+          const c = await ccoPhotoConsentStore.setStatus(
+            req.params.customerId,
+            req.params.photoId,
+            status,
+            { role: req.cco?.role },
+            { note }
+          );
+          res.json(c);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-retention/:customerId',
+      attachRole,
+      requirePermission('customers.read'),
+      (req, res) => {
+        const lastActivityAt = req.query.lastActivityAt || null;
+        const readout = retention.readoutForCustomer({
+          lastActivityAt,
+          isLocked: req.query.locked === 'true',
+          hasOpenCase: req.query.openCase === 'true',
+        });
+        res.json({
+          customerId: req.params.customerId,
+          ...readout,
+          retentionYears: retention.RETENTION_YEARS,
+        });
+      }
+    );
 
     app.locals.ccoPhotoConsentStore = ccoPhotoConsentStore;
     app.locals.ccoRetention = retention;
@@ -803,47 +1411,67 @@ let ccoPhotoConsentStore = null;
     const retention = require('./src/ops/ccoRetentionPolicy');
 
     // BESLUT #6: Hard-block customer-delete om retention < 10 år
-    app.delete('/api/v1/cco-customers/:id/with-retention-check', attachRole, requirePermission('customers.delete'), retention.enforceRetention, (req, res) => {
-      // Om vi når hit har retention passerat
-      if (ccoAuditLog) ccoAuditLog.append({
-        action: 'customers.delete.attempt',
-        actor: { role: req.cco?.role },
-        target: { kind: 'customer', id: req.params.id },
-        detail: { retentionCleared: true },
-      });
-      res.json({ ok: true, note: 'Retention 10 år passerad — radering genomförd. Audit-loggat.' });
-    });
+    app.delete(
+      '/api/v1/cco-customers/:id/with-retention-check',
+      attachRole,
+      requirePermission('customers.delete'),
+      retention.enforceRetention,
+      (req, res) => {
+        // Om vi når hit har retention passerat
+        if (ccoAuditLog)
+          ccoAuditLog.append({
+            action: 'customers.delete.attempt',
+            actor: { role: req.cco?.role },
+            target: { kind: 'customer', id: req.params.id },
+            detail: { retentionCleared: true },
+          });
+        res.json({
+          ok: true,
+          note: 'Retention 10 år passerad — radering genomförd. Audit-loggat.',
+        });
+      }
+    );
 
     // BESLUT #7: Analytics-export (PDF + Excel)
-    app.get('/api/v1/cco-analytics/export', attachRole, requireAnyRole(['owner','revisor']), async (req, res) => {
-      const format = String(req.query.format || 'pdf').toLowerCase();
-      const period = String(req.query.period || 'week');
-      const tele = app.locals.ccoTelemetryStore;
-      if (!tele) return res.status(500).json({ error: 'telemetry not ready' });
-      const team = tele.teamStats(period);
-      const lb = tele.leaderboard();
-      const live = await tele.liveMetrics();
+    app.get(
+      '/api/v1/cco-analytics/export',
+      attachRole,
+      requireAnyRole(['owner', 'revisor']),
+      async (req, res) => {
+        const format = String(req.query.format || 'pdf').toLowerCase();
+        const period = String(req.query.period || 'week');
+        const tele = app.locals.ccoTelemetryStore;
+        if (!tele) return res.status(500).json({ error: 'telemetry not ready' });
+        const team = tele.teamStats(period);
+        const lb = tele.leaderboard();
+        const live = await tele.liveMetrics();
 
-      if (format === 'excel' || format === 'csv') {
-        const rows = [
-          'Period,Conversations,AvgResponseMin,SLA%,CSAT',
-          `${period},${team.conversations},${team.avgResponseMin},${team.slaPct},${team.csatAvg}`,
-          '',
-          'User,Score,Conversations,ResponseMin,UpsellSEK',
-          ...lb.map((u) => `${u.name},${u.score},${u.conversations},${u.responseMin},${u.upsellSek}`),
-        ].join('\n');
-        if (ccoAuditLog) ccoAuditLog.append({
-          action: 'analytics.export.csv',
-          actor: { role: req.cco?.role },
-          detail: { period, rows: rows.split('\n').length },
-        });
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="cco-analytics-${period}-${new Date().toISOString().slice(0,10)}.csv"`);
-        return res.send(rows);
-      }
+        if (format === 'excel' || format === 'csv') {
+          const rows = [
+            'Period,Conversations,AvgResponseMin,SLA%,CSAT',
+            `${period},${team.conversations},${team.avgResponseMin},${team.slaPct},${team.csatAvg}`,
+            '',
+            'User,Score,Conversations,ResponseMin,UpsellSEK',
+            ...lb.map(
+              (u) => `${u.name},${u.score},${u.conversations},${u.responseMin},${u.upsellSek}`
+            ),
+          ].join('\n');
+          if (ccoAuditLog)
+            ccoAuditLog.append({
+              action: 'analytics.export.csv',
+              actor: { role: req.cco?.role },
+              detail: { period, rows: rows.split('\n').length },
+            });
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="cco-analytics-${period}-${new Date().toISOString().slice(0, 10)}.csv"`
+          );
+          return res.send(rows);
+        }
 
-      // PDF-format → returnera HTML som browsern print:ar till PDF (enklare än PDF-lib)
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>CCO Analytics ${period} ${new Date().toISOString().slice(0,10)}</title>
+        // PDF-format → returnera HTML som browsern print:ar till PDF (enklare än PDF-lib)
+        const html = `<!doctype html><html><head><meta charset="utf-8"><title>CCO Analytics ${period} ${new Date().toISOString().slice(0, 10)}</title>
 <style>body{font-family:-apple-system,Inter,sans-serif;padding:30mm 20mm;color:#2b251f}
 h1{font-size:24pt;margin:0 0 8pt;letter-spacing:-.02em}
 h2{font-size:11pt;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;margin:24pt 0 10pt;border-bottom:1px solid #ccc;padding-bottom:4pt}
@@ -870,21 +1498,23 @@ footer{margin-top:32pt;padding-top:12pt;border-top:1px solid #ccc;font-size:8pt;
 <tr><td>${period}</td><td>${team.conversations}</td><td>${team.avgResponseMin} min</td><td>${team.slaPct}%</td><td>${team.csatAvg} / 5</td></tr></table>
 <h2>Leaderboard</h2>
 <table><tr><th>#</th><th>Namn</th><th>Score</th><th>Konv.</th><th>Svarstid</th><th>Upsell (kr)</th></tr>
-${lb.map((u, i) => `<tr><td>${i+1}</td><td><strong>${u.name}</strong></td><td>${u.score}</td><td>${u.conversations}</td><td>${u.responseMin} min</td><td>${u.upsellSek.toLocaleString('sv-SE')}</td></tr>`).join('')}
+${lb.map((u, i) => `<tr><td>${i + 1}</td><td><strong>${u.name}</strong></td><td>${u.score}</td><td>${u.conversations}</td><td>${u.responseMin} min</td><td>${u.upsellSek.toLocaleString('sv-SE')}</td></tr>`).join('')}
 </table>
 <footer>Hair TP Clinic · CCO Analytics-export · Sveavägen 42, 113 50 Stockholm · 08-555 123 45<br/>Audit-loggad. Sparas 10 år enligt journallagen.</footer>
 <script>setTimeout(()=>window.print(),200)</script>
 </body></html>`;
 
-      if (ccoAuditLog) ccoAuditLog.append({
-        action: 'analytics.export.pdf',
-        actor: { role: req.cco?.role },
-        detail: { period },
-      });
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `inline; filename="cco-analytics-${period}.html"`);
-      res.send(html);
-    });
+        if (ccoAuditLog)
+          ccoAuditLog.append({
+            action: 'analytics.export.pdf',
+            actor: { role: req.cco?.role },
+            detail: { period },
+          });
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Content-Disposition', `inline; filename="cco-analytics-${period}.html"`);
+        res.send(html);
+      }
+    );
 
     console.log('[needs-decision] retention-hard-block + analytics-export monterade');
   } catch (err) {
@@ -898,436 +1528,551 @@ try {
 
   // GET /api/v1/cco-customers/:id/timeline
   // Aggregera kronologisk lista: journal-poster + offerter + avtal + send-actions
-  app.get('/api/v1/cco-customers/:id/timeline', attachRole, requirePermission('customers.read'), async (req, res) => {
-    try {
-      const customerId = req.params.id;
-      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const events = [];
+  app.get(
+    '/api/v1/cco-customers/:id/timeline',
+    attachRole,
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const customerId = req.params.id;
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const events = [];
 
-      // Journal-poster
-      const journalStore = app.locals.ccoJournalStore;
-      if (journalStore?.listEntries) {
-        try {
-          const entries = await journalStore.listEntries({ tenantId, patientId: customerId });
-          for (const e of (entries || [])) {
-            events.push({
-              kind: 'journal',
-              subkind: e.journalType || 'general',
-              ts: e.signedAt || e.updatedAt || e.createdAt,
-              title: e.title || (e.journalType || 'Journal-post'),
-              status: e.locked ? 'signed' : e.status,
-              icon: e.locked ? '🔒' : '📝',
-              actor: e.signedByName || e.authorName,
-              entityId: e.entryId,
-              link: `/smart-anteckning.html?entryId=${encodeURIComponent(e.entryId)}`,
-              detail: { locked: !!e.locked, correctionOfEntryId: e.correctionOfEntryId || null },
-            });
-          }
-        } catch (err) { /* tyst */ }
-      }
-
-      // Offerter
-      const offerStore = app.locals.ccoOfferQuickStore;
-      if (offerStore?.listForCustomer) {
-        try {
-          const offers = offerStore.listForCustomer(customerId);
-          for (const o of offers) {
-            events.push({
-              kind: 'offer',
-              subkind: o.state,
-              ts: o.createdAt,
-              title: `Offert: ${o.treatmentLabel || o.id}`,
-              status: o.state,
-              icon: o.state === 'accepted' ? '✓' : o.state === 'sent' ? '📧' : o.state === 'rejected' ? '✕' : '📋',
-              actor: o.authorName,
-              entityId: o.id,
-              link: `/offerter.html#${o.id}`,
-              detail: { priceTotal: o.priceTotal, currency: o.currency, sentAt: o.sentAt, acceptedAt: o.acceptedAt },
-            });
-            // Lägg även send-events som separata items
-            if (o.sentAt) {
+        // Journal-poster
+        const journalStore = app.locals.ccoJournalStore;
+        if (journalStore?.listEntries) {
+          try {
+            const entries = await journalStore.listEntries({ tenantId, patientId: customerId });
+            for (const e of entries || []) {
               events.push({
-                kind: 'send', subkind: 'offer', ts: o.sentAt,
-                title: `Offert skickad till patient (${o.sentCount}×)`, icon: '📧',
-                entityId: o.id, link: `/offerter.html#${o.id}`,
-                detail: { offerId: o.id, sentCount: o.sentCount },
+                kind: 'journal',
+                subkind: e.journalType || 'general',
+                ts: e.signedAt || e.updatedAt || e.createdAt,
+                title: e.title || e.journalType || 'Journal-post',
+                status: e.locked ? 'signed' : e.status,
+                icon: e.locked ? '🔒' : '📝',
+                actor: e.signedByName || e.authorName,
+                entityId: e.entryId,
+                link: `/smart-anteckning.html?entryId=${encodeURIComponent(e.entryId)}`,
+                detail: { locked: !!e.locked, correctionOfEntryId: e.correctionOfEntryId || null },
               });
             }
-            if (o.acceptedAt) {
+          } catch (err) {
+            /* tyst */
+          }
+        }
+
+        // Offerter
+        const offerStore = app.locals.ccoOfferQuickStore;
+        if (offerStore?.listForCustomer) {
+          try {
+            const offers = offerStore.listForCustomer(customerId);
+            for (const o of offers) {
               events.push({
-                kind: 'event', subkind: 'offer_accepted', ts: o.acceptedAt,
-                title: `Patient accepterade offerten`, icon: '✓',
-                entityId: o.id, link: `/offerter.html#${o.id}`,
-                detail: { acceptedVia: o.acceptedVia },
+                kind: 'offer',
+                subkind: o.state,
+                ts: o.createdAt,
+                title: `Offert: ${o.treatmentLabel || o.id}`,
+                status: o.state,
+                icon:
+                  o.state === 'accepted'
+                    ? '✓'
+                    : o.state === 'sent'
+                      ? '📧'
+                      : o.state === 'rejected'
+                        ? '✕'
+                        : '📋',
+                actor: o.authorName,
+                entityId: o.id,
+                link: `/offerter.html#${o.id}`,
+                detail: {
+                  priceTotal: o.priceTotal,
+                  currency: o.currency,
+                  sentAt: o.sentAt,
+                  acceptedAt: o.acceptedAt,
+                },
+              });
+              // Lägg även send-events som separata items
+              if (o.sentAt) {
+                events.push({
+                  kind: 'send',
+                  subkind: 'offer',
+                  ts: o.sentAt,
+                  title: `Offert skickad till patient (${o.sentCount}×)`,
+                  icon: '📧',
+                  entityId: o.id,
+                  link: `/offerter.html#${o.id}`,
+                  detail: { offerId: o.id, sentCount: o.sentCount },
+                });
+              }
+              if (o.acceptedAt) {
+                events.push({
+                  kind: 'event',
+                  subkind: 'offer_accepted',
+                  ts: o.acceptedAt,
+                  title: `Patient accepterade offerten`,
+                  icon: '✓',
+                  entityId: o.id,
+                  link: `/offerter.html#${o.id}`,
+                  detail: { acceptedVia: o.acceptedVia },
+                });
+              }
+            }
+          } catch (err) {
+            /* tyst */
+          }
+        }
+
+        // Avtal
+        const agreementStore = app.locals.ccoAgreementQuickStore;
+        if (agreementStore?.listForCustomer) {
+          try {
+            const agreements = agreementStore.listForCustomer(customerId);
+            for (const a of agreements) {
+              events.push({
+                kind: 'agreement',
+                subkind: a.state,
+                ts: a.createdAt,
+                title: a.title,
+                status: a.state,
+                icon:
+                  a.state === 'signed'
+                    ? '✍'
+                    : a.state === 'sent'
+                      ? '📨'
+                      : a.state === 'cancelled'
+                        ? '✕'
+                        : '📄',
+                entityId: a.id,
+                link: `/offerter.html#${a.id}`,
+                detail: {
+                  priceTotal: a.priceTotal,
+                  signedAt: a.signedAt,
+                  signMethod: a.signMethod,
+                  signedByName: a.signedByName,
+                  promotedFromOfferId: a.promotedFromOfferId,
+                },
+              });
+              if (a.signedAt) {
+                events.push({
+                  kind: 'event',
+                  subkind: 'agreement_signed',
+                  ts: a.signedAt,
+                  title: `Avtal signerat av ${a.signedByName} (${a.signMethod})`,
+                  icon: '🔏',
+                  entityId: a.id,
+                  link: `/offerter.html#${a.id}`,
+                  detail: { signatureHash: a.signatureHash, signMethod: a.signMethod },
+                });
+              }
+            }
+          } catch (err) {
+            /* tyst */
+          }
+        }
+
+        // Send-actions (form/consent/file/encounter)
+        const sendStore = app.locals.ccoSendActionStore;
+        if (sendStore?.listSends) {
+          try {
+            const sends = sendStore.listSends({ customerId, limit: 100 });
+            for (const s of sends) {
+              events.push({
+                kind: 'send',
+                subkind: s.kind,
+                ts: s.ts,
+                title: `${s.kind === 'form' ? '📋' : s.kind === 'consent' ? '✍' : s.kind === 'file' ? '📎' : '📅'} ${s.kind} skickad${s.dryRun ? ' (dry-run)' : ''}`,
+                icon: s.dryRun ? '🟡' : '📧',
+                status: s.mode,
+                entityId: s.sendId,
+                detail: {
+                  recipientMasked: s.recipientMasked,
+                  subject: s.subject,
+                  dryRun: s.dryRun,
+                  mode: s.mode,
+                },
               });
             }
+          } catch (err) {
+            /* tyst */
           }
-        } catch (err) { /* tyst */ }
-      }
+        }
 
-      // Avtal
-      const agreementStore = app.locals.ccoAgreementQuickStore;
-      if (agreementStore?.listForCustomer) {
-        try {
-          const agreements = agreementStore.listForCustomer(customerId);
-          for (const a of agreements) {
-            events.push({
-              kind: 'agreement',
-              subkind: a.state,
-              ts: a.createdAt,
-              title: a.title,
-              status: a.state,
-              icon: a.state === 'signed' ? '✍' : a.state === 'sent' ? '📨' : a.state === 'cancelled' ? '✕' : '📄',
-              entityId: a.id,
-              link: `/offerter.html#${a.id}`,
-              detail: { priceTotal: a.priceTotal, signedAt: a.signedAt, signMethod: a.signMethod, signedByName: a.signedByName, promotedFromOfferId: a.promotedFromOfferId },
-            });
-            if (a.signedAt) {
+        // Patient assets (CCO asset-store) — importerade PDF:er, foton, consents, agreements, forms.
+        // Owner-mandat: visa ENDAST CCO-source — INGA Drive-länkar.
+        // En asset visas om status är VERIFIED_IN_CCO eller VISIBLE_ON_PATIENT_CARD.
+        const assetStore = app.locals.ccoPatientAssetStore;
+        if (assetStore?.listAssetsForPatient) {
+          try {
+            const VISIBLE_STATUSES = new Set(['VERIFIED_IN_CCO', 'VISIBLE_ON_PATIENT_CARD']);
+            const CATEGORY_ICON = {
+              journal: '📄',
+              photo_before: '📸',
+              photo_during: '📸',
+              photo_after: '📸',
+              consent: '✍',
+              agreement: '📑',
+              form: '📋',
+              aisia_report: '🔬',
+              other: '📎',
+            };
+            const assets =
+              assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
+            for (const a of assets) {
+              if (!VISIBLE_STATUSES.has(a.status)) continue;
+              const cat = a.category || 'other';
               events.push({
-                kind: 'event', subkind: 'agreement_signed', ts: a.signedAt,
-                title: `Avtal signerat av ${a.signedByName} (${a.signMethod})`, icon: '🔏',
-                entityId: a.id, link: `/offerter.html#${a.id}`,
-                detail: { signatureHash: a.signatureHash, signMethod: a.signMethod },
+                kind: 'asset',
+                subkind: cat,
+                ts: a.documentDate || a.importedAt || a.createdAt,
+                title:
+                  cat === 'journal'
+                    ? 'Historisk journal (PDF)'
+                    : cat === 'photo_before'
+                      ? 'Foto: före'
+                      : cat === 'photo_during'
+                        ? 'Foto: under behandling'
+                        : cat === 'photo_after'
+                          ? 'Foto: efter'
+                          : cat === 'consent'
+                            ? 'Samtycke (signerat)'
+                            : cat === 'agreement'
+                              ? 'Avtal (signerat)'
+                              : cat === 'form'
+                                ? 'Formulär'
+                                : cat === 'aisia_report'
+                                  ? 'Aisia-rapport'
+                                  : a.originalFileName || 'Asset',
+                status: a.status,
+                icon: CATEGORY_ICON[cat] || '📎',
+                entityId: a.id,
+                link: `/api/v1/cco/assets/${a.id}/download`,
+                detail: {
+                  category: cat,
+                  sourceSystem: a.sourceSystem,
+                  mimeType: a.mimeType,
+                  encounterId: a.encounterId || null,
+                  fileSize: a.fileSize || null,
+                  isJournalRelevant: !!a.isJournalRelevant,
+                  ccoSourceOnly: true, // owner-skärpning: ALDRIG Drive-länk i UI
+                },
               });
             }
+          } catch (err) {
+            /* tyst */
           }
-        } catch (err) { /* tyst */ }
+        }
+
+        // Sortera DESC på ts, sortera stabilt på entityId fallback
+        events.sort((a, b) => {
+          const ta = (a.ts || '').toString();
+          const tb = (b.ts || '').toString();
+          if (ta === tb) return (a.kind || '').localeCompare(b.kind || '');
+          return tb.localeCompare(ta);
+        });
+
+        // Aggregate stats
+        const byKind = {};
+        events.forEach((e) => {
+          byKind[e.kind] = (byKind[e.kind] || 0) + 1;
+        });
+
+        res.json({
+          customerId,
+          tenantId,
+          count: events.length,
+          byKind,
+          events: events.slice(0, Number(req.query.limit) || 200),
+          evaluatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
       }
-
-      // Send-actions (form/consent/file/encounter)
-      const sendStore = app.locals.ccoSendActionStore;
-      if (sendStore?.listSends) {
-        try {
-          const sends = sendStore.listSends({ customerId, limit: 100 });
-          for (const s of sends) {
-            events.push({
-              kind: 'send',
-              subkind: s.kind,
-              ts: s.ts,
-              title: `${s.kind === 'form' ? '📋' : s.kind === 'consent' ? '✍' : s.kind === 'file' ? '📎' : '📅'} ${s.kind} skickad${s.dryRun ? ' (dry-run)' : ''}`,
-              icon: s.dryRun ? '🟡' : '📧',
-              status: s.mode,
-              entityId: s.sendId,
-              detail: { recipientMasked: s.recipientMasked, subject: s.subject, dryRun: s.dryRun, mode: s.mode },
-            });
-          }
-        } catch (err) { /* tyst */ }
-      }
-
-      // Patient assets (CCO asset-store) — importerade PDF:er, foton, consents, agreements, forms.
-      // Owner-mandat: visa ENDAST CCO-source — INGA Drive-länkar.
-      // En asset visas om status är VERIFIED_IN_CCO eller VISIBLE_ON_PATIENT_CARD.
-      const assetStore = app.locals.ccoPatientAssetStore;
-      if (assetStore?.listAssetsForPatient) {
-        try {
-          const VISIBLE_STATUSES = new Set(['VERIFIED_IN_CCO', 'VISIBLE_ON_PATIENT_CARD']);
-          const CATEGORY_ICON = {
-            journal: '📄', photo_before: '📸', photo_during: '📸', photo_after: '📸',
-            consent: '✍', agreement: '📑', form: '📋', aisia_report: '🔬', other: '📎',
-          };
-          const assets = assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
-          for (const a of assets) {
-            if (!VISIBLE_STATUSES.has(a.status)) continue;
-            const cat = a.category || 'other';
-            events.push({
-              kind: 'asset',
-              subkind: cat,
-              ts: a.documentDate || a.importedAt || a.createdAt,
-              title: cat === 'journal' ? 'Historisk journal (PDF)'
-                   : cat === 'photo_before' ? 'Foto: före'
-                   : cat === 'photo_during' ? 'Foto: under behandling'
-                   : cat === 'photo_after' ? 'Foto: efter'
-                   : cat === 'consent' ? 'Samtycke (signerat)'
-                   : cat === 'agreement' ? 'Avtal (signerat)'
-                   : cat === 'form' ? 'Formulär'
-                   : cat === 'aisia_report' ? 'Aisia-rapport'
-                   : (a.originalFileName || 'Asset'),
-              status: a.status,
-              icon: CATEGORY_ICON[cat] || '📎',
-              entityId: a.id,
-              link: `/api/v1/cco/assets/${a.id}/download`,
-              detail: {
-                category: cat,
-                sourceSystem: a.sourceSystem,
-                mimeType: a.mimeType,
-                encounterId: a.encounterId || null,
-                fileSize: a.fileSize || null,
-                isJournalRelevant: !!a.isJournalRelevant,
-                ccoSourceOnly: true,    // owner-skärpning: ALDRIG Drive-länk i UI
-              },
-            });
-          }
-        } catch (err) { /* tyst */ }
-      }
-
-      // Sortera DESC på ts, sortera stabilt på entityId fallback
-      events.sort((a, b) => {
-        const ta = (a.ts || '').toString();
-        const tb = (b.ts || '').toString();
-        if (ta === tb) return (a.kind || '').localeCompare(b.kind || '');
-        return tb.localeCompare(ta);
-      });
-
-      // Aggregate stats
-      const byKind = {};
-      events.forEach((e) => { byKind[e.kind] = (byKind[e.kind] || 0) + 1; });
-
-      res.json({
-        customerId,
-        tenantId,
-        count: events.length,
-        byKind,
-        events: events.slice(0, Number(req.query.limit) || 200),
-        evaluatedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
     }
-  });
+  );
 
   // GET /api/v1/cco-customers/:id/agreements — kombinerar offers + agreements för flik
-  app.get('/api/v1/cco-customers/:id/agreements', attachRole, requirePermission('customers.read'), async (req, res) => {
-    try {
-      const customerId = req.params.id;
-      const offers = (app.locals.ccoOfferQuickStore?.listForCustomer?.(customerId)) || [];
-      const agreements = (app.locals.ccoAgreementQuickStore?.listForCustomer?.(customerId)) || [];
-      // Cross-link: för varje agreement med promotedFromOfferId, hitta offer-info
-      const offerMap = new Map(offers.map((o) => [o.id, o]));
-      const linkedAgreements = agreements.map((a) => ({
-        ...a,
-        sourceOffer: a.promotedFromOfferId ? (offerMap.get(a.promotedFromOfferId) || null) : null,
-      }));
-      // Aggregate stats
-      const summary = {
-        offerCount: offers.length,
-        agreementCount: agreements.length,
-        pendingOffers: offers.filter((o) => o.state === 'sent').length,
-        acceptedOffers: offers.filter((o) => o.state === 'accepted').length,
-        signedAgreements: agreements.filter((a) => a.state === 'signed').length,
-        pendingAgreements: agreements.filter((a) => a.state === 'sent').length,
-        totalSignedValue: agreements.filter((a) => a.state === 'signed').reduce((s, a) => s + (Number(a.priceTotal) || 0), 0),
-      };
-      res.json({
-        customerId,
-        summary,
-        offers,
-        agreements: linkedAgreements,
-      });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+  app.get(
+    '/api/v1/cco-customers/:id/agreements',
+    attachRole,
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const customerId = req.params.id;
+        const offers = app.locals.ccoOfferQuickStore?.listForCustomer?.(customerId) || [];
+        const agreements = app.locals.ccoAgreementQuickStore?.listForCustomer?.(customerId) || [];
+        // Cross-link: för varje agreement med promotedFromOfferId, hitta offer-info
+        const offerMap = new Map(offers.map((o) => [o.id, o]));
+        const linkedAgreements = agreements.map((a) => ({
+          ...a,
+          sourceOffer: a.promotedFromOfferId ? offerMap.get(a.promotedFromOfferId) || null : null,
+        }));
+        // Aggregate stats
+        const summary = {
+          offerCount: offers.length,
+          agreementCount: agreements.length,
+          pendingOffers: offers.filter((o) => o.state === 'sent').length,
+          acceptedOffers: offers.filter((o) => o.state === 'accepted').length,
+          signedAgreements: agreements.filter((a) => a.state === 'signed').length,
+          pendingAgreements: agreements.filter((a) => a.state === 'sent').length,
+          totalSignedValue: agreements
+            .filter((a) => a.state === 'signed')
+            .reduce((s, a) => s + (Number(a.priceTotal) || 0), 0),
+        };
+        res.json({
+          customerId,
+          summary,
+          offers,
+          agreements: linkedAgreements,
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
   // GET /api/v1/cco-customers/:id/journal-feed — unified journal-view
   // Aggregera: ccoJournalStore-entries + patient_assets (journal/photo_*/consent/agreement/form/aisia_report)
   // Inga Drive-länkar. Endast CCO-source. Owner-mandat: cco-no-drive-links-import-only.mdc.
   // RBAC: customers.read (samma som timeline) — strängare per-asset-RBAC görs i download-endpoint.
-  app.get('/api/v1/cco-customers/:id/journal-feed', attachRole, requirePermission('customers.read'), async (req, res) => {
-    try {
-      const customerId = req.params.id;
-      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const items = [];
+  app.get(
+    '/api/v1/cco-customers/:id/journal-feed',
+    attachRole,
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const customerId = req.params.id;
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const items = [];
 
-      // 1. CCO-journal-entries (nyskrivna)
-      const journalStore = app.locals.ccoJournalStore;
-      if (journalStore?.listEntries) {
-        try {
-          const entries = await journalStore.listEntries({ tenantId, patientId: customerId });
-          for (const e of (entries || [])) {
-            items.push({
-              source: 'cco_journal',
-              category: 'journal',
-              subcategory: e.journalType || 'general',
-              ts: e.signedAt || e.updatedAt || e.createdAt,
-              title: e.title || (e.journalType || 'Journal-post'),
-              icon: e.correctionOfEntryId ? '✏' : (e.locked ? '🔒' : '📝'),
-              author: e.signedByName || e.authorName,
-              entityId: e.entryId,
-              tenantId: e.tenantId,
-              patientId: e.patientId,
-              isSigned: !!e.locked,
-              isCorrection: !!e.correctionOfEntryId,
-              correctionOfEntryId: e.correctionOfEntryId || null,
-              correctionReason: e.correctionReason || null,
-              correctionCreatedBy: e.correctionCreatedBy || null,
-              correctionCreatedAt: e.correctionCreatedAt || null,
-              hasPdf: !!(e.pdfArtifactKey || e.pdfStorageKey || e.pdfPath),
-              link: `/smart-anteckning.html?entryId=${encodeURIComponent(e.entryId)}`,
-              ccoSourceOnly: true,
-            });
+        // 1. CCO-journal-entries (nyskrivna)
+        const journalStore = app.locals.ccoJournalStore;
+        if (journalStore?.listEntries) {
+          try {
+            const entries = await journalStore.listEntries({ tenantId, patientId: customerId });
+            for (const e of entries || []) {
+              items.push({
+                source: 'cco_journal',
+                category: 'journal',
+                subcategory: e.journalType || 'general',
+                ts: e.signedAt || e.updatedAt || e.createdAt,
+                title: e.title || e.journalType || 'Journal-post',
+                icon: e.correctionOfEntryId ? '✏' : e.locked ? '🔒' : '📝',
+                author: e.signedByName || e.authorName,
+                entityId: e.entryId,
+                tenantId: e.tenantId,
+                patientId: e.patientId,
+                isSigned: !!e.locked,
+                isCorrection: !!e.correctionOfEntryId,
+                correctionOfEntryId: e.correctionOfEntryId || null,
+                correctionReason: e.correctionReason || null,
+                correctionCreatedBy: e.correctionCreatedBy || null,
+                correctionCreatedAt: e.correctionCreatedAt || null,
+                hasPdf: !!(e.pdfArtifactKey || e.pdfStorageKey || e.pdfPath),
+                link: `/smart-anteckning.html?entryId=${encodeURIComponent(e.entryId)}`,
+                ccoSourceOnly: true,
+              });
+            }
+          } catch (err) {
+            /* tyst */
           }
-        } catch (err) { /* tyst */ }
-      }
-
-      // 2. patient_assets — CCO asset-store
-      // 6 statusar enligt owner-spec:
-      //   VISIBLE_ON_PATIENT_CARD + VERIFIED_IN_CCO → renderable (öppningsbara från CCO)
-      //   IMPORTED_TO_CCO                          → attention (importerad, ej verifierad)
-      //   NEEDS_REVIEW                             → attention (kräver granskning)
-      //   LINK_ONLY_BLOCKER                        → attention (ej importerad än, ingen Drive-länk)
-      //   FAILED_IMPORT                            → attention (tekniskt fel)
-      //   DUPLICATE                                → attention (info — annan asset har samma checksum)
-      const assetStore = app.locals.ccoPatientAssetStore;
-      const needsAttention = [];
-      if (assetStore?.listAssetsForPatient) {
-        try {
-          const RENDERABLE = new Set(['VERIFIED_IN_CCO', 'VISIBLE_ON_PATIENT_CARD']);
-          const ATTENTION = new Set([
-            'NEEDS_REVIEW',
-            'LINK_ONLY_BLOCKER',
-            'IMPORTED_TO_CCO',
-            'FAILED_IMPORT',
-            'DUPLICATE',
-          ]);
-          const ICON = {
-            journal: '📄', photo_before: '📸', photo_during: '📸', photo_after: '📸',
-            consent: '✍', agreement: '📑', form: '📋', aisia_report: '🔬', other: '📎',
-          };
-          const STATUS_LABEL = {
-            VISIBLE_ON_PATIENT_CARD: 'Synlig',
-            VERIFIED_IN_CCO: 'Verifierad',
-            IMPORTED_TO_CCO: 'Importerad (ej verifierad)',
-            NEEDS_REVIEW: 'Behöver granskning',
-            LINK_ONLY_BLOCKER: 'Ej importerad — endast referens',
-            FAILED_IMPORT: 'Import misslyckades',
-            DUPLICATE: 'Dubblett (samma fil)',
-          };
-          const STATUS_TONE = {
-            VISIBLE_ON_PATIENT_CARD: 'ok',
-            VERIFIED_IN_CCO: 'ok',
-            IMPORTED_TO_CCO: 'warn',
-            NEEDS_REVIEW: 'warn',
-            LINK_ONLY_BLOCKER: 'blocker',
-            FAILED_IMPORT: 'blocker',
-            DUPLICATE: 'info',
-          };
-          const STATUS_HINT = {
-            VISIBLE_ON_PATIENT_CARD: 'Filen kan öppnas direkt i CCO.',
-            VERIFIED_IN_CCO: 'Filen är verifierad och kan öppnas i CCO.',
-            IMPORTED_TO_CCO: 'Filen är importerad men ännu inte verifierad.',
-            NEEDS_REVIEW: 'Filen kräver manuell granskning innan den blir synlig på patientkortet.',
-            LINK_ONLY_BLOCKER: 'Filen är inte importerad ännu — endast referens till källan. Ingen Drive-länk visas.',
-            FAILED_IMPORT: 'Tekniskt fel vid import — kontakta migrationsteamet.',
-            DUPLICATE: 'Filen har samma checksum som en annan asset. Visas inte separat.',
-          };
-          const assets = assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
-          for (const a of assets) {
-            const isRenderable = RENDERABLE.has(a.status);
-            const isAttention = ATTENTION.has(a.status);
-            if (!isRenderable && !isAttention) continue;
-
-            const cat = a.category || 'other';
-            const baseTitle = cat === 'journal' ? 'Historisk journal (PDF)'
-                 : cat === 'photo_before' ? 'Foto: före behandling'
-                 : cat === 'photo_during' ? 'Foto: under behandling'
-                 : cat === 'photo_after' ? 'Foto: efter behandling'
-                 : cat === 'consent' ? 'Signerat samtycke'
-                 : cat === 'agreement' ? 'Signerat avtal'
-                 : cat === 'form' ? 'Formulär (signerat)'
-                 : cat === 'aisia_report' ? 'Aisia-rapport'
-                 : (a.originalFileName || 'Bilaga');
-
-            // Owner-skärpning: aldrig Drive-URL ut i UI. Om binär saknas → null-link.
-            const downloadLink = isRenderable ? `/api/v1/cco/assets/${a.id}/download` : null;
-
-            const item = {
-              source: 'patient_asset',
-              category: cat,
-              subcategory: a.sourceSystem || null,
-              ts: a.documentDate || a.importedAt || a.createdAt,
-              title: baseTitle,
-              icon: ICON[cat] || '📎',
-              encounterId: a.encounterId || null,
-              entityId: a.id,
-              mimeType: a.mimeType,
-              fileSize: a.fileSize || null,
-              link: downloadLink,
-              thumbnailLink: isRenderable && cat.startsWith('photo_') ? `/api/v1/cco/assets/${a.id}/thumbnail` : null,
-              hasPdf: a.mimeType === 'application/pdf',
-              ccoSourceOnly: true,
-              assetStatus: a.status,
-              assetStatusLabel: STATUS_LABEL[a.status] || a.status,
-              assetStatusTone: STATUS_TONE[a.status] || 'info',
-              assetStatusHint: STATUS_HINT[a.status] || null,
-              isRenderable,
-              needsAttention: isAttention,
-            };
-
-            if (isRenderable) items.push(item);
-            if (isAttention) needsAttention.push(item);
-          }
-        } catch (err) { /* tyst */ }
-      }
-
-      // Sortera DESC på ts
-      items.sort((a, b) => {
-        const ta = (a.ts || '').toString();
-        const tb = (b.ts || '').toString();
-        return tb.localeCompare(ta);
-      });
-
-      // Counters
-      const counters = {
-        total: items.length,
-        byCategory: {},
-        bySource: { cco_journal: 0, patient_asset: 0 },
-        signed: 0,
-        corrections: 0,
-        hasPdf: 0,
-        needsAttention: needsAttention.length,
-        needsAttentionByStatus: {},
-      };
-      for (const i of items) {
-        counters.byCategory[i.category] = (counters.byCategory[i.category] || 0) + 1;
-        counters.bySource[i.source] = (counters.bySource[i.source] || 0) + 1;
-        if (i.isSigned) counters.signed += 1;
-        if (i.isCorrection) counters.corrections += 1;
-        if (i.hasPdf) counters.hasPdf += 1;
-      }
-      for (const a of needsAttention) {
-        counters.needsAttentionByStatus[a.assetStatus] = (counters.needsAttentionByStatus[a.assetStatus] || 0) + 1;
-      }
-
-      // Group by encounter (for photo-stacks)
-      const photoGroups = {};
-      for (const i of items) {
-        if (i.encounterId && i.category.startsWith('photo_')) {
-          if (!photoGroups[i.encounterId]) photoGroups[i.encounterId] = [];
-          photoGroups[i.encounterId].push(i.entityId);
         }
+
+        // 2. patient_assets — CCO asset-store
+        // 6 statusar enligt owner-spec:
+        //   VISIBLE_ON_PATIENT_CARD + VERIFIED_IN_CCO → renderable (öppningsbara från CCO)
+        //   IMPORTED_TO_CCO                          → attention (importerad, ej verifierad)
+        //   NEEDS_REVIEW                             → attention (kräver granskning)
+        //   LINK_ONLY_BLOCKER                        → attention (ej importerad än, ingen Drive-länk)
+        //   FAILED_IMPORT                            → attention (tekniskt fel)
+        //   DUPLICATE                                → attention (info — annan asset har samma checksum)
+        const assetStore = app.locals.ccoPatientAssetStore;
+        const needsAttention = [];
+        if (assetStore?.listAssetsForPatient) {
+          try {
+            const RENDERABLE = new Set(['VERIFIED_IN_CCO', 'VISIBLE_ON_PATIENT_CARD']);
+            const ATTENTION = new Set([
+              'NEEDS_REVIEW',
+              'LINK_ONLY_BLOCKER',
+              'IMPORTED_TO_CCO',
+              'FAILED_IMPORT',
+              'DUPLICATE',
+            ]);
+            const ICON = {
+              journal: '📄',
+              photo_before: '📸',
+              photo_during: '📸',
+              photo_after: '📸',
+              consent: '✍',
+              agreement: '📑',
+              form: '📋',
+              aisia_report: '🔬',
+              other: '📎',
+            };
+            const STATUS_LABEL = {
+              VISIBLE_ON_PATIENT_CARD: 'Synlig',
+              VERIFIED_IN_CCO: 'Verifierad',
+              IMPORTED_TO_CCO: 'Importerad (ej verifierad)',
+              NEEDS_REVIEW: 'Behöver granskning',
+              LINK_ONLY_BLOCKER: 'Ej importerad — endast referens',
+              FAILED_IMPORT: 'Import misslyckades',
+              DUPLICATE: 'Dubblett (samma fil)',
+            };
+            const STATUS_TONE = {
+              VISIBLE_ON_PATIENT_CARD: 'ok',
+              VERIFIED_IN_CCO: 'ok',
+              IMPORTED_TO_CCO: 'warn',
+              NEEDS_REVIEW: 'warn',
+              LINK_ONLY_BLOCKER: 'blocker',
+              FAILED_IMPORT: 'blocker',
+              DUPLICATE: 'info',
+            };
+            const STATUS_HINT = {
+              VISIBLE_ON_PATIENT_CARD: 'Filen kan öppnas direkt i CCO.',
+              VERIFIED_IN_CCO: 'Filen är verifierad och kan öppnas i CCO.',
+              IMPORTED_TO_CCO: 'Filen är importerad men ännu inte verifierad.',
+              NEEDS_REVIEW:
+                'Filen kräver manuell granskning innan den blir synlig på patientkortet.',
+              LINK_ONLY_BLOCKER:
+                'Filen är inte importerad ännu — endast referens till källan. Ingen Drive-länk visas.',
+              FAILED_IMPORT: 'Tekniskt fel vid import — kontakta migrationsteamet.',
+              DUPLICATE: 'Filen har samma checksum som en annan asset. Visas inte separat.',
+            };
+            const assets =
+              assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
+            for (const a of assets) {
+              const isRenderable = RENDERABLE.has(a.status);
+              const isAttention = ATTENTION.has(a.status);
+              if (!isRenderable && !isAttention) continue;
+
+              const cat = a.category || 'other';
+              const baseTitle =
+                cat === 'journal'
+                  ? 'Historisk journal (PDF)'
+                  : cat === 'photo_before'
+                    ? 'Foto: före behandling'
+                    : cat === 'photo_during'
+                      ? 'Foto: under behandling'
+                      : cat === 'photo_after'
+                        ? 'Foto: efter behandling'
+                        : cat === 'consent'
+                          ? 'Signerat samtycke'
+                          : cat === 'agreement'
+                            ? 'Signerat avtal'
+                            : cat === 'form'
+                              ? 'Formulär (signerat)'
+                              : cat === 'aisia_report'
+                                ? 'Aisia-rapport'
+                                : a.originalFileName || 'Bilaga';
+
+              // Owner-skärpning: aldrig Drive-URL ut i UI. Om binär saknas → null-link.
+              const downloadLink = isRenderable ? `/api/v1/cco/assets/${a.id}/download` : null;
+
+              const item = {
+                source: 'patient_asset',
+                category: cat,
+                subcategory: a.sourceSystem || null,
+                ts: a.documentDate || a.importedAt || a.createdAt,
+                title: baseTitle,
+                icon: ICON[cat] || '📎',
+                encounterId: a.encounterId || null,
+                entityId: a.id,
+                mimeType: a.mimeType,
+                fileSize: a.fileSize || null,
+                link: downloadLink,
+                thumbnailLink:
+                  isRenderable && cat.startsWith('photo_')
+                    ? `/api/v1/cco/assets/${a.id}/thumbnail`
+                    : null,
+                hasPdf: a.mimeType === 'application/pdf',
+                ccoSourceOnly: true,
+                assetStatus: a.status,
+                assetStatusLabel: STATUS_LABEL[a.status] || a.status,
+                assetStatusTone: STATUS_TONE[a.status] || 'info',
+                assetStatusHint: STATUS_HINT[a.status] || null,
+                isRenderable,
+                needsAttention: isAttention,
+              };
+
+              if (isRenderable) items.push(item);
+              if (isAttention) needsAttention.push(item);
+            }
+          } catch (err) {
+            /* tyst */
+          }
+        }
+
+        // Sortera DESC på ts
+        items.sort((a, b) => {
+          const ta = (a.ts || '').toString();
+          const tb = (b.ts || '').toString();
+          return tb.localeCompare(ta);
+        });
+
+        // Counters
+        const counters = {
+          total: items.length,
+          byCategory: {},
+          bySource: { cco_journal: 0, patient_asset: 0 },
+          signed: 0,
+          corrections: 0,
+          hasPdf: 0,
+          needsAttention: needsAttention.length,
+          needsAttentionByStatus: {},
+        };
+        for (const i of items) {
+          counters.byCategory[i.category] = (counters.byCategory[i.category] || 0) + 1;
+          counters.bySource[i.source] = (counters.bySource[i.source] || 0) + 1;
+          if (i.isSigned) counters.signed += 1;
+          if (i.isCorrection) counters.corrections += 1;
+          if (i.hasPdf) counters.hasPdf += 1;
+        }
+        for (const a of needsAttention) {
+          counters.needsAttentionByStatus[a.assetStatus] =
+            (counters.needsAttentionByStatus[a.assetStatus] || 0) + 1;
+        }
+
+        // Group by encounter (for photo-stacks)
+        const photoGroups = {};
+        for (const i of items) {
+          if (i.encounterId && i.category.startsWith('photo_')) {
+            if (!photoGroups[i.encounterId]) photoGroups[i.encounterId] = [];
+            photoGroups[i.encounterId].push(i.entityId);
+          }
+        }
+
+        // Sektioner per owner-spec — 7 st separata:
+        //   journals, photos, documents, consents, agreements, forms, aisia
+        const sections = {
+          journals: items.filter((i) => i.category === 'journal'),
+          photos: items.filter((i) => i.category && i.category.startsWith('photo_')),
+          documents: items.filter((i) => i.category === 'other'),
+          consents: items.filter((i) => i.category === 'consent'),
+          agreements: items.filter((i) => i.category === 'agreement'),
+          forms: items.filter((i) => i.category === 'form'),
+          aisia: items.filter((i) => i.category === 'aisia_report'),
+        };
+        const sectionCounts = Object.fromEntries(
+          Object.entries(sections).map(([k, v]) => [k, v.length])
+        );
+
+        res.json({
+          customerId,
+          tenantId,
+          evaluatedAt: new Date().toISOString(),
+          counters,
+          sectionCounts,
+          photoGroups,
+          items: items.slice(0, Number(req.query.limit) || 500),
+          sections,
+          needsAttention,
+          ownerMandate: 'no_drive_links_in_ui',
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
       }
-
-      // Sektioner per owner-spec — 7 st separata:
-      //   journals, photos, documents, consents, agreements, forms, aisia
-      const sections = {
-        journals:    items.filter(i => i.category === 'journal'),
-        photos:      items.filter(i => i.category && i.category.startsWith('photo_')),
-        documents:   items.filter(i => i.category === 'other'),
-        consents:    items.filter(i => i.category === 'consent'),
-        agreements:  items.filter(i => i.category === 'agreement'),
-        forms:       items.filter(i => i.category === 'form'),
-        aisia:       items.filter(i => i.category === 'aisia_report'),
-      };
-      const sectionCounts = Object.fromEntries(
-        Object.entries(sections).map(([k, v]) => [k, v.length])
-      );
-
-      res.json({
-        customerId,
-        tenantId,
-        evaluatedAt: new Date().toISOString(),
-        counters,
-        sectionCounts,
-        photoGroups,
-        items: items.slice(0, Number(req.query.limit) || 500),
-        sections,
-        needsAttention,
-        ownerMandate: 'no_drive_links_in_ui',
-      });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
     }
-  });
+  );
 
   // GET /api/v1/cco-customers/:id/journal-timeline — journalflöde kronologiskt
   // Aggregera event-typer:
@@ -1338,307 +2083,354 @@ try {
   //   photo_uploaded, document_imported
   // Plus thread-grupp: original-entry + dess rättelser bundlade.
   // Ingen Drive-länk. Endast CCO-source.
-  app.get('/api/v1/cco-customers/:id/journal-timeline', attachRole, requirePermission('customers.read'), async (req, res) => {
-    try {
-      const customerId = req.params.id;
-      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const events = [];
+  app.get(
+    '/api/v1/cco-customers/:id/journal-timeline',
+    attachRole,
+    requirePermission('customers.read'),
+    async (req, res) => {
+      try {
+        const customerId = req.params.id;
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const events = [];
 
-      const STATUS_TONE = {
-        VISIBLE_ON_PATIENT_CARD: 'ok',
-        VERIFIED_IN_CCO: 'ok',
-        IMPORTED_TO_CCO: 'warn',
-        NEEDS_REVIEW: 'warn',
-        LINK_ONLY_BLOCKER: 'blocker',
-        FAILED_IMPORT: 'blocker',
-        DUPLICATE: 'info',
-      };
+        const STATUS_TONE = {
+          VISIBLE_ON_PATIENT_CARD: 'ok',
+          VERIFIED_IN_CCO: 'ok',
+          IMPORTED_TO_CCO: 'warn',
+          NEEDS_REVIEW: 'warn',
+          LINK_ONLY_BLOCKER: 'blocker',
+          FAILED_IMPORT: 'blocker',
+          DUPLICATE: 'info',
+        };
 
-      // 1. Journal-events — flera per entry (draft → signed → pdf)
-      const journalStore = app.locals.ccoJournalStore;
-      const journalEntries = [];
-      if (journalStore?.listEntries) {
-        try {
-          const entries = await journalStore.listEntries({ tenantId, patientId: customerId }) || [];
-          for (const e of entries) {
-            journalEntries.push(e);
-            const isCorrection = !!e.correctionOfEntryId;
+        // 1. Journal-events — flera per entry (draft → signed → pdf)
+        const journalStore = app.locals.ccoJournalStore;
+        const journalEntries = [];
+        if (journalStore?.listEntries) {
+          try {
+            const entries =
+              (await journalStore.listEntries({ tenantId, patientId: customerId })) || [];
+            for (const e of entries) {
+              journalEntries.push(e);
+              const isCorrection = !!e.correctionOfEntryId;
 
-            // Är detta ett formulär (hälsodeklaration/friskförsäkran etc)?
-            const FORM_JOURNAL_TYPES = new Set(['health_declaration', 'fitness_certificate']);
-            const isForm = FORM_JOURNAL_TYPES.has(e.journalType) || e.source === 'cco_form_submission';
+              // Är detta ett formulär (hälsodeklaration/friskförsäkran etc)?
+              const FORM_JOURNAL_TYPES = new Set(['health_declaration', 'fitness_certificate']);
+              const isForm =
+                FORM_JOURNAL_TYPES.has(e.journalType) || e.source === 'cco_form_submission';
 
-            // a) Draft created — annan label för formulär vs journal vs rättelse
-            const createdType = isCorrection ? 'correction_created'
-                              : isForm ? 'form_submitted'
-                              : 'journal_draft_created';
-            const createdTitle = isCorrection ? 'Rättelse skapad'
-                               : isForm ? (e.journalType === 'health_declaration' ? 'Hälsodeklaration ifylld'
-                                         : e.journalType === 'fitness_certificate' ? 'Friskförsäkran ifylld'
-                                         : 'Formulär ifyllt')
-                               : 'Journal skapad';
-            const createdIcon = isCorrection ? '✏' : isForm ? '📋' : '📝';
-            events.push({
-              type: createdType,
-              ts: e.createdAt || e.updatedAt,
-              title: createdTitle,
-              icon: createdIcon,
-              tone: 'info',
-              actor: e.authorName || e.signedByName,
-              entityId: e.entryId,
-              relatedEntryId: e.correctionOfEntryId || null,
-              detail: {
-                journalType: e.journalType,
-                title: e.title,
-                isForm,
-                isCorrection,
-                reason: e.correctionReason || null,
-              },
-            });
-
-            // b) Signed (om signerad)
-            if (e.locked && e.signedAt) {
-              const signedType = isCorrection ? 'correction_signed'
-                               : isForm ? 'form_signed'
-                               : 'journal_signed';
-              const signedTitle = isCorrection ? 'Rättelse signerad'
-                                : isForm ? (e.journalType === 'health_declaration' ? 'Hälsodeklaration signerad'
-                                          : e.journalType === 'fitness_certificate' ? 'Friskförsäkran signerad'
-                                          : 'Formulär signerat')
-                                : 'Journal signerad';
+              // a) Draft created — annan label för formulär vs journal vs rättelse
+              const createdType = isCorrection
+                ? 'correction_created'
+                : isForm
+                  ? 'form_submitted'
+                  : 'journal_draft_created';
+              const createdTitle = isCorrection
+                ? 'Rättelse skapad'
+                : isForm
+                  ? e.journalType === 'health_declaration'
+                    ? 'Hälsodeklaration ifylld'
+                    : e.journalType === 'fitness_certificate'
+                      ? 'Friskförsäkran ifylld'
+                      : 'Formulär ifyllt'
+                  : 'Journal skapad';
+              const createdIcon = isCorrection ? '✏' : isForm ? '📋' : '📝';
               events.push({
-                type: signedType,
-                ts: e.signedAt,
-                title: signedTitle,
-                icon: '🔒',
-                tone: 'ok',
-                actor: e.signedByName,
+                type: createdType,
+                ts: e.createdAt || e.updatedAt,
+                title: createdTitle,
+                icon: createdIcon,
+                tone: 'info',
+                actor: e.authorName || e.signedByName,
                 entityId: e.entryId,
                 relatedEntryId: e.correctionOfEntryId || null,
                 detail: {
                   journalType: e.journalType,
+                  title: e.title,
                   isForm,
-                  pdfArchived: !!(e.pdfPath || e.pdfStorageKey),
-                  tamperHash: e.pdfTamperHash || null,
+                  isCorrection,
+                  reason: e.correctionReason || null,
                 },
               });
-            }
 
-            // c) PDF archived (om PDF finns)
-            if (e.pdfGeneratedAt) {
+              // b) Signed (om signerad)
+              if (e.locked && e.signedAt) {
+                const signedType = isCorrection
+                  ? 'correction_signed'
+                  : isForm
+                    ? 'form_signed'
+                    : 'journal_signed';
+                const signedTitle = isCorrection
+                  ? 'Rättelse signerad'
+                  : isForm
+                    ? e.journalType === 'health_declaration'
+                      ? 'Hälsodeklaration signerad'
+                      : e.journalType === 'fitness_certificate'
+                        ? 'Friskförsäkran signerad'
+                        : 'Formulär signerat'
+                    : 'Journal signerad';
+                events.push({
+                  type: signedType,
+                  ts: e.signedAt,
+                  title: signedTitle,
+                  icon: '🔒',
+                  tone: 'ok',
+                  actor: e.signedByName,
+                  entityId: e.entryId,
+                  relatedEntryId: e.correctionOfEntryId || null,
+                  detail: {
+                    journalType: e.journalType,
+                    isForm,
+                    pdfArchived: !!(e.pdfPath || e.pdfStorageKey),
+                    tamperHash: e.pdfTamperHash || null,
+                  },
+                });
+              }
+
+              // c) PDF archived (om PDF finns)
+              if (e.pdfGeneratedAt) {
+                events.push({
+                  type: 'pdf_archived',
+                  ts: e.pdfGeneratedAt,
+                  title: 'PDF arkiverad i CCO secure storage',
+                  icon: '📄',
+                  tone: 'ok',
+                  entityId: e.entryId,
+                  relatedEntryId: e.correctionOfEntryId || null,
+                  detail: {
+                    sizeBytes: e.pdfSizeBytes || null,
+                    tamperHash: e.pdfTamperHash || null,
+                    ccoSourceOnly: true,
+                  },
+                });
+              }
+            }
+          } catch (err) {
+            /* tyst */
+          }
+        }
+
+        // 2. Asset-events — alla statusar, inte bara visible
+        const assetStore = app.locals.ccoPatientAssetStore;
+        const allAssets = [];
+        if (assetStore?.listAssetsForPatient) {
+          try {
+            const assets =
+              assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
+            for (const a of assets) {
+              allAssets.push(a);
+              const cat = a.category || 'other';
+
+              // a) Asset imported (basevent)
+              const typeByCat = cat.startsWith('photo_')
+                ? 'photo_uploaded'
+                : cat === 'journal'
+                  ? 'journal_pdf_asset_imported'
+                  : cat === 'consent'
+                    ? 'consent_imported'
+                    : cat === 'agreement'
+                      ? 'agreement_imported'
+                      : cat === 'form'
+                        ? 'form_imported'
+                        : cat === 'aisia_report'
+                          ? 'aisia_imported'
+                          : 'document_imported';
+              const titleByCat = cat.startsWith('photo_')
+                ? 'Bild uppladdad'
+                : cat === 'journal'
+                  ? 'Journal-PDF i CCO storage'
+                  : cat === 'consent'
+                    ? 'Samtycke importerat'
+                    : cat === 'agreement'
+                      ? 'Avtal importerat'
+                      : cat === 'form'
+                        ? 'Formulär importerat'
+                        : cat === 'aisia_report'
+                          ? 'Aisia-rapport'
+                          : 'Dokument importerat';
+              const iconByCat = cat.startsWith('photo_')
+                ? '📸'
+                : cat === 'journal'
+                  ? '📄'
+                  : cat === 'consent'
+                    ? '✍'
+                    : cat === 'agreement'
+                      ? '📑'
+                      : cat === 'form'
+                        ? '📋'
+                        : cat === 'aisia_report'
+                          ? '🔬'
+                          : '📎';
+
               events.push({
-                type: 'pdf_archived',
-                ts: e.pdfGeneratedAt,
-                title: 'PDF arkiverad i CCO secure storage',
-                icon: '📄',
-                tone: 'ok',
-                entityId: e.entryId,
-                relatedEntryId: e.correctionOfEntryId || null,
+                type: typeByCat,
+                subtype: 'asset_created',
+                ts: a.importedAt || a.createdAt,
+                title: titleByCat,
+                icon: iconByCat,
+                tone: STATUS_TONE[a.status] || 'info',
+                entityId: a.id,
+                relatedEntryId: a.sourceRecordId || null,
                 detail: {
-                  sizeBytes: e.pdfSizeBytes || null,
-                  tamperHash: e.pdfTamperHash || null,
+                  category: cat,
+                  sourceSystem: a.sourceSystem,
+                  assetStatus: a.status,
+                  mimeType: a.mimeType,
+                  fileSize: a.fileSize || null,
+                  encounterId: a.encounterId || null,
+                  hasStorageKey: !!a.storageKey,
+                  hasChecksum: !!a.checksum,
+                  ccoSourceOnly: true,
+                },
+              });
+
+              // b) Status-history events (varje transition i statusHistory)
+              const history = Array.isArray(a.statusHistory) ? a.statusHistory : [];
+              for (const h of history) {
+                if (!h.to || !h.ts) continue;
+                const tone = STATUS_TONE[h.to] || 'info';
+                const labelMap = {
+                  IMPORTED_TO_CCO: 'Asset importerad',
+                  VERIFIED_IN_CCO: 'Asset verifierad',
+                  VISIBLE_ON_PATIENT_CARD: 'Asset synlig på patientkort',
+                  NEEDS_REVIEW: 'Asset behöver granskning',
+                  LINK_ONLY_BLOCKER: 'Asset blockerad (ej importerad)',
+                  FAILED_IMPORT: 'Asset-import misslyckades',
+                  DUPLICATE: 'Asset markerad som dubblett',
+                  REJECTED: 'Asset avvisad',
+                };
+                const label = labelMap[h.to] || 'Status: ' + h.to;
+                events.push({
+                  type: 'asset_status_transition',
+                  ts: h.ts,
+                  title: label,
+                  icon:
+                    tone === 'ok' ? '✓' : tone === 'warn' ? '⚠' : tone === 'blocker' ? '⛔' : 'ℹ',
+                  tone,
+                  entityId: a.id,
+                  relatedEntryId: a.sourceRecordId || null,
+                  detail: {
+                    from: h.from,
+                    to: h.to,
+                    reason: h.reason || null,
+                    category: cat,
+                    assetStatus: h.to,
+                  },
+                });
+              }
+            }
+          } catch (err) {
+            /* tyst */
+          }
+        }
+
+        // 3. Scalp analysis timeline (Aisia DS-3 MVP)
+        const scalpStore = app.locals.ccoScalpAnalysisStore;
+        if (scalpStore?.listTimelineForPatient) {
+          try {
+            const scalpEvents = scalpStore.listTimelineForPatient(customerId) || [];
+            const scalpTitleMap = {
+              scalp_analysis_imported: 'Hår-/scalpanalys importerad',
+              scalp_image_added: 'Scalp-bild tillagd',
+              scalp_metrics_added: 'Scalp-mätvärden tillagda',
+              scalp_analysis_verified: 'Scalp-analys verifierad',
+              scalp_comparison_created: 'Scalp-jämförelse skapad',
+            };
+            for (const se of scalpEvents) {
+              events.push({
+                type: se.type,
+                subtype: 'scalp_analysis',
+                ts: se.ts,
+                title: scalpTitleMap[se.type] || se.type,
+                icon: '🔬',
+                tone: se.type === 'scalp_analysis_verified' ? 'ok' : 'info',
+                entityId: se.sessionId || se.comparisonId || null,
+                detail: {
+                  sessionId: se.sessionId || null,
+                  comparisonId: se.comparisonId || null,
+                  zone: se.zone || null,
+                  count: se.count || null,
                   ccoSourceOnly: true,
                 },
               });
             }
+          } catch (err) {
+            /* tyst */
           }
-        } catch (err) { /* tyst */ }
-      }
+        }
 
-      // 2. Asset-events — alla statusar, inte bara visible
-      const assetStore = app.locals.ccoPatientAssetStore;
-      const allAssets = [];
-      if (assetStore?.listAssetsForPatient) {
-        try {
-          const assets = assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
-          for (const a of assets) {
-            allAssets.push(a);
-            const cat = a.category || 'other';
+        // Sortera kronologiskt DESC (nyast först)
+        events.sort((a, b) => {
+          const ta = (a.ts || '').toString();
+          const tb = (b.ts || '').toString();
+          return tb.localeCompare(ta);
+        });
 
-            // a) Asset imported (basevent)
-            const typeByCat = cat.startsWith('photo_') ? 'photo_uploaded'
-                            : cat === 'journal' ? 'journal_pdf_asset_imported'
-                            : cat === 'consent' ? 'consent_imported'
-                            : cat === 'agreement' ? 'agreement_imported'
-                            : cat === 'form' ? 'form_imported'
-                            : cat === 'aisia_report' ? 'aisia_imported'
-                            : 'document_imported';
-            const titleByCat = cat.startsWith('photo_') ? 'Bild uppladdad'
-                             : cat === 'journal' ? 'Journal-PDF i CCO storage'
-                             : cat === 'consent' ? 'Samtycke importerat'
-                             : cat === 'agreement' ? 'Avtal importerat'
-                             : cat === 'form' ? 'Formulär importerat'
-                             : cat === 'aisia_report' ? 'Aisia-rapport'
-                             : 'Dokument importerat';
-            const iconByCat = cat.startsWith('photo_') ? '📸'
-                            : cat === 'journal' ? '📄'
-                            : cat === 'consent' ? '✍'
-                            : cat === 'agreement' ? '📑'
-                            : cat === 'form' ? '📋'
-                            : cat === 'aisia_report' ? '🔬'
-                            : '📎';
-
-            events.push({
-              type: typeByCat,
-              subtype: 'asset_created',
-              ts: a.importedAt || a.createdAt,
-              title: titleByCat,
-              icon: iconByCat,
-              tone: STATUS_TONE[a.status] || 'info',
-              entityId: a.id,
-              relatedEntryId: a.sourceRecordId || null,
-              detail: {
-                category: cat,
-                sourceSystem: a.sourceSystem,
-                assetStatus: a.status,
-                mimeType: a.mimeType,
-                fileSize: a.fileSize || null,
-                encounterId: a.encounterId || null,
-                hasStorageKey: !!a.storageKey,
-                hasChecksum: !!a.checksum,
-                ccoSourceOnly: true,
-              },
-            });
-
-            // b) Status-history events (varje transition i statusHistory)
-            const history = Array.isArray(a.statusHistory) ? a.statusHistory : [];
-            for (const h of history) {
-              if (!h.to || !h.ts) continue;
-              const tone = STATUS_TONE[h.to] || 'info';
-              const labelMap = {
-                IMPORTED_TO_CCO: 'Asset importerad',
-                VERIFIED_IN_CCO: 'Asset verifierad',
-                VISIBLE_ON_PATIENT_CARD: 'Asset synlig på patientkort',
-                NEEDS_REVIEW: 'Asset behöver granskning',
-                LINK_ONLY_BLOCKER: 'Asset blockerad (ej importerad)',
-                FAILED_IMPORT: 'Asset-import misslyckades',
-                DUPLICATE: 'Asset markerad som dubblett',
-                REJECTED: 'Asset avvisad',
-              };
-              const label = labelMap[h.to] || ('Status: ' + h.to);
-              events.push({
-                type: 'asset_status_transition',
-                ts: h.ts,
-                title: label,
-                icon: tone === 'ok' ? '✓' : tone === 'warn' ? '⚠' : tone === 'blocker' ? '⛔' : 'ℹ',
-                tone,
-                entityId: a.id,
-                relatedEntryId: a.sourceRecordId || null,
-                detail: {
-                  from: h.from,
-                  to: h.to,
-                  reason: h.reason || null,
-                  category: cat,
-                  assetStatus: h.to,
-                },
-              });
-            }
-          }
-        } catch (err) { /* tyst */ }
-      }
-
-      // 3. Scalp analysis timeline (Aisia DS-3 MVP)
-      const scalpStore = app.locals.ccoScalpAnalysisStore;
-      if (scalpStore?.listTimelineForPatient) {
-        try {
-          const scalpEvents = scalpStore.listTimelineForPatient(customerId) || [];
-          const scalpTitleMap = {
-            scalp_analysis_imported: 'Hår-/scalpanalys importerad',
-            scalp_image_added: 'Scalp-bild tillagd',
-            scalp_metrics_added: 'Scalp-mätvärden tillagda',
-            scalp_analysis_verified: 'Scalp-analys verifierad',
-            scalp_comparison_created: 'Scalp-jämförelse skapad',
-          };
-          for (const se of scalpEvents) {
-            events.push({
-              type: se.type,
-              subtype: 'scalp_analysis',
-              ts: se.ts,
-              title: scalpTitleMap[se.type] || se.type,
-              icon: '🔬',
-              tone: se.type === 'scalp_analysis_verified' ? 'ok' : 'info',
-              entityId: se.sessionId || se.comparisonId || null,
-              detail: {
-                sessionId: se.sessionId || null,
-                comparisonId: se.comparisonId || null,
-                zone: se.zone || null,
-                count: se.count || null,
-                ccoSourceOnly: true,
-              },
+        // Thread-grupper: original + dess rättelser
+        const threads = {};
+        for (const entry of journalEntries) {
+          if (entry.correctionOfEntryId) {
+            const root = entry.correctionOfEntryId;
+            if (!threads[root]) threads[root] = { rootEntryId: root, corrections: [] };
+            threads[root].corrections.push({
+              correctionEntryId: entry.entryId,
+              correctionReason: entry.correctionReason || null,
+              correctionCreatedBy: entry.correctionCreatedBy || null,
+              correctionCreatedAt: entry.correctionCreatedAt || entry.createdAt,
+              signedAt: entry.signedAt || null,
+              locked: !!entry.locked,
+              hasPdf: !!(entry.pdfPath || entry.pdfStorageKey),
             });
           }
-        } catch (err) { /* tyst */ }
-      }
-
-      // Sortera kronologiskt DESC (nyast först)
-      events.sort((a, b) => {
-        const ta = (a.ts || '').toString();
-        const tb = (b.ts || '').toString();
-        return tb.localeCompare(ta);
-      });
-
-      // Thread-grupper: original + dess rättelser
-      const threads = {};
-      for (const entry of journalEntries) {
-        if (entry.correctionOfEntryId) {
-          const root = entry.correctionOfEntryId;
-          if (!threads[root]) threads[root] = { rootEntryId: root, corrections: [] };
-          threads[root].corrections.push({
-            correctionEntryId: entry.entryId,
-            correctionReason: entry.correctionReason || null,
-            correctionCreatedBy: entry.correctionCreatedBy || null,
-            correctionCreatedAt: entry.correctionCreatedAt || entry.createdAt,
-            signedAt: entry.signedAt || null,
-            locked: !!entry.locked,
-            hasPdf: !!(entry.pdfPath || entry.pdfStorageKey),
-          });
         }
-      }
-      // Inkludera root-metadata
-      for (const root of Object.keys(threads)) {
-        const rootEntry = journalEntries.find(e => e.entryId === root);
-        if (rootEntry) {
-          threads[root].rootTitle = rootEntry.title || null;
-          threads[root].rootSignedAt = rootEntry.signedAt || null;
-          threads[root].rootLocked = !!rootEntry.locked;
+        // Inkludera root-metadata
+        for (const root of Object.keys(threads)) {
+          const rootEntry = journalEntries.find((e) => e.entryId === root);
+          if (rootEntry) {
+            threads[root].rootTitle = rootEntry.title || null;
+            threads[root].rootSignedAt = rootEntry.signedAt || null;
+            threads[root].rootLocked = !!rootEntry.locked;
+          }
         }
-      }
 
-      // Counters per event-typ + status
-      const counters = {
-        totalEvents: events.length,
-        byType: {},
-        byTone: { ok: 0, warn: 0, blocker: 0, info: 0 },
-        journalEntries: journalEntries.length,
-        signedEntries: journalEntries.filter(e => e.locked).length,
-        corrections: journalEntries.filter(e => e.correctionOfEntryId).length,
-        assets: allAssets.length,
-        assetsByStatus: {},
-        threads: Object.keys(threads).length,
-      };
-      for (const ev of events) {
-        counters.byType[ev.type] = (counters.byType[ev.type] || 0) + 1;
-        counters.byTone[ev.tone] = (counters.byTone[ev.tone] || 0) + 1;
-      }
-      for (const a of allAssets) {
-        counters.assetsByStatus[a.status] = (counters.assetsByStatus[a.status] || 0) + 1;
-      }
+        // Counters per event-typ + status
+        const counters = {
+          totalEvents: events.length,
+          byType: {},
+          byTone: { ok: 0, warn: 0, blocker: 0, info: 0 },
+          journalEntries: journalEntries.length,
+          signedEntries: journalEntries.filter((e) => e.locked).length,
+          corrections: journalEntries.filter((e) => e.correctionOfEntryId).length,
+          assets: allAssets.length,
+          assetsByStatus: {},
+          threads: Object.keys(threads).length,
+        };
+        for (const ev of events) {
+          counters.byType[ev.type] = (counters.byType[ev.type] || 0) + 1;
+          counters.byTone[ev.tone] = (counters.byTone[ev.tone] || 0) + 1;
+        }
+        for (const a of allAssets) {
+          counters.assetsByStatus[a.status] = (counters.assetsByStatus[a.status] || 0) + 1;
+        }
 
-      res.json({
-        customerId,
-        tenantId,
-        evaluatedAt: new Date().toISOString(),
-        counters,
-        threads,
-        events: events.slice(0, Number(req.query.limit) || 500),
-        ownerMandate: 'no_drive_links_in_ui',
-      });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+        res.json({
+          customerId,
+          tenantId,
+          evaluatedAt: new Date().toISOString(),
+          counters,
+          threads,
+          events: events.slice(0, Number(req.query.limit) || 500),
+          ownerMandate: 'no_drive_links_in_ui',
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
-  console.log('[cco-customer-deep] monterad: GET /api/v1/cco-customers/:id/{timeline|agreements|journal-feed|journal-timeline} (customers.read · journal.read_any)');
+  console.log(
+    '[cco-customer-deep] monterad: GET /api/v1/cco-customers/:id/{timeline|agreements|journal-feed|journal-timeline} (customers.read · journal.read_any)'
+  );
 
   // ── CCO Forms — P0 Journalformulär (Hälsodeklaration + Friskförsäkran) ──
   // POST /api/v1/cco-forms/submit
@@ -1647,15 +2439,28 @@ try {
   //   autoSign: true → signEntry direkt (utlöser #222-hook = PDF + asset)
   //
   // Inga Drive-länkar. Ingen extern AI. Allt går genom befintlig journal-pipeline.
-  app.post('/api/v1/cco-forms/submit',
+  app.post(
+    '/api/v1/cco-forms/submit',
     express.json({ limit: '256kb' }),
-    attachRole, requirePermission('journal.write'),
+    attachRole,
+    requirePermission('journal.write'),
     async (req, res) => {
       try {
         const journalStore = app.locals.ccoJournalStore;
-        if (!journalStore?.upsertEntry) return res.status(503).json({ error: 'journal_store_unavailable' });
+        if (!journalStore?.upsertEntry)
+          return res.status(503).json({ error: 'journal_store_unavailable' });
 
-        const { tenantId, patientId, encounterId, formType, fields, signedByName, autoSign, formVariant, title } = req.body || {};
+        const {
+          tenantId,
+          patientId,
+          encounterId,
+          formType,
+          fields,
+          signedByName,
+          autoSign,
+          formVariant,
+          title,
+        } = req.body || {};
         if (!tenantId || !patientId || !formType) {
           return res.status(400).json({ error: 'tenantId, patientId, formType krävs' });
         }
@@ -1687,7 +2492,8 @@ try {
           follow_up: 'Uppföljning',
         };
         const draft = await journalStore.upsertEntry({
-          tenantId, patientId,
+          tenantId,
+          patientId,
           treatmentEncounterId: encounterId || null,
           journalType: formType,
           formVariant: formVariant || (tenantId === 'curatiio' ? null : 'hair_tp'),
@@ -1718,7 +2524,10 @@ try {
         let signed = null;
         if (autoSign) {
           signed = await journalStore.signEntry({
-            tenantId, patientId, entryId: draft.entryId, actor,
+            tenantId,
+            patientId,
+            entryId: draft.entryId,
+            actor,
           });
         }
 
@@ -1737,22 +2546,29 @@ try {
   );
 
   // POST /api/v1/cco-forms/:entryId/sign — signera ett tidigare submittat formulär
-  app.post('/api/v1/cco-forms/:entryId/sign',
+  app.post(
+    '/api/v1/cco-forms/:entryId/sign',
     express.json({ limit: '8kb' }),
-    attachRole, requirePermission('journal.write'),
+    attachRole,
+    requirePermission('journal.write'),
     async (req, res) => {
       try {
         const journalStore = app.locals.ccoJournalStore;
-        if (!journalStore?.signEntry) return res.status(503).json({ error: 'journal_store_unavailable' });
+        if (!journalStore?.signEntry)
+          return res.status(503).json({ error: 'journal_store_unavailable' });
         const { tenantId, patientId } = req.body || {};
-        if (!tenantId || !patientId) return res.status(400).json({ error: 'tenantId + patientId krävs' });
+        if (!tenantId || !patientId)
+          return res.status(400).json({ error: 'tenantId + patientId krävs' });
         const actor = {
           userId: req.headers['x-cco-user'] || 'cco-form-sign',
           displayName: req.headers['x-cco-user'] || req.cco?.role,
           role: req.cco?.role || 'staff',
         };
         const signed = await journalStore.signEntry({
-          tenantId, patientId, entryId: req.params.entryId, actor,
+          tenantId,
+          patientId,
+          entryId: req.params.entryId,
+          actor,
         });
         if (ccoAuditLog) {
           ccoAuditLog.append({
@@ -1773,81 +2589,97 @@ try {
   // GET /api/v1/cco-forms/patient/:patientId/missing?treatment=fue&encounterId=...
   // Returnerar blocker-status: vilka formulär krävs för behandlingen,
   // vilka finns signerade i CCO-journalen, vilka saknas.
-  app.get('/api/v1/cco-forms/patient/:patientId/missing', attachRole, requirePermission('customers.read'), async (req, res) => {
-    try {
-      const journalStore = app.locals.ccoJournalStore;
-      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
-      const treatment = String(req.query.treatment || '').toLowerCase();
-      const encounterId = req.query.encounterId || null;
-      if (!treatment) return res.status(400).json({ error: 'treatment query-param krävs' });
-
-      // Läs treatment-requirements
-      let requirements = {};
+  app.get(
+    '/api/v1/cco-forms/patient/:patientId/missing',
+    attachRole,
+    requirePermission('customers.read'),
+    async (req, res) => {
       try {
-        const reqFile = JSON.parse(require('fs').readFileSync(
-          path.join(__dirname, 'config/cco-treatment-document-requirements.json'), 'utf8'));
-        requirements = reqFile.treatments?.[treatment]?.requiredDocuments || {};
-      } catch (_) { /* tyst */ }
+        const journalStore = app.locals.ccoJournalStore;
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+        const treatment = String(req.query.treatment || '').toLowerCase();
+        const encounterId = req.query.encounterId || null;
+        if (!treatment) return res.status(400).json({ error: 'treatment query-param krävs' });
 
-      // Form-typer som matchar journal-store-types
-      const FORM_TO_JOURNAL_TYPE = {
-        healthDeclaration: 'health_declaration',
-        fitnessCertificate: 'fitness_certificate',
-      };
+        // Läs treatment-requirements
+        let requirements = {};
+        try {
+          const reqFile = JSON.parse(
+            require('fs').readFileSync(
+              path.join(__dirname, 'config/cco-treatment-document-requirements.json'),
+              'utf8'
+            )
+          );
+          requirements = reqFile.treatments?.[treatment]?.requiredDocuments || {};
+        } catch (_) {
+          /* tyst */
+        }
 
-      // Hämta patient-journal-entries
-      const entries = await journalStore.listEntries({ tenantId, patientId: req.params.patientId }) || [];
-
-      const missing = [];
-      const fulfilled = [];
-      for (const [docKey, docReq] of Object.entries(requirements)) {
-        if (!docReq.required) continue;
-        const journalType = FORM_TO_JOURNAL_TYPE[docKey];
-        if (!journalType) continue; // Inte ett formulär — kanske avtal/samtycke (annan flow)
-
-        const match = entries.find(e =>
-          e.journalType === journalType && e.locked === true &&
-          (!encounterId || e.treatmentEncounterId === encounterId)
-        );
-        const item = {
-          docKey,
-          journalType,
-          required: !!docReq.required,
-          blocking: !!docReq.blocking,
-          templateRef: docReq.templateRef || null,
-          deadlineHoursBefore: docReq.deadlineHoursBefore || null,
-          fulfilled: !!match,
-          fulfillingEntryId: match?.entryId || null,
-          signedAt: match?.signedAt || null,
-          encounterId: match?.treatmentEncounterId || null,
+        // Form-typer som matchar journal-store-types
+        const FORM_TO_JOURNAL_TYPE = {
+          healthDeclaration: 'health_declaration',
+          fitnessCertificate: 'fitness_certificate',
         };
-        if (item.fulfilled) fulfilled.push(item);
-        else missing.push(item);
+
+        // Hämta patient-journal-entries
+        const entries =
+          (await journalStore.listEntries({ tenantId, patientId: req.params.patientId })) || [];
+
+        const missing = [];
+        const fulfilled = [];
+        for (const [docKey, docReq] of Object.entries(requirements)) {
+          if (!docReq.required) continue;
+          const journalType = FORM_TO_JOURNAL_TYPE[docKey];
+          if (!journalType) continue; // Inte ett formulär — kanske avtal/samtycke (annan flow)
+
+          const match = entries.find(
+            (e) =>
+              e.journalType === journalType &&
+              e.locked === true &&
+              (!encounterId || e.treatmentEncounterId === encounterId)
+          );
+          const item = {
+            docKey,
+            journalType,
+            required: !!docReq.required,
+            blocking: !!docReq.blocking,
+            templateRef: docReq.templateRef || null,
+            deadlineHoursBefore: docReq.deadlineHoursBefore || null,
+            fulfilled: !!match,
+            fulfillingEntryId: match?.entryId || null,
+            signedAt: match?.signedAt || null,
+            encounterId: match?.treatmentEncounterId || null,
+          };
+          if (item.fulfilled) fulfilled.push(item);
+          else missing.push(item);
+        }
+
+        const blockingMissing = missing.filter((m) => m.blocking);
+        res.json({
+          patientId: req.params.patientId,
+          tenantId,
+          treatment,
+          encounterId,
+          readyForTreatment: blockingMissing.length === 0,
+          counts: {
+            required: missing.length + fulfilled.length,
+            fulfilled: fulfilled.length,
+            missing: missing.length,
+            blockingMissing: blockingMissing.length,
+          },
+          missing,
+          fulfilled,
+          evaluatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
       }
-
-      const blockingMissing = missing.filter(m => m.blocking);
-      res.json({
-        patientId: req.params.patientId,
-        tenantId,
-        treatment,
-        encounterId,
-        readyForTreatment: blockingMissing.length === 0,
-        counts: {
-          required: missing.length + fulfilled.length,
-          fulfilled: fulfilled.length,
-          missing: missing.length,
-          blockingMissing: blockingMissing.length,
-        },
-        missing,
-        fulfilled,
-        evaluatedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
     }
-  });
+  );
 
-  console.log('[cco-forms] monterad: POST /api/v1/cco-forms/submit + /:entryId/sign · GET /patient/:id/missing');
+  console.log(
+    '[cco-forms] monterad: POST /api/v1/cco-forms/submit + /:entryId/sign · GET /patient/:id/missing'
+  );
 } catch (err) {
   console.warn('[cco-customer-deep] kunde inte montera:', err.message);
 }
@@ -1866,27 +2698,53 @@ try {
     });
     app.locals.ccoIdVerificationStore = idStore;
 
-    app.get('/api/v1/cco-id-verify/customer/:id', attachRole, requirePermission('id_verify.read'), async (req, res) => {
-      try {
-        res.json(await idStore.getStatus(req.params.id));
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.get(
+      '/api/v1/cco-id-verify/customer/:id',
+      attachRole,
+      requirePermission('id_verify.read'),
+      async (req, res) => {
+        try {
+          res.json(await idStore.getStatus(req.params.id));
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.post('/api/v1/cco-id-verify/customer/:id', attachRole, requirePermission('id_verify.write'), jsonParserId, async (req, res) => {
-      try {
-        const { state, last4, docType, verifiedBy, note } = req.body || {};
-        const result = await idStore.setStatus(req.params.id, state, {
-          role: req.cco?.role, last4, docType, verifiedBy, note,
-        });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-id-verify/customer/:id',
+      attachRole,
+      requirePermission('id_verify.write'),
+      jsonParserId,
+      async (req, res) => {
+        try {
+          const { state, last4, docType, verifiedBy, note } = req.body || {};
+          const result = await idStore.setStatus(req.params.id, state, {
+            role: req.cco?.role,
+            last4,
+            docType,
+            verifiedBy,
+            note,
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.get('/api/v1/cco-id-verify/stats', attachRole, requirePermission('id_verify.read'), (req, res) => {
-      res.json(idStore.stats());
-    });
+    app.get(
+      '/api/v1/cco-id-verify/stats',
+      attachRole,
+      requirePermission('id_verify.read'),
+      (req, res) => {
+        res.json(idStore.stats());
+      }
+    );
 
-    console.log('[cco-id-verify] monterad: GET/POST /api/v1/cco-id-verify/customer/:id + /stats (id_verify.read/write)');
+    console.log(
+      '[cco-id-verify] monterad: GET/POST /api/v1/cco-id-verify/customer/:id + /stats (id_verify.read/write)'
+    );
   } catch (err) {
     console.warn('[cco-id-verify] kunde inte montera:', err.message);
   }
@@ -1895,7 +2753,10 @@ try {
 // ── CCO Notification Feed (Steg 4 av Communication & Compliance audit) ──
 (async () => {
   try {
-    const { createCcoNotificationFeedStore, NOTIFICATION_TYPES } = require('./src/ops/ccoNotificationFeedStore');
+    const {
+      createCcoNotificationFeedStore,
+      NOTIFICATION_TYPES,
+    } = require('./src/ops/ccoNotificationFeedStore');
     const { createCcoNotificationReadStore } = require('./src/ops/ccoNotificationReadStore');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
     const expressN = require('express');
@@ -1908,70 +2769,108 @@ try {
     const feedStore = createCcoNotificationFeedStore({
       auditLog: ccoAuditLog,
       bookingCaseStore: { list: () => app.locals.ccoBookingCaseStore?.list?.() || [] },
-      complianceScanStore: { getActiveFlags: () => app.locals.ccoComplianceScanStore?.getActiveFlags?.() || { flags: [] } },
-      idVerificationStore: { getStatus: (cid) => app.locals.ccoIdVerificationStore?.getStatus?.(cid) },
-      agreementStore: { listForCustomer: (cid) => app.locals.ccoAgreementQuickStore?.listForCustomer?.(cid) || [] },
-      journalStore: { listAllEntries: async (args) => app.locals.ccoJournalStore?.listAllEntries?.(args) || [] },
+      complianceScanStore: {
+        getActiveFlags: () =>
+          app.locals.ccoComplianceScanStore?.getActiveFlags?.() || { flags: [] },
+      },
+      idVerificationStore: {
+        getStatus: (cid) => app.locals.ccoIdVerificationStore?.getStatus?.(cid),
+      },
+      agreementStore: {
+        listForCustomer: (cid) => app.locals.ccoAgreementQuickStore?.listForCustomer?.(cid) || [],
+      },
+      journalStore: {
+        listAllEntries: async (args) => app.locals.ccoJournalStore?.listAllEntries?.(args) || [],
+      },
       readStore,
     });
     app.locals.ccoNotificationFeedStore = feedStore;
     app.locals.ccoNotificationReadStore = readStore;
 
     // GET /api/v1/cco-notifications/feed — unified feed per role
-    app.get('/api/v1/cco-notifications/feed', attachRole, requirePermission('notifications.read'), async (req, res) => {
-      try {
-        const role = req.query.role || req.cco?.role;
-        const userId = req.headers['x-cco-user'] || role;
-        const sinceHours = Number(req.query.sinceHours) || 72;
-        const limit = Number(req.query.limit) || 100;
+    app.get(
+      '/api/v1/cco-notifications/feed',
+      attachRole,
+      requirePermission('notifications.read'),
+      async (req, res) => {
+        try {
+          const role = req.query.role || req.cco?.role;
+          const userId = req.headers['x-cco-user'] || role;
+          const sinceHours = Number(req.query.sinceHours) || 72;
+          const limit = Number(req.query.limit) || 100;
 
-        // Optional: kör blocking-evaluator över ett urval kunder
-        // (för att hålla feed snabb, evalueras endast om query.includeBlocking=true)
-        let customerEvalResults = null;
-        if (req.query.includeBlocking === 'true' && req.query.customerIds) {
-          const cids = String(req.query.customerIds).split(',').map((s) => s.trim()).filter(Boolean);
-          const blockingEvaluator = app.locals.ccoBlockingEvaluator || null;
-          if (blockingEvaluator?.evaluateDashboard) {
-            const opts = {};
-            cids.forEach((c) => { opts[c] = { hasUpcomingBooking: true }; });
-            const dash = await blockingEvaluator.evaluateDashboard({ customerIds: cids, opts });
-            customerEvalResults = dash.customers || [];
+          // Optional: kör blocking-evaluator över ett urval kunder
+          // (för att hålla feed snabb, evalueras endast om query.includeBlocking=true)
+          let customerEvalResults = null;
+          if (req.query.includeBlocking === 'true' && req.query.customerIds) {
+            const cids = String(req.query.customerIds)
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean);
+            const blockingEvaluator = app.locals.ccoBlockingEvaluator || null;
+            if (blockingEvaluator?.evaluateDashboard) {
+              const opts = {};
+              cids.forEach((c) => {
+                opts[c] = { hasUpcomingBooking: true };
+              });
+              const dash = await blockingEvaluator.evaluateDashboard({ customerIds: cids, opts });
+              customerEvalResults = dash.customers || [];
+            }
           }
-        }
 
-        const result = await feedStore.getFeed({ role, sinceHours, customerEvalResults, limit, userId });
-        res.json(result);
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
+          const result = await feedStore.getFeed({
+            role,
+            sinceHours,
+            customerEvalResults,
+            limit,
+            userId,
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
       }
-    });
+    );
 
     // POST /api/v1/cco-notifications/mark-read — markera notifications lästa
-    app.post('/api/v1/cco-notifications/mark-read', attachRole, requirePermission('notifications.mark_read'), jsonParserN, async (req, res) => {
-      try {
-        const userId = req.headers['x-cco-user'] || req.cco?.role;
-        const { notificationIds, all = false } = req.body || {};
-        if (!Array.isArray(notificationIds) && !all) {
-          return res.status(400).json({ error: 'notificationIds[] krävs eller {"all":true}' });
+    app.post(
+      '/api/v1/cco-notifications/mark-read',
+      attachRole,
+      requirePermission('notifications.mark_read'),
+      jsonParserN,
+      async (req, res) => {
+        try {
+          const userId = req.headers['x-cco-user'] || req.cco?.role;
+          const { notificationIds, all = false } = req.body || {};
+          if (!Array.isArray(notificationIds) && !all) {
+            return res.status(400).json({ error: 'notificationIds[] krävs eller {"all":true}' });
+          }
+          let result;
+          if (all && Array.isArray(notificationIds)) {
+            result = await readStore.markAllRead(userId, notificationIds);
+          } else {
+            result = await readStore.markRead(userId, notificationIds);
+          }
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
         }
-        let result;
-        if (all && Array.isArray(notificationIds)) {
-          result = await readStore.markAllRead(userId, notificationIds);
-        } else {
-          result = await readStore.markRead(userId, notificationIds);
-        }
-        res.json(result);
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
       }
-    });
+    );
 
     // GET /api/v1/cco-notifications/types — lista alla notif-typer (för UI-filter)
-    app.get('/api/v1/cco-notifications/types', attachRole, requirePermission('notifications.read'), (req, res) => {
-      res.json({ types: NOTIFICATION_TYPES, readStoreStats: readStore.stats() });
-    });
+    app.get(
+      '/api/v1/cco-notifications/types',
+      attachRole,
+      requirePermission('notifications.read'),
+      (req, res) => {
+        res.json({ types: NOTIFICATION_TYPES, readStoreStats: readStore.stats() });
+      }
+    );
 
-    console.log('[cco-notifications-feed] monterad: GET /feed + POST /mark-read + GET /types (notifications.read/mark_read)');
+    console.log(
+      '[cco-notifications-feed] monterad: GET /feed + POST /mark-read + GET /types (notifications.read/mark_read)'
+    );
   } catch (err) {
     console.warn('[cco-notifications-feed] kunde inte montera:', err.message);
   }
@@ -1981,7 +2880,10 @@ try {
 let ccoMarketingConsentStore = null;
 (async () => {
   try {
-    const { createCcoMarketingConsentStore, VALID_CHANNELS } = require('./src/ops/ccoMarketingConsentStore');
+    const {
+      createCcoMarketingConsentStore,
+      VALID_CHANNELS,
+    } = require('./src/ops/ccoMarketingConsentStore');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
     const expressM = require('express');
     const jsonParserM = expressM.json({ limit: '8kb' });
@@ -1993,73 +2895,121 @@ let ccoMarketingConsentStore = null;
     app.locals.ccoMarketingConsentStore = ccoMarketingConsentStore;
 
     // GET /api/v1/cco-marketing/consent/:customerId — status
-    app.get('/api/v1/cco-marketing/consent/:customerId', attachRole, requirePermission('marketing.read'), (req, res) => {
-      res.json(ccoMarketingConsentStore.getStatus(req.params.customerId));
-    });
+    app.get(
+      '/api/v1/cco-marketing/consent/:customerId',
+      attachRole,
+      requirePermission('marketing.read'),
+      (req, res) => {
+        res.json(ccoMarketingConsentStore.getStatus(req.params.customerId));
+      }
+    );
 
     // POST /api/v1/cco-marketing/consent/:customerId/opt-in
-    app.post('/api/v1/cco-marketing/consent/:customerId/opt-in', attachRole, requirePermission('marketing.write'), jsonParserM, async (req, res) => {
-      try {
-        const { channel, templateVersion, source, note } = req.body || {};
-        const ipAddress = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim();
-        const result = await ccoMarketingConsentStore.setOptIn(req.params.customerId, channel, {
-          actorRole: req.cco?.role || 'staff', ipAddress, templateVersion, source, note,
-        });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-marketing/consent/:customerId/opt-in',
+      attachRole,
+      requirePermission('marketing.write'),
+      jsonParserM,
+      async (req, res) => {
+        try {
+          const { channel, templateVersion, source, note } = req.body || {};
+          const ipAddress = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+            .toString()
+            .split(',')[0]
+            .trim();
+          const result = await ccoMarketingConsentStore.setOptIn(req.params.customerId, channel, {
+            actorRole: req.cco?.role || 'staff',
+            ipAddress,
+            templateVersion,
+            source,
+            note,
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-marketing/consent/:customerId/opt-out
-    app.post('/api/v1/cco-marketing/consent/:customerId/opt-out', attachRole, requirePermission('marketing.write'), jsonParserM, async (req, res) => {
-      try {
-        const { channel, reason, source } = req.body || {};
-        const result = await ccoMarketingConsentStore.setOptOut(req.params.customerId, channel, {
-          actorRole: req.cco?.role || 'staff', reason, source: source || 'staff_admin',
-        });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-marketing/consent/:customerId/opt-out',
+      attachRole,
+      requirePermission('marketing.write'),
+      jsonParserM,
+      async (req, res) => {
+        try {
+          const { channel, reason, source } = req.body || {};
+          const result = await ccoMarketingConsentStore.setOptOut(req.params.customerId, channel, {
+            actorRole: req.cco?.role || 'staff',
+            reason,
+            source: source || 'staff_admin',
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // GET /api/v1/cco-marketing/stats
-    app.get('/api/v1/cco-marketing/stats', attachRole, requirePermission('marketing.read'), (req, res) => {
-      res.json(ccoMarketingConsentStore.stats());
-    });
+    app.get(
+      '/api/v1/cco-marketing/stats',
+      attachRole,
+      requirePermission('marketing.read'),
+      (req, res) => {
+        res.json(ccoMarketingConsentStore.stats());
+      }
+    );
 
     // POST /api/v1/cco-marketing/send-token — generera unsubscribe-token (för send-flow)
-    app.post('/api/v1/cco-marketing/send-token', attachRole, requirePermission('marketing.send'), jsonParserM, async (req, res) => {
-      try {
-        const { customerId, channel, sendId } = req.body || {};
-        // Pre-check: får vi skicka?
-        const canSend = ccoMarketingConsentStore.canSendMarketing(customerId, channel);
-        if (!canSend.canSend) {
-          if (ccoAuditLog) {
-            ccoAuditLog.append({
-              action: 'marketing.send.blocked',
-              actor: { role: req.cco?.role },
-              target: { kind: 'marketing_consent', id: customerId },
-              detail: { channel, reason: canSend.reason, currentState: canSend.currentState },
+    app.post(
+      '/api/v1/cco-marketing/send-token',
+      attachRole,
+      requirePermission('marketing.send'),
+      jsonParserM,
+      async (req, res) => {
+        try {
+          const { customerId, channel, sendId } = req.body || {};
+          // Pre-check: får vi skicka?
+          const canSend = ccoMarketingConsentStore.canSendMarketing(customerId, channel);
+          if (!canSend.canSend) {
+            if (ccoAuditLog) {
+              ccoAuditLog.append({
+                action: 'marketing.send.blocked',
+                actor: { role: req.cco?.role },
+                target: { kind: 'marketing_consent', id: customerId },
+                detail: { channel, reason: canSend.reason, currentState: canSend.currentState },
+              });
+            }
+            return res.status(409).json({
+              error: 'gdpr_consent_missing',
+              detail: canSend.reason,
+              currentState: canSend.currentState,
+              blockedBy: 'ccoMarketingConsentStore',
             });
           }
-          return res.status(409).json({
-            error: 'gdpr_consent_missing',
-            detail: canSend.reason,
-            currentState: canSend.currentState,
-            blockedBy: 'ccoMarketingConsentStore',
+          const token = await ccoMarketingConsentStore.createUnsubscribeToken(customerId, channel, {
+            sendId,
           });
+          const baseUrl = process.env.PUBLIC_BASE_URL || 'https://hairtpclinic.com';
+          res.json({
+            ok: true,
+            token,
+            unsubscribeUrl: `${baseUrl}/unsubscribe/${token}`,
+            customerId,
+            channel,
+            consentSnapshot: ccoMarketingConsentStore.getStatus(customerId),
+          });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
         }
-        const token = await ccoMarketingConsentStore.createUnsubscribeToken(customerId, channel, { sendId });
-        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://hairtpclinic.com';
-        res.json({
-          ok: true,
-          token,
-          unsubscribeUrl: `${baseUrl}/unsubscribe/${token}`,
-          customerId, channel,
-          consentSnapshot: ccoMarketingConsentStore.getStatus(customerId),
-        });
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+      }
+    );
 
-    console.log('[cco-marketing] monterad: 5 routes /api/v1/cco-marketing/* (marketing.read/write/send)');
+    console.log(
+      '[cco-marketing] monterad: 5 routes /api/v1/cco-marketing/* (marketing.read/write/send)'
+    );
   } catch (err) {
     console.warn('[cco-marketing] kunde inte montera:', err.message);
   }
@@ -2073,9 +3023,15 @@ try {
     const store = app.locals.ccoMarketingConsentStore;
     if (!store) return res.status(503).send('Unsubscribe-tjänsten är inte tillgänglig.');
     try {
-      const ipAddress = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim();
+      const ipAddress = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+        .toString()
+        .split(',')[0]
+        .trim();
       const result = await store.processUnsubscribeToken(req.params.token, { ipAddress });
-      const channelLabel = { email_marketing: 'e-post', sms_marketing: 'SMS', profiling_segmentation: 'profilering' }[result.channel] || result.channel;
+      const channelLabel =
+        { email_marketing: 'e-post', sms_marketing: 'SMS', profiling_segmentation: 'profilering' }[
+          result.channel
+        ] || result.channel;
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(`<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Avregistrering klar · Hair TP Clinic</title>
 <style>body{font-family:-apple-system,system-ui,sans-serif;background:#faf6f2;color:#2b251f;padding:40px 20px;line-height:1.6}.wrap{max-width:540px;margin:0 auto;background:linear-gradient(180deg,#faf6f2f0,#f4eee9d8);padding:28px 32px;border-radius:24px;box-shadow:0 18px 38px rgba(93,74,60,.08);border:1px solid #fff7}.ico{font-size:48px;text-align:center;margin-bottom:12px}h1{font-size:22px;margin:0 0 12px;text-align:center}p{color:rgba(70,60,50,.7);font-size:14px;text-align:center}.brand{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#84756b;text-align:center;margin-top:18px}</style>
@@ -2085,7 +3041,12 @@ try {
 <p style="font-size:12px;color:#aaa">${result.alreadyProcessed ? 'Du hade redan avregistrerat dig från denna kanal.' : 'Bekräftat ' + new Date(result.processedAt).toLocaleString('sv-SE')}</p>
 <div class="brand">Hair TP Clinic · GDPR Art. 13/21</div></div></body></html>`);
     } catch (err) {
-      res.status(err.statusCode || 500).setHeader('Content-Type', 'text/html; charset=utf-8').send(`<!doctype html><html lang="sv"><head><meta charset="utf-8"><title>Fel</title></head><body style="font-family:sans-serif;padding:40px;text-align:center"><h1>⚠ Länken är inte giltig</h1><p>Den här unsubscribe-länken finns inte, är utgången, eller har redan använts. Hör av dig till <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a> om du vill avregistrera dig.</p></body></html>`);
+      res
+        .status(err.statusCode || 500)
+        .setHeader('Content-Type', 'text/html; charset=utf-8')
+        .send(
+          `<!doctype html><html lang="sv"><head><meta charset="utf-8"><title>Fel</title></head><body style="font-family:sans-serif;padding:40px;text-align:center"><h1>⚠ Länken är inte giltig</h1><p>Den här unsubscribe-länken finns inte, är utgången, eller har redan använts. Hör av dig till <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a> om du vill avregistrera dig.</p></body></html>`
+        );
     }
   });
   console.log('[unsubscribe-public] monterad: GET /unsubscribe/:token (GDPR 1-klicks opt-out)');
@@ -2104,10 +3065,12 @@ try {
     // Läs treatment-requirements
     let treatmentRequirements = null;
     try {
-      treatmentRequirements = JSON.parse(fs.readFileSync(
-        path.join(__dirname, 'config', 'cco-treatment-document-requirements.json'),
-        'utf8'
-      ));
+      treatmentRequirements = JSON.parse(
+        fs.readFileSync(
+          path.join(__dirname, 'config', 'cco-treatment-document-requirements.json'),
+          'utf8'
+        )
+      );
     } catch (err) {
       console.warn('[cco-aftercare] treatment-requirements ej laddad:', err.message);
     }
@@ -2126,66 +3089,117 @@ try {
     app.locals.ccoAftercareScheduler = scheduler;
 
     // POST /api/v1/cco-aftercare/schedule — manuell schedule (per encounter)
-    app.post('/api/v1/cco-aftercare/schedule', attachRole, requirePermission('aftercare.write'), jsonParserA5, async (req, res) => {
-      try {
-        const result = await scheduler.scheduleForCompletedEncounter(req.body || {});
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-aftercare/schedule',
+      attachRole,
+      requirePermission('aftercare.write'),
+      jsonParserA5,
+      async (req, res) => {
+        try {
+          const result = await scheduler.scheduleForCompletedEncounter(req.body || {});
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // GET /api/v1/cco-aftercare/jobs — lista pipeline
-    app.get('/api/v1/cco-aftercare/jobs', attachRole, requirePermission('aftercare.read'), (req, res) => {
-      const items = scheduler.listJobs({
-        status: req.query.status || null,
-        customerId: req.query.customerId || null,
-        treatmentKey: req.query.treatmentKey || null,
-        limit: Number(req.query.limit) || 200,
-      });
-      res.json({ count: items.length, jobs: items, stats: scheduler.stats() });
-    });
+    app.get(
+      '/api/v1/cco-aftercare/jobs',
+      attachRole,
+      requirePermission('aftercare.read'),
+      (req, res) => {
+        const items = scheduler.listJobs({
+          status: req.query.status || null,
+          customerId: req.query.customerId || null,
+          treatmentKey: req.query.treatmentKey || null,
+          limit: Number(req.query.limit) || 200,
+        });
+        res.json({ count: items.length, jobs: items, stats: scheduler.stats() });
+      }
+    );
 
     // GET /api/v1/cco-aftercare/jobs/:id
-    app.get('/api/v1/cco-aftercare/jobs/:id', attachRole, requirePermission('aftercare.read'), (req, res) => {
-      const j = scheduler.getJob(req.params.id);
-      if (!j) return res.status(404).json({ error: 'not_found' });
-      res.json(j);
-    });
+    app.get(
+      '/api/v1/cco-aftercare/jobs/:id',
+      attachRole,
+      requirePermission('aftercare.read'),
+      (req, res) => {
+        const j = scheduler.getJob(req.params.id);
+        if (!j) return res.status(404).json({ error: 'not_found' });
+        res.json(j);
+      }
+    );
 
     // POST /api/v1/cco-aftercare/jobs/:id/cancel
-    app.post('/api/v1/cco-aftercare/jobs/:id/cancel', attachRole, requirePermission('aftercare.write'), jsonParserA5, async (req, res) => {
-      try {
-        const j = await scheduler.cancelJob(req.params.id, { reason: req.body?.reason, role: req.cco?.role });
-        res.json(j);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-aftercare/jobs/:id/cancel',
+      attachRole,
+      requirePermission('aftercare.write'),
+      jsonParserA5,
+      async (req, res) => {
+        try {
+          const j = await scheduler.cancelJob(req.params.id, {
+            reason: req.body?.reason,
+            role: req.cco?.role,
+          });
+          res.json(j);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-aftercare/jobs/:id/trigger
-    app.post('/api/v1/cco-aftercare/jobs/:id/trigger', attachRole, requirePermission('aftercare.write'), async (req, res) => {
-      try {
-        const j = await scheduler.triggerNow(req.params.id, { role: req.cco?.role });
-        res.json(j);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-aftercare/jobs/:id/trigger',
+      attachRole,
+      requirePermission('aftercare.write'),
+      async (req, res) => {
+        try {
+          const j = await scheduler.triggerNow(req.params.id, { role: req.cco?.role });
+          res.json(j);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-aftercare/cron-tick — manuell trigga (owner) eller cron-internal
-    app.post('/api/v1/cco-aftercare/cron-tick', attachRole, requirePermission('aftercare.cron_trigger'), jsonParserA5, async (req, res) => {
-      try {
-        const result = await scheduler.runDueJobs({
-          maxPerTick: Number(req.body?.maxPerTick) || 50,
-          dryRun: req.body?.dryRun === true,
-        });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-aftercare/cron-tick',
+      attachRole,
+      requirePermission('aftercare.cron_trigger'),
+      jsonParserA5,
+      async (req, res) => {
+        try {
+          const result = await scheduler.runDueJobs({
+            maxPerTick: Number(req.body?.maxPerTick) || 50,
+            dryRun: req.body?.dryRun === true,
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // Cron-tick var 5e minut
-    let aftercareInterval = setInterval(() => {
-      scheduler.runDueJobs({ maxPerTick: 50 })
-        .then((r) => {
-          if (r.processed > 0) console.log(`[cco-aftercare] cron-tick processed=${r.processed} success=${r.success} failed=${r.failed}`);
-        })
-        .catch((err) => console.warn('[cco-aftercare] cron-tick failed:', err.message));
-    }, 5 * 60 * 1000);
+    const aftercareInterval = setInterval(
+      () => {
+        scheduler
+          .runDueJobs({ maxPerTick: 50 })
+          .then((r) => {
+            if (r.processed > 0)
+              console.log(
+                `[cco-aftercare] cron-tick processed=${r.processed} success=${r.success} failed=${r.failed}`
+              );
+          })
+          .catch((err) => console.warn('[cco-aftercare] cron-tick failed:', err.message));
+      },
+      5 * 60 * 1000
+    );
 
     // Hook till booking-case state-transitions
     // Lyssna efter completion-events via audit-log direkt? Nej — använd direct hook
@@ -2209,7 +3223,9 @@ try {
       });
     }
 
-    console.log('[cco-aftercare] monterad: POST /schedule, GET /jobs, POST /jobs/:id/{cancel,trigger}, POST /cron-tick · cron 5 min');
+    console.log(
+      '[cco-aftercare] monterad: POST /schedule, GET /jobs, POST /jobs/:id/{cancel,trigger}, POST /cron-tick · cron 5 min'
+    );
   } catch (err) {
     console.warn('[cco-aftercare] kunde inte montera:', err.message);
   }
@@ -2223,89 +3239,123 @@ try {
   // Steg 3: ladda treatment-requirements från GitHub-trackad config
   let treatmentRequirements = null;
   try {
-    treatmentRequirements = JSON.parse(fs.readFileSync(
-      path.join(__dirname, 'config', 'cco-treatment-document-requirements.json'),
-      'utf8'
-    ));
+    treatmentRequirements = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, 'config', 'cco-treatment-document-requirements.json'),
+        'utf8'
+      )
+    );
   } catch (err) {
     console.warn('[cco-blocking] treatment-requirements ej laddad:', err.message);
   }
 
   // Lazy lookup på alla underliggande stores via app.locals.
   const blockingEvaluator = createCcoBlockingStore({
-    journalStore: { listEntries: async (args) => app.locals.ccoJournalStore?.listEntries?.(args) || [] },
-    offerStore: { listForCustomer: (cid) => app.locals.ccoOfferQuickStore?.listForCustomer?.(cid) || [] },
-    agreementStore: { listForCustomer: (cid) => app.locals.ccoAgreementQuickStore?.listForCustomer?.(cid) || [] },
+    journalStore: {
+      listEntries: async (args) => app.locals.ccoJournalStore?.listEntries?.(args) || [],
+    },
+    offerStore: {
+      listForCustomer: (cid) => app.locals.ccoOfferQuickStore?.listForCustomer?.(cid) || [],
+    },
+    agreementStore: {
+      listForCustomer: (cid) => app.locals.ccoAgreementQuickStore?.listForCustomer?.(cid) || [],
+    },
     photoConsentStore: {
       listGranted: (args) => app.locals.ccoPhotoConsentStore?.listGranted?.(args) || [],
     },
     treatmentRequirements,
     idVerificationStore: {
-      getStatus: async (cid) => app.locals.ccoIdVerificationStore?.getStatus?.(cid) || { state: 'none' },
+      getStatus: async (cid) =>
+        app.locals.ccoIdVerificationStore?.getStatus?.(cid) || { state: 'none' },
     },
   });
 
   // GET /api/v1/cco-blocking/customer/:id
   // Query-params: hasUpcomingBooking=true|false, hasPhotos=true, photoCount=N, plannedForShowcase=true, plannedTreatment=fue|prp_hair|...
-  app.get('/api/v1/cco-blocking/customer/:id', attachRole, requirePermission('workspace.read'), async (req, res) => {
-    try {
-      const opts = {
-        customerName: req.query.customerName || null,
-        hasUpcomingBooking: req.query.hasUpcomingBooking === 'true',
-        hasPhotos: req.query.hasPhotos === 'true',
-        photoCount: Number(req.query.photoCount) || 0,
-        plannedForShowcase: req.query.plannedForShowcase === 'true',
-        plannedTreatment: req.query.plannedTreatment || null,  // Steg 3
-        tenantId: req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic',
-      };
-      const result = await blockingEvaluator.evaluateCustomer(req.params.id, opts);
-      res.json(result);
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+  app.get(
+    '/api/v1/cco-blocking/customer/:id',
+    attachRole,
+    requirePermission('workspace.read'),
+    async (req, res) => {
+      try {
+        const opts = {
+          customerName: req.query.customerName || null,
+          hasUpcomingBooking: req.query.hasUpcomingBooking === 'true',
+          hasPhotos: req.query.hasPhotos === 'true',
+          photoCount: Number(req.query.photoCount) || 0,
+          plannedForShowcase: req.query.plannedForShowcase === 'true',
+          plannedTreatment: req.query.plannedTreatment || null, // Steg 3
+          tenantId: req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic',
+        };
+        const result = await blockingEvaluator.evaluateCustomer(req.params.id, opts);
+        res.json(result);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
   // POST /api/v1/cco-blocking/batch — evaluera flera kunder
   // body: { customerIds: [...], opts: { customerId: {...} } }
-  app.post('/api/v1/cco-blocking/batch', attachRole, requirePermission('workspace.read'), express.json({ limit: '32kb' }), async (req, res) => {
-    try {
-      const { customerIds, opts = {} } = req.body || {};
-      if (!Array.isArray(customerIds)) return res.status(400).json({ error: 'customerIds[] krävs' });
-      const result = await blockingEvaluator.evaluateDashboard({ customerIds, opts });
-      res.json(result);
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+  app.post(
+    '/api/v1/cco-blocking/batch',
+    attachRole,
+    requirePermission('workspace.read'),
+    express.json({ limit: '32kb' }),
+    async (req, res) => {
+      try {
+        const { customerIds, opts = {} } = req.body || {};
+        if (!Array.isArray(customerIds))
+          return res.status(400).json({ error: 'customerIds[] krävs' });
+        const result = await blockingEvaluator.evaluateDashboard({ customerIds, opts });
+        res.json(result);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
   // GET /api/v1/cco-blocking/dashboard — top issues aggregated
   // Query: customerIds=cid1,cid2,cid3 (comma-separated) eller all=true
-  app.get('/api/v1/cco-blocking/dashboard', attachRole, requirePermission('workspace.read'), async (req, res) => {
-    try {
-      let customerIds = [];
-      if (req.query.customerIds) {
-        customerIds = String(req.query.customerIds).split(',').map((s) => s.trim()).filter(Boolean);
-      } else if (req.query.all === 'true') {
-        // Försök ladda från customers-store
-        const cs = app.locals.ccoCustomersStore;
-        if (cs && typeof cs.list === 'function') {
-          const all = await cs.list();
-          customerIds = (all || []).map((c) => c.id || c.customerId).filter(Boolean).slice(0, 200);
+  app.get(
+    '/api/v1/cco-blocking/dashboard',
+    attachRole,
+    requirePermission('workspace.read'),
+    async (req, res) => {
+      try {
+        let customerIds = [];
+        if (req.query.customerIds) {
+          customerIds = String(req.query.customerIds)
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        } else if (req.query.all === 'true') {
+          // Försök ladda från customers-store
+          const cs = app.locals.ccoCustomersStore;
+          if (cs && typeof cs.list === 'function') {
+            const all = await cs.list();
+            customerIds = (all || [])
+              .map((c) => c.id || c.customerId)
+              .filter(Boolean)
+              .slice(0, 200);
+          }
         }
+        // Default opts: anta hasUpcomingBooking=true för dashboard (där det är blocking-cases vi vill se)
+        const opts = {};
+        customerIds.forEach((cid) => {
+          opts[cid] = { hasUpcomingBooking: true };
+        });
+        const result = await blockingEvaluator.evaluateDashboard({ customerIds, opts });
+        res.json(result);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
       }
-      // Default opts: anta hasUpcomingBooking=true för dashboard (där det är blocking-cases vi vill se)
-      const opts = {};
-      customerIds.forEach((cid) => {
-        opts[cid] = { hasUpcomingBooking: true };
-      });
-      const result = await blockingEvaluator.evaluateDashboard({ customerIds, opts });
-      res.json(result);
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
     }
-  });
+  );
 
-  console.log('[cco-blocking] monterad: GET /api/v1/cco-blocking/{customer/:id|dashboard} + POST /batch (workspace.read)');
+  console.log(
+    '[cco-blocking] monterad: GET /api/v1/cco-blocking/{customer/:id|dashboard} + POST /batch (workspace.read)'
+  );
 } catch (err) {
   console.warn('[cco-blocking] kunde inte montera:', err.message);
 }
@@ -2320,12 +3370,15 @@ let ccoAgreementQuickStore = null;
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
 
     // Vänta lite på att sendStore mountas (race-condition skydd via app.locals lookup vid request-tid)
-    function getSendStore() { return app.locals.ccoSendActionStore; }
+    function getSendStore() {
+      return app.locals.ccoSendActionStore;
+    }
 
     ccoOfferQuickStore = await createCcoOfferQuickStore({
       filePath: path.join(__dirname, 'data', 'cco-offers-quick.json'),
       auditLog: ccoAuditLog,
-      sendStore: { // proxy som hämtar lazy vid varje call
+      sendStore: {
+        // proxy som hämtar lazy vid varje call
         buildFilePayload: (...args) => getSendStore()?.buildFilePayload(...args),
         performSend: (...args) => getSendStore()?.performSend(...args),
       },
@@ -2347,56 +3400,119 @@ let ccoAgreementQuickStore = null;
 
     // ─── OFFERS ───────────────────────────────────────────
     // POST /api/v1/cco-offers — create
-    app.post('/api/v1/cco-offers', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
-      try {
-        const offer = await ccoOfferQuickStore.createOffer(req.body || {}, { role: req.cco?.role });
-        res.json(offer);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-offers',
+      attachRole,
+      requirePermission('offer.write'),
+      jsonParserB,
+      async (req, res) => {
+        try {
+          const offer = await ccoOfferQuickStore.createOffer(req.body || {}, {
+            role: req.cco?.role,
+          });
+          res.json(offer);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // PATCH /api/v1/cco-offers/:id — update draft
-    app.patch('/api/v1/cco-offers/:id', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
-      try {
-        const offer = await ccoOfferQuickStore.updateDraft(req.params.id, req.body || {}, { role: req.cco?.role });
-        res.json(offer);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.patch(
+      '/api/v1/cco-offers/:id',
+      attachRole,
+      requirePermission('offer.write'),
+      jsonParserB,
+      async (req, res) => {
+        try {
+          const offer = await ccoOfferQuickStore.updateDraft(req.params.id, req.body || {}, {
+            role: req.cco?.role,
+          });
+          res.json(offer);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-offers/:id/send
-    app.post('/api/v1/cco-offers/:id/send', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
-      try {
-        const result = await ccoOfferQuickStore.sendOffer(req.params.id, {
-          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
-        }, { role: req.cco?.role });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-offers/:id/send',
+      attachRole,
+      requirePermission('offer.write'),
+      jsonParserB,
+      async (req, res) => {
+        try {
+          const result = await ccoOfferQuickStore.sendOffer(
+            req.params.id,
+            {
+              dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+            },
+            { role: req.cco?.role }
+          );
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-offers/:id/accept
-    app.post('/api/v1/cco-offers/:id/accept', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
-      try {
-        const offer = await ccoOfferQuickStore.acceptOffer(req.params.id, {
-          acceptedVia: req.body?.acceptedVia || 'manual',
-          acceptedBy: req.body?.acceptedBy || null,
-        }, { role: req.cco?.role });
-        res.json(offer);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-offers/:id/accept',
+      attachRole,
+      requirePermission('offer.write'),
+      jsonParserB,
+      async (req, res) => {
+        try {
+          const offer = await ccoOfferQuickStore.acceptOffer(
+            req.params.id,
+            {
+              acceptedVia: req.body?.acceptedVia || 'manual',
+              acceptedBy: req.body?.acceptedBy || null,
+            },
+            { role: req.cco?.role }
+          );
+          res.json(offer);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-offers/:id/reject
-    app.post('/api/v1/cco-offers/:id/reject', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
-      try {
-        const offer = await ccoOfferQuickStore.rejectOffer(req.params.id, { reason: req.body?.reason }, { role: req.cco?.role });
-        res.json(offer);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-offers/:id/reject',
+      attachRole,
+      requirePermission('offer.write'),
+      jsonParserB,
+      async (req, res) => {
+        try {
+          const offer = await ccoOfferQuickStore.rejectOffer(
+            req.params.id,
+            { reason: req.body?.reason },
+            { role: req.cco?.role }
+          );
+          res.json(offer);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // DELETE /api/v1/cco-offers/:id — bara draft
-    app.delete('/api/v1/cco-offers/:id', attachRole, requirePermission('offer.delete'), async (req, res) => {
-      try {
-        res.json(await ccoOfferQuickStore.deleteDraft(req.params.id, { role: req.cco?.role }));
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.delete(
+      '/api/v1/cco-offers/:id',
+      attachRole,
+      requirePermission('offer.delete'),
+      async (req, res) => {
+        try {
+          res.json(await ccoOfferQuickStore.deleteDraft(req.params.id, { role: req.cco?.role }));
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // GET /api/v1/cco-offers/:id
     app.get('/api/v1/cco-offers/:id', attachRole, requirePermission('offer.read'), (req, res) => {
@@ -2406,41 +3522,81 @@ let ccoAgreementQuickStore = null;
     });
 
     // GET /api/v1/cco-offers/customer/:cid
-    app.get('/api/v1/cco-offers/customer/:cid', attachRole, requirePermission('offer.read'), (req, res) => {
-      res.json({ offers: ccoOfferQuickStore.listForCustomer(req.params.cid) });
-    });
+    app.get(
+      '/api/v1/cco-offers/customer/:cid',
+      attachRole,
+      requirePermission('offer.read'),
+      (req, res) => {
+        res.json({ offers: ccoOfferQuickStore.listForCustomer(req.params.cid) });
+      }
+    );
 
     // GET /api/v1/cco-offers (all / by state)
     app.get('/api/v1/cco-offers', attachRole, requirePermission('offer.read'), (req, res) => {
       res.json({
-        offers: ccoOfferQuickStore.listAll({ state: req.query.state || null, limit: Number(req.query.limit) || 200 }),
+        offers: ccoOfferQuickStore.listAll({
+          state: req.query.state || null,
+          limit: Number(req.query.limit) || 200,
+        }),
         stats: ccoOfferQuickStore.stats(),
       });
     });
 
     // ─── AGREEMENTS ───────────────────────────────────────
-    app.post('/api/v1/cco-agreements', attachRole, requirePermission('agreement.write'), jsonParserB, async (req, res) => {
-      try {
-        const agreement = await ccoAgreementQuickStore.createAgreement(req.body || {}, { role: req.cco?.role });
-        res.json(agreement);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-agreements',
+      attachRole,
+      requirePermission('agreement.write'),
+      jsonParserB,
+      async (req, res) => {
+        try {
+          const agreement = await ccoAgreementQuickStore.createAgreement(req.body || {}, {
+            role: req.cco?.role,
+          });
+          res.json(agreement);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.patch('/api/v1/cco-agreements/:id', attachRole, requirePermission('agreement.write'), jsonParserB, async (req, res) => {
-      try {
-        const ag = await ccoAgreementQuickStore.updateDraft(req.params.id, req.body || {}, { role: req.cco?.role });
-        res.json(ag);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.patch(
+      '/api/v1/cco-agreements/:id',
+      attachRole,
+      requirePermission('agreement.write'),
+      jsonParserB,
+      async (req, res) => {
+        try {
+          const ag = await ccoAgreementQuickStore.updateDraft(req.params.id, req.body || {}, {
+            role: req.cco?.role,
+          });
+          res.json(ag);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.post('/api/v1/cco-agreements/:id/send', attachRole, requirePermission('agreement.write'), jsonParserB, async (req, res) => {
-      try {
-        const result = await ccoAgreementQuickStore.sendAgreement(req.params.id, {
-          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
-        }, { role: req.cco?.role });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-agreements/:id/send',
+      attachRole,
+      requirePermission('agreement.write'),
+      jsonParserB,
+      async (req, res) => {
+        try {
+          const result = await ccoAgreementQuickStore.sendAgreement(
+            req.params.id,
+            {
+              dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+            },
+            { role: req.cco?.role }
+          );
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-agreements/:id/sign — patient (bankid_stub) eller staff_override (kräver agreement.staff_sign)
     app.post('/api/v1/cco-agreements/:id/sign', attachRole, jsonParserB, async (req, res) => {
@@ -2466,41 +3622,81 @@ let ccoAgreementQuickStore = null;
         }
       }
       try {
-        const ag = await ccoAgreementQuickStore.signAgreement(req.params.id, {
-          signedByName: req.body?.signedByName,
-          signMethod: method,
-          signatureToken: req.body?.signatureToken,
-        }, { role });
+        const ag = await ccoAgreementQuickStore.signAgreement(
+          req.params.id,
+          {
+            signedByName: req.body?.signedByName,
+            signMethod: method,
+            signatureToken: req.body?.signatureToken,
+          },
+          { role }
+        );
         res.json(ag);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     });
 
-    app.post('/api/v1/cco-agreements/:id/cancel', attachRole, requirePermission('agreement.write'), jsonParserB, async (req, res) => {
-      try {
-        const ag = await ccoAgreementQuickStore.cancelAgreement(req.params.id, { reason: req.body?.reason }, { role: req.cco?.role });
-        res.json(ag);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-agreements/:id/cancel',
+      attachRole,
+      requirePermission('agreement.write'),
+      jsonParserB,
+      async (req, res) => {
+        try {
+          const ag = await ccoAgreementQuickStore.cancelAgreement(
+            req.params.id,
+            { reason: req.body?.reason },
+            { role: req.cco?.role }
+          );
+          res.json(ag);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    app.get('/api/v1/cco-agreements/:id', attachRole, requirePermission('agreement.read'), (req, res) => {
-      const a = ccoAgreementQuickStore.getById(req.params.id);
-      if (!a) return res.status(404).json({ error: 'not_found' });
-      res.json(a);
-    });
+    app.get(
+      '/api/v1/cco-agreements/:id',
+      attachRole,
+      requirePermission('agreement.read'),
+      (req, res) => {
+        const a = ccoAgreementQuickStore.getById(req.params.id);
+        if (!a) return res.status(404).json({ error: 'not_found' });
+        res.json(a);
+      }
+    );
 
-    app.get('/api/v1/cco-agreements/customer/:cid', attachRole, requirePermission('agreement.read'), (req, res) => {
-      res.json({ agreements: ccoAgreementQuickStore.listForCustomer(req.params.cid) });
-    });
+    app.get(
+      '/api/v1/cco-agreements/customer/:cid',
+      attachRole,
+      requirePermission('agreement.read'),
+      (req, res) => {
+        res.json({ agreements: ccoAgreementQuickStore.listForCustomer(req.params.cid) });
+      }
+    );
 
-    app.get('/api/v1/cco-agreements', attachRole, requirePermission('agreement.read'), (req, res) => {
-      res.json({
-        agreements: ccoAgreementQuickStore.listAll({ state: req.query.state || null, limit: Number(req.query.limit) || 200 }),
-        stats: ccoAgreementQuickStore.stats(),
-      });
-    });
+    app.get(
+      '/api/v1/cco-agreements',
+      attachRole,
+      requirePermission('agreement.read'),
+      (req, res) => {
+        res.json({
+          agreements: ccoAgreementQuickStore.listAll({
+            state: req.query.state || null,
+            limit: Number(req.query.limit) || 200,
+          }),
+          stats: ccoAgreementQuickStore.stats(),
+        });
+      }
+    );
 
-    console.log('[cco-offers-quick] monterad: 8 routes /api/v1/cco-offers/* (RBAC: offer.read/write/delete)');
-    console.log('[cco-agreements-quick] monterad: 7 routes /api/v1/cco-agreements/* (RBAC: agreement.read/write + staff_sign för override)');
+    console.log(
+      '[cco-offers-quick] monterad: 8 routes /api/v1/cco-offers/* (RBAC: offer.read/write/delete)'
+    );
+    console.log(
+      '[cco-agreements-quick] monterad: 7 routes /api/v1/cco-agreements/* (RBAC: agreement.read/write + staff_sign för override)'
+    );
   } catch (err) {
     console.warn('[cco-offers+agreements-quick] kunde inte montera:', err.message);
   }
@@ -2522,57 +3718,102 @@ let ccoTemplateRegistry = null;
     const jsonParserT = expressT.json({ limit: '64kb' });
 
     // GET /api/v1/cco-templates — lista (med filter)
-    app.get('/api/v1/cco-templates', attachRole, requirePermission('templates.read'), (req, res) => {
-      const items = ccoTemplateRegistry.list({
-        brand: req.query.brand || null,
-        type: req.query.type || null,
-        journeyStep: req.query.journeyStep || null,
-        legalReviewStatus: req.query.legalReviewStatus || null,
-      });
-      res.json({ count: items.length, templates: items, stats: ccoTemplateRegistry.stats() });
-    });
+    app.get(
+      '/api/v1/cco-templates',
+      attachRole,
+      requirePermission('templates.read'),
+      (req, res) => {
+        const items = ccoTemplateRegistry.list({
+          brand: req.query.brand || null,
+          type: req.query.type || null,
+          journeyStep: req.query.journeyStep || null,
+          legalReviewStatus: req.query.legalReviewStatus || null,
+        });
+        res.json({ count: items.length, templates: items, stats: ccoTemplateRegistry.stats() });
+      }
+    );
 
     // GET /api/v1/cco-templates/:id
-    app.get('/api/v1/cco-templates/:id', attachRole, requirePermission('templates.read'), (req, res) => {
-      const t = ccoTemplateRegistry.get(req.params.id);
-      if (!t) return res.status(404).json({ error: 'not_found' });
-      res.json(t);
-    });
+    app.get(
+      '/api/v1/cco-templates/:id',
+      attachRole,
+      requirePermission('templates.read'),
+      (req, res) => {
+        const t = ccoTemplateRegistry.get(req.params.id);
+        if (!t) return res.status(404).json({ error: 'not_found' });
+        res.json(t);
+      }
+    );
 
     // GET /api/v1/cco-templates/:id/revisions — historik
-    app.get('/api/v1/cco-templates/:id/revisions', attachRole, requirePermission('templates.read'), (req, res) => {
-      res.json({ revisions: ccoTemplateRegistry.getRevisions(req.params.id) });
-    });
+    app.get(
+      '/api/v1/cco-templates/:id/revisions',
+      attachRole,
+      requirePermission('templates.read'),
+      (req, res) => {
+        res.json({ revisions: ccoTemplateRegistry.getRevisions(req.params.id) });
+      }
+    );
 
     // POST /api/v1/cco-templates — create/upsert (owner only)
-    app.post('/api/v1/cco-templates', attachRole, requirePermission('templates.write'), jsonParserT, async (req, res) => {
-      try {
-        const t = await ccoTemplateRegistry.upsert(req.body || {}, { role: req.cco?.role });
-        res.json(t);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-templates',
+      attachRole,
+      requirePermission('templates.write'),
+      jsonParserT,
+      async (req, res) => {
+        try {
+          const t = await ccoTemplateRegistry.upsert(req.body || {}, { role: req.cco?.role });
+          res.json(t);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-templates/:id/legal-review — uppdatera legal-status
-    app.post('/api/v1/cco-templates/:id/legal-review', attachRole, requirePermission('templates.legal_review'), jsonParserT, async (req, res) => {
-      try {
-        const t = await ccoTemplateRegistry.setLegalReviewStatus(req.params.id, req.body?.status, {
-          role: req.cco?.role,
-          reviewer: req.body?.reviewer,
-          externalRef: req.body?.externalRef,
-        });
-        res.json(t);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-templates/:id/legal-review',
+      attachRole,
+      requirePermission('templates.legal_review'),
+      jsonParserT,
+      async (req, res) => {
+        try {
+          const t = await ccoTemplateRegistry.setLegalReviewStatus(
+            req.params.id,
+            req.body?.status,
+            {
+              role: req.cco?.role,
+              reviewer: req.body?.reviewer,
+              externalRef: req.body?.externalRef,
+            }
+          );
+          res.json(t);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-templates/:id/snapshot — preview snapshot för send
-    app.post('/api/v1/cco-templates/:id/snapshot', attachRole, requirePermission('templates.read'), jsonParserT, (req, res) => {
-      try {
-        const snap = ccoTemplateRegistry.snapshotForSend(req.params.id, req.body?.lang || 'sv');
-        res.json(snap);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-templates/:id/snapshot',
+      attachRole,
+      requirePermission('templates.read'),
+      jsonParserT,
+      (req, res) => {
+        try {
+          const snap = ccoTemplateRegistry.snapshotForSend(req.params.id, req.body?.lang || 'sv');
+          res.json(snap);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
-    console.log('[cco-templates] monterad: 6 routes /api/v1/cco-templates/* (templates.read/write + legal_review)');
+    console.log(
+      '[cco-templates] monterad: 6 routes /api/v1/cco-templates/* (templates.read/write + legal_review)'
+    );
   } catch (err) {
     console.warn('[cco-templates] kunde inte montera:', err.message);
   }
@@ -2586,12 +3827,19 @@ let ccoComplianceScanStore = null;
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
 
     // Vänta på att template-registry initieras (race-condition skydd)
-    function getTemplateRegistry() { return app.locals.ccoTemplateRegistry; }
+    function getTemplateRegistry() {
+      return app.locals.ccoTemplateRegistry;
+    }
 
     ccoComplianceScanStore = await createCcoComplianceScanStore({
       filePath: path.join(__dirname, 'data', 'cco-compliance-scans.json'),
       externalVersionsPath: path.join(__dirname, 'config', 'external-template-versions.json'),
-      meridiqSchemaPath: path.join(__dirname, 'migration', 'meridiq', 'journal-schema-catalog.json'),
+      meridiqSchemaPath: path.join(
+        __dirname,
+        'migration',
+        'meridiq',
+        'journal-schema-catalog.json'
+      ),
       templateRegistry: {
         list: (...args) => getTemplateRegistry()?.list(...args) || [],
       },
@@ -2603,34 +3851,63 @@ let ccoComplianceScanStore = null;
     const jsonParserS = expressS.json({ limit: '16kb' });
 
     // GET /api/v1/cco-compliance-scan/latest — senaste scan
-    app.get('/api/v1/cco-compliance-scan/latest', attachRole, requirePermission('compliance.read'), (req, res) => {
-      const latest = ccoComplianceScanStore.getLatestScan();
-      if (!latest) return res.status(404).json({ error: 'no_scans_yet', detail: 'Kör POST /api/v1/cco-compliance-scan/run för att trigga första scan' });
-      res.json(latest);
-    });
+    app.get(
+      '/api/v1/cco-compliance-scan/latest',
+      attachRole,
+      requirePermission('compliance.read'),
+      (req, res) => {
+        const latest = ccoComplianceScanStore.getLatestScan();
+        if (!latest)
+          return res
+            .status(404)
+            .json({
+              error: 'no_scans_yet',
+              detail: 'Kör POST /api/v1/cco-compliance-scan/run för att trigga första scan',
+            });
+        res.json(latest);
+      }
+    );
 
     // GET /api/v1/cco-compliance-scan/flags — aktiva flaggor från senaste scan
-    app.get('/api/v1/cco-compliance-scan/flags', attachRole, requirePermission('compliance.read'), (req, res) => {
-      res.json(ccoComplianceScanStore.getActiveFlags());
-    });
+    app.get(
+      '/api/v1/cco-compliance-scan/flags',
+      attachRole,
+      requirePermission('compliance.read'),
+      (req, res) => {
+        res.json(ccoComplianceScanStore.getActiveFlags());
+      }
+    );
 
     // GET /api/v1/cco-compliance-scan/history — scan-historik
-    app.get('/api/v1/cco-compliance-scan/history', attachRole, requirePermission('compliance.read'), (req, res) => {
-      res.json({ scans: ccoComplianceScanStore.listScans({ limit: Number(req.query.limit) || 20 }) });
-    });
+    app.get(
+      '/api/v1/cco-compliance-scan/history',
+      attachRole,
+      requirePermission('compliance.read'),
+      (req, res) => {
+        res.json({
+          scans: ccoComplianceScanStore.listScans({ limit: Number(req.query.limit) || 20 }),
+        });
+      }
+    );
 
     // POST /api/v1/cco-compliance-scan/run — trigga manuell scan (owner only)
-    app.post('/api/v1/cco-compliance-scan/run', attachRole, requirePermission('compliance.scan'), jsonParserS, async (req, res) => {
-      try {
-        const result = await ccoComplianceScanStore.runFullScan({
-          triggeredBy: 'manual:' + (req.cco?.role || 'owner'),
-          sinceHours: Number(req.body?.sinceHours) || 24,
-        });
-        res.json(result);
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ error: err.message });
+    app.post(
+      '/api/v1/cco-compliance-scan/run',
+      attachRole,
+      requirePermission('compliance.scan'),
+      jsonParserS,
+      async (req, res) => {
+        try {
+          const result = await ccoComplianceScanStore.runFullScan({
+            triggeredBy: 'manual:' + (req.cco?.role || 'owner'),
+            sinceHours: Number(req.body?.sinceHours) || 24,
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
       }
-    });
+    );
 
     // Auto-scan: cron-job tickar dagligen 06:00 (om cron-scheduler är aktivt)
     // Vi använder enkel setInterval här eftersom befintlig cronScheduler är knuten till notifications
@@ -2638,19 +3915,28 @@ let ccoComplianceScanStore = null;
     let scanInterval = null;
     setTimeout(() => {
       // Initial scan vid boot
-      ccoComplianceScanStore.runFullScan({ triggeredBy: 'boot' })
-        .then((r) => console.log(`[cco-compliance-scan] initial scan klart — ${r.totalFlags} flaggor`))
+      ccoComplianceScanStore
+        .runFullScan({ triggeredBy: 'boot' })
+        .then((r) =>
+          console.log(`[cco-compliance-scan] initial scan klart — ${r.totalFlags} flaggor`)
+        )
         .catch((err) => console.warn('[cco-compliance-scan] initial scan failed:', err.message));
 
       // Daglig återkommande scan
-      scanInterval = setInterval(() => {
-        ccoComplianceScanStore.runFullScan({ triggeredBy: 'cron_daily' })
-          .then((r) => console.log(`[cco-compliance-scan] daily scan — ${r.totalFlags} flaggor`))
-          .catch((err) => console.warn('[cco-compliance-scan] daily scan failed:', err.message));
-      }, 24 * 3600 * 1000);
+      scanInterval = setInterval(
+        () => {
+          ccoComplianceScanStore
+            .runFullScan({ triggeredBy: 'cron_daily' })
+            .then((r) => console.log(`[cco-compliance-scan] daily scan — ${r.totalFlags} flaggor`))
+            .catch((err) => console.warn('[cco-compliance-scan] daily scan failed:', err.message));
+        },
+        24 * 3600 * 1000
+      );
     }, 30000);
 
-    console.log('[cco-compliance-scan] monterad: GET /latest, /flags, /history, POST /run (compliance.read/scan) — cron dagligen + initial 30s efter boot');
+    console.log(
+      '[cco-compliance-scan] monterad: GET /latest, /flags, /history, POST /run (compliance.read/scan) — cron dagligen + initial 30s efter boot'
+    );
   } catch (err) {
     console.warn('[cco-compliance-scan] kunde inte montera:', err.message);
   }
@@ -2663,10 +3949,16 @@ let ccoSendActionStore = null;
     const { createCcoSendActionStore, isDryRunDefault } = require('./src/ops/ccoSendActionStore');
     const { attachRole, requirePermission } = require('./src/security/ccoRbac');
     let mailer = null;
-    try { mailer = require('./src/infra/resendMailer'); } catch (e) { /* mailer optional */ }
+    try {
+      mailer = require('./src/infra/resendMailer');
+    } catch (e) {
+      /* mailer optional */
+    }
 
     // Vänta lite på template-registry init (race-condition skydd)
-    function getTemplateRegistry() { return app.locals.ccoTemplateRegistry; }
+    function getTemplateRegistry() {
+      return app.locals.ccoTemplateRegistry;
+    }
 
     ccoSendActionStore = await createCcoSendActionStore({
       filePath: path.join(__dirname, 'data', 'cco-send-actions.json'),
@@ -2692,78 +3984,132 @@ let ccoSendActionStore = null;
     }
 
     // POST /api/v1/cco-send/form/:customerId
-    app.post('/api/v1/cco-send/form/:customerId', attachRole, requirePermission('mail.send'), jsonParserC, async (req, res) => {
-      try {
-        const ctx = commonCustomerCtx(req);
-        if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
-        const payload = ccoSendActionStore.buildFormPayload({ ...ctx, formKind: req.body?.formKind || 'health_declaration' });
-        const result = await ccoSendActionStore.performSend({
-          kind: 'form', payload, customerId: ctx.customerId, role: req.cco?.role,
-          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
-          templateRef: req.body?.templateRef || null,
-          templateLang: req.body?.templateLang || 'sv',
-        });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-send/form/:customerId',
+      attachRole,
+      requirePermission('mail.send'),
+      jsonParserC,
+      async (req, res) => {
+        try {
+          const ctx = commonCustomerCtx(req);
+          if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
+          const payload = ccoSendActionStore.buildFormPayload({
+            ...ctx,
+            formKind: req.body?.formKind || 'health_declaration',
+          });
+          const result = await ccoSendActionStore.performSend({
+            kind: 'form',
+            payload,
+            customerId: ctx.customerId,
+            role: req.cco?.role,
+            dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+            templateRef: req.body?.templateRef || null,
+            templateLang: req.body?.templateLang || 'sv',
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-send/consent/:customerId
-    app.post('/api/v1/cco-send/consent/:customerId', attachRole, requirePermission('mail.send'), jsonParserC, async (req, res) => {
-      try {
-        const ctx = commonCustomerCtx(req);
-        if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
-        const payload = ccoSendActionStore.buildConsentPayload({ ...ctx, consentKind: req.body?.consentKind || 'photo_publish' });
-        const result = await ccoSendActionStore.performSend({
-          kind: 'consent', payload, customerId: ctx.customerId, role: req.cco?.role,
-          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
-          templateRef: req.body?.templateRef || null,
-          templateLang: req.body?.templateLang || 'sv',
-        });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-send/consent/:customerId',
+      attachRole,
+      requirePermission('mail.send'),
+      jsonParserC,
+      async (req, res) => {
+        try {
+          const ctx = commonCustomerCtx(req);
+          if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
+          const payload = ccoSendActionStore.buildConsentPayload({
+            ...ctx,
+            consentKind: req.body?.consentKind || 'photo_publish',
+          });
+          const result = await ccoSendActionStore.performSend({
+            kind: 'consent',
+            payload,
+            customerId: ctx.customerId,
+            role: req.cco?.role,
+            dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+            templateRef: req.body?.templateRef || null,
+            templateLang: req.body?.templateLang || 'sv',
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-send/file/:customerId
-    app.post('/api/v1/cco-send/file/:customerId', attachRole, requirePermission('mail.send'), jsonParserC, async (req, res) => {
-      try {
-        const ctx = commonCustomerCtx(req);
-        if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
-        if (!req.body?.fileName || !req.body?.fileMime) return res.status(400).json({ error: 'fileName + fileMime krävs' });
-        const payload = ccoSendActionStore.buildFilePayload({
-          ...ctx, fileName: req.body.fileName, fileMime: req.body.fileMime, fileNote: req.body.fileNote || '',
-        });
-        const result = await ccoSendActionStore.performSend({
-          kind: 'file', payload, customerId: ctx.customerId, role: req.cco?.role,
-          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
-          templateRef: req.body?.templateRef || null,
-          templateLang: req.body?.templateLang || 'sv',
-        });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-send/file/:customerId',
+      attachRole,
+      requirePermission('mail.send'),
+      jsonParserC,
+      async (req, res) => {
+        try {
+          const ctx = commonCustomerCtx(req);
+          if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
+          if (!req.body?.fileName || !req.body?.fileMime)
+            return res.status(400).json({ error: 'fileName + fileMime krävs' });
+          const payload = ccoSendActionStore.buildFilePayload({
+            ...ctx,
+            fileName: req.body.fileName,
+            fileMime: req.body.fileMime,
+            fileNote: req.body.fileNote || '',
+          });
+          const result = await ccoSendActionStore.performSend({
+            kind: 'file',
+            payload,
+            customerId: ctx.customerId,
+            role: req.cco?.role,
+            dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+            templateRef: req.body?.templateRef || null,
+            templateLang: req.body?.templateLang || 'sv',
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // POST /api/v1/cco-send/encounter/:customerId (kort: send booking → encounter-länk)
-    app.post('/api/v1/cco-send/encounter/:customerId', attachRole, requirePermission('mail.send'), jsonParserC, async (req, res) => {
-      try {
-        const ctx = commonCustomerCtx(req);
-        if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
-        const payload = ccoSendActionStore.buildEncounterPayload({
-          ...ctx,
-          encounterDate: req.body?.encounterDate,
-          encounterTime: req.body?.encounterTime,
-          treatmentLabel: req.body?.treatmentLabel || 'behandling',
-          staffName: req.body?.staffName || 'Hair TP Clinic',
-          encounterId: req.body?.encounterId,
-        });
-        const result = await ccoSendActionStore.performSend({
-          kind: 'encounter', payload, customerId: ctx.customerId, role: req.cco?.role,
-          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
-          templateRef: req.body?.templateRef || null,
-          templateLang: req.body?.templateLang || 'sv',
-        });
-        res.json(result);
-      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
-    });
+    app.post(
+      '/api/v1/cco-send/encounter/:customerId',
+      attachRole,
+      requirePermission('mail.send'),
+      jsonParserC,
+      async (req, res) => {
+        try {
+          const ctx = commonCustomerCtx(req);
+          if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
+          const payload = ccoSendActionStore.buildEncounterPayload({
+            ...ctx,
+            encounterDate: req.body?.encounterDate,
+            encounterTime: req.body?.encounterTime,
+            treatmentLabel: req.body?.treatmentLabel || 'behandling',
+            staffName: req.body?.staffName || 'Hair TP Clinic',
+            encounterId: req.body?.encounterId,
+          });
+          const result = await ccoSendActionStore.performSend({
+            kind: 'encounter',
+            payload,
+            customerId: ctx.customerId,
+            role: req.cco?.role,
+            dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+            templateRef: req.body?.templateRef || null,
+            templateLang: req.body?.templateLang || 'sv',
+          });
+          res.json(result);
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      }
+    );
 
     // GET /api/v1/cco-send/history
     app.get('/api/v1/cco-send/history', attachRole, requirePermission('mail.read'), (req, res) => {
@@ -2781,16 +4127,28 @@ let ccoSendActionStore = null;
     });
 
     // GET /api/v1/cco-send/templates — för UI dropdown
-    app.get('/api/v1/cco-send/templates', attachRole, requirePermission('mail.read'), (req, res) => {
-      const { FORM_TEMPLATES, CONSENT_TEMPLATES, ALLOWED_MIME_BY_KIND } = require('./src/ops/ccoSendActionStore');
-      res.json({
-        form: Object.keys(FORM_TEMPLATES).map((k) => ({ id: k, ...FORM_TEMPLATES[k] })),
-        consent: Object.keys(CONSENT_TEMPLATES).map((k) => ({ id: k, ...CONSENT_TEMPLATES[k] })),
-        allowedFileTypes: ALLOWED_MIME_BY_KIND.file,
-      });
-    });
+    app.get(
+      '/api/v1/cco-send/templates',
+      attachRole,
+      requirePermission('mail.read'),
+      (req, res) => {
+        const {
+          FORM_TEMPLATES,
+          CONSENT_TEMPLATES,
+          ALLOWED_MIME_BY_KIND,
+        } = require('./src/ops/ccoSendActionStore');
+        res.json({
+          form: Object.keys(FORM_TEMPLATES).map((k) => ({ id: k, ...FORM_TEMPLATES[k] })),
+          consent: Object.keys(CONSENT_TEMPLATES).map((k) => ({ id: k, ...CONSENT_TEMPLATES[k] })),
+          allowedFileTypes: ALLOWED_MIME_BY_KIND.file,
+        });
+      }
+    );
 
-    console.log('[cco-send] monterad: 4 POST /api/v1/cco-send/{form|consent|file|encounter}/:customerId + history/stats/templates (mail.send) — dryRunDefault=' + isDryRunDefault());
+    console.log(
+      '[cco-send] monterad: 4 POST /api/v1/cco-send/{form|consent|file|encounter}/:customerId + history/stats/templates (mail.send) — dryRunDefault=' +
+        isDryRunDefault()
+    );
   } catch (err) {
     console.warn('[cco-send] kunde inte montera:', err.message);
   }
@@ -2826,220 +4184,335 @@ try {
   }
 
   // POST /api/v1/cco-journal-quick/entry — skapa/spara draft (PUT-semantik)
-  app.put('/api/v1/cco-journal-quick/entry', attachRole, requirePermission('journal.write'), jsonParserA, async (req, res) => {
-    const store = getJournalStore();
-    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
-    try {
-      const body = req.body || {};
-      if (!body.patientId) return res.status(400).json({ error: 'patientId krävs' });
-      const tenantId = body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const entry = await store.upsertEntry({ ...body, tenantId }, {
-        actor: {
-          userId: req.headers['x-cco-user'] || 'demo-user',
-          role: req.cco?.role,
-          displayName: req.headers['x-cco-user'] || req.cco?.role,
-        },
-      });
-      auditA('journal.entry.write', req.cco?.role, { kind: 'journal_entry', id: entry.entryId }, { patientId: body.patientId, journalType: entry.journalType, status: entry.status });
-      res.json({ entry, readout: store.buildJournalReadout?.(entry) || null });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+  app.put(
+    '/api/v1/cco-journal-quick/entry',
+    attachRole,
+    requirePermission('journal.write'),
+    jsonParserA,
+    async (req, res) => {
+      const store = getJournalStore();
+      if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+      try {
+        const body = req.body || {};
+        if (!body.patientId) return res.status(400).json({ error: 'patientId krävs' });
+        const tenantId = body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const entry = await store.upsertEntry(
+          { ...body, tenantId },
+          {
+            actor: {
+              userId: req.headers['x-cco-user'] || 'demo-user',
+              role: req.cco?.role,
+              displayName: req.headers['x-cco-user'] || req.cco?.role,
+            },
+          }
+        );
+        auditA(
+          'journal.entry.write',
+          req.cco?.role,
+          { kind: 'journal_entry', id: entry.entryId },
+          { patientId: body.patientId, journalType: entry.journalType, status: entry.status }
+        );
+        res.json({ entry, readout: store.buildJournalReadout?.(entry) || null });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
   // POST /api/v1/cco-journal-quick/entry/sign — signera (auto-lockar)
-  app.post('/api/v1/cco-journal-quick/entry/sign', attachRole, requirePermission('journal.write'), jsonParserA, async (req, res) => {
-    const store = getJournalStore();
-    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
-    try {
-      const { patientId, entryId } = req.body || {};
-      if (!patientId || !entryId) return res.status(400).json({ error: 'patientId + entryId krävs' });
-      const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const signed = await store.signEntry({
-        tenantId, patientId, entryId,
-        actor: { userId: req.headers['x-cco-user'] || 'demo-user', role: req.cco?.role, displayName: req.headers['x-cco-user'] || req.cco?.role },
-      });
-      auditA('journal.entry.sign', req.cco?.role, { kind: 'journal_entry', id: entryId }, { patientId, journalType: signed.journalType, locked: !!signed.locked });
-      res.json({ entry: signed });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+  app.post(
+    '/api/v1/cco-journal-quick/entry/sign',
+    attachRole,
+    requirePermission('journal.write'),
+    jsonParserA,
+    async (req, res) => {
+      const store = getJournalStore();
+      if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+      try {
+        const { patientId, entryId } = req.body || {};
+        if (!patientId || !entryId)
+          return res.status(400).json({ error: 'patientId + entryId krävs' });
+        const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const signed = await store.signEntry({
+          tenantId,
+          patientId,
+          entryId,
+          actor: {
+            userId: req.headers['x-cco-user'] || 'demo-user',
+            role: req.cco?.role,
+            displayName: req.headers['x-cco-user'] || req.cco?.role,
+          },
+        });
+        auditA(
+          'journal.entry.sign',
+          req.cco?.role,
+          { kind: 'journal_entry', id: entryId },
+          { patientId, journalType: signed.journalType, locked: !!signed.locked }
+        );
+        res.json({ entry: signed });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
   // POST /api/v1/cco-journal-quick/entry/correction — skapa rättelse (NY route, finns ej i legacy)
-  app.post('/api/v1/cco-journal-quick/entry/correction', attachRole, requirePermission('journal.write'), jsonParserA, async (req, res) => {
-    const store = getJournalStore();
-    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
-    if (typeof store.addCorrection !== 'function') return res.status(501).json({ error: 'addCorrection_not_implemented' });
-    try {
-      const { patientId, entryId, fields, reason } = req.body || {};
-      if (!patientId || !entryId) return res.status(400).json({ error: 'patientId + entryId krävs' });
-      if (!reason || String(reason).trim().length < 10) return res.status(400).json({ error: 'reason måste vara minst 10 tecken (PDL-krav på spårbarhet)' });
-      const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const correction = await store.addCorrection({
-        tenantId, patientId, entryId, fields: fields || {},
-        reason: String(reason || '').trim(),
-        actor: { userId: req.headers['x-cco-user'] || 'demo-user', role: req.cco?.role, displayName: req.headers['x-cco-user'] || req.cco?.role },
-      });
-      auditA('journal.entry.correction.create', req.cco?.role, { kind: 'journal_entry', id: correction.entryId }, { patientId, originalEntryId: entryId, reason });
-      res.json({ correction, originalEntryId: entryId, reason });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+  app.post(
+    '/api/v1/cco-journal-quick/entry/correction',
+    attachRole,
+    requirePermission('journal.write'),
+    jsonParserA,
+    async (req, res) => {
+      const store = getJournalStore();
+      if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+      if (typeof store.addCorrection !== 'function')
+        return res.status(501).json({ error: 'addCorrection_not_implemented' });
+      try {
+        const { patientId, entryId, fields, reason } = req.body || {};
+        if (!patientId || !entryId)
+          return res.status(400).json({ error: 'patientId + entryId krävs' });
+        if (!reason || String(reason).trim().length < 10)
+          return res
+            .status(400)
+            .json({ error: 'reason måste vara minst 10 tecken (PDL-krav på spårbarhet)' });
+        const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const correction = await store.addCorrection({
+          tenantId,
+          patientId,
+          entryId,
+          fields: fields || {},
+          reason: String(reason || '').trim(),
+          actor: {
+            userId: req.headers['x-cco-user'] || 'demo-user',
+            role: req.cco?.role,
+            displayName: req.headers['x-cco-user'] || req.cco?.role,
+          },
+        });
+        auditA(
+          'journal.entry.correction.create',
+          req.cco?.role,
+          { kind: 'journal_entry', id: correction.entryId },
+          { patientId, originalEntryId: entryId, reason }
+        );
+        res.json({ correction, originalEntryId: entryId, reason });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
   // GET /api/v1/cco-journal-quick/entries — lista per kund
   // P0.8: journal.read audit-event via readJournalWithAudit-wrapper
-  app.get('/api/v1/cco-journal-quick/entries', attachRole, requirePermission('journal.read_any'), async (req, res) => {
-    const store = getJournalStore();
-    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
-    try {
-      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const patientId = req.query.patientId;
-      if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
-      const { readJournalWithAudit } = require('./src/ops/ccoJournalReadAudit');
-      const entries = await readJournalWithAudit(
-        {
-          auditLog: ccoAuditLog,
-          actor: { role: req.cco?.role, userId: req.headers['x-cco-user'] || null },
-          tenantId, patientId,
-          endpoint: 'GET /api/v1/cco-journal-quick/entries',
-          scope: 'list_entries',
-          extra: { journalType: req.query.journalType || null },
-        },
-        () => store.listEntries({ tenantId, patientId, journalType: req.query.journalType || null })
-      );
-      res.json({ count: entries.length, entries });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+  app.get(
+    '/api/v1/cco-journal-quick/entries',
+    attachRole,
+    requirePermission('journal.read_any'),
+    async (req, res) => {
+      const store = getJournalStore();
+      if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+      try {
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const patientId = req.query.patientId;
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
+        const { readJournalWithAudit } = require('./src/ops/ccoJournalReadAudit');
+        const entries = await readJournalWithAudit(
+          {
+            auditLog: ccoAuditLog,
+            actor: { role: req.cco?.role, userId: req.headers['x-cco-user'] || null },
+            tenantId,
+            patientId,
+            endpoint: 'GET /api/v1/cco-journal-quick/entries',
+            scope: 'list_entries',
+            extra: { journalType: req.query.journalType || null },
+          },
+          () =>
+            store.listEntries({ tenantId, patientId, journalType: req.query.journalType || null })
+        );
+        res.json({ count: entries.length, entries });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
   // GET /api/v1/cco-journal-quick/stats — sammanställning
   // P0.8: aggregate-read loggas också (PDL: åtkomst-räkning)
-  app.get('/api/v1/cco-journal-quick/stats', attachRole, requirePermission('journal.read_any'), async (req, res) => {
-    const store = getJournalStore();
-    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
-    try {
-      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const { readJournalWithAudit } = require('./src/ops/ccoJournalReadAudit');
-      const all = await readJournalWithAudit(
-        {
-          auditLog: ccoAuditLog,
-          actor: { role: req.cco?.role, userId: req.headers['x-cco-user'] || null },
-          tenantId, patientId: null,
-          endpoint: 'GET /api/v1/cco-journal-quick/stats',
-          scope: 'stats_aggregate',
-        },
-        () => store.listAllEntries({ tenantId })
-      );
-      const byStatus = {};
-      const byKind = {};
-      for (const e of all) {
-        byStatus[e.status || 'unknown'] = (byStatus[e.status || 'unknown'] || 0) + 1;
-        byKind[e.journalType || 'unknown'] = (byKind[e.journalType || 'unknown'] || 0) + 1;
+  app.get(
+    '/api/v1/cco-journal-quick/stats',
+    attachRole,
+    requirePermission('journal.read_any'),
+    async (req, res) => {
+      const store = getJournalStore();
+      if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+      try {
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const { readJournalWithAudit } = require('./src/ops/ccoJournalReadAudit');
+        const all = await readJournalWithAudit(
+          {
+            auditLog: ccoAuditLog,
+            actor: { role: req.cco?.role, userId: req.headers['x-cco-user'] || null },
+            tenantId,
+            patientId: null,
+            endpoint: 'GET /api/v1/cco-journal-quick/stats',
+            scope: 'stats_aggregate',
+          },
+          () => store.listAllEntries({ tenantId })
+        );
+        const byStatus = {};
+        const byKind = {};
+        for (const e of all) {
+          byStatus[e.status || 'unknown'] = (byStatus[e.status || 'unknown'] || 0) + 1;
+          byKind[e.journalType || 'unknown'] = (byKind[e.journalType || 'unknown'] || 0) + 1;
+        }
+        res.json({
+          total: all.length,
+          byStatus,
+          byKind,
+          lockedCount: all.filter((e) => e.locked).length,
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
       }
-      res.json({ total: all.length, byStatus, byKind, lockedCount: all.filter(e => e.locked).length });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
     }
-  });
+  );
 
   // POST /api/v1/cco-journal-quick/entry/unlock — Beslut #3: OWNER ONLY + reason min 20 chars
   // PDL-compliance: unlock loggas som HIGH-severity audit-event
-  app.post('/api/v1/cco-journal-quick/entry/unlock', attachRole, requirePermission('journal.unlock'), jsonParserA, async (req, res) => {
-    const store = getJournalStore();
-    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
-    try {
-      const { patientId, entryId, reason } = req.body || {};
-      if (!patientId || !entryId) return res.status(400).json({ error: 'patientId + entryId krävs' });
-      if (!reason || String(reason).trim().length < 20) {
-        return res.status(400).json({
-          error: 'unlock_reason_required',
-          detail: 'Owner-unlock kräver reason ≥ 20 tecken med tydlig anledning (för PDL-spårbarhet). Använd correction-flow först om möjligt — unlock är extrem-åtgärd.',
+  app.post(
+    '/api/v1/cco-journal-quick/entry/unlock',
+    attachRole,
+    requirePermission('journal.unlock'),
+    jsonParserA,
+    async (req, res) => {
+      const store = getJournalStore();
+      if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+      try {
+        const { patientId, entryId, reason } = req.body || {};
+        if (!patientId || !entryId)
+          return res.status(400).json({ error: 'patientId + entryId krävs' });
+        if (!reason || String(reason).trim().length < 20) {
+          return res.status(400).json({
+            error: 'unlock_reason_required',
+            detail:
+              'Owner-unlock kräver reason ≥ 20 tecken med tydlig anledning (för PDL-spårbarhet). Använd correction-flow först om möjligt — unlock är extrem-åtgärd.',
+          });
+        }
+        const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const updated = await store.unlockEntry({
+          tenantId,
+          patientId,
+          entryId,
+          reason: reason.trim(),
+          actor: {
+            userId: req.headers['x-cco-user'] || 'owner',
+            displayName: req.headers['x-cco-user'] || 'owner',
+            role: req.cco?.role,
+          },
         });
+
+        auditA(
+          'journal.entry.unlock.HIGH_SEVERITY',
+          req.cco?.role,
+          { kind: 'journal_entry', id: entryId },
+          {
+            patientId,
+            reason: reason.trim(),
+            previouslySignedAt: updated.unlockSnapshot?.previouslySignedAt,
+            previouslySignedBy: updated.unlockSnapshot?.previouslySignedByName,
+            WARNING: 'Owner-unlock — PDL compliance-händelse. Granska vid nästa audit.',
+          }
+        );
+
+        res.json({
+          entry: updated,
+          snapshot: updated.unlockSnapshot,
+          complianceNote:
+            'Unlock loggad som HIGH_SEVERITY. Originalets signed-state bevarad i unlockSnapshot. Skapa ny signering eller correction.',
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
       }
-      const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const updated = await store.unlockEntry({
-        tenantId, patientId, entryId,
-        reason: reason.trim(),
-        actor: {
-          userId: req.headers['x-cco-user'] || 'owner',
-          displayName: req.headers['x-cco-user'] || 'owner',
-          role: req.cco?.role,
-        },
-      });
-
-      auditA('journal.entry.unlock.HIGH_SEVERITY', req.cco?.role, { kind: 'journal_entry', id: entryId }, {
-        patientId, reason: reason.trim(),
-        previouslySignedAt: updated.unlockSnapshot?.previouslySignedAt,
-        previouslySignedBy: updated.unlockSnapshot?.previouslySignedByName,
-        WARNING: 'Owner-unlock — PDL compliance-händelse. Granska vid nästa audit.',
-      });
-
-      res.json({
-        entry: updated,
-        snapshot: updated.unlockSnapshot,
-        complianceNote: 'Unlock loggad som HIGH_SEVERITY. Originalets signed-state bevarad i unlockSnapshot. Skapa ny signering eller correction.',
-      });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
     }
-  });
+  );
 
   // GET /api/v1/cco-journal-quick/entry/:entryId/pdf — Steg 7: PDF-export av signerad journal
-  app.get('/api/v1/cco-journal-quick/entry/:entryId/pdf', attachRole, requirePermission('journal.read_own'), async (req, res) => {
-    const store = getJournalStore();
-    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
-    try {
-      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
-      const patientId = req.query.patientId;
-      if (!patientId) return res.status(400).json({ error: 'patientId krävs i query' });
-      const { readJournalWithAudit } = require('./src/ops/ccoJournalReadAudit');
-      const entry = await readJournalWithAudit(
-        {
-          auditLog: ccoAuditLog,
-          actor: { role: req.cco?.role, userId: req.headers['x-cco-user'] || null },
-          tenantId, patientId,
-          endpoint: 'GET /api/v1/cco-journal-quick/entry/:entryId/pdf',
-          scope: 'pdf_export_read',
-          extra: { entryId: req.params.entryId },
-        },
-        () => store.getEntry({ tenantId, patientId, entryId: req.params.entryId })
-      );
-      if (!entry) return res.status(404).json({ error: 'not_found' });
+  app.get(
+    '/api/v1/cco-journal-quick/entry/:entryId/pdf',
+    attachRole,
+    requirePermission('journal.read_own'),
+    async (req, res) => {
+      const store = getJournalStore();
+      if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+      try {
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+        const patientId = req.query.patientId;
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs i query' });
+        const { readJournalWithAudit } = require('./src/ops/ccoJournalReadAudit');
+        const entry = await readJournalWithAudit(
+          {
+            auditLog: ccoAuditLog,
+            actor: { role: req.cco?.role, userId: req.headers['x-cco-user'] || null },
+            tenantId,
+            patientId,
+            endpoint: 'GET /api/v1/cco-journal-quick/entry/:entryId/pdf',
+            scope: 'pdf_export_read',
+            extra: { entryId: req.params.entryId },
+          },
+          () => store.getEntry({ tenantId, patientId, entryId: req.params.entryId })
+        );
+        if (!entry) return res.status(404).json({ error: 'not_found' });
 
-      const { exportJournalEntryToPdf } = require('./src/ops/ccoJournalPdfExport');
-      const result = await exportJournalEntryToPdf({
-        entry,
-        getChromium,
-        templateVersion: req.query.templateVersion || null,
-      });
+        const { exportJournalEntryToPdf } = require('./src/ops/ccoJournalPdfExport');
+        const result = await exportJournalEntryToPdf({
+          entry,
+          getChromium,
+          templateVersion: req.query.templateVersion || null,
+        });
 
-      auditA('journal.pdf.export', req.cco?.role, { kind: 'journal_entry', id: entry.entryId || entry.id }, {
-        patientId, journalType: entry.journalType,
-        tamperHash: result.tamperHash,
-        sizeBytes: result.sizeBytes,
-        signedAt: entry.signedAt,
-        signedByName: entry.signedByName,
-      });
-      // P0.8 — canonical 'journal.export' alias
-      auditA('journal.export', req.cco?.role, { kind: 'journal_entry', id: entry.entryId || entry.id }, {
-        patientId, journalType: entry.journalType, format: 'pdf', tamperHash: result.tamperHash,
-      });
+        auditA(
+          'journal.pdf.export',
+          req.cco?.role,
+          { kind: 'journal_entry', id: entry.entryId || entry.id },
+          {
+            patientId,
+            journalType: entry.journalType,
+            tamperHash: result.tamperHash,
+            sizeBytes: result.sizeBytes,
+            signedAt: entry.signedAt,
+            signedByName: entry.signedByName,
+          }
+        );
+        // P0.8 — canonical 'journal.export' alias
+        auditA(
+          'journal.export',
+          req.cco?.role,
+          { kind: 'journal_entry', id: entry.entryId || entry.id },
+          {
+            patientId,
+            journalType: entry.journalType,
+            format: 'pdf',
+            tamperHash: result.tamperHash,
+          }
+        );
 
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="journal-${entry.entryId || entry.id}-${(entry.signedAt || '').substring(0,10)}.pdf"`);
-      res.setHeader('X-Journal-Tamper-Hash', result.tamperHash);
-      res.setHeader('X-Journal-Entry-Id', entry.entryId || entry.id);
-      res.setHeader('X-Journal-Signed-At', entry.signedAt || '');
-      res.send(result.buffer);
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+          'Content-Disposition',
+          `inline; filename="journal-${entry.entryId || entry.id}-${(entry.signedAt || '').substring(0, 10)}.pdf"`
+        );
+        res.setHeader('X-Journal-Tamper-Hash', result.tamperHash);
+        res.setHeader('X-Journal-Entry-Id', entry.entryId || entry.id);
+        res.setHeader('X-Journal-Signed-At', entry.signedAt || '');
+        res.send(result.buffer);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
-  console.log('[cco-journal-quick] monterad: PUT /entry, POST /sign+/correction+/unlock, GET /entries+/stats+/pdf (RBAC: journal.read_any/write + unlock=owner)');
+  console.log(
+    '[cco-journal-quick] monterad: PUT /entry, POST /sign+/correction+/unlock, GET /entries+/stats+/pdf (RBAC: journal.read_any/write + unlock=owner)'
+  );
 } catch (err) {
   console.warn('[cco-journal-quick] kunde inte montera:', err.message);
 }
@@ -3068,40 +4541,52 @@ try {
     return qaDashboardStore;
   }
 
-  app.get('/api/v1/cco/journal-qa/snapshot', attachRole, requirePermission('journal.read_any'), async (req, res) => {
-    const store = getQaDashboardStore();
-    if (!store) return res.status(503).json({ error: 'qa_dashboard_unavailable' });
-    try {
-      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
-      const snapshot = await store.getSnapshot({ tenantId });
-      if (ccoAuditLog) {
-        ccoAuditLog.append({
-          action: 'journal.qa.read',
-          actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
-          target: { kind: 'qa_dashboard', id: tenantId },
-          result: 'ok',
-          detail: {
-            blocks: 5,
-            okCount: snapshot.block5?.okCount,
-            readiness: snapshot.block5?.status,
-          },
-        });
+  app.get(
+    '/api/v1/cco/journal-qa/snapshot',
+    attachRole,
+    requirePermission('journal.read_any'),
+    async (req, res) => {
+      const store = getQaDashboardStore();
+      if (!store) return res.status(503).json({ error: 'qa_dashboard_unavailable' });
+      try {
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+        const snapshot = await store.getSnapshot({ tenantId });
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'journal.qa.read',
+            actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
+            target: { kind: 'qa_dashboard', id: tenantId },
+            result: 'ok',
+            detail: {
+              blocks: 5,
+              okCount: snapshot.block5?.okCount,
+              readiness: snapshot.block5?.status,
+            },
+          });
+        }
+        res.json(snapshot);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
       }
-      res.json(snapshot);
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
     }
-  });
+  );
 
-  app.post('/api/v1/cco/journal-qa/invalidate', attachRole, requirePermission('journal.read_any'), (req, res) => {
-    const store = getQaDashboardStore();
-    if (!store) return res.status(503).json({ error: 'qa_dashboard_unavailable' });
-    const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || null;
-    store.invalidate(tenantId);
-    res.json({ invalidated: tenantId || 'all' });
-  });
+  app.post(
+    '/api/v1/cco/journal-qa/invalidate',
+    attachRole,
+    requirePermission('journal.read_any'),
+    (req, res) => {
+      const store = getQaDashboardStore();
+      if (!store) return res.status(503).json({ error: 'qa_dashboard_unavailable' });
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || null;
+      store.invalidate(tenantId);
+      res.json({ invalidated: tenantId || 'all' });
+    }
+  );
 
-  console.log('[cco-journal-qa] monterad: GET /api/v1/cco/journal-qa/snapshot + POST /invalidate (RBAC: journal.read_any)');
+  console.log(
+    '[cco-journal-qa] monterad: GET /api/v1/cco/journal-qa/snapshot + POST /invalidate (RBAC: journal.read_any)'
+  );
 } catch (err) {
   console.warn('[cco-journal-qa] kunde inte montera:', err.message);
 }
@@ -3166,7 +4651,7 @@ try {
 
   async function buildAssetQaSnapshot({ tenantId = 'hair_tp' } = {}) {
     const now = Date.now();
-    if (assetQaCache && (now - assetQaCacheTs) < ASSET_QA_CACHE_TTL_MS) {
+    if (assetQaCache && now - assetQaCacheTs < ASSET_QA_CACHE_TTL_MS) {
       return assetQaCache;
     }
     const stores = await ensureAssetStores();
@@ -3177,15 +4662,15 @@ try {
     // 11 metrics enligt `.cursor/rules/cco-no-drive-links-import-only.mdc#QA-dashboard ska visa`
     const byStatus = aStats.byStatus || {};
     const discovered = aStats.total || 0;
-    const importedToCco = (byStatus.IMPORTED_TO_CCO || 0)
-      + (byStatus.VERIFIED_IN_CCO || 0)
-      + (byStatus.VISIBLE_ON_PATIENT_CARD || 0);
-    const verified = (byStatus.VERIFIED_IN_CCO || 0)
-      + (byStatus.VISIBLE_ON_PATIENT_CARD || 0);
+    const importedToCco =
+      (byStatus.IMPORTED_TO_CCO || 0) +
+      (byStatus.VERIFIED_IN_CCO || 0) +
+      (byStatus.VISIBLE_ON_PATIENT_CARD || 0);
+    const verified = (byStatus.VERIFIED_IN_CCO || 0) + (byStatus.VISIBLE_ON_PATIENT_CARD || 0);
     const linkOnly = aStats.linkOnlyCount || 0;
-    const needsReview = aStats.needsReviewCount || (byStatus.NEEDS_REVIEW || 0);
+    const needsReview = aStats.needsReviewCount || byStatus.NEEDS_REVIEW || 0;
     const failed = byStatus.FAILED_IMPORT || 0;
-    const duplicate = aStats.duplicateCount || (byStatus.DUPLICATE || 0);
+    const duplicate = aStats.duplicateCount || byStatus.DUPLICATE || 0;
 
     // Patient-coverage: räkna unika patienter + de utan journal/foto.
     // Vi använder customerStore (om finns) för total-population.
@@ -3194,9 +4679,7 @@ try {
     try {
       if (cs && typeof cs.getStateForTenant === 'function') {
         const tenantState = await cs.getStateForTenant(tenantId);
-        totalPatients = Array.isArray(tenantState?.directory)
-          ? tenantState.directory.length
-          : 0;
+        totalPatients = Array.isArray(tenantState?.directory) ? tenantState.directory.length : 0;
       } else if (cs && typeof cs.listCustomers === 'function') {
         const list = await cs.listCustomers({ tenantId });
         totalPatients = Array.isArray(list) ? list.length : 0;
@@ -3213,11 +4696,18 @@ try {
     const patientIdsSeen = new Set();
     let orphans = 0;
     for (const a of allAssets) {
-      if (!a.patientId) { orphans += 1; continue; }
+      if (!a.patientId) {
+        orphans += 1;
+        continue;
+      }
       patientIdsSeen.add(a.patientId);
       patientsWithAssets.add(a.patientId);
       if (a.category === 'journal') patientsWithJournal.add(a.patientId);
-      if (a.category === 'photo_before' || a.category === 'photo_during' || a.category === 'photo_after') {
+      if (
+        a.category === 'photo_before' ||
+        a.category === 'photo_during' ||
+        a.category === 'photo_after'
+      ) {
         patientsWithImage.add(a.patientId);
       }
     }
@@ -3268,169 +4758,208 @@ try {
     return snapshot;
   }
 
-  app.get('/api/v1/cco/asset-qa/snapshot', attachRole, requirePermission('journal.read_any'), async (req, res) => {
-    try {
-      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
-      const snapshot = await buildAssetQaSnapshot({ tenantId });
-      if (ccoAuditLog) {
-        ccoAuditLog.append({
-          action: 'journal.qa.read',
-          actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
-          target: { kind: 'asset_qa_dashboard', id: tenantId },
-          result: 'ok',
-          detail: {
-            view: 'asset-qa',
-            linkOnlyBlockers: snapshot.linkOnlyBlockers,
-            metricsCount: 11,
-          },
-        });
+  app.get(
+    '/api/v1/cco/asset-qa/snapshot',
+    attachRole,
+    requirePermission('journal.read_any'),
+    async (req, res) => {
+      try {
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+        const snapshot = await buildAssetQaSnapshot({ tenantId });
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'journal.qa.read',
+            actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
+            target: { kind: 'asset_qa_dashboard', id: tenantId },
+            result: 'ok',
+            detail: {
+              view: 'asset-qa',
+              linkOnlyBlockers: snapshot.linkOnlyBlockers,
+              metricsCount: 11,
+            },
+          });
+        }
+        res.json(snapshot);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
       }
-      res.json(snapshot);
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
     }
-  });
+  );
 
-  app.post('/api/v1/cco/asset-qa/invalidate', attachRole, requirePermission('journal.read_any'), (req, res) => {
-    invalidateAssetQaCache();
-    res.json({ invalidated: 'asset-qa' });
-  });
+  app.post(
+    '/api/v1/cco/asset-qa/invalidate',
+    attachRole,
+    requirePermission('journal.read_any'),
+    (req, res) => {
+      invalidateAssetQaCache();
+      res.json({ invalidated: 'asset-qa' });
+    }
+  );
 
   // ── P0.G: Per-patient asset-listning för patientkort ──
-  app.get('/api/v1/cco/patients/:patientId/assets', attachRole, requirePermission('asset.read'), async (req, res) => {
-    try {
-      const stores = await ensureAssetStores();
-      const patientId = String(req.params.patientId || '').trim();
-      if (!patientId) return res.status(400).json({ error: 'patientId required' });
-      const all = stores.assetStore.listAssetsForPatient(patientId, {}, {
-        actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null, tenantId: req.headers['x-cco-tenant'] || null },
-      });
+  app.get(
+    '/api/v1/cco/patients/:patientId/assets',
+    attachRole,
+    requirePermission('asset.read'),
+    async (req, res) => {
+      try {
+        const stores = await ensureAssetStores();
+        const patientId = String(req.params.patientId || '').trim();
+        if (!patientId) return res.status(400).json({ error: 'patientId required' });
+        const all = stores.assetStore.listAssetsForPatient(
+          patientId,
+          {},
+          {
+            actor: {
+              role: req.cco?.role || 'unknown',
+              userId: req.headers['x-cco-user'] || null,
+              tenantId: req.headers['x-cco-tenant'] || null,
+            },
+          }
+        );
 
-      // Synlighet: dölj REJECTED + DUPLICATE från default-listning;
-      // visa via ?includeAll=1 om operatör behöver.
-      const includeAll = String(req.query.includeAll || '') === '1';
-      const visible = all.filter((a) => {
-        if (includeAll) return true;
-        return a.status !== 'REJECTED' && a.status !== 'DUPLICATE';
-      });
-
-      // Gruppera per kategori (default: groupByCategory=1)
-      const groupByCategory = String(req.query.groupByCategory || '1') === '1';
-      const counts = {};
-      let linkOnlyCount = 0;
-      let inReviewCount = 0;
-      for (const a of visible) {
-        counts[a.category || 'other'] = (counts[a.category || 'other'] || 0) + 1;
-        if (a.status === 'LINK_ONLY_BLOCKER') linkOnlyCount += 1;
-        if (a.status === 'NEEDS_REVIEW') inReviewCount += 1;
-      }
-
-      // Sortera: nyaste first per kategori (documentDate desc, importedAt desc fallback)
-      const sortFn = (a, b) => {
-        const da = a.documentDate || a.importedAt || '';
-        const db = b.documentDate || b.importedAt || '';
-        return db.localeCompare(da);
-      };
-      visible.sort(sortFn);
-
-      // PII-säkring: server returnerar originalFileName för staff-UI; client
-      // får visa "displayName" där möjligt. INGA PII i payload utöver det.
-      const out = visible.map((a) => ({
-        id: a.id,
-        patientId: a.patientId,
-        encounterId: a.encounterId,
-        category: a.category,
-        status: a.status,
-        documentDate: a.documentDate,
-        importedAt: a.importedAt,
-        importRunId: a.importRunId,
-        sourceSystem: a.sourceSystem,
-        confidence: a.confidence,
-        mimeType: a.mimeType,
-        fileSize: a.fileSize,
-        originalFileName: a.originalFileName,
-        hasThumbnail: !!a.thumbnailKey,
-      }));
-
-      const response = {
-        patientId,
-        total: visible.length,
-        counts,
-        linkOnlyCount,
-        inReviewCount,
-        items: out,
-      };
-      if (groupByCategory) {
-        const byCategory = {};
-        for (const a of out) {
-          const key = a.category || 'other';
-          if (!byCategory[key]) byCategory[key] = [];
-          byCategory[key].push(a);
-        }
-        response.byCategory = byCategory;
-      }
-      res.json(response);
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
-    }
-  });
-
-  app.get('/api/v1/cco/assets/:assetId/download', attachRole, requirePermission('asset.read'), async (req, res) => {
-    try {
-      const stores = await ensureAssetStores();
-      const assetId = String(req.params.assetId || '').trim();
-      const asset = stores.assetStore.getAsset(assetId);
-      if (!asset) return res.status(404).json({ error: 'asset_not_found' });
-      if (!asset.storageKey) return res.status(409).json({ error: 'asset_has_no_storage_key' });
-
-      const obj = await stores.secureStorage.getObject(asset.storageKey);
-      const mime = asset.mimeType || obj.mimeType || 'application/octet-stream';
-      const fname = (asset.originalFileName || `asset-${assetId}`).replace(/["\\\r\n]/g, '');
-      res.setHeader('Content-Type', mime);
-      res.setHeader('Content-Length', obj.size);
-      // attachment = browser laddar ner; client kan välja `?inline=1` för iframe-preview
-      const disposition = String(req.query.inline || '') === '1' ? 'inline' : 'attachment';
-      res.setHeader('Content-Disposition', `${disposition}; filename="${fname}"`);
-      res.setHeader('Cache-Control', 'private, max-age=60');
-      if (ccoAuditLog) {
-        ccoAuditLog.append({
-          action: 'asset.exported',
-          actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
-          target: { kind: 'patient_asset', id: assetId, tenantId: req.headers['x-cco-tenant'] || null },
-          result: 'ok',
-          detail: {
-            patientId: asset.patientId,
-            category: asset.category,
-            mimeType: mime,
-            disposition,
-          },
+        // Synlighet: dölj REJECTED + DUPLICATE från default-listning;
+        // visa via ?includeAll=1 om operatör behöver.
+        const includeAll = String(req.query.includeAll || '') === '1';
+        const visible = all.filter((a) => {
+          if (includeAll) return true;
+          return a.status !== 'REJECTED' && a.status !== 'DUPLICATE';
         });
-      }
-      res.send(obj.buffer);
-    } catch (err) {
-      if (err && err.code === 'ENOENT') return res.status(404).json({ error: 'object_not_in_storage' });
-      res.status(err.statusCode || 500).json({ error: err.message });
-    }
-  });
 
-  app.get('/api/v1/cco/assets/:assetId/thumbnail', attachRole, requirePermission('asset.read'), async (req, res) => {
-    try {
-      const stores = await ensureAssetStores();
-      const assetId = String(req.params.assetId || '').trim();
-      const asset = stores.assetStore.getAsset(assetId);
-      if (!asset) return res.status(404).json({ error: 'asset_not_found' });
-      const key = asset.thumbnailKey || null;
-      if (!key) return res.status(404).json({ error: 'no_thumbnail' });
-      const obj = await stores.secureStorage.getObject(key);
-      res.setHeader('Content-Type', obj.mimeType || 'image/jpeg');
-      res.setHeader('Content-Length', obj.size);
-      res.setHeader('Cache-Control', 'private, max-age=300');
-      res.send(obj.buffer);
-    } catch (err) {
-      if (err && err.code === 'ENOENT') return res.status(404).json({ error: 'object_not_in_storage' });
-      res.status(err.statusCode || 500).json({ error: err.message });
+        // Gruppera per kategori (default: groupByCategory=1)
+        const groupByCategory = String(req.query.groupByCategory || '1') === '1';
+        const counts = {};
+        let linkOnlyCount = 0;
+        let inReviewCount = 0;
+        for (const a of visible) {
+          counts[a.category || 'other'] = (counts[a.category || 'other'] || 0) + 1;
+          if (a.status === 'LINK_ONLY_BLOCKER') linkOnlyCount += 1;
+          if (a.status === 'NEEDS_REVIEW') inReviewCount += 1;
+        }
+
+        // Sortera: nyaste first per kategori (documentDate desc, importedAt desc fallback)
+        const sortFn = (a, b) => {
+          const da = a.documentDate || a.importedAt || '';
+          const db = b.documentDate || b.importedAt || '';
+          return db.localeCompare(da);
+        };
+        visible.sort(sortFn);
+
+        // PII-säkring: server returnerar originalFileName för staff-UI; client
+        // får visa "displayName" där möjligt. INGA PII i payload utöver det.
+        const out = visible.map((a) => ({
+          id: a.id,
+          patientId: a.patientId,
+          encounterId: a.encounterId,
+          category: a.category,
+          status: a.status,
+          documentDate: a.documentDate,
+          importedAt: a.importedAt,
+          importRunId: a.importRunId,
+          sourceSystem: a.sourceSystem,
+          confidence: a.confidence,
+          mimeType: a.mimeType,
+          fileSize: a.fileSize,
+          originalFileName: a.originalFileName,
+          hasThumbnail: !!a.thumbnailKey,
+        }));
+
+        const response = {
+          patientId,
+          total: visible.length,
+          counts,
+          linkOnlyCount,
+          inReviewCount,
+          items: out,
+        };
+        if (groupByCategory) {
+          const byCategory = {};
+          for (const a of out) {
+            const key = a.category || 'other';
+            if (!byCategory[key]) byCategory[key] = [];
+            byCategory[key].push(a);
+          }
+          response.byCategory = byCategory;
+        }
+        res.json(response);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
+
+  app.get(
+    '/api/v1/cco/assets/:assetId/download',
+    attachRole,
+    requirePermission('asset.read'),
+    async (req, res) => {
+      try {
+        const stores = await ensureAssetStores();
+        const assetId = String(req.params.assetId || '').trim();
+        const asset = stores.assetStore.getAsset(assetId);
+        if (!asset) return res.status(404).json({ error: 'asset_not_found' });
+        if (!asset.storageKey) return res.status(409).json({ error: 'asset_has_no_storage_key' });
+
+        const obj = await stores.secureStorage.getObject(asset.storageKey);
+        const mime = asset.mimeType || obj.mimeType || 'application/octet-stream';
+        const fname = (asset.originalFileName || `asset-${assetId}`).replace(/["\\\r\n]/g, '');
+        res.setHeader('Content-Type', mime);
+        res.setHeader('Content-Length', obj.size);
+        // attachment = browser laddar ner; client kan välja `?inline=1` för iframe-preview
+        const disposition = String(req.query.inline || '') === '1' ? 'inline' : 'attachment';
+        res.setHeader('Content-Disposition', `${disposition}; filename="${fname}"`);
+        res.setHeader('Cache-Control', 'private, max-age=60');
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'asset.exported',
+            actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
+            target: {
+              kind: 'patient_asset',
+              id: assetId,
+              tenantId: req.headers['x-cco-tenant'] || null,
+            },
+            result: 'ok',
+            detail: {
+              patientId: asset.patientId,
+              category: asset.category,
+              mimeType: mime,
+              disposition,
+            },
+          });
+        }
+        res.send(obj.buffer);
+      } catch (err) {
+        if (err && err.code === 'ENOENT')
+          return res.status(404).json({ error: 'object_not_in_storage' });
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    }
+  );
+
+  app.get(
+    '/api/v1/cco/assets/:assetId/thumbnail',
+    attachRole,
+    requirePermission('asset.read'),
+    async (req, res) => {
+      try {
+        const stores = await ensureAssetStores();
+        const assetId = String(req.params.assetId || '').trim();
+        const asset = stores.assetStore.getAsset(assetId);
+        if (!asset) return res.status(404).json({ error: 'asset_not_found' });
+        const key = asset.thumbnailKey || null;
+        if (!key) return res.status(404).json({ error: 'no_thumbnail' });
+        const obj = await stores.secureStorage.getObject(key);
+        res.setHeader('Content-Type', obj.mimeType || 'image/jpeg');
+        res.setHeader('Content-Length', obj.size);
+        res.setHeader('Cache-Control', 'private, max-age=300');
+        res.send(obj.buffer);
+      } catch (err) {
+        if (err && err.code === 'ENOENT')
+          return res.status(404).json({ error: 'object_not_in_storage' });
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    }
+  );
 
   // ── Hair TP Scalp Analysis (Aisia DS-3 MVP — manual import) ──
   const { createCcoScalpAnalysisRouter } = require('./src/routes/ccoScalpAnalysis');
@@ -3473,8 +5002,12 @@ try {
     })
   );
 
-  console.log('[cco-asset-qa] monterad: GET /api/v1/cco/asset-qa/snapshot + invalidate · /patients/:id/assets · /assets/:id/{download,thumbnail}');
-  console.log('[cco-scalp-analysis] monterad: /api/v1/cco/scalp-analysis/* (manual Aisia import MVP)');
+  console.log(
+    '[cco-asset-qa] monterad: GET /api/v1/cco/asset-qa/snapshot + invalidate · /patients/:id/assets · /assets/:id/{download,thumbnail}'
+  );
+  console.log(
+    '[cco-scalp-analysis] monterad: /api/v1/cco/scalp-analysis/* (manual Aisia import MVP)'
+  );
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
 }
@@ -3484,7 +5017,7 @@ try {
 // HTML:en själv hanterar token-extrahering från path eller query
 app.get('/portal/:token', (req, res, next) => {
   const token = req.params.token;
-  if (!token || token.length < 8) return next();  // låt 404 hantera
+  if (!token || token.length < 8) return next(); // låt 404 hantera
   // Servera patient-portal.html direkt
   res.sendFile(path.join(__dirname, 'public', 'patient-portal.html'));
 });
@@ -3495,111 +5028,156 @@ try {
   const expressP = require('express');
   const jsonParserP = expressP.json({ limit: '16kb' });
 
-  function getPortalStore() { return app.locals.patientPortalStore; }
+  function getPortalStore() {
+    return app.locals.patientPortalStore;
+  }
 
   // POST /api/v1/cco-portal/invites — staff skapar invite för patient
-  app.post('/api/v1/cco-portal/invites', attachRole, requirePermission('portal.write'), jsonParserP, async (req, res) => {
-    const store = getPortalStore();
-    if (!store) return res.status(503).json({ error: 'portal_store_unavailable' });
-    try {
-      const {
-        tenantId = 'hairtpclinic',
-        patientId, patientName, patientEmail,
-        serviceLabel = 'Förbehandling',
-        appointmentDate = null,
-        encounterId = null,
-        forms = [{ formId: 'health_declaration', journalType: 'health_declaration', formVariant: 'hair_tp', label: 'Hälsodeklaration' }],
-        expiresInDays = 7,
-      } = req.body || {};
-      if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
-      if (!patientName) return res.status(400).json({ error: 'patientName krävs' });
+  app.post(
+    '/api/v1/cco-portal/invites',
+    attachRole,
+    requirePermission('portal.write'),
+    jsonParserP,
+    async (req, res) => {
+      const store = getPortalStore();
+      if (!store) return res.status(503).json({ error: 'portal_store_unavailable' });
+      try {
+        const {
+          tenantId = 'hairtpclinic',
+          patientId,
+          patientName,
+          patientEmail,
+          serviceLabel = 'Förbehandling',
+          appointmentDate = null,
+          encounterId = null,
+          forms = [
+            {
+              formId: 'health_declaration',
+              journalType: 'health_declaration',
+              formVariant: 'hair_tp',
+              label: 'Hälsodeklaration',
+            },
+          ],
+          expiresInDays = 7,
+        } = req.body || {};
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
+        if (!patientName) return res.status(400).json({ error: 'patientName krävs' });
 
-      const invite = await store.createInvite({
-        tenantId, patientId, patientName, serviceLabel,
-        appointmentDate, encounterId, forms, expiresInDays,
-      });
-      if (ccoAuditLog) {
-        ccoAuditLog.append({
-          action: 'portal.invite.create',
-          actor: { role: req.cco?.role },
-          target: { kind: 'portal_invite', id: invite.token.substring(0, 12) + '…' },
-          detail: { patientId, patientName, forms: forms.map((f) => f.formId), expiresInDays },
+        const invite = await store.createInvite({
+          tenantId,
+          patientId,
+          patientName,
+          serviceLabel,
+          appointmentDate,
+          encounterId,
+          forms,
+          expiresInDays,
         });
-      }
-
-      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://hairtpclinic.com';
-      // Steg 6: använd cleaner /portal/:token-URL för patient (HTML), behåll API-URL för referens
-      const inviteUrl = `${baseUrl}/portal/${encodeURIComponent(invite.token)}`;
-      const apiInviteUrl = `${baseUrl}/api/patient-portal/${encodeURIComponent(invite.token)}`;
-
-      // Om patientEmail finns och sendStore är konfigurerad → skicka via dry-run-flow
-      let sendResult = null;
-      const sendStore = app.locals.ccoSendActionStore;
-      if (patientEmail && sendStore) {
-        try {
-          const payload = sendStore.buildFormPayload({
-            customerName: patientName, customerEmail: patientEmail, customerId: patientId,
-            formKind: forms[0].journalType === 'fitness_certificate' ? 'fitness_certificate' : 'health_declaration',
-            urlToken: invite.token,
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'portal.invite.create',
+            actor: { role: req.cco?.role },
+            target: { kind: 'portal_invite', id: invite.token.substring(0, 12) + '…' },
+            detail: { patientId, patientName, forms: forms.map((f) => f.formId), expiresInDays },
           });
-          // Override URL till patient-portal-link
-          payload.html = `<p>Hej ${patientName},</p><p>Inför ditt besök behöver vi din ${forms.map((f) => f.label).join(', ')}.</p><p><a href="${inviteUrl}">Öppna formulär</a> (giltig i ${expiresInDays} dagar)</p><p>Hair TP Clinic</p>`;
-          payload.text = `Hej ${patientName},\n\nInför ditt besök behöver vi din ${forms.map((f) => f.label).join(', ')}.\n\n${inviteUrl}\n\n(giltig i ${expiresInDays} dagar)\n\nHair TP Clinic`;
-          payload.meta = { ...payload.meta, inviteToken: invite.token, forms: forms.map((f) => f.formId) };
-          sendResult = await sendStore.performSend({
-            kind: 'form', payload, customerId: patientId, role: req.cco?.role,
-            dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
-          });
-        } catch (err) {
-          sendResult = { ok: false, error: err.message };
         }
-      }
 
-      res.json({
-        ok: true,
-        invite: {
-          token: invite.token,
-          patientId: invite.patientId,
-          patientName: invite.patientName,
-          forms: invite.forms,
-          expiresAt: invite.expiresAt,
-          inviteUrl,        // patient-facing HTML-URL
-          apiInviteUrl,     // staff-facing API-URL för debugging
-        },
-        send: sendResult,
-        complianceNote: sendResult?.dryRun
-          ? 'Invite skapad. Email INTE skickad (dry-run). Du kan kopiera inviteUrl manuellt.'
-          : 'Invite skapad och skickad till patient.',
-      });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://hairtpclinic.com';
+        // Steg 6: använd cleaner /portal/:token-URL för patient (HTML), behåll API-URL för referens
+        const inviteUrl = `${baseUrl}/portal/${encodeURIComponent(invite.token)}`;
+        const apiInviteUrl = `${baseUrl}/api/patient-portal/${encodeURIComponent(invite.token)}`;
+
+        // Om patientEmail finns och sendStore är konfigurerad → skicka via dry-run-flow
+        let sendResult = null;
+        const sendStore = app.locals.ccoSendActionStore;
+        if (patientEmail && sendStore) {
+          try {
+            const payload = sendStore.buildFormPayload({
+              customerName: patientName,
+              customerEmail: patientEmail,
+              customerId: patientId,
+              formKind:
+                forms[0].journalType === 'fitness_certificate'
+                  ? 'fitness_certificate'
+                  : 'health_declaration',
+              urlToken: invite.token,
+            });
+            // Override URL till patient-portal-link
+            payload.html = `<p>Hej ${patientName},</p><p>Inför ditt besök behöver vi din ${forms.map((f) => f.label).join(', ')}.</p><p><a href="${inviteUrl}">Öppna formulär</a> (giltig i ${expiresInDays} dagar)</p><p>Hair TP Clinic</p>`;
+            payload.text = `Hej ${patientName},\n\nInför ditt besök behöver vi din ${forms.map((f) => f.label).join(', ')}.\n\n${inviteUrl}\n\n(giltig i ${expiresInDays} dagar)\n\nHair TP Clinic`;
+            payload.meta = {
+              ...payload.meta,
+              inviteToken: invite.token,
+              forms: forms.map((f) => f.formId),
+            };
+            sendResult = await sendStore.performSend({
+              kind: 'form',
+              payload,
+              customerId: patientId,
+              role: req.cco?.role,
+              dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+            });
+          } catch (err) {
+            sendResult = { ok: false, error: err.message };
+          }
+        }
+
+        res.json({
+          ok: true,
+          invite: {
+            token: invite.token,
+            patientId: invite.patientId,
+            patientName: invite.patientName,
+            forms: invite.forms,
+            expiresAt: invite.expiresAt,
+            inviteUrl, // patient-facing HTML-URL
+            apiInviteUrl, // staff-facing API-URL för debugging
+          },
+          send: sendResult,
+          complianceNote: sendResult?.dryRun
+            ? 'Invite skapad. Email INTE skickad (dry-run). Du kan kopiera inviteUrl manuellt.'
+            : 'Invite skapad och skickad till patient.',
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
   // GET /api/v1/cco-portal/invites — staff listar pending invites
-  app.get('/api/v1/cco-portal/invites', attachRole, requirePermission('portal.read'), async (req, res) => {
-    const store = getPortalStore();
-    if (!store) return res.status(503).json({ error: 'portal_store_unavailable' });
-    try {
-      const tenantId = req.query.tenantId || 'hairtpclinic';
-      const pending = store.listPending(tenantId) || [];
-      res.json({
-        count: pending.length,
-        invites: pending.map((i) => ({
-          token: i.token.substring(0, 12) + '…',  // partial — bara visa första bitar i lista
-          patientId: i.patientId, patientName: i.patientName,
-          serviceLabel: i.serviceLabel, appointmentDate: i.appointmentDate,
-          forms: i.forms?.map((f) => f.formId),
-          createdAt: i.createdAt, expiresAt: i.expiresAt,
-          status: i.completedAt ? 'completed' : 'pending',
-        })),
-      });
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
+  app.get(
+    '/api/v1/cco-portal/invites',
+    attachRole,
+    requirePermission('portal.read'),
+    async (req, res) => {
+      const store = getPortalStore();
+      if (!store) return res.status(503).json({ error: 'portal_store_unavailable' });
+      try {
+        const tenantId = req.query.tenantId || 'hairtpclinic';
+        const pending = store.listPending(tenantId) || [];
+        res.json({
+          count: pending.length,
+          invites: pending.map((i) => ({
+            token: i.token.substring(0, 12) + '…', // partial — bara visa första bitar i lista
+            patientId: i.patientId,
+            patientName: i.patientName,
+            serviceLabel: i.serviceLabel,
+            appointmentDate: i.appointmentDate,
+            forms: i.forms?.map((f) => f.formId),
+            createdAt: i.createdAt,
+            expiresAt: i.expiresAt,
+            status: i.completedAt ? 'completed' : 'pending',
+          })),
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
     }
-  });
+  );
 
-  console.log('[cco-portal-staff] monterad: POST /api/v1/cco-portal/invites + GET /invites (portal.write/read)');
+  console.log(
+    '[cco-portal-staff] monterad: POST /api/v1/cco-portal/invites + GET /invites (portal.write/read)'
+  );
 } catch (err) {
   console.warn('[cco-portal-staff] kunde inte montera:', err.message);
 }
@@ -3612,51 +5190,77 @@ try {
   const jsonParserF = expressF.json({ limit: '32kb' });
 
   // POST /api/v1/cco-ai/draft — RBAC: mail.send (genererar utkast för svar)
-  app.post('/api/v1/cco-ai/draft', attachRole, requirePermission('mail.send'), jsonParserF, (req, res) => {
-    try {
-      const result = draftReply(req.body || {});
-      if (ccoAuditLog) {
-        ccoAuditLog.append({
-          action: 'ai.draft.generate',
-          actor: { role: req.cco?.role, ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim() },
-          target: { kind: 'ai_draft', id: result.metadata.intent },
-          detail: { tone: result.tone, wordCount: result.metadata.wordCount },
-        });
+  app.post(
+    '/api/v1/cco-ai/draft',
+    attachRole,
+    requirePermission('mail.send'),
+    jsonParserF,
+    (req, res) => {
+      try {
+        const result = draftReply(req.body || {});
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'ai.draft.generate',
+            actor: {
+              role: req.cco?.role,
+              ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+                .toString()
+                .split(',')[0]
+                .trim(),
+            },
+            target: { kind: 'ai_draft', id: result.metadata.intent },
+            detail: { tone: result.tone, wordCount: result.metadata.wordCount },
+          });
+        }
+        res.json(result);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message, validTones: VALID_TONES });
       }
-      res.json(result);
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message, validTones: VALID_TONES });
     }
-  });
+  );
 
   // POST /api/v1/cco-ai/extract — RBAC: journal.write (förbereder journal-fält)
-  app.post('/api/v1/cco-ai/extract', attachRole, requirePermission('journal.write'), jsonParserF, (req, res) => {
-    try {
-      const result = extractFields(req.body || {});
-      if (ccoAuditLog) {
-        ccoAuditLog.append({
-          action: 'ai.extract.fields',
-          actor: { role: req.cco?.role, ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim() },
-          target: { kind: 'ai_extract', id: null },
-          detail: {
-            fieldCount: Object.keys(result.fields || {}).length,
-            confidence: result.confidence,
-            textLength: result.metadata?.textLength || 0,
-          },
-        });
+  app.post(
+    '/api/v1/cco-ai/extract',
+    attachRole,
+    requirePermission('journal.write'),
+    jsonParserF,
+    (req, res) => {
+      try {
+        const result = extractFields(req.body || {});
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'ai.extract.fields',
+            actor: {
+              role: req.cco?.role,
+              ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+                .toString()
+                .split(',')[0]
+                .trim(),
+            },
+            target: { kind: 'ai_extract', id: null },
+            detail: {
+              fieldCount: Object.keys(result.fields || {}).length,
+              confidence: result.confidence,
+              textLength: result.metadata?.textLength || 0,
+            },
+          });
+        }
+        res.json(result);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
       }
-      res.json(result);
-    } catch (err) {
-      res.status(err.statusCode || 500).json({ error: err.message });
     }
-  });
+  );
 
   // GET /api/v1/cco-ai/tones — lista giltiga toner (för UI-dropdown)
   app.get('/api/v1/cco-ai/tones', attachRole, requirePermission('mail.read'), (req, res) => {
     res.json({ tones: VALID_TONES });
   });
 
-  console.log('[cco-ai] monterad: POST /api/v1/cco-ai/draft (mail.send), /extract (journal.write), GET /tones');
+  console.log(
+    '[cco-ai] monterad: POST /api/v1/cco-ai/draft (mail.send), /extract (journal.write), GET /tones'
+  );
 } catch (err) {
   console.warn('[cco-ai] kunde inte montera:', err.message);
 }
@@ -3675,7 +5279,10 @@ try {
         return res.status(400).json({ error: 'text required' });
       }
       entry.receivedAt = new Date().toISOString();
-      entry.ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim();
+      entry.ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+        .toString()
+        .split(',')[0]
+        .trim();
       fs.appendFileSync(feedbackFile, JSON.stringify(entry) + '\n');
       res.json({ ok: true });
     } catch (err) {
@@ -3685,7 +5292,17 @@ try {
   app.get('/api/v1/cco-feedback', (req, res) => {
     try {
       const raw = fs.existsSync(feedbackFile) ? fs.readFileSync(feedbackFile, 'utf8') : '';
-      const items = raw.split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      const items = raw
+        .split('\n')
+        .filter(Boolean)
+        .map((l) => {
+          try {
+            return JSON.parse(l);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
       res.json({ count: items.length, items: items.slice(-200) });
     } catch (err) {
       res.json({ count: 0, items: [] });
@@ -4647,8 +6264,7 @@ app.get('/api/v1/docs/section/:sectionId', (req, res) => {
 
 app.get('/api/v1/docs/content', async (req, res) => {
   const docPath = (req.query?.path || '').trim();
-  if (!isAllowedDocPath(docPath))
-    return res.status(400).json({ ok: false, error: 'invalid_path' });
+  if (!isAllowedDocPath(docPath)) return res.status(400).json({ ok: false, error: 'invalid_path' });
   const result = await getDocContent(docPath);
   if (!result.ok) return res.status(404).json(result);
   return res.json(result);
@@ -4695,7 +6311,12 @@ app.get('/api/v1/knowledge/embeddings/status', async (req, res) => {
       configured: embeddings.isEmbeddingsConfigured(config),
       mode: store ? 'hybrid' : 'keyword',
       store: store
-        ? { model: store.model, dim: store.dim, chunkCount: store.chunkCount, generatedAt: store.generatedAt }
+        ? {
+            model: store.model,
+            dim: store.dim,
+            chunkCount: store.chunkCount,
+            generatedAt: store.generatedAt,
+          }
         : null,
     });
   } catch (error) {
@@ -4755,633 +6376,905 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
 
     // ─── Status-pills aggregator (Sprint 1) ───
     // Per booking: journal/hälsodekl/friskförsäkran/samtycke/avtal/ID-verify + readyForTreatment
-    app.get('/api/v1/calendar/booking/:id/status-pills', attachRole, requirePermission('bookings.read'), async (req, res) => {
-      try {
-        const bookingId = req.params.id;
-        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
-        const treatment = String(req.query.treatment || '').toLowerCase();
+    app.get(
+      '/api/v1/calendar/booking/:id/status-pills',
+      attachRole,
+      requirePermission('bookings.read'),
+      async (req, res) => {
+        try {
+          const bookingId = req.params.id;
+          const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const treatment = String(req.query.treatment || '').toLowerCase();
 
-        // 1. Hämta booking
-        const beStore = app.locals.ccoBookingEngineStore;
-        const beState = beStore?._state || {};
-        const booking = (beState.bookings || []).find(b => b.bookingId === bookingId) ||
-                        (beState.reservations || []).find(r => r.reservationId === bookingId);
+          // 1. Hämta booking
+          const beStore = app.locals.ccoBookingEngineStore;
+          const beState = beStore?._state || {};
+          const booking =
+            (beState.bookings || []).find((b) => b.bookingId === bookingId) ||
+            (beState.reservations || []).find((r) => r.reservationId === bookingId);
 
-        if (!booking) {
-          return res.status(404).json({ ok: false, error: 'booking_not_found', bookingId });
-        }
-        const patientId = booking.customerId || booking.contact?.customerId || null;
-        const encounterId = booking.encounterId || null;
-        const inferredTreatment = treatment || booking.serviceId || '';
+          if (!booking) {
+            return res.status(404).json({ ok: false, error: 'booking_not_found', bookingId });
+          }
+          const patientId = booking.customerId || booking.contact?.customerId || null;
+          const encounterId = booking.encounterId || null;
+          const inferredTreatment = treatment || booking.serviceId || '';
 
-        const pills = {
-          bookingId,
-          patientId,
-          encounterId,
-          treatment: inferredTreatment,
-          journal: { status: 'missing', entryId: null, ts: null },
-          healthDeclaration: { status: 'missing', entryId: null },
-          fitnessCertificate: { status: 'missing', entryId: null },
-          consent: { status: 'missing' },
-          agreement: { status: 'missing' },
-          idVerification: { status: 'missing' },
-          readyForTreatment: false,
-          blockingMissing: [],
-          ccoSourceOnly: true,
-        };
+          const pills = {
+            bookingId,
+            patientId,
+            encounterId,
+            treatment: inferredTreatment,
+            journal: { status: 'missing', entryId: null, ts: null },
+            healthDeclaration: { status: 'missing', entryId: null },
+            fitnessCertificate: { status: 'missing', entryId: null },
+            consent: { status: 'missing' },
+            agreement: { status: 'missing' },
+            idVerification: { status: 'missing' },
+            readyForTreatment: false,
+            blockingMissing: [],
+            ccoSourceOnly: true,
+          };
 
-        if (!patientId) {
-          return res.json({ ok: true, ...pills, note: 'no_patient_linked' });
-        }
+          if (!patientId) {
+            return res.json({ ok: true, ...pills, note: 'no_patient_linked' });
+          }
 
-        // 2. Journal-status
-        const journalStore = app.locals.ccoJournalStore;
-        if (journalStore?.listEntries) {
-          try {
-            const entries = await journalStore.listEntries({ tenantId, patientId }) || [];
-            // Behandlingsjournal (tp_treatment / prp_treatment / bleph_treatment)
-            const TREAT = new Set(['tp_treatment', 'prp_treatment', 'bleph_treatment']);
-            const treatEntries = entries.filter(e =>
-              TREAT.has(e.journalType) &&
-              (!encounterId || e.treatmentEncounterId === encounterId)
-            );
-            const signed = treatEntries.find(e => e.locked);
-            const draft = treatEntries.find(e => !e.locked);
-            if (signed) pills.journal = { status: 'signed', entryId: signed.entryId, ts: signed.signedAt };
-            else if (draft) pills.journal = { status: 'draft', entryId: draft.entryId, ts: draft.updatedAt };
+          // 2. Journal-status
+          const journalStore = app.locals.ccoJournalStore;
+          if (journalStore?.listEntries) {
+            try {
+              const entries = (await journalStore.listEntries({ tenantId, patientId })) || [];
+              // Behandlingsjournal (tp_treatment / prp_treatment / bleph_treatment)
+              const TREAT = new Set(['tp_treatment', 'prp_treatment', 'bleph_treatment']);
+              const treatEntries = entries.filter(
+                (e) =>
+                  TREAT.has(e.journalType) &&
+                  (!encounterId || e.treatmentEncounterId === encounterId)
+              );
+              const signed = treatEntries.find((e) => e.locked);
+              const draft = treatEntries.find((e) => !e.locked);
+              if (signed)
+                pills.journal = { status: 'signed', entryId: signed.entryId, ts: signed.signedAt };
+              else if (draft)
+                pills.journal = { status: 'draft', entryId: draft.entryId, ts: draft.updatedAt };
 
-            // Hälsodeklaration
-            const hd = entries.find(e => e.journalType === 'health_declaration' && e.locked);
-            if (hd) pills.healthDeclaration = { status: 'signed', entryId: hd.entryId };
+              // Hälsodeklaration
+              const hd = entries.find((e) => e.journalType === 'health_declaration' && e.locked);
+              if (hd) pills.healthDeclaration = { status: 'signed', entryId: hd.entryId };
 
-            // Friskförsäkran
-            const ff = entries.find(e => e.journalType === 'fitness_certificate' && e.locked);
-            if (ff) pills.fitnessCertificate = { status: 'signed', entryId: ff.entryId };
-          } catch (_) { /* tyst */ }
-        }
-
-        // 3. Avtal (om existing quick store)
-        const agreementStore = app.locals.ccoAgreementQuickStore;
-        if (agreementStore?.listForCustomer) {
-          try {
-            const agreements = agreementStore.listForCustomer(patientId) || [];
-            const signed = agreements.find(a => a.state === 'signed');
-            const sent = agreements.find(a => a.state === 'sent');
-            if (signed) pills.agreement = { status: 'signed', id: signed.id };
-            else if (sent) pills.agreement = { status: 'sent', id: sent.id };
-          } catch (_) { /* tyst */ }
-        }
-
-        // 4. ID-verifikation
-        const idStore = app.locals.ccoIdVerificationStore;
-        if (idStore?.getVerification) {
-          try {
-            const ver = await idStore.getVerification(patientId);
-            if (ver && ver.verified) pills.idVerification = { status: 'verified', verifiedAt: ver.verifiedAt };
-          } catch (_) { /* tyst */ }
-        }
-
-        // 5. Ready-for-treatment via befintliga /missing-logik
-        if (inferredTreatment) {
-          try {
-            const reqFile = JSON.parse(require('fs').readFileSync(
-              path.join(__dirname, 'config/cco-treatment-document-requirements.json'), 'utf8'));
-            const requirements = reqFile.treatments?.[inferredTreatment]?.requiredDocuments || {};
-            const blockers = [];
-            for (const [docKey, docReq] of Object.entries(requirements)) {
-              if (!docReq.required || !docReq.blocking) continue;
-              const mapToPill = {
-                healthDeclaration: pills.healthDeclaration.status === 'signed',
-                fitnessCertificate: pills.fitnessCertificate.status === 'signed',
-                treatmentAgreement: pills.agreement.status === 'signed',
-                treatmentConsent: pills.consent.status === 'signed',
-                idVerification: pills.idVerification.status === 'verified',
-              };
-              if (!mapToPill[docKey]) blockers.push(docKey);
+              // Friskförsäkran
+              const ff = entries.find((e) => e.journalType === 'fitness_certificate' && e.locked);
+              if (ff) pills.fitnessCertificate = { status: 'signed', entryId: ff.entryId };
+            } catch (_) {
+              /* tyst */
             }
-            pills.blockingMissing = blockers;
-            pills.readyForTreatment = blockers.length === 0;
-          } catch (_) { /* tyst */ }
-        }
+          }
 
-        res.json({ ok: true, ...pills, evaluatedAt: new Date().toISOString() });
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+          // 3. Avtal (om existing quick store)
+          const agreementStore = app.locals.ccoAgreementQuickStore;
+          if (agreementStore?.listForCustomer) {
+            try {
+              const agreements = agreementStore.listForCustomer(patientId) || [];
+              const signed = agreements.find((a) => a.state === 'signed');
+              const sent = agreements.find((a) => a.state === 'sent');
+              if (signed) pills.agreement = { status: 'signed', id: signed.id };
+              else if (sent) pills.agreement = { status: 'sent', id: sent.id };
+            } catch (_) {
+              /* tyst */
+            }
+          }
+
+          // 4. ID-verifikation
+          const idStore = app.locals.ccoIdVerificationStore;
+          if (idStore?.getVerification) {
+            try {
+              const ver = await idStore.getVerification(patientId);
+              if (ver && ver.verified)
+                pills.idVerification = { status: 'verified', verifiedAt: ver.verifiedAt };
+            } catch (_) {
+              /* tyst */
+            }
+          }
+
+          // 5. Ready-for-treatment via befintliga /missing-logik
+          if (inferredTreatment) {
+            try {
+              const reqFile = JSON.parse(
+                require('fs').readFileSync(
+                  path.join(__dirname, 'config/cco-treatment-document-requirements.json'),
+                  'utf8'
+                )
+              );
+              const requirements = reqFile.treatments?.[inferredTreatment]?.requiredDocuments || {};
+              const blockers = [];
+              for (const [docKey, docReq] of Object.entries(requirements)) {
+                if (!docReq.required || !docReq.blocking) continue;
+                const mapToPill = {
+                  healthDeclaration: pills.healthDeclaration.status === 'signed',
+                  fitnessCertificate: pills.fitnessCertificate.status === 'signed',
+                  treatmentAgreement: pills.agreement.status === 'signed',
+                  treatmentConsent: pills.consent.status === 'signed',
+                  idVerification: pills.idVerification.status === 'verified',
+                };
+                if (!mapToPill[docKey]) blockers.push(docKey);
+              }
+              pills.blockingMissing = blockers;
+              pills.readyForTreatment = blockers.length === 0;
+            } catch (_) {
+              /* tyst */
+            }
+          }
+
+          res.json({ ok: true, ...pills, evaluatedAt: new Date().toISOString() });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+        }
       }
-    });
+    );
 
     // ─── Snabbactions: checkin / no-show / follow-up ───
     const bookingActionParser = require('express').json({ limit: '4kb' });
 
-    app.post('/api/v1/cco-bookings/:id/checkin', attachRole, requirePermission('bookings.write'), bookingActionParser, async (req, res) => {
-      try {
-        const bookingId = req.params.id;
-        const actor = {
-          userId: req.headers['x-cco-user'] || 'staff',
-          role: req.cco?.role,
-        };
-        // Audit (mutation av booking-status reserveras för framtida wire mot ccoBookingEngineStore.updateStatus)
-        if (ccoAuditLog) {
-          ccoAuditLog.append({
-            action: 'booking.checked_in', actor,
-            target: { kind: 'booking', id: bookingId },
-            result: 'ok',
-            detail: { ts: new Date().toISOString(), via: 'calendar_drawer' },
-          });
+    app.post(
+      '/api/v1/cco-bookings/:id/checkin',
+      attachRole,
+      requirePermission('bookings.write'),
+      bookingActionParser,
+      async (req, res) => {
+        try {
+          const bookingId = req.params.id;
+          const actor = {
+            userId: req.headers['x-cco-user'] || 'staff',
+            role: req.cco?.role,
+          };
+          // Audit (mutation av booking-status reserveras för framtida wire mot ccoBookingEngineStore.updateStatus)
+          if (ccoAuditLog) {
+            ccoAuditLog.append({
+              action: 'booking.checked_in',
+              actor,
+              target: { kind: 'booking', id: bookingId },
+              result: 'ok',
+              detail: { ts: new Date().toISOString(), via: 'calendar_drawer' },
+            });
+          }
+          res.json({ ok: true, bookingId, status: 'checked_in', auditLogged: true });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
         }
-        res.json({ ok: true, bookingId, status: 'checked_in', auditLogged: true });
-      } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
-    });
+      }
+    );
 
-    app.post('/api/v1/cco-bookings/:id/no-show', attachRole, requirePermission('bookings.write'), bookingActionParser, async (req, res) => {
-      try {
-        const bookingId = req.params.id;
-        const reason = String(req.body?.reason || '').trim();
-        const actor = { userId: req.headers['x-cco-user'] || 'staff', role: req.cco?.role };
-        if (ccoAuditLog) {
-          ccoAuditLog.append({
-            action: 'booking.no_show', actor,
-            target: { kind: 'booking', id: bookingId },
-            result: 'ok',
-            detail: { ts: new Date().toISOString(), reason, via: 'calendar_drawer' },
-          });
+    app.post(
+      '/api/v1/cco-bookings/:id/no-show',
+      attachRole,
+      requirePermission('bookings.write'),
+      bookingActionParser,
+      async (req, res) => {
+        try {
+          const bookingId = req.params.id;
+          const reason = String(req.body?.reason || '').trim();
+          const actor = { userId: req.headers['x-cco-user'] || 'staff', role: req.cco?.role };
+          if (ccoAuditLog) {
+            ccoAuditLog.append({
+              action: 'booking.no_show',
+              actor,
+              target: { kind: 'booking', id: bookingId },
+              result: 'ok',
+              detail: { ts: new Date().toISOString(), reason, via: 'calendar_drawer' },
+            });
+          }
+          res.json({ ok: true, bookingId, status: 'no_show', reason, auditLogged: true });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
         }
-        res.json({ ok: true, bookingId, status: 'no_show', reason, auditLogged: true });
-      } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
-    });
+      }
+    );
 
-    app.post('/api/v1/cco-bookings/:id/follow-up', attachRole, requirePermission('bookings.write'), bookingActionParser, async (req, res) => {
-      try {
-        const bookingId = req.params.id;
-        const interval = String(req.body?.interval || '').trim();
-        const actor = { userId: req.headers['x-cco-user'] || 'staff', role: req.cco?.role };
-        if (ccoAuditLog) {
-          ccoAuditLog.append({
-            action: 'booking.followup_requested', actor,
-            target: { kind: 'booking', id: bookingId },
-            result: 'ok',
-            detail: { ts: new Date().toISOString(), interval, via: 'calendar_drawer' },
+    app.post(
+      '/api/v1/cco-bookings/:id/follow-up',
+      attachRole,
+      requirePermission('bookings.write'),
+      bookingActionParser,
+      async (req, res) => {
+        try {
+          const bookingId = req.params.id;
+          const interval = String(req.body?.interval || '').trim();
+          const actor = { userId: req.headers['x-cco-user'] || 'staff', role: req.cco?.role };
+          if (ccoAuditLog) {
+            ccoAuditLog.append({
+              action: 'booking.followup_requested',
+              actor,
+              target: { kind: 'booking', id: bookingId },
+              result: 'ok',
+              detail: { ts: new Date().toISOString(), interval, via: 'calendar_drawer' },
+            });
+          }
+          res.json({
+            ok: true,
+            bookingId,
+            status: 'follow_up_requested',
+            interval,
+            auditLogged: true,
           });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
         }
-        res.json({ ok: true, bookingId, status: 'follow_up_requested', interval, auditLogged: true });
-      } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
-    });
+      }
+    );
 
     // ════════ SPRINT 2: services-katalog + conflict-check + create ════════
 
     // 5 quick-pick services för calendar-UI (override per-tenant kan komma senare)
     const QUICK_PICK_SERVICES = [
-      { id: 'consultation-physical', label: 'Konsultation',  durationMinutes: 30, treatment: 'consultation', icon: '💬', kind: 'consultation' },
-      { id: 'operation-fue',         label: 'Operation (FUE/DHI)', durationMinutes: 480, treatment: 'fue', icon: '⚕',  kind: 'operation' },
-      { id: 'followup-transplant',   label: 'Återbesök',     durationMinutes: 30, treatment: 'followup', icon: '↻',  kind: 'followup' },
-      { id: 'prp-treatment',         label: 'PRP',           durationMinutes: 60, treatment: 'prp', icon: '🧪', kind: 'prp' },
-      { id: 'followup-online',       label: 'Uppföljning',   durationMinutes: 20, treatment: 'followup', icon: '☎',  kind: 'consultation' },
+      {
+        id: 'consultation-physical',
+        label: 'Konsultation',
+        durationMinutes: 30,
+        treatment: 'consultation',
+        icon: '💬',
+        kind: 'consultation',
+      },
+      {
+        id: 'operation-fue',
+        label: 'Operation (FUE/DHI)',
+        durationMinutes: 480,
+        treatment: 'fue',
+        icon: '⚕',
+        kind: 'operation',
+      },
+      {
+        id: 'followup-transplant',
+        label: 'Återbesök',
+        durationMinutes: 30,
+        treatment: 'followup',
+        icon: '↻',
+        kind: 'followup',
+      },
+      {
+        id: 'prp-treatment',
+        label: 'PRP',
+        durationMinutes: 60,
+        treatment: 'prp',
+        icon: '🧪',
+        kind: 'prp',
+      },
+      {
+        id: 'followup-online',
+        label: 'Uppföljning',
+        durationMinutes: 20,
+        treatment: 'followup',
+        icon: '☎',
+        kind: 'consultation',
+      },
     ];
 
     // GET /api/v1/calendar/services — quick-pick services + full lista
-    app.get('/api/v1/calendar/services', attachRole, requirePermission('bookings.read'), async (req, res) => {
-      try {
-        const beStore = app.locals.ccoBookingEngineStore;
-        let fullCatalog = [];
-        if (beStore?.listServices) {
-          try { fullCatalog = await beStore.listServices({}) || []; } catch (_) {}
+    app.get(
+      '/api/v1/calendar/services',
+      attachRole,
+      requirePermission('bookings.read'),
+      async (req, res) => {
+        try {
+          const beStore = app.locals.ccoBookingEngineStore;
+          let fullCatalog = [];
+          if (beStore?.listServices) {
+            try {
+              fullCatalog = (await beStore.listServices({})) || [];
+            } catch (_) {}
+          }
+          res.json({
+            ok: true,
+            quickPicks: QUICK_PICK_SERVICES,
+            catalog: fullCatalog,
+            ccoSourceOnly: true,
+          });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
         }
-        res.json({
-          ok: true,
-          quickPicks: QUICK_PICK_SERVICES,
-          catalog: fullCatalog,
-          ccoSourceOnly: true,
-        });
-      } catch (err) {
-        res.status(500).json({ ok: false, error: err.message });
       }
-    });
+    );
 
     // POST /api/v1/calendar/booking/conflict-check — validate before create
     // Body: { resourceId, date, time, durationMinutes, serviceId?, patientId?, treatment? }
     const conflictParser = require('express').json({ limit: '8kb' });
-    app.post('/api/v1/calendar/booking/conflict-check', attachRole, requirePermission('bookings.read'), conflictParser, async (req, res) => {
-      try {
-        const { resourceId, date, time, durationMinutes, serviceId, patientId, treatment } = req.body || {};
-        if (!resourceId || !date || !time) {
-          return res.status(400).json({ ok: false, error: 'resourceId + date + time krävs' });
-        }
+    app.post(
+      '/api/v1/calendar/booking/conflict-check',
+      attachRole,
+      requirePermission('bookings.read'),
+      conflictParser,
+      async (req, res) => {
+        try {
+          const { resourceId, date, time, durationMinutes, serviceId, patientId, treatment } =
+            req.body || {};
+          if (!resourceId || !date || !time) {
+            return res.status(400).json({ ok: false, error: 'resourceId + date + time krävs' });
+          }
 
-        const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
-        const conflicts = [];
+          const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const conflicts = [];
 
-        const startMin = (() => {
-          const [h, m] = String(time).split(':').map(Number);
-          return (h || 0) * 60 + (m || 0);
-        })();
-        const dur = Number(durationMinutes) || 30;
-        const endMin = startMin + dur;
+          const startMin = (() => {
+            const [h, m] = String(time).split(':').map(Number);
+            return (h || 0) * 60 + (m || 0);
+          })();
+          const dur = Number(durationMinutes) || 30;
+          const endMin = startMin + dur;
 
-        // 1. Office-hours check — basic 07:00–19:00 enforcement
-        if (startMin < 7 * 60 || endMin > 19 * 60) {
-          conflicts.push({
-            type: 'outside_office_hours',
-            severity: 'warn',
-            message: 'Bokningen ligger utanför 07:00–19:00. Övervakas eller justera tid.',
-            detail: { startMin, endMin },
+          // 1. Office-hours check — basic 07:00–19:00 enforcement
+          if (startMin < 7 * 60 || endMin > 19 * 60) {
+            conflicts.push({
+              type: 'outside_office_hours',
+              severity: 'warn',
+              message: 'Bokningen ligger utanför 07:00–19:00. Övervakas eller justera tid.',
+              detail: { startMin, endMin },
+            });
+          }
+
+          // 2. Overlap-check mot existing bookings (samma resurs samma dag)
+          const dayView = buildDayView({
+            date,
+            bookingEngineStore: app.locals.ccoBookingEngineStore,
+            encounterStore: app.locals.ccoTreatmentEncounterStore,
+            tenantId,
           });
-        }
-
-        // 2. Overlap-check mot existing bookings (samma resurs samma dag)
-        const dayView = buildDayView({
-          date,
-          bookingEngineStore: app.locals.ccoBookingEngineStore,
-          encounterStore: app.locals.ccoTreatmentEncounterStore,
-          tenantId,
-        });
-        const resourceBlock = (dayView.resources || []).find(r => r.resourceId === resourceId);
-        if (resourceBlock) {
-          for (const slot of (resourceBlock.slots || [])) {
-            const sMin = (() => {
-              const [h, m] = String(slot.time || '').split(':').map(Number);
-              return (h || 0) * 60 + (m || 0);
-            })();
-            const eMin = slot.endTime ? (() => {
-              const [h, m] = String(slot.endTime).split(':').map(Number);
-              return (h || 0) * 60 + (m || 0);
-            })() : sMin + 30;
-            // Overlap?
-            if (startMin < eMin && endMin > sMin) {
-              conflicts.push({
-                type: 'resource_overlap',
-                severity: 'blocker',
-                message: `Behandlare/resurs upptagen ${slot.time}–${slot.endTime || '(?)'} av ${slot.patientName || slot.serviceLabel || 'annan bokning'}.`,
-                detail: { conflictBookingId: slot.id, slot },
-              });
+          const resourceBlock = (dayView.resources || []).find((r) => r.resourceId === resourceId);
+          if (resourceBlock) {
+            for (const slot of resourceBlock.slots || []) {
+              const sMin = (() => {
+                const [h, m] = String(slot.time || '')
+                  .split(':')
+                  .map(Number);
+                return (h || 0) * 60 + (m || 0);
+              })();
+              const eMin = slot.endTime
+                ? (() => {
+                    const [h, m] = String(slot.endTime).split(':').map(Number);
+                    return (h || 0) * 60 + (m || 0);
+                  })()
+                : sMin + 30;
+              // Overlap?
+              if (startMin < eMin && endMin > sMin) {
+                conflicts.push({
+                  type: 'resource_overlap',
+                  severity: 'blocker',
+                  message: `Behandlare/resurs upptagen ${slot.time}–${slot.endTime || '(?)'} av ${slot.patientName || slot.serviceLabel || 'annan bokning'}.`,
+                  detail: { conflictBookingId: slot.id, slot },
+                });
+              }
             }
           }
-        }
 
-        // 3. Required docs check (om patient + treatment finns)
-        if (patientId && treatment) {
-          try {
-            const reqFile = JSON.parse(require('fs').readFileSync(
-              path.join(__dirname, 'config/cco-treatment-document-requirements.json'), 'utf8'));
-            const requirements = reqFile.treatments?.[treatment]?.requiredDocuments || {};
-            const journalStore = app.locals.ccoJournalStore;
-            const entries = journalStore?.listEntries ? (await journalStore.listEntries({ tenantId, patientId }) || []) : [];
+          // 3. Required docs check (om patient + treatment finns)
+          if (patientId && treatment) {
+            try {
+              const reqFile = JSON.parse(
+                require('fs').readFileSync(
+                  path.join(__dirname, 'config/cco-treatment-document-requirements.json'),
+                  'utf8'
+                )
+              );
+              const requirements = reqFile.treatments?.[treatment]?.requiredDocuments || {};
+              const journalStore = app.locals.ccoJournalStore;
+              const entries = journalStore?.listEntries
+                ? (await journalStore.listEntries({ tenantId, patientId })) || []
+                : [];
 
-            const hasHD = entries.some(e => e.journalType === 'health_declaration' && e.locked);
-            const hasFF = entries.some(e => e.journalType === 'fitness_certificate' && e.locked);
+              const hasHD = entries.some((e) => e.journalType === 'health_declaration' && e.locked);
+              const hasFF = entries.some(
+                (e) => e.journalType === 'fitness_certificate' && e.locked
+              );
 
-            if (requirements.healthDeclaration?.required && !hasHD) {
-              conflicts.push({
-                type: 'missing_health_declaration',
-                severity: requirements.healthDeclaration?.blocking ? 'blocker' : 'warn',
-                message: 'Hälsodeklaration krävs men saknas.',
-                detail: { treatment, docKey: 'healthDeclaration', fix: 'Skicka formulär via patient-portal' },
-              });
+              if (requirements.healthDeclaration?.required && !hasHD) {
+                conflicts.push({
+                  type: 'missing_health_declaration',
+                  severity: requirements.healthDeclaration?.blocking ? 'blocker' : 'warn',
+                  message: 'Hälsodeklaration krävs men saknas.',
+                  detail: {
+                    treatment,
+                    docKey: 'healthDeclaration',
+                    fix: 'Skicka formulär via patient-portal',
+                  },
+                });
+              }
+              if (requirements.fitnessCertificate?.required && !hasFF) {
+                conflicts.push({
+                  type: 'missing_fitness_certificate',
+                  severity: requirements.fitnessCertificate?.blocking ? 'blocker' : 'warn',
+                  message: 'Friskförsäkran krävs men saknas.',
+                  detail: {
+                    treatment,
+                    docKey: 'fitnessCertificate',
+                    fix: 'Skicka formulär via patient-portal',
+                  },
+                });
+              }
+            } catch (_) {
+              /* tyst */
             }
-            if (requirements.fitnessCertificate?.required && !hasFF) {
-              conflicts.push({
-                type: 'missing_fitness_certificate',
-                severity: requirements.fitnessCertificate?.blocking ? 'blocker' : 'warn',
-                message: 'Friskförsäkran krävs men saknas.',
-                detail: { treatment, docKey: 'fitnessCertificate', fix: 'Skicka formulär via patient-portal' },
-              });
-            }
-          } catch (_) { /* tyst */ }
-        }
+          }
 
-        res.json({
-          ok: true,
-          hasConflicts: conflicts.length > 0,
-          hasBlockers: conflicts.some(c => c.severity === 'blocker'),
-          conflicts,
-          evaluatedAt: new Date().toISOString(),
-        });
-      } catch (err) {
-        res.status(500).json({ ok: false, error: err.message });
+          res.json({
+            ok: true,
+            hasConflicts: conflicts.length > 0,
+            hasBlockers: conflicts.some((c) => c.severity === 'blocker'),
+            conflicts,
+            evaluatedAt: new Date().toISOString(),
+          });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
       }
-    });
+    );
 
     // POST /api/v1/calendar/booking — skapa booking + booking-case + encounter
     // Body: { resourceId, serviceId, date, time, durationMinutes, patientId, treatment, notes?, force? }
     // force=true tillåter skapande trots blocker-konflikt (audit-loggas)
-    app.post('/api/v1/calendar/booking', attachRole, requirePermission('bookings.write'), conflictParser, async (req, res) => {
-      try {
-        const { resourceId, serviceId, date, time, durationMinutes, patientId, treatment, notes, force } = req.body || {};
-        if (!resourceId || !date || !time || !patientId) {
-          return res.status(400).json({ ok: false, error: 'resourceId + date + time + patientId krävs' });
-        }
+    app.post(
+      '/api/v1/calendar/booking',
+      attachRole,
+      requirePermission('bookings.write'),
+      conflictParser,
+      async (req, res) => {
+        try {
+          const {
+            resourceId,
+            serviceId,
+            date,
+            time,
+            durationMinutes,
+            patientId,
+            treatment,
+            notes,
+            force,
+          } = req.body || {};
+          if (!resourceId || !date || !time || !patientId) {
+            return res
+              .status(400)
+              .json({ ok: false, error: 'resourceId + date + time + patientId krävs' });
+          }
 
-        const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
-        const actor = { userId: req.headers['x-cco-user'] || 'staff', role: req.cco?.role };
+          const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const actor = { userId: req.headers['x-cco-user'] || 'staff', role: req.cco?.role };
 
-        const dur = Number(durationMinutes) || 30;
-        const startMin = (() => {
-          const [h, m] = String(time).split(':').map(Number);
-          return (h || 0) * 60 + (m || 0);
-        })();
-        const endMin = startMin + dur;
-        const endTime = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+          const dur = Number(durationMinutes) || 30;
+          const startMin = (() => {
+            const [h, m] = String(time).split(':').map(Number);
+            return (h || 0) * 60 + (m || 0);
+          })();
+          const endMin = startMin + dur;
+          const endTime =
+            String(Math.floor(endMin / 60)).padStart(2, '0') +
+            ':' +
+            String(endMin % 60).padStart(2, '0');
 
-        // Konflikt-check (om force=false)
-        let conflictResult = { hasBlockers: false, conflicts: [] };
-        if (!force) {
-          // Inline re-eval (skulle kunna kalla endpoint, men då dubbel audit)
-          const dayView = buildDayView({ date, bookingEngineStore: app.locals.ccoBookingEngineStore, encounterStore: app.locals.ccoTreatmentEncounterStore, tenantId });
-          const rb = (dayView.resources || []).find(r => r.resourceId === resourceId);
-          if (rb) {
-            for (const slot of (rb.slots || [])) {
-              const sMin = (() => { const [h, m] = String(slot.time||'').split(':').map(Number); return (h||0)*60+(m||0); })();
-              const eMin = slot.endTime ? (()=>{ const [h,m] = String(slot.endTime).split(':').map(Number); return (h||0)*60+(m||0); })() : sMin+30;
-              if (startMin < eMin && endMin > sMin) {
-                conflictResult.hasBlockers = true;
-                conflictResult.conflicts.push({ type: 'resource_overlap', slot });
+          // Konflikt-check (om force=false)
+          const conflictResult = { hasBlockers: false, conflicts: [] };
+          if (!force) {
+            // Inline re-eval (skulle kunna kalla endpoint, men då dubbel audit)
+            const dayView = buildDayView({
+              date,
+              bookingEngineStore: app.locals.ccoBookingEngineStore,
+              encounterStore: app.locals.ccoTreatmentEncounterStore,
+              tenantId,
+            });
+            const rb = (dayView.resources || []).find((r) => r.resourceId === resourceId);
+            if (rb) {
+              for (const slot of rb.slots || []) {
+                const sMin = (() => {
+                  const [h, m] = String(slot.time || '')
+                    .split(':')
+                    .map(Number);
+                  return (h || 0) * 60 + (m || 0);
+                })();
+                const eMin = slot.endTime
+                  ? (() => {
+                      const [h, m] = String(slot.endTime).split(':').map(Number);
+                      return (h || 0) * 60 + (m || 0);
+                    })()
+                  : sMin + 30;
+                if (startMin < eMin && endMin > sMin) {
+                  conflictResult.hasBlockers = true;
+                  conflictResult.conflicts.push({ type: 'resource_overlap', slot });
+                }
               }
             }
+            if (conflictResult.hasBlockers) {
+              return res.status(409).json({
+                ok: false,
+                error: 'conflict',
+                conflicts: conflictResult.conflicts,
+                hint: 'Skicka force=true för att åsidosätta (auditloggas).',
+              });
+            }
           }
-          if (conflictResult.hasBlockers) {
-            return res.status(409).json({
-              ok: false,
-              error: 'conflict',
-              conflicts: conflictResult.conflicts,
-              hint: 'Skicka force=true för att åsidosätta (auditloggas).',
-            });
-          }
-        }
 
-        // Skapa booking via ccoBookingStore (booking-case)
-        const caseStore = app.locals.ccoBookingCaseStore;
-        let bookingCaseResult = null;
-        if (caseStore?.addBookingCase) {
-          try {
-            bookingCaseResult = await caseStore.addBookingCase({
-              tenantId,
-              customerId: patientId,
-              serviceId: serviceId || null,
-              treatment: treatment || null,
-              candidateSlots: [{ resourceId, date, time, endTime, serviceId }],
-              notes: notes || '',
-              source: 'calendar_create',
+          // Skapa booking via ccoBookingStore (booking-case)
+          const caseStore = app.locals.ccoBookingCaseStore;
+          let bookingCaseResult = null;
+          if (caseStore?.addBookingCase) {
+            try {
+              bookingCaseResult = await caseStore.addBookingCase(
+                {
+                  tenantId,
+                  customerId: patientId,
+                  serviceId: serviceId || null,
+                  treatment: treatment || null,
+                  candidateSlots: [{ resourceId, date, time, endTime, serviceId }],
+                  notes: notes || '',
+                  source: 'calendar_create',
+                  actor,
+                },
+                { actor }
+              );
+            } catch (err) {
+              console.warn('[calendar-create] addBookingCase failed:', err.message);
+            }
+          }
+
+          // Skapa encounter om relevant (operation/PRP)
+          const encStore = app.locals.ccoTreatmentEncounterStore;
+          let encounterResult = null;
+          const shouldCreateEncounter = ['operation', 'prp', 'fue', 'dhi'].includes(
+            String(treatment || '').toLowerCase()
+          );
+          if (shouldCreateEncounter && encStore?.upsertEncounter) {
+            try {
+              encounterResult = await encStore.upsertEncounter({
+                tenantId,
+                patientId,
+                encounterDate: date,
+                treatmentType: treatment,
+                resourceId,
+                createdBy: actor.userId,
+                status: 'planned',
+              });
+            } catch (err) {
+              console.warn('[calendar-create] upsertEncounter failed:', err.message);
+            }
+          }
+
+          const bookingId =
+            bookingCaseResult?.caseId || bookingCaseResult?.id || `cal-${Date.now()}`;
+          if (ccoAuditLog) {
+            ccoAuditLog.append({
+              action: 'booking.created',
               actor,
-            }, { actor });
-          } catch (err) { console.warn('[calendar-create] addBookingCase failed:', err.message); }
-        }
-
-        // Skapa encounter om relevant (operation/PRP)
-        const encStore = app.locals.ccoTreatmentEncounterStore;
-        let encounterResult = null;
-        const shouldCreateEncounter = ['operation', 'prp', 'fue', 'dhi'].includes(String(treatment || '').toLowerCase());
-        if (shouldCreateEncounter && encStore?.upsertEncounter) {
-          try {
-            encounterResult = await encStore.upsertEncounter({
-              tenantId,
-              patientId,
-              encounterDate: date,
-              treatmentType: treatment,
-              resourceId,
-              createdBy: actor.userId,
-              status: 'planned',
+              target: { kind: 'booking', id: bookingId, tenantId },
+              result: 'ok',
+              detail: {
+                patientId,
+                resourceId,
+                serviceId,
+                date,
+                time,
+                endTime,
+                treatment,
+                encounterId: encounterResult?.encounterId || null,
+                forceUsed: !!force,
+                forcedConflicts: force ? conflictResult.conflicts.length : 0,
+                ccoSourceOnly: true,
+              },
             });
-          } catch (err) { console.warn('[calendar-create] upsertEncounter failed:', err.message); }
-        }
+          }
 
-        const bookingId = bookingCaseResult?.caseId || bookingCaseResult?.id || `cal-${Date.now()}`;
-        if (ccoAuditLog) {
-          ccoAuditLog.append({
-            action: 'booking.created',
-            actor,
-            target: { kind: 'booking', id: bookingId, tenantId },
-            result: 'ok',
-            detail: {
-              patientId, resourceId, serviceId, date, time, endTime, treatment,
-              encounterId: encounterResult?.encounterId || null,
-              forceUsed: !!force,
-              forcedConflicts: force ? conflictResult.conflicts.length : 0,
-              ccoSourceOnly: true,
-            },
+          res.json({
+            ok: true,
+            bookingId,
+            bookingCaseId: bookingCaseResult?.caseId || null,
+            encounterId: encounterResult?.encounterId || null,
+            resourceId,
+            serviceId,
+            date,
+            time,
+            endTime,
+            treatment,
+            createdAt: new Date().toISOString(),
           });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ ok: false, error: err.message });
         }
-
-        res.json({
-          ok: true,
-          bookingId,
-          bookingCaseId: bookingCaseResult?.caseId || null,
-          encounterId: encounterResult?.encounterId || null,
-          resourceId, serviceId, date, time, endTime, treatment,
-          createdAt: new Date().toISOString(),
-        });
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
       }
-    });
+    );
 
-    console.log('[calendar-sprint1] monterad: /calendar/day · /calendar/week · /calendar/booking/:id/status-pills · POST /cco-bookings/:id/{checkin,no-show,follow-up} (bookings.read/write)');
-    console.log('[calendar-sprint2] monterad: GET /calendar/services · POST /calendar/booking/conflict-check · POST /calendar/booking (RBAC: bookings.read/write)');
+    console.log(
+      '[calendar-sprint1] monterad: /calendar/day · /calendar/week · /calendar/booking/:id/status-pills · POST /cco-bookings/:id/{checkin,no-show,follow-up} (bookings.read/write)'
+    );
+    console.log(
+      '[calendar-sprint2] monterad: GET /calendar/services · POST /calendar/booking/conflict-check · POST /calendar/booking (RBAC: bookings.read/write)'
+    );
 
     // ════════ SPRINT 3: Kundintelligens-rail (4 insikter per booking) ════════
     // Aggregerar derived statusar — ingen extern AI, ingen rå journaltext.
-    app.get('/api/v1/calendar/booking/:id/intelligence', attachRole, requirePermission('customers.read'), async (req, res) => {
-      try {
-        const bookingId = req.params.id;
-        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
-        const treatment = String(req.query.treatment || '').toLowerCase();
-
-        // 1. Hämta booking
-        const beStore = app.locals.ccoBookingEngineStore;
-        const beState = beStore?._state || {};
-        const booking = (beState.bookings || []).find(b => b.bookingId === bookingId) ||
-                        (beState.reservations || []).find(r => r.reservationId === bookingId);
-
-        const patientId = booking?.customerId || booking?.contact?.customerId || null;
-        const inferredTreatment = treatment || booking?.serviceId || '';
-
-        const intel = {
-          bookingId,
-          patientId,
-          treatment: inferredTreatment,
-          insights: {
-            readiness:    { status: 'unknown', missing: [], blockingCount: 0, hint: null },
-            risk:         { level: 'unknown',  noShowCount: 0, lateCancelCount: 0, blockerCount: 0, hint: null },
-            engagement:   { lastContactTs: null, lastContactKind: null, daysSinceContact: null, nextBestAction: null },
-            commercial:   { offerState: null, agreementState: null, openBalance: null, ltvTier: null },
-          },
-          ccoSourceOnly: true,
-          evaluatedAt: new Date().toISOString(),
-        };
-
-        if (!patientId) {
-          intel.note = 'no_patient_linked';
-          return res.json({ ok: true, ...intel });
-        }
-
-        // ── INSIGHT 1: Ready-for-treatment / missing documents ──
+    app.get(
+      '/api/v1/calendar/booking/:id/intelligence',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
         try {
-          const reqFile = JSON.parse(require('fs').readFileSync(
-            path.join(__dirname, 'config/cco-treatment-document-requirements.json'), 'utf8'));
-          const requirements = reqFile.treatments?.[inferredTreatment]?.requiredDocuments || {};
-          const journalStore = app.locals.ccoJournalStore;
-          const entries = journalStore?.listEntries ? (await journalStore.listEntries({ tenantId, patientId }) || []) : [];
-          const hasHD = entries.some(e => e.journalType === 'health_declaration' && e.locked);
-          const hasFF = entries.some(e => e.journalType === 'fitness_certificate' && e.locked);
+          const bookingId = req.params.id;
+          const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const treatment = String(req.query.treatment || '').toLowerCase();
 
-          const missing = [];
-          if (requirements.healthDeclaration?.blocking && !hasHD) missing.push('Hälsodeklaration');
-          if (requirements.fitnessCertificate?.blocking && !hasFF) missing.push('Friskförsäkran');
-          // Agreement
-          const agStore = app.locals.ccoAgreementQuickStore;
-          const ags = agStore?.listForCustomer ? agStore.listForCustomer(patientId) : [];
-          const signedAg = ags.find(a => a.state === 'signed');
-          if (requirements.treatmentAgreement?.blocking && !signedAg) missing.push('Behandlingsavtal');
-          // ID
-          const idStore = app.locals.ccoIdVerificationStore;
-          if (requirements.idVerification?.required && idStore?.getVerification) {
-            try {
-              const ver = await idStore.getVerification(patientId);
-              if (!ver?.verified) missing.push('ID-verifiering');
-            } catch (_) { missing.push('ID-verifiering'); }
-          }
-          intel.insights.readiness.missing = missing;
-          intel.insights.readiness.blockingCount = missing.length;
-          intel.insights.readiness.status = missing.length === 0 ? 'ready' : 'blocked';
-          intel.insights.readiness.hint = missing.length === 0
-            ? 'Patient klar för behandling.'
-            : 'Saknas: ' + missing.join(', ');
-        } catch (_) {}
+          // 1. Hämta booking
+          const beStore = app.locals.ccoBookingEngineStore;
+          const beState = beStore?._state || {};
+          const booking =
+            (beState.bookings || []).find((b) => b.bookingId === bookingId) ||
+            (beState.reservations || []).find((r) => r.reservationId === bookingId);
 
-        // ── INSIGHT 2: Risk / no-show / blocker ──
-        try {
-          const allBookings = (beState.bookings || []).filter(b => b.customerId === patientId);
-          const noShowCount = allBookings.filter(b => b.status === 'no_show' || b.noShow).length;
-          const lateCancelCount = allBookings.filter(b => b.status === 'cancelled' && b.cancelledLate).length;
-          const totalPast = allBookings.filter(b => {
-            try { return new Date(b.slot?.date || 0) < new Date(); } catch { return false; }
-          }).length;
-          const noShowRate = totalPast > 0 ? (noShowCount / totalPast) : 0;
-          let level = 'low';
-          if (noShowRate > 0.20 || noShowCount >= 3) level = 'high';
-          else if (noShowRate > 0.10 || noShowCount >= 2) level = 'medium';
-          intel.insights.risk = {
-            level,
-            noShowCount,
-            lateCancelCount,
-            blockerCount: intel.insights.readiness.blockingCount,
-            hint: level === 'high' ? 'Hög no-show-risk — överväg påminnelse + reserv-bokning.'
-                : level === 'medium' ? 'Medel no-show-risk — skicka påminnelse.'
-                : noShowCount === 0 ? 'Inga no-shows i historiken.'
-                : 'Låg risk.',
-          };
-        } catch (_) {}
+          const patientId = booking?.customerId || booking?.contact?.customerId || null;
+          const inferredTreatment = treatment || booking?.serviceId || '';
 
-        // ── INSIGHT 3: Engagement (senaste kontakt + next best action) ──
-        try {
-          const sendStore = app.locals.ccoSendActionStore;
-          const journalStore = app.locals.ccoJournalStore;
-          const sends = sendStore?.listSends ? (sendStore.listSends({ customerId: patientId, limit: 50 }) || []) : [];
-          const journalEntries = journalStore?.listEntries ? (await journalStore.listEntries({ tenantId, patientId }) || []) : [];
-
-          const events = [];
-          for (const s of sends) events.push({ ts: s.ts, kind: 'send_' + (s.kind || 'unknown') });
-          for (const e of journalEntries) {
-            if (e.signedAt) events.push({ ts: e.signedAt, kind: 'journal_' + e.journalType });
-            else if (e.createdAt) events.push({ ts: e.createdAt, kind: 'journal_draft_' + e.journalType });
-          }
-          // booking-historik som engagement-events
-          const beStore2 = app.locals.ccoBookingEngineStore;
-          const allB = (beStore2?._state?.bookings || []).filter(b => b.customerId === patientId);
-          for (const b of allB) {
-            if (b.createdAt) events.push({ ts: b.createdAt, kind: 'booking_created' });
-          }
-          events.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
-          const last = events[0] || null;
-          const daysSince = last ? Math.floor((Date.now() - new Date(last.ts).getTime()) / 86400000) : null;
-
-          // Next-best-action (regelbaserad — INGEN AI)
-          let nba = null;
-          if (intel.insights.readiness.blockingCount > 0) {
-            nba = { action: 'Skicka formulär', reason: 'Dokument saknas inför behandling.', cta: 'send-form' };
-          } else if (intel.insights.risk.level === 'high') {
-            nba = { action: 'Skicka påminnelse', reason: 'Hög no-show-risk.', cta: 'send-reminder' };
-          } else if (intel.insights.readiness.status === 'ready') {
-            nba = { action: 'Bekräfta ankomst', reason: 'Patient redo för behandling.', cta: 'checkin' };
-          } else if (daysSince === null || daysSince > 60) {
-            nba = { action: 'Skicka uppföljning', reason: 'Lång tid sedan senaste kontakt.', cta: 'send-followup' };
-          }
-
-          intel.insights.engagement = {
-            lastContactTs: last?.ts || null,
-            lastContactKind: last?.kind || null,
-            daysSinceContact: daysSince,
-            nextBestAction: nba,
-          };
-        } catch (_) {}
-
-        // ── INSIGHT 4: Kommersiell status ──
-        try {
-          const offerStore = app.locals.ccoOfferQuickStore;
-          const agStore = app.locals.ccoAgreementQuickStore;
-          const offers = offerStore?.listForCustomer ? (offerStore.listForCustomer(patientId) || []) : [];
-          const ags = agStore?.listForCustomer ? (agStore.listForCustomer(patientId) || []) : [];
-
-          const activeOffer = offers.find(o => o.state === 'accepted') ||
-                              offers.find(o => o.state === 'sent') ||
-                              offers[0] || null;
-          const activeAg = ags.find(a => a.state === 'signed') ||
-                           ags.find(a => a.state === 'sent') ||
-                           ags[0] || null;
-
-          // LTV tier (simple, derived från total signed agreement-värde)
-          const totalSignedValue = ags.filter(a => a.state === 'signed')
-            .reduce((s, a) => s + (Number(a.priceTotal) || 0), 0);
-          let ltvTier = 'standard';
-          if (totalSignedValue >= 100000) ltvTier = 'platinum';
-          else if (totalSignedValue >= 50000) ltvTier = 'gold';
-          else if (totalSignedValue >= 20000) ltvTier = 'silver';
-          else if (totalSignedValue > 0) ltvTier = 'standard';
-          else ltvTier = 'new';
-
-          intel.insights.commercial = {
-            offerState:     activeOffer?.state || null,
-            offerValue:     activeOffer?.priceTotal || null,
-            offerId:        activeOffer?.id || null,
-            agreementState: activeAg?.state || null,
-            agreementValue: activeAg?.priceTotal || null,
-            agreementId:    activeAg?.id || null,
-            totalSignedValue,
-            ltvTier,
-            currency: 'SEK',
-          };
-        } catch (_) {}
-
-        // Audit (counts only — INGEN PII)
-        if (ccoAuditLog) {
-          ccoAuditLog.append({
-            action: 'customer.intelligence.read',
-            actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
-            target: { kind: 'booking', id: bookingId, tenantId },
-            result: 'ok',
-            detail: {
-              patientId, treatment: inferredTreatment,
-              readinessStatus: intel.insights.readiness.status,
-              riskLevel: intel.insights.risk.level,
-              hasNba: !!intel.insights.engagement.nextBestAction,
-              ltvTier: intel.insights.commercial.ltvTier,
-              ccoSourceOnly: true,
+          const intel = {
+            bookingId,
+            patientId,
+            treatment: inferredTreatment,
+            insights: {
+              readiness: { status: 'unknown', missing: [], blockingCount: 0, hint: null },
+              risk: {
+                level: 'unknown',
+                noShowCount: 0,
+                lateCancelCount: 0,
+                blockerCount: 0,
+                hint: null,
+              },
+              engagement: {
+                lastContactTs: null,
+                lastContactKind: null,
+                daysSinceContact: null,
+                nextBestAction: null,
+              },
+              commercial: {
+                offerState: null,
+                agreementState: null,
+                openBalance: null,
+                ltvTier: null,
+              },
             },
-          });
+            ccoSourceOnly: true,
+            evaluatedAt: new Date().toISOString(),
+          };
+
+          if (!patientId) {
+            intel.note = 'no_patient_linked';
+            return res.json({ ok: true, ...intel });
+          }
+
+          // ── INSIGHT 1: Ready-for-treatment / missing documents ──
+          try {
+            const reqFile = JSON.parse(
+              require('fs').readFileSync(
+                path.join(__dirname, 'config/cco-treatment-document-requirements.json'),
+                'utf8'
+              )
+            );
+            const requirements = reqFile.treatments?.[inferredTreatment]?.requiredDocuments || {};
+            const journalStore = app.locals.ccoJournalStore;
+            const entries = journalStore?.listEntries
+              ? (await journalStore.listEntries({ tenantId, patientId })) || []
+              : [];
+            const hasHD = entries.some((e) => e.journalType === 'health_declaration' && e.locked);
+            const hasFF = entries.some((e) => e.journalType === 'fitness_certificate' && e.locked);
+
+            const missing = [];
+            if (requirements.healthDeclaration?.blocking && !hasHD)
+              missing.push('Hälsodeklaration');
+            if (requirements.fitnessCertificate?.blocking && !hasFF) missing.push('Friskförsäkran');
+            // Agreement
+            const agStore = app.locals.ccoAgreementQuickStore;
+            const ags = agStore?.listForCustomer ? agStore.listForCustomer(patientId) : [];
+            const signedAg = ags.find((a) => a.state === 'signed');
+            if (requirements.treatmentAgreement?.blocking && !signedAg)
+              missing.push('Behandlingsavtal');
+            // ID
+            const idStore = app.locals.ccoIdVerificationStore;
+            if (requirements.idVerification?.required && idStore?.getVerification) {
+              try {
+                const ver = await idStore.getVerification(patientId);
+                if (!ver?.verified) missing.push('ID-verifiering');
+              } catch (_) {
+                missing.push('ID-verifiering');
+              }
+            }
+            intel.insights.readiness.missing = missing;
+            intel.insights.readiness.blockingCount = missing.length;
+            intel.insights.readiness.status = missing.length === 0 ? 'ready' : 'blocked';
+            intel.insights.readiness.hint =
+              missing.length === 0
+                ? 'Patient klar för behandling.'
+                : 'Saknas: ' + missing.join(', ');
+          } catch (_) {}
+
+          // ── INSIGHT 2: Risk / no-show / blocker ──
+          try {
+            const allBookings = (beState.bookings || []).filter((b) => b.customerId === patientId);
+            const noShowCount = allBookings.filter(
+              (b) => b.status === 'no_show' || b.noShow
+            ).length;
+            const lateCancelCount = allBookings.filter(
+              (b) => b.status === 'cancelled' && b.cancelledLate
+            ).length;
+            const totalPast = allBookings.filter((b) => {
+              try {
+                return new Date(b.slot?.date || 0) < new Date();
+              } catch {
+                return false;
+              }
+            }).length;
+            const noShowRate = totalPast > 0 ? noShowCount / totalPast : 0;
+            let level = 'low';
+            if (noShowRate > 0.2 || noShowCount >= 3) level = 'high';
+            else if (noShowRate > 0.1 || noShowCount >= 2) level = 'medium';
+            intel.insights.risk = {
+              level,
+              noShowCount,
+              lateCancelCount,
+              blockerCount: intel.insights.readiness.blockingCount,
+              hint:
+                level === 'high'
+                  ? 'Hög no-show-risk — överväg påminnelse + reserv-bokning.'
+                  : level === 'medium'
+                    ? 'Medel no-show-risk — skicka påminnelse.'
+                    : noShowCount === 0
+                      ? 'Inga no-shows i historiken.'
+                      : 'Låg risk.',
+            };
+          } catch (_) {}
+
+          // ── INSIGHT 3: Engagement (senaste kontakt + next best action) ──
+          try {
+            const sendStore = app.locals.ccoSendActionStore;
+            const journalStore = app.locals.ccoJournalStore;
+            const sends = sendStore?.listSends
+              ? sendStore.listSends({ customerId: patientId, limit: 50 }) || []
+              : [];
+            const journalEntries = journalStore?.listEntries
+              ? (await journalStore.listEntries({ tenantId, patientId })) || []
+              : [];
+
+            const events = [];
+            for (const s of sends) events.push({ ts: s.ts, kind: 'send_' + (s.kind || 'unknown') });
+            for (const e of journalEntries) {
+              if (e.signedAt) events.push({ ts: e.signedAt, kind: 'journal_' + e.journalType });
+              else if (e.createdAt)
+                events.push({ ts: e.createdAt, kind: 'journal_draft_' + e.journalType });
+            }
+            // booking-historik som engagement-events
+            const beStore2 = app.locals.ccoBookingEngineStore;
+            const allB = (beStore2?._state?.bookings || []).filter(
+              (b) => b.customerId === patientId
+            );
+            for (const b of allB) {
+              if (b.createdAt) events.push({ ts: b.createdAt, kind: 'booking_created' });
+            }
+            events.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
+            const last = events[0] || null;
+            const daysSince = last
+              ? Math.floor((Date.now() - new Date(last.ts).getTime()) / 86400000)
+              : null;
+
+            // Next-best-action (regelbaserad — INGEN AI)
+            let nba = null;
+            if (intel.insights.readiness.blockingCount > 0) {
+              nba = {
+                action: 'Skicka formulär',
+                reason: 'Dokument saknas inför behandling.',
+                cta: 'send-form',
+              };
+            } else if (intel.insights.risk.level === 'high') {
+              nba = {
+                action: 'Skicka påminnelse',
+                reason: 'Hög no-show-risk.',
+                cta: 'send-reminder',
+              };
+            } else if (intel.insights.readiness.status === 'ready') {
+              nba = {
+                action: 'Bekräfta ankomst',
+                reason: 'Patient redo för behandling.',
+                cta: 'checkin',
+              };
+            } else if (daysSince === null || daysSince > 60) {
+              nba = {
+                action: 'Skicka uppföljning',
+                reason: 'Lång tid sedan senaste kontakt.',
+                cta: 'send-followup',
+              };
+            }
+
+            intel.insights.engagement = {
+              lastContactTs: last?.ts || null,
+              lastContactKind: last?.kind || null,
+              daysSinceContact: daysSince,
+              nextBestAction: nba,
+            };
+          } catch (_) {}
+
+          // ── INSIGHT 4: Kommersiell status ──
+          try {
+            const offerStore = app.locals.ccoOfferQuickStore;
+            const agStore = app.locals.ccoAgreementQuickStore;
+            const offers = offerStore?.listForCustomer
+              ? offerStore.listForCustomer(patientId) || []
+              : [];
+            const ags = agStore?.listForCustomer ? agStore.listForCustomer(patientId) || [] : [];
+
+            const activeOffer =
+              offers.find((o) => o.state === 'accepted') ||
+              offers.find((o) => o.state === 'sent') ||
+              offers[0] ||
+              null;
+            const activeAg =
+              ags.find((a) => a.state === 'signed') ||
+              ags.find((a) => a.state === 'sent') ||
+              ags[0] ||
+              null;
+
+            // LTV tier (simple, derived från total signed agreement-värde)
+            const totalSignedValue = ags
+              .filter((a) => a.state === 'signed')
+              .reduce((s, a) => s + (Number(a.priceTotal) || 0), 0);
+            let ltvTier = 'standard';
+            if (totalSignedValue >= 100000) ltvTier = 'platinum';
+            else if (totalSignedValue >= 50000) ltvTier = 'gold';
+            else if (totalSignedValue >= 20000) ltvTier = 'silver';
+            else if (totalSignedValue > 0) ltvTier = 'standard';
+            else ltvTier = 'new';
+
+            intel.insights.commercial = {
+              offerState: activeOffer?.state || null,
+              offerValue: activeOffer?.priceTotal || null,
+              offerId: activeOffer?.id || null,
+              agreementState: activeAg?.state || null,
+              agreementValue: activeAg?.priceTotal || null,
+              agreementId: activeAg?.id || null,
+              totalSignedValue,
+              ltvTier,
+              currency: 'SEK',
+            };
+          } catch (_) {}
+
+          // Audit (counts only — INGEN PII)
+          if (ccoAuditLog) {
+            ccoAuditLog.append({
+              action: 'customer.intelligence.read',
+              actor: {
+                role: req.cco?.role || 'unknown',
+                userId: req.headers['x-cco-user'] || null,
+              },
+              target: { kind: 'booking', id: bookingId, tenantId },
+              result: 'ok',
+              detail: {
+                patientId,
+                treatment: inferredTreatment,
+                readinessStatus: intel.insights.readiness.status,
+                riskLevel: intel.insights.risk.level,
+                hasNba: !!intel.insights.engagement.nextBestAction,
+                ltvTier: intel.insights.commercial.ltvTier,
+                ccoSourceOnly: true,
+              },
+            });
+          }
+
+          res.json({ ok: true, ...intel });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ ok: false, error: err.message });
         }
-
-        res.json({ ok: true, ...intel });
-      } catch (err) {
-        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
       }
-    });
+    );
 
-    console.log('[calendar-sprint3] monterad: GET /calendar/booking/:id/intelligence (customers.read)');
+    console.log(
+      '[calendar-sprint3] monterad: GET /calendar/booking/:id/intelligence (customers.read)'
+    );
 
     // ════════ KOMM/JOURNEY SPRINT 1: Communication feed per kund ═══════════════
     // Aggregator för patientkort "Kommunikation"-sektion + tidslinje-events.
     // Källor: ccoSendActionStore + ccoConversationNotesStore + ccoNotificationFeedStore
     // (om finns). Counts only, no PII utöver det som existing stores redan returnerar.
-    app.get('/api/v1/cco-customers/:id/communication-feed',
-      attachRole, requirePermission('customers.read'),
+    app.get(
+      '/api/v1/cco-customers/:id/communication-feed',
+      attachRole,
+      requirePermission('customers.read'),
       async (req, res) => {
         try {
           const customerId = req.params.id;
@@ -5389,18 +7282,70 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
           const limit = Number(req.query.limit) || 100;
           const events = [];
 
+          // 0. Comm-drafts (Sprint 2) — drafts/approved/queued/sent som timeline-events
+          const draftStore = app.locals.ccoCommDraftStore;
+          if (draftStore?.listForCustomer) {
+            try {
+              const drafts = draftStore.listForCustomer(customerId, { limit }) || [];
+              for (const d of drafts) {
+                const stageLabel =
+                  {
+                    draft: 'Utkast skapat',
+                    needs_approval: 'Väntar godkännande',
+                    approved: 'Utkast godkänt',
+                    queued: 'Skickklart (queued)',
+                    sent: 'Skickat',
+                    failed: 'Utskick misslyckades',
+                    cancelled: 'Utkast avbrutet',
+                  }[d.status] || d.status;
+                events.push({
+                  kind: 'comm_draft',
+                  subkind: d.status,
+                  ts: d.updatedAt || d.createdAt,
+                  title: stageLabel,
+                  icon:
+                    d.status === 'sent'
+                      ? '📨'
+                      : d.status === 'queued'
+                        ? '⏳'
+                        : d.status === 'approved'
+                          ? '✓'
+                          : d.status === 'failed'
+                            ? '✗'
+                            : d.status === 'cancelled'
+                              ? '⊘'
+                              : '📝',
+                  status: d.status,
+                  actor: d.approvedBy || d.createdBy || null,
+                  entityId: d.draftId,
+                  detail: {
+                    journeyStep: d.journeyStep,
+                    channel: d.channel,
+                    subject: d.subject,
+                    templateId: d.templateId,
+                    aiGenerated: !!d.aiGenerated,
+                    bodyLength: (d.body || '').length,
+                    recipientMasked: d.recipientMasked,
+                    ccoSourceOnly: true,
+                  },
+                });
+              }
+            } catch (_) {}
+          }
+
           // 1. Send-actions (form/consent/file/encounter via Sprint C)
           const sendStore = app.locals.ccoSendActionStore;
           if (sendStore?.listSends) {
             try {
               const sends = sendStore.listSends({ customerId, limit }) || [];
               for (const s of sends) {
-                const kindLabel = {
-                  form: 'Formulär skickat',
-                  consent: 'Samtycke skickat',
-                  file: 'Fil skickad',
-                  encounter: 'Bokning skickad',
-                }[s.kind] || (s.kind + ' skickad');
+                const kindLabel =
+                  {
+                    form: 'Formulär skickat',
+                    consent: 'Samtycke skickat',
+                    file: 'Fil skickad',
+                    encounter: 'Bokning skickad',
+                  }[s.kind] || s.kind + ' skickad';
                 const iconMap = { form: '📋', consent: '✍', file: '📎', encounter: '📅' };
                 events.push({
                   kind: 'send',
@@ -5408,7 +7353,12 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
                   ts: s.ts,
                   title: kindLabel,
                   icon: iconMap[s.kind] || '📧',
-                  status: s.mode === 'live' ? 'sent' : (s.mode === 'dry_run' ? 'dry_run' : (s.mode || 'unknown')),
+                  status:
+                    s.mode === 'live'
+                      ? 'sent'
+                      : s.mode === 'dry_run'
+                        ? 'dry_run'
+                        : s.mode || 'unknown',
                   actor: s.actor?.role || s.actor?.userId || null,
                   entityId: s.sendId,
                   detail: {
@@ -5519,8 +7469,8 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
           // Counters
           const counters = {
             total: events.length,
-            sends: events.filter(e => e.kind === 'send').length,
-            internal_notes: events.filter(e => e.kind === 'internal_note').length,
+            sends: events.filter((e) => e.kind === 'send').length,
+            internal_notes: events.filter((e) => e.kind === 'internal_note').length,
             byChannel: {},
           };
           // Last contact ts
@@ -5544,16 +7494,20 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
 
     // POST /api/v1/cco-customers/:id/internal-note — staff-only intern notis
     const internalNoteParser = require('express').json({ limit: '4kb' });
-    app.post('/api/v1/cco-customers/:id/internal-note',
-      attachRole, requirePermission('customers.write'),
+    app.post(
+      '/api/v1/cco-customers/:id/internal-note',
+      attachRole,
+      requirePermission('customers.write'),
       internalNoteParser,
       async (req, res) => {
         try {
           const customerId = req.params.id;
           const tenantId = req.body?.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
           const body = String(req.body?.body || '').trim();
-          if (body.length < 3) return res.status(400).json({ ok: false, error: 'body måste vara minst 3 tecken' });
-          if (body.length > 2000) return res.status(400).json({ ok: false, error: 'body max 2000 tecken' });
+          if (body.length < 3)
+            return res.status(400).json({ ok: false, error: 'body måste vara minst 3 tecken' });
+          if (body.length > 2000)
+            return res.status(400).json({ ok: false, error: 'body max 2000 tecken' });
 
           const actor = {
             userId: req.headers['x-cco-user'] || 'staff',
@@ -5602,7 +7556,256 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
       }
     );
 
-    console.log('[komm-sprint1] monterad: GET /cco-customers/:id/communication-feed · POST /internal-note (customers.read/write)');
+    console.log(
+      '[komm-sprint1] monterad: GET /cco-customers/:id/communication-feed · POST /internal-note (customers.read/write)'
+    );
+
+    // ════════ KOMM/JOURNEY SPRINT 2: Svarstudio + drafts + approval ════════
+    // INGEN auto-send. INGEN AI på journaltext. Human approval krävs.
+    let _commDraftStore = null;
+    let _commTemplates = null;
+
+    async function ensureCommStores() {
+      if (!_commDraftStore) {
+        const { createCcoCommDraftStore } = require('./src/ops/ccoCommDraftStore');
+        _commDraftStore = await createCcoCommDraftStore({
+          filePath: path.join(__dirname, 'data', 'cco-comm-drafts.json'),
+          auditLog: ccoAuditLog,
+        });
+        app.locals.ccoCommDraftStore = _commDraftStore;
+      }
+      if (!_commTemplates) {
+        try {
+          _commTemplates = JSON.parse(
+            require('fs').readFileSync(
+              path.join(__dirname, 'config/cco-comm-templates-journey.json'),
+              'utf8'
+            )
+          );
+        } catch (_) {
+          _commTemplates = { templates: [] };
+        }
+      }
+      return { draftStore: _commDraftStore, templates: _commTemplates };
+    }
+
+    const commParser = require('express').json({ limit: '32kb' });
+
+    // GET /api/v1/cco-comm/templates — lista mallar
+    app.get(
+      '/api/v1/cco-comm/templates',
+      attachRole,
+      requirePermission('templates.read'),
+      async (req, res) => {
+        try {
+          const { templates } = await ensureCommStores();
+          const brand = req.query.brand || null;
+          const stage = req.query.stage || null;
+          let list = templates.templates || [];
+          if (brand) list = list.filter((t) => t.brand === brand);
+          if (stage) list = list.filter((t) => t.journeyStep === stage);
+          res.json({ ok: true, count: list.length, templates: list });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    // POST /api/v1/cco-comm/drafts — skapa utkast
+    app.post(
+      '/api/v1/cco-comm/drafts',
+      attachRole,
+      requirePermission('mail.send'),
+      commParser,
+      async (req, res) => {
+        try {
+          const { draftStore, templates } = await ensureCommStores();
+          const b = req.body || {};
+          if (!b.customerId) return res.status(400).json({ ok: false, error: 'customerId krävs' });
+          const tenantId = b.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const actor = {
+            userId: req.headers['x-cco-user'] || 'staff',
+            displayName: req.headers['x-cco-user'] || req.cco?.role,
+            role: req.cco?.role,
+          };
+
+          // Templated body från templateId om finns (annars rå input)
+          const templateId = b.templateId || null;
+          let templateVersion = null;
+          let subject = b.subject || '';
+          let body = b.body || '';
+          let journeyStep = b.journeyStep || null;
+          let channel = b.channel || 'email';
+          if (templateId) {
+            const tpl = (templates.templates || []).find((t) => t.templateId === templateId);
+            if (tpl) {
+              templateVersion = templates.version || '1.0.0';
+              subject = subject || tpl.subject || '';
+              body = body || tpl.bodyMarkdown || '';
+              journeyStep = journeyStep || tpl.journeyStep;
+              channel = channel || tpl.channel;
+            }
+          }
+
+          const draft = await draftStore.createDraft(
+            {
+              tenantId,
+              customerId: b.customerId,
+              templateId,
+              templateVersion,
+              journeyStep,
+              channel,
+              subject,
+              body,
+              mergeFields: b.mergeFields || {},
+              bookingId: b.bookingId || null,
+              encounterId: b.encounterId || null,
+              aiGenerated: !!b.aiGenerated,
+              recipientMasked: b.recipientMasked || null,
+              recipientHash: b.recipientHash || null,
+            },
+            { actor }
+          );
+
+          res.json({ ok: true, draft });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    // PATCH /api/v1/cco-comm/drafts/:id — redigera utkast
+    app.patch(
+      '/api/v1/cco-comm/drafts/:id',
+      attachRole,
+      requirePermission('mail.send'),
+      commParser,
+      async (req, res) => {
+        try {
+          const { draftStore } = await ensureCommStores();
+          const actor = {
+            userId: req.headers['x-cco-user'] || 'staff',
+            role: req.cco?.role,
+          };
+          const updated = await draftStore.updateDraft(req.params.id, req.body || {}, { actor });
+          res.json({ ok: true, draft: updated });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    // POST /api/v1/cco-comm/drafts/:id/transition — status-byte (markera klart, godkänn, etc.)
+    app.post(
+      '/api/v1/cco-comm/drafts/:id/transition',
+      attachRole,
+      requirePermission('mail.send'),
+      commParser,
+      async (req, res) => {
+        try {
+          const { draftStore } = await ensureCommStores();
+          const newStatus = req.body?.status;
+          const reason = req.body?.reason || null;
+          if (!newStatus) return res.status(400).json({ ok: false, error: 'status krävs' });
+          const actor = {
+            userId: req.headers['x-cco-user'] || 'staff',
+            displayName: req.headers['x-cco-user'] || req.cco?.role,
+            role: req.cco?.role,
+          };
+          // Approval kräver "approve"-permission idealt — för Sprint 2 räcker mail.send
+          const updated = await draftStore.transitionStatus(req.params.id, newStatus, {
+            actor,
+            reason,
+          });
+          // GUARDRAIL: status "sent" får INTE sättas via UI i Sprint 2.
+          // Bara "queued" = ready_to_send. Faktisk send hanteras i Sprint 3+.
+          if (newStatus === 'sent') {
+            console.warn(
+              '[komm-sprint2] WARNING: status=sent satt manuellt — Sprint 2 ska bara använda queued. Audit-loggad.'
+            );
+          }
+          res.json({ ok: true, draft: updated });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    // GET /api/v1/cco-comm/drafts/customer/:customerId — lista per kund
+    app.get(
+      '/api/v1/cco-comm/drafts/customer/:customerId',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const { draftStore } = await ensureCommStores();
+          const status = req.query.status || null;
+          const list = draftStore.listForCustomer(req.params.customerId, { status, limit: 100 });
+          res.json({ ok: true, count: list.length, drafts: list });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    // GET /api/v1/cco-comm/drafts/queue — lista needs_approval/approved/queued
+    app.get(
+      '/api/v1/cco-comm/drafts/queue',
+      attachRole,
+      requirePermission('mail.send'),
+      async (req, res) => {
+        try {
+          const { draftStore } = await ensureCommStores();
+          const tenantId = req.query.tenantId || null;
+          // Default: returnera alla "open" statusar som kräver staff-attention
+          if (req.query.status) {
+            const status = req.query.status;
+            const list = draftStore.listByStatus(status, { tenantId, limit: 200 });
+            return res.json({ ok: true, status, count: list.length, drafts: list });
+          }
+          const groups = {};
+          let total = 0;
+          for (const s of ['needs_approval', 'approved', 'queued']) {
+            const list = draftStore.listByStatus(s, { tenantId, limit: 200 });
+            groups[s] = list;
+            total += list.length;
+          }
+          const merged = [].concat(groups.needs_approval, groups.approved, groups.queued);
+          res.json({
+            ok: true,
+            count: total,
+            byStatus: {
+              needs_approval: groups.needs_approval.length,
+              approved: groups.approved.length,
+              queued: groups.queued.length,
+            },
+            drafts: merged,
+          });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    // GET /api/v1/cco-comm/stats — counts per status/kanal
+    app.get(
+      '/api/v1/cco-comm/stats',
+      attachRole,
+      requirePermission('mail.send'),
+      async (req, res) => {
+        try {
+          const { draftStore } = await ensureCommStores();
+          const tenantId = req.query.tenantId || null;
+          res.json({ ok: true, stats: draftStore.stats({ tenantId }) });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log(
+      '[komm-sprint2] monterad: /cco-comm/templates · /drafts (POST PATCH transition · GET customer/queue/stats) (templates.read · mail.send · customers.read)'
+    );
   } catch (err) {
     console.warn('[calendar-sprint1] kunde inte montera:', err.message);
   }
@@ -6073,7 +8276,7 @@ process.once('SIGTERM', () => {
   const ccoConversationNotesStore = await createCcoConversationNotesStore({
     filePath: config.ccoConversationNotesStorePath,
   });
-  app.locals.ccoConversationNotesStore = ccoConversationNotesStore;  // Sprint 1 komm/journey
+  app.locals.ccoConversationNotesStore = ccoConversationNotesStore; // Sprint 1 komm/journey
   const ccoMailTemplateStore = await createCcoMailTemplateStore({
     filePath: config.ccoMailTemplateStorePath,
   });
@@ -6130,7 +8333,7 @@ process.once('SIGTERM', () => {
     filePath: config.ccoCustomerStorePath,
     historyStore: ccoHistoryStore,
   });
-  app.locals.ccoCustomerStore = ccoCustomerStore;  // P0.9: exponera för QA-dashboard + master-patient-card-lookup
+  app.locals.ccoCustomerStore = ccoCustomerStore; // P0.9: exponera för QA-dashboard + master-patient-card-lookup
 
   // ── Drive-proxy: tjäna bilder via egen domän (cache + auth-hidden) ─────
   try {
@@ -6215,7 +8418,11 @@ process.once('SIGTERM', () => {
           ccoAuditLog.append({
             action: 'journal.pdf_generated_at_signing',
             actor: { role: actor?.role || 'unknown', userId: actor?.userId || null },
-            target: { kind: 'journal_entry', id: signedEntry.entryId, tenantId: signedEntry.tenantId },
+            target: {
+              kind: 'journal_entry',
+              id: signedEntry.entryId,
+              tenantId: signedEntry.tenantId,
+            },
             result: 'ok',
             detail: {
               patientId: signedEntry.patientId,
@@ -6247,7 +8454,7 @@ process.once('SIGTERM', () => {
           const assetStore = app.locals.ccoPatientAssetStore;
 
           // a) Spara PDF i secure storage (putObject räknar SHA-256)
-          const safeIso = String(signedEntry.signedAt || nowIso()).slice(0, 10);
+          const safeIso = String(signedEntry.signedAt || new Date().toISOString()).slice(0, 10);
           const fileName = `journal-${signedEntry.entryId}-${safeIso}.pdf`;
           const putResult = await secure.putObject({
             body: result.buffer,
@@ -6272,26 +8479,31 @@ process.once('SIGTERM', () => {
             'consultation_plan',
             'follow_up',
           ]);
-          const assetCategory = FORM_JOURNAL_TYPES.has(signedEntry.journalType) ? 'form' : 'journal';
+          const assetCategory = FORM_JOURNAL_TYPES.has(signedEntry.journalType)
+            ? 'form'
+            : 'journal';
 
-          const created = await assetStore.addAsset({
-            patientId: signedEntry.patientId,
-            encounterId: signedEntry.treatmentEncounterId || signedEntry.encounterId || null,
-            sourceSystem: 'cco_journal_sign',
-            sourceRecordId: signedEntry.entryId,
-            originalFileName: fileName,
-            storageProvider: 'local',
-            storageKey: putResult.storageKey,
-            checksum: 'sha256:' + putResult.checksum,
-            fileSize: result.sizeBytes,
-            mimeType: 'application/pdf',
-            category: assetCategory,
-            documentDate: signedEntry.signedAt,
-            importedBy: actor?.userId || actor?.role || 'cco_journal_sign_hook',
-            isJournalRelevant: true,
-            auditRequired: true,
-            status: 'IMPORTED_TO_CCO',
-          }, { actor: { role: actor?.role || 'system', userId: actor?.userId || null } });
+          const created = await assetStore.addAsset(
+            {
+              patientId: signedEntry.patientId,
+              encounterId: signedEntry.treatmentEncounterId || signedEntry.encounterId || null,
+              sourceSystem: 'cco_journal_sign',
+              sourceRecordId: signedEntry.entryId,
+              originalFileName: fileName,
+              storageProvider: 'local',
+              storageKey: putResult.storageKey,
+              checksum: 'sha256:' + putResult.checksum,
+              fileSize: result.sizeBytes,
+              mimeType: 'application/pdf',
+              category: assetCategory,
+              documentDate: signedEntry.signedAt,
+              importedBy: actor?.userId || actor?.role || 'cco_journal_sign_hook',
+              isJournalRelevant: true,
+              auditRequired: true,
+              status: 'IMPORTED_TO_CCO',
+            },
+            { actor: { role: actor?.role || 'system', userId: actor?.userId || null } }
+          );
 
           // c) Transition IMPORTED → VERIFIED (vi äger PDF:en, vi vet att den matchar)
           await assetStore.transitionStatus(created.id, 'VERIFIED_IN_CCO', {
@@ -6331,7 +8543,11 @@ process.once('SIGTERM', () => {
             ccoAuditLog.append({
               action: 'journal.signed_pdf_archived_as_asset',
               actor: { role: actor?.role || 'system' },
-              target: { kind: 'journal_entry', id: signedEntry.entryId, tenantId: signedEntry.tenantId },
+              target: {
+                kind: 'journal_entry',
+                id: signedEntry.entryId,
+                tenantId: signedEntry.tenantId,
+              },
               result: 'error',
               detail: { error: assetErr.message, patientId: signedEntry.patientId },
             });
@@ -6344,7 +8560,11 @@ process.once('SIGTERM', () => {
           ccoAuditLog.append({
             action: 'journal.pdf_generated_at_signing',
             actor: { role: actor?.role || 'unknown' },
-            target: { kind: 'journal_entry', id: signedEntry.entryId, tenantId: signedEntry.tenantId },
+            target: {
+              kind: 'journal_entry',
+              id: signedEntry.entryId,
+              tenantId: signedEntry.tenantId,
+            },
             result: 'error',
             detail: { error: pdfErr.message, patientId: signedEntry.patientId },
           });
@@ -6352,12 +8572,12 @@ process.once('SIGTERM', () => {
       }
     },
   });
-  app.locals.ccoJournalStore = ccoJournalStore;  // Sprint A: exponera till /api/v1/cco-journal-quick
-  app.locals.ccoBookingEngineStore = ccoBookingEngineStore;  // Sprint 1: kalender + status-pills
+  app.locals.ccoJournalStore = ccoJournalStore; // Sprint A: exponera till /api/v1/cco-journal-quick
+  app.locals.ccoBookingEngineStore = ccoBookingEngineStore; // Sprint 1: kalender + status-pills
   const ccoTreatmentEncounterStore = await createCcoTreatmentEncounterStore({
     filePath: config.ccoTreatmentEncounterStorePath,
   });
-  app.locals.ccoTreatmentEncounterStore = ccoTreatmentEncounterStore;  // Sprint 1: kalender encounter-koppling
+  app.locals.ccoTreatmentEncounterStore = ccoTreatmentEncounterStore; // Sprint 1: kalender encounter-koppling
   const ccoJournalPhotoStore = await createCcoJournalPhotoStore({
     baseDir: config.journalPhotosDir,
   });
@@ -7328,7 +9548,7 @@ process.once('SIGTERM', () => {
       journalStore: ccoJournalStore || null,
     })
   );
-  app.locals.patientPortalStore = patientPortalStore;  // Beslut #2: exponera för staff-API
+  app.locals.patientPortalStore = patientPortalStore; // Beslut #2: exponera för staff-API
 
   const identityStorePath = config.stateRoot
     ? `${config.stateRoot}/cco-patient-identity.json`
