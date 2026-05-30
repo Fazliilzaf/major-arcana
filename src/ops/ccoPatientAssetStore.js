@@ -88,6 +88,7 @@ const VALID_SOURCE_SYSTEMS = Object.freeze([
   'old_cco',
   'cco_camera',
   'upload',
+  'cco_journal_sign',  // P0.J.222 — auto-PDF vid signering av CCO-journal
 ]);
 
 const VALID_STORAGE_PROVIDERS = Object.freeze([

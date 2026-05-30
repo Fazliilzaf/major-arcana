@@ -4798,6 +4798,108 @@ process.once('SIGTERM', () => {
             },
           });
         }
+
+        // P0.J.222 — spara PDF i CCO secure storage + skapa patient_asset så
+        // den blir synlig under Journaler på patientkortet via /journal-feed.
+        // Ingen Drive-länk. Ingen extern AI. Ren CCO-source.
+        try {
+          // Lazy-init: secure storage + asset store + review queue store.
+          if (!app.locals.ccoSecureStorage) {
+            const { createSecureStorageProvider } = require('./src/ops/ccoSecureStorageProvider');
+            app.locals.ccoSecureStorage = createSecureStorageProvider({ provider: 'local' });
+          }
+          if (!app.locals.ccoPatientAssetStore) {
+            const { createCcoPatientAssetStore } = require('./src/ops/ccoPatientAssetStore');
+            app.locals.ccoPatientAssetStore = await createCcoPatientAssetStore({
+              filePath: path.join(config.stateRoot || './data', 'cco-patient-assets.json'),
+              auditLog: ccoAuditLog,
+            });
+          }
+          const secure = app.locals.ccoSecureStorage;
+          const assetStore = app.locals.ccoPatientAssetStore;
+
+          // a) Spara PDF i secure storage (putObject räknar SHA-256)
+          const safeIso = String(signedEntry.signedAt || nowIso()).slice(0, 10);
+          const fileName = `journal-${signedEntry.entryId}-${safeIso}.pdf`;
+          const putResult = await secure.putObject({
+            body: result.buffer,
+            contentType: 'application/pdf',
+            metadata: {
+              patientId: signedEntry.patientId,
+              originalFileName: fileName,
+              documentDate: signedEntry.signedAt,
+              entryId: signedEntry.entryId,
+              tenantId: signedEntry.tenantId,
+              signedAt: signedEntry.signedAt,
+              tamperHash: result.tamperHash,
+            },
+          });
+
+          // b) Skapa patient_asset med category=journal
+          const created = await assetStore.addAsset({
+            patientId: signedEntry.patientId,
+            encounterId: signedEntry.treatmentEncounterId || signedEntry.encounterId || null,
+            sourceSystem: 'cco_journal_sign',
+            sourceRecordId: signedEntry.entryId,
+            originalFileName: fileName,
+            storageProvider: 'local',
+            storageKey: putResult.storageKey,
+            checksum: 'sha256:' + putResult.checksum,
+            fileSize: result.sizeBytes,
+            mimeType: 'application/pdf',
+            category: 'journal',
+            documentDate: signedEntry.signedAt,
+            importedBy: actor?.userId || actor?.role || 'cco_journal_sign_hook',
+            isJournalRelevant: true,
+            auditRequired: true,
+            status: 'IMPORTED_TO_CCO',
+          }, { actor: { role: actor?.role || 'system', userId: actor?.userId || null } });
+
+          // c) Transition IMPORTED → VERIFIED (vi äger PDF:en, vi vet att den matchar)
+          await assetStore.transitionStatus(created.id, 'VERIFIED_IN_CCO', {
+            actor: { role: actor?.role || 'system', userId: actor?.userId || null },
+            reason: 'pdf_signed_in_cco_self_verified',
+          });
+
+          // d) Transition VERIFIED → VISIBLE_ON_PATIENT_CARD (alla guard-fält OK)
+          await assetStore.markAsVisibleOnPatientCard(created.id, {
+            actor: { role: actor?.role || 'system', userId: actor?.userId || null },
+          });
+
+          if (ccoAuditLog) {
+            ccoAuditLog.append({
+              action: 'journal.signed_pdf_archived_as_asset',
+              actor: { role: actor?.role || 'system', userId: actor?.userId || null },
+              target: { kind: 'patient_asset', id: created.id, tenantId: signedEntry.tenantId },
+              result: 'ok',
+              detail: {
+                entryId: signedEntry.entryId,
+                patientId: signedEntry.patientId,
+                encounterId: signedEntry.encounterId || null,
+                storageKey: putResult.key,
+                checksum: putResult.checksum,
+                fileSize: result.sizeBytes,
+                mimeType: 'application/pdf',
+                category: 'journal',
+                isJournalRelevant: true,
+                finalStatus: 'VISIBLE_ON_PATIENT_CARD',
+                ccoSourceOnly: true,
+              },
+            });
+          }
+        } catch (assetErr) {
+          console.error('[journal-auto-pdf] asset-skapande misslyckades:', assetErr.message);
+          if (ccoAuditLog) {
+            ccoAuditLog.append({
+              action: 'journal.signed_pdf_archived_as_asset',
+              actor: { role: actor?.role || 'system' },
+              target: { kind: 'journal_entry', id: signedEntry.entryId, tenantId: signedEntry.tenantId },
+              result: 'error',
+              detail: { error: assetErr.message, patientId: signedEntry.patientId },
+            });
+          }
+          // Asset-skapande får inte blockera resten — PDF finns redan på disk + applyPdfArtifact har körts.
+        }
       } catch (pdfErr) {
         console.error('[journal-auto-pdf] sign-hook fel:', pdfErr.message);
         if (ccoAuditLog) {
