@@ -1364,12 +1364,25 @@ try {
             journalEntries.push(e);
             const isCorrection = !!e.correctionOfEntryId;
 
-            // a) Draft created
+            // Är detta ett formulär (hälsodeklaration/friskförsäkran etc)?
+            const FORM_JOURNAL_TYPES = new Set(['health_declaration', 'fitness_certificate']);
+            const isForm = FORM_JOURNAL_TYPES.has(e.journalType) || e.source === 'cco_form_submission';
+
+            // a) Draft created — annan label för formulär vs journal vs rättelse
+            const createdType = isCorrection ? 'correction_created'
+                              : isForm ? 'form_submitted'
+                              : 'journal_draft_created';
+            const createdTitle = isCorrection ? 'Rättelse skapad'
+                               : isForm ? (e.journalType === 'health_declaration' ? 'Hälsodeklaration ifylld'
+                                         : e.journalType === 'fitness_certificate' ? 'Friskförsäkran ifylld'
+                                         : 'Formulär ifyllt')
+                               : 'Journal skapad';
+            const createdIcon = isCorrection ? '✏' : isForm ? '📋' : '📝';
             events.push({
-              type: isCorrection ? 'correction_created' : 'journal_draft_created',
+              type: createdType,
               ts: e.createdAt || e.updatedAt,
-              title: isCorrection ? 'Rättelse skapad' : 'Journal skapad',
-              icon: isCorrection ? '✏' : '📝',
+              title: createdTitle,
+              icon: createdIcon,
               tone: 'info',
               actor: e.authorName || e.signedByName,
               entityId: e.entryId,
@@ -1377,6 +1390,7 @@ try {
               detail: {
                 journalType: e.journalType,
                 title: e.title,
+                isForm,
                 isCorrection,
                 reason: e.correctionReason || null,
               },
@@ -1384,10 +1398,18 @@ try {
 
             // b) Signed (om signerad)
             if (e.locked && e.signedAt) {
+              const signedType = isCorrection ? 'correction_signed'
+                               : isForm ? 'form_signed'
+                               : 'journal_signed';
+              const signedTitle = isCorrection ? 'Rättelse signerad'
+                                : isForm ? (e.journalType === 'health_declaration' ? 'Hälsodeklaration signerad'
+                                          : e.journalType === 'fitness_certificate' ? 'Friskförsäkran signerad'
+                                          : 'Formulär signerat')
+                                : 'Journal signerad';
               events.push({
-                type: isCorrection ? 'correction_signed' : 'journal_signed',
+                type: signedType,
                 ts: e.signedAt,
-                title: isCorrection ? 'Rättelse signerad' : 'Journal signerad',
+                title: signedTitle,
                 icon: '🔒',
                 tone: 'ok',
                 actor: e.signedByName,
@@ -1395,6 +1417,7 @@ try {
                 relatedEntryId: e.correctionOfEntryId || null,
                 detail: {
                   journalType: e.journalType,
+                  isForm,
                   pdfArchived: !!(e.pdfPath || e.pdfStorageKey),
                   tamperHash: e.pdfTamperHash || null,
                 },
@@ -1583,6 +1606,215 @@ try {
   });
 
   console.log('[cco-customer-deep] monterad: GET /api/v1/cco-customers/:id/{timeline|agreements|journal-feed|journal-timeline} (customers.read · journal.read_any)');
+
+  // ── CCO Forms — P0 Journalformulär (Hälsodeklaration + Friskförsäkran) ──
+  // POST /api/v1/cco-forms/submit
+  //   Body: { tenantId, patientId, encounterId?, formType, fields, signedByName?, autoSign? }
+  //   formType: 'health_declaration' | 'fitness_certificate' | 'consultation_plan' | ...
+  //   autoSign: true → signEntry direkt (utlöser #222-hook = PDF + asset)
+  //
+  // Inga Drive-länkar. Ingen extern AI. Allt går genom befintlig journal-pipeline.
+  app.post('/api/v1/cco-forms/submit',
+    express.json({ limit: '256kb' }),
+    attachRole, requirePermission('journal.write'),
+    async (req, res) => {
+      try {
+        const journalStore = app.locals.ccoJournalStore;
+        if (!journalStore?.upsertEntry) return res.status(503).json({ error: 'journal_store_unavailable' });
+
+        const { tenantId, patientId, encounterId, formType, fields, signedByName, autoSign, formVariant, title } = req.body || {};
+        if (!tenantId || !patientId || !formType) {
+          return res.status(400).json({ error: 'tenantId, patientId, formType krävs' });
+        }
+        // Endast tillåtna form-typer (motsvarar journal-types)
+        const ALLOWED_FORM_TYPES = new Set([
+          'health_declaration',
+          'fitness_certificate',
+          'consultation_plan',
+          'follow_up',
+        ]);
+        if (!ALLOWED_FORM_TYPES.has(formType)) {
+          return res.status(400).json({
+            error: 'invalid_form_type',
+            allowed: [...ALLOWED_FORM_TYPES],
+          });
+        }
+
+        const actor = {
+          userId: req.headers['x-cco-user'] || signedByName || 'cco-form-submit',
+          displayName: signedByName || req.headers['x-cco-user'] || req.cco?.role || 'staff',
+          role: req.cco?.role || 'staff',
+        };
+
+        // 1. Skapa journal-entry från formulär-submission
+        const titleByType = {
+          health_declaration: 'Hälsodeklaration',
+          fitness_certificate: 'Friskförsäkran',
+          consultation_plan: 'Konsultationsplan',
+          follow_up: 'Uppföljning',
+        };
+        const draft = await journalStore.upsertEntry({
+          tenantId, patientId,
+          treatmentEncounterId: encounterId || null,
+          journalType: formType,
+          formVariant: formVariant || (tenantId === 'curatiio' ? null : 'hair_tp'),
+          title: title || titleByType[formType] || 'Formulär',
+          source: 'cco_form_submission',
+          fields: fields || {},
+          actor,
+        });
+
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'journal.form_submitted',
+            actor,
+            target: { kind: 'journal_entry', id: draft.entryId, tenantId },
+            result: 'ok',
+            detail: {
+              patientId,
+              encounterId: encounterId || null,
+              formType,
+              fieldCount: Object.keys(fields || {}).length,
+              autoSign: !!autoSign,
+              ccoSourceOnly: true,
+            },
+          });
+        }
+
+        // 2. Auto-sign om begärt — triggar #222-hooken = PDF + asset
+        let signed = null;
+        if (autoSign) {
+          signed = await journalStore.signEntry({
+            tenantId, patientId, entryId: draft.entryId, actor,
+          });
+        }
+
+        res.json({
+          ok: true,
+          entry: signed || draft,
+          autoSigned: !!signed,
+          willGeneratePdf: !!signed,
+          willCreateAsset: !!signed,
+          ccoSourceOnly: true,
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    }
+  );
+
+  // POST /api/v1/cco-forms/:entryId/sign — signera ett tidigare submittat formulär
+  app.post('/api/v1/cco-forms/:entryId/sign',
+    express.json({ limit: '8kb' }),
+    attachRole, requirePermission('journal.write'),
+    async (req, res) => {
+      try {
+        const journalStore = app.locals.ccoJournalStore;
+        if (!journalStore?.signEntry) return res.status(503).json({ error: 'journal_store_unavailable' });
+        const { tenantId, patientId } = req.body || {};
+        if (!tenantId || !patientId) return res.status(400).json({ error: 'tenantId + patientId krävs' });
+        const actor = {
+          userId: req.headers['x-cco-user'] || 'cco-form-sign',
+          displayName: req.headers['x-cco-user'] || req.cco?.role,
+          role: req.cco?.role || 'staff',
+        };
+        const signed = await journalStore.signEntry({
+          tenantId, patientId, entryId: req.params.entryId, actor,
+        });
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'journal.form_signed',
+            actor,
+            target: { kind: 'journal_entry', id: signed.entryId, tenantId },
+            result: 'ok',
+            detail: { patientId, journalType: signed.journalType, ccoSourceOnly: true },
+          });
+        }
+        res.json({ ok: true, entry: signed });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    }
+  );
+
+  // GET /api/v1/cco-forms/patient/:patientId/missing?treatment=fue&encounterId=...
+  // Returnerar blocker-status: vilka formulär krävs för behandlingen,
+  // vilka finns signerade i CCO-journalen, vilka saknas.
+  app.get('/api/v1/cco-forms/patient/:patientId/missing', attachRole, requirePermission('customers.read'), async (req, res) => {
+    try {
+      const journalStore = app.locals.ccoJournalStore;
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+      const treatment = String(req.query.treatment || '').toLowerCase();
+      const encounterId = req.query.encounterId || null;
+      if (!treatment) return res.status(400).json({ error: 'treatment query-param krävs' });
+
+      // Läs treatment-requirements
+      let requirements = {};
+      try {
+        const reqFile = JSON.parse(require('fs').readFileSync(
+          path.join(__dirname, 'config/cco-treatment-document-requirements.json'), 'utf8'));
+        requirements = reqFile.treatments?.[treatment]?.requiredDocuments || {};
+      } catch (_) { /* tyst */ }
+
+      // Form-typer som matchar journal-store-types
+      const FORM_TO_JOURNAL_TYPE = {
+        healthDeclaration: 'health_declaration',
+        fitnessCertificate: 'fitness_certificate',
+      };
+
+      // Hämta patient-journal-entries
+      const entries = await journalStore.listEntries({ tenantId, patientId: req.params.patientId }) || [];
+
+      const missing = [];
+      const fulfilled = [];
+      for (const [docKey, docReq] of Object.entries(requirements)) {
+        if (!docReq.required) continue;
+        const journalType = FORM_TO_JOURNAL_TYPE[docKey];
+        if (!journalType) continue; // Inte ett formulär — kanske avtal/samtycke (annan flow)
+
+        const match = entries.find(e =>
+          e.journalType === journalType && e.locked === true &&
+          (!encounterId || e.treatmentEncounterId === encounterId)
+        );
+        const item = {
+          docKey,
+          journalType,
+          required: !!docReq.required,
+          blocking: !!docReq.blocking,
+          templateRef: docReq.templateRef || null,
+          deadlineHoursBefore: docReq.deadlineHoursBefore || null,
+          fulfilled: !!match,
+          fulfillingEntryId: match?.entryId || null,
+          signedAt: match?.signedAt || null,
+          encounterId: match?.treatmentEncounterId || null,
+        };
+        if (item.fulfilled) fulfilled.push(item);
+        else missing.push(item);
+      }
+
+      const blockingMissing = missing.filter(m => m.blocking);
+      res.json({
+        patientId: req.params.patientId,
+        tenantId,
+        treatment,
+        encounterId,
+        readyForTreatment: blockingMissing.length === 0,
+        counts: {
+          required: missing.length + fulfilled.length,
+          fulfilled: fulfilled.length,
+          missing: missing.length,
+          blockingMissing: blockingMissing.length,
+        },
+        missing,
+        fulfilled,
+        evaluatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  console.log('[cco-forms] monterad: POST /api/v1/cco-forms/submit + /:entryId/sign · GET /patient/:id/missing');
 } catch (err) {
   console.warn('[cco-customer-deep] kunde inte montera:', err.message);
 }
@@ -5094,7 +5326,17 @@ process.once('SIGTERM', () => {
             },
           });
 
-          // b) Skapa patient_asset med category=journal
+          // b) Skapa patient_asset — category beror på journalType
+          //    health_declaration / fitness_certificate / consultation_plan / follow_up → 'form'
+          //    övriga (tp_treatment, prp_treatment etc) → 'journal'
+          const FORM_JOURNAL_TYPES = new Set([
+            'health_declaration',
+            'fitness_certificate',
+            'consultation_plan',
+            'follow_up',
+          ]);
+          const assetCategory = FORM_JOURNAL_TYPES.has(signedEntry.journalType) ? 'form' : 'journal';
+
           const created = await assetStore.addAsset({
             patientId: signedEntry.patientId,
             encounterId: signedEntry.treatmentEncounterId || signedEntry.encounterId || null,
@@ -5106,7 +5348,7 @@ process.once('SIGTERM', () => {
             checksum: 'sha256:' + putResult.checksum,
             fileSize: result.sizeBytes,
             mimeType: 'application/pdf',
-            category: 'journal',
+            category: assetCategory,
             documentDate: signedEntry.signedAt,
             importedBy: actor?.userId || actor?.role || 'cco_journal_sign_hook',
             isJournalRelevant: true,
