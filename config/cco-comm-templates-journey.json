@@ -136,6 +136,23 @@
       "requiresAudit": true,
       "journalRelevant": true,
       "status": "active"
+    },
+    {
+      "templateId": "test_v9_1780179420",
+      "journeyStep": "custom",
+      "channel": "email",
+      "brand": "hair_tp",
+      "trigger": "manual",
+      "subject": "Test",
+      "bodyMarkdown": "Hej {{name}}",
+      "mergeFields": ["name"],
+      "requiresHumanApproval": true,
+      "requiresAudit": true,
+      "journalRelevant": false,
+      "status": "active",
+      "createdAt": "2026-05-30T22:17:00.354Z",
+      "createdBy": "staff",
+      "version": "1.0.0"
     }
   ]
 }

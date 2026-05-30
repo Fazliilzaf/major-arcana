@@ -267,6 +267,13 @@
           '✋ Inget skickas externt automatiskt. Utkast skapas och kräver godkännande innan utskick.'
         )
       );
+      // Sprint 9: Sök i mallarna
+      const searchInput = el('input', {
+        class: 'cco-komm-modal-input cco-komm-svar-search',
+        type: 'search',
+        placeholder: '🔎 Sök mallar (ämne, journeyStep, kanal)…',
+      });
+      body.appendChild(searchInput);
       body.appendChild(el('div', { class: 'cco-komm-modal-label' }, 'Välj mall · kundresesteg'));
 
       const grid = el('div', { class: 'cco-komm-svar-templates' });
@@ -281,44 +288,67 @@
         aftercare_reminder: 'Eftervård vecka 1',
         follow_up_reminder: 'Uppföljning 3 mån',
       };
-      for (const tpl of templates) {
-        grid.appendChild(
-          el(
-            'button',
-            {
-              class: 'cco-komm-svar-template',
-              type: 'button',
-              onclick: () => {
-                state.templateId = tpl.templateId;
-                state.template = tpl;
-                state.subject = tpl.subject || '';
-                state.body = tpl.bodyMarkdown || '';
-                state.channel = tpl.channel || 'email';
-                state.journeyStep = tpl.journeyStep;
-                state.mode = 'edit';
-                renderEdit();
+      function renderTemplateButtons(filterStr) {
+        grid.innerHTML = '';
+        const q = (filterStr || '').toLowerCase().trim();
+        let matchCount = 0;
+        for (const tpl of templates) {
+          const hay = (
+            (tpl.subject || '') +
+            ' ' +
+            (tpl.journeyStep || '') +
+            ' ' +
+            (tpl.channel || '') +
+            ' ' +
+            (STAGE_LABEL[tpl.journeyStep] || '')
+          ).toLowerCase();
+          if (q && !hay.includes(q)) continue;
+          matchCount += 1;
+          grid.appendChild(
+            el(
+              'button',
+              {
+                class: 'cco-komm-svar-template',
+                type: 'button',
+                onclick: () => {
+                  state.templateId = tpl.templateId;
+                  state.template = tpl;
+                  state.subject = tpl.subject || '';
+                  state.body = tpl.bodyMarkdown || '';
+                  state.channel = tpl.channel || 'email';
+                  state.journeyStep = tpl.journeyStep;
+                  state.mode = 'edit';
+                  renderEdit();
+                },
               },
-            },
-            [
-              el(
-                'div',
-                { class: 'cco-komm-svar-template-stage' },
-                STAGE_LABEL[tpl.journeyStep] || tpl.journeyStep
-              ),
-              el(
-                'div',
-                { class: 'cco-komm-svar-template-subject' },
-                tpl.subject || '(SMS — ingen subject)'
-              ),
-              el(
-                'div',
-                { class: 'cco-komm-svar-template-meta' },
-                tpl.channel.toUpperCase() + ' · ' + tpl.mergeFields.length + ' merge fields'
-              ),
-            ]
-          )
-        );
+              [
+                el(
+                  'div',
+                  { class: 'cco-komm-svar-template-stage' },
+                  STAGE_LABEL[tpl.journeyStep] || tpl.journeyStep
+                ),
+                el(
+                  'div',
+                  { class: 'cco-komm-svar-template-subject' },
+                  tpl.subject || '(SMS — ingen subject)'
+                ),
+                el(
+                  'div',
+                  { class: 'cco-komm-svar-template-meta' },
+                  tpl.channel.toUpperCase() + ' · ' + tpl.mergeFields.length + ' merge fields'
+                ),
+              ]
+            )
+          );
+        }
+        if (matchCount === 0) {
+          grid.appendChild(
+            el('div', { class: 'cco-komm-empty' }, 'Inga mallar matchar "' + filterStr + '"')
+          );
+        }
       }
+      renderTemplateButtons('');
+      searchInput.addEventListener('input', (e) => renderTemplateButtons(e.target.value));
       body.appendChild(grid);
 
       footer.appendChild(
@@ -945,6 +975,56 @@
         lastCounts = data.counts || {};
         renderTabs();
         renderList(data.threads || []);
+
+        // Sprint 9: Batch-bar visas när filter=needs_approval och >0 items
+        const existingBar = root.querySelector('.cco-komm-batch-bar');
+        if (existingBar) existingBar.remove();
+        if (activeFilter === 'needs_approval' && (data.threads || []).length > 0) {
+          const draftIds = data.threads
+            .filter((t) => t.requiresApproval || t.threadStatus === 'needs_approval')
+            .map((t) => t.threadId);
+          if (draftIds.length > 0) {
+            const bar = el('div', { class: 'cco-komm-batch-bar' }, [
+              el('span', {}, '⚡ Batch (' + draftIds.length + '): '),
+              el(
+                'button',
+                {
+                  class: 'cco-komm-thread-btn cco-komm-thread-btn--primary',
+                  type: 'button',
+                  onclick: async () => {
+                    if (!window.confirm('Godkänn alla ' + draftIds.length + ' drafts?')) return;
+                    const r = await batchApprove(draftIds, opts);
+                    if (r.ok) {
+                      showToast(
+                        '✓ ' + r.succeeded + ' godkända, ' + r.failed + ' misslyckades',
+                        r.failed > 0 ? 'error' : 'ok'
+                      );
+                      loadAndRender();
+                    } else showToast('✗ ' + (r.error || 'fel'), 'error');
+                  },
+                },
+                '✓ Godkänn alla'
+              ),
+              el(
+                'button',
+                {
+                  class: 'cco-komm-thread-btn',
+                  type: 'button',
+                  onclick: async () => {
+                    if (!window.confirm('Avbryt alla ' + draftIds.length + ' drafts?')) return;
+                    const r = await batchCancel(draftIds, opts);
+                    if (r.ok) {
+                      showToast('⊘ ' + r.succeeded + ' avbrutna', r.failed > 0 ? 'error' : 'ok');
+                      loadAndRender();
+                    } else showToast('✗ ' + (r.error || 'fel'), 'error');
+                  },
+                },
+                '⊘ Avbryt alla'
+              ),
+            ]);
+            root.insertBefore(bar, listEl);
+          }
+        }
       } catch (err) {
         listEl.innerHTML = '';
         listEl.appendChild(
@@ -955,6 +1035,28 @@
 
     renderTabs();
     loadAndRender();
+  }
+
+  // Sprint 9: batch-API
+  async function batchApprove(draftIds, opts) {
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    const r = await fetch('/api/v1/cco-comm/drafts/batch-approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+      body: JSON.stringify({ draftIds, tenantId, reason: 'batch via Svarstudio' }),
+    });
+    return r.json();
+  }
+  async function batchCancel(draftIds, opts) {
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    const r = await fetch('/api/v1/cco-comm/drafts/batch-cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+      body: JSON.stringify({ draftIds, tenantId, reason: 'batch via Svarstudio' }),
+    });
+    return r.json();
   }
 
   // ─── Public mount ───

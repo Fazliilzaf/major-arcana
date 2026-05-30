@@ -7842,6 +7842,152 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
       '[komm-sprint2] monterad: /cco-comm/templates · /drafts (POST PATCH transition · GET customer/queue/stats) (templates.read · mail.send · customers.read)'
     );
 
+    // ─── Sprint 9: Svarstudio-utökning — batch-approval + template-write ──
+    // POST /cco-comm/drafts/batch-approve
+    // Tar lista med draftIds (alla i status needs_approval) → transition till approved
+    app.post(
+      '/api/v1/cco-comm/drafts/batch-approve',
+      attachRole,
+      requirePermission('mail.send'),
+      commParser,
+      async (req, res) => {
+        try {
+          const { draftStore } = await ensureCommStores();
+          const { draftIds = [], reason = 'batch approval' } = req.body || {};
+          if (!Array.isArray(draftIds) || draftIds.length === 0) {
+            return res.status(400).json({ ok: false, error: 'draftIds[] krävs' });
+          }
+          const actor = req.headers['x-cco-user'] || 'staff';
+          const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const results = [];
+          for (const id of draftIds) {
+            try {
+              const d = draftStore.transitionStatus({
+                draftId: id,
+                newStatus: 'approved',
+                actor,
+                tenantId,
+                reason,
+              });
+              results.push({ draftId: id, ok: true, status: d.status });
+            } catch (err) {
+              results.push({ draftId: id, ok: false, error: err.message });
+            }
+          }
+          const succeeded = results.filter((r) => r.ok).length;
+          const failed = results.filter((r) => !r.ok).length;
+          res.json({ ok: true, total: draftIds.length, succeeded, failed, results });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    // POST /cco-comm/drafts/batch-cancel — bulk cancel
+    app.post(
+      '/api/v1/cco-comm/drafts/batch-cancel',
+      attachRole,
+      requirePermission('mail.send'),
+      commParser,
+      async (req, res) => {
+        try {
+          const { draftStore } = await ensureCommStores();
+          const { draftIds = [], reason = 'batch cancel' } = req.body || {};
+          if (!Array.isArray(draftIds) || draftIds.length === 0) {
+            return res.status(400).json({ ok: false, error: 'draftIds[] krävs' });
+          }
+          const actor = req.headers['x-cco-user'] || 'staff';
+          const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const results = [];
+          for (const id of draftIds) {
+            try {
+              const d = draftStore.transitionStatus({
+                draftId: id,
+                newStatus: 'cancelled',
+                actor,
+                tenantId,
+                reason,
+              });
+              results.push({ draftId: id, ok: true, status: d.status });
+            } catch (err) {
+              results.push({ draftId: id, ok: false, error: err.message });
+            }
+          }
+          res.json({
+            ok: true,
+            total: draftIds.length,
+            succeeded: results.filter((r) => r.ok).length,
+            failed: results.filter((r) => !r.ok).length,
+            results,
+          });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    // POST /cco-comm/templates — staff lägger till ny template (admin)
+    // Body: {templateId, journeyStep, channel, brand, subject, bodyMarkdown, mergeFields[]}
+    app.post(
+      '/api/v1/cco-comm/templates',
+      attachRole,
+      requirePermission('templates.write'),
+      commParser,
+      async (req, res) => {
+        try {
+          const { templates } = await ensureCommStores();
+          const t = req.body || {};
+          if (!t.templateId || !t.subject) {
+            return res.status(400).json({ ok: false, error: 'templateId + subject krävs' });
+          }
+          if ((templates.templates || []).find((x) => x.templateId === t.templateId)) {
+            return res.status(409).json({ ok: false, error: 'templateId finns redan' });
+          }
+          const newTemplate = {
+            templateId: t.templateId,
+            journeyStep: t.journeyStep || 'custom',
+            channel: t.channel || 'email',
+            brand: t.brand || 'hair_tp',
+            trigger: t.trigger || 'manual',
+            subject: t.subject,
+            bodyMarkdown: t.bodyMarkdown || '',
+            mergeFields: Array.isArray(t.mergeFields) ? t.mergeFields : [],
+            requiresHumanApproval: true, // ALLTID true (owner-mandat)
+            requiresAudit: true,
+            journalRelevant: !!t.journalRelevant,
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            createdBy: req.headers['x-cco-user'] || 'staff',
+            version: '1.0.0',
+          };
+          templates.templates = templates.templates || [];
+          templates.templates.push(newTemplate);
+          // Persist
+          require('fs').writeFileSync(
+            path.join(__dirname, 'config/cco-comm-templates-journey.json'),
+            JSON.stringify(templates, null, 2)
+          );
+          if (ccoAuditLog?.logEvent) {
+            ccoAuditLog.logEvent({
+              kind: 'template.created',
+              tenantId: req.headers['x-cco-tenant'] || 'hair_tp',
+              actor: req.headers['x-cco-user'] || 'staff',
+              entityKind: 'comm_template',
+              entityId: t.templateId,
+              detail: { journeyStep: t.journeyStep, channel: t.channel },
+            });
+          }
+          res.json({ ok: true, template: newTemplate });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log(
+      '[komm-sprint9] monterad: /cco-comm/drafts/batch-approve · /batch-cancel · /templates POST (mail.send · templates.write)'
+    );
+
     // ─── Komm Sprint 3 — cron dry-run queue ──────────────────────────
     // 6 deterministiska triggers genererar PROPOSALS (utan att skapa drafts).
     // Staff måste fortfarande godkänna via Svarstudio. INGET externt utskick.
