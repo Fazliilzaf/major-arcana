@@ -26,11 +26,14 @@
   'use strict';
 
   const TABS = [
-    { id: 'all',                  label: 'Alla',          icon: '🗂' },
-    { id: 'journals',             label: 'Journaler',     icon: '📄' },
-    { id: 'photos',               label: 'Bilder',        icon: '📸' },
-    { id: 'forms',                label: 'Formulär',      icon: '📋' },
-    { id: 'consentsAndAgreements',label: 'Samtycken & Avtal', icon: '✍' },
+    { id: 'all',        label: 'Alla',       icon: '🗂' },
+    { id: 'journals',   label: 'Journaler',  icon: '📄' },
+    { id: 'photos',     label: 'Bilder',     icon: '📸' },
+    { id: 'documents',  label: 'Dokument',   icon: '📎' },
+    { id: 'consents',   label: 'Samtycken',  icon: '✍' },
+    { id: 'agreements', label: 'Avtal',      icon: '📑' },
+    { id: 'forms',      label: 'Formulär',   icon: '📋' },
+    { id: 'aisia',      label: 'Aisia',      icon: '🔬' },
   ];
 
   function el(tag, attrs = {}, children = []) {
@@ -131,6 +134,9 @@
       const status = renderStatus(item.assetStatusLabel, item.assetStatusTone);
       row('Status', status);
     }
+    if (item.assetStatusHint) {
+      row('Info', item.assetStatusHint);
+    }
     if (item.isCorrection) row('Rättelse av', el('code', {}, item.correctionOfEntryId || '—'));
     if (item.entityId) row('ID', el('code', {}, item.entityId));
 
@@ -148,11 +154,34 @@
           class: 'cco-jf__btn cco-jf__btn--primary', href: item.link, target: '_blank', rel: 'noopener',
         }, '⬇ Öppna från CCO'));
       } else {
-        // Inte renderbar (LINK_ONLY_BLOCKER / NEEDS_REVIEW utan binär)
+        // Per-status action-knapp för icke-renderbara items
+        let btnLabel = '⚠ Ej tillgänglig';
+        let btnTitle = 'Filen kan inte öppnas från CCO';
+        switch (item.assetStatus) {
+          case 'LINK_ONLY_BLOCKER':
+            btnLabel = '⛔ Inte importerad än';
+            btnTitle = 'Filen är inte importerad ännu — endast referens. Drive-länk visas inte.';
+            break;
+          case 'NEEDS_REVIEW':
+            btnLabel = '🔍 Kräver granskning';
+            btnTitle = 'Filen behöver granskas innan den kan öppnas.';
+            break;
+          case 'IMPORTED_TO_CCO':
+            btnLabel = '⏳ Väntar på verifiering';
+            btnTitle = 'Filen är importerad men ännu inte verifierad.';
+            break;
+          case 'FAILED_IMPORT':
+            btnLabel = '⚠ Import misslyckades';
+            btnTitle = 'Tekniskt fel vid import.';
+            break;
+          case 'DUPLICATE':
+            btnLabel = '📋 Dubblett';
+            btnTitle = 'Samma checksum som annan asset.';
+            break;
+        }
         actions.appendChild(el('button', {
-          class: 'cco-jf__btn cco-jf__btn--disabled', disabled: 'true',
-          title: 'Binär saknas — kan inte öppnas från CCO',
-        }, '⚠ Binär saknas'));
+          class: 'cco-jf__btn cco-jf__btn--disabled', disabled: 'true', title: btnTitle,
+        }, btnLabel));
       }
     }
     if (item.thumbnailLink) {

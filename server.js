@@ -1155,15 +1155,25 @@ try {
       }
 
       // 2. patient_assets — CCO asset-store
-      // Inkluderar 4 statusar: VERIFIED_IN_CCO + VISIBLE_ON_PATIENT_CARD (renderas),
-      // NEEDS_REVIEW (visas i "Behöver granskning"-sektion),
-      // LINK_ONLY_BLOCKER (visas som varning per asset, INTE som klickbar Drive-länk).
+      // 6 statusar enligt owner-spec:
+      //   VISIBLE_ON_PATIENT_CARD + VERIFIED_IN_CCO → renderable (öppningsbara från CCO)
+      //   IMPORTED_TO_CCO                          → attention (importerad, ej verifierad)
+      //   NEEDS_REVIEW                             → attention (kräver granskning)
+      //   LINK_ONLY_BLOCKER                        → attention (ej importerad än, ingen Drive-länk)
+      //   FAILED_IMPORT                            → attention (tekniskt fel)
+      //   DUPLICATE                                → attention (info — annan asset har samma checksum)
       const assetStore = app.locals.ccoPatientAssetStore;
       const needsAttention = [];
       if (assetStore?.listAssetsForPatient) {
         try {
           const RENDERABLE = new Set(['VERIFIED_IN_CCO', 'VISIBLE_ON_PATIENT_CARD']);
-          const ATTENTION = new Set(['NEEDS_REVIEW', 'LINK_ONLY_BLOCKER', 'IMPORTED_TO_CCO']);
+          const ATTENTION = new Set([
+            'NEEDS_REVIEW',
+            'LINK_ONLY_BLOCKER',
+            'IMPORTED_TO_CCO',
+            'FAILED_IMPORT',
+            'DUPLICATE',
+          ]);
           const ICON = {
             journal: '📄', photo_before: '📸', photo_during: '📸', photo_after: '📸',
             consent: '✍', agreement: '📑', form: '📋', aisia_report: '🔬', other: '📎',
@@ -1173,7 +1183,9 @@ try {
             VERIFIED_IN_CCO: 'Verifierad',
             IMPORTED_TO_CCO: 'Importerad (ej verifierad)',
             NEEDS_REVIEW: 'Behöver granskning',
-            LINK_ONLY_BLOCKER: 'Endast referens — binär saknas',
+            LINK_ONLY_BLOCKER: 'Ej importerad — endast referens',
+            FAILED_IMPORT: 'Import misslyckades',
+            DUPLICATE: 'Dubblett (samma fil)',
           };
           const STATUS_TONE = {
             VISIBLE_ON_PATIENT_CARD: 'ok',
@@ -1181,6 +1193,17 @@ try {
             IMPORTED_TO_CCO: 'warn',
             NEEDS_REVIEW: 'warn',
             LINK_ONLY_BLOCKER: 'blocker',
+            FAILED_IMPORT: 'blocker',
+            DUPLICATE: 'info',
+          };
+          const STATUS_HINT = {
+            VISIBLE_ON_PATIENT_CARD: 'Filen kan öppnas direkt i CCO.',
+            VERIFIED_IN_CCO: 'Filen är verifierad och kan öppnas i CCO.',
+            IMPORTED_TO_CCO: 'Filen är importerad men ännu inte verifierad.',
+            NEEDS_REVIEW: 'Filen kräver manuell granskning innan den blir synlig på patientkortet.',
+            LINK_ONLY_BLOCKER: 'Filen är inte importerad ännu — endast referens till källan. Ingen Drive-länk visas.',
+            FAILED_IMPORT: 'Tekniskt fel vid import — kontakta migrationsteamet.',
+            DUPLICATE: 'Filen har samma checksum som en annan asset. Visas inte separat.',
           };
           const assets = assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
           for (const a of assets) {
@@ -1220,6 +1243,7 @@ try {
               assetStatus: a.status,
               assetStatusLabel: STATUS_LABEL[a.status] || a.status,
               assetStatusTone: STATUS_TONE[a.status] || 'info',
+              assetStatusHint: STATUS_HINT[a.status] || null,
               isRenderable,
               needsAttention: isAttention,
             };
@@ -1268,13 +1292,16 @@ try {
         }
       }
 
-      // Sektioner för UI (Journaler / Bilder / Dokument / Samtycken+Avtal)
+      // Sektioner per owner-spec — 7 st separata:
+      //   journals, photos, documents, consents, agreements, forms, aisia
       const sections = {
-        journals: items.filter(i => i.category === 'journal' || (i.source === 'cco_journal' && i.category === 'journal')),
-        photos: items.filter(i => i.category.startsWith('photo_')),
-        forms: items.filter(i => i.category === 'form' || i.category === 'aisia_report'),
-        consentsAndAgreements: items.filter(i => i.category === 'consent' || i.category === 'agreement'),
-        other: items.filter(i => i.category === 'other'),
+        journals:    items.filter(i => i.category === 'journal'),
+        photos:      items.filter(i => i.category && i.category.startsWith('photo_')),
+        documents:   items.filter(i => i.category === 'other'),
+        consents:    items.filter(i => i.category === 'consent'),
+        agreements:  items.filter(i => i.category === 'agreement'),
+        forms:       items.filter(i => i.category === 'form'),
+        aisia:       items.filter(i => i.category === 'aisia_report'),
       };
       const sectionCounts = Object.fromEntries(
         Object.entries(sections).map(([k, v]) => [k, v.length])
