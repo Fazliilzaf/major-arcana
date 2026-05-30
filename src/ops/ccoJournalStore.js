@@ -214,6 +214,12 @@ function normalizeJournalEntry(input = {}, existing = {}) {
     signedByName: normalizeText(safe.signedByName || existingSafe.signedByName) || null,
     correctionOfEntryId:
       normalizeText(safe.correctionOfEntryId || existingSafe.correctionOfEntryId) || null,
+    correctionReason:
+      normalizeText(safe.correctionReason || existingSafe.correctionReason) || null,
+    correctionCreatedBy:
+      normalizeText(safe.correctionCreatedBy || existingSafe.correctionCreatedBy) || null,
+    correctionCreatedAt:
+      normalizeText(safe.correctionCreatedAt || existingSafe.correctionCreatedAt) || null,
     events: asArray(safe.events || existingSafe.events)
       .map(normalizeEvent)
       .filter(Boolean),
@@ -563,7 +569,7 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
     return cloneEntry(existing);
   }
 
-  async function addCorrection({ tenantId, patientId, entryId, fields = {}, actor = {} } = {}) {
+  async function addCorrection({ tenantId, patientId, entryId, fields = {}, reason = null, actor = {} } = {}) {
     const existing = await getEntry({ tenantId, patientId, entryId });
     if (!existing) {
       const error = new Error('Journalposten hittades inte.');
@@ -580,6 +586,9 @@ async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
         title: `${existing.title} — rättelse`,
         source: 'cco_journal_correction',
         correctionOfEntryId: existing.entryId,
+        correctionReason: reason || null,
+        correctionCreatedBy: actor.displayName || actor.userId || null,
+        correctionCreatedAt: nowIso(),
         fields: { ...asObject(existing.fields), ...asObject(fields) },
       },
       { actor }

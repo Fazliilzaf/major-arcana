@@ -1140,13 +1140,18 @@ try {
               subcategory: e.journalType || 'general',
               ts: e.signedAt || e.updatedAt || e.createdAt,
               title: e.title || (e.journalType || 'Journal-post'),
-              icon: e.locked ? '🔒' : '📝',
+              icon: e.correctionOfEntryId ? '✏' : (e.locked ? '🔒' : '📝'),
               author: e.signedByName || e.authorName,
               entityId: e.entryId,
+              tenantId: e.tenantId,
+              patientId: e.patientId,
               isSigned: !!e.locked,
               isCorrection: !!e.correctionOfEntryId,
               correctionOfEntryId: e.correctionOfEntryId || null,
-              hasPdf: !!(e.pdfArtifactKey || e.pdfStorageKey),
+              correctionReason: e.correctionReason || null,
+              correctionCreatedBy: e.correctionCreatedBy || null,
+              correctionCreatedAt: e.correctionCreatedAt || null,
+              hasPdf: !!(e.pdfArtifactKey || e.pdfStorageKey || e.pdfPath),
               link: `/smart-anteckning.html?entryId=${encodeURIComponent(e.entryId)}`,
               ccoSourceOnly: true,
             });
@@ -2355,6 +2360,7 @@ try {
       const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
       const correction = await store.addCorrection({
         tenantId, patientId, entryId, fields: fields || {},
+        reason: String(reason || '').trim(),
         actor: { userId: req.headers['x-cco-user'] || 'demo-user', role: req.cco?.role, displayName: req.headers['x-cco-user'] || req.cco?.role },
       });
       auditA('journal.entry.correction.create', req.cco?.role, { kind: 'journal_entry', id: correction.entryId }, { patientId, originalEntryId: entryId, reason });

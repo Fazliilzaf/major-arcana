@@ -304,6 +304,141 @@
   .cco-jf__tab { padding: 6px 8px; font-size: 0.78rem; }
 }
 
+/* Correction button (Ny rättelse) — markant men inte aggressiv */
+.cco-jf__btn--correction {
+  background: rgba(212, 154, 44, 0.12);
+  border-color: rgba(212, 154, 44, 0.4);
+  color: #6b4a14;
+  font-weight: 600;
+}
+.cco-jf__btn--correction:hover:not(:disabled) {
+  background: rgba(212, 154, 44, 0.22);
+  border-color: rgba(212, 154, 44, 0.6);
+}
+
+/* Modal (correction-flow) */
+.cco-jf__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 18, 26, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: ccoJfFadeIn 0.18s ease-out;
+}
+@keyframes ccoJfFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.cco-jf__modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  display: flex;
+  flex-direction: column;
+}
+.cco-jf__modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e6e8ee;
+}
+.cco-jf__modal-header h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+.cco-jf__modal-close {
+  background: transparent;
+  border: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #5b6273;
+  padding: 0 6px;
+}
+.cco-jf__modal-close:hover { color: #1f2330; }
+.cco-jf__modal-body { padding: 16px 20px; }
+.cco-jf__modal-lead {
+  font-size: 0.88rem;
+  color: #5b6273;
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+.cco-jf__modal-original {
+  background: #f8f9fb;
+  border: 1px solid #e6e8ee;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 0.85rem;
+}
+.cco-jf__modal-original strong { display: block; margin-bottom: 4px; font-weight: 600; }
+.cco-jf__modal-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #1f2330;
+}
+.cco-jf__modal-input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  border: 1px solid #e6e8ee;
+  border-radius: 8px;
+  resize: vertical;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+.cco-jf__modal-input:focus {
+  outline: none;
+  border-color: #5b8def;
+  box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.15);
+}
+.cco-jf__modal-error {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(192, 82, 74, 0.1);
+  border: 1px solid rgba(192, 82, 74, 0.3);
+  border-radius: 6px;
+  color: #842823;
+  font-size: 0.82rem;
+}
+.cco-jf__modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid #e6e8ee;
+  background: #f8f9fb;
+}
+
+/* Toast (success-notis efter rättelse skapad) */
+.cco-jf__toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  max-width: 420px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  font-size: 0.88rem;
+  z-index: 10000;
+  animation: ccoJfSlideIn 0.22s ease-out;
+}
+.cco-jf__toast--ok {
+  background: rgba(47, 163, 122, 0.95);
+  color: #fff;
+}
+@keyframes ccoJfSlideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+@media (max-width: 720px) {
+  .cco-jf__modal { max-width: 100%; }
+  .cco-jf__toast { left: 12px; right: 12px; max-width: none; bottom: 12px; }
+}
+
 /* Source guarantee marker (subtle "läses från CCO" footer) */
 .cco-jf__footer {
   padding: 8px 18px;

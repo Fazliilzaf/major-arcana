@@ -36,6 +36,10 @@
     { id: 'aisia',      label: 'Aisia',      icon: '🔬' },
   ];
 
+  // Hålls per-mount så onclick kan nå opts (baseUrl, headers, customerId, tenantId)
+  let _activeOpts = null;
+  let _activeReload = null;
+
   function el(tag, attrs = {}, children = []) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
@@ -140,12 +144,28 @@
     if (item.isCorrection) row('Rättelse av', el('code', {}, item.correctionOfEntryId || '—'));
     if (item.entityId) row('ID', el('code', {}, item.entityId));
 
+    // Visa rättelse-info om det är en rättelse
+    if (item.isCorrection) {
+      if (item.correctionReason) row('Anledning', item.correctionReason);
+      if (item.correctionCreatedBy) row('Rättad av', item.correctionCreatedBy);
+      if (item.correctionCreatedAt) row('Rättad', formatDate(item.correctionCreatedAt));
+    }
+
     // Actions — INGA Drive-länkar, bara CCO-source
     const actions = el('div', { class: 'cco-jf__detail-actions' });
     if (item.source === 'cco_journal' && item.link) {
       actions.appendChild(el('a', {
         class: 'cco-jf__btn cco-jf__btn--primary', href: item.link, target: '_blank', rel: 'noopener',
       }, '📝 Öppna journal'));
+
+      // "Ny rättelse" — endast på signerade CCO-journaler som inte själva är rättelser
+      if (item.isSigned && !item.isCorrection) {
+        actions.appendChild(el('button', {
+          class: 'cco-jf__btn cco-jf__btn--correction',
+          title: 'Skapa en rättelse — original förblir låst',
+          onclick: () => openCorrectionModal(item),
+        }, '✏ Ny rättelse'));
+      }
     }
     if (item.source === 'patient_asset') {
       if (item.link) {
@@ -317,6 +337,108 @@
   }
 
   // -------------------------------------------------------------------------
+  // Korrektur-modal — "Ny rättelse" på signerad CCO-journal
+  // -------------------------------------------------------------------------
+  function openCorrectionModal(originalItem) {
+    // Cleanup any existing modal
+    document.querySelectorAll('.cco-jf__modal-backdrop').forEach((n) => n.remove());
+
+    const backdrop = el('div', { class: 'cco-jf__modal-backdrop', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Ny rättelse' });
+    const modal = el('div', { class: 'cco-jf__modal' });
+
+    const closeModal = () => backdrop.remove();
+    backdrop.addEventListener('click', (ev) => { if (ev.target === backdrop) closeModal(); });
+    document.addEventListener('keydown', function escHandler(ev) {
+      if (ev.key === 'Escape') { closeModal(); document.removeEventListener('keydown', escHandler); }
+    });
+
+    const reasonInput = el('textarea', {
+      class: 'cco-jf__modal-input',
+      placeholder: 'Anledning till rättelse (min 10 tecken) — PDL-krav på spårbarhet',
+      rows: '3',
+      required: 'true',
+      maxlength: '500',
+    });
+
+    const errorBox = el('div', { class: 'cco-jf__modal-error', style: 'display:none;' });
+    const submitBtn = el('button', { class: 'cco-jf__btn cco-jf__btn--correction', type: 'button' }, '✏ Skapa rättelse');
+    submitBtn.addEventListener('click', async () => {
+      const reason = reasonInput.value.trim();
+      if (reason.length < 10) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = 'Anledning måste vara minst 10 tecken (PDL-krav på spårbarhet).';
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Skapar...';
+      errorBox.style.display = 'none';
+
+      try {
+        const opts = _activeOpts || {};
+        const url = (opts.baseUrl || '') + '/api/v1/cco-journal-quick/entry/correction';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {}),
+          body: JSON.stringify({
+            tenantId: originalItem.tenantId || opts.tenantId,
+            patientId: originalItem.patientId || opts.customerId,
+            entryId: originalItem.entityId,
+            reason,
+            fields: {}, // tom = kopierar original fields, doctor kan fylla i nytt via journal-UI senare
+          }),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          throw new Error('HTTP ' + res.status + ' ' + (txt || res.statusText));
+        }
+        const data = await res.json();
+        closeModal();
+        // Reload feed för att visa nya rättelsen
+        if (_activeReload) await _activeReload();
+        // Notify success
+        const successBanner = el('div', {
+          class: 'cco-jf__toast cco-jf__toast--ok',
+          role: 'status',
+        }, '✓ Rättelse skapad (entryId: ' + (data.correction?.entryId || '?').slice(0, 8) + '...). Originalet förblir låst. Öppna rättelsen för att fylla i ändringar och signera.');
+        document.body.appendChild(successBanner);
+        setTimeout(() => successBanner.remove(), 6000);
+      } catch (err) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = 'Kunde inte skapa rättelse: ' + err.message;
+        submitBtn.disabled = false;
+        submitBtn.textContent = '✏ Skapa rättelse';
+      }
+    });
+
+    modal.appendChild(el('div', { class: 'cco-jf__modal-header' }, [
+      el('h3', {}, 'Ny rättelse'),
+      el('button', { class: 'cco-jf__modal-close', 'aria-label': 'Stäng', onclick: closeModal }, '×'),
+    ]));
+    modal.appendChild(el('div', { class: 'cco-jf__modal-body' }, [
+      el('p', { class: 'cco-jf__modal-lead' },
+        'Du skapar en rättelse till en signerad journal. Originalposten förblir låst — rättelsen sparas som en ny journalpost kopplad till originalet.'),
+      el('div', { class: 'cco-jf__modal-original' }, [
+        el('strong', {}, originalItem.icon + ' ' + (originalItem.title || 'Original')),
+        el('div', { class: 'cco-jf__item-meta' }, [
+          el('span', {}, 'Signerad ' + formatDate(originalItem.ts)),
+          originalItem.author ? el('span', {}, 'av ' + originalItem.author) : null,
+        ]),
+      ]),
+      el('label', { class: 'cco-jf__modal-label' }, 'Anledning till rättelse'),
+      reasonInput,
+      errorBox,
+    ]));
+    modal.appendChild(el('div', { class: 'cco-jf__modal-footer' }, [
+      el('button', { class: 'cco-jf__btn', onclick: closeModal, type: 'button' }, 'Avbryt'),
+      submitBtn,
+    ]));
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    setTimeout(() => reasonInput.focus(), 50);
+  }
+
+  // -------------------------------------------------------------------------
   // Public API
   // -------------------------------------------------------------------------
   async function fetchFeed({ baseUrl, customerId, tenantId, headers }) {
@@ -333,6 +455,8 @@
   function mount(selectorOrEl, opts = {}) {
     const root = typeof selectorOrEl === 'string' ? document.querySelector(selectorOrEl) : selectorOrEl;
     if (!root) throw new Error('CcoJournalFeed.mount: target not found: ' + selectorOrEl);
+
+    _activeOpts = opts;  // gör opts tillgänglig för modal-knappar
 
     const state = { data: null, activeTab: 'all', selectedItemId: null, loading: true, error: null };
 
@@ -361,7 +485,7 @@
       render(root, state, callbacks);
     });
 
-    return {
+    const api = {
       reload() {
         state.loading = true;
         state.error = null;
@@ -377,7 +501,13 @@
         });
       },
     };
+    _activeReload = api.reload;
+    return api;
   }
 
-  global.CcoJournalFeed = { mount, _internal: { fetchFeed, render, TABS } };
+  global.CcoJournalFeed = {
+    mount,
+    openCorrectionModal,  // exposed för testing / extern wire-up
+    _internal: { fetchFeed, render, TABS },
+  };
 })(window);
