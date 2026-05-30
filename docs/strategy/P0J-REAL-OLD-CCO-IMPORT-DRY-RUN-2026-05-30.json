@@ -1,0 +1,346 @@
+{
+  "$schema": "cco-p0j-dry-run-v1",
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-05-30T11:53:42.259Z",
+  "generatedBy": "scripts/p0j-dry-run-old-cco-import.js",
+  "mode": "dry_run",
+  "ownerMandate": "Ingen prod-write. Ingen patientkort-ändring. Ingen radering. Inga zippar uppackade. Ingen extern AI.",
+  "dryRunAssertions": [
+    "INGEN write till data/cco-patient-assets.json",
+    "INGEN write till data/cco-secure-storage/",
+    "INGEN write till data/cco-asset-import-runs.json",
+    "INGEN write till data/cco-audit.jsonl",
+    "INGEN call till driveClient (ingen Drive-fetch)",
+    "INGEN call till extern AI",
+    "Endast adapter.discover() + in-memory simulation av pipeline-utfall"
+  ],
+  "summary": {
+    "pilotPatients": 5,
+    "totalSourceFilesDiscovered": 3,
+    "would_import_count": 0,
+    "would_verify_count": 0,
+    "would_visible_count": 0,
+    "needs_review_count": 0,
+    "link_only_blocker_count": 3,
+    "duplicate_count": 0,
+    "failed_import_count": 0,
+    "missing_patient_mapping_count": 1,
+    "missing_binary_count": 3,
+    "categoryBreakdown": {
+      "unknown_needs_inspection": 3
+    }
+  },
+  "blockers": [
+    {
+      "blocker": "no_drive_service_account",
+      "affectedFiles": 3,
+      "nextAction": "Owner aktiverar Drive Service Account (docs/ops/drive-service-account-setup.md) → adapter får driveClient → binärer hämtas"
+    },
+    {
+      "blocker": "patient_id_unmapped",
+      "affectedFiles": 1,
+      "nextAction": "Manuell review via asset_review_queue → reassignToPatient(ccoMasterId) eller markera DUPLICATE/REJECTED"
+    },
+    {
+      "blocker": "folder_only_records",
+      "affectedFiles": 3,
+      "nextAction": "Pipeline-guard satt korrekt — kräver SA + file-enumeration för att flytta från LINK_ONLY_BLOCKER"
+    }
+  ],
+  "pilots": [
+    {
+      "pilotLabel": "high_conf_drive_1",
+      "report": {
+        "field_1_patientId": "cliento_b7bfee0257c4b536694467f3",
+        "field_1_rawSourceId": "cliento_b7bfee0257c4b536694467f3",
+        "field_2_source": "old_cco",
+        "field_3_filesDiscovered": 1,
+        "field_4_filesWouldBeImported": 0,
+        "field_5_predictedCategories": [
+          "unknown_needs_inspection"
+        ],
+        "field_6_patientIdValidated": true,
+        "field_6_patientIdValidationBasis": "direct_master_id_match",
+        "field_7_encounterCanBeLinked": false,
+        "field_8_binaryAvailable": false,
+        "field_9_wouldBecomeStatus": [
+          "LINK_ONLY_BLOCKER"
+        ],
+        "field_10_statusReasons": [
+          {
+            "id": "no-sa-1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+            "reason": "GUARD 0: _folderOnly=true (no Drive service-account, folder-only record)"
+          }
+        ],
+        "field_11_requirementsForVisibleOnPatientCard": [
+          "Drive service-account aktiverat (för att hämta binärer)",
+          "Patient-ID-validation måste passa (OK)",
+          "Encounter-date på filen (saknas i folder-only state)",
+          "SHA-256 checksum efter binär-hämtning",
+          "Manuell verifiering eller auto-verify roundtrip",
+          "Soft-delete-flag inte satt",
+          "Storage-key tilldelat"
+        ],
+        "field_12_staffCouldOpenInCcoAfterRealImport": false,
+        "_coupling": {
+          "predictedFolderId": "1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+          "predictedFolderPath": "Söker efter \"Maj 30\" i Maj 2026-mappen. Klicka på rätt dag-mapp i resultatet.",
+          "predictionBasis": "latest_booking_2026-05-30",
+          "predictionConfidence": "high",
+          "status": "predicted",
+          "sourceEncounters": 1
+        },
+        "_files": [
+          {
+            "sourceRecordId": "no-sa-1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+            "sourceSystem": "old_cco",
+            "originalDriveFileId": "1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+            "originalDrivePath": "Söker efter \"Maj 30\" i Maj 2026-mappen. Klicka på rätt dag-mapp i resultatet.",
+            "originalFileName": null,
+            "mimeType": null,
+            "documentDate": null,
+            "folderOnly": true,
+            "predictedCategory": "unknown_needs_inspection",
+            "encounterCanBeLinked": false,
+            "binaryAvailable": false,
+            "todayScenario": {
+              "status": "LINK_ONLY_BLOCKER",
+              "reason": "GUARD 0: _folderOnly=true (no Drive service-account, folder-only record)",
+              "importStep": "1_discover -> blocked",
+              "storageKey": null,
+              "checksum": null,
+              "canBeVisible": false
+            },
+            "futureWithSaScenario": {
+              "status": "VERIFIED_IN_CCO",
+              "reason": "patientId validated via direct_master_id_match; binary fetched; sha256 computed; verify roundtrip OK",
+              "importStep": "4_verify -> ok",
+              "canBeVisible": true,
+              "blockersBeforeVisible": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "pilotLabel": "high_conf_drive_2",
+      "report": {
+        "field_1_patientId": "cliento_e4dc66f36d972c2a5eab834f",
+        "field_1_rawSourceId": "cliento_e4dc66f36d972c2a5eab834f",
+        "field_2_source": "old_cco",
+        "field_3_filesDiscovered": 1,
+        "field_4_filesWouldBeImported": 0,
+        "field_5_predictedCategories": [
+          "unknown_needs_inspection"
+        ],
+        "field_6_patientIdValidated": true,
+        "field_6_patientIdValidationBasis": "direct_master_id_match",
+        "field_7_encounterCanBeLinked": false,
+        "field_8_binaryAvailable": false,
+        "field_9_wouldBecomeStatus": [
+          "LINK_ONLY_BLOCKER"
+        ],
+        "field_10_statusReasons": [
+          {
+            "id": "no-sa-1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+            "reason": "GUARD 0: _folderOnly=true (no Drive service-account, folder-only record)"
+          }
+        ],
+        "field_11_requirementsForVisibleOnPatientCard": [
+          "Drive service-account aktiverat (för att hämta binärer)",
+          "Patient-ID-validation måste passa (OK)",
+          "Encounter-date på filen (saknas i folder-only state)",
+          "SHA-256 checksum efter binär-hämtning",
+          "Manuell verifiering eller auto-verify roundtrip",
+          "Soft-delete-flag inte satt",
+          "Storage-key tilldelat"
+        ],
+        "field_12_staffCouldOpenInCcoAfterRealImport": false,
+        "_coupling": {
+          "predictedFolderId": "1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+          "predictedFolderPath": "Söker efter \"Maj 30\" i Maj 2026-mappen. Klicka på rätt dag-mapp i resultatet.",
+          "predictionBasis": "latest_booking_2026-05-30",
+          "predictionConfidence": "high",
+          "status": "predicted",
+          "sourceEncounters": 1
+        },
+        "_files": [
+          {
+            "sourceRecordId": "no-sa-1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+            "sourceSystem": "old_cco",
+            "originalDriveFileId": "1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+            "originalDrivePath": "Söker efter \"Maj 30\" i Maj 2026-mappen. Klicka på rätt dag-mapp i resultatet.",
+            "originalFileName": null,
+            "mimeType": null,
+            "documentDate": null,
+            "folderOnly": true,
+            "predictedCategory": "unknown_needs_inspection",
+            "encounterCanBeLinked": false,
+            "binaryAvailable": false,
+            "todayScenario": {
+              "status": "LINK_ONLY_BLOCKER",
+              "reason": "GUARD 0: _folderOnly=true (no Drive service-account, folder-only record)",
+              "importStep": "1_discover -> blocked",
+              "storageKey": null,
+              "checksum": null,
+              "canBeVisible": false
+            },
+            "futureWithSaScenario": {
+              "status": "VERIFIED_IN_CCO",
+              "reason": "patientId validated via direct_master_id_match; binary fetched; sha256 computed; verify roundtrip OK",
+              "importStep": "4_verify -> ok",
+              "canBeVisible": true,
+              "blockersBeforeVisible": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "pilotLabel": "high_conf_drive_3",
+      "report": {
+        "field_1_patientId": "cliento_103480566525d69669a91b50",
+        "field_1_rawSourceId": "cliento_103480566525d69669a91b50",
+        "field_2_source": "old_cco",
+        "field_3_filesDiscovered": 1,
+        "field_4_filesWouldBeImported": 0,
+        "field_5_predictedCategories": [
+          "unknown_needs_inspection"
+        ],
+        "field_6_patientIdValidated": true,
+        "field_6_patientIdValidationBasis": "direct_master_id_match",
+        "field_7_encounterCanBeLinked": false,
+        "field_8_binaryAvailable": false,
+        "field_9_wouldBecomeStatus": [
+          "LINK_ONLY_BLOCKER"
+        ],
+        "field_10_statusReasons": [
+          {
+            "id": "no-sa-1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+            "reason": "GUARD 0: _folderOnly=true (no Drive service-account, folder-only record)"
+          }
+        ],
+        "field_11_requirementsForVisibleOnPatientCard": [
+          "Drive service-account aktiverat (för att hämta binärer)",
+          "Patient-ID-validation måste passa (OK)",
+          "Encounter-date på filen (saknas i folder-only state)",
+          "SHA-256 checksum efter binär-hämtning",
+          "Manuell verifiering eller auto-verify roundtrip",
+          "Soft-delete-flag inte satt",
+          "Storage-key tilldelat"
+        ],
+        "field_12_staffCouldOpenInCcoAfterRealImport": false,
+        "_coupling": {
+          "predictedFolderId": "1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+          "predictedFolderPath": "Söker efter \"Maj 30\" i Maj 2026-mappen. Klicka på rätt dag-mapp i resultatet.",
+          "predictionBasis": "latest_booking_2026-05-30",
+          "predictionConfidence": "high",
+          "status": "predicted",
+          "sourceEncounters": 1
+        },
+        "_files": [
+          {
+            "sourceRecordId": "no-sa-1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+            "sourceSystem": "old_cco",
+            "originalDriveFileId": "1Gof_xzKOvdote1DCjb-riNozlvpLgjbh",
+            "originalDrivePath": "Söker efter \"Maj 30\" i Maj 2026-mappen. Klicka på rätt dag-mapp i resultatet.",
+            "originalFileName": null,
+            "mimeType": null,
+            "documentDate": null,
+            "folderOnly": true,
+            "predictedCategory": "unknown_needs_inspection",
+            "encounterCanBeLinked": false,
+            "binaryAvailable": false,
+            "todayScenario": {
+              "status": "LINK_ONLY_BLOCKER",
+              "reason": "GUARD 0: _folderOnly=true (no Drive service-account, folder-only record)",
+              "importStep": "1_discover -> blocked",
+              "storageKey": null,
+              "checksum": null,
+              "canBeVisible": false
+            },
+            "futureWithSaScenario": {
+              "status": "VERIFIED_IN_CCO",
+              "reason": "patientId validated via direct_master_id_match; binary fetched; sha256 computed; verify roundtrip OK",
+              "importStep": "4_verify -> ok",
+              "canBeVisible": true,
+              "blockersBeforeVisible": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "pilotLabel": "none_status_no_booking",
+      "report": {
+        "field_1_patientId": "cliento_6bdf53a6025203d095ee9b39",
+        "field_1_rawSourceId": "cliento_6bdf53a6025203d095ee9b39",
+        "field_2_source": "old_cco",
+        "field_3_filesDiscovered": 0,
+        "field_4_filesWouldBeImported": 0,
+        "field_5_predictedCategories": [],
+        "field_6_patientIdValidated": true,
+        "field_6_patientIdValidationBasis": "direct_master_id_match",
+        "field_7_encounterCanBeLinked": false,
+        "field_8_binaryAvailable": false,
+        "field_9_wouldBecomeStatus": [],
+        "field_10_statusReasons": [],
+        "field_11_requirementsForVisibleOnPatientCard": [
+          "Drive service-account aktiverat (för att hämta binärer)",
+          "Patient-ID-validation måste passa (OK)",
+          "Encounter-date på filen (saknas i folder-only state)",
+          "SHA-256 checksum efter binär-hämtning",
+          "Manuell verifiering eller auto-verify roundtrip",
+          "Soft-delete-flag inte satt",
+          "Storage-key tilldelat"
+        ],
+        "field_12_staffCouldOpenInCcoAfterRealImport": false,
+        "_coupling": {
+          "predictedFolderId": null,
+          "predictedFolderPath": null,
+          "predictionBasis": "no_bookings",
+          "predictionConfidence": "none",
+          "status": "none",
+          "sourceEncounters": 0
+        },
+        "_files": []
+      }
+    },
+    {
+      "pilotLabel": "unmatched_rawid_no_customer",
+      "report": {
+        "field_1_patientId": null,
+        "field_1_rawSourceId": "cliento_FAKE_UNMATCHED_FOR_P0J_DRY_RUN",
+        "field_2_source": "old_cco",
+        "field_3_filesDiscovered": 0,
+        "field_4_filesWouldBeImported": 0,
+        "field_5_predictedCategories": [],
+        "field_6_patientIdValidated": false,
+        "field_6_patientIdValidationBasis": "no_translation_found",
+        "field_7_encounterCanBeLinked": false,
+        "field_8_binaryAvailable": false,
+        "field_9_wouldBecomeStatus": [],
+        "field_10_statusReasons": [],
+        "field_11_requirementsForVisibleOnPatientCard": [
+          "Drive service-account aktiverat (för att hämta binärer)",
+          "Patient-ID-validation måste passa (MISSING: no_translation_found)",
+          "Encounter-date på filen (saknas i folder-only state)",
+          "SHA-256 checksum efter binär-hämtning",
+          "Manuell verifiering eller auto-verify roundtrip",
+          "Soft-delete-flag inte satt",
+          "Storage-key tilldelat"
+        ],
+        "field_12_staffCouldOpenInCcoAfterRealImport": false,
+        "_coupling": null,
+        "_files": []
+      }
+    }
+  ],
+  "nextSteps": [
+    "1. Owner reviewar rapporten + bekräftar pilot-coverage räcker.",
+    "2. Owner aktiverar Drive Service Account.",
+    "3. Re-kör P0.J dry-run med driveClient → riktig file-enumeration.",
+    "4. Per pilot: verifiera att pipeline-utfall stämmer mot förväntan.",
+    "5. Skala upp till full import-run (separate task) med riktig storage."
+  ]
+}
