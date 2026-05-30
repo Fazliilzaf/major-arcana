@@ -84,16 +84,529 @@
     return { backdrop, modal, body: bodyEl, close };
   }
 
-  // ─── Svarstudio ──────────────────────────────────────────────────────
-  function openSvarstudio() {
+  // ─── Sprint 18C: Audit helper ────────────────────────────────────────
+  async function auditStudioEvent(eventKind, detail) {
+    try {
+      await fetch('/api/v1/cco-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-cco-role': ROLE, 'x-cco-tenant': TENANT },
+        body: JSON.stringify({
+          kind: eventKind,
+          tenantId: TENANT,
+          actor: 'staff',
+          entityKind: 'svarstudio',
+          detail: detail || {},
+        }),
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // ─── Sprint 18C: Full Svarstudio-parity ─────────────────────────────
+  const RESPONSE_TRACKS = [
+    { id: 'booking', label: 'Bokning' },
+    { id: 'followup', label: 'Uppföljning' },
+    { id: 'midmessage', label: 'Mellanbesked' },
+    { id: 'medical', label: 'Medicinsk' },
+    { id: 'pricing_trust', label: 'Pris/trygghet' },
+    { id: 'admin', label: 'Admin' },
+  ];
+  const TONE_FILTERS = [
+    { id: 'professional', label: 'Professionell' },
+    { id: 'warm', label: 'Varm' },
+    { id: 'solution', label: 'Lösningsfokus' },
+    { id: 'decision', label: 'Beslutsstöd' },
+  ];
+  const REFINE_FILTERS = [
+    { id: 'shorter', label: 'Kortare' },
+    { id: 'sharper', label: 'Skarpare' },
+  ];
+  const SIGNATURES = [
+    { id: 'fazli', label: 'Fazli' },
+    { id: 'egzona', label: 'Egzona' },
+  ];
+  const SNABBMALLAR = [
+    { id: 'confirm_booking', label: 'Bekräfta bokning' },
+    { id: 'suggest_times', label: 'Föreslå tider' },
+    { id: 'send_pricing', label: 'Skicka prislista' },
+    { id: 'ask_more_info', label: 'Be om info' },
+  ];
+
+  let _mailboxesCache = null;
+  async function loadMailboxes() {
+    if (_mailboxesCache) return _mailboxesCache;
+    try {
+      const r = await fetch('/api/v1/cco-mailboxes', { headers: { 'x-cco-role': ROLE } });
+      const j = await r.json();
+      _mailboxesCache = Array.isArray(j?.mailboxes) ? j.mailboxes : [];
+    } catch {
+      _mailboxesCache = [];
+    }
+    return _mailboxesCache;
+  }
+
+  function chipBtn(label, opts) {
+    opts = opts || {};
+    const btn = el(
+      'button',
+      {
+        type: 'button',
+        style: [
+          'padding:7px 13px',
+          'border-radius:999px',
+          'font:600 11.5px Inter,sans-serif',
+          'cursor:pointer',
+          'border:1px solid rgba(255,255,255,.92)',
+          opts.active
+            ? 'background:linear-gradient(180deg,#fce9f0,#f1cfdc);color:#bb4779;box-shadow:0 4px 10px rgba(187,71,121,.18),inset 0 1px 0 rgba(255,255,255,.96)'
+            : 'background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,241,232,.92));color:rgba(70,60,50,.72);box-shadow:0 2px 6px rgba(93,74,60,.08),inset 0 1px 0 rgba(255,255,255,.96)',
+        ].join(';'),
+      },
+      label
+    );
+    if (opts.onclick) btn.addEventListener('click', opts.onclick);
+    return btn;
+  }
+
+  // ─── Svarstudio (full parity) ────────────────────────────────────────
+  async function openSvarstudio() {
+    const customerId = activeCustomerId();
+    auditStudioEvent('studio.opened', { customerId });
+    const mailboxes = await loadMailboxes();
+    const state = {
+      mailboxId: mailboxes[0]?.id || 'contact',
+      signatureId: 'fazli',
+      track: null,
+      tone: null,
+      refine: null,
+      template: null,
+      subject: 'Re: konversation',
+      body: '',
+      draftId: null,
+    };
+
+    const recipientInput = el('input', {
+      type: 'text',
+      value: 'contact@hairtpclinic.com',
+      style:
+        'flex:1;padding:8px 12px;border-radius:8px;border:1px solid rgba(187,159,122,.32);font:inherit;font-size:12.5px',
+    });
+    const mailboxSelect = el('select', {
+      style:
+        'padding:8px 12px;border-radius:8px;border:1px solid rgba(187,159,122,.32);font:inherit;font-size:12.5px;min-width:200px',
+      onchange: () => {
+        state.mailboxId = mailboxSelect.value;
+        auditStudioEvent('studio.mailbox_selected', { mailboxId: state.mailboxId });
+      },
+    });
+    for (const mb of mailboxes)
+      mailboxSelect.appendChild(
+        el('option', { value: mb.id }, mb.email + ' · ' + (mb.name || mb.id))
+      );
+    mailboxSelect.value = state.mailboxId;
+
+    const subjectInput = el('input', {
+      type: 'text',
+      value: state.subject,
+      style:
+        'width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(187,159,122,.32);font:inherit;font-size:13.5px;font-weight:600',
+    });
+    subjectInput.addEventListener('input', (e) => {
+      state.subject = e.target.value;
+    });
+
+    const bodyArea = el('textarea', {
+      placeholder: 'Skriv ditt svar — använd snabbmallar eller AI-utkast…',
+      style:
+        'width:100%;min-height:200px;padding:14px;border-radius:12px;border:1px solid rgba(187,159,122,.32);font:inherit;font-size:13.5px;line-height:1.55;resize:vertical',
+    });
+    bodyArea.addEventListener('input', (e) => {
+      state.body = e.target.value;
+    });
+
+    const snabbmallRow = el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' });
+    for (const sm of SNABBMALLAR) {
+      snabbmallRow.appendChild(
+        chipBtn(sm.label, {
+          onclick: () => {
+            bodyArea.value =
+              '[Mall: ' +
+              sm.label +
+              ']\n\nHej,\n\n...\n\nMvh ' +
+              (SIGNATURES.find((s) => s.id === state.signatureId)?.label || 'staff');
+            state.body = bodyArea.value;
+            state.template = sm.id;
+            auditStudioEvent('studio.template_selected', { templateId: sm.id });
+            toast('★ Mall: ' + sm.label);
+          },
+        })
+      );
+    }
+
+    function makeChipRow(items, getActive, onPick, eventKind) {
+      const row = el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' });
+      function rerender() {
+        row.innerHTML = '';
+        for (const it of items) {
+          row.appendChild(
+            chipBtn(it.label, {
+              active: getActive() === it.id,
+              onclick: () => {
+                onPick(it.id);
+                auditStudioEvent(eventKind, { value: it.id });
+                rerender();
+              },
+            })
+          );
+        }
+      }
+      rerender();
+      return row;
+    }
+    const trackRow = makeChipRow(
+      RESPONSE_TRACKS,
+      () => state.track,
+      (v) => {
+        state.track = v;
+      },
+      'studio.track_selected'
+    );
+    const toneRow = makeChipRow(
+      TONE_FILTERS,
+      () => state.tone,
+      (v) => {
+        state.tone = v;
+      },
+      'studio.tone_selected'
+    );
+    const refineRow = makeChipRow(
+      REFINE_FILTERS,
+      () => state.refine,
+      (v) => {
+        state.refine = v;
+      },
+      'studio.refine_selected'
+    );
+    const sigRow = makeChipRow(
+      SIGNATURES,
+      () => state.signatureId,
+      (v) => {
+        state.signatureId = v;
+      },
+      'studio.signature_selected'
+    );
+
+    const actionRow = el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, [
+      chipBtn('★ AI-utkast', {
+        onclick: () => {
+          bodyArea.value =
+            '[AI-utkast — administrativt, kräver godkännande]\n\nTack för ditt meddelande. Vi återkommer inom kort.\n\nMvh ' +
+            (SIGNATURES.find((s) => s.id === state.signatureId)?.label || 'staff');
+          state.body = bodyArea.value;
+          auditStudioEvent('studio.ai_draft_requested', { mode: 'administrative' });
+          toast('★ AI-utkast — granska + godkänn');
+        },
+      }),
+      chipBtn('📎 Bifoga friskförsäkran', {
+        onclick: () => {
+          auditStudioEvent('studio.attach_form', { formKind: 'fitness_certificate' });
+          toast('📎 Friskförsäkran bifogad');
+        },
+      }),
+      chipBtn('📅 Ändra bokning', {
+        onclick: () => {
+          auditStudioEvent('studio.open_booking_drawer', {});
+          toast('📅 Öppna Bokningsyta från bottom-bar');
+        },
+      }),
+      chipBtn('😊 Personlig ton', {
+        onclick: () => {
+          state.tone = 'warm';
+          auditStudioEvent('studio.tone_selected', { value: 'warm', source: 'personal_quick' });
+          toast('😊 Personlig ton aktiverad');
+        },
+      }),
+    ]);
+
+    function buildPreview() {
+      const sig = SIGNATURES.find((s) => s.id === state.signatureId)?.label || '';
+      const mb = mailboxes.find((m) => m.id === state.mailboxId);
+      return (
+        'Från: ' +
+        (mb?.email || state.mailboxId) +
+        '\nTill: ' +
+        recipientInput.value +
+        '\nÄmne: ' +
+        state.subject +
+        '\n\n' +
+        state.body +
+        '\n\n—\n' +
+        sig +
+        '\nHair TP Clinic'
+      );
+    }
+    function showPreview() {
+      auditStudioEvent('studio.preview_opened', { bodyLength: state.body.length });
+      openModal({
+        title: '👁 Förhandsvisning',
+        body: el('div', {}, [
+          el(
+            'div',
+            {
+              style:
+                'padding:10px 12px;background:rgba(255,244,219,.92);border:1px solid rgba(200,130,30,.32);border-radius:10px;font-size:11.5px;margin-bottom:12px',
+            },
+            '✋ Utkast. Inget skickas utan human approval.'
+          ),
+          el(
+            'pre',
+            {
+              style:
+                'background:rgba(248,243,235,.86);padding:14px;border-radius:10px;font:inherit;font-size:12.5px;white-space:pre-wrap;line-height:1.55;max-height:60vh;overflow-y:auto',
+            },
+            buildPreview()
+          ),
+        ]),
+        footer: [
+          el(
+            'button',
+            {
+              class: 'quick-pill',
+              type: 'button',
+              onclick: () => document.querySelectorAll('.action-modal-backdrop')[1]?.remove(),
+            },
+            'Stäng'
+          ),
+        ],
+      });
+    }
+
+    async function saveDraft(targetStatus) {
+      try {
+        if (!state.draftId) {
+          const r = await fetch('/api/v1/cco-comm/drafts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-cco-role': ROLE,
+              'x-cco-tenant': TENANT,
+            },
+            body: JSON.stringify({
+              customerId,
+              templateId: state.template || 'manual_reply',
+              subject: state.subject,
+              body: state.body,
+              channel: 'email',
+              journeyStep: state.track || 'reply',
+              mailboxId: state.mailboxId,
+              signatureId: state.signatureId,
+              tone: state.tone,
+              refine: state.refine,
+            }),
+          });
+          const j = await r.json();
+          if (!j.ok) throw new Error(j.error || 'fel');
+          state.draftId = j.draft.draftId;
+          auditStudioEvent('studio.draft_created', {
+            draftId: state.draftId,
+            track: state.track,
+            tone: state.tone,
+          });
+        } else {
+          await fetch('/api/v1/cco-comm/drafts/' + encodeURIComponent(state.draftId), {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-cco-role': ROLE,
+              'x-cco-tenant': TENANT,
+            },
+            body: JSON.stringify({ subject: state.subject, body: state.body }),
+          });
+          auditStudioEvent('studio.draft_edited', { draftId: state.draftId });
+        }
+        if (targetStatus && targetStatus !== 'draft') {
+          const r2 = await fetch(
+            '/api/v1/cco-comm/drafts/' + encodeURIComponent(state.draftId) + '/transition',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-cco-role': ROLE,
+                'x-cco-tenant': TENANT,
+              },
+              body: JSON.stringify({ status: targetStatus, reason: 'via Svarstudio' }),
+            }
+          );
+          const j2 = await r2.json();
+          if (!j2.ok) throw new Error(j2.error || 'transition');
+          auditStudioEvent('studio.transitioned', { draftId: state.draftId, to: targetStatus });
+        }
+        return true;
+      } catch (e) {
+        toast('✗ ' + e.message, 'err');
+        return false;
+      }
+    }
+
+    const lbl = (text) =>
+      el(
+        'span',
+        {
+          style:
+            'font-size:10px;font-weight:700;color:#84756b;text-transform:uppercase;letter-spacing:.08em',
+        },
+        text
+      );
+    const body = el('div', { style: 'display:flex;flex-direction:column;gap:14px' }, [
+      el(
+        'div',
+        {
+          style:
+            'padding:10px 12px;background:rgba(255,244,219,.92);border:1px solid rgba(200,130,30,.32);border-radius:10px;font-size:11.5px',
+        },
+        '✋ Inget skickas externt automatiskt. Utkast → human approval → queued. Live-send kräver owner-GO. Ingen extern AI på journaltext.'
+      ),
+      el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:10px' }, [
+        el('label', { style: 'display:flex;flex-direction:column;gap:4px' }, [
+          lbl('Till'),
+          recipientInput,
+        ]),
+        el('label', { style: 'display:flex;flex-direction:column;gap:4px' }, [
+          lbl('Från mailbox'),
+          mailboxSelect,
+        ]),
+      ]),
+      el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap' }, [
+        lbl('Signatur'),
+        sigRow,
+      ]),
+      el('div', { style: 'display:flex;flex-direction:column;gap:6px' }, [
+        lbl('Snabbmallar'),
+        snabbmallRow,
+      ]),
+      el('label', { style: 'display:flex;flex-direction:column;gap:4px' }, [
+        lbl('Ämne'),
+        subjectInput,
+      ]),
+      el('label', { style: 'display:flex;flex-direction:column;gap:4px' }, [
+        lbl('Meddelande'),
+        bodyArea,
+      ]),
+      actionRow,
+      el('div', { style: 'display:flex;flex-direction:column;gap:6px' }, [
+        lbl('Responsspår'),
+        trackRow,
+      ]),
+      el('div', { style: 'display:flex;flex-direction:column;gap:6px' }, [
+        lbl('Tonfilter'),
+        toneRow,
+      ]),
+      el('div', { style: 'display:flex;flex-direction:column;gap:6px' }, [
+        lbl('Finjustera'),
+        refineRow,
+      ]),
+    ]);
+
+    const m = openModal({
+      title: '✱ Svarstudio',
+      body,
+      footer: [
+        el(
+          'button',
+          { class: 'quick-pill', type: 'button', onclick: showPreview },
+          '👁 Förhandsvisning'
+        ),
+        el(
+          'button',
+          {
+            class: 'quick-pill',
+            type: 'button',
+            onclick: async () => {
+              if (await saveDraft('draft')) toast('✓ Utkast sparat');
+            },
+          },
+          '💾 Spara utkast'
+        ),
+        el(
+          'button',
+          {
+            class: 'quick-pill',
+            type: 'button',
+            onclick: async () => {
+              const h = window.prompt('Senare — vänta hur många timmar?', '24');
+              if (!h) return;
+              if (await saveDraft('draft')) {
+                auditStudioEvent('studio.snoozed', { draftId: state.draftId, hours: h });
+                toast('⏰ Snoozad ' + h + 'h');
+              }
+            },
+          },
+          '⏰ Senare'
+        ),
+        el(
+          'button',
+          {
+            class: 'quick-pill',
+            type: 'button',
+            onclick: async () => {
+              if (await saveDraft('needs_approval')) {
+                toast('✓ Klar — väntar godkännande');
+                m.close();
+              }
+            },
+          },
+          '✓ Klar'
+        ),
+        el(
+          'button',
+          {
+            class: 'quick-pill',
+            type: 'button',
+            style: 'color:#b94a4a',
+            onclick: async () => {
+              if (!state.draftId) {
+                m.close();
+                return;
+              }
+              if (!window.confirm('Radera utkast?')) return;
+              if (await saveDraft('cancelled')) {
+                toast('🗑 Raderat');
+                m.close();
+              }
+            },
+          },
+          '🗑 Radera'
+        ),
+        el(
+          'button',
+          {
+            class: 'quick-pill',
+            type: 'button',
+            style:
+              'background:linear-gradient(180deg,#fce9f0,#f1cfdc);color:#bb4779;border-color:rgba(187,71,121,.28)',
+            onclick: async () => {
+              if (await saveDraft('approved')) {
+                auditStudioEvent('studio.approved', { draftId: state.draftId });
+                toast('★ Godkänd — ingen extern utskick utan owner-GO');
+                m.close();
+              }
+            },
+          },
+          '★ Godkänn'
+        ),
+      ],
+      wide: true,
+    });
+  }
+
+  // ─── Legacy fallback (osed nu — sparas för referens) ────────────────
+  function openSvarstudioLegacy() {
     const customerId = activeCustomerId();
     if (window.CcoKommPanel?.openSvarstudio) {
       window.CcoKommPanel.openSvarstudio(
         customerId,
-        {
-          tenantId: TENANT,
-          role: ROLE,
-        },
+        { tenantId: TENANT, role: ROLE },
         document.body
       );
       return;
