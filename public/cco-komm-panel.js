@@ -981,6 +981,152 @@
 
     // Kundresa-stepper (Sprint 5) — 12 steg + sidetillstånd + advance/rollback
     renderJourneySection(host, customerId, opts);
+
+    // Unified timeline (Sprint 6) — kronologisk merge mail/journey/journal/etc
+    renderTimelineSection(host, customerId, opts);
+  }
+
+  // ─── Sprint 6: Unified timeline ──────────────────────────────────
+  const TIMELINE_FILTERS = [
+    { id: 'all', label: 'Alla' },
+    { id: 'communication', label: 'Komm' },
+    { id: 'bookings', label: 'Bokningar' },
+    { id: 'journal', label: 'Journal' },
+    { id: 'documents', label: 'Dokument' },
+    { id: 'journey', label: 'Kundresa' },
+  ];
+
+  async function fetchTimeline(customerId, opts, filter) {
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    const r = await fetch(
+      '/api/v1/cco-customers/' +
+        encodeURIComponent(customerId) +
+        '/unified-timeline?filter=' +
+        encodeURIComponent(filter || 'all') +
+        '&tenantId=' +
+        encodeURIComponent(tenantId) +
+        '&limit=80',
+      { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } }
+    );
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  function fmtTimelineDate(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      return (
+        d.toLocaleDateString('sv-SE') +
+        ' ' +
+        String(d.getHours()).padStart(2, '0') +
+        ':' +
+        String(d.getMinutes()).padStart(2, '0')
+      );
+    } catch {
+      return '';
+    }
+  }
+
+  function renderTimelineSection(host, customerId, opts) {
+    let root = host.querySelector('.cco-komm-timeline');
+    if (!root) {
+      root = el('div', { class: 'cco-komm-timeline' });
+      host.appendChild(root);
+    }
+    root.innerHTML = '';
+
+    root.appendChild(
+      el('div', { class: 'cco-komm-threads-head' }, [
+        el('h4', {}, '📜 Tidslinje'),
+        el('span', { class: 'cco-komm-threads-meta' }, 'Sprint 6'),
+      ])
+    );
+
+    const tabsRow = el('div', { class: 'cco-komm-thread-tabs' });
+    root.appendChild(tabsRow);
+
+    const listEl = el('div', { class: 'cco-komm-timeline-list' }, 'Laddar…');
+    root.appendChild(listEl);
+
+    let activeFilter = 'all';
+    let lastCounts = {};
+
+    function renderTabs() {
+      tabsRow.innerHTML = '';
+      for (const tab of TIMELINE_FILTERS) {
+        const count = lastCounts[tab.id];
+        tabsRow.appendChild(
+          el(
+            'button',
+            {
+              class: 'cco-komm-thread-tab' + (tab.id === activeFilter ? ' is-active' : ''),
+              type: 'button',
+              onclick: () => {
+                activeFilter = tab.id;
+                loadAndRender();
+              },
+            },
+            [
+              tab.label,
+              count != null
+                ? el('span', { class: 'cco-komm-thread-tab-count' }, String(count))
+                : null,
+            ]
+          )
+        );
+      }
+    }
+
+    function renderList(events) {
+      listEl.innerHTML = '';
+      if (!events || events.length === 0) {
+        listEl.appendChild(
+          el('div', { class: 'cco-komm-empty' }, 'Inga händelser för detta filter.')
+        );
+        return;
+      }
+      let lastDate = null;
+      for (const ev of events) {
+        const dateStr = ev.ts ? new Date(ev.ts).toLocaleDateString('sv-SE') : '';
+        if (dateStr !== lastDate) {
+          listEl.appendChild(el('div', { class: 'cco-komm-timeline-date' }, dateStr));
+          lastDate = dateStr;
+        }
+        listEl.appendChild(
+          el('div', { class: 'cco-komm-timeline-event' }, [
+            el('span', { class: 'cco-komm-timeline-icon' }, ev.icon || '·'),
+            el('div', { class: 'cco-komm-timeline-body' }, [
+              el('div', { class: 'cco-komm-timeline-title' }, [
+                ev.title || ev.kind,
+                el('span', { class: 'cco-komm-timeline-cat' }, ev.category || ''),
+              ]),
+              ev.summary ? el('div', { class: 'cco-komm-timeline-summary' }, ev.summary) : null,
+              el('div', { class: 'cco-komm-timeline-ts' }, fmtTimelineDate(ev.ts)),
+            ]),
+          ])
+        );
+      }
+    }
+
+    async function loadAndRender() {
+      listEl.textContent = 'Laddar…';
+      try {
+        const data = await fetchTimeline(customerId, opts, activeFilter);
+        lastCounts = data.counts || {};
+        renderTabs();
+        renderList(data.events || []);
+      } catch (err) {
+        listEl.innerHTML = '';
+        listEl.appendChild(
+          el('div', { class: 'cco-komm-empty' }, 'Kunde inte ladda tidslinje: ' + err.message)
+        );
+      }
+    }
+
+    renderTabs();
+    loadAndRender();
   }
 
   // ─── Sprint 5: Kundresa-stepper ──────────────────────────────────────

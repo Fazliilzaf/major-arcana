@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CCO · Operatörsdashboard</title>
+    <style>
+      :root {
+        --cco-bg-page: #faf6f2;
+        --cco-color-brand: #2b251f;
+        --cco-text-secondary: rgba(70, 60, 50, 0.62);
+        --cco-text-tertiary: #8a8174;
+        --cco-status-success: #4a8268;
+        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
+        --cco-status-warning: #c8821e;
+        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
+        --cco-status-danger: #b94a4a;
+        --cco-status-danger-bg: rgba(185, 74, 74, 0.14);
+        --cco-status-info: #4a7ba8;
+        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
+        --rose-pill-top: rgba(252, 233, 240, 0.98);
+        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        --accent-studio: #bb4779;
+        --panel-card-top: rgba(255, 255, 255, 0.94);
+        --panel-card-bottom: rgba(247, 241, 236, 0.86);
+        --panel-card-shadow:
+          0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
+          var(--cco-bg-page);
+        color: var(--cco-color-brand);
+        font-family:
+          Inter,
+          'Segoe UI',
+          -apple-system,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+        min-height: 100vh;
+        padding: 24px;
+      }
+      header {
+        max-width: 1280px;
+        margin: 0 auto 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .meta {
+        color: var(--cco-text-tertiary);
+        font-size: 11px;
+      }
+      .grid {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px;
+      }
+      .card {
+        padding: 16px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: var(--panel-card-shadow);
+      }
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--cco-text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .card .big {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        color: var(--cco-color-brand);
+      }
+      .card .sub {
+        margin-top: 6px;
+        font-size: 11px;
+        color: var(--cco-text-secondary);
+      }
+      .card.warning .big {
+        color: var(--cco-status-warning);
+      }
+      .card.success .big {
+        color: var(--cco-status-success);
+      }
+      .card.danger .big {
+        color: var(--cco-status-danger);
+      }
+      .card.info .big {
+        color: var(--cco-status-info);
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--cco-text-secondary);
+        margin-right: 4px;
+        margin-top: 4px;
+      }
+      .pill.warning {
+        background: var(--cco-status-warning-bg);
+        color: var(--cco-status-warning);
+      }
+      .pill.success {
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+      .pill.danger {
+        background: var(--cco-status-danger-bg);
+        color: var(--cco-status-danger);
+      }
+      .pill.info {
+        background: var(--cco-status-info-bg);
+        color: var(--cco-status-info);
+      }
+      .list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .list-item {
+        padding: 6px 9px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.55);
+        font-size: 11.5px;
+        border: 1px solid rgba(187, 159, 122, 0.18);
+      }
+      .list-item .who {
+        font-weight: 700;
+        color: var(--cco-color-brand);
+      }
+      .list-item .meta-row {
+        margin-top: 2px;
+        font-size: 10px;
+        color: var(--cco-text-tertiary);
+        display: flex;
+        gap: 8px;
+      }
+      .empty {
+        color: var(--cco-text-tertiary);
+        font-size: 11px;
+        font-style: italic;
+      }
+      .steps-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px 12px;
+        font-size: 10.5px;
+      }
+      .step-row {
+        display: flex;
+        justify-content: space-between;
+      }
+      .step-row .count {
+        font-weight: 700;
+        color: var(--cco-color-brand);
+      }
+      .mailbox-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 11px;
+      }
+      .mailbox-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+        border-bottom: 1px dashed rgba(187, 159, 122, 0.14);
+      }
+      .refresh-btn {
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        font-weight: 700;
+        font-size: 11px;
+        border: 1px solid rgba(187, 71, 121, 0.28);
+        cursor: pointer;
+      }
+      .topnav {
+        max-width: 1280px;
+        margin: 0 auto 14px;
+        display: flex;
+        gap: 14px;
+        font-size: 12px;
+        color: var(--cco-text-tertiary);
+      }
+      .topnav a {
+        color: inherit;
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 999px;
+      }
+      .topnav a.active {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        font-weight: 700;
+      }
+      @media (max-width: 720px) {
+        body {
+          padding: 14px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .steps-list {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="topnav">
+      <a href="/kunder.html">Kunder</a>
+      <a href="/kalender.html">Kalender</a>
+      <a href="/konversationer.html">Konversationer</a>
+      <a href="/operator-dashboard.html" class="active">Dashboard</a>
+    </nav>
+
+    <header>
+      <div>
+        <h1>Operatörsdashboard</h1>
+        <div class="meta" id="meta">Laddar…</div>
+      </div>
+      <button class="refresh-btn" id="refreshBtn">↻ Uppdatera</button>
+    </header>
+
+    <div class="grid" id="grid"></div>
+
+    <script>
+      (async function () {
+        'use strict';
+        const ROLE = 'owner';
+        const TENANT = 'hair_tp';
+
+        function el(tag, attrs, children) {
+          const n = document.createElement(tag);
+          for (const [k, v] of Object.entries(attrs || {})) {
+            if (k === 'class') n.className = v;
+            else if (k.startsWith('on')) n.addEventListener(k.slice(2).toLowerCase(), v);
+            else if (v != null) n.setAttribute(k, v);
+          }
+          for (const c of [].concat(children || [])) {
+            if (c == null) continue;
+            n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+          }
+          return n;
+        }
+
+        async function fetchDashboard() {
+          const r = await fetch('/api/v1/cco-operator-dashboard?tenantId=' + TENANT, {
+            headers: { 'x-cco-role': ROLE, 'x-cco-tenant': TENANT },
+          });
+          return r.json();
+        }
+
+        function render(data) {
+          const grid = document.getElementById('grid');
+          grid.innerHTML = '';
+
+          // 1. Drafts queue
+          const dq = data.draftsQueue || {};
+          grid.appendChild(
+            el('div', { class: 'card warning' }, [
+              el('h2', {}, '✏ Utkast — väntar godkännande'),
+              el('div', { class: 'big' }, String(dq.needsApproval || 0)),
+              el('div', { class: 'sub' }, [
+                el('span', { class: 'pill success' }, (dq.approved || 0) + ' godkända'),
+                el('span', { class: 'pill info' }, (dq.queued || 0) + ' i kö'),
+              ]),
+              dq.sample && dq.sample.length > 0
+                ? el(
+                    'div',
+                    { class: 'list' },
+                    dq.sample.map((d) =>
+                      el('div', { class: 'list-item' }, [
+                        el('span', { class: 'who' }, d.customerId),
+                        el('div', { class: 'meta-row' }, [
+                          d.templateId || '—',
+                          d.channel ? '· ' + d.channel.toUpperCase() : '',
+                          d.journeyStep ? '· ' + d.journeyStep : '',
+                        ]),
+                      ])
+                    )
+                  )
+                : el('div', { class: 'empty' }, 'Inga utkast väntar.'),
+            ])
+          );
+
+          // 2. Thread states
+          const ts = data.threadStats || {};
+          grid.appendChild(
+            el('div', { class: 'card info' }, [
+              el('h2', {}, '💬 Konversations-tråd-states'),
+              el('div', { class: 'big' }, String(ts.totalStateRecords || 0)),
+              el('div', { class: 'sub' }, [
+                el('span', { class: 'pill success' }, (ts.handled || 0) + ' hanterade'),
+                el('span', { class: 'pill warning' }, (ts.snoozed || 0) + ' snoozade'),
+                el('span', { class: 'pill' }, (ts.read || 0) + ' lästa'),
+                el('span', { class: 'pill info' }, (ts.linkedJourney || 0) + ' kopplade till resa'),
+              ]),
+            ])
+          );
+
+          // 3. Cron stats
+          const cs = data.cronStats || {};
+          grid.appendChild(
+            el('div', { class: 'card' }, [
+              el('h2', {}, '⏰ Cron dry-run-historik'),
+              el('div', { class: 'big' }, String(cs.totalRuns || 0)),
+              el('div', { class: 'sub' }, [
+                (cs.totalProposals || 0) +
+                  ' förslag totalt · ' +
+                  (cs.totalWouldCreate || 0) +
+                  ' skulle skapas · ' +
+                  (cs.totalAlreadyExists || 0) +
+                  ' redan finns',
+              ]),
+              el(
+                'div',
+                { class: 'sub' },
+                cs.lastRunAt
+                  ? 'Senast: ' + new Date(cs.lastRunAt).toLocaleString('sv-SE')
+                  : 'Aldrig körd'
+              ),
+            ])
+          );
+
+          // 4. Journey distribution
+          const js = data.journeyStats || {};
+          grid.appendChild(
+            el('div', { class: 'card success' }, [
+              el('h2', {}, '🗺 Kundresa — fördelning'),
+              el('div', { class: 'big' }, String(js.total || 0)),
+              el('div', { class: 'sub' }, 'Aktiva kund-resor'),
+              js.steps
+                ? el(
+                    'div',
+                    { class: 'steps-list' },
+                    js.steps.map((s) =>
+                      el('div', { class: 'step-row' }, [
+                        el('span', {}, s.label),
+                        el('span', { class: 'count' }, String((js.byStep || {})[s.id] || 0)),
+                      ])
+                    )
+                  )
+                : null,
+              js.bySide
+                ? el('div', { class: 'sub' }, [
+                    el('span', { class: 'pill danger' }, (js.bySide.cancelled || 0) + ' avbrutna'),
+                    el('span', { class: 'pill warning' }, (js.bySide.no_show || 0) + ' no-show'),
+                    el('span', { class: 'pill' }, (js.bySide.on_hold || 0) + ' pausade'),
+                  ])
+                : null,
+            ])
+          );
+
+          // 5. Mailbox stats
+          const mb = data.mailboxStats || [];
+          grid.appendChild(
+            el('div', { class: 'card' }, [
+              el('h2', {}, '📥 Mailbox-täckning'),
+              el('div', { class: 'big' }, String(mb.length)),
+              el(
+                'div',
+                { class: 'sub' },
+                mb.length === 0
+                  ? 'Inga mailaccounts initialiserade (se coverage-rapport)'
+                  : 'mailboxar'
+              ),
+              mb.length > 0
+                ? el(
+                    'div',
+                    { class: 'mailbox-list' },
+                    mb.map((m) =>
+                      el('div', { class: 'mailbox-row' }, [
+                        el('span', {}, m.mailboxEmail),
+                        el('span', {}, m.total + ' / ' + m.matched + ' matched'),
+                      ])
+                    )
+                  )
+                : null,
+            ])
+          );
+
+          document.getElementById('meta').textContent =
+            'Genererad: ' +
+            new Date(data.generatedAt).toLocaleString('sv-SE') +
+            ' · Tenant: ' +
+            (data.tenantId || '—');
+        }
+
+        async function refresh() {
+          document.getElementById('meta').textContent = 'Uppdaterar…';
+          try {
+            const data = await fetchDashboard();
+            if (!data.ok) throw new Error(data.error || 'okänt fel');
+            render(data);
+          } catch (err) {
+            document.getElementById('meta').textContent = 'Kunde inte ladda: ' + err.message;
+          }
+        }
+
+        document.getElementById('refreshBtn').addEventListener('click', refresh);
+        refresh();
+      })();
+    </script>
+  </body>
+</html>

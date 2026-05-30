@@ -8352,6 +8352,142 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
     console.log(
       '[komm-sprint4.1] monterad: /cco-mail/mailbox-stats · /cco-mail/unmatched · /cco-mail/ambiguous · /cco-mail/link-patient (mail.read · mail.send)'
     );
+
+    // ─── Sprint 6 — Unified timeline (chronological aggregator) ────────
+    // Endpoint: /unified-timeline (befintlig /timeline används av Sprint E)
+    app.get(
+      '/api/v1/cco-customers/:id/unified-timeline',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const { buildUnifiedTimeline } = require('./src/ops/ccoUnifiedTimelineBuilder');
+          // Säkra alla källor först
+          let threadStoreInst = app.locals.ccoConversationThreadStore;
+          if (!threadStoreInst) {
+            try {
+              await ensureConvThreadStore();
+              threadStoreInst = app.locals.ccoConversationThreadStore;
+            } catch {}
+          }
+          let journeyStoreInst = app.locals.ccoCustomerJourneyStore;
+          if (!journeyStoreInst) {
+            try {
+              await ensureJourneyStore();
+              journeyStoreInst = app.locals.ccoCustomerJourneyStore;
+            } catch {}
+          }
+
+          const result = await buildUnifiedTimeline({
+            customerId: req.params.id,
+            tenantId: req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp',
+            filter: req.query.filter || 'all',
+            limit: Number(req.query.limit) || 200,
+            threadStore: threadStoreInst,
+            journeyStore: journeyStoreInst,
+            journalStore: app.locals.ccoJournalStore || null,
+            bookingStore: app.locals.ccoBookingStore || null,
+            encounterStore: app.locals.ccoTreatmentEncounterStore || null,
+            assetStore: app.locals.ccoPatientAssetStore || null,
+            agreementStore: app.locals.ccoAgreementStore || null,
+          });
+          res.json({ ok: true, ...result });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log(
+      '[komm-sprint6] monterad: /cco-customers/:id/unified-timeline (chronological aggregator across mail/journey/journal/bookings/assets/agreements) (customers.read)'
+    );
+
+    // ─── Sprint 7 — Operator dashboard aggregator ──────────────────────
+    app.get(
+      '/api/v1/cco-operator-dashboard',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const out = { ok: true, tenantId, generatedAt: new Date().toISOString() };
+
+          // Drafts-queue (Sprint 2)
+          try {
+            await ensureCommStores();
+            const draftStore = app.locals.ccoCommDraftStore;
+            if (draftStore?.listByStatus) {
+              const needsApproval =
+                draftStore.listByStatus('needs_approval', { tenantId, limit: 200 }) || [];
+              const approved = draftStore.listByStatus('approved', { tenantId, limit: 200 }) || [];
+              const queued = draftStore.listByStatus('queued', { tenantId, limit: 200 }) || [];
+              out.draftsQueue = {
+                needsApproval: needsApproval.length,
+                approved: approved.length,
+                queued: queued.length,
+                sample: needsApproval.slice(0, 5).map((d) => ({
+                  draftId: d.draftId,
+                  customerId: d.customerId,
+                  templateId: d.templateId,
+                  journeyStep: d.journeyStep,
+                  channel: d.channel,
+                  updatedAt: d.updatedAt,
+                })),
+              };
+            }
+          } catch {
+            out.draftsQueue = { error: 'ej tillgänglig' };
+          }
+
+          // Conversation-threads stats (Sprint 4)
+          try {
+            await ensureConvThreadStore();
+            const threadStore = app.locals.ccoConversationThreadStore;
+            out.threadStats = threadStore?.stats ? threadStore.stats() : null;
+          } catch {
+            out.threadStats = { error: 'ej tillgänglig' };
+          }
+
+          // Cron stats (Sprint 3)
+          try {
+            const cronStore = app.locals.ccoCommCronStore;
+            out.cronStats = cronStore?.stats ? cronStore.stats({ tenantId }) : null;
+          } catch {
+            out.cronStats = null;
+          }
+
+          // Journey distribution (Sprint 5)
+          try {
+            await ensureJourneyStore();
+            const journeyStore = app.locals.ccoCustomerJourneyStore;
+            out.journeyStats = journeyStore?.stats
+              ? {
+                  ...journeyStore.stats({ tenantId }),
+                  steps: journeyStore.STEPS,
+                }
+              : null;
+          } catch {
+            out.journeyStats = null;
+          }
+
+          // Mailbox-stats (Sprint 4.1)
+          try {
+            const ingest = app.locals.ccoMailIngestionStore;
+            out.mailboxStats = ingest?.listMailboxStats ? ingest.listMailboxStats() : [];
+          } catch {
+            out.mailboxStats = [];
+          }
+
+          res.json(out);
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log(
+      '[komm-sprint7] monterad: /cco-operator-dashboard (cross-customer staff overview: drafts/threads/cron/journey/mailbox-stats) (customers.read)'
+    );
   } catch (err) {
     console.warn('[calendar-sprint1] kunde inte montera:', err.message);
   }
