@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "scan-pii": "bash scripts/scan-for-pii.sh",
     "cco:live": "PORT=${PORT:-3000} ARCANA_GRAPH_READ_ENABLED=true ARCANA_GRAPH_SEND_ENABLED=true ARCANA_CCO_DELETE_ENABLED=true node server.js",
     "setup:mac": "bash ./scripts/bootstrap-mac-studio.sh",
     "workstation:bootstrap": "bash ./scripts/bootstrap-apple-workstation.sh",

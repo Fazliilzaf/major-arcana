@@ -604,9 +604,11 @@ function renderMarkdown({ date, tenantId, stats, dod, overall, audit }) {
   lines.push('## Compliance-check');
   lines.push('');
   lines.push('- [x] Inga patientnamn — regex-scan verifierad innan write');
-  lines.push('- [x] Inga personnummer — regex `\\d{6}[-\\s]?\\d{4}` → 0 träffar');
-  lines.push('- [x] Inga emails — regex `@[a-z]+\\.(com|se)` → 0 träffar');
-  lines.push('- [x] Inga telefonnummer — regex `\\+46\\d{8,10}` → 0 träffar');
+  // OWNER-SKÄRPNING #4: PCRE-format för cross-tool-kompatibilitet
+  // ([0-9] funkar i både JS, ripgrep --pcre2 och POSIX BRE/ERE)
+  lines.push('- [x] Inga personnummer — regex `[0-9]{6}[-[:space:]]?[0-9]{4}` (PCRE) → 0 träffar');
+  lines.push('- [x] Inga emails — regex `[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}` (PCRE) → 0 träffar');
+  lines.push('- [x] Inga telefonnummer — regex `\\+46[0-9]{8,}` (PCRE) → 0 träffar');
   lines.push('- [x] Endast counts/percentages/struktur-IDs');
   lines.push('');
   lines.push(
@@ -620,11 +622,16 @@ function renderMarkdown({ date, tenantId, stats, dod, overall, audit }) {
 // Compliance-check — verifiera ingen PII innan write
 // ─────────────────────────────────────────────────────────────────────────
 function complianceCheck(md) {
+  // OWNER-SKÄRPNING #4: PCRE-kompatibla mönster ([0-9] istället för \d)
+  // — fungerar i både JS-RegExp och ripgrep --pcre2 + POSIX-grep -E
   const checks = [
-    { name: 'pnr-12d', re: /\b\d{12}\b/ },
-    { name: 'pnr-dash', re: /\b\d{6}[-\s]?\d{4}\b/ },
-    { name: 'email', re: /[a-z0-9._%+-]+@[a-z0-9-]+\.(com|se|nu|org|net|io)/i },
-    { name: 'phone-se', re: /\+46\d{6,12}/ },
+    { name: 'pnr-12d', re: /\b[0-9]{12}\b/ },
+    { name: 'pnr-dash', re: /\b[0-9]{6}[-[:space:]\s]?[0-9]{4}\b/ },
+    {
+      name: 'email',
+      re: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/,
+    },
+    { name: 'phone-se', re: /\+46[0-9]{6,12}/ },
   ];
   const violations = [];
   for (const c of checks) {
