@@ -78,6 +78,8 @@ Fas D  Owner utvärdering          →  paus / FAS 2 GO
 
 **Fas A mål:** ≥3 genomförda rumstest med sessionslogg innan APPLY diskuteras.
 
+**Fas A mall:** [`AISIA-FAS-A-ROOM-TEST-RESULTS-2026-05-30.md`](./AISIA-FAS-A-ROOM-TEST-RESULTS-2026-05-30.md) — tom testmatris + sign-off (ifylls på klinik, ej i GitHub).
+
 ---
 
 ## Owner-kommandon
