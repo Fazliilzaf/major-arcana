@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal Feed — Demo & Smoke-test</title>
+  <link rel="stylesheet" href="/cco-journal-feed.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 16px;
+      background: #f4f5f8;
+      color: #1f2330;
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 6px; }
+    .lead { color: #5b6273; margin: 0 0 18px; font-size: 0.92rem; }
+    .demo-controls {
+      background: #fff; border: 1px solid #e6e8ee; border-radius: 12px;
+      padding: 14px 18px; margin-bottom: 18px;
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: end;
+    }
+    .demo-controls label { display: flex; flex-direction: column; font-size: 0.78rem; color: #5b6273; gap: 4px; }
+    .demo-controls input, .demo-controls select {
+      font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid #e6e8ee; min-width: 220px;
+    }
+    .demo-controls button {
+      padding: 9px 16px; border-radius: 8px; background: #1f2330; color: #fff; border: 0;
+      cursor: pointer; font: inherit;
+    }
+    .demo-info {
+      font-size: 0.78rem; color: #5b6273; margin-top: 10px;
+    }
+    .demo-info code { background: #f4f5f8; padding: 1px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>📋 Journal Feed — Patientkort-sektion (demo)</h1>
+  <p class="lead">
+    Unified journal-UI: nya CCO-journaler + historiska PDF:er + bilder + samtycken + avtal + asset-statusar.
+    Allt från CCO endpoint <code>/api/v1/cco-customers/:id/journal-feed</code>. Inga Drive-länkar.
+  </p>
+
+  <div class="demo-controls">
+    <label>
+      Customer ID
+      <input id="cid" type="text" value="anon-patient-001" placeholder="ex: cliento_xxx eller anon-patient-001">
+    </label>
+    <label>
+      Tenant
+      <select id="tenant">
+        <option value="hairtpclinic">hairtpclinic</option>
+        <option value="hair_tp">hair_tp</option>
+      </select>
+    </label>
+    <label>
+      Roll (RBAC-demo)
+      <select id="role">
+        <option value="doctor">doctor</option>
+        <option value="nurse">nurse</option>
+        <option value="reception">reception</option>
+        <option value="owner">owner</option>
+      </select>
+    </label>
+    <button id="load">🔄 Ladda</button>
+  </div>
+
+  <div id="mount"></div>
+
+  <p class="demo-info">
+    Endpointet returnerar: <code>counters</code>, <code>sectionCounts</code>, <code>items[]</code>,
+    <code>sections{}</code>, <code>needsAttention[]</code>. Asset-länkar går alltid via
+    <code>/api/v1/cco/assets/:id/download</code> — aldrig direkt Drive-URL.
+  </p>
+
+  <script src="/cco-journal-feed.js"></script>
+  <script>
+    const btn = document.getElementById('load');
+    let current = null;
+
+    function loadFeed() {
+      const customerId = document.getElementById('cid').value.trim();
+      const tenantId = document.getElementById('tenant').value;
+      const role = document.getElementById('role').value;
+      if (!customerId) { alert('Ange customer ID'); return; }
+      current = window.CcoJournalFeed.mount('#mount', {
+        customerId, tenantId,
+        headers: { 'x-cco-role': role },
+      });
+    }
+    btn.addEventListener('click', loadFeed);
+    loadFeed();
+  </script>
+</body>
+</html>

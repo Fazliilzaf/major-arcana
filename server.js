@@ -1014,6 +1014,52 @@ try {
         } catch (err) { /* tyst */ }
       }
 
+      // Patient assets (CCO asset-store) — importerade PDF:er, foton, consents, agreements, forms.
+      // Owner-mandat: visa ENDAST CCO-source — INGA Drive-länkar.
+      // En asset visas om status är VERIFIED_IN_CCO eller VISIBLE_ON_PATIENT_CARD.
+      const assetStore = app.locals.ccoPatientAssetStore;
+      if (assetStore?.listAssetsForPatient) {
+        try {
+          const VISIBLE_STATUSES = new Set(['VERIFIED_IN_CCO', 'VISIBLE_ON_PATIENT_CARD']);
+          const CATEGORY_ICON = {
+            journal: '📄', photo_before: '📸', photo_during: '📸', photo_after: '📸',
+            consent: '✍', agreement: '📑', form: '📋', aisia_report: '🔬', other: '📎',
+          };
+          const assets = assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
+          for (const a of assets) {
+            if (!VISIBLE_STATUSES.has(a.status)) continue;
+            const cat = a.category || 'other';
+            events.push({
+              kind: 'asset',
+              subkind: cat,
+              ts: a.documentDate || a.importedAt || a.createdAt,
+              title: cat === 'journal' ? 'Historisk journal (PDF)'
+                   : cat === 'photo_before' ? 'Foto: före'
+                   : cat === 'photo_during' ? 'Foto: under behandling'
+                   : cat === 'photo_after' ? 'Foto: efter'
+                   : cat === 'consent' ? 'Samtycke (signerat)'
+                   : cat === 'agreement' ? 'Avtal (signerat)'
+                   : cat === 'form' ? 'Formulär'
+                   : cat === 'aisia_report' ? 'Aisia-rapport'
+                   : (a.originalFileName || 'Asset'),
+              status: a.status,
+              icon: CATEGORY_ICON[cat] || '📎',
+              entityId: a.id,
+              link: `/api/v1/cco/assets/${a.id}/download`,
+              detail: {
+                category: cat,
+                sourceSystem: a.sourceSystem,
+                mimeType: a.mimeType,
+                encounterId: a.encounterId || null,
+                fileSize: a.fileSize || null,
+                isJournalRelevant: !!a.isJournalRelevant,
+                ccoSourceOnly: true,    // owner-skärpning: ALDRIG Drive-länk i UI
+              },
+            });
+          }
+        } catch (err) { /* tyst */ }
+      }
+
       // Sortera DESC på ts, sortera stabilt på entityId fallback
       events.sort((a, b) => {
         const ta = (a.ts || '').toString();
@@ -1072,7 +1118,186 @@ try {
     }
   });
 
-  console.log('[cco-customer-deep] monterad: GET /api/v1/cco-customers/:id/{timeline|agreements} (customers.read)');
+  // GET /api/v1/cco-customers/:id/journal-feed — unified journal-view
+  // Aggregera: ccoJournalStore-entries + patient_assets (journal/photo_*/consent/agreement/form/aisia_report)
+  // Inga Drive-länkar. Endast CCO-source. Owner-mandat: cco-no-drive-links-import-only.mdc.
+  // RBAC: customers.read (samma som timeline) — strängare per-asset-RBAC görs i download-endpoint.
+  app.get('/api/v1/cco-customers/:id/journal-feed', attachRole, requirePermission('customers.read'), async (req, res) => {
+    try {
+      const customerId = req.params.id;
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const items = [];
+
+      // 1. CCO-journal-entries (nyskrivna)
+      const journalStore = app.locals.ccoJournalStore;
+      if (journalStore?.listEntries) {
+        try {
+          const entries = await journalStore.listEntries({ tenantId, patientId: customerId });
+          for (const e of (entries || [])) {
+            items.push({
+              source: 'cco_journal',
+              category: 'journal',
+              subcategory: e.journalType || 'general',
+              ts: e.signedAt || e.updatedAt || e.createdAt,
+              title: e.title || (e.journalType || 'Journal-post'),
+              icon: e.locked ? '🔒' : '📝',
+              author: e.signedByName || e.authorName,
+              entityId: e.entryId,
+              isSigned: !!e.locked,
+              isCorrection: !!e.correctionOfEntryId,
+              correctionOfEntryId: e.correctionOfEntryId || null,
+              hasPdf: !!(e.pdfArtifactKey || e.pdfStorageKey),
+              link: `/smart-anteckning.html?entryId=${encodeURIComponent(e.entryId)}`,
+              ccoSourceOnly: true,
+            });
+          }
+        } catch (err) { /* tyst */ }
+      }
+
+      // 2. patient_assets — CCO asset-store
+      // Inkluderar 4 statusar: VERIFIED_IN_CCO + VISIBLE_ON_PATIENT_CARD (renderas),
+      // NEEDS_REVIEW (visas i "Behöver granskning"-sektion),
+      // LINK_ONLY_BLOCKER (visas som varning per asset, INTE som klickbar Drive-länk).
+      const assetStore = app.locals.ccoPatientAssetStore;
+      const needsAttention = [];
+      if (assetStore?.listAssetsForPatient) {
+        try {
+          const RENDERABLE = new Set(['VERIFIED_IN_CCO', 'VISIBLE_ON_PATIENT_CARD']);
+          const ATTENTION = new Set(['NEEDS_REVIEW', 'LINK_ONLY_BLOCKER', 'IMPORTED_TO_CCO']);
+          const ICON = {
+            journal: '📄', photo_before: '📸', photo_during: '📸', photo_after: '📸',
+            consent: '✍', agreement: '📑', form: '📋', aisia_report: '🔬', other: '📎',
+          };
+          const STATUS_LABEL = {
+            VISIBLE_ON_PATIENT_CARD: 'Synlig',
+            VERIFIED_IN_CCO: 'Verifierad',
+            IMPORTED_TO_CCO: 'Importerad (ej verifierad)',
+            NEEDS_REVIEW: 'Behöver granskning',
+            LINK_ONLY_BLOCKER: 'Endast referens — binär saknas',
+          };
+          const STATUS_TONE = {
+            VISIBLE_ON_PATIENT_CARD: 'ok',
+            VERIFIED_IN_CCO: 'ok',
+            IMPORTED_TO_CCO: 'warn',
+            NEEDS_REVIEW: 'warn',
+            LINK_ONLY_BLOCKER: 'blocker',
+          };
+          const assets = assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
+          for (const a of assets) {
+            const isRenderable = RENDERABLE.has(a.status);
+            const isAttention = ATTENTION.has(a.status);
+            if (!isRenderable && !isAttention) continue;
+
+            const cat = a.category || 'other';
+            const baseTitle = cat === 'journal' ? 'Historisk journal (PDF)'
+                 : cat === 'photo_before' ? 'Foto: före behandling'
+                 : cat === 'photo_during' ? 'Foto: under behandling'
+                 : cat === 'photo_after' ? 'Foto: efter behandling'
+                 : cat === 'consent' ? 'Signerat samtycke'
+                 : cat === 'agreement' ? 'Signerat avtal'
+                 : cat === 'form' ? 'Formulär (signerat)'
+                 : cat === 'aisia_report' ? 'Aisia-rapport'
+                 : (a.originalFileName || 'Bilaga');
+
+            // Owner-skärpning: aldrig Drive-URL ut i UI. Om binär saknas → null-link.
+            const downloadLink = isRenderable ? `/api/v1/cco/assets/${a.id}/download` : null;
+
+            const item = {
+              source: 'patient_asset',
+              category: cat,
+              subcategory: a.sourceSystem || null,
+              ts: a.documentDate || a.importedAt || a.createdAt,
+              title: baseTitle,
+              icon: ICON[cat] || '📎',
+              encounterId: a.encounterId || null,
+              entityId: a.id,
+              mimeType: a.mimeType,
+              fileSize: a.fileSize || null,
+              link: downloadLink,
+              thumbnailLink: isRenderable && cat.startsWith('photo_') ? `/api/v1/cco/assets/${a.id}/thumbnail` : null,
+              hasPdf: a.mimeType === 'application/pdf',
+              ccoSourceOnly: true,
+              assetStatus: a.status,
+              assetStatusLabel: STATUS_LABEL[a.status] || a.status,
+              assetStatusTone: STATUS_TONE[a.status] || 'info',
+              isRenderable,
+              needsAttention: isAttention,
+            };
+
+            if (isRenderable) items.push(item);
+            if (isAttention) needsAttention.push(item);
+          }
+        } catch (err) { /* tyst */ }
+      }
+
+      // Sortera DESC på ts
+      items.sort((a, b) => {
+        const ta = (a.ts || '').toString();
+        const tb = (b.ts || '').toString();
+        return tb.localeCompare(ta);
+      });
+
+      // Counters
+      const counters = {
+        total: items.length,
+        byCategory: {},
+        bySource: { cco_journal: 0, patient_asset: 0 },
+        signed: 0,
+        corrections: 0,
+        hasPdf: 0,
+        needsAttention: needsAttention.length,
+        needsAttentionByStatus: {},
+      };
+      for (const i of items) {
+        counters.byCategory[i.category] = (counters.byCategory[i.category] || 0) + 1;
+        counters.bySource[i.source] = (counters.bySource[i.source] || 0) + 1;
+        if (i.isSigned) counters.signed += 1;
+        if (i.isCorrection) counters.corrections += 1;
+        if (i.hasPdf) counters.hasPdf += 1;
+      }
+      for (const a of needsAttention) {
+        counters.needsAttentionByStatus[a.assetStatus] = (counters.needsAttentionByStatus[a.assetStatus] || 0) + 1;
+      }
+
+      // Group by encounter (for photo-stacks)
+      const photoGroups = {};
+      for (const i of items) {
+        if (i.encounterId && i.category.startsWith('photo_')) {
+          if (!photoGroups[i.encounterId]) photoGroups[i.encounterId] = [];
+          photoGroups[i.encounterId].push(i.entityId);
+        }
+      }
+
+      // Sektioner för UI (Journaler / Bilder / Dokument / Samtycken+Avtal)
+      const sections = {
+        journals: items.filter(i => i.category === 'journal' || (i.source === 'cco_journal' && i.category === 'journal')),
+        photos: items.filter(i => i.category.startsWith('photo_')),
+        forms: items.filter(i => i.category === 'form' || i.category === 'aisia_report'),
+        consentsAndAgreements: items.filter(i => i.category === 'consent' || i.category === 'agreement'),
+        other: items.filter(i => i.category === 'other'),
+      };
+      const sectionCounts = Object.fromEntries(
+        Object.entries(sections).map(([k, v]) => [k, v.length])
+      );
+
+      res.json({
+        customerId,
+        tenantId,
+        evaluatedAt: new Date().toISOString(),
+        counters,
+        sectionCounts,
+        photoGroups,
+        items: items.slice(0, Number(req.query.limit) || 500),
+        sections,
+        needsAttention,
+        ownerMandate: 'no_drive_links_in_ui',
+      });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  console.log('[cco-customer-deep] monterad: GET /api/v1/cco-customers/:id/{timeline|agreements|journal-feed} (customers.read · journal.read_any)');
 } catch (err) {
   console.warn('[cco-customer-deep] kunde inte montera:', err.message);
 }
