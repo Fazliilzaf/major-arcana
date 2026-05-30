@@ -43,6 +43,34 @@ body[data-cco-view="calendar"] .intel-shell .agg-stat:nth-child(n+4) {
   display: none; /* kompakta till topp-stats only */
 }
 
+/* ─── Dölj statiska mockups (kunder.html hade hardcoded mock-data) ───
+ * Vår cco-cal-day-mount + cco-cal-week-mount renderar riktig data direkt
+ * under toolbar. Statiska story-cards + mock-vecka tar bort plats.
+ * --------------------------------------------------------------------- */
+body[data-cco-view="calendar"] .morgon-story,
+body[data-cco-view="calendar"] .calendar-week,
+body[data-cco-view="calendar"] .calendar-busy {
+  display: none !important;
+}
+
+/* Vår day-grid ska sitta direkt under status-bar utan extra top-padding */
+body[data-cco-view="calendar"] #cco-cal-day-mount,
+body[data-cco-view="calendar"] #cco-cal-week-mount {
+  margin-top: 8px;
+}
+
+/* Resurs-headers ska vara synliga direkt vid scroll-start */
+body[data-cco-view="calendar"] .cco-cal-resources-row {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+body[data-cco-view="calendar"] .cco-cal-week-day-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
 /* Day-grid mount */
 .cco-cal-day-mount {
   margin-top: 12px;
