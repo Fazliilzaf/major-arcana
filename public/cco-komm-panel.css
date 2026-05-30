@@ -1,0 +1,267 @@
+/* ─── CCO Communication-panel — Sprint 1 (Komm/Journey) ─────────────────
+ * Återanvänder --cco-* tokens, prefix .cco-komm-*.
+ * ─────────────────────────────────────────────────────────────────── */
+
+.cco-komm-host {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 6px 0;
+}
+
+/* Snabbactions */
+.cco-komm-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.cco-komm-action {
+  appearance: none; cursor: pointer;
+  padding: 9px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.82);
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+  box-shadow: 0 2px 6px rgba(56,40,28,.06), inset 0 1px 0 rgba(255,255,255,.88);
+  font: inherit; font-size: 10.5px; font-weight: 600;
+  color: var(--cco-color-brand);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: transform .1s ease;
+  text-align: center; line-height: 1.2;
+}
+.cco-komm-action:hover { transform: translateY(-1px); }
+.cco-komm-action-icon { font-size: 14px; line-height: 1; }
+.cco-komm-action[data-action="internal"] {
+  background: linear-gradient(180deg, var(--rose-pill-top, rgba(252, 233, 240, 0.98)), var(--rose-pill-bottom, rgba(241, 207, 220, 0.95)));
+  color: var(--accent-studio, #bb4779);
+  border-color: rgba(187, 71, 121, .25);
+}
+
+@media (max-width: 720px) {
+  .cco-komm-actions { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Feed */
+.cco-komm-feed {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.cco-komm-feed-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+  padding: 6px 0;
+}
+.cco-komm-feed-counters {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.cco-komm-counter {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.55);
+  border: 1px solid rgba(255,255,255,.7);
+  font-size: 10.5px;
+  color: var(--cco-text-secondary, rgba(70, 60, 50, 0.62));
+}
+.cco-komm-counter strong {
+  font-size: 11.5px; font-weight: 700;
+  color: var(--cco-color-brand, #2b251f);
+  font-variant-numeric: tabular-nums;
+}
+.cco-komm-feed-lastcontact {
+  font-size: 10.5px; color: var(--cco-text-tertiary, #8a8174);
+  font-style: italic;
+}
+
+/* Empty-state */
+.cco-komm-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--cco-text-tertiary, #8a8174);
+  font-style: italic;
+  background: rgba(255,255,255,.30);
+  border: 1px dashed rgba(255,255,255,.7);
+  border-radius: 10px;
+}
+
+/* List */
+.cco-komm-list {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.cco-komm-event {
+  display: grid; grid-template-columns: 28px 1fr;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.55);
+  border: 1px solid rgba(255,255,255,.7);
+  border-left: 3px solid var(--cco-text-tertiary, #8a8174);
+  font-size: 11.5px;
+}
+.cco-komm-event--success { border-left-color: var(--cco-status-success, #4a8268); }
+.cco-komm-event--warning { border-left-color: var(--cco-status-warning, #c8821e); }
+.cco-komm-event--info    { border-left-color: var(--cco-status-info, #4a7ba8); }
+.cco-komm-event-icon { font-size: 14px; line-height: 1.4; text-align: center; }
+.cco-komm-event-body { min-width: 0; }
+.cco-komm-event-title {
+  font-weight: 700; font-size: 11.5px;
+  color: var(--cco-color-brand, #2b251f);
+  letter-spacing: -.01em;
+  margin-bottom: 2px;
+}
+.cco-komm-event-meta {
+  font-size: 10px; color: var(--cco-text-tertiary, #8a8174);
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.cco-komm-event-time { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.cco-komm-event-note-body {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,.55);
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,.6);
+  font-size: 11.5px;
+  color: var(--cco-color-brand, #2b251f);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.cco-komm-pill {
+  display: inline-flex; align-items: center;
+  padding: 1px 6px; border-radius: 999px;
+  font-size: 8.5px; font-weight: 800;
+  letter-spacing: .04em; text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,.7);
+}
+.cco-komm-pill--warning {
+  background: rgba(200,130,30,.14);
+  color: var(--cco-status-warning, #c8821e);
+}
+
+/* Modal (intern notis) */
+.cco-komm-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(43, 37, 31, 0.42);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; padding: 20px;
+}
+.cco-komm-modal {
+  background: linear-gradient(180deg, var(--panel-shell-top, rgba(250, 246, 242, 0.94)), var(--panel-shell-bottom, rgba(244, 238, 233, 0.86)));
+  border-radius: 22px;
+  width: 100%; max-width: 480px; max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 32px 70px rgba(93,74,60,.18);
+  border: 1px solid rgba(255,255,255,.6);
+  backdrop-filter: blur(14px);
+  display: flex; flex-direction: column;
+}
+.cco-komm-modal-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(215, 202, 194, 0.40);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cco-komm-modal-head h3 {
+  margin: 0; font-size: 14px; font-weight: 800;
+  color: var(--cco-color-brand);
+}
+.cco-komm-modal-close {
+  appearance: none; background: transparent; border: 0;
+  font-size: 18px; cursor: pointer; padding: 0 6px;
+  color: var(--cco-text-tertiary);
+}
+.cco-komm-modal-body { padding: 14px 18px; }
+.cco-komm-modal-lead {
+  font-size: 11.5px;
+  color: var(--cco-text-secondary);
+  margin-bottom: 12px;
+}
+.cco-komm-modal-label {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--cco-text-tertiary);
+  margin-bottom: 6px;
+}
+.cco-komm-modal-input {
+  width: 100%; font: inherit; font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.82);
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.88);
+  color: var(--cco-color-brand);
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 80px;
+}
+.cco-komm-modal-input:focus {
+  outline: none;
+  border-color: rgba(187, 71, 121, .45);
+  box-shadow: 0 0 0 3px rgba(187, 71, 121, .12), inset 0 1px 0 rgba(255,255,255,.88);
+}
+.cco-komm-modal-error {
+  margin-top: 10px; padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(185,74,74,.10);
+  border: 1px solid rgba(185,74,74,.30);
+  color: var(--cco-status-danger);
+  font-size: 11px;
+}
+.cco-komm-modal-foot {
+  padding: 12px 18px;
+  border-top: 1px solid rgba(215, 202, 194, 0.40);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+.cco-komm-modal-cancel,
+.cco-komm-modal-submit {
+  appearance: none; cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 11px;
+  font: inherit; font-size: 11.5px; font-weight: 700;
+  border: 1px solid rgba(255,255,255,.82);
+  box-shadow: 0 2px 6px rgba(56,40,28,.06), inset 0 1px 0 rgba(255,255,255,.88);
+}
+.cco-komm-modal-cancel {
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+  color: var(--cco-color-brand);
+}
+.cco-komm-modal-submit {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  border-color: rgba(187, 71, 121, .25);
+}
+.cco-komm-modal-submit:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Mobile bottom-sheet */
+@media (max-width: 720px) {
+  .cco-komm-modal-backdrop { padding: 0; align-items: flex-end; }
+  .cco-komm-modal {
+    max-width: 100%; max-height: 92vh;
+    border-radius: 22px 22px 0 0;
+    animation: ccoKommSlide .25s cubic-bezier(.34,1.32,.64,1);
+  }
+  .cco-komm-modal::before {
+    content: ""; display: block;
+    width: 38px; height: 4px;
+    background: rgba(74, 73, 70, 0.20);
+    border-radius: 999px;
+    margin: 8px auto -4px;
+  }
+}
+@keyframes ccoKommSlide { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Toast */
+.cco-komm-toast {
+  position: fixed; bottom: 24px; right: 24px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 12px; font-weight: 600;
+  z-index: 10000;
+  box-shadow: 0 18px 38px rgba(93,74,60,.18);
+}
+.cco-komm-toast--ok {
+  background: linear-gradient(180deg, rgba(216,234,221,1), rgba(184,216,197,1));
+  color: var(--cco-status-success);
+  border: 1px solid rgba(74,130,104,.32);
+}
+.cco-komm-toast--error {
+  background: linear-gradient(180deg, rgba(245,214,211,1), rgba(232,181,176,1));
+  color: var(--cco-status-danger);
+  border: 1px solid rgba(185,74,74,.32);
+}

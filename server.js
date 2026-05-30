@@ -1537,6 +1537,39 @@ try {
         } catch (err) { /* tyst */ }
       }
 
+      // 3. Scalp analysis timeline (Aisia DS-3 MVP)
+      const scalpStore = app.locals.ccoScalpAnalysisStore;
+      if (scalpStore?.listTimelineForPatient) {
+        try {
+          const scalpEvents = scalpStore.listTimelineForPatient(customerId) || [];
+          const scalpTitleMap = {
+            scalp_analysis_imported: 'Hår-/scalpanalys importerad',
+            scalp_image_added: 'Scalp-bild tillagd',
+            scalp_metrics_added: 'Scalp-mätvärden tillagda',
+            scalp_analysis_verified: 'Scalp-analys verifierad',
+            scalp_comparison_created: 'Scalp-jämförelse skapad',
+          };
+          for (const se of scalpEvents) {
+            events.push({
+              type: se.type,
+              subtype: 'scalp_analysis',
+              ts: se.ts,
+              title: scalpTitleMap[se.type] || se.type,
+              icon: '🔬',
+              tone: se.type === 'scalp_analysis_verified' ? 'ok' : 'info',
+              entityId: se.sessionId || se.comparisonId || null,
+              detail: {
+                sessionId: se.sessionId || null,
+                comparisonId: se.comparisonId || null,
+                zone: se.zone || null,
+                count: se.count || null,
+                ccoSourceOnly: true,
+              },
+            });
+          }
+        } catch (err) { /* tyst */ }
+      }
+
       // Sortera kronologiskt DESC (nyast först)
       events.sort((a, b) => {
         const ta = (a.ts || '').toString();
@@ -3399,7 +3432,49 @@ try {
     }
   });
 
+  // ── Hair TP Scalp Analysis (Aisia DS-3 MVP — manual import) ──
+  const { createCcoScalpAnalysisRouter } = require('./src/routes/ccoScalpAnalysis');
+  const { createCcoScalpAnalysisStore } = require('./src/ops/ccoScalpAnalysisStore');
+  let scalpAnalysisStore = null;
+
+  async function ensureScalpAnalysisStore() {
+    if (!scalpAnalysisStore) {
+      scalpAnalysisStore = await createCcoScalpAnalysisStore({
+        filePath: path.join(__dirname, 'data', 'cco-scalp-analysis.json'),
+        auditLog: ccoAuditLog,
+      });
+      app.locals.ccoScalpAnalysisStore = scalpAnalysisStore;
+    }
+    return scalpAnalysisStore;
+  }
+
+  app.use('/api/v1', async (req, res, next) => {
+    if (!String(req.path || '').startsWith('/cco/scalp-analysis')) return next();
+    try {
+      await ensureScalpAnalysisStore();
+      await ensureAssetStores();
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.use(
+    '/api/v1',
+    createCcoScalpAnalysisRouter({
+      resolveStores: () => ({
+        scalpStore: scalpAnalysisStore,
+        assetStore,
+        secureStorage,
+      }),
+      authStore: app.locals.authStore || null,
+      config,
+      attachRole,
+    })
+  );
+
   console.log('[cco-asset-qa] monterad: GET /api/v1/cco/asset-qa/snapshot + invalidate · /patients/:id/assets · /assets/:id/{download,thumbnail}');
+  console.log('[cco-scalp-analysis] monterad: /api/v1/cco/scalp-analysis/* (manual Aisia import MVP)');
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
 }
@@ -5300,6 +5375,234 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
     });
 
     console.log('[calendar-sprint3] monterad: GET /calendar/booking/:id/intelligence (customers.read)');
+
+    // ════════ KOMM/JOURNEY SPRINT 1: Communication feed per kund ═══════════════
+    // Aggregator för patientkort "Kommunikation"-sektion + tidslinje-events.
+    // Källor: ccoSendActionStore + ccoConversationNotesStore + ccoNotificationFeedStore
+    // (om finns). Counts only, no PII utöver det som existing stores redan returnerar.
+    app.get('/api/v1/cco-customers/:id/communication-feed',
+      attachRole, requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const customerId = req.params.id;
+          const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const limit = Number(req.query.limit) || 100;
+          const events = [];
+
+          // 1. Send-actions (form/consent/file/encounter via Sprint C)
+          const sendStore = app.locals.ccoSendActionStore;
+          if (sendStore?.listSends) {
+            try {
+              const sends = sendStore.listSends({ customerId, limit }) || [];
+              for (const s of sends) {
+                const kindLabel = {
+                  form: 'Formulär skickat',
+                  consent: 'Samtycke skickat',
+                  file: 'Fil skickad',
+                  encounter: 'Bokning skickad',
+                }[s.kind] || (s.kind + ' skickad');
+                const iconMap = { form: '📋', consent: '✍', file: '📎', encounter: '📅' };
+                events.push({
+                  kind: 'send',
+                  subkind: s.kind,
+                  ts: s.ts,
+                  title: kindLabel,
+                  icon: iconMap[s.kind] || '📧',
+                  status: s.mode === 'live' ? 'sent' : (s.mode === 'dry_run' ? 'dry_run' : (s.mode || 'unknown')),
+                  actor: s.actor?.role || s.actor?.userId || null,
+                  entityId: s.sendId,
+                  detail: {
+                    formKind: s.formKind || s.kind,
+                    recipientMasked: s.recipientMasked || null,
+                    subject: s.subject || null,
+                    dryRun: !!s.dryRun,
+                    templateId: s.templateId || null,
+                    templateVersion: s.templateVersion || null,
+                    ccoSourceOnly: true,
+                  },
+                });
+              }
+            } catch (_) {}
+          }
+
+          // 2. Interna anteckningar (ccoConversationNotesStore)
+          // Använder conversationKey = 'customer:' + customerId så vi kan
+          // återanvända existing store-schema utan migration.
+          const notesStore = app.locals.ccoConversationNotesStore;
+          if (notesStore?.listNotes) {
+            try {
+              const cKey = 'customer:' + customerId;
+              const notes = notesStore.listNotes({ conversationKey: cKey }) || [];
+              for (const n of notes) {
+                events.push({
+                  kind: 'internal_note',
+                  ts: n.createdAt,
+                  title: 'Intern notis',
+                  icon: '🗒',
+                  actor: n.authorName || n.authorEmail || null,
+                  entityId: n.noteId,
+                  detail: {
+                    body: n.body || '',
+                    visibility: 'staff_internal',
+                    ccoSourceOnly: true,
+                  },
+                });
+              }
+            } catch (_) {}
+          }
+
+          // 3. Offerter + Avtal-sends (commercial mail)
+          const offerStore = app.locals.ccoOfferQuickStore;
+          if (offerStore?.listForCustomer) {
+            try {
+              const offers = offerStore.listForCustomer(customerId) || [];
+              for (const o of offers) {
+                if (o.sentAt) {
+                  events.push({
+                    kind: 'send',
+                    subkind: 'offer',
+                    ts: o.sentAt,
+                    title: 'Offert skickad',
+                    icon: '📧',
+                    status: 'sent',
+                    actor: o.authorName || null,
+                    entityId: o.id,
+                    detail: { offerId: o.id, sentCount: o.sentCount || 1, ccoSourceOnly: true },
+                  });
+                }
+                if (o.acceptedAt) {
+                  events.push({
+                    kind: 'event',
+                    subkind: 'offer_accepted',
+                    ts: o.acceptedAt,
+                    title: 'Offert accepterad av patient',
+                    icon: '✓',
+                    entityId: o.id,
+                    detail: { acceptedVia: o.acceptedVia, ccoSourceOnly: true },
+                  });
+                }
+              }
+            } catch (_) {}
+          }
+
+          const agreementStore = app.locals.ccoAgreementQuickStore;
+          if (agreementStore?.listForCustomer) {
+            try {
+              const ags = agreementStore.listForCustomer(customerId) || [];
+              for (const a of ags) {
+                if (a.signedAt) {
+                  events.push({
+                    kind: 'event',
+                    subkind: 'agreement_signed',
+                    ts: a.signedAt,
+                    title: 'Avtal signerat',
+                    icon: '🔏',
+                    entityId: a.id,
+                    detail: {
+                      signedByName: a.signedByName,
+                      signMethod: a.signMethod,
+                      ccoSourceOnly: true,
+                    },
+                  });
+                }
+              }
+            } catch (_) {}
+          }
+
+          // Sortera DESC
+          events.sort((a, b) => {
+            const ta = (a.ts || '').toString();
+            const tb = (b.ts || '').toString();
+            return tb.localeCompare(ta);
+          });
+
+          // Counters
+          const counters = {
+            total: events.length,
+            sends: events.filter(e => e.kind === 'send').length,
+            internal_notes: events.filter(e => e.kind === 'internal_note').length,
+            byChannel: {},
+          };
+          // Last contact ts
+          const lastContact = events[0]?.ts || null;
+
+          res.json({
+            ok: true,
+            customerId,
+            tenantId,
+            evaluatedAt: new Date().toISOString(),
+            counters,
+            lastContactTs: lastContact,
+            events: events.slice(0, limit),
+            ccoSourceOnly: true,
+          });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    // POST /api/v1/cco-customers/:id/internal-note — staff-only intern notis
+    const internalNoteParser = require('express').json({ limit: '4kb' });
+    app.post('/api/v1/cco-customers/:id/internal-note',
+      attachRole, requirePermission('customers.write'),
+      internalNoteParser,
+      async (req, res) => {
+        try {
+          const customerId = req.params.id;
+          const tenantId = req.body?.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const body = String(req.body?.body || '').trim();
+          if (body.length < 3) return res.status(400).json({ ok: false, error: 'body måste vara minst 3 tecken' });
+          if (body.length > 2000) return res.status(400).json({ ok: false, error: 'body max 2000 tecken' });
+
+          const actor = {
+            userId: req.headers['x-cco-user'] || 'staff',
+            role: req.cco?.role,
+            displayName: req.headers['x-cco-user'] || req.cco?.role || 'staff',
+          };
+
+          // Skriv till ccoConversationNotesStore med conversationKey = 'customer:' + customerId
+          const notesStore = app.locals.ccoConversationNotesStore;
+          let noteId = null;
+          if (notesStore?.addNote) {
+            try {
+              const note = await notesStore.addNote({
+                conversationKey: 'customer:' + customerId,
+                body,
+                authorEmail: actor.userId,
+                authorName: actor.displayName,
+              });
+              noteId = note?.noteId || note?.id || null;
+            } catch (e) {
+              return res.status(500).json({ ok: false, error: 'notes_store_failed: ' + e.message });
+            }
+          } else {
+            return res.status(503).json({ ok: false, error: 'notes_store_unavailable' });
+          }
+
+          if (ccoAuditLog) {
+            ccoAuditLog.append({
+              action: 'customer.internal_note.created',
+              actor,
+              target: { kind: 'customer', id: customerId, tenantId },
+              result: 'ok',
+              detail: {
+                noteId,
+                bodyLength: body.length,
+                visibility: 'staff_internal',
+                ccoSourceOnly: true,
+              },
+            });
+          }
+
+          res.json({ ok: true, noteId, customerId, ts: new Date().toISOString() });
+        } catch (err) {
+          res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log('[komm-sprint1] monterad: GET /cco-customers/:id/communication-feed · POST /internal-note (customers.read/write)');
   } catch (err) {
     console.warn('[calendar-sprint1] kunde inte montera:', err.message);
   }
@@ -5517,6 +5820,7 @@ process.once('SIGTERM', () => {
     auditMaxEntries: config.authAuditMaxEntries,
     auditAppendOnly: config.authAuditAppendOnly,
   });
+  app.locals.authStore = authStore;
 
   setStartupPhase('auth_bootstrap');
   let previewAuthContext = null;
@@ -5769,6 +6073,7 @@ process.once('SIGTERM', () => {
   const ccoConversationNotesStore = await createCcoConversationNotesStore({
     filePath: config.ccoConversationNotesStorePath,
   });
+  app.locals.ccoConversationNotesStore = ccoConversationNotesStore;  // Sprint 1 komm/journey
   const ccoMailTemplateStore = await createCcoMailTemplateStore({
     filePath: config.ccoMailTemplateStorePath,
   });

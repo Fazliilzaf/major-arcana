@@ -2894,9 +2894,11 @@
 <link rel="stylesheet" href="/cco-polish.css">
 <link rel="stylesheet" href="/cco-journal-feed.css">
 <link rel="stylesheet" href="/cco-kalender-shell.css">
+<link rel="stylesheet" href="/cco-komm-panel.css">
 <script src="/cco-polish.js" defer></script>
 <script src="/cco-journal-feed.js" defer></script>
 <script src="/cco-kalender-shell.js" defer></script>
+<script src="/cco-komm-panel.js" defer></script>
 </head>
 <body data-stage="live">
 
@@ -5116,6 +5118,11 @@ function openCustomerDossier(name) {
         <summary>Filer &amp; journaler <span class="count" data-cco-assets-count>…</span></summary>
         <div class="cco-assets-loading" data-cco-assets-loading>Hämtar importerade filer från CCO secure storage…</div>
         <div data-cco-assets-body hidden></div>
+      </details>
+
+      <details class="dossier-section" open data-cco-komm-host data-customer-id="${d.customerId || ''}">
+        <summary>Kommunikation <span class="count" data-cco-komm-count>…</span></summary>
+        <div class="cco-komm-loading">Laddar kommunikation från CCO…</div>
       </details>
 
       <details class="dossier-section">
