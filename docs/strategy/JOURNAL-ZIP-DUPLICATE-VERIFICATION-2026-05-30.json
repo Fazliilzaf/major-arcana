@@ -1,0 +1,658 @@
+{
+  "$schema": "cco-journal-zip-duplicate-verification-v1",
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-05-30T11:30:55.816Z",
+  "generatedBy": "scripts/verify-journal-zip-duplicates.js",
+  "mode": "read_only",
+  "ownerMandate": "Inget flyttas. Inget raderas. Inget packas upp. Endast metadata + checksum.",
+  "scanRoots": {
+    "primary": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic",
+    "archive": "<ICLOUD_ROOT>/MA-Archive/journal-zips"
+  },
+  "summary": {
+    "primaryZipCount": 21,
+    "archiveEntryCount": 78,
+    "archiveSymlinkCount": 78,
+    "archiveValidCount": 21,
+    "archiveBrokenCount": 57,
+    "identicalDuplicateCount": 21,
+    "sameNameDifferentChecksumCount": 0,
+    "onlyInPrimaryCount": 0,
+    "onlyInArchiveCount": 0,
+    "brokenArchiveSymlinkCount": 57,
+    "missingChecksumCount": 0,
+    "physicalDataBytes": 30237026328,
+    "physicalDataHuman": "28.2GB",
+    "archiveSymlinkBytes": 12714,
+    "totalDiskBytes": 30237039042,
+    "totalDiskHuman": "28.2GB",
+    "note": "Archive är symlinks (163 bytes per entry) — INGEN dubbel diskanvändning. Tidigare 41 GB-uppskattning var artefakt av att följa symlinks."
+  },
+  "categories": {
+    "identical_duplicates": [
+      {
+        "archiveName": "April 2026-20260522T051241Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/April 2026-20260522T051241Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/April 2026-20260522T051241Z-3-001.zip",
+        "primarySha256": "sha256:4ab7089417022bed4702a7fb5f9186c1c6fe543e31f6616f7262ee1d1722c931",
+        "primarySize": 2147793328,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "April 2026-20260522T051434Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/April 2026-20260522T051434Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/April 2026-20260522T051434Z-3-001.zip",
+        "primarySha256": "sha256:4b130e20bdd368aa10eba959dce159e43277c61f9303549be3360fa42835e868",
+        "primarySize": 2147770189,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "April 2026-20260522T051434Z-3-002.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/April 2026-20260522T051434Z-3-002.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/April 2026-20260522T051434Z-3-002.zip",
+        "primarySha256": "sha256:edadd29996a4ab2d6df0c3cb3a6b66ca098ae58ad0605ae04f9518b2f86df121",
+        "primarySize": 126485890,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Februari 2026-20260522T050756Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Februari 2026-20260522T050756Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Februari 2026-20260522T050756Z-3-001.zip",
+        "primarySha256": "sha256:1c41f759c5dc46681bbe553118f3f50b43c8c8c2c7237c54a862b44d634bd782",
+        "primarySize": 2147767323,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Februari 2026-20260522T050756Z-3-002.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Februari 2026-20260522T050756Z-3-002.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Februari 2026-20260522T050756Z-3-002.zip",
+        "primarySha256": "sha256:2a773bd5126cbee08c5febe3c800e938f9b1d655dd7addb10e6446798e3a8fc9",
+        "primarySize": 223230265,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2026-20260521T215412Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2026-20260521T215412Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2026-20260521T215412Z-3-001.zip",
+        "primarySha256": "sha256:5d1356f48753cda1a01acbfeb0fa169028d45a692b2ea6afef9faf5957ec3fe0",
+        "primarySize": 2147872366,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2026-20260521T215412Z-3-002.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2026-20260521T215412Z-3-002.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2026-20260521T215412Z-3-002.zip",
+        "primarySha256": "sha256:2457f77679105b41c5ca9cde478d08744dd09abd0b625423c00d6a403d8139d1",
+        "primarySize": 2147834672,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2026-20260521T215412Z-3-003.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2026-20260521T215412Z-3-003.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2026-20260521T215412Z-3-003.zip",
+        "primarySha256": "sha256:86de54fadc1a17a64d9ed7e2a4bb511daf5315b922b7554504ca3ca5b57ab0ad",
+        "primarySize": 2147893276,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2026-20260521T215412Z-3-004.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2026-20260521T215412Z-3-004.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2026-20260521T215412Z-3-004.zip",
+        "primarySha256": "sha256:ba1bad97663c03c806a2f9ed9b5e7c52f9ea597f96f5c26b6912ecfc78c38ad7",
+        "primarySize": 2147732483,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2026-20260521T215412Z-3-005.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2026-20260521T215412Z-3-005.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2026-20260521T215412Z-3-005.zip",
+        "primarySha256": "sha256:2dcff92f1bee1705e1a5da6bbc8d47b7f2683d71006d74d96cb1f247eec998fb",
+        "primarySize": 2147820755,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2026-20260521T215412Z-3-006.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2026-20260521T215412Z-3-006.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2026-20260521T215412Z-3-006.zip",
+        "primarySha256": "sha256:916bf8bc42c134bbee18940ec610eed9adab6f24d3fe8e1bf44703f5c50bc048",
+        "primarySize": 2147815639,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2026-20260521T215412Z-3-007.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2026-20260521T215412Z-3-007.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2026-20260521T215412Z-3-007.zip",
+        "primarySha256": "sha256:6d9c6b2875f70a5e2e6605025b0ec2dff3778a18050e213be456a13ea9203d8f",
+        "primarySize": 1084210970,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Januari 2026-20260522T050150Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Januari 2026-20260522T050150Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Januari 2026-20260522T050150Z-3-001.zip",
+        "primarySha256": "sha256:66e0bca1f79c05e7b248d2db9ae92fb73efb253e6ac91bfd114780426b995b6a",
+        "primarySize": 2147809424,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Januari 2026-20260522T050150Z-3-002.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Januari 2026-20260522T050150Z-3-002.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Januari 2026-20260522T050150Z-3-002.zip",
+        "primarySha256": "sha256:4da1771c0f980cbd89e25cde43a307b25cae50511321e38c8cd13c6d27baa97a",
+        "primarySize": 2147754365,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Januari 2026-20260522T050150Z-3-003.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Januari 2026-20260522T050150Z-3-003.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Januari 2026-20260522T050150Z-3-003.zip",
+        "primarySha256": "sha256:005507d9f5926c93e845536f45eeeda925e41ba9ca1f3db8aa6bde6fec0a000a",
+        "primarySize": 952645147,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Juni 2026-20260522T051253Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Juni 2026-20260522T051253Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Juni 2026-20260522T051253Z-3-001.zip",
+        "primarySha256": "sha256:80c09e526b71ce95d59545569e57294d7dc574e8aaa04984b3f43acd32d8a8fb",
+        "primarySize": 216030,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Maj 2026-20260522T051248Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Maj 2026-20260522T051248Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Maj 2026-20260522T051248Z-3-001.zip",
+        "primarySha256": "sha256:44396d6935911dadcab78989c238269cfda40bc9e9ce0c54d1281df266c5756e",
+        "primarySize": 1434443532,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Mars 2026-20260522T051106Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Mars 2026-20260522T051106Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Mars 2026-20260522T051106Z-3-001.zip",
+        "primarySha256": "sha256:fa84d5862975295c51493d414d8121b6a185f2007dc6ae17a4e43c87b6ad151c",
+        "primarySize": 2147831187,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Mars 2026-20260522T051106Z-3-002.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Mars 2026-20260522T051106Z-3-002.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Mars 2026-20260522T051106Z-3-002.zip",
+        "primarySha256": "sha256:cefa71d0525fc65e019b20e5bcb2245dc47bff693363abc5f8de747e13ad9fa9",
+        "primarySize": 494564175,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Offertmallar-20260521T215140Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Offertmallar-20260521T215140Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Offertmallar-20260521T215140Z-3-001.zip",
+        "primarySha256": "sha256:73b8e0b90ee2d7d630fdc0e4cc93c5d625aa83632b28e5c042f87a73f0b293b1",
+        "primarySize": 147528407,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      },
+      {
+        "archiveName": "Pipedrive (Hair TP Clinic)-20260521T215137Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Pipedrive (Hair TP Clinic)-20260521T215137Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Pipedrive (Hair TP Clinic)-20260521T215137Z-3-001.zip",
+        "primarySha256": "sha256:5dd4efc47a24816e21b16cc95d341219e767a319d90fdbc39526b262b6dd4fb4",
+        "primarySize": 6905,
+        "classification": "patient_data_zip",
+        "duplicateCandidate": false,
+        "note": "symlink pekar inom Primary — 163-byte symlink, INGEN faktisk diskdublering"
+      }
+    ],
+    "same_name_different_checksum": [],
+    "only_in_primary": [],
+    "only_in_archive": [],
+    "broken_archive_symlinks": [
+      {
+        "archiveName": "Hair TP Clinic 2020-20260521T215455Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2020-20260521T215455Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2020-20260521T215455Z-3-001.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2021-20260521T215454Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2021-20260521T215454Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2021-20260521T215454Z-3-001.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2021-20260521T215454Z-3-002.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2021-20260521T215454Z-3-002.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2021-20260521T215454Z-3-002.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-001.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-010.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-010.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-010.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-011.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-011.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-011.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-019.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-019.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-019.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-022.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-022.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-022.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-023.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-023.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-023.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-025.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-025.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-025.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-027.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-027.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-027.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-028.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-028.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-028.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2023-20260521T215452Z-3-029.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2023-20260521T215452Z-3-029.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2023-20260521T215452Z-3-029.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-003.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-003.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-003.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-005.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-005.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-005.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-016.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-016.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-016.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-026.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-026.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-026.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-028.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-028.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-028.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-035.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-035.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-035.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-038.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-038.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-038.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-043.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-043.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-043.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-044.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-044.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-044.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-045.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-045.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-045.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-046.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-046.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-046.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2024-20260521T215450Z-3-048.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2024-20260521T215450Z-3-048.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2024-20260521T215450Z-3-048.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-001.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-004.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-004.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-004.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-006.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-006.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-006.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-010.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-010.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-010.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-011.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-011.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-011.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-013.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-013.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-013.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-015.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-015.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-015.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-017.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-017.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-017.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-019.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-019.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-019.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-020.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-020.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-020.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-021.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-021.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-021.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-023.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-023.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-023.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-024.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-024.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-024.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "Hair TP Clinic 2025 -20260521T215414Z-3-025.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/Hair TP Clinic 2025 -20260521T215414Z-3-025.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/Hair TP Clinic 2025 -20260521T215414Z-3-025.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ 2025-20260521T221857Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ 2025-20260521T221857Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ 2025-20260521T221857Z-3-001.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ 2025-20260521T221857Z-3-002.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ 2025-20260521T221857Z-3-002.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ 2025-20260521T221857Z-3-002.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ 2025-20260521T221857Z-3-003.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ 2025-20260521T221857Z-3-003.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ 2025-20260521T221857Z-3-003.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ 2025-20260521T221857Z-3-004.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ 2025-20260521T221857Z-3-004.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ 2025-20260521T221857Z-3-004.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ 2025-20260521T221857Z-3-005.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ 2025-20260521T221857Z-3-005.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ 2025-20260521T221857Z-3-005.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ 2025-20260521T221857Z-3-006.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ 2025-20260521T221857Z-3-006.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ 2025-20260521T221857Z-3-006.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ 2026-20260521T221856Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ 2026-20260521T221856Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ 2026-20260521T221856Z-3-001.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ 2026-20260521T221856Z-3-002.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ 2026-20260521T221856Z-3-002.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ 2026-20260521T221856Z-3-002.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-001.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-001.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-001.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-002.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-002.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-002.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-003.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-003.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-003.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-004.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-004.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-004.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-005.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-005.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-005.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-006.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-006.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-006.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-007.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-007.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-007.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-008.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-008.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-008.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-009.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-009.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-009.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      },
+      {
+        "archiveName": "PRP _ Äldre mappar-20260521T221859Z-3-010.zip",
+        "archiveMaskedPath": "<ICLOUD_ROOT>/MA-Archive/journal-zips/PRP _ Äldre mappar-20260521T221859Z-3-010.zip",
+        "targetMaskedPath": "<ICLOUD_ROOT>/Journal system CCO- Booking Hair TP Clinic/PRP _ Äldre mappar-20260521T221859Z-3-010.zip",
+        "classification": "patient_data_zip_reference",
+        "note": "Symlink pekar på fil som inte finns i Primary — historisk export saknas (kan finnas i Google Drive Takeout-källan)"
+      }
+    ],
+    "missing_checksum": []
+  },
+  "recommendations": [
+    "INGENTING raderas i denna körning — owner-mandat.",
+    "identical_duplicates: symlinks, INTE fysiska dubbletter. Behåll båda. Disk-fotavtryck = 0 utöver Primary.",
+    "broken_archive_symlinks: 57 historiska zip-referenser (2020-2025) vars original saknas i Primary. Kan ha raderats efter export. Undersök Google Drive Takeout-källan.",
+    "only_in_primary (2 st): CSV-export + .command-fil — inte zip-data, ej dubblett-relevant.",
+    "Inga same_name_different_checksum-fall — symlinks garanterar bit-exakt match.",
+    "Permanent radering av brutna symlinks kräver explicit owner-bekräftelse i separat körning."
+  ]
+}
