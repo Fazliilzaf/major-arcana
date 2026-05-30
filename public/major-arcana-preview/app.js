@@ -4646,6 +4646,39 @@
   // Behövs eftersom app.js är en sluten IIFE och workspaceSourceOfTruth annars
   // är oåtkomligt för external shims.
   try { window.__ccoWorkspace = workspaceSourceOfTruth; } catch (_e) {}
+  try {
+    window.__ccoCustomerList = {
+      /**
+       * Byter till kundvyn och väljer kundrad — samma kedja som klick på
+       * `[data-customer-row]` (customerList → setSelectedCustomerIdentity).
+       */
+      selectCustomerKey(customerKey) {
+        const normalized = normalizeKey(customerKey);
+        if (!normalized) return;
+        setAppView("customers");
+        const maxAttempts = 50;
+        const intervalMs = 50;
+        let attempt = 0;
+        const tick = () => {
+          attempt += 1;
+          const esc =
+            typeof CSS !== "undefined" && typeof CSS.escape === "function"
+              ? CSS.escape(normalized)
+              : String(normalized).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+          const row = document.querySelector(`[data-customer-row="${esc}"]`);
+          if (row) {
+            row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            row.click();
+            return;
+          }
+          if (attempt < maxAttempts) {
+            window.setTimeout(tick, intervalMs);
+          }
+        };
+        window.requestAnimationFrame(tick);
+      },
+    };
+  } catch (_e) {}
 
   const runtimeReentryState = PREVIEW_REENTRY_STATE.createRuntimeReentryStateApi({
     asArray,
@@ -11750,6 +11783,10 @@
       customerName,
       customerEmail,
       customerKey,
+      customerCluster:
+        row?.customerCluster && typeof row.customerCluster === "object"
+          ? { ...row.customerCluster }
+          : null,
       customerIdentity:
         identityEnvelope.customerIdentity ||
         row?.customerSummary?.customerIdentity ||

@@ -173,6 +173,15 @@
     return null;
   }
 
+  function __lookupCustomerByThreadId(tid) {
+    if (!tid) return null;
+    const norm = String(tid).toLowerCase();
+    if (__threadCustomerMap.has(norm)) return __threadCustomerMap.get(norm);
+    const stripped = norm.replace(/[^a-z0-9]/g, "");
+    if (__threadCustomerMap.has(stripped)) return __threadCustomerMap.get(stripped);
+    return null;
+  }
+
   function __humanizeLocalpart(localpart) {
     if (!localpart) return "";
     return localpart
@@ -222,6 +231,17 @@
         if (m) email = m[0];
       }
       if (email) humanName = __humanizeLocalpart(email.split("@")[0]);
+    }
+
+    // Sista fallback: om thread-ID är ett demo-mönster (demo-XX-NNN),
+    // generera "Kund XX-NNN" istället för att lämna "Okänd avsändare".
+    // Mer informativt än fallback-text och visar tydligt att det är demo.
+    if (!humanName) {
+      const threadId = cardEl.dataset.runtimeThread || cardEl.dataset.historyConversation || "";
+      const demoMatch = threadId.match(/^demo-([a-z]+)-(\d+)$/i);
+      if (demoMatch) {
+        humanName = `Kund ${demoMatch[1].toUpperCase()}-${demoMatch[2]}`;
+      }
     }
 
     if (!humanName) return;
@@ -301,6 +321,7 @@
       scanAndFix: __scanAndFixUnknownSenders,
       refetch: __fetchWorklistAndBuildMap,
       seed: __seedCustomers,
+      lookup: __lookupCustomerByThreadId,
     });
   }
 
@@ -1437,9 +1458,9 @@
       return [];
     }
 
-    // FIX9: hård fallback-tabell för demo-fixtures. Något i pipeline mellan
-    // app.js fixture-init och denna renderer wipar customerName/customerInitials.
-    // Tills vi spårat root cause: lookup direkt på demo-id.
+    // FIX9: hård fallback-tabell för demo-fixtures (22 id, speglar app.js +
+    // demo-fixtures-data.js). Pipeline kan fortfarande rensa customerName;
+    // tills root cause är spårad: lookup direkt på demo-id.
     const DEMO_FIXTURE_FALLBACKS = {
       "demo-mb-001": { customerName: "Morten Bak Kristoffersen", customerInitials: "MB" },
       "demo-jk-002": { customerName: "Johan Karlsson", customerInitials: "JK" },
@@ -1447,20 +1468,111 @@
       "demo-el-004": { customerName: "Erik Lindqvist", customerInitials: "EL" },
       "demo-as-005": { customerName: "Anna Svensson", customerInitials: "AS" },
       "demo-pn-006": { customerName: "Peter Nilsson", customerInitials: "PN" },
+      "demo-eg-101": { customerName: "Lisa Andersson", customerInitials: "LA" },
+      "demo-eg-102": { customerName: "Tomas Berg", customerInitials: "TB" },
+      "demo-ko-101": { customerName: "Maria Lund", customerInitials: "ML" },
+      "demo-ko-102": { customerName: "Anders Pettersson", customerInitials: "AP" },
+      "demo-fa-101": { customerName: "Carolina Holm", customerInitials: "CH" },
+      "demo-fa-102": { customerName: "Mikael Engström", customerInitials: "ME" },
+      "demo-re-101": { customerName: "Sofia Berg", customerInitials: "SB" },
+      "demo-re-102": { customerName: "Daniel Ek", customerInitials: "DE" },
+      "demo-in-101": { customerName: "Helena Nyström", customerInitials: "HN" },
+      "demo-in-102": { customerName: "Erik Lindberg", customerInitials: "EL" },
+      "demo-kn-101": { customerName: "Johanna Wikström", customerInitials: "JW" },
+      "demo-kn-102": { customerName: "Patrik Sandberg", customerInitials: "PS" },
+      "demo-ma-101": { customerName: "Kampanjbyrån AB", customerInitials: "KA" },
+      "demo-ma-102": { customerName: "Therese Falk", customerInitials: "TF" },
     };
+
+    function __pickFirstNonEmptyText(...candidates) {
+      for (const c of candidates) {
+        const t = String(c ?? "").trim();
+        if (t) return t;
+      }
+      return "";
+    }
+
+    function __deriveFixtureInitials(name) {
+      const parts = String(name || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      if (parts.length >= 2) {
+        return `${(parts[0][0] || "").toUpperCase()}${(
+          parts[parts.length - 1][0] || ""
+        ).toUpperCase()}`;
+      }
+      if (parts.length === 1 && parts[0].length >= 2) {
+        return parts[0].slice(0, 2).toUpperCase();
+      }
+      return "?";
+    }
+
     function applyDemoFixtureFallback(thread) {
       if (!thread || typeof thread !== "object") return thread;
-      const fb = DEMO_FIXTURE_FALLBACKS[String(thread.id || "")];
-      if (!fb) return thread;
       const needsName =
         !String(thread.customerName || "").trim() ||
         /^okänd/i.test(String(thread.customerName || "").trim());
       if (!needsName) return thread;
+
+      const tid = String(thread.id || "");
+      let resolvedName = "";
+      let resolvedInitials = "";
+
+      const fbHard = DEMO_FIXTURE_FALLBACKS[tid];
+      if (fbHard) {
+        resolvedName = String(fbHard.customerName || "").trim();
+        resolvedInitials = String(fbHard.customerInitials || "").trim();
+      }
+
+      if (
+        !resolvedName &&
+        typeof window !== "undefined" &&
+        window.__DemoFixtures &&
+        typeof window.__DemoFixtures.data === "object"
+      ) {
+        const df = window.__DemoFixtures.data[tid];
+        if (df && typeof df === "object") {
+          resolvedName = __pickFirstNonEmptyText(df.name, df.customerName, df.displayName);
+          resolvedInitials = __pickFirstNonEmptyText(df.initials, df.customerInitials);
+        }
+      }
+
+      if (!resolvedName) {
+        const seeded = __lookupCustomerByThreadId(tid);
+        if (seeded?.name) resolvedName = String(seeded.name).trim();
+      }
+
+      if (!resolvedName) {
+        const raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
+        resolvedName = __pickFirstNonEmptyText(
+          raw.customerSummary?.customerName,
+          raw.customerName,
+          raw.sender,
+          thread.fromName,
+          raw.from?.name,
+          raw.latestMessage?.from?.name,
+          raw.latestMessage?.sender
+        );
+      }
+
+      if (!resolvedName || /^okänd/i.test(resolvedName)) {
+        return thread;
+      }
+
+      const initials =
+        String(thread.customerInitials || "").trim() ||
+        String(thread.avatarInitials || "").trim() ||
+        resolvedInitials ||
+        __deriveFixtureInitials(resolvedName);
+      const avatarInitials =
+        String(thread.avatarInitials || "").trim() || initials || resolvedInitials;
+
       return {
         ...thread,
-        customerName: fb.customerName,
-        customerInitials: thread.customerInitials || fb.customerInitials,
-        avatarInitials: thread.avatarInitials || fb.customerInitials,
+        customerName: resolvedName,
+        customerInitials: initials,
+        avatarInitials,
       };
     }
 
@@ -1933,6 +2045,24 @@
       };
     }
 
+    function buildCustomerClusterArticleDataAttributes(thread = {}) {
+      const cluster = thread?.customerCluster;
+      if (!cluster || typeof cluster !== "object") return "";
+      if (Number(cluster.groupSize) < 2 || !cluster.groupId || !cluster.role) return "";
+      const groupId = asText(cluster.groupId);
+      const role = asText(cluster.role);
+      const size = asText(String(cluster.groupSize));
+      const customerKey = asText(
+        thread?.customerKey,
+        thread?.raw?.customerKey || thread?.raw?.customerSummary?.customerKey
+      ).toLowerCase();
+      let attrs = ` data-cc-cluster-group="${escapeHtml(groupId)}" data-cc-cluster-role="${escapeHtml(role)}" data-cc-cluster-size="${escapeHtml(size)}"`;
+      if (customerKey) {
+        attrs += ` data-customer-key="${escapeHtml(customerKey)}"`;
+      }
+      return attrs;
+    }
+
     function buildThreadCardMarkup(thread, index, selected) {
       const applyThreadFixtureFallback =
         typeof applyDemoFixtureFallback === "function"
@@ -2121,6 +2251,7 @@
             ),
             skipNormalizeCardContent: true,
             useThreadCardClass: true,
+            articleDataAttributes: buildCustomerClusterArticleDataAttributes(thread),
           }
         );
         // v5: alltid returnera unifiedMarkup direkt (innehåller card-footer + mailbox-stack
@@ -4782,8 +4913,22 @@
     }
 
     function buildQueueInlineLaneHistoryItem(thread) {
-      const primaryLaneId = normalizeKey(thread?.primaryLaneId || "");
-      const counterpartyLabel = asText(thread.customerName, "Okänd avsändare");
+      if (typeof applyDemoFixtureFallback === "function" && thread && typeof thread === "object") {
+        thread = applyDemoFixtureFallback(thread);
+      }
+      const primaryLaneId = normalizeKey(thread?.primaryLaneId || thread?.laneId || "");
+      const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+      const counterpartyLabel = asText(
+        __pickFirstNonEmptyText(
+          thread.customerName,
+          thread.fromName,
+          raw.customerSummary?.customerName,
+          raw.customerName,
+          raw.sender,
+          raw.from?.name
+        ),
+        "Okänd avsändare"
+      );
       const mailboxLabel = asText(thread.mailboxLabel || thread.mailboxAddress, "Arbetskö");
       const rawTitle = asText(thread.displaySubject || thread.subject, "Inget ämne");
       const rawDetail = asText(
@@ -5054,7 +5199,7 @@
           ? mailboxTrailFromRollup
           : mailboxTrailFromDetail;
       return {
-        initials: getQueueHistoryItemInitials(thread.customerName),
+        initials: getQueueHistoryItemInitials(counterpartyLabel),
         counterpartyLabel,
         conversationId: asText(thread?.conversationId || thread?.id || ""),
         ownerLabel: asText(thread.displayOwnerLabel || thread.ownerLabel || ""),

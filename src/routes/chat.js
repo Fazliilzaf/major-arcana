@@ -607,28 +607,10 @@ function buildHairTPFallbackReply({ brand, message }) {
     ]);
   }
 
-  if (
-    hasAny([
-      /vad erbjuder ni/,
-      /erbjuder ni/,
-      /vilka behandlingar/,
-      /behandling(ar)?/,
-      /tjänster/,
-      /vad kan ni hjälpa/,
-    ])
-  ) {
-    return joinLines([
-      'Hair TP Clinic erbjuder:',
-      '- Hårtransplantation (för män och kvinnor, inklusive DHI-metoden)',
-      '- PRP-behandling för hår',
-      '- PRP-behandling för hud',
-      '- Microneedling / Dermapen',
-      '- Hårtransplantation av skägg, ögonbryn och ärr',
-    ]);
-  }
-
-  // ─── FAQ ─── vanliga fragor om tid, resultat, smarta, permanens, finansiering, vad ingar
-  // Synkat med next-app SYSTEM_PROMPT_SV. Placeras före mer-specifika matchningar.
+  // ─── FAQ ─── vanliga fragor om tid, resultat, smarta, permanens, finansiering, vad ingar.
+  // Synkat med next-app SYSTEM_PROMPT_SV. MASTE placeras INNAN /behandling(ar)?/-grenen
+  // nedan, annars fangar den generella behandlings-matchningen "hur lang tid tar behandlingen"
+  // och returnerar tjanste-lista istallet for vart specifika tids-svar.
 
   // Vad ingar i fastpriset
   if (
@@ -766,6 +748,27 @@ function buildHairTPFallbackReply({ brand, message }) {
       'Ja, du kan dela upp behandlingen räntefritt i upp till 24 månader via Medical Finance.',
       'Ansökan görs digitalt med BankID.',
       'Exakt månadskostnad beror på totalbelopp och avbetalningstid.',
+    ]);
+  }
+
+  // Generell tjanste-lista (lagre prio an FAQ ovan, men hogre an mer specifika)
+  if (
+    hasAny([
+      /vad erbjuder ni/,
+      /erbjuder ni/,
+      /vilka behandlingar/,
+      /behandling(ar)?/,
+      /tjänster/,
+      /vad kan ni hjälpa/,
+    ])
+  ) {
+    return joinLines([
+      'Hair TP Clinic erbjuder:',
+      '- Hårtransplantation (för män och kvinnor, inklusive DHI-metoden)',
+      '- PRP-behandling för hår',
+      '- PRP-behandling för hud',
+      '- Microneedling / Dermapen',
+      '- Hårtransplantation av skägg, ögonbryn och ärr',
     ]);
   }
 
