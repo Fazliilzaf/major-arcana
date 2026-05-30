@@ -264,6 +264,20 @@ module.exports = [
     },
   },
   {
+    files: ['public/cco-scalp-analysis.js', 'public/cco-journal-feed.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+        global: 'readonly',
+      },
+    },
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
     files: ['tests/**/*.js', '**/*.test.js', '**/*.spec.js'],
     languageOptions: {
       ecmaVersion: 2022,

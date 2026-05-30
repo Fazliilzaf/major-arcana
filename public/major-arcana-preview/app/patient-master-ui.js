@@ -518,7 +518,8 @@
 
   function ensureMobilePatientListHistory() {
     if (!isMobileViewport() || runtime.mode !== 'register') return;
-    if (window.history.state?.ccoMobilePatientList || window.history.state?.ccoMobilePatient) return;
+    if (window.history.state?.ccoMobilePatientList || window.history.state?.ccoMobilePatient)
+      return;
     const startup = parseStartupParams();
     if (startup.patientId || runtime.pendingPatientId) return;
     try {
@@ -718,38 +719,38 @@
 
   const apiRequestRaw = (window.ArcanaCcoFetchInstrumentation?.instrumentAsyncFn || ((fn) => fn))(
     async function apiRequestImpl(path, options = {}) {
-    const token = getAdminToken();
-    const headers = {
-      Accept: 'application/json',
-      ...(options.headers && typeof options.headers === 'object' ? options.headers : {}),
-    };
-    if (options.body !== undefined) {
-      headers['Content-Type'] = 'application/json';
-    }
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-    const response = await fetch(new URL(path, window.location.origin), {
-      method: options.method || 'GET',
-      headers,
-      body:
-        options.body === undefined || options.body === null
-          ? undefined
-          : JSON.stringify(options.body),
-    });
-    let payload = {};
-    try {
-      payload = await response.json();
-    } catch {
-      payload = {};
-    }
-    if (!response.ok) {
-      const error = new Error(payload.error || `HTTP ${response.status}`);
-      error.statusCode = response.status;
-      throw error;
-    }
-    return payload;
-  },
+      const token = getAdminToken();
+      const headers = {
+        Accept: 'application/json',
+        ...(options.headers && typeof options.headers === 'object' ? options.headers : {}),
+      };
+      if (options.body !== undefined) {
+        headers['Content-Type'] = 'application/json';
+      }
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const response = await fetch(new URL(path, window.location.origin), {
+        method: options.method || 'GET',
+        headers,
+        body:
+          options.body === undefined || options.body === null
+            ? undefined
+            : JSON.stringify(options.body),
+      });
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch {
+        payload = {};
+      }
+      if (!response.ok) {
+        const error = new Error(payload.error || `HTTP ${response.status}`);
+        error.statusCode = response.status;
+        throw error;
+      }
+      return payload;
+    },
     { getPath: (path) => path }
   );
 
@@ -1140,8 +1141,7 @@
 
     // Optimistic UI: lock the card and show feedback so users never feel
     // "nothing happened" while the PATCH is in flight.
-    const card =
-      (sourceButton && sourceButton.closest('.patient-master-draft-proposal')) || null;
+    const card = (sourceButton && sourceButton.closest('.patient-master-draft-proposal')) || null;
     const buttons = card ? Array.from(card.querySelectorAll('[data-review-draft-proposal]')) : [];
     const originalLabels = new Map();
     buttons.forEach((btn) => {
@@ -1166,7 +1166,10 @@
         method: 'PATCH',
         body: { status: nextStatus },
       });
-      setStatus(nextStatus === 'approved' ? 'Journalutkast godkänt.' : 'Journalutkast avvisat.', 'success');
+      setStatus(
+        nextStatus === 'approved' ? 'Journalutkast godkänt.' : 'Journalutkast avvisat.',
+        'success'
+      );
       // Fade card out then remove to give a confirmation beat before refresh.
       if (card) {
         card.style.transition = 'opacity 180ms ease, transform 180ms ease';
@@ -1296,7 +1299,9 @@
     const importantNote = escapeHtml(demo.importantNote || '');
     const primaryAddress = demo.primaryAddress || {};
     const addressLine = escapeHtml(
-      [primaryAddress.line1, primaryAddress.postalCode, primaryAddress.city].filter(Boolean).join(', ')
+      [primaryAddress.line1, primaryAddress.postalCode, primaryAddress.city]
+        .filter(Boolean)
+        .join(', ')
     );
     return `
           <article class="focus-customer-data-card patient-master-demographics-card">
@@ -1546,6 +1551,7 @@
     return `
           <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
           <button type="button" class="patient-master-tab${journalActive ? ' is-active' : ''}" data-patient-tab="journal" aria-pressed="${journalActive}">Journal</button>
+          <button type="button" class="patient-master-tab${tab === 'scalpanalys' ? ' is-active' : ''}" data-patient-tab="scalpanalys" aria-pressed="${tab === 'scalpanalys'}">Hår-/scalpanalys</button>
           <button type="button" class="patient-master-tab${tab === 'tidslinje' ? ' is-active' : ''}" data-patient-tab="tidslinje" aria-pressed="${tab === 'tidslinje'}">Tidslinje</button>
           <button type="button" class="patient-master-tab${avtalActive ? ' is-active' : ''}" data-patient-tab="avtal" aria-pressed="${avtalActive}">Avtal</button>
           <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileLabel}</button>`;
@@ -1567,7 +1573,9 @@
   }
 
   function journalEntryPayload(base, entries) {
-    const encounterId = resolveActiveTreatmentEncounterId(entries || runtime.detail?.journalEntries);
+    const encounterId = resolveActiveTreatmentEncounterId(
+      entries || runtime.detail?.journalEntries
+    );
     if (!encounterId) return base;
     return { ...base, treatmentEncounterId: encounterId };
   }
@@ -1580,8 +1588,8 @@
     if (!plan) return;
     const hasBooking = Boolean(
       normalizeText(plan.fields?.bookingSlotStart) ||
-        normalizeText(plan.fields?.bookingConfirmedAt) ||
-        normalizeText(plan.fields?.bookingConversationId)
+      normalizeText(plan.fields?.bookingConfirmedAt) ||
+      normalizeText(plan.fields?.bookingConversationId)
     );
     if (!hasBooking) return;
     runtime.focusTimelineKey = `encounter:${plan.treatmentEncounterId}`;
@@ -1591,7 +1599,8 @@
   function focusTimelineSegmentIfNeeded(root) {
     const key = normalizeText(runtime.focusTimelineKey);
     if (!key || runtime.detailTab !== 'tidslinje' || !root) return;
-    const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(key) : key.replace(/"/g, '\\"');
+    const escaped =
+      typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(key) : key.replace(/"/g, '\\"');
     const node = root.querySelector(`[data-timeline-key="${escaped}"]`);
     if (!node) return;
     node.classList.add('is-timeline-focused');
@@ -1603,7 +1612,8 @@
     const type = entry?.journalType || '';
     if (type === 'historical_import' || entry?.source === 'drive_import') return 'archive';
     if (type === 'follow_up') return 'followup';
-    if (type === 'tp_treatment' || type === 'prp_treatment' || type === 'bleph_treatment') return 'treatment';
+    if (type === 'tp_treatment' || type === 'prp_treatment' || type === 'bleph_treatment')
+      return 'treatment';
     return 'consultation';
   }
 
@@ -1735,7 +1745,9 @@
           timelineKey: group.timelineKey,
           timelineLabel: group.timelineLabel,
           timelineSort: group.timelineSort,
-          category: String(group.timelineKey || '').startsWith('archive:') ? 'archive' : 'consultation',
+          category: String(group.timelineKey || '').startsWith('archive:')
+            ? 'archive'
+            : 'consultation',
           entries: [],
           fileCount: group.files.length,
           journalPdfCount: group.files.filter(isJournalPdf).length,
@@ -1832,20 +1844,23 @@
             <div class="customer-record-main">
               <div class="customer-record-head">
                 <h3>${escapeHtml(card.displayName || 'Okänd kund')}</h3>
-                ${journalCount || imageCount
-            ? `<span class="customer-record-file-badge">${journalCount} PDF · ${imageCount} bild</span>`
-            : ''
-          }
+                ${
+                  journalCount || imageCount
+                    ? `<span class="customer-record-file-badge">${journalCount} PDF · ${imageCount} bild</span>`
+                    : ''
+                }
               </div>
               <div class="customer-record-meta">
-                ${card.personnummer
-            ? `<span>${escapeHtml(card.personnummer)}</span>`
-            : '<span class="customer-record-meta-rose">Saknar pnr</span>'
-          }
-                ${card.matchStatus === 'matched'
-            ? '<span class="customer-record-match">Kopplad</span>'
-            : ''
-          }
+                ${
+                  card.personnummer
+                    ? `<span>${escapeHtml(card.personnummer)}</span>`
+                    : '<span class="customer-record-meta-rose">Saknar pnr</span>'
+                }
+                ${
+                  card.matchStatus === 'matched'
+                    ? '<span class="customer-record-match">Kopplad</span>'
+                    : ''
+                }
               </div>
             </div>
           </button>
@@ -1857,9 +1872,7 @@
     if (syncAuthRequiredChrome()) {
       const authCard = runtime.pendingPasswordSetup
         ? renderStaffPasswordSetupCard()
-        : renderStaffLoginCard(
-            runtime.error || 'Logga in för att läsa kundregister och journal.'
-          );
+        : renderStaffLoginCard(runtime.error || 'Logga in för att läsa kundregister och journal.');
       els.list.innerHTML = authCard;
       renderDetailEmpty();
       return;
@@ -1919,9 +1932,7 @@
     let touched = false;
     const mark = (patientId, selected) => {
       if (!patientId) return;
-      const row = els.list.querySelector(
-        `[data-patient-row="${escapeSelectorValue(patientId)}"]`
-      );
+      const row = els.list.querySelector(`[data-patient-row="${escapeSelectorValue(patientId)}"]`);
       if (!row) return;
       row.classList.toggle('is-selected', selected);
       row.setAttribute('aria-pressed', selected ? 'true' : 'false');
@@ -1987,7 +1998,9 @@
     const rail = document.querySelector('[data-patient-master-rail]');
     if (!rail) return;
     els.patientRail = rail;
-    const cached = runtime.patients.find((row) => normalizeText(row?.patientId) === normalizeText(patientId));
+    const cached = runtime.patients.find(
+      (row) => normalizeText(row?.patientId) === normalizeText(patientId)
+    );
     const displayName = cached?.displayName || 'Laddar kund…';
     const initials = String(displayName).slice(0, 2).toUpperCase();
     rail.innerHTML = `
@@ -2070,6 +2083,23 @@
     const objectUrl = URL.createObjectURL(blob);
     fileObjectUrls.add(objectUrl);
     return objectUrl;
+  }
+
+  async function mountScalpAnalysisPanel(root = els.patientRail) {
+    if (!root || !window.CcoScalpAnalysis?.mount) return;
+    const mountEl = root.querySelector('[data-scalp-analysis-mount]');
+    const patientId = normalizeText(
+      mountEl?.dataset?.scalpAnalysisMount || runtime.selectedPatientId
+    );
+    if (!mountEl || !patientId) return;
+    if (runtime.scalpAnalysisPatientId === patientId && runtime.scalpAnalysisMount) return;
+    runtime.scalpAnalysisMount?.unmount?.();
+    runtime.scalpAnalysisMount = await window.CcoScalpAnalysis.mount(mountEl, {
+      patientId,
+      tenantId: runtime.tenantId || 'hairtpclinic',
+      baseUrl: '',
+    });
+    runtime.scalpAnalysisPatientId = patientId;
   }
 
   async function hydratePatientFileImages(root = els.patientRail) {
@@ -2257,17 +2287,19 @@
       ? `
         <ul class="patient-master-file-list patient-master-file-list--compact">
           ${pdfs
-        .map((file) => {
-          const href = fileViewUrl(file);
-          const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'PDF'));
-          return `
+            .map((file) => {
+              const href = fileViewUrl(file);
+              const label = escapeHtml(
+                repairDisplayFilename(file.fileName || file.relativePath || 'PDF')
+              );
+              return `
                 <li>
                   <a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>
                   <span>PDF</span>
                 </li>
               `;
-        })
-        .join('')}
+            })
+            .join('')}
         </ul>
       `
       : '';
@@ -2277,16 +2309,16 @@
         <div class="patient-master-file-section patient-master-file-section--compact">
           <div class="patient-master-image-grid">
             ${images
-        .map((file) => {
-          const href = fileViewUrl(file);
-          const label = escapeHtml(repairDisplayFilename(file.fileName || 'Bild'));
-          return `
+              .map((file) => {
+                const href = fileViewUrl(file);
+                const label = escapeHtml(repairDisplayFilename(file.fileName || 'Bild'));
+                return `
                   <a class="patient-master-image-tile" href="${escapeHtml(href)}" target="_blank" rel="noopener" title="${label}">
                     <img src="" data-patient-file-id="${escapeHtml(file.id)}" alt="${label}" loading="lazy" decoding="async" />
                   </a>
                 `;
-        })
-        .join('')}
+              })
+              .join('')}
           </div>
         </div>
       `
@@ -2296,20 +2328,22 @@
       ? `
         <ul class="patient-master-file-list patient-master-file-list--compact">
           ${other
-        .map((file) => {
-          const href = fileViewUrl(file);
-          const label = escapeHtml(repairDisplayFilename(file.fileName || file.relativePath || 'Fil'));
-          const link = href
-            ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>`
-            : `<strong>${label}</strong>`;
-          return `
+            .map((file) => {
+              const href = fileViewUrl(file);
+              const label = escapeHtml(
+                repairDisplayFilename(file.fileName || file.relativePath || 'Fil')
+              );
+              const link = href
+                ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>`
+                : `<strong>${label}</strong>`;
+              return `
                 <li>
                   ${link}
                   <span>${escapeHtml(file.fileType || 'fil')}</span>
                 </li>
               `;
-        })
-        .join('')}
+            })
+            .join('')}
         </ul>
       `
       : '';
@@ -2318,10 +2352,11 @@
       <section class="patient-master-segment">
         <header class="patient-master-segment-head">
           <h4>${escapeHtml(group.timelineLabel)}</h4>
-          ${metaBits.length
-        ? `<span class="patient-master-segment-meta">${escapeHtml(metaBits.join(' · '))}</span>`
-        : ''
-      }
+          ${
+            metaBits.length
+              ? `<span class="patient-master-segment-meta">${escapeHtml(metaBits.join(' · '))}</span>`
+              : ''
+          }
         </header>
         ${pdfList}
         ${imageGrid}
@@ -2434,12 +2469,13 @@
         <p class="patient-master-muted">Nytt arbete sker under <strong>Journal</strong>: ta bild, markera zoner och skapa offert.</p>
         <ol class="patient-master-workflow-steps">
           ${steps
-        .map(
-          (step) =>
-            `<li class="${step.done ? 'is-done' : ''}">${escapeHtml(step.label)}${step.done ? ' ✓' : ''
-            }</li>`
-        )
-        .join('')}
+            .map(
+              (step) =>
+                `<li class="${step.done ? 'is-done' : ''}">${escapeHtml(step.label)}${
+                  step.done ? ' ✓' : ''
+                }</li>`
+            )
+            .join('')}
         </ol>
       </article>
     `;
@@ -2516,11 +2552,12 @@
           Ögonlocksjournal
         </button>
       </div>
-      ${uploadBlocked
-        ? `<p class="patient-master-upload-blocked">Behandlingsplanen är signerad och låst. Skapa en ny plan om du ska ta fler bilder.</p>`
-        : planBlocked
-          ? `<p class="patient-master-upload-blocked">Signera hälsodeklarationen innan du skapar behandlingsplan.</p>`
-          : ''
+      ${
+        uploadBlocked
+          ? `<p class="patient-master-upload-blocked">Behandlingsplanen är signerad och låst. Skapa en ny plan om du ska ta fler bilder.</p>`
+          : planBlocked
+            ? `<p class="patient-master-upload-blocked">Signera hälsodeklarationen innan du skapar behandlingsplan.</p>`
+            : ''
       }
       <p class="patient-master-muted">${Number(card.fileSummary?.journalPdfs || 0)} journal-PDF i index · ${Number(card.fileSummary?.images || 0)} bilder</p>
     `;
@@ -2545,12 +2582,13 @@
         <span class="patient-master-muted">Offertmall</span>
         <select data-patient-offer-template>
           ${templates
-        .map(
-          (template) =>
-            `<option value="${escapeHtml(template.key)}"${template.key === selectedKey ? ' selected' : ''
-            }>${escapeHtml(template.label)}</option>`
-        )
-        .join('')}
+            .map(
+              (template) =>
+                `<option value="${escapeHtml(template.key)}"${
+                  template.key === selectedKey ? ' selected' : ''
+                }>${escapeHtml(template.label)}</option>`
+            )
+            .join('')}
         </select>
       </label>
     `;
@@ -2645,7 +2683,9 @@
     `;
     document.body.appendChild(shell);
 
-    shell.querySelector('[data-mobile-offer-wizard-cancel]')?.addEventListener('click', closeMobileOfferWizard);
+    shell
+      .querySelector('[data-mobile-offer-wizard-cancel]')
+      ?.addEventListener('click', closeMobileOfferWizard);
     shell.querySelector('[data-mobile-offer-wizard-back]')?.addEventListener('click', () => {
       setMobileOfferWizardStep(Math.max(1, offerWizardStep - 1));
     });
@@ -2677,11 +2717,11 @@
     const templates = asArray(runtime.offerTemplates);
     selectNode.innerHTML = templates.length
       ? templates
-        .map(
-          (template) =>
-            `<option value="${escapeHtml(template.key)}">${escapeHtml(template.label || template.key)}</option>`
-        )
-        .join('')
+          .map(
+            (template) =>
+              `<option value="${escapeHtml(template.key)}">${escapeHtml(template.label || template.key)}</option>`
+          )
+          .join('')
       : '<option value="custom">Anpassad</option>';
   }
 
@@ -2750,16 +2790,17 @@
     if (offerWizardStep === 3) {
       const formValues = readMobileOfferWizardForm();
       const templateLabel =
-        asArray(runtime.offerTemplates).find((item) => item.key === formValues.templateKey)?.label ||
-        formValues.templateKey;
+        asArray(runtime.offerTemplates).find((item) => item.key === formValues.templateKey)
+          ?.label || formValues.templateKey;
       const summary = shell.querySelector('[data-mobile-offer-wizard-summary]');
       if (summary) {
         const noteBits = [
           formValues.notesToCustomer ? `Till kund: ${formValues.notesToCustomer}` : '',
           formValues.internalNotes ? `Internt: ${formValues.internalNotes}` : '',
         ].filter(Boolean);
-        summary.textContent = `Offert på ${formValues.quotedAmount || '—'}${formValues.depositAmount ? ` med deposition ${formValues.depositAmount}` : ''
-          } (${templateLabel || 'Anpassad'}).${noteBits.length ? ` ${noteBits.join(' · ')}` : ''}`;
+        summary.textContent = `Offert på ${formValues.quotedAmount || '—'}${
+          formValues.depositAmount ? ` med deposition ${formValues.depositAmount}` : ''
+        } (${templateLabel || 'Anpassad'}).${noteBits.length ? ` ${noteBits.join(' · ')}` : ''}`;
       }
       void loadMobileOfferPreview();
     }
@@ -2884,49 +2925,58 @@
         <div class="patient-master-offer-box">
           <div class="patient-master-material-head">
             <h4>Offert</h4>
-            ${linkedOffer
-        ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(linkedOffer.quoteStatus || 'draft')}</span>`
-        : ''
-      }
+            ${
+              linkedOffer
+                ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(linkedOffer.quoteStatus || 'draft')}</span>`
+                : ''
+            }
           </div>
-          ${linkedOffer
-        ? `<p class="patient-master-muted">${escapeHtml(linkedOffer.offerType || 'Offert')} · ${escapeHtml(linkedOffer.quotedAmount || 'Pris ej satt')}</p>`
-        : `<p class="patient-master-muted">Skapa offert från planen när bilder är markerade och planen är klar.</p>`
-      }
+          ${
+            linkedOffer
+              ? `<p class="patient-master-muted">${escapeHtml(linkedOffer.offerType || 'Offert')} · ${escapeHtml(linkedOffer.quotedAmount || 'Pris ej satt')}</p>`
+              : `<p class="patient-master-muted">Skapa offert från planen när bilder är markerade och planen är klar.</p>`
+          }
           ${renderOfferStatusMeta(linkedOffer)}
           ${renderOfferTemplateSelect(linkedOffer?.offerTemplateKey || 'custom')}
           <div class="patient-master-plan-photo-actions">
             <button type="button" class="customers-utility-button" data-patient-action="create-offer-from-plan" data-patient-entry-id="${escapeHtml(planEntry.entryId)}">
               ${linkedOffer ? 'Uppdatera offert från plan' : 'Skapa offert från plan'}
             </button>
-            ${offerDocumentUrl
-        ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerDocumentUrl)}" target="_blank" rel="noopener">Visa offert</a>`
-        : ''
-      }
-            ${offerPdfUrl
-        ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerPdfUrl)}" target="_blank" rel="noopener">Ladda ner PDF</a>`
-        : ''
-      }
-            ${offerWordUrl
-        ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerWordUrl)}" target="_blank" rel="noopener">Word-mall</a>`
-        : ''
-      }
-            ${canSendForSign
-        ? `<button type="button" class="customers-utility-button" data-patient-action="send-offer-for-sign">Skicka för signering</button>`
-        : ''
-      }
-            ${canAccept
-        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-offer"${coolingActive ? ' data-patient-force-offer="1"' : ''}>${coolingActive ? 'Acceptera (override betänketid)' : 'Kund accepterar'
-        }</button>`
-        : ''
-      }
+            ${
+              offerDocumentUrl
+                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerDocumentUrl)}" target="_blank" rel="noopener">Visa offert</a>`
+                : ''
+            }
+            ${
+              offerPdfUrl
+                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerPdfUrl)}" target="_blank" rel="noopener">Ladda ner PDF</a>`
+                : ''
+            }
+            ${
+              offerWordUrl
+                ? `<a class="customers-utility-button patient-master-offer-link" href="${escapeHtml(offerWordUrl)}" target="_blank" rel="noopener">Word-mall</a>`
+                : ''
+            }
+            ${
+              canSendForSign
+                ? `<button type="button" class="customers-utility-button" data-patient-action="send-offer-for-sign">Skicka för signering</button>`
+                : ''
+            }
+            ${
+              canAccept
+                ? `<button type="button" class="customers-utility-button" data-patient-action="accept-offer"${coolingActive ? ' data-patient-force-offer="1"' : ''}>${
+                    coolingActive ? 'Acceptera (override betänketid)' : 'Kund accepterar'
+                  }</button>`
+                : ''
+            }
           </div>
-          ${runtime.offerSignUrl
-        ? `<p class="patient-master-muted">Signeringssida: <a href="${escapeHtml(runtime.offerSignUrl)}" target="_blank" rel="noopener">${escapeHtml(runtime.offerSignUrl)}</a></p>`
-        : linkedOffer?.esignStatus === 'sent' && linkedOffer?.esignToken
-          ? `<p class="patient-master-muted">Signeringssida: <a href="/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(linkedOffer.esignToken)}" target="_blank" rel="noopener">Öppna kundsignering</a></p>`
-          : ''
-      }
+          ${
+            runtime.offerSignUrl
+              ? `<p class="patient-master-muted">Signeringssida: <a href="${escapeHtml(runtime.offerSignUrl)}" target="_blank" rel="noopener">${escapeHtml(runtime.offerSignUrl)}</a></p>`
+              : linkedOffer?.esignStatus === 'sent' && linkedOffer?.esignToken
+                ? `<p class="patient-master-muted">Signeringssida: <a href="/api/v1/cco-commercial/offer-sign-page?token=${encodeURIComponent(linkedOffer.esignToken)}" target="_blank" rel="noopener">Öppna kundsignering</a></p>`
+                : ''
+          }
         </div>`;
 
     const planBody = `
@@ -2935,34 +2985,42 @@
           <h4>${escapeHtml(planEntry.title || 'Konsultation — behandlingsplan')}</h4>
           <span class="patient-master-muted">${escapeHtml(planEntry.status || 'draft')}</span>
         </div>
-        ${summaryBits.length
-        ? `<p class="patient-master-muted">${escapeHtml(summaryBits.join(' · '))}</p>`
-        : ''
-      }
-        ${fields.notes ? `<p class="patient-master-plan-notes"><strong>Till kund:</strong> ${escapeHtml(fields.notes)}</p>` : ''
-      }
-        ${fields.staffNotes
-        ? `<p class="patient-master-plan-notes patient-master-plan-notes-internal"><strong>Internt:</strong> ${escapeHtml(fields.staffNotes)}</p>`
-        : ''
-      }
-        ${fields.bookingSlotStart || planEntry.treatmentEncounterId
-        ? `<p class="patient-master-muted">Bokning: ${escapeHtml(fields.bookingSlotStart || '—')}${fields.bookingServiceId ? ` · ${escapeHtml(fields.bookingServiceId)}` : ''}${planEntry.treatmentEncounterId ? ` · tillfälle ${escapeHtml(planEntry.treatmentEncounterId.slice(0, 8))}` : ''}</p>`
-        : ''
-      }
-        ${photos.length
-        ? `<div class="patient-master-plan-photo-toolbar">
-                <span class="patient-master-muted">${photos.length} bilder</span>
-                ${planEntry.canEdit
-          ? `<button type="button" class="customers-utility-button patient-master-photo-clear-smoke" data-patient-clear-smoke-photos="${escapeHtml(planEntry.entryId)}">Rensa smoke-bilder</button>
-                    <button type="button" class="customers-utility-button patient-master-photo-clear-all" data-patient-clear-plan-photos="${escapeHtml(planEntry.entryId)}">Rensa alla bilder</button>`
-          : ''
+        ${
+          summaryBits.length
+            ? `<p class="patient-master-muted">${escapeHtml(summaryBits.join(' · '))}</p>`
+            : ''
         }
+        ${
+          fields.notes
+            ? `<p class="patient-master-plan-notes"><strong>Till kund:</strong> ${escapeHtml(fields.notes)}</p>`
+            : ''
+        }
+        ${
+          fields.staffNotes
+            ? `<p class="patient-master-plan-notes patient-master-plan-notes-internal"><strong>Internt:</strong> ${escapeHtml(fields.staffNotes)}</p>`
+            : ''
+        }
+        ${
+          fields.bookingSlotStart || planEntry.treatmentEncounterId
+            ? `<p class="patient-master-muted">Bokning: ${escapeHtml(fields.bookingSlotStart || '—')}${fields.bookingServiceId ? ` · ${escapeHtml(fields.bookingServiceId)}` : ''}${planEntry.treatmentEncounterId ? ` · tillfälle ${escapeHtml(planEntry.treatmentEncounterId.slice(0, 8))}` : ''}</p>`
+            : ''
+        }
+        ${
+          photos.length
+            ? `<div class="patient-master-plan-photo-toolbar">
+                <span class="patient-master-muted">${photos.length} bilder</span>
+                ${
+                  planEntry.canEdit
+                    ? `<button type="button" class="customers-utility-button patient-master-photo-clear-smoke" data-patient-clear-smoke-photos="${escapeHtml(planEntry.entryId)}">Rensa smoke-bilder</button>
+                    <button type="button" class="customers-utility-button patient-master-photo-clear-all" data-patient-clear-plan-photos="${escapeHtml(planEntry.entryId)}">Rensa alla bilder</button>`
+                    : ''
+                }
               </div>
               <div class="patient-master-plan-photo-grid">
                 ${photos
-          .map((photo) => {
-            const variant = photo.annotatedPreviewAvailable ? 'annotated' : '';
-            return `
+                  .map((photo) => {
+                    const variant = photo.annotatedPreviewAvailable ? 'annotated' : '';
+                    return `
                       <figure class="patient-master-plan-photo">
                         <div class="patient-master-plan-photo-media">
                           <a class="patient-master-plan-photo-link" href="#" data-journal-photo-link data-journal-photo-open="${escapeHtml(photo.photoId)}">
@@ -2974,40 +3032,45 @@
                               loading="lazy"
                             />
                           </a>
-                          ${planEntry.canEdit
-                ? `<button type="button" class="patient-master-plan-photo-remove" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}" aria-label="Ta bort bild" title="Ta bort bild"><span aria-hidden="true">×</span></button>`
-                : ''
-              }
+                          ${
+                            planEntry.canEdit
+                              ? `<button type="button" class="patient-master-plan-photo-remove" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}" aria-label="Ta bort bild" title="Ta bort bild"><span aria-hidden="true">×</span></button>`
+                              : ''
+                          }
                         </div>
                         <figcaption>
                           <strong>${escapeHtml(photo.label || photo.fileName || 'Bild')}</strong>
-                          ${photo.hasAnnotation
-                ? '<span class="patient-master-occasion-badge is-compact">Markerad</span>'
-                : ''
-              }
+                          ${
+                            photo.hasAnnotation
+                              ? '<span class="patient-master-occasion-badge is-compact">Markerad</span>'
+                              : ''
+                          }
                         </figcaption>
                         <div class="patient-master-plan-photo-actions">
-                          ${planEntry.canEdit
-                ? `<button type="button" class="customers-utility-button" data-patient-annotate-photo="${escapeHtml(photo.attachmentId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-photo-id="${escapeHtml(photo.photoId)}">Markera plan</button>`
-                : ''
-              }
-                          ${planEntry.canEdit
-                ? `<button type="button" class="customers-utility-button patient-master-photo-delete" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}">Ta bort</button>`
-                : ''
-              }
+                          ${
+                            planEntry.canEdit
+                              ? `<button type="button" class="customers-utility-button" data-patient-annotate-photo="${escapeHtml(photo.attachmentId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-photo-id="${escapeHtml(photo.photoId)}">Markera plan</button>`
+                              : ''
+                          }
+                          ${
+                            planEntry.canEdit
+                              ? `<button type="button" class="customers-utility-button patient-master-photo-delete" data-patient-delete-photo="${escapeHtml(photo.photoId)}" data-patient-entry-id="${escapeHtml(planEntry.entryId)}" data-patient-attachment-id="${escapeHtml(photo.attachmentId)}">Ta bort</button>`
+                              : ''
+                          }
                           <a class="patient-master-open-link" href="#" data-journal-photo-open="${escapeHtml(photo.photoId)}">Original</a>
                         </div>
                       </figure>
                     `;
-          })
-          .join('')}
+                  })
+                  .join('')}
               </div>`
-        : `<p class="patient-master-muted">Inga bilder ännu. Tryck <strong>Ta bild</strong> ovan.</p>`
-      }
-        ${planEntry.canSign
-        ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(planEntry.entryId)}">Signera behandlingsplan</button>`
-        : ''
-      }
+            : `<p class="patient-master-muted">Inga bilder ännu. Tryck <strong>Ta bild</strong> ovan.</p>`
+        }
+        ${
+          planEntry.canSign
+            ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(planEntry.entryId)}">Signera behandlingsplan</button>`
+            : ''
+        }
       </article>`;
 
     return (
@@ -3161,7 +3224,8 @@
         normalizeText(form.dataset.followFormVariant) ||
         normalizeText(entryRoot?.dataset?.followFormVariant) ||
         '4_manader';
-      const config = followForm.forms?.[formVariant] || followForm.resolveForm?.({ formVariant }) || {};
+      const config =
+        followForm.forms?.[formVariant] || followForm.resolveForm?.({ formVariant }) || {};
       window.ArcanaMobileAutosave.bindForm(form, {
         patientId,
         entryId,
@@ -3217,7 +3281,6 @@
     });
   }
 
-
   function renderClinicalFormSection(entries) {
     const formKey = runtime.editingClinicalFormKey;
     const entryId = runtime.editingClinicalEntryId;
@@ -3226,7 +3289,8 @@
     if (!formKey || !entryId || !config?.render) return '';
     const entry = asArray(entries).find((row) => {
       if (row.entryId !== entryId || row.journalType !== config.journalType) return false;
-      if (parsed?.formVariant && row.formVariant && row.formVariant !== parsed.formVariant) return false;
+      if (parsed?.formVariant && row.formVariant && row.formVariant !== parsed.formVariant)
+        return false;
       return true;
     });
     if (!entry) return '';
@@ -3386,66 +3450,66 @@
       ? `
       <ul class="patient-master-journal-list">
         ${otherEntries
-        .map((entry) => {
-          const attachment = asArray(entry.attachments)[0];
-          const href = attachmentViewUrl(attachment);
-          const openLink = href
-            ? `<a class="patient-master-open-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Öppna PDF</a>`
-            : '';
-          const isTpEntry = entry.journalType === 'tp_treatment';
-          const isPrpEntry = entry.journalType === 'prp_treatment';
-          const isFollowUpEntry = entry.journalType === 'follow_up';
-          const isBlephEntry = entry.journalType === 'bleph_treatment';
-          const isHealthEntry = entry.journalType === 'health_declaration';
-          const isFitnessEntry = entry.journalType === 'fitness_certificate';
-          const isClinicalEntry = isHealthEntry || isFitnessEntry;
-          const typeLabel =
-            JOURNAL_TYPE_LABELS[entry.journalType] || entry.journalType || 'Journal';
-          const isEditingTp = isTpEntry && runtime.editingTpEntryId === entry.entryId;
-          const isEditingPrp = isPrpEntry && runtime.editingPrpEntryId === entry.entryId;
-          const isEditingFollowUp =
-            isFollowUpEntry && runtime.editingFollowUpEntryId === entry.entryId;
-          const isEditingBleph = isBlephEntry && runtime.editingBlephEntryId === entry.entryId;
-          const isEditingClinical =
-            isClinicalEntry &&
-            runtime.editingClinicalEntryId === entry.entryId &&
-            runtime.editingClinicalFormKey ===
-              (window.ArcanaJournalClinicalFormKeys?.resolveEntryFormKey(entry) ||
-                (isHealthEntry ? 'health' : 'fitness'));
-          const tpOpenButton =
-            isTpEntry && runtime.detail?.card?.patientId
-              ? `<button type="button" class="customers-utility-button${isEditingTp ? ' is-active' : ''}" data-patient-open-tp="${escapeHtml(entry.entryId)}">${isEditingTp ? 'Öppen' : 'Öppna'}</button>`
+          .map((entry) => {
+            const attachment = asArray(entry.attachments)[0];
+            const href = attachmentViewUrl(attachment);
+            const openLink = href
+              ? `<a class="patient-master-open-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Öppna PDF</a>`
               : '';
-          const prpOpenButton =
-            isPrpEntry && runtime.detail?.card?.patientId
-              ? `<button type="button" class="customers-utility-button${isEditingPrp ? ' is-active' : ''}" data-patient-open-prp="${escapeHtml(entry.entryId)}">${isEditingPrp ? 'Öppen' : 'Öppna'}</button>`
-              : '';
-          const followUpOpenButton =
-            isFollowUpEntry && runtime.detail?.card?.patientId
-              ? `<button type="button" class="customers-utility-button${isEditingFollowUp ? ' is-active' : ''}" data-patient-open-follow-up="${escapeHtml(entry.entryId)}">${isEditingFollowUp ? 'Öppen' : 'Öppna'}</button>`
-              : '';
-          const blephOpenButton =
-            isBlephEntry && runtime.detail?.card?.patientId
-              ? `<button type="button" class="customers-utility-button${isEditingBleph ? ' is-active' : ''}" data-patient-open-bleph="${escapeHtml(entry.entryId)}">${isEditingBleph ? 'Öppen' : 'Öppna'}</button>`
-              : '';
-          const clinicalFormKey =
-            window.ArcanaJournalClinicalFormKeys?.resolveEntryFormKey(entry) ||
-            (isHealthEntry ? 'health' : 'fitness');
-          const clinicalOpenButton =
-            isClinicalEntry && runtime.detail?.card?.patientId
-              ? `<button type="button" class="customers-utility-button${isEditingClinical ? ' is-active' : ''}" data-patient-open-clinical="${escapeHtml(clinicalFormKey)}:${escapeHtml(entry.entryId)}">${isEditingClinical ? 'Öppen' : 'Öppna'}</button>`
-              : '';
-          const signButton =
-            entry.canSign &&
+            const isTpEntry = entry.journalType === 'tp_treatment';
+            const isPrpEntry = entry.journalType === 'prp_treatment';
+            const isFollowUpEntry = entry.journalType === 'follow_up';
+            const isBlephEntry = entry.journalType === 'bleph_treatment';
+            const isHealthEntry = entry.journalType === 'health_declaration';
+            const isFitnessEntry = entry.journalType === 'fitness_certificate';
+            const isClinicalEntry = isHealthEntry || isFitnessEntry;
+            const typeLabel =
+              JOURNAL_TYPE_LABELS[entry.journalType] || entry.journalType || 'Journal';
+            const isEditingTp = isTpEntry && runtime.editingTpEntryId === entry.entryId;
+            const isEditingPrp = isPrpEntry && runtime.editingPrpEntryId === entry.entryId;
+            const isEditingFollowUp =
+              isFollowUpEntry && runtime.editingFollowUpEntryId === entry.entryId;
+            const isEditingBleph = isBlephEntry && runtime.editingBlephEntryId === entry.entryId;
+            const isEditingClinical =
+              isClinicalEntry &&
+              runtime.editingClinicalEntryId === entry.entryId &&
+              runtime.editingClinicalFormKey ===
+                (window.ArcanaJournalClinicalFormKeys?.resolveEntryFormKey(entry) ||
+                  (isHealthEntry ? 'health' : 'fitness'));
+            const tpOpenButton =
+              isTpEntry && runtime.detail?.card?.patientId
+                ? `<button type="button" class="customers-utility-button${isEditingTp ? ' is-active' : ''}" data-patient-open-tp="${escapeHtml(entry.entryId)}">${isEditingTp ? 'Öppen' : 'Öppna'}</button>`
+                : '';
+            const prpOpenButton =
+              isPrpEntry && runtime.detail?.card?.patientId
+                ? `<button type="button" class="customers-utility-button${isEditingPrp ? ' is-active' : ''}" data-patient-open-prp="${escapeHtml(entry.entryId)}">${isEditingPrp ? 'Öppen' : 'Öppna'}</button>`
+                : '';
+            const followUpOpenButton =
+              isFollowUpEntry && runtime.detail?.card?.patientId
+                ? `<button type="button" class="customers-utility-button${isEditingFollowUp ? ' is-active' : ''}" data-patient-open-follow-up="${escapeHtml(entry.entryId)}">${isEditingFollowUp ? 'Öppen' : 'Öppna'}</button>`
+                : '';
+            const blephOpenButton =
+              isBlephEntry && runtime.detail?.card?.patientId
+                ? `<button type="button" class="customers-utility-button${isEditingBleph ? ' is-active' : ''}" data-patient-open-bleph="${escapeHtml(entry.entryId)}">${isEditingBleph ? 'Öppen' : 'Öppna'}</button>`
+                : '';
+            const clinicalFormKey =
+              window.ArcanaJournalClinicalFormKeys?.resolveEntryFormKey(entry) ||
+              (isHealthEntry ? 'health' : 'fitness');
+            const clinicalOpenButton =
+              isClinicalEntry && runtime.detail?.card?.patientId
+                ? `<button type="button" class="customers-utility-button${isEditingClinical ? ' is-active' : ''}" data-patient-open-clinical="${escapeHtml(clinicalFormKey)}:${escapeHtml(entry.entryId)}">${isEditingClinical ? 'Öppen' : 'Öppna'}</button>`
+                : '';
+            const signButton =
+              entry.canSign &&
               runtime.detail?.card?.patientId &&
               !isEditingTp &&
               !isEditingPrp &&
               !isEditingFollowUp &&
               !isEditingBleph &&
               !isEditingClinical
-              ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">Signera</button>`
-              : '';
-          return `
+                ? `<button type="button" class="customers-utility-button" data-patient-sign-entry="${escapeHtml(entry.entryId)}">Signera</button>`
+                : '';
+            return `
               <li class="patient-master-journal-item${entry.locked ? ' is-locked' : ''}${isEditingTp || isEditingPrp || isEditingFollowUp || isEditingBleph || isEditingClinical ? ' is-editing' : ''}">
                 <div>
                   <strong>${escapeHtml(entry.title || typeLabel)}</strong>
@@ -3453,12 +3517,13 @@
                   ${openLink}
                 </div>
                 <div class="patient-master-journal-actions">
-                  ${entry.journalType === 'historical_import' || entry.source === 'drive_import'
-              ? chipHtml('Importerad', 'gold')
-              : entry.locked
-                ? chipHtml('Låst', 'violet')
-                : chipHtml('Utkast', 'blue')
-            }
+                  ${
+                    entry.journalType === 'historical_import' || entry.source === 'drive_import'
+                      ? chipHtml('Importerad', 'gold')
+                      : entry.locked
+                        ? chipHtml('Låst', 'violet')
+                        : chipHtml('Utkast', 'blue')
+                  }
                   ${tpOpenButton}
                   ${prpOpenButton}
                   ${followUpOpenButton}
@@ -3468,8 +3533,8 @@
                 </div>
               </li>
             `;
-        })
-        .join('')}
+          })
+          .join('')}
       </ul>`
       : `<p class="patient-master-muted">Inga övriga journalposter ännu.</p>`;
 
@@ -3482,9 +3547,10 @@
       ${prpSection}
       ${followUpSection}
       ${blephSection}
-      ${otherEntries.some((entry) => entry.journalType === 'tp_treatment')
-        ? `<p class="patient-master-muted patient-master-tp-hint">TP-journal fylls i efter behandlingsdagen — öppna utkastet och signera när det är klart.</p>`
-        : ''
+      ${
+        otherEntries.some((entry) => entry.journalType === 'tp_treatment')
+          ? `<p class="patient-master-muted patient-master-tp-hint">TP-journal fylls i efter behandlingsdagen — öppna utkastet och signera när det är klart.</p>`
+          : ''
       }
       ${listMarkup}
     `;
@@ -3537,10 +3603,11 @@
     const headerHtml = `
         <div class="patient-master-material-head">
           <h4>Behandlingsavtal</h4>
-          ${readout?.phase
-        ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(readout.phase)}</span>`
-        : ''
-      }
+          ${
+            readout?.phase
+              ? `<span class="patient-master-occasion-badge is-compact">${escapeHtml(readout.phase)}</span>`
+              : ''
+          }
         </div>`;
 
     const checklistHtml = `
@@ -3552,35 +3619,42 @@
         </ol>`;
 
     const badgesHtml = `
-        ${readout?.patientInfoSentAt
-        ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Patientinfo ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))}</span></div>`
-        : ''
-      }
-        ${agreement?.deliveryMode
-        ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge is-accent">${escapeHtml(agreement.deliveryMode === 'distans' ? 'Distans (betänketid)' : 'På plats')}</span></div>`
-        : ''
-      }
-        ${coolingActive
-        ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</span></div>`
-        : ''
-      }`;
+        ${
+          readout?.patientInfoSentAt
+            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Patientinfo ${escapeHtml(String(readout.patientInfoSentAt).slice(0, 10))}</span></div>`
+            : ''
+        }
+        ${
+          agreement?.deliveryMode
+            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge is-accent">${escapeHtml(agreement.deliveryMode === 'distans' ? 'Distans (betänketid)' : 'På plats')}</span></div>`
+            : ''
+        }
+        ${
+          coolingActive
+            ? `<div class="patient-master-offer-meta-badges"><span class="patient-master-status-badge">Betänketid till ${escapeHtml(String(readout.coolingOff.endsAt).slice(0, 10))}</span></div>`
+            : ''
+        }`;
 
     const documentLinksHtml = `
-        ${runtime.agreementDocumentUrl
-        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementDocumentUrl)}" target="_blank" rel="noopener">Öppna avtal (HTML)</a>${runtime.agreementDocumentPdfUrl
-          ? ` · <a href="${escapeHtml(runtime.agreementDocumentPdfUrl)}" target="_blank" rel="noopener">PDF</a>`
-          : ''
-        }</p>`
-        : ''
-      }
-        ${runtime.agreementSignUrl
-        ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementSignUrl)}" target="_blank" rel="noopener">Signeringssida för kund</a></p>`
-        : ''
-      }
-        ${angerUrl
-        ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
-        : ''
-      }`;
+        ${
+          runtime.agreementDocumentUrl
+            ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementDocumentUrl)}" target="_blank" rel="noopener">Öppna avtal (HTML)</a>${
+                runtime.agreementDocumentPdfUrl
+                  ? ` · <a href="${escapeHtml(runtime.agreementDocumentPdfUrl)}" target="_blank" rel="noopener">PDF</a>`
+                  : ''
+              }</p>`
+            : ''
+        }
+        ${
+          runtime.agreementSignUrl
+            ? `<p class="patient-master-muted"><a href="${escapeHtml(runtime.agreementSignUrl)}" target="_blank" rel="noopener">Signeringssida för kund</a></p>`
+            : ''
+        }
+        ${
+          angerUrl
+            ? `<p class="patient-master-muted"><a href="${escapeHtml(angerUrl)}" target="_blank" rel="noopener">Konsumentverkets ångerblankett (bilaga 3)</a></p>`
+            : ''
+        }`;
 
     const bookingHtml = readout?.bookable
       ? `<div class="patient-master-booking-ready">
@@ -3638,10 +3712,11 @@
             ${activeStepIndex === 1 ? '' : ' hidden'}
           >
             <p class="patient-master-muted">${offerAccepted ? 'Offerten är accepterad.' : 'Väntar på att kunden accepterar offerten.'}</p>
-            ${canCreate
-        ? `<div class="patient-master-plan-photo-actions"><button type="button" class="customers-utility-button" data-patient-action="create-agreement-from-offer">Skapa avtal från offert</button></div>`
-        : ''
-      }
+            ${
+              canCreate
+                ? `<div class="patient-master-plan-photo-actions"><button type="button" class="customers-utility-button" data-patient-action="create-agreement-from-offer">Skapa avtal från offert</button></div>`
+                : ''
+            }
           </section>
           <section
             class="patient-master-agreement-step cco-clinical-step-panel"
@@ -3650,18 +3725,21 @@
             ${activeStepIndex === 2 ? '' : ' hidden'}
           >
             <div class="patient-master-plan-photo-actions">
-              ${canSendSign
-        ? `<button type="button" class="customers-utility-button" data-patient-action="send-agreement-for-sign">Skicka för signering</button>`
-        : ''
-      }
-              ${canAcceptAgreement
-        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement">Signera avtal (staff)</button>`
-        : ''
-      }
-              ${canAcceptAgreement && coolingActive
-        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement" data-patient-force-agreement="1">Tvinga signering</button>`
-        : ''
-      }
+              ${
+                canSendSign
+                  ? `<button type="button" class="customers-utility-button" data-patient-action="send-agreement-for-sign">Skicka för signering</button>`
+                  : ''
+              }
+              ${
+                canAcceptAgreement
+                  ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement">Signera avtal (staff)</button>`
+                  : ''
+              }
+              ${
+                canAcceptAgreement && coolingActive
+                  ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement" data-patient-force-agreement="1">Tvinga signering</button>`
+                  : ''
+              }
             </div>
             ${documentLinksHtml}
           </section>
@@ -3687,22 +3765,26 @@
         <div class="patient-master-plan-photo-actions">
           <a class="customers-utility-button" href="${escapeHtml(patientInfoPdf)}" target="_blank" rel="noopener">Bilaga 1 PDF</a>
           <button type="button" class="customers-utility-button" data-patient-action="send-patient-info">Logga skickad patientinfo</button>
-          ${canCreate
-        ? `<button type="button" class="customers-utility-button" data-patient-action="create-agreement-from-offer">Skapa avtal från offert</button>`
-        : ''
-      }
-          ${canSendSign
-        ? `<button type="button" class="customers-utility-button" data-patient-action="send-agreement-for-sign">Skicka för signering</button>`
-        : ''
-      }
-          ${canAcceptAgreement
-        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement">Signera avtal (staff)</button>`
-        : ''
-      }
-          ${canAcceptAgreement && coolingActive
-        ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement" data-patient-force-agreement="1">Tvinga signering</button>`
-        : ''
-      }
+          ${
+            canCreate
+              ? `<button type="button" class="customers-utility-button" data-patient-action="create-agreement-from-offer">Skapa avtal från offert</button>`
+              : ''
+          }
+          ${
+            canSendSign
+              ? `<button type="button" class="customers-utility-button" data-patient-action="send-agreement-for-sign">Skicka för signering</button>`
+              : ''
+          }
+          ${
+            canAcceptAgreement
+              ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement">Signera avtal (staff)</button>`
+              : ''
+          }
+          ${
+            canAcceptAgreement && coolingActive
+              ? `<button type="button" class="customers-utility-button" data-patient-action="accept-agreement" data-patient-force-agreement="1">Tvinga signering</button>`
+              : ''
+          }
         </div>
         ${documentLinksHtml}
         ${bookingHtml}
@@ -3711,7 +3793,10 @@
   }
 
   function patchCommercialAgreementSidecars() {
-    if (!els.patientRail?.querySelector('[data-patient-detail]:not([data-patient-loading])') || !runtime.detail?.card) {
+    if (
+      !els.patientRail?.querySelector('[data-patient-detail]:not([data-patient-loading])') ||
+      !runtime.detail?.card
+    ) {
       return false;
     }
     const { journalEntries } = runtime.detail;
@@ -3810,6 +3895,16 @@
       } else {
         window.requestAnimationFrame(hydrate);
       }
+    } else if (normalized === 'scalpanalys') {
+      const hydrate = () => {
+        if (runtime.detailTab !== 'scalpanalys') return;
+        void mountScalpAnalysisPanel(rail);
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(hydrate, { timeout: 1200 });
+      } else {
+        window.requestAnimationFrame(hydrate);
+      }
     }
     return true;
   }
@@ -3824,10 +3919,13 @@
     const tab = runtime.detailTab;
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
+    const scalpanalysActive = tab === 'scalpanalys';
     const tidslinjeActive = tab === 'tidslinje';
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
-    const fileCount = Number(card.fileSummary?.totalFiles || runtime.detail.driveFiles?.length || 0);
+    const fileCount = Number(
+      card.fileSummary?.totalFiles || runtime.detail.driveFiles?.length || 0
+    );
 
     rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
@@ -3854,6 +3952,9 @@
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
           ${renderJournalWorkflowCallout(journalEntries)}
           ${renderJournalToolbar(card, journalEntries)}
+        </div>
+        <div class="patient-master-tab-panel${scalpanalysActive ? '' : ' hidden'}" data-patient-tab-panel="scalpanalys">
+          <p class="patient-master-muted" data-patient-shell-placeholder>Laddar hår-/scalpanalys…</p>
         </div>
         <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
           <p class="patient-master-muted" data-patient-shell-placeholder>Laddar tidslinje…</p>
@@ -3897,6 +3998,7 @@
     const tab = runtime.detailTab;
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
+    const scalpanalysActive = tab === 'scalpanalys';
     const tidslinjeActive = tab === 'tidslinje';
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
@@ -3940,19 +4042,25 @@
           </article>
           ${renderPipedriveSection(patient)}
           ${renderMaterialPreview(driveFiles, card)}
-          ${patient?.cliento?.createdAt
-        ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
-        : ''
-      }
+          ${
+            patient?.cliento?.createdAt
+              ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
+              : ''
+          }
         </div>
 
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
           ${renderDraftProposalsPanel()}
-          ${card.journalBlocked
-        ? `<p class="patient-master-block-banner">Journalen är spärrad${card.journalBlockReason ? `: ${escapeHtml(card.journalBlockReason)}` : ''}. Nya eller ändrade poster blockeras.</p>`
-        : ''
-      }
+          ${
+            card.journalBlocked
+              ? `<p class="patient-master-block-banner">Journalen är spärrad${card.journalBlockReason ? `: ${escapeHtml(card.journalBlockReason)}` : ''}. Nya eller ändrade poster blockeras.</p>`
+              : ''
+          }
           ${renderJournalEntries(journalEntries)}
+        </div>
+
+        <div class="patient-master-tab-panel${scalpanalysActive ? '' : ' hidden'}" data-patient-tab-panel="scalpanalys">
+          <div id="cco-scalp-analysis-mount" data-scalp-analysis-mount="${escapeHtml(card.patientId || runtime.selectedPatientId || '')}"></div>
         </div>
 
         <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
@@ -3975,6 +4083,9 @@
     window.requestAnimationFrame(() => {
       bindJournalAutosaveForms();
       focusTimelineSegmentIfNeeded(els.patientRail);
+      if (scalpanalysActive && card?.patientId) {
+        void mountScalpAnalysisPanel(els.patientRail);
+      }
       if (journalActive && card?.patientId) {
         if (runtime.draftProposalsPatientId !== normalizeText(card.patientId)) {
           runtime.draftProposals = null;
@@ -4019,7 +4130,9 @@
     setStatus('Läser kundregister…', 'loading');
     renderPatientRows();
 
-    const deepLinkId = !append ? normalizeText(runtime.pendingPatientId || parseStartupParams().patientId) : '';
+    const deepLinkId = !append
+      ? normalizeText(runtime.pendingPatientId || parseStartupParams().patientId)
+      : '';
     let detailPromise = null;
     if (deepLinkId) {
       runtime.pendingPatientId = '';
@@ -4038,13 +4151,10 @@
 
     try {
       const shellKey = `customers-shell:list:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.offset}`;
-      const payload = await apiRequest(
-        `/api/v1/cco/staff/customers-shell?${params}`,
-        {
-          cacheKey: shellKey,
-          staleTime: window.ArcanaCcoData?.policy?.PATIENT_LIST?.staleTime,
-        }
-      );
+      const payload = await apiRequest(`/api/v1/cco/staff/customers-shell?${params}`, {
+        cacheKey: shellKey,
+        staleTime: window.ArcanaCcoData?.policy?.PATIENT_LIST?.staleTime,
+      });
       const patientsPayload = payload.patients || payload;
       const batch = filterPilotPatients(asArray(patientsPayload.patients));
       runtime.total = getPilotPatientIds().length
@@ -4203,11 +4313,7 @@
     const deadline = performance.now() + maxMs;
     while (performance.now() < deadline) {
       const prefetched = window.__ARCANA_PATIENT_PREFETCH__;
-      if (
-        prefetched &&
-        normalizeText(prefetched.patientId) === key &&
-        prefetched.payload
-      ) {
+      if (prefetched && normalizeText(prefetched.patientId) === key && prefetched.payload) {
         return prefetched.payload;
       }
       if (!window.__ARCANA_DEEPLINK_PREFETCH_INFLIGHT__) break;
@@ -4223,7 +4329,10 @@
     if (runtime.journalLoading) return;
     runtime.journalLoading = true;
     try {
-      const journalPolicy = window.ArcanaCcoData?.policy?.JOURNAL || { staleTime: 0, gcTime: 120000 };
+      const journalPolicy = window.ArcanaCcoData?.policy?.JOURNAL || {
+        staleTime: 0,
+        gcTime: 120000,
+      };
       const payload = await apiRequest(
         `/api/v1/cco-journal/entries?patientId=${encodeURIComponent(key)}&limit=120`,
         {
@@ -4247,14 +4356,20 @@
     }
   }
 
-  async function fetchPatientDetailFromApi(patientId, { includeDriveFiles = true, includeJournal = false } = {}) {
+  async function fetchPatientDetailFromApi(
+    patientId,
+    { includeDriveFiles = true, includeJournal = false } = {}
+  ) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timeoutId = controller ? window.setTimeout(() => controller.abort(), 8000) : 0;
     const driveQuery = includeDriveFiles ? '1' : '0';
     const endpoint = includeJournal
       ? `/api/v1/cco-patient-master/patient?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}&includeJournal=1`
       : `/api/v1/cco-patient-master/patient/summary?patientId=${encodeURIComponent(patientId)}&includeDriveFiles=${driveQuery}`;
-    const detailPolicy = window.ArcanaCcoData?.policy?.PATIENT_DETAIL || { staleTime: 90000, gcTime: 300000 };
+    const detailPolicy = window.ArcanaCcoData?.policy?.PATIENT_DETAIL || {
+      staleTime: 90000,
+      gcTime: 300000,
+    };
     try {
       return await apiRequest(endpoint, {
         ...(controller ? { signal: controller.signal } : {}),
@@ -4293,11 +4408,7 @@
   async function resolvePatientDetailPayload(patientId, { preferLite = false } = {}) {
     const key = normalizeText(patientId);
     const prefetched = window.__ARCANA_PATIENT_PREFETCH__;
-    if (
-      prefetched &&
-      normalizeText(prefetched.patientId) === key &&
-      prefetched.payload
-    ) {
+    if (prefetched && normalizeText(prefetched.patientId) === key && prefetched.payload) {
       delete window.__ARCANA_PATIENT_PREFETCH__;
       return prefetched.payload;
     }
@@ -4415,7 +4526,9 @@
       pushMobilePatientDetailHistory(patientId);
     }
     try {
-      const payload = await resolvePatientDetailPayload(patientId, { preferLite: isMobileViewport() });
+      const payload = await resolvePatientDetailPayload(patientId, {
+        preferLite: isMobileViewport(),
+      });
       runtime.detail = payload;
       runtime.journalLoaded = asArray(payload.journalEntries).length > 0;
       if (!runtime.journalLoaded) {
@@ -5143,7 +5256,8 @@
     const card = runtime.detail?.card;
     const followForm = window.ArcanaJournalFollowUpForm;
     const variant = normalizeText(formVariant) || '4_manader';
-    const config = followForm?.forms?.[variant] || followForm?.resolveForm?.({ formVariant: variant });
+    const config =
+      followForm?.forms?.[variant] || followForm?.resolveForm?.({ formVariant: variant });
     if (!patientId || !card || !config) return;
     setStatus('Skapar uppföljningsjournal…', 'loading');
     try {
@@ -5222,7 +5336,8 @@
       normalizeText(form.dataset.followFormVariant) ||
       normalizeText(entryRoot?.dataset?.followFormVariant) ||
       '4_manader';
-    const config = followForm.forms?.[formVariant] || followForm.resolveForm?.({ formVariant }) || {};
+    const config =
+      followForm.forms?.[formVariant] || followForm.resolveForm?.({ formVariant }) || {};
     setStatus('Sparar uppföljningsjournal…', 'loading');
     try {
       await apiRequest('/api/v1/cco-journal/entry', {
@@ -5516,9 +5631,7 @@
 
       const clearSmokePhotosButton = event.target.closest('[data-patient-clear-smoke-photos]');
       if (clearSmokePhotosButton && runtime.mode === 'register') {
-        void clearSmokeConsultationPhotos(
-          clearSmokePhotosButton.dataset.patientClearSmokePhotos
-        );
+        void clearSmokeConsultationPhotos(clearSmokePhotosButton.dataset.patientClearSmokePhotos);
         return;
       }
 
@@ -5897,7 +6010,7 @@
         navigator.serviceWorker
           .getRegistrations()
           .then((registrations) => Promise.all(registrations.map((reg) => reg.unregister())))
-          .catch(() => { });
+          .catch(() => {});
       };
       if (startup.patientId && isMobileViewport()) {
         if (typeof requestIdleCallback === 'function') {
@@ -5958,9 +6071,13 @@
     if (searchInput) searchInput.value = runtime.query;
     await loadPatientList();
     const match =
-      runtime.patients.find((patient) => normalizeText(patient.primaryEmail).toLowerCase() === email) ||
+      runtime.patients.find(
+        (patient) => normalizeText(patient.primaryEmail).toLowerCase() === email
+      ) ||
       runtime.patients.find((patient) =>
-        nameHint ? normalizeText(patient.displayName).toLowerCase().includes(nameHint.toLowerCase()) : false
+        nameHint
+          ? normalizeText(patient.displayName).toLowerCase().includes(nameHint.toLowerCase())
+          : false
       );
     if (!match) {
       showMobileToast(`Ingen kund hittades${email ? ` för ${email}` : ''}.`);

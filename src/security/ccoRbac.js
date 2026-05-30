@@ -81,8 +81,8 @@ const PERMISSIONS = {
 
   // Sprint B — Offerter (offerts till patient)
   'offer.read': ['owner', 'operator', 'konsult', 'revisor'],
-  'offer.write': ['owner', 'operator'],          // skapa/redigera draft + send + accept/reject
-  'offer.delete': ['owner'],                      // bara owner kan permanenta-radera
+  'offer.write': ['owner', 'operator'], // skapa/redigera draft + send + accept/reject
+  'offer.delete': ['owner'], // bara owner kan permanenta-radera
 
   // Sprint D — Workspace blocking-status (read-only)
   'workspace.read': ['owner', 'operator', 'konsult', 'personal'],
@@ -120,8 +120,8 @@ const PERMISSIONS = {
 
   // Sprint B — Avtal (signerade avtal med patient)
   'agreement.read': ['owner', 'operator', 'konsult', 'revisor'],
-  'agreement.write': ['owner', 'operator'],       // skapa/redigera draft + send
-  'agreement.staff_sign': ['owner'],              // staff-sign override (owner only — Beslut #1)
+  'agreement.write': ['owner', 'operator'], // skapa/redigera draft + send
+  'agreement.staff_sign': ['owner'], // staff-sign override (owner only — Beslut #1)
   'agreement.delete': ['owner'],
 
   // Tenant (multi-tenant switching)
@@ -151,12 +151,19 @@ const PERMISSIONS = {
   'asset.import': ['owner'],
   'asset.review': ['owner', 'operator'],
   'asset.export': ['owner'],
+
+  // Hair TP Imaging & Scalp Analysis (Aisia DS-3 MVP)
+  'scalp.read': ['owner', 'operator', 'konsult', 'personal'],
+  'scalp.write': ['owner', 'operator', 'konsult'],
+  'scalp.verify': ['owner', 'operator', 'konsult'],
 };
 
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor'];
 
 function normalizeRole(role) {
-  const r = String(role || '').toLowerCase().trim();
+  const r = String(role || '')
+    .toLowerCase()
+    .trim();
   return ALL_ROLES.includes(r) ? r : null;
 }
 
@@ -187,12 +194,7 @@ function listPermissionsForRole(role) {
  *   4. fallback: 'operator' (vanligaste vid demo)
  */
 function getRoleFromRequest(req) {
-  return (
-    req.auth?.role ||
-    req.user?.role ||
-    req.headers?.['x-cco-role'] ||
-    'operator'
-  );
+  return req.auth?.role || req.user?.role || req.headers?.['x-cco-role'] || 'operator';
 }
 
 /**

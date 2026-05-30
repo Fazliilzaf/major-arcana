@@ -62,7 +62,7 @@ const STATUS_TRANSITIONS = Object.freeze({
   VERIFIED_IN_CCO: Object.freeze(['VISIBLE_ON_PATIENT_CARD', 'NEEDS_REVIEW']),
   VISIBLE_ON_PATIENT_CARD: Object.freeze(['NEEDS_REVIEW', 'REJECTED']),
   NEEDS_REVIEW: Object.freeze(['VERIFIED_IN_CCO', 'REJECTED']),
-  DUPLICATE: Object.freeze(['REJECTED']),
+  DUPLICATE: Object.freeze(['REJECTED', 'NEEDS_REVIEW', 'VERIFIED_IN_CCO']),
   REJECTED: Object.freeze([]), // terminal
   FAILED_IMPORT: Object.freeze(['DISCOVERED', 'IMPORTING']), // retry
   LINK_ONLY_BLOCKER: Object.freeze(['DISCOVERED', 'IMPORTING']), // unblock by import
@@ -88,14 +88,11 @@ const VALID_SOURCE_SYSTEMS = Object.freeze([
   'old_cco',
   'cco_camera',
   'upload',
-  'cco_journal_sign',  // P0.J.222 — auto-PDF vid signering av CCO-journal
+  'aisia_ds3',
+  'cco_journal_sign', // P0.J.222 — auto-PDF vid signering av CCO-journal
 ]);
 
-const VALID_STORAGE_PROVIDERS = Object.freeze([
-  's3',
-  'local',
-  'encrypted-fs',
-]);
+const VALID_STORAGE_PROVIDERS = Object.freeze(['s3', 'local', 'encrypted-fs']);
 
 const VALID_CONFIDENCE = Object.freeze(['high', 'medium', 'low']);
 
@@ -165,8 +162,7 @@ function normalizeAsset(input = {}, existing = {}) {
   const category = normalizeText(safe.category || ex.category) || null;
   if (category) validateEnum('category', category, VALID_CATEGORIES);
 
-  const status =
-    normalizeText(safe.status || ex.status).toUpperCase() || 'DISCOVERED';
+  const status = normalizeText(safe.status || ex.status).toUpperCase() || 'DISCOVERED';
   validateEnum('status', status, VALID_STATUSES);
 
   const confidence = normalizeText(safe.confidence || ex.confidence) || null;
@@ -178,12 +174,9 @@ function normalizeAsset(input = {}, existing = {}) {
     encounterId: normalizeText(safe.encounterId || ex.encounterId) || null,
     sourceSystem,
     sourceRecordId: normalizeText(safe.sourceRecordId || ex.sourceRecordId) || null,
-    originalDriveFileId:
-      normalizeText(safe.originalDriveFileId || ex.originalDriveFileId) || null,
-    originalDrivePath:
-      normalizeText(safe.originalDrivePath || ex.originalDrivePath) || null,
-    originalFileName:
-      normalizeText(safe.originalFileName || ex.originalFileName) || null,
+    originalDriveFileId: normalizeText(safe.originalDriveFileId || ex.originalDriveFileId) || null,
+    originalDrivePath: normalizeText(safe.originalDrivePath || ex.originalDrivePath) || null,
+    originalFileName: normalizeText(safe.originalFileName || ex.originalFileName) || null,
     storageProvider,
     storageKey: normalizeText(safe.storageKey || ex.storageKey) || null,
     thumbnailKey: normalizeText(safe.thumbnailKey || ex.thumbnailKey) || null,
@@ -191,8 +184,8 @@ function normalizeAsset(input = {}, existing = {}) {
     fileSize: Number.isFinite(Number(safe.fileSize))
       ? Math.max(0, Math.round(Number(safe.fileSize)))
       : Number.isFinite(Number(ex.fileSize))
-      ? Math.max(0, Math.round(Number(ex.fileSize)))
-      : 0,
+        ? Math.max(0, Math.round(Number(ex.fileSize)))
+        : 0,
     mimeType: normalizeText(safe.mimeType || ex.mimeType) || null,
     category,
     documentDate: normalizeText(safe.documentDate || ex.documentDate) || null,
@@ -202,19 +195,15 @@ function normalizeAsset(input = {}, existing = {}) {
     confidence,
     status,
     auditRequired: normalizeBoolean(safe.auditRequired, ex.auditRequired ?? false),
-    isJournalRelevant: normalizeBoolean(
-      safe.isJournalRelevant,
-      ex.isJournalRelevant ?? false
-    ),
-    isPatientVisible: normalizeBoolean(
-      safe.isPatientVisible,
-      ex.isPatientVisible ?? false
-    ),
-    statusHistory: asArray(ex.statusHistory).slice(-49).concat(
-      ex.status && ex.status !== status
-        ? [{ ts: nowIso(), from: ex.status, to: status, reason: safe.statusChangeReason || null }]
-        : []
-    ),
+    isJournalRelevant: normalizeBoolean(safe.isJournalRelevant, ex.isJournalRelevant ?? false),
+    isPatientVisible: normalizeBoolean(safe.isPatientVisible, ex.isPatientVisible ?? false),
+    statusHistory: asArray(ex.statusHistory)
+      .slice(-49)
+      .concat(
+        ex.status && ex.status !== status
+          ? [{ ts: nowIso(), from: ex.status, to: status, reason: safe.statusChangeReason || null }]
+          : []
+      ),
     createdAt: normalizeText(ex.createdAt) || nowIso(),
     updatedAt: nowIso(),
   };
@@ -251,15 +240,9 @@ function maskPiiInAuditPayload(asset = {}) {
     delete masked.originalFileName;
   }
   if (masked.originalDrivePath) {
-    const segments = String(masked.originalDrivePath)
-      .split('/')
-      .filter(Boolean);
+    const segments = String(masked.originalDrivePath).split('/').filter(Boolean);
     masked.originalDrivePath_structure = segments
-      .map(
-        (s) =>
-          'seg-' +
-          crypto.createHash('sha256').update(s).digest('hex').slice(0, 8)
-      )
+      .map((s) => 'seg-' + crypto.createHash('sha256').update(s).digest('hex').slice(0, 8))
       .join('/');
     masked.originalDrivePath_depth = segments.length;
     delete masked.originalDrivePath;
@@ -400,14 +383,11 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       list = list.filter((a) => a.isPatientVisible === f.isPatientVisible);
     }
     const result = list.map((a) => ({ ...a }));
-    logAudit(
-      auditLog,
-      'asset.read',
-      { patientId: pId, id: null },
-      actor,
-      'ok',
-      { scope: 'patient', count: result.length, filters: Object.keys(f) }
-    );
+    logAudit(auditLog, 'asset.read', { patientId: pId, id: null }, actor, 'ok', {
+      scope: 'patient',
+      count: result.length,
+      filters: Object.keys(f),
+    });
     return result;
   }
 
@@ -417,14 +397,10 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     const result = Object.values(state.items)
       .filter((a) => (a.encounterId || '') === eId)
       .map((a) => ({ ...a }));
-    logAudit(
-      auditLog,
-      'asset.read',
-      { encounterId: eId, id: null },
-      actor,
-      'ok',
-      { scope: 'encounter', count: result.length }
-    );
+    logAudit(auditLog, 'asset.read', { encounterId: eId, id: null }, actor, 'ok', {
+      scope: 'encounter',
+      count: result.length,
+    });
     return result;
   }
 
@@ -482,7 +458,8 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     if (!existing.checksum) missing.push('checksum');
     if (!(Number(existing.fileSize) > 0)) missing.push('fileSize>0');
     if (!existing.mimeType) missing.push('mimeType');
-    if (existing.status !== 'VERIFIED_IN_CCO') missing.push(`status=VERIFIED_IN_CCO (was ${existing.status})`);
+    if (existing.status !== 'VERIFIED_IN_CCO')
+      missing.push(`status=VERIFIED_IN_CCO (was ${existing.status})`);
     if (missing.length) {
       const e = new Error(
         `markAsVisibleOnPatientCard: kan inte lyfta asset ${assetId} till VISIBLE_ON_PATIENT_CARD. ` +
@@ -542,10 +519,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     }
     // Sätt patientId + confidence='medium' (manuellt review)
     const previousPatientId = existing.patientId || null;
-    const merged = normalizeAsset(
-      { ...existing, patientId: pId, confidence: 'medium' },
-      existing
-    );
+    const merged = normalizeAsset({ ...existing, patientId: pId, confidence: 'medium' }, existing);
     state.items[id] = merged;
     await save();
     // Audit: asset.reassigned_to_patient
@@ -638,10 +612,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
    * `asset.status_changed` så att soft-delete kan ärendegranskas direkt
    * från audit-loggen utan att joina med status-changed-historiken.
    */
-  async function softDeleteAsset(
-    id,
-    { reason = null, actor = {}, target = 'REJECTED' } = {}
-  ) {
+  async function softDeleteAsset(id, { reason = null, actor = {}, target = 'REJECTED' } = {}) {
     if (!SOFT_DELETE_TARGETS.includes(target)) {
       const e = new Error(
         `softDeleteAsset: target måste vara REJECTED, DUPLICATE eller NEEDS_REVIEW (fick "${target}").`
@@ -835,8 +806,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       return {
         ready: false,
         reason: 'empty_store',
-        message:
-          'Tom store — pipeline har aldrig körts. Sanity check OK men inte cutover-bevis.',
+        message: 'Tom store — pipeline har aldrig körts. Sanity check OK men inte cutover-bevis.',
       };
     }
     if (s.linkOnlyBlockerCount > 0) {
