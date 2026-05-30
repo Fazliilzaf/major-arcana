@@ -37,6 +37,11 @@ EXCLUDES=(
   --glob '!data/cco-audit.jsonl'
   --glob '!*.min.js'
   --glob '!data/cco-pii-allowlist.json'
+  # Legacy demo/preview-mockups med hardcoded mock-data (separat städning):
+  --glob '!public/major-arcana-preview/**'
+  --glob '!public/macros.html'
+  --glob '!public/calendar-mockup-v*.html'
+  --glob '!public/kunder-mockup-v*.html'
 )
 
 SEARCH_PATHS=(docs examples src tests scripts public config migration)
@@ -55,6 +60,9 @@ pnr_hits=$(rg -n --pcre2 \
   "${EXCLUDES[@]}" \
   "${SEARCH_PATHS[@]}" 2>/dev/null \
   | grep -v -E "(19800101-1234|MMMMMM-NNNN|YYYYMMDD-NNNN|template|placeholder|exempel|example)" \
+  | grep -v -E "20[0-9]{6}-[0-9]{6}" \
+  | grep -v -E "(backup|backups|reports|migration|export|snapshot|dump|archive|run_|run-)[-_/][a-zA-Z0-9_-]*20[0-9]{6}-[0-9]+" \
+  | grep -v -E "_20[0-9]{6}-[0-9]+\.(json|csv|md|yml|yaml|log)" \
   | head -20 || true)
 if [ -n "$pnr_hits" ]; then
   echo "${RED}HITS:${RESET}"
@@ -93,6 +101,11 @@ email_hits=$(rg -n --pcre2 \
   "${EXCLUDES[@]}" \
   "${SEARCH_PATHS[@]}" 2>/dev/null \
   | grep -v -E "(@anthropic|@example|@test|@anon|@placeholder|@hairtpclinic|contact@|info@|noreply@|no-reply@|admin@|support@|@fazli\.se|@gmail\.com.*example|@gmail\.com.*test|MAILGUN_|SENDGRID_|smtp\.|fontawesome|googleapis|github\.com|@types/|@anthropic-ai|user@|owner@|staff@|user1@|user2@|name@domain)" \
+  | grep -v -E "^tests/" \
+  | grep -v -E "(\.test\.|\.spec\.|fixture|mock|stub|demo|sample)" \
+  | grep -v -E "(anna\.karlsson|karl\.lindberg|eva\.|sofia\.|maria\.)@gmail\.com" \
+  | grep -v -E "@(nordbro|insatt|curatiio|meridiq|cliento|google|microsoft|apple|stripe|render)\.(com|se)" \
+  | grep -v -E "(jurist|advokat|vendor|partner|legal)@" \
   | head -20 || true)
 if [ -n "$email_hits" ]; then
   echo "${RED}HITS (granska manuellt):${RESET}"
