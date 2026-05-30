@@ -36,6 +36,2517 @@ if (config.trustProxy) app.set('trust proxy', 1);
 app.use(cors(createCorsPolicy(config)));
 app.use(express.json({ limit: '10mb' }));
 
+// ─── CCO Kunder-modul: lista, dossiér, foto-storage + iCal ─────────
+try {
+  const customersPatch = require('./public/major-arcana-preview/customers/server-patch');
+  customersPatch(app, {
+    dataDir: path.join(__dirname, 'data'),
+    uploadDir: path.join(__dirname, 'data', 'photos'),
+  });
+  const icalPatch = require('./public/major-arcana-preview/customers/ical-patch');
+  icalPatch(app, {});
+} catch (err) {
+  console.warn('[cco-customers] kunde inte montera modul:', err.message);
+}
+
+// ── CCO RBAC + Audit-log (Sprint 1.1 + 1.2) ─────────────────────
+let ccoAuditLog = null;
+try {
+  const { createCcoAuditLog } = require('./src/security/ccoAuditLog');
+  const { requireAnyRole, attachRole } = require('./src/security/ccoRbac');
+  ccoAuditLog = createCcoAuditLog({
+    filePath: path.join(__dirname, 'data', 'cco-audit.jsonl'),
+  });
+
+  // GET /api/v1/cco-audit — bara owner+revisor
+  app.get('/api/v1/cco-audit', attachRole, requireAnyRole(['owner', 'revisor']), (req, res) => {
+    const items = ccoAuditLog.query({
+      limit: Number(req.query.limit) || 100,
+      since: req.query.since || null,
+      action: req.query.action || null,
+      role: req.query.role || null,
+      targetId: req.query.targetId || null,
+    });
+    res.json({ count: items.length, items, stats: ccoAuditLog.stats() });
+  });
+
+  // POST /api/v1/cco-audit — interna systemet kan logga
+  const express = require('express');
+  app.post('/api/v1/cco-audit', attachRole, express.json({ limit: '8kb' }), (req, res) => {
+    const entry = ccoAuditLog.append({
+      ...req.body,
+      actor: {
+        role: req.cco?.role || 'system',
+        ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim(),
+        ...(req.body?.actor || {}),
+      },
+    });
+    res.json({ ok: true, traceId: entry.traceId });
+  });
+
+  // Expose to other handlers via app.locals
+  app.locals.ccoAuditLog = ccoAuditLog;
+  console.log('[cco-audit] monterad: GET /api/v1/cco-audit (owner/revisor only) + POST');
+} catch (err) {
+  console.warn('[cco-audit] kunde inte montera:', err.message);
+}
+
+// ── CCO Booking-Case Flow (Sprint 1.3) ──────────────────────────
+let ccoBookingCaseStore = null;
+(async () => {
+  try {
+    const { createCcoBookingCaseStore } = require('./src/ops/ccoBookingCaseStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    ccoBookingCaseStore = await createCcoBookingCaseStore({
+      filePath: path.join(__dirname, 'data', 'cco-booking-cases.json'),
+      auditLog: ccoAuditLog,
+    });
+    const express = require('express');
+    const jsonParser = express.json({ limit: '32kb' });
+
+    app.get('/api/v1/cco-booking-cases', attachRole, requirePermission('bookings.read'), async (req, res) => {
+      try {
+        const list = await ccoBookingCaseStore.listCases({
+          tenantId: req.query.tenantId || 'hairtp-clinic',
+          state: req.query.state || null,
+          assignedTo: req.query.assignedTo || null,
+          limit: Number(req.query.limit) || 200,
+        });
+        res.json({ count: list.length, items: list, stats: ccoBookingCaseStore.stats() });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    app.get('/api/v1/cco-booking-cases/:id', attachRole, requirePermission('bookings.read'), async (req, res) => {
+      const c = await ccoBookingCaseStore.getCase(req.params.id);
+      if (!c) return res.status(404).json({ error: 'not_found' });
+      res.json(c);
+    });
+
+    app.post('/api/v1/cco-booking-cases', attachRole, requirePermission('bookings.write'), jsonParser, async (req, res) => {
+      try {
+        const c = await ccoBookingCaseStore.createCase(req.body || {}, { role: req.cco?.role });
+        res.json(c);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/v1/cco-booking-cases/:id/candidates', attachRole, requirePermission('bookings.write'), jsonParser, async (req, res) => {
+      try {
+        const c = await ccoBookingCaseStore.proposeCandidate(req.params.id, req.body || {}, { role: req.cco?.role });
+        res.json(c);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/v1/cco-booking-cases/:id/transition', attachRole, requirePermission('bookings.case_decide'), jsonParser, async (req, res) => {
+      try {
+        const { toState, ...payload } = req.body || {};
+        if (!toState) return res.status(400).json({ error: 'toState required' });
+        const c = await ccoBookingCaseStore.transitionState(req.params.id, toState, { role: req.cco?.role }, payload);
+        res.json(c);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/v1/cco-booking-cases/:id/handoff', attachRole, requirePermission('bookings.handoff'), jsonParser, async (req, res) => {
+      try {
+        const c = await ccoBookingCaseStore.updateHandoffChecklist(req.params.id, req.body || {}, { role: req.cco?.role });
+        res.json(c);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    app.post('/api/v1/cco-booking-cases/:id/handoff/complete', attachRole, requirePermission('bookings.handoff'), async (req, res) => {
+      try {
+        const c = await ccoBookingCaseStore.attemptHandoffComplete(req.params.id, { role: req.cco?.role });
+        res.json(c);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    app.locals.ccoBookingCaseStore = ccoBookingCaseStore;
+    console.log('[cco-booking-cases] monterad: GET/POST /api/v1/cco-booking-cases/* (RBAC-skyddat)');
+  } catch (err) {
+    console.warn('[cco-booking-cases] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Customer Identity routes (Sprint 2.1) ───────────────────
+(async () => {
+  try {
+    const { createCcoCustomerStore } = require('./src/ops/ccoCustomerStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    const identityStore = await createCcoCustomerStore({
+      filePath: path.join(__dirname, 'data', 'cco-customers.json'),
+    });
+    const express = require('express');
+    const jsonParser = express.json({ limit: '256kb' });
+    const DEFAULT_TENANT = process.env.ARCANA_DEFAULT_TENANT_ID || 'hairtp-clinic';
+
+    function withAudit(action, fn) {
+      return async (req, res) => {
+        try {
+          const result = await fn(req);
+          if (ccoAuditLog) ccoAuditLog.append({
+            action: `customers.${action}`,
+            actor: { role: req.cco?.role || 'unknown', ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim() },
+            target: { kind: 'customer', id: req.body?.primaryKey || req.body?.sourceKey || null, tenantId: req.body?.tenantId || DEFAULT_TENANT },
+            detail: { method: req.method, path: req.path },
+          });
+          res.json(result);
+        } catch (err) {
+          if (ccoAuditLog) ccoAuditLog.append({
+            action: `customers.${action}`,
+            actor: { role: req.cco?.role || 'unknown' },
+            result: 'error',
+            detail: { error: err.message, status: err.statusCode || 500 },
+          });
+          res.status(err.statusCode || 500).json({ error: err.message });
+        }
+      };
+    }
+
+    // GET state (med suggestions)
+    app.get('/api/v1/cco-customer-identity/suggestions', attachRole, requirePermission('customers.read'), withAudit('suggestions.list', async (req) => {
+      const tenantId = req.query.tenantId || DEFAULT_TENANT;
+      const data = await identityStore.previewTenantCustomerIdentity({ tenantId });
+      return {
+        suggestions: data.customerIdentitySuggestions || [],
+        count: (data.customerIdentitySuggestions || []).length,
+        tenantId,
+      };
+    }));
+
+    // Merge
+    app.post('/api/v1/cco-customer-identity/merge', attachRole, requirePermission('customers.merge'), jsonParser, withAudit('merge', async (req) => {
+      const { tenantId = DEFAULT_TENANT, primaryKey, secondaryKeys, keepEmails = true, keepPhones = true, combineNotes = true } = req.body || {};
+      if (!primaryKey || !Array.isArray(secondaryKeys) || !secondaryKeys.length) {
+        const err = new Error('primaryKey + secondaryKeys[] krävs');
+        err.statusCode = 400;
+        throw err;
+      }
+      return identityStore.mergeTenantCustomerProfiles({
+        tenantId, primaryKey, secondaryKeys,
+        options: { keepEmails, keepPhones, combineNotes },
+      });
+    }));
+
+    // Split
+    app.post('/api/v1/cco-customer-identity/split', attachRole, requirePermission('customers.split'), jsonParser, withAudit('split', async (req) => {
+      const { tenantId = DEFAULT_TENANT, sourceKey, aliasesToSplit } = req.body || {};
+      if (!sourceKey || !Array.isArray(aliasesToSplit) || !aliasesToSplit.length) {
+        const err = new Error('sourceKey + aliasesToSplit[] krävs');
+        err.statusCode = 400;
+        throw err;
+      }
+      return identityStore.splitTenantCustomerProfile({ tenantId, sourceKey, aliasesToSplit });
+    }));
+
+    // Import — preview + commit
+    app.post('/api/v1/cco-customer-identity/import/preview', attachRole, requirePermission('customers.import'), jsonParser, withAudit('import.preview', async (req) => {
+      const { tenantId = DEFAULT_TENANT, importText = '', rows = null, binaryBase64 = '', fileName = '', defaultMailboxId = '', sourceSystem = '' } = req.body || {};
+      return identityStore.previewTenantCustomerImport({ tenantId, importText, rows, binaryBase64, fileName, defaultMailboxId, sourceSystem });
+    }));
+
+    app.post('/api/v1/cco-customer-identity/import/commit', attachRole, requirePermission('customers.import'), jsonParser, withAudit('import.commit', async (req) => {
+      const { tenantId = DEFAULT_TENANT, planId, ...rest } = req.body || {};
+      return identityStore.commitTenantCustomerImport({ tenantId, planId, ...rest });
+    }));
+
+    // Dismiss / accept suggestion
+    app.post('/api/v1/cco-customer-identity/suggestion/dismiss', attachRole, requirePermission('customers.merge'), jsonParser, withAudit('suggestion.dismiss', async (req) => {
+      const { tenantId = DEFAULT_TENANT, suggestionId, reasonCode } = req.body || {};
+      if (!suggestionId) {
+        const err = new Error('suggestionId krävs');
+        err.statusCode = 400;
+        throw err;
+      }
+      return identityStore.dismissTenantCustomerSuggestion({ tenantId, suggestionId, reasonCode });
+    }));
+
+    // Primary email
+    app.post('/api/v1/cco-customer-identity/primary-email', attachRole, requirePermission('customers.merge'), jsonParser, withAudit('primary_email.set', async (req) => {
+      const { tenantId = DEFAULT_TENANT, customerKey, email } = req.body || {};
+      if (!customerKey || !email) {
+        const err = new Error('customerKey + email krävs');
+        err.statusCode = 400;
+        throw err;
+      }
+      return identityStore.setTenantCustomerPrimaryEmail({ tenantId, customerKey, email });
+    }));
+
+    console.log('[cco-customer-identity] monterad: 6 routes (merge/split/import/suggestions) med RBAC + audit');
+  } catch (err) {
+    console.warn('[cco-customer-identity] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Mailbox-admin (Sprint 2.2) ──────────────────────────────
+(async () => {
+  try {
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    const express = require('express');
+    const jsonParser = express.json({ limit: '16kb' });
+    const mailboxFile = path.join(__dirname, 'data', 'cco-mailboxes.json');
+    const fsp = require('fs').promises;
+
+    async function loadMailboxes() {
+      try { return JSON.parse(await fsp.readFile(mailboxFile, 'utf8')); }
+      catch { return { mailboxes: [], updatedAt: new Date().toISOString() }; }
+    }
+    async function saveMailboxes(data) {
+      data.updatedAt = new Date().toISOString();
+      await fsp.writeFile(mailboxFile, JSON.stringify(data, null, 2));
+    }
+
+    app.get('/api/v1/cco-mailboxes', attachRole, requirePermission('mailbox.admin'), async (req, res) => {
+      const data = await loadMailboxes();
+      res.json(data);
+    });
+
+    app.post('/api/v1/cco-mailboxes', attachRole, requirePermission('mailbox.admin'), jsonParser, async (req, res) => {
+      try {
+        const { id, name, email, owner, signature = '', tenantId = 'hairtp-clinic' } = req.body || {};
+        if (!id || !name || !email) return res.status(400).json({ error: 'id, name, email krävs' });
+        const data = await loadMailboxes();
+        const existing = data.mailboxes.find((m) => m.id === id);
+        const entry = { id, name, email, owner, signature, tenantId, updatedAt: new Date().toISOString() };
+        if (existing) Object.assign(existing, entry);
+        else { entry.createdAt = entry.updatedAt; data.mailboxes.push(entry); }
+        await saveMailboxes(data);
+        if (ccoAuditLog) ccoAuditLog.append({
+          action: existing ? 'mailbox.updated' : 'mailbox.created',
+          actor: { role: req.cco?.role },
+          target: { kind: 'mailbox', id },
+        });
+        res.json(entry);
+      } catch (err) { res.status(500).json({ error: err.message }); }
+    });
+
+    app.delete('/api/v1/cco-mailboxes/:id', attachRole, requirePermission('mailbox.admin'), async (req, res) => {
+      try {
+        const data = await loadMailboxes();
+        const before = data.mailboxes.length;
+        data.mailboxes = data.mailboxes.filter((m) => m.id !== req.params.id);
+        if (data.mailboxes.length === before) return res.status(404).json({ error: 'not_found' });
+        await saveMailboxes(data);
+        if (ccoAuditLog) ccoAuditLog.append({
+          action: 'mailbox.deleted',
+          actor: { role: req.cco?.role },
+          target: { kind: 'mailbox', id: req.params.id },
+        });
+        res.json({ ok: true });
+      } catch (err) { res.status(500).json({ error: err.message }); }
+    });
+
+    // Seed med default mailboxes om filen är tom
+    const initial = await loadMailboxes();
+    if (!initial.mailboxes.length) {
+      initial.mailboxes = [
+        { id: 'contact', name: 'Kontakt', email: 'contact@hairtpclinic.com', owner: 'team', signature: 'Hair TP Clinic — Sveavägen 42, 113 50 Stockholm · 08-555 123 45', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'info', name: 'Info & prisförfrågningar', email: 'info@hairtpclinic.com', owner: 'fazli', signature: 'Fazli · Hair TP Clinic\n08-555 123 45', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'egzona', name: 'Egzona (patientansvarig)', email: 'egzona@hairtpclinic.com', owner: 'egzona', signature: 'Egzona M. · Customer Lead\nHair TP Clinic · 08-555 123 45', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'fazli', name: 'Fazli (medicinskt ansvarig)', email: 'fazli@hairtpclinic.com', owner: 'fazli', signature: 'Dr. Fazli · Medical Director\nHair TP Clinic · 08-555 123 45', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'marknad', name: 'Marknad', email: 'marknad@hairtpclinic.com', owner: 'marknad', signature: 'Hair TP Clinic · marknad', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'receipt', name: 'Receipts & system', email: 'receipt@hairtpclinic.com', owner: 'system', signature: '', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'kons', name: 'Konsultationer', email: 'kons@hairtpclinic.com', owner: 'fazli', signature: 'Hair TP Clinic · konsultation', tenantId: 'hairtp-clinic', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      ];
+      await saveMailboxes(initial);
+    }
+    console.log('[cco-mailboxes] monterad: GET/POST/DELETE /api/v1/cco-mailboxes (RBAC: mailbox.admin)');
+  } catch (err) {
+    console.warn('[cco-mailboxes] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Policy Store + Snooze (Sprint 3.1-3.4) ──────────────────
+(async () => {
+  try {
+    const { createCcoPolicyStore, createCcoMailSnoozeStore } = require('./src/ops/ccoPolicyStore');
+    const { attachRole, requirePermission, requireAnyRole } = require('./src/security/ccoRbac');
+    const policyStore = await createCcoPolicyStore({
+      filePath: path.join(__dirname, 'data', 'cco-policies.json'),
+      auditLog: ccoAuditLog,
+    });
+    const snoozeStore = await createCcoMailSnoozeStore({
+      filePath: path.join(__dirname, 'data', 'cco-mail-snoozes.json'),
+      auditLog: ccoAuditLog,
+    });
+    const express = require('express');
+    const jsonParser = express.json({ limit: '16kb' });
+
+    // GET hela paketet eller bara en sektion
+    app.get('/api/v1/cco-policies', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json({ policies: policyStore.get(), updatedAt: new Date().toISOString() });
+    });
+
+    app.get('/api/v1/cco-policies/:section', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json(policyStore.get(req.params.section));
+    });
+
+    // PATCH section (bara owner — settings.write)
+    app.patch('/api/v1/cco-policies/:section', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try {
+        const updated = await policyStore.update(req.params.section, req.body || {}, { role: req.cco?.role });
+        res.json(updated);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // Reset (bara owner)
+    app.post('/api/v1/cco-policies/:section/reset', attachRole, requireAnyRole(['owner']), async (req, res) => {
+      try {
+        const reset = await policyStore.reset(req.params.section === 'all' ? null : req.params.section, { role: req.cco?.role });
+        res.json(reset);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // Booking-evaluering — kan kallas innan en bok skapas
+    app.post('/api/v1/cco-policies/booking/evaluate', attachRole, requirePermission('bookings.read'), jsonParser, (req, res) => {
+      const { startsAt } = req.body || {};
+      if (!startsAt) return res.status(400).json({ error: 'startsAt krävs' });
+      res.json(policyStore.evaluateBooking(startsAt));
+    });
+
+    app.post('/api/v1/cco-policies/cancellation/evaluate', attachRole, requirePermission('bookings.read'), jsonParser, (req, res) => {
+      const { startsAt } = req.body || {};
+      if (!startsAt) return res.status(400).json({ error: 'startsAt krävs' });
+      res.json(policyStore.evaluateCancellation(startsAt));
+    });
+
+    // Office hours status (alla roller får läsa)
+    app.get('/api/v1/cco-office-hours/status', attachRole, (req, res) => {
+      res.json({
+        isOpenNow: policyStore.isOpenNow(),
+        shouldAutoReply: policyStore.shouldAutoReply(),
+        config: policyStore.get('officeHours'),
+        now: new Date().toISOString(),
+      });
+    });
+
+    // Auto-assign — körs av mejl-pipeline
+    app.post('/api/v1/cco-policies/autoassign/evaluate', attachRole, requirePermission('mail.read'), jsonParser, (req, res) => {
+      const mail = req.body || {};
+      res.json(policyStore.assignMail(mail));
+    });
+
+    // Auto-assign-regler CRUD
+    app.post('/api/v1/cco-policies/autoassign/rules', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try {
+        const r = await policyStore.upsertAutoAssignRule(req.body || {}, { role: req.cco?.role });
+        res.json(r);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.delete('/api/v1/cco-policies/autoassign/rules/:id', attachRole, requirePermission('settings.write'), async (req, res) => {
+      try {
+        const r = await policyStore.deleteAutoAssignRule(req.params.id, { role: req.cco?.role });
+        res.json(r);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // ─ Mail snooze ──────────────────────────────────────
+    app.post('/api/v1/cco-mail-snooze/:threadId', attachRole, requirePermission('mail.read'), jsonParser, async (req, res) => {
+      try {
+        const { untilIso, snoozeDays } = req.body || {};
+        let until = untilIso;
+        if (!until && snoozeDays) {
+          until = new Date(Date.now() + Number(snoozeDays) * 86400000).toISOString();
+        }
+        const result = await snoozeStore.snooze(req.params.threadId, until, { role: req.cco?.role });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.delete('/api/v1/cco-mail-snooze/:threadId', attachRole, requirePermission('mail.read'), async (req, res) => {
+      try {
+        await snoozeStore.unsnooze(req.params.threadId, { role: req.cco?.role });
+        res.json({ ok: true });
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-mail-snooze', attachRole, requirePermission('mail.read'), (req, res) => {
+      res.json({
+        all: snoozeStore.list(),
+        active: snoozeStore.active(),
+        ready: snoozeStore.ready(),
+      });
+    });
+
+    app.locals.ccoPolicyStore = policyStore;
+    app.locals.ccoMailSnoozeStore = snoozeStore;
+    console.log('[cco-policies] monterad: GET/PATCH /api/v1/cco-policies/* (Sprint 3.1-3.4)');
+    console.log('[cco-mail-snooze] monterad: POST/DELETE/GET /api/v1/cco-mail-snooze/* (Sprint 3.3)');
+  } catch (err) {
+    console.warn('[cco-policies] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Telemetry + Collaboration (Sprint 4.1-4.2) ──────────────
+let ccoTelemetryStore = null;
+let ccoCollabStore = null;
+(async () => {
+  try {
+    const { createCcoTelemetryStore, createCcoCollaborationStore } = require('./src/ops/ccoTelemetryStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    ccoTelemetryStore = await createCcoTelemetryStore({
+      filePath: path.join(__dirname, 'data', 'cco-telemetry.json'),
+      auditLog: ccoAuditLog,
+      bookingCaseStore: app.locals.ccoBookingCaseStore,
+    });
+    ccoCollabStore = await createCcoCollaborationStore({
+      filePath: path.join(__dirname, 'data', 'cco-collaboration.json'),
+      auditLog: ccoAuditLog,
+    });
+    const express = require('express');
+    const jsonParser = express.json({ limit: '8kb' });
+
+    // ─ Telemetry — RBAC: GET = settings.read, write = settings.write ─
+    app.get('/api/v1/cco-telemetry/live', attachRole, requirePermission('settings.read'), async (req, res) => {
+      try { res.json(await ccoTelemetryStore.liveMetrics()); }
+      catch (err) { res.status(500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-telemetry/team', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json(ccoTelemetryStore.teamStats(req.query.period || 'week'));
+    });
+
+    app.get('/api/v1/cco-telemetry/user/:userId', attachRole, requirePermission('settings.read'), (req, res) => {
+      const u = ccoTelemetryStore.userStats(req.params.userId);
+      if (!u) return res.status(404).json({ error: 'user_not_found' });
+      res.json(u);
+    });
+
+    app.get('/api/v1/cco-telemetry/leaderboard', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json({ leaderboard: ccoTelemetryStore.leaderboard() });
+    });
+
+    app.get('/api/v1/cco-telemetry/top-templates', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json({ templates: ccoTelemetryStore.topTemplates() });
+    });
+
+    app.get('/api/v1/cco-telemetry/coaching', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json({ tips: ccoTelemetryStore.coachingInsights(req.query.userId || null) });
+    });
+
+    // Write — owner only
+    app.post('/api/v1/cco-telemetry/daily', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try {
+        const result = await ccoTelemetryStore.recordDaily(req.body || {}, { role: req.cco?.role });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.post('/api/v1/cco-telemetry/user/:userId', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try {
+        const result = await ccoTelemetryStore.updateUserStats(req.params.userId, req.body || {}, { role: req.cco?.role });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // ─ Collaboration — GET = mail.read; write/heartbeat = automation.edit ─
+    app.post('/api/v1/cco-collaboration/:resourceId/heartbeat', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
+      try {
+        const userId = req.body?.userId || req.cco?.role || 'unknown';
+        const result = await ccoCollabStore.heartbeat(req.params.resourceId, userId, req.cco?.role);
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-collaboration/:resourceId/presence', attachRole, requirePermission('automation.read'), (req, res) => {
+      res.json({ active: ccoCollabStore.activePresence(req.params.resourceId) });
+    });
+
+    app.post('/api/v1/cco-collaboration/:resourceId/lock', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
+      try {
+        const { nodeId } = req.body || {};
+        const userId = req.body?.userId || req.cco?.role || 'unknown';
+        const lock = await ccoCollabStore.acquireLock(req.params.resourceId, nodeId, userId, req.cco?.role);
+        res.json(lock);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message, lockedBy: err.lockedBy }); }
+    });
+
+    app.delete('/api/v1/cco-collaboration/:resourceId/lock', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
+      try {
+        const userId = req.body?.userId || req.cco?.role || 'unknown';
+        await ccoCollabStore.releaseLock(req.params.resourceId, req.body?.nodeId, userId);
+        res.json({ ok: true });
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-collaboration/:resourceId/locks', attachRole, requirePermission('automation.read'), (req, res) => {
+      res.json({ locks: ccoCollabStore.activeLocks(req.params.resourceId) });
+    });
+
+    app.post('/api/v1/cco-collaboration/:resourceId/comments', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
+      try {
+        const { body, nodeId } = req.body || {};
+        const userId = req.body?.userId || req.cco?.role || 'unknown';
+        const c = await ccoCollabStore.postComment(req.params.resourceId, body, userId, req.cco?.role, nodeId);
+        res.json(c);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-collaboration/:resourceId/comments', attachRole, requirePermission('automation.read'), (req, res) => {
+      res.json({ comments: ccoCollabStore.listComments(req.params.resourceId) });
+    });
+
+    app.post('/api/v1/cco-collaboration/:resourceId/comments/:commentId/resolve', attachRole, requirePermission('automation.edit'), jsonParser, async (req, res) => {
+      try {
+        const userId = req.body?.userId || req.cco?.role || 'unknown';
+        const c = await ccoCollabStore.resolveComment(req.params.resourceId, req.params.commentId, userId);
+        res.json(c);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.locals.ccoTelemetryStore = ccoTelemetryStore;
+    app.locals.ccoCollabStore = ccoCollabStore;
+    console.log('[cco-telemetry] monterad: 7 routes /api/v1/cco-telemetry/* (RBAC: settings.read/write)');
+    console.log('[cco-collaboration] monterad: 7 routes /api/v1/cco-collaboration/* (RBAC: automation.read/edit)');
+  } catch (err) {
+    console.warn('[cco-telemetry/collaboration] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Brand + User + Notifications + Cron (Sprint 5.1-5.4) ───
+(async () => {
+  try {
+    const {
+      createCcoBrandStore,
+      createCcoUserStore,
+      createCcoNotificationStore,
+      createCronScheduler,
+    } = require('./src/ops/ccoBrandUserStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+
+    const brandStore = await createCcoBrandStore({
+      filePath: path.join(__dirname, 'data', 'cco-brands.json'),
+      auditLog: ccoAuditLog,
+    });
+    const userStore = await createCcoUserStore({
+      filePath: path.join(__dirname, 'data', 'cco-users.json'),
+      auditLog: ccoAuditLog,
+    });
+    const notificationStore = await createCcoNotificationStore({
+      filePath: path.join(__dirname, 'data', 'cco-notifications.json'),
+      auditLog: ccoAuditLog,
+    });
+    const cronScheduler = createCronScheduler({
+      notificationStore,
+      telemetryStore: app.locals.ccoTelemetryStore,
+      intervalMs: 60000,
+    });
+
+    const express = require('express');
+    const jsonParser = express.json({ limit: '32kb' });
+
+    // ─ BRAND — RBAC: read=settings.read, write=settings.write ─
+    app.get('/api/v1/cco-brands', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json({ brands: brandStore.list() });
+    });
+    app.get('/api/v1/cco-brands/:tenantId', attachRole, requirePermission('settings.read'), (req, res) => {
+      const b = brandStore.get(req.params.tenantId);
+      if (!b) return res.status(404).json({ error: 'not_found' });
+      res.json(b);
+    });
+    app.patch('/api/v1/cco-brands/:tenantId', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try { res.json(await brandStore.upsert(req.params.tenantId, req.body || {}, { role: req.cco?.role })); }
+      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+    app.delete('/api/v1/cco-brands/:tenantId', attachRole, requirePermission('settings.write'), async (req, res) => {
+      try { res.json(await brandStore.remove(req.params.tenantId, { role: req.cco?.role })); }
+      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // ─ USER — RBAC: read=settings.read, write=settings.write (eller egen user) ─
+    app.get('/api/v1/cco-users', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json({ users: userStore.list().map((u) => ({ ...u, prefs: u.prefs, signature: u.signature ? '[SET]' : '' })) });
+    });
+    app.get('/api/v1/cco-users/:userId', attachRole, requirePermission('settings.read'), (req, res) => {
+      const u = userStore.get(req.params.userId);
+      if (!u) return res.status(404).json({ error: 'not_found' });
+      res.json(u);
+    });
+    app.patch('/api/v1/cco-users/:userId', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try { res.json(await userStore.upsert(req.params.userId, req.body || {}, { role: req.cco?.role })); }
+      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // ─ NOTIFICATIONS (push subs + SMS-config + cron-jobs) ─
+    app.get('/api/v1/cco-notifications/push-subscriptions', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json({ subscriptions: notificationStore.listPushSubscriptions(req.query.userId || null) });
+    });
+    app.post('/api/v1/cco-notifications/push-subscriptions', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try {
+        const { subscription, userId } = req.body || {};
+        res.json(await notificationStore.subscribePush(subscription, userId, { role: req.cco?.role }));
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+    app.delete('/api/v1/cco-notifications/push-subscriptions', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try { res.json(await notificationStore.unsubscribePush(req.body?.endpoint, { role: req.cco?.role })); }
+      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-notifications/sms-config', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json(notificationStore.smsConfig());
+    });
+    app.patch('/api/v1/cco-notifications/sms-config', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try { res.json(await notificationStore.updateSmsConfig(req.body || {}, { role: req.cco?.role })); }
+      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-notifications/cron-jobs', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json({ jobs: notificationStore.listCronJobs() });
+    });
+    app.post('/api/v1/cco-notifications/cron-jobs', attachRole, requirePermission('settings.write'), jsonParser, async (req, res) => {
+      try { res.json(await notificationStore.upsertCronJob(req.body || {}, { role: req.cco?.role })); }
+      catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-notifications/sent-log', attachRole, requirePermission('settings.read'), (req, res) => {
+      res.json({ entries: notificationStore.sentLog(Number(req.query.limit) || 100) });
+    });
+
+    // Manuell trigger för cron-jobb (owner only) — användbar för test
+    app.post('/api/v1/cco-notifications/cron-jobs/:id/run', attachRole, requirePermission('settings.write'), async (req, res) => {
+      try {
+        const job = notificationStore.listCronJobs().find((j) => j.id === req.params.id);
+        if (!job) return res.status(404).json({ error: 'job_not_found' });
+        const result = await cronScheduler.runJob(job);
+        await notificationStore.markCronRan(job.id, { ok: true, manual: true, ...result });
+        res.json({ ok: true, result });
+      } catch (err) { res.status(500).json({ error: err.message }); }
+    });
+
+    cronScheduler.start();
+    app.locals.ccoBrandStore = brandStore;
+    app.locals.ccoUserStore = userStore;
+    app.locals.ccoNotificationStore = notificationStore;
+    app.locals.ccoCronScheduler = cronScheduler;
+    console.log('[cco-brands] monterad: 4 routes /api/v1/cco-brands/* (RBAC: settings.read/write)');
+    console.log('[cco-users] monterad: 3 routes /api/v1/cco-users/* (RBAC: settings.read/write)');
+    console.log('[cco-notifications] monterad: 9 routes /api/v1/cco-notifications/* (RBAC: settings.read/write)');
+    console.log('[cco-cron-scheduler] startad — tickar var 60s · ' + notificationStore.listCronJobs().filter((j) => j.enabled).length + ' aktiva jobs');
+  } catch (err) {
+    console.warn('[sprint5] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Photo Consent + Retention Policy (Sprint 1.4) ──────────
+let ccoPhotoConsentStore = null;
+(async () => {
+  try {
+    const { createCcoPhotoConsentStore } = require('./src/ops/ccoPhotoConsentStore');
+    const retention = require('./src/ops/ccoRetentionPolicy');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    ccoPhotoConsentStore = await createCcoPhotoConsentStore({
+      filePath: path.join(__dirname, 'data', 'cco-photo-consents.json'),
+      auditLog: ccoAuditLog,
+    });
+    const express = require('express');
+    const jsonParser = express.json({ limit: '4kb' });
+
+    app.get('/api/v1/cco-photo-consents', attachRole, requirePermission('customers.read'), (req, res) => {
+      const list = ccoPhotoConsentStore.listGranted({ customerId: req.query.customerId || null });
+      res.json({ count: list.length, items: list, stats: ccoPhotoConsentStore.stats() });
+    });
+
+    app.get('/api/v1/cco-photo-consents/:customerId/:photoId', attachRole, requirePermission('customers.read'), (req, res) => {
+      res.json(ccoPhotoConsentStore.getConsent(req.params.customerId, req.params.photoId));
+    });
+
+    app.post('/api/v1/cco-photo-consents/:customerId/:photoId', attachRole, requirePermission('customers.photo_consent_set'), jsonParser, async (req, res) => {
+      try {
+        const { status, note } = req.body || {};
+        const c = await ccoPhotoConsentStore.setStatus(
+          req.params.customerId,
+          req.params.photoId,
+          status,
+          { role: req.cco?.role },
+          { note }
+        );
+        res.json(c);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    app.get('/api/v1/cco-retention/:customerId', attachRole, requirePermission('customers.read'), (req, res) => {
+      const lastActivityAt = req.query.lastActivityAt || null;
+      const readout = retention.readoutForCustomer({
+        lastActivityAt,
+        isLocked: req.query.locked === 'true',
+        hasOpenCase: req.query.openCase === 'true',
+      });
+      res.json({ customerId: req.params.customerId, ...readout, retentionYears: retention.RETENTION_YEARS });
+    });
+
+    app.locals.ccoPhotoConsentStore = ccoPhotoConsentStore;
+    app.locals.ccoRetention = retention;
+    console.log('[cco-photo-consent] monterad: GET/POST /api/v1/cco-photo-consents/*');
+    console.log('[cco-retention] monterad: GET /api/v1/cco-retention/:customerId (10-års-policy)');
+  } catch (err) {
+    console.warn('[cco-photo-consent/retention] kunde inte montera:', err.message);
+  }
+})();
+
+// ── NEEDS_DECISION-implementations: Retention hard-block + Analytics export ──
+(async () => {
+  try {
+    const { attachRole, requirePermission, requireAnyRole } = require('./src/security/ccoRbac');
+    const retention = require('./src/ops/ccoRetentionPolicy');
+
+    // BESLUT #6: Hard-block customer-delete om retention < 10 år
+    app.delete('/api/v1/cco-customers/:id/with-retention-check', attachRole, requirePermission('customers.delete'), retention.enforceRetention, (req, res) => {
+      // Om vi når hit har retention passerat
+      if (ccoAuditLog) ccoAuditLog.append({
+        action: 'customers.delete.attempt',
+        actor: { role: req.cco?.role },
+        target: { kind: 'customer', id: req.params.id },
+        detail: { retentionCleared: true },
+      });
+      res.json({ ok: true, note: 'Retention 10 år passerad — radering genomförd. Audit-loggat.' });
+    });
+
+    // BESLUT #7: Analytics-export (PDF + Excel)
+    app.get('/api/v1/cco-analytics/export', attachRole, requireAnyRole(['owner','revisor']), async (req, res) => {
+      const format = String(req.query.format || 'pdf').toLowerCase();
+      const period = String(req.query.period || 'week');
+      const tele = app.locals.ccoTelemetryStore;
+      if (!tele) return res.status(500).json({ error: 'telemetry not ready' });
+      const team = tele.teamStats(period);
+      const lb = tele.leaderboard();
+      const live = await tele.liveMetrics();
+
+      if (format === 'excel' || format === 'csv') {
+        const rows = [
+          'Period,Conversations,AvgResponseMin,SLA%,CSAT',
+          `${period},${team.conversations},${team.avgResponseMin},${team.slaPct},${team.csatAvg}`,
+          '',
+          'User,Score,Conversations,ResponseMin,UpsellSEK',
+          ...lb.map((u) => `${u.name},${u.score},${u.conversations},${u.responseMin},${u.upsellSek}`),
+        ].join('\n');
+        if (ccoAuditLog) ccoAuditLog.append({
+          action: 'analytics.export.csv',
+          actor: { role: req.cco?.role },
+          detail: { period, rows: rows.split('\n').length },
+        });
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="cco-analytics-${period}-${new Date().toISOString().slice(0,10)}.csv"`);
+        return res.send(rows);
+      }
+
+      // PDF-format → returnera HTML som browsern print:ar till PDF (enklare än PDF-lib)
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>CCO Analytics ${period} ${new Date().toISOString().slice(0,10)}</title>
+<style>body{font-family:-apple-system,Inter,sans-serif;padding:30mm 20mm;color:#2b251f}
+h1{font-size:24pt;margin:0 0 8pt;letter-spacing:-.02em}
+h2{font-size:11pt;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;margin:24pt 0 10pt;border-bottom:1px solid #ccc;padding-bottom:4pt}
+table{width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:14pt}
+th,td{text-align:left;padding:6pt 8pt;border-bottom:1px solid #eee}
+th{font-weight:800;font-size:9pt;text-transform:uppercase;letter-spacing:.06em;color:#84756b}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8pt;margin:14pt 0}
+.kpi{padding:10pt 12pt;border:1px solid #ddd;border-radius:6pt}
+.kpi-lbl{font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#84756b}
+.kpi-num{font-size:18pt;font-weight:800;margin-top:4pt}
+footer{margin-top:32pt;padding-top:12pt;border-top:1px solid #ccc;font-size:8pt;color:#84756b;text-align:center}
+@media print{body{padding:14mm}}</style></head><body>
+<h1>CCO Analytics · ${period === 'week' ? 'Veckorapport' : period === 'month' ? 'Månadsrapport' : 'Dagsrapport'}</h1>
+<p style="color:#84756b;font-size:10pt">Genererad ${new Date().toLocaleString('sv-SE')} av ${req.cco?.role || 'unknown'}</p>
+<h2>Operativ Telemetri (nu)</h2>
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-lbl">Beredskap</div><div class="kpi-num">${live.readiness}</div></div>
+  <div class="kpi"><div class="kpi-lbl">Latency p95</div><div class="kpi-num">${live.latencyP95Ms} ms</div></div>
+  <div class="kpi"><div class="kpi-lbl">Öppna incidenter</div><div class="kpi-num">${live.openIncidents}</div></div>
+  <div class="kpi"><div class="kpi-lbl">Risk-läge</div><div class="kpi-num">${live.riskLäge}</div></div>
+</div>
+<h2>Team-prestanda · ${period}</h2>
+<table><tr><th>Period</th><th>Konversationer</th><th>Snitt-svarstid</th><th>SLA%</th><th>CSAT</th></tr>
+<tr><td>${period}</td><td>${team.conversations}</td><td>${team.avgResponseMin} min</td><td>${team.slaPct}%</td><td>${team.csatAvg} / 5</td></tr></table>
+<h2>Leaderboard</h2>
+<table><tr><th>#</th><th>Namn</th><th>Score</th><th>Konv.</th><th>Svarstid</th><th>Upsell (kr)</th></tr>
+${lb.map((u, i) => `<tr><td>${i+1}</td><td><strong>${u.name}</strong></td><td>${u.score}</td><td>${u.conversations}</td><td>${u.responseMin} min</td><td>${u.upsellSek.toLocaleString('sv-SE')}</td></tr>`).join('')}
+</table>
+<footer>Hair TP Clinic · CCO Analytics-export · Sveavägen 42, 113 50 Stockholm · 08-555 123 45<br/>Audit-loggad. Sparas 10 år enligt journallagen.</footer>
+<script>setTimeout(()=>window.print(),200)</script>
+</body></html>`;
+
+      if (ccoAuditLog) ccoAuditLog.append({
+        action: 'analytics.export.pdf',
+        actor: { role: req.cco?.role },
+        detail: { period },
+      });
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', `inline; filename="cco-analytics-${period}.html"`);
+      res.send(html);
+    });
+
+    console.log('[needs-decision] retention-hard-block + analytics-export monterade');
+  } catch (err) {
+    console.warn('[needs-decision] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Customer Timeline + Agreements aggregator (Sprint E: dossier-deep) ──
+try {
+  const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+
+  // GET /api/v1/cco-customers/:id/timeline
+  // Aggregera kronologisk lista: journal-poster + offerter + avtal + send-actions
+  app.get('/api/v1/cco-customers/:id/timeline', attachRole, requirePermission('customers.read'), async (req, res) => {
+    try {
+      const customerId = req.params.id;
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const events = [];
+
+      // Journal-poster
+      const journalStore = app.locals.ccoJournalStore;
+      if (journalStore?.listEntries) {
+        try {
+          const entries = await journalStore.listEntries({ tenantId, patientId: customerId });
+          for (const e of (entries || [])) {
+            events.push({
+              kind: 'journal',
+              subkind: e.journalType || 'general',
+              ts: e.signedAt || e.updatedAt || e.createdAt,
+              title: e.title || (e.journalType || 'Journal-post'),
+              status: e.locked ? 'signed' : e.status,
+              icon: e.locked ? '🔒' : '📝',
+              actor: e.signedByName || e.authorName,
+              entityId: e.entryId,
+              link: `/smart-anteckning.html?entryId=${encodeURIComponent(e.entryId)}`,
+              detail: { locked: !!e.locked, correctionOfEntryId: e.correctionOfEntryId || null },
+            });
+          }
+        } catch (err) { /* tyst */ }
+      }
+
+      // Offerter
+      const offerStore = app.locals.ccoOfferQuickStore;
+      if (offerStore?.listForCustomer) {
+        try {
+          const offers = offerStore.listForCustomer(customerId);
+          for (const o of offers) {
+            events.push({
+              kind: 'offer',
+              subkind: o.state,
+              ts: o.createdAt,
+              title: `Offert: ${o.treatmentLabel || o.id}`,
+              status: o.state,
+              icon: o.state === 'accepted' ? '✓' : o.state === 'sent' ? '📧' : o.state === 'rejected' ? '✕' : '📋',
+              actor: o.authorName,
+              entityId: o.id,
+              link: `/offerter.html#${o.id}`,
+              detail: { priceTotal: o.priceTotal, currency: o.currency, sentAt: o.sentAt, acceptedAt: o.acceptedAt },
+            });
+            // Lägg även send-events som separata items
+            if (o.sentAt) {
+              events.push({
+                kind: 'send', subkind: 'offer', ts: o.sentAt,
+                title: `Offert skickad till patient (${o.sentCount}×)`, icon: '📧',
+                entityId: o.id, link: `/offerter.html#${o.id}`,
+                detail: { offerId: o.id, sentCount: o.sentCount },
+              });
+            }
+            if (o.acceptedAt) {
+              events.push({
+                kind: 'event', subkind: 'offer_accepted', ts: o.acceptedAt,
+                title: `Patient accepterade offerten`, icon: '✓',
+                entityId: o.id, link: `/offerter.html#${o.id}`,
+                detail: { acceptedVia: o.acceptedVia },
+              });
+            }
+          }
+        } catch (err) { /* tyst */ }
+      }
+
+      // Avtal
+      const agreementStore = app.locals.ccoAgreementQuickStore;
+      if (agreementStore?.listForCustomer) {
+        try {
+          const agreements = agreementStore.listForCustomer(customerId);
+          for (const a of agreements) {
+            events.push({
+              kind: 'agreement',
+              subkind: a.state,
+              ts: a.createdAt,
+              title: a.title,
+              status: a.state,
+              icon: a.state === 'signed' ? '✍' : a.state === 'sent' ? '📨' : a.state === 'cancelled' ? '✕' : '📄',
+              entityId: a.id,
+              link: `/offerter.html#${a.id}`,
+              detail: { priceTotal: a.priceTotal, signedAt: a.signedAt, signMethod: a.signMethod, signedByName: a.signedByName, promotedFromOfferId: a.promotedFromOfferId },
+            });
+            if (a.signedAt) {
+              events.push({
+                kind: 'event', subkind: 'agreement_signed', ts: a.signedAt,
+                title: `Avtal signerat av ${a.signedByName} (${a.signMethod})`, icon: '🔏',
+                entityId: a.id, link: `/offerter.html#${a.id}`,
+                detail: { signatureHash: a.signatureHash, signMethod: a.signMethod },
+              });
+            }
+          }
+        } catch (err) { /* tyst */ }
+      }
+
+      // Send-actions (form/consent/file/encounter)
+      const sendStore = app.locals.ccoSendActionStore;
+      if (sendStore?.listSends) {
+        try {
+          const sends = sendStore.listSends({ customerId, limit: 100 });
+          for (const s of sends) {
+            events.push({
+              kind: 'send',
+              subkind: s.kind,
+              ts: s.ts,
+              title: `${s.kind === 'form' ? '📋' : s.kind === 'consent' ? '✍' : s.kind === 'file' ? '📎' : '📅'} ${s.kind} skickad${s.dryRun ? ' (dry-run)' : ''}`,
+              icon: s.dryRun ? '🟡' : '📧',
+              status: s.mode,
+              entityId: s.sendId,
+              detail: { recipientMasked: s.recipientMasked, subject: s.subject, dryRun: s.dryRun, mode: s.mode },
+            });
+          }
+        } catch (err) { /* tyst */ }
+      }
+
+      // Sortera DESC på ts, sortera stabilt på entityId fallback
+      events.sort((a, b) => {
+        const ta = (a.ts || '').toString();
+        const tb = (b.ts || '').toString();
+        if (ta === tb) return (a.kind || '').localeCompare(b.kind || '');
+        return tb.localeCompare(ta);
+      });
+
+      // Aggregate stats
+      const byKind = {};
+      events.forEach((e) => { byKind[e.kind] = (byKind[e.kind] || 0) + 1; });
+
+      res.json({
+        customerId,
+        tenantId,
+        count: events.length,
+        byKind,
+        events: events.slice(0, Number(req.query.limit) || 200),
+        evaluatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/v1/cco-customers/:id/agreements — kombinerar offers + agreements för flik
+  app.get('/api/v1/cco-customers/:id/agreements', attachRole, requirePermission('customers.read'), async (req, res) => {
+    try {
+      const customerId = req.params.id;
+      const offers = (app.locals.ccoOfferQuickStore?.listForCustomer?.(customerId)) || [];
+      const agreements = (app.locals.ccoAgreementQuickStore?.listForCustomer?.(customerId)) || [];
+      // Cross-link: för varje agreement med promotedFromOfferId, hitta offer-info
+      const offerMap = new Map(offers.map((o) => [o.id, o]));
+      const linkedAgreements = agreements.map((a) => ({
+        ...a,
+        sourceOffer: a.promotedFromOfferId ? (offerMap.get(a.promotedFromOfferId) || null) : null,
+      }));
+      // Aggregate stats
+      const summary = {
+        offerCount: offers.length,
+        agreementCount: agreements.length,
+        pendingOffers: offers.filter((o) => o.state === 'sent').length,
+        acceptedOffers: offers.filter((o) => o.state === 'accepted').length,
+        signedAgreements: agreements.filter((a) => a.state === 'signed').length,
+        pendingAgreements: agreements.filter((a) => a.state === 'sent').length,
+        totalSignedValue: agreements.filter((a) => a.state === 'signed').reduce((s, a) => s + (Number(a.priceTotal) || 0), 0),
+      };
+      res.json({
+        customerId,
+        summary,
+        offers,
+        agreements: linkedAgreements,
+      });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  console.log('[cco-customer-deep] monterad: GET /api/v1/cco-customers/:id/{timeline|agreements} (customers.read)');
+} catch (err) {
+  console.warn('[cco-customer-deep] kunde inte montera:', err.message);
+}
+
+// ── CCO ID Verification Store (Steg 3.2 av Communication & Compliance audit) ──
+(async () => {
+  try {
+    const { createCcoIdVerificationStore } = require('./src/ops/ccoIdVerificationStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    const expressId = require('express');
+    const jsonParserId = expressId.json({ limit: '8kb' });
+
+    const idStore = await createCcoIdVerificationStore({
+      filePath: path.join(__dirname, 'data', 'cco-id-verifications.json'),
+      auditLog: ccoAuditLog,
+    });
+    app.locals.ccoIdVerificationStore = idStore;
+
+    app.get('/api/v1/cco-id-verify/customer/:id', attachRole, requirePermission('id_verify.read'), async (req, res) => {
+      try {
+        res.json(await idStore.getStatus(req.params.id));
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.post('/api/v1/cco-id-verify/customer/:id', attachRole, requirePermission('id_verify.write'), jsonParserId, async (req, res) => {
+      try {
+        const { state, last4, docType, verifiedBy, note } = req.body || {};
+        const result = await idStore.setStatus(req.params.id, state, {
+          role: req.cco?.role, last4, docType, verifiedBy, note,
+        });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-id-verify/stats', attachRole, requirePermission('id_verify.read'), (req, res) => {
+      res.json(idStore.stats());
+    });
+
+    console.log('[cco-id-verify] monterad: GET/POST /api/v1/cco-id-verify/customer/:id + /stats (id_verify.read/write)');
+  } catch (err) {
+    console.warn('[cco-id-verify] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Notification Feed (Steg 4 av Communication & Compliance audit) ──
+(async () => {
+  try {
+    const { createCcoNotificationFeedStore, NOTIFICATION_TYPES } = require('./src/ops/ccoNotificationFeedStore');
+    const { createCcoNotificationReadStore } = require('./src/ops/ccoNotificationReadStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    const expressN = require('express');
+    const jsonParserN = expressN.json({ limit: '8kb' });
+
+    const readStore = await createCcoNotificationReadStore({
+      filePath: path.join(__dirname, 'data', 'cco-notification-reads.json'),
+    });
+
+    const feedStore = createCcoNotificationFeedStore({
+      auditLog: ccoAuditLog,
+      bookingCaseStore: { list: () => app.locals.ccoBookingCaseStore?.list?.() || [] },
+      complianceScanStore: { getActiveFlags: () => app.locals.ccoComplianceScanStore?.getActiveFlags?.() || { flags: [] } },
+      idVerificationStore: { getStatus: (cid) => app.locals.ccoIdVerificationStore?.getStatus?.(cid) },
+      agreementStore: { listForCustomer: (cid) => app.locals.ccoAgreementQuickStore?.listForCustomer?.(cid) || [] },
+      journalStore: { listAllEntries: async (args) => app.locals.ccoJournalStore?.listAllEntries?.(args) || [] },
+      readStore,
+    });
+    app.locals.ccoNotificationFeedStore = feedStore;
+    app.locals.ccoNotificationReadStore = readStore;
+
+    // GET /api/v1/cco-notifications/feed — unified feed per role
+    app.get('/api/v1/cco-notifications/feed', attachRole, requirePermission('notifications.read'), async (req, res) => {
+      try {
+        const role = req.query.role || req.cco?.role;
+        const userId = req.headers['x-cco-user'] || role;
+        const sinceHours = Number(req.query.sinceHours) || 72;
+        const limit = Number(req.query.limit) || 100;
+
+        // Optional: kör blocking-evaluator över ett urval kunder
+        // (för att hålla feed snabb, evalueras endast om query.includeBlocking=true)
+        let customerEvalResults = null;
+        if (req.query.includeBlocking === 'true' && req.query.customerIds) {
+          const cids = String(req.query.customerIds).split(',').map((s) => s.trim()).filter(Boolean);
+          const blockingEvaluator = app.locals.ccoBlockingEvaluator || null;
+          if (blockingEvaluator?.evaluateDashboard) {
+            const opts = {};
+            cids.forEach((c) => { opts[c] = { hasUpcomingBooking: true }; });
+            const dash = await blockingEvaluator.evaluateDashboard({ customerIds: cids, opts });
+            customerEvalResults = dash.customers || [];
+          }
+        }
+
+        const result = await feedStore.getFeed({ role, sinceHours, customerEvalResults, limit, userId });
+        res.json(result);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    // POST /api/v1/cco-notifications/mark-read — markera notifications lästa
+    app.post('/api/v1/cco-notifications/mark-read', attachRole, requirePermission('notifications.mark_read'), jsonParserN, async (req, res) => {
+      try {
+        const userId = req.headers['x-cco-user'] || req.cco?.role;
+        const { notificationIds, all = false } = req.body || {};
+        if (!Array.isArray(notificationIds) && !all) {
+          return res.status(400).json({ error: 'notificationIds[] krävs eller {"all":true}' });
+        }
+        let result;
+        if (all && Array.isArray(notificationIds)) {
+          result = await readStore.markAllRead(userId, notificationIds);
+        } else {
+          result = await readStore.markRead(userId, notificationIds);
+        }
+        res.json(result);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    // GET /api/v1/cco-notifications/types — lista alla notif-typer (för UI-filter)
+    app.get('/api/v1/cco-notifications/types', attachRole, requirePermission('notifications.read'), (req, res) => {
+      res.json({ types: NOTIFICATION_TYPES, readStoreStats: readStore.stats() });
+    });
+
+    console.log('[cco-notifications-feed] monterad: GET /feed + POST /mark-read + GET /types (notifications.read/mark_read)');
+  } catch (err) {
+    console.warn('[cco-notifications-feed] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Marketing Consent (Steg 8 av Communication & Compliance audit) ──
+let ccoMarketingConsentStore = null;
+(async () => {
+  try {
+    const { createCcoMarketingConsentStore, VALID_CHANNELS } = require('./src/ops/ccoMarketingConsentStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    const expressM = require('express');
+    const jsonParserM = expressM.json({ limit: '8kb' });
+
+    ccoMarketingConsentStore = await createCcoMarketingConsentStore({
+      filePath: path.join(__dirname, 'data', 'cco-marketing-consent.json'),
+      auditLog: ccoAuditLog,
+    });
+    app.locals.ccoMarketingConsentStore = ccoMarketingConsentStore;
+
+    // GET /api/v1/cco-marketing/consent/:customerId — status
+    app.get('/api/v1/cco-marketing/consent/:customerId', attachRole, requirePermission('marketing.read'), (req, res) => {
+      res.json(ccoMarketingConsentStore.getStatus(req.params.customerId));
+    });
+
+    // POST /api/v1/cco-marketing/consent/:customerId/opt-in
+    app.post('/api/v1/cco-marketing/consent/:customerId/opt-in', attachRole, requirePermission('marketing.write'), jsonParserM, async (req, res) => {
+      try {
+        const { channel, templateVersion, source, note } = req.body || {};
+        const ipAddress = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim();
+        const result = await ccoMarketingConsentStore.setOptIn(req.params.customerId, channel, {
+          actorRole: req.cco?.role || 'staff', ipAddress, templateVersion, source, note,
+        });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-marketing/consent/:customerId/opt-out
+    app.post('/api/v1/cco-marketing/consent/:customerId/opt-out', attachRole, requirePermission('marketing.write'), jsonParserM, async (req, res) => {
+      try {
+        const { channel, reason, source } = req.body || {};
+        const result = await ccoMarketingConsentStore.setOptOut(req.params.customerId, channel, {
+          actorRole: req.cco?.role || 'staff', reason, source: source || 'staff_admin',
+        });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // GET /api/v1/cco-marketing/stats
+    app.get('/api/v1/cco-marketing/stats', attachRole, requirePermission('marketing.read'), (req, res) => {
+      res.json(ccoMarketingConsentStore.stats());
+    });
+
+    // POST /api/v1/cco-marketing/send-token — generera unsubscribe-token (för send-flow)
+    app.post('/api/v1/cco-marketing/send-token', attachRole, requirePermission('marketing.send'), jsonParserM, async (req, res) => {
+      try {
+        const { customerId, channel, sendId } = req.body || {};
+        // Pre-check: får vi skicka?
+        const canSend = ccoMarketingConsentStore.canSendMarketing(customerId, channel);
+        if (!canSend.canSend) {
+          if (ccoAuditLog) {
+            ccoAuditLog.append({
+              action: 'marketing.send.blocked',
+              actor: { role: req.cco?.role },
+              target: { kind: 'marketing_consent', id: customerId },
+              detail: { channel, reason: canSend.reason, currentState: canSend.currentState },
+            });
+          }
+          return res.status(409).json({
+            error: 'gdpr_consent_missing',
+            detail: canSend.reason,
+            currentState: canSend.currentState,
+            blockedBy: 'ccoMarketingConsentStore',
+          });
+        }
+        const token = await ccoMarketingConsentStore.createUnsubscribeToken(customerId, channel, { sendId });
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'https://hairtpclinic.com';
+        res.json({
+          ok: true,
+          token,
+          unsubscribeUrl: `${baseUrl}/unsubscribe/${token}`,
+          customerId, channel,
+          consentSnapshot: ccoMarketingConsentStore.getStatus(customerId),
+        });
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    console.log('[cco-marketing] monterad: 5 routes /api/v1/cco-marketing/* (marketing.read/write/send)');
+  } catch (err) {
+    console.warn('[cco-marketing] kunde inte montera:', err.message);
+  }
+})();
+
+// ── PUBLIC unsubscribe-route (Steg 8: GDPR 1-klicks opt-out) ──
+// Ingen auth — patient klickar länk från sitt mail. Idempotent.
+// HTML-respons så patient ser bekräftelse direkt.
+try {
+  app.get('/unsubscribe/:token', async (req, res) => {
+    const store = app.locals.ccoMarketingConsentStore;
+    if (!store) return res.status(503).send('Unsubscribe-tjänsten är inte tillgänglig.');
+    try {
+      const ipAddress = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim();
+      const result = await store.processUnsubscribeToken(req.params.token, { ipAddress });
+      const channelLabel = { email_marketing: 'e-post', sms_marketing: 'SMS', profiling_segmentation: 'profilering' }[result.channel] || result.channel;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(`<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Avregistrering klar · Hair TP Clinic</title>
+<style>body{font-family:-apple-system,system-ui,sans-serif;background:#faf6f2;color:#2b251f;padding:40px 20px;line-height:1.6}.wrap{max-width:540px;margin:0 auto;background:linear-gradient(180deg,#faf6f2f0,#f4eee9d8);padding:28px 32px;border-radius:24px;box-shadow:0 18px 38px rgba(93,74,60,.08);border:1px solid #fff7}.ico{font-size:48px;text-align:center;margin-bottom:12px}h1{font-size:22px;margin:0 0 12px;text-align:center}p{color:rgba(70,60,50,.7);font-size:14px;text-align:center}.brand{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#84756b;text-align:center;margin-top:18px}</style>
+</head><body><div class="wrap"><div class="ico">✓</div><h1>Avregistrering klar</h1>
+<p>Du är nu avregistrerad från marknadskommunikation via <strong>${channelLabel}</strong>.</p>
+<p>Det kan ta upp till 24 timmar innan ev. redan schemalagda utskick stoppas — sen kommer inget mer.</p>
+<p style="font-size:12px;color:#aaa">${result.alreadyProcessed ? 'Du hade redan avregistrerat dig från denna kanal.' : 'Bekräftat ' + new Date(result.processedAt).toLocaleString('sv-SE')}</p>
+<div class="brand">Hair TP Clinic · GDPR Art. 13/21</div></div></body></html>`);
+    } catch (err) {
+      res.status(err.statusCode || 500).setHeader('Content-Type', 'text/html; charset=utf-8').send(`<!doctype html><html lang="sv"><head><meta charset="utf-8"><title>Fel</title></head><body style="font-family:sans-serif;padding:40px;text-align:center"><h1>⚠ Länken är inte giltig</h1><p>Den här unsubscribe-länken finns inte, är utgången, eller har redan använts. Hör av dig till <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a> om du vill avregistrera dig.</p></body></html>`);
+    }
+  });
+  console.log('[unsubscribe-public] monterad: GET /unsubscribe/:token (GDPR 1-klicks opt-out)');
+} catch (err) {
+  console.warn('[unsubscribe-public] kunde inte montera:', err.message);
+}
+
+// ── CCO Aftercare Scheduler (Steg 5 av Communication & Compliance audit) ──
+(async () => {
+  try {
+    const { createCcoAftercareSchedulerStore } = require('./src/ops/ccoAftercareSchedulerStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    const expressA5 = require('express');
+    const jsonParserA5 = expressA5.json({ limit: '16kb' });
+
+    // Läs treatment-requirements
+    let treatmentRequirements = null;
+    try {
+      treatmentRequirements = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'config', 'cco-treatment-document-requirements.json'),
+        'utf8'
+      ));
+    } catch (err) {
+      console.warn('[cco-aftercare] treatment-requirements ej laddad:', err.message);
+    }
+
+    const scheduler = await createCcoAftercareSchedulerStore({
+      filePath: path.join(__dirname, 'data', 'cco-aftercare-jobs.json'),
+      treatmentRequirements,
+      auditLog: ccoAuditLog,
+      sendStore: {
+        performSend: (...args) => app.locals.ccoSendActionStore?.performSend?.(...args),
+      },
+      templateRegistry: {
+        get: (id) => app.locals.ccoTemplateRegistry?.get?.(id),
+      },
+    });
+    app.locals.ccoAftercareScheduler = scheduler;
+
+    // POST /api/v1/cco-aftercare/schedule — manuell schedule (per encounter)
+    app.post('/api/v1/cco-aftercare/schedule', attachRole, requirePermission('aftercare.write'), jsonParserA5, async (req, res) => {
+      try {
+        const result = await scheduler.scheduleForCompletedEncounter(req.body || {});
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // GET /api/v1/cco-aftercare/jobs — lista pipeline
+    app.get('/api/v1/cco-aftercare/jobs', attachRole, requirePermission('aftercare.read'), (req, res) => {
+      const items = scheduler.listJobs({
+        status: req.query.status || null,
+        customerId: req.query.customerId || null,
+        treatmentKey: req.query.treatmentKey || null,
+        limit: Number(req.query.limit) || 200,
+      });
+      res.json({ count: items.length, jobs: items, stats: scheduler.stats() });
+    });
+
+    // GET /api/v1/cco-aftercare/jobs/:id
+    app.get('/api/v1/cco-aftercare/jobs/:id', attachRole, requirePermission('aftercare.read'), (req, res) => {
+      const j = scheduler.getJob(req.params.id);
+      if (!j) return res.status(404).json({ error: 'not_found' });
+      res.json(j);
+    });
+
+    // POST /api/v1/cco-aftercare/jobs/:id/cancel
+    app.post('/api/v1/cco-aftercare/jobs/:id/cancel', attachRole, requirePermission('aftercare.write'), jsonParserA5, async (req, res) => {
+      try {
+        const j = await scheduler.cancelJob(req.params.id, { reason: req.body?.reason, role: req.cco?.role });
+        res.json(j);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-aftercare/jobs/:id/trigger
+    app.post('/api/v1/cco-aftercare/jobs/:id/trigger', attachRole, requirePermission('aftercare.write'), async (req, res) => {
+      try {
+        const j = await scheduler.triggerNow(req.params.id, { role: req.cco?.role });
+        res.json(j);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-aftercare/cron-tick — manuell trigga (owner) eller cron-internal
+    app.post('/api/v1/cco-aftercare/cron-tick', attachRole, requirePermission('aftercare.cron_trigger'), jsonParserA5, async (req, res) => {
+      try {
+        const result = await scheduler.runDueJobs({
+          maxPerTick: Number(req.body?.maxPerTick) || 50,
+          dryRun: req.body?.dryRun === true,
+        });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // Cron-tick var 5e minut
+    let aftercareInterval = setInterval(() => {
+      scheduler.runDueJobs({ maxPerTick: 50 })
+        .then((r) => {
+          if (r.processed > 0) console.log(`[cco-aftercare] cron-tick processed=${r.processed} success=${r.success} failed=${r.failed}`);
+        })
+        .catch((err) => console.warn('[cco-aftercare] cron-tick failed:', err.message));
+    }, 5 * 60 * 1000);
+
+    // Hook till booking-case state-transitions
+    // Lyssna efter completion-events via audit-log direkt? Nej — använd direct hook
+    // app.locals.ccoBookingCaseStore tillåter on-transition-callback om implementerat,
+    // annars måste klient-koden anropa /schedule manuellt.
+    if (app.locals.ccoBookingCaseStore?.onTransition) {
+      app.locals.ccoBookingCaseStore.onTransition(async (caseObj, fromState, toState) => {
+        if (toState !== 'completed') return;
+        try {
+          await scheduler.scheduleForCompletedEncounter({
+            customerId: caseObj.customerId,
+            customerEmail: caseObj.customerEmail,
+            customerName: caseObj.customerName,
+            treatmentKey: caseObj.treatmentKey,
+            encounterId: caseObj.id,
+            completedAt: caseObj.completedAt || new Date().toISOString(),
+          });
+        } catch (err) {
+          console.warn('[cco-aftercare] auto-schedule fail vid completion:', err.message);
+        }
+      });
+    }
+
+    console.log('[cco-aftercare] monterad: POST /schedule, GET /jobs, POST /jobs/:id/{cancel,trigger}, POST /cron-tick · cron 5 min');
+  } catch (err) {
+    console.warn('[cco-aftercare] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Blocking Evaluator (Sprint D + Steg 3: gates förstärkning) ──
+try {
+  const { createCcoBlockingStore } = require('./src/ops/ccoBlockingStore');
+  const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+
+  // Steg 3: ladda treatment-requirements från GitHub-trackad config
+  let treatmentRequirements = null;
+  try {
+    treatmentRequirements = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'config', 'cco-treatment-document-requirements.json'),
+      'utf8'
+    ));
+  } catch (err) {
+    console.warn('[cco-blocking] treatment-requirements ej laddad:', err.message);
+  }
+
+  // Lazy lookup på alla underliggande stores via app.locals.
+  const blockingEvaluator = createCcoBlockingStore({
+    journalStore: { listEntries: async (args) => app.locals.ccoJournalStore?.listEntries?.(args) || [] },
+    offerStore: { listForCustomer: (cid) => app.locals.ccoOfferQuickStore?.listForCustomer?.(cid) || [] },
+    agreementStore: { listForCustomer: (cid) => app.locals.ccoAgreementQuickStore?.listForCustomer?.(cid) || [] },
+    photoConsentStore: {
+      listGranted: (args) => app.locals.ccoPhotoConsentStore?.listGranted?.(args) || [],
+    },
+    treatmentRequirements,
+    idVerificationStore: {
+      getStatus: async (cid) => app.locals.ccoIdVerificationStore?.getStatus?.(cid) || { state: 'none' },
+    },
+  });
+
+  // GET /api/v1/cco-blocking/customer/:id
+  // Query-params: hasUpcomingBooking=true|false, hasPhotos=true, photoCount=N, plannedForShowcase=true, plannedTreatment=fue|prp_hair|...
+  app.get('/api/v1/cco-blocking/customer/:id', attachRole, requirePermission('workspace.read'), async (req, res) => {
+    try {
+      const opts = {
+        customerName: req.query.customerName || null,
+        hasUpcomingBooking: req.query.hasUpcomingBooking === 'true',
+        hasPhotos: req.query.hasPhotos === 'true',
+        photoCount: Number(req.query.photoCount) || 0,
+        plannedForShowcase: req.query.plannedForShowcase === 'true',
+        plannedTreatment: req.query.plannedTreatment || null,  // Steg 3
+        tenantId: req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic',
+      };
+      const result = await blockingEvaluator.evaluateCustomer(req.params.id, opts);
+      res.json(result);
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/v1/cco-blocking/batch — evaluera flera kunder
+  // body: { customerIds: [...], opts: { customerId: {...} } }
+  app.post('/api/v1/cco-blocking/batch', attachRole, requirePermission('workspace.read'), express.json({ limit: '32kb' }), async (req, res) => {
+    try {
+      const { customerIds, opts = {} } = req.body || {};
+      if (!Array.isArray(customerIds)) return res.status(400).json({ error: 'customerIds[] krävs' });
+      const result = await blockingEvaluator.evaluateDashboard({ customerIds, opts });
+      res.json(result);
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/v1/cco-blocking/dashboard — top issues aggregated
+  // Query: customerIds=cid1,cid2,cid3 (comma-separated) eller all=true
+  app.get('/api/v1/cco-blocking/dashboard', attachRole, requirePermission('workspace.read'), async (req, res) => {
+    try {
+      let customerIds = [];
+      if (req.query.customerIds) {
+        customerIds = String(req.query.customerIds).split(',').map((s) => s.trim()).filter(Boolean);
+      } else if (req.query.all === 'true') {
+        // Försök ladda från customers-store
+        const cs = app.locals.ccoCustomersStore;
+        if (cs && typeof cs.list === 'function') {
+          const all = await cs.list();
+          customerIds = (all || []).map((c) => c.id || c.customerId).filter(Boolean).slice(0, 200);
+        }
+      }
+      // Default opts: anta hasUpcomingBooking=true för dashboard (där det är blocking-cases vi vill se)
+      const opts = {};
+      customerIds.forEach((cid) => {
+        opts[cid] = { hasUpcomingBooking: true };
+      });
+      const result = await blockingEvaluator.evaluateDashboard({ customerIds, opts });
+      res.json(result);
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  console.log('[cco-blocking] monterad: GET /api/v1/cco-blocking/{customer/:id|dashboard} + POST /batch (workspace.read)');
+} catch (err) {
+  console.warn('[cco-blocking] kunde inte montera:', err.message);
+}
+
+// ── CCO Offers + Agreements Quick (Sprint B: state machine + dry-run sends) ──
+let ccoOfferQuickStore = null;
+let ccoAgreementQuickStore = null;
+(async () => {
+  try {
+    const { createCcoOfferQuickStore } = require('./src/ops/ccoOfferQuickStore');
+    const { createCcoAgreementQuickStore } = require('./src/ops/ccoAgreementQuickStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+
+    // Vänta lite på att sendStore mountas (race-condition skydd via app.locals lookup vid request-tid)
+    function getSendStore() { return app.locals.ccoSendActionStore; }
+
+    ccoOfferQuickStore = await createCcoOfferQuickStore({
+      filePath: path.join(__dirname, 'data', 'cco-offers-quick.json'),
+      auditLog: ccoAuditLog,
+      sendStore: { // proxy som hämtar lazy vid varje call
+        buildFilePayload: (...args) => getSendStore()?.buildFilePayload(...args),
+        performSend: (...args) => getSendStore()?.performSend(...args),
+      },
+    });
+    ccoAgreementQuickStore = await createCcoAgreementQuickStore({
+      filePath: path.join(__dirname, 'data', 'cco-agreements-quick.json'),
+      auditLog: ccoAuditLog,
+      sendStore: {
+        buildFilePayload: (...args) => getSendStore()?.buildFilePayload(...args),
+        performSend: (...args) => getSendStore()?.performSend(...args),
+      },
+      offerStore: ccoOfferQuickStore,
+    });
+    app.locals.ccoOfferQuickStore = ccoOfferQuickStore;
+    app.locals.ccoAgreementQuickStore = ccoAgreementQuickStore;
+
+    const expressB = require('express');
+    const jsonParserB = expressB.json({ limit: '64kb' });
+
+    // ─── OFFERS ───────────────────────────────────────────
+    // POST /api/v1/cco-offers — create
+    app.post('/api/v1/cco-offers', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
+      try {
+        const offer = await ccoOfferQuickStore.createOffer(req.body || {}, { role: req.cco?.role });
+        res.json(offer);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // PATCH /api/v1/cco-offers/:id — update draft
+    app.patch('/api/v1/cco-offers/:id', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
+      try {
+        const offer = await ccoOfferQuickStore.updateDraft(req.params.id, req.body || {}, { role: req.cco?.role });
+        res.json(offer);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-offers/:id/send
+    app.post('/api/v1/cco-offers/:id/send', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
+      try {
+        const result = await ccoOfferQuickStore.sendOffer(req.params.id, {
+          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+        }, { role: req.cco?.role });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-offers/:id/accept
+    app.post('/api/v1/cco-offers/:id/accept', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
+      try {
+        const offer = await ccoOfferQuickStore.acceptOffer(req.params.id, {
+          acceptedVia: req.body?.acceptedVia || 'manual',
+          acceptedBy: req.body?.acceptedBy || null,
+        }, { role: req.cco?.role });
+        res.json(offer);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-offers/:id/reject
+    app.post('/api/v1/cco-offers/:id/reject', attachRole, requirePermission('offer.write'), jsonParserB, async (req, res) => {
+      try {
+        const offer = await ccoOfferQuickStore.rejectOffer(req.params.id, { reason: req.body?.reason }, { role: req.cco?.role });
+        res.json(offer);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // DELETE /api/v1/cco-offers/:id — bara draft
+    app.delete('/api/v1/cco-offers/:id', attachRole, requirePermission('offer.delete'), async (req, res) => {
+      try {
+        res.json(await ccoOfferQuickStore.deleteDraft(req.params.id, { role: req.cco?.role }));
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // GET /api/v1/cco-offers/:id
+    app.get('/api/v1/cco-offers/:id', attachRole, requirePermission('offer.read'), (req, res) => {
+      const o = ccoOfferQuickStore.getById(req.params.id);
+      if (!o) return res.status(404).json({ error: 'not_found' });
+      res.json(o);
+    });
+
+    // GET /api/v1/cco-offers/customer/:cid
+    app.get('/api/v1/cco-offers/customer/:cid', attachRole, requirePermission('offer.read'), (req, res) => {
+      res.json({ offers: ccoOfferQuickStore.listForCustomer(req.params.cid) });
+    });
+
+    // GET /api/v1/cco-offers (all / by state)
+    app.get('/api/v1/cco-offers', attachRole, requirePermission('offer.read'), (req, res) => {
+      res.json({
+        offers: ccoOfferQuickStore.listAll({ state: req.query.state || null, limit: Number(req.query.limit) || 200 }),
+        stats: ccoOfferQuickStore.stats(),
+      });
+    });
+
+    // ─── AGREEMENTS ───────────────────────────────────────
+    app.post('/api/v1/cco-agreements', attachRole, requirePermission('agreement.write'), jsonParserB, async (req, res) => {
+      try {
+        const agreement = await ccoAgreementQuickStore.createAgreement(req.body || {}, { role: req.cco?.role });
+        res.json(agreement);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.patch('/api/v1/cco-agreements/:id', attachRole, requirePermission('agreement.write'), jsonParserB, async (req, res) => {
+      try {
+        const ag = await ccoAgreementQuickStore.updateDraft(req.params.id, req.body || {}, { role: req.cco?.role });
+        res.json(ag);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.post('/api/v1/cco-agreements/:id/send', attachRole, requirePermission('agreement.write'), jsonParserB, async (req, res) => {
+      try {
+        const result = await ccoAgreementQuickStore.sendAgreement(req.params.id, {
+          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+        }, { role: req.cco?.role });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-agreements/:id/sign — patient (bankid_stub) eller staff_override (kräver agreement.staff_sign)
+    app.post('/api/v1/cco-agreements/:id/sign', attachRole, jsonParserB, async (req, res) => {
+      const method = req.body?.signMethod || 'bankid_stub';
+      const role = req.cco?.role;
+      const { roleHasPermission } = require('./src/security/ccoRbac');
+      // staff_override KRÄVER agreement.staff_sign (owner only)
+      if (method === 'staff_override') {
+        if (!roleHasPermission(role, 'agreement.staff_sign')) {
+          return res.status(403).json({
+            error: 'forbidden',
+            detail: `staff_override-signering kräver permission agreement.staff_sign. Role "${role}" saknar det.`,
+            requiredPermission: 'agreement.staff_sign',
+          });
+        }
+      } else {
+        // bankid_stub / paper_signed_scanned räcker med agreement.write
+        if (!roleHasPermission(role, 'agreement.write')) {
+          return res.status(403).json({
+            error: 'forbidden',
+            detail: `signera kräver agreement.write. Role "${role}" saknar det.`,
+          });
+        }
+      }
+      try {
+        const ag = await ccoAgreementQuickStore.signAgreement(req.params.id, {
+          signedByName: req.body?.signedByName,
+          signMethod: method,
+          signatureToken: req.body?.signatureToken,
+        }, { role });
+        res.json(ag);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.post('/api/v1/cco-agreements/:id/cancel', attachRole, requirePermission('agreement.write'), jsonParserB, async (req, res) => {
+      try {
+        const ag = await ccoAgreementQuickStore.cancelAgreement(req.params.id, { reason: req.body?.reason }, { role: req.cco?.role });
+        res.json(ag);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    app.get('/api/v1/cco-agreements/:id', attachRole, requirePermission('agreement.read'), (req, res) => {
+      const a = ccoAgreementQuickStore.getById(req.params.id);
+      if (!a) return res.status(404).json({ error: 'not_found' });
+      res.json(a);
+    });
+
+    app.get('/api/v1/cco-agreements/customer/:cid', attachRole, requirePermission('agreement.read'), (req, res) => {
+      res.json({ agreements: ccoAgreementQuickStore.listForCustomer(req.params.cid) });
+    });
+
+    app.get('/api/v1/cco-agreements', attachRole, requirePermission('agreement.read'), (req, res) => {
+      res.json({
+        agreements: ccoAgreementQuickStore.listAll({ state: req.query.state || null, limit: Number(req.query.limit) || 200 }),
+        stats: ccoAgreementQuickStore.stats(),
+      });
+    });
+
+    console.log('[cco-offers-quick] monterad: 8 routes /api/v1/cco-offers/* (RBAC: offer.read/write/delete)');
+    console.log('[cco-agreements-quick] monterad: 7 routes /api/v1/cco-agreements/* (RBAC: agreement.read/write + staff_sign för override)');
+  } catch (err) {
+    console.warn('[cco-offers+agreements-quick] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Template Registry (Steg 1 av Communication & Compliance audit) ──
+let ccoTemplateRegistry = null;
+(async () => {
+  try {
+    const { createCcoTemplateRegistry } = require('./src/ops/ccoTemplateRegistry');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    ccoTemplateRegistry = await createCcoTemplateRegistry({
+      filePath: path.join(__dirname, 'data', 'cco-templates.json'),
+      auditLog: ccoAuditLog,
+    });
+    app.locals.ccoTemplateRegistry = ccoTemplateRegistry;
+
+    const expressT = require('express');
+    const jsonParserT = expressT.json({ limit: '64kb' });
+
+    // GET /api/v1/cco-templates — lista (med filter)
+    app.get('/api/v1/cco-templates', attachRole, requirePermission('templates.read'), (req, res) => {
+      const items = ccoTemplateRegistry.list({
+        brand: req.query.brand || null,
+        type: req.query.type || null,
+        journeyStep: req.query.journeyStep || null,
+        legalReviewStatus: req.query.legalReviewStatus || null,
+      });
+      res.json({ count: items.length, templates: items, stats: ccoTemplateRegistry.stats() });
+    });
+
+    // GET /api/v1/cco-templates/:id
+    app.get('/api/v1/cco-templates/:id', attachRole, requirePermission('templates.read'), (req, res) => {
+      const t = ccoTemplateRegistry.get(req.params.id);
+      if (!t) return res.status(404).json({ error: 'not_found' });
+      res.json(t);
+    });
+
+    // GET /api/v1/cco-templates/:id/revisions — historik
+    app.get('/api/v1/cco-templates/:id/revisions', attachRole, requirePermission('templates.read'), (req, res) => {
+      res.json({ revisions: ccoTemplateRegistry.getRevisions(req.params.id) });
+    });
+
+    // POST /api/v1/cco-templates — create/upsert (owner only)
+    app.post('/api/v1/cco-templates', attachRole, requirePermission('templates.write'), jsonParserT, async (req, res) => {
+      try {
+        const t = await ccoTemplateRegistry.upsert(req.body || {}, { role: req.cco?.role });
+        res.json(t);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-templates/:id/legal-review — uppdatera legal-status
+    app.post('/api/v1/cco-templates/:id/legal-review', attachRole, requirePermission('templates.legal_review'), jsonParserT, async (req, res) => {
+      try {
+        const t = await ccoTemplateRegistry.setLegalReviewStatus(req.params.id, req.body?.status, {
+          role: req.cco?.role,
+          reviewer: req.body?.reviewer,
+          externalRef: req.body?.externalRef,
+        });
+        res.json(t);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-templates/:id/snapshot — preview snapshot för send
+    app.post('/api/v1/cco-templates/:id/snapshot', attachRole, requirePermission('templates.read'), jsonParserT, (req, res) => {
+      try {
+        const snap = ccoTemplateRegistry.snapshotForSend(req.params.id, req.body?.lang || 'sv');
+        res.json(snap);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    console.log('[cco-templates] monterad: 6 routes /api/v1/cco-templates/* (templates.read/write + legal_review)');
+  } catch (err) {
+    console.warn('[cco-templates] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Compliance Scan (Steg 2: version-conflict + missing-audit detector) ──
+let ccoComplianceScanStore = null;
+(async () => {
+  try {
+    const { createCcoComplianceScanStore } = require('./src/ops/ccoComplianceScanStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+
+    // Vänta på att template-registry initieras (race-condition skydd)
+    function getTemplateRegistry() { return app.locals.ccoTemplateRegistry; }
+
+    ccoComplianceScanStore = await createCcoComplianceScanStore({
+      filePath: path.join(__dirname, 'data', 'cco-compliance-scans.json'),
+      externalVersionsPath: path.join(__dirname, 'config', 'external-template-versions.json'),
+      meridiqSchemaPath: path.join(__dirname, 'migration', 'meridiq', 'journal-schema-catalog.json'),
+      templateRegistry: {
+        list: (...args) => getTemplateRegistry()?.list(...args) || [],
+      },
+      auditLog: ccoAuditLog,
+    });
+    app.locals.ccoComplianceScanStore = ccoComplianceScanStore;
+
+    const expressS = require('express');
+    const jsonParserS = expressS.json({ limit: '16kb' });
+
+    // GET /api/v1/cco-compliance-scan/latest — senaste scan
+    app.get('/api/v1/cco-compliance-scan/latest', attachRole, requirePermission('compliance.read'), (req, res) => {
+      const latest = ccoComplianceScanStore.getLatestScan();
+      if (!latest) return res.status(404).json({ error: 'no_scans_yet', detail: 'Kör POST /api/v1/cco-compliance-scan/run för att trigga första scan' });
+      res.json(latest);
+    });
+
+    // GET /api/v1/cco-compliance-scan/flags — aktiva flaggor från senaste scan
+    app.get('/api/v1/cco-compliance-scan/flags', attachRole, requirePermission('compliance.read'), (req, res) => {
+      res.json(ccoComplianceScanStore.getActiveFlags());
+    });
+
+    // GET /api/v1/cco-compliance-scan/history — scan-historik
+    app.get('/api/v1/cco-compliance-scan/history', attachRole, requirePermission('compliance.read'), (req, res) => {
+      res.json({ scans: ccoComplianceScanStore.listScans({ limit: Number(req.query.limit) || 20 }) });
+    });
+
+    // POST /api/v1/cco-compliance-scan/run — trigga manuell scan (owner only)
+    app.post('/api/v1/cco-compliance-scan/run', attachRole, requirePermission('compliance.scan'), jsonParserS, async (req, res) => {
+      try {
+        const result = await ccoComplianceScanStore.runFullScan({
+          triggeredBy: 'manual:' + (req.cco?.role || 'owner'),
+          sinceHours: Number(req.body?.sinceHours) || 24,
+        });
+        res.json(result);
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+      }
+    });
+
+    // Auto-scan: cron-job tickar dagligen 06:00 (om cron-scheduler är aktivt)
+    // Vi använder enkel setInterval här eftersom befintlig cronScheduler är knuten till notifications
+    // Schemalägg första körning 30s efter boot för warm-up
+    let scanInterval = null;
+    setTimeout(() => {
+      // Initial scan vid boot
+      ccoComplianceScanStore.runFullScan({ triggeredBy: 'boot' })
+        .then((r) => console.log(`[cco-compliance-scan] initial scan klart — ${r.totalFlags} flaggor`))
+        .catch((err) => console.warn('[cco-compliance-scan] initial scan failed:', err.message));
+
+      // Daglig återkommande scan
+      scanInterval = setInterval(() => {
+        ccoComplianceScanStore.runFullScan({ triggeredBy: 'cron_daily' })
+          .then((r) => console.log(`[cco-compliance-scan] daily scan — ${r.totalFlags} flaggor`))
+          .catch((err) => console.warn('[cco-compliance-scan] daily scan failed:', err.message));
+      }, 24 * 3600 * 1000);
+    }, 30000);
+
+    console.log('[cco-compliance-scan] monterad: GET /latest, /flags, /history, POST /run (compliance.read/scan) — cron dagligen + initial 30s efter boot');
+  } catch (err) {
+    console.warn('[cco-compliance-scan] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Send Actions (Sprint C: form/consent/file/encounter med dry-run + audit) ──
+let ccoSendActionStore = null;
+(async () => {
+  try {
+    const { createCcoSendActionStore, isDryRunDefault } = require('./src/ops/ccoSendActionStore');
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+    let mailer = null;
+    try { mailer = require('./src/infra/resendMailer'); } catch (e) { /* mailer optional */ }
+
+    // Vänta lite på template-registry init (race-condition skydd)
+    function getTemplateRegistry() { return app.locals.ccoTemplateRegistry; }
+
+    ccoSendActionStore = await createCcoSendActionStore({
+      filePath: path.join(__dirname, 'data', 'cco-send-actions.json'),
+      auditLog: ccoAuditLog,
+      mailer,
+      baseUrl: process.env.PUBLIC_BASE_URL || 'https://hairtpclinic.com',
+      templateRegistry: {
+        snapshotForSend: (...args) => getTemplateRegistry()?.snapshotForSend(...args),
+      },
+    });
+    app.locals.ccoSendActionStore = ccoSendActionStore;
+
+    const expressC = require('express');
+    const jsonParserC = expressC.json({ limit: '32kb' });
+
+    function commonCustomerCtx(req) {
+      return {
+        customerId: req.params.customerId || req.body?.customerId,
+        customerName: req.body?.customerName || req.body?.name || 'kund',
+        customerEmail: req.body?.customerEmail || req.body?.email,
+        urlToken: req.body?.urlToken,
+      };
+    }
+
+    // POST /api/v1/cco-send/form/:customerId
+    app.post('/api/v1/cco-send/form/:customerId', attachRole, requirePermission('mail.send'), jsonParserC, async (req, res) => {
+      try {
+        const ctx = commonCustomerCtx(req);
+        if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
+        const payload = ccoSendActionStore.buildFormPayload({ ...ctx, formKind: req.body?.formKind || 'health_declaration' });
+        const result = await ccoSendActionStore.performSend({
+          kind: 'form', payload, customerId: ctx.customerId, role: req.cco?.role,
+          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+          templateRef: req.body?.templateRef || null,
+          templateLang: req.body?.templateLang || 'sv',
+        });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-send/consent/:customerId
+    app.post('/api/v1/cco-send/consent/:customerId', attachRole, requirePermission('mail.send'), jsonParserC, async (req, res) => {
+      try {
+        const ctx = commonCustomerCtx(req);
+        if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
+        const payload = ccoSendActionStore.buildConsentPayload({ ...ctx, consentKind: req.body?.consentKind || 'photo_publish' });
+        const result = await ccoSendActionStore.performSend({
+          kind: 'consent', payload, customerId: ctx.customerId, role: req.cco?.role,
+          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+          templateRef: req.body?.templateRef || null,
+          templateLang: req.body?.templateLang || 'sv',
+        });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-send/file/:customerId
+    app.post('/api/v1/cco-send/file/:customerId', attachRole, requirePermission('mail.send'), jsonParserC, async (req, res) => {
+      try {
+        const ctx = commonCustomerCtx(req);
+        if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
+        if (!req.body?.fileName || !req.body?.fileMime) return res.status(400).json({ error: 'fileName + fileMime krävs' });
+        const payload = ccoSendActionStore.buildFilePayload({
+          ...ctx, fileName: req.body.fileName, fileMime: req.body.fileMime, fileNote: req.body.fileNote || '',
+        });
+        const result = await ccoSendActionStore.performSend({
+          kind: 'file', payload, customerId: ctx.customerId, role: req.cco?.role,
+          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+          templateRef: req.body?.templateRef || null,
+          templateLang: req.body?.templateLang || 'sv',
+        });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // POST /api/v1/cco-send/encounter/:customerId (kort: send booking → encounter-länk)
+    app.post('/api/v1/cco-send/encounter/:customerId', attachRole, requirePermission('mail.send'), jsonParserC, async (req, res) => {
+      try {
+        const ctx = commonCustomerCtx(req);
+        if (!ctx.customerEmail) return res.status(400).json({ error: 'customerEmail krävs' });
+        const payload = ccoSendActionStore.buildEncounterPayload({
+          ...ctx,
+          encounterDate: req.body?.encounterDate,
+          encounterTime: req.body?.encounterTime,
+          treatmentLabel: req.body?.treatmentLabel || 'behandling',
+          staffName: req.body?.staffName || 'Hair TP Clinic',
+          encounterId: req.body?.encounterId,
+        });
+        const result = await ccoSendActionStore.performSend({
+          kind: 'encounter', payload, customerId: ctx.customerId, role: req.cco?.role,
+          dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+          templateRef: req.body?.templateRef || null,
+          templateLang: req.body?.templateLang || 'sv',
+        });
+        res.json(result);
+      } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    });
+
+    // GET /api/v1/cco-send/history
+    app.get('/api/v1/cco-send/history', attachRole, requirePermission('mail.read'), (req, res) => {
+      const items = ccoSendActionStore.listSends({
+        kind: req.query.kind || null,
+        customerId: req.query.customerId || null,
+        limit: Number(req.query.limit) || 100,
+      });
+      res.json({ count: items.length, items });
+    });
+
+    // GET /api/v1/cco-send/stats — för UI dry-run-banner + telemetri
+    app.get('/api/v1/cco-send/stats', attachRole, requirePermission('mail.read'), (req, res) => {
+      res.json(ccoSendActionStore.stats());
+    });
+
+    // GET /api/v1/cco-send/templates — för UI dropdown
+    app.get('/api/v1/cco-send/templates', attachRole, requirePermission('mail.read'), (req, res) => {
+      const { FORM_TEMPLATES, CONSENT_TEMPLATES, ALLOWED_MIME_BY_KIND } = require('./src/ops/ccoSendActionStore');
+      res.json({
+        form: Object.keys(FORM_TEMPLATES).map((k) => ({ id: k, ...FORM_TEMPLATES[k] })),
+        consent: Object.keys(CONSENT_TEMPLATES).map((k) => ({ id: k, ...CONSENT_TEMPLATES[k] })),
+        allowedFileTypes: ALLOWED_MIME_BY_KIND.file,
+      });
+    });
+
+    console.log('[cco-send] monterad: 4 POST /api/v1/cco-send/{form|consent|file|encounter}/:customerId + history/stats/templates (mail.send) — dryRunDefault=' + isDryRunDefault());
+  } catch (err) {
+    console.warn('[cco-send] kunde inte montera:', err.message);
+  }
+})();
+
+// ── CCO Journal Quick (Sprint A: RBAC-wrapper för befintlig ccoJournalStore) ──
+// Befintlig /api/v1/cco-journal/* använder auth.requireAuth + requireRole.
+// Sprint A behöver consistent RBAC-pattern (attachRole + requirePermission) + audit-log
+// så UI kan kalla från smart-anteckning/dossier utan login-flöde (under demo/utveckling).
+// Compliance bevarad: vi delegerar till samma store (samma file), så signering/lock/correction
+// går genom samma path och ger samma immutability.
+try {
+  const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+  const expressA = require('express');
+  const jsonParserA = expressA.json({ limit: '128kb' });
+
+  function getJournalStore() {
+    return app.locals.ccoJournalStore;
+  }
+
+  function auditA(action, role, target, detail) {
+    if (!ccoAuditLog) return;
+    try {
+      ccoAuditLog.append({
+        action,
+        actor: { role: role || 'unknown' },
+        target,
+        detail,
+      });
+    } catch (err) {
+      console.error('[cco-journal-quick] audit failed:', err.message);
+    }
+  }
+
+  // POST /api/v1/cco-journal-quick/entry — skapa/spara draft (PUT-semantik)
+  app.put('/api/v1/cco-journal-quick/entry', attachRole, requirePermission('journal.write'), jsonParserA, async (req, res) => {
+    const store = getJournalStore();
+    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+    try {
+      const body = req.body || {};
+      if (!body.patientId) return res.status(400).json({ error: 'patientId krävs' });
+      const tenantId = body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const entry = await store.upsertEntry({ ...body, tenantId }, {
+        actor: {
+          userId: req.headers['x-cco-user'] || 'demo-user',
+          role: req.cco?.role,
+          displayName: req.headers['x-cco-user'] || req.cco?.role,
+        },
+      });
+      auditA('journal.entry.write', req.cco?.role, { kind: 'journal_entry', id: entry.entryId }, { patientId: body.patientId, journalType: entry.journalType, status: entry.status });
+      res.json({ entry, readout: store.buildJournalReadout?.(entry) || null });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/v1/cco-journal-quick/entry/sign — signera (auto-lockar)
+  app.post('/api/v1/cco-journal-quick/entry/sign', attachRole, requirePermission('journal.write'), jsonParserA, async (req, res) => {
+    const store = getJournalStore();
+    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+    try {
+      const { patientId, entryId } = req.body || {};
+      if (!patientId || !entryId) return res.status(400).json({ error: 'patientId + entryId krävs' });
+      const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const signed = await store.signEntry({
+        tenantId, patientId, entryId,
+        actor: { userId: req.headers['x-cco-user'] || 'demo-user', role: req.cco?.role, displayName: req.headers['x-cco-user'] || req.cco?.role },
+      });
+      auditA('journal.entry.sign', req.cco?.role, { kind: 'journal_entry', id: entryId }, { patientId, journalType: signed.journalType, locked: !!signed.locked });
+      res.json({ entry: signed });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/v1/cco-journal-quick/entry/correction — skapa rättelse (NY route, finns ej i legacy)
+  app.post('/api/v1/cco-journal-quick/entry/correction', attachRole, requirePermission('journal.write'), jsonParserA, async (req, res) => {
+    const store = getJournalStore();
+    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+    if (typeof store.addCorrection !== 'function') return res.status(501).json({ error: 'addCorrection_not_implemented' });
+    try {
+      const { patientId, entryId, fields, reason } = req.body || {};
+      if (!patientId || !entryId) return res.status(400).json({ error: 'patientId + entryId krävs' });
+      if (!reason || String(reason).trim().length < 10) return res.status(400).json({ error: 'reason måste vara minst 10 tecken (PDL-krav på spårbarhet)' });
+      const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const correction = await store.addCorrection({
+        tenantId, patientId, entryId, fields: fields || {},
+        actor: { userId: req.headers['x-cco-user'] || 'demo-user', role: req.cco?.role, displayName: req.headers['x-cco-user'] || req.cco?.role },
+      });
+      auditA('journal.entry.correction.create', req.cco?.role, { kind: 'journal_entry', id: correction.entryId }, { patientId, originalEntryId: entryId, reason });
+      res.json({ correction, originalEntryId: entryId, reason });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/v1/cco-journal-quick/entries — lista per kund
+  // P0.8: journal.read audit-event via readJournalWithAudit-wrapper
+  app.get('/api/v1/cco-journal-quick/entries', attachRole, requirePermission('journal.read_any'), async (req, res) => {
+    const store = getJournalStore();
+    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+    try {
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const patientId = req.query.patientId;
+      if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
+      const { readJournalWithAudit } = require('./src/ops/ccoJournalReadAudit');
+      const entries = await readJournalWithAudit(
+        {
+          auditLog: ccoAuditLog,
+          actor: { role: req.cco?.role, userId: req.headers['x-cco-user'] || null },
+          tenantId, patientId,
+          endpoint: 'GET /api/v1/cco-journal-quick/entries',
+          scope: 'list_entries',
+          extra: { journalType: req.query.journalType || null },
+        },
+        () => store.listEntries({ tenantId, patientId, journalType: req.query.journalType || null })
+      );
+      res.json({ count: entries.length, entries });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/v1/cco-journal-quick/stats — sammanställning
+  // P0.8: aggregate-read loggas också (PDL: åtkomst-räkning)
+  app.get('/api/v1/cco-journal-quick/stats', attachRole, requirePermission('journal.read_any'), async (req, res) => {
+    const store = getJournalStore();
+    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+    try {
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const { readJournalWithAudit } = require('./src/ops/ccoJournalReadAudit');
+      const all = await readJournalWithAudit(
+        {
+          auditLog: ccoAuditLog,
+          actor: { role: req.cco?.role, userId: req.headers['x-cco-user'] || null },
+          tenantId, patientId: null,
+          endpoint: 'GET /api/v1/cco-journal-quick/stats',
+          scope: 'stats_aggregate',
+        },
+        () => store.listAllEntries({ tenantId })
+      );
+      const byStatus = {};
+      const byKind = {};
+      for (const e of all) {
+        byStatus[e.status || 'unknown'] = (byStatus[e.status || 'unknown'] || 0) + 1;
+        byKind[e.journalType || 'unknown'] = (byKind[e.journalType || 'unknown'] || 0) + 1;
+      }
+      res.json({ total: all.length, byStatus, byKind, lockedCount: all.filter(e => e.locked).length });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/v1/cco-journal-quick/entry/unlock — Beslut #3: OWNER ONLY + reason min 20 chars
+  // PDL-compliance: unlock loggas som HIGH-severity audit-event
+  app.post('/api/v1/cco-journal-quick/entry/unlock', attachRole, requirePermission('journal.unlock'), jsonParserA, async (req, res) => {
+    const store = getJournalStore();
+    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+    try {
+      const { patientId, entryId, reason } = req.body || {};
+      if (!patientId || !entryId) return res.status(400).json({ error: 'patientId + entryId krävs' });
+      if (!reason || String(reason).trim().length < 20) {
+        return res.status(400).json({
+          error: 'unlock_reason_required',
+          detail: 'Owner-unlock kräver reason ≥ 20 tecken med tydlig anledning (för PDL-spårbarhet). Använd correction-flow först om möjligt — unlock är extrem-åtgärd.',
+        });
+      }
+      const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const updated = await store.unlockEntry({
+        tenantId, patientId, entryId,
+        reason: reason.trim(),
+        actor: {
+          userId: req.headers['x-cco-user'] || 'owner',
+          displayName: req.headers['x-cco-user'] || 'owner',
+          role: req.cco?.role,
+        },
+      });
+
+      auditA('journal.entry.unlock.HIGH_SEVERITY', req.cco?.role, { kind: 'journal_entry', id: entryId }, {
+        patientId, reason: reason.trim(),
+        previouslySignedAt: updated.unlockSnapshot?.previouslySignedAt,
+        previouslySignedBy: updated.unlockSnapshot?.previouslySignedByName,
+        WARNING: 'Owner-unlock — PDL compliance-händelse. Granska vid nästa audit.',
+      });
+
+      res.json({
+        entry: updated,
+        snapshot: updated.unlockSnapshot,
+        complianceNote: 'Unlock loggad som HIGH_SEVERITY. Originalets signed-state bevarad i unlockSnapshot. Skapa ny signering eller correction.',
+      });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/v1/cco-journal-quick/entry/:entryId/pdf — Steg 7: PDF-export av signerad journal
+  app.get('/api/v1/cco-journal-quick/entry/:entryId/pdf', attachRole, requirePermission('journal.read_own'), async (req, res) => {
+    const store = getJournalStore();
+    if (!store) return res.status(503).json({ error: 'journal_store_unavailable' });
+    try {
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const patientId = req.query.patientId;
+      if (!patientId) return res.status(400).json({ error: 'patientId krävs i query' });
+      const { readJournalWithAudit } = require('./src/ops/ccoJournalReadAudit');
+      const entry = await readJournalWithAudit(
+        {
+          auditLog: ccoAuditLog,
+          actor: { role: req.cco?.role, userId: req.headers['x-cco-user'] || null },
+          tenantId, patientId,
+          endpoint: 'GET /api/v1/cco-journal-quick/entry/:entryId/pdf',
+          scope: 'pdf_export_read',
+          extra: { entryId: req.params.entryId },
+        },
+        () => store.getEntry({ tenantId, patientId, entryId: req.params.entryId })
+      );
+      if (!entry) return res.status(404).json({ error: 'not_found' });
+
+      const { exportJournalEntryToPdf } = require('./src/ops/ccoJournalPdfExport');
+      const result = await exportJournalEntryToPdf({
+        entry,
+        getChromium,
+        templateVersion: req.query.templateVersion || null,
+      });
+
+      auditA('journal.pdf.export', req.cco?.role, { kind: 'journal_entry', id: entry.entryId || entry.id }, {
+        patientId, journalType: entry.journalType,
+        tamperHash: result.tamperHash,
+        sizeBytes: result.sizeBytes,
+        signedAt: entry.signedAt,
+        signedByName: entry.signedByName,
+      });
+      // P0.8 — canonical 'journal.export' alias
+      auditA('journal.export', req.cco?.role, { kind: 'journal_entry', id: entry.entryId || entry.id }, {
+        patientId, journalType: entry.journalType, format: 'pdf', tamperHash: result.tamperHash,
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="journal-${entry.entryId || entry.id}-${(entry.signedAt || '').substring(0,10)}.pdf"`);
+      res.setHeader('X-Journal-Tamper-Hash', result.tamperHash);
+      res.setHeader('X-Journal-Entry-Id', entry.entryId || entry.id);
+      res.setHeader('X-Journal-Signed-At', entry.signedAt || '');
+      res.send(result.buffer);
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  console.log('[cco-journal-quick] monterad: PUT /entry, POST /sign+/correction+/unlock, GET /entries+/stats+/pdf (RBAC: journal.read_any/write + unlock=owner)');
+} catch (err) {
+  console.warn('[cco-journal-quick] kunde inte montera:', err.message);
+}
+
+// ── P0.9: Journal QA Dashboard endpoint ──
+// GET /api/v1/cco/journal-qa/snapshot?tenantId=hair_tp → 5 statusblock per cursor-regeln.
+// Hämtar counts från ccoCustomerStore + ccoJournalStore + ccoTemplateRegistry.
+// Counts only — INGA patientnamn/pnr/email i payload. Cache 60s i store.
+// Audit: 'journal.qa.read' per anrop (PDL: åtkomst-räkning).
+try {
+  const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+  const { createJournalQaDashboardStore } = require('./src/ops/ccoJournalQaDashboardStore');
+
+  // Lazy-init: store byggs först vid första anrop när all locals är ready.
+  let qaDashboardStore = null;
+  function getQaDashboardStore() {
+    if (qaDashboardStore) return qaDashboardStore;
+    if (!app.locals.ccoCustomerStore || !app.locals.ccoJournalStore) return null;
+    qaDashboardStore = createJournalQaDashboardStore({
+      customerStore: app.locals.ccoCustomerStore,
+      journalStore: app.locals.ccoJournalStore,
+      photoStore: app.locals.ccoPhotoStore || null,
+      templateRegistry: app.locals.ccoTemplateRegistry || null,
+      masterCardStore: app.locals.ccoMasterPatientCardLookup || null,
+    });
+    return qaDashboardStore;
+  }
+
+  app.get('/api/v1/cco/journal-qa/snapshot', attachRole, requirePermission('journal.read_any'), async (req, res) => {
+    const store = getQaDashboardStore();
+    if (!store) return res.status(503).json({ error: 'qa_dashboard_unavailable' });
+    try {
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+      const snapshot = await store.getSnapshot({ tenantId });
+      if (ccoAuditLog) {
+        ccoAuditLog.append({
+          action: 'journal.qa.read',
+          actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
+          target: { kind: 'qa_dashboard', id: tenantId },
+          result: 'ok',
+          detail: {
+            blocks: 5,
+            okCount: snapshot.block5?.okCount,
+            readiness: snapshot.block5?.status,
+          },
+        });
+      }
+      res.json(snapshot);
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/v1/cco/journal-qa/invalidate', attachRole, requirePermission('journal.read_any'), (req, res) => {
+    const store = getQaDashboardStore();
+    if (!store) return res.status(503).json({ error: 'qa_dashboard_unavailable' });
+    const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || null;
+    store.invalidate(tenantId);
+    res.json({ invalidated: tenantId || 'all' });
+  });
+
+  console.log('[cco-journal-qa] monterad: GET /api/v1/cco/journal-qa/snapshot + POST /invalidate (RBAC: journal.read_any)');
+} catch (err) {
+  console.warn('[cco-journal-qa] kunde inte montera:', err.message);
+}
+
+// ── Steg 6: Clean URL för patient-portal — /portal/:token → patient-portal.html
+// Detta gör att email-länkar blir cleaner (https://...com/portal/AbC123) istället för full ?token=xxx
+// HTML:en själv hanterar token-extrahering från path eller query
+app.get('/portal/:token', (req, res, next) => {
+  const token = req.params.token;
+  if (!token || token.length < 8) return next();  // låt 404 hantera
+  // Servera patient-portal.html direkt
+  res.sendFile(path.join(__dirname, 'public', 'patient-portal.html'));
+});
+
+// ── CCO Patient Portal Staff API (Beslut #2: wrap legacy createInvite med RBAC) ──
+try {
+  const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+  const expressP = require('express');
+  const jsonParserP = expressP.json({ limit: '16kb' });
+
+  function getPortalStore() { return app.locals.patientPortalStore; }
+
+  // POST /api/v1/cco-portal/invites — staff skapar invite för patient
+  app.post('/api/v1/cco-portal/invites', attachRole, requirePermission('portal.write'), jsonParserP, async (req, res) => {
+    const store = getPortalStore();
+    if (!store) return res.status(503).json({ error: 'portal_store_unavailable' });
+    try {
+      const {
+        tenantId = 'hairtpclinic',
+        patientId, patientName, patientEmail,
+        serviceLabel = 'Förbehandling',
+        appointmentDate = null,
+        encounterId = null,
+        forms = [{ formId: 'health_declaration', journalType: 'health_declaration', formVariant: 'hair_tp', label: 'Hälsodeklaration' }],
+        expiresInDays = 7,
+      } = req.body || {};
+      if (!patientId) return res.status(400).json({ error: 'patientId krävs' });
+      if (!patientName) return res.status(400).json({ error: 'patientName krävs' });
+
+      const invite = await store.createInvite({
+        tenantId, patientId, patientName, serviceLabel,
+        appointmentDate, encounterId, forms, expiresInDays,
+      });
+      if (ccoAuditLog) {
+        ccoAuditLog.append({
+          action: 'portal.invite.create',
+          actor: { role: req.cco?.role },
+          target: { kind: 'portal_invite', id: invite.token.substring(0, 12) + '…' },
+          detail: { patientId, patientName, forms: forms.map((f) => f.formId), expiresInDays },
+        });
+      }
+
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://hairtpclinic.com';
+      // Steg 6: använd cleaner /portal/:token-URL för patient (HTML), behåll API-URL för referens
+      const inviteUrl = `${baseUrl}/portal/${encodeURIComponent(invite.token)}`;
+      const apiInviteUrl = `${baseUrl}/api/patient-portal/${encodeURIComponent(invite.token)}`;
+
+      // Om patientEmail finns och sendStore är konfigurerad → skicka via dry-run-flow
+      let sendResult = null;
+      const sendStore = app.locals.ccoSendActionStore;
+      if (patientEmail && sendStore) {
+        try {
+          const payload = sendStore.buildFormPayload({
+            customerName: patientName, customerEmail: patientEmail, customerId: patientId,
+            formKind: forms[0].journalType === 'fitness_certificate' ? 'fitness_certificate' : 'health_declaration',
+            urlToken: invite.token,
+          });
+          // Override URL till patient-portal-link
+          payload.html = `<p>Hej ${patientName},</p><p>Inför ditt besök behöver vi din ${forms.map((f) => f.label).join(', ')}.</p><p><a href="${inviteUrl}">Öppna formulär</a> (giltig i ${expiresInDays} dagar)</p><p>Hair TP Clinic</p>`;
+          payload.text = `Hej ${patientName},\n\nInför ditt besök behöver vi din ${forms.map((f) => f.label).join(', ')}.\n\n${inviteUrl}\n\n(giltig i ${expiresInDays} dagar)\n\nHair TP Clinic`;
+          payload.meta = { ...payload.meta, inviteToken: invite.token, forms: forms.map((f) => f.formId) };
+          sendResult = await sendStore.performSend({
+            kind: 'form', payload, customerId: patientId, role: req.cco?.role,
+            dryRunOverride: typeof req.body?.dryRun === 'boolean' ? req.body.dryRun : null,
+          });
+        } catch (err) {
+          sendResult = { ok: false, error: err.message };
+        }
+      }
+
+      res.json({
+        ok: true,
+        invite: {
+          token: invite.token,
+          patientId: invite.patientId,
+          patientName: invite.patientName,
+          forms: invite.forms,
+          expiresAt: invite.expiresAt,
+          inviteUrl,        // patient-facing HTML-URL
+          apiInviteUrl,     // staff-facing API-URL för debugging
+        },
+        send: sendResult,
+        complianceNote: sendResult?.dryRun
+          ? 'Invite skapad. Email INTE skickad (dry-run). Du kan kopiera inviteUrl manuellt.'
+          : 'Invite skapad och skickad till patient.',
+      });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/v1/cco-portal/invites — staff listar pending invites
+  app.get('/api/v1/cco-portal/invites', attachRole, requirePermission('portal.read'), async (req, res) => {
+    const store = getPortalStore();
+    if (!store) return res.status(503).json({ error: 'portal_store_unavailable' });
+    try {
+      const tenantId = req.query.tenantId || 'hairtpclinic';
+      const pending = store.listPending(tenantId) || [];
+      res.json({
+        count: pending.length,
+        invites: pending.map((i) => ({
+          token: i.token.substring(0, 12) + '…',  // partial — bara visa första bitar i lista
+          patientId: i.patientId, patientName: i.patientName,
+          serviceLabel: i.serviceLabel, appointmentDate: i.appointmentDate,
+          forms: i.forms?.map((f) => f.formId),
+          createdAt: i.createdAt, expiresAt: i.expiresAt,
+          status: i.completedAt ? 'completed' : 'pending',
+        })),
+      });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  console.log('[cco-portal-staff] monterad: POST /api/v1/cco-portal/invites + GET /invites (portal.write/read)');
+} catch (err) {
+  console.warn('[cco-portal-staff] kunde inte montera:', err.message);
+}
+
+// ── CCO AI Service (Sprint F: tone-selector + journal extract) ──
+try {
+  const { draftReply, extractFields, VALID_TONES } = require('./src/ops/ccoAiService');
+  const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+  const expressF = require('express');
+  const jsonParserF = expressF.json({ limit: '32kb' });
+
+  // POST /api/v1/cco-ai/draft — RBAC: mail.send (genererar utkast för svar)
+  app.post('/api/v1/cco-ai/draft', attachRole, requirePermission('mail.send'), jsonParserF, (req, res) => {
+    try {
+      const result = draftReply(req.body || {});
+      if (ccoAuditLog) {
+        ccoAuditLog.append({
+          action: 'ai.draft.generate',
+          actor: { role: req.cco?.role, ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim() },
+          target: { kind: 'ai_draft', id: result.metadata.intent },
+          detail: { tone: result.tone, wordCount: result.metadata.wordCount },
+        });
+      }
+      res.json(result);
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message, validTones: VALID_TONES });
+    }
+  });
+
+  // POST /api/v1/cco-ai/extract — RBAC: journal.write (förbereder journal-fält)
+  app.post('/api/v1/cco-ai/extract', attachRole, requirePermission('journal.write'), jsonParserF, (req, res) => {
+    try {
+      const result = extractFields(req.body || {});
+      if (ccoAuditLog) {
+        ccoAuditLog.append({
+          action: 'ai.extract.fields',
+          actor: { role: req.cco?.role, ip: (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim() },
+          target: { kind: 'ai_extract', id: null },
+          detail: {
+            fieldCount: Object.keys(result.fields || {}).length,
+            confidence: result.confidence,
+            textLength: result.metadata?.textLength || 0,
+          },
+        });
+      }
+      res.json(result);
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/v1/cco-ai/tones — lista giltiga toner (för UI-dropdown)
+  app.get('/api/v1/cco-ai/tones', attachRole, requirePermission('mail.read'), (req, res) => {
+    res.json({ tones: VALID_TONES });
+  });
+
+  console.log('[cco-ai] monterad: POST /api/v1/cco-ai/draft (mail.send), /extract (journal.write), GET /tones');
+} catch (err) {
+  console.warn('[cco-ai] kunde inte montera:', err.message);
+}
+
+// ── CCO Feedback endpoint (från stage-badge "Rapportera"-knapp) ──
+try {
+  const feedbackDir = path.join(__dirname, 'data');
+  const feedbackFile = path.join(feedbackDir, 'cco-feedback.jsonl');
+  if (!fs.existsSync(feedbackDir)) fs.mkdirSync(feedbackDir, { recursive: true });
+  // Egen body-parser för att inte kollidera med ev. global express.json() limit
+  const express = require('express');
+  app.post('/api/v1/cco-feedback', express.json({ limit: '50kb' }), (req, res) => {
+    try {
+      const entry = req.body && typeof req.body === 'object' ? req.body : null;
+      if (!entry || !entry.text) {
+        return res.status(400).json({ error: 'text required' });
+      }
+      entry.receivedAt = new Date().toISOString();
+      entry.ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim();
+      fs.appendFileSync(feedbackFile, JSON.stringify(entry) + '\n');
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(400).json({ error: 'invalid json: ' + err.message });
+    }
+  });
+  app.get('/api/v1/cco-feedback', (req, res) => {
+    try {
+      const raw = fs.existsSync(feedbackFile) ? fs.readFileSync(feedbackFile, 'utf8') : '';
+      const items = raw.split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      res.json({ count: items.length, items: items.slice(-200) });
+    } catch (err) {
+      res.json({ count: 0, items: [] });
+    }
+  });
+  console.log('[cco-feedback] monterad: POST/GET /api/v1/cco-feedback');
+} catch (err) {
+  console.warn('[cco-feedback] kunde inte montera:', err.message);
+}
+
 const ADMIN_HTML_PATH = path.join(__dirname, 'public', 'admin.html');
 const rawAdminHtmlTemplate = fs.readFileSync(ADMIN_HTML_PATH, 'utf8');
 const uiBuildId = String(
@@ -1608,6 +4119,51 @@ process.once('SIGTERM', () => {
     filePath: config.ccoCustomerStorePath,
     historyStore: ccoHistoryStore,
   });
+  app.locals.ccoCustomerStore = ccoCustomerStore;  // P0.9: exponera för QA-dashboard + master-patient-card-lookup
+
+  // ── Drive-proxy: tjäna bilder via egen domän (cache + auth-hidden) ─────
+  try {
+    const drive = require('./src/lib/googleDriveClient');
+    if (drive.isGoogleDriveConfigured(process.env)) {
+      app.get('/api/drive/files/:id', async (req, res) => {
+        try {
+          await drive.streamDriveFileToResponse({
+            driveFileId: req.params.id,
+            res,
+          });
+        } catch (err) {
+          res.status(404).json({ error: 'file not found', detail: err.message });
+        }
+      });
+      console.log('[drive] proxy aktiverad: GET /api/drive/files/:id');
+    }
+  } catch (_) {
+    /* drive ej konfigurerad — skippa */
+  }
+
+  // ── CCO Customers UI: real-data adapter (opt-in via env) ───────────────
+  if (process.env.ARCANA_CCO_USE_REAL_DATA === 'true') {
+    try {
+      const {
+        createCcoRealDataAdapter,
+        mountRealDataRoutes,
+      } = require('./public/major-arcana-preview/customers/real-data-adapter');
+      const { isGoogleDriveConfigured } = require('./src/lib/googleDriveClient');
+      const realAdapter = createCcoRealDataAdapter({
+        customerStore: ccoCustomerStore,
+        bookingStore: ccoBookingStore,
+        tenantId: process.env.ARCANA_DEFAULT_TENANT_ID || 'hairtp-clinic',
+        driveClient: isGoogleDriveConfigured(process.env)
+          ? require('./src/lib/googleDriveClient')
+          : null,
+      });
+      mountRealDataRoutes(app, realAdapter);
+      console.log('[cco-customers] kör med RIKTIG Cliento + Drive data');
+    } catch (err) {
+      console.warn('[cco-customers] kunde inte aktivera real-data:', err.message);
+    }
+  }
+
   const ccoPatientMasterStore = await createCcoPatientMasterStore({
     filePath: config.ccoPatientMasterStorePath,
   });
@@ -1619,9 +4175,61 @@ process.once('SIGTERM', () => {
     filePath: path.join(config.stateRoot || './data', 'cco-worklist-snapshot.json'),
     readCache: ccoReadCache,
   });
+  // P0.5 — auto-PDF on sign. Hooken kör post-sign och skapar låst PDF-artefakt.
+  // Fel där blockerar INTE signering (juridisk akt redan utförd). Hook använder
+  // applyPdfArtifact() för att spara pdfPath/pdfTamperHash/pdfGeneratedAt utan att
+  // gå genom locked-checken.
+  const ccoJournalPdfDir = path.join(config.stateRoot || './data', 'cco-journal-pdfs');
+  fs.mkdirSync(ccoJournalPdfDir, { recursive: true });
   const ccoJournalStore = await createCcoJournalStore({
     filePath: config.ccoJournalStorePath,
+    onAfterSign: async (signedEntry, { actor } = {}) => {
+      try {
+        const { exportJournalEntryToPdf } = require('./src/ops/ccoJournalPdfExport');
+        const result = await exportJournalEntryToPdf({
+          entry: signedEntry,
+          getChromium,
+        });
+        const targetPath = path.join(ccoJournalPdfDir, `${signedEntry.entryId}.pdf`);
+        fs.writeFileSync(targetPath, result.buffer);
+        await app.locals.ccoJournalStore.applyPdfArtifact({
+          tenantId: signedEntry.tenantId,
+          patientId: signedEntry.patientId,
+          entryId: signedEntry.entryId,
+          pdfPath: targetPath,
+          pdfTamperHash: result.tamperHash,
+          pdfSizeBytes: result.sizeBytes,
+        });
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'journal.pdf_generated_at_signing',
+            actor: { role: actor?.role || 'unknown', userId: actor?.userId || null },
+            target: { kind: 'journal_entry', id: signedEntry.entryId, tenantId: signedEntry.tenantId },
+            result: 'ok',
+            detail: {
+              patientId: signedEntry.patientId,
+              journalType: signedEntry.journalType,
+              tamperHash: result.tamperHash,
+              sizeBytes: result.sizeBytes,
+              signedAt: signedEntry.signedAt,
+            },
+          });
+        }
+      } catch (pdfErr) {
+        console.error('[journal-auto-pdf] sign-hook fel:', pdfErr.message);
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'journal.pdf_generated_at_signing',
+            actor: { role: actor?.role || 'unknown' },
+            target: { kind: 'journal_entry', id: signedEntry.entryId, tenantId: signedEntry.tenantId },
+            result: 'error',
+            detail: { error: pdfErr.message, patientId: signedEntry.patientId },
+          });
+        }
+      }
+    },
   });
+  app.locals.ccoJournalStore = ccoJournalStore;  // Sprint A: exponera till /api/v1/cco-journal-quick
   const ccoTreatmentEncounterStore = await createCcoTreatmentEncounterStore({
     filePath: config.ccoTreatmentEncounterStorePath,
   });
@@ -2595,6 +5203,7 @@ process.once('SIGTERM', () => {
       journalStore: ccoJournalStore || null,
     })
   );
+  app.locals.patientPortalStore = patientPortalStore;  // Beslut #2: exponera för staff-API
 
   const identityStorePath = config.stateRoot
     ? `${config.stateRoot}/cco-patient-identity.json`
