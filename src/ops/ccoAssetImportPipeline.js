@@ -543,7 +543,10 @@ function createCcoAssetImportPipeline({
     const patientScore = Number(patientLink.score || 0);
     const needsReview =
       !patientLink.patientId || patientScore < MEDIUM_CONFIDENCE || classification.confidence === 'low';
-    const finalStatus = needsReview ? 'NEEDS_REVIEW' : 'IMPORTED_TO_CCO';
+    // Initial-status: assets börjar alltid på DISCOVERED och vandrar via
+    // transitionStatus per state-machine. NEEDS_REVIEW är en giltig direkt
+    // DISCOVERED-target (se docs/schema/cco-patient-assets.schema.md §2).
+    const initialStatus = needsReview ? 'NEEDS_REVIEW' : 'DISCOVERED';
 
     // Steg 8 + 12: Index (patient_assets-record m. provenance)
     const asset = await assetStore.addAsset(
@@ -565,12 +568,33 @@ function createCcoAssetImportPipeline({
         importRunId,
         importedBy: actor?.userId || 'system',
         confidence: patientLink.confidence,
-        status: finalStatus,
+        status: initialStatus,
         auditRequired: needsReview,
         isJournalRelevant: classification.category === 'journal',
       },
       { actor }
     );
+
+    // För success-path: walka via state-machine
+    //   DISCOVERED -> IMPORTING -> IMPORTED_TO_CCO -> VERIFIED_IN_CCO
+    // genom transitionStatus så guards triggas och audit-eventen följer
+    // schema §2.
+    let finalStatus = initialStatus;
+    if (!needsReview) {
+      await assetStore.transitionStatus(asset.id, 'IMPORTING', {
+        actor,
+        reason: 'pipeline_step_2_download',
+      });
+      await assetStore.transitionStatus(asset.id, 'IMPORTED_TO_CCO', {
+        actor,
+        reason: 'pipeline_step_3_checksum_persisted',
+      });
+      await assetStore.transitionStatus(asset.id, 'VERIFIED_IN_CCO', {
+        actor,
+        reason: 'pipeline_step_4_verify_ok',
+      });
+      finalStatus = 'VERIFIED_IN_CCO';
+    }
 
     // Steg 9: Audit-log — addAsset emit:ar 'asset.imported' via assetStore.
     // Extra audit för patient/encounter-länkning:
@@ -618,14 +642,24 @@ function createCcoAssetImportPipeline({
       await importRunStore.incrementCounter(importRunId, 'totalNeedsReview', 1);
     } else {
       await importRunStore.incrementCounter(importRunId, 'totalImported', 1);
-      // Steg 10 — VISIBLE_ON_PATIENT_CARD när auto-link var säker
+      // Steg 10 — VISIBLE_ON_PATIENT_CARD via guarded markAsVisibleOnPatientCard
+      // (kräver storageKey + checksum + fileSize + mimeType + patientId +
+      // status === VERIFIED_IN_CCO). Pipeline har redan ställt VERIFIED ovan
+      // för success-path, så detta är guard-säkrat.
       if (patientLink.confidence === 'high') {
-        await assetStore.updateAssetStatus(
-          asset.id,
-          'VISIBLE_ON_PATIENT_CARD',
-          'pipeline_auto_high_confidence',
-          { actor }
-        );
+        try {
+          await assetStore.markAsVisibleOnPatientCard(asset.id, { actor });
+          finalStatus = 'VISIBLE_ON_PATIENT_CARD';
+        } catch (err) {
+          // Guard-fail loggas via auditLog men breaker inte pipeline-flödet.
+          safeAudit(auditLog, {
+            action: 'asset.visible_guard_failed',
+            actor: { role: actor?.role || 'system', userId: actor?.userId || null },
+            target: { kind: 'patient_asset', id: asset.id, tenantId },
+            result: 'fail',
+            detail: { missing: err.missing || [], message: err.message },
+          });
+        }
       }
       await importRunStore.incrementCounter(importRunId, 'totalVerified', 1);
     }
