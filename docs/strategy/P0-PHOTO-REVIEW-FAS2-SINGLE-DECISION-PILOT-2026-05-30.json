@@ -1,0 +1,244 @@
+{
+  "generatedAt": "2026-05-30T22:32:05.940Z",
+  "phase": "fas2_single_decision_pilot",
+  "dryRun": false,
+  "sandboxAssets": "/Users/fazlikrasniqi/Code/major-arcana/data/sandbox-photo-review-fas2-pilot/cco-patient-assets.json",
+  "prodAssetsPath": "/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Major Arcana 2.0/Migration-data/cco-prod/cco-patient-assets.json",
+  "pilotPatients": 5,
+  "pilotPhotosCohort": 20,
+  "maxDecisions": 20,
+  "needsReviewBefore": {
+    "allPhotos": 861,
+    "pilotCohort": 35
+  },
+  "decisions": [
+    {
+      "type": "reassign",
+      "assetId": "9bd87401-a847-44dd-a06f-415ea2002bc1",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "9bd87401-a847-44dd-a06f-415ea2002bc1",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "NEEDS_REVIEW",
+        "category": "photo_before"
+      }
+    },
+    {
+      "type": "approve",
+      "assetId": "8f88bcaa-316a-4872-9bab-7956d66b1fb5",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "8f88bcaa-316a-4872-9bab-7956d66b1fb5",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "VISIBLE_ON_PATIENT_CARD",
+        "category": "photo_during"
+      }
+    },
+    {
+      "type": "reject",
+      "assetId": "ddef198e-4730-461d-b615-e02cbdd22a11",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "ddef198e-4730-461d-b615-e02cbdd22a11",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "REJECTED",
+        "category": "photo_during"
+      }
+    },
+    {
+      "type": "reassign-approve",
+      "assetId": "8be6a436-ee94-42b4-ad42-fa877c351714",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "8be6a436-ee94-42b4-ad42-fa877c351714",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "VISIBLE_ON_PATIENT_CARD",
+        "category": "photo_after"
+      }
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "reviewed": 4,
+    "approved": 2,
+    "rejected": 1,
+    "reassigned": 2,
+    "visibleAfterReview": 2
+  },
+  "needsReviewAfter": {
+    "allPhotos": 858,
+    "pilotCohort": 32
+  },
+  "approvedStorageChecks": [
+    {
+      "assetId": "8f88bcaa-316a-4872-9bab-7956d66b1fb5",
+      "ok": true,
+      "storage": {
+        "storageKey": true,
+        "checksum": true,
+        "fileSize": true,
+        "mimeType": true,
+        "patientId": true,
+        "category": true,
+        "readyForApprove": true
+      }
+    },
+    {
+      "assetId": "8be6a436-ee94-42b4-ad42-fa877c351714",
+      "ok": true,
+      "storage": {
+        "storageKey": true,
+        "checksum": true,
+        "fileSize": true,
+        "mimeType": true,
+        "patientId": true,
+        "category": true,
+        "readyForApprove": true
+      }
+    }
+  ],
+  "listAssetsChecks": [
+    {
+      "patientId": "cliento_d611716dea0731c5ce215e61",
+      "total": 8,
+      "visiblePhotos": 0,
+      "needsReviewPhotos": 8
+    },
+    {
+      "patientId": "cliento_5a3794274f134afa8310c803",
+      "total": 8,
+      "visiblePhotos": 0,
+      "needsReviewPhotos": 7
+    },
+    {
+      "patientId": "cliento_79b2fccee972ca6ab17fb3bc",
+      "total": 8,
+      "visiblePhotos": 0,
+      "needsReviewPhotos": 7
+    },
+    {
+      "patientId": "cliento_19a20173f079b5a4fc308473",
+      "total": 8,
+      "visiblePhotos": 0,
+      "needsReviewPhotos": 7
+    },
+    {
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "total": 8,
+      "visiblePhotos": 2,
+      "needsReviewPhotos": 3
+    }
+  ],
+  "auditEntries": 4,
+  "auditSample": [
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "pilot-runner"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "9bd87401-a847-44dd-a06f-415ea2002bc1"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "reassign",
+        "reviewer": "pilot-runner",
+        "reason": "Pilot: omkategori till photo_before",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "NEEDS_REVIEW",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_before",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:32:05.950Z"
+      },
+      "ts": "2026-05-30T22:32:05.950Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "pilot-runner"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "8f88bcaa-316a-4872-9bab-7956d66b1fb5"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "approve",
+        "reviewer": "pilot-runner",
+        "reason": "Pilot: manuellt godkänd före-bild",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "VISIBLE_ON_PATIENT_CARD",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_during",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:32:05.968Z"
+      },
+      "ts": "2026-05-30T22:32:05.968Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "pilot-runner"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "ddef198e-4730-461d-b615-e02cbdd22a11"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "reject",
+        "reviewer": "pilot-runner",
+        "reason": "Pilot: avvisad dubblett/kvalitet",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "REJECTED",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_during",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:32:05.985Z"
+      },
+      "ts": "2026-05-30T22:32:05.985Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "pilot-runner"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "8be6a436-ee94-42b4-ad42-fa877c351714"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "approve",
+        "reviewer": "pilot-runner",
+        "reason": "Pilot: omkategori + godkänn efter-bild (reassign+approve)",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "VISIBLE_ON_PATIENT_CARD",
+        "oldCategory": "photo_after",
+        "newCategory": "photo_after",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:32:06.049Z"
+      },
+      "ts": "2026-05-30T22:32:06.049Z"
+    }
+  ],
+  "auditComplete": true,
+  "auditMissingFields": 0,
+  "driveLinksInAudit": false,
+  "uiChecklist": {
+    "singleDecisionButtonsOnly": true,
+    "noBulkToolbar": true,
+    "reasonRequired": true,
+    "pilotPatientFilter": true,
+    "previewViaCcoStorage": true,
+    "writeBlockedOnProdHosts": true,
+    "browserPilotPending": true
+  },
+  "recommendation": "GO wider manual review in staging (150 patients / 861 photos) after browser pilot confirms UI. Keep max 20 decisions cap until staging sign-off."
+}

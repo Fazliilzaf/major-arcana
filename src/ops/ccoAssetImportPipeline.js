@@ -39,14 +39,7 @@ const fs = require('node:fs/promises');
 const HIGH_CONFIDENCE = 0.8;
 const MEDIUM_CONFIDENCE = 0.5;
 
-const IMAGE_EXTS = new Set([
-  '.jpg',
-  '.jpeg',
-  '.png',
-  '.heic',
-  '.heif',
-  '.webp',
-]);
+const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.heic', '.heif', '.webp']);
 
 const PNR_PATTERNS = [
   /\b(\d{8})[- ]?(\d{4})\b/g, // 19800101-1234, 198001011234
@@ -89,8 +82,7 @@ function classify({ mimeType = null, fileName = null, sourceFolder = null } = {}
   // PDF-grenarna
   if (ext === '.pdf' || mime === 'application/pdf') {
     if (/aisia/i.test(name)) return { category: 'aisia_report', confidence: 'high' };
-    if (/samtycke|consent/i.test(name))
-      return { category: 'consent', confidence: 'high' };
+    if (/samtycke|consent/i.test(name)) return { category: 'consent', confidence: 'high' };
     if (/avtal|agreement|kontrakt/i.test(name))
       return { category: 'agreement', confidence: 'high' };
     if (/h[aä]lsodekl|fitness|friskf[oö]rs[aä]kran|frisk/i.test(name))
@@ -105,18 +97,24 @@ function classify({ mimeType = null, fileName = null, sourceFolder = null } = {}
   if (IMAGE_EXTS.has(ext) || mime.startsWith('image/')) {
     if (/f[oö]re|before|innan/i.test(name))
       return { category: 'photo_before', confidence: 'medium' };
-    if (/efter|after/i.test(name))
-      return { category: 'photo_after', confidence: 'medium' };
+    if (/efter|after/i.test(name)) return { category: 'photo_after', confidence: 'medium' };
     if (/under|during|op[\W_]|operation/i.test(name))
       return { category: 'photo_during', confidence: 'medium' };
     // sourceFolder med datum / år-mönster → trolig op-foto-katalog
-    if (/\b\d{4}\b/.test(folder) && /\b(0?[1-9]|1[0-2])\b|jan|feb|mar|apr|maj|jun|jul|aug|sep|okt|nov|dec/i.test(folder)) {
+    if (
+      /\b\d{4}\b/.test(folder) &&
+      /\b(0?[1-9]|1[0-2])\b|jan|feb|mar|apr|maj|jun|jul|aug|sep|okt|nov|dec/i.test(folder)
+    ) {
       return { category: 'photo_during', confidence: 'low' };
     }
     return { category: 'photo_during', confidence: 'low' };
   }
 
   return { category: 'other', confidence: 'low' };
+}
+
+function isPhotoCategory(category) {
+  return category === 'photo_before' || category === 'photo_during' || category === 'photo_after';
 }
 
 // -----------------------------------------------------------------------------
@@ -130,7 +128,7 @@ function extractPnrCandidates(text) {
   for (const re of PNR_PATTERNS) {
     re.lastIndex = 0;
     let m;
-    // eslint-disable-next-line no-cond-assign
+
     while ((m = re.exec(raw)) !== null) {
       const yyyymmdd = m[1];
       const last4 = m[2];
@@ -162,8 +160,7 @@ function linkPatient({
 } = {}) {
   // 1) Explicit patientId i sourceRecord (gamla CCO mapping eller eget meta)
   const directId =
-    normalizeText(sourceRecord?.patientId) ||
-    normalizeText(sourceRecord?.ccoPatientId);
+    normalizeText(sourceRecord?.patientId) || normalizeText(sourceRecord?.ccoPatientId);
   if (directId) {
     return {
       patientId: directId,
@@ -174,10 +171,7 @@ function linkPatient({
   }
 
   // 2) Pnr-pattern i filename eller drivePath
-  const pnrCandidates = [
-    ...extractPnrCandidates(fileName),
-    ...extractPnrCandidates(drivePath),
-  ];
+  const pnrCandidates = [...extractPnrCandidates(fileName), ...extractPnrCandidates(drivePath)];
   if (pnrCandidates.length && customerStore?.findByPersonnummer) {
     for (const pnr of pnrCandidates) {
       try {
@@ -376,9 +370,7 @@ function createCcoAssetImportPipeline({
       detail: {
         reason: reason || 'no_binary',
         sourceSystem,
-        hasDriveProvenance: !!(
-          sourceRecord.originalDriveFileId || sourceRecord.originalDrivePath
-        ),
+        hasDriveProvenance: !!(sourceRecord.originalDriveFileId || sourceRecord.originalDrivePath),
         originalDriveFileId: sourceRecord.originalDriveFileId || null,
         importRunId,
       },
@@ -720,9 +712,7 @@ function createCcoAssetImportPipeline({
             : 'no_patient_match';
       } else if (!patientLink.patientId) {
         reason =
-          patientLink.basis === 'ambiguous_folder_match'
-            ? 'ambiguous_patient'
-            : 'no_patient_match';
+          patientLink.basis === 'ambiguous_folder_match' ? 'ambiguous_patient' : 'no_patient_match';
       } else {
         reason = 'low_confidence';
       }
@@ -797,10 +787,7 @@ function createCcoAssetImportPipeline({
     actor = { role: 'system', userId: createdBy, tenantId },
     limit = 0,
   } = {}) {
-    const runId = await importRunStore.startRun(
-      { sourceSystem, mode, createdBy },
-      { actor }
-    );
+    const runId = await importRunStore.startRun({ sourceSystem, mode, createdBy }, { actor });
 
     let records = [];
     if (sourceSystem === 'drive') {
@@ -849,6 +836,7 @@ function createCcoAssetImportPipeline({
 module.exports = {
   createCcoAssetImportPipeline,
   classify,
+  isPhotoCategory,
   linkPatient,
   linkEncounter,
   extractPnrCandidates,

@@ -4971,9 +4971,10 @@ try {
       auditLog: ccoAuditLog,
       writeEnabled: config.enablePhotoReviewWrite,
       pilotConfig: {
-        patientIds: config.photoReviewPilotPatientIds,
-        maxDecisions: config.photoReviewPilotMaxDecisions,
-        maxPatients: config.photoReviewPilotMaxPatients,
+        fullCohort: config.photoReviewFullCohort,
+        patientIds: config.photoReviewFullCohort ? [] : config.photoReviewPilotPatientIds,
+        maxDecisions: config.photoReviewFullCohort ? 0 : config.photoReviewPilotMaxDecisions,
+        maxPatients: config.photoReviewFullCohort ? 0 : config.photoReviewPilotMaxPatients,
       },
       onMutation: invalidateAssetQaCache,
     })

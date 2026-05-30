@@ -583,6 +583,63 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     return { ...merged };
   }
 
+  async function updateAssetCategory(id, category, { actor = {}, reason = null } = {}) {
+    const assetId = normalizeText(id);
+    const existing = state.items[assetId];
+    if (!existing) {
+      const e = new Error(`asset ${assetId} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    const cat = normalizeText(category);
+    validateEnum('category', cat, VALID_CATEGORIES);
+    const merged = normalizeAsset({ ...existing, category: cat }, existing);
+    state.items[assetId] = merged;
+    await save();
+    logAudit(auditLog, 'asset.category_updated', merged, actor, 'ok', {
+      reason: reason || null,
+    });
+    return { ...merged };
+  }
+
+  async function patchAssetForReview(assetId, patch = {}, { actor = {}, reason = null } = {}) {
+    const id = normalizeText(assetId);
+    const existing = state.items[id];
+    if (!existing) {
+      const e = new Error(`asset ${id} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    if (existing.status !== 'NEEDS_REVIEW') {
+      const e = new Error(`patchAssetForReview: bara NEEDS_REVIEW (var ${existing.status}).`);
+      e.statusCode = 409;
+      throw e;
+    }
+    const next = { ...existing };
+    if (patch.category != null) {
+      const cat = normalizeText(patch.category);
+      validateEnum('category', cat, VALID_CATEGORIES);
+      next.category = cat;
+    }
+    if (patch.confidence != null) {
+      const conf = normalizeText(patch.confidence);
+      if (!['high', 'medium', 'low'].includes(conf)) {
+        const e = new Error('confidence måste vara high, medium eller low.');
+        e.statusCode = 400;
+        throw e;
+      }
+      next.confidence = conf;
+    }
+    const merged = normalizeAsset(next, existing);
+    state.items[id] = merged;
+    await save();
+    logAudit(auditLog, 'asset.review_metadata_updated', merged, actor, 'ok', {
+      reason: reason || null,
+      fields: Object.keys(patch),
+    });
+    return { ...merged };
+  }
+
   async function linkAssetToEncounter(id, encounterId, { actor = {} } = {}) {
     const assetId = normalizeText(id);
     const existing = state.items[assetId];
@@ -847,6 +904,8 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     markAsLinkOnlyBlocker,
     markAsVisibleOnPatientCard,
     reassignToPatient,
+    updateAssetCategory,
+    patchAssetForReview,
     recordChecksumVerified,
     linkAssetToPatient,
     linkAssetToEncounter,

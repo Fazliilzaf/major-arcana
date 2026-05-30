@@ -269,6 +269,7 @@ module.exports = [
       'public/cco-journal-feed.js',
       'public/cco-komm-panel.js',
       'public/cco-kalender-bridge.js',
+      'public/cco-photo-review.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,
