@@ -4961,6 +4961,19 @@ try {
     }
   );
 
+  const { createCcoPhotoReviewRouter } = require('./src/routes/ccoPhotoReview');
+  app.use(
+    '/api/v1/cco',
+    createCcoPhotoReviewRouter({
+      resolveStores: ensureAssetStores,
+      attachRole,
+      requirePermission,
+      auditLog: ccoAuditLog,
+      writeEnabled: config.enablePhotoReviewWrite,
+      onMutation: invalidateAssetQaCache,
+    })
+  );
+
   // ── Hair TP Scalp Analysis (Aisia DS-3 MVP — gated by ENABLE_AISIA_SCALP_ANALYSIS) ──
   if (config.enableAisiaScalpAnalysis) {
     const { createCcoScalpAnalysisRouter } = require('./src/routes/ccoScalpAnalysis');
@@ -5018,6 +5031,9 @@ try {
 
   console.log(
     '[cco-asset-qa] monterad: GET /api/v1/cco/asset-qa/snapshot + invalidate · /patients/:id/assets · /assets/:id/{download,thumbnail}'
+  );
+  console.log(
+    '[cco-photo-review] monterad: GET /api/v1/cco/photo-review/* (Fas 1 read-only; Fas 2 write gated by ENABLE_PHOTO_REVIEW_WRITE)'
   );
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
@@ -8107,6 +8123,235 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
     console.log(
       '[komm-sprint4] monterad: /cco-customers/:id/conversation-threads (filters: all,incoming,drafts,needs_approval,sent,internal,unanswered) · /cco-conversation-threads/action (mark_handled/snooze/mark_read/link_journey) (customers.read · mail.send)'
     );
+
+    // ─── Komm Sprint 5 — Customer journey tracking (12 steps + sides) ─
+    let _journeyStore = null;
+    async function ensureJourneyStore() {
+      if (_journeyStore) return _journeyStore;
+      const { createCcoCustomerJourneyStore } = require('./src/ops/ccoCustomerJourneyStore');
+      _journeyStore = await createCcoCustomerJourneyStore({
+        filePath: path.join(__dirname, 'data', 'cco-customer-journeys.json'),
+        auditLog: ccoAuditLog,
+      });
+      app.locals.ccoCustomerJourneyStore = _journeyStore;
+      return _journeyStore;
+    }
+
+    const journeyParser = express.json({ limit: '8kb' });
+
+    app.get(
+      '/api/v1/cco-customers/:id/journey',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const store = await ensureJourneyStore();
+          const j = store.getJourney(req.params.id, {
+            tenantId: req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp',
+          });
+          res.json({ ok: true, journey: j });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.post(
+      '/api/v1/cco-customers/:id/journey/advance',
+      attachRole,
+      requirePermission('customers.write'),
+      journeyParser,
+      async (req, res) => {
+        try {
+          const store = await ensureJourneyStore();
+          const { targetStep, reason, triggerSource } = req.body || {};
+          const actor = req.headers['x-cco-user'] || 'staff';
+          const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const journey = store.advanceTo({
+            customerId: req.params.id,
+            tenantId,
+            targetStep,
+            reason,
+            triggerSource,
+            actor,
+          });
+          res.json({ ok: true, journey });
+        } catch (err) {
+          const code = /invalid|krävs/.test(err.message) ? 400 : 500;
+          res.status(code).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.post(
+      '/api/v1/cco-customers/:id/journey/rollback',
+      attachRole,
+      requirePermission('customers.write'),
+      journeyParser,
+      async (req, res) => {
+        try {
+          const store = await ensureJourneyStore();
+          const actor = req.headers['x-cco-user'] || 'staff';
+          const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const journey = store.rollback({
+            customerId: req.params.id,
+            tenantId,
+            actor,
+            reason: req.body.reason,
+          });
+          res.json({ ok: true, journey });
+        } catch (err) {
+          const code = /no |krävs/.test(err.message) ? 400 : 500;
+          res.status(code).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-journeys/at-step/:stepId',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const store = await ensureJourneyStore();
+          const list = store.listAtStep(req.params.stepId, {
+            tenantId: req.query.tenantId || null,
+            limit: Number(req.query.limit) || 100,
+          });
+          res.json({ ok: true, count: list.length, journeys: list });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-journeys/stats',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const store = await ensureJourneyStore();
+          res.json({
+            ok: true,
+            steps: store.STEPS,
+            stats: store.stats({ tenantId: req.query.tenantId || null }),
+          });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log(
+      '[komm-sprint5] monterad: /cco-customers/:id/journey (GET, advance POST, rollback POST) · /cco-journeys/at-step/:id · /cco-journeys/stats (customers.read · customers.write)'
+    );
+
+    // ─── Komm Sprint 4.1 — Mail review queues + mailbox stats ──────────
+    app.get(
+      '/api/v1/cco-mail/mailbox-stats',
+      attachRole,
+      requirePermission('mail.read'),
+      async (req, res) => {
+        try {
+          const store = app.locals.ccoMailIngestionStore;
+          if (!store?.listMailboxStats) {
+            return res.json({
+              ok: true,
+              available: false,
+              mailboxes: [],
+              note: 'ingest store inte initialiserad ännu',
+            });
+          }
+          res.json({ ok: true, available: true, mailboxes: store.listMailboxStats() });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-mail/unmatched',
+      attachRole,
+      requirePermission('mail.read'),
+      async (req, res) => {
+        try {
+          const store = app.locals.ccoMailIngestionStore;
+          if (!store?.listUnmatchedMessages) {
+            return res.json({ ok: true, available: false, count: 0, messages: [] });
+          }
+          const list = store.listUnmatchedMessages({
+            mailboxEmail: req.query.mailbox || '',
+            limit: Number(req.query.limit) || 100,
+          });
+          res.json({ ok: true, available: true, count: list.length, messages: list });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-mail/ambiguous',
+      attachRole,
+      requirePermission('mail.read'),
+      async (req, res) => {
+        try {
+          const store = app.locals.ccoMailIngestionStore;
+          if (!store?.listAmbiguousMatches) {
+            return res.json({ ok: true, available: false, count: 0, matches: [] });
+          }
+          const list = store.listAmbiguousMatches({ limit: Number(req.query.limit) || 100 });
+          res.json({ ok: true, available: true, count: list.length, matches: list });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.post(
+      '/api/v1/cco-mail/link-patient',
+      attachRole,
+      requirePermission('mail.send'),
+      express.json({ limit: '8kb' }),
+      async (req, res) => {
+        try {
+          const store = app.locals.ccoMailIngestionStore;
+          if (!store?.linkPatientToMessage) {
+            return res.status(503).json({ ok: false, error: 'mail ingest store saknas' });
+          }
+          const { rawMessageId, patientId } = req.body || {};
+          if (!rawMessageId || !patientId) {
+            return res.status(400).json({ ok: false, error: 'rawMessageId + patientId krävs' });
+          }
+          const actor = req.headers['x-cco-user'] || 'staff';
+          const result = await store.linkPatientToMessage({
+            rawMessageId,
+            patientId,
+            actorUserId: actor,
+          });
+          // Audit: mail.linked_to_customer
+          if (ccoAuditLog?.logEvent) {
+            ccoAuditLog.logEvent({
+              kind: 'mail.linked_to_customer',
+              tenantId: req.headers['x-cco-tenant'] || 'hair_tp',
+              actor,
+              entityKind: 'mail_message',
+              entityId: rawMessageId,
+              detail: { patientId, source: 'manual_review' },
+            });
+          }
+          res.json({ ok: true, result });
+        } catch (err) {
+          const code = err.statusCode || (/krävs/.test(err.message) ? 400 : 500);
+          res.status(code).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log(
+      '[komm-sprint4.1] monterad: /cco-mail/mailbox-stats · /cco-mail/unmatched · /cco-mail/ambiguous · /cco-mail/link-patient (mail.read · mail.send)'
+    );
   } catch (err) {
     console.warn('[calendar-sprint1] kunde inte montera:', err.message);
   }
@@ -8550,6 +8795,9 @@ process.once('SIGTERM', () => {
   const ccoMailIngestionStore = await createCcoMailIngestionStore({
     filePath: config.ccoMailIngestionStorePath,
   });
+  // Sprint 4.1: expose mail-stores så review-queues + thread-aggregator når dem
+  app.locals.ccoMailIngestionStore = ccoMailIngestionStore;
+  app.locals.ccoMailboxTruthStore = ccoMailboxTruthStore;
   const messageIntelligenceStore = await createMessageIntelligenceStore({
     filePath:
       config.messageIntelligenceStorePath ||

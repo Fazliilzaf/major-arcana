@@ -709,10 +709,12 @@
     { id: 'all', label: 'Alla' },
     { id: 'unanswered', label: 'Kräver svar' },
     { id: 'incoming', label: 'Inkommande' },
+    { id: 'outgoing', label: 'Utgående' },
     { id: 'drafts', label: 'Utkast' },
     { id: 'needs_approval', label: 'Väntar' },
     { id: 'sent', label: 'Skickat' },
     { id: 'internal', label: 'Internt' },
+    { id: 'system', label: 'System' },
   ];
 
   async function fetchThreads(customerId, opts, filter) {
@@ -976,6 +978,196 @@
 
     // Thread-view (Sprint 4) — tabs + thread-list + actions
     renderThreadSection(host, customerId, opts);
+
+    // Kundresa-stepper (Sprint 5) — 12 steg + sidetillstånd + advance/rollback
+    renderJourneySection(host, customerId, opts);
+  }
+
+  // ─── Sprint 5: Kundresa-stepper ──────────────────────────────────────
+  async function fetchJourney(customerId, opts) {
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    const r = await fetch(
+      '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/journey?tenantId=' + tenantId,
+      { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } }
+    );
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  async function postJourneyAdvance(customerId, targetStep, reason, opts) {
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    const r = await fetch(
+      '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/journey/advance',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-cco-role': role,
+          'x-cco-tenant': tenantId,
+        },
+        body: JSON.stringify({
+          targetStep,
+          reason: reason || null,
+          triggerSource: 'manual',
+          tenantId,
+        }),
+      }
+    );
+    return r.json();
+  }
+
+  async function postJourneyRollback(customerId, opts) {
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    const r = await fetch(
+      '/api/v1/cco-customers/' + encodeURIComponent(customerId) + '/journey/rollback',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-cco-role': role,
+          'x-cco-tenant': tenantId,
+        },
+        body: JSON.stringify({ reason: 'manual rollback', tenantId }),
+      }
+    );
+    return r.json();
+  }
+
+  function renderJourneySection(host, customerId, opts) {
+    let root = host.querySelector('.cco-komm-journey');
+    if (!root) {
+      root = el('div', { class: 'cco-komm-journey' });
+      host.appendChild(root);
+    }
+    root.innerHTML = '';
+
+    root.appendChild(
+      el('div', { class: 'cco-komm-journey-head' }, [
+        el('h4', {}, '🗺 Kundresa'),
+        el('span', { class: 'cco-komm-journey-meta' }, 'Sprint 5'),
+      ])
+    );
+
+    const stepperEl = el('div', { class: 'cco-komm-stepper' }, 'Laddar…');
+    root.appendChild(stepperEl);
+
+    const sideRow = el('div', { class: 'cco-komm-journey-side' });
+    root.appendChild(sideRow);
+
+    const actionsRow = el('div', { class: 'cco-komm-journey-actions' });
+    root.appendChild(actionsRow);
+
+    async function loadAndRender() {
+      stepperEl.textContent = 'Laddar…';
+      try {
+        const data = await fetchJourney(customerId, opts);
+        const j = data.journey;
+        stepperEl.innerHTML = '';
+        for (const s of j.steps) {
+          const dot = el(
+            'div',
+            {
+              class: 'cco-komm-step cco-komm-step--' + s.state,
+              title: s.label + ' (' + s.state + ')',
+              onclick: async () => {
+                if (s.state === 'current') return;
+                const reason = s.state === 'completed' ? 'manual rollback' : 'manual advance';
+                if (!window.confirm('Sätt steg → ' + s.label + '?')) return;
+                const r = await postJourneyAdvance(customerId, s.id, reason, opts);
+                if (r.ok) {
+                  showToast('✓ → ' + s.label, 'ok');
+                  loadAndRender();
+                } else showToast('✗ ' + (r.error || 'fel'), 'error');
+              },
+            },
+            [
+              el('span', { class: 'cco-komm-step-order' }, String(s.order)),
+              el('span', { class: 'cco-komm-step-label' }, s.label),
+            ]
+          );
+          stepperEl.appendChild(dot);
+        }
+
+        // Side states
+        sideRow.innerHTML = '';
+        sideRow.appendChild(el('span', { class: 'cco-komm-journey-side-label' }, 'Sidetillstånd:'));
+        for (const sideId of j.sideStates || ['cancelled', 'no_show', 'on_hold']) {
+          const isActive = j.sideState === sideId;
+          sideRow.appendChild(
+            el(
+              'button',
+              {
+                class: 'cco-komm-side-btn' + (isActive ? ' is-active' : ''),
+                type: 'button',
+                onclick: async () => {
+                  const reason = window.prompt('Anledning för ' + sideId + '?', '') || '';
+                  const r = await postJourneyAdvance(customerId, sideId, reason, opts);
+                  if (r.ok) {
+                    showToast('✓ Side: ' + sideId, 'ok');
+                    loadAndRender();
+                  } else showToast('✗ ' + (r.error || 'fel'), 'error');
+                },
+              },
+              sideId.replace('_', ' ')
+            )
+          );
+        }
+
+        // Actions
+        actionsRow.innerHTML = '';
+        const currentOrder = j.steps.find((s) => s.state === 'current')?.order || 0;
+        const nextStep = j.steps.find((s) => s.order === currentOrder + 1);
+        if (nextStep) {
+          actionsRow.appendChild(
+            el(
+              'button',
+              {
+                class: 'cco-komm-journey-btn cco-komm-journey-btn--primary',
+                type: 'button',
+                onclick: async () => {
+                  const r = await postJourneyAdvance(customerId, nextStep.id, 'next step', opts);
+                  if (r.ok) {
+                    showToast('→ ' + nextStep.label, 'ok');
+                    loadAndRender();
+                  } else showToast('✗ ' + (r.error || 'fel'), 'error');
+                },
+              },
+              '→ Nästa: ' + nextStep.label
+            )
+          );
+        }
+        if ((j.stepHistory || []).length > 0) {
+          actionsRow.appendChild(
+            el(
+              'button',
+              {
+                class: 'cco-komm-journey-btn',
+                type: 'button',
+                onclick: async () => {
+                  if (!window.confirm('Rolla tillbaka till föregående steg?')) return;
+                  const r = await postJourneyRollback(customerId, opts);
+                  if (r.ok) {
+                    showToast('↻ Rollback', 'ok');
+                    loadAndRender();
+                  } else showToast('✗ ' + (r.error || 'fel'), 'error');
+                },
+              },
+              '↻ Rollback'
+            )
+          );
+        }
+      } catch (err) {
+        stepperEl.innerHTML = '';
+        stepperEl.appendChild(
+          el('div', { class: 'cco-komm-empty' }, 'Kunde inte ladda kundresa: ' + err.message)
+        );
+      }
+    }
+
+    loadAndRender();
   }
 
   // Auto-mount: lyssna på dossier-section som rendereras

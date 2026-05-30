@@ -105,7 +105,10 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
 
   function getAccountByEmail(email = '') {
     const normalized = normalizeEmail(email);
-    return Object.values(state.mailAccounts).find((item) => normalizeEmail(item.email) === normalized) || null;
+    return (
+      Object.values(state.mailAccounts).find((item) => normalizeEmail(item.email) === normalized) ||
+      null
+    );
   }
 
   function ensureMailAccount({
@@ -289,9 +292,15 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       normalizeText(ledger.processorVersion) === PROCESSOR_VERSION &&
       normalizeText(ledger.filterVersion) === FILTER_VERSION &&
       normalizeText(ledger.matchVersion) === MATCH_VERSION &&
-      ['COMPLETED', 'DUPLICATE_SKIPPED', 'ACTION_CREATED', 'MATCHED', 'UNMATCHED', 'NEEDS_REVIEW', 'SECURITY_REVIEW'].includes(
-        status
-      )
+      [
+        'COMPLETED',
+        'DUPLICATE_SKIPPED',
+        'ACTION_CREATED',
+        'MATCHED',
+        'UNMATCHED',
+        'NEEDS_REVIEW',
+        'SECURITY_REVIEW',
+      ].includes(status)
     );
   }
 
@@ -434,7 +443,10 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     const removedRawIds = new Set();
 
     for (const [rawId, rawMessage] of Object.entries(state.mailRawMessages)) {
-      if (normalizeEmail(rawMessage.mailboxId) !== normalized && normalizeEmail(account?.email) !== normalized) {
+      if (
+        normalizeEmail(rawMessage.mailboxId) !== normalized &&
+        normalizeEmail(account?.email) !== normalized
+      ) {
         continue;
       }
       if (hardResetRaw) {
@@ -729,32 +741,42 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
       throw Object.assign(new Error('Raw message hittades inte.'), { statusCode: 404 });
     }
 
-    await updateLedger(ledger.id, {
-      status: 'MATCHED',
-      patientMatchStatus: 'MATCHED',
-      patientId: safePatientId,
-      processedAt: nowIso(),
-      completedAt: nowIso(),
-      matchVersion: MATCH_VERSION,
-    }, { persist });
-    const patientMatch = await savePatientMatch({
-      id: `${safeRawMessageId}:match`,
-      rawMessageId: safeRawMessageId,
-      status: 'MATCHED',
-      confidence: 1,
-      patientId: safePatientId,
-      reason: 'manual_link',
-      source: 'manual_link',
-      linkedBy: normalizeText(actorUserId) || null,
-      linkedAt: nowIso(),
-      matchVersion: MATCH_VERSION,
-    }, { persist });
-    await appendAudit({
-      type: 'mail_ingestion_patient_linked',
-      rawMessageId: safeRawMessageId,
-      patientId: safePatientId,
-      actorUserId: normalizeText(actorUserId) || null,
-    }, { persist });
+    await updateLedger(
+      ledger.id,
+      {
+        status: 'MATCHED',
+        patientMatchStatus: 'MATCHED',
+        patientId: safePatientId,
+        processedAt: nowIso(),
+        completedAt: nowIso(),
+        matchVersion: MATCH_VERSION,
+      },
+      { persist }
+    );
+    const patientMatch = await savePatientMatch(
+      {
+        id: `${safeRawMessageId}:match`,
+        rawMessageId: safeRawMessageId,
+        status: 'MATCHED',
+        confidence: 1,
+        patientId: safePatientId,
+        reason: 'manual_link',
+        source: 'manual_link',
+        linkedBy: normalizeText(actorUserId) || null,
+        linkedAt: nowIso(),
+        matchVersion: MATCH_VERSION,
+      },
+      { persist }
+    );
+    await appendAudit(
+      {
+        type: 'mail_ingestion_patient_linked',
+        rawMessageId: safeRawMessageId,
+        patientId: safePatientId,
+        actorUserId: normalizeText(actorUserId) || null,
+      },
+      { persist }
+    );
     return {
       rawMessage: raw,
       ledger: getLedgerByRawMessageId(safeRawMessageId),
@@ -840,6 +862,148 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     }
   }
 
+  // ─── Sprint 4.1: list-helpers per kund/patient + stats ───────────────
+  function listPatientMessages({ patientId = '', limit = 200 } = {}) {
+    const safe = normalizeText(patientId);
+    if (!safe) return [];
+    const safeLimit = Math.max(1, Math.min(500, Number(limit) || 200));
+    const out = [];
+    for (const ledger of Object.values(state.mailProcessingLedger || {})) {
+      if (normalizeText(ledger.patientId) !== safe) continue;
+      if (normalizeText(ledger.status).toUpperCase() !== 'MATCHED') continue;
+      const raw = state.mailRawMessages[ledger.rawMessageId];
+      if (!raw) continue;
+      out.push({
+        id: raw.id,
+        rawMessageId: raw.id,
+        mailboxId: raw.mailboxId,
+        folderType: raw.folderType,
+        subject: raw.subject,
+        fromAddress: raw.fromAddress || raw.from?.address || raw.from || null,
+        toAddresses: raw.toAddresses || raw.to || null,
+        receivedAt: raw.receivedAt || raw.persistedAt,
+        sortIso: raw.sortIso || raw.receivedAt || raw.persistedAt,
+        conversationId: raw.conversationId,
+        snippet: raw.snippet || (raw.bodyText || '').slice(0, 160),
+        bodyText: raw.bodyText,
+        ledgerStatus: ledger.status,
+        patientId: ledger.patientId,
+      });
+    }
+    out.sort((a, b) => String(b.sortIso || '').localeCompare(String(a.sortIso || '')));
+    return out.slice(0, safeLimit);
+  }
+
+  // Alias: listPatientMessagesByCustomerId (i CCO är patientId === customerId)
+  function listPatientMessagesByCustomerId({ customerId = '', limit = 200 } = {}) {
+    return listPatientMessages({ patientId: customerId, limit });
+  }
+
+  function listUnmatchedMessages({ mailboxEmail = '', limit = 100 } = {}) {
+    const normalized = normalizeEmail(mailboxEmail);
+    const safeLimit = Math.max(1, Math.min(500, Number(limit) || 100));
+    const out = [];
+    for (const ledger of Object.values(state.mailProcessingLedger || {})) {
+      if (normalizeText(ledger.status).toUpperCase() !== 'UNMATCHED') continue;
+      const raw = state.mailRawMessages[ledger.rawMessageId];
+      if (!raw) continue;
+      if (normalized && normalizeEmail(raw.mailboxId) !== normalized) continue;
+      out.push({
+        rawMessageId: raw.id,
+        mailboxId: raw.mailboxId,
+        subject: raw.subject,
+        fromAddress: raw.fromAddress || raw.from || null,
+        receivedAt: raw.receivedAt || raw.persistedAt,
+        ledgerStatus: ledger.status,
+      });
+    }
+    return out.slice(0, safeLimit);
+  }
+
+  function listAmbiguousMatches({ limit = 100 } = {}) {
+    const safeLimit = Math.max(1, Math.min(500, Number(limit) || 100));
+    const out = [];
+    for (const match of Object.values(state.mailPatientMatches || {})) {
+      const status = String(match.status || '').toUpperCase();
+      if (status !== 'AMBIGUOUS' && status !== 'AMBIGUOUS_MATCH') continue;
+      const raw = state.mailRawMessages[match.rawMessageId];
+      out.push({
+        rawMessageId: match.rawMessageId,
+        candidates: match.candidates || [],
+        confidence: match.confidence,
+        reason: match.reason,
+        subject: raw?.subject || null,
+        mailboxId: raw?.mailboxId || null,
+        fromAddress: raw?.fromAddress || raw?.from || null,
+        receivedAt: raw?.receivedAt || raw?.persistedAt,
+      });
+    }
+    return out.slice(0, safeLimit);
+  }
+
+  function listMailboxStats() {
+    const stats = {};
+    for (const acc of Object.values(state.mailAccounts || {})) {
+      stats[acc.email] = {
+        mailboxEmail: acc.email,
+        displayName: acc.displayName,
+        enabled: !!acc.enabled,
+        total: 0,
+        matched: 0,
+        unmatched: 0,
+        needsReview: 0,
+        ambiguous: 0,
+        failed: 0,
+        lastSyncedAt: null,
+      };
+    }
+    // Ensure all mailboxes in raw messages are tracked even without an account
+    for (const raw of Object.values(state.mailRawMessages || {})) {
+      const id = normalizeEmail(raw.mailboxId);
+      if (!stats[id]) {
+        stats[id] = {
+          mailboxEmail: id,
+          displayName: id,
+          enabled: true,
+          total: 0,
+          matched: 0,
+          unmatched: 0,
+          needsReview: 0,
+          ambiguous: 0,
+          failed: 0,
+          lastSyncedAt: null,
+        };
+      }
+      stats[id].total += 1;
+      const lastIso = raw.receivedAt || raw.persistedAt;
+      if (lastIso && (!stats[id].lastSyncedAt || lastIso > stats[id].lastSyncedAt)) {
+        stats[id].lastSyncedAt = lastIso;
+      }
+    }
+    for (const ledger of Object.values(state.mailProcessingLedger || {})) {
+      const raw = state.mailRawMessages[ledger.rawMessageId];
+      if (!raw) continue;
+      const id = normalizeEmail(raw.mailboxId);
+      const bucket = stats[id];
+      if (!bucket) continue;
+      const status = String(ledger.status || '').toUpperCase();
+      if (status === 'MATCHED') bucket.matched += 1;
+      else if (status === 'UNMATCHED') bucket.unmatched += 1;
+      else if (status === 'NEEDS_REVIEW' || status === 'SECURITY_REVIEW') bucket.needsReview += 1;
+      else if (status === 'FAILED') bucket.failed += 1;
+    }
+    for (const match of Object.values(state.mailPatientMatches || {})) {
+      const raw = state.mailRawMessages[match.rawMessageId];
+      if (!raw) continue;
+      const id = normalizeEmail(raw.mailboxId);
+      const bucket = stats[id];
+      if (!bucket) continue;
+      const status = String(match.status || '').toUpperCase();
+      if (status === 'AMBIGUOUS' || status === 'AMBIGUOUS_MATCH') bucket.ambiguous += 1;
+    }
+    return Object.values(stats);
+  }
+
   return {
     filePath: resolvedPath,
     save,
@@ -871,6 +1035,12 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
     saveGraphSubscription,
     getAccountByEmail,
     savePatientMatch,
+    // Sprint 4.1 helpers
+    listPatientMessages,
+    listPatientMessagesByCustomerId,
+    listUnmatchedMessages,
+    listAmbiguousMatches,
+    listMailboxStats,
     getState: () => cloneJson(state),
   };
 }

@@ -48,11 +48,13 @@ const VALID_ACTIONS = [
 const VALID_FILTERS = [
   'all',
   'incoming',
+  'outgoing',
   'drafts',
   'needs_approval',
   'sent',
   'internal',
   'unanswered',
+  'system',
 ];
 
 function nowIso() {
@@ -171,55 +173,70 @@ async function createCcoConversationThreadStore({
     if (!customerId) return { threads: [], counts: {} };
     const threads = [];
 
-    // 1. Inkommande mail (från ingest pipeline med matched patientId)
+    // 1. Mail från ingest-pipeline (matched patientId) — täcker både in/ut
     if (mailIngestionStore?.listPatientMessages) {
       try {
-        const msgs = mailIngestionStore.listPatientMessages({ patientId: customerId }) || [];
+        const msgs =
+          mailIngestionStore.listPatientMessages({ patientId: customerId, limit: 100 }) || [];
         for (const m of msgs) {
           const fromEmail = m.fromAddress || m.from?.address || m.from || '';
           const sys = isSystemMail(fromEmail);
+          const isOutbound = m.folderType === 'sent' || m.folderType === 'drafts';
           threads.push({
-            threadId: m.threadId || m.rawMessageId || 'mail-' + m.id,
-            kind: sys ? 'system_mail' : 'incoming_mail',
-            direction: 'inbound',
-            ts: pickIso(m.sortIso, m.receivedAt, m.persistedAt),
+            threadId: m.conversationId || m.rawMessageId || 'mail-' + m.id,
+            kind: sys ? 'system_mail' : isOutbound ? 'outgoing_mail' : 'incoming_mail',
+            direction: isOutbound ? 'outbound' : 'inbound',
+            ts: pickIso(m.sortIso, m.receivedAt),
             subject: m.subject || '(utan ämne)',
             from: maskEmail(fromEmail),
-            preview: (m.bodyText || m.snippet || '').slice(0, 140),
+            preview: (m.snippet || m.bodyText || '').slice(0, 140),
             channel: 'email',
+            mailboxId: m.mailboxId || null,
             systemMail: sys,
-            requiresAttention: !sys,
+            requiresAttention: !sys && !isOutbound,
           });
         }
       } catch (err) {
-        /* ignore */
+        /* ingest store kan vara tom */
       }
     }
 
-    // 2. Utgående mail (truthStore SENT folder)
-    if (mailboxTruthStore?.listMessages) {
+    // 2. Fallback: skanna truth-store via customerIdentity om ingest tom
+    const haveMailFromIngest = threads.some(
+      (t) => t.kind === 'incoming_mail' || t.kind === 'outgoing_mail' || t.kind === 'system_mail'
+    );
+    if (mailboxTruthStore?.listMessages && !haveMailFromIngest) {
       try {
-        const sent = mailboxTruthStore.listMessages({ folderTypes: ['sent'], limit: 50 }) || [];
-        for (const m of sent) {
+        const msgs =
+          mailboxTruthStore.listMessages({
+            folderTypes: ['sent', 'inbox', 'drafts'],
+            limit: 300,
+          }) || [];
+        for (const m of msgs) {
           const identity = m.customerIdentity;
           const matchesCustomer =
             identity && (identity.customerId === customerId || identity.customerKey === customerId);
           if (!matchesCustomer) continue;
+          const isSent = m.folderType === 'sent' || m.folderType === 'drafts';
+          const fromEmail = m.fromAddress || m.from || '';
+          const sys = isSystemMail(fromEmail);
           threads.push({
-            threadId: m.conversationId || 'sent-' + m.id,
-            kind: 'outgoing_mail',
-            direction: 'outbound',
-            ts: pickIso(m.sortIso, m.sentAt, m.persistedAt),
+            threadId:
+              m.conversationId || (isSent ? 'sent-' : 'inbox-') + (m.id || m.graphMessageId || ''),
+            kind: sys ? 'system_mail' : isSent ? 'outgoing_mail' : 'incoming_mail',
+            direction: isSent ? 'outbound' : 'inbound',
+            ts: pickIso(m.sortIso, m.sentAt, m.receivedAt, m.persistedAt),
             subject: m.subject || '(utan ämne)',
-            from: maskEmail(m.fromAddress || m.from || ''),
+            from: maskEmail(fromEmail),
             preview: (m.bodyText || m.snippet || '').slice(0, 140),
             channel: 'email',
-            systemMail: false,
-            requiresAttention: false,
+            mailboxId: m.mailboxId || null,
+            systemMail: sys,
+            requiresAttention: !sys && !isSent,
           });
         }
       } catch (err) {
-        /* ignore */
+        /* truth store kan vara tom */
       }
     }
 
@@ -383,8 +400,16 @@ async function createCcoConversationThreadStore({
 
     // ─── Counts per filter ──
     const counts = {
-      all: threads.length,
-      incoming: threads.filter((t) => t.kind === 'incoming_mail').length,
+      all: threads.filter((t) => !t.systemMail).length,
+      incoming: threads.filter((t) => t.kind === 'incoming_mail' && !t.systemMail).length,
+      outgoing: threads.filter(
+        (t) =>
+          t.kind === 'outgoing_mail' ||
+          t.kind === 'comm_sent' ||
+          t.kind === 'form_sent' ||
+          t.kind === 'consent_sent' ||
+          t.kind === 'file_sent'
+      ).length,
       drafts: threads.filter((t) => /^comm_draft/.test(t.kind)).length,
       needs_approval: threads.filter((t) => t.threadStatus === 'needs_approval').length,
       sent: threads.filter((t) => t.threadStatus === 'sent').length,
@@ -402,6 +427,15 @@ async function createCcoConversationThreadStore({
     if (!filter || filter === 'all') return threads.filter((t) => !t.systemMail);
     if (filter === 'incoming')
       return threads.filter((t) => t.kind === 'incoming_mail' && !t.systemMail);
+    if (filter === 'outgoing')
+      return threads.filter(
+        (t) =>
+          t.kind === 'outgoing_mail' ||
+          t.kind === 'comm_sent' ||
+          t.kind === 'form_sent' ||
+          t.kind === 'consent_sent' ||
+          t.kind === 'file_sent'
+      );
     if (filter === 'drafts') return threads.filter((t) => /^comm_draft/.test(t.kind));
     if (filter === 'needs_approval')
       return threads.filter((t) => t.threadStatus === 'needs_approval');
