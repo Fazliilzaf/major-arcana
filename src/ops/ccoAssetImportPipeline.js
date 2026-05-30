@@ -324,6 +324,10 @@ function createCcoAssetImportPipeline({
   auditLog = null,
   driveClient = null,
   oldCcoIndexPath = null,
+  // P0.I: Old-CCO-adapter (optional). Om injekterad, används istället
+  // för den legacy `oldCcoIndexPath`-vägen i discoverFromOldCco().
+  // Se src/ops/ccoOldCcoAssetAdapter.js.
+  oldCcoAdapter = null,
 } = {}) {
   if (!assetStore) throw new Error('assetStore krävs');
   if (!importRunStore) throw new Error('importRunStore krävs');
@@ -389,8 +393,11 @@ function createCcoAssetImportPipeline({
   }
 
   async function discoverFromOldCco({ tenantId = null, runId = null, limit = 0 } = {}) {
-    void tenantId;
     void runId;
+    // P0.I: föredra adapter om injekterad (kanonisk väg framåt).
+    if (oldCcoAdapter && typeof oldCcoAdapter.discover === 'function') {
+      return oldCcoAdapter.discover({ tenantId: tenantId || undefined, limit });
+    }
     const index = await loadOldCcoIndex(oldCcoIndexPath);
     if (!index) return [];
     // index-strukturen är `{patientId: {files: []}}`-aktig (per coupler) —
