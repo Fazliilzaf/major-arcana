@@ -4,18 +4,43 @@
  * Återanvänder --cco-*-tokens från kunder.html.
  * ─────────────────────────────────────────────────────────────────── */
 
-/* ─── View-switch: vid ?view=calendar — dölj kunder-content, visa kalendern ─── */
-body[data-cco-view="calendar"] .agg-insights,
-body[data-cco-view="calendar"] .customers-filters,
-body[data-cco-view="calendar"] .customers-list {
+/* ─── View-switch: vid ?view=calendar ─────────────────────────────────
+ * Dölj HELA customers-shell (1247-header + filters + list + verktyg).
+ * Calendar-shell tar mitten-positionen i app-grid.
+ * Vänster sidomeny + höger intel-shell behålls (Behandling + Status
+ * är kalender-relevanta; kundintelligens-rail bygger vi senare).
+ * --------------------------------------------------------------------- */
+body[data-cco-view="calendar"] .customers-shell,
+body[data-cco-view="calendar"] .id-suggest-banner,
+body[data-cco-view="calendar"] .customer-tools {
   display: none !important;
 }
+
+/* Calendar-shell tar mitten-kolumnen (samma plats som customers-shell hade) */
 body[data-cco-view="calendar"] .calendar-shell {
   display: block !important;
-}
-/* Ge calendar-shell main-bredden i app-grid */
-body[data-cco-view="calendar"] .calendar-shell {
   grid-column: 2;
+  min-height: 0;          /* tillåt sticka för intel-shell */
+}
+
+/* Side-shell: justera kunder-segment-sektion till kalender-kontext */
+body[data-cco-view="calendar"] .side-shell .side-kicker:first-child,
+body[data-cco-view="calendar"] .side-shell > .side-h2:first-of-type,
+body[data-cco-view="calendar"] .side-shell > .side-list:first-of-type {
+  /* Behåll men dimma "Kundgrupper" — Behandling + Status är kalender-relevanta */
+  opacity: 0.55;
+}
+body[data-cco-view="calendar"] .side-shell > .side-list:first-of-type .side-link.active {
+  /* Ta bort rose-pill-highlight på "Alla kunder" i kalender-läge */
+  background: transparent !important;
+  color: var(--cco-text-secondary) !important;
+  box-shadow: none !important;
+  font-weight: 500 !important;
+}
+
+/* Intel-shell: om tom — dölj. Annars behåll. */
+body[data-cco-view="calendar"] .intel-shell .agg-stat:nth-child(n+4) {
+  display: none; /* kompakta till topp-stats only */
 }
 
 /* Day-grid mount */
