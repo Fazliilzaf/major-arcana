@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CCO · Kalender</title>
+<style>
+  :root {
+    --cco-bg-page:           #faf6f2;
+    --cco-bg-surface:        #ffffff;
+    --cco-bg-surface-sunken: #f5efe6;
+    --cco-color-brand:       #2b251f;
+    --cco-text-secondary:    rgba(70, 60, 50, 0.62);
+    --cco-text-tertiary:     #8a8174;
+
+    --cco-status-success:    #4a8268;
+    --cco-status-success-bg: rgba(74,130,104,.14);
+    --cco-status-warning:    #c8821e;
+    --cco-status-warning-bg: rgba(200,130,30,.14);
+    --cco-status-danger:     #b94a4a;
+    --cco-status-danger-bg:  rgba(185,74,74,.14);
+    --cco-status-info:       #4a7ba8;
+    --cco-status-info-bg:    rgba(74,123,168,.14);
+
+    --panel-shell-top:    rgba(250, 246, 242, 0.94);
+    --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+    --panel-shell-shadow:
+      0 18px 38px rgba(93,74,60,.07),
+      0 6px 18px rgba(156,145,166,.04),
+      0 0 0 1px rgba(255,255,255,.18),
+      inset 0 1px 0 rgba(255,255,255,.5);
+    --panel-shell-shadow-strong:
+      0 32px 70px rgba(93,74,60,.10),
+      0 14px 32px rgba(156,145,166,.06),
+      0 0 0 1px rgba(255,255,255,.22),
+      inset 0 1px 0 rgba(255,255,255,.55);
+    --panel-card-top:    rgba(255,255,255,.94);
+    --panel-card-bottom: rgba(247,241,236,.86);
+    --panel-card-shadow: 0 3px 10px rgba(56,40,28,.08), inset 0 1px 0 rgba(255,255,255,.86);
+
+    --rose-pill-top:    rgba(252, 233, 240, 0.98);
+    --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+    --accent-studio:    #bb4779;
+
+    --calendar-accent:       #c8821e;
+    --calendar-accent-soft:  rgba(200,130,30,.14);
+    --calendar-accent-glow:  rgba(200,130,30,.22);
+    --calendar-hour-h:       62px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(ellipse at 12% 0%, rgba(255,225,200,.42), transparent 38%),
+      radial-gradient(ellipse at 88% 4%, rgba(255,210,225,.34), transparent 42%),
+      radial-gradient(circle at 50% 100%, rgba(220,210,255,.18), transparent 48%),
+      var(--cco-bg-page);
+    color: var(--cco-color-brand);
+    font-family: Inter, "Segoe UI", -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    min-height: 100vh;
+    padding: 14px;
+  }
+  .top-nav { display: flex; align-items: center; gap: 14px; padding: 0 10px 14px; color: var(--cco-text-tertiary); font-size: 12px; }
+  .top-nav .brand { font-weight: 800; color: var(--cco-color-brand); letter-spacing: .06em; font-size: 13px; }
+  .top-nav a { color: inherit; text-decoration: none; padding: 6px 12px; border-radius: 999px; transition: color .15s ease, background .15s ease; }
+  .top-nav a:hover { color: var(--cco-color-brand); }
+  .top-nav a.active {
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio); font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 4px 14px rgba(187, 71, 121, .14);
+  }
+  .top-nav .spacer { flex: 1; }
+  .top-nav .meta { color: var(--cco-text-tertiary); font-size: 11px; }
+
+  /* Toolbar controls */
+  .ctl-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .ctl-input, .ctl-select {
+    appearance: none; border: 1px solid rgba(255,255,255,.82);
+    background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+    box-shadow: 0 2px 6px rgba(56,40,28,.06), inset 0 1px 0 rgba(255,255,255,.88);
+    padding: 5px 10px; min-height: 26px;
+    border-radius: 11px; font: inherit; font-size: 11px;
+    color: var(--cco-color-brand);
+    font-variant-numeric: tabular-nums;
+  }
+  .ctl-input:focus, .ctl-select:focus {
+    outline: none; border-color: rgba(200,130,30,.45);
+    box-shadow: 0 0 0 3px rgba(200,130,30,.12), inset 0 1px 0 rgba(255,255,255,.88);
+  }
+  .nav-btn {
+    appearance: none; border: 1px solid rgba(255,255,255,.82); cursor: pointer;
+    min-height: 26px; padding: 0 11px;
+    border-radius: 11px;
+    background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+    box-shadow: 0 2px 6px rgba(56,40,28,.06), inset 0 1px 0 rgba(255,255,255,.88);
+    font-size: 11px; font-weight: 600; color: var(--cco-color-brand);
+    transition: transform .1s ease;
+  }
+  .nav-btn:hover { transform: translateY(-1px); }
+  .nav-btn--today {
+    background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+    color: var(--calendar-accent);
+    border-color: rgba(200,130,30,.32);
+    box-shadow: 0 2px 8px var(--calendar-accent-glow), inset 0 1px 0 rgba(255,255,255,.92);
+  }
+</style>
+<link rel="stylesheet" href="/cco-journal-feed.css">
+<link rel="stylesheet" href="/cco-kalender.css">
+</head>
+<body>
+
+<div class="cal-page">
+
+  <div class="top-nav">
+    <div class="brand">CCO</div>
+    <a href="/kalender.html" class="active">Kalender</a>
+    <a href="/kunder.html">Kunder</a>
+    <a href="#">Konversationer</a>
+    <a href="#">Automation</a>
+    <a href="#">Analytics</a>
+    <a href="/journal-qa.html">Journal-QA</a>
+    <a href="/journal-build-demo.html">Journalbygge</a>
+    <div class="spacer"></div>
+    <span class="meta">Hair TP Clinic · Sprint 1 · localhost:3097</span>
+  </div>
+
+  <!-- Calendar shell with toolbar -->
+  <div class="cal-app-grid">
+    <div class="cal-surface">
+
+      <header class="cal-toolbar">
+        <div class="cal-toolbar-main">
+          <span class="cal-kicker">Kalender</span>
+          <span class="cal-mark">📅</span>
+          <h2 id="calTitle">Idag</h2>
+        </div>
+        <div class="cal-toolbar-actions">
+          <div class="ctl-row">
+            <input type="date" id="cal-date" class="ctl-input">
+            <select id="cal-tenant" class="ctl-select">
+              <option value="hair_tp">hair_tp</option>
+              <option value="curatiio">curatiio</option>
+              <option value="hairtpclinic">hairtpclinic</option>
+            </select>
+            <select id="cal-role" class="ctl-select">
+              <option value="owner">Owner</option>
+              <option value="operator">Operator</option>
+              <option value="konsult">Konsult</option>
+              <option value="personal">Personal</option>
+            </select>
+            <button class="nav-btn" id="cal-prev">‹</button>
+            <button class="nav-btn nav-btn--today" id="cal-today">Idag</button>
+            <button class="nav-btn" id="cal-next">›</button>
+          </div>
+        </div>
+      </header>
+
+      <div id="cal-mount"></div>
+    </div>
+
+    <aside id="cal-drawer" class="cal-drawer-shell"></aside>
+    <div id="cal-drawer-backdrop" class="cal-drawer-backdrop"></div>
+  </div>
+</div>
+
+<script src="/cco-journal-feed.js"></script>
+<script src="/cco-kalender.js"></script>
+<script>
+  const dateEl = document.getElementById('cal-date');
+  const tenantEl = document.getElementById('cal-tenant');
+  const roleEl = document.getElementById('cal-role');
+  const today = new Date().toISOString().slice(0, 10);
+  dateEl.value = today;
+
+  function reload() {
+    window.CcoKalender.loadDay({ date: dateEl.value, tenantId: tenantEl.value, role: roleEl.value });
+  }
+  function shiftDay(days) {
+    const d = new Date(dateEl.value + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    dateEl.value = d.toISOString().slice(0, 10);
+    reload();
+  }
+  dateEl.addEventListener('change', reload);
+  tenantEl.addEventListener('change', reload);
+  roleEl.addEventListener('change', reload);
+  document.getElementById('cal-prev').addEventListener('click', () => shiftDay(-1));
+  document.getElementById('cal-next').addEventListener('click', () => shiftDay(1));
+  document.getElementById('cal-today').addEventListener('click', () => { dateEl.value = today; reload(); });
+
+  // Initial render
+  window.CcoKalender.renderEmptyDrawer();
+  reload();
+</script>
+</body>
+</html>

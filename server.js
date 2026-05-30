@@ -4653,25 +4653,210 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
   return res.json({ ok: true, ...dashboard });
 });
 
-app.get('/api/v1/calendar/day', (req, res) => {
-  const view = buildDayView({
-    date: req.query?.date,
-    bookingEngineStore: null,
-    encounterStore: null,
-    tenantId: req.query?.tenantId || '',
-  });
-  return res.json({ ok: true, ...view });
-});
+// ─── Calendar views (Sprint 1 — wired + RBAC) ───
+(async () => {
+  try {
+    const { attachRole, requirePermission } = require('./src/security/ccoRbac');
 
-app.get('/api/v1/calendar/week', (req, res) => {
-  const view = buildWeekView({
-    startDate: req.query?.startDate,
-    bookingEngineStore: null,
-    encounterStore: null,
-    tenantId: req.query?.tenantId || '',
-  });
-  return res.json({ ok: true, ...view });
-});
+    app.get('/api/v1/calendar/day', attachRole, requirePermission('bookings.read'), (req, res) => {
+      const view = buildDayView({
+        date: req.query?.date,
+        bookingEngineStore: app.locals.ccoBookingEngineStore || null,
+        encounterStore: app.locals.ccoTreatmentEncounterStore || null,
+        tenantId: req.query?.tenantId || '',
+      });
+      return res.json({ ok: true, ...view });
+    });
+
+    app.get('/api/v1/calendar/week', attachRole, requirePermission('bookings.read'), (req, res) => {
+      const view = buildWeekView({
+        startDate: req.query?.startDate,
+        bookingEngineStore: app.locals.ccoBookingEngineStore || null,
+        encounterStore: app.locals.ccoTreatmentEncounterStore || null,
+        tenantId: req.query?.tenantId || '',
+      });
+      return res.json({ ok: true, ...view });
+    });
+
+    // ─── Status-pills aggregator (Sprint 1) ───
+    // Per booking: journal/hälsodekl/friskförsäkran/samtycke/avtal/ID-verify + readyForTreatment
+    app.get('/api/v1/calendar/booking/:id/status-pills', attachRole, requirePermission('bookings.read'), async (req, res) => {
+      try {
+        const bookingId = req.params.id;
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+        const treatment = String(req.query.treatment || '').toLowerCase();
+
+        // 1. Hämta booking
+        const beStore = app.locals.ccoBookingEngineStore;
+        const beState = beStore?._state || {};
+        const booking = (beState.bookings || []).find(b => b.bookingId === bookingId) ||
+                        (beState.reservations || []).find(r => r.reservationId === bookingId);
+
+        if (!booking) {
+          return res.status(404).json({ ok: false, error: 'booking_not_found', bookingId });
+        }
+        const patientId = booking.customerId || booking.contact?.customerId || null;
+        const encounterId = booking.encounterId || null;
+        const inferredTreatment = treatment || booking.serviceId || '';
+
+        const pills = {
+          bookingId,
+          patientId,
+          encounterId,
+          treatment: inferredTreatment,
+          journal: { status: 'missing', entryId: null, ts: null },
+          healthDeclaration: { status: 'missing', entryId: null },
+          fitnessCertificate: { status: 'missing', entryId: null },
+          consent: { status: 'missing' },
+          agreement: { status: 'missing' },
+          idVerification: { status: 'missing' },
+          readyForTreatment: false,
+          blockingMissing: [],
+          ccoSourceOnly: true,
+        };
+
+        if (!patientId) {
+          return res.json({ ok: true, ...pills, note: 'no_patient_linked' });
+        }
+
+        // 2. Journal-status
+        const journalStore = app.locals.ccoJournalStore;
+        if (journalStore?.listEntries) {
+          try {
+            const entries = await journalStore.listEntries({ tenantId, patientId }) || [];
+            // Behandlingsjournal (tp_treatment / prp_treatment / bleph_treatment)
+            const TREAT = new Set(['tp_treatment', 'prp_treatment', 'bleph_treatment']);
+            const treatEntries = entries.filter(e =>
+              TREAT.has(e.journalType) &&
+              (!encounterId || e.treatmentEncounterId === encounterId)
+            );
+            const signed = treatEntries.find(e => e.locked);
+            const draft = treatEntries.find(e => !e.locked);
+            if (signed) pills.journal = { status: 'signed', entryId: signed.entryId, ts: signed.signedAt };
+            else if (draft) pills.journal = { status: 'draft', entryId: draft.entryId, ts: draft.updatedAt };
+
+            // Hälsodeklaration
+            const hd = entries.find(e => e.journalType === 'health_declaration' && e.locked);
+            if (hd) pills.healthDeclaration = { status: 'signed', entryId: hd.entryId };
+
+            // Friskförsäkran
+            const ff = entries.find(e => e.journalType === 'fitness_certificate' && e.locked);
+            if (ff) pills.fitnessCertificate = { status: 'signed', entryId: ff.entryId };
+          } catch (_) { /* tyst */ }
+        }
+
+        // 3. Avtal (om existing quick store)
+        const agreementStore = app.locals.ccoAgreementQuickStore;
+        if (agreementStore?.listForCustomer) {
+          try {
+            const agreements = agreementStore.listForCustomer(patientId) || [];
+            const signed = agreements.find(a => a.state === 'signed');
+            const sent = agreements.find(a => a.state === 'sent');
+            if (signed) pills.agreement = { status: 'signed', id: signed.id };
+            else if (sent) pills.agreement = { status: 'sent', id: sent.id };
+          } catch (_) { /* tyst */ }
+        }
+
+        // 4. ID-verifikation
+        const idStore = app.locals.ccoIdVerificationStore;
+        if (idStore?.getVerification) {
+          try {
+            const ver = await idStore.getVerification(patientId);
+            if (ver && ver.verified) pills.idVerification = { status: 'verified', verifiedAt: ver.verifiedAt };
+          } catch (_) { /* tyst */ }
+        }
+
+        // 5. Ready-for-treatment via befintliga /missing-logik
+        if (inferredTreatment) {
+          try {
+            const reqFile = JSON.parse(require('fs').readFileSync(
+              path.join(__dirname, 'config/cco-treatment-document-requirements.json'), 'utf8'));
+            const requirements = reqFile.treatments?.[inferredTreatment]?.requiredDocuments || {};
+            const blockers = [];
+            for (const [docKey, docReq] of Object.entries(requirements)) {
+              if (!docReq.required || !docReq.blocking) continue;
+              const mapToPill = {
+                healthDeclaration: pills.healthDeclaration.status === 'signed',
+                fitnessCertificate: pills.fitnessCertificate.status === 'signed',
+                treatmentAgreement: pills.agreement.status === 'signed',
+                treatmentConsent: pills.consent.status === 'signed',
+                idVerification: pills.idVerification.status === 'verified',
+              };
+              if (!mapToPill[docKey]) blockers.push(docKey);
+            }
+            pills.blockingMissing = blockers;
+            pills.readyForTreatment = blockers.length === 0;
+          } catch (_) { /* tyst */ }
+        }
+
+        res.json({ ok: true, ...pills, evaluatedAt: new Date().toISOString() });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
+    });
+
+    // ─── Snabbactions: checkin / no-show / follow-up ───
+    const bookingActionParser = require('express').json({ limit: '4kb' });
+
+    app.post('/api/v1/cco-bookings/:id/checkin', attachRole, requirePermission('bookings.write'), bookingActionParser, async (req, res) => {
+      try {
+        const bookingId = req.params.id;
+        const actor = {
+          userId: req.headers['x-cco-user'] || 'staff',
+          role: req.cco?.role,
+        };
+        // Audit (mutation av booking-status reserveras för framtida wire mot ccoBookingEngineStore.updateStatus)
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'booking.checked_in', actor,
+            target: { kind: 'booking', id: bookingId },
+            result: 'ok',
+            detail: { ts: new Date().toISOString(), via: 'calendar_drawer' },
+          });
+        }
+        res.json({ ok: true, bookingId, status: 'checked_in', auditLogged: true });
+      } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+    });
+
+    app.post('/api/v1/cco-bookings/:id/no-show', attachRole, requirePermission('bookings.write'), bookingActionParser, async (req, res) => {
+      try {
+        const bookingId = req.params.id;
+        const reason = String(req.body?.reason || '').trim();
+        const actor = { userId: req.headers['x-cco-user'] || 'staff', role: req.cco?.role };
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'booking.no_show', actor,
+            target: { kind: 'booking', id: bookingId },
+            result: 'ok',
+            detail: { ts: new Date().toISOString(), reason, via: 'calendar_drawer' },
+          });
+        }
+        res.json({ ok: true, bookingId, status: 'no_show', reason, auditLogged: true });
+      } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+    });
+
+    app.post('/api/v1/cco-bookings/:id/follow-up', attachRole, requirePermission('bookings.write'), bookingActionParser, async (req, res) => {
+      try {
+        const bookingId = req.params.id;
+        const interval = String(req.body?.interval || '').trim();
+        const actor = { userId: req.headers['x-cco-user'] || 'staff', role: req.cco?.role };
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'booking.followup_requested', actor,
+            target: { kind: 'booking', id: bookingId },
+            result: 'ok',
+            detail: { ts: new Date().toISOString(), interval, via: 'calendar_drawer' },
+          });
+        }
+        res.json({ ok: true, bookingId, status: 'follow_up_requested', interval, auditLogged: true });
+      } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+    });
+
+    console.log('[calendar-sprint1] monterad: /calendar/day · /calendar/week · /calendar/booking/:id/status-pills · POST /cco-bookings/:id/{checkin,no-show,follow-up} (bookings.read/write)');
+  } catch (err) {
+    console.warn('[calendar-sprint1] kunde inte montera:', err.message);
+  }
+})();
 
 // ─── iCAL EXPORT ───
 const { buildIcalFeed, getBookingsForResource } = require('./src/ops/icalExport');
@@ -5416,9 +5601,11 @@ process.once('SIGTERM', () => {
     },
   });
   app.locals.ccoJournalStore = ccoJournalStore;  // Sprint A: exponera till /api/v1/cco-journal-quick
+  app.locals.ccoBookingEngineStore = ccoBookingEngineStore;  // Sprint 1: kalender + status-pills
   const ccoTreatmentEncounterStore = await createCcoTreatmentEncounterStore({
     filePath: config.ccoTreatmentEncounterStorePath,
   });
+  app.locals.ccoTreatmentEncounterStore = ccoTreatmentEncounterStore;  // Sprint 1: kalender encounter-koppling
   const ccoJournalPhotoStore = await createCcoJournalPhotoStore({
     baseDir: config.journalPhotosDir,
   });
