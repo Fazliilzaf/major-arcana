@@ -196,12 +196,112 @@
   .footer a { color: var(--accent-studio); text-decoration: none; font-weight: 600; }
   .footer a:hover { text-decoration: underline; }
 
+  /* ───── Phase 2: Asset-import-metrics ───── */
+  .phase2-banner {
+    margin: 0 0 18px;
+    padding: 22px 26px;
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse at 0% 0%, rgba(252,233,240,.7), transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,241,236,.86));
+    box-shadow: var(--panel-card-shadow);
+    border: 1px solid rgba(255,255,255,.62);
+    display: grid;
+    grid-template-columns: minmax(220px, 320px) 1fr;
+    gap: 22px;
+    align-items: center;
+  }
+  .phase2-primary {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .phase2-primary .label {
+    color: var(--cco-text-tertiary); font-size: 10.5px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase;
+  }
+  .phase2-primary .value-row { display: flex; align-items: baseline; gap: 10px; }
+  .phase2-primary .value {
+    font-size: 56px; font-weight: 800; letter-spacing: -0.05em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .phase2-primary .value.zero { color: var(--cco-status-success); }
+  .phase2-primary .value.warn { color: var(--cco-status-warning); }
+  .phase2-primary .value.danger { color: var(--cco-status-danger); }
+  .phase2-primary .of { color: var(--cco-text-tertiary); font-size: 13px; }
+  .phase2-primary .sub {
+    color: var(--cco-text-secondary); font-size: 12px; margin-top: 2px;
+  }
+  .phase2-primary .gate {
+    margin-top: 8px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .phase2-primary .gate.green {
+    background: var(--cco-status-success-bg); color: var(--cco-status-success);
+  }
+  .phase2-primary .gate.red {
+    background: var(--cco-status-danger-bg); color: var(--cco-status-danger);
+  }
+  .phase2-primary .gate .dot {
+    width: 7px; height: 7px; border-radius: 999px; background: currentColor;
+  }
+  .phase2-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px 18px;
+  }
+  .phase2-metric { display: flex; flex-direction: column; gap: 2px; }
+  .phase2-metric .label {
+    color: var(--cco-text-tertiary); font-size: 10px; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  .phase2-metric .value {
+    font-size: 19px; font-weight: 800; letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums; color: var(--cco-color-brand);
+  }
+  .phase2-metric .value.success { color: var(--cco-status-success); }
+  .phase2-metric .value.warning { color: var(--cco-status-warning); }
+  .phase2-metric .value.danger { color: var(--cco-status-danger); }
+  .phase2-metric .value.muted { color: var(--cco-text-tertiary); }
+
+  .runs-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .runs-table th, .runs-table td {
+    text-align: left; padding: 7px 10px;
+    border-top: 1px solid rgba(0,0,0,.05);
+  }
+  .runs-table th {
+    color: var(--cco-text-tertiary); font-size: 10px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; border-top: 0;
+  }
+  .runs-table td.num { text-align: right; }
+  .runs-empty {
+    padding: 18px 0; text-align: center; color: var(--cco-text-tertiary);
+    font-size: 12px;
+  }
+  .reason-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--cco-status-warning-bg); color: var(--cco-status-warning);
+    font-size: 11px; font-weight: 700; letter-spacing: .02em;
+    margin: 3px 6px 3px 0;
+  }
+  .reason-pill .count { font-variant-numeric: tabular-nums; }
+  .reason-empty {
+    color: var(--cco-status-success); font-size: 12px; font-weight: 600;
+  }
+
   @media (max-width: 640px) {
     body { padding: 12px; font-size: 12.5px; }
     .grid { grid-template-columns: 1fr; gap: 14px; }
     .card { padding: 16px 18px; border-radius: 18px; }
     .stat-value { font-size: 19px; }
     .page-header h1 { font-size: 19px; }
+    .phase2-banner { grid-template-columns: 1fr; padding: 18px 18px; }
+    .phase2-primary .value { font-size: 44px; }
   }
 </style>
 </head>
@@ -211,12 +311,12 @@
     <a href="/cco/">Tillbaka till CCO</a>
     <a href="/admin.html">Admin</a>
     <span class="ml-auto"></span>
-    <span class="phase-pill" id="phasePill">PHASE P0 · JOURNAL CUTOVER QA</span>
+    <span class="phase-pill" id="phasePill">PHASE 2 · ASSET IMPORT</span>
   </nav>
 
   <header class="page-header">
     <h1>Journal Cutover QA-dashboard</h1>
-    <div class="subtitle">Hair TP Clinic · 5 statusblock visar var vi står innan Meridiq + Cliento kan fasas ut.</div>
+    <div class="subtitle">Hair TP Clinic · 11 asset-import-metrics + 5 statusblock. Cutover-gate: <code>link_only_files = 0</code>.</div>
     <div class="meta">
       <span class="pill" id="metaTenant">Tenant: hair_tp</span>
       <span class="pill" id="metaGenerated">Genererad: —</span>
@@ -225,6 +325,53 @@
       <button class="refresh-btn" id="refreshBtn">Uppdatera nu</button>
     </div>
   </header>
+
+  <!-- PHASE 2 PRIMARY: link-only blocker pill + 11 metrics -->
+  <section class="phase2-banner" id="phase2Banner" aria-label="Asset import primary metrics">
+    <div class="phase2-primary">
+      <span class="label">🔴 Link-only files · mål 0</span>
+      <div class="value-row">
+        <span class="value" id="linkOnlyValue">—</span>
+        <span class="of" id="linkOnlyOf">av — totalt</span>
+      </div>
+      <span class="sub" id="linkOnlySub">Hämtar asset-import-status…</span>
+      <span class="gate" id="cutoverGate"><span class="dot"></span><span class="text">—</span></span>
+    </div>
+    <div class="phase2-grid" id="phase2Grid"></div>
+  </section>
+
+  <section class="card" id="phase2Detail" style="margin-bottom: 18px;">
+    <div class="card-header">
+      <div>
+        <div class="card-kicker">Phase 2 · Asset Import</div>
+        <h2 class="card-title">📦 Import-status · 👤 Patient-coverage</h2>
+      </div>
+      <span class="status-pill yellow" id="phase2DetailStatus"><span class="dot"></span>—</span>
+    </div>
+    <div class="stats" id="phase2DetailStats"></div>
+  </section>
+
+  <div class="grid" style="margin-bottom: 18px;">
+    <section class="card" id="recentRunsCard">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Phase 2 · Senaste runs</div>
+          <h2 class="card-title">🔄 Senaste import-runs</h2>
+        </div>
+      </div>
+      <div id="recentRunsBody"></div>
+    </section>
+
+    <section class="card" id="reviewStatsCard">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Phase 2 · Review queue</div>
+          <h2 class="card-title">📋 Review-queue-status</h2>
+        </div>
+      </div>
+      <div id="reviewStatsBody"></div>
+    </section>
+  </div>
 
   <main class="grid" id="grid">
     <!-- BLOCK 1 -->
@@ -528,11 +675,166 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Fetch loop med fallback
+  // PHASE 2: asset-import-metrics — 11 metrics + runs + review-queue
+  // ─────────────────────────────────────────────────────────────────────
+  var FALLBACK_ASSET_QA = {
+    tenantId: 'hair_tp',
+    generatedAt: new Date().toISOString(),
+    _fallback: true,
+    linkOnlyBlockers: 0,
+    cutoverReady: false,
+    metrics: {
+      totalFilesDiscovered: 0,
+      totalFilesImportedToCco: 0,
+      totalFilesVerified: 0,
+      totalLinkOnlyFiles: 0,
+      totalFilesNeedingReview: 0,
+      totalFilesFailedImport: 0,
+      totalPatientsWithCompleteHistory: 0,
+      totalPatientsWithMissingJournalPdfs: 0,
+      totalPatientsWithMissingImages: 0,
+      totalOrphanFiles: 0,
+      totalDuplicateFiles: 0
+    },
+    assetStats: { total: 0, byStatus: {}, byCategory: {}, bySourceSystem: {} },
+    recentRuns: [],
+    reviewStats: { total: 0, pending: 0, resolved: 0, byReason: {}, byDecision: {} },
+    population: { totalPatientsInTenant: 0, patientsWithAnyAsset: 0, patientsWithJournalPdf: 0, patientsWithImage: 0 }
+  };
+
+  function pct(n, d) {
+    if (!d || d <= 0) return '0%';
+    return Math.round((n / d) * 100) + '%';
+  }
+
+  function renderAssetQa(qa) {
+    var m = qa.metrics || {};
+    var stats = qa.assetStats || {};
+    var pop = qa.population || {};
+    var total = m.totalFilesDiscovered || 0;
+    var linkOnly = m.totalLinkOnlyFiles || 0;
+
+    // ── PRIMARY pill ──
+    var linkVal = document.getElementById('linkOnlyValue');
+    var linkOf = document.getElementById('linkOnlyOf');
+    var linkSub = document.getElementById('linkOnlySub');
+    var gate = document.getElementById('cutoverGate');
+    linkVal.textContent = fmt(linkOnly);
+    linkVal.classList.remove('zero', 'warn', 'danger');
+    if (linkOnly === 0) linkVal.classList.add('zero');
+    else if (linkOnly <= 25) linkVal.classList.add('warn');
+    else linkVal.classList.add('danger');
+    linkOf.textContent = 'av ' + fmt(total) + ' totalt';
+    if (linkOnly === 0 && total > 0) {
+      linkSub.textContent = 'Ingen fil är längre länk-only — cutover-grindar är öppna.';
+    } else if (linkOnly === 0 && total === 0) {
+      linkSub.textContent = 'Inga assets importerade ännu (kör asset-import-pipelinen).';
+    } else {
+      linkSub.textContent = linkOnly + ' fil(er) ligger fortfarande som ren Drive-länk. Blockerar Meridiq-cutover.';
+    }
+    gate.classList.remove('green', 'red');
+    var ready = !!qa.cutoverReady;
+    gate.classList.add(ready ? 'green' : 'red');
+    gate.querySelector('.text').textContent = ready ? 'Cutover-ready' : 'Blockerar cutover';
+
+    // ── 11-metric grid ──
+    var grid = document.getElementById('phase2Grid');
+    var items = [
+      { label: '1 · Discovered', value: m.totalFilesDiscovered, tone: '' },
+      { label: '2 · Imported', value: m.totalFilesImportedToCco, tone: m.totalFilesImportedToCco > 0 ? 'success' : 'muted' },
+      { label: '3 · Verified', value: m.totalFilesVerified, tone: m.totalFilesVerified > 0 ? 'success' : 'muted' },
+      { label: '4 · Link-only', value: m.totalLinkOnlyFiles, tone: m.totalLinkOnlyFiles === 0 ? 'success' : 'danger' },
+      { label: '5 · Needs review', value: m.totalFilesNeedingReview, tone: m.totalFilesNeedingReview > 0 ? 'warning' : 'muted' },
+      { label: '6 · Failed import', value: m.totalFilesFailedImport, tone: m.totalFilesFailedImport > 0 ? 'danger' : 'muted' },
+      { label: '7 · Patients complete', value: m.totalPatientsWithCompleteHistory, tone: 'success' },
+      { label: '8 · Missing journal-PDF', value: m.totalPatientsWithMissingJournalPdfs, tone: m.totalPatientsWithMissingJournalPdfs > 0 ? 'warning' : 'muted' },
+      { label: '9 · Missing images', value: m.totalPatientsWithMissingImages, tone: m.totalPatientsWithMissingImages > 0 ? 'warning' : 'muted' },
+      { label: '10 · Orphan files', value: m.totalOrphanFiles, tone: m.totalOrphanFiles > 0 ? 'warning' : 'muted' },
+      { label: '11 · Duplicates', value: m.totalDuplicateFiles, tone: m.totalDuplicateFiles > 0 ? 'warning' : 'muted' }
+    ];
+    grid.innerHTML = items.map(function (it) {
+      return '<div class="phase2-metric">' +
+        '<div class="label">' + it.label + '</div>' +
+        '<div class="value' + (it.tone ? ' ' + it.tone : '') + '">' + fmt(it.value) + '</div>' +
+      '</div>';
+    }).join('');
+
+    // ── Detail card (import + patient-coverage) ──
+    var detailStatus = (linkOnly === 0 && total > 0) ? 'green'
+      : (total === 0) ? 'yellow' : 'red';
+    setStatus('phase2DetailStatus', detailStatus);
+    renderStats('phase2DetailStats', [
+      { label: 'Discovered', value: m.totalFilesDiscovered },
+      { label: 'Imported (' + pct(m.totalFilesImportedToCco, total) + ')', value: m.totalFilesImportedToCco, tone: m.totalFilesImportedToCco > 0 ? 'success' : 'muted' },
+      { label: 'Verified (' + pct(m.totalFilesVerified, total) + ')', value: m.totalFilesVerified, tone: m.totalFilesVerified > 0 ? 'success' : 'muted' },
+      { label: 'Failed', value: m.totalFilesFailedImport, tone: m.totalFilesFailedImport > 0 ? 'danger' : 'muted' },
+      { label: 'Needs review', value: m.totalFilesNeedingReview, tone: m.totalFilesNeedingReview > 0 ? 'warning' : 'muted' },
+      { label: 'Orphan', value: m.totalOrphanFiles, tone: m.totalOrphanFiles > 0 ? 'warning' : 'muted' },
+      { label: 'Duplicate', value: m.totalDuplicateFiles, tone: m.totalDuplicateFiles > 0 ? 'warning' : 'muted' },
+      { label: 'Patienter m. komplett historik', value: m.totalPatientsWithCompleteHistory },
+      { label: 'Patienter m. saknad journal-PDF', value: m.totalPatientsWithMissingJournalPdfs, tone: m.totalPatientsWithMissingJournalPdfs > 0 ? 'warning' : 'muted' },
+      { label: 'Patienter m. saknade bilder', value: m.totalPatientsWithMissingImages, tone: m.totalPatientsWithMissingImages > 0 ? 'warning' : 'muted' }
+    ]);
+
+    // ── Senaste runs (tabell) ──
+    var runsBody = document.getElementById('recentRunsBody');
+    var runs = Array.isArray(qa.recentRuns) ? qa.recentRuns : [];
+    if (!runs.length) {
+      runsBody.innerHTML = '<div class="runs-empty">Inga import-runs registrerade ännu. Kör <code>node scripts/run-asset-import.js --source-system drive --commit</code>.</div>';
+    } else {
+      var rows = runs.map(function (r) {
+        var ts = r.startedAt ? new Date(r.startedAt).toLocaleString('sv-SE') : '—';
+        var statusTxt = r.finishedAt ? 'klar' : 'pågående';
+        return '<tr>' +
+          '<td>' + ts + '</td>' +
+          '<td>' + (r.sourceSystem || '—') + '</td>' +
+          '<td>' + (r.mode || '—') + '</td>' +
+          '<td class="num">' + fmt(r.totalDiscovered || 0) + '</td>' +
+          '<td class="num">' + fmt(r.totalImported || 0) + '</td>' +
+          '<td class="num">' + fmt(r.totalNeedsReview || 0) + '</td>' +
+          '<td class="num">' + fmt(r.totalFailed || 0) + '</td>' +
+          '<td>' + statusTxt + '</td>' +
+        '</tr>';
+      }).join('');
+      runsBody.innerHTML =
+        '<table class="runs-table">' +
+        '<thead><tr><th>Startad</th><th>Källa</th><th>Läge</th>' +
+        '<th class="num">Discov.</th><th class="num">Imp.</th><th class="num">Review</th>' +
+        '<th class="num">Failed</th><th>Status</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>';
+    }
+
+    // ── Review-queue-status ──
+    var reviewBody = document.getElementById('reviewStatsBody');
+    var rs = qa.reviewStats || {};
+    var byReason = rs.byReason || {};
+    var reasonEntries = Object.keys(byReason);
+    var reasonHtml = '';
+    if (!reasonEntries.length || (rs.pending || 0) === 0) {
+      reasonHtml = '<div class="reason-empty">✓ Inga väntande review-items.</div>';
+    } else {
+      reasonHtml = reasonEntries.map(function (k) {
+        var label = k.replace(/_/g, ' ');
+        return '<span class="reason-pill"><span>' + label + '</span><span class="count">' + fmt(byReason[k]) + '</span></span>';
+      }).join('');
+    }
+    reviewBody.innerHTML =
+      '<div class="stats" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 14px;">' +
+        '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value ' + ((rs.pending || 0) > 0 ? 'warning' : 'muted') + '">' + fmt(rs.pending || 0) + '</div></div>' +
+        '<div class="stat"><div class="stat-label">Resolved</div><div class="stat-value success">' + fmt(rs.resolved || 0) + '</div></div>' +
+        '<div class="stat"><div class="stat-label">Total</div><div class="stat-value muted">' + fmt(rs.total || 0) + '</div></div>' +
+      '</div>' +
+      '<div>' + reasonHtml + '</div>';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Fetch loop med fallback (Phase 1 = 5 statusblock, Phase 2 = asset-import)
   // ─────────────────────────────────────────────────────────────────────
   async function load() {
+    var tenant = 'hair_tp';
+    // Phase 1 (existerande)
     try {
-      var res = await fetch('/api/v1/cco/journal-qa/snapshot?tenantId=hair_tp', {
+      var res = await fetch('/api/v1/cco/journal-qa/snapshot?tenantId=' + tenant, {
         credentials: 'same-origin',
         cache: 'no-store'
       });
@@ -544,6 +846,21 @@
       var fb = JSON.parse(JSON.stringify(FALLBACK_SNAPSHOT));
       fb.generatedAt = new Date().toISOString();
       render(fb);
+    }
+    // Phase 2 (P0.E asset-qa)
+    try {
+      var resQa = await fetch('/api/v1/cco/asset-qa/snapshot?tenantId=' + tenant, {
+        credentials: 'same-origin',
+        cache: 'no-store'
+      });
+      if (!resQa.ok) throw new Error('HTTP ' + resQa.status);
+      var qaData = await resQa.json();
+      renderAssetQa(qaData);
+    } catch (err) {
+      console.warn('[asset-qa] live endpoint unavailable, using fallback:', err && err.message);
+      var qaFb = JSON.parse(JSON.stringify(FALLBACK_ASSET_QA));
+      qaFb.generatedAt = new Date().toISOString();
+      renderAssetQa(qaFb);
     }
   }
 

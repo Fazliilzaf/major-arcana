@@ -2330,6 +2330,337 @@ try {
   console.warn('[cco-journal-qa] kunde inte montera:', err.message);
 }
 
+// ── P0.E: CCO Asset-QA Dashboard v2 + Asset-CRUD per patient (P0.G) ──
+// Per `.cursor/rules/cco-no-drive-links-import-only.mdc`:
+//   - 11 QA-metrics med link_only_files som PRIMARY metric (mål: 0)
+//   - Senaste import-runs + review-queue-stats
+//   - Per-patient asset-listning + thumbnail/download via secure storage
+// COUNTS ONLY i snapshot — INGA patientnamn/pnr/email/filinnehåll i payload.
+// Audit: 'asset.qa.read' + 'asset.read' + 'asset.exported' per anrop.
+try {
+  const { attachRole, requirePermission } = require('./src/security/ccoRbac');
+  const { createCcoPatientAssetStore } = require('./src/ops/ccoPatientAssetStore');
+  const { createCcoAssetImportRunStore } = require('./src/ops/ccoAssetImportRunStore');
+  const { createCcoAssetReviewQueueStore } = require('./src/ops/ccoAssetReviewQueueStore');
+  const { createSecureStorageProvider } = require('./src/ops/ccoSecureStorageProvider');
+
+  // Lazy-init: stores skapas first-call så att data/-filer skapas on-demand
+  // (per cursor-regeln: gitignored, on-write only).
+  let assetStore = null;
+  let importRunStore = null;
+  let reviewQueueStore = null;
+  let secureStorage = null;
+  let assetQaCache = null;
+  let assetQaCacheTs = 0;
+  const ASSET_QA_CACHE_TTL_MS = 60 * 1000;
+
+  async function ensureAssetStores() {
+    if (!assetStore) {
+      assetStore = await createCcoPatientAssetStore({
+        filePath: path.join(__dirname, 'data', 'cco-patient-assets.json'),
+        auditLog: ccoAuditLog,
+      });
+      app.locals.ccoPatientAssetStore = assetStore;
+    }
+    if (!importRunStore) {
+      importRunStore = await createCcoAssetImportRunStore({
+        filePath: path.join(__dirname, 'data', 'cco-asset-import-runs.json'),
+        auditLog: ccoAuditLog,
+      });
+      app.locals.ccoAssetImportRunStore = importRunStore;
+    }
+    if (!reviewQueueStore) {
+      reviewQueueStore = await createCcoAssetReviewQueueStore({
+        filePath: path.join(__dirname, 'data', 'cco-asset-review-queue.json'),
+        auditLog: ccoAuditLog,
+      });
+      app.locals.ccoAssetReviewQueueStore = reviewQueueStore;
+    }
+    if (!secureStorage) {
+      secureStorage = createSecureStorageProvider({ provider: 'local' });
+      app.locals.ccoSecureStorage = secureStorage;
+    }
+    return { assetStore, importRunStore, reviewQueueStore, secureStorage };
+  }
+
+  function invalidateAssetQaCache() {
+    assetQaCache = null;
+    assetQaCacheTs = 0;
+  }
+
+  async function buildAssetQaSnapshot({ tenantId = 'hair_tp' } = {}) {
+    const now = Date.now();
+    if (assetQaCache && (now - assetQaCacheTs) < ASSET_QA_CACHE_TTL_MS) {
+      return assetQaCache;
+    }
+    const stores = await ensureAssetStores();
+    const aStats = stores.assetStore.stats(tenantId) || {};
+    const recentRuns = stores.importRunStore.listRecentRuns(5) || [];
+    const rStats = stores.reviewQueueStore.stats() || {};
+
+    // 11 metrics enligt `.cursor/rules/cco-no-drive-links-import-only.mdc#QA-dashboard ska visa`
+    const byStatus = aStats.byStatus || {};
+    const discovered = aStats.total || 0;
+    const importedToCco = (byStatus.IMPORTED_TO_CCO || 0)
+      + (byStatus.VERIFIED_IN_CCO || 0)
+      + (byStatus.VISIBLE_ON_PATIENT_CARD || 0);
+    const verified = (byStatus.VERIFIED_IN_CCO || 0)
+      + (byStatus.VISIBLE_ON_PATIENT_CARD || 0);
+    const linkOnly = aStats.linkOnlyCount || 0;
+    const needsReview = aStats.needsReviewCount || (byStatus.NEEDS_REVIEW || 0);
+    const failed = byStatus.FAILED_IMPORT || 0;
+    const duplicate = aStats.duplicateCount || (byStatus.DUPLICATE || 0);
+
+    // Patient-coverage: räkna unika patienter + de utan journal/foto.
+    // Vi använder customerStore (om finns) för total-population.
+    const cs = app.locals.ccoCustomerStore || app.locals.ccoCustomersStore;
+    let totalPatients = 0;
+    try {
+      if (cs && typeof cs.getStateForTenant === 'function') {
+        const tenantState = await cs.getStateForTenant(tenantId);
+        totalPatients = Array.isArray(tenantState?.directory)
+          ? tenantState.directory.length
+          : 0;
+      } else if (cs && typeof cs.listCustomers === 'function') {
+        const list = await cs.listCustomers({ tenantId });
+        totalPatients = Array.isArray(list) ? list.length : 0;
+      }
+    } catch {
+      /* customer-store kanske inte ready — fortsätt med 0 */
+    }
+
+    // Räkna unika patient-IDs i asset-store + per kategori.
+    const allAssets = Object.values(stores.assetStore._state().items || {});
+    const patientsWithAssets = new Set();
+    const patientsWithJournal = new Set();
+    const patientsWithImage = new Set();
+    const patientIdsSeen = new Set();
+    let orphans = 0;
+    for (const a of allAssets) {
+      if (!a.patientId) { orphans += 1; continue; }
+      patientIdsSeen.add(a.patientId);
+      patientsWithAssets.add(a.patientId);
+      if (a.category === 'journal') patientsWithJournal.add(a.patientId);
+      if (a.category === 'photo_before' || a.category === 'photo_during' || a.category === 'photo_after') {
+        patientsWithImage.add(a.patientId);
+      }
+    }
+    const totalPatientsRef = totalPatients || patientIdsSeen.size;
+    const patientsCompleteHistory = (() => {
+      let n = 0;
+      for (const pId of patientIdsSeen) {
+        if (patientsWithJournal.has(pId) && patientsWithImage.has(pId)) n += 1;
+      }
+      return n;
+    })();
+    const patientsMissingJournal = Math.max(0, totalPatientsRef - patientsWithJournal.size);
+    const patientsMissingImages = Math.max(0, totalPatientsRef - patientsWithImage.size);
+
+    const snapshot = {
+      tenantId,
+      generatedAt: new Date().toISOString(),
+      cacheTtlMs: ASSET_QA_CACHE_TTL_MS,
+      // PRIMARY metric — cutover-readiness gate.
+      linkOnlyBlockers: linkOnly,
+      cutoverReady: linkOnly === 0 && failed === 0,
+      // 11 metrics per cursor-regeln
+      metrics: {
+        totalFilesDiscovered: discovered,
+        totalFilesImportedToCco: importedToCco,
+        totalFilesVerified: verified,
+        totalLinkOnlyFiles: linkOnly,
+        totalFilesNeedingReview: needsReview,
+        totalFilesFailedImport: failed,
+        totalPatientsWithCompleteHistory: patientsCompleteHistory,
+        totalPatientsWithMissingJournalPdfs: patientsMissingJournal,
+        totalPatientsWithMissingImages: patientsMissingImages,
+        totalOrphanFiles: orphans,
+        totalDuplicateFiles: duplicate,
+      },
+      assetStats: aStats,
+      recentRuns,
+      reviewStats: rStats,
+      population: {
+        totalPatientsInTenant: totalPatients,
+        patientsWithAnyAsset: patientsWithAssets.size,
+        patientsWithJournalPdf: patientsWithJournal.size,
+        patientsWithImage: patientsWithImage.size,
+      },
+    };
+    assetQaCache = snapshot;
+    assetQaCacheTs = now;
+    return snapshot;
+  }
+
+  app.get('/api/v1/cco/asset-qa/snapshot', attachRole, requirePermission('journal.read_any'), async (req, res) => {
+    try {
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+      const snapshot = await buildAssetQaSnapshot({ tenantId });
+      if (ccoAuditLog) {
+        ccoAuditLog.append({
+          action: 'journal.qa.read',
+          actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
+          target: { kind: 'asset_qa_dashboard', id: tenantId },
+          result: 'ok',
+          detail: {
+            view: 'asset-qa',
+            linkOnlyBlockers: snapshot.linkOnlyBlockers,
+            metricsCount: 11,
+          },
+        });
+      }
+      res.json(snapshot);
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/v1/cco/asset-qa/invalidate', attachRole, requirePermission('journal.read_any'), (req, res) => {
+    invalidateAssetQaCache();
+    res.json({ invalidated: 'asset-qa' });
+  });
+
+  // ── P0.G: Per-patient asset-listning för patientkort ──
+  app.get('/api/v1/cco/patients/:patientId/assets', attachRole, requirePermission('asset.read'), async (req, res) => {
+    try {
+      const stores = await ensureAssetStores();
+      const patientId = String(req.params.patientId || '').trim();
+      if (!patientId) return res.status(400).json({ error: 'patientId required' });
+      const all = stores.assetStore.listAssetsForPatient(patientId, {}, {
+        actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null, tenantId: req.headers['x-cco-tenant'] || null },
+      });
+
+      // Synlighet: dölj REJECTED + DUPLICATE från default-listning;
+      // visa via ?includeAll=1 om operatör behöver.
+      const includeAll = String(req.query.includeAll || '') === '1';
+      const visible = all.filter((a) => {
+        if (includeAll) return true;
+        return a.status !== 'REJECTED' && a.status !== 'DUPLICATE';
+      });
+
+      // Gruppera per kategori (default: groupByCategory=1)
+      const groupByCategory = String(req.query.groupByCategory || '1') === '1';
+      const counts = {};
+      let linkOnlyCount = 0;
+      let inReviewCount = 0;
+      for (const a of visible) {
+        counts[a.category || 'other'] = (counts[a.category || 'other'] || 0) + 1;
+        if (a.status === 'LINK_ONLY_BLOCKER') linkOnlyCount += 1;
+        if (a.status === 'NEEDS_REVIEW') inReviewCount += 1;
+      }
+
+      // Sortera: nyaste first per kategori (documentDate desc, importedAt desc fallback)
+      const sortFn = (a, b) => {
+        const da = a.documentDate || a.importedAt || '';
+        const db = b.documentDate || b.importedAt || '';
+        return db.localeCompare(da);
+      };
+      visible.sort(sortFn);
+
+      // PII-säkring: server returnerar originalFileName för staff-UI; client
+      // får visa "displayName" där möjligt. INGA PII i payload utöver det.
+      const out = visible.map((a) => ({
+        id: a.id,
+        patientId: a.patientId,
+        encounterId: a.encounterId,
+        category: a.category,
+        status: a.status,
+        documentDate: a.documentDate,
+        importedAt: a.importedAt,
+        importRunId: a.importRunId,
+        sourceSystem: a.sourceSystem,
+        confidence: a.confidence,
+        mimeType: a.mimeType,
+        fileSize: a.fileSize,
+        originalFileName: a.originalFileName,
+        hasThumbnail: !!a.thumbnailKey,
+      }));
+
+      const response = {
+        patientId,
+        total: visible.length,
+        counts,
+        linkOnlyCount,
+        inReviewCount,
+        items: out,
+      };
+      if (groupByCategory) {
+        const byCategory = {};
+        for (const a of out) {
+          const key = a.category || 'other';
+          if (!byCategory[key]) byCategory[key] = [];
+          byCategory[key].push(a);
+        }
+        response.byCategory = byCategory;
+      }
+      res.json(response);
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/v1/cco/assets/:assetId/download', attachRole, requirePermission('asset.read'), async (req, res) => {
+    try {
+      const stores = await ensureAssetStores();
+      const assetId = String(req.params.assetId || '').trim();
+      const asset = stores.assetStore.getAsset(assetId);
+      if (!asset) return res.status(404).json({ error: 'asset_not_found' });
+      if (!asset.storageKey) return res.status(409).json({ error: 'asset_has_no_storage_key' });
+
+      const obj = await stores.secureStorage.getObject(asset.storageKey);
+      const mime = asset.mimeType || obj.mimeType || 'application/octet-stream';
+      const fname = (asset.originalFileName || `asset-${assetId}`).replace(/["\\\r\n]/g, '');
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Content-Length', obj.size);
+      // attachment = browser laddar ner; client kan välja `?inline=1` för iframe-preview
+      const disposition = String(req.query.inline || '') === '1' ? 'inline' : 'attachment';
+      res.setHeader('Content-Disposition', `${disposition}; filename="${fname}"`);
+      res.setHeader('Cache-Control', 'private, max-age=60');
+      if (ccoAuditLog) {
+        ccoAuditLog.append({
+          action: 'asset.exported',
+          actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
+          target: { kind: 'patient_asset', id: assetId, tenantId: req.headers['x-cco-tenant'] || null },
+          result: 'ok',
+          detail: {
+            patientId: asset.patientId,
+            category: asset.category,
+            mimeType: mime,
+            disposition,
+          },
+        });
+      }
+      res.send(obj.buffer);
+    } catch (err) {
+      if (err && err.code === 'ENOENT') return res.status(404).json({ error: 'object_not_in_storage' });
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/v1/cco/assets/:assetId/thumbnail', attachRole, requirePermission('asset.read'), async (req, res) => {
+    try {
+      const stores = await ensureAssetStores();
+      const assetId = String(req.params.assetId || '').trim();
+      const asset = stores.assetStore.getAsset(assetId);
+      if (!asset) return res.status(404).json({ error: 'asset_not_found' });
+      const key = asset.thumbnailKey || null;
+      if (!key) return res.status(404).json({ error: 'no_thumbnail' });
+      const obj = await stores.secureStorage.getObject(key);
+      res.setHeader('Content-Type', obj.mimeType || 'image/jpeg');
+      res.setHeader('Content-Length', obj.size);
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      res.send(obj.buffer);
+    } catch (err) {
+      if (err && err.code === 'ENOENT') return res.status(404).json({ error: 'object_not_in_storage' });
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  console.log('[cco-asset-qa] monterad: GET /api/v1/cco/asset-qa/snapshot + invalidate · /patients/:id/assets · /assets/:id/{download,thumbnail}');
+} catch (err) {
+  console.warn('[cco-asset-qa] kunde inte montera:', err.message);
+}
+
 // ── Steg 6: Clean URL för patient-portal — /portal/:token → patient-portal.html
 // Detta gör att email-länkar blir cleaner (https://...com/portal/AbC123) istället för full ?token=xxx
 // HTML:en själv hanterar token-extrahering från path eller query
