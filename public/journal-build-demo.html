@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Journalbygge · Hair TP Clinic · CCO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --htp-paper: #fefbf9;
+      --htp-light: #efe6e0;
+      --htp-gold:  #cabbae;
+      --htp-gold-soft: #d6c7b8;
+      --htp-ink:   #4a4946;
+      --htp-ink-soft: #6c685f;
+      --htp-accent: #7F6557;
+      --htp-accent-soft: rgba(127, 101, 87, 0.10);
+      --htp-border: rgba(74, 73, 70, 0.14);
+      --htp-border-strong: rgba(74, 73, 70, 0.28);
+      --htp-ok: #77806A;
+      --htp-warn: #B8A56A;
+      --htp-blocker: #B85F5A;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Jost", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 11% 12%, rgba(255, 255, 255, 0.36), transparent 38%),
+        radial-gradient(circle at 86% 10%, rgba(202, 187, 174, 0.22), transparent 36%),
+        linear-gradient(180deg, var(--htp-light) 0%, var(--htp-paper) 40%, var(--htp-light) 100%);
+      min-height: 100vh;
+      color: var(--htp-ink);
+    }
+
+    .shell { max-width: 1180px; margin: 0 auto; padding: 28px 22px 60px; }
+
+    /* Topbar med HTP-logo */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 22px;
+      background: var(--htp-paper);
+      border: 1px solid var(--htp-border);
+      border-radius: 18px;
+      margin-bottom: 24px;
+      box-shadow: inset 0 1px 0 #fff, 0 8px 20px -16px rgba(74, 73, 70, 0.18);
+    }
+    .topbar img { height: 38px; display: block; }
+    .topbar .brand { flex: 1; }
+    .topbar .brand-line {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--htp-ink);
+    }
+    .topbar .brand-meta {
+      font-size: 0.74rem;
+      color: var(--htp-ink-soft);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .env-badge {
+      font-size: 0.66rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 11px;
+      border-radius: 999px;
+      background: var(--htp-accent-soft);
+      color: var(--htp-accent);
+      font-weight: 600;
+      border: 1px solid var(--htp-border);
+    }
+
+    h1 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.95rem;
+      margin: 0 0 6px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--htp-ink);
+    }
+    .lead { color: var(--htp-ink-soft); margin: 0 0 24px; font-size: 0.95rem; line-height: 1.55; }
+
+    /* Stats-rad */
+    .stats { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 24px; }
+    .stat {
+      background: var(--htp-paper);
+      border: 1px solid var(--htp-border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      box-shadow: inset 0 1px 0 #fff;
+    }
+    .stat-num {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.45rem; font-weight: 700; line-height: 1.1;
+      color: var(--htp-ink);
+    }
+    .stat-label {
+      font-size: 0.72rem;
+      color: var(--htp-ink-soft);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* Sektioner */
+    .section { margin-bottom: 36px; }
+    .section h2 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--htp-gold);
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      color: var(--htp-ink);
+    }
+    .section h2 .sub {
+      font-family: "Jost", sans-serif;
+      font-size: 0.78rem;
+      color: var(--htp-ink-soft);
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* Card-grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--htp-paper);
+      border: 1px solid var(--htp-border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+      display: flex; flex-direction: column; gap: 10px;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: inset 0 1px 0 #fff;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px -16px rgba(74, 73, 70, 0.22), inset 0 1px 0 #fff;
+      border-color: var(--htp-accent);
+    }
+    .card-icon { font-size: 1.7rem; line-height: 1; }
+    .card-title {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 600; font-size: 1.05rem; margin: 0;
+      color: var(--htp-ink);
+    }
+    .card-desc {
+      color: var(--htp-ink-soft);
+      font-size: 0.85rem;
+      line-height: 1.55;
+      margin: 0;
+    }
+    .card-tag {
+      display: inline-flex; gap: 4px; align-items: center;
+      font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 999px;
+      background: var(--htp-accent-soft);
+      color: var(--htp-accent);
+      font-weight: 600;
+      align-self: flex-start;
+      border: 1px solid var(--htp-border);
+    }
+    .card-tag.ok      { background: rgba(119, 128, 106, 0.14); color: #4F5648; border-color: rgba(119, 128, 106, 0.30); }
+    .card-tag.gold    { background: rgba(184, 165, 106, 0.14); color: #7F734A; border-color: rgba(184, 165, 106, 0.30); }
+    .card-tag.staff   { background: rgba(141, 157, 183, 0.14); color: #445565; border-color: rgba(141, 157, 183, 0.30); }
+
+    /* API-list */
+    .api-list {
+      background: var(--htp-paper);
+      border: 1px solid var(--htp-border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-family: "SF Mono", Monaco, "Courier New", monospace;
+      box-shadow: inset 0 1px 0 #fff;
+    }
+    .api-list code {
+      display: block;
+      padding: 7px 0;
+      font-size: 0.82rem;
+      color: var(--htp-ink);
+      border-bottom: 1px dashed var(--htp-border);
+    }
+    .api-list code:last-child { border-bottom: 0; }
+    .api-list .verb {
+      display: inline-block; width: 52px; font-weight: 700;
+      padding: 1px 7px; border-radius: 5px; margin-right: 10px;
+      font-size: 0.7rem; letter-spacing: 0.04em;
+      text-align: center;
+    }
+    .api-list .verb.get  { background: rgba(141, 157, 183, 0.18); color: #445565; }
+    .api-list .verb.post { background: rgba(119, 128, 106, 0.18); color: #4F5648; }
+    .api-list .label {
+      color: var(--htp-ink-soft);
+      font-size: 0.74rem;
+      margin-left: 10px;
+      font-family: "Jost", sans-serif;
+      font-style: italic;
+    }
+
+    /* Commit-list */
+    .commit-list {
+      background: var(--htp-paper);
+      border: 1px solid var(--htp-border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      box-shadow: inset 0 1px 0 #fff;
+    }
+    .commit-list .commit {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 14px;
+      padding: 7px 0;
+      border-bottom: 1px dashed var(--htp-border);
+      font-size: 0.86rem;
+    }
+    .commit-list .commit:last-child { border-bottom: 0; }
+    .commit-list .commit code {
+      font-family: "SF Mono", Monaco, monospace;
+      color: var(--htp-accent);
+      font-weight: 600;
+      font-size: 0.82rem;
+    }
+    .commit-list .commit strong { color: var(--htp-ink); font-weight: 600; }
+
+    /* Footer-note */
+    .footer-note {
+      margin-top: 36px;
+      padding: 18px 22px;
+      background: var(--htp-paper);
+      border: 1px solid var(--htp-border);
+      border-radius: 14px;
+      font-size: 0.88rem;
+      color: var(--htp-ink-soft);
+      line-height: 1.65;
+      box-shadow: inset 0 1px 0 #fff;
+    }
+    .footer-note strong { color: var(--htp-ink); }
+    .footer-note a {
+      color: var(--htp-accent);
+      text-decoration: none;
+      border-bottom: 1px solid var(--htp-gold);
+      padding-bottom: 1px;
+    }
+    .footer-note a:hover { color: var(--htp-ink); border-bottom-color: var(--htp-ink); }
+
+    @media (max-width: 720px) {
+      .shell { padding: 16px 12px 40px; }
+      h1 { font-size: 1.5rem; }
+      .topbar .brand-line { font-size: 1rem; }
+      .stat-num { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="topbar">
+    <img src="/htp-logo-email.png" alt="Hair TP Clinic">
+    <div class="brand">
+      <div class="brand-line">Hair TP Clinic</div>
+      <div class="brand-meta">CCO · Customer & Clinic Operations</div>
+    </div>
+    <span class="env-badge">Demo</span>
+  </div>
+
+  <h1>CCO Journalbygge — översikt</h1>
+  <p class="lead">
+    Vad vi byggt för journalflödet i Hair TP Clinics CCO-system.
+    Allt material läses från CCO secure storage. Inga Drive-länkar i UI.
+    Ingen extern AI på journalinnehåll. Lokal server: <code style="background: var(--htp-paper); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--htp-border); font-family: 'SF Mono', monospace; font-size: 0.85em;">localhost:3097</code>.
+  </p>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-num">8</div><div class="stat-label">commits idag</div></div>
+    <div class="stat"><div class="stat-num">52/52</div><div class="stat-label">TP-fält parity</div></div>
+    <div class="stat"><div class="stat-num">18/18</div><div class="stat-label">formulär-checks</div></div>
+    <div class="stat"><div class="stat-num">19/19</div><div class="stat-label">tidslinje-checks</div></div>
+    <div class="stat"><div class="stat-num">15/15</div><div class="stat-label">rättelse-checks</div></div>
+    <div class="stat"><div class="stat-num">13/13</div><div class="stat-label">signering→asset-checks</div></div>
+  </div>
+
+  <!-- Live demos -->
+  <div class="section">
+    <h2>Live demos <span class="sub">klicka för att öppna i ny flik</span></h2>
+    <div class="grid">
+      <a class="card" href="/journal-feed-demo.html" target="_blank">
+        <span class="card-tag ok">Live</span>
+        <span class="card-icon">📋</span>
+        <h3 class="card-title">Patientkort · journal-feed</h3>
+        <p class="card-desc">
+          Demo-sida för patientkortet. Ange Hair TP Clinic-customer-id + RBAC-roll →
+          se hela journalflödet (Tidslinje · Alla · Journaler · Bilder · Dokument ·
+          Samtycken · Avtal · Formulär · Aisia). Status-badges, rättelse-modal, mobile-first.
+        </p>
+      </a>
+
+      <a class="card" href="/kunder.html" target="_blank">
+        <span class="card-tag">Patientregister</span>
+        <span class="card-icon">👥</span>
+        <h3 class="card-title">Kunder · dossier</h3>
+        <p class="card-desc">
+          Hela Hair TP Clinic-kundvyn med journal-flik. Wirad mot
+          patientregistret (7 257 patienter) med RBAC, audit och blocker-pillar.
+        </p>
+      </a>
+
+      <a class="card" href="/patient-portal.html" target="_blank">
+        <span class="card-tag gold">Patient-side</span>
+        <span class="card-icon">📱</span>
+        <h3 class="card-title">Patient-portal</h3>
+        <p class="card-desc">
+          Generisk portal som tar in token + renderar formulär.
+          Hälsodeklaration · friskförsäkran · samtycken — submitas
+          till CCO och blir journal-entry + PDF + asset.
+        </p>
+      </a>
+
+      <a class="card" href="/friskforsakran.html" target="_blank">
+        <span class="card-tag gold">Patient-side</span>
+        <span class="card-icon">✍</span>
+        <h3 class="card-title">Friskförsäkran</h3>
+        <p class="card-desc">
+          Patientens friskförsäkran inför TP-behandling. Submitas till
+          <code style="font-family: 'SF Mono', monospace; font-size: 0.85em;">/api/v1/cco-forms/submit</code> →
+          autoSign → PDF i CCO storage → asset.
+        </p>
+      </a>
+
+      <a class="card" href="/journal-qa.html" target="_blank">
+        <span class="card-tag staff">QA</span>
+        <span class="card-icon">📊</span>
+        <h3 class="card-title">Journal-QA · cutover-status</h3>
+        <p class="card-desc">
+          5 statusblock: importstatus · matchningsstatus · journalstatus ·
+          bildstatus · cutover-readiness. <code style="font-family: 'SF Mono', monospace; font-size: 0.85em;">link_only_files</code>
+          som primär metric.
+        </p>
+      </a>
+
+      <a class="card" href="/" target="_blank">
+        <span class="card-tag">Startsida</span>
+        <span class="card-icon">🏠</span>
+        <h3 class="card-title">CCO · alla moduler</h3>
+        <p class="card-desc">
+          Huvudportal: kalender · kunder · konversationer · analytics ·
+          automation · journal · offerter · m.fl.
+        </p>
+      </a>
+    </div>
+  </div>
+
+  <!-- API -->
+  <div class="section">
+    <h2>Nya API-endpoints <span class="sub">RBAC: customers.read / journal.write</span></h2>
+    <div class="api-list">
+      <code><span class="verb get">GET</span>/api/v1/cco-customers/:id/journal-feed<span class="label">unified sektioner + statusar</span></code>
+      <code><span class="verb get">GET</span>/api/v1/cco-customers/:id/journal-timeline<span class="label">7+ event-typer + thread-grupp</span></code>
+      <code><span class="verb post">POST</span>/api/v1/cco-journal-quick/entry/correction<span class="label">ny rättelse (reason ≥ 10 chars)</span></code>
+      <code><span class="verb post">POST</span>/api/v1/cco-forms/submit<span class="label">hälsodeklaration/friskförsäkran → journal-entry</span></code>
+      <code><span class="verb post">POST</span>/api/v1/cco-forms/:entryId/sign<span class="label">signera tidigare submittat formulär</span></code>
+      <code><span class="verb get">GET</span>/api/v1/cco-forms/patient/:id/missing?treatment=fue<span class="label">ready-for-treatment blocker-status</span></code>
+    </div>
+  </div>
+
+  <!-- Vad fungerar -->
+  <div class="section">
+    <h2>Vad fungerar end-to-end</h2>
+    <div class="grid">
+      <div class="card">
+        <span class="card-icon">📝</span>
+        <h3 class="card-title">Skapa CCO-journal</h3>
+        <p class="card-desc">Draft → signera → auto-PDF i secure storage → asset → blir VISIBLE_ON_PATIENT_CARD → syns under Journaler.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">✏</span>
+        <h3 class="card-title">Rättelse (aldrig edit)</h3>
+        <p class="card-desc">Signerad journal kan inte ändras tyst. "Ny rättelse"-knapp skapar ny entry med anledning. Original förblir låst.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">📋</span>
+        <h3 class="card-title">Hälsodeklaration · Hair TP</h3>
+        <p class="card-desc">Submit via API → journal-entry + autoSign → PDF + asset med category=form → syns under Formulär på patientkortet.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">⚕</span>
+        <h3 class="card-title">Friskförsäkran · TP</h3>
+        <p class="card-desc">Samma flöde som hälsodeklaration. Formulär-sektion på patientkortet visar båda PDF:erna med signering + tamper-hash.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🕐</span>
+        <h3 class="card-title">Tidslinje · 7+ event-typer</h3>
+        <p class="card-desc">Kronologisk feed: form_submitted · form_signed · pdf_archived · correction_created · asset_imported · asset_status_transition.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🧵</span>
+        <h3 class="card-title">Original ↔ rättelse-tråd</h3>
+        <p class="card-desc">Thread-banner i tidslinjen visar original-poster bundlade med sina rättelser och anledning.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">⛔</span>
+        <h3 class="card-title">6 asset-statusar</h3>
+        <p class="card-desc">VISIBLE_ON_PATIENT_CARD · VERIFIED_IN_CCO · NEEDS_REVIEW · LINK_ONLY_BLOCKER · FAILED_IMPORT · DUPLICATE — alla färgkodade.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🚦</span>
+        <h3 class="card-title">Ready-for-treatment</h3>
+        <p class="card-desc"><code style="font-family: 'SF Mono', monospace; font-size: 0.85em;">/missing?treatment=fue</code> returnerar vilka formulär krävs, vilka finns, vilka blockerar.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commits -->
+  <div class="section">
+    <h2>Senaste commits <span class="sub">branch: compliance/pipedrive-pii-purge</span></h2>
+    <div class="commit-list">
+      <div class="commit"><code>53ceaeb9</code><div><strong>Field Parity Matrix</strong> — 14 kolumner × 52 fält, 100% parity bekräftad mot Meridiq</div></div>
+      <div class="commit"><code>dd0296ba</code><div><strong>Hälsodeklaration + Friskförsäkran</strong> i journalflödet, 18/18 checks pass</div></div>
+      <div class="commit"><code>c3b72051</code><div><strong>Journal-timeline</strong> · 7+ event-typer + thread-grupp, 19/19 checks</div></div>
+      <div class="commit"><code>0995e20c</code><div><strong>Rättelse-UI</strong> · "Ny rättelse" modal, 15/15 checks</div></div>
+      <div class="commit"><code>d6871e7b</code><div><strong>Auto-PDF vid signering</strong> → secure storage + asset, 13/13 checks</div></div>
+      <div class="commit"><code>b60e9f18</code><div><strong>6 asset-statusar + 7 sektioner</strong> (FAILED_IMPORT, DUPLICATE separata)</div></div>
+      <div class="commit"><code>09faaffe</code><div><strong>Unified journal-section</strong> i patientkort (mobile-first)</div></div>
+      <div class="commit"><code>75097010</code><div><strong>P0.J dry-run</strong> · 5 piloter mot riktig coupling-data (read-only)</div></div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <strong>Säkerhetsegenskaper som hålls genom hela kedjan för Hair TP Clinic:</strong>
+    Ingen Drive-länk i UI (verifierat via smoke-tests). Ingen extern AI på journalinnehåll.
+    All PDF i CCO secure storage med SHA-256-checksum + tamper-hash. Signerad journal
+    kan aldrig ändras tyst (locked-guard testat). Audit-kedja: form_submitted →
+    form_signed → pdf_archived → asset_imported → asset_status_transition. RBAC per endpoint
+    (owner / operator / konsult / personal). Mobile-first design — patientportalen fungerar
+    på telefon.
+    <br><br>
+    <strong>GitHub:</strong>
+    <a href="https://github.com/Fazliilzaf/major-arcana/tree/compliance/pipedrive-pii-purge" target="_blank">
+      Fazliilzaf/major-arcana · branch compliance/pipedrive-pii-purge
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

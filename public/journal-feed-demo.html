@@ -3,94 +3,264 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Journal Feed — Demo & Smoke-test</title>
+  <title>Patientkort · Hair TP Clinic · CCO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/cco-journal-feed.css">
   <style>
+    :root {
+      --htp-paper: #fefbf9;
+      --htp-light: #efe6e0;
+      --htp-gold:  #cabbae;
+      --htp-ink:   #4a4946;
+      --htp-ink-soft: #6c685f;
+      --htp-border: rgba(74, 73, 70, 0.14);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      max-width: 1100px;
-      margin: 24px auto;
-      padding: 0 16px;
-      background: #f4f5f8;
-      color: #1f2330;
+      font-family: "Jost", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 11% 12%, rgba(255, 255, 255, 0.36), transparent 38%),
+        radial-gradient(circle at 86% 10%, rgba(202, 187, 174, 0.22), transparent 36%),
+        linear-gradient(180deg, var(--htp-light) 0%, var(--htp-paper) 40%, var(--htp-light) 100%);
+      min-height: 100vh;
+      color: var(--htp-ink);
     }
-    h1 { font-size: 1.4rem; margin: 0 0 6px; }
-    .lead { color: #5b6273; margin: 0 0 18px; font-size: 0.92rem; }
-    .demo-controls {
-      background: #fff; border: 1px solid #e6e8ee; border-radius: 12px;
-      padding: 14px 18px; margin-bottom: 18px;
-      display: flex; gap: 10px; flex-wrap: wrap; align-items: end;
+    .htp-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 22px 60px;
     }
-    .demo-controls label { display: flex; flex-direction: column; font-size: 0.78rem; color: #5b6273; gap: 4px; }
-    .demo-controls input, .demo-controls select {
-      font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid #e6e8ee; min-width: 220px;
+
+    /* Header med HTP-logo */
+    .htp-topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 22px;
+      background: var(--htp-paper);
+      border: 1px solid var(--htp-border);
+      border-radius: 18px;
+      margin-bottom: 22px;
+      box-shadow:
+        inset 0 1px 0 #fff,
+        0 8px 20px -16px rgba(74, 73, 70, 0.18);
     }
-    .demo-controls button {
-      padding: 9px 16px; border-radius: 8px; background: #1f2330; color: #fff; border: 0;
-      cursor: pointer; font: inherit;
+    .htp-logo {
+      height: 38px;
+      width: auto;
+      display: block;
     }
-    .demo-info {
-      font-size: 0.78rem; color: #5b6273; margin-top: 10px;
+    .htp-brand {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    .demo-info code { background: #f4f5f8; padding: 1px 6px; border-radius: 4px; }
+    .htp-brand-line {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--htp-ink);
+      line-height: 1;
+    }
+    .htp-brand-meta {
+      font-size: 0.74rem;
+      color: var(--htp-ink-soft);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .htp-env-badge {
+      font-size: 0.66rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 11px;
+      border-radius: 999px;
+      background: rgba(127, 101, 87, 0.10);
+      color: #7F6557;
+      font-weight: 600;
+      border: 1px solid var(--htp-border);
+    }
+
+    /* Page-rubrik */
+    .htp-page-title {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin: 0 0 4px;
+      letter-spacing: 0.01em;
+      color: var(--htp-ink);
+    }
+    .htp-page-lead {
+      color: var(--htp-ink-soft);
+      margin: 0 0 20px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .htp-page-lead code {
+      background: var(--htp-paper);
+      padding: 1px 7px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      border: 1px solid var(--htp-border);
+      font-family: "SF Mono", Monaco, monospace;
+    }
+
+    /* Kontroll-panel */
+    .htp-controls {
+      background: var(--htp-paper);
+      border: 1px solid var(--htp-border);
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: end;
+      box-shadow: inset 0 1px 0 #fff;
+    }
+    .htp-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.78rem;
+      color: var(--htp-ink-soft);
+      gap: 6px;
+      letter-spacing: 0.03em;
+    }
+    .htp-controls input,
+    .htp-controls select {
+      font: inherit;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--htp-border);
+      min-width: 220px;
+      background: #fff;
+      color: var(--htp-ink);
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .htp-controls input:focus,
+    .htp-controls select:focus {
+      outline: none;
+      border-color: #7F6557;
+      box-shadow: 0 0 0 3px rgba(127, 101, 87, 0.12);
+    }
+    .htp-controls button {
+      padding: 10px 18px;
+      border-radius: 10px;
+      background: var(--htp-ink);
+      color: var(--htp-paper);
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+      transition: background 0.12s, transform 0.08s;
+    }
+    .htp-controls button:hover { background: #2d2c2a; }
+    .htp-controls button:active { transform: translateY(1px); }
+
+    /* Info-footer */
+    .htp-info {
+      font-size: 0.78rem;
+      color: var(--htp-ink-soft);
+      margin-top: 14px;
+      line-height: 1.6;
+    }
+    .htp-info code {
+      background: var(--htp-paper);
+      padding: 1px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--htp-border);
+      font-family: "SF Mono", Monaco, monospace;
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 720px) {
+      .htp-shell { padding: 16px 12px 40px; }
+      .htp-page-title { font-size: 1.4rem; }
+      .htp-controls input, .htp-controls select { min-width: auto; width: 100%; }
+      .htp-controls label { width: 100%; }
+    }
   </style>
 </head>
 <body>
-  <h1>📋 Journal Feed — Patientkort-sektion (demo)</h1>
-  <p class="lead">
-    Unified journal-UI: nya CCO-journaler + historiska PDF:er + bilder + samtycken + avtal + asset-statusar.
-    Allt från CCO endpoint <code>/api/v1/cco-customers/:id/journal-feed</code>. Inga Drive-länkar.
+<div class="htp-shell">
+
+  <div class="htp-topbar">
+    <img src="/htp-logo-email.png" alt="Hair TP Clinic" class="htp-logo">
+    <div class="htp-brand">
+      <span class="htp-brand-line">Hair TP Clinic</span>
+      <span class="htp-brand-meta">CCO · Customer & Clinic Operations</span>
+    </div>
+    <span class="htp-env-badge">Demo</span>
+  </div>
+
+  <h1 class="htp-page-title">Patientkort · Journal, bilder & dokument</h1>
+  <p class="htp-page-lead">
+    Sammanställd journalvy från CCO. Nya CCO-journaler · historiska PDF:er ·
+    foton (före/under/efter) · samtycken · avtal · formulär — allt med
+    asset-status och rättelse-spårning.
+    Data hämtas från <code>/api/v1/cco-customers/:id/journal-feed</code>.
+    <strong>Inga Drive-länkar visas i UI.</strong>
   </p>
 
-  <div class="demo-controls">
+  <div class="htp-controls">
     <label>
-      Customer ID
-      <input id="cid" type="text" value="anon-patient-001" placeholder="ex: cliento_xxx eller anon-patient-001">
+      Customer-ID
+      <input id="cid" type="text" value="anon-patient-001" placeholder="cliento_xxx eller anon-patient-001">
     </label>
     <label>
       Tenant
       <select id="tenant">
-        <option value="hairtpclinic">hairtpclinic</option>
-        <option value="hair_tp">hair_tp</option>
+        <option value="hair_tp">hair_tp (Hair TP Clinic)</option>
+        <option value="curatiio">curatiio</option>
+        <option value="hairtpclinic">hairtpclinic (legacy)</option>
       </select>
     </label>
     <label>
-      Roll (RBAC-demo)
+      Roll (RBAC)
       <select id="role">
-        <option value="doctor">doctor</option>
-        <option value="nurse">nurse</option>
-        <option value="reception">reception</option>
-        <option value="owner">owner</option>
+        <option value="owner">Owner</option>
+        <option value="operator">Operator</option>
+        <option value="konsult">Konsult</option>
+        <option value="personal">Personal</option>
       </select>
     </label>
-    <button id="load">🔄 Ladda</button>
+    <button id="load">Ladda patientkort</button>
   </div>
 
   <div id="mount"></div>
 
-  <p class="demo-info">
-    Endpointet returnerar: <code>counters</code>, <code>sectionCounts</code>, <code>items[]</code>,
-    <code>sections{}</code>, <code>needsAttention[]</code>. Asset-länkar går alltid via
-    <code>/api/v1/cco/assets/:id/download</code> — aldrig direkt Drive-URL.
+  <p class="htp-info">
+    Endpoint returnerar <code>counters</code> · <code>sectionCounts</code> ·
+    <code>items[]</code> · <code>sections{}</code> · <code>needsAttention[]</code>.
+    Alla asset-länkar går via <code>/api/v1/cco/assets/:id/download</code> i CCO secure storage —
+    aldrig direkt Drive-URL. Asset-statusar: VISIBLE_ON_PATIENT_CARD · VERIFIED_IN_CCO ·
+    IMPORTED_TO_CCO · NEEDS_REVIEW · LINK_ONLY_BLOCKER · FAILED_IMPORT · DUPLICATE.
   </p>
 
-  <script src="/cco-journal-feed.js"></script>
-  <script>
-    const btn = document.getElementById('load');
-    let current = null;
+</div>
 
-    function loadFeed() {
-      const customerId = document.getElementById('cid').value.trim();
-      const tenantId = document.getElementById('tenant').value;
-      const role = document.getElementById('role').value;
-      if (!customerId) { alert('Ange customer ID'); return; }
-      current = window.CcoJournalFeed.mount('#mount', {
-        customerId, tenantId,
-        headers: { 'x-cco-role': role },
-      });
-    }
-    btn.addEventListener('click', loadFeed);
-    loadFeed();
-  </script>
+<script src="/cco-journal-feed.js"></script>
+<script>
+  const btn = document.getElementById('load');
+  let current = null;
+  function loadFeed() {
+    const customerId = document.getElementById('cid').value.trim();
+    const tenantId = document.getElementById('tenant').value;
+    const role = document.getElementById('role').value;
+    if (!customerId) { alert('Ange customer-ID'); return; }
+    current = window.CcoJournalFeed.mount('#mount', {
+      customerId, tenantId,
+      headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId },
+    });
+  }
+  btn.addEventListener('click', loadFeed);
+  loadFeed();
+</script>
 </body>
 </html>
