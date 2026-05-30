@@ -33,6 +33,7 @@ test('exports canonical enums per owner-spec', () => {
       'duplicate_candidate',
       'low_confidence',
       'no_patient_match',
+      'patient_id_translation_failed',
       'unknown_format',
     ]
   );

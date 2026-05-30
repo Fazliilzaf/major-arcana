@@ -462,6 +462,21 @@ function createCcoAssetImportPipeline({
     // Steg 1: Discover (redan gjort av caller — vi har sourceRecord)
     await importRunStore.incrementCounter(importRunId, 'totalDiscovered', 1);
 
+    // OWNER-SKÄRPNING #6 (P0.D+++) — folder-only record-guard.
+    // Adapter (P0.I+) flaggar `_folderOnly: true` när en source-record är
+    // ren provenance (predicted folder, inga filbinärer). Pipelinen MÅSTE
+    // hantera detta som LINK_ONLY_BLOCKER innan vi ens försöker loadBody —
+    // en predicted folder kan ALDRIG bli verified.
+    if (sourceRecord._folderOnly) {
+      return makeLinkOnlyBlockerAsset({
+        sourceSystem,
+        sourceRecord,
+        importRunId,
+        actor,
+        reason: 'folder_only_no_binary',
+      });
+    }
+
     // OWNER-SKÄRPNING #5: Drive-provenance utan binär = automatisk LINK_ONLY_BLOCKER.
     // En source-record med originalDriveFileId/Path är en "Drive-länk" — om
     // pipelinen inte kan ladda binären (saknad body, saknad loadBody, eller
@@ -603,8 +618,16 @@ function createCcoAssetImportPipeline({
 
     // Combined confidence-score (worst-of patient + classification proxy)
     const patientScore = Number(patientLink.score || 0);
+    // OWNER-SKÄRPNING #6 (P0.D+++): adapter-flaggat `_needsPatientReview`
+    // tvingar review även om vi har binär — patient kunde inte valideras
+    // mot CCO master. Detta är load-bearing: en fil kan ALDRIG bli
+    // VERIFIED_IN_CCO utan en master-validerad patientId.
+    const adapterRequestedReview = sourceRecord._needsPatientReview === true;
     const needsReview =
-      !patientLink.patientId || patientScore < MEDIUM_CONFIDENCE || classification.confidence === 'low';
+      adapterRequestedReview ||
+      !patientLink.patientId ||
+      patientScore < MEDIUM_CONFIDENCE ||
+      classification.confidence === 'low';
     // Initial-status: assets börjar alltid på DISCOVERED och vandrar via
     // transitionStatus per state-machine. NEEDS_REVIEW är en giltig direkt
     // DISCOVERED-target (se docs/schema/cco-patient-assets.schema.md §2).
@@ -687,11 +710,22 @@ function createCcoAssetImportPipeline({
 
     // Steg 13: Review queue om needsReview
     if (needsReview) {
-      const reason = !patientLink.patientId
-        ? patientLink.basis === 'ambiguous_folder_match'
-          ? 'ambiguous_patient'
-          : 'no_patient_match'
-        : 'low_confidence';
+      let reason;
+      if (adapterRequestedReview && !patientLink.patientId) {
+        // OS#6: adapter kunde inte översätta rawPatientId mot CCO master
+        const validation = sourceRecord._patientValidation || {};
+        reason =
+          validation.reason === 'no_customer_store_configured'
+            ? 'patient_id_translation_failed'
+            : 'no_patient_match';
+      } else if (!patientLink.patientId) {
+        reason =
+          patientLink.basis === 'ambiguous_folder_match'
+            ? 'ambiguous_patient'
+            : 'no_patient_match';
+      } else {
+        reason = 'low_confidence';
+      }
       await reviewQueueStore.enqueue(
         {
           assetId: asset.id,

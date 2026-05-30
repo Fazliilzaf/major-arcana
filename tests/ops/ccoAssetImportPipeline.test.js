@@ -419,3 +419,142 @@ test('OS#5: pipeline utan Drive-provenance + loadBody-fel → FAILED_IMPORT (int
   assert.equal(run.totalLinkOnlyBlockers, 0);
   assert.equal(run.totalFailed, 1);
 });
+
+// -----------------------------------------------------------------------------
+// OWNER-SKÄRPNING #6 (P0.D+++) — pipeline-guard mot predicted folder + patient-validation
+// -----------------------------------------------------------------------------
+
+test('OS#6: importSingleAsset med folder-only record (loadBody returnerar null) → LINK_ONLY_BLOCKER, NOT VERIFIED', async () => {
+  const rig = await makeRig();
+  const runId = await rig.importRunStore.startRun({
+    sourceSystem: 'old_cco',
+    mode: 'full',
+  });
+  const result = await rig.pipeline.importSingleAsset({
+    sourceSystem: 'old_cco',
+    importRunId: runId,
+    sourceRecord: {
+      sourceRecordId: 'folder-only-os6-001',
+      originalDriveFileId: 'folder-id-zzz',
+      originalDrivePath: '/SomeFolder',
+      originalFileName: null,
+      mimeType: null,
+      _folderOnly: true,
+      loadBody: async () => null,
+    },
+  });
+  assert.equal(result.status, 'LINK_ONLY_BLOCKER');
+  assert.notEqual(result.status, 'VERIFIED_IN_CCO');
+  assert.notEqual(result.status, 'VISIBLE_ON_PATIENT_CARD');
+  // Audit-event ska emit:as med folder_only_no_binary
+  const ev = rig.audit.events.find(
+    (e) =>
+      e.action === 'asset.link_only_blocker_flagged' &&
+      String(e.detail?.reason || '').includes('folder_only_no_binary')
+  );
+  assert.ok(ev, 'asset.link_only_blocker_flagged med folder_only_no_binary saknas');
+});
+
+test('OS#6: importSingleAsset med _needsPatientReview=true → NEEDS_REVIEW + queue-item (även med binär)', async () => {
+  const rig = await makeRig();
+  const runId = await rig.importRunStore.startRun({
+    sourceSystem: 'old_cco',
+    mode: 'full',
+  });
+  const result = await rig.pipeline.importSingleAsset({
+    sourceSystem: 'old_cco',
+    importRunId: runId,
+    sourceRecord: {
+      sourceRecordId: 'review-os6-002',
+      originalDriveFileId: 'drv-os6-002',
+      originalDrivePath: '/AnonPatients/raw-id/x.pdf',
+      originalFileName: 'x.pdf',
+      mimeType: 'application/pdf',
+      documentDate: '2026-05-15',
+      body: Buffer.from('valid-binary-content-os6-002'),
+      patientId: null,
+      _rawPatientId: 'unknown_orphan_id',
+      _patientValidation: {
+        valid: false,
+        ccoPatientId: null,
+        reason: 'no_translation_found',
+        rawId: 'unknown_orphan_id',
+      },
+      _needsPatientReview: true,
+    },
+  });
+  assert.equal(result.status, 'NEEDS_REVIEW');
+  assert.notEqual(result.status, 'VERIFIED_IN_CCO');
+  assert.notEqual(result.status, 'VISIBLE_ON_PATIENT_CARD');
+  const pending = rig.reviewQueueStore.listPending();
+  assert.ok(pending.length >= 1, 'review-queue item ska skapas');
+  // Asset bör finnas på disk eftersom vi hade binär (storageKey + checksum
+  // satta) — men status är NEEDS_REVIEW pga adapter-flag.
+  assert.ok(result.asset.storageKey);
+  assert.ok(result.asset.checksum);
+});
+
+test('OS#6: importSingleAsset utan patientId från adapter → status=NEEDS_REVIEW (aldrig VERIFIED)', async () => {
+  const rig = await makeRig();
+  const runId = await rig.importRunStore.startRun({
+    sourceSystem: 'old_cco',
+    mode: 'full',
+  });
+  // Simulerar exakt vad adapter producerar utan customerStore:
+  // patientId: null, _needsPatientReview: true, men binär finns
+  const result = await rig.pipeline.importSingleAsset({
+    sourceSystem: 'old_cco',
+    importRunId: runId,
+    sourceRecord: {
+      sourceRecordId: 'no-cust-store-os6-003',
+      originalDriveFileId: 'drv-os6-003',
+      originalDrivePath: '/x',
+      originalFileName: 'doc.pdf',
+      mimeType: 'application/pdf',
+      body: Buffer.from('valid-binary-os6-003'),
+      patientId: null,
+      _needsPatientReview: true,
+      _patientValidation: {
+        valid: false,
+        ccoPatientId: null,
+        reason: 'no_customer_store_configured',
+      },
+    },
+  });
+  assert.equal(result.status, 'NEEDS_REVIEW');
+  assert.notEqual(result.status, 'VERIFIED_IN_CCO');
+  // Review-reason ska reflektera translation-failure
+  const pending = rig.reviewQueueStore.listPending();
+  const item = pending.find((p) => p.assetId === result.asset.id);
+  assert.ok(item);
+  assert.equal(item.reason, 'patient_id_translation_failed');
+});
+
+test('OS#6: predicted Drive-folder-record kan ALDRIG bli VISIBLE_ON_PATIENT_CARD via auto-pipeline', async () => {
+  const rig = await makeRig();
+  const runId = await rig.importRunStore.startRun({
+    sourceSystem: 'old_cco',
+    mode: 'full',
+  });
+  // Förbered record som hade matchat en patient via folder-namn ÄVEN
+  // om _folderOnly är true → guard ska ändå blockera till LINK_ONLY_BLOCKER.
+  const result = await rig.pipeline.importSingleAsset({
+    sourceSystem: 'old_cco',
+    importRunId: runId,
+    sourceRecord: {
+      sourceRecordId: 'predicted-os6-004',
+      originalDriveFileId: 'folder-aaa',
+      originalDrivePath: '/Kunder/19800101-1234/folder',
+      originalFileName: null,
+      mimeType: null,
+      _folderOnly: true,
+      // Trots att patientId skulle gå att gissa via pnr i path,
+      // _folderOnly måste alltid stoppa till blocker.
+      patientId: 'pat-known-001',
+      loadBody: async () => null,
+    },
+  });
+  assert.equal(result.status, 'LINK_ONLY_BLOCKER');
+  // Verifiera att assetet inte fick VISIBLE/VERIFIED status någonsin
+  assert.equal(result.asset.status, 'LINK_ONLY_BLOCKER');
+});

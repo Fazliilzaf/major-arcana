@@ -14,8 +14,12 @@
  *   }
  *
  * Reason-vocab (per cursor-regeln):
- *   ambiguous_patient | no_patient_match
+ *   ambiguous_patient | no_patient_match | patient_id_translation_failed
  *   | duplicate_candidate | low_confidence | unknown_format
+ *
+ * `patient_id_translation_failed` (OS#6 P0.I+/D+++): adaptern hade ett
+ * `rawPatientId` (cliento/meridiq) som inte kunde översättas till CCO
+ * master-id. Staff måste välja rätt patient innan asseten kan länkas.
  *
  * Decision-vocab:
  *   approve | reject | reassign | mark_duplicate
@@ -40,6 +44,7 @@ const SCHEMA_VERSION = '1.0.0';
 const VALID_REASONS = Object.freeze([
   'ambiguous_patient',
   'no_patient_match',
+  'patient_id_translation_failed',
   'duplicate_candidate',
   'low_confidence',
   'unknown_format',
