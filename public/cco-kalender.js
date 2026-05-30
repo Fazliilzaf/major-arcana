@@ -423,6 +423,360 @@
     renderDrawer(slot, pills);
   }
 
+  // ═══ SPRINT 2: Week-view ═══════════════════════════════════════════════════
+  function startOfWeek(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    const day = d.getDay() || 7; // ISO: 1=mon..7=sun
+    d.setDate(d.getDate() - (day - 1));
+    return d.toISOString().slice(0, 10);
+  }
+
+  function renderWeekGrid(weekView, onBookingClick) {
+    const days = weekView.days || [];
+    if (days.length === 0) return el('div', { class: 'cal-empty' }, 'Ingen vecko-data.');
+
+    const grid = el('div', { class: 'cal-week-grid' });
+
+    // Hour col
+    const hourCol = el('div', { class: 'cal-hour-col' });
+    hourCol.appendChild(el('div', { class: 'cal-week-day-header' }, ''));
+    for (let h = HOUR_START; h < HOUR_END; h++) {
+      hourCol.appendChild(el('div', { class: 'cal-hour-row' }, String(h).padStart(2,'0') + ':00'));
+    }
+    grid.appendChild(hourCol);
+
+    // 7 day columns
+    for (const day of days) {
+      const col = el('div', { class: 'cal-week-day-col' });
+      const dateObj = new Date(day.date + 'T00:00:00');
+      const isToday = day.date === isoToday();
+      const header = el('div', {
+        class: 'cal-week-day-header' + (isToday ? ' cal-week-day-header--today' : '')
+      }, [
+        el('div', { class: 'cal-week-day-name' }, dateObj.toLocaleDateString('sv-SE', { weekday: 'short' })),
+        el('div', { class: 'cal-week-day-num' }, String(dateObj.getDate())),
+        el('div', { class: 'cal-week-day-count' }, (day.totalSlots || 0) + ' bok.'),
+      ]);
+      col.appendChild(header);
+
+      const colBody = el('div', { class: 'cal-week-day-body' });
+      // All bookings för dagen (alla resurser) flat
+      const bookings = (day.resources || []).flatMap(r =>
+        (r.slots || []).map(s => ({ ...s, _resource: r }))
+      );
+      for (const slot of bookings) {
+        const startMin = timeToMinutes(slot.time);
+        const endMin = slot.endTime ? timeToMinutes(slot.endTime) : startMin + 30;
+        const top = Math.max(0, minutesToY(startMin));
+        const height = Math.max(20, ((endMin - startMin) / 60) * HOUR_H - 2);
+        const color = colorForResource(slot._resource?.resourceId || '');
+        colBody.appendChild(el('button', {
+          class: 'cal-booking cal-booking--compact',
+          style: `top: ${top}px; height: ${height}px; border-left-color: ${color};`,
+          dataset: { bookingid: slot.id },
+          onclick: (e) => { e.stopPropagation(); onBookingClick(slot, slot._resource); },
+          title: (slot.time || '') + ' ' + (slot.patientName || ''),
+        }, [
+          el('div', { class: 'cal-booking-time' }, slot.time || ''),
+          el('div', { class: 'cal-booking-patient' }, slot.patientName || '—'),
+        ]));
+      }
+      col.appendChild(colBody);
+      grid.appendChild(col);
+    }
+    return grid;
+  }
+
+  async function loadWeek(opts = {}) {
+    const startDate = startOfWeek(opts.date || isoToday());
+    const tenantId = opts.tenantId || 'hair_tp';
+    const role = opts.role || 'owner';
+    global.__calTenantId = tenantId;
+    global.__calRole = role;
+
+    const root = document.querySelector('#cal-mount');
+    if (!root) return;
+    root.innerHTML = '<div class="cal-empty">Laddar veckans kalender…</div>';
+
+    try {
+      const res = await fetch('/api/v1/calendar/week?startDate=' + encodeURIComponent(startDate) +
+        '&tenantId=' + encodeURIComponent(tenantId),
+        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const weekView = await res.json();
+      root.innerHTML = '';
+      root.appendChild(renderWeekGrid(weekView, onBookingClick));
+      const title = document.querySelector('#calTitle');
+      if (title) {
+        const sd = new Date(startDate + 'T00:00:00');
+        const ed = new Date(sd); ed.setDate(ed.getDate() + 6);
+        const fmt = d => d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+        title.textContent = 'Vecka ' + weekNumber(sd) + ' · ' + fmt(sd) + '–' + fmt(ed);
+      }
+    } catch (err) {
+      root.innerHTML = '<div class="cal-empty">Kunde inte ladda vecka: ' + err.message + '</div>';
+    }
+  }
+
+  function weekNumber(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  }
+
+  // ═══ SPRINT 2: Booking-create modal/bottom-sheet ════════════════════════════
+  let _services = null;
+  async function loadServices(opts) {
+    if (_services) return _services;
+    const tenantId = opts.tenantId || global.__calTenantId || 'hair_tp';
+    const role = opts.role || global.__calRole || 'owner';
+    try {
+      const r = await fetch('/api/v1/calendar/services?tenantId=' + tenantId,
+        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+      _services = await r.json();
+    } catch { _services = { quickPicks: [], catalog: [] }; }
+    return _services;
+  }
+
+  async function loadResources(opts) {
+    // Hämta från senaste dayView om finns; fallback tom
+    const tenantId = opts.tenantId || global.__calTenantId || 'hair_tp';
+    const role = opts.role || global.__calRole || 'owner';
+    try {
+      const r = await fetch('/api/v1/calendar/day?date=' + isoToday() + '&tenantId=' + tenantId,
+        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+      const d = await r.json();
+      return (d.resources || []).filter(x => x.resourceId !== '_unassigned');
+    } catch { return []; }
+  }
+
+  async function openCreateBookingModal(opts = {}) {
+    const tenantId = opts.tenantId || global.__calTenantId || 'hair_tp';
+    const role = opts.role || global.__calRole || 'owner';
+    const [{ quickPicks }, resources] = await Promise.all([
+      loadServices({ tenantId, role }),
+      loadResources({ tenantId, role }),
+    ]);
+
+    // State
+    const state = {
+      serviceId: quickPicks[0]?.id || '',
+      serviceLabel: quickPicks[0]?.label || '',
+      durationMinutes: quickPicks[0]?.durationMinutes || 30,
+      treatment: quickPicks[0]?.treatment || '',
+      icon: quickPicks[0]?.icon || '📅',
+      patientId: '',
+      patientName: '',
+      resourceId: resources[0]?.resourceId || '',
+      date: opts.date || isoToday(),
+      time: opts.time || '09:00',
+      notes: '',
+      conflicts: [],
+      checking: false,
+    };
+
+    document.querySelectorAll('.cal-create-backdrop').forEach(n => n.remove());
+    const backdrop = el('div', { class: 'cal-create-backdrop', role: 'dialog', 'aria-modal': 'true' });
+    const modal = el('div', { class: 'cal-create-modal' });
+
+    const close = () => backdrop.remove();
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+
+    // Header
+    modal.appendChild(el('div', { class: 'cal-create-header' }, [
+      el('h3', {}, 'Ny bokning'),
+      el('button', { class: 'cal-create-close', onclick: close, 'aria-label': 'Stäng' }, '×'),
+    ]));
+
+    // Body
+    const body = el('div', { class: 'cal-create-body' });
+
+    // Quick-pick services
+    body.appendChild(el('div', { class: 'cal-create-label' }, 'Behandlingstyp'));
+    const picks = el('div', { class: 'cal-create-picks' });
+    function renderPicks() {
+      picks.innerHTML = '';
+      for (const qp of quickPicks) {
+        const active = qp.id === state.serviceId;
+        picks.appendChild(el('button', {
+          class: 'cal-create-pick' + (active ? ' is-active' : ''),
+          type: 'button',
+          onclick: () => {
+            state.serviceId = qp.id;
+            state.serviceLabel = qp.label;
+            state.durationMinutes = qp.durationMinutes;
+            state.treatment = qp.treatment;
+            state.icon = qp.icon;
+            renderPicks();
+            checkConflicts();
+          },
+        }, [
+          el('span', { class: 'cal-pick-icon' }, qp.icon),
+          el('span', {}, qp.label),
+          el('span', { class: 'cal-pick-dur' }, qp.durationMinutes + ' min'),
+        ]));
+      }
+    }
+    renderPicks();
+    body.appendChild(picks);
+
+    // Form
+    body.appendChild(el('div', { class: 'cal-create-label' }, 'Patient (ID/Cliento-ID)'));
+    const patientInput = el('input', {
+      class: 'cal-create-input', type: 'text', placeholder: 'cliento_xxx eller anon-patient-001',
+      value: state.patientId,
+    });
+    patientInput.addEventListener('input', (e) => { state.patientId = e.target.value.trim(); checkConflicts(); });
+    body.appendChild(patientInput);
+
+    body.appendChild(el('div', { class: 'cal-create-label' }, 'Behandlare'));
+    const resourceSelect = el('select', { class: 'cal-create-input' });
+    for (const r of resources) {
+      resourceSelect.appendChild(el('option', { value: r.resourceId }, r.resourceLabel || r.resourceId));
+    }
+    if (resources.length === 0) {
+      resourceSelect.appendChild(el('option', { value: '' }, 'Inga behandlare hittades'));
+    }
+    resourceSelect.value = state.resourceId;
+    resourceSelect.addEventListener('change', (e) => { state.resourceId = e.target.value; checkConflicts(); });
+    body.appendChild(resourceSelect);
+
+    body.appendChild(el('div', { class: 'cal-create-row-2' }, [
+      el('div', {}, [
+        el('div', { class: 'cal-create-label' }, 'Datum'),
+        (() => {
+          const inp = el('input', { class: 'cal-create-input', type: 'date', value: state.date });
+          inp.addEventListener('change', (e) => { state.date = e.target.value; checkConflicts(); });
+          return inp;
+        })(),
+      ]),
+      el('div', {}, [
+        el('div', { class: 'cal-create-label' }, 'Tid'),
+        (() => {
+          const inp = el('input', { class: 'cal-create-input', type: 'time', value: state.time });
+          inp.addEventListener('change', (e) => { state.time = e.target.value; checkConflicts(); });
+          return inp;
+        })(),
+      ]),
+    ]));
+
+    body.appendChild(el('div', { class: 'cal-create-label' }, 'Anteckning (valfri)'));
+    const notesInput = el('textarea', { class: 'cal-create-input', rows: '2', placeholder: 'Ex. återbesök efter PRP' });
+    notesInput.addEventListener('input', (e) => { state.notes = e.target.value; });
+    body.appendChild(notesInput);
+
+    // Conflict banner area
+    const conflictArea = el('div', { class: 'cal-create-conflict-area' });
+    body.appendChild(conflictArea);
+
+    modal.appendChild(body);
+
+    // Footer
+    const submitBtn = el('button', { class: 'nav-btn nav-btn--today', type: 'button' }, 'Skapa bokning');
+    submitBtn.addEventListener('click', async () => {
+      await submitCreate(submitBtn, state, close);
+    });
+    modal.appendChild(el('div', { class: 'cal-create-footer' }, [
+      el('button', { class: 'nav-btn', type: 'button', onclick: close }, 'Avbryt'),
+      submitBtn,
+    ]));
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    // Konflikt-check (debounced)
+    let checkTimer = null;
+    function checkConflicts() {
+      clearTimeout(checkTimer);
+      checkTimer = setTimeout(doCheck, 300);
+    }
+    async function doCheck() {
+      if (!state.resourceId || !state.date || !state.time) return;
+      try {
+        const r = await fetch('/api/v1/calendar/booking/conflict-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+          body: JSON.stringify({
+            resourceId: state.resourceId,
+            date: state.date,
+            time: state.time,
+            durationMinutes: state.durationMinutes,
+            serviceId: state.serviceId,
+            patientId: state.patientId || undefined,
+            treatment: state.treatment || undefined,
+            tenantId,
+          }),
+        });
+        const d = await r.json();
+        state.conflicts = d.conflicts || [];
+        renderConflictArea(conflictArea, state.conflicts);
+      } catch { /* tyst */ }
+    }
+    // Initial check
+    doCheck();
+  }
+
+  function renderConflictArea(node, conflicts) {
+    node.innerHTML = '';
+    if (!conflicts || conflicts.length === 0) {
+      node.appendChild(el('div', { class: 'cal-create-ok' }, '✓ Inga konflikter'));
+      return;
+    }
+    for (const c of conflicts) {
+      node.appendChild(el('div', {
+        class: 'cal-create-conflict cal-create-conflict--' + (c.severity || 'warn'),
+      }, [
+        el('strong', {}, c.severity === 'blocker' ? '⛔ Blocker · ' : '⚠ Varning · '),
+        el('span', {}, c.message || c.type),
+      ]));
+    }
+  }
+
+  async function submitCreate(btn, state, close) {
+    if (!state.patientId) { alert('Ange patient-ID'); return; }
+    if (!state.resourceId) { alert('Välj behandlare'); return; }
+    const hasBlockers = (state.conflicts || []).some(c => c.severity === 'blocker');
+    if (hasBlockers) {
+      const ok = confirm('Det finns blocker-konflikter. Skapa ändå (force)?');
+      if (!ok) return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Skapar…';
+    const tenantId = global.__calTenantId || 'hair_tp';
+    const role = global.__calRole || 'owner';
+    try {
+      const r = await fetch('/api/v1/calendar/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+        body: JSON.stringify({
+          resourceId: state.resourceId,
+          serviceId: state.serviceId,
+          date: state.date,
+          time: state.time,
+          durationMinutes: state.durationMinutes,
+          patientId: state.patientId,
+          treatment: state.treatment,
+          notes: state.notes,
+          tenantId,
+          force: hasBlockers,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.ok) throw new Error(data.error || 'HTTP ' + r.status);
+      showToast('✓ Bokning skapad · ID ' + (data.bookingId || '?'), 'ok');
+      close();
+      // Reload aktuell vy
+      if (global.__calMode === 'week') loadWeek({ date: state.date });
+      else loadDay({ date: state.date });
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Skapa bokning';
+      alert('Misslyckades: ' + err.message);
+    }
+  }
+
   // ─── Main load ───
   async function loadDay(opts = {}) {
     const date = opts.date || isoToday();
@@ -459,5 +813,16 @@
     }
   }
 
-  global.CcoKalender = { loadDay, renderEmptyDrawer };
+  // Track current mode for reload-after-create
+  const origLoadDay = loadDay;
+  async function loadDayWrapped(opts) { global.__calMode = 'day'; return origLoadDay(opts); }
+  const origLoadWeek = loadWeek;
+  async function loadWeekWrapped(opts) { global.__calMode = 'week'; return origLoadWeek(opts); }
+
+  global.CcoKalender = {
+    loadDay: loadDayWrapped,
+    loadWeek: loadWeekWrapped,
+    openCreateBookingModal,
+    renderEmptyDrawer,
+  };
 })(window);

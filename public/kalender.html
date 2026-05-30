@@ -150,9 +150,14 @@
               <option value="konsult">Konsult</option>
               <option value="personal">Personal</option>
             </select>
+            <div class="cal-mode-seg">
+              <button class="cal-mode-btn is-active" id="cal-mode-day" data-mode="day">Dag</button>
+              <button class="cal-mode-btn" id="cal-mode-week" data-mode="week">Vecka</button>
+            </div>
             <button class="nav-btn" id="cal-prev">‹</button>
             <button class="nav-btn nav-btn--today" id="cal-today">Idag</button>
             <button class="nav-btn" id="cal-next">›</button>
+            <button class="nav-btn nav-btn--today" id="cal-create" title="Ny bokning">+ Ny</button>
           </div>
         </div>
       </header>
@@ -174,13 +179,27 @@
   const today = new Date().toISOString().slice(0, 10);
   dateEl.value = today;
 
+  let mode = 'day';
   function reload() {
-    window.CcoKalender.loadDay({ date: dateEl.value, tenantId: tenantEl.value, role: roleEl.value });
+    const opts = { date: dateEl.value, tenantId: tenantEl.value, role: roleEl.value };
+    if (mode === 'week') window.CcoKalender.loadWeek(opts);
+    else window.CcoKalender.loadDay(opts);
   }
-  function shiftDay(days) {
+  function shiftStep() {
     const d = new Date(dateEl.value + 'T00:00:00');
-    d.setDate(d.getDate() + days);
+    return mode === 'week' ? 7 : 1;
+  }
+  function shiftDay(steps) {
+    const d = new Date(dateEl.value + 'T00:00:00');
+    d.setDate(d.getDate() + steps * shiftStep());
     dateEl.value = d.toISOString().slice(0, 10);
+    reload();
+  }
+  function setMode(newMode) {
+    mode = newMode;
+    document.querySelectorAll('.cal-mode-btn').forEach(b => {
+      b.classList.toggle('is-active', b.dataset.mode === newMode);
+    });
     reload();
   }
   dateEl.addEventListener('change', reload);
@@ -189,6 +208,13 @@
   document.getElementById('cal-prev').addEventListener('click', () => shiftDay(-1));
   document.getElementById('cal-next').addEventListener('click', () => shiftDay(1));
   document.getElementById('cal-today').addEventListener('click', () => { dateEl.value = today; reload(); });
+  document.getElementById('cal-mode-day').addEventListener('click', () => setMode('day'));
+  document.getElementById('cal-mode-week').addEventListener('click', () => setMode('week'));
+  document.getElementById('cal-create').addEventListener('click', () => {
+    window.CcoKalender.openCreateBookingModal({
+      date: dateEl.value, tenantId: tenantEl.value, role: roleEl.value,
+    });
+  });
 
   // Initial render
   window.CcoKalender.renderEmptyDrawer();

@@ -4852,7 +4852,254 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
       } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
     });
 
+    // ════════ SPRINT 2: services-katalog + conflict-check + create ════════
+
+    // 5 quick-pick services för calendar-UI (override per-tenant kan komma senare)
+    const QUICK_PICK_SERVICES = [
+      { id: 'consultation-physical', label: 'Konsultation',  durationMinutes: 30, treatment: 'consultation', icon: '💬', kind: 'consultation' },
+      { id: 'operation-fue',         label: 'Operation (FUE/DHI)', durationMinutes: 480, treatment: 'fue', icon: '⚕',  kind: 'operation' },
+      { id: 'followup-transplant',   label: 'Återbesök',     durationMinutes: 30, treatment: 'followup', icon: '↻',  kind: 'followup' },
+      { id: 'prp-treatment',         label: 'PRP',           durationMinutes: 60, treatment: 'prp', icon: '🧪', kind: 'prp' },
+      { id: 'followup-online',       label: 'Uppföljning',   durationMinutes: 20, treatment: 'followup', icon: '☎',  kind: 'consultation' },
+    ];
+
+    // GET /api/v1/calendar/services — quick-pick services + full lista
+    app.get('/api/v1/calendar/services', attachRole, requirePermission('bookings.read'), async (req, res) => {
+      try {
+        const beStore = app.locals.ccoBookingEngineStore;
+        let fullCatalog = [];
+        if (beStore?.listServices) {
+          try { fullCatalog = await beStore.listServices({}) || []; } catch (_) {}
+        }
+        res.json({
+          ok: true,
+          quickPicks: QUICK_PICK_SERVICES,
+          catalog: fullCatalog,
+          ccoSourceOnly: true,
+        });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    });
+
+    // POST /api/v1/calendar/booking/conflict-check — validate before create
+    // Body: { resourceId, date, time, durationMinutes, serviceId?, patientId?, treatment? }
+    const conflictParser = require('express').json({ limit: '8kb' });
+    app.post('/api/v1/calendar/booking/conflict-check', attachRole, requirePermission('bookings.read'), conflictParser, async (req, res) => {
+      try {
+        const { resourceId, date, time, durationMinutes, serviceId, patientId, treatment } = req.body || {};
+        if (!resourceId || !date || !time) {
+          return res.status(400).json({ ok: false, error: 'resourceId + date + time krävs' });
+        }
+
+        const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+        const conflicts = [];
+
+        const startMin = (() => {
+          const [h, m] = String(time).split(':').map(Number);
+          return (h || 0) * 60 + (m || 0);
+        })();
+        const dur = Number(durationMinutes) || 30;
+        const endMin = startMin + dur;
+
+        // 1. Office-hours check — basic 07:00–19:00 enforcement
+        if (startMin < 7 * 60 || endMin > 19 * 60) {
+          conflicts.push({
+            type: 'outside_office_hours',
+            severity: 'warn',
+            message: 'Bokningen ligger utanför 07:00–19:00. Övervakas eller justera tid.',
+            detail: { startMin, endMin },
+          });
+        }
+
+        // 2. Overlap-check mot existing bookings (samma resurs samma dag)
+        const dayView = buildDayView({
+          date,
+          bookingEngineStore: app.locals.ccoBookingEngineStore,
+          encounterStore: app.locals.ccoTreatmentEncounterStore,
+          tenantId,
+        });
+        const resourceBlock = (dayView.resources || []).find(r => r.resourceId === resourceId);
+        if (resourceBlock) {
+          for (const slot of (resourceBlock.slots || [])) {
+            const sMin = (() => {
+              const [h, m] = String(slot.time || '').split(':').map(Number);
+              return (h || 0) * 60 + (m || 0);
+            })();
+            const eMin = slot.endTime ? (() => {
+              const [h, m] = String(slot.endTime).split(':').map(Number);
+              return (h || 0) * 60 + (m || 0);
+            })() : sMin + 30;
+            // Overlap?
+            if (startMin < eMin && endMin > sMin) {
+              conflicts.push({
+                type: 'resource_overlap',
+                severity: 'blocker',
+                message: `Behandlare/resurs upptagen ${slot.time}–${slot.endTime || '(?)'} av ${slot.patientName || slot.serviceLabel || 'annan bokning'}.`,
+                detail: { conflictBookingId: slot.id, slot },
+              });
+            }
+          }
+        }
+
+        // 3. Required docs check (om patient + treatment finns)
+        if (patientId && treatment) {
+          try {
+            const reqFile = JSON.parse(require('fs').readFileSync(
+              path.join(__dirname, 'config/cco-treatment-document-requirements.json'), 'utf8'));
+            const requirements = reqFile.treatments?.[treatment]?.requiredDocuments || {};
+            const journalStore = app.locals.ccoJournalStore;
+            const entries = journalStore?.listEntries ? (await journalStore.listEntries({ tenantId, patientId }) || []) : [];
+
+            const hasHD = entries.some(e => e.journalType === 'health_declaration' && e.locked);
+            const hasFF = entries.some(e => e.journalType === 'fitness_certificate' && e.locked);
+
+            if (requirements.healthDeclaration?.required && !hasHD) {
+              conflicts.push({
+                type: 'missing_health_declaration',
+                severity: requirements.healthDeclaration?.blocking ? 'blocker' : 'warn',
+                message: 'Hälsodeklaration krävs men saknas.',
+                detail: { treatment, docKey: 'healthDeclaration', fix: 'Skicka formulär via patient-portal' },
+              });
+            }
+            if (requirements.fitnessCertificate?.required && !hasFF) {
+              conflicts.push({
+                type: 'missing_fitness_certificate',
+                severity: requirements.fitnessCertificate?.blocking ? 'blocker' : 'warn',
+                message: 'Friskförsäkran krävs men saknas.',
+                detail: { treatment, docKey: 'fitnessCertificate', fix: 'Skicka formulär via patient-portal' },
+              });
+            }
+          } catch (_) { /* tyst */ }
+        }
+
+        res.json({
+          ok: true,
+          hasConflicts: conflicts.length > 0,
+          hasBlockers: conflicts.some(c => c.severity === 'blocker'),
+          conflicts,
+          evaluatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+      }
+    });
+
+    // POST /api/v1/calendar/booking — skapa booking + booking-case + encounter
+    // Body: { resourceId, serviceId, date, time, durationMinutes, patientId, treatment, notes?, force? }
+    // force=true tillåter skapande trots blocker-konflikt (audit-loggas)
+    app.post('/api/v1/calendar/booking', attachRole, requirePermission('bookings.write'), conflictParser, async (req, res) => {
+      try {
+        const { resourceId, serviceId, date, time, durationMinutes, patientId, treatment, notes, force } = req.body || {};
+        if (!resourceId || !date || !time || !patientId) {
+          return res.status(400).json({ ok: false, error: 'resourceId + date + time + patientId krävs' });
+        }
+
+        const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+        const actor = { userId: req.headers['x-cco-user'] || 'staff', role: req.cco?.role };
+
+        const dur = Number(durationMinutes) || 30;
+        const startMin = (() => {
+          const [h, m] = String(time).split(':').map(Number);
+          return (h || 0) * 60 + (m || 0);
+        })();
+        const endMin = startMin + dur;
+        const endTime = String(Math.floor(endMin / 60)).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+
+        // Konflikt-check (om force=false)
+        let conflictResult = { hasBlockers: false, conflicts: [] };
+        if (!force) {
+          // Inline re-eval (skulle kunna kalla endpoint, men då dubbel audit)
+          const dayView = buildDayView({ date, bookingEngineStore: app.locals.ccoBookingEngineStore, encounterStore: app.locals.ccoTreatmentEncounterStore, tenantId });
+          const rb = (dayView.resources || []).find(r => r.resourceId === resourceId);
+          if (rb) {
+            for (const slot of (rb.slots || [])) {
+              const sMin = (() => { const [h, m] = String(slot.time||'').split(':').map(Number); return (h||0)*60+(m||0); })();
+              const eMin = slot.endTime ? (()=>{ const [h,m] = String(slot.endTime).split(':').map(Number); return (h||0)*60+(m||0); })() : sMin+30;
+              if (startMin < eMin && endMin > sMin) {
+                conflictResult.hasBlockers = true;
+                conflictResult.conflicts.push({ type: 'resource_overlap', slot });
+              }
+            }
+          }
+          if (conflictResult.hasBlockers) {
+            return res.status(409).json({
+              ok: false,
+              error: 'conflict',
+              conflicts: conflictResult.conflicts,
+              hint: 'Skicka force=true för att åsidosätta (auditloggas).',
+            });
+          }
+        }
+
+        // Skapa booking via ccoBookingStore (booking-case)
+        const caseStore = app.locals.ccoBookingCaseStore;
+        let bookingCaseResult = null;
+        if (caseStore?.addBookingCase) {
+          try {
+            bookingCaseResult = await caseStore.addBookingCase({
+              tenantId,
+              customerId: patientId,
+              serviceId: serviceId || null,
+              treatment: treatment || null,
+              candidateSlots: [{ resourceId, date, time, endTime, serviceId }],
+              notes: notes || '',
+              source: 'calendar_create',
+              actor,
+            }, { actor });
+          } catch (err) { console.warn('[calendar-create] addBookingCase failed:', err.message); }
+        }
+
+        // Skapa encounter om relevant (operation/PRP)
+        const encStore = app.locals.ccoTreatmentEncounterStore;
+        let encounterResult = null;
+        const shouldCreateEncounter = ['operation', 'prp', 'fue', 'dhi'].includes(String(treatment || '').toLowerCase());
+        if (shouldCreateEncounter && encStore?.upsertEncounter) {
+          try {
+            encounterResult = await encStore.upsertEncounter({
+              tenantId,
+              patientId,
+              encounterDate: date,
+              treatmentType: treatment,
+              resourceId,
+              createdBy: actor.userId,
+              status: 'planned',
+            });
+          } catch (err) { console.warn('[calendar-create] upsertEncounter failed:', err.message); }
+        }
+
+        const bookingId = bookingCaseResult?.caseId || bookingCaseResult?.id || `cal-${Date.now()}`;
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'booking.created',
+            actor,
+            target: { kind: 'booking', id: bookingId, tenantId },
+            result: 'ok',
+            detail: {
+              patientId, resourceId, serviceId, date, time, endTime, treatment,
+              encounterId: encounterResult?.encounterId || null,
+              forceUsed: !!force,
+              forcedConflicts: force ? conflictResult.conflicts.length : 0,
+              ccoSourceOnly: true,
+            },
+          });
+        }
+
+        res.json({
+          ok: true,
+          bookingId,
+          bookingCaseId: bookingCaseResult?.caseId || null,
+          encounterId: encounterResult?.encounterId || null,
+          resourceId, serviceId, date, time, endTime, treatment,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
+    });
+
     console.log('[calendar-sprint1] monterad: /calendar/day · /calendar/week · /calendar/booking/:id/status-pills · POST /cco-bookings/:id/{checkin,no-show,follow-up} (bookings.read/write)');
+    console.log('[calendar-sprint2] monterad: GET /calendar/services · POST /calendar/booking/conflict-check · POST /calendar/booking (RBAC: bookings.read/write)');
   } catch (err) {
     console.warn('[calendar-sprint1] kunde inte montera:', err.message);
   }
