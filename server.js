@@ -3858,12 +3858,10 @@ let ccoComplianceScanStore = null;
       (req, res) => {
         const latest = ccoComplianceScanStore.getLatestScan();
         if (!latest)
-          return res
-            .status(404)
-            .json({
-              error: 'no_scans_yet',
-              detail: 'Kör POST /api/v1/cco-compliance-scan/run för att trigga första scan',
-            });
+          return res.status(404).json({
+            error: 'no_scans_yet',
+            detail: 'Kör POST /api/v1/cco-compliance-scan/run för att trigga första scan',
+          });
         res.json(latest);
       }
     );
@@ -7805,6 +7803,173 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
 
     console.log(
       '[komm-sprint2] monterad: /cco-comm/templates · /drafts (POST PATCH transition · GET customer/queue/stats) (templates.read · mail.send · customers.read)'
+    );
+
+    // ─── Komm Sprint 3 — cron dry-run queue ──────────────────────────
+    // 6 deterministiska triggers genererar PROPOSALS (utan att skapa drafts).
+    // Staff måste fortfarande godkänna via Svarstudio. INGET externt utskick.
+    let _commCronStore = null;
+    async function ensureCommCronStore() {
+      if (_commCronStore) return _commCronStore;
+      const { createCcoCommCronStore } = require('./src/ops/ccoCommCronStore');
+      _commCronStore = await createCcoCommCronStore({
+        filePath: path.join(__dirname, 'data', 'cco-comm-cron-runs.json'),
+        auditLog: ccoAuditLog,
+      });
+      app.locals.ccoCommCronStore = _commCronStore;
+      return _commCronStore;
+    }
+
+    app.get(
+      '/api/v1/cco-comm/cron/triggers',
+      attachRole,
+      requirePermission('mail.send'),
+      async (req, res) => {
+        try {
+          const store = await ensureCommCronStore();
+          res.json({
+            ok: true,
+            dryRunOnly: true,
+            triggers: store.VALID_TRIGGERS.map((t) => ({
+              trigger: t,
+              templateId: store.TRIGGER_TO_TEMPLATE[t],
+            })),
+          });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.post(
+      '/api/v1/cco-comm/cron/dry-run',
+      attachRole,
+      requirePermission('mail.send'),
+      commParser,
+      async (req, res) => {
+        try {
+          const { trigger, tenantId = 'hair_tp' } = req.body || {};
+          if (!trigger) return res.status(400).json({ ok: false, error: 'trigger required' });
+          const cronStore = await ensureCommCronStore();
+          const { draftStore } = await ensureCommStores();
+
+          const bookings = [];
+          const encounters = [];
+          const cases = [];
+          try {
+            const bookingStore = app.locals.ccoBookingStore;
+            if (bookingStore?.listAll) {
+              const all = bookingStore.listAll({ tenantId, limit: 1000 }) || [];
+              bookings.push(...all);
+            }
+          } catch {
+            /* bookings-store optional */
+          }
+          try {
+            const encStore = app.locals.ccoEncounterStore;
+            if (encStore?.listAll) {
+              const all = encStore.listAll({ tenantId, limit: 1000 }) || [];
+              encounters.push(...all);
+            }
+          } catch {
+            /* encounter-store optional */
+          }
+          try {
+            const caseStore = app.locals.ccoBookingCaseStore;
+            if (caseStore?.listAll) {
+              const all = caseStore.listAll({ tenantId, limit: 1000 }) || [];
+              cases.push(...all);
+            }
+          } catch {
+            /* case-store optional */
+          }
+
+          const existingDrafts = [];
+          try {
+            for (const s of ['draft', 'needs_approval', 'approved', 'queued', 'sent']) {
+              const list = draftStore.listByStatus(s, { tenantId, limit: 500 }) || [];
+              existingDrafts.push(...list);
+            }
+          } catch {
+            /* drafts optional */
+          }
+
+          const proposals = cronStore.buildProposals({
+            trigger,
+            tenantId,
+            bookings,
+            encounters,
+            cases,
+            existingDrafts,
+          });
+          const run = cronStore.recordRun({
+            trigger,
+            tenantId,
+            proposals,
+            requestedBy: req.headers['x-cco-actor'] || 'system:cron',
+          });
+          res.json({ ok: true, run });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-comm/cron/runs',
+      attachRole,
+      requirePermission('mail.send'),
+      async (req, res) => {
+        try {
+          const store = await ensureCommCronStore();
+          const runs = store.listRuns({
+            trigger: req.query.trigger || null,
+            tenantId: req.query.tenantId || null,
+            limit: Number(req.query.limit) || 50,
+          });
+          res.json({ ok: true, count: runs.length, runs });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-comm/cron/runs/:runId',
+      attachRole,
+      requirePermission('mail.send'),
+      async (req, res) => {
+        try {
+          const store = await ensureCommCronStore();
+          const run = store.getRun(req.params.runId);
+          if (!run) return res.status(404).json({ ok: false, error: 'run not found' });
+          res.json({ ok: true, run });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-comm/cron/stats',
+      attachRole,
+      requirePermission('mail.send'),
+      async (req, res) => {
+        try {
+          const store = await ensureCommCronStore();
+          res.json({
+            ok: true,
+            dryRunOnly: true,
+            stats: store.stats({ tenantId: req.query.tenantId || null }),
+          });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log(
+      '[komm-sprint3] monterad: /cco-comm/cron/* (6 triggers, DRY-RUN only — staff approval required via Svarstudio) (mail.send)'
     );
   } catch (err) {
     console.warn('[calendar-sprint1] kunde inte montera:', err.message);
