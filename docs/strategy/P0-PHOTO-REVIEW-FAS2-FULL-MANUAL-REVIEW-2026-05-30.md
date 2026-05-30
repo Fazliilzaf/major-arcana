@@ -55,6 +55,26 @@ PHOTO_REVIEW_FULL_COHORT=true
 # Staging/dev — prod primary hosts blockeras automatiskt
 ```
 
+**Deploy (2026-05-30):**
+
+- Branch: `compliance/pipedrive-pii-purge` (commits `78ec5a86` + `2a0bbf77`)
+- Render service: `arcana` → **https://major-arcana-frankfurt.onrender.com**
+- `arcana-staging.onrender.com` är **avvecklad** (`x-render-routing: no-server`)
+- Env på Render: `ENABLE_PHOTO_REVIEW_WRITE=true`, `PHOTO_REVIEW_FULL_COHORT=true`, `PUBLIC_BASE_URL=https://major-arcana-frankfurt.onrender.com`
+
+**Data-krav (staging):** Synka till `/var/data` på Render:
+
+- `cco-patient-assets.json` (+ import-runs, review-queue, audit)
+- `ARCANA_CCO_SECURE_STORAGE_ROOT` → bildbinärer (~2 GB)
+
+**Lokal review (prod-data, write på):** `http://localhost:3110/photo-review.html` med:
+
+```bash
+ARCANA_STATE_ROOT="~/Library/Mobile Documents/.../Migration-data/cco-prod"
+ARCANA_CCO_SECURE_STORAGE_ROOT="~/Library/Mobile Documents/.../cco-secure-storage"
+ENABLE_PHOTO_REVIEW_WRITE=true PHOTO_REVIEW_FULL_COHORT=true PORT=3110
+```
+
 UI: `/photo-review.html`
 
 ## Progress
