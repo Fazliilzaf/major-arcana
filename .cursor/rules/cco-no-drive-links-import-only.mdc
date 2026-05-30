@@ -1,0 +1,256 @@
+---
+description: CCO must import files into secure storage, not rely on Drive links
+alwaysApply: true
+---
+
+# CCO No Drive Links — Import Only Rule
+
+CCO must NOT use Google Drive links as the final workflow. Google Drive is only:
+
+- migration source
+- source archive
+- provenance metadata
+
+The final CCO product must store and display ALL patient files directly inside CCO.
+
+## Hard rule
+
+**No patient file may remain link-only in the final CCO UI.**
+
+End goal: `link_only_files = 0`. Staff shall never need Google Drive in daily work.
+
+## Use old CCO first
+
+The old CCO design already contains important journal/file/image work. Before building new import logic, inspect and reuse:
+
+- old CCO patient-file mappings
+- old CCO journal-PDF imports
+- old CCO image/photo flow
+- old CCO Drive/Meridiq mappings
+- old CCO file classifications
+- old CCO timeline linkage
+
+**Do NOT start from scratch if old CCO already solved part of the mapping.**
+
+## Destination — CCO secure storage
+
+All patient files must be imported into CCO secure storage:
+
+- journal-PDFs
+- bilder (alla)
+- före/efter-foton
+- konsultationsfoton
+- operationsfoton
+- uppföljningsfoton
+- samtycken
+- signerade avtal
+- hälsodeklarationer
+- friskförsäkran
+- Aisia-rapporter
+- historiska Meridiq/Drive-dokument
+
+## Provenance
+
+Keep original source metadata **only** as internal metadata:
+
+- `originalDriveFileId`
+- `originalDrivePath`
+- `originalFileName`
+- `sourceSystem`
+- `importRunId`
+
+Do NOT expose Drive as the working UI.
+
+## GitHub safety
+
+**Never commit patient data to GitHub:**
+
+- no journals
+- no patient images
+- no personnummer
+- no signed agreements
+- no health declarations
+- no raw patient-PDFs
+- no identifiable exports
+- no file manifests with patient names/personnummer
+
+**GitHub MAY contain:**
+
+- import code
+- schemas
+- migration scripts
+- anonymized test fixtures
+- template registry
+- QA rules + reports without patient data
+- documentation
+
+## Required import validation
+
+Every imported file MUST have:
+
+- CCO asset id
+- patientId or review status
+- storageKey
+- checksum/hash (SHA-256)
+- file size
+- mime type
+- category
+- sourceSystem
+- importedAt
+- verification status
+- audit requirement
+
+## Required statuses (state machine)
+
+```
+DISCOVERED              fil hittad i source
+IMPORTING               paagaende kopiering till CCO storage
+IMPORTED_TO_CCO         fil i CCO storage, checksum verifierad
+VERIFIED_IN_CCO         manuellt eller auto-verifierad mot original
+VISIBLE_ON_PATIENT_CARD kopplad till patient + visas i UI
+NEEDS_REVIEW            osaker patient-koppling -> review queue
+REJECTED                review-beslut: inte denna patient
+DUPLICATE               samma checksum som annan asset
+FAILED_IMPORT           tekniskt fel vid import
+LINK_ONLY_BLOCKER       fortfarande bara lank - BLOCKER till cutover
+```
+
+## Foerbjudet
+
+- Drive-laenkar i slut-UI
+- "Oeppna i Drive"-floeden som standard
+- Patientdata i GitHub
+- Patient-PDFs / bilder / journaler i GitHub
+- Low-confidence-filer auto-kopplas (kraever review)
+- Filer markeras klara utan checksum/verifiering
+- Auto-merge utan review
+
+## Asset-schemas (kanoniskt)
+
+### `patient_assets`
+
+```
+id                    UUID
+patientId             CCO master patient id
+encounterId           CCO encounter id (nullable)
+sourceSystem          drive | meridiq | old_cco | cco_camera | upload
+sourceRecordId        id i source-systemet
+originalDriveFileId   (provenance, ej UI)
+originalDrivePath     (provenance, ej UI)
+originalFileName
+storageProvider       s3 | local | encrypted-fs
+storageKey            path i CCO secure storage
+thumbnailKey          path till thumbnail
+checksum              SHA-256
+fileSize              bytes
+mimeType
+category              journal | photo_before | photo_during | photo_after
+                      | consent | agreement | form | aisia_report | other
+documentDate          naer dokumentet skapades (ej importedAt)
+importedAt
+importedBy
+importRunId           FK -> asset_import_runs.id
+confidence            high | medium | low (patient-koppling)
+status                <state-machine above>
+auditRequired         boolean
+isJournalRelevant     boolean (in i journal-PDF)
+isPatientVisible      boolean (synlig i patientportal)
+```
+
+### `asset_import_runs`
+
+```
+id                       UUID
+sourceSystem             drive | meridiq | old_cco
+mode                     full | incremental | review_resolve
+startedAt
+finishedAt
+totalDiscovered
+totalImported
+totalVerified
+totalNeedsReview
+totalFailed
+totalLinkOnlyBlockers
+createdBy
+```
+
+### `asset_review_queue`
+
+```
+id                  UUID
+assetId             FK -> patient_assets.id
+reason              ambiguous_patient | no_patient_match
+                    | duplicate_candidate | low_confidence | unknown_format
+suggestedPatientId  (foerslag fraan auto-classifier)
+confidence
+reviewedBy
+reviewedAt
+decision            approve | reject | reassign | mark_duplicate
+```
+
+## Pipeline (in order)
+
+1. **Discover** — laes gamla CCO file records, gamla CCO patient-file mappings, gamla CCO journal-PDF-importer, gamla CCO bildfloede, Meridiq-export, Drive (endast daer gamla CCO saknar binaer)
+2. **Download** — ladda ner / kopiera binaer till CCO secure storage
+3. **Checksum** — SHA-256
+4. **Verify** — bekraefta att fil i storage matchar source
+5. **Classify** — kategorisera (journal / photo_X / consent / agreement / form)
+6. **Link patient** — koppla till patient via heuristik
+7. **Link encounter** — koppla till encounter via datum + behandling
+8. **Index** — patient_assets-record
+9. **Audit-log** — import-event
+10. **Show** — visa i CCO patient-card UI
+11. **Timeline** — laegg tidslinjehaendelse paa patient
+12. **Provenance bevarad** — originalDriveFileId / originalDrivePath sparas som metadata
+13. **Review queue** — osaekra -> NEEDS_REVIEW (aldrig auto-merge)
+
+## QA-dashboard ska visa
+
+- Total files discovered
+- Total files imported to CCO storage
+- Total files verified
+- **Total link-only files (maal: 0)**
+- Total files needing review
+- Total files failed import
+- Total patients with complete file history
+- Total patients with missing journal-PDFs
+- Total patients with missing images
+- Total orphan files (utan patient-koppling)
+- Total duplicate files (samma checksum)
+
+## Completion criteria
+
+The migration is **NOT complete** until ALL of:
+
+- `link_only_files = 0`
+- All verified source files imported to CCO storage
+- All files have checksum/hash
+- All files have category
+- All files are attached to patient or in review queue
+- Staff can open journal-files directly inside CCO
+- Staff can open images directly inside CCO
+- Staff does NOT need Google Drive in daily work
+- No patient data exists in GitHub
+
+## Cutover gates
+
+**Cliento faar fasas ut naer:**
+- All ovanstaaende PLUS
+- Bokningssystem fungerar i CCO
+
+**Meridiq faar fasas ut naer:**
+- All ovanstaaende PLUS
+- Ny journalfoering direkt i CCO i 30 dagar utan att personalen oeppnat Meridiq
+
+## Referenser
+
+- Schema: `src/ops/ccoPatientAssetStore.js` (byggs)
+- Import-pipeline: `src/ops/ccoAssetImportPipeline.js` (byggs)
+- Review-queue: `src/ops/ccoAssetReviewQueueStore.js` (byggs)
+- Gamla CCO journal/foto: `src/ops/journalPhotosBackup.js`, `major-arcana-cco-next/`
+- Drive-importer (kaella, ej destination): `scripts/migration/scanGoogleDriveApi.js`
+- Predicted-coupling (INTERIM, deprecated): `data/drive-coupling-by-cliento-id.json`
+
+---
+
+*Skapad: 2026-05-30 · Owner-mandat: `link_only_files = 0` aer icke-foerhandlingsbart.*
