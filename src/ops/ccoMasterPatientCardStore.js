@@ -82,8 +82,11 @@ function buildTimeline({ journals, photos, consents, agreements, forms }) {
   for (const p of asArray(photos)) {
     events.push({
       type: 'photo',
+      subType: p.type ? `photo_taken:${p.type}` : 'photo_taken',
       ts: p.takenAt || p.createdAt || null,
       ref: p.photoId || p.id || null,
+      encounterRef: p.encounterId || null,
+      phase: p.type || null,
     });
   }
   for (const c of asArray(consents)) {
@@ -238,12 +241,32 @@ function createMasterPatientCardLookup(deps = {}) {
         brand,
         treatmentType: 'tp',
       });
+      // P0.6 — per-encounter photos bucketed by phase (before/during/after/reference)
+      const encPhotos = { before: [], during: [], after: [], reference: [], consent: [] };
+      for (const ph of asArray(photos)) {
+        if (!ph) continue;
+        if ((ph.encounterId || '') !== (enc.encounterId || '')) continue;
+        const phase = ph.type && encPhotos[ph.type] ? ph.type : 'reference';
+        encPhotos[phase].push({
+          photoId: ph.photoId || ph.id || null,
+          takenAt: ph.takenAt || ph.createdAt || null,
+          source: ph.source || null,
+          mimeType: ph.mimeType || null,
+        });
+      }
       return {
         ...enc,
         predictedDrivePath: drivePred.predictedPath,
         driveSearchUrl: drivePred.searchUrl,
         driveExistsConfidence: drivePred.existsConfidence,
         driveStatus: drivePred.driveStatus,
+        photos: encPhotos,
+        photoCount:
+          encPhotos.before.length +
+          encPhotos.during.length +
+          encPhotos.after.length +
+          encPhotos.reference.length +
+          encPhotos.consent.length,
       };
     });
 

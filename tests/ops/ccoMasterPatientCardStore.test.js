@@ -202,6 +202,50 @@ test('master patient card aggregates consents/agreements/forms when stores provi
   assert.equal(card.timeline[0].type, 'form');
 });
 
+test('P0.6 — master patient card aggregates per-encounter photos by phase', async () => {
+  const tenantId = 'hair_tp';
+  const patientId = 'pz';
+  const state = {
+    tenantId,
+    customerState: {
+      directory: { [patientId]: { name: 'Z', meridiqMeta: {} } },
+      details: { [patientId]: {} },
+    },
+  };
+  const journalEntry = {
+    entryId: 'enc-1',
+    treatmentDate: '2026-05-15',
+    journalType: 'tp_treatment',
+    status: 'signed',
+    locked: true,
+    createdAt: '2026-05-15T08:00:00Z',
+  };
+  const photos = [
+    { photoId: 'ph-b1', type: 'before', encounterId: 'enc-1', takenAt: '2026-05-15T08:10:00Z', source: 'cco_camera' },
+    { photoId: 'ph-a1', type: 'after', encounterId: 'enc-1', takenAt: '2026-05-15T12:00:00Z', source: 'cco_camera' },
+    { photoId: 'ph-a2', type: 'after', encounterId: 'enc-1', takenAt: '2026-05-15T13:00:00Z', source: 'cco_camera' },
+    { photoId: 'ph-ref', type: 'reference', encounterId: null, takenAt: '2026-05-10T08:00:00Z' },
+  ];
+  const lookup = createMasterPatientCardLookup({
+    customerStore: fakeCustomerStore(state),
+    journalStore: fakeJournalStore({ [`${tenantId}:${patientId}`]: [journalEntry] }),
+    photoStore: { async listForPatient() { return photos; } },
+  });
+  const card = await lookup.getCard({ tenantId, patientId });
+  assert.equal(card.encounters.length, 1);
+  const enc = card.encounters[0];
+  assert.equal(enc.photoCount, 3, 'should count 3 encounter-linked photos');
+  assert.equal(enc.photos.before.length, 1);
+  assert.equal(enc.photos.after.length, 2);
+  assert.equal(enc.photos.reference.length, 0);
+
+  // Timeline has subType for photo_taken with phase
+  const photoEvents = card.timeline.filter((e) => e.type === 'photo');
+  assert.equal(photoEvents.length, 4);
+  assert.ok(photoEvents[0].subType.startsWith('photo_taken'));
+  assert.ok(['before', 'after', 'reference'].includes(photoEvents[0].phase));
+});
+
 test('deriveEncountersFromJournals creates one encounter per journal entry', () => {
   const enc = deriveEncountersFromJournals([
     { entryId: 'e1', treatmentDate: '2026-05-01', status: 'signed', locked: true, journalType: 'tp_treatment' },

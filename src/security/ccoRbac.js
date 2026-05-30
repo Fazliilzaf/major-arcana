@@ -1,0 +1,249 @@
+'use strict';
+
+/**
+ * ccoRbac.js — Role-Based Access Control för CCO
+ * ===================================================
+ * Implementerar 5 roller med explicit permissions enligt audit-matris:
+ *   - owner    : full access + billing + invites
+ *   - operator : kunder/bokningar/journal/konversationer (default)
+ *   - konsult  : egna bokningar, egen kalender, egen journal
+ *   - personal : kalender (read), egen journal
+ *   - revisor  : billing + analytics (read-only)
+ *
+ * Användning:
+ *   const { requirePermission, requireAnyRole } = require('./src/security/ccoRbac');
+ *   app.post('/cco-customers/merge', requirePermission('customers.merge'), handler);
+ *   app.get('/billing', requireAnyRole(['owner','revisor']), handler);
+ */
+
+const PERMISSIONS = {
+  // Customer
+  'customers.read': ['owner', 'operator', 'konsult', 'personal'],
+  'customers.write': ['owner', 'operator'],
+  'customers.merge': ['owner', 'operator'],
+  'customers.split': ['owner', 'operator'],
+  'customers.import': ['owner', 'operator'],
+  'customers.delete': ['owner'],
+  'customers.gdpr_export': ['owner', 'operator'],
+  'customers.photo_upload': ['owner', 'operator', 'konsult'],
+  'customers.photo_consent_set': ['owner', 'operator'],
+
+  // Bookings
+  'bookings.read': ['owner', 'operator', 'konsult', 'personal'],
+  'bookings.write': ['owner', 'operator', 'konsult'],
+  'bookings.case_decide': ['owner', 'operator'],
+  'bookings.handoff': ['owner', 'operator'],
+  'bookings.delete': ['owner', 'operator'],
+
+  // Journal (känslig)
+  'journal.read_own': ['owner', 'operator', 'konsult'],
+  'journal.read_any': ['owner', 'operator'],
+  'journal.write': ['owner', 'operator', 'konsult'],
+  'journal.lock': ['owner', 'operator'],
+  'journal.unlock': ['owner'],
+
+  // Conversations / mail
+  'mail.read': ['owner', 'operator', 'konsult'],
+  'mail.send': ['owner', 'operator', 'konsult'],
+  'mail.delete': ['owner', 'operator'],
+  'mail.assign': ['owner', 'operator'],
+  'mailbox.admin': ['owner', 'operator'],
+
+  // Automation
+  'automation.read': ['owner', 'operator'],
+  'automation.edit': ['owner', 'operator'],
+  'automation.deploy': ['owner'],
+  'automation.autopilot_toggle': ['owner'],
+
+  // Analytics
+  'analytics.read_personal': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
+  'analytics.read_team': ['owner', 'operator', 'revisor'],
+  'analytics.export': ['owner', 'revisor'],
+
+  // Settings
+  'settings.read': ['owner', 'operator'],
+  'settings.write': ['owner'],
+  'settings.brand': ['owner'],
+
+  // Billing (revisor + owner only)
+  'billing.read': ['owner', 'revisor'],
+  'billing.write': ['owner'],
+
+  // Users / roles
+  'users.invite': ['owner'],
+  'users.role_change': ['owner'],
+
+  // Audit log
+  'audit.read': ['owner', 'revisor'],
+
+  // Showcase (publish externt)
+  'showcase.publish': ['owner', 'operator'],
+
+  // Sprint B — Offerter (offerts till patient)
+  'offer.read': ['owner', 'operator', 'konsult', 'revisor'],
+  'offer.write': ['owner', 'operator'],          // skapa/redigera draft + send + accept/reject
+  'offer.delete': ['owner'],                      // bara owner kan permanenta-radera
+
+  // Sprint D — Workspace blocking-status (read-only)
+  'workspace.read': ['owner', 'operator', 'konsult', 'personal'],
+
+  // Beslut #2 — Patient portal staff API (skapa invites)
+  'portal.write': ['owner', 'operator'],
+  'portal.read': ['owner', 'operator', 'konsult', 'revisor'],
+
+  // Steg 1 — Template registry (Communication & Compliance audit)
+  'templates.read': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
+  'templates.write': ['owner'],
+  'templates.legal_review': ['owner'],
+
+  // Steg 2 — Compliance scan (version-conflict + missing-audit detector)
+  'compliance.read': ['owner', 'operator', 'revisor'],
+  'compliance.scan': ['owner'],
+
+  // Steg 3 — ID-verifiering
+  'id_verify.read': ['owner', 'operator', 'konsult', 'personal'],
+  'id_verify.write': ['owner', 'operator'],
+
+  // Steg 4 — Unified notification-feed
+  'notifications.read': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
+  'notifications.mark_read': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
+
+  // Steg 5 — Aftercare/followup scheduler
+  'aftercare.read': ['owner', 'operator', 'konsult', 'personal'],
+  'aftercare.write': ['owner', 'operator'],
+  'aftercare.cron_trigger': ['owner'],
+
+  // Steg 8 — Marketing consent (GDPR opt-in/opt-out)
+  'marketing.read': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
+  'marketing.write': ['owner', 'operator'],
+  'marketing.send': ['owner'],
+
+  // Sprint B — Avtal (signerade avtal med patient)
+  'agreement.read': ['owner', 'operator', 'konsult', 'revisor'],
+  'agreement.write': ['owner', 'operator'],       // skapa/redigera draft + send
+  'agreement.staff_sign': ['owner'],              // staff-sign override (owner only — Beslut #1)
+  'agreement.delete': ['owner'],
+
+  // Tenant (multi-tenant switching)
+  'tenant.switch': ['owner', 'operator', 'konsult', 'personal', 'revisor'],
+  'tenant.create': ['owner'],
+
+  // P0.6 — Patient-photo metadata-store (ccoPhotoStore).
+  // Filtrerar vem som kan se foton, ladda upp nya och radera.
+  // Owner+operator+konsult kan write/read; personal kan read only.
+  // Endast owner får radera (data-retention är 10-årig PDL även för bilder).
+  'photo.read': ['owner', 'operator', 'konsult', 'personal'],
+  'photo.write': ['owner', 'operator', 'konsult'],
+  'photo.delete': ['owner'],
+};
+
+const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor'];
+
+function normalizeRole(role) {
+  const r = String(role || '').toLowerCase().trim();
+  return ALL_ROLES.includes(r) ? r : null;
+}
+
+function roleHasPermission(role, permission) {
+  const r = normalizeRole(role);
+  if (!r) return false;
+  const allowed = PERMISSIONS[permission];
+  if (!Array.isArray(allowed)) {
+    // Okänt permission → fail-closed
+    return false;
+  }
+  return allowed.includes(r);
+}
+
+function listPermissionsForRole(role) {
+  const r = normalizeRole(role);
+  if (!r) return [];
+  return Object.entries(PERMISSIONS)
+    .filter(([, roles]) => roles.includes(r))
+    .map(([perm]) => perm);
+}
+
+/**
+ * Extraherar aktuell roll från request. Letar i (i ordning):
+ *   1. req.auth.role (om authStore satt det)
+ *   2. req.user.role
+ *   3. header X-CCO-Role (för testing / API-clients)
+ *   4. fallback: 'operator' (vanligaste vid demo)
+ */
+function getRoleFromRequest(req) {
+  return (
+    req.auth?.role ||
+    req.user?.role ||
+    req.headers?.['x-cco-role'] ||
+    'operator'
+  );
+}
+
+/**
+ * Express-middleware: kräv en specifik permission.
+ *   app.post('/cco-customers/merge', requirePermission('customers.merge'), handler)
+ */
+function requirePermission(permission) {
+  return function rbacRequirePermission(req, res, next) {
+    const role = getRoleFromRequest(req);
+    if (roleHasPermission(role, permission)) {
+      req.cco = req.cco || {};
+      req.cco.role = role;
+      req.cco.permission = permission;
+      return next();
+    }
+    return res.status(403).json({
+      error: 'forbidden',
+      detail: `Role "${role}" saknar permission "${permission}".`,
+      requiredPermission: permission,
+      actualRole: role,
+    });
+  };
+}
+
+/**
+ * Express-middleware: kräv att rollen är en av en lista.
+ *   app.get('/billing', requireAnyRole(['owner','revisor']), handler)
+ */
+function requireAnyRole(allowedRoles) {
+  const allowed = Array.isArray(allowedRoles)
+    ? allowedRoles.map((r) => String(r).toLowerCase())
+    : [];
+  return function rbacRequireRole(req, res, next) {
+    const role = getRoleFromRequest(req);
+    if (allowed.includes(role)) {
+      req.cco = req.cco || {};
+      req.cco.role = role;
+      return next();
+    }
+    return res.status(403).json({
+      error: 'forbidden',
+      detail: `Role "${role}" är inte tillåten. Krävs en av: ${allowed.join(', ')}.`,
+      requiredRoles: allowed,
+      actualRole: role,
+    });
+  };
+}
+
+/**
+ * Express-middleware: lägg på alla requests för att alltid sätta req.cco.role.
+ * Används som första middleware i CCO-routes så role är tillgängligt nedströms
+ * utan att kräva permissions explicit.
+ */
+function attachRole(req, res, next) {
+  req.cco = req.cco || {};
+  req.cco.role = getRoleFromRequest(req);
+  next();
+}
+
+module.exports = {
+  PERMISSIONS,
+  ALL_ROLES,
+  normalizeRole,
+  roleHasPermission,
+  listPermissionsForRole,
+  getRoleFromRequest,
+  requirePermission,
+  requireAnyRole,
+  attachRole,
+};
