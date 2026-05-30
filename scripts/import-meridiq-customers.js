@@ -53,6 +53,8 @@ function parseArgs(argv) {
   return args;
 }
 
+function nowIso() { return new Date().toISOString(); }
+
 // --- Normalisering ---
 function normalizeEmail(s) {
   return String(s || '').trim().toLowerCase().replace(/\s+/g, '');
@@ -221,6 +223,8 @@ async function main() {
   const matchedClientoKeys = new Set();
   const seenInMeridiq = new Set();
   const meridiqOnlyPatients = [];
+  // För --commit-fasen: spara match-mapping så vi kan skriva meridiqMeta
+  const matchPairs = []; // [{ clientoKey, p (meridiq patient), via }]
 
   for (const p of meridiqPatients) {
     // Detektera inom-Meridiq-duplikat
@@ -258,6 +262,7 @@ async function main() {
     if (matched) {
       stats.matchedTotal += 1;
       matchedClientoKeys.add(matchKey);
+      matchPairs.push({ clientoKey: matchKey, p, via: matchVia });
     } else {
       stats.meridiqOnly += 1;
       meridiqOnlyPatients.push(p);
@@ -293,11 +298,112 @@ async function main() {
     return;
   }
 
-  // TODO för --commit-läge: lägg till meridiqMeta på matchade + skapa nya för meridiq-only
-  // Implementeras i fas 9.2.2 efter user-review av dry-run
+  // COMMIT-FAS — write meridiqMeta + lead-flagga + nya patienter
   console.log('');
-  console.log('--commit-läget är inte aktiverat än. Granska dry-run-output först.');
-  console.log('Implementation av write-fasen ligger i fas 9.2.2.');
+  console.log('=== COMMIT-FAS ===');
+  console.log('Skriver enrichments direkt till data/cco-customers.json (atomisk write).');
+
+  // Re-load raw JSON (vi behöver inte gå genom store-API:n eftersom vi vet exakt vad vi skriver)
+  const rawState = JSON.parse(fs.readFileSync(ccoStorePath, 'utf8'));
+  const tenantBlock = rawState.tenants?.[args.tenant];
+  if (!tenantBlock?.customerState) {
+    throw new Error('Tenant "' + args.tenant + '" saknas i cco-customers.json');
+  }
+  const cs = tenantBlock.customerState;
+  cs.directory = cs.directory || {};
+  cs.details = cs.details || {};
+
+  let enrichedCount = 0;
+  let newCount = 0;
+  let leadFlaggedCount = 0;
+  const importedAt = nowIso();
+  const importSourceTag = 'meridiq_xlsx_2026-05-30';
+
+  // 1. Berika matchade med meridiqMeta (no PII — bara hash + masked + via)
+  for (const { clientoKey, p, via } of matchPairs) {
+    const dir = cs.directory[clientoKey];
+    if (!dir) continue;
+    dir.meridiqMeta = {
+      hasJournal: true,
+      via,
+      pnrSuffix: p.pnr ? p.pnr.slice(-4) : null,
+      emailMaskedDomain: p.email ? p.email.split('@')[1] || null : null,
+      hasBirthdate: !!p.birthdate,
+      importedAt,
+      importSource: importSourceTag,
+    };
+    enrichedCount += 1;
+  }
+
+  // 2. Flagga Cliento-only-kunder som leads (noMeridiqJournal: true)
+  for (const key of Object.keys(cs.directory)) {
+    if (matchedClientoKeys.has(key)) continue;
+    cs.directory[key].noMeridiqJournal = true;
+    cs.directory[key].leadFlaggedAt = importedAt;
+    leadFlaggedCount += 1;
+  }
+
+  // 3. Skapa nya CCO-kunder för Meridiq-only (försumbart antal — 7)
+  for (const p of meridiqOnlyPatients) {
+    // Generera unik key
+    const baseSlug = (p.fullName || 'meridiq-only')
+      .toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    let newKey = 'meridiq_' + baseSlug;
+    let suffix = 0;
+    while (cs.directory[newKey]) {
+      suffix += 1;
+      newKey = 'meridiq_' + baseSlug + '_' + suffix;
+    }
+    cs.directory[newKey] = {
+      name: p.fullName || 'Meridiq-patient (namn saknas)',
+      vip: false,
+      emailCoverage: p.email ? 1 : 0,
+      duplicateCandidate: false,
+      profileCount: 1,
+      customerValue: 0,
+      totalConversations: 0,
+      totalMessages: 0,
+      meridiqMeta: {
+        hasJournal: true,
+        via: 'new_from_meridiq',
+        pnrSuffix: p.pnr ? p.pnr.slice(-4) : null,
+        emailMaskedDomain: p.email ? p.email.split('@')[1] || null : null,
+        hasBirthdate: !!p.birthdate,
+        importedAt,
+        importSource: importSourceTag,
+      },
+    };
+    cs.details[newKey] = {
+      emails: p.email ? [p.email] : [],
+      phone: p.phone || '',
+      mailboxes: [],
+    };
+    newCount += 1;
+  }
+
+  // Bumpa updatedAt
+  cs.updatedAt = importedAt;
+  tenantBlock.updatedAt = importedAt;
+  rawState.updatedAt = importedAt;
+
+  // Atomisk write
+  const tmpPath = ccoStorePath + '.tmp.' + process.pid;
+  fs.writeFileSync(tmpPath, JSON.stringify(rawState, null, 2), 'utf8');
+  fs.renameSync(tmpPath, ccoStorePath);
+
+  console.log('');
+  console.log('--- COMMIT KLAR ---');
+  console.log('Berikade Cliento-matches (meridiqMeta):   ' + enrichedCount.toString().padStart(6));
+  console.log('Nya Meridiq-only-kunder skapade:          ' + newCount.toString().padStart(6));
+  console.log('Cliento-only flaggade som leads:          ' + leadFlaggedCount.toString().padStart(6));
+  console.log('Total directory-keys efter commit:        ' + Object.keys(cs.directory).length.toString().padStart(6));
+  console.log('');
+  console.log('Backup-fil bör finnas i:');
+  console.log('  data/cco-customers.pre-meridiq-commit-*.json');
 }
 
 main().catch((err) => {
