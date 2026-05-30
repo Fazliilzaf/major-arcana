@@ -1,0 +1,339 @@
+/* ─── CCO Kalender-shell wire — Sprint 1-2 injection i kunder.html ───
+ * Allt prefix .cco-cal-* för att undvika kollision med existing
+ * kunder.html-classes (.calendar-*, .booking, etc.).
+ * Återanvänder --cco-*-tokens från kunder.html.
+ * ─────────────────────────────────────────────────────────────────── */
+
+/* ─── View-switch: vid ?view=calendar — dölj kunder-content, visa kalendern ─── */
+body[data-cco-view="calendar"] .agg-insights,
+body[data-cco-view="calendar"] .customers-filters,
+body[data-cco-view="calendar"] .customers-list {
+  display: none !important;
+}
+body[data-cco-view="calendar"] .calendar-shell {
+  display: block !important;
+}
+/* Ge calendar-shell main-bredden i app-grid */
+body[data-cco-view="calendar"] .calendar-shell {
+  grid-column: 2;
+}
+
+/* Day-grid mount */
+.cco-cal-day-mount {
+  margin-top: 12px;
+  padding: 0;
+}
+.cco-cal-day-grid {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 0;
+  position: relative;
+}
+.cco-cal-hour-col {
+  border-right: 1px solid rgba(215, 202, 194, 0.40);
+}
+.cco-cal-resource-spacer { height: 56px; }
+.cco-cal-hour-row {
+  height: 62px;
+  border-bottom: 1px dashed rgba(215, 202, 194, 0.35);
+  padding: 4px 8px;
+  font-size: 10.5px;
+  color: var(--cco-text-tertiary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.cco-cal-day-right {}
+.cco-cal-resources-row {
+  display: grid;
+  gap: 4px;
+  height: 56px;
+  border-bottom: 1px solid rgba(215, 202, 194, 0.40);
+  background: rgba(255,255,255,.45);
+  padding: 8px 6px;
+}
+.cco-cal-resource-header {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.7);
+  border: 1px solid rgba(255,255,255,.85);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700;
+  color: var(--cco-color-brand);
+  white-space: nowrap; overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.95);
+}
+.cco-cal-resource-dot {
+  width: 8px; height: 8px; border-radius: 999px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.9);
+}
+.cco-cal-resources-grid {
+  display: grid; gap: 4px;
+  background: rgba(255,255,255,.20);
+  border-radius: 0 0 12px 12px;
+  padding: 4px;
+}
+.cco-cal-resource-col {
+  position: relative;
+  min-height: calc(62px * 12); /* 07-19 = 12h */
+}
+
+/* Booking-card */
+.cco-cal-booking {
+  appearance: none;
+  position: absolute;
+  left: 4px; right: 4px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,241,236,.92));
+  border: 1px solid rgba(255,255,255,.82);
+  box-shadow: 0 3px 10px rgba(56,40,28,.10), inset 0 1px 0 rgba(255,255,255,.92);
+  cursor: pointer;
+  font-size: 11px; line-height: 1.35;
+  color: var(--cco-color-brand);
+  overflow: hidden;
+  transition: transform .1s ease, box-shadow .14s ease;
+  border-left: 3px solid var(--cco-text-tertiary);
+  text-align: left;
+}
+.cco-cal-booking:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(56,40,28,.14), inset 0 1px 0 rgba(255,255,255,.95);
+  z-index: 5;
+}
+.cco-cal-booking-time {
+  font-size: 9.5px; font-weight: 700;
+  color: var(--cco-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 2px;
+}
+.cco-cal-booking-patient {
+  font-weight: 700; font-size: 11.5px;
+  letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cco-cal-booking-service {
+  font-size: 10px;
+  color: var(--cco-text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.cco-cal-booking-pills {
+  display: flex; gap: 3px; flex-wrap: wrap;
+}
+.cco-cal-pill {
+  display: inline-flex; align-items: center;
+  padding: 1px 6px; border-radius: 999px;
+  font-size: 8.5px; font-weight: 800;
+  letter-spacing: .04em; text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+.cco-cal-pill--success { background: var(--cco-status-success-bg); color: var(--cco-status-success); }
+.cco-cal-pill--warning { background: var(--cco-status-warning-bg); color: var(--cco-status-warning); }
+.cco-cal-pill--danger  { background: var(--cco-status-danger-bg);  color: var(--cco-status-danger); }
+.cco-cal-pill--info    { background: var(--cco-status-info-bg);    color: var(--cco-status-info); }
+
+.cco-cal-empty {
+  padding: 50px 20px;
+  text-align: center;
+  color: var(--cco-text-tertiary);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ─── Drawer (i .intel-shell på desktop, bottom-sheet på mobil) ─── */
+.cco-cal-drawer {
+  display: none;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: var(--panel-card-shadow);
+  font-size: 12px;
+}
+.cco-cal-drawer.is-open { display: block; }
+
+.cco-cal-drawer--floating {
+  position: fixed; top: 80px; right: 14px;
+  width: 360px; max-height: 80vh;
+  overflow-y: auto;
+  z-index: 999;
+}
+
+.cco-cal-drawer-head {
+  position: relative;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(215, 202, 194, 0.40);
+  margin-bottom: 10px;
+}
+.cco-cal-drawer-head h3 {
+  margin: 0;
+  font-size: 14px; font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--cco-color-brand);
+}
+.cco-cal-drawer-meta {
+  font-size: 10.5px;
+  color: var(--cco-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.cco-cal-drawer-close {
+  position: absolute; top: -2px; right: -2px;
+  appearance: none; border: 0; background: transparent;
+  font-size: 16px; line-height: 1;
+  color: var(--cco-text-tertiary); cursor: pointer;
+  padding: 4px 8px;
+}
+.cco-cal-drawer-close:hover { color: var(--cco-color-brand); }
+
+/* Ready-banner */
+.cco-cal-ready {
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-bottom: 10px;
+  border: 1px solid;
+}
+.cco-cal-ready--ok {
+  background: linear-gradient(180deg, rgba(74,130,104,.16), rgba(74,130,104,.08));
+  color: var(--cco-status-success);
+  border-color: rgba(74,130,104,.32);
+  font-weight: 700;
+}
+.cco-cal-ready--blocked {
+  background: linear-gradient(180deg, rgba(185,74,74,.14), rgba(185,74,74,.06));
+  color: var(--cco-status-danger);
+  border-color: rgba(185,74,74,.32);
+}
+.cco-cal-ready--blocked strong { display: block; margin-bottom: 4px; }
+.cco-cal-blockers {
+  margin: 4px 0 0; padding-left: 16px;
+  font-size: 10.5px; font-weight: 500;
+}
+
+/* Actions */
+.cco-cal-actions {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;
+  margin-bottom: 12px;
+}
+.cco-cal-action {
+  appearance: none; cursor: pointer;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.82);
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+  box-shadow: 0 2px 6px rgba(56,40,28,.06), inset 0 1px 0 rgba(255,255,255,.88);
+  font: inherit; font-size: 10.5px; font-weight: 600;
+  color: var(--cco-color-brand);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: transform .1s ease;
+  text-align: center; line-height: 1.2;
+}
+.cco-cal-action:hover { transform: translateY(-1px); }
+.cco-cal-action-icon { font-size: 14px; line-height: 1; }
+.cco-cal-action[data-primary="true"] {
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  border-color: rgba(200,130,30,.32);
+  color: var(--calendar-accent);
+  box-shadow: 0 2px 8px var(--calendar-accent-glow), inset 0 1px 0 rgba(255,255,255,.92);
+}
+
+/* Status-section */
+.cco-cal-statuses { margin-bottom: 10px; }
+.cco-cal-status-title {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--cco-text-tertiary); margin-bottom: 6px;
+}
+.cco-cal-status-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.55);
+  border: 1px solid rgba(255,255,255,.7);
+  font-size: 11px;
+  margin-bottom: 3px;
+  color: var(--cco-color-brand); font-weight: 600;
+}
+
+/* Snapshot */
+.cco-cal-snapshot {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.55);
+  border: 1px solid rgba(255,255,255,.7);
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.cco-cal-snapshot-name {
+  font-size: 13px; font-weight: 700;
+  color: var(--cco-color-brand);
+  margin-bottom: 3px;
+  letter-spacing: -.01em;
+}
+.cco-cal-snapshot-meta {
+  color: var(--cco-text-secondary);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mini journal-feed wrapper */
+.cco-cal-mini-feed {
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255,255,255,.45);
+  border: 1px solid rgba(255,255,255,.7);
+}
+
+/* Backdrop (mobile bottom-sheet) */
+.cco-cal-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(43, 37, 31, 0.42);
+  z-index: 9998;
+}
+
+/* Toast */
+.cco-cal-toast {
+  position: fixed; bottom: 24px; right: 24px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 12px; font-weight: 600;
+  z-index: 10000;
+  box-shadow: 0 18px 38px rgba(93,74,60,.18);
+}
+.cco-cal-toast--ok {
+  background: linear-gradient(180deg, rgba(216,234,221,1), rgba(184,216,197,1));
+  color: var(--cco-status-success);
+  border: 1px solid rgba(74,130,104,.32);
+}
+.cco-cal-toast--error {
+  background: linear-gradient(180deg, rgba(245,214,211,1), rgba(232,181,176,1));
+  color: var(--cco-status-danger);
+  border: 1px solid rgba(185,74,74,.32);
+}
+
+/* ─── Mobil bottom-sheet ─── */
+@media (max-width: 720px) {
+  .cco-cal-drawer.is-open {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    top: auto; margin: 0; z-index: 9999;
+    max-height: 85vh; overflow-y: auto;
+    border-radius: 22px 22px 0 0;
+    border-bottom: 0;
+    box-shadow: 0 -16px 40px rgba(56,40,28,.18);
+    animation: ccoCalSlide .25s cubic-bezier(.34,1.32,.64,1);
+  }
+  .cco-cal-drawer.is-open::before {
+    content: ""; display: block;
+    width: 38px; height: 4px;
+    background: rgba(74, 73, 70, 0.20);
+    border-radius: 999px;
+    margin: -4px auto 10px;
+  }
+  .cco-cal-backdrop.is-open { display: block; }
+  .cco-cal-actions { grid-template-columns: repeat(2, 1fr); }
+}
+@keyframes ccoCalSlide { from { transform: translateY(100%); } to { transform: translateY(0); } }

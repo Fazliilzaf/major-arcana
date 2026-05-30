@@ -2893,8 +2893,10 @@
 </style>
 <link rel="stylesheet" href="/cco-polish.css">
 <link rel="stylesheet" href="/cco-journal-feed.css">
+<link rel="stylesheet" href="/cco-kalender-shell.css">
 <script src="/cco-polish.js" defer></script>
 <script src="/cco-journal-feed.js" defer></script>
+<script src="/cco-kalender-shell.js" defer></script>
 </head>
 <body data-stage="live">
 
@@ -3325,7 +3327,7 @@
   </section>
 
   <!-- (calendar-shell start för att paritet med v8 fortsätter — döljs via JS) -->
-  <section class="calendar-shell" hidden>
+  <section class="calendar-shell" hidden data-cco-shell="calendar">
     <div class="calendar-surface">
 
       <header class="calendar-toolbar">
@@ -4077,8 +4079,12 @@ document.querySelectorAll('.booking').forEach(b => {
   });
 });
 
-/* Boot — Kunder är default-vy, behåller calendar-shell men hidden */
-try { setMode('vecka'); } catch (e) {}
+/* Boot — Kunder är default-vy. cco-kalender-shell.js togglar via ?view=calendar.
+   Default-mode i kalender = 'dag' (per owner-beslut Sprint 1). */
+try {
+  const _view = new URLSearchParams(window.location.search).get('view') || 'customers';
+  setMode(_view === 'calendar' ? 'dag' : 'vecka');
+} catch (e) {}
 
 /* ═══════════════════════════════════════════════════════════════
    INTERAKTION 9: APPLE WATCH SWIPE
