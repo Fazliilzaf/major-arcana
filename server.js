@@ -5100,6 +5100,206 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
 
     console.log('[calendar-sprint1] monterad: /calendar/day · /calendar/week · /calendar/booking/:id/status-pills · POST /cco-bookings/:id/{checkin,no-show,follow-up} (bookings.read/write)');
     console.log('[calendar-sprint2] monterad: GET /calendar/services · POST /calendar/booking/conflict-check · POST /calendar/booking (RBAC: bookings.read/write)');
+
+    // ════════ SPRINT 3: Kundintelligens-rail (4 insikter per booking) ════════
+    // Aggregerar derived statusar — ingen extern AI, ingen rå journaltext.
+    app.get('/api/v1/calendar/booking/:id/intelligence', attachRole, requirePermission('customers.read'), async (req, res) => {
+      try {
+        const bookingId = req.params.id;
+        const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+        const treatment = String(req.query.treatment || '').toLowerCase();
+
+        // 1. Hämta booking
+        const beStore = app.locals.ccoBookingEngineStore;
+        const beState = beStore?._state || {};
+        const booking = (beState.bookings || []).find(b => b.bookingId === bookingId) ||
+                        (beState.reservations || []).find(r => r.reservationId === bookingId);
+
+        const patientId = booking?.customerId || booking?.contact?.customerId || null;
+        const inferredTreatment = treatment || booking?.serviceId || '';
+
+        const intel = {
+          bookingId,
+          patientId,
+          treatment: inferredTreatment,
+          insights: {
+            readiness:    { status: 'unknown', missing: [], blockingCount: 0, hint: null },
+            risk:         { level: 'unknown',  noShowCount: 0, lateCancelCount: 0, blockerCount: 0, hint: null },
+            engagement:   { lastContactTs: null, lastContactKind: null, daysSinceContact: null, nextBestAction: null },
+            commercial:   { offerState: null, agreementState: null, openBalance: null, ltvTier: null },
+          },
+          ccoSourceOnly: true,
+          evaluatedAt: new Date().toISOString(),
+        };
+
+        if (!patientId) {
+          intel.note = 'no_patient_linked';
+          return res.json({ ok: true, ...intel });
+        }
+
+        // ── INSIGHT 1: Ready-for-treatment / missing documents ──
+        try {
+          const reqFile = JSON.parse(require('fs').readFileSync(
+            path.join(__dirname, 'config/cco-treatment-document-requirements.json'), 'utf8'));
+          const requirements = reqFile.treatments?.[inferredTreatment]?.requiredDocuments || {};
+          const journalStore = app.locals.ccoJournalStore;
+          const entries = journalStore?.listEntries ? (await journalStore.listEntries({ tenantId, patientId }) || []) : [];
+          const hasHD = entries.some(e => e.journalType === 'health_declaration' && e.locked);
+          const hasFF = entries.some(e => e.journalType === 'fitness_certificate' && e.locked);
+
+          const missing = [];
+          if (requirements.healthDeclaration?.blocking && !hasHD) missing.push('Hälsodeklaration');
+          if (requirements.fitnessCertificate?.blocking && !hasFF) missing.push('Friskförsäkran');
+          // Agreement
+          const agStore = app.locals.ccoAgreementQuickStore;
+          const ags = agStore?.listForCustomer ? agStore.listForCustomer(patientId) : [];
+          const signedAg = ags.find(a => a.state === 'signed');
+          if (requirements.treatmentAgreement?.blocking && !signedAg) missing.push('Behandlingsavtal');
+          // ID
+          const idStore = app.locals.ccoIdVerificationStore;
+          if (requirements.idVerification?.required && idStore?.getVerification) {
+            try {
+              const ver = await idStore.getVerification(patientId);
+              if (!ver?.verified) missing.push('ID-verifiering');
+            } catch (_) { missing.push('ID-verifiering'); }
+          }
+          intel.insights.readiness.missing = missing;
+          intel.insights.readiness.blockingCount = missing.length;
+          intel.insights.readiness.status = missing.length === 0 ? 'ready' : 'blocked';
+          intel.insights.readiness.hint = missing.length === 0
+            ? 'Patient klar för behandling.'
+            : 'Saknas: ' + missing.join(', ');
+        } catch (_) {}
+
+        // ── INSIGHT 2: Risk / no-show / blocker ──
+        try {
+          const allBookings = (beState.bookings || []).filter(b => b.customerId === patientId);
+          const noShowCount = allBookings.filter(b => b.status === 'no_show' || b.noShow).length;
+          const lateCancelCount = allBookings.filter(b => b.status === 'cancelled' && b.cancelledLate).length;
+          const totalPast = allBookings.filter(b => {
+            try { return new Date(b.slot?.date || 0) < new Date(); } catch { return false; }
+          }).length;
+          const noShowRate = totalPast > 0 ? (noShowCount / totalPast) : 0;
+          let level = 'low';
+          if (noShowRate > 0.20 || noShowCount >= 3) level = 'high';
+          else if (noShowRate > 0.10 || noShowCount >= 2) level = 'medium';
+          intel.insights.risk = {
+            level,
+            noShowCount,
+            lateCancelCount,
+            blockerCount: intel.insights.readiness.blockingCount,
+            hint: level === 'high' ? 'Hög no-show-risk — överväg påminnelse + reserv-bokning.'
+                : level === 'medium' ? 'Medel no-show-risk — skicka påminnelse.'
+                : noShowCount === 0 ? 'Inga no-shows i historiken.'
+                : 'Låg risk.',
+          };
+        } catch (_) {}
+
+        // ── INSIGHT 3: Engagement (senaste kontakt + next best action) ──
+        try {
+          const sendStore = app.locals.ccoSendActionStore;
+          const journalStore = app.locals.ccoJournalStore;
+          const sends = sendStore?.listSends ? (sendStore.listSends({ customerId: patientId, limit: 50 }) || []) : [];
+          const journalEntries = journalStore?.listEntries ? (await journalStore.listEntries({ tenantId, patientId }) || []) : [];
+
+          const events = [];
+          for (const s of sends) events.push({ ts: s.ts, kind: 'send_' + (s.kind || 'unknown') });
+          for (const e of journalEntries) {
+            if (e.signedAt) events.push({ ts: e.signedAt, kind: 'journal_' + e.journalType });
+            else if (e.createdAt) events.push({ ts: e.createdAt, kind: 'journal_draft_' + e.journalType });
+          }
+          // booking-historik som engagement-events
+          const beStore2 = app.locals.ccoBookingEngineStore;
+          const allB = (beStore2?._state?.bookings || []).filter(b => b.customerId === patientId);
+          for (const b of allB) {
+            if (b.createdAt) events.push({ ts: b.createdAt, kind: 'booking_created' });
+          }
+          events.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
+          const last = events[0] || null;
+          const daysSince = last ? Math.floor((Date.now() - new Date(last.ts).getTime()) / 86400000) : null;
+
+          // Next-best-action (regelbaserad — INGEN AI)
+          let nba = null;
+          if (intel.insights.readiness.blockingCount > 0) {
+            nba = { action: 'Skicka formulär', reason: 'Dokument saknas inför behandling.', cta: 'send-form' };
+          } else if (intel.insights.risk.level === 'high') {
+            nba = { action: 'Skicka påminnelse', reason: 'Hög no-show-risk.', cta: 'send-reminder' };
+          } else if (intel.insights.readiness.status === 'ready') {
+            nba = { action: 'Bekräfta ankomst', reason: 'Patient redo för behandling.', cta: 'checkin' };
+          } else if (daysSince === null || daysSince > 60) {
+            nba = { action: 'Skicka uppföljning', reason: 'Lång tid sedan senaste kontakt.', cta: 'send-followup' };
+          }
+
+          intel.insights.engagement = {
+            lastContactTs: last?.ts || null,
+            lastContactKind: last?.kind || null,
+            daysSinceContact: daysSince,
+            nextBestAction: nba,
+          };
+        } catch (_) {}
+
+        // ── INSIGHT 4: Kommersiell status ──
+        try {
+          const offerStore = app.locals.ccoOfferQuickStore;
+          const agStore = app.locals.ccoAgreementQuickStore;
+          const offers = offerStore?.listForCustomer ? (offerStore.listForCustomer(patientId) || []) : [];
+          const ags = agStore?.listForCustomer ? (agStore.listForCustomer(patientId) || []) : [];
+
+          const activeOffer = offers.find(o => o.state === 'accepted') ||
+                              offers.find(o => o.state === 'sent') ||
+                              offers[0] || null;
+          const activeAg = ags.find(a => a.state === 'signed') ||
+                           ags.find(a => a.state === 'sent') ||
+                           ags[0] || null;
+
+          // LTV tier (simple, derived från total signed agreement-värde)
+          const totalSignedValue = ags.filter(a => a.state === 'signed')
+            .reduce((s, a) => s + (Number(a.priceTotal) || 0), 0);
+          let ltvTier = 'standard';
+          if (totalSignedValue >= 100000) ltvTier = 'platinum';
+          else if (totalSignedValue >= 50000) ltvTier = 'gold';
+          else if (totalSignedValue >= 20000) ltvTier = 'silver';
+          else if (totalSignedValue > 0) ltvTier = 'standard';
+          else ltvTier = 'new';
+
+          intel.insights.commercial = {
+            offerState:     activeOffer?.state || null,
+            offerValue:     activeOffer?.priceTotal || null,
+            offerId:        activeOffer?.id || null,
+            agreementState: activeAg?.state || null,
+            agreementValue: activeAg?.priceTotal || null,
+            agreementId:    activeAg?.id || null,
+            totalSignedValue,
+            ltvTier,
+            currency: 'SEK',
+          };
+        } catch (_) {}
+
+        // Audit (counts only — INGEN PII)
+        if (ccoAuditLog) {
+          ccoAuditLog.append({
+            action: 'customer.intelligence.read',
+            actor: { role: req.cco?.role || 'unknown', userId: req.headers['x-cco-user'] || null },
+            target: { kind: 'booking', id: bookingId, tenantId },
+            result: 'ok',
+            detail: {
+              patientId, treatment: inferredTreatment,
+              readinessStatus: intel.insights.readiness.status,
+              riskLevel: intel.insights.risk.level,
+              hasNba: !!intel.insights.engagement.nextBestAction,
+              ltvTier: intel.insights.commercial.ltvTier,
+              ccoSourceOnly: true,
+            },
+          });
+        }
+
+        res.json({ ok: true, ...intel });
+      } catch (err) {
+        res.status(err.statusCode || 500).json({ ok: false, error: err.message });
+      }
+    });
+
+    console.log('[calendar-sprint3] monterad: GET /calendar/booking/:id/intelligence (customers.read)');
   } catch (err) {
     console.warn('[calendar-sprint1] kunde inte montera:', err.message);
   }

@@ -312,6 +312,11 @@
     }
     drawer.appendChild(statusWrap);
 
+    // Sprint 3: Kundintelligens-rail (4 insikter)
+    const intelMount = el('div', { class: 'cco-cal-intel', id: 'cco-cal-intel-mount' });
+    drawer.appendChild(intelMount);
+    loadIntelligence(slot, pills, intelMount);
+
     // Patient-snapshot
     drawer.appendChild(el('div', { class: 'cco-cal-snapshot' }, [
       el('div', { class: 'cco-cal-snapshot-name' }, slot.patientName || '—'),
@@ -433,6 +438,222 @@
       }
     } catch (err) {
       mount.innerHTML = '<div class="cco-cal-empty">Kunde inte ladda: ' + err.message + '</div>';
+    }
+  }
+
+  // ═══ SPRINT 3: Kundintelligens-rail (4 insikter) ═══════════════════════════
+  async function loadIntelligence(slot, pills, mount) {
+    const tenantId = global.__ccoCalTenantId || 'hair_tp';
+    const role = global.__ccoCalRole || 'owner';
+    const treatment = slot.serviceId || pills.treatment || '';
+    mount.innerHTML = '<div class="cco-cal-intel-loading">Laddar insikter…</div>';
+    try {
+      const url = '/api/v1/calendar/booking/' + encodeURIComponent(slot.id) +
+        '/intelligence?tenantId=' + encodeURIComponent(tenantId) +
+        (treatment ? '&treatment=' + encodeURIComponent(treatment) : '');
+      const res = await fetch(url, { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+      if (!res.ok) {
+        mount.innerHTML = '<div class="cco-cal-intel-empty">Insikter ej tillgängliga (' + res.status + ').</div>';
+        return;
+      }
+      const data = await res.json();
+      renderIntelligence(mount, data);
+    } catch (err) {
+      mount.innerHTML = '<div class="cco-cal-intel-empty">Kunde inte ladda insikter.</div>';
+    }
+  }
+
+  function renderIntelligence(mount, data) {
+    const ins = data.insights || {};
+    mount.innerHTML = '';
+    mount.appendChild(el('div', { class: 'cco-cal-intel-title' }, 'Kundintelligens'));
+
+    // 1. Readiness
+    const r = ins.readiness || {};
+    const rTone = r.status === 'ready' ? 'ok' : r.status === 'blocked' ? 'danger' : 'info';
+    mount.appendChild(el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--' + rTone }, [
+      el('div', { class: 'cco-cal-intel-kicker' }, '✓ Ready-for-treatment'),
+      el('div', { class: 'cco-cal-intel-headline' },
+        r.status === 'ready' ? 'Klar för behandling' :
+        r.status === 'blocked' ? (r.blockingCount + ' dokument saknas') :
+        '— ingen behandling-mappning'),
+      r.hint ? el('div', { class: 'cco-cal-intel-sub' }, r.hint) : null,
+    ]));
+
+    // 2. Risk
+    const rk = ins.risk || {};
+    const rkTone = rk.level === 'high' ? 'danger' : rk.level === 'medium' ? 'warning' : 'ok';
+    mount.appendChild(el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--' + rkTone }, [
+      el('div', { class: 'cco-cal-intel-kicker' }, '⚠ Risk · no-show'),
+      el('div', { class: 'cco-cal-intel-headline' },
+        rk.level === 'high' ? 'Hög risk' :
+        rk.level === 'medium' ? 'Medel risk' :
+        rk.level === 'low' ? 'Låg risk' : '—'),
+      el('div', { class: 'cco-cal-intel-sub' },
+        'No-shows: ' + (rk.noShowCount || 0) +
+        ' · sena avbok: ' + (rk.lateCancelCount || 0)),
+      rk.hint ? el('div', { class: 'cco-cal-intel-sub cco-cal-intel-sub--italic' }, rk.hint) : null,
+    ]));
+
+    // 3. Engagement + NBA
+    const eng = ins.engagement || {};
+    const nba = eng.nextBestAction;
+    mount.appendChild(el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--info' }, [
+      el('div', { class: 'cco-cal-intel-kicker' }, '⌘ Senaste kontakt'),
+      el('div', { class: 'cco-cal-intel-headline' },
+        eng.daysSinceContact === null ? 'Ingen kontakt registrerad' :
+        eng.daysSinceContact === 0 ? 'Idag' :
+        eng.daysSinceContact === 1 ? 'Igår' :
+        eng.daysSinceContact + ' dagar sedan'),
+      eng.lastContactKind ? el('div', { class: 'cco-cal-intel-sub' }, 'Senaste: ' + eng.lastContactKind) : null,
+      nba ? el('div', { class: 'cco-cal-intel-nba' }, [
+        el('span', { class: 'cco-cal-intel-nba-icon' }, '→'),
+        el('div', {}, [
+          el('strong', {}, 'Föreslagen åtgärd: ' + nba.action),
+          el('div', { class: 'cco-cal-intel-sub' }, nba.reason || ''),
+        ]),
+      ]) : null,
+    ]));
+
+    // 4. Kommersiell
+    const c = ins.commercial || {};
+    const tier = c.ltvTier || 'standard';
+    const tierTone = tier === 'platinum' ? 'gold' : tier === 'gold' ? 'gold' : tier === 'silver' ? 'info' : tier === 'new' ? 'warning' : 'ok';
+    mount.appendChild(el('div', { class: 'cco-cal-intel-card cco-cal-intel-card--' + tierTone }, [
+      el('div', { class: 'cco-cal-intel-kicker' }, '◆ Kommersiell · ' + tier.toUpperCase()),
+      el('div', { class: 'cco-cal-intel-headline' },
+        c.agreementState === 'signed' ? 'Avtal signerat' :
+        c.agreementState === 'sent' ? 'Avtal skickat' :
+        c.offerState === 'accepted' ? 'Offert accepterad' :
+        c.offerState === 'sent' ? 'Offert skickad' :
+        'Ingen aktiv affär'),
+      c.totalSignedValue ? el('div', { class: 'cco-cal-intel-sub' },
+        'LTV: ' + (c.totalSignedValue.toLocaleString('sv-SE') || c.totalSignedValue) + ' SEK') : null,
+    ]));
+  }
+
+  // ═══ FAS 4: VECKOVY ════════════════════════════════════════════════════════
+  function startOfWeek(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    const day = d.getDay() || 7;
+    d.setDate(d.getDate() - (day - 1));
+    return d.toISOString().slice(0, 10);
+  }
+  function weekNumber(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  }
+
+  function ensureWeekMount() {
+    const content = document.querySelector('.calendar-content');
+    if (!content) return null;
+    let mount = content.querySelector('#cco-cal-week-mount');
+    if (mount) return mount;
+    mount = el('div', { id: 'cco-cal-week-mount', class: 'cco-cal-week-mount' });
+    content.appendChild(mount);
+    return mount;
+  }
+
+  function renderWeekGrid(weekView, onBookingClickFn) {
+    const days = weekView.days || [];
+    if (days.length === 0) return el('div', { class: 'cco-cal-empty' }, 'Ingen vecko-data.');
+
+    const grid = el('div', { class: 'cco-cal-week-grid' });
+
+    // Hour-col (60px)
+    const hourCol = el('div', { class: 'cco-cal-hour-col' });
+    hourCol.appendChild(el('div', { class: 'cco-cal-week-header-spacer' }));
+    for (let h = HOUR_START; h < HOUR_END; h++) {
+      hourCol.appendChild(el('div', { class: 'cco-cal-hour-row' }, String(h).padStart(2,'0') + ':00'));
+    }
+    grid.appendChild(hourCol);
+
+    // 7 dag-kolumner
+    for (const day of days) {
+      const dateObj = new Date(day.date + 'T00:00:00');
+      const isToday = day.date === isoToday();
+      const col = el('div', { class: 'cco-cal-week-day-col' });
+      col.appendChild(el('div', {
+        class: 'cco-cal-week-day-header' + (isToday ? ' is-today' : ''),
+      }, [
+        el('div', { class: 'cco-cal-week-day-name' }, dateObj.toLocaleDateString('sv-SE', { weekday: 'short' })),
+        el('div', { class: 'cco-cal-week-day-num' }, String(dateObj.getDate())),
+        el('div', { class: 'cco-cal-week-day-count' }, (day.totalSlots || 0) + ' bok.'),
+      ]));
+
+      // Bokningar (alla resurser flat)
+      const colBody = el('div', { class: 'cco-cal-week-day-body' });
+      const bookings = (day.resources || []).flatMap(r =>
+        (r.slots || []).map(s => ({ ...s, _resource: r }))
+      );
+      for (const slot of bookings) {
+        const startMin = timeToMinutes(slot.time);
+        const endMin = slot.endTime ? timeToMinutes(slot.endTime) : startMin + 30;
+        const top = Math.max(0, minutesToY(startMin));
+        const height = Math.max(20, ((endMin - startMin) / 60) * HOUR_H - 2);
+        const color = colorForResource(slot._resource?.resourceId || '');
+        const tone = slot.status === 'confirmed' ? 'success'
+                   : slot.status === 'pending'   ? 'warning'
+                   : slot.status === 'cancelled' ? 'danger' : 'info';
+        colBody.appendChild(el('button', {
+          class: 'cco-cal-booking cco-cal-booking--compact',
+          style: `top: ${top}px; height: ${height}px; border-left-color: ${color};`,
+          dataset: { bookingid: slot.id },
+          onclick: (e) => { e.stopPropagation(); onBookingClickFn(slot, slot._resource); },
+          title: (slot.time || '') + ' ' + (slot.patientName || ''),
+        }, [
+          el('div', { class: 'cco-cal-booking-time' }, slot.time || ''),
+          el('div', { class: 'cco-cal-booking-patient' }, slot.patientName || '—'),
+          el('div', { class: 'cco-cal-booking-pills' }, [
+            el('span', { class: `cco-cal-pill cco-cal-pill--${tone}` }, slot.status || 'bok'),
+          ]),
+        ]));
+      }
+      col.appendChild(colBody);
+      grid.appendChild(col);
+    }
+    return grid;
+  }
+
+  async function loadWeek(opts = {}) {
+    const startDate = startOfWeek(opts.date || isoToday());
+    const tenantId = opts.tenantId || global.__ccoCalTenantId || 'hair_tp';
+    const role = opts.role || global.__ccoCalRole || 'owner';
+    global.__ccoCalTenantId = tenantId;
+    global.__ccoCalRole = role;
+
+    const mount = ensureWeekMount();
+    if (!mount) return;
+    mount.innerHTML = '<div class="cco-cal-empty">Laddar vecka…</div>';
+
+    try {
+      const res = await fetch('/api/v1/calendar/week?startDate=' + encodeURIComponent(startDate) +
+        '&tenantId=' + encodeURIComponent(tenantId),
+        { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+      if (!res.ok) {
+        if (res.status === 403) {
+          mount.innerHTML = '<div class="cco-cal-empty">Saknar permission (bookings.read). Välj annan roll.</div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      const weekView = await res.json();
+      mount.innerHTML = '';
+      mount.appendChild(renderWeekGrid(weekView, onBookingClick));
+
+      // Uppdatera existing #calTitle
+      const title = document.getElementById('calTitle');
+      if (title) {
+        const sd = new Date(startDate + 'T00:00:00');
+        const ed = new Date(sd); ed.setDate(ed.getDate() + 6);
+        const fmt = d => d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+        title.textContent = 'Vecka ' + weekNumber(sd) + ' · ' + fmt(sd) + '–' + fmt(ed);
+      }
+    } catch (err) {
+      mount.innerHTML = '<div class="cco-cal-empty">Kunde inte ladda vecka: ' + err.message + '</div>';
     }
   }
 
@@ -660,15 +881,15 @@
 
   // ─── Hook in i existing setMode-flow ────────────────────────────────────
   function bindSetModeHook() {
-    // Vänta lite så existing JS har definierat setMode
     const tryBind = () => {
       const tabs = document.querySelectorAll('.segment-tab');
       tabs.forEach(t => {
         t.addEventListener('click', () => {
           const mode = t.dataset.mode;
           if (mode === 'dag') {
-            // Trigger vår dag-rendering
             setTimeout(() => loadDay({}), 50);
+          } else if (mode === 'vecka') {
+            setTimeout(() => loadWeek({}), 50);
           }
         });
       });
@@ -720,5 +941,5 @@
     init();
   }
 
-  global.CcoKalenderShell = { loadDay, applyView, renderDrawer, openCreateBookingModal };
+  global.CcoKalenderShell = { loadDay, loadWeek, applyView, renderDrawer, openCreateBookingModal };
 })(window);
