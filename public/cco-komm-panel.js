@@ -215,21 +215,22 @@
     return _commTemplatesCache;
   }
 
-  async function openSvarstudio(customerId, opts, host) {
+  async function openSvarstudio(customerId, opts, host, preset = {}) {
     const templates = await loadCommTemplates(opts);
     const tenantId = opts?.tenantId || 'hair_tp';
     const role = opts?.role || 'owner';
 
     const state = {
-      mode: 'pick', // pick | edit
+      mode: preset.presetSubject ? 'edit' : 'pick', // direct-edit om preset finns
       templateId: null,
       template: null,
-      subject: '',
-      body: '',
-      channel: 'email',
-      journeyStep: null,
+      subject: preset.presetSubject || '',
+      body: preset.presetBody || '',
+      channel: preset.channel || 'email',
+      journeyStep: preset.journeyStep || 'reply',
       mergeFields: {},
       currentDraftId: null,
+      replyTo: preset.replyTo || null,
     };
 
     document.querySelectorAll('.cco-komm-modal-backdrop').forEach((n) => n.remove());
@@ -529,7 +530,44 @@
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
-    renderPick();
+    if (state.mode === 'edit') renderEdit();
+    else renderPick();
+  }
+
+  // Sprint 12: Keyboard shortcut S → öppna Svarstudio för aktuell kund
+  function bindKommShortcuts() {
+    if (window.__ccoKommShortcutsBound) return;
+    window.__ccoKommShortcutsBound = true;
+    document.addEventListener('keydown', (e) => {
+      // Ignorera när användaren skriver i input/textarea
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+
+      if (e.key === 's' || e.key === 'S') {
+        // Hitta första mounted komm-host = aktuell kund
+        const host = document.querySelector('[data-cco-komm-host][data-cco-komm-mounted]');
+        const customerId = host?.dataset?.customerId;
+        if (customerId) {
+          e.preventDefault();
+          openSvarstudio(
+            customerId,
+            {
+              tenantId: host.dataset.tenantId || 'hair_tp',
+              role: host.dataset.role || 'owner',
+            },
+            host
+          );
+        }
+      }
+    });
+  }
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bindKommShortcuts);
+    } else {
+      bindKommShortcuts();
+    }
   }
 
   // ─── Intern notis-modal (mobile bottom-sheet) ───
@@ -802,7 +840,11 @@
       ])
     );
 
-    const tabsRow = el('div', { class: 'cco-komm-thread-tabs' });
+    // Sprint 11: Banner-rad för true unanswered + last-contact
+    const bannerRow = el('div', { class: 'cco-komm-thread-banners' });
+    root.appendChild(bannerRow);
+
+    const tabsRow = el('div', { class: 'cco-komm-thread-tabs cco-komm-thread-tabs--sticky' });
     root.appendChild(tabsRow);
 
     const listEl = el('div', { class: 'cco-komm-thread-list' }, 'Laddar…');
@@ -953,6 +995,23 @@
                     '✏ Öppna i Svarstudio'
                   )
                 : null,
+              // Sprint 11: Svara-knapp på incoming_mail (öppnar Svarstudio med Re:)
+              t.kind === 'incoming_mail' && !t.systemMail && !t.handled
+                ? el(
+                    'button',
+                    {
+                      class: 'cco-komm-thread-btn cco-komm-thread-btn--primary',
+                      onclick: () =>
+                        openSvarstudio(customerId, opts, host, {
+                          replyTo: t,
+                          presetSubject: /^re:/i.test(t.subject || '')
+                            ? t.subject
+                            : 'Re: ' + (t.subject || ''),
+                        }),
+                    },
+                    '✏ Svara'
+                  )
+                : null,
               el(
                 'button',
                 {
@@ -968,12 +1027,75 @@
       }
     }
 
+    function renderBanners() {
+      bannerRow.innerHTML = '';
+      const unansweredCount = lastCounts.unanswered || 0;
+      const needsApprovalCount = lastCounts.needs_approval || 0;
+
+      if (unansweredCount > 0) {
+        bannerRow.appendChild(
+          el(
+            'button',
+            {
+              class: 'cco-komm-thread-banner cco-komm-thread-banner--unanswered',
+              type: 'button',
+              onclick: () => {
+                activeFilter = 'unanswered';
+                loadAndRender();
+              },
+            },
+            [
+              el('span', { class: 'cco-komm-thread-banner-ico' }, '⚠'),
+              el('span', {}, unansweredCount + ' obesvarad' + (unansweredCount === 1 ? '' : 'e')),
+              el('span', { class: 'cco-komm-thread-banner-cta' }, 'Visa →'),
+            ]
+          )
+        );
+      }
+      if (needsApprovalCount > 0) {
+        bannerRow.appendChild(
+          el(
+            'button',
+            {
+              class: 'cco-komm-thread-banner cco-komm-thread-banner--needs',
+              type: 'button',
+              onclick: () => {
+                activeFilter = 'needs_approval';
+                loadAndRender();
+              },
+            },
+            [
+              el('span', { class: 'cco-komm-thread-banner-ico' }, '⏳'),
+              el('span', {}, needsApprovalCount + ' väntar godkännande'),
+              el('span', { class: 'cco-komm-thread-banner-cta' }, 'Hantera →'),
+            ]
+          )
+        );
+      }
+      // Quick "Svarstudio"-FAB-ersättare på desktop, sticky bar nere på mobil
+      const studioBtn = el(
+        'button',
+        {
+          class: 'cco-komm-thread-banner cco-komm-thread-banner--studio',
+          type: 'button',
+          onclick: () => openSvarstudio(customerId, opts, host),
+        },
+        [
+          el('span', { class: 'cco-komm-thread-banner-ico' }, '✏'),
+          el('span', {}, 'Svarstudio'),
+          el('kbd', { class: 'cco-komm-kbd' }, 'S'),
+        ]
+      );
+      bannerRow.appendChild(studioBtn);
+    }
+
     async function loadAndRender() {
       listEl.textContent = 'Laddar…';
       try {
         const data = await fetchThreads(customerId, opts, activeFilter);
         lastCounts = data.counts || {};
         renderTabs();
+        renderBanners();
         renderList(data.threads || []);
 
         // Sprint 9: Batch-bar visas när filter=needs_approval och >0 items
@@ -1455,5 +1577,11 @@
     /* ignore observer-bind fel */
   }
 
-  global.CcoKommPanel = { mount, reload: reloadFeed, autoMount };
+  global.CcoKommPanel = {
+    mount,
+    reload: reloadFeed,
+    autoMount,
+    openSvarstudio,
+    openInternalNoteModal,
+  };
 })(window);

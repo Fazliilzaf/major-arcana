@@ -268,6 +268,7 @@ module.exports = [
       'public/cco-scalp-analysis.js',
       'public/cco-journal-feed.js',
       'public/cco-komm-panel.js',
+      'public/cco-kalender-bridge.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,
