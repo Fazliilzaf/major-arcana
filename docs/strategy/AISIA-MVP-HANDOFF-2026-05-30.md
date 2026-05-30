@@ -1,19 +1,20 @@
 # Aisia MVP — Handoff (pausad / isolerad)
 
 _Genererad: 2026-05-30_  
-_Status: FAS 0 + FAS 1 godkänd som isolerad MVP. **Pausad** — ingen FAS 2+._
+_Status: FAS 0 + FAS 1 godkänd · isolerad · **kliniskt pilotspår** (dokumentation). CCO prod off. Ingen FAS 2+._
 
 ---
 
 ## Beslut
 
-|                      |                                                                      |
-| -------------------- | -------------------------------------------------------------------- |
-| **Godkända commits** | `8694455d` (MVP), `5d93a446` (integration fix), `fe7f4a96` (runbook) |
-| **Modulstatus**      | Byggd och testad, **dold som default**                               |
-| **Feature flag**     | `ENABLE_AISIA_SCALP_ANALYSIS=false` (default)                        |
-| **Aktivering**       | Endast när owner säger **`APPLY AISIA TO CCO`**                      |
-| **FAS 2/3/4**        | **BLOCKERAD** — exportfolder, kamera/USB/SDK, egen AI                |
+|                      |                                                                                        |
+| -------------------- | -------------------------------------------------------------------------------------- |
+| **Godkända commits** | `8694455d`, `5d93a446`, `fe7f4a96`, `592ffda5` (isolering)                             |
+| **Modulstatus**      | Byggd och testad, **dold som default**                                                 |
+| **Pilotpaket**       | [`AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md`](./AISIA-PILOT-PACKAGE-INDEX-2026-05-30.md) |
+| **Feature flag**     | `ENABLE_AISIA_SCALP_ANALYSIS=false` (default)                                          |
+| **Aktivering**       | Endast när owner säger **`APPLY AISIA TO CCO`**                                        |
+| **FAS 2/3/4**        | **BLOCKERAD** — exportfolder, kamera/USB/SDK, egen AI                                  |
 
 ---
 
