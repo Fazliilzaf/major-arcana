@@ -51,6 +51,41 @@ function deriveBrandFromTenant(tenantId) {
   return 'hair_tp';
 }
 
+/**
+ * Bygg en maskerad Meridiq-läslänk per patient (P0.7-workaround).
+ *
+ * Personalen behöver kunna öppna originaljournalen i Meridiq under
+ * övergångsfönstret tills bulk-import är klar (se
+ * docs/strategy/MERIDIQ-JOURNAL-IMPORT-GAP-2026-05-30.md).
+ *
+ * Vi exponerar BARA ett maskerat prefix i URL:en — INTE fullständig
+ * `meridiqPatientId` eller pnr. Personalen kan sen söka manuellt i
+ * Meridiq-UI via sök-prefixet. Detta är NOT en cutover-grön åtgärd, men
+ * minimerar journalförlust under övergångsperioden.
+ *
+ * Compliance:
+ *   - Returnerar null om meridiqMeta saknas (= ingen Meridiq-historik).
+ *   - Maskar `meridiqPatientId` till 2 första tecknen + `***`.
+ *   - Lämnar `pnrSuffix` ute helt och hållet — pnr exponeras ALDRIG i URL.
+ *   - Den faktiska kopplingen sker manuellt i Meridiq-UI av staffen.
+ *
+ * @param {object} params
+ * @param {object} [params.meridiqMeta] - directory[k].meridiqMeta
+ * @returns {string|null}
+ */
+function buildMeridiqReadLink({ meridiqMeta } = {}) {
+  const meta = asObject(meridiqMeta);
+  const rawId = meta.meridiqPatientId || meta.id || null;
+  if (!rawId) return null;
+  const id = String(rawId).trim();
+  if (!id) return null;
+  // Mask: keep first 2 chars, replace rest with *** to give staff a
+  // search-hint without exposing the canonical ID in URL/log/screenshot.
+  const visible = id.length <= 2 ? id : id.slice(0, 2);
+  const masked = visible + '***';
+  return 'https://app.meridiq.com/clients?search=' + encodeURIComponent(masked);
+}
+
 function deriveEncountersFromJournals(journals = []) {
   // Each journal entry forms an "encounter" for timeline purposes.
   // We don't have a separate encounters store yet; derive from journal-entries.
@@ -289,6 +324,10 @@ function createMasterPatientCardLookup(deps = {}) {
         duplicateCandidate,
         noMeridiqJournal,
         meridiqPatientId: meridiqMeta.meridiqPatientId || meridiqMeta.id || null,
+        // P0.7 workaround — maskerat sök-link till app.meridiq.com.
+        // null när ingen meridiqMeta finns. Se ccoMasterPatientCardStore.buildMeridiqReadLink
+        // + docs/strategy/MERIDIQ-JOURNAL-IMPORT-GAP-2026-05-30.md.
+        meridiqReadLink: buildMeridiqReadLink({ meridiqMeta }),
       },
       driveFolder: {
         brand,
@@ -366,4 +405,5 @@ module.exports = {
   deriveBrandFromTenant,
   deriveEncountersFromJournals,
   buildTimeline,
+  buildMeridiqReadLink,
 };

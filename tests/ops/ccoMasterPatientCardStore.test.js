@@ -8,6 +8,7 @@ const {
   deriveBrandFromTenant,
   deriveEncountersFromJournals,
   buildTimeline,
+  buildMeridiqReadLink,
 } = require('../../src/ops/ccoMasterPatientCardStore');
 
 const { predictDrivePath } = require('../../src/ops/ccoDrivePathPredictor');
@@ -121,6 +122,60 @@ test('master patient card aggregates customer + journals + drive predictions', a
   assert.equal(card.journals.length, 1);
   assert.equal(card.timeline.length, 1);
   assert.equal(card.timeline[0].type, 'journal');
+});
+
+test('P0.7 — buildMeridiqReadLink masks ids and never leaks pnr', () => {
+  // null cases
+  assert.equal(buildMeridiqReadLink(), null);
+  assert.equal(buildMeridiqReadLink({}), null);
+  assert.equal(buildMeridiqReadLink({ meridiqMeta: null }), null);
+  assert.equal(buildMeridiqReadLink({ meridiqMeta: {} }), null);
+  assert.equal(buildMeridiqReadLink({ meridiqMeta: { meridiqPatientId: '' } }), null);
+
+  // happy path — keeps first 2 chars, masks the rest
+  assert.equal(
+    buildMeridiqReadLink({ meridiqMeta: { meridiqPatientId: 'abc123def456' } }),
+    'https://app.meridiq.com/clients?search=ab***'
+  );
+  // single-char id — kept as-is + ***
+  assert.equal(
+    buildMeridiqReadLink({ meridiqMeta: { meridiqPatientId: 'X' } }),
+    'https://app.meridiq.com/clients?search=X***'
+  );
+  // fallback to .id when meridiqPatientId missing
+  assert.equal(
+    buildMeridiqReadLink({ meridiqMeta: { id: 'mer-9876' } }),
+    'https://app.meridiq.com/clients?search=me***'
+  );
+  // pnrSuffix MUST NEVER appear in the link
+  const link = buildMeridiqReadLink({
+    meridiqMeta: { meridiqPatientId: 'm-7892', pnrSuffix: '1234' },
+  });
+  assert.ok(!link.includes('1234'), 'pnrSuffix must never leak into URL');
+  assert.ok(!link.includes('7892'), 'full id must be masked');
+});
+
+test('P0.7 — master patient card exposes meridiqReadLink when meridiqMeta present', async () => {
+  const tenantId = 'hair_tp';
+  const patientId = 'p999';
+  const state = {
+    tenantId,
+    customerState: {
+      directory: {
+        [patientId]: {
+          meridiqMeta: { hasJournal: true, meridiqPatientId: 'meridiq-1234', via: 'email' },
+        },
+      },
+      details: {},
+      identityByKey: {},
+    },
+  };
+  const lookup = createMasterPatientCardLookup({ customerStore: fakeCustomerStore(state) });
+  const card = await lookup.getCard({ tenantId, patientId });
+  assert.ok(card);
+  assert.ok(card.meridiqRef.meridiqReadLink, 'meridiqReadLink expected on card');
+  assert.match(card.meridiqRef.meridiqReadLink, /^https:\/\/app\.meridiq\.com\/clients\?search=/);
+  assert.ok(!card.meridiqRef.meridiqReadLink.includes('1234'), 'full id leaked');
 });
 
 test('master patient card returns null for unknown patient', async () => {
