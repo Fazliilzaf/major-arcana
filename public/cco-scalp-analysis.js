@@ -241,6 +241,50 @@
 
     const cmp = renderComparison(data.comparisons);
     if (cmp) root.appendChild(cmp);
+
+    if (opts.patientView) {
+      root.appendChild(
+        el('section', { class: 'cco-sa__card' }, [
+          el('h4', { text: 'Patientvy (förenklad svenska)' }),
+          el('p', { class: 'cco-sa__disclaimer', text: opts.patientView.disclaimer || '' }),
+          ...(opts.patientView.sessions || []).map((s) =>
+            el('div', { class: 'cco-sa__meta' }, [
+              el('p', {
+                text: `${s.sessionTypeLabel || 'Session'} · ${s.sessionDate || '—'} · ${s.statusLabel || ''}`,
+              }),
+              el(
+                'ul',
+                { class: 'cco-sa__protocol' },
+                (s.metrics || []).map((m) =>
+                  el('li', { text: `${m.label}: ${m.value}${m.unit ? ' ' + m.unit : ''}` })
+                )
+              ),
+            ])
+          ),
+        ])
+      );
+    }
+
+    if (opts.baselineSession && opts.latestFollowUp) {
+      root.appendChild(
+        el('section', { class: 'cco-sa__card' }, [
+          el('h4', { text: 'Uppföljning — jämför mot baseline' }),
+          el('p', {
+            class: 'cco-sa__meta',
+            text: 'Skapar klinisk jämförelse (delta), inte automatisk behandlingsrekommendation.',
+          }),
+          el(
+            'button',
+            {
+              class: 'cco-sa__btn',
+              type: 'button',
+              onclick: () => opts.onCreateComparison(opts.baselineSession, opts.latestFollowUp),
+            },
+            ['Skapa baseline-jämförelse']
+          ),
+        ])
+      );
+    }
   }
 
   async function mount(selector, options) {
@@ -250,11 +294,19 @@
     const patientId = options.patientId;
     const tenantId = options.tenantId || 'hairtpclinic';
     const base = options.baseUrl || '';
-    const state = { data: null, selectedSession: null, selectedMetrics: [] };
+    const state = { data: null, selectedSession: null, selectedMetrics: [], patientView: null };
 
     async function reload() {
       const url = `${base}/api/v1/cco/scalp-analysis/patient/${encodeURIComponent(patientId)}?tenantId=${encodeURIComponent(tenantId)}`;
       state.data = await fetchJson(url, { headers: authHeaders(options.headers) });
+      try {
+        state.patientView = await fetchJson(
+          `${base}/api/v1/cco/scalp-analysis/patient/${encodeURIComponent(patientId)}/patient-view`,
+          { headers: authHeaders(options.headers) }
+        );
+      } catch {
+        state.patientView = null;
+      }
       if (state.selectedSession) {
         const detail = await fetchJson(
           `${base}/api/v1/cco/scalp-analysis/sessions/${encodeURIComponent(state.selectedSession.id)}`,
@@ -331,6 +383,19 @@
       await reload();
     }
 
+    async function createComparison(baseline, followUp) {
+      await fetchJson(`${base}/api/v1/cco/scalp-analysis/comparisons`, {
+        method: 'POST',
+        headers: authHeaders({ 'content-type': 'application/json', ...(options.headers || {}) }),
+        body: JSON.stringify({
+          patientId,
+          baselineSessionId: baseline.id,
+          comparisonSessionId: followUp.id,
+        }),
+      });
+      await reload();
+    }
+
     async function addMetric(session) {
       const typeEl = document.getElementById('cco-sa-metric-type');
       const valEl = document.getElementById('cco-sa-metric-value');
@@ -353,11 +418,20 @@
     }
 
     function paint() {
-      const latest = state.data?.sessions?.[0];
+      const sessions = state.data?.sessions || [];
+      const latest = sessions[0];
+      const baselineSession =
+        sessions.find((s) => s.sessionType === 'consultation' && s.status === 'verified') ||
+        sessions.find((s) => s.sessionType === 'consultation') ||
+        null;
+      const latestFollowUp =
+        sessions.find((s) => s.sessionType === 'follow_up' && s.id !== baselineSession?.id) ||
+        sessions.find((s) => s.sessionType === 'follow_up') ||
+        null;
       render(
         root,
         {
-          sessions: state.data?.sessions || [],
+          sessions,
           comparisons: state.data?.comparisons || [],
           protocol: latest?.protocol || null,
         },
@@ -376,8 +450,12 @@
             paint();
           },
           onAddMetric: (s) => addMetric(s).catch((e) => alert(e.message)),
+          onCreateComparison: (b, f) => createComparison(b, f).catch((e) => alert(e.message)),
           selectedSession: state.selectedSession,
           selectedMetrics: state.selectedMetrics,
+          patientView: state.patientView,
+          baselineSession,
+          latestFollowUp,
         }
       );
     }

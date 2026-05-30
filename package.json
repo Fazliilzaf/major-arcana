@@ -122,6 +122,7 @@
     "verify:resend-domain-prod": "node ./scripts/verify-resend-domain-prod.js",
     "verify:booking-web-e2e-prod": "node ./scripts/verify-booking-web-e2e-prod.js",
     "verify:booking-operator-signoff-prod": "node ./scripts/verify-booking-operator-signoff-prod.js",
+    "verify:aisia-cco-integration": "node ./scripts/verify-aisia-cco-integration.js",
     "apply:booking-web-prod-env": "bash ./scripts/apply-booking-web-prod-env.sh",
     "apply:cmo-connectors-prod": "node ./scripts/apply-cmo-connectors-prod.js",
     "apply:drive-prod": "node ./scripts/apply-drive-api-prod.js",

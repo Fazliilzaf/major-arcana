@@ -1545,6 +1545,7 @@
     if (isMobileViewport()) {
       return `
           <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
+          <button type="button" class="patient-master-tab${tab === 'scalpanalys' ? ' is-active' : ''}" data-patient-tab="scalpanalys" aria-pressed="${tab === 'scalpanalys'}">Scalpanalys</button>
           <button type="button" class="patient-master-tab${tab === 'tidslinje' ? ' is-active' : ''}" data-patient-tab="tidslinje" aria-pressed="${tab === 'tidslinje'}">Tidslinje</button>
           <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileLabel}</button>`;
     }
@@ -2436,6 +2437,84 @@
 
   function hasHealthDeclarationDraft(entries) {
     return asArray(entries).some((entry) => entry.journalType === 'health_declaration');
+  }
+
+  function renderScalpImagingCallout() {
+    const ps = runtime.scalpProtocolStatus;
+    if (!ps) {
+      return `
+      <article class="focus-customer-data-card patient-master-workflow-card" data-scalp-imaging-callout>
+        <h4>Aisia / hårscalpanalys</h4>
+        <p class="patient-master-muted">Laddar imaging-status…</p>
+      </article>`;
+    }
+    const ic = ps.imagingChecklist || {};
+    const preOp = ps.protocol || {};
+    const steps = [
+      { label: 'Baseline hår-/scalpanalys', done: !!ic.baselineComplete },
+      { label: 'Donor vänster', done: !!ic.donorLeft },
+      { label: 'Donor höger', done: !!ic.donorRight },
+      { label: 'Analys verifierad av behandlare', done: !!ic.analysisVerified },
+    ];
+    const gateLines = [];
+    if (preOp.baselineImagingRequired) gateLines.push('Pre-op: baseline imaging saknas');
+    if (preOp.donorRecipientImagesRequired)
+      gateLines.push('Pre-op: donor/recipient-bilder ofullständiga');
+    if (preOp.analysisVerifiedRequired) gateLines.push('Analys väntar på verifiering');
+    const protocolMsgs = asArray(preOp.messages).slice(0, 4);
+    return `
+      <article class="focus-customer-data-card patient-master-workflow-card" data-scalp-imaging-callout>
+        <div class="patient-master-material-head">
+          <h4>Aisia / hårscalpanalys</h4>
+          <button type="button" class="customers-utility-button" data-patient-tab-jump="scalpanalys">
+            Öppna Hår-/scalpanalys →
+          </button>
+        </div>
+        <p class="patient-master-muted">Stöd i konsultation och pre-op — ingen automatisk diagnos. Slutlig bedömning görs av behandlare.</p>
+        <ol class="patient-master-workflow-steps">
+          ${steps
+            .map(
+              (step) =>
+                `<li class="${step.done ? 'is-done' : ''}">${escapeHtml(step.label)}${
+                  step.done ? ' ✓' : ''
+                }</li>`
+            )
+            .join('')}
+        </ol>
+        ${
+          gateLines.length
+            ? `<ul class="patient-master-workflow-steps">${gateLines
+                .map((m) => `<li>${escapeHtml(m)}</li>`)
+                .join('')}</ul>`
+            : ''
+        }
+        ${
+          protocolMsgs.length
+            ? `<ul class="patient-master-workflow-steps">${protocolMsgs
+                .map((m) => `<li>${escapeHtml(m)}</li>`)
+                .join('')}</ul>`
+            : ''
+        }
+      </article>`;
+  }
+
+  async function loadScalpProtocolStatus(patientId) {
+    const id = normalizeText(patientId);
+    if (!id) return;
+    try {
+      const response = await fetch(
+        `/api/v1/cco/scalp-analysis/patient/${encodeURIComponent(id)}/protocol-status`,
+        { credentials: 'same-origin', headers: { 'x-cco-role': 'operator' } }
+      );
+      if (!response.ok) return;
+      runtime.scalpProtocolStatus = await response.json();
+      const callout = document.querySelector('[data-scalp-imaging-callout]');
+      if (callout && runtime.selectedPatientId === id) {
+        callout.outerHTML = renderScalpImagingCallout();
+      }
+    } catch (error) {
+      console.warn('Scalp protocol-status misslyckades.', error);
+    }
   }
 
   function renderJournalWorkflowCallout(entries) {
@@ -3951,6 +4030,7 @@
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil"></div>
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
           ${renderJournalWorkflowCallout(journalEntries)}
+          ${renderScalpImagingCallout()}
           ${renderJournalToolbar(card, journalEntries)}
         </div>
         <div class="patient-master-tab-panel${scalpanalysActive ? '' : ' hidden'}" data-patient-tab-panel="scalpanalys">
@@ -4027,6 +4107,7 @@
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">
           ${renderJournalWorkflowCallout(journalEntries)}
+          ${renderScalpImagingCallout()}
           ${renderPatientIntegrationsCard(card)}
           ${renderPatientComplianceCard(card)}
           ${renderPatientDemographicsCard(card)}
@@ -4548,6 +4629,7 @@
         void enrichPatientDriveFiles(patientId);
       }
       signalDeepLinkDetailReady(patientId);
+      void loadScalpProtocolStatus(patientId);
       if (
         runtime.detailTab === 'journal' ||
         runtime.detailTab === 'tidslinje' ||
