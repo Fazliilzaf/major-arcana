@@ -276,7 +276,7 @@ I dagsläget har **ingen** entry/template en `driveFileId` — allt är fortfara
 |---|---|---|---|---|---|
 | 1 | Master patientkort (`ccoPatientMasterStore`) saknar bulk-skapad rad per kund + Drive-folder-ID-koppling | Alla 7 257 | 2 dagar | P0 | Modulen finns, data-fil saknas |
 | 2 | Drive service-account `ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON` ej konfigurerad — ingen file-enumeration möjlig | 7 delade Drives, 8 års historik | 30 min owner + 4 h dev | P0 | BLOCKED på owner-godkännande |
-| 3 | TP-journal-paritet fält-nivå klar (52/52) men 7 användarsyns-fält ej speglade i UI | Hair TP-patienter (~6 268) | 1 dag | P0 | UI-jobb kvarstår, schema OK |
+| 3 | ⚠️ FALSE POSITIVE — TP-journal-paritet 52/52 är FULL paritet. "59 vs 52"-scope-kravet förklaras av (a) 6 sortOrder-luckor (Q-ID 450896, 450903, 450917, 450922, 450928, 450937 = sektion-separatorer i Meridiq) + (b) 11 CCO-native convenience-fält i `emptyDefaults`. Verifierat i P0.4 (2026-05-30). | — | — | P0 | ✅ CLOSED — INGEN åtgärd krävs |
 | 4 | Auto-PDF-generering vid signering — `ccoJournalPdfExport` finns men inte triggad i sign-flow | Alla 16 nuvarande + framtida entries | 0,5 dag | P0 | UPGRADE per gap-analysis |
 | 5 | Bulk-import av historiska Meridiq-PDF:er till patientkort | 6 268 patient-journaler | 3 dagar | P0 | Ej startat |
 | 6 | Drive-bild-bulk-import + koppling till encounter | Estimat 3 000–8 000 patient-mappar med bilder | 4 dagar | P0 | BLOCKED på (2) |
@@ -288,7 +288,7 @@ I dagsläget har **ingen** entry/template en `driveFileId` — allt är fortfara
 | 12 | Personnummer-coverage 0,08 % i CCO-bas (6/7 257) — PDL-risk | 7 257 | löpande 12 mån | P0 compliance | `ccoIdVerificationStore` finns, ej tvingat |
 | 13 | QA-dashboard (Journal Coverage) ej byggd | n/a | 2 dagar | P0 | DoD-punkt 9 |
 | 14 | Cutover Readiness Report (auto-genererad green/red status) ej byggd | n/a | 1 dag | P0 | DoD-punkt 10 — detta dokument är basen |
-| 15 | Legacy-tenant `hairtp-clinic` (1 247 records) ligger kvar — konsolideringsbeslut behövs | 1 247 records | 0,5 dag analys + 1 dag merge | P0 | Ny upptäckt i denna audit |
+| 15 | Legacy-tenant `hairtp-clinic` (1 247 records) ligger kvar — konsolideringsbeslut behövs | 1 247 records | 0,5 dag analys + 1 dag merge | P0 | ✅ RESOLVED 2026-05-30: 1247 = 100% syntetisk demo-data (`@demo.hairtpclinic.com`), 0 email/phone-överlapp mot `hair_tp`. 1205 → `data/legacy-demo-quarantine.json`, 42 namnmatch → `data/migration-review-queue.json`. Tenant bevarad (`drainedAt`-flagga). |
 | 16 | Drive case-inconsistens (`Hair Tp Clinic 2022` vs `Hair TP Clinic 2024`) — case-insensitive parser krävs | år 2022-mappar | 1 timme | P1 | Per `DRIVE-INVENTORY-REPORT-2026-05-30.md#4` |
 
 ---
