@@ -7992,6 +7992,121 @@ app.get('/api/v1/qa/dashboard', (req, res) => {
     console.log(
       '[komm-sprint3] monterad: /cco-comm/cron/* (6 triggers, DRY-RUN only — staff approval required via Svarstudio) (mail.send)'
     );
+
+    // ─── Komm Sprint 4 — Conversation thread-view (aggregator + actions) ───
+    let _convThreadStore = null;
+    async function ensureConvThreadStore() {
+      if (_convThreadStore) return _convThreadStore;
+      // Säkra att commDraftStore + templates är init:ade (Sprint 2)
+      try {
+        await ensureCommStores();
+      } catch {
+        /* ignore — store kan saknas */
+      }
+      const { createCcoConversationThreadStore } = require('./src/ops/ccoConversationThreadStore');
+      const sendActionsList = (customerId) => {
+        const sendStore = app.locals.ccoSendActionStore;
+        if (!sendStore?.listForCustomer) return [];
+        try {
+          return sendStore.listForCustomer(customerId, { limit: 50 }) || [];
+        } catch {
+          return [];
+        }
+      };
+      _convThreadStore = await createCcoConversationThreadStore({
+        filePath: path.join(__dirname, 'data', 'cco-conversation-thread-states.json'),
+        mailIngestionStore: app.locals.ccoMailIngestionStore || null,
+        mailboxTruthStore: app.locals.ccoMailboxTruthStore || null,
+        conversationNotesStore: app.locals.ccoConversationNotesStore || null,
+        commDraftStore: app.locals.ccoCommDraftStore || _commDraftStore || null,
+        sendActionsList,
+        auditLog: ccoAuditLog,
+      });
+      app.locals.ccoConversationThreadStore = _convThreadStore;
+      return _convThreadStore;
+    }
+
+    const threadParser = express.json({ limit: '20kb' });
+
+    app.get(
+      '/api/v1/cco-customers/:id/conversation-threads',
+      attachRole,
+      requirePermission('customers.read'),
+      async (req, res) => {
+        try {
+          const store = await ensureConvThreadStore();
+          const customerId = req.params.id;
+          const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const filter = req.query.filter || 'all';
+          const { threads, counts } = store.buildThreadsForCustomer(customerId, { tenantId });
+          const filtered = store.filterThreads(threads, filter);
+          res.json({
+            ok: true,
+            customerId,
+            filter,
+            counts,
+            count: filtered.length,
+            threads: filtered,
+            availableFilters: store.VALID_FILTERS,
+          });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.post(
+      '/api/v1/cco-conversation-threads/action',
+      attachRole,
+      requirePermission('mail.send'),
+      threadParser,
+      async (req, res) => {
+        try {
+          const store = await ensureConvThreadStore();
+          const { customerId, threadId, action, snoozeUntilIso, journeyStep, reason } =
+            req.body || {};
+          if (!customerId || !threadId || !action) {
+            return res
+              .status(400)
+              .json({ ok: false, error: 'customerId + threadId + action krävs' });
+          }
+          const actor = req.headers['x-cco-user'] || 'staff';
+          const tenantId = req.body.tenantId || req.headers['x-cco-tenant'] || 'hair_tp';
+          const result = store.performAction({
+            customerId,
+            threadId,
+            action,
+            actor,
+            tenantId,
+            snoozeUntilIso,
+            journeyStep,
+            reason,
+          });
+          res.json({ ok: true, threadState: result });
+        } catch (err) {
+          const code = /invalid|krävs/.test(err.message) ? 400 : 500;
+          res.status(code).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    app.get(
+      '/api/v1/cco-conversation-threads/stats',
+      attachRole,
+      requirePermission('mail.read'),
+      async (req, res) => {
+        try {
+          const store = await ensureConvThreadStore();
+          res.json({ ok: true, stats: store.stats() });
+        } catch (err) {
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      }
+    );
+
+    console.log(
+      '[komm-sprint4] monterad: /cco-customers/:id/conversation-threads (filters: all,incoming,drafts,needs_approval,sent,internal,unanswered) · /cco-conversation-threads/action (mark_handled/snooze/mark_read/link_journey) (customers.read · mail.send)'
+    );
   } catch (err) {
     console.warn('[calendar-sprint1] kunde inte montera:', err.message);
   }

@@ -558,3 +558,211 @@
     width: 100%;
   }
 }
+
+/* ─── Sprint 4 — Thread-view (tabs + thread-list per kund) ────────── */
+.cco-komm-threads {
+  margin-top: 18px;
+  padding: 14px 12px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 243, 235, 0.74));
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  box-shadow: 0 2px 6px rgba(56, 40, 28, 0.05);
+}
+.cco-komm-threads-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.cco-komm-threads-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+  letter-spacing: -0.01em;
+}
+.cco-komm-threads-meta {
+  font-size: 9.5px;
+  color: var(--cco-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cco-komm-thread-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(187, 159, 122, 0.18);
+}
+.cco-komm-thread-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--cco-text-secondary);
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+.cco-komm-thread-tab:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--cco-color-brand);
+}
+.cco-komm-thread-tab.is-active {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  border-color: rgba(187, 71, 121, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+.cco-komm-thread-tab-count {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: inherit;
+}
+.cco-komm-thread-tab.is-active .cco-komm-thread-tab-count {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.cco-komm-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cco-komm-thread-row {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 243, 235, 0.62));
+  border: 1px solid rgba(187, 159, 122, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.14s ease;
+}
+.cco-komm-thread-row:hover {
+  border-color: rgba(187, 71, 121, 0.26);
+  box-shadow: 0 4px 10px rgba(56, 40, 28, 0.06);
+}
+.cco-komm-thread-row--unanswered {
+  border-left: 3px solid var(--cco-status-warning);
+}
+.cco-komm-thread-row--needs_approval {
+  border-left: 3px solid var(--cco-status-warning);
+  background: linear-gradient(180deg, rgba(255, 244, 219, 0.88), rgba(248, 233, 198, 0.72));
+}
+.cco-komm-thread-row--handled {
+  opacity: 0.68;
+  border-left: 3px solid var(--cco-status-success);
+}
+.cco-komm-thread-row--snoozed {
+  opacity: 0.68;
+}
+
+.cco-komm-thread-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.cco-komm-thread-from {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cco-komm-thread-ts {
+  font-size: 10px;
+  color: var(--cco-color-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.cco-komm-thread-subject {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cco-color-text);
+  line-height: 1.3;
+}
+.cco-komm-thread-preview {
+  font-size: 11px;
+  color: var(--cco-text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cco-komm-thread-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  color: var(--cco-text-tertiary);
+  margin-top: 2px;
+}
+.cco-komm-thread-flag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: rgba(200, 130, 30, 0.14);
+  color: var(--cco-status-warning);
+}
+.cco-komm-thread-flag--ok {
+  background: rgba(74, 130, 104, 0.14);
+  color: var(--cco-status-success);
+}
+
+.cco-komm-thread-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.cco-komm-thread-btn {
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--cco-color-brand);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.cco-komm-thread-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(187, 71, 121, 0.35);
+}
+.cco-komm-thread-btn--primary {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  border-color: rgba(187, 71, 121, 0.28);
+}
+
+@media (max-width: 720px) {
+  .cco-komm-thread-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 6px;
+  }
+  .cco-komm-thread-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .cco-komm-thread-actions {
+    flex-direction: column;
+  }
+  .cco-komm-thread-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

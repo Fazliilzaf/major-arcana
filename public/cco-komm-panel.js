@@ -704,6 +704,257 @@
     }
   }
 
+  // ─── Sprint 4: Conversation thread-view (tabs + actions per thread) ───
+  const TAB_DEFS = [
+    { id: 'all', label: 'Alla' },
+    { id: 'unanswered', label: 'Kräver svar' },
+    { id: 'incoming', label: 'Inkommande' },
+    { id: 'drafts', label: 'Utkast' },
+    { id: 'needs_approval', label: 'Väntar' },
+    { id: 'sent', label: 'Skickat' },
+    { id: 'internal', label: 'Internt' },
+  ];
+
+  async function fetchThreads(customerId, opts, filter) {
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    const url =
+      '/api/v1/cco-customers/' +
+      encodeURIComponent(customerId) +
+      '/conversation-threads?filter=' +
+      encodeURIComponent(filter || 'all') +
+      '&tenantId=' +
+      encodeURIComponent(tenantId);
+    const r = await fetch(url, { headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  async function threadAction(customerId, threadId, action, opts, extra) {
+    const tenantId = opts?.tenantId || 'hair_tp';
+    const role = opts?.role || 'owner';
+    const body = Object.assign({ customerId, threadId, action, tenantId }, extra || {});
+    const r = await fetch('/api/v1/cco-conversation-threads/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-cco-role': role, 'x-cco-tenant': tenantId },
+      body: JSON.stringify(body),
+    });
+    return r.json();
+  }
+
+  function fmtThreadTs(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      const diff = Math.floor((Date.now() - d.getTime()) / 60000);
+      if (diff < 60) return diff + 'm';
+      if (diff < 1440) return Math.floor(diff / 60) + 'h';
+      return Math.floor(diff / 1440) + 'd';
+    } catch {
+      return '';
+    }
+  }
+
+  function renderThreadSection(host, customerId, opts) {
+    let root = host.querySelector('.cco-komm-threads');
+    if (!root) {
+      root = el('div', { class: 'cco-komm-threads' });
+      host.appendChild(root);
+    }
+    root.innerHTML = '';
+
+    root.appendChild(
+      el('div', { class: 'cco-komm-threads-head' }, [
+        el('h4', {}, '💬 Konversationer'),
+        el('span', { class: 'cco-komm-threads-meta' }, 'Sprint 4'),
+      ])
+    );
+
+    const tabsRow = el('div', { class: 'cco-komm-thread-tabs' });
+    root.appendChild(tabsRow);
+
+    const listEl = el('div', { class: 'cco-komm-thread-list' }, 'Laddar…');
+    root.appendChild(listEl);
+
+    let activeFilter = 'all';
+    let lastCounts = {};
+
+    function renderTabs() {
+      tabsRow.innerHTML = '';
+      for (const tab of TAB_DEFS) {
+        const count = lastCounts[tab.id];
+        const btn = el(
+          'button',
+          {
+            class: 'cco-komm-thread-tab' + (tab.id === activeFilter ? ' is-active' : ''),
+            type: 'button',
+            onclick: () => {
+              activeFilter = tab.id;
+              loadAndRender();
+            },
+          },
+          [
+            tab.label,
+            count != null
+              ? el('span', { class: 'cco-komm-thread-tab-count' }, String(count))
+              : null,
+          ]
+        );
+        tabsRow.appendChild(btn);
+      }
+    }
+
+    function renderList(threads) {
+      listEl.innerHTML = '';
+      if (!threads || threads.length === 0) {
+        listEl.appendChild(
+          el('div', { class: 'cco-komm-empty' }, 'Inga konversationer för detta filter.')
+        );
+        return;
+      }
+      for (const t of threads) {
+        const row = el(
+          'div',
+          {
+            class: 'cco-komm-thread-row cco-komm-thread-row--' + (t.threadStatus || 'unknown'),
+          },
+          [
+            el('div', { class: 'cco-komm-thread-row-head' }, [
+              el('span', { class: 'cco-komm-thread-from' }, t.from || ''),
+              el('span', { class: 'cco-komm-thread-ts' }, fmtThreadTs(t.ts)),
+            ]),
+            el('div', { class: 'cco-komm-thread-subject' }, t.subject || ''),
+            t.preview ? el('div', { class: 'cco-komm-thread-preview' }, t.preview) : null,
+            el('div', { class: 'cco-komm-thread-meta' }, [
+              el(
+                'span',
+                {
+                  class: 'cco-komm-thread-status cco-komm-status--' + (t.threadStatus || 'unknown'),
+                },
+                (t.threadStatus || '').replace('_', ' ')
+              ),
+              t.channel ? el('span', {}, '· ' + t.channel.toUpperCase()) : null,
+              t.journeyStep ? el('span', {}, '· ' + t.journeyStep) : null,
+              t.unanswered ? el('span', { class: 'cco-komm-thread-flag' }, '⚠ obesvarad') : null,
+              t.handled
+                ? el(
+                    'span',
+                    { class: 'cco-komm-thread-flag cco-komm-thread-flag--ok' },
+                    '✓ hanterad'
+                  )
+                : null,
+              t.snoozedUntil ? el('span', { class: 'cco-komm-thread-flag' }, '⏰ snoozed') : null,
+            ]),
+            el('div', { class: 'cco-komm-thread-actions' }, [
+              !t.handled
+                ? el(
+                    'button',
+                    {
+                      class: 'cco-komm-thread-btn',
+                      onclick: async () => {
+                        const r = await threadAction(customerId, t.threadId, 'mark_handled', opts);
+                        if (r.ok) {
+                          showToast('✓ Markerad hanterad', 'ok');
+                          loadAndRender();
+                        } else showToast('✗ ' + (r.error || 'fel'), 'error');
+                      },
+                    },
+                    '✓ Hanterad'
+                  )
+                : el(
+                    'button',
+                    {
+                      class: 'cco-komm-thread-btn',
+                      onclick: async () => {
+                        const r = await threadAction(
+                          customerId,
+                          t.threadId,
+                          'unmark_handled',
+                          opts
+                        );
+                        if (r.ok) {
+                          showToast('↻ Återöppnad', 'ok');
+                          loadAndRender();
+                        }
+                      },
+                    },
+                    '↻ Återöppna'
+                  ),
+              !t.snoozedUntil
+                ? el(
+                    'button',
+                    {
+                      class: 'cco-komm-thread-btn',
+                      onclick: async () => {
+                        const r = await threadAction(customerId, t.threadId, 'snooze', opts, {
+                          snoozeUntilIso: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+                        });
+                        if (r.ok) {
+                          showToast('⏰ Snoozad 24h', 'ok');
+                          loadAndRender();
+                        }
+                      },
+                    },
+                    '⏰ Snooza'
+                  )
+                : el(
+                    'button',
+                    {
+                      class: 'cco-komm-thread-btn',
+                      onclick: async () => {
+                        const r = await threadAction(customerId, t.threadId, 'unsnooze', opts);
+                        if (r.ok) {
+                          showToast('↻ Avsnoozad', 'ok');
+                          loadAndRender();
+                        }
+                      },
+                    },
+                    '↻ Avsnooza'
+                  ),
+              t.requiresApproval
+                ? el(
+                    'button',
+                    {
+                      class: 'cco-komm-thread-btn cco-komm-thread-btn--primary',
+                      onclick: () => openSvarstudio(customerId, opts, host),
+                    },
+                    '✏ Öppna i Svarstudio'
+                  )
+                : null,
+              el(
+                'button',
+                {
+                  class: 'cco-komm-thread-btn',
+                  onclick: () => openInternalNoteModal(customerId, opts, host),
+                },
+                '🗒 Notis'
+              ),
+            ]),
+          ]
+        );
+        listEl.appendChild(row);
+      }
+    }
+
+    async function loadAndRender() {
+      listEl.textContent = 'Laddar…';
+      try {
+        const data = await fetchThreads(customerId, opts, activeFilter);
+        lastCounts = data.counts || {};
+        renderTabs();
+        renderList(data.threads || []);
+      } catch (err) {
+        listEl.innerHTML = '';
+        listEl.appendChild(
+          el('div', { class: 'cco-komm-empty' }, 'Kunde inte ladda trådar: ' + err.message)
+        );
+      }
+    }
+
+    renderTabs();
+    loadAndRender();
+  }
+
   // ─── Public mount ───
   async function mount(hostSelectorOrEl, opts) {
     const host =
@@ -720,8 +971,11 @@
     // Snabbactions
     renderActions(host, customerId, opts);
 
-    // Feed
+    // Feed (Sprint 1)
     await reloadFeed(host, customerId, opts);
+
+    // Thread-view (Sprint 4) — tabs + thread-list + actions
+    renderThreadSection(host, customerId, opts);
   }
 
   // Auto-mount: lyssna på dossier-section som rendereras
