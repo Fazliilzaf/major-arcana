@@ -169,4 +169,21 @@ Dessa 6 är "convenience fields" som inte ska tappas — de ger bättre rapport 
 
 ---
 
-*Genererad: 2026-05-29*
+## P0.4 verifikation (2026-05-30)
+
+**Tagit ny pass mot `migration/meridiq/journal-schema-catalog.json` schema `tp_treatment:hair_tp`:**
+
+- `sections[].fields[]` summa: **52** unika fält-keys
+- `meridiqFieldMap` keys (Q-ID → store-key): **52** mappningar
+- Q-ID-span: 450884 → 450941 = **58** möjliga slots, varav **6 saknas** (450896, 450903, 450917, 450922, 450928, 450937 = sortOrder-luckor / sektion-separatorer i Meridiq)
+- CCO `emptyFieldsForSchema('tp_treatment', 'hair_tp')` keys: **63** (= 52 Meridiq-mappade + 11 CCO-native extras varav 5 är `*Text`-sub-fält till `yes_no_textbox` och 6 är convenience-fält: `metod`, `behandlingsomraden`, `observationerUnderIngrepp`, `lakemedelUtlamnade`, `puls`, `slutanteckningar`)
+
+**Diff (Meridiq → CCO):** 0 fält saknas. Alla 52 Meridiq-keys finns i CCO schema.
+
+**Slutsats: CCO har FULL paritet med tp_treatment:hair_tp. "59 vs 52"-scope-frågan = FALSE POSITIVE (sortOrder-luckor + CCO convenience-fält förklarar siffran).**
+
+Blocker #3 i `JOURNAL-CUTOVER-AUDIT-2026-05-30.md` stängd som ✅ FALSE POSITIVE i denna körning.
+
+---
+
+*Genererad: 2026-05-29 · Verifierad P0.4: 2026-05-30*
