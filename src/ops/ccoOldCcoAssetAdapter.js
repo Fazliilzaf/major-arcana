@@ -115,6 +115,96 @@ async function streamToBuffer(stream) {
 }
 
 /**
+ * OWNER-SKÄRPNING #6 (P0.I+) — patientId-validering via CCO master store.
+ *
+ * Slå upp ett rått id (typiskt cliento-id eller meridiq-id) mot CCO
+ * customer-store och returnera det kanoniska CCO master-id om något
+ * matchar. Resultatet exponeras i source-record som
+ * `_patientValidation` + `_needsPatientReview` så pipelinen kan välja
+ * NEEDS_REVIEW istället för VERIFIED.
+ *
+ * Tre matchningsförsök (i ordning):
+ *   1. `rawPatientId` är redan ett CCO master-id (direkt directory-hit)
+ *   2. `dir.clientoId === rawPatientId` — gamla cliento-id mapas
+ *   3. `dir.meridiqMeta?.meridiqPatientId === rawPatientId`
+ *
+ * Inga email/phone-försök i denna iteration (kan läggas till om behov).
+ *
+ * Returnerar alltid en `{valid, ccoPatientId, basis|reason}`-struct —
+ * kastar aldrig. CustomerStore-fel sväljs som "no_translation_found".
+ */
+async function validatePatientIdAgainstCcoMaster(
+  rawPatientId,
+  tenantId,
+  customerStore
+) {
+  if (!rawPatientId) {
+    return { valid: false, ccoPatientId: null, reason: 'no_input_id' };
+  }
+  if (!customerStore || typeof customerStore.peekTenantCustomerState !== 'function') {
+    return {
+      valid: false,
+      ccoPatientId: null,
+      reason: 'no_customer_store_configured',
+    };
+  }
+
+  let state = null;
+  try {
+    state = await customerStore.peekTenantCustomerState({ tenantId });
+  } catch {
+    return {
+      valid: false,
+      ccoPatientId: null,
+      reason: 'customer_store_peek_failed',
+      rawId: rawPatientId,
+    };
+  }
+
+  const directory = (state && state.directory) || {};
+
+  // Försök 1: direkt CCO master-id (rawPatientId finns redan i directory)
+  if (directory[rawPatientId]) {
+    return {
+      valid: true,
+      ccoPatientId: rawPatientId,
+      basis: 'direct_master_id_match',
+    };
+  }
+
+  // Försök 2 + 3: scan directory efter clientoId / meridiqMeta.meridiqPatientId
+  for (const [k, dir] of Object.entries(directory)) {
+    if (!dir || typeof dir !== 'object') continue;
+    if (dir.clientoId && dir.clientoId === rawPatientId) {
+      return {
+        valid: true,
+        ccoPatientId: k,
+        basis: 'cliento_id_translation',
+      };
+    }
+    if (
+      dir.meridiqMeta &&
+      typeof dir.meridiqMeta === 'object' &&
+      dir.meridiqMeta.meridiqPatientId &&
+      dir.meridiqMeta.meridiqPatientId === rawPatientId
+    ) {
+      return {
+        valid: true,
+        ccoPatientId: k,
+        basis: 'meridiq_id_translation',
+      };
+    }
+  }
+
+  return {
+    valid: false,
+    ccoPatientId: null,
+    reason: 'no_translation_found',
+    rawId: rawPatientId,
+  };
+}
+
+/**
  * Skapa en adapter-instans.
  *
  * @param {object} opts
@@ -122,7 +212,10 @@ async function streamToBuffer(stream) {
  * @param {string} [opts.journalPhotoStorePath]   data/cco-journal-photo-store.json (reserverad)
  * @param {string} [opts.migrationIndexPath]      data/cco-migration-index.json (reserverad)
  * @param {object} [opts.driveClient]             { listFilesInFolder, streamFile? }
- * @param {object} [opts.customerStore]           reserverad för patient-existens-check
+ * @param {object} [opts.customerStore]           CCO master customer-store (peekTenantCustomerState).
+ *                                                 Krävs för patientId-validering — utan
+ *                                                 store returnerar adaptern records med
+ *                                                 patientId=null + _needsPatientReview=true.
  */
 function createCcoOldCcoAssetAdapter({
   masterCardCouplingPath = null,
@@ -134,7 +227,6 @@ function createCcoOldCcoAssetAdapter({
   // Använd parametrarna så lintern inte klagar; reserverade för framtida wire-up.
   void journalPhotoStorePath;
   void migrationIndexPath;
-  void customerStore;
 
   /**
    * Discover: returnera lista av source-records klara för pipeline-import.
@@ -154,7 +246,6 @@ function createCcoOldCcoAssetAdapter({
    * @returns {Promise<Array<sourceRecord>>}
    */
   async function discover({ tenantId = 'hair_tp', limit = 0 } = {}) {
-    void tenantId;
     const raw = loadJsonSafe(masterCardCouplingPath, null);
     if (!raw) return [];
     const couplings = extractCouplings(raw);
@@ -162,11 +253,22 @@ function createCcoOldCcoAssetAdapter({
     const records = [];
     let count = 0;
 
-    for (const [patientId, coupling] of Object.entries(couplings)) {
+    for (const [rawPatientId, coupling] of Object.entries(couplings)) {
       if (limit > 0 && count >= limit) break;
       const folderId = pickFolderId(coupling);
       if (!folderId) continue;
       const folderPath = pickFolderPath(coupling, folderId);
+
+      // OWNER-SKÄRPNING #6 (P0.I+) — validera rawPatientId mot CCO master.
+      // Resultatet följer med varje record så pipelinen kan välja
+      // NEEDS_REVIEW utan att gissa.
+      const patientValidation = await validatePatientIdAgainstCcoMaster(
+        rawPatientId,
+        tenantId,
+        customerStore
+      );
+      const ccoPatientId = patientValidation.ccoPatientId;
+      const needsPatientReview = !patientValidation.valid;
 
       if (driveClient && typeof driveClient.listFilesInFolder === 'function') {
         // Vi har en Drive-klient — försök lista filer i mappen
@@ -180,7 +282,11 @@ function createCcoOldCcoAssetAdapter({
           records.push({
             sourceSystem: 'old_cco',
             sourceRecordId: `drive-folder-${folderId}`,
-            patientId,
+            patientId: ccoPatientId,
+            _rawPatientId: rawPatientId,
+            _patientValidation: patientValidation,
+            _needsPatientReview: needsPatientReview,
+            _folderOnly: true,
             originalDriveFileId: folderId,
             originalDrivePath: folderPath,
             originalFileName: null,
@@ -193,12 +299,38 @@ function createCcoOldCcoAssetAdapter({
           continue;
         }
 
+        if (!files || files.length === 0) {
+          // Folder-only — inga filer i mappen. Markera _folderOnly så
+          // pipelinen kan gå direkt till LINK_ONLY_BLOCKER utan att
+          // försöka loadBody.
+          records.push({
+            sourceSystem: 'old_cco',
+            sourceRecordId: `drive-folder-${folderId}`,
+            patientId: ccoPatientId,
+            _rawPatientId: rawPatientId,
+            _patientValidation: patientValidation,
+            _needsPatientReview: needsPatientReview,
+            _folderOnly: true,
+            originalDriveFileId: folderId,
+            originalDrivePath: folderPath,
+            originalFileName: null,
+            mimeType: null,
+            documentDate: null,
+            loadBody: async () => null,
+          });
+          count += 1;
+          continue;
+        }
+
         for (const f of files) {
           if (limit > 0 && count >= limit) break;
           records.push({
             sourceSystem: 'old_cco',
             sourceRecordId: f.id,
-            patientId,
+            patientId: ccoPatientId,
+            _rawPatientId: rawPatientId,
+            _patientValidation: patientValidation,
+            _needsPatientReview: needsPatientReview,
             originalDriveFileId: f.id,
             originalDrivePath: folderPath,
             originalFileName: f.name || null,
@@ -222,11 +354,16 @@ function createCcoOldCcoAssetAdapter({
       } else {
         // Ingen driveClient → bara provenance, blir LINK_ONLY_BLOCKER när
         // pipelinen kallar (loadBody returnerar null + originalDriveFileId
-        // finns = pipelinens guard).
+        // finns = pipelinens guard). Folder-only-flag eftersom vi inte
+        // kan enumerera filer.
         records.push({
           sourceSystem: 'old_cco',
           sourceRecordId: `no-sa-${folderId}`,
-          patientId,
+          patientId: ccoPatientId,
+          _rawPatientId: rawPatientId,
+          _patientValidation: patientValidation,
+          _needsPatientReview: needsPatientReview,
+          _folderOnly: true,
           originalDriveFileId: folderId,
           originalDrivePath: folderPath,
           originalFileName: null,
@@ -269,5 +406,11 @@ function createCcoOldCcoAssetAdapter({
 module.exports = {
   createCcoOldCcoAssetAdapter,
   // exposed for unit-tests
-  _internal: { extractCouplings, pickFolderId, pickFolderPath, streamToBuffer },
+  _internal: {
+    extractCouplings,
+    pickFolderId,
+    pickFolderPath,
+    streamToBuffer,
+    validatePatientIdAgainstCcoMaster,
+  },
 };

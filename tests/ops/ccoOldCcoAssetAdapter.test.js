@@ -66,7 +66,7 @@ test('P0.I: discover med coupling-path som inte finns på disk returnerar tom li
 // 2) discover med couplings men UTAN driveClient → link-only-records
 // ----------------------------------------------------------------------------
 
-test('P0.I: discover med couplings men utan driveClient → records med null loadBody', async () => {
+test('P0.I: discover med couplings men utan driveClient → records med null loadBody (OS#6: + _folderOnly + _needsPatientReview när customerStore saknas)', async () => {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'oldcco-adapter-'));
   try {
     const couplingPath = await writeCoupling(tmp, {
@@ -93,6 +93,13 @@ test('P0.I: discover med couplings men utan driveClient → records med null loa
       assert.ok(r.originalDriveFileId, 'originalDriveFileId måste finnas');
       // sourceRecordId-prefix för "no service-account" varianten
       assert.match(r.sourceRecordId, /^no-sa-/);
+      // OS#6: utan customerStore → patientId=null + _needsPatientReview=true
+      assert.equal(r.patientId, null, 'utan customerStore måste patientId vara null');
+      assert.equal(r._needsPatientReview, true);
+      assert.equal(r._patientValidation.reason, 'no_customer_store_configured');
+      assert.ok(r._rawPatientId, '_rawPatientId måste bevaras för diagnostik');
+      // OS#6: folder-only när vi inte kan enumerera filer
+      assert.equal(r._folderOnly, true);
       // loadBody returnerar null → pipelinen sätter LINK_ONLY_BLOCKER
       const body = await r.loadBody();
       assert.equal(body, null);
@@ -106,7 +113,7 @@ test('P0.I: discover med couplings men utan driveClient → records med null loa
 // 3) discover med couplings + mock driveClient → records med loadBody buffer
 // ----------------------------------------------------------------------------
 
-test('P0.I: discover med couplings + mock driveClient → records med fungerande loadBody', async () => {
+test('P0.I: discover med couplings + mock driveClient → records med fungerande loadBody (OS#6: med customerStore som direct-master-id-matchar)', async () => {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'oldcco-adapter-'));
   try {
     const couplingPath = await writeCoupling(tmp, {
@@ -141,15 +148,29 @@ test('P0.I: discover med couplings + mock driveClient → records med fungerande
         return Readable.from([fileBytes]);
       },
     };
+    // OS#6: customerStore med "cliento_aaa" som direkt master-id (directory key)
+    const customerStore = {
+      async peekTenantCustomerState() {
+        return {
+          directory: {
+            'cliento_aaa': { name: 'AnonAlfa' },
+          },
+        };
+      },
+    };
     const adapter = createCcoOldCcoAssetAdapter({
       masterCardCouplingPath: couplingPath,
       driveClient,
+      customerStore,
     });
     const records = await adapter.discover();
     assert.equal(records.length, 2);
-    // Första rekordet
+    // Första rekordet — patientId via direct_master_id_match
     assert.equal(records[0].sourceRecordId, 'drv-file-001');
     assert.equal(records[0].patientId, 'cliento_aaa');
+    assert.equal(records[0]._rawPatientId, 'cliento_aaa');
+    assert.equal(records[0]._patientValidation.basis, 'direct_master_id_match');
+    assert.equal(records[0]._needsPatientReview, false);
     assert.equal(records[0].originalDriveFileId, 'drv-file-001');
     assert.equal(records[0].originalDrivePath, '/AnonPatients/aaa');
     assert.equal(records[0].originalFileName, 'demo-journal.pdf');
@@ -279,7 +300,7 @@ test('P0.I: stats returnerar totalCouplings + withFolderId + driveClientAvailabl
 // 7) Adapter integration: pipeline importerar via adapter → assets skapas
 // ----------------------------------------------------------------------------
 
-test('P0.I: pipeline.discoverFromOldCco delegerar till adapter och fullImportRun skapar assets', async () => {
+test('P0.I: pipeline.discoverFromOldCco delegerar till adapter och fullImportRun skapar assets (OS#6: med customerStore för patientId-validering)', async () => {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'oldcco-pipeline-'));
   try {
     // Coupling-fil med 1 patient + 1 folder
@@ -308,9 +329,20 @@ test('P0.I: pipeline.discoverFromOldCco delegerar till adapter och fullImportRun
         return Readable.from([fileBytes]);
       },
     };
+    // OS#6: customerStore med direct master-id-match för 'anon-pat-int-001'
+    const customerStore = {
+      async peekTenantCustomerState() {
+        return {
+          directory: {
+            'anon-pat-int-001': { name: 'IntegrationAnon' },
+          },
+        };
+      },
+    };
     const adapter = createCcoOldCcoAssetAdapter({
       masterCardCouplingPath: couplingPath,
       driveClient,
+      customerStore,
     });
 
     const audit = makeMemoryAudit();
@@ -381,4 +413,255 @@ test('P0.I: extractCouplings hanterar results, couplings och direct shape', () =
     'pat-1': { folder: 'f1' },
   });
   assert.deepEqual(direct, { 'pat-1': { folder: 'f1' } });
+});
+
+// ----------------------------------------------------------------------------
+// 9-13) OWNER-SKÄRPNING #6 — patientId-validering via CCO master store
+// ----------------------------------------------------------------------------
+
+test('OS#6: discover utan customerStore → records.patientId=null + _patientValidation.reason=no_customer_store_configured', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'oldcco-os6-'));
+  try {
+    const couplingPath = await writeCoupling(tmp, {
+      results: {
+        'cliento_x': { predictedFolderId: 'folder-x', predictedFolderPath: '/x' },
+      },
+    });
+    const adapter = createCcoOldCcoAssetAdapter({
+      masterCardCouplingPath: couplingPath,
+      driveClient: {
+        async listFilesInFolder() {
+          return [
+            { id: 'f-1', name: 'a.pdf', mimeType: 'application/pdf' },
+          ];
+        },
+      },
+      // ingen customerStore
+    });
+    const records = await adapter.discover({ tenantId: 'hair_tp' });
+    assert.equal(records.length, 1);
+    const r = records[0];
+    assert.equal(r.patientId, null);
+    assert.equal(r._needsPatientReview, true);
+    assert.equal(r._patientValidation.valid, false);
+    assert.equal(r._patientValidation.reason, 'no_customer_store_configured');
+    assert.equal(r._rawPatientId, 'cliento_x');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#6: discover med rawPatientId som matchar CCO master directly → basis=direct_master_id_match', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'oldcco-os6-'));
+  try {
+    const couplingPath = await writeCoupling(tmp, {
+      results: {
+        'cco-master-001': { predictedFolderId: 'folder-1', predictedFolderPath: '/1' },
+      },
+    });
+    const customerStore = {
+      async peekTenantCustomerState() {
+        return {
+          directory: {
+            'cco-master-001': { name: 'AnonAlpha' },
+          },
+        };
+      },
+    };
+    const adapter = createCcoOldCcoAssetAdapter({
+      masterCardCouplingPath: couplingPath,
+      driveClient: {
+        async listFilesInFolder() {
+          return [{ id: 'f-1', name: 'demo.pdf', mimeType: 'application/pdf' }];
+        },
+      },
+      customerStore,
+    });
+    const records = await adapter.discover({ tenantId: 'hair_tp' });
+    assert.equal(records.length, 1);
+    assert.equal(records[0].patientId, 'cco-master-001');
+    assert.equal(records[0]._patientValidation.basis, 'direct_master_id_match');
+    assert.equal(records[0]._needsPatientReview, false);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#6: discover med rawPatientId som matchar via clientoId i directory → basis=cliento_id_translation', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'oldcco-os6-'));
+  try {
+    const couplingPath = await writeCoupling(tmp, {
+      results: {
+        'cliento_legacy_id_42': {
+          predictedFolderId: 'folder-42',
+          predictedFolderPath: '/42',
+        },
+      },
+    });
+    const customerStore = {
+      async peekTenantCustomerState() {
+        return {
+          directory: {
+            'cco-master-42': {
+              name: 'AnonBeta',
+              clientoId: 'cliento_legacy_id_42',
+            },
+          },
+        };
+      },
+    };
+    const adapter = createCcoOldCcoAssetAdapter({
+      masterCardCouplingPath: couplingPath,
+      driveClient: {
+        async listFilesInFolder() {
+          return [{ id: 'f-1', name: 'doc.pdf', mimeType: 'application/pdf' }];
+        },
+      },
+      customerStore,
+    });
+    const records = await adapter.discover({ tenantId: 'hair_tp' });
+    assert.equal(records.length, 1);
+    assert.equal(records[0].patientId, 'cco-master-42');
+    assert.equal(records[0]._rawPatientId, 'cliento_legacy_id_42');
+    assert.equal(records[0]._patientValidation.basis, 'cliento_id_translation');
+    assert.equal(records[0]._needsPatientReview, false);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#6: discover med rawPatientId som matchar via meridiqMeta.meridiqPatientId → basis=meridiq_id_translation', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'oldcco-os6-'));
+  try {
+    const couplingPath = await writeCoupling(tmp, {
+      results: {
+        'meridiq_pat_777': {
+          predictedFolderId: 'folder-777',
+          predictedFolderPath: '/777',
+        },
+      },
+    });
+    const customerStore = {
+      async peekTenantCustomerState() {
+        return {
+          directory: {
+            'cco-master-777': {
+              name: 'AnonGamma',
+              meridiqMeta: { meridiqPatientId: 'meridiq_pat_777' },
+            },
+          },
+        };
+      },
+    };
+    const adapter = createCcoOldCcoAssetAdapter({
+      masterCardCouplingPath: couplingPath,
+      driveClient: {
+        async listFilesInFolder() {
+          return [{ id: 'f-1', name: 'doc.pdf', mimeType: 'application/pdf' }];
+        },
+      },
+      customerStore,
+    });
+    const records = await adapter.discover({ tenantId: 'hair_tp' });
+    assert.equal(records.length, 1);
+    assert.equal(records[0].patientId, 'cco-master-777');
+    assert.equal(records[0]._patientValidation.basis, 'meridiq_id_translation');
+    assert.equal(records[0]._needsPatientReview, false);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#6: discover med okänd rawPatientId → patientId=null + _needsPatientReview=true', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'oldcco-os6-'));
+  try {
+    const couplingPath = await writeCoupling(tmp, {
+      results: {
+        'unknown_orphan_id': {
+          predictedFolderId: 'folder-orphan',
+          predictedFolderPath: '/orphan',
+        },
+      },
+    });
+    const customerStore = {
+      async peekTenantCustomerState() {
+        return {
+          directory: {
+            'cco-master-1': { name: 'Alpha', clientoId: 'cliento_1' },
+          },
+        };
+      },
+    };
+    const adapter = createCcoOldCcoAssetAdapter({
+      masterCardCouplingPath: couplingPath,
+      driveClient: {
+        async listFilesInFolder() {
+          return [{ id: 'f-1', name: 'x.pdf', mimeType: 'application/pdf' }];
+        },
+      },
+      customerStore,
+    });
+    const records = await adapter.discover({ tenantId: 'hair_tp' });
+    assert.equal(records.length, 1);
+    assert.equal(records[0].patientId, null);
+    assert.equal(records[0]._needsPatientReview, true);
+    assert.equal(records[0]._patientValidation.reason, 'no_translation_found');
+    assert.equal(records[0]._patientValidation.rawId, 'unknown_orphan_id');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#6: validatePatientIdAgainstCcoMaster är exposed som _internal helper', async () => {
+  const { validatePatientIdAgainstCcoMaster } = _internal;
+  // utan input id
+  const a = await validatePatientIdAgainstCcoMaster(null, 'hair_tp', {});
+  assert.equal(a.valid, false);
+  assert.equal(a.reason, 'no_input_id');
+  // utan customerStore
+  const b = await validatePatientIdAgainstCcoMaster('x', 'hair_tp', null);
+  assert.equal(b.valid, false);
+  assert.equal(b.reason, 'no_customer_store_configured');
+  // customerStore som kastar — ska svälja och returnera reason
+  const c = await validatePatientIdAgainstCcoMaster('x', 'hair_tp', {
+    async peekTenantCustomerState() {
+      throw new Error('boom');
+    },
+  });
+  assert.equal(c.valid, false);
+  assert.equal(c.reason, 'customer_store_peek_failed');
+});
+
+test('OS#6: discover med folder utan filer (Drive listFilesInFolder returnerar []) → record har _folderOnly=true', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'oldcco-os6-'));
+  try {
+    const couplingPath = await writeCoupling(tmp, {
+      results: {
+        'cco-master-empty': {
+          predictedFolderId: 'folder-empty',
+          predictedFolderPath: '/empty',
+        },
+      },
+    });
+    const customerStore = {
+      async peekTenantCustomerState() {
+        return { directory: { 'cco-master-empty': { name: 'X' } } };
+      },
+    };
+    const adapter = createCcoOldCcoAssetAdapter({
+      masterCardCouplingPath: couplingPath,
+      driveClient: {
+        async listFilesInFolder() {
+          return []; // tom mapp
+        },
+      },
+      customerStore,
+    });
+    const records = await adapter.discover({ tenantId: 'hair_tp' });
+    assert.equal(records.length, 1);
+    assert.equal(records[0]._folderOnly, true);
+    assert.equal(await records[0].loadBody(), null);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
 });
