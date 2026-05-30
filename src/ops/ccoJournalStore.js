@@ -332,7 +332,7 @@ function buildJournalReadout(entry) {
   };
 }
 
-async function createCcoJournalStore({ filePath }) {
+async function createCcoJournalStore({ filePath, onAfterSign = null } = {}) {
   const state = await readJson(filePath, emptyState());
   rebuildJournalIndexes(state);
 
@@ -455,7 +455,112 @@ async function createCcoJournalStore({ filePath }) {
     const index = state.entries.findIndex((item) => entryKey(item) === entryKey(signed));
     state.entries[index] = signed;
     await save();
-    return cloneEntry(signed);
+
+    // P0.5 — auto-PDF generation post-sign. Hook ansvarar för:
+    //  - generera PDF
+    //  - kalla applyPdfArtifact() för att spara pdfPath/pdfTamperHash/pdfGeneratedAt
+    //  - emittera audit-event journal.pdf_generated_at_signing
+    // Hook-fel får INTE blockera signering (juridisk akt redan utförd).
+    if (typeof onAfterSign === 'function') {
+      try {
+        await onAfterSign(cloneEntry(signed), { actor });
+      } catch (hookErr) {
+        // Logga men kasta inte — signering är fullbordad.
+        if (process.env.NODE_ENV !== 'test') {
+          console.error('[ccoJournalStore] onAfterSign hook failed:', hookErr.message);
+        }
+      }
+    }
+    // Re-hämta entry efter eventuell PDF-apply så caller ser pdfPath om hook satte den
+    const refreshed = state.entries.find((item) => entryKey(item) === entryKey(signed));
+    return cloneEntry(refreshed || signed);
+  }
+
+  /**
+   * P0.5 — Skriv tillbaka PDF-artefakt-metadata på en signerad entry.
+   * Bypasser locked-checken eftersom artefakt-metadata är en post-sign-händelse
+   * (PDF:en själv är immutable i fil-systemet — vi sparar bara hash + sökväg).
+   * Förändrar INTE fields/title/signering — bara nya fält:
+   *   pdfPath, pdfTamperHash, pdfGeneratedAt, pdfSizeBytes
+   */
+  async function applyPdfArtifact({
+    tenantId,
+    patientId,
+    entryId,
+    pdfPath,
+    pdfTamperHash,
+    pdfSizeBytes = 0,
+  } = {}) {
+    const key = entryKey({ tenantId, patientId, entryId });
+    const index = state.entries.findIndex((item) => entryKey(item) === key);
+    if (index < 0) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const existing = state.entries[index];
+    if (!existing.locked) {
+      const error = new Error('PDF-artefakt kan endast sättas på signerad/låst entry.');
+      error.statusCode = 409;
+      throw error;
+    }
+    existing.pdfPath = normalizeText(pdfPath);
+    existing.pdfTamperHash = normalizeText(pdfTamperHash);
+    existing.pdfSizeBytes = Number(pdfSizeBytes) || 0;
+    existing.pdfGeneratedAt = nowIso();
+    existing.updatedAt = nowIso();
+    await save();
+    return cloneEntry(existing);
+  }
+
+  /**
+   * Beslut #3 — Owner-unlock av signerad journal-post.
+   * Sätter locked=false + status=draft. Bevarar signed-state i unlockSnapshot.
+   * Caller MÅSTE göra RBAC-check (journal.unlock = owner only) + audit innan.
+   */
+  async function unlockEntry({ tenantId, patientId, entryId, reason, actor = {} } = {}) {
+    const existing = state.entries.find((item) =>
+      entryKey(item) === entryKey({ tenantId, patientId, entryId })
+    );
+    if (!existing) {
+      const error = new Error('Journalposten hittades inte.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (!existing.locked) {
+      const error = new Error('Posten är inte låst.');
+      error.statusCode = 409;
+      throw error;
+    }
+    // Bevara hela signed-state innan unlock
+    const snapshot = {
+      previouslySignedAt: existing.signedAt,
+      previouslySignedByUserId: existing.signedByUserId,
+      previouslySignedByName: existing.signedByName,
+      previousStatus: existing.status,
+      previousLocked: existing.locked,
+      unlockedAt: nowIso(),
+      unlockedByUserId: actor.userId,
+      unlockedByName: actor.displayName || actor.userId,
+      unlockedByRole: actor.role,
+      reason: String(reason || ''),
+    };
+    existing.locked = false;
+    existing.status = 'draft';
+    existing.unlockSnapshot = snapshot;
+    existing.updatedAt = nowIso();
+    existing.events = [
+      ...asArray(existing.events),
+      normalizeEvent({
+        type: 'journal_entry_unlocked_HIGH_SEVERITY',
+        label: `OWNER UNLOCK — ${reason}`,
+        actorUserId: actor.userId,
+        actorName: actor.displayName || actor.userId,
+        actorRole: actor.role,
+      }),
+    ];
+    await save();
+    return cloneEntry(existing);
   }
 
   async function addCorrection({ tenantId, patientId, entryId, fields = {}, actor = {} } = {}) {
@@ -937,6 +1042,7 @@ async function createCcoJournalStore({ filePath }) {
   return {
     addConsultationPhotoAttachment,
     addCorrection,
+    applyPdfArtifact,
     getStats,
     patchConsultationPhotoEncounter,
     buildJournalReadout,
@@ -957,6 +1063,7 @@ async function createCcoJournalStore({ filePath }) {
     removeConsultationPhotoAttachment,
     signEntry,
     transferEntriesToPatient,
+    unlockEntry,
     updateConsultationPhotoAnnotation,
     upsertEntry,
   };
