@@ -1329,7 +1329,260 @@ try {
     }
   });
 
-  console.log('[cco-customer-deep] monterad: GET /api/v1/cco-customers/:id/{timeline|agreements|journal-feed} (customers.read · journal.read_any)');
+  // GET /api/v1/cco-customers/:id/journal-timeline — journalflöde kronologiskt
+  // Aggregera event-typer:
+  //   journal_draft_created, journal_signed, pdf_archived,
+  //   correction_created, correction_signed,
+  //   asset_imported, asset_verified, asset_visible_on_card,
+  //   asset_needs_review, asset_link_only, asset_failed, asset_duplicate,
+  //   photo_uploaded, document_imported
+  // Plus thread-grupp: original-entry + dess rättelser bundlade.
+  // Ingen Drive-länk. Endast CCO-source.
+  app.get('/api/v1/cco-customers/:id/journal-timeline', attachRole, requirePermission('customers.read'), async (req, res) => {
+    try {
+      const customerId = req.params.id;
+      const tenantId = req.query.tenantId || req.headers['x-cco-tenant'] || 'hairtpclinic';
+      const events = [];
+
+      const STATUS_TONE = {
+        VISIBLE_ON_PATIENT_CARD: 'ok',
+        VERIFIED_IN_CCO: 'ok',
+        IMPORTED_TO_CCO: 'warn',
+        NEEDS_REVIEW: 'warn',
+        LINK_ONLY_BLOCKER: 'blocker',
+        FAILED_IMPORT: 'blocker',
+        DUPLICATE: 'info',
+      };
+
+      // 1. Journal-events — flera per entry (draft → signed → pdf)
+      const journalStore = app.locals.ccoJournalStore;
+      const journalEntries = [];
+      if (journalStore?.listEntries) {
+        try {
+          const entries = await journalStore.listEntries({ tenantId, patientId: customerId }) || [];
+          for (const e of entries) {
+            journalEntries.push(e);
+            const isCorrection = !!e.correctionOfEntryId;
+
+            // a) Draft created
+            events.push({
+              type: isCorrection ? 'correction_created' : 'journal_draft_created',
+              ts: e.createdAt || e.updatedAt,
+              title: isCorrection ? 'Rättelse skapad' : 'Journal skapad',
+              icon: isCorrection ? '✏' : '📝',
+              tone: 'info',
+              actor: e.authorName || e.signedByName,
+              entityId: e.entryId,
+              relatedEntryId: e.correctionOfEntryId || null,
+              detail: {
+                journalType: e.journalType,
+                title: e.title,
+                isCorrection,
+                reason: e.correctionReason || null,
+              },
+            });
+
+            // b) Signed (om signerad)
+            if (e.locked && e.signedAt) {
+              events.push({
+                type: isCorrection ? 'correction_signed' : 'journal_signed',
+                ts: e.signedAt,
+                title: isCorrection ? 'Rättelse signerad' : 'Journal signerad',
+                icon: '🔒',
+                tone: 'ok',
+                actor: e.signedByName,
+                entityId: e.entryId,
+                relatedEntryId: e.correctionOfEntryId || null,
+                detail: {
+                  journalType: e.journalType,
+                  pdfArchived: !!(e.pdfPath || e.pdfStorageKey),
+                  tamperHash: e.pdfTamperHash || null,
+                },
+              });
+            }
+
+            // c) PDF archived (om PDF finns)
+            if (e.pdfGeneratedAt) {
+              events.push({
+                type: 'pdf_archived',
+                ts: e.pdfGeneratedAt,
+                title: 'PDF arkiverad i CCO secure storage',
+                icon: '📄',
+                tone: 'ok',
+                entityId: e.entryId,
+                relatedEntryId: e.correctionOfEntryId || null,
+                detail: {
+                  sizeBytes: e.pdfSizeBytes || null,
+                  tamperHash: e.pdfTamperHash || null,
+                  ccoSourceOnly: true,
+                },
+              });
+            }
+          }
+        } catch (err) { /* tyst */ }
+      }
+
+      // 2. Asset-events — alla statusar, inte bara visible
+      const assetStore = app.locals.ccoPatientAssetStore;
+      const allAssets = [];
+      if (assetStore?.listAssetsForPatient) {
+        try {
+          const assets = assetStore.listAssetsForPatient(customerId, {}, { actor: { role: 'system' } }) || [];
+          for (const a of assets) {
+            allAssets.push(a);
+            const cat = a.category || 'other';
+
+            // a) Asset imported (basevent)
+            const typeByCat = cat.startsWith('photo_') ? 'photo_uploaded'
+                            : cat === 'journal' ? 'journal_pdf_asset_imported'
+                            : cat === 'consent' ? 'consent_imported'
+                            : cat === 'agreement' ? 'agreement_imported'
+                            : cat === 'form' ? 'form_imported'
+                            : cat === 'aisia_report' ? 'aisia_imported'
+                            : 'document_imported';
+            const titleByCat = cat.startsWith('photo_') ? 'Bild uppladdad'
+                             : cat === 'journal' ? 'Journal-PDF i CCO storage'
+                             : cat === 'consent' ? 'Samtycke importerat'
+                             : cat === 'agreement' ? 'Avtal importerat'
+                             : cat === 'form' ? 'Formulär importerat'
+                             : cat === 'aisia_report' ? 'Aisia-rapport'
+                             : 'Dokument importerat';
+            const iconByCat = cat.startsWith('photo_') ? '📸'
+                            : cat === 'journal' ? '📄'
+                            : cat === 'consent' ? '✍'
+                            : cat === 'agreement' ? '📑'
+                            : cat === 'form' ? '📋'
+                            : cat === 'aisia_report' ? '🔬'
+                            : '📎';
+
+            events.push({
+              type: typeByCat,
+              subtype: 'asset_created',
+              ts: a.importedAt || a.createdAt,
+              title: titleByCat,
+              icon: iconByCat,
+              tone: STATUS_TONE[a.status] || 'info',
+              entityId: a.id,
+              relatedEntryId: a.sourceRecordId || null,
+              detail: {
+                category: cat,
+                sourceSystem: a.sourceSystem,
+                assetStatus: a.status,
+                mimeType: a.mimeType,
+                fileSize: a.fileSize || null,
+                encounterId: a.encounterId || null,
+                hasStorageKey: !!a.storageKey,
+                hasChecksum: !!a.checksum,
+                ccoSourceOnly: true,
+              },
+            });
+
+            // b) Status-history events (varje transition i statusHistory)
+            const history = Array.isArray(a.statusHistory) ? a.statusHistory : [];
+            for (const h of history) {
+              if (!h.to || !h.ts) continue;
+              const tone = STATUS_TONE[h.to] || 'info';
+              const labelMap = {
+                IMPORTED_TO_CCO: 'Asset importerad',
+                VERIFIED_IN_CCO: 'Asset verifierad',
+                VISIBLE_ON_PATIENT_CARD: 'Asset synlig på patientkort',
+                NEEDS_REVIEW: 'Asset behöver granskning',
+                LINK_ONLY_BLOCKER: 'Asset blockerad (ej importerad)',
+                FAILED_IMPORT: 'Asset-import misslyckades',
+                DUPLICATE: 'Asset markerad som dubblett',
+                REJECTED: 'Asset avvisad',
+              };
+              const label = labelMap[h.to] || ('Status: ' + h.to);
+              events.push({
+                type: 'asset_status_transition',
+                ts: h.ts,
+                title: label,
+                icon: tone === 'ok' ? '✓' : tone === 'warn' ? '⚠' : tone === 'blocker' ? '⛔' : 'ℹ',
+                tone,
+                entityId: a.id,
+                relatedEntryId: a.sourceRecordId || null,
+                detail: {
+                  from: h.from,
+                  to: h.to,
+                  reason: h.reason || null,
+                  category: cat,
+                  assetStatus: h.to,
+                },
+              });
+            }
+          }
+        } catch (err) { /* tyst */ }
+      }
+
+      // Sortera kronologiskt DESC (nyast först)
+      events.sort((a, b) => {
+        const ta = (a.ts || '').toString();
+        const tb = (b.ts || '').toString();
+        return tb.localeCompare(ta);
+      });
+
+      // Thread-grupper: original + dess rättelser
+      const threads = {};
+      for (const entry of journalEntries) {
+        if (entry.correctionOfEntryId) {
+          const root = entry.correctionOfEntryId;
+          if (!threads[root]) threads[root] = { rootEntryId: root, corrections: [] };
+          threads[root].corrections.push({
+            correctionEntryId: entry.entryId,
+            correctionReason: entry.correctionReason || null,
+            correctionCreatedBy: entry.correctionCreatedBy || null,
+            correctionCreatedAt: entry.correctionCreatedAt || entry.createdAt,
+            signedAt: entry.signedAt || null,
+            locked: !!entry.locked,
+            hasPdf: !!(entry.pdfPath || entry.pdfStorageKey),
+          });
+        }
+      }
+      // Inkludera root-metadata
+      for (const root of Object.keys(threads)) {
+        const rootEntry = journalEntries.find(e => e.entryId === root);
+        if (rootEntry) {
+          threads[root].rootTitle = rootEntry.title || null;
+          threads[root].rootSignedAt = rootEntry.signedAt || null;
+          threads[root].rootLocked = !!rootEntry.locked;
+        }
+      }
+
+      // Counters per event-typ + status
+      const counters = {
+        totalEvents: events.length,
+        byType: {},
+        byTone: { ok: 0, warn: 0, blocker: 0, info: 0 },
+        journalEntries: journalEntries.length,
+        signedEntries: journalEntries.filter(e => e.locked).length,
+        corrections: journalEntries.filter(e => e.correctionOfEntryId).length,
+        assets: allAssets.length,
+        assetsByStatus: {},
+        threads: Object.keys(threads).length,
+      };
+      for (const ev of events) {
+        counters.byType[ev.type] = (counters.byType[ev.type] || 0) + 1;
+        counters.byTone[ev.tone] = (counters.byTone[ev.tone] || 0) + 1;
+      }
+      for (const a of allAssets) {
+        counters.assetsByStatus[a.status] = (counters.assetsByStatus[a.status] || 0) + 1;
+      }
+
+      res.json({
+        customerId,
+        tenantId,
+        evaluatedAt: new Date().toISOString(),
+        counters,
+        threads,
+        events: events.slice(0, Number(req.query.limit) || 500),
+        ownerMandate: 'no_drive_links_in_ui',
+      });
+    } catch (err) {
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
+  console.log('[cco-customer-deep] monterad: GET /api/v1/cco-customers/:id/{timeline|agreements|journal-feed|journal-timeline} (customers.read · journal.read_any)');
 } catch (err) {
   console.warn('[cco-customer-deep] kunde inte montera:', err.message);
 }
