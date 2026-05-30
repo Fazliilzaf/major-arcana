@@ -56,14 +56,31 @@ const {
 const { createCcoAuditLog } = require('../src/security/ccoAuditLog');
 
 // ---------------------------------------------------------------------------
-// CLI
+// CLI + isolation guard (OWNER-SKÄRPNING — demo får ALDRIG köras mot prod)
 // ---------------------------------------------------------------------------
 const args = process.argv.slice(2);
 const CLEAN = args.includes('--clean');
+const isDemoMode =
+  process.env.DEMO_IMPORT_RUN === 'true' || args.includes('--demo');
+if (!isDemoMode) {
+  console.error(
+    'FEL: Demo-script får INTE köras mot prod. ' +
+      'Sätt DEMO_IMPORT_RUN=true eller passera --demo som CLI-flag.'
+  );
+  process.exit(2);
+}
 
 const ROOT = path.resolve(__dirname, '..');
-const DEMO_DIR = path.join(ROOT, 'data', 'demo');
-const STORAGE_DIR = path.join(DEMO_DIR, 'cco-secure-storage');
+// Strikt separat demo-storage — ALDRIG mot prod-paths (data/cco-*.json).
+const DEMO_DATA_ROOT = path.join(ROOT, 'data', 'demo');
+const DEMO_DIR = DEMO_DATA_ROOT; // bakåtkompatibel alias
+const STORAGE_DIR = path.join(DEMO_DATA_ROOT, 'cco-secure-storage');
+const DEMO_ASSET_STORE = path.join(DEMO_DATA_ROOT, 'cco-patient-assets.json');
+const DEMO_RUN_STORE = path.join(DEMO_DATA_ROOT, 'cco-asset-import-runs.json');
+const DEMO_REVIEW_STORE = path.join(
+  DEMO_DATA_ROOT,
+  'cco-asset-review-queue.json'
+);
 
 // ---------------------------------------------------------------------------
 // Stub customerStore (anonymiserade test-patienter)
@@ -194,15 +211,15 @@ async function setup() {
   const auditLog = createCcoAuditLog({ filePath: auditLogPath });
 
   const assetStore = await createCcoPatientAssetStore({
-    filePath: path.join(DEMO_DIR, 'cco-patient-assets.json'),
+    filePath: DEMO_ASSET_STORE,
     auditLog,
   });
   const importRunStore = await createCcoAssetImportRunStore({
-    filePath: path.join(DEMO_DIR, 'cco-asset-import-runs.json'),
+    filePath: DEMO_RUN_STORE,
     auditLog,
   });
   const reviewQueueStore = await createCcoAssetReviewQueueStore({
-    filePath: path.join(DEMO_DIR, 'cco-asset-review-queue.json'),
+    filePath: DEMO_REVIEW_STORE,
     auditLog,
   });
   const storage = createLocalProvider({ rootPath: STORAGE_DIR });
@@ -306,33 +323,98 @@ async function main() {
   console.log(`  message: ${stats.cutoverReadiness.message}`);
   console.log('');
 
-  // Hitta VISIBLE-asset och bevisa filen finns på disk
+  // ---------------------------------------------------------------------
+  // BEVIS 1.2: DUPLICATE-asset har samma checksum som high_conf
+  // ---------------------------------------------------------------------
   const visible = results.find((r) => r.status === 'VISIBLE_ON_PATIENT_CARD');
+  const dup = results.find((r) => r.status === 'DUPLICATE');
+  console.log('=== BEVIS: DUPLICATE-detektion (samma binär, annan source_record_id) ===');
+  if (visible?.asset && dup?.asset) {
+    const sameChecksum = visible.asset.checksum === dup.asset.checksum;
+    console.log(`  high_conf checksum:  ${visible.asset.checksum}`);
+    console.log(`  duplicate checksum:  ${dup.asset.checksum}`);
+    console.log(`  Samma checksum:      ${sameChecksum ? 'JA' : 'NEJ'}`);
+    console.log(`  Duplicate status:    ${dup.asset.status}`);
+    console.log(
+      `  Olika sourceRecordId: ${
+        visible.asset.sourceRecordId !== dup.asset.sourceRecordId ? 'JA' : 'NEJ'
+      } (${visible.asset.sourceRecordId} vs ${dup.asset.sourceRecordId})`
+    );
+  } else {
+    console.log('  VARNING: visible eller duplicate saknas — kolla mock-records.');
+  }
+  console.log('');
+
+  // ---------------------------------------------------------------------
+  // BEVIS 1.3: listAssetsForPatient + categoryToSection mapping
+  // ---------------------------------------------------------------------
+  const patientAssets = rig.assetStore.listAssetsForPatient('anon-patient-001');
+  // Bygg per-kategori-gruppering (assetStore.listAssetsForPatient returnerar en array)
+  const byCategory = {};
+  for (const a of patientAssets) {
+    const cat = a.category || 'other';
+    byCategory[cat] = byCategory[cat] || [];
+    byCategory[cat].push(a);
+  }
+
+  console.log('=== BEVIS: listAssetsForPatient("anon-patient-001") returnerar ===');
+  console.log(`Total assets för patient: ${patientAssets.length}`);
+  console.log('Per kategori:');
+  for (const [cat, list] of Object.entries(byCategory)) {
+    console.log(`  ${cat.padEnd(20)}: ${list.length} fil(er)`);
+  }
+  console.log('');
+
+  // Category-to-section mapping (samma som UI-tabs på patientkortet)
+  const CATEGORY_TO_SECTION = {
+    journal: 'Journaler',
+    photo_before: 'Bilder',
+    photo_during: 'Bilder',
+    photo_after: 'Bilder',
+    consent: 'Samtycken',
+    agreement: 'Avtal',
+    form: 'Formulär',
+    aisia_report: 'Aisia-rapporter',
+    other: 'Övrigt',
+  };
+
+  console.log('=== BEVIS: category-to-section mapping ===');
+  for (const a of patientAssets) {
+    const section = CATEGORY_TO_SECTION[a.category] || 'Övrigt';
+    console.log(
+      `  Asset ${a.id.slice(0, 8)} → kategori "${a.category}" → sektion "${section}"`
+    );
+  }
+  console.log('');
+
+  // ---------------------------------------------------------------------
+  // BEVIS 1.4: fil finns fysiskt i secure storage (utan Drive-läsning)
+  // ---------------------------------------------------------------------
   if (visible && visible.asset) {
     const a = visible.asset;
     const absPath = path.join(STORAGE_DIR, a.storageKey);
     const exists = fs.existsSync(absPath);
-    const stat = exists ? fs.statSync(absPath) : null;
+    const realSize = exists ? fs.statSync(absPath).size : null;
+    const sizeMatch = realSize === a.fileSize;
 
-    console.log('VISIBLE_ON_PATIENT_CARD asset:');
-    console.log(`  id:           ${a.id}`);
-    console.log(`  storageKey:   ${a.storageKey}`);
-    console.log(`  checksum:     ${a.checksum}`);
-    console.log(`  patientId:    ${a.patientId}`);
-    console.log(`  category:     ${a.category}`);
-    console.log(`  status:       ${a.status}`);
-    console.log('');
-    console.log('Bevis: FIL FINNS I CCO SECURE STORAGE');
-    console.log(`  - Path:     ${absPath}`);
-    console.log(`  - Finns:    ${exists ? 'JA' : 'NEJ'}`);
-    if (stat) {
-      console.log(`  - Storlek:  ${stat.size} bytes`);
-    }
-    console.log(`  - mimeType: ${a.mimeType}`);
-    console.log(`  - Ingen Drive-länk behövs för att öppna denna fil.`);
+    console.log('=== BEVIS: fil finns fysiskt i secure storage (ingen Drive behövs) ===');
+    console.log(`  storageKey:         ${a.storageKey}`);
+    console.log(`  Full path:          ${absPath}`);
+    console.log(`  Exists:             ${exists ? 'JA' : 'NEJ'}`);
+    console.log(`  Real fileSize:      ${realSize}`);
+    console.log(`  Recorded fileSize:  ${a.fileSize}`);
+    console.log(`  Match:              ${sizeMatch ? 'JA' : 'NEJ'}`);
+    console.log(`  checksum:           ${a.checksum}`);
+    console.log(`  patientId:          ${a.patientId}`);
+    console.log(`  category:           ${a.category}`);
+    console.log(`  status:             ${a.status}`);
+    console.log(`  mimeType:           ${a.mimeType}`);
+    console.log(`  Drive-länk behövs:  NEJ — filen ligger i CCO secure storage`);
     console.log('');
   } else {
-    console.log('VARNING: ingen VISIBLE_ON_PATIENT_CARD asset producerad — kolla pipeline-loggen.');
+    console.log(
+      'VARNING: ingen VISIBLE_ON_PATIENT_CARD asset producerad — kolla pipeline-loggen.'
+    );
     console.log('');
   }
 
