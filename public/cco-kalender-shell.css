@@ -315,7 +315,156 @@ body[data-cco-view="calendar"] .calendar-shell {
   border: 1px solid rgba(185,74,74,.32);
 }
 
+/* ─── Sprint 2: Create-modal (desktop + mobile bottom-sheet) ─── */
+.cco-cal-create-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(43, 37, 31, 0.42);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; padding: 20px;
+}
+.cco-cal-create-modal {
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+  border-radius: 22px;
+  width: 100%; max-width: 540px; max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--panel-shell-shadow-strong);
+  border: 1px solid rgba(255,255,255,.6);
+  backdrop-filter: blur(14px);
+  display: flex; flex-direction: column;
+}
+.cco-cal-create-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(215, 202, 194, 0.40);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cco-cal-create-head h3 {
+  margin: 0; font-size: 14px; font-weight: 800;
+  letter-spacing: -.02em; color: var(--cco-color-brand);
+}
+.cco-cal-create-close {
+  appearance: none; background: transparent; border: 0;
+  font-size: 18px; cursor: pointer; padding: 0 6px;
+  color: var(--cco-text-tertiary);
+}
+.cco-cal-create-close:hover { color: var(--cco-color-brand); }
+.cco-cal-create-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 6px; }
+.cco-cal-create-label {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--cco-text-tertiary);
+  margin-top: 6px;
+}
+.cco-cal-create-input {
+  appearance: none;
+  font: inherit; font-size: 12px;
+  padding: 8px 12px; min-height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.82);
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.88);
+  color: var(--cco-color-brand);
+  width: 100%; box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+}
+.cco-cal-create-input:focus {
+  outline: none;
+  border-color: rgba(200,130,30,.45);
+  box-shadow: 0 0 0 3px rgba(200,130,30,.12), inset 0 1px 0 rgba(255,255,255,.88);
+}
+textarea.cco-cal-create-input { resize: vertical; min-height: 50px; font-variant-numeric: normal; }
+.cco-cal-create-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cco-cal-create-picks {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+}
+.cco-cal-create-pick {
+  appearance: none; cursor: pointer;
+  padding: 10px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.82);
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.88);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font: inherit; font-size: 10.5px; font-weight: 600;
+  color: var(--cco-color-brand);
+  text-align: center; line-height: 1.2;
+  transition: transform .1s ease;
+}
+.cco-cal-create-pick:hover { transform: translateY(-1px); }
+.cco-cal-create-pick.is-active {
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  border-color: rgba(200,130,30,.32);
+  color: var(--calendar-accent);
+  box-shadow: 0 2px 8px var(--calendar-accent-glow), inset 0 1px 0 rgba(255,255,255,.92);
+}
+.cco-cal-pick-icon { font-size: 16px; }
+.cco-cal-pick-dur { font-size: 9px; font-weight: 700; color: var(--cco-text-tertiary); letter-spacing: .04em; }
+.cco-cal-create-pick.is-active .cco-cal-pick-dur { color: var(--calendar-accent); }
+.cco-cal-create-conflict-area { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.cco-cal-create-ok {
+  padding: 8px 12px; border-radius: 10px;
+  font-size: 11px; font-weight: 600;
+  background: rgba(74,130,104,.10); color: var(--cco-status-success);
+  border: 1px solid rgba(74,130,104,.25);
+}
+.cco-cal-create-conflict {
+  padding: 8px 12px; border-radius: 10px;
+  font-size: 11px;
+  display: flex; gap: 4px; align-items: flex-start;
+}
+.cco-cal-create-conflict--warn {
+  background: rgba(200,130,30,.08); color: #7f5519;
+  border: 1px solid rgba(200,130,30,.30);
+}
+.cco-cal-create-conflict--blocker {
+  background: rgba(185,74,74,.08); color: #7a2e2e;
+  border: 1px solid rgba(185,74,74,.30);
+}
+.cco-cal-create-foot {
+  padding: 12px 18px;
+  border-top: 1px solid rgba(215, 202, 194, 0.40);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+.cco-cal-create-cancel,
+.cco-cal-create-submit {
+  appearance: none; cursor: pointer;
+  padding: 8px 16px; border-radius: 11px;
+  font: inherit; font-size: 11.5px; font-weight: 700;
+  border: 1px solid rgba(255,255,255,.82);
+  box-shadow: 0 2px 6px rgba(56,40,28,.06), inset 0 1px 0 rgba(255,255,255,.88);
+}
+.cco-cal-create-cancel {
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+  color: var(--cco-color-brand);
+}
+.cco-cal-create-submit {
+  background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+  color: var(--calendar-accent);
+  border-color: rgba(200,130,30,.32);
+  box-shadow: 0 2px 8px var(--calendar-accent-glow), inset 0 1px 0 rgba(255,255,255,.92);
+}
+.cco-cal-create-submit:disabled { opacity: .55; cursor: not-allowed; }
+
 /* ─── Mobil bottom-sheet ─── */
+@media (max-width: 720px) {
+  /* Create-modal som bottom-sheet på mobil (per owner-direktiv) */
+  .cco-cal-create-backdrop { padding: 0; align-items: flex-end; }
+  .cco-cal-create-modal {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 22px 22px 0 0;
+    animation: ccoCalCreateUp .25s cubic-bezier(.34,1.32,.64,1);
+  }
+  .cco-cal-create-modal::before {
+    content: ""; display: block;
+    width: 38px; height: 4px;
+    background: rgba(74, 73, 70, 0.20);
+    border-radius: 999px;
+    margin: 8px auto -4px;
+  }
+  .cco-cal-create-picks { grid-template-columns: repeat(2, 1fr); }
+  .cco-cal-create-row2 { grid-template-columns: 1fr; }
+}
+@keyframes ccoCalCreateUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
 @media (max-width: 720px) {
   .cco-cal-drawer.is-open {
     position: fixed; left: 0; right: 0; bottom: 0;
