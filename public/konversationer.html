@@ -133,9 +133,42 @@
 
       .app-grid {
         display: grid;
-        grid-template-columns: 320px minmax(0, 1fr) 360px;
-        gap: 16px;
+        grid-template-columns: 180px 300px minmax(0, 1fr) 340px;
+        gap: 12px;
         align-items: start;
+      }
+      /* Override children-widths som var menade för flex-layout */
+      .app-grid > .lane-sidebar,
+      .app-grid > .inbox-shell,
+      .app-grid > .thread-shell,
+      .app-grid > .ctx-shell {
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        flex: initial !important;
+      }
+      @media (max-width: 1400px) {
+        .app-grid {
+          grid-template-columns: 160px 280px minmax(0, 1fr) 320px;
+          gap: 10px;
+        }
+      }
+      @media (max-width: 1200px) {
+        .app-grid {
+          grid-template-columns: 140px 260px minmax(0, 1fr);
+          gap: 10px;
+        }
+        .app-grid > .ctx-shell {
+          display: none;
+        }
+      }
+      @media (max-width: 900px) {
+        .app-grid {
+          grid-template-columns: 1fr;
+        }
+        .app-grid > .lane-sidebar {
+          display: none;
+        }
       }
 
       /* VÄNSTER — inbox-lista */
