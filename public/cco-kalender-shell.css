@@ -43,14 +43,79 @@ body[data-cco-view="calendar"] .intel-shell .agg-stat:nth-child(n+4) {
   display: none; /* kompakta till topp-stats only */
 }
 
-/* ─── Dölj statiska mockups (kunder.html hade hardcoded mock-data) ───
- * Vår cco-cal-day-mount + cco-cal-week-mount renderar riktig data direkt
- * under toolbar. Statiska story-cards + mock-vecka tar bort plats.
+/* ─── Mockad calendar-week + calendar-busy DÖLJS (våra grids ersätter) ───
+ * MEN morgon-story behålls som kompakt top-strip jämte "God morgon"
+ * per owner-beslut (per #6dee2813 + manuell justering).
  * --------------------------------------------------------------------- */
-body[data-cco-view="calendar"] .morgon-story,
 body[data-cco-view="calendar"] .calendar-week,
 body[data-cco-view="calendar"] .calendar-busy {
   display: none !important;
+}
+
+/* Morgon-story som kompakt rad: greet + 4 cards i horisontal layout */
+body[data-cco-view="calendar"] .morgon-story {
+  display: grid !important;
+  grid-template-columns: minmax(160px, 200px) repeat(4, 1fr);
+  gap: 10px !important;
+  padding: 12px 4px 6px !important;
+  animation: none !important;
+  align-items: stretch;
+}
+body[data-cco-view="calendar"] .greet {
+  flex-direction: column !important;
+  gap: 6px !important;
+  padding: 8px 10px !important;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: var(--panel-card-shadow);
+  align-self: stretch;
+}
+body[data-cco-view="calendar"] .greet-sun {
+  width: 32px !important; height: 32px !important;
+  animation: none !important;
+}
+body[data-cco-view="calendar"] .greet-text h1 {
+  font-size: 15px !important;
+  margin: 0 !important;
+  letter-spacing: -.02em !important;
+}
+body[data-cco-view="calendar"] .greet-text p {
+  font-size: 10.5px !important;
+  margin: 2px 0 0 !important;
+}
+body[data-cco-view="calendar"] .story-grid {
+  display: contents !important;  /* låter dess 4 children flyta in i parent-griden */
+}
+body[data-cco-view="calendar"] .story-card {
+  padding: 10px 12px 8px !important;
+  border-radius: 12px !important;
+  min-height: 0 !important;
+}
+body[data-cco-view="calendar"] .story-card-headline {
+  font-size: 17px !important;
+  margin: 2px 0 !important;
+}
+body[data-cco-view="calendar"] .story-card-sub {
+  font-size: 10.5px !important;
+  line-height: 1.35 !important;
+}
+body[data-cco-view="calendar"] .story-card-kicker {
+  font-size: 9px !important;
+}
+body[data-cco-view="calendar"] .day-spark { display: none !important; }
+body[data-cco-view="calendar"] .story-list { display: none !important; }
+body[data-cco-view="calendar"] .ready-meter { display: none !important; }
+
+/* Mobil: stack vertikalt */
+@media (max-width: 720px) {
+  body[data-cco-view="calendar"] .morgon-story {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  body[data-cco-view="calendar"] .greet {
+    grid-column: 1 / -1 !important;
+    flex-direction: row !important;
+  }
 }
 
 /* Vår day-grid ska sitta direkt under status-bar utan extra top-padding */
