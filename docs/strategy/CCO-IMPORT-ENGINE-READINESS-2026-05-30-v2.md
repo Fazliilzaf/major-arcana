@@ -16,6 +16,47 @@
 
 ---
 
+## Svar på owner-fråga: "Finns filen direkt i CCO utan att öppna Drive?"
+
+### För demo: JA
+
+- 1 demo-fil verifierad (63 bytes PDF) i CCO secure storage
+- `storageKey`, `checksum`, `fileSize`, `mimeType`, `patientId`, `category`
+  alla satta korrekt
+- `status = VISIBLE_ON_PATIENT_CARD`
+- `listAssetsForPatient('anon-patient-001')` returnerar asseten
+- Mappar till patientkort-sektion **"Journaler"** via `category=journal`
+
+### För prod: NEJ ÄNNU
+
+- Pipeline har **INTE** kört mot Drive / Meridiq / old_cco med riktig data
+- Demo `linkOnlyBlockerCount = 1` är **avsiktligt** (demo bygger 1 sådan
+  för att visa flödet — den är **inte** produktions-bevis)
+- **Prod-cutover kräver `linkOnlyBlockerCount = 0` EFTER riktig
+  importkörning**
+- Tom store eller demo-store är **INTE** cutover-bevis
+
+### Hard rule (bekräftad — icke-förhandlingsbart)
+
+- Ingen patientfil får räknas som klar utan `storageKey` + `checksum`
+- `LINK_ONLY_BLOCKER` är **ALLTID** en blocker tills resolverad
+- `cutoverReadiness.ready` blir aldrig `true` med
+  `linkOnlyBlockerCount > 0`
+- `markAsVisibleOnPatientCard()` kräver ALLTID `patientId` — ingen
+  review-bypass
+
+### Adapter-status (P0.I — 2026-05-30)
+
+- `src/ops/ccoOldCcoAssetAdapter.js` **byggd och testad** (9 tester)
+- Wire-up i `ccoAssetImportPipeline.discoverFromOldCco()` klart
+- Kan läsa `data/cco-master-card-drive-coupling.json` (7 257
+  patient-couplings, 6 268 med folder-id)
+- **Saknar:** Google Drive service-account för att hämta riktiga
+  binärer — utan SA returnerar adaptern `LINK_ONLY_BLOCKER` per
+  coupling (vilket är korrekt beteende per hard rule)
+
+---
+
 ## Owner-fråga: "Finns filen direkt i CCO utan att öppna Drive?"
 
 ### Svar (ärligt)
