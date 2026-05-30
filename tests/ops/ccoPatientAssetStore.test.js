@@ -283,11 +283,26 @@ test('recordChecksumVerified stores SHA-256 and emits asset.checksum_verified', 
 });
 
 test('stats returns counts only — no PII, with link_only and duplicate counters', async () => {
+  // OWNER-SKÄRPNING #5: Drive-provenance + saknad checksum → räknas som blocker.
+  // BASE_ASSET har originalDriveFileId='abc123' och inget checksum,
+  // så alla 3 räknas som blockers tills checksum är satt.
   const { tmp, store } = await makeStore();
   try {
-    await store.addAsset({ ...BASE_ASSET, category: 'journal' });
-    const b = await store.addAsset({ ...BASE_ASSET, category: 'photo_after' });
-    const c = await store.addAsset({ ...BASE_ASSET, category: 'consent' });
+    await store.addAsset({
+      ...BASE_ASSET,
+      category: 'journal',
+      checksum: 'sha256:' + 'a'.repeat(64),
+    });
+    const b = await store.addAsset({
+      ...BASE_ASSET,
+      category: 'photo_after',
+      checksum: 'sha256:' + 'b'.repeat(64),
+    });
+    const c = await store.addAsset({
+      ...BASE_ASSET,
+      category: 'consent',
+      checksum: 'sha256:' + 'c'.repeat(64),
+    });
     await store.markAsLinkOnlyBlocker(b.id, 'no_binary');
     await store.updateAssetStatus(c.id, 'DUPLICATE', 'same checksum');
     const s = store.stats('tenant-a');
@@ -449,7 +464,9 @@ test('markAsVisibleOnPatientCard: saknad checksum -> error listar checksum', asy
   }
 });
 
-test('markAsVisibleOnPatientCard: saknad patientId utan reviewApproved -> error', async () => {
+test('markAsVisibleOnPatientCard: utan patientId KASTAR ALLTID — review-bypass existerar inte', async () => {
+  // OWNER-SKÄRPNING #1: patientId är obligatoriskt. Review-approval är vägen
+  // TILL patientId via reassignToPatient(), inte ett sätt att kringgå guarden.
   const { tmp, store } = await makeStore();
   try {
     const a = await buildAssetAtStatus(store, 'VERIFIED_IN_CCO');
@@ -457,12 +474,104 @@ test('markAsVisibleOnPatientCard: saknad patientId utan reviewApproved -> error'
     store._state().items[a.id].patientId = '';
     await assert.rejects(
       () => store.markAsVisibleOnPatientCard(a.id),
-      /patientId/
+      /patientId krävs ALLTID/
     );
-    // Med reviewApproved: OK
+    // Även med (gammal) "reviewApproved"-flagga är det förbjudet:
+    await assert.rejects(
+      () => store.markAsVisibleOnPatientCard(a.id, { reviewApproved: true }),
+      /patientId krävs ALLTID/
+    );
+    // patientId='unknown' (sentinel) räknas också som saknat
+    store._state().items[a.id].patientId = 'unknown';
+    await assert.rejects(
+      () => store.markAsVisibleOnPatientCard(a.id),
+      /patientId krävs ALLTID/
+    );
+    // När patientId är riktigt satt → OK
     store._state().items[a.id].patientId = 'pat-resolved';
-    const ok = await store.markAsVisibleOnPatientCard(a.id, { reviewApproved: true });
+    const ok = await store.markAsVisibleOnPatientCard(a.id);
     assert.equal(ok.status, 'VISIBLE_ON_PATIENT_CARD');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('reassignToPatient: happy path NEEDS_REVIEW → VERIFIED_IN_CCO → sedan markAsVisibleOnPatientCard fungerar', async () => {
+  // OWNER-SKÄRPNING #1: reassignToPatient är vägen TILL patientId.
+  const { tmp, store, audit } = await makeStore();
+  try {
+    // Bygg asset i NEEDS_REVIEW utan patientId (orphan)
+    const a = await store.addAsset({
+      ...BASE_ASSET,
+      patientId: 'temp-anon',
+      checksum: 'sha256:' + 'b'.repeat(64),
+    });
+    await store.transitionStatus(a.id, 'NEEDS_REVIEW');
+    // Nolla patientId
+    store._state().items[a.id].patientId = '';
+
+    // markAsVisibleOnPatientCard ska KASTA (ingen patientId)
+    await assert.rejects(
+      () => store.markAsVisibleOnPatientCard(a.id),
+      /patientId krävs ALLTID/
+    );
+
+    // reassignToPatient → sätter patientId + confidence='medium' + VERIFIED_IN_CCO
+    const reassigned = await store.reassignToPatient(a.id, {
+      patientId: 'pat-resolved-by-staff',
+      reviewItemId: 'review-001',
+      actor: { userId: 'staff-A', role: 'staff' },
+      reason: 'manuellt verifierad mot patientkort',
+    });
+    assert.equal(reassigned.patientId, 'pat-resolved-by-staff');
+    assert.equal(reassigned.confidence, 'medium');
+    assert.equal(reassigned.status, 'VERIFIED_IN_CCO');
+
+    // Audit-event: asset.reassigned_to_patient med reviewItemId
+    const ev = audit.events.find((e) => e.action === 'asset.reassigned_to_patient');
+    assert.ok(ev, 'asset.reassigned_to_patient audit saknas');
+    assert.equal(ev.detail.reviewItemId, 'review-001');
+    assert.equal(ev.detail.newPatientId, 'pat-resolved-by-staff');
+
+    // Nu fungerar markAsVisibleOnPatientCard
+    const visible = await store.markAsVisibleOnPatientCard(a.id);
+    assert.equal(visible.status, 'VISIBLE_ON_PATIENT_CARD');
+    assert.equal(visible.patientId, 'pat-resolved-by-staff');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('reassignToPatient: bara körbar från NEEDS_REVIEW — annars 409', async () => {
+  const { tmp, store } = await makeStore();
+  try {
+    const a = await buildAssetAtStatus(store, 'VERIFIED_IN_CCO');
+    await assert.rejects(
+      () =>
+        store.reassignToPatient(a.id, {
+          patientId: 'pat-other',
+          actor: { userId: 'staff-A' },
+        }),
+      /NEEDS_REVIEW/
+    );
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('reassignToPatient: patientId="unknown" eller tomt avvisas', async () => {
+  const { tmp, store } = await makeStore();
+  try {
+    const a = await store.addAsset({ ...BASE_ASSET });
+    await store.transitionStatus(a.id, 'NEEDS_REVIEW');
+    await assert.rejects(
+      () => store.reassignToPatient(a.id, { patientId: '', actor: { userId: 'u' } }),
+      /patientId krävs/
+    );
+    await assert.rejects(
+      () => store.reassignToPatient(a.id, { patientId: 'unknown', actor: { userId: 'u' } }),
+      /patientId krävs/
+    );
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }
@@ -624,6 +733,82 @@ test('hardDeleteAsset: emittar asset.hard_deleted audit med fullt detail-record'
 });
 
 // -----------------------------------------------------------------------------
+// OWNER-SKÄRPNING #2 — audit-actions (soft_deleted, hard_deleted med snapshot)
+// -----------------------------------------------------------------------------
+
+test('OS#2: softDeleteAsset emittar dedikerat asset.soft_deleted med previousStatus/newStatus/reason', async () => {
+  const { tmp, store, audit } = await makeStore();
+  try {
+    const a = await buildAssetAtStatus(store, 'NEEDS_REVIEW');
+    await store.softDeleteAsset(a.id, {
+      reason: 'staff_reject_invalid_file',
+      actor: { userId: 'staff-2', role: 'staff' },
+      target: 'REJECTED',
+    });
+    const ev = audit.events.find((e) => e.action === 'asset.soft_deleted');
+    assert.ok(ev, 'asset.soft_deleted audit saknas');
+    assert.equal(ev.detail.previousStatus, 'NEEDS_REVIEW');
+    assert.equal(ev.detail.newStatus, 'REJECTED');
+    assert.equal(ev.detail.reason, 'staff_reject_invalid_file');
+    assert.equal(ev.detail.target, 'REJECTED');
+    // Dessutom: status_changed-event ska också finnas
+    assert.ok(audit.events.some((e) => e.action === 'asset.status_changed' && e.detail.to === 'REJECTED'));
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#2: hardDeleteAsset emittar asset.hard_deleted med fullAssetSnapshot', async () => {
+  const { tmp, store, audit } = await makeStore();
+  try {
+    const a = await store.addAsset({
+      ...BASE_ASSET,
+      isJournalRelevant: false,
+      category: 'other',
+    });
+    await store.hardDeleteAsset(a.id, {
+      technicalReason: 'corrupt_metadata_re_import_planned',
+      actor: { userId: 'admin-9', role: 'admin' },
+    });
+    const ev = audit.events.find((e) => e.action === 'asset.hard_deleted');
+    assert.ok(ev);
+    assert.ok(ev.detail.fullAssetSnapshot, 'fullAssetSnapshot saknas');
+    assert.equal(ev.detail.fullAssetSnapshot.id, a.id);
+    assert.equal(ev.detail.fullAssetSnapshot.patientId, BASE_ASSET.patientId);
+    assert.equal(ev.detail.fullAssetSnapshot.sourceSystem, BASE_ASSET.sourceSystem);
+    assert.equal(ev.detail.fullAssetSnapshot.storageKey, BASE_ASSET.storageKey);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#2: hardDeleteAsset KASTAR om auditLog saknas', async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-asset-store-noaudit-'));
+  try {
+    const filePath = path.join(tmp, 'cco-patient-assets.json');
+    // INGEN auditLog
+    const store = await createCcoPatientAssetStore({ filePath });
+    const a = await store.addAsset({
+      ...BASE_ASSET,
+      isJournalRelevant: false,
+      category: 'other',
+    });
+    await assert.rejects(
+      () =>
+        store.hardDeleteAsset(a.id, {
+          technicalReason: 'tekniskt_fel',
+          actor: { userId: 'admin' },
+        }),
+      /auditLog krävs/
+    );
+    // Asset ska fortfarande finnas
+    assert.ok(store.getAsset(a.id));
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+// -----------------------------------------------------------------------------
 // stats() 9 nya counters (3)
 // -----------------------------------------------------------------------------
 
@@ -647,6 +832,11 @@ test('stats: alla 9 nya counters returneras med 0 på tom store', async () => {
 });
 
 test('stats: blandning av statusar räknas korrekt över alla 9 counters', async () => {
+  // OWNER-SKÄRPNING #5: BASE_ASSET har originalDriveFileId='abc123'. Asset utan
+  // checksum + Drive-provenance räknas som linkOnlyBlocker oavsett status-fält.
+  // Av de 6 assets nedan har bara VISIBLE och VERIFIED checksum (satt via
+  // recordChecksumVerified i buildAssetAtStatus). IMPORTED_TO_CCO,
+  // NEEDS_REVIEW, FAILED_IMPORT och LINK_ONLY_BLOCKER saknar checksum → 4 blockers.
   const { tmp, store } = await makeStore();
   try {
     // 1: VISIBLE
@@ -669,13 +859,120 @@ test('stats: blandning av statusar räknas korrekt över alla 9 counters', async
     assert.equal(s.importedButNotVerifiedCount, 1);
     assert.equal(s.needsReviewCount, 1);
     assert.equal(s.failedImportCount, 1);
-    assert.equal(s.linkOnlyBlockerCount, 1);
-    // Två assets utan checksum/storageKey (NEEDS_REVIEW och FAILED_IMPORT + IMPORTED_TO_CCO + LINK_ONLY_BLOCKER)
-    // VISIBLE har checksum (vi satte sha256 + storageKey via BASE_ASSET), VERIFIED har checksum
-    // IMPORTED_TO_CCO i buildAssetAtStatus stannade utan checksum
+    // OWNER-SKÄRPNING #5: blocker-criterion (Drive-provenance + saknad binär)
+    // räknar både den explicit LINK_ONLY_BLOCKER + alla utan checksum med Drive-id
+    assert.equal(s.linkOnlyBlockerCount, 4, 'IMPORTED_TO_CCO, NEEDS_REVIEW, FAILED_IMPORT, LINK_ONLY_BLOCKER har Drive-id + saknad checksum');
     assert.ok(s.assetsWithoutChecksumCount >= 1);
     assert.equal(s.assetsWithoutStorageKeyCount, 0); // BASE_ASSET sätter storageKey för alla
     assert.equal(s.assetsWithoutPatientIdCount, 0); // BASE_ASSET sätter patientId
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// OWNER-SKÄRPNING #3 — cutoverReadiness-block i stats()
+// -----------------------------------------------------------------------------
+
+test('OS#3: stats.cutoverReadiness är ALDRIG ready på tom store (empty_store)', async () => {
+  const { tmp, store } = await makeStore();
+  try {
+    const s = store.stats();
+    assert.ok(s.cutoverReadiness);
+    assert.equal(s.cutoverReadiness.ready, false);
+    assert.equal(s.cutoverReadiness.reason, 'empty_store');
+    assert.match(s.cutoverReadiness.message, /Tom store|aldrig körts/);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#3: cutoverReadiness reason=link_only_blockers_remain om LINK_ONLY_BLOCKER finns', async () => {
+  const { tmp, store } = await makeStore();
+  try {
+    await buildAssetAtStatus(store, 'LINK_ONLY_BLOCKER');
+    const s = store.stats();
+    assert.equal(s.cutoverReadiness.ready, false);
+    assert.equal(s.cutoverReadiness.reason, 'link_only_blockers_remain');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#3: cutoverReadiness ready=true med all_imported_and_verified när alla checks passerar', async () => {
+  const { tmp, store } = await makeStore();
+  try {
+    // 1 asset hela vägen till VISIBLE_ON_PATIENT_CARD
+    await buildAssetAtStatus(store, 'VISIBLE_ON_PATIENT_CARD');
+    const s = store.stats();
+    assert.equal(s.cutoverReadiness.ready, true);
+    assert.equal(s.cutoverReadiness.reason, 'all_imported_and_verified');
+    assert.match(s.cutoverReadiness.message, /Cutover-ready/);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// OWNER-SKÄRPNING #5 — Drive-provenance + saknad binär = LINK_ONLY_BLOCKER
+// -----------------------------------------------------------------------------
+
+test('OS#5: asset i DISCOVERED med originalDriveFileId men saknad storageKey räknas som LINK_ONLY_BLOCKER i stats', async () => {
+  const { tmp, store } = await makeStore();
+  try {
+    // Skapa asset DISCOVERED men nolla storageKey efter (med Drive-provenance)
+    const a = await store.addAsset({
+      ...BASE_ASSET,
+      originalDriveFileId: 'drive-abc-789',
+    });
+    store._state().items[a.id].storageKey = null;
+    store._state().items[a.id].checksum = null;
+    const s = store.stats();
+    // Trots status=DISCOVERED ska den räknas som blocker (har Drive-provenance + saknad binär)
+    assert.equal(s.linkOnlyBlockerCount, 1, 'Drive-provenance + saknad binär ska räknas');
+    // cutoverReadiness ska peka på link_only_blockers_remain
+    assert.equal(s.cutoverReadiness.reason, 'link_only_blockers_remain');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#5: asset utan Drive-provenance + saknad storageKey räknas INTE som LINK_ONLY_BLOCKER', async () => {
+  const { tmp, store } = await makeStore();
+  try {
+    // Source = cco_camera utan originalDriveFileId — räknas inte som blocker
+    const a = await store.addAsset({
+      ...BASE_ASSET,
+      sourceSystem: 'cco_camera',
+      originalDriveFileId: null,
+      originalDrivePath: null,
+    });
+    store._state().items[a.id].storageKey = null;
+    store._state().items[a.id].checksum = null;
+    const s = store.stats();
+    assert.equal(s.linkOnlyBlockerCount, 0, 'utan Drive-provenance: inte blocker');
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('OS#5: pipeline auto-sätter LINK_ONLY_BLOCKER om Drive-provenance + ingen body', async () => {
+  // Detta testas mer detaljerat i ccoAssetImportPipeline.test.js,
+  // men vi verifierar här att assetStore + stats samverkar.
+  const { tmp, store } = await makeStore();
+  try {
+    const a = await store.addAsset({
+      ...BASE_ASSET,
+      originalDriveFileId: 'drive-no-body-001',
+      storageKey: 'pending-no-binary', // sentinel som pipelinen sätter
+      checksum: null,
+      fileSize: 0,
+      status: 'LINK_ONLY_BLOCKER',
+    });
+    const s = store.stats();
+    assert.equal(s.linkOnlyBlockerCount, 1);
+    assert.equal(s.byStatus.LINK_ONLY_BLOCKER, 1);
+    assert.equal(s.assetsWithoutStorageKeyCount, 1, 'pending-no-binary räknas som "utan storageKey"');
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });
   }

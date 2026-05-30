@@ -392,20 +392,23 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
 
   /**
    * Lyft asset till VISIBLE_ON_PATIENT_CARD. Validerar guard-krav per
-   * docs/schema/cco-patient-assets.schema.md §3:
+   * docs/schema/cco-patient-assets.schema.md §3 + OWNER-SKÄRPNING #1:
+   *
+   *   patientId ÄR ALLTID OBLIGATORISKT — det finns ingen review-bypass.
+   *   Review-approval är vägen TILL patientId (via reassignToPatient()),
+   *   inte ett sätt att kringgå patientId-kravet på visningssidan.
+   *
+   * Krav:
    *   - storageKey, checksum, fileSize > 0, mimeType (truthy)
-   *   - patientId truthy (om saknat krävs review-approval — caller måste sätta
-   *     patientId via linkAssetToPatient + review-godkännande innan denna körs)
+   *   - patientId truthy (HARD — ingen reviewApproved-bypass)
+   *   - patientId får INTE vara 'unknown' (sentinel för "okänd patient")
    *   - status === 'VERIFIED_IN_CCO'
    *
    * Om något saknas kastas en tydlig 409 med lista över saknade fält.
    * Emittar både `asset.status_changed` (via transitionStatus) och
    * `asset.linked_to_patient` audit.
    */
-  async function markAsVisibleOnPatientCard(
-    id,
-    { actor = {}, reviewApproved = false } = {}
-  ) {
+  async function markAsVisibleOnPatientCard(id, { actor = {} } = {}) {
     const assetId = normalizeText(id);
     const existing = state.items[assetId];
     if (!existing) {
@@ -413,12 +416,23 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       e.statusCode = 404;
       throw e;
     }
+    // OWNER-SKÄRPNING #1: patientId ALLTID krävs. Ingen review-bypass.
+    if (!existing.patientId || existing.patientId === 'unknown') {
+      const e = new Error(
+        'markAsVisibleOnPatientCard: patientId krävs ALLTID. ' +
+          'Review-approval måste först koppla asset till en patient via ' +
+          'reassignToPatient(), som sätter patientId och flyttar status till ' +
+          `VERIFIED_IN_CCO. Asset: ${assetId}`
+      );
+      e.statusCode = 409;
+      e.missing = ['patientId'];
+      throw e;
+    }
     const missing = [];
     if (!existing.storageKey) missing.push('storageKey');
     if (!existing.checksum) missing.push('checksum');
     if (!(Number(existing.fileSize) > 0)) missing.push('fileSize>0');
     if (!existing.mimeType) missing.push('mimeType');
-    if (!existing.patientId && !reviewApproved) missing.push('patientId (or reviewApproved)');
     if (existing.status !== 'VERIFIED_IN_CCO') missing.push(`status=VERIFIED_IN_CCO (was ${existing.status})`);
     if (missing.length) {
       const e = new Error(
@@ -437,6 +451,67 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       via: 'markAsVisibleOnPatientCard',
     });
     return updated;
+  }
+
+  /**
+   * OWNER-SKÄRPNING #1 — hjälp-funktion för review-flödet.
+   *
+   * Bara körbar för asset i status === NEEDS_REVIEW.
+   * Sätter patientId, sätter confidence='medium' (manuellt review),
+   * och övergår till VERIFIED_IN_CCO. Emit `asset.reassigned_to_patient`
+   * audit-event (med reviewItemId och actor).
+   *
+   * Detta är den kanoniska vägen att lyfta en NEEDS_REVIEW-asset till
+   * VISIBLE_ON_PATIENT_CARD: först `reassignToPatient()`, sedan
+   * `markAsVisibleOnPatientCard()`. INGEN bypass av patientId-kravet
+   * existerar.
+   */
+  async function reassignToPatient(
+    assetId,
+    { patientId = null, reviewItemId = null, actor = {}, reason = null } = {}
+  ) {
+    const id = normalizeText(assetId);
+    const existing = state.items[id];
+    if (!existing) {
+      const e = new Error(`asset ${id} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    const pId = normalizeText(patientId);
+    if (!pId || pId === 'unknown') {
+      const e = new Error('reassignToPatient: patientId krävs (får inte vara "unknown").');
+      e.statusCode = 400;
+      throw e;
+    }
+    if (existing.status !== 'NEEDS_REVIEW') {
+      const e = new Error(
+        `reassignToPatient: bara körbar för status=NEEDS_REVIEW (var ${existing.status}). ` +
+          `Asset: ${id}`
+      );
+      e.statusCode = 409;
+      throw e;
+    }
+    // Sätt patientId + confidence='medium' (manuellt review)
+    const previousPatientId = existing.patientId || null;
+    const merged = normalizeAsset(
+      { ...existing, patientId: pId, confidence: 'medium' },
+      existing
+    );
+    state.items[id] = merged;
+    await save();
+    // Audit: asset.reassigned_to_patient
+    logAudit(auditLog, 'asset.reassigned_to_patient', merged, actor, 'ok', {
+      reviewItemId: reviewItemId || null,
+      previousPatientId,
+      newPatientId: pId,
+      reason: reason || null,
+    });
+    // Övergå NEEDS_REVIEW → VERIFIED_IN_CCO via state-machine
+    const verified = await transitionStatus(id, 'VERIFIED_IN_CCO', {
+      actor,
+      reason: reason || 'review_approved',
+    });
+    return verified;
   }
 
   async function recordChecksumVerified(id, checksum, { actor = {} } = {}) {
@@ -509,7 +584,10 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
   /**
    * Soft-delete via state-machine. Target måste vara REJECTED / DUPLICATE /
    * NEEDS_REVIEW. Default = REJECTED. Filen raderas INTE från store.
-   * Audit-event `asset.status_changed` emittas via `transitionStatus`.
+   *
+   * OWNER-SKÄRPNING #2: emit dedikerat `asset.soft_deleted`-event UTÖVER
+   * `asset.status_changed` så att soft-delete kan ärendegranskas direkt
+   * från audit-loggen utan att joina med status-changed-historiken.
    */
   async function softDeleteAsset(
     id,
@@ -522,7 +600,17 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       e.statusCode = 400;
       throw e;
     }
-    return transitionStatus(id, target, { actor, reason });
+    const assetId = normalizeText(id);
+    const existing = state.items[assetId];
+    const previousStatus = existing ? existing.status : null;
+    const updated = await transitionStatus(id, target, { actor, reason });
+    logAudit(auditLog, 'asset.soft_deleted', updated, actor, 'ok', {
+      previousStatus,
+      newStatus: updated.status,
+      reason: reason || null,
+      target,
+    });
+    return updated;
   }
 
   /**
@@ -550,6 +638,17 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       e.statusCode = 400;
       throw e;
     }
+    // OWNER-SKÄRPNING #2: hard-delete utan audit-log är förbjudet.
+    // Vi måste alltid kunna re-construct vem som raderade och varför.
+    if (!auditLog || typeof auditLog.append !== 'function') {
+      const e = new Error(
+        'hardDeleteAsset: auditLog krävs för hard-delete. ' +
+          'Hard-delete utan audit-trail är förbjudet — använd softDeleteAsset om ' +
+          'ingen audit finns konfigurerad.'
+      );
+      e.statusCode = 500;
+      throw e;
+    }
     if (
       existing.isJournalRelevant === true &&
       ['VERIFIED_IN_CCO', 'VISIBLE_ON_PATIENT_CARD'].includes(existing.status)
@@ -562,7 +661,9 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       throw e;
     }
     const deletedAt = nowIso();
-    // Fullt audit-record innan vi raderar
+    // OWNER-SKÄRPNING #2: emit fullAssetSnapshot — vi raderar metadatan,
+    // så snapshot i audit-loggen är vår enda kopia.
+    const fullAssetSnapshot = { ...existing };
     logAudit(auditLog, 'asset.hard_deleted', existing, actor, 'ok', {
       technicalReason,
       previousStatus: existing.status,
@@ -570,6 +671,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       hadChecksum: Boolean(existing.checksum),
       isJournalRelevant: existing.isJournalRelevant === true,
       deletedAt,
+      fullAssetSnapshot,
     });
     delete state.items[assetId];
     await save();
@@ -609,7 +711,15 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       if (a.category) byCategory[a.category] = (byCategory[a.category] || 0) + 1;
       if (a.sourceSystem)
         bySourceSystem[a.sourceSystem] = (bySourceSystem[a.sourceSystem] || 0) + 1;
-      if (a.status === 'LINK_ONLY_BLOCKER') linkOnlyBlockerCount += 1;
+      // OWNER-SKÄRPNING #5: räkna assets som ÄR link-only-blocker, även
+      // om status-fältet av någon anledning är annat. Drive-provenance
+      // + saknad binär = blocker oavsett vad status säger.
+      const hasDriveProvenance = !!(a.originalDriveFileId || a.originalDrivePath);
+      const missingBinary = !a.storageKey || a.storageKey === 'pending-no-binary' || !a.checksum;
+      const isLinkOnlyByCriteria = hasDriveProvenance && missingBinary;
+      if (a.status === 'LINK_ONLY_BLOCKER' || isLinkOnlyByCriteria) {
+        linkOnlyBlockerCount += 1;
+      }
       if (a.status === 'DUPLICATE') duplicateCount += 1;
       if (a.status === 'NEEDS_REVIEW') needsReviewCount += 1;
       if (a.status === 'VISIBLE_ON_PATIENT_CARD') visibleOnPatientCardCount += 1;
@@ -617,12 +727,13 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       if (a.status === 'IMPORTED_TO_CCO') importedButNotVerifiedCount += 1;
       if (a.status === 'FAILED_IMPORT') failedImportCount += 1;
       if (!a.checksum) assetsWithoutChecksumCount += 1;
-      if (!a.storageKey) assetsWithoutStorageKeyCount += 1;
-      if (!a.patientId && a.status !== 'REJECTED') assetsWithoutPatientIdCount += 1;
+      if (!a.storageKey || a.storageKey === 'pending-no-binary') assetsWithoutStorageKeyCount += 1;
+      if ((!a.patientId || a.patientId === 'unknown') && a.status !== 'REJECTED')
+        assetsWithoutPatientIdCount += 1;
       if (a.checksum) withChecksum += 1;
       totalBytes += Number(a.fileSize || 0);
     }
-    return {
+    const result = {
       tenantId: tenantId || null,
       schemaVersion: state.schemaVersion,
       total: all.length,
@@ -646,6 +757,61 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
       assetsWithoutStorageKeyCount,
       assetsWithoutPatientIdCount,
     };
+    // OWNER-SKÄRPNING #3: cutover-readiness — tom store ≠ bevis.
+    result.cutoverReadiness = computeCutoverReadiness(result);
+    return result;
+  }
+
+  /**
+   * OWNER-SKÄRPNING #3 — Cutover-readiness är ALDRIG "ready" på en tom store.
+   *
+   * Tom store betyder att pipeline aldrig har körts mot riktig source-data.
+   * Sanity-check på modulen passerar, men det är INTE samma sak som bevis
+   * för att alla patienter kan se sina filer direkt i CCO utan Drive.
+   *
+   * Ordningen är bevarad (worst-blocker först):
+   *   1. empty_store               — pipeline har inte körts
+   *   2. link_only_blockers_remain — Drive-länk-only-filer kvarstår
+   *   3. orphan_assets             — assets utan patientId
+   *   4. missing_checksums         — assets utan SHA-256
+   *   5. all_imported_and_verified — cutover-ready
+   */
+  function computeCutoverReadiness(s) {
+    const hasImportRun = s.total > 0;
+    if (!hasImportRun) {
+      return {
+        ready: false,
+        reason: 'empty_store',
+        message:
+          'Tom store — pipeline har aldrig körts. Sanity check OK men inte cutover-bevis.',
+      };
+    }
+    if (s.linkOnlyBlockerCount > 0) {
+      return {
+        ready: false,
+        reason: 'link_only_blockers_remain',
+        message: `${s.linkOnlyBlockerCount} LINK_ONLY_BLOCKER kvar — måste importeras eller flyttas till review med owner-beslut.`,
+      };
+    }
+    if (s.assetsWithoutPatientIdCount > 0) {
+      return {
+        ready: false,
+        reason: 'orphan_assets',
+        message: `${s.assetsWithoutPatientIdCount} assets saknar patientId.`,
+      };
+    }
+    if (s.assetsWithoutChecksumCount > 0) {
+      return {
+        ready: false,
+        reason: 'missing_checksums',
+        message: `${s.assetsWithoutChecksumCount} assets saknar checksum.`,
+      };
+    }
+    return {
+      ready: true,
+      reason: 'all_imported_and_verified',
+      message: `Cutover-ready: ${s.total} assets, ${s.visibleOnPatientCardCount} synliga på patientkort.`,
+    };
   }
 
   return {
@@ -657,6 +823,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     getAsset,
     markAsLinkOnlyBlocker,
     markAsVisibleOnPatientCard,
+    reassignToPatient,
     recordChecksumVerified,
     linkAssetToPatient,
     linkAssetToEncounter,
