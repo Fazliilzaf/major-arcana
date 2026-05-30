@@ -2324,8 +2324,10 @@ try {
           }
         }
 
-        // 3. Scalp analysis timeline (Aisia DS-3 MVP)
-        const scalpStore = app.locals.ccoScalpAnalysisStore;
+        // 3. Scalp analysis timeline (Aisia DS-3 MVP — gated)
+        const scalpStore = config.enableAisiaScalpAnalysis
+          ? app.locals.ccoScalpAnalysisStore
+          : null;
         if (scalpStore?.listTimelineForPatient) {
           try {
             const scalpEvents = scalpStore.listTimelineForPatient(customerId) || [];
@@ -4959,52 +4961,63 @@ try {
     }
   );
 
-  // ── Hair TP Scalp Analysis (Aisia DS-3 MVP — manual import) ──
-  const { createCcoScalpAnalysisRouter } = require('./src/routes/ccoScalpAnalysis');
-  const { createCcoScalpAnalysisStore } = require('./src/ops/ccoScalpAnalysisStore');
-  let scalpAnalysisStore = null;
+  // ── Hair TP Scalp Analysis (Aisia DS-3 MVP — gated by ENABLE_AISIA_SCALP_ANALYSIS) ──
+  if (config.enableAisiaScalpAnalysis) {
+    const { createCcoScalpAnalysisRouter } = require('./src/routes/ccoScalpAnalysis');
+    const { createCcoScalpAnalysisStore } = require('./src/ops/ccoScalpAnalysisStore');
+    let scalpAnalysisStore = null;
 
-  async function ensureScalpAnalysisStore() {
-    if (!scalpAnalysisStore) {
-      scalpAnalysisStore = await createCcoScalpAnalysisStore({
-        filePath: path.join(__dirname, 'data', 'cco-scalp-analysis.json'),
-        auditLog: ccoAuditLog,
-      });
-      app.locals.ccoScalpAnalysisStore = scalpAnalysisStore;
+    async function ensureScalpAnalysisStore() {
+      if (!scalpAnalysisStore) {
+        scalpAnalysisStore = await createCcoScalpAnalysisStore({
+          filePath: path.join(__dirname, 'data', 'cco-scalp-analysis.json'),
+          auditLog: ccoAuditLog,
+        });
+        app.locals.ccoScalpAnalysisStore = scalpAnalysisStore;
+      }
+      return scalpAnalysisStore;
     }
-    return scalpAnalysisStore;
+
+    app.use('/api/v1', async (req, res, next) => {
+      if (!String(req.path || '').startsWith('/cco/scalp-analysis')) return next();
+      try {
+        await ensureScalpAnalysisStore();
+        await ensureAssetStores();
+        next();
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.use(
+      '/api/v1',
+      createCcoScalpAnalysisRouter({
+        resolveStores: () => ({
+          scalpStore: scalpAnalysisStore,
+          assetStore,
+          secureStorage,
+        }),
+        authStore: app.locals.authStore || null,
+        config,
+        attachRole,
+      })
+    );
+
+    console.log(
+      '[cco-scalp-analysis] monterad: /api/v1/cco/scalp-analysis/* (ENABLE_AISIA_SCALP_ANALYSIS=true)'
+    );
+  } else {
+    app.use('/api/v1', (req, res, next) => {
+      if (!String(req.path || '').startsWith('/cco/scalp-analysis')) return next();
+      return res.status(404).json({ error: 'aisia_scalp_analysis_disabled' });
+    });
+    console.log(
+      '[cco-scalp-analysis] avstängd (ENABLE_AISIA_SCALP_ANALYSIS=false — säg APPLY AISIA TO CCO för att aktivera)'
+    );
   }
-
-  app.use('/api/v1', async (req, res, next) => {
-    if (!String(req.path || '').startsWith('/cco/scalp-analysis')) return next();
-    try {
-      await ensureScalpAnalysisStore();
-      await ensureAssetStores();
-      next();
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.use(
-    '/api/v1',
-    createCcoScalpAnalysisRouter({
-      resolveStores: () => ({
-        scalpStore: scalpAnalysisStore,
-        assetStore,
-        secureStorage,
-      }),
-      authStore: app.locals.authStore || null,
-      config,
-      attachRole,
-    })
-  );
 
   console.log(
     '[cco-asset-qa] monterad: GET /api/v1/cco/asset-qa/snapshot + invalidate · /patients/:id/assets · /assets/:id/{download,thumbnail}'
-  );
-  console.log(
-    '[cco-scalp-analysis] monterad: /api/v1/cco/scalp-analysis/* (manual Aisia import MVP)'
   );
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
@@ -5695,6 +5708,14 @@ function transformPreviewHtml(html) {
     if (html.includes('</head>')) {
       html = html.replace('</head>', `${inject}</head>`);
     }
+  }
+  const aisiaFlagInject = `<script>window.__ARCANA_ENABLE_AISIA_SCALP_ANALYSIS__=${config.enableAisiaScalpAnalysis ? 'true' : 'false'};</script>`;
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `${aisiaFlagInject}</head>`);
+  }
+  if (!config.enableAisiaScalpAnalysis) {
+    html = html.replace(/\s*<link[^>]*cco-scalp-analysis\.css[^>]*>\s*/gi, '');
+    html = html.replace(/\s*<script[^>]*cco-scalp-analysis\.js[^>]*><\/script>\s*/gi, '');
   }
   // Mobil /staff URL (history.replaceState) får inte bryta relativa asset-sökvägar.
   if (!/<base\s/i.test(html)) {

@@ -11,6 +11,18 @@
   const ADMIN_TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
   const PAGE_SIZE = 60;
 
+  function isAisiaScalpAnalysisEnabled() {
+    return window.__ARCANA_ENABLE_AISIA_SCALP_ANALYSIS__ === true;
+  }
+
+  function normalizeDetailTab(tab) {
+    const normalized = tab || 'profil';
+    if (normalized === 'scalpanalys' && !isAisiaScalpAnalysisEnabled()) {
+      return 'profil';
+    }
+    return normalized;
+  }
+
   const FLAG_LABELS = {
     missing_email: 'Saknar e-post',
     missing_phone: 'Saknar telefon',
@@ -1536,23 +1548,28 @@
   }
 
   function renderPatientPrimaryTabs(detailTab, fileCount = 0) {
-    const tab = detailTab || 'profil';
+    const tab = normalizeDetailTab(detailTab);
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
     const fileLabel = fileCount ? ` (${fileCount})` : '';
+    const scalpTab = isAisiaScalpAnalysisEnabled()
+      ? isMobileViewport()
+        ? `<button type="button" class="patient-master-tab${tab === 'scalpanalys' ? ' is-active' : ''}" data-patient-tab="scalpanalys" aria-pressed="${tab === 'scalpanalys'}">Scalpanalys</button>`
+        : `<button type="button" class="patient-master-tab${tab === 'scalpanalys' ? ' is-active' : ''}" data-patient-tab="scalpanalys" aria-pressed="${tab === 'scalpanalys'}">Hår-/scalpanalys</button>`
+      : '';
     if (isMobileViewport()) {
       return `
           <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
-          <button type="button" class="patient-master-tab${tab === 'scalpanalys' ? ' is-active' : ''}" data-patient-tab="scalpanalys" aria-pressed="${tab === 'scalpanalys'}">Scalpanalys</button>
+          ${scalpTab}
           <button type="button" class="patient-master-tab${tab === 'tidslinje' ? ' is-active' : ''}" data-patient-tab="tidslinje" aria-pressed="${tab === 'tidslinje'}">Tidslinje</button>
           <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileLabel}</button>`;
     }
     return `
           <button type="button" class="patient-master-tab${profilActive ? ' is-active' : ''}" data-patient-tab="profil" aria-pressed="${profilActive}">Profil</button>
           <button type="button" class="patient-master-tab${journalActive ? ' is-active' : ''}" data-patient-tab="journal" aria-pressed="${journalActive}">Journal</button>
-          <button type="button" class="patient-master-tab${tab === 'scalpanalys' ? ' is-active' : ''}" data-patient-tab="scalpanalys" aria-pressed="${tab === 'scalpanalys'}">Hår-/scalpanalys</button>
+          ${scalpTab}
           <button type="button" class="patient-master-tab${tab === 'tidslinje' ? ' is-active' : ''}" data-patient-tab="tidslinje" aria-pressed="${tab === 'tidslinje'}">Tidslinje</button>
           <button type="button" class="patient-master-tab${avtalActive ? ' is-active' : ''}" data-patient-tab="avtal" aria-pressed="${avtalActive}">Avtal</button>
           <button type="button" class="patient-master-tab${filesActive ? ' is-active' : ''}" data-patient-tab="filer" aria-pressed="${filesActive}">Filer${fileLabel}</button>`;
@@ -2087,6 +2104,7 @@
   }
 
   async function mountScalpAnalysisPanel(root = els.patientRail) {
+    if (!isAisiaScalpAnalysisEnabled()) return;
     if (!root || !window.CcoScalpAnalysis?.mount) return;
     const mountEl = root.querySelector('[data-scalp-analysis-mount]');
     const patientId = normalizeText(
@@ -2440,6 +2458,7 @@
   }
 
   function renderScalpImagingCallout() {
+    if (!isAisiaScalpAnalysisEnabled()) return '';
     const ps = runtime.scalpProtocolStatus;
     if (!ps) {
       return `
@@ -2499,6 +2518,7 @@
   }
 
   async function loadScalpProtocolStatus(patientId) {
+    if (!isAisiaScalpAnalysisEnabled()) return;
     const id = normalizeText(patientId);
     if (!id) return;
     try {
@@ -3913,7 +3933,7 @@
     resolveElements();
     const rail = document.querySelector('[data-patient-master-rail]');
     if (rail) els.patientRail = rail;
-    const normalized = nextTab || 'profil';
+    const normalized = normalizeDetailTab(nextTab);
     if (!runtime.detail?.card || !rail?.querySelector('[data-patient-detail]')) {
       return false;
     }
@@ -3974,7 +3994,7 @@
       } else {
         window.requestAnimationFrame(hydrate);
       }
-    } else if (normalized === 'scalpanalys') {
+    } else if (normalized === 'scalpanalys' && isAisiaScalpAnalysisEnabled()) {
       const hydrate = () => {
         if (runtime.detailTab !== 'scalpanalys') return;
         void mountScalpAnalysisPanel(rail);
@@ -3995,10 +4015,10 @@
     els.patientRail = rail;
     const { card } = runtime.detail;
     const journalEntries = asArray(runtime.detail.journalEntries);
-    const tab = runtime.detailTab;
+    const tab = normalizeDetailTab(runtime.detailTab);
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
-    const scalpanalysActive = tab === 'scalpanalys';
+    const scalpanalysActive = isAisiaScalpAnalysisEnabled() && tab === 'scalpanalys';
     const tidslinjeActive = tab === 'tidslinje';
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
@@ -4033,9 +4053,13 @@
           ${renderScalpImagingCallout()}
           ${renderJournalToolbar(card, journalEntries)}
         </div>
-        <div class="patient-master-tab-panel${scalpanalysActive ? '' : ' hidden'}" data-patient-tab-panel="scalpanalys">
+        ${
+          isAisiaScalpAnalysisEnabled()
+            ? `<div class="patient-master-tab-panel${scalpanalysActive ? '' : ' hidden'}" data-patient-tab-panel="scalpanalys">
           <p class="patient-master-muted" data-patient-shell-placeholder>Laddar hår-/scalpanalys…</p>
-        </div>
+        </div>`
+            : ''
+        }
         <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
           <p class="patient-master-muted" data-patient-shell-placeholder>Laddar tidslinje…</p>
         </div>
@@ -4075,10 +4099,10 @@
     runtime.detailShellOnly = false;
     revokePhotoObjectUrls();
     const { card, patient, journalEntries, driveFiles, occasionTimeline } = detail;
-    const tab = runtime.detailTab;
+    const tab = normalizeDetailTab(runtime.detailTab);
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
-    const scalpanalysActive = tab === 'scalpanalys';
+    const scalpanalysActive = isAisiaScalpAnalysisEnabled() && tab === 'scalpanalys';
     const tidslinjeActive = tab === 'tidslinje';
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
@@ -4140,9 +4164,13 @@
           ${renderJournalEntries(journalEntries)}
         </div>
 
-        <div class="patient-master-tab-panel${scalpanalysActive ? '' : ' hidden'}" data-patient-tab-panel="scalpanalys">
+        ${
+          isAisiaScalpAnalysisEnabled()
+            ? `<div class="patient-master-tab-panel${scalpanalysActive ? '' : ' hidden'}" data-patient-tab-panel="scalpanalys">
           <div id="cco-scalp-analysis-mount" data-scalp-analysis-mount="${escapeHtml(card.patientId || runtime.selectedPatientId || '')}"></div>
-        </div>
+        </div>`
+            : ''
+        }
 
         <div class="patient-master-tab-panel"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
           ${renderUnifiedTimelinePanel(journalEntries, driveFiles, occasionTimeline)}
@@ -4164,7 +4192,7 @@
     window.requestAnimationFrame(() => {
       bindJournalAutosaveForms();
       focusTimelineSegmentIfNeeded(els.patientRail);
-      if (scalpanalysActive && card?.patientId) {
+      if (scalpanalysActive && isAisiaScalpAnalysisEnabled() && card?.patientId) {
         void mountScalpAnalysisPanel(els.patientRail);
       }
       if (journalActive && card?.patientId) {
@@ -5592,7 +5620,7 @@
         if (switchDetailTab(tab.dataset.patientTab || 'profil')) {
           return;
         }
-        runtime.detailTab = tab.dataset.patientTab || 'profil';
+        runtime.detailTab = normalizeDetailTab(tab.dataset.patientTab || 'profil');
         if (tab.dataset.patientTab !== 'journal') {
           runtime.preferJournalOnMobile = false;
           runtime.editingTpEntryId = '';
@@ -5611,7 +5639,7 @@
         if (switchDetailTab(tabJump.dataset.patientTabJump || 'journal')) {
           return;
         }
-        runtime.detailTab = tabJump.dataset.patientTabJump || 'journal';
+        runtime.detailTab = normalizeDetailTab(tabJump.dataset.patientTabJump || 'journal');
         renderDetailPanel();
         return;
       }
@@ -6111,7 +6139,7 @@
     if (switchDetailTab(tabKey || 'profil')) {
       return true;
     }
-    runtime.detailTab = tabKey || 'profil';
+    runtime.detailTab = normalizeDetailTab(tabKey || 'profil');
     if (tabKey === 'journal') {
       runtime.preferJournalOnMobile = true;
     } else {

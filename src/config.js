@@ -796,6 +796,8 @@ const config = {
   ),
   /** Byggfas: öppen åtkomst till kundregister/journal/offert-API utan inloggning. Sätt false före go-live. */
   staffJournalOpenAccess: asBool(process.env.ARCANA_STAFF_JOURNAL_OPEN_ACCESS, true),
+  /** Aisia DS-3 scalp analysis — off by default until owner says APPLY AISIA TO CCO */
+  enableAisiaScalpAnalysis: asBool(process.env.ENABLE_AISIA_SCALP_ANALYSIS, false),
   /** Kommaseparerade patientId för pilot — filtrerar kundlistan i staff-vyn när satt. */
   pilotPatientIds: asStringArray(process.env.ARCANA_PILOT_PATIENT_IDS),
 
