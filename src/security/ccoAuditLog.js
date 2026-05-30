@@ -51,6 +51,22 @@ const ACTIONS = Object.freeze({
   PHOTO_READ: 'photo.read',
   PHOTO_WRITE: 'photo.write',
   PHOTO_DELETE: 'photo.delete',
+
+  // P0.B — Asset import pipeline (ccoPatientAssetStore +
+  // ccoAssetImportRunStore + ccoAssetReviewQueueStore).
+  // Per `.cursor/rules/cco-no-drive-links-import-only.mdc`. Inga
+  // patientnamn/pnr/email i payload — bara IDs.
+  ASSET_IMPORTED: 'asset.imported',
+  ASSET_STATUS_CHANGED: 'asset.status_changed',
+  ASSET_READ: 'asset.read',
+  ASSET_REVIEW_ENQUEUED: 'asset.review_enqueued',
+  ASSET_REVIEW_RESOLVED: 'asset.review_resolved',
+  ASSET_IMPORT_RUN_STARTED: 'asset.import_run_started',
+  ASSET_IMPORT_RUN_FINISHED: 'asset.import_run_finished',
+  ASSET_LINKED_TO_PATIENT: 'asset.linked_to_patient',
+  ASSET_LINKED_TO_ENCOUNTER: 'asset.linked_to_encounter',
+  ASSET_CHECKSUM_VERIFIED: 'asset.checksum_verified',
+  ASSET_LINK_ONLY_BLOCKER_FLAGGED: 'asset.link_only_blocker_flagged',
 });
 
 const HIGH_SEVERITY_ACTIONS = new Set([

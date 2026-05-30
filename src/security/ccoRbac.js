@@ -135,6 +135,22 @@ const PERMISSIONS = {
   'photo.read': ['owner', 'operator', 'konsult', 'personal'],
   'photo.write': ['owner', 'operator', 'konsult'],
   'photo.delete': ['owner'],
+
+  // P0.B — Patient asset-store (ccoPatientAssetStore).
+  // Enligt `.cursor/rules/cco-no-drive-links-import-only.mdc`. Drive +
+  // Meridiq är källor, INTE destinationer. Assets måste ligga IN i CCO.
+  //   asset.read     → alla utom revisor (revisor jobbar inte med rådata)
+  //   asset.write    → owner + operator (staff som taggar/ändrar status)
+  //   asset.delete   → owner (data-retention 10-årig PDL även för assets)
+  //   asset.import   → owner (kör import-batch)
+  //   asset.review   → owner + operator (lösa review-queue-items)
+  //   asset.export   → owner (export av asset-metadata)
+  'asset.read': ['owner', 'operator', 'konsult', 'personal'],
+  'asset.write': ['owner', 'operator'],
+  'asset.delete': ['owner'],
+  'asset.import': ['owner'],
+  'asset.review': ['owner', 'operator'],
+  'asset.export': ['owner'],
 };
 
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor'];
