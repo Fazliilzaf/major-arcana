@@ -1155,11 +1155,30 @@
         }
       }
 
-      /* ─── Sprint 18C.2: WORKBENCH MODAL (gamla CCO Svarstudio-känsla) ─── */
+      /* ─── Sprint 18C.2 + .3: WORKBENCH MODAL (vellum-triage polish) ─── */
       .action-modal--workbench {
         max-width: 1240px;
         width: 96vw;
         max-height: 94vh;
+        background: linear-gradient(180deg, rgba(252, 248, 242, 0.98), rgba(248, 242, 234, 0.94));
+        border-radius: 24px;
+        box-shadow:
+          0 40px 90px rgba(93, 74, 60, 0.22),
+          0 18px 40px rgba(93, 74, 60, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.98);
+      }
+      .action-modal--workbench .action-modal-head {
+        padding: 18px 24px;
+        background: linear-gradient(180deg, rgba(255, 252, 246, 0.92), rgba(250, 244, 235, 0.78));
+        border-bottom: 1px solid rgba(187, 159, 122, 0.16);
+        border-radius: 24px 24px 0 0;
+      }
+      .action-modal--workbench .action-modal-head h3 {
+        font-family: 'Cormorant Garamond', 'Iowan Old Style', Inter, serif;
+        font-size: 19px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--cco-color-brand);
       }
       .action-modal--workbench .action-modal-head {
         gap: 10px;
@@ -1211,13 +1230,40 @@
         min-height: 0;
       }
       .workbench-context {
-        padding: 16px 14px;
+        padding: 20px 18px;
         overflow-y: auto;
-        background: linear-gradient(180deg, rgba(250, 246, 242, 0.94), rgba(244, 238, 233, 0.86));
-        border-right: 1px solid rgba(187, 159, 122, 0.18);
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.18), transparent 40%),
+          radial-gradient(ellipse at 88% 6%, rgba(255, 210, 225, 0.14), transparent 44%),
+          linear-gradient(180deg, rgba(248, 242, 234, 0.94), rgba(242, 234, 224, 0.86));
+        border-right: 1px solid rgba(187, 159, 122, 0.14);
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 16px;
+      }
+      .workbench-context > .wb-section,
+      .workbench-context > .wb-fact-grid,
+      .workbench-context > .wb-risk-row,
+      .workbench-context > .wb-context-chips {
+        background: rgba(255, 253, 250, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.86);
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow:
+          0 6px 14px rgba(93, 74, 60, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.94);
+      }
+      .workbench-context > .wb-customer-card {
+        background: linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(250, 242, 232, 0.88));
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow:
+          0 10px 22px rgba(93, 74, 60, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96);
+      }
+      .workbench-context > .wb-contact-line {
+        padding: 0 4px;
       }
       .wb-customer-card {
         display: flex;
@@ -1225,27 +1271,39 @@
         align-items: flex-start;
       }
       .wb-avatar {
-        width: 36px;
-        height: 36px;
+        width: 42px;
+        height: 42px;
         border-radius: 999px;
         flex-shrink: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         font:
-          700 13px Inter,
-          sans-serif;
-        color: var(--cco-color-brand);
-        background: linear-gradient(180deg, rgba(255, 244, 219, 0.96), rgba(248, 233, 198, 0.82));
+          700 15px 'Cormorant Garamond',
+          Inter,
+          serif;
+        color: rgba(118, 81, 18, 0.96);
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(255, 240, 200, 0.98),
+          rgba(232, 197, 130, 0.84) 70%
+        );
+        box-shadow:
+          0 4px 12px rgba(200, 130, 30, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.86),
+          inset 0 -2px 4px rgba(200, 130, 30, 0.18);
       }
       .wb-customer-name {
         font:
-          700 14px Inter,
-          sans-serif;
+          700 16px 'Cormorant Garamond',
+          Inter,
+          serif;
         color: var(--cco-color-brand);
         margin: 0;
         line-height: 1.2;
+        letter-spacing: -0.01em;
       }
+      /* (wb-customer-name redan deklarerad ovan med Garamond) */
       .wb-customer-sub {
         font:
           500 11px Inter,
@@ -1398,13 +1456,28 @@
           sans-serif;
       }
       .wb-thread-snippet {
-        padding: 12px 14px;
-        background: rgba(250, 246, 242, 0.78);
-        border: 1px solid rgba(187, 159, 122, 0.18);
-        border-radius: 12px;
-        font-size: 12.5px;
-        line-height: 1.5;
+        position: relative;
+        padding: 14px 16px 14px 22px;
+        background: linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(250, 244, 235, 0.84));
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        border-radius: 14px;
+        font-size: 13px;
+        line-height: 1.55;
         color: var(--cco-color-text);
+        box-shadow:
+          0 8px 18px rgba(93, 74, 60, 0.07),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        white-space: pre-line;
+      }
+      .wb-thread-snippet::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 14px;
+        bottom: 14px;
+        width: 3px;
+        background: linear-gradient(180deg, var(--cco-status-info), rgba(74, 123, 168, 0.5));
+        border-radius: 999px;
       }
       .wb-thread-snippet-from {
         font:
@@ -1445,19 +1518,34 @@
       .wb-field input,
       .wb-field select,
       .wb-field textarea {
-        padding: 9px 12px;
-        border-radius: 9px;
-        border: 1px solid rgba(187, 159, 122, 0.3);
+        padding: 11px 14px;
+        border-radius: 11px;
+        border: 1px solid rgba(187, 159, 122, 0.22);
         font:
           400 12.5px Inter,
           sans-serif;
-        background: rgba(255, 255, 255, 0.92);
+        background: linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(252, 248, 242, 0.86));
         color: var(--cco-color-brand);
         font-family: inherit;
+        box-shadow:
+          inset 0 2px 4px rgba(93, 74, 60, 0.04),
+          inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        transition:
+          border-color 0.14s ease,
+          box-shadow 0.14s ease;
+      }
+      .wb-field input:focus,
+      .wb-field select:focus,
+      .wb-field textarea:focus {
+        outline: 0;
+        border-color: rgba(187, 71, 121, 0.36);
+        box-shadow:
+          inset 0 2px 4px rgba(93, 74, 60, 0.04),
+          0 0 0 3px rgba(187, 71, 121, 0.12);
       }
       .wb-field textarea {
-        min-height: 200px;
-        line-height: 1.55;
+        min-height: 220px;
+        line-height: 1.6;
         font-size: 13px;
         resize: vertical;
       }
@@ -1490,32 +1578,39 @@
         flex: 1;
       }
       .wb-chip {
-        padding: 6px 13px;
+        padding: 7px 14px;
         border-radius: 999px;
         font:
           600 11.5px Inter,
           sans-serif;
         cursor: pointer;
         border: 1px solid rgba(255, 255, 255, 0.92);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 241, 232, 0.92));
-        color: rgba(70, 60, 50, 0.7);
+        background: linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(248, 240, 228, 0.86));
+        color: rgba(70, 60, 50, 0.72);
         box-shadow:
-          0 2px 6px rgba(93, 74, 60, 0.08),
+          0 4px 10px rgba(93, 74, 60, 0.08),
+          0 1px 2px rgba(93, 74, 60, 0.04),
           inset 0 1px 0 rgba(255, 255, 255, 0.96);
         transition:
-          transform 0.14s ease,
-          box-shadow 0.14s ease;
+          transform 0.18s cubic-bezier(0.34, 1.32, 0.64, 1),
+          box-shadow 0.18s ease;
       }
       .wb-chip:hover {
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow:
+          0 8px 18px rgba(93, 74, 60, 0.12),
+          0 2px 4px rgba(93, 74, 60, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 1);
       }
       .wb-chip.is-active {
         background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
         color: var(--accent-studio);
-        border-color: rgba(187, 71, 121, 0.28);
+        border-color: rgba(187, 71, 121, 0.32);
         box-shadow:
-          0 4px 12px rgba(187, 71, 121, 0.18),
+          0 6px 16px rgba(187, 71, 121, 0.22),
+          0 2px 4px rgba(187, 71, 121, 0.1),
           inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        font-weight: 700;
       }
       .wb-route-info {
         padding: 8px 14px;
@@ -1541,26 +1636,40 @@
         gap: 8px;
         align-items: center;
         flex-wrap: wrap;
-        padding: 14px 22px;
-        border-top: 1px solid rgba(187, 159, 122, 0.18);
-        background: rgba(250, 246, 242, 0.62);
+        padding: 16px 24px;
+        border-top: 1px solid rgba(187, 159, 122, 0.16);
+        background: linear-gradient(180deg, rgba(250, 244, 235, 0.78), rgba(244, 236, 224, 0.62));
+        border-radius: 0 0 24px 24px;
       }
       .wb-footer .wb-primary-cta {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 12px 22px;
+        gap: 9px;
+        padding: 14px 28px;
         border-radius: 999px;
-        background: linear-gradient(180deg, #2b251f, #1a1612);
+        background: linear-gradient(180deg, #3a2f24, #1a1612);
         color: #fff;
         font:
-          700 13px Inter,
+          700 13.5px Inter,
           sans-serif;
         cursor: pointer;
         border: 0;
+        letter-spacing: 0.02em;
         box-shadow:
-          0 10px 24px rgba(43, 37, 31, 0.22),
-          inset 0 1px 0 rgba(255, 255, 255, 0.12);
+          0 14px 30px rgba(43, 37, 31, 0.32),
+          0 5px 12px rgba(43, 37, 31, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.16),
+          inset 0 -2px 4px rgba(0, 0, 0, 0.18);
+        transition:
+          transform 0.18s cubic-bezier(0.34, 1.32, 0.64, 1),
+          box-shadow 0.18s ease;
+      }
+      .wb-footer .wb-primary-cta:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 20px 40px rgba(43, 37, 31, 0.4),
+          0 8px 16px rgba(43, 37, 31, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
       }
       .wb-footer .wb-secondary-cta {
         padding: 10px 16px;
