@@ -153,9 +153,32 @@
     { id: 'sharper', label: 'Skarpare' },
   ];
   const SIGNATURES = [
-    { id: 'fazli', label: 'Fazli' },
-    { id: 'egzona', label: 'Egzona' },
+    {
+      id: 'fazli',
+      label: 'Fazli',
+      text: 'Med vänliga hälsningar,\n\nDr. Fazli · Medical Director\nHair TP Clinic\nSveavägen 42, 113 50 Stockholm\n08-555 123 45 · www.hairtpclinic.com',
+    },
+    {
+      id: 'egzona',
+      label: 'Egzona',
+      text: 'Med vänliga hälsningar,\n\nEgzona M. · Customer Lead\nHair TP Clinic\nSveavägen 42, 113 50 Stockholm\n08-555 123 45 · www.hairtpclinic.com',
+    },
+    {
+      id: 'contact',
+      label: 'Kontakt',
+      text: 'Med vänliga hälsningar,\n\nHair TP Clinic\nSveavägen 42, 113 50 Stockholm\n08-555 123 45 · contact@hairtpclinic.com',
+    },
   ];
+
+  function applySignatureToBody(currentBody, sigId) {
+    const sig = SIGNATURES.find((s) => s.id === sigId);
+    if (!sig) return currentBody;
+    // Hitta befintlig signatur-divider och ersätt — annars append
+    const SIG_DIVIDER = '\n\n— — — — —\n';
+    const idx = currentBody.indexOf(SIG_DIVIDER);
+    const baseBody = idx >= 0 ? currentBody.slice(0, idx) : currentBody.replace(/\s+$/, '');
+    return baseBody + SIG_DIVIDER + sig.text;
+  }
   const SNABBMALLAR = [
     { id: 'confirm_booking', label: 'Bekräfta bokning' },
     { id: 'suggest_times', label: 'Föreslå tider' },
@@ -236,6 +259,13 @@
       threadVia: 'via contact@',
     };
 
+    const initialBody =
+      'Hej ' +
+      (ctx.customerName || '') +
+      ',\n\nTack för ditt meddelande. Jag bekräftar gärna nästa steg för ' +
+      (ctx.sla || 'kommande tid') +
+      '.\n\nJag återkommer med en tydlig bekräftelse och det du behöver inför besöket.' +
+      '\n\nHör gärna av dig om något behöver justeras.';
     const state = {
       mailboxId: mailboxes[0]?.id || 'contact',
       signatureId: 'fazli',
@@ -244,12 +274,7 @@
       refine: null,
       template: null,
       subject: 'Re: ' + (ctx.customerName || 'konversation'),
-      body:
-        'Hej ' +
-        (ctx.customerName || '') +
-        ',\n\nTack för ditt meddelande. Jag bekräftar gärna nästa steg för ' +
-        (ctx.sla || 'kommande tid') +
-        '.\n\nJag återkommer med en tydlig bekräftelse och det du behöver inför besöket.\n\nHör gärna av dig om något behöver justeras.',
+      body: applySignatureToBody(initialBody, 'fazli'),
       draftId: null,
     };
 
@@ -541,11 +566,14 @@
       () => state.signatureId,
       (v) => {
         state.signatureId = v;
+        bodyArea.value = applySignatureToBody(bodyArea.value, v);
+        state.body = bodyArea.value;
+        wordCount.textContent = bodyArea.value.split(/\s+/).filter(Boolean).length + ' ord';
       },
       'studio.signature_selected'
     );
     replyBlock.appendChild(
-      el('div', { class: 'wb-chip-row-sect' }, [
+      el('div', { class: 'wb-chip-row-sect', 'data-group': 'signatur' }, [
         el('span', { class: 'wb-section-kicker' }, 'Signatur'),
         sigChips,
       ])
@@ -577,7 +605,7 @@
       'studio.track_selected'
     );
     replyBlock.appendChild(
-      el('div', { class: 'wb-chip-row-sect' }, [
+      el('div', { class: 'wb-chip-row-sect', 'data-group': 'responsspar' }, [
         el('span', { class: 'wb-section-kicker' }, 'Responsspår'),
         trackChips,
       ])
@@ -592,7 +620,7 @@
       'studio.tone_selected'
     );
     replyBlock.appendChild(
-      el('div', { class: 'wb-chip-row-sect' }, [
+      el('div', { class: 'wb-chip-row-sect', 'data-group': 'tonfilter' }, [
         el('span', { class: 'wb-section-kicker' }, 'Tonfilter'),
         toneChips,
       ])
@@ -607,7 +635,7 @@
       'studio.refine_selected'
     );
     replyBlock.appendChild(
-      el('div', { class: 'wb-chip-row-sect' }, [
+      el('div', { class: 'wb-chip-row-sect', 'data-group': 'finjustera' }, [
         el('span', { class: 'wb-section-kicker' }, 'Finjustera'),
         refineChips,
       ])

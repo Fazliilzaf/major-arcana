@@ -1612,6 +1612,61 @@
           inset 0 1px 0 rgba(255, 255, 255, 0.96);
         font-weight: 700;
       }
+
+      /* ─── Sprint 18C.4: färgnyanser per chip-grupp ─── */
+      .wb-snabbmall-row .wb-chip {
+        color: rgba(132, 92, 22, 0.86);
+      }
+      .wb-snabbmall-row .wb-section-kicker {
+        color: rgba(132, 92, 22, 0.82);
+      }
+
+      .wb-chip-row-sect[data-group='signatur'] .wb-chip {
+        color: rgba(187, 71, 121, 0.84);
+      }
+      .wb-chip-row-sect[data-group='signatur'] .wb-section-kicker {
+        color: var(--accent-studio);
+      }
+
+      .wb-chip-row-sect[data-group='responsspar'] .wb-chip {
+        color: rgba(54, 110, 78, 0.88);
+      }
+      .wb-chip-row-sect[data-group='responsspar'] .wb-section-kicker {
+        color: rgba(54, 110, 78, 0.82);
+      }
+
+      .wb-chip-row-sect[data-group='tonfilter'] .wb-chip {
+        color: rgba(54, 84, 122, 0.88);
+      }
+      .wb-chip-row-sect[data-group='tonfilter'] .wb-section-kicker {
+        color: rgba(54, 84, 122, 0.82);
+      }
+
+      .wb-chip-row-sect[data-group='finjustera'] .wb-chip {
+        color: rgba(154, 92, 50, 0.88);
+      }
+      .wb-chip-row-sect[data-group='finjustera'] .wb-section-kicker {
+        color: rgba(154, 92, 50, 0.82);
+      }
+
+      /* Smart-actions: varje action har sin egen färg */
+      .wb-smart-actions .wb-chip:nth-child(1) {
+        color: var(--accent-studio);
+      }
+      .wb-smart-actions .wb-chip:nth-child(2) {
+        color: var(--cco-status-info);
+      }
+      .wb-smart-actions .wb-chip:nth-child(3) {
+        color: var(--cco-status-warning);
+      }
+      .wb-smart-actions .wb-chip:nth-child(4) {
+        color: var(--cco-status-success);
+      }
+
+      /* Active-state behåller alltid rosa accent (override) */
+      .wb-chip.is-active {
+        color: var(--accent-studio) !important;
+      }
       .wb-route-info {
         padding: 8px 14px;
         background: rgba(255, 255, 255, 0.55);
