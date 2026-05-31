@@ -1230,40 +1230,35 @@
         min-height: 0;
       }
       .workbench-context {
-        padding: 20px 18px;
+        padding: 14px 12px;
         overflow-y: auto;
         background:
-          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.18), transparent 40%),
-          radial-gradient(ellipse at 88% 6%, rgba(255, 210, 225, 0.14), transparent 44%),
-          linear-gradient(180deg, rgba(248, 242, 234, 0.94), rgba(242, 234, 224, 0.86));
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.16), transparent 40%),
+          linear-gradient(180deg, rgba(250, 246, 240, 0.94), rgba(244, 238, 230, 0.86));
         border-right: 1px solid rgba(187, 159, 122, 0.14);
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 10px;
       }
+      .workbench-context > .wb-customer-card,
       .workbench-context > .wb-section,
       .workbench-context > .wb-fact-grid,
       .workbench-context > .wb-risk-row,
       .workbench-context > .wb-context-chips {
-        background: rgba(255, 253, 250, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.86);
-        border-radius: 14px;
-        padding: 12px 14px;
+        background: rgba(255, 253, 250, 0.62);
+        border: 1px solid rgba(187, 159, 122, 0.12);
+        border-radius: 11px;
+        padding: 9px 11px;
         box-shadow:
-          0 6px 14px rgba(93, 74, 60, 0.06),
-          inset 0 1px 0 rgba(255, 255, 255, 0.94);
+          0 1px 2px rgba(93, 74, 60, 0.03),
+          inset 0 1px 0 rgba(255, 255, 255, 0.88);
       }
       .workbench-context > .wb-customer-card {
-        background: linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(250, 242, 232, 0.88));
-        border: 1px solid rgba(255, 255, 255, 0.92);
-        border-radius: 16px;
-        padding: 14px;
-        box-shadow:
-          0 10px 22px rgba(93, 74, 60, 0.08),
-          inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        padding: 10px 12px;
+        gap: 8px;
       }
       .workbench-context > .wb-contact-line {
-        padding: 0 4px;
+        padding: 2px 4px;
       }
       .wb-customer-card {
         display: flex;
@@ -1613,43 +1608,85 @@
         font-weight: 700;
       }
 
-      /* ─── Sprint 18C.4: färgnyanser per chip-grupp ─── */
-      .wb-snabbmall-row .wb-chip {
-        color: rgba(132, 92, 22, 0.86);
-      }
+      /* ─── Sprint 18C.6: UNIK FÄRG per chip (alla kategorier + footer) ─── */
       .wb-snabbmall-row .wb-section-kicker {
         color: rgba(132, 92, 22, 0.82);
       }
+      .wb-snabbmall-row .wb-chips .wb-chip:nth-child(1) {
+        color: rgba(54, 110, 78, 0.94);
+      } /* Bekräfta bokning — green */
+      .wb-snabbmall-row .wb-chips .wb-chip:nth-child(2) {
+        color: rgba(54, 84, 122, 0.94);
+      } /* Föreslå tider — blue */
+      .wb-snabbmall-row .wb-chips .wb-chip:nth-child(3) {
+        color: rgba(154, 110, 22, 0.94);
+      } /* Skicka prislista — gold */
+      .wb-snabbmall-row .wb-chips .wb-chip:nth-child(4) {
+        color: rgba(124, 58, 174, 0.94);
+      } /* Be om info — violet */
 
-      .wb-chip-row-sect[data-group='signatur'] .wb-chip {
-        color: rgba(187, 71, 121, 0.84);
-      }
       .wb-chip-row-sect[data-group='signatur'] .wb-section-kicker {
         color: var(--accent-studio);
       }
+      .wb-chip-row-sect[data-group='signatur'] .wb-chips .wb-chip:nth-child(1) {
+        color: var(--accent-studio);
+      } /* Fazli — studio */
+      .wb-chip-row-sect[data-group='signatur'] .wb-chips .wb-chip:nth-child(2) {
+        color: rgba(146, 84, 38, 0.94);
+      } /* Egzona — warm brown */
+      .wb-chip-row-sect[data-group='signatur'] .wb-chips .wb-chip:nth-child(3) {
+        color: rgba(54, 84, 122, 0.94);
+      } /* Kontakt — blue */
 
-      .wb-chip-row-sect[data-group='responsspar'] .wb-chip {
-        color: rgba(54, 110, 78, 0.88);
-      }
       .wb-chip-row-sect[data-group='responsspar'] .wb-section-kicker {
-        color: rgba(54, 110, 78, 0.82);
+        color: rgba(70, 60, 50, 0.78);
       }
+      .wb-chip-row-sect[data-group='responsspar'] .wb-chips .wb-chip:nth-child(1) {
+        color: rgba(54, 110, 78, 0.96);
+      } /* Bokning — green */
+      .wb-chip-row-sect[data-group='responsspar'] .wb-chips .wb-chip:nth-child(2) {
+        color: rgba(54, 84, 122, 0.96);
+      } /* Uppföljning — blue */
+      .wb-chip-row-sect[data-group='responsspar'] .wb-chips .wb-chip:nth-child(3) {
+        color: rgba(124, 58, 174, 0.96);
+      } /* Mellanbesked — violet */
+      .wb-chip-row-sect[data-group='responsspar'] .wb-chips .wb-chip:nth-child(4) {
+        color: rgba(185, 74, 74, 0.96);
+      } /* Medicinsk — red */
+      .wb-chip-row-sect[data-group='responsspar'] .wb-chips .wb-chip:nth-child(5) {
+        color: rgba(154, 110, 22, 0.96);
+      } /* Pris/trygghet — gold */
+      .wb-chip-row-sect[data-group='responsspar'] .wb-chips .wb-chip:nth-child(6) {
+        color: rgba(90, 80, 70, 0.94);
+      } /* Admin — neutral */
 
-      .wb-chip-row-sect[data-group='tonfilter'] .wb-chip {
-        color: rgba(54, 84, 122, 0.88);
-      }
       .wb-chip-row-sect[data-group='tonfilter'] .wb-section-kicker {
-        color: rgba(54, 84, 122, 0.82);
+        color: rgba(70, 60, 50, 0.78);
       }
+      .wb-chip-row-sect[data-group='tonfilter'] .wb-chips .wb-chip:nth-child(1) {
+        color: rgba(30, 60, 100, 0.96);
+      } /* Professionell — navy */
+      .wb-chip-row-sect[data-group='tonfilter'] .wb-chips .wb-chip:nth-child(2) {
+        color: rgba(200, 100, 80, 0.96);
+      } /* Varm — terracotta */
+      .wb-chip-row-sect[data-group='tonfilter'] .wb-chips .wb-chip:nth-child(3) {
+        color: rgba(54, 110, 78, 0.96);
+      } /* Lösningsfokus — green */
+      .wb-chip-row-sect[data-group='tonfilter'] .wb-chips .wb-chip:nth-child(4) {
+        color: rgba(94, 60, 154, 0.96);
+      } /* Beslutsstöd — indigo */
 
-      .wb-chip-row-sect[data-group='finjustera'] .wb-chip {
-        color: rgba(154, 92, 50, 0.88);
-      }
       .wb-chip-row-sect[data-group='finjustera'] .wb-section-kicker {
-        color: rgba(154, 92, 50, 0.82);
+        color: rgba(70, 60, 50, 0.78);
       }
+      .wb-chip-row-sect[data-group='finjustera'] .wb-chips .wb-chip:nth-child(1) {
+        color: rgba(74, 130, 104, 0.96);
+      } /* Kortare — green */
+      .wb-chip-row-sect[data-group='finjustera'] .wb-chips .wb-chip:nth-child(2) {
+        color: rgba(200, 100, 50, 0.96);
+      } /* Skarpare — orange */
 
-      /* Smart-actions: varje action har sin egen färg */
+      /* Smart-actions */
       .wb-smart-actions .wb-chip:nth-child(1) {
         color: var(--accent-studio);
       }
@@ -1662,6 +1699,23 @@
       .wb-smart-actions .wb-chip:nth-child(4) {
         color: var(--cco-status-success);
       }
+
+      /* Footer-actions: unik färg per knapp */
+      .wb-footer .wb-secondary-cta:nth-of-type(1) {
+        color: rgba(54, 84, 122, 0.88);
+      } /* Förhandsvisning — info-blue */
+      .wb-footer .wb-secondary-cta:nth-of-type(2) {
+        color: rgba(90, 80, 70, 0.92);
+      } /* Spara utkast — neutral */
+      .wb-footer .wb-secondary-cta:nth-of-type(3) {
+        color: rgba(154, 110, 22, 0.92);
+      } /* Senare — amber */
+      .wb-footer .wb-secondary-cta--approve {
+        color: var(--accent-studio) !important;
+      } /* Klar — rose */
+      .wb-footer .wb-secondary-cta--danger {
+        color: var(--cco-status-danger) !important;
+      } /* Radera — red */
 
       /* Active-state behåller alltid rosa accent (override) */
       .wb-chip.is-active {
