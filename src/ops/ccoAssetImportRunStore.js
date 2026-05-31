@@ -31,17 +31,9 @@ const path = require('node:path');
 
 const SCHEMA_VERSION = '1.0.0';
 
-const VALID_SOURCE_SYSTEMS = Object.freeze([
-  'drive',
-  'meridiq',
-  'old_cco',
-]);
+const VALID_SOURCE_SYSTEMS = Object.freeze(['drive', 'drive_import', 'meridiq', 'old_cco']);
 
-const VALID_MODES = Object.freeze([
-  'full',
-  'incremental',
-  'review_resolve',
-]);
+const VALID_MODES = Object.freeze(['full', 'incremental', 'review_resolve']);
 
 const COUNTER_NAMES = Object.freeze([
   'totalDiscovered',

@@ -28,7 +28,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const SCHEMA_VERSION = '1.0.0';
+const SCHEMA_VERSION = '1.1.0';
 
 const VALID_STATUSES = Object.freeze([
   'DISCOVERED',
@@ -84,12 +84,15 @@ const VALID_CATEGORIES = Object.freeze([
 
 const VALID_SOURCE_SYSTEMS = Object.freeze([
   'drive',
+  'drive_import',
   'meridiq',
   'old_cco',
   'cco_camera',
   'upload',
   'aisia_ds3',
   'cco_journal_sign', // P0.J.222 — auto-PDF vid signering av CCO-journal
+  'getaccept_import',
+  'm365_halso',
 ]);
 
 const VALID_STORAGE_PROVIDERS = Object.freeze(['s3', 'local', 'encrypted-fs']);
@@ -197,6 +200,47 @@ function normalizeAsset(input = {}, existing = {}) {
     auditRequired: normalizeBoolean(safe.auditRequired, ex.auditRequired ?? false),
     isJournalRelevant: normalizeBoolean(safe.isJournalRelevant, ex.isJournalRelevant ?? false),
     isPatientVisible: normalizeBoolean(safe.isPatientVisible, ex.isPatientVisible ?? false),
+    // Display / naming metadata (v1.1) — RBAC-skyddat i UI, aldrig i storageKey
+    displayName: normalizeText(safe.displayName || ex.displayName) || null,
+    documentTitle: normalizeText(safe.documentTitle || ex.documentTitle) || null,
+    treatmentType: normalizeText(safe.treatmentType || ex.treatmentType) || null,
+    encounterType: normalizeText(safe.encounterType || ex.encounterType) || null,
+    visitLabel: normalizeText(safe.visitLabel || ex.visitLabel) || null,
+    subCategory: normalizeText(safe.subCategory || ex.subCategory) || null,
+    patientCardSection: normalizeText(safe.patientCardSection || ex.patientCardSection) || null,
+    imageStage: normalizeText(safe.imageStage || ex.imageStage) || null,
+    imageType: normalizeText(safe.imageType || ex.imageType) || null,
+    bodyArea: normalizeText(safe.bodyArea || ex.bodyArea) || null,
+    angle: normalizeText(safe.angle || ex.angle) || null,
+    sessionNumber: Number.isFinite(Number(safe.sessionNumber))
+      ? Math.max(0, Math.round(Number(safe.sessionNumber)))
+      : Number.isFinite(Number(ex.sessionNumber))
+        ? Math.max(0, Math.round(Number(ex.sessionNumber)))
+        : null,
+    suggestedCategory: normalizeText(safe.suggestedCategory || ex.suggestedCategory) || null,
+    approvedCategory: normalizeText(safe.approvedCategory || ex.approvedCategory) || null,
+    captureDate: normalizeText(safe.captureDate || ex.captureDate) || null,
+    version: normalizeText(safe.version || ex.version) || null,
+    namingConfidence: normalizeText(safe.namingConfidence || ex.namingConfidence) || null,
+    namingStatus: normalizeText(safe.namingStatus || ex.namingStatus) || null,
+    uiStatus: normalizeText(safe.uiStatus || ex.uiStatus) || null,
+    namingBuiltAt: normalizeText(safe.namingBuiltAt || ex.namingBuiltAt) || null,
+    reviewedBy: normalizeText(safe.reviewedBy || ex.reviewedBy) || null,
+    reviewedAt: normalizeText(safe.reviewedAt || ex.reviewedAt) || null,
+    reviewReason: normalizeText(safe.reviewReason || ex.reviewReason) || null,
+    encounterMappingStatus:
+      normalizeText(safe.encounterMappingStatus || ex.encounterMappingStatus) || null,
+    encounterMappingReviewedAt:
+      normalizeText(safe.encounterMappingReviewedAt || ex.encounterMappingReviewedAt) || null,
+    encounterMappingReviewedBy:
+      normalizeText(safe.encounterMappingReviewedBy || ex.encounterMappingReviewedBy) || null,
+    encounterMappingReviewReason:
+      normalizeText(safe.encounterMappingReviewReason || ex.encounterMappingReviewReason) || null,
+    oldCategory: normalizeText(safe.oldCategory || ex.oldCategory) || null,
+    technicalInfo:
+      safe.technicalInfo && typeof safe.technicalInfo === 'object'
+        ? { ...(ex.technicalInfo || {}), ...safe.technicalInfo }
+        : ex.technicalInfo || null,
     statusHistory: asArray(ex.statusHistory)
       .slice(-49)
       .concat(
@@ -537,6 +581,101 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     return verified;
   }
 
+  /**
+   * Kopplar binär till metadata-first import (t.ex. GetAccept legacy).
+   * Kräver IMPORTED_TO_CCO + storageKey saknas.
+   */
+  async function attachImportedBinary(
+    assetId,
+    {
+      storageKey = null,
+      checksum = null,
+      fileSize = null,
+      mimeType = null,
+      originalFileName = null,
+      storageProvider = 'local',
+      clearPdfPending = true,
+      actor = {},
+      reason = null,
+    } = {}
+  ) {
+    const id = normalizeText(assetId);
+    const existing = state.items[id];
+    if (!existing) {
+      const e = new Error(`asset ${id} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    if (existing.status !== 'IMPORTED_TO_CCO') {
+      const e = new Error(
+        `attachImportedBinary: kräver status IMPORTED_TO_CCO (var ${existing.status}).`
+      );
+      e.statusCode = 409;
+      throw e;
+    }
+    if (existing.storageKey && existing.storageKey !== 'pending-no-binary') {
+      const e = new Error(`attachImportedBinary: asset ${id} har redan storageKey.`);
+      e.statusCode = 409;
+      throw e;
+    }
+
+    const key = normalizeText(storageKey);
+    const hash = normalizeText(checksum);
+    const size = Number(fileSize);
+    const mime = normalizeText(mimeType);
+    if (!key) {
+      const e = new Error('storageKey krävs.');
+      e.statusCode = 400;
+      throw e;
+    }
+    if (!hash) {
+      const e = new Error('checksum krävs.');
+      e.statusCode = 400;
+      throw e;
+    }
+    if (!(size > 0)) {
+      const e = new Error('fileSize>0 krävs.');
+      e.statusCode = 400;
+      throw e;
+    }
+    if (!mime) {
+      const e = new Error('mimeType krävs.');
+      e.statusCode = 400;
+      throw e;
+    }
+
+    const technicalInfo =
+      clearPdfPending && existing.technicalInfo && typeof existing.technicalInfo === 'object'
+        ? {
+            ...existing.technicalInfo,
+            pdfPending: false,
+            attachmentPending: false,
+            pdfFetchedAt: nowIso(),
+          }
+        : existing.technicalInfo || null;
+
+    const merged = normalizeAsset(
+      {
+        ...existing,
+        storageProvider: normalizeText(storageProvider) || 'local',
+        storageKey: key,
+        checksum: hash,
+        fileSize: size,
+        mimeType: mime,
+        originalFileName: normalizeText(originalFileName) || existing.originalFileName || null,
+        technicalInfo,
+      },
+      existing
+    );
+    state.items[id] = merged;
+    await save();
+    logAudit(auditLog, 'asset.import_binary_attached', merged, actor, 'ok', {
+      reason: reason || null,
+      sourceSystem: merged.sourceSystem || null,
+    });
+    return { ...merged };
+  }
+
   async function recordChecksumVerified(id, checksum, { actor = {} } = {}) {
     const assetId = normalizeText(id);
     const existing = state.items[assetId];
@@ -636,6 +775,68 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     logAudit(auditLog, 'asset.review_metadata_updated', merged, actor, 'ok', {
       reason: reason || null,
       fields: Object.keys(patch),
+    });
+    return { ...merged };
+  }
+
+  async function patchAssetNamingMetadata(assetId, patch = {}, { actor = {}, reason = null } = {}) {
+    const id = normalizeText(assetId);
+    const existing = state.items[id];
+    if (!existing) {
+      const e = new Error(`asset ${id} hittades inte.`);
+      e.statusCode = 404;
+      throw e;
+    }
+    const allowed = [
+      'displayName',
+      'documentTitle',
+      'treatmentType',
+      'encounterType',
+      'visitLabel',
+      'subCategory',
+      'patientCardSection',
+      'imageStage',
+      'imageType',
+      'bodyArea',
+      'angle',
+      'sessionNumber',
+      'suggestedCategory',
+      'approvedCategory',
+      'captureDate',
+      'version',
+      'namingConfidence',
+      'namingStatus',
+      'uiStatus',
+      'namingBuiltAt',
+      'reviewedBy',
+      'reviewedAt',
+      'reviewReason',
+      'oldCategory',
+      'approvedCategory',
+      'technicalInfo',
+      'imageType',
+      'sessionNumber',
+      'encounterType',
+      'encounterMappingStatus',
+      'encounterMappingReviewedAt',
+      'encounterMappingReviewedBy',
+      'encounterMappingReviewReason',
+    ];
+    const next = { ...existing };
+    for (const key of allowed) {
+      if (patch[key] !== undefined) next[key] = patch[key];
+    }
+    const merged = normalizeAsset(next, existing);
+    state.items[id] = merged;
+    await save();
+    logAudit(auditLog, 'asset.naming_metadata_updated', merged, actor, 'ok', {
+      reason: reason || null,
+      fields: Object.keys(patch),
+      namingStatus: merged.namingStatus || null,
+      displayName_hash: merged.displayName
+        ? 'sha256:' +
+          crypto.createHash('sha256').update(String(merged.displayName)).digest('hex').slice(0, 16)
+        : null,
     });
     return { ...merged };
   }
@@ -906,6 +1107,8 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     reassignToPatient,
     updateAssetCategory,
     patchAssetForReview,
+    patchAssetNamingMetadata,
+    attachImportedBinary,
     recordChecksumVerified,
     linkAssetToPatient,
     linkAssetToEncounter,
