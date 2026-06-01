@@ -304,5 +304,6 @@ module.exports = {
   hasCcoEnrichmentSignals,
   resolveGapConversationId,
   resolveTruthConversationIds,
+  truthRowMatchesEnrichment,
   computeCcoInboxEnrichmentCoverage,
 };
