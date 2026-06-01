@@ -100,6 +100,178 @@ function pickIso(...vals) {
   return null;
 }
 
+function normalizeMailboxId(value = '') {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
+}
+
+function mailboxBadge(mailboxId = '') {
+  const email = normalizeMailboxId(mailboxId);
+  if (!email) return null;
+  const local = email.split('@')[0] || email;
+  return local;
+}
+
+function resolveCustomerIdFromIdentity(identity = {}, fallback = '') {
+  const safe = identity && typeof identity === 'object' ? identity : {};
+  return (
+    normalizeText(safe.canonicalCustomerId) ||
+    normalizeText(safe.customerId) ||
+    normalizeText(safe.customerKey) ||
+    normalizeText(fallback)
+  );
+}
+
+function truthMessageMatchesCustomer(message = {}, customerId = '') {
+  const target = normalizeText(customerId);
+  if (!target) return false;
+  const identity = message.customerIdentity || message.identity || null;
+  if (identity) {
+    const resolved = resolveCustomerIdFromIdentity(identity);
+    if (resolved && resolved === target) return true;
+  }
+  return false;
+}
+
+function mailDedupeKey({
+  mailboxId = '',
+  graphMessageId = '',
+  conversationId = '',
+  rawId = '',
+} = {}) {
+  const mb = normalizeMailboxId(mailboxId);
+  const gid = normalizeText(graphMessageId).toLowerCase();
+  if (mb && gid) return `${mb}:${gid}`;
+  const conv = normalizeText(conversationId);
+  if (mb && conv) return `${mb}:conv:${conv}`;
+  if (rawId) return `raw:${rawId}`;
+  return '';
+}
+
+function safePreview(value = '', max = 140) {
+  const text = normalizeText(value);
+  if (!text) return '';
+  return text.length > max ? text.slice(0, max) : text;
+}
+
+function buildMailThreadFromTruthMessage(m = {}, customerId = '') {
+  const fromEmail = m.fromEmail || m.from?.address || m.from || m.fromAddress || '';
+  const sys = isSystemMail(fromEmail);
+  const isOutbound =
+    m.direction === 'outbound' || m.folderType === 'sent' || m.folderType === 'drafts';
+  const mailboxId = normalizeMailboxId(m.mailboxId || m.mailboxAddress);
+  return {
+    threadId:
+      normalizeText(m.mailboxConversationId) ||
+      normalizeText(m.conversationId) ||
+      mailDedupeKey({
+        mailboxId,
+        graphMessageId: m.graphMessageId,
+        conversationId: m.conversationId,
+      }) ||
+      'mail-' + normalizeText(m.graphMessageId || m.id),
+    kind: sys ? 'system_mail' : isOutbound ? 'outgoing_mail' : 'incoming_mail',
+    direction: isOutbound ? 'outbound' : 'inbound',
+    ts: pickIso(m.receivedAt, m.sentAt, m.lastModifiedAt, m.persistedAt),
+    subject: m.subject || '(utan ämne)',
+    from: maskEmail(fromEmail),
+    preview: safePreview(m.bodyPreview || m.snippet),
+    channel: 'email',
+    mailboxId: mailboxId || null,
+    mailboxBadge: mailboxBadge(mailboxId),
+    graphMessageId: normalizeText(m.graphMessageId) || null,
+    conversationId: normalizeText(m.conversationId) || null,
+    systemMail: sys,
+    requiresAttention: !sys && !isOutbound,
+    sourceLayer: 'mailbox_truth',
+    customerId: resolveCustomerIdFromIdentity(m.customerIdentity, customerId) || customerId,
+  };
+}
+
+function buildMailThreadFromIngestionMessage(m = {}, customerId = '') {
+  const fromEmail = m.fromAddress || m.from?.address || m.from || m.fromEmail || '';
+  const sys = isSystemMail(fromEmail);
+  const isOutbound = m.folderType === 'sent' || m.folderType === 'drafts';
+  const mailboxId = normalizeMailboxId(m.mailboxId);
+  return {
+    threadId:
+      normalizeText(m.conversationId) ||
+      mailDedupeKey({
+        mailboxId,
+        graphMessageId: m.graphMessageId || m.immutableGraphId,
+        rawId: m.id || m.rawMessageId,
+      }) ||
+      'mail-' + normalizeText(m.id || m.rawMessageId),
+    kind: sys ? 'system_mail' : isOutbound ? 'outgoing_mail' : 'incoming_mail',
+    direction: isOutbound ? 'outbound' : 'inbound',
+    ts: pickIso(m.sortIso, m.receivedAt, m.sentAt, m.receivedDateTime),
+    subject: m.subject || '(utan ämne)',
+    from: maskEmail(fromEmail),
+    preview: safePreview(m.snippet || m.bodyPreview),
+    channel: 'email',
+    mailboxId: mailboxId || null,
+    mailboxBadge: mailboxBadge(mailboxId),
+    graphMessageId: normalizeText(m.graphMessageId || m.immutableGraphId) || null,
+    conversationId: normalizeText(m.conversationId) || null,
+    systemMail: sys,
+    requiresAttention: !sys && !isOutbound,
+    sourceLayer: 'ingestion',
+    customerId,
+  };
+}
+
+async function preloadTruthMailboxes(mailboxTruthStore, historyMailboxIds = []) {
+  if (!mailboxTruthStore?.ensureMailboxLoaded) return;
+  for (const mailboxId of asArray(historyMailboxIds)) {
+    try {
+      await mailboxTruthStore.ensureMailboxLoaded(mailboxId);
+    } catch {
+      /* optional shard */
+    }
+  }
+}
+
+function listTruthMessagesForCustomer(mailboxTruthStore, customerId, historyMailboxIds = []) {
+  if (!mailboxTruthStore?.listMessages || !customerId) return [];
+  const mailboxIds = asArray(historyMailboxIds).map(normalizeMailboxId).filter(Boolean);
+  const searchMailboxes =
+    mailboxIds.length > 0
+      ? mailboxIds
+      : typeof mailboxTruthStore.listLoadedMailboxes === 'function'
+        ? mailboxTruthStore.listLoadedMailboxes()
+        : [];
+  const rows = [];
+  for (const mailboxId of searchMailboxes) {
+    const msgs =
+      mailboxTruthStore.listMessages({
+        mailboxIds: [mailboxId],
+        folderTypes: ['inbox', 'sent', 'drafts'],
+        limit: 0,
+      }) || [];
+    for (const m of msgs) {
+      if (truthMessageMatchesCustomer(m, customerId)) rows.push(m);
+    }
+  }
+  if (rows.length === 0 && searchMailboxes.length === 0) {
+    for (const m of mailboxTruthStore.listMessages({
+      folderTypes: ['inbox', 'sent', 'drafts'],
+      limit: 0,
+    })) {
+      if (truthMessageMatchesCustomer(m, customerId)) rows.push(m);
+    }
+  }
+  return rows;
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 async function createCcoConversationThreadStore({
   filePath,
   mailIngestionStore = null,
@@ -108,6 +280,8 @@ async function createCcoConversationThreadStore({
   commDraftStore = null,
   sendActionsList = null, // function (customerId) => array av send-events
   auditLog = null,
+  historyMailboxIds = [],
+  enrichmentLookup = null, // optional (customerId) => { workflowLane, slaStatus, needsAction, riskLabel }
 } = {}) {
   if (!filePath) throw new Error('filePath required');
 
@@ -169,78 +343,61 @@ async function createCcoConversationThreadStore({
   }
 
   // ─── Build threads for a customer ─────────────────────────────────
-  function buildThreadsForCustomer(customerId, { tenantId = 'hair_tp' } = {}) {
-    if (!customerId) return { threads: [], counts: {} };
+  async function buildThreadsForCustomer(customerId, { tenantId = 'hair_tp' } = {}) {
+    if (!customerId) return { threads: [], counts: {}, summary: {}, mailboxes: [] };
     const threads = [];
+    const mailKeys = new Set();
 
-    // 1. Mail från ingest-pipeline (matched patientId) — täcker både in/ut
+    await preloadTruthMailboxes(mailboxTruthStore, historyMailboxIds);
+
+    // 1. Mailbox truth (primary — includes hydration customerIdentity overlay)
+    if (mailboxTruthStore) {
+      try {
+        const truthMessages = listTruthMessagesForCustomer(
+          mailboxTruthStore,
+          customerId,
+          historyMailboxIds
+        );
+        for (const m of truthMessages) {
+          const row = buildMailThreadFromTruthMessage(m, customerId);
+          const key =
+            mailDedupeKey({
+              mailboxId: row.mailboxId,
+              graphMessageId: row.graphMessageId,
+              conversationId: row.conversationId,
+              rawId: row.threadId,
+            }) || row.threadId;
+          if (mailKeys.has(key)) continue;
+          mailKeys.add(key);
+          threads.push(row);
+        }
+      } catch {
+        /* truth kan vara otillgänglig */
+      }
+    }
+
+    // 2. Ingestion complement (endast rader som saknas i truth)
     if (mailIngestionStore?.listPatientMessages) {
       try {
         const msgs =
-          mailIngestionStore.listPatientMessages({ patientId: customerId, limit: 100 }) || [];
+          mailIngestionStore.listPatientMessages({ patientId: customerId, limit: 200 }) || [];
         for (const m of msgs) {
-          const fromEmail = m.fromAddress || m.from?.address || m.from || '';
-          const sys = isSystemMail(fromEmail);
-          const isOutbound = m.folderType === 'sent' || m.folderType === 'drafts';
-          threads.push({
-            threadId: m.conversationId || m.rawMessageId || 'mail-' + m.id,
-            kind: sys ? 'system_mail' : isOutbound ? 'outgoing_mail' : 'incoming_mail',
-            direction: isOutbound ? 'outbound' : 'inbound',
-            ts: pickIso(m.sortIso, m.receivedAt),
-            subject: m.subject || '(utan ämne)',
-            from: maskEmail(fromEmail),
-            preview: (m.snippet || m.bodyText || '').slice(0, 140),
-            channel: 'email',
-            mailboxId: m.mailboxId || null,
-            systemMail: sys,
-            requiresAttention: !sys && !isOutbound,
-          });
+          const row = buildMailThreadFromIngestionMessage(m, customerId);
+          const key =
+            mailDedupeKey({
+              mailboxId: row.mailboxId,
+              graphMessageId: row.graphMessageId,
+              conversationId: row.conversationId,
+              rawId: m.id || m.rawMessageId,
+            }) || row.threadId;
+          if (mailKeys.has(key)) continue;
+          mailKeys.add(key);
+          threads.push(row);
         }
-      } catch (err) {
+      } catch {
         /* ingest store kan vara tom */
       }
     }
-
-    // 2. Fallback: skanna truth-store via customerIdentity om ingest tom
-    const haveMailFromIngest = threads.some(
-      (t) => t.kind === 'incoming_mail' || t.kind === 'outgoing_mail' || t.kind === 'system_mail'
-    );
-    if (mailboxTruthStore?.listMessages && !haveMailFromIngest) {
-      try {
-        const msgs =
-          mailboxTruthStore.listMessages({
-            folderTypes: ['sent', 'inbox', 'drafts'],
-            limit: 300,
-          }) || [];
-        for (const m of msgs) {
-          const identity = m.customerIdentity;
-          const matchesCustomer =
-            identity && (identity.customerId === customerId || identity.customerKey === customerId);
-          if (!matchesCustomer) continue;
-          const isSent = m.folderType === 'sent' || m.folderType === 'drafts';
-          const fromEmail = m.fromAddress || m.from || '';
-          const sys = isSystemMail(fromEmail);
-          threads.push({
-            threadId:
-              m.conversationId || (isSent ? 'sent-' : 'inbox-') + (m.id || m.graphMessageId || ''),
-            kind: sys ? 'system_mail' : isSent ? 'outgoing_mail' : 'incoming_mail',
-            direction: isSent ? 'outbound' : 'inbound',
-            ts: pickIso(m.sortIso, m.sentAt, m.receivedAt, m.persistedAt),
-            subject: m.subject || '(utan ämne)',
-            from: maskEmail(fromEmail),
-            preview: (m.bodyText || m.snippet || '').slice(0, 140),
-            channel: 'email',
-            mailboxId: m.mailboxId || null,
-            systemMail: sys,
-            requiresAttention: !sys && !isSent,
-          });
-        }
-      } catch (err) {
-        /* truth store kan vara tom */
-      }
-    }
-
-    // 3. Interna notiser (conversationKey = customer:<id>)
     if (conversationNotesStore?.listNotes) {
       try {
         const notes =
@@ -420,7 +577,49 @@ async function createCcoConversationThreadStore({
       snoozed: threads.filter((t) => t.threadStatus === 'snoozed').length,
     };
 
-    return { threads, counts };
+    const mailboxes = [
+      ...new Set(
+        threads
+          .filter((t) => t.channel === 'email' && t.mailboxId)
+          .map((t) => normalizeMailboxId(t.mailboxId))
+          .filter(Boolean)
+      ),
+    ].sort();
+
+    const mailThreads = threads.filter(
+      (t) => t.kind === 'incoming_mail' || t.kind === 'outgoing_mail'
+    );
+    const latestInbound = mailThreads
+      .filter((t) => t.direction === 'inbound')
+      .sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')))[0];
+    const latestOutbound = mailThreads
+      .filter((t) => t.direction === 'outbound')
+      .sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')))[0];
+
+    let enrichment = null;
+    if (typeof enrichmentLookup === 'function') {
+      try {
+        enrichment = enrichmentLookup(customerId) || null;
+      } catch {
+        enrichment = null;
+      }
+    }
+
+    const summary = {
+      mailboxes,
+      multiMailbox: mailboxes.length > 1,
+      latestInboundAt: latestInbound?.ts || null,
+      latestOutboundAt: latestOutbound?.ts || null,
+      trueUnanswered: counts.unanswered,
+      needsAction: counts.unanswered + counts.needs_approval,
+      handled: counts.handled,
+      snoozed: counts.snoozed,
+      workflowLane: enrichment?.workflowLane || null,
+      slaStatus: enrichment?.slaStatus || null,
+      riskLabel: enrichment?.riskLabel || enrichment?.dominantRisk || null,
+    };
+
+    return { threads, counts, summary, mailboxes };
   }
 
   function filterThreads(threads, filter = 'all') {

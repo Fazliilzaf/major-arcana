@@ -852,6 +852,7 @@
 
     let activeFilter = 'all';
     let lastCounts = {};
+    let lastSummary = {};
 
     function renderTabs() {
       tabsRow.innerHTML = '';
@@ -907,6 +908,9 @@
                 },
                 (t.threadStatus || '').replace('_', ' ')
               ),
+              t.mailboxBadge
+                ? el('span', { class: 'cco-komm-thread-mailbox' }, '@' + t.mailboxBadge)
+                : null,
               t.channel ? el('span', {}, '· ' + t.channel.toUpperCase()) : null,
               t.journeyStep ? el('span', {}, '· ' + t.journeyStep) : null,
               t.unanswered ? el('span', { class: 'cco-komm-thread-flag' }, '⚠ obesvarad') : null,
@@ -1072,6 +1076,24 @@
           )
         );
       }
+      if (
+        lastSummary.multiMailbox &&
+        Array.isArray(lastSummary.mailboxes) &&
+        lastSummary.mailboxes.length > 1
+      ) {
+        bannerRow.appendChild(
+          el('div', { class: 'cco-komm-thread-banner cco-komm-thread-banner--mailboxes' }, [
+            el('span', { class: 'cco-komm-thread-banner-ico' }, '📬'),
+            el(
+              'span',
+              {},
+              lastSummary.mailboxes.length +
+                ' mailboxar: ' +
+                lastSummary.mailboxes.map((m) => m.split('@')[0]).join(', ')
+            ),
+          ])
+        );
+      }
       // Quick "Svarstudio"-FAB-ersättare på desktop, sticky bar nere på mobil
       const studioBtn = el(
         'button',
@@ -1094,6 +1116,7 @@
       try {
         const data = await fetchThreads(customerId, opts, activeFilter);
         lastCounts = data.counts || {};
+        lastSummary = data.summary || {};
         renderTabs();
         renderBanners();
         renderList(data.threads || []);

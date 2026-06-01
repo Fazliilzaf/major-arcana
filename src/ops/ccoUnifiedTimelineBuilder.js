@@ -49,6 +49,10 @@ const EVENT_KIND_ICONS = {
   asset_uploaded: '📎',
   consent_signed: '✍',
   agreement_signed: '📝',
+  legacy_agreement_imported: '📜',
+  health_declaration_received: '📋',
+  fitness_certificate_received: '📋',
+  patient_document_received: '📎',
 };
 
 const EVENT_CATEGORIES = {
@@ -76,7 +80,15 @@ const EVENT_CATEGORIES = {
     'encounter_completed',
   ],
   journey: ['journey_advance', 'journey_rollback'],
-  documents: ['asset_uploaded', 'consent_signed', 'agreement_signed'],
+  documents: [
+    'asset_uploaded',
+    'consent_signed',
+    'agreement_signed',
+    'legacy_agreement_imported',
+    'health_declaration_received',
+    'fitness_certificate_received',
+    'patient_document_received',
+  ],
 };
 
 function nowIso() {
@@ -109,6 +121,7 @@ async function buildUnifiedTimeline({
   encounterStore = null,
   assetStore = null,
   agreementStore = null,
+  legacyAgreementStore = null,
 } = {}) {
   if (!customerId) return { events: [], counts: {} };
 
@@ -117,7 +130,7 @@ async function buildUnifiedTimeline({
   // 1. Trådar (mail + drafts + interna notiser + send-actions)
   if (threadStore?.buildThreadsForCustomer) {
     try {
-      const { threads } = threadStore.buildThreadsForCustomer(customerId, { tenantId });
+      const { threads } = await threadStore.buildThreadsForCustomer(customerId, { tenantId });
       for (const t of threads) {
         events.push({
           ts: t.ts || null,
@@ -236,23 +249,36 @@ async function buildUnifiedTimeline({
   if (assetStore?.listAssetsForPatient || assetStore?.listForPatient) {
     try {
       const lister = assetStore.listAssetsForPatient || assetStore.listForPatient;
-      const assets = lister({ patientId: customerId, tenantId, limit: 50 }) || [];
+      const { assetDisplayLabel } = require('./ccoAssetNaming/assetDisplayLabel');
+      const assets =
+        typeof lister === 'function' && lister.length >= 2
+          ? lister(customerId, {}, { actor: { role: 'system' } }) || []
+          : lister({ patientId: customerId, tenantId, limit: 50 }) || [];
       for (const a of assets) {
+        const label = assetDisplayLabel(a, {
+          fallback:
+            a.category === 'journal'
+              ? 'Journal'
+              : (a.category || '').startsWith('photo_')
+                ? 'Bild'
+                : 'Dokument',
+        });
         events.push({
-          ts: a.createdAt || a.uploadedAt,
+          ts: a.documentDate || a.importedAt || a.createdAt,
           kind: 'asset_uploaded',
           category: 'documents',
           icon: EVENT_KIND_ICONS.asset_uploaded,
-          title: a.kind || a.assetKind || 'Fil',
-          summary: a.label || a.filename || '',
+          title: label,
+          summary: a.patientCardSection || a.subCategory || '',
           meta: {
-            assetId: a.assetId,
-            kind: a.kind || a.assetKind,
+            assetId: a.id,
+            category: a.category,
             status: a.status,
-            // INTE path eller URL — bara metadata
+            encounterId: a.encounterId || null,
+            patientCardSection: a.patientCardSection || null,
           },
           source: 'asset',
-          entityId: a.assetId,
+          entityId: a.id,
         });
       }
     } catch {
@@ -279,6 +305,34 @@ async function buildUnifiedTimeline({
             signedBy: a.signedBy || null,
           },
           source: 'agreement',
+          entityId: a.agreementId,
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 6b. Legacy GetAccept-avtal (importerade metadata/PDF)
+  if (legacyAgreementStore?.listForCustomer) {
+    try {
+      const legacy = legacyAgreementStore.listForCustomer(customerId, { limit: 50 }) || [];
+      for (const a of legacy) {
+        if (!a.signedAt) continue;
+        events.push({
+          ts: a.signedAt,
+          kind: 'legacy_agreement_imported',
+          category: 'documents',
+          icon: EVENT_KIND_ICONS.legacy_agreement_imported,
+          title: a.documentName || 'Legacy-avtal importerat',
+          summary: a.brand || '',
+          meta: {
+            agreementId: a.agreementId,
+            sourceSystem: a.sourceSystem,
+            sourceRecordId: a.sourceRecordId,
+            brand: a.brand,
+          },
+          source: 'legacy_agreement',
           entityId: a.agreementId,
         });
       }
