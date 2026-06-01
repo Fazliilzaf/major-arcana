@@ -3444,6 +3444,8 @@ function createScheduler({
     );
 
     const skipFullBootstrap =
+      effectiveTrigger === CCO_INBOX_FULL_BACKFILL_TRIGGER ||
+      baselineEnrichedCount > 0 ||
       rollingBaselineEnrichedCount > 0 ||
       (Number(coverageBefore.enrichedConversationCount || 0) > 0 &&
         Number(coverageBefore.gapCount || 0) > 0 &&
