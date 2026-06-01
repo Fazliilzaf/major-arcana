@@ -3778,7 +3778,7 @@ function createScheduler({
       name: 'CCO inbox enrichment full backfill (truth gap)',
       intervalMs: config.graphReadEnabled
         ? toHoursMs(config.schedulerCcoInboxFullBackfillIntervalHours, 168)
-        : 0,
+        : toHoursMs(config.schedulerCcoInboxFullBackfillIntervalHours, 168),
       run: runCcoInboxEnrichmentFullBackfill,
     },
     {
@@ -4004,7 +4004,9 @@ function createScheduler({
     }
 
     const runtime = state.jobs[job.id];
-    if (!runtime.enabled && trigger !== 'manual') {
+    const isManualTrigger =
+      trigger === 'manual' || trigger === 'manual_api' || trigger === 'manual_api_suite';
+    if (!runtime.enabled && !isManualTrigger) {
       return { ok: false, error: 'disabled_job', message: 'Jobbet är inaktiverat.' };
     }
 
