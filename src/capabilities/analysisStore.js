@@ -70,10 +70,7 @@ function normalizeEntry(input = {}) {
   };
 }
 
-async function createCapabilityAnalysisStore({
-  filePath = '',
-  maxEntries = 10000,
-} = {}) {
+async function createCapabilityAnalysisStore({ filePath = '', maxEntries = 10000 } = {}) {
   const resolvedPath = path.resolve(String(filePath || '').trim());
   if (!resolvedPath) throw new Error('analysisStore filePath saknas.');
   const limit = Math.max(100, Math.min(50000, Number(maxEntries) || 10000));
@@ -97,11 +94,7 @@ async function createCapabilityAnalysisStore({
     return entry;
   }
 
-  async function list({
-    tenantId = '',
-    capabilityName = '',
-    limit: queryLimit = 100,
-  } = {}) {
+  async function list({ tenantId = '', capabilityName = '', limit: queryLimit = 100 } = {}) {
     const normalizedTenantId = normalizeText(tenantId);
     const normalizedCapabilityName = normalizeText(capabilityName).toLowerCase();
     const max = Math.max(1, Math.min(1000, Number(queryLimit) || 100));
@@ -112,8 +105,7 @@ async function createCapabilityAnalysisStore({
     }
     if (normalizedCapabilityName) {
       items = items.filter(
-        (entry) =>
-          normalizeText(entry?.capability?.name).toLowerCase() === normalizedCapabilityName
+        (entry) => normalizeText(entry?.capability?.name).toLowerCase() === normalizedCapabilityName
       );
     }
 
@@ -136,8 +128,22 @@ async function createCapabilityAnalysisStore({
       tenantId: normalizedTenantId || null,
       total: items.length,
       byCapability,
-      latestAt: items.length ? items.sort((a, b) => String(b.ts).localeCompare(String(a.ts)))[0].ts : null,
+      latestAt: items.length
+        ? items.sort((a, b) => String(b.ts).localeCompare(String(a.ts)))[0].ts
+        : null,
       generatedAt: nowIso(),
+    };
+  }
+
+  async function reloadFromDisk() {
+    const fresh = await readJson(resolvedPath, createEmptyState());
+    state.version = fresh.version || 1;
+    state.createdAt = fresh.createdAt || nowIso();
+    state.updatedAt = fresh.updatedAt || nowIso();
+    state.entries = Array.isArray(fresh.entries) ? fresh.entries : [];
+    return {
+      entryCount: state.entries.length,
+      updatedAt: state.updatedAt,
     };
   }
 
@@ -148,6 +154,7 @@ async function createCapabilityAnalysisStore({
     append,
     list,
     getSummary,
+    reloadFromDisk,
   };
 }
 

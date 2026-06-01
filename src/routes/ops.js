@@ -27,6 +27,7 @@ const {
 const { getBootstrapStatus, isEnabled: isBootstrapEnabled } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
 const { analyzeCcoInboxEnrichmentGaps } = require('../ops/ccoInboxEnrichmentGapAnalysis');
+const { resolveCheckpointPath } = require('../ops/ccoInboxEnrichmentCheckpoint');
 const { clearWorklistConsumerResponseCache } = require('../routes/capabilities');
 const {
   applyApprovedDraftProposal,
@@ -1044,6 +1045,13 @@ function createOpsRouter({
           } catch {
             /* optional */
           }
+          try {
+            const checkpointPath = resolveCheckpointPath(config.stateRoot, tenantId);
+            await fs.copyFile(checkpointPath, path.join(dir, path.basename(checkpointPath)));
+            copied.push(path.basename(checkpointPath));
+          } catch {
+            /* optional */
+          }
 
           await authStore.addAuditEvent({
             tenantId: req.auth.tenantId,
@@ -1058,23 +1066,61 @@ function createOpsRouter({
           return res.json({ ok: true, phase: 'snapshot', dir, copied });
         }
 
-        if (phase === 'restore-capability') {
+        if (phase === 'restore-capability' || phase === 'reload-capability') {
           if (!go) {
-            return res.status(400).json({ error: 'restore-capability kräver go=true.' });
+            return res.status(400).json({ error: `${phase} kräver go=true.` });
           }
           const label =
             normalizeText(body.label) ||
             `pre-enrichment-backfill-${new Date().toISOString().slice(0, 10)}`;
+          const entryIdPrefix = normalizeText(body.entryId);
           const dir = path.join(config.backupDir || path.join(config.stateRoot, 'backups'), label);
           const sourcePath = path.join(dir, path.basename(config.capabilityAnalysisStorePath));
-          try {
-            await fs.copyFile(sourcePath, config.capabilityAnalysisStorePath);
-          } catch (error) {
-            return res.status(404).json({
-              error: `Kunde inte återställa capability store från ${sourcePath}.`,
-              detail: error?.message || null,
-            });
+          const checkpointBackupPath = path.join(
+            dir,
+            path.basename(resolveCheckpointPath(config.stateRoot, tenantId))
+          );
+          const checkpointTargetPath = resolveCheckpointPath(config.stateRoot, tenantId);
+          const restored = {
+            capabilityStore: false,
+            checkpoint: false,
+          };
+
+          if (phase === 'restore-capability') {
+            try {
+              await fs.copyFile(sourcePath, config.capabilityAnalysisStorePath);
+              restored.capabilityStore = true;
+            } catch (error) {
+              return res.status(404).json({
+                error: `Kunde inte återställa capability store från ${sourcePath}.`,
+                detail: error?.message || null,
+              });
+            }
+            try {
+              await fs.copyFile(checkpointBackupPath, checkpointTargetPath);
+              restored.checkpoint = true;
+            } catch {
+              /* optional checkpoint in backup */
+            }
           }
+
+          let reloadResult = null;
+          if (
+            capabilityAnalysisStore &&
+            typeof capabilityAnalysisStore.reloadFromDisk === 'function'
+          ) {
+            reloadResult = await capabilityAnalysisStore.reloadFromDisk();
+          }
+
+          let matchedEntry = null;
+          if (entryIdPrefix && capabilityAnalysisStore) {
+            const entries = await capabilityAnalysisStore.list({ tenantId, limit: 1000 });
+            matchedEntry =
+              entries.find((entry) => normalizeText(entry?.id) === entryIdPrefix) ||
+              entries.find((entry) => normalizeText(entry?.id).startsWith(entryIdPrefix)) ||
+              null;
+          }
+
           clearWorklistConsumerResponseCache();
           await authStore.addAuditEvent({
             tenantId: req.auth.tenantId,
@@ -1083,15 +1129,39 @@ function createOpsRouter({
             outcome: 'success',
             targetType: 'ops',
             targetId: 'cco_enrichment_backfill',
-            metadata: { label, dir, sourcePath },
+            metadata: {
+              phase,
+              label,
+              dir,
+              sourcePath,
+              entryIdPrefix: entryIdPrefix || null,
+              matchedEntryId: matchedEntry?.id || null,
+              restored,
+              reloadResult,
+            },
           });
-          return res.json({ ok: true, phase: 'restore-capability', label, sourcePath });
+          return res.json({
+            ok: true,
+            phase,
+            label,
+            sourcePath,
+            checkpointBackupPath,
+            checkpointTargetPath,
+            restored,
+            reloadResult,
+            entryIdPrefix: entryIdPrefix || null,
+            matchedEntry: matchedEntry
+              ? { id: matchedEntry.id, ts: matchedEntry.ts || null }
+              : null,
+          });
         }
 
         if (phase !== 'run') {
           return res
             .status(400)
-            .json({ error: 'phase måste vara snapshot, restore-capability eller run.' });
+            .json({
+              error: 'phase måste vara snapshot, restore-capability, reload-capability eller run.',
+            });
         }
         if (!go) {
           return res.status(400).json({ error: 'run kräver go=true.' });

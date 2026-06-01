@@ -25,6 +25,11 @@ function parseArgs(argv) {
       return 775;
     })(),
     json: argv.includes('--json'),
+    saveJson: (() => {
+      const index = argv.indexOf('--save-json');
+      if (index >= 0) return argv[index + 1] || '';
+      return '';
+    })(),
   };
 }
 
@@ -164,6 +169,14 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const token = await resolveOwnerToken();
   const analysis = await fetchGapAnalysis(token, args.detailLimit);
+  if (args.saveJson) {
+    const savePath = path.isAbsolute(args.saveJson)
+      ? args.saveJson
+      : path.join(REPO, args.saveJson);
+    await fs.mkdir(path.dirname(savePath), { recursive: true });
+    await fs.writeFile(savePath, `${JSON.stringify(analysis, null, 2)}\n`, 'utf8');
+    console.error(`Saved ${savePath}`);
+  }
   if (args.json) {
     console.log(JSON.stringify(analysis, null, 2));
     return;
