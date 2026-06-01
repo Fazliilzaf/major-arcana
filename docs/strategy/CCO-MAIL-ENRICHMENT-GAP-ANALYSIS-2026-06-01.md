@@ -6,6 +6,33 @@
 
 ---
 
+## Restore GO — status 2026-06-01 (STOPP utlöst)
+
+Owner-GO kördes i Cursor/prod enligt sekvens snapshot → restore → coverage → gap-export.
+
+| Steg                  | Resultat                                                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Snapshot prod      | ✅ `/var/data/backups/pre-enrichment-backfill-2026-06-01/` — kopierade mailbox truth, capability-analysis.json, audit, cco-mailbox-truth/ |
+| 2. Restore capability | ✅ `restore-capability` från samma label + entry-prefix `05dd08b4`                                                                        |
+| 3. Coverage verify    | ❌ **0% / 0 enriched / 9338 gap** — förväntat ~91,7% / 8563 / 775                                                                         |
+| 4. Gap-export         | ⚠️ Körd men **ogiltig baseline** — 9338 gap, bucket `missing_graphMessageId` (100%)                                                       |
+| 5. JSON export        | `data/imports/mail-enrichment-gap-export-2026-06-01.json` (gitignored, **ej för Claude-klassificering**)                                  |
+
+**Stoppvillkor utlöst:** restore gav inte tillbaka ~91,7%. Inga fallback-fixar, inga blinda enrichment-pass.
+
+**Rotorsak:** Prod kör capability store **in-memory** utan `reloadFromDisk`. `restore-capability` skrev fil till disk men processens minnes-baseline uppdaterades inte. Fix pushad: commit `33c46f8e` (`reload-capability` + checkpoint-restore i snapshot) — **ej deployad till prod** (CI fail + Render ej uppdaterad efter 30+ min poll).
+
+**Obs:** Steg-1-snapshot skrev över backup-mappen `pre-enrichment-backfill-2026-06-01` med **nuvarande disk-state** (samma datum-label som endpoint auto-genererar). Det bevarar live capability-analysis.json från före restore-copy — värdefullt när reload deployas.
+
+**Nästa unblock (Cursor):**
+
+1. Deploy `33c46f8e` till Frankfurt (`srv-d8b3i3tckfvc73clgeng`) — **en** deploy, ingen restart mitt i export
+2. `POST …/backfill/run` `{ "phase": "reload-capability", "go": true, "entryId": "05dd08b4" }`
+3. Verifiera coverage ≈ 91,7% / 775 gap
+4. Kör om gap-export → giltig JSON för Claude read-only klassificering
+
+---
+
 ## Executive summary
 
 | Metric                | Värde (senaste stabila pass)           |
@@ -174,8 +201,8 @@ node scripts/analyze-enrichment-gap.js --write-report --detail-limit 775
 
 ## Nästa steg (ingen write-fix ännu)
 
-1. **Verifiera baseline:** `GET /ops/cco/enrichment/coverage` → enriched ≈ 8563, gap ≈ 775
-2. **Kör gap-analys** med script ovan → exakta bucket-tal + 775-raders sample
+1. **Deploy reload-fix** (`33c46f8e`) → `reload-capability` → coverage ≈ 8563 / 775
+2. **Kör gap-analys på nytt** → exakta bucket-tal + giltig 775-rads JSON
 3. **Beslut:**
    - Om majoritet `system_scrap` + `duplicate` → justera denominator → kör coverage igen
    - Om majoritet `enrichment_parser_empty` → bygg fallback-enrichment → kör
