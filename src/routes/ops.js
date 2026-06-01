@@ -26,6 +26,7 @@ const {
 } = require('../ops/crossMailboxAggregator');
 const { getBootstrapStatus, isEnabled: isBootstrapEnabled } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
+const { analyzeCcoInboxEnrichmentGaps } = require('../ops/ccoInboxEnrichmentGapAnalysis');
 const { clearWorklistConsumerResponseCache } = require('../routes/capabilities');
 const {
   applyApprovedDraftProposal,
@@ -925,6 +926,75 @@ function createOpsRouter({
         console.error('[ops/cco/enrichment/coverage]', error);
         return res.status(500).json({
           error: error?.message || 'Kunde inte beräkna enrichment coverage.',
+        });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/cco/enrichment/gap-analysis',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const mailboxIds = resolveCcoHistoryMailboxIds(config);
+      const detailLimit = Math.max(
+        1,
+        Math.min(775, Number.parseInt(String(req.query?.detailLimit ?? '775'), 10) || 775)
+      );
+      const snapshotProbeLimit = Math.max(
+        0,
+        Math.min(50, Number.parseInt(String(req.query?.snapshotProbeLimit ?? '25'), 10) || 25)
+      );
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'ccoMailboxTruthStore saknas.' });
+      }
+      if (!capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'capabilityAnalysisStore saknas.' });
+      }
+      try {
+        if (
+          ccoMailboxTruthStore &&
+          typeof ccoMailboxTruthStore.ensureMailboxLoaded === 'function'
+        ) {
+          for (const mailboxId of mailboxIds) {
+            try {
+              await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+            } catch {
+              /* optional preload */
+            }
+          }
+        }
+        const analysis = await analyzeCcoInboxEnrichmentGaps({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          ccoMailIngestionStore,
+          supportedMailboxIds: mailboxIds,
+          stateRoot: config.stateRoot,
+          detailLimit,
+          snapshotProbeLimit,
+        });
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.enrichment.gap_analysis.read',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'cco_enrichment_gap_analysis',
+          metadata: {
+            totalGap: analysis.totalGap,
+            canFallbackEnrichCount: analysis.canFallbackEnrichCount,
+            shouldExcludeFromThresholdCount: analysis.shouldExcludeFromThresholdCount,
+          },
+        });
+        return res.json({ ok: true, ...analysis });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-analysis]', error);
+        return res.status(500).json({
+          error: error?.message || 'Kunde inte analysera enrichment-gap.',
         });
       }
     }
