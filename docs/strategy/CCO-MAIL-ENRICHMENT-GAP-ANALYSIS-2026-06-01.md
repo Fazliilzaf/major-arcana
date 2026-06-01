@@ -31,35 +31,31 @@
 
 ---
 
-## Gap Recovery GO — diagnostik-först (2026-06-01, STOPP)
+## Gap Recovery GO — deploy klar, recovery STOPP (2026-06-01)
 
-Owner-GO för diagnostik-först recovery. **Ingen blind restore, ingen enrichment-loop, ingen deploy under sekvensen.**
+| Steg                             | Status   | Resultat                                              |
+| -------------------------------- | -------- | ----------------------------------------------------- |
+| 1. Deploy `2995276e` → Frankfurt | ✅       | Render `dep-d8evs5ugvqtc738nvh7g` → **live**          |
+| 2. Diagnose endpoint             | ✅       | `GET /ops/cco/enrichment/baseline/diagnose` → **200** |
+| 3. `--diagnose-only`             | ❌ STOPP | `no_pass6_source_found`                               |
+| 4. `--restore --export`          | ⏸        | **Ej körd**                                           |
+| 5. Gap-export JSON               | ❌       | **Saknas**                                            |
 
-| Steg                    | Status       | Resultat                                                                  |
-| ----------------------- | ------------ | ------------------------------------------------------------------------- |
-| 1. Read-only diagnostik | ❌ Blockerad | `GET /ops/cco/enrichment/baseline/diagnose` **ej deployad** (404 på prod) |
-| 2. Targeted restore     | ⏸            | Väntar på diagnose + `reload-capability` (commit `4f054dda`)              |
-| 3. Coverage verify      | ❌           | Prod fortfarande **0% / 0 / 9338**                                        |
-| 4. Gap-export           | ⏸            | Ej giltig förrän baseline ≈ 8563 / 775                                    |
+**Diagnostik (prod):**
 
-**Implementerat (Cursor-repo, ej prod):**
+| Källa                                       | Entries | Enriched | `05dd08b4`  |
+| ------------------------------------------- | ------: | -------: | ----------- |
+| Live disk                                   |       0 |        0 | saknas      |
+| Live checkpoint                             |       — |        0 | fil missing |
+| Backup `pre-enrichment-backfill-2026-06-01` |       0 |        0 | saknas      |
 
-| Artefakt                                           | Syfte                                                                                         |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `GET /api/v1/ops/cco/enrichment/baseline/diagnose` | Read-only: live disk, checkpoint, backups; hittar `05dd08b4`; **avvisar pre-backfill (~143)** |
-| `reload-capability`                                | Laddar disk → minne utan restart                                                              |
-| `scripts/run-enrichment-gap-recovery.js`           | diagnose → targeted restore → verify → export                                                 |
+**Coverage:** 0% · 0 enriched · 9338 gap · checkpoint-id: **saknas**
 
-**Unblock:** Deploy `compliance/pipedrive-pii-purge` @ `4f054dda` till Frankfurt. Render autoDeploy följer `main` (unrelated histories — compliance merge till main ej möjlig utan manuell ops-PR).
+**Rotorsak:** Pass-6 baseline finns inte kvar på känd disk/checkpoint/backup (troligen förlorad vid tidigare restore/snapshot-cykel).
 
-**Efter deploy (en körning, ingen restart mitt i):**
+**Ej kört:** restore, export, fallback, blind enrichment, mailimport, Graph-fetch.
 
-```bash
-node scripts/run-enrichment-gap-recovery.js --diagnose-only
-node scripts/run-enrichment-gap-recovery.js --restore --export
-```
-
-Scriptet stoppar om ingen pass-6-källa hittas eller om pre-backfill (~143) är enda kandidaten.
+**Owner-beslut:** Kontrollerad truth-only re-backfill, eller extern/Oregon-återställning om kopia finns.
 
 ---
 
