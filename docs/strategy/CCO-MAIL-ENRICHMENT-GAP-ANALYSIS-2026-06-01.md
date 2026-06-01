@@ -8,8 +8,6 @@
 
 ## Restore GO — status 2026-06-01 (STOPP utlöst)
 
-Owner-GO kördes i Cursor/prod enligt sekvens snapshot → restore → coverage → gap-export.
-
 | Steg                  | Resultat                                                                                                                                  |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. Snapshot prod      | ✅ `/var/data/backups/pre-enrichment-backfill-2026-06-01/` — kopierade mailbox truth, capability-analysis.json, audit, cco-mailbox-truth/ |
@@ -30,6 +28,38 @@ Owner-GO kördes i Cursor/prod enligt sekvens snapshot → restore → coverage 
 2. `POST …/backfill/run` `{ "phase": "reload-capability", "go": true, "entryId": "05dd08b4" }`
 3. Verifiera coverage ≈ 91,7% / 775 gap
 4. Kör om gap-export → giltig JSON för Claude read-only klassificering
+
+---
+
+## Gap Recovery GO — diagnostik-först (2026-06-01, STOPP)
+
+Owner-GO för diagnostik-först recovery. **Ingen blind restore, ingen enrichment-loop, ingen deploy under sekvensen.**
+
+| Steg                    | Status       | Resultat                                                                  |
+| ----------------------- | ------------ | ------------------------------------------------------------------------- |
+| 1. Read-only diagnostik | ❌ Blockerad | `GET /ops/cco/enrichment/baseline/diagnose` **ej deployad** (404 på prod) |
+| 2. Targeted restore     | ⏸            | Väntar på diagnose + `reload-capability` (commit `4f054dda`)              |
+| 3. Coverage verify      | ❌           | Prod fortfarande **0% / 0 / 9338**                                        |
+| 4. Gap-export           | ⏸            | Ej giltig förrän baseline ≈ 8563 / 775                                    |
+
+**Implementerat (Cursor-repo, ej prod):**
+
+| Artefakt                                           | Syfte                                                                                         |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `GET /api/v1/ops/cco/enrichment/baseline/diagnose` | Read-only: live disk, checkpoint, backups; hittar `05dd08b4`; **avvisar pre-backfill (~143)** |
+| `reload-capability`                                | Laddar disk → minne utan restart                                                              |
+| `scripts/run-enrichment-gap-recovery.js`           | diagnose → targeted restore → verify → export                                                 |
+
+**Unblock:** Deploy `compliance/pipedrive-pii-purge` @ `4f054dda` till Frankfurt. Render autoDeploy följer `main` (unrelated histories — compliance merge till main ej möjlig utan manuell ops-PR).
+
+**Efter deploy (en körning, ingen restart mitt i):**
+
+```bash
+node scripts/run-enrichment-gap-recovery.js --diagnose-only
+node scripts/run-enrichment-gap-recovery.js --restore --export
+```
+
+Scriptet stoppar om ingen pass-6-källa hittas eller om pre-backfill (~143) är enda kandidaten.
 
 ---
 
