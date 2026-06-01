@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { classify, linkPatient } = require('../../../src/ops/ccoAssetImportPipeline');
+const { loadDriveImportAliasIndex, mergeAliasIntoCcoIndex } = require('./driveImportAliasIndex');
 const { parseCsv, buildHeaderMap, mapClientoRow } = require('../../import-cliento-customers');
 const { normalizePersonnummer, nameOverlapScore } = require('./migrationUtils');
 
@@ -359,6 +360,8 @@ function loadDriveImportContext({
   const driveMaps = loadDriveMappingConfidence(dataDir);
   const patientCats = buildPatientCategoryIndex(assets);
   const ccoIndex = buildCcoContentIndex(assets);
+  const aliasPath = path.join(dataDir, 'drive-import-alias-index.json');
+  mergeAliasIntoCcoIndex(ccoIndex, loadDriveImportAliasIndex(aliasPath));
 
   return {
     migrationIndex,
@@ -369,6 +372,7 @@ function loadDriveImportContext({
     patientCats,
     ccoIndex,
     assetsPath,
+    aliasPath,
   };
 }
 
@@ -526,6 +530,7 @@ function refreshImportIndexes(ctx) {
   const assets = JSON.parse(fs.readFileSync(ctx.assetsPath, 'utf8'));
   ctx.patientCats = buildPatientCategoryIndex(assets);
   ctx.ccoIndex = buildCcoContentIndex(assets);
+  if (ctx.aliasPath) mergeAliasIntoCcoIndex(ctx.ccoIndex, loadDriveImportAliasIndex(ctx.aliasPath));
   return ctx;
 }
 

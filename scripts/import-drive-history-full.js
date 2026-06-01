@@ -40,6 +40,7 @@ const {
   _internal: { validatePatientIdAgainstCcoMaster },
 } = require('../src/ops/ccoOldCcoAssetAdapter');
 const { createSecureStorageProvider } = require('../src/ops/ccoSecureStorageProvider');
+const { recordDriveImportAlias } = require('./migration/lib/driveImportAliasIndex');
 
 const FATAL_CODES = new Set([
   'drive_config',
@@ -290,6 +291,13 @@ async function importOneFile(params) {
 
   if (putResult.deduped) {
     stats.duplicate += 1;
+    ctx.ccoIndex.driveIds.add(file.driveFileId);
+    ctx.ccoIndex.sourceRecordIds.add(file.id);
+    recordDriveImportAlias({
+      filePath: ctx.aliasPath,
+      driveFileId: file.driveFileId,
+      sourceRecordId: file.id,
+    });
     return null;
   }
 
