@@ -3229,6 +3229,34 @@ function createScheduler({
     });
   }
 
+  function summarizeSchedulerJobResult(result = null) {
+    if (!result || typeof result !== 'object') return result;
+    const summary = { ...result };
+    for (const key of ['coverageBefore', 'coverage', 'coverageAfterBootstrap']) {
+      if (!summary[key] || typeof summary[key] !== 'object') continue;
+      const coverage = summary[key];
+      summary[key] = {
+        ...coverage,
+        gapConversationIds: undefined,
+        sampleUnenrichedIds: Array.isArray(coverage.sampleUnenrichedIds)
+          ? coverage.sampleUnenrichedIds.slice(0, 5)
+          : [],
+        gapConversationIdsCount: Array.isArray(coverage.gapConversationIds)
+          ? coverage.gapConversationIds.length
+          : Number(coverage.gapCount || 0),
+      };
+    }
+    if (Array.isArray(summary.batchRuns) && summary.batchRuns.length > 24) {
+      summary.batchRunCount = summary.batchRuns.length;
+      summary.batchRuns = [
+        ...summary.batchRuns.slice(0, 8),
+        { note: `truncated_${summary.batchRuns.length - 16}_batch_runs` },
+        ...summary.batchRuns.slice(-8),
+      ];
+    }
+    return summary;
+  }
+
   async function runCcoInboxEnrichmentFullBackfill({
     tenantId,
     trigger = 'cco_full_backfill',
@@ -4053,7 +4081,7 @@ function createScheduler({
       runtime.lastDurationMs = durationMs;
       runtime.lastStatus = 'success';
       runtime.lastSuccessAt = nowIso();
-      runtime.lastResult = result || null;
+      runtime.lastResult = summarizeSchedulerJobResult(result) || null;
       runtime.nextRunAt = null;
 
       await addAudit({
@@ -4065,7 +4093,7 @@ function createScheduler({
         metadata: {
           trigger,
           durationMs,
-          result,
+          result: summarizeSchedulerJobResult(result),
         },
       });
 
@@ -4076,7 +4104,7 @@ function createScheduler({
         jobId: job.id,
         trigger,
         durationMs,
-        result,
+        result: summarizeSchedulerJobResult(result),
       };
     } catch (error) {
       const durationMs = Date.now() - startedAtMs;
