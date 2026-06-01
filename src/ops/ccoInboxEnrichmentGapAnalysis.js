@@ -77,6 +77,30 @@ function resolveDirection(truthRow = {}) {
   return 'unknown';
 }
 
+function buildGapConversationFilterSet(gapIds = []) {
+  const filterSet = new Set();
+  for (const rawId of asArray(gapIds)) {
+    const normalized = normalizeText(rawId);
+    if (!normalized) continue;
+    filterSet.add(normalized.toLowerCase());
+    const colonIndex = normalized.lastIndexOf(':');
+    if (colonIndex > 0) {
+      filterSet.add(normalized.slice(colonIndex + 1).toLowerCase());
+    }
+  }
+  return filterSet;
+}
+
+function conversationMatchesGapFilter(conversationKey = '', filterSet = new Set()) {
+  if (!filterSet || filterSet.size === 0) return true;
+  const normalized = normalizeText(conversationKey).toLowerCase();
+  if (!normalized) return false;
+  if (filterSet.has(normalized)) return true;
+  const colonIndex = normalized.lastIndexOf(':');
+  if (colonIndex > 0 && filterSet.has(normalized.slice(colonIndex + 1))) return true;
+  return false;
+}
+
 function resolveMessageGroup(conversationKey = '', gapId = '', messageGroups = new Map()) {
   const candidates = [conversationKey, gapId]
     .map((item) => normalizeText(item).toLowerCase())
@@ -100,8 +124,10 @@ function resolveMessageGroup(conversationKey = '', gapId = '', messageGroups = n
   return null;
 }
 
-function buildTruthMessageGroups(store, mailboxIds = []) {
+function buildTruthMessageGroups(store, mailboxIds = [], gapIds = []) {
   const groups = new Map();
+  const gapFilter = buildGapConversationFilterSet(gapIds);
+  const scoped = gapFilter.size > 0;
   const messages = store.listMessages({
     mailboxIds: mailboxIds.length > 0 ? mailboxIds : undefined,
     folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
@@ -118,6 +144,7 @@ function buildTruthMessageGroups(store, mailboxIds = []) {
       messageId: message.graphMessageId,
     });
     if (!key) continue;
+    if (scoped && !conversationMatchesGapFilter(key, gapFilter)) continue;
     const bucket = groups.get(key) || {
       conversationKey: key,
       mailboxId,
@@ -499,14 +526,6 @@ async function analyzeCcoInboxEnrichmentGaps({
     .map((row) => row.gapId)
     .filter(Boolean);
 
-  const messageGroups = buildTruthMessageGroups(ccoMailboxTruthStore, mailboxIds);
-  const ingestionIndex = buildIngestionIndex(ccoMailIngestionStore);
-  const supportedSet = new Set(
-    asArray(supportedMailboxIds.length > 0 ? supportedMailboxIds : mailboxIds)
-      .map((item) => normalizeMailboxId(item))
-      .filter(Boolean)
-  );
-
   const provisionalRows = effectiveGapIds.map((gapId) => {
     const truthRow = truthByGapId.get(gapId.toLowerCase()) || { conversationKey: gapId, gapId };
     return {
@@ -518,9 +537,17 @@ async function analyzeCcoInboxEnrichmentGaps({
   });
   const duplicateKeys = buildDuplicateIndex(provisionalRows);
 
+  const messageGroups = buildTruthMessageGroups(ccoMailboxTruthStore, mailboxIds, effectiveGapIds);
+  const ingestionIndex = buildIngestionIndex(ccoMailIngestionStore);
+  const supportedSet = new Set(
+    asArray(supportedMailboxIds.length > 0 ? supportedMailboxIds : mailboxIds)
+      .map((item) => normalizeMailboxId(item))
+      .filter(Boolean)
+  );
+
   const analyzed = [];
   let snapshotProbes = 0;
-  const safeSnapshotProbeLimit = Math.max(0, Math.min(50, Number(snapshotProbeLimit) || 0));
+  const safeSnapshotProbeLimit = Math.max(0, Math.min(10, Number(snapshotProbeLimit) || 0));
 
   for (const gapId of effectiveGapIds) {
     const truthRow = truthByGapId.get(gapId.toLowerCase()) || {
