@@ -51,6 +51,21 @@ function buildEnrichmentIndex(rows = []) {
     if (!existing || !hasCcoEnrichmentSignals(existing)) {
       byConversationKey.set(key, row);
     }
+    const colonIndex = key.lastIndexOf(':');
+    const suffix = colonIndex > 0 ? key.slice(colonIndex + 1) : key;
+    if (suffix) {
+      const existingSuffix = byConversationKey.get(suffix);
+      if (!existingSuffix || !hasCcoEnrichmentSignals(existingSuffix)) {
+        byConversationKey.set(suffix, row);
+      }
+    }
+    const rawConversationId = normalizeText(row.conversationId);
+    if (rawConversationId && rawConversationId !== key && rawConversationId !== suffix) {
+      const existingRaw = byConversationKey.get(rawConversationId);
+      if (!existingRaw || !hasCcoEnrichmentSignals(existingRaw)) {
+        byConversationKey.set(rawConversationId, row);
+      }
+    }
   }
   return byConversationKey;
 }
@@ -78,16 +93,33 @@ function resolveGapConversationId(truthRow = {}) {
   });
   if (canonicalKey) return canonicalKey;
   return (
-    normalizeText(truthRow.mailboxConversationId) ||
-    normalizeText(truthRow.conversationId) ||
-    ''
+    normalizeText(truthRow.mailboxConversationId) || normalizeText(truthRow.conversationId) || ''
   );
+}
+
+function resolveEnrichmentIndexMatch(enrichmentIndex = new Map(), candidateKeys = []) {
+  for (const candidateKey of asArray(candidateKeys)) {
+    const normalizedKey = normalizeText(candidateKey);
+    if (!normalizedKey) continue;
+    if (enrichmentIndex.has(normalizedKey)) {
+      return enrichmentIndex.get(normalizedKey);
+    }
+    const colonIndex = normalizedKey.lastIndexOf(':');
+    if (colonIndex > 0) {
+      const suffix = normalizedKey.slice(colonIndex + 1);
+      if (suffix && enrichmentIndex.has(suffix)) {
+        return enrichmentIndex.get(suffix);
+      }
+    }
+  }
+  return null;
 }
 
 function truthRowMatchesEnrichment(truthRow = {}, enrichmentIndex = new Map()) {
   const key = normalizeText(truthRow.conversationKey);
-  if (key && enrichmentIndex.has(key)) {
-    return enrichmentIndex.get(key);
+  if (key) {
+    const matched = resolveEnrichmentIndexMatch(enrichmentIndex, [key]);
+    if (matched) return matched;
   }
   const mailboxId = normalizeMailboxId(truthRow.mailboxId || truthRow.mailboxAddress);
   const fallbackKey = toCanonicalMailboxConversationKey({
@@ -96,10 +128,13 @@ function truthRowMatchesEnrichment(truthRow = {}, enrichmentIndex = new Map()) {
     mailboxConversationId: truthRow.mailboxConversationId,
     messageId: 'truth-row',
   });
-  if (fallbackKey && enrichmentIndex.has(fallbackKey)) {
-    return enrichmentIndex.get(fallbackKey);
-  }
-  return null;
+  const conversationId = normalizeText(truthRow.conversationId);
+  const mailboxConversationId = normalizeText(truthRow.mailboxConversationId);
+  return resolveEnrichmentIndexMatch(enrichmentIndex, [
+    fallbackKey,
+    mailboxConversationId,
+    conversationId,
+  ]);
 }
 
 async function computeCcoInboxEnrichmentCoverage({
@@ -125,8 +160,7 @@ async function computeCcoInboxEnrichmentCoverage({
   }
 
   const worklistReadModel =
-    ccoMailboxTruthStore &&
-    typeof ccoMailboxTruthStore.listMessages === 'function'
+    ccoMailboxTruthStore && typeof ccoMailboxTruthStore.listMessages === 'function'
       ? createCcoMailboxTruthWorklistReadModel({
           store: ccoMailboxTruthStore,
           customerState: resolvedCustomerState,
@@ -158,7 +192,8 @@ async function computeCcoInboxEnrichmentCoverage({
   let enrichedConversationCount = 0;
 
   for (const truthRow of truthRows) {
-    const mailboxId = normalizeMailboxId(truthRow.mailboxId || truthRow.mailboxAddress) || 'unknown';
+    const mailboxId =
+      normalizeMailboxId(truthRow.mailboxId || truthRow.mailboxAddress) || 'unknown';
     if (!perMailboxMap.has(mailboxId)) {
       perMailboxMap.set(mailboxId, {
         mailboxId,

@@ -287,11 +287,54 @@ function worklistRowMatchesConversationScope(row = {}, scopeSet = new Set()) {
   return false;
 }
 
+const WORKLIST_ENRICHMENT_SIGNAL_FIELDS = [
+  'intent',
+  'workflowLane',
+  'dominantRisk',
+  'priorityLevel',
+  'messageClassification',
+  'recommendedAction',
+  'slaStatus',
+];
+
+function hasWorklistEnrichmentFieldValue(field = '', value = '') {
+  const normalized = normalizeText(value);
+  if (!normalized) return false;
+  if (field === 'intent') {
+    return !['unknown', 'unspecified', 'none'].includes(normalized.toLowerCase());
+  }
+  return true;
+}
+
+function mergeEnrichmentWorklistRow(baseRow = {}, deltaRow = {}) {
+  const merged = { ...asObject(baseRow), ...asObject(deltaRow) };
+  if (!hasWorklistEnrichmentSignals(deltaRow) && hasWorklistEnrichmentSignals(baseRow)) {
+    for (const field of WORKLIST_ENRICHMENT_SIGNAL_FIELDS) {
+      const baseValue = baseRow?.[field];
+      const deltaValue = deltaRow?.[field];
+      if (
+        hasWorklistEnrichmentFieldValue(field, baseValue) &&
+        !hasWorklistEnrichmentFieldValue(field, deltaValue)
+      ) {
+        merged[field] = baseValue;
+      }
+    }
+  }
+  return merged;
+}
+
 function mergeWorklistEnrichmentRows(baseRows = [], deltaRows = [], scopeConversationIds = []) {
   const scopeSet = buildWorklistConversationScopeSet(scopeConversationIds);
   const deltaById = new Map(
     asArray(deltaRows).map((row) => [normalizeWorklistRowConversationId(row), row])
   );
+  const scopedBaseRowsById = new Map();
+  if (scopeSet.size > 0) {
+    for (const row of asArray(baseRows)) {
+      if (!worklistRowMatchesConversationScope(row, scopeSet)) continue;
+      scopedBaseRowsById.set(normalizeWorklistRowConversationId(row), row);
+    }
+  }
   const merged = asArray(baseRows).filter((row) => {
     if (scopeSet.size > 0) {
       return !worklistRowMatchesConversationScope(row, scopeSet);
@@ -300,7 +343,12 @@ function mergeWorklistEnrichmentRows(baseRows = [], deltaRows = [], scopeConvers
   });
   const deltaToApply =
     scopeSet.size > 0
-      ? asArray(deltaRows).filter((row) => worklistRowMatchesConversationScope(row, scopeSet))
+      ? asArray(deltaRows)
+          .filter((row) => worklistRowMatchesConversationScope(row, scopeSet))
+          .map((row) => {
+            const baseRow = scopedBaseRowsById.get(normalizeWorklistRowConversationId(row));
+            return baseRow ? mergeEnrichmentWorklistRow(baseRow, row) : row;
+          })
       : asArray(deltaRows);
   merged.push(...deltaToApply);
   return merged;
@@ -338,7 +386,7 @@ async function resolveLatestWorklistEnrichmentBaseline({
   const entries = await listWorklistEnrichmentEntries({
     capabilityAnalysisStore,
     tenantId,
-    limit: 50,
+    limit: 200,
   });
   return selectLatestWorklistLegacyBaseline({
     entries,
