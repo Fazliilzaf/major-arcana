@@ -21,8 +21,8 @@ function parseArgs(argv) {
     writeReport: argv.includes('--write-report'),
     detailLimit: (() => {
       const index = argv.indexOf('--detail-limit');
-      if (index >= 0) return Number(argv[index + 1]) || 775;
-      return 775;
+      if (index >= 0) return Number(argv[index + 1]) || 2105;
+      return 2105;
     })(),
     json: argv.includes('--json'),
     saveJson: (() => {

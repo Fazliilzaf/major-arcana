@@ -59,7 +59,69 @@
 
 ---
 
-## Executive summary
+## Truth-only re-backfill GO — resultat (2026-06-01 kväll)
+
+| Steg              | Status | Resultat                                                |
+| ----------------- | ------ | ------------------------------------------------------- |
+| 1. Snapshot       | ✅     | `/var/data/backups/pre-enrichment-backfill-2026-06-01/` |
+| 2. Plan (dry-run) | ✅     | 9338 truth · 9338 eligible · 0 enriched                 |
+| 3. Canary (500)   | ✅     | +442 enriched · 88,4% av canary · inga fail             |
+| 4. Full backfill  | ✅     | +6791 enriched totalt · stall vid 77,5%                 |
+| 5. Gap export     | ✅     | 2105 gap · 775 detaljrader                              |
+| 6. `readyForWork` | ❌     | false (tröskel 99,5%)                                   |
+
+**Deploy:** `cb04cad6` → Render `dep-d8f01g9kh4rs73eo7abg` (Frankfurt)
+
+### Metrics
+
+| Metric                  | Före |                                  Efter |
+| ----------------------- | ---: | -------------------------------------: |
+| Coverage                |   0% |                             **77,46%** |
+| Enriched                |    0 |                              **7 233** |
+| Gap                     | 9338 |                              **2 105** |
+| Worklist rollup         |    0 |                                **201** |
+| `act-now` lane          |    — |                                **288** |
+| `needsReplyCount`       |    — |                                **369** |
+| Cross-mailbox customers |    — |                                 **69** |
+| Final entry             |    — | `0689f147-acad-4fd6-b0f8-f39a62c94874` |
+
+### Canary-verifiering (grön)
+
+| Check                       | Resultat                              |
+| --------------------------- | ------------------------------------- |
+| CustomerId mismatch         | 0                                     |
+| Duplicate explosion         | nej                                   |
+| Destructive truth changes   | nej                                   |
+| Worklist rows skapade       | ja (846→ checkpoint)                  |
+| Lanes/SLA/risk/needs_action | ja (consumer `act-now`, `needsReply`) |
+| Failed batches              | 0                                     |
+
+### Full pass — varför 77,5% och inte 99,5%
+
+1. **`maxBatchRounds=500` nådd** — 7500 konversationer processade i scoped batches
+2. **Stall sista ~6 batchar** — rowCount fast 7724, gap oförändrat
+3. **Huvudblocker:** `egzona@hairtpclinic.com` — 1432 gap (68% av kvarvarande), coverage 27,9%
+4. **Orsak (gap-export sample 775):** truth-meddelanden saknar `graphMessageId` → truth-only kan inte köra AnalyzeInbox snapshot
+5. **Klassificeringsnot:** primär bucket `missing_graphMessageId` (100%) — detaljfält visar 84 `system_mail` + 691 `actionable` i sample; Claude ska använda `isSystemScrap` / `messageClassification`, inte enbart `primaryBucket`
+
+### Gap-export (775 detaljrader av 2105)
+
+| Fält                                        | Värde                                                                  |
+| ------------------------------------------- | ---------------------------------------------------------------------- |
+| Fil                                         | `data/imports/mail-enrichment-gap-export-2026-06-01.json` (gitignored) |
+| `totalGap`                                  | 2105                                                                   |
+| Sample per mailbox                          | contact 452 · egzona 232 · fazli 75 · info 11 · marknad 4 · kons 1     |
+| `isSystemScrap` (sample)                    | 84                                                                     |
+| `messageClassification=actionable` (sample) | 691                                                                    |
+| `customerIdPresent` (sample)                | 275                                                                    |
+
+**Nästa:** Claude read-only A/B/C/D-klassificering → owner beslut om denominator-exkludering / fallback / bugfix / leave unresolved.
+
+**Ej kört:** Graph-fetch · Oregon-restore · blind enrichment loop · Fas B wiring.
+
+---
+
+## Executive summary (historisk pass 6–7 — ej nuvarande prod)
 
 | Metric                | Värde (senaste stabila pass)           |
 | --------------------- | -------------------------------------- |

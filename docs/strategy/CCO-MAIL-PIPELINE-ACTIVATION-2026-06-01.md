@@ -13,7 +13,7 @@
 | ---- | ------------------------------------------ | ------------------------------------------------------ |
 | 1    | Pipeline coverage (prod read-only)         | ✅ Rapport uppdaterad                                  |
 | 2    | Truth hydration från ingestion             | ✅ 3 520 customerIdentity-overlays (Fas A)             |
-| 3    | Lanes / filter / SLA / risk / needs_action | 🔄 Enrichment backfill ~90% (pass 4 pågår)             |
+| 3    | Lanes / filter / SLA / risk / needs_action | ⚠️ Truth-only re-backfill **77,5%** — gap 2105 kvar    |
 | 4    | Mail → kundkort (truth-first read model)   | ✅ Kod klar (deploy pending)                           |
 | 5    | Svarstudio / Smart anteckning trådkontext  | ⚠️ Delvis (replyTo + mailboxBadge; enrichment pending) |
 | 6    | Multi-mailbox-koppling                     | ✅ summary.mailboxes + UI-banner                       |
@@ -25,17 +25,17 @@
 
 Källa: `node scripts/report-mail-pipeline-coverage.js --json`
 
-| Lager                  |     Prod |
-| ---------------------- | -------: |
-| Ingestion raw          |    8 833 |
-| Ingestion matched      |    3 240 |
-| Ingestion unmatched    |        0 |
-| Truth messages         |   33 344 |
-| Truth conversations    |    9 338 |
-| Enriched conversations | 9 (0,1%) |
-| Operator thread states |        0 |
+| Lager                  |          Prod |
+| ---------------------- | ------------: |
+| Ingestion raw          |         8 833 |
+| Ingestion matched      |         3 240 |
+| Ingestion unmatched    |             0 |
+| Truth messages         |        33 344 |
+| Truth conversations    |         9 338 |
+| Enriched conversations | 7 233 (77,5%) |
+| Operator thread states |             0 |
 
-**Tolkning:** Mail finns i både ingestion och Graph-truth. Hydration kopplade ledger-kundId till truth. Enrichment/worklist är huvudblocker för lanes/SLA.
+**Tolkning:** Mail finns i både ingestion och Graph-truth. Hydration kopplade ledger-kundId till truth. Truth-only re-backfill (2026-06-01 kväll) återställde enrichment + worklist men nådde inte 99,5%-tröskeln — gap kvarstår främst på `egzona@` (saknar graphMessageId på truth-meddelanden).
 
 Detalj: [CCO-MAIL-PIPELINE-COVERAGE-2026-06-01.md](./CCO-MAIL-PIPELINE-COVERAGE-2026-06-01.md) (addendum nedan).
 
@@ -57,15 +57,21 @@ Detalj: [CCO-MAIL-TRUTH-HYDRATION-2026-06-01.md](./CCO-MAIL-TRUTH-HYDRATION-2026
 
 ## Steg 3 — Lanes / filter / SLA / risk / needs_action
 
-**Status:** ⚠️ Blockerad på enrichment coverage
+**Status:** ⚠️ Worklist aktiv men `readyForWork=false` (77,5% < 99,5%)
 
-| Signal                                         |     Prod |
-| ---------------------------------------------- | -------: |
-| AnalyzeInbox truth gap                         |    9 329 |
-| Consumer worklist                              |  0 rader |
-| Scheduler `cco_inbox_enrichment_full_backfill` | disabled |
+| Signal                     |     Prod (post truth-only re-backfill) |
+| -------------------------- | -------------------------------------: |
+| Enriched conversations     |                                  7 233 |
+| Gap                        |                                  2 105 |
+| Coverage                   |                             **77,46%** |
+| `readyForWork`             |                                  false |
+| Consumer worklist (rollup) |                              201 rader |
+| `act-now` lane             |                                    288 |
+| `needsReplyCount`          |                                    369 |
+| `actNowCount`              |                                    288 |
+| Final persist entry        | `0689f147-acad-4fd6-b0f8-f39a62c94874` |
 
-**Nästa (kräver separat GO):** Aktivera och köra enrichment full backfill på Frankfurt-prod — **inte** ny mail-import, endast berika befintlig truth.
+**Nästa:** Claude read-only klassificering av gap-export (2105 rader) — **inte** ny mail-import, **inte** blind restore.
 
 ---
 
@@ -95,16 +101,76 @@ Detalj: [CCO-MAIL-TRUTH-HYDRATION-2026-06-01.md](./CCO-MAIL-TRUTH-HYDRATION-2026
 | Osäker match → review queue | ✅ ingestion unmatched = 0; nya kunder skapas inte |
 | Inga Drive-länkar           | ✅                                                 |
 | Ingen patientdata i GitHub  | ✅ rapporter utan råtext                           |
-| Enrichment full prod        | ⏸ Kräver separat GO                                |
+| Enrichment full prod        | ✅ Truth-only re-backfill körd; gap export klar    |
 
 ---
 
 ## Nästa steg
 
-1. **Deploy** Fas B read model till Frankfurt-prod
-2. **GO:** Aktivera `cco_inbox_enrichment_full_backfill` + kör tills coverage ≥ tröskel
-3. Wire Konversationer/Svarstudio mot enrichment worklist (lanes/SLA/risk)
-4. Smart anteckning: tråd + mailbox + true_unanswered i panel-context
+1. **Claude:** Klassificera `data/imports/mail-enrichment-gap-export-2026-06-01.json` (A/B/C/D)
+2. **Cursor (efter klassificering):** denominator-exkludering och/eller fallback-enrich enligt beslut
+3. **Fas B (endast om `readyForWork=true`):** Wire kundkort + Svarstudio + Smart anteckning mot enrichment worklist
+
+---
+
+## Addendum — Truth-only re-backfill GO (2026-06-01 kväll)
+
+**Deploy:** `cb04cad6` → Render `dep-d8f01g9kh4rs73eo7abg` (Frankfurt)  
+**Mode:** truth-only · ingen Graph-fetch · ingen ny mailimport
+
+### Körordning
+
+| Steg            | Resultat                                                     |
+| --------------- | ------------------------------------------------------------ |
+| 1. Snapshot     | ✅ `/var/data/backups/pre-enrichment-backfill-2026-06-01/`   |
+| 2. Plan         | 9338 truth · 9338 eligible · 0 enriched före körning         |
+| 3. Canary (500) | ✅ 442 enriched · 0 batch-fail · checkpoint only             |
+| 4. Full         | ✅ 7233 enriched · stall + `maxBatchRounds=500`              |
+| 5. Gap export   | ✅ `data/imports/mail-enrichment-gap-export-2026-06-01.json` |
+
+### Prod metrics (efter full)
+
+| Metric                  |      Värde |
+| ----------------------- | ---------: |
+| Coverage                | **77,46%** |
+| Enriched                |      7 233 |
+| Gap                     |      2 105 |
+| `readyForWork`          |      false |
+| Worklist rollup rows    |        201 |
+| Cross-mailbox customers |         69 |
+| Batch failures          |    0 (<1%) |
+| CustomerId mismatch     |          0 |
+| Duplicate explosion     |        nej |
+
+### Per-mailbox coverage
+
+| Mailbox  | Truth | Enriched |      Gap |  Coverage |
+| -------- | ----: | -------: | -------: | --------: |
+| fazli@   |  4744 |     4559 |      185 |     96,1% |
+| contact@ |  2367 |     1895 |      472 |     80,1% |
+| kons@    |   132 |      131 |        1 |     99,2% |
+| marknad@ |    34 |       30 |        4 |     88,2% |
+| info@    |    75 |       64 |       11 |     85,3% |
+| egzona@  |  1986 |      554 | **1432** | **27,9%** |
+
+### Blockers
+
+- Full pass träffade `maxBatchRounds=500` med stall (rowCount fast 7724 sista ~6 batchar)
+- Kvarvarande gap: primärt `egzona@` — truth-meddelanden saknar `graphMessageId` (truth-only kan inte berika)
+- Gap-export bucket `missing_graphMessageId` (100%) — detaljfält (`isSystemScrap`, `messageClassification`) ger finare klassificering för Claude
+
+### Stoppvillkor
+
+| Villkor              | Utlöst?          |
+| -------------------- | ---------------- |
+| Coverage backar      | nej (0% → 77,5%) |
+| CustomerId mismatch  | nej              |
+| Duplicate explosion  | nej              |
+| Truth/worklist skada | nej              |
+| Failed > 1%          | nej              |
+| Raw mail i rapport   | nej              |
+
+**Fas B:** ⏸ tills `readyForWork=true` eller owner beslut efter gap-klassificering.
 
 ---
 

@@ -310,12 +310,6 @@ function categorizeGap({
     primaryBucket = 'outside_supported_mailbox';
     whyEnrichmentMissing = 'mailbox_outside_scheduler_scope';
     shouldExcludeFromThreshold = true;
-  } else if (!graphMessageIdPresent) {
-    primaryBucket = 'missing_graphMessageId';
-    whyEnrichmentMissing = 'truth_messages_lack_graph_message_id';
-  } else if (!hasBodyPreview && !hasSubject) {
-    primaryBucket = 'no_truth_body_or_headers';
-    whyEnrichmentMissing = 'no_body_preview_or_subject_in_truth';
   } else if (isSystemScrap || deletedOnly) {
     primaryBucket = 'system_scrap_should_exclude';
     whyEnrichmentMissing = deletedOnly ? 'deleted_only_thread' : 'classified_system_or_scrap_mail';
@@ -324,6 +318,12 @@ function categorizeGap({
     primaryBucket = 'duplicate_or_alias';
     whyEnrichmentMissing = 'duplicate_conversation_alias_across_mailbox_or_identity';
     shouldExcludeFromThreshold = true;
+  } else if (!graphMessageIdPresent) {
+    primaryBucket = 'missing_graphMessageId';
+    whyEnrichmentMissing = 'truth_messages_lack_graph_message_id';
+  } else if (!hasBodyPreview && !hasSubject) {
+    primaryBucket = 'no_truth_body_or_headers';
+    whyEnrichmentMissing = 'no_body_preview_or_subject_in_truth';
   } else if (enrichmentRowPresent && !enrichmentSignalsPresent) {
     primaryBucket = 'enrichment_parser_empty';
     whyEnrichmentMissing = 'analyze_inbox_row_exists_without_workflow_signals';
@@ -355,6 +355,21 @@ function categorizeGap({
   if (ingestionPresent) flags.push('ingestion_row_present');
   if (ingestionMatched) flags.push('ingestion_matched');
 
+  const actionClassification = deriveGapActionClassification({
+    primaryBucket,
+    graphMessageIdPresent,
+    isSystemScrap,
+    duplicate,
+    deletedOnly,
+    outsideMailbox,
+    canFallbackEnrich,
+    shouldExcludeFromThreshold,
+    enrichmentSignalsPresent,
+    snapshotViable,
+    hasCustomerId,
+    hasCustomerEmail,
+  });
+
   return {
     conversationKey,
     threadKey: conversationKey,
@@ -384,6 +399,123 @@ function categorizeGap({
     canFallbackEnrich,
     shouldExcludeFromThreshold,
     subjectToken: hashToken(normalizeText(truthRow.subject).slice(0, 120)),
+    ...actionClassification,
+  };
+}
+
+function deriveGapActionClassification({
+  primaryBucket = '',
+  graphMessageIdPresent = false,
+  isSystemScrap = false,
+  duplicate = false,
+  deletedOnly = false,
+  outsideMailbox = false,
+  canFallbackEnrich = false,
+  shouldExcludeFromThreshold = false,
+  enrichmentSignalsPresent = false,
+  snapshotViable = false,
+  hasCustomerId = false,
+  hasCustomerEmail = false,
+} = {}) {
+  const excludeBuckets = new Set([
+    'system_scrap_should_exclude',
+    'duplicate_or_alias',
+    'outside_supported_mailbox',
+    'corrupted_or_incomplete_truth_row',
+  ]);
+  const shouldExcludeFromDenominator =
+    shouldExcludeFromThreshold ||
+    excludeBuckets.has(primaryBucket) ||
+    isSystemScrap ||
+    duplicate ||
+    deletedOnly ||
+    outsideMailbox;
+
+  const parserEmptyButFallbackPossible =
+    !shouldExcludeFromDenominator &&
+    (primaryBucket === 'enrichment_parser_empty' ||
+      (canFallbackEnrich && !enrichmentSignalsPresent));
+
+  const canTargetedEnrich =
+    !shouldExcludeFromDenominator &&
+    graphMessageIdPresent &&
+    !isSystemScrap &&
+    !duplicate &&
+    (parserEmptyButFallbackPossible || snapshotViable);
+
+  let actionBucket = 'true_blocker';
+  if (shouldExcludeFromDenominator) {
+    actionBucket = 'should_exclude_from_denominator';
+  } else if (parserEmptyButFallbackPossible) {
+    actionBucket = 'parser_empty_but_fallback_possible';
+  } else if (canTargetedEnrich) {
+    actionBucket = 'can_targeted_enrich';
+  } else if (primaryBucket === 'missing_graphMessageId') {
+    actionBucket = 'missing_graphMessageId';
+  } else if (primaryBucket === 'missing_customer_identity') {
+    actionBucket = 'missing_customer_identity';
+  } else if (primaryBucket === 'unsupported_message_shape') {
+    actionBucket = 'unsupported_message_shape';
+  } else if (primaryBucket === 'no_truth_body_or_headers') {
+    actionBucket = 'true_blocker';
+  } else {
+    actionBucket = 'true_blocker';
+  }
+
+  const trueBlocker =
+    !shouldExcludeFromDenominator &&
+    !parserEmptyButFallbackPossible &&
+    !canTargetedEnrich &&
+    actionBucket !== 'can_targeted_enrich';
+
+  return {
+    actionBucket,
+    shouldExcludeFromDenominator,
+    parserEmptyButFallbackPossible,
+    canTargetedEnrich,
+    trueBlocker,
+    hasCustomerIdentity: hasCustomerId || hasCustomerEmail,
+  };
+}
+
+function summarizeActionBuckets(rows = []) {
+  const actionBucketCounts = {
+    missing_graphMessageId: 0,
+    system_scrap_should_exclude: 0,
+    duplicate_or_alias: 0,
+    missing_customer_identity: 0,
+    unsupported_message_shape: 0,
+    parser_empty_but_fallback_possible: 0,
+    should_exclude_from_denominator: 0,
+    can_targeted_enrich: 0,
+    true_blocker: 0,
+  };
+  let autoResolvable = 0;
+  let excludeDenominator = 0;
+  let bugfixRequired = 0;
+  let leaveUnresolved = 0;
+  for (const row of rows) {
+    const bucket = row.actionBucket || 'true_blocker';
+    actionBucketCounts[bucket] = (actionBucketCounts[bucket] || 0) + 1;
+    if (row.shouldExcludeFromDenominator) excludeDenominator += 1;
+    if (row.parserEmptyButFallbackPossible || row.canTargetedEnrich) autoResolvable += 1;
+    if (
+      row.primaryBucket === 'unsupported_message_shape' ||
+      row.primaryBucket === 'corrupted_or_incomplete_truth_row'
+    ) {
+      bugfixRequired += 1;
+    }
+    if (row.actionBucket === 'missing_graphMessageId' || row.actionBucket === 'true_blocker') {
+      leaveUnresolved += 1;
+    }
+  }
+  return {
+    actionBucketCounts,
+    autoResolvableCount: autoResolvable,
+    excludeFromDenominatorCount: excludeDenominator,
+    bugfixRequiredCount: bugfixRequired,
+    leaveUnresolvedCount: leaveUnresolved,
+    canTargetedEnrichCount: rows.filter((row) => row.canTargetedEnrich).length,
   };
 }
 
@@ -604,13 +736,15 @@ async function analyzeCcoInboxEnrichmentGaps({
     (row) => row.shouldExcludeFromThreshold
   ).length;
 
-  const safeDetailLimit = Math.max(1, Math.min(775, Number(detailLimit) || 200));
+  const maxDetailLimit = Math.max(1, Math.min(10000, Number(detailLimit) || 200));
+  const safeDetailLimit = Math.min(analyzed.length, maxDetailLimit);
   const details = analyzed.slice(0, safeDetailLimit);
   const remainder = analyzed.slice(safeDetailLimit);
+  const actionSummary = summarizeActionBuckets(analyzed);
 
   const canFallbackEnrichCount = analyzed.filter((row) => row.canFallbackEnrich).length;
   const shouldExcludeCount = analyzed.filter((row) => row.shouldExcludeFromThreshold).length;
-  const trueBlockerCount = analyzed.length - shouldExcludeCount;
+  const trueBlockerCount = analyzed.filter((row) => row.trueBlocker).length;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -629,8 +763,10 @@ async function analyzeCcoInboxEnrichmentGaps({
     canFallbackEnrichCount,
     shouldExcludeFromThresholdCount: shouldExcludeCount,
     trueBlockerCount,
+    actionSummary,
     snapshotProbesUsed: snapshotProbes,
     details,
+    detailCount: details.length,
     remainderSummary: summarizeRemainder(remainder),
     bucketRecommendations: buildBucketRecommendations(bucketCounts),
     projectedCoverageIfExclude: (() => {
@@ -645,4 +781,6 @@ module.exports = {
   GAP_BUCKETS,
   analyzeCcoInboxEnrichmentGaps,
   categorizeGap,
+  deriveGapActionClassification,
+  summarizeActionBuckets,
 };

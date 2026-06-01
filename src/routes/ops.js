@@ -991,7 +991,7 @@ function createOpsRouter({
       const mailboxIds = resolveCcoHistoryMailboxIds(config);
       const detailLimit = Math.max(
         1,
-        Math.min(775, Number.parseInt(String(req.query?.detailLimit ?? '775'), 10) || 775)
+        Math.min(10000, Number.parseInt(String(req.query?.detailLimit ?? '2105'), 10) || 2105)
       );
       const snapshotProbeLimit = Math.max(
         0,

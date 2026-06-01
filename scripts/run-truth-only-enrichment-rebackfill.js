@@ -156,7 +156,7 @@ async function main() {
     console.log('=== GAP EXPORT ===');
     const analysis = await api(
       'GET',
-      `/api/v1/ops/cco/enrichment/gap-analysis?tenantId=${TENANT}&detailLimit=775`,
+      `/api/v1/ops/cco/enrichment/gap-analysis?tenantId=${TENANT}&detailLimit=2105&snapshotProbeLimit=0`,
       { tok }
     );
     const savePath = path.join(REPO, EXPORT_PATH);
