@@ -42,6 +42,10 @@ const {
   restoreMailboxTruthShards,
 } = require('../ops/ccoMailboxTruthRestore');
 const { decodeMailboxIdFromShardFileName } = require('../ops/ccoMailboxTruthShardedStore');
+const { runMailTruthHydration } = require('../ops/mailTruthHydrationFromIngestion');
+const { createCcoAuditLog } = require('../security/ccoAuditLog');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -272,6 +276,7 @@ function createOpsRouter({
   treatmentAgreementStore = null,
   patientCareStateStore = null,
   ccoSettingsStore = null,
+  ccoMailIngestionStore = null,
   requireAuth,
   requireRole,
 }) {
@@ -3118,6 +3123,177 @@ function createOpsRouter({
       } catch (error) {
         console.error('[ops/digest/send]', error);
         return res.status(500).json({ error: error?.message || 'Kunde inte skicka digest.' });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/mail/truth-hydration/run',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const phase = normalizeText(body.phase) || 'dry-run';
+      const go = parseBoolean(body.go, false);
+      const autoContinue = parseBoolean(body.autoContinue, false);
+      const canaryLimit = Math.max(1, Math.min(500, Number(body.canaryLimit) || 200));
+
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'ccoMailboxTruthStore saknas.' });
+      }
+      if (!ccoMailIngestionStore && phase !== 'snapshot') {
+        return res.status(503).json({ error: 'ccoMailIngestionStore saknas.' });
+      }
+
+      try {
+        if (phase === 'snapshot') {
+          const label = `pre-mail-truth-hydration-${new Date().toISOString().slice(0, 10)}`;
+          const dir = path.join(config.backupDir || path.join(config.stateRoot, 'backups'), label);
+          await fs.mkdir(dir, { recursive: true });
+          const files = [
+            config.ccoMailIngestionStorePath,
+            config.ccoMailboxTruthStorePath,
+            config.ccoConversationStateStorePath,
+            path.join(config.stateRoot, 'cco-conversation-thread-states.json'),
+            path.join(config.stateRoot, 'cco-mail-snoozes.json'),
+            path.join(config.stateRoot, 'cco-audit.jsonl'),
+          ];
+          const copied = [];
+          for (const filePath of files) {
+            if (!filePath) continue;
+            try {
+              await fs.copyFile(filePath, path.join(dir, path.basename(filePath)));
+              copied.push(path.basename(filePath));
+            } catch {
+              /* optional */
+            }
+          }
+          try {
+            await fs.cp(config.ccoMailboxTruthShardDir, path.join(dir, 'cco-mailbox-truth'), {
+              recursive: true,
+            });
+            copied.push('cco-mailbox-truth/');
+          } catch {
+            /* optional */
+          }
+
+          await authStore.addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: 'ops.mail.truth_hydration.snapshot',
+            outcome: 'success',
+            targetType: 'ops',
+            targetId: 'mail_truth_hydration',
+            metadata: { dir, copied },
+          });
+
+          return res.json({ ok: true, phase: 'snapshot', dir, copied });
+        }
+
+        const writeEnabled =
+          String(process.env.ENABLE_MAIL_TRUTH_HYDRATION_WRITE || '').toLowerCase() === 'true';
+        if ((phase === 'canary' || phase === 'full') && (!go || !writeEnabled)) {
+          return res.status(400).json({
+            error: 'canary/full kräver go=true och ENABLE_MAIL_TRUTH_HYDRATION_WRITE=true',
+          });
+        }
+
+        let patientDirectory = [];
+        if (patientMasterStore?.listPatients) {
+          const listed = await patientMasterStore.listPatients({
+            tenantId: req.auth.tenantId || config.defaultTenant,
+            limit: 50000,
+            offset: 0,
+          });
+          patientDirectory = listed.items || listed.patients || [];
+        }
+
+        const auditLog = await createCcoAuditLog({
+          filePath: path.join(config.stateRoot, 'cco-audit.jsonl'),
+        });
+
+        const result = await runMailTruthHydration({
+          ingestionFilePath: config.ccoMailIngestionStorePath,
+          truthStore: ccoMailboxTruthStore,
+          auditLog,
+          patientDirectory,
+          phase: phase === 'canary' || phase === 'full' ? phase : 'dry-run',
+          canaryLimit,
+          actor: req.auth?.userId || 'owner',
+          tenantId: req.auth?.tenantId || config.defaultTenant,
+        });
+
+        let fullResult = null;
+        if (phase === 'canary' && autoContinue && result.ok) {
+          fullResult = await runMailTruthHydration({
+            ingestionFilePath: config.ccoMailIngestionStorePath,
+            truthStore: ccoMailboxTruthStore,
+            auditLog,
+            patientDirectory,
+            phase: 'full',
+            actor: req.auth?.userId || 'owner',
+            tenantId: req.auth?.tenantId || config.defaultTenant,
+          });
+        }
+
+        let enrichmentCoverage = null;
+        let analyzeInboxResult = null;
+        const hydrationComplete = (phase === 'full' && result.ok) || (fullResult && fullResult.ok);
+        if (hydrationComplete) {
+          if (scheduler && typeof scheduler.runJob === 'function') {
+            try {
+              analyzeInboxResult = await scheduler.runJob('cco_inbox_enrichment_bootstrap', {
+                trigger: 'manual_api',
+                actorUserId: req.auth.userId,
+                tenantId: req.auth.tenantId,
+              });
+            } catch (analyzeError) {
+              analyzeInboxResult = {
+                ok: false,
+                error: analyzeError?.message || 'analyze_inbox_failed',
+              };
+            }
+          }
+          if (capabilityAnalysisStore && ccoMailboxTruthStore) {
+            enrichmentCoverage = await computeCcoInboxEnrichmentCoverage({
+              tenantId: req.auth.tenantId,
+              mailboxIds: resolveCcoHistoryMailboxIds(config),
+              capabilityAnalysisStore,
+              ccoMailboxTruthStore,
+              ccoCustomerStore,
+            });
+          }
+        }
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: `ops.mail.truth_hydration.${phase}`,
+          outcome: result.ok ? 'success' : 'failed',
+          targetType: 'ops',
+          targetId: 'mail_truth_hydration',
+          metadata: {
+            runId: result.runId,
+            phase,
+            applied: result.applied,
+            stopReason: result.stopReason || null,
+          },
+        });
+
+        return res.json({
+          ok: result.ok,
+          phase,
+          result,
+          fullResult,
+          analyzeInboxResult,
+          enrichmentCoverage,
+        });
+      } catch (error) {
+        console.error('[ops/mail/truth-hydration/run]', error);
+        return res.status(500).json({
+          error: error?.message || 'Mail truth hydration misslyckades.',
+          code: error?.code || null,
+        });
       }
     }
   );

@@ -10694,6 +10694,7 @@ process.once('SIGTERM', () => {
       treatmentAgreementStore: ccoTreatmentAgreementStore,
       patientCareStateStore,
       ccoSettingsStore,
+      ccoMailIngestionStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
     })
