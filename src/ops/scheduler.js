@@ -3286,14 +3286,27 @@ function createScheduler({
       `[scheduler] cco_inbox_enrichment_full_backfill START incomingTrigger=${incomingTrigger || 'none'} effectiveTrigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}% maxStallRounds=${maxStallRounds} maxBatchRounds=${maxBatchRounds}`
     );
 
-    const fullBootstrap = await runCcoInboxAnalysisRefresh({
-      tenantId,
-      mailboxIds,
-      trigger: effectiveTrigger,
-      actorUserId,
-      mode: 'full',
-      truthStore,
-    });
+    const skipFullBootstrap =
+      Number(coverageBefore.enrichedConversationCount || 0) > 0 &&
+      Number(coverageBefore.gapCount || 0) > 0 &&
+      Number(coverageBefore.gapCount || 0) < Number(coverageBefore.truthConversationCount || 0);
+
+    const fullBootstrap = skipFullBootstrap
+      ? {
+          tenantId,
+          skipped: true,
+          reason: 'baseline_continuation',
+          enrichedConversationCount: coverageBefore.enrichedConversationCount,
+          gapCount: coverageBefore.gapCount,
+        }
+      : await runCcoInboxAnalysisRefresh({
+          tenantId,
+          mailboxIds,
+          trigger: effectiveTrigger,
+          actorUserId,
+          mode: 'full',
+          truthStore,
+        });
 
     const batchRuns = [];
     let coverageAfterBootstrap = await computeCoverage();

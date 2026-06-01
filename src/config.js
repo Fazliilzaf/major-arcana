@@ -918,7 +918,7 @@ const config = {
   ),
   schedulerCcoInboxFullBackfillMaxBatchRounds: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_MAX_BATCH_ROUNDS,
-    200
+    800
   ),
   schedulerCcoInboxBootstrapMaxMessagesPerUser: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_MAX_MESSAGES_PER_USER,
@@ -1171,6 +1171,37 @@ const config = {
     }
     return true;
   })(),
+
+  /** Encounter mapping medium review write — ENABLE_ENCOUNTER_MAPPING_REVIEW_WRITE=true; blockeras på primary prod hosts */
+  enableEncounterMappingReviewWrite: (() => {
+    if (!asBool(process.env.ENABLE_ENCOUNTER_MAPPING_REVIEW_WRITE, false)) return false;
+    const blocked = asStringArrayWithDefault(
+      process.env.ENCOUNTER_MAPPING_REVIEW_WRITE_BLOCKED_HOSTS,
+      [
+        'arcana-cco.onrender.com',
+        'arcana.hairtpclinic.com',
+        'arcana.hairtpclinic.se',
+        'ma.hairtpclinic.se',
+        'ma.hairtpclinic.com',
+      ]
+    );
+    let hostname = '';
+    try {
+      hostname = normalizeHost(new URL(publicBaseUrl).hostname);
+    } catch {
+      hostname = '';
+    }
+    const renderHost = normalizeHost(process.env.RENDER_EXTERNAL_HOSTNAME || '');
+    for (const h of [hostname, renderHost].filter(Boolean)) {
+      if (blocked.some((b) => h === normalizeHost(b) || h.endsWith(`.${normalizeHost(b)}`))) {
+        return false;
+      }
+    }
+    return true;
+  })(),
+
+  /** Drive review cluster write — ENABLE_DRIVE_REVIEW_CLUSTER_WRITE=true */
+  enableDriveReviewClusterWrite: asBool(process.env.ENABLE_DRIVE_REVIEW_CLUSTER_WRITE, false),
 };
 
 if (
