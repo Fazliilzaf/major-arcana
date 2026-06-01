@@ -53,6 +53,36 @@ const MAIL_TRUTH_HYDRATION_JOB_TTL_MS = 6 * 60 * 60 * 1000;
 const enrichmentBackfillJobs = new Map();
 const ENRICHMENT_BACKFILL_JOB_TTL_MS = 12 * 60 * 60 * 1000;
 
+function summarizeEnrichmentCoverage(coverage = null) {
+  if (!coverage || typeof coverage !== 'object') return coverage;
+  const safeCoverage = { ...coverage };
+  delete safeCoverage.gapConversationIds;
+  safeCoverage.gapConversationIdsCount = Array.isArray(coverage.gapConversationIds)
+    ? coverage.gapConversationIds.length
+    : Number(coverage.gapCount || 0);
+  safeCoverage.sampleUnenrichedIds = Array.isArray(coverage.sampleUnenrichedIds)
+    ? coverage.sampleUnenrichedIds.slice(0, 5)
+    : [];
+  return safeCoverage;
+}
+
+function summarizeEnrichmentBackfillResult(result = null) {
+  if (!result || typeof result !== 'object') return result;
+  const safeResult = { ...result };
+  if (safeResult.result && typeof safeResult.result === 'object') {
+    const inner = { ...safeResult.result };
+    for (const key of ['coverageBefore', 'coverage', 'coverageAfterBootstrap']) {
+      if (inner[key]) inner[key] = summarizeEnrichmentCoverage(inner[key]);
+    }
+    if (Array.isArray(inner.batchRuns) && inner.batchRuns.length > 24) {
+      inner.batchRunCount = inner.batchRuns.length;
+      inner.batchRuns = inner.batchRuns.slice(0, 8).concat(inner.batchRuns.slice(-8));
+    }
+    safeResult.result = inner;
+  }
+  return safeResult;
+}
+
 function pruneEnrichmentBackfillJobs() {
   const now = Date.now();
   for (const [runId, job] of enrichmentBackfillJobs.entries()) {
@@ -887,7 +917,7 @@ function createOpsRouter({
         });
         return res.json({
           ok: true,
-          ...coverage,
+          ...summarizeEnrichmentCoverage(coverage),
         });
       } catch (error) {
         console.error('[ops/cco/enrichment/coverage]', error);
@@ -1014,8 +1044,8 @@ function createOpsRouter({
               startedAtMs: enrichmentBackfillJobs.get(jobId)?.startedAtMs || Date.now(),
               completedAt: new Date().toISOString(),
               tenantId,
-              result,
-              coverage,
+              result: summarizeEnrichmentBackfillResult(result),
+              coverage: summarizeEnrichmentCoverage(coverage),
             });
             await authStore.addAuditEvent({
               tenantId: req.auth.tenantId,
