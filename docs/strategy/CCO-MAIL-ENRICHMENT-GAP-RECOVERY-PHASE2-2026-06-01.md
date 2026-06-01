@@ -131,20 +131,32 @@ node scripts/run-gap-recovery-phase2.js --repair-canary --wait
 
 ---
 
-## Resultat (fylls efter körning)
+## Resultat (2026-06-01 prod)
 
-| Metric                             | Värde |
-| ---------------------------------- | ----: |
-| Denominator-excluded               |     — |
-| missing_graphMessageId analyserade |     — |
-| repairable                         |     — |
-| ambiguous                          |     — |
-| unresolved                         |     — |
-| repaired (canary)                  |     — |
-| Coverage % (adjusted)              |     — |
-| `readyForWork`                     |     — |
-| Worklist rows                      |     — |
-| act-now / needsReply               |     — |
+| Metric                                 |                                    Värde |
+| -------------------------------------- | ---------------------------------------: |
+| **Denominator-excluded**               |             **592** (508 dup + 84 scrap) |
+| **missing_graphMessageId analyserade** |                                **1 862** |
+| repairable_single_match                |                                **1 267** |
+| ambiguous_multiple_matches             |                                  **595** |
+| no_candidate                           |                                        0 |
+| **Canary repaired (write)**            |  **100** (graphMessageId från ingestion) |
+| Targeted enrichment                    | ⚠️ Delvis (scheduler fix + deploy-kedja) |
+| Coverage (adjusted, post A)            |                               **78,72%** |
+| `readyForWork` (adjusted)              |                                **false** |
+
+### Canary (100 writes)
+
+- Källa: `ingestion_ledger` — mailbox + conversationId deterministisk match
+- Inga ambiguous writes · 0 skipped
+- Snapshot: `/var/data/backups/pre-gap-recovery-phase2-repair-2026-06-01/`
+
+### Rekommenderad fortsättning
+
+1. **Batch-canary repair** — ~12×100 för kvarvarande 1 167 repairable (ingen Graph-fetch)
+2. **Targeted enrich** per batch (`manual_api_phase2_targeted` — fix `34aab8be`)
+3. **595 ambiguous** — manuell review eller stramare matchregler
+4. **Undvik deploy** mitt i kedjan (capability store nollställs)
 
 ---
 
