@@ -27,6 +27,10 @@ const {
 const { getBootstrapStatus, isEnabled: isBootstrapEnabled } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
 const { analyzeCcoInboxEnrichmentGaps } = require('../ops/ccoInboxEnrichmentGapAnalysis');
+const {
+  buildCcoInboxEnrichmentBackfillPlan,
+  summarizeWorklistSignals,
+} = require('../ops/ccoInboxEnrichmentBackfillPlan');
 const { diagnoseEnrichmentBaselineRecovery } = require('../ops/ccoInboxEnrichmentBaselineDiagnose');
 const { resolveCheckpointPath } = require('../ops/ccoInboxEnrichmentCheckpoint');
 const { clearWorklistConsumerResponseCache } = require('../routes/capabilities');
@@ -1047,6 +1051,45 @@ function createOpsRouter({
     }
   );
 
+  router.get(
+    '/ops/cco/enrichment/backfill/plan',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const mailboxIds = resolveCcoHistoryMailboxIds(config);
+      const canaryLimit = Math.max(
+        1,
+        Math.min(9338, Number.parseInt(String(req.query?.canaryLimit ?? '500'), 10) || 500)
+      );
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'Stores saknas.' });
+      }
+      try {
+        for (const mailboxId of mailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+          } catch {
+            /* optional */
+          }
+        }
+        const plan = await buildCcoInboxEnrichmentBackfillPlan({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          stateRoot: config.stateRoot,
+          canaryLimit,
+        });
+        return res.json({ ok: true, ...plan });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/backfill/plan]', error);
+        return res.status(500).json({ error: error?.message || 'Plan misslyckades.' });
+      }
+    }
+  );
+
   router.post(
     '/ops/cco/enrichment/backfill/run',
     requireAuth,
@@ -1202,99 +1245,110 @@ function createOpsRouter({
           });
         }
 
-        if (phase !== 'run') {
-          return res.status(400).json({
-            error: 'phase måste vara snapshot, restore-capability, reload-capability eller run.',
+        if (phase === 'run' || phase === 'canary' || phase === 'full') {
+          if (!go) {
+            return res.status(400).json({ error: `${phase} kräver go=true.` });
+          }
+
+          pruneEnrichmentBackfillJobs();
+          const jobId = crypto.randomUUID();
+          const canaryLimit = Math.max(
+            0,
+            Math.min(9338, Number.parseInt(String(body.canaryLimit ?? '500'), 10) || 500)
+          );
+          const runPhase = phase === 'canary' ? 'canary' : 'full';
+          enrichmentBackfillJobs.set(jobId, {
+            jobId,
+            phase: runPhase,
+            status: 'running',
+            startedAtMs: Date.now(),
+            startedAt: new Date().toISOString(),
+            tenantId,
+            canaryLimit: phase === 'canary' ? canaryLimit : null,
           });
-        }
-        if (!go) {
-          return res.status(400).json({ error: 'run kräver go=true.' });
-        }
 
-        pruneEnrichmentBackfillJobs();
-        const jobId = crypto.randomUUID();
-        enrichmentBackfillJobs.set(jobId, {
-          jobId,
-          phase: 'run',
-          status: 'running',
-          startedAtMs: Date.now(),
-          startedAt: new Date().toISOString(),
-          tenantId,
-        });
+          res.json({
+            ok: true,
+            phase: runPhase,
+            jobId,
+            status: 'running',
+            canaryLimit: phase === 'canary' ? canaryLimit : null,
+            pollUrl: `/api/v1/ops/cco/enrichment/backfill/status/${jobId}`,
+          });
 
-        res.json({
-          ok: true,
-          phase: 'run',
-          jobId,
-          status: 'running',
-          pollUrl: `/api/v1/ops/cco/enrichment/backfill/status/${jobId}`,
-        });
-
-        (async () => {
-          try {
-            const result = await scheduler.runJob('cco_inbox_enrichment_full_backfill', {
-              trigger: 'manual_api',
-              actorUserId: req.auth.userId,
-              tenantId,
-            });
-            const mailboxIds = resolveCcoHistoryMailboxIds(config);
-            let coverage = null;
-            if (ccoMailboxTruthStore && capabilityAnalysisStore) {
-              for (const mailboxId of mailboxIds) {
-                try {
-                  await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
-                } catch {
-                  /* optional */
-                }
-              }
-              coverage = await computeCcoInboxEnrichmentCoverage({
+          (async () => {
+            try {
+              const result = await scheduler.runJob('cco_inbox_enrichment_full_backfill', {
+                trigger: 'manual_api',
+                actorUserId: req.auth.userId,
                 tenantId,
-                mailboxIds,
-                capabilityAnalysisStore,
-                ccoMailboxTruthStore,
-                ccoCustomerStore,
-                stateRoot: config.stateRoot,
+                canaryLimit: phase === 'canary' ? canaryLimit : 0,
+                phase: runPhase,
+              });
+              const mailboxIds = resolveCcoHistoryMailboxIds(config);
+              let coverage = null;
+              if (ccoMailboxTruthStore && capabilityAnalysisStore) {
+                for (const mailboxId of mailboxIds) {
+                  try {
+                    await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+                  } catch {
+                    /* optional */
+                  }
+                }
+                coverage = await computeCcoInboxEnrichmentCoverage({
+                  tenantId,
+                  mailboxIds,
+                  capabilityAnalysisStore,
+                  ccoMailboxTruthStore,
+                  ccoCustomerStore,
+                  stateRoot: config.stateRoot,
+                });
+              }
+              enrichmentBackfillJobs.set(jobId, {
+                jobId,
+                phase: 'run',
+                status: result?.ok === true ? 'success' : 'error',
+                startedAtMs: enrichmentBackfillJobs.get(jobId)?.startedAtMs || Date.now(),
+                completedAt: new Date().toISOString(),
+                tenantId,
+                result: summarizeEnrichmentBackfillResult(result),
+                coverage: summarizeEnrichmentCoverage(coverage),
+              });
+              await authStore.addAuditEvent({
+                tenantId: req.auth.tenantId,
+                actorUserId: req.auth.userId,
+                action: 'ops.cco.enrichment.backfill.run',
+                outcome: result?.ok === true ? 'success' : 'failure',
+                targetType: 'ops',
+                targetId: 'cco_enrichment_backfill',
+                metadata: {
+                  jobId,
+                  coveragePercent: coverage?.coveragePercent ?? null,
+                  gapCount: coverage?.gapCount ?? null,
+                  readyForWork: coverage?.readyForWork ?? null,
+                  skipped: result?.result?.skipped ?? null,
+                  reason: result?.result?.reason ?? null,
+                },
+              });
+            } catch (error) {
+              enrichmentBackfillJobs.set(jobId, {
+                jobId,
+                phase: 'run',
+                status: 'error',
+                startedAtMs: enrichmentBackfillJobs.get(jobId)?.startedAtMs || Date.now(),
+                completedAt: new Date().toISOString(),
+                tenantId,
+                error: error?.message || 'enrichment_backfill_failed',
               });
             }
-            enrichmentBackfillJobs.set(jobId, {
-              jobId,
-              phase: 'run',
-              status: result?.ok === true ? 'success' : 'error',
-              startedAtMs: enrichmentBackfillJobs.get(jobId)?.startedAtMs || Date.now(),
-              completedAt: new Date().toISOString(),
-              tenantId,
-              result: summarizeEnrichmentBackfillResult(result),
-              coverage: summarizeEnrichmentCoverage(coverage),
-            });
-            await authStore.addAuditEvent({
-              tenantId: req.auth.tenantId,
-              actorUserId: req.auth.userId,
-              action: 'ops.cco.enrichment.backfill.run',
-              outcome: result?.ok === true ? 'success' : 'failure',
-              targetType: 'ops',
-              targetId: 'cco_enrichment_backfill',
-              metadata: {
-                jobId,
-                coveragePercent: coverage?.coveragePercent ?? null,
-                gapCount: coverage?.gapCount ?? null,
-                readyForWork: coverage?.readyForWork ?? null,
-                skipped: result?.result?.skipped ?? null,
-                reason: result?.result?.reason ?? null,
-              },
-            });
-          } catch (error) {
-            enrichmentBackfillJobs.set(jobId, {
-              jobId,
-              phase: 'run',
-              status: 'error',
-              startedAtMs: enrichmentBackfillJobs.get(jobId)?.startedAtMs || Date.now(),
-              completedAt: new Date().toISOString(),
-              tenantId,
-              error: error?.message || 'enrichment_backfill_failed',
-            });
-          }
-        })();
-        return undefined;
+          })();
+          return undefined;
+        }
+
+        return res.status(400).json({
+          error:
+            'phase måste vara snapshot, restore-capability, reload-capability, run, canary eller full.',
+        });
       } catch (error) {
         console.error('[ops/cco/enrichment/backfill/run]', error);
         return res.status(500).json({

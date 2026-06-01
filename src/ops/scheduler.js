@@ -3349,6 +3349,8 @@ function createScheduler({
     tenantId,
     trigger = 'cco_full_backfill',
     actorUserId = null,
+    canaryLimit = 0,
+    phase = 'full',
   } = {}) {
     const mailboxIds = resolveCcoHistoryMailboxIds(config);
     if (mailboxIds.length === 0) {
@@ -3480,6 +3482,12 @@ function createScheduler({
     const batchRuns = [];
     let coverageAfterBootstrap = await computeCoverage(rollingBaseline);
     let remainingGapIds = asSchedulerStringArray(coverageAfterBootstrap.gapConversationIds);
+    const effectiveCanaryLimit = Math.max(0, Math.min(9338, Number(canaryLimit) || 0));
+    const effectivePhase = normalizeText(phase) === 'canary' ? 'canary' : 'full';
+    if (effectiveCanaryLimit > 0) {
+      remainingGapIds = remainingGapIds.slice(0, effectiveCanaryLimit);
+    }
+    let processedConversationCount = 0;
     let previousGapCount = Number(coverageAfterBootstrap.gapCount || 0);
     let stallRounds = 0;
     let batchesSinceCheckpoint = 0;
@@ -3491,7 +3499,14 @@ function createScheduler({
     ) {
       for (let offset = 0; offset < remainingGapIds.length; offset += batchSize) {
         if (batchRuns.length >= maxBatchRounds) break;
-        const scopedConversationIds = remainingGapIds.slice(offset, offset + batchSize);
+        if (effectiveCanaryLimit > 0 && processedConversationCount >= effectiveCanaryLimit) break;
+        let scopedConversationIds = remainingGapIds.slice(offset, offset + batchSize);
+        if (effectiveCanaryLimit > 0) {
+          const room = effectiveCanaryLimit - processedConversationCount;
+          scopedConversationIds = scopedConversationIds.slice(0, Math.max(0, room));
+          if (!scopedConversationIds.length) break;
+        }
+        processedConversationCount += scopedConversationIds.length;
         const batchResult = await runCcoInboxAnalysisRefresh({
           tenantId,
           mailboxIds,
@@ -3541,6 +3556,12 @@ function createScheduler({
       previousGapCount = nextGapCount;
       coverageAfterBootstrap = nextCoverage;
       remainingGapIds = asSchedulerStringArray(nextCoverage.gapConversationIds);
+      if (
+        effectivePhase === 'canary' ||
+        (effectiveCanaryLimit > 0 && processedConversationCount >= effectiveCanaryLimit)
+      ) {
+        break;
+      }
       if (nextCoverage.readyForWork) break;
     }
 
@@ -3553,23 +3574,35 @@ function createScheduler({
         metadata: {
           batchCount: batchRuns.length,
           enrichedRowCount: countEnrichedRows(rollingBaseline),
-          phase: 'pre_final_persist',
+          phase: effectivePhase === 'canary' ? 'canary' : 'pre_final_persist',
+          processedConversationCount,
+          canaryLimit: effectiveCanaryLimit || null,
         },
       });
-      finalPersist = await persistAnalyzeInboxWorklistOutput({
-        tenantId,
-        mailboxIds,
-        trigger: effectiveTrigger,
-        actorUserId,
-        mode: 'full_backfill_final',
-        outputData: rollingBaseline,
-        scopedConversationCount: 0,
-      });
-      if (finalPersist?.ok) {
-        await clearCcoInboxEnrichmentCheckpoint({
-          stateRoot: config.stateRoot,
+      if (effectivePhase === 'canary') {
+        finalPersist = {
+          ok: true,
+          skipped: true,
+          reason: 'canary_phase_checkpoint_only',
+          processedConversationCount,
+          canaryLimit: effectiveCanaryLimit || null,
+        };
+      } else {
+        finalPersist = await persistAnalyzeInboxWorklistOutput({
           tenantId,
+          mailboxIds,
+          trigger: effectiveTrigger,
+          actorUserId,
+          mode: 'full_backfill_final',
+          outputData: rollingBaseline,
+          scopedConversationCount: 0,
         });
+        if (finalPersist?.ok) {
+          await clearCcoInboxEnrichmentCheckpoint({
+            stateRoot: config.stateRoot,
+            tenantId,
+          });
+        }
       }
     }
 
@@ -3588,6 +3621,9 @@ function createScheduler({
       maxStallRounds,
       maxBatchRounds,
       checkpointInterval,
+      phase: effectivePhase,
+      canaryLimit: effectiveCanaryLimit || null,
+      processedConversationCount,
       coverageBefore,
       fullBootstrap,
       batchRuns,
@@ -4230,7 +4266,10 @@ function createScheduler({
     });
   }
 
-  async function runJob(jobId, { trigger = 'manual', actorUserId = null, tenantId } = {}) {
+  async function runJob(
+    jobId,
+    { trigger = 'manual', actorUserId = null, tenantId, canaryLimit, phase } = {}
+  ) {
     const job = jobDefinitions.find((item) => item.id === jobId);
     if (!job) {
       return { ok: false, error: 'unknown_job', message: 'Okänd scheduler-jobb.' };
@@ -4260,6 +4299,8 @@ function createScheduler({
         tenantId: resolvedTenantId,
         trigger,
         actorUserId,
+        canaryLimit,
+        phase,
       });
       const durationMs = Date.now() - startedAtMs;
       runtime.running = false;
