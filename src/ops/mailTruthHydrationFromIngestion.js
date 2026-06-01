@@ -173,25 +173,56 @@ function pickTimestamp(raw = {}) {
   );
 }
 
+async function preloadTruthShards(truthStore, ingestionState = {}) {
+  if (!truthStore || typeof truthStore.ensureMailboxLoaded !== 'function') return;
+  const mailboxIds = new Set();
+  for (const raw of Object.values(ingestionState.mailRawMessages || {})) {
+    const mailboxId = normalizeEmail(raw.mailboxId);
+    if (mailboxId) mailboxIds.add(mailboxId);
+  }
+  for (const mailboxId of mailboxIds) {
+    await truthStore.ensureMailboxLoaded(mailboxId);
+  }
+}
+
+function buildExistingTruthIndex(truthStore) {
+  const byKey = new Map();
+  if (!truthStore || typeof truthStore.listMessages !== 'function') return byKey;
+  for (const msg of truthStore.listMessages({ limit: 0 })) {
+    const mailboxId = normalizeEmail(msg.mailboxId);
+    const graphMessageId = normalizeText(msg.graphMessageId).toLowerCase();
+    if (!mailboxId || !graphMessageId) continue;
+    byKey.set(`${mailboxId}:${graphMessageId}`, msg);
+  }
+  return byKey;
+}
+
+function resolveExistingCustomerId(message = {}) {
+  return normalizeText(
+    message?.customerIdentity?.canonicalCustomerId || message?.customerIdentity?.customerId
+  );
+}
+
+function shouldHydrateExistingTruthMessage(existingMessage, ledger = null) {
+  const ledgerStatus = normalizeText(ledger?.status).toUpperCase();
+  const ledgerPatientId = normalizeText(ledger?.patientId);
+  if (ledgerStatus !== 'MATCHED' || !ledgerPatientId) return false;
+  const existingCustomerId = resolveExistingCustomerId(existingMessage);
+  return !existingCustomerId || existingCustomerId !== ledgerPatientId;
+}
+
 function analyzeIngestionState({ ingestionState, truthStore, patientDirectory = [] }) {
   const lookup = buildPipedrivePatientLookup(asArray(patientDirectory));
   const ledgerByRaw = buildLedgerIndex(ingestionState);
   const rawMessages = Object.values(ingestionState.mailRawMessages || {});
-
-  const existingTruthKeys = new Set();
-  if (truthStore && typeof truthStore.listMessages === 'function') {
-    for (const msg of truthStore.listMessages({ limit: 0 })) {
-      const mb = normalizeEmail(msg.mailboxId);
-      const gid = normalizeText(msg.graphMessageId);
-      if (mb && gid) existingTruthKeys.add(`${mb}:${gid.toLowerCase()}`);
-    }
-  }
+  const existingTruthByKey = buildExistingTruthIndex(truthStore);
 
   const stats = {
     ingestionMessages: rawMessages.length,
     hydratable: 0,
     duplicateSkipped: 0,
     truthAlreadyPresent: 0,
+    customerOverlayCandidates: 0,
     missingGraphMessageId: 0,
     missingConversationId: 0,
     missingCustomerId: 0,
@@ -235,9 +266,15 @@ function analyzeIngestionState({ ingestionState, truthStore, patientDirectory = 
       stats.perMailbox[mailboxId].systemOrScrap += 1;
     }
 
-    if (existingTruthKeys.has(truthKey)) {
+    if (existingTruthByKey.has(truthKey)) {
       stats.truthAlreadyPresent += 1;
-      stats.duplicateSkipped += 1;
+      if (shouldHydrateExistingTruthMessage(existingTruthByKey.get(truthKey), ledger)) {
+        stats.customerOverlayCandidates += 1;
+        stats.hydratable += 1;
+        stats.perMailbox[mailboxId].hydratable += 1;
+      } else {
+        stats.duplicateSkipped += 1;
+      }
       continue;
     }
 
@@ -326,6 +363,8 @@ async function runMailTruthHydration({
   const { state: ingestionState, sha256: ingestionShaBefore } =
     await readIngestionSnapshot(ingestionFilePath);
 
+  await preloadTruthShards(truthStore, ingestionState);
+
   const ledgerByRaw = buildLedgerIndex(ingestionState);
   const analysisBefore = analyzeIngestionState({
     ingestionState,
@@ -376,24 +415,19 @@ async function runMailTruthHydration({
 
   const allRaw = sortCandidates(Object.values(ingestionState.mailRawMessages || {}), ledgerByRaw);
   const patientLookup = buildPipedrivePatientLookup(asArray(patientDirectory));
-  const existingTruthKeys = new Set(
-    truthStore
-      .listMessages({ limit: 0 })
-      .map(
-        (msg) =>
-          `${normalizeEmail(msg.mailboxId)}:${normalizeText(msg.graphMessageId).toLowerCase()}`
-      )
-      .filter((key) => key.includes(':'))
-  );
+  const existingTruthByKey = buildExistingTruthIndex(truthStore);
 
   const candidates = [];
   for (const raw of allRaw) {
     const ledger = ledgerByRaw.get(normalizeText(raw.id)) || null;
     const truthMessage = buildTruthMessageFromIngestion({ raw, ledger, runId });
     const truthKey = `${truthMessage.mailboxId}:${truthMessage.graphMessageId.toLowerCase()}`;
-    if (existingTruthKeys.has(truthKey)) {
-      result.applied.duplicateSkipped += 1;
-      continue;
+    const existingMessage = existingTruthByKey.get(truthKey) || null;
+    if (existingMessage) {
+      if (!shouldHydrateExistingTruthMessage(existingMessage, ledger)) {
+        result.applied.duplicateSkipped += 1;
+        continue;
+      }
     }
 
     if (ledger && normalizeText(ledger.status).toUpperCase() === 'MATCHED' && ledger.patientId) {
@@ -494,10 +528,9 @@ async function runMailTruthHydration({
   }
 
   const truthCountAfter = truthStore.listMessages({ limit: 0 }).length;
-  const maxAllowed = Math.ceil(
-    (truthCountBefore + selected.length) * MAX_DUPLICATE_EXPLOSION_RATIO
-  );
-  if (truthCountAfter > maxAllowed) {
+  const truthDelta = Math.max(0, truthCountAfter - truthCountBefore);
+  const maxAllowedDelta = Math.ceil(selected.length * MAX_DUPLICATE_EXPLOSION_RATIO);
+  if (truthDelta > maxAllowedDelta) {
     result.ok = false;
     result.stopReason = 'duplicate_explosion';
   }
