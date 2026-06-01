@@ -4298,7 +4298,10 @@ function createScheduler({
 
     const runtime = state.jobs[job.id];
     const isManualTrigger =
-      trigger === 'manual' || trigger === 'manual_api' || trigger === 'manual_api_suite';
+      trigger === 'manual' ||
+      trigger === 'manual_api' ||
+      trigger === 'manual_api_suite' ||
+      trigger === 'manual_api_phase2_targeted';
     if (!runtime.enabled && !isManualTrigger) {
       return { ok: false, error: 'disabled_job', message: 'Jobbet är inaktiverat.' };
     }

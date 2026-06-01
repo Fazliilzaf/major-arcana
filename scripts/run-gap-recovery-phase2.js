@@ -131,13 +131,15 @@ async function main() {
     console.log(JSON.stringify(step, null, 2));
 
     if (args.repairCanary && step.repairableInPlan > 0 && step.processedCount > 0) {
-      const repairedKeys = (step.results || [])
-        .filter(
-          (row) =>
-            row.outcome === 'upserted_truth_message' || row.outcome === 'alias_pending_persist'
-        )
-        .map((row) => row.conversationKey)
-        .filter(Boolean);
+      const repairedKeys = (
+        step.repairedConversationKeys ||
+        (step.results || [])
+          .filter(
+            (row) =>
+              row.outcome === 'upserted_truth_message' || row.outcome === 'alias_pending_persist'
+          )
+          .map((row) => row.conversationKey)
+      ).filter(Boolean);
       if (repairedKeys.length > 0 && args.wait) {
         const enrich = await api(
           'POST',

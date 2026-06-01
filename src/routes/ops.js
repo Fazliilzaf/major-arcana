@@ -1206,6 +1206,10 @@ function createOpsRouter({
           dryRun,
           canaryLimit,
           repairableInPlan: plan.repairableCount,
+          repairedConversationKeys: canary.results
+            .filter((row) => row.outcome === 'upserted_truth_message')
+            .map((row) => row.conversationKey)
+            .filter(Boolean),
           ...canary,
           results: canary.results.slice(0, 25),
         });
