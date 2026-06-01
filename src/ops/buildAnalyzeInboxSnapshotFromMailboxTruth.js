@@ -128,6 +128,7 @@ function buildAnalyzeInboxSnapshotFromMailboxTruth({
   const safeLookbackDays = Math.max(1, Math.min(3650, Number(lookbackDays) || 365));
   const windowStartMs = Date.now() - safeLookbackDays * 24 * 60 * 60 * 1000;
   const conversationFilter = resolveConversationFilterSet(conversationIds);
+  const scopedConversationFilter = conversationFilter.size > 0;
   const capturedAt = new Date().toISOString();
 
   const messages = ccoMailboxTruthStore.listMessages({
@@ -151,7 +152,9 @@ function buildAnalyzeInboxSnapshotFromMailboxTruth({
     if (folderType === 'deleted') continue;
 
     const sortIso = resolveMessageSortIso(message);
-    if (sortIso && Date.parse(sortIso) < windowStartMs) continue;
+    if (!scopedConversationFilter && sortIso && Date.parse(sortIso) < windowStartMs) {
+      continue;
+    }
 
     const graphMessageId = normalizeText(message.graphMessageId);
     if (!graphMessageId) continue;

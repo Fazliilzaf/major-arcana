@@ -81,3 +81,54 @@ test('buildAnalyzeInboxSnapshotFromMailboxTruth groups truth messages without ra
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('buildAnalyzeInboxSnapshotFromMailboxTruth includes scoped conversations outside lookback window', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-truth-snap-old-'));
+  const store = await createCcoMailboxTruthStore({
+    filePath: path.join(dir, 'truth.json'),
+  });
+  const account = {
+    mailboxId: 'contact@hairtpclinic.com',
+    mailboxAddress: 'contact@hairtpclinic.com',
+  };
+  const run = await store.startBackfillRun({ account });
+  const oldInbound = new Date(Date.now() - 800 * 24 * 60 * 60 * 1000).toISOString();
+
+  await store.recordFolderPage({
+    runId: run.runId,
+    account,
+    folder: { folderType: 'inbox' },
+    messages: [
+      {
+        graphMessageId: 'msg-old-1',
+        conversationId: 'conv-old',
+        subject: 'Gammal tråd',
+        bodyPreview: 'Gammal preview',
+        direction: 'inbound',
+        receivedAt: oldInbound,
+        from: { address: 'legacy@example.com', name: 'Legacy' },
+        toRecipients: ['contact@hairtpclinic.com'],
+        isRead: true,
+      },
+    ],
+    complete: true,
+  });
+
+  const withoutScope = buildAnalyzeInboxSnapshotFromMailboxTruth({
+    ccoMailboxTruthStore: store,
+    mailboxIds: ['contact@hairtpclinic.com'],
+    lookbackDays: 30,
+  });
+  assert.equal(withoutScope.snapshot.conversations.length, 0);
+
+  const withScope = buildAnalyzeInboxSnapshotFromMailboxTruth({
+    ccoMailboxTruthStore: store,
+    mailboxIds: ['contact@hairtpclinic.com'],
+    lookbackDays: 30,
+    conversationIds: ['contact@hairtpclinic.com:conv-old'],
+  });
+  assert.equal(withScope.snapshot.conversations.length, 1);
+  assert.equal(withScope.snapshot.conversations[0].messages.length, 1);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
