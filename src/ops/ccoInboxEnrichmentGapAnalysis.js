@@ -495,15 +495,9 @@ async function analyzeCcoInboxEnrichmentGaps({
     truthByGapId.set(gapId.toLowerCase(), { ...truthRow, gapId });
   }
 
-  const gapIds = asArray(coverage.gapConversationIds)
-    .map((item) => normalizeText(item))
+  const effectiveGapIds = Array.from(truthByGapId.values())
+    .map((row) => row.gapId)
     .filter(Boolean);
-  const effectiveGapIds =
-    gapIds.length > 0
-      ? gapIds
-      : Array.from(truthByGapId.keys())
-          .map((item) => truthByGapId.get(item)?.gapId)
-          .filter(Boolean);
 
   const messageGroups = buildTruthMessageGroups(ccoMailboxTruthStore, mailboxIds);
   const ingestionIndex = buildIngestionIndex(ccoMailIngestionStore);
