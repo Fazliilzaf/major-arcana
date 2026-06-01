@@ -50,6 +50,18 @@ const crypto = require('node:crypto');
 
 const mailTruthHydrationJobs = new Map();
 const MAIL_TRUTH_HYDRATION_JOB_TTL_MS = 6 * 60 * 60 * 1000;
+const enrichmentBackfillJobs = new Map();
+const ENRICHMENT_BACKFILL_JOB_TTL_MS = 12 * 60 * 60 * 1000;
+
+function pruneEnrichmentBackfillJobs() {
+  const now = Date.now();
+  for (const [runId, job] of enrichmentBackfillJobs.entries()) {
+    const ageMs = now - Number(job.startedAtMs || 0);
+    if (ageMs > ENRICHMENT_BACKFILL_JOB_TTL_MS) {
+      enrichmentBackfillJobs.delete(runId);
+    }
+  }
+}
 
 function pruneMailTruthHydrationJobs() {
   const now = Date.now();
@@ -841,6 +853,18 @@ function createOpsRouter({
         return res.status(503).json({ error: 'capabilityAnalysisStore saknas.' });
       }
       try {
+        if (
+          ccoMailboxTruthStore &&
+          typeof ccoMailboxTruthStore.ensureMailboxLoaded === 'function'
+        ) {
+          for (const mailboxId of mailboxIds) {
+            try {
+              await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+            } catch {
+              /* optional preload */
+            }
+          }
+        }
         const coverage = await computeCcoInboxEnrichmentCoverage({
           tenantId,
           mailboxIds,
@@ -871,6 +895,178 @@ function createOpsRouter({
           error: error?.message || 'Kunde inte beräkna enrichment coverage.',
         });
       }
+    }
+  );
+
+  router.post(
+    '/ops/cco/enrichment/backfill/run',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const phase = normalizeText(body.phase) || 'run';
+      const go = parseBoolean(body.go, false);
+      const tenantId = normalizeText(body.tenantId) || req.auth.tenantId;
+
+      if (!scheduler || typeof scheduler.runJob !== 'function') {
+        return res.status(503).json({ error: 'Scheduler saknas.' });
+      }
+
+      try {
+        if (phase === 'snapshot') {
+          const label = `pre-enrichment-backfill-${new Date().toISOString().slice(0, 10)}`;
+          const dir = path.join(config.backupDir || path.join(config.stateRoot, 'backups'), label);
+          await fs.mkdir(dir, { recursive: true });
+          const files = [
+            config.ccoMailboxTruthStorePath,
+            config.capabilityAnalysisStorePath,
+            config.ccoConversationStateStorePath,
+            path.join(config.stateRoot, 'cco-conversation-thread-states.json'),
+            path.join(config.stateRoot, 'cco-audit.jsonl'),
+          ];
+          const copied = [];
+          for (const filePath of files) {
+            if (!filePath) continue;
+            try {
+              await fs.copyFile(filePath, path.join(dir, path.basename(filePath)));
+              copied.push(path.basename(filePath));
+            } catch {
+              /* optional */
+            }
+          }
+          try {
+            await fs.cp(config.ccoMailboxTruthShardDir, path.join(dir, 'cco-mailbox-truth'), {
+              recursive: true,
+            });
+            copied.push('cco-mailbox-truth/');
+          } catch {
+            /* optional */
+          }
+
+          await authStore.addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: 'ops.cco.enrichment.backfill.snapshot',
+            outcome: 'success',
+            targetType: 'ops',
+            targetId: 'cco_enrichment_backfill',
+            metadata: { dir, copied },
+          });
+
+          return res.json({ ok: true, phase: 'snapshot', dir, copied });
+        }
+
+        if (phase !== 'run') {
+          return res.status(400).json({ error: 'phase måste vara snapshot eller run.' });
+        }
+        if (!go) {
+          return res.status(400).json({ error: 'run kräver go=true.' });
+        }
+
+        pruneEnrichmentBackfillJobs();
+        const jobId = crypto.randomUUID();
+        enrichmentBackfillJobs.set(jobId, {
+          jobId,
+          phase: 'run',
+          status: 'running',
+          startedAtMs: Date.now(),
+          startedAt: new Date().toISOString(),
+          tenantId,
+        });
+
+        res.json({
+          ok: true,
+          phase: 'run',
+          jobId,
+          status: 'running',
+          pollUrl: `/api/v1/ops/cco/enrichment/backfill/status/${jobId}`,
+        });
+
+        (async () => {
+          try {
+            const result = await scheduler.runJob('cco_inbox_enrichment_full_backfill', {
+              trigger: 'manual_api',
+              actorUserId: req.auth.userId,
+              tenantId,
+            });
+            const mailboxIds = resolveCcoHistoryMailboxIds(config);
+            let coverage = null;
+            if (ccoMailboxTruthStore && capabilityAnalysisStore) {
+              for (const mailboxId of mailboxIds) {
+                try {
+                  await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+                } catch {
+                  /* optional */
+                }
+              }
+              coverage = await computeCcoInboxEnrichmentCoverage({
+                tenantId,
+                mailboxIds,
+                capabilityAnalysisStore,
+                ccoMailboxTruthStore,
+                ccoCustomerStore,
+              });
+            }
+            enrichmentBackfillJobs.set(jobId, {
+              jobId,
+              phase: 'run',
+              status: result?.ok === true ? 'success' : 'error',
+              startedAtMs: enrichmentBackfillJobs.get(jobId)?.startedAtMs || Date.now(),
+              completedAt: new Date().toISOString(),
+              tenantId,
+              result,
+              coverage,
+            });
+            await authStore.addAuditEvent({
+              tenantId: req.auth.tenantId,
+              actorUserId: req.auth.userId,
+              action: 'ops.cco.enrichment.backfill.run',
+              outcome: result?.ok === true ? 'success' : 'failure',
+              targetType: 'ops',
+              targetId: 'cco_enrichment_backfill',
+              metadata: {
+                jobId,
+                coveragePercent: coverage?.coveragePercent ?? null,
+                gapCount: coverage?.gapCount ?? null,
+                readyForWork: coverage?.readyForWork ?? null,
+                skipped: result?.result?.skipped ?? null,
+                reason: result?.result?.reason ?? null,
+              },
+            });
+          } catch (error) {
+            enrichmentBackfillJobs.set(jobId, {
+              jobId,
+              phase: 'run',
+              status: 'error',
+              startedAtMs: enrichmentBackfillJobs.get(jobId)?.startedAtMs || Date.now(),
+              completedAt: new Date().toISOString(),
+              tenantId,
+              error: error?.message || 'enrichment_backfill_failed',
+            });
+          }
+        })();
+        return undefined;
+      } catch (error) {
+        console.error('[ops/cco/enrichment/backfill/run]', error);
+        return res.status(500).json({
+          error: error?.message || 'Enrichment backfill misslyckades.',
+        });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/cco/enrichment/backfill/status/:jobId',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      pruneEnrichmentBackfillJobs();
+      const jobId = normalizeText(req.params?.jobId);
+      const job = jobId ? enrichmentBackfillJobs.get(jobId) : null;
+      if (!job) {
+        return res.status(404).json({ error: 'Jobb hittades inte.' });
+      }
+      return res.json({ ok: true, ...job });
     }
   );
 

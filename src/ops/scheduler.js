@@ -52,6 +52,9 @@ const {
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
 const { createConfiguredCcoMailboxTruthStore } = require('./ccoMailboxTruthStoreFactory');
 const { computeCcoInboxEnrichmentCoverage } = require('./ccoInboxEnrichmentCoverage');
+const {
+  buildAnalyzeInboxSnapshotFromMailboxTruth,
+} = require('./buildAnalyzeInboxSnapshotFromMailboxTruth');
 const { config: defaultSchedulerConfig } = require('../config');
 
 const CCO_INBOX_FULL_BACKFILL_TRIGGER = 'cco_full_backfill';
@@ -2826,6 +2829,26 @@ function createScheduler({
     };
   }
 
+  async function preloadSchedulerTruthMailboxes(truthStore, mailboxIds = []) {
+    if (!truthStore || typeof truthStore.ensureMailboxLoaded !== 'function') return;
+    const normalizedMailboxIds = Array.from(
+      new Set(
+        (Array.isArray(mailboxIds) ? mailboxIds : [])
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+      )
+    );
+    for (const mailboxId of normalizedMailboxIds) {
+      try {
+        await truthStore.ensureMailboxLoaded(mailboxId);
+      } catch (error) {
+        logger?.warn?.(
+          `[scheduler] truth_mailbox_preload_failed mailboxId=${mailboxId} error=${sanitizeError(error)}`
+        );
+      }
+    }
+  }
+
   async function runCcoInboxAnalysisRefresh({
     tenantId,
     mailboxIds = [],
@@ -2833,8 +2856,13 @@ function createScheduler({
     actorUserId = null,
     scopedConversationIds = [],
     mode = 'full',
+    truthStore = null,
   } = {}) {
-    if (!graphReadConnector || typeof graphReadConnector.fetchInboxSnapshot !== 'function') {
+    const useTruthOnlyEnrichment = normalizeText(trigger) === CCO_INBOX_FULL_BACKFILL_TRIGGER;
+    if (
+      !useTruthOnlyEnrichment &&
+      (!graphReadConnector || typeof graphReadConnector.fetchInboxSnapshot !== 'function')
+    ) {
       return {
         tenantId,
         skipped: true,
@@ -2933,11 +2961,53 @@ function createScheduler({
     if (useScopedMerge && baselineOutputData) {
       analyzeInput.conversationIds = scopedIds;
     }
+
+    let initialSystemStateSnapshot = {};
+    if (useTruthOnlyEnrichment) {
+      let resolvedTruthStore = truthStore;
+      if (!resolvedTruthStore) {
+        try {
+          resolvedTruthStore = await resolveSchedulerTruthStore();
+        } catch (error) {
+          return {
+            tenantId,
+            skipped: true,
+            reason: 'truth_store_open_failed',
+            error: sanitizeError(error),
+          };
+        }
+      }
+      await preloadSchedulerTruthMailboxes(resolvedTruthStore, effectiveMailboxIds);
+      const scopedConversationFilter =
+        useScopedMerge && scopedIds.length > 0
+          ? scopedIds
+          : Array.isArray(analyzeInput.conversationIds)
+            ? analyzeInput.conversationIds
+            : [];
+      const truthSnapshotResult = buildAnalyzeInboxSnapshotFromMailboxTruth({
+        ccoMailboxTruthStore: resolvedTruthStore,
+        mailboxIds: effectiveMailboxIds,
+        lookbackDays,
+        conversationIds: scopedConversationFilter,
+      });
+      if (!truthSnapshotResult?.ok || !truthSnapshotResult.snapshot) {
+        return {
+          tenantId,
+          skipped: true,
+          reason: truthSnapshotResult?.reason || 'truth_snapshot_build_failed',
+        };
+      }
+      initialSystemStateSnapshot = truthSnapshotResult.snapshot;
+      logger?.log?.(
+        `[scheduler] cco_inbox_refresh truth_snapshot conversations=${(Array.isArray(initialSystemStateSnapshot.conversations) ? initialSystemStateSnapshot.conversations : []).length} messages=${Number(initialSystemStateSnapshot?.metadata?.messageCount || 0)} trigger=${trigger} mode=${mode}`
+      );
+    }
+
     const { input, systemStateSnapshot } = await hydrateAnalyzeInboxInput({
       tenantId,
       input: analyzeInput,
-      systemStateSnapshot: {},
-      graphReadConnector,
+      systemStateSnapshot: initialSystemStateSnapshot,
+      graphReadConnector: useTruthOnlyEnrichment ? null : graphReadConnector,
       capabilityAnalysisStore,
       ccoHistoryStore,
       authStore,
@@ -3158,13 +3228,6 @@ function createScheduler({
     trigger = 'cco_full_backfill',
     actorUserId = null,
   } = {}) {
-    if (!config.graphReadEnabled) {
-      return {
-        tenantId,
-        skipped: true,
-        reason: 'graph_read_disabled',
-      };
-    }
     const mailboxIds = resolveCcoHistoryMailboxIds(config);
     if (mailboxIds.length === 0) {
       return {
@@ -3205,14 +3268,18 @@ function createScheduler({
       };
     }
 
-    const computeCoverage = async () =>
-      computeCcoInboxEnrichmentCoverage({
+    await preloadSchedulerTruthMailboxes(truthStore, mailboxIds);
+
+    const computeCoverage = async () => {
+      await preloadSchedulerTruthMailboxes(truthStore, mailboxIds);
+      return computeCcoInboxEnrichmentCoverage({
         tenantId,
         mailboxIds,
         capabilityAnalysisStore,
         ccoMailboxTruthStore: truthStore,
         ccoCustomerStore,
       });
+    };
 
     const coverageBefore = await computeCoverage();
     logger?.log?.(
@@ -3225,6 +3292,7 @@ function createScheduler({
       trigger: effectiveTrigger,
       actorUserId,
       mode: 'full',
+      truthStore,
     });
 
     const batchRuns = [];
@@ -3248,6 +3316,7 @@ function createScheduler({
           actorUserId,
           scopedConversationIds,
           mode: 'scoped_merge',
+          truthStore,
         });
         batchRuns.push({
           batchIndex: batchRuns.length,
