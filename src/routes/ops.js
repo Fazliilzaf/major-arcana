@@ -1053,6 +1053,10 @@ function createOpsRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) => {
       const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const includeRepairableLimit = Math.max(
+        0,
+        Math.min(2000, Number.parseInt(String(req.query?.includeRepairableLimit ?? '0'), 10) || 0)
+      );
       const mailboxIds = resolveCcoHistoryMailboxIds(config);
       if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
         return res.status(503).json({ error: 'stores saknas för phase2 repair-plan.' });
@@ -1085,6 +1089,9 @@ function createOpsRouter({
           ingestionStore: ccoMailIngestionStore,
           truthStore: ccoMailboxTruthStore,
         });
+        const repairableRows = plan.rows.filter(
+          (row) => row.repairStatus === 'repairable_single_match'
+        );
         return res.json({
           ok: true,
           dryRun: true,
@@ -1096,9 +1103,11 @@ function createOpsRouter({
           ambiguousCount: plan.ambiguousCount,
           noCandidateCount: plan.noCandidateCount,
           mailboxCounts: plan.mailboxCounts,
-          sampleRepairable: plan.rows
-            .filter((row) => row.repairStatus === 'repairable_single_match')
-            .slice(0, 10),
+          sampleRepairable: repairableRows.slice(0, 10),
+          repairableConversationKeys:
+            includeRepairableLimit > 0
+              ? repairableRows.slice(0, includeRepairableLimit).map((row) => row.conversationKey)
+              : undefined,
         });
       } catch (error) {
         console.error('[ops/cco/enrichment/gap-recovery/phase2/repair-plan]', error);
