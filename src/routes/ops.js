@@ -28,6 +28,17 @@ const { getBootstrapStatus, isEnabled: isBootstrapEnabled } = require('../ops/bo
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
 const { analyzeCcoInboxEnrichmentGaps } = require('../ops/ccoInboxEnrichmentGapAnalysis');
 const {
+  loadDenominatorExclusions,
+  saveDenominatorExclusions,
+  buildDenominatorExclusionsFromGapDetails,
+  applyDenominatorExclusionsToCoverage,
+} = require('../ops/ccoInboxEnrichmentDenominatorExclusions');
+const { buildGraphMessageIdRepairPlan } = require('../ops/ccoGraphMessageIdRepairPlan');
+const {
+  applyGraphMessageIdRepairCanary,
+  saveConversationAliases,
+} = require('../ops/ccoGraphMessageIdRepairApply');
+const {
   buildCcoInboxEnrichmentBackfillPlan,
   summarizeWorklistSignals,
 } = require('../ops/ccoInboxEnrichmentBackfillPlan');
@@ -911,6 +922,14 @@ function createOpsRouter({
           ccoCustomerStore,
           stateRoot: config.stateRoot,
         });
+        const exclusions = await loadDenominatorExclusions({
+          stateRoot: config.stateRoot,
+          tenantId,
+        });
+        const adjustedCoverage =
+          exclusions.conversationKeys?.size > 0
+            ? applyDenominatorExclusionsToCoverage(coverage, exclusions.conversationKeys)
+            : coverage;
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
           actorUserId: req.auth.userId,
@@ -919,19 +938,357 @@ function createOpsRouter({
           targetType: 'ops',
           targetId: 'cco_enrichment_coverage',
           metadata: {
-            gapCount: coverage.gapCount,
-            coveragePercent: coverage.coveragePercent,
-            readyForWork: coverage.readyForWork,
+            gapCount: adjustedCoverage.gapCount,
+            coveragePercent: adjustedCoverage.coveragePercent,
+            readyForWork: adjustedCoverage.readyForWork,
+            denominatorExcluded:
+              adjustedCoverage.denominatorExclusions?.excludedConversationCount || 0,
           },
         });
         return res.json({
           ok: true,
-          ...summarizeEnrichmentCoverage(coverage),
+          ...summarizeEnrichmentCoverage(adjustedCoverage),
         });
       } catch (error) {
         console.error('[ops/cco/enrichment/coverage]', error);
         return res.status(500).json({
           error: error?.message || 'Kunde inte beräkna enrichment coverage.',
+        });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cco/enrichment/gap-recovery/phase2/denominator-exclusions',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const go = req.body?.go === true;
+      const dryRun = req.body?.dryRun !== false && !go;
+      const mailboxIds = resolveCcoHistoryMailboxIds(config);
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'stores saknas för phase2.' });
+      }
+      try {
+        for (const mailboxId of mailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+          } catch {
+            /* optional */
+          }
+        }
+        const analysis = await analyzeCcoInboxEnrichmentGaps({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          ccoMailIngestionStore,
+          supportedMailboxIds: mailboxIds,
+          stateRoot: config.stateRoot,
+          detailLimit: 10000,
+          snapshotProbeLimit: 0,
+        });
+        const built = buildDenominatorExclusionsFromGapDetails(analysis.details || []);
+        let saved = null;
+        if (!dryRun && go) {
+          saved = await saveDenominatorExclusions({
+            stateRoot: config.stateRoot,
+            tenantId,
+            conversationKeys: built.conversationKeys,
+            summary: {
+              source: 'gap_recovery_phase2',
+              bucketCounts: built.bucketCounts,
+              totalExcluded: built.totalExcluded,
+            },
+          });
+        }
+        const coverage = await computeCcoInboxEnrichmentCoverage({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          stateRoot: config.stateRoot,
+        });
+        const adjusted = applyDenominatorExclusionsToCoverage(
+          coverage,
+          new Set(built.conversationKeys.map((item) => item.toLowerCase()))
+        );
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.enrichment.gap_recovery.phase2.denominator_exclusions',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'cco_gap_recovery_phase2',
+          metadata: {
+            dryRun,
+            totalExcluded: built.totalExcluded,
+            adjustedCoveragePercent: adjusted.coveragePercent,
+            adjustedReadyForWork: adjusted.readyForWork,
+          },
+        });
+        return res.json({
+          ok: true,
+          dryRun,
+          totalExcluded: built.totalExcluded,
+          bucketCounts: built.bucketCounts,
+          saved,
+          coverage: summarizeEnrichmentCoverage(adjusted),
+        });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/phase2/denominator-exclusions]', error);
+        return res.status(500).json({
+          error: error?.message || 'Kunde inte applicera denominator-exkluderingar.',
+        });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/cco/enrichment/gap-recovery/phase2/repair-plan',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const mailboxIds = resolveCcoHistoryMailboxIds(config);
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'stores saknas för phase2 repair-plan.' });
+      }
+      try {
+        for (const mailboxId of mailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+          } catch {
+            /* optional */
+          }
+        }
+        const analysis = await analyzeCcoInboxEnrichmentGaps({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          ccoMailIngestionStore,
+          supportedMailboxIds: mailboxIds,
+          stateRoot: config.stateRoot,
+          detailLimit: 10000,
+          snapshotProbeLimit: 0,
+        });
+        const missingRows = (analysis.details || []).filter(
+          (row) => row.primaryBucket === 'missing_graphMessageId'
+        );
+        const plan = buildGraphMessageIdRepairPlan({
+          gapDetails: missingRows,
+          ingestionStore: ccoMailIngestionStore,
+          truthStore: ccoMailboxTruthStore,
+        });
+        return res.json({
+          ok: true,
+          dryRun: true,
+          tenantId,
+          denominatorExcludedTarget: 592,
+          missingGraphMessageIdAnalyzed: plan.analyzedCount,
+          statusCounts: plan.statusCounts,
+          repairableCount: plan.repairableCount,
+          ambiguousCount: plan.ambiguousCount,
+          noCandidateCount: plan.noCandidateCount,
+          mailboxCounts: plan.mailboxCounts,
+          sampleRepairable: plan.rows
+            .filter((row) => row.repairStatus === 'repairable_single_match')
+            .slice(0, 10),
+        });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/phase2/repair-plan]', error);
+        return res.status(500).json({
+          error: error?.message || 'Kunde inte bygga repair-plan.',
+        });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cco/enrichment/gap-recovery/phase2/repair/canary',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const go = req.body?.go === true;
+      const dryRun = req.body?.dryRun !== false && !go;
+      const canaryLimit = Math.max(
+        1,
+        Math.min(500, Number.parseInt(String(req.body?.canaryLimit ?? '100'), 10) || 100)
+      );
+      const mailboxIds = resolveCcoHistoryMailboxIds(config);
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'stores saknas för phase2 canary repair.' });
+      }
+      try {
+        if (!dryRun && go) {
+          const label = `pre-gap-recovery-phase2-repair-${new Date().toISOString().slice(0, 10)}`;
+          const dir = path.join(config.backupDir || path.join(config.stateRoot, 'backups'), label);
+          await fs.mkdir(dir, { recursive: true });
+          await fs.copyFile(
+            config.capabilityAnalysisStorePath,
+            path.join(dir, path.basename(config.capabilityAnalysisStorePath))
+          );
+          try {
+            await fs.copyFile(
+              resolveCheckpointPath(config.stateRoot, tenantId),
+              path.join(dir, path.basename(resolveCheckpointPath(config.stateRoot, tenantId)))
+            );
+          } catch {
+            /* optional */
+          }
+        }
+        for (const mailboxId of mailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+          } catch {
+            /* optional */
+          }
+        }
+        const analysis = await analyzeCcoInboxEnrichmentGaps({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          ccoMailIngestionStore,
+          supportedMailboxIds: mailboxIds,
+          stateRoot: config.stateRoot,
+          detailLimit: 10000,
+          snapshotProbeLimit: 0,
+        });
+        const missingRows = (analysis.details || []).filter(
+          (row) => row.primaryBucket === 'missing_graphMessageId'
+        );
+        const plan = buildGraphMessageIdRepairPlan({
+          gapDetails: missingRows,
+          ingestionStore: ccoMailIngestionStore,
+          truthStore: ccoMailboxTruthStore,
+        });
+        const canary = await applyGraphMessageIdRepairCanary({
+          truthStore: ccoMailboxTruthStore,
+          ingestionStore: ccoMailIngestionStore,
+          repairRows: plan.rows,
+          canaryLimit,
+          dryRun,
+          actorUserId: req.auth.userId,
+        });
+        if (!dryRun && go && Object.keys(canary.aliases || {}).length > 0) {
+          await saveConversationAliases({
+            stateRoot: config.stateRoot,
+            tenantId,
+            aliases: canary.aliases,
+            metadata: { phase: 'canary_repair', canaryLimit },
+          });
+        }
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.enrichment.gap_recovery.phase2.repair_canary',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'cco_gap_recovery_phase2',
+          metadata: {
+            dryRun,
+            canaryLimit,
+            processedCount: canary.processedCount,
+            messagesUpserted: canary.messagesUpserted,
+            aliasesWritten: canary.aliasesWritten,
+          },
+        });
+        return res.json({
+          ok: true,
+          dryRun,
+          canaryLimit,
+          repairableInPlan: plan.repairableCount,
+          ...canary,
+          results: canary.results.slice(0, 25),
+        });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/phase2/repair/canary]', error);
+        return res.status(500).json({
+          error: error?.message || 'Kunde inte köra canary repair.',
+        });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cco/enrichment/gap-recovery/phase2/targeted-enrich',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const go = req.body?.go === true;
+      const conversationKeys = (
+        Array.isArray(req.body?.conversationKeys) ? req.body.conversationKeys : []
+      )
+        .map((item) => normalizeText(item))
+        .filter(Boolean);
+      if (!go) {
+        return res.status(400).json({ error: 'targeted-enrich kräver go=true.' });
+      }
+      if (!conversationKeys.length) {
+        return res.status(400).json({ error: 'conversationKeys saknas.' });
+      }
+      if (!scheduler || typeof scheduler.runJob !== 'function') {
+        return res.status(503).json({ error: 'scheduler saknas.' });
+      }
+      try {
+        const result = await scheduler.runJob('cco_inbox_enrichment_full_backfill', {
+          trigger: 'manual_api_phase2_targeted',
+          actorUserId: req.auth.userId,
+          tenantId,
+          phase: 'full',
+          targetConversationIds: conversationKeys,
+        });
+        const mailboxIds = resolveCcoHistoryMailboxIds(config);
+        let coverage = null;
+        if (ccoMailboxTruthStore && capabilityAnalysisStore) {
+          coverage = await computeCcoInboxEnrichmentCoverage({
+            tenantId,
+            mailboxIds,
+            capabilityAnalysisStore,
+            ccoMailboxTruthStore,
+            ccoCustomerStore,
+            stateRoot: config.stateRoot,
+          });
+          const exclusions = await loadDenominatorExclusions({
+            stateRoot: config.stateRoot,
+            tenantId,
+          });
+          if (exclusions.conversationKeys?.size > 0) {
+            coverage = applyDenominatorExclusionsToCoverage(coverage, exclusions.conversationKeys);
+          }
+        }
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.enrichment.gap_recovery.phase2.targeted_enrich',
+          outcome: result?.ok === true ? 'success' : 'error',
+          targetType: 'ops',
+          targetId: 'cco_gap_recovery_phase2',
+          metadata: {
+            targetedCount: conversationKeys.length,
+            coveragePercent: coverage?.coveragePercent ?? null,
+            readyForWork: coverage?.readyForWork ?? null,
+          },
+        });
+        return res.json({
+          ok: result?.ok === true,
+          targetedCount: conversationKeys.length,
+          result: summarizeEnrichmentBackfillResult(result),
+          coverage: summarizeEnrichmentCoverage(coverage),
+        });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/phase2/targeted-enrich]', error);
+        return res.status(500).json({
+          error: error?.message || 'Kunde inte köra targeted enrichment.',
         });
       }
     }

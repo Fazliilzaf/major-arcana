@@ -3351,6 +3351,7 @@ function createScheduler({
     actorUserId = null,
     canaryLimit = 0,
     phase = 'full',
+    targetConversationIds = [],
   } = {}) {
     const mailboxIds = resolveCcoHistoryMailboxIds(config);
     if (mailboxIds.length === 0) {
@@ -3482,6 +3483,18 @@ function createScheduler({
     const batchRuns = [];
     let coverageAfterBootstrap = await computeCoverage(rollingBaseline);
     let remainingGapIds = asSchedulerStringArray(coverageAfterBootstrap.gapConversationIds);
+    const scopedTargetIds = asSchedulerStringArray(targetConversationIds)
+      .map((item) => normalizeText(item))
+      .filter(Boolean);
+    if (scopedTargetIds.length > 0) {
+      const targetSet = new Set(scopedTargetIds.map((item) => item.toLowerCase()));
+      remainingGapIds = remainingGapIds.filter((gapId) => {
+        const normalized = normalizeText(gapId).toLowerCase();
+        if (targetSet.has(normalized)) return true;
+        const colon = normalized.lastIndexOf(':');
+        return colon > 0 && targetSet.has(normalized.slice(colon + 1));
+      });
+    }
     const effectiveCanaryLimit = Math.max(0, Math.min(9338, Number(canaryLimit) || 0));
     const effectivePhase = normalizeText(phase) === 'canary' ? 'canary' : 'full';
     if (effectiveCanaryLimit > 0) {
@@ -3623,6 +3636,7 @@ function createScheduler({
       checkpointInterval,
       phase: effectivePhase,
       canaryLimit: effectiveCanaryLimit || null,
+      targetConversationIds: scopedTargetIds.length > 0 ? scopedTargetIds : null,
       processedConversationCount,
       coverageBefore,
       fullBootstrap,
@@ -4268,7 +4282,14 @@ function createScheduler({
 
   async function runJob(
     jobId,
-    { trigger = 'manual', actorUserId = null, tenantId, canaryLimit, phase } = {}
+    {
+      trigger = 'manual',
+      actorUserId = null,
+      tenantId,
+      canaryLimit,
+      phase,
+      targetConversationIds,
+    } = {}
   ) {
     const job = jobDefinitions.find((item) => item.id === jobId);
     if (!job) {
@@ -4301,6 +4322,7 @@ function createScheduler({
         actorUserId,
         canaryLimit,
         phase,
+        targetConversationIds,
       });
       const durationMs = Date.now() - startedAtMs;
       runtime.running = false;
