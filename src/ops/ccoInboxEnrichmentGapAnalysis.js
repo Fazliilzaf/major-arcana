@@ -77,6 +77,29 @@ function resolveDirection(truthRow = {}) {
   return 'unknown';
 }
 
+function resolveMessageGroup(conversationKey = '', gapId = '', messageGroups = new Map()) {
+  const candidates = [conversationKey, gapId]
+    .map((item) => normalizeText(item).toLowerCase())
+    .filter(Boolean);
+  for (const candidate of candidates) {
+    if (messageGroups.has(candidate)) return messageGroups.get(candidate);
+  }
+  for (const candidate of candidates) {
+    const colon = candidate.lastIndexOf(':');
+    const suffix = colon > 0 ? candidate.slice(colon + 1) : candidate;
+    if (suffix && messageGroups.has(suffix)) return messageGroups.get(suffix);
+  }
+  for (const candidate of candidates) {
+    const colon = candidate.lastIndexOf(':');
+    const suffix = colon > 0 ? candidate.slice(colon + 1) : candidate;
+    if (!suffix) continue;
+    for (const [key, group] of messageGroups.entries()) {
+      if (key === suffix || key.endsWith(`:${suffix}`)) return group;
+    }
+  }
+  return null;
+}
+
 function buildTruthMessageGroups(store, mailboxIds = []) {
   const groups = new Map();
   const messages = store.listMessages({
@@ -113,6 +136,9 @@ function buildTruthMessageGroups(store, mailboxIds = []) {
     if (normalizeText(message.subject)) bucket.subjectCount += 1;
     bucket.messages.push(message);
     groups.set(key, bucket);
+    const colon = key.lastIndexOf(':');
+    const suffix = colon > 0 ? key.slice(colon + 1) : key;
+    if (suffix && !groups.has(suffix)) groups.set(suffix, bucket);
   }
   return groups;
 }
@@ -510,10 +536,7 @@ async function analyzeCcoInboxEnrichmentGaps({
     };
     const conversationKey =
       normalizeText(truthRow.conversationKey) || resolveGapConversationId(truthRow) || gapId;
-    const messageGroup =
-      messageGroups.get(conversationKey.toLowerCase()) ||
-      messageGroups.get(gapId.toLowerCase()) ||
-      null;
+    const messageGroup = resolveMessageGroup(conversationKey, gapId, messageGroups);
     const enrichmentRow =
       enrichmentIndex.get(conversationKey.toLowerCase()) ||
       enrichmentIndex.get(gapId.toLowerCase()) ||
