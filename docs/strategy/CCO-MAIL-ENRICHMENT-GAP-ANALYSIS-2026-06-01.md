@@ -117,7 +117,59 @@
 
 **Nästa:** Claude read-only A/B/C/D-klassificering → owner beslut om denominator-exkludering / fallback / bugfix / leave unresolved.
 
-**Ej kört:** Graph-fetch · Oregon-restore · blind enrichment loop · Fas B wiring.
+**Ej kört:** Graph-fetch · Oregon-restore · blind enrichment loop · Fas B wiring · targeted continuation (0 `can_targeted_enrich`).
+
+---
+
+## Gap-klassificering — full export (2026-06-01, post deploy + baseline-återställning)
+
+**Export:** `data/imports/mail-enrichment-gap-export-2026-06-01.json` — **2 454 detaljrader** (hela gapet)  
+**Coverage vid export:** 73,72% (6 884 / 9 338 enriched)  
+**Obs:** Deploy `ce9f180d` nollställde capability store; truth-only full backfill kördes om för giltig baseline (ingen targeted continuation).
+
+### Per bucket (primary)
+
+| Bucket                        | Antal | Andel |
+| ----------------------------- | ----: | ----: |
+| `missing_graphMessageId`      | 1 862 | 75,9% |
+| `duplicate_or_alias`          |   508 | 20,7% |
+| `system_scrap_should_exclude` |    84 |  3,4% |
+| Övriga                        |     0 |    0% |
+
+### Action-klassificering
+
+| Action bucket                             | Antal | Beslut                              |
+| ----------------------------------------- | ----: | ----------------------------------- |
+| `should_exclude_from_denominator`         |   592 | Exkludera (dup + scrap)             |
+| `missing_graphMessageId` / `true_blocker` | 1 862 | Leave unresolved eller truth-repair |
+| `can_targeted_enrich`                     | **0** | —                                   |
+| `parser_empty_but_fallback_possible`      | **0** | —                                   |
+
+### Per mailbox (gap)
+
+| Mailbox  |   Gap |
+| -------- | ----: |
+| egzona@  | 1 521 |
+| contact@ |   525 |
+| fazli@   |   379 |
+| info@    |    18 |
+| kons@    |     7 |
+| marknad@ |     4 |
+
+### Rekommenderad väg till `readyForWork=true`
+
+1. **Exkludera denominator (592):** dup (508) + system/scrap (84) → projicerad coverage **78,7%** (räcker inte).
+2. **Truth-repair eller denominator-exkludering för `missing_graphMessageId` (1 862):** truth-meddelanden saknar graphMessageId — truth-only kan inte berika. Huvudvolym **egzona@** (1 190 av 1 862).
+3. **Ingen targeted continuation:** `can_targeted_enrich=0` — kör inte blind `maxBatchRounds`-pass.
+4. **Scenario A (rekommenderat):** Owner godkänner denominator-exkludering för icke-enrichable truth-only blockers + ev. säker graphMessageId-repair på egzona@ subset.
+5. **Scenario B:** Oregon/Graph-sync för truth-repair (ej truth-only).
+
+| Kategori                                  |                            Antal |
+| ----------------------------------------- | -------------------------------: |
+| Kan lösas automatiskt (targeted/fallback) |                                0 |
+| Bör exkluderas från denominator           |                              592 |
+| Kräver bugfix/repair                      | 1 862 (`missing_graphMessageId`) |
+| Lämnas unresolved (om ej exkluderade)     |                            1 862 |
 
 ---
 
