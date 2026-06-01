@@ -231,8 +231,8 @@ node scripts/analyze-enrichment-gap.js --write-report --detail-limit 775
 
 ## Nästa steg (ingen write-fix ännu)
 
-1. **Deploy reload-fix** (`33c46f8e`) → `reload-capability` → coverage ≈ 8563 / 775
-2. **Kör gap-analys på nytt** → exakta bucket-tal + giltig 775-rads JSON
+1. **Deploy** `4f054dda` till Frankfurt → kör `run-enrichment-gap-recovery.js`
+2. **Verifiera** coverage ≈ 8563 / 775 → giltig gap-export
 3. **Beslut:**
    - Om majoritet `system_scrap` + `duplicate` → justera denominator → kör coverage igen
    - Om majoritet `enrichment_parser_empty` → bygg fallback-enrichment → kör
