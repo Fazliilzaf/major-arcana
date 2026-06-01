@@ -7749,6 +7749,24 @@ function getWorklistLegacyBaselineObservedAt(entry = {}) {
   );
 }
 
+function countEnrichedWorklistRows(summary = {}) {
+  return [...asArray(summary.conversationWorklist), ...asArray(summary.needsReplyToday)].filter(
+    (row) => hasWorklistEnrichmentSignals(row)
+  ).length;
+}
+
+function hasWorklistEnrichmentSignals(row = {}) {
+  const intent = normalizeText(row?.intent).toLowerCase();
+  if (intent && !['unknown', 'unspecified', 'none'].includes(intent)) return true;
+  if (normalizeText(row?.workflowLane)) return true;
+  if (normalizeText(row?.dominantRisk)) return true;
+  if (normalizeText(row?.priorityLevel)) return true;
+  if (normalizeText(row?.messageClassification)) return true;
+  if (normalizeText(row?.recommendedAction)) return true;
+  if (normalizeText(row?.slaStatus)) return true;
+  return false;
+}
+
 function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = {}) {
   const safeEntries = asArray(entries).sort((left, right) => {
     const observedCompare = getWorklistLegacyBaselineObservedAt(right).localeCompare(
@@ -7765,8 +7783,8 @@ function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = 
       .filter(Boolean)
   );
   const latestObservedEntry = safeEntries[0] || null;
-  let firstNonEmptyEntry = null;
-  let firstScopeMatchedEntry = null;
+  let bestScopeMatchedEntry = null;
+  let bestFallbackEntry = null;
   let skippedEmptyEntries = 0;
   let skippedScopeMismatchEntries = 0;
 
@@ -7776,35 +7794,54 @@ function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = 
       skippedEmptyEntries += 1;
       continue;
     }
-    if (!firstNonEmptyEntry) {
-      firstNonEmptyEntry = {
-        entry,
-        summary,
-      };
-    }
+    const enrichedCount = countEnrichedWorklistRows(summary);
     const scopeMatched =
       requestedMailboxIds.size === 0 ||
       summary.mailboxIds.some((mailboxId) => requestedMailboxIds.has(mailboxId));
-    if (scopeMatched) {
-      firstScopeMatchedEntry = {
-        entry,
-        summary,
-      };
-      break;
+    if (!scopeMatched) {
+      skippedScopeMismatchEntries += 1;
+      continue;
     }
-    skippedScopeMismatchEntries += 1;
+    const candidate = {
+      entry,
+      summary,
+      enrichedCount,
+    };
+    if (
+      !bestScopeMatchedEntry ||
+      enrichedCount > bestScopeMatchedEntry.enrichedCount ||
+      (enrichedCount === bestScopeMatchedEntry.enrichedCount &&
+        getWorklistLegacyBaselineObservedAt(entry).localeCompare(
+          getWorklistLegacyBaselineObservedAt(bestScopeMatchedEntry.entry)
+        ) > 0)
+    ) {
+      bestScopeMatchedEntry = candidate;
+    }
+    if (
+      !bestFallbackEntry ||
+      enrichedCount > bestFallbackEntry.enrichedCount ||
+      (enrichedCount === bestFallbackEntry.enrichedCount &&
+        getWorklistLegacyBaselineObservedAt(entry).localeCompare(
+          getWorklistLegacyBaselineObservedAt(bestFallbackEntry.entry)
+        ) > 0)
+    ) {
+      bestFallbackEntry = candidate;
+    }
   }
 
-  const selected = firstScopeMatchedEntry ||
-    firstNonEmptyEntry || {
+  const selected = bestScopeMatchedEntry ||
+    bestFallbackEntry || {
       entry: latestObservedEntry,
       summary: buildWorklistLegacyBaselineEntrySummary(latestObservedEntry),
+      enrichedCount: countEnrichedWorklistRows(
+        buildWorklistLegacyBaselineEntrySummary(latestObservedEntry)
+      ),
     };
 
-  const strategy = firstScopeMatchedEntry
-    ? 'latest_non_empty_scope_match'
-    : firstNonEmptyEntry
-      ? 'latest_non_empty_fallback'
+  const strategy = bestScopeMatchedEntry
+    ? 'best_enriched_scope_match'
+    : bestFallbackEntry
+      ? 'best_enriched_fallback'
       : 'latest_entry';
 
   return {
@@ -7820,6 +7857,7 @@ function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = 
       skippedEmptyEntries,
       skippedScopeMismatchEntries,
       selectedRowCount: Number(selected.summary.rowCount || 0),
+      selectedEnrichedRowCount: Number(selected.enrichedCount || 0),
       selectedMailboxIds: selected.summary.mailboxIds,
     },
   };

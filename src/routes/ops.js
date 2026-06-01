@@ -26,6 +26,7 @@ const {
 } = require('../ops/crossMailboxAggregator');
 const { getBootstrapStatus, isEnabled: isBootstrapEnabled } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
+const { clearWorklistConsumerResponseCache } = require('../routes/capabilities');
 const {
   applyApprovedDraftProposal,
   buildCustomerReminderQueue,
@@ -986,8 +987,40 @@ function createOpsRouter({
           return res.json({ ok: true, phase: 'snapshot', dir, copied });
         }
 
+        if (phase === 'restore-capability') {
+          if (!go) {
+            return res.status(400).json({ error: 'restore-capability kräver go=true.' });
+          }
+          const label =
+            normalizeText(body.label) ||
+            `pre-enrichment-backfill-${new Date().toISOString().slice(0, 10)}`;
+          const dir = path.join(config.backupDir || path.join(config.stateRoot, 'backups'), label);
+          const sourcePath = path.join(dir, path.basename(config.capabilityAnalysisStorePath));
+          try {
+            await fs.copyFile(sourcePath, config.capabilityAnalysisStorePath);
+          } catch (error) {
+            return res.status(404).json({
+              error: `Kunde inte återställa capability store från ${sourcePath}.`,
+              detail: error?.message || null,
+            });
+          }
+          clearWorklistConsumerResponseCache();
+          await authStore.addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: 'ops.cco.enrichment.backfill.restore_capability',
+            outcome: 'success',
+            targetType: 'ops',
+            targetId: 'cco_enrichment_backfill',
+            metadata: { label, dir, sourcePath },
+          });
+          return res.json({ ok: true, phase: 'restore-capability', label, sourcePath });
+        }
+
         if (phase !== 'run') {
-          return res.status(400).json({ error: 'phase måste vara snapshot eller run.' });
+          return res
+            .status(400)
+            .json({ error: 'phase måste vara snapshot, restore-capability eller run.' });
         }
         if (!go) {
           return res.status(400).json({ error: 'run kräver go=true.' });

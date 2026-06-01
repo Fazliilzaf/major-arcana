@@ -51,7 +51,10 @@ const {
 } = require('../infra/microsoftGraphMailboxTruthDelta');
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
 const { createConfiguredCcoMailboxTruthStore } = require('./ccoMailboxTruthStoreFactory');
-const { computeCcoInboxEnrichmentCoverage } = require('./ccoInboxEnrichmentCoverage');
+const {
+  computeCcoInboxEnrichmentCoverage,
+  hasCcoEnrichmentSignals,
+} = require('./ccoInboxEnrichmentCoverage');
 const {
   buildAnalyzeInboxSnapshotFromMailboxTruth,
 } = require('./buildAnalyzeInboxSnapshotFromMailboxTruth');
@@ -3316,14 +3319,29 @@ function createScheduler({
     };
 
     const coverageBefore = await computeCoverage();
+    const enrichmentBaseline = await resolveLatestWorklistEnrichmentBaseline({
+      capabilityAnalysisStore,
+      tenantId,
+      mailboxIds,
+    });
+    const baselineRows = [
+      ...(Array.isArray(enrichmentBaseline?.selectedConversationWorklist)
+        ? enrichmentBaseline.selectedConversationWorklist
+        : []),
+      ...(Array.isArray(enrichmentBaseline?.selectedNeedsReplyToday)
+        ? enrichmentBaseline.selectedNeedsReplyToday
+        : []),
+    ];
+    const baselineEnrichedCount = baselineRows.filter((row) => hasCcoEnrichmentSignals(row)).length;
     logger?.log?.(
-      `[scheduler] cco_inbox_enrichment_full_backfill START incomingTrigger=${incomingTrigger || 'none'} effectiveTrigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}% maxStallRounds=${maxStallRounds} maxBatchRounds=${maxBatchRounds}`
+      `[scheduler] cco_inbox_enrichment_full_backfill START incomingTrigger=${incomingTrigger || 'none'} effectiveTrigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}% baselineEnriched=${baselineEnrichedCount} maxStallRounds=${maxStallRounds} maxBatchRounds=${maxBatchRounds}`
     );
 
     const skipFullBootstrap =
-      Number(coverageBefore.enrichedConversationCount || 0) > 0 &&
-      Number(coverageBefore.gapCount || 0) > 0 &&
-      Number(coverageBefore.gapCount || 0) < Number(coverageBefore.truthConversationCount || 0);
+      baselineEnrichedCount > 0 ||
+      (Number(coverageBefore.enrichedConversationCount || 0) > 0 &&
+        Number(coverageBefore.gapCount || 0) > 0 &&
+        Number(coverageBefore.gapCount || 0) < Number(coverageBefore.truthConversationCount || 0));
 
     const fullBootstrap = skipFullBootstrap
       ? {
