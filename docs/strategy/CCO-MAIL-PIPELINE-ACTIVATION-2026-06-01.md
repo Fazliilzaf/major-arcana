@@ -13,7 +13,7 @@
 | ---- | ------------------------------------------ | ------------------------------------------------------ |
 | 1    | Pipeline coverage (prod read-only)         | ✅ Rapport uppdaterad                                  |
 | 2    | Truth hydration från ingestion             | ✅ 3 520 customerIdentity-overlays (Fas A)             |
-| 3    | Lanes / filter / SLA / risk / needs_action | ⚠️ Enrichment ~0,1% — kräver backfill-GO               |
+| 3    | Lanes / filter / SLA / risk / needs_action | 🔄 Enrichment backfill ~90% (pass 4 pågår)             |
 | 4    | Mail → kundkort (truth-first read model)   | ✅ Kod klar (deploy pending)                           |
 | 5    | Svarstudio / Smart anteckning trådkontext  | ⚠️ Delvis (replyTo + mailboxBadge; enrichment pending) |
 | 6    | Multi-mailbox-koppling                     | ✅ summary.mailboxes + UI-banner                       |
@@ -105,3 +105,41 @@ Detalj: [CCO-MAIL-TRUTH-HYDRATION-2026-06-01.md](./CCO-MAIL-TRUTH-HYDRATION-2026
 2. **GO:** Aktivera `cco_inbox_enrichment_full_backfill` + kör tills coverage ≥ tröskel
 3. Wire Konversationer/Svarstudio mot enrichment worklist (lanes/SLA/risk)
 4. Smart anteckning: tråd + mailbox + true_unanswered i panel-context
+
+---
+
+## Addendum — Enrichment full backfill (2026-06-01 prod)
+
+**Frankfurt prod (`arcana.hairtpclinic.com`) · truth-only · ingen Graph-import**
+
+### Root cause fixes (branch `compliance/pipedrive-pii-purge`)
+
+| Problem                                                    | Fix                                                                                  |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Scoped merge ersatte enrichade rader med `intent: unknown` | Bevara baseline-signaler vid merge (`1e57ebe6`)                                      |
+| Per-batch append → 3,7 GB RSS / OOM                        | In-memory rolling baseline + checkpoint-fil + ett persist vid pass-slut (`aafc33a8`) |
+| Sista ~894 gap: `truth_snapshot conversations=0`           | Scoped filter bypassar lookback-fönster (deploy pending)                             |
+
+### Prod metrics (senaste pass 2 klart 16:55 UTC)
+
+| Metric               |                                  Värde |
+| -------------------- | -------------------------------------: |
+| Truth conversations  |                                  9 338 |
+| Enriched             |                                  8 444 |
+| Coverage             |                             **90,43%** |
+| Gap                  |                                    894 |
+| `readyForWork`       |                  false (tröskel 99,5%) |
+| Final entry (pass 2) | `5e97511c-a2ee-4f5a-bd80-f2266e2c652d` |
+
+### Körning
+
+- Snapshot: `/var/data/backups/pre-enrichment-backfill-2026-06-01/`
+- Pass 1–3 via `POST /api/v1/ops/cco/enrichment/backfill/run {"phase":"run","go":true}`
+- Coverage: `GET /api/v1/ops/cco/enrichment/coverage?tenantId=hair-tp-clinic`
+- **Pass 4:** deploy lookback-fix → kör sista pass för ~894 historiska trådar
+
+### Nästa (Fas B efter ≥99,5%)
+
+1. Verifiera consumer worklist > 0 rader
+2. Multi-mailbox rollup (`/ops/customers/cross-mailbox-report`)
+3. Wire kundkort + Svarstudio mot enrichment-signaler
