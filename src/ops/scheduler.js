@@ -56,6 +56,12 @@ const {
   hasCcoEnrichmentSignals,
 } = require('./ccoInboxEnrichmentCoverage');
 const {
+  saveCcoInboxEnrichmentCheckpoint,
+  loadCcoInboxEnrichmentCheckpoint,
+  clearCcoInboxEnrichmentCheckpoint,
+  countEnrichedRows,
+} = require('./ccoInboxEnrichmentCheckpoint');
+const {
   buildAnalyzeInboxSnapshotFromMailboxTruth,
 } = require('./buildAnalyzeInboxSnapshotFromMailboxTruth');
 const { config: defaultSchedulerConfig } = require('../config');
@@ -2860,6 +2866,8 @@ function createScheduler({
     scopedConversationIds = [],
     mode = 'full',
     truthStore = null,
+    baselineOutputDataOverride = null,
+    persistResult = true,
   } = {}) {
     const useTruthOnlyEnrichment = normalizeText(trigger) === CCO_INBOX_FULL_BACKFILL_TRIGGER;
     if (
@@ -2904,12 +2912,16 @@ function createScheduler({
 
     let baselineOutputData = null;
     if (useScopedMerge) {
-      const baseline = await resolveLatestWorklistEnrichmentBaseline({
-        capabilityAnalysisStore,
-        tenantId,
-        mailboxIds: effectiveMailboxIds,
-      });
-      baselineOutputData = baseline?.selectedOutputData || null;
+      if (baselineOutputDataOverride && typeof baselineOutputDataOverride === 'object') {
+        baselineOutputData = baselineOutputDataOverride;
+      } else {
+        const baseline = await resolveLatestWorklistEnrichmentBaseline({
+          capabilityAnalysisStore,
+          tenantId,
+          mailboxIds: effectiveMailboxIds,
+        });
+        baselineOutputData = baseline?.selectedOutputData || null;
+      }
       if (!baselineOutputData || typeof baselineOutputData !== 'object') {
         logger?.log?.(
           `[scheduler] cco_inbox_refresh scoped fallback to full mode trigger=${trigger} scopedCount=${scopedIds.length}`
@@ -3076,6 +3088,27 @@ function createScheduler({
       });
     }
 
+    const rowCount =
+      (Array.isArray(outputData?.conversationWorklist)
+        ? outputData.conversationWorklist.length
+        : 0) + (Array.isArray(outputData?.needsReplyToday) ? outputData.needsReplyToday.length : 0);
+
+    if (!persistResult) {
+      return {
+        tenantId,
+        skipped: false,
+        mailboxIds: effectiveMailboxIds,
+        lookbackDays,
+        mode: effectiveMode,
+        scopedConversationCount: effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
+        entryId: null,
+        capturedAt: null,
+        rowCount,
+        outputData,
+        persisted: false,
+      };
+    }
+
     const entry = await capabilityAnalysisStore.append({
       tenantId,
       capabilityName: 'AnalyzeInbox',
@@ -3122,12 +3155,64 @@ function createScheduler({
       scopedConversationCount: effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
       entryId: entry?.id || null,
       capturedAt: entry?.ts || null,
-      rowCount:
-        (Array.isArray(outputData?.conversationWorklist)
-          ? outputData.conversationWorklist.length
-          : 0) +
-        (Array.isArray(outputData?.needsReplyToday) ? outputData.needsReplyToday.length : 0),
+      rowCount,
+      outputData,
+      persisted: true,
     };
+  }
+
+  async function persistAnalyzeInboxWorklistOutput({
+    tenantId,
+    mailboxIds = [],
+    trigger = '',
+    actorUserId = null,
+    mode = 'full_backfill_final',
+    outputData = null,
+    scopedConversationCount = 0,
+    correlationId = null,
+  } = {}) {
+    if (!outputData || typeof outputData !== 'object') {
+      return { ok: false, reason: 'output_missing' };
+    }
+    if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') {
+      return { ok: false, reason: 'capability_analysis_store_unavailable' };
+    }
+    const requestId = crypto.randomUUID();
+    const entry = await capabilityAnalysisStore.append({
+      tenantId,
+      capabilityName: 'AnalyzeInbox',
+      capabilityVersion: AnalyzeInboxCapability.version || 'v1',
+      persistStrategy: 'analysis',
+      decision: 'allow',
+      actor: {
+        id: normalizeText(actorUserId) || 'scheduler',
+        role: 'SYSTEM',
+      },
+      runId: requestId,
+      correlationId: normalizeText(correlationId) || requestId,
+      input: {
+        mailboxIds,
+        trigger,
+        mode,
+        scopedConversationCount,
+      },
+      output: {
+        data: outputData,
+        metadata: {},
+        warnings: [],
+      },
+      metadata: {
+        source: 'scheduler_inbox_refresh',
+        mailboxIds,
+        trigger,
+        mode,
+        scopedConversationCount,
+      },
+      riskSummary: {},
+      policySummary: {},
+    });
+    clearWorklistConsumerResponseCache();
+    return { ok: true, entryId: entry?.id || null, capturedAt: entry?.ts || null };
   }
 
   async function runCcoInboxEnrichmentBootstrap({
@@ -3307,7 +3392,12 @@ function createScheduler({
 
     await preloadSchedulerTruthMailboxes(truthStore, mailboxIds);
 
-    const computeCoverage = async () => {
+    const checkpointInterval = Math.max(
+      5,
+      Math.min(50, Number(config?.schedulerCcoInboxFullBackfillCheckpointInterval) || 20)
+    );
+
+    const computeCoverage = async (baselineOutputDataOverride = null) => {
       await preloadSchedulerTruthMailboxes(truthStore, mailboxIds);
       return computeCcoInboxEnrichmentCoverage({
         tenantId,
@@ -3315,6 +3405,8 @@ function createScheduler({
         capabilityAnalysisStore,
         ccoMailboxTruthStore: truthStore,
         ccoCustomerStore,
+        baselineOutputDataOverride,
+        stateRoot: config.stateRoot,
       });
     };
 
@@ -3323,6 +3415,10 @@ function createScheduler({
       capabilityAnalysisStore,
       tenantId,
       mailboxIds,
+    });
+    const checkpoint = await loadCcoInboxEnrichmentCheckpoint({
+      stateRoot: config.stateRoot,
+      tenantId,
     });
     const baselineRows = [
       ...(Array.isArray(enrichmentBaseline?.selectedConversationWorklist)
@@ -3333,12 +3429,22 @@ function createScheduler({
         : []),
     ];
     const baselineEnrichedCount = baselineRows.filter((row) => hasCcoEnrichmentSignals(row)).length;
+    const checkpointEnrichedCount = checkpoint?.ok
+      ? Number(checkpoint.enrichedRowCount || countEnrichedRows(checkpoint.outputData))
+      : 0;
+    let rollingBaseline =
+      checkpoint?.ok && checkpoint.outputData && checkpointEnrichedCount > baselineEnrichedCount
+        ? checkpoint.outputData
+        : enrichmentBaseline?.selectedOutputData || null;
+    const rollingBaselineEnrichedCount = rollingBaseline
+      ? countEnrichedRows(rollingBaseline)
+      : baselineEnrichedCount;
     logger?.log?.(
-      `[scheduler] cco_inbox_enrichment_full_backfill START incomingTrigger=${incomingTrigger || 'none'} effectiveTrigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}% baselineEnriched=${baselineEnrichedCount} maxStallRounds=${maxStallRounds} maxBatchRounds=${maxBatchRounds}`
+      `[scheduler] cco_inbox_enrichment_full_backfill START incomingTrigger=${incomingTrigger || 'none'} effectiveTrigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}% baselineEnriched=${baselineEnrichedCount} checkpointEnriched=${checkpointEnrichedCount} rollingEnriched=${rollingBaselineEnrichedCount} maxStallRounds=${maxStallRounds} maxBatchRounds=${maxBatchRounds} checkpointInterval=${checkpointInterval}`
     );
 
     const skipFullBootstrap =
-      baselineEnrichedCount > 0 ||
+      rollingBaselineEnrichedCount > 0 ||
       (Number(coverageBefore.enrichedConversationCount || 0) > 0 &&
         Number(coverageBefore.gapCount || 0) > 0 &&
         Number(coverageBefore.gapCount || 0) < Number(coverageBefore.truthConversationCount || 0));
@@ -3360,11 +3466,21 @@ function createScheduler({
           truthStore,
         });
 
+    if (!skipFullBootstrap && fullBootstrap?.entryId) {
+      const refreshedBaseline = await resolveLatestWorklistEnrichmentBaseline({
+        capabilityAnalysisStore,
+        tenantId,
+        mailboxIds,
+      });
+      rollingBaseline = refreshedBaseline?.selectedOutputData || rollingBaseline;
+    }
+
     const batchRuns = [];
-    let coverageAfterBootstrap = await computeCoverage();
+    let coverageAfterBootstrap = await computeCoverage(rollingBaseline);
     let remainingGapIds = asSchedulerStringArray(coverageAfterBootstrap.gapConversationIds);
     let previousGapCount = Number(coverageAfterBootstrap.gapCount || 0);
     let stallRounds = 0;
+    let batchesSinceCheckpoint = 0;
 
     while (
       remainingGapIds.length > 0 &&
@@ -3382,7 +3498,25 @@ function createScheduler({
           scopedConversationIds,
           mode: 'scoped_merge',
           truthStore,
+          baselineOutputDataOverride: rollingBaseline,
+          persistResult: false,
         });
+        if (batchResult?.outputData) {
+          rollingBaseline = batchResult.outputData;
+        }
+        batchesSinceCheckpoint += 1;
+        if (batchesSinceCheckpoint >= checkpointInterval && rollingBaseline) {
+          await saveCcoInboxEnrichmentCheckpoint({
+            stateRoot: config.stateRoot,
+            tenantId,
+            outputData: rollingBaseline,
+            metadata: {
+              batchCount: batchRuns.length + 1,
+              enrichedRowCount: countEnrichedRows(rollingBaseline),
+            },
+          });
+          batchesSinceCheckpoint = 0;
+        }
         batchRuns.push({
           batchIndex: batchRuns.length,
           scopedConversationCount: scopedConversationIds.length,
@@ -3391,10 +3525,11 @@ function createScheduler({
           mode: batchResult?.mode || null,
           rowCount: Number(batchResult?.rowCount || 0),
           entryId: batchResult?.entryId || null,
+          persisted: Boolean(batchResult?.persisted),
         });
       }
 
-      const nextCoverage = await computeCoverage();
+      const nextCoverage = await computeCoverage(rollingBaseline);
       const nextGapCount = Number(nextCoverage.gapCount || 0);
       if (nextGapCount >= previousGapCount) {
         stallRounds += 1;
@@ -3407,9 +3542,38 @@ function createScheduler({
       if (nextCoverage.readyForWork) break;
     }
 
+    let finalPersist = null;
+    if (rollingBaseline) {
+      await saveCcoInboxEnrichmentCheckpoint({
+        stateRoot: config.stateRoot,
+        tenantId,
+        outputData: rollingBaseline,
+        metadata: {
+          batchCount: batchRuns.length,
+          enrichedRowCount: countEnrichedRows(rollingBaseline),
+          phase: 'pre_final_persist',
+        },
+      });
+      finalPersist = await persistAnalyzeInboxWorklistOutput({
+        tenantId,
+        mailboxIds,
+        trigger: effectiveTrigger,
+        actorUserId,
+        mode: 'full_backfill_final',
+        outputData: rollingBaseline,
+        scopedConversationCount: 0,
+      });
+      if (finalPersist?.ok) {
+        await clearCcoInboxEnrichmentCheckpoint({
+          stateRoot: config.stateRoot,
+          tenantId,
+        });
+      }
+    }
+
     const finalCoverage = await computeCoverage();
     logger?.log?.(
-      `[scheduler] cco_inbox_enrichment_full_backfill DONE batches=${batchRuns.length} truth=${finalCoverage.truthConversationCount} enriched=${finalCoverage.enrichedConversationCount} gap=${finalCoverage.gapCount} coverage=${finalCoverage.coveragePercent}% ready=${finalCoverage.readyForWork}`
+      `[scheduler] cco_inbox_enrichment_full_backfill DONE batches=${batchRuns.length} truth=${finalCoverage.truthConversationCount} enriched=${finalCoverage.enrichedConversationCount} gap=${finalCoverage.gapCount} coverage=${finalCoverage.coveragePercent}% ready=${finalCoverage.readyForWork} finalEntryId=${finalPersist?.entryId || 'none'}`
     );
 
     return {
@@ -3421,9 +3585,11 @@ function createScheduler({
       batchSize,
       maxStallRounds,
       maxBatchRounds,
+      checkpointInterval,
       coverageBefore,
       fullBootstrap,
       batchRuns,
+      finalPersist,
       coverage: finalCoverage,
       readyForWork: finalCoverage.readyForWork,
       gapCount: finalCoverage.gapCount,

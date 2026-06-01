@@ -386,7 +386,7 @@ async function resolveLatestWorklistEnrichmentBaseline({
   const entries = await listWorklistEnrichmentEntries({
     capabilityAnalysisStore,
     tenantId,
-    limit: 200,
+    limit: 1000,
   });
   return selectLatestWorklistLegacyBaseline({
     entries,

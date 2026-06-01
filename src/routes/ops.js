@@ -902,6 +902,7 @@ function createOpsRouter({
           capabilityAnalysisStore,
           ccoMailboxTruthStore,
           ccoCustomerStore,
+          stateRoot: config.stateRoot,
         });
         await authStore.addAuditEvent({
           tenantId: req.auth.tenantId,
@@ -1068,6 +1069,7 @@ function createOpsRouter({
                 capabilityAnalysisStore,
                 ccoMailboxTruthStore,
                 ccoCustomerStore,
+                stateRoot: config.stateRoot,
               });
             }
             enrichmentBackfillJobs.set(jobId, {
@@ -3526,6 +3528,7 @@ function createOpsRouter({
                 capabilityAnalysisStore,
                 ccoMailboxTruthStore,
                 ccoCustomerStore,
+                stateRoot: config.stateRoot,
               });
             }
           }

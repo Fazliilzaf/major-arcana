@@ -4,6 +4,10 @@ const {
   toCanonicalMailboxConversationKey,
 } = require('./ccoMailboxTruthWorklistReadModel');
 const { resolveLatestWorklistEnrichmentBaseline } = require('../routes/capabilities');
+const {
+  loadCcoInboxEnrichmentCheckpoint,
+  countEnrichedRows,
+} = require('./ccoInboxEnrichmentCheckpoint');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -145,6 +149,8 @@ async function computeCcoInboxEnrichmentCoverage({
   ccoCustomerStore = null,
   customerState = null,
   readyThresholdPercent = 99.5,
+  baselineOutputDataOverride = null,
+  stateRoot = '',
 } = {}) {
   const resolvedMailboxIds = asArray(mailboxIds)
     .map((item) => normalizeMailboxId(item))
@@ -175,14 +181,44 @@ async function computeCcoInboxEnrichmentCoverage({
       })
     : [];
 
-  const baseline = await resolveLatestWorklistEnrichmentBaseline({
-    capabilityAnalysisStore,
-    tenantId,
-    mailboxIds: resolvedMailboxIds,
-  });
+  const baseline = baselineOutputDataOverride
+    ? {
+        selectedOutputData: baselineOutputDataOverride,
+        selectedConversationWorklist: asArray(baselineOutputDataOverride.conversationWorklist),
+        selectedNeedsReplyToday: asArray(baselineOutputDataOverride.needsReplyToday),
+        selectedEntry: null,
+      }
+    : await resolveLatestWorklistEnrichmentBaseline({
+        capabilityAnalysisStore,
+        tenantId,
+        mailboxIds: resolvedMailboxIds,
+      });
+
+  let effectiveBaseline = baseline;
+  if (!baselineOutputDataOverride && normalizeText(stateRoot)) {
+    const checkpoint = await loadCcoInboxEnrichmentCheckpoint({ stateRoot, tenantId });
+    if (checkpoint?.ok && checkpoint.outputData) {
+      const storeEnriched = [
+        ...asArray(baseline?.selectedConversationWorklist),
+        ...asArray(baseline?.selectedNeedsReplyToday),
+      ].filter((row) => hasCcoEnrichmentSignals(row)).length;
+      const checkpointEnriched = Number(
+        checkpoint.enrichedRowCount || countEnrichedRows(checkpoint.outputData)
+      );
+      if (checkpointEnriched > storeEnriched) {
+        effectiveBaseline = {
+          selectedOutputData: checkpoint.outputData,
+          selectedConversationWorklist: asArray(checkpoint.outputData.conversationWorklist),
+          selectedNeedsReplyToday: asArray(checkpoint.outputData.needsReplyToday),
+          selectedEntry: { id: 'checkpoint', ts: checkpoint.savedAt },
+        };
+      }
+    }
+  }
+
   const enrichmentRows = [
-    ...asArray(baseline?.selectedConversationWorklist),
-    ...asArray(baseline?.selectedNeedsReplyToday),
+    ...asArray(effectiveBaseline?.selectedConversationWorklist),
+    ...asArray(effectiveBaseline?.selectedNeedsReplyToday),
   ];
   const enrichmentIndex = buildEnrichmentIndex(enrichmentRows);
 
@@ -243,8 +279,8 @@ async function computeCcoInboxEnrichmentCoverage({
     .sort((left, right) => left.mailboxId.localeCompare(right.mailboxId));
 
   const generatedAt =
-    normalizeText(baseline?.selectedOutputData?.generatedAt) ||
-    normalizeText(baseline?.selectedEntry?.ts) ||
+    normalizeText(effectiveBaseline?.selectedOutputData?.generatedAt) ||
+    normalizeText(effectiveBaseline?.selectedEntry?.ts) ||
     null;
 
   return {
@@ -257,7 +293,7 @@ async function computeCcoInboxEnrichmentCoverage({
     sampleUnenrichedIds,
     gapConversationIds,
     lastEnrichmentAt: generatedAt,
-    lastEnrichmentEntryId: normalizeText(baseline?.selectedEntry?.id) || null,
+    lastEnrichmentEntryId: normalizeText(effectiveBaseline?.selectedEntry?.id) || null,
     readyForWork,
     readyThresholdPercent: threshold,
   };
