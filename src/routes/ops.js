@@ -27,6 +27,7 @@ const {
 const { getBootstrapStatus, isEnabled: isBootstrapEnabled } = require('../ops/bootstrapRunner');
 const { computeCcoInboxEnrichmentCoverage } = require('../ops/ccoInboxEnrichmentCoverage');
 const { analyzeCcoInboxEnrichmentGaps } = require('../ops/ccoInboxEnrichmentGapAnalysis');
+const { diagnoseEnrichmentBaselineRecovery } = require('../ops/ccoInboxEnrichmentBaselineDiagnose');
 const { resolveCheckpointPath } = require('../ops/ccoInboxEnrichmentCheckpoint');
 const { clearWorklistConsumerResponseCache } = require('../routes/capabilities');
 const {
@@ -933,6 +934,51 @@ function createOpsRouter({
   );
 
   router.get(
+    '/ops/cco/enrichment/baseline/diagnose',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const mailboxIds = resolveCcoHistoryMailboxIds(config);
+      const targetEntryIdPrefix = normalizeText(req.query?.entryId) || '05dd08b4';
+      if (!ccoMailboxTruthStore) {
+        return res.status(503).json({ error: 'ccoMailboxTruthStore saknas.' });
+      }
+      try {
+        const diagnosis = await diagnoseEnrichmentBaselineRecovery({
+          tenantId,
+          mailboxIds,
+          stateRoot: config.stateRoot,
+          backupDir: path.join(config.backupDir || path.join(config.stateRoot, 'backups')),
+          capabilityAnalysisStorePath: config.capabilityAnalysisStorePath,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          targetEntryIdPrefix,
+        });
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.enrichment.baseline.diagnose',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'cco_enrichment_baseline_diagnose',
+          metadata: {
+            recommendation: diagnosis.recommendation?.action || null,
+            memoryCoverage: diagnosis.memory?.coveragePercent ?? null,
+          },
+        });
+        return res.json({ ok: true, ...diagnosis });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/baseline/diagnose]', error);
+        return res.status(500).json({
+          error: error?.message || 'Kunde inte diagnostisera enrichment-baseline.',
+        });
+      }
+    }
+  );
+
+  router.get(
     '/ops/cco/enrichment/gap-analysis',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
@@ -1157,11 +1203,9 @@ function createOpsRouter({
         }
 
         if (phase !== 'run') {
-          return res
-            .status(400)
-            .json({
-              error: 'phase måste vara snapshot, restore-capability, reload-capability eller run.',
-            });
+          return res.status(400).json({
+            error: 'phase måste vara snapshot, restore-capability, reload-capability eller run.',
+          });
         }
         if (!go) {
           return res.status(400).json({ error: 'run kräver go=true.' });
