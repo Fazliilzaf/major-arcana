@@ -2915,6 +2915,13 @@ function createScheduler({
     }
 
     const lookbackDays = (() => {
+      const normalizedTrigger = normalizeText(trigger);
+      if (normalizedTrigger === CCO_INBOX_FULL_BACKFILL_TRIGGER) {
+        return Math.max(
+          7,
+          Math.min(365, Number(config?.schedulerCcoInboxFullBackfillLookbackDays) || 365)
+        );
+      }
       if (useScopedMerge && baselineOutputData) {
         return Math.max(1, Math.min(30, Number(config?.schedulerCcoInboxScopedLookbackDays) || 7));
       }
@@ -2925,8 +2932,7 @@ function createScheduler({
         'manual_api',
         'manual_api_suite',
       ]);
-      const normalizedTrigger = normalizeText(trigger);
-      if (mode === 'full' && normalizedTrigger === 'cco_full_backfill') {
+      if (mode === 'full' && normalizedTrigger === CCO_INBOX_FULL_BACKFILL_TRIGGER) {
         return Math.max(
           7,
           Math.min(365, Number(config?.schedulerCcoInboxFullBackfillLookbackDays) || 365)
