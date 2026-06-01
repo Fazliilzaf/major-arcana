@@ -406,10 +406,140 @@ function uniquePatientIds(candidates) {
   return ids;
 }
 
+function isSafeCustomerMatch(link, driveMaps) {
+  if (!link?.patientId) return false;
+  if (link.confidence === 'low' || link.basis === 'ambiguous_folder_match') return false;
+  if (link.confidence === 'high') return true;
+  if (driveMaps.high.has(link.patientId)) return true;
+  return false;
+}
+
+function detectDuplicateFileLevel({ ccoIndex, driveFileId, sourceRecordId }) {
+  if (driveFileId && ccoIndex.driveIds.has(driveFileId)) {
+    return { isDuplicate: true, duplicateSource: 'cco_drive_file_id' };
+  }
+  if (sourceRecordId && ccoIndex.sourceRecordIds.has(sourceRecordId)) {
+    return { isDuplicate: true, duplicateSource: 'cco_source_record_id' };
+  }
+  return { isDuplicate: false, duplicateSource: null };
+}
+
+function isDocumentFileType(fileType) {
+  return ['journal_pdf', 'document_pdf', 'document_word'].includes(fileType || '');
+}
+
+function isImageFileType(fileType) {
+  return fileType === 'image';
+}
+
+function evaluateDriveFileForFullImport(file, ctx) {
+  const sourceFolder = String(file.relativePath || '')
+    .split('/')
+    .slice(0, -1)
+    .join('/');
+  const classification = classify({
+    mimeType: file.mimeType,
+    fileName: file.fileName,
+    sourceFolder,
+  });
+  if (file.fileType === 'journal_pdf') {
+    classification.category = 'journal';
+    classification.confidence = 'high';
+  }
+
+  const link = linkFileToPatient(file, ctx.customerStore);
+  const duplicate = detectDuplicateFileLevel({
+    ccoIndex: ctx.ccoIndex,
+    driveFileId: file.driveFileId,
+    sourceRecordId: file.id,
+  });
+
+  if (duplicate.isDuplicate) {
+    return {
+      file,
+      link,
+      classification,
+      outcome: { disposition: 'duplicate', reason: duplicate.duplicateSource },
+      patientId: link.patientId || null,
+      documentDate: extractDocumentDate(file),
+    };
+  }
+
+  if (!isSafeCustomerMatch(link, ctx.driveMaps)) {
+    const reason = !link.patientId
+      ? link.basis || 'no_patient_match'
+      : link.confidence === 'medium'
+        ? 'medium_confidence_match'
+        : 'uncertain_match';
+    return {
+      file,
+      link,
+      classification,
+      outcome: { disposition: 'customer_review', reason },
+      patientId: link.patientId || null,
+      documentDate: extractDocumentDate(file),
+    };
+  }
+
+  return {
+    file,
+    link,
+    classification,
+    outcome: { disposition: 'import_candidate', reason: link.basis || 'high_confidence' },
+    patientId: link.patientId,
+    documentDate: extractDocumentDate(file),
+  };
+}
+
+function listFullImportCandidates(ctx, { phase = 'documents' } = {}) {
+  const out = [];
+  for (const file of ctx.files) {
+    const ft = file.fileType || '';
+    if (phase === 'documents' && !isDocumentFileType(ft)) continue;
+    if (phase === 'images' && !isImageFileType(ft)) continue;
+    if (phase === 'customer_review') continue;
+
+    const row = evaluateDriveFileForFullImport(file, ctx);
+    if (row.outcome.disposition !== 'import_candidate') continue;
+    if (!row.patientId || !file.driveFileId) continue;
+    out.push(row);
+  }
+  out.sort((a, b) => {
+    const pc = String(a.patientId).localeCompare(String(b.patientId));
+    if (pc !== 0) return pc;
+    return String(a.file.relativePath || '').localeCompare(String(b.file.relativePath || ''));
+  });
+  return out;
+}
+
+function listCustomerReviewCandidates(ctx) {
+  const out = [];
+  for (const file of ctx.files) {
+    const row = evaluateDriveFileForFullImport(file, ctx);
+    if (row.outcome.disposition !== 'customer_review') continue;
+    out.push(row);
+  }
+  return out;
+}
+
+function refreshImportIndexes(ctx) {
+  const assets = JSON.parse(fs.readFileSync(ctx.assetsPath, 'utf8'));
+  ctx.patientCats = buildPatientCategoryIndex(assets);
+  ctx.ccoIndex = buildCcoContentIndex(assets);
+  return ctx;
+}
+
 module.exports = {
   loadDriveImportContext,
   listJournalImportCandidates,
   evaluateDriveFile,
+  evaluateDriveFileForFullImport,
+  listFullImportCandidates,
+  listCustomerReviewCandidates,
+  isSafeCustomerMatch,
+  isDocumentFileType,
+  isImageFileType,
+  refreshImportIndexes,
   sliceCandidatesByPatients,
   uniquePatientIds,
   extractDocumentDate,

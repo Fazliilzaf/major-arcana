@@ -2,7 +2,7 @@
 
 _Genererad: 2026-05-31T22:30:00.000Z_
 _Batch-körning: 2026-05-31T22:01–22:14 UTC_
-_Verifierad: 2026-05-31T22:30 UTC_
+_Verifierad: 2026-06-01T05:21 UTC (re-verify checksum/storage)_
 
 **Status:** BATCH 1 COMPLETE
 
@@ -99,11 +99,22 @@ Pre-snapshot: `data/backups/pre-drive-journal-batch1-2026-05-31`
 | Fil i repo              | 0      |
 | Oväntad duplicate-bugg  | 0      |
 
+### Re-verify 2026-06-01
+
+| Check                        | Resultat    |
+| ---------------------------- | ----------- |
+| Batch 1 assets (importRunId) | 547         |
+| Journaler (category)         | 543         |
+| Kunder                       | 247         |
+| Checksum OK (storage read)   | **547/547** |
+| Secure storage utanför repo  | **Ja**      |
+| Drive-länkar i payload       | **0**       |
+
 ---
 
 ## 6. Nästa steg
 
-**Bildimport/fas-review** — separat beslut. Startar **inte** automatiskt.
+**Batch 1 stängd.** Full Drive-import (dokument + bilder) fortsätter i separata faser — se `CCO-DRIVE-HISTORY-IMPORT-FULL-2026-05-31.md`.
 
 ---
 
