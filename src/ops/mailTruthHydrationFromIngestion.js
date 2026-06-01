@@ -10,7 +10,7 @@ const { toMailboxConversationId } = require('../infra/microsoftGraphMailboxTruth
 
 const HYDRATION_SOURCE = 'ingestion_truth_hydration_v1';
 const DEFAULT_CANARY_LIMIT = 200;
-const BATCH_SIZE = 100;
+const BATCH_SIZE = 50;
 const MAX_DUPLICATE_EXPLOSION_RATIO = 1.01;
 
 function nowIso() {
@@ -375,6 +375,7 @@ async function runMailTruthHydration({
   }
 
   const allRaw = sortCandidates(Object.values(ingestionState.mailRawMessages || {}), ledgerByRaw);
+  const patientLookup = buildPipedrivePatientLookup(asArray(patientDirectory));
   const existingTruthKeys = new Set(
     truthStore
       .listMessages({ limit: 0 })
@@ -397,8 +398,7 @@ async function runMailTruthHydration({
 
     if (ledger && normalizeText(ledger.status).toUpperCase() === 'MATCHED' && ledger.patientId) {
       const counterparty = resolveCounterpartyEmail(raw, truthMessage.folderType);
-      const lookup = buildPipedrivePatientLookup(asArray(patientDirectory));
-      const emailMatches = asArray(lookup.byEmail.get(counterparty));
+      const emailMatches = asArray(patientLookup.byEmail.get(counterparty));
       if (emailMatches.length === 1) {
         const expectedId = normalizeText(emailMatches[0].id || emailMatches[0].patientId);
         if (expectedId && expectedId !== normalizeText(ledger.patientId)) {
@@ -426,13 +426,19 @@ async function runMailTruthHydration({
 
   const truthCountBefore = truthStore.listMessages({ limit: 0 }).length;
   const syncRun =
-    typeof truthStore.startSyncRun === 'function'
-      ? await truthStore.startSyncRun({
+    typeof truthStore.startBackfillRun === 'function'
+      ? await truthStore.startBackfillRun({
           mailboxIds: [...new Set(selected.map((item) => item.truthMessage.mailboxId))],
           folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
           mode: 'ingestion_truth_hydration',
         })
-      : { runId };
+      : typeof truthStore.startSyncRun === 'function'
+        ? await truthStore.startSyncRun({
+            mailboxIds: [...new Set(selected.map((item) => item.truthMessage.mailboxId))],
+            folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
+            mode: 'ingestion_truth_hydration',
+          })
+        : { runId };
 
   const grouped = new Map();
   for (const item of selected) {

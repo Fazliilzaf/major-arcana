@@ -16,8 +16,21 @@ async function fetchJson(path, { method = 'GET', token = '', body = null } = {})
     body: body ? JSON.stringify(body) : undefined,
   });
   const payload = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(payload.error || `${res.status} ${path}`);
-  return payload;
+  if (!res.ok && res.status !== 202) throw new Error(payload.error || `${res.status} ${path}`);
+  return { status: res.status, payload };
+}
+
+async function waitForHydrationJob(jobId, token) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    const { payload } = await fetchJson(`/api/v1/ops/mail/truth-hydration/status/${jobId}`, {
+      token,
+    });
+    const status = payload?.job?.status;
+    process.stderr.write(`[hydration] job ${jobId} status=${status || 'unknown'}\n`);
+    if (status === 'completed' || status === 'failed') return payload.job;
+  }
+  throw new Error(`timeout waiting for hydration job ${jobId}`);
 }
 
 async function main() {
@@ -41,7 +54,7 @@ async function main() {
   if (!token) throw new Error('owner token saknas');
 
   if (snapshot) {
-    const snap = await fetchJson('/api/v1/ops/mail/truth-hydration/run', {
+    const { payload: snap } = await fetchJson('/api/v1/ops/mail/truth-hydration/run', {
       method: 'POST',
       token,
       body: { phase: 'snapshot', go: false },
@@ -50,7 +63,7 @@ async function main() {
     if (phase === 'snapshot') return;
   }
 
-  const result = await fetchJson('/api/v1/ops/mail/truth-hydration/run', {
+  const { status, payload: result } = await fetchJson('/api/v1/ops/mail/truth-hydration/run', {
     method: 'POST',
     token,
     body: {
@@ -58,8 +71,17 @@ async function main() {
       go,
       canaryLimit: Number(process.env.MAIL_TRUTH_HYDRATION_CANARY_LIMIT || 200),
       autoContinue: go && phase === 'canary',
+      async: phase === 'canary' || phase === 'full',
     },
   });
+
+  if (status === 202 && result?.jobId) {
+    console.log(JSON.stringify(result, null, 2));
+    const job = await waitForHydrationJob(result.jobId, token);
+    console.log(JSON.stringify({ async: true, job }, null, 2));
+    return;
+  }
+
   console.log(JSON.stringify(result, null, 2));
 }
 

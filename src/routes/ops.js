@@ -46,6 +46,20 @@ const { runMailTruthHydration } = require('../ops/mailTruthHydrationFromIngestio
 const { createCcoAuditLog } = require('../security/ccoAuditLog');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const crypto = require('node:crypto');
+
+const mailTruthHydrationJobs = new Map();
+const MAIL_TRUTH_HYDRATION_JOB_TTL_MS = 6 * 60 * 60 * 1000;
+
+function pruneMailTruthHydrationJobs() {
+  const now = Date.now();
+  for (const [runId, job] of mailTruthHydrationJobs.entries()) {
+    const anchor = Date.parse(job.updatedAt || job.startedAt || 0);
+    if (!Number.isFinite(anchor) || now - anchor > MAIL_TRUTH_HYDRATION_JOB_TTL_MS) {
+      mailTruthHydrationJobs.delete(runId);
+    }
+  }
+}
 
 function parseLimit(value, fallback = 20) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -3212,72 +3226,145 @@ function createOpsRouter({
           filePath: path.join(config.stateRoot, 'cco-audit.jsonl'),
         });
 
-        const result = await runMailTruthHydration({
-          ingestionFilePath: config.ccoMailIngestionStorePath,
-          truthStore: ccoMailboxTruthStore,
-          auditLog,
-          patientDirectory,
-          phase: phase === 'canary' || phase === 'full' ? phase : 'dry-run',
-          canaryLimit,
-          actor: req.auth?.userId || 'owner',
-          tenantId: req.auth?.tenantId || config.defaultTenant,
-        });
+        const runAsync = (phase === 'canary' || phase === 'full') && parseBoolean(body.async, true);
 
-        let fullResult = null;
-        if (phase === 'canary' && autoContinue && result.ok) {
-          fullResult = await runMailTruthHydration({
+        const executeHydration = async ({ hydrationPhase, limit = canaryLimit } = {}) =>
+          runMailTruthHydration({
             ingestionFilePath: config.ccoMailIngestionStorePath,
             truthStore: ccoMailboxTruthStore,
             auditLog,
             patientDirectory,
-            phase: 'full',
+            phase: hydrationPhase,
+            canaryLimit: limit,
             actor: req.auth?.userId || 'owner',
             tenantId: req.auth?.tenantId || config.defaultTenant,
           });
-        }
 
-        let enrichmentCoverage = null;
-        let analyzeInboxResult = null;
-        const hydrationComplete = (phase === 'full' && result.ok) || (fullResult && fullResult.ok);
-        if (hydrationComplete) {
-          if (scheduler && typeof scheduler.runJob === 'function') {
-            try {
-              analyzeInboxResult = await scheduler.runJob('cco_inbox_enrichment_bootstrap', {
-                trigger: 'manual_api',
-                actorUserId: req.auth.userId,
+        const finalizeHydration = async ({ result, fullResult = null, jobId = null } = {}) => {
+          let enrichmentCoverage = null;
+          let analyzeInboxResult = null;
+          const hydrationComplete =
+            (phase === 'full' && result?.ok) || (fullResult && fullResult.ok);
+          if (hydrationComplete) {
+            if (scheduler && typeof scheduler.runJob === 'function') {
+              try {
+                analyzeInboxResult = await scheduler.runJob('cco_inbox_enrichment_bootstrap', {
+                  trigger: 'manual_api',
+                  actorUserId: req.auth.userId,
+                  tenantId: req.auth.tenantId,
+                });
+              } catch (analyzeError) {
+                analyzeInboxResult = {
+                  ok: false,
+                  error: analyzeError?.message || 'analyze_inbox_failed',
+                };
+              }
+            }
+            if (capabilityAnalysisStore && ccoMailboxTruthStore) {
+              enrichmentCoverage = await computeCcoInboxEnrichmentCoverage({
                 tenantId: req.auth.tenantId,
+                mailboxIds: resolveCcoHistoryMailboxIds(config),
+                capabilityAnalysisStore,
+                ccoMailboxTruthStore,
+                ccoCustomerStore,
               });
-            } catch (analyzeError) {
-              analyzeInboxResult = {
-                ok: false,
-                error: analyzeError?.message || 'analyze_inbox_failed',
-              };
             }
           }
-          if (capabilityAnalysisStore && ccoMailboxTruthStore) {
-            enrichmentCoverage = await computeCcoInboxEnrichmentCoverage({
-              tenantId: req.auth.tenantId,
-              mailboxIds: resolveCcoHistoryMailboxIds(config),
-              capabilityAnalysisStore,
-              ccoMailboxTruthStore,
-              ccoCustomerStore,
-            });
-          }
+
+          await authStore.addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: `ops.mail.truth_hydration.${phase}`,
+            outcome: result?.ok ? 'success' : 'failed',
+            targetType: 'ops',
+            targetId: 'mail_truth_hydration',
+            metadata: {
+              runId: result?.runId || jobId || null,
+              phase,
+              applied: result?.applied || null,
+              stopReason: result?.stopReason || null,
+              async: runAsync,
+            },
+          });
+
+          return { enrichmentCoverage, analyzeInboxResult };
+        };
+
+        if (runAsync) {
+          const jobId = crypto.randomUUID();
+          const startedAt = new Date().toISOString();
+          pruneMailTruthHydrationJobs();
+          mailTruthHydrationJobs.set(jobId, {
+            jobId,
+            phase,
+            autoContinue,
+            status: 'running',
+            startedAt,
+            updatedAt: startedAt,
+          });
+
+          setImmediate(async () => {
+            try {
+              const result = await executeHydration({
+                hydrationPhase: phase === 'canary' || phase === 'full' ? phase : 'dry-run',
+              });
+              let fullResult = null;
+              if (phase === 'canary' && autoContinue && result.ok) {
+                fullResult = await executeHydration({ hydrationPhase: 'full' });
+              }
+              const { enrichmentCoverage, analyzeInboxResult } = await finalizeHydration({
+                result,
+                fullResult,
+                jobId,
+              });
+              mailTruthHydrationJobs.set(jobId, {
+                jobId,
+                phase,
+                autoContinue,
+                status: result.ok && (!fullResult || fullResult.ok) ? 'completed' : 'failed',
+                startedAt,
+                updatedAt: new Date().toISOString(),
+                result,
+                fullResult,
+                analyzeInboxResult,
+                enrichmentCoverage,
+              });
+            } catch (error) {
+              mailTruthHydrationJobs.set(jobId, {
+                jobId,
+                phase,
+                autoContinue,
+                status: 'failed',
+                startedAt,
+                updatedAt: new Date().toISOString(),
+                error: error?.message || 'mail_truth_hydration_failed',
+                code: error?.code || null,
+              });
+            }
+          });
+
+          return res.status(202).json({
+            ok: true,
+            accepted: true,
+            async: true,
+            jobId,
+            phase,
+            autoContinue,
+          });
         }
 
-        await authStore.addAuditEvent({
-          tenantId: req.auth.tenantId,
-          actorUserId: req.auth.userId,
-          action: `ops.mail.truth_hydration.${phase}`,
-          outcome: result.ok ? 'success' : 'failed',
-          targetType: 'ops',
-          targetId: 'mail_truth_hydration',
-          metadata: {
-            runId: result.runId,
-            phase,
-            applied: result.applied,
-            stopReason: result.stopReason || null,
-          },
+        const result = await executeHydration({
+          hydrationPhase: phase === 'canary' || phase === 'full' ? phase : 'dry-run',
+        });
+
+        let fullResult = null;
+        if (phase === 'canary' && autoContinue && result.ok) {
+          fullResult = await executeHydration({ hydrationPhase: 'full' });
+        }
+
+        const { enrichmentCoverage, analyzeInboxResult } = await finalizeHydration({
+          result,
+          fullResult,
         });
 
         return res.json({
@@ -3295,6 +3382,21 @@ function createOpsRouter({
           code: error?.code || null,
         });
       }
+    }
+  );
+
+  router.get(
+    '/ops/mail/truth-hydration/status/:jobId',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      pruneMailTruthHydrationJobs();
+      const jobId = normalizeText(req.params?.jobId);
+      const job = jobId ? mailTruthHydrationJobs.get(jobId) : null;
+      if (!job) {
+        return res.status(404).json({ error: 'Hydration-jobb saknas eller har gått ut.' });
+      }
+      return res.json({ ok: job.status !== 'failed', job });
     }
   );
 
