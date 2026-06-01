@@ -671,7 +671,7 @@ async function createCcoMailIngestionStore({ filePath } = {}) {
   }
 
   function getConversationIngestionMap({ mailboxEmail = '' } = {}) {
-    const { toCanonicalMailboxConversationKey } = require('./ccoMailboxTruthWorklistReadModel');
+    const { toCanonicalMailboxConversationKey } = require('../ccoMailboxTruthWorklistReadModel');
     const normalized = normalizeEmail(mailboxEmail);
     const statusPriority = {
       SECURITY_REVIEW: 5,
