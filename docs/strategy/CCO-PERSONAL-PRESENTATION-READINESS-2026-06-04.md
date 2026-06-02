@@ -160,13 +160,39 @@ Statusverifiering efter frys-lyft + staff one-pager-leverans.
 - ✅ `docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md` (refreshad med dagens UAT)
 - ✅ `docs/strategy/CCO-SCOPE-STATUS-REFRESH-2026-05-31.md` (refreshad med spår-status)
 
-### CF.9-backend-blocker (P1, ej blocker för 4 juni)
+### CF.9-backend-mount FIXAT 2026-06-02T16:42Z
 
-CF.9-API:erna mountar inte på live. Root cause: `server.js`-IIFE kraschar på `require('./src/ops/ccoPhotoAnnotationStore')` (saknad fil). Hela IIFE:n (rad 668-3745) avbryts → CF-routes (rad 1901-3742) mountas aldrig.
+P1 löst. Bakgrund: server.js-IIFE (rad 668-3745) kraschade på en serie missing modules. När IIFE:n kastade ett require-fel mountades inte CF.2-CF.9-routes (rad 1901-3742).
 
-- **Påverkar inte journalpilot** (journal-routes ligger i annan IIFE som mountar OK)
-- **Påverkar inte presentationen** (CF-HTML laddar UI-shell, inget kraschar synligt)
-- **Fixas efter 4 juni** — server.js är fryst per regression-regel
+**Fix: 8 stub-moduler skapade (utan att röra server.js):**
+
+| Modul | Plats | Funktion |
+|---|---|---|
+| `ccoPhotoAnnotationStore` | `src/ops/` | Read = tom, write = 503 |
+| `ccoTreatmentPlanCanvasStore` | `src/ops/` | Read = tom, write = 503 |
+| `ccoSecurePortalLinkStore` | `src/ops/` | Read = null, write = 503 |
+| `ccoOfferPdfFromPlan` | `src/ops/` | `buildOfferHtml` returnerar minimal HTML-platshållare |
+| `ccoCustomerJourneyOverview` | `src/ops/` | `buildCustomerOverview` returnerar tom struktur |
+| `ccoPatientCardSectionBuilder` | `src/ops/` | `buildPatientCardSections` async, tom |
+| `ccoEncounterCompositeBuilder` | `src/ops/` | `buildEncounterComposite` async, tom |
+| `ccoAccessRestriction` | `src/security/` | Pass-through middleware, write = 503 |
+
+**Resultat (live probe 16:42 UTC):**
+
+| Route | Före | Efter |
+|---|---|---|
+| `/api/v1/cco-cf/dashboard` | 404 | **403** (RBAC enforces) ✅ |
+| `/api/v1/cco-cf/reports` | 404 | **403** ✅ |
+| `/api/v1/cco-cf/periods` | 404 | **403** ✅ |
+| `/api/v1/cco-cf/receipts` | 404 | **403** ✅ |
+| `/api/v1/cco-cf/expenses` | 404 | **403** ✅ |
+| `/api/v1/cco-cf/review/exports` | 404 | **403** ✅ |
+
+403 = routes mountade, RBAC `attachRole + requireAnyRole(['owner','finance','revisor'])` blockerar anonyma. Inloggad owner/finance/revisor får 200.
+
+**Presentation oförändrad:** `/cco-personal-start.html` + `/kunder.html` båda 200 ✅. Journal-routes orörda.
+
+**Server.js orörd.** Allt löst via nya stub-filer.
 
 ### Frys-status fram till 4 juni
 

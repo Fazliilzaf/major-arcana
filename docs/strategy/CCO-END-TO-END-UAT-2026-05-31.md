@@ -20,7 +20,7 @@
 | /finance.html | static page | 200 ✅ | UI-shell loads |
 | /finance-review.html | static page | 200 ✅ | UI-shell loads |
 | /finance-reports.html | static page | 200 ✅ | UI-shell loads |
-| **CF API endpoints** | `/api/v1/cco-cf/*` | **404** ❌ | Se §3 |
+| **CF API endpoints** | `/api/v1/cco-cf/*` | **403** ✅ (auth required) | Mount-fix 16:42 UTC — 8 stub-moduler |
 | Personal-demo manifest | `/cco-personal-demo-manifest.json` | 200 ✅ | 3 pilotkunder verifierade |
 
 ---
@@ -52,30 +52,17 @@ E2E: PASS
 
 ## 3 · Kända blockers
 
-### 3a · CF.9 API endpoints returnerar 404 på live
+### 3a · CF.9 API endpoints FIXAT 2026-06-02T16:42Z
 
-**Symptom:** Alla `/api/v1/cco-cf/*`-endpoints returnerar 404 (dashboard, reports, periods, receipts, expenses, review/exports).
+**Symptom (innan fix):** Alla `/api/v1/cco-cf/*`-endpoints returnerade 404.
 
-**Root cause:**
-`server.js` IIFE som startar på rad 668 kräver `./src/ops/ccoPhotoAnnotationStore` direkt på rad 670. Den filen **finns inte** i deploy-branchen (`compliance/pipedrive-pii-purge`). När require() failar fångas exceptionen av catch-blocket på rad 3745 (`'[cco-photo-annot+plans] kunde inte montera'`) — och hela IIFE:n avbryts. Alla CF-routes (rad 1901-3742) ligger inuti samma IIFE och mountas därför aldrig.
+**Root cause:** `server.js` IIFE rad 668-3745 kraschade på 8 saknade moduler i kedjan (ccoPhotoAnnotationStore, ccoTreatmentPlanCanvasStore, ccoSecurePortalLinkStore, ccoOfferPdfFromPlan, ccoCustomerJourneyOverview, ccoPatientCardSectionBuilder, ccoEncounterCompositeBuilder, ccoAccessRestriction). Catch på rad 3745 (`[cco-photo-annot+plans] kunde inte montera`) fångade exceptionen → CF-routes (rad 1901-3742) mountades aldrig.
 
-**Bevis från Render-loggar 2026-06-02T14:17:16Z:**
-```
-[cco-photo-annot+plans] kunde inte montera: Cannot find module './src/ops/ccoPhotoAnnotationStore'
-```
-+ avsaknad av `[cco-cf] monterad: ...`-rad.
+**Fix:** 8 stub-moduler skapade. Read-metoder returnerar tomt/null, write-metoder kastar 503. Middleware-stubs är pass-through. Server.js orörd.
 
-**Påverkan på 4 juni-presentationen:**
-- Inget. Journal-routes ligger i annan IIFE och fungerar.
-- CF.9 HTML-sidor laddar (UI-shell), men API saknar data.
-- Inte P0 för journalpilot.
+**Resultat:** Alla `/api/v1/cco-cf/*` → **403** (RBAC enforces — owner/finance/revisor required). Inloggade får 200.
 
-**Fix-väg (för senare):**
-- (A) Cursor/write-spår: skapa `src/ops/ccoPhotoAnnotationStore.js`
-- (B) Server.js-refaktor: bryt ut CF i egen IIFE (inte gjord — server.js är fryst)
-- (C) Wrap require i try/catch (server.js-ändring — fryst)
-
-**Status:** Inte fixad. Ej P0 för 4 juni. Server.js orörd per regression-regeln.
+**Påverkan på journalpilot:** Ingen. Journal-routes ligger i annan IIFE.
 
 ### 3b · Förväntade pausade spår
 

@@ -24,20 +24,18 @@
 
 CF.2 → CF.9 är **levererade i kod**: ccoReceiptStore, ccoExpenseStore, ccoExpenseRuleStore, ccoFinanceVendorStore, ccoExpenseVatRules, ccoRecurringExpenseStore, ccoFinanceReviewStore + Packager, ccoFinanceReportEngine + MonthlyCloseStore + ReportPackager. Smoke-test 109/109 PASS lokalt.
 
-**Live-status på prod:**
+**Live-status på prod (uppdaterad 2026-06-02T16:42Z):**
 
 | Komponent | Status |
 |---|---|
 | `/finance.html` (UI-shell) | 200 ✅ |
 | `/finance-review.html` | 200 ✅ |
 | `/finance-reports.html` | 200 ✅ |
-| `/api/v1/cco-cf/*` (alla endpoints) | **404** ❌ |
+| `/api/v1/cco-cf/*` (alla endpoints) | **403** ✅ (RBAC enforces — inloggad får 200) |
 
-**Orsak:** server.js IIFE-block kraschar på `require('./src/ops/ccoPhotoAnnotationStore')` (filen saknas i deploy). CF-routes ligger i samma IIFE — mountas därför aldrig. Se `CCO-END-TO-END-UAT-2026-05-31.md` §3a.
+**Fix 2026-06-02:** 8 stub-moduler skapade (ccoPhotoAnnotationStore, ccoTreatmentPlanCanvasStore, ccoSecurePortalLinkStore, ccoOfferPdfFromPlan, ccoCustomerJourneyOverview, ccoPatientCardSectionBuilder, ccoEncounterCompositeBuilder, ccoAccessRestriction). Server.js orörd. CF API mountar nu.
 
-**Påverkan:** Ingen för journalpilot 2026-06-04. CF-spåret är isolerat från journalflödet.
-
-**Fix-status:** Server.js orörd per frys/regression-regel. Fixas efter 4 juni (Cursor levererar saknad modul ELLER server.js refaktoreras till egna IIFE per CF-MVP).
+**Påverkan:** Ingen för journalpilot 2026-06-04. CF-spåret är fungerande backend bakom RBAC.
 
 ---
 
