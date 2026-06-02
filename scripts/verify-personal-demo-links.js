@@ -46,6 +46,13 @@ const REDLIST_PATH = [
   /\/watch/i,
   /\/analytics\.html/i,
 ];
+const DEMO_ISOLATION_HREF = [
+  /ambiguous-mail-enrichment-review/i,
+  /photo-review\.html/i,
+  /cco-demo\.html/i,
+  /\/automation/i,
+  /\/showcase/i,
+];
 const MOCK_HTML = [/847\s*kunder/i, /12\s*no-show/i, /Manifest ej publicerat/i];
 const MOCK_HTML_PAUSED_ONLY = [/AI\s*coach/i, /automation\s*hub/i];
 
@@ -137,6 +144,15 @@ async function verifyHtmlPage(htmlPath) {
   for (const href of extractDisabledWithHref(htmlBody)) {
     console.log('FAIL  disabled element has href:', href);
     failed += 1;
+  }
+
+  if (path.basename(htmlPath) === 'cco-personal-start.html') {
+    for (const pat of DEMO_ISOLATION_HREF) {
+      if (pat.test(htmlBody)) {
+        console.log('FAIL  journal demo page links to non-demo route:', pat);
+        failed += 1;
+      }
+    }
   }
 
   for (const href of hrefs) {

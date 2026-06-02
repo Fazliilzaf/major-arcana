@@ -7,9 +7,11 @@
 
   let summary = null;
   let queue = [];
+  let queueTotal = 0;
   let currentIndex = 0;
   let selectedCandidateId = null;
   let busy = false;
+  const QUEUE_PAGE = 100;
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -67,12 +69,14 @@
         <div class="amr-layout">
           <aside class="amr-queue">
             <h2>Kö</h2>
+            <p class="amr-muted" data-queue-meta>—</p>
             <div class="amr-field">
               <select data-mailbox-filter>
                 <option value="">Alla mailboxar</option>
               </select>
             </div>
             <ul class="amr-queue-list" data-queue-list></ul>
+            <button type="button" class="amr-btn" data-load-more hidden>Ladda fler</button>
           </aside>
           <section class="amr-detail" data-detail>
             <p class="amr-muted">Laddar…</p>
@@ -85,7 +89,10 @@
       setReviewer(event.target.value);
     });
     root.querySelector('[data-mailbox-filter]').addEventListener('change', () => {
-      loadQueue().catch(showError);
+      loadQueue({ reset: true }).catch(showError);
+    });
+    root.querySelector('[data-load-more]')?.addEventListener('click', () => {
+      loadQueue({ append: true }).catch(showError);
     });
   }
 
@@ -93,16 +100,31 @@
     const el = document.querySelector('[data-stats]');
     if (!el || !summary) return;
     const m = summary.mailboxCounts || {};
+    const report = summary.report || {};
     el.innerHTML = `
-      <div class="amr-stat"><strong>${summary.ambiguousTotal ?? '—'}</strong><span class="amr-muted">ambiguous total</span></div>
-      <div class="amr-stat"><strong>${summary.pending ?? '—'}</strong><span class="amr-muted">pending</span></div>
+      <div class="amr-stat"><strong>${summary.ambiguousTotal ?? report.ambiguousTotal ?? '—'}</strong><span class="amr-muted">ambiguous total</span></div>
+      <div class="amr-stat"><strong>${summary.pending ?? report.remainingAmbiguous ?? '—'}</strong><span class="amr-muted">pending</span></div>
+      <div class="amr-stat"><strong>${report.operationalReadiness ?? '—'}</strong><span class="amr-muted">operational readiness</span></div>
+      <div class="amr-stat"><strong>${report.adjustedCoveragePercent ?? '—'}%</strong><span class="amr-muted">technical coverage</span></div>
+      <div class="amr-stat"><strong>${report.readyForWork ? 'true' : 'false'}</strong><span class="amr-muted">readyForWork</span></div>
       <div class="amr-stat"><strong>${summary.approved ?? 0}</strong><span class="amr-muted">approved</span></div>
       <div class="amr-stat"><strong>${(summary.unresolved ?? 0) + (summary.ownerAcceptedUnresolved ?? 0)}</strong><span class="amr-muted">unresolved</span></div>
       <div class="amr-stat"><strong>${summary.excluded ?? 0}</strong><span class="amr-muted">excluded</span></div>
-      <div class="amr-stat"><strong>${summary.coverage?.adjustedCoveragePercent ?? '—'}%</strong><span class="amr-muted">adjusted coverage</span></div>
-      <div class="amr-stat"><strong>${summary.report?.readyForWork ? 'true' : 'false'}</strong><span class="amr-muted">readyForWork</span></div>
       <div class="amr-stat"><strong>${m['contact@hairtpclinic.com'] ?? m['contact@'] ?? 0}</strong><span class="amr-muted">contact@</span></div>
       <div class="amr-stat"><strong>${m['egzona@hairtpclinic.com'] ?? 0}</strong><span class="amr-muted">egzona@</span></div>`;
+  }
+
+  function renderQueueMeta() {
+    const meta = document.querySelector('[data-queue-meta]');
+    const more = document.querySelector('[data-load-more]');
+    if (meta) {
+      meta.textContent = `Visar ${queue.length} av ${queueTotal} pending · manuell review · ingen auto-write`;
+    }
+    if (more) {
+      const hasMore = queue.length < queueTotal;
+      more.hidden = !hasMore;
+      more.disabled = busy || !hasMore;
+    }
   }
 
   function renderQueueList() {
@@ -223,14 +245,22 @@
     renderStats();
   }
 
-  async function loadQueue() {
+  async function loadQueue({ reset = true, append = false } = {}) {
     const mailboxId = document.querySelector('[data-mailbox-filter]')?.value || '';
+    const offset = append ? queue.length : 0;
     const body = await apiFetch(
-      `/queue?tenantId=${encodeURIComponent(TENANT)}&status=pending&limit=200&offset=0${mailboxId ? `&mailboxId=${encodeURIComponent(mailboxId)}` : ''}`
+      `/queue?tenantId=${encodeURIComponent(TENANT)}&status=pending&limit=${QUEUE_PAGE}&offset=${offset}${mailboxId ? `&mailboxId=${encodeURIComponent(mailboxId)}` : ''}`
     );
-    queue = body.items || [];
-    if (currentIndex >= queue.length) currentIndex = 0;
+    queueTotal = body.total ?? (body.items || []).length;
+    if (append) {
+      queue = queue.concat(body.items || []);
+    } else {
+      queue = body.items || [];
+      if (reset) currentIndex = 0;
+      else if (currentIndex >= queue.length) currentIndex = 0;
+    }
     renderQueueList();
+    renderQueueMeta();
     renderDetail();
   }
 
@@ -269,7 +299,7 @@
         }),
       });
       await loadSummary();
-      await loadQueue();
+      await loadQueue({ reset: true });
     } finally {
       busy = false;
       renderDetail();
@@ -279,7 +309,7 @@
   async function boot() {
     renderShell();
     await loadSummary();
-    await loadQueue();
+    await loadQueue({ reset: true });
   }
 
   boot().catch(showError);

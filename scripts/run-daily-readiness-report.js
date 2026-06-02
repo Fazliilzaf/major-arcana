@@ -221,6 +221,7 @@ async function mailReadiness() {
     operational,
     technicalCoverage: '~93% adjusted (readyForWork=false)',
     apiNote,
+    queueNote: '~493 ambiguous · paginering 100/rad · Ladda fler · ingen auto-write',
     rules: [
       'Ingen auto-write',
       'Ingen fuzzy merge',
@@ -256,16 +257,17 @@ _Prod: ${BASE}_
 
 ---
 
-## Mail enrichment (operational, separat från coverage)
+## Mail enrichment (operational ≠ technical)
 
 | | |
 |---|---|
 | **Operational readiness** | ${report.mail.operational} |
 | **Technical coverage** | ${report.mail.technicalCoverage} |
 | **Review UI** | ${report.mail.pageStatus === 200 ? '200 OK' : report.mail.pageStatus} — \`${report.mail.uiUrl}\` |
-| **API** | ${report.mail.apiNote} |
+| **Kö** | ~493 ambiguous · paginering · manuell approve |
+| **API / not** | ${report.mail.apiNote} |
 
-Regler: ${report.mail.rules.join(' · ')}
+Regler: ${report.mail.rules.join(' · ')} · **får inte störa journal-demo**
 
 ---
 
