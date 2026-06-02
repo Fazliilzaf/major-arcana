@@ -341,3 +341,41 @@ _Refresh utförd av Claude · ingen patientdata · ingen kod-ändring i denna re
 - ✅ **"Vad gör jag nu?"-panel** i `/journal-pilot-guide.html` — ny sektion 0 med 6 färgkodade scenarios
 - ✅ **Personal Start Section E** utökad — 6 stöd-länkar istället för 4
 - ✅ **Command Center** utökad — 11 snabblänkar istället för 9
+
+---
+
+## Cycle-10 status 2026-06-03T22:30Z (Claude)
+
+### Nya leveranser cycle-10
+
+- ✅ **`/cco-staff-training-mode.html`** — Personal Training Mode (5 träningssteg, interaktiv progress)
+- ✅ **`/cco-journalpilot-faq.html`** — Quick FAQ (9 färgkodade svar)
+- ✅ **Personal Start Section E** utökad — 6 → **8 stöd-länkar**
+- ✅ **Command Center** utökad — 11 → **13 snabblänkar**
+
+### Komplett 4 juni-personalpaket (9 länkbara resurser)
+
+| Resurs | URL | Status |
+|---|---|---|
+| Personalstart | `/cco-personal-start.html` | **PASS** |
+| Command Center | `/cco-4june-command-center.html` | **LIVE** |
+| Presenter Mode | `/cco-presenter-mode.html` | **LIVE** |
+| Print Pack | `/journal-pilot-print-pack.html` | **LIVE** |
+| Journal Pilot Guide | `/journal-pilot-guide.html` | **LIVE** (+ "Vad gör jag nu?") |
+| Morning Checklist | `/cco-morning-checklist.html` | **LIVE** |
+| Staff Day-1 Checklist | `/cco-staff-day1-checklist.html` | **LIVE** |
+| **Träningsläge (NYTT)** | `/cco-staff-training-mode.html` | **LIVE** |
+| **FAQ (NYTT)** | `/cco-journalpilot-faq.html` | **LIVE** |
+
+### Status-matris cycle-10
+
+| Spår | Status |
+|---|---|
+| Journalpilot E2E | **PASS** |
+| Personalstart | **PASS** |
+| Pilot 1/2/3 | **PASS · PASS · PASS** |
+| CF API mounted + RBAC | **YES** (auth-test pending) |
+| Mail Phase 2 | operativ (mailbox-counts 248/175/67/3 = 493) |
+| Photo Review | **PENDING** (~885 assets) |
+| Drive/historik | **IMPORTED** + review-badges |
+| Aisia | **PAUSED** |

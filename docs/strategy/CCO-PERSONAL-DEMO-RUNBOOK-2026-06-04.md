@@ -212,3 +212,14 @@ Ny sektion 0 överst i `/journal-pilot-guide.html` — 6 färgkodade beslutsscen
 - ⚠️ Review-material → INTE klinisk sanning
 - 📸 Bild behövs → ta NY bild i CCO
 - 🔴 Systemet hänger → refresh → backup → Fazli
+
+---
+
+## Cycle-10 tillägg (Claude · 2026-06-03T22:30Z) — Träningsläge + FAQ
+
+| URL | Syfte |
+|---|---|
+| **`/cco-staff-training-mode.html`** | 🎓 **Personal Training Mode** — 5-stegs självträning för personal efter mötet (Hitta kund → Verifiera identitet → Skapa journal → Signera → Rättelse). Varje steg har: Vad du ska göra · Var du klickar · Rätt resultat · Vanligt misstag · Stoppa/eskalera. Interaktiv progress-checklist + quick-bar med alla pilotkunder. |
+| **`/cco-journalpilot-faq.html`** | ❓ **Quick FAQ** — 9 dag-1-säkra svar på vanliga frågor. Färgkodade: grön (GÖR DET) · orange (FÖRSIKTIGT) · röd (STOPPA) · blå (INFO). Frågor: historik saknas, "Behöver granskning", importerade bilder, osäker kund, ändra signerad, rättelse-flow, AI-användning, system hänger, vem kontakta. |
+
+**Personalflöde efter mötet:** Personal öppnar Training Mode → övar 5 steg själv → öppnar FAQ vid frågor → är redo att börja journalföra.

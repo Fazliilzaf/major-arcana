@@ -174,3 +174,17 @@ Gate PASS. E2E PASS. Server.js + journal-routes orörda.
 7. `/cco-staff-day1-checklist.html` (personal 10-stegs, NY)
 
 Gate PASS. E2E PASS. Server.js + journal-routes orörda.
+
+---
+
+## Cycle-10 (2026-06-03T22:30Z · Claude)
+
+Två nya sidor för personal-självträning efter mötet:
+- `/cco-staff-training-mode.html` — 5-stegs interaktiv träning
+- `/cco-journalpilot-faq.html` — 9 färgkodade FAQ-svar
+
+Komplett 4 juni-personalpaket nu **9 länkbara resurser**. Personal kan öva själva efter mötet utan att Fazli behöver förklara allt igen.
+
+Personal Start Section E utökad 6→8 länkar. Command Center utökad 11→13 länkar.
+
+Server.js + journal-routes orörda. Heliga flödet bevarat.

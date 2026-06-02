@@ -129,3 +129,13 @@ Denna checklist finns nu också som **klickbar HTML-version** på `/cco-staff-da
 Använd:
 - **HTML-versionen** på arbetsstationen — kan refreshas, klickbara länkar
 - **Markdown-versionen** här i `docs/strategy/` för print/export
+
+---
+
+## Cycle-10 tillägg (2026-06-03T22:30Z)
+
+Två nya sidor för personal efter mötet:
+- **`/cco-staff-training-mode.html`** — 5-stegs interaktiv självträning (Hitta kund · Verifiera · Skapa · Signera · Rättelse)
+- **`/cco-journalpilot-faq.html`** — 9 dag-1-säkra svar (kan jag skriva utan historik? · vad är "Behöver granskning"? · får jag använda AI? · etc.)
+
+Båda länkade från personal-start (Section E) och Command Center.
