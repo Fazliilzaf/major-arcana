@@ -147,3 +147,13 @@ Stoppa vid: 404/5xx i demo-flow · trasig pilotkund · journal fail · Drive-lä
 ---
 
 _Ingen patientdata i denna rapport._
+
+---
+
+## Cycle-8 (2026-06-02T21:10Z · Claude)
+
+Ny sida live: **`/cco-4june-command-center.html`** — Fazli's enkla kontrollsida med live-status (GO / WAIT / P0 FIX REQUIRED) hämtad från `/cco-4june-morning-check.json` (fallback `/cco-presentation-ops-status.json`). Innehåller snabblänkar (9 kort), 14-stegs demo-script och failover-protokoll.
+
+`/cco-personal-start.html` har nu 4 diskreta footer-länkar (Command Center · Presenter Mode · Print Pack · Personalguide).
+
+Gate PASS. E2E PASS. Server.js + journal-routes orörda.

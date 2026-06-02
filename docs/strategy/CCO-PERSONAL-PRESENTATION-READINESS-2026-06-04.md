@@ -282,3 +282,28 @@ P1 löst. Bakgrund: server.js-IIFE (rad 668-3745) kraschade på en serie missing
 Inga P0/P1-buggar hittade i presentation-flödet. Allt klickbart på `/cco-personal-start.html` är verifierat. Backup-URL fungerar.
 
 _Refresh utförd av Claude · ingen patientdata · ingen kod-ändring i denna refresh._
+
+---
+
+## Cycle-8 status 2026-06-02T21:10Z (Claude)
+
+### Ny leverans cycle-8
+
+- ✅ `public/cco-4june-command-center.html` — Fazli's command center för 4 juni:
+  - Statuspanel som live-hämtar från `/cco-4june-morning-check.json` (fallback `/cco-presentation-ops-status.json`)
+  - Stor GO / WAIT / P0 FIX REQUIRED-indikator + 4 status-celler (demo links · journal E2E · pilot 1/2/3 · senast genererat)
+  - Snabblänkar (9 kort): Personalstart · Presenter Mode · Print Pack · Journal Pilot Guide · Kunder · Ops Workbench · Pilotkund 1/2/3
+  - 14-stegs demo-script kortlista
+  - Failover-protokoll med 5 scenarios + Fazli-quote
+  - "↻ Uppdatera status"-knapp för manuell re-fetch
+- ✅ `cco-personal-start.html` — 4:e diskret footer-länk: "🎯 4 juni command center"
+
+### Komplett sido-uppsättning för 4 juni
+
+| Sida | Roll |
+|---|---|
+| `/cco-personal-start.html` | huvudfönster (intern personalstart) |
+| `/cco-4june-command-center.html` | sido-skärm/telefon (live-status + snabblänkar) |
+| `/cco-presenter-mode.html` | sido-skärm/telefon (14-stegs assistent + timer) |
+| `/journal-pilot-print-pack.html` | utskriven (på arbetsstationen) |
+| `/journal-pilot-guide.html` | sido-flik (snabb-referens under mötet) |

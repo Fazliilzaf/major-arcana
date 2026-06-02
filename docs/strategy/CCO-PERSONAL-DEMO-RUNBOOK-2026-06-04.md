@@ -171,3 +171,18 @@ Båda länkade diskret från `/cco-personal-start.html` footer (mellan baseline-
 - Skriv ut `/journal-pilot-print-pack.html` × 1 per personalstation
 - Öppna `/cco-presenter-mode.html` på sido-skärm/telefon
 - Klicka Start på timern när du börjar prata
+
+---
+
+## Cycle-8 tillägg (Claude · 2026-06-02T21:10Z) — Command Center live
+
+| URL | Syfte |
+|---|---|
+| **`/cco-4june-command-center.html`** | **🎯 4 juni Command Center** — Fazli's enkla kontrollsida för dagen. Visar live-status (GO / WAIT / P0 FIX REQUIRED) från `/cco-4june-morning-check.json` (fallback `/cco-presentation-ops-status.json`). Innehåller: snabblänkar till alla viktiga sidor + 14-stegs demo-script + failover-protokoll med "vänta 2 min vid 502" + "öppna guide istället om journal failar". |
+
+**Rekommenderat användning T-0 dag:**
+1. Öppna `/cco-4june-command-center.html` i en sido-flik på telefonen
+2. Klicka "↻ Uppdatera status" → ska visa **stor grön GO**
+3. Om något är gult (WAIT) eller rött (P0) → läs failover-rutan på sidan
+4. Om allt grönt → starta Presenter Mode och kör igenom 14 stegen
+
