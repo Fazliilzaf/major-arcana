@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Presenter Mode · CCO Personalmöte 4 juni 2026 · Hair TP Clinic</title>
+    <style>
+      :root {
+        --bg: #ede4d5;
+        --bg-accent: #f2ebde;
+        --ink: #2d2418;
+        --ink-soft: #51422f;
+        --line: rgba(132, 117, 107, 0.25);
+        --card: #faf5e9;
+        --card-soft: #f5edda;
+        --accent: #b08b3f;
+        --accent-deep: #8a6a26;
+        --green: #5f7c3c;
+        --green-deep: #3f5826;
+        --red: #a04432;
+        --red-deep: #7a3324;
+        --blue: #4a6788;
+        --blue-deep: #2f4a6a;
+        --done: #b9c3a2;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+      body { background:
+        radial-gradient(1200px 600px at 10% -10%, #f7eed7 0%, transparent 60%),
+        radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%),
+        var(--bg);
+        min-height: 100vh;
+      }
+      .container { max-width: 1280px; margin: 0 auto; padding: 28px 32px 80px; }
+
+      /* HEADER */
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 22px; background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(80, 60, 30, 0.08), inset 0 1px 0 rgba(255,255,255,0.55);
+        margin-bottom: 22px;
+      }
+      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand-mark {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: linear-gradient(135deg, #b08b3f, #6d4e1c);
+        color: #fff; font-weight: 700; font-size: 14px;
+        display: grid; place-items: center;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 2px 6px rgba(80,60,20,0.25);
+      }
+      .brand-title { font-size: 15px; font-weight: 700; letter-spacing: 0.4px; }
+      .brand-sub { font-size: 11.5px; color: var(--ink-soft); }
+
+      /* TIMER */
+      .timer-wrap {
+        display: flex; align-items: center; gap: 12px;
+      }
+      .timer {
+        font-family: 'SF Mono', Menlo, monospace;
+        font-size: 32px; font-weight: 700;
+        background: #fff8e8; color: var(--ink);
+        padding: 6px 18px; border-radius: 12px;
+        border: 1.5px solid var(--accent);
+        min-width: 140px; text-align: center;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+      }
+      .timer.warn { border-color: #c47a1f; background: #fce6c4; }
+      .timer.over { border-color: var(--red); background: #f4d4cd; color: var(--red-deep); }
+      .timer-btn {
+        padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line);
+        background: var(--card); color: var(--ink); font-weight: 600;
+        cursor: pointer; font-size: 13px;
+      }
+      .timer-btn:hover { background: #fff5dc; }
+      .timer-btn--primary { background: var(--accent); color: #fff; border-color: var(--accent-deep); }
+      .timer-btn--primary:hover { background: var(--accent-deep); }
+      .timer-btn--ghost { background: transparent; }
+
+      /* PHASE MARKERS */
+      .phases {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        margin: 0 0 22px;
+      }
+      .phase {
+        background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+        padding: 12px 14px; position: relative; transition: all 0.2s;
+      }
+      .phase.active { border-color: var(--accent); background: #fff7e0; box-shadow: 0 4px 12px rgba(176,139,63,0.18); }
+      .phase.done { background: #e3e9d4; border-color: var(--done); opacity: 0.85; }
+      .phase-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-soft); font-weight: 600; }
+      .phase-time { font-size: 18px; font-weight: 700; margin-top: 2px; }
+      .phase-name { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+
+      /* QUICK ACTIONS */
+      .quick-bar {
+        display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px;
+        padding: 12px; background: var(--card-soft); border: 1px solid var(--line); border-radius: 14px;
+      }
+      .quick-bar a {
+        padding: 8px 14px; background: #fff8e8; color: var(--ink);
+        text-decoration: none; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+        border: 1px solid var(--line); transition: all 0.15s;
+      }
+      .quick-bar a:hover { background: var(--accent); color: #fff; border-color: var(--accent-deep); }
+      .quick-bar a.primary { background: var(--accent); color: #fff; border-color: var(--accent-deep); }
+      .quick-bar a.primary:hover { background: var(--accent-deep); }
+      .quick-bar a.backup { background: #f4ddc4; border-color: #c98e4b; }
+
+      /* PROGRESS BAR */
+      .progress-shell {
+        background: var(--card-soft); border: 1px solid var(--line); border-radius: 12px;
+        padding: 12px 16px; margin-bottom: 22px;
+        display: flex; align-items: center; gap: 14px;
+      }
+      .progress-bar {
+        flex: 1; height: 10px; background: rgba(132, 117, 107, 0.18);
+        border-radius: 999px; overflow: hidden;
+        box-shadow: inset 0 1px 2px rgba(80,60,20,0.15);
+      }
+      .progress-fill {
+        height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+        transition: width 0.3s; width: 0%;
+      }
+      .progress-text { font-size: 13px; font-weight: 700; color: var(--ink-soft); min-width: 100px; text-align: right; }
+
+      /* STEPS */
+      .step {
+        background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+        padding: 18px 22px; margin-bottom: 14px;
+        display: grid; grid-template-columns: 50px 1fr auto; gap: 18px;
+        align-items: start;
+        box-shadow: 0 2px 8px rgba(80,60,20,0.05), inset 0 1px 0 rgba(255,255,255,0.5);
+        transition: all 0.2s;
+      }
+      .step.active {
+        border-color: var(--accent); background: #fff8e8;
+        box-shadow: 0 6px 18px rgba(176,139,63,0.22), inset 0 1px 0 rgba(255,255,255,0.7);
+      }
+      .step.done { background: #eaeedd; opacity: 0.8; }
+      .step.done .step-num { background: var(--done); color: var(--ink); }
+
+      .step-num {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: var(--accent); color: #fff; font-size: 18px; font-weight: 700;
+        display: grid; place-items: center;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+      }
+      .step-body { min-width: 0; }
+      .step-phase-tag {
+        display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+        padding: 2px 8px; border-radius: 999px;
+        background: var(--card-soft); color: var(--ink-soft); margin-bottom: 6px;
+        border: 1px solid var(--line);
+      }
+      .step-title { font-size: 15.5px; font-weight: 700; margin: 0 0 10px; }
+
+      .step-row {
+        display: grid; grid-template-columns: 90px 1fr; gap: 12px;
+        padding: 6px 0; align-items: start;
+      }
+      .step-row + .step-row { border-top: 1px dashed rgba(132,117,107,0.18); padding-top: 8px; margin-top: 4px; }
+      .step-row-label {
+        font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+        padding: 3px 8px; border-radius: 6px;
+        text-align: center; line-height: 1.4; height: fit-content;
+      }
+      .label-say { background: #d8e5d0; color: var(--green-deep); }
+      .label-click { background: #d6e0ee; color: var(--blue-deep); }
+      .label-fail { background: #f4d4cd; color: var(--red-deep); }
+      .label-backup { background: #f0e4c4; color: var(--accent-deep); }
+      .step-row-content { font-size: 13.5px; line-height: 1.55; }
+      .step-row-content a { color: var(--blue-deep); text-decoration: none; border-bottom: 1px dotted var(--blue-deep); }
+      .step-row-content a:hover { color: var(--accent-deep); border-color: var(--accent-deep); }
+      .step-row-content code {
+        background: var(--card-soft); padding: 1px 6px; border-radius: 4px;
+        font-family: 'SF Mono', Menlo, monospace; font-size: 12px;
+      }
+
+      .step-check {
+        width: 30px; height: 30px; border: 2px solid var(--line); border-radius: 8px;
+        cursor: pointer; background: #fff; display: grid; place-items: center;
+        font-size: 18px; color: transparent; transition: all 0.15s;
+      }
+      .step-check:hover { border-color: var(--accent); }
+      .step.done .step-check { background: var(--green); border-color: var(--green-deep); color: #fff; }
+
+      /* TIPS BLOCK */
+      .tips {
+        margin: 28px 0; padding: 18px 22px;
+        background: linear-gradient(180deg, #f9e9c4 0%, #f1d8a1 100%);
+        border: 1px solid #d4a85b; border-radius: 14px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+      }
+      .tips h3 { margin: 0 0 8px; font-size: 14px; color: var(--accent-deep); }
+      .tips ul { margin: 6px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-soft); }
+      .tips li { margin-bottom: 4px; }
+
+      /* SCROLL TO ACTIVE BUTTON (floating) */
+      .scroll-btn {
+        position: fixed; bottom: 24px; right: 24px;
+        padding: 12px 18px; background: var(--accent); color: #fff;
+        border: none; border-radius: 999px; font-weight: 700; font-size: 13px;
+        box-shadow: 0 6px 18px rgba(80,60,20,0.25); cursor: pointer;
+        z-index: 100;
+      }
+      .scroll-btn:hover { background: var(--accent-deep); }
+
+      @media (max-width: 880px) {
+        .container { padding: 16px; }
+        .topbar { flex-direction: column; gap: 14px; align-items: stretch; }
+        .timer-wrap { justify-content: center; }
+        .phases { grid-template-columns: 1fr 1fr; }
+        .step { grid-template-columns: 40px 1fr; gap: 12px; padding: 14px 16px; }
+        .step-check { grid-column: 1 / -1; justify-self: end; }
+        .step-row { grid-template-columns: 70px 1fr; }
+      }
+
+      @media print {
+        body { background: #fff; }
+        .timer-btn, .scroll-btn, .quick-bar { display: none; }
+        .step { break-inside: avoid; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- TOPBAR -->
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-mark">CCO</div>
+          <div>
+            <div class="brand-title">Presenter Mode · Personalmöte 4 juni 2026</div>
+            <div class="brand-sub">Hair TP Clinic · kontrollerad journalpilot · för Fazli</div>
+          </div>
+        </div>
+        <div class="timer-wrap">
+          <div class="timer" id="timer">15:00</div>
+          <button class="timer-btn timer-btn--primary" id="btnStart">Start</button>
+          <button class="timer-btn" id="btnPause">Paus</button>
+          <button class="timer-btn timer-btn--ghost" id="btnReset">Reset</button>
+        </div>
+      </div>
+
+      <!-- PHASE MARKERS -->
+      <div class="phases">
+        <div class="phase" data-phase="0">
+          <div class="phase-label">Fas 1</div>
+          <div class="phase-time">0–2 min</div>
+          <div class="phase-name">Intro · sätta scen</div>
+        </div>
+        <div class="phase" data-phase="1">
+          <div class="phase-label">Fas 2</div>
+          <div class="phase-time">2–7 min</div>
+          <div class="phase-name">Kundkort · identitet</div>
+        </div>
+        <div class="phase" data-phase="2">
+          <div class="phase-label">Fas 3</div>
+          <div class="phase-time">7–12 min</div>
+          <div class="phase-name">Journal · signera · rättelse</div>
+        </div>
+        <div class="phase" data-phase="3">
+          <div class="phase-label">Fas 4</div>
+          <div class="phase-time">12–15 min</div>
+          <div class="phase-name">Regler · frågor</div>
+        </div>
+      </div>
+
+      <!-- QUICK ACTIONS -->
+      <div class="quick-bar">
+        <a class="primary" href="/cco-personal-start.html" target="_blank" rel="noopener">▶ Personalstart</a>
+        <a href="/kunder.html" target="_blank" rel="noopener">Kundlista</a>
+        <a href="/cco-customer-detail.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">Pilotkund 1 (A)</a>
+        <a href="/cco-customer-detail.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">Pilotkund 2 (B)</a>
+        <a href="/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">Pilotkund 3 (C)</a>
+        <a href="/journal-pilot-guide.html" target="_blank" rel="noopener">📖 Personalguide</a>
+        <a href="/journal-pilot-print-pack.html" target="_blank" rel="noopener">🖨 Print pack</a>
+        <a class="backup" href="https://major-arcana-frankfurt.onrender.com/cco-personal-start.html" target="_blank" rel="noopener">🆘 Backup-URL</a>
+      </div>
+
+      <!-- PROGRESS -->
+      <div class="progress-shell">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">0 / 14 steg</div>
+      </div>
+
+      <!-- STEPS CONTAINER (injected by JS) -->
+      <div id="steps"></div>
+
+      <!-- TIPS -->
+      <div class="tips">
+        <h3>🧭 Sista koll innan du startar mötet</h3>
+        <ul>
+          <li>Stäng alla flikar utom de fyra du behöver (personalstart, personalguide, admin, backup)</li>
+          <li>Mute notifications (mac: Do Not Disturb / win: Focus Assist)</li>
+          <li>Klicka <strong>Start</strong> på timern när du börjar prata</li>
+          <li>Pricka av varje steg (cirkeln till höger) när du gör det — håller dig på spår</li>
+          <li>Om något failar: läs raden "Om det failar" — den finns för varje steg</li>
+        </ul>
+      </div>
+    </div>
+
+    <button class="scroll-btn" id="scrollBtn">↓ Aktivt steg</button>
+
+    <script>
+      const STEPS = [
+        { phase: 0, title: "Öppna personalstart", say: "\"Det här är CCO — vårt nya kundkort och journalnav. Vi börjar kontrollerat med journalföring.\"", click: "Öppna fliken <a href='/cco-personal-start.html' target='_blank' rel='noopener'>/cco-personal-start.html</a>", fail: "Om sidan inte laddar: refresh (Cmd+R). Om kvarstår: backup-URL.", backup: "https://major-arcana-frankfurt.onrender.com/cco-personal-start.html" },
+        { phase: 0, title: "Peka på hero + regler-banner", say: "\"Allt klickbart här är verifierat. Pausade spår är tydligt markerade.\"", click: "Scrolla över hero-texten + den lila banner-rutan högst upp.", fail: "Ingen funktion — bara visning. Inget kan gå fel här.", backup: "" },
+        { phase: 1, title: "Öppna kundlistan", say: "\"Vi börjar i kundlistan. Här söker ni patient på namn, telefon eller Cliento-id.\"", click: "Klicka <strong>\"Öppna kundkort\"</strong> i sektion A (eller fliken <a href='/kunder.html' target='_blank' rel='noopener'>/kunder.html</a>).", fail: "404? Använd backup-URL eller hoppa till pilotkund-länk direkt.", backup: "/kunder.html" },
+        { phase: 1, title: "Öppna pilotkund 1 (A)", say: "\"Den här är en verifierad testpatient. Säker att jobba i live utan att påverka riktiga journaler.\"", click: "Gå tillbaka till personalstart → klicka <strong>\"Öppna pilotkund 1\"</strong>", fail: "Sidan tom? Vänta 5 sek, refresh. Om kvarstår: pilotkund 2 istället.", backup: "/cco-customer-detail.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator" },
+        { phase: 1, title: "Peka på header (identitetskontroll)", say: "\"Före varje signering: verifiera namn, telefon och Cliento-id. Tre saker som måste matcha.\"", click: "Peka på namn/telefon/id i kortets header.", fail: "Ingen funktion — bara visning.", backup: "" },
+        { phase: 2, title: "Öppna journal-fliken", say: "\"Här är journalen. Befintliga poster syns i listan.\"", click: "Klicka <strong>Journal-fliken</strong> på kundkortet.", fail: "Tom lista? Det är ok — vi skapar en ny nu.", backup: "" },
+        { phase: 2, title: "Skapa ny anteckning", say: "\"Vi gör en ny anteckning live. Välj mall, skriv något kort.\"", click: "Klicka <strong>\"Ny anteckning\"</strong> → välj mall <em>Konsultation</em> → skriv: \"Dag-1 pilot, test.\" → <strong>Spara</strong>", fail: "Spara hänger? Stäng modalen → öppna pilotkund 2 istället, testa där.", backup: "/cco-customer-detail.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator" },
+        { phase: 2, title: "Visa draft (innan signering)", say: "\"Det här är en draft. Kan ändras fritt. Inte signerad ännu.\"", click: "Peka på status-badgen \"draft\" på posten.", fail: "Ingen funktion — bara visning.", backup: "" },
+        { phase: 2, title: "Signera posten", say: "\"Nu signerar vi. Detta låser posten — den kan inte ändras direkt — bara via rättelse.\"", click: "Klicka <strong>\"Signera\"</strong> → bekräfta dialog.", fail: "Knapp gråad ut? Refresh sidan, prova igen. Om kvarstår: hoppa till rättelsen på pilotkund 3 där den redan finns.", backup: "/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator" },
+        { phase: 2, title: "Skapa rättelse", say: "\"Behöver vi rätta? Vi skapar en NY post som länkas till originalet. Journalkraven kräver att originalet ALDRIG ändras.\"", click: "Klicka <strong>\"Skapa rättelse\"</strong> → skriv \"Rättelse: kompletterande info.\" → <strong>Spara</strong> → <strong>Signera</strong>", fail: "Om create-correction failar: peka på pilotkund 3 — där finns redan signerad rättelse.", backup: "/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator" },
+        { phase: 2, title: "Öppna timeline-fliken", say: "\"Båda posterna syns kronologiskt. Original och rättelse länkade tydligt. Inget förlorat, allt spårbart.\"", click: "Klicka <strong>Timeline-fliken</strong>.", fail: "Tom timeline? Refresh. Om kvarstår: peka på pilotkund 3 där det redan finns.", backup: "/cco-customer-detail.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator" },
+        { phase: 3, title: "Visa historik + review-badges", say: "\"Här ligger importerad historik från Drive, halso@, GetAccept. Markerade som <em>Behöver granskning</em> är inte verifierade än.\"", click: "Klicka <strong>Historik-fliken</strong> → peka på badges: <code>imported</code>, <code>needs review</code>, <code>drive</code>, <code>getaccept</code>, <code>halso</code>.", fail: "Tom historik? Pröva en annan pilotkund.", backup: "" },
+        { phase: 3, title: "Säg de 5 dag-1-reglerna", say: "Läs upp högt:<br>1. Verifiera identitet före signering<br>2. Skapa inte ny kund vid osäker match<br>3. Review-material är inte klinisk sanning<br>4. Migrerade bilder används inte kliniskt före Photo Review<br>5. Ingen extern AI på journaltext", click: "Gå tillbaka till personalstart → scrolla till sektion D \"Viktiga regler dag 1\".", fail: "Visa /journal-pilot-guide.html (har samma regler).", backup: "/journal-pilot-guide.html" },
+        { phase: 3, title: "Avsluta + öppna för frågor", say: "\"Det här är vårt nya nav. Vi börjar kontrollerat. Mail, Photo Review, Fortnox-sync, Aisia kommer separat. Personalguide ligger på /journal-pilot-guide.html — ha den öppen i en sido-flik medan ni jobbar. Frågor?\"", click: "Öppna /journal-pilot-guide.html i sido-flik och visa snabbt strukturen.", fail: "Inga vanliga fel.", backup: "/journal-pilot-guide.html" }
+      ];
+
+      const stepsContainer = document.getElementById('steps');
+      STEPS.forEach((s, i) => {
+        const div = document.createElement('div');
+        div.className = 'step';
+        div.dataset.phase = s.phase;
+        div.dataset.idx = i;
+        const phaseName = ['Intro','Kundkort','Journal','Avslut'][s.phase];
+        const backupHtml = s.backup ? `<div class="step-row"><div class="step-row-label label-backup">Backup</div><div class="step-row-content"><a href="${s.backup}" target="_blank" rel="noopener">${s.backup}</a></div></div>` : '';
+        div.innerHTML = `
+          <div class="step-num">${i+1}</div>
+          <div class="step-body">
+            <span class="step-phase-tag">${phaseName}</span>
+            <h3 class="step-title">${s.title}</h3>
+            <div class="step-row"><div class="step-row-label label-say">Säg</div><div class="step-row-content">${s.say}</div></div>
+            <div class="step-row"><div class="step-row-label label-click">Klicka</div><div class="step-row-content">${s.click}</div></div>
+            <div class="step-row"><div class="step-row-label label-fail">Om fail</div><div class="step-row-content">${s.fail}</div></div>
+            ${backupHtml}
+          </div>
+          <div class="step-check" data-idx="${i}">✓</div>`;
+        stepsContainer.appendChild(div);
+      });
+
+      // --- CHECKBOX & PROGRESS ---
+      const fill = document.getElementById('progressFill');
+      const txt = document.getElementById('progressText');
+      function updateProgress() {
+        const done = document.querySelectorAll('.step.done').length;
+        const pct = Math.round(done / STEPS.length * 100);
+        fill.style.width = pct + '%';
+        txt.textContent = done + ' / ' + STEPS.length + ' steg';
+      }
+      document.querySelectorAll('.step-check').forEach(c => {
+        c.addEventListener('click', () => {
+          const step = c.closest('.step');
+          step.classList.toggle('done');
+          updateProgress();
+          updateActive();
+        });
+      });
+
+      // --- ACTIVE STEP (first non-done) ---
+      function updateActive() {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        const next = Array.from(document.querySelectorAll('.step')).find(s => !s.classList.contains('done'));
+        if (next) next.classList.add('active');
+        // Active phase
+        document.querySelectorAll('.phase').forEach(p => p.classList.remove('active','done'));
+        if (next) {
+          const phaseEl = document.querySelector(`.phase[data-phase="${next.dataset.phase}"]`);
+          if (phaseEl) phaseEl.classList.add('active');
+          for (let p = 0; p < parseInt(next.dataset.phase); p++) {
+            document.querySelector(`.phase[data-phase="${p}"]`)?.classList.add('done');
+          }
+        } else {
+          document.querySelectorAll('.phase').forEach(p => p.classList.add('done'));
+        }
+      }
+      updateActive();
+
+      // --- TIMER (15 min countdown) ---
+      const timerEl = document.getElementById('timer');
+      let secondsLeft = 15 * 60;
+      let interval = null;
+      function format(s) {
+        const sign = s < 0 ? '-' : '';
+        const a = Math.abs(s);
+        const m = Math.floor(a / 60);
+        const sec = a % 60;
+        return sign + m + ':' + String(sec).padStart(2,'0');
+      }
+      function render() {
+        timerEl.textContent = format(secondsLeft);
+        timerEl.classList.remove('warn','over');
+        if (secondsLeft < 0) timerEl.classList.add('over');
+        else if (secondsLeft <= 180) timerEl.classList.add('warn');
+      }
+      render();
+      document.getElementById('btnStart').addEventListener('click', () => {
+        if (interval) return;
+        interval = setInterval(() => { secondsLeft--; render(); }, 1000);
+      });
+      document.getElementById('btnPause').addEventListener('click', () => {
+        clearInterval(interval); interval = null;
+      });
+      document.getElementById('btnReset').addEventListener('click', () => {
+        clearInterval(interval); interval = null;
+        secondsLeft = 15 * 60; render();
+      });
+
+      // --- SCROLL TO ACTIVE ---
+      document.getElementById('scrollBtn').addEventListener('click', () => {
+        const a = document.querySelector('.step.active');
+        if (a) a.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    </script>
+  </body>
+</html>

@@ -246,6 +246,30 @@ P1 löst. Bakgrund: server.js-IIFE (rad 668-3745) kraschade på en serie missing
 - ✅ `CCO-STAFF-DAY1-JOURNAL-CHECKLIST-2026-06-04.md` — 10-stegs checklist för personal
 - ✅ `cco-personal-start.html` — länk till `/journal-pilot-guide.html` tillagd i hero-CTA-rad
 
+---
+
+## Cycle-7 status 2026-06-02T20:45Z (Claude)
+
+| Komponent | Status |
+|---|---|
+| Journalpilot (E2E) | **PASS** ✅ |
+| Personalstart `/cco-personal-start.html` | **PASS** ✅ (+ diskreta footer-länkar till Presenter/Print/Guide) |
+| **Presenter Mode `/cco-presenter-mode.html`** | **LIVE** ✅ (14-stegs flow, 15-min timer, fas-markörer, progress) |
+| **Print Pack `/journal-pilot-print-pack.html`** | **LIVE** ✅ (9 sektioner, printvänlig A4, ingen patientdata) |
+| Pilotkund 1/2/3 (A/B/C) | **PASS** ✅ |
+| CF API mounted, RBAC enforced | **YES** (auth-test pending — owner-token saknas) |
+| Personalguide `/journal-pilot-guide.html` | **PASS** ✅ |
+| Mail Phase 2 operativ | **READY** men inte dagligt verktyg |
+| Photo Review | **PENDING** (~885 assets needs review) |
+| Drive/historik | **IMPORTED** med review-status badges |
+| Aisia | **PAUSED** bakom feature flag |
+
+### Nya leveranser cycle-7
+
+- ✅ `public/cco-presenter-mode.html` — Fazli's personliga presenter-vy med 14-stegs flow (säg/klicka/om fail/backup per steg), 15-min countdown-timer, 4 fas-markörer (intro/kundkort/journal/avslut), interaktiv progress-checklist, quick-bar med snabblänkar till alla pilotkunder
+- ✅ `public/journal-pilot-print-pack.html` — 9-sektioners printvänlig A4-pack: dag-1-regler, identitetskontroll, signerings-checklist, rättelse-flöde (ASCII), review-tabell, eskalering, 30-min-tidslinje, 7 patientfrågor med svar, "aldrig dag 1"-lista. Print-CSS optimerad.
+- ✅ `cco-personal-start.html` — 3 diskreta footer-länkar tillagda: Presenter mode · Print pack · Personalguide (mellan baseline-text och footer)
+
 ### Frys-status fram till 4 juni
 
 - ❌ Ingen ny journalmodul · ingen Aisia · ingen Photo Review-kod · ingen ny mailimport · ingen ny Drive-import
