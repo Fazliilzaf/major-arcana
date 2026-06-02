@@ -205,8 +205,25 @@ function photoReviewStatus() {
 
 async function mailReadiness() {
   const pageStatus = await probe('GET', '/ambiguous-mail-enrichment-review.html');
+  const fallback = {
+    ambiguousTotal: 493,
+    pending: 493,
+    approved: 0,
+    excluded: 0,
+    unresolved: 0,
+    remaining: 493,
+    mailboxCounts: {
+      'contact@hairtpclinic.com': 0,
+      'egzona@hairtpclinic.com': 0,
+      'fazli@hairtpclinic.com': 0,
+      'marknad@hairtpclinic.com': 0,
+    },
+    readyForWork: false,
+    adjustedCoveragePercent: 93,
+  };
   let apiNote = 'API kräver inloggning — UI monterad, manuell review aktivt spår';
   let operational = 'PHASE_2_UI_READY';
+  let progress = { ...fallback, source: 'doc_fallback' };
   try {
     const tokenScript = run('node scripts/get-prod-auth-token.js --owner');
     if (tokenScript.ok) {
@@ -238,9 +255,26 @@ async function mailReadiness() {
         req.end();
       });
       if (summary?.ambiguousTotal != null) {
-        apiNote = `ambiguousTotal=${summary.ambiguousTotal} pending=${summary.pending} readyForWork=${summary.report?.readyForWork}`;
+        const r = summary.report || {};
+        const unresolved =
+          (summary.unresolved ?? 0) +
+          (summary.ownerAcceptedUnresolved ?? r.ownerAcceptedUnresolved ?? 0);
+        progress = {
+          source: 'prod_api',
+          ambiguousTotal: summary.ambiguousTotal ?? r.ambiguousTotal ?? fallback.ambiguousTotal,
+          pending: summary.pending ?? r.remainingAmbiguous ?? fallback.pending,
+          approved: summary.approved ?? r.approved ?? 0,
+          excluded: summary.excluded ?? 0,
+          unresolved,
+          remaining: r.remainingAmbiguous ?? summary.pending ?? fallback.remaining,
+          mailboxCounts: summary.mailboxCounts || r.mailboxCounts || fallback.mailboxCounts,
+          readyForWork: r.readyForWork === true,
+          adjustedCoveragePercent: r.adjustedCoveragePercent ?? fallback.adjustedCoveragePercent,
+          operationalReadiness: r.operationalReadiness ?? operational,
+        };
+        apiNote = `ambiguousTotal=${progress.ambiguousTotal} pending=${progress.pending} approved=${progress.approved} excluded=${progress.excluded} unresolved=${progress.unresolved} remaining=${progress.remaining}`;
         operational =
-          summary.pending > 0 ? 'REVIEW_QUEUE_ACTIVE' : 'COVERAGE_IMPROVED_CHECK_READINESS';
+          progress.pending > 0 ? 'REVIEW_QUEUE_ACTIVE' : 'COVERAGE_IMPROVED_CHECK_READINESS';
       }
     }
   } catch (_) {
@@ -250,9 +284,10 @@ async function mailReadiness() {
     pageStatus,
     uiUrl: '/ambiguous-mail-enrichment-review.html',
     operational,
-    technicalCoverage: '~93% adjusted (readyForWork=false)',
+    technicalCoverage: `~${progress.adjustedCoveragePercent}% adjusted (readyForWork=false)`,
     apiNote,
-    queueNote: '~493 ambiguous · paginering 100/rad · Ladda fler · ingen auto-write',
+    queueNote: '~493 ambiguous · paginering 100/rad · mailbox-filter · ingen auto-write',
+    progress,
     rules: [
       'Ingen auto-write',
       'Ingen fuzzy merge',
@@ -261,6 +296,20 @@ async function mailReadiness() {
       'Ingen ny mailimport',
       'Minst 3 deterministiska fält för approve',
     ],
+  };
+}
+
+async function cfReadiness() {
+  const finance = await probe('GET', '/finance.html');
+  const review = await probe('GET', '/finance-review.html');
+  const reports = await probe('GET', '/finance-reports.html');
+  const allOk = finance === 200 && review === 200 && reports === 200;
+  return {
+    financeStatus: finance,
+    reviewStatus: review,
+    reportsStatus: reports,
+    operational: allOk ? 'INTERN_DEMO_READY' : 'CHECK_ROUTES',
+    note: 'Fortnox blockerad — CCO-native CF internt, ej klinik-P0',
   };
 }
 
@@ -295,10 +344,24 @@ _Prod: ${BASE}_
 | **Operational readiness** | ${report.mail.operational} |
 | **Technical coverage** | ${report.mail.technicalCoverage} |
 | **Review UI** | ${report.mail.pageStatus === 200 ? '200 OK' : report.mail.pageStatus} — \`${report.mail.uiUrl}\` |
-| **Kö** | ~493 ambiguous · paginering · manuell approve |
+| **Progress** | approved **${report.mail.progress.approved}** · unresolved **${report.mail.progress.unresolved}** · excluded **${report.mail.progress.excluded}** · remaining **${report.mail.progress.remaining}** |
+| **Mailbox pending** | contact@ **${report.mail.progress.mailboxCounts['contact@hairtpclinic.com'] ?? '—'}** · egzona@ **${report.mail.progress.mailboxCounts['egzona@hairtpclinic.com'] ?? '—'}** · fazli@ **${report.mail.progress.mailboxCounts['fazli@hairtpclinic.com'] ?? '—'}** · marknad@ **${report.mail.progress.mailboxCounts['marknad@hairtpclinic.com'] ?? '—'}** |
 | **API / not** | ${report.mail.apiNote} |
 
+Export: \`data/reports/mail-ambiguous-operational-status.json\` (kvällsrun)
+
 Regler: ${report.mail.rules.join(' · ')} · **får inte störa journal-demo**
+
+---
+
+## Chief of Finance (internt)
+
+| Route | HTTP |
+| ----- | ---- |
+| \`/finance.html\` | ${report.cf.financeStatus} |
+| \`/finance-review.html\` | ${report.cf.reviewStatus} |
+| \`/finance-reports.html\` | ${report.cf.reportsStatus} |
+| **Status** | **${report.cf.operational}** — ${report.cf.note} |
 
 ---
 
@@ -328,7 +391,9 @@ Regler: ${report.mail.rules.join(' · ')} · **får inte störa journal-demo**
 | Krävs för VISIBLE | ${report.photo.visibleRequirement || 'Photo Review operator + naming → VISIBLE_ON_PATIENT_CARD'} |
 | VISIBLE på kundkort | ${report.photo.photosVisibleCount ?? 0} (före/efter ej kliniska dag 1) |
 | Prod API | ${report.photo.apiStatus ?? (report.photo.source === 'prod_api' ? '200' : '—')} |
+| Operatörverktyg | \`/photo-review.html\` (ej länk från personalstart) |
 | Auto-approve | **NEJ** |
+| Dag 1 klinisk | **NEJ** — migrerade före/efter ej behandlingsbilder före manuell review |
 
 ---
 
@@ -404,10 +469,12 @@ async function main() {
   }
 
   const mail = await mailReadiness();
+  const cf = await cfReadiness();
   const historik = historikStatus();
   const photo = await photoReviewStatusLive();
 
   const opsStatusPath = path.join(REPO, 'public/cco-presentation-ops-status.json');
+  const mailStatusPath = path.join(REPO, 'data/reports/mail-ambiguous-operational-status.json');
   const opsPayload = {
     generatedAt,
     photoReview: {
@@ -416,16 +483,50 @@ async function main() {
       photosVisibleCount: photo.photosVisibleCount ?? 0,
       readOnly: photo.readOnly !== false,
       source: photo.source,
+      operatorToolPath: '/photo-review.html',
+      presentationNote:
+        photo.presentationNote ||
+        '0 VISIBLE före review · migrerade bilder ej kliniska före review',
     },
     historik: {
       halso: historik.halso.status,
       getAccept: historik.getAccept.status,
       driveJournals: historik.driveJournals.status,
+      driveDocuments: historik.driveDocuments.status,
       drivePhotos: historik.drivePhotos.status,
+    },
+    historikReviewQueueTotal: historik.reviewQueueTotal,
+    mailAmbiguous: {
+      operational: mail.operational,
+      ...mail.progress,
+      uiUrl: mail.uiUrl,
+      rules: mail.rules,
+    },
+    cf: {
+      operational: cf.operational,
+      financeStatus: cf.financeStatus,
+      reviewStatus: cf.reviewStatus,
+      reportsStatus: cf.reportsStatus,
     },
   };
   if (!noWrite) {
+    fs.mkdirSync(path.dirname(mailStatusPath), { recursive: true });
     fs.writeFileSync(opsStatusPath, JSON.stringify(opsPayload, null, 2));
+    fs.writeFileSync(
+      mailStatusPath,
+      JSON.stringify(
+        {
+          generatedAt,
+          base: BASE,
+          ...mail.progress,
+          operational: mail.operational,
+          mailboxPending: mail.progress.mailboxCounts,
+          rules: mail.rules,
+        },
+        null,
+        2
+      )
+    );
   }
 
   const report = {
@@ -437,6 +538,7 @@ async function main() {
     pilot2,
     pilot3,
     mail,
+    cf,
     historik,
     photo,
   };
@@ -446,6 +548,12 @@ async function main() {
   console.log('E2E journal:', report.e2eJournal);
   console.log('Pilots:', pilot1, pilot2, pilot3);
   console.log('Mail UI:', mail.pageStatus, mail.operational);
+  console.log(
+    'Mail progress:',
+    `approved=${mail.progress.approved}`,
+    `remaining=${mail.progress.remaining}`
+  );
+  console.log('CF:', cf.operational, cf.financeStatus, cf.reviewStatus);
   console.log('');
 
   const md = buildMarkdown(report);

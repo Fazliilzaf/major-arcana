@@ -1,16 +1,53 @@
 {
-  "generatedAt": "2026-06-02T16:57:46.051Z",
+  "generatedAt": "2026-06-02T17:16:31.797Z",
   "photoReview": {
     "pendingPhotos": 860,
     "patientsWithPendingPhotos": 150,
     "photosVisibleCount": 0,
     "readOnly": true,
-    "source": "local_snapshot_prod_api_empty"
+    "source": "local_snapshot_prod_api_empty",
+    "operatorToolPath": "/photo-review.html",
+    "presentationNote": "860 pending / 150 kunder / 0 VISIBLE (operatörsreferens från prod-data-snapshot)"
   },
   "historik": {
     "halso": "IMPORTED_SAFE_MATCH",
     "getAccept": "IMPORTED",
     "driveJournals": "IMPORTED_SAFE_MATCH",
+    "driveDocuments": "IMPORTED_PARTIAL",
     "drivePhotos": "NEEDS_REVIEW"
+  },
+  "historikReviewQueueTotal": 1497,
+  "mailAmbiguous": {
+    "operational": "PHASE_2_UI_READY",
+    "ambiguousTotal": 493,
+    "pending": 493,
+    "approved": 0,
+    "excluded": 0,
+    "unresolved": 0,
+    "remaining": 493,
+    "mailboxCounts": {
+      "contact@hairtpclinic.com": 0,
+      "egzona@hairtpclinic.com": 0,
+      "fazli@hairtpclinic.com": 0,
+      "marknad@hairtpclinic.com": 0
+    },
+    "readyForWork": false,
+    "adjustedCoveragePercent": 93,
+    "source": "doc_fallback",
+    "uiUrl": "/ambiguous-mail-enrichment-review.html",
+    "rules": [
+      "Ingen auto-write",
+      "Ingen fuzzy merge",
+      "Ingen customer merge",
+      "Ingen Graph-fetch",
+      "Ingen ny mailimport",
+      "Minst 3 deterministiska fält för approve"
+    ]
+  },
+  "cf": {
+    "operational": "INTERN_DEMO_READY",
+    "financeStatus": 200,
+    "reviewStatus": 200,
+    "reportsStatus": 200
   }
 }

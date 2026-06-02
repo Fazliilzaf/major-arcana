@@ -193,3 +193,184 @@ button:disabled {
   background: #243247;
   border: 1px solid var(--amr-border);
 }
+
+.amr-progress {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--amr-border);
+  border-radius: 8px;
+  background: rgba(17, 24, 34, 0.6);
+}
+
+.amr-progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.amr-progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #1a2433;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+}
+
+.amr-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--amr-accent);
+  border-radius: 999px;
+}
+
+.amr-progress-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.amr-pill {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--amr-border);
+  background: #243247;
+}
+
+.amr-pill--ok {
+  border-color: var(--amr-ok);
+}
+
+.amr-pill--warn {
+  border-color: #e6b84d;
+}
+
+.amr-pill--accent {
+  border-color: var(--amr-accent);
+}
+
+.amr-mailbox-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0 1rem;
+}
+
+button.amr-chip {
+  border: 1px solid var(--amr-border);
+  background: #1a2433;
+  color: var(--amr-text);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+button.amr-chip.is-active {
+  border-color: var(--amr-accent);
+  background: rgba(77, 163, 255, 0.12);
+}
+
+details.amr-help {
+  margin: 0.75rem 0 1rem;
+  border: 1px solid var(--amr-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(17, 24, 34, 0.5);
+}
+
+details.amr-help summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.amr-help-body {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.amr-help-body ul {
+  margin: 0.4rem 0 0.6rem 1.1rem;
+}
+
+ol.amr-steps {
+  margin: 0 0 0.75rem;
+  padding-left: 1.15rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--amr-muted);
+}
+
+.amr-queue-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.amr-shortcuts {
+  font-size: 0.78rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.amr-tag--ok {
+  border-color: var(--amr-ok);
+  color: var(--amr-ok);
+}
+
+.amr-tag--warn {
+  border-color: #e6b84d;
+  color: #e6b84d;
+}
+
+.amr-mailbox-progress {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+
+.amr-why-box,
+.amr-approve-rule {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--amr-border);
+}
+
+.amr-why-box {
+  background: rgba(77, 163, 255, 0.06);
+}
+
+.amr-approve-rule {
+  background: rgba(62, 207, 142, 0.08);
+  border-color: var(--amr-ok);
+  font-size: 0.88rem;
+}
+
+.amr-audit {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px dashed var(--amr-border);
+  font-size: 0.85rem;
+}
+
+.amr-audit-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.75rem;
+  margin: 0.35rem 0 0;
+}
+
+.amr-audit-dl dt {
+  color: var(--amr-muted);
+}
+
+.amr-audit-toast {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--amr-ok);
+  background: rgba(62, 207, 142, 0.1);
+}

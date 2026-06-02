@@ -471,13 +471,32 @@
         <div class="card card--disabled" data-kind="hist">
           <div class="card-kicker">Drive</div>
           <h2>Drive-bilder</h2>
-          <p>Binärer inne · status <strong>NEEDS_REVIEW</strong> (ej VISIBLE).</p>
+          <p>
+            Binärer inne · status <strong>NEEDS_REVIEW</strong> · <strong>0 VISIBLE</strong> på
+            kundkort före manuell granskning.
+          </p>
           <div class="badge-row">
             <span class="badge" data-t="drive">drive</span
             ><span class="badge" data-t="review">needs review</span>
           </div>
         </div>
       </div>
+      <p
+        class="photo-day1-callout"
+        style="
+          font-size: 12px;
+          color: rgba(70, 60, 50, 0.78);
+          margin: 8px 0 0;
+          padding: 10px 12px;
+          border-radius: 8px;
+          border: 1px solid rgba(120, 90, 60, 0.22);
+          background: rgba(255, 248, 240, 0.6);
+        "
+      >
+        <strong>Dag 1:</strong> migrerade före/efter-bilder är
+        <strong>inte kliniska behandlingsbilder</strong> — endast efter Photo Review + naming. Ingen
+        auto-approve · ingen massapproval.
+      </p>
       <p style="font-size: 12px; color: rgba(70, 60, 50, 0.62); margin: 8px 0 0">
         Review-markerat material är <strong>inte</strong> klinisk sanning ännu.
       </p>
@@ -503,15 +522,22 @@
           <div class="card-kicker">Photo Review</div>
           <h2>Bilder finns i CCO</h2>
           <p id="photo-review-copy">
-            Drive-bilder importerade. Status: <strong>NEEDS_REVIEW</strong> — inte
-            <strong>VISIBLE</strong> på kundkort. Använd <strong>inte</strong> migrerade
-            före/efter-bilder kliniskt dag 1. Blockerar inte ny journalföring.
+            Drive-bilder importerade. <strong>860 pending</strong> · <strong>150 kunder</strong> ·
+            <strong>0 VISIBLE</strong> före review. Migrerade före/efter är
+            <strong>inte kliniska dag 1</strong>. Blockerar inte ny journalföring.
           </p>
           <p
             id="photo-review-metrics"
             style="font-size: 12px; color: rgba(70, 60, 50, 0.72); margin: 8px 0 0"
           >
             Operatörsstatus laddas…
+          </p>
+          <p
+            id="photo-review-operator"
+            style="font-size: 12px; color: rgba(70, 60, 50, 0.62); margin: 6px 0 0"
+          >
+            Operatörverktyg: Photo Review (separat operatörssida, ej länkad härifrån) — read-only på
+            prod · ingen auto-approve · ingen massapproval.
           </p>
         </div>
       </div>
@@ -581,7 +607,7 @@
             patients +
             ' kunder · ' +
             visible +
-            ' VISIBLE (före/efter ej kliniska dag 1) · readOnly=' +
+            ' VISIBLE före review · migrerade bilder ej kliniska före review · readOnly=' +
             (data.readOnly !== false);
         }
         Promise.all([

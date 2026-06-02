@@ -59,6 +59,36 @@ body {
   border-color: var(--pr-ok);
 }
 
+.cco-photo-review-readonly-banner {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--pr-accent);
+  background: rgba(77, 163, 255, 0.1);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.cco-photo-review-readonly-banner p {
+  margin: 0.35rem 0 0;
+}
+
+.cco-photo-review-day1 {
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--pr-warn);
+  background: rgba(255, 179, 71, 0.12);
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-readonly-focus {
+  padding: 0.65rem;
+  border: 1px dashed var(--pr-border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
 .cco-photo-review-pilot-banner {
   font-size: 0.85rem;
   color: var(--pr-warn);
