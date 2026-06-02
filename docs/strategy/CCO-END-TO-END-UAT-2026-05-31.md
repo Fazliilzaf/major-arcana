@@ -6,22 +6,22 @@
 
 ## 1 · Live-status mot prod
 
-| Vy / route | URL | Status | Verifierad |
-|---|---|---|---|
-| Personalstart | `/cco-personal-start.html` | 200 ✅ | 2026-06-02 14:17 |
-| Kundlista/kundkort | `/kunder.html` | 200 ✅ | |
-| Journal-feed | `GET /api/v1/cco-customers/:id/journal-feed` | 200 ✅ | E2E PASS |
-| Journal-timeline | `GET /api/v1/cco-customers/:id/journal-timeline` | 200 ✅ | E2E PASS |
-| Journal-quick: skapa | `PUT /api/v1/cco-journal-quick/entry` | 200 ✅ | smoke create→sign→edit_blocked→correction PASS |
-| Journal-quick: signera | `POST .../entry/sign` | 200 ✅ | PASS |
-| Journal-quick: rättelse | `POST .../entry/correction` | 200 ✅ | PASS |
-| cco-forms | `/api/v1/cco-forms/*` | 200 ✅ | PASS |
-| CCO-audit | `/api/v1/cco-audit` | RBAC-skyddad | owner/revisor only |
-| /finance.html | static page | 200 ✅ | UI-shell loads |
-| /finance-review.html | static page | 200 ✅ | UI-shell loads |
-| /finance-reports.html | static page | 200 ✅ | UI-shell loads |
-| **CF API endpoints** | `/api/v1/cco-cf/*` | **403** ✅ (auth required) | Mount-fix 16:42 UTC — 8 stub-moduler |
-| Personal-demo manifest | `/cco-personal-demo-manifest.json` | 200 ✅ | 3 pilotkunder verifierade |
+| Vy / route              | URL                                              | Status                     | Verifierad                                     |
+| ----------------------- | ------------------------------------------------ | -------------------------- | ---------------------------------------------- |
+| Personalstart           | `/cco-personal-start.html`                       | 200 ✅                     | 2026-06-02 14:17                               |
+| Kundlista/kundkort      | `/kunder.html`                                   | 200 ✅                     |                                                |
+| Journal-feed            | `GET /api/v1/cco-customers/:id/journal-feed`     | 200 ✅                     | E2E PASS                                       |
+| Journal-timeline        | `GET /api/v1/cco-customers/:id/journal-timeline` | 200 ✅                     | E2E PASS                                       |
+| Journal-quick: skapa    | `PUT /api/v1/cco-journal-quick/entry`            | 200 ✅                     | smoke create→sign→edit_blocked→correction PASS |
+| Journal-quick: signera  | `POST .../entry/sign`                            | 200 ✅                     | PASS                                           |
+| Journal-quick: rättelse | `POST .../entry/correction`                      | 200 ✅                     | PASS                                           |
+| cco-forms               | `/api/v1/cco-forms/*`                            | 200 ✅                     | PASS                                           |
+| CCO-audit               | `/api/v1/cco-audit`                              | RBAC-skyddad               | owner/revisor only                             |
+| /finance.html           | static page                                      | 200 ✅                     | UI-shell loads                                 |
+| /finance-review.html    | static page                                      | 200 ✅                     | UI-shell loads                                 |
+| /finance-reports.html   | static page                                      | 200 ✅                     | UI-shell loads                                 |
+| **CF API endpoints**    | `/api/v1/cco-cf/*`                               | **403** ✅ (auth required) | Mount-fix 16:42 UTC — 8 stub-moduler           |
+| Personal-demo manifest  | `/cco-personal-demo-manifest.json`               | 200 ✅                     | 3 pilotkunder verifierade                      |
 
 ---
 
@@ -42,11 +42,11 @@ E2E: PASS
 
 **3 pilotkunder verifierade:**
 
-| Slot | Label | customerId | feed | timeline | forms |
-|---|---|---|---|---|---|
-| 1 | Pilotkund A · ren journalföringstest | `cco-pilot-20260602-a` | 200 | 200 | 200 |
-| 2 | Pilotkund B · journal-feed + timeline | `cco-pilot-20260602-b` | 200 | 200 | 200 |
-| 3 | Pilotkund C · signering + rättelse verifierad | `cco-readiness-smoke-1780402011` | 200 | 200 | 200 |
+| Slot | Label                                         | customerId                       | feed | timeline | forms |
+| ---- | --------------------------------------------- | -------------------------------- | ---- | -------- | ----- |
+| 1    | Pilotkund A · ren journalföringstest          | `cco-pilot-20260602-a`           | 200  | 200      | 200   |
+| 2    | Pilotkund B · journal-feed + timeline         | `cco-pilot-20260602-b`           | 200  | 200      | 200   |
+| 3    | Pilotkund C · signering + rättelse verifierad | `cco-readiness-smoke-1780402011` | 200  | 200      | 200   |
 
 ---
 
@@ -96,17 +96,25 @@ Båda måste vara ALL PASS för presentationen. Om något inte är PASS → eska
 
 Allt P0 (kundkort, journal CRUD, signera, rättelse, timeline, forms, audit) fungerar. CF-tracket har en känd backend-blocker som inte påverkar presentationen.
 
-### Cycle-6 statusrefresh 2026-06-02T20:00Z
+---
 
-| Spår | Status |
-|---|---|
-| Journalpilot | **PASS** ✅ |
-| Personalstart | **PASS** ✅ |
-| Pilot 1/2/3 | **PASS** (feed=200, timeline=200, forms=200) ✅ |
-| CF API | **mounted + RBAC enforced** (auth-test pending — token saknas) |
-| Mail Phase 2 | operativ, **inte dagligt verktyg** dag 1 |
-| Photo Review | **pending** (~885 assets, write AV) |
-| Drive/historik | **imported + review-badges** |
-| Aisia | **paused** bakom feature flag |
+## Cycle 6 — UAT-spår (2026-06-02)
+
+| Check                                                  | Resultat                                             |
+| ------------------------------------------------------ | ---------------------------------------------------- |
+| Journalpilot (mounts)                                  | **PASS**                                             |
+| Personalstart preflight                                | **PASS** (inkl. `/journal-pilot-guide.html`)         |
+| Pilot 1/2/3 feed/timeline/forms                        | **PASS**                                             |
+| Journal E2E (create/sign/409/correction/feed/timeline) | **PASS**                                             |
+| Staff one-pager                                        | Klar                                                 |
+| Journal-pilot-guide                                    | Klar · 200                                           |
+| Demo runbook + day-1 checklist                         | Klar                                                 |
+| CF `/api/v1/cco-cf/*`                                  | **403** RBAC · auth-test inloggad owner: **PENDING** |
+| Mail                                                   | Phase 2 UI · ej dagligt verktyg                      |
+| Photo                                                  | 860/150/0 VISIBLE · write AV                         |
+| Drive/historik                                         | IMPORTED / PARTIAL / NEEDS_REVIEW                    |
+| Aisia                                                  | Pausad                                               |
+
+**P0/P1 i demo-flöde:** Inga efter Cycle 6 gate.
 
 _Ingen patientdata i denna rapport._

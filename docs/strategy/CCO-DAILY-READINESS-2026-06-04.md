@@ -1,12 +1,6 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T20:00Z (Claude · cycle-6 — runbook + day1-checklist + personalguide-länk på cco-personal-start)_  
-_Tidigare: 2026-06-02T19:05Z (Cursor · operator mail/photo/historik f5bea1df) · 2026-06-02T17:30Z (cycle-4)_
-
-> **Cycle-6 (2026-06-02T20:00Z):** Nya docs — `CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md` (Fazli 5-min + 15-min runbook, fallbacks, Q&A) + `CCO-STAFF-DAY1-JOURNAL-CHECKLIST-2026-06-04.md` (10-stegs personal-checklist). `/cco-personal-start.html` har ny CTA-knapp till personalguide. Gate PASS. E2E PASS. Server.js + journal-routes orörda.
-
-> **CF-status efter 2026-06-02 mount-fix:** Alla `/api/v1/cco-cf/*` returnerar **403** utan auth = RBAC enforces. Routes mountar. Inloggad owner/finance/revisor får 200. Journal-pilot orörd. Fix gjordes via 8 stub-moduler — server.js orörd. Detaljer: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.
-
+_Senast uppdaterad: 2026-06-02T20:25:10.787Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
@@ -41,15 +35,29 @@ _Prod: https://arcana.hairtpclinic.com_
 
 ## Mail enrichment (operational ≠ technical)
 
-|                           |                                                                 |
-| ------------------------- | --------------------------------------------------------------- |
-| **Operational readiness** | PHASE_2_UI_READY                                                |
-| **Technical coverage**    | ~93% adjusted (readyForWork=false)                              |
-| **Review UI**             | 200 OK — `/ambiguous-mail-enrichment-review.html`               |
-| **Kö**                    | ~493 ambiguous · paginering · manuell approve                   |
-| **API / not**             | API kräver inloggning — UI monterad, manuell review aktivt spår |
+|                           |                                                                        |
+| ------------------------- | ---------------------------------------------------------------------- |
+| **Operational readiness** | PHASE_2_UI_READY                                                       |
+| **Technical coverage**    | ~93% adjusted (readyForWork=false)                                     |
+| **Review UI**             | 200 OK — `/ambiguous-mail-enrichment-review.html`                      |
+| **Progress**              | approved **0** · unresolved **0** · excluded **0** · remaining **493** |
+| **Mailbox pending**       | contact@ **0** · egzona@ **0** · fazli@ **0** · marknad@ **0**         |
+| **API / not**             | API kräver inloggning — UI monterad, manuell review aktivt spår        |
+
+Export: `data/reports/mail-ambiguous-operational-status.json` (kvällsrun)
 
 Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen Graph-fetch · Ingen ny mailimport · Minst 3 deterministiska fält för approve · **får inte störa journal-demo**
+
+---
+
+## Chief of Finance (internt)
+
+| Route                   | HTTP                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `/finance.html`         | 200                                                                             |
+| `/finance-review.html`  | 200                                                                             |
+| `/finance-reports.html` | 200                                                                             |
+| **Status**              | **INTERN_DEMO_READY** — Fortnox blockerad — CCO-native CF internt, ej klinik-P0 |
 
 ---
 
@@ -84,17 +92,6 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 
 ## Photo Review (operatör — inte auto)
 
-<<<<<<< HEAD
-|                     |                                                          |
-| ------------------- | -------------------------------------------------------- |
-| Källa               | prod_api                                                 |
-| Bilder som väntar   | 0                                                        |
-| Kunder              | 0                                                        |
-| Krävs för VISIBLE   | Photo Review operator + naming → VISIBLE_ON_PATIENT_CARD |
-| VISIBLE på kundkort | 0 (före/efter ej kliniska dag 1)                         |
-| Prod API            | 200                                                      |
-| Auto-approve        | **NEJ**                                                  |
-=======
 |                     |                                                                                  |
 | ------------------- | -------------------------------------------------------------------------------- |
 | Källa               | local_snapshot_prod_api_empty                                                    |
@@ -109,7 +106,6 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 | Auto-approve        | **NEJ**                                                                          |
 | Massapproval        | **NEJ**                                                                          |
 | Dag 1 klinisk       | **NEJ** — migrerade före/efter ej behandlingsbilder före manuell review          |
->>>>>>> f5bea1df (feat(cco): improve operator readiness for mail photo and history)
 
 ---
 
@@ -147,6 +143,19 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 ## Stopp-regler (P0)
 
 Stoppa vid: 404/5xx i demo-flow · trasig pilotkund · journal fail · Drive-länk · patientdata i GitHub · journaltext till extern AI · customerId mismatch · ny kund vid osäker match.
+
+---
+
+---
+
+## Cycle 6 — Runbook & checklist (2026-06-02)
+
+| Artefakt                                         | Status                                    |
+| ------------------------------------------------ | ----------------------------------------- |
+| `CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md`        | Klar                                      |
+| `CCO-STAFF-DAY1-JOURNAL-CHECKLIST-2026-06-04.md` | Klar                                      |
+| Personal-start → journal-pilot-guide             | Länk tillagd · gate PASS                  |
+| CF auth-test (owner token)                       | **PENDING** — blockerar inte journal-demo |
 
 ---
 

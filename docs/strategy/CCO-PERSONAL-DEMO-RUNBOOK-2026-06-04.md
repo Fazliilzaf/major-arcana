@@ -1,172 +1,155 @@
-# CCO Personalmöte · Demo-runbook · 4 juni 2026
+# CCO Personal Demo Runbook — 4 juni 2026
 
-> Fazli's kompletta runbook. Skriv ut eller ha på telefonen.
-> Två versioner: **5-minutersversion** (snabb) + **15-minutersversion** (komplett).
-
----
-
-## 📑 Flikar som ska vara öppna före mötet
-
-| # | Flik | URL |
-|---|---|---|
-| 1 | **Personalstart** (huvudfönster) | `https://arcana.hairtpclinic.com/cco-personal-start.html` |
-| 2 | **Personalguide** (sido-flik) | `https://arcana.hairtpclinic.com/journal-pilot-guide.html` |
-| 3 | **Admin** (för inloggning om du visar CF) | `https://arcana.hairtpclinic.com/admin.html` (inloggad som Fazli) |
-| 4 | **Backup-flik** (om huvud-domän hänger) | `https://major-arcana-frankfurt.onrender.com/cco-personal-start.html` |
-
-**Stäng alla andra flikar.** Inga distraherande tabs under demonstration.
+_För: Fazli · Personalmöte · Kontrollerad journalpilot_  
+_Primär URL: https://arcana.hairtpclinic.com/cco-personal-start.html_  
+_Backup: https://major-arcana-frankfurt.onrender.com/cco-personal-start.html_
 
 ---
 
-## ⚡ 5-minutersversion (snabb-demo)
+## Före mötet — flikar att ha öppna
 
-Använd om du har lite tid eller om personalen redan är insatt.
+| Flik         | URL                         | Varför                                     |
+| ------------ | --------------------------- | ------------------------------------------ |
+| 1 · Huvud    | `/cco-personal-start.html`  | Demo-start                                 |
+| 2 · Guide    | `/journal-pilot-guide.html` | Personal kan scanna under mötet            |
+| 3 · (valfri) | `/kunder.html`              | Snabb öppning om du hoppar över startsidan |
+| 4 · (valfri) | Backup-URL personal-start   | Om prod hänger                             |
 
-| # | Klicka | Säg |
-|---|---|---|
-| 1 | Öppna `/cco-personal-start.html` | *"Det här är startsidan för intern journalpilot."* |
-| 2 | Klicka **"Öppna pilotkund 1"** | *"Verifierad testpatient. Säker att jobba i live."* |
-| 3 | Klicka **Journal-fliken** → skapa anteckning → spara → signera | *"Signering låser posten. Den kan inte ändras direkt."* |
-| 4 | Klicka **"Skapa rättelse"** → spara → signera | *"Behöver vi rätta? Vi skapar ny post. Originalet ändras aldrig."* |
-| 5 | Klicka **Timeline-fliken** | *"Båda posterna syns kronologiskt — original + rättelse länkade."* |
-| 6 | Avsluta | *"Det här är kärnan. Vi börjar kontrollerat. Frågor?"* |
+**Ha INTE öppet:** mail review, photo review, cco-demo, automation, showcase, analytics.
 
----
+**Tekniskt (T-10 min):**
 
-## 🎬 15-minutersversion (komplett demo)
+```bash
+npm run cco:presentation-gate
+```
 
-Använd om personalen är ny för CCO eller om du vill täcka allt.
-
-### Del 1 — Sätta scen (2 min)
-
-1. Öppna `/cco-personal-start.html`
-2. Säg: *"CCO är vårt nya kundkort och journalnav. Vi börjar kontrollerat med journalföring."*
-3. Peka på hero-texten "Journalföring · Redo för pilot"
-4. Säg: *"Allt som är klickbart här är verifierat. Allt pausat är tydligt markerat."*
-
-### Del 2 — Öppna kundkort + identitet (3 min)
-
-5. Klicka **"Öppna kundkort"** → visar kundlistan
-6. Backa → klicka **"Öppna pilotkund 1"**
-7. Peka på header (namn/telefon/Cliento-id högst upp)
-8. Säg: *"Före varje signering: verifiera namn, telefon och Cliento-id. Tre saker som måste matcha."*
-9. Klicka **journal-fliken** → visa befintliga poster om några finns
-
-### Del 3 — Journal create + signera (3 min)
-
-10. Klicka **"Ny anteckning"**
-11. Välj mall: **Konsultation**
-12. Skriv något kortfattat: *"Dag-1 pilot, test."*
-13. Klicka **"Spara"**
-14. Säg: *"Det här är en draft. Ändras fritt. Inte signerad ännu."*
-15. Klicka **"Signera"** → bekräfta dialog
-16. Säg: *"Nu är posten låst. Den kan inte ändras direkt — bara via rättelse."*
-
-### Del 4 — Rättelse (2 min)
-
-17. Klicka **"Skapa rättelse"**
-18. Säg: *"Vi gör en ny post som är länkad till originalet. Det är journalkraven."*
-19. Skriv: *"Rättelse: kompletterande info."*
-20. Klicka **"Signera"** → bekräfta
-
-### Del 5 — Timeline + historik (3 min)
-
-21. Klicka **Timeline-fliken**
-22. Säg: *"Båda posterna syns kronologiskt. Original + rättelse länkade tydligt."*
-23. Klicka **Historik-fliken**
-24. Peka på badges (`imported`, `needs review`, `drive`, `getaccept`, `halso`)
-25. Säg: *"Här ligger importerad historik. Markerade som review är inte verifierade än."*
-26. Klicka **"Behöver granskning"**-fliken
-27. Säg: *"Det här ska personalen INTE använda som klinisk sanning. Bara referens."*
-
-### Del 6 — Dag-1-regler + avslutning (2 min)
-
-28. Scrolla till sektion 5 i `/cco-personal-start.html`
-29. Säg de 5 reglerna högt:
-   - *Verifiera identitet före signering*
-   - *Skapa inte ny kund vid osäker match*
-   - *Review-material är inte klinisk sanning*
-   - *Migrerade bilder används inte kliniskt före Photo Review*
-   - *Ingen extern AI på journaltext*
-30. Avsluta:
-   > *"Det här är vårt nya kundkort och journalnav. Vi börjar kontrollerat med journalföring. Mail, Photo Review, Fortnox-sync, Aisia kommer separat i nästa steg. Personalguide ligger på `journal-pilot-guide.html` — ha den öppen i en sido-flik medan ni jobbar. Frågor?"*
+Båda delsteg måste vara **PASS**. Vid FAIL → stoppa, P0/P1-fix, kör om.
 
 ---
 
-## 👥 Vad personalen får börja göra (direkt efter mötet)
+## Exakt klickordning (heliga flödet)
 
-- ✅ Öppna kundkort på kända pilotkunder
-- ✅ Verifiera identitet (namn + telefon + Cliento-id)
-- ✅ Skapa journalanteckning
-- ✅ Signera/lås posten
-- ✅ Skapa rättelse som ny post
-- ✅ Läsa importerad historik som referens
-- ✅ Använda timeline för att följa patient över tid
-
----
-
-## 🚫 Vad personalen **inte** ska göra (dag 1)
-
-- ❌ Klinisk användning av migrerade före/efter-bilder (Photo Review ej klar)
-- ❌ Skapa ny kund manuellt vid osäker identitet — eskalera till admin/ops
-- ❌ Kopiera journaltext till externa AI-verktyg (ChatGPT, etc.)
-- ❌ Lita på "Behöver granskning"-material som klinisk sanning
-- ❌ Mail-worklist / unified inbox som dagligt verktyg (aktivering pågår)
-- ❌ AI no-show / AI triage som sanning (ej verifierat)
-- ❌ Aisia / kamera/scalp-funktioner (bakom feature flag)
-- ❌ Förvänta sig Fortnox-fakturor (integration blockerad)
+1. `/cco-personal-start.html`
+2. **Öppna kundkort** → `/kunder.html`
+3. **Öppna pilotkund 1** (eller sök test-ID) → journal-feed-demo med `cco-pilot-20260602-a`
+4. Verifiera identitet på skärmen (namn · telefon · Cliento-id)
+5. Journal-flik → **skapa** anteckning
+6. **Signera/lås**
+7. Försök **redigera låst** → visa blockering (409)
+8. **Skapa rättelse** → signera rättelse
+9. **Timeline**-flik
+10. (Valfritt) Pilotkund 3 → visa befintlig sign+rättelse-tråd
+11. Tillbaka personal-start → historik-badges + dag-1-regler
 
 ---
 
-## 💬 Frågor personal kan ställa + svar
+## Vad Fazli ska säga (kärnreplik)
 
-| Fråga | Svar |
-|---|---|
-| *"Kan jag använda CCO för riktiga patienter direkt?"* | "Ja, för journalföring. Men börja med kända patienter och verifiera identitet alltid." |
-| *"Vad händer om jag signerar fel?"* | "Du gör en rättelse som ny post. Originalet ändras aldrig — det är journalkraven." |
-| *"Vad är 'Behöver granskning'?"* | "Importerat material från Drive, halso@, GetAccept som inte är verifierat ännu. Använd bara som referens." |
-| *"Kan jag använda ChatGPT för att förbättra anteckningar?"* | "Nej. Patientdata får aldrig lämna systemet. Det är vår policy." |
-| *"Varför syns inte alla mina patienters bilder?"* | "Photo Review är pausad — vi har bilderna men granskar fortfarande. Inte kliniskt dag 1." |
-| *"Vad gör jag om sidan kraschar?"* | "Refresh först. Om kvarstår: byt till backup-URL. Om allt är trasigt: säg till Fazli direkt." |
-| *"Hur fakturerar jag mot Fortnox?"* | "Fortnox-integration är pausad. Fakturering sker manuellt via Fazli tills vidare." |
-| *"Kan jag ändra på en signerad post?"* | "Nej. Du gör en rättelse som ny post som länkas till originalet." |
-| *"Vad gör jag om patienten ifrågasätter identitetskontrollen?"* | "Förklara att det är för deras säkerhet. Vi måste vara säkra på att rätt person får rätt vård." |
-| *"Hur länge sparas journalerna?"* | "Lagligt minimum 10 år. Lagras säkert i CCO med full audit." |
+> Det här är **CCO personalstart** för en **kontrollerad journalpilot** — inte full cutover.  
+> Vi börjar med **kända patienter**: verifiera identitet, skriv journal, signera, rättelse, timeline.  
+> **Importerad historik** finns där import är klar.  
+> Allt **“Behöver granskning”** och review-badges är **inte klinisk sanning**.  
+> **Migrerade bilder** finns i systemet men är **inte kliniska dag 1** — Photo Review pågår, write är av.  
+> **Mail** finns men är **inte dagligt verktyg** än (`readyForWork=false`).  
+> Det här är vårt nya **kundkort och journalnav**.
 
 ---
 
-## 🆘 Fallback — om internet/Render hänger
+## 5-minutersversion
 
-### Scenario 1: Sidan laddar långsamt (10+ sek)
-1. Refresha (Cmd+R / F5)
-2. Om kvarstår → öppna backup-URL i ny flik
-3. Säg: *"En sekund — vi tar backup-URL:en istället."*
+| Min | Gör                          | Säg                                                   |
+| --- | ---------------------------- | ----------------------------------------------------- |
+| 0   | Öppna personal-start         | “Startsidan — endast verifierade länkar.”             |
+| 1   | Klick pilotkund 1            | “Anonym testkund för live-demo.”                      |
+| 2   | Visa feed + identitet        | “Alltid verifiera innan signering.”                   |
+| 3   | Skapa + signera (kort)       | “Låst post kan inte ändras.”                          |
+| 4   | Rättelse + timeline (snabbt) | “Rättelse är ny signerad post, originalet står kvar.” |
+| 5   | Scroll dag-1-regler          | “Personal får börja kontrollerat — se checklist.”     |
 
-### Scenario 2: 502 Bad Gateway
-1. Vänta 2 minuter (Render startar om)
-2. Refresha
-3. Om fortfarande 502 → backup-URL
-4. Säg: *"Vi tar en kort paus medan jag säkerställer systemet — under tiden kan vi prata om upplägget."*
-
-### Scenario 3: Internet helt nere
-1. Mobilhotspot från telefonen
-2. Säg: *"Vi byter nätverk — en minut."*
-
-### Scenario 4: Allt fallerar
-1. Visa speaker-notes från `/journal-pilot-guide.html` (cachad lokalt om du öppnat den tidigare)
-2. Whiteboard det viktigaste: 12-stegs flöde + 5 regler
-3. Boka uppföljningsmöte: *"Vi tar live-demon imorgon istället när systemet är stabilt."*
+**Skippa:** CF-djupdykning, mail, photo review UI, Drive-import, AI/Aisia.
 
 ---
 
-## 🧭 Snabb-länkar
+## 15-minutersversion
 
-- **Personalstart:** https://arcana.hairtpclinic.com/cco-personal-start.html
-- **Personalguide:** https://arcana.hairtpclinic.com/journal-pilot-guide.html
-- **Kundlista:** https://arcana.hairtpclinic.com/kunder.html
-- **Backup:** https://major-arcana-frankfurt.onrender.com/cco-personal-start.html
-- **Smoke-test (terminal):** `node scripts/verify-personal-demo-links.js && node scripts/run-personal-demo-readiness.js`
+| Block                    | Innehåll                                                                 |
+| ------------------------ | ------------------------------------------------------------------------ |
+| 1 · Ram (2 min)          | Kontrollerad pilot · inte full prod · dag-1-regler                       |
+| 2 · Kundkort (2 min)     | Öppna kundkort · sektioner · historik-badges read-only                   |
+| 3 · Live journal (6 min) | Skapa → sign → blockera edit → rättelse → sign → feed                    |
+| 4 · Timeline (2 min)     | Kronologi · pilotkund 3 om tid                                           |
+| 5 · Gränser (2 min)      | Review ≠ sanning · bilder · mail · ingen ny kund vid osäker match        |
+| 6 · Personal (1 min)     | Peka på `/journal-pilot-guide.html` + `CCO-STAFF-DAY1-JOURNAL-CHECKLIST` |
 
 ---
 
-_Hair TP Clinic · 4 juni 2026 · Kontrollerad journalföringspilot · Fazli runbook_
+## Backup-plan om sidan hänger
+
+1. **Refresh** samma URL (Ctrl+R / Cmd+R)
+2. **Backup-URL:** `https://major-arcana-frankfurt.onrender.com/cco-personal-start.html`
+3. Om fortfarande fel: öppna **pilotkund 1 direkt** (bypass startsida):  
+   `/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator`
+4. Säg: _“Vi kör på reservväg — journalflödet är verifierat, startsidan laddar om.”_
+5. **Stoppa live skapande** om API ger 5xx — visa **pilotkund 3** (befintlig tråd) istället
+6. Eskalera till ops/Cursor om journal create/sign/correction fail
+
+---
+
+## Vad personal **får** börja göra (dag 1)
+
+- Öppna kundkort på **kända** patienter
+- Verifiera identitet (namn + telefon + Cliento-id)
+- Skapa journal → signera/lås
+- Skapa rättelse vid fel
+- Läsa timeline och importerad historik som **referens**
+- Fråga admin/ops vid osäkerhet
+
+---
+
+## Vad personal **inte** får göra
+
+- Skapa **ny kund** vid osäker identitet
+- Använda **review-material** som klinisk sanning
+- Använda migrerade **före/efter-bilder** kliniskt
+- Kopiera journaltext till **extern AI**
+- Mail/Svarstudio som primärt arbetsverktyg
+- Aisia / kamera-scalp (pausat)
+- Lova “allt är importerat” eller “full cutover”
+
+---
+
+## FAQ — frågor personal kan ställa + svar
+
+| Fråga                                          | Svar                                                                                                    |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| “Kan vi använda gamla Drive-journaler direkt?” | “De finns som referens där import är klar. Osäkert material är markerat review — inte klinisk sanning.” |
+| “Varför syns inte alla bilder?”                | “860 bilder väntar Photo Review. 0 VISIBLE före granskning. Inte kliniska dag 1.”                       |
+| “Kan jag fixa en signerad post?”               | “Nej — skapa **rättelse**. Originalet ändras inte.”                                                     |
+| “Får jag skapa ny kund om jag är osäker?”      | “Nej — stoppa och eskalera. Risk för dubblett.”                                                         |
+| “Fungerar mail i CCO nu?”                      | “Tekniskt pågår aktivering. Inte dagligt verktyg dag 1.”                                                |
+| “Är CCO klart?”                                | “Kontrollerad **journalpilot** är klar. Övriga spår aktiveras stegvis.”                                 |
+| “Vad är pilotkund A/B/C?”                      | “Anonyma test-IDs för demo och smoke — i vardag: riktiga kända patienter.”                              |
+| “Kan jag använda ChatGPT på journaltext?”      | “Nej — patientdata lämnar inte systemet.”                                                               |
+
+---
+
+## Pilot-IDs (demo)
+
+| #   | customerId                       | Användning               |
+| --- | -------------------------------- | ------------------------ |
+| 1   | `cco-pilot-20260602-a`           | Live skapa/sign/rättelse |
+| 2   | `cco-pilot-20260602-b`           | Feed + timeline          |
+| 3   | `cco-readiness-smoke-1780402011` | Befintlig sign+rättelse  |
+
+---
+
+## Relaterade dokument
+
+- `CCO-STAFF-DAY1-JOURNAL-CHECKLIST-2026-06-04.md` — utskriftsbar checklista
+- `CCO-STAFF-JOURNAL-PILOT-ONE-PAGER-2026-06-04.md` — en sida personal
+- `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` — readiness + CF-notis
+- `CCO-FAZLI-MORGON-CHECKLIST-2026-06-04.md` — morgon T-10
+
+---
+
+_Ingen patientdata i detta dokument._

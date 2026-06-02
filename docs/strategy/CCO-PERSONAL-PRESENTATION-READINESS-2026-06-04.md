@@ -132,20 +132,39 @@ _Ingen patientdata i denna rapport._
 
 ---
 
+## Cycle 6 — Demo runbook + staff checklist (2026-06-02)
+
+| Leverans                                          | Status                                                            |
+| ------------------------------------------------- | ----------------------------------------------------------------- |
+| `CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md`         | ✅ Klar (5 min + 15 min + FAQ + backup)                           |
+| `CCO-STAFF-DAY1-JOURNAL-CHECKLIST-2026-06-04.md`  | ✅ Klar (steg + stopp + eskalering)                               |
+| `CCO-STAFF-JOURNAL-PILOT-ONE-PAGER-2026-06-04.md` | ✅ Klar (tidigare)                                                |
+| `/journal-pilot-guide.html`                       | ✅ 200 · länk från personal-start                                 |
+| Journalpilot / personalstart / pilot 1–3 / E2E    | ✅ PASS                                                           |
+| CF API mounted + RBAC 403                         | ✅ · **auth-test med owner-token: PENDING** (token saknas)        |
+| Mail Phase 2 operativ                             | ✅ UI · ej dagligt verktyg                                        |
+| Photo Review                                      | 🟡 860 pending · 150 kunder · 0 VISIBLE · write AV                |
+| Drive/historik                                    | ✅ safe-match · NEEDS_REVIEW bilder · ingen ny riskimport utan GO |
+| Aisia                                             | ⏸ Pausad                                                          |
+
+**Presentation polish:** personal-start — tydligare kontrollerad journalpilot, review ≠ sanning, guide-länk. **Ingen** server.js · **inga** journalroute-ändringar.
+
+---
+
 ## Refresh 2026-06-02T15:30Z (Claude / display-UAT-spår)
 
 Statusverifiering efter frys-lyft + staff one-pager-leverans.
 
 ### Live-probe
 
-| URL | Status |
-|---|---|
-| `/cco-personal-start.html` | **200** ✅ |
-| `/kunder.html` | **200** ✅ |
-| `/cco-personal-demo-manifest.json` | **200** ✅ (3 pilotkunder) |
-| Backup `major-arcana-frankfurt.onrender.com/cco-personal-start.html` | **200** ✅ |
-| `/finance.html` · `/finance-review.html` · `/finance-reports.html` | **200** ✅ (UI-shell) |
-| `/api/v1/cco-cf/*` (CF backend) | **404** ⚠️ — se nedan |
+| URL                                                                  | Status                     |
+| -------------------------------------------------------------------- | -------------------------- |
+| `/cco-personal-start.html`                                           | **200** ✅                 |
+| `/kunder.html`                                                       | **200** ✅                 |
+| `/cco-personal-demo-manifest.json`                                   | **200** ✅ (3 pilotkunder) |
+| Backup `major-arcana-frankfurt.onrender.com/cco-personal-start.html` | **200** ✅                 |
+| `/finance.html` · `/finance-review.html` · `/finance-reports.html`   | **200** ✅ (UI-shell)      |
+| `/api/v1/cco-cf/*` (CF backend)                                      | **404** ⚠️ — se nedan      |
 
 ### Preflight + E2E
 
@@ -166,27 +185,27 @@ P1 löst. Bakgrund: server.js-IIFE (rad 668-3745) kraschade på en serie missing
 
 **Fix: 8 stub-moduler skapade (utan att röra server.js):**
 
-| Modul | Plats | Funktion |
-|---|---|---|
-| `ccoPhotoAnnotationStore` | `src/ops/` | Read = tom, write = 503 |
-| `ccoTreatmentPlanCanvasStore` | `src/ops/` | Read = tom, write = 503 |
-| `ccoSecurePortalLinkStore` | `src/ops/` | Read = null, write = 503 |
-| `ccoOfferPdfFromPlan` | `src/ops/` | `buildOfferHtml` returnerar minimal HTML-platshållare |
-| `ccoCustomerJourneyOverview` | `src/ops/` | `buildCustomerOverview` returnerar tom struktur |
-| `ccoPatientCardSectionBuilder` | `src/ops/` | `buildPatientCardSections` async, tom |
-| `ccoEncounterCompositeBuilder` | `src/ops/` | `buildEncounterComposite` async, tom |
-| `ccoAccessRestriction` | `src/security/` | Pass-through middleware, write = 503 |
+| Modul                          | Plats           | Funktion                                              |
+| ------------------------------ | --------------- | ----------------------------------------------------- |
+| `ccoPhotoAnnotationStore`      | `src/ops/`      | Read = tom, write = 503                               |
+| `ccoTreatmentPlanCanvasStore`  | `src/ops/`      | Read = tom, write = 503                               |
+| `ccoSecurePortalLinkStore`     | `src/ops/`      | Read = null, write = 503                              |
+| `ccoOfferPdfFromPlan`          | `src/ops/`      | `buildOfferHtml` returnerar minimal HTML-platshållare |
+| `ccoCustomerJourneyOverview`   | `src/ops/`      | `buildCustomerOverview` returnerar tom struktur       |
+| `ccoPatientCardSectionBuilder` | `src/ops/`      | `buildPatientCardSections` async, tom                 |
+| `ccoEncounterCompositeBuilder` | `src/ops/`      | `buildEncounterComposite` async, tom                  |
+| `ccoAccessRestriction`         | `src/security/` | Pass-through middleware, write = 503                  |
 
 **Resultat (live probe 16:42 UTC):**
 
-| Route | Före | Efter |
-|---|---|---|
-| `/api/v1/cco-cf/dashboard` | 404 | **403** (RBAC enforces) ✅ |
-| `/api/v1/cco-cf/reports` | 404 | **403** ✅ |
-| `/api/v1/cco-cf/periods` | 404 | **403** ✅ |
-| `/api/v1/cco-cf/receipts` | 404 | **403** ✅ |
-| `/api/v1/cco-cf/expenses` | 404 | **403** ✅ |
-| `/api/v1/cco-cf/review/exports` | 404 | **403** ✅ |
+| Route                           | Före | Efter                      |
+| ------------------------------- | ---- | -------------------------- |
+| `/api/v1/cco-cf/dashboard`      | 404  | **403** (RBAC enforces) ✅ |
+| `/api/v1/cco-cf/reports`        | 404  | **403** ✅                 |
+| `/api/v1/cco-cf/periods`        | 404  | **403** ✅                 |
+| `/api/v1/cco-cf/receipts`       | 404  | **403** ✅                 |
+| `/api/v1/cco-cf/expenses`       | 404  | **403** ✅                 |
+| `/api/v1/cco-cf/review/exports` | 404  | **403** ✅                 |
 
 403 = routes mountade, RBAC `attachRole + requireAnyRole(['owner','finance','revisor'])` blockerar anonyma. Inloggad owner/finance/revisor får 200.
 
@@ -196,10 +215,10 @@ P1 löst. Bakgrund: server.js-IIFE (rad 668-3745) kraschade på en serie missing
 
 ### CF funktionell auth-test 2026-06-02T16:50Z
 
-| Test | Resultat |
-|---|---|
-| Anonym probe alla `/api/v1/cco-cf/*` | **403** (RBAC blockerar) ✅ |
-| Auth probe med owner-token | **EJ KÖRD** — owner utloggad, ingen test-token tillgänglig |
+| Test                                 | Resultat                                                   |
+| ------------------------------------ | ---------------------------------------------------------- |
+| Anonym probe alla `/api/v1/cco-cf/*` | **403** (RBAC blockerar) ✅                                |
+| Auth probe med owner-token           | **EJ KÖRD** — owner utloggad, ingen test-token tillgänglig |
 
 **Status:** CF API **mounted + RBAC enforced**. Funktionell auth-verifiering återupptas när inloggad owner/finance/revisor testar via `/finance.html` UI. Ingen mer CF-verifiering före 4 juni per owner-direktiv.
 
