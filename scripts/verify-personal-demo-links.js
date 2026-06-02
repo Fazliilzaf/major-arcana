@@ -1,188 +1,208 @@
 #!/usr/bin/env node
-/**
- * verify-personal-demo-links.js
- *
- * Preflight-skript för personal-demo.html. Kontrollerar:
- *  - alla href:s i sidan
- *  - status 200 eller expected auth response (401/403/400)
- *  - inga 404
- *  - inga webcal://localhost
- *  - inga Drive-länkar
- *  - inga externa mock-länkar
- *  - inga disabled kort med href
- *
- * Kör:
- *   node scripts/verify-personal-demo-links.js [--base=https://arcana.hairtpclinic.com]
- *
- * Exit-kod 0 om allt OK, 1 om något fel.
- */
-
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
-const http = require('http');
+/**
+ * verify-personal-demo-links.js — preflight för personal-start-sida
+ *
+ * Kontrollerar:
+ * - alla <a href> i sidan
+ * - status 200 (sidor) eller förväntat auth-svar för API
+ * - inga 404 / 5xx
+ * - inga webcal://localhost, Drive-länkar, mock/redlist-paths
+ * - disabled kort får inte ha aktiv href
+ * - manifest pilotkunder: feed + timeline + forms
+ *
+ * Kör:
+ *   node scripts/verify-personal-demo-links.js
+ *   CCO_PERSONAL_DEMO_BASE=https://arcana.hairtpclinic.com node scripts/verify-personal-demo-links.js
+ */
 
-const args = process.argv.slice(2);
-const baseArg = args.find((a) => a.startsWith('--base='));
-const BASE = baseArg ? baseArg.split('=')[1] : 'https://arcana.hairtpclinic.com';
+const fs = require('node:fs');
+const path = require('node:path');
+const http = require('node:http');
+const https = require('node:https');
 
-const SOURCE_FILE = path.join(__dirname, '..', 'public', 'personal-demo.html');
+const REPO = path.join(__dirname, '..');
+const HTML_CANDIDATES = [
+  path.join(REPO, 'public/cco-personal-start.html'),
+  path.join(REPO, 'public/personal-demo.html'),
+];
+const MANIFEST_PATH = path.join(REPO, 'data/reports/cco-personal-demo-manifest.json');
+const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
+const ROLE = process.env.CCO_PERSONAL_DEMO_ROLE || 'owner';
 
-function probe(url, timeoutMs = 8000) {
-  return new Promise((resolve) => {
-    const u = new URL(url);
-    const lib = u.protocol === 'https:' ? https : http;
-    const req = lib.request({
-      method: 'GET',
-      hostname: u.hostname,
-      path: u.pathname + u.search,
-      port: u.port || (u.protocol === 'https:' ? 443 : 80),
-      headers: { 'User-Agent': 'arcana-personal-demo-preflight' },
-      timeout: timeoutMs,
-    }, (res) => {
-      resolve({ ok: true, status: res.statusCode, url });
-      res.resume();
-    });
-    req.on('error', (err) => resolve({ ok: false, error: err.message, url }));
-    req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: 'timeout', url }); });
+const BLOCKED_HREF = [
+  /drive\.google\.com/i,
+  /docs\.google\.com/i,
+  /webcal:\/\/localhost/i,
+  /example\.com/i,
+  /localhost/i,
+];
+const REDLIST_PATH = [/cco-demo\.html/i, /\/showcase/i, /\/automation/i, /\/watch/i, /\/analytics\.html/i];
+
+function fetchUrl(url, opts = {}) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith('https') ? https : http;
+    const req = lib.request(
+      url,
+      {
+        method: opts.method || 'GET',
+        headers: {
+          'x-cco-role': ROLE,
+          'x-cco-tenant': 'hairtpclinic',
+          ...(opts.headers || {}),
+        },
+        timeout: 15000,
+      },
+      (res) => {
+        res.resume();
+        resolve({ status: res.statusCode || 0, url });
+      }
+    );
+    req.on('error', reject);
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    if (opts.body) req.write(opts.body);
     req.end();
   });
 }
 
-function extractAttrs(html, attr) {
-  const re = new RegExp(`${attr}=["']([^"']+)["']`, 'g');
-  const out = [];
+function pickHtmlPath() {
+  for (const p of HTML_CANDIDATES) {
+    if (fs.existsSync(p)) return p;
+  }
+  throw new Error('Ingen personal-demo HTML hittades');
+}
+
+function extractHrefs(html) {
+  const hrefs = [];
+  const re = /<a[^>]+href="([^"#][^"]*)"/g;
   let m;
-  while ((m = re.exec(html)) !== null) out.push(m[1]);
-  return out;
+  while ((m = re.exec(html))) hrefs.push(m[1]);
+  return [...new Set(hrefs)];
 }
 
 function extractDisabledWithHref(html) {
-  // Find any element with data-paused="true" or disabled attribute that ALSO has an href
   const out = [];
-  const re = /<a[^>]*(?:data-paused=["']true["']|disabled)[^>]*>/gi;
+  const re = /<a[^>]*(?:class="[^"]*card--disabled[^"]*"|data-paused=["']true["']|disabled)[^>]*>/gi;
   let m;
-  while ((m = re.exec(html)) !== null) {
-    const tag = m[0];
-    const hrefMatch = /href=["']([^"']+)["']/.exec(tag);
-    if (hrefMatch && hrefMatch[1] && hrefMatch[1] !== '#' && !hrefMatch[1].startsWith('javascript:')) {
-      out.push({ tag, href: hrefMatch[1] });
-    }
+  while ((m = re.exec(html))) {
+    const hrefMatch = /href=["']([^"']+)["']/.exec(m[0]);
+    if (hrefMatch?.[1] && !hrefMatch[1].startsWith('#')) out.push(hrefMatch[1]);
   }
   return out;
 }
 
+function resolveUrl(href) {
+  if (/^https?:\/\//i.test(href)) return href;
+  if (href.startsWith('/')) return BASE.replace(/\/$/, '') + href;
+  return BASE.replace(/\/$/, '') + '/' + href;
+}
+
 async function main() {
-  if (!fs.existsSync(SOURCE_FILE)) {
-    console.error(`[ERROR] ${SOURCE_FILE} saknas`);
-    process.exit(2);
-  }
-  const html = fs.readFileSync(SOURCE_FILE, 'utf8');
+  const htmlPath = pickHtmlPath();
+  const html = fs.readFileSync(htmlPath, 'utf8');
+  const manifest = fs.existsSync(MANIFEST_PATH)
+    ? JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'))
+    : { pilotCustomers: [] };
+  const hrefs = extractHrefs(html);
+  let failed = 0;
+  const results = [];
 
-  console.log(`[verify-personal-demo-links] BASE = ${BASE}`);
-  console.log(`[verify-personal-demo-links] Source = ${path.relative(process.cwd(), SOURCE_FILE)}\n`);
+  console.log('=== verify-personal-demo-links ===');
+  console.log('Base:', BASE);
+  console.log('HTML:', htmlPath);
+  console.log('Links:', hrefs.length);
+  console.log('');
 
-  // 1. Hitta alla href
-  const hrefs = extractAttrs(html, 'href').filter((h) => !h.startsWith('#') && !h.startsWith('mailto:') && !h.startsWith('javascript:'));
-  const externalHrefs = hrefs.filter((h) => /^https?:/i.test(h));
-  const internalHrefs = hrefs.filter((h) => h.startsWith('/'));
-
-  let fails = 0;
-  const failures = [];
-
-  // 2. Förbjudna mönster
-  console.log('--- Förbjudna mönster ---');
-  const blocked = [
-    { kind: 'webcal_localhost', re: /webcal:\/\/localhost/i },
-    { kind: 'drive_link', re: /drive\.google\.com/i },
-    { kind: 'docs_link', re: /docs\.google\.com/i },
-    { kind: 'localhost_link', re: /https?:\/\/localhost/i },
-  ];
-  for (const { kind, re } of blocked) {
-    if (re.test(html)) {
-      console.error(`  ✗ Hittade förbjudet mönster: ${kind}`);
-      failures.push(`Förbjudet mönster: ${kind}`);
-      fails += 1;
-    } else {
-      console.log(`  ✓ Inga ${kind}`);
+  for (const pat of BLOCKED_HREF) {
+    if (pat.test(html)) {
+      console.log('FAIL  blocked pattern in HTML:', pat);
+      failed += 1;
     }
   }
 
-  // 3. Disabled element med href
-  console.log('\n--- Disabled/Pausade element med href ---');
-  const badDisabled = extractDisabledWithHref(html);
-  if (badDisabled.length > 0) {
-    for (const b of badDisabled) {
-      console.error(`  ✗ Pausat/disabled element har href: ${b.href}`);
-      failures.push(`Disabled element med href: ${b.href}`);
-      fails += 1;
-    }
-  } else {
-    console.log('  ✓ Alla disabled/pausade element är utan href');
+  for (const href of extractDisabledWithHref(html)) {
+    console.log('FAIL  disabled element has href:', href);
+    failed += 1;
   }
 
-  // 4. Externa länkar — varna om misstänkta mock-domäner
-  console.log('\n--- Externa länkar ---');
-  if (externalHrefs.length === 0) {
-    console.log('  ✓ Inga externa länkar (förutom fonts/CDN i <link>)');
-  } else {
-    for (const href of externalHrefs) {
-      // Tillåt fonts.googleapis.com och fonts.gstatic.com (i <link rel="preconnect">)
-      if (/^https:\/\/fonts\.(googleapis|gstatic)\.com/.test(href)) {
-        console.log(`  ✓ (font) ${href}`);
-        continue;
-      }
-      // Andra externa: varna men inte fail
-      console.warn(`  ⚠ extern: ${href}`);
+  for (const href of hrefs) {
+    const issues = [];
+    for (const pat of [...BLOCKED_HREF, ...REDLIST_PATH]) {
+      if (pat.test(href)) issues.push(String(pat));
+    }
+
+    let status = 0;
+    try {
+      const r = await fetchUrl(resolveUrl(href.split('#')[0]));
+      status = r.status;
+    } catch (err) {
+      issues.push(err.message);
+    }
+
+    if (status === 404) issues.push('404');
+    if (status >= 500) issues.push('5xx');
+    if (status !== 200 && status !== 404 && status < 500) {
+      /* pages only — auth not expected on static html */
+    }
+    if (status !== 200) issues.push('expected 200, got ' + status);
+
+    const ok = issues.length === 0;
+    if (!ok) failed += 1;
+    results.push({ href, status, ok, issues });
+    console.log(
+      (ok ? 'PASS' : 'FAIL') + '  ' + status + '  ' + href + (issues.length ? ' → ' + issues.join('; ') : '')
+    );
+  }
+
+  console.log('\n--- pilot customers ---');
+  for (const p of manifest.pilotCustomers || []) {
+    const feedUrl = resolveUrl(
+      '/api/v1/cco-customers/' + p.customerId + '/journal-feed?tenantId=hairtpclinic'
+    );
+    const tlUrl = resolveUrl(
+      '/api/v1/cco-customers/' + p.customerId + '/journal-timeline?tenantId=hairtpclinic'
+    );
+    const formsUrl = resolveUrl(
+      '/api/v1/cco-forms/patient/' + p.customerId + '/missing?treatment=fue&tenantId=hairtpclinic'
+    );
+    try {
+      const [feed, tl, forms] = await Promise.all([
+        fetchUrl(feedUrl),
+        fetchUrl(tlUrl),
+        fetchUrl(formsUrl),
+      ]);
+      const ok = feed.status === 200 && tl.status === 200 && forms.status === 200;
+      if (!ok) failed += 1;
+      console.log(
+        (ok ? 'PASS' : 'FAIL') +
+          '  ' +
+          p.redactedLabel +
+          '  feed=' +
+          feed.status +
+          ' timeline=' +
+          tl.status +
+          ' forms=' +
+          forms.status
+      );
+    } catch (err) {
+      failed += 1;
+      console.log('FAIL  ' + p.redactedLabel + '  ' + err.message);
     }
   }
 
-  // 5. Probe interna länkar mot BASE
-  console.log('\n--- Probe interna routes ---');
-  for (const href of internalHrefs) {
-    const url = BASE.replace(/\/$/, '') + href;
-    const res = await probe(url);
-    if (!res.ok) {
-      console.error(`  ✗ ${href} — ${res.error}`);
-      failures.push(`${href} — ${res.error}`);
-      fails += 1;
-      continue;
-    }
-    const code = res.status;
-    // OK-koder: 200 (publik), 401/403/400 (skyddad/auth), 302/301 (redirect)
-    const acceptable = code >= 200 && code < 400 || code === 401 || code === 403;
-    if (code === 404) {
-      console.error(`  ✗ ${code}  ${href}  — 404 ej tillåtet`);
-      failures.push(`${href} — 404`);
-      fails += 1;
-    } else if (acceptable) {
-      console.log(`  ✓ ${code}  ${href}`);
-    } else if (code === 400) {
-      // 400 = route mounted men behöver query params, OK
-      console.log(`  ✓ ${code}  ${href}  (route mounted, behöver params)`);
-    } else if (code >= 500) {
-      console.error(`  ✗ ${code}  ${href}  — server error`);
-      failures.push(`${href} — ${code}`);
-      fails += 1;
-    } else {
-      console.warn(`  ⚠ ${code}  ${href}  — oväntad kod`);
-    }
-  }
-
-  // 6. Sammanfattning
-  console.log('\n========================================');
-  if (fails === 0) {
-    console.log('✅ ALL CHECKS PASS — personal-demo.html är presentation-säker');
-    process.exit(0);
-  }
-  console.error(`❌ ${fails} FAIL`);
-  failures.forEach((f) => console.error(`  - ${f}`));
-  process.exit(1);
+  const reportPath = path.join(REPO, 'data/reports/cco-personal-demo-preflight.json');
+  fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+  fs.writeFileSync(
+    reportPath,
+    JSON.stringify({ generatedAt: new Date().toISOString(), base: BASE, htmlPath, results, failed }, null, 2)
+  );
+  console.log('\nReport:', reportPath);
+  console.log(failed === 0 ? '\n✓ ALL PASS' : '\n✗ FAILURES: ' + failed);
+  process.exit(failed === 0 ? 0 : 1);
 }
 
 main().catch((err) => {
-  console.error('FATAL:', err);
-  process.exit(3);
+  console.error(err);
+  process.exit(1);
 });

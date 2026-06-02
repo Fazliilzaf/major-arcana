@@ -1,216 +1,346 @@
 <!doctype html>
 <html lang="sv">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>CCO · Patientkort</title>
-<link rel="stylesheet" href="/cco-journal-feed.css">
-<style>
-  :root {
-    --cco-bg-page:           #faf6f2;
-    --cco-bg-surface:        #ffffff;
-    --cco-bg-surface-sunken: #f5efe6;
-    --cco-color-brand:       #2b251f;
-    --cco-text-secondary:    rgba(70, 60, 50, 0.62);
-    --cco-text-tertiary:     #8a8174;
-    --rose-pill-top:    rgba(252, 233, 240, 0.98);
-    --rose-pill-bottom: rgba(241, 207, 220, 0.95);
-    --accent-studio:    #bb4779;
-    --calendar-accent:  #c8821e;
-    --panel-shell-top:    rgba(250, 246, 242, 0.94);
-    --panel-shell-bottom: rgba(244, 238, 233, 0.86);
-    --panel-shell-shadow:
-      0 18px 38px rgba(93,74,60,.07),
-      0 6px 18px rgba(156,145,166,.04),
-      0 0 0 1px rgba(255,255,255,.18),
-      inset 0 1px 0 rgba(255,255,255,.5);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background:
-      radial-gradient(ellipse at 12% 0%, rgba(255,225,200,.42), transparent 38%),
-      radial-gradient(ellipse at 88% 4%, rgba(255,210,225,.34), transparent 42%),
-      radial-gradient(circle at 50% 100%, rgba(220,210,255,.18), transparent 48%),
-      var(--cco-bg-page);
-    color: var(--cco-color-brand);
-    font-family: Inter, "Segoe UI", -apple-system, sans-serif;
-    font-size: 13px;
-    line-height: 1.4;
-    min-height: 100vh;
-    padding: 14px;
-  }
-  .page { max-width: 1180px; margin: 0 auto; }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CCO · Patientkort</title>
+    <link rel="stylesheet" href="/cco-journal-feed.css" />
+    <style>
+      :root {
+        --cco-bg-page: #faf6f2;
+        --cco-bg-surface: #ffffff;
+        --cco-bg-surface-sunken: #f5efe6;
+        --cco-color-brand: #2b251f;
+        --cco-text-secondary: rgba(70, 60, 50, 0.62);
+        --cco-text-tertiary: #8a8174;
+        --rose-pill-top: rgba(252, 233, 240, 0.98);
+        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        --accent-studio: #bb4779;
+        --calendar-accent: #c8821e;
+        --panel-shell-top: rgba(250, 246, 242, 0.94);
+        --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+        --panel-shell-shadow:
+          0 18px 38px rgba(93, 74, 60, 0.07), 0 6px 18px rgba(156, 145, 166, 0.04),
+          0 0 0 1px rgba(255, 255, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
+          radial-gradient(circle at 50% 100%, rgba(220, 210, 255, 0.18), transparent 48%),
+          var(--cco-bg-page);
+        color: var(--cco-color-brand);
+        font-family:
+          Inter,
+          'Segoe UI',
+          -apple-system,
+          sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+        min-height: 100vh;
+        padding: 14px;
+      }
+      .page {
+        max-width: 1180px;
+        margin: 0 auto;
+      }
 
-  /* Top-nav identisk med kunder.html */
-  .top-nav { display: flex; align-items: center; gap: 14px; padding: 0 10px 14px; color: var(--cco-text-tertiary); font-size: 12px; }
-  .top-nav .brand { font-weight: 800; color: var(--cco-color-brand); letter-spacing: .06em; font-size: 13px; }
-  .top-nav a { color: inherit; text-decoration: none; padding: 6px 12px; border-radius: 999px; transition: color .15s ease, background .15s ease; }
-  .top-nav a:hover { color: var(--cco-color-brand); }
-  .top-nav a.active {
-    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
-    color: var(--accent-studio); font-weight: 700;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 4px 14px rgba(187, 71, 121, .14);
-  }
-  .top-nav .spacer { flex: 1; }
-  .top-nav .meta { color: var(--cco-text-tertiary); font-size: 11px; }
+      /* Top-nav identisk med kunder.html */
+      .top-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 10px 14px;
+        color: var(--cco-text-tertiary);
+        font-size: 12px;
+      }
+      .top-nav .brand {
+        font-weight: 800;
+        color: var(--cco-color-brand);
+        letter-spacing: 0.06em;
+        font-size: 13px;
+      }
+      .top-nav a {
+        color: inherit;
+        text-decoration: none;
+        padding: 6px 12px;
+        border-radius: 999px;
+        transition:
+          color 0.15s ease,
+          background 0.15s ease;
+      }
+      .top-nav a:hover {
+        color: var(--cco-color-brand);
+      }
+      .top-nav a.active {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        font-weight: 700;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          0 4px 14px rgba(187, 71, 121, 0.14);
+      }
+      .top-nav .spacer {
+        flex: 1;
+      }
+      .top-nav .meta {
+        color: var(--cco-text-tertiary);
+        font-size: 11px;
+      }
 
-  /* Hero-strip */
-  .hero {
-    padding: 16px 20px;
-    border-radius: 22px;
-    background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
-    box-shadow: var(--panel-shell-shadow);
-    backdrop-filter: blur(14px);
-    margin-bottom: 14px;
-    position: relative; overflow: hidden;
-  }
-  .hero::before {
-    content: ""; position: absolute; inset: 0; border-radius: inherit;
-    background: radial-gradient(circle at 12% 6%, rgba(255,255,255,.6), transparent 24%), radial-gradient(circle at 88% 14%, rgba(255,228,238,.28), transparent 22%);
-    pointer-events: none;
-  }
-  .hero > * { position: relative; z-index: 1; }
-  .hero-kicker { color: #84756b; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-  .hero h1 { margin: 4px 0 4px; color: #17191f; font-size: 20px; font-weight: 700; letter-spacing: -.03em; }
-  .hero-sub { color: var(--cco-text-secondary); font-size: 12px; margin: 0; max-width: 720px; }
-  .hero-sub code { background: rgba(255,255,255,.55); padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,.7); font-family: "SF Mono", Monaco, monospace; font-size: 11px; }
+      /* Hero-strip */
+      .hero {
+        padding: 16px 20px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: var(--panel-shell-shadow);
+        backdrop-filter: blur(14px);
+        margin-bottom: 14px;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background:
+          radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.6), transparent 24%),
+          radial-gradient(circle at 88% 14%, rgba(255, 228, 238, 0.28), transparent 22%);
+        pointer-events: none;
+      }
+      .hero > * {
+        position: relative;
+        z-index: 1;
+      }
+      .hero-kicker {
+        color: #84756b;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .hero h1 {
+        margin: 4px 0 4px;
+        color: #17191f;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+      .hero-sub {
+        color: var(--cco-text-secondary);
+        font-size: 12px;
+        margin: 0;
+        max-width: 720px;
+      }
+      .hero-sub code {
+        background: rgba(255, 255, 255, 0.55);
+        padding: 1px 5px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        font-family: 'SF Mono', Monaco, monospace;
+        font-size: 11px;
+      }
 
-  /* Kontroller — segment + nav-btn-mönster från kunder.html */
-  .controls-shell {
-    padding: 12px 16px;
-    border-radius: 22px;
-    background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
-    box-shadow: var(--panel-shell-shadow);
-    backdrop-filter: blur(14px);
-    margin-bottom: 14px;
-    display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
-  }
-  .control { display: flex; flex-direction: column; gap: 4px; }
-  .control label { color: #84756b; font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-  .control input, .control select {
-    appearance: none; border: 1px solid rgba(255,255,255,.82);
-    background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
-    box-shadow: 0 2px 6px rgba(56,40,28,.06), inset 0 1px 0 rgba(255,255,255,.88);
-    padding: 7px 11px; min-height: 30px; min-width: 180px;
-    border-radius: 11px; font: inherit; font-size: 12px;
-    color: var(--cco-color-brand);
-  }
-  .control input:focus, .control select:focus {
-    outline: none; border-color: rgba(200,130,30,.45);
-    box-shadow: 0 0 0 3px rgba(200,130,30,.12), inset 0 1px 0 rgba(255,255,255,.88);
-  }
-  .load-btn {
-    appearance: none; cursor: pointer;
-    padding: 0 14px; min-height: 30px;
-    border-radius: 11px;
-    border: 1px solid rgba(200,130,30,.32);
-    background: linear-gradient(180deg, #fff5e6, #ffe3b8);
-    box-shadow: 0 2px 8px rgba(200,130,30,.22), inset 0 1px 0 rgba(255,255,255,.92);
-    font: inherit; font-size: 11.5px; font-weight: 700;
-    color: var(--calendar-accent);
-    transition: transform .1s ease;
-  }
-  .load-btn:hover { transform: translateY(-1px); }
+      /* Kontroller — segment + nav-btn-mönster från kunder.html */
+      .controls-shell {
+        padding: 12px 16px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow: var(--panel-shell-shadow);
+        backdrop-filter: blur(14px);
+        margin-bottom: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: flex-end;
+      }
+      .control {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .control label {
+        color: #84756b;
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .control input,
+      .control select {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+        box-shadow:
+          0 2px 6px rgba(56, 40, 28, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.88);
+        padding: 7px 11px;
+        min-height: 30px;
+        min-width: 180px;
+        border-radius: 11px;
+        font: inherit;
+        font-size: 12px;
+        color: var(--cco-color-brand);
+      }
+      .control input:focus,
+      .control select:focus {
+        outline: none;
+        border-color: rgba(200, 130, 30, 0.45);
+        box-shadow:
+          0 0 0 3px rgba(200, 130, 30, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.88);
+      }
+      .load-btn {
+        appearance: none;
+        cursor: pointer;
+        padding: 0 14px;
+        min-height: 30px;
+        border-radius: 11px;
+        border: 1px solid rgba(200, 130, 30, 0.32);
+        background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+        box-shadow:
+          0 2px 8px rgba(200, 130, 30, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        font: inherit;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--calendar-accent);
+        transition: transform 0.1s ease;
+      }
+      .load-btn:hover {
+        transform: translateY(-1px);
+      }
 
-  /* Info-strip */
-  .info-strip {
-    margin-top: 14px; padding: 12px 18px;
-    border-radius: 16px;
-    background: rgba(255,255,255,.45);
-    border: 1px solid rgba(255,255,255,.7);
-    font-size: 11.5px; color: var(--cco-text-secondary);
-    line-height: 1.55;
-  }
-  .info-strip code {
-    background: rgba(255,255,255,.7); padding: 1px 5px; border-radius: 4px;
-    border: 1px solid rgba(255,255,255,.6); font-family: "SF Mono", Monaco, monospace; font-size: 11px;
-  }
+      /* Info-strip */
+      .info-strip {
+        margin-top: 14px;
+        padding: 12px 18px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        font-size: 11.5px;
+        color: var(--cco-text-secondary);
+        line-height: 1.55;
+      }
+      .info-strip code {
+        background: rgba(255, 255, 255, 0.7);
+        padding: 1px 5px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        font-family: 'SF Mono', Monaco, monospace;
+        font-size: 11px;
+      }
 
-  @media (max-width: 720px) {
-    .control input, .control select { min-width: 100%; }
-    .control { width: 100%; }
-  }
-</style>
-</head>
-<body>
-<div class="page">
+      @media (max-width: 720px) {
+        .control input,
+        .control select {
+          min-width: 100%;
+        }
+        .control {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="top-nav">
+        <div class="brand">CCO</div>
+        <a href="/">Kalender</a>
+        <a href="/kunder.html">Kunder</a>
+        <a href="#">Konversationer</a>
+        <a href="#">Automation</a>
+        <a href="#">Analytics</a>
+        <a href="/journal-qa.html">Journal-QA</a>
+        <a href="/journal-feed-demo.html" class="active">Patientkort-demo</a>
+        <div class="spacer"></div>
+        <span class="meta">Hair TP Clinic · Demo · localhost:3097</span>
+      </div>
 
-  <div class="top-nav">
-    <div class="brand">CCO</div>
-    <a href="/">Kalender</a>
-    <a href="/kunder.html">Kunder</a>
-    <a href="#">Konversationer</a>
-    <a href="#">Automation</a>
-    <a href="#">Analytics</a>
-    <a href="/journal-qa.html">Journal-QA</a>
-    <a href="/journal-feed-demo.html" class="active">Patientkort-demo</a>
-    <div class="spacer"></div>
-    <span class="meta">Hair TP Clinic · Demo · localhost:3097</span>
-  </div>
+      <div class="hero">
+        <div class="hero-kicker">⌘ Patientkort · journal · bilder · dokument</div>
+        <h1>Patientkort-demo</h1>
+        <p class="hero-sub">
+          Mata in customer-ID + RBAC-roll → ser hela journalflödet från
+          <code>/api/v1/cco-customers/:id/journal-feed</code>. Status-badges, rättelse-modal,
+          tidslinje, thread-grupp. <strong>Inga Drive-länkar.</strong>
+        </p>
+      </div>
 
-  <div class="hero">
-    <div class="hero-kicker">⌘ Patientkort · journal · bilder · dokument</div>
-    <h1>Patientkort-demo</h1>
-    <p class="hero-sub">
-      Mata in customer-ID + RBAC-roll → ser hela journalflödet från
-      <code>/api/v1/cco-customers/:id/journal-feed</code>. Status-badges,
-      rättelse-modal, tidslinje, thread-grupp. <strong>Inga Drive-länkar.</strong>
-    </p>
-  </div>
+      <div class="controls-shell">
+        <div class="control">
+          <label>Customer-ID</label>
+          <input
+            id="cid"
+            type="text"
+            value="anon-patient-001"
+            placeholder="cliento_xxx / anon-patient-001"
+          />
+        </div>
+        <div class="control">
+          <label>Tenant</label>
+          <select id="tenant">
+            <option value="hair_tp">hair_tp · Hair TP Clinic</option>
+            <option value="curatiio">curatiio · Curatiio</option>
+            <option value="hairtpclinic">hairtpclinic · legacy</option>
+          </select>
+        </div>
+        <div class="control">
+          <label>RBAC-roll</label>
+          <select id="role">
+            <option value="owner">Owner</option>
+            <option value="operator">Operator</option>
+            <option value="konsult">Konsult</option>
+            <option value="personal">Personal</option>
+          </select>
+        </div>
+        <button class="load-btn" id="load">↻ Ladda patientkort</button>
+      </div>
 
-  <div class="controls-shell">
-    <div class="control">
-      <label>Customer-ID</label>
-      <input id="cid" type="text" value="anon-patient-001" placeholder="cliento_xxx / anon-patient-001">
+      <div id="mount"></div>
+
+      <div class="info-strip">
+        Endpoint returnerar <code>counters</code> · <code>sectionCounts</code> ·
+        <code>items[]</code> · <code>sections{}</code> · <code>needsAttention[]</code>. Asset-länkar
+        går alltid via <code>/api/v1/cco/assets/:id/download</code> i CCO secure storage — aldrig
+        direkt Drive-URL. Asset-statusar: <strong>VISIBLE_ON_PATIENT_CARD</strong> ·
+        <strong>VERIFIED_IN_CCO</strong> · IMPORTED_TO_CCO · NEEDS_REVIEW · LINK_ONLY_BLOCKER ·
+        FAILED_IMPORT · DUPLICATE.
+      </div>
     </div>
-    <div class="control">
-      <label>Tenant</label>
-      <select id="tenant">
-        <option value="hair_tp">hair_tp · Hair TP Clinic</option>
-        <option value="curatiio">curatiio · Curatiio</option>
-        <option value="hairtpclinic">hairtpclinic · legacy</option>
-      </select>
-    </div>
-    <div class="control">
-      <label>RBAC-roll</label>
-      <select id="role">
-        <option value="owner">Owner</option>
-        <option value="operator">Operator</option>
-        <option value="konsult">Konsult</option>
-        <option value="personal">Personal</option>
-      </select>
-    </div>
-    <button class="load-btn" id="load">↻ Ladda patientkort</button>
-  </div>
 
-  <div id="mount"></div>
-
-  <div class="info-strip">
-    Endpoint returnerar <code>counters</code> · <code>sectionCounts</code> ·
-    <code>items[]</code> · <code>sections{}</code> · <code>needsAttention[]</code>.
-    Asset-länkar går alltid via <code>/api/v1/cco/assets/:id/download</code> i CCO secure storage —
-    aldrig direkt Drive-URL. Asset-statusar: <strong>VISIBLE_ON_PATIENT_CARD</strong> ·
-    <strong>VERIFIED_IN_CCO</strong> · IMPORTED_TO_CCO · NEEDS_REVIEW ·
-    LINK_ONLY_BLOCKER · FAILED_IMPORT · DUPLICATE.
-  </div>
-</div>
-
-<script src="/cco-journal-feed.js"></script>
-<script>
-  const btn = document.getElementById('load');
-  function loadFeed() {
-    const customerId = document.getElementById('cid').value.trim();
-    const tenantId = document.getElementById('tenant').value;
-    const role = document.getElementById('role').value;
-    if (!customerId) { alert('Ange customer-ID'); return; }
-    window.CcoJournalFeed.mount('#mount', {
-      customerId, tenantId,
-      headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId },
-    });
-  }
-  btn.addEventListener('click', loadFeed);
-  loadFeed();
-</script>
-</body>
+    <script src="/cco-journal-feed.js"></script>
+    <script>
+      const btn = document.getElementById('load');
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('customerId')) document.getElementById('cid').value = params.get('customerId');
+      if (params.get('tenant')) document.getElementById('tenant').value = params.get('tenant');
+      if (params.get('role')) document.getElementById('role').value = params.get('role');
+      function loadFeed() {
+        const customerId = document.getElementById('cid').value.trim();
+        const tenantId = document.getElementById('tenant').value;
+        const role = document.getElementById('role').value;
+        if (!customerId) {
+          alert('Ange customer-ID');
+          return;
+        }
+        window.CcoJournalFeed.mount('#mount', {
+          customerId,
+          tenantId,
+          headers: { 'x-cco-role': role, 'x-cco-tenant': tenantId },
+        });
+      }
+      btn.addEventListener('click', loadFeed);
+      loadFeed();
+    </script>
+  </body>
 </html>

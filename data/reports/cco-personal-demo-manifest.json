@@ -1,0 +1,100 @@
+{
+  "generatedAt": "2026-06-02T12:00:00.000Z",
+  "version": "1.0.0",
+  "prodBaseUrl": "https://arcana.hairtpclinic.com",
+  "personalStartPage": "/cco-personal-start.html",
+  "demoStatus": {
+    "journaling": "ready_for_controlled_pilot",
+    "photoReview": "pending",
+    "mailPipeline": "activation_ongoing",
+    "chiefOfFinance": "cco_native_fortnox_blocked",
+    "aisia": "paused"
+  },
+  "pilotCustomers": [
+    {
+      "slot": 1,
+      "customerId": "cco-pilot-20260602-a",
+      "redactedLabel": "Pilotkund A · ren journalföringstest",
+      "journalFeed": "PASS",
+      "journalTimeline": "PASS",
+      "forms": "PASS",
+      "importedHistory": false,
+      "reviewMaterial": false,
+      "kundkortRoute": "/kunder.html",
+      "openRoute": "/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator",
+      "notes": "Anonym testpatient. Skapa/signera/rättelse här under mötet."
+    },
+    {
+      "slot": 2,
+      "customerId": "cco-pilot-20260602-b",
+      "redactedLabel": "Pilotkund B · journal-feed + timeline",
+      "journalFeed": "PASS",
+      "journalTimeline": "PASS",
+      "forms": "PASS",
+      "importedHistory": false,
+      "reviewMaterial": false,
+      "kundkortRoute": "/kunder.html",
+      "openRoute": "/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator",
+      "notes": "Anonym testpatient med en sparad pilotpost."
+    },
+    {
+      "slot": 3,
+      "customerId": "cco-readiness-smoke-1780402011",
+      "redactedLabel": "Pilotkund C · signering + rättelse verifierad",
+      "journalFeed": "PASS",
+      "journalTimeline": "PASS",
+      "forms": "PASS",
+      "importedHistory": false,
+      "reviewMaterial": false,
+      "kundkortRoute": "/kunder.html",
+      "openRoute": "/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator",
+      "notes": "Har signerad original + rättelse i prod smoke. Visa thread/timeline."
+    }
+  ],
+  "verifiedRoutes": [
+    { "path": "/cco-personal-start.html", "purpose": "Personal start" },
+    { "path": "/kunder.html", "purpose": "Kundkort (huvudnav)" },
+    { "path": "/journal-feed-demo.html", "purpose": "Patientkort journal-feed" },
+    { "path": "/journal-build-demo.html", "purpose": "Journal-API referens + demo" },
+    { "path": "/api/v1/cco-customers/:id/journal-feed", "purpose": "Journal-feed API", "probeAs": "GET" },
+    { "path": "/api/v1/cco-customers/:id/journal-timeline", "purpose": "Timeline API", "probeAs": "GET" },
+    { "path": "/api/v1/cco-forms/patient/:id/missing", "purpose": "Forms blocker API", "probeAs": "GET" },
+    { "path": "/finance.html", "purpose": "CF dashboard (internt)" },
+    { "path": "/finance-review.html", "purpose": "Revisorportal" },
+    { "path": "/finance-reports.html", "purpose": "Finance reports" }
+  ],
+  "redList": [
+    "AI no-show",
+    "AI triage",
+    "email-to-booking magic",
+    "unified inbox som färdig daglig vy",
+    "automation hub",
+    "watch app",
+    "multi-tenant showcase",
+    "analytics som sanning",
+    "showcase / AI coach",
+    "Aisia / kamera / treatment canvas (ej P0)"
+  ],
+  "guardrails": [
+    "Inga Drive-länkar i UI",
+    "Ingen patientdata i manifest/rapporter",
+    "Inga tekniska filnamn som visningsnamn",
+    "Skapa inte nya kunder vid osäker identitet",
+    "Ingen extern AI på journaltext"
+  ],
+  "presentationOrder": [
+    "Öppna /cco-personal-start.html",
+    "Klicka Journalföring → Öppna kundkort",
+    "Öppna verifierad pilotkund (A/B/C)",
+    "Visa identitetskontroll",
+    "Visa journal-feed",
+    "Skapa journal på pilotkund A",
+    "Signera/lås",
+    "Visa rättelse på pilotkund C",
+    "Visa timeline-flik",
+    "Visa historik-status (import-badges)",
+    "Visa Behöver granskning-regeln",
+    "Förklara pausade områden (mail, bilder, CF internt)",
+    "Avsluta: kontrollerad journalföringspilot startar nu"
+  ]
+}
