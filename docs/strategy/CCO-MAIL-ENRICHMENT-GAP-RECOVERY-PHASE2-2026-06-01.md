@@ -189,12 +189,12 @@ Verifiering: coverage ↑ · worklist stabil · inga customerId mismatch · inga
 
 #### Blockers
 
-| Blocker                | Beskrivning                                                                                                                                 | Åtgärd                              |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| **Repair-platå**       | 150 `repairable_single_match` — graphMessageId-write uppdaterar inte gap analysis (`messageGroup.graphMessageIdCount`); targeted enrich Δ=0 | **Bugfix C** före fler batchar      |
-| **493 ambiguous**      | `ambiguous_multiple_matches` — ingen auto-write                                                                                             | **Manuell review B**                |
-| **Tröskel 99,5%**      | 638 eff. gap kvar                                                                                                                           | Kräver ovan + ev. säker exkludering |
-| **contact@ / egzona@** | 80,9% / 88,4% coverage                                                                                                                      | Koncentrerad gap-volym              |
+| Blocker                | Beskrivning                                           | Åtgärd                              |
+| ---------------------- | ----------------------------------------------------- | ----------------------------------- |
+| ~~**Repair-platå**~~   | ~~150 `repairable_single_match` — sync-fix deployad~~ | ✅ **Löst** — repairable **0**      |
+| **493 ambiguous**      | `ambiguous_multiple_matches` — ingen auto-write       | **Manuell review B**                |
+| **Tröskel 99,5%**      | 638 eff. gap kvar                                     | Kräver ambiguous-review + ev. exkl. |
+| **contact@ / egzona@** | 80,9% / 88,4% coverage                                | Koncentrerad gap-volym              |
 
 #### Stoppvillkor (denna körning)
 
@@ -227,16 +227,16 @@ Verifiering: coverage ↑ · worklist stabil · inga customerId mismatch · inga
 3. Logga beslut i audit — ingen bulk-merge
 4. Osäkra rader → `leave_unresolved`
 
-### 8. Slutstatus
+### 8. Slutstatus (uppdaterad efter sync-fix)
 
-| Metric                  |                           Värde |
-| ----------------------- | ------------------------------: |
-| **Coverage (adjusted)** |                      **93,07%** |
-| **Enriched**            |                       **8 563** |
-| **Gap (eff.)**          |                         **638** |
-| **Repairable kvar**     | **150** (platå — kräver bugfix) |
-| **Ambiguous kvar**      |                         **493** |
-| **`readyForWork`**      |       **false** (tröskel 99,5%) |
+| Metric                  |                     Värde |
+| ----------------------- | ------------------------: |
+| **Coverage (adjusted)** |                **93,07%** |
+| **Enriched**            |                 **8 563** |
+| **Gap (eff.)**          |                   **638** |
+| **Repairable kvar**     |                     **0** |
+| **Ambiguous kvar**      |                   **493** |
+| **`readyForWork`**      | **false** (tröskel 99,5%) |
 
 #### Per mailbox (slut)
 
@@ -257,7 +257,7 @@ Verifiering: coverage ↑ · worklist stabil · inga customerId mismatch · inga
 | ---------- | -------------------------------------------- | ----------------------------------- |
 | **A**      | Exkludera säkert icke-actionable ambiguous   | Endast efter manuell klassificering |
 | **B**      | Manuell review av 493 ambiguous              | **Ja** — största säkra volym        |
-| **C**      | Bugfix: repair→gap analysis sync (150 platå) | **Ja** — blockerar sista repairable |
+| **C**      | Bugfix: repair→gap analysis sync (150 platå) | ✅ **Klart** — repairable 0         |
 | **D**      | Leave unresolved                             | Default för osäkra rader            |
 
 **Kvar till 99,5%:** ~638 eff. gap varav 493 ambiguous + 150 repair-platå + ~rest (contact@/egzona@ koncentration).
@@ -291,16 +291,391 @@ node scripts/run-gap-recovery-phase2.js --repair-canary --wait
 
 # Kontrollerad fortsättning (2× Δ=0 stop)
 node scripts/run-gap-recovery-phase2-continuation.js --snapshot --verify-baseline --batch-loop --batch-size 100 --max-batches 8 --wait
+
+# Repair sync canary (efter main-deploy av 7d62c8d5)
+node scripts/run-gap-recovery-phase2-repair-sync-canary.js --snapshot --canary-limit 25 --wait
+
+# Final gap closure (read-only)
+node scripts/run-final-mail-gap-closure.js
+
+# Parser-empty fallback (owner C)
+node scripts/run-parser-empty-fallback-recovery.js --dry-run
+node scripts/run-parser-empty-fallback-recovery.js --snapshot --canary --canary-limit 25 --wait
+node scripts/run-parser-empty-fallback-recovery.js --full-remaining --canary-limit 125 --wait
 ```
+
+---
+
+## Bugfix: repair → gap-analysis sync (2026-06-02)
+
+**Commit:** `7d62c8d5` (`compliance/pipedrive-pii-purge`)  
+**Prod:** Frankfurt `arcana` (`srv-d8b3i3tckfvc73clgeng`) — deploy verifierad · `repairRunId` i API-svar ✅
+
+### Kod
+
+| Modul                                     | Syfte                                                                                                                                    |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `ccoGraphMessageIdRepairRegistry.js`      | Idempotency: `repairedAt`, `repairedByRunId`, `repairSource=ingestion_ledger`, `newGraphMessageIdHash` (ingen rå graphMessageId i audit) |
+| `alignTruthMessageToGapConversation()`    | Repair-write → gap `conversationKey`                                                                                                     |
+| Gap analysis + registry                   | Reparade rader exkluderas från `missing_graphMessageId`                                                                                  |
+| `reconcileRepairRegistryFromGapDetails()` | Registry backfill från befintlig truth                                                                                                   |
+
+**Registry på disk:** `/var/data/cco-inbox-graph-message-id-repairs.hair-tp-clinic.json` (150 poster efter slutkörning)
+
+---
+
+## Sync-fix kedja (2026-06-02, post-deploy)
+
+**Regler:** Ingen ny mailimport · ingen Graph-fetch · ingen deploy/restart mitt i kedjan · ingen blind loop.
+
+### 1. Post-deploy reload
+
+Deploy nollställde capability → truth-only full backfill:
+
+| Metric     | Före reload | Efter reload |
+| ---------- | ----------- | ------------ |
+| Coverage   | 0%          | **75,31%**   |
+| Enriched   | 0           | **6 885**    |
+| Repairable | —           | **1 265**    |
+| Ambiguous  | —           | **595**      |
+
+### 2. Sync-canary 25 ✅
+
+| Metric            | Före   | Efter      | Δ          |
+| ----------------- | ------ | ---------- | ---------- |
+| Repairable        | 1 265  | **125**    | **−1 140** |
+| Enriched          | 6 885  | **8 563**  | **+1 678** |
+| Adjusted coverage | 75,31% | **93,07%** | +17,76 pp  |
+| Eff. gap          | 2 257  | **638**    | −1 619     |
+| Ambiguous         | 595    | **493**    | −102       |
+
+- 25 repair writes · `repairRunId` ✅ · registry 25 poster
+- Targeted enrich 25 keys · `disabled_job` ej triggad
+- **Verifiering:** repairable minskade · coverage backade inte · worklist stabil
+
+### 3. Slutbatch 50 ✅
+
+| Metric            | Före    | Efter      | Δ        |
+| ----------------- | ------- | ---------- | -------- |
+| Repairable        | **125** | **0**      | **−125** |
+| Enriched          | 8 563   | **8 563**  | 0        |
+| Adjusted coverage | 93,07%  | **93,07%** | 0        |
+| Eff. gap          | 638     | **638**    | 0        |
+| Ambiguous         | 493     | **493**    | 0        |
+
+- 50 repair writes · registry **150** poster totalt
+- Targeted enrich 50 keys · Δ enriched = 0 (redan berikade via canary-side-effect)
+- **Verifiering:** repairable **0** · ingen coverage-regression · inga stop conditions
+
+**Batch 50+50+25 avbröts:** andra batchen stoppade korrekt (`repairable=0`, inga keys kvar).
+
+---
+
+## Slutrapport sync-fix (2026-06-02)
+
+| Metric                       | Baseline (pre fix) | Slut                       |
+| ---------------------------- | ------------------ | -------------------------- |
+| **Repairable**               | **150** (platå)    | **0**                      |
+| **Repaired (denna kedja)**   | —                  | **75 writes** (25 + 50)    |
+| **Registry totalt**          | —                  | **150** (inkl. reconcile)  |
+| **Enriched**                 | 8 563              | **8 563**                  |
+| **Enriched Δ (hela kedjan)** | —                  | **+1 678** (6 885 → 8 563) |
+| **Adjusted coverage**        | 93,07%             | **93,07%**                 |
+| **Eff. gap kvar**            | 638                | **638**                    |
+| **Ambiguous kvar**           | 493                | **493**                    |
+| **`readyForWork`**           | false              | **false** (tröskel 99,5%)  |
+
+### Worklist
+
+| Metric                |                                    Värde |
+| --------------------- | ---------------------------------------: |
+| Worklist rows         |                                   **10** |
+| act-now               |                                    **5** |
+| needsReply            |                                    **5** |
+| unread                |                                    **9** |
+| Lanes                 | all 5 · act-now 5 · today 0 · tomorrow 0 |
+| outOfScopeDraftReview |                                   **29** |
+
+### Stoppvillkor (sync-kedja)
+
+| Villkor                       | Utfall                        |
+| ----------------------------- | ----------------------------- |
+| Repairable minskar inte       | ✅ Minskade 150 → 0           |
+| Targeted enrich Δ=0 efter fix | ✅ Förväntat (redan berikade) |
+| Coverage backar               | ✅ Ingen regression           |
+| customerId mismatch           | ✅ Ej observerad              |
+| duplicate explosion           | ✅ Ej observerad              |
+| Rå mailtext i rapport         | ✅ Endast hashes/keys         |
+| audit/persist fail            | ✅ registrySave ok            |
+| Deploy/restart mitt i kedja   | ✅ Endast före kedjan         |
+
+**Rapportfiler:** `data/imports/phase2-repair-sync-canary-report.json` (gitignored)
+
+### Nästa steg: 493 ambiguous
+
+**Ingen auto-write · ingen fuzzy customer merge.**
+
+| Status                       |   Antal | Åtgärd                         |
+| ---------------------------- | ------: | ------------------------------ |
+| `ambiguous_multiple_matches` | **493** | Manuell review                 |
+| Auto-repair                  |      ❌ | Flera kandidater → ingen write |
+| Customer merge               |      ❌ | Endast vid single-match        |
+
+**Review-regler:**
+
+1. Prioritera `egzona@` och `contact@` (hög gap-volym)
+2. Kräv match på ≥3 deterministiska fält (internetMessageId + subjectHash + receivedAt)
+3. Logga beslut i audit — ingen bulk-merge
+4. Osäkra rader → `leave_unresolved`
+
+**Väg till `readyForWork=true`:** ~638 eff. gap kvar (493 ambiguous + ~145 övrigt). Kräver manuell ambiguous-review (B) — inte fler repair-writes.
+
+---
+
+## Final Mail Gap Closure (2026-06-02)
+
+**Status:** Auto-repair stoppad · read-only analys · ingen deploy/restart · ingen Graph-fetch · ingen ny import.
+
+### Export
+
+| Artefakt                   | Sökväg                                                                |
+| -------------------------- | --------------------------------------------------------------------- |
+| Final gap + klassificering | `data/imports/mail-enrichment-final-gap-2026-06-01.json` (gitignored) |
+| Skript                     | `node scripts/run-final-mail-gap-closure.js`                          |
+
+Ingen rå mailtext · inga graphMessageId · inga patient-ID i export.
+
+### Två mått (tröskel 99,5% oförändrad)
+
+| Mått                               | Värde      | Beskrivning                                              |
+| ---------------------------------- | ---------- | -------------------------------------------------------- |
+| **Technical enrichment coverage**  | **93,07%** | `8563 / 9201` eff. denominator · `readyForWork=false`    |
+| **Operational worklist readiness** | **false**  | 150 parser-empty fallback-kandidater väntar owner-beslut |
+
+Operational readiness = klar endast om alla kvarvarande ej-enriched är i review queue, non-actionable, excluded med motivering, eller owner-accepted unresolved. **493 ambiguous** uppfyller review-queue-kravet; **150 parser-empty** blockerar tills owner väljer A–D.
+
+### Gap-klassificering (774 rå · 638 eff.)
+
+| Closure bucket                            | Rå (774) | Eff. (638) | Beslut                                 |
+| ----------------------------------------- | -------: | ---------: | -------------------------------------- |
+| `ambiguous_multiple_matches_review_queue` |  **493** |    **493** | Manuell review — **ingen auto-write**  |
+| `true_blocker` (parser-empty fallback)    |  **150** |    **150** | Owner-beslut — **inga fler auto-pass** |
+| `non_actionable_system_or_duplicate`      |   **70** |          0 | Dup — exkluderas från eff. gap         |
+| `should_exclude_from_denominator`         |   **61** |          0 | System/scrap — exkluderas              |
+| `unresolved_missing_graphMessageId`       |    **0** |          0 | —                                      |
+| `unsupported_shape`                       |    **0** |          0 | —                                      |
+
+**493 + 150 = 643** rader i eff. klassificering vs **638** eff. gap i coverage — **5 rader** flagg-mismatch mellan gap-analysis och denominator-exclusion-fil (acceptabel avvikelse; räknas inte som blocker).
+
+### Ambiguous review queue (493)
+
+| Mailbox  | Antal (repair-plan) |
+| -------- | ------------------: |
+| contact@ |             **248** |
+| egzona@  |             **175** |
+| fazli@   |              **67** |
+| marknad@ |               **3** |
+
+**Regler (framtida godkännande):**
+
+- Minst **3 deterministiska fält** bland: `internetMessageId`, `subjectHash`, `receivedAt`, `mailbox`, `conversationId`, `fromHash`, `toHash`
+- ❌ ingen fuzzy merge · ❌ ingen customer merge om osäker · ❌ ingen auto-repair
+
+### Resterande ~145 eff. gap (exakt 150 parser-empty)
+
+| Kategori                           |   Antal | Kan exkluderas?  | Bugfix? | Unsupported? | Verklig blocker?  | Rekommendation |
+| ---------------------------------- | ------: | ---------------- | ------- | ------------ | ----------------- | -------------- |
+| **Parser-empty fallback-kandidat** | **150** | Ev. efter review | Nej     | Nej          | Ja (tills beslut) | Owner A/B/C/D  |
+| Unresolved missing graphMessageId  |       0 | —                | —       | —            | —                 | —              |
+| Unsupported shape                  |       0 | —                | —       | —            | —                 | —              |
+
+**150 parser-empty:** truth har graphMessageId + body/subject men AnalyzeInbox-rad saknar workflow-signaler. Fallback enrich _möjlig_ men **inga fler blinda pass** — kräver explicit owner-godkännande eller `leave_unresolved`.
+
+### Slutmetrics
+
+| Metric                           |                           Värde |
+| -------------------------------- | ------------------------------: |
+| **Enriched**                     |                       **8 563** |
+| **Adjusted coverage**            |                      **93,07%** |
+| **Final gap (eff.)**             |                         **638** |
+| **Final gap (rå)**               |                         **774** |
+| **Ambiguous review queue**       |                         **493** |
+| **True blockers (parser-empty)** |                         **150** |
+| **Excluded (dup/scrap)**         | **131** (136 i denominator-fil) |
+| **Operational readiness**        |                       **false** |
+| **`readyForWork`**               |                       **false** |
+
+#### Worklist / multi-mailbox
+
+| Metric               |                                      Värde |
+| -------------------- | -----------------------------------------: |
+| Worklist rows        |                                     **10** |
+| act-now              |                                      **5** |
+| needsReply           |                                      **5** |
+| unread               |                                      **9** |
+| Lanes                |   all 5 · act-now 5 · today 0 · tomorrow 0 |
+| Mailboxes i worklist | kons@ 1 · info@ 2 · contact@ 3 · egzona@ 4 |
+
+| Mailbox  | Coverage |
+| -------- | -------: |
+| fazli@   |   98,42% |
+| kons@    |   99,24% |
+| info@    |   85,33% |
+| marknad@ |   88,24% |
+| egzona@  |   88,36% |
+| contact@ |   80,90% |
+
+### Owner-beslut (väntar)
+
+| Alt   | Beskrivning                                                | Status                   |
+| ----- | ---------------------------------------------------------- | ------------------------ |
+| **A** | Godkänn operational readiness trots ambiguous review queue | ⏸ Ej ännu                |
+| **B** | Bygg ambiguous review UI                                   | **Nästa steg**           |
+| **C** | Parser-empty fallback recovery (150 true blockers)         | ✅ **Klart**             |
+| **D** | Lämna unresolved                                           | Default för osäkra rader |
+
+---
+
+## Parser-empty recovery — Owner C (2026-06-02)
+
+**Beslut:** C kördes kontrollerat · A nekad · B efter parser-empty · ingen blind pass.
+
+### Fallback-policy (regelbaserad)
+
+| Policy                      | Villkor                                                                                                        | Fallback-signaler                                                               | Disposition           |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------- |
+| `true_unanswered_candidate` | inbound/mixed · kundmatch · ej handled/snoozed · senaste inkommande > utgående · graphMessageId + body/subject | `intent=follow_up` · `workflowLane=action_now` · `needsReplyStatus=needs_reply` | needs_action-kandidat |
+| `non_actionable_outbound`   | outbound                                                                                                       | `intent=admin` · `workflowLane=admin_low` · `needsReplyStatus=handled`          | non_actionable        |
+| `exclude_non_actionable`    | system/scrap                                                                                                   | —                                                                               | denominator-exclude   |
+| `unresolved_review`         | osäker / saknar kundidentitet / handled                                                                        | —                                                                               | leave_unresolved      |
+
+**Dry-run (150):** 65 `true_unanswered_candidate` · 85 `non_actionable_outbound` · 0 `unresolved_review` · alla canary-safe.
+
+### Körning
+
+| Steg                    |   Antal | Δ enriched | Δ eff. gap |   Coverage |
+| ----------------------- | ------: | ---------: | ---------: | ---------: |
+| Baseline (post closure) |       — |      8 563 |        638 | **93,07%** |
+| Canary 25               |      25 |    **+25** |    **−24** | **93,33%** |
+| Full 125                |     125 |   **+125** |   **−124** | **94,68%** |
+| **Totalt**              | **150** |   **+150** |   **−148** | **94,68%** |
+
+**Commits:** `e1b50e5f` (feature) · `bbcf20ee` (checkpoint-baseline fix)
+
+**Verifiering:** customerId mismatch 0 · duplicate explosion 0 · coverage ↑ · worklist/lanes stabil · ingen Graph-fetch · ingen ny import · audit per batch.
+
+### Slutmetrics (post parser-empty)
+
+| Metric                     |                          Värde |
+| -------------------------- | -----------------------------: |
+| **Enriched**               |               **8 713** (+150) |
+| **Adjusted coverage**      |                     **94,68%** |
+| **Eff. gap**               |                        **490** |
+| **Parser-empty kvar**      |                          **0** |
+| **Ambiguous review queue** |                        **493** |
+| **Repairable**             |                          **0** |
+| **`readyForWork`**         |              **false** (99,5%) |
+| **Operational readiness**  | **false** (493 ambiguous kvar) |
+
+#### Worklist
+
+| Metric     |                                    Värde |
+| ---------- | ---------------------------------------: |
+| Rows       |                                   **10** |
+| act-now    |                                    **5** |
+| needsReply |                                    **5** |
+| unread     |                                    **9** |
+| Lanes      | all 5 · act-now 5 · today 0 · tomorrow 0 |
+
+**Rapport:** `data/imports/parser-empty-fallback-recovery-report.json` (gitignored)
+
+### Owner B — Ambiguous Review UI (2026-06-02)
+
+**Status:** Aktiverad · ingen auto-repair · ingen fuzzy merge · ingen customer merge · ingen blind enrichment.
+
+#### API (`/api/v1/ops/cco/enrichment/gap-recovery/ambiguous-review/`)
+
+| Endpoint                    | Roll         | Beskrivning                                                                             |
+| --------------------------- | ------------ | --------------------------------------------------------------------------------------- |
+| `GET summary`               | OWNER, STAFF | Totalt, mailbox-fördelning, beslutsstatistik, coverage, operational readiness, worklist |
+| `GET queue`                 | OWNER, STAFF | Paginerad kö (`status=pending\|all`, `mailboxId`, `limit`, `offset`)                    |
+| `GET item?conversationKey=` | OWNER, STAFF | Rad med ambiguityReason, kandidater (hashade), deterministiska matchfält                |
+| `POST decide`               | OWNER        | `go=true` + action                                                                      |
+
+**Actions:** `approve_single_match` · `leave_unresolved` · `exclude_non_actionable` · `reject_candidate`
+
+**Approve-regel:** minst **3** deterministiska fält bland `internetMessageId`, `subjectHash`, `receivedAt`, `mailbox`, `conversationId`, `fromHash`, `toHash`. Blockeras med 409 om under tröskel.
+
+**Vid approve:** single repair-write via `applySingleApprovedGraphMessageIdRepair` → registry → targeted enrich (en rad) om scheduler finns.
+
+**Vid leave_unresolved:** `unresolved_review` eller `owner_accepted_unresolved` — räknas inte som enriched.
+
+**Vid exclude_non_actionable:** kräver `reason` → denominator-exclusion + audit.
+
+#### UI
+
+| Artefakt    | Sökväg                                                           |
+| ----------- | ---------------------------------------------------------------- |
+| Review-sida | `/ambiguous-mail-enrichment-review.html?tenantId=hair-tp-clinic` |
+
+#### Baseline efter Owner C (start för B)
+
+| Metric            |      Värde |
+| ----------------- | ---------: |
+| Enriched          |  **8 713** |
+| Adjusted coverage | **94,68%** |
+| Eff. gap          |    **490** |
+| Ambiguous (kö)    |    **493** |
+| Parser-empty      |      **0** |
+| Repairable        |      **0** |
+| `readyForWork`    |  **false** |
+
+#### Ambiguous mailbox breakdown
+
+| Mailbox  |   Antal |
+| -------- | ------: |
+| contact@ | **248** |
+| egzona@  | **175** |
+| fazli@   |  **67** |
+| marknad@ |   **3** |
+
+#### Operational readiness (efter C, före B-beslut)
+
+| Villkor                  | Status                                                          |
+| ------------------------ | --------------------------------------------------------------- |
+| Parser-empty blockers    | ✅ **0**                                                        |
+| Ambiguous i review queue | ⏳ **493 pending**                                              |
+| Operational readiness    | **false** (493 kvar att reviewa eller acceptera som unresolved) |
+| Worklist intakt          | ✅ 10 rader · act-now 5 · needsReply 5                          |
+
+**Beslut efter B:** operational readiness kan godkännas om alla eff. gap antingen är enriched, excluded med motivering, eller owner-accepted unresolved — även om review-kön inte är tom men alla rader har explicit beslut.
+
+#### Stop conditions (oförändrade)
+
+- customerId mismatch
+- duplicate explosion
+- raw mail body in report
+- patientdata in GitHub
+- auto-merge attempted
+- ambiguous write without 3 deterministic fields
+- coverage regression
 
 ---
 
 ## Moduler
 
-| Fil                                                  | Syfte                                 |
-| ---------------------------------------------------- | ------------------------------------- |
-| `src/ops/ccoInboxEnrichmentDenominatorExclusions.js` | Exclusion persist + adjusted coverage |
-| `src/ops/ccoGraphMessageIdRepairPlan.js`             | Dry-run matcher                       |
-| `src/ops/ccoGraphMessageIdRepairApply.js`            | Canary apply                          |
-| `scripts/run-gap-recovery-phase2.js`                 | Orchestration                         |
-| `scripts/run-gap-recovery-phase2-continuation.js`    | Fortsättning m. platå-stop            |
+| Fil                                                     | Syfte                                 |
+| ------------------------------------------------------- | ------------------------------------- |
+| `src/ops/ccoInboxEnrichmentDenominatorExclusions.js`    | Exclusion persist + adjusted coverage |
+| `src/ops/ccoGraphMessageIdRepairPlan.js`                | Dry-run matcher                       |
+| `src/ops/ccoGraphMessageIdRepairApply.js`               | Canary apply                          |
+| `scripts/run-gap-recovery-phase2.js`                    | Orchestration                         |
+| `src/ops/ccoGraphMessageIdRepairRegistry.js`            | Repair idempotency + gap sync         |
+| `scripts/run-gap-recovery-phase2-repair-sync-canary.js` | Sync canary orchestration             |
+| `src/ops/ccoFinalGapClosure.js`                         | Final gap closure classification      |
+| `scripts/run-final-mail-gap-closure.js`                 | Final gap export orchestration        |
+| `src/ops/ccoParserEmptyFallback.js`                     | Parser-empty rule fallback            |
+| `scripts/run-parser-empty-fallback-recovery.js`         | Parser-empty recovery orchestration   |
+| `src/ops/ccoAmbiguousMailEnrichmentReviewStore.js`      | Review-beslut persist                 |
+| `src/ops/ccoAmbiguousMailEnrichmentReviewService.js`    | Queue, scoring, decide                |
+| `public/ambiguous-mail-enrichment-review.html`          | Review UI                             |

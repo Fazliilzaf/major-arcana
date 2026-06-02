@@ -315,6 +315,7 @@ function classifyRepairRow(gapRow = {}, ingestionIndex, truthIndex) {
     repairStatus,
     matchCount,
     matchStrategy,
+    candidatesFull: dedupeCandidates(candidates),
     candidates: candidates.slice(0, 5).map((candidate) => ({
       source: candidate.source,
       graphMessageId: candidate.graphMessageId,
@@ -385,4 +386,8 @@ module.exports = {
   classifyRepairRow,
   buildRepairTruthMessageFromCandidate,
   parseConversationKey,
+  hashToken,
+  buildCandidateFingerprint,
+  dedupeCandidates,
+  scoreCandidateMatch,
 };

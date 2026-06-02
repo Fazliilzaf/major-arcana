@@ -1,0 +1,181 @@
+:root {
+  color-scheme: light dark;
+  --amr-bg: #0f1419;
+  --amr-panel: #1a2332;
+  --amr-border: #2d3a4d;
+  --amr-text: #e7edf5;
+  --amr-muted: #8fa3bf;
+  --amr-accent: #4da3ff;
+  --amr-ok: #3ecf8e;
+  --amr-warn: #f5a623;
+  --amr-danger: #ff6b6b;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--amr-bg);
+  color: var(--amr-text);
+}
+
+.amr-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.amr-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+.amr-muted {
+  color: var(--amr-muted);
+  font-size: 0.9rem;
+}
+
+.amr-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.amr-stat {
+  background: var(--amr-panel);
+  border: 1px solid var(--amr-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.amr-stat strong {
+  display: block;
+  font-size: 1.25rem;
+}
+
+.amr-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .amr-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.amr-queue,
+.amr-detail {
+  background: var(--amr-panel);
+  border: 1px solid var(--amr-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.amr-queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.amr-queue-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  border-radius: 6px;
+  padding: 0.5rem;
+  cursor: pointer;
+  margin-bottom: 0.25rem;
+}
+
+.amr-queue-item.is-active,
+.amr-queue-item:hover {
+  border-color: var(--amr-accent);
+  background: rgba(77, 163, 255, 0.08);
+}
+
+.amr-candidate {
+  border: 1px solid var(--amr-border);
+  border-radius: 6px;
+  padding: 0.6rem;
+  margin: 0.5rem 0;
+}
+
+.amr-candidate.approvable {
+  border-color: var(--amr-ok);
+}
+
+.amr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+button.amr-btn {
+  border: 1px solid var(--amr-border);
+  background: #243247;
+  color: var(--amr-text);
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+
+button.amr-btn-primary {
+  border-color: var(--amr-ok);
+  background: rgba(62, 207, 142, 0.15);
+}
+
+button.amr-btn-danger {
+  border-color: var(--amr-danger);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.amr-field {
+  margin: 0.5rem 0;
+}
+
+.amr-field input,
+.amr-field textarea,
+.amr-field select {
+  width: 100%;
+  box-sizing: border-box;
+  background: #111822;
+  color: var(--amr-text);
+  border: 1px solid var(--amr-border);
+  border-radius: 6px;
+  padding: 0.45rem;
+}
+
+.amr-error {
+  color: var(--amr-danger);
+  margin-top: 0.75rem;
+}
+
+.amr-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.amr-tag {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: #243247;
+  border: 1px solid var(--amr-border);
+}

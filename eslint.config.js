@@ -270,6 +270,8 @@ module.exports = [
       'public/cco-komm-panel.js',
       'public/cco-kalender-bridge.js',
       'public/cco-photo-review.js',
+      'public/cco-encounter-mapping-review.js',
+      'public/cco-ambiguous-mail-enrichment-review.js',
       'public/konversationer-bottom-actions.js',
     ],
     languageOptions: {

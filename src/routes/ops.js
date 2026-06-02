@@ -44,6 +44,14 @@ const {
   buildParserEmptyFallbackPlan,
   applyParserEmptyFallbackBatch,
 } = require('../ops/ccoParserEmptyFallback');
+const {
+  loadAmbiguousReviewSummary,
+  listAmbiguousReviewQueue,
+  getAmbiguousReviewItem,
+  decideAmbiguousReviewItem,
+  MIN_APPROVE_MATCH_FIELDS,
+  DETERMINISTIC_MATCH_FIELDS,
+} = require('../ops/ccoAmbiguousMailEnrichmentReviewService');
 const { createCcoConversationStateStore } = require('../ops/ccoConversationStateStore');
 const {
   buildCcoInboxEnrichmentBackfillPlan,
@@ -1506,6 +1514,202 @@ function createOpsRouter({
         console.error('[ops/cco/enrichment/gap-recovery/parser-empty/apply]', error);
         return res.status(500).json({
           error: error?.message || 'Kunde inte applicera parser-empty fallback.',
+        });
+      }
+    }
+  );
+
+  function resolveAmbiguousReviewContext(tenantId) {
+    const mailboxIds = resolveCcoHistoryMailboxIds(config);
+    return {
+      tenantId,
+      mailboxIds,
+      capabilityAnalysisStore,
+      ccoMailboxTruthStore,
+      ccoCustomerStore,
+      ccoMailIngestionStore,
+      stateRoot: config.stateRoot,
+    };
+  }
+
+  async function ensureAmbiguousReviewMailboxesLoaded() {
+    const mailboxIds = resolveCcoHistoryMailboxIds(config);
+    for (const mailboxId of mailboxIds) {
+      try {
+        await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+      } catch {
+        /* optional */
+      }
+    }
+    return mailboxIds;
+  }
+
+  router.get(
+    '/ops/cco/enrichment/gap-recovery/ambiguous-review/summary',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'stores saknas för ambiguous-review.' });
+      }
+      try {
+        await ensureAmbiguousReviewMailboxesLoaded();
+        const summary = await loadAmbiguousReviewSummary(resolveAmbiguousReviewContext(tenantId));
+        return res.json({
+          ok: true,
+          phase: 'ambiguous_review_read',
+          ...summary,
+          rules: {
+            noAutoRepair: true,
+            noFuzzyMerge: true,
+            noCustomerMerge: true,
+            noBlindEnrichment: true,
+            minApproveMatchFields: MIN_APPROVE_MATCH_FIELDS,
+            deterministicMatchFields: DETERMINISTIC_MATCH_FIELDS,
+          },
+        });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/ambiguous-review/summary]', error);
+        return res.status(error?.statusCode || 500).json({
+          error: error?.message || 'Kunde inte ladda ambiguous-review summary.',
+        });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/cco/enrichment/gap-recovery/ambiguous-review/queue',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'stores saknas för ambiguous-review.' });
+      }
+      try {
+        await ensureAmbiguousReviewMailboxesLoaded();
+        const queue = await listAmbiguousReviewQueue(resolveAmbiguousReviewContext(tenantId), {
+          mailboxId: normalizeText(req.query?.mailboxId),
+          status: normalizeText(req.query?.status) || 'pending',
+          limit: Number.parseInt(String(req.query?.limit ?? '50'), 10),
+          offset: Number.parseInt(String(req.query?.offset ?? '0'), 10),
+        });
+        return res.json({ ok: true, ...queue });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/ambiguous-review/queue]', error);
+        return res.status(error?.statusCode || 500).json({
+          error: error?.message || 'Kunde inte ladda ambiguous-review queue.',
+        });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/cco/enrichment/gap-recovery/ambiguous-review/item',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const conversationKey = normalizeText(req.query?.conversationKey);
+      if (!conversationKey) {
+        return res.status(400).json({ error: 'conversationKey saknas.' });
+      }
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'stores saknas för ambiguous-review.' });
+      }
+      try {
+        await ensureAmbiguousReviewMailboxesLoaded();
+        const { item } = await getAmbiguousReviewItem(
+          resolveAmbiguousReviewContext(tenantId),
+          conversationKey
+        );
+        return res.json({ ok: true, item });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/ambiguous-review/item]', error);
+        return res.status(error?.statusCode || 500).json({
+          error: error?.message || 'Kunde inte ladda ambiguous-review item.',
+        });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cco/enrichment/gap-recovery/ambiguous-review/decide',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const go = req.body?.go === true;
+      const action = normalizeText(req.body?.action);
+      const conversationKey = normalizeText(req.body?.conversationKey);
+      const candidateId = normalizeText(req.body?.candidateId);
+      const reason = normalizeText(req.body?.reason);
+      const reviewer = normalizeText(req.body?.reviewer || req.auth.userId);
+      const ownerAccepted = req.body?.ownerAccepted === true;
+
+      if (!go) {
+        return res.status(400).json({ error: 'decide kräver go=true.' });
+      }
+      if (!conversationKey) {
+        return res.status(400).json({ error: 'conversationKey saknas.' });
+      }
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'stores saknas för ambiguous-review decide.' });
+      }
+
+      try {
+        await ensureAmbiguousReviewMailboxesLoaded();
+        const result = await decideAmbiguousReviewItem(resolveAmbiguousReviewContext(tenantId), {
+          conversationKey,
+          action,
+          candidateId,
+          reason,
+          reviewer,
+          actorUserId: req.auth.userId,
+          ownerAccepted,
+          go,
+          scheduler,
+        });
+
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.enrichment.gap_recovery.ambiguous_review.decide',
+          outcome: result.ok ? 'success' : 'error',
+          targetType: 'ops',
+          targetId: conversationKey,
+          metadata: {
+            reviewAction: action,
+            candidateId: candidateId || null,
+            matchedFields: result.decision?.matchedFields || [],
+            repairOutcome: result.repairResult?.outcome || null,
+            enrichTriggered: Boolean(result.enrichResult?.ok),
+            adjustedCoveragePercent: result.coverage?.adjustedCoveragePercent ?? null,
+            readyForWork: result.coverage?.readyForWork ?? null,
+            reason: reason ? reason.slice(0, 120) : null,
+          },
+        });
+
+        return res.json(result);
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/ambiguous-review/decide]', error);
+        await authStore
+          .addAuditEvent({
+            tenantId: req.auth.tenantId,
+            actorUserId: req.auth.userId,
+            action: 'ops.cco.enrichment.gap_recovery.ambiguous_review.decide',
+            outcome: 'error',
+            targetType: 'ops',
+            targetId: conversationKey || 'unknown',
+            metadata: {
+              reviewAction: action,
+              error: String(error?.message || error).slice(0, 200),
+            },
+          })
+          .catch(() => {});
+        return res.status(error?.statusCode || 500).json({
+          error: error?.message || 'Kunde inte applicera ambiguous-review beslut.',
         });
       }
     }

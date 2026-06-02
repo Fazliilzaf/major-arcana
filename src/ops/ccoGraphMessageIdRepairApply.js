@@ -243,6 +243,132 @@ async function applyGraphMessageIdRepairCanary({
   };
 }
 
+async function applySingleApprovedGraphMessageIdRepair({
+  truthStore = null,
+  ingestionStore = null,
+  conversationKey = '',
+  candidate = null,
+  actorUserId = null,
+  runId = '',
+  stateRoot = '',
+  tenantId = '',
+  repairRegistry = null,
+} = {}) {
+  const normalizedKey = normalizeText(conversationKey);
+  if (!normalizedKey || !candidate) {
+    return { ok: false, outcome: 'skipped_missing_input' };
+  }
+
+  const registry =
+    repairRegistry ||
+    (stateRoot && tenantId ? await loadRepairRegistry({ stateRoot, tenantId }) : { repairs: {} });
+  if (isConversationRepaired(registry, normalizedKey, candidate.graphMessageId)) {
+    return { ok: false, outcome: 'already_repaired', skipped: true };
+  }
+
+  const parsed = parseConversationKey(normalizedKey);
+  let outcome = 'skipped_unsupported_candidate';
+  let detail = null;
+  let registrySave = null;
+  let aliasSave = null;
+
+  if (candidate.source === 'ingestion_ledger') {
+    const rawTruthMessage = buildRepairTruthMessageFromCandidate({ candidate, ingestionStore });
+    const truthMessage = alignTruthMessageToGapConversation(
+      rawTruthMessage,
+      normalizedKey,
+      parsed.mailboxId
+    );
+    if (!truthMessage?.graphMessageId) {
+      return { ok: false, outcome: 'skipped_no_truth_message' };
+    }
+    if (!truthStore || typeof truthStore.recordFolderPage !== 'function') {
+      return { ok: false, outcome: 'skipped_no_truth_store' };
+    }
+    await truthStore.recordFolderPage({
+      account: {
+        mailboxId: parsed.mailboxId,
+        mailboxAddress: parsed.mailboxId,
+        userPrincipalName: parsed.mailboxId,
+      },
+      folder: { folderType: truthMessage.folderType || 'inbox' },
+      messages: [truthMessage],
+      complete: true,
+    });
+    outcome = 'upserted_truth_message';
+    detail = {
+      newGraphMessageIdHash: hashToken(truthMessage.graphMessageId),
+      internetMessageIdHash: hashToken(truthMessage.internetMessageId),
+    };
+    if (stateRoot && tenantId) {
+      registrySave = await recordRepairBatch({
+        stateRoot,
+        tenantId,
+        runId: normalizeText(runId) || `ambiguous-review-${Date.now()}`,
+        records: [
+          {
+            conversationKey: normalizedKey,
+            repairSource: 'ambiguous_review_approve',
+            newGraphMessageId: truthMessage.graphMessageId,
+            oldGraphMessageId: null,
+            actorUserId,
+          },
+        ],
+        metadata: { phase: 'ambiguous_review_approve' },
+      });
+    }
+    return {
+      ok: true,
+      outcome,
+      conversationKey: normalizedKey,
+      detail,
+      registrySave,
+      aliasSave,
+    };
+  }
+
+  if (candidate.canonicalConversationKey && candidate.canonicalConversationKey !== normalizedKey) {
+    aliasSave = await saveConversationAliases({
+      stateRoot,
+      tenantId,
+      aliases: { [normalizedKey.toLowerCase()]: candidate.canonicalConversationKey },
+      metadata: { phase: 'ambiguous_review_approve', actorUserId },
+    });
+    outcome = 'alias_written';
+    detail = {
+      fromKey: normalizedKey,
+      toKey: candidate.canonicalConversationKey,
+    };
+    if (stateRoot && tenantId && candidate.graphMessageId) {
+      registrySave = await recordRepairBatch({
+        stateRoot,
+        tenantId,
+        runId: normalizeText(runId) || `ambiguous-review-${Date.now()}`,
+        records: [
+          {
+            conversationKey: normalizedKey,
+            repairSource: 'ambiguous_review_alias',
+            newGraphMessageId: candidate.graphMessageId,
+            oldGraphMessageId: null,
+            actorUserId,
+          },
+        ],
+        metadata: { phase: 'ambiguous_review_approve_alias' },
+      });
+    }
+    return {
+      ok: true,
+      outcome,
+      conversationKey: normalizedKey,
+      detail,
+      registrySave,
+      aliasSave,
+    };
+  }
+
+  return { ok: false, outcome, conversationKey: normalizedKey, detail, registrySave, aliasSave };
+}
+
 async function reconcileRepairRegistryFromGapDetails({
   stateRoot = '',
   tenantId = '',
@@ -304,5 +430,6 @@ module.exports = {
   saveConversationAliases,
   alignTruthMessageToGapConversation,
   applyGraphMessageIdRepairCanary,
+  applySingleApprovedGraphMessageIdRepair,
   reconcileRepairRegistryFromGapDetails,
 };
