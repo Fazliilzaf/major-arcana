@@ -1,6 +1,8 @@
 # Chief of Finance MVP 1 — Intern UAT-rapport
 
 **Sprint:** CF.2 UAT · **Datum:** 2026-06-01
+
+> **Update 2026-06-02T16:42Z:** CF API mount-fix på prod. `/api/v1/cco-cf/dashboard` returnerar nu **403** utan auth (var 404). 8 stub-moduler skapade i `src/ops/` + `src/security/` så server.js-IIFE inte längre kraschar. Inloggad owner/finance/revisor får 200. Full detalj: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.
 **Underlag:** owner-direktiv 8 verifikations-steg · `CHIEF-OF-FINANCE-MVP1-2026-06-01.md`
 **Metod:** kod-läsning + programmatisk smoke-test mot `ccoReceiptStore` + `buildFinanceDashboard` mot mock-stores. **Ingen prod-touch, inga writes mot riktig Fortnox/Swish/Commercial.**
 

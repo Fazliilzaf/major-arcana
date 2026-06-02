@@ -1,6 +1,8 @@
 # Chief of Finance MVP 2 — Expense Categorization + Manual Workflow
 
 **Sprint:** CF.3 · **Datum:** 2026-06-01
+
+> **Update 2026-06-02T16:42Z:** CF API mount-fix på prod. `/api/v1/cco-cf/expenses` + `/receipts` returnerar nu **403** utan auth (var 404). Inloggad owner/finance/revisor får 200. Full detalj: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.
 **Scope:** Expense workflow utan Fortnox-write — manuell godkännandekedja + CSV/JSON-export för revisor
 **Bakgrund:** Fortnox OAuth är blockerad av Fortnox backend (Utvecklarportalen ger 3 olika felkoder). CF.3 levereras därför som **CCO-native** workflow. Fortnox-sync hookas in senare.
 
