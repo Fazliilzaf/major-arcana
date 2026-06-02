@@ -129,3 +129,54 @@ node scripts/run-personal-demo-readiness.js
 ---
 
 _Ingen patientdata i denna rapport._
+
+---
+
+## Refresh 2026-06-02T15:30Z (Claude / display-UAT-spår)
+
+Statusverifiering efter frys-lyft + staff one-pager-leverans.
+
+### Live-probe
+
+| URL | Status |
+|---|---|
+| `/cco-personal-start.html` | **200** ✅ |
+| `/kunder.html` | **200** ✅ |
+| `/cco-personal-demo-manifest.json` | **200** ✅ (3 pilotkunder) |
+| Backup `major-arcana-frankfurt.onrender.com/cco-personal-start.html` | **200** ✅ |
+| `/finance.html` · `/finance-review.html` · `/finance-reports.html` | **200** ✅ (UI-shell) |
+| `/api/v1/cco-cf/*` (CF backend) | **404** ⚠️ — se nedan |
+
+### Preflight + E2E
+
+- `verify-personal-demo-links.js` på cco-personal-start.html: **9/9 PASS**
+- `run-personal-demo-readiness.js`: **E2E PASS** (create → sign → edit_blocked → correction → sign → feed → timeline)
+- 3 pilotkunder: feed=200 · timeline=200 · forms=200 (alla)
+
+### Nya leveranser sedan original-doc
+
+- ✅ `docs/strategy/CCO-STAFF-JOURNAL-PILOT-ONE-PAGER-2026-06-04.md` (utskriftsbar)
+- ✅ `docs/strategy/CCO-PERSONAL-DEMO-READINESS-2026-06-04.md` (14-stegs speaker-notes)
+- ✅ `docs/strategy/CCO-END-TO-END-UAT-2026-05-31.md` (refreshad med dagens UAT)
+- ✅ `docs/strategy/CCO-SCOPE-STATUS-REFRESH-2026-05-31.md` (refreshad med spår-status)
+
+### CF.9-backend-blocker (P1, ej blocker för 4 juni)
+
+CF.9-API:erna mountar inte på live. Root cause: `server.js`-IIFE kraschar på `require('./src/ops/ccoPhotoAnnotationStore')` (saknad fil). Hela IIFE:n (rad 668-3745) avbryts → CF-routes (rad 1901-3742) mountas aldrig.
+
+- **Påverkar inte journalpilot** (journal-routes ligger i annan IIFE som mountar OK)
+- **Påverkar inte presentationen** (CF-HTML laddar UI-shell, inget kraschar synligt)
+- **Fixas efter 4 juni** — server.js är fryst per regression-regel
+
+### Frys-status fram till 4 juni
+
+- ❌ Ingen ny journalmodul · ingen Aisia · ingen Photo Review-kod · ingen ny mailimport · ingen ny Drive-import
+- ❌ Ingen extern AI på journaldata
+- ❌ Ingen server.js-ändring (om ej P0)
+- ✅ Tillåtet: fixa P0/P1 renderbugg · uppdatera speaker-notes/readiness · CF-isolerade ändringar som inte rör journalflödet
+
+### Slutomdöme: 🟢 GO för 4 juni kontrollerad journalföringspilot
+
+Inga P0/P1-buggar hittade i presentation-flödet. Allt klickbart på `/cco-personal-start.html` är verifierat. Backup-URL fungerar.
+
+_Refresh utförd av Claude · ingen patientdata · ingen kod-ändring i denna refresh._
