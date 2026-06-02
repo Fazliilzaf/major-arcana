@@ -1,11 +1,24 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T17:30Z (Claude · cycle-4: journal-pilot-guide.html + CF MVP3-8 mount-fix-note)_  
-_Tidigare: 2026-06-02T17:15Z (Claude · cycle-3 polish, morgon-checklist tillagd)_  
-_Tidigare: 2026-06-02T17:00Z (CF mount-fix) · 2026-06-02T16:32Z (Cursor)_
+_Senast uppdaterad: 2026-06-02T19:05Z (Cursor · operator mail/photo/historik deploy f5bea1df)_  
+_Tidigare: 2026-06-02T17:30Z (Claude · cycle-4) · 2026-06-02T17:15Z (cycle-3)_
 
-> **CF-status efter 2026-06-02 mount-fix:** Alla `/api/v1/cco-cf/*` returnerar **403** utan auth = RBAC enforces. Routes mountar. Inloggad owner/finance/revisor får 200. Journal-pilot orörd. Fix gjordes via 8 stub-moduler — server.js orörd. Detaljer: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.  
+> **CF-status efter 2026-06-02 mount-fix:** Alla `/api/v1/cco-cf/*` returnerar **403** utan auth = RBAC enforces. Routes mountar. Inloggad owner/finance/revisor får 200. Journal-pilot orörd. Fix gjordes via 8 stub-moduler — server.js orörd. Detaljer: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.
+
 _Prod: https://arcana.hairtpclinic.com_
+
+---
+
+## Executive snapshot (kväll)
+
+| Spår               | Status                                                             |
+| ------------------ | ------------------------------------------------------------------ |
+| **Journalpilot**   | **PASS** (mounts PASS · links PASS · E2E PASS)                     |
+| **Pilot 1/2/3**    | PASS / PASS / PASS                                                 |
+| **Mail**           | PHASE_2_UI_READY · remaining **493**                               |
+| **Drive/historik** | SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO · review queue **1497** |
+| **Photo Review**   | 860 pending · 150 kunder · 0 VISIBLE · write prod **AV**           |
+| **CF**             | INTERN_DEMO_READY                                                  |
 
 ---
 
@@ -53,8 +66,23 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 
 ---
 
+## Drive status (read-only, ingen ny riskimport)
+
+|                 |                                            |
+| --------------- | ------------------------------------------ |
+| **Operational** | SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO |
+| halso@          | IMPORTED_SAFE_MATCH                        |
+| GetAccept       | IMPORTED                                   |
+| Drive journaler | IMPORTED_SAFE_MATCH                        |
+| Drive dokument  | IMPORTED_PARTIAL                           |
+| Drive bilder    | NEEDS_REVIEW                               |
+| Review queue    | **1497** osäkra kundmatchningar            |
+
+---
+
 ## Photo Review (operatör — inte auto)
 
+<<<<<<< HEAD
 |                     |                                                          |
 | ------------------- | -------------------------------------------------------- |
 | Källa               | prod_api                                                 |
@@ -64,6 +92,22 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 | VISIBLE på kundkort | 0 (före/efter ej kliniska dag 1)                         |
 | Prod API            | 200                                                      |
 | Auto-approve        | **NEJ**                                                  |
+=======
+|                     |                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------- |
+| Källa               | local_snapshot_prod_api_empty                                                    |
+| Bilder som väntar   | 860                                                                              |
+| Kunder              | 150                                                                              |
+| Not                 | 860 pending / 150 kunder / 0 VISIBLE (operatörsreferens från prod-data-snapshot) |
+| Krävs för VISIBLE   | Photo Review operator + naming → VISIBLE_ON_PATIENT_CARD                         |
+| VISIBLE på kundkort | 0 (före/efter ej kliniska dag 1)                                                 |
+| Prod API            | 200                                                                              |
+| Operatörverktyg     | `/photo-review.html` (ej länk från personalstart)                                |
+| Write på prod       | **AV** (AV = korrekt inför dag 1)                                                |
+| Auto-approve        | **NEJ**                                                                          |
+| Massapproval        | **NEJ**                                                                          |
+| Dag 1 klinisk       | **NEJ** — migrerade före/efter ej behandlingsbilder före manuell review          |
+>>>>>>> f5bea1df (feat(cco): improve operator readiness for mail photo and history)
 
 ---
 

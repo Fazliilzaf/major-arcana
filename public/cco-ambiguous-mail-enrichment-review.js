@@ -11,6 +11,7 @@
   let currentIndex = 0;
   let selectedCandidateId = null;
   let busy = false;
+  const sessionAudit = [];
   const QUEUE_PAGE = 100;
   const MAILBOX_PRESETS = [
     { id: 'contact@hairtpclinic.com', label: 'contact@' },
@@ -94,9 +95,15 @@
         <div class="amr-field">
           <label>Reviewer <input data-reviewer value="${escapeHtml(getReviewer())}" placeholder="owner@..." /></label>
         </div>
+        <div class="amr-export-row">
+          <button type="button" class="amr-btn" data-export-status>Ladda ner operativ status (JSON)</button>
+          <span class="amr-muted">För kvälls-readiness — ingen auto-write</span>
+        </div>
         <div data-progress class="amr-progress"></div>
+        <div data-mailbox-grid class="amr-mailbox-grid"></div>
         <div data-mailbox-chips class="amr-mailbox-chips"></div>
         <div data-stats class="amr-stats"></div>
+        <div data-session-audit class="amr-session-audit" hidden></div>
         <details class="amr-help">
           <summary>Vad betyder detta? (operatör)</summary>
           <div class="amr-help-body">
@@ -146,6 +153,9 @@
     root.querySelector('[data-load-more]')?.addEventListener('click', () => {
       loadQueue({ append: true }).catch(showError);
     });
+    root
+      .querySelector('[data-export-status]')
+      ?.addEventListener('click', exportOperationalSnapshot);
     document.addEventListener('keydown', (ev) => {
       if (ev.target.matches('textarea, input, select')) return;
       if (busy) return;
@@ -264,11 +274,107 @@
       <div class="amr-stat"><strong>${m['marknad@hairtpclinic.com'] ?? 0}</strong><span class="amr-muted">marknad@ pending</span></div>`;
   }
 
+  function renderMailboxGrid() {
+    const el = document.querySelector('[data-mailbox-grid]');
+    if (!el || !summary) return;
+    const counts = reportFields().mailboxCounts;
+    const active = document.querySelector('[data-mailbox-filter]')?.value || '';
+    el.innerHTML = MAILBOX_PRESETS.map((mb) => {
+      const n = counts[mb.id] ?? 0;
+      const on = active === mb.id ? ' is-active' : '';
+      return `<button type="button" class="amr-mailbox-card${on}" data-mailbox-card="${escapeHtml(mb.id)}">
+        <span class="amr-mailbox-card-label">${escapeHtml(mb.label)}</span>
+        <span class="amr-mailbox-card-count">${n} pending</span>
+      </button>`;
+    }).join('');
+    el.querySelectorAll('[data-mailbox-card]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-mailbox-card') || '';
+        const select = document.querySelector('[data-mailbox-filter]');
+        if (select) select.value = id;
+        loadQueue({ reset: true }).catch(showError);
+      });
+    });
+  }
+
+  function renderSessionAudit() {
+    const el = document.querySelector('[data-session-audit]');
+    if (!el) return;
+    if (!sessionAudit.length) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.innerHTML = `
+      <h3>Senaste beslut (session)</h3>
+      <ul class="amr-session-audit-list">
+        ${sessionAudit
+          .map(
+            (row) =>
+              `<li><strong>${escapeHtml(row.action)}</strong> · ${escapeHtml(row.conversationKey)} · ${escapeHtml(row.reviewer || '—')} · ${escapeHtml(row.at)}</li>`
+          )
+          .join('')}
+      </ul>`;
+  }
+
+  function pushSessionAudit(action, decision, conversationKey) {
+    sessionAudit.unshift({
+      action,
+      conversationKey: conversationKey || '—',
+      reviewer: decision?.reviewer || getReviewer(),
+      matchedFields: (decision?.matchedFields || []).join(', '),
+      at: decision?.decidedAt || new Date().toISOString(),
+    });
+    if (sessionAudit.length > 8) sessionAudit.length = 8;
+    renderSessionAudit();
+  }
+
+  function exportOperationalSnapshot() {
+    if (!summary) return;
+    const f = reportFields();
+    const filter = document.querySelector('[data-mailbox-filter]')?.value || '';
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      tenantId: TENANT,
+      operational: f.operational,
+      ambiguousTotal: f.ambiguousTotal,
+      approved: f.approved,
+      unresolved: f.unresolved,
+      excluded: f.excluded,
+      remaining: f.remaining,
+      mailboxPending: f.mailboxCounts,
+      mailboxFilter: filter || null,
+      queueLoaded: queue.length,
+      queueTotal,
+      readyForWork: f.readyForWork,
+      adjustedCoveragePercent: f.coverage,
+      rules: {
+        noAutoWrite: true,
+        noFuzzyMerge: true,
+        noCustomerMerge: true,
+        noGraphFetch: true,
+        noNewMailImport: true,
+        minApproveMatchFields: 3,
+      },
+      sessionDecisions: sessionAudit,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mail-ambiguous-operational-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showAuditToast({ decidedAt: new Date().toISOString(), reviewer: getReviewer() }, 'export_json');
+  }
+
   function refreshSummaryPanels() {
     renderProgress();
+    renderMailboxGrid();
     renderMailboxChips();
     renderStats();
     syncMailboxSelect();
+    renderSessionAudit();
   }
 
   function syncMailboxSelect() {
@@ -460,9 +566,15 @@
 
   function showAuditToast(decision, action) {
     const el = document.querySelector('[data-audit-toast]');
-    if (!el || !decision) return;
+    if (!el) return;
     el.hidden = false;
-    el.textContent = `Audit sparat: ${action} · reviewer ${decision.reviewer || '—'} · ${decision.decidedAt || 'nu'} · fält: ${(decision.matchedFields || []).join(', ') || '—'}`;
+    if (action === 'export_json') {
+      el.textContent = 'Operativ status exporterad som JSON (lokal fil — ingen server-write).';
+    } else if (!decision) {
+      return;
+    } else {
+      el.textContent = `Audit sparat: ${action} · reviewer ${decision.reviewer || '—'} · ${decision.decidedAt || 'nu'} · fält: ${(decision.matchedFields || []).join(', ') || '—'}`;
+    }
     window.setTimeout(() => {
       el.hidden = true;
     }, 8000);
@@ -541,7 +653,9 @@
           ownerAccepted,
         }),
       });
-      showAuditToast(result?.decision || result, action);
+      const decision = result?.decision || result;
+      pushSessionAudit(action, decision, item.conversationKey);
+      showAuditToast(decision, action);
       const stayIdx = currentIndex;
       await loadSummary();
       await loadQueue({ reset: true, preserveIndex: stayIdx });

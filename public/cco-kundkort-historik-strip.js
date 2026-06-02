@@ -27,7 +27,9 @@
       (h.getAccept || 'IMPORTED') +
       '</code> · Drive journaler <code>' +
       (h.driveJournals || 'IMPORTED_SAFE_MATCH') +
-      '</code> · Drive dokument <code>IMPORTED/PARTIAL</code> · Drive bilder <code>' +
+      '</code> · Drive dokument <code>' +
+      (h.driveDocuments || 'IMPORTED_PARTIAL') +
+      '</code> · Drive bilder <code>' +
       (h.drivePhotos || 'NEEDS_REVIEW') +
       '</code> · review queue ~' +
       reviewTotal +

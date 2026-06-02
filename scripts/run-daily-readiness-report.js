@@ -127,10 +127,13 @@ async function photoReviewStatusLive() {
   const localPending = Number(local.pendingPhotos ?? local.pendingPhotosAll ?? 0);
   const livePending = Number(live.json?.pendingPhotos ?? live.json?.pendingPhotosAll ?? 0);
 
+  const writeEnabled = live.json?.writeEnabled === true;
+
   if (live.status === 200 && live.json && livePending > 0) {
     return {
       source: 'prod_api',
-      readOnly: live.json.readOnly !== false,
+      writeEnabled,
+      readOnly: !writeEnabled,
       pendingPhotos: livePending,
       patientsWithPendingPhotos: live.json.patientsWithPendingPhotos,
       photosVisibleCount: live.json.photosVisibleCount ?? 0,
@@ -144,6 +147,8 @@ async function photoReviewStatusLive() {
   if (localPending > 0) {
     return {
       ...local,
+      writeEnabled,
+      readOnly: !writeEnabled,
       source: live.status === 200 ? 'local_snapshot_prod_api_empty' : 'local_snapshot',
       apiStatus: live.status || 'unavailable',
       day1Rule: 'Migrerade före/efter ej kliniska dag 1 · ej kliniska före/efter dag 1',
@@ -156,7 +161,8 @@ async function photoReviewStatusLive() {
   if (live.status === 200 && live.json) {
     return {
       source: 'prod_api',
-      readOnly: live.json.readOnly !== false,
+      writeEnabled,
+      readOnly: !writeEnabled,
       pendingPhotos: livePending,
       patientsWithPendingPhotos: live.json.patientsWithPendingPhotos,
       photosVisibleCount: live.json.photosVisibleCount ?? 0,
@@ -313,12 +319,40 @@ async function cfReadiness() {
   };
 }
 
+function driveReadiness(historik) {
+  return {
+    operational: 'SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO',
+    halso: historik.halso.status,
+    getAccept: historik.getAccept.status,
+    driveJournals: historik.driveJournals.status,
+    driveDocuments: historik.driveDocuments.status,
+    drivePhotos: historik.drivePhotos.status,
+    reviewQueueTotal: historik.reviewQueueTotal,
+    rule: historik.rule,
+  };
+}
+
 function buildMarkdown(report) {
   const ts = report.generatedAt;
+  const journalOk =
+    report.journalMounts === 'PASS' && report.demoLinks === 'PASS' && report.e2eJournal === 'PASS';
   return `# CCO Daily Readiness — 4 juni presentation
 
 _Senast uppdaterad: ${ts}_  
 _Prod: ${BASE}_
+
+---
+
+## Executive snapshot (kväll)
+
+| Spår | Status |
+| ---- | ------ |
+| **Journalpilot** | ${journalOk ? '**PASS**' : '**CHECK**'} (mounts ${report.journalMounts} · links ${report.demoLinks} · E2E ${report.e2eJournal}) |
+| **Pilot 1/2/3** | ${report.pilot1} / ${report.pilot2} / ${report.pilot3} |
+| **Mail** | ${report.mail.operational} · remaining **${report.mail.progress.remaining}** |
+| **Drive/historik** | ${report.drive.operational} · review queue **${report.drive.reviewQueueTotal}** |
+| **Photo Review** | ${report.photo.pendingPhotos ?? '—'} pending · ${report.photo.patientsWithPendingPhotos ?? '—'} kunder · ${report.photo.photosVisibleCount ?? 0} VISIBLE · write prod **${report.photo.writeEnabled === true ? 'PÅ' : 'AV'}** |
+| **CF** | ${report.cf.operational} |
 
 ---
 
@@ -380,6 +414,20 @@ Regler: ${report.mail.rules.join(' · ')} · **får inte störa journal-demo**
 
 ---
 
+## Drive status (read-only, ingen ny riskimport)
+
+| | |
+|---|---|
+| **Operational** | ${report.drive.operational} |
+| halso@ | ${report.drive.halso} |
+| GetAccept | ${report.drive.getAccept} |
+| Drive journaler | ${report.drive.driveJournals} |
+| Drive dokument | ${report.drive.driveDocuments} |
+| Drive bilder | ${report.drive.drivePhotos} |
+| Review queue | **${report.drive.reviewQueueTotal}** osäkra kundmatchningar |
+
+---
+
 ## Photo Review (operatör — inte auto)
 
 | | |
@@ -392,7 +440,9 @@ Regler: ${report.mail.rules.join(' · ')} · **får inte störa journal-demo**
 | VISIBLE på kundkort | ${report.photo.photosVisibleCount ?? 0} (före/efter ej kliniska dag 1) |
 | Prod API | ${report.photo.apiStatus ?? (report.photo.source === 'prod_api' ? '200' : '—')} |
 | Operatörverktyg | \`/photo-review.html\` (ej länk från personalstart) |
+| Write på prod | **${report.photo.writeEnabled === true ? 'PÅ' : 'AV'}** (AV = korrekt inför dag 1) |
 | Auto-approve | **NEJ** |
+| Massapproval | **NEJ** |
 | Dag 1 klinisk | **NEJ** — migrerade före/efter ej behandlingsbilder före manuell review |
 
 ---
@@ -471,6 +521,7 @@ async function main() {
   const mail = await mailReadiness();
   const cf = await cfReadiness();
   const historik = historikStatus();
+  const drive = driveReadiness(historik);
   const photo = await photoReviewStatusLive();
 
   const opsStatusPath = path.join(REPO, 'public/cco-presentation-ops-status.json');
@@ -481,6 +532,7 @@ async function main() {
       pendingPhotos: photo.pendingPhotos,
       patientsWithPendingPhotos: photo.patientsWithPendingPhotos,
       photosVisibleCount: photo.photosVisibleCount ?? 0,
+      writeEnabled: photo.writeEnabled === true,
       readOnly: photo.readOnly !== false,
       source: photo.source,
       operatorToolPath: '/photo-review.html',
@@ -539,6 +591,7 @@ async function main() {
     pilot3,
     mail,
     cf,
+    drive,
     historik,
     photo,
   };

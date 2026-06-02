@@ -1,9 +1,10 @@
 {
-  "generatedAt": "2026-06-02T17:16:31.797Z",
+  "generatedAt": "2026-06-02T19:00:51.150Z",
   "photoReview": {
     "pendingPhotos": 860,
     "patientsWithPendingPhotos": 150,
     "photosVisibleCount": 0,
+    "writeEnabled": false,
     "readOnly": true,
     "source": "local_snapshot_prod_api_empty",
     "operatorToolPath": "/photo-review.html",

@@ -461,6 +461,15 @@
         </div>
         <div class="card card--disabled" data-kind="hist">
           <div class="card-kicker">Drive</div>
+          <h2>Drive-dokument</h2>
+          <p>Safe-match · status <strong>IMPORTED_PARTIAL</strong>.</p>
+          <div class="badge-row">
+            <span class="badge" data-t="drive">drive</span
+            ><span class="badge" data-t="imported">partial</span>
+          </div>
+        </div>
+        <div class="card card--disabled" data-kind="hist">
+          <div class="card-kicker">Drive</div>
           <h2>Drive-journaler</h2>
           <p>~5 152 poster · status <strong>IMPORTED_SAFE_MATCH</strong>.</p>
           <div class="badge-row">
@@ -536,8 +545,9 @@
             id="photo-review-operator"
             style="font-size: 12px; color: rgba(70, 60, 50, 0.62); margin: 6px 0 0"
           >
-            Operatörverktyg: Photo Review (separat operatörssida, ej länkad härifrån) — read-only på
-            prod · ingen auto-approve · ingen massapproval.
+            Operatörverktyg: Photo Review (separat operatörssida, ej länkad härifrån) —
+            <span id="photo-write-status">write kontrolleras…</span> · ingen auto-approve · ingen
+            massapproval.
           </p>
         </div>
       </div>
@@ -596,10 +606,12 @@
       (function loadPhotoReviewOpsStatus() {
         const metrics = document.getElementById('photo-review-metrics');
         if (!metrics) return;
+        const writeStatus = document.getElementById('photo-write-status');
         function render(data) {
           const pending = data.pendingPhotos ?? data.pendingPhotosAll ?? '—';
           const patients = data.patientsWithPendingPhotos ?? '—';
           const visible = data.photosVisibleCount ?? 0;
+          const writeOn = data.writeEnabled === true;
           metrics.textContent =
             'Operatör: ' +
             pending +
@@ -607,8 +619,12 @@
             patients +
             ' kunder · ' +
             visible +
-            ' VISIBLE före review · migrerade bilder ej kliniska före review · readOnly=' +
-            (data.readOnly !== false);
+            ' VISIBLE före review · migrerade bilder ej kliniska före review';
+          if (writeStatus) {
+            writeStatus.textContent = writeOn
+              ? 'write PÅ (endast manuellt, en bild i taget)'
+              : 'write AV på prod (korrekt inför dag 1)';
+          }
         }
         Promise.all([
           fetch('/cco-presentation-ops-status.json', { cache: 'no-store' }).then((r) =>
