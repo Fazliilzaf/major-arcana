@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-06-02T16:32:08.172Z",
+  "generatedAt": "2026-06-02T16:57:46.051Z",
   "photoReview": {
-    "pendingPhotos": 0,
-    "patientsWithPendingPhotos": 0,
+    "pendingPhotos": 860,
+    "patientsWithPendingPhotos": 150,
     "photosVisibleCount": 0,
     "readOnly": true,
-    "source": "prod_api"
+    "source": "local_snapshot_prod_api_empty"
   },
   "historik": {
     "halso": "IMPORTED_SAFE_MATCH",

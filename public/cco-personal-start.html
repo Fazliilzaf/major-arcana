@@ -584,18 +584,22 @@
             ' VISIBLE (före/efter ej kliniska dag 1) · readOnly=' +
             (data.readOnly !== false);
         }
-        fetch('/cco-presentation-ops-status.json', { cache: 'no-store' })
-          .then((r) => (r.ok ? r.json() : null))
-          .then((fallback) => {
-            return fetch('/api/v1/cco/photo-review/summary', {
-              headers: { 'x-cco-role': 'owner', 'x-cco-tenant': 'hairtpclinic' },
-              cache: 'no-store',
-            })
-              .then((r) => (r.ok ? r.json() : fallback))
-              .catch(() => fallback);
+        Promise.all([
+          fetch('/cco-presentation-ops-status.json', { cache: 'no-store' }).then((r) =>
+            r.ok ? r.json() : null
+          ),
+          fetch('/api/v1/cco/photo-review/summary', {
+            headers: { 'x-cco-role': 'owner', 'x-cco-tenant': 'hairtpclinic' },
+            cache: 'no-store',
           })
-          .then((data) => {
-            if (data) render(data);
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+        ])
+          .then(([ops, api]) => {
+            const snap = ops?.photoReview;
+            const apiPending = Number(api?.pendingPhotos ?? api?.pendingPhotosAll ?? 0);
+            const row = apiPending > 0 ? api : snap || api;
+            if (row) render(row);
             else metrics.textContent = 'Operatör: NEEDS_REVIEW — ej VISIBLE · ingen auto-approve';
           })
           .catch(() => {

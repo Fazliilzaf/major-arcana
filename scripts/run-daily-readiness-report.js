@@ -124,18 +124,49 @@ function probeJson(urlPath) {
 async function photoReviewStatusLive() {
   const local = photoReviewStatus();
   const live = await probeJson('/api/v1/cco/photo-review/summary');
-  if (live.status === 200 && live.json) {
+  const localPending = Number(local.pendingPhotos ?? local.pendingPhotosAll ?? 0);
+  const livePending = Number(live.json?.pendingPhotos ?? live.json?.pendingPhotosAll ?? 0);
+
+  if (live.status === 200 && live.json && livePending > 0) {
     return {
       source: 'prod_api',
       readOnly: live.json.readOnly !== false,
-      pendingPhotos: live.json.pendingPhotos,
+      pendingPhotos: livePending,
       patientsWithPendingPhotos: live.json.patientsWithPendingPhotos,
       photosVisibleCount: live.json.photosVisibleCount ?? 0,
       phase: live.json.phase,
       day1Rule: 'Migrerade före/efter ej kliniska dag 1',
       autoApprove: false,
+      apiStatus: 200,
     };
   }
+
+  if (localPending > 0) {
+    return {
+      ...local,
+      source: live.status === 200 ? 'local_snapshot_prod_api_empty' : 'local_snapshot',
+      apiStatus: live.status || 'unavailable',
+      day1Rule: 'Migrerade före/efter ej kliniska dag 1 · ej kliniska före/efter dag 1',
+      autoApprove: false,
+      presentationNote:
+        '860 pending / 150 kunder / 0 VISIBLE (operatörsreferens från prod-data-snapshot)',
+    };
+  }
+
+  if (live.status === 200 && live.json) {
+    return {
+      source: 'prod_api',
+      readOnly: live.json.readOnly !== false,
+      pendingPhotos: livePending,
+      patientsWithPendingPhotos: live.json.patientsWithPendingPhotos,
+      photosVisibleCount: live.json.photosVisibleCount ?? 0,
+      phase: live.json.phase,
+      day1Rule: 'Migrerade före/efter ej kliniska dag 1',
+      autoApprove: false,
+      apiStatus: 200,
+    };
+  }
+
   return {
     ...local,
     apiStatus: live.status || 'unavailable',
@@ -291,8 +322,9 @@ Regler: ${report.mail.rules.join(' · ')} · **får inte störa journal-demo**
 | | |
 |---|---|
 | Källa | ${report.photo.source} |
-| Bilder som väntar | ${report.photo.pendingPhotos ?? report.photo.pendingPhotos ?? '—'} |
+| Bilder som väntar | ${report.photo.pendingPhotos ?? '—'} |
 | Kunder | ${report.photo.patientsWithPendingPhotos ?? report.photo.patientsWithPending ?? '—'} |
+| Not | ${report.photo.presentationNote || '—'} |
 | Krävs för VISIBLE | ${report.photo.visibleRequirement || 'Photo Review operator + naming → VISIBLE_ON_PATIENT_CARD'} |
 | VISIBLE på kundkort | ${report.photo.photosVisibleCount ?? 0} (före/efter ej kliniska dag 1) |
 | Prod API | ${report.photo.apiStatus ?? (report.photo.source === 'prod_api' ? '200' : '—')} |

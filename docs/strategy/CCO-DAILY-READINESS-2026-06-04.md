@@ -3,7 +3,8 @@
 _Senast uppdaterad: 2026-06-02T17:15Z (Claude · cycle-3 polish, morgon-checklist tillagd)_  
 _Tidigare: 2026-06-02T17:00Z (CF mount-fix) · 2026-06-02T16:32Z (Cursor)_
 
-> **CF-status efter 2026-06-02 mount-fix:** Alla `/api/v1/cco-cf/*` returnerar **403** utan auth = RBAC enforces. Routes mountar. Inloggad owner/finance/revisor får 200. Journal-pilot orörd. Fix gjordes via 8 stub-moduler — server.js orörd. Detaljer: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.  
+> **CF-status efter 2026-06-02 mount-fix:** Alla `/api/v1/cco-cf/*` returnerar **403** utan auth = RBAC enforces. Routes mountar. Inloggad owner/finance/revisor får 200. Journal-pilot orörd. Fix gjordes via 8 stub-moduler — server.js orörd. Detaljer: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.
+
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
@@ -54,15 +55,16 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 
 ## Photo Review (operatör — inte auto)
 
-|                     |                                                          |
-| ------------------- | -------------------------------------------------------- |
-| Källa               | prod_api                                                 |
-| Bilder som väntar   | 0                                                        |
-| Kunder              | 0                                                        |
-| Krävs för VISIBLE   | Photo Review operator + naming → VISIBLE_ON_PATIENT_CARD |
-| VISIBLE på kundkort | 0 (före/efter ej kliniska dag 1)                         |
-| Prod API            | 200                                                      |
-| Auto-approve        | **NEJ**                                                  |
+|                     |                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------- |
+| Källa               | local_snapshot_prod_api_empty                                                    |
+| Bilder som väntar   | 860                                                                              |
+| Kunder              | 150                                                                              |
+| Not                 | 860 pending / 150 kunder / 0 VISIBLE (operatörsreferens från prod-data-snapshot) |
+| Krävs för VISIBLE   | Photo Review operator + naming → VISIBLE_ON_PATIENT_CARD                         |
+| VISIBLE på kundkort | 0 (före/efter ej kliniska dag 1)                                                 |
+| Prod API            | 200                                                                              |
+| Auto-approve        | **NEJ**                                                                          |
 
 ---
 
