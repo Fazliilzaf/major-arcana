@@ -83,33 +83,20 @@
   .grid--3{grid-template-columns:1fr 1fr 1fr}
   .grid--4{grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
 
-  /* ── Card · tinted glass per category ────────────── */
+  /* ── Card ────────────────────────────────────────── */
   .card{
     padding:18px 20px;border-radius:18px;
-    /* Diagonal tinted glass — färgen kommer från --cc (per data-kind) */
-    background:
-      linear-gradient(135deg,
-        color-mix(in srgb, var(--cc,#4a8268) 14%, rgba(255,255,255,.94)) 0%,
-        color-mix(in srgb, var(--cc,#4a8268) 4%,  rgba(247,241,236,.86)) 100%
-      );
-    border:1px solid color-mix(in srgb, var(--cc,#4a8268) 32%, transparent);
-    box-shadow:
-      0 8px 24px rgba(56,40,28,.08),
-      inset 0 1px 0 rgba(255,255,255,.92);
+    background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));
+    border:1px solid rgba(255,255,255,.6);
+    box-shadow:0 8px 24px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.92);
     text-decoration:none;color:inherit;
-    transition:transform .14s ease, box-shadow .14s ease;
+    transition:transform .12s ease,box-shadow .12s ease;
     display:block;position:relative;overflow:hidden;
   }
-  .card:hover{
-    transform:translateY(-2px);
-    box-shadow:
-      0 16px 38px rgba(56,40,28,.13),
-      inset 0 1px 0 rgba(255,255,255,.92);
-  }
+  .card:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(56,40,28,.12)}
   .card::before{
-    content:"";position:absolute;top:0;left:0;bottom:0;width:4px;
-    background:var(--cc,var(--success));
-    box-shadow:0 0 8px var(--cc,var(--success));
+    content:"";position:absolute;top:0;left:0;bottom:0;width:3px;
+    background:var(--cc,var(--success));box-shadow:0 0 6px var(--cc,var(--success));
   }
   .card[data-kind="journal"]{--cc:var(--success)}
   .card[data-kind="customers"]{--cc:var(--success)}
@@ -160,15 +147,13 @@
   .stage-tag[data-s="blocked"]::before{background:#b94a4a}
   .stage-tag[data-s="info"]::before{background:#4a7ba8}
 
-  /* ── Stage legend · neutral glass ────────────────── */
+  /* ── Stage legend ────────────────────────────────── */
   .stage-legend{
     display:flex;flex-wrap:wrap;gap:8px;align-items:center;
     margin:0 0 22px;padding:14px 18px;border-radius:16px;
-    background:linear-gradient(135deg,rgba(255,255,255,.50) 0%,rgba(255,255,255,.20) 100%);
-    border:1px solid rgba(132,117,107,.18);
-    box-shadow:
-      0 4px 14px rgba(56,40,28,.04),
-      inset 0 1px 0 rgba(255,255,255,.95);
+    background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,.3));
+    border:1px solid rgba(255,255,255,.7);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.85);
   }
   .stage-legend .legend-label{
     font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
@@ -177,22 +162,12 @@
   .stage-legend .legend-item{font-size:11px;color:rgba(70,60,50,.62)}
   .stage-legend .stage-tag{position:static}
 
-  /* ── Pilot customer list · green-tint glass ──────── */
+  /* ── Pilot customer list ─────────────────────────── */
   .pilot-strip{
     margin:0 0 24px;padding:18px 20px;border-radius:18px;
-    background:linear-gradient(135deg,
-      rgba(74,130,104,.12) 0%,
-      rgba(74,130,104,.03) 100%
-    );
-    border:1px solid rgba(74,130,104,.30);
-    box-shadow:
-      0 8px 24px rgba(56,40,28,.08),
-      inset 0 1px 0 rgba(255,255,255,.95);
-    position:relative;overflow:hidden;
-  }
-  .pilot-strip::before{
-    content:"";position:absolute;top:0;left:0;bottom:0;width:4px;
-    background:#4a8268;box-shadow:0 0 8px #4a8268;
+    background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));
+    border:1px solid rgba(255,255,255,.6);
+    box-shadow:0 8px 24px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.92);
   }
   .pilot-strip h3{
     font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
@@ -200,11 +175,7 @@
   }
   .pilot-row{
     display:flex;justify-content:space-between;align-items:center;gap:12px;
-    padding:10px 14px;
-    background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,rgba(255,255,255,.35) 100%);
-    border:1px solid rgba(255,255,255,.6);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.92);
-    border-radius:10px;
+    padding:10px 14px;background:rgba(255,255,255,.5);border-radius:10px;
     margin-bottom:6px;
   }
   .pilot-row:last-child{margin-bottom:0}
@@ -229,14 +200,9 @@
   /* ── Rules list ──────────────────────────────────── */
   .rules-card{
     padding:22px 24px;border-radius:18px;
-    background:linear-gradient(135deg,
-      rgba(200,130,30,.13) 0%,
-      rgba(200,130,30,.03) 100%
-    );
-    border:1px solid rgba(200,130,30,.32);
-    box-shadow:
-      0 8px 24px rgba(56,40,28,.06),
-      inset 0 1px 0 rgba(255,255,255,.95);
+    background:linear-gradient(180deg,rgba(255,250,243,.94),rgba(252,242,228,.86));
+    border:1px solid rgba(200,130,30,.30);
+    box-shadow:0 8px 24px rgba(56,40,28,.06);
     margin:0 0 22px;
     position:relative;overflow:hidden;
   }
@@ -275,20 +241,9 @@
   .footer strong{color:var(--brand)}
   .talmanus{
     margin-top:14px;padding:18px 22px;border-radius:14px;
-    background:linear-gradient(135deg,
-      rgba(187,71,121,.12) 0%,
-      rgba(187,71,121,.02) 100%
-    );
-    border:1px solid rgba(187,71,121,.28);
-    box-shadow:
-      0 6px 20px rgba(56,40,28,.05),
-      inset 0 1px 0 rgba(255,255,255,.92);
+    background:linear-gradient(180deg,rgba(252,233,240,.5),rgba(241,207,220,.3));
+    border:1px solid rgba(187,71,121,.25);
     color:var(--brand);font-size:13px;line-height:1.55;
-    position:relative;overflow:hidden;
-  }
-  .talmanus::before{
-    content:"";position:absolute;top:0;left:0;bottom:0;width:3px;
-    background:#bb4779;box-shadow:0 0 6px #bb4779;
   }
 
   /* ── Responsive ──────────────────────────────────── */
