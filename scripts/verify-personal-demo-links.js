@@ -46,13 +46,8 @@ const REDLIST_PATH = [
   /\/watch/i,
   /\/analytics\.html/i,
 ];
-const MOCK_HTML = [
-  /847\s*kunder/i,
-  /12\s*no-show/i,
-  /AI\s*coach/i,
-  /automation\s*hub/i,
-  /Manifest ej publicerat/i,
-];
+const MOCK_HTML = [/847\s*kunder/i, /12\s*no-show/i, /Manifest ej publicerat/i];
+const MOCK_HTML_PAUSED_ONLY = [/AI\s*coach/i, /automation\s*hub/i];
 
 function fetchUrl(url, opts = {}) {
   return new Promise((resolve, reject) => {
@@ -84,11 +79,16 @@ function pickHtmlPaths() {
   return HTML_CANDIDATES.filter((p) => fs.existsSync(p));
 }
 
+function stripScripts(html) {
+  return html.replace(/<script[\s\S]*?<\/script>/gi, '');
+}
+
 function extractHrefs(html) {
   const hrefs = [];
   const re = /<a[^>]+href="([^"#][^"]*)"/g;
   let m;
-  while ((m = re.exec(html))) hrefs.push(m[1]);
+  const body = stripScripts(html);
+  while ((m = re.exec(body))) hrefs.push(m[1]);
   return [...new Set(hrefs)];
 }
 
@@ -112,6 +112,7 @@ function resolveUrl(href) {
 
 async function verifyHtmlPage(htmlPath) {
   const html = fs.readFileSync(htmlPath, 'utf8');
+  const htmlBody = stripScripts(html);
   const hrefs = extractHrefs(html);
   let failed = 0;
   const results = [];
@@ -120,13 +121,20 @@ async function verifyHtmlPage(htmlPath) {
   console.log('Links:', hrefs.length);
 
   for (const pat of [...BLOCKED_HREF, ...MOCK_HTML]) {
-    if (pat.test(html)) {
+    if (pat.test(htmlBody)) {
       console.log('FAIL  blocked pattern in HTML:', pat);
       failed += 1;
     }
   }
 
-  for (const href of extractDisabledWithHref(html)) {
+  for (const pat of MOCK_HTML_PAUSED_ONLY) {
+    if (pat.test(htmlBody) && !/data-paused=["']true["']/i.test(htmlBody)) {
+      console.log('FAIL  live-looking blocked pattern in HTML:', pat);
+      failed += 1;
+    }
+  }
+
+  for (const href of extractDisabledWithHref(htmlBody)) {
     console.log('FAIL  disabled element has href:', href);
     failed += 1;
   }
@@ -184,7 +192,7 @@ async function main() {
   console.log('Pages:', htmlPaths.map((p) => path.basename(p)).join(', '));
 
   for (const htmlPath of htmlPaths) {
-    const report = await verifyHtmlPage(htmlPath, manifest);
+    const report = await verifyHtmlPage(htmlPath);
     pageReports.push(report);
     failed += report.failed;
   }

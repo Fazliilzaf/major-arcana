@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T13:54:35.161Z",
+  "generatedAt": "2026-06-02T14:17:54.400Z",
   "version": "1.1.0",
   "prodBaseUrl": "https://arcana.hairtpclinic.com",
   "personalStartPage": "/cco-personal-start.html",
@@ -145,6 +145,18 @@
       "result": "PASS"
     },
     {
+      "name": "personal-demo-alt",
+      "path": "/personal-demo.html",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "public-manifest",
+      "path": "/cco-personal-demo-manifest.json",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
       "name": "journal-feed",
       "path": "/api/v1/cco-customers/cco-pilot-20260602-a/journal-feed?tenantId=hairtpclinic",
       "status": 200,
@@ -239,5 +251,130 @@
         "pass": true
       }
     ]
-  }
+  },
+  "e2eJournalByPilot": [
+    {
+      "patientId": "cco-pilot-20260602-a",
+      "result": "PASS",
+      "steps": [
+        {
+          "step": "create_draft",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "sign_lock",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "edit_locked_blocked",
+          "status": 409,
+          "pass": true
+        },
+        {
+          "step": "create_correction",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "sign_correction",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "feed_visible",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "timeline_visible",
+          "status": 200,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "patientId": "cco-pilot-20260602-b",
+      "result": "PASS",
+      "steps": [
+        {
+          "step": "create_draft",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "sign_lock",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "edit_locked_blocked",
+          "status": 409,
+          "pass": true
+        },
+        {
+          "step": "create_correction",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "sign_correction",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "feed_visible",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "timeline_visible",
+          "status": 200,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "patientId": "cco-readiness-smoke-1780402011",
+      "result": "PASS",
+      "steps": [
+        {
+          "step": "create_draft",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "sign_lock",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "edit_locked_blocked",
+          "status": 409,
+          "pass": true
+        },
+        {
+          "step": "create_correction",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "sign_correction",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "feed_visible",
+          "status": 200,
+          "pass": true
+        },
+        {
+          "step": "timeline_visible",
+          "status": 200,
+          "pass": true
+        }
+      ]
+    }
+  ]
 }

@@ -1,7 +1,31 @@
 # CCO Personal Presentation Readiness
 
-_Deadline: 2026-06-04 · Prod smoke: 2026-06-02T13:54Z_  
-_Deploy: `c31536da` live · `/cco-personal-start.html` 200_
+_Deadline: 2026-06-04 · Final prod smoke: 2026-06-02T14:18Z_  
+_Deploy: `fac44c6c` (git) · Render live `ea6d7f7` · `/cco-personal-start.html` 200_
+
+---
+
+## Final smoke (4 juni hard-proof)
+
+| Check                                         | Resultat                                        |
+| --------------------------------------------- | ----------------------------------------------- |
+| `node scripts/verify-personal-demo-links.js`  | **ALL PASS**                                    |
+| `node scripts/run-personal-demo-readiness.js` | **ALL PASS**                                    |
+| Pilotkund-knappar klickbara på prod           | **JA**                                          |
+| Journal E2E alla 3 piloter                    | **PASS**                                        |
+| Manifest publicerat                           | **JA** — `/cco-personal-demo-manifest.json` 200 |
+| 404 / 5xx på demo-länkar                      | **Inga**                                        |
+| webcal://localhost / Drive-länkar             | **Inga**                                        |
+| Döda disabled cards med href                  | **Inga**                                        |
+
+**Primär URL (använd i mötet):** https://arcana.hairtpclinic.com/cco-personal-start.html  
+**Backup URL:** https://major-arcana-frankfurt.onrender.com/cco-personal-start.html  
+**Alternativ sida (Claude-layout):** https://arcana.hairtpclinic.com/personal-demo.html — manifest + fallback fixad
+
+### Sync-risk löst
+
+- **`cco-personal-start.html`** — pilot 1/2/3 är hårdkodade `<a>`-länkar (alltid klickbara).
+- **`personal-demo.html`** — hämtade tidigare `/data/reports/...` (404) → visade “Manifest ej publicerat”. Nu: `/cco-personal-demo-manifest.json` + inbäddad fallback med samma 3 piloter.
 
 ---
 
@@ -9,7 +33,20 @@ _Deploy: `c31536da` live · `/cco-personal-start.html` 200_
 
 ### **JA** — kontrollerad pilot
 
-Journal-backend, kundkort-routes, feed, timeline och forms är verifierade på prod. E2E smoke **PASS** (skapa → signera → lås → rättelse → feed/timeline).
+Journal-backend, kundkort-routes, feed, timeline och forms är verifierade på prod. E2E smoke **PASS** på alla tre pilotkunder (skapa → signera → lås 409 → rättelse → feed/timeline).
+
+---
+
+## Pilotkunder (anonym test)
+
+| #   | customerId                       | Användning i demo                        |
+| --- | -------------------------------- | ---------------------------------------- |
+| 1   | `cco-pilot-20260602-a`           | Live skapa/signera/rättelse              |
+| 2   | `cco-pilot-20260602-b`           | Feed + timeline                          |
+| 3   | `cco-readiness-smoke-1780402011` | Visa befintlig signering + rättelse-tråd |
+
+Öppna via startsidan eller direkt:  
+`/journal-feed-demo.html?customerId=<id>&tenant=hairtpclinic&role=operator`
 
 ---
 
@@ -19,12 +56,14 @@ Journal-backend, kundkort-routes, feed, timeline och forms är verifierade på p
 | ---------------------------------- | ------------------------------------------ | --------------------------------------- |
 | **Personalstart**                  | `/cco-personal-start.html`                 | ✅ klickbar                             |
 | **Kundkort**                       | `/kunder.html`                             | ✅                                      |
-| **Pilotkund 1–3**                  | journal-feed-demo med query params         | ✅                                      |
+| **Pilotkund 1–3**                  | journal-feed-demo med query params         | ✅ klickbara                            |
 | **Journal skapa/signera/rättelse** | live på pilotkund A / visa C               | ✅                                      |
 | **Timeline**                       | flik i journal-feed-demo                   | ✅                                      |
+| **Dag-1-regler**                   | `#dag1-regler` på startsidan               | ✅ scroll, ingen extern länk            |
+| **CF (internt)**                   | finance / finance-review / finance-reports | ✅                                      |
+| **Revisorportal**                  | `/finance-review.html`                     | ✅ (internt, visa om relevant)          |
 | **Importerad historik**            | status-badges på startsidan                | ✅ (informera, inte lova full täckning) |
 | **Behöver granskning**             | regel på startsidan                        | ✅                                      |
-| **CF (internt)**                   | finance / finance-review / finance-reports | ✅                                      |
 
 ---
 
@@ -35,7 +74,7 @@ Journal-backend, kundkort-routes, feed, timeline och forms är verifierade på p
 | Mail / unified inbox / Svarstudio som dagligt verktyg       | “Pågående aktivering”             |
 | Migrerade före/efter-bilder som kliniska                    | “Väntar Photo Review”             |
 | `cco-demo.html` / gamla demoportalen                        | Använd `/cco-personal-start.html` |
-| AI no-show · triage · automation · watch · Aisia · showcase | Ej P0 — pausat                    |
+| AI no-show · triage · automation · watch · Aisia · showcase | Ej P0 — pausat (disabled cards)   |
 | Analytics som sanning                                       | Ej verifierad för personalmöte    |
 | Full cutover / “allt funkar fritt”                          | “Kontrollerad pilot”              |
 
@@ -53,32 +92,22 @@ Journal-backend, kundkort-routes, feed, timeline och forms är verifierade på p
 
 ---
 
-## Top 5 kvar innan bred intern drift
+## Exakt demo-flow för Fazli (14 steg)
 
-| #   | Kvar                                                    |
-| --- | ------------------------------------------------------- |
-| 1   | **Photo Review** (~14k Drive-bilder, write av)          |
-| 2   | **Mail aktivering** (493 ambiguous, worklist ej daglig) |
-| 3   | **Import review queue** (1 497 osäkra kundmatchningar)  |
-| 4   | **Täckning** (~4 867 kunder utan importerat innehåll)   |
-| 5   | **Encounter/metadata** + Drive alias-sweep              |
-
----
-
-## Presentationsordning (12 steg)
-
-1. `/cco-personal-start.html`
-2. **Öppna kundkort**
-3. **Pilotkund 1** (journal-feed-demo)
-4. Identitetskontroll (regler)
-5. Journal-feed
-6. Skapa journal (live på A)
-7. Signera/lås
-8. **Pilotkund 3** — rättelse + thread
-9. Timeline-flik
-10. Historik-status (badges)
-11. “Behöver granskning”-regeln
-12. Avsluta: _“Nu börjar vi kontrollerat med journalföring”_
+1. Öppna https://arcana.hairtpclinic.com/cco-personal-start.html
+2. Säg: _“Det här är startsidan för intern journalpilot.”_
+3. Klicka **Öppna kundkort** (eller gå direkt till pilot 1)
+4. Klicka **Öppna pilotkund 1**
+5. Visa identitet: namn / telefon / Cliento-id
+6. Visa **journal-feed**
+7. **Skapa journalanteckning** (live)
+8. **Signera/lås**
+9. Visa att låst post **inte** går att redigera (409)
+10. Skapa **rättelse** (eller visa befintlig tråd på pilotkund 3)
+11. Visa **timeline**
+12. Visa **historik / importerat material** (badges — informera om täckning)
+13. Förklara **“Behöver granskning”**
+14. Scrolla till **dag-1-regler** (`Visa dag-1-regler`) och avsluta: _“Nu börjar vi kontrollerat med journalföring.”_
 
 ---
 
