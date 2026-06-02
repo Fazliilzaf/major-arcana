@@ -1,5 +1,7 @@
 # Chief of Finance MVP 7 (CF.8) — Accountant Review Portal
 
+> **Update 2026-06-02T17:25Z:** CF API mount-fix på prod (404 → 403 via 8 stub-moduler). Server.js orörd. RBAC enforces. Detalj: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.
+
 **Sprint:** CF.8 · **Datum:** 2026-06-01
 **Scope:** Dedikerad revisor-vy · read-only + review-status · komplett export-paket med manifest + receipt-bilagor
 **Status:** ✅ **LEVERERAT · 71/71 PASS · 11/11 acceptance**

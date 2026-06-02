@@ -1,5 +1,7 @@
 # Chief of Finance MVP 6 (CF.7) — Återkommande Kostnader
 
+> **Update 2026-06-02T17:25Z:** CF API mount-fix på prod (404 → 403 via 8 stub-moduler). Server.js orörd. RBAC enforces. Detalj: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.
+
 **Sprint:** CF.7 · **Datum:** 2026-06-01
 **Scope:** Återkommande-mallar · auto-detection från historik utan AI · anomaly-detection · expense-match
 **Status:** ✅ **LEVERERAT · 72/72 PASS · 10/10 acceptance**

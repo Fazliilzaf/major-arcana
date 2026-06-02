@@ -102,6 +102,7 @@ Dessa är **inte automatiskt verifierade**. De behöver en människa som granska
 
 - **Startsida:** `https://arcana.hairtpclinic.com/cco-personal-start.html`
 - **Kundlistan:** `https://arcana.hairtpclinic.com/kunder.html`
+- **UX-guide (printable):** `https://arcana.hairtpclinic.com/journal-pilot-guide.html`
 - **Backup:** `https://major-arcana-frankfurt.onrender.com/cco-personal-start.html`
 
 ---
