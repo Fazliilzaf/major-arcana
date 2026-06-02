@@ -13,6 +13,7 @@
   let busy = false;
   const sessionAudit = [];
   let showApprovableOnly = false;
+  let mailboxReference = null;
   const QUEUE_PAGE = 100;
   const MAILBOX_PRESETS = [
     { id: 'contact@hairtpclinic.com', label: 'contact@' },
@@ -93,12 +94,44 @@
     return queue.length ? 0 : -1;
   }
 
-  function candidateBlockerText(candidate, minFields = 3) {
+  function missingDeterministicFieldList(candidate, item) {
+    const allFields = item.deterministicMatchFields || DEFAULT_DETERMINISTIC_FIELDS;
+    const matched = new Set(candidate.matchedFields || []);
+    return allFields.filter((field) => !matched.has(field));
+  }
+
+  function candidateBlockerText(candidate, item, minFields = 3) {
     if (candidate.rejected) return 'Avvisad — välj annan kandidat.';
-    if (candidate.approvable) return 'Godkänd för approve: minst 3 deterministiska fält uppfyllda.';
+    if (candidate.approvable) {
+      return `Approve tillåten: ${candidate.matchCount ?? 0}/${minFields} deterministiska fält matchar.`;
+    }
     const have = candidate.matchCount ?? 0;
-    const missing = Math.max(0, minFields - have);
-    return `Kan inte godkännas: ${have}/${minFields} deterministiska fält (saknar ${missing}).`;
+    const missingNames = missingDeterministicFieldList(candidate, item);
+    const need = Math.max(0, minFields - have);
+    const names =
+      missingNames.length > 0
+        ? ` Saknade fält: ${missingNames.slice(0, 6).join(', ')}${missingNames.length > 6 ? '…' : ''}.`
+        : '';
+    return `Approve inte tillåten: ${have}/${minFields} fält (behöver ${need} till).${names}`;
+  }
+
+  function sumMailboxCounts(counts) {
+    return Object.values(counts || {}).reduce((acc, n) => acc + (Number(n) || 0), 0);
+  }
+
+  function applyMailboxCountsFallback() {
+    if (!summary) return;
+    const r = summary.report || {};
+    const remaining = Number(
+      r.remainingAmbiguous ?? summary.pending ?? summary.ambiguousTotal ?? 0
+    );
+    const current = summary.mailboxCounts || r.mailboxCounts || {};
+    if (remaining > 0 && sumMailboxCounts(current) > 0) return;
+    const ref = mailboxReference?.mailboxCounts;
+    if (ref && sumMailboxCounts(ref) > 0) {
+      summary.mailboxCounts = { ...ref };
+      summary.mailboxCountsSource = 'reference_snapshot';
+    }
   }
 
   function renderDeterministicFieldMatrix(candidate, item) {
@@ -288,6 +321,7 @@
       coverage: r.adjustedCoveragePercent ?? '—',
       readyForWork: r.readyForWork === true,
       mailboxCounts: summary?.mailboxCounts || r.mailboxCounts || {},
+      mailboxCountsSource: summary?.mailboxCountsSource || r.mailboxCountsSource || 'live',
       rules: summary?.rules || r.stopConditions || {},
     };
   }
@@ -593,7 +627,8 @@
     const minFields = item.minApproveMatchFields ?? 3;
     const candidates = (item.candidates || [])
       .map((candidate) => {
-        const blocker = candidateBlockerText(candidate, minFields);
+        const blocker = candidateBlockerText(candidate, item, minFields);
+        const missingList = missingDeterministicFieldList(candidate, item);
         return `<div class="amr-candidate${candidate.approvable ? ' approvable' : ''}${candidate.rejected ? ' rejected' : ''}">
           <label>
             <input type="radio" name="candidate" value="${escapeHtml(candidate.candidateId)}" ${selectedCandidateId === candidate.candidateId ? 'checked' : ''} ${candidate.rejected ? 'disabled' : ''} />
@@ -601,6 +636,8 @@
             ${candidate.approvable ? '<span class="amr-tag amr-tag--ok">approvable</span>' : `<span class="amr-tag amr-tag--warn">${candidate.matchCount || 0}/${minFields} fält</span>`}
           </label>
           <p class="amr-candidate-blocker">${escapeHtml(blocker)}</p>
+          <p class="amr-muted">Varför approve ${candidate.approvable ? 'är' : 'inte är'} tillåten — deterministiska fält (min ${minFields}, ingen auto-write):</p>
+          <p class="amr-muted">Saknade fält: ${escapeHtml(missingList.join(', ') || '—')}</p>
           <p class="amr-muted">Matchande fält (${candidate.matchCount ?? 0}/${minFields}):</p>
           ${renderDeterministicFieldMatrix(candidate, item)}
           <p class="amr-muted">receivedAt: ${escapeHtml(candidate.receivedAt || candidate.sentAt || '—')}</p>
@@ -684,7 +721,9 @@
         hint.textContent = 'Välj kandidat innan approve.';
       } else if (!ok) {
         hint.hidden = false;
-        hint.textContent = `Approve blockerad: ${cand?.matchCount ?? 0}/3 deterministiska fält (kräver 3).`;
+        const item = currentItem();
+        const missing = item && cand ? missingDeterministicFieldList(cand, item) : [];
+        hint.textContent = `Approve blockerad: ${cand?.matchCount ?? 0}/3 fält. Saknas: ${missing.join(', ') || 'välj kandidat med ≥3 matchande fält'}.`;
       } else {
         hint.hidden = true;
         hint.textContent = '';
@@ -726,6 +765,19 @@
     const body = await apiFetch(`/summary?tenantId=${encodeURIComponent(TENANT)}`);
     summary = body;
     if (body.rules) summary.rules = body.rules;
+    try {
+      const opRes = await fetch('/mail-ambiguous-operational-status.json', { cache: 'no-store' });
+      if (opRes.ok) {
+        const op = await opRes.json();
+        if (sumMailboxCounts(op.mailboxCounts || op.mailboxPending) > 0) {
+          summary.mailboxCounts = op.mailboxCounts || op.mailboxPending;
+          summary.mailboxCountsSource = 'operational_status_json';
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    applyMailboxCountsFallback();
     refreshSummaryPanels();
   }
 
@@ -812,6 +864,12 @@
 
   async function boot() {
     renderShell();
+    try {
+      const refRes = await fetch('/mail-ambiguous-mailbox-reference.json', { cache: 'no-store' });
+      if (refRes.ok) mailboxReference = await refRes.json();
+    } catch {
+      mailboxReference = null;
+    }
     await loadSummary();
     await loadQueue({ reset: true });
     selectedCandidateId = pickDefaultCandidate(currentItem());

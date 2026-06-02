@@ -189,9 +189,22 @@
       </section>`;
   }
 
-  function renderMailSection(ops) {
+  function sumMailboxCounts(counts) {
+    return Object.values(counts || {}).reduce((acc, n) => acc + (Number(n) || 0), 0);
+  }
+
+  function resolveMailMailboxCounts(m, mailRef) {
+    const counts = { ...(m.mailboxCounts || m.mailboxPending || {}) };
+    const remaining = Number(m.remaining ?? m.pending ?? m.ambiguousTotal ?? 0);
+    if (remaining > 0 && sumMailboxCounts(counts) === 0 && mailRef?.mailboxCounts) {
+      return { counts: { ...mailRef.mailboxCounts }, source: 'reference_snapshot' };
+    }
+    return { counts, source: m.mailboxCountsSource || 'snapshot' };
+  }
+
+  function renderMailSection(ops, mailRef) {
     const m = ops?.mailAmbiguous || {};
-    const counts = m.mailboxCounts || {};
+    const { counts, source } = resolveMailMailboxCounts(m, mailRef);
     const mailboxHtml = MAILBOX_LABELS.map(
       ([id, label]) => `<li>${escapeHtml(label)}: ${escapeHtml(counts[id] ?? '—')} pending</li>`
     ).join('');
@@ -209,6 +222,7 @@
           ${metric(m.excluded, 'excluded')}
         </div>
         <ul class="cow-list">${mailboxHtml}</ul>
+        <p class="cow-muted">Mailbox-källa: ${escapeHtml(source)} · total ambiguous ${escapeHtml(m.ambiguousTotal ?? m.remaining ?? '—')}</p>
         <div class="cow-guardrails">
           ${(m.rules || []).map((r) => escapeHtml(r)).join(' · ') || 'Ingen auto-write · ingen fuzzy merge · ingen customer merge · ingen Graph-fetch · ingen ny mailimport'}
         </div>
@@ -330,22 +344,23 @@
     const root = document.getElementById('cow-root');
     if (!root) return;
 
-    const [snapRes, manifestRes, morningRes, livePhoto, photoStatus, encStatus] = await Promise.all(
-      [
+    const [snapRes, manifestRes, morningRes, mailRefRes, livePhoto, photoStatus, encStatus] =
+      await Promise.all([
         fetchJson('/cco-ops-workbench-snapshot.json').then((r) =>
           r.ok ? r : fetchJson('/cco-presentation-ops-status.json')
         ),
         fetchJson('/cco-personal-demo-manifest.json'),
         fetchJson('/cco-4june-morning-check.json'),
+        fetchJson('/mail-ambiguous-mailbox-reference.json'),
         loadPhotoSummary(),
         probePage('/photo-review.html'),
         probePage('/encounter-mapping-review.html'),
-      ]
-    );
+      ]);
 
     const ops = snapRes.ok ? snapRes.json : null;
     const manifest = manifestRes.ok ? manifestRes.json : null;
     const morning = morningRes.ok ? morningRes.json : null;
+    const mailRef = mailRefRes.ok ? mailRefRes.json : null;
     const gateFail = morning?.presentationGate === 'FAIL';
 
     if (!ops) {
@@ -376,7 +391,7 @@
         ${renderCommandStatus(morning, manifest)}
         ${renderJournalSection(ops, manifest)}
         ${renderPhotoSection(ops, livePhoto, photoStatus)}
-        ${renderMailSection(ops)}
+        ${renderMailSection(ops, mailRef)}
         ${renderImportSection(ops)}
         ${renderDriveSection(ops)}
         ${renderEncounterSection(ops, encStatus)}

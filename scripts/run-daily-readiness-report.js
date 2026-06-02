@@ -16,6 +16,11 @@ const path = require('node:path');
 const { execSync } = require('node:child_process');
 const https = require('node:https');
 
+const {
+  normalizeMailProgress,
+  publishMailboxReferencePublic,
+} = require('./lib/ccoMailReadinessSnapshot');
+
 const REPO = path.join(__dirname, '..');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
 const DOC = path.join(REPO, 'docs/strategy/CCO-DAILY-READINESS-2026-06-04.md');
@@ -211,25 +216,24 @@ function photoReviewStatus() {
 
 async function mailReadiness() {
   const pageStatus = await probe('GET', '/ambiguous-mail-enrichment-review.html');
-  const fallback = {
-    ambiguousTotal: 493,
-    pending: 493,
-    approved: 0,
-    excluded: 0,
-    unresolved: 0,
-    remaining: 493,
-    mailboxCounts: {
-      'contact@hairtpclinic.com': 0,
-      'egzona@hairtpclinic.com': 0,
-      'fazli@hairtpclinic.com': 0,
-      'marknad@hairtpclinic.com': 0,
+  const fallback = normalizeMailProgress(
+    {
+      ambiguousTotal: 493,
+      pending: 493,
+      approved: 0,
+      excluded: 0,
+      unresolved: 0,
+      remaining: 493,
+      mailboxCounts: {},
+      readyForWork: false,
+      adjustedCoveragePercent: 93,
+      source: 'doc_fallback',
     },
-    readyForWork: false,
-    adjustedCoveragePercent: 93,
-  };
-  let apiNote = 'API kräver inloggning — UI monterad, manuell review aktivt spår';
+    { root: REPO }
+  );
+  let apiNote = 'Mailbox-breakdown från referenssnapshot (summary API utan auth)';
   let operational = 'PHASE_2_UI_READY';
-  let progress = { ...fallback, source: 'doc_fallback' };
+  let progress = { ...fallback };
   try {
     const tokenScript = run('node scripts/get-prod-auth-token.js --owner');
     if (tokenScript.ok) {
@@ -265,26 +269,33 @@ async function mailReadiness() {
         const unresolved =
           (summary.unresolved ?? 0) +
           (summary.ownerAcceptedUnresolved ?? r.ownerAcceptedUnresolved ?? 0);
-        progress = {
-          source: 'prod_api',
-          ambiguousTotal: summary.ambiguousTotal ?? r.ambiguousTotal ?? fallback.ambiguousTotal,
-          pending: summary.pending ?? r.remainingAmbiguous ?? fallback.pending,
-          approved: summary.approved ?? r.approved ?? 0,
-          excluded: summary.excluded ?? 0,
-          unresolved,
-          remaining: r.remainingAmbiguous ?? summary.pending ?? fallback.remaining,
-          mailboxCounts: summary.mailboxCounts || r.mailboxCounts || fallback.mailboxCounts,
-          readyForWork: r.readyForWork === true,
-          adjustedCoveragePercent: r.adjustedCoveragePercent ?? fallback.adjustedCoveragePercent,
-          operationalReadiness: r.operationalReadiness ?? operational,
-        };
-        apiNote = `ambiguousTotal=${progress.ambiguousTotal} pending=${progress.pending} approved=${progress.approved} excluded=${progress.excluded} unresolved=${progress.unresolved} remaining=${progress.remaining}`;
+        progress = normalizeMailProgress(
+          {
+            source: 'prod_api',
+            ambiguousTotal: summary.ambiguousTotal ?? r.ambiguousTotal ?? fallback.ambiguousTotal,
+            pending: summary.pending ?? r.remainingAmbiguous ?? fallback.pending,
+            approved: summary.approved ?? r.approved ?? 0,
+            excluded: summary.excluded ?? 0,
+            unresolved,
+            remaining: r.remainingAmbiguous ?? summary.pending ?? fallback.remaining,
+            mailboxCounts: summary.mailboxCounts || r.mailboxCounts || {},
+            readyForWork: r.readyForWork === true,
+            adjustedCoveragePercent: r.adjustedCoveragePercent ?? fallback.adjustedCoveragePercent,
+            operationalReadiness: r.operationalReadiness ?? operational,
+          },
+          { root: REPO }
+        );
+        apiNote = `ambiguousTotal=${progress.ambiguousTotal} pending=${progress.pending} approved=${progress.approved} excluded=${progress.excluded} unresolved=${progress.unresolved} remaining=${progress.remaining} mailboxSource=${progress.mailboxCountsSource || 'prod_api'}`;
         operational =
           progress.pending > 0 ? 'REVIEW_QUEUE_ACTIVE' : 'COVERAGE_IMPROVED_CHECK_READINESS';
       }
     }
   } catch (_) {
     /* keep defaults */
+  }
+  progress = normalizeMailProgress(progress, { root: REPO });
+  if (progress.mailboxCountsSource === 'reference_snapshot') {
+    apiNote = 'Summary API utan auth — mailbox-breakdown från referenssnapshot (remaining=493)';
   }
   return {
     pageStatus,
@@ -561,6 +572,8 @@ async function main() {
     mailAmbiguous: {
       operational: mail.operational,
       ...mail.progress,
+      mailboxCounts: mail.progress.mailboxCounts,
+      mailboxCountsSource: mail.progress.mailboxCountsSource,
       uiUrl: mail.uiUrl,
       rules: mail.rules,
     },
@@ -615,6 +628,7 @@ async function main() {
     opsWorkbenchUrl: '/cco-ops-workbench.html',
   };
   if (!noWrite) {
+    publishMailboxReferencePublic(REPO);
     fs.mkdirSync(path.dirname(mailStatusPath), { recursive: true });
     fs.writeFileSync(opsStatusPath, JSON.stringify(opsPayload, null, 2));
     fs.writeFileSync(workbenchSnapshotPath, JSON.stringify(opsPayload, null, 2));

@@ -1,6 +1,6 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T21:13:31.223Z_  
+_Senast uppdaterad: 2026-06-02T21:37:34.389Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
@@ -35,14 +35,14 @@ _Prod: https://arcana.hairtpclinic.com_
 
 ## Mail enrichment (operational ≠ technical)
 
-|                           |                                                                        |
-| ------------------------- | ---------------------------------------------------------------------- |
-| **Operational readiness** | PHASE_2_UI_READY                                                       |
-| **Technical coverage**    | ~93% adjusted (readyForWork=false)                                     |
-| **Review UI**             | 200 OK — `/ambiguous-mail-enrichment-review.html`                      |
-| **Progress**              | approved **0** · unresolved **0** · excluded **0** · remaining **493** |
-| **Mailbox pending**       | contact@ **0** · egzona@ **0** · fazli@ **0** · marknad@ **0**         |
-| **API / not**             | API kräver inloggning — UI monterad, manuell review aktivt spår        |
+|                           |                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| **Operational readiness** | PHASE_2_UI_READY                                                                |
+| **Technical coverage**    | ~93% adjusted (readyForWork=false)                                              |
+| **Review UI**             | 200 OK — `/ambiguous-mail-enrichment-review.html`                               |
+| **Progress**              | approved **0** · unresolved **0** · excluded **0** · remaining **493**          |
+| **Mailbox pending**       | contact@ **248** · egzona@ **175** · fazli@ **67** · marknad@ **3**             |
+| **API / not**             | Summary API utan auth — mailbox-breakdown från referenssnapshot (remaining=493) |
 
 Export: `data/reports/mail-ambiguous-operational-status.json` (kvällsrun)
 
@@ -112,7 +112,7 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 ## Top 5 blockers (ej presentation P0)
 
 1. Photo Review (~14k bilder, write av)
-2. Mail ambiguous review (~493 kvar i kö — manuell)
+2. Mail ambiguous review (493 kvar i kö — manuell)
 3. Import review queue (1497 osäkra kundmatchningar)
 4. Täckning — ~4867 kunder utan importerat innehåll
 5. Encounter/metadata + Drive alias-sweep

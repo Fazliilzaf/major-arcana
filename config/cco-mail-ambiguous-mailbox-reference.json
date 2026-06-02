@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "capturedAt": "2026-06-02T00:00:00.000Z",
+  "note": "Senaste säkra mailbox-breakdown när ambiguous-review summary API saknar auth",
+  "ambiguousTotal": 493,
+  "remaining": 493,
+  "approved": 0,
+  "excluded": 0,
+  "unresolved": 0,
+  "mailboxCounts": {
+    "contact@hairtpclinic.com": 248,
+    "egzona@hairtpclinic.com": 175,
+    "fazli@hairtpclinic.com": 67,
+    "marknad@hairtpclinic.com": 3
+  }
+}

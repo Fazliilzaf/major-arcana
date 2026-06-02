@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T20:42:45.810Z",
+  "generatedAt": "2026-06-02T21:37:34.389Z",
   "base": "https://arcana.hairtpclinic.com",
   "ambiguousTotal": 493,
   "pending": 493,
@@ -8,21 +8,22 @@
   "unresolved": 0,
   "remaining": 493,
   "mailboxCounts": {
-    "contact@hairtpclinic.com": 0,
-    "egzona@hairtpclinic.com": 0,
-    "fazli@hairtpclinic.com": 0,
-    "marknad@hairtpclinic.com": 0
+    "contact@hairtpclinic.com": 248,
+    "egzona@hairtpclinic.com": 175,
+    "fazli@hairtpclinic.com": 67,
+    "marknad@hairtpclinic.com": 3
   },
   "readyForWork": false,
   "adjustedCoveragePercent": 93,
-  "source": "doc_fallback",
-  "operational": "PHASE_2_UI_READY",
+  "source": "reference_snapshot",
   "mailboxPending": {
-    "contact@hairtpclinic.com": 0,
-    "egzona@hairtpclinic.com": 0,
-    "fazli@hairtpclinic.com": 0,
-    "marknad@hairtpclinic.com": 0
+    "contact@hairtpclinic.com": 248,
+    "egzona@hairtpclinic.com": 175,
+    "fazli@hairtpclinic.com": 67,
+    "marknad@hairtpclinic.com": 3
   },
+  "mailboxCountsSource": "reference_snapshot",
+  "operational": "PHASE_2_UI_READY",
   "rules": [
     "Ingen auto-write",
     "Ingen fuzzy merge",
