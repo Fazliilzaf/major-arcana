@@ -15,6 +15,10 @@ const {
 const {
   buildAnalyzeInboxSnapshotFromMailboxTruth,
 } = require('./buildAnalyzeInboxSnapshotFromMailboxTruth');
+const {
+  buildRepairedConversationKeySet,
+  loadRepairRegistry,
+} = require('./ccoGraphMessageIdRepairRegistry');
 
 const GAP_BUCKETS = Object.freeze([
   'missing_graphMessageId',
@@ -255,6 +259,7 @@ function categorizeGap({
   supportedMailboxIds = new Set(),
   duplicateIndex = new Set(),
   snapshotProbe = null,
+  graphMessageIdRepaired = false,
 }) {
   const conversationKey =
     normalizeText(truthRow.conversationKey) || resolveGapConversationId(truthRow) || null;
@@ -264,7 +269,8 @@ function categorizeGap({
   const customerEmail = normalizeText(truthRow.customerEmail);
   const hasCustomerId = Boolean(customerId);
   const hasCustomerEmail = Boolean(customerEmail);
-  const graphMessageIdPresent = Number(messageGroup?.graphMessageIdCount || 0) > 0;
+  const graphMessageIdPresent =
+    graphMessageIdRepaired || Number(messageGroup?.graphMessageIdCount || 0) > 0;
   const hasBodyPreview = Number(messageGroup?.bodyPreviewCount || 0) > 0;
   const hasSubject =
     Number(messageGroup?.subjectCount || 0) > 0 || Boolean(normalizeText(truthRow.subject));
@@ -290,11 +296,11 @@ function categorizeGap({
     mailboxId && supportedMailboxIds.size > 0 && !supportedMailboxIds.has(mailboxId);
   const enrichmentRowPresent = Boolean(enrichmentRow);
   const enrichmentSignalsPresent = enrichmentRow ? hasCcoEnrichmentSignals(enrichmentRow) : false;
+  const deletedOnly = Boolean(messageGroup?.deletedOnly);
   const snapshotViable =
     snapshotProbe == null
       ? graphMessageIdPresent && (hasBodyPreview || hasSubject) && !deletedOnly && !outsideMailbox
       : Boolean(snapshotProbe?.ok && Number(snapshotProbe?.conversationCount || 0) > 0);
-  const deletedOnly = Boolean(messageGroup?.deletedOnly);
 
   const flags = [];
   let primaryBucket = 'unclassified_blocker';
@@ -599,6 +605,17 @@ function buildBucketRecommendations(bucketCounts = {}) {
   return recommendations;
 }
 
+async function ensureTruthMailboxesLoaded(truthStore, mailboxIds = []) {
+  if (!truthStore || typeof truthStore.ensureMailboxLoaded !== 'function') return;
+  for (const mailboxId of asArray(mailboxIds)) {
+    try {
+      await truthStore.ensureMailboxLoaded(mailboxId);
+    } catch {
+      /* optional mailbox */
+    }
+  }
+}
+
 async function analyzeCcoInboxEnrichmentGaps({
   tenantId = '',
   mailboxIds = [],
@@ -611,6 +628,16 @@ async function analyzeCcoInboxEnrichmentGaps({
   detailLimit = 200,
   snapshotProbeLimit = 0,
 } = {}) {
+  await ensureTruthMailboxesLoaded(ccoMailboxTruthStore, mailboxIds);
+
+  let repairedConversationKeys = new Set();
+  try {
+    const repairRegistry = await loadRepairRegistry({ stateRoot, tenantId });
+    repairedConversationKeys = buildRepairedConversationKeySet(repairRegistry);
+  } catch {
+    repairedConversationKeys = new Set();
+  }
+
   const coverage = await computeCcoInboxEnrichmentCoverage({
     tenantId,
     mailboxIds,
@@ -689,6 +716,9 @@ async function analyzeCcoInboxEnrichmentGaps({
     };
     const conversationKey =
       normalizeText(truthRow.conversationKey) || resolveGapConversationId(truthRow) || gapId;
+    const graphMessageIdRepaired =
+      repairedConversationKeys.has(conversationKey.toLowerCase()) ||
+      repairedConversationKeys.has(gapId.toLowerCase());
     const messageGroup = resolveMessageGroup(conversationKey, gapId, messageGroups);
     const enrichmentRow =
       enrichmentIndex.get(conversationKey.toLowerCase()) ||
@@ -721,6 +751,7 @@ async function analyzeCcoInboxEnrichmentGaps({
         supportedMailboxIds: supportedSet,
         duplicateIndex: duplicateKeys,
         snapshotProbe,
+        graphMessageIdRepaired,
       })
     );
   }
@@ -783,4 +814,6 @@ module.exports = {
   categorizeGap,
   deriveGapActionClassification,
   summarizeActionBuckets,
+  buildTruthMessageGroups,
+  resolveMessageGroup,
 };

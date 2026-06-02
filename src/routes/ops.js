@@ -37,7 +37,9 @@ const { buildGraphMessageIdRepairPlan } = require('../ops/ccoGraphMessageIdRepai
 const {
   applyGraphMessageIdRepairCanary,
   saveConversationAliases,
+  reconcileRepairRegistryFromGapDetails,
 } = require('../ops/ccoGraphMessageIdRepairApply');
+const { loadRepairRegistry } = require('../ops/ccoGraphMessageIdRepairRegistry');
 const {
   buildCcoInboxEnrichmentBackfillPlan,
   summarizeWorklistSignals,
@@ -1174,6 +1176,21 @@ function createOpsRouter({
         const missingRows = (analysis.details || []).filter(
           (row) => row.primaryBucket === 'missing_graphMessageId'
         );
+        const repairRunId = crypto.randomUUID();
+        if (!dryRun && go) {
+          await reconcileRepairRegistryFromGapDetails({
+            stateRoot: config.stateRoot,
+            tenantId,
+            runId: repairRunId,
+            gapDetails: missingRows,
+            truthStore: ccoMailboxTruthStore,
+            mailboxIds,
+          });
+        }
+        const repairRegistry = await loadRepairRegistry({
+          stateRoot: config.stateRoot,
+          tenantId,
+        });
         const plan = buildGraphMessageIdRepairPlan({
           gapDetails: missingRows,
           ingestionStore: ccoMailIngestionStore,
@@ -1186,6 +1203,10 @@ function createOpsRouter({
           canaryLimit,
           dryRun,
           actorUserId: req.auth.userId,
+          runId: repairRunId,
+          stateRoot: config.stateRoot,
+          tenantId,
+          repairRegistry,
         });
         if (!dryRun && go && Object.keys(canary.aliases || {}).length > 0) {
           await saveConversationAliases({
@@ -1208,13 +1229,19 @@ function createOpsRouter({
             processedCount: canary.processedCount,
             messagesUpserted: canary.messagesUpserted,
             aliasesWritten: canary.aliasesWritten,
+            skippedAlreadyRepaired: canary.skippedAlreadyRepaired,
+            repairRunId,
+            registryCount: canary.registrySave?.count || null,
           },
         });
         return res.json({
           ok: true,
           dryRun,
           canaryLimit,
+          repairRunId,
           repairableInPlan: plan.repairableCount,
+          skippedAlreadyRepaired: canary.skippedAlreadyRepaired,
+          registrySave: canary.registrySave,
           repairedConversationKeys: canary.results
             .filter((row) => row.outcome === 'upserted_truth_message')
             .map((row) => row.conversationKey)
