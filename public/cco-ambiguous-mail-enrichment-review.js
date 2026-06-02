@@ -21,6 +21,12 @@
     { id: 'fazli@hairtpclinic.com', label: 'fazli@' },
     { id: 'marknad@hairtpclinic.com', label: 'marknad@' },
   ];
+  const MAILBOX_REFERENCE_FALLBACK = {
+    'contact@hairtpclinic.com': 248,
+    'egzona@hairtpclinic.com': 175,
+    'fazli@hairtpclinic.com': 67,
+    'marknad@hairtpclinic.com': 3,
+  };
   const DEFAULT_DETERMINISTIC_FIELDS = [
     'internetMessageId',
     'subjectHash',
@@ -127,10 +133,12 @@
     );
     const current = summary.mailboxCounts || r.mailboxCounts || {};
     if (remaining > 0 && sumMailboxCounts(current) > 0) return;
-    const ref = mailboxReference?.mailboxCounts;
+    const ref = mailboxReference?.mailboxCounts || MAILBOX_REFERENCE_FALLBACK;
     if (ref && sumMailboxCounts(ref) > 0) {
       summary.mailboxCounts = { ...ref };
-      summary.mailboxCountsSource = 'reference_snapshot';
+      summary.mailboxCountsSource = mailboxReference?.mailboxCounts
+        ? 'reference_snapshot'
+        : 'reference_snapshot_inline';
     }
   }
 

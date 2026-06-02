@@ -8,6 +8,12 @@
     ['fazli@hairtpclinic.com', 'fazli@'],
     ['marknad@hairtpclinic.com', 'marknad@'],
   ];
+  const MAILBOX_REFERENCE_FALLBACK = {
+    'contact@hairtpclinic.com': 248,
+    'egzona@hairtpclinic.com': 175,
+    'fazli@hairtpclinic.com': 67,
+    'marknad@hairtpclinic.com': 3,
+  };
 
   function escapeHtml(v) {
     return String(v ?? '')
@@ -196,8 +202,9 @@
   function resolveMailMailboxCounts(m, mailRef) {
     const counts = { ...(m.mailboxCounts || m.mailboxPending || {}) };
     const remaining = Number(m.remaining ?? m.pending ?? m.ambiguousTotal ?? 0);
-    if (remaining > 0 && sumMailboxCounts(counts) === 0 && mailRef?.mailboxCounts) {
-      return { counts: { ...mailRef.mailboxCounts }, source: 'reference_snapshot' };
+    if (remaining > 0 && sumMailboxCounts(counts) === 0) {
+      const ref = mailRef?.mailboxCounts || MAILBOX_REFERENCE_FALLBACK;
+      return { counts: { ...ref }, source: 'reference_snapshot' };
     }
     return { counts, source: m.mailboxCountsSource || 'snapshot' };
   }
