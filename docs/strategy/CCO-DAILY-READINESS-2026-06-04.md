@@ -1,7 +1,9 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T19:05Z (Cursor · operator mail/photo/historik deploy f5bea1df)_  
-_Tidigare: 2026-06-02T17:30Z (Claude · cycle-4) · 2026-06-02T17:15Z (cycle-3)_
+_Senast uppdaterad: 2026-06-02T20:00Z (Claude · cycle-6 — runbook + day1-checklist + personalguide-länk på cco-personal-start)_  
+_Tidigare: 2026-06-02T19:05Z (Cursor · operator mail/photo/historik f5bea1df) · 2026-06-02T17:30Z (cycle-4)_
+
+> **Cycle-6 (2026-06-02T20:00Z):** Nya docs — `CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md` (Fazli 5-min + 15-min runbook, fallbacks, Q&A) + `CCO-STAFF-DAY1-JOURNAL-CHECKLIST-2026-06-04.md` (10-stegs personal-checklist). `/cco-personal-start.html` har ny CTA-knapp till personalguide. Gate PASS. E2E PASS. Server.js + journal-routes orörda.
 
 > **CF-status efter 2026-06-02 mount-fix:** Alla `/api/v1/cco-cf/*` returnerar **403** utan auth = RBAC enforces. Routes mountar. Inloggad owner/finance/revisor får 200. Journal-pilot orörd. Fix gjordes via 8 stub-moduler — server.js orörd. Detaljer: `CCO-PERSONAL-PRESENTATION-READINESS-2026-06-04.md` §Refresh.
 
