@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T22:37:39.027Z",
+  "generatedAt": "2026-06-02T22:47:20.207Z",
   "photoReview": {
     "pendingPhotos": 860,
     "patientsWithPendingPhotos": 150,
@@ -69,14 +69,14 @@
     "pilot2": "PASS",
     "pilot3": "PASS",
     "presentationGate": "PASS",
-    "checkedAt": "2026-06-02T22:37:39.027Z",
+    "checkedAt": "2026-06-02T22:47:20.207Z",
     "personalStartUrl": "/cco-personal-start.html",
     "kundkortUrl": "/kunder.html"
   },
   "journalPilotLive": {
-    "generatedAt": "2026-06-02T22:37:46.263Z",
+    "generatedAt": "2026-06-02T22:47:28.205Z",
     "windowHours": 24,
-    "sinceIso": "2026-06-01T22:37:46.263Z",
+    "sinceIso": "2026-06-01T22:47:28.205Z",
     "base": "https://arcana.hairtpclinic.com",
     "authAvailable": false,
     "overall": "PASS",
@@ -147,8 +147,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 155,
-        "timelineEvents": 464,
+        "feedItems": 163,
+        "timelineEvents": 488,
         "entries24h": null
       },
       {
@@ -159,8 +159,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 151,
-        "timelineEvents": 452,
+        "feedItems": 159,
+        "timelineEvents": 476,
         "entries24h": null
       },
       {
@@ -171,8 +171,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 152,
-        "timelineEvents": 456,
+        "feedItems": 160,
+        "timelineEvents": 480,
         "entries24h": null
       }
     ],
@@ -182,18 +182,19 @@
     "note": "Read-only monitor — inga journaltexter · inga patientdata i export"
   },
   "photoReviewOperator": {
-    "generatedAt": "2026-06-02T22:37:46.001Z",
+    "generatedAt": "2026-06-02T22:47:27.866Z",
     "base": "https://arcana.hairtpclinic.com",
-    "overall": "EMPTY",
+    "overall": "READY",
     "operatorMode": "READY",
     "operatorToolPath": "/photo-review.html",
     "writeEnabled": false,
     "readOnly": true,
     "phase": "fas1_readonly",
-    "pendingPhotos": 0,
+    "pendingPhotos": 860,
     "pendingPhotosAll": 0,
-    "patientsWithPendingPhotos": 0,
-    "photosVisibleCount": 0,
+    "patientsWithPendingPhotos": 150,
+    "photosVisibleCount": 1,
+    "dataSource": "local_prod_snapshot_fallback",
     "decisionsTotal": 0,
     "decisionsApprove": 0,
     "decisionsReject": 0,
@@ -206,7 +207,7 @@
     "nextAction": "Read-only beta — navigera kö, exportera session, write AV på prod"
   },
   "mailReviewOperator": {
-    "generatedAt": "2026-06-02T22:37:46.262Z",
+    "generatedAt": "2026-06-02T22:47:28.204Z",
     "base": "https://arcana.hairtpclinic.com",
     "overall": "QUEUE_ACTIVE",
     "operatorMode": "READY",
@@ -271,13 +272,13 @@
   },
   "dailyReadiness": {
     "docFile": "docs/strategy/CCO-DAILY-READINESS-2026-06-04.md",
-    "generatedAt": "2026-06-02T22:37:39.027Z",
+    "generatedAt": "2026-06-02T22:47:20.207Z",
     "journalPilot": "PASS",
     "journalPilotLive": "PASS",
     "personalCanContinueJournaling": "JA",
     "mail": "PHASE_2_UI_READY",
     "photoPending": 860,
-    "photoOperator": "EMPTY",
+    "photoOperator": "READY",
     "mailOperator": "QUEUE_ACTIVE",
     "importQueueTotal": 1497,
     "driveRule": "Ingen auto-import · ingen ny kund vid osäker match"
@@ -297,6 +298,7 @@
     "Aisia · extern AI på journaltext · Drive-länkar i personal-start"
   ],
   "topBlockers": [
+    "Photo Review: 860 bilder · 150 kunder · 0 VISIBLE",
     "Mail ambiguous: 493 remaining",
     "Import review queue: 1497 osäkra kundmatchningar",
     "Täckning — många kunder utan importerat innehåll"

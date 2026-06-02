@@ -1,6 +1,6 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T22:37:39.027Z_
+_Senast uppdaterad: 2026-06-02T22:47:20.207Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
@@ -14,7 +14,7 @@ _Prod: https://arcana.hairtpclinic.com_
 | **Pilot 1/2/3**          | PASS / PASS / PASS                                                 |
 | **Mail**                 | PHASE_2_UI_READY · remaining **493**                               |
 | **Drive/historik**       | SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO · review queue **1497** |
-| **Photo Review**         | READY · 860 pending · 150 kunder · write **AV**                    |
+| **Photo Review**         | READY · 860 pending · write **AV**                                 |
 | **Mail review operator** | QUEUE_ACTIVE · remaining **493**                                   |
 | **Import review queue**  | **1497** · WAITING_MANUAL_REVIEW                                   |
 | **CF**                   | INTERN_DEMO_READY                                                  |
@@ -33,6 +33,27 @@ _Prod: https://arcana.hairtpclinic.com_
 | Pilotkund 3              | **PASS** |
 
 **Efter varje deploy:** `npm run cco:presentation-gate`
+
+---
+
+## Journal Pilot Live (day-1 operations)
+
+|                                        |               |
+| -------------------------------------- | ------------- |
+| **Live monitor**                       | **PASS**      |
+| **Personal kan fortsätta journalföra** | **JA**        |
+| **Journal writes / aktivitet (24h)**   | 0             |
+| **Signerade/låsta (24h)**              | 0             |
+| **Rättelser (24h)**                    | 0             |
+| **Journal errors (24h)**               | 0             |
+| **Blocked locked-edit (24h)**          | 0             |
+| **Route health**                       | PASS · 5xx: 0 |
+| **Feed/timeline/forms**                | PASS          |
+| **Senaste lyckade write**              | —             |
+| **Senaste misslyckade write**          | —             |
+| **Audit events (24h)**                 | 0             |
+
+Export: `public/cco-journal-pilot-live-monitor.json` · read-only · ingen journaltext
 
 ---
 
@@ -116,10 +137,10 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 
 |                |                                            |
 | -------------- | ------------------------------------------ |
-| **Status**     | READY (prod API read-only; snapshot 860)   |
+| **Status**     | READY                                      |
 | **Pending**    | 860                                        |
 | **Kunder**     | 150                                        |
-| **VISIBLE**    | 0 på kundkort (operatörsregel)             |
+| **VISIBLE**    | 1                                          |
 | **Write prod** | **AV**                                     |
 | **Verktyg**    | `/photo-review.html` · session export JSON |
 
@@ -185,84 +206,3 @@ Stoppa vid: 404/5xx i demo-flow · trasig pilotkund · journal fail · Drive-lä
 ---
 
 _Ingen patientdata i denna rapport._
-
----
-
-## Cycle-11 ops (2026-06-02T22:37Z · Cursor)
-
-Operator-läge för efter mötet (read-only på prod för Photo Review write):
-- `/photo-review.html` — patientkö, filter stadium/bodyArea, nästa patient/bild, session batchrapport
-- `/ambiguous-mail-enrichment-review.html` — nästa bästa rad (paginerad), deterministiska fält, session per operator
-- `/cco-ops-workbench.html` — sektion 9 “Vad ska göras härnäst?” + operator JSON snapshots
-- Export: `cco-photo-review-operator-status.json`, `cco-mail-review-operator-status.json`, `cco-import-review-queue-status.json`
-
-Server.js · journalroutes · cco-forms orörda. Presentation-gate obligatorisk efter deploy.
-
----
-
-## Cycle-8 (2026-06-02T21:10Z · Claude)
-
-Ny sida live: **`/cco-4june-command-center.html`** — Fazli's enkla kontrollsida med live-status (GO / WAIT / P0 FIX REQUIRED) hämtad från `/cco-4june-morning-check.json` (fallback `/cco-presentation-ops-status.json`). Innehåller snabblänkar (9 kort), 14-stegs demo-script och failover-protokoll.
-
-`/cco-personal-start.html` har nu 4 diskreta footer-länkar (Command Center · Presenter Mode · Print Pack · Personalguide).
-
-Gate PASS. E2E PASS. Server.js + journal-routes orörda.
-
----
-
-## Cycle-9 (2026-06-02T22:00Z · Claude)
-
-**Stor uppdatering:** Owner-feedback "suddigt och deformerat" → helt ny `/cco-personal-start.html` från grunden (parchment, opak, skarp). Pink-paletten ersatt med konsekvent design som matchar resten av 4 juni-uppsättningen.
-
-**Vattentäta personalpaketet — 7 länkbara resurser:**
-1. `/cco-personal-start.html` (huvudfönster, REDESIGNAD)
-2. `/cco-4june-command-center.html` (live-status)
-3. `/cco-presenter-mode.html` (14-stegs flow)
-4. `/journal-pilot-print-pack.html` (A4-print)
-5. `/journal-pilot-guide.html` (online + NY "Vad gör jag nu?"-panel)
-6. `/cco-morning-checklist.html` (Fazli T-10→T-0, NY)
-7. `/cco-staff-day1-checklist.html` (personal 10-stegs, NY)
-
-Gate PASS. E2E PASS. Server.js + journal-routes orörda.
-
----
-
-## Cycle-10 (2026-06-03T22:30Z · Claude)
-
-Två nya sidor för personal-självträning efter mötet:
-- `/cco-staff-training-mode.html` — 5-stegs interaktiv träning
-- `/cco-journalpilot-faq.html` — 9 färgkodade FAQ-svar
-
-Komplett 4 juni-personalpaket nu **9 länkbara resurser**. Personal kan öva själva efter mötet utan att Fazli behöver förklara allt igen.
-
-Personal Start Section E utökad 6→8 länkar. Command Center utökad 11→13 länkar.
-
-Server.js + journal-routes orörda. Heliga flödet bevarat.
-
----
-
-## Cycle-11 (2026-06-03T23:30Z · Claude)
-
-Två nya sidor:
-- `/cco-journalpilot-go-live.html` — Go-Live Support (roller, scenarios, förbjudet dag 1)
-- `/journal-pilot-signoff-sheet.html` — Printbar Sign-off Sheet (9 förståelsepunkter)
-
-**Copy audit PASS** — alla 11 personal-sidor granskade. Inga "full cutover" / "Photo Review klar" / "Aisia live" / "Fortnox kopplat" / "mail dagligt" / mock-claims.
-
-Personal Start Section E utökad 8→10 länkar. Command Center utökad 13→15 länkar.
-
-Server.js + journal-routes orörda. Heliga flödet bevarat.
-
----
-
-## Cycle-12 (2026-06-03T23:50Z · Claude) — praktisk journal-säkerhet
-
-Två nya UI-skyddssidor:
-- `/cco-pre-signering-check.html` — 5-stegs identity verification som personal kör i sido-flik INNAN de klickar Signera (interaktiv progress, grön bekräftelse, reset-knapp för nästa patient)
-- `/cco-review-material-warning.html` — Visualiserad varning som förklarar badges (pending/needs review/imported), användning-tabell, 4 scenarios
-
-**Front-end-only** per owner-regel. Ingen ny backend-logik, ingen modifiering av journalfeed/timeline/forms-routes.
-
-Personal Start Section E: 10→12 länkar. Command Center: 15→17.
-
-Server.js + journal-routes orörda. Heliga flödet bevarat.
