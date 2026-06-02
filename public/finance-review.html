@@ -1,0 +1,368 @@
+<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revisor-portal · Chief of Finance · CCO</title>
+<style>
+  :root{--bg:#faf6f2;--ink:#2b251f;--muted:#84756b;--accent:#bb4779;--ok:#4a8268;--warn:#c8821e;--blue:#4a7ba8;--danger:#b94a4a;--purple:#7c3aae;--gold:#c2aa9c}
+  *{box-sizing:border-box}html,body{margin:0;padding:0}
+  body{background:radial-gradient(ellipse at 14% 0%,rgba(255,228,200,.32),transparent 40%),var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;min-height:100vh;padding:24px;line-height:1.5;font-size:13px}
+  .wrap{max-width:1280px;margin:0 auto}
+  .header{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;margin-bottom:18px}
+  h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;color:#1a1612}
+  .meta{color:var(--muted);font-size:12px;font-weight:600}
+  .role-badge{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;background:rgba(74,123,168,.16);color:#2a5276;border:1px solid rgba(74,123,168,.32)}
+
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;padding:12px;background:rgba(255,255,255,.6);border-radius:12px;border:1px solid rgba(132,117,107,.14)}
+  .filter-group{display:flex;flex-direction:column;gap:3px}
+  .filter-group label{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .filter-group input,.filter-group select{padding:5px 9px;border-radius:6px;border:1px solid rgba(132,117,107,.28);background:#fff;font-size:12px;font-family:inherit;color:var(--ink)}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:18px}
+  .kpi{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,241,232,.88));border-radius:12px;padding:12px 16px;box-shadow:0 6px 18px rgba(56,40,28,.08);border:1px solid rgba(132,117,107,.14)}
+  .kpi-label{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .kpi-value{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  .section{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,241,232,.88));border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:0 8px 22px rgba(56,40,28,.08);border:1px solid rgba(132,117,107,.14)}
+  .section h2{margin:0 0 12px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+  .batch-row{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.6);border:1px solid rgba(132,117,107,.12);margin-bottom:6px;cursor:pointer;transition:background .15s}
+  .batch-row:hover{background:rgba(248,241,232,.85)}
+  .batch-row.active{background:linear-gradient(180deg,#fce8f0,#f8c5d8);border-color:rgba(187,71,121,.3)}
+  .batch-id{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)}
+  .batch-info{min-width:0}
+  .batch-title{font-weight:700;color:var(--ink);font-size:13px}
+  .batch-meta{font-size:11px;color:var(--muted)}
+  .batch-totals{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+  .batch-status{padding:3px 9px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+  .batch-status--pending{background:rgba(200,130,30,.16);color:#7a4f12}
+  .batch-status--reviewed{background:rgba(74,130,104,.18);color:#1f6e3e}
+  .batch-status--needs_correction{background:linear-gradient(180deg,#fce8e8,#f5c4c4);color:#8a3030;border:1px solid rgba(138,48,48,.3)}
+  .batch-status--accepted_for_bookkeeping{background:linear-gradient(180deg,#dff5e6,#bfe9cb);color:#1f6e3e;border:1px solid rgba(31,110,62,.3)}
+  .batch-status--rejected_with_reason{background:linear-gradient(180deg,#fce8e8,#e89494);color:#751c1c;border:1px solid rgba(117,28,28,.4)}
+
+  .detail-panel{margin-top:12px;padding:14px;background:rgba(255,255,255,.94);border-radius:12px;border:1px solid rgba(132,117,107,.18);display:none}
+  .detail-panel.open{display:block}
+  .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+  .detail-grid > div{padding:8px 10px;background:rgba(248,241,232,.6);border-radius:8px}
+  .detail-grid label{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+  .detail-grid b{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .btn{appearance:none;border:0;cursor:pointer;padding:7px 14px;border-radius:999px;font-size:11.5px;font-weight:700;background:linear-gradient(180deg,#fff,#fbf6ef);color:var(--ink);box-shadow:0 2px 4px rgba(56,40,28,.06)}
+  .btn--primary{background:linear-gradient(180deg,#fce8f0,#f8c5d8);color:#6e1f44}
+  .btn--accept{background:linear-gradient(180deg,#dff5e6,#bfe9cb);color:#1f6e3e}
+  .btn--reject{background:linear-gradient(180deg,#fce8e8,#f5c4c4);color:#8a3030}
+  .btn--correction{background:linear-gradient(180deg,#fdebd3,#f9d49b);color:#7a4f12}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 4px 8px rgba(56,40,28,.1)}
+
+  .exp-list{margin-top:14px;border-top:1px dashed rgba(132,117,107,.3);padding-top:12px}
+  .exp-row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:7px 10px;border-radius:8px;background:rgba(248,241,232,.5);margin-bottom:4px;font-size:12px}
+  .exp-name{font-weight:700;color:var(--ink)}
+  .exp-meta{font-size:10px;color:var(--muted);margin-top:1px}
+  .exp-amount{font-weight:800;font-variant-numeric:tabular-nums}
+  .exp-receipt{font-size:10px}
+
+  .notes-list{margin-top:12px}
+  .note{padding:8px 10px;background:rgba(255,255,255,.6);border-left:3px solid var(--accent);border-radius:6px;margin-bottom:6px;font-size:12px}
+  .note-meta{font-size:10px;color:var(--muted);margin-bottom:3px}
+  .note-form{display:flex;gap:6px;margin-top:8px}
+  .note-form textarea{flex:1;padding:6px 10px;border-radius:8px;border:1px solid rgba(132,117,107,.28);background:#fff;font-family:inherit;font-size:12px;min-height:36px}
+
+  .manifest-info{margin-top:12px;padding:10px 12px;background:rgba(124,58,174,.08);border:1px solid rgba(124,58,174,.28);border-radius:10px;font-size:12px;color:#4a2270}
+
+  .empty{padding:30px;text-align:center;color:var(--muted);font-style:italic}
+  .read-only-banner{background:linear-gradient(180deg,rgba(74,123,168,.14),rgba(74,123,168,.06));border:1px solid rgba(74,123,168,.32);color:#2a5276;padding:8px 12px;border-radius:8px;font-size:11.5px;font-weight:600;margin-bottom:14px}
+</style></head><body>
+<div class="wrap">
+
+<div class="header">
+  <h1>Revisor-portal</h1>
+  <div class="meta" id="meta">Hämtar översikt…</div>
+  <span class="role-badge" id="role-badge">role: ?</span>
+</div>
+
+<div class="read-only-banner">
+  📋 Read-only granskning · revisor får läsa allt CF-data + lämna review-status och notes ·
+  original-expense är immutable för revisor (owner/finance gör korrigeringar)
+</div>
+
+<!-- KPI:er -->
+<div class="kpis" id="kpis">
+  <div class="kpi"><div class="kpi-label">Hämtar…</div><div class="kpi-value">—</div></div>
+</div>
+
+<!-- Filter -->
+<div class="filters" id="filters">
+  <div class="filter-group">
+    <label>Status</label>
+    <select id="f-status">
+      <option value="">Alla</option>
+      <option value="pending">Pending</option>
+      <option value="reviewed">Reviewed</option>
+      <option value="needs_correction">Needs correction</option>
+      <option value="accepted_for_bookkeeping">Accepted</option>
+      <option value="rejected_with_reason">Rejected</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Sök batchId/leverantör</label>
+    <input id="f-search" type="text" placeholder="t.ex. expbatch_… eller Apoteket">
+  </div>
+  <div class="filter-group">
+    <label>Från-datum</label>
+    <input id="f-from" type="date">
+  </div>
+  <div class="filter-group">
+    <label>Till-datum</label>
+    <input id="f-to" type="date">
+  </div>
+  <div class="filter-group" style="align-self:flex-end">
+    <button class="btn" data-action="refresh">↻ Uppdatera</button>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Export-batches</h2>
+  <div id="batches-list"><div class="empty">Hämtar…</div></div>
+  <div id="detail-panel" class="detail-panel"></div>
+</div>
+
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtSek = (n) => (typeof n === 'number') ? new Intl.NumberFormat('sv-SE', { style:'currency', currency:'SEK', maximumFractionDigits:0 }).format(n) : '—';
+  const fmtTs = (iso) => { if (!iso) return '—'; try { return new Date(iso).toISOString().slice(0,10); } catch { return iso; } };
+
+  let allBatches = [];
+  let currentBatchId = null;
+  let dashboard = null;
+
+  async function loadDashboard() {
+    try {
+      const r = await fetch('/api/v1/cco-cf/dashboard', { credentials: 'same-origin' });
+      if (!r.ok) { $('meta').textContent = `HTTP ${r.status} — logga in som owner/finance/revisor`; return; }
+      dashboard = await r.json();
+      $('meta').textContent = `Uppdaterat ${new Date(dashboard.builtAt).toISOString().slice(11,16)} · tenant ${esc(dashboard.tenantId)}`;
+      // KPI
+      const rv = dashboard.review || {};
+      const kpis = [
+        { l: 'Pending review', v: rv.pendingCount || 0, cls: (rv.pendingCount > 0 ? 'warn' : '') },
+        { l: 'Reviewed', v: rv.reviewedCount || 0 },
+        { l: 'Accepted for bookkeeping', v: rv.acceptedCount || 0 },
+        { l: 'Needs correction', v: rv.needsCorrectionCount || 0, cls: (rv.needsCorrectionCount > 0 ? 'warn' : '') },
+        { l: 'Rejected', v: rv.rejectedCount || 0 },
+        { l: 'Senaste aktivitet', v: rv.latestActivityAt ? fmtTs(rv.latestActivityAt) : '—' },
+      ];
+      $('kpis').innerHTML = kpis.map((k) => `
+        <div class="kpi"><div class="kpi-label">${esc(k.l)}</div><div class="kpi-value">${esc(k.v)}</div></div>
+      `).join('');
+    } catch (err) {
+      $('meta').textContent = 'Fel: ' + err.message;
+    }
+  }
+
+  async function loadBatches() {
+    try {
+      const r = await fetch('/api/v1/cco-cf/review/exports', { credentials: 'same-origin' });
+      if (!r.ok) { $('batches-list').innerHTML = `<div class="empty">HTTP ${r.status}</div>`; return; }
+      const data = await r.json();
+      allBatches = data.batches || [];
+      renderBatches();
+    } catch (err) {
+      $('batches-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+    }
+  }
+
+  function applyFilters(batches) {
+    const status = $('f-status').value;
+    const search = $('f-search').value.toLowerCase().trim();
+    const from = $('f-from').value;
+    const to = $('f-to').value;
+    return batches.filter((b) => {
+      if (status && b.review?.status !== status) return false;
+      if (from && b.exportedAt && b.exportedAt.slice(0, 10) < from) return false;
+      if (to && b.exportedAt && b.exportedAt.slice(0, 10) > to) return false;
+      if (search) {
+        const hay = `${b.batchId} ${b.exportedAt || ''}`.toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderBatches() {
+    const filtered = applyFilters(allBatches);
+    if (filtered.length === 0) {
+      $('batches-list').innerHTML = '<div class="empty">Inga export-batches matchar filtret.</div>';
+      return;
+    }
+    $('batches-list').innerHTML = filtered.map((b) => {
+      const status = b.review?.status || 'pending';
+      const expCount = b.expenseCount || (b.expenseIds || []).length;
+      return `
+        <div class="batch-row ${currentBatchId === b.batchId ? 'active' : ''}" data-batch-id="${esc(b.batchId)}">
+          <span class="batch-id">${esc(b.batchId)}</span>
+          <div class="batch-info">
+            <div class="batch-title">Export ${esc(fmtTs(b.exportedAt))}</div>
+            <div class="batch-meta">${expCount} expenses · ${b.review?.noteCount || 0} notes${b.review?.hasManifest ? ' · ✓ manifest' : ''}</div>
+          </div>
+          <div class="batch-totals">${expCount}× expenses</div>
+          <span class="batch-status batch-status--${esc(status)}">${esc(status.replace(/_/g,' '))}</span>
+          <span></span>
+        </div>`;
+    }).join('');
+  }
+
+  async function openBatch(batchId) {
+    currentBatchId = batchId;
+    renderBatches();
+    try {
+      const r = await fetch(`/api/v1/cco-cf/review/exports/${batchId}`, { credentials: 'same-origin' });
+      if (!r.ok) { $('detail-panel').innerHTML = `<div class="empty">HTTP ${r.status}</div>`; $('detail-panel').classList.add('open'); return; }
+      const data = await r.json();
+      renderDetail(data);
+    } catch (err) {
+      $('detail-panel').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+      $('detail-panel').classList.add('open');
+    }
+  }
+
+  function renderDetail({ batch, expenses, receipts, review }) {
+    const totalGross = expenses.reduce((s, e) => s + (e.amountSek || 0), 0);
+    const totalVat = expenses.reduce((s, e) => s + (e.vatSek || 0), 0);
+    const totalDeductible = expenses.reduce((s, e) => s + (e.deductibleVatSek || 0), 0);
+    const status = review.status;
+    const isFinal = status === 'accepted_for_bookkeeping' || status === 'rejected_with_reason';
+
+    $('detail-panel').innerHTML = `
+      <div class="detail-grid">
+        <div><label>Batch ID</label><b style="font-size:11px;font-family:ui-monospace,monospace">${esc(batch.batchId)}</b></div>
+        <div><label>Exporterad</label><b>${esc(fmtTs(batch.exportedAt))}</b></div>
+        <div><label>Antal expenses</label><b>${expenses.length}</b></div>
+        <div><label>Antal receipts</label><b>${receipts.length}</b></div>
+        <div><label>Total brutto</label><b>${esc(fmtSek(totalGross))}</b></div>
+        <div><label>Total moms</label><b>${esc(fmtSek(totalVat))}</b></div>
+        <div><label>Avdragsgill moms</label><b>${esc(fmtSek(totalDeductible))}</b></div>
+        <div><label>Review-status</label><b><span class="batch-status batch-status--${esc(status)}">${esc(status.replace(/_/g,' '))}</span></b></div>
+      </div>
+      <div class="actions">
+        <button class="btn" data-rev-action="download-csv">⬇ CSV</button>
+        <button class="btn" data-rev-action="download-json">⬇ JSON</button>
+        <button class="btn" data-rev-action="build-package">📦 Bygg manifest-paket</button>
+        ${review.manifestKey ? `<button class="btn" data-rev-action="download-manifest">⬇ Manifest</button>` : ''}
+        ${!isFinal && status !== 'reviewed' ? `<button class="btn btn--primary" data-rev-action="set-reviewed">✓ Markera reviewed</button>` : ''}
+        ${!isFinal ? `<button class="btn btn--correction" data-rev-action="needs-correction">⚠ Needs correction</button>` : ''}
+        ${!isFinal ? `<button class="btn btn--accept" data-rev-action="accept">✓✓ Accept for bookkeeping</button>` : ''}
+        ${!isFinal ? `<button class="btn btn--reject" data-rev-action="reject">✗ Reject</button>` : ''}
+      </div>
+      ${review.manifestKey ? `<div class="manifest-info">📦 Manifest finns: <code style="font-family:ui-monospace,monospace;font-size:11px">${esc(review.manifestKey)}</code> · ${review.attachmentKeys?.length || 0} bilagor</div>` : ''}
+
+      <div class="exp-list">
+        <strong style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Expenses i batch</strong>
+        ${expenses.map((e) => `
+          <div class="exp-row">
+            <div>
+              <div class="exp-name">${esc(e.supplier || e.id)}</div>
+              <div class="exp-meta">
+                ${esc(e.category || '?')} · ${esc(e.paymentMethod || '?')} · ${esc(e.vatMode || 'vat?')} ·
+                ${e.recurringExpenseId ? '🔁 recurring · ' : ''}
+                ${e.reverseCharge ? '⇆ rev-charge · ' : ''}
+                ${esc(fmtTs(e.date))}
+              </div>
+            </div>
+            <div class="exp-amount">${esc(fmtSek(e.amountSek))}</div>
+            <div class="exp-meta">moms ${esc(fmtSek(e.vatSek))}</div>
+            <div class="exp-receipt">
+              ${e.receiptId
+                ? `<a class="btn" href="/api/v1/cco-cf/review/exports/${esc(batch.batchId)}/attachment/${esc(e.receiptId)}" target="_blank">📄 kvitto</a>`
+                : '<span style="color:var(--muted)">—</span>'}
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <div class="notes-list">
+        <strong style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Notes (${review.notes.length})</strong>
+        ${review.notes.map((n) => `
+          <div class="note">
+            <div class="note-meta">${esc(fmtTs(n.at))} · ${esc(n.by?.role || 'system')}${n.context ? ' · ' + esc(n.context) : ''}</div>
+            <div>${esc(n.text)}</div>
+          </div>`).join('')}
+        ${!isFinal ? `
+          <div class="note-form">
+            <textarea id="note-text" placeholder="Lägg till en notering till revisor-tråden…"></textarea>
+            <button class="btn" data-rev-action="add-note">+ Note</button>
+          </div>` : ''}
+      </div>
+    `;
+    $('detail-panel').classList.add('open');
+  }
+
+  // Event delegation
+  document.getElementById('batches-list').addEventListener('click', (ev) => {
+    const row = ev.target.closest('.batch-row[data-batch-id]');
+    if (!row) return;
+    openBatch(row.dataset.batchId);
+  });
+
+  document.getElementById('detail-panel').addEventListener('click', async (ev) => {
+    const action = ev.target.closest('[data-rev-action]');
+    if (!action || !currentBatchId) return;
+    const act = action.dataset.revAction;
+    try {
+      if (act === 'download-csv') {
+        window.open(`/api/v1/cco-cf/expenses/export/${currentBatchId}/csv`, '_blank');
+      } else if (act === 'download-json') {
+        window.open(`/api/v1/cco-cf/expenses/export/${currentBatchId}/json`, '_blank');
+      } else if (act === 'download-manifest') {
+        window.open(`/api/v1/cco-cf/review/exports/${currentBatchId}/manifest`, '_blank');
+      } else if (act === 'build-package') {
+        const r = await fetch(`/api/v1/cco-cf/review/exports/${currentBatchId}/build-package`, { method: 'POST', credentials: 'same-origin' });
+        const data = await r.json();
+        if (!r.ok || !data.ok) { alert('Fel: ' + (data.error || data.reason || r.status)); return; }
+        alert(`Paket byggt · ${data.numberOfExpenses} expenses · ${data.numberOfReceipts} bilagor · manifest: ${data.manifestKey}`);
+        await openBatch(currentBatchId); await loadBatches(); await loadDashboard();
+      } else if (act === 'set-reviewed' || act === 'needs-correction' || act === 'accept' || act === 'reject') {
+        const statusMap = {
+          'set-reviewed': 'reviewed',
+          'needs-correction': 'needs_correction',
+          'accept': 'accepted_for_bookkeeping',
+          'reject': 'rejected_with_reason',
+        };
+        const newStatus = statusMap[act];
+        const requireReason = newStatus === 'needs_correction' || newStatus === 'rejected_with_reason';
+        const reason = requireReason ? prompt('Skäl (krävs för needs_correction/rejected):') : null;
+        if (requireReason && !reason) return;
+        const r = await fetch(`/api/v1/cco-cf/review/exports/${currentBatchId}/status`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus, reason }),
+        });
+        if (!r.ok) { const err = await r.json().catch(() => ({})); alert('Fel: ' + (err.error || r.status)); return; }
+        await openBatch(currentBatchId); await loadBatches(); await loadDashboard();
+      } else if (act === 'add-note') {
+        const text = document.getElementById('note-text')?.value || '';
+        if (!text.trim()) return;
+        const r = await fetch(`/api/v1/cco-cf/review/exports/${currentBatchId}/note`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        if (!r.ok) { alert('Fel'); return; }
+        await openBatch(currentBatchId); await loadBatches();
+      }
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+
+  // Filter listeners
+  for (const id of ['f-status', 'f-search', 'f-from', 'f-to']) {
+    document.getElementById(id).addEventListener('input', () => renderBatches());
+  }
+  document.querySelector('[data-action="refresh"]').addEventListener('click', () => { loadBatches(); loadDashboard(); });
+
+  // Init
+  loadDashboard();
+  loadBatches();
+})();
+</script>
+</body></html>

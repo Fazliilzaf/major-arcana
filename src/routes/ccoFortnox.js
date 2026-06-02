@@ -92,8 +92,9 @@ function createCcoFortnoxRouter({
         redirectUri: config.fortnoxRedirectUri,
         scope: config.fortnoxScope,
         state,
+        accountType: config.fortnoxAccountType, // 'service' om Service Account är aktiverat i Dev Portal
       });
-      return res.json({ ok: true, authorizeUrl: url });
+      return res.json({ ok: true, authorizeUrl: url, accountType: config.fortnoxAccountType || 'user' });
     })
   );
 

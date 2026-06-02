@@ -1,0 +1,1252 @@
+<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chief of Finance · CCO</title>
+<style>
+  :root{--bg:#faf6f2;--ink:#2b251f;--muted:#84756b;--accent:#bb4779;--ok:#4a8268;--warn:#c8821e;--blue:#4a7ba8;--danger:#b94a4a;--purple:#7c3aae;--gold:#c2aa9c}
+  *{box-sizing:border-box}html,body{margin:0;padding:0}
+  body{background:radial-gradient(ellipse at 14% 0%,rgba(255,228,200,.32),transparent 40%),var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;min-height:100vh;padding:24px;line-height:1.5;font-size:13px}
+  .wrap{max-width:1280px;margin:0 auto}
+  .header{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;margin-bottom:18px}
+  h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;color:#1a1612}
+  .meta{color:var(--muted);font-size:12px;font-weight:600}
+  .status-banner{padding:9px 14px;border-radius:10px;font-size:12px;font-weight:700;margin-bottom:14px}
+  .status-banner--partial{background:rgba(200,130,30,.12);color:#7a4f12}
+  .status-banner--ok{background:rgba(74,130,104,.12);color:#2c5443}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:18px}
+  .kpi{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,241,232,.88));border-radius:14px;padding:14px 18px;box-shadow:0 8px 22px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.9);border:1px solid rgba(132,117,107,.14)}
+  .kpi-label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .kpi-value{font-size:22px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+  .kpi-sub{font-size:11px;color:var(--muted);margin-top:3px;font-weight:600}
+  .kpi--ok .kpi-value{color:var(--ok)}
+  .kpi--warn .kpi-value{color:var(--warn)}
+  .kpi--danger .kpi-value{color:var(--danger)}
+  .kpi--partial::after{content:" · PARTIAL";font-size:9px;color:var(--warn);font-weight:800}
+
+  .integrations{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .integration{padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid rgba(132,117,107,.22);background:linear-gradient(180deg,#fff,#fbf6ef)}
+  .integration--ok{background:linear-gradient(180deg,#eef7f2,#d8e8de);color:#2c5443;border-color:rgba(74,130,104,.32)}
+  .integration--off{background:linear-gradient(180deg,#fce8e8,#f5c4c4);color:#8a3030;border-color:rgba(185,74,74,.32)}
+
+  .anomalies{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+  .anomaly{padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;border-left:3px solid}
+  .anomaly--high{background:rgba(185,74,74,.08);color:#8a3030;border-color:var(--danger)}
+  .anomaly--medium{background:rgba(200,130,30,.08);color:#7a4f12;border-color:var(--warn)}
+
+  .section{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,241,232,.88));border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:0 8px 22px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.9);border:1px solid rgba(132,117,107,.14)}
+  .section h2{margin:0 0 12px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+  .section-actions{margin-left:auto;display:flex;gap:6px}
+  .btn{appearance:none;border:0;cursor:pointer;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;background:linear-gradient(180deg,#fff,#fbf6ef);color:var(--ink);box-shadow:0 2px 4px rgba(56,40,28,.06)}
+  .btn--primary{background:linear-gradient(180deg,#fce8f0,#f8c5d8);color:#6e1f44}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 4px 8px rgba(56,40,28,.1)}
+
+  .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .pill{padding:4px 11px;border-radius:999px;background:rgba(132,117,107,.1);color:#5a4d3f;font-weight:700;font-size:10.5px;cursor:pointer;border:1px solid transparent;user-select:none}
+  .pill.active{background:linear-gradient(180deg,#fff,#fbf6ef);border-color:rgba(132,117,107,.22);color:var(--ink);box-shadow:0 2px 4px rgba(56,40,28,.08)}
+  .pill .count{margin-left:6px;font-size:10px;color:var(--muted)}
+
+  .receipts-list{display:flex;flex-direction:column;gap:6px}
+  .receipt{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.6);border:1px solid rgba(132,117,107,.12)}
+  .receipt-thumb{width:36px;height:36px;border-radius:6px;background:linear-gradient(180deg,#f5efe6,#e8dfd2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .receipt-main{min-width:0}
+  .receipt-name{font-weight:700;color:var(--ink);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .receipt-meta{font-size:11px;color:var(--muted);margin-top:1px;display:flex;flex-wrap:wrap;gap:8px}
+  .receipt-amount{font-weight:800;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .receipt-status{padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+  .receipt-status--new{background:rgba(74,123,168,.14);color:var(--blue)}
+  .receipt-status--needs_review{background:rgba(200,130,30,.16);color:#7a4f12}
+  .receipt-status--categorized{background:rgba(74,130,104,.14);color:var(--ok)}
+  .receipt-status--exported{background:rgba(132,117,107,.16);color:var(--muted)}
+  .receipt-status--rejected{background:rgba(185,74,74,.12);color:var(--danger)}
+  .receipt-customerlink{font-size:11px;color:var(--accent);font-weight:700;text-decoration:none}
+  .receipt-customerlink:hover{text-decoration:underline}
+  /* CF.2-fix BUG-3: encounter/treatment/offer-chips i receipt-meta */
+  .receipt-link-chip{display:inline-block;font-size:10px;font-weight:600;color:#5a4a7a;background:#ece5f7;padding:1px 6px;border-radius:6px;cursor:help}
+  .empty{padding:30px;text-align:center;color:var(--muted);font-style:italic;font-size:13px}
+
+  /* CF.3: Expense status-badge nyanser utöver receipt-status */
+  .receipt-status--approved{background:rgba(74,130,104,.2);color:var(--ok)}
+  .receipt-status--ready_for_export{background:rgba(124,58,174,.14);color:var(--purple)}
+
+  /* CF.3: Fortnox blocked-integration banner */
+  .fortnox-blocked{background:linear-gradient(180deg,rgba(200,130,30,.16),rgba(200,130,30,.08));border:1px solid rgba(200,130,30,.3);color:#7a4f12;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px}
+  .fortnox-blocked-icon{font-size:18px;flex-shrink:0}
+  .fortnox-blocked-title{font-weight:800;margin-bottom:2px}
+  .fortnox-blocked-detail{font-weight:500;opacity:.85}
+
+  /* CF.3: Inline expense-editor */
+  .exp-editor{background:rgba(255,255,255,.94);border:1px solid rgba(132,117,107,.22);border-radius:10px;padding:14px;margin-top:8px;display:none}
+  .exp-editor.open{display:block}
+  .exp-editor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+  .exp-field{display:flex;flex-direction:column;gap:3px}
+  .exp-field label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .exp-field input,.exp-field select,.exp-field textarea{padding:6px 9px;border-radius:6px;border:1px solid rgba(132,117,107,.32);background:#fff;color:var(--ink);font-size:12.5px;font-family:inherit}
+  .exp-field textarea{min-height:50px;resize:vertical}
+  .exp-editor-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .exp-row{cursor:pointer}
+  .exp-row:hover{background:rgba(248,241,232,.7)}
+  .exp-export-result{background:linear-gradient(180deg,rgba(124,58,174,.1),rgba(124,58,174,.04));border:1px solid rgba(124,58,174,.28);color:#4a2270;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-top:8px;display:none}
+  .exp-export-result.show{display:block}
+
+  /* CF.4: Suggestion-badge + rules-sektion */
+  .sugg-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;letter-spacing:.04em;padding:2px 8px;border-radius:999px;text-transform:uppercase}
+  .sugg-badge--high{background:linear-gradient(180deg,#dff5e6,#bfe9cb);color:#1f6e3e;border:1px solid rgba(31,110,62,.3)}
+  .sugg-badge--med{background:linear-gradient(180deg,#fdebd3,#f9d49b);color:#7a4f12;border:1px solid rgba(122,79,18,.3)}
+  .sugg-badge--low{background:linear-gradient(180deg,#fce8e8,#f5c4c4);color:#8a3030;border:1px solid rgba(138,48,48,.3)}
+  .sugg-badge--recurring{background:linear-gradient(180deg,#e3dcf5,#cdc0eb);color:#4a2270;border:1px solid rgba(124,58,174,.3)}
+  .sugg-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding:10px;background:rgba(255,255,255,.6);border:1px solid rgba(132,117,107,.18);border-radius:10px}
+  .sugg-text{font-size:11.5px;color:#5a4d3f;margin-bottom:6px;font-weight:600}
+  .sugg-pill-fields{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px}
+  .sugg-pill-fields .pill{font-size:10px;background:rgba(74,123,168,.12);color:#2a5276;border:1px solid rgba(74,123,168,.3)}
+
+  .rules-list{display:flex;flex-direction:column;gap:6px}
+  .rule-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.6);border:1px solid rgba(132,117,107,.12)}
+  .rule-row[data-enabled="false"]{opacity:.55}
+  .rule-name{font-weight:700;color:var(--ink);font-size:12.5px}
+  .rule-meta{font-size:11px;color:var(--muted)}
+  .rule-stats{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rule-stats strong{color:var(--ok)}
+  .rule-actions{display:flex;gap:4px}
+  .rule-toggle{font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;cursor:pointer;border:1px solid rgba(132,117,107,.3);background:#fff}
+  .rule-toggle[data-on="true"]{background:linear-gradient(180deg,#dff5e6,#bfe9cb);color:#1f6e3e;border-color:rgba(31,110,62,.3)}
+
+  /* CF.5: Vendors-sektion */
+  .vendors-list{display:flex;flex-direction:column;gap:6px}
+  .vendor-row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.6);border:1px solid rgba(132,117,107,.12)}
+  .vendor-row[data-active="false"]{opacity:.55}
+  .vendor-name{font-weight:700;color:var(--ink);font-size:12.5px}
+  .vendor-meta{font-size:11px;color:var(--muted)}
+  .vendor-defaults{font-size:11px;color:#2a5276;font-weight:600}
+  .vendor-stats{font-size:11px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .vendor-risk{font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;text-transform:uppercase;background:rgba(200,130,30,.18);color:#7a4f12;border:1px solid rgba(200,130,30,.4)}
+  .new-supplier-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:linear-gradient(180deg,#fdebd3,#f9d49b);color:#7a4f12;border:1px solid rgba(122,79,18,.3);cursor:pointer}
+  .new-supplier-badge:hover{transform:translateY(-1px)}
+  .supplier-link-chip{display:inline-block;font-size:10px;font-weight:600;color:#1f6e3e;background:#dff5e6;padding:1px 7px;border-radius:6px;cursor:help}
+
+  /* CF.6: VAT-badges */
+  .vat-chip{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:6px;cursor:help}
+  .vat-chip--standard{background:#e8f0fa;color:#2a5276}
+  .vat-chip--reverse{background:#ede5f7;color:#4a2270;border:1px solid rgba(124,58,174,.3)}
+  .vat-chip--non-deductible{background:#fce8e8;color:#8a3030;border:1px solid rgba(138,48,48,.3)}
+  .vat-chip--representation{background:#fdebd3;color:#7a4f12;border:1px solid rgba(122,79,18,.3)}
+  .vat-chip--review{background:linear-gradient(180deg,#fce8e8,#f5c4c4);color:#8a3030;font-weight:800;border:1px solid rgba(138,48,48,.4)}
+  .vat-chip--reviewed{background:#dff5e6;color:#1f6e3e}
+
+  /* CF.7: Recurring chips */
+  .recurring-chip{display:inline-block;font-size:10px;font-weight:600;background:#e8f0fa;color:#2a5276;padding:1px 7px;border-radius:6px;cursor:help}
+  .recurring-anomaly{display:inline-block;font-size:10px;font-weight:800;background:linear-gradient(180deg,#fce8e8,#f5c4c4);color:#8a3030;padding:1px 7px;border-radius:6px;cursor:help}
+  .rec-row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.6);border:1px solid rgba(132,117,107,.12);margin-bottom:6px}
+  .rec-row[data-status="paused"]{opacity:.55}
+  .rec-row[data-status="ended"]{opacity:.35}
+  .rec-row[data-overdue="true"]{border-left:3px solid var(--danger)}
+  .rec-name{font-weight:700;color:var(--ink);font-size:12.5px}
+  .rec-meta{font-size:11px;color:var(--muted)}
+  .rec-due{font-size:11px;color:var(--ink);font-weight:600;white-space:nowrap}
+  .rec-due--overdue{color:var(--danger)}
+  .rec-confidence{font-size:10px;color:var(--muted)}
+  .rec-status-pill{font-size:9px;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:999px;text-transform:uppercase}
+  .rec-status--proposed{background:rgba(200,130,30,.18);color:#7a4f12}
+  .rec-status--active{background:rgba(31,110,62,.18);color:#1f6e3e}
+  .rec-status--paused{background:rgba(132,117,107,.18);color:#5a4d3f}
+  .rec-status--ended{background:rgba(185,74,74,.14);color:#8a3030}
+
+  .upload-card{background:linear-gradient(180deg,#fce8f0,#f8c5d8);color:#6e1f44;padding:14px 18px;border-radius:14px;text-align:center;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 8px 22px rgba(187,71,121,.18);margin-bottom:14px}
+  .upload-card input{display:none}
+  .upload-card-hint{font-size:11px;font-weight:500;color:#6e1f44;opacity:.8;margin-top:4px}
+
+  @media (max-width:680px){
+    body{padding:12px;font-size:12.5px}
+    h1{font-size:20px}
+    .kpis{grid-template-columns:1fr 1fr}
+    .receipt{grid-template-columns:1fr auto;gap:8px}
+    .receipt-thumb{display:none}
+    .receipt-amount{grid-column:2}
+  }
+</style></head><body>
+<div class="wrap">
+
+<div class="header">
+  <h1>Chief of Finance</h1>
+  <div class="meta" id="meta">Hämtar dashboard…</div>
+  <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="/finance-reports.html" style="font-size:12px;color:var(--accent,#C2AA9C);text-decoration:none;background:rgba(255,255,255,0.04);padding:5px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.08);">📊 Rapporter & Månadsstängning</a>
+    <a href="/finance-review.html" style="font-size:12px;color:var(--accent,#C2AA9C);text-decoration:none;background:rgba(255,255,255,0.04);padding:5px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.08);">🔎 Revisorportal</a>
+  </div>
+</div>
+
+<div id="status-banner"></div>
+<div id="period-banner"></div>
+
+<!-- CF.3: Fortnox blocked-integration banner -->
+<div id="fortnox-blocker"></div>
+
+<!-- KPIs -->
+<div class="kpis" id="kpis">
+  <div class="kpi"><div class="kpi-label">Hämtar...</div><div class="kpi-value">—</div></div>
+</div>
+
+<!-- Integrations -->
+<div class="integrations" id="integrations"></div>
+
+<!-- Anomalies -->
+<div class="anomalies" id="anomalies"></div>
+
+<!-- Upload Receipt -->
+<label class="upload-card" for="cf-upload">
+  📎 Ladda upp kvitto / underlag
+  <div class="upload-card-hint">PDF, JPG, PNG eller WEBP · max 20 MB · sparas i secure storage med SHA256</div>
+  <input id="cf-upload" type="file" accept="image/*,application/pdf">
+</label>
+
+<!-- Receipt Inbox -->
+<div class="section">
+  <h2>
+    Kvitto-inkorg
+    <span class="meta" id="receipt-count">0</span>
+    <div class="section-actions">
+      <button class="btn" data-action="refresh">↻ Uppdatera</button>
+    </div>
+  </h2>
+  <div class="filters" id="filter-pills">
+    <span class="pill active" data-status="all">Alla <span class="count" id="c-all">0</span></span>
+    <span class="pill" data-status="new">Ny <span class="count" id="c-new">0</span></span>
+    <span class="pill" data-status="needs_review">Behöver granskas <span class="count" id="c-needs_review">0</span></span>
+    <span class="pill" data-status="categorized">Kategoriserad <span class="count" id="c-categorized">0</span></span>
+    <span class="pill" data-status="exported">Exporterad <span class="count" id="c-exported">0</span></span>
+    <span class="pill" data-status="rejected">Avvisad <span class="count" id="c-rejected">0</span></span>
+  </div>
+  <div class="receipts-list" id="receipts-list">
+    <div class="empty">Hämtar…</div>
+  </div>
+</div>
+
+<!-- CF.7: Återkommande kostnader -->
+<div class="section">
+  <h2>
+    Återkommande kostnader
+    <span class="meta" id="recurring-count">0</span>
+    <div class="section-actions">
+      <button class="btn" data-action="recurring-refresh">↻ Uppdatera</button>
+      <button class="btn" data-action="recurring-detect">🔍 Detektera från historik</button>
+      <button class="btn btn--primary" data-action="recurring-new">+ Skapa mall</button>
+    </div>
+  </h2>
+  <div id="recurring-list">
+    <div class="empty">Hämtar…</div>
+  </div>
+</div>
+
+<!-- CF.5: Leverantörsregister sektion -->
+<div class="section">
+  <h2>
+    Leverantörsregister
+    <span class="meta" id="vendors-count">0</span>
+    <div class="section-actions">
+      <button class="btn" data-action="vendors-refresh">↻ Uppdatera</button>
+      <button class="btn" data-action="vendors-filter-needs-review">Behöver granskas</button>
+      <button class="btn btn--primary" data-action="vendor-new">+ Skapa leverantör</button>
+    </div>
+  </h2>
+  <div class="vendors-list" id="vendors-list">
+    <div class="empty">Hämtar…</div>
+  </div>
+</div>
+
+<!-- CF.4: Rule Engine sektion -->
+<div class="section">
+  <h2>
+    Auto-categorization regler
+    <span class="meta" id="rules-count">0</span>
+    <div class="section-actions">
+      <button class="btn" data-action="rules-refresh">↻ Uppdatera</button>
+      <button class="btn btn--primary" data-action="rule-new">+ Skapa regel</button>
+    </div>
+  </h2>
+  <div class="rules-list" id="rules-list">
+    <div class="empty">Hämtar…</div>
+  </div>
+</div>
+
+<!-- CF.3: Expense Inbox -->
+<div class="section">
+  <h2>
+    Utgifts-inkorg
+    <span class="meta" id="expense-count">0</span>
+    <div class="section-actions">
+      <button class="btn" data-action="expense-refresh">↻ Uppdatera</button>
+      <button class="btn" data-action="expense-new">+ Skapa fristående</button>
+      <button class="btn btn--primary" data-action="expense-export">Bygg exportpaket</button>
+    </div>
+  </h2>
+  <div class="filters" id="expense-filter-pills">
+    <span class="pill active" data-expstatus="all">Alla <span class="count" id="ec-all">0</span></span>
+    <span class="pill" data-expstatus="new">Nya <span class="count" id="ec-new">0</span></span>
+    <span class="pill" data-expstatus="needs_review">Behöver granskas <span class="count" id="ec-needs_review">0</span></span>
+    <span class="pill" data-expstatus="categorized">Kategoriserade <span class="count" id="ec-categorized">0</span></span>
+    <span class="pill" data-expstatus="approved">Godkända <span class="count" id="ec-approved">0</span></span>
+    <span class="pill" data-expstatus="ready_for_export">Redo för export <span class="count" id="ec-ready_for_export">0</span></span>
+    <span class="pill" data-expstatus="exported">Exporterade <span class="count" id="ec-exported">0</span></span>
+    <span class="pill" data-expstatus="rejected">Avvisade <span class="count" id="ec-rejected">0</span></span>
+    <span class="pill" data-expstatus="vat_review">Moms granska <span class="count" id="ec-vat_review">0</span></span>
+  </div>
+  <div id="expense-export-result" class="exp-export-result"></div>
+  <div class="receipts-list" id="expenses-list">
+    <div class="empty">Hämtar…</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtSek = (n) => (typeof n === 'number') ? new Intl.NumberFormat('sv-SE', { style:'currency', currency:'SEK', maximumFractionDigits:0 }).format(n) : '—';
+  const fmtTs = (iso) => { if (!iso) return '—'; try { return new Date(iso).toISOString().slice(0,10); } catch { return iso; } };
+
+  let allReceipts = [];
+  let currentFilter = 'all';
+
+  async function loadDashboard() {
+    try {
+      const r = await fetch('/api/v1/cco-cf/dashboard', { credentials: 'same-origin' });
+      if (!r.ok) { $('meta').textContent = `HTTP ${r.status} — logga in som owner/finance/revisor`; return; }
+      const d = await r.json();
+      render(d);
+    } catch (err) {
+      $('meta').textContent = 'Fel: ' + err.message;
+    }
+  }
+
+  function render(d) {
+    $('meta').textContent = `Uppdaterat ${new Date(d.builtAt).toISOString().slice(11,16)} · tenant ${esc(d.tenantId)}`;
+
+    // Status banner
+    const banner = d.partial
+      ? `<div class="status-banner status-banner--partial">⚠ PARTIAL · ${d.partialReasons.join(' · ')}</div>`
+      : `<div class="status-banner status-banner--ok">✓ Allt synkat</div>`;
+    $('status-banner').innerHTML = banner;
+
+    // CF.3: Fortnox blocked-integration banner
+    if (d.fortnox?.blockedIntegration) {
+      $('fortnox-blocker').innerHTML = `
+        <div class="fortnox-blocked">
+          <div class="fortnox-blocked-icon">⚠</div>
+          <div>
+            <div class="fortnox-blocked-title">Fortnox: BLOCKED_INTEGRATION</div>
+            <div class="fortnox-blocked-detail">${esc(d.fortnox.blockerReason || 'OAuth-flödet är blockerat. CF kör manuell expense-export tills Fortnox-felen är lösta.')}</div>
+          </div>
+        </div>`;
+    } else {
+      $('fortnox-blocker').innerHTML = '';
+    }
+
+    // KPIs (CF.3+CF.4: 14 stycken)
+    const expMonth = d.expenses?.monthAmountSek || 0;
+    const expReady = d.expenses?.readyForExportAmountSek || 0;
+    const sg = d.suggestions || {};
+    const kpis = [
+      { l: 'Idag · betalt', v: fmtSek(d.invoices.totalPaidTodaySek), p: d.invoices.partial, cls:'kpi--ok' },
+      { l: 'Vecka · betalt', v: fmtSek(d.invoices.totalPaidThisWeekSek), p: d.invoices.partial, cls:'kpi--ok' },
+      { l: 'Månad · betalt', v: fmtSek(d.invoices.totalPaidThisMonthSek), p: d.invoices.partial, cls:'kpi--ok' },
+      { l: 'Utestående', v: fmtSek(d.invoices.totalOutstandingSek), p: d.invoices.partial, cls:'kpi--warn' },
+      { l: 'Förfallna fakturor', v: d.invoices.invoiceCounts.overdue || 0, p: d.invoices.partial, cls:'kpi--danger' },
+      { l: 'Depositioner hållna', v: fmtSek(d.deposits.totalDepositsHeldSek), p: d.deposits.partial, cls:'' },
+      { l: 'Kvitton att hantera', v: d.receipts.needsReviewCount || 0, p: false, cls: (d.receipts.needsReviewCount > 0 ? 'kpi--warn' : '') },
+      { l: 'Utgifter denna månad', v: fmtSek(expMonth), p: d.expenses?.partial, cls:'' },
+      { l: 'Moms denna månad', v: fmtSek(d.expenses?.monthVatSek || 0), p: d.expenses?.partial, cls:'' },
+      { l: 'Redo för export', v: fmtSek(expReady), p: false, cls: ((d.expenses?.readyForExportCount || 0) > 0 ? 'kpi--warn' : '') },
+      { l: 'Förslag väntar', v: sg.pendingCount || 0, p: false, cls: (sg.pendingCount > 0 ? 'kpi--warn' : '') },
+      { l: 'Hög confidence', v: sg.highConfidenceCount || 0, p: false, cls: (sg.highConfidenceCount > 0 ? 'kpi--ok' : '') },
+      { l: 'Nya leverantörer', v: sg.newSupplierCount || 0, p: false, cls: '' },
+      { l: 'Återkommande upptäckta', v: sg.recurringDetectedCount || 0, p: false, cls: '' },
+      { l: 'Leverantörer (aktiva)', v: d.vendors?.active || 0, p: d.vendors?.partial, cls:'' },
+      { l: 'Leverantörer behöver granskas', v: d.vendors?.needsReviewCount || 0, p: d.vendors?.partial, cls: ((d.vendors?.needsReviewCount || 0) > 0 ? 'kpi--warn' : '') },
+      // CF.6: VAT KPI:er
+      { l: 'Moms behöver granskas', v: d.expenses?.vatReviewPendingCount || 0, p: false, cls: ((d.expenses?.vatReviewPendingCount || 0) > 0 ? 'kpi--warn' : '') },
+      { l: 'Reverse charge', v: d.expenses?.reverseChargeCount || 0, p: false, cls: '' },
+      { l: 'Ej avdragsgill moms', v: fmtSek(d.expenses?.totalNonDeductibleVatSek || 0), p: false, cls: ((d.expenses?.totalNonDeductibleVatSek || 0) > 0 ? 'kpi--warn' : '') },
+      // CF.7: Recurring KPI:er (6 stycken)
+      { l: 'Återkomm. kommande 30d', v: d.recurring?.dueNext30Count || 0, p: d.recurring?.partial, cls: '' },
+      { l: 'Återkomm. förfallna', v: d.recurring?.overdueCount || 0, p: false, cls: ((d.recurring?.overdueCount || 0) > 0 ? 'kpi--danger' : '') },
+      { l: 'Månadsbelastning återkomm.', v: fmtSek(d.recurring?.estimatedMonthlyLoadSek || 0), p: d.recurring?.partial, cls: '' },
+      { l: 'Återkomm. förslag', v: d.recurring?.proposed || 0, p: false, cls: ((d.recurring?.proposed || 0) > 0 ? 'kpi--warn' : '') },
+      { l: 'Aktiva återkommande', v: d.recurring?.active || 0, p: d.recurring?.partial, cls: '' },
+      { l: 'Återkomm. utan match', v: d.recurring?.unmatchedActiveCount || 0, p: false, cls: ((d.recurring?.unmatchedActiveCount || 0) > 0 ? 'kpi--warn' : '') },
+      // CF.9: Monthly close KPI:er
+      { l: 'Period ' + (d.monthlyClose?.currentPeriod || '—'), v: d.monthlyClose?.currentStatus || 'open', p: d.monthlyClose?.partial, cls: (d.monthlyClose?.currentStatus === 'corrections_needed' ? 'kpi--danger' : (d.monthlyClose?.currentStatus === 'closed' ? 'kpi--ok' : '')) },
+      { l: 'Stängningschecklista', v: `${d.monthlyClose?.checklistPassing || 0}/${d.monthlyClose?.checklistTotal || 8}`, p: d.monthlyClose?.partial, cls: (d.monthlyClose?.readyForClose ? 'kpi--ok' : '') },
+      { l: 'Stängda perioder totalt', v: d.monthlyClose?.closedCount || 0, p: d.monthlyClose?.partial, cls: '' },
+    ];
+    // CF.9: Sticky banner om periodens status är corrections_needed
+    if (d.monthlyClose?.currentStatus === 'corrections_needed') {
+      $('period-banner').innerHTML = `<div style="background:rgba(217,106,106,0.12);border:1px solid #D96A6A;border-radius:10px;padding:12px 16px;margin:8px 0;font-size:13px;">⚠️ Perioden <strong>${d.monthlyClose.currentPeriod}</strong> behöver korrigeringar. <a href="/finance-reports.html" style="color:#D96A6A;">Öppna rapporter</a></div>`;
+    } else {
+      $('period-banner').innerHTML = '';
+    }
+    $('kpis').innerHTML = kpis.map((k) => `
+      <div class="kpi ${k.cls}${k.p ? ' kpi--partial' : ''}">
+        <div class="kpi-label">${esc(k.l)}</div>
+        <div class="kpi-value">${esc(k.v)}</div>
+      </div>
+    `).join('');
+
+    // Integrations (CF.3: blocked_integration = orange istället för röd)
+    const integrations = [
+      { name: 'Fortnox', ok: d.fortnox.connected, blocked: d.fortnox.blockedIntegration, status: d.fortnox.status },
+      { name: 'Swish', ok: d.swish.connected, status: d.swish.status },
+    ];
+    $('integrations').innerHTML = integrations.map((i) => {
+      const label = i.ok ? '✓ ansluten' : (i.blocked ? '⚠ blockerad integration' : 'ej kopplad');
+      const cls = i.ok ? 'integration--ok' : 'integration--off';
+      return `<span class="integration ${cls}">${esc(i.name)} · ${esc(label)}</span>`;
+    }).join('');
+
+    // Anomalies
+    if (d.anomalies?.length) {
+      $('anomalies').innerHTML = d.anomalies.map((a) => `
+        <div class="anomaly anomaly--${esc(a.severity)}">
+          ⚠ ${esc(a.kind.replace(/_/g, ' '))}${a.count ? ' · ' + a.count : ''}
+        </div>
+      `).join('');
+    } else {
+      $('anomalies').innerHTML = '';
+    }
+  }
+
+  async function loadReceipts() {
+    try {
+      const r = await fetch('/api/v1/cco-cf/receipts?limit=500', { credentials: 'same-origin' });
+      if (!r.ok) { $('receipts-list').innerHTML = `<div class="empty">HTTP ${r.status}</div>`; return; }
+      const data = await r.json();
+      allReceipts = data.receipts || [];
+      renderReceipts();
+      // Update filter-pill counts
+      const s = data.summary || {};
+      $('c-all').textContent = s.total || 0;
+      for (const k of ['new','needs_review','categorized','exported','rejected']) {
+        const el = $('c-' + k); if (el) el.textContent = s.byStatus?.[k] || 0;
+      }
+    } catch (err) {
+      $('receipts-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+    }
+  }
+
+  function renderReceipts() {
+    const filtered = currentFilter === 'all' ? allReceipts : allReceipts.filter((r) => r.status === currentFilter);
+    $('receipt-count').textContent = `${filtered.length} kvitton`;
+    if (filtered.length === 0) {
+      $('receipts-list').innerHTML = '<div class="empty">Inga kvitton med detta filter.</div>';
+      return;
+    }
+    $('receipts-list').innerHTML = filtered.map((r) => {
+      const thumb = (r.mimeType || '').includes('pdf') ? '📄' : '🖼';
+      const customer = r.customerId ? `<a class="receipt-customerlink" href="/kunder.html?customer=${esc(r.customerId)}">→ kundkort</a>` : '';
+      // CF.2-fix 2026-06-01 (BUG-3): visa encounter/treatment/offer-IDs när satta.
+      // Trunkera till sista 6 tecken så raden inte sprängs — full ID syns vid hover (title).
+      const tail6 = (s) => String(s || '').slice(-6);
+      const encChip = r.encounterId ? `<span class="receipt-link-chip" title="encounterId: ${esc(r.encounterId)}">enc:${esc(tail6(r.encounterId))}</span>` : '';
+      const txChip = r.treatmentId ? `<span class="receipt-link-chip" title="treatmentId: ${esc(r.treatmentId)}">tx:${esc(tail6(r.treatmentId))}</span>` : '';
+      const offerChip = r.offerId ? `<span class="receipt-link-chip" title="offerId: ${esc(r.offerId)}">offer:${esc(tail6(r.offerId))}</span>` : '';
+      const meta = [
+        r.supplier && esc(r.supplier),
+        r.category && esc(r.category),
+        r.date && esc(fmtTs(r.date)),
+        r.sourceSystem !== 'manual_upload' && esc(r.sourceSystem),
+        customer,
+        encChip,
+        txChip,
+        offerChip,
+      ].filter(Boolean).join(' · ');
+      return `
+        <div class="receipt" data-id="${esc(r.id)}">
+          <div class="receipt-thumb">${thumb}</div>
+          <div class="receipt-main">
+            <div class="receipt-name">${esc(r.supplier || r.originalFileName || 'Kvitto utan namn')}</div>
+            <div class="receipt-meta">${meta || '<i>Inget metadata än — klicka för att kategorisera</i>'}</div>
+          </div>
+          <div class="receipt-amount">${esc(fmtSek(r.amountSek))}</div>
+          <div class="receipt-status receipt-status--${esc(r.status)}">${esc(r.status.replace(/_/g,' '))}</div>
+          <a class="btn" href="/api/v1/cco-cf/receipts/${esc(r.id)}/download" target="_blank">Visa</a>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Filter pills
+  document.getElementById('filter-pills').addEventListener('click', (e) => {
+    const pill = e.target.closest('.pill[data-status]');
+    if (!pill) return;
+    document.querySelectorAll('.pill').forEach((p) => p.classList.remove('active'));
+    pill.classList.add('active');
+    currentFilter = pill.dataset.status;
+    renderReceipts();
+  });
+
+  // Refresh button
+  document.querySelector('[data-action="refresh"]').addEventListener('click', () => {
+    loadDashboard(); loadReceipts();
+  });
+
+  // Upload
+  $('cf-upload').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { alert('Filen är för stor — max 20 MB.'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('sourceSystem', 'manual_upload');
+    try {
+      const r = await fetch('/api/v1/cco-cf/receipts/upload', { method: 'POST', credentials: 'same-origin', body: fd });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        alert('Uppladdning misslyckades: ' + (err.error || r.status));
+        return;
+      }
+      const data = await r.json();
+      e.target.value = '';
+      await loadReceipts();
+      await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+
+  // ── CF.3: Expense Inbox ─────────────────────────────────────
+  const EXP_CATEGORIES = ['utrustning','forbrukning','lokal','personal','utbildning','resor','mat_representation','marknadsforing','administrativ','it_telefoni','forsakring','juridik_konsult','bank_finansiell','skatter_avgifter','annat'];
+  const EXP_PAYMENTS = ['card','swish','bank_transfer','invoice','cash','autogiro','direct_debit','other'];
+  const EXP_VATS = [0,6,12,25,'reverse_charge'];
+  // CF.6: vat-modes
+  const VAT_MODES = ['standard_25','standard_12','standard_6','standard_0','mixed','reverse_charge_eu','reverse_charge_non_eu','non_deductible','representation_limited','needs_review'];
+  const VAT_LABELS = {
+    standard_25:'25%', standard_12:'12%', standard_6:'6%', standard_0:'0%',
+    mixed:'Blandad', reverse_charge_eu:'EU reverse charge', reverse_charge_non_eu:'Non-EU reverse charge',
+    non_deductible:'Ej avdragsgill', representation_limited:'Representation 50%', needs_review:'Behöver granskas',
+  };
+
+  let allExpenses = [];
+  let expFilter = 'all';
+  let openExpenseId = null;
+
+  async function loadExpenses() {
+    try {
+      const r = await fetch('/api/v1/cco-cf/expenses?limit=500', { credentials: 'same-origin' });
+      if (!r.ok) { $('expenses-list').innerHTML = `<div class="empty">HTTP ${r.status}</div>`; return; }
+      const data = await r.json();
+      allExpenses = data.expenses || [];
+      const s = data.summary || {};
+      $('ec-all').textContent = s.total || 0;
+      for (const k of ['new','needs_review','categorized','approved','ready_for_export','exported','rejected']) {
+        const el = $('ec-' + k); if (el) el.textContent = s.byStatus?.[k] || 0;
+      }
+      // CF.6: räkna vat_review separately
+      const vatReviewCount = allExpenses.filter((e) => e.vatReviewStatus === 'pending' || e.vatSuggestion).length;
+      const vatEl = $('ec-vat_review'); if (vatEl) vatEl.textContent = vatReviewCount;
+      renderExpenses();
+    } catch (err) {
+      $('expenses-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+    }
+  }
+
+  function expEditorHtml(e) {
+    const opt = (v, sel) => `<option value="${esc(v)}"${String(v)===String(sel)?' selected':''}>${esc(v)}</option>`;
+    return `
+      <div class="exp-editor open" data-editor="${esc(e.id)}">
+        <div class="exp-editor-grid">
+          <div class="exp-field"><label>Leverantör</label><input data-fld="supplier" value="${esc(e.supplier||'')}" placeholder="t.ex. Apoteket"></div>
+          <div class="exp-field"><label>Belopp (SEK)</label><input data-fld="amountSek" type="number" step="0.01" value="${esc(e.amountSek??'')}"></div>
+          <div class="exp-field"><label>Moms (SEK)</label><input data-fld="vatSek" type="number" step="0.01" value="${esc(e.vatSek??'')}"></div>
+          <div class="exp-field"><label>Momssats (%)</label>
+            <select data-fld="vatRatePercent"><option value="">—</option>${EXP_VATS.map((v)=>opt(v,e.vatRatePercent)).join('')}</select>
+          </div>
+          <div class="exp-field"><label>Datum</label><input data-fld="date" type="date" value="${esc(e.date||'')}"></div>
+          <div class="exp-field"><label>Kategori</label>
+            <select data-fld="category"><option value="">—</option>${EXP_CATEGORIES.map((v)=>opt(v,e.category)).join('')}</select>
+          </div>
+          <div class="exp-field"><label>Betalningssätt</label>
+            <select data-fld="paymentMethod"><option value="">—</option>${EXP_PAYMENTS.map((v)=>opt(v,e.paymentMethod)).join('')}</select>
+          </div>
+          <div class="exp-field"><label>Kund-ID (valfri)</label><input data-fld="customerId" value="${esc(e.customerId||'')}"></div>
+          <div class="exp-field"><label>Encounter-ID (valfri)</label><input data-fld="encounterId" value="${esc(e.encounterId||'')}"></div>
+          <div class="exp-field" style="grid-column:1/-1"><label>Noteringar</label><textarea data-fld="notes">${esc(e.notes||'')}</textarea></div>
+        </div>
+        <div class="exp-editor-actions">
+          <button class="btn btn--primary" data-exp-action="save">💾 Spara</button>
+          ${e.status === 'categorized' || e.status === 'needs_review' ? `<button class="btn" data-exp-action="approve">✓ Godkänn</button>` : ''}
+          ${e.status === 'approved' ? `<button class="btn" data-exp-action="ready">📤 Markera redo för export</button>` : ''}
+          ${!['exported','rejected'].includes(e.status) ? `<button class="btn" data-exp-action="reject">✗ Avvisa</button>` : ''}
+          <button class="btn" data-exp-action="close">Stäng</button>
+        </div>
+        <!-- CF.6: VAT-mode editor -->
+        ${!['exported'].includes(e.status) ? `
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(132,117,107,.3)">
+            <div class="exp-field" style="margin-bottom:8px">
+              <label>Momsregel (vatMode)</label>
+              <select data-vat-fld="vatMode"><option value="">— välj —</option>${VAT_MODES.map((m)=>`<option value="${esc(m)}"${m===e.vatMode?' selected':''}>${esc(VAT_LABELS[m]||m)}</option>`).join('')}</select>
+            </div>
+            <div class="exp-editor-actions">
+              <button class="btn btn--primary" data-vat-action="approve">💼 Sätt vatMode</button>
+              <button class="btn" data-vat-action="markedReview">⚠ Markera moms behöver granskas</button>
+              <button class="btn" data-vat-action="suggest">🪄 Föreslå moms</button>
+              ${e.vatSuggestion ? `<button class="btn btn--primary" data-vat-action="approveSuggestion">✓ Godkänn momsförslag (${esc(e.vatSuggestion.suggestedVatMode)})</button>` : ''}
+            </div>
+            ${e.vatMode ? `<div class="sugg-text" style="margin-top:8px">Aktuell: <b>${esc(VAT_LABELS[e.vatMode]||e.vatMode)}</b> · netto ${esc(e.netAmountSek)} · moms ${esc(e.vatSek)} · avdragsgill ${esc(e.deductibleVatSek)} · ej avdragsgill ${esc(e.nonDeductibleVatSek)}</div>` : ''}
+          </div>` : ''}
+      </div>`;
+  }
+
+  function renderExpenses() {
+    const filtered = expFilter === 'all' ? allExpenses
+      : expFilter === 'vat_review' ? allExpenses.filter((e) => e.vatReviewStatus === 'pending' || e.vatSuggestion)
+      : allExpenses.filter((e) => e.status === expFilter);
+    $('expense-count').textContent = `${filtered.length} utgifter`;
+    if (filtered.length === 0) {
+      $('expenses-list').innerHTML = '<div class="empty">Inga utgifter med detta filter.</div>';
+      return;
+    }
+    $('expenses-list').innerHTML = filtered.map((e) => {
+      const thumb = e.receiptId ? '📄' : '💳';
+      const customer = e.customerId ? `<a class="receipt-customerlink" href="/kunder.html?customer=${esc(e.customerId)}" onclick="event.stopPropagation()">→ kundkort</a>` : '';
+      const tail6 = (s) => String(s||'').slice(-6);
+      const enc = e.encounterId ? `<span class="receipt-link-chip" title="encounterId: ${esc(e.encounterId)}">enc:${esc(tail6(e.encounterId))}</span>` : '';
+      const tx = e.treatmentId ? `<span class="receipt-link-chip" title="treatmentId: ${esc(e.treatmentId)}">tx:${esc(tail6(e.treatmentId))}</span>` : '';
+      const offer = e.offerId ? `<span class="receipt-link-chip" title="offerId: ${esc(e.offerId)}">offer:${esc(tail6(e.offerId))}</span>` : '';
+      const fnxChip = e.fortnoxSyncStatus !== 'synced'
+        ? `<span class="receipt-link-chip" style="background:#fdebd3;color:#7a4f12" title="${esc(e.fortnoxSyncStatus)}">fnx:${esc(e.fortnoxSyncStatus)}</span>`
+        : '';
+      // CF.5: supplier-koppling chip + "ny leverantör"-badge
+      let supplierChip = '';
+      if (e.supplierId) {
+        const vendor = vendorIndex[e.supplierId];
+        const vname = vendor ? vendor.name : e.supplierId.slice(-6);
+        supplierChip = `<span class="supplier-link-chip" title="${esc(e.supplierMatchType || 'manual')} match · confidence ${Math.round(100*(e.supplierMatchConfidence||1))}%">✓ ${esc(vname)}</span>`;
+      } else if (e.supplier && String(e.supplier).trim()) {
+        supplierChip = `<span class="new-supplier-badge" data-new-supplier="${esc(e.supplier)}" data-exp-id-for-supplier="${esc(e.id)}" title="Klicka för att skapa leverantör">＋ ny leverantör</span>`;
+      }
+      // CF.6: VAT-chip
+      let vatChip = '';
+      if (e.vatMode) {
+        const m = e.vatMode;
+        const cls = m.startsWith('standard') ? 'standard'
+          : (m === 'reverse_charge_eu' || m === 'reverse_charge_non_eu') ? 'reverse'
+          : (m === 'non_deductible') ? 'non-deductible'
+          : (m === 'representation_limited') ? 'representation'
+          : (m === 'needs_review' || m === 'mixed') ? 'review'
+          : 'standard';
+        const label = m === 'reverse_charge_eu' ? 'EU rev-charge'
+          : m === 'reverse_charge_non_eu' ? 'Non-EU rev-charge'
+          : m === 'non_deductible' ? 'Ej avdragsgill'
+          : m === 'representation_limited' ? 'Repr 50%'
+          : m === 'needs_review' ? '⚠ moms granska'
+          : m === 'mixed' ? 'Blandad moms'
+          : m.replace('standard_', '') + '%';
+        vatChip = `<span class="vat-chip vat-chip--${cls}" title="vatMode: ${esc(m)}${e.deductibleVatSek !== null ? ' · deductible ' + e.deductibleVatSek : ''}">${esc(label)}</span>`;
+      } else if (e.vatSuggestion) {
+        vatChip = `<span class="vat-chip vat-chip--review" title="förslag: ${esc(e.vatSuggestion.suggestedVatMode)} · ${Math.round((e.vatSuggestion.confidence||0)*100)}%">→ momsförslag</span>`;
+      }
+      // CF.6: review-badge
+      const vatReviewBadge = e.vatReviewStatus === 'pending'
+        ? `<span class="vat-chip vat-chip--review" title="vat-review krävs">⚠ moms granska</span>`
+        : (e.vatReviewStatus === 'reviewed' ? `<span class="vat-chip vat-chip--reviewed">✓ moms ok</span>` : '');
+      // CF.7: recurring-chip + anomaly-flaggor
+      let recurringChip = '';
+      if (e.recurringExpenseId) {
+        const r = recurringIndex[e.recurringExpenseId];
+        const rname = r ? r.supplierName : e.recurringExpenseId.slice(-6);
+        recurringChip = `<span class="recurring-chip" title="Återkommande mall · ${Math.round(100*(e.recurringMatchConfidence||1))}%">🔁 ${esc(rname)}</span>`;
+      }
+      const recAnomalies = Array.isArray(e.recurringAnomalies) && e.recurringAnomalies.length
+        ? e.recurringAnomalies.map((a) => `<span class="recurring-anomaly" title="${esc(a.severity || 'medium')}">⚠ ${esc(a.kind.replace(/_/g,' '))}</span>`).join(' ')
+        : '';
+      const meta = [
+        e.supplier && esc(e.supplier),
+        supplierChip,
+        e.category && esc(e.category),
+        e.date && esc(fmtTs(e.date)),
+        e.paymentMethod && esc(e.paymentMethod),
+        e.vatRatePercent !== null && e.vatRatePercent !== undefined ? `moms ${esc(e.vatRatePercent)}%` : '',
+        vatChip, vatReviewBadge,
+        recurringChip, recAnomalies,
+        customer, enc, tx, offer, fnxChip,
+      ].filter(Boolean).join(' · ');
+      const editor = openExpenseId === e.id ? expEditorHtml(e) : '';
+      // CF.4: suggestion-block
+      let suggestionHtml = '';
+      if (e.suggestion && e.suggestion.bestMatch) {
+        const conf = Number(e.suggestion.bestMatch.confidence || 0);
+        const cls = conf >= 0.70 ? 'high' : conf <= 0.30 ? 'low' : 'med';
+        const fields = e.suggestion.bestMatch.suggestedFields || {};
+        const fieldPills = Object.entries(fields).map(([k, v]) => `<span class="pill">${esc(k)}: ${esc(v)}</span>`).join('');
+        const recurringPill = e.suggestion.recurring?.isRecurring
+          ? `<span class="sugg-badge sugg-badge--recurring">🔁 Återkommande</span>` : '';
+        suggestionHtml = `
+          <div class="sugg-actions">
+            <div class="sugg-text">
+              <span class="sugg-badge sugg-badge--${cls}">Förslag · ${Math.round(conf*100)}%</span>
+              ${recurringPill}
+              · regel: <b>${esc(e.suggestion.bestMatch.ruleName || e.suggestion.bestMatch.ruleId)}</b>
+            </div>
+            <div class="sugg-pill-fields">${fieldPills}</div>
+            <button class="btn btn--primary" data-sugg-action="approve">✓ Godkänn förslag</button>
+            <button class="btn" data-sugg-action="reject">✗ Avvisa</button>
+            <button class="btn" data-sugg-action="save-as-rule">💾 Spara som regel</button>
+          </div>`;
+      }
+      return `
+        <div>
+          <div class="receipt exp-row" data-exp-id="${esc(e.id)}">
+            <div class="receipt-thumb">${thumb}</div>
+            <div class="receipt-main">
+              <div class="receipt-name">${esc(e.supplier || (e.receiptId ? 'Utgift från kvitto' : 'Manuell utgift'))}</div>
+              <div class="receipt-meta">${meta || '<i>Klicka för att fylla i metadata</i>'}</div>
+            </div>
+            <div class="receipt-amount">${esc(fmtSek(e.amountSek))}</div>
+            <div class="receipt-status receipt-status--${esc(e.status)}">${esc(e.status.replace(/_/g,' '))}</div>
+            <span></span>
+          </div>
+          ${suggestionHtml}
+          ${editor}
+        </div>`;
+    }).join('');
+  }
+
+  async function saveExpenseFromEditor(expenseId, editorEl) {
+    const patch = {};
+    editorEl.querySelectorAll('[data-fld]').forEach((el) => {
+      const fld = el.dataset.fld;
+      let val = el.value;
+      if (val === '') val = null;
+      if (val !== null && (fld === 'amountSek' || fld === 'vatSek')) val = Number(val);
+      if (val !== null && fld === 'vatRatePercent' && val !== 'reverse_charge') val = Number(val);
+      patch[fld] = val;
+    });
+    try {
+      const r = await fetch(`/api/v1/cco-cf/expenses/${expenseId}`, {
+        method: 'PATCH', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        alert('Sparning misslyckades: ' + (err.error || r.status));
+        return;
+      }
+      openExpenseId = null;
+      await loadExpenses(); await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  }
+
+  async function transitionExpense(expenseId, newStatus, reason) {
+    try {
+      const r = await fetch(`/api/v1/cco-cf/expenses/${expenseId}/status`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, reason: reason || null }),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        alert('Transition misslyckades: ' + (err.error || r.status));
+        return;
+      }
+      openExpenseId = null;
+      await loadExpenses(); await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  }
+
+  // Expense filter pills
+  document.getElementById('expense-filter-pills').addEventListener('click', (e) => {
+    const pill = e.target.closest('.pill[data-expstatus]');
+    if (!pill) return;
+    document.querySelectorAll('#expense-filter-pills .pill').forEach((p) => p.classList.remove('active'));
+    pill.classList.add('active');
+    expFilter = pill.dataset.expstatus;
+    renderExpenses();
+  });
+
+  // CF.6: VAT-action-delegation
+  document.getElementById('expenses-list').addEventListener('click', async (ev) => {
+    const vatAction = ev.target.closest('[data-vat-action]');
+    if (!vatAction) return;
+    ev.stopPropagation();
+    const editor = vatAction.closest('.exp-editor');
+    const expenseId = editor?.dataset.editor;
+    if (!expenseId) return;
+    const act = vatAction.dataset.vatAction;
+    const vatSel = editor.querySelector('[data-vat-fld="vatMode"]');
+    const vatMode = vatSel?.value || null;
+    try {
+      if (act === 'suggest') {
+        const r = await fetch(`/api/v1/cco-cf/expenses/${expenseId}/vat/suggest`, { method: 'POST', credentials: 'same-origin' });
+        if (!r.ok) { alert('Fel'); return; }
+      } else if (act === 'approveSuggestion') {
+        // Plocka suggestion från allExpenses
+        const e = allExpenses.find((x) => x.id === expenseId);
+        if (!e?.vatSuggestion) return;
+        const r = await fetch(`/api/v1/cco-cf/expenses/${expenseId}/vat`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vatMode: e.vatSuggestion.suggestedVatMode }),
+        });
+        if (!r.ok) { alert('Fel'); return; }
+      } else if (act === 'approve' || act === 'markedReview') {
+        if (!vatMode) { alert('Välj vatMode först.'); return; }
+        const r = await fetch(`/api/v1/cco-cf/expenses/${expenseId}/vat`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vatMode, markedReview: act === 'markedReview' }),
+        });
+        if (!r.ok) { const err = await r.json().catch(() => ({})); alert('Fel: ' + (err.error || r.status)); return; }
+      }
+      await loadExpenses(); await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+
+  // Expense row click → toggle editor
+  document.getElementById('expenses-list').addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-vat-action]')) return; // CF.6: vat-action har egen handler
+    const action = ev.target.closest('[data-exp-action]');
+    if (action) {
+      const editor = action.closest('.exp-editor');
+      const expenseId = editor?.dataset.editor;
+      if (!expenseId) return;
+      const act = action.dataset.expAction;
+      if (act === 'save') return saveExpenseFromEditor(expenseId, editor);
+      if (act === 'close') { openExpenseId = null; return renderExpenses(); }
+      if (act === 'approve') return transitionExpense(expenseId, 'approved');
+      if (act === 'ready') return transitionExpense(expenseId, 'ready_for_export');
+      if (act === 'reject') {
+        const reason = prompt('Anledning för avvisning?') || null;
+        if (reason === null) return;
+        return transitionExpense(expenseId, 'rejected', reason);
+      }
+      return;
+    }
+    const row = ev.target.closest('.exp-row[data-exp-id]');
+    if (!row) return;
+    const id = row.dataset.expId;
+    openExpenseId = openExpenseId === id ? null : id;
+    renderExpenses();
+  });
+
+  // Expense action buttons (refresh / new / export)
+  document.querySelector('[data-action="expense-refresh"]').addEventListener('click', () => { loadExpenses(); loadDashboard(); });
+  document.querySelector('[data-action="expense-new"]').addEventListener('click', async () => {
+    try {
+      const r = await fetch('/api/v1/cco-cf/expenses', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}), // fristående tom expense
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        alert('Skapande misslyckades: ' + (err.error || r.status));
+        return;
+      }
+      const { expense } = await r.json();
+      openExpenseId = expense.id;
+      await loadExpenses(); await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+  document.querySelector('[data-action="expense-export"]').addEventListener('click', async () => {
+    if (!confirm('Bygga exportpaket av alla "Redo för export"? De markeras som exporterade.')) return;
+    try {
+      const r = await fetch('/api/v1/cco-cf/expenses/export', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusFilter: 'ready_for_export' }),
+      });
+      const data = await r.json();
+      const el = $('expense-export-result');
+      if (!r.ok || !data.ok) {
+        el.classList.add('show');
+        el.textContent = '⚠ ' + (data.error || data.reason || r.status);
+        return;
+      }
+      el.classList.add('show');
+      el.innerHTML = `✓ Exportpaket <b>${esc(data.batchId)}</b> · ${data.count} utgifter · ${fmtSek(data.totals.totalAmountSek)} brutto · ${fmtSek(data.totals.totalVatSek)} moms ·
+        <a href="/api/v1/cco-cf/expenses/export/${esc(data.batchId)}/csv" target="_blank">Ladda ner CSV</a> ·
+        <a href="/api/v1/cco-cf/expenses/export/${esc(data.batchId)}/json" target="_blank">Ladda ner JSON</a>`;
+      await loadExpenses(); await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+
+  // ── CF.7: Recurring UI ──────────────────────────────────────
+  let allRecurrings = [];
+  let recurringIndex = {};
+
+  async function loadRecurrings() {
+    try {
+      const r = await fetch('/api/v1/cco-cf/recurring?limit=500', { credentials: 'same-origin' });
+      if (!r.ok) { $('recurring-list').innerHTML = `<div class="empty">HTTP ${r.status}</div>`; return; }
+      const data = await r.json();
+      allRecurrings = data.recurrings || [];
+      recurringIndex = {};
+      for (const x of allRecurrings) recurringIndex[x.id] = x;
+      const s = data.summary || {};
+      $('recurring-count').textContent = `${allRecurrings.length} mallar (${s.active || 0} aktiva · ${s.proposed || 0} förslag · ${s.overdueCount || 0} förfallna)`;
+      if (allRecurrings.length === 0) {
+        $('recurring-list').innerHTML = '<div class="empty">Inga återkommande kostnader ännu. Klicka "🔍 Detektera från historik" för auto-förslag eller "+ Skapa mall" för manuell.</div>';
+        return;
+      }
+      const today = new Date().toISOString().slice(0,10);
+      $('recurring-list').innerHTML = allRecurrings.map((rec) => {
+        const overdue = rec.status === 'active' && rec.nextDueDate && rec.nextDueDate < today;
+        const dueStr = rec.nextDueDate
+          ? `förfaller ${esc(rec.nextDueDate)}${overdue ? ' (förfallen)' : ''}`
+          : '—';
+        const lastStr = rec.lastMatchedAt ? `senast ${esc(rec.lastMatchedAt)}` : 'aldrig matchad';
+        const conf = Math.round((rec.confidence || 0) * 100);
+        const stats = rec.stats || {};
+        const anomalyCount = Array.isArray(rec.anomalies) ? rec.anomalies.length : 0;
+        return `
+          <div class="rec-row" data-rec-id="${esc(rec.id)}" data-status="${esc(rec.status)}" data-overdue="${overdue}">
+            <div>
+              <div class="rec-name">${esc(rec.supplierName)} · ${esc(rec.frequency)} · ${esc(fmtSek(rec.amountEstimate))}</div>
+              <div class="rec-meta">
+                ${rec.category ? esc(rec.category) + ' · ' : ''}
+                ${rec.vatMode ? esc(rec.vatMode) + ' · ' : ''}
+                ${rec.paymentMethod ? esc(rec.paymentMethod) + ' · ' : ''}
+                source: ${esc(rec.source)}
+                ${anomalyCount > 0 ? ` · <span class="recurring-anomaly">⚠ ${anomalyCount} anomaly</span>` : ''}
+              </div>
+              <div class="rec-confidence">confidence ${conf}% · matched ${stats.matchedCount || 0}× · total ${fmtSek(stats.totalAmountPaidSek || 0)}</div>
+            </div>
+            <div class="rec-due ${overdue ? 'rec-due--overdue' : ''}">${dueStr}<br><span class="rec-confidence">${lastStr}</span></div>
+            <span class="rec-status-pill rec-status--${esc(rec.status)}">${esc(rec.status)}</span>
+            <div class="rule-actions">
+              ${rec.status === 'proposed' ? `<button class="btn" data-rec-action="approve">✓ Godkänn</button>` : ''}
+              ${rec.status === 'active' ? `<button class="btn" data-rec-action="pause">⏸ Pausa</button>` : ''}
+              ${rec.status === 'paused' ? `<button class="btn" data-rec-action="resume">▶ Aktivera</button>` : ''}
+              ${rec.status !== 'ended' ? `<button class="btn" data-rec-action="end">×</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      $('recurring-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+    }
+  }
+
+  document.getElementById('recurring-list').addEventListener('click', async (ev) => {
+    const action = ev.target.closest('[data-rec-action]');
+    if (!action) return;
+    const row = action.closest('.rec-row');
+    const id = row?.dataset.recId;
+    if (!id) return;
+    const act = action.dataset.recAction;
+    const statusMap = { approve: 'active', pause: 'paused', resume: 'active', end: 'ended' };
+    const newStatus = statusMap[act];
+    if (!newStatus) return;
+    if (act === 'end' && !confirm('Avsluta mallen permanent?')) return;
+    try {
+      await fetch(`/api/v1/cco-cf/recurring/${id}/status`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      await loadRecurrings(); await loadDashboard(); await loadExpenses();
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+
+  document.querySelector('[data-action="recurring-refresh"]').addEventListener('click', () => { loadRecurrings(); loadDashboard(); });
+
+  document.querySelector('[data-action="recurring-detect"]').addEventListener('click', async () => {
+    if (!confirm('Scanna historiska expenses och spara förslag (status=proposed)?')) return;
+    try {
+      const r = await fetch('/api/v1/cco-cf/recurring/detect', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ save: true }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.ok) { alert('Fel: ' + (data.error || r.status)); return; }
+      alert(`Hittade ${data.proposalCount} mönster · ${data.saved.length} sparade som proposed.`);
+      await loadRecurrings(); await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+
+  document.querySelector('[data-action="recurring-new"]').addEventListener('click', async () => {
+    const supplierName = prompt('Leverantörsnamn:');
+    if (!supplierName) return;
+    const frequency = prompt('Frekvens (weekly/monthly/quarterly/yearly):', 'monthly');
+    if (!frequency) return;
+    const amountEstimate = Number(prompt('Uppskattat belopp (SEK):', '500')) || 0;
+    const category = prompt('Kategori (valfri):') || null;
+    try {
+      const r = await fetch('/api/v1/cco-cf/recurring', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supplierName, frequency, amountEstimate, category, status: 'active', source: 'manual' }),
+      });
+      if (!r.ok) { const err = await r.json().catch(() => ({})); alert('Fel: ' + (err.error || r.status)); return; }
+      await loadRecurrings(); await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+
+  // ── CF.5: Vendors UI ────────────────────────────────────────
+  let allVendors = [];
+  let vendorIndex = {}; // by id
+  let vendorFilterNeedsReview = false;
+
+  async function loadVendors() {
+    try {
+      const qs = vendorFilterNeedsReview ? '?needsReview=true&limit=500' : '?limit=500';
+      const r = await fetch('/api/v1/cco-cf/suppliers' + qs, { credentials: 'same-origin' });
+      if (!r.ok) { $('vendors-list').innerHTML = `<div class="empty">HTTP ${r.status}</div>`; return; }
+      const data = await r.json();
+      allVendors = data.vendors || [];
+      vendorIndex = {};
+      for (const v of allVendors) vendorIndex[v.id] = v;
+      $('vendors-count').textContent = `${allVendors.length} leverantörer (${data.summary?.active || 0} aktiva · ${data.summary?.needsReviewCount || 0} behöver granskas)`;
+      if (allVendors.length === 0) {
+        $('vendors-list').innerHTML = '<div class="empty">Inga leverantörer ännu. Klicka "+ Skapa leverantör" eller skapa från en expense via ny-leverantör-badge.</div>';
+        return;
+      }
+      $('vendors-list').innerHTML = allVendors.map((v) => {
+        const aliases = (v.aliases || []).slice(0, 4).join(', ');
+        const defaults = [
+          v.defaultCategory && `kat:${esc(v.defaultCategory)}`,
+          (v.defaultVatRatePercent !== null && v.defaultVatRatePercent !== undefined) ? `moms:${esc(v.defaultVatRatePercent)}%` : null,
+          v.defaultPaymentMethod && `pay:${esc(v.defaultPaymentMethod)}`,
+        ].filter(Boolean).join(' · ');
+        const risk = v.riskFlag ? `<span class="vendor-risk" title="${esc(v.riskFlag)}">${esc(v.riskFlag.replace(/_/g,' '))}</span>` : '';
+        const stats = v.stats || {};
+        return `
+          <div class="vendor-row" data-vendor-id="${esc(v.id)}" data-active="${v.active !== false}">
+            <div>
+              <div class="vendor-name">${esc(v.name)} ${risk}</div>
+              <div class="vendor-meta">
+                ${v.orgNo ? `org ${esc(v.orgNo)} · ` : ''}
+                ${aliases ? `aliases: ${esc(aliases)} · ` : ''}
+                source: ${esc(v.source)}
+              </div>
+              ${defaults ? `<div class="vendor-defaults">→ ${defaults}</div>` : ''}
+            </div>
+            <div class="vendor-stats">matched: <b>${stats.timesMatched || 0}</b> · used: <b>${stats.timesUsed || 0}</b></div>
+            <div class="vendor-stats">${stats.totalAmountSek ? fmtSek(stats.totalAmountSek) : '—'}</div>
+            <div class="rule-actions">
+              <span class="rule-toggle" data-on="${v.active !== false}" data-vendor-action="toggle">
+                ${v.active !== false ? 'AKTIV' : 'PAUSAD'}
+              </span>
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      $('vendors-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+    }
+  }
+
+  document.getElementById('vendors-list').addEventListener('click', async (ev) => {
+    const action = ev.target.closest('[data-vendor-action]');
+    if (!action) return;
+    const row = action.closest('.vendor-row');
+    const vid = row?.dataset.vendorId;
+    if (!vid || action.dataset.vendorAction !== 'toggle') return;
+    const isOn = action.dataset.on === 'true';
+    const path = isOn ? 'deactivate' : 'activate';
+    await fetch(`/api/v1/cco-cf/suppliers/${vid}/${path}`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    await loadVendors(); await loadDashboard();
+  });
+
+  document.querySelector('[data-action="vendors-refresh"]').addEventListener('click', () => { loadVendors(); loadDashboard(); });
+  document.querySelector('[data-action="vendors-filter-needs-review"]').addEventListener('click', () => {
+    vendorFilterNeedsReview = !vendorFilterNeedsReview;
+    loadVendors();
+  });
+
+  document.querySelector('[data-action="vendor-new"]').addEventListener('click', async () => {
+    const name = prompt('Leverantörsnamn:');
+    if (!name) return;
+    const defaultCategory = prompt('Standardkategori (eller tom):') || null;
+    const orgNo = prompt('Org.nr (valfri):') || null;
+    const r = await fetch('/api/v1/cco-cf/suppliers', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, orgNo, defaultCategory, source: 'manual' }),
+    });
+    if (!r.ok) { const err = await r.json().catch(() => ({})); alert('Skapande misslyckades: ' + (err.error || r.status)); return; }
+    await loadVendors(); await loadExpenses(); await loadDashboard();
+  });
+
+  // CF.5: klick på "ny leverantör"-badge i expense-rad
+  document.getElementById('expenses-list').addEventListener('click', async (ev) => {
+    const badge = ev.target.closest('[data-new-supplier]');
+    if (!badge) return;
+    ev.stopPropagation();
+    const supplier = badge.dataset.newSupplier;
+    const expId = badge.dataset.expIdForSupplier;
+    if (!confirm(`Skapa leverantör "${supplier}" och koppla till denna expense?`)) return;
+    const r = await fetch('/api/v1/cco-cf/suppliers', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: supplier, source: 'receipt' }),
+    });
+    if (!r.ok) { const err = await r.json().catch(() => ({})); alert('Fel: ' + (err.error || r.status)); return; }
+    const { vendor } = await r.json();
+    // Länka expense
+    await fetch(`/api/v1/cco-cf/expenses/${expId}/link-supplier`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supplierId: vendor.id }),
+    });
+    await loadVendors(); await loadExpenses(); await loadDashboard();
+  });
+
+  // ── CF.4: Rule Engine UI ────────────────────────────────────
+  async function loadRules() {
+    try {
+      const r = await fetch('/api/v1/cco-cf/rules?limit=200', { credentials: 'same-origin' });
+      if (!r.ok) { $('rules-list').innerHTML = `<div class="empty">HTTP ${r.status}</div>`; return; }
+      const data = await r.json();
+      const rules = data.rules || [];
+      $('rules-count').textContent = `${rules.length} regler (${data.summary?.active || 0} aktiva)`;
+      if (rules.length === 0) {
+        $('rules-list').innerHTML = '<div class="empty">Inga regler ännu. Skapa via "+ Skapa regel" eller från en expense via "Spara som regel".</div>';
+        return;
+      }
+      $('rules-list').innerHTML = rules.map((rule) => {
+        const conds = (rule.conditions || []).map((c) =>
+          c.type === 'supplier_equals' ? `leverantör=${esc(c.value)}` :
+          c.type === 'supplier_contains' ? `leverantör⊇${esc(c.value)}` :
+          c.type === 'supplier_regex' ? `regex:${esc(c.pattern)}` :
+          c.type === 'amount_between' ? `belopp ${c.min ?? '?'}-${c.max ?? '?'}` :
+          c.type === 'payment_method_is' ? `betalsätt=${esc(c.value)}` :
+          c.type === 'vat_rate_is' ? `moms=${esc(c.value)}%` :
+          c.type === 'category_is' ? `kategori=${esc(c.value)}` :
+          c.type === 'notes_contains' ? `noter⊇${esc(c.value)}` :
+          c.type === 'amount_equals' ? `belopp=${esc(c.value)}` :
+          esc(c.type)
+        ).join(' · ');
+        const sets = [];
+        if (rule.setCategory) sets.push(`→ kategori: <b>${esc(rule.setCategory)}</b>`);
+        if (rule.setVatRatePercent !== null && rule.setVatRatePercent !== undefined) sets.push(`→ moms: <b>${esc(rule.setVatRatePercent)}%</b>`);
+        if (rule.setPaymentMethod) sets.push(`→ betalsätt: <b>${esc(rule.setPaymentMethod)}</b>`);
+        const stats = rule.stats || {};
+        return `
+          <div class="rule-row" data-rule-id="${esc(rule.id)}" data-enabled="${rule.enabled !== false}">
+            <div>
+              <div class="rule-name">${esc(rule.name)} <span class="meta">(prio ${esc(rule.priority || 0)})</span></div>
+              <div class="rule-meta">${conds || '<i>Inga villkor</i>'} · ${sets.join(' · ') || '<i>inga föreslag</i>'}</div>
+            </div>
+            <div class="rule-stats">
+              applied: <strong>${stats.timesApplied || 0}</strong> · rejected: ${stats.timesRejected || 0}
+            </div>
+            <div class="rule-actions">
+              <span class="rule-toggle" data-on="${rule.enabled !== false}" data-rule-action="toggle">
+                ${rule.enabled !== false ? 'AKTIV' : 'PAUSAD'}
+              </span>
+              <button class="btn" data-rule-action="delete">×</button>
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      $('rules-list').innerHTML = `<div class="empty">Fel: ${esc(err.message)}</div>`;
+    }
+  }
+
+  document.getElementById('rules-list').addEventListener('click', async (ev) => {
+    const action = ev.target.closest('[data-rule-action]');
+    if (!action) return;
+    const row = action.closest('.rule-row');
+    const ruleId = row?.dataset.ruleId;
+    if (!ruleId) return;
+    const act = action.dataset.ruleAction;
+    if (act === 'toggle') {
+      const newEnabled = action.dataset.on !== 'true';
+      await fetch(`/api/v1/cco-cf/rules/${ruleId}`, {
+        method: 'PATCH', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newEnabled }),
+      });
+      await loadRules(); await loadDashboard();
+    } else if (act === 'delete') {
+      if (!confirm('Radera regeln?')) return;
+      await fetch(`/api/v1/cco-cf/rules/${ruleId}`, { method: 'DELETE', credentials: 'same-origin' });
+      await loadRules(); await loadDashboard();
+    }
+  });
+
+  document.querySelector('[data-action="rules-refresh"]').addEventListener('click', () => { loadRules(); loadDashboard(); });
+
+  document.querySelector('[data-action="rule-new"]').addEventListener('click', async () => {
+    const name = prompt('Regel-namn (t.ex. "Apoteket → forbrukning"):');
+    if (!name) return;
+    const supplier = prompt('Leverantör att matcha (substring, case-insensitive):');
+    if (!supplier) return;
+    const category = prompt('Föreslå kategori (utrustning/forbrukning/lokal/personal/utbildning/resor/mat_representation/marknadsforing/administrativ/it_telefoni/forsakring/juridik_konsult/bank_finansiell/skatter_avgifter/annat):');
+    if (!category) return;
+    try {
+      const r = await fetch('/api/v1/cco-cf/rules', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name, priority: 10,
+          conditions: [{ type: 'supplier_contains', value: supplier }],
+          setCategory: category,
+        }),
+      });
+      if (!r.ok) { const err = await r.json().catch(() => ({})); alert('Skapande misslyckades: ' + (err.error || r.status)); return; }
+      await loadRules(); await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+
+  // CF.4: suggestion-actions per expense (delegerar från expenses-list)
+  document.getElementById('expenses-list').addEventListener('click', async (ev) => {
+    const action = ev.target.closest('[data-sugg-action]');
+    if (!action) return;
+    ev.stopPropagation();
+    const row = action.closest('.exp-row, [data-exp-id]') ||
+      action.closest('div').querySelector('[data-exp-id]') ||
+      action.closest('div').previousElementSibling;
+    let expenseId = null;
+    let scan = action;
+    while (scan && !expenseId) {
+      if (scan.dataset?.expId) expenseId = scan.dataset.expId;
+      else {
+        const sibling = scan.parentElement?.querySelector('[data-exp-id]');
+        if (sibling) expenseId = sibling.dataset.expId;
+      }
+      scan = scan.parentElement;
+    }
+    if (!expenseId) return;
+    const act = action.dataset.suggAction;
+    try {
+      if (act === 'approve') {
+        const r = await fetch(`/api/v1/cco-cf/expenses/${expenseId}/suggestion/approve`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' }, body: '{}',
+        });
+        if (!r.ok) { const err = await r.json().catch(() => ({})); alert('Godkännande misslyckades: ' + (err.error || r.status)); return; }
+      } else if (act === 'reject') {
+        const reason = prompt('Anledning för avvisning?') || null;
+        const r = await fetch(`/api/v1/cco-cf/expenses/${expenseId}/suggestion/reject`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason }),
+        });
+        if (!r.ok) { const err = await r.json().catch(() => ({})); alert('Avvisning misslyckades: ' + (err.error || r.status)); return; }
+      } else if (act === 'save-as-rule') {
+        const ruleName = prompt('Regel-namn?');
+        if (!ruleName) return;
+        const r = await fetch(`/api/v1/cco-cf/expenses/${expenseId}/save-as-rule`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: ruleName, priority: 10 }),
+        });
+        if (!r.ok) { const err = await r.json().catch(() => ({})); alert('Skapande misslyckades: ' + (err.error || r.status)); return; }
+      }
+      await loadExpenses(); await loadRules(); await loadDashboard();
+    } catch (err) { alert('Fel: ' + err.message); }
+  });
+
+  // Init (CF.5+CF.7: vendors + recurring laddas före expenses så index finns när rader renderas)
+  (async () => {
+    await loadVendors();
+    await loadRecurrings();
+    await loadDashboard();
+    await loadReceipts();
+    await loadExpenses();
+    await loadRules();
+  })();
+})();
+</script>
+</body></html>

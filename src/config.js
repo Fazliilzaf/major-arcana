@@ -98,11 +98,6 @@ function asStringArray(value) {
     .filter(Boolean);
 }
 
-function asStringArrayWithDefault(value, fallback = []) {
-  const parsed = asStringArray(value);
-  return parsed.length ? parsed : fallback;
-}
-
 function asJsonObject(value, fallback = null) {
   if (value === undefined || value === null) return fallback;
   let raw = String(value).trim();
@@ -801,24 +796,6 @@ const config = {
   ),
   /** Byggfas: öppen åtkomst till kundregister/journal/offert-API utan inloggning. Sätt false före go-live. */
   staffJournalOpenAccess: asBool(process.env.ARCANA_STAFF_JOURNAL_OPEN_ACCESS, true),
-  /** Aisia DS-3 scalp analysis — off by default until owner says APPLY AISIA TO CCO */
-  enableAisiaScalpAnalysis: asBool(process.env.ENABLE_AISIA_SCALP_ANALYSIS, false),
-  /** Photo review Fas 2 write — ENABLE_PHOTO_REVIEW_WRITE=true; blockeras på primary prod hosts */
-  photoReviewWriteBlockedHosts: asStringArrayWithDefault(
-    process.env.PHOTO_REVIEW_WRITE_BLOCKED_HOSTS,
-    [
-      'arcana-cco.onrender.com',
-      'arcana.hairtpclinic.com',
-      'arcana.hairtpclinic.se',
-      'ma.hairtpclinic.se',
-      'ma.hairtpclinic.com',
-    ]
-  ),
-  photoReviewPilotPatientIds: asStringArray(process.env.PHOTO_REVIEW_PILOT_PATIENT_IDS),
-  photoReviewPilotMaxDecisions: asInt(process.env.PHOTO_REVIEW_PILOT_MAX_DECISIONS, 20),
-  photoReviewPilotMaxPatients: asInt(process.env.PHOTO_REVIEW_PILOT_MAX_PATIENTS, 5),
-  /** Full high-confidence cohort (150 patients / ~861 photos) — disables pilot caps */
-  photoReviewFullCohort: asBool(process.env.PHOTO_REVIEW_FULL_COHORT, false),
   /** Kommaseparerade patientId för pilot — filtrerar kundlistan i staff-vyn när satt. */
   pilotPatientIds: asStringArray(process.env.ARCANA_PILOT_PATIENT_IDS),
 
@@ -918,7 +895,7 @@ const config = {
   ),
   schedulerCcoInboxFullBackfillMaxBatchRounds: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_MAX_BATCH_ROUNDS,
-    800
+    200
   ),
   schedulerCcoInboxBootstrapMaxMessagesPerUser: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_MAX_MESSAGES_PER_USER,
@@ -1133,6 +1110,11 @@ const config = {
     process.env.FORTNOX_REDIRECT_URI,
     `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-fortnox/oauth/callback`
   ),
+  // Sätt till 'service' om OAuth-appen har Service Account aktiverat i Fortnox Dev Portal.
+  // Då skickas account_type=service med i auth-URL:en, vilket triggar att Fortnox
+  // skapar/återanvänder ett service-konto (robot-användare) frikopplat från specifik
+  // user-license. Krävs för att undvika error_missing_license.
+  fortnoxAccountType: asNonEmptyString(process.env.FORTNOX_ACCOUNT_TYPE),
   swishEnabled: asBool(process.env.ARCANA_SWISH_ENABLED, false),
   swishApiBaseUrl: asNonEmptyString(
     process.env.SWISH_API_BASE_URL,
@@ -1147,61 +1129,6 @@ const config = {
     process.env.SWISH_CALLBACK_URL,
     `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-swish/callback`
   ),
-
-  enablePhotoReviewWrite: (() => {
-    if (!asBool(process.env.ENABLE_PHOTO_REVIEW_WRITE, false)) return false;
-    const blocked = asStringArrayWithDefault(process.env.PHOTO_REVIEW_WRITE_BLOCKED_HOSTS, [
-      'arcana-cco.onrender.com',
-      'arcana.hairtpclinic.com',
-      'arcana.hairtpclinic.se',
-      'ma.hairtpclinic.se',
-      'ma.hairtpclinic.com',
-    ]);
-    let hostname = '';
-    try {
-      hostname = normalizeHost(new URL(publicBaseUrl).hostname);
-    } catch {
-      hostname = '';
-    }
-    const renderHost = normalizeHost(process.env.RENDER_EXTERNAL_HOSTNAME || '');
-    for (const h of [hostname, renderHost].filter(Boolean)) {
-      if (blocked.some((b) => h === normalizeHost(b) || h.endsWith(`.${normalizeHost(b)}`))) {
-        return false;
-      }
-    }
-    return true;
-  })(),
-
-  /** Encounter mapping medium review write — ENABLE_ENCOUNTER_MAPPING_REVIEW_WRITE=true; blockeras på primary prod hosts */
-  enableEncounterMappingReviewWrite: (() => {
-    if (!asBool(process.env.ENABLE_ENCOUNTER_MAPPING_REVIEW_WRITE, false)) return false;
-    const blocked = asStringArrayWithDefault(
-      process.env.ENCOUNTER_MAPPING_REVIEW_WRITE_BLOCKED_HOSTS,
-      [
-        'arcana-cco.onrender.com',
-        'arcana.hairtpclinic.com',
-        'arcana.hairtpclinic.se',
-        'ma.hairtpclinic.se',
-        'ma.hairtpclinic.com',
-      ]
-    );
-    let hostname = '';
-    try {
-      hostname = normalizeHost(new URL(publicBaseUrl).hostname);
-    } catch {
-      hostname = '';
-    }
-    const renderHost = normalizeHost(process.env.RENDER_EXTERNAL_HOSTNAME || '');
-    for (const h of [hostname, renderHost].filter(Boolean)) {
-      if (blocked.some((b) => h === normalizeHost(b) || h.endsWith(`.${normalizeHost(b)}`))) {
-        return false;
-      }
-    }
-    return true;
-  })(),
-
-  /** Drive review cluster write — ENABLE_DRIVE_REVIEW_CLUSTER_WRITE=true */
-  enableDriveReviewClusterWrite: asBool(process.env.ENABLE_DRIVE_REVIEW_CLUSTER_WRITE, false),
 };
 
 if (
