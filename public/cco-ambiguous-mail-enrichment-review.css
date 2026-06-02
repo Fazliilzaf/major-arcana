@@ -34,6 +34,20 @@ body {
   font-size: 1.35rem;
 }
 
+.amr-guardrails {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(245, 166, 35, 0.45);
+  border-radius: 10px;
+  background: rgba(245, 166, 35, 0.12);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.amr-guardrails strong {
+  color: var(--amr-warn);
+}
+
 .amr-muted {
   color: var(--amr-muted);
   font-size: 0.9rem;

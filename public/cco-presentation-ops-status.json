@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-06-02T15:42:20.630Z",
+  "photoReview": {
+    "pendingPhotos": 860,
+    "patientsWithPendingPhotos": 150,
+    "photosVisibleCount": 0,
+    "readOnly": true,
+    "source": "local_prod_snapshot"
+  },
+  "historik": {
+    "halso": "IMPORTED_SAFE_MATCH",
+    "getAccept": "IMPORTED",
+    "driveJournals": "IMPORTED_SAFE_MATCH",
+    "drivePhotos": "NEEDS_REVIEW"
+  }
+}

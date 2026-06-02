@@ -8179,12 +8179,10 @@ let ccoComplianceScanStore = null;
       (req, res) => {
         const latest = ccoComplianceScanStore.getLatestScan();
         if (!latest)
-          return res
-            .status(404)
-            .json({
-              error: 'no_scans_yet',
-              detail: 'Kör POST /api/v1/cco-compliance-scan/run för att trigga första scan',
-            });
+          return res.status(404).json({
+            error: 'no_scans_yet',
+            detail: 'Kör POST /api/v1/cco-compliance-scan/run för att trigga första scan',
+          });
         res.json(latest);
       }
     );
@@ -9283,6 +9281,22 @@ try {
 
   console.log(
     '[cco-asset-qa] monterad: GET /api/v1/cco/asset-qa/snapshot + invalidate · /patients/:id/assets · /assets/:id/{download,thumbnail}'
+  );
+
+  // Photo Review — READ-ONLY på prod (writeEnabled=false tills explicit GO).
+  const { createCcoPhotoReviewRouter } = require('./src/routes/ccoPhotoReview');
+  app.use(
+    '/api/v1/cco',
+    createCcoPhotoReviewRouter({
+      resolveStores: ensureAssetStores,
+      attachRole,
+      requirePermission,
+      auditLog: ccoAuditLog,
+      writeEnabled: false,
+    })
+  );
+  console.log(
+    '[cco-photo-review] monterad READ-ONLY: GET /api/v1/cco/photo-review/{summary,queue,patients,progress}'
   );
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);

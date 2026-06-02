@@ -88,6 +88,62 @@ function historikStatus() {
   };
 }
 
+function probeJson(urlPath) {
+  return new Promise((resolve) => {
+    const url = new URL(urlPath, BASE);
+    const req = https.request(
+      url,
+      {
+        method: 'GET',
+        headers: { 'x-cco-role': ROLE, 'x-cco-tenant': 'hairtpclinic', Accept: 'application/json' },
+        timeout: 15000,
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (c) => (data += c));
+        res.on('end', () => {
+          let json = null;
+          try {
+            json = data ? JSON.parse(data) : null;
+          } catch (_) {
+            json = null;
+          }
+          resolve({ status: res.statusCode || 0, json });
+        });
+      }
+    );
+    req.on('error', () => resolve({ status: 0, json: null }));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ status: 0, json: null });
+    });
+    req.end();
+  });
+}
+
+async function photoReviewStatusLive() {
+  const local = photoReviewStatus();
+  const live = await probeJson('/api/v1/cco/photo-review/summary');
+  if (live.status === 200 && live.json) {
+    return {
+      source: 'prod_api',
+      readOnly: live.json.readOnly !== false,
+      pendingPhotos: live.json.pendingPhotos,
+      patientsWithPendingPhotos: live.json.patientsWithPendingPhotos,
+      photosVisibleCount: live.json.photosVisibleCount ?? 0,
+      phase: live.json.phase,
+      day1Rule: 'Migrerade före/efter ej kliniska dag 1',
+      autoApprove: false,
+    };
+  }
+  return {
+    ...local,
+    apiStatus: live.status || 'unavailable',
+    day1Rule: local.day1Rule || 'Migrerade före/efter ej kliniska dag 1',
+    autoApprove: false,
+  };
+}
+
 function photoReviewStatus() {
   const prodRoot =
     process.env.ARCANA_CCO_PROD_DATA_ROOT ||
@@ -169,6 +225,8 @@ async function mailReadiness() {
       'Ingen auto-write',
       'Ingen fuzzy merge',
       'Ingen customer merge',
+      'Ingen Graph-fetch',
+      'Ingen ny mailimport',
       'Minst 3 deterministiska fält för approve',
     ],
   };
@@ -234,7 +292,8 @@ Regler: ${report.mail.rules.join(' · ')}
 | Bilder som väntar | ${report.photo.pendingPhotos ?? report.photo.pendingPhotos ?? '—'} |
 | Kunder | ${report.photo.patientsWithPendingPhotos ?? report.photo.patientsWithPending ?? '—'} |
 | Krävs för VISIBLE | ${report.photo.visibleRequirement || 'Photo Review operator + naming → VISIBLE_ON_PATIENT_CARD'} |
-| Dag 1 | ${report.photo.day1Rule || 'Ej klinisk användning av migrerade före/efter'} |
+| VISIBLE på kundkort | ${report.photo.photosVisibleCount ?? 0} (före/efter ej kliniska dag 1) |
+| Prod API | ${report.photo.apiStatus ?? (report.photo.source === 'prod_api' ? '200' : '—')} |
 | Auto-approve | **NEJ** |
 
 ---
@@ -312,7 +371,28 @@ async function main() {
 
   const mail = await mailReadiness();
   const historik = historikStatus();
-  const photo = photoReviewStatus();
+  const photo = await photoReviewStatusLive();
+
+  const opsStatusPath = path.join(REPO, 'public/cco-presentation-ops-status.json');
+  const opsPayload = {
+    generatedAt,
+    photoReview: {
+      pendingPhotos: photo.pendingPhotos,
+      patientsWithPendingPhotos: photo.patientsWithPendingPhotos,
+      photosVisibleCount: photo.photosVisibleCount ?? 0,
+      readOnly: photo.readOnly !== false,
+      source: photo.source,
+    },
+    historik: {
+      halso: historik.halso.status,
+      getAccept: historik.getAccept.status,
+      driveJournals: historik.driveJournals.status,
+      drivePhotos: historik.drivePhotos.status,
+    },
+  };
+  if (!noWrite) {
+    fs.writeFileSync(opsStatusPath, JSON.stringify(opsPayload, null, 2));
+  }
 
   const report = {
     generatedAt,

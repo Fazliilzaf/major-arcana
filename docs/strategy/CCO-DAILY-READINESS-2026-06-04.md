@@ -1,6 +1,6 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T15:29:48.014Z_  
+_Senast uppdaterad: 2026-06-02T15:42:20.630Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
@@ -29,7 +29,7 @@ _Prod: https://arcana.hairtpclinic.com_
 | **Review UI**             | 200 OK — `/ambiguous-mail-enrichment-review.html`               |
 | **API**                   | API kräver inloggning — UI monterad, manuell review aktivt spår |
 
-Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Minst 3 deterministiska fält för approve
+Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen Graph-fetch · Ingen ny mailimport · Minst 3 deterministiska fält för approve
 
 ---
 
@@ -50,14 +50,15 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Minst 3
 
 ## Photo Review (operatör — inte auto)
 
-|                   |                                                                                                       |
-| ----------------- | ----------------------------------------------------------------------------------------------------- |
-| Källa             | local_prod_snapshot                                                                                   |
-| Bilder som väntar | 860                                                                                                   |
-| Kunder            | 150                                                                                                   |
-| Krävs för VISIBLE | node scripts/photo-review-naming-integration-report.js → node scripts/run-post-review-report-batch.js |
-| Dag 1             | Ej klinisk användning av migrerade före/efter                                                         |
-| Auto-approve      | **NEJ**                                                                                               |
+|                     |                                                          |
+| ------------------- | -------------------------------------------------------- |
+| Källa               | local_prod_snapshot                                      |
+| Bilder som väntar   | 860                                                      |
+| Kunder              | 150                                                      |
+| Krävs för VISIBLE   | Photo Review operator + naming → VISIBLE_ON_PATIENT_CARD |
+| VISIBLE på kundkort | 0 (före/efter ej kliniska dag 1)                         |
+| Prod API            | 404                                                      |
+| Auto-approve        | **NEJ**                                                  |
 
 ---
 

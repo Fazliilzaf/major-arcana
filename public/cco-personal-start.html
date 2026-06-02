@@ -447,7 +447,7 @@
         <div class="card card--disabled" data-kind="hist">
           <div class="card-kicker">halso@</div>
           <h2>Hälsodeklarationer</h2>
-          <p>~1 660 kunder med importerad metadata.</p>
+          <p>~1 660 kunder · status <strong>IMPORTED_SAFE_MATCH</strong>.</p>
           <div class="badge-row">
             <span class="badge" data-t="halso">halso@</span
             ><span class="badge" data-t="imported">imported</span>
@@ -456,13 +456,13 @@
         <div class="card card--disabled" data-kind="hist">
           <div class="card-kicker">GetAccept</div>
           <h2>Avtal</h2>
-          <p>~1 331 kunder · PDF i CCO storage.</p>
+          <p>~1 331 kunder · status <strong>IMPORTED</strong> · PDF i CCO storage.</p>
           <div class="badge-row"><span class="badge" data-t="imported">getaccept</span></div>
         </div>
         <div class="card card--disabled" data-kind="hist">
           <div class="card-kicker">Drive</div>
           <h2>Drive-journaler</h2>
-          <p>~5 152 historiska poster · safe-match import.</p>
+          <p>~5 152 poster · status <strong>IMPORTED_SAFE_MATCH</strong>.</p>
           <div class="badge-row">
             <span class="badge" data-t="drive">drive</span
             ><span class="badge" data-t="imported">imported</span>
@@ -471,7 +471,7 @@
         <div class="card card--disabled" data-kind="hist">
           <div class="card-kicker">Drive</div>
           <h2>Drive-bilder</h2>
-          <p>Binärer inne — väntar Photo Review.</p>
+          <p>Binärer inne · status <strong>NEEDS_REVIEW</strong> (ej VISIBLE).</p>
           <div class="badge-row">
             <span class="badge" data-t="drive">drive</span
             ><span class="badge" data-t="review">needs review</span>
@@ -498,13 +498,20 @@
 
       <div class="section-title">E · Bilder</div>
       <div class="grid">
-        <div class="card card--disabled" data-kind="bild">
+        <div class="card card--disabled" data-kind="bild" id="photo-review-status">
           <span class="status-tag" data-s="paused">väntar review</span>
           <div class="card-kicker">Photo Review</div>
           <h2>Bilder finns i CCO</h2>
-          <p>
-            ~14 000+ Drive-bilder importerade. Använd <strong>inte</strong> migrerade
-            före/efter-bilder kliniskt förrän Photo Review är klar. Blockerar inte ny journalföring.
+          <p id="photo-review-copy">
+            Drive-bilder importerade. Status: <strong>NEEDS_REVIEW</strong> — inte
+            <strong>VISIBLE</strong> på kundkort. Använd <strong>inte</strong> migrerade
+            före/efter-bilder kliniskt dag 1. Blockerar inte ny journalföring.
+          </p>
+          <p
+            id="photo-review-metrics"
+            style="font-size: 12px; color: rgba(70, 60, 50, 0.72); margin: 8px 0 0"
+          >
+            Operatörsstatus laddas…
           </p>
         </div>
       </div>
@@ -559,5 +566,42 @@
         identitetskontroll.
       </div>
     </div>
+    <script>
+      (function loadPhotoReviewOpsStatus() {
+        const metrics = document.getElementById('photo-review-metrics');
+        if (!metrics) return;
+        function render(data) {
+          const pending = data.pendingPhotos ?? data.pendingPhotosAll ?? '—';
+          const patients = data.patientsWithPendingPhotos ?? '—';
+          const visible = data.photosVisibleCount ?? 0;
+          metrics.textContent =
+            'Operatör: ' +
+            pending +
+            ' bilder pending · ' +
+            patients +
+            ' kunder · ' +
+            visible +
+            ' VISIBLE (före/efter ej kliniska dag 1) · readOnly=' +
+            (data.readOnly !== false);
+        }
+        fetch('/cco-presentation-ops-status.json', { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((fallback) => {
+            return fetch('/api/v1/cco/photo-review/summary', {
+              headers: { 'x-cco-role': 'owner', 'x-cco-tenant': 'hairtpclinic' },
+              cache: 'no-store',
+            })
+              .then((r) => (r.ok ? r.json() : fallback))
+              .catch(() => fallback);
+          })
+          .then((data) => {
+            if (data) render(data);
+            else metrics.textContent = 'Operatör: NEEDS_REVIEW — ej VISIBLE · ingen auto-approve';
+          })
+          .catch(() => {
+            metrics.textContent = 'Operatör: NEEDS_REVIEW — ej VISIBLE · ingen auto-approve';
+          });
+      })();
+    </script>
   </body>
 </html>

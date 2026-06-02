@@ -73,6 +73,16 @@ const REQUIRED = [
     pattern: /ccoAssetNaming\/assetDisplayLabel/,
     min: 1,
   },
+  {
+    label: 'photo-review router mount',
+    pattern: /createCcoPhotoReviewRouter/,
+    min: 1,
+  },
+  {
+    label: 'photo-review read-only flag',
+    pattern: /writeEnabled:\s*false/,
+    min: 1,
+  },
 ];
 
 const STATIC_PAGES = [

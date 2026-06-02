@@ -54,6 +54,12 @@
           <h1>Ambiguous Mail Enrichment Review</h1>
           <p class="amr-muted">493-raderskö · manuellt beslut · minst 3 deterministiska fält för approve · ingen auto-merge</p>
         </header>
+        <div class="amr-guardrails">
+          <strong>Operatörsregler (Phase 2):</strong>
+          ingen auto-write · ingen fuzzy merge · ingen customer merge · ingen Graph-fetch från UI ·
+          ingen ny mailimport · approve kräver ≥3 deterministiska fält ·
+          <em>stör inte journaldemo / personal-start</em>
+        </div>
         <div class="amr-field">
           <label>Reviewer <input data-reviewer value="${escapeHtml(getReviewer())}" placeholder="owner@..." /></label>
         </div>
