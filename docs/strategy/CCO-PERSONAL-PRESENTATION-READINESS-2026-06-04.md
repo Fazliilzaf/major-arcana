@@ -379,3 +379,55 @@ _Refresh utförd av Claude · ingen patientdata · ingen kod-ändring i denna re
 | Photo Review | **PENDING** (~885 assets) |
 | Drive/historik | **IMPORTED** + review-badges |
 | Aisia | **PAUSED** |
+
+---
+
+## Cycle-11 status 2026-06-03T23:30Z (Claude)
+
+### Nya leveranser cycle-11
+
+- ✅ **`/cco-journalpilot-go-live.html`** — Go-Live Support (roller · första patienten · scenarios · förbjudet)
+- ✅ **`/journal-pilot-signoff-sheet.html`** — Sign-off Sheet (printbar, 9 förståelsepunkter, namn/datum/sig)
+- ✅ **Personal Start Section E** utökad — 8 → **10 stöd-länkar**
+- ✅ **Command Center** utökad — 13 → **15 snabblänkar**
+
+### Copy audit cycle-11 — PASS
+
+Alla 11 personal-sidor granskade för förbjudna fraser:
+- ❌ "full cutover" — inte i någon sida
+- ❌ "Photo Review klar" — inte i någon sida (alltid "pågår" / "pending")
+- ❌ "Aisia live" / "Aisia aktiv" — inte i någon sida (alltid "paused" / "feature flag")
+- ❌ "Fortnox kopplat" — inte i någon sida (alltid "blockerad" / "manuell")
+- ❌ "mail dagligt verktyg" — inte i någon sida (alltid "aktivering pågår" / "inte dagligt")
+- ❌ mock-siffror / placeholder — ingen mock-data i pilot-säkra sidor
+
+### Komplett 4 juni-personalpaket — 11 länkbara resurser
+
+1. `/cco-personal-start.html` · huvudfönster
+2. `/cco-4june-command-center.html` · live-status + 15 snabblänkar
+3. `/cco-presenter-mode.html` · 14-stegs flow + 15-min timer
+4. `/journal-pilot-print-pack.html` · A4 utskrift
+5. `/journal-pilot-guide.html` · online-guide + "Vad gör jag nu?"
+6. `/cco-morning-checklist.html` · Fazli T-10 → T-0
+7. `/cco-staff-day1-checklist.html` · 10-stegs personal
+8. `/cco-staff-training-mode.html` · 5-stegs självträning
+9. `/cco-journalpilot-faq.html` · 9 FAQ-svar
+10. `/cco-journalpilot-go-live.html` · **Go-Live Support (NY)**
+11. `/journal-pilot-signoff-sheet.html` · **Sign-off Sheet (NY)**
+
+### Status-matris cycle-11
+
+| Spår | Status |
+|---|---|
+| Journalpilot E2E | **PASS** |
+| Personalstart | **PASS** |
+| Pilot 1/2/3 | **PASS · PASS · PASS** |
+| Training Mode | **LIVE** |
+| FAQ | **LIVE** |
+| Go-Live Support | **LIVE (NY)** |
+| Sign-off Sheet | **LIVE (NY)** |
+| CF API mounted + RBAC | **YES** (auth-test pending) |
+| Mail Phase 2 | operativ (mailbox-counts 248/175/67/3) |
+| Photo Review | **PENDING** |
+| Drive/historik | **IMPORTED** + review-badges |
+| Aisia | **PAUSED** |

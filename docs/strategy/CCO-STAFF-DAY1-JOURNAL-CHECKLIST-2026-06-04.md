@@ -139,3 +139,13 @@ Två nya sidor för personal efter mötet:
 - **`/cco-journalpilot-faq.html`** — 9 dag-1-säkra svar (kan jag skriva utan historik? · vad är "Behöver granskning"? · får jag använda AI? · etc.)
 
 Båda länkade från personal-start (Section E) och Command Center.
+
+---
+
+## Cycle-11 tillägg (2026-06-03T23:30Z)
+
+Två nya sidor:
+- **`/cco-journalpilot-go-live.html`** — Go-Live Support med roller (vem gör vad) + första patient/journal-tidslinje + scenarios + förbjudet dag 1
+- **`/journal-pilot-signoff-sheet.html`** — Printbar Sign-off där personal bekräftar 9 förståelsepunkter med namn/datum/signatur
+
+Använd Sign-off Sheet under/efter mötet — varje personal kryssar och skriver under.

@@ -223,3 +223,14 @@ Ny sektion 0 överst i `/journal-pilot-guide.html` — 6 färgkodade beslutsscen
 | **`/cco-journalpilot-faq.html`** | ❓ **Quick FAQ** — 9 dag-1-säkra svar på vanliga frågor. Färgkodade: grön (GÖR DET) · orange (FÖRSIKTIGT) · röd (STOPPA) · blå (INFO). Frågor: historik saknas, "Behöver granskning", importerade bilder, osäker kund, ändra signerad, rättelse-flow, AI-användning, system hänger, vem kontakta. |
 
 **Personalflöde efter mötet:** Personal öppnar Training Mode → övar 5 steg själv → öppnar FAQ vid frågor → är redo att börja journalföra.
+
+---
+
+## Cycle-11 tillägg (Claude · 2026-06-03T23:30Z) — Go-Live Support + Sign-off Sheet
+
+| URL | Syfte |
+|---|---|
+| **`/cco-journalpilot-go-live.html`** | 🚀 **Go-Live Support** för dag 1: roller (personal/admin/owner/observatör), första patienten/journalen-tidslinje, när stoppa/eskalera, vanliga scenarios, vad får INTE göras dag 1, 8 snabblänkar |
+| **`/journal-pilot-signoff-sheet.html`** | ✍️ **Sign-off Sheet** — printbar bekräftelse där personal kryssar 9 punkter + namn/roll/datum/underskrift. Ingen patientdata. Arkiveras lokalt. |
+
+**Copy audit (cycle-11):** Alla 11 personal-sidor granskade för förbjudna fraser ("full cutover", "Photo Review klar", "Aisia live", "Fortnox kopplat", "mail dagligt", mock-siffror). PASS — inget rött.
