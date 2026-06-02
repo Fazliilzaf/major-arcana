@@ -203,3 +203,27 @@ span.cow-btn--disabled {
   font-size: 0.9rem;
   line-height: 1.45;
 }
+
+.cow-banner--fail {
+  border-color: var(--cow-danger);
+  background: rgba(255, 107, 107, 0.18);
+  color: #ffd4d4;
+  margin-bottom: 0.75rem;
+}
+
+.cow-section--command {
+  border-color: var(--cow-accent);
+}
+
+.cow-alert {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--cow-danger);
+  background: rgba(255, 107, 107, 0.12);
+  font-size: 0.9rem;
+}
+
+.cow-actions--wrap {
+  flex-wrap: wrap;
+}

@@ -78,6 +78,50 @@
     }
   }
 
+  function renderCommandStatus(morning, manifest) {
+    const m = morning || {};
+    const gate = m.presentationGate || '—';
+    const action = m.recommendedAction || '—';
+    const gateFail = gate === 'FAIL';
+    const pilots = m.links?.pilots || manifest?.pilotCustomers || [];
+    const pilotBtns = pilots
+      .map((p, i) => {
+        const href = p.path || p.openRoute;
+        const label = p.label || p.redactedLabel || `Pilot ${p.slot || i + 1}`;
+        return linkBtn(href, label);
+      })
+      .join('');
+
+    return `
+      <section class="cow-section cow-section--command" id="command">
+        <div class="cow-section-head">
+          <h2>0 · 4 juni Command Status</h2>
+          ${pill(gate)}
+          ${pill(action)}
+        </div>
+        <p class="cow-muted">Morgon-check · ${escapeHtml(m.generatedAt || '—')} · read-only</p>
+        <div class="cow-metrics">
+          ${metric(m.presentationGate, 'presentation gate')}
+          ${metric(m.demoLinks, 'demo links')}
+          ${metric(m.journalE2E, 'journal E2E')}
+          ${metric(m.pilot1, 'pilot 1')}
+          ${metric(m.pilot2, 'pilot 2')}
+          ${metric(m.pilot3, 'pilot 3')}
+        </div>
+        ${gateFail ? '<p class="cow-alert"><strong>P0:</strong> Presentation gate FAIL — fixa journaldemo före 4 juni. Kör <code>npm run cco:presentation-gate</code>.</p>' : '<p class="cow-callout"><strong>GO:</strong> Heligt demo-flöde grönt enligt senaste morning check.</p>'}
+        <ul class="cow-list">${(m.blockers || []).map((b) => `<li>${escapeHtml(b)}</li>`).join('')}</ul>
+        <div class="cow-actions cow-actions--wrap">
+          ${linkBtn(m.links?.personalStart || '/cco-personal-start.html', 'Personal-start')}
+          ${linkBtn(m.links?.presenterMode || '/personal-demo.html', 'Presenter mode')}
+          ${linkBtn(m.links?.printPack || '/journal-pilot-guide.html', 'Print pack')}
+          ${linkBtn(m.links?.journalGuide || '/journal-pilot-guide.html', 'Journal guide')}
+          ${linkBtn(m.links?.kundkort || '/kunder.html', 'Kundkort')}
+          ${pilotBtns}
+        </div>
+        <p class="cow-muted">Prod: <a href="${escapeHtml(m.prodUrl || '#')}">${escapeHtml(m.prodUrl || '—')}</a> · Backup: <a href="${escapeHtml(m.backupUrl || '#')}">${escapeHtml(m.backupUrl || '—')}</a></p>
+      </section>`;
+  }
+
   function renderJournalSection(ops, manifest) {
     const jp = ops?.journalPilot || {};
     const pilots = manifest?.pilotCustomers || [];
@@ -286,18 +330,23 @@
     const root = document.getElementById('cow-root');
     if (!root) return;
 
-    const [snapRes, manifestRes, livePhoto, photoStatus, encStatus] = await Promise.all([
-      fetchJson('/cco-ops-workbench-snapshot.json').then((r) =>
-        r.ok ? r : fetchJson('/cco-presentation-ops-status.json')
-      ),
-      fetchJson('/cco-personal-demo-manifest.json'),
-      loadPhotoSummary(),
-      probePage('/photo-review.html'),
-      probePage('/encounter-mapping-review.html'),
-    ]);
+    const [snapRes, manifestRes, morningRes, livePhoto, photoStatus, encStatus] = await Promise.all(
+      [
+        fetchJson('/cco-ops-workbench-snapshot.json').then((r) =>
+          r.ok ? r : fetchJson('/cco-presentation-ops-status.json')
+        ),
+        fetchJson('/cco-personal-demo-manifest.json'),
+        fetchJson('/cco-4june-morning-check.json'),
+        loadPhotoSummary(),
+        probePage('/photo-review.html'),
+        probePage('/encounter-mapping-review.html'),
+      ]
+    );
 
     const ops = snapRes.ok ? snapRes.json : null;
     const manifest = manifestRes.ok ? manifestRes.json : null;
+    const morning = morningRes.ok ? morningRes.json : null;
+    const gateFail = morning?.presentationGate === 'FAIL';
 
     if (!ops) {
       root.innerHTML =
@@ -310,12 +359,21 @@
         <h1>CCO Ops Workbench</h1>
         <p class="cow-muted">Read-only · blocker-köer · ersätter inte personal-start · stör inte journaldemo</p>
       </header>
+      ${
+        gateFail
+          ? `<div class="cow-banner cow-banner--fail" role="alert">
+        <strong>STOPP — presentation gate FAIL</strong> · ${escapeHtml(morning?.recommendedAction || 'P0_FIX_REQUIRED')}
+        · journaldemo ej säker · kör gate innan 4 juni
+      </div>`
+          : ''
+      }
       <div class="cow-banner">
         <strong>Regler:</strong> inga writes · inga importer · inga auto-approve · inga Drive-länkar ·
         inga nya kunder · ingen extern AI på journaltext · inga patientdata i UI.
         Snapshot: ${escapeHtml(ops.generatedAt || '—')}
       </div>
       <div class="cow-grid">
+        ${renderCommandStatus(morning, manifest)}
         ${renderJournalSection(ops, manifest)}
         ${renderPhotoSection(ops, livePhoto, photoStatus)}
         ${renderMailSection(ops)}

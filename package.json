@@ -78,6 +78,7 @@
     "cco:verify-journal-mounts": "node scripts/verify-journal-pilot-routes.js",
     "cco:presentation-gate": "bash scripts/post-deploy-presentation-gate.sh",
     "cco:daily-readiness": "node scripts/run-daily-readiness-report.js",
+    "cco:4june-morning-check": "node scripts/run-4june-morning-check.js",
     "smoke:public": "bash ./scripts/smoke-public.sh",
     "verify:mobile-pilot-prod": "bash ./scripts/verify-mobile-pilot-prod.sh",
     "verify:auth-go-live-prod": "bash ./scripts/verify-auth-go-live-prod.sh",

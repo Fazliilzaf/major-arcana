@@ -672,6 +672,10 @@ async function main() {
     console.log(md);
   }
 
+  if (!noWrite) {
+    run('node scripts/run-4june-morning-check.js --snapshot-only');
+  }
+
   const failed = !mounts.ok || !links.ok || !readiness.ok;
   process.exit(failed ? 1 : 0);
 }
