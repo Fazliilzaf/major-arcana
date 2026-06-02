@@ -2,671 +2,571 @@
 <html lang="sv">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>CCO · Personalstart · Journalföringspilot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CCO · Personalstart · Journalpilot 4 juni 2026</title>
+    <meta name="robots" content="noindex" />
     <style>
       :root {
-        --bg: #faf6f2;
-        --brand: #2b251f;
-        --accent: #bb4779;
-        --amber: #c8821e;
-        --success: #4a8268;
-        --info: #4a7ba8;
-        --warn: #c8821e;
-        --rose-top: rgba(252, 233, 240, 0.98);
-        --rose-bot: rgba(241, 207, 220, 0.95);
+        --bg: #ede4d5;
+        --paper: #faf5e9;
+        --paper-soft: #f5edda;
+        --paper-deep: #f0e6d0;
+        --ink: #2d2418;
+        --ink-soft: #51422f;
+        --ink-muted: rgba(70, 60, 50, 0.62);
+        --line: rgba(132, 117, 107, 0.32);
+        --line-soft: rgba(132, 117, 107, 0.18);
+        --accent: #b08b3f;
+        --accent-deep: #8a6a26;
+        --green: #5f7c3c;
+        --green-deep: #3f5826;
+        --green-bg: #e3eed4;
+        --orange: #c48132;
+        --orange-bg: #f8e1bf;
+        --red: #a04432;
+        --red-deep: #7a3324;
+        --red-bg: #f4d4cd;
+        --blue: #4a6788;
+        --blue-deep: #2f4a6a;
+        --blue-bg: #dde5f0;
       }
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
       body {
-        margin: 0;
-        padding: 40px 20px 60px;
         background:
-          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
-          radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%), var(--bg);
-        color: var(--brand);
-        font-family: -apple-system, 'SF Pro Display', Inter, system-ui, sans-serif;
+          radial-gradient(1200px 600px at 10% -10%, #f7eed7 0%, transparent 60%),
+          radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%),
+          var(--bg);
+        color: var(--ink);
+        font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Inter, system-ui, sans-serif;
         min-height: 100vh;
       }
-      .container {
-        max-width: 1080px;
-        margin: 0 auto;
-      }
-      .kicker {
-        color: #84756b;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        margin-bottom: 16px;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .kicker .mark {
-        width: 22px;
-        height: 22px;
-        border-radius: 8px;
-        background: linear-gradient(180deg, var(--rose-top), var(--rose-bot));
-        color: var(--accent);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 800;
-      }
-      h1 {
-        font-size: 34px;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        margin: 0 0 6px;
-      }
-      h1 span {
-        color: var(--accent);
-      }
-      .lead {
-        font-size: 15px;
-        color: rgba(45, 36, 24, 0.82);
-        margin: 0 0 24px;
-        max-width: 720px;
-        line-height: 1.55;
-      }
-      .banner {
-        margin: 0 0 28px;
-        padding: 16px 20px;
+      .container { max-width: 1180px; margin: 0 auto; padding: 28px 30px 80px; }
+
+      /* TOPBAR */
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 18px 22px;
+        background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
+        border: 1px solid var(--line);
         border-radius: 18px;
-        background: linear-gradient(180deg, rgba(232, 248, 238, 0.95), rgba(220, 240, 228, 0.88));
-        border: 1px solid rgba(74, 130, 104, 0.22);
-        font-size: 13px;
-        line-height: 1.55;
+        box-shadow: 0 6px 18px rgba(80, 60, 30, 0.1), inset 0 1px 0 rgba(255,255,255,0.55);
+        margin-bottom: 22px;
       }
-      .banner strong {
-        color: #2d6347;
+      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand-mark {
+        width: 44px; height: 44px; border-radius: 11px;
+        background: linear-gradient(135deg, #b08b3f, #6d4e1c);
+        color: #fff; font-weight: 700; font-size: 14px;
+        display: grid; place-items: center;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 2px 6px rgba(80,60,20,0.25);
+        letter-spacing: 0.5px;
       }
-      .section-title {
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: #84756b;
-        margin: 32px 0 14px;
+      .brand-title { font-size: 16.5px; font-weight: 700; letter-spacing: 0.2px; }
+      .brand-sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+      .topbar-status {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 14px; border-radius: 999px;
+        background: var(--green-bg); border: 1px solid rgba(95,124,60,0.35);
+        font-size: 12px; font-weight: 700; color: var(--green-deep);
       }
-      .grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
+      .topbar-status::before {
+        content: ''; width: 8px; height: 8px; border-radius: 50%;
+        background: var(--green); box-shadow: 0 0 6px rgba(95,124,60,0.6);
       }
-      .grid--3 {
-        grid-template-columns: repeat(3, 1fr);
-      }
-      .card {
-        padding: 20px 22px;
+
+      /* HERO */
+      .hero {
+        margin-bottom: 26px;
+        padding: 30px 32px;
+        background: var(--paper);
+        border: 1px solid var(--line);
         border-radius: 20px;
-        background: #ffffff;
-        border: 1px solid rgba(132, 117, 107, 0.32);
-        box-shadow:
-          0 4px 12px rgba(56, 40, 28, 0.14),
-          inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        box-shadow: 0 6px 16px rgba(80, 60, 30, 0.1), inset 0 1px 0 rgba(255,255,255,0.6);
+        position: relative; overflow: hidden;
+      }
+      .hero::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+        background: linear-gradient(90deg, var(--accent) 0%, var(--accent-deep) 100%);
+      }
+      .hero-kicker {
+        font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+        color: var(--accent-deep); font-weight: 700; margin-bottom: 8px;
+      }
+      .hero h1 {
+        font-size: 32px; font-weight: 800; letter-spacing: -0.4px;
+        margin: 0 0 10px; line-height: 1.15; color: var(--ink);
+      }
+      .hero h1 .accent { color: var(--accent-deep); }
+      .hero p {
+        font-size: 14.5px; color: var(--ink); margin: 0;
+        max-width: 800px; line-height: 1.55;
+      }
+      .hero p strong { color: var(--ink); font-weight: 700; }
+      .hero-banner {
+        margin-top: 18px; padding: 14px 18px;
+        background: var(--green-bg); border: 1px solid rgba(95,124,60,0.35);
+        border-radius: 12px; font-size: 13.5px; color: var(--green-deep);
+      }
+      .hero-banner strong { color: var(--green-deep); font-weight: 700; }
+
+      /* SECTION TITLE */
+      .section-title {
+        font-size: 11.5px; text-transform: uppercase; letter-spacing: 2px;
+        color: var(--ink-soft); font-weight: 700;
+        margin: 32px 0 12px;
+        display: flex; align-items: center; gap: 12px;
+      }
+      .section-title::after {
+        content: ''; flex: 1; height: 1px; background: var(--line);
+      }
+      .section-title-num {
+        display: inline-grid; place-items: center;
+        width: 22px; height: 22px; border-radius: 6px;
+        background: var(--accent); color: #fff;
+        font-weight: 800; font-size: 11px;
+      }
+
+      /* GRID */
+      .grid {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+      }
+      .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+
+      /* CARD */
+      .card {
+        padding: 18px 20px;
+        border-radius: 14px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        box-shadow: 0 3px 10px rgba(80, 60, 30, 0.1), inset 0 1px 0 rgba(255,255,255,0.6);
         text-decoration: none;
-        color: inherit;
-        transition:
-          transform 0.12s ease,
-          box-shadow 0.12s ease;
-        display: block;
+        color: var(--ink);
         position: relative;
-        overflow: hidden;
+        transition: all 0.15s;
+        display: block;
       }
       a.card:hover {
+        background: #fff8e8;
+        border-color: var(--accent);
         transform: translateY(-2px);
-        box-shadow: 0 8px 18px rgba(56, 40, 28, 0.18);
-      }
-      .card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: 3px;
-        background: var(--cc, var(--amber));
-        box-shadow: 0 0 6px var(--cc, var(--amber));
-      }
-      .card[data-kind='journal'] {
-        --cc: var(--success);
-      }
-      .card[data-kind='kund'] {
-        --cc: var(--accent);
-      }
-      .card[data-kind='hist'] {
-        --cc: var(--info);
-      }
-      .card[data-kind='bild'] {
-        --cc: var(--warn);
-      }
-      .card[data-kind='fin'] {
-        --cc: #6b5b95;
-      }
-      .card[data-kind='komm'] {
-        --cc: #6c9c8b;
-      }
-      .card[data-kind='rules'] {
-        --cc: #84756b;
-      }
-      .card--hero {
-        grid-column: 1/-1;
-        padding: 24px 26px;
-      }
-      .card--disabled {
-        opacity: 0.62;
-        cursor: not-allowed;
-        pointer-events: none;
-        filter: grayscale(0.15);
-      }
-      .card--disabled::before {
-        background: #b0a59a;
-      }
-      .status-tag {
-        position: absolute;
-        top: 10px;
-        right: 12px;
-        font-size: 8.5px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        padding: 3px 9px;
-        border-radius: 999px;
-      }
-      .status-tag[data-s='ready'] {
-        background: rgba(220, 245, 230, 0.96);
-        color: #2d6347;
-      }
-      .status-tag[data-s='pilot'] {
-        background: rgba(232, 240, 252, 0.96);
-        color: #3a5f8a;
-      }
-      .status-tag[data-s='paused'] {
-        background: rgba(252, 233, 200, 0.96);
-        color: #8a5a18;
-      }
-      .status-tag[data-s='blocked'] {
-        background: rgba(248, 215, 215, 0.96);
-        color: #8a3030;
+        box-shadow: 0 8px 18px rgba(176,139,63,0.22), inset 0 1px 0 rgba(255,255,255,0.6);
       }
       .card-kicker {
-        font-size: 9.5px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--cc, var(--amber));
-        margin-bottom: 8px;
+        font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.5px;
+        color: var(--accent-deep); font-weight: 700; margin-bottom: 4px;
       }
       .card h2 {
-        font-size: 17px;
-        font-weight: 800;
-        margin: 0 0 4px;
-        letter-spacing: -0.02em;
+        font-size: 16px; font-weight: 700; margin: 0 0 6px;
+        letter-spacing: -0.2px; color: var(--ink);
       }
       .card p {
-        font-size: 12.5px;
-        color: rgba(45, 36, 24, 0.85);
-        margin: 0 0 12px;
+        font-size: 13px; color: var(--ink-soft); margin: 0 0 12px;
         line-height: 1.5;
       }
-      .url-pill {
-        display: inline-block;
-        font-family: SFMono-Regular, Menlo, monospace;
-        font-size: 10.5px;
-        font-weight: 700;
-        padding: 4px 9px;
+      .card-pill {
+        display: inline-block; font-family: SFMono-Regular, Menlo, monospace;
+        font-size: 11px; font-weight: 700; padding: 4px 10px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.7);
-        color: var(--cc, var(--amber));
-        box-shadow: inset 0 -1px 0 rgba(132, 117, 107, 0.18);
+        background: var(--paper-deep); color: var(--accent-deep);
+        border: 1px solid var(--line-soft);
       }
-      .btn-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 12px;
+      .card-tag {
+        position: absolute; top: 12px; right: 14px;
+        font-size: 9.5px; font-weight: 800; letter-spacing: 1px;
+        text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
+      }
+      .card-tag.ready { background: var(--green-bg); color: var(--green-deep); }
+      .card-tag.pilot { background: var(--blue-bg); color: var(--blue-deep); }
+      .card-tag.review { background: var(--orange-bg); color: #6a4514; }
+      .card-tag.imported { background: var(--green-bg); color: var(--green-deep); }
+      .card-tag.warn { background: var(--red-bg); color: var(--red-deep); }
+      .card-tag.personal { background: var(--paper-deep); color: var(--accent-deep); }
+
+      /* HERO CARD (full width, primary) */
+      .card--hero {
+        grid-column: 1 / -1;
+        background: linear-gradient(180deg, #f9e9c4 0%, #f1d8a1 100%);
+        border-color: #d4a85b;
+        padding: 22px 24px;
+      }
+      .card--hero h2 { font-size: 19px; }
+      .card--hero p { color: var(--ink); font-size: 13.5px; }
+
+      /* CTA ROW */
+      .cta-row {
+        display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px;
       }
       .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 11.5px;
-        font-weight: 700;
-        padding: 8px 14px;
-        border-radius: 999px;
-        border: 1px solid rgba(132, 117, 107, 0.4);
-        background: #f7f1ec;
-        color: var(--brand);
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12.5px; font-weight: 700;
+        padding: 9px 16px; border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--paper-soft); color: var(--ink);
         text-decoration: none;
-        box-shadow: none;
+        transition: all 0.15s;
       }
-      a.btn:hover {
-        background: #ede4d5;
-        transform: translateY(-1px);
-      }
+      .btn:hover { background: var(--paper-deep); border-color: var(--accent); }
       .btn--primary {
-        background: linear-gradient(180deg, #e8f8ee, #cfe9d8);
-        border-color: rgba(74, 130, 104, 0.5);
-        color: #1f5036;
+        background: var(--accent); color: #fff;
+        border-color: var(--accent-deep);
       }
-      .badge-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 8px;
+      .btn--primary:hover { background: var(--accent-deep); color: #fff; }
+      .btn--success {
+        background: var(--green); color: #fff;
+        border-color: var(--green-deep);
       }
-      .badge {
-        font-size: 9.5px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        padding: 3px 8px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.65);
-        color: #6a5d52;
-        border: 1px solid rgba(132, 117, 107, 0.15);
+      .btn--success:hover { background: var(--green-deep); color: #fff; }
+
+      /* SECTION B — KORTKORT (2 col grid of compact tiles) */
+      .tile {
+        padding: 14px 16px; border-radius: 12px;
+        background: var(--paper); border: 1px solid var(--line);
+        box-shadow: 0 2px 8px rgba(80, 60, 30, 0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+        position: relative;
       }
-      .badge[data-t='imported'] {
-        color: #2d6347;
-        background: rgba(220, 245, 230, 0.7);
+      .tile-label {
+        font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+        font-weight: 700; color: var(--accent-deep); margin-bottom: 4px;
       }
-      .badge[data-t='review'] {
-        color: #8a5a18;
-        background: rgba(252, 233, 200, 0.75);
+      .tile-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+      .tile-sub { font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
+
+      /* SECTION C — HISTORIK STATUS */
+      .status-row {
+        display: grid; grid-template-columns: 1fr auto auto; gap: 14px;
+        padding: 14px 18px; background: var(--paper); border: 1px solid var(--line);
+        border-radius: 12px; margin-bottom: 8px;
+        align-items: center;
       }
-      .badge[data-t='drive'] {
-        color: #3a5f8a;
-        background: rgba(232, 240, 252, 0.8);
+      .status-row-label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+      .status-row-meta { font-size: 12px; color: var(--ink-soft); font-family: SFMono-Regular, Menlo, monospace; }
+      .status-pill {
+        font-size: 10px; font-weight: 800; letter-spacing: 1px;
+        text-transform: uppercase; padding: 4px 10px; border-radius: 999px;
       }
-      .rules {
-        padding: 20px 22px;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.65);
-        font-size: 13px;
-        line-height: 1.65;
-        color: rgba(70, 60, 50, 0.78);
+      .status-pill.imported { background: var(--green-bg); color: var(--green-deep); }
+      .status-pill.partial { background: var(--orange-bg); color: #6a4514; }
+      .status-pill.review { background: var(--red-bg); color: var(--red-deep); }
+      .status-pill.safe { background: var(--green-bg); color: var(--green-deep); }
+
+      /* SECTION D — REGLER */
+      .rules-card {
+        background: linear-gradient(180deg, #fcf3da 0%, #f5e7be 100%);
+        border: 1px solid #d4a85b;
+        border-radius: 16px; padding: 24px 28px;
+        box-shadow: 0 4px 14px rgba(176,139,63,0.18), inset 0 1px 0 rgba(255,255,255,0.55);
       }
-      .rules ol {
-        margin: 8px 0 0;
-        padding-left: 20px;
+      .rules-list { counter-reset: r; list-style: none; padding: 0; margin: 0; }
+      .rules-list li {
+        counter-increment: r; padding: 10px 0 10px 44px;
+        position: relative; font-size: 14.5px; color: var(--ink);
+        border-bottom: 1px dashed rgba(132,117,107,0.25);
       }
-      .rules li {
-        margin: 6px 0;
+      .rules-list li:last-child { border-bottom: none; }
+      .rules-list li::before {
+        content: counter(r); position: absolute; left: 0; top: 10px;
+        width: 28px; height: 28px; border-radius: 50%;
+        background: #fff; color: var(--accent-deep);
+        font-weight: 800; font-size: 13px;
+        display: grid; place-items: center;
+        border: 2px solid var(--accent);
       }
+      .rules-list strong { font-weight: 700; color: var(--ink); }
+
+      /* SECTION E — STÖD-LÄNKAR */
+      .support-grid {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      }
+      .support-card {
+        padding: 18px 20px; border-radius: 12px;
+        background: var(--paper-soft); border: 1px solid var(--line);
+        text-decoration: none; color: var(--ink);
+        transition: all 0.15s;
+        text-align: center;
+      }
+      .support-card:hover {
+        background: #fff8e8; border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(176,139,63,0.18);
+      }
+      .support-icon { font-size: 26px; margin-bottom: 6px; line-height: 1; }
+      .support-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+      .support-sub { font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; }
+
+      /* FOOTER */
       .footer {
-        margin-top: 40px;
-        padding-top: 24px;
-        border-top: 1px solid rgba(132, 117, 107, 0.18);
-        font-size: 11.5px;
-        color: rgba(70, 60, 50, 0.55);
-        line-height: 1.7;
+        margin-top: 36px; padding-top: 18px;
+        border-top: 1px solid var(--line);
+        font-size: 12px; color: var(--ink-soft); line-height: 1.6;
       }
-      @media (max-width: 860px) {
-        .grid,
-        .grid--3 {
-          grid-template-columns: 1fr;
-        }
+      .footer code {
+        background: var(--paper-soft); padding: 1px 7px; border-radius: 4px;
+        font-size: 11.5px; color: var(--accent-deep);
+      }
+      .footer strong { color: var(--ink); }
+
+      @media (max-width: 900px) {
+        .container { padding: 18px; }
+        .grid { grid-template-columns: 1fr 1fr; }
+        .grid-2 { grid-template-columns: 1fr; }
+        .support-grid { grid-template-columns: 1fr 1fr; }
+        .topbar { flex-direction: column; gap: 12px; align-items: stretch; }
+        .hero h1 { font-size: 24px; }
+      }
+      @media (max-width: 600px) {
+        .grid { grid-template-columns: 1fr; }
+        .support-grid { grid-template-columns: 1fr; }
+        .card--hero { padding: 18px; }
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="kicker"><span class="mark">CC</span>CCO · Personalstart · kontrollerad pilot</div>
-      <h1>Journalföring <span>redo att börja</span></h1>
-      <p class="lead">
-        Presentationssäker startsida. Endast verifierade länkar är klickbara. Detta är en
-        <strong>kontrollerad journalpilot</strong> — CCO är <strong>inte</strong> full cutover.
-        Review-material (import, badges, “Behöver granskning”) är <em>inte</em> klinisk sanning.
-      </p>
-
-      <div class="banner">
-        <strong>Starta här:</strong> Öppna kundkort → välj pilotkund → skriv journal → signera →
-        rättelse → tidslinje. Allt markerat “Behöver granskning” är <em>inte</em> klinisk sanning.
-        Inga pausade showcase- eller watch-spår i detta demo-flöde.
+      <!-- TOPBAR -->
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-mark">CCO</div>
+          <div>
+            <div class="brand-title">Personalstart · Journalpilot</div>
+            <div class="brand-sub">Hair TP Clinic · kontrollerad pilot · 4 juni 2026</div>
+          </div>
+        </div>
+        <div class="topbar-status">Redo att börja</div>
       </div>
 
-      <div class="section-title">A · Starta här — journalföring</div>
+      <!-- HERO -->
+      <div class="hero">
+        <div class="hero-kicker">A · Starta här</div>
+        <h1>Journalföring <span class="accent">redo för pilot</span></h1>
+        <p>
+          Vi börjar <strong>kontrollerat</strong> med journalföring. Endast verifierade länkar är klickbara på den här sidan. Allt markerat <strong>"Behöver granskning"</strong> är <strong>inte</strong> klinisk sanning. Mail, Photo Review, Fortnox-sync och Aisia kommer separat i nästa steg.
+        </p>
+        <div class="hero-banner">
+          <strong>Heliga flödet:</strong> Öppna kundkort → välj pilotkund → skriv journal → signera/lås → rättelse → tidslinje
+        </div>
+      </div>
+
+      <!-- SECTION A — STARTA HÄR -->
+      <div class="section-title">
+        <span class="section-title-num">A</span>
+        Starta här — kundkort + pilotkunder
+      </div>
       <div class="grid">
-        <a class="card card--hero" href="/kunder.html" data-kind="journal" data-verified-link>
-          <span class="status-tag" data-s="ready">redo pilot</span>
+        <a class="card card--hero" href="/kunder.html" data-verified-link>
+          <span class="card-tag ready">redo pilot</span>
           <div class="card-kicker">Huvudflöde</div>
-          <h2>Journalföring · REDO FÖR PILOT</h2>
-          <p>
-            Öppna kundkort → skriv journal → signera/lås → rättelse → timeline. Inga Drive-länkar.
-            Ingen extern AI på journaltext.
-          </p>
-          <span class="url-pill">/kunder.html</span>
-          <div class="btn-row">
-            <span class="btn btn--primary">Öppna kundkort</span>
-            <a class="btn" href="/journal-build-demo.html" data-verified-link
-              >Öppna journal-referens</a
-            >
+          <h2>Öppna kundkort</h2>
+          <p>Sök patient på namn, telefon eller Cliento-id. Verifiera identitet före signering. Skapa journal → signera/lås → rättelse → timeline.</p>
+          <div class="cta-row">
+            <span class="btn btn--primary">Öppna kundlistan</span>
+            <a class="btn" href="/journal-build-demo.html" data-verified-link>Journal-referens</a>
           </div>
         </a>
-        <a
-          class="card"
-          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator"
-          data-kind="journal"
-          data-verified-link
-        >
-          <span class="status-tag" data-s="pilot">pilot 1</span>
+
+        <a class="card" href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator" data-verified-link>
+          <span class="card-tag pilot">pilot 1</span>
           <div class="card-kicker">Testkund A</div>
-          <h2>Öppna pilotkund 1</h2>
-          <p>Ren journalföringstest. Skapa ny post live under mötet.</p>
-          <span class="url-pill">cco-pilot-20260602-a</span>
+          <h2>Pilotkund 1</h2>
+          <p>Ren journalföringstest. Skapa ny post live under mötet — visar create → signera → rättelse-flödet.</p>
+          <span class="card-pill">cco-pilot-20260602-a</span>
         </a>
-        <a
-          class="card"
-          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator"
-          data-kind="journal"
-          data-verified-link
-        >
-          <span class="status-tag" data-s="pilot">pilot 2</span>
+
+        <a class="card" href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator" data-verified-link>
+          <span class="card-tag pilot">pilot 2</span>
           <div class="card-kicker">Testkund B</div>
-          <h2>Öppna pilotkund 2</h2>
-          <p>Journal-feed + timeline verifierad.</p>
-          <span class="url-pill">cco-pilot-20260602-b</span>
+          <h2>Pilotkund 2</h2>
+          <p>Journal-feed + timeline redan verifierad. Har en sparad pilotpost — visa feed och timeline.</p>
+          <span class="card-pill">cco-pilot-20260602-b</span>
         </a>
-        <a
-          class="card"
-          href="/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator"
-          data-kind="journal"
-          data-verified-link
-        >
-          <span class="status-tag" data-s="pilot">pilot 3</span>
+
+        <a class="card" href="/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator" data-verified-link>
+          <span class="card-tag pilot">pilot 3</span>
           <div class="card-kicker">Testkund C</div>
-          <h2>Öppna pilotkund 3</h2>
-          <p>Signering + rättelse redan verifierad i prod smoke.</p>
-          <span class="url-pill">…readiness-smoke…</span>
+          <h2>Pilotkund 3</h2>
+          <p>Signering + rättelse redan verifierad i prod smoke. Visa tråd och timeline med original + rättelse länkade.</p>
+          <span class="card-pill">…readiness-smoke…</span>
         </a>
-        <a class="card" href="/journal-pilot-guide.html" data-kind="journal" data-verified-link>
-          <span class="status-tag" data-s="ready">personal</span>
+
+        <a class="card" href="/journal-pilot-guide.html" data-verified-link>
+          <span class="card-tag personal">personal</span>
           <div class="card-kicker">Guide</div>
-          <h2>Journalpilot-guide</h2>
-          <p>
-            Utskriftsbart referensblad för personal: identitet, signering, rättelse, eskalering.
-            Öppna i egen flik under mötet.
-          </p>
-          <span class="url-pill">/journal-pilot-guide.html</span>
+          <h2>Personalguide</h2>
+          <p>Utskriftsbart referensblad: identitetskontroll, signering, rättelse, eskalering. Öppna i egen flik under mötet.</p>
+          <span class="card-pill">/journal-pilot-guide.html</span>
         </a>
       </div>
 
-      <div class="section-title">B · Kundkort — nytt huvudnav</div>
-      <div class="grid grid--3">
-        <div class="card card--disabled" data-kind="kund">
-          <span class="status-tag" data-s="ready">via kundkort</span>
-          <div class="card-kicker">Sektion</div>
-          <h2>Kunddata</h2>
-          <p>Identitet, kontakt, Cliento-koppling.</p>
+      <!-- SECTION B — KUNDKORTSEKTIONER -->
+      <div class="section-title">
+        <span class="section-title-num">B</span>
+        Kundkort — sektioner som visas
+      </div>
+      <div class="grid">
+        <div class="tile">
+          <div class="tile-label">Kunddata</div>
+          <div class="tile-title">Identitet &amp; kontakt</div>
+          <div class="tile-sub">Namn, telefon, Cliento-koppling — verifieras före signering.</div>
         </div>
-        <a
-          class="card"
-          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator"
-          data-kind="kund"
-          data-verified-link
-          ><span class="status-tag" data-s="ready">verifierad</span>
-          <div class="card-kicker">Sektion</div>
-          <h2>Journaler</h2>
-          <p>Feed med nya + importerade poster.</p></a
-        >
-        <div class="card card--disabled" data-kind="kund">
-          <span class="status-tag" data-s="ready">monterad</span>
-          <div class="card-kicker">Sektion</div>
-          <h2>Formulär</h2>
-          <p>Hälsodeklaration, friskförsäkran via cco-forms.</p>
+        <div class="tile">
+          <div class="tile-label">Journaler</div>
+          <div class="tile-title">Feed med nya + importerade poster</div>
+          <div class="tile-sub">Skapa, signera, rättelse. Importerad historik flaggad separat.</div>
         </div>
-        <div class="card card--disabled" data-kind="kund">
-          <span class="status-tag" data-s="ready">importerad</span>
-          <div class="card-kicker">Sektion</div>
-          <h2>Historik</h2>
-          <p>halso@, GetAccept, Drive — där import finns.</p>
+        <div class="tile">
+          <div class="tile-label">Formulär</div>
+          <div class="tile-title">Hälsodeklaration &amp; friskförsäkran</div>
+          <div class="tile-sub">Via cco-forms — monterat och redo.</div>
         </div>
-        <div class="card card--disabled" data-kind="kund">
-          <span class="status-tag" data-s="ready">importerad</span>
-          <div class="card-kicker">Sektion</div>
-          <h2>Avtal</h2>
-          <p>GetAccept-avtal i CCO storage.</p>
+        <div class="tile">
+          <div class="tile-label">Historik</div>
+          <div class="tile-title">halso@ · GetAccept · Drive</div>
+          <div class="tile-sub">Importerat material från externa källor. Read-only i kundkortet.</div>
         </div>
-        <div class="card card--disabled" data-kind="kund">
-          <span class="status-tag" data-s="paused">review</span>
-          <div class="card-kicker">Sektion</div>
-          <h2>Bilder</h2>
-          <p>Finns i CCO — Photo Review pågår.</p>
+        <div class="tile">
+          <div class="tile-label">Avtal</div>
+          <div class="tile-title">GetAccept-avtal</div>
+          <div class="tile-sub">Signerade avtal i CCO storage. ~1 331 kunder.</div>
         </div>
-        <a
-          class="card"
-          href="/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator#timeline"
-          data-kind="kund"
-          data-verified-link
-          ><span class="status-tag" data-s="ready">verifierad</span>
-          <div class="card-kicker">Sektion</div>
-          <h2>Timeline</h2>
-          <p>Kronologiskt journalflöde.</p></a
-        >
-        <div class="card card--disabled" data-kind="kund">
-          <span class="status-tag" data-s="paused">varning</span>
-          <div class="card-kicker">Sektion</div>
-          <h2>Behöver granskning</h2>
-          <p>Osäker metadata — inte klinisk sanning.</p>
+        <div class="tile">
+          <div class="tile-label">Bilder</div>
+          <div class="tile-title">Photo Review pågår</div>
+          <div class="tile-sub">Migrerade bilder är <strong>inte</strong> kliniska behandlingsbilder före Photo Review-godkännande.</div>
+        </div>
+        <div class="tile">
+          <div class="tile-label">Timeline</div>
+          <div class="tile-title">Kronologiskt journalflöde</div>
+          <div class="tile-sub">Original + rättelse länkade tydligt — visar full spårbarhet.</div>
+        </div>
+        <div class="tile">
+          <div class="tile-label">Behöver granskning</div>
+          <div class="tile-title">Osäker metadata</div>
+          <div class="tile-sub"><strong>Inte</strong> klinisk sanning — endast referens för uppföljningsfrågor.</div>
         </div>
       </div>
 
-      <div class="section-title">C · Historik importerad (status)</div>
-      <div class="grid grid--3">
-        <div class="card card--disabled" data-kind="hist">
-          <div class="card-kicker">halso@</div>
-          <h2>Hälsodeklarationer</h2>
-          <p>~1 660 kunder · status <strong>IMPORTED_SAFE_MATCH</strong>.</p>
-          <div class="badge-row">
-            <span class="badge" data-t="halso">halso@</span
-            ><span class="badge" data-t="imported">imported</span>
+      <!-- SECTION C — HISTORIK STATUS -->
+      <div class="section-title">
+        <span class="section-title-num">C</span>
+        Importerad historik · status
+      </div>
+      <div>
+        <div class="status-row">
+          <div>
+            <div class="status-row-label">halso@ · Hälsodeklarationer</div>
+            <div class="status-row-meta">~1 660 kunder</div>
           </div>
+          <span class="status-pill safe">Safe-match</span>
+          <span class="status-pill imported">Imported</span>
         </div>
-        <div class="card card--disabled" data-kind="hist">
-          <div class="card-kicker">GetAccept</div>
-          <h2>Avtal</h2>
-          <p>~1 331 kunder · status <strong>IMPORTED</strong> · PDF i CCO storage.</p>
-          <div class="badge-row"><span class="badge" data-t="imported">getaccept</span></div>
-        </div>
-        <div class="card card--disabled" data-kind="hist">
-          <div class="card-kicker">Drive</div>
-          <h2>Drive-dokument</h2>
-          <p>Safe-match · status <strong>IMPORTED_PARTIAL</strong>.</p>
-          <div class="badge-row">
-            <span class="badge" data-t="drive">drive</span
-            ><span class="badge" data-t="imported">partial</span>
+        <div class="status-row">
+          <div>
+            <div class="status-row-label">GetAccept · Avtal</div>
+            <div class="status-row-meta">~1 331 kunder · PDF i CCO storage</div>
           </div>
+          <span class="status-pill imported">Imported</span>
+          <span style="width: 76px;"></span>
         </div>
-        <div class="card card--disabled" data-kind="hist">
-          <div class="card-kicker">Drive</div>
-          <h2>Drive-journaler</h2>
-          <p>~5 152 poster · status <strong>IMPORTED_SAFE_MATCH</strong>.</p>
-          <div class="badge-row">
-            <span class="badge" data-t="drive">drive</span
-            ><span class="badge" data-t="imported">imported</span>
+        <div class="status-row">
+          <div>
+            <div class="status-row-label">Drive · Dokument</div>
+            <div class="status-row-meta">Safe-match</div>
           </div>
+          <span class="status-pill safe">Safe-match</span>
+          <span class="status-pill partial">Partial</span>
         </div>
-        <div class="card card--disabled" data-kind="hist">
-          <div class="card-kicker">Drive</div>
-          <h2>Drive-bilder</h2>
-          <p>
-            Binärer inne · status <strong>NEEDS_REVIEW</strong> · <strong>0 VISIBLE</strong> på
-            kundkort före manuell granskning.
-          </p>
-          <div class="badge-row">
-            <span class="badge" data-t="drive">drive</span
-            ><span class="badge" data-t="review">needs review</span>
+        <div class="status-row">
+          <div>
+            <div class="status-row-label">Drive · Gamla journaler</div>
+            <div class="status-row-meta">~5 152 poster</div>
           </div>
+          <span class="status-pill safe">Safe-match</span>
+          <span class="status-pill imported">Imported</span>
+        </div>
+        <div class="status-row">
+          <div>
+            <div class="status-row-label">Drive · Bilder</div>
+            <div class="status-row-meta">Binärer inne · 0 VISIBLE före manuell granskning</div>
+          </div>
+          <span class="status-pill review">Needs review</span>
+          <span style="width: 76px;"></span>
         </div>
       </div>
-      <p
-        class="photo-day1-callout"
-        style="
-          font-size: 12px;
-          color: rgba(70, 60, 50, 0.78);
-          margin: 8px 0 0;
-          padding: 10px 12px;
-          border-radius: 8px;
-          border: 1px solid rgba(120, 90, 60, 0.22);
-          background: rgba(255, 248, 240, 0.6);
-        "
-      >
-        <strong>Dag 1:</strong> migrerade före/efter-bilder är
-        <strong>inte kliniska behandlingsbilder</strong> — endast efter Photo Review + naming. Ingen
-        auto-approve · ingen massapproval.
-      </p>
-      <p style="font-size: 12px; color: rgba(70, 60, 50, 0.62); margin: 8px 0 0">
-        Review-markerat material är <strong>inte</strong> klinisk sanning ännu.
-      </p>
 
-      <div class="section-title" id="dag1-regler">D · Viktiga regler dag 1</div>
-      <div class="rules">
-        <ol>
-          <li>Verifiera identitet före signering (namn, telefon, Cliento-id).</li>
-          <li>Skapa inte ny kund vid osäker match — eskalera till admin/ops.</li>
-          <li>Review-material är inte klinisk sanning.</li>
-          <li>Migrerade bilder används inte som behandlingsbilder före Photo Review.</li>
-          <li>Kopiera inte journaltext till extern AI.</li>
+      <!-- SECTION D — REGLER DAG 1 -->
+      <div class="section-title">
+        <span class="section-title-num">D</span>
+        Viktiga regler · dag 1
+      </div>
+      <div class="rules-card">
+        <ol class="rules-list">
+          <li><strong>Verifiera identitet</strong> före signering — namn, telefon, Cliento-id måste matcha.</li>
+          <li><strong>Skapa inte ny kund</strong> vid osäker match — eskalera till admin/ops istället.</li>
+          <li><strong>Review-material</strong> (badges: needs review) är <strong>inte</strong> klinisk sanning.</li>
+          <li><strong>Migrerade före/efter-bilder</strong> används <strong>inte</strong> kliniskt före Photo Review-godkännande.</li>
+          <li><strong>Ingen extern AI</strong> på journaltext — patientdata får aldrig lämna systemet.</li>
         </ol>
-        <div class="btn-row" style="margin-top: 16px">
-          <a class="btn" href="#dag1-regler">Visa dag-1-regler</a>
-        </div>
       </div>
 
-      <div class="section-title">E · Bilder</div>
+      <!-- SECTION E — STÖD-LÄNKAR -->
+      <div class="section-title">
+        <span class="section-title-num">E</span>
+        Stöd-länkar för Fazli &amp; personal
+      </div>
+      <div class="support-grid">
+        <a class="support-card" href="/cco-4june-command-center.html" target="_blank" rel="noopener">
+          <div class="support-icon">🎯</div>
+          <div class="support-title">4 juni Command Center</div>
+          <div class="support-sub">Live-status + snabblänkar</div>
+        </a>
+        <a class="support-card" href="/cco-presenter-mode.html" target="_blank" rel="noopener">
+          <div class="support-icon">🎬</div>
+          <div class="support-title">Presenter Mode</div>
+          <div class="support-sub">14-stegs flow + timer</div>
+        </a>
+        <a class="support-card" href="/journal-pilot-print-pack.html" target="_blank" rel="noopener">
+          <div class="support-icon">🖨</div>
+          <div class="support-title">Print Pack</div>
+          <div class="support-sub">A4-pack för utskrift</div>
+        </a>
+        <a class="support-card" href="/journal-pilot-guide.html" target="_blank" rel="noopener" data-verified-link>
+          <div class="support-icon">📖</div>
+          <div class="support-title">Personalguide</div>
+          <div class="support-sub">Online-referens</div>
+        </a>
+      </div>
+
+      <!-- FINANCE (intern, minimal) -->
+      <div class="section-title">
+        <span class="section-title-num">F</span>
+        Chief of Finance · internt
+      </div>
       <div class="grid">
-        <div class="card card--disabled" data-kind="bild" id="photo-review-status">
-          <span class="status-tag" data-s="paused">väntar review</span>
-          <div class="card-kicker">Photo Review</div>
-          <h2>Bilder finns i CCO</h2>
-          <p id="photo-review-copy">
-            Drive-bilder importerade. <strong>860 pending</strong> · <strong>150 kunder</strong> ·
-            <strong>0 VISIBLE</strong> före review. Migrerade före/efter är
-            <strong>inte kliniska dag 1</strong>. Blockerar inte ny journalföring.
-          </p>
-          <p
-            id="photo-review-metrics"
-            style="font-size: 12px; color: rgba(70, 60, 50, 0.72); margin: 8px 0 0"
-          >
-            Operatörsstatus laddas…
-          </p>
-          <p
-            id="photo-review-operator"
-            style="font-size: 12px; color: rgba(70, 60, 50, 0.62); margin: 6px 0 0"
-          >
-            Operatörverktyg: Photo Review (separat operatörssida, ej länkad härifrån) —
-            <span id="photo-write-status">write kontrolleras…</span> · ingen auto-approve · ingen
-            massapproval.
-          </p>
-        </div>
-      </div>
-
-      <div class="section-title">F · Ekonomi / Chief of Finance (internt)</div>
-      <div class="grid grid--3">
-        <a class="card" href="/finance.html" data-kind="fin" data-verified-link
-          ><span class="status-tag" data-s="pilot">internt</span>
-          <div class="card-kicker">CF</div>
-          <h2>Finance dashboard</h2>
-          <p>Kvitton, KPI, CCO-native.</p>
-          <span class="url-pill">/finance.html</span></a
-        >
-        <a class="card" href="/finance-review.html" data-kind="fin" data-verified-link
-          ><span class="status-tag" data-s="pilot">internt</span>
-          <div class="card-kicker">CF</div>
-          <h2>Revisorportal</h2>
-          <p>Granskning per export-batch.</p>
-          <span class="url-pill">/finance-review.html</span></a
-        >
-        <a class="card" href="/finance-reports.html" data-kind="fin" data-verified-link
-          ><span class="status-tag" data-s="pilot">internt</span>
-          <div class="card-kicker">CF</div>
+        <a class="card" href="/finance.html" data-verified-link>
+          <div class="card-kicker">Finance</div>
+          <h2>Dashboard</h2>
+          <p>Receipt inbox, expenses, rules, vendors. Internt finance-spår — inte klinik-P0.</p>
+          <span class="card-pill">/finance.html</span>
+        </a>
+        <a class="card" href="/finance-review.html" data-verified-link>
+          <div class="card-kicker">Finance</div>
+          <h2>Review-paket</h2>
+          <p>Revisorportal för månadsstängning.</p>
+          <span class="card-pill">/finance-review.html</span>
+        </a>
+        <a class="card" href="/finance-reports.html" data-verified-link>
+          <div class="card-kicker">Finance</div>
           <h2>Rapporter</h2>
-          <p>Månads-/periodrapporter.</p>
-          <span class="url-pill">/finance-reports.html</span></a
-        >
-      </div>
-      <p style="font-size: 12px; color: rgba(70, 60, 50, 0.62); margin: 8px 0 0">
-        Fortnox-integration <strong>blockerad</strong> tills Fortnox löser portalproblem. CF =
-        internt finance-spår, inte klinik-P0.
-      </p>
-
-      <div class="section-title">G · Kommunikation</div>
-      <div class="grid">
-        <div class="card card--disabled" data-kind="komm">
-          <span class="status-tag" data-s="paused">aktivering pågår</span>
-          <div class="card-kicker">Mail</div>
-          <h2>Mail &amp; Svarstudio</h2>
-          <p>
-            Finns i CCO men mail-worklist/enrichment (~93% coverage,
-            <code>readyForWork=false</code>) är inte dagligt verktyg ännu. Säg “pågående
-            aktivering”.
-          </p>
-        </div>
+          <p>12 finansrapporter + periodstängning.</p>
+          <span class="card-pill">/finance-reports.html</span>
+        </a>
       </div>
 
+      <!-- FOOTER -->
       <div class="footer">
-        <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; align-items: center; font-size: 12px;">
-          <span style="color: rgba(70, 60, 50, 0.7); font-weight: 600;">Stöd-länkar:</span>
-          <a href="/cco-4june-command-center.html" target="_blank" rel="noopener" style="color: rgba(80, 60, 30, 0.85); text-decoration: none; border-bottom: 1px dotted rgba(80, 60, 30, 0.5);">🎯 4 juni command center</a>
-          <a href="/cco-presenter-mode.html" target="_blank" rel="noopener" style="color: rgba(80, 60, 30, 0.85); text-decoration: none; border-bottom: 1px dotted rgba(80, 60, 30, 0.5);">🎬 Presenter mode (för Fazli)</a>
-          <a href="/journal-pilot-print-pack.html" target="_blank" rel="noopener" style="color: rgba(80, 60, 30, 0.85); text-decoration: none; border-bottom: 1px dotted rgba(80, 60, 30, 0.5);">🖨 Print pack (skriv ut)</a>
-          <a href="/journal-pilot-guide.html" target="_blank" rel="noopener" style="color: rgba(80, 60, 30, 0.85); text-decoration: none; border-bottom: 1px dotted rgba(80, 60, 30, 0.5);">📖 Personalguide</a>
-        </div>
-        Verifierad personalstart · baseline <code>CCO-SYSTEM-SCOPE.md</code> · Preflight:
-        <code>node scripts/verify-personal-demo-links.js</code><br />
-        Pilotkunder är anonyma test-IDs — använd riktiga kända patienter i vardagen efter
-        identitetskontroll.
+        <strong>Verifierad personalstart</strong> · baseline <code>CCO-SYSTEM-SCOPE.md</code> · preflight <code>npm run cco:presentation-gate</code><br>
+        Pilotkunder är anonyma test-IDs — använd <strong>kända patienter</strong> i vardagen efter identitetskontroll. Fortnox-integration blockerad — manuell faktura tills vidare.
       </div>
     </div>
-    <script>
-      (function loadPhotoReviewOpsStatus() {
-        const metrics = document.getElementById('photo-review-metrics');
-        if (!metrics) return;
-        const writeStatus = document.getElementById('photo-write-status');
-        function render(data) {
-          const pending = data.pendingPhotos ?? data.pendingPhotosAll ?? '—';
-          const patients = data.patientsWithPendingPhotos ?? '—';
-          const visible = data.photosVisibleCount ?? 0;
-          const writeOn = data.writeEnabled === true;
-          metrics.textContent =
-            'Operatör: ' +
-            pending +
-            ' bilder pending · ' +
-            patients +
-            ' kunder · ' +
-            visible +
-            ' VISIBLE före review · migrerade bilder ej kliniska före review';
-          if (writeStatus) {
-            writeStatus.textContent = writeOn
-              ? 'write PÅ (endast manuellt, en bild i taget)'
-              : 'write AV på prod (korrekt inför dag 1)';
-          }
-        }
-        Promise.all([
-          fetch('/cco-presentation-ops-status.json', { cache: 'no-store' }).then((r) =>
-            r.ok ? r.json() : null
-          ),
-          fetch('/api/v1/cco/photo-review/summary', {
-            headers: { 'x-cco-role': 'owner', 'x-cco-tenant': 'hairtpclinic' },
-            cache: 'no-store',
-          })
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
-        ])
-          .then(([ops, api]) => {
-            const snap = ops?.photoReview;
-            const apiPending = Number(api?.pendingPhotos ?? api?.pendingPhotosAll ?? 0);
-            const row = apiPending > 0 ? api : snap || api;
-            if (row) render(row);
-            else metrics.textContent = 'Operatör: NEEDS_REVIEW — ej VISIBLE · ingen auto-approve';
-          })
-          .catch(() => {
-            metrics.textContent = 'Operatör: NEEDS_REVIEW — ej VISIBLE · ingen auto-approve';
-          });
-      })();
-    </script>
   </body>
 </html>
