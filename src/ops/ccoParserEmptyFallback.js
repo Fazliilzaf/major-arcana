@@ -17,6 +17,12 @@ const {
   resolveLatestWorklistEnrichmentBaseline,
 } = require('../routes/capabilities');
 const { AnalyzeInboxCapability } = require('../capabilities/analyzeInbox');
+const {
+  saveCcoInboxEnrichmentCheckpoint,
+  loadCcoInboxEnrichmentCheckpoint,
+  clearCcoInboxEnrichmentCheckpoint,
+  countEnrichedRows,
+} = require('./ccoInboxEnrichmentCheckpoint');
 
 const PARSER_EMPTY_POLICIES = Object.freeze([
   'true_unanswered_candidate',
@@ -26,6 +32,10 @@ const PARSER_EMPTY_POLICIES = Object.freeze([
 ]);
 
 const CANARY_SAFE_POLICIES = new Set(['true_unanswered_candidate', 'non_actionable_outbound']);
+
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -210,6 +220,15 @@ function sanitizePlanRow(row = {}) {
 function buildFallbackEnrichmentRow({ gapRow = {}, truthRow = {}, policyRow = {} } = {}) {
   const parsed = parseConversationKey(gapRow.conversationKey || gapRow.threadKey);
   const signals = policyRow.fallbackSignals || {};
+  const conversationId =
+    normalizeText(truthRow.conversationId) ||
+    normalizeText(truthRow.mailboxConversationId) ||
+    parsed.conversationId ||
+    null;
+  const mailboxId =
+    normalizeText(truthRow.mailboxId || truthRow.mailboxAddress)?.toLowerCase() ||
+    parsed.mailboxId ||
+    null;
   const messageId =
     normalizeText(truthRow.messageId) ||
     normalizeText(truthRow.latestMessageId) ||
@@ -217,8 +236,9 @@ function buildFallbackEnrichmentRow({ gapRow = {}, truthRow = {}, policyRow = {}
     'parser-empty-fallback';
 
   return {
-    conversationId: parsed.conversationId,
-    mailboxId: parsed.mailboxId,
+    conversationId,
+    mailboxId,
+    mailboxAddress: mailboxId,
     messageId,
     intent: signals.intent || 'follow_up',
     workflowLane: signals.workflowLane || null,
@@ -426,6 +446,7 @@ async function applyParserEmptyFallbackBatch({
   );
 
   const enrichRows = [];
+  const enrichScopeKeys = [];
   const excludeKeys = [];
   const unresolvedKeys = [];
   const results = [];
@@ -492,6 +513,7 @@ async function applyParserEmptyFallbackBatch({
     }
 
     enrichRows.push(enrichmentRow);
+    enrichScopeKeys.push(planRow.conversationKey);
     results.push({
       conversationKey: planRow.conversationKey,
       outcome: dryRun ? 'would_fallback_enrich' : 'fallback_enriched',
@@ -502,22 +524,23 @@ async function applyParserEmptyFallbackBatch({
 
   let registrySave = null;
   let persistResult = null;
+  let checkpointSave = null;
   if (!dryRun && enrichRows.length > 0) {
     const baseline = await resolveLatestWorklistEnrichmentBaseline({
       capabilityAnalysisStore,
       tenantId,
       mailboxIds,
     });
-    const scopeConversationIds = enrichRows
-      .map((row) => {
-        const parsed = parseConversationKey(
-          `${normalizeText(row.mailboxId)}:${normalizeText(row.conversationId)}`
-        );
-        return parsed.conversationKey;
-      })
-      .filter(Boolean);
+    const checkpoint = await loadCcoInboxEnrichmentCheckpoint({ stateRoot, tenantId });
+    const baselineOutput = asObject(baseline?.selectedOutputData);
+    const checkpointOutput = checkpoint?.ok ? asObject(checkpoint.outputData) : {};
+    const baselineEnriched = countEnrichedRows(baselineOutput);
+    const checkpointEnriched = countEnrichedRows(checkpointOutput);
+    const mergeBase = checkpointEnriched > baselineEnriched ? checkpointOutput : baselineOutput;
+
+    const scopeConversationIds = enrichScopeKeys.map((item) => normalizeText(item)).filter(Boolean);
     const mergedOutput = mergeWorklistEnrichmentOutput(
-      baseline?.output?.data || baseline?.outputData || {},
+      mergeBase,
       {
         conversationWorklist: enrichRows,
         needsReplyToday: enrichRows.filter(
@@ -528,6 +551,18 @@ async function applyParserEmptyFallbackBatch({
       },
       { scopeConversationIds }
     );
+
+    checkpointSave = await saveCcoInboxEnrichmentCheckpoint({
+      stateRoot,
+      tenantId,
+      outputData: mergedOutput,
+      metadata: {
+        source: 'parser_empty_fallback',
+        runId: repairRunId,
+        scopedConversationCount: scopeConversationIds.length,
+        enrichedRowCount: countEnrichedRows(mergedOutput),
+      },
+    });
 
     if (capabilityAnalysisStore && typeof capabilityAnalysisStore.append === 'function') {
       const entry = await capabilityAnalysisStore.append({
@@ -565,7 +600,11 @@ async function applyParserEmptyFallbackBatch({
         ok: true,
         entryId: entry?.id || null,
         capturedAt: entry?.ts || null,
+        enrichedRowCount: countEnrichedRows(mergedOutput),
       };
+      if (persistResult.ok) {
+        await clearCcoInboxEnrichmentCheckpoint({ stateRoot, tenantId });
+      }
     }
   }
 
@@ -613,6 +652,7 @@ async function applyParserEmptyFallbackBatch({
     results: results.slice(0, 50),
     resultCount: results.length,
     persistResult,
+    checkpointSave,
     registrySave,
     coverageBefore: {
       enriched: coverageBefore.enrichedConversationCount,
