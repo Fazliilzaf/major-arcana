@@ -156,3 +156,26 @@ Oförändrat från baseline — se tidigare avsnitt i git-historik. Kort:
 | `e3a4d51d` | `fix(journal): restore journal-feed, journal-timeline and cco-forms routes` |
 
 _Ingen rå mailtext · inga personnummer · inga patientnamn i denna rapport._
+
+---
+
+## Slutstatus (owner-confirmed 2026-06-02)
+
+**GO för kontrollerad journalföringspilot via kundkort.**
+
+Personal kan börja journalföra dag 1 med 10-punkters pilot-regelverk (se separat memory `pilot-rules-journal-2026-06`).
+
+Verifierat:
+- Kundkort fungerar
+- journal-feed fungerar
+- journal-timeline fungerar
+- cco-forms fungerar
+- journal quick: skapa / signera / låsa / rättelse fungerar
+- audit/RBAC fungerar
+- inga oväntade 5xx
+- inga Drive-länkar
+- ingen extern AI på journaltext
+
+**Regression-regel (memo till framtida deploys):**
+Vid alla framtida `server.js`-ändringar — läs befintliga journal/feed/forms-routes FÖRST och bevara dem. Ingen CF- eller annan deploy får ta bort journal-block igen. Smoke-test post-deploy måste inkludera `/cco-customers/:id/journal-feed`, `/journal-timeline`, `/cco-forms/patient/:id/missing`.
+
