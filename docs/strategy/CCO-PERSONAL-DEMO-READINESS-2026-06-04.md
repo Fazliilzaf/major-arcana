@@ -147,5 +147,8 @@ Om något inte är PASS — pinga mig, jag debuggar P0/P1 utan att bygga nytt.
 - Cursors manifest: `docs/strategy/CCO-PERSONAL-DEMO-MANIFEST-2026-06-04.md`
 - Cursors data: `data/reports/cco-personal-demo-manifest.json`
 - Journal-readiness: `docs/strategy/CCO-JOURNALING-READINESS-2026-06-02.md` (GO + regression-memo)
+- **UX-guide för personal (live, printable):** `https://arcana.hairtpclinic.com/journal-pilot-guide.html` — referensblad med identitetskontroll, signering, rättelse-flow, felsökning, eskalering
+- Staff one-pager: `docs/strategy/CCO-STAFF-JOURNAL-PILOT-ONE-PAGER-2026-06-04.md`
+- Fazli morgon-checklist: `docs/strategy/CCO-FAZLI-MORGON-CHECKLIST-2026-06-04.md`
 
 _Ingen patientdata i denna rapport. Server.js orörd._

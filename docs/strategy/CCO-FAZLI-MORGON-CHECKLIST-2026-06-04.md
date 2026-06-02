@@ -17,6 +17,15 @@ Båda måste säga **ALL PASS** / **E2E PASS**. Om en faller:
 
 ---
 
+## ⏰ T-9 min: UX-guide för personal i sido-flik
+
+Öppna `https://arcana.hairtpclinic.com/journal-pilot-guide.html` i en separat flik.
+Personalen ska kunna scanna den under mötet — det är referensbladet med identitetskontroll, signerings-checklist, rättelse-flow, felsökning och eskalering.
+
+Om du skrivit ut den fysiskt: ha den bredvid laptopen.
+
+---
+
 ## ⏰ T-8 min: Browser-uppstart
 
 1. Öppna Chrome → ny vanlig flik (inte incognito)
