@@ -20,6 +20,10 @@ const {
   normalizeMailProgress,
   publishMailboxReferencePublic,
 } = require('./lib/ccoMailReadinessSnapshot');
+const {
+  collectJournalPilotLiveMonitor,
+  publishJournalPilotLiveMonitor,
+} = require('./lib/ccoJournalPilotLiveMonitor');
 
 const REPO = path.join(__dirname, '..');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
@@ -359,6 +363,7 @@ _Prod: ${BASE}_
 | Spår | Status |
 | ---- | ------ |
 | **Journalpilot** | ${journalOk ? '**PASS**' : '**CHECK**'} (mounts ${report.journalMounts} · links ${report.demoLinks} · E2E ${report.e2eJournal}) |
+| **Journalpilot live** | ${report.journalLive?.overall ?? '—'} · personal kan journalföra: **${report.journalLive?.personalCanContinueJournaling ?? '—'}** |
 | **Pilot 1/2/3** | ${report.pilot1} / ${report.pilot2} / ${report.pilot3} |
 | **Mail** | ${report.mail.operational} · remaining **${report.mail.progress.remaining}** |
 | **Drive/historik** | ${report.drive.operational} · review queue **${report.drive.reviewQueueTotal}** |
@@ -379,6 +384,27 @@ _Prod: ${BASE}_
 | Pilotkund 3 | **${report.pilot3}** |
 
 **Efter varje deploy:** \`npm run cco:presentation-gate\`
+
+---
+
+## Journal Pilot Live (day-1 operations)
+
+| | |
+|---|---|
+| **Live monitor** | **${report.journalLive?.overall ?? '—'}** |
+| **Personal kan fortsätta journalföra** | **${report.journalLive?.personalCanContinueJournaling ?? '—'}** |
+| **Journal writes / aktivitet (24h)** | ${report.journalLive?.last24h?.journalEntriesActivity ?? '—'} |
+| **Signerade/låsta (24h)** | ${report.journalLive?.last24h?.signedCount ?? '—'} |
+| **Rättelser (24h)** | ${report.journalLive?.last24h?.correctionsCount ?? '—'} |
+| **Journal errors (24h)** | ${report.journalLive?.last24h?.errorsCount ?? '—'} |
+| **Blocked locked-edit (24h)** | ${report.journalLive?.last24h?.blockedLockedEditAttempts ?? '—'} |
+| **Route health** | ${report.journalLive?.routeHealthPass ?? '—'} · 5xx: ${report.journalLive?.route5xxCount ?? '—'} |
+| **Feed/timeline/forms** | ${report.journalLive?.feedTimelineFormsHealth ?? '—'} |
+| **Senaste lyckade write** | ${report.journalLive?.last24h?.lastSuccessfulJournalWriteAt ?? '—'} |
+| **Senaste misslyckade write** | ${report.journalLive?.last24h?.lastFailedJournalWriteAt ?? '—'} |
+| **Audit events (24h)** | ${report.journalLive?.last24h?.auditEventsCount ?? '—'} |
+
+Export: \`public/cco-journal-pilot-live-monitor.json\` · read-only · ingen journaltext
 
 ---
 
@@ -543,6 +569,23 @@ async function main() {
     pilot2 === 'PASS' &&
     pilot3 === 'PASS';
 
+  let journalLive = null;
+  try {
+    journalLive = await collectJournalPilotLiveMonitor({
+      repo: REPO,
+      base: BASE,
+      journalMounts: mounts.ok ? 'PASS' : 'FAIL',
+    });
+    if (!noWrite) publishJournalPilotLiveMonitor(journalLive, REPO);
+  } catch (err) {
+    journalLive = {
+      overall: 'FAIL',
+      personalCanContinueJournaling: 'NEJ',
+      error: err.message,
+      last24h: {},
+    };
+  }
+
   const opsStatusPath = path.join(REPO, 'public/cco-presentation-ops-status.json');
   const workbenchSnapshotPath = path.join(REPO, 'public/cco-ops-workbench-snapshot.json');
   const mailStatusPath = path.join(REPO, 'data/reports/mail-ambiguous-operational-status.json');
@@ -598,6 +641,7 @@ async function main() {
       personalStartUrl: '/cco-personal-start.html',
       kundkortUrl: '/kunder.html',
     },
+    journalPilotLive: journalLive,
     importReviewQueue: {
       total: historik.reviewQueueTotal,
       status: 'WAITING_MANUAL_REVIEW',
@@ -621,6 +665,8 @@ async function main() {
       docFile: 'docs/strategy/CCO-DAILY-READINESS-2026-06-04.md',
       generatedAt,
       journalPilot: journalPilotOk ? 'PASS' : 'FAIL',
+      journalPilotLive: journalLive?.overall || 'UNKNOWN',
+      personalCanContinueJournaling: journalLive?.personalCanContinueJournaling || 'NEJ',
       mail: mail.operational,
       photoPending: photo.pendingPhotos,
       driveRule: historik.rule,
@@ -658,6 +704,7 @@ async function main() {
     pilot1,
     pilot2,
     pilot3,
+    journalLive,
     mail,
     cf,
     drive,
@@ -669,6 +716,14 @@ async function main() {
   console.log('Demo links:', report.demoLinks);
   console.log('E2E journal:', report.e2eJournal);
   console.log('Pilots:', pilot1, pilot2, pilot3);
+  console.log(
+    'Journal live:',
+    journalLive?.overall,
+    '· personal:',
+    journalLive?.personalCanContinueJournaling,
+    '· 24h errors:',
+    journalLive?.last24h?.errorsCount
+  );
   console.log('Mail UI:', mail.pageStatus, mail.operational);
   console.log(
     'Mail progress:',

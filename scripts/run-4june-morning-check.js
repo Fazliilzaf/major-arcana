@@ -17,6 +17,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execSync } = require('node:child_process');
 
+const {
+  collectJournalPilotLiveMonitor,
+  publishJournalPilotLiveMonitor,
+} = require('./lib/ccoJournalPilotLiveMonitor');
+
 const REPO = path.join(__dirname, '..');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
 const BACKUP_BASE =
@@ -105,6 +110,12 @@ function buildBlockers(payload) {
   if (payload.pilot1 === 'FAIL' || payload.pilot2 === 'FAIL' || payload.pilot3 === 'FAIL') {
     blockers.push('Minst en pilotkund FAIL (feed/timeline/E2E)');
   }
+  if (payload.journalLiveMonitor === 'FAIL') {
+    blockers.push('Journal Pilot Live Monitor FAIL — kontrollera route health / 5xx / errors 24h');
+  }
+  if (payload.personalCanContinueJournaling === 'NEJ') {
+    blockers.push('Personal bör inte journalföra förrän live monitor är grön');
+  }
   const snap = payload.dailyReadinessSnapshot;
   if (snap?.mailRemaining > 0) {
     blockers.push(`Mail ambiguous ~${snap.mailRemaining} kvar (manuellt, ej demo-P0)`);
@@ -125,6 +136,9 @@ function recommendedAction(payload, retryable) {
   if (payload.presentationGate === 'FAIL') {
     if (retryable) return 'WAIT_AND_RETRY';
     return 'P0_FIX_REQUIRED';
+  }
+  if (payload.journalLiveMonitor === 'FAIL' || payload.personalCanContinueJournaling === 'NEJ') {
+    return retryable ? 'WAIT_AND_RETRY' : 'P0_FIX_REQUIRED';
   }
   if (
     payload.demoLinks === 'FAIL' ||
@@ -195,13 +209,40 @@ async function main() {
     pilot2 = jp.pilot2 || pilot2;
     pilot3 = jp.pilot3 || pilot3;
   }
+  let journalLive =
+    loadJson(path.join(REPO, 'public/cco-journal-pilot-live-monitor.json')) ||
+    ops?.journalPilotLive ||
+    null;
+  if (!skipProbes) {
+    try {
+      journalLive = await collectJournalPilotLiveMonitor({
+        repo: REPO,
+        base: BASE,
+        journalMounts,
+      });
+      publishJournalPilotLiveMonitor(journalLive, REPO);
+    } catch (err) {
+      journalLive = {
+        overall: 'FAIL',
+        personalCanContinueJournaling: 'NEJ',
+        last24h: { errorsCount: 1 },
+        error: err.message,
+      };
+    }
+  } else if (journalLive) {
+    pilot1 = journalLive.pilot1 || pilot1;
+    pilot2 = journalLive.pilot2 || pilot2;
+    pilot3 = journalLive.pilot3 || pilot3;
+  }
+
   const presentationGate =
     journalMounts === 'PASS' &&
     demoLinks === 'PASS' &&
     journalE2E === 'PASS' &&
     pilot1 === 'PASS' &&
     pilot2 === 'PASS' &&
-    pilot3 === 'PASS'
+    pilot3 === 'PASS' &&
+    (journalLive?.overall || 'PASS') === 'PASS'
       ? 'PASS'
       : 'FAIL';
 
@@ -220,6 +261,10 @@ async function main() {
     pilot1,
     pilot2,
     pilot3,
+    journalLiveMonitor: journalLive?.overall || 'UNKNOWN',
+    personalCanContinueJournaling: journalLive?.personalCanContinueJournaling || 'NEJ',
+    journalLive24h: journalLive?.last24h || null,
+    routeHealthPass: journalLive?.routeHealthPass || 'UNKNOWN',
     links: {
       ...PRESENTATION_LINKS,
       prodPersonalStart: absUrl(BASE, PRESENTATION_LINKS.personalStart),
@@ -245,6 +290,12 @@ async function main() {
   console.log('Demo links:', payload.demoLinks);
   console.log('Journal E2E:', payload.journalE2E);
   console.log('Pilots:', payload.pilot1, payload.pilot2, payload.pilot3);
+  console.log(
+    'Journal live:',
+    payload.journalLiveMonitor,
+    '· personal:',
+    payload.personalCanContinueJournaling
+  );
   console.log('Recommended:', payload.recommendedAction);
   console.log('');
   console.log('Wrote:', REPORT_PATH);

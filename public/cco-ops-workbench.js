@@ -128,6 +128,47 @@
       </section>`;
   }
 
+  function renderJournalPilotLiveSection(live, manifest) {
+    const j = live || {};
+    const last = j.last24h || {};
+    const routeRows = (j.routeHealth || [])
+      .map((r) => `<li>${escapeHtml(r.name)}: ${escapeHtml(r.status)} ${pill(r.result)}</li>`)
+      .join('');
+    const pilotRows = (j.pilots || manifest?.pilotCustomers || [])
+      .map(
+        (p) =>
+          `<li>${escapeHtml(p.label || p.redactedLabel || `Pilot ${p.slot}`)} — ${escapeHtml(p.overall || '—')} · feed ${escapeHtml(p.feed)} · timeline ${escapeHtml(p.timeline)} · forms ${escapeHtml(p.forms)}</li>`
+      )
+      .join('');
+
+    return `
+      <section class="cow-section cow-section--live" id="journal-live">
+        <div class="cow-section-head">
+          <h2>1 · Journalpilot live</h2>
+          ${pill(j.overall || '—')}
+          ${pill(j.personalCanContinueJournaling || '—')}
+        </div>
+        <p class="cow-muted">Day-1 operations · read-only · ingen journaltext · ${escapeHtml(j.generatedAt || '—')}</p>
+        <div class="cow-metrics">
+          ${metric(last.journalEntriesActivity ?? '—', 'aktivitet 24h')}
+          ${metric(last.signedCount ?? '—', 'signerade 24h')}
+          ${metric(last.correctionsCount ?? '—', 'rättelser 24h')}
+          ${metric(last.errorsCount ?? '—', 'errors 24h')}
+          ${metric(last.blockedLockedEditAttempts ?? '—', 'blocked locked-edit')}
+          ${metric(j.route5xxCount ?? 0, 'route 5xx')}
+        </div>
+        <p class="cow-muted">Senaste lyckade write: ${escapeHtml(last.lastSuccessfulJournalWriteAt || '—')} · senaste fail: ${escapeHtml(last.lastFailedJournalWriteAt || '—')} · audit events: ${escapeHtml(last.auditEventsCount ?? '—')}</p>
+        <ul class="cow-list">${routeRows || '<li>—</li>'}</ul>
+        <ul class="cow-list">${pilotRows || ''}</ul>
+        <div class="cow-actions cow-actions--wrap">
+          ${linkBtn('/cco-personal-start.html', 'Personal-start')}
+          ${linkBtn('/kunder.html', 'Kundkort')}
+          ${linkBtn('/journal-pilot-guide.html', 'Journal guide')}
+          ${linkBtn('/personal-demo.html', 'Presenter mode')}
+        </div>
+      </section>`;
+  }
+
   function renderJournalSection(ops, manifest) {
     const jp = ops?.journalPilot || {};
     const pilots = manifest?.pilotCustomers || [];
@@ -141,7 +182,7 @@
     return `
       <section class="cow-section" id="journalpilot">
         <div class="cow-section-head">
-          <h2>1 · Journalpilot</h2>
+          <h2>1b · Journalpilot (gate)</h2>
           ${pill(jp.overall || '—')}
         </div>
         <div class="cow-metrics">
@@ -351,23 +392,37 @@
     const root = document.getElementById('cow-root');
     if (!root) return;
 
-    const [snapRes, manifestRes, morningRes, mailRefRes, livePhoto, photoStatus, encStatus] =
-      await Promise.all([
-        fetchJson('/cco-ops-workbench-snapshot.json').then((r) =>
-          r.ok ? r : fetchJson('/cco-presentation-ops-status.json')
-        ),
-        fetchJson('/cco-personal-demo-manifest.json'),
-        fetchJson('/cco-4june-morning-check.json'),
-        fetchJson('/mail-ambiguous-mailbox-reference.json'),
-        loadPhotoSummary(),
-        probePage('/photo-review.html'),
-        probePage('/encounter-mapping-review.html'),
-      ]);
+    const [
+      snapRes,
+      manifestRes,
+      morningRes,
+      mailRefRes,
+      journalLiveRes,
+      livePhoto,
+      photoStatus,
+      encStatus,
+    ] = await Promise.all([
+      fetchJson('/cco-ops-workbench-snapshot.json').then((r) =>
+        r.ok ? r : fetchJson('/cco-presentation-ops-status.json')
+      ),
+      fetchJson('/cco-personal-demo-manifest.json'),
+      fetchJson('/cco-4june-morning-check.json'),
+      fetchJson('/mail-ambiguous-mailbox-reference.json'),
+      fetchJson('/cco-journal-pilot-live-monitor.json'),
+      loadPhotoSummary(),
+      probePage('/photo-review.html'),
+      probePage('/encounter-mapping-review.html'),
+    ]);
 
     const ops = snapRes.ok ? snapRes.json : null;
     const manifest = manifestRes.ok ? manifestRes.json : null;
     const morning = morningRes.ok ? morningRes.json : null;
     const mailRef = mailRefRes.ok ? mailRefRes.json : null;
+    const journalLive = journalLiveRes.ok
+      ? journalLiveRes.json
+      : snapRes.ok
+        ? snapRes.json?.journalPilotLive
+        : null;
     const gateFail = morning?.presentationGate === 'FAIL';
 
     if (!ops) {
@@ -396,6 +451,7 @@
       </div>
       <div class="cow-grid">
         ${renderCommandStatus(morning, manifest)}
+        ${renderJournalPilotLiveSection(journalLive, manifest)}
         ${renderJournalSection(ops, manifest)}
         ${renderPhotoSection(ops, livePhoto, photoStatus)}
         ${renderMailSection(ops, mailRef)}

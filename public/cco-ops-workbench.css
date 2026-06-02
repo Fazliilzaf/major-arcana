@@ -215,6 +215,10 @@ span.cow-btn--disabled {
   border-color: var(--cow-accent);
 }
 
+.cow-section--live {
+  border-color: var(--cow-ok);
+}
+
 .cow-alert {
   margin: 0.5rem 0;
   padding: 0.6rem 0.75rem;

@@ -1,20 +1,21 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T21:39:13.704Z_  
+_Senast uppdaterad: 2026-06-02T22:09:00.928Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
 
 ## Executive snapshot (kväll)
 
-| Spår               | Status                                                             |
-| ------------------ | ------------------------------------------------------------------ |
-| **Journalpilot**   | **PASS** (mounts PASS · links PASS · E2E PASS)                     |
-| **Pilot 1/2/3**    | PASS / PASS / PASS                                                 |
-| **Mail**           | PHASE_2_UI_READY · remaining **493**                               |
-| **Drive/historik** | SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO · review queue **1497** |
-| **Photo Review**   | 860 pending · 150 kunder · 0 VISIBLE · write prod **AV**           |
-| **CF**             | INTERN_DEMO_READY                                                  |
+| Spår                  | Status                                                             |
+| --------------------- | ------------------------------------------------------------------ |
+| **Journalpilot**      | **PASS** (mounts PASS · links PASS · E2E PASS)                     |
+| **Journalpilot live** | PASS · personal kan journalföra: **JA**                            |
+| **Pilot 1/2/3**       | PASS / PASS / PASS                                                 |
+| **Mail**              | PHASE_2_UI_READY · remaining **493**                               |
+| **Drive/historik**    | SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO · review queue **1497** |
+| **Photo Review**      | 860 pending · 150 kunder · 0 VISIBLE · write prod **AV**           |
+| **CF**                | INTERN_DEMO_READY                                                  |
 
 ---
 
@@ -30,6 +31,27 @@ _Prod: https://arcana.hairtpclinic.com_
 | Pilotkund 3              | **PASS** |
 
 **Efter varje deploy:** `npm run cco:presentation-gate`
+
+---
+
+## Journal Pilot Live (day-1 operations)
+
+|                                        |               |
+| -------------------------------------- | ------------- |
+| **Live monitor**                       | **PASS**      |
+| **Personal kan fortsätta journalföra** | **JA**        |
+| **Journal writes / aktivitet (24h)**   | 0             |
+| **Signerade/låsta (24h)**              | 0             |
+| **Rättelser (24h)**                    | 0             |
+| **Journal errors (24h)**               | 0             |
+| **Blocked locked-edit (24h)**          | 0             |
+| **Route health**                       | PASS · 5xx: 0 |
+| **Feed/timeline/forms**                | PASS          |
+| **Senaste lyckade write**              | —             |
+| **Senaste misslyckade write**          | —             |
+| **Audit events (24h)**                 | 0             |
+
+Export: `public/cco-journal-pilot-live-monitor.json` · read-only · ingen journaltext
 
 ---
 
@@ -188,3 +210,9 @@ Komplett 4 juni-personalpaket nu **9 länkbara resurser**. Personal kan öva sj�
 Personal Start Section E utökad 6→8 länkar. Command Center utökad 11→13 länkar.
 
 Server.js + journal-routes orörda. Heliga flödet bevarat.
+
+---
+
+## Cycle 10 — Journal Pilot Live Monitor (Cursor)
+
+`npm run cco:journal-pilot-live-monitor` · `public/cco-journal-pilot-live-monitor.json` · Ops Workbench sektion **Journalpilot live** · kvällsrapport visar 24h counts + **personal kan journalföra: JA/NEJ**. Ingen server.js-ändring.

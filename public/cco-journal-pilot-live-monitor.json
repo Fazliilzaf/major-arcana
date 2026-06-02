@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-06-02T22:09:07.849Z",
+  "windowHours": 24,
+  "sinceIso": "2026-06-01T22:09:07.849Z",
+  "base": "https://arcana.hairtpclinic.com",
+  "authAvailable": false,
+  "overall": "PASS",
+  "personalCanContinueJournaling": "JA",
+  "journalMounts": "PASS",
+  "routeHealth": [
+    {
+      "name": "journal-quick-entry",
+      "status": 400,
+      "result": "PASS",
+      "is5xx": false,
+      "is4xx": true
+    },
+    {
+      "name": "journal-quick-sign",
+      "status": 400,
+      "result": "PASS",
+      "is5xx": false,
+      "is4xx": true
+    },
+    {
+      "name": "journal-quick-correction",
+      "status": 400,
+      "result": "PASS",
+      "is5xx": false,
+      "is4xx": true
+    },
+    {
+      "name": "journal-quick-entries",
+      "status": 400,
+      "result": "PASS",
+      "is5xx": false,
+      "is4xx": true
+    },
+    {
+      "name": "journal-quick-stats",
+      "status": 200,
+      "result": "PASS",
+      "is5xx": false,
+      "is4xx": false
+    }
+  ],
+  "routeHealthPass": "PASS",
+  "route5xxCount": 0,
+  "route4xxCount": 4,
+  "feedTimelineFormsHealth": "PASS",
+  "stats": null,
+  "last24h": {
+    "journalEntriesActivity": 0,
+    "draftsCreated": 0,
+    "signedLocked": 0,
+    "corrections": 0,
+    "journalWrites": 0,
+    "signedCount": 0,
+    "correctionsCount": 0,
+    "errorsCount": 0,
+    "blockedLockedEditAttempts": 0,
+    "auditEventsCount": 0,
+    "lastSuccessfulJournalWriteAt": null,
+    "lastFailedJournalWriteAt": null
+  },
+  "pilots": [
+    {
+      "slot": 1,
+      "label": "Pilotkund A · ren journalföringstest",
+      "customerId": "cco-pilot-20260602-a",
+      "overall": "PASS",
+      "feed": 200,
+      "timeline": 200,
+      "forms": 200,
+      "feedItems": 139,
+      "timelineEvents": 416,
+      "entries24h": null
+    },
+    {
+      "slot": 2,
+      "label": "Pilotkund B · journal-feed + timeline",
+      "customerId": "cco-pilot-20260602-b",
+      "overall": "PASS",
+      "feed": 200,
+      "timeline": 200,
+      "forms": 200,
+      "feedItems": 135,
+      "timelineEvents": 404,
+      "entries24h": null
+    },
+    {
+      "slot": 3,
+      "label": "Pilotkund C · signering + rättelse verifierad",
+      "customerId": "cco-readiness-smoke-1780402011",
+      "overall": "PASS",
+      "feed": 200,
+      "timeline": 200,
+      "forms": 200,
+      "feedItems": 136,
+      "timelineEvents": 408,
+      "entries24h": null
+    }
+  ],
+  "pilot1": "PASS",
+  "pilot2": "PASS",
+  "pilot3": "PASS",
+  "note": "Read-only monitor — inga journaltexter · inga patientdata i export"
+}
