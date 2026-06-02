@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-06-02T20:42:45.810Z",
+  "base": "https://arcana.hairtpclinic.com",
+  "ambiguousTotal": 493,
+  "pending": 493,
+  "approved": 0,
+  "excluded": 0,
+  "unresolved": 0,
+  "remaining": 493,
+  "mailboxCounts": {
+    "contact@hairtpclinic.com": 0,
+    "egzona@hairtpclinic.com": 0,
+    "fazli@hairtpclinic.com": 0,
+    "marknad@hairtpclinic.com": 0
+  },
+  "readyForWork": false,
+  "adjustedCoveragePercent": 93,
+  "source": "doc_fallback",
+  "operational": "PHASE_2_UI_READY",
+  "mailboxPending": {
+    "contact@hairtpclinic.com": 0,
+    "egzona@hairtpclinic.com": 0,
+    "fazli@hairtpclinic.com": 0,
+    "marknad@hairtpclinic.com": 0
+  },
+  "rules": [
+    "Ingen auto-write",
+    "Ingen fuzzy merge",
+    "Ingen customer merge",
+    "Ingen Graph-fetch",
+    "Ingen ny mailimport",
+    "Minst 3 deterministiska fält för approve"
+  ]
+}

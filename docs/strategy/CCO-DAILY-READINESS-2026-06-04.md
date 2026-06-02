@@ -1,6 +1,6 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T20:25:10.787Z_  
+_Senast uppdaterad: 2026-06-02T20:42:45.810Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
@@ -143,19 +143,6 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 ## Stopp-regler (P0)
 
 Stoppa vid: 404/5xx i demo-flow · trasig pilotkund · journal fail · Drive-länk · patientdata i GitHub · journaltext till extern AI · customerId mismatch · ny kund vid osäker match.
-
----
-
----
-
-## Cycle 6 — Runbook & checklist (2026-06-02)
-
-| Artefakt                                         | Status                                    |
-| ------------------------------------------------ | ----------------------------------------- |
-| `CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md`        | Klar                                      |
-| `CCO-STAFF-DAY1-JOURNAL-CHECKLIST-2026-06-04.md` | Klar                                      |
-| Personal-start → journal-pilot-guide             | Länk tillagd · gate PASS                  |
-| CF auth-test (owner token)                       | **PENDING** — blockerar inte journal-demo |
 
 ---
 

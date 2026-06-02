@@ -524,8 +524,18 @@ async function main() {
   const drive = driveReadiness(historik);
   const photo = await photoReviewStatusLive();
 
+  const journalPilotOk =
+    mounts.ok &&
+    links.ok &&
+    readiness.ok &&
+    pilot1 === 'PASS' &&
+    pilot2 === 'PASS' &&
+    pilot3 === 'PASS';
+
   const opsStatusPath = path.join(REPO, 'public/cco-presentation-ops-status.json');
+  const workbenchSnapshotPath = path.join(REPO, 'public/cco-ops-workbench-snapshot.json');
   const mailStatusPath = path.join(REPO, 'data/reports/mail-ambiguous-operational-status.json');
+  const publicMailStatusPath = path.join(REPO, 'public/mail-ambiguous-operational-status.json');
   const opsPayload = {
     generatedAt,
     photoReview: {
@@ -559,11 +569,55 @@ async function main() {
       financeStatus: cf.financeStatus,
       reviewStatus: cf.reviewStatus,
       reportsStatus: cf.reportsStatus,
+      fortnox: 'BLOCKED_INTEGRATION',
+      authTest: 'PENDING_OWNER_TOKEN',
     },
+    journalPilot: {
+      overall: journalPilotOk ? 'PASS' : 'FAIL',
+      journalMounts: mounts.ok ? 'PASS' : 'FAIL',
+      demoLinks: links.ok ? 'PASS' : 'FAIL',
+      e2eJournal: readiness.ok ? 'PASS' : 'FAIL',
+      pilot1,
+      pilot2,
+      pilot3,
+      presentationGate: journalPilotOk ? 'PASS' : 'FAIL',
+      checkedAt: generatedAt,
+      personalStartUrl: '/cco-personal-start.html',
+      kundkortUrl: '/kunder.html',
+    },
+    importReviewQueue: {
+      total: historik.reviewQueueTotal,
+      status: 'WAITING_MANUAL_REVIEW',
+      rule: 'Ingen auto-import · ingen ny kund vid osäker match',
+      sources: [
+        { label: 'halso@', queueCount: historik.halso.reviewQueue },
+        { label: 'GetAccept', queueCount: historik.getAccept.reviewQueue },
+        {
+          label: 'Drive/kundmatch (totalt)',
+          queueCount: historik.reviewQueueTotal,
+          note: 'osäkra kundmatchningar',
+        },
+      ],
+    },
+    encounterMetadata: {
+      status: 'REVIEW_PAUSED_PRE_PRESENTATION',
+      note: 'Encounter/medium mapping — separat spår, ej journal-P0',
+      operatorToolPath: '/encounter-mapping-review.html',
+    },
+    dailyReadiness: {
+      docFile: 'docs/strategy/CCO-DAILY-READINESS-2026-06-04.md',
+      generatedAt,
+      journalPilot: journalPilotOk ? 'PASS' : 'FAIL',
+      mail: mail.operational,
+      photoPending: photo.pendingPhotos,
+      driveRule: historik.rule,
+    },
+    opsWorkbenchUrl: '/cco-ops-workbench.html',
   };
   if (!noWrite) {
     fs.mkdirSync(path.dirname(mailStatusPath), { recursive: true });
     fs.writeFileSync(opsStatusPath, JSON.stringify(opsPayload, null, 2));
+    fs.writeFileSync(workbenchSnapshotPath, JSON.stringify(opsPayload, null, 2));
     fs.writeFileSync(
       mailStatusPath,
       JSON.stringify(
@@ -579,6 +633,7 @@ async function main() {
         2
       )
     );
+    fs.writeFileSync(publicMailStatusPath, fs.readFileSync(mailStatusPath, 'utf8'));
   }
 
   const report = {
