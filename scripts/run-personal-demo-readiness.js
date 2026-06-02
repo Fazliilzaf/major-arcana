@@ -15,6 +15,7 @@ const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.
 const ROLE = process.env.CCO_PERSONAL_DEMO_ROLE || 'owner';
 const TENANT = 'hairtpclinic';
 const MANIFEST_PATH = path.join(REPO, 'data/reports/cco-personal-demo-manifest.json');
+const PUBLIC_MANIFEST_PATH = path.join(REPO, 'public/cco-personal-demo-manifest.json');
 
 function request(method, urlPath, body) {
   return new Promise((resolve, reject) => {
@@ -55,7 +56,7 @@ function request(method, urlPath, body) {
   });
 }
 
-function verdict(status, expected) {
+function _verdict(status, expected) {
   if (expected.includes(status)) return 'PASS';
   if (status >= 500) return 'FAIL';
   if (status === 404) return 'FAIL';
@@ -180,6 +181,8 @@ async function main() {
   const routes = [
     { name: 'kunder.html', path: '/kunder.html', expected: [200] },
     { name: 'personal-start', path: '/cco-personal-start.html', expected: [200] },
+    { name: 'personal-demo-alt', path: '/personal-demo.html', expected: [200] },
+    { name: 'public-manifest', path: '/cco-personal-demo-manifest.json', expected: [200] },
     {
       name: 'journal-feed',
       path: `/api/v1/cco-customers/${pilotId}/journal-feed?tenantId=${TENANT}`,
@@ -245,10 +248,17 @@ async function main() {
     );
   }
 
-  console.log('\n--- E2E journal ---');
-  const e2e = await runE2E(pilotId);
-  for (const s of e2e.steps) console.log(`${s.pass ? 'PASS' : 'FAIL'}  ${s.step} (${s.status})`);
-  console.log('E2E:', e2e.result);
+  console.log('\n--- E2E journal (all pilots) ---');
+  const e2eByPilot = [];
+  for (const p of manifest.pilotCustomers || []) {
+    const e2e = await runE2E(p.customerId);
+    e2eByPilot.push(e2e);
+    console.log('\n' + (p.redactedLabel || p.customerId) + ': ' + e2e.result);
+    for (const s of e2e.steps)
+      console.log(`  ${s.pass ? 'PASS' : 'FAIL'}  ${s.step} (${s.status})`);
+  }
+  const e2eAllPass = e2eByPilot.every((e) => e.result === 'PASS');
+  console.log('\nE2E all pilots:', e2eAllPass ? 'PASS' : 'FAIL');
 
   manifest.generatedAt = new Date().toISOString();
   manifest.version = '1.1.0';
@@ -259,7 +269,8 @@ async function main() {
     status,
     result,
   }));
-  manifest.e2eJournal = e2e;
+  manifest.e2eJournal = e2eByPilot[0] || null;
+  manifest.e2eJournalByPilot = e2eByPilot;
   manifest.pilotCustomers = manifest.pilotCustomers.map((p) => {
     const pr = pilotResults.find((x) => x.customerId === p.customerId);
     return pr
@@ -268,15 +279,19 @@ async function main() {
   });
 
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+  fs.writeFileSync(PUBLIC_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
 
   const reportPath = path.join(REPO, 'data/reports/cco-personal-demo-readiness-run.json');
   fs.writeFileSync(
     reportPath,
-    JSON.stringify({ generatedAt: manifest.generatedAt, routeResults, pilotResults, e2e }, null, 2)
+    JSON.stringify(
+      { generatedAt: manifest.generatedAt, routeResults, pilotResults, e2eByPilot },
+      null,
+      2
+    )
   );
 
-  const failed =
-    routeResults.filter((r) => r.result === 'FAIL').length + (e2e.result === 'FAIL' ? 1 : 0);
+  const failed = routeResults.filter((r) => r.result === 'FAIL').length + (e2eAllPass ? 0 : 1);
   console.log('\nReport:', reportPath);
   process.exit(failed === 0 ? 0 : 1);
 }

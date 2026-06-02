@@ -28,6 +28,7 @@ const HTML_CANDIDATES = [
   path.join(REPO, 'public/personal-demo.html'),
 ];
 const MANIFEST_PATH = path.join(REPO, 'data/reports/cco-personal-demo-manifest.json');
+const PUBLIC_MANIFEST_PATH = path.join(REPO, 'public/cco-personal-demo-manifest.json');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
 const ROLE = process.env.CCO_PERSONAL_DEMO_ROLE || 'owner';
 
@@ -38,7 +39,20 @@ const BLOCKED_HREF = [
   /example\.com/i,
   /localhost/i,
 ];
-const REDLIST_PATH = [/cco-demo\.html/i, /\/showcase/i, /\/automation/i, /\/watch/i, /\/analytics\.html/i];
+const REDLIST_PATH = [
+  /cco-demo\.html/i,
+  /\/showcase/i,
+  /\/automation/i,
+  /\/watch/i,
+  /\/analytics\.html/i,
+];
+const MOCK_HTML = [
+  /847\s*kunder/i,
+  /12\s*no-show/i,
+  /AI\s*coach/i,
+  /automation\s*hub/i,
+  /Manifest ej publicerat/i,
+];
 
 function fetchUrl(url, opts = {}) {
   return new Promise((resolve, reject) => {
@@ -66,11 +80,8 @@ function fetchUrl(url, opts = {}) {
   });
 }
 
-function pickHtmlPath() {
-  for (const p of HTML_CANDIDATES) {
-    if (fs.existsSync(p)) return p;
-  }
-  throw new Error('Ingen personal-demo HTML hittades');
+function pickHtmlPaths() {
+  return HTML_CANDIDATES.filter((p) => fs.existsSync(p));
 }
 
 function extractHrefs(html) {
@@ -83,7 +94,8 @@ function extractHrefs(html) {
 
 function extractDisabledWithHref(html) {
   const out = [];
-  const re = /<a[^>]*(?:class="[^"]*card--disabled[^"]*"|data-paused=["']true["']|disabled)[^>]*>/gi;
+  const re =
+    /<a[^>]*(?:class="[^"]*card--disabled[^"]*"|data-paused=["']true["']|disabled)[^>]*>/gi;
   let m;
   while ((m = re.exec(html))) {
     const hrefMatch = /href=["']([^"']+)["']/.exec(m[0]);
@@ -98,23 +110,16 @@ function resolveUrl(href) {
   return BASE.replace(/\/$/, '') + '/' + href;
 }
 
-async function main() {
-  const htmlPath = pickHtmlPath();
+async function verifyHtmlPage(htmlPath) {
   const html = fs.readFileSync(htmlPath, 'utf8');
-  const manifest = fs.existsSync(MANIFEST_PATH)
-    ? JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'))
-    : { pilotCustomers: [] };
   const hrefs = extractHrefs(html);
   let failed = 0;
   const results = [];
 
-  console.log('=== verify-personal-demo-links ===');
-  console.log('Base:', BASE);
-  console.log('HTML:', htmlPath);
+  console.log('\n=== ' + path.basename(htmlPath) + ' ===');
   console.log('Links:', hrefs.length);
-  console.log('');
 
-  for (const pat of BLOCKED_HREF) {
+  for (const pat of [...BLOCKED_HREF, ...MOCK_HTML]) {
     if (pat.test(html)) {
       console.log('FAIL  blocked pattern in HTML:', pat);
       failed += 1;
@@ -133,8 +138,13 @@ async function main() {
     }
 
     let status = 0;
+    const probeHref = href.split('#')[0];
+    if (!probeHref) {
+      results.push({ href, status: 0, ok: true, issues: [] });
+      continue;
+    }
     try {
-      const r = await fetchUrl(resolveUrl(href.split('#')[0]));
+      const r = await fetchUrl(resolveUrl(probeHref));
       status = r.status;
     } catch (err) {
       issues.push(err.message);
@@ -142,17 +152,61 @@ async function main() {
 
     if (status === 404) issues.push('404');
     if (status >= 500) issues.push('5xx');
-    if (status !== 200 && status !== 404 && status < 500) {
-      /* pages only — auth not expected on static html */
-    }
     if (status !== 200) issues.push('expected 200, got ' + status);
 
     const ok = issues.length === 0;
     if (!ok) failed += 1;
     results.push({ href, status, ok, issues });
     console.log(
-      (ok ? 'PASS' : 'FAIL') + '  ' + status + '  ' + href + (issues.length ? ' → ' + issues.join('; ') : '')
+      (ok ? 'PASS' : 'FAIL') +
+        '  ' +
+        status +
+        '  ' +
+        href +
+        (issues.length ? ' → ' + issues.join('; ') : '')
     );
+  }
+
+  return { htmlPath, results, failed };
+}
+
+async function main() {
+  const htmlPaths = pickHtmlPaths();
+  if (htmlPaths.length === 0) throw new Error('Ingen personal-demo HTML hittades');
+  const manifest = fs.existsSync(MANIFEST_PATH)
+    ? JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'))
+    : { pilotCustomers: [] };
+  let failed = 0;
+  const pageReports = [];
+
+  console.log('=== verify-personal-demo-links ===');
+  console.log('Base:', BASE);
+  console.log('Pages:', htmlPaths.map((p) => path.basename(p)).join(', '));
+
+  for (const htmlPath of htmlPaths) {
+    const report = await verifyHtmlPage(htmlPath, manifest);
+    pageReports.push(report);
+    failed += report.failed;
+  }
+
+  console.log('\n--- public manifest ---');
+  try {
+    const manifestUrl = resolveUrl('/cco-personal-demo-manifest.json');
+    const r = await fetchUrl(manifestUrl);
+    const ok = r.status === 200;
+    if (!ok) failed += 1;
+    console.log((ok ? 'PASS' : 'FAIL') + '  ' + r.status + '  /cco-personal-demo-manifest.json');
+    if (ok && fs.existsSync(PUBLIC_MANIFEST_PATH)) {
+      const local = JSON.parse(fs.readFileSync(PUBLIC_MANIFEST_PATH, 'utf8'));
+      const pilots = local.pilotCustomers?.length || 0;
+      if (pilots < 3) {
+        failed += 1;
+        console.log('FAIL  manifest has fewer than 3 pilotCustomers');
+      }
+    }
+  } catch (err) {
+    failed += 1;
+    console.log('FAIL  manifest  ' + err.message);
   }
 
   console.log('\n--- pilot customers ---');
@@ -195,7 +249,11 @@ async function main() {
   fs.mkdirSync(path.dirname(reportPath), { recursive: true });
   fs.writeFileSync(
     reportPath,
-    JSON.stringify({ generatedAt: new Date().toISOString(), base: BASE, htmlPath, results, failed }, null, 2)
+    JSON.stringify(
+      { generatedAt: new Date().toISOString(), base: BASE, pageReports, failed },
+      null,
+      2
+    )
   );
   console.log('\nReport:', reportPath);
   console.log(failed === 0 ? '\n✓ ALL PASS' : '\n✗ FAILURES: ' + failed);
