@@ -118,3 +118,18 @@ Allt P0 (kundkort, journal CRUD, signera, rättelse, timeline, forms, audit) fun
 **P0/P1 i demo-flöde:** Inga efter Cycle 6 gate.
 
 _Ingen patientdata i denna rapport._
+
+### Cycle-12 statusrefresh 2026-06-03T23:50Z
+
+| Spår | Status |
+|---|---|
+| Journalpilot | **PASS** ✅ |
+| Personalstart | **PASS** ✅ |
+| Pilot 1/2/3 | **PASS · PASS · PASS** |
+| Pre-Signering Check (NY) | **LIVE** (5-stegs UI-skydd) |
+| Review-Material Warning (NY) | **LIVE** (visualiserad varning) |
+| CF API | mounted + RBAC enforced (auth-test pending) |
+| Mail Phase 2 | operativ (mailbox 248/175/67/3) |
+| Photo Review | **pending** (~885 assets) |
+| Drive/historik | **imported + review-badges + warning-sidan** |
+| Aisia | **paused** |

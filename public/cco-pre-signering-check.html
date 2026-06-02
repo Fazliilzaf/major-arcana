@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Pre-Signering Check · Identity Verification · Hair TP Clinic</title>
+    <style>
+      :root {
+        --bg: #ede4d5;
+        --paper: #faf5e9;
+        --paper-soft: #f5edda;
+        --paper-deep: #f0e6d0;
+        --ink: #2d2418;
+        --ink-soft: #51422f;
+        --line: rgba(132, 117, 107, 0.32);
+        --accent: #b08b3f;
+        --accent-deep: #8a6a26;
+        --green: #5f7c3c;
+        --green-deep: #3f5826;
+        --green-bg: #e3eed4;
+        --orange: #c48132;
+        --orange-bg: #f8e1bf;
+        --red: #a04432;
+        --red-deep: #7a3324;
+        --red-bg: #f4d4cd;
+        --blue: #4a6788;
+        --blue-deep: #2f4a6a;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background:
+          radial-gradient(900px 500px at 50% -10%, #f7eed7 0%, transparent 60%),
+          var(--bg);
+        color: var(--ink);
+        font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, system-ui, sans-serif;
+        min-height: 100vh;
+      }
+      .container { max-width: 720px; margin: 0 auto; padding: 22px 24px 60px; }
+
+      /* TOPBAR */
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 18px;
+        background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
+        border: 1px solid var(--line); border-radius: 14px;
+        box-shadow: 0 4px 12px rgba(80,60,30,0.1), inset 0 1px 0 rgba(255,255,255,0.55);
+        margin-bottom: 18px;
+      }
+      .brand { display: flex; align-items: center; gap: 12px; }
+      .brand-mark {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: linear-gradient(135deg, #b08b3f, #6d4e1c);
+        color: #fff; font-weight: 700; font-size: 13px;
+        display: grid; place-items: center;
+      }
+      .brand-title { font-size: 15px; font-weight: 700; }
+      .brand-sub { font-size: 11.5px; color: var(--ink-soft); }
+      .back-btn {
+        padding: 8px 14px; background: var(--paper); color: var(--ink);
+        border: 1px solid var(--line); border-radius: 8px;
+        font-weight: 600; font-size: 12.5px; text-decoration: none;
+      }
+      .back-btn:hover { background: #fff8e8; border-color: var(--accent); }
+
+      /* HERO */
+      .hero {
+        margin-bottom: 18px; padding: 22px 26px;
+        background: var(--paper); border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(80,60,30,0.1), inset 0 1px 0 rgba(255,255,255,0.55);
+        position: relative; overflow: hidden;
+      }
+      .hero::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+      }
+      .hero-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-deep); font-weight: 700; }
+      .hero h1 { margin: 4px 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.2; }
+      .hero p { margin: 0; font-size: 13.5px; color: var(--ink); }
+
+      /* PROGRESS */
+      .progress-shell {
+        display: flex; align-items: center; gap: 12px;
+        padding: 11px 14px; background: var(--paper-soft);
+        border: 1px solid var(--line); border-radius: 10px; margin-bottom: 16px;
+      }
+      .progress-bar {
+        flex: 1; height: 10px; background: rgba(132,117,107,0.18);
+        border-radius: 999px; overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+        transition: width 0.3s; width: 0%;
+      }
+      .progress-text { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); min-width: 80px; text-align: right; }
+
+      /* CHECK ITEM */
+      .check {
+        background: var(--paper); border: 1px solid var(--line);
+        border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+        display: grid; grid-template-columns: 40px 1fr; gap: 12px;
+        align-items: start;
+        box-shadow: 0 2px 6px rgba(80,60,30,0.06), inset 0 1px 0 rgba(255,255,255,0.55);
+        transition: all 0.15s;
+        cursor: pointer;
+      }
+      .check:hover { border-color: var(--accent); background: #fff8e8; }
+      .check.done {
+        background: var(--green-bg); border-color: rgba(95,124,60,0.4);
+      }
+      .check.done .check-box { background: var(--green); border-color: var(--green-deep); color: #fff; }
+
+      .check-box {
+        width: 32px; height: 32px; border: 2px solid var(--ink-soft);
+        border-radius: 8px; background: #fff;
+        display: grid; place-items: center;
+        font-size: 18px; color: transparent;
+        transition: all 0.15s;
+      }
+      .check-title {
+        font-size: 14.5px; font-weight: 700; color: var(--ink);
+        margin: 0 0 4px;
+      }
+      .check-detail {
+        font-size: 12.5px; color: var(--ink-soft); line-height: 1.5;
+        margin: 0;
+      }
+      .check-detail strong { color: var(--ink); font-weight: 700; }
+
+      /* RESULT */
+      .result {
+        margin-top: 18px; padding: 20px 24px; border-radius: 14px;
+        text-align: center; transition: all 0.3s;
+        background: var(--paper-soft); border: 1.5px solid var(--line);
+      }
+      .result.go {
+        background: linear-gradient(180deg, var(--green-bg) 0%, #d4e0bd 100%);
+        border-color: var(--green);
+        box-shadow: 0 4px 14px rgba(95,124,60,0.2);
+      }
+      .result-icon { font-size: 36px; line-height: 1; margin-bottom: 6px; }
+      .result-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+      .result.go .result-title { color: var(--green-deep); }
+      .result-sub { font-size: 13px; color: var(--ink-soft); }
+      .result.go .result-sub { color: var(--green-deep); }
+      .reset-btn {
+        margin-top: 12px; padding: 9px 18px;
+        background: var(--paper); border: 1px solid var(--line);
+        border-radius: 999px; font-size: 12.5px; font-weight: 700;
+        color: var(--ink); cursor: pointer;
+      }
+      .reset-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent-deep); }
+
+      /* STOP BANNER (always visible) */
+      .stop-banner {
+        margin-top: 18px; padding: 14px 18px;
+        background: linear-gradient(180deg, var(--red-bg) 0%, #e9a89c 100%);
+        border: 1.5px solid var(--red); border-radius: 12px;
+        font-size: 13px; color: var(--red-deep); line-height: 1.5;
+      }
+      .stop-banner strong { color: var(--red-deep); font-weight: 800; }
+
+      .footer {
+        margin-top: 18px; padding: 12px 16px;
+        background: var(--paper-soft); border: 1px solid var(--line);
+        border-radius: 10px; text-align: center;
+        font-size: 11.5px; color: var(--ink-soft);
+      }
+      .footer a { color: var(--accent-deep); text-decoration: none; font-weight: 700; }
+
+      @media (max-width: 640px) {
+        .container { padding: 14px; }
+        .topbar { flex-direction: column; gap: 10px; align-items: stretch; }
+        .hero h1 { font-size: 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-mark">CCO</div>
+          <div>
+            <div class="brand-title">Pre-Signering Check</div>
+            <div class="brand-sub">Identity verification innan signering · sido-flik</div>
+          </div>
+        </div>
+        <a class="back-btn" href="/cco-personal-start.html">← Personalstart</a>
+      </div>
+
+      <div class="hero">
+        <div class="hero-kicker">5-stegs säkerhetscheck</div>
+        <h1>Bekräfta innan du klickar Signera</h1>
+        <p>Öppna den här sidan i en sido-flik bredvid journalvyn. Bocka av alla 5 punkter mentalt innan du klickar "Signera". Det tar 15 sekunder och förhindrar fel-signeringar.</p>
+      </div>
+
+      <div class="progress-shell">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">0 / 5</div>
+      </div>
+
+      <!-- CHECK 1 — RÄTT KUND -->
+      <div class="check" data-check="1">
+        <div class="check-box">✓</div>
+        <div>
+          <p class="check-title">1 · Rätt kund öppen</p>
+          <p class="check-detail">Jag har <strong>kundkortets header öppen</strong> och kan se patientens namn, telefon och Cliento-id. Det är samma patient som sitter framför mig.</p>
+        </div>
+      </div>
+
+      <!-- CHECK 2 — NAMN -->
+      <div class="check" data-check="2">
+        <div class="check-box">✓</div>
+        <div>
+          <p class="check-title">2 · Namn kontrollerat</p>
+          <p class="check-detail">Patienten har sagt sitt <strong>fulla namn</strong> (jag har inte sagt det åt dem). Namnet matchar kortets header — bokstav för bokstav.</p>
+        </div>
+      </div>
+
+      <!-- CHECK 3 — TELEFON / CLIENTO-ID -->
+      <div class="check" data-check="3">
+        <div class="check-box">✓</div>
+        <div>
+          <p class="check-title">3 · Telefon / Cliento-id kontrollerat</p>
+          <p class="check-detail">Jag har verifierat <strong>sista 4 siffrorna i telefonnumret</strong> mot kortet. Cliento-id matchar. Inget verkar fel.</p>
+        </div>
+      </div>
+
+      <!-- CHECK 4 — JOURNAL FÖR RÄTT BESÖK -->
+      <div class="check" data-check="4">
+        <div class="check-box">✓</div>
+        <div>
+          <p class="check-title">4 · Journaltext gäller rätt besök</p>
+          <p class="check-detail">Anteckningen handlar om <strong>dagens besök</strong> — inte en gammal eller framtida konsultation. Datum + observation + plan är aktuella.</p>
+        </div>
+      </div>
+
+      <!-- CHECK 5 — REVIEW-MATERIAL -->
+      <div class="check" data-check="5">
+        <div class="check-box">✓</div>
+        <div>
+          <p class="check-title">5 · Inget "Behöver granskning"-material använt som klinisk sanning</p>
+          <p class="check-detail">Om jag refererat till importerat material (badges: <code>needs review</code> / Drive / halso@) — det är som <strong>referens</strong>, inte som klinisk sanning. Jag har inte byggt diagnos eller dosering på oferifierat material.</p>
+        </div>
+      </div>
+
+      <!-- RESULT -->
+      <div class="result" id="result">
+        <div class="result-icon" id="resultIcon">⏳</div>
+        <div class="result-title" id="resultTitle">Bocka av 5 punkter</div>
+        <div class="result-sub" id="resultSub">Klicka på varje ruta när du har verifierat. När alla 5 är gröna är det säkert att signera.</div>
+        <button class="reset-btn" id="resetBtn" style="display:none;" onclick="resetCheck()">↻ Återställ för nästa patient</button>
+      </div>
+
+      <!-- STOP BANNER (always visible) -->
+      <div class="stop-banner">
+        <strong>🛑 STOPPA om något känns fel</strong> — säg <em>"en sekund så dubbelkollar jag"</em> till patienten. Eskalera till admin/ops. Skapa <strong>inte</strong> ny kund vid osäkerhet. Det är aldrig fel att fråga.
+      </div>
+
+      <div class="footer">
+        Hair TP Clinic · Pre-Signering Check · 4 juni 2026 — komplett guide: <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> · FAQ: <a href="/cco-journalpilot-faq.html">/cco-journalpilot-faq.html</a>
+      </div>
+    </div>
+
+    <script>
+      const fill = document.getElementById('progressFill');
+      const txt = document.getElementById('progressText');
+      const result = document.getElementById('result');
+      const resultIcon = document.getElementById('resultIcon');
+      const resultTitle = document.getElementById('resultTitle');
+      const resultSub = document.getElementById('resultSub');
+      const resetBtn = document.getElementById('resetBtn');
+      const total = document.querySelectorAll('.check').length;
+
+      function update() {
+        const done = document.querySelectorAll('.check.done').length;
+        const pct = Math.round(done / total * 100);
+        fill.style.width = pct + '%';
+        txt.textContent = done + ' / ' + total;
+        if (done === total) {
+          result.classList.add('go');
+          resultIcon.textContent = '✅';
+          resultTitle.textContent = 'Säkert att signera';
+          resultSub.textContent = 'Alla 5 punkter bekräftade. Gå tillbaka till journalvyn och klicka "Signera". Återställ sidan för nästa patient.';
+          resetBtn.style.display = 'inline-block';
+        } else {
+          result.classList.remove('go');
+          resultIcon.textContent = '⏳';
+          resultTitle.textContent = 'Bocka av ' + (total - done) + ' till';
+          resultSub.textContent = 'Klicka på varje ruta när du har verifierat. När alla 5 är gröna är det säkert att signera.';
+          resetBtn.style.display = 'none';
+        }
+      }
+
+      document.querySelectorAll('.check').forEach(c => {
+        c.addEventListener('click', () => {
+          c.classList.toggle('done');
+          update();
+        });
+      });
+
+      function resetCheck() {
+        document.querySelectorAll('.check').forEach(c => c.classList.remove('done'));
+        update();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      window.resetCheck = resetCheck;
+      update();
+    </script>
+  </body>
+</html>

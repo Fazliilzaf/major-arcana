@@ -202,3 +202,17 @@ Två nya sidor:
 Personal Start Section E utökad 8→10 länkar. Command Center utökad 13→15 länkar.
 
 Server.js + journal-routes orörda. Heliga flödet bevarat.
+
+---
+
+## Cycle-12 (2026-06-03T23:50Z · Claude) — praktisk journal-säkerhet
+
+Två nya UI-skyddssidor:
+- `/cco-pre-signering-check.html` — 5-stegs identity verification som personal kör i sido-flik INNAN de klickar Signera (interaktiv progress, grön bekräftelse, reset-knapp för nästa patient)
+- `/cco-review-material-warning.html` — Visualiserad varning som förklarar badges (pending/needs review/imported), användning-tabell, 4 scenarios
+
+**Front-end-only** per owner-regel. Ingen ny backend-logik, ingen modifiering av journalfeed/timeline/forms-routes.
+
+Personal Start Section E: 10→12 länkar. Command Center: 15→17.
+
+Server.js + journal-routes orörda. Heliga flödet bevarat.

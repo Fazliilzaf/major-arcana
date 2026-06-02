@@ -100,3 +100,15 @@ Alla 3: feed=200 · timeline=200 · forms=200.
 - Aisia / mailimport / Drive-risk / server.js — **orörda**
 
 _Ingen patientdata i denna rapport._
+
+### Cycle-12 statusrefresh 2026-06-03T23:50Z
+
+- ✅ Journalpilot: **PASS** (E2E + preflight)
+- ✅ Personalstart: **PASS** (200 live · nu med 12 stöd-länkar)
+- ✅ Pre-Signering Check **LIVE** (5-stegs identity verification i sido-flik)
+- ✅ Review-Material Warning **LIVE** (visualiserad varning för pending/needs review/imported)
+- 🟢 CF API: **mounted + RBAC enforced** (auth-test pending)
+- 🟡 Mail Phase 2: **operativ** (mailbox-counts korrekt, ej dagligt verktyg dag 1)
+- 🟡 Photo Review: **pending** — ~885 assets needs review, warning-sidan förklarar tydligt
+- 🟢 Drive/historik: **imported + review-status badges** + warning-sidan
+- ⏸ Aisia: **paused**

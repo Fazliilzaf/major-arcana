@@ -431,3 +431,37 @@ Alla 11 personal-sidor granskade för förbjudna fraser:
 | Photo Review | **PENDING** |
 | Drive/historik | **IMPORTED** + review-badges |
 | Aisia | **PAUSED** |
+
+---
+
+## Cycle-12 status 2026-06-03T23:50Z (Claude)
+
+### Nya leveranser cycle-12 — praktisk journal-säkerhet
+
+- ✅ **`/cco-pre-signering-check.html`** — Identity Verification UX som personal kör i sido-flik innan signering. 5 interaktiva check-boxes (rätt kund · namn · telefon/Cliento-id · journal för rätt besök · ingen review-material som klinisk sanning). Stor grön "Säkert att signera" när alla 5 är bockade. Återställ-knapp för nästa patient. Alltid synlig STOP-banner.
+- ✅ **`/cco-review-material-warning.html`** — Visualiserad varning för review-material status. Förklarar badges (pending/needs review/imported), använd vs använd-inte-tabell, 4 vanliga scenarios. **Front-end-only, ingen ny backend-logik.**
+- ✅ **Personal Start Section E** utökad — 10 → **12 stöd-länkar** (Pre-Signering med grön tint, Review-Material med röd tint för visuell signal)
+- ✅ **Command Center** utökad — 15 → **17 snabblänkar**
+
+### Journal Day-1 helper bevarad i journal-pilot-guide
+Sektion 0 "Vad gör jag nu?" (från cycle 9) täcker redan: verifiera identitet · skriv journal · signera · rättelse · när stoppa · vem eskalera. Ingen duplikering byggd — owner-direktiv "hellre förbättra befintliga".
+
+### Status-matris cycle-12
+
+| Spår | Status |
+|---|---|
+| Journalpilot E2E | **PASS** |
+| Personalstart | **PASS** |
+| Pilot 1/2/3 | **PASS · PASS · PASS** |
+| Pre-Signering Check | **LIVE (NY)** |
+| Review-Material Warning | **LIVE (NY)** |
+| CF API mounted + RBAC | **YES** (auth-test pending) |
+| Mail Phase 2 | operativ (mailbox-counts 248/175/67/3) |
+| Photo Review | **PENDING** (~885 assets, warning-sidan förklarar) |
+| Drive/historik | **IMPORTED** + review-badges + warning-sidan |
+| Aisia | **PAUSED** |
+
+### Komplett 4 juni-personalpaket — **13 länkbara resurser**
+1-11. (samma som cycle 11)
+12. `/cco-pre-signering-check.html` · **Pre-Signering Check (NY)**
+13. `/cco-review-material-warning.html` · **Review-Material Warning (NY)**
