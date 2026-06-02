@@ -307,3 +307,37 @@ _Refresh utförd av Claude · ingen patientdata · ingen kod-ändring i denna re
 | `/cco-presenter-mode.html` | sido-skärm/telefon (14-stegs assistent + timer) |
 | `/journal-pilot-print-pack.html` | utskriven (på arbetsstationen) |
 | `/journal-pilot-guide.html` | sido-flik (snabb-referens under mötet) |
+
+---
+
+## Cycle-9 status 2026-06-02T22:00Z (Claude)
+
+### Statusmatris
+
+| Spår | Status |
+|---|---|
+| Journalpilot E2E | **PASS** ✅ |
+| Personalstart (REDESIGNAD från grunden) | **PASS** ✅ |
+| Pilot 1/2/3 (A/B/C) | **PASS · PASS · PASS** ✅ |
+| **Presenter Mode** live | **PASS** ✅ |
+| **Print Pack** live | **PASS** ✅ |
+| **Journal Pilot Guide** live (med "Vad gör jag nu?") | **PASS** ✅ |
+| **Morning Checklist (HTML)** live | **PASS** ✅ NY |
+| **Staff Day-1 Checklist (HTML)** live | **PASS** ✅ NY |
+| **Command Center** live | **PASS** ✅ |
+| **Ops Workbench** live | **PASS** ✅ |
+| CF API mounted + RBAC enforced | **YES** ✅ |
+| CF auth-test | **PENDING** (owner-token saknas) |
+| Mail Phase 2 | operativ, ej dagligt verktyg |
+| Photo Review | **PENDING** (~885 assets needs review) |
+| Drive/historik | **IMPORTED** med review-status badges |
+| Aisia | **PAUSED** bakom feature flag |
+
+### Nya leveranser cycle-9
+
+- ✅ **REDESIGN av `/cco-personal-start.html`** — helt ny från grunden. Parchment-palett, opaka kort, synliga borders, skarp text. Owner-feedback "suddigt" och "den suger" → renoverad.
+- ✅ **`/cco-staff-day1-checklist.html`** — HTML-version av 10-stegs personal-checklist (klickbar från personal-start + command center)
+- ✅ **`/cco-morning-checklist.html`** — HTML-version av Fazli T-10→T-0 morgon-routine
+- ✅ **"Vad gör jag nu?"-panel** i `/journal-pilot-guide.html` — ny sektion 0 med 6 färgkodade scenarios
+- ✅ **Personal Start Section E** utökad — 6 stöd-länkar istället för 4
+- ✅ **Command Center** utökad — 11 snabblänkar istället för 9

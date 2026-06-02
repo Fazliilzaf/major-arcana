@@ -157,3 +157,20 @@ Ny sida live: **`/cco-4june-command-center.html`** — Fazli's enkla kontrollsid
 `/cco-personal-start.html` har nu 4 diskreta footer-länkar (Command Center · Presenter Mode · Print Pack · Personalguide).
 
 Gate PASS. E2E PASS. Server.js + journal-routes orörda.
+
+---
+
+## Cycle-9 (2026-06-02T22:00Z · Claude)
+
+**Stor uppdatering:** Owner-feedback "suddigt och deformerat" → helt ny `/cco-personal-start.html` från grunden (parchment, opak, skarp). Pink-paletten ersatt med konsekvent design som matchar resten av 4 juni-uppsättningen.
+
+**Vattentäta personalpaketet — 7 länkbara resurser:**
+1. `/cco-personal-start.html` (huvudfönster, REDESIGNAD)
+2. `/cco-4june-command-center.html` (live-status)
+3. `/cco-presenter-mode.html` (14-stegs flow)
+4. `/journal-pilot-print-pack.html` (A4-print)
+5. `/journal-pilot-guide.html` (online + NY "Vad gör jag nu?"-panel)
+6. `/cco-morning-checklist.html` (Fazli T-10→T-0, NY)
+7. `/cco-staff-day1-checklist.html` (personal 10-stegs, NY)
+
+Gate PASS. E2E PASS. Server.js + journal-routes orörda.

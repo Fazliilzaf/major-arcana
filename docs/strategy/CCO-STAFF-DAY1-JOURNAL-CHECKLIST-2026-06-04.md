@@ -119,3 +119,13 @@ Snabb-länkar uppdaterade:
 | Personalguide (online) | `https://arcana.hairtpclinic.com/journal-pilot-guide.html` |
 | **Print pack (skriv ut!)** | `https://arcana.hairtpclinic.com/journal-pilot-print-pack.html` |
 | Backup | `https://major-arcana-frankfurt.onrender.com/cco-personal-start.html` |
+
+---
+
+## Cycle-9 tillägg (2026-06-02T22:00Z)
+
+Denna checklist finns nu också som **klickbar HTML-version** på `/cco-staff-day1-checklist.html` — länkbar från personal-start (Section E) och Command Center.
+
+Använd:
+- **HTML-versionen** på arbetsstationen — kan refreshas, klickbara länkar
+- **Markdown-versionen** här i `docs/strategy/` för print/export

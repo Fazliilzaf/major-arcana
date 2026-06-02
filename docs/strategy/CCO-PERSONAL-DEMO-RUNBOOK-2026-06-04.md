@@ -186,3 +186,29 @@ Båda länkade diskret från `/cco-personal-start.html` footer (mellan baseline-
 3. Om något är gult (WAIT) eller rött (P0) → läs failover-rutan på sidan
 4. Om allt grönt → starta Presenter Mode och kör igenom 14 stegen
 
+
+---
+
+## Cycle-9 tillägg (Claude · 2026-06-02T22:00Z) — vattentäta personalpaketet
+
+Komplett personalpaket nu länkbart från Personal Start + Command Center:
+
+| URL | Roll |
+|---|---|
+| `/cco-personal-start.html` | Huvudfönster (REDESIGNAD — parchment, opak, skarp) |
+| `/cco-4june-command-center.html` | Live-status + alla snabblänkar |
+| `/cco-presenter-mode.html` | 14-stegs flow + 15-min timer |
+| `/journal-pilot-print-pack.html` | A4-pack utskrift |
+| `/journal-pilot-guide.html` | Online-guide MED ny "Vad gör jag nu?"-panel (sektion 0) |
+| `/cco-morning-checklist.html` | **NY** — Fazli T-10→T-0 routine (HTML, länkbar) |
+| `/cco-staff-day1-checklist.html` | **NY** — 10-stegs personal-checklist (HTML, länkbar) |
+
+### "Vad gör jag nu?"-panel i personalguide
+
+Ny sektion 0 överst i `/journal-pilot-guide.html` — 6 färgkodade beslutsscenarios:
+- ✅ Kunden är säker → skriv journal
+- ⛔ Identitet osäker → STOPPA → eskalera
+- 🔵 Historik saknas → skriv ändå
+- ⚠️ Review-material → INTE klinisk sanning
+- 📸 Bild behövs → ta NY bild i CCO
+- 🔴 Systemet hänger → refresh → backup → Fazli

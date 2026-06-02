@@ -134,6 +134,43 @@
   Verifiera identitet före varje signering. Skapa rättelse som ny post.
 </p>
 
+<!-- ───────────────────── VAD GÖR JAG NU? ───────────────────── -->
+<h2>0 · Vad gör jag nu? <span style="text-transform:none;font-weight:500;color:#84756b">— beslutsstöd i sekunder</span></h2>
+
+<div class="card" data-cc="success" style="margin-bottom:18px">
+  <h3>Snabb-beslut · 6 scenarios</h3>
+  <p>Hitta din situation i listan — agera direkt enligt rätt rad.</p>
+  <div style="display:grid; gap:10px; margin-top:12px;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; padding:12px 14px; background:rgba(220,245,230,0.45); border-left:3px solid #2d6347; border-radius:8px;">
+      <div><strong>Om kunden är säker</strong><br><span style="color:#84756b; font-size:13px;">identitet bekräftad: namn + telefon + Cliento-id</span></div>
+      <div style="color:#2d6347; font-weight:600;">→ Öppna kundkort → skriv journal → signera</div>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; padding:12px 14px; background:rgba(245,215,210,0.45); border-left:3px solid #8a3328; border-radius:8px;">
+      <div><strong>Om identitet är osäker</strong><br><span style="color:#84756b; font-size:13px;">något av de tre stämmer inte</span></div>
+      <div style="color:#8a3328; font-weight:600;">→ STOPPA. Säg "en sekund så dubbelkollar jag" → eskalera admin/ops</div>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; padding:12px 14px; background:rgba(232,240,252,0.45); border-left:3px solid #2f4a6a; border-radius:8px;">
+      <div><strong>Om historik saknas</strong><br><span style="color:#84756b; font-size:13px;">inga tidigare anteckningar i kundkortet</span></div>
+      <div style="color:#2f4a6a; font-weight:600;">→ Skriv ändå ny journal. Tomt = ny patient i CCO.</div>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; padding:12px 14px; background:rgba(252,233,200,0.55); border-left:3px solid #8a5a18; border-radius:8px;">
+      <div><strong>Om material är "Behöver granskning"</strong><br><span style="color:#84756b; font-size:13px;">badge "needs review" på post/dokument</span></div>
+      <div style="color:#8a5a18; font-weight:600;">→ Använd INTE som klinisk sanning. Endast referens — fråga patienten.</div>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; padding:12px 14px; background:rgba(252,233,200,0.55); border-left:3px solid #8a5a18; border-radius:8px;">
+      <div><strong>Om bild behövs</strong><br><span style="color:#84756b; font-size:13px;">före/efter, scalp, behandlingsbild</span></div>
+      <div style="color:#8a5a18; font-weight:600;">→ Ta NY bild i CCO. Migrerade bilder väntar Photo Review.</div>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; padding:12px 14px; background:rgba(245,215,210,0.45); border-left:3px solid #8a3328; border-radius:8px;">
+      <div><strong>Om systemet hänger</strong><br><span style="color:#84756b; font-size:13px;">spinner 10+ sek, 502, layout-fel</span></div>
+      <div style="color:#8a3328; font-weight:600;">→ Refresh → backup-URL → om kvarstår, säg till Fazli direkt</div>
+    </div>
+  </div>
+  <p style="margin-top:14px; padding:10px 14px; background:rgba(255,255,255,0.6); border-radius:8px; font-style:italic; color:#51422f;">
+    Tumregel: <strong>tveksam? eskalera.</strong> Bättre fråga än gissa. Inget straff för att stoppa upp ett ögonblick.
+  </p>
+</div>
+
 <!-- ───────────────────── IDENTITETSKONTROLL ───────────────────── -->
 <h2>1 · Identitetskontroll <span style="text-transform:none;font-weight:500;color:#84756b">— innan du öppnar och innan du signerar</span></h2>
 
