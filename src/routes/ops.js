@@ -41,6 +41,11 @@ const {
 } = require('../ops/ccoGraphMessageIdRepairApply');
 const { loadRepairRegistry } = require('../ops/ccoGraphMessageIdRepairRegistry');
 const {
+  buildParserEmptyFallbackPlan,
+  applyParserEmptyFallbackBatch,
+} = require('../ops/ccoParserEmptyFallback');
+const { createCcoConversationStateStore } = require('../ops/ccoConversationStateStore');
+const {
   buildCcoInboxEnrichmentBackfillPlan,
   summarizeWorklistSignals,
 } = require('../ops/ccoInboxEnrichmentBackfillPlan');
@@ -1329,6 +1334,178 @@ function createOpsRouter({
         console.error('[ops/cco/enrichment/gap-recovery/phase2/targeted-enrich]', error);
         return res.status(500).json({
           error: error?.message || 'Kunde inte köra targeted enrichment.',
+        });
+      }
+    }
+  );
+
+  router.get(
+    '/ops/cco/enrichment/gap-recovery/parser-empty/plan',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      const tenantId = normalizeText(req.query?.tenantId) || req.auth.tenantId;
+      const mailboxIds = resolveCcoHistoryMailboxIds(config);
+      const canaryOnly = parseBoolean(req.query?.canaryOnly, false);
+      const limit = Math.max(
+        0,
+        Math.min(500, Number.parseInt(String(req.query?.limit ?? '0'), 10) || 0)
+      );
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'stores saknas för parser-empty plan.' });
+      }
+      try {
+        for (const mailboxId of mailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+          } catch {
+            /* optional */
+          }
+        }
+        let conversationStateStore = null;
+        if (config.ccoConversationStateStorePath) {
+          conversationStateStore = await createCcoConversationStateStore({
+            filePath: config.ccoConversationStateStorePath,
+          });
+        }
+        const plan = await buildParserEmptyFallbackPlan({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          ccoMailIngestionStore,
+          conversationStateStore,
+          stateRoot: config.stateRoot,
+          limit: limit > 0 ? limit : null,
+          canaryOnly,
+        });
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.enrichment.gap_recovery.parser_empty.plan',
+          outcome: 'success',
+          targetType: 'ops',
+          targetId: 'cco_parser_empty_fallback',
+          metadata: {
+            parserEmptyTotal: plan.parserEmptyTotal,
+            policyCounts: plan.policyCounts,
+            canarySafeCount: plan.canarySafeCount,
+          },
+        });
+        return res.json({ ok: true, ...plan, allRows: undefined });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/parser-empty/plan]', error);
+        return res.status(500).json({
+          error: error?.message || 'Kunde inte bygga parser-empty plan.',
+        });
+      }
+    }
+  );
+
+  router.post(
+    '/ops/cco/enrichment/gap-recovery/parser-empty/apply',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) => {
+      const tenantId = normalizeText(req.body?.tenantId) || req.auth.tenantId;
+      const go = req.body?.go === true;
+      const dryRun = req.body?.dryRun !== false && !go;
+      const canaryOnly = parseBoolean(req.body?.canaryOnly, false);
+      const canaryLimit = Math.max(
+        1,
+        Math.min(500, Number.parseInt(String(req.body?.canaryLimit ?? '25'), 10) || 25)
+      );
+      const mailboxIds = resolveCcoHistoryMailboxIds(config);
+      if (!ccoMailboxTruthStore || !capabilityAnalysisStore) {
+        return res.status(503).json({ error: 'stores saknas för parser-empty apply.' });
+      }
+      try {
+        if (!dryRun && go) {
+          const label = `pre-parser-empty-fallback-${new Date().toISOString().slice(0, 10)}`;
+          const dir = path.join(config.backupDir || path.join(config.stateRoot, 'backups'), label);
+          await fs.mkdir(dir, { recursive: true });
+          try {
+            await fs.copyFile(
+              config.capabilityAnalysisStorePath,
+              path.join(dir, path.basename(config.capabilityAnalysisStorePath))
+            );
+          } catch {
+            /* optional */
+          }
+        }
+        for (const mailboxId of mailboxIds) {
+          try {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(mailboxId);
+          } catch {
+            /* optional */
+          }
+        }
+        let conversationStateStore = null;
+        if (config.ccoConversationStateStorePath) {
+          conversationStateStore = await createCcoConversationStateStore({
+            filePath: config.ccoConversationStateStorePath,
+          });
+        }
+        const plan = await buildParserEmptyFallbackPlan({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          ccoMailIngestionStore,
+          conversationStateStore,
+          stateRoot: config.stateRoot,
+          limit: canaryLimit,
+          canaryOnly,
+        });
+        const applyResult = await applyParserEmptyFallbackBatch({
+          tenantId,
+          mailboxIds,
+          capabilityAnalysisStore,
+          ccoMailboxTruthStore,
+          ccoCustomerStore,
+          ccoMailIngestionStore,
+          conversationStateStore,
+          stateRoot: config.stateRoot,
+          planRows: plan.rows,
+          actorUserId: req.auth.userId,
+          dryRun,
+        });
+        clearWorklistConsumerResponseCache();
+        await authStore.addAuditEvent({
+          tenantId: req.auth.tenantId,
+          actorUserId: req.auth.userId,
+          action: 'ops.cco.enrichment.gap_recovery.parser_empty.apply',
+          outcome: applyResult.ok ? 'success' : 'error',
+          targetType: 'ops',
+          targetId: 'cco_parser_empty_fallback',
+          metadata: {
+            dryRun,
+            canaryLimit,
+            canaryOnly,
+            processedCount: applyResult.processedCount,
+            fallbackEnrichedCount: applyResult.fallbackEnrichedCount,
+            excludedCount: applyResult.excludedCount,
+            unresolvedCount: applyResult.unresolvedCount,
+            runId: applyResult.runId,
+            coverageBefore: applyResult.coverageBefore?.adjustedCoveragePercent ?? null,
+            coverageAfter: applyResult.coverageAfter?.adjustedCoveragePercent ?? null,
+          },
+        });
+        return res.json({
+          ok: true,
+          dryRun,
+          canaryLimit,
+          canaryOnly,
+          policyCounts: plan.policyCounts,
+          parserEmptyTotal: plan.parserEmptyTotal,
+          ...applyResult,
+        });
+      } catch (error) {
+        console.error('[ops/cco/enrichment/gap-recovery/parser-empty/apply]', error);
+        return res.status(500).json({
+          error: error?.message || 'Kunde inte applicera parser-empty fallback.',
         });
       }
     }
