@@ -84,7 +84,18 @@ Alla 3: feed=200 · timeline=200 · forms=200.
 ## Slutomdöme
 
 **Journalpilot 4 juni:** 🟢 GO
-**CF backend live:** 🟡 Behöver fix efter 4 juni
+**CF backend live:** 🟢 Mountad + RBAC enforced (auth-test pending)
 **Övriga spår:** Status enligt tabell ovan
+
+### Cycle-6 statusrefresh 2026-06-02T20:00Z
+
+- ✅ Journalpilot: **PASS** (E2E + preflight)
+- ✅ Personalstart: **PASS** (200 live)
+- ✅ Pilot 1/2/3: alla **PASS**
+- 🟢 CF API: **mounted + RBAC enforced** (auth-test pending — owner-token saknas)
+- 🟡 Mail Phase 2: **operativ, ej dagligt** verktyg dag 1
+- 🟡 Photo Review: **pending** — write AV, ~885 assets needs review
+- 🟢 Drive/historik: **imported + review-status badges** synliga
+- ⏸ Aisia: **paused** bakom feature flag
 
 _Ingen patientdata i denna rapport._

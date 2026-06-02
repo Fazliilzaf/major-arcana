@@ -96,4 +96,17 @@ Båda måste vara ALL PASS för presentationen. Om något inte är PASS → eska
 
 Allt P0 (kundkort, journal CRUD, signera, rättelse, timeline, forms, audit) fungerar. CF-tracket har en känd backend-blocker som inte påverkar presentationen.
 
+### Cycle-6 statusrefresh 2026-06-02T20:00Z
+
+| Spår | Status |
+|---|---|
+| Journalpilot | **PASS** ✅ |
+| Personalstart | **PASS** ✅ |
+| Pilot 1/2/3 | **PASS** (feed=200, timeline=200, forms=200) ✅ |
+| CF API | **mounted + RBAC enforced** (auth-test pending — token saknas) |
+| Mail Phase 2 | operativ, **inte dagligt verktyg** dag 1 |
+| Photo Review | **pending** (~885 assets, write AV) |
+| Drive/historik | **imported + review-badges** |
+| Aisia | **paused** bakom feature flag |
+
 _Ingen patientdata i denna rapport._

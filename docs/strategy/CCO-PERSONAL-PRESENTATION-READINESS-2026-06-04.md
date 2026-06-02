@@ -203,6 +203,30 @@ P1 löst. Bakgrund: server.js-IIFE (rad 668-3745) kraschade på en serie missing
 
 **Status:** CF API **mounted + RBAC enforced**. Funktionell auth-verifiering återupptas när inloggad owner/finance/revisor testar via `/finance.html` UI. Ingen mer CF-verifiering före 4 juni per owner-direktiv.
 
+---
+
+## Cycle-6 status 2026-06-02T20:00Z (Claude)
+
+| Komponent | Status |
+|---|---|
+| Journalpilot (E2E) | **PASS** ✅ |
+| Personalstart `/cco-personal-start.html` | **PASS** ✅ |
+| Pilotkund 1 (A) feed/timeline/forms | **PASS** ✅ |
+| Pilotkund 2 (B) feed/timeline/forms | **PASS** ✅ |
+| Pilotkund 3 (C) feed/timeline/forms | **PASS** ✅ |
+| CF API mounted, RBAC enforced | **YES** (auth-test pending — owner-token saknas) |
+| Personalguide `/journal-pilot-guide.html` | **PASS** ✅ (länkad från cco-personal-start) |
+| Mail Phase 2 operativ | **READY** men inte dagligt verktyg |
+| Photo Review | **PENDING** (~885 assets needs review) |
+| Drive/historik | **IMPORTED** med review-status badges |
+| Aisia | **PAUSED** bakom feature flag |
+
+### Nya leveranser cycle-6
+
+- ✅ `CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md` — komplett runbook (5-min + 15-min versions, fallbacks, Q&A)
+- ✅ `CCO-STAFF-DAY1-JOURNAL-CHECKLIST-2026-06-04.md` — 10-stegs checklist för personal
+- ✅ `cco-personal-start.html` — länk till `/journal-pilot-guide.html` tillagd i hero-CTA-rad
+
 ### Frys-status fram till 4 juni
 
 - ❌ Ingen ny journalmodul · ingen Aisia · ingen Photo Review-kod · ingen ny mailimport · ingen ny Drive-import
