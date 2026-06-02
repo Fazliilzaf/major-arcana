@@ -194,6 +194,15 @@ P1 löst. Bakgrund: server.js-IIFE (rad 668-3745) kraschade på en serie missing
 
 **Server.js orörd.** Allt löst via nya stub-filer.
 
+### CF funktionell auth-test 2026-06-02T16:50Z
+
+| Test | Resultat |
+|---|---|
+| Anonym probe alla `/api/v1/cco-cf/*` | **403** (RBAC blockerar) ✅ |
+| Auth probe med owner-token | **EJ KÖRD** — owner utloggad, ingen test-token tillgänglig |
+
+**Status:** CF API **mounted + RBAC enforced**. Funktionell auth-verifiering återupptas när inloggad owner/finance/revisor testar via `/finance.html` UI. Ingen mer CF-verifiering före 4 juni per owner-direktiv.
+
 ### Frys-status fram till 4 juni
 
 - ❌ Ingen ny journalmodul · ingen Aisia · ingen Photo Review-kod · ingen ny mailimport · ingen ny Drive-import
