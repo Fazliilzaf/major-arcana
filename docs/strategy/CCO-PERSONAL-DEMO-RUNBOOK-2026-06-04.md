@@ -153,3 +153,21 @@ Båda delsteg måste vara **PASS**. Vid FAIL → stoppa, P0/P1-fix, kör om.
 ---
 
 _Ingen patientdata i detta dokument._
+
+---
+
+## Cycle-7 tillägg (Claude · 2026-06-02T20:50Z)
+
+Två nya stöd-sidor LIVE för att gör mötet ännu tryggare:
+
+| URL | Syfte |
+|---|---|
+| `/cco-presenter-mode.html` | **🎬 Presenter Mode** — Fazli's personliga assistent. Öppna i sido-skärm eller telefon. 14-stegs flow med _Säg detta · Klicka detta · Om fail · Backup-URL_ per steg. Stor 15-min countdown-timer. 4 fas-markörer (intro 0–2 / kundkort 2–7 / journal 7–12 / avslut 12–15). Interaktiv progress-checklist + quick-bar med snabblänkar till alla pilotkunder. |
+| `/journal-pilot-print-pack.html` | **🖨 Print Pack** — Printvänlig A4-pack för personal. Skriv ut dagen före och ha på arbetsstationen. 9 sektioner: dag-1-regler · identitetskontroll · signerings-checklist · rättelse-flöde (ASCII) · review-tabell · eskalering · 30-min-tidslinje · 7 patientfrågor + svar · "aldrig dag 1"-lista. Ingen patientdata. |
+
+Båda länkade diskret från `/cco-personal-start.html` footer (mellan baseline-text och footer-meta), samt från quick-bar i Presenter Mode.
+
+**Rekommenderat upplägg dagen före mötet:**
+- Skriv ut `/journal-pilot-print-pack.html` × 1 per personalstation
+- Öppna `/cco-presenter-mode.html` på sido-skärm/telefon
+- Klicka Start på timern när du börjar prata

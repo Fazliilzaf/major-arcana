@@ -104,3 +104,18 @@ Stoppa och eskalera om:
 ---
 
 _Senast synkad med journalpilot smoke PASS 2026-06-02 · Ingen patientdata._
+
+---
+
+## Cycle-7 tillägg (2026-06-02T20:50Z)
+
+**Print pack** är nu live: `/journal-pilot-print-pack.html` — skriv ut dagen före och ha på arbetsstationen. Den innehåller alla regler, checklists, eskaleringsväg, patientfrågor och 30-min-plan i printvänligt A4-format utan internet-behov.
+
+Snabb-länkar uppdaterade:
+
+| Stöd | URL |
+|---|---|
+| Personalstart | `https://arcana.hairtpclinic.com/cco-personal-start.html` |
+| Personalguide (online) | `https://arcana.hairtpclinic.com/journal-pilot-guide.html` |
+| **Print pack (skriv ut!)** | `https://arcana.hairtpclinic.com/journal-pilot-print-pack.html` |
+| Backup | `https://major-arcana-frankfurt.onrender.com/cco-personal-start.html` |
