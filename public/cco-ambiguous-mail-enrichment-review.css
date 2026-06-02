@@ -426,3 +426,84 @@ ol.amr-steps {
   border: 1px solid var(--amr-ok);
   background: rgba(62, 207, 142, 0.1);
 }
+
+.amr-next-best {
+  margin: 0.75rem 0;
+}
+
+.amr-next-best-box {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--amr-accent);
+  background: rgba(77, 163, 255, 0.08);
+}
+
+.amr-next-best-warn {
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--amr-warn);
+  background: rgba(245, 166, 35, 0.1);
+}
+
+.amr-session-summary {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--amr-border);
+  background: var(--amr-panel);
+  font-size: 0.9rem;
+}
+
+.amr-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px dashed var(--amr-border);
+}
+
+.amr-field-matrix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0.5rem;
+}
+
+.amr-field-chip {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid var(--amr-border);
+}
+
+.amr-field-chip.is-match {
+  border-color: var(--amr-ok);
+  color: var(--amr-ok);
+}
+
+.amr-field-chip.is-miss {
+  opacity: 0.55;
+}
+
+.amr-candidate-blocker {
+  margin: 0.35rem 0;
+  font-size: 0.88rem;
+}
+
+.amr-queue-item.has-approvable {
+  border-left: 3px solid var(--amr-ok);
+}
+
+.amr-queue-item.is-filtered-out {
+  display: none;
+}
+
+.amr-filter-approvable {
+  display: block;
+  font-size: 0.85rem;
+  margin: 0.35rem 0 0.75rem;
+  color: var(--amr-muted);
+}

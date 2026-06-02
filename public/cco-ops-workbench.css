@@ -193,3 +193,13 @@ span.cow-btn--disabled {
   color: var(--cow-warn);
   font-size: 0.88rem;
 }
+
+.cow-callout {
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 166, 35, 0.45);
+  background: rgba(245, 166, 35, 0.1);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}

@@ -12,12 +12,22 @@
   let selectedCandidateId = null;
   let busy = false;
   const sessionAudit = [];
+  let showApprovableOnly = false;
   const QUEUE_PAGE = 100;
   const MAILBOX_PRESETS = [
     { id: 'contact@hairtpclinic.com', label: 'contact@' },
     { id: 'egzona@hairtpclinic.com', label: 'egzona@' },
     { id: 'fazli@hairtpclinic.com', label: 'fazli@' },
     { id: 'marknad@hairtpclinic.com', label: 'marknad@' },
+  ];
+  const DEFAULT_DETERMINISTIC_FIELDS = [
+    'internetMessageId',
+    'subjectHash',
+    'receivedAt',
+    'mailbox',
+    'conversationId',
+    'fromHash',
+    'toHash',
   ];
 
   function escapeHtml(value) {
@@ -69,6 +79,40 @@
     return first?.candidateId || null;
   }
 
+  function itemHasApprovableCandidate(item) {
+    return (item?.candidates || []).some((c) => c.approvable && !c.rejected);
+  }
+
+  function findNextBestIndex(fromIndex = 0) {
+    for (let i = fromIndex; i < queue.length; i += 1) {
+      if (itemHasApprovableCandidate(queue[i])) return i;
+    }
+    for (let i = 0; i < fromIndex; i += 1) {
+      if (itemHasApprovableCandidate(queue[i])) return i;
+    }
+    return queue.length ? 0 : -1;
+  }
+
+  function candidateBlockerText(candidate, minFields = 3) {
+    if (candidate.rejected) return 'Avvisad — välj annan kandidat.';
+    if (candidate.approvable) return 'Godkänd för approve: minst 3 deterministiska fält uppfyllda.';
+    const have = candidate.matchCount ?? 0;
+    const missing = Math.max(0, minFields - have);
+    return `Kan inte godkännas: ${have}/${minFields} deterministiska fält (saknar ${missing}).`;
+  }
+
+  function renderDeterministicFieldMatrix(candidate, item) {
+    const allFields = item.deterministicMatchFields || DEFAULT_DETERMINISTIC_FIELDS;
+    const matched = new Set(candidate.matchedFields || []);
+    const chips = allFields
+      .map((field) => {
+        const on = matched.has(field);
+        return `<span class="amr-field-chip${on ? ' is-match' : ' is-miss'}">${on ? '✓' : '·'} ${escapeHtml(field)}</span>`;
+      })
+      .join('');
+    return `<div class="amr-field-matrix">${chips}</div>`;
+  }
+
   function navigateQueue(delta) {
     if (!queue.length) return;
     currentIndex = Math.max(0, Math.min(queue.length - 1, currentIndex + delta));
@@ -100,9 +144,11 @@
           <span class="amr-muted">För kvälls-readiness — ingen auto-write</span>
         </div>
         <div data-progress class="amr-progress"></div>
+        <div data-next-best class="amr-next-best"></div>
         <div data-mailbox-grid class="amr-mailbox-grid"></div>
         <div data-mailbox-chips class="amr-mailbox-chips"></div>
         <div data-stats class="amr-stats"></div>
+        <div data-session-summary class="amr-session-summary" hidden></div>
         <div data-session-audit class="amr-session-audit" hidden></div>
         <details class="amr-help">
           <summary>Vad betyder detta? (operatör)</summary>
@@ -133,6 +179,9 @@
                 <option value="">Alla mailboxar</option>
               </select>
             </div>
+            <label class="amr-filter-approvable">
+              <input type="checkbox" data-filter-approvable /> Visa endast rader med ≥3 fält
+            </label>
             <ul class="amr-queue-list" data-queue-list></ul>
             <button type="button" class="amr-btn" data-load-more hidden>Ladda fler</button>
           </aside>
@@ -150,6 +199,11 @@
     root.querySelector('[data-mailbox-filter]').addEventListener('change', () => {
       loadQueue({ reset: true }).catch(showError);
     });
+    root.querySelector('[data-filter-approvable]')?.addEventListener('change', (ev) => {
+      showApprovableOnly = ev.target.checked === true;
+      renderQueueList();
+      renderQueueMeta();
+    });
     root.querySelector('[data-load-more]')?.addEventListener('click', () => {
       loadQueue({ append: true }).catch(showError);
     });
@@ -165,8 +219,58 @@
       } else if (ev.key === 'ArrowUp' || ev.key === 'k') {
         ev.preventDefault();
         navigateQueue(-1);
+      } else if (ev.key === 'n') {
+        ev.preventDefault();
+        jumpToNextBest();
+      } else if (ev.key === 'u') {
+        ev.preventDefault();
+        decide('leave_unresolved').catch(showError);
+      } else if (ev.key === 'x') {
+        ev.preventDefault();
+        decide('exclude_non_actionable').catch(showError);
+      } else if (ev.key === 'r') {
+        ev.preventDefault();
+        decide('reject_candidate').catch(showError);
       }
     });
+  }
+
+  function jumpToNextBest() {
+    const idx = findNextBestIndex(currentIndex + 1);
+    if (idx < 0) return;
+    currentIndex = idx;
+    selectedCandidateId = pickDefaultCandidate(currentItem());
+    renderQueueList();
+    renderQueuePosition();
+    renderDetail();
+    renderNextBestPanel();
+  }
+
+  function renderNextBestPanel() {
+    const el = document.querySelector('[data-next-best]');
+    if (!el) return;
+    const idx = findNextBestIndex(0);
+    const approvableCount = queue.filter((item) => itemHasApprovableCandidate(item)).length;
+    if (!queue.length) {
+      el.innerHTML = '<p class="amr-muted">Ingen kö laddad.</p>';
+      return;
+    }
+    if (idx < 0) {
+      el.innerHTML =
+        '<p class="amr-next-best-warn"><strong>Nästa bästa:</strong> ingen rad med approvable kandidat i vyn — granska manuellt eller exclude/unresolved.</p>';
+      return;
+    }
+    const item = queue[idx];
+    const cand = (item.candidates || []).find((c) => c.approvable && !c.rejected);
+    const fields = (cand?.matchedFields || []).join(', ') || '—';
+    el.innerHTML = `
+      <div class="amr-next-best-box">
+        <strong>Nästa bästa rad att granska</strong>
+        <p class="amr-muted">${approvableCount} av ${queue.length} i vyn har minst en approvable kandidat · rad ${idx + 1}: ${escapeHtml(item.mailboxId || '')}</p>
+        <p class="amr-muted">Matchande fält: ${escapeHtml(fields)}</p>
+        <button type="button" class="amr-btn amr-btn-primary" data-jump-next>Gå till nästa bästa [N]</button>
+      </div>`;
+    el.querySelector('[data-jump-next]')?.addEventListener('click', jumpToNextBest);
   }
 
   function reportFields() {
@@ -297,8 +401,31 @@
     });
   }
 
+  function renderSessionSummary() {
+    const el = document.querySelector('[data-session-summary]');
+    if (!el) return;
+    if (!sessionAudit.length) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    const counts = { approve: 0, unresolved: 0, exclude: 0, reject: 0 };
+    sessionAudit.forEach((row) => {
+      if (row.action === 'approve_single_match') counts.approve += 1;
+      else if (row.action === 'leave_unresolved') counts.unresolved += 1;
+      else if (row.action === 'exclude_non_actionable') counts.exclude += 1;
+      else if (row.action === 'reject_candidate') counts.reject += 1;
+    });
+    const last = sessionAudit[0];
+    el.innerHTML = `
+      <h3>Session summary</h3>
+      <p>approve <strong>${counts.approve}</strong> · unresolved <strong>${counts.unresolved}</strong> · exclude <strong>${counts.exclude}</strong> · reject <strong>${counts.reject}</strong></p>
+      <p class="amr-muted">Senaste beslut: <strong>${escapeHtml(last.action)}</strong> · ${escapeHtml(last.conversationKey)} · fält: ${escapeHtml(last.matchedFields || '—')}</p>`;
+  }
+
   function renderSessionAudit() {
     const el = document.querySelector('[data-session-audit]');
+    renderSessionSummary();
     if (!el) return;
     if (!sessionAudit.length) {
       el.hidden = true;
@@ -311,7 +438,7 @@
         ${sessionAudit
           .map(
             (row) =>
-              `<li><strong>${escapeHtml(row.action)}</strong> · ${escapeHtml(row.conversationKey)} · ${escapeHtml(row.reviewer || '—')} · ${escapeHtml(row.at)}</li>`
+              `<li><strong>${escapeHtml(row.action)}</strong> · ${escapeHtml(row.conversationKey)} · ${escapeHtml(row.matchedFields || '—')} · ${escapeHtml(row.reviewer || '—')}</li>`
           )
           .join('')}
       </ul>`;
@@ -370,6 +497,7 @@
 
   function refreshSummaryPanels() {
     renderProgress();
+    renderNextBestPanel();
     renderMailboxGrid();
     renderMailboxChips();
     renderStats();
@@ -425,15 +553,19 @@
     if (!list) return;
     const cur = currentItem();
     list.innerHTML = queue
-      .map(
-        (item, idx) => `<li>
-          <button type="button" class="amr-queue-item${cur?.conversationKey === item.conversationKey ? ' is-active' : ''}" data-idx="${idx}">
-            <div>${escapeHtml(item.mailboxId || '')}</div>
+      .map((item, idx) => {
+        const approvable = itemHasApprovableCandidate(item);
+        const active = cur?.conversationKey === item.conversationKey ? ' is-active' : '';
+        const ready = approvable ? ' has-approvable' : '';
+        const hidden = showApprovableOnly && !approvable ? ' is-filtered-out' : '';
+        return `<li>
+          <button type="button" class="amr-queue-item${active}${ready}${hidden}" data-idx="${idx}">
+            <div>${escapeHtml(item.mailboxId || '')}${approvable ? ' <span class="amr-tag amr-tag--ok">≥3 fält</span>' : ''}</div>
             <div class="amr-muted">${escapeHtml(item.conversationId || item.conversationKey || '')}</div>
             <div class="amr-muted">${escapeHtml(item.ambiguityReason || '')}</div>
           </button>
-        </li>`
-      )
+        </li>`;
+      })
       .join('');
 
     list.querySelectorAll('[data-idx]').forEach((btn) => {
@@ -458,29 +590,27 @@
       return;
     }
 
+    const minFields = item.minApproveMatchFields ?? 3;
     const candidates = (item.candidates || [])
-      .map(
-        (
-          candidate
-        ) => `<div class="amr-candidate${candidate.approvable ? ' approvable' : ''}${candidate.rejected ? ' rejected' : ''}">
+      .map((candidate) => {
+        const blocker = candidateBlockerText(candidate, minFields);
+        return `<div class="amr-candidate${candidate.approvable ? ' approvable' : ''}${candidate.rejected ? ' rejected' : ''}">
           <label>
             <input type="radio" name="candidate" value="${escapeHtml(candidate.candidateId)}" ${selectedCandidateId === candidate.candidateId ? 'checked' : ''} ${candidate.rejected ? 'disabled' : ''} />
             <strong>${escapeHtml(candidate.source || 'candidate')}</strong>
-            ${candidate.approvable ? '<span class="amr-tag amr-tag--ok">approvable</span>' : `<span class="amr-tag amr-tag--warn">${candidate.matchCount || 0}/3 fält</span>`}
+            ${candidate.approvable ? '<span class="amr-tag amr-tag--ok">approvable</span>' : `<span class="amr-tag amr-tag--warn">${candidate.matchCount || 0}/${minFields} fält</span>`}
           </label>
-          <div class="amr-muted">deterministiska fält: ${candidate.matchCount ?? 0}/3 · receivedAt: ${escapeHtml(candidate.receivedAt || candidate.sentAt || '—')}</div>
-          <div class="amr-tags">${(candidate.matchedFields || []).map((field) => `<span class="amr-tag">${escapeHtml(field)}</span>`).join('')}</div>
-        </div>`
-      )
+          <p class="amr-candidate-blocker">${escapeHtml(blocker)}</p>
+          <p class="amr-muted">Matchande fält (${candidate.matchCount ?? 0}/${minFields}):</p>
+          ${renderDeterministicFieldMatrix(candidate, item)}
+          <p class="amr-muted">receivedAt: ${escapeHtml(candidate.receivedAt || candidate.sentAt || '—')}</p>
+        </div>`;
+      })
       .join('');
 
-    const detFields = (
-      item.deterministicMatchFields || ['internetMessageId', 'subjectHash', 'fromHash', 'toHash']
-    )
+    const detFields = (item.deterministicMatchFields || DEFAULT_DETERMINISTIC_FIELDS)
       .map((f) => escapeHtml(f))
       .join(', ');
-    const minFields = item.minApproveMatchFields ?? 3;
-
     el.innerHTML = `
       <h2>${escapeHtml(item.mailboxId || '')}</h2>
       <p class="amr-muted">${escapeHtml(item.conversationKey || '')}</p>
@@ -493,6 +623,12 @@
         <strong>Approve kräver ≥${minFields} deterministiska fält</strong> (${detFields}). Ingen auto-write · ingen blind enrichment-loop.
       </div>
       ${renderAuditBlock(item.decision)}
+      <div class="amr-quick-actions">
+        <span class="amr-muted">Snabbknappar (ingen auto-write):</span>
+        <button type="button" class="amr-btn" data-quick="leave_unresolved" ${busy ? 'disabled' : ''}>Unresolved [U]</button>
+        <button type="button" class="amr-btn amr-btn-danger" data-quick="exclude_non_actionable" ${busy ? 'disabled' : ''}>Exclude [X]</button>
+        <button type="button" class="amr-btn" data-quick="reject_candidate" ${busy ? 'disabled' : ''}>Reject kandidat [R]</button>
+      </div>
       <h3>Kandidater (${item.candidates?.length || 0})</h3>
       ${candidates}
       <div class="amr-field">
@@ -503,7 +639,7 @@
         <button type="button" class="amr-btn" data-nav-prev ${busy || currentIndex <= 0 ? 'disabled' : ''}>← Föregående</button>
         <button type="button" class="amr-btn" data-nav-next ${busy || currentIndex >= queue.length - 1 ? 'disabled' : ''}>Nästa →</button>
       </div>
-      <p class="amr-muted amr-shortcuts">↑/↓ eller j/k byter rad i kön</p>
+      <p class="amr-muted amr-shortcuts">↑/↓ eller j/k rad · N nästa bästa · U/X/R snabb unresolved/exclude/reject</p>
       <div class="amr-actions">
         <button type="button" class="amr-btn amr-btn-primary" data-action="approve_single_match" data-approve-btn ${busy ? 'disabled' : ''}>Approve single match</button>
         <button type="button" class="amr-btn" data-action="leave_unresolved" ${busy ? 'disabled' : ''}>Leave unresolved</button>
@@ -521,6 +657,12 @@
 
     el.querySelector('[data-nav-prev]')?.addEventListener('click', () => navigateQueue(-1));
     el.querySelector('[data-nav-next]')?.addEventListener('click', () => navigateQueue(1));
+
+    el.querySelectorAll('[data-quick]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        decide(btn.getAttribute('data-quick')).catch(showError);
+      });
+    });
 
     el.querySelectorAll('[data-action]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -614,6 +756,7 @@
     renderDetail();
     renderMailboxChips();
     renderProgress();
+    renderNextBestPanel();
   }
 
   async function decide(action) {
@@ -663,6 +806,7 @@
     } finally {
       busy = false;
       renderDetail();
+      renderNextBestPanel();
     }
   }
 

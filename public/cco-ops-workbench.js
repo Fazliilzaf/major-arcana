@@ -130,7 +130,8 @@
           <h2>2 · Photo Review</h2>
           ${pill(writeOn ? 'WRITE PÅ' : 'WRITE AV')}
         </div>
-        <p class="cow-muted"><strong>Migrerade bilder är inte kliniska före review.</strong> Ingen auto-approve · ingen massapproval.</p>
+        <p class="cow-callout"><strong>Dag 1:</strong> migrerade före/efter-bilder är <strong>inte kliniska</strong> före Photo Review + naming. <strong>0 VISIBLE</strong> på kundkort tills operatör granskat. Ingen auto-approve · ingen massapproval.</p>
+        <p class="cow-muted">Operatörsstatus — inte approval. Write på prod ska vara AV.</p>
         <div class="cow-metrics">
           ${metric(pending ?? '—', 'pending bilder')}
           ${metric(patients ?? '—', 'antal kunder')}
@@ -216,7 +217,7 @@
           <dt>Drive bilder</dt><dd>${escapeHtml(h.drivePhotos || '—')}</dd>
           <dt>Review queue</dt><dd>${escapeHtml(total ?? '—')}</dd>
         </dl>
-        <p class="cow-muted">Ingen ny riskimport utan explicit GO.</p>
+        <p class="cow-muted">Read-only status: halso@ IMPORTED_SAFE_MATCH · GetAccept IMPORTED · Drive journaler IMPORTED_SAFE_MATCH · Drive dokument IMPORTED_PARTIAL · Drive bilder NEEDS_REVIEW. Ingen ny riskimport utan explicit GO.</p>
       </section>`;
   }
 
