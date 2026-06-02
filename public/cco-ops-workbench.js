@@ -203,31 +203,32 @@
       </section>`;
   }
 
-  function renderPhotoSection(ops, livePhoto, photoPageStatus) {
+  function renderPhotoSection(ops, livePhoto, photoPageStatus, photoOp) {
     const snap = ops?.photoReview || {};
+    const op = photoOp || ops?.photoReviewOperator || {};
     const apiPending = Number(livePhoto?.pendingPhotos ?? livePhoto?.pendingPhotosAll ?? 0);
     const useLive = apiPending > 0;
     const row = useLive ? livePhoto : snap;
-    const pending = row?.pendingPhotos ?? row?.pendingPhotosAll;
-    const patients = row?.patientsWithPendingPhotos;
-    const visible = row?.photosVisibleCount ?? 0;
-    const writeOn = row?.writeEnabled === true;
+    const pending = op.pendingPhotos ?? row?.pendingPhotos ?? row?.pendingPhotosAll;
+    const patients = op.patientsWithPendingPhotos ?? row?.patientsWithPendingPhotos;
+    const visible = op.photosVisibleCount ?? row?.photosVisibleCount ?? 0;
+    const writeOn = (op.writeEnabled ?? row?.writeEnabled) === true;
     const toolPath = '/photo-review.html';
     const toolOk = photoPageStatus === 200;
 
     return `
       <section class="cow-section" id="photo">
         <div class="cow-section-head">
-          <h2>2 · Photo Review</h2>
-          ${pill(writeOn ? 'WRITE PÅ' : 'WRITE AV')}
+          <h2>2 · Photo Review operator</h2>
+          ${pill(op.overall || (writeOn ? 'WRITE PÅ' : 'READ-ONLY'))}
         </div>
-        <p class="cow-callout"><strong>Dag 1:</strong> migrerade före/efter-bilder är <strong>inte kliniska</strong> före Photo Review + naming. <strong>0 VISIBLE</strong> på kundkort tills operatör granskat. Ingen auto-approve · ingen massapproval.</p>
-        <p class="cow-muted">Operatörsstatus — inte approval. Write på prod ska vara AV.</p>
+        <p class="cow-callout"><strong>Dag 1:</strong> migrerade före/efter-bilder är <strong>inte kliniska</strong> före Photo Review. <strong>0 VISIBLE</strong> tills manuellt granskat. Ingen auto-approve · ingen massapproval.</p>
+        <p class="cow-muted">${escapeHtml(op.nextAction || 'Patientkö · filter stadium/bodyArea · nästa patient/bild · session export')}</p>
         <div class="cow-metrics">
           ${metric(pending ?? '—', 'pending bilder')}
           ${metric(patients ?? '—', 'antal kunder')}
           ${metric(visible, 'VISIBLE på kundkort')}
-          ${metric(useLive ? 'live API' : snap.source || 'snapshot', 'datakälla')}
+          ${metric(op.operatorMode || 'READY', 'operator mode')}
         </div>
         ${pending === undefined ? '<p class="cow-unavailable">Ej tillgängligt — ingen snapshot eller API-data.</p>' : ''}
         <div class="cow-actions">
@@ -250,8 +251,9 @@
     return { counts, source: m.mailboxCountsSource || 'snapshot' };
   }
 
-  function renderMailSection(ops, mailRef) {
+  function renderMailSection(ops, mailRef, mailOp) {
     const m = ops?.mailAmbiguous || {};
+    const mo = mailOp || ops?.mailReviewOperator || {};
     const { counts, source } = resolveMailMailboxCounts(m, mailRef);
     const mailboxHtml = MAILBOX_LABELS.map(
       ([id, label]) => `<li>${escapeHtml(label)}: ${escapeHtml(counts[id] ?? '—')} pending</li>`
@@ -260,14 +262,15 @@
     return `
       <section class="cow-section" id="mail">
         <div class="cow-section-head">
-          <h2>3 · Mail ambiguous review</h2>
-          ${pill(m.operational || '—')}
+          <h2>3 · Mail review operator</h2>
+          ${pill(mo.overall || m.operational || '—')}
         </div>
+        <p class="cow-muted">${escapeHtml(mo.nextAction || 'Nästa bästa rad · ≥3 deterministiska fält · session export')}</p>
         <div class="cow-metrics">
-          ${metric(m.remaining ?? m.pending, 'remaining')}
-          ${metric(m.approved, 'approved')}
-          ${metric(m.unresolved, 'unresolved')}
-          ${metric(m.excluded, 'excluded')}
+          ${metric(mo.remaining ?? m.remaining ?? m.pending, 'remaining')}
+          ${metric(mo.approved ?? m.approved, 'approved')}
+          ${metric(mo.unresolved ?? m.unresolved, 'unresolved')}
+          ${metric(mo.minApproveMatchFields ?? 3, 'min fält approve')}
         </div>
         <ul class="cow-list">${mailboxHtml}</ul>
         <p class="cow-muted">Mailbox-källa: ${escapeHtml(source)} · total ambiguous ${escapeHtml(m.ambiguousTotal ?? m.remaining ?? '—')}</p>
@@ -280,8 +283,8 @@
       </section>`;
   }
 
-  function renderImportSection(ops) {
-    const q = ops?.importReviewQueue;
+  function renderImportSection(ops, importLive) {
+    const q = importLive || ops?.importReviewQueue;
     if (!q) {
       return `
         <section class="cow-section" id="import">
@@ -304,7 +307,57 @@
         </div>
         <div class="cow-metrics">${metric(q.total, 'osäkra kundmatchningar (totalt)')}</div>
         <ul class="cow-list">${sources}</ul>
-        <p class="cow-muted">${escapeHtml(q.rule || '')}</p>
+        <p class="cow-muted">${escapeHtml(q.rule || '')} · ${escapeHtml(q.nextAction || 'Väntar manuell review — ingen auto-import')}</p>
+        <p class="cow-muted">Källa: ${escapeHtml(q.dataSource || 'snapshot')}</p>
+      </section>`;
+  }
+
+  function renderNextStepsSection(ops, morning, journalLive, photoOp, mailOp, importQ) {
+    const steps = [];
+    if (morning?.presentationGate === 'FAIL') {
+      steps.push({ prio: 'P0', text: 'Fixa presentation-gate — journaldemo ej säker' });
+    } else {
+      steps.push({
+        prio: 'GO',
+        text: 'Journaldemo grönt — fortsätt journalföring om live monitor JA',
+      });
+    }
+    if (journalLive?.overall === 'FAIL') {
+      steps.push({ prio: 'P0', text: 'Journalpilot live FAIL — kontrollera routes/piloter' });
+    }
+    const photoPending = photoOp?.pendingPhotos ?? ops?.photoReview?.pendingPhotos;
+    if (photoPending > 0) {
+      steps.push({
+        prio: 'P1',
+        text: `Photo Review: beta i kö (${photoPending} bilder) — write ${photoOp?.writeEnabled ? 'PÅ' : 'AV'}`,
+      });
+    }
+    const mailRem = mailOp?.remaining ?? ops?.mailAmbiguous?.remaining;
+    if (mailRem > 0) {
+      steps.push({ prio: 'P1', text: `Mail review: ${mailRem} ambiguous kvar — nästa bästa rad` });
+    }
+    if ((importQ?.total ?? ops?.importReviewQueue?.total) > 0) {
+      steps.push({
+        prio: 'P2',
+        text: `Import queue: ${importQ?.total ?? ops?.importReviewQueue?.total} osäkra matchningar — manuell, ingen auto-import`,
+      });
+    }
+    steps.push({
+      prio: '—',
+      text: 'Ej: auto-approve · massapproval · ny riskimport · Aisia · Drive-länkar i UI',
+    });
+
+    return `
+      <section class="cow-section cow-section--next" id="next-steps">
+        <h2>9 · Vad ska göras härnäst?</h2>
+        <ul class="cow-list cow-list--steps">
+          ${steps
+            .map(
+              (s) =>
+                `<li><span class="cow-pill cow-pill--${s.prio === 'P0' ? 'fail' : s.prio === 'GO' ? 'pass' : 'warn'}">${escapeHtml(s.prio)}</span> ${escapeHtml(s.text)}</li>`
+            )
+            .join('')}
+        </ul>
       </section>`;
   }
 
@@ -373,6 +426,8 @@
 
   function renderReadinessSection(ops) {
     const d = ops?.dailyReadiness || {};
+    const can = (ops?.staffCanUse || []).map((c) => `<li>${escapeHtml(c)}</li>`).join('');
+    const cannot = (ops?.staffCannotUse || []).map((c) => `<li>${escapeHtml(c)}</li>`).join('');
 
     return `
       <section class="cow-section" id="readiness">
@@ -380,11 +435,14 @@
         <p class="cow-muted">Senast genererad: ${escapeHtml(d.generatedAt || ops?.generatedAt || '—')}</p>
         <dl class="cow-dl">
           <dt>Journalpilot</dt><dd>${escapeHtml(d.journalPilot || '—')}</dd>
-          <dt>Mail</dt><dd>${escapeHtml(d.mail || '—')}</dd>
-          <dt>Photo pending</dt><dd>${escapeHtml(d.photoPending ?? '—')}</dd>
+          <dt>Journal live</dt><dd>${escapeHtml(d.journalPilotLive || '—')} · ${escapeHtml(d.personalCanContinueJournaling || '—')}</dd>
+          <dt>Photo operator</dt><dd>${escapeHtml(d.photoOperator || '—')} · pending ${escapeHtml(d.photoPending ?? '—')}</dd>
+          <dt>Mail operator</dt><dd>${escapeHtml(d.mailOperator || '—')}</dd>
+          <dt>Import queue</dt><dd>${escapeHtml(d.importQueueTotal ?? '—')}</dd>
         </dl>
-        <p class="cow-muted">Full rapport uppdateras med <code>npm run cco:daily-readiness</code> (repo: ${escapeHtml(d.docFile || 'docs/strategy/CCO-DAILY-READINESS-2026-06-04.md')}).</p>
-        <p class="cow-muted">Executive snapshot finns i samma kvällsrun — ingen patientdata.</p>
+        ${can ? `<h3>Personal kan</h3><ul class="cow-list">${can}</ul>` : ''}
+        ${cannot ? `<h3>Personal ska inte</h3><ul class="cow-list">${cannot}</ul>` : ''}
+        <p class="cow-muted">Full rapport: <code>npm run cco:daily-readiness</code> · ${escapeHtml(d.docFile || 'docs/strategy/CCO-DAILY-READINESS-2026-06-04.md')}</p>
       </section>`;
   }
 
@@ -398,6 +456,9 @@
       morningRes,
       mailRefRes,
       journalLiveRes,
+      photoOpRes,
+      mailOpRes,
+      importQRes,
       livePhoto,
       photoStatus,
       encStatus,
@@ -409,6 +470,9 @@
       fetchJson('/cco-4june-morning-check.json'),
       fetchJson('/mail-ambiguous-mailbox-reference.json'),
       fetchJson('/cco-journal-pilot-live-monitor.json'),
+      fetchJson('/cco-photo-review-operator-status.json'),
+      fetchJson('/cco-mail-review-operator-status.json'),
+      fetchJson('/cco-import-review-queue-status.json'),
       loadPhotoSummary(),
       probePage('/photo-review.html'),
       probePage('/encounter-mapping-review.html'),
@@ -423,6 +487,9 @@
       : snapRes.ok
         ? snapRes.json?.journalPilotLive
         : null;
+    const photoOp = photoOpRes.ok ? photoOpRes.json : ops?.photoReviewOperator;
+    const mailOp = mailOpRes.ok ? mailOpRes.json : ops?.mailReviewOperator;
+    const importQ = importQRes.ok ? importQRes.json : ops?.importReviewQueue;
     const gateFail = morning?.presentationGate === 'FAIL';
 
     if (!ops) {
@@ -453,13 +520,14 @@
         ${renderCommandStatus(morning, manifest)}
         ${renderJournalPilotLiveSection(journalLive, manifest)}
         ${renderJournalSection(ops, manifest)}
-        ${renderPhotoSection(ops, livePhoto, photoStatus)}
-        ${renderMailSection(ops, mailRef)}
-        ${renderImportSection(ops)}
+        ${renderPhotoSection(ops, livePhoto, photoStatus, photoOp)}
+        ${renderMailSection(ops, mailRef, mailOp)}
+        ${renderImportSection(ops, importQ)}
         ${renderDriveSection(ops)}
         ${renderEncounterSection(ops, encStatus)}
         ${renderCfSection(ops)}
         ${renderReadinessSection(ops)}
+        ${renderNextStepsSection(ops, morning, journalLive, photoOp, mailOp, importQ)}
       </div>
       <p class="cow-muted" style="margin-top:1.25rem">
         Presentation: <a class="cow-btn" href="/cco-personal-start.html">cco-personal-start</a>

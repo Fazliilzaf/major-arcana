@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-06-02T22:37:45.855Z",
+  "total": 1497,
+  "status": "WAITING_MANUAL_REVIEW",
+  "rule": "Ingen auto-import · ingen ny kund vid osäker match",
+  "policy": "Safe-match klar — ny riskimport kräver explicit GO",
+  "sources": [
+    {
+      "id": "halso",
+      "label": "halso@",
+      "queueCount": 1366,
+      "note": "osäkra kundmatchningar"
+    },
+    {
+      "id": "getaccept",
+      "label": "GetAccept",
+      "queueCount": 131,
+      "note": "osäkra kundmatchningar"
+    },
+    {
+      "id": "drive_orphan",
+      "label": "Drive/orphan",
+      "queueCount": 0,
+      "note": "ingår i övriga källor vid manuell review"
+    }
+  ],
+  "dataSource": "live_queue_file",
+  "liveQueuePath": "/Users/fazlikrasniqi/Code/major-arcana/data/cco-import-review-queue.json",
+  "operatorNote": "Read-only kö — ingen auto-import · ingen ny kund"
+}

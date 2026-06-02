@@ -24,6 +24,18 @@ const {
   collectJournalPilotLiveMonitor,
   publishJournalPilotLiveMonitor,
 } = require('./lib/ccoJournalPilotLiveMonitor');
+const {
+  collectPhotoReviewOperatorStatus,
+  publishPhotoReviewOperatorStatus,
+} = require('./lib/ccoPhotoReviewOperatorStatus');
+const {
+  collectMailReviewOperatorStatus,
+  publishMailReviewOperatorStatus,
+} = require('./lib/ccoMailReviewOperatorStatus');
+const {
+  collectImportReviewQueueStatus,
+  publishImportReviewQueueStatus,
+} = require('./lib/ccoImportReviewQueueSnapshot');
 
 const REPO = path.join(__dirname, '..');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
@@ -65,7 +77,8 @@ function run(cmd) {
   }
 }
 
-function historikStatus() {
+function historikStatus(importQueue) {
+  const iq = importQueue || {};
   return {
     halso: {
       status: 'IMPORTED_SAFE_MATCH',
@@ -92,9 +105,63 @@ function historikStatus() {
       note: 'Binärer inne — Photo Review write AV · ej klinisk dag 1',
       reviewQueue: '~885+ assets NEEDS_REVIEW',
     },
-    reviewQueueTotal: 1497,
-    rule: 'Safe-match klar. Ny Drive-fas kräver explicit GO.',
+    reviewQueueTotal: iq.total ?? 1497,
+    rule: iq.rule || 'Safe-match klar. Ny Drive-fas kräver explicit GO.',
   };
+}
+
+function staffUsability(report) {
+  const can = [];
+  const cannot = [];
+  if (
+    report.journalMounts === 'PASS' &&
+    report.demoLinks === 'PASS' &&
+    report.e2eJournal === 'PASS'
+  ) {
+    can.push(
+      'Journalpilot demo (personal-start → pilotkund → journal → sign → rättelse → timeline)'
+    );
+  } else {
+    cannot.push('Journaldemo tills presentation-gate PASS');
+  }
+  if (report.journalLive?.personalCanContinueJournaling === 'JA') {
+    can.push('Fortsatt journalföring efter mötet (live monitor JA)');
+  }
+  if (report.photoOperator?.operatorMode === 'READY') {
+    can.push(
+      `Photo Review operator (${report.photo.pendingPhotos ?? '—'} pending, write ${report.photo.writeEnabled === true ? 'PÅ' : 'AV'})`
+    );
+  }
+  cannot.push('Migrerade före/efter-bilder som kliniska behandlingsbilder');
+  cannot.push('Auto-approve / massapproval Photo Review');
+  if (report.mail?.progress?.remaining > 0) {
+    can.push(`Mail ambiguous review (${report.mail.progress.remaining} kvar)`);
+  }
+  cannot.push('Mail auto-write · fuzzy merge · Graph-fetch från UI');
+  cannot.push(`Import review queue (${report.importQueue?.total ?? 1497}) — ingen auto-import`);
+  cannot.push('Ny kund vid osäker match');
+  cannot.push('Aisia · extern AI på journaltext · Drive-länkar i personal-start');
+  return { can, cannot };
+}
+
+function topBlockers(report) {
+  const blockers = [];
+  if (report.journalMounts !== 'PASS' || report.e2eJournal !== 'PASS') {
+    blockers.push('P0: Journaldemo / presentation-gate');
+  }
+  if (report.photoOperator?.pendingPhotos > 0) {
+    blockers.push(
+      `Photo Review: ${report.photoOperator.pendingPhotos} bilder · ${report.photoOperator.patientsWithPendingPhotos ?? '—'} kunder · 0 VISIBLE`
+    );
+  }
+  if (report.mail?.progress?.remaining > 0) {
+    blockers.push(`Mail ambiguous: ${report.mail.progress.remaining} remaining`);
+  }
+  if (report.importQueue?.total > 0) {
+    blockers.push(`Import review queue: ${report.importQueue.total} osäkra kundmatchningar`);
+  }
+  blockers.push('Täckning — många kunder utan importerat innehåll');
+  return blockers.slice(0, 5);
 }
 
 function probeJson(urlPath) {
@@ -367,7 +434,9 @@ _Prod: ${BASE}_
 | **Pilot 1/2/3** | ${report.pilot1} / ${report.pilot2} / ${report.pilot3} |
 | **Mail** | ${report.mail.operational} · remaining **${report.mail.progress.remaining}** |
 | **Drive/historik** | ${report.drive.operational} · review queue **${report.drive.reviewQueueTotal}** |
-| **Photo Review** | ${report.photo.pendingPhotos ?? '—'} pending · ${report.photo.patientsWithPendingPhotos ?? '—'} kunder · ${report.photo.photosVisibleCount ?? 0} VISIBLE · write prod **${report.photo.writeEnabled === true ? 'PÅ' : 'AV'}** |
+| **Photo Review** | ${report.photoOperator?.overall ?? '—'} · ${report.photo.pendingPhotos ?? '—'} pending · write **${report.photo.writeEnabled === true ? 'PÅ' : 'AV'}** |
+| **Mail review operator** | ${report.mailOperator?.overall ?? '—'} · remaining **${report.mailOperator?.remaining ?? report.mail.progress.remaining}** |
+| **Import review queue** | **${report.importQueue?.total ?? '—'}** · ${report.importQueue?.status ?? 'WAITING_MANUAL_REVIEW'} |
 | **CF** | ${report.cf.operational} |
 
 ---
@@ -484,34 +553,64 @@ Regler: ${report.mail.rules.join(' · ')} · **får inte störa journal-demo**
 
 ---
 
-## Top 5 blockers (ej presentation P0)
+## Photo Review operator
 
-1. Photo Review (~14k bilder, write av)
-2. Mail ambiguous review (${report.mail.apiNote.includes('493') ? '493' : '~493'} kvar i kö — manuell)
-3. Import review queue (${report.historik.reviewQueueTotal} osäkra kundmatchningar)
-4. Täckning — ~4867 kunder utan importerat innehåll
-5. Encounter/metadata + Drive alias-sweep
-
----
-
-## Vad Fazli kan visa
-
-- \`/cco-personal-start.html\` → kundkort → 3 pilotkunder
-- Journal create → sign → lås → rättelse → timeline/feed
-- Importerad historik **där den finns** (badges)
-- Dag-1-regler + “Behöver granskning”
-- CF internt (finance / revisorportal) om relevant
+| | |
+|---|---|
+| **Status** | ${report.photoOperator?.overall ?? '—'} |
+| **Pending** | ${report.photoOperator?.pendingPhotos ?? report.photo.pendingPhotos ?? '—'} |
+| **Kunder** | ${report.photoOperator?.patientsWithPendingPhotos ?? '—'} |
+| **VISIBLE** | ${report.photoOperator?.photosVisibleCount ?? 0} |
+| **Write prod** | **${report.photo.writeEnabled === true ? 'PÅ' : 'AV'}** |
+| **Verktyg** | \`/photo-review.html\` · session export JSON |
 
 ---
 
-## Vad Fazli inte ska lova
+## Mail review operator
 
-- Full cutover / “allt funkar fritt”
-- Mail/Svarstudio som dagligt verktyg
-- Migrerade före/efter-bilder som kliniska
-- AI no-show · automation · watch · Aisia · showcase
-- Analytics som sanning
-- Ny kund vid osäker identitet
+| | |
+|---|---|
+| **Status** | ${report.mailOperator?.overall ?? '—'} |
+| **Remaining** | ${report.mailOperator?.remaining ?? report.mail.progress.remaining} |
+| **Approved** | ${report.mailOperator?.approved ?? report.mail.progress.approved} |
+| **Verktyg** | \`/ambiguous-mail-enrichment-review.html\` |
+
+---
+
+## Import review queue (read-only)
+
+| Källa | Antal |
+| ----- | ----- |
+${(report.importQueue?.sources || [])
+  .map((s) => `| ${s.label} | ${s.queueCount ?? '—'} |`)
+  .join('\n')}
+
+**Totalt:** ${report.importQueue?.total ?? '—'} · ${report.importQueue?.status ?? 'WAITING_MANUAL_REVIEW'}  
+${report.importQueue?.rule ?? ''}
+
+---
+
+## Top blockers
+
+${topBlockers(report)
+  .map((b, i) => `${i + 1}. ${b}`)
+  .join('\n')}
+
+---
+
+## Vad personal kan använda
+
+${staffUsability(report)
+  .can.map((c) => `- ${c}`)
+  .join('\n')}
+
+---
+
+## Vad personal inte ska använda
+
+${staffUsability(report)
+  .cannot.map((c) => `- ${c}`)
+  .join('\n')}
 
 ---
 
@@ -557,9 +656,41 @@ async function main() {
 
   const mail = await mailReadiness();
   const cf = await cfReadiness();
-  const historik = historikStatus();
+  const importQueue = collectImportReviewQueueStatus({ root: REPO });
+  const historik = historikStatus(importQueue);
   const drive = driveReadiness(historik);
   const photo = await photoReviewStatusLive();
+
+  let photoOperator = null;
+  let mailOperator = null;
+  try {
+    photoOperator = await collectPhotoReviewOperatorStatus({ base: BASE });
+  } catch (err) {
+    photoOperator = { overall: 'FAIL', error: err.message };
+  }
+
+  let mailToken = null;
+  try {
+    const tokenScript = run('node scripts/get-prod-auth-token.js --owner');
+    if (tokenScript.ok) mailToken = tokenScript.output.trim().split('\n').pop();
+  } catch (_) {
+    /* ignore */
+  }
+  try {
+    mailOperator = await collectMailReviewOperatorStatus({
+      base: BASE,
+      root: REPO,
+      token: mailToken,
+    });
+  } catch (err) {
+    mailOperator = { overall: 'FAIL', error: err.message };
+  }
+
+  if (!noWrite) {
+    publishImportReviewQueueStatus(importQueue, REPO);
+    publishPhotoReviewOperatorStatus(photoOperator, REPO);
+    publishMailReviewOperatorStatus(mailOperator, REPO);
+  }
 
   const journalPilotOk =
     mounts.ok &&
@@ -642,19 +773,16 @@ async function main() {
       kundkortUrl: '/kunder.html',
     },
     journalPilotLive: journalLive,
+    photoReviewOperator: photoOperator,
+    mailReviewOperator: mailOperator,
     importReviewQueue: {
-      total: historik.reviewQueueTotal,
-      status: 'WAITING_MANUAL_REVIEW',
-      rule: 'Ingen auto-import · ingen ny kund vid osäker match',
-      sources: [
-        { label: 'halso@', queueCount: historik.halso.reviewQueue },
-        { label: 'GetAccept', queueCount: historik.getAccept.reviewQueue },
-        {
-          label: 'Drive/kundmatch (totalt)',
-          queueCount: historik.reviewQueueTotal,
-          note: 'osäkra kundmatchningar',
-        },
-      ],
+      total: importQueue.total,
+      status: importQueue.status,
+      rule: importQueue.rule,
+      dataSource: importQueue.dataSource,
+      sources: importQueue.sources,
+      operatorToolPath: null,
+      nextAction: 'Manuell review — ingen auto-import · ingen ny kund',
     },
     encounterMetadata: {
       status: 'REVIEW_PAUSED_PRE_PRESENTATION',
@@ -669,8 +797,38 @@ async function main() {
       personalCanContinueJournaling: journalLive?.personalCanContinueJournaling || 'NEJ',
       mail: mail.operational,
       photoPending: photo.pendingPhotos,
+      photoOperator: photoOperator?.overall,
+      mailOperator: mailOperator?.overall,
+      importQueueTotal: importQueue.total,
       driveRule: historik.rule,
     },
+    staffCanUse: staffUsability({
+      journalMounts: mounts.ok ? 'PASS' : 'FAIL',
+      demoLinks: links.ok ? 'PASS' : 'FAIL',
+      e2eJournal: readiness.ok ? 'PASS' : 'FAIL',
+      journalLive,
+      photo,
+      photoOperator,
+      mail,
+      importQueue,
+    }).can,
+    staffCannotUse: staffUsability({
+      journalMounts: mounts.ok ? 'PASS' : 'FAIL',
+      demoLinks: links.ok ? 'PASS' : 'FAIL',
+      e2eJournal: readiness.ok ? 'PASS' : 'FAIL',
+      journalLive,
+      photo,
+      photoOperator,
+      mail,
+      importQueue,
+    }).cannot,
+    topBlockers: topBlockers({
+      journalMounts: mounts.ok ? 'PASS' : 'FAIL',
+      e2eJournal: readiness.ok ? 'PASS' : 'FAIL',
+      photoOperator,
+      mail,
+      importQueue,
+    }),
     opsWorkbenchUrl: '/cco-ops-workbench.html',
   };
   if (!noWrite) {
@@ -710,6 +868,9 @@ async function main() {
     drive,
     historik,
     photo,
+    photoOperator,
+    mailOperator,
+    importQueue,
   };
 
   console.log('Journal mounts:', report.journalMounts);
@@ -731,6 +892,9 @@ async function main() {
     `remaining=${mail.progress.remaining}`
   );
   console.log('CF:', cf.operational, cf.financeStatus, cf.reviewStatus);
+  console.log('Photo operator:', photoOperator?.overall, 'pending', photoOperator?.pendingPhotos);
+  console.log('Mail operator:', mailOperator?.overall, 'remaining', mailOperator?.remaining);
+  console.log('Import queue:', importQueue.total, importQueue.status);
   console.log('');
 
   const md = buildMarkdown(report);

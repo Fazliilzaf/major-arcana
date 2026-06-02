@@ -1,20 +1,23 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T21:39:13.704Z_  
+_Senast uppdaterad: 2026-06-02T22:37:39.027Z_
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
 
 ## Executive snapshot (kväll)
 
-| Spår               | Status                                                             |
-| ------------------ | ------------------------------------------------------------------ |
-| **Journalpilot**   | **PASS** (mounts PASS · links PASS · E2E PASS)                     |
-| **Pilot 1/2/3**    | PASS / PASS / PASS                                                 |
-| **Mail**           | PHASE_2_UI_READY · remaining **493**                               |
-| **Drive/historik** | SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO · review queue **1497** |
-| **Photo Review**   | 860 pending · 150 kunder · 0 VISIBLE · write prod **AV**           |
-| **CF**             | INTERN_DEMO_READY                                                  |
+| Spår                     | Status                                                             |
+| ------------------------ | ------------------------------------------------------------------ |
+| **Journalpilot**         | **PASS** (mounts PASS · links PASS · E2E PASS)                     |
+| **Journalpilot live**    | PASS · personal kan journalföra: **JA**                            |
+| **Pilot 1/2/3**          | PASS / PASS / PASS                                                 |
+| **Mail**                 | PHASE_2_UI_READY · remaining **493**                               |
+| **Drive/historik**       | SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO · review queue **1497** |
+| **Photo Review**         | READY · 860 pending · 150 kunder · write **AV**                    |
+| **Mail review operator** | QUEUE_ACTIVE · remaining **493**                                   |
+| **Import review queue**  | **1497** · WAITING_MANUAL_REVIEW                                   |
+| **CF**                   | INTERN_DEMO_READY                                                  |
 
 ---
 
@@ -72,7 +75,7 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 | Drive bilder          | NEEDS_REVIEW        | Binärer inne — Photo Review write AV · ej klinisk dag 1   |
 | Review queue (totalt) | —                   | 1497 osäkra kundmatchningar                               |
 
-**Regel:** Safe-match klar. Ny Drive-fas kräver explicit GO.
+**Regel:** Ingen auto-import · ingen ny kund vid osäker match
 
 ---
 
@@ -99,7 +102,7 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 | Kunder              | 150                                                                              |
 | Not                 | 860 pending / 150 kunder / 0 VISIBLE (operatörsreferens från prod-data-snapshot) |
 | Krävs för VISIBLE   | Photo Review operator + naming → VISIBLE_ON_PATIENT_CARD                         |
-| VISIBLE på kundkort | 0 (före/efter ej kliniska dag 1)                                                 |
+| VISIBLE på kundkort | 1 (före/efter ej kliniska dag 1)                                                 |
 | Prod API            | 200                                                                              |
 | Operatörverktyg     | `/photo-review.html` (ej länk från personalstart)                                |
 | Write på prod       | **AV** (AV = korrekt inför dag 1)                                                |
@@ -109,34 +112,69 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 
 ---
 
-## Top 5 blockers (ej presentation P0)
+## Photo Review operator
 
-1. Photo Review (~14k bilder, write av)
-2. Mail ambiguous review (493 kvar i kö — manuell)
-3. Import review queue (1497 osäkra kundmatchningar)
-4. Täckning — ~4867 kunder utan importerat innehåll
-5. Encounter/metadata + Drive alias-sweep
-
----
-
-## Vad Fazli kan visa
-
-- `/cco-personal-start.html` → kundkort → 3 pilotkunder
-- Journal create → sign → lås → rättelse → timeline/feed
-- Importerad historik **där den finns** (badges)
-- Dag-1-regler + “Behöver granskning”
-- CF internt (finance / revisorportal) om relevant
+|                |                                            |
+| -------------- | ------------------------------------------ |
+| **Status**     | READY (prod API read-only; snapshot 860)   |
+| **Pending**    | 860                                        |
+| **Kunder**     | 150                                        |
+| **VISIBLE**    | 0 på kundkort (operatörsregel)             |
+| **Write prod** | **AV**                                     |
+| **Verktyg**    | `/photo-review.html` · session export JSON |
 
 ---
 
-## Vad Fazli inte ska lova
+## Mail review operator
 
-- Full cutover / “allt funkar fritt”
-- Mail/Svarstudio som dagligt verktyg
-- Migrerade före/efter-bilder som kliniska
-- AI no-show · automation · watch · Aisia · showcase
-- Analytics som sanning
-- Ny kund vid osäker identitet
+|               |                                          |
+| ------------- | ---------------------------------------- |
+| **Status**    | QUEUE_ACTIVE                             |
+| **Remaining** | 493                                      |
+| **Approved**  | 0                                        |
+| **Verktyg**   | `/ambiguous-mail-enrichment-review.html` |
+
+---
+
+## Import review queue (read-only)
+
+| Källa        | Antal |
+| ------------ | ----- |
+| halso@       | 1366  |
+| GetAccept    | 131   |
+| Drive/orphan | 0     |
+
+**Totalt:** 1497 · WAITING_MANUAL_REVIEW  
+Ingen auto-import · ingen ny kund vid osäker match
+
+---
+
+## Top blockers
+
+1. Photo Review: 860 bilder · 150 kunder · 0 VISIBLE
+2. Mail ambiguous: 493 remaining
+3. Import review queue: 1497 osäkra kundmatchningar
+4. Täckning — många kunder utan importerat innehåll
+
+---
+
+## Vad personal kan använda
+
+- Journalpilot demo (personal-start → pilotkund → journal → sign → rättelse → timeline)
+- Fortsatt journalföring efter mötet (live monitor JA)
+- Photo Review operator (860 pending, write AV)
+- Mail ambiguous review (493 kvar)
+
+---
+
+## Vad personal inte ska använda
+
+- Migrerade före/efter-bilder som kliniska behandlingsbilder
+- Auto-approve / massapproval Photo Review
+- Mail auto-write · fuzzy merge · Graph-fetch från UI
+- Import review queue (1497) — ingen auto-import
+- Ny kund vid osäker match
+- Aisia · extern AI på journaltext · Drive-länkar i personal-start
 
 ---
 
@@ -147,6 +185,18 @@ Stoppa vid: 404/5xx i demo-flow · trasig pilotkund · journal fail · Drive-lä
 ---
 
 _Ingen patientdata i denna rapport._
+
+---
+
+## Cycle-11 ops (2026-06-02T22:37Z · Cursor)
+
+Operator-läge för efter mötet (read-only på prod för Photo Review write):
+- `/photo-review.html` — patientkö, filter stadium/bodyArea, nästa patient/bild, session batchrapport
+- `/ambiguous-mail-enrichment-review.html` — nästa bästa rad (paginerad), deterministiska fält, session per operator
+- `/cco-ops-workbench.html` — sektion 9 “Vad ska göras härnäst?” + operator JSON snapshots
+- Export: `cco-photo-review-operator-status.json`, `cco-mail-review-operator-status.json`, `cco-import-review-queue-status.json`
+
+Server.js · journalroutes · cco-forms orörda. Presentation-gate obligatorisk efter deploy.
 
 ---
 

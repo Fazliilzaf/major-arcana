@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-02T22:09:00.928Z",
+  "generatedAt": "2026-06-02T22:37:39.027Z",
   "photoReview": {
     "pendingPhotos": 860,
     "patientsWithPendingPhotos": 150,
-    "photosVisibleCount": 0,
+    "photosVisibleCount": 1,
     "writeEnabled": false,
     "readOnly": true,
     "source": "local_snapshot_prod_api_empty",
@@ -69,14 +69,14 @@
     "pilot2": "PASS",
     "pilot3": "PASS",
     "presentationGate": "PASS",
-    "checkedAt": "2026-06-02T22:09:00.928Z",
+    "checkedAt": "2026-06-02T22:37:39.027Z",
     "personalStartUrl": "/cco-personal-start.html",
     "kundkortUrl": "/kunder.html"
   },
   "journalPilotLive": {
-    "generatedAt": "2026-06-02T22:09:07.849Z",
+    "generatedAt": "2026-06-02T22:37:46.263Z",
     "windowHours": 24,
-    "sinceIso": "2026-06-01T22:09:07.849Z",
+    "sinceIso": "2026-06-01T22:37:46.263Z",
     "base": "https://arcana.hairtpclinic.com",
     "authAvailable": false,
     "overall": "PASS",
@@ -147,8 +147,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 139,
-        "timelineEvents": 416,
+        "feedItems": 155,
+        "timelineEvents": 464,
         "entries24h": null
       },
       {
@@ -159,8 +159,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 135,
-        "timelineEvents": 404,
+        "feedItems": 151,
+        "timelineEvents": 452,
         "entries24h": null
       },
       {
@@ -171,8 +171,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 136,
-        "timelineEvents": 408,
+        "feedItems": 152,
+        "timelineEvents": 456,
         "entries24h": null
       }
     ],
@@ -181,25 +181,88 @@
     "pilot3": "PASS",
     "note": "Read-only monitor — inga journaltexter · inga patientdata i export"
   },
+  "photoReviewOperator": {
+    "generatedAt": "2026-06-02T22:37:46.001Z",
+    "base": "https://arcana.hairtpclinic.com",
+    "overall": "EMPTY",
+    "operatorMode": "READY",
+    "operatorToolPath": "/photo-review.html",
+    "writeEnabled": false,
+    "readOnly": true,
+    "phase": "fas1_readonly",
+    "pendingPhotos": 0,
+    "pendingPhotosAll": 0,
+    "patientsWithPendingPhotos": 0,
+    "photosVisibleCount": 0,
+    "decisionsTotal": 0,
+    "decisionsApprove": 0,
+    "decisionsReject": 0,
+    "decisionsReassign": 0,
+    "autoApprove": false,
+    "massApproval": false,
+    "day1ClinicalUse": false,
+    "apiSummaryStatus": 200,
+    "apiProgressStatus": 200,
+    "nextAction": "Read-only beta — navigera kö, exportera session, write AV på prod"
+  },
+  "mailReviewOperator": {
+    "generatedAt": "2026-06-02T22:37:46.262Z",
+    "base": "https://arcana.hairtpclinic.com",
+    "overall": "QUEUE_ACTIVE",
+    "operatorMode": "READY",
+    "operatorToolPath": "/ambiguous-mail-enrichment-review.html",
+    "pageStatus": 200,
+    "apiStatus": 0,
+    "authAvailable": false,
+    "ambiguousTotal": 493,
+    "remaining": 493,
+    "approved": 0,
+    "excluded": 0,
+    "unresolved": 0,
+    "mailboxCounts": {
+      "contact@hairtpclinic.com": 248,
+      "egzona@hairtpclinic.com": 175,
+      "fazli@hairtpclinic.com": 67,
+      "marknad@hairtpclinic.com": 3
+    },
+    "mailboxCountsSource": "reference_snapshot",
+    "minApproveMatchFields": 3,
+    "rules": [
+      "Ingen auto-write",
+      "Ingen fuzzy merge",
+      "Ingen customer merge",
+      "Ingen Graph-fetch",
+      "Ingen ny mailimport"
+    ],
+    "nextAction": "Öppna mail review — nästa bästa rad med ≥3 deterministiska fält"
+  },
   "importReviewQueue": {
     "total": 1497,
     "status": "WAITING_MANUAL_REVIEW",
     "rule": "Ingen auto-import · ingen ny kund vid osäker match",
+    "dataSource": "live_queue_file",
     "sources": [
       {
+        "id": "halso",
         "label": "halso@",
-        "queueCount": 1366
-      },
-      {
-        "label": "GetAccept",
-        "queueCount": 131
-      },
-      {
-        "label": "Drive/kundmatch (totalt)",
-        "queueCount": 1497,
+        "queueCount": 1366,
         "note": "osäkra kundmatchningar"
+      },
+      {
+        "id": "getaccept",
+        "label": "GetAccept",
+        "queueCount": 131,
+        "note": "osäkra kundmatchningar"
+      },
+      {
+        "id": "drive_orphan",
+        "label": "Drive/orphan",
+        "queueCount": 0,
+        "note": "ingår i övriga källor vid manuell review"
       }
-    ]
+    ],
+    "operatorToolPath": null,
+    "nextAction": "Manuell review — ingen auto-import · ingen ny kund"
   },
   "encounterMetadata": {
     "status": "REVIEW_PAUSED_PRE_PRESENTATION",
@@ -208,13 +271,35 @@
   },
   "dailyReadiness": {
     "docFile": "docs/strategy/CCO-DAILY-READINESS-2026-06-04.md",
-    "generatedAt": "2026-06-02T22:09:00.928Z",
+    "generatedAt": "2026-06-02T22:37:39.027Z",
     "journalPilot": "PASS",
     "journalPilotLive": "PASS",
     "personalCanContinueJournaling": "JA",
     "mail": "PHASE_2_UI_READY",
     "photoPending": 860,
-    "driveRule": "Safe-match klar. Ny Drive-fas kräver explicit GO."
+    "photoOperator": "EMPTY",
+    "mailOperator": "QUEUE_ACTIVE",
+    "importQueueTotal": 1497,
+    "driveRule": "Ingen auto-import · ingen ny kund vid osäker match"
   },
+  "staffCanUse": [
+    "Journalpilot demo (personal-start → pilotkund → journal → sign → rättelse → timeline)",
+    "Fortsatt journalföring efter mötet (live monitor JA)",
+    "Photo Review operator (860 pending, write AV)",
+    "Mail ambiguous review (493 kvar)"
+  ],
+  "staffCannotUse": [
+    "Migrerade före/efter-bilder som kliniska behandlingsbilder",
+    "Auto-approve / massapproval Photo Review",
+    "Mail auto-write · fuzzy merge · Graph-fetch från UI",
+    "Import review queue (1497) — ingen auto-import",
+    "Ny kund vid osäker match",
+    "Aisia · extern AI på journaltext · Drive-länkar i personal-start"
+  ],
+  "topBlockers": [
+    "Mail ambiguous: 493 remaining",
+    "Import review queue: 1497 osäkra kundmatchningar",
+    "Täckning — många kunder utan importerat innehåll"
+  ],
   "opsWorkbenchUrl": "/cco-ops-workbench.html"
 }

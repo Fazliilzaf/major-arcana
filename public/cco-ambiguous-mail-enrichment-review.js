@@ -97,7 +97,17 @@
     for (let i = 0; i < fromIndex; i += 1) {
       if (itemHasApprovableCandidate(queue[i])) return i;
     }
-    return queue.length ? 0 : -1;
+    return -1;
+  }
+
+  async function ensureQueueLoadedForNextBest(startIndex, { allowWhileBusy = false } = {}) {
+    let idx = findNextBestIndex(startIndex);
+    while (idx < 0 && queue.length < queueTotal && (allowWhileBusy || !busy)) {
+      await loadQueue({ append: true });
+      idx = findNextBestIndex(startIndex);
+      if (queue.length >= queueTotal) break;
+    }
+    return idx;
   }
 
   function missingDeterministicFieldList(candidate, item) {
@@ -145,13 +155,25 @@
   function renderDeterministicFieldMatrix(candidate, item) {
     const allFields = item.deterministicMatchFields || DEFAULT_DETERMINISTIC_FIELDS;
     const matched = new Set(candidate.matchedFields || []);
+    const missing = allFields.filter((field) => !matched.has(field));
     const chips = allFields
       .map((field) => {
         const on = matched.has(field);
         return `<span class="amr-field-chip${on ? ' is-match' : ' is-miss'}">${on ? '✓' : '·'} ${escapeHtml(field)}</span>`;
       })
       .join('');
-    return `<div class="amr-field-matrix">${chips}</div>`;
+    return `<div class="amr-field-matrix">${chips}</div>
+      <p class="amr-muted amr-field-explain"><strong>Matchar:</strong> ${escapeHtml((candidate.matchedFields || []).join(', ') || '—')} · <strong>Saknas för approve:</strong> ${escapeHtml(missing.join(', ') || '—')}</p>`;
+  }
+
+  function candidateExplainText(candidate, item) {
+    const minFields = item.minApproveMatchFields ?? 3;
+    if (candidate.rejected) return 'Kandidat avvisad — välj annan.';
+    if (candidate.approvable) {
+      return `Deterministisk match: ${candidate.matchCount}/${minFields} fält (${(candidate.matchedFields || []).join(', ')}).`;
+    }
+    const missing = missingDeterministicFieldList(candidate, item);
+    return `Behöver ${minFields - (candidate.matchCount || 0)} fler fält. Saknas: ${missing.join(', ')}.`;
   }
 
   function navigateQueue(delta) {
@@ -276,15 +298,27 @@
     });
   }
 
-  function jumpToNextBest() {
-    const idx = findNextBestIndex(currentIndex + 1);
-    if (idx < 0) return;
-    currentIndex = idx;
-    selectedCandidateId = pickDefaultCandidate(currentItem());
-    renderQueueList();
-    renderQueuePosition();
-    renderDetail();
-    renderNextBestPanel();
+  async function jumpToNextBest({ internal = false } = {}) {
+    if (!internal && busy) return;
+    const wasBusy = busy;
+    if (!internal) busy = true;
+    try {
+      const idx = await ensureQueueLoadedForNextBest(currentIndex + 1, {
+        allowWhileBusy: internal,
+      });
+      if (idx < 0) {
+        renderNextBestPanel();
+        return;
+      }
+      currentIndex = idx;
+      selectedCandidateId = pickDefaultCandidate(currentItem());
+      renderQueueList();
+      renderQueuePosition();
+      renderDetail();
+      renderNextBestPanel();
+    } finally {
+      if (!internal) busy = wasBusy;
+    }
   }
 
   function renderNextBestPanel() {
@@ -292,6 +326,10 @@
     if (!el) return;
     const idx = findNextBestIndex(0);
     const approvableCount = queue.filter((item) => itemHasApprovableCandidate(item)).length;
+    const loadedNote =
+      queue.length < queueTotal
+        ? ` · ladda fler för global sökning (${queue.length}/${queueTotal})`
+        : '';
     if (!queue.length) {
       el.innerHTML = '<p class="amr-muted">Ingen kö laddad.</p>';
       return;
@@ -307,11 +345,14 @@
     el.innerHTML = `
       <div class="amr-next-best-box">
         <strong>Nästa bästa rad att granska</strong>
-        <p class="amr-muted">${approvableCount} av ${queue.length} i vyn har minst en approvable kandidat · rad ${idx + 1}: ${escapeHtml(item.mailboxId || '')}</p>
+        <p class="amr-muted">${approvableCount} av ${queue.length} i vyn har minst en approvable kandidat · rad ${idx + 1}: ${escapeHtml(item.mailboxId || '')}${loadedNote}</p>
         <p class="amr-muted">Matchande fält: ${escapeHtml(fields)}</p>
+        <p class="amr-muted">${escapeHtml(candidateExplainText(cand, item))}</p>
         <button type="button" class="amr-btn amr-btn-primary" data-jump-next>Gå till nästa bästa [N]</button>
       </div>`;
-    el.querySelector('[data-jump-next]')?.addEventListener('click', jumpToNextBest);
+    el.querySelector('[data-jump-next]')?.addEventListener('click', () => {
+      jumpToNextBest().catch(showError);
+    });
   }
 
   function reportFields() {
@@ -452,16 +493,23 @@
     }
     el.hidden = false;
     const counts = { approve: 0, unresolved: 0, exclude: 0, reject: 0 };
+    const byReviewer = {};
     sessionAudit.forEach((row) => {
       if (row.action === 'approve_single_match') counts.approve += 1;
       else if (row.action === 'leave_unresolved') counts.unresolved += 1;
       else if (row.action === 'exclude_non_actionable') counts.exclude += 1;
       else if (row.action === 'reject_candidate') counts.reject += 1;
+      const rev = row.reviewer || '—';
+      byReviewer[rev] = (byReviewer[rev] || 0) + 1;
     });
     const last = sessionAudit[0];
+    const revLine = Object.entries(byReviewer)
+      .map(([r, n]) => `${escapeHtml(r)}: ${n}`)
+      .join(' · ');
     el.innerHTML = `
       <h3>Session summary</h3>
       <p>approve <strong>${counts.approve}</strong> · unresolved <strong>${counts.unresolved}</strong> · exclude <strong>${counts.exclude}</strong> · reject <strong>${counts.reject}</strong></p>
+      <p class="amr-muted">Beslut per operator: ${revLine || '—'}</p>
       <p class="amr-muted">Senaste beslut: <strong>${escapeHtml(last.action)}</strong> · ${escapeHtml(last.conversationKey)} · fält: ${escapeHtml(last.matchedFields || '—')}</p>`;
   }
 
@@ -644,6 +692,7 @@
             ${candidate.approvable ? '<span class="amr-tag amr-tag--ok">approvable</span>' : `<span class="amr-tag amr-tag--warn">${candidate.matchCount || 0}/${minFields} fält</span>`}
           </label>
           <p class="amr-candidate-blocker">${escapeHtml(blocker)}</p>
+          <p class="amr-muted amr-candidate-why">${escapeHtml(candidateExplainText(candidate, item))}</p>
           <p class="amr-muted">Varför approve ${candidate.approvable ? 'är' : 'inte är'} tillåten — deterministiska fält (min ${minFields}, ingen auto-write):</p>
           <p class="amr-muted">Saknade fält: ${escapeHtml(missingList.join(', ') || '—')}</p>
           <p class="amr-muted">Matchande fält (${candidate.matchCount ?? 0}/${minFields}):</p>
@@ -859,10 +908,9 @@
       const decision = result?.decision || result;
       pushSessionAudit(action, decision, item.conversationKey);
       showAuditToast(decision, action);
-      const stayIdx = currentIndex;
       await loadSummary();
-      await loadQueue({ reset: true, preserveIndex: stayIdx });
-      selectedCandidateId = pickDefaultCandidate(currentItem());
+      await loadQueue({ reset: true });
+      await jumpToNextBest({ internal: true });
     } finally {
       busy = false;
       renderDetail();

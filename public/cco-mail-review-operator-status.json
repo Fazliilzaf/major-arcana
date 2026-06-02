@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-06-02T22:37:46.262Z",
+  "base": "https://arcana.hairtpclinic.com",
+  "overall": "QUEUE_ACTIVE",
+  "operatorMode": "READY",
+  "operatorToolPath": "/ambiguous-mail-enrichment-review.html",
+  "pageStatus": 200,
+  "apiStatus": 0,
+  "authAvailable": false,
+  "ambiguousTotal": 493,
+  "remaining": 493,
+  "approved": 0,
+  "excluded": 0,
+  "unresolved": 0,
+  "mailboxCounts": {
+    "contact@hairtpclinic.com": 248,
+    "egzona@hairtpclinic.com": 175,
+    "fazli@hairtpclinic.com": 67,
+    "marknad@hairtpclinic.com": 3
+  },
+  "mailboxCountsSource": "reference_snapshot",
+  "minApproveMatchFields": 3,
+  "rules": [
+    "Ingen auto-write",
+    "Ingen fuzzy merge",
+    "Ingen customer merge",
+    "Ingen Graph-fetch",
+    "Ingen ny mailimport"
+  ],
+  "nextAction": "Öppna mail review — nästa bästa rad med ≥3 deterministiska fält"
+}

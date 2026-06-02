@@ -443,6 +443,70 @@ body {
   border-color: var(--pr-warn);
 }
 
+.cco-photo-review-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: var(--pr-panel);
+  border-radius: 8px;
+  border: 1px solid var(--pr-border);
+}
+
+.cco-photo-review-filter-bar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--pr-muted);
+}
+
+.cco-photo-review-filter-bar select,
+.cco-photo-review-filter-bar button {
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-operator-progress {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(77, 163, 255, 0.08);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-session-panel {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--pr-border);
+  border-radius: 8px;
+  background: var(--pr-panel);
+}
+
+.cco-photo-review-session-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.cco-photo-review-session-list {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--pr-muted);
+}
+
+.cco-photo-review-export-btn {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--pr-accent);
+  color: #0f1419;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .cco-photo-review-layout-focus {
   grid-template-columns: 240px 1fr;
 }
