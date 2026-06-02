@@ -1,0 +1,462 @@
+{
+  "generatedAt": "2026-06-02T13:54:35.161Z",
+  "routeResults": [
+    {
+      "name": "kunder.html",
+      "path": "/kunder.html",
+      "expected": [
+        200
+      ],
+      "status": 200,
+      "result": "PASS",
+      "json": {
+        "_raw": "<!doctype html>\n<html lang=\"sv\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n    <title>CCO · Kunder</title>\n    <style>\n      :root"
+      }
+    },
+    {
+      "name": "personal-start",
+      "path": "/cco-personal-start.html",
+      "expected": [
+        200
+      ],
+      "status": 200,
+      "result": "PASS",
+      "json": {
+        "_raw": "<!doctype html>\n<html lang=\"sv\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n    <title>CCO · Personalstart · Journalföringspilot</t"
+      }
+    },
+    {
+      "name": "journal-feed",
+      "path": "/api/v1/cco-customers/cco-pilot-20260602-a/journal-feed?tenantId=hairtpclinic",
+      "expected": [
+        200
+      ],
+      "status": 200,
+      "result": "PASS",
+      "json": {
+        "customerId": "cco-pilot-20260602-a",
+        "tenantId": "hairtpclinic",
+        "evaluatedAt": "2026-06-02T13:54:32.915Z",
+        "counters": {
+          "total": 1,
+          "byCategory": {
+            "journal": 1
+          },
+          "bySource": {
+            "cco_journal": 1,
+            "patient_asset": 0
+          },
+          "signed": 0,
+          "corrections": 0,
+          "hasPdf": 0,
+          "needsAttention": 0,
+          "needsAttentionByStatus": {}
+        },
+        "sectionCounts": {
+          "journals": 1,
+          "photos": 0,
+          "documents": 0,
+          "consents": 0,
+          "agreements": 0,
+          "forms": 0,
+          "aisia": 0
+        },
+        "photoGroups": {},
+        "items": [
+          {
+            "source": "cco_journal",
+            "category": "journal",
+            "subcategory": "consultation_plan",
+            "ts": "2026-06-02T12:40:45.965Z",
+            "title": "Pilot demo post a",
+            "icon": "📝",
+            "author": "personal-demo-setup",
+            "entityId": "54c8cef2-ac4a-4d5e-a295-b36eea20b44f",
+            "tenantId": "hairtpclinic",
+            "patientId": "cco-pilot-20260602-a",
+            "isSigned": false,
+            "isCorrection": false,
+            "correctionOfEntryId": null,
+            "correctionReason": null,
+            "correctionCreatedBy": null,
+            "correctionCreatedAt": null,
+            "hasPdf": false,
+            "link": "/smart-anteckning.html?entryId=54c8cef2-ac4a-4d5e-a295-b36eea20b44f",
+            "ccoSourceOnly": true
+          }
+        ],
+        "sections": {
+          "journals": [
+            {
+              "source": "cco_journal",
+              "category": "journal",
+              "subcategory": "consultation_plan",
+              "ts": "2026-06-02T12:40:45.965Z",
+              "title": "Pilot demo post a",
+              "icon": "📝",
+              "author": "personal-demo-setup",
+              "entityId": "54c8cef2-ac4a-4d5e-a295-b36eea20b44f",
+              "tenantId": "hairtpclinic",
+              "patientId": "cco-pilot-20260602-a",
+              "isSigned": false,
+              "isCorrection": false,
+              "correctionOfEntryId": null,
+              "correctionReason": null,
+              "correctionCreatedBy": null,
+              "correctionCreatedAt": null,
+              "hasPdf": false,
+              "link": "/smart-anteckning.html?entryId=54c8cef2-ac4a-4d5e-a295-b36eea20b44f",
+              "ccoSourceOnly": true
+            }
+          ],
+          "photos": [],
+          "documents": [],
+          "consents": [],
+          "agreements": [],
+          "forms": [],
+          "aisia": []
+        },
+        "needsAttention": [],
+        "ownerMandate": "no_drive_links_in_ui"
+      }
+    },
+    {
+      "name": "journal-timeline",
+      "path": "/api/v1/cco-customers/cco-pilot-20260602-a/journal-timeline?tenantId=hairtpclinic",
+      "expected": [
+        200
+      ],
+      "status": 200,
+      "result": "PASS",
+      "json": {
+        "customerId": "cco-pilot-20260602-a",
+        "tenantId": "hairtpclinic",
+        "evaluatedAt": "2026-06-02T13:54:32.974Z",
+        "counters": {
+          "totalEvents": 2,
+          "byType": {
+            "journal_draft_created": 1,
+            "treatment_plan_created": 1
+          },
+          "byTone": {
+            "ok": 0,
+            "warn": 0,
+            "blocker": 0,
+            "info": 2
+          },
+          "journalEntries": 1,
+          "signedEntries": 0,
+          "corrections": 0,
+          "assets": 0,
+          "assetsByStatus": {},
+          "threads": 0
+        },
+        "threads": {},
+        "events": [
+          {
+            "type": "journal_draft_created",
+            "ts": "2026-06-02T12:40:45.965Z",
+            "title": "Journal skapad",
+            "icon": "📝",
+            "tone": "info",
+            "actor": "personal-demo-setup",
+            "entityId": "54c8cef2-ac4a-4d5e-a295-b36eea20b44f",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Pilot demo post a",
+              "isForm": false,
+              "isCorrection": false,
+              "reason": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T12:40:45.965Z",
+            "title": "Pilot demo post a",
+            "icon": "📋",
+            "tone": "info",
+            "entityId": "54c8cef2-ac4a-4d5e-a295-b36eea20b44f",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          }
+        ],
+        "ownerMandate": "no_drive_links_in_ui"
+      }
+    },
+    {
+      "name": "forms-missing",
+      "path": "/api/v1/cco-forms/patient/cco-pilot-20260602-a/missing?treatment=fue&tenantId=hairtpclinic",
+      "expected": [
+        200
+      ],
+      "status": 200,
+      "result": "PASS",
+      "json": {
+        "patientId": "cco-pilot-20260602-a",
+        "tenantId": "hairtpclinic",
+        "treatment": "fue",
+        "encounterId": null,
+        "readyForTreatment": false,
+        "counts": {
+          "required": 2,
+          "fulfilled": 0,
+          "missing": 2,
+          "blockingMissing": 2
+        },
+        "missing": [
+          {
+            "docKey": "healthDeclaration",
+            "journalType": "health_declaration",
+            "required": true,
+            "blocking": true,
+            "templateRef": "health_declaration_hair_tp",
+            "deadlineHoursBefore": null,
+            "fulfilled": false,
+            "fulfillingEntryId": null,
+            "signedAt": null,
+            "encounterId": null
+          },
+          {
+            "docKey": "fitnessCertificate",
+            "journalType": "fitness_certificate",
+            "required": true,
+            "blocking": true,
+            "templateRef": "fitness_certificate_hair_tp",
+            "deadlineHoursBefore": 48,
+            "fulfilled": false,
+            "fulfillingEntryId": null,
+            "signedAt": null,
+            "encounterId": null
+          }
+        ],
+        "fulfilled": [],
+        "evaluatedAt": "2026-06-02T13:54:33.030Z"
+      }
+    },
+    {
+      "name": "journal-entries",
+      "path": "/api/v1/cco-journal-quick/entries?tenantId=hairtpclinic&patientId=cco-pilot-20260602-a",
+      "expected": [
+        200
+      ],
+      "status": 200,
+      "result": "PASS",
+      "json": {
+        "count": 1,
+        "entries": [
+          {
+            "entryId": "54c8cef2-ac4a-4d5e-a295-b36eea20b44f",
+            "tenantId": "hairtpclinic",
+            "patientId": "cco-pilot-20260602-a",
+            "personnummer": "",
+            "treatmentEncounterId": "",
+            "journalType": "consultation_plan",
+            "formVariant": "default",
+            "sourceQuestionaryId": "",
+            "status": "draft",
+            "locked": false,
+            "title": "Pilot demo post a",
+            "source": "cco_journal",
+            "importMeta": {},
+            "fields": {
+              "consultationDate": "",
+              "method": "",
+              "graftsTotal": "",
+              "zones": [],
+              "prpIncluded": null,
+              "notes": "",
+              "bookingConversationId": "",
+              "bookingServiceId": "",
+              "bookingSlotStart": "",
+              "bookingChannel": "",
+              "bookingConfirmedAt": ""
+            },
+            "attachments": [],
+            "authorUserId": "personal-demo-setup",
+            "authorName": "personal-demo-setup",
+            "authorRole": "owner",
+            "signedAt": null,
+            "signedByUserId": null,
+            "signedByName": null,
+            "correctionOfEntryId": null,
+            "correctionReason": null,
+            "correctionCreatedBy": null,
+            "correctionCreatedAt": null,
+            "events": [
+              {
+                "id": "5e4b26b9-3501-41fd-b7cb-edba4dc6e908",
+                "type": "journal_entry_created",
+                "label": "Journal skapad",
+                "detail": "",
+                "actorUserId": "personal-demo-setup",
+                "actorName": "personal-demo-setup",
+                "actorRole": "owner",
+                "createdAt": "2026-06-02T12:40:45.965Z",
+                "metadata": {}
+              }
+            ],
+            "createdAt": "2026-06-02T12:40:45.965Z",
+            "updatedAt": "2026-06-02T12:40:45.965Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "journal-entry",
+      "path": "/api/v1/cco-journal-quick/entry",
+      "method": "PUT",
+      "body": {},
+      "expected": [
+        400
+      ],
+      "status": 400,
+      "result": "PASS",
+      "json": {
+        "error": "patientId krävs"
+      }
+    },
+    {
+      "name": "journal-sign",
+      "path": "/api/v1/cco-journal-quick/entry/sign",
+      "method": "POST",
+      "body": {},
+      "expected": [
+        400
+      ],
+      "status": 400,
+      "result": "PASS",
+      "json": {
+        "error": "patientId + entryId krävs"
+      }
+    },
+    {
+      "name": "journal-correction",
+      "path": "/api/v1/cco-journal-quick/entry/correction",
+      "method": "POST",
+      "body": {},
+      "expected": [
+        400
+      ],
+      "status": 400,
+      "result": "PASS",
+      "json": {
+        "error": "patientId + entryId krävs"
+      }
+    },
+    {
+      "name": "finance.html",
+      "path": "/finance.html",
+      "expected": [
+        200
+      ],
+      "status": 200,
+      "result": "PASS",
+      "json": {
+        "_raw": "<!doctype html><html lang=\"sv\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Chief of Finance · CCO</title>\n<style>\n  :root{--bg:#faf6f2;--ink:"
+      }
+    },
+    {
+      "name": "finance-review.html",
+      "path": "/finance-review.html",
+      "expected": [
+        200
+      ],
+      "status": 200,
+      "result": "PASS",
+      "json": {
+        "_raw": "<!doctype html><html lang=\"sv\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Revisor-portal · Chief of Finance · CCO</title>\n<style>\n  :root{--"
+      }
+    }
+  ],
+  "pilotResults": [
+    {
+      "slot": 1,
+      "customerId": "cco-pilot-20260602-a",
+      "redactedLabel": "Pilotkund A · ren journalföringstest",
+      "journalFeed": "PASS",
+      "journalTimeline": "PASS",
+      "forms": "PASS",
+      "importedHistory": false,
+      "reviewMaterial": false,
+      "kundkortRoute": "/kunder.html",
+      "openRoute": "/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator",
+      "notes": "Anonym testpatient. Skapa/signera/rättelse här under mötet.",
+      "feedItems": 1,
+      "timelineEvents": 2
+    },
+    {
+      "slot": 2,
+      "customerId": "cco-pilot-20260602-b",
+      "redactedLabel": "Pilotkund B · journal-feed + timeline",
+      "journalFeed": "PASS",
+      "journalTimeline": "PASS",
+      "forms": "PASS",
+      "importedHistory": false,
+      "reviewMaterial": false,
+      "kundkortRoute": "/kunder.html",
+      "openRoute": "/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator",
+      "notes": "Anonym testpatient med en sparad pilotpost.",
+      "feedItems": 1,
+      "timelineEvents": 2
+    },
+    {
+      "slot": 3,
+      "customerId": "cco-readiness-smoke-1780402011",
+      "redactedLabel": "Pilotkund C · signering + rättelse verifierad",
+      "journalFeed": "PASS",
+      "journalTimeline": "PASS",
+      "forms": "PASS",
+      "importedHistory": false,
+      "reviewMaterial": false,
+      "kundkortRoute": "/kunder.html",
+      "openRoute": "/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator",
+      "notes": "Har signerad original + rättelse i prod smoke. Visa thread/timeline.",
+      "feedItems": 2,
+      "timelineEvents": 6
+    }
+  ],
+  "e2e": {
+    "patientId": "cco-pilot-20260602-a",
+    "result": "PASS",
+    "steps": [
+      {
+        "step": "create_draft",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "sign_lock",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "edit_locked_blocked",
+        "status": 409,
+        "pass": true
+      },
+      {
+        "step": "create_correction",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "sign_correction",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "feed_visible",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "timeline_visible",
+        "status": 200,
+        "pass": true
+      }
+    ]
+  }
+}

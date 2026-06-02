@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-02T12:00:00.000Z",
-  "version": "1.0.0",
+  "generatedAt": "2026-06-02T13:54:35.161Z",
+  "version": "1.1.0",
   "prodBaseUrl": "https://arcana.hairtpclinic.com",
   "personalStartPage": "/cco-personal-start.html",
   "demoStatus": {
@@ -52,16 +52,49 @@
     }
   ],
   "verifiedRoutes": [
-    { "path": "/cco-personal-start.html", "purpose": "Personal start" },
-    { "path": "/kunder.html", "purpose": "Kundkort (huvudnav)" },
-    { "path": "/journal-feed-demo.html", "purpose": "Patientkort journal-feed" },
-    { "path": "/journal-build-demo.html", "purpose": "Journal-API referens + demo" },
-    { "path": "/api/v1/cco-customers/:id/journal-feed", "purpose": "Journal-feed API", "probeAs": "GET" },
-    { "path": "/api/v1/cco-customers/:id/journal-timeline", "purpose": "Timeline API", "probeAs": "GET" },
-    { "path": "/api/v1/cco-forms/patient/:id/missing", "purpose": "Forms blocker API", "probeAs": "GET" },
-    { "path": "/finance.html", "purpose": "CF dashboard (internt)" },
-    { "path": "/finance-review.html", "purpose": "Revisorportal" },
-    { "path": "/finance-reports.html", "purpose": "Finance reports" }
+    {
+      "path": "/cco-personal-start.html",
+      "purpose": "Personal start"
+    },
+    {
+      "path": "/kunder.html",
+      "purpose": "Kundkort (huvudnav)"
+    },
+    {
+      "path": "/journal-feed-demo.html",
+      "purpose": "Patientkort journal-feed"
+    },
+    {
+      "path": "/journal-build-demo.html",
+      "purpose": "Journal-API referens + demo"
+    },
+    {
+      "path": "/api/v1/cco-customers/:id/journal-feed",
+      "purpose": "Journal-feed API",
+      "probeAs": "GET"
+    },
+    {
+      "path": "/api/v1/cco-customers/:id/journal-timeline",
+      "purpose": "Timeline API",
+      "probeAs": "GET"
+    },
+    {
+      "path": "/api/v1/cco-forms/patient/:id/missing",
+      "purpose": "Forms blocker API",
+      "probeAs": "GET"
+    },
+    {
+      "path": "/finance.html",
+      "purpose": "CF dashboard (internt)"
+    },
+    {
+      "path": "/finance-review.html",
+      "purpose": "Revisorportal"
+    },
+    {
+      "path": "/finance-reports.html",
+      "purpose": "Finance reports"
+    }
   ],
   "redList": [
     "AI no-show",
@@ -96,5 +129,115 @@
     "Visa Behöver granskning-regeln",
     "Förklara pausade områden (mail, bilder, CF internt)",
     "Avsluta: kontrollerad journalföringspilot startar nu"
-  ]
+  ],
+  "deadline": "2026-06-04",
+  "routePreflight": [
+    {
+      "name": "kunder.html",
+      "path": "/kunder.html",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "personal-start",
+      "path": "/cco-personal-start.html",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "journal-feed",
+      "path": "/api/v1/cco-customers/cco-pilot-20260602-a/journal-feed?tenantId=hairtpclinic",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "journal-timeline",
+      "path": "/api/v1/cco-customers/cco-pilot-20260602-a/journal-timeline?tenantId=hairtpclinic",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "forms-missing",
+      "path": "/api/v1/cco-forms/patient/cco-pilot-20260602-a/missing?treatment=fue&tenantId=hairtpclinic",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "journal-entries",
+      "path": "/api/v1/cco-journal-quick/entries?tenantId=hairtpclinic&patientId=cco-pilot-20260602-a",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "journal-entry",
+      "path": "/api/v1/cco-journal-quick/entry",
+      "status": 400,
+      "result": "PASS"
+    },
+    {
+      "name": "journal-sign",
+      "path": "/api/v1/cco-journal-quick/entry/sign",
+      "status": 400,
+      "result": "PASS"
+    },
+    {
+      "name": "journal-correction",
+      "path": "/api/v1/cco-journal-quick/entry/correction",
+      "status": 400,
+      "result": "PASS"
+    },
+    {
+      "name": "finance.html",
+      "path": "/finance.html",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "finance-review.html",
+      "path": "/finance-review.html",
+      "status": 200,
+      "result": "PASS"
+    }
+  ],
+  "e2eJournal": {
+    "patientId": "cco-pilot-20260602-a",
+    "result": "PASS",
+    "steps": [
+      {
+        "step": "create_draft",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "sign_lock",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "edit_locked_blocked",
+        "status": 409,
+        "pass": true
+      },
+      {
+        "step": "create_correction",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "sign_correction",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "feed_visible",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "step": "timeline_visible",
+        "status": 200,
+        "pass": true
+      }
+    ]
+  }
 }
