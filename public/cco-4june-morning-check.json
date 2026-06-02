@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T21:11:26.476Z",
+  "generatedAt": "2026-06-02T21:13:37.852Z",
   "title": "4 juni Command Status",
   "prodUrl": "https://arcana.hairtpclinic.com/cco-personal-start.html",
   "backupUrl": "https://major-arcana-frankfurt.onrender.com/cco-personal-start.html",
@@ -41,7 +41,7 @@
     ]
   },
   "dailyReadinessSnapshot": {
-    "generatedAt": "2026-06-02T21:08:28.634Z",
+    "generatedAt": "2026-06-02T21:13:31.223Z",
     "journalPilot": "PASS",
     "mail": "PHASE_2_UI_READY",
     "mailRemaining": 493,

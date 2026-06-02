@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T20:42:45.810Z",
+  "generatedAt": "2026-06-02T21:13:31.223Z",
   "photoReview": {
     "pendingPhotos": 860,
     "patientsWithPendingPhotos": 150,
@@ -62,7 +62,7 @@
     "pilot2": "PASS",
     "pilot3": "PASS",
     "presentationGate": "PASS",
-    "checkedAt": "2026-06-02T20:42:45.810Z",
+    "checkedAt": "2026-06-02T21:13:31.223Z",
     "personalStartUrl": "/cco-personal-start.html",
     "kundkortUrl": "/kunder.html"
   },
@@ -93,7 +93,7 @@
   },
   "dailyReadiness": {
     "docFile": "docs/strategy/CCO-DAILY-READINESS-2026-06-04.md",
-    "generatedAt": "2026-06-02T20:42:45.810Z",
+    "generatedAt": "2026-06-02T21:13:31.223Z",
     "journalPilot": "PASS",
     "mail": "PHASE_2_UI_READY",
     "photoPending": 860,

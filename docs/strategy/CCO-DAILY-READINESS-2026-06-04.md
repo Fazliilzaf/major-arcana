@@ -1,6 +1,6 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T20:42:45.810Z_  
+_Senast uppdaterad: 2026-06-02T21:13:31.223Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
