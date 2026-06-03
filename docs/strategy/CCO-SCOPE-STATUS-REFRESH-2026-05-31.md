@@ -126,3 +126,16 @@ _Ingen patientdata i denna rapport._
 - 🟡 Photo Review: pending
 - 🟢 Drive/historik: imported + review-badges + warning-sidan
 - ⏸ Aisia: paused
+
+### Cycle-14 statusrefresh 2026-06-04T01:00Z
+
+- ✅ Journalpilot: **PASS**
+- ✅ Personalstart: **PASS** (nu 15 stöd-länkar i Section E)
+- ✅ Journal Safety Helper (NY): **LIVE**
+- ✅ Staff Training Completion (NY): **LIVE**
+- ✅ First Week Rollout Plan (NY doc)
+- 🟢 CF API: mounted + RBAC enforced (auth-test pending)
+- 🟡 Mail Phase 2: operativ (mailbox 248/175/67/3, ej dagligt verktyg)
+- 🟡 Photo Review: pending
+- 🟢 Drive/historik: imported + review-badges
+- ⏸ Aisia: paused

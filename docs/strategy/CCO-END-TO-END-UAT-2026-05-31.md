@@ -152,3 +152,20 @@ _Ingen patientdata i denna rapport._
 | Photo Review | **pending** |
 | Drive/historik | **imported** + review-badges + warning |
 | Aisia | **paused** |
+
+### Cycle-14 statusrefresh 2026-06-04T01:00Z
+
+| Spår | Status |
+|---|---|
+| Journalpilot | **PASS** |
+| Personalstart | **PASS** |
+| Pilot 1/2/3 | **PASS · PASS · PASS** |
+| Journal Safety Helper (NY) | **LIVE** (6 checkpoints, front-end-only) |
+| Staff Training Completion (NY) | **LIVE** (printbar bekräftelse) |
+| First Week Rollout Plan (NY) | **DOCUMENTED** (Dag 1-5) |
+| Training Mode · FAQ · Go-Live · Sign-off · Pre-Signering · Review-Warning · Efter-mötet | **LIVE** |
+| CF API | mounted + RBAC (auth-test pending) |
+| Mail Phase 2 | operativ (mailbox 248/175/67/3) men inte dagligt verktyg |
+| Photo Review | **pending** |
+| Drive/historik | **imported** + review-badges |
+| Aisia | **paused** |

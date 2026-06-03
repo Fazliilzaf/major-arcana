@@ -501,3 +501,43 @@ Sektion 0 "Vad gör jag nu?" (från cycle 9) täcker redan: verifiera identitet 
 
 ### Copy audit cycle-13 — PASS
 Alla 14 personal-resurser granskade. Inga positiva påståenden om "full cutover", "Photo Review klar", "Aisia live", "Fortnox kopplat", "mail dagligt verktyg", "AI används på journaltext". Förekomster av dessa fraser är endast inom legitima förbjudet-listor och scenario-förklaringar.
+
+---
+
+## Cycle-14 status 2026-06-04T01:00Z (Claude)
+
+### Nya leveranser cycle-14
+
+- ✅ **`/cco-journal-safety-helper.html`** — In-app Journal Safety Helper. 6 checkpoints (rätt patient verifierad · journaltext för rätt besök · STOPPA om review-material använt som klinisk sanning · rättelse skapar ny post · signera först när allt kontrollerat · eskalera vid osäkerhet). Interaktiv reset för nästa patient. Alltid synlig STOP-banner. **Front-end-only**, ingen backend.
+- ✅ **`/cco-staff-training-completion.html`** — Printbar bekräftelse på avklarad träning. 7 kryssrutor (öppna kundkort · verifiera identitet · skapa journal · signera · rättelse · förstår "Behöver granskning" · vet när stoppa). Namn/roll/datum/tränings-tid/plats/tränare/underskrift. Ingen patientdata.
+- ✅ **`docs/strategy/CCO-FIRST-WEEK-JOURNAL-ROLLOUT-2026-06-04.md`** — 5-dagars rollout-plan (Dag 1: 1-3 kända · Dag 2: 4-8 kända · Dag 3: börja med historik · Dag 4: feedback + P0/P1 · Dag 5: go/no-go vardagsläge). Eskaleringskedja. Vad som INTE används första veckan. Daglig rapportering.
+- ✅ **Personal Start Section E** utökad — 13 → **15 stöd-länkar**
+- ✅ **Command Center** utökad — 18 → **20 snabblänkar**
+
+### Komplett 4 juni-personalpaket — **16 länkbara resurser**
+1-14. (samma som cycle 13)
+15. `/cco-journal-safety-helper.html` · **Journal Safety Helper (NY)**
+16. `/cco-staff-training-completion.html` · **Training Completion (NY)**
+
+### Status-matris cycle-14
+
+| Spår | Status |
+|---|---|
+| Journalpilot E2E | **PASS** |
+| Personalstart | **PASS** |
+| Pilot 1/2/3 | **PASS · PASS · PASS** |
+| Training Mode | **LIVE** |
+| FAQ | **LIVE** |
+| Go-Live Support | **LIVE** |
+| Sign-off Sheet | **LIVE** |
+| Pre-Signering Check | **LIVE** |
+| Review-Material Warning | **LIVE** |
+| Efter mötet-start | **LIVE** |
+| **Journal Safety Helper (NY)** | **LIVE** |
+| **Staff Training Completion (NY)** | **LIVE** |
+| **First Week Rollout Plan** | **DOCUMENTED** |
+| CF API mounted + RBAC enforced | **YES** (auth-test pending) |
+| Mail Phase 2 | operativ (mailbox 248/175/67/3) men inte dagligt verktyg |
+| Photo Review | **PENDING** |
+| Drive/historik | **IMPORTED** + review-badges |
+| Aisia | **PAUSED** |

@@ -261,3 +261,17 @@ _Ingen patientdata i denna rapport._
 Personalpaket: 13 → **14 länkbara resurser**. Personal Start Section E: 12→13. Command Center: 17→18.
 
 Server.js + journal-routes orörda. Heliga flödet bevarat. Copy audit PASS.
+
+---
+
+## Cycle-14 (2026-06-04T01:00Z · Claude)
+
+In-app journal-säkerhet + första veckans rollout-plan:
+
+- `/cco-journal-safety-helper.html` — 6-checkpoint front-end-only hjälppanel (rätt patient · rätt besök · STOPPA om review-material · rättelse = ny post · signera först · eskalera)
+- `/cco-staff-training-completion.html` — printbar bekräftelse på avklarad Training Mode
+- `docs/strategy/CCO-FIRST-WEEK-JOURNAL-ROLLOUT-2026-06-04.md` — Dag 1-5 plan (1-3 patienter → 4-8 → historik → feedback → go/no-go)
+
+Personalpaket: 14 → **16 länkbara resurser**. Personal Start Section E: 13→15. Command Center: 18→20.
+
+Server.js + journal-routes orörda. Heliga flödet bevarat.
