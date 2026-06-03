@@ -78,6 +78,7 @@
     "cco:verify-journal-mounts": "node scripts/verify-journal-pilot-routes.js",
     "cco:presentation-gate": "bash scripts/post-deploy-presentation-gate.sh",
     "cco:verify-kundresa-canonical-9-step": "node scripts/verify-kundresa-canonical-9-step.js",
+    "cco:verify-smart-next-step-dry-run": "node scripts/verify-smart-next-step-dry-run.js",
     "cco:verify-kunder-real-data": "node scripts/verify-kunder-real-data.js",
     "cco:verify-mobile-kunder-real-data": "node scripts/verify-mobile-kunder-real-data.js",
     "cco:real-cco-gate": "bash scripts/run-real-cco-gate.sh",

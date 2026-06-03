@@ -12,6 +12,13 @@ const {
   loadKunderBookingIndex,
 } = require('../ops/ccoKunderEnrichment');
 const { resolveStaffOwnership } = require('../ops/ccoKunderStaffOwner');
+const { isAutomationRunnerEnabled } = require('../ops/ccoAutomationRegistry');
+const {
+  evaluatePatientSignals,
+  getTreatmentAgreementStore,
+  loadAgreementContext,
+} = require('../ops/ccoAutomationRunner');
+const { attachAutomationRoutes } = require('./ccoAutomationRoutes');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -61,6 +68,7 @@ function createCcoStaffRouter({
         const offsetVal = parseIntParam(req.query.offset, 0);
         const query = normalizeText(req.query.q || req.query.query);
         const segment = normalizeText(req.query.segment);
+        const includeAutomation = String(req.query.includeAutomation || '') === '1';
         const flags = String(req.query.flags || '')
           .split(',')
           .map((item) => item.trim())
@@ -75,6 +83,7 @@ function createCcoStaffRouter({
                 query,
                 flags,
                 segment,
+                includeAutomation,
                 assignedOwner: normalizeText(req.query.assignedOwner),
                 actorUserId: actor.userId,
               })
@@ -171,18 +180,53 @@ function createCcoStaffRouter({
             bookingCoverage,
           };
 
+          let readouts = page.map((patient) =>
+            buildKunderReadout(patient, assetIndex, bookingIndex, segmentOpts)
+          );
+
+          let automationMeta = null;
+          if (includeAutomation) {
+            if (!isAutomationRunnerEnabled()) {
+              automationMeta = {
+                enabled: false,
+                dryRun: true,
+                reason: 'ENABLE_AUTOMATION_RUNNER är inte true',
+              };
+            } else {
+              const agreementStore = await getTreatmentAgreementStore(config);
+              readouts = [];
+              for (const patient of page) {
+                const readout = buildKunderReadout(patient, assetIndex, bookingIndex, segmentOpts);
+                const agreement = await loadAgreementContext(
+                  agreementStore,
+                  actor.tenantId,
+                  readout.patientId
+                );
+                const evaluation = evaluatePatientSignals(readout, {
+                  agreement,
+                  bookingCoverage,
+                });
+                readouts.push({
+                  ...readout,
+                  automationSignals: evaluation.signals,
+                  automationTop: evaluation.topSignal,
+                });
+              }
+              automationMeta = { enabled: true, dryRun: true, version: '2.0.0-b-sprint' };
+            }
+          }
+
           return {
             stats: enrichedStats,
             segmentStats,
             staffOwnership,
             bookingCoverage,
+            automation: automationMeta,
             patients: {
               total: rows.length,
               offset: start,
               limit: max,
-              patients: page.map((patient) =>
-                buildKunderReadout(patient, assetIndex, bookingIndex, segmentOpts)
-              ),
+              patients: readouts,
             },
             offerTemplates: { templates: listOfferTemplates() },
             provider: 'customers-shell',
@@ -247,6 +291,16 @@ function createCcoStaffRouter({
         return res.json({ snapshot, cacheHit: false });
       })
   );
+
+  attachAutomationRoutes(router, {
+    patientMasterStore,
+    requireAuth,
+    requireRole,
+    ROLE_OWNER,
+    ROLE_STAFF,
+    config,
+    handle,
+  });
 
   return router;
 }
