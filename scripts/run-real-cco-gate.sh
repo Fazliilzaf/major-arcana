@@ -50,14 +50,15 @@ else
   fail "customers-shell unexpected HTTP ${code}"
 fi
 
-html=$(curl -sS "${BASE}/kunder.html" 2>/dev/null || true)
-if echo "$html" | grep -q 'cco-kunder-real.js'; then
+KUNDER_TMP="$(mktemp)"
+trap 'rm -f "$KUNDER_TMP"' EXIT
+if curl -sS -o "$KUNDER_TMP" "${BASE}/kunder.html" && grep -q 'src="/cco-kunder-real.js"' "$KUNDER_TMP"; then
   pass 'kunder.html includes cco-kunder-real.js on prod'
 else
   fail 'kunder.html missing cco-kunder-real.js on prod'
 fi
 
-if echo "$html" | grep -qE '1[[:space:]]*247|49[[:space:]]*MSEK|CUSTOMER_ROWS'; then
+if grep -qE '1[[:space:]]*247|49[[:space:]]*MSEK|CUSTOMER_ROWS' "$KUNDER_TMP"; then
   fail 'kunder.html still has mock population markers on prod'
 else
   pass 'kunder.html without mock population on prod'
