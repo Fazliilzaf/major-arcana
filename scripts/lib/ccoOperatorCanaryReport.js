@@ -3,7 +3,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const https = require('node:https');
-const { buildCanaryStatusPayload, loadState } = require('../../src/ops/ccoOperatorCanary');
+const {
+  buildCanaryStatusPayload,
+  loadState,
+  patientsAffectedFromAudit,
+} = require('../../src/ops/ccoOperatorCanary');
 const { config } = require('../../src/config');
 const { aggregateDecisionStats } = require('../../src/ops/ccoPhotoReviewPilot');
 
@@ -116,6 +120,11 @@ async function collectOperatorCanaryReport({
     visiblePhotos: photoSum.json?.photosVisibleCount ?? 0,
     pendingPhotos: photoSum.json?.pendingPhotos ?? 0,
   };
+  payload.photo.storageKeyChanged = state.photo?.storageKeyChanged ?? 0;
+  payload.photo.wrongPatient = state.photo?.wrongPatient ?? 0;
+  payload.photo.patientsAffected = [];
+  payload.photo.storageKeyUnchanged = payload.photo.storageKeyChanged === 0;
+  payload.photo.checksumMismatch = payload.photo.checksumOk === false;
 
   payload.import.approved = state.import?.approved ?? 0;
   payload.import.rejected = state.import?.rejected ?? 0;
@@ -131,27 +140,95 @@ async function collectOperatorCanaryReport({
   payload.mail.rejected = state.mail?.rejected ?? 0;
   payload.mail.remaining = mailOp.json?.remaining ?? null;
   payload.mail.mailboxBreakdown = mailOp.json?.mailboxCounts ?? null;
+  payload.mail.operationalReadinessDelta = {
+    remainingBefore: mailOp.json?.remaining ?? null,
+    approvedInCanary: state.mail?.approved ?? 0,
+    readyForWork: mailOp.json?.coverage?.readyForWork ?? null,
+  };
 
   payload.recommendedNextWork = buildRecommendedNextWork(payload);
+  payload.completionReport = formatCompletionReport(payload);
 
   return payload;
 }
 
+function formatCompletionReport(payload) {
+  return {
+    photo: {
+      approved: payload.photo.approved ?? 0,
+      rejected: payload.photo.rejected ?? 0,
+      reassigned: payload.photo.reassigned ?? 0,
+      manualResolved: payload.photo.manualResolved ?? 0,
+      pending: payload.photo.pendingPhotos ?? null,
+      patientsAffected: payload.photo.patientsAffected ?? [],
+      checksumOk: payload.photo.checksumOk,
+      storageKeyUnchanged: payload.photo.storageKeyUnchanged,
+      driveLinksInUi: payload.photo.driveLinksInUi,
+      wrongPatient: payload.photo.wrongPatient ?? 0,
+    },
+    import: {
+      approved: payload.import.approved ?? 0,
+      rejected: payload.import.rejected ?? 0,
+      unresolved: payload.import.unresolved ?? 0,
+      needsOwnerSource: payload.import.needsOwnerSource ?? 0,
+      queueTotal: payload.import.queueTotal ?? null,
+      newAssets: payload.import.newAssets ?? 0,
+      customerIdMismatch: payload.import.customerIdMismatch ?? 0,
+      sourceBreakdown: payload.import.sourceBreakdown ?? [],
+    },
+    mail: {
+      approved: payload.mail.approved ?? 0,
+      unresolved: payload.mail.unresolved ?? 0,
+      excluded: payload.mail.excluded ?? 0,
+      rejected: payload.mail.rejected ?? 0,
+      remaining: payload.mail.remaining ?? null,
+      mailboxBreakdown: payload.mail.mailboxBreakdown ?? null,
+      operationalReadinessDelta: payload.mail.operationalReadinessDelta ?? null,
+    },
+  };
+}
+
 function buildRecommendedNextWork(payload) {
   const steps = [];
-  if (payload.photo.writeEnabled && !payload.photo.limitReached) {
-    steps.push(`Photo Review canary: ${payload.photo.decisionsRemaining} beslut kvar`);
-  }
-  if (payload.import.writeEnabled && !payload.import.limitReached) {
+  const p = payload.photo || {};
+  const i = payload.import || {};
+  const m = payload.mail || {};
+
+  if (p.writeEnabled && !p.limitReached) {
     steps.push(
-      `Import Review canary: ${payload.import.decisionsRemaining} beslut kvar (stark match)`
+      `Photo Review canary: ${p.decisionsRemaining} beslut kvar · pending ${p.pendingPhotos ?? '—'}`
+    );
+  } else if (p.limitReached) {
+    steps.push('Photo canary: gräns 25 nådd — kör operator-canary-report och presentation-gate');
+  }
+
+  if (i.writeEnabled && !i.limitReached) {
+    steps.push(
+      `Import Review canary: ${i.decisionsRemaining} beslut kvar (endast stark match · ingen ny kund)`
+    );
+  } else if (i.limitReached) {
+    steps.push('Import canary: gräns 25 nådd — granska source breakdown');
+  }
+
+  if (m.writeEnabled && !m.limitReached) {
+    steps.push(
+      `Mail Review canary: ${m.decisionsRemaining} beslut kvar · remaining ${m.remaining ?? '—'}`
+    );
+  } else if (m.limitReached) {
+    steps.push('Mail canary: gräns 25 nådd — verifiera mailbox breakdown');
+  }
+
+  if (!steps.length) {
+    steps.push(
+      'Canary write AV på prod — sätt ENABLE_CCO_OPERATOR_CANARY + per-spår write · kör gate'
     );
   }
-  if (payload.mail.writeEnabled && !payload.mail.limitReached) {
-    steps.push(`Mail Review canary: ${payload.mail.decisionsRemaining} beslut kvar`);
-  }
-  if (!steps.length) {
-    steps.push('Canary-gränser nådda eller write AV — kör readiness och presentation-gate');
+  if (
+    (p.storageKeyChanged ?? 0) > 0 ||
+    (p.wrongPatient ?? 0) > 0 ||
+    (i.customerIdMismatch ?? 0) > 0
+  ) {
+    steps.unshift('STOP: säkerhetsavvikelse i canary — pausa write och eskalera till Fazli');
   }
   return steps;
 }
@@ -170,4 +247,5 @@ module.exports = {
   collectOperatorCanaryReport,
   publishOperatorCanaryStatus,
   buildRecommendedNextWork,
+  formatCompletionReport,
 };

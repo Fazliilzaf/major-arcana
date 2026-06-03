@@ -13,11 +13,15 @@ const BASE = process.env.CCO_READINESS_BASE || 'https://arcana.hairtpclinic.com'
 async function main() {
   const payload = await collectOperatorCanaryReport({ base: BASE, projectRoot: REPO });
   const paths = publishOperatorCanaryStatus(payload, REPO);
-  console.log('=== CCO Operator Canary Report ===');
-  console.log('Photo:', payload.photo.writeEnabled ? 'WRITE' : 'AV', payload.photo);
-  console.log('Import:', payload.import.writeEnabled ? 'WRITE' : 'AV', payload.import);
-  console.log('Mail:', payload.mail.writeEnabled ? 'WRITE' : 'AV', payload.mail);
-  console.log('Next:', payload.recommendedNextWork?.join(' · '));
+  console.log('=== CCO Controlled Completion Canaries (Cycle 16) ===');
+  const r = payload.completionReport || {};
+  console.log('\n--- Photo Review canary ---');
+  console.log(JSON.stringify(r.photo, null, 2));
+  console.log('\n--- Import Review canary ---');
+  console.log(JSON.stringify(r.import, null, 2));
+  console.log('\n--- Mail Review canary ---');
+  console.log(JSON.stringify(r.mail, null, 2));
+  console.log('\nNästa:', payload.recommendedNextWork?.join(' · '));
   console.log('Wrote:', paths.publicPath);
 }
 

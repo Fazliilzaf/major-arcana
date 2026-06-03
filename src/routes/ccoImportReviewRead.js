@@ -72,6 +72,7 @@ function createCcoImportReviewReadRouter({ projectRoot, config = null, auditLog 
           action: String(req.body?.action || '').trim(),
           reason: String(req.body?.reason || '').trim(),
           reviewer: String(req.body?.reviewer || req.headers['x-cco-user'] || '').trim(),
+          expectedPatientId: String(req.body?.expectedPatientId || '').trim() || null,
           actor: {
             role: req.headers['x-cco-role'] || 'operator',
             userId: req.headers['x-cco-user'] || null,

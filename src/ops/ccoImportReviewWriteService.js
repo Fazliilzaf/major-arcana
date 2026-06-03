@@ -1,7 +1,11 @@
 'use strict';
 
 const path = require('node:path');
-const { invalidateImportReviewCache, OPERATOR_SOURCES } = require('./ccoImportReviewReadService');
+const {
+  invalidateImportReviewCache,
+  OPERATOR_SOURCES,
+  loadSummary,
+} = require('./ccoImportReviewReadService');
 const { createCcoImportReviewQueueStore } = require('./ccoImportReviewQueueStore');
 const { assertCanaryAllows, recordCanaryDecision } = require('./ccoOperatorCanary');
 const { isStrongCustomerMatch } = require('./ccoImportReviewMatch');
@@ -28,6 +32,7 @@ async function applyImportReviewDecision({
   reason,
   reviewer,
   actor,
+  expectedPatientId = null,
 }) {
   if (!config?.enableImportReviewWrite) {
     const e = new Error('import_review_write_disabled');
@@ -89,6 +94,13 @@ async function applyImportReviewDecision({
       e.statusCode = 409;
       throw e;
     }
+    const expected = String(expectedPatientId || '').trim();
+    if (expected && expected !== matchedPatientId) {
+      const e = new Error('customer_id_mismatch');
+      e.statusCode = 409;
+      e.detail = { expected, matchedPatientId };
+      throw e;
+    }
     patch = {
       ...patch,
       status: 'approved',
@@ -117,7 +129,27 @@ async function applyImportReviewDecision({
     maxDecisions: config.importReviewCanaryMax,
   });
 
-  return { item: updated, canary, newAssets: 0, customerIdMismatch: 0 };
+  const dataDir = path.join(projectRoot, 'data');
+  const summary = loadSummary(dataDir, projectRoot);
+  const sourceBreakdown = (summary.sources || []).map((s) => ({
+    id: s.id,
+    label: s.label,
+    queueCount: s.queueCount,
+    pending: s.pending,
+  }));
+
+  return {
+    item: updated,
+    canary,
+    newAssets: 0,
+    customerIdMismatch: 0,
+    sourceBreakdown,
+    rules: {
+      noNewCustomer: true,
+      noAutoImportOnUncertainMatch: true,
+      strongMatchOnly: true,
+    },
+  };
 }
 
 module.exports = {

@@ -1,8 +1,10 @@
 'use strict';
 
 const express = require('express');
-const fs = require('node:fs');
 const path = require('node:path');
+
+const PHOTO_REVIEW_REPO_ROOT = path.join(__dirname, '../..');
+const fs = require('node:fs');
 const { classify, isPhotoCategory } = require('../ops/ccoAssetImportPipeline');
 const {
   filterPatientsForPilot,
@@ -183,6 +185,9 @@ function createCcoPhotoReviewRouter({
 }) {
   const router = express.Router();
   const batchLabels = loadBatchLabelByPatient();
+  const enrichedPilotConfig = pilotConfig
+    ? { ...pilotConfig, projectRoot: pilotConfig.projectRoot || PHOTO_REVIEW_REPO_ROOT }
+    : null;
 
   router.get(
     '/photo-review/summary',
@@ -225,7 +230,9 @@ function createCcoPhotoReviewRouter({
           });
         }
 
-        const pilot = writeEnabled ? pilotSummary(pilotConfig || {}, auditLog) : { active: false };
+        const pilot = writeEnabled
+          ? pilotSummary(enrichedPilotConfig || {}, auditLog)
+          : { active: false };
         const scopedItems =
           pilot.active && pilot.patientIds?.length
             ? items.filter((a) => pilot.patientIds.includes(a.patientId))
@@ -233,7 +240,7 @@ function createCcoPhotoReviewRouter({
         const progress = buildProgressPayload({
           assetStore,
           auditLog,
-          pilotConfig: pilotConfig || {},
+          pilotConfig: enrichedPilotConfig || {},
         });
 
         res.json({
@@ -302,8 +309,8 @@ function createCcoPhotoReviewRouter({
         });
 
         sorted =
-          writeEnabled && isPilotRestricted(pilotConfig || {})
-            ? filterPatientsForPilot(sorted, pilotConfig || {})
+          writeEnabled && isPilotRestricted(enrichedPilotConfig || {})
+            ? filterPatientsForPilot(sorted, enrichedPilotConfig || {})
             : sorted;
 
         if (q) {
@@ -323,7 +330,9 @@ function createCcoPhotoReviewRouter({
           readOnly: !writeEnabled,
           writeEnabled: !!writeEnabled,
           phase: reviewPhase(writeEnabled, pilotConfig),
-          pilot: writeEnabled ? pilotSummary(pilotConfig || {}, auditLog) : { active: false },
+          pilot: writeEnabled
+            ? pilotSummary(enrichedPilotConfig || {}, auditLog)
+            : { active: false },
           patients: sorted.slice(offset, offset + limit),
         });
       } catch (err) {
@@ -348,9 +357,11 @@ function createCcoPhotoReviewRouter({
           .map((a) => serializeReviewItem(a, batchLabels, { writeEnabled }))
           .sort((a, b) => a.priority - b.priority);
 
-        const pilot = writeEnabled ? pilotSummary(pilotConfig || {}, auditLog) : { active: false };
+        const pilot = writeEnabled
+          ? pilotSummary(enrichedPilotConfig || {}, auditLog)
+          : { active: false };
         if (
-          isPilotRestricted(pilotConfig || {}) &&
+          isPilotRestricted(enrichedPilotConfig || {}) &&
           pilot.patientIds.length &&
           !pilot.patientIds.includes(patientId)
         ) {
@@ -405,7 +416,9 @@ function createCcoPhotoReviewRouter({
             return a.priority - b.priority;
           });
 
-        const pilot = writeEnabled ? pilotSummary(pilotConfig || {}, auditLog) : { active: false };
+        const pilot = writeEnabled
+          ? pilotSummary(enrichedPilotConfig || {}, auditLog)
+          : { active: false };
         if (pilot.active && pilot.patientIds?.length) {
           items = items.filter((i) => pilot.patientIds.includes(i.patientId));
         }
@@ -432,7 +445,7 @@ function createCcoPhotoReviewRouter({
         const progress = buildProgressPayload({
           assetStore,
           auditLog,
-          pilotConfig: pilotConfig || {},
+          pilotConfig: enrichedPilotConfig || {},
         });
         if (auditLog) {
           auditLog.append({
@@ -453,6 +466,33 @@ function createCcoPhotoReviewRouter({
     }
   );
 
+  router.get(
+    '/photo-review/canary-status',
+    attachRole,
+    requirePermission('asset.review'),
+    async (req, res) => {
+      try {
+        const { loadState, getTrackSummary } = require('../ops/ccoOperatorCanary');
+        const { state } = loadState(PHOTO_REVIEW_REPO_ROOT);
+        const canary = getTrackSummary(state, 'photo', enrichedPilotConfig?.maxDecisions ?? 25);
+        return res.json({
+          writeEnabled: !!writeEnabled,
+          canaryMode: !!enrichedPilotConfig?.canaryMode,
+          canary,
+          rules: [
+            'Max 25 beslut per canary',
+            'Ett beslut per bild',
+            'reviewer + reason + imageStage + bodyArea + approvedCategory',
+            'storageKey/checksum/originalFileName oförändrade',
+            '0 massapproval · 0 AI-autoapproval',
+          ],
+        });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+  );
+
   if (writeEnabled) {
     const { applyPhotoReviewDecision, applyPhotoReviewReassign } = require('./ccoPhotoReviewWrite');
 
@@ -468,7 +508,7 @@ function createCcoPhotoReviewRouter({
           const result = await applyPhotoReviewReassign(assetStore, assetId, req.body || {}, {
             actor: actorFromReq(req),
             auditLog,
-            pilotConfig: pilotConfig || {},
+            pilotConfig: enrichedPilotConfig || {},
           });
           if (typeof onMutation === 'function') onMutation();
           const { assetStore: storeAfter } = await resolveStores();
@@ -478,7 +518,7 @@ function createCcoPhotoReviewRouter({
             progress: buildProgressPayload({
               assetStore: storeAfter,
               auditLog,
-              pilotConfig: pilotConfig || {},
+              pilotConfig: enrichedPilotConfig || {},
             }),
           });
         } catch (err) {
@@ -501,7 +541,7 @@ function createCcoPhotoReviewRouter({
           const result = await applyPhotoReviewDecision(assetStore, assetId, req.body || {}, {
             actor: actorFromReq(req),
             auditLog,
-            pilotConfig: pilotConfig || {},
+            pilotConfig: enrichedPilotConfig || {},
           });
           if (typeof onMutation === 'function') onMutation();
           const { assetStore: storeAfter } = await resolveStores();
@@ -516,7 +556,7 @@ function createCcoPhotoReviewRouter({
             progress: buildProgressPayload({
               assetStore: storeAfter,
               auditLog,
-              pilotConfig: pilotConfig || {},
+              pilotConfig: enrichedPilotConfig || {},
             }),
           });
         } catch (err) {

@@ -59,10 +59,16 @@ function assertPilotWriteAllowed({ asset, pilotConfig, auditLog }) {
   const used = countPilotDecisions(auditLog);
 
   if (pilotConfig?.canaryMode && maxDecisions > 0) {
-    if (used >= maxDecisions) {
-      const e = new Error('canary_decision_limit_reached');
-      e.statusCode = 429;
-      e.detail = { maxDecisions, used, mode: 'canary' };
+    const { assertCanaryAllows } = require('./ccoOperatorCanary');
+    assertCanaryAllows('photo', {
+      projectRoot: pilotConfig.projectRoot,
+      maxDecisions,
+      enabled: true,
+    });
+    if (used > maxDecisions) {
+      const e = new Error('canary_audit_state_drift');
+      e.statusCode = 409;
+      e.detail = { maxDecisions, auditUsed: used, mode: 'canary' };
       throw e;
     }
     return;
@@ -96,15 +102,26 @@ function filterPatientsForPilot(patients, pilotConfig) {
 function pilotSummary(pilotConfig, auditLog) {
   if (pilotConfig?.canaryMode) {
     const maxDecisions = Number(pilotConfig.maxDecisions) || 25;
-    const decisionsUsed = countPilotDecisions(auditLog);
+    const { loadState, getTrackSummary } = require('./ccoOperatorCanary');
+    const { state } = loadState(pilotConfig.projectRoot);
+    const track = getTrackSummary(state, 'photo', maxDecisions);
+    const auditUsed = countPilotDecisions(auditLog);
     return {
       active: true,
       canaryMode: true,
       fullCohort: false,
       patientIds: [],
-      maxDecisions,
-      decisionsUsed,
-      decisionsRemaining: Math.max(0, maxDecisions - decisionsUsed),
+      maxDecisions: track.maxDecisions,
+      decisionsUsed: track.decisionsUsed,
+      decisionsRemaining: track.decisionsRemaining,
+      limitReached: track.limitReached,
+      decisionsFromAudit: auditUsed,
+      approved: track.approved,
+      rejected: track.rejected,
+      reassigned: track.reassigned,
+      manualResolved: track.manualResolved,
+      storageKeyChanged: track.storageKeyChanged ?? 0,
+      wrongPatient: track.wrongPatient ?? 0,
     };
   }
 

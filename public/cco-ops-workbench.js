@@ -443,25 +443,42 @@
     const p = canary.photo || {};
     const i = canary.import || {};
     const m = canary.mail || {};
+    const cr = canary.completionReport || {};
     const next = (canary.recommendedNextWork || [])
       .map((t) => `<li>${escapeHtml(t)}</li>`)
       .join('');
+    const safetyStop =
+      (p.storageKeyChanged ?? 0) > 0 ||
+      (p.wrongPatient ?? 0) > 0 ||
+      (i.customerIdMismatch ?? 0) > 0;
     return `
       <section class="cow-section cow-section--canary" id="operator-canary">
-        <h2>Operator canary (Cycle 15)</h2>
-        <p class="cow-muted">Kontrollerad write — max 25 beslut per spår · ingen auto/massapproval</p>
+        <h2>Controlled Completion Canaries (Cycle 16)</h2>
+        <p class="cow-muted">Max 25 beslut/spår · ett beslut i taget · audit · 0 massapproval · 0 AI-auto</p>
+        ${safetyStop ? '<p class="cow-alert">STOP: säkerhetsavvikelse i canary — pausa write</p>' : ''}
         <div class="cow-metrics">
-          ${metric(`${p.decisionsUsed ?? 0}/${p.maxDecisions ?? 25}`, 'Photo beslut')}
-          ${metric(`${i.decisionsUsed ?? 0}/${i.maxDecisions ?? 25}`, 'Import beslut')}
-          ${metric(`${m.decisionsUsed ?? 0}/${m.maxDecisions ?? 25}`, 'Mail beslut')}
+          ${metric(`${p.decisionsUsed ?? 0}/${p.maxDecisions ?? 25}`, 'Photo')}
+          ${metric(`${i.decisionsUsed ?? 0}/${i.maxDecisions ?? 25}`, 'Import')}
+          ${metric(`${m.decisionsUsed ?? 0}/${m.maxDecisions ?? 25}`, 'Mail')}
         </div>
+        <h3>Photo Review canary</h3>
         <ul class="cow-list">
-          <li>Photo: write ${escapeHtml(p.writeEnabled ? 'PÅ' : 'AV')} · approved ${escapeHtml(p.approved ?? 0)} · pending ${escapeHtml(p.pendingPhotos ?? '—')} · VISIBLE ${escapeHtml(p.coverageDelta?.visiblePhotos ?? '—')}</li>
-          <li>Import: write ${escapeHtml(i.writeEnabled ? 'PÅ' : 'AV')} · approved ${escapeHtml(i.approved ?? 0)} · queue ${escapeHtml(i.queueTotal ?? '—')}</li>
-          <li>Mail: write ${escapeHtml(m.writeEnabled ? 'PÅ' : 'AV')} · approved ${escapeHtml(m.approved ?? 0)} · remaining ${escapeHtml(m.remaining ?? '—')}</li>
+          <li>write ${escapeHtml(p.writeEnabled ? 'PÅ' : 'AV')} · approved ${escapeHtml(cr.photo?.approved ?? p.approved ?? 0)} · rejected ${escapeHtml(cr.photo?.rejected ?? p.rejected ?? 0)} · reassigned ${escapeHtml(cr.photo?.reassigned ?? p.reassigned ?? 0)}</li>
+          <li>pending ${escapeHtml(cr.photo?.pending ?? p.pendingPhotos ?? '—')} · checksum OK ${escapeHtml(p.checksumOk === false ? 'NEJ' : 'JA')} · Drive-länkar ${escapeHtml(p.driveLinksInUi ?? 0)}</li>
+          <li>storageKey oförändrad ${escapeHtml(p.storageKeyUnchanged === false ? 'NEJ' : 'JA')} · fel kund ${escapeHtml(p.wrongPatient ?? 0)}</li>
+        </ul>
+        <h3>Import Review canary</h3>
+        <ul class="cow-list">
+          <li>write ${escapeHtml(i.writeEnabled ? 'PÅ' : 'AV')} · approved ${escapeHtml(cr.import?.approved ?? i.approved ?? 0)} · rejected ${escapeHtml(cr.import?.rejected ?? i.rejected ?? 0)} · unresolved ${escapeHtml(cr.import?.unresolved ?? i.unresolved ?? 0)}</li>
+          <li>queue ${escapeHtml(cr.import?.queueTotal ?? i.queueTotal ?? '—')} · needs_owner ${escapeHtml(cr.import?.needsOwnerSource ?? i.needsOwnerSource ?? 0)} · mismatch ${escapeHtml(i.customerIdMismatch ?? 0)} · nya kunder ${escapeHtml(i.newAssets ?? 0)}</li>
+        </ul>
+        <h3>Mail Review canary</h3>
+        <ul class="cow-list">
+          <li>write ${escapeHtml(m.writeEnabled ? 'PÅ' : 'AV')} · approved ${escapeHtml(cr.mail?.approved ?? m.approved ?? 0)} · excluded ${escapeHtml(cr.mail?.excluded ?? m.excluded ?? 0)} · rejected ${escapeHtml(cr.mail?.rejected ?? m.rejected ?? 0)}</li>
+          <li>remaining ${escapeHtml(cr.mail?.remaining ?? m.remaining ?? '—')} · unresolved ${escapeHtml(cr.mail?.unresolved ?? m.unresolved ?? 0)}</li>
         </ul>
         ${next ? `<h3>Nästa rekommenderade arbete</h3><ul class="cow-list">${next}</ul>` : ''}
-        <p class="cow-muted">Full rapport: <code>npm run cco:operator-canary-report</code> · <code>/cco-operator-canary-status.json</code></p>
+        <p class="cow-muted"><code>npm run cco:operator-canary-report</code> · <code>npm run cco:daily-readiness</code> · <code>/cco-operator-canary-status.json</code></p>
       </section>`;
   }
 

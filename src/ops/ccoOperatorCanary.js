@@ -28,6 +28,8 @@ function emptyTrack() {
     needsOwnerSource: 0,
     newAssets: 0,
     customerIdMismatch: 0,
+    storageKeyChanged: 0,
+    wrongPatient: 0,
     lastDecisionAt: null,
   };
 }
@@ -112,12 +114,25 @@ function recordCanaryDecision(track, patch = {}, { projectRoot, maxDecisions } =
     'needsOwnerSource',
     'newAssets',
     'customerIdMismatch',
+    'storageKeyChanged',
+    'wrongPatient',
   ]) {
     if (patch[key] != null) t[key] = (Number(t[key]) || 0) + Number(patch[key]);
   }
   state[track] = t;
   saveState(filePath, state);
   return getTrackSummary(state, track, max);
+}
+
+function patientsAffectedFromAudit(auditLog, { action = 'photo_review.decision' } = {}) {
+  const ids = new Set();
+  if (!auditLog?.query) return [];
+  const items = auditLog.query({ action, limit: 100000 }) || [];
+  for (const entry of items) {
+    const pid = entry.detail?.patientId;
+    if (pid && pid !== 'unknown') ids.add(pid);
+  }
+  return [...ids];
 }
 
 function buildCanaryStatusPayload({
@@ -158,10 +173,26 @@ function buildCanaryStatusPayload({
     rules: {
       noAutoApprove: true,
       noMassApproval: true,
+      noAiAutoApproval: true,
       noNewCustomerOnUncertainMatch: true,
       noGraphFetchFromUi: true,
+      noFuzzyMerge: true,
+      oneDecisionPerAsset: true,
     },
+    cycle: 'controlled-completion-canaries',
   };
+}
+
+function recordCanarySafetyViolation(track, kind, { projectRoot, maxDecisions } = {}) {
+  const patch =
+    kind === 'storageKeyChanged'
+      ? { storageKeyChanged: 1 }
+      : kind === 'wrongPatient'
+        ? { wrongPatient: 1 }
+        : kind === 'customerIdMismatch'
+          ? { customerIdMismatch: 1 }
+          : {};
+  return recordCanaryDecision(track, patch, { projectRoot, maxDecisions });
 }
 
 module.exports = {
@@ -169,7 +200,9 @@ module.exports = {
   loadState,
   assertCanaryAllows,
   recordCanaryDecision,
+  recordCanarySafetyViolation,
   getTrackSummary,
   buildCanaryStatusPayload,
+  patientsAffectedFromAudit,
   resolveStatePath,
 };

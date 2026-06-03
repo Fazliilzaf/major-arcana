@@ -1659,14 +1659,20 @@ function createOpsRouter({
       }
 
       try {
-        const canaryOps = config.enableMailReviewCanary
-          ? require('../ops/ccoOperatorCanary')
-          : null;
+        const canaryOps =
+          config.enableCcoOperatorCanary && config.enableMailReviewCanary
+            ? require('../ops/ccoOperatorCanary')
+            : null;
         if (canaryOps) {
           canaryOps.assertCanaryAllows('mail', {
             projectRoot: path.join(__dirname, '../..'),
             maxDecisions: config.mailReviewCanaryMax,
             enabled: true,
+          });
+        } else if (config.enableCcoOperatorCanary && !config.enableMailReviewCanary) {
+          return res.status(403).json({
+            error: 'mail_review_canary_write_disabled',
+            hint: 'Sätt ENABLE_MAIL_REVIEW_CANARY=true tillsammans med ENABLE_CCO_OPERATOR_CANARY',
           });
         }
         await ensureAmbiguousReviewMailboxesLoaded();
