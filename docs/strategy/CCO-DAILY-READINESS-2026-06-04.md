@@ -344,3 +344,33 @@ Command Center primary link → `/cco-demo.html`. Presenter Mode quick-bar prima
 Borttagna mock-claims på cco-demo.html: "Demo-portal" · "1 247 demo-kunder" · "49 MSEK" · "alla har simulerad data" · "demo-stage" · automation/watch/Aisia som live · Fortnox kopplat · mail dagligt · Photo Review klar · full cutover · webcal-länkar.
 
 Detaljerad rapport: `docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md`
+
+---
+
+## Cycle-20 STOPP (2026-06-04T05:00Z · Claude)
+
+**Owner-direktiv:** STOPP nya sidor. Rätt huvudflöde fastställt.
+
+### Primär presentation 4 juni
+
+```
+Välkommen till CCO  →  Kunder  →  Kundkort  →  Journal
+   /cco-demo.html       /kunder.html        (pilotkund)
+```
+
+### Vad har gjorts
+
+- ✅ `/cco-demo.html` verifierad som riktig "Välkommen till CCO" (title + h1 korrekt, 0 mock-claims, 7 sektioner)
+- ✅ Kommunikation-sektionen utökad med Konversationer + Kalender + Analytics-kort (komplettering, ingen ny sida)
+- ✅ `/cco-personal-start.html` legacy-banner återställd (om den var borta)
+- ✅ Använder cco-staff-shell.css för CCO-design (topnav + vellum + glass + pills)
+- ❌ Inga nya stöd-sidor byggda — bara polish av existerande
+- ❌ Inga nya guides eller moduler
+
+### Status-claims verifierade på /cco-demo.html (0 förekomster vardera)
+- 'Demo-portal' · 'demoportal' · 'simulerad data' · '1 247' · '49 MSEK'
+- 'full cutover' · 'Fortnox kopplat' · 'Photo Review klar' · 'Aisia live'
+
+### Personal-start är **inte** primär längre
+- Legacy-banner överst med CTA till /cco-demo.html
+- Filen behålls för preflight-kompatibilitet

@@ -160,3 +160,13 @@ _Ingen patientdata i denna rapport._
 - ✅ Resource Index doc (ny) — enda kompletta listan
 - ✅ Copy audit PASS — inga vilseledande claims
 - ⛔ **Inga fler stöd-sidor byggs** (per owner-direktiv) · Cursor canaries för köer
+
+### Cycle-20 STOPP (2026-06-04T05:00Z)
+
+**Primär presentation 4 juni:**
+- Välkommen till CCO (`/cco-demo.html`) → Kunder → Kundkort → Journal
+
+**Avvecklat som huvudflöde:**
+- `/cco-personal-start.html` (legacy med banner till `/cco-demo.html`)
+
+**Inget nytt byggt** — bara polish + doc-uppdateringar.
