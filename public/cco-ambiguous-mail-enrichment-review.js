@@ -90,14 +90,30 @@
     return (item?.candidates || []).some((c) => c.approvable && !c.rejected);
   }
 
+  function bestApprovableCandidate(item) {
+    return (item?.candidates || [])
+      .filter((c) => c.approvable && !c.rejected)
+      .sort((a, b) => (b.matchCount || 0) - (a.matchCount || 0))[0];
+  }
+
   function findNextBestIndex(fromIndex = 0) {
-    for (let i = fromIndex; i < queue.length; i += 1) {
-      if (itemHasApprovableCandidate(queue[i])) return i;
-    }
-    for (let i = 0; i < fromIndex; i += 1) {
-      if (itemHasApprovableCandidate(queue[i])) return i;
-    }
-    return -1;
+    let bestIdx = -1;
+    let bestScore = -1;
+    const scan = (start, end, step) => {
+      for (let i = start; step > 0 ? i < end : i >= end; i += step) {
+        const item = queue[i];
+        if (!itemHasApprovableCandidate(item)) continue;
+        const cand = bestApprovableCandidate(item);
+        const score = cand?.matchCount ?? 0;
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = i;
+        }
+      }
+    };
+    scan(fromIndex, queue.length, 1);
+    if (bestIdx < 0) scan(0, fromIndex, 1);
+    return bestIdx;
   }
 
   async function ensureQueueLoadedForNextBest(startIndex, { allowWhileBusy = false } = {}) {
@@ -204,6 +220,7 @@
         </div>
         <div class="amr-export-row">
           <button type="button" class="amr-btn" data-export-status>Ladda ner operativ status (JSON)</button>
+          <button type="button" class="amr-btn" data-export-decisions>Exportera sessionsbeslut (JSON)</button>
           <span class="amr-muted">För kvälls-readiness — ingen auto-write</span>
         </div>
         <div data-progress class="amr-progress"></div>
@@ -273,6 +290,9 @@
     root
       .querySelector('[data-export-status]')
       ?.addEventListener('click', exportOperationalSnapshot);
+    root
+      .querySelector('[data-export-decisions]')
+      ?.addEventListener('click', exportSessionDecisions);
     document.addEventListener('keydown', (ev) => {
       if (ev.target.matches('textarea, input, select')) return;
       if (busy) return;
@@ -340,13 +360,15 @@
       return;
     }
     const item = queue[idx];
-    const cand = (item.candidates || []).find((c) => c.approvable && !c.rejected);
+    const cand = bestApprovableCandidate(item);
     const fields = (cand?.matchedFields || []).join(', ') || '—';
+    const missing = cand ? missingDeterministicFieldList(cand, item) : [];
     el.innerHTML = `
       <div class="amr-next-best-box">
         <strong>Nästa bästa rad att granska</strong>
-        <p class="amr-muted">${approvableCount} av ${queue.length} i vyn har minst en approvable kandidat · rad ${idx + 1}: ${escapeHtml(item.mailboxId || '')}${loadedNote}</p>
-        <p class="amr-muted">Matchande fält: ${escapeHtml(fields)}</p>
+        <p class="amr-muted">${approvableCount} av ${queue.length} i vyn har approvable kandidat · rad ${idx + 1}: ${escapeHtml(item.mailboxId || '')}${loadedNote}</p>
+        <p class="amr-muted"><strong>3 deterministiska fält:</strong> ${escapeHtml(fields)} (${cand?.matchCount ?? 0}/3)</p>
+        ${missing.length ? `<p class="amr-muted">Saknas i andra kandidater: ${escapeHtml(missing.join(', '))}</p>` : ''}
         <p class="amr-muted">${escapeHtml(candidateExplainText(cand, item))}</p>
         <button type="button" class="amr-btn amr-btn-primary" data-jump-next>Gå till nästa bästa [N]</button>
       </div>`;
@@ -585,6 +607,32 @@
     showAuditToast({ decidedAt: new Date().toISOString(), reviewer: getReviewer() }, 'export_json');
   }
 
+  function exportSessionDecisions() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      tenantId: TENANT,
+      reviewer: getReviewer() || null,
+      rules: {
+        noAutoWrite: true,
+        noFuzzyMerge: true,
+        noCustomerMerge: true,
+        noGraphFetch: true,
+        noNewMailImport: true,
+        minApproveMatchFields: 3,
+      },
+      decisions: sessionAudit,
+      queuePosition: { currentIndex, queueLoaded: queue.length, queueTotal },
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mail-ambiguous-decisions-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showAuditToast({ decidedAt: new Date().toISOString(), reviewer: getReviewer() }, 'export_json');
+  }
+
   function refreshSummaryPanels() {
     renderProgress();
     renderNextBestPanel();
@@ -645,12 +693,17 @@
     list.innerHTML = queue
       .map((item, idx) => {
         const approvable = itemHasApprovableCandidate(item);
+        const best = bestApprovableCandidate(item);
+        const bestScore = best?.matchCount ?? 0;
         const active = cur?.conversationKey === item.conversationKey ? ' is-active' : '';
         const ready = approvable ? ' has-approvable' : '';
         const hidden = showApprovableOnly && !approvable ? ' is-filtered-out' : '';
+        const scoreTag = approvable
+          ? ` <span class="amr-tag amr-tag--ok">${bestScore}/3 fält</span>`
+          : ` <span class="amr-tag">blocker ${bestScore}/3</span>`;
         return `<li>
           <button type="button" class="amr-queue-item${active}${ready}${hidden}" data-idx="${idx}">
-            <div>${escapeHtml(item.mailboxId || '')}${approvable ? ' <span class="amr-tag amr-tag--ok">≥3 fält</span>' : ''}</div>
+            <div>${escapeHtml(item.mailboxId || '')}${scoreTag}</div>
             <div class="amr-muted">${escapeHtml(item.conversationId || item.conversationKey || '')}</div>
             <div class="amr-muted">${escapeHtml(item.ambiguityReason || '')}</div>
           </button>

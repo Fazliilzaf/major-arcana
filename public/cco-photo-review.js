@@ -164,19 +164,11 @@
     window.__ARCANA_PHOTO_REVIEW_SESSION_STATS__ = { ...sessionStats, operatorSession };
   }
 
-  function defaultReason(action) {
-    const item = currentItem();
-    const cat = item?.suggestedCategory || 'photo_during';
-    if (action === 'approve') return `Manuell godkännande ${cat}`;
-    if (action === 'reject') return 'Manuell avvisning — ej lämplig för patientkort';
-    return 'Manuell omkategorisering';
-  }
-
   function readReason() {
     const el = document.querySelector('[data-reason-input]');
-    const reason = el?.value?.trim() || defaultReason();
+    const reason = el?.value?.trim() || '';
     if (reason.length < 3) {
-      window.alert('Reason krävs (minst 3 tecken).');
+      window.alert('Reason krävs (minst 3 tecken) — inga standardtexter.');
       return null;
     }
     return reason.slice(0, 500);
@@ -294,6 +286,18 @@
         sessionStats: { ...sessionStats },
       });
     }
+  }
+
+  const BATCH_REPORT_THRESHOLDS = [10, 25, 50];
+  let lastBatchReportOffer = 0;
+
+  function maybeOfferBatchReport() {
+    const n = sessionStats.reviewed;
+    const threshold = BATCH_REPORT_THRESHOLDS.find((t) => n >= t && lastBatchReportOffer < t);
+    if (!threshold) return;
+    lastBatchReportOffer = threshold;
+    const offer = window.confirm(`${n} beslut i denna session. Exportera batchrapport (JSON) nu?`);
+    if (offer) exportSessionBatchReport();
   }
 
   function exportSessionBatchReport() {
@@ -426,8 +430,8 @@
           </dl>
           ${
             writeEnabled
-              ? `<label class="cco-photo-review-reason-label">Reason / kommentar
-            <textarea data-reason-input rows="2" placeholder="Krävs för varje beslut">${escapeHtml(defaultReason('approve'))}</textarea>
+              ? `<label class="cco-photo-review-reason-label">Reason / kommentar (krävs)
+            <textarea data-reason-input rows="2" placeholder="Skriv reason — minst 3 tecken, ingen auto-text"></textarea>
           </label>`
               : ''
           }
@@ -680,6 +684,7 @@
       if (cursor >= queue.length) cursor = Math.max(0, queue.length - 1);
       const refreshed = await refreshQueue();
       maybeReportMilestone(refreshed.progress);
+      maybeOfferBatchReport();
     } catch (err) {
       window.alert(`Fel: ${err.message}`);
     } finally {

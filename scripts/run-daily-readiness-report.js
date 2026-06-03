@@ -141,10 +141,17 @@ function staffUsability(report) {
   cannot.push('Migrerade före/efter-bilder som kliniska behandlingsbilder');
   cannot.push('Auto-approve / massapproval Photo Review');
   if (report.mail?.progress?.remaining > 0) {
-    can.push(`Mail ambiguous review (${report.mail.progress.remaining} kvar)`);
+    can.push(
+      `Mail ambiguous review (${report.mail.progress.remaining} kvar) — /ambiguous-mail-enrichment-review.html`
+    );
+  }
+  if (report.importQueue?.total > 0) {
+    can.push(
+      `Import review queue read-only (${report.importQueue.total} osäkra) — /cco-import-review.html`
+    );
   }
   cannot.push('Mail auto-write · fuzzy merge · Graph-fetch från UI');
-  cannot.push(`Import review queue (${report.importQueue?.total ?? 1497}) — ingen auto-import`);
+  cannot.push('Import approve/reject — write AV · ingen auto-import · ingen ny kund');
   cannot.push('Ny kund vid osäker match');
   cannot.push('Aisia · extern AI på journaltext · Drive-länkar i personal-start');
   return { can, cannot };
@@ -446,6 +453,18 @@ _Prod: ${BASE}_
 | **Mail review operator** | ${report.mailOperator?.overall ?? '—'} · remaining **${report.mailOperator?.remaining ?? report.mail.progress.remaining}** |
 | **Import review queue** | **${report.importQueue?.total ?? '—'}** · ${report.importQueue?.status ?? 'WAITING_MANUAL_REVIEW'} |
 | **CF** | ${report.cf.operational} |
+
+---
+
+## Efter personalmötet — vad personal kan göra
+
+### Personal kan
+${(report.staffCanUse || []).map((c) => `- ${c}`).join('\n') || '- —'}
+
+### Personal ska inte
+${(report.staffCannotUse || []).map((c) => `- ${c}`).join('\n') || '- —'}
+
+**Ops workbench:** \`/cco-ops-workbench.html\` · **Import review:** \`/cco-import-review.html\`
 
 ---
 
@@ -874,8 +893,8 @@ async function main() {
       rule: importQueue.rule,
       dataSource: importQueue.dataSource,
       sources: importQueue.sources,
-      operatorToolPath: null,
-      nextAction: 'Manuell review — ingen auto-import · ingen ny kund',
+      operatorToolPath: '/cco-import-review.html',
+      nextAction: 'Manuell review — read-only UI · ingen auto-import · ingen ny kund',
     },
     encounterMetadata: {
       status: 'REVIEW_PAUSED_PRE_PRESENTATION',

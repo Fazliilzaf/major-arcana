@@ -9298,6 +9298,12 @@ try {
   console.log(
     '[cco-photo-review] monterad READ-ONLY: GET /api/v1/cco/photo-review/{summary,queue,patients,progress}'
   );
+
+  const { createCcoImportReviewReadRouter } = require('./src/routes/ccoImportReviewRead');
+  app.use('/api/v1/ops', createCcoImportReviewReadRouter({ projectRoot: __dirname }));
+  console.log(
+    '[cco-import-review] monterad READ-ONLY: GET /api/v1/ops/cco/import-review/{summary,queue}'
+  );
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);
 }

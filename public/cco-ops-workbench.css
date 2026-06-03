@@ -72,6 +72,39 @@ body {
   grid-column: 1 / -1;
 }
 
+.cow-section--command {
+  border-color: rgba(77, 163, 255, 0.55);
+  background: linear-gradient(180deg, rgba(77, 163, 255, 0.14) 0%, var(--cow-panel) 48%);
+  grid-column: 1 / -1;
+}
+
+.cow-command-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.cow-command-card {
+  border: 1px solid var(--cow-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.cow-command-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.cow-blockers {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid var(--cow-warn);
+  background: rgba(245, 166, 35, 0.08);
+  border-radius: 0 6px 6px 0;
+}
+
 .cow-ops-go {
   color: var(--cow-ok);
   border-color: rgba(62, 207, 142, 0.55);

@@ -438,6 +438,94 @@
       </section>`;
   }
 
+  function renderCommandCenter(ops, morning, journalLive, journalShift, photoOp, mailOp, importQ) {
+    const blockers = ops?.topBlockers || ops?.blockers || morning?.blockers || [];
+    const action =
+      journalShift?.recommendedAction ||
+      ops?.recommendedNextAction ||
+      morning?.recommendedAction ||
+      'GO';
+    const personalJa =
+      journalShift?.personalCanContinueJournaling ||
+      journalLive?.personalCanContinueJournaling ||
+      'NEJ';
+    const journalOps = journalShift?.journalPilotOpsStatus || '—';
+    const photoPending = photoOp?.pendingPhotos ?? ops?.photoReview?.pendingPhotos ?? '—';
+    const photoWrite = photoOp?.writeEnabled === true ? 'PÅ' : 'AV';
+    const mailRem = mailOp?.remaining ?? ops?.mailAmbiguous?.remaining ?? '—';
+    const importTotal = importQ?.total ?? ops?.importReviewQueue?.total ?? 1497;
+
+    const cards = [
+      {
+        title: 'Journalpilot',
+        status: journalOps,
+        detail: `Personal kan journalföra: ${personalJa}`,
+        href: '/cco-personal-start.html',
+        label: 'Personalstart',
+      },
+      {
+        title: 'Photo Review',
+        status: photoOp?.overall || 'READY',
+        detail: `${photoPending} bilder · write ${photoWrite}`,
+        href: '/photo-review.html',
+        label: 'Öppna Photo Review',
+      },
+      {
+        title: 'Mail Review',
+        status: mailOp?.overall || 'QUEUE',
+        detail: `${mailRem} ambiguous kvar`,
+        href: '/ambiguous-mail-enrichment-review.html',
+        label: 'Öppna Mail Review',
+      },
+      {
+        title: 'Import Review',
+        status: importQ?.status || 'WAITING_MANUAL_REVIEW',
+        detail: `${importTotal} osäkra matchningar`,
+        href: importQ?.operatorToolPath || '/cco-import-review.html',
+        label: 'Öppna Import Review',
+      },
+      {
+        title: 'Drive / historik',
+        status: ops?.historik?.halso || 'SAFE_MATCH',
+        detail: `halso@ · GetAccept · ej ny riskimport`,
+        href: '/cco-ops-workbench.html#drive',
+        label: 'Scrolla Drive',
+      },
+      {
+        title: 'Chief of Finance',
+        status: ops?.cf?.operational || 'INTERN',
+        detail: 'Fortnox blockerad — intern demo',
+        href: '/finance.html',
+        label: 'Finance',
+      },
+    ];
+
+    const blockerHtml = blockers
+      .slice(0, 6)
+      .map((b) => `<li>${escapeHtml(b)}</li>`)
+      .join('');
+
+    const cardHtml = cards
+      .map(
+        (c) => `
+        <article class="cow-command-card">
+          <h3>${escapeHtml(c.title)}</h3>
+          ${pill(c.status)}
+          <p class="cow-muted">${escapeHtml(c.detail)}</p>
+          <a class="cow-btn" href="${escapeHtml(c.href)}">${escapeHtml(c.label)}</a>
+        </article>`
+      )
+      .join('');
+
+    return `
+      <section class="cow-section cow-section--command" id="command-center">
+        <h2>Vad ska göras nu?</h2>
+        <p class="cow-muted">Arbetscentral efter personalmötet · rekommenderad action: <strong>${escapeHtml(action)}</strong></p>
+        ${blockerHtml ? `<div class="cow-blockers"><h3>Top blockers</h3><ul class="cow-list">${blockerHtml}</ul></div>` : '<p class="cow-muted">Inga registrerade blockers i snapshot.</p>'}
+        <div class="cow-command-grid">${cardHtml}</div>
+      </section>`;
+  }
+
   function renderImportSection(ops, importLive) {
     const q =
       importLive || ops?.importReviewDay1 || ops?.day1?.importReview || ops?.importReviewQueue;
@@ -466,6 +554,9 @@
         <ul class="cow-list">${sources}</ul>
         <p class="cow-muted">${escapeHtml(q.rule || '')} · ${escapeHtml(q.nextAction || 'Väntar manuell review — ingen auto-import')}</p>
         <p class="cow-muted">Källa: ${escapeHtml(q.dataSource || 'snapshot')}</p>
+        <div class="cow-actions">
+          ${linkBtn(q.operatorToolPath || '/cco-import-review.html', 'Öppna Import Review')}
+        </div>
       </section>`;
   }
 
@@ -517,7 +608,7 @@
 
     return `
       <section class="cow-section cow-section--next" id="next-steps">
-        <h2>9 · Vad ska göras härnäst?</h2>
+        <h2>10 · Detaljerad nästa-steg-lista</h2>
         ${blockerList ? `<ul class="cow-list">${blockerList}</ul>` : ''}
         <ul class="cow-list cow-list--steps">
           ${steps
@@ -720,6 +811,7 @@
         Snapshot: ${escapeHtml(ops.generatedAt || '—')}
       </div>
       <div class="cow-grid">
+        ${renderCommandCenter(ops, morning, journalLive, journalShift, photoOp, mailOp, importQ)}
         ${renderJournalPilotOpsPanel(journalShift, morning, journalLive, day1 || ops)}
         ${renderEscalationSection(escalation)}
         ${renderIdentitySafetySection(ops?.identitySafety || day1?.identitySafety, pageProbes)}

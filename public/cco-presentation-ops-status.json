@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T04:39:16.669Z",
+  "generatedAt": "2026-06-03T04:52:57.421Z",
   "photoReview": {
     "pendingPhotos": 860,
     "patientsWithPendingPhotos": 150,
@@ -69,14 +69,14 @@
     "pilot2": "PASS",
     "pilot3": "PASS",
     "presentationGate": "PASS",
-    "checkedAt": "2026-06-03T04:39:16.669Z",
+    "checkedAt": "2026-06-03T04:52:57.421Z",
     "personalStartUrl": "/cco-personal-start.html",
     "kundkortUrl": "/kunder.html"
   },
   "journalPilotLive": {
-    "generatedAt": "2026-06-03T04:39:24.175Z",
+    "generatedAt": "2026-06-03T04:53:04.864Z",
     "windowHours": 24,
-    "sinceIso": "2026-06-02T04:39:24.175Z",
+    "sinceIso": "2026-06-02T04:53:04.864Z",
     "base": "https://arcana.hairtpclinic.com",
     "authAvailable": false,
     "overall": "PASS",
@@ -147,8 +147,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 177,
-        "timelineEvents": 530,
+        "feedItems": 197,
+        "timelineEvents": 590,
         "entries24h": null
       },
       {
@@ -159,8 +159,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 173,
-        "timelineEvents": 518,
+        "feedItems": 193,
+        "timelineEvents": 578,
         "entries24h": null
       },
       {
@@ -171,8 +171,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 174,
-        "timelineEvents": 522,
+        "feedItems": 194,
+        "timelineEvents": 582,
         "entries24h": null
       }
     ],
@@ -182,7 +182,7 @@
     "note": "Read-only monitor — inga journaltexter · inga patientdata i export"
   },
   "photoReviewOperator": {
-    "generatedAt": "2026-06-03T04:39:23.719Z",
+    "generatedAt": "2026-06-03T04:53:04.534Z",
     "base": "https://arcana.hairtpclinic.com",
     "overall": "READY",
     "operatorMode": "READY",
@@ -207,7 +207,7 @@
     "nextAction": "Read-only beta — navigera kö, exportera session, write AV på prod"
   },
   "mailReviewOperator": {
-    "generatedAt": "2026-06-03T04:39:24.034Z",
+    "generatedAt": "2026-06-03T04:53:04.773Z",
     "base": "https://arcana.hairtpclinic.com",
     "overall": "QUEUE_ACTIVE",
     "operatorMode": "READY",
@@ -247,23 +247,25 @@
         "id": "halso",
         "label": "halso@",
         "queueCount": 1366,
+        "status": {
+          "pending": 1366,
+          "resolved": 0
+        },
         "note": "osäkra kundmatchningar"
       },
       {
         "id": "getaccept",
         "label": "GetAccept",
         "queueCount": 131,
+        "status": {
+          "pending": 131,
+          "resolved": 0
+        },
         "note": "osäkra kundmatchningar"
-      },
-      {
-        "id": "drive_orphan",
-        "label": "Drive/orphan",
-        "queueCount": 0,
-        "note": "ingår i övriga källor vid manuell review"
       }
     ],
-    "operatorToolPath": null,
-    "nextAction": "Manuell review — ingen auto-import · ingen ny kund"
+    "operatorToolPath": "/cco-import-review.html",
+    "nextAction": "Manuell review — read-only UI · ingen auto-import · ingen ny kund"
   },
   "encounterMetadata": {
     "status": "REVIEW_PAUSED_PRE_PRESENTATION",
@@ -272,7 +274,7 @@
   },
   "dailyReadiness": {
     "docFile": "docs/strategy/CCO-DAILY-READINESS-2026-06-04.md",
-    "generatedAt": "2026-06-03T04:39:16.669Z",
+    "generatedAt": "2026-06-03T04:52:57.421Z",
     "journalPilot": "PASS",
     "journalPilotLive": "PASS",
     "personalCanContinueJournaling": "JA",
@@ -287,13 +289,14 @@
     "Journalpilot demo (personal-start → pilotkund → journal → sign → rättelse → timeline)",
     "Fortsatt journalföring efter mötet (live monitor JA)",
     "Photo Review operator (860 pending, write AV)",
-    "Mail ambiguous review (493 kvar)"
+    "Mail ambiguous review (493 kvar) — /ambiguous-mail-enrichment-review.html",
+    "Import review queue read-only (1497 osäkra) — /cco-import-review.html"
   ],
   "staffCannotUse": [
     "Migrerade före/efter-bilder som kliniska behandlingsbilder",
     "Auto-approve / massapproval Photo Review",
     "Mail auto-write · fuzzy merge · Graph-fetch från UI",
-    "Import review queue (1497) — ingen auto-import",
+    "Import approve/reject — write AV · ingen auto-import · ingen ny kund",
     "Ny kund vid osäker match",
     "Aisia · extern AI på journaltext · Drive-länkar i personal-start"
   ],
@@ -305,7 +308,7 @@
   ],
   "opsWorkbenchUrl": "/cco-ops-workbench.html",
   "day1": {
-    "generatedAt": "2026-06-03T04:39:25.158Z",
+    "generatedAt": "2026-06-03T04:53:05.830Z",
     "mode": "DAY_1_OPERATIONS",
     "day1JournalPilot": {
       "overall": "PASS",
@@ -399,19 +402,21 @@
           "id": "halso",
           "label": "halso@",
           "queueCount": 1366,
+          "status": {
+            "pending": 1366,
+            "resolved": 0
+          },
           "note": "osäkra kundmatchningar"
         },
         {
           "id": "getaccept",
           "label": "GetAccept",
           "queueCount": 131,
+          "status": {
+            "pending": 131,
+            "resolved": 0
+          },
           "note": "osäkra kundmatchningar"
-        },
-        {
-          "id": "drive_orphan",
-          "label": "Drive/orphan",
-          "queueCount": 0,
-          "note": "ingår i övriga källor vid manuell review"
         }
       ],
       "autoImport": false,
@@ -441,7 +446,7 @@
       ]
     },
     "identitySafety": {
-      "generatedAt": "2026-06-03T04:39:24.173Z",
+      "generatedAt": "2026-06-03T04:53:04.862Z",
       "overall": "PASS",
       "identityCheckAvailable": true,
       "preSignCheckAvailable": true,
@@ -594,7 +599,7 @@
     "recommendedWork": "Öppna personal-start → kundkort → pilotkund → journal"
   },
   "identitySafety": {
-    "generatedAt": "2026-06-03T04:39:24.173Z",
+    "generatedAt": "2026-06-03T04:53:04.862Z",
     "overall": "PASS",
     "identityCheckAvailable": true,
     "preSignCheckAvailable": true,
@@ -711,19 +716,21 @@
         "id": "halso",
         "label": "halso@",
         "queueCount": 1366,
+        "status": {
+          "pending": 1366,
+          "resolved": 0
+        },
         "note": "osäkra kundmatchningar"
       },
       {
         "id": "getaccept",
         "label": "GetAccept",
         "queueCount": 131,
+        "status": {
+          "pending": 131,
+          "resolved": 0
+        },
         "note": "osäkra kundmatchningar"
-      },
-      {
-        "id": "drive_orphan",
-        "label": "Drive/orphan",
-        "queueCount": 0,
-        "note": "ingår i övriga källor vid manuell review"
       }
     ],
     "autoImport": false,
@@ -736,7 +743,7 @@
   ],
   "recommendedNextAction": "GO",
   "journalPilotShift": {
-    "generatedAt": "2026-06-03T04:39:25.156Z",
+    "generatedAt": "2026-06-03T04:53:05.828Z",
     "mode": "JOURNAL_PILOT_OPERATIONS",
     "shiftStatus": "warning",
     "shiftStatusLabel": "Varning",
@@ -826,8 +833,8 @@
           "feed": 200,
           "timeline": 200,
           "forms": 200,
-          "feedItems": 177,
-          "timelineEvents": 530,
+          "feedItems": 197,
+          "timelineEvents": 590,
           "entries24h": null
         },
         {
@@ -838,8 +845,8 @@
           "feed": 200,
           "timeline": 200,
           "forms": 200,
-          "feedItems": 173,
-          "timelineEvents": 518,
+          "feedItems": 193,
+          "timelineEvents": 578,
           "entries24h": null
         },
         {
@@ -850,8 +857,8 @@
           "feed": 200,
           "timeline": 200,
           "forms": 200,
-          "feedItems": 174,
-          "timelineEvents": 522,
+          "feedItems": 194,
+          "timelineEvents": 582,
           "entries24h": null
         }
       ],
@@ -906,7 +913,7 @@
       "shiftReason": "Allt grönt — personal kan starta arbetspass."
     },
     "escalationQueue": {
-      "generatedAt": "2026-06-03T04:39:25.156Z",
+      "generatedAt": "2026-06-03T04:53:05.828Z",
       "registered": 0,
       "empty": true,
       "emptyMessage": "Inga eskaleringar registrerade",
@@ -985,8 +992,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 177,
-        "timelineEvents": 530,
+        "feedItems": 197,
+        "timelineEvents": 590,
         "entries24h": null
       },
       {
@@ -997,8 +1004,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 173,
-        "timelineEvents": 518,
+        "feedItems": 193,
+        "timelineEvents": 578,
         "entries24h": null
       },
       {
@@ -1009,8 +1016,8 @@
         "feed": 200,
         "timeline": 200,
         "forms": 200,
-        "feedItems": 174,
-        "timelineEvents": 522,
+        "feedItems": 194,
+        "timelineEvents": 582,
         "entries24h": null
       }
     ],
@@ -1065,7 +1072,7 @@
     "shiftReason": "Allt grönt — personal kan starta arbetspass."
   },
   "escalationQueue": {
-    "generatedAt": "2026-06-03T04:39:25.156Z",
+    "generatedAt": "2026-06-03T04:53:05.828Z",
     "registered": 0,
     "empty": true,
     "emptyMessage": "Inga eskaleringar registrerade",

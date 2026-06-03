@@ -1,6 +1,6 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-03T04:39:16.669Z_  
+_Senast uppdaterad: 2026-06-03T04:52:57.421Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
@@ -20,6 +20,20 @@ _Prod: https://arcana.hairtpclinic.com_
 | **Mail review operator** | QUEUE_ACTIVE · remaining **493**                                   |
 | **Import review queue**  | **1497** · WAITING_MANUAL_REVIEW                                   |
 | **CF**                   | INTERN_DEMO_READY                                                  |
+
+---
+
+## Efter personalmötet — vad personal kan göra
+
+### Personal kan
+
+- —
+
+### Personal ska inte
+
+- —
+
+**Ops workbench:** `/cco-ops-workbench.html` · **Import review:** `/cco-import-review.html`
 
 ---
 
@@ -200,11 +214,10 @@ Regler: Ingen auto-write · Ingen fuzzy merge · Ingen customer merge · Ingen G
 
 ## Import review queue (read-only)
 
-| Källa        | Antal |
-| ------------ | ----- |
-| halso@       | 1366  |
-| GetAccept    | 131   |
-| Drive/orphan | 0     |
+| Källa     | Antal |
+| --------- | ----- |
+| halso@    | 1366  |
+| GetAccept | 131   |
 
 **Totalt:** 1497 · WAITING_MANUAL_REVIEW  
 Ingen auto-import · ingen ny kund vid osäker match
@@ -225,7 +238,8 @@ Ingen auto-import · ingen ny kund vid osäker match
 - Journalpilot demo (personal-start → pilotkund → journal → sign → rättelse → timeline)
 - Fortsatt journalföring efter mötet (live monitor JA)
 - Photo Review operator (860 pending, write AV)
-- Mail ambiguous review (493 kvar)
+- Mail ambiguous review (493 kvar) — /ambiguous-mail-enrichment-review.html
+- Import review queue read-only (1497 osäkra) — /cco-import-review.html
 
 ---
 
@@ -234,7 +248,7 @@ Ingen auto-import · ingen ny kund vid osäker match
 - Migrerade före/efter-bilder som kliniska behandlingsbilder
 - Auto-approve / massapproval Photo Review
 - Mail auto-write · fuzzy merge · Graph-fetch från UI
-- Import review queue (1497) — ingen auto-import
+- Import approve/reject — write AV · ingen auto-import · ingen ny kund
 - Ny kund vid osäker match
 - Aisia · extern AI på journaltext · Drive-länkar i personal-start
 
