@@ -74,7 +74,7 @@ Relaterat P0 (samma session): kundresa-9-steg docs, segment `missing_health_decl
 ### Nästa (valfritt)
 
 - [ ] Notion ORD-1 → `done` (manuellt om MCP ej kopplat)
-- [ ] Cherry-pick/merge `7bca8362` → `main` om auto-deploy ska följa main framöver
+- [x] Cherry-pick/merge `7bca8362` → `main` — **ORD-1B** `3ee65355` på `main` (2026-05-20)
 
 ---
 
