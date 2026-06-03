@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { addDaysIso, canAcceptOffer, getCoolingOffMeta } = require('../../src/ops/ccoOfferEsign');
+const { HAIR_TP_COOLING_OFF_DAYS } = require('../../src/ops/ccoHairTpCoolingOffPolicy');
 const {
   listOfferTemplates,
   resolveTemplateKeyFromPlan,
@@ -11,6 +12,12 @@ const {
 
 test('listOfferTemplates returns 14 templates', () => {
   assert.equal(listOfferTemplates().length, 14);
+});
+
+test('offer templates use Hair TP 2-day cooling off', () => {
+  for (const t of listOfferTemplates()) {
+    assert.equal(t.coolingOffDays, HAIR_TP_COOLING_OFF_DAYS);
+  }
 });
 
 test('resolveTemplateKeyFromPlan picks combo template for FUE + PRP', () => {
@@ -26,7 +33,7 @@ test('canAcceptOffer blocks during cooling off', () => {
     {
       quoteStatus: 'sent',
       quoteSentAt: sentAt,
-      coolingOffEndsAt: addDaysIso(sentAt, 14),
+      coolingOffEndsAt: addDaysIso(sentAt, HAIR_TP_COOLING_OFF_DAYS),
     },
     { nowMs: Date.parse('2026-05-23T10:00:00.000Z') }
   );
@@ -39,9 +46,9 @@ test('canAcceptOffer allows accept after cooling off', () => {
   const gate = canAcceptOffer(
     {
       quoteStatus: 'sent',
-      coolingOffEndsAt: addDaysIso(sentAt, 14),
+      coolingOffEndsAt: addDaysIso(sentAt, HAIR_TP_COOLING_OFF_DAYS),
     },
-    { nowMs: Date.parse('2026-05-22T10:00:00.000Z') }
+    { nowMs: Date.parse('2026-05-03T10:00:00.000Z') }
   );
   assert.equal(gate.allowed, true);
 });
@@ -49,9 +56,9 @@ test('canAcceptOffer allows accept after cooling off', () => {
 test('getCoolingOffMeta reports remaining days', () => {
   const sentAt = new Date().toISOString();
   const meta = getCoolingOffMeta(
-    { coolingOffEndsAt: addDaysIso(sentAt, 14) },
-    Date.now() + 2 * 24 * 60 * 60 * 1000
+    { coolingOffEndsAt: addDaysIso(sentAt, HAIR_TP_COOLING_OFF_DAYS) },
+    Date.now() + 24 * 60 * 60 * 1000
   );
   assert.equal(meta.active, true);
-  assert.ok(meta.remainingDays >= 11);
+  assert.ok(meta.remainingDays >= 1);
 });

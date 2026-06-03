@@ -6,11 +6,14 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-const DEFAULT_COOLING_OFF_DAYS = 14;
+const {
+  DEFAULT_COOLING_OFF_DAYS,
+  resolveHairTpCoolingOffDays,
+} = require('./ccoHairTpCoolingOffPolicy');
 
 function addDaysIso(isoString, days) {
   const baseMs = Date.parse(normalizeText(isoString) || new Date().toISOString());
-  const safeDays = Number.isFinite(Number(days)) ? Number(days) : DEFAULT_COOLING_OFF_DAYS;
+  const safeDays = resolveHairTpCoolingOffDays(days);
   return new Date(baseMs + safeDays * 24 * 60 * 60 * 1000).toISOString();
 }
 

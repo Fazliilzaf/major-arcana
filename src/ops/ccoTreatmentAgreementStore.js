@@ -15,7 +15,10 @@ const AGREEMENT_STATUSES = Object.freeze([
 ]);
 
 const DELIVERY_MODES = Object.freeze(['distans', 'plats']);
-const DEFAULT_COOLING_OFF_DAYS = 14;
+const {
+  DEFAULT_COOLING_OFF_DAYS,
+  coolingOffDaysForNewHairTpRecord,
+} = require('./ccoHairTpCoolingOffPolicy');
 const AGREEMENT_VERSION = '251203';
 
 function nowIso() {
@@ -228,7 +231,8 @@ function normalizeAgreement(input = {}, existing = {}) {
       ? asArray(safe.attachments)
       : asArray(previous.attachments),
     coolingOffDays:
-      Number(safe.coolingOffDays ?? previous.coolingOffDays) || DEFAULT_COOLING_OFF_DAYS,
+      Number(safe.coolingOffDays ?? previous.coolingOffDays) ||
+      coolingOffDaysForNewHairTpRecord(previous.coolingOffDays),
     coolingOffEndsAt: normalizeText(safe.coolingOffEndsAt || previous.coolingOffEndsAt),
     esignToken: normalizeText(safe.esignToken || previous.esignToken),
     esignStatus: normalizeText(safe.esignStatus || previous.esignStatus) || 'draft',
