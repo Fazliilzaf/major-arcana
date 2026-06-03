@@ -1,6 +1,6 @@
 # Smart nästa steg — UX-spec v2 (9-steg Hair TP)
 
-**Status:** Spec only — **ingen UI-implementation**  
+**Status:** Spec only — **ingen UI-implementation** · ORD-1 deploy `7bca8362` (2026-06-03)  
 **Kanonisk kundresa:** [`CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md`](./CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md)  
 **Registry (teknisk):** [`CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md`](./CCO-AUTOMATION-REGISTRY-READINESS-2026-06-03.md)  
 **Supersedes:** Smart Functions-plan där `missing_form` = hälsodekl+friskförsäkran, T-48 FF, 14d betänketid, separat samtycke vid offert
@@ -48,12 +48,34 @@
 
 ---
 
-## Kräver Cursor-kodfix (utanför denna spec)
+## Bilaga C — Prod-alignment (ORD-2, efter ORD-1)
+
+### ✅ DONE (live `7bca8362`)
+
+- **2d betänketid** — `ccoHairTpCoolingOffPolicy.js` (`HAIR_TP_COOLING_OFF_DAYS = 2`)
+- **Kanonisk 9-stegs** kundresa i strategy-docs + verify-gate
+- **`missing_health_declaration`** — segment + readout-fält (proxy: asset `form`; journal-signatur = v1.1)
+- **Förbjuden copy** — T-48 FF, 14d betänketid, `missing_form`, separat samtycke vid offert
+
+### ⏳ REMAINING (ej ORD-1/2)
+
+- `legal_review` i `ccoTreatmentAgreementStore`
+- Bundle-sign avtal + behandlingssamtycke (steg 7)
+- Ops-dags friskförsäkran-gate (steg 8) i runner/UI
+- Foto-samtycke hårlinje/krona vid capture (steg 9)
+- `cooling_off_active` / `cooling_off_passed` i readout (agreement i evaluate)
+- **`ready_for_treatment`** — registry-namn; readout har fortfarande `readyForVisit`
+- Automation Registry dry-run (väntar owner-GO)
+
+---
+
+## Kräver Cursor-kodfix (nästa orders)
 
 - Registry/Runner implementation (väntar GO)
-- `missingHealthDeclaration` från journal-signatur (inte bara asset `form`)
+- `missingHealthDeclaration` från journal-signatur (v1.1 precision)
 - Ops-dags gate för friskförsäkran
 - Bundle-sign + `legal_review`
 - Hairline/crown consent vid capture
+- `readyForVisit` → `ready_for_treatment` i readout
 
-_Hair TP Clinic · 2026-06-03_
+_Hair TP Clinic · 2026-06-03 · ORD-2 doc-sync_

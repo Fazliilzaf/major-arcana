@@ -1,6 +1,7 @@
 # CCO Kundresa — 9 steg Hair TP (kanonisk 2026-06-03)
 
 **Status:** Fazli korrigerad process · **execution source of truth** (ersätter fel 10-stegs-/utskicksordning)  
+**Deploy:** ORD-1 live `7bca8362` (2026-06-03) — betänketid **2 dagar** i prod  
 **Scope:** Hårtransplantation (Hair TP) · konsultation → operationsdag  
 **Ingen implementation** i detta dokument — endast process + kod-nuläge
 
