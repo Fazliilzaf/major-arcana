@@ -112,3 +112,17 @@ _Ingen patientdata i denna rapport._
 - 🟡 Photo Review: **pending** — ~885 assets needs review, warning-sidan förklarar tydligt
 - 🟢 Drive/historik: **imported + review-status badges** + warning-sidan
 - ⏸ Aisia: **paused**
+
+### Cycle-13 statusrefresh 2026-06-04T00:30Z
+
+- ✅ Journalpilot: **PASS**
+- ✅ Personalstart: **PASS** (nu 13 stöd-länkar i Section E)
+- ✅ Pre-Signering Check: **LIVE**
+- ✅ Review-Material Warning: **LIVE**
+- ✅ Efter mötet-start (NY): **LIVE** (8-stegs konkret startguide)
+- ✅ Role Cards + First 3 Patients Plan (NY docs)
+- 🟢 CF API: mounted + RBAC enforced (auth-test pending)
+- 🟡 Mail Phase 2: operativ (mailbox 248/175/67/3, ej dagligt verktyg)
+- 🟡 Photo Review: pending
+- 🟢 Drive/historik: imported + review-badges + warning-sidan
+- ⏸ Aisia: paused

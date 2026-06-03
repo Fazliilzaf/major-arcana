@@ -465,3 +465,39 @@ Sektion 0 "Vad gör jag nu?" (från cycle 9) täcker redan: verifiera identitet 
 1-11. (samma som cycle 11)
 12. `/cco-pre-signering-check.html` · **Pre-Signering Check (NY)**
 13. `/cco-review-material-warning.html` · **Review-Material Warning (NY)**
+
+---
+
+## Cycle-13 (owner-numrerad "12") · 2026-06-04T00:30Z (Claude)
+
+### Nya leveranser — Post-Meeting Staff Enablement
+
+- ✅ **`/cco-after-meeting-start.html`** — "Efter mötet · börja här" — 8-stegs konkret startguide (öppna CCO · välj patient · verifiera identitet · skriv journal · signera · rättelse · timeline · eskalera). Interaktiv progress, varje steg har stoppa-regel (röd), action-knappar, länkar till Pre-Signering Check och guide.
+- ✅ **`docs/strategy/CCO-STAFF-ROLE-CARDS-2026-06-04.md`** — 4 rollkort (Personal · Operator/admin · Fazli/owner · Revisor/observatör) med får göra · får INTE göra · när eskalera · vilka länkar används. Eskaleringsmatris snabbreferens.
+- ✅ **`docs/strategy/CCO-FIRST-3-PATIENTS-PILOT-PLAN-2026-06-04.md`** — Strukturerad plan för 3 testpatienter dag 1: P1 enkel journal · P2 rättelse-test · P3 historik + review-material-varning. Verify-checks efter varje patient. Avbrytningskriterier. När gå vidare till vardagsläge.
+- ✅ **Personal Start Section E** utökad — 12 → **13 stöd-länkar**
+- ✅ **Command Center** utökad — 17 → **18 snabblänkar**
+
+### Komplett 4 juni-personalpaket — **14 länkbara resurser**
+1-13. (samma som cycle 12)
+14. `/cco-after-meeting-start.html` · **Efter mötet · börja här (NY)**
+
+### Status-matris cycle-13
+
+| Spår | Status |
+|---|---|
+| Journalpilot E2E | **PASS** |
+| Personalstart | **PASS** |
+| Pilot 1/2/3 | **PASS · PASS · PASS** |
+| Go-Live Support · Sign-off Sheet · Training Mode · FAQ | **LIVE** |
+| Pre-Signering Check · Review-Material Warning | **LIVE** |
+| **Efter mötet · börja här (NY)** | **LIVE** |
+| Role Cards · First 3 Patients Plan (docs) | **DOCUMENTED** |
+| CF API mounted + RBAC | **YES** (auth-test pending) |
+| Mail Phase 2 | operativ (mailbox 248/175/67/3) |
+| Photo Review | **PENDING** |
+| Drive/historik | **IMPORTED** + review-badges + warning-sidan |
+| Aisia | **PAUSED** |
+
+### Copy audit cycle-13 — PASS
+Alla 14 personal-resurser granskade. Inga positiva påståenden om "full cutover", "Photo Review klar", "Aisia live", "Fortnox kopplat", "mail dagligt verktyg", "AI används på journaltext". Förekomster av dessa fraser är endast inom legitima förbjudet-listor och scenario-förklaringar.
