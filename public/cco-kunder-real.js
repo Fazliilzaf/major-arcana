@@ -135,6 +135,7 @@
     if (activeSeg?.segment) params.set('segment', activeSeg.segment);
     const assignedOwner = getAssignedOwner();
     if (assignedOwner) params.set('assignedOwner', assignedOwner);
+    params.set('includeAutomation', '1');
     return params;
   }
 
@@ -241,6 +242,9 @@
   }
 
   function nextStepLabel(card) {
+    if (global.CcoKunderSmartNextStep?.listStepLabel) {
+      return global.CcoKunderSmartNextStep.listStepLabel(card);
+    }
     if (card.nextStep) return card.nextStep;
     return '—';
   }
@@ -335,6 +339,7 @@
       }
       state.total = Number(payload.patients?.total ?? batch.length);
       state.patients = append ? state.patients.concat(batch) : batch;
+      state.automation = payload.automation || null;
       state.loaded = true;
       state.offset = state.patients.length;
       if (state.activeSegmentId === 'mine' && !state.patients.length) {
@@ -755,6 +760,9 @@
       ? global.CcoKunderActions.renderMatrixLegend(dossierBar) +
         global.CcoKunderActions.renderActionsHtml(dossierBar)
       : '';
+    const smartNextHtml = global.CcoKunderSmartNextStep?.renderPanel
+      ? global.CcoKunderSmartNextStep.renderPanel(card, { automation: state.automation })
+      : '';
     intelCustomerView.innerHTML = `
     <div class="dossier-head">
       <div class="dossier-avatar">${escapeHtml((name.slice(0, 2) || '??').toUpperCase())}</div>
@@ -777,6 +785,7 @@
       <div class="dossier-stat"><div class="dossier-stat-label">Filer (Drive)</div><div class="dossier-stat-value">${Number(card.fileSummary?.totalFiles || 0)}</div></div>
       <div class="dossier-stat"><div class="dossier-stat-label">CCO assets</div><div class="dossier-stat-value">${Number(card.assetCount ?? 0)}</div></div>
     </div>
+    ${smartNextHtml}
     <div class="dossier-review-flags">
       ${
         rowBadges(card)

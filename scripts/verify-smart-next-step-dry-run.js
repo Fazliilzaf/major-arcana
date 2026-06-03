@@ -12,6 +12,9 @@ const path = require('node:path');
 const REPO = path.join(__dirname, '..');
 const ROUTES = path.join(REPO, 'src/routes/ccoAutomationRoutes.js');
 const STAFF = path.join(REPO, 'src/routes/ccoStaff.js');
+const SMART_UI = path.join(REPO, 'public/cco-kunder-smart-next-step.js');
+const KUNDER_HTML = path.join(REPO, 'public/kunder.html');
+const REAL_JS = path.join(REPO, 'public/cco-kunder-real.js');
 
 let failed = 0;
 function fail(msg) {
@@ -73,6 +76,30 @@ if (!staffSrc.includes('attachAutomationRoutes')) {
   fail('ccoStaff monterar inte attachAutomationRoutes');
 } else {
   pass('ccoStaff monterar automation routes');
+}
+
+if (!fs.existsSync(SMART_UI)) {
+  fail('cco-kunder-smart-next-step.js saknas');
+} else {
+  pass('Smart nästa steg UI-modul finns');
+}
+
+const kunderHtml = fs.readFileSync(KUNDER_HTML, 'utf8');
+const realJs = fs.readFileSync(REAL_JS, 'utf8');
+if (!kunderHtml.includes('cco-kunder-smart-next-step.js')) {
+  fail('kunder.html laddar inte smart-next-step UI');
+} else {
+  pass('kunder.html laddar smart-next-step UI');
+}
+if (!realJs.includes('includeAutomation')) {
+  fail('cco-kunder-real.js saknar includeAutomation=1');
+} else {
+  pass('cco-kunder-real.js begär includeAutomation');
+}
+if (!realJs.includes('CcoKunderSmartNextStep')) {
+  fail('cco-kunder-real.js använder inte CcoKunderSmartNextStep');
+} else {
+  pass('cco-kunder-real.js integrerar Smart nästa steg');
 }
 
 process.env.ENABLE_AUTOMATION_RUNNER = 'true';

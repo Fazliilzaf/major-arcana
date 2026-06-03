@@ -3,7 +3,7 @@
 **Created:** 2026-06-03
 **Assignee:** cursor + claude
 **Priority:** P1
-**Status:** cursor-backend-done (UI: claude)
+**Status:** done (backend + UI dry-run)
 **Blocked by:** ~~ORD-1~~ ~~ORD-2~~ ~~ORD-1B~~ — **GO B-sprint** (Fazli 2026-05-20)
 **Notion:** https://app.notion.com/p/374060ccc15b81f898a9f11f74495f47
 
@@ -30,9 +30,12 @@ Alla 10 signaler beräknas mot riktig customers-shell-data. UI visar dem som pil
 - `src/ops/ccoAutomationRegistry.js` · `ccoAutomationRunner.js` · `ccoAutomationRoutes.js`
 - `npm run cco:verify-smart-next-step-dry-run` **PASS** pre-push
 
-## Claude (väntar)
+## UI (Cursor, UX-spec V2)
 
-- Smart nästa steg i Kunder-dossier (UX-spec V2, disabled knappar)
+- `public/cco-kunder-smart-next-step.js` — dossier-panel desktop + mobil
+- What / Varför / Nästa + riskfärger + disabled knappar (dry-run)
+- Tom-state: «Inga öppna signaler — kund är synkad»
+- `includeAutomation=1` i shell-fetch
 
 ## Gates
 

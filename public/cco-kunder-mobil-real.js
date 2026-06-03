@@ -95,6 +95,7 @@
     if (activeSeg?.segment) params.set('segment', activeSeg.segment);
     const assignedOwner = getAssignedOwner();
     if (assignedOwner) params.set('assignedOwner', assignedOwner);
+    params.set('includeAutomation', '1');
     return params;
   }
 
@@ -313,6 +314,7 @@
       }
       state.total = Number(payload.patients?.total ?? batch.length);
       state.patients = append ? state.patients.concat(batch) : batch;
+      state.automation = payload.automation || null;
       state.loaded = true;
       state.offset = state.patients.length;
       state.error = '';
@@ -506,7 +508,14 @@
       <h2>${escapeHtml(name)}</h2>
       <p>${escapeHtml(contact.main)} · ${escapeHtml(card.patientId)}</p>`;
 
+    const smartNextHtml = global.CcoKunderSmartNextStep?.renderPanel
+      ? global.CcoKunderSmartNextStep.mountMobileWrap(
+          global.CcoKunderSmartNextStep.renderPanel(card, { automation: state.automation })
+        )
+      : '';
+
     body.innerHTML = `
+      ${smartNextHtml}
       <section class="mk-panel">
         <h3>Identitet</h3>
         <div class="mk-grid2">
@@ -518,7 +527,7 @@
         <div class="mk-tags" style="margin-top:8px">${rowBadges(card)
           .map((t) => `<span class="mk-tag mk-tag--${t.kind}">${escapeHtml(t.label)}</span>`)
           .join('')}</div>
-        <p class="mk-data-missing" style="margin-top:8px">Nästa steg: ${escapeHtml(card.nextStep || '—')}</p>
+        <p class="mk-data-missing" style="margin-top:8px">Nästa steg: ${escapeHtml(global.CcoKunderSmartNextStep?.listStepLabel?.(card) || card.nextStep || '—')}</p>
       </section>
       <section class="mk-panel">
         <h3>Bokning &amp; encounter</h3>

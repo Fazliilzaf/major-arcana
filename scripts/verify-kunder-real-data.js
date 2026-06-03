@@ -53,6 +53,18 @@ if (!html.includes('cco-kunder-actions.js')) {
   pass('kunder.html laddar cco-kunder-actions.js');
 }
 
+if (!html.includes('cco-kunder-smart-next-step.js')) {
+  fail('kunder.html inkluderar inte cco-kunder-smart-next-step.js (ORD-3)');
+} else {
+  pass('kunder.html laddar cco-kunder-smart-next-step.js');
+}
+
+if (!js.includes('includeAutomation')) {
+  fail('cco-kunder-real.js saknar includeAutomation (ORD-3)');
+} else {
+  pass('cco-kunder-real.js includeAutomation=1');
+}
+
 if (!html.includes('cco-kunder-staff-owner.js')) {
   fail('kunder.html inkluderar inte cco-kunder-staff-owner.js (P1.2)');
 } else {
