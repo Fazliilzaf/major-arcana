@@ -328,3 +328,19 @@ Server.js + journal-routes orörda.
 - Copy audit PASS
 
 Personalpaket: 17 länkbara resurser organiserade · oförändrat antal · klarare struktur.
+
+---
+
+## Cycle-19 P0 KORRIGERING (2026-06-04T04:00Z · Claude)
+
+**Huvudflöde 4 juni har bytts:**
+- ❌ Tidigare: `/cco-personal-start.html`
+- ✅ Nu: **`/cco-demo.html`** (omdöpt till "Välkommen till CCO")
+
+`/cco-personal-start.html` har legacy-banner som leder till `/cco-demo.html`. Behåller URL för preflight-kompatibilitet.
+
+Command Center primary link → `/cco-demo.html`. Presenter Mode quick-bar primary → "▶ Välkommen till CCO".
+
+Borttagna mock-claims på cco-demo.html: "Demo-portal" · "1 247 demo-kunder" · "49 MSEK" · "alla har simulerad data" · "demo-stage" · automation/watch/Aisia som live · Fortnox kopplat · mail dagligt · Photo Review klar · full cutover · webcal-länkar.
+
+Detaljerad rapport: `docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04.md`
