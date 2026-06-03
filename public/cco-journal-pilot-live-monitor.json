@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-02T22:09:07.849Z",
+  "generatedAt": "2026-06-03T04:39:31.786Z",
   "windowHours": 24,
-  "sinceIso": "2026-06-01T22:09:07.849Z",
+  "sinceIso": "2026-06-02T04:39:31.786Z",
   "base": "https://arcana.hairtpclinic.com",
   "authAvailable": false,
   "overall": "PASS",
@@ -72,8 +72,8 @@
       "feed": 200,
       "timeline": 200,
       "forms": 200,
-      "feedItems": 139,
-      "timelineEvents": 416,
+      "feedItems": 179,
+      "timelineEvents": 536,
       "entries24h": null
     },
     {
@@ -84,8 +84,8 @@
       "feed": 200,
       "timeline": 200,
       "forms": 200,
-      "feedItems": 135,
-      "timelineEvents": 404,
+      "feedItems": 175,
+      "timelineEvents": 524,
       "entries24h": null
     },
     {
@@ -96,8 +96,8 @@
       "feed": 200,
       "timeline": 200,
       "forms": 200,
-      "feedItems": 136,
-      "timelineEvents": 408,
+      "feedItems": 176,
+      "timelineEvents": 528,
       "entries24h": null
     }
   ],

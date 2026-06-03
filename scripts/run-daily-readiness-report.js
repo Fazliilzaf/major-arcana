@@ -38,6 +38,10 @@ const {
 } = require('./lib/ccoImportReviewQueueSnapshot');
 const { collectIdentitySafetyStatus } = require('./lib/ccoIdentitySafetyStatus');
 const { buildDay1OperationsSnapshot } = require('./lib/ccoDay1OperationsSnapshot');
+const {
+  buildJournalPilotShiftPayload,
+  publishJournalPilotShiftStatus,
+} = require('./lib/ccoJournalPilotOpsStatus');
 
 const REPO = path.join(__dirname, '..');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
@@ -433,7 +437,8 @@ _Prod: ${BASE}_
 | ---- | ------ |
 | **Journalpilot** | ${journalOk ? '**PASS**' : '**CHECK**'} (mounts ${report.journalMounts} · links ${report.demoLinks} · E2E ${report.e2eJournal}) |
 | **Journalpilot live** | ${report.journalLive?.overall ?? '—'} · personal kan journalföra: **${report.journalLive?.personalCanContinueJournaling ?? '—'}** |
-| **Dag 1 arbetspass** | **${report.day1?.day1JournalPilot?.shiftStatusLabel ?? '—'}** · ${report.day1?.recommendedNextAction ?? '—'} |
+| **Dag 1 arbetspass** | **${report.journalPilotShift?.shiftStatusLabel ?? report.day1?.day1JournalPilot?.shiftStatusLabel ?? '—'}** · ${report.journalPilotShift?.recommendedAction ?? '—'} |
+| **Journalpilot ops** | **${report.journalPilotShift?.journalPilotOpsStatus ?? '—'}** · personal: **${report.journalPilotShift?.personalCanContinueJournaling ?? '—'}** |
 | **Pilot 1/2/3** | ${report.pilot1} / ${report.pilot2} / ${report.pilot3} |
 | **Mail** | ${report.mail.operational} · remaining **${report.mail.progress.remaining}** |
 | **Drive/historik** | ${report.drive.operational} · review queue **${report.drive.reviewQueueTotal}** |
@@ -456,6 +461,25 @@ _Prod: ${BASE}_
 | Pilotkund 3 | **${report.pilot3}** |
 
 **Efter varje deploy:** \`npm run cco:presentation-gate\`
+
+---
+
+## Journal Pilot Operations (efter mötet)
+
+| | |
+|---|---|
+| **Ops status** | **${report.journalPilotShift?.journalPilotOpsStatus ?? '—'}** |
+| **Shift** | **${report.journalPilotShift?.shiftStatus ?? '—'}** (${report.journalPilotShift?.shiftStatusLabel ?? '—'}) |
+| **Journaler 24h** | ${report.journalPilotShift?.journalWrites24h ?? '—'} |
+| **Signerade 24h** | ${report.journalPilotShift?.signed24h ?? '—'} |
+| **Rättelser 24h** | ${report.journalPilotShift?.corrections24h ?? '—'} |
+| **Errors 24h** | ${report.journalPilotShift?.errors24h ?? '—'} |
+| **Route health** | ${report.journalPilotShift?.routeHealthPass ?? '—'} · 5xx: ${report.journalPilotShift?.journalPilotOps?.route5xxCount ?? '—'} |
+| **Pilot 1/2/3** | ${report.journalPilotShift?.pilot1} / ${report.journalPilotShift?.pilot2} / ${report.journalPilotShift?.pilot3} |
+| **Eskaleringar** | ${report.journalPilotShift?.escalationQueue?.registered ?? 0} · ${report.journalPilotShift?.escalationQueue?.emptyMessage ?? '—'} |
+| **Nästa action** | **${report.journalPilotShift?.recommendedAction ?? '—'}** |
+
+Export: \`public/cco-journalpilot-shift-status.json\` · workbench: \`/cco-ops-workbench.html\`
 
 ---
 
@@ -750,6 +774,18 @@ async function main() {
   const presentationGate =
     journalPilotOk && (journalLive?.overall || 'PASS') === 'PASS' ? 'PASS' : 'FAIL';
 
+  const journalPilotShift = buildJournalPilotShiftPayload({
+    journalLive,
+    presentationGate,
+    journalE2E: readiness.ok ? 'PASS' : 'FAIL',
+    demoLinks: links.ok ? 'PASS' : 'FAIL',
+    pilot1,
+    pilot2,
+    pilot3,
+    retryable: false,
+  });
+  if (!noWrite) publishJournalPilotShiftStatus(journalPilotShift, REPO);
+
   const day1 = buildDay1OperationsSnapshot({
     journalPilot: {
       overall: journalPilotOk ? 'PASS' : 'FAIL',
@@ -894,7 +930,10 @@ async function main() {
     mailReviewDay1: day1.mailReview,
     importReviewDay1: day1.importReview,
     blockers: day1.blockers,
-    recommendedNextAction: day1.recommendedNextAction,
+    recommendedNextAction: journalPilotShift.recommendedAction,
+    journalPilotShift,
+    journalPilotOps: journalPilotShift.journalPilotOps,
+    escalationQueue: journalPilotShift.escalationQueue,
   };
   if (!noWrite) {
     publishMailboxReferencePublic(REPO);
@@ -938,6 +977,7 @@ async function main() {
     mailOperator,
     importQueue,
     day1,
+    journalPilotShift,
   };
 
   console.log('Journal mounts:', report.journalMounts);
@@ -963,10 +1003,14 @@ async function main() {
   console.log('Mail operator:', mailOperator?.overall, 'remaining', mailOperator?.remaining);
   console.log('Import queue:', importQueue.total, importQueue.status);
   console.log(
-    'Day-1 shift:',
-    day1.day1JournalPilot.shiftStatusLabel,
+    'Journal ops:',
+    journalPilotShift.journalPilotOpsStatus,
+    '· shift:',
+    journalPilotShift.shiftStatus,
+    '· errors24h:',
+    journalPilotShift.errors24h,
     '· action:',
-    day1.recommendedNextAction
+    journalPilotShift.recommendedAction
   );
   console.log('');
 

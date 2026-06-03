@@ -1,6 +1,6 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-03T04:34:35.792Z_  
+_Senast uppdaterad: 2026-06-03T04:39:16.669Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
@@ -11,7 +11,8 @@ _Prod: https://arcana.hairtpclinic.com_
 | ------------------------ | ------------------------------------------------------------------ |
 | **Journalpilot**         | **PASS** (mounts PASS · links PASS · E2E PASS)                     |
 | **Journalpilot live**    | PASS · personal kan journalföra: **JA**                            |
-| **Dag 1 arbetspass**     | **Redo att börja** · GO                                            |
+| **Dag 1 arbetspass**     | **Varning** · GO                                                   |
+| **Journalpilot ops**     | **WARNING** · personal: **JA**                                     |
 | **Pilot 1/2/3**          | PASS / PASS / PASS                                                 |
 | **Mail**                 | PHASE_2_UI_READY · remaining **493**                               |
 | **Drive/historik**       | SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO · review queue **1497** |
@@ -34,6 +35,25 @@ _Prod: https://arcana.hairtpclinic.com_
 | Pilotkund 3              | **PASS** |
 
 **Efter varje deploy:** `npm run cco:presentation-gate`
+
+---
+
+## Journal Pilot Operations (efter mötet)
+
+|                   |                                    |
+| ----------------- | ---------------------------------- |
+| **Ops status**    | **WARNING**                        |
+| **Shift**         | **warning** (Varning)              |
+| **Journaler 24h** | 0                                  |
+| **Signerade 24h** | 0                                  |
+| **Rättelser 24h** | 0                                  |
+| **Errors 24h**    | 0                                  |
+| **Route health**  | PASS · 5xx: 0                      |
+| **Pilot 1/2/3**   | PASS / PASS / PASS                 |
+| **Eskaleringar**  | 0 · Inga eskaleringar registrerade |
+| **Nästa action**  | **GO**                             |
+
+Export: `public/cco-journalpilot-shift-status.json` · workbench: `/cco-ops-workbench.html`
 
 ---
 

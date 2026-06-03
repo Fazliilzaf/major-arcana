@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T04:34:44.700Z",
+  "generatedAt": "2026-06-03T04:39:25.486Z",
   "title": "4 juni Command Status",
   "prodUrl": "https://arcana.hairtpclinic.com/cco-personal-start.html",
   "backupUrl": "https://major-arcana-frankfurt.onrender.com/cco-personal-start.html",
@@ -58,7 +58,7 @@
     ]
   },
   "dailyReadinessSnapshot": {
-    "generatedAt": "2026-06-03T04:34:35.792Z",
+    "generatedAt": "2026-06-03T04:39:16.669Z",
     "journalPilot": "PASS",
     "mail": "PHASE_2_UI_READY",
     "mailRemaining": 493,
@@ -68,16 +68,222 @@
     "importReviewQueue": 1497
   },
   "blockers": [
+    "Mail ambiguous ~493 kvar (manuellt, ej demo-P0)",
+    "Photo Review ~860 pending · 0 VISIBLE före review",
+    "Import review queue 1497 osäkra kundmatchningar",
     "Mail: 493 ambiguous kvar — operatörsverktyg, ej dagligt mail ännu",
     "Photo: 860 pending · 150 kunder · 0 VISIBLE",
     "Import: 1497 osäkra matchningar — manuell review"
   ],
   "recommendedAction": "GO",
-  "checksRun": false,
+  "checksRun": true,
   "base": "https://arcana.hairtpclinic.com",
   "backupBase": "https://major-arcana-frankfurt.onrender.com",
+  "journalPilotShift": {
+    "generatedAt": "2026-06-03T04:39:32.767Z",
+    "mode": "JOURNAL_PILOT_OPERATIONS",
+    "shiftStatus": "warning",
+    "shiftStatusLabel": "Varning",
+    "journalPilotOpsStatus": "WARNING",
+    "journalPilotOpsReason": "Audit/token saknas — 24h-räknare kan vara ofullständiga.",
+    "journalWrites24h": 0,
+    "signed24h": 0,
+    "corrections24h": 0,
+    "errors24h": 0,
+    "lastSuccessfulWriteAt": null,
+    "lastFailedWriteAt": null,
+    "lastJournalActivityAt": null,
+    "personalCanContinueJournaling": "JA",
+    "feedTimelineFormsHealth": "PASS",
+    "routeHealthPass": "PASS",
+    "route5xxCount": 0,
+    "pilot1": "PASS",
+    "pilot2": "PASS",
+    "pilot3": "PASS",
+    "recommendedAction": "GO",
+    "stopConditions": [
+      "journal create/sign/correction fail",
+      "feed/timeline fail",
+      "5xx på journalroutes",
+      "pilotkund fail",
+      "Drive-länk i UI",
+      "patientdata i GitHub",
+      "customerId mismatch",
+      "ny kund vid osäker match"
+    ],
+    "journalPilotOps": {
+      "opsStatus": "WARNING",
+      "opsStatusLabel": "WARNING",
+      "opsReason": "Audit/token saknas — 24h-räknare kan vara ofullständiga.",
+      "stopReasons": [],
+      "personalCanContinueJournaling": "JA",
+      "feedTimelineFormsHealth": "PASS",
+      "routeHealth": [
+        {
+          "name": "journal-quick-entry",
+          "status": 400,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": true
+        },
+        {
+          "name": "journal-quick-sign",
+          "status": 400,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": true
+        },
+        {
+          "name": "journal-quick-correction",
+          "status": 400,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": true
+        },
+        {
+          "name": "journal-quick-entries",
+          "status": 400,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": true
+        },
+        {
+          "name": "journal-quick-stats",
+          "status": 200,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": false
+        }
+      ],
+      "routeHealthPass": "PASS",
+      "route5xxCount": 0,
+      "route4xxCount": 4,
+      "pilot1": "PASS",
+      "pilot2": "PASS",
+      "pilot3": "PASS",
+      "pilots": [
+        {
+          "slot": 1,
+          "label": "Pilotkund A · ren journalföringstest",
+          "customerId": "cco-pilot-20260602-a",
+          "overall": "PASS",
+          "feed": 200,
+          "timeline": 200,
+          "forms": 200,
+          "feedItems": 179,
+          "timelineEvents": 536,
+          "entries24h": null
+        },
+        {
+          "slot": 2,
+          "label": "Pilotkund B · journal-feed + timeline",
+          "customerId": "cco-pilot-20260602-b",
+          "overall": "PASS",
+          "feed": 200,
+          "timeline": 200,
+          "forms": 200,
+          "feedItems": 175,
+          "timelineEvents": 524,
+          "entries24h": null
+        },
+        {
+          "slot": 3,
+          "label": "Pilotkund C · signering + rättelse verifierad",
+          "customerId": "cco-readiness-smoke-1780402011",
+          "overall": "PASS",
+          "feed": 200,
+          "timeline": 200,
+          "forms": 200,
+          "feedItems": 176,
+          "timelineEvents": 528,
+          "entries24h": null
+        }
+      ],
+      "last24h": {
+        "journalEntriesActivity": 0,
+        "journalWrites24h": 0,
+        "signed24h": 0,
+        "corrections24h": 0,
+        "errors24h": 0,
+        "blockedLockedEditAttempts": 0,
+        "lastSuccessfulWriteAt": null,
+        "lastFailedWriteAt": null,
+        "lastJournalActivityAt": null
+      },
+      "legacyShift": {
+        "shiftStatus": "redo_att_borja",
+        "shiftStatusLabel": "Redo att börja",
+        "reason": "Allt grönt — personal kan starta arbetspass.",
+        "systemReady": true,
+        "hasFault": false,
+        "hasWork": false,
+        "allShiftStates": [
+          {
+            "id": "redo_att_borja",
+            "label": "Redo att börja",
+            "active": true
+          },
+          {
+            "id": "pagar",
+            "label": "Pågår",
+            "active": false
+          },
+          {
+            "id": "fel_upptackt",
+            "label": "Fel upptäckt",
+            "active": false
+          },
+          {
+            "id": "pausad",
+            "label": "Pausad",
+            "active": false
+          },
+          {
+            "id": "klar_for_dagen",
+            "label": "Klar för dagen",
+            "active": false
+          }
+        ]
+      },
+      "shiftStatus": "warning",
+      "shiftStatusLabel": "Varning",
+      "shiftReason": "Allt grönt — personal kan starta arbetspass."
+    },
+    "escalationQueue": {
+      "generatedAt": "2026-06-03T04:39:32.766Z",
+      "registered": 0,
+      "empty": true,
+      "emptyMessage": "Inga eskaleringar registrerade",
+      "items": [],
+      "note": "Read-only — härledd från audit/routes senaste 24h, inga mock-rader"
+    },
+    "links": {
+      "personalStart": "/cco-personal-start.html",
+      "kundkort": "/kunder.html",
+      "journalGuide": "/journal-pilot-guide.html",
+      "staffTraining": "/cco-staff-training-mode.html",
+      "journalFaq": "/cco-journalpilot-faq.html",
+      "opsWorkbench": "/cco-ops-workbench.html",
+      "commandCenter": "/cco-4june-command-center.html",
+      "goLiveSupport": "/cco-journalpilot-go-live.html",
+      "preSignCheck": "/cco-pre-signering-check.html",
+      "signoffSheet": "/journal-pilot-signoff-sheet.html"
+    }
+  },
+  "journalPilotOpsStatus": "WARNING",
+  "shiftStatus": "warning",
+  "shiftStatusLabel": "Varning",
+  "errors24h": 0,
+  "escalationQueue": {
+    "generatedAt": "2026-06-03T04:39:32.766Z",
+    "registered": 0,
+    "empty": true,
+    "emptyMessage": "Inga eskaleringar registrerade",
+    "items": [],
+    "note": "Read-only — härledd från audit/routes senaste 24h, inga mock-rader"
+  },
   "day1": {
-    "generatedAt": "2026-06-03T04:34:44.793Z",
+    "generatedAt": "2026-06-03T04:39:32.852Z",
     "mode": "DAY_1_OPERATIONS",
     "day1JournalPilot": {
       "overall": "PASS",
@@ -213,7 +419,7 @@
       ]
     },
     "identitySafety": {
-      "generatedAt": "2026-06-03T04:34:44.792Z",
+      "generatedAt": "2026-06-03T04:39:32.851Z",
       "overall": "PASS",
       "identityCheckAvailable": true,
       "preSignCheckAvailable": true,
@@ -365,10 +571,8 @@
     },
     "recommendedWork": "Öppna personal-start → kundkort → pilotkund → journal"
   },
-  "journalPilotShift": "redo_att_borja",
-  "journalPilotShiftLabel": "Redo att börja",
   "identitySafety": {
-    "generatedAt": "2026-06-03T04:34:44.792Z",
+    "generatedAt": "2026-06-03T04:39:32.851Z",
     "overall": "PASS",
     "identityCheckAvailable": true,
     "preSignCheckAvailable": true,

@@ -84,46 +84,102 @@
     }
   }
 
-  function renderDay1JournalPilotPanel(day1, morning, journalLive) {
-    const d = day1?.day1JournalPilot || {};
-    const last = d.last24h || journalLive?.last24h || {};
-    const links = d.links || {};
-    const shiftStates = d.shiftStates || [];
-    const action = day1?.recommendedNextAction || morning?.recommendedAction || '—';
-    const gate = d.presentationGate || morning?.presentationGate || '—';
+  function opsStatusPill(status) {
+    const s = String(status || '').toUpperCase();
+    let cls = 'cow-pill--warn';
+    if (s === 'GO') cls = 'cow-pill--pass cow-ops-go';
+    if (s === 'WARNING') cls = 'cow-pill--warn cow-ops-warning';
+    if (s === 'STOP') cls = 'cow-pill--fail cow-ops-stop';
+    return `<span class="cow-pill ${cls}">${escapeHtml(status || '—')}</span>`;
+  }
 
-    const shiftChips = shiftStates
+  function renderJournalPilotCtas(shift, links) {
+    const ops = shift?.journalPilotOpsStatus || 'STOP';
+    const personalJa = shift?.personalCanContinueJournaling === 'JA';
+    const canContinue = ops === 'GO' && personalJa;
+    const lk = shift?.links || links || {};
+
+    return `
+      <div class="cow-cta-grid">
+        <a class="cow-cta${canContinue ? ' cow-cta--primary' : ' cow-cta--disabled'}" href="${canContinue ? escapeHtml(lk.personalStart || '/cco-personal-start.html') : '#'}">Fortsätt journalföra</a>
+        <span class="cow-cta cow-cta--disabled" title="Read-only — pausa via Fazli/command center">Pausa journalföring</span>
+        <a class="cow-cta cow-cta--warn" href="${escapeHtml(lk.commandCenter || '/cco-4june-command-center.html')}">Eskalera till Fazli</a>
+        <a class="cow-cta" href="${escapeHtml(lk.journalGuide || '/journal-pilot-guide.html')}">Öppna journalguide</a>
+        <a class="cow-cta" href="${escapeHtml(lk.personalStart || '/cco-personal-start.html')}">Öppna personalstart</a>
+      </div>
+      <p class="cow-muted">CTA är read-only vägledning — ingen server-write för paus/start.</p>`;
+  }
+
+  function renderEscalationSection(escalation) {
+    const eq = escalation || {};
+    if (eq.empty || !eq.items?.length) {
+      return `
+        <section class="cow-section" id="escalation">
+          <h2>Eskaleringskö</h2>
+          <p class="cow-muted">${escapeHtml(eq.emptyMessage || 'Inga eskaleringar registrerade')}</p>
+        </section>`;
+    }
+    const rows = eq.items
       .map(
-        (s) =>
-          `<span class="cow-shift-chip${s.active ? ' is-active' : ''}">${escapeHtml(s.label)}</span>`
+        (item) => `
+        <li class="${item.severity === 'critical' ? 'is-critical' : ''}">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="cow-muted"> · ${escapeHtml(item.category)} · ${escapeHtml(item.assignee)}</span>
+          <br /><span class="cow-muted">${escapeHtml(item.action)}</span>
+        </li>`
       )
       .join('');
 
     return `
-      <section class="cow-section cow-section--day1" id="day1-journalpilot">
+      <section class="cow-section" id="escalation">
         <div class="cow-section-head">
-          <h2>Dag 1 · Journalpilot</h2>
-          ${pill(d.overall || gate)}
-          ${pill(d.shiftStatusLabel || d.shiftStatus || '—')}
+          <h2>Eskaleringskö</h2>
+          ${pill(`${eq.registered} registrerade`)}
+        </div>
+        <p class="cow-muted">${escapeHtml(eq.note || 'Read-only — från audit/routes, inga mock-rader')}</p>
+        <ul class="cow-escalation-list">${rows}</ul>
+      </section>`;
+  }
+
+  function renderJournalPilotOpsPanel(shift, morning, journalLive, day1) {
+    const s = shift || {};
+    const jOps = s.journalPilotOps || {};
+    const last =
+      s.last24h || jOps.last24h || journalLive?.last24h || day1?.day1JournalPilot?.last24h || {};
+    const links = s.links || day1?.day1JournalPilot?.links || {};
+    const action = s.recommendedAction || morning?.recommendedAction || '—';
+    const opsStatus = s.journalPilotOpsStatus || jOps.opsStatus || 'WARNING';
+    const routeRows = (jOps.routeHealth || journalLive?.routeHealth || [])
+      .map((r) => `<li>${escapeHtml(r.name)}: ${escapeHtml(r.status)} ${pill(r.result)}</li>`)
+      .join('');
+
+    return `
+      <section class="cow-section cow-section--journal-ops" id="journalpilot-ops">
+        <div class="cow-section-head">
+          <h2>Journalpilot Operations</h2>
+          ${opsStatusPill(opsStatus)}
+          ${pill(s.shiftStatusLabel || s.shiftStatus || '—')}
           ${pill(action)}
         </div>
-        <p class="cow-callout"><strong>Arbetspass (read-only):</strong> ${escapeHtml(d.shiftReason || '—')}</p>
-        <div class="cow-shift-states" aria-label="Arbetspass-status">${shiftChips}</div>
+        <p class="cow-callout"><strong>${escapeHtml(opsStatus)}:</strong> ${escapeHtml(s.journalPilotOpsReason || jOps.opsReason || '—')}</p>
+        <p class="cow-muted">Senaste journalaktivitet: ${escapeHtml(s.lastJournalActivityAt || last.lastSuccessfulJournalWriteAt || '—')}</p>
         <div class="cow-metrics">
-          ${metric(gate, 'Journalpilot PASS/FAIL')}
-          ${metric(d.pilot1 ?? journalLive?.pilot1, 'Pilot 1')}
-          ${metric(d.pilot2 ?? journalLive?.pilot2, 'Pilot 2')}
-          ${metric(d.pilot3 ?? journalLive?.pilot3, 'Pilot 3')}
-          ${metric(d.personalCanContinueJournaling, 'Kan journalföra')}
+          ${metric(s.personalCanContinueJournaling || jOps.personalCanContinueJournaling, 'Kan fortsätta')}
+          ${metric(s.pilot1 ?? jOps.pilot1 ?? journalLive?.pilot1, 'Pilot 1')}
+          ${metric(s.pilot2 ?? jOps.pilot2 ?? journalLive?.pilot2, 'Pilot 2')}
+          ${metric(s.pilot3 ?? jOps.pilot3 ?? journalLive?.pilot3, 'Pilot 3')}
+          ${metric(jOps.feedTimelineFormsHealth ?? journalLive?.feedTimelineFormsHealth, 'Feed/timeline')}
         </div>
         <div class="cow-metrics">
-          ${metric(last.journalEntriesActivity ?? '—', 'Journaler 24h')}
-          ${metric(last.signedCount ?? '—', 'Signerade')}
-          ${metric(last.correctionsCount ?? '—', 'Rättelser')}
-          ${metric(last.errorsCount ?? '—', 'Fel')}
-          ${metric(d.route5xxCount ?? journalLive?.route5xxCount ?? 0, '5xx routes')}
+          ${metric(s.journalWrites24h ?? last.journalEntriesActivity, 'Journaler 24h')}
+          ${metric(s.signed24h ?? last.signedCount, 'Signerade 24h')}
+          ${metric(s.corrections24h ?? last.correctionsCount, 'Rättelser 24h')}
+          ${metric(s.errors24h ?? last.errorsCount, 'Journal errors 24h')}
+          ${metric(s.route5xxCount ?? jOps.route5xxCount ?? 0, 'Route 5xx')}
         </div>
-        <p class="cow-muted">Senaste lyckade write: ${escapeHtml(last.lastSuccessfulJournalWriteAt || '—')} · senaste fail: ${escapeHtml(last.lastFailedJournalWriteAt || '—')}</p>
+        <p class="cow-muted">Senaste lyckade write: ${escapeHtml(s.lastSuccessfulWriteAt || last.lastSuccessfulJournalWriteAt || '—')} · senaste fail: ${escapeHtml(s.lastFailedWriteAt || last.lastFailedJournalWriteAt || '—')}</p>
+        <ul class="cow-list">${routeRows || '<li>—</li>'}</ul>
+        ${renderJournalPilotCtas(s, links)}
         <div class="cow-links-grid">
           ${linkBtn(links.personalStart, 'Personal-start')}
           ${linkBtn(links.kundkort, 'Kundkort')}
@@ -132,6 +188,7 @@
           ${linkBtn(links.journalFaq, 'FAQ')}
           ${linkBtn(links.goLiveSupport, 'Go-live support')}
           ${linkBtn(links.signoffSheet, 'Sign-off sheet')}
+          ${linkBtn(links.preSignCheck, 'Pre-sign check')}
         </div>
       </section>`;
   }
@@ -568,6 +625,7 @@
       morningRes,
       mailRefRes,
       journalLiveRes,
+      shiftRes,
       day1Res,
       photoOpRes,
       mailOpRes,
@@ -590,6 +648,7 @@
       fetchJson('/cco-4june-morning-check.json'),
       fetchJson('/mail-ambiguous-mailbox-reference.json'),
       fetchJson('/cco-journal-pilot-live-monitor.json'),
+      fetchJson('/cco-journalpilot-shift-status.json'),
       fetchJson('/cco-day1-operations-status.json'),
       fetchJson('/cco-photo-review-operator-status.json'),
       fetchJson('/cco-mail-review-operator-status.json'),
@@ -619,6 +678,10 @@
     const mailOp = mailOpRes.ok ? mailOpRes.json : ops?.mailReviewOperator;
     const importQ = importQRes.ok ? importQRes.json : ops?.importReviewQueue;
     const day1 = day1Res.ok ? day1Res.json : ops?.day1 || null;
+    const journalShift = shiftRes.ok
+      ? shiftRes.json
+      : ops?.journalPilotShift || morning?.journalPilotShift || null;
+    const escalation = journalShift?.escalationQueue || ops?.escalationQueue || null;
     const pageProbes = {
       '/cco-pre-signering-check.html': preSignStatus,
       '/cco-review-material-warning.html': reviewWarnStatus,
@@ -657,7 +720,8 @@
         Snapshot: ${escapeHtml(ops.generatedAt || '—')}
       </div>
       <div class="cow-grid">
-        ${renderDay1JournalPilotPanel(day1 || ops, morning, journalLive)}
+        ${renderJournalPilotOpsPanel(journalShift, morning, journalLive, day1 || ops)}
+        ${renderEscalationSection(escalation)}
         ${renderIdentitySafetySection(ops?.identitySafety || day1?.identitySafety, pageProbes)}
         ${renderCommandStatus(morning, manifest)}
         ${renderJournalPilotLiveSection(journalLive, manifest)}

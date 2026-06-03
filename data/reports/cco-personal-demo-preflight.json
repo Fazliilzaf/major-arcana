@@ -1,61 +1,180 @@
 {
-  "generatedAt": "2026-06-02T13:54:34.584Z",
+  "generatedAt": "2026-06-03T04:39:27.302Z",
   "base": "https://arcana.hairtpclinic.com",
-  "htmlPath": "/Users/fazlikrasniqi/Code/major-arcana/public/cco-personal-start.html",
-  "results": [
+  "pageReports": [
     {
-      "href": "/kunder.html",
-      "status": 200,
-      "ok": true,
-      "issues": []
+      "htmlPath": "/Users/fazlikrasniqi/Code/major-arcana/public/cco-personal-start.html",
+      "results": [
+        {
+          "href": "/kunder.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-build-demo.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-pilot-guide.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-4june-command-center.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-presenter-mode.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-pilot-print-pack.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-morning-checklist.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-day1-checklist.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-training-mode.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-journalpilot-faq.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-journalpilot-go-live.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-pilot-signoff-sheet.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-pre-signering-check.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-review-material-warning.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-review.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-reports.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        }
+      ],
+      "failed": 0
     },
     {
-      "href": "/journal-build-demo.html",
-      "status": 200,
-      "ok": true,
-      "issues": []
-    },
-    {
-      "href": "/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator",
-      "status": 200,
-      "ok": true,
-      "issues": []
-    },
-    {
-      "href": "/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator",
-      "status": 200,
-      "ok": true,
-      "issues": []
-    },
-    {
-      "href": "/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator",
-      "status": 200,
-      "ok": true,
-      "issues": []
-    },
-    {
-      "href": "/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator#timeline",
-      "status": 200,
-      "ok": true,
-      "issues": []
-    },
-    {
-      "href": "/finance.html",
-      "status": 200,
-      "ok": true,
-      "issues": []
-    },
-    {
-      "href": "/finance-review.html",
-      "status": 200,
-      "ok": true,
-      "issues": []
-    },
-    {
-      "href": "/finance-reports.html",
-      "status": 200,
-      "ok": true,
-      "issues": []
+      "htmlPath": "/Users/fazlikrasniqi/Code/major-arcana/public/personal-demo.html",
+      "results": [
+        {
+          "href": "/kunder.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html#journal",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html#timeline",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html#formular",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-review.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-reports.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        }
+      ],
+      "failed": 0
     }
   ],
   "failed": 0

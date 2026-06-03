@@ -22,10 +22,11 @@ const {
   publishJournalPilotLiveMonitor,
 } = require('./lib/ccoJournalPilotLiveMonitor');
 const { collectIdentitySafetyStatus } = require('./lib/ccoIdentitySafetyStatus');
+const { buildDay1OperationsSnapshot } = require('./lib/ccoDay1OperationsSnapshot');
 const {
-  buildDay1OperationsSnapshot,
-  buildRecommendedNextAction,
-} = require('./lib/ccoDay1OperationsSnapshot');
+  buildJournalPilotShiftPayload,
+  publishJournalPilotShiftStatus,
+} = require('./lib/ccoJournalPilotOpsStatus');
 
 const REPO = path.join(__dirname, '..');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
@@ -266,6 +267,24 @@ async function main() {
 
   payload.blockers = buildBlockers(payload);
 
+  const journalPilotShift = buildJournalPilotShiftPayload({
+    journalLive,
+    presentationGate: payload.presentationGate,
+    journalE2E: payload.journalE2E,
+    demoLinks: payload.demoLinks,
+    pilot1: payload.pilot1,
+    pilot2: payload.pilot2,
+    pilot3: payload.pilot3,
+    retryable,
+  });
+  publishJournalPilotShiftStatus(journalPilotShift, REPO);
+  payload.journalPilotShift = journalPilotShift;
+  payload.journalPilotOpsStatus = journalPilotShift.journalPilotOpsStatus;
+  payload.shiftStatus = journalPilotShift.shiftStatus;
+  payload.shiftStatusLabel = journalPilotShift.shiftStatusLabel;
+  payload.errors24h = journalPilotShift.errors24h;
+  payload.escalationQueue = journalPilotShift.escalationQueue;
+
   let identitySafety = null;
   try {
     identitySafety = await collectIdentitySafetyStatus({ base: BASE });
@@ -298,21 +317,12 @@ async function main() {
 
   payload.day1 = day1;
   payload.day1JournalPilot = day1.day1JournalPilot;
-  payload.journalPilotShift = day1.day1JournalPilot.shiftStatus;
-  payload.journalPilotShiftLabel = day1.day1JournalPilot.shiftStatusLabel;
   payload.identitySafety = identitySafety;
-  payload.recommendedAction = buildRecommendedNextAction({
-    presentationGate: payload.presentationGate,
-    journalE2E: payload.journalE2E,
-    demoLinks: payload.demoLinks,
-    pilot1: payload.pilot1,
-    pilot2: payload.pilot2,
-    pilot3: payload.pilot3,
-    journalLive,
-    shift: day1.day1JournalPilot,
-    retryable,
-  });
-  payload.blockers = day1.blockers;
+  payload.recommendedAction = journalPilotShift.recommendedAction;
+  payload.blockers = [...new Set([...buildBlockers(payload), ...day1.blockers])].slice(0, 8);
+  if (journalPilotShift.journalPilotOpsStatus === 'STOP') {
+    payload.blockers.unshift(`Journalpilot STOP: ${journalPilotShift.journalPilotOpsReason}`);
+  }
 
   const day1Public = path.join(REPO, 'public/cco-day1-operations-status.json');
   fs.writeFileSync(day1Public, JSON.stringify(day1, null, 2));
@@ -331,7 +341,9 @@ async function main() {
     '· personal:',
     payload.personalCanContinueJournaling
   );
-  console.log('Shift:', payload.journalPilotShiftLabel);
+  console.log('Journal ops:', payload.journalPilotOpsStatus);
+  console.log('Shift:', payload.shiftStatus, payload.shiftStatusLabel);
+  console.log('Errors 24h:', payload.errors24h);
   console.log('Recommended:', payload.recommendedAction);
   console.log('');
   console.log('Wrote:', REPORT_PATH);
