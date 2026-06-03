@@ -152,3 +152,11 @@ _Ingen patientdata i denna rapport._
 - 🟡 Photo Review: **pending**
 - 🟡 Import review: **pending** (~1497)
 - ⏸ Aisia: **paused**
+
+### Cycle-17 statusrefresh 2026-06-04T03:00Z — konsolidering
+
+- ✅ Personalpaket konsoliderat — 17 resurser i 4 grupper (A/B/C/D)
+- ✅ Use-case-tabell på personal-start ("vilken sida ska jag använda?")
+- ✅ Resource Index doc (ny) — enda kompletta listan
+- ✅ Copy audit PASS — inga vilseledande claims
+- ⛔ **Inga fler stöd-sidor byggs** (per owner-direktiv) · Cursor canaries för köer

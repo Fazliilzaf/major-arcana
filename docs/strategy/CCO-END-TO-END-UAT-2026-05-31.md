@@ -187,3 +187,11 @@ _Ingen patientdata i denna rapport._
 | Aisia | **paused** |
 
 Presentation gate: länkpreflight även go-live-control + training-completion.
+
+### Cycle-17 statusrefresh 2026-06-04T03:00Z — konsolidering
+
+- ✅ Personalstart Section E grupperad (4 grupper · use-case-tabell överst)
+- ✅ Resource Index doc (ny) — komplett katalog över personalpaketet
+- ✅ Copy audit PASS
+- ✅ Inga nya sidor byggda (per owner-direktiv)
+- 🟢 17 länkbara personalresurser oförändrat · klarare struktur

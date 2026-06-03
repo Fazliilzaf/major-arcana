@@ -619,3 +619,33 @@ Cycle 15 är **operativ kontrollpanel**, inte ny utbildning. Allt utbildningsmat
 
 ### Komplett 4 juni-personalpaket — fortfarande 17 länkbara resurser (inga nya sidor)
 Cycle 16 = utökning av befintliga sidor + ny driftregler-doc.
+
+---
+
+## Cycle-17 status 2026-06-04T03:00Z (Claude) — konsolidering
+
+### Vad ändrades
+
+- ✅ **`/cco-personal-start.html` Section E omstrukturerad** — 16 platta länkar grupperade i 4 tydliga grupper:
+  - **Grupp A · Visa i mötet** (4 kort): Presenter Mode, Command Center, Kundkort, Pilotkund 1/2/3
+  - **Grupp B · Personal använder dag 1** (8 kort): Journal Pilot Guide, Training Mode, FAQ, Pre-Signering Check, Review-Material Warning, Efter mötet-start, Journal Safety Helper, Go-Live Support
+  - **Grupp C · Fazli/operator** (4 kort): Go-Live Control, Ops Workbench, Morgon-checklist, Staff Day-1 Checklist
+  - **Grupp D · Print** (3 kort): Print Pack, Sign-off Sheet, Training Completion
+- ✅ **"Vilken sida ska jag använda?"-tabell** överst i Section E (8 rader: visa personalen → Presenter · börja journalföra → Guide · osäker före signering → Pre-Sign · etc.)
+- ✅ **Ny doc: `docs/strategy/CCO-PERSONAL-PILOT-RESOURCE-INDEX-2026-06-04.md`** — komplett katalog med 4 grupper + 10 markdown-docs + sammanfattning per persona
+- ✅ **Copy audit cycle-17 PASS** — inga positiva claims om Aisia live/Fortnox kopplat/Photo Review klar/full cutover/mail dagligt verktyg/AI på journaltext
+
+### Inga nya sidor (per direktiv)
+
+Owner-direktiv 2026-06-04T03:00Z: **slutar bygga fler stöd-sidor**. Cycle 17 = konsolidering av befintliga + ny index-doc.
+
+Resursantal oförändrat — fortfarande **17 länkbara personalresurser**, nu organiserade i 4 grupper med use-case-tabell ovanpå.
+
+### Komplett 4 juni-personalpaket — 17 resurser, 4 grupper
+
+| Grupp | Antal | För |
+|---|---|---|
+| A · Visa i mötet | 4 | Fazli + personal under presentationen |
+| B · Personal dag 1 | 8 | Personal under arbetsdagen |
+| C · Fazli/operator | 4 | Fazli + Egzona för styrning |
+| D · Print | 3 | Skrivs ut innan/efter mötet |

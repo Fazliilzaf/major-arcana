@@ -316,3 +316,15 @@ Server.js + journal-routes orörda.
 Statusmatris uppdaterad: Go-Live Control LIVE · Training Completion LIVE · Operating Rules DOCUMENTED · CF intern demo READY · Mail review ACTIVE · Import review PENDING · Aisia PAUSED.
 
 Server.js + journal-routes orörda.
+
+---
+
+## Cycle-17 (2026-06-04T03:00Z · Claude) — konsolidering
+
+**Inga nya sidor.** Konsoliderar befintligt:
+
+- `/cco-personal-start.html` Section E grupperad i 4 grupper (A: Visa i mötet · B: Personal dag 1 · C: Fazli/operator · D: Print) + use-case-tabell överst
+- Ny doc: `docs/strategy/CCO-PERSONAL-PILOT-RESOURCE-INDEX-2026-06-04.md` — komplett katalog
+- Copy audit PASS
+
+Personalpaket: 17 länkbara resurser organiserade · oförändrat antal · klarare struktur.
