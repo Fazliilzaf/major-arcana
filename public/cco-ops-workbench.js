@@ -84,6 +84,95 @@
     }
   }
 
+  function renderDay1JournalPilotPanel(day1, morning, journalLive) {
+    const d = day1?.day1JournalPilot || {};
+    const last = d.last24h || journalLive?.last24h || {};
+    const links = d.links || {};
+    const shiftStates = d.shiftStates || [];
+    const action = day1?.recommendedNextAction || morning?.recommendedAction || '—';
+    const gate = d.presentationGate || morning?.presentationGate || '—';
+
+    const shiftChips = shiftStates
+      .map(
+        (s) =>
+          `<span class="cow-shift-chip${s.active ? ' is-active' : ''}">${escapeHtml(s.label)}</span>`
+      )
+      .join('');
+
+    return `
+      <section class="cow-section cow-section--day1" id="day1-journalpilot">
+        <div class="cow-section-head">
+          <h2>Dag 1 · Journalpilot</h2>
+          ${pill(d.overall || gate)}
+          ${pill(d.shiftStatusLabel || d.shiftStatus || '—')}
+          ${pill(action)}
+        </div>
+        <p class="cow-callout"><strong>Arbetspass (read-only):</strong> ${escapeHtml(d.shiftReason || '—')}</p>
+        <div class="cow-shift-states" aria-label="Arbetspass-status">${shiftChips}</div>
+        <div class="cow-metrics">
+          ${metric(gate, 'Journalpilot PASS/FAIL')}
+          ${metric(d.pilot1 ?? journalLive?.pilot1, 'Pilot 1')}
+          ${metric(d.pilot2 ?? journalLive?.pilot2, 'Pilot 2')}
+          ${metric(d.pilot3 ?? journalLive?.pilot3, 'Pilot 3')}
+          ${metric(d.personalCanContinueJournaling, 'Kan journalföra')}
+        </div>
+        <div class="cow-metrics">
+          ${metric(last.journalEntriesActivity ?? '—', 'Journaler 24h')}
+          ${metric(last.signedCount ?? '—', 'Signerade')}
+          ${metric(last.correctionsCount ?? '—', 'Rättelser')}
+          ${metric(last.errorsCount ?? '—', 'Fel')}
+          ${metric(d.route5xxCount ?? journalLive?.route5xxCount ?? 0, '5xx routes')}
+        </div>
+        <p class="cow-muted">Senaste lyckade write: ${escapeHtml(last.lastSuccessfulJournalWriteAt || '—')} · senaste fail: ${escapeHtml(last.lastFailedJournalWriteAt || '—')}</p>
+        <div class="cow-links-grid">
+          ${linkBtn(links.personalStart, 'Personal-start')}
+          ${linkBtn(links.kundkort, 'Kundkort')}
+          ${linkBtn(links.journalGuide, 'Journal guide')}
+          ${linkBtn(links.staffTraining, 'Staff training')}
+          ${linkBtn(links.journalFaq, 'FAQ')}
+          ${linkBtn(links.goLiveSupport, 'Go-live support')}
+          ${linkBtn(links.signoffSheet, 'Sign-off sheet')}
+        </div>
+      </section>`;
+  }
+
+  function renderIdentitySafetySection(identity, pageProbes) {
+    const ids = identity || {};
+    const pages = ids.pages || [];
+    const items = [
+      ['Identitet i flöde', ids.identityCheckAvailable, '/cco-personal-start.html'],
+      ['Pre-sign check', ids.preSignCheckAvailable, '/cco-pre-signering-check.html'],
+      [
+        'Review-material warning',
+        ids.reviewMaterialWarningAvailable,
+        '/cco-review-material-warning.html',
+      ],
+      ['Staff checklist', ids.staffChecklistAvailable, '/cco-staff-day1-checklist.html'],
+      ['Sign-off sheet', ids.signoffSheetAvailable, '/journal-pilot-signoff-sheet.html'],
+      ['Staff training', ids.staffTrainingAvailable, '/cco-staff-training-mode.html'],
+      ['FAQ', ids.journalFaqAvailable, '/cco-journalpilot-faq.html'],
+      ['Go-live', ids.goLiveSupportAvailable, '/cco-journalpilot-go-live.html'],
+    ];
+    const grid = items
+      .map(([label, ok, href]) => {
+        const live = pageProbes?.[href];
+        const available = ok === true || live === 200;
+        return `<div class="cow-identity-item${available ? ' is-ok' : ' is-miss'}">${escapeHtml(label)}: ${available ? 'finns' : 'saknas/404'} ${linkBtn(href, 'Öppna', available)}</div>`;
+      })
+      .join('');
+
+    return `
+      <section class="cow-section" id="identity-safety">
+        <div class="cow-section-head">
+          <h2>1a · Identitetssäkerhet</h2>
+          ${pill(ids.overall || '—')}
+        </div>
+        <p class="cow-muted">${escapeHtml(ids.note || 'Stöd före signering — read-only sidor')}</p>
+        <div class="cow-identity-grid">${grid}</div>
+        ${pages.length ? '' : ''}
+      </section>`;
+  }
+
   function renderCommandStatus(morning, manifest) {
     const m = morning || {};
     const gate = m.presentationGate || '—';
@@ -205,14 +294,21 @@
 
   function renderPhotoSection(ops, livePhoto, photoPageStatus, photoOp) {
     const snap = ops?.photoReview || {};
+    const day1p = ops?.photoReviewDay1 || ops?.day1?.photoReview || {};
     const op = photoOp || ops?.photoReviewOperator || {};
     const apiPending = Number(livePhoto?.pendingPhotos ?? livePhoto?.pendingPhotosAll ?? 0);
     const useLive = apiPending > 0;
     const row = useLive ? livePhoto : snap;
-    const pending = op.pendingPhotos ?? row?.pendingPhotos ?? row?.pendingPhotosAll;
-    const patients = op.patientsWithPendingPhotos ?? row?.patientsWithPendingPhotos;
-    const visible = op.photosVisibleCount ?? row?.photosVisibleCount ?? 0;
-    const writeOn = (op.writeEnabled ?? row?.writeEnabled) === true;
+    const pending =
+      day1p.pendingPhotos ?? op.pendingPhotos ?? row?.pendingPhotos ?? row?.pendingPhotosAll;
+    const patients =
+      day1p.patientsWithPendingPhotos ??
+      op.patientsWithPendingPhotos ??
+      row?.patientsWithPendingPhotos;
+    const visible =
+      day1p.photosVisibleCount ?? op.photosVisibleCount ?? row?.photosVisibleCount ?? 0;
+    const writeOn = (day1p.writeEnabled ?? op.writeEnabled ?? row?.writeEnabled) === true;
+    const recWork = day1p.recommendedWork || op.nextAction;
     const toolPath = '/photo-review.html';
     const toolOk = photoPageStatus === 200;
 
@@ -223,7 +319,8 @@
           ${pill(op.overall || (writeOn ? 'WRITE PÅ' : 'READ-ONLY'))}
         </div>
         <p class="cow-callout"><strong>Dag 1:</strong> migrerade före/efter-bilder är <strong>inte kliniska</strong> före Photo Review. <strong>0 VISIBLE</strong> tills manuellt granskat. Ingen auto-approve · ingen massapproval.</p>
-        <p class="cow-muted">${escapeHtml(op.nextAction || 'Patientkö · filter stadium/bodyArea · nästa patient/bild · session export')}</p>
+        <p class="cow-muted">${escapeHtml(recWork || '—')}</p>
+        <p class="cow-muted">${writeOn ? 'Write PÅ — approve per bild' : '<strong>Write AV</strong> — inga approve-knappar · ingen autoapprove · ingen massapproval'}</p>
         <div class="cow-metrics">
           ${metric(pending ?? '—', 'pending bilder')}
           ${metric(patients ?? '—', 'antal kunder')}
@@ -253,6 +350,7 @@
 
   function renderMailSection(ops, mailRef, mailOp) {
     const m = ops?.mailAmbiguous || {};
+    const day1m = ops?.mailReviewDay1 || ops?.day1?.mailReview || {};
     const mo = mailOp || ops?.mailReviewOperator || {};
     const { counts, source } = resolveMailMailboxCounts(m, mailRef);
     const mailboxHtml = MAILBOX_LABELS.map(
@@ -265,12 +363,12 @@
           <h2>3 · Mail review operator</h2>
           ${pill(mo.overall || m.operational || '—')}
         </div>
-        <p class="cow-muted">${escapeHtml(mo.nextAction || 'Nästa bästa rad · ≥3 deterministiska fält · session export')}</p>
+        <p class="cow-muted">${escapeHtml(day1m.statusNote || 'Operatörsverktyg — inte dagligt mailverktyg ännu')}</p>
         <div class="cow-metrics">
-          ${metric(mo.remaining ?? m.remaining ?? m.pending, 'remaining')}
-          ${metric(mo.approved ?? m.approved, 'approved')}
-          ${metric(mo.unresolved ?? m.unresolved, 'unresolved')}
-          ${metric(mo.minApproveMatchFields ?? 3, 'min fält approve')}
+          ${metric(day1m.remaining ?? mo.remaining ?? m.remaining ?? m.pending, 'ambiguous kvar')}
+          ${metric(day1m.approved ?? mo.approved ?? m.approved, 'approved')}
+          ${metric(day1m.unresolved ?? mo.unresolved ?? m.unresolved, 'unresolved')}
+          ${metric(day1m.excluded ?? m.excluded, 'excluded')}
         </div>
         <ul class="cow-list">${mailboxHtml}</ul>
         <p class="cow-muted">Mailbox-källa: ${escapeHtml(source)} · total ambiguous ${escapeHtml(m.ambiguousTotal ?? m.remaining ?? '—')}</p>
@@ -284,7 +382,8 @@
   }
 
   function renderImportSection(ops, importLive) {
-    const q = importLive || ops?.importReviewQueue;
+    const q =
+      importLive || ops?.importReviewDay1 || ops?.day1?.importReview || ops?.importReviewQueue;
     if (!q) {
       return `
         <section class="cow-section" id="import">
@@ -303,8 +402,9 @@
       <section class="cow-section" id="import">
         <div class="cow-section-head">
           <h2>4 · Import review queue</h2>
-          ${pill(q.status || 'WAITING')}
+          ${pill(q.statusLabel || q.status || 'WAITING')}
         </div>
+        <p class="cow-muted"><strong>${escapeHtml(q.statusLabel || 'Manuell review krävs')}</strong> · ingen auto-import · ingen ny kund</p>
         <div class="cow-metrics">${metric(q.total, 'osäkra kundmatchningar (totalt)')}</div>
         <ul class="cow-list">${sources}</ul>
         <p class="cow-muted">${escapeHtml(q.rule || '')} · ${escapeHtml(q.nextAction || 'Väntar manuell review — ingen auto-import')}</p>
@@ -313,7 +413,13 @@
   }
 
   function renderNextStepsSection(ops, morning, journalLive, photoOp, mailOp, importQ) {
+    const action = ops?.recommendedNextAction || morning?.recommendedAction || 'GO';
+    const blockers = ops?.blockers || morning?.blockers || [];
     const steps = [];
+    steps.push({
+      prio: action === 'GO' ? 'GO' : action === 'WAIT_AND_RETRY' ? 'WAIT' : 'P0',
+      text: `Morning command: ${action}`,
+    });
     if (morning?.presentationGate === 'FAIL') {
       steps.push({ prio: 'P0', text: 'Fixa presentation-gate — journaldemo ej säker' });
     } else {
@@ -347,9 +453,15 @@
       text: 'Ej: auto-approve · massapproval · ny riskimport · Aisia · Drive-länkar i UI',
     });
 
+    const blockerList = blockers
+      .slice(0, 5)
+      .map((b) => `<li>${escapeHtml(b)}</li>`)
+      .join('');
+
     return `
       <section class="cow-section cow-section--next" id="next-steps">
         <h2>9 · Vad ska göras härnäst?</h2>
+        ${blockerList ? `<ul class="cow-list">${blockerList}</ul>` : ''}
         <ul class="cow-list cow-list--steps">
           ${steps
             .map(
@@ -456,12 +568,20 @@
       morningRes,
       mailRefRes,
       journalLiveRes,
+      day1Res,
       photoOpRes,
       mailOpRes,
       importQRes,
       livePhoto,
       photoStatus,
       encStatus,
+      preSignStatus,
+      reviewWarnStatus,
+      checklistStatus,
+      signoffStatus,
+      trainingStatus,
+      faqStatus,
+      goLiveStatus,
     ] = await Promise.all([
       fetchJson('/cco-ops-workbench-snapshot.json').then((r) =>
         r.ok ? r : fetchJson('/cco-presentation-ops-status.json')
@@ -470,12 +590,20 @@
       fetchJson('/cco-4june-morning-check.json'),
       fetchJson('/mail-ambiguous-mailbox-reference.json'),
       fetchJson('/cco-journal-pilot-live-monitor.json'),
+      fetchJson('/cco-day1-operations-status.json'),
       fetchJson('/cco-photo-review-operator-status.json'),
       fetchJson('/cco-mail-review-operator-status.json'),
       fetchJson('/cco-import-review-queue-status.json'),
       loadPhotoSummary(),
       probePage('/photo-review.html'),
       probePage('/encounter-mapping-review.html'),
+      probePage('/cco-pre-signering-check.html'),
+      probePage('/cco-review-material-warning.html'),
+      probePage('/cco-staff-day1-checklist.html'),
+      probePage('/journal-pilot-signoff-sheet.html'),
+      probePage('/cco-staff-training-mode.html'),
+      probePage('/cco-journalpilot-faq.html'),
+      probePage('/cco-journalpilot-go-live.html'),
     ]);
 
     const ops = snapRes.ok ? snapRes.json : null;
@@ -490,7 +618,19 @@
     const photoOp = photoOpRes.ok ? photoOpRes.json : ops?.photoReviewOperator;
     const mailOp = mailOpRes.ok ? mailOpRes.json : ops?.mailReviewOperator;
     const importQ = importQRes.ok ? importQRes.json : ops?.importReviewQueue;
-    const gateFail = morning?.presentationGate === 'FAIL';
+    const day1 = day1Res.ok ? day1Res.json : ops?.day1 || null;
+    const pageProbes = {
+      '/cco-pre-signering-check.html': preSignStatus,
+      '/cco-review-material-warning.html': reviewWarnStatus,
+      '/cco-staff-day1-checklist.html': checklistStatus,
+      '/journal-pilot-signoff-sheet.html': signoffStatus,
+      '/cco-staff-training-mode.html': trainingStatus,
+      '/cco-journalpilot-faq.html': faqStatus,
+      '/cco-journalpilot-go-live.html': goLiveStatus,
+      '/cco-personal-start.html': 200,
+    };
+    const gateFail =
+      (morning?.presentationGate || day1?.day1JournalPilot?.presentationGate) === 'FAIL';
 
     if (!ops) {
       root.innerHTML =
@@ -517,6 +657,8 @@
         Snapshot: ${escapeHtml(ops.generatedAt || '—')}
       </div>
       <div class="cow-grid">
+        ${renderDay1JournalPilotPanel(day1 || ops, morning, journalLive)}
+        ${renderIdentitySafetySection(ops?.identitySafety || day1?.identitySafety, pageProbes)}
         ${renderCommandStatus(morning, manifest)}
         ${renderJournalPilotLiveSection(journalLive, manifest)}
         ${renderJournalSection(ops, manifest)}

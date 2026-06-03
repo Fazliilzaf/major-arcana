@@ -36,6 +36,8 @@ const {
   collectImportReviewQueueStatus,
   publishImportReviewQueueStatus,
 } = require('./lib/ccoImportReviewQueueSnapshot');
+const { collectIdentitySafetyStatus } = require('./lib/ccoIdentitySafetyStatus');
+const { buildDay1OperationsSnapshot } = require('./lib/ccoDay1OperationsSnapshot');
 
 const REPO = path.join(__dirname, '..');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
@@ -431,6 +433,7 @@ _Prod: ${BASE}_
 | ---- | ------ |
 | **Journalpilot** | ${journalOk ? '**PASS**' : '**CHECK**'} (mounts ${report.journalMounts} · links ${report.demoLinks} · E2E ${report.e2eJournal}) |
 | **Journalpilot live** | ${report.journalLive?.overall ?? '—'} · personal kan journalföra: **${report.journalLive?.personalCanContinueJournaling ?? '—'}** |
+| **Dag 1 arbetspass** | **${report.day1?.day1JournalPilot?.shiftStatusLabel ?? '—'}** · ${report.day1?.recommendedNextAction ?? '—'} |
 | **Pilot 1/2/3** | ${report.pilot1} / ${report.pilot2} / ${report.pilot3} |
 | **Mail** | ${report.mail.operational} · remaining **${report.mail.progress.remaining}** |
 | **Drive/historik** | ${report.drive.operational} · review queue **${report.drive.reviewQueueTotal}** |
@@ -453,6 +456,26 @@ _Prod: ${BASE}_
 | Pilotkund 3 | **${report.pilot3}** |
 
 **Efter varje deploy:** \`npm run cco:presentation-gate\`
+
+---
+
+## Dag 1 · Journalpilot (operations panel)
+
+| | |
+|---|---|
+| **Arbetspass** | **${report.day1?.day1JournalPilot?.shiftStatusLabel ?? '—'}** — ${report.day1?.day1JournalPilot?.shiftReason ?? '—'} |
+| **Presentation gate** | ${report.day1?.day1JournalPilot?.presentationGate ?? '—'} |
+| **Journal E2E** | ${report.day1?.day1JournalPilot?.journalE2E ?? '—'} |
+| **Pilot 1/2/3** | ${report.day1?.day1JournalPilot?.pilot1} / ${report.day1?.day1JournalPilot?.pilot2} / ${report.day1?.day1JournalPilot?.pilot3} |
+| **Journalföring 24h** | ${report.day1?.day1JournalPilot?.last24h?.journalEntriesActivity ?? '—'} |
+| **Signerade** | ${report.day1?.day1JournalPilot?.last24h?.signedCount ?? '—'} |
+| **Rättelser** | ${report.day1?.day1JournalPilot?.last24h?.correctionsCount ?? '—'} |
+| **Fel** | ${report.day1?.day1JournalPilot?.last24h?.errorsCount ?? '—'} |
+| **Route 5xx** | ${report.day1?.day1JournalPilot?.route5xxCount ?? '—'} |
+| **Nästa action** | **${report.day1?.recommendedNextAction ?? '—'}** |
+| **Workbench** | \`/cco-ops-workbench.html\` |
+
+Identitetssäkerhet: pre-sign ${report.day1?.identitySafety?.preSignCheckAvailable ? 'OK' : '—'} · review-warning ${report.day1?.identitySafety?.reviewMaterialWarningAvailable ? 'OK' : '—'} · checklist ${report.day1?.identitySafety?.staffChecklistAvailable ? 'OK' : '—'} · sign-off ${report.day1?.identitySafety?.signoffSheetAvailable ? 'OK' : '—'}
 
 ---
 
@@ -686,6 +709,13 @@ async function main() {
     mailOperator = { overall: 'FAIL', error: err.message };
   }
 
+  let identitySafety = null;
+  try {
+    identitySafety = await collectIdentitySafetyStatus({ base: BASE });
+  } catch (err) {
+    identitySafety = { overall: 'FAIL', error: err.message };
+  }
+
   if (!noWrite) {
     publishImportReviewQueueStatus(importQueue, REPO);
     publishPhotoReviewOperatorStatus(photoOperator, REPO);
@@ -717,8 +747,35 @@ async function main() {
     };
   }
 
+  const presentationGate =
+    journalPilotOk && (journalLive?.overall || 'PASS') === 'PASS' ? 'PASS' : 'FAIL';
+
+  const day1 = buildDay1OperationsSnapshot({
+    journalPilot: {
+      overall: journalPilotOk ? 'PASS' : 'FAIL',
+      journalMounts: mounts.ok ? 'PASS' : 'FAIL',
+      demoLinks: links.ok ? 'PASS' : 'FAIL',
+      e2eJournal: readiness.ok ? 'PASS' : 'FAIL',
+      pilot1,
+      pilot2,
+      pilot3,
+      presentationGate,
+    },
+    journalLive,
+    photo,
+    photoOperator,
+    mail,
+    mailOperator,
+    importQueue,
+    identitySafety,
+    cf,
+    presentationGate,
+    retryable: false,
+  });
+
   const opsStatusPath = path.join(REPO, 'public/cco-presentation-ops-status.json');
   const workbenchSnapshotPath = path.join(REPO, 'public/cco-ops-workbench-snapshot.json');
+  const day1StatusPath = path.join(REPO, 'public/cco-day1-operations-status.json');
   const mailStatusPath = path.join(REPO, 'data/reports/mail-ambiguous-operational-status.json');
   const publicMailStatusPath = path.join(REPO, 'public/mail-ambiguous-operational-status.json');
   const opsPayload = {
@@ -830,6 +887,14 @@ async function main() {
       importQueue,
     }),
     opsWorkbenchUrl: '/cco-ops-workbench.html',
+    day1,
+    day1JournalPilot: day1.day1JournalPilot,
+    identitySafety: day1.identitySafety,
+    photoReviewDay1: day1.photoReview,
+    mailReviewDay1: day1.mailReview,
+    importReviewDay1: day1.importReview,
+    blockers: day1.blockers,
+    recommendedNextAction: day1.recommendedNextAction,
   };
   if (!noWrite) {
     publishMailboxReferencePublic(REPO);
@@ -852,6 +917,7 @@ async function main() {
       )
     );
     fs.writeFileSync(publicMailStatusPath, fs.readFileSync(mailStatusPath, 'utf8'));
+    fs.writeFileSync(day1StatusPath, JSON.stringify(day1, null, 2));
   }
 
   const report = {
@@ -871,6 +937,7 @@ async function main() {
     photoOperator,
     mailOperator,
     importQueue,
+    day1,
   };
 
   console.log('Journal mounts:', report.journalMounts);
@@ -895,6 +962,12 @@ async function main() {
   console.log('Photo operator:', photoOperator?.overall, 'pending', photoOperator?.pendingPhotos);
   console.log('Mail operator:', mailOperator?.overall, 'remaining', mailOperator?.remaining);
   console.log('Import queue:', importQueue.total, importQueue.status);
+  console.log(
+    'Day-1 shift:',
+    day1.day1JournalPilot.shiftStatusLabel,
+    '· action:',
+    day1.recommendedNextAction
+  );
   console.log('');
 
   const md = buildMarkdown(report);

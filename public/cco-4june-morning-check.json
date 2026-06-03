@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T21:13:37.852Z",
+  "generatedAt": "2026-06-03T04:34:44.700Z",
   "title": "4 juni Command Status",
   "prodUrl": "https://arcana.hairtpclinic.com/cco-personal-start.html",
   "backupUrl": "https://major-arcana-frankfurt.onrender.com/cco-personal-start.html",
@@ -10,6 +10,23 @@
   "pilot1": "PASS",
   "pilot2": "PASS",
   "pilot3": "PASS",
+  "journalLiveMonitor": "PASS",
+  "personalCanContinueJournaling": "JA",
+  "journalLive24h": {
+    "journalEntriesActivity": 0,
+    "draftsCreated": 0,
+    "signedLocked": 0,
+    "corrections": 0,
+    "journalWrites": 0,
+    "signedCount": 0,
+    "correctionsCount": 0,
+    "errorsCount": 0,
+    "blockedLockedEditAttempts": 0,
+    "auditEventsCount": 0,
+    "lastSuccessfulJournalWriteAt": null,
+    "lastFailedJournalWriteAt": null
+  },
+  "routeHealthPass": "PASS",
   "links": {
     "personalStart": "/cco-personal-start.html",
     "presenterMode": "/personal-demo.html",
@@ -41,22 +58,384 @@
     ]
   },
   "dailyReadinessSnapshot": {
-    "generatedAt": "2026-06-02T21:13:31.223Z",
+    "generatedAt": "2026-06-03T04:34:35.792Z",
     "journalPilot": "PASS",
     "mail": "PHASE_2_UI_READY",
     "mailRemaining": 493,
     "photoPending": 860,
-    "photoVisible": 0,
-    "driveRule": "Safe-match klar. Ny Drive-fas kräver explicit GO.",
+    "photoVisible": 1,
+    "driveRule": "Ingen auto-import · ingen ny kund vid osäker match",
     "importReviewQueue": 1497
   },
   "blockers": [
-    "Mail ambiguous ~493 kvar (manuellt, ej demo-P0)",
-    "Photo Review ~860 pending · 0 VISIBLE före review",
-    "Import review queue 1497 osäkra kundmatchningar"
+    "Mail: 493 ambiguous kvar — operatörsverktyg, ej dagligt mail ännu",
+    "Photo: 860 pending · 150 kunder · 0 VISIBLE",
+    "Import: 1497 osäkra matchningar — manuell review"
   ],
   "recommendedAction": "GO",
-  "checksRun": true,
+  "checksRun": false,
   "base": "https://arcana.hairtpclinic.com",
-  "backupBase": "https://major-arcana-frankfurt.onrender.com"
+  "backupBase": "https://major-arcana-frankfurt.onrender.com",
+  "day1": {
+    "generatedAt": "2026-06-03T04:34:44.793Z",
+    "mode": "DAY_1_OPERATIONS",
+    "day1JournalPilot": {
+      "overall": "PASS",
+      "presentationGate": "PASS",
+      "journalMounts": "PASS",
+      "demoLinks": "PASS",
+      "journalE2E": "PASS",
+      "pilot1": "PASS",
+      "pilot2": "PASS",
+      "pilot3": "PASS",
+      "personalCanContinueJournaling": "JA",
+      "journalLiveOverall": "PASS",
+      "last24h": {
+        "journalEntriesActivity": 0,
+        "signedCount": 0,
+        "correctionsCount": 0,
+        "errorsCount": 0,
+        "blockedLockedEditAttempts": 0,
+        "auditEventsCount": 0,
+        "lastSuccessfulJournalWriteAt": null,
+        "lastFailedJournalWriteAt": null
+      },
+      "route5xxCount": 0,
+      "routeHealthPass": "PASS",
+      "shiftStatus": "redo_att_borja",
+      "shiftStatusLabel": "Redo att börja",
+      "shiftReason": "Allt grönt — personal kan starta arbetspass.",
+      "shiftStates": [
+        {
+          "id": "redo_att_borja",
+          "label": "Redo att börja",
+          "active": true
+        },
+        {
+          "id": "pagar",
+          "label": "Pågår",
+          "active": false
+        },
+        {
+          "id": "fel_upptackt",
+          "label": "Fel upptäckt",
+          "active": false
+        },
+        {
+          "id": "pausad",
+          "label": "Pausad",
+          "active": false
+        },
+        {
+          "id": "klar_for_dagen",
+          "label": "Klar för dagen",
+          "active": false
+        }
+      ],
+      "links": {
+        "personalStart": "/cco-personal-start.html",
+        "kundkort": "/kunder.html",
+        "journalGuide": "/journal-pilot-guide.html",
+        "staffTraining": "/cco-staff-training-mode.html",
+        "journalFaq": "/cco-journalpilot-faq.html",
+        "goLiveSupport": "/cco-journalpilot-go-live.html",
+        "signoffSheet": "/journal-pilot-signoff-sheet.html",
+        "preSignCheck": "/cco-pre-signering-check.html",
+        "reviewMaterialWarning": "/cco-review-material-warning.html",
+        "staffDay1Checklist": "/cco-staff-day1-checklist.html",
+        "opsWorkbench": "/cco-ops-workbench.html"
+      },
+      "recommendedWork": "Öppna personal-start → kundkort → pilotkund → journal"
+    },
+    "photoReview": {
+      "overall": "READY",
+      "pendingPhotos": 860,
+      "patientsWithPendingPhotos": 150,
+      "photosVisibleCount": 1,
+      "writeEnabled": false,
+      "readOnly": true,
+      "autoApprove": false,
+      "massApproval": false,
+      "approveButtonsWhenWriteOff": false,
+      "operatorToolPath": "/photo-review.html",
+      "recommendedWork": "Starta manuell Photo Review när personal är tränad — write AV på prod · inga approve-knappar",
+      "statusNote": "Write AV — read-only navigering · 0 VISIBLE tills granskat"
+    },
+    "importReview": {
+      "total": 1497,
+      "status": "WAITING_MANUAL_REVIEW",
+      "statusLabel": "Manuell review krävs",
+      "rule": "Ingen auto-import · ingen ny kund vid osäker match",
+      "sources": [
+        {
+          "id": "halso",
+          "label": "halso@",
+          "queueCount": 1366,
+          "note": "osäkra kundmatchningar"
+        },
+        {
+          "id": "getaccept",
+          "label": "GetAccept",
+          "queueCount": 131,
+          "note": "osäkra kundmatchningar"
+        },
+        {
+          "id": "drive_orphan",
+          "label": "Drive/orphan",
+          "queueCount": 0,
+          "note": "ingår i övriga källor vid manuell review"
+        }
+      ],
+      "autoImport": false,
+      "newCustomerOnUncertainMatch": false
+    },
+    "mailReview": {
+      "overall": "QUEUE_ACTIVE",
+      "ambiguousTotal": 493,
+      "remaining": 493,
+      "approved": 0,
+      "unresolved": 0,
+      "excluded": 0,
+      "mailboxCounts": {
+        "contact@hairtpclinic.com": 248,
+        "egzona@hairtpclinic.com": 175,
+        "fazli@hairtpclinic.com": 67,
+        "marknad@hairtpclinic.com": 3
+      },
+      "uiUrl": "/ambiguous-mail-enrichment-review.html",
+      "statusNote": "Operatörsverktyg — inte dagligt mailverktyg ännu",
+      "rules": [
+        "Ingen auto-write",
+        "Ingen fuzzy merge",
+        "Ingen customer merge",
+        "Ingen Graph-fetch",
+        "Ingen ny mailimport"
+      ]
+    },
+    "identitySafety": {
+      "generatedAt": "2026-06-03T04:34:44.792Z",
+      "overall": "PASS",
+      "identityCheckAvailable": true,
+      "preSignCheckAvailable": true,
+      "reviewMaterialWarningAvailable": true,
+      "staffChecklistAvailable": true,
+      "signoffSheetAvailable": true,
+      "staffTrainingAvailable": true,
+      "journalFaqAvailable": true,
+      "goLiveSupportAvailable": true,
+      "pages": [
+        {
+          "id": "preSignCheck",
+          "label": "Pre-signering check",
+          "path": "/cco-pre-signering-check.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "reviewMaterialWarning",
+          "label": "Review-material warning",
+          "path": "/cco-review-material-warning.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "staffDay1Checklist",
+          "label": "Staff day-1 checklist",
+          "path": "/cco-staff-day1-checklist.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "signoffSheet",
+          "label": "Sign-off sheet",
+          "path": "/journal-pilot-signoff-sheet.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "staffTraining",
+          "label": "Staff training mode",
+          "path": "/cco-staff-training-mode.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "journalFaq",
+          "label": "Journalpilot FAQ",
+          "path": "/cco-journalpilot-faq.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "goLiveSupport",
+          "label": "Go-live support",
+          "path": "/cco-journalpilot-go-live.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "personalStart",
+          "label": "Personal-start (identitet i flöde)",
+          "path": "/cco-personal-start.html",
+          "status": 200,
+          "available": true
+        }
+      ],
+      "note": "Read-only sidor — stödjer identitet/review-material före signering, ingen journalmotor"
+    },
+    "cf": {
+      "operational": "INTERN_DEMO_READY",
+      "financeStatus": 200,
+      "reviewStatus": 200,
+      "reportsStatus": 200
+    },
+    "blockers": [
+      "Mail: 493 ambiguous kvar — operatörsverktyg, ej dagligt mail ännu",
+      "Photo: 860 pending · 150 kunder · 0 VISIBLE",
+      "Import: 1497 osäkra matchningar — manuell review"
+    ],
+    "recommendedNextAction": "GO",
+    "opsWorkbenchUrl": "/cco-ops-workbench.html"
+  },
+  "day1JournalPilot": {
+    "overall": "PASS",
+    "presentationGate": "PASS",
+    "journalMounts": "PASS",
+    "demoLinks": "PASS",
+    "journalE2E": "PASS",
+    "pilot1": "PASS",
+    "pilot2": "PASS",
+    "pilot3": "PASS",
+    "personalCanContinueJournaling": "JA",
+    "journalLiveOverall": "PASS",
+    "last24h": {
+      "journalEntriesActivity": 0,
+      "signedCount": 0,
+      "correctionsCount": 0,
+      "errorsCount": 0,
+      "blockedLockedEditAttempts": 0,
+      "auditEventsCount": 0,
+      "lastSuccessfulJournalWriteAt": null,
+      "lastFailedJournalWriteAt": null
+    },
+    "route5xxCount": 0,
+    "routeHealthPass": "PASS",
+    "shiftStatus": "redo_att_borja",
+    "shiftStatusLabel": "Redo att börja",
+    "shiftReason": "Allt grönt — personal kan starta arbetspass.",
+    "shiftStates": [
+      {
+        "id": "redo_att_borja",
+        "label": "Redo att börja",
+        "active": true
+      },
+      {
+        "id": "pagar",
+        "label": "Pågår",
+        "active": false
+      },
+      {
+        "id": "fel_upptackt",
+        "label": "Fel upptäckt",
+        "active": false
+      },
+      {
+        "id": "pausad",
+        "label": "Pausad",
+        "active": false
+      },
+      {
+        "id": "klar_for_dagen",
+        "label": "Klar för dagen",
+        "active": false
+      }
+    ],
+    "links": {
+      "personalStart": "/cco-personal-start.html",
+      "kundkort": "/kunder.html",
+      "journalGuide": "/journal-pilot-guide.html",
+      "staffTraining": "/cco-staff-training-mode.html",
+      "journalFaq": "/cco-journalpilot-faq.html",
+      "goLiveSupport": "/cco-journalpilot-go-live.html",
+      "signoffSheet": "/journal-pilot-signoff-sheet.html",
+      "preSignCheck": "/cco-pre-signering-check.html",
+      "reviewMaterialWarning": "/cco-review-material-warning.html",
+      "staffDay1Checklist": "/cco-staff-day1-checklist.html",
+      "opsWorkbench": "/cco-ops-workbench.html"
+    },
+    "recommendedWork": "Öppna personal-start → kundkort → pilotkund → journal"
+  },
+  "journalPilotShift": "redo_att_borja",
+  "journalPilotShiftLabel": "Redo att börja",
+  "identitySafety": {
+    "generatedAt": "2026-06-03T04:34:44.792Z",
+    "overall": "PASS",
+    "identityCheckAvailable": true,
+    "preSignCheckAvailable": true,
+    "reviewMaterialWarningAvailable": true,
+    "staffChecklistAvailable": true,
+    "signoffSheetAvailable": true,
+    "staffTrainingAvailable": true,
+    "journalFaqAvailable": true,
+    "goLiveSupportAvailable": true,
+    "pages": [
+      {
+        "id": "preSignCheck",
+        "label": "Pre-signering check",
+        "path": "/cco-pre-signering-check.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "reviewMaterialWarning",
+        "label": "Review-material warning",
+        "path": "/cco-review-material-warning.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "staffDay1Checklist",
+        "label": "Staff day-1 checklist",
+        "path": "/cco-staff-day1-checklist.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "signoffSheet",
+        "label": "Sign-off sheet",
+        "path": "/journal-pilot-signoff-sheet.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "staffTraining",
+        "label": "Staff training mode",
+        "path": "/cco-staff-training-mode.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "journalFaq",
+        "label": "Journalpilot FAQ",
+        "path": "/cco-journalpilot-faq.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "goLiveSupport",
+        "label": "Go-live support",
+        "path": "/cco-journalpilot-go-live.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "personalStart",
+        "label": "Personal-start (identitet i flöde)",
+        "path": "/cco-personal-start.html",
+        "status": 200,
+        "available": true
+      }
+    ],
+    "note": "Read-only sidor — stödjer identitet/review-material före signering, ingen journalmotor"
+  }
 }

@@ -1,6 +1,6 @@
 # CCO Daily Readiness — 4 juni presentation
 
-_Senast uppdaterad: 2026-06-02T22:47:20.207Z_  
+_Senast uppdaterad: 2026-06-03T04:34:35.792Z_  
 _Prod: https://arcana.hairtpclinic.com_
 
 ---
@@ -11,6 +11,7 @@ _Prod: https://arcana.hairtpclinic.com_
 | ------------------------ | ------------------------------------------------------------------ |
 | **Journalpilot**         | **PASS** (mounts PASS · links PASS · E2E PASS)                     |
 | **Journalpilot live**    | PASS · personal kan journalföra: **JA**                            |
+| **Dag 1 arbetspass**     | **Redo att börja** · GO                                            |
 | **Pilot 1/2/3**          | PASS / PASS / PASS                                                 |
 | **Mail**                 | PHASE_2_UI_READY · remaining **493**                               |
 | **Drive/historik**       | SAFE_MATCH_COMPLETE_NO_NEW_RISK_WITHOUT_GO · review queue **1497** |
@@ -33,6 +34,26 @@ _Prod: https://arcana.hairtpclinic.com_
 | Pilotkund 3              | **PASS** |
 
 **Efter varje deploy:** `npm run cco:presentation-gate`
+
+---
+
+## Dag 1 · Journalpilot (operations panel)
+
+|                       |                                                                   |
+| --------------------- | ----------------------------------------------------------------- |
+| **Arbetspass**        | **Redo att börja** — Allt grönt — personal kan starta arbetspass. |
+| **Presentation gate** | PASS                                                              |
+| **Journal E2E**       | PASS                                                              |
+| **Pilot 1/2/3**       | PASS / PASS / PASS                                                |
+| **Journalföring 24h** | 0                                                                 |
+| **Signerade**         | 0                                                                 |
+| **Rättelser**         | 0                                                                 |
+| **Fel**               | 0                                                                 |
+| **Route 5xx**         | 0                                                                 |
+| **Nästa action**      | **GO**                                                            |
+| **Workbench**         | `/cco-ops-workbench.html`                                         |
+
+Identitetssäkerhet: pre-sign OK · review-warning OK · checklist OK · sign-off OK
 
 ---
 

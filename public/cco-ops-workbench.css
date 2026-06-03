@@ -60,6 +60,63 @@ body {
   padding: 1rem 1.1rem;
 }
 
+.cow-section--day1 {
+  border-color: rgba(77, 163, 255, 0.55);
+  background: linear-gradient(180deg, rgba(77, 163, 255, 0.12) 0%, var(--cow-panel) 42%);
+  grid-column: 1 / -1;
+}
+
+.cow-shift-states {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.cow-shift-chip {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--cow-border);
+  color: var(--cow-muted);
+}
+
+.cow-shift-chip.is-active {
+  border-color: var(--cow-accent);
+  color: var(--cow-text);
+  background: rgba(77, 163, 255, 0.18);
+  font-weight: 600;
+}
+
+.cow-links-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.cow-identity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.cow-identity-item {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--cow-border);
+}
+
+.cow-identity-item.is-ok {
+  border-color: rgba(62, 207, 142, 0.45);
+}
+
+.cow-identity-item.is-miss {
+  opacity: 0.65;
+}
+
 .cow-section h2 {
   margin: 0 0 0.65rem;
   font-size: 1.05rem;

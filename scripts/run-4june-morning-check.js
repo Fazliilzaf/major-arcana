@@ -21,6 +21,11 @@ const {
   collectJournalPilotLiveMonitor,
   publishJournalPilotLiveMonitor,
 } = require('./lib/ccoJournalPilotLiveMonitor');
+const { collectIdentitySafetyStatus } = require('./lib/ccoIdentitySafetyStatus');
+const {
+  buildDay1OperationsSnapshot,
+  buildRecommendedNextAction,
+} = require('./lib/ccoDay1OperationsSnapshot');
 
 const REPO = path.join(__dirname, '..');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
@@ -130,26 +135,6 @@ function buildBlockers(payload) {
     blockers.push('Inga presentation-P0 blockers — fortsätt kontrollerad pilot');
   }
   return blockers;
-}
-
-function recommendedAction(payload, retryable) {
-  if (payload.presentationGate === 'FAIL') {
-    if (retryable) return 'WAIT_AND_RETRY';
-    return 'P0_FIX_REQUIRED';
-  }
-  if (payload.journalLiveMonitor === 'FAIL' || payload.personalCanContinueJournaling === 'NEJ') {
-    return retryable ? 'WAIT_AND_RETRY' : 'P0_FIX_REQUIRED';
-  }
-  if (
-    payload.demoLinks === 'FAIL' ||
-    payload.journalE2E === 'FAIL' ||
-    payload.pilot1 === 'FAIL' ||
-    payload.pilot2 === 'FAIL' ||
-    payload.pilot3 === 'FAIL'
-  ) {
-    return retryable ? 'WAIT_AND_RETRY' : 'P0_FIX_REQUIRED';
-  }
-  return 'GO';
 }
 
 function absUrl(base, route) {
@@ -280,7 +265,57 @@ async function main() {
   };
 
   payload.blockers = buildBlockers(payload);
-  payload.recommendedAction = recommendedAction(payload, retryable);
+
+  let identitySafety = null;
+  try {
+    identitySafety = await collectIdentitySafetyStatus({ base: BASE });
+  } catch (err) {
+    identitySafety = { overall: 'FAIL', error: err.message };
+  }
+
+  const day1 = buildDay1OperationsSnapshot({
+    journalPilot: {
+      overall: payload.presentationGate,
+      journalMounts: payload.journalMounts,
+      demoLinks: payload.demoLinks,
+      e2eJournal: payload.journalE2E,
+      pilot1: payload.pilot1,
+      pilot2: payload.pilot2,
+      pilot3: payload.pilot3,
+      presentationGate: payload.presentationGate,
+    },
+    journalLive,
+    photo: ops?.photoReview,
+    photoOperator: ops?.photoReviewOperator,
+    mail: ops?.mailAmbiguous,
+    mailOperator: ops?.mailReviewOperator,
+    importQueue: ops?.importReviewQueue,
+    identitySafety,
+    cf: ops?.cf,
+    presentationGate: payload.presentationGate,
+    retryable,
+  });
+
+  payload.day1 = day1;
+  payload.day1JournalPilot = day1.day1JournalPilot;
+  payload.journalPilotShift = day1.day1JournalPilot.shiftStatus;
+  payload.journalPilotShiftLabel = day1.day1JournalPilot.shiftStatusLabel;
+  payload.identitySafety = identitySafety;
+  payload.recommendedAction = buildRecommendedNextAction({
+    presentationGate: payload.presentationGate,
+    journalE2E: payload.journalE2E,
+    demoLinks: payload.demoLinks,
+    pilot1: payload.pilot1,
+    pilot2: payload.pilot2,
+    pilot3: payload.pilot3,
+    journalLive,
+    shift: day1.day1JournalPilot,
+    retryable,
+  });
+  payload.blockers = day1.blockers;
+
+  const day1Public = path.join(REPO, 'public/cco-day1-operations-status.json');
+  fs.writeFileSync(day1Public, JSON.stringify(day1, null, 2));
 
   fs.mkdirSync(path.dirname(REPORT_PATH), { recursive: true });
   fs.writeFileSync(REPORT_PATH, JSON.stringify(payload, null, 2));
@@ -296,6 +331,7 @@ async function main() {
     '· personal:',
     payload.personalCanContinueJournaling
   );
+  console.log('Shift:', payload.journalPilotShiftLabel);
   console.log('Recommended:', payload.recommendedAction);
   console.log('');
   console.log('Wrote:', REPORT_PATH);
