@@ -45,6 +45,7 @@ else
 fi
 node scripts/verify-kundresa-canonical-9-step.js
 node scripts/verify-smart-next-step-dry-run.js
+node scripts/verify-fas-a-readiness.js
 node scripts/verify-kunder-real-data.js
 node scripts/verify-mobile-kunder-real-data.js
 echo

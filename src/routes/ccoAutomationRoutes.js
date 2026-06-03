@@ -11,6 +11,7 @@ const {
   loadAssetSignalsIndex,
   loadKunderBookingIndex,
 } = require('../ops/ccoKunderEnrichment');
+const { loadFasAContextForPatients } = require('../ops/ccoKunderFasAReadiness');
 
 const WORKLIST_QUEUES = Object.freeze({
   health_declaration: 'customer.missing_health_declaration',
@@ -77,9 +78,18 @@ function attachAutomationRoutes(router, deps) {
           loadAssetSignalsIndex(config, actor.tenantId),
           loadKunderBookingIndex(config, actor.tenantId, [patient]),
         ]);
-        const readout = buildKunderReadout(patient, assetIndex, bookingBundle.index, {});
+        const fasAMap = await loadFasAContextForPatients({
+          config,
+          tenantId: actor.tenantId,
+          patients: [patient],
+          patientMasterStore,
+        });
         const agreementStore = await getTreatmentAgreementStore(config);
         const agreement = await loadAgreementContext(agreementStore, actor.tenantId, patientId);
+        const readout = buildKunderReadout(patient, assetIndex, bookingBundle.index, {
+          fasA: fasAMap.get(patientId),
+          agreement,
+        });
         const evaluation = evaluatePatientSignals(readout, {
           agreement,
           bookingCoverage: bookingBundle.coverage,
@@ -134,15 +144,21 @@ function attachAutomationRoutes(router, deps) {
           loadKunderBookingIndex(config, actor.tenantId, list.patients),
         ]);
         const agreementStore = await getTreatmentAgreementStore(config);
+        const fasAMap = await loadFasAContextForPatients({
+          config,
+          tenantId: actor.tenantId,
+          patients: list.patients,
+          patientMasterStore,
+        });
         const items = [];
 
         for (const patient of list.patients) {
-          const readout = buildKunderReadout(patient, assetIndex, bookingBundle.index, {});
-          const agreement = await loadAgreementContext(
-            agreementStore,
-            actor.tenantId,
-            readout.patientId
-          );
+          const pid = normalizeText(patient.id);
+          const agreement = await loadAgreementContext(agreementStore, actor.tenantId, pid);
+          const readout = buildKunderReadout(patient, assetIndex, bookingBundle.index, {
+            fasA: fasAMap.get(pid),
+            agreement,
+          });
           const evaluation = evaluatePatientSignals(readout, {
             agreement,
             bookingCoverage: bookingBundle.coverage,

@@ -13,6 +13,7 @@ const {
   loadKunderBookingIndex,
   patientMatchesTreatmentSegment,
 } = require('./ccoKunderBookingEnrichment');
+const { applyFasAReadoutFields } = require('./ccoKunderFasAReadiness');
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -329,7 +330,9 @@ function computeNextStep(readout) {
     return `Kommande: ${readout.nextBookingType || 'besök'}`;
   }
   if (readout.onWaitlist) return 'Väntelista — bokningsärende';
-  if (readout.readyForVisit === true) return 'Redo för besök';
+  if (readout.readyForTreatment === true || readout.readyForVisit === true) {
+    return 'Redo för behandling';
+  }
   return null;
 }
 
@@ -391,6 +394,11 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     thisWeekVisit: false,
     missingEncounterForBooking: false,
     readyForVisit: null,
+    readyForTreatment: null,
+    treatmentPlanStatus: null,
+    photoConsent: { signed: false, grantedAt: '', grantedBy: '' },
+    fitnessSigned: false,
+    hasJournalPhoto: false,
     onWaitlist: false,
     reviewFlags,
     paymentStatus: null,
@@ -412,6 +420,11 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     Boolean(opts.assignedOwner) && ownerMatchesAssigned(ownerName, opts.assignedOwner);
   readout.nextStep = computeNextStep(readout);
   readout.nextRequirement = readout.nextStep;
+  if (opts.fasA) {
+    applyFasAReadoutFields(readout, opts.fasA, opts.agreement || null);
+    readout.nextStep = computeNextStep(readout);
+    readout.nextRequirement = readout.nextStep;
+  }
   return readout;
 }
 

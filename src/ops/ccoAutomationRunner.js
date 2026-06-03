@@ -1,6 +1,7 @@
 'use strict';
 
 const { isAutomationRunnerEnabled } = require('./ccoAutomationRegistry');
+const { TREATMENT_PLAN_OK } = require('./ccoKunderFasAReadiness');
 const {
   buildTreatmentAgreementReadout,
   createCcoTreatmentAgreementStore,
@@ -52,6 +53,10 @@ function riskPriority(risk) {
   return map[risk] ?? 50;
 }
 
+function normalizeKey(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
 function evaluateRule(rule, ctx) {
   const { readout, agreement } = ctx;
   if (!rule.v1Enabled) {
@@ -80,11 +85,13 @@ function evaluateRule(rule, ctx) {
       });
     }
     case 'customer.missing_treatment_plan': {
+      const status = normalizeKey(readout.treatmentPlanStatus);
+      const active = !status || !TREATMENT_PLAN_OK.has(status);
       return buildSignal(rule, {
-        active: false,
-        confidence: 'low',
-        inactiveReason: rule.inactiveReason,
-        dataProvenance: [],
+        active,
+        confidence: status ? 'medium' : 'low',
+        inactiveReason: status ? null : 'Ingen behandlingsplan-status i readout',
+        dataProvenance: ['readout.treatmentPlanStatus', 'ccoConsultationStore.getCase'],
       });
     }
     case 'customer.cooling_off_active': {
@@ -119,13 +126,24 @@ function evaluateRule(rule, ctx) {
         dataProvenance: ['readout.missingAgreement', 'readout.hasJournal'],
       });
     }
-    case 'customer.missing_operation_day_insurance':
-    case 'customer.missing_photo_consent': {
+    case 'customer.missing_operation_day_insurance': {
+      const active = readout.todayVisit === true && readout.fitnessSigned !== true;
       return buildSignal(rule, {
-        active: false,
-        confidence: 'low',
-        inactiveReason: rule.inactiveReason,
-        dataProvenance: [],
+        active,
+        confidence: readout.todayVisit ? 'high' : 'low',
+        inactiveReason: readout.todayVisit ? null : 'Ej operationsdag (todayVisit=false)',
+        dataProvenance: ['readout.todayVisit', 'readout.fitnessSigned'],
+      });
+    }
+    case 'customer.missing_photo_consent': {
+      const hasPhoto = readout.hasJournalPhoto === true || readout.needsPhotoReview === true;
+      const signed = readout.photoConsent?.signed === true;
+      const active = hasPhoto && !signed;
+      return buildSignal(rule, {
+        active,
+        confidence: hasPhoto ? 'high' : 'low',
+        inactiveReason: hasPhoto ? null : 'Inget journalfoto som kräver samtycke',
+        dataProvenance: ['readout.hasJournalPhoto', 'readout.photoConsent.signed'],
       });
     }
     case 'customer.has_photo_review': {
@@ -136,20 +154,12 @@ function evaluateRule(rule, ctx) {
       });
     }
     case 'customer.ready_for_treatment': {
-      const cooling = agreement?.coolingOff || { active: false };
-      const bookable = agreement?.bookable === true;
-      const active =
-        bookable &&
-        !cooling.active &&
-        readout.missingHealthDeclaration !== true &&
-        readout.missingForm !== true &&
-        readout.missingJournal !== true &&
-        readout.missingAgreement !== true;
+      const active = readout.readyForTreatment === true;
       return buildSignal(rule, {
         active,
-        confidence: agreement ? 'medium' : 'low',
-        inactiveReason: agreement ? null : 'Komposit kräver avtalsdata',
-        dataProvenance: ['readout.*', 'agreement.bookable'],
+        confidence: active ? 'high' : 'medium',
+        inactiveReason: active ? null : 'Komposit readiness ej uppfylld',
+        dataProvenance: ['readout.readyForTreatment'],
       });
     }
     default:

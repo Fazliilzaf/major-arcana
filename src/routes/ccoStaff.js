@@ -19,6 +19,10 @@ const {
   loadAgreementContext,
 } = require('../ops/ccoAutomationRunner');
 const { attachAutomationRoutes } = require('./ccoAutomationRoutes');
+const {
+  applyFasAReadoutFields,
+  loadFasAContextForPatients,
+} = require('../ops/ccoKunderFasAReadiness');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -180,9 +184,23 @@ function createCcoStaffRouter({
             bookingCoverage,
           };
 
-          let readouts = page.map((patient) =>
-            buildKunderReadout(patient, assetIndex, bookingIndex, segmentOpts)
-          );
+          const fasAMap = await loadFasAContextForPatients({
+            config,
+            tenantId: actor.tenantId,
+            patients: page,
+            patientMasterStore,
+          });
+
+          let readouts = [];
+          for (const patient of page) {
+            const patientId = normalizeText(patient.id);
+            const fasA = fasAMap.get(patientId);
+            const readout = buildKunderReadout(patient, assetIndex, bookingIndex, {
+              ...segmentOpts,
+              fasA,
+            });
+            readouts.push(readout);
+          }
 
           let automationMeta = null;
           if (includeAutomation) {
@@ -194,24 +212,25 @@ function createCcoStaffRouter({
               };
             } else {
               const agreementStore = await getTreatmentAgreementStore(config);
-              readouts = [];
-              for (const patient of page) {
-                const readout = buildKunderReadout(patient, assetIndex, bookingIndex, segmentOpts);
+              const enriched = [];
+              for (const readout of readouts) {
                 const agreement = await loadAgreementContext(
                   agreementStore,
                   actor.tenantId,
                   readout.patientId
                 );
+                applyFasAReadoutFields(readout, fasAMap.get(readout.patientId), agreement);
                 const evaluation = evaluatePatientSignals(readout, {
                   agreement,
                   bookingCoverage,
                 });
-                readouts.push({
+                enriched.push({
                   ...readout,
                   automationSignals: evaluation.signals,
                   automationTop: evaluation.topSignal,
                 });
               }
+              readouts = enriched;
               automationMeta = { enabled: true, dryRun: true, version: '2.0.0-b-sprint' };
             }
           }

@@ -142,6 +142,7 @@ function emptyBookingSignals() {
     thisWeekVisit: false,
     missingEncounterForBooking: false,
     readyForVisit: null,
+    readyForTreatment: null,
     conversationId: null,
     engineBookingId: null,
   };
@@ -318,6 +319,7 @@ function buildBookingSignalsIndex({
       sig.missingEncounterForBooking = false;
     }
     sig.readyForVisit = null;
+    sig.readyForTreatment = null;
   }
 
   return { index, emailToPatient, conversationToPatient };
@@ -362,6 +364,7 @@ function applyBookingToReadout(readout, bookingSignals) {
   readout.thisWeekVisit = sig.thisWeekVisit;
   readout.missingEncounterForBooking = sig.missingEncounterForBooking;
   readout.readyForVisit = sig.readyForVisit;
+  readout.readyForTreatment = sig.readyForTreatment ?? sig.readyForVisit;
   if (sig.onWaitlist)
     readout.reviewFlags = [...new Set([...asArray(readout.reviewFlags), 'waitlist'])];
   if (sig.missingEncounterForBooking) {
@@ -369,8 +372,10 @@ function applyBookingToReadout(readout, bookingSignals) {
   }
   if (sig.hasUpcomingBooking && !readout.missingForm && readout.hasJournal) {
     readout.readyForVisit = true;
+    readout.readyForTreatment = true;
   } else if (sig.hasUpcomingBooking) {
     readout.readyForVisit = readout.missingForm ? false : null;
+    readout.readyForTreatment = readout.readyForVisit;
   }
   return readout;
 }

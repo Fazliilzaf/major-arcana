@@ -39,8 +39,7 @@ const RULES = Object.freeze([
     humanApprovalRequired: true,
     suggestedRoute: null,
     confidenceDefault: 'low',
-    v1Enabled: false,
-    inactiveReason: 'Kräver consultation_plan i readout (v1.1)',
+    v1Enabled: true,
   },
   {
     id: 'customer.cooling_off_active',
@@ -88,8 +87,7 @@ const RULES = Object.freeze([
     humanApprovalRequired: false,
     suggestedRoute: null,
     confidenceDefault: 'low',
-    v1Enabled: false,
-    inactiveReason: 'Kräver ops-dags gate (v1.1)',
+    v1Enabled: true,
   },
   {
     id: 'customer.missing_photo_consent',
@@ -101,8 +99,7 @@ const RULES = Object.freeze([
     humanApprovalRequired: true,
     suggestedRoute: null,
     confidenceDefault: 'low',
-    v1Enabled: false,
-    inactiveReason: 'Kräver hairline/crown consent vid capture (v1.1)',
+    v1Enabled: true,
   },
   {
     id: 'customer.has_photo_review',
