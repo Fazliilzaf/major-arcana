@@ -1,12 +1,27 @@
 # CCO Kunder — Segment Readiness (2026-06-03)
 
-**Uppdaterad efter P0.3** (real aggregates + row/dossier enrichment). Kod: `public/cco-kunder-real.js`, `src/ops/ccoKunderEnrichment.js`, gates: `verify-kunder-real-data.js`, `npm run cco:real-cco-gate`.
+**Uppdaterad efter P0.4** (kalender/bokning-koppling). Kod: `cco-kunder-real.js`, `ccoKunderEnrichment.js`, `ccoKunderBookingEnrichment.js`. Kalender-inventering: `CCO-KALENDER-KUNDER-INTEGRATION-READINESS-2026-06-03.md`.
 
 **Scope:** Prod `/kunder.html` vs design `CCO-Kunder-Mockup-v9-DESKTOP.html`, mobil v10, `CCO-filter-och-smarta-funktioner.md`, `CCO-SYSTEM-SCOPE.md`.
 
 **Arkitektur:** Lista/stats/segment via **`GET /api/v1/cco/staff/customers-shell`** (`buildKunderReadout` + `segmentStats` från patient-master + asset-index). Dossier: **`patientId`**, **`CcoJournalFeed.mount`**, assets **`/api/v1/cco/patients/:patientId/assets`**. Ingen `server.js`-ändring (asset store lazy-load i staff-route).
 
 ---
+
+## P0.4 — leverans (2026-06-03)
+
+| Område                    | P0.3 (~91%)         | P0.4 (~94%)                                         |
+| ------------------------- | ------------------- | --------------------------------------------------- |
+| Idag / vecka / väntelista | disabled            | **REAL** counts + filter (`booking-engine` + cases) |
+| Behandling FUE/DHI/PRP/…  | disabled            | **REAL** via `serviceId` / encounter                |
+| Kundrad                   | Assets + journal    | **+ nästa bokning, senast besök, encounter-gap**    |
+| Dossier                   | Journal/assets/komm | **+ bokningsblock, öppna kalender**                 |
+| Boka/omboka               | —                   | **disabled** "Kopplas i Kalender P1"                |
+| API                       | `segmentStats`      | **+ `bookingCoverage`, booking fields på patient**  |
+
+**Nya booking-fält:** `hasUpcomingBooking`, `nextBookingAt`, `nextBookingType`, `lastVisitAt`, `lastEncounterAt`, `treatmentTypes`, `bookingCaseId`, `encounterId`, `waitingListStatus`, `todayVisit`, `thisWeekVisit`, `missingEncounterForBooking`, `readyForVisit`.
+
+**P0.5:** Mobil Kunder (`/m-kunder.html`).
 
 ## P0.3 — leverans (2026-06-03)
 
@@ -62,7 +77,7 @@
 
 | Mått                                    | Före P0.1    | Efter P0.1                                           |
 | --------------------------------------- | ------------ | ---------------------------------------------------- |
-| **Kunder readiness (100% verksam)**     | **~34%**     | **~91%** (P0.3)                                      |
+| **Kunder readiness (100% verksam)**     | **~34%**     | **~94%** (P0.4)                                      |
 | UX/layout vs v9 mockup                  | ~88%         | ~88%                                                 |
 | Data/API vs acceptance                  | ~18%         | **~62%**                                             |
 | Mock/statiska fält (aktiva i listflöde) | ~52          | **~8** (dold kalender-shell, behandling-side HTML)   |

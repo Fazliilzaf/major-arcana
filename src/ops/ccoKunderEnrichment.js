@@ -1,12 +1,18 @@
 'use strict';
 
 /**
- * P0.3 — Kunder list/dossier enrichment: real segment rules + patient readout.
- * No mock counts; null/partial when data is missing.
+ * P0.3–P0.4 — Kunder enrichment: segments, assets, booking/calendar signals.
  */
 
 const path = require('node:path');
 const { buildPatientCardReadout, derivePatientOrigin } = require('./ccoPatientMasterStore');
+const {
+  TREATMENT_SEGMENT_DEFS,
+  applyBookingToReadout,
+  getBookingSignals,
+  loadKunderBookingIndex,
+  patientMatchesTreatmentSegment,
+} = require('./ccoKunderBookingEnrichment');
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -26,7 +32,7 @@ const ACTIVE_DAYS = 180;
 const DORMANT_DAYS = 365;
 const VIP_DEAL_VALUE_MIN = 25_000;
 
-const CALENDAR_SEGMENTS = new Set(['today_visits', 'this_week', 'waitlist', 'behandling']);
+const CALENDAR_SEGMENT_IDS = new Set(['today_visits', 'this_week', 'waitlist']);
 
 function daysSince(iso) {
   if (!iso) return null;
@@ -138,11 +144,17 @@ function hasJournalFromPatient(patient) {
   return Number(fs.journalPdfs) > 0;
 }
 
-function matchSegment(patient, segmentId, assetSignals) {
+function matchSegment(
+  patient,
+  segmentId,
+  assetSignals,
+  bookingIndex = null,
+  bookingCoverage = 'missing'
+) {
   const id = normalizeKey(segmentId);
   if (!id || id === 'all') return true;
-  if (CALENDAR_SEGMENTS.has(id) || id === 'behandling') return false;
 
+  const booking = getBookingSignals(bookingIndex, patient.id);
   const flags = new Set(asArray(patient.flags).map(normalizeKey));
   const fs = asObject(patient.fileSummary);
   const matchStatus = normalizeKey(patient.matchStatus);
@@ -150,6 +162,19 @@ function matchSegment(patient, segmentId, assetSignals) {
   const sig = assetSignals || emptyAssetSignals();
   const hasJournal = hasJournalFromPatient(patient);
   const updatedDays = daysSince(patient.updatedAt);
+
+  if (CALENDAR_SEGMENT_IDS.has(id)) {
+    if (bookingCoverage === 'missing') return false;
+    if (id === 'today_visits') return booking.todayVisit;
+    if (id === 'this_week') return booking.thisWeekVisit;
+    if (id === 'waitlist') return booking.onWaitlist;
+    return false;
+  }
+
+  if (id.startsWith('treatment_')) {
+    if (bookingCoverage === 'missing') return false;
+    return patientMatchesTreatmentSegment(booking, id);
+  }
 
   switch (id) {
     case 'needs_review':
@@ -173,7 +198,7 @@ function matchSegment(patient, segmentId, assetSignals) {
     case 'missing_form':
       return !sig.hasForm;
     case 'missing_encounter':
-      return sig.needsEncounterReview;
+      return booking.missingEncounterForBooking || sig.needsEncounterReview;
     case 'has_form':
       return sig.hasForm;
     case 'getaccept':
@@ -213,11 +238,15 @@ function computeNextStep(readout) {
   if (readout.missingAgreement && readout.hasJournal) return 'Saknar avtal/samtycke';
   if (readout.flags?.includes('missing_email')) return 'Saknar e-post';
   if (readout.flags?.includes('missing_phone')) return 'Saknar telefon';
-  if (readout.hasUpcomingBooking) return 'Kommande bokning';
+  if (readout.missingEncounterForBooking) return 'Bokning utan encounter';
+  if (readout.hasUpcomingBooking && readout.nextBookingAt) {
+    return `Kommande: ${readout.nextBookingType || 'besök'}`;
+  }
+  if (readout.onWaitlist) return 'Väntelista — bokningsärende';
   return null;
 }
 
-function buildKunderReadout(patient, assetIndex = null) {
+function buildKunderReadout(patient, assetIndex = null, bookingIndex = null) {
   const base = buildPatientCardReadout(patient);
   const sig = getAssetSignals(assetIndex, base.patientId);
   const fs = asObject(patient.fileSummary);
@@ -257,10 +286,24 @@ function buildKunderReadout(patient, assetIndex = null) {
     needsPhotoReview: sig.needsPhotoReview,
     needsClassification: sig.needsClassification,
     needsEncounterReview: sig.needsEncounterReview,
-    hasUpcomingBooking: null,
+    hasUpcomingBooking: false,
+    nextBookingAt: null,
+    nextBookingType: null,
+    nextBookingStatus: null,
+    nextBookingResourceLabel: null,
+    lastBookingAt: null,
     lastVisitAt: null,
     lastEncounterAt: null,
     treatmentTypes: [],
+    bookingCaseId: null,
+    bookingCaseStatus: null,
+    encounterId: null,
+    waitingListStatus: null,
+    todayVisit: false,
+    thisWeekVisit: false,
+    missingEncounterForBooking: false,
+    readyForVisit: null,
+    onWaitlist: false,
     reviewFlags,
     paymentStatus: null,
     nextRequirement: null,
@@ -273,127 +316,156 @@ function buildKunderReadout(patient, assetIndex = null) {
       new: matchSegment(patient, 'new', sig),
     },
   };
+  applyBookingToReadout(readout, getBookingSignals(bookingIndex, base.patientId));
   readout.nextStep = computeNextStep(readout);
   readout.nextRequirement = readout.nextStep;
   return readout;
 }
 
-const SEGMENT_CATALOG = [
-  { id: 'all', label: 'Alla kunder', status: 'real', filterQuery: {} },
-  {
-    id: 'mine',
-    label: 'Mina kunder',
-    status: 'disabled',
-    reason: 'Ägare per rad saknas (P1)',
-    filterQuery: null,
-  },
-  {
-    id: 'today_visits',
-    label: 'Idag · besöker',
-    status: 'disabled',
-    reason: 'Kopplas i Kalender P0.4',
-    filterQuery: null,
-  },
-  {
-    id: 'this_week',
-    label: 'Denna vecka',
-    status: 'disabled',
-    reason: 'Kopplas i Kalender P0.4',
-    filterQuery: null,
-  },
-  {
-    id: 'waitlist',
-    label: 'Väntelista',
-    status: 'disabled',
-    reason: 'Kopplas i Kalender P0.4',
-    filterQuery: null,
-  },
-  {
-    id: 'behandling',
-    label: 'Behandling',
-    status: 'disabled',
-    reason: 'Kopplas i Kalender P0.4',
-    filterQuery: null,
-  },
-  { id: 'active', label: 'Aktiva', status: 'real', filterQuery: { segment: 'active' } },
-  { id: 'vip', label: 'VIP', status: 'real', filterQuery: { segment: 'vip' } },
-  { id: 'risk', label: 'Risk', status: 'real', filterQuery: { segment: 'risk' } },
-  { id: 'new', label: 'Nya', status: 'real', filterQuery: { segment: 'new' } },
-  { id: 'dormant', label: 'Dormant', status: 'real', filterQuery: { segment: 'dormant' } },
-  {
-    id: 'missing_form',
-    label: 'Saknar formulär',
-    status: 'real',
-    filterQuery: { segment: 'missing_form' },
-  },
-  {
-    id: 'missing_journal',
-    label: 'Saknar journal',
-    status: 'real',
-    filterQuery: { segment: 'missing_journal' },
-  },
-  {
-    id: 'missing_encounter',
-    label: 'Saknar encounter',
-    status: 'partial',
-    reason: 'Endast assets med encounterReviewRequired',
-    filterQuery: { segment: 'missing_encounter' },
-  },
-  {
-    id: 'needs_review',
-    label: 'Granska / import',
-    status: 'real',
-    filterQuery: { segment: 'needs_review' },
-  },
-  {
-    id: 'has_drive',
-    label: 'Drive-filer',
-    status: 'real',
-    filterQuery: { flags: 'has_drive_files' },
-  },
-  {
-    id: 'has_drive_journal',
-    label: 'Har Drive journal',
-    status: 'real',
-    filterQuery: { segment: 'has_drive_journal' },
-  },
-  {
-    id: 'has_drive_document',
-    label: 'Har Drive dokument',
-    status: 'real',
-    filterQuery: { segment: 'has_drive_document' },
-  },
-  { id: 'drive_only', label: 'Drive only', status: 'real', filterQuery: { flags: 'drive_only' } },
-  {
-    id: 'cliento_only',
-    label: 'Cliento only',
-    status: 'real',
-    filterQuery: { flags: 'cliento_only' },
-  },
-  {
-    id: 'duplicate_email',
-    label: 'Dubblett e-post',
-    status: 'real',
-    filterQuery: { flags: 'duplicate_email' },
-  },
-  { id: 'getaccept', label: 'GetAccept', status: 'real', filterQuery: { segment: 'getaccept' } },
-  { id: 'halso', label: 'halso@', status: 'real', filterQuery: { segment: 'halso' } },
-  {
-    id: 'photos_review',
-    label: 'Bild-review',
-    status: 'real',
-    filterQuery: { segment: 'photos_review' },
-  },
-  { id: 'has_images', label: 'Har bilder', status: 'real', filterQuery: { segment: 'has_images' } },
-  {
-    id: 'import_review',
-    label: 'Import review',
-    status: 'real',
-    filterQuery: { segment: 'import_review' },
-  },
-];
+function buildSegmentCatalog(bookingCoverage = 'missing') {
+  const calendarStatus = bookingCoverage === 'missing' ? 'disabled' : 'real';
+  const calendarReason = bookingCoverage === 'missing' ? 'Bokningsdata saknas i store' : null;
+  const treatmentStatus = bookingCoverage === 'missing' ? 'disabled' : 'real';
 
-function computeSegmentStats(patients, assetIndex) {
+  const treatmentSegments = TREATMENT_SEGMENT_DEFS.map((def) => ({
+    id: def.id,
+    label: def.label,
+    status: treatmentStatus,
+    reason:
+      treatmentStatus === 'disabled'
+        ? 'Bokningsmotor/encounter store tom'
+        : def.id === 'treatment_curatiio'
+          ? 'Curatiio via service/encounter-typ'
+          : null,
+    filterQuery: treatmentStatus === 'real' ? { segment: def.id } : null,
+  }));
+
+  return [
+    { id: 'all', label: 'Alla kunder', status: 'real', filterQuery: {} },
+    { id: 'all', label: 'Alla kunder', status: 'real', filterQuery: {} },
+    {
+      id: 'mine',
+      label: 'Mina kunder',
+      status: 'disabled',
+      reason: 'Ägare per rad saknas (P1)',
+      filterQuery: null,
+    },
+    {
+      id: 'today_visits',
+      label: 'Idag · besöker',
+      status: calendarStatus,
+      reason: calendarReason,
+      filterQuery: calendarStatus === 'real' ? { segment: 'today_visits' } : null,
+    },
+    {
+      id: 'this_week',
+      label: 'Denna vecka',
+      status: calendarStatus,
+      reason: calendarReason,
+      filterQuery: calendarStatus === 'real' ? { segment: 'this_week' } : null,
+    },
+    {
+      id: 'waitlist',
+      label: 'Väntelista',
+      status: calendarStatus,
+      reason: calendarReason,
+      filterQuery: calendarStatus === 'real' ? { segment: 'waitlist' } : null,
+    },
+    ...treatmentSegments,
+    { id: 'active', label: 'Aktiva', status: 'real', filterQuery: { segment: 'active' } },
+    { id: 'vip', label: 'VIP', status: 'real', filterQuery: { segment: 'vip' } },
+    { id: 'risk', label: 'Risk', status: 'real', filterQuery: { segment: 'risk' } },
+    { id: 'new', label: 'Nya', status: 'real', filterQuery: { segment: 'new' } },
+    { id: 'dormant', label: 'Dormant', status: 'real', filterQuery: { segment: 'dormant' } },
+    {
+      id: 'missing_form',
+      label: 'Saknar formulär',
+      status: 'real',
+      filterQuery: { segment: 'missing_form' },
+    },
+    {
+      id: 'missing_journal',
+      label: 'Saknar journal',
+      status: 'real',
+      filterQuery: { segment: 'missing_journal' },
+    },
+    {
+      id: 'missing_encounter',
+      label: 'Saknar encounter',
+      status: bookingCoverage === 'missing' ? 'partial' : 'real',
+      reason:
+        bookingCoverage === 'missing'
+          ? 'Kräver bokning + encounter store'
+          : 'Kommande bokning utan encounter',
+      filterQuery: { segment: 'missing_encounter' },
+    },
+    {
+      id: 'needs_review',
+      label: 'Granska / import',
+      status: 'real',
+      filterQuery: { segment: 'needs_review' },
+    },
+    {
+      id: 'has_drive',
+      label: 'Drive-filer',
+      status: 'real',
+      filterQuery: { flags: 'has_drive_files' },
+    },
+    {
+      id: 'has_drive_journal',
+      label: 'Har Drive journal',
+      status: 'real',
+      filterQuery: { segment: 'has_drive_journal' },
+    },
+    {
+      id: 'has_drive_document',
+      label: 'Har Drive dokument',
+      status: 'real',
+      filterQuery: { segment: 'has_drive_document' },
+    },
+    { id: 'drive_only', label: 'Drive only', status: 'real', filterQuery: { flags: 'drive_only' } },
+    {
+      id: 'cliento_only',
+      label: 'Cliento only',
+      status: 'real',
+      filterQuery: { flags: 'cliento_only' },
+    },
+    {
+      id: 'duplicate_email',
+      label: 'Dubblett e-post',
+      status: 'real',
+      filterQuery: { flags: 'duplicate_email' },
+    },
+    { id: 'getaccept', label: 'GetAccept', status: 'real', filterQuery: { segment: 'getaccept' } },
+    { id: 'halso', label: 'halso@', status: 'real', filterQuery: { segment: 'halso' } },
+    {
+      id: 'photos_review',
+      label: 'Bild-review',
+      status: 'real',
+      filterQuery: { segment: 'photos_review' },
+    },
+    {
+      id: 'has_images',
+      label: 'Har bilder',
+      status: 'real',
+      filterQuery: { segment: 'has_images' },
+    },
+    {
+      id: 'import_review',
+      label: 'Import review',
+      status: 'real',
+      filterQuery: { segment: 'import_review' },
+    },
+  ];
+}
+
+function computeSegmentStats(
+  patients,
+  assetIndex,
+  bookingIndex = null,
+  bookingCoverage = 'missing'
+) {
+  const SEGMENT_CATALOG = buildSegmentCatalog(bookingCoverage);
   const counts = Object.fromEntries(SEGMENT_CATALOG.map((s) => [s.id, 0]));
   let withJournal = 0;
   let missingJournal = 0;
@@ -402,9 +474,14 @@ function computeSegmentStats(patients, assetIndex) {
   let needsReviewPatients = 0;
   let photoReviewPending = 0;
   let assetReviewPending = 0;
+  let todayVisits = 0;
+  let thisWeekVisits = 0;
+  let waitlist = 0;
+  let upcomingBookings = 0;
 
   for (const patient of patients) {
     const sig = getAssetSignals(assetIndex, patient.id);
+    const booking = getBookingSignals(bookingIndex, patient.id);
     if (hasJournalFromPatient(patient) || sig.hasDriveJournalAsset) withJournal += 1;
     else missingJournal += 1;
     if (sig.hasForm) withForm += 1;
@@ -417,10 +494,16 @@ function computeSegmentStats(patients, assetIndex) {
     }
     if (sig.needsPhotoReview) photoReviewPending += 1;
     if (sig.assetNeedsReview) assetReviewPending += 1;
+    if (booking.todayVisit) todayVisits += 1;
+    if (booking.thisWeekVisit) thisWeekVisits += 1;
+    if (booking.onWaitlist) waitlist += 1;
+    if (booking.hasUpcomingBooking) upcomingBookings += 1;
 
     for (const seg of SEGMENT_CATALOG) {
       if (seg.status === 'disabled') continue;
-      if (matchSegment(patient, seg.id, sig)) counts[seg.id] += 1;
+      if (matchSegment(patient, seg.id, sig, bookingIndex, bookingCoverage)) {
+        counts[seg.id] += 1;
+      }
     }
   }
 
@@ -443,9 +526,15 @@ function computeSegmentStats(patients, assetIndex) {
       needsReviewPatients,
       photoReviewPending,
       assetReviewPending,
+      todayVisits,
+      thisWeekVisits,
+      waitlist,
+      upcomingBookings,
+      bookingCoverage,
       totalPatients: patients.length,
     },
     counts,
+    bookingCoverage,
   };
 }
 
@@ -470,21 +559,30 @@ async function loadAssetSignalsIndex(config, tenantId) {
   }
 }
 
-function filterPatientsBySegment(patients, segmentId, assetIndex) {
+function filterPatientsBySegment(
+  patients,
+  segmentId,
+  assetIndex,
+  bookingIndex = null,
+  bookingCoverage = 'missing'
+) {
   const id = normalizeKey(segmentId);
   if (!id || id === 'all') return patients;
-  const meta = SEGMENT_CATALOG.find((s) => s.id === id);
+  const meta = buildSegmentCatalog(bookingCoverage).find((s) => s.id === id);
   if (!meta || meta.status === 'disabled') return [];
-  return patients.filter((p) => matchSegment(p, id, getAssetSignals(assetIndex, p.id)));
+  return patients.filter((p) =>
+    matchSegment(p, id, getAssetSignals(assetIndex, p.id), bookingIndex, bookingCoverage)
+  );
 }
 
 module.exports = {
-  SEGMENT_CATALOG,
+  buildSegmentCatalog,
   buildAssetSignalsIndex,
   buildKunderReadout,
   computeSegmentStats,
   filterPatientsBySegment,
   loadAssetSignalsIndex,
+  loadKunderBookingIndex,
   matchSegment,
   maskEmail,
   maskPhone,

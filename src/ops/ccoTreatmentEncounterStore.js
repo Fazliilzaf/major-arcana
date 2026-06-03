@@ -199,12 +199,20 @@ async function createCcoTreatmentEncounterStore({ filePath }) {
     });
   }
 
+  function listEncountersForEnrichment(tenantId = null) {
+    const tid = normalizeText(tenantId);
+    return state.encounters
+      .filter((item) => !tid || normalizeText(item.tenantId) === tid)
+      .map(cloneEncounter);
+  }
+
   return {
     ENCOUNTER_STATUSES,
     findByConversation,
     getEncounter,
     linkJournalEntry,
     listByPatient,
+    listEncountersForEnrichment,
     upsertEncounter,
   };
 }

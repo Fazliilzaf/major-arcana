@@ -149,6 +149,44 @@ if (!/segmentStats/.test(staff) || !/buildKunderReadout/.test(staff)) {
   pass('ccoStaff customers-shell P0.3 enrichment');
 }
 
+if (!/loadKunderBookingIndex/.test(staff) || !/bookingCoverage/.test(staff)) {
+  fail('ccoStaff saknar P0.4 booking enrichment');
+} else {
+  pass('ccoStaff P0.4 booking enrichment');
+}
+
+if (!fs.existsSync(path.join(REPO, 'src/ops/ccoKunderBookingEnrichment.js'))) {
+  fail('ccoKunderBookingEnrichment.js saknas');
+} else {
+  pass('ccoKunderBookingEnrichment.js finns');
+}
+
+if (!/hasUpcomingBooking|nextBookingAt|todayVisit/.test(js)) {
+  fail('cco-kunder-real.js saknar booking-fält i UI');
+} else {
+  pass('cco-kunder-real.js booking UI-fält');
+}
+
+if (!/Kopplas i Kalender P1/.test(js)) {
+  fail('cco-kunder-real.js saknar disabled copy för boka/omboka');
+} else {
+  pass('cco-kunder-real.js boka/omboka disabled korrekt');
+}
+
+if (/>\s*\d{2,4}\s*</.test(customersHtml) && /DHI|PRP|Microneedling/.test(customersHtml)) {
+  const hardcodedTreatment = />\s*(142|389|234|47|23|12)\s*</.test(customersHtml);
+  if (hardcodedTreatment) fail('kunder.html customers-shell har hardcodade behandlingstal');
+  else pass('kunder.html utan hardcodade behandlingstal i shell');
+} else {
+  pass('kunder.html behandlingstal ej hårdkodade (kontroll)');
+}
+
+if (/toast\([^)]*bokning|fake.*booking/i.test(js)) {
+  fail('cco-kunder-real.js fake booking toast');
+} else {
+  pass('cco-kunder-real.js utan fake booking toast');
+}
+
 if (failed) {
   console.error(`\n${failed} check(s) failed.`);
   process.exit(1);

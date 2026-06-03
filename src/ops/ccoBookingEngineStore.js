@@ -1721,7 +1721,19 @@ async function createCcoBookingEngineStore({ filePath }) {
     };
   }
 
+  /** Server-side Kunder enrichment — minimal booking rows (no PII beyond email keying). */
+  function listBookingsForEnrichment(tenantId = null) {
+    const tid = normalizeText(tenantId);
+    return clone(
+      state.bookings.filter((item) => {
+        if (tid && item.tenantId !== tid) return false;
+        return true;
+      })
+    );
+  }
+
   return {
+    listBookingsForEnrichment,
     setBookingPolicySettings,
     listAvailability,
     reserveSlots,

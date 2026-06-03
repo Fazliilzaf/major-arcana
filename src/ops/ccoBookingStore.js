@@ -1065,12 +1065,17 @@ async function createCcoBookingStore({ filePath }) {
     );
   }
 
+  async function listCasesForEnrichment({ tenantId, limit = 5000 } = {}) {
+    return listCases({ tenantId, limit });
+  }
+
   return {
     addEvent,
     ensureCase,
     findCaseByRef,
     getCase,
     listCases,
+    listCasesForEnrichment,
     listCasesInRange,
     setCandidateSlots,
     updateStatus,

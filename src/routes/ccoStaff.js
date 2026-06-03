@@ -9,6 +9,7 @@ const {
   computeSegmentStats,
   filterPatientsBySegment,
   loadAssetSignalsIndex,
+  loadKunderBookingIndex,
 } = require('../ops/ccoKunderEnrichment');
 
 function normalizeText(value) {
@@ -70,12 +71,22 @@ function createCcoStaffRouter({
               JSON.stringify({ limit, offset: offsetVal, query, flags, segment })
             )
           : '';
-        const statsCacheKey = readCache
-          ? readCache.buildKey('customers-shell-segments', actor.tenantId)
-          : '';
 
         const build = async () => {
-          const assetIndex = await loadAssetSignalsIndex(config, actor.tenantId);
+          const allForStats = (
+            await patientMasterStore.listPatients({
+              tenantId: actor.tenantId,
+              limit: 50_000,
+              offset: 0,
+            })
+          ).patients;
+
+          const [assetIndex, bookingBundle] = await Promise.all([
+            loadAssetSignalsIndex(config, actor.tenantId),
+            loadKunderBookingIndex(config, actor.tenantId, allForStats),
+          ]);
+          const bookingIndex = bookingBundle.index;
+          const bookingCoverage = bookingBundle.coverage || 'missing';
 
           const baseList = await patientMasterStore.listPatients({
             tenantId: actor.tenantId,
@@ -86,24 +97,36 @@ function createCcoStaffRouter({
           });
           let rows = baseList.patients;
           if (segment) {
-            rows = filterPatientsBySegment(rows, segment, assetIndex);
+            rows = filterPatientsBySegment(
+              rows,
+              segment,
+              assetIndex,
+              bookingIndex,
+              bookingCoverage
+            );
           }
-          const allForStats = (
-            await patientMasterStore.listPatients({
-              tenantId: actor.tenantId,
-              limit: 50_000,
-              offset: 0,
-            })
-          ).patients;
 
           let segmentStats;
+          const statsCacheKey = readCache
+            ? readCache.buildKey(
+                'customers-shell-segments',
+                actor.tenantId,
+                bookingCoverage,
+                String(bookingBundle.sources?.engineBookings ?? 0)
+              )
+            : '';
           if (readCache && statsCacheKey) {
             const wrapped = await readCache.wrap(statsCacheKey, 120_000, async () =>
-              computeSegmentStats(allForStats, assetIndex)
+              computeSegmentStats(allForStats, assetIndex, bookingIndex, bookingCoverage)
             );
             segmentStats = wrapped.value;
           } else {
-            segmentStats = computeSegmentStats(allForStats, assetIndex);
+            segmentStats = computeSegmentStats(
+              allForStats,
+              assetIndex,
+              bookingIndex,
+              bookingCoverage
+            );
           }
 
           const start = Math.max(0, offsetVal);
@@ -117,16 +140,21 @@ function createCcoStaffRouter({
           const enrichedStats = {
             ...stats,
             kunderPanel: segmentStats.panel,
+            bookingSources: bookingBundle.sources || {},
+            bookingCoverage,
           };
 
           return {
             stats: enrichedStats,
             segmentStats,
+            bookingCoverage,
             patients: {
               total: rows.length,
               offset: start,
               limit: max,
-              patients: page.map((patient) => buildKunderReadout(patient, assetIndex)),
+              patients: page.map((patient) =>
+                buildKunderReadout(patient, assetIndex, bookingIndex)
+              ),
             },
             offerTemplates: { templates: listOfferTemplates() },
             provider: 'customers-shell',

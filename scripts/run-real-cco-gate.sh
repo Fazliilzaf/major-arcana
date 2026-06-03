@@ -77,6 +77,18 @@ else
   fail 'cco-kunder-real.js missing segmentStats (P0.3)'
 fi
 
+if echo "$js" | grep -q 'hasUpcomingBooking' && echo "$js" | grep -q 'todayVisit'; then
+  pass 'cco-kunder-real.js P0.4 booking fields on prod'
+else
+  fail 'cco-kunder-real.js missing P0.4 booking fields'
+fi
+
+if echo "$js" | grep -q 'Kopplas i Kalender P1'; then
+  pass 'cco-kunder-real.js boka/omboka disabled copy on prod'
+else
+  fail 'cco-kunder-real.js missing calendar P1 disabled copy'
+fi
+
 echo
 if [ "$FAILED" -gt 0 ]; then
   echo "✗ real-cco-gate FAILURES: $FAILED"

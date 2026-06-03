@@ -1,6 +1,5 @@
 /**
- * P0.3 — Real patient master for /kunder.html (segments + enrichment)
- * No mock counts; patientId dossier; segmentStats from customers-shell.
+ * P0.4 — Kunder + kalender/bokning (customers-shell booking enrichment)
  */
 (function (global) {
   'use strict';
@@ -27,7 +26,13 @@
     { id: 'today_visits', side: true },
     { id: 'this_week', side: true },
     { id: 'waitlist', side: true },
-    { id: 'behandling', side: true },
+    { id: 'treatment_fue', side: true, treatment: true },
+    { id: 'treatment_dhi', side: true, treatment: true },
+    { id: 'treatment_prp', side: true, treatment: true },
+    { id: 'treatment_microneedling', side: true, treatment: true },
+    { id: 'treatment_consultation', side: true, treatment: true },
+    { id: 'treatment_followup', side: true, treatment: true },
+    { id: 'treatment_curatiio', side: true, treatment: true },
     { id: 'active', chip: 'aktiva' },
     { id: 'vip', chip: 'vip' },
     { id: 'risk', chip: 'risk' },
@@ -167,6 +172,32 @@
     }
   }
 
+  function formatDateTime(iso) {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleString('sv-SE', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '—';
+    }
+  }
+
+  function bookingSubline(card) {
+    if (card.hasUpcomingBooking && card.nextBookingAt) {
+      const res = card.nextBookingResourceLabel ? ` · ${card.nextBookingResourceLabel}` : '';
+      return `Nästa: ${formatDateTime(card.nextBookingAt)}${res}`;
+    }
+    if (card.onWaitlist) return `Väntelista: ${card.waitingListStatus || 'ärende'}`;
+    if (card.lastVisitAt) return `Senast: ${formatDate(card.lastVisitAt)}`;
+    return '—';
+  }
+
   function rowState(card) {
     if (card.flags?.includes('needs_review') || card.matchStatus === 'needs_review') {
       return { state: 'risk', label: 'Granska' };
@@ -205,6 +236,10 @@
     if (card.hasGetAccept) tags.push({ kind: 'ready', label: 'GetAccept' });
     if (card.hasHalso) tags.push({ kind: 'ready', label: 'halso@' });
     if (card.isVip) tags.push({ kind: 'vip', label: 'VIP' });
+    if (card.todayVisit) tags.push({ kind: 'ready', label: 'Idag' });
+    if (card.onWaitlist) tags.push({ kind: 'warn', label: 'Väntelista' });
+    if (card.missingEncounterForBooking) tags.push({ kind: 'risk', label: 'Saknar encounter' });
+    if (card.readyForVisit === true) tags.push({ kind: 'ready', label: 'Redo besök' });
     if (card.driveLinked) tags.push({ kind: 'cycle', label: 'Drive' });
     if (card.clientoLinked) tags.push({ kind: 'ready', label: 'Cliento' });
     return tags;
@@ -342,7 +377,7 @@
       if (!countEl) return;
       if (seg?.disabled) {
         link.classList.add('is-disabled');
-        link.title = seg.disabledReason || 'Kopplas i Kalender P0.4';
+        link.title = seg.disabledReason || 'Bokningsdata saknas';
         countEl.textContent = '—';
       } else {
         link.classList.remove('is-disabled');
@@ -399,9 +434,8 @@
           const treatment =
             card.treatmentTypes?.length > 0
               ? card.treatmentTypes.join(', ')
-              : card.hasJournal
-                ? 'Journal'
-                : '—';
+              : card.nextBookingType || (card.hasJournal ? 'Journal' : '—');
+          const bookingLine = bookingSubline(card);
 
           return `
     <div class="customer-row" data-patient-id="${escapeHtml(card.patientId)}" data-customer-id="${escapeHtml(card.patientId)}" title="Öppna kundkort">
@@ -417,7 +451,7 @@
       <div><span class="cr-status" data-state="${st.state}"><span class="dot"></span>${escapeHtml(st.label)}</span></div>
       <div class="cr-meta">
         <div class="cr-meta-strong">${formatDate(lastAt)}</div>
-        <div class="cr-meta-sub">${escapeHtml(treatment)}</div>
+        <div class="cr-meta-sub">${escapeHtml(treatment)} · ${escapeHtml(bookingLine)}</div>
       </div>
       <div>
         <div class="cr-revenue kunder-revenue-disabled" title="Intäkt — data saknas">—</div>
@@ -578,6 +612,22 @@
             <div class="agg-stat-label">Asset review</div>
             <div class="agg-stat-value">${fmt(panel.assetReviewPending)}</div>
           </div>
+          <div class="agg-stat">
+            <div class="agg-stat-label">Idag</div>
+            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmt(panel.todayVisits)}</div>
+          </div>
+          <div class="agg-stat">
+            <div class="agg-stat-label">Denna vecka</div>
+            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmt(panel.thisWeekVisits)}</div>
+          </div>
+          <div class="agg-stat">
+            <div class="agg-stat-label">Väntelista</div>
+            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmt(panel.waitlist)}</div>
+          </div>
+          <div class="agg-stat">
+            <div class="agg-stat-label">Kommande bokn.</div>
+            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmt(panel.upcomingBookings)}</div>
+          </div>
         </div>
         <p class="kunder-data-missing" style="margin-top:12px">Intäkt, LTV, AI-insikter och diagram — data saknas (ej mock).</p>
         <div class="agg-actions">
@@ -707,6 +757,27 @@
     </div>
     <div class="dossier-scroll">
       <details class="dossier-section" open>
+        <summary>Bokning &amp; kalender</summary>
+        <div class="dossier-booking-grid">
+          <div><span class="dossier-stat-label">Kommande</span><br>${card.hasUpcomingBooking ? escapeHtml(formatDateTime(card.nextBookingAt)) : '—'}</div>
+          <div><span class="dossier-stat-label">Typ</span><br>${escapeHtml(card.nextBookingType || '—')}</div>
+          <div><span class="dossier-stat-label">Resurs</span><br>${escapeHtml(card.nextBookingResourceLabel || '—')}</div>
+          <div><span class="dossier-stat-label">Senast besök</span><br>${escapeHtml(formatDate(card.lastVisitAt))}</div>
+          <div><span class="dossier-stat-label">Encounter</span><br>${escapeHtml(card.encounterId || '—')}</div>
+          <div><span class="dossier-stat-label">Ärende</span><br>${escapeHtml(card.bookingCaseStatus || '—')}</div>
+        </div>
+        ${
+          card.missingEncounterForBooking
+            ? '<p class="kunder-data-missing dossier-warning">Kommande bokning utan kopplat encounter.</p>'
+            : ''
+        }
+        ${
+          card.onWaitlist
+            ? `<p class="kunder-data-missing">Väntelista: ${escapeHtml(card.waitingListStatus || 'ärende')}</p>`
+            : ''
+        }
+      </details>
+      <details class="dossier-section" open>
         <summary>Journal &amp; tidslinje</summary>
         <div id="kunder-journal-feed-mount"></div>
       </details>
@@ -722,7 +793,9 @@
     </div>
     <div class="dossier-actions">
       <a class="quick-pill full" href="/journal-feed-demo.html?customerId=${encodeURIComponent(card.patientId)}&tenant=${encodeURIComponent(TENANT_ID)}&role=${encodeURIComponent(getRole())}">Öppna journal (full vy)</a>
-      <button type="button" class="quick-pill" disabled title="Ej kopplat ännu">Boka</button>
+      <a class="quick-pill" href="/kalender.html" title="Kalender-arbetsyta">Öppna i kalender</a>
+      <button type="button" class="quick-pill" disabled title="Kopplas i Kalender P1">Boka</button>
+      <button type="button" class="quick-pill" disabled title="Kopplas i Kalender P1">Omboka</button>
       <button type="button" class="quick-pill" disabled title="Kommer i P1">Skicka formulär</button>
       <button type="button" class="quick-pill" disabled title="Kommer i P1">Skapa offert</button>
       <button type="button" class="quick-pill" disabled title="Ej kopplat ännu">↓ Massåtgärd</button>
@@ -935,6 +1008,8 @@
       .cr-tag--warn { background:rgba(200,130,30,.15); }
       .dossier-review-flags { padding:8px 14px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:11px; }
       .dossier-next-step { width:100%; margin-top:6px; color:var(--cco-text-secondary); }
+      .dossier-booking-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; padding:8px 0; font-size:12px; }
+      .dossier-warning { color:var(--cco-status-warning); }
       body[data-kunder-real="1"] .watch-widget { display:none !important; }
       .kunder-load-more-wrap { display:flex; align-items:center; justify-content:center; gap:12px; padding:16px; flex-wrap:wrap; }
       .kunder-load-more-meta { font-size:12px; color:var(--cco-text-secondary); }
