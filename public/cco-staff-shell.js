@@ -26,8 +26,7 @@
       '<a href="/konversationer.html">Konversationer</a>',
       '<a href="/kunder.html">Kunder</a>',
       '<a href="/kalender.html">Kalender</a>',
-      '<a href="/cco-personal-start.html" class="cco-nav-active-personal">Journalpilot</a>',
-      '<span class="cco-spacer">Personalstart · Journalpilot · kontrollerad pilot</span>'
+      '<a href="/cco-demo.html" class="cco-nav-active-personal">Journalpilot</a>'
     ].join('');
 
     // Mark active link based on URL

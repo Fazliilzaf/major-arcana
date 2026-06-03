@@ -74,30 +74,51 @@
       }
 
       .primary-ctas {
-        display: flex; flex-wrap: wrap; gap: 10px;
-        margin-top: 18px; padding: 16px 20px;
-        background: linear-gradient(135deg, rgba(187,71,121,0.06), rgba(200,130,30,0.04));
-        border: 1px solid rgba(187,71,121,0.22);
-        border-radius: 14px;
+        display: flex; flex-wrap: wrap; gap: 8px;
+        margin-top: 20px; padding: 0;
       }
+      /* Mjukt poppigt — matchar Kunders .nav-btn */
       .cta {
+        appearance: none;
         display: inline-flex; align-items: center; gap: 6px;
-        padding: 10px 18px; border-radius: 999px;
-        background: var(--cco-bg-surface); color: var(--cco-color-brand);
-        border: 1px solid var(--line);
-        font-size: 13px; font-weight: 700; text-decoration: none;
-        transition: all 0.15s ease;
+        padding: 9px 16px;
+        border-radius: 11px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,238,232,0.86));
+        color: var(--cco-color-brand);
+        border: 1px solid rgba(255,255,255,0.82);
+        font-size: 12.5px; font-weight: 700; letter-spacing: 0.01em;
+        text-decoration: none;
+        cursor: pointer;
+        box-shadow:
+          0 4px 12px rgba(56, 40, 28, 0.10),
+          0 1px 2px rgba(56, 40, 28, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        transition: transform 0.12s ease, box-shadow 0.15s ease, color 0.15s ease;
       }
       .cta:hover {
-        border-color: rgba(187,71,121,0.32);
+        transform: translateY(-1px);
         color: var(--accent-studio);
+        box-shadow:
+          0 8px 18px rgba(56, 40, 28, 0.14),
+          0 2px 4px rgba(56, 40, 28, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.92);
       }
       .cta.primary {
-        background: linear-gradient(135deg, var(--accent-studio), var(--accent-deep));
-        color: #fff; border-color: transparent;
-        box-shadow: 0 6px 14px rgba(187,71,121,0.22);
+        background: linear-gradient(180deg, rgba(252,233,240,0.98), rgba(241,207,220,0.95));
+        color: var(--accent-studio);
+        border-color: rgba(187, 71, 121, 0.28);
+        box-shadow:
+          0 4px 14px rgba(187, 71, 121, 0.22),
+          0 1px 2px rgba(187, 71, 121, 0.10),
+          inset 0 1px 0 rgba(255, 255, 255, 0.92);
       }
-      .cta.primary:hover { color: #fff; filter: brightness(1.06); }
+      .cta.primary:hover {
+        color: var(--accent-deep);
+        box-shadow:
+          0 8px 20px rgba(187, 71, 121, 0.28),
+          0 2px 4px rgba(187, 71, 121, 0.14),
+          inset 0 1px 0 rgba(255, 255, 255, 0.92);
+      }
 
       .day1-rules {
         margin-top: 30px; padding: 22px 26px;
@@ -125,13 +146,13 @@
   </head>
   <body>
     <div class="cco-staff-shell">
-      <div class="cco-title-block">
+      <div class="cco-title-block" style="padding: 26px 30px;">
         <div class="cco-title-kicker">
           <span class="mark">CC</span>
-          CCO · Hair TP Clinic · kontrollerad pilot 4 juni 2026
+          Hair TP Clinic · kontrollerad pilot · 4 juni 2026
         </div>
-        <h1>Välkommen till <span class="accent">CCO</span></h1>
-        <p class="lead">CCO är vårt nya kundkort och arbetsnav. Vi börjar kontrollerat med journalföring. Den här sidan visar vad systemet erbjuder. Mail, Photo Review, Fortnox-sync och Aisia kommer separat i nästa steg.</p>
+        <h1 style="margin-bottom: 10px;">Välkommen till <span class="accent">CCO</span></h1>
+        <p class="lead">CCO är vårt nya kundkort och arbetsnav. Vi börjar kontrollerat med journalföring. Mail, Photo Review, Fortnox-sync och Aisia kommer separat i nästa steg.</p>
 
         <div class="primary-ctas">
           <a class="cta primary" href="/kunder.html" data-verified-link>Öppna Kunder</a>
