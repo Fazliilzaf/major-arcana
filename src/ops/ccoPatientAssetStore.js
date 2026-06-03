@@ -971,6 +971,16 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
    * needs-review / failed-import / missing-checksum / missing-storage-key /
    * missing-patient-id-räknare. Inga payloads — counts only.
    */
+  /** Minimal list for Kunder segment enrichment (server-side only). */
+  function listItemsForEnrichment(tenantId = null) {
+    let all = Object.values(state.items);
+    const tid = normalizeText(tenantId);
+    if (tid) {
+      all = all.filter((a) => !a.tenantId || a.tenantId === tid);
+    }
+    return all;
+  }
+
   function stats(tenantId = null) {
     const all = Object.values(state.items);
     const byStatus = {};
@@ -1114,6 +1124,7 @@ async function createCcoPatientAssetStore({ filePath, auditLog = null } = {}) {
     linkAssetToEncounter,
     softDeleteAsset,
     hardDeleteAsset,
+    listItemsForEnrichment,
     stats,
     // exposed for testing / health
     _state: () => state,

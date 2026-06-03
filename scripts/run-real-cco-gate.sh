@@ -71,6 +71,12 @@ else
   fail 'cco-kunder-real.js incomplete on prod'
 fi
 
+if echo "$js" | grep -q 'segmentStats'; then
+  pass 'cco-kunder-real.js P0.3 segmentStats on prod'
+else
+  fail 'cco-kunder-real.js missing segmentStats (P0.3)'
+fi
+
 echo
 if [ "$FAILED" -gt 0 ]; then
   echo "✗ real-cco-gate FAILURES: $FAILED"

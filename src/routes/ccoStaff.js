@@ -4,6 +4,12 @@ const express = require('express');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { resolveCcoRouteActor } = require('./ccoRouteShared');
 const { listOfferTemplates } = require('../ops/ccoOfferTemplateStore');
+const {
+  buildKunderReadout,
+  computeSegmentStats,
+  filterPatientsBySegment,
+  loadAssetSignalsIndex,
+} = require('../ops/ccoKunderEnrichment');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -50,8 +56,9 @@ function createCcoStaffRouter({
     async (req, res) =>
       handle(req, res, async (actor) => {
         const limit = parseIntParam(req.query.limit, 60);
-        const offset = parseIntParam(req.query.offset, 0);
+        const offsetVal = parseIntParam(req.query.offset, 0);
         const query = normalizeText(req.query.q || req.query.query);
+        const segment = normalizeText(req.query.segment);
         const flags = String(req.query.flags || '')
           .split(',')
           .map((item) => item.trim())
@@ -60,28 +67,66 @@ function createCcoStaffRouter({
           ? readCache.buildKey(
               'customers-shell',
               actor.tenantId,
-              JSON.stringify({ limit, offset, query, flags })
+              JSON.stringify({ limit, offset: offsetVal, query, flags, segment })
             )
+          : '';
+        const statsCacheKey = readCache
+          ? readCache.buildKey('customers-shell-segments', actor.tenantId)
           : '';
 
         const build = async () => {
-          const [stats, patientsResult] = await Promise.all([
-            patientMasterStore.getTenantStats({ tenantId: actor.tenantId }),
-            patientMasterStore.listPatients({
+          const assetIndex = await loadAssetSignalsIndex(config, actor.tenantId);
+
+          const baseList = await patientMasterStore.listPatients({
+            tenantId: actor.tenantId,
+            query,
+            flags,
+            limit: 50_000,
+            offset: 0,
+          });
+          let rows = baseList.patients;
+          if (segment) {
+            rows = filterPatientsBySegment(rows, segment, assetIndex);
+          }
+          const allForStats = (
+            await patientMasterStore.listPatients({
               tenantId: actor.tenantId,
-              query,
-              flags,
-              limit,
-              offset,
-            }),
+              limit: 50_000,
+              offset: 0,
+            })
+          ).patients;
+
+          let segmentStats;
+          if (readCache && statsCacheKey) {
+            const wrapped = await readCache.wrap(statsCacheKey, 120_000, async () =>
+              computeSegmentStats(allForStats, assetIndex)
+            );
+            segmentStats = wrapped.value;
+          } else {
+            segmentStats = computeSegmentStats(allForStats, assetIndex);
+          }
+
+          const start = Math.max(0, offsetVal);
+          const max = Math.max(1, Math.min(20000, limit));
+          const page = rows.slice(start, start + max);
+
+          const [stats] = await Promise.all([
+            patientMasterStore.getTenantStats({ tenantId: actor.tenantId }),
           ]);
+
+          const enrichedStats = {
+            ...stats,
+            kunderPanel: segmentStats.panel,
+          };
+
           return {
-            stats,
+            stats: enrichedStats,
+            segmentStats,
             patients: {
-              ...patientsResult,
-              patients: patientsResult.patients.map((patient) =>
-                patientMasterStore.buildPatientCardReadout(patient)
-              ),
+              total: rows.length,
+              offset: start,
+              limit: max,
+              patients: page.map((patient) => buildKunderReadout(patient, assetIndex)),
             },
             offerTemplates: { templates: listOfferTemplates() },
             provider: 'customers-shell',
@@ -103,9 +148,7 @@ function createCcoStaffRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) =>
       handle(req, res, async (actor) => {
-        const cacheKey = readCache
-          ? readCache.buildKey('dashboard-snapshot', actor.tenantId)
-          : '';
+        const cacheKey = readCache ? readCache.buildKey('dashboard-snapshot', actor.tenantId) : '';
         if (readCache && cacheKey) {
           const cached = await readCache.get(cacheKey);
           if (cached) return res.json({ snapshot: cached, cacheHit: true });
@@ -130,9 +173,7 @@ function createCcoStaffRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) =>
       handle(req, res, async (actor) => {
-        const cacheKey = readCache
-          ? readCache.buildKey('worklist-snapshot', actor.tenantId)
-          : '';
+        const cacheKey = readCache ? readCache.buildKey('worklist-snapshot', actor.tenantId) : '';
         if (readCache && cacheKey) {
           const cached = await readCache.get(cacheKey);
           if (cached) return res.json({ snapshot: cached, cacheHit: true });

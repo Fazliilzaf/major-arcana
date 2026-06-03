@@ -118,6 +118,37 @@ if (!/params\.set\('q'/.test(js)) {
   pass('cco-kunder-real.js global sök via q=');
 }
 
+if (!/segmentStats/.test(js) && !/params\.set\('segment'/.test(js)) {
+  fail('cco-kunder-real.js saknar segment-filter (P0.3)');
+} else {
+  pass('cco-kunder-real.js segment-filter P0.3');
+}
+
+if (/Snitt LTV|49\s*MSEK|AI-åtgärd|toast\(/.test(js)) {
+  fail('cco-kunder-real.js har kvar mock KPI/AI/toast');
+} else {
+  pass('cco-kunder-real.js utan mock KPI/AI/toast');
+}
+
+if (!/Ej kopplat|Kommer i P1/.test(js)) {
+  fail('cco-kunder-real.js saknar disabled-action copy');
+} else {
+  pass('cco-kunder-real.js disabled actions märkta');
+}
+
+if (!fs.existsSync(path.join(REPO, 'src/ops/ccoKunderEnrichment.js'))) {
+  fail('ccoKunderEnrichment.js saknas');
+} else {
+  pass('ccoKunderEnrichment.js finns');
+}
+
+const staff = fs.readFileSync(path.join(REPO, 'src/routes/ccoStaff.js'), 'utf8');
+if (!/segmentStats/.test(staff) || !/buildKunderReadout/.test(staff)) {
+  fail('ccoStaff customers-shell saknar P0.3 enrichment');
+} else {
+  pass('ccoStaff customers-shell P0.3 enrichment');
+}
+
 if (failed) {
   console.error(`\n${failed} check(s) failed.`);
   process.exit(1);

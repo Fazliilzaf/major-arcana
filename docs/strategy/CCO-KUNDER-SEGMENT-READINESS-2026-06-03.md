@@ -1,10 +1,29 @@
 # CCO Kunder — Segment Readiness (2026-06-03)
 
-**Uppdaterad efter P0.2** (segment completeness). Kod: `public/cco-kunder-real.js`, gates: `verify-kunder-real-data.js`, `npm run cco:real-cco-gate`.
+**Uppdaterad efter P0.3** (real aggregates + row/dossier enrichment). Kod: `public/cco-kunder-real.js`, `src/ops/ccoKunderEnrichment.js`, gates: `verify-kunder-real-data.js`, `npm run cco:real-cco-gate`.
 
 **Scope:** Prod `/kunder.html` vs design `CCO-Kunder-Mockup-v9-DESKTOP.html`, mobil v10, `CCO-filter-och-smarta-funktioner.md`, `CCO-SYSTEM-SCOPE.md`.
 
-**Arkitektur:** Lista/stats hämtas via **`GET /api/v1/cco/staff/customers-shell`** (samma bundle som `patient-master-ui.js`: patient-master + `buildPatientCardReadout`). Dossier: **`patientId`**, **`CcoJournalFeed.mount`**, assets **`/api/v1/cco/patients/:patientId/assets`**. Ingen `server.js`-ändring.
+**Arkitektur:** Lista/stats/segment via **`GET /api/v1/cco/staff/customers-shell`** (`buildKunderReadout` + `segmentStats` från patient-master + asset-index). Dossier: **`patientId`**, **`CcoJournalFeed.mount`**, assets **`/api/v1/cco/patients/:patientId/assets`**. Ingen `server.js`-ändring (asset store lazy-load i staff-route).
+
+---
+
+## P0.3 — leverans (2026-06-03)
+
+| Område                                      | P0.2 (~82%)               | P0.3 (~90%+)                                                                                                        |
+| ------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Segment aggregates                          | 6–10 flag + rest disabled | **20+ real** (VIP, Aktiva, Nya, Dormant, saknar journal/form, GetAccept, halso@, bild-review, Drive journal/doc, …) |
+| Side-nav                                    | — / disabled kalender     | **Real counts** från `segmentStats` eller disabled “Kalender P0.4”                                                  |
+| Kundrad                                     | Bas + regler nästa steg   | **Enriched** (maskad kontakt, badges, journal/form/avtal/review)                                                    |
+| Högerpanel                                  | 4 stats                   | **8 riktiga KPI** (journal/form/review/photo) — ingen LTV/intäkt/AI                                                 |
+| Cmd+K                                       | `q=` global               | Oförändrat + **patientId** i träfflista                                                                             |
+| API                                         | `buildPatientCardReadout` | **`buildKunderReadout`** + `segmentStats`                                                                           |
+| Kalender (idag/vecka/väntelista/behandling) | disabled                  | **disabled** (P0.4)                                                                                                 |
+| Mina                                        | disabled                  | **disabled** (ägare P1)                                                                                             |
+
+**Readiness:** ~82% → **~91%** verksam arbetsyta.
+
+**P0.4-förslag:** Koppla kalender/bokning till side-nav (idag, vecka, väntelista, behandling), `lastVisitAt` / `hasUpcomingBooking`, encounter från treatment store (ej bara asset-flag).
 
 **Maskinläsbar:** `data/reports/cco-kunder-segment-readiness.json`
 
@@ -43,7 +62,7 @@
 
 | Mått                                    | Före P0.1    | Efter P0.1                                           |
 | --------------------------------------- | ------------ | ---------------------------------------------------- |
-| **Kunder readiness (100% verksam)**     | **~34%**     | **~82%** (P0.2)                                      |
+| **Kunder readiness (100% verksam)**     | **~34%**     | **~91%** (P0.3)                                      |
 | UX/layout vs v9 mockup                  | ~88%         | ~88%                                                 |
 | Data/API vs acceptance                  | ~18%         | **~62%**                                             |
 | Mock/statiska fält (aktiva i listflöde) | ~52          | **~8** (dold kalender-shell, behandling-side HTML)   |
