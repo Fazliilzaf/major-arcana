@@ -1,6 +1,6 @@
 # CCO Kunder — Segment Readiness (2026-06-03)
 
-**Uppdaterad efter P0.1** (real patient master i `/kunder.html`). Kod: `public/cco-kunder-real.js`, gate: `scripts/verify-kunder-real-data.js`.
+**Uppdaterad efter P0.2** (segment completeness). Kod: `public/cco-kunder-real.js`, gates: `verify-kunder-real-data.js`, `npm run cco:real-cco-gate`.
 
 **Scope:** Prod `/kunder.html` vs design `CCO-Kunder-Mockup-v9-DESKTOP.html`, mobil v10, `CCO-filter-och-smarta-funktioner.md`, `CCO-SYSTEM-SCOPE.md`.
 
@@ -9,6 +9,17 @@
 **Maskinläsbar:** `data/reports/cco-kunder-segment-readiness.json`
 
 ---
+
+## P0.2 — leverans (2026-06-03)
+
+| Område          | P0.1                | P0.2                                         |
+| --------------- | ------------------- | -------------------------------------------- |
+| Paginering      | 60 rader            | **Ladda fler** + “X av Y”                    |
+| Cmd+K / sök     | Sida                | **Hela registret** (`q=` på customers-shell) |
+| Side-nav mock   | Statiska tal i HTML | **—** eller disabled + real flag counts      |
+| Segment         | 6 day1              | **10+ real** (flags API) + resten disabled   |
+| Hidden kalender | I HTML              | **Borttagen** (~600 rader)                   |
+| Gate            | verify-kunder       | **+ `cco:real-cco-gate`**                    |
 
 ## P0.1 — leverans (2026-06-03)
 
@@ -32,7 +43,7 @@
 
 | Mått                                    | Före P0.1    | Efter P0.1                                           |
 | --------------------------------------- | ------------ | ---------------------------------------------------- |
-| **Kunder readiness (100% verksam)**     | **~34%**     | **~68%**                                             |
+| **Kunder readiness (100% verksam)**     | **~34%**     | **~82%** (P0.2)                                      |
 | UX/layout vs v9 mockup                  | ~88%         | ~88%                                                 |
 | Data/API vs acceptance                  | ~18%         | **~62%**                                             |
 | Mock/statiska fält (aktiva i listflöde) | ~52          | **~8** (dold kalender-shell, behandling-side HTML)   |
@@ -337,9 +348,9 @@ Utan token: auth-banner, tom lista — **ingen mock-fallback**.
 | List + rad data                    | 8        | **78**     |
 | Dossier + journal                  | 22       | **72**     |
 | Compliance (no Drive, no mock KPI) | 12       | **88**     |
-| **Viktad 100% verksam**            | **~34%** | **~68%**   |
+| **Viktad 100% verksam**            | **~34%** | **~82%**   |
 
-Gate: `npm run cco:verify-kunder-real-data` → PASS. `cco:presentation-gate` steg [2/4] PASS; hela gate kan faila på **andra** routes (t.ex. saknad `cco-4june-command-center.html`).
+Gate: `npm run cco:verify-kunder-real-data` + **`npm run cco:real-cco-gate`** (canonical CCO). `cco:presentation-gate` kan fortfarande faila på legacy demo-routes — blockar inte Kunder-P0.
 
 ---
 
@@ -347,16 +358,19 @@ Gate: `npm run cco:verify-kunder-real-data` → PASS. `cco:presentation-gate` st
 
 ### P0.1 — **klar**
 
-1–12 ovan (auth, lista, stats, filter, rad, dossier, journal, assets, Drive bort, komm, höger KPI, bulk disabled, sök) — se `cco-kunder-real.js` + `verify-kunder-real-data.js`.
+Lista, patientId, dossier, journal, assets, mock KPI borta.
 
-### P0 — kvar efter P0.1
+### P0.2 — **klar**
 
-1. **Paginering:** "Ladda fler" / offset utöver första 60.
-2. **Segment:** VIP, Dormant, Mina, Saknar formulär, GetAccept, halso@, bild-aggregate (API eller worklist).
-3. **Side:** Idag/vecka/väntelista + behandling — koppla eller **disabled** (ta bort mock-tal i HTML).
-4. **Sök:** Cmd+K mot full `patients?q=` (ej bara aktuell sida).
-5. **Dold kalender-mock:** rensa Anna/statiska bokningar ur `hidden` block (compliance hygiene).
-6. **Mobil:** `m-kunder.html` / responsiv v10.
+Paginering, global sök, flag-segment, side-nav disabled/real counts, calendar-shell bort, `cco:real-cco-gate`.
+
+### P0.3 — kvar
+
+1. **Segment aggregate:** VIP, Dormant, Mina, Aktiva, Nya, Saknar journal/formulär/encounter, GetAccept, halso@, bild-review.
+2. **Kundrad:** behandling, avtalstatus, formulärstatus från journal-feed aggregate.
+3. **Högerpanel:** worklist-insikter (ej generativ AI).
+4. **Voice/watch overlays:** bort från HTML helt (delvis remove() i runtime).
+5. **Mobil:** `m-kunder.html`.
 
 ### P1 — vardag
 
@@ -379,7 +393,7 @@ Gate: `npm run cco:verify-kunder-real-data` → PASS. `cco:presentation-gate` st
 
 ## 12. Exakt nästa build-step
 
-**P0.2:** Paginering + rensa statiska mock-tal i vänster **behandling/idag**-nav (disabled eller real booking API). **P0.3:** Segment som fortfarande är disabled (VIP, formulär-gap, foto-aggregate).
+**P0.3:** Kundkort/dossier komplett — journal-historik, formulär/avtal-status på rad, segment från journal-feed aggregate. **P0.4:** Kalender/idag/vecka kopplat till booking API.
 
 **Bygg INTE:** ny demo-sida, ny import, Photo Review auto, massapproval, Aisia, Fortnox-write, server.js/journalroute-ändring.
 

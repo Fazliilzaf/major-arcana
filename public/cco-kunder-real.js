@@ -1,11 +1,12 @@
 /**
- * P0.1 — Real patient master for /kunder.html
- * No mock counts, no CUSTOMER_ROWS, patientId-based dossier + journal-feed.
+ * P0.2 — Real patient master for /kunder.html (segment completeness)
+ * No mock counts; patientId dossier; flag segments + global search.
  */
 (function (global) {
   'use strict';
 
   const PAGE_SIZE = 60;
+  const SEARCH_PAGE_SIZE = 40;
   const TENANT_ID = 'hairtpclinic';
   const TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
   const LOGIN_HREF = '/major-arcana-preview/index.html';
@@ -20,22 +21,43 @@
   };
 
   const SEGMENTS = [
-    { id: 'all', label: 'Alla kunder', flags: '', side: true, chip: 'alla', day1: true },
+    { id: 'all', label: 'Alla kunder', flags: '', side: true, chip: 'alla' },
     {
       id: 'mine',
       label: 'Mina kunder',
       flags: '',
       side: true,
       disabled: true,
-      disabledReason: 'Ägare per rad saknas i P0.1',
+      disabledReason: 'Ägare per rad saknas (P0.3)',
+    },
+    {
+      id: 'today_visits',
+      label: 'Idag · besöker',
+      side: true,
+      disabled: true,
+      disabledReason: 'Kalender-koppling (P0.4)',
+    },
+    {
+      id: 'this_week',
+      label: 'Denna vecka',
+      side: true,
+      disabled: true,
+      disabledReason: 'Kalender-koppling (P0.4)',
+    },
+    {
+      id: 'waitlist',
+      label: 'Väntelista',
+      side: true,
+      disabled: true,
+      disabledReason: 'Bokningskö (P0.4)',
     },
     {
       id: 'active',
       label: 'Aktiva',
       flags: '',
       chip: 'aktiva',
-      clientFilter: 'active',
-      day1: true,
+      disabled: true,
+      disabledReason: 'Journal-filter kräver aggregate (P0.3)',
     },
     {
       id: 'vip',
@@ -43,66 +65,85 @@
       flags: '',
       chip: 'vip',
       disabled: true,
-      disabledReason: 'Ingen VIP-flagga i master än',
+      disabledReason: 'Ingen VIP-flagga i patient-master',
     },
-    { id: 'risk', label: 'Risk', flags: 'needs_review', chip: 'risk', day1: true },
-    { id: 'new', label: 'Nya', flags: '', chip: 'nya', clientFilter: 'new', day1: true },
+    { id: 'risk', label: 'Risk', flags: 'needs_review', chip: 'risk' },
+    {
+      id: 'new',
+      label: 'Nya',
+      flags: '',
+      chip: 'nya',
+      disabled: true,
+      disabledReason: 'Ny-filter kräver aggregate (P0.3)',
+    },
     {
       id: 'dormant',
       label: 'Dormant',
       flags: '',
       chip: 'dormant',
       disabled: true,
-      disabledReason: 'Dormant-regel ej definierad i API',
+      disabledReason: 'Dormant-regel ej definierad',
     },
     {
       id: 'missing_form',
       label: 'Saknar formulär',
       flags: '',
       chip: 'saknar-form',
+      side: true,
       disabled: true,
-      disabledReason: 'Formulär-gap kräver journal-feed aggregate (P1)',
+      disabledReason: 'Formulär-gap (P0.3)',
     },
     {
       id: 'missing_journal',
       label: 'Saknar journal',
       flags: '',
-      chip: null,
-      clientFilter: 'no_journal',
-      day1: true,
+      side: true,
+      disabled: true,
+      disabledReason: 'Journal-filter (P0.3)',
     },
-    { id: 'needs_review', label: 'Needs review', flags: 'needs_review', day1: true },
     {
-      id: 'has_drive',
-      label: 'Har Drive journal',
-      flags: 'has_drive_files',
-      treatment: false,
-      day1: true,
+      id: 'missing_encounter',
+      label: 'Saknar encounter',
+      disabled: true,
+      disabledReason: 'Encounter-aggregate (P0.3)',
     },
+    { id: 'needs_review', label: 'Granska / import', flags: 'needs_review', side: true },
+    { id: 'has_drive', label: 'Drive-filer', flags: 'has_drive_files', side: true },
+    { id: 'drive_only', label: 'Drive only', flags: 'drive_only', side: true },
+    { id: 'cliento_only', label: 'Cliento only', flags: 'cliento_only', side: true },
+    { id: 'duplicate_email', label: 'Dubblett e-post', flags: 'duplicate_email', side: true },
     {
       id: 'getaccept',
       label: 'Har GetAccept',
       disabled: true,
-      disabledReason: 'GetAccept-segment ej kopplat i P0.1',
+      disabledReason: 'Kräver asset-flagga i master (P0.3)',
     },
     {
       id: 'halso',
       label: 'Har halso@',
       disabled: true,
-      disabledReason: 'Hälsodekl-segment ej kopplat i P0.1',
+      disabledReason: 'Hälsodekl-segment (P0.3)',
     },
     {
       id: 'photos_review',
       label: 'Bilder needsReview',
       disabled: true,
-      disabledReason: 'Kräver asset aggregate (P1)',
+      disabledReason: 'Asset aggregate (P0.3)',
+    },
+    {
+      id: 'import_review',
+      label: 'Import review',
+      flags: 'needs_review',
+      disabled: true,
+      disabledReason: 'Använd Granska (needs_review)',
     },
   ];
+  const SEGMENT_BY_ID = Object.fromEntries(SEGMENTS.map((s) => [s.id, s]));
 
   const state = {
     query: '',
     flagFilter: '',
-    clientFilter: '',
+    activeSegmentId: 'all',
     offset: 0,
     total: 0,
     patients: [],
@@ -211,15 +252,6 @@
     return '—';
   }
 
-  function passesClientFilter(card) {
-    if (!state.clientFilter) return true;
-    if (state.clientFilter === 'active') return !!card.hasJournalHistory;
-    if (state.clientFilter === 'new')
-      return card.patientOrigin === 'new' || card.matchStatus === 'unmatched';
-    if (state.clientFilter === 'no_journal') return !card.hasJournalHistory;
-    return true;
-  }
-
   function showAuthBanner(show) {
     let el = $('#kunder-auth-banner');
     if (!show) {
@@ -265,8 +297,9 @@
     }
     setListStatus('Hämtar kunder…', 'loading');
 
+    const limit = state.query ? SEARCH_PAGE_SIZE : PAGE_SIZE;
     const params = new URLSearchParams({
-      limit: String(PAGE_SIZE),
+      limit: String(limit),
       offset: String(state.offset),
     });
     if (state.query) params.set('q', state.query);
@@ -313,12 +346,18 @@
       return;
     }
     const totals = { all: Number(state.stats.totalPatients ?? 0) };
-    const jobs = SEGMENTS.filter((s) => s.flags && !s.disabled).map(async (seg) => {
+    const flagSegments = SEGMENTS.filter((s) => s.flags && !s.disabled);
+    const jobs = flagSegments.map(async (seg) => {
       totals[seg.id] = await fetchSegmentTotal(seg.flags);
     });
     await Promise.all(jobs);
-    totals.needs_review = Number(state.stats.needsReview ?? totals.needs_review ?? 0);
-    totals.has_drive = await fetchSegmentTotal('has_drive_files');
+    totals.all = Number(state.stats.totalPatients ?? totals.all ?? 0);
+    totals.needs_review = Number(
+      state.stats.needsReview ?? totals.needs_review ?? (await fetchSegmentTotal('needs_review'))
+    );
+    totals.risk = totals.needs_review;
+    totals.drive_only = Number(state.stats.driveOnly ?? totals.drive_only ?? 0);
+    totals.cliento_only = Number(state.stats.clientoOnly ?? totals.cliento_only ?? 0);
     state.segmentTotals = totals;
     renderCounts();
   }
@@ -390,22 +429,32 @@
       setListStatus(state.error, 'error');
       return;
     }
-    const rows = state.patients.filter(passesClientFilter);
+    const rows = state.patients;
     if (!rows.length) {
       setListStatus(state.loaded ? 'Inga kunder matchar filtret.' : '', 'info');
       return;
     }
 
-    host.innerHTML = rows
-      .map((card) => {
-        const st = rowState(card);
-        const tags = [];
-        if (card.flags?.includes('needs_review')) tags.push({ kind: 'risk', label: 'Granska' });
-        if (!card.hasJournalHistory) tags.push({ kind: 'risk', label: 'Saknar journal' });
-        if (card.driveLinked) tags.push({ kind: 'cycle', label: 'Drive' });
-        if (card.clientoLinked) tags.push({ kind: 'ready', label: 'Cliento' });
+    const seg = SEGMENT_BY_ID[state.activeSegmentId];
+    const filterNote =
+      seg && !seg.disabled && seg.flags
+        ? `<div class="kunder-filter-note">Filter: ${escapeHtml(seg.label)} · ${rows.length.toLocaleString('sv-SE')} visade av ${Number(state.total).toLocaleString('sv-SE')}</div>`
+        : state.query
+          ? `<div class="kunder-filter-note">Sök: “${escapeHtml(state.query)}” · ${rows.length.toLocaleString('sv-SE')} träffar</div>`
+          : '';
 
-        return `
+    host.innerHTML =
+      filterNote +
+      rows
+        .map((card) => {
+          const st = rowState(card);
+          const tags = [];
+          if (card.flags?.includes('needs_review')) tags.push({ kind: 'risk', label: 'Granska' });
+          if (!card.hasJournalHistory) tags.push({ kind: 'risk', label: 'Saknar journal' });
+          if (card.driveLinked) tags.push({ kind: 'cycle', label: 'Drive' });
+          if (card.clientoLinked) tags.push({ kind: 'ready', label: 'Cliento' });
+
+          return `
     <div class="customer-row" data-patient-id="${escapeHtml(card.patientId)}" data-customer-id="${escapeHtml(card.patientId)}">
       <span class="cr-avatar" style="background:linear-gradient(180deg,#e8d4ff,#b894e8)">${escapeHtml((displayName(card).slice(0, 2) || '??').toUpperCase())}</span>
       <div>
@@ -419,16 +468,31 @@
       <div><span class="cr-status" data-state="${st.state}"><span class="dot"></span>${escapeHtml(st.label)}</span></div>
       <div class="cr-meta">
         <div class="cr-meta-strong">${formatDate(card.updatedAt)}</div>
-        <div class="cr-meta-sub">${escapeHtml(MATCH_LABELS[card.matchStatus] || card.matchStatus || '—')}</div>
+        <div class="cr-meta-sub">${card.hasJournalHistory ? 'Journal' : 'Saknar journal'}</div>
       </div>
       <div>
-        <div class="cr-revenue kunder-revenue-disabled" title="Intäkt/LTV visas när ekonomi är kopplat">—</div>
+        <div class="cr-revenue kunder-revenue-disabled" title="Intäkt/LTV — data saknas">—</div>
       </div>
-      <div><div class="cr-ai">${escapeHtml(nextStepLabel(card))}</div></div>
+      <div><div class="cr-ai" title="Regelbaserat nästa steg">${escapeHtml(nextStepLabel(card))}</div></div>
       <div class="cr-arrow">›</div>
     </div>`;
-      })
-      .join('');
+        })
+        .join('');
+
+    const hasMore = state.patients.length < state.total;
+    if (hasMore || state.patients.length) {
+      const wrap = document.createElement('div');
+      wrap.className = 'kunder-load-more-wrap';
+      wrap.innerHTML = `
+        <span class="kunder-load-more-meta">${state.patients.length.toLocaleString('sv-SE')} av ${Number(state.total).toLocaleString('sv-SE')} kunder</span>
+        ${
+          hasMore
+            ? `<button type="button" class="nav-btn" id="kunderLoadMore">Ladda fler</button>`
+            : '<span class="kunder-load-more-done">Alla matchande kunder laddade</span>'
+        }`;
+      host.appendChild(wrap);
+      $('#kunderLoadMore')?.addEventListener('click', () => fetchShell({ append: true }));
+    }
 
     host.querySelectorAll('.customer-row').forEach((row) => {
       row.addEventListener('click', (ev) => {
@@ -468,7 +532,8 @@
       return hay.includes(q);
     });
     if (!filtered.length) {
-      searchPanelList.innerHTML = '<div class="search-empty">Inga träffar i aktuell sida</div>';
+      searchPanelList.innerHTML =
+        '<div class="search-empty">Inga träffar i registret — prova namn, e-post eller telefon</div>';
       return;
     }
     searchPanelList.innerHTML = filtered
@@ -739,19 +804,25 @@
 
   function applySegment(seg) {
     if (!seg || seg.disabled) return;
+    state.activeSegmentId = seg.id;
     state.flagFilter = seg.flags || '';
-    state.clientFilter = seg.clientFilter || '';
     state.offset = 0;
+    state.patients = [];
     fetchShell();
   }
 
   function bindUi() {
     document.body.dataset.kunderReal = '1';
 
+    $('.calendar-shell[data-cco-shell="calendar"]')?.remove();
+
+    const listHead = $('.customers-head');
+    if (listHead?.children?.[6]) listHead.children[6].textContent = 'Nästa steg';
+
     const aggInsights = $('.agg-insights');
     if (aggInsights) {
       aggInsights.innerHTML =
-        '<p class="kunder-data-missing">AI-insikter och kampanjförslag är avstängda tills worklist-data är kopplad (P0.1).</p>';
+        '<p class="kunder-data-missing">Insikter avstängda — ingen mock-data i Kunder (P0.2).</p>';
     }
 
     const statusBar = $('.calendar-status-bar');
@@ -771,31 +842,23 @@
         $$('.filter-chip').forEach((c) => c.classList.remove('active'));
         chip.classList.add('active');
         const id = chip.dataset.segment;
-        if (id === 'alla') {
-          applySegment(SEGMENTS[0]);
-          return;
-        }
-        if (id === 'aktiva') {
-          state.flagFilter = '';
-          state.clientFilter = 'active';
-          state.offset = 0;
-          fetchShell();
-          return;
-        }
-        if (id === 'nya') {
-          state.flagFilter = '';
-          state.clientFilter = 'new';
-          state.offset = 0;
-          fetchShell();
-          return;
-        }
-        if (id === 'risk') {
-          applySegment(SEGMENTS.find((s) => s.id === 'risk'));
-          return;
-        }
-        if (id === 'vip' || id === 'dormant' || id === 'saknar-form') return;
-        const seg = SEGMENTS.find((s) => s.chip === id || s.id === id);
-        if (seg) applySegment(seg);
+        const chipSeg =
+          id === 'alla'
+            ? SEGMENT_BY_ID.all
+            : id === 'risk'
+              ? SEGMENT_BY_ID.risk
+              : id === 'aktiva'
+                ? SEGMENT_BY_ID.active
+                : id === 'nya'
+                  ? SEGMENT_BY_ID.new
+                  : id === 'vip'
+                    ? SEGMENT_BY_ID.vip
+                    : id === 'dormant'
+                      ? SEGMENT_BY_ID.dormant
+                      : id === 'saknar-form'
+                        ? SEGMENT_BY_ID.missing_form
+                        : SEGMENT_BY_ID[id];
+        if (chipSeg) applySegment(chipSeg);
       });
     });
 
@@ -804,8 +867,7 @@
         if (link.classList.contains('is-disabled')) return;
         $$('.side-link').forEach((l) => l.classList.remove('active'));
         link.classList.add('active');
-        const seg = SEGMENTS.find((s) => s.id === link.dataset.segment);
-        applySegment(seg || SEGMENTS[0]);
+        applySegment(SEGMENT_BY_ID[link.dataset.segment] || SEGMENT_BY_ID.all);
       });
     });
 
@@ -874,7 +936,13 @@
       }
     });
 
-    $('#watchWidget')?.classList.add('is-hidden');
+    $('#watchWidget')?.remove();
+    $('#voiceOverlay')?.remove();
+    $('#voiceSheet')?.remove();
+    const searchInput = $('#searchOverlayInput');
+    if (searchInput) {
+      searchInput.placeholder = 'Sök hela registret (namn, e-post, telefon)…';
+    }
   }
 
   function injectStyles() {
@@ -891,6 +959,10 @@
       .kunder-revenue-disabled { color:var(--cco-text-tertiary); }
       .cco-assets-badge { display:inline-block; margin:2px 4px 2px 0; padding:2px 6px; border-radius:6px; font-size:9px; font-weight:700; background:rgba(255,255,255,.7); border:1px solid rgba(132,117,107,.2); }
       body[data-kunder-real="1"] .watch-widget { display:none !important; }
+      .kunder-load-more-wrap { display:flex; align-items:center; justify-content:center; gap:12px; padding:16px; flex-wrap:wrap; }
+      .kunder-load-more-meta { font-size:12px; color:var(--cco-text-secondary); }
+      .kunder-filter-note { padding:8px 14px; font-size:11px; color:var(--cco-text-secondary); border-bottom:1px solid rgba(132,117,107,.12); }
+      #searchOverlayInput::placeholder { color:var(--cco-text-tertiary); }
     `;
     document.head.appendChild(style);
   }

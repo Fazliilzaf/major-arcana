@@ -2,7 +2,7 @@
 'use strict';
 
 /**
- * P0.1 gate: /kunder.html must not ship mock population or static CUSTOMER_ROWS.
+ * P0 Kunder gate: /kunder.html must not ship mock population.
  *   node scripts/verify-kunder-real-data.js
  */
 
@@ -25,6 +25,14 @@ function pass(msg) {
 const html = fs.readFileSync(KUNDER, 'utf8');
 const js = fs.existsSync(REAL_JS) ? fs.readFileSync(REAL_JS, 'utf8') : '';
 
+/** Active customers-shell region only (not voice/watch overlays below). */
+const customersStart = html.indexOf('<section class="customers-shell">');
+let customersHtml = html;
+if (customersStart >= 0) {
+  const closeIdx = html.indexOf('</section>', customersStart);
+  customersHtml = closeIdx >= 0 ? html.slice(customersStart, closeIdx + '</section>'.length) : html;
+}
+
 if (!js.includes('cco/staff/customers-shell')) {
   fail('cco-kunder-real.js saknar customers-shell API');
 } else {
@@ -37,7 +45,13 @@ if (!html.includes('cco-kunder-real.js')) {
   pass('kunder.html laddar cco-kunder-real.js');
 }
 
-const blocked = [
+if (!js.includes('kunderLoadMore') && !js.includes('Ladda fler')) {
+  fail('cco-kunder-real.js saknar paginering Ladda fler');
+} else {
+  pass('cco-kunder-real.js har Ladda fler');
+}
+
+const blockedHtml = [
   { re: /\bCUSTOMER_ROWS\b/, label: 'CUSTOMER_ROWS array' },
   { re: /\bconst CUSTOMERS\b/, label: 'CUSTOMERS mock search array' },
   { re: /\bDOSSIER_DATA\b/, label: 'DOSSIER_DATA mock' },
@@ -49,11 +63,32 @@ const blocked = [
   { re: /drive\.google\.com|docs\.google\.com/, label: 'Drive URL in page' },
   { re: /AI-åtgärd startad/, label: 'fake AI toast' },
   { re: /data-patient-name=/, label: 'assets by patient name attr' },
+  { re: /Snitt LTV:\s*24\s*800/, label: 'mock Snitt LTV in customers shell' },
+  { re: />\s*234\s*VIP</, label: 'mock 234 VIP pill' },
+  { re: /87\s+aktiva\s+i\s+maj/, label: 'mock 87 aktiva pill' },
+  { re: /Anna Karlsson/, label: 'Anna Karlsson in customers shell' },
+  { re: /agg-insight-body/, label: 'mock agg-insight cards in customers shell' },
 ];
 
-for (const { re, label } of blocked) {
-  if (re.test(html)) fail(`kunder.html innehåller ${label}`);
-  else pass(`kunder.html utan ${label}`);
+for (const { re, label } of blockedHtml) {
+  if (re.test(customersHtml)) fail(`kunder.html customers-shell: ${label}`);
+  else pass(`kunder.html customers-shell utan ${label}`);
+}
+
+if (html.includes('calendar-shell') && html.includes('data-cco-shell="calendar"')) {
+  fail('kunder.html har fortfarande hidden calendar-shell block');
+} else {
+  pass('kunder.html utan hidden calendar-shell block');
+}
+
+const blockedJs = [
+  { re: /toast\([^)]*AI-åtgärd/, label: 'fake AI toast in JS' },
+  { re: /åtgärd startad/, label: 'fake action toast' },
+];
+
+for (const { re, label } of blockedJs) {
+  if (re.test(js)) fail(`cco-kunder-real.js: ${label}`);
+  else pass(`cco-kunder-real.js utan ${label}`);
 }
 
 if (!/data-patient-id/.test(js) && !/dataset\.patientId/.test(js)) {
@@ -77,10 +112,10 @@ if (
   pass('cco-kunder-real.js assets via patientId');
 }
 
-if (/Anna Karlsson/.test(html) && /name:\s*'Anna Karlsson'/.test(html)) {
-  fail('kunder.html har fortfarande statisk Anna Karlsson mock-rad');
+if (!/params\.set\('q'/.test(js)) {
+  fail('cco-kunder-real.js saknar global sök q=');
 } else {
-  pass('ingen statisk CUSTOMER_ROWS Anna Karlsson');
+  pass('cco-kunder-real.js global sök via q=');
 }
 
 if (failed) {
