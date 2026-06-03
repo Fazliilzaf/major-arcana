@@ -541,3 +541,28 @@ Alla 14 personal-resurser granskade. Inga positiva påståenden om "full cutover
 | Photo Review | **PENDING** |
 | Drive/historik | **IMPORTED** + review-badges |
 | Aisia | **PAUSED** |
+
+---
+
+## Cycle-15 status 2026-06-04T01:45Z (Claude) — Personal Go-Live Control Panel
+
+### Ny leverans
+
+- ✅ **`/cco-staff-go-live-control.html`** — Operativ kontrollpanel för Fazli att styra personalens första arbetsdag. **7 sektioner i en sida:**
+  1. **Startstatus** — live GO/WARNING/STOP från `/cco-4june-morning-check.json` (fallback ops-status) + 4 status-celler
+  2. **Dag-1 rollfördelning** — Personal · Operator/admin · Fazli · Revisor (4-kort grid med top-stripe-färg per roll)
+  3. **Första arbetsblock** — Block 1 (1-3 patienter · 45 min) · Block 2 (feed/timeline · 15 min) · Block 3 (rättelser · vid behov) · Block 4 (ops avstämning · 15 min)
+  4. **Stoppregler** — 7 stoppregler: fel patient · signering på osäker identitet · journalroute fail · 5xx · patientdata fel kort · review-material som klinisk sanning · extern AI
+  5. **Eskalering** — Tabell: problem · vem · vad dokumentera · vad säga till patienten (8 rader)
+  6. **Snabblänkar** — 10 operativa verktyg (personal-start · kunder · guide · training · pre-sign · review-warning · ops · photo · mail · command-center)
+  7. **Dokumentations-footer** — pekar på rollkort + first week + first 3 patients
+
+- ✅ **Personal Start Section E** utökad — 15 → **16 stöd-länkar**
+- ✅ **Command Center** utökad — 20 → **21 snabblänkar**
+
+### Komplett 4 juni-personalpaket — **17 länkbara resurser**
+1-16. (samma som cycle 14)
+17. `/cco-staff-go-live-control.html` · **Go-Live Control (NY)**
+
+### Inga nya guides byggda (per direktiv)
+Cycle 15 är **operativ kontrollpanel**, inte ny utbildning. Allt utbildningsmaterial är klart.

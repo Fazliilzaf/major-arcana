@@ -289,3 +289,16 @@ In-app journal-säkerhet + första veckans rollout-plan:
 Personalpaket: 14 → **16 länkbara resurser**. Personal Start Section E: 13→15. Command Center: 18→20.
 
 Server.js + journal-routes orörda. Heliga flödet bevarat.
+
+---
+
+## Cycle-15 (2026-06-04T01:45Z · Claude)
+
+Personal Go-Live Control Panel live:
+- `/cco-staff-go-live-control.html` — operativ kontrollpanel (7 sektioner) för Fazli att styra första arbetsdagen. Live-status (GO/WARNING/STOP) · 4 roller · 4 arbetsblock · 7 stoppregler · 8-raders eskaleringstabell · 10 operativa snabblänkar.
+
+Personalpaket: 16 → **17 länkbara resurser**. Personal Start Section E: 15→16. Command Center: 20→21.
+
+**Inga nya utbildningsguides byggda** — denna sida är operativt kontrollverktyg, inte mer kursmaterial.
+
+Server.js + journal-routes orörda.

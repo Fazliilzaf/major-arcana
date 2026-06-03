@@ -149,3 +149,17 @@ Två nya sidor:
 - **`/journal-pilot-signoff-sheet.html`** — Printbar Sign-off där personal bekräftar 9 förståelsepunkter med namn/datum/signatur
 
 Använd Sign-off Sheet under/efter mötet — varje personal kryssar och skriver under.
+
+---
+
+## Cycle-15 tillägg (2026-06-04T01:45Z)
+
+**Fazli använder** nu `/cco-staff-go-live-control.html` som kontrollpanel under dag 1 — den visar live-status, rollfördelning, arbetsblock, stoppregler och eskaleringstabell på en sida.
+
+Personalen fortsätter använda:
+- `/cco-personal-start.html` (huvudfönster)
+- `/cco-after-meeting-start.html` (8-stegs startguide)
+- `/cco-pre-signering-check.html` (5-stegs säkerhet)
+- `/cco-journal-safety-helper.html` (6-checkpoint)
+
+Go-Live Control är **för Fazli**, inte för personalen.
