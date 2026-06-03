@@ -1,22 +1,17 @@
 {
-  "generatedAt": "2026-06-03T07:16:36.517Z",
+  "generatedAt": "2026-06-03T06:10:32.301Z",
   "base": "https://arcana.hairtpclinic.com",
-  "primaryStartUrl": "/cco-demo.html",
   "pageReports": [
     {
-      "htmlPath": "/private/tmp/arcana-deploy/public/cco-demo.html",
+      "htmlPath": "/private/tmp/arcana-deploy/public/cco-personal-start.html",
       "results": [
         {
-          "href": "/cco-personal-start.html",
+          "href": "/cco-demo.html",
           "status": 200,
-          "ok": true,
-          "issues": []
-        },
-        {
-          "href": "/kalender.html",
-          "status": 200,
-          "ok": true,
-          "issues": []
+          "ok": false,
+          "issues": [
+            "/cco-demo\\.html/i"
+          ]
         },
         {
           "href": "/kunder.html",
@@ -25,253 +20,157 @@
           "issues": []
         },
         {
-          "href": "/konversationer.html",
+          "href": "/journal-build-demo.html",
           "status": 200,
           "ok": true,
           "issues": []
         },
         {
-          "href": "/analytics.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "/\\/analytics\\.html/i",
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/m-kalender.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/m-kunder.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/m-konversationer.html",
+          "href": "/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator",
           "status": 200,
           "ok": true,
           "issues": []
         },
         {
-          "href": "/smart-anteckning.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/ai-coach.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/installningar.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/print.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/pwa-install.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/watch-app.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "/\\/watch/i",
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/no-show.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/cohorts.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/multi-tenant.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/automation.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "/\\/automation/i",
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/later-sent.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/macros.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/showcase.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "/\\/showcase/i",
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/audit-log.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
-        },
-        {
-          "href": "/kalender.html#case-drawer",
+          "href": "/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator",
           "status": 200,
           "ok": true,
           "issues": []
         },
         {
-          "href": "/ai-triage.html",
+          "href": "/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator",
           "status": 200,
           "ok": true,
           "issues": []
         },
         {
-          "href": "/email-to-booking.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
+          "href": "/journal-pilot-guide.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
         },
         {
-          "href": "/unified-inbox.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
+          "href": "/cco-presenter-mode.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
         },
         {
-          "href": "/onboarding-tour.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
+          "href": "/cco-pre-signering-check.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
         },
         {
-          "href": "/booking-wizard.html",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "404",
-            "expected 200, got 404"
-          ]
+          "href": "/cco-review-material-warning.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
         },
         {
-          "href": "/webcal://localhost:3101/api/v1/cco-calendar.ics",
-          "status": 404,
-          "ok": false,
-          "issues": [
-            "/webcal:\\/\\/localhost/i",
-            "/localhost/i",
-            "404",
-            "expected 200, got 404"
-          ]
-        }
-      ],
-      "failed": 31
-    },
-    {
-      "htmlPath": "/private/tmp/arcana-deploy/public/cco-personal-start.html",
-      "results": [
+          "href": "/cco-staff-training-mode.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
         {
-          "href": "/cco-demo.html",
+          "href": "/cco-journalpilot-faq.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-go-live-control.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-ops-workbench.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-4june-command-center.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-after-meeting-start.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-journal-safety-helper.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-journalpilot-go-live.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-morning-checklist.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-day1-checklist.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-pilot-print-pack.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-pilot-signoff-sheet.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-training-completion.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-review.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-reports.html",
           "status": 200,
           "ok": true,
           "issues": []
         }
       ],
-      "failed": 0
+      "failed": 2
     },
     {
       "htmlPath": "/private/tmp/arcana-deploy/public/cco-staff-go-live-control.html",
       "results": [
         {
-          "href": "/cco-demo.html",
+          "href": "/cco-personal-start.html",
           "status": 200,
           "ok": true,
           "issues": []
@@ -349,7 +248,7 @@
       "htmlPath": "/private/tmp/arcana-deploy/public/cco-staff-training-completion.html",
       "results": [
         {
-          "href": "/cco-demo.html",
+          "href": "/cco-personal-start.html",
           "status": 200,
           "ok": true,
           "issues": []
@@ -358,10 +257,53 @@
       "failed": 0
     },
     {
-      "htmlPath": "/private/tmp/arcana-deploy/public/cco-ops-workbench.html",
-      "results": [],
+      "htmlPath": "/private/tmp/arcana-deploy/public/personal-demo.html",
+      "results": [
+        {
+          "href": "/kunder.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html#journal",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html#timeline",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html#formular",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-review.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-reports.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        }
+      ],
       "failed": 0
     }
   ],
-  "failed": 31
+  "failed": 2
 }

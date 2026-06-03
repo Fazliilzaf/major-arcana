@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T07:16:41.321Z",
+  "generatedAt": "2026-06-03T06:10:37.242Z",
   "routeResults": [
     {
       "name": "kunder.html",
@@ -14,19 +14,7 @@
       }
     },
     {
-      "name": "welcome-cco",
-      "path": "/cco-demo.html",
-      "expected": [
-        200
-      ],
-      "status": 200,
-      "result": "PASS",
-      "json": {
-        "_raw": "<!doctype html>\n<html lang=\"sv\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <meta name=\"robots\" content=\"noindex\" />\n    <titl"
-      }
-    },
-    {
-      "name": "legacy-personal-start",
+      "name": "personal-start",
       "path": "/cco-personal-start.html",
       "expected": [
         200
@@ -34,19 +22,19 @@
       "status": 200,
       "result": "PASS",
       "json": {
-        "_raw": "<!doctype html>\n<html lang=\"sv\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <meta http-equiv=\"refresh\" content=\"0;url=/cco-dem"
+        "_raw": "<!doctype html>\n<html lang=\"sv\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>CCO · Personalstart · Journalpilot 4 juni 2"
       }
     },
     {
-      "name": "ops-workbench",
-      "path": "/cco-ops-workbench.html",
+      "name": "personal-demo-alt",
+      "path": "/personal-demo.html",
       "expected": [
         200
       ],
       "status": 200,
       "result": "PASS",
       "json": {
-        "_raw": "<!doctype html>\n<html lang=\"sv\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>CCO Ops Workbench</title>\n    <link rel=\"st"
+        "_raw": "<!doctype html>\n<html lang=\"sv\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n    <title>CCO · Personal-start (kontrollerad pilot)</t"
       }
     },
     {
@@ -58,13 +46,10 @@
       "status": 200,
       "result": "PASS",
       "json": {
-        "generatedAt": "2026-06-03T05:51:44.591Z",
+        "generatedAt": "2026-06-03T05:10:28.059Z",
         "version": "1.1.0",
         "prodBaseUrl": "https://arcana.hairtpclinic.com",
-        "primaryStartUrl": "/cco-demo.html",
-        "welcomePage": "/cco-demo.html",
-        "personalStartPage": "/cco-demo.html",
-        "legacyPersonalStartPage": "/cco-personal-start.html",
+        "personalStartPage": "/cco-personal-start.html",
         "demoStatus": {
           "journaling": "ready_for_controlled_pilot",
           "photoReview": "pending",
@@ -115,12 +100,8 @@
         ],
         "verifiedRoutes": [
           {
-            "path": "/cco-demo.html",
-            "purpose": "Välkommen till CCO (presentation start)"
-          },
-          {
             "path": "/cco-personal-start.html",
-            "purpose": "Legacy redirect → Välkommen"
+            "purpose": "Personal start"
           },
           {
             "path": "/kunder.html",
@@ -182,19 +163,19 @@
           "Ingen extern AI på journaltext"
         ],
         "presentationOrder": [
-          "Öppna /cco-demo.html (Välkommen till CCO)",
-          "Säg: Det här är CCO — vårt nya kundkort och arbetsnav",
-          "Visa arbetsnav: Kunder, Journal, Formulär, Historik, Bilder, Avtal, Kommunikation, Ekonomi",
-          "Säg: Idag börjar vi i Kunder — klicka Kunder",
-          "Öppna pilotkund (A/B/C)",
-          "Visa kundkort",
+          "Öppna /cco-personal-start.html",
+          "Klicka Journalföring → Öppna kundkort",
+          "Öppna verifierad pilotkund (A/B/C)",
+          "Visa identitetskontroll",
           "Visa journal-feed",
           "Skapa journal på pilotkund A",
-          "Signera/lås — visa att låst post inte ändras",
-          "Skapa rättelse (pilot C)",
-          "Visa timeline",
-          "Visa Behöver granskning",
-          "Avsluta med dag-1-regler"
+          "Signera/lås",
+          "Visa rättelse på pilotkund C",
+          "Visa timeline-flik",
+          "Visa historik-status (import-badges)",
+          "Visa Behöver granskning-regeln",
+          "Förklara pausade områden (mail, bilder, CF internt)",
+          "Avsluta: kontrollerad journalföringspilot startar nu"
         ],
         "deadline": "2026-06-04",
         "routePreflight": [
@@ -205,14 +186,14 @@
             "result": "PASS"
           },
           {
-            "name": "welcome-cco",
-            "path": "/cco-demo.html",
+            "name": "personal-start",
+            "path": "/cco-personal-start.html",
             "status": 200,
             "result": "PASS"
           },
           {
-            "name": "legacy-personal-start",
-            "path": "/cco-personal-start.html",
+            "name": "personal-demo-alt",
+            "path": "/personal-demo.html",
             "status": 200,
             "result": "PASS"
           },
@@ -456,24 +437,24 @@
       "json": {
         "customerId": "cco-pilot-20260602-a",
         "tenantId": "hairtpclinic",
-        "evaluatedAt": "2026-06-03T07:16:36.916Z",
+        "evaluatedAt": "2026-06-03T06:10:32.625Z",
         "counters": {
-          "total": 257,
+          "total": 243,
           "byCategory": {
-            "journal": 257
+            "journal": 243
           },
           "bySource": {
-            "cco_journal": 257,
+            "cco_journal": 243,
             "patient_asset": 0
           },
-          "signed": 256,
-          "corrections": 128,
+          "signed": 242,
+          "corrections": 121,
           "hasPdf": 0,
           "needsAttention": 0,
           "needsAttentionByStatus": {}
         },
         "sectionCounts": {
-          "journals": 257,
+          "journals": 243,
           "photos": 0,
           "documents": 0,
           "consents": 0,
@@ -483,300 +464,6 @@
         },
         "photoGroups": {},
         "items": [
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:50:17.110Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "✏",
-            "author": "personal-demo-readiness",
-            "entityId": "3abfa1ea-b117-4a33-84e7-5a2666abf97d",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": true,
-            "correctionOfEntryId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:50:16.879Z",
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=3abfa1ea-b117-4a33-84e7-5a2666abf97d",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:50:16.602Z",
-            "title": "Readiness E2E 0604",
-            "icon": "🔒",
-            "author": "personal-demo-readiness",
-            "entityId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": false,
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:47:09.992Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "✏",
-            "author": "personal-demo-readiness",
-            "entityId": "3269d690-36f7-44aa-a7de-7d402b770d6b",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": true,
-            "correctionOfEntryId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:47:09.742Z",
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=3269d690-36f7-44aa-a7de-7d402b770d6b",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:47:09.455Z",
-            "title": "Readiness E2E 0604",
-            "icon": "🔒",
-            "author": "personal-demo-readiness",
-            "entityId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": false,
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=4e715fff-b429-45c0-8b58-fecc6e845513",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:47:02.948Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "✏",
-            "author": "personal-demo-readiness",
-            "entityId": "288fbd3c-1dc6-4bf6-a0fe-6db2a7f4aa14",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": true,
-            "correctionOfEntryId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:47:02.741Z",
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=288fbd3c-1dc6-4bf6-a0fe-6db2a7f4aa14",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:47:02.092Z",
-            "title": "Readiness E2E 0604",
-            "icon": "🔒",
-            "author": "personal-demo-readiness",
-            "entityId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": false,
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=0f685663-9037-4e13-b56b-865586aba9a2",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:42:01.309Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "✏",
-            "author": "personal-demo-readiness",
-            "entityId": "a09d72ee-0cb0-48bf-8d77-a8f2c72fc320",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": true,
-            "correctionOfEntryId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:42:01.098Z",
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=a09d72ee-0cb0-48bf-8d77-a8f2c72fc320",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:42:00.476Z",
-            "title": "Readiness E2E 0604",
-            "icon": "🔒",
-            "author": "personal-demo-readiness",
-            "entityId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": false,
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:12:56.247Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "✏",
-            "author": "personal-demo-readiness",
-            "entityId": "abdffb92-a8ce-465f-ae10-9f2518fdef50",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": true,
-            "correctionOfEntryId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:12:56.028Z",
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=abdffb92-a8ce-465f-ae10-9f2518fdef50",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:12:55.765Z",
-            "title": "Readiness E2E 0604",
-            "icon": "🔒",
-            "author": "personal-demo-readiness",
-            "entityId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": false,
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:12:42.449Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "✏",
-            "author": "personal-demo-readiness",
-            "entityId": "deddb56c-f43b-437a-9a60-b01ea0bb89f1",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": true,
-            "correctionOfEntryId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:12:42.223Z",
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=deddb56c-f43b-437a-9a60-b01ea0bb89f1",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:12:41.951Z",
-            "title": "Readiness E2E 0604",
-            "icon": "🔒",
-            "author": "personal-demo-readiness",
-            "entityId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": false,
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=885548b5-551c-4f7d-85aa-137caa03b47b",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:10:34.699Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "✏",
-            "author": "personal-demo-readiness",
-            "entityId": "c18b2e5c-1f24-400d-b450-9abdda884b3e",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": true,
-            "correctionOfEntryId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:10:34.488Z",
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=c18b2e5c-1f24-400d-b450-9abdda884b3e",
-            "ccoSourceOnly": true
-          },
-          {
-            "source": "cco_journal",
-            "category": "journal",
-            "subcategory": "consultation_plan",
-            "ts": "2026-06-03T06:10:33.874Z",
-            "title": "Readiness E2E 0604",
-            "icon": "🔒",
-            "author": "personal-demo-readiness",
-            "entityId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "isSigned": true,
-            "isCorrection": false,
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "hasPdf": false,
-            "link": "/smart-anteckning.html?entryId=a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "ccoSourceOnly": true
-          },
           {
             "source": "cco_journal",
             "category": "journal",
@@ -5883,300 +5570,6 @@
         ],
         "sections": {
           "journals": [
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:50:17.110Z",
-              "title": "Readiness E2E 0604 — rättelse",
-              "icon": "✏",
-              "author": "personal-demo-readiness",
-              "entityId": "3abfa1ea-b117-4a33-84e7-5a2666abf97d",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": true,
-              "correctionOfEntryId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-              "correctionReason": null,
-              "correctionCreatedBy": "personal-demo-readiness",
-              "correctionCreatedAt": "2026-06-03T06:50:16.879Z",
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=3abfa1ea-b117-4a33-84e7-5a2666abf97d",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:50:16.602Z",
-              "title": "Readiness E2E 0604",
-              "icon": "🔒",
-              "author": "personal-demo-readiness",
-              "entityId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": false,
-              "correctionOfEntryId": null,
-              "correctionReason": null,
-              "correctionCreatedBy": null,
-              "correctionCreatedAt": null,
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:47:09.992Z",
-              "title": "Readiness E2E 0604 — rättelse",
-              "icon": "✏",
-              "author": "personal-demo-readiness",
-              "entityId": "3269d690-36f7-44aa-a7de-7d402b770d6b",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": true,
-              "correctionOfEntryId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-              "correctionReason": null,
-              "correctionCreatedBy": "personal-demo-readiness",
-              "correctionCreatedAt": "2026-06-03T06:47:09.742Z",
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=3269d690-36f7-44aa-a7de-7d402b770d6b",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:47:09.455Z",
-              "title": "Readiness E2E 0604",
-              "icon": "🔒",
-              "author": "personal-demo-readiness",
-              "entityId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": false,
-              "correctionOfEntryId": null,
-              "correctionReason": null,
-              "correctionCreatedBy": null,
-              "correctionCreatedAt": null,
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=4e715fff-b429-45c0-8b58-fecc6e845513",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:47:02.948Z",
-              "title": "Readiness E2E 0604 — rättelse",
-              "icon": "✏",
-              "author": "personal-demo-readiness",
-              "entityId": "288fbd3c-1dc6-4bf6-a0fe-6db2a7f4aa14",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": true,
-              "correctionOfEntryId": "0f685663-9037-4e13-b56b-865586aba9a2",
-              "correctionReason": null,
-              "correctionCreatedBy": "personal-demo-readiness",
-              "correctionCreatedAt": "2026-06-03T06:47:02.741Z",
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=288fbd3c-1dc6-4bf6-a0fe-6db2a7f4aa14",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:47:02.092Z",
-              "title": "Readiness E2E 0604",
-              "icon": "🔒",
-              "author": "personal-demo-readiness",
-              "entityId": "0f685663-9037-4e13-b56b-865586aba9a2",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": false,
-              "correctionOfEntryId": null,
-              "correctionReason": null,
-              "correctionCreatedBy": null,
-              "correctionCreatedAt": null,
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=0f685663-9037-4e13-b56b-865586aba9a2",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:42:01.309Z",
-              "title": "Readiness E2E 0604 — rättelse",
-              "icon": "✏",
-              "author": "personal-demo-readiness",
-              "entityId": "a09d72ee-0cb0-48bf-8d77-a8f2c72fc320",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": true,
-              "correctionOfEntryId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-              "correctionReason": null,
-              "correctionCreatedBy": "personal-demo-readiness",
-              "correctionCreatedAt": "2026-06-03T06:42:01.098Z",
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=a09d72ee-0cb0-48bf-8d77-a8f2c72fc320",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:42:00.476Z",
-              "title": "Readiness E2E 0604",
-              "icon": "🔒",
-              "author": "personal-demo-readiness",
-              "entityId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": false,
-              "correctionOfEntryId": null,
-              "correctionReason": null,
-              "correctionCreatedBy": null,
-              "correctionCreatedAt": null,
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:12:56.247Z",
-              "title": "Readiness E2E 0604 — rättelse",
-              "icon": "✏",
-              "author": "personal-demo-readiness",
-              "entityId": "abdffb92-a8ce-465f-ae10-9f2518fdef50",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": true,
-              "correctionOfEntryId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-              "correctionReason": null,
-              "correctionCreatedBy": "personal-demo-readiness",
-              "correctionCreatedAt": "2026-06-03T06:12:56.028Z",
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=abdffb92-a8ce-465f-ae10-9f2518fdef50",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:12:55.765Z",
-              "title": "Readiness E2E 0604",
-              "icon": "🔒",
-              "author": "personal-demo-readiness",
-              "entityId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": false,
-              "correctionOfEntryId": null,
-              "correctionReason": null,
-              "correctionCreatedBy": null,
-              "correctionCreatedAt": null,
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:12:42.449Z",
-              "title": "Readiness E2E 0604 — rättelse",
-              "icon": "✏",
-              "author": "personal-demo-readiness",
-              "entityId": "deddb56c-f43b-437a-9a60-b01ea0bb89f1",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": true,
-              "correctionOfEntryId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-              "correctionReason": null,
-              "correctionCreatedBy": "personal-demo-readiness",
-              "correctionCreatedAt": "2026-06-03T06:12:42.223Z",
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=deddb56c-f43b-437a-9a60-b01ea0bb89f1",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:12:41.951Z",
-              "title": "Readiness E2E 0604",
-              "icon": "🔒",
-              "author": "personal-demo-readiness",
-              "entityId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": false,
-              "correctionOfEntryId": null,
-              "correctionReason": null,
-              "correctionCreatedBy": null,
-              "correctionCreatedAt": null,
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=885548b5-551c-4f7d-85aa-137caa03b47b",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:10:34.699Z",
-              "title": "Readiness E2E 0604 — rättelse",
-              "icon": "✏",
-              "author": "personal-demo-readiness",
-              "entityId": "c18b2e5c-1f24-400d-b450-9abdda884b3e",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": true,
-              "correctionOfEntryId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-              "correctionReason": null,
-              "correctionCreatedBy": "personal-demo-readiness",
-              "correctionCreatedAt": "2026-06-03T06:10:34.488Z",
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=c18b2e5c-1f24-400d-b450-9abdda884b3e",
-              "ccoSourceOnly": true
-            },
-            {
-              "source": "cco_journal",
-              "category": "journal",
-              "subcategory": "consultation_plan",
-              "ts": "2026-06-03T06:10:33.874Z",
-              "title": "Readiness E2E 0604",
-              "icon": "🔒",
-              "author": "personal-demo-readiness",
-              "entityId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-              "tenantId": "hairtpclinic",
-              "patientId": "cco-pilot-20260602-a",
-              "isSigned": true,
-              "isCorrection": false,
-              "correctionOfEntryId": null,
-              "correctionReason": null,
-              "correctionCreatedBy": null,
-              "correctionCreatedAt": null,
-              "hasPdf": false,
-              "link": "/smart-anteckning.html?entryId=a1d63297-c524-46b4-b3bf-b57814fda9b9",
-              "ccoSourceOnly": true
-            },
             {
               "source": "cco_journal",
               "category": "journal",
@@ -11303,149 +10696,30 @@
       "json": {
         "customerId": "cco-pilot-20260602-a",
         "tenantId": "hairtpclinic",
-        "evaluatedAt": "2026-06-03T07:16:36.980Z",
+        "evaluatedAt": "2026-06-03T06:10:32.691Z",
         "counters": {
-          "totalEvents": 770,
+          "totalEvents": 728,
           "byType": {
-            "correction_signed": 128,
-            "treatment_plan_created": 257,
-            "correction_created": 128,
-            "journal_signed": 128,
-            "journal_draft_created": 129
+            "correction_signed": 121,
+            "treatment_plan_created": 243,
+            "correction_created": 121,
+            "journal_signed": 121,
+            "journal_draft_created": 122
           },
           "byTone": {
-            "ok": 512,
+            "ok": 484,
             "warn": 0,
             "blocker": 0,
-            "info": 258
+            "info": 244
           },
-          "journalEntries": 257,
-          "signedEntries": 256,
-          "corrections": 128,
+          "journalEntries": 243,
+          "signedEntries": 242,
+          "corrections": 121,
           "assets": 0,
           "assetsByStatus": {},
-          "threads": 128
+          "threads": 121
         },
         "threads": {
-          "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46": {
-            "rootEntryId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "corrections": [
-              {
-                "correctionEntryId": "3abfa1ea-b117-4a33-84e7-5a2666abf97d",
-                "correctionReason": null,
-                "correctionCreatedBy": "personal-demo-readiness",
-                "correctionCreatedAt": "2026-06-03T06:50:16.879Z",
-                "signedAt": "2026-06-03T06:50:17.110Z",
-                "locked": true,
-                "hasPdf": false
-              }
-            ],
-            "rootTitle": "Readiness E2E 0604",
-            "rootSignedAt": "2026-06-03T06:50:16.602Z",
-            "rootLocked": true
-          },
-          "4e715fff-b429-45c0-8b58-fecc6e845513": {
-            "rootEntryId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "corrections": [
-              {
-                "correctionEntryId": "3269d690-36f7-44aa-a7de-7d402b770d6b",
-                "correctionReason": null,
-                "correctionCreatedBy": "personal-demo-readiness",
-                "correctionCreatedAt": "2026-06-03T06:47:09.742Z",
-                "signedAt": "2026-06-03T06:47:09.992Z",
-                "locked": true,
-                "hasPdf": false
-              }
-            ],
-            "rootTitle": "Readiness E2E 0604",
-            "rootSignedAt": "2026-06-03T06:47:09.455Z",
-            "rootLocked": true
-          },
-          "0f685663-9037-4e13-b56b-865586aba9a2": {
-            "rootEntryId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "corrections": [
-              {
-                "correctionEntryId": "288fbd3c-1dc6-4bf6-a0fe-6db2a7f4aa14",
-                "correctionReason": null,
-                "correctionCreatedBy": "personal-demo-readiness",
-                "correctionCreatedAt": "2026-06-03T06:47:02.741Z",
-                "signedAt": "2026-06-03T06:47:02.948Z",
-                "locked": true,
-                "hasPdf": false
-              }
-            ],
-            "rootTitle": "Readiness E2E 0604",
-            "rootSignedAt": "2026-06-03T06:47:02.092Z",
-            "rootLocked": true
-          },
-          "ee0e1ed3-8c26-43be-ac3f-05402dc4208e": {
-            "rootEntryId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "corrections": [
-              {
-                "correctionEntryId": "a09d72ee-0cb0-48bf-8d77-a8f2c72fc320",
-                "correctionReason": null,
-                "correctionCreatedBy": "personal-demo-readiness",
-                "correctionCreatedAt": "2026-06-03T06:42:01.098Z",
-                "signedAt": "2026-06-03T06:42:01.309Z",
-                "locked": true,
-                "hasPdf": false
-              }
-            ],
-            "rootTitle": "Readiness E2E 0604",
-            "rootSignedAt": "2026-06-03T06:42:00.476Z",
-            "rootLocked": true
-          },
-          "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf": {
-            "rootEntryId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "corrections": [
-              {
-                "correctionEntryId": "abdffb92-a8ce-465f-ae10-9f2518fdef50",
-                "correctionReason": null,
-                "correctionCreatedBy": "personal-demo-readiness",
-                "correctionCreatedAt": "2026-06-03T06:12:56.028Z",
-                "signedAt": "2026-06-03T06:12:56.247Z",
-                "locked": true,
-                "hasPdf": false
-              }
-            ],
-            "rootTitle": "Readiness E2E 0604",
-            "rootSignedAt": "2026-06-03T06:12:55.765Z",
-            "rootLocked": true
-          },
-          "885548b5-551c-4f7d-85aa-137caa03b47b": {
-            "rootEntryId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "corrections": [
-              {
-                "correctionEntryId": "deddb56c-f43b-437a-9a60-b01ea0bb89f1",
-                "correctionReason": null,
-                "correctionCreatedBy": "personal-demo-readiness",
-                "correctionCreatedAt": "2026-06-03T06:12:42.223Z",
-                "signedAt": "2026-06-03T06:12:42.449Z",
-                "locked": true,
-                "hasPdf": false
-              }
-            ],
-            "rootTitle": "Readiness E2E 0604",
-            "rootSignedAt": "2026-06-03T06:12:41.951Z",
-            "rootLocked": true
-          },
-          "a1d63297-c524-46b4-b3bf-b57814fda9b9": {
-            "rootEntryId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "corrections": [
-              {
-                "correctionEntryId": "c18b2e5c-1f24-400d-b450-9abdda884b3e",
-                "correctionReason": null,
-                "correctionCreatedBy": "personal-demo-readiness",
-                "correctionCreatedAt": "2026-06-03T06:10:34.488Z",
-                "signedAt": "2026-06-03T06:10:34.699Z",
-                "locked": true,
-                "hasPdf": false
-              }
-            ],
-            "rootTitle": "Readiness E2E 0604",
-            "rootSignedAt": "2026-06-03T06:10:33.874Z",
-            "rootLocked": true
-          },
           "eb690bb3-4fbc-4b65-88a9-0ba55af53b22": {
             "rootEntryId": "eb690bb3-4fbc-4b65-88a9-0ba55af53b22",
             "corrections": [
@@ -13505,636 +12779,6 @@
           }
         },
         "events": [
-          {
-            "type": "correction_signed",
-            "ts": "2026-06-03T06:50:17.110Z",
-            "title": "Rättelse signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "3abfa1ea-b117-4a33-84e7-5a2666abf97d",
-            "relatedEntryId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:50:17.110Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "3abfa1ea-b117-4a33-84e7-5a2666abf97d",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "correction_created",
-            "ts": "2026-06-03T06:50:16.880Z",
-            "title": "Rättelse skapad",
-            "icon": "✏",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "3abfa1ea-b117-4a33-84e7-5a2666abf97d",
-            "relatedEntryId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604 — rättelse",
-              "isForm": false,
-              "isCorrection": true,
-              "reason": null
-            }
-          },
-          {
-            "type": "journal_signed",
-            "ts": "2026-06-03T06:50:16.602Z",
-            "title": "Journal signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:50:16.602Z",
-            "title": "Readiness E2E 0604",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "journal_draft_created",
-            "ts": "2026-06-03T06:50:16.392Z",
-            "title": "Journal skapad",
-            "icon": "📝",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604",
-              "isForm": false,
-              "isCorrection": false,
-              "reason": null
-            }
-          },
-          {
-            "type": "correction_signed",
-            "ts": "2026-06-03T06:47:09.992Z",
-            "title": "Rättelse signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "3269d690-36f7-44aa-a7de-7d402b770d6b",
-            "relatedEntryId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:47:09.992Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "3269d690-36f7-44aa-a7de-7d402b770d6b",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "correction_created",
-            "ts": "2026-06-03T06:47:09.744Z",
-            "title": "Rättelse skapad",
-            "icon": "✏",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "3269d690-36f7-44aa-a7de-7d402b770d6b",
-            "relatedEntryId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604 — rättelse",
-              "isForm": false,
-              "isCorrection": true,
-              "reason": null
-            }
-          },
-          {
-            "type": "journal_signed",
-            "ts": "2026-06-03T06:47:09.455Z",
-            "title": "Journal signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:47:09.455Z",
-            "title": "Readiness E2E 0604",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "journal_draft_created",
-            "ts": "2026-06-03T06:47:09.232Z",
-            "title": "Journal skapad",
-            "icon": "📝",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604",
-              "isForm": false,
-              "isCorrection": false,
-              "reason": null
-            }
-          },
-          {
-            "type": "correction_signed",
-            "ts": "2026-06-03T06:47:02.948Z",
-            "title": "Rättelse signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "288fbd3c-1dc6-4bf6-a0fe-6db2a7f4aa14",
-            "relatedEntryId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:47:02.948Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "288fbd3c-1dc6-4bf6-a0fe-6db2a7f4aa14",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "correction_created",
-            "ts": "2026-06-03T06:47:02.743Z",
-            "title": "Rättelse skapad",
-            "icon": "✏",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "288fbd3c-1dc6-4bf6-a0fe-6db2a7f4aa14",
-            "relatedEntryId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604 — rättelse",
-              "isForm": false,
-              "isCorrection": true,
-              "reason": null
-            }
-          },
-          {
-            "type": "journal_signed",
-            "ts": "2026-06-03T06:47:02.092Z",
-            "title": "Journal signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:47:02.092Z",
-            "title": "Readiness E2E 0604",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "journal_draft_created",
-            "ts": "2026-06-03T06:47:01.872Z",
-            "title": "Journal skapad",
-            "icon": "📝",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604",
-              "isForm": false,
-              "isCorrection": false,
-              "reason": null
-            }
-          },
-          {
-            "type": "correction_signed",
-            "ts": "2026-06-03T06:42:01.309Z",
-            "title": "Rättelse signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "a09d72ee-0cb0-48bf-8d77-a8f2c72fc320",
-            "relatedEntryId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:42:01.309Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "a09d72ee-0cb0-48bf-8d77-a8f2c72fc320",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "correction_created",
-            "ts": "2026-06-03T06:42:01.099Z",
-            "title": "Rättelse skapad",
-            "icon": "✏",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "a09d72ee-0cb0-48bf-8d77-a8f2c72fc320",
-            "relatedEntryId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604 — rättelse",
-              "isForm": false,
-              "isCorrection": true,
-              "reason": null
-            }
-          },
-          {
-            "type": "journal_signed",
-            "ts": "2026-06-03T06:42:00.476Z",
-            "title": "Journal signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:42:00.476Z",
-            "title": "Readiness E2E 0604",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "journal_draft_created",
-            "ts": "2026-06-03T06:42:00.242Z",
-            "title": "Journal skapad",
-            "icon": "📝",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604",
-              "isForm": false,
-              "isCorrection": false,
-              "reason": null
-            }
-          },
-          {
-            "type": "correction_signed",
-            "ts": "2026-06-03T06:12:56.247Z",
-            "title": "Rättelse signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "abdffb92-a8ce-465f-ae10-9f2518fdef50",
-            "relatedEntryId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:12:56.247Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "abdffb92-a8ce-465f-ae10-9f2518fdef50",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "correction_created",
-            "ts": "2026-06-03T06:12:56.029Z",
-            "title": "Rättelse skapad",
-            "icon": "✏",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "abdffb92-a8ce-465f-ae10-9f2518fdef50",
-            "relatedEntryId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604 — rättelse",
-              "isForm": false,
-              "isCorrection": true,
-              "reason": null
-            }
-          },
-          {
-            "type": "journal_signed",
-            "ts": "2026-06-03T06:12:55.765Z",
-            "title": "Journal signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:12:55.765Z",
-            "title": "Readiness E2E 0604",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "journal_draft_created",
-            "ts": "2026-06-03T06:12:55.558Z",
-            "title": "Journal skapad",
-            "icon": "📝",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604",
-              "isForm": false,
-              "isCorrection": false,
-              "reason": null
-            }
-          },
-          {
-            "type": "correction_signed",
-            "ts": "2026-06-03T06:12:42.449Z",
-            "title": "Rättelse signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "deddb56c-f43b-437a-9a60-b01ea0bb89f1",
-            "relatedEntryId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:12:42.449Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "deddb56c-f43b-437a-9a60-b01ea0bb89f1",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "correction_created",
-            "ts": "2026-06-03T06:12:42.224Z",
-            "title": "Rättelse skapad",
-            "icon": "✏",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "deddb56c-f43b-437a-9a60-b01ea0bb89f1",
-            "relatedEntryId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604 — rättelse",
-              "isForm": false,
-              "isCorrection": true,
-              "reason": null
-            }
-          },
-          {
-            "type": "journal_signed",
-            "ts": "2026-06-03T06:12:41.951Z",
-            "title": "Journal signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:12:41.951Z",
-            "title": "Readiness E2E 0604",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "journal_draft_created",
-            "ts": "2026-06-03T06:12:41.746Z",
-            "title": "Journal skapad",
-            "icon": "📝",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604",
-              "isForm": false,
-              "isCorrection": false,
-              "reason": null
-            }
-          },
-          {
-            "type": "correction_signed",
-            "ts": "2026-06-03T06:10:34.699Z",
-            "title": "Rättelse signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "c18b2e5c-1f24-400d-b450-9abdda884b3e",
-            "relatedEntryId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:10:34.699Z",
-            "title": "Readiness E2E 0604 — rättelse",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "c18b2e5c-1f24-400d-b450-9abdda884b3e",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "correction_created",
-            "ts": "2026-06-03T06:10:34.489Z",
-            "title": "Rättelse skapad",
-            "icon": "✏",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "c18b2e5c-1f24-400d-b450-9abdda884b3e",
-            "relatedEntryId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604 — rättelse",
-              "isForm": false,
-              "isCorrection": true,
-              "reason": null
-            }
-          },
-          {
-            "type": "journal_signed",
-            "ts": "2026-06-03T06:10:33.874Z",
-            "title": "Journal signerad",
-            "icon": "🔒",
-            "tone": "ok",
-            "actor": "personal-demo-readiness",
-            "entityId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "isForm": false,
-              "pdfArchived": false,
-              "tamperHash": null
-            }
-          },
-          {
-            "type": "treatment_plan_created",
-            "ts": "2026-06-03T06:10:33.874Z",
-            "title": "Readiness E2E 0604",
-            "icon": "📋",
-            "tone": "ok",
-            "entityId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "detail": {
-              "journalType": "consultation_plan",
-              "ccoSourceOnly": true
-            }
-          },
-          {
-            "type": "journal_draft_created",
-            "ts": "2026-06-03T06:10:33.652Z",
-            "title": "Journal skapad",
-            "icon": "📝",
-            "tone": "info",
-            "actor": "personal-demo-readiness",
-            "entityId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "relatedEntryId": null,
-            "detail": {
-              "journalType": "consultation_plan",
-              "title": "Readiness E2E 0604",
-              "isForm": false,
-              "isCorrection": false,
-              "reason": null
-            }
-          },
           {
             "type": "correction_signed",
             "ts": "2026-06-03T06:08:54.422Z",
@@ -19252,7 +17896,7 @@
             "type": "journal_draft_created",
             "ts": "2026-06-02T21:45:03.031Z",
             "title": "Journal skapad",
-            "icon": "��",
+            "icon": "📝",
             "tone": "info",
             "actor": "personal-demo-readiness",
             "entityId": "d2a8a758-831b-493d-8089-96f558aa27cc",
@@ -21002,6 +19646,636 @@
               "journalType": "consultation_plan",
               "ccoSourceOnly": true
             }
+          },
+          {
+            "type": "correction_created",
+            "ts": "2026-06-02T20:43:15.666Z",
+            "title": "Rättelse skapad",
+            "icon": "✏",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "5621955c-8eb1-4941-8267-adfeceda566d",
+            "relatedEntryId": "ced7c6b9-d6a4-4b13-b135-bd0131c362c0",
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604 — rättelse",
+              "isForm": false,
+              "isCorrection": true,
+              "reason": null
+            }
+          },
+          {
+            "type": "journal_signed",
+            "ts": "2026-06-02T20:43:15.382Z",
+            "title": "Journal signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "ced7c6b9-d6a4-4b13-b135-bd0131c362c0",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:43:15.382Z",
+            "title": "Readiness E2E 0604",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "ced7c6b9-d6a4-4b13-b135-bd0131c362c0",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "journal_draft_created",
+            "ts": "2026-06-02T20:43:15.151Z",
+            "title": "Journal skapad",
+            "icon": "📝",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "ced7c6b9-d6a4-4b13-b135-bd0131c362c0",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604",
+              "isForm": false,
+              "isCorrection": false,
+              "reason": null
+            }
+          },
+          {
+            "type": "correction_signed",
+            "ts": "2026-06-02T20:42:49.517Z",
+            "title": "Rättelse signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "70de4973-2f8f-4252-a5d0-efd3a7b152c9",
+            "relatedEntryId": "8f1228cd-4785-4c68-b0a0-f1bda110dc5e",
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:42:49.517Z",
+            "title": "Readiness E2E 0604 — rättelse",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "70de4973-2f8f-4252-a5d0-efd3a7b152c9",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "correction_created",
+            "ts": "2026-06-02T20:42:49.306Z",
+            "title": "Rättelse skapad",
+            "icon": "✏",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "70de4973-2f8f-4252-a5d0-efd3a7b152c9",
+            "relatedEntryId": "8f1228cd-4785-4c68-b0a0-f1bda110dc5e",
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604 — rättelse",
+              "isForm": false,
+              "isCorrection": true,
+              "reason": null
+            }
+          },
+          {
+            "type": "journal_signed",
+            "ts": "2026-06-02T20:42:49.041Z",
+            "title": "Journal signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "8f1228cd-4785-4c68-b0a0-f1bda110dc5e",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:42:49.041Z",
+            "title": "Readiness E2E 0604",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "8f1228cd-4785-4c68-b0a0-f1bda110dc5e",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "journal_draft_created",
+            "ts": "2026-06-02T20:42:48.831Z",
+            "title": "Journal skapad",
+            "icon": "📝",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "8f1228cd-4785-4c68-b0a0-f1bda110dc5e",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604",
+              "isForm": false,
+              "isCorrection": false,
+              "reason": null
+            }
+          },
+          {
+            "type": "correction_signed",
+            "ts": "2026-06-02T20:36:43.964Z",
+            "title": "Rättelse signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "1f0ab76e-9bbb-491a-abc1-5b8eacb0d653",
+            "relatedEntryId": "32eb820d-0031-49b6-9728-8681612684b4",
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:36:43.964Z",
+            "title": "Readiness E2E 0604 — rättelse",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "1f0ab76e-9bbb-491a-abc1-5b8eacb0d653",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "correction_created",
+            "ts": "2026-06-02T20:36:43.762Z",
+            "title": "Rättelse skapad",
+            "icon": "✏",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "1f0ab76e-9bbb-491a-abc1-5b8eacb0d653",
+            "relatedEntryId": "32eb820d-0031-49b6-9728-8681612684b4",
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604 — rättelse",
+              "isForm": false,
+              "isCorrection": true,
+              "reason": null
+            }
+          },
+          {
+            "type": "journal_signed",
+            "ts": "2026-06-02T20:36:43.357Z",
+            "title": "Journal signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "32eb820d-0031-49b6-9728-8681612684b4",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:36:43.357Z",
+            "title": "Readiness E2E 0604",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "32eb820d-0031-49b6-9728-8681612684b4",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "journal_draft_created",
+            "ts": "2026-06-02T20:36:43.145Z",
+            "title": "Journal skapad",
+            "icon": "📝",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "32eb820d-0031-49b6-9728-8681612684b4",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604",
+              "isForm": false,
+              "isCorrection": false,
+              "reason": null
+            }
+          },
+          {
+            "type": "correction_signed",
+            "ts": "2026-06-02T20:36:11.970Z",
+            "title": "Rättelse signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "22ca2f59-3fd9-40a0-8fdb-6afedd194a82",
+            "relatedEntryId": "b75d6f16-5914-4391-8814-2853e7d8f9f7",
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:36:11.970Z",
+            "title": "Readiness E2E 0604 — rättelse",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "22ca2f59-3fd9-40a0-8fdb-6afedd194a82",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "correction_created",
+            "ts": "2026-06-02T20:36:11.758Z",
+            "title": "Rättelse skapad",
+            "icon": "✏",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "22ca2f59-3fd9-40a0-8fdb-6afedd194a82",
+            "relatedEntryId": "b75d6f16-5914-4391-8814-2853e7d8f9f7",
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604 — rättelse",
+              "isForm": false,
+              "isCorrection": true,
+              "reason": null
+            }
+          },
+          {
+            "type": "journal_signed",
+            "ts": "2026-06-02T20:36:11.487Z",
+            "title": "Journal signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "b75d6f16-5914-4391-8814-2853e7d8f9f7",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:36:11.487Z",
+            "title": "Readiness E2E 0604",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "b75d6f16-5914-4391-8814-2853e7d8f9f7",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "journal_draft_created",
+            "ts": "2026-06-02T20:36:11.281Z",
+            "title": "Journal skapad",
+            "icon": "📝",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "b75d6f16-5914-4391-8814-2853e7d8f9f7",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604",
+              "isForm": false,
+              "isCorrection": false,
+              "reason": null
+            }
+          },
+          {
+            "type": "correction_signed",
+            "ts": "2026-06-02T20:36:06.229Z",
+            "title": "Rättelse signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "0ced2a62-8db7-4f2c-96cb-cae65d6940ff",
+            "relatedEntryId": "229e12f7-1e9d-4a9a-a290-d9b5e400775e",
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:36:06.229Z",
+            "title": "Readiness E2E 0604 — rättelse",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "0ced2a62-8db7-4f2c-96cb-cae65d6940ff",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "correction_created",
+            "ts": "2026-06-02T20:36:06.026Z",
+            "title": "Rättelse skapad",
+            "icon": "✏",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "0ced2a62-8db7-4f2c-96cb-cae65d6940ff",
+            "relatedEntryId": "229e12f7-1e9d-4a9a-a290-d9b5e400775e",
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604 — rättelse",
+              "isForm": false,
+              "isCorrection": true,
+              "reason": null
+            }
+          },
+          {
+            "type": "journal_signed",
+            "ts": "2026-06-02T20:36:05.772Z",
+            "title": "Journal signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "229e12f7-1e9d-4a9a-a290-d9b5e400775e",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:36:05.772Z",
+            "title": "Readiness E2E 0604",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "229e12f7-1e9d-4a9a-a290-d9b5e400775e",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "journal_draft_created",
+            "ts": "2026-06-02T20:36:05.549Z",
+            "title": "Journal skapad",
+            "icon": "📝",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "229e12f7-1e9d-4a9a-a290-d9b5e400775e",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604",
+              "isForm": false,
+              "isCorrection": false,
+              "reason": null
+            }
+          },
+          {
+            "type": "correction_signed",
+            "ts": "2026-06-02T20:34:24.062Z",
+            "title": "Rättelse signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "aed58319-690a-4e6c-bdaa-36d7ed674c81",
+            "relatedEntryId": "94d39118-422c-4f83-a20a-3cd244271bc9",
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:34:24.062Z",
+            "title": "Readiness E2E 0604 — rättelse",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "aed58319-690a-4e6c-bdaa-36d7ed674c81",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "correction_created",
+            "ts": "2026-06-02T20:34:23.839Z",
+            "title": "Rättelse skapad",
+            "icon": "✏",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "aed58319-690a-4e6c-bdaa-36d7ed674c81",
+            "relatedEntryId": "94d39118-422c-4f83-a20a-3cd244271bc9",
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604 — rättelse",
+              "isForm": false,
+              "isCorrection": true,
+              "reason": null
+            }
+          },
+          {
+            "type": "journal_signed",
+            "ts": "2026-06-02T20:34:23.578Z",
+            "title": "Journal signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "94d39118-422c-4f83-a20a-3cd244271bc9",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:34:23.578Z",
+            "title": "Readiness E2E 0604",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "94d39118-422c-4f83-a20a-3cd244271bc9",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "journal_draft_created",
+            "ts": "2026-06-02T20:34:23.377Z",
+            "title": "Journal skapad",
+            "icon": "📝",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "94d39118-422c-4f83-a20a-3cd244271bc9",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604",
+              "isForm": false,
+              "isCorrection": false,
+              "reason": null
+            }
+          },
+          {
+            "type": "correction_signed",
+            "ts": "2026-06-02T20:32:09.092Z",
+            "title": "Rättelse signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "6eb3ba2d-ca13-471d-a34f-3f2f57e48ffd",
+            "relatedEntryId": "cd8b7858-3f93-4924-ae5c-d3d445e82c75",
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:32:09.092Z",
+            "title": "Readiness E2E 0604 — rättelse",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "6eb3ba2d-ca13-471d-a34f-3f2f57e48ffd",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "correction_created",
+            "ts": "2026-06-02T20:32:08.894Z",
+            "title": "Rättelse skapad",
+            "icon": "✏",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "6eb3ba2d-ca13-471d-a34f-3f2f57e48ffd",
+            "relatedEntryId": "cd8b7858-3f93-4924-ae5c-d3d445e82c75",
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604 — rättelse",
+              "isForm": false,
+              "isCorrection": true,
+              "reason": null
+            }
+          },
+          {
+            "type": "journal_signed",
+            "ts": "2026-06-02T20:32:08.634Z",
+            "title": "Journal signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "cd8b7858-3f93-4924-ae5c-d3d445e82c75",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:32:08.634Z",
+            "title": "Readiness E2E 0604",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "cd8b7858-3f93-4924-ae5c-d3d445e82c75",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
+          },
+          {
+            "type": "journal_draft_created",
+            "ts": "2026-06-02T20:32:08.414Z",
+            "title": "Journal skapad",
+            "icon": "📝",
+            "tone": "info",
+            "actor": "personal-demo-readiness",
+            "entityId": "cd8b7858-3f93-4924-ae5c-d3d445e82c75",
+            "relatedEntryId": null,
+            "detail": {
+              "journalType": "consultation_plan",
+              "title": "Readiness E2E 0604",
+              "isForm": false,
+              "isCorrection": false,
+              "reason": null
+            }
+          },
+          {
+            "type": "correction_signed",
+            "ts": "2026-06-02T20:30:23.272Z",
+            "title": "Rättelse signerad",
+            "icon": "🔒",
+            "tone": "ok",
+            "actor": "personal-demo-readiness",
+            "entityId": "4479eddb-5540-4b6a-aad5-6b7a2878a1dc",
+            "relatedEntryId": "942f2579-0fa1-49ce-a7be-73f96cd3bd39",
+            "detail": {
+              "journalType": "consultation_plan",
+              "isForm": false,
+              "pdfArchived": false,
+              "tamperHash": null
+            }
+          },
+          {
+            "type": "treatment_plan_created",
+            "ts": "2026-06-02T20:30:23.272Z",
+            "title": "Readiness E2E 0604 — rättelse",
+            "icon": "📋",
+            "tone": "ok",
+            "entityId": "4479eddb-5540-4b6a-aad5-6b7a2878a1dc",
+            "detail": {
+              "journalType": "consultation_plan",
+              "ccoSourceOnly": true
+            }
           }
         ],
         "ownerMandate": "no_drive_links_in_ui"
@@ -21054,7 +20328,7 @@
           }
         ],
         "fulfilled": [],
-        "evaluatedAt": "2026-06-03T07:16:37.047Z"
+        "evaluatedAt": "2026-06-03T06:10:32.761Z"
       }
     },
     {
@@ -21066,925 +20340,8 @@
       "status": 200,
       "result": "PASS",
       "json": {
-        "count": 257,
+        "count": 243,
         "entries": [
-          {
-            "entryId": "3abfa1ea-b117-4a33-84e7-5a2666abf97d",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604 — rättelse",
-            "source": "cco_journal_correction",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": "",
-              "bodyText": "Korrigerad anonym text."
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:50:17.110Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:50:16.879Z",
-            "events": [
-              {
-                "id": "003fcef5-3cce-40da-a7a7-15ed16588507",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:50:16.880Z",
-                "metadata": {}
-              },
-              {
-                "id": "ae167d3e-73ef-4f24-861e-bbe4e0505e8b",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:50:17.110Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:50:16.880Z",
-            "updatedAt": "2026-06-03T06:50:17.110Z"
-          },
-          {
-            "entryId": "c2f1abb0-ccc9-4337-bd02-4fcdadfa8c46",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604",
-            "source": "cco_journal",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": ""
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:50:16.602Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "events": [
-              {
-                "id": "4cff0d98-9b29-4399-9e5d-f6da1565c516",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:50:16.392Z",
-                "metadata": {}
-              },
-              {
-                "id": "a25ee82a-5850-428a-9ce9-b3dbd6cd22c7",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:50:16.602Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:50:16.392Z",
-            "updatedAt": "2026-06-03T06:50:16.602Z"
-          },
-          {
-            "entryId": "3269d690-36f7-44aa-a7de-7d402b770d6b",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604 — rättelse",
-            "source": "cco_journal_correction",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": "",
-              "bodyText": "Korrigerad anonym text."
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:47:09.992Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:47:09.742Z",
-            "events": [
-              {
-                "id": "155da5b7-bf2d-4c45-b0b4-2a9460515faf",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:47:09.744Z",
-                "metadata": {}
-              },
-              {
-                "id": "d7103475-c68d-41de-b99c-25eb4ca206ee",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:47:09.992Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:47:09.744Z",
-            "updatedAt": "2026-06-03T06:47:09.992Z"
-          },
-          {
-            "entryId": "4e715fff-b429-45c0-8b58-fecc6e845513",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604",
-            "source": "cco_journal",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": ""
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:47:09.455Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "events": [
-              {
-                "id": "5179a538-2709-44ba-863e-74af3b9816eb",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:47:09.231Z",
-                "metadata": {}
-              },
-              {
-                "id": "90042355-96fa-41ce-900e-262a84a07943",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:47:09.455Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:47:09.232Z",
-            "updatedAt": "2026-06-03T06:47:09.455Z"
-          },
-          {
-            "entryId": "288fbd3c-1dc6-4bf6-a0fe-6db2a7f4aa14",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604 — rättelse",
-            "source": "cco_journal_correction",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": "",
-              "bodyText": "Korrigerad anonym text."
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:47:02.948Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:47:02.741Z",
-            "events": [
-              {
-                "id": "1ae53dbc-ec30-4459-8517-313e50378949",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:47:02.743Z",
-                "metadata": {}
-              },
-              {
-                "id": "10777219-da05-4022-8e2b-86222519ca57",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:47:02.948Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:47:02.743Z",
-            "updatedAt": "2026-06-03T06:47:02.948Z"
-          },
-          {
-            "entryId": "0f685663-9037-4e13-b56b-865586aba9a2",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604",
-            "source": "cco_journal",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": ""
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:47:02.092Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "events": [
-              {
-                "id": "5633ad9d-eff1-4394-8452-7db040b034a4",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:47:01.872Z",
-                "metadata": {}
-              },
-              {
-                "id": "3259b13e-d10e-4c11-a020-8002acbac997",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:47:02.092Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:47:01.872Z",
-            "updatedAt": "2026-06-03T06:47:02.092Z"
-          },
-          {
-            "entryId": "a09d72ee-0cb0-48bf-8d77-a8f2c72fc320",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604 — rättelse",
-            "source": "cco_journal_correction",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": "",
-              "bodyText": "Korrigerad anonym text."
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:42:01.309Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:42:01.098Z",
-            "events": [
-              {
-                "id": "ab33c0b9-3017-481b-8273-d13e661f9dd5",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:42:01.099Z",
-                "metadata": {}
-              },
-              {
-                "id": "a2f76f85-0755-4873-92a6-4d68ac766b45",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:42:01.309Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:42:01.099Z",
-            "updatedAt": "2026-06-03T06:42:01.309Z"
-          },
-          {
-            "entryId": "ee0e1ed3-8c26-43be-ac3f-05402dc4208e",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604",
-            "source": "cco_journal",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": ""
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:42:00.476Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "events": [
-              {
-                "id": "d0d8b0e6-e3cb-4bd9-8866-d9aa9449e563",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:42:00.242Z",
-                "metadata": {}
-              },
-              {
-                "id": "77a0bee3-3b01-4c36-963f-6ca2b23222ef",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:42:00.476Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:42:00.242Z",
-            "updatedAt": "2026-06-03T06:42:00.476Z"
-          },
-          {
-            "entryId": "abdffb92-a8ce-465f-ae10-9f2518fdef50",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604 — rättelse",
-            "source": "cco_journal_correction",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": "",
-              "bodyText": "Korrigerad anonym text."
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:12:56.247Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:12:56.028Z",
-            "events": [
-              {
-                "id": "5bbf9147-a22b-4c8d-8e15-350c61d217b7",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:12:56.029Z",
-                "metadata": {}
-              },
-              {
-                "id": "732e1d08-fdf5-4e0a-b64a-f54a30582a03",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:12:56.247Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:12:56.029Z",
-            "updatedAt": "2026-06-03T06:12:56.247Z"
-          },
-          {
-            "entryId": "2fa404dc-af34-4d06-b7b2-7be9e7ff7fbf",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604",
-            "source": "cco_journal",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": ""
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:12:55.765Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "events": [
-              {
-                "id": "c8f0e536-f444-44d4-a979-0b8d436902a6",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:12:55.558Z",
-                "metadata": {}
-              },
-              {
-                "id": "b11bdad6-b455-4375-b94f-34afae47ed64",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:12:55.765Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:12:55.558Z",
-            "updatedAt": "2026-06-03T06:12:55.765Z"
-          },
-          {
-            "entryId": "deddb56c-f43b-437a-9a60-b01ea0bb89f1",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604 — rättelse",
-            "source": "cco_journal_correction",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": "",
-              "bodyText": "Korrigerad anonym text."
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:12:42.449Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:12:42.223Z",
-            "events": [
-              {
-                "id": "0bd96d26-3251-4592-882d-250e7841a92f",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:12:42.224Z",
-                "metadata": {}
-              },
-              {
-                "id": "c8e0f5a7-9c6b-486f-8146-ff08a8861c22",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:12:42.449Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:12:42.224Z",
-            "updatedAt": "2026-06-03T06:12:42.449Z"
-          },
-          {
-            "entryId": "885548b5-551c-4f7d-85aa-137caa03b47b",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604",
-            "source": "cco_journal",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": ""
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:12:41.951Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "events": [
-              {
-                "id": "0d8f8207-72c8-45be-b9b4-375cd6def2d3",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:12:41.746Z",
-                "metadata": {}
-              },
-              {
-                "id": "9cc035de-af42-4391-a28b-a2c99ccc1599",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:12:41.951Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:12:41.746Z",
-            "updatedAt": "2026-06-03T06:12:41.951Z"
-          },
-          {
-            "entryId": "c18b2e5c-1f24-400d-b450-9abdda884b3e",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604 — rättelse",
-            "source": "cco_journal_correction",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": "",
-              "bodyText": "Korrigerad anonym text."
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:10:34.699Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "correctionReason": null,
-            "correctionCreatedBy": "personal-demo-readiness",
-            "correctionCreatedAt": "2026-06-03T06:10:34.488Z",
-            "events": [
-              {
-                "id": "e0d2f525-d328-4da2-8d9c-30f25310e228",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:10:34.489Z",
-                "metadata": {}
-              },
-              {
-                "id": "bf84fc83-d544-42fc-be31-db30ee8cf6ad",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:10:34.699Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:10:34.489Z",
-            "updatedAt": "2026-06-03T06:10:34.699Z"
-          },
-          {
-            "entryId": "a1d63297-c524-46b4-b3bf-b57814fda9b9",
-            "tenantId": "hairtpclinic",
-            "patientId": "cco-pilot-20260602-a",
-            "personnummer": "",
-            "treatmentEncounterId": "",
-            "journalType": "consultation_plan",
-            "formVariant": "default",
-            "sourceQuestionaryId": "",
-            "status": "signed",
-            "locked": true,
-            "title": "Readiness E2E 0604",
-            "source": "cco_journal",
-            "importMeta": {},
-            "fields": {
-              "consultationDate": "",
-              "method": "",
-              "graftsTotal": "",
-              "zones": [],
-              "prpIncluded": null,
-              "notes": "",
-              "bookingConversationId": "",
-              "bookingServiceId": "",
-              "bookingSlotStart": "",
-              "bookingChannel": "",
-              "bookingConfirmedAt": ""
-            },
-            "attachments": [],
-            "authorUserId": "personal-demo-readiness",
-            "authorName": "personal-demo-readiness",
-            "authorRole": "owner",
-            "signedAt": "2026-06-03T06:10:33.874Z",
-            "signedByUserId": "personal-demo-readiness",
-            "signedByName": "personal-demo-readiness",
-            "correctionOfEntryId": null,
-            "correctionReason": null,
-            "correctionCreatedBy": null,
-            "correctionCreatedAt": null,
-            "events": [
-              {
-                "id": "03dde94f-4951-4f6b-af63-50ff01134b90",
-                "type": "journal_entry_created",
-                "label": "Journal skapad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:10:33.652Z",
-                "metadata": {}
-              },
-              {
-                "id": "f9310738-5505-4f73-9ae9-c6b9d66bde6d",
-                "type": "journal_entry_signed",
-                "label": "Journal signerad",
-                "detail": "",
-                "actorUserId": "personal-demo-readiness",
-                "actorName": "personal-demo-readiness",
-                "actorRole": "owner",
-                "createdAt": "2026-06-03T06:10:33.874Z",
-                "metadata": {}
-              }
-            ],
-            "createdAt": "2026-06-03T06:10:33.652Z",
-            "updatedAt": "2026-06-03T06:10:33.874Z"
-          },
           {
             "entryId": "131eb609-1e6d-44ff-87bc-27aa80f44ea4",
             "tenantId": "hairtpclinic",
@@ -37973,8 +36330,8 @@
       "kundkortRoute": "/kunder.html",
       "openRoute": "/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator",
       "notes": "Anonym testpatient. Skapa/signera/rättelse här under mötet.",
-      "feedItems": 257,
-      "timelineEvents": 770
+      "feedItems": 243,
+      "timelineEvents": 728
     },
     {
       "slot": 2,
@@ -37988,8 +36345,8 @@
       "kundkortRoute": "/kunder.html",
       "openRoute": "/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator",
       "notes": "Anonym testpatient med en sparad pilotpost.",
-      "feedItems": 251,
-      "timelineEvents": 752
+      "feedItems": 237,
+      "timelineEvents": 710
     },
     {
       "slot": 3,
@@ -38003,8 +36360,8 @@
       "kundkortRoute": "/kunder.html",
       "openRoute": "/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator",
       "notes": "Har signerad original + rättelse i prod smoke. Visa thread/timeline.",
-      "feedItems": 252,
-      "timelineEvents": 756
+      "feedItems": 238,
+      "timelineEvents": 714
     }
   ],
   "e2eByPilot": [

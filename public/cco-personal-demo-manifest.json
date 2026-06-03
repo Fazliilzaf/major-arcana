@@ -1,11 +1,8 @@
 {
-  "generatedAt": "2026-06-03T07:16:41.321Z",
-  "version": "1.2.0",
+  "generatedAt": "2026-06-03T06:10:37.242Z",
+  "version": "1.1.0",
   "prodBaseUrl": "https://arcana.hairtpclinic.com",
-  "primaryStartUrl": "/cco-demo.html",
-  "welcomePage": "/cco-demo.html",
-  "personalStartPage": "/cco-demo.html",
-  "legacyPersonalStartPage": "/cco-personal-start.html",
+  "personalStartPage": "/cco-personal-start.html",
   "demoStatus": {
     "journaling": "ready_for_controlled_pilot",
     "photoReview": "pending",
@@ -56,12 +53,8 @@
   ],
   "verifiedRoutes": [
     {
-      "path": "/cco-demo.html",
-      "purpose": "Välkommen till CCO (presentation start)"
-    },
-    {
       "path": "/cco-personal-start.html",
-      "purpose": "Legacy redirect → Välkommen"
+      "purpose": "Personal start"
     },
     {
       "path": "/kunder.html",
@@ -123,19 +116,19 @@
     "Ingen extern AI på journaltext"
   ],
   "presentationOrder": [
-    "Öppna /cco-demo.html (Välkommen till CCO)",
-    "Säg: Det här är CCO — vårt nya kundkort och arbetsnav",
-    "Visa arbetsnav: Kunder, Journal, Formulär, Historik, Bilder, Avtal, Kommunikation, Ekonomi",
-    "Säg: Idag börjar vi i Kunder — klicka Kunder",
-    "Öppna pilotkund (A/B/C)",
-    "Visa kundkort",
+    "Öppna /cco-personal-start.html",
+    "Klicka Journalföring → Öppna kundkort",
+    "Öppna verifierad pilotkund (A/B/C)",
+    "Visa identitetskontroll",
     "Visa journal-feed",
     "Skapa journal på pilotkund A",
-    "Signera/lås — visa att låst post inte ändras",
-    "Skapa rättelse (pilot C)",
-    "Visa timeline",
-    "Visa Behöver granskning",
-    "Avsluta med dag-1-regler"
+    "Signera/lås",
+    "Visa rättelse på pilotkund C",
+    "Visa timeline-flik",
+    "Visa historik-status (import-badges)",
+    "Visa Behöver granskning-regeln",
+    "Förklara pausade områden (mail, bilder, CF internt)",
+    "Avsluta: kontrollerad journalföringspilot startar nu"
   ],
   "deadline": "2026-06-04",
   "routePreflight": [
@@ -146,20 +139,14 @@
       "result": "PASS"
     },
     {
-      "name": "welcome-cco",
-      "path": "/cco-demo.html",
-      "status": 200,
-      "result": "PASS"
-    },
-    {
-      "name": "legacy-personal-start",
+      "name": "personal-start",
       "path": "/cco-personal-start.html",
       "status": 200,
       "result": "PASS"
     },
     {
-      "name": "ops-workbench",
-      "path": "/cco-ops-workbench.html",
+      "name": "personal-demo-alt",
+      "path": "/personal-demo.html",
       "status": 200,
       "result": "PASS"
     },
