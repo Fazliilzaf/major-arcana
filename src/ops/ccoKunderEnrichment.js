@@ -639,6 +639,20 @@ function computeSegmentStats(
 
   const mineSegment = segments.find((s) => s.id === 'mine');
 
+  const mineMatch =
+    assignedOwner && patients.length
+      ? (() => {
+          let matches = 0;
+          for (const patient of patients) {
+            if (ownerMatchesAssigned(getPatientOwnerName(patient), assignedOwner)) matches += 1;
+          }
+          return {
+            mineCount: matches,
+            matchRate: Math.round((matches / patients.length) * 1000) / 1000,
+          };
+        })()
+      : { mineCount: null, matchRate: 0 };
+
   return {
     segments,
     ownerCoverage,
@@ -649,6 +663,9 @@ function computeSegmentStats(
       reason: mineSegment?.reason || MINE_DISABLED_REASON,
       count: mineSegment?.count ?? null,
       ownerFieldInventory: ownerInventory,
+      ownerFieldsFound: ownerInventory.fieldsPresent,
+      matchRate: mineMatch.matchRate,
+      mineCount: mineMatch.mineCount,
       filterQuery: mineSegment?.filterQuery || null,
     },
     panel: {

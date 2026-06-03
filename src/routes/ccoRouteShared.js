@@ -24,9 +24,17 @@ function getAuthToken(req) {
 function resolveActorFromRequestAuth(req) {
   const auth = req.auth;
   if (!auth?.tenantId || !auth?.userId) return null;
+  const user = req.currentUser;
+  const displayName =
+    user && typeof user === 'object'
+      ? normalizeText(user.displayName || user.name || user.fullName)
+      : '';
   return {
     tenantId: auth.tenantId,
     userId: auth.userId,
+    email: normalizeText(auth.email || user?.email),
+    displayName,
+    staffName: displayName,
     role: auth.role || 'OWNER',
     authMode: auth.authMode || 'session',
   };
@@ -53,10 +61,15 @@ async function resolveCcoRouteActor(req, { authStore, config }) {
       throw error;
     }
     await authStore.touchSession(context.session.id);
+    const displayName = normalizeText(
+      context.user.displayName || context.user.name || context.user.fullName
+    );
     return {
       tenantId: context.membership.tenantId,
       userId: context.user.id,
       email: normalizeText(context.user.email),
+      displayName,
+      staffName: displayName,
       role: context.membership.role,
       authMode: 'session',
     };

@@ -8,7 +8,6 @@
   const SEARCH_PAGE_SIZE = 40;
   const TENANT_ID = 'hairtpclinic';
   const TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
-  const MINE_OWNER_KEY = 'ARCANA_CCO_MINE_OWNER';
   const LOGIN_HREF = '/major-arcana-preview/index.html';
 
   const MATCH_LABELS = {
@@ -96,6 +95,7 @@
     authRequired: false,
     error: '',
     selectedPatientId: '',
+    staffOwnership: null,
   };
 
   function $(sel, root) {
@@ -118,11 +118,10 @@
   }
 
   function getAssignedOwner() {
-    try {
-      return (localStorage.getItem(MINE_OWNER_KEY) || '').trim();
-    } catch {
-      return '';
-    }
+    const resolved = global.CcoKunderStaffOwner?.resolveAssignedOwner({
+      shellPayload: state.staffOwnership ? { staffOwnership: state.staffOwnership } : null,
+    });
+    return resolved?.value || '';
   }
 
   function shellQueryParams(limit) {
@@ -317,25 +316,12 @@
 
     const limit = state.query ? SEARCH_PAGE_SIZE : PAGE_SIZE;
     const params = shellQueryParams(limit);
-    if (state.activeSegmentId === 'mine' && !getAssignedOwner()) {
-      state.error = '';
-      state.patients = [];
-      state.total = 0;
-      state.loaded = true;
-      state.loading = false;
-      setListStatus(
-        'Mina kunder: sätt Pipedrive-ägare i localStorage ARCANA_CCO_MINE_OWNER (Kräver ägare per kund · P1).',
-        'warn'
-      );
-      refreshSegmentCounts();
-      renderList();
-      renderCounts();
-      renderRightPanel();
-      return;
-    }
-
     try {
       const payload = await api(`/api/v1/cco/staff/customers-shell?${params}`);
+      if (payload.staffOwnership) {
+        state.staffOwnership = payload.staffOwnership;
+        global.CcoKunderStaffOwner?.rememberShellOwnership?.(payload);
+      }
       const batch = (payload.patients?.patients || []).filter(Boolean);
       state.stats = payload.stats || state.stats;
       if (payload.segmentStats) {
@@ -349,6 +335,10 @@
       state.patients = append ? state.patients.concat(batch) : batch;
       state.loaded = true;
       state.offset = state.patients.length;
+      if (state.activeSegmentId === 'mine' && !state.patients.length) {
+        const mineMsg = global.CcoKunderStaffOwner?.mineSegmentMessage?.(payload);
+        if (mineMsg) setListStatus(mineMsg, 'warn');
+      }
     } catch (err) {
       state.error = err.message || 'Kunde inte hämta kunder';
       if (err.statusCode === 401 || err.statusCode === 403) {
@@ -1075,6 +1065,9 @@
   async function boot() {
     injectStyles();
     bindUi();
+    if (getToken() && global.CcoKunderStaffOwner?.fetchAuthMe) {
+      await global.CcoKunderStaffOwner.fetchAuthMe(getToken());
+    }
     await fetchShell();
   }
 

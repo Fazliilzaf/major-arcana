@@ -13,6 +13,7 @@ const REPO = path.join(__dirname, '..');
 const MOBILE_HTML = path.join(REPO, 'public/m-kunder.html');
 const MOBILE_JS = path.join(REPO, 'public/cco-kunder-mobil-real.js');
 const ACTIONS_JS = path.join(REPO, 'public/cco-kunder-actions.js');
+const STAFF_OWNER_JS = path.join(REPO, 'public/cco-kunder-staff-owner.js');
 const DESKTOP_JS = path.join(REPO, 'public/cco-kunder-real.js');
 
 let failed = 0;
@@ -49,6 +50,14 @@ if (!html.includes('cco-kunder-actions.js')) {
   fail('m-kunder.html inkluderar inte cco-kunder-actions.js (P1.1)');
 } else {
   pass('m-kunder.html laddar cco-kunder-actions.js');
+}
+
+if (!html.includes('cco-kunder-staff-owner.js')) {
+  fail('m-kunder.html inkluderar inte cco-kunder-staff-owner.js (P1.2)');
+} else if (!fs.existsSync(STAFF_OWNER_JS)) {
+  fail('cco-kunder-staff-owner.js saknas på disk (P1.2)');
+} else {
+  pass('m-kunder.html laddar cco-kunder-staff-owner.js');
 }
 
 if (!html.includes('cco-journal-feed.js')) {
@@ -225,10 +234,21 @@ if (!/treatment_fue|treatment_curatiio/.test(js)) {
   pass('mobil behandlingssegment parity P1.1');
 }
 
-if (!/ARCANA_CCO_MINE_OWNER|assignedOwner/.test(js)) {
-  fail('mobil saknar Mina kunder readiness P1.1');
+if (!/CcoKunderStaffOwner|staffOwnership|auth\/me/.test(js)) {
+  fail('mobil saknar auto staff owner P1.2');
 } else {
-  pass('mobil Mina kunder readiness P1.1');
+  pass('mobil auto staff owner P1.2');
+}
+
+if (fs.existsSync(ACTIONS_JS) && fs.existsSync(DESKTOP_JS)) {
+  const actions = fs.readFileSync(ACTIONS_JS, 'utf8');
+  const labels = ['Journal', 'Timeline', 'Kalender', 'Formulär', 'Avtal', 'Foto', 'Boka', 'Omboka'];
+  for (const label of labels) {
+    if (!actions.includes(label)) {
+      fail(`cco-kunder-actions.js saknar gemensamt label: ${label}`);
+    }
+  }
+  if (!failed) pass('desktop/mobil delar action labels (P1.2)');
 }
 
 const treatmentIds = [

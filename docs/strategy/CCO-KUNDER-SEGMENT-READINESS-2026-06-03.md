@@ -1,6 +1,6 @@
 # CCO Kunder — Segment Readiness (2026-06-03)
 
-**Uppdaterad efter P1.1** (actions + Mina + mobil behandling). Kod: `cco-kunder-real.js`, `cco-kunder-mobil-real.js`, `cco-kunder-actions.js`, `ccoKunderEnrichment.js`, `ccoKunderBookingEnrichment.js`. Mobil: `CCO-MOBIL-KUNDER-READINESS-2026-06-03.md`.
+**Uppdaterad efter P1.2** (staff ownership auto-resolve + safe action activation). Kod: `cco-kunder-real.js`, `cco-kunder-mobil-real.js`, `cco-kunder-actions.js`, `cco-kunder-staff-owner.js`, `ccoKunderStaffOwner.js`, `ccoKunderEnrichment.js`. Mobil: `CCO-MOBIL-KUNDER-READINESS-2026-06-03.md`.
 
 **Scope:** Prod `/kunder.html` vs design `CCO-Kunder-Mockup-v9-DESKTOP.html`, mobil v10, `CCO-filter-och-smarta-funktioner.md`, `CCO-SYSTEM-SCOPE.md`.
 
@@ -46,18 +46,34 @@
 | Kalender från kort | `/kalender.html` | **`?patientId=`** deep link                                   |
 | Boka/omboka        | disabled         | **disabled** "Kopplas i Kalender P1" (ingen write)            |
 
-**Readiness:** desktop **~96%**, mobil **~97%**.
+**Readiness:** desktop **~97%**, mobil **~98%** (P1.2).
 
-### Action matrix (P1.1)
+## P1.2 — leverans (2026-06-03)
+
+| Område              | P1.1                          | P1.2                                                              |
+| ------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| Mina kunder         | localStorage + query          | **Auto `assignedOwner`** från session (`email` / `displayName`)   |
+| Staff ownership API | —                             | **`staffOwnership`** på customers-shell + `mineKunder.matchRate`  |
+| Action capabilities | Matrix i `cco-kunder-actions` | **`buildPatientCapabilities`** per patient (route/reason/rbac)    |
+| Foto                | disabled                      | **partial** → `/photo-review.html?focusPatientId=` (read-only kö) |
+| Boka/Omboka         | "Kopplas i Kalender P1"       | **disabled** "Kräver bokningsdata · Kalender P1"                  |
+| Merge/GDPR          | "Kommer i P1"                 | **disabled** "Kräver behörighet · P1"                             |
+| Dossier bar         | Flat order                    | **real → partial → blocked → disabled** + legend                  |
+
+**Mina kunder filter:** `real` (match + count) · `partial` (ägare-fält finns, ingen session-match) · `disabled` (ingen owner-data på population).
+
+**Owner fields inventerade:** `pipedrive.owner`, `pipedrive.ownerId`, `cliento.*`, `patient.ownerId`, `assignedStaff`, `createdBy`, `lastHandledBy`.
+
+### Action matrix (P1.2)
 
 | Status       | Actions                                                                                                |
 | ------------ | ------------------------------------------------------------------------------------------------------ |
 | **real**     | Kundkort, Journal, Timeline, Assets, Kalender (`?patientId=`), Kommunikation (panel), Avtal (→ assets) |
-| **partial**  | Kommunikation (scroll i dossier)                                                                       |
-| **disabled** | Boka, Omboka, Formulär, Offert, Foto, Export, Bulk, Merge, GDPR, Betalning                             |
+| **partial**  | Kommunikation, **Foto** (Photo Review deep link)                                                       |
+| **disabled** | Boka, Omboka, Formulär, Offert, Export, Bulk, Merge, GDPR, Betalning                                   |
 | **blocked**  | Journal + åtkomst när `journalBlocked`                                                                 |
 
-Modul: `cco-kunder-actions.js` · attribut `data-kunder-status` · ingen fake GDPR-toast i HTML.
+Moduler: `cco-kunder-actions.js` · `cco-kunder-staff-owner.js` · attribut `data-kunder-status` · ingen fake GDPR-toast.
 
 ## P0.3 — leverans (2026-06-03)
 

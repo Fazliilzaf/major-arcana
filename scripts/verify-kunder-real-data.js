@@ -13,6 +13,7 @@ const REPO = path.join(__dirname, '..');
 const KUNDER = path.join(REPO, 'public/kunder.html');
 const REAL_JS = path.join(REPO, 'public/cco-kunder-real.js');
 const ACTIONS_JS = path.join(REPO, 'public/cco-kunder-actions.js');
+const STAFF_OWNER_JS = path.join(REPO, 'public/cco-kunder-staff-owner.js');
 
 let failed = 0;
 function fail(msg) {
@@ -50,6 +51,18 @@ if (!html.includes('cco-kunder-actions.js')) {
   fail('kunder.html inkluderar inte cco-kunder-actions.js (P1.1)');
 } else {
   pass('kunder.html laddar cco-kunder-actions.js');
+}
+
+if (!html.includes('cco-kunder-staff-owner.js')) {
+  fail('kunder.html inkluderar inte cco-kunder-staff-owner.js (P1.2)');
+} else {
+  pass('kunder.html laddar cco-kunder-staff-owner.js');
+}
+
+if (!fs.existsSync(STAFF_OWNER_JS)) {
+  fail('cco-kunder-staff-owner.js saknas (P1.2)');
+} else {
+  pass('cco-kunder-staff-owner.js finns');
 }
 
 if (!fs.existsSync(ACTIONS_JS)) {
@@ -181,10 +194,13 @@ if (!/hasUpcomingBooking|nextBookingAt|todayVisit/.test(js)) {
 }
 
 const actionsSrc = fs.existsSync(ACTIONS_JS) ? fs.readFileSync(ACTIONS_JS, 'utf8') : '';
-if (!/Kopplas i Kalender P1/.test(js) && !/Kopplas i Kalender P1/.test(actionsSrc)) {
-  fail('saknar disabled copy för boka/omboka (P1.1 action matrix)');
+if (
+  !/Kräver bokningsdata · Kalender P1/.test(actionsSrc) &&
+  !/Kopplas i Kalender P1/.test(actionsSrc)
+) {
+  fail('saknar disabled copy för boka/omboka (P1.2 action matrix)');
 } else {
-  pass('boka/omboka disabled korrekt (P1.1)');
+  pass('boka/omboka disabled korrekt (P1.2)');
 }
 
 if (/>\s*\d{2,4}\s*</.test(customersHtml) && /DHI|PRP|Microneedling/.test(customersHtml)) {
@@ -207,10 +223,16 @@ if (!/CcoKunderActions/.test(js)) {
   pass('cco-kunder-real.js använder action matrix P1.1');
 }
 
-if (!/assignedOwner|ARCANA_CCO_MINE_OWNER/.test(js)) {
-  fail('cco-kunder-real.js saknar Mina kunder assignedOwner (P1.1)');
+if (!/CcoKunderStaffOwner|staffOwnership|auth\/me/.test(js)) {
+  fail('cco-kunder-real.js saknar auto staff owner (P1.2)');
 } else {
-  pass('cco-kunder-real.js Mina kunder readiness P1.1');
+  pass('cco-kunder-real.js auto staff owner P1.2');
+}
+
+if (/mine.*ARCANA_CCO_MINE_OWNER.*return/.test(js) && !/fetchAuthMe/.test(js)) {
+  fail('cco-kunder-real.js blocker Mina kunder utan session auto-resolve (P1.2)');
+} else {
+  pass('cco-kunder-real.js utan localStorage-only mine blocker');
 }
 
 if (!/ownerName|isMinePatient/.test(js)) {
@@ -223,14 +245,17 @@ if (!/kalender\.html\?patientId=/.test(js) && !fs.existsSync(ACTIONS_JS)) {
   fail('kalender patientId-länk saknas');
 } else if (fs.existsSync(ACTIONS_JS)) {
   const actionsJs = fs.readFileSync(ACTIONS_JS, 'utf8');
-  if (!/kalender\.html\?patientId=/.test(actionsJs)) {
+  if (!/kalender\.html/.test(actionsJs) || !/patientRoute/.test(actionsJs)) {
     fail('cco-kunder-actions.js saknar kalender patientId-länk');
   } else if (/toast\(/.test(actionsJs)) {
     fail('cco-kunder-actions.js har fake toast');
-  } else if (!/Kopplas i Kalender P1/.test(actionsJs)) {
+  } else if (
+    !/Kräver bokningsdata · Kalender P1/.test(actionsJs) &&
+    !/Kopplas i Kalender P1/.test(actionsJs)
+  ) {
     fail('cco-kunder-actions.js saknar disabled boka/omboka');
   } else {
-    pass('cco-kunder-actions.js kalender + disabled boka P1.1');
+    pass('cco-kunder-actions.js kalender + disabled boka P1.2');
   }
 }
 
@@ -275,6 +300,56 @@ if (!/assignedOwner/.test(staff)) {
   fail('ccoStaff saknar assignedOwner query P1.1');
 } else {
   pass('ccoStaff assignedOwner P1.1');
+}
+
+if (!/resolveStaffOwnership|staffOwnership/.test(staff)) {
+  fail('ccoStaff saknar staffOwnership P1.2');
+} else {
+  pass('ccoStaff staffOwnership P1.2');
+}
+
+const staffOwnerMod = path.join(REPO, 'src/ops/ccoKunderStaffOwner.js');
+if (!fs.existsSync(staffOwnerMod)) {
+  fail('ccoKunderStaffOwner.js saknas');
+} else {
+  pass('ccoKunderStaffOwner.js finns');
+}
+
+if (fs.existsSync(ACTIONS_JS)) {
+  const actionsP12 = fs.readFileSync(ACTIONS_JS, 'utf8');
+  if (!/buildPatientCapabilities/.test(actionsP12)) {
+    fail('cco-kunder-actions.js saknar buildPatientCapabilities (P1.2)');
+  } else {
+    pass('cco-kunder-actions.js capability map P1.2');
+  }
+  if (!/photo-review\.html/.test(actionsP12) || !/focusPatientId/.test(actionsP12)) {
+    fail('cco-kunder-actions.js saknar säker photo-review route (P1.2)');
+  } else {
+    pass('cco-kunder-actions.js photo-review route P1.2');
+  }
+  if (!/Kräver formulärmotor/.test(actionsP12) || !/Kräver Fortnox/.test(actionsP12)) {
+    fail('cco-kunder-actions.js saknar disabled reasons (P1.2)');
+  } else {
+    pass('cco-kunder-actions.js disabled reasons P1.2');
+  }
+  if (!/STATUS_ORDER|sortByStatus/.test(actionsP12)) {
+    fail('cco-kunder-actions.js saknar sortering real först (P1.2)');
+  } else {
+    pass('cco-kunder-actions.js dossier sort P1.2');
+  }
+  const disabledBlocks = actionsP12.match(/status:\s*'disabled'[\s\S]*?}\),/g) || [];
+  for (const block of disabledBlocks) {
+    if (!/disabledReason:/.test(block)) {
+      fail('cco-kunder-actions.js disabled action utan disabledReason');
+      break;
+    }
+  }
+  if (!failed || disabledBlocks.every((b) => /disabledReason:/.test(b))) {
+    pass('cco-kunder-actions.js alla disabled har reason');
+  }
+  if (/toast\(/.test(actionsP12)) {
+    fail('cco-kunder-actions.js har fake toast');
+  }
 }
 
 if (failed) {

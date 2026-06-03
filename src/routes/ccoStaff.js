@@ -11,6 +11,7 @@ const {
   loadAssetSignalsIndex,
   loadKunderBookingIndex,
 } = require('../ops/ccoKunderEnrichment');
+const { resolveStaffOwnership } = require('../ops/ccoKunderStaffOwner');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -60,10 +61,6 @@ function createCcoStaffRouter({
         const offsetVal = parseIntParam(req.query.offset, 0);
         const query = normalizeText(req.query.q || req.query.query);
         const segment = normalizeText(req.query.segment);
-        const assignedOwner =
-          normalizeText(req.query.assignedOwner) ||
-          (segment === 'mine' ? normalizeText(actor.email) : '');
-        const segmentOpts = { assignedOwner };
         const flags = String(req.query.flags || '')
           .split(',')
           .map((item) => item.trim())
@@ -72,7 +69,15 @@ function createCcoStaffRouter({
           ? readCache.buildKey(
               'customers-shell',
               actor.tenantId,
-              JSON.stringify({ limit, offset: offsetVal, query, flags, segment, assignedOwner })
+              JSON.stringify({
+                limit,
+                offset: offsetVal,
+                query,
+                flags,
+                segment,
+                assignedOwner: normalizeText(req.query.assignedOwner),
+                actorUserId: actor.userId,
+              })
             )
           : '';
 
@@ -84,6 +89,15 @@ function createCcoStaffRouter({
               offset: 0,
             })
           ).patients;
+
+          const staffOwnership = resolveStaffOwnership({
+            queryAssigned: req.query.assignedOwner,
+            actor,
+            user: req.currentUser,
+            patients: allForStats,
+          });
+          const assignedOwner = staffOwnership.assignedOwner;
+          const segmentOpts = { assignedOwner };
 
           const [assetIndex, bookingBundle] = await Promise.all([
             loadAssetSignalsIndex(config, actor.tenantId),
@@ -160,6 +174,7 @@ function createCcoStaffRouter({
           return {
             stats: enrichedStats,
             segmentStats,
+            staffOwnership,
             bookingCoverage,
             patients: {
               total: rows.length,

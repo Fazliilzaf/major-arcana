@@ -31,7 +31,7 @@ node scripts/verify-mobile-kunder-real-data.js
 echo
 
 echo "[2/4] Prod static assets..."
-for path in /cco-demo.html /kunder.html /m-kunder.html /cco-kunder-real.js /cco-kunder-mobil-real.js /cco-kunder-actions.js; do
+for path in /cco-demo.html /kunder.html /m-kunder.html /cco-kunder-real.js /cco-kunder-mobil-real.js /cco-kunder-actions.js /cco-kunder-staff-owner.js; do
   code=$(curl -sS -o /dev/null -w "%{http_code}" "${BASE}${path}")
   if [ "$code" = "200" ]; then
     pass "${path} HTTP ${code}"
@@ -85,10 +85,10 @@ else
   fail 'cco-kunder-real.js missing P0.4 booking fields'
 fi
 
-if echo "$js" | grep -q 'Kopplas i Kalender P1'; then
-  pass 'cco-kunder-real.js boka/omboka disabled copy on prod'
+if echo "$actions" | grep -q 'Kräver bokningsdata · Kalender P1'; then
+  pass 'cco-kunder-actions.js boka/omboka disabled copy on prod (P1.2)'
 elif echo "$actions" | grep -q 'Kopplas i Kalender P1'; then
-  pass 'cco-kunder-actions.js boka/omboka disabled copy on prod (P1.1)'
+  pass 'cco-kunder-actions.js boka/omboka disabled copy on prod (P1.1 fallback)'
 else
   fail 'missing calendar P1 disabled copy on prod'
 fi
@@ -132,10 +132,17 @@ else
   fail 'cco-kunder-mobil-real.js missing treatment segments (P1.1)'
 fi
 
-if echo "$actions" | grep -q 'handlesKunderActions' && echo "$actions" | grep -q 'Kopplas i Kalender P1'; then
-  pass 'cco-kunder-actions.js on prod (P1.1)'
+if echo "$actions" | grep -q 'buildPatientCapabilities' && echo "$actions" | grep -q 'photo-review.html'; then
+  pass 'cco-kunder-actions.js capability map on prod (P1.2)'
 else
-  fail 'cco-kunder-actions.js missing on prod (P1.1)'
+  fail 'cco-kunder-actions.js missing P1.2 capability map on prod'
+fi
+
+staffown=$(curl -sS "${BASE}/cco-kunder-staff-owner.js" 2>/dev/null || true)
+if echo "$staffown" | grep -q 'resolveAssignedOwner' && echo "$js" | grep -q 'CcoKunderStaffOwner'; then
+  pass 'cco-kunder-staff-owner.js on prod (P1.2)'
+else
+  fail 'cco-kunder-staff-owner.js missing on prod (P1.2)'
 fi
 
 echo

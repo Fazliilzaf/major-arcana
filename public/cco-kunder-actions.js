@@ -1,6 +1,6 @@
 /**
- * P1.1 — Kunder action matrix (desktop + mobil).
- * Each action: status real|partial|disabled|blocked, route/reason/RBAC — no fake toasts.
+ * P1.2 — Kunder action capability map (desktop + mobil).
+ * Safe routes only; writes stay disabled with explicit reasons.
  */
 (function (global) {
   'use strict';
@@ -14,6 +14,8 @@
     payment: 'billing.read',
   };
 
+  const STATUS_ORDER = { real: 0, partial: 1, blocked: 2, disabled: 3 };
+
   const DOSSIER_ACTION_IDS = [
     'journal',
     'timeline',
@@ -26,12 +28,20 @@
     'rebook',
   ];
 
+  const WORKSPACE_ACTION_IDS = ['export', 'merge', 'gdpr', 'access', 'payment'];
+
   function escapeHtml(s) {
     return String(s ?? '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  function patientRoute(basePath, patientId, param = 'patientId') {
+    if (!patientId || !basePath) return null;
+    const sep = basePath.includes('?') ? '&' : '?';
+    return `${basePath}${sep}${param}=${encodeURIComponent(patientId)}`;
   }
 
   function titleFor(action) {
@@ -43,7 +53,27 @@
   }
 
   function def(partial) {
-    return { status: 'disabled', kind: 'button', ...partial };
+    const action = { status: 'disabled', kind: 'button', ...partial };
+    if ((action.status === 'disabled' || action.status === 'blocked') && !action.disabledReason) {
+      action.disabledReason = 'Ej tillgänglig';
+    }
+    if (action.status === 'real' && action.kind === 'link' && !action.href) {
+      action.status = 'disabled';
+      action.kind = 'button';
+      action.disabledReason = action.disabledReason || 'Saknar säker route';
+    }
+    if (action.status === 'partial' && action.kind === 'link' && !action.href) {
+      action.status = 'disabled';
+      action.kind = 'button';
+      action.disabledReason = action.disabledReason || 'Saknar säker route';
+    }
+    return action;
+  }
+
+  function sortByStatus(actions) {
+    return [...actions].sort(
+      (a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9)
+    );
   }
 
   /**
@@ -63,9 +93,8 @@
     const timelineHref = patientId
       ? `/journal-feed-demo.html?customerId=${encodeURIComponent(patientId)}&tenant=${encodeURIComponent(tenantId)}&view=timeline`
       : null;
-    const calendarHref = patientId
-      ? `/kalender.html?patientId=${encodeURIComponent(patientId)}`
-      : '/kalender.html';
+    const calendarHref = patientRoute('/kalender.html', patientId);
+    const photoHref = patientRoute('/photo-review.html', patientId, 'focusPatientId');
 
     const journalStatus = !patientId ? 'disabled' : journalBlocked ? 'blocked' : 'real';
     const journalReason = journalBlocked
@@ -125,31 +154,32 @@
       def({
         id: 'calendar',
         label: 'Kalender',
-        status: 'real',
+        status: patientId ? 'real' : 'partial',
         kind: 'link',
-        href: calendarHref,
-        route: calendarHref,
+        href: calendarHref || '/kalender.html',
+        route: calendarHref || '/kalender.html',
+        disabledReason: patientId ? null : 'Öppnar kalender utan patientfilter',
       }),
       def({
         id: 'book',
         label: 'Boka',
         status: 'disabled',
-        disabledReason: 'Kopplas i Kalender P1',
+        disabledReason: 'Kräver bokningsdata · Kalender P1',
         requiredData: 'booking write GO',
       }),
       def({
         id: 'rebook',
         label: 'Omboka',
         status: 'disabled',
-        disabledReason: 'Kopplas i Kalender P1',
+        disabledReason: 'Kräver bokningsdata · Kalender P1',
         requiredData: 'booking write GO',
       }),
       def({
         id: 'form',
-        label: 'Skicka formulär',
+        label: 'Formulär',
         status: 'disabled',
         disabledReason: 'Kräver formulärmotor',
-        requiredData: 'cco-forms send route',
+        requiredData: 'staff formulär route',
       }),
       def({
         id: 'agreement',
@@ -157,6 +187,7 @@
         status: card?.hasAgreement ? 'real' : 'disabled',
         kind: card?.hasAgreement ? 'handler' : 'button',
         handler: card?.hasAgreement ? 'assets' : undefined,
+        route: card?.hasAgreement && patientId ? `/api/v1/cco/patients/${patientId}/assets` : null,
         disabledReason: 'Kräver avtalsflöde P1',
         requiredData: card?.hasAgreement ? null : 'agreement document',
       }),
@@ -169,10 +200,13 @@
       }),
       def({
         id: 'photo',
-        label: 'Ta bild',
-        status: 'disabled',
-        disabledReason: 'Kräver Photo Review',
-        requiredData: 'photo capture + patient link',
+        label: 'Foto',
+        status: patientId ? 'partial' : 'disabled',
+        kind: patientId ? 'link' : 'button',
+        href: photoHref,
+        route: photoHref,
+        disabledReason: patientId ? 'Photo Review kö (read-only)' : 'Saknar patientId',
+        requiredData: 'photo-review.html',
         rbac: RBAC.photo,
       }),
       def({
@@ -191,14 +225,14 @@
         id: 'merge',
         label: 'Merge/dedupe',
         status: 'disabled',
-        disabledReason: 'Kommer i P1',
+        disabledReason: 'Kräver behörighet · P1',
         rbac: RBAC.merge,
       }),
       def({
         id: 'gdpr',
         label: 'GDPR-export',
         status: 'disabled',
-        disabledReason: 'Kommer i P1',
+        disabledReason: 'Kräver behörighet · P1',
         rbac: RBAC.gdpr,
       }),
       def({
@@ -219,10 +253,21 @@
     ];
   }
 
-  /** Dossier action bar subset (desktop + mobil). */
+  function buildPatientCapabilities(card, ctx = {}) {
+    return buildMatrix(card, ctx).map((action) => ({
+      action: action.id,
+      status: action.status,
+      route: action.route || action.href || null,
+      reason: action.disabledReason || null,
+      requiredData: action.requiredData || null,
+      rbac: action.rbac || null,
+    }));
+  }
+
+  /** Dossier action bar: real → partial → blocked → disabled. */
   function buildDossierBar(card, ctx = {}) {
     const byId = Object.fromEntries(buildMatrix(card, ctx).map((a) => [a.id, a]));
-    return DOSSIER_ACTION_IDS.map((id) => byId[id]).filter(Boolean);
+    return sortByStatus(DOSSIER_ACTION_IDS.map((id) => byId[id]).filter(Boolean));
   }
 
   function listCatalog() {
@@ -248,6 +293,14 @@
         }
         if (
           (action.status === 'real' || action.status === 'partial') &&
+          action.kind === 'link' &&
+          action.href
+        ) {
+          const partialClass = action.status === 'partial' ? ' kunder-action--partial' : '';
+          return `<a class="${linkClass}${partialClass}" href="${escapeHtml(action.href)}" title="${title}"${statusAttr}>${escapeHtml(action.label)}</a>`;
+        }
+        if (
+          (action.status === 'real' || action.status === 'partial') &&
           action.kind === 'handler' &&
           action.handler
         ) {
@@ -266,7 +319,7 @@
     actions.forEach((a) => {
       if (counts[a.status] != null) counts[a.status] += 1;
     });
-    return `<p class="kunder-action-legend" data-kunder-action-legend>${counts.real} aktiva · ${counts.partial} partial · ${counts.disabled} disabled · ${counts.blocked} spärrade</p>`;
+    return `<p class="kunder-action-legend" data-kunder-action-legend>${counts.real} aktiva · ${counts.partial} partial · ${counts.disabled} disabled · ${counts.blocked} spärrade — real först</p>`;
   }
 
   function bindDossierHandlers(root, handlers = {}) {
@@ -285,11 +338,13 @@
   global.CcoKunderActions = {
     buildMatrix,
     buildDossierBar,
+    buildPatientCapabilities,
     listCatalog,
     renderActionsHtml,
     renderMatrixLegend,
     bindDossierHandlers,
     handlesKunderActions: true,
     DOSSIER_ACTION_IDS,
+    WORKSPACE_ACTION_IDS,
   };
 })(typeof window !== 'undefined' ? window : global);

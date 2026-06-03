@@ -143,6 +143,7 @@ function createAuthMiddleware({ authStore, config = {}, previewAuthContext = nul
             token,
             sessionId: context.session.id,
             userId: context.user.id,
+            email: normalizeText(context.user.email),
             membershipId: context.membership.id,
             tenantId: context.membership.tenantId,
             role: context.membership.role,

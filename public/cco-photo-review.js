@@ -553,6 +553,17 @@
     });
   }
 
+  function applyFocusPatientFromUrl() {
+    try {
+      const focus = new URLSearchParams(window.location.search).get('focusPatientId')?.trim();
+      if (!focus || !queue.length) return;
+      const idx = queue.findIndex((q) => q.patientId === focus);
+      if (idx >= 0) cursor = idx;
+    } catch {
+      /* ignore */
+    }
+  }
+
   async function refreshQueue() {
     const [summary, queueData, progress] = await Promise.all([
       api('/summary'),
@@ -563,6 +574,7 @@
     summarySnapshot = summary;
     progressSnapshot = progress;
     applyFilters();
+    applyFocusPatientFromUrl();
     if (cursor >= queue.length) cursor = Math.max(0, queue.length - 1);
     writeEnabled = !!summary.writeEnabled;
     updateProgressUI(progress, summary);
