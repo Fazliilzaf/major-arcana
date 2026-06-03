@@ -401,7 +401,7 @@
       if (!countEl) return;
       if (seg?.disabled) {
         link.classList.add('is-disabled');
-        link.title = seg.disabledReason || 'Bokningsdata saknas';
+        link.title = seg.disabledReason || 'Kräver bokningsdata';
         countEl.textContent = '—';
       } else {
         link.classList.remove('is-disabled');

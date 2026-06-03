@@ -6716,7 +6716,7 @@
             <div
               class="side-link is-disabled"
               data-segment="missing_form"
-              title="Saknar formulär · läses från cco-forms · kommer i P1"
+              title="Kräver formulärmotor · Kommer i P1"
             >
               <span style="display: inline-flex; gap: 7px; align-items: center"
                 ><span class="dot" style="background: var(--cco-text-tertiary)"></span>Saknar
@@ -6794,7 +6794,7 @@
               class="filter-chip"
               data-segment="saknar-form"
               disabled
-              title="Kommer i P1"
+              title="Kräver formulärmotor · Kommer i P1"
             >
               Saknar formulär <span class="count">—</span>
             </button>
@@ -6876,15 +6876,15 @@
       <p class="voice-sheet-original">"Boka Anna PRP nästa tisdag fjorton hos Egzona"</p>
       <dl class="voice-sheet-grid">
         <dt>Kund</dt>
-        <dd>Anna Karlsson (matchad 96%)</dd>
+        <dd>— (kräver röstmotor)</dd>
         <dt>Behandling</dt>
-        <dd>PRP för hår · 45 min</dd>
+        <dd>—</dd>
         <dt>Tid</dt>
-        <dd>Tis 2 juni 2026 · 14:00 – 14:45</dd>
+        <dd>—</dd>
         <dt>Behandlare</dt>
-        <dd>Egzona Krasniqi</dd>
+        <dd>—</dd>
         <dt>Rum</dt>
-        <dd>Behandling 2 · ledigt</dd>
+        <dd>—</dd>
       </dl>
       <div class="voice-sheet-actions">
         <button class="quick-pill quick-pill--success" id="voiceConfirm">
@@ -7402,7 +7402,7 @@
         voiceSheet.classList.remove('is-visible');
         const toast = document.createElement('div');
         toast.className = 'ai-toast';
-        toast.textContent = '✓ Bokad — bekräftelse skickad till Anna';
+        toast.textContent = 'Röst-bokning kräver bokningsmotor · Kommer i P1';
         document.body.appendChild(toast);
         requestAnimationFrame(() => toast.classList.add('is-visible'));
         setTimeout(() => {

@@ -106,7 +106,7 @@
     return [
       def({
         id: 'dossier',
-        label: 'Öppna kundkort',
+        label: 'Kundkort',
         status: patientId ? 'real' : 'disabled',
         kind: 'handler',
         handler: 'dossier',
@@ -134,7 +134,7 @@
       }),
       def({
         id: 'assets',
-        label: 'Filer/assets',
+        label: 'Filer',
         status: patientId ? 'real' : 'disabled',
         kind: 'handler',
         handler: 'assets',
@@ -195,7 +195,7 @@
         id: 'offer',
         label: 'Skapa offert',
         status: 'disabled',
-        disabledReason: 'Kommer i P1',
+        disabledReason: 'Kräver offertmotor · Kommer i P1',
         requiredData: 'cco-commercial offer route',
       }),
       def({
@@ -211,19 +211,19 @@
       }),
       def({
         id: 'export',
-        label: 'Exportera urval',
+        label: 'Export',
         status: 'disabled',
         disabledReason: 'Ej kopplat ännu',
       }),
       def({
         id: 'bulk',
-        label: 'Massåtgärd',
+        label: 'Bulk',
         status: 'disabled',
         disabledReason: 'Ej kopplat ännu',
       }),
       def({
         id: 'merge',
-        label: 'Merge/dedupe',
+        label: 'Merge',
         status: 'disabled',
         disabledReason: 'Kräver behörighet · P1',
         rbac: RBAC.merge,
@@ -237,7 +237,7 @@
       }),
       def({
         id: 'access',
-        label: 'Spärra åtkomst',
+        label: 'Åtkomst',
         status: journalBlocked ? 'blocked' : 'disabled',
         disabledReason: journalBlocked ? journalReason : 'Kräver journal-admin P1',
         requiredData: 'journal.lock RBAC',
