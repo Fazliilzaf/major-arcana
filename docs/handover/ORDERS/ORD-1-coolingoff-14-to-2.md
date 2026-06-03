@@ -3,7 +3,7 @@
 **Created:** 2026-06-03
 **Assignee:** cursor
 **Priority:** P0
-**Status:** awaiting-fazli
+**Status:** done
 **Notion:** https://app.notion.com/p/374060ccc15b816498e3f88ef36ba039
 
 ---
@@ -61,11 +61,20 @@ Relaterat P0 (samma session): kundresa-9-steg docs, segment `missing_health_decl
 | `npm run cco:real-cco-gate`                    | **PASS** (pre-deploy) |
 | Unit tests (cooling + offer)                   | **PASS**              |
 
-### Nästa beslut (Fazli)
+### Deploy (2026-06-03)
 
-- [ ] **Deploy** till prod (commit på branch — push/deploy ej körd av Cursor om ej konfigurerat)
-- [ ] Bekräfta Notion-status `done`
-- [ ] Kör `cco:real-cco-gate` efter deploy
+|                   |                                                                           |
+| ----------------- | ------------------------------------------------------------------------- |
+| Commit            | `7bca8362`                                                                |
+| Render            | `dep-d8g88geq1p3s739aojvg` **live**                                       |
+| Service           | `arcana` · `srv-d8b3i3tckfvc73clgeng` (Frankfurt)                         |
+| Branch            | `compliance/pipedrive-pii-purge` (commit deploy, ej merge till `main` än) |
+| Post-deploy gates | `cco:verify-kundresa-canonical-9-step` + `cco:real-cco-gate` **PASS**     |
+
+### Nästa (valfritt)
+
+- [ ] Notion ORD-1 → `done` (manuellt om MCP ej kopplat)
+- [ ] Cherry-pick/merge `7bca8362` → `main` om auto-deploy ska följa main framöver
 
 ---
 
@@ -75,6 +84,6 @@ Relaterat P0 (samma session): kundresa-9-steg docs, segment `missing_health_decl
 - [x] Central konstant införd
 - [x] Legacy-policy dokumenterad (`CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md`)
 - [x] Verify-script finns + grön
-- [x] `cco:real-cco-gate` grön (pre-deploy)
-- [ ] Deploy prod
-- [ ] Notion `done`
+- [x] `cco:real-cco-gate` grön (post-deploy)
+- [x] Deploy prod
+- [ ] Notion `done` (manuellt)
