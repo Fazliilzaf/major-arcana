@@ -66,6 +66,7 @@ else
 fi
 
 js=$(curl -sS "${BASE}/cco-kunder-real.js" 2>/dev/null || true)
+actions=$(curl -sS "${BASE}/cco-kunder-actions.js" 2>/dev/null || true)
 if echo "$js" | grep -q 'customers-shell' && echo "$js" | grep -q 'CcoJournalFeed.mount'; then
   pass 'cco-kunder-real.js wired on prod'
 else
@@ -86,8 +87,10 @@ fi
 
 if echo "$js" | grep -q 'Kopplas i Kalender P1'; then
   pass 'cco-kunder-real.js boka/omboka disabled copy on prod'
+elif echo "$actions" | grep -q 'Kopplas i Kalender P1'; then
+  pass 'cco-kunder-actions.js boka/omboka disabled copy on prod (P1.1)'
 else
-  fail 'cco-kunder-real.js missing calendar P1 disabled copy'
+  fail 'missing calendar P1 disabled copy on prod'
 fi
 
 MKUNDER_TMP="$(mktemp)"
@@ -129,7 +132,6 @@ else
   fail 'cco-kunder-mobil-real.js missing treatment segments (P1.1)'
 fi
 
-actions=$(curl -sS "${BASE}/cco-kunder-actions.js" 2>/dev/null || true)
 if echo "$actions" | grep -q 'handlesKunderActions' && echo "$actions" | grep -q 'Kopplas i Kalender P1'; then
   pass 'cco-kunder-actions.js on prod (P1.1)'
 else
