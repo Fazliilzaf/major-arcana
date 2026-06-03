@@ -19,6 +19,12 @@ const {
   DEFAULT_COOLING_OFF_DAYS,
   coolingOffDaysForNewHairTpRecord,
 } = require('./ccoHairTpCoolingOffPolicy');
+const {
+  computeSignedAgreementBookable,
+  defaultTemplateBindingForOffer,
+  resolveAgreementTemplateBinding,
+  isTemplateVersionApproved,
+} = require('./ccoTemplateVersionApprovalStore');
 const AGREEMENT_VERSION = '251203';
 
 function nowIso() {
@@ -96,12 +102,19 @@ function getCoolingOffMeta(agreement = {}, nowMs = Date.now()) {
   };
 }
 
-function buildTreatmentAgreementReadout(agreement = {}, { nowMs = Date.now() } = {}) {
+function buildTreatmentAgreementReadout(
+  agreement = {},
+  { nowMs = Date.now(), templateApproval = null } = {}
+) {
   const safe = asObject(agreement);
   const status = normalizeEnum(safe.agreementStatus, AGREEMENT_STATUSES, 'draft');
   const deliveryMode = normalizeEnum(safe.deliveryMode, DELIVERY_MODES, 'plats');
   const cooling = getCoolingOffMeta(safe, nowMs);
   const patientInfoSent = Boolean(safe.patientInfoSentAt);
+  const templateBinding = resolveAgreementTemplateBinding(safe);
+  const templateVersionApproved = templateBinding.requiresApproval
+    ? isTemplateVersionApproved(templateApproval)
+    : true;
 
   let phase = 'draft';
   let nextStep = 'Skicka patientinformation (bilaga 1) till kunden.';
@@ -113,9 +126,17 @@ function buildTreatmentAgreementReadout(agreement = {}, { nowMs = Date.now() } =
     nextStep = 'Avtalet är avbrutet.';
   } else if (status === 'bookable' || status === 'signed') {
     phase = status === 'bookable' ? 'bookable' : 'signed';
-    nextStep = 'Avtalet är signerat — kunden kan boka behandlingstid.';
-    waitingOn = 'customer';
-    bookable = true;
+    bookable = computeSignedAgreementBookable(safe, templateApproval);
+    if (bookable) {
+      nextStep = 'Avtalet är signerat — kunden kan boka behandlingstid.';
+      waitingOn = 'customer';
+    } else if (templateBinding.requiresApproval) {
+      nextStep = `Mall ${templateBinding.templateId}@${templateBinding.templateVersion} väntar legal review.`;
+      waitingOn = 'legal';
+    } else {
+      nextStep = 'Avtalet är signerat men inte bokningsbart än.';
+      waitingOn = 'legal';
+    }
   } else if (status === 'cooling_off' || (status === 'sent' && cooling.active)) {
     phase = 'cooling_off';
     nextStep = `Betänketid till ${cooling.endsAt.slice(0, 10)} (${cooling.remainingDays} dagar kvar).`;
@@ -146,6 +167,10 @@ function buildTreatmentAgreementReadout(agreement = {}, { nowMs = Date.now() } =
     nextStep,
     waitingOn,
     bookable,
+    templateId: templateBinding.templateId || null,
+    templateVersion: templateBinding.templateVersion || null,
+    templateVersionApproved,
+    templateApprovalStatus: normalizeText(templateApproval?.status) || null,
     angerBlanketUrl:
       deliveryMode === 'distans'
         ? 'https://www.konsumentverket.se/for-foretag/konsumentratt-for-foretagare/om-konsumentratt/om-konsumentratt/angerblankett/'
@@ -210,6 +235,8 @@ function normalizeAgreement(input = {}, existing = {}) {
     ),
     agreementVersion:
       normalizeText(safe.agreementVersion || previous.agreementVersion) || AGREEMENT_VERSION,
+    templateId: normalizeText(safe.templateId || previous.templateId),
+    templateVersion: normalizeText(safe.templateVersion || previous.templateVersion),
     linkedCommercialCaseId: normalizeText(
       safe.linkedCommercialCaseId || previous.linkedCommercialCaseId
     ),
@@ -320,4 +347,5 @@ module.exports = {
   buildTreatmentAgreementReadout,
   canAcceptAgreement,
   createCcoTreatmentAgreementStore,
+  defaultTemplateBindingForOffer,
 };

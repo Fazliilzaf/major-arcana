@@ -16,6 +16,7 @@ const { isAutomationRunnerEnabled } = require('../ops/ccoAutomationRegistry');
 const {
   evaluatePatientSignals,
   getTreatmentAgreementStore,
+  getTemplateVersionApprovalStore,
   loadAgreementContext,
 } = require('../ops/ccoAutomationRunner');
 const { attachAutomationRoutes } = require('./ccoAutomationRoutes');
@@ -212,10 +213,12 @@ function createCcoStaffRouter({
               };
             } else {
               const agreementStore = await getTreatmentAgreementStore(config);
+              const templateApprovalStore = await getTemplateVersionApprovalStore(config);
               const enriched = [];
               for (const readout of readouts) {
                 const agreement = await loadAgreementContext(
                   agreementStore,
+                  templateApprovalStore,
                   actor.tenantId,
                   readout.patientId
                 );

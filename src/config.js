@@ -463,6 +463,11 @@ const config = {
     stateRoot,
     fileName: 'cco-treatment-agreements.json',
   }),
+  ccoTemplateVersionApprovalStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_TEMPLATE_VERSION_APPROVAL_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-template-version-approvals.json',
+  }),
   ccoPatientCareStateStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_PATIENT_CARE_STATE_STORE_PATH,
     stateRoot,

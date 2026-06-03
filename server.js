@@ -10179,6 +10179,9 @@ const { createCcoTreatmentEncounterStore } = require('./src/ops/ccoTreatmentEnco
 const { createCcoJournalPhotoStore } = require('./src/ops/ccoJournalPhotoStore');
 const { createCcoCommercialStore } = require('./src/ops/ccoCommercialStore');
 const { createCcoTreatmentAgreementStore } = require('./src/ops/ccoTreatmentAgreementStore');
+const {
+  createCcoTemplateVersionApprovalStore,
+} = require('./src/ops/ccoTemplateVersionApprovalStore');
 const { createCcoOfferDocumentStore } = require('./src/ops/ccoOfferDocumentStore');
 const { createCcoMigrationIndexStore } = require('./src/ops/ccoMigrationIndexStore');
 const { createCcoPatientSystemStore } = require('./src/ops/ccoPatientSystemStore');
@@ -11510,6 +11513,9 @@ process.once('SIGTERM', () => {
   const ccoTreatmentAgreementStore = await createCcoTreatmentAgreementStore({
     filePath: config.ccoTreatmentAgreementStorePath,
   });
+  const ccoTemplateVersionApprovalStore = await createCcoTemplateVersionApprovalStore({
+    filePath: config.ccoTemplateVersionApprovalStorePath,
+  });
   const ccoOfferDocumentStore = await createCcoOfferDocumentStore({
     baseDir: config.offerDocumentsDir,
   });
@@ -12170,6 +12176,7 @@ process.once('SIGTERM', () => {
       bookingEngineStore: ccoBookingEngineStore,
       bookingStore: ccoBookingStore,
       treatmentAgreementStore: ccoTreatmentAgreementStore,
+      templateVersionApprovalStore: ccoTemplateVersionApprovalStore,
       patientMasterStore: ccoPatientMasterStore,
       journalStore: ccoJournalStore,
       treatmentEncounterStore: ccoTreatmentEncounterStore,
@@ -12298,6 +12305,7 @@ process.once('SIGTERM', () => {
     '/api/v1',
     createCcoTreatmentAgreementRouter({
       treatmentAgreementStore: ccoTreatmentAgreementStore,
+      templateVersionApprovalStore: ccoTemplateVersionApprovalStore,
       commercialStore: ccoCommercialStore,
       patientMasterStore: ccoPatientMasterStore,
       offerDocumentStore: ccoOfferDocumentStore,

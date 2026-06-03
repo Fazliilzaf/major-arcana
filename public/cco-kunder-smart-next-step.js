@@ -50,7 +50,7 @@
     },
     'customer.missing_operation_day_insurance': {
       buttonLabel: 'Portal-länk',
-      disabledReason: 'Ej T-48 mail — friskförsäkran på operationsdagen',
+      disabledReason: 'Friskförsäkran krävs på operationsdagen',
     },
     'customer.missing_photo_consent': {
       buttonLabel: 'Samtycke',

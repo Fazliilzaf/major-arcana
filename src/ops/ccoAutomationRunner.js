@@ -7,8 +7,10 @@ const {
   createCcoTreatmentAgreementStore,
   getCoolingOffMeta,
 } = require('./ccoTreatmentAgreementStore');
+const { resolveTemplateApprovalForAgreement } = require('./ccoTreatmentAgreementTemplateGate');
 
 let agreementStoreSingleton = null;
+let templateApprovalStoreSingleton = null;
 
 async function getTreatmentAgreementStore(config) {
   const filePath = config?.ccoTreatmentAgreementStorePath;
@@ -17,6 +19,16 @@ async function getTreatmentAgreementStore(config) {
     agreementStoreSingleton = await createCcoTreatmentAgreementStore({ filePath });
   }
   return agreementStoreSingleton;
+}
+
+async function getTemplateVersionApprovalStore(config) {
+  const filePath = config?.ccoTemplateVersionApprovalStorePath;
+  if (!filePath) return null;
+  if (!templateApprovalStoreSingleton) {
+    const { createCcoTemplateVersionApprovalStore } = require('./ccoTemplateVersionApprovalStore');
+    templateApprovalStoreSingleton = await createCcoTemplateVersionApprovalStore({ filePath });
+  }
+  return templateApprovalStoreSingleton;
 }
 
 function buildSignal(
@@ -119,11 +131,19 @@ function evaluateRule(rule, ctx) {
       });
     }
     case 'customer.missing_agreement_consent_bundle': {
-      const active = readout.missingAgreement === true && readout.hasJournal === true;
+      const bundleReady = agreement?.bookable === true;
+      const active =
+        readout.hasJournal === true && (readout.missingAgreement === true || !bundleReady);
       return buildSignal(rule, {
         active,
         confidence: 'medium',
-        dataProvenance: ['readout.missingAgreement', 'readout.hasJournal'],
+        inactiveReason: bundleReady ? 'Bundle + mall-godkännande uppfyllt' : null,
+        dataProvenance: [
+          'readout.missingAgreement',
+          'readout.hasJournal',
+          'agreement.bookable',
+          'templateVersionApproval',
+        ],
       });
     }
     case 'customer.missing_operation_day_insurance': {
@@ -184,7 +204,12 @@ function evaluatePatientSignals(readout, ctx = {}) {
   };
 }
 
-async function loadAgreementContext(treatmentAgreementStore, tenantId, patientId) {
+async function loadAgreementContext(
+  treatmentAgreementStore,
+  templateVersionApprovalStore,
+  tenantId,
+  patientId
+) {
   if (!treatmentAgreementStore || !patientId) return null;
   try {
     const agreement = await treatmentAgreementStore.getPatientAgreement({
@@ -192,10 +217,17 @@ async function loadAgreementContext(treatmentAgreementStore, tenantId, patientId
       patientId,
     });
     if (!agreement) return null;
-    const readout = buildTreatmentAgreementReadout(agreement);
+    const templateApproval = await resolveTemplateApprovalForAgreement(
+      templateVersionApprovalStore,
+      agreement
+    );
+    const readout = buildTreatmentAgreementReadout(agreement, { templateApproval });
     return {
       status: readout.status,
       bookable: readout.bookable,
+      templateVersionApproved: readout.templateVersionApproved,
+      templateId: readout.templateId,
+      templateVersion: readout.templateVersion,
       coolingOff: readout.coolingOff || getCoolingOffMeta(agreement),
     };
   } catch {
@@ -208,5 +240,6 @@ module.exports = {
   evaluateRule,
   loadAgreementContext,
   getTreatmentAgreementStore,
+  getTemplateVersionApprovalStore,
   buildSignal,
 };

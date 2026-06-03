@@ -16,9 +16,7 @@ const {
   notifyStaffBookingConfirmed,
 } = require('../ops/ccoBookingStaffNotify');
 const { dispatchBookingCancellationEmail } = require('../ops/ccoPatientCareOps');
-const {
-  buildMeridiqConsentReadout,
-} = require('../ops/meridiqConsentCatalogRuntime');
+const { buildMeridiqConsentReadout } = require('../ops/meridiqConsentCatalogRuntime');
 const {
   assertTreatmentBookingAllowed,
   buildTreatmentAgreementBookingBlocker,
@@ -394,6 +392,7 @@ function createCcoBookingEngineRouter({
   historyStore = null,
   patientSystemStore = null,
   treatmentAgreementStore = null,
+  templateVersionApprovalStore = null,
   patientMasterStore = null,
   journalStore = null,
   treatmentEncounterStore = null,
@@ -469,6 +468,7 @@ function createCcoBookingEngineRouter({
     };
     return checkTreatmentBookingGate({
       treatmentAgreementStore,
+      templateVersionApprovalStore,
       patientMasterStore,
       tenantId: context.tenantId,
       customerEmail: context.customerEmail,

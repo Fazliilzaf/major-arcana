@@ -5,6 +5,7 @@ const {
   evaluatePatientSignals,
   loadAgreementContext,
   getTreatmentAgreementStore,
+  getTemplateVersionApprovalStore,
 } = require('../ops/ccoAutomationRunner');
 const {
   buildKunderReadout,
@@ -85,7 +86,13 @@ function attachAutomationRoutes(router, deps) {
           patientMasterStore,
         });
         const agreementStore = await getTreatmentAgreementStore(config);
-        const agreement = await loadAgreementContext(agreementStore, actor.tenantId, patientId);
+        const templateApprovalStore = await getTemplateVersionApprovalStore(config);
+        const agreement = await loadAgreementContext(
+          agreementStore,
+          templateApprovalStore,
+          actor.tenantId,
+          patientId
+        );
         const readout = buildKunderReadout(patient, assetIndex, bookingBundle.index, {
           fasA: fasAMap.get(patientId),
           agreement,
@@ -144,6 +151,7 @@ function attachAutomationRoutes(router, deps) {
           loadKunderBookingIndex(config, actor.tenantId, list.patients),
         ]);
         const agreementStore = await getTreatmentAgreementStore(config);
+        const templateApprovalStore = await getTemplateVersionApprovalStore(config);
         const fasAMap = await loadFasAContextForPatients({
           config,
           tenantId: actor.tenantId,
@@ -154,7 +162,12 @@ function attachAutomationRoutes(router, deps) {
 
         for (const patient of list.patients) {
           const pid = normalizeText(patient.id);
-          const agreement = await loadAgreementContext(agreementStore, actor.tenantId, pid);
+          const agreement = await loadAgreementContext(
+            agreementStore,
+            templateApprovalStore,
+            actor.tenantId,
+            pid
+          );
           const readout = buildKunderReadout(patient, assetIndex, bookingBundle.index, {
             fasA: fasAMap.get(pid),
             agreement,

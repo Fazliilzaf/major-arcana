@@ -11,6 +11,8 @@ const path = require('node:path');
 const REPO = path.join(__dirname, '..');
 const REGISTRY = path.join(REPO, 'src/ops/ccoAutomationRegistry.js');
 const RUNNER = path.join(REPO, 'src/ops/ccoAutomationRunner.js');
+const TREATMENT_ROUTES = path.join(REPO, 'src/routes/ccoTreatmentAgreement.js');
+const TEMPLATE_STORE = path.join(REPO, 'src/ops/ccoTemplateVersionApprovalStore.js');
 const FAS_A = path.join(REPO, 'src/ops/ccoKunderFasAReadiness.js');
 const STAFF = path.join(REPO, 'src/routes/ccoStaff.js');
 const AUTO_ROUTES = path.join(REPO, 'src/routes/ccoAutomationRoutes.js');
@@ -49,6 +51,23 @@ if (!fs.existsSync(FAS_A)) {
   fail('ccoKunderFasAReadiness.js saknas');
 } else {
   pass('Fas A enrichment-modul finns');
+}
+
+const routesSrc = fs.readFileSync(TREATMENT_ROUTES, 'utf8');
+if (!routesSrc.includes('template-version-approval')) {
+  fail('ccoTreatmentAgreement saknar template-version-approval route (ORD-6)');
+} else {
+  pass('ORD-6 template-version-approval route');
+}
+if (routesSrc.includes('record-legal-review')) {
+  fail('record-legal-review får inte finnas (väg A)');
+} else {
+  pass('ingen record-legal-review (väg A)');
+}
+if (!fs.existsSync(TEMPLATE_STORE)) {
+  fail('ccoTemplateVersionApprovalStore.js saknas');
+} else {
+  pass('ccoTemplateVersionApprovalStore finns');
 }
 
 for (const [file, needle] of [
