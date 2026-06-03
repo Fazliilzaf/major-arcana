@@ -30,182 +30,419 @@
         --purple: #6b5b95;
         --purple-bg: #e6e0f0;
       }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background:
           radial-gradient(1200px 600px at 10% -10%, #f7eed7 0%, transparent 60%),
-          radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%),
-          var(--bg);
+          radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%), var(--bg);
         color: var(--ink);
-        font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font:
+          14.5px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          'SF Pro Display',
+          Inter,
+          system-ui,
+          sans-serif;
         min-height: 100vh;
       }
-      .container { max-width: 1120px; margin: 0 auto; padding: 26px 28px 80px; }
+      .container {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 26px 28px 80px;
+      }
 
       .topbar {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         padding: 18px 22px;
         background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
-        border: 1px solid var(--line); border-radius: 18px;
-        box-shadow: 0 6px 18px rgba(80,60,30,0.1), inset 0 1px 0 rgba(255,255,255,0.55);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow:
+          0 6px 18px rgba(80, 60, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
         margin-bottom: 20px;
       }
-      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
       .brand-mark {
-        width: 44px; height: 44px; border-radius: 11px;
+        width: 44px;
+        height: 44px;
+        border-radius: 11px;
         background: linear-gradient(135deg, #b08b3f, #6d4e1c);
-        color: #fff; font-weight: 700; font-size: 14px;
-        display: grid; place-items: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 14px;
+        display: grid;
+        place-items: center;
       }
-      .brand-title { font-size: 16.5px; font-weight: 700; }
-      .brand-sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+      .brand-title {
+        font-size: 16.5px;
+        font-weight: 700;
+      }
+      .brand-sub {
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin-top: 2px;
+      }
       .back-btn {
-        padding: 9px 16px; background: var(--paper); color: var(--ink);
-        border: 1px solid var(--line); border-radius: 10px;
-        font-weight: 600; font-size: 12.5px; text-decoration: none;
+        padding: 9px 16px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 12.5px;
+        text-decoration: none;
       }
-      .back-btn:hover { background: #fff8e8; border-color: var(--accent); }
+      .back-btn:hover {
+        background: #fff8e8;
+        border-color: var(--accent);
+      }
 
       .hero {
-        margin-bottom: 24px; padding: 26px 30px;
-        background: var(--paper); border: 1px solid var(--line); border-radius: 18px;
-        box-shadow: 0 4px 14px rgba(80,60,30,0.1), inset 0 1px 0 rgba(255,255,255,0.6);
-        position: relative; overflow: hidden;
+        margin-bottom: 24px;
+        padding: 26px 30px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow:
+          0 4px 14px rgba(80, 60, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        position: relative;
+        overflow: hidden;
       }
       .hero::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
         background: linear-gradient(90deg, var(--accent), var(--accent-deep));
       }
-      .hero-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-deep); font-weight: 700; }
-      .hero h1 { margin: 4px 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.15; }
-      .hero p { margin: 0; font-size: 14.5px; max-width: 800px; }
+      .hero-kicker {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent-deep);
+        font-weight: 700;
+      }
+      .hero h1 {
+        margin: 4px 0 8px;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.3px;
+        line-height: 1.15;
+      }
+      .hero p {
+        margin: 0;
+        font-size: 14.5px;
+        max-width: 800px;
+      }
 
       .section-title {
-        font-size: 11.5px; text-transform: uppercase; letter-spacing: 2px;
-        color: var(--ink-soft); font-weight: 700;
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--ink-soft);
+        font-weight: 700;
         margin: 28px 0 12px;
-        display: flex; align-items: center; gap: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
-      .section-title::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+      .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
       .section-title-num {
-        display: inline-grid; place-items: center;
-        width: 22px; height: 22px; border-radius: 6px;
-        background: var(--accent); color: #fff;
-        font-weight: 800; font-size: 11px;
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 800;
+        font-size: 11px;
       }
 
       /* ROLES GRID */
       .roles-grid {
-        display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
       }
       .role-card {
-        padding: 18px 22px; border-radius: 14px;
-        background: var(--paper); border: 1px solid var(--line);
-        box-shadow: 0 3px 10px rgba(80,60,30,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+        padding: 18px 22px;
+        border-radius: 14px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        box-shadow:
+          0 3px 10px rgba(80, 60, 30, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
         border-left: 4px solid var(--accent);
       }
-      .role-card.personal { border-left-color: var(--green); }
-      .role-card.admin { border-left-color: var(--blue); }
-      .role-card.owner { border-left-color: var(--accent); }
-      .role-card.observer { border-left-color: var(--purple); }
-      .role-kicker {
-        font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.5px;
-        color: var(--accent-deep); font-weight: 700; margin-bottom: 3px;
+      .role-card.personal {
+        border-left-color: var(--green);
       }
-      .role-card.personal .role-kicker { color: var(--green-deep); }
-      .role-card.admin .role-kicker { color: var(--blue-deep); }
-      .role-card.observer .role-kicker { color: var(--purple); }
-      .role-card h2 { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
-      .role-card .role-who { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 10px; font-style: italic; }
-      .role-card ul { margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.55; }
-      .role-card li { margin: 3px 0; }
-      .role-card li strong { color: var(--ink); }
+      .role-card.admin {
+        border-left-color: var(--blue);
+      }
+      .role-card.owner {
+        border-left-color: var(--accent);
+      }
+      .role-card.observer {
+        border-left-color: var(--purple);
+      }
+      .role-kicker {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--accent-deep);
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+      .role-card.personal .role-kicker {
+        color: var(--green-deep);
+      }
+      .role-card.admin .role-kicker {
+        color: var(--blue-deep);
+      }
+      .role-card.observer .role-kicker {
+        color: var(--purple);
+      }
+      .role-card h2 {
+        font-size: 17px;
+        font-weight: 700;
+        margin: 0 0 8px;
+      }
+      .role-card .role-who {
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        margin: 0 0 10px;
+        font-style: italic;
+      }
+      .role-card ul {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 13.5px;
+        line-height: 1.55;
+      }
+      .role-card li {
+        margin: 3px 0;
+      }
+      .role-card li strong {
+        color: var(--ink);
+      }
 
       /* TIMELINE STEPS */
       .timeline-step {
-        padding: 16px 22px; background: var(--paper);
-        border: 1px solid var(--line); border-radius: 12px;
+        padding: 16px 22px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
         margin-bottom: 10px;
-        display: grid; grid-template-columns: 60px 1fr; gap: 14px;
+        display: grid;
+        grid-template-columns: 60px 1fr;
+        gap: 14px;
         align-items: start;
-        box-shadow: 0 2px 8px rgba(80,60,30,0.08), inset 0 1px 0 rgba(255,255,255,0.55);
+        box-shadow:
+          0 2px 8px rgba(80, 60, 30, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
       }
       .timeline-step-tag {
         font-family: SFMono-Regular, Menlo, monospace;
-        font-size: 11px; font-weight: 800;
-        padding: 4px 8px; border-radius: 6px;
-        background: var(--paper-deep); color: var(--accent-deep);
+        font-size: 11px;
+        font-weight: 800;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: var(--paper-deep);
+        color: var(--accent-deep);
         text-align: center;
         border: 1px solid var(--line);
         height: fit-content;
       }
-      .timeline-step h3 { margin: 0 0 4px; font-size: 14.5px; font-weight: 700; }
-      .timeline-step p { margin: 0; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
-      .timeline-step p strong { color: var(--ink); }
+      .timeline-step h3 {
+        margin: 0 0 4px;
+        font-size: 14.5px;
+        font-weight: 700;
+      }
+      .timeline-step p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--ink-soft);
+        line-height: 1.5;
+      }
+      .timeline-step p strong {
+        color: var(--ink);
+      }
 
       /* SCENARIO GRID */
       .scenario-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
       }
       .scenario {
-        padding: 14px 18px; border-radius: 12px;
-        background: var(--paper); border: 1px solid var(--line);
+        padding: 14px 18px;
+        border-radius: 12px;
+        background: var(--paper);
+        border: 1px solid var(--line);
         border-left: 4px solid var(--accent);
       }
-      .scenario.go { border-left-color: var(--green); background: linear-gradient(180deg, var(--paper) 0%, var(--green-bg) 100%); }
-      .scenario.warn { border-left-color: var(--orange); background: linear-gradient(180deg, var(--paper) 0%, var(--orange-bg) 100%); }
-      .scenario.stop { border-left-color: var(--red); background: linear-gradient(180deg, var(--paper) 0%, var(--red-bg) 100%); }
-      .scenario h4 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
-      .scenario p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink); }
-      .scenario p strong { color: var(--ink); font-weight: 700; }
+      .scenario.go {
+        border-left-color: var(--green);
+        background: linear-gradient(180deg, var(--paper) 0%, var(--green-bg) 100%);
+      }
+      .scenario.warn {
+        border-left-color: var(--orange);
+        background: linear-gradient(180deg, var(--paper) 0%, var(--orange-bg) 100%);
+      }
+      .scenario.stop {
+        border-left-color: var(--red);
+        background: linear-gradient(180deg, var(--paper) 0%, var(--red-bg) 100%);
+      }
+      .scenario h4 {
+        margin: 0 0 6px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .scenario p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--ink);
+      }
+      .scenario p strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
 
       /* FORBIDDEN CARD */
       .forbidden {
         background: linear-gradient(180deg, var(--red-bg) 0%, #e9a89c 100%);
-        border: 1.5px solid var(--red); border-radius: 14px;
+        border: 1.5px solid var(--red);
+        border-radius: 14px;
         padding: 20px 24px;
-        box-shadow: 0 4px 14px rgba(160,68,50,0.18), inset 0 1px 0 rgba(255,255,255,0.4);
+        box-shadow:
+          0 4px 14px rgba(160, 68, 50, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4);
       }
-      .forbidden h3 { margin: 0 0 10px; font-size: 16px; color: var(--red-deep); display: flex; align-items: center; gap: 8px; }
-      .forbidden ul { margin: 6px 0 0; padding-left: 22px; }
-      .forbidden li { margin: 5px 0; font-size: 13.5px; color: var(--ink); }
-      .forbidden li strong { color: var(--red-deep); }
+      .forbidden h3 {
+        margin: 0 0 10px;
+        font-size: 16px;
+        color: var(--red-deep);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .forbidden ul {
+        margin: 6px 0 0;
+        padding-left: 22px;
+      }
+      .forbidden li {
+        margin: 5px 0;
+        font-size: 13.5px;
+        color: var(--ink);
+      }
+      .forbidden li strong {
+        color: var(--red-deep);
+      }
 
       /* QUICKLINKS */
       .quicklinks {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
         margin-bottom: 22px;
       }
       .quicklink {
-        padding: 14px 16px; background: var(--paper-soft);
-        border: 1px solid var(--line); border-radius: 10px;
-        text-decoration: none; color: var(--ink);
-        text-align: center; transition: all 0.15s;
+        padding: 14px 16px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        text-decoration: none;
+        color: var(--ink);
+        text-align: center;
+        transition: all 0.15s;
       }
-      .quicklink:hover { background: #fff8e8; border-color: var(--accent); transform: translateY(-1px); }
-      .quicklink-icon { font-size: 22px; line-height: 1; margin-bottom: 4px; }
-      .quicklink-title { font-size: 12.5px; font-weight: 700; }
-      .quicklink-sub { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+      .quicklink:hover {
+        background: #fff8e8;
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
+      .quicklink-icon {
+        font-size: 22px;
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+      .quicklink-title {
+        font-size: 12.5px;
+        font-weight: 700;
+      }
+      .quicklink-sub {
+        font-size: 11px;
+        color: var(--ink-soft);
+        margin-top: 2px;
+      }
 
       .footer {
-        margin-top: 30px; padding: 16px 20px;
-        background: var(--paper-soft); border: 1px solid var(--line);
-        border-radius: 12px; text-align: center;
-        font-size: 12.5px; color: var(--ink-soft);
+        margin-top: 30px;
+        padding: 16px 20px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        text-align: center;
+        font-size: 12.5px;
+        color: var(--ink-soft);
       }
-      .footer strong { color: var(--ink); }
-      .footer a { color: var(--accent-deep); text-decoration: none; }
+      .footer strong {
+        color: var(--ink);
+      }
+      .footer a {
+        color: var(--accent-deep);
+        text-decoration: none;
+      }
 
       @media (max-width: 820px) {
-        .container { padding: 16px; }
-        .topbar { flex-direction: column; gap: 12px; align-items: stretch; }
-        .roles-grid { grid-template-columns: 1fr; }
-        .scenario-grid { grid-template-columns: 1fr; }
-        .quicklinks { grid-template-columns: 1fr 1fr; }
-        .hero h1 { font-size: 22px; }
+        .container {
+          padding: 16px;
+        }
+        .topbar {
+          flex-direction: column;
+          gap: 12px;
+          align-items: stretch;
+        }
+        .roles-grid {
+          grid-template-columns: 1fr;
+        }
+        .scenario-grid {
+          grid-template-columns: 1fr;
+        }
+        .quicklinks {
+          grid-template-columns: 1fr 1fr;
+        }
+        .hero h1 {
+          font-size: 22px;
+        }
       }
-    </style>    <link rel="stylesheet" href="/cco-staff-shell.css" />
+    </style>
+    <link rel="stylesheet" href="/cco-staff-shell.css" />
     <script defer src="/cco-staff-shell.js"></script>
   </head>
   <body>
@@ -218,18 +455,21 @@
             <div class="brand-sub">Hair TP Clinic · vem gör vad · när stoppa · när eskalera</div>
           </div>
         </div>
-        <a class="back-btn" href="/cco-personal-start.html">← Personalstart</a>
+        <a class="back-btn" href="/cco-demo.html">← Personalstart</a>
       </div>
 
       <div class="hero">
         <div class="hero-kicker">Dag 1 · första arbetsdagen efter mötet</div>
         <h1>Vem gör vad — och vad gör man när?</h1>
-        <p>Den här sidan beskriver hur första arbetsdagen styrs. Roller, första patienten, första journalen, vanliga scenarios — och vad som <strong>inte</strong> får göras dag 1.</p>
+        <p>
+          Den här sidan beskriver hur första arbetsdagen styrs. Roller, första patienten, första
+          journalen, vanliga scenarios — och vad som <strong>inte</strong> får göras dag 1.
+        </p>
       </div>
 
       <!-- QUICKLINKS -->
       <div class="quicklinks">
-        <a class="quicklink" href="/cco-personal-start.html" target="_blank" rel="noopener">
+        <a class="quicklink" href="/cco-demo.html" target="_blank" rel="noopener">
           <div class="quicklink-icon">🏠</div>
           <div class="quicklink-title">Personalstart</div>
           <div class="quicklink-sub">huvudfönster</div>
@@ -279,10 +519,14 @@
           <h2>Behandlare / sköterska / receptionist</h2>
           <p class="role-who">Den som möter patienten och skriver journal</p>
           <ul>
-            <li><strong>Verifierar identitet</strong> före varje signering (namn + tel + Cliento-id)</li>
+            <li>
+              <strong>Verifierar identitet</strong> före varje signering (namn + tel + Cliento-id)
+            </li>
             <li><strong>Skapar och signerar</strong> journalpost</li>
             <li><strong>Gör rättelse</strong> som ny post om något måste korrigeras</li>
-            <li><strong>Eskalerar</strong> osäker identitet eller misstänkt dubblett till admin/ops</li>
+            <li>
+              <strong>Eskalerar</strong> osäker identitet eller misstänkt dubblett till admin/ops
+            </li>
             <li><strong>Skriver inte</strong> nya kunder vid tvekan — eskalerar istället</li>
           </ul>
         </div>
@@ -303,11 +547,16 @@
           <h2>Fazli</h2>
           <p class="role-who">Den som ansvarar för systemet och löser tekniska problem</p>
           <ul>
-            <li><strong>Är tillgänglig</strong> dag 1 för P0/P1-problem (krasch, fel patient, trasig sida)</li>
+            <li>
+              <strong>Är tillgänglig</strong> dag 1 för P0/P1-problem (krasch, fel patient, trasig
+              sida)
+            </li>
             <li><strong>Övervakar</strong> Command Center för live-status</li>
             <li><strong>Observerar</strong> Render-loggar för fel</li>
             <li><strong>Beslutar</strong> om pilot stoppas eller fortsätter vid större issues</li>
-            <li><strong>Aktiverar inte</strong> nya spår (Aisia, Fortnox, mail-dagligt) under pilot</li>
+            <li>
+              <strong>Aktiverar inte</strong> nya spår (Aisia, Fortnox, mail-dagligt) under pilot
+            </li>
           </ul>
         </div>
         <div class="role-card observer">
@@ -324,129 +573,232 @@
       </div>
 
       <!-- FIRST PATIENT / FIRST JOURNAL -->
-      <div class="section-title"><span class="section-title-num">B</span>Första patienten · första journalen</div>
+      <div class="section-title">
+        <span class="section-title-num">B</span>Första patienten · första journalen
+      </div>
       <div class="timeline-step">
         <div class="timeline-step-tag">PRE</div>
         <div>
           <h3>Innan första patienten kommer</h3>
-          <p>Personal har gått igenom <strong>Training Mode</strong> (5 stegs självträning) och bockat av <strong>Sign-off Sheet</strong>. Tekniskt: gate har körts (PASS), Command Center visar GO. Fazli är tillgänglig.</p>
+          <p>
+            Personal har gått igenom <strong>Training Mode</strong> (5 stegs självträning) och
+            bockat av <strong>Sign-off Sheet</strong>. Tekniskt: gate har körts (PASS), Command
+            Center visar GO. Fazli är tillgänglig.
+          </p>
         </div>
       </div>
       <div class="timeline-step">
         <div class="timeline-step-tag">+1 min</div>
         <div>
           <h3>Patienten kommer — verifiera identitet</h3>
-          <p>Personal frågar efter <strong>namn + telefon + Cliento-id</strong>. Alla tre måste matcha kundkortets header. Stämmer? → fortsätt. Stämmer inte? → eskalera till admin/ops.</p>
+          <p>
+            Personal frågar efter <strong>namn + telefon + Cliento-id</strong>. Alla tre måste
+            matcha kundkortets header. Stämmer? → fortsätt. Stämmer inte? → eskalera till admin/ops.
+          </p>
         </div>
       </div>
       <div class="timeline-step">
         <div class="timeline-step-tag">+3 min</div>
         <div>
           <h3>Öppna kundkort · läs befintlig historik</h3>
-          <p>Personal öppnar kundkortet, kollar journalfeed för befintliga poster. <strong>Tom?</strong> → ny patient i CCO, skapa första posten. <strong>Importerat material med "needs review"-badge?</strong> → använd bara som referens.</p>
+          <p>
+            Personal öppnar kundkortet, kollar journalfeed för befintliga poster.
+            <strong>Tom?</strong> → ny patient i CCO, skapa första posten.
+            <strong>Importerat material med "needs review"-badge?</strong> → använd bara som
+            referens.
+          </p>
         </div>
       </div>
       <div class="timeline-step">
         <div class="timeline-step-tag">+5 min</div>
         <div>
           <h3>Skapa journalpost (draft)</h3>
-          <p>Personal klickar <strong>"Ny anteckning"</strong>, väljer mall, skriver kort: datum + observation + plan. Sparar som draft.</p>
+          <p>
+            Personal klickar <strong>"Ny anteckning"</strong>, väljer mall, skriver kort: datum +
+            observation + plan. Sparar som draft.
+          </p>
         </div>
       </div>
       <div class="timeline-step">
         <div class="timeline-step-tag">+10 min</div>
         <div>
           <h3>Signera / lås</h3>
-          <p>Personal läser igenom posten, går igenom checklistan mentalt (rätt patient? text komplett? ingen extern AI?), klickar <strong>"Signera"</strong>, bekräftar dialogen. Posten är nu låst.</p>
+          <p>
+            Personal läser igenom posten, går igenom checklistan mentalt (rätt patient? text
+            komplett? ingen extern AI?), klickar <strong>"Signera"</strong>, bekräftar dialogen.
+            Posten är nu låst.
+          </p>
         </div>
       </div>
       <div class="timeline-step">
         <div class="timeline-step-tag">+12 min</div>
         <div>
           <h3>Klart · gå till nästa</h3>
-          <p>Första journalen är signerad. Personal går till nästa patient. Om personal är osäker — öppna <a href="/journal-pilot-guide.html" style="color:var(--accent-deep); font-weight:600;">guiden</a> eller <a href="/cco-journalpilot-faq.html" style="color:var(--accent-deep); font-weight:600;">FAQ</a>.</p>
+          <p>
+            Första journalen är signerad. Personal går till nästa patient. Om personal är osäker —
+            öppna
+            <a href="/journal-pilot-guide.html" style="color: var(--accent-deep); font-weight: 600"
+              >guiden</a
+            >
+            eller
+            <a href="/cco-journalpilot-faq.html" style="color: var(--accent-deep); font-weight: 600"
+              >FAQ</a
+            >.
+          </p>
         </div>
       </div>
 
       <!-- WHEN STOP / ESCALATE -->
-      <div class="section-title"><span class="section-title-num">C</span>När stoppa · när eskalera</div>
+      <div class="section-title">
+        <span class="section-title-num">C</span>När stoppa · när eskalera
+      </div>
       <div class="scenario-grid">
         <div class="scenario stop">
           <h4>🛑 STOPPA om...</h4>
-          <p>Du har börjat skriva på <strong>fel patient</strong> — SPARA INTE. Stäng kortet. Skärmdump → Fazli direkt.</p>
+          <p>
+            Du har börjat skriva på <strong>fel patient</strong> — SPARA INTE. Stäng kortet.
+            Skärmdump → Fazli direkt.
+          </p>
         </div>
         <div class="scenario stop">
           <h4>🛑 STOPPA om...</h4>
-          <p>Identitet inte stämmer — säg <em>"en sekund så dubbelkollar jag"</em> till patienten. Eskalera till admin/ops.</p>
+          <p>
+            Identitet inte stämmer — säg <em>"en sekund så dubbelkollar jag"</em> till patienten.
+            Eskalera till admin/ops.
+          </p>
         </div>
         <div class="scenario warn">
           <h4>⚠️ ESKALERA om...</h4>
-          <p>Misstänker <strong>dubblett-kund</strong>. Två liknande träffar i sökningen. → Admin/ops mergar inte själv.</p>
+          <p>
+            Misstänker <strong>dubblett-kund</strong>. Två liknande träffar i sökningen. → Admin/ops
+            mergar inte själv.
+          </p>
         </div>
         <div class="scenario warn">
           <h4>⚠️ ESKALERA om...</h4>
-          <p>Patient frågar om <strong>GDPR-export</strong> av sin journal. → Säg "jag vidarebefordrar till admin".</p>
+          <p>
+            Patient frågar om <strong>GDPR-export</strong> av sin journal. → Säg "jag
+            vidarebefordrar till admin".
+          </p>
         </div>
         <div class="scenario warn">
           <h4>⚠️ ESKALERA om...</h4>
-          <p>Sidan beter sig konstigt — trasig layout, knappar saknas, content som inte stämmer. → Skärmdump → Fazli.</p>
+          <p>
+            Sidan beter sig konstigt — trasig layout, knappar saknas, content som inte stämmer. →
+            Skärmdump → Fazli.
+          </p>
         </div>
         <div class="scenario warn">
           <h4>⚠️ ESKALERA om...</h4>
-          <p>Patient ifrågasätter en gammal journal eller historik. → Säg "jag tar in admin på den frågan".</p>
+          <p>
+            Patient ifrågasätter en gammal journal eller historik. → Säg "jag tar in admin på den
+            frågan".
+          </p>
         </div>
       </div>
 
       <!-- COMMON SCENARIOS -->
-      <div class="section-title"><span class="section-title-num">D</span>Vanliga scenarios · vad gör man om...</div>
+      <div class="section-title">
+        <span class="section-title-num">D</span>Vanliga scenarios · vad gör man om...
+      </div>
       <div class="scenario-grid">
         <div class="scenario go">
           <h4>...kund saknas i CCO?</h4>
-          <p><strong>Tom sökning?</strong> Sök bredare först (telefon, smek/efternamn). Finns ändå inte? → eskalera till admin/ops. Skapa <strong>inte</strong> ny kund själv vid osäkerhet.</p>
+          <p>
+            <strong>Tom sökning?</strong> Sök bredare först (telefon, smek/efternamn). Finns ändå
+            inte? → eskalera till admin/ops. Skapa <strong>inte</strong> ny kund själv vid
+            osäkerhet.
+          </p>
         </div>
         <div class="scenario go">
           <h4>...historik saknas?</h4>
-          <p>Tomt kundkort = ny patient i CCO. <strong>Skriv ändå ny journal</strong>. Den blir startpunkten i feeden.</p>
+          <p>
+            Tomt kundkort = ny patient i CCO. <strong>Skriv ändå ny journal</strong>. Den blir
+            startpunkten i feeden.
+          </p>
         </div>
         <div class="scenario warn">
           <h4>..."Behöver granskning"-badge syns?</h4>
-          <p>Importerat material — använd som <strong>referens</strong> när du frågar patienten. <strong>Inte</strong> som klinisk sanning, diagnos eller dosering.</p>
+          <p>
+            Importerat material — använd som <strong>referens</strong> när du frågar patienten.
+            <strong>Inte</strong> som klinisk sanning, diagnos eller dosering.
+          </p>
         </div>
         <div class="scenario warn">
           <h4>...kunden frågar om importerade bilder?</h4>
-          <p>Säg "vi har bilderna men granskar fortfarande". De är <strong>inte</strong> kliniska behandlingsbilder dag 1. Ta nya bilder i CCO om du behöver visuell referens.</p>
+          <p>
+            Säg "vi har bilderna men granskar fortfarande". De är <strong>inte</strong> kliniska
+            behandlingsbilder dag 1. Ta nya bilder i CCO om du behöver visuell referens.
+          </p>
         </div>
         <div class="scenario stop">
           <h4>...systemet hänger?</h4>
-          <p>1) Refresh (Cmd+R). 2) Backup-URL: <code>major-arcana-frankfurt.onrender.com/cco-personal-start.html</code>. 3) 502 → vänta 2 min. 4) Trasig sida → skärmdump → Fazli. <strong>Skriv ingen journal i en trasig sida.</strong></p>
+          <p>
+            1) Refresh (Cmd+R). 2) Backup-URL:
+            <code>major-arcana-frankfurt.onrender.com/cco-demo.html</code>. 3) 502 → vänta 2 min. 4)
+            Trasig sida → skärmdump → Fazli. <strong>Skriv ingen journal i en trasig sida.</strong>
+          </p>
         </div>
         <div class="scenario go">
           <h4>...allt går bra?</h4>
-          <p>Fortsätt. Personal som hinner med en lugn paus kan öppna <a href="/cco-staff-training-mode.html" style="color:var(--green-deep); font-weight:600;">Training Mode</a> för att öva mer.</p>
+          <p>
+            Fortsätt. Personal som hinner med en lugn paus kan öppna
+            <a
+              href="/cco-staff-training-mode.html"
+              style="color: var(--green-deep); font-weight: 600"
+              >Training Mode</a
+            >
+            för att öva mer.
+          </p>
         </div>
       </div>
 
       <!-- FORBIDDEN -->
-      <div class="section-title"><span class="section-title-num">E</span>Vad får INTE göras dag 1</div>
+      <div class="section-title">
+        <span class="section-title-num">E</span>Vad får INTE göras dag 1
+      </div>
       <div class="forbidden">
         <h3>🚫 Förbjudet dag 1</h3>
         <ul>
-          <li>Använda <strong>migrerade före/efter-bilder</strong> kliniskt (Photo Review pågår — inte godkända)</li>
+          <li>
+            Använda <strong>migrerade före/efter-bilder</strong> kliniskt (Photo Review pågår — inte
+            godkända)
+          </li>
           <li>Skapa <strong>ny kund manuellt</strong> vid osäker identitet — alltid eskalera</li>
-          <li>Kopiera journaltext till <strong>extern AI</strong> (ChatGPT, Claude, Copilot — förbjudet enligt GDPR och vår policy)</li>
+          <li>
+            Kopiera journaltext till <strong>extern AI</strong> (ChatGPT, Claude, Copilot —
+            förbjudet enligt GDPR och vår policy)
+          </li>
           <li>Lita på <strong>"Behöver granskning"-material</strong> som klinisk sanning</li>
-          <li>Använda <strong>mail-worklist</strong> som dagligt verktyg (aktivering pågår — inte produktionsklar)</li>
+          <li>
+            Använda <strong>mail-worklist</strong> som dagligt verktyg (aktivering pågår — inte
+            produktionsklar)
+          </li>
           <li>Lita på <strong>AI no-show / AI triage</strong> som sanning (ej verifierat)</li>
-          <li>Aktivera <strong>Aisia / kamera/scalp-funktioner</strong> (bakom feature flag — kräver explicit owner-GO)</li>
-          <li>Förvänta sig <strong>Fortnox-fakturor</strong> automatiskt (integration pausad — manuell fakturering)</li>
-          <li>Ändra <strong>signerade journaler direkt</strong> (förbjudet — bara via rättelse som ny post)</li>
-          <li>Säga till patient att det är <strong>full cutover</strong> — det är en <strong>kontrollerad pilot</strong></li>
+          <li>
+            Aktivera <strong>Aisia / kamera/scalp-funktioner</strong> (bakom feature flag — kräver
+            explicit owner-GO)
+          </li>
+          <li>
+            Förvänta sig <strong>Fortnox-fakturor</strong> automatiskt (integration pausad — manuell
+            fakturering)
+          </li>
+          <li>
+            Ändra <strong>signerade journaler direkt</strong> (förbjudet — bara via rättelse som ny
+            post)
+          </li>
+          <li>
+            Säga till patient att det är <strong>full cutover</strong> — det är en
+            <strong>kontrollerad pilot</strong>
+          </li>
         </ul>
       </div>
 
       <div class="footer">
-        <strong>Hair TP Clinic · Go-Live Support · 4 juni 2026</strong><br>
-        Vid problem dag 1 — eskalera enligt rollerna ovan. Print-version: <a href="/journal-pilot-signoff-sheet.html">Sign-off Sheet</a> · Print Pack: <a href="/journal-pilot-print-pack.html">/journal-pilot-print-pack.html</a>
+        <strong>Hair TP Clinic · Go-Live Support · 4 juni 2026</strong><br />
+        Vid problem dag 1 — eskalera enligt rollerna ovan. Print-version:
+        <a href="/journal-pilot-signoff-sheet.html">Sign-off Sheet</a> · Print Pack:
+        <a href="/journal-pilot-print-pack.html">/journal-pilot-print-pack.html</a>
       </div>
     </div>
   </body>

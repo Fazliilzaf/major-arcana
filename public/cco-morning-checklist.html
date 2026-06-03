@@ -21,52 +21,232 @@
         --red: #a04432;
         --red-deep: #7a3324;
       }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, Inter, sans-serif; }
-      body { background: radial-gradient(1000px 500px at 12% -10%, #f7eed7 0%, transparent 60%), var(--bg); min-height: 100vh; }
-      .toolbar { max-width: 920px; margin: 22px auto 0; padding: 12px 18px; background: #fff9e5; border: 1px solid var(--line); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-      .toolbar a, .toolbar button { padding: 8px 16px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 12.5px; cursor: pointer; text-decoration: none; }
-      .toolbar a:hover, .toolbar button:hover { background: var(--accent-deep); }
-      .sheet { max-width: 920px; margin: 18px auto; background: var(--paper); padding: 40px 48px; border-radius: 8px; box-shadow: 0 4px 16px rgba(80,60,20,0.12); position: relative; }
-      .sheet::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-deep)); border-radius: 6px 6px 0 0; }
-      .head { border-bottom: 2px solid var(--ink); padding-bottom: 14px; margin-bottom: 22px; }
-      .head-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-deep); font-weight: 700; }
-      h1 { font-size: 26px; margin: 4px 0 6px; }
-      .head-sub { font-size: 13px; color: var(--ink-soft); font-style: italic; }
-      .time-block { margin: 18px 0; padding: 16px 20px; background: var(--paper-soft); border: 1px solid var(--line); border-radius: 12px; border-left: 4px solid var(--accent); break-inside: avoid; }
-      .time-block.critical { border-left-color: var(--red); background: linear-gradient(180deg, #f9e6e1 0%, #f5d4cc 100%); }
-      .time-block.warning { border-left-color: var(--orange); background: linear-gradient(180deg, #faf0d8 0%, #f5e3b8 100%); }
-      .time-block.go { border-left-color: var(--green); background: linear-gradient(180deg, #e8f3da 0%, #d4e6bc 100%); }
-      .time-block h2 { margin: 0 0 8px; font-size: 17px; color: var(--ink); display: flex; align-items: baseline; gap: 12px; }
-      .time-tag { display: inline-block; font-family: SFMono-Regular, Menlo, monospace; font-size: 11.5px; font-weight: 800; padding: 3px 10px; border-radius: 6px; background: #fff; color: var(--accent-deep); border: 1px solid var(--line); letter-spacing: 0.5px; }
-      .check { list-style: none; padding: 0; margin: 0; }
-      .check li { padding: 5px 0 5px 28px; position: relative; font-size: 13.5px; }
-      .check li::before { content: ''; position: absolute; left: 0; top: 8px; width: 16px; height: 16px; border: 1.5px solid var(--ink-soft); border-radius: 3px; }
-      code { background: #fff; padding: 1px 7px; border-radius: 4px; font-size: 12px; color: var(--accent-deep); border: 1px solid var(--line); }
-      .quick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-      .quick-row a { padding: 6px 12px; background: #fff; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; text-decoration: none; color: var(--ink); font-weight: 600; }
-      .quick-row a:hover { background: var(--accent); color: #fff; border-color: var(--accent-deep); }
-      .footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11.5px; text-align: center; color: var(--ink-soft); }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          14.5px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          Inter,
+          sans-serif;
+      }
+      body {
+        background:
+          radial-gradient(1000px 500px at 12% -10%, #f7eed7 0%, transparent 60%), var(--bg);
+        min-height: 100vh;
+      }
+      .toolbar {
+        max-width: 920px;
+        margin: 22px auto 0;
+        padding: 12px 18px;
+        background: #fff9e5;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .toolbar a,
+      .toolbar button {
+        padding: 8px 16px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 12.5px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .toolbar a:hover,
+      .toolbar button:hover {
+        background: var(--accent-deep);
+      }
+      .sheet {
+        max-width: 920px;
+        margin: 18px auto;
+        background: var(--paper);
+        padding: 40px 48px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(80, 60, 20, 0.12);
+        position: relative;
+      }
+      .sheet::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+        border-radius: 6px 6px 0 0;
+      }
+      .head {
+        border-bottom: 2px solid var(--ink);
+        padding-bottom: 14px;
+        margin-bottom: 22px;
+      }
+      .head-kicker {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent-deep);
+        font-weight: 700;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 4px 0 6px;
+      }
+      .head-sub {
+        font-size: 13px;
+        color: var(--ink-soft);
+        font-style: italic;
+      }
+      .time-block {
+        margin: 18px 0;
+        padding: 16px 20px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        border-left: 4px solid var(--accent);
+        break-inside: avoid;
+      }
+      .time-block.critical {
+        border-left-color: var(--red);
+        background: linear-gradient(180deg, #f9e6e1 0%, #f5d4cc 100%);
+      }
+      .time-block.warning {
+        border-left-color: var(--orange);
+        background: linear-gradient(180deg, #faf0d8 0%, #f5e3b8 100%);
+      }
+      .time-block.go {
+        border-left-color: var(--green);
+        background: linear-gradient(180deg, #e8f3da 0%, #d4e6bc 100%);
+      }
+      .time-block h2 {
+        margin: 0 0 8px;
+        font-size: 17px;
+        color: var(--ink);
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      .time-tag {
+        display: inline-block;
+        font-family: SFMono-Regular, Menlo, monospace;
+        font-size: 11.5px;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 6px;
+        background: #fff;
+        color: var(--accent-deep);
+        border: 1px solid var(--line);
+        letter-spacing: 0.5px;
+      }
+      .check {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .check li {
+        padding: 5px 0 5px 28px;
+        position: relative;
+        font-size: 13.5px;
+      }
+      .check li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 8px;
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid var(--ink-soft);
+        border-radius: 3px;
+      }
+      code {
+        background: #fff;
+        padding: 1px 7px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: var(--accent-deep);
+        border: 1px solid var(--line);
+      }
+      .quick-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .quick-row a {
+        padding: 6px 12px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-size: 12px;
+        text-decoration: none;
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .quick-row a:hover {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent-deep);
+      }
+      .footer {
+        margin-top: 28px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        font-size: 11.5px;
+        text-align: center;
+        color: var(--ink-soft);
+      }
       @media print {
-        body { background: #fff; }
-        .toolbar { display: none; }
-        .sheet { box-shadow: none; padding: 28px; max-width: 100%; margin: 0; border-radius: 0; }
-        .time-block { break-inside: avoid; }
-        @page { margin: 14mm; }
+        body {
+          background: #fff;
+        }
+        .toolbar {
+          display: none;
+        }
+        .sheet {
+          box-shadow: none;
+          padding: 28px;
+          max-width: 100%;
+          margin: 0;
+          border-radius: 0;
+        }
+        .time-block {
+          break-inside: avoid;
+        }
+        @page {
+          margin: 14mm;
+        }
       }
       @media (max-width: 700px) {
-        .sheet { padding: 22px 18px; }
-        h1 { font-size: 20px; }
+        .sheet {
+          padding: 22px 18px;
+        }
+        h1 {
+          font-size: 20px;
+        }
       }
-    </style>    <link rel="stylesheet" href="/cco-staff-shell.css" />
+    </style>
+    <link rel="stylesheet" href="/cco-staff-shell.css" />
     <script defer src="/cco-staff-shell.js"></script>
   </head>
   <body>
     <div class="toolbar">
-      <span style="font-size:12.5px; color:#51422f;"><strong>Morgon-checklist 4 juni</strong> · för Fazli — kör i ordning</span>
+      <span style="font-size: 12.5px; color: #51422f"
+        ><strong>Morgon-checklist 4 juni</strong> · för Fazli — kör i ordning</span
+      >
       <span>
         <a href="/cco-4june-command-center.html">← Command Center</a>
-        <button onclick="window.print()" style="margin-left:8px">🖨 Skriv ut</button>
+        <button onclick="window.print()" style="margin-left: 8px">🖨 Skriv ut</button>
       </span>
     </div>
 
@@ -92,13 +272,13 @@
       <div class="time-block">
         <h2><span class="time-tag">T-9 min</span>Öppna stöd-flikar</h2>
         <ul class="check">
-          <li>Huvudskärm: <code>/cco-personal-start.html</code></li>
+          <li>Huvudskärm: <code>/cco-demo.html</code></li>
           <li>Sido-skärm/telefon: <code>/cco-4june-command-center.html</code></li>
           <li>Sido-flik: <code>/cco-presenter-mode.html</code> (14-stegs flow + 15-min timer)</li>
           <li>Reserv-flik: <code>/journal-pilot-guide.html</code></li>
         </ul>
         <div class="quick-row">
-          <a href="/cco-personal-start.html" target="_blank" rel="noopener">Personalstart</a>
+          <a href="/cco-demo.html" target="_blank" rel="noopener">Personalstart</a>
           <a href="/cco-4june-command-center.html" target="_blank" rel="noopener">Command Center</a>
           <a href="/cco-presenter-mode.html" target="_blank" rel="noopener">Presenter Mode</a>
           <a href="/journal-pilot-guide.html" target="_blank" rel="noopener">Personalguide</a>
@@ -119,7 +299,10 @@
       <div class="time-block warning">
         <h2><span class="time-tag">T-5 min</span>Failover-check</h2>
         <ul class="check">
-          <li>Öppna backup-URL i bakgrund: <code>major-arcana-frankfurt.onrender.com/cco-personal-start.html</code></li>
+          <li>
+            Öppna backup-URL i bakgrund:
+            <code>major-arcana-frankfurt.onrender.com/cco-demo.html</code>
+          </li>
           <li>Om backup laddar 200 → du har failover redo</li>
           <li>Skriv ner mobilnumret till någon som kan ringa Fazli om något händer</li>
         </ul>
@@ -147,8 +330,9 @@
       </div>
 
       <div class="footer">
-        <strong>Hair TP Clinic · 4 juni 2026 · Fazli morgon-routine</strong><br>
-        Komplett runbook: <code>docs/strategy/CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md</code> · Vid problem → backup-URL → Fazli direkt
+        <strong>Hair TP Clinic · 4 juni 2026 · Fazli morgon-routine</strong><br />
+        Komplett runbook: <code>docs/strategy/CCO-PERSONAL-DEMO-RUNBOOK-2026-06-04.md</code> · Vid
+        problem → backup-URL → Fazli direkt
       </div>
     </div>
   </body>

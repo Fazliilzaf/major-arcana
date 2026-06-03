@@ -27,140 +27,300 @@
         --blue: #4a6788;
         --blue-deep: #2f4a6a;
       }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background:
-          radial-gradient(900px 500px at 50% -10%, #f7eed7 0%, transparent 60%),
-          var(--bg);
+          radial-gradient(900px 500px at 50% -10%, #f7eed7 0%, transparent 60%), var(--bg);
         color: var(--ink);
-        font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font:
+          14.5px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          'SF Pro Display',
+          Inter,
+          system-ui,
+          sans-serif;
         min-height: 100vh;
       }
-      .container { max-width: 680px; margin: 0 auto; padding: 22px 24px 60px; }
+      .container {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 22px 24px 60px;
+      }
 
       .topbar {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         padding: 14px 18px;
         background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
-        border: 1px solid var(--line); border-radius: 14px;
-        box-shadow: 0 4px 12px rgba(80,60,30,0.1), inset 0 1px 0 rgba(255,255,255,0.55);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 12px rgba(80, 60, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
         margin-bottom: 18px;
       }
-      .brand { display: flex; align-items: center; gap: 12px; }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
       .brand-mark {
-        width: 38px; height: 38px; border-radius: 10px;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
         background: linear-gradient(135deg, #b08b3f, #6d4e1c);
-        color: #fff; font-weight: 700; font-size: 13px;
-        display: grid; place-items: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        display: grid;
+        place-items: center;
       }
-      .brand-title { font-size: 15px; font-weight: 700; }
-      .brand-sub { font-size: 11.5px; color: var(--ink-soft); }
+      .brand-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .brand-sub {
+        font-size: 11.5px;
+        color: var(--ink-soft);
+      }
       .back-btn {
-        padding: 8px 14px; background: var(--paper); color: var(--ink);
-        border: 1px solid var(--line); border-radius: 8px;
-        font-weight: 600; font-size: 12.5px; text-decoration: none;
+        padding: 8px 14px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 12.5px;
+        text-decoration: none;
       }
-      .back-btn:hover { background: #fff8e8; border-color: var(--accent); }
+      .back-btn:hover {
+        background: #fff8e8;
+        border-color: var(--accent);
+      }
 
       .hero {
-        margin-bottom: 18px; padding: 22px 26px;
+        margin-bottom: 18px;
+        padding: 22px 26px;
         background: linear-gradient(180deg, #f9e9c4 0%, #f1d8a1 100%);
-        border: 1.5px solid #d4a85b; border-radius: 16px;
-        box-shadow: 0 4px 14px rgba(176,139,63,0.18), inset 0 1px 0 rgba(255,255,255,0.55);
-        position: relative; overflow: hidden;
+        border: 1.5px solid #d4a85b;
+        border-radius: 16px;
+        box-shadow:
+          0 4px 14px rgba(176, 139, 63, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        position: relative;
+        overflow: hidden;
       }
       .hero::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
         background: linear-gradient(90deg, var(--accent), var(--accent-deep));
       }
-      .hero-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-deep); font-weight: 700; }
-      .hero h1 { margin: 4px 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -0.2px; line-height: 1.2; }
-      .hero p { margin: 0; font-size: 13.5px; color: var(--ink); }
+      .hero-kicker {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent-deep);
+        font-weight: 700;
+      }
+      .hero h1 {
+        margin: 4px 0 6px;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+        line-height: 1.2;
+      }
+      .hero p {
+        margin: 0;
+        font-size: 13.5px;
+        color: var(--ink);
+      }
 
       /* CHECKPOINT */
       .checkpoint {
-        background: var(--paper); border: 1px solid var(--line);
-        border-radius: 14px; padding: 16px 18px; margin-bottom: 12px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px;
+        margin-bottom: 12px;
         border-left: 4px solid var(--accent);
         cursor: pointer;
         transition: all 0.15s;
-        box-shadow: 0 2px 8px rgba(80,60,30,0.06), inset 0 1px 0 rgba(255,255,255,0.55);
+        box-shadow:
+          0 2px 8px rgba(80, 60, 30, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
       }
-      .checkpoint:hover { background: #fff8e8; }
-      .checkpoint.done { background: var(--green-bg); border-left-color: var(--green); }
-      .checkpoint.stop { border-left-color: var(--red); background: linear-gradient(180deg, var(--paper) 0%, var(--red-bg) 100%); }
-      .checkpoint.stop.done { background: var(--green-bg); border-left-color: var(--green); }
+      .checkpoint:hover {
+        background: #fff8e8;
+      }
+      .checkpoint.done {
+        background: var(--green-bg);
+        border-left-color: var(--green);
+      }
+      .checkpoint.stop {
+        border-left-color: var(--red);
+        background: linear-gradient(180deg, var(--paper) 0%, var(--red-bg) 100%);
+      }
+      .checkpoint.stop.done {
+        background: var(--green-bg);
+        border-left-color: var(--green);
+      }
 
       .cp-head {
-        display: grid; grid-template-columns: 32px 1fr; gap: 12px;
-        align-items: center; margin-bottom: 4px;
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 4px;
       }
       .cp-box {
-        width: 26px; height: 26px;
-        border: 2px solid var(--ink-soft); border-radius: 6px;
+        width: 26px;
+        height: 26px;
+        border: 2px solid var(--ink-soft);
+        border-radius: 6px;
         background: #fff;
-        display: grid; place-items: center;
-        font-size: 16px; color: transparent;
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        color: transparent;
         transition: all 0.15s;
       }
-      .checkpoint.done .cp-box { background: var(--green); border-color: var(--green-deep); color: #fff; }
-      .cp-title {
-        font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0;
+      .checkpoint.done .cp-box {
+        background: var(--green);
+        border-color: var(--green-deep);
+        color: #fff;
       }
-      .checkpoint.stop .cp-title { color: var(--red-deep); }
-      .checkpoint.stop.done .cp-title { color: var(--ink); }
+      .cp-title {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0;
+      }
+      .checkpoint.stop .cp-title {
+        color: var(--red-deep);
+      }
+      .checkpoint.stop.done .cp-title {
+        color: var(--ink);
+      }
       .cp-detail {
         margin: 4px 0 0 44px;
-        font-size: 12.5px; color: var(--ink-soft); line-height: 1.5;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        line-height: 1.5;
       }
-      .cp-detail strong { color: var(--ink); font-weight: 700; }
+      .cp-detail strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
 
       .result {
-        margin-top: 18px; padding: 18px 22px; border-radius: 14px;
-        text-align: center; transition: all 0.3s;
-        background: var(--paper-soft); border: 1.5px solid var(--line);
+        margin-top: 18px;
+        padding: 18px 22px;
+        border-radius: 14px;
+        text-align: center;
+        transition: all 0.3s;
+        background: var(--paper-soft);
+        border: 1.5px solid var(--line);
       }
       .result.go {
         background: linear-gradient(180deg, var(--green-bg) 0%, #d4e0bd 100%);
         border-color: var(--green);
-        box-shadow: 0 4px 12px rgba(95,124,60,0.18);
+        box-shadow: 0 4px 12px rgba(95, 124, 60, 0.18);
       }
-      .result-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; }
-      .result-title { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
-      .result.go .result-title { color: var(--green-deep); }
-      .result-sub { font-size: 13px; color: var(--ink-soft); }
-      .result.go .result-sub { color: var(--green-deep); }
+      .result-icon {
+        font-size: 32px;
+        line-height: 1;
+        margin-bottom: 6px;
+      }
+      .result-title {
+        font-size: 17px;
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+      .result.go .result-title {
+        color: var(--green-deep);
+      }
+      .result-sub {
+        font-size: 13px;
+        color: var(--ink-soft);
+      }
+      .result.go .result-sub {
+        color: var(--green-deep);
+      }
       .reset-btn {
-        margin-top: 10px; padding: 8px 16px;
-        background: var(--paper); border: 1px solid var(--line);
-        border-radius: 999px; font-size: 12px; font-weight: 700;
-        color: var(--ink); cursor: pointer;
+        margin-top: 10px;
+        padding: 8px 16px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink);
+        cursor: pointer;
       }
-      .reset-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent-deep); }
+      .reset-btn:hover {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent-deep);
+      }
 
       .escalate {
-        margin-top: 14px; padding: 14px 18px;
+        margin-top: 14px;
+        padding: 14px 18px;
         background: linear-gradient(180deg, var(--red-bg) 0%, #e9a89c 100%);
-        border: 1.5px solid var(--red); border-radius: 12px;
-        font-size: 13px; color: var(--red-deep); line-height: 1.5;
+        border: 1.5px solid var(--red);
+        border-radius: 12px;
+        font-size: 13px;
+        color: var(--red-deep);
+        line-height: 1.5;
       }
-      .escalate strong { color: var(--red-deep); font-weight: 800; }
+      .escalate strong {
+        color: var(--red-deep);
+        font-weight: 800;
+      }
 
       .footer {
-        margin-top: 18px; padding: 12px 16px;
-        background: var(--paper-soft); border: 1px solid var(--line);
-        border-radius: 10px; text-align: center;
-        font-size: 11.5px; color: var(--ink-soft);
+        margin-top: 18px;
+        padding: 12px 16px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        text-align: center;
+        font-size: 11.5px;
+        color: var(--ink-soft);
       }
-      .footer a { color: var(--accent-deep); text-decoration: none; font-weight: 700; }
+      .footer a {
+        color: var(--accent-deep);
+        text-decoration: none;
+        font-weight: 700;
+      }
 
       @media (max-width: 600px) {
-        .container { padding: 14px; }
-        .topbar { flex-direction: column; gap: 10px; align-items: stretch; }
-        .hero h1 { font-size: 18px; }
+        .container {
+          padding: 14px;
+        }
+        .topbar {
+          flex-direction: column;
+          gap: 10px;
+          align-items: stretch;
+        }
+        .hero h1 {
+          font-size: 18px;
+        }
       }
-    </style>    <link rel="stylesheet" href="/cco-staff-shell.css" />
+    </style>
+    <link rel="stylesheet" href="/cco-staff-shell.css" />
     <script defer src="/cco-staff-shell.js"></script>
   </head>
   <body>
@@ -173,13 +333,16 @@
             <div class="brand-sub">In-app · ha öppen i sido-flik · 6 checkpoints</div>
           </div>
         </div>
-        <a class="back-btn" href="/cco-personal-start.html">← Personalstart</a>
+        <a class="back-btn" href="/cco-demo.html">← Personalstart</a>
       </div>
 
       <div class="hero">
         <div class="hero-kicker">Säkerhetshjälp · innan signering eller rättelse</div>
         <h1>Stega igenom 6 frågor — innan du gör något permanent</h1>
-        <p>Bocka av varje fråga. Sista frågan om review-material är en STOPPA-regel. När alla 6 är gröna är det säkert att fortsätta.</p>
+        <p>
+          Bocka av varje fråga. Sista frågan om review-material är en STOPPA-regel. När alla 6 är
+          gröna är det säkert att fortsätta.
+        </p>
       </div>
 
       <!-- 1 -->
@@ -188,7 +351,10 @@
           <div class="cp-box">✓</div>
           <p class="cp-title">1 · Är rätt patient verifierad?</p>
         </div>
-        <p class="cp-detail">Kundkortets header visar <strong>rätt namn, telefon och Cliento-id</strong>. Patienten framför mig är den jag tror att den är.</p>
+        <p class="cp-detail">
+          Kundkortets header visar <strong>rätt namn, telefon och Cliento-id</strong>. Patienten
+          framför mig är den jag tror att den är.
+        </p>
       </div>
 
       <!-- 2 -->
@@ -197,7 +363,10 @@
           <div class="cp-box">✓</div>
           <p class="cp-title">2 · Är journaltexten för rätt besök?</p>
         </div>
-        <p class="cp-detail">Anteckningen handlar om <strong>dagens konsultation</strong> — inte ett gammalt besök, inte en planerad framtida session. Datum, observation och plan är aktuella.</p>
+        <p class="cp-detail">
+          Anteckningen handlar om <strong>dagens konsultation</strong> — inte ett gammalt besök,
+          inte en planerad framtida session. Datum, observation och plan är aktuella.
+        </p>
       </div>
 
       <!-- 3 — STOPPA-REGEL -->
@@ -206,7 +375,12 @@
           <div class="cp-box">✓</div>
           <p class="cp-title">3 · Har du använt review-material som klinisk sanning? → STOPPA</p>
         </div>
-        <p class="cp-detail">Importerat material med badges <code>needs review</code> / <code>pending</code> är <strong>inte</strong> klinisk sanning. Om du baserat diagnos eller dosering på oferifierat material — <strong>STOPPA</strong>. Skriv om journalen baserat på patientens muntliga uppgifter istället.</p>
+        <p class="cp-detail">
+          Importerat material med badges <code>needs review</code> / <code>pending</code> är
+          <strong>inte</strong> klinisk sanning. Om du baserat diagnos eller dosering på oferifierat
+          material — <strong>STOPPA</strong>. Skriv om journalen baserat på patientens muntliga
+          uppgifter istället.
+        </p>
       </div>
 
       <!-- 4 -->
@@ -215,7 +389,11 @@
           <div class="cp-box">✓</div>
           <p class="cp-title">4 · Är detta en rättelse? Skapa då ny post</p>
         </div>
-        <p class="cp-detail">Om du upptäcker fel i en <strong>signerad post</strong> — ändra inte originalet. Klicka <strong>"Skapa rättelse"</strong>. Skriv det korrigerade i sin helhet i den nya posten. Originalet låses kvar.</p>
+        <p class="cp-detail">
+          Om du upptäcker fel i en <strong>signerad post</strong> — ändra inte originalet. Klicka
+          <strong>"Skapa rättelse"</strong>. Skriv det korrigerade i sin helhet i den nya posten.
+          Originalet låses kvar.
+        </p>
       </div>
 
       <!-- 5 -->
@@ -224,7 +402,11 @@
           <div class="cp-box">✓</div>
           <p class="cp-title">5 · Signera först när allt är kontrollerat</p>
         </div>
-        <p class="cp-detail">Texten är <strong>komplett, läst igenom, inga personnummer i fritext om inte krävs</strong>, ingen extern AI använd. När jag är säker — klickar jag Signera. Aldrig snabb-signering.</p>
+        <p class="cp-detail">
+          Texten är
+          <strong>komplett, läst igenom, inga personnummer i fritext om inte krävs</strong>, ingen
+          extern AI använd. När jag är säker — klickar jag Signera. Aldrig snabb-signering.
+        </p>
       </div>
 
       <!-- 6 -->
@@ -233,22 +415,33 @@
           <div class="cp-box">✓</div>
           <p class="cp-title">6 · Vid osäkerhet: eskalera</p>
         </div>
-        <p class="cp-detail"><strong>Osäker på något?</strong> Säg "en sekund så dubbelkollar jag". Eskalera till admin/ops för identitet/dubbletter, Fazli för tekniska fel. Det är aldrig fel att fråga.</p>
+        <p class="cp-detail">
+          <strong>Osäker på något?</strong> Säg "en sekund så dubbelkollar jag". Eskalera till
+          admin/ops för identitet/dubbletter, Fazli för tekniska fel. Det är aldrig fel att fråga.
+        </p>
       </div>
 
       <div class="result" id="result">
         <div class="result-icon" id="resultIcon">⏳</div>
         <div class="result-title" id="resultTitle">Bocka av 6 punkter</div>
-        <div class="result-sub" id="resultSub">Stega igenom varje fråga. När alla är gröna är det säkert att fortsätta.</div>
-        <button class="reset-btn" id="resetBtn" style="display:none;" onclick="resetCp()">↻ Återställ för nästa</button>
+        <div class="result-sub" id="resultSub">
+          Stega igenom varje fråga. När alla är gröna är det säkert att fortsätta.
+        </div>
+        <button class="reset-btn" id="resetBtn" style="display: none" onclick="resetCp()">
+          ↻ Återställ för nästa
+        </button>
       </div>
 
       <div class="escalate">
-        <strong>🛑 STOPPA om du behövde säga "nej" på fråga 3.</strong> Skriv om journalen från patientens muntliga uppgifter. Eskalera till Fazli om du är osäker på vad som är klinisk sanning.
+        <strong>🛑 STOPPA om du behövde säga "nej" på fråga 3.</strong> Skriv om journalen från
+        patientens muntliga uppgifter. Eskalera till Fazli om du är osäker på vad som är klinisk
+        sanning.
       </div>
 
       <div class="footer">
-        Hair TP Clinic · Journal Safety Helper · 4 juni 2026 — komplett guide: <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> · FAQ: <a href="/cco-journalpilot-faq.html">/cco-journalpilot-faq.html</a>
+        Hair TP Clinic · Journal Safety Helper · 4 juni 2026 — komplett guide:
+        <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> · FAQ:
+        <a href="/cco-journalpilot-faq.html">/cco-journalpilot-faq.html</a>
       </div>
     </div>
 
@@ -266,24 +459,26 @@
           result.classList.add('go');
           resultIcon.textContent = '✅';
           resultTitle.textContent = 'Säkert att fortsätta';
-          resultSub.textContent = 'Alla 6 punkter bekräftade. Gå tillbaka till journalvyn. Återställ sidan för nästa patient.';
+          resultSub.textContent =
+            'Alla 6 punkter bekräftade. Gå tillbaka till journalvyn. Återställ sidan för nästa patient.';
           resetBtn.style.display = 'inline-block';
         } else {
           result.classList.remove('go');
           resultIcon.textContent = '⏳';
           resultTitle.textContent = 'Bocka av ' + (total - done) + ' till';
-          resultSub.textContent = 'Stega igenom varje fråga. När alla är gröna är det säkert att fortsätta.';
+          resultSub.textContent =
+            'Stega igenom varje fråga. När alla är gröna är det säkert att fortsätta.';
           resetBtn.style.display = 'none';
         }
       }
-      document.querySelectorAll('.checkpoint').forEach(c => {
+      document.querySelectorAll('.checkpoint').forEach((c) => {
         c.addEventListener('click', () => {
           c.classList.toggle('done');
           update();
         });
       });
       function resetCp() {
-        document.querySelectorAll('.checkpoint').forEach(c => c.classList.remove('done'));
+        document.querySelectorAll('.checkpoint').forEach((c) => c.classList.remove('done'));
         update();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }

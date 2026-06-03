@@ -27,184 +27,370 @@
         --blue: #4a6788;
         --blue-deep: #2f4a6a;
       }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          14.5px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+      }
       body {
         background:
           radial-gradient(1200px 600px at 10% -10%, #f7eed7 0%, transparent 60%),
-          radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%),
-          var(--bg);
+          radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%), var(--bg);
         min-height: 100vh;
       }
-      .container { max-width: 1180px; margin: 0 auto; padding: 26px 28px 80px; }
+      .container {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 26px 28px 80px;
+      }
 
       /* HEADER */
       .topbar {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         padding: 18px 22px;
         background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
         border: 1px solid var(--line);
         border-radius: 18px;
-        box-shadow: 0 8px 24px rgba(80, 60, 30, 0.08), inset 0 1px 0 rgba(255,255,255,0.55);
+        box-shadow:
+          0 8px 24px rgba(80, 60, 30, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
         margin-bottom: 18px;
       }
-      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
       .brand-mark {
-        width: 42px; height: 42px; border-radius: 11px;
+        width: 42px;
+        height: 42px;
+        border-radius: 11px;
         background: linear-gradient(135deg, #b08b3f, #6d4e1c);
-        color: #fff; font-weight: 700; font-size: 14px;
-        display: grid; place-items: center;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 2px 6px rgba(80,60,20,0.25);
+        color: #fff;
+        font-weight: 700;
+        font-size: 14px;
+        display: grid;
+        place-items: center;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.35),
+          0 2px 6px rgba(80, 60, 20, 0.25);
       }
-      .brand-title { font-size: 17px; font-weight: 700; letter-spacing: 0.2px; }
-      .brand-sub { font-size: 12px; color: var(--ink-soft); }
+      .brand-title {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      .brand-sub {
+        font-size: 12px;
+        color: var(--ink-soft);
+      }
       .refresh-btn {
-        padding: 10px 16px; border-radius: 10px;
-        background: var(--paper); color: var(--ink); border: 1px solid var(--line);
-        font-weight: 600; font-size: 13px; cursor: pointer;
+        padding: 10px 16px;
+        border-radius: 10px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
       }
-      .refresh-btn:hover { background: #fff5dc; border-color: var(--accent); }
+      .refresh-btn:hover {
+        background: #fff5dc;
+        border-color: var(--accent);
+      }
 
       /* STATUS HERO */
       .status-hero {
-        padding: 26px 28px; border-radius: 18px;
+        padding: 26px 28px;
+        border-radius: 18px;
         margin-bottom: 20px;
         background: linear-gradient(180deg, var(--green-bg) 0%, #d4e0bd 100%);
         border: 2px solid var(--green);
-        box-shadow: 0 6px 18px rgba(95,124,60,0.18), inset 0 1px 0 rgba(255,255,255,0.5);
+        box-shadow:
+          0 6px 18px rgba(95, 124, 60, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
         transition: all 0.3s;
       }
       .status-hero.wait {
         background: linear-gradient(180deg, var(--orange-bg) 0%, #f0c887 100%);
         border-color: var(--orange);
-        box-shadow: 0 6px 18px rgba(196,129,50,0.18), inset 0 1px 0 rgba(255,255,255,0.5);
+        box-shadow:
+          0 6px 18px rgba(196, 129, 50, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
       }
       .status-hero.fix {
         background: linear-gradient(180deg, var(--red-bg) 0%, #e9a89c 100%);
         border-color: var(--red);
-        box-shadow: 0 6px 18px rgba(160,68,50,0.18), inset 0 1px 0 rgba(255,255,255,0.5);
+        box-shadow:
+          0 6px 18px rgba(160, 68, 50, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
       }
       .status-hero.loading {
         background: linear-gradient(180deg, var(--paper-soft) 0%, var(--paper) 100%);
         border-color: var(--line);
       }
       .status-label {
-        font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
-        font-weight: 700; color: var(--ink-soft); margin-bottom: 4px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        margin-bottom: 4px;
       }
       .status-big {
-        font-size: 42px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1;
+        font-size: 42px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1.1;
         color: var(--green-deep);
       }
-      .status-hero.wait .status-big { color: #6a4a14; }
-      .status-hero.fix .status-big { color: var(--red-deep); }
-      .status-hero.loading .status-big { color: var(--ink-soft); }
-      .status-meta {
-        margin-top: 8px; font-size: 13px; color: var(--ink-soft);
+      .status-hero.wait .status-big {
+        color: #6a4a14;
       }
-      .status-meta strong { color: var(--ink); }
+      .status-hero.fix .status-big {
+        color: var(--red-deep);
+      }
+      .status-hero.loading .status-big {
+        color: var(--ink-soft);
+      }
+      .status-meta {
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--ink-soft);
+      }
+      .status-meta strong {
+        color: var(--ink);
+      }
 
       .status-grid {
-        margin-top: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
       }
       .status-cell {
-        background: rgba(255,255,255,0.45); border-radius: 10px; padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.45);
+        border-radius: 10px;
+        padding: 10px 14px;
         border: 1px solid rgba(132, 117, 107, 0.2);
       }
-      .status-cell-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-soft); font-weight: 600; }
-      .status-cell-value { font-size: 14px; font-weight: 700; margin-top: 3px; }
-      .status-cell-value.ok { color: var(--green-deep); }
-      .status-cell-value.warn { color: #8a5a14; }
-      .status-cell-value.bad { color: var(--red-deep); }
+      .status-cell-label {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--ink-soft);
+        font-weight: 600;
+      }
+      .status-cell-value {
+        font-size: 14px;
+        font-weight: 700;
+        margin-top: 3px;
+      }
+      .status-cell-value.ok {
+        color: var(--green-deep);
+      }
+      .status-cell-value.warn {
+        color: #8a5a14;
+      }
+      .status-cell-value.bad {
+        color: var(--red-deep);
+      }
 
       /* SECTION TITLE */
       .section-title {
-        font-size: 12px; text-transform: uppercase; letter-spacing: 2px;
-        color: var(--ink-soft); font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--ink-soft);
+        font-weight: 700;
         margin: 28px 0 12px;
-        display: flex; align-items: center; gap: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
       .section-title::after {
-        content: ''; flex: 1; height: 1px; background: var(--line);
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--line);
       }
 
       /* LINK GRID */
       .link-grid {
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
       }
       .link-card {
-        background: var(--paper); border: 1px solid var(--line); border-radius: 14px;
-        padding: 16px 18px; text-decoration: none; color: var(--ink);
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px;
+        text-decoration: none;
+        color: var(--ink);
         transition: all 0.15s;
-        box-shadow: 0 2px 6px rgba(80,60,20,0.05), inset 0 1px 0 rgba(255,255,255,0.5);
+        box-shadow:
+          0 2px 6px rgba(80, 60, 20, 0.05),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
         display: block;
       }
       .link-card:hover {
-        background: #fff8e8; border-color: var(--accent);
+        background: #fff8e8;
+        border-color: var(--accent);
         transform: translateY(-1px);
-        box-shadow: 0 6px 14px rgba(176,139,63,0.18), inset 0 1px 0 rgba(255,255,255,0.6);
+        box-shadow:
+          0 6px 14px rgba(176, 139, 63, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
       }
       .link-card.primary {
         background: linear-gradient(180deg, #f9e9c4 0%, #f1d8a1 100%);
         border-color: #d4a85b;
       }
-      .link-icon { font-size: 22px; line-height: 1; margin-bottom: 6px; }
-      .link-title { font-size: 14.5px; font-weight: 700; margin-bottom: 3px; }
-      .link-sub { font-size: 11.5px; color: var(--ink-soft); }
+      .link-icon {
+        font-size: 22px;
+        line-height: 1;
+        margin-bottom: 6px;
+      }
+      .link-title {
+        font-size: 14.5px;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+      .link-sub {
+        font-size: 11.5px;
+        color: var(--ink-soft);
+      }
 
       /* SCRIPT STEPS */
       .script-grid {
-        display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
       }
       .script-step {
-        background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 10px;
         padding: 10px 14px;
-        display: grid; grid-template-columns: 30px 1fr; gap: 10px;
+        display: grid;
+        grid-template-columns: 30px 1fr;
+        gap: 10px;
         align-items: center;
       }
       .script-num {
-        width: 26px; height: 26px; border-radius: 50%;
-        background: var(--accent); color: #fff; font-weight: 700; font-size: 12px;
-        display: grid; place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        display: grid;
+        place-items: center;
       }
-      .script-text { font-size: 13.5px; }
-      .script-text strong { display: block; font-size: 12px; color: var(--accent-deep); text-transform: uppercase; letter-spacing: 0.5px; }
+      .script-text {
+        font-size: 13.5px;
+      }
+      .script-text strong {
+        display: block;
+        font-size: 12px;
+        color: var(--accent-deep);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
 
       /* FAIL CARD */
       .fail-card {
         background: linear-gradient(180deg, #faead6 0%, #f4d7b2 100%);
-        border: 1.5px solid #d4a85b; border-radius: 14px;
+        border: 1.5px solid #d4a85b;
+        border-radius: 14px;
         padding: 18px 22px;
-        box-shadow: 0 4px 12px rgba(176,139,63,0.12), inset 0 1px 0 rgba(255,255,255,0.55);
+        box-shadow:
+          0 4px 12px rgba(176, 139, 63, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
       }
-      .fail-card h3 { margin: 0 0 12px; font-size: 14.5px; color: var(--accent-deep); }
-      .fail-list { margin: 0; padding-left: 22px; }
-      .fail-list li { margin: 6px 0; font-size: 13.5px; color: var(--ink); }
-      .fail-list strong { color: var(--accent-deep); }
+      .fail-card h3 {
+        margin: 0 0 12px;
+        font-size: 14.5px;
+        color: var(--accent-deep);
+      }
+      .fail-list {
+        margin: 0;
+        padding-left: 22px;
+      }
+      .fail-list li {
+        margin: 6px 0;
+        font-size: 13.5px;
+        color: var(--ink);
+      }
+      .fail-list strong {
+        color: var(--accent-deep);
+      }
       .fail-quote {
-        margin-top: 12px; padding: 10px 14px;
-        background: rgba(255,255,255,0.55); border-left: 3px solid var(--accent-deep);
-        border-radius: 4px; font-style: italic; font-size: 13.5px; color: var(--ink-soft);
+        margin-top: 12px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.55);
+        border-left: 3px solid var(--accent-deep);
+        border-radius: 4px;
+        font-style: italic;
+        font-size: 13.5px;
+        color: var(--ink-soft);
       }
 
       /* FOOTER */
       .footer {
-        margin-top: 32px; padding: 14px 0;
+        margin-top: 32px;
+        padding: 14px 0;
         border-top: 1px solid var(--line);
-        font-size: 11.5px; color: var(--ink-muted); text-align: center;
+        font-size: 11.5px;
+        color: var(--ink-muted);
+        text-align: center;
       }
-      .footer code { background: var(--paper-soft); padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+      .footer code {
+        background: var(--paper-soft);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+      }
 
-      .loading-dim { opacity: 0.55; }
+      .loading-dim {
+        opacity: 0.55;
+      }
 
       @media (max-width: 880px) {
-        .status-grid { grid-template-columns: 1fr 1fr; }
-        .link-grid { grid-template-columns: 1fr 1fr; }
-        .script-grid { grid-template-columns: 1fr; }
-        .topbar { flex-direction: column; gap: 12px; align-items: stretch; }
-        .status-big { font-size: 32px; }
+        .status-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .link-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .script-grid {
+          grid-template-columns: 1fr;
+        }
+        .topbar {
+          flex-direction: column;
+          gap: 12px;
+          align-items: stretch;
+        }
+        .status-big {
+          font-size: 32px;
+        }
       }
-    </style>    <link rel="stylesheet" href="/cco-staff-shell.css" />
+    </style>
+    <link rel="stylesheet" href="/cco-staff-shell.css" />
     <script defer src="/cco-staff-shell.js"></script>
   </head>
   <body>
@@ -225,12 +411,27 @@
       <div class="status-hero loading" id="hero">
         <div class="status-label" id="heroLabel">Laddar status…</div>
         <div class="status-big" id="heroBig">…</div>
-        <div class="status-meta" id="heroMeta">Hämtar från <code>/cco-4june-morning-check.json</code> (fallback <code>/cco-presentation-ops-status.json</code>)</div>
+        <div class="status-meta" id="heroMeta">
+          Hämtar från <code>/cco-4june-morning-check.json</code> (fallback
+          <code>/cco-presentation-ops-status.json</code>)
+        </div>
         <div class="status-grid">
-          <div class="status-cell"><div class="status-cell-label">Demo links</div><div class="status-cell-value" id="cellLinks">—</div></div>
-          <div class="status-cell"><div class="status-cell-label">Journal E2E</div><div class="status-cell-value" id="cellE2E">—</div></div>
-          <div class="status-cell"><div class="status-cell-label">Pilot 1 / 2 / 3</div><div class="status-cell-value" id="cellPilots">—</div></div>
-          <div class="status-cell"><div class="status-cell-label">Senast genererat</div><div class="status-cell-value" id="cellTime">—</div></div>
+          <div class="status-cell">
+            <div class="status-cell-label">Demo links</div>
+            <div class="status-cell-value" id="cellLinks">—</div>
+          </div>
+          <div class="status-cell">
+            <div class="status-cell-label">Journal E2E</div>
+            <div class="status-cell-value" id="cellE2E">—</div>
+          </div>
+          <div class="status-cell">
+            <div class="status-cell-label">Pilot 1 / 2 / 3</div>
+            <div class="status-cell-value" id="cellPilots">—</div>
+          </div>
+          <div class="status-cell">
+            <div class="status-cell-label">Senast genererat</div>
+            <div class="status-cell-value" id="cellTime">—</div>
+          </div>
         </div>
       </div>
 
@@ -247,7 +448,12 @@
           <div class="link-title">Presenter Mode</div>
           <div class="link-sub">14-stegs assistent + 15-min timer</div>
         </a>
-        <a class="link-card primary" href="/journal-pilot-print-pack.html" target="_blank" rel="noopener">
+        <a
+          class="link-card primary"
+          href="/journal-pilot-print-pack.html"
+          target="_blank"
+          rel="noopener"
+        >
           <div class="link-icon">🖨</div>
           <div class="link-title">Print Pack</div>
           <div class="link-sub">printvänlig A4-pack för personal</div>
@@ -292,7 +498,12 @@
           <div class="link-title">Go-Live Support</div>
           <div class="link-sub">Roller + scenarios</div>
         </a>
-        <a class="link-card" href="/journal-pilot-signoff-sheet.html" target="_blank" rel="noopener">
+        <a
+          class="link-card"
+          href="/journal-pilot-signoff-sheet.html"
+          target="_blank"
+          rel="noopener"
+        >
           <div class="link-icon">✍️</div>
           <div class="link-title">Sign-off Sheet</div>
           <div class="link-sub">Personal-bekräftelse</div>
@@ -302,7 +513,12 @@
           <div class="link-title">Pre-Signering Check</div>
           <div class="link-sub">5-stegs säkerhet i sido-flik</div>
         </a>
-        <a class="link-card" href="/cco-review-material-warning.html" target="_blank" rel="noopener">
+        <a
+          class="link-card"
+          href="/cco-review-material-warning.html"
+          target="_blank"
+          rel="noopener"
+        >
           <div class="link-icon">⚠️</div>
           <div class="link-title">Review-Material Warning</div>
           <div class="link-sub">Vad är INTE klinisk sanning</div>
@@ -317,7 +533,12 @@
           <div class="link-title">Journal Safety Helper</div>
           <div class="link-sub">6 checkpoints · sido-flik</div>
         </a>
-        <a class="link-card" href="/cco-staff-training-completion.html" target="_blank" rel="noopener">
+        <a
+          class="link-card"
+          href="/cco-staff-training-completion.html"
+          target="_blank"
+          rel="noopener"
+        >
           <div class="link-icon">🎓</div>
           <div class="link-title">Training Completion</div>
           <div class="link-sub">Printbar bekräftelse</div>
@@ -327,17 +548,32 @@
           <div class="link-title">Go-Live Control</div>
           <div class="link-sub">Dag-1 styrning · Fazli</div>
         </a>
-        <a class="link-card" href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">
+        <a
+          class="link-card"
+          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator"
+          target="_blank"
+          rel="noopener"
+        >
           <div class="link-icon">🅰</div>
           <div class="link-title">Pilotkund 1 (A)</div>
           <div class="link-sub">ren journalföringstest</div>
         </a>
-        <a class="link-card" href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">
+        <a
+          class="link-card"
+          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator"
+          target="_blank"
+          rel="noopener"
+        >
           <div class="link-icon">🅱</div>
           <div class="link-title">Pilotkund 2 (B)</div>
           <div class="link-sub">feed + timeline</div>
         </a>
-        <a class="link-card" href="/journal-feed-demo.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">
+        <a
+          class="link-card"
+          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-c&tenant=hairtpclinic&role=operator"
+          target="_blank"
+          rel="noopener"
+        >
           <div class="link-icon">🅲</div>
           <div class="link-title">Pilotkund 3 (C)</div>
           <div class="link-sub">signering + rättelse</div>
@@ -353,26 +589,52 @@
       <div class="fail-card">
         <h3>🆘 Failover-protokoll</h3>
         <ul class="fail-list">
-          <li><strong>Sidan laddar långsamt eller hänger</strong> — använd <a href="https://major-arcana-frankfurt.onrender.com/cco-personal-start.html" target="_blank" rel="noopener">backup-URL</a> (Frankfurt direkt)</li>
-          <li><strong>502 Bad Gateway</strong> — vänta 2 min (Render startar om), refresh, om kvarstår → backup-URL</li>
-          <li><strong>Smoke-test re-run</strong> — kör <code>node scripts/verify-personal-demo-links.js</code> + <code>node scripts/run-personal-demo-readiness.js</code></li>
-          <li><strong>Journal-flödet failar mitt i</strong> — öppna <a href="/journal-pilot-guide.html" target="_blank" rel="noopener">/journal-pilot-guide.html</a> istället och visa flödet steg-för-steg från guiden</li>
-          <li><strong>Internet helt nere</strong> — använd printad <a href="/journal-pilot-print-pack.html" target="_blank" rel="noopener">Print Pack</a> + whiteboard de 5 reglerna</li>
+          <li>
+            <strong>Sidan laddar långsamt eller hänger</strong> — använd
+            <a
+              href="https://major-arcana-frankfurt.onrender.com/cco-demo.html"
+              target="_blank"
+              rel="noopener"
+              >backup-URL</a
+            >
+            (Frankfurt direkt)
+          </li>
+          <li>
+            <strong>502 Bad Gateway</strong> — vänta 2 min (Render startar om), refresh, om kvarstår
+            → backup-URL
+          </li>
+          <li>
+            <strong>Smoke-test re-run</strong> — kör
+            <code>node scripts/verify-personal-demo-links.js</code> +
+            <code>node scripts/run-personal-demo-readiness.js</code>
+          </li>
+          <li>
+            <strong>Journal-flödet failar mitt i</strong> — öppna
+            <a href="/journal-pilot-guide.html" target="_blank" rel="noopener"
+              >/journal-pilot-guide.html</a
+            >
+            istället och visa flödet steg-för-steg från guiden
+          </li>
+          <li>
+            <strong>Internet helt nere</strong> — använd printad
+            <a href="/journal-pilot-print-pack.html" target="_blank" rel="noopener">Print Pack</a> +
+            whiteboard de 5 reglerna
+          </li>
         </ul>
-        <div class="fail-quote">
-          "Vi pausar klicket och visar flödet från guiden."
-        </div>
+        <div class="fail-quote">"Vi pausar klicket och visar flödet från guiden."</div>
       </div>
 
       <!-- FOOTER -->
       <div class="footer">
-        Hair TP Clinic · Command Center byggd <strong>2026-06-02</strong> · status från <code>/cco-presentation-ops-status.json</code> · preflight: <code>npm run cco:presentation-gate</code>
+        Hair TP Clinic · Command Center byggd <strong>2026-06-02</strong> · status från
+        <code>/cco-presentation-ops-status.json</code> · preflight:
+        <code>npm run cco:presentation-gate</code>
       </div>
     </div>
 
     <script>
       const STEPS = [
-        ['Öppna personalstart', '/cco-personal-start.html'],
+        ['Öppna Välkommen till CCO', '/cco-demo.html'],
         ['Öppna kundkort', '/kunder.html'],
         ['Välj pilotkund', 'klicka pilotkund 1/2/3 från personalstart'],
         ['Verifiera identitet', 'namn + telefon + Cliento-id i header'],
@@ -385,13 +647,13 @@
         ['Visa historik', 'fliken Historik → badges syns'],
         ['Förklara "Behöver granskning"', 'importerat material, ej klinisk sanning'],
         ['Säg dag-1-reglerna', '5 regler · scrolla till sektion D'],
-        ['Avsluta + öppna för frågor', 'peka på personalguide']
+        ['Avsluta + öppna för frågor', 'peka på personalguide'],
       ];
       const grid = document.getElementById('scriptGrid');
       STEPS.forEach((s, i) => {
         const d = document.createElement('div');
         d.className = 'script-step';
-        d.innerHTML = `<div class="script-num">${i+1}</div><div class="script-text"><strong>${s[0]}</strong>${s[1]}</div>`;
+        d.innerHTML = `<div class="script-num">${i + 1}</div><div class="script-text"><strong>${s[0]}</strong>${s[1]}</div>`;
         grid.appendChild(d);
       });
 
@@ -410,13 +672,23 @@
         let data = null;
         let source = '';
         try {
-          const r1 = await fetch('/cco-4june-morning-check.json?ts=' + Date.now(), { cache: 'no-store' });
-          if (r1.ok) { data = await r1.json(); source = 'cco-4june-morning-check.json'; }
+          const r1 = await fetch('/cco-4june-morning-check.json?ts=' + Date.now(), {
+            cache: 'no-store',
+          });
+          if (r1.ok) {
+            data = await r1.json();
+            source = 'cco-4june-morning-check.json';
+          }
         } catch (e) {}
         if (!data) {
           try {
-            const r2 = await fetch('/cco-presentation-ops-status.json?ts=' + Date.now(), { cache: 'no-store' });
-            if (r2.ok) { data = await r2.json(); source = 'cco-presentation-ops-status.json (fallback)'; }
+            const r2 = await fetch('/cco-presentation-ops-status.json?ts=' + Date.now(), {
+              cache: 'no-store',
+            });
+            if (r2.ok) {
+              data = await r2.json();
+              source = 'cco-presentation-ops-status.json (fallback)';
+            }
           } catch (e) {}
         }
         hero.classList.remove('loading-dim');
@@ -425,7 +697,8 @@
           hero.classList.add('fix');
           heroLabel.textContent = 'Status';
           heroBig.textContent = 'P0 FIX REQUIRED';
-          heroMeta.innerHTML = 'Kunde inte hämta status-JSON. Kör <code>node scripts/verify-personal-demo-links.js</code> manuellt.';
+          heroMeta.innerHTML =
+            'Kunde inte hämta status-JSON. Kör <code>node scripts/verify-personal-demo-links.js</code> manuellt.';
           return;
         }
         renderStatus(data, source);
@@ -443,15 +716,27 @@
         const gen = data.generatedAt || jp.checkedAt || data.checkedAt || '—';
 
         // Decide hero status
-        hero.classList.remove('loading','wait','fix');
+        hero.classList.remove('loading', 'wait', 'fix');
         let bigText = 'GO';
         let label = 'Presentation-status';
-        const anyFail = [overall, links, e2e, pilot1, pilot2, pilot3].some(v => v === 'FAIL' || v === 'P0');
-        const anyWait = [overall, links, e2e, pilot1, pilot2, pilot3].some(v => v === 'WAIT' || v === 'PENDING');
-        if (anyFail) { hero.classList.add('fix'); bigText = 'P0 FIX REQUIRED'; }
-        else if (anyWait && overall !== 'PASS') { hero.classList.add('wait'); bigText = 'WAIT'; }
-        else if (overall === 'PASS') { bigText = 'GO'; }
-        else { hero.classList.add('wait'); bigText = 'WAIT'; }
+        const anyFail = [overall, links, e2e, pilot1, pilot2, pilot3].some(
+          (v) => v === 'FAIL' || v === 'P0'
+        );
+        const anyWait = [overall, links, e2e, pilot1, pilot2, pilot3].some(
+          (v) => v === 'WAIT' || v === 'PENDING'
+        );
+        if (anyFail) {
+          hero.classList.add('fix');
+          bigText = 'P0 FIX REQUIRED';
+        } else if (anyWait && overall !== 'PASS') {
+          hero.classList.add('wait');
+          bigText = 'WAIT';
+        } else if (overall === 'PASS') {
+          bigText = 'GO';
+        } else {
+          hero.classList.add('wait');
+          bigText = 'WAIT';
+        }
         heroLabel.textContent = label;
         heroBig.textContent = bigText;
 
@@ -461,21 +746,31 @@
             const t = new Date(gen).getTime();
             const sec = Math.floor((Date.now() - t) / 1000);
             if (sec < 60) return sec + ' sek sedan';
-            if (sec < 3600) return Math.floor(sec/60) + ' min sedan';
-            if (sec < 86400) return Math.floor(sec/3600) + ' h sedan';
-            return Math.floor(sec/86400) + ' d sedan';
-          } catch (e) { return ''; }
+            if (sec < 3600) return Math.floor(sec / 60) + ' min sedan';
+            if (sec < 86400) return Math.floor(sec / 3600) + ' h sedan';
+            return Math.floor(sec / 86400) + ' d sedan';
+          } catch (e) {
+            return '';
+          }
         })();
         heroMeta.innerHTML = 'Källa: <code>/' + source + '</code> · genererad ' + (ago || '—');
 
-        function cls(v) { return v === 'PASS' ? 'ok' : (v === 'FAIL' || v === 'P0' ? 'bad' : 'warn'); }
-        function txt(v) { return v || '—'; }
-        cellLinks.textContent = txt(links); cellLinks.className = 'status-cell-value ' + cls(links);
-        cellE2E.textContent = txt(e2e); cellE2E.className = 'status-cell-value ' + cls(e2e);
+        function cls(v) {
+          return v === 'PASS' ? 'ok' : v === 'FAIL' || v === 'P0' ? 'bad' : 'warn';
+        }
+        function txt(v) {
+          return v || '—';
+        }
+        cellLinks.textContent = txt(links);
+        cellLinks.className = 'status-cell-value ' + cls(links);
+        cellE2E.textContent = txt(e2e);
+        cellE2E.className = 'status-cell-value ' + cls(e2e);
         const ps = [pilot1, pilot2, pilot3];
-        cellPilots.textContent = ps.map(p => p || '—').join(' / ');
-        cellPilots.className = 'status-cell-value ' + (ps.every(p => p === 'PASS') ? 'ok' : ps.some(p => p === 'FAIL') ? 'bad' : 'warn');
-        cellTime.textContent = ago || (gen.slice(0,16).replace('T',' '));
+        cellPilots.textContent = ps.map((p) => p || '—').join(' / ');
+        cellPilots.className =
+          'status-cell-value ' +
+          (ps.every((p) => p === 'PASS') ? 'ok' : ps.some((p) => p === 'FAIL') ? 'bad' : 'warn');
+        cellTime.textContent = ago || gen.slice(0, 16).replace('T', ' ');
         cellTime.className = 'status-cell-value';
       }
 

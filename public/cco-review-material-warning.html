@@ -25,163 +25,357 @@
         --red-deep: #7a3324;
         --red-bg: #f4d4cd;
       }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background:
-          radial-gradient(900px 500px at 50% -10%, #f7eed7 0%, transparent 60%),
-          var(--bg);
+          radial-gradient(900px 500px at 50% -10%, #f7eed7 0%, transparent 60%), var(--bg);
         color: var(--ink);
-        font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font:
+          14.5px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          'SF Pro Display',
+          Inter,
+          system-ui,
+          sans-serif;
         min-height: 100vh;
       }
-      .container { max-width: 880px; margin: 0 auto; padding: 22px 24px 60px; }
+      .container {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 22px 24px 60px;
+      }
 
       .topbar {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         padding: 14px 18px;
         background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
-        border: 1px solid var(--line); border-radius: 14px;
-        box-shadow: 0 4px 12px rgba(80,60,30,0.1), inset 0 1px 0 rgba(255,255,255,0.55);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow:
+          0 4px 12px rgba(80, 60, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
         margin-bottom: 18px;
       }
-      .brand { display: flex; align-items: center; gap: 12px; }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
       .brand-mark {
-        width: 38px; height: 38px; border-radius: 10px;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
         background: linear-gradient(135deg, #b08b3f, #6d4e1c);
-        color: #fff; font-weight: 700; font-size: 13px;
-        display: grid; place-items: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        display: grid;
+        place-items: center;
       }
-      .brand-title { font-size: 15px; font-weight: 700; }
-      .brand-sub { font-size: 11.5px; color: var(--ink-soft); }
+      .brand-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .brand-sub {
+        font-size: 11.5px;
+        color: var(--ink-soft);
+      }
       .back-btn {
-        padding: 8px 14px; background: var(--paper); color: var(--ink);
-        border: 1px solid var(--line); border-radius: 8px;
-        font-weight: 600; font-size: 12.5px; text-decoration: none;
+        padding: 8px 14px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 12.5px;
+        text-decoration: none;
       }
-      .back-btn:hover { background: #fff8e8; border-color: var(--accent); }
+      .back-btn:hover {
+        background: #fff8e8;
+        border-color: var(--accent);
+      }
 
       /* WARNING HERO */
       .warn-hero {
-        margin-bottom: 22px; padding: 24px 28px;
+        margin-bottom: 22px;
+        padding: 24px 28px;
         background: linear-gradient(180deg, #f4d4cd 0%, #e9a89c 100%);
-        border: 2px solid var(--red); border-radius: 16px;
-        box-shadow: 0 4px 14px rgba(160,68,50,0.22), inset 0 1px 0 rgba(255,255,255,0.4);
-        position: relative; overflow: hidden;
+        border: 2px solid var(--red);
+        border-radius: 16px;
+        box-shadow:
+          0 4px 14px rgba(160, 68, 50, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        position: relative;
+        overflow: hidden;
       }
       .warn-hero-kicker {
-        font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
-        color: var(--red-deep); font-weight: 800; margin-bottom: 6px;
-        display: flex; align-items: center; gap: 6px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--red-deep);
+        font-weight: 800;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
       .warn-hero h1 {
-        margin: 0 0 8px; font-size: 24px; font-weight: 800;
-        color: var(--red-deep); line-height: 1.2;
+        margin: 0 0 8px;
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--red-deep);
+        line-height: 1.2;
       }
       .warn-hero p {
-        margin: 0; font-size: 14px; color: var(--red-deep);
+        margin: 0;
+        font-size: 14px;
+        color: var(--red-deep);
       }
 
       /* SECTION TITLE */
       .section-title {
-        font-size: 11.5px; text-transform: uppercase; letter-spacing: 2px;
-        color: var(--ink-soft); font-weight: 700;
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--ink-soft);
+        font-weight: 700;
         margin: 26px 0 12px;
-        display: flex; align-items: center; gap: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
-      .section-title::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+      .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
       .section-title-num {
-        display: inline-grid; place-items: center;
-        width: 22px; height: 22px; border-radius: 6px;
-        background: var(--accent); color: #fff;
-        font-weight: 800; font-size: 11px;
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 800;
+        font-size: 11px;
       }
 
       /* BADGE CARDS */
       .badge-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
       }
       .badge-card {
-        background: var(--paper); border: 1px solid var(--line);
-        border-radius: 12px; padding: 16px 18px;
-        box-shadow: 0 2px 8px rgba(80,60,30,0.08), inset 0 1px 0 rgba(255,255,255,0.55);
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 18px;
+        box-shadow:
+          0 2px 8px rgba(80, 60, 30, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
         border-left: 4px solid var(--orange);
       }
-      .badge-card.pending { border-left-color: var(--red); }
-      .badge-card.review { border-left-color: var(--orange); }
-      .badge-card.imported { border-left-color: var(--green); }
+      .badge-card.pending {
+        border-left-color: var(--red);
+      }
+      .badge-card.review {
+        border-left-color: var(--orange);
+      }
+      .badge-card.imported {
+        border-left-color: var(--green);
+      }
       .badge-row {
-        display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
         flex-wrap: wrap;
       }
       .badge {
-        display: inline-block; padding: 3px 9px;
+        display: inline-block;
+        padding: 3px 9px;
         font-family: SFMono-Regular, Menlo, monospace;
-        font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
         border-radius: 6px;
       }
-      .badge.needs-review { background: var(--orange-bg); color: #6a4514; }
-      .badge.pending { background: var(--red-bg); color: var(--red-deep); }
-      .badge.review { background: var(--orange-bg); color: #6a4514; }
-      .badge.imported { background: var(--green-bg); color: var(--green-deep); }
-      .badge.drive { background: rgba(74,103,136,0.18); color: #2f4a6a; }
-      .badge.halso { background: rgba(176,139,63,0.18); color: var(--accent-deep); }
-      .badge.getaccept { background: rgba(107,91,149,0.18); color: #4a3c6d; }
-      .badge-card h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; color: var(--ink); }
-      .badge-card p { margin: 0; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
-      .badge-card p strong { color: var(--ink); font-weight: 700; }
+      .badge.needs-review {
+        background: var(--orange-bg);
+        color: #6a4514;
+      }
+      .badge.pending {
+        background: var(--red-bg);
+        color: var(--red-deep);
+      }
+      .badge.review {
+        background: var(--orange-bg);
+        color: #6a4514;
+      }
+      .badge.imported {
+        background: var(--green-bg);
+        color: var(--green-deep);
+      }
+      .badge.drive {
+        background: rgba(74, 103, 136, 0.18);
+        color: #2f4a6a;
+      }
+      .badge.halso {
+        background: rgba(176, 139, 63, 0.18);
+        color: var(--accent-deep);
+      }
+      .badge.getaccept {
+        background: rgba(107, 91, 149, 0.18);
+        color: #4a3c6d;
+      }
+      .badge-card h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .badge-card p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--ink-soft);
+        line-height: 1.5;
+      }
+      .badge-card p strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
 
       /* USE/DONT-USE table */
       .use-table {
-        width: 100%; border-collapse: collapse;
-        background: var(--paper); border-radius: 12px; overflow: hidden;
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--paper);
+        border-radius: 12px;
+        overflow: hidden;
         border: 1px solid var(--line);
-        box-shadow: 0 2px 8px rgba(80,60,30,0.06);
+        box-shadow: 0 2px 8px rgba(80, 60, 30, 0.06);
       }
       .use-table th {
-        padding: 12px 16px; text-align: left; font-size: 12px;
-        font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
       }
-      .use-table th.yes { background: var(--green-bg); color: var(--green-deep); }
-      .use-table th.no { background: var(--red-bg); color: var(--red-deep); }
+      .use-table th.yes {
+        background: var(--green-bg);
+        color: var(--green-deep);
+      }
+      .use-table th.no {
+        background: var(--red-bg);
+        color: var(--red-deep);
+      }
       .use-table td {
-        padding: 11px 16px; border-top: 1px solid var(--line);
-        font-size: 13px; line-height: 1.5; vertical-align: top;
+        padding: 11px 16px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        line-height: 1.5;
+        vertical-align: top;
       }
-      .use-table tr td:first-child { background: rgba(95,124,60,0.06); }
-      .use-table tr td:last-child { background: rgba(160,68,50,0.06); }
-      .use-table strong { color: var(--ink); font-weight: 700; }
+      .use-table tr td:first-child {
+        background: rgba(95, 124, 60, 0.06);
+      }
+      .use-table tr td:last-child {
+        background: rgba(160, 68, 50, 0.06);
+      }
+      .use-table strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
 
       /* SCENARIO BLOCK */
       .scenario-block {
-        background: var(--paper); border: 1px solid var(--line);
-        border-radius: 12px; padding: 16px 20px; margin-bottom: 10px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 10px;
         border-left: 4px solid var(--accent);
       }
-      .scenario-block h4 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
-      .scenario-block p { margin: 0; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
-      .scenario-block p strong { color: var(--ink); font-weight: 700; }
-      .scenario-block.encounter { border-left-color: var(--orange); }
-      .scenario-block.photo { border-left-color: var(--red); }
-      .scenario-block.doc { border-left-color: var(--accent); }
+      .scenario-block h4 {
+        margin: 0 0 6px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .scenario-block p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--ink-soft);
+        line-height: 1.5;
+      }
+      .scenario-block p strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .scenario-block.encounter {
+        border-left-color: var(--orange);
+      }
+      .scenario-block.photo {
+        border-left-color: var(--red);
+      }
+      .scenario-block.doc {
+        border-left-color: var(--accent);
+      }
 
       .footer {
-        margin-top: 24px; padding: 12px 16px;
-        background: var(--paper-soft); border: 1px solid var(--line);
-        border-radius: 10px; text-align: center;
-        font-size: 11.5px; color: var(--ink-soft);
+        margin-top: 24px;
+        padding: 12px 16px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        text-align: center;
+        font-size: 11.5px;
+        color: var(--ink-soft);
       }
-      .footer a { color: var(--accent-deep); text-decoration: none; font-weight: 700; }
+      .footer a {
+        color: var(--accent-deep);
+        text-decoration: none;
+        font-weight: 700;
+      }
 
       @media (max-width: 700px) {
-        .container { padding: 14px; }
-        .topbar { flex-direction: column; gap: 10px; align-items: stretch; }
-        .badge-grid { grid-template-columns: 1fr; }
-        .warn-hero h1 { font-size: 18px; }
-        .use-table { font-size: 12px; }
-        .use-table th, .use-table td { padding: 9px 12px; }
+        .container {
+          padding: 14px;
+        }
+        .topbar {
+          flex-direction: column;
+          gap: 10px;
+          align-items: stretch;
+        }
+        .badge-grid {
+          grid-template-columns: 1fr;
+        }
+        .warn-hero h1 {
+          font-size: 18px;
+        }
+        .use-table {
+          font-size: 12px;
+        }
+        .use-table th,
+        .use-table td {
+          padding: 9px 12px;
+        }
       }
-    </style>    <link rel="stylesheet" href="/cco-staff-shell.css" />
+    </style>
+    <link rel="stylesheet" href="/cco-staff-shell.css" />
     <script defer src="/cco-staff-shell.js"></script>
   </head>
   <body>
@@ -194,14 +388,19 @@
             <div class="brand-sub">Vad är INTE klinisk sanning · dag 1</div>
           </div>
         </div>
-        <a class="back-btn" href="/cco-personal-start.html">← Personalstart</a>
+        <a class="back-btn" href="/cco-demo.html">← Personalstart</a>
       </div>
 
       <!-- WARNING HERO -->
       <div class="warn-hero">
         <div class="warn-hero-kicker">⚠️ Viktigt att förstå</div>
         <h1>Använd inte review-material som klinisk sanning</h1>
-        <p>Material flaggat <strong>"Behöver granskning"</strong> (badges: <code>needs review</code>, <code>pending</code>, <code>review</code>) är importerat men <strong>inte verifierat</strong> dag 1. Det är en <strong>referens</strong> — inte en grund för diagnos, dosering eller behandlingsbeslut.</p>
+        <p>
+          Material flaggat <strong>"Behöver granskning"</strong> (badges: <code>needs review</code>,
+          <code>pending</code>, <code>review</code>) är importerat men
+          <strong>inte verifierat</strong> dag 1. Det är en <strong>referens</strong> — inte en
+          grund för diagnos, dosering eller behandlingsbeslut.
+        </p>
       </div>
 
       <!-- SECTION A — BADGE-FÖRKLARINGAR -->
@@ -213,7 +412,11 @@
             <span class="badge drive">drive</span>
           </div>
           <h3>Bilder pending</h3>
-          <p>Migrerade <strong>före/efter-bilder</strong> från Drive (~885 assets, 150 kunder). Photo Review pågår — <strong>0 VISIBLE</strong> på kundkort före manuell granskning. <strong>Inte</strong> kliniska behandlingsbilder dag 1.</p>
+          <p>
+            Migrerade <strong>före/efter-bilder</strong> från Drive (~885 assets, 150 kunder). Photo
+            Review pågår — <strong>0 VISIBLE</strong> på kundkort före manuell granskning.
+            <strong>Inte</strong> kliniska behandlingsbilder dag 1.
+          </p>
         </div>
         <div class="badge-card review">
           <div class="badge-row">
@@ -221,14 +424,21 @@
             <span class="badge drive">drive</span>
           </div>
           <h3>Dokument needsClassification</h3>
-          <p>Importerade dokument från Drive där kundmatchningen är osäker. Total ~1 497 i review-kön. Metadata <strong>inte verifierad</strong> — använd som referens, inte sanning.</p>
+          <p>
+            Importerade dokument från Drive där kundmatchningen är osäker. Total ~1 497 i
+            review-kön. Metadata <strong>inte verifierad</strong> — använd som referens, inte
+            sanning.
+          </p>
         </div>
         <div class="badge-card review">
           <div class="badge-row">
             <span class="badge needs-review">encounter review</span>
           </div>
           <h3>Encounter review</h3>
-          <p>Encounter/medium-mapping pausad pre-presentation. <strong>Inte journal-P0</strong> — endast metadata-koppling som väntar manuell verifiering.</p>
+          <p>
+            Encounter/medium-mapping pausad pre-presentation. <strong>Inte journal-P0</strong> —
+            endast metadata-koppling som väntar manuell verifiering.
+          </p>
         </div>
         <div class="badge-card imported">
           <div class="badge-row">
@@ -236,7 +446,11 @@
             <span class="badge halso">halso@</span>
           </div>
           <h3>Hälsodeklarationer (safe-match)</h3>
-          <p>~1 660 kunder · status <code>IMPORTED_SAFE_MATCH</code> — kundmatchning är hög-confidence men <strong>innehållet inte kliniskt verifierat</strong>. Använd som bakgrund för uppföljningsfrågor.</p>
+          <p>
+            ~1 660 kunder · status <code>IMPORTED_SAFE_MATCH</code> — kundmatchning är
+            hög-confidence men <strong>innehållet inte kliniskt verifierat</strong>. Använd som
+            bakgrund för uppföljningsfrågor.
+          </p>
         </div>
         <div class="badge-card imported">
           <div class="badge-row">
@@ -244,19 +458,28 @@
             <span class="badge getaccept">getaccept</span>
           </div>
           <h3>GetAccept-avtal</h3>
-          <p>~1 331 kunder · signerade avtal i CCO storage som PDF. <strong>Avtals-status</strong> är OK att referera, men <strong>medicinskt innehåll</strong> i avtalen är inte journal-data.</p>
+          <p>
+            ~1 331 kunder · signerade avtal i CCO storage som PDF. <strong>Avtals-status</strong> är
+            OK att referera, men <strong>medicinskt innehåll</strong> i avtalen är inte
+            journal-data.
+          </p>
         </div>
         <div class="badge-card pending">
           <div class="badge-row">
             <span class="badge pending">paused</span>
           </div>
           <h3>Drive bilder (NEEDS_REVIEW)</h3>
-          <p>Binärer ligger inne i systemet men <strong>0 VISIBLE</strong> på kundkort. Manuell granskning krävs innan de visas kliniskt. Ingen auto-approve.</p>
+          <p>
+            Binärer ligger inne i systemet men <strong>0 VISIBLE</strong> på kundkort. Manuell
+            granskning krävs innan de visas kliniskt. Ingen auto-approve.
+          </p>
         </div>
       </div>
 
       <!-- SECTION B — ANVÄND / ANVÄND INTE -->
-      <div class="section-title"><span class="section-title-num">B</span>Använd som · använd inte som</div>
+      <div class="section-title">
+        <span class="section-title-num">B</span>Använd som · använd inte som
+      </div>
       <table class="use-table">
         <thead>
           <tr>
@@ -293,26 +516,40 @@
 
       <div class="scenario-block photo">
         <h4>📸 Kunden frågar om sina före/efter-bilder</h4>
-        <p>Säg: <em>"Vi har bilderna men granskar fortfarande — kommer separat."</em> <strong>Ta nya bilder i CCO</strong> om du behöver visuell referens dag 1.</p>
+        <p>
+          Säg: <em>"Vi har bilderna men granskar fortfarande — kommer separat."</em>
+          <strong>Ta nya bilder i CCO</strong> om du behöver visuell referens dag 1.
+        </p>
       </div>
 
       <div class="scenario-block doc">
         <h4>📄 Importerad journal har info om allergier</h4>
-        <p><strong>Bekräfta med patienten muntligt.</strong> Skriv i din nya journal vad patienten själv säger — inte vad det importerade dokumentet påstår.</p>
+        <p>
+          <strong>Bekräfta med patienten muntligt.</strong> Skriv i din nya journal vad patienten
+          själv säger — inte vad det importerade dokumentet påstår.
+        </p>
       </div>
 
       <div class="scenario-block encounter">
         <h4>🔗 Encounter saknar koppling till dagens besök</h4>
-        <p>Det är OK — encounter-mapping pausad. Skapa journalpost utan att vänta på encounter-länk. Mapping fylls i av admin/ops senare.</p>
+        <p>
+          Det är OK — encounter-mapping pausad. Skapa journalpost utan att vänta på encounter-länk.
+          Mapping fylls i av admin/ops senare.
+        </p>
       </div>
 
       <div class="scenario-block doc">
         <h4>🏷 Status-badge "needs review" på gammal anteckning</h4>
-        <p>Läs som <strong>referens</strong>. Skriv din nya journal från noll baserat på dagens konsultation. Den nya posten blir den verifierade källan.</p>
+        <p>
+          Läs som <strong>referens</strong>. Skriv din nya journal från noll baserat på dagens
+          konsultation. Den nya posten blir den verifierade källan.
+        </p>
       </div>
 
       <div class="footer">
-        Hair TP Clinic · Review-Material Warning · 4 juni 2026 — komplett guide: <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> · FAQ: <a href="/cco-journalpilot-faq.html">/cco-journalpilot-faq.html</a>
+        Hair TP Clinic · Review-Material Warning · 4 juni 2026 — komplett guide:
+        <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> · FAQ:
+        <a href="/cco-journalpilot-faq.html">/cco-journalpilot-faq.html</a>
       </div>
     </div>
   </body>

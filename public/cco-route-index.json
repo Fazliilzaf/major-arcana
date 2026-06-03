@@ -1,0 +1,523 @@
+{
+  "generatedAt": "2026-06-03T06:43:05.384Z",
+  "base": "https://arcana.hairtpclinic.com",
+  "canonicalStart": "/cco-demo.html",
+  "canonicalFlow": "Välkommen till CCO → Kunder → Kundkort → Journal",
+  "legacyRedirect": "/cco-personal-start.html",
+  "routeCount": 50,
+  "routes": [
+    {
+      "path": "/admin.html",
+      "title": "Admin",
+      "purpose": "Admin",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["auth"]
+    },
+    {
+      "path": "/ai-triage.html",
+      "title": "AI triage",
+      "purpose": "AI triage demo",
+      "status": "DEMO_OLD",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["mock/demo · ej färdigt"]
+    },
+    {
+      "path": "/ambiguous-mail-enrichment-review.html",
+      "title": "Mail ambiguous review",
+      "purpose": "Mail enrichment operator",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["ej dag-1-verktyg"]
+    },
+    {
+      "path": "/cco-4june-command-center.html",
+      "title": "4 juni Command Center",
+      "purpose": "Fazli GO/STOP under mötet",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": true,
+      "risks": []
+    },
+    {
+      "path": "/cco-after-meeting-start.html",
+      "title": "Efter mötet — börja här · Journalpilot · Hair TP Clinic",
+      "purpose": "CCO/public HTML",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco-concepts.html",
+      "title": "CCO concepts",
+      "purpose": "Koncept/demo",
+      "status": "DEMO_OLD",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco-demo.html",
+      "title": "Välkommen till CCO",
+      "purpose": "Canonical presentation start · arbetsnav översikt",
+      "status": "CANONICAL",
+      "httpStatus": 502,
+      "mainNav": true,
+      "presentationMeeting": true,
+      "risks": []
+    },
+    {
+      "path": "/cco-import-review.html",
+      "title": "Import review",
+      "purpose": "Osäkra kundmatchningar",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["read-only"]
+    },
+    {
+      "path": "/cco-journal-safety-helper.html",
+      "title": "Journal Safety Helper · Hair TP Clinic",
+      "purpose": "Journal pilot support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": true,
+      "risks": []
+    },
+    {
+      "path": "/cco-journalpilot-faq.html",
+      "title": "Journalpilot Quick FAQ · Hair TP Clinic",
+      "purpose": "Journal pilot support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": true,
+      "risks": []
+    },
+    {
+      "path": "/cco-journalpilot-go-live.html",
+      "title": "Go-Live Support · Journalpilot dag 1 · Hair TP Clinic",
+      "purpose": "Journal pilot support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": true,
+      "risks": ["false live claim"]
+    },
+    {
+      "path": "/cco-morning-checklist.html",
+      "title": "Morgon-checklist 4 juni · Fazli · Hair TP Clinic",
+      "purpose": "CCO/public HTML",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco-ops-workbench.html",
+      "title": "Ops Workbench",
+      "purpose": "Intern drift · blocker-köer",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["intern only"]
+    },
+    {
+      "path": "/cco-personal-start.html",
+      "title": "Legacy personal-start",
+      "purpose": "Redirect → /cco-demo.html",
+      "status": "LEGACY",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["ska ej vara primaryStartUrl"]
+    },
+    {
+      "path": "/cco-pre-signering-check.html",
+      "title": "Pre-Signering Check · Identity Verification · Hair TP Clinic",
+      "purpose": "CCO/public HTML",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco-presenter-mode.html",
+      "title": "Presenter Mode · CCO Personalmöte 4 juni 2026 · Hair TP Clinic",
+      "purpose": "CCO/public HTML",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco-review-material-warning.html",
+      "title": "Review-Material Warning · Vad är inte klinisk sanning · Hair TP Clinic",
+      "purpose": "CCO/public HTML",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco-staff-day1-checklist.html",
+      "title": "Staff Day-1 Checklist · Journalpilot · 4 juni 2026 · Hair TP Clinic",
+      "purpose": "Personal/support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco-staff-go-live-control.html",
+      "title": "Personal Go-Live Control · Dag 1 styrning · Hair TP Clinic",
+      "purpose": "Personal/support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco-staff-training-completion.html",
+      "title": "Staff Training Completion · Journalpilot · Hair TP Clinic",
+      "purpose": "Personal/support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco-staff-training-mode.html",
+      "title": "Personal Training Mode · Journalpilot · Hair TP Clinic",
+      "purpose": "Personal/support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/cco/index.html",
+      "title": "CCO index",
+      "purpose": "CCO subfolder",
+      "status": "REMOVE_FROM_NAV",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/drive-historik.html",
+      "title": "Drive historik",
+      "purpose": "Historik/import vy",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["Drive-referens", "mock claims"]
+    },
+    {
+      "path": "/finance-reports.html",
+      "title": "Finance reports",
+      "purpose": "Rapporter",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/finance-review.html",
+      "title": "Finance review",
+      "purpose": "Revisorportal",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/finance.html",
+      "title": "Chief of Finance",
+      "purpose": "CCO-native finance dashboard",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["Fortnox blockerad"]
+    },
+    {
+      "path": "/friskforsakran.html",
+      "title": "Friskförsäkran · Hair TP Clinic",
+      "purpose": "CCO/public HTML",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/index.html",
+      "title": "Index",
+      "purpose": "Root redirect/landing",
+      "status": "REMOVE_FROM_NAV",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/journal-build-demo.html",
+      "title": "Journal API demo",
+      "purpose": "API-referens",
+      "status": "DEMO_OLD",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["demo only"]
+    },
+    {
+      "path": "/journal-feed-demo.html",
+      "title": "Journal feed (demo shell)",
+      "purpose": "Patient journal-feed UI",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": true,
+      "risks": ["kräver customerId query"]
+    },
+    {
+      "path": "/journal-pilot-guide.html",
+      "title": "Journal pilot guide",
+      "purpose": "Print/guide",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": true,
+      "risks": []
+    },
+    {
+      "path": "/journal-pilot-print-pack.html",
+      "title": "Print Pack · Journalpilot dag 1 · Hair TP Clinic · 4 juni 2026",
+      "purpose": "Journal pilot support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": true,
+      "risks": []
+    },
+    {
+      "path": "/journal-pilot-signoff-sheet.html",
+      "title": "Sign-off Sheet · Journalpilot · Hair TP Clinic",
+      "purpose": "Journal pilot support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": true,
+      "risks": []
+    },
+    {
+      "path": "/journal-qa.html",
+      "title": "Journal Cutover QA · Arcana CCO",
+      "purpose": "Journal pilot support",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": true,
+      "risks": []
+    },
+    {
+      "path": "/kalender.html",
+      "title": "Kalender",
+      "purpose": "Kalender · bokningar",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": true,
+      "presentationMeeting": true,
+      "risks": ["ej journal-P0"]
+    },
+    {
+      "path": "/konversationer.html",
+      "title": "Konversationer",
+      "purpose": "Kommunikation · inbox",
+      "status": "PAUSED",
+      "httpStatus": 502,
+      "mainNav": true,
+      "presentationMeeting": true,
+      "risks": ["aktivering pågår · ej dag-1-verktyg"]
+    },
+    {
+      "path": "/kunder.html",
+      "title": "Kunder",
+      "purpose": "Huvudnav · kundkort · journal · timeline",
+      "status": "CANONICAL",
+      "httpStatus": 502,
+      "mainNav": true,
+      "presentationMeeting": true,
+      "risks": []
+    },
+    {
+      "path": "/m-konversationer.html",
+      "title": "Konversationer (mobil)",
+      "purpose": "Mobil kommunikationsvy",
+      "status": "PAUSED",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["mobil demo"]
+    },
+    {
+      "path": "/major-arcana-preview/index.html",
+      "title": "Operatörsvy · Arcana",
+      "purpose": "Marketing/legacy",
+      "status": "REMOVE_FROM_NAV",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/operator-dashboard.html",
+      "title": "Operator dashboard",
+      "purpose": "Operatörsöversikt",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/patient-hub.html",
+      "title": "Patient · Arcana",
+      "purpose": "Patient portal",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["patient-facing"]
+    },
+    {
+      "path": "/patient-portal.html",
+      "title": "Patientportal · Hair TP Clinic",
+      "purpose": "Patient portal",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["patient-facing"]
+    },
+    {
+      "path": "/patient/curatiio.html",
+      "title": "Min Sida — Curatiio",
+      "purpose": "Patient portal",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["patient-facing"]
+    },
+    {
+      "path": "/patient/index.html",
+      "title": "Patient · Arcana",
+      "purpose": "Patient portal",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["patient-facing"]
+    },
+    {
+      "path": "/patientinformation-hartransplantation-dhi-prp-minimal.html",
+      "title": "Minimalistiskt förslag · Patientinformation | Hair TP Clinic",
+      "purpose": "Patient portal",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["patient-facing"]
+    },
+    {
+      "path": "/patientinformation-ogonlocksplastik-curatiio.html",
+      "title": "Patientinformation · Ögonlocksplastik | Curatiio",
+      "purpose": "Patient portal",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["patient-facing"]
+    },
+    {
+      "path": "/personal-demo.html",
+      "title": "Personal demo (alt)",
+      "purpose": "Presenter-alt · ej canonical",
+      "status": "SUPPORT",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/photo-review.html",
+      "title": "Photo Review",
+      "purpose": "Bildgranskning operator",
+      "status": "LIVE_TOOL",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": ["write AV prod"]
+    },
+    {
+      "path": "/uppfoljning/index.html",
+      "title": "Uppföljning · Arcana",
+      "purpose": "Marketing/legacy",
+      "status": "REMOVE_FROM_NAV",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    },
+    {
+      "path": "/uppfoljning/omdome.html",
+      "title": "Hair TP Clinic — Dela din upplevelse",
+      "purpose": "Marketing/legacy",
+      "status": "REMOVE_FROM_NAV",
+      "httpStatus": 502,
+      "mainNav": false,
+      "presentationMeeting": false,
+      "risks": []
+    }
+  ],
+  "summary": {
+    "canonical": ["/cco-demo.html", "/kunder.html"],
+    "legacy": ["/cco-personal-start.html"],
+    "removeFromNav": [
+      "/cco/index.html",
+      "/index.html",
+      "/major-arcana-preview/index.html",
+      "/uppfoljning/index.html",
+      "/uppfoljning/omdome.html"
+    ],
+    "demoOld": ["/ai-triage.html", "/cco-concepts.html", "/journal-build-demo.html"],
+    "paused": ["/konversationer.html", "/m-konversationer.html"]
+  }
+}

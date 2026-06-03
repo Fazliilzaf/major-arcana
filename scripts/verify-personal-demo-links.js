@@ -56,6 +56,7 @@ const WELCOME_BLOCKED_CLAIMS = [
   /AI används på journal/i,
   /no-show.*färdig/i,
   /triage.*färdigt/i,
+  /AI triage.*färdigt/i,
   /automation hub.*live/i,
   /watch app.*live/i,
 ];

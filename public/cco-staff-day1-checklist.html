@@ -20,54 +20,230 @@
         --red: #a04432;
         --red-deep: #7a3324;
       }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, Inter, sans-serif; }
-      body { background: radial-gradient(1000px 500px at 12% -10%, #f7eed7 0%, transparent 60%), var(--bg); min-height: 100vh; }
-      .toolbar { max-width: 880px; margin: 22px auto 0; padding: 12px 18px; background: #fff9e5; border: 1px solid var(--line); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-      .toolbar a, .toolbar button { padding: 8px 16px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 12.5px; cursor: pointer; text-decoration: none; }
-      .toolbar a:hover, .toolbar button:hover { background: var(--accent-deep); }
-      .sheet { max-width: 880px; margin: 18px auto; background: var(--paper); padding: 40px 48px; border-radius: 8px; box-shadow: 0 4px 16px rgba(80,60,20,0.12); position: relative; }
-      .sheet::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-deep)); border-radius: 6px 6px 0 0; }
-      .head { border-bottom: 2px solid var(--ink); padding-bottom: 14px; margin-bottom: 22px; }
-      .head-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-deep); font-weight: 700; }
-      h1 { font-size: 26px; margin: 4px 0 6px; }
-      .head-sub { font-size: 13px; color: var(--ink-soft); font-style: italic; }
-      section { margin: 24px 0; break-inside: avoid; }
-      h2 { font-size: 16px; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1.5px solid var(--line); color: var(--accent-deep); }
-      h2 .num { display: inline-block; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; text-align: center; line-height: 26px; font-size: 13px; margin-right: 10px; }
-      .check { list-style: none; padding: 0; margin: 0; }
-      .check li { padding: 6px 0 6px 30px; position: relative; font-size: 13.5px; }
-      .check li::before { content: ''; position: absolute; left: 0; top: 9px; width: 16px; height: 16px; border: 1.5px solid var(--ink-soft); border-radius: 3px; }
-      .stop { background: linear-gradient(180deg, #f9d8d2 0%, #f0b4a9 100%); border: 1px solid var(--red); border-radius: 10px; padding: 14px 18px; }
-      .stop strong { color: var(--red-deep); }
-      .stop ul { margin: 6px 0 0; padding-left: 22px; }
-      .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-      .contact-card { background: rgba(176,139,63,0.08); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--line); }
-      .contact-card h3 { margin: 0 0 6px; font-size: 13px; color: var(--accent-deep); text-transform: uppercase; letter-spacing: 1px; }
-      .contact-card p { margin: 0; font-size: 12.5px; color: var(--ink-soft); }
-      .footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11px; text-align: center; color: var(--ink-soft); }
-      .footer code { background: var(--paper-soft); padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          14.5px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          Inter,
+          sans-serif;
+      }
+      body {
+        background:
+          radial-gradient(1000px 500px at 12% -10%, #f7eed7 0%, transparent 60%), var(--bg);
+        min-height: 100vh;
+      }
+      .toolbar {
+        max-width: 880px;
+        margin: 22px auto 0;
+        padding: 12px 18px;
+        background: #fff9e5;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .toolbar a,
+      .toolbar button {
+        padding: 8px 16px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 12.5px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .toolbar a:hover,
+      .toolbar button:hover {
+        background: var(--accent-deep);
+      }
+      .sheet {
+        max-width: 880px;
+        margin: 18px auto;
+        background: var(--paper);
+        padding: 40px 48px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(80, 60, 20, 0.12);
+        position: relative;
+      }
+      .sheet::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+        border-radius: 6px 6px 0 0;
+      }
+      .head {
+        border-bottom: 2px solid var(--ink);
+        padding-bottom: 14px;
+        margin-bottom: 22px;
+      }
+      .head-kicker {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent-deep);
+        font-weight: 700;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 4px 0 6px;
+      }
+      .head-sub {
+        font-size: 13px;
+        color: var(--ink-soft);
+        font-style: italic;
+      }
+      section {
+        margin: 24px 0;
+        break-inside: avoid;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 0 0 12px;
+        padding-bottom: 6px;
+        border-bottom: 1.5px solid var(--line);
+        color: var(--accent-deep);
+      }
+      h2 .num {
+        display: inline-block;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        text-align: center;
+        line-height: 26px;
+        font-size: 13px;
+        margin-right: 10px;
+      }
+      .check {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .check li {
+        padding: 6px 0 6px 30px;
+        position: relative;
+        font-size: 13.5px;
+      }
+      .check li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 9px;
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid var(--ink-soft);
+        border-radius: 3px;
+      }
+      .stop {
+        background: linear-gradient(180deg, #f9d8d2 0%, #f0b4a9 100%);
+        border: 1px solid var(--red);
+        border-radius: 10px;
+        padding: 14px 18px;
+      }
+      .stop strong {
+        color: var(--red-deep);
+      }
+      .stop ul {
+        margin: 6px 0 0;
+        padding-left: 22px;
+      }
+      .contact-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .contact-card {
+        background: rgba(176, 139, 63, 0.08);
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+      }
+      .contact-card h3 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        color: var(--accent-deep);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .contact-card p {
+        margin: 0;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+      }
+      .footer {
+        margin-top: 28px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        font-size: 11px;
+        text-align: center;
+        color: var(--ink-soft);
+      }
+      .footer code {
+        background: var(--paper-soft);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+      }
       @media print {
-        body { background: #fff; }
-        .toolbar { display: none; }
-        .sheet { box-shadow: none; padding: 28px; max-width: 100%; margin: 0; border-radius: 0; }
-        section { break-inside: avoid; }
-        @page { margin: 14mm; }
+        body {
+          background: #fff;
+        }
+        .toolbar {
+          display: none;
+        }
+        .sheet {
+          box-shadow: none;
+          padding: 28px;
+          max-width: 100%;
+          margin: 0;
+          border-radius: 0;
+        }
+        section {
+          break-inside: avoid;
+        }
+        @page {
+          margin: 14mm;
+        }
       }
       @media (max-width: 700px) {
-        .sheet { padding: 22px 18px; }
-        .contact-grid { grid-template-columns: 1fr; }
-        h1 { font-size: 20px; }
+        .sheet {
+          padding: 22px 18px;
+        }
+        .contact-grid {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 20px;
+        }
       }
-    </style>    <link rel="stylesheet" href="/cco-staff-shell.css" />
+    </style>
+    <link rel="stylesheet" href="/cco-staff-shell.css" />
     <script defer src="/cco-staff-shell.js"></script>
   </head>
   <body>
     <div class="toolbar">
-      <span style="font-size:12.5px; color:#51422f;"><strong>Staff Day-1 Checklist</strong> · skriv ut för arbetsstationen</span>
+      <span style="font-size: 12.5px; color: #51422f"
+        ><strong>Staff Day-1 Checklist</strong> · skriv ut för arbetsstationen</span
+      >
       <span>
-        <a href="/cco-personal-start.html">← Personalstart</a>
-        <button onclick="window.print()" style="margin-left:8px">🖨 Skriv ut</button>
+        <a href="/cco-demo.html">← Personalstart</a>
+        <button onclick="window.print()" style="margin-left: 8px">🖨 Skriv ut</button>
       </span>
     </div>
 
@@ -75,7 +251,9 @@
       <div class="head">
         <div class="head-kicker">Hair TP Clinic · Personal-checklist</div>
         <h1>Dag 1 · Journalpilot</h1>
-        <div class="head-sub">Kör igenom varje patient — verifiera, skapa, signera, dokumentera</div>
+        <div class="head-sub">
+          Kör igenom varje patient — verifiera, skapa, signera, dokumentera
+        </div>
       </div>
 
       <section>
@@ -85,13 +263,15 @@
           <li><strong>Telefon</strong> — sista 4 siffror, jämför med Cliento</li>
           <li><strong>Cliento-id</strong> — matchar mot kortets header</li>
         </ul>
-        <p style="margin-top:8px;">Allt stämmer? → fortsätt. Något fel? → <strong>sektion 7 (eskalering)</strong>.</p>
+        <p style="margin-top: 8px">
+          Allt stämmer? → fortsätt. Något fel? → <strong>sektion 7 (eskalering)</strong>.
+        </p>
       </section>
 
       <section>
         <h2><span class="num">2</span>Öppna kundkort</h2>
         <ul class="check">
-          <li>Öppna <code>/cco-personal-start.html</code></li>
+          <li>Öppna <code>/cco-demo.html</code></li>
           <li>Klicka "Öppna kundkort" eller använd pilotkund-knapparna</li>
           <li>Verifiera headern igen (namn/telefon/Cliento-id)</li>
           <li>Klicka Journal-fliken</li>
@@ -117,7 +297,10 @@
           <li>Ingen extern AI använd (ingen copy-paste från ChatGPT)?</li>
           <li>Säker? → klicka "Signera" → bekräfta</li>
         </ul>
-        <p style="margin-top:8px; color:var(--red-deep); font-size:12.5px;"><strong>⚠ Signering är permanent.</strong> Originalet låses. Kan endast ändras via rättelse.</p>
+        <p style="margin-top: 8px; color: var(--red-deep); font-size: 12.5px">
+          <strong>⚠ Signering är permanent.</strong> Originalet låses. Kan endast ändras via
+          rättelse.
+        </p>
       </section>
 
       <section>
@@ -134,7 +317,10 @@
 
       <section>
         <h2><span class="num">6</span>Review-material — INTE klinisk sanning</h2>
-        <p>Material flaggat <code>needs review</code> är importerat från externa källor (Drive, halso@, GetAccept). Det är <strong>inte</strong> automatiskt verifierat.</p>
+        <p>
+          Material flaggat <code>needs review</code> är importerat från externa källor (Drive,
+          halso@, GetAccept). Det är <strong>inte</strong> automatiskt verifierat.
+        </p>
         <ul class="check">
           <li>✓ Använd som referens när du frågar patienten</li>
           <li>✓ Använd som bakgrundsinfo</li>
@@ -176,11 +362,19 @@
         <h2><span class="num">9</span>Felsökning</h2>
         <ul class="check">
           <li>Spinner 10+ sek → Refresh (Cmd+R)</li>
-          <li>Hjälper inte → backup: <code>major-arcana-frankfurt.onrender.com/cco-personal-start.html</code></li>
+          <li>
+            Hjälper inte → backup: <code>major-arcana-frankfurt.onrender.com/cco-demo.html</code>
+          </li>
           <li>502 → vänta 2 min → refresh</li>
           <li>"Signera"-knapp saknas → posten är redan signerad, använd "Skapa rättelse"</li>
-          <li>Sidan ser trasig ut → skärmdump till Fazli. <strong>Skriv ingen journal i trasig sida.</strong></li>
-          <li>Börjat på fel patient → <strong>STOPPA. SPARA INTE.</strong> Stäng kortet. Kontakta Fazli.</li>
+          <li>
+            Sidan ser trasig ut → skärmdump till Fazli.
+            <strong>Skriv ingen journal i trasig sida.</strong>
+          </li>
+          <li>
+            Börjat på fel patient → <strong>STOPPA. SPARA INTE.</strong> Stäng kortet. Kontakta
+            Fazli.
+          </li>
         </ul>
       </section>
 
@@ -195,8 +389,15 @@
       </section>
 
       <div class="footer">
-        <strong>Hair TP Clinic · Journalpilot dag 1 · 4 juni 2026</strong><br>
-        Ingen patientdata. Komplett guide: <a href="/journal-pilot-guide.html" style="color:var(--accent-deep)">/journal-pilot-guide.html</a> · Print pack: <a href="/journal-pilot-print-pack.html" style="color:var(--accent-deep)">/journal-pilot-print-pack.html</a>
+        <strong>Hair TP Clinic · Journalpilot dag 1 · 4 juni 2026</strong><br />
+        Ingen patientdata. Komplett guide:
+        <a href="/journal-pilot-guide.html" style="color: var(--accent-deep)"
+          >/journal-pilot-guide.html</a
+        >
+        · Print pack:
+        <a href="/journal-pilot-print-pack.html" style="color: var(--accent-deep)"
+          >/journal-pilot-print-pack.html</a
+        >
       </div>
     </div>
   </body>

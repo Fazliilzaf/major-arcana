@@ -29,178 +29,391 @@
         --blue-deep: #2f4a6a;
         --blue-bg: #dde5f0;
       }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background:
           radial-gradient(1200px 600px at 10% -10%, #f7eed7 0%, transparent 60%),
-          radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%),
-          var(--bg);
+          radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%), var(--bg);
         color: var(--ink);
-        font: 14.5px/1.6 -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Inter, system-ui, sans-serif;
+        font:
+          14.5px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          'SF Pro Display',
+          'Segoe UI',
+          Inter,
+          system-ui,
+          sans-serif;
         min-height: 100vh;
       }
-      .container { max-width: 1080px; margin: 0 auto; padding: 26px 28px 80px; }
+      .container {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 26px 28px 80px;
+      }
 
       /* TOPBAR */
       .topbar {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         padding: 18px 22px;
         background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
         border: 1px solid var(--line);
         border-radius: 18px;
-        box-shadow: 0 6px 18px rgba(80, 60, 30, 0.1), inset 0 1px 0 rgba(255,255,255,0.55);
+        box-shadow:
+          0 6px 18px rgba(80, 60, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
         margin-bottom: 20px;
       }
-      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
       .brand-mark {
-        width: 44px; height: 44px; border-radius: 11px;
+        width: 44px;
+        height: 44px;
+        border-radius: 11px;
         background: linear-gradient(135deg, #b08b3f, #6d4e1c);
-        color: #fff; font-weight: 700; font-size: 14px;
-        display: grid; place-items: center;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 2px 6px rgba(80,60,20,0.25);
+        color: #fff;
+        font-weight: 700;
+        font-size: 14px;
+        display: grid;
+        place-items: center;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.35),
+          0 2px 6px rgba(80, 60, 20, 0.25);
       }
-      .brand-title { font-size: 16.5px; font-weight: 700; }
-      .brand-sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+      .brand-title {
+        font-size: 16.5px;
+        font-weight: 700;
+      }
+      .brand-sub {
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin-top: 2px;
+      }
       .back-btn {
-        padding: 9px 16px; background: var(--paper); color: var(--ink);
-        border: 1px solid var(--line); border-radius: 10px;
-        font-weight: 600; font-size: 12.5px; text-decoration: none;
+        padding: 9px 16px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 12.5px;
+        text-decoration: none;
       }
-      .back-btn:hover { background: #fff8e8; border-color: var(--accent); }
+      .back-btn:hover {
+        background: #fff8e8;
+        border-color: var(--accent);
+      }
 
       /* HERO */
       .hero {
         margin-bottom: 22px;
         padding: 26px 30px;
-        background: var(--paper); border: 1px solid var(--line);
+        background: var(--paper);
+        border: 1px solid var(--line);
         border-radius: 18px;
-        box-shadow: 0 4px 14px rgba(80, 60, 30, 0.1), inset 0 1px 0 rgba(255,255,255,0.6);
-        position: relative; overflow: hidden;
+        box-shadow:
+          0 4px 14px rgba(80, 60, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        position: relative;
+        overflow: hidden;
       }
       .hero::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
         background: linear-gradient(90deg, var(--accent), var(--accent-deep));
       }
       .hero-kicker {
-        font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
-        color: var(--accent-deep); font-weight: 700; margin-bottom: 6px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent-deep);
+        font-weight: 700;
+        margin-bottom: 6px;
       }
       .hero h1 {
-        font-size: 28px; font-weight: 800; margin: 0 0 8px;
-        letter-spacing: -0.3px; color: var(--ink); line-height: 1.15;
+        font-size: 28px;
+        font-weight: 800;
+        margin: 0 0 8px;
+        letter-spacing: -0.3px;
+        color: var(--ink);
+        line-height: 1.15;
       }
-      .hero p { margin: 0; font-size: 14.5px; color: var(--ink); max-width: 760px; }
+      .hero p {
+        margin: 0;
+        font-size: 14.5px;
+        color: var(--ink);
+        max-width: 760px;
+      }
       .hero-banner {
-        margin-top: 14px; padding: 12px 16px;
-        background: var(--green-bg); border: 1px solid rgba(95,124,60,0.35);
-        border-radius: 10px; font-size: 13px; color: var(--green-deep);
+        margin-top: 14px;
+        padding: 12px 16px;
+        background: var(--green-bg);
+        border: 1px solid rgba(95, 124, 60, 0.35);
+        border-radius: 10px;
+        font-size: 13px;
+        color: var(--green-deep);
       }
 
       /* QUICK LINKS */
       .quick-links {
-        display: flex; flex-wrap: wrap; gap: 8px;
-        margin: 0 0 26px; padding: 12px 14px;
-        background: var(--paper-soft); border: 1px solid var(--line);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 26px;
+        padding: 12px 14px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
         border-radius: 12px;
       }
       .quick-links a {
-        padding: 7px 13px; background: var(--paper); color: var(--ink);
-        text-decoration: none; border-radius: 8px; font-size: 12px; font-weight: 600;
+        padding: 7px 13px;
+        background: var(--paper);
+        color: var(--ink);
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
         border: 1px solid var(--line);
       }
-      .quick-links a:hover { background: var(--accent); color: #fff; border-color: var(--accent-deep); }
-      .quick-links .label { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 1px; padding-right: 4px; align-self: center; font-weight: 700; }
+      .quick-links a:hover {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent-deep);
+      }
+      .quick-links .label {
+        font-size: 11px;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding-right: 4px;
+        align-self: center;
+        font-weight: 700;
+      }
 
       /* PROGRESS */
       .progress-shell {
-        display: flex; align-items: center; gap: 14px;
-        padding: 12px 16px; background: var(--paper-soft);
-        border: 1px solid var(--line); border-radius: 12px; margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 16px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        margin-bottom: 22px;
       }
       .progress-bar {
-        flex: 1; height: 10px; background: rgba(132,117,107,0.18);
-        border-radius: 999px; overflow: hidden;
+        flex: 1;
+        height: 10px;
+        background: rgba(132, 117, 107, 0.18);
+        border-radius: 999px;
+        overflow: hidden;
       }
       .progress-fill {
-        height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-deep));
-        transition: width 0.3s; width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+        transition: width 0.3s;
+        width: 0%;
       }
-      .progress-text { font-size: 13px; font-weight: 700; color: var(--ink-soft); min-width: 100px; text-align: right; }
+      .progress-text {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        min-width: 100px;
+        text-align: right;
+      }
 
       /* STEP CARD */
       .step {
-        background: var(--paper); border: 1px solid var(--line);
-        border-radius: 16px; padding: 22px 26px; margin-bottom: 16px;
-        box-shadow: 0 3px 12px rgba(80, 60, 30, 0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 22px 26px;
+        margin-bottom: 16px;
+        box-shadow:
+          0 3px 12px rgba(80, 60, 30, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
         transition: all 0.2s;
       }
-      .step.active { border-color: var(--accent); background: #fff8e8; box-shadow: 0 6px 18px rgba(176,139,63,0.22), inset 0 1px 0 rgba(255,255,255,0.7); }
-      .step.done { background: #eaeedd; opacity: 0.85; }
+      .step.active {
+        border-color: var(--accent);
+        background: #fff8e8;
+        box-shadow:
+          0 6px 18px rgba(176, 139, 63, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      }
+      .step.done {
+        background: #eaeedd;
+        opacity: 0.85;
+      }
       .step-head {
-        display: grid; grid-template-columns: 48px 1fr auto; gap: 16px;
-        align-items: center; margin-bottom: 16px;
+        display: grid;
+        grid-template-columns: 48px 1fr auto;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 16px;
       }
       .step-num {
-        width: 44px; height: 44px; border-radius: 50%;
-        background: var(--accent); color: #fff;
-        font-weight: 700; font-size: 18px;
-        display: grid; place-items: center;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+        font-size: 18px;
+        display: grid;
+        place-items: center;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
       }
-      .step.done .step-num { background: var(--green); }
-      .step-title { font-size: 18px; font-weight: 700; margin: 0; color: var(--ink); }
+      .step.done .step-num {
+        background: var(--green);
+      }
+      .step-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+        color: var(--ink);
+      }
       .step-check {
-        width: 32px; height: 32px; border: 2px solid var(--line);
-        border-radius: 8px; cursor: pointer; background: #fff;
-        display: grid; place-items: center;
-        font-size: 18px; color: transparent; transition: all 0.15s;
+        width: 32px;
+        height: 32px;
+        border: 2px solid var(--line);
+        border-radius: 8px;
+        cursor: pointer;
+        background: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        color: transparent;
+        transition: all 0.15s;
       }
-      .step-check:hover { border-color: var(--accent); }
-      .step.done .step-check { background: var(--green); border-color: var(--green-deep); color: #fff; }
+      .step-check:hover {
+        border-color: var(--accent);
+      }
+      .step.done .step-check {
+        background: var(--green);
+        border-color: var(--green-deep);
+        color: #fff;
+      }
 
       .step-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
       }
       .step-cell {
-        padding: 12px 14px; border-radius: 10px;
+        padding: 12px 14px;
+        border-radius: 10px;
         border: 1px solid var(--line);
       }
       .step-cell-label {
-        font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.5px;
-        font-weight: 700; margin-bottom: 4px;
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-weight: 700;
+        margin-bottom: 4px;
       }
-      .step-cell.what { background: var(--blue-bg); border-color: rgba(74,103,136,0.4); }
-      .step-cell.what .step-cell-label { color: var(--blue-deep); }
-      .step-cell.where { background: var(--paper-deep); border-color: var(--line); }
-      .step-cell.where .step-cell-label { color: var(--accent-deep); }
-      .step-cell.right { background: var(--green-bg); border-color: rgba(95,124,60,0.4); }
-      .step-cell.right .step-cell-label { color: var(--green-deep); }
-      .step-cell.mistake { background: var(--orange-bg); border-color: rgba(196,129,50,0.5); }
-      .step-cell.mistake .step-cell-label { color: #6a4514; }
-      .step-cell.stop { background: var(--red-bg); border-color: rgba(160,68,50,0.4); grid-column: span 2; }
-      .step-cell.stop .step-cell-label { color: var(--red-deep); }
-      .step-cell p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
-      .step-cell strong { color: var(--ink); font-weight: 700; }
+      .step-cell.what {
+        background: var(--blue-bg);
+        border-color: rgba(74, 103, 136, 0.4);
+      }
+      .step-cell.what .step-cell-label {
+        color: var(--blue-deep);
+      }
+      .step-cell.where {
+        background: var(--paper-deep);
+        border-color: var(--line);
+      }
+      .step-cell.where .step-cell-label {
+        color: var(--accent-deep);
+      }
+      .step-cell.right {
+        background: var(--green-bg);
+        border-color: rgba(95, 124, 60, 0.4);
+      }
+      .step-cell.right .step-cell-label {
+        color: var(--green-deep);
+      }
+      .step-cell.mistake {
+        background: var(--orange-bg);
+        border-color: rgba(196, 129, 50, 0.5);
+      }
+      .step-cell.mistake .step-cell-label {
+        color: #6a4514;
+      }
+      .step-cell.stop {
+        background: var(--red-bg);
+        border-color: rgba(160, 68, 50, 0.4);
+        grid-column: span 2;
+      }
+      .step-cell.stop .step-cell-label {
+        color: var(--red-deep);
+      }
+      .step-cell p {
+        margin: 0;
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: var(--ink);
+      }
+      .step-cell strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
 
       /* FOOTER */
       .footer {
-        margin-top: 32px; padding: 16px 20px;
-        background: var(--paper-soft); border: 1px solid var(--line);
-        border-radius: 12px; text-align: center;
-        font-size: 12.5px; color: var(--ink-soft);
+        margin-top: 32px;
+        padding: 16px 20px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        text-align: center;
+        font-size: 12.5px;
+        color: var(--ink-soft);
       }
-      .footer strong { color: var(--ink); }
-      .footer a { color: var(--accent-deep); text-decoration: none; }
+      .footer strong {
+        color: var(--ink);
+      }
+      .footer a {
+        color: var(--accent-deep);
+        text-decoration: none;
+      }
 
       @media (max-width: 800px) {
-        .container { padding: 16px; }
-        .topbar { flex-direction: column; gap: 12px; align-items: stretch; }
-        .step-grid { grid-template-columns: 1fr; }
-        .step-cell.stop { grid-column: span 1; }
-        .hero h1 { font-size: 22px; }
+        .container {
+          padding: 16px;
+        }
+        .topbar {
+          flex-direction: column;
+          gap: 12px;
+          align-items: stretch;
+        }
+        .step-grid {
+          grid-template-columns: 1fr;
+        }
+        .step-cell.stop {
+          grid-column: span 1;
+        }
+        .hero h1 {
+          font-size: 22px;
+        }
       }
-    </style>    <link rel="stylesheet" href="/cco-staff-shell.css" />
+    </style>
+    <link rel="stylesheet" href="/cco-staff-shell.css" />
     <script defer src="/cco-staff-shell.js"></script>
   </head>
   <body>
@@ -214,27 +427,49 @@
             <div class="brand-sub">Hair TP Clinic · öva själv efter mötet · 5 steg</div>
           </div>
         </div>
-        <a class="back-btn" href="/cco-personal-start.html">← Personalstart</a>
+        <a class="back-btn" href="/cco-demo.html">← Personalstart</a>
       </div>
 
       <!-- HERO -->
       <div class="hero">
         <div class="hero-kicker">Träningsläge</div>
         <h1>Öva journalflödet — själv, i din egen takt</h1>
-        <p>Gå igenom 5 träningssteg när du har en lugn stund. Bocka av varje steg. Använd pilotkund 1, 2 eller 3 — de är säkra testpatienter. Du kan inte förstöra något.</p>
+        <p>
+          Gå igenom 5 träningssteg när du har en lugn stund. Bocka av varje steg. Använd pilotkund
+          1, 2 eller 3 — de är säkra testpatienter. Du kan inte förstöra något.
+        </p>
         <div class="hero-banner">
-          <strong>Säkerhet:</strong> Träningssidan beskriver flödet — det är på <a href="/cco-personal-start.html" style="color:var(--green-deep); font-weight:700;">/cco-personal-start.html</a> du faktiskt klickar.
+          <strong>Säkerhet:</strong> Träningssidan beskriver flödet — det är på
+          <a href="/cco-demo.html" style="color: var(--green-deep); font-weight: 700"
+            >/cco-demo.html</a
+          >
+          du faktiskt klickar.
         </div>
       </div>
 
       <!-- QUICK LINKS -->
       <div class="quick-links">
         <span class="label">Öppna i ny flik:</span>
-        <a href="/cco-personal-start.html" target="_blank" rel="noopener">Personalstart</a>
+        <a href="/cco-demo.html" target="_blank" rel="noopener">Personalstart</a>
         <a href="/kunder.html" target="_blank" rel="noopener">Kunder</a>
-        <a href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">Pilotkund 1 (A)</a>
-        <a href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">Pilotkund 2 (B)</a>
-        <a href="/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator" target="_blank" rel="noopener">Pilotkund 3 (C)</a>
+        <a
+          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator"
+          target="_blank"
+          rel="noopener"
+          >Pilotkund 1 (A)</a
+        >
+        <a
+          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator"
+          target="_blank"
+          rel="noopener"
+          >Pilotkund 2 (B)</a
+        >
+        <a
+          href="/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator"
+          target="_blank"
+          rel="noopener"
+          >Pilotkund 3 (C)</a
+        >
         <a href="/journal-pilot-guide.html" target="_blank" rel="noopener">📖 Guide</a>
         <a href="/journal-pilot-print-pack.html" target="_blank" rel="noopener">🖨 Print Pack</a>
         <a href="/cco-presenter-mode.html" target="_blank" rel="noopener">🎬 Presenter Mode</a>
@@ -258,23 +493,38 @@
           <div class="step-grid">
             <div class="step-cell what">
               <div class="step-cell-label">Vad du ska göra</div>
-              <p>Öppna kundlistan och sök fram en känd patient på <strong>namn, telefon eller Cliento-id</strong>. Öva med pilotkund 1.</p>
+              <p>
+                Öppna kundlistan och sök fram en känd patient på
+                <strong>namn, telefon eller Cliento-id</strong>. Öva med pilotkund 1.
+              </p>
             </div>
             <div class="step-cell where">
               <div class="step-cell-label">Var du klickar</div>
-              <p>På <strong>/cco-personal-start.html</strong> → "Öppna kundkort" eller direkt på <strong>"Pilotkund 1"</strong>-kortet.</p>
+              <p>
+                På <strong>/cco-demo.html</strong> → "Öppna kundkort" eller direkt på
+                <strong>"Pilotkund 1"</strong>-kortet.
+              </p>
             </div>
             <div class="step-cell right">
               <div class="step-cell-label">Rätt resultat</div>
-              <p>Patientkortet öppnas med rubrik som visar <strong>namn / telefon / Cliento-id</strong> i header.</p>
+              <p>
+                Patientkortet öppnas med rubrik som visar
+                <strong>namn / telefon / Cliento-id</strong> i header.
+              </p>
             </div>
             <div class="step-cell mistake">
               <div class="step-cell-label">Vanligt misstag</div>
-              <p>Att <strong>skapa ny kund</strong> när sökningen inte ger direktträff. Sök bredare först — patienten finns oftast redan i CCO.</p>
+              <p>
+                Att <strong>skapa ny kund</strong> när sökningen inte ger direktträff. Sök bredare
+                först — patienten finns oftast redan i CCO.
+              </p>
             </div>
             <div class="step-cell stop">
               <div class="step-cell-label">Stoppa och eskalera om</div>
-              <p>Du får upp <strong>två liknande träffar</strong> (misstänkt dubblett) eller patientens uppgifter inte matchar. → Eskalera till admin/ops.</p>
+              <p>
+                Du får upp <strong>två liknande träffar</strong> (misstänkt dubblett) eller
+                patientens uppgifter inte matchar. → Eskalera till admin/ops.
+              </p>
             </div>
           </div>
         </div>
@@ -289,23 +539,38 @@
           <div class="step-grid">
             <div class="step-cell what">
               <div class="step-cell-label">Vad du ska göra</div>
-              <p>Bekräfta <strong>tre saker</strong> innan du börjar skriva: namn, telefon (sista 4 siffror), Cliento-id. Säg dem högt eller jämför mentalt.</p>
+              <p>
+                Bekräfta <strong>tre saker</strong> innan du börjar skriva: namn, telefon (sista 4
+                siffror), Cliento-id. Säg dem högt eller jämför mentalt.
+              </p>
             </div>
             <div class="step-cell where">
               <div class="step-cell-label">Var du klickar</div>
-              <p>Inga klick — bara <strong>läs kundkortets header</strong> och jämför med vad patienten själv säger.</p>
+              <p>
+                Inga klick — bara <strong>läs kundkortets header</strong> och jämför med vad
+                patienten själv säger.
+              </p>
             </div>
             <div class="step-cell right">
               <div class="step-cell-label">Rätt resultat</div>
-              <p><strong>Alla tre stämmer.</strong> Då är det säkert att fortsätta till journalflödet.</p>
+              <p>
+                <strong>Alla tre stämmer.</strong> Då är det säkert att fortsätta till
+                journalflödet.
+              </p>
             </div>
             <div class="step-cell mistake">
               <div class="step-cell-label">Vanligt misstag</div>
-              <p>Att lita på att namnet bara <em>verkar</em> rätt. Verifiera alltid alla tre — särskilt om patienten är ny för dig.</p>
+              <p>
+                Att lita på att namnet bara <em>verkar</em> rätt. Verifiera alltid alla tre —
+                särskilt om patienten är ny för dig.
+              </p>
             </div>
             <div class="step-cell stop">
               <div class="step-cell-label">Stoppa och eskalera om</div>
-              <p>Något av de tre <strong>inte stämmer</strong>. Säg "en sekund så dubbelkollar jag" och kontakta admin/ops. <strong>Aldrig gissa.</strong></p>
+              <p>
+                Något av de tre <strong>inte stämmer</strong>. Säg "en sekund så dubbelkollar jag"
+                och kontakta admin/ops. <strong>Aldrig gissa.</strong>
+              </p>
             </div>
           </div>
         </div>
@@ -320,23 +585,39 @@
           <div class="step-grid">
             <div class="step-cell what">
               <div class="step-cell-label">Vad du ska göra</div>
-              <p>Klicka på <strong>Journal</strong>-fliken → <strong>"Ny anteckning"</strong>. Välj mall (Konsultation / Behandling / Follow-up). Skriv kort: datum + observation + plan.</p>
+              <p>
+                Klicka på <strong>Journal</strong>-fliken → <strong>"Ny anteckning"</strong>. Välj
+                mall (Konsultation / Behandling / Follow-up). Skriv kort: datum + observation +
+                plan.
+              </p>
             </div>
             <div class="step-cell where">
               <div class="step-cell-label">Var du klickar</div>
-              <p>Inuti kundkortet → fliken <strong>Journal</strong> (uppe i navet) → grön knapp <strong>"Ny anteckning"</strong>.</p>
+              <p>
+                Inuti kundkortet → fliken <strong>Journal</strong> (uppe i navet) → grön knapp
+                <strong>"Ny anteckning"</strong>.
+              </p>
             </div>
             <div class="step-cell right">
               <div class="step-cell-label">Rätt resultat</div>
-              <p>En ny <strong>draft</strong> visas i journalfeeden — den kan ändras fritt tills du signerar.</p>
+              <p>
+                En ny <strong>draft</strong> visas i journalfeeden — den kan ändras fritt tills du
+                signerar.
+              </p>
             </div>
             <div class="step-cell mistake">
               <div class="step-cell-label">Vanligt misstag</div>
-              <p>Att skriva för mycket eller använda <strong>extern AI</strong> (ChatGPT, Copilot). <strong>Förbjudet</strong> — patientdata får aldrig lämna systemet.</p>
+              <p>
+                Att skriva för mycket eller använda <strong>extern AI</strong> (ChatGPT, Copilot).
+                <strong>Förbjudet</strong> — patientdata får aldrig lämna systemet.
+              </p>
             </div>
             <div class="step-cell stop">
               <div class="step-cell-label">Stoppa och eskalera om</div>
-              <p>Du upptäcker att du är på <strong>fel patient</strong>. <strong>STOPPA. SPARA INTE.</strong> Stäng kortet. Kontakta Fazli direkt.</p>
+              <p>
+                Du upptäcker att du är på <strong>fel patient</strong>.
+                <strong>STOPPA. SPARA INTE.</strong> Stäng kortet. Kontakta Fazli direkt.
+              </p>
             </div>
           </div>
         </div>
@@ -351,7 +632,10 @@
           <div class="step-grid">
             <div class="step-cell what">
               <div class="step-cell-label">Vad du ska göra</div>
-              <p>Gå igenom mentalt: rätt patient? text komplett? inga personnummer i fritext? Klicka sedan <strong>"Signera"</strong> → bekräfta i dialogen.</p>
+              <p>
+                Gå igenom mentalt: rätt patient? text komplett? inga personnummer i fritext? Klicka
+                sedan <strong>"Signera"</strong> → bekräfta i dialogen.
+              </p>
             </div>
             <div class="step-cell where">
               <div class="step-cell-label">Var du klickar</div>
@@ -359,15 +643,24 @@
             </div>
             <div class="step-cell right">
               <div class="step-cell-label">Rätt resultat</div>
-              <p>Posten visar nu <strong>"signerad"</strong>-badge. Den är låst — kan inte ändras direkt. Bara via rättelse.</p>
+              <p>
+                Posten visar nu <strong>"signerad"</strong>-badge. Den är låst — kan inte ändras
+                direkt. Bara via rättelse.
+              </p>
             </div>
             <div class="step-cell mistake">
               <div class="step-cell-label">Vanligt misstag</div>
-              <p>Att signera <strong>för snabbt</strong>. Signering är <strong>permanent</strong>. Läs alltid igenom en gång till.</p>
+              <p>
+                Att signera <strong>för snabbt</strong>. Signering är <strong>permanent</strong>.
+                Läs alltid igenom en gång till.
+              </p>
             </div>
             <div class="step-cell stop">
               <div class="step-cell-label">Stoppa och eskalera om</div>
-              <p>Knappen ger fel eller posten <strong>låses inte</strong> efter bekräftelse. Skärmdump → Fazli. <strong>Skriv ingen ny journal i en trasig sida.</strong></p>
+              <p>
+                Knappen ger fel eller posten <strong>låses inte</strong> efter bekräftelse.
+                Skärmdump → Fazli. <strong>Skriv ingen ny journal i en trasig sida.</strong>
+              </p>
             </div>
           </div>
         </div>
@@ -382,23 +675,39 @@
           <div class="step-grid">
             <div class="step-cell what">
               <div class="step-cell-label">Vad du ska göra</div>
-              <p>Om en signerad post är fel — öppna den, klicka <strong>"Skapa rättelse"</strong>. Skriv det korrigerade i sin helhet och ange anledning (typo / ny info / felaktig dos). Spara + signera.</p>
+              <p>
+                Om en signerad post är fel — öppna den, klicka <strong>"Skapa rättelse"</strong>.
+                Skriv det korrigerade i sin helhet och ange anledning (typo / ny info / felaktig
+                dos). Spara + signera.
+              </p>
             </div>
             <div class="step-cell where">
               <div class="step-cell-label">Var du klickar</div>
-              <p>Knappen <strong>"Skapa rättelse"</strong> på den signerade posten → ny tom post öppnas, länkad till originalet.</p>
+              <p>
+                Knappen <strong>"Skapa rättelse"</strong> på den signerade posten → ny tom post
+                öppnas, länkad till originalet.
+              </p>
             </div>
             <div class="step-cell right">
               <div class="step-cell-label">Rätt resultat</div>
-              <p>I <strong>Timeline</strong>-fliken syns båda posterna kronologiskt — original + rättelse är länkade. <strong>Inget förlorat, allt spårbart.</strong></p>
+              <p>
+                I <strong>Timeline</strong>-fliken syns båda posterna kronologiskt — original +
+                rättelse är länkade. <strong>Inget förlorat, allt spårbart.</strong>
+              </p>
             </div>
             <div class="step-cell mistake">
               <div class="step-cell-label">Vanligt misstag</div>
-              <p>Att skriva <em>"stryk allt ovan"</em> i rättelsen. <strong>Fel.</strong> Skriv det korrigerade i sin helhet — som om det vore en helt ny post.</p>
+              <p>
+                Att skriva <em>"stryk allt ovan"</em> i rättelsen. <strong>Fel.</strong> Skriv det
+                korrigerade i sin helhet — som om det vore en helt ny post.
+              </p>
             </div>
             <div class="step-cell stop">
               <div class="step-cell-label">Stoppa och eskalera om</div>
-              <p>Du försöker ändra originalet direkt och systemet <strong>tillåter det</strong>. Det ska inte gå. Skärmdump → Fazli.</p>
+              <p>
+                Du försöker ändra originalet direkt och systemet <strong>tillåter det</strong>. Det
+                ska inte gå. Skärmdump → Fazli.
+              </p>
             </div>
           </div>
         </div>
@@ -406,7 +715,10 @@
 
       <!-- FOOTER -->
       <div class="footer">
-        <strong>Klar med träningen?</strong> Bra. Du är nu redo att börja journalföra i CCO. Vid frågor — öppna <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> eller <a href="/cco-journalpilot-faq.html">/cco-journalpilot-faq.html</a>. Vid problem — eskalera till admin/ops eller Fazli direkt.
+        <strong>Klar med träningen?</strong> Bra. Du är nu redo att börja journalföra i CCO. Vid
+        frågor — öppna <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> eller
+        <a href="/cco-journalpilot-faq.html">/cco-journalpilot-faq.html</a>. Vid problem — eskalera
+        till admin/ops eller Fazli direkt.
       </div>
     </div>
 
@@ -416,14 +728,16 @@
       const total = document.querySelectorAll('.step').length;
       function update() {
         const done = document.querySelectorAll('.step.done').length;
-        const pct = Math.round(done / total * 100);
+        const pct = Math.round((done / total) * 100);
         fill.style.width = pct + '%';
         txt.textContent = done + ' / ' + total + ' steg';
-        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-        const next = Array.from(document.querySelectorAll('.step')).find(s => !s.classList.contains('done'));
+        document.querySelectorAll('.step').forEach((s) => s.classList.remove('active'));
+        const next = Array.from(document.querySelectorAll('.step')).find(
+          (s) => !s.classList.contains('done')
+        );
         if (next) next.classList.add('active');
       }
-      document.querySelectorAll('.step-check').forEach(c => {
+      document.querySelectorAll('.step-check').forEach((c) => {
         c.addEventListener('click', () => {
           c.closest('.step').classList.toggle('done');
           update();

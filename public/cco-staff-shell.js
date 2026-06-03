@@ -1,3 +1,4 @@
+/* global document */
 /*!
  * CCO Staff Shell · auto-inject CCO top-nav
  * Cycle 18 · 2026-06-04
@@ -26,12 +27,13 @@
       '<a href="/konversationer.html">Konversationer</a>',
       '<a href="/kunder.html">Kunder</a>',
       '<a href="/kalender.html">Kalender</a>',
-      '<a href="/cco-demo.html" class="cco-nav-active-personal">Journalpilot</a>'
+      '<a href="/cco-demo.html" class="cco-nav-active-welcome">Välkommen</a>'
     ].join('');
 
     // Mark active link based on URL
     var path = (document.location && document.location.pathname) || '';
     var staffPaths = [
+      '/cco-demo.html',
       '/cco-personal-start.html',
       '/cco-presenter-mode.html',
       '/cco-4june-command-center.html',
@@ -48,11 +50,14 @@
       '/cco-morning-checklist.html',
       '/cco-staff-day1-checklist.html',
       '/journal-pilot-signoff-sheet.html',
-      '/cco-staff-training-completion.html'
+      '/cco-staff-training-completion.html',
     ];
-    if (staffPaths.indexOf(path) !== -1) {
-      var personalLink = nav.querySelector('.cco-nav-active-personal');
-      if (personalLink) personalLink.classList.add('active');
+    if (path === '/cco-demo.html') {
+      var welcomeLink = nav.querySelector('.cco-nav-active-welcome');
+      if (welcomeLink) welcomeLink.classList.add('active');
+    } else if (staffPaths.indexOf(path) !== -1) {
+      var welcomeLink2 = nav.querySelector('.cco-nav-active-welcome');
+      if (welcomeLink2) welcomeLink2.classList.add('active');
     } else if (path === '/kunder.html') {
       var kunderLink = nav.querySelector('a[href="/kunder.html"]');
       if (kunderLink) kunderLink.classList.add('active');

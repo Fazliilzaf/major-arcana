@@ -9,16 +9,22 @@
     <script defer src="/cco-staff-shell.js"></script>
     <style>
       .welcome-grid {
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
         margin-top: 18px;
       }
-      .welcome-grid--2 { grid-template-columns: repeat(2, 1fr); }
+      .welcome-grid--2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
       .welcome-card {
-        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,241,236,0.92));
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 241, 236, 0.92));
         border: 1px solid var(--line);
         border-radius: 18px;
         padding: 18px 22px;
-        box-shadow: 0 8px 24px rgba(56,40,28,0.06), inset 0 1px 0 rgba(255,255,255,0.92);
+        box-shadow:
+          0 8px 24px rgba(56, 40, 28, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.92);
         text-decoration: none;
         color: var(--cco-color-brand);
         display: block;
@@ -27,50 +33,100 @@
       }
       a.welcome-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 14px 34px rgba(56,40,28,0.12);
-        border-color: rgba(187,71,121,0.32);
+        box-shadow: 0 14px 34px rgba(56, 40, 28, 0.12);
+        border-color: rgba(187, 71, 121, 0.32);
       }
       .welcome-card .kicker {
-        font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
-        color: var(--cco-text-tertiary); font-weight: 800; margin-bottom: 4px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--cco-text-tertiary);
+        font-weight: 800;
+        margin-bottom: 4px;
       }
       .welcome-card h2 {
-        font-size: 17px; font-weight: 800; margin: 0 0 6px;
-        letter-spacing: -0.01em; color: var(--cco-color-brand);
+        font-size: 17px;
+        font-weight: 800;
+        margin: 0 0 6px;
+        letter-spacing: -0.01em;
+        color: var(--cco-color-brand);
       }
       .welcome-card p {
-        font-size: 12.5px; color: var(--cco-text-secondary); margin: 0 0 10px;
+        font-size: 12.5px;
+        color: var(--cco-text-secondary);
+        margin: 0 0 10px;
         line-height: 1.55;
       }
       .welcome-card .pill {
-        display: inline-block; font-family: SFMono-Regular, Menlo, monospace;
-        font-size: 10.5px; font-weight: 700; padding: 3px 9px;
+        display: inline-block;
+        font-family: SFMono-Regular, Menlo, monospace;
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 3px 9px;
         border-radius: 999px;
-        background: var(--cco-bg-surface-sunken); color: var(--accent-studio);
+        background: var(--cco-bg-surface-sunken);
+        color: var(--accent-studio);
         border: 1px solid var(--line-soft);
       }
       .welcome-card .status-tag {
-        position: absolute; top: 12px; right: 14px;
-        font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em;
-        text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
+        position: absolute;
+        top: 12px;
+        right: 14px;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 3px 9px;
+        border-radius: 999px;
       }
-      .status-tag--ready { background: rgba(74,130,104,0.14); color: #2d6347; }
-      .status-tag--pilot { background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom)); color: var(--accent-studio); }
-      .status-tag--paused { background: rgba(200,130,30,0.14); color: #6a4514; }
-      .status-tag--blocked { background: rgba(185,74,74,0.14); color: #8a3030; }
-      .status-tag--info { background: rgba(74,123,168,0.14); color: #2f5680; }
+      .status-tag--ready {
+        background: rgba(74, 130, 104, 0.14);
+        color: #2d6347;
+      }
+      .status-tag--pilot {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+      }
+      .status-tag--paused {
+        background: rgba(200, 130, 30, 0.14);
+        color: #6a4514;
+      }
+      .status-tag--blocked {
+        background: rgba(185, 74, 74, 0.14);
+        color: #8a3030;
+      }
+      .status-tag--info {
+        background: rgba(74, 123, 168, 0.14);
+        color: #2f5680;
+      }
 
       .section-title {
-        font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
-        color: var(--cco-text-tertiary); font-weight: 700;
-        margin: 32px 0 0; display: flex; align-items: center; gap: 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--cco-text-tertiary);
+        font-weight: 700;
+        margin: 32px 0 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
-      .section-title::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+      .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
       .section-title-num {
-        display: inline-grid; place-items: center;
-        width: 22px; height: 22px; border-radius: 6px;
-        background: var(--accent-studio); color: #fff;
-        font-weight: 800; font-size: 11px;
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--accent-studio);
+        color: #fff;
+        font-weight: 800;
+        font-size: 11px;
       }
 
       .primary-ctas {
@@ -121,26 +177,42 @@
       }
 
       .day1-rules {
-        margin-top: 30px; padding: 22px 26px;
-        background: linear-gradient(180deg, rgba(74,130,104,0.08), rgba(74,130,104,0.04));
-        border: 1px solid rgba(74,130,104,0.32);
+        margin-top: 30px;
+        padding: 22px 26px;
+        background: linear-gradient(180deg, rgba(74, 130, 104, 0.08), rgba(74, 130, 104, 0.04));
+        border: 1px solid rgba(74, 130, 104, 0.32);
         border-radius: 16px;
       }
       .day1-rules h3 {
-        margin: 0 0 12px; font-size: 14px; color: var(--green-deep);
-        text-transform: uppercase; letter-spacing: 0.12em; font-weight: 800;
+        margin: 0 0 12px;
+        font-size: 14px;
+        color: var(--green-deep);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 800;
       }
       .day1-rules ol {
-        margin: 0; padding-left: 22px; font-size: 13.5px;
-        color: var(--cco-color-brand); line-height: 1.7;
+        margin: 0;
+        padding-left: 22px;
+        font-size: 13.5px;
+        color: var(--cco-color-brand);
+        line-height: 1.7;
       }
-      .day1-rules ol li strong { color: var(--cco-color-brand); }
+      .day1-rules ol li strong {
+        color: var(--cco-color-brand);
+      }
 
       @media (max-width: 880px) {
-        .welcome-grid, .welcome-grid--2 { grid-template-columns: 1fr 1fr; }
+        .welcome-grid,
+        .welcome-grid--2 {
+          grid-template-columns: 1fr 1fr;
+        }
       }
       @media (max-width: 600px) {
-        .welcome-grid, .welcome-grid--2 { grid-template-columns: 1fr; }
+        .welcome-grid,
+        .welcome-grid--2 {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -152,16 +224,121 @@
           Hair TP Clinic · kontrollerad pilot · 4 juni 2026
         </div>
         <h1 style="margin-bottom: 10px;">Välkommen till <span class="accent">CCO</span></h1>
-        <p class="lead">CCO är vårt nya kundkort och arbetsnav. Vi börjar kontrollerat med journalföring. Mail, Photo Review, Fortnox-sync och Aisia kommer separat i nästa steg.</p>
+        <p class="lead">CCO är vårt nya kundkort och arbetsnav. Vi börjar kontrollerat med journalföring. Den här sidan visar vad systemet erbjuder. Mail, Photo Review, Fortnox-sync och Aisia kommer separat i nästa steg.</p>
 
         <div class="primary-ctas">
           <a class="cta primary" href="/kunder.html" data-verified-link>Öppna Kunder</a>
-          <a class="cta" href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator" data-verified-link>Pilotkund 1</a>
-          <a class="cta" href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator" data-verified-link>Pilotkund 2</a>
-          <a class="cta" href="/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator" data-verified-link>Pilotkund 3</a>
+          <a class="cta" href="/kalender.html" data-verified-link>Kalender</a>
+          <a
+            class="cta"
+            href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator"
+            data-verified-link
+            >Pilotkund 1</a
+          >
+          <a
+            class="cta"
+            href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator"
+            data-verified-link
+            >Pilotkund 2</a
+          >
+          <a
+            class="cta"
+            href="/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator"
+            data-verified-link
+            >Pilotkund 3</a
+          >
           <a class="cta" href="/cco-ops-workbench.html">Ops Workbench</a>
           <a class="cta" href="/finance.html" data-verified-link>Finance</a>
           <a class="cta" href="/journal-pilot-guide.html" data-verified-link>Journalguide</a>
+        </div>
+      </div>
+
+      <!-- 0 · HUVUDNAV CCO -->
+      <div class="section-title">
+        <span class="section-title-num">0</span>
+        Huvudnav · vad CCO erbjuder
+      </div>
+      <div class="welcome-grid">
+        <a class="welcome-card" href="/kalender.html" data-verified-link>
+          <span class="status-tag status-tag--ready">redo</span>
+          <div class="kicker">Desktop</div>
+          <h2>Kalender</h2>
+          <p>Veckogrid · bokningar · resurser. Inte journal-P0 men del av CCO-nav.</p>
+          <span class="pill">/kalender.html</span>
+        </a>
+        <a class="welcome-card" href="/kunder.html" data-verified-link>
+          <span class="status-tag status-tag--ready">redo</span>
+          <div class="kicker">Desktop</div>
+          <h2>Kunder</h2>
+          <p>
+            Huvudarbetsyta · kundkort · journal · timeline.
+            <strong>Start här efter Välkommen.</strong>
+          </p>
+          <span class="pill">/kunder.html</span>
+        </a>
+        <a class="welcome-card" href="/konversationer.html">
+          <span class="status-tag status-tag--paused">aktivering</span>
+          <div class="kicker">Kommunikation</div>
+          <h2>Konversationer</h2>
+          <p>Inbox och trådar — <strong>pågående aktivering</strong>, ej dagligt verktyg dag 1.</p>
+          <span class="pill">/konversationer.html</span>
+        </a>
+        <a class="welcome-card" href="/m-konversationer.html">
+          <span class="status-tag status-tag--paused">mobil</span>
+          <div class="kicker">Mobil</div>
+          <h2>m-Konversationer</h2>
+          <p>Mobil kommunikationsvy — samma status som desktop.</p>
+          <span class="pill">/m-konversationer.html</span>
+        </a>
+        <a class="welcome-card" href="/operator-dashboard.html">
+          <span class="status-tag status-tag--info">intern</span>
+          <div class="kicker">Operatör</div>
+          <h2>Operator dashboard</h2>
+          <p>Operatörsöversikt — intern, ej presentations-P0.</p>
+          <span class="pill">/operator-dashboard.html</span>
+        </a>
+        <div class="welcome-card">
+          <span class="status-tag status-tag--paused">pausad</span>
+          <div class="kicker">Analytics</div>
+          <h2>Analytics</h2>
+          <p>
+            Planerad vy — <strong>ej sanning</strong> i pilot. Gammal demo länkade
+            <code>/analytics.html</code> (saknas/legacy).
+          </p>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <span class="section-title-num">↯</span>
+        Smarta verktyg · AI · automation (presentation — ej live)
+      </div>
+      <div class="welcome-grid welcome-grid--2">
+        <a class="welcome-card" href="/ai-triage.html">
+          <span class="status-tag status-tag--paused">demo</span>
+          <div class="kicker">AI</div>
+          <h2>AI triage</h2>
+          <p>
+            Förslag och triage — <strong>ej produktionsklart</strong> · manuella beslut prioriteras.
+          </p>
+          <span class="pill">/ai-triage.html</span>
+        </a>
+        <div class="welcome-card">
+          <span class="status-tag status-tag--paused">pausad</span>
+          <div class="kicker">Watch</div>
+          <h2>Watch-app</h2>
+          <p>Inte huvudflöde dag 1 · separat spår efter GO.</p>
+        </div>
+        <div class="welcome-card">
+          <span class="status-tag status-tag--paused">pausad</span>
+          <div class="kicker">Automation</div>
+          <h2>Automation-spår</h2>
+          <p>Inte aktivt i pilot — inga auto-beslut på journal.</p>
+        </div>
+        <div class="welcome-card">
+          <span class="status-tag status-tag--paused">pausad</span>
+          <div class="kicker">No-show</div>
+          <h2>AI no-show</h2>
+          <p>Planeringsvy — <strong>ej verifierat</strong> som färdigt verktyg.</p>
         </div>
       </div>
 
@@ -175,24 +352,38 @@
           <span class="status-tag status-tag--ready">redo</span>
           <div class="kicker">Kundkort</div>
           <h2>Öppna Kunder</h2>
-          <p>Sök, öppna kundkort, se journal · timeline · historik. Huvudnavet för dagens arbete.</p>
+          <p>
+            Sök, öppna kundkort, se journal · timeline · historik. Huvudnavet för dagens arbete.
+          </p>
           <span class="pill">/kunder.html</span>
         </a>
-        <a class="welcome-card" href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator" data-verified-link>
+        <a
+          class="welcome-card"
+          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator"
+          data-verified-link
+        >
           <span class="status-tag status-tag--pilot">pilot 1</span>
           <div class="kicker">Testpatient A</div>
           <h2>Pilotkund 1</h2>
           <p>Ren journalföringstest. Skapa ny post live under mötet.</p>
           <span class="pill">cco-pilot-20260602-a</span>
         </a>
-        <a class="welcome-card" href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator" data-verified-link>
+        <a
+          class="welcome-card"
+          href="/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator"
+          data-verified-link
+        >
           <span class="status-tag status-tag--pilot">pilot 2</span>
           <div class="kicker">Testpatient B</div>
           <h2>Pilotkund 2</h2>
           <p>Journal-feed + timeline verifierad. Har en sparad pilotpost.</p>
           <span class="pill">cco-pilot-20260602-b</span>
         </a>
-        <a class="welcome-card" href="/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator" data-verified-link>
+        <a
+          class="welcome-card"
+          href="/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator"
+          data-verified-link
+        >
           <span class="status-tag status-tag--pilot">pilot 3</span>
           <div class="kicker">Testpatient C</div>
           <h2>Pilotkund 3</h2>
@@ -217,13 +408,19 @@
           <span class="status-tag status-tag--ready">redo</span>
           <div class="kicker">Signering</div>
           <h2>Signera / lås</h2>
-          <p>Signering är permanent. Originalet kan aldrig ändras direkt — bara via rättelse som ny post.</p>
+          <p>
+            Signering är permanent. Originalet kan aldrig ändras direkt — bara via rättelse som ny
+            post.
+          </p>
         </div>
         <div class="welcome-card">
           <span class="status-tag status-tag--ready">redo</span>
           <div class="kicker">Rättelse</div>
           <h2>Skapa rättelse</h2>
-          <p>Ny tom post länkas till originalet. Skriv det korrigerade i sin helhet. Båda syns i timeline.</p>
+          <p>
+            Ny tom post länkas till originalet. Skriv det korrigerade i sin helhet. Båda syns i
+            timeline.
+          </p>
         </div>
         <div class="welcome-card">
           <span class="status-tag status-tag--ready">redo</span>
@@ -243,31 +440,46 @@
           <span class="status-tag status-tag--info">imported</span>
           <div class="kicker">Hälsodeklarationer</div>
           <h2>halso@</h2>
-          <p>~1 660 kunder · status <strong>IMPORTED_SAFE_MATCH</strong> · innehåll <strong>ej kliniskt verifierat</strong> dag 1.</p>
+          <p>
+            ~1 660 kunder · status <strong>IMPORTED_SAFE_MATCH</strong> · innehåll
+            <strong>ej kliniskt verifierat</strong> dag 1.
+          </p>
         </div>
         <div class="welcome-card">
           <span class="status-tag status-tag--info">imported</span>
           <div class="kicker">Avtal</div>
           <h2>GetAccept</h2>
-          <p>~1 331 kunder · signerade avtal i CCO storage som PDF. Avtals-status OK · medicinskt innehåll är inte journal-data.</p>
+          <p>
+            ~1 331 kunder · signerade avtal i CCO storage som PDF. Avtals-status OK · medicinskt
+            innehåll är inte journal-data.
+          </p>
         </div>
         <div class="welcome-card">
           <span class="status-tag status-tag--info">imported</span>
           <div class="kicker">Dokument</div>
           <h2>Drive · Safe-match</h2>
-          <p>Importerade dokument från Drive där kundmatchning är säker. Använd som <strong>referens</strong>, inte klinisk sanning.</p>
+          <p>
+            Importerade dokument från Drive där kundmatchning är säker. Använd som
+            <strong>referens</strong>, inte klinisk sanning.
+          </p>
         </div>
         <div class="welcome-card">
           <span class="status-tag status-tag--paused">needs review</span>
           <div class="kicker">Bilder</div>
           <h2>Photo Review pending</h2>
-          <p>Migrerade före/efter-bilder är <strong>inte</strong> kliniska behandlingsbilder dag 1. Photo Review pågår — ta nya bilder i CCO vid behov.</p>
+          <p>
+            Migrerade före/efter-bilder är <strong>inte</strong> kliniska behandlingsbilder dag 1.
+            Photo Review pågår — ta nya bilder i CCO vid behov.
+          </p>
         </div>
         <div class="welcome-card">
           <span class="status-tag status-tag--paused">needs review</span>
           <div class="kicker">Behöver granskning</div>
           <h2>Osäker metadata</h2>
-          <p>Badges <code>needs review</code> / <code>pending</code> betyder <strong>inte verifierat</strong>. Använd som referens när du frågar patienten.</p>
+          <p>
+            Badges <code>needs review</code> / <code>pending</code> betyder
+            <strong>inte verifierat</strong>. Använd som referens när du frågar patienten.
+          </p>
         </div>
       </div>
 
@@ -281,7 +493,10 @@
           <span class="status-tag status-tag--paused">aktivering pågår</span>
           <div class="kicker">Mail</div>
           <h2>Svarstudio &amp; mail-worklist</h2>
-          <p>Mailpipelinen finns i CCO — aktivering pågår. <strong>Ej dag-1-verktyg</strong> för personal.</p>
+          <p>
+            Mailpipelinen finns i CCO — aktivering pågår. <strong>Ej dag-1-verktyg</strong> för
+            personal.
+          </p>
         </div>
       </div>
 
@@ -316,7 +531,10 @@
           <span class="status-tag status-tag--blocked">blocked integration</span>
           <div class="kicker">Fortnox</div>
           <h2>Fortnox-sync</h2>
-          <p>Integration <strong>blockerad</strong> på leverantörens sida (license error). Manuell fakturering tills vidare.</p>
+          <p>
+            Integration <strong>blockerad</strong> på leverantörens sida (license error). Manuell
+            fakturering tills vidare.
+          </p>
         </div>
       </div>
 
@@ -344,7 +562,10 @@
           <span class="status-tag status-tag--ready">ops</span>
           <div class="kicker">Drift-styrning</div>
           <h2>Go-Live Control</h2>
-          <p>7-sektioners operativ kontrollpanel · rollfördelning · arbetsblock · stoppregler · eskaleringstabell.</p>
+          <p>
+            7-sektioners operativ kontrollpanel · rollfördelning · arbetsblock · stoppregler ·
+            eskaleringstabell.
+          </p>
           <span class="pill">/cco-staff-go-live-control.html</span>
         </a>
       </div>
@@ -353,11 +574,22 @@
       <div class="day1-rules">
         <h3>Dag-1 regler · viktigt att förstå</h3>
         <ol>
-          <li><strong>Verifiera identitet</strong> före signering — namn · telefon · Cliento-id måste matcha</li>
+          <li>
+            <strong>Verifiera identitet</strong> före signering — namn · telefon · Cliento-id måste
+            matcha
+          </li>
           <li><strong>Skapa inte ny kund</strong> vid osäker match — eskalera till admin/ops</li>
-          <li><strong>Review-material</strong> (badges: needs review · pending) är <strong>inte</strong> klinisk sanning</li>
-          <li><strong>Migrerade före/efter-bilder</strong> används <strong>inte</strong> kliniskt före Photo Review</li>
-          <li><strong>Ingen extern AI</strong> på journaltext — patientdata får aldrig lämna systemet</li>
+          <li>
+            <strong>Review-material</strong> (badges: needs review · pending) är
+            <strong>inte</strong> klinisk sanning
+          </li>
+          <li>
+            <strong>Migrerade före/efter-bilder</strong> används <strong>inte</strong> kliniskt före
+            Photo Review
+          </li>
+          <li>
+            <strong>Ingen extern AI</strong> på journaltext — patientdata får aldrig lämna systemet
+          </li>
         </ol>
       </div>
 
@@ -371,13 +603,18 @@
           <span class="status-tag status-tag--paused">paused</span>
           <div class="kicker">Aisia · DS-3</div>
           <h2>Kamera / scalp-spår</h2>
-          <p>Bakom feature flag. Aktiveras endast efter explicit owner-GO. Inte i CCO under pilot.</p>
+          <p>
+            Bakom feature flag. Aktiveras endast efter explicit owner-GO. Inte i CCO under pilot.
+          </p>
         </div>
         <div class="welcome-card">
           <span class="status-tag status-tag--paused">pending</span>
           <div class="kicker">Photo Review</div>
           <h2>Bildgranskning pågår</h2>
-          <p>~885 assets needs review. Write AV på prod. Migrerade bilder visas inte kliniskt på kundkort.</p>
+          <p>
+            ~885 assets needs review. Write AV på prod. Migrerade bilder visas inte kliniskt på
+            kundkort.
+          </p>
         </div>
         <div class="welcome-card">
           <span class="status-tag status-tag--paused">aktivering</span>
@@ -389,13 +626,21 @@
           <span class="status-tag status-tag--info">automation</span>
           <div class="kicker">AI / automation</div>
           <h2>Inte huvudflöde dag 1</h2>
-          <p>AI no-show · triage-förslag · automation-spår är inte huvudflöde i piloten. Manuella beslut prioriteras.</p>
+          <p>
+            AI no-show · triage-förslag · automation-spår är inte huvudflöde i piloten. Manuella
+            beslut prioriteras.
+          </p>
         </div>
       </div>
 
       <div class="cco-staff-footer">
-        <strong>Hair TP Clinic · CCO · 4 juni 2026</strong> · kontrollerad journalpilot · komplett guide: <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> · stöd-länkar: <a href="/cco-staff-go-live-control.html">Go-Live Control</a><br />
-        <span style="font-size: 12px; color: var(--cco-text-secondary)">Demo (15 steg): Välkommen → Kunder → pilotkund → kundkort → journal-feed → skapa → signera/lås → rättelse → timeline → Behöver granskning → dag-1-regler.</span>
+        <strong>Hair TP Clinic · CCO · 4 juni 2026</strong> · kontrollerad journalpilot · komplett
+        guide: <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> · stöd-länkar:
+        <a href="/cco-staff-go-live-control.html">Go-Live Control</a><br />
+        <span style="font-size: 12px; color: var(--cco-text-secondary)"
+          >Demo (15 steg): Välkommen → Kunder → pilotkund → kundkort → journal-feed → skapa →
+          signera/lås → rättelse → timeline → Behöver granskning → dag-1-regler.</span
+        >
       </div>
     </div>
   </body>
