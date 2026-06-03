@@ -103,7 +103,7 @@
       <div class="cow-cta-grid">
         <a class="cow-cta${canContinue ? ' cow-cta--primary' : ' cow-cta--disabled'}" href="${canContinue ? escapeHtml(lk.welcomeCco || lk.personalStart || '/cco-demo.html') : '#'}">Fortsätt journalföra</a>
         <span class="cow-cta cow-cta--disabled" title="Read-only — pausa via Fazli/command center">Pausa journalföring</span>
-        <a class="cow-cta cow-cta--warn" href="${escapeHtml(lk.commandCenter || '/cco-4june-command-center.html')}">Eskalera till Fazli</a>
+        <a class="cow-cta cow-cta--warn" href="${escapeHtml(lk.commandCenter || '/personal-demo.html')}">Eskalera till Fazli</a>
         <a class="cow-cta" href="${escapeHtml(lk.journalGuide || '/journal-pilot-guide.html')}">Öppna journalguide</a>
         <a class="cow-cta" href="${escapeHtml(lk.kundkort || '/kunder.html')}">Öppna kundkort</a>
       </div>

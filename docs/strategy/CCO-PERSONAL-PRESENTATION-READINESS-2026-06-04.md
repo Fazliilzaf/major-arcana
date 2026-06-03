@@ -289,7 +289,7 @@ _Refresh utförd av Claude · ingen patientdata · ingen kod-ändring i denna re
 
 ### Ny leverans cycle-8
 
-- ✅ `public/cco-4june-command-center.html` — Fazli's command center för 4 juni:
+- ✅ `public/personal-demo.html` — Fazli's command center för 4 juni:
   - Statuspanel som live-hämtar från `/cco-4june-morning-check.json` (fallback `/cco-presentation-ops-status.json`)
   - Stor GO / WAIT / P0 FIX REQUIRED-indikator + 4 status-celler (demo links · journal E2E · pilot 1/2/3 · senast genererat)
   - Snabblänkar (9 kort): Personalstart · Presenter Mode · Print Pack · Journal Pilot Guide · Kunder · Ops Workbench · Pilotkund 1/2/3
@@ -303,7 +303,7 @@ _Refresh utförd av Claude · ingen patientdata · ingen kod-ändring i denna re
 | Sida | Roll |
 |---|---|
 | `/cco-personal-start.html` | huvudfönster (intern personalstart) |
-| `/cco-4june-command-center.html` | sido-skärm/telefon (live-status + snabblänkar) |
+| `/personal-demo.html` | sido-skärm/telefon (live-status + snabblänkar) |
 | `/cco-presenter-mode.html` | sido-skärm/telefon (14-stegs assistent + timer) |
 | `/journal-pilot-print-pack.html` | utskriven (på arbetsstationen) |
 | `/journal-pilot-guide.html` | sido-flik (snabb-referens under mötet) |
@@ -358,7 +358,7 @@ _Refresh utförd av Claude · ingen patientdata · ingen kod-ändring i denna re
 | Resurs | URL | Status |
 |---|---|---|
 | Personalstart | `/cco-personal-start.html` | **PASS** |
-| Command Center | `/cco-4june-command-center.html` | **LIVE** |
+| Command Center | `/personal-demo.html` | **LIVE** |
 | Presenter Mode | `/cco-presenter-mode.html` | **LIVE** |
 | Print Pack | `/journal-pilot-print-pack.html` | **LIVE** |
 | Journal Pilot Guide | `/journal-pilot-guide.html` | **LIVE** (+ "Vad gör jag nu?") |
@@ -404,7 +404,7 @@ Alla 11 personal-sidor granskade för förbjudna fraser:
 ### Komplett 4 juni-personalpaket — 11 länkbara resurser
 
 1. `/cco-personal-start.html` · huvudfönster
-2. `/cco-4june-command-center.html` · live-status + 15 snabblänkar
+2. `/personal-demo.html` · live-status + 15 snabblänkar
 3. `/cco-presenter-mode.html` · 14-stegs flow + 15-min timer
 4. `/journal-pilot-print-pack.html` · A4 utskrift
 5. `/journal-pilot-guide.html` · online-guide + "Vad gör jag nu?"

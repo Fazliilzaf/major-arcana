@@ -69,7 +69,7 @@
 ### Vilka länkar används
 - `/cco-personal-start.html` — överblick
 - `/cco-ops-workbench.html` — blocker-köer (mail/photo/historik)
-- `/cco-4june-command-center.html` — live-status under pilot
+- `/personal-demo.html` — live-status under pilot
 - `/cco-journalpilot-go-live.html` — roller och scenarios
 - `/kunder.html` — kundlistan för merge/admin
 - Ops-status JSON: `/cco-presentation-ops-status.json`
@@ -100,7 +100,7 @@
 - Patient-incident → admin/ops + dokumentera
 
 ### Vilka länkar används
-- `/cco-4june-command-center.html` — live GO/WAIT/P0
+- `/personal-demo.html` — live GO/WAIT/P0
 - `/cco-morning-checklist.html` — T-10 → T-0 routine
 - `/cco-presenter-mode.html` — 14-stegs flow + timer (under meeting)
 - `/cco-personal-start.html` — vad personalen ser

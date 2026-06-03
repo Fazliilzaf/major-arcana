@@ -66,7 +66,7 @@
 
 ### F · Ops · drift (3 kort)
 - Ops Workbench (`/cco-ops-workbench.html`) — **live**
-- 4 juni Command Center (`/cco-4june-command-center.html`) — **live**
+- 4 juni Command Center (`/personal-demo.html`) — **live**
 - Go-Live Control (`/cco-staff-go-live-control.html`) — **live**
 
 ### Pausade · försiktiga (4 kort)
@@ -124,7 +124,7 @@ Synliga direkt under "Välkommen till CCO"-rubriken:
 |---|---|
 | `/cco-demo.html` | **Komplett omskriven** som "Välkommen till CCO". 366 → ~300 rader. CCO-shell. 6 sektioner + pausade + dag-1-regler. Inga mock-siffror. |
 | `/cco-personal-start.html` | **Legacy-banner** överst som leder till `/cco-demo.html`. Resten av sidan kvar för preflight-kompatibilitet. |
-| `/cco-4june-command-center.html` | Primary link i quick-bar bytt: Personalstart → **Välkommen till CCO** (`/cco-demo.html`). |
+| `/personal-demo.html` | Primary link i quick-bar bytt: Personalstart → **Välkommen till CCO** (`/cco-demo.html`). |
 | `/cco-presenter-mode.html` | Quick-bar primary bytt: ▶ Välkommen till CCO först · Personalstart (legacy) sekundär. |
 
 ---
@@ -139,7 +139,7 @@ Synliga direkt under "Välkommen till CCO"-rubriken:
 | `/journal-pilot-guide.html` | Journalguide | **200** ✅ |
 | `/finance.html` · `/finance-review.html` · `/finance-reports.html` | Finance | **200** ✅ |
 | `/cco-ops-workbench.html` | Ops | **200** ✅ |
-| `/cco-4june-command-center.html` | Pilot-status | **200** ✅ |
+| `/personal-demo.html` | Pilot-status | **200** ✅ |
 | `/cco-staff-go-live-control.html` | Drift-styrning | **200** ✅ |
 | `/cco-personal-start.html` | Legacy (med banner) | **200** ✅ |
 

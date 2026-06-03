@@ -36,7 +36,7 @@
       '/cco-demo.html',
       '/cco-personal-start.html',
       '/cco-presenter-mode.html',
-      '/cco-4june-command-center.html',
+      '/personal-demo.html',
       '/journal-pilot-guide.html',
       '/journal-pilot-print-pack.html',
       '/cco-staff-training-mode.html',

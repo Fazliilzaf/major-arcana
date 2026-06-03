@@ -60,7 +60,7 @@ I `<head>`:
 |---|---|---|
 | 1 | `/cco-personal-start.html` | ✅ shell injected |
 | 2 | `/cco-presenter-mode.html` | ✅ shell injected |
-| 3 | `/cco-4june-command-center.html` | ✅ shell injected |
+| 3 | `/personal-demo.html` | ✅ shell injected |
 | 4 | `/journal-pilot-guide.html` | ✅ shell injected |
 | 5 | `/journal-pilot-print-pack.html` | ✅ shell injected |
 | 6 | `/cco-staff-training-mode.html` | ✅ shell injected |

@@ -25,7 +25,7 @@
 |---|---|---|---|
 | `/cco-personal-start.html` | Personal + Fazli (huvudfönster) | Hela mötet | Nej |
 | `/cco-presenter-mode.html` | Fazli (sido-skärm) | Under mötet (14 steg + 15-min timer) | Nej |
-| `/cco-4june-command-center.html` | Fazli (sido-skärm/telefon) | Innan + under mötet (live-status) | Nej |
+| `/personal-demo.html` | Fazli (sido-skärm/telefon) | Innan + under mötet (live-status) | Nej |
 | `/kunder.html` | Fazli (huvudskärm) | Under demon (visa kundlista) | Nej |
 | `/journal-feed-demo.html?customerId=cco-pilot-20260602-a/b/c` | Fazli (huvudskärm) | Under demon (pilotkund A/B/C) | Nej |
 

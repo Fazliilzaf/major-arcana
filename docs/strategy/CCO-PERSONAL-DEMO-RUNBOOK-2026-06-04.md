@@ -178,10 +178,10 @@ Båda länkade diskret från `/cco-personal-start.html` footer (mellan baseline-
 
 | URL | Syfte |
 |---|---|
-| **`/cco-4june-command-center.html`** | **🎯 4 juni Command Center** — Fazli's enkla kontrollsida för dagen. Visar live-status (GO / WAIT / P0 FIX REQUIRED) från `/cco-4june-morning-check.json` (fallback `/cco-presentation-ops-status.json`). Innehåller: snabblänkar till alla viktiga sidor + 14-stegs demo-script + failover-protokoll med "vänta 2 min vid 502" + "öppna guide istället om journal failar". |
+| **`/personal-demo.html`** | **🎯 4 juni Command Center** — Fazli's enkla kontrollsida för dagen. Visar live-status (GO / WAIT / P0 FIX REQUIRED) från `/cco-4june-morning-check.json` (fallback `/cco-presentation-ops-status.json`). Innehåller: snabblänkar till alla viktiga sidor + 14-stegs demo-script + failover-protokoll med "vänta 2 min vid 502" + "öppna guide istället om journal failar". |
 
 **Rekommenderat användning T-0 dag:**
-1. Öppna `/cco-4june-command-center.html` i en sido-flik på telefonen
+1. Öppna `/personal-demo.html` i en sido-flik på telefonen
 2. Klicka "↻ Uppdatera status" → ska visa **stor grön GO**
 3. Om något är gult (WAIT) eller rött (P0) → läs failover-rutan på sidan
 4. Om allt grönt → starta Presenter Mode och kör igenom 14 stegen
@@ -196,7 +196,7 @@ Komplett personalpaket nu länkbart från Personal Start + Command Center:
 | URL | Roll |
 |---|---|
 | `/cco-personal-start.html` | Huvudfönster (REDESIGNAD — parchment, opak, skarp) |
-| `/cco-4june-command-center.html` | Live-status + alla snabblänkar |
+| `/personal-demo.html` | Live-status + alla snabblänkar |
 | `/cco-presenter-mode.html` | 14-stegs flow + 15-min timer |
 | `/journal-pilot-print-pack.html` | A4-pack utskrift |
 | `/journal-pilot-guide.html` | Online-guide MED ny "Vad gör jag nu?"-panel (sektion 0) |

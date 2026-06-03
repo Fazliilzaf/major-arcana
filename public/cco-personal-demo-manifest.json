@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-03T05:51:44.591Z",
-  "version": "1.1.0",
+  "generatedAt": "2026-06-03T07:16:41.321Z",
+  "version": "1.2.0",
   "prodBaseUrl": "https://arcana.hairtpclinic.com",
   "primaryStartUrl": "/cco-demo.html",
   "welcomePage": "/cco-demo.html",
@@ -154,6 +154,12 @@
     {
       "name": "legacy-personal-start",
       "path": "/cco-personal-start.html",
+      "status": 200,
+      "result": "PASS"
+    },
+    {
+      "name": "ops-workbench",
+      "path": "/cco-ops-workbench.html",
       "status": 200,
       "result": "PASS"
     },
