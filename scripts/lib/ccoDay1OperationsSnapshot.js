@@ -2,8 +2,12 @@
 
 const { computeJournalPilotShiftStatus } = require('./ccoJournalPilotShiftStatus');
 
+const PRIMARY_WELCOME = '/cco-demo.html';
+
 const DAY1_LINKS = Object.freeze({
-  personalStart: '/cco-personal-start.html',
+  welcomeCco: PRIMARY_WELCOME,
+  personalStart: PRIMARY_WELCOME,
+  legacyPersonalStart: '/cco-personal-start.html',
   kundkort: '/kunder.html',
   journalGuide: '/journal-pilot-guide.html',
   staffTraining: '/cco-staff-training-mode.html',
@@ -152,9 +156,11 @@ function buildDay1JournalPilot({
     shiftReason: shift.reason,
     shiftStates: shift.allShiftStates,
     links: { ...DAY1_LINKS },
+    fazliPresentationFlow:
+      'Välkommen till CCO → Kunder → Pilotkund → Journal → Signera → Rättelse → Timeline',
     recommendedWork:
       shift.shiftStatus === 'redo_att_borja'
-        ? 'Öppna personal-start → kundkort → pilotkund → journal'
+        ? 'Öppna Välkommen till CCO (/cco-demo.html) → Kunder → pilotkund → journal'
         : shift.shiftStatus === 'pagar'
           ? 'Fortsätt journalföra · följ live monitor · pre-sign check före signering'
           : 'Stoppa och kör presentation-gate',

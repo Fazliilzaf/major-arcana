@@ -19,8 +19,13 @@ const IDENTITY_PAGES = Object.freeze([
   { id: 'journalFaq', label: 'Journalpilot FAQ', path: '/cco-journalpilot-faq.html' },
   { id: 'goLiveSupport', label: 'Go-live support', path: '/cco-journalpilot-go-live.html' },
   {
-    id: 'personalStart',
-    label: 'Personal-start (identitet i flöde)',
+    id: 'welcomeCco',
+    label: 'Välkommen till CCO (presentation start)',
+    path: '/cco-demo.html',
+  },
+  {
+    id: 'legacyPersonalStart',
+    label: 'Legacy personal-start (redirect)',
     path: '/cco-personal-start.html',
   },
 ]);

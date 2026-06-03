@@ -2,15 +2,10 @@
 'use strict';
 
 /**
- * verify-personal-demo-links.js — preflight för personal-start-sida
+ * verify-personal-demo-links.js — presentation preflight (Välkommen till CCO)
  *
- * Kontrollerar:
- * - alla <a href> i sidan
- * - status 200 (sidor) eller förväntat auth-svar för API
- * - inga 404 / 5xx
- * - inga webcal://localhost, Drive-länkar, mock/redlist-paths
- * - disabled kort får inte ha aktiv href
- * - manifest pilotkunder: feed + timeline + forms
+ * Primär start: /cco-demo.html (Välkommen till CCO → Kunder → Kundkort → Journal)
+ * Legacy: /cco-personal-start.html (redirect only)
  *
  * Kör:
  *   node scripts/verify-personal-demo-links.js
@@ -23,16 +18,18 @@ const http = require('node:http');
 const https = require('node:https');
 
 const REPO = path.join(__dirname, '..');
-const HTML_CANDIDATES = [
+const PRIMARY_WELCOME = path.join(REPO, 'public/cco-demo.html');
+const SECONDARY_HTML = [
   path.join(REPO, 'public/cco-personal-start.html'),
   path.join(REPO, 'public/cco-staff-go-live-control.html'),
   path.join(REPO, 'public/cco-staff-training-completion.html'),
-  path.join(REPO, 'public/personal-demo.html'),
+  path.join(REPO, 'public/cco-ops-workbench.html'),
 ];
 const MANIFEST_PATH = path.join(REPO, 'data/reports/cco-personal-demo-manifest.json');
 const PUBLIC_MANIFEST_PATH = path.join(REPO, 'public/cco-personal-demo-manifest.json');
 const BASE = process.env.CCO_PERSONAL_DEMO_BASE || 'https://arcana.hairtpclinic.com';
 const ROLE = process.env.CCO_PERSONAL_DEMO_ROLE || 'owner';
+const PRIMARY_START_URL = '/cco-demo.html';
 
 const BLOCKED_HREF = [
   /drive\.google\.com/i,
@@ -41,19 +38,26 @@ const BLOCKED_HREF = [
   /example\.com/i,
   /localhost/i,
 ];
-const REDLIST_PATH = [
-  /cco-demo\.html/i,
-  /\/showcase/i,
-  /\/automation/i,
-  /\/watch/i,
-  /\/analytics\.html/i,
-];
-const DEMO_ISOLATION_HREF = [
-  /ambiguous-mail-enrichment-review/i,
-  /photo-review\.html/i,
-  /cco-demo\.html/i,
-  /\/automation/i,
-  /\/showcase/i,
+const REDLIST_PATH = [/\/showcase/i, /\/automation/i, /\/watch/i, /\/analytics\.html/i];
+/** Forbidden copy on Välkommen-sidan (cco-demo.html) */
+const WELCOME_BLOCKED_CLAIMS = [
+  /CCO Demo-portal/i,
+  /simulerad data/i,
+  /alla har simulerad/i,
+  /1\s*247\s*demo/i,
+  /1\s*247\s*kunder/i,
+  /49\s*MSEK/i,
+  /full cutover/i,
+  /mail.*dagligt verktyg/i,
+  /mail-worklist.*dagligt/i,
+  /Photo Review klar/i,
+  /Aisia live/i,
+  /Fortnox kopplat/i,
+  /AI används på journal/i,
+  /no-show.*färdig/i,
+  /triage.*färdigt/i,
+  /automation hub.*live/i,
+  /watch app.*live/i,
 ];
 const MOCK_HTML = [/847\s*kunder/i, /12\s*no-show/i, /Manifest ej publicerat/i];
 const MOCK_HTML_PAUSED_ONLY = [/AI\s*coach/i, /automation\s*hub/i];
@@ -85,7 +89,12 @@ function fetchUrl(url, opts = {}) {
 }
 
 function pickHtmlPaths() {
-  return HTML_CANDIDATES.filter((p) => fs.existsSync(p));
+  const paths = [];
+  if (fs.existsSync(PRIMARY_WELCOME)) paths.push(PRIMARY_WELCOME);
+  for (const p of SECONDARY_HTML) {
+    if (fs.existsSync(p)) paths.push(p);
+  }
+  return paths;
 }
 
 function stripScripts(html) {
@@ -119,6 +128,10 @@ function resolveUrl(href) {
   return BASE.replace(/\/$/, '') + '/' + href;
 }
 
+function isWelcomePage(htmlPath) {
+  return path.basename(htmlPath) === 'cco-demo.html';
+}
+
 async function verifyHtmlPage(htmlPath) {
   const html = fs.readFileSync(htmlPath, 'utf8');
   const htmlBody = stripScripts(html);
@@ -136,6 +149,23 @@ async function verifyHtmlPage(htmlPath) {
     }
   }
 
+  if (isWelcomePage(htmlPath)) {
+    for (const pat of WELCOME_BLOCKED_CLAIMS) {
+      if (pat.test(htmlBody)) {
+        console.log('FAIL  forbidden claim on welcome page:', pat);
+        failed += 1;
+      }
+    }
+    if (/href=["'][^"']*cco-personal-start\.html["']/i.test(htmlBody)) {
+      console.log('FAIL  welcome page links to legacy personal-start as main flow');
+      failed += 1;
+    }
+    if (!/href=["'][^"']*\/kunder\.html/i.test(htmlBody)) {
+      console.log('FAIL  welcome page missing primary /kunder.html link');
+      failed += 1;
+    }
+  }
+
   for (const pat of MOCK_HTML_PAUSED_ONLY) {
     if (pat.test(htmlBody) && !/data-paused=["']true["']/i.test(htmlBody)) {
       console.log('FAIL  live-looking blocked pattern in HTML:', pat);
@@ -146,15 +176,6 @@ async function verifyHtmlPage(htmlPath) {
   for (const href of extractDisabledWithHref(htmlBody)) {
     console.log('FAIL  disabled element has href:', href);
     failed += 1;
-  }
-
-  if (path.basename(htmlPath) === 'cco-personal-start.html') {
-    for (const pat of DEMO_ISOLATION_HREF) {
-      if (pat.test(htmlBody)) {
-        console.log('FAIL  journal demo page links to non-demo route:', pat);
-        failed += 1;
-      }
-    }
   }
 
   for (const href of hrefs) {
@@ -198,16 +219,29 @@ async function verifyHtmlPage(htmlPath) {
 
 async function main() {
   const htmlPaths = pickHtmlPaths();
-  if (htmlPaths.length === 0) throw new Error('Ingen personal-demo HTML hittades');
+  if (!htmlPaths.some((p) => isWelcomePage(p))) {
+    throw new Error('Primär Välkommen-sida saknas: public/cco-demo.html');
+  }
   const manifest = fs.existsSync(MANIFEST_PATH)
     ? JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'))
     : { pilotCustomers: [] };
   let failed = 0;
   const pageReports = [];
 
-  console.log('=== verify-personal-demo-links ===');
+  console.log('=== verify-presentation-demo-links ===');
   console.log('Base:', BASE);
+  console.log('Primary start:', PRIMARY_START_URL);
   console.log('Pages:', htmlPaths.map((p) => path.basename(p)).join(', '));
+
+  if (manifest.primaryStartUrl && manifest.primaryStartUrl !== PRIMARY_START_URL) {
+    console.log(
+      'FAIL  manifest primaryStartUrl is not',
+      PRIMARY_START_URL,
+      'got',
+      manifest.primaryStartUrl
+    );
+    failed += 1;
+  }
 
   for (const htmlPath of htmlPaths) {
     const report = await verifyHtmlPage(htmlPath);
@@ -228,6 +262,10 @@ async function main() {
       if (pilots < 3) {
         failed += 1;
         console.log('FAIL  manifest has fewer than 3 pilotCustomers');
+      }
+      if (local.primaryStartUrl !== PRIMARY_START_URL) {
+        failed += 1;
+        console.log('FAIL  public manifest primaryStartUrl:', local.primaryStartUrl);
       }
     }
   } catch (err) {
@@ -276,7 +314,13 @@ async function main() {
   fs.writeFileSync(
     reportPath,
     JSON.stringify(
-      { generatedAt: new Date().toISOString(), base: BASE, pageReports, failed },
+      {
+        generatedAt: new Date().toISOString(),
+        base: BASE,
+        primaryStartUrl: PRIMARY_START_URL,
+        pageReports,
+        failed,
+      },
       null,
       2
     )

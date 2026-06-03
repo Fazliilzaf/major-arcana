@@ -101,11 +101,11 @@
 
     return `
       <div class="cow-cta-grid">
-        <a class="cow-cta${canContinue ? ' cow-cta--primary' : ' cow-cta--disabled'}" href="${canContinue ? escapeHtml(lk.personalStart || '/cco-personal-start.html') : '#'}">Fortsätt journalföra</a>
+        <a class="cow-cta${canContinue ? ' cow-cta--primary' : ' cow-cta--disabled'}" href="${canContinue ? escapeHtml(lk.welcomeCco || lk.personalStart || '/cco-demo.html') : '#'}">Fortsätt journalföra</a>
         <span class="cow-cta cow-cta--disabled" title="Read-only — pausa via Fazli/command center">Pausa journalföring</span>
         <a class="cow-cta cow-cta--warn" href="${escapeHtml(lk.commandCenter || '/cco-4june-command-center.html')}">Eskalera till Fazli</a>
         <a class="cow-cta" href="${escapeHtml(lk.journalGuide || '/journal-pilot-guide.html')}">Öppna journalguide</a>
-        <a class="cow-cta" href="${escapeHtml(lk.personalStart || '/cco-personal-start.html')}">Öppna personalstart</a>
+        <a class="cow-cta" href="${escapeHtml(lk.kundkort || '/kunder.html')}">Öppna kundkort</a>
       </div>
       <p class="cow-muted">CTA är read-only vägledning — ingen server-write för paus/start.</p>`;
   }
@@ -197,7 +197,7 @@
     const ids = identity || {};
     const pages = ids.pages || [];
     const items = [
-      ['Identitet i flöde', ids.identityCheckAvailable, '/cco-personal-start.html'],
+      ['Identitet i flöde', ids.identityCheckAvailable, '/cco-demo.html'],
       ['Pre-sign check', ids.preSignCheckAvailable, '/cco-pre-signering-check.html'],
       [
         'Review-material warning',
@@ -263,7 +263,7 @@
         ${gateFail ? '<p class="cow-alert"><strong>P0:</strong> Presentation gate FAIL — fixa journaldemo före 4 juni. Kör <code>npm run cco:presentation-gate</code>.</p>' : '<p class="cow-callout"><strong>GO:</strong> Heligt demo-flöde grönt enligt senaste morning check.</p>'}
         <ul class="cow-list">${(m.blockers || []).map((b) => `<li>${escapeHtml(b)}</li>`).join('')}</ul>
         <div class="cow-actions cow-actions--wrap">
-          ${linkBtn(m.links?.personalStart || '/cco-personal-start.html', 'Personal-start')}
+          ${linkBtn(m.links?.welcomeCco || m.links?.personalStart || '/cco-demo.html', 'Välkommen till CCO')}
           ${linkBtn(m.links?.presenterMode || '/personal-demo.html', 'Presenter mode')}
           ${linkBtn(m.links?.printPack || '/journal-pilot-guide.html', 'Print pack')}
           ${linkBtn(m.links?.journalGuide || '/journal-pilot-guide.html', 'Journal guide')}
@@ -307,7 +307,7 @@
         <ul class="cow-list">${routeRows || '<li>—</li>'}</ul>
         <ul class="cow-list">${pilotRows || ''}</ul>
         <div class="cow-actions cow-actions--wrap">
-          ${linkBtn('/cco-personal-start.html', 'Personal-start')}
+          ${linkBtn('/cco-demo.html', 'Välkommen till CCO')}
           ${linkBtn('/kunder.html', 'Kundkort')}
           ${linkBtn('/journal-pilot-guide.html', 'Journal guide')}
           ${linkBtn('/personal-demo.html', 'Presenter mode')}
@@ -343,7 +343,7 @@
         <p class="cow-muted">Senast kontrollerad: ${escapeHtml(jp.checkedAt || ops?.generatedAt || '—')}</p>
         ${pilotRows ? `<ul class="cow-list">${pilotRows}</ul>` : ''}
         <div class="cow-actions">
-          ${linkBtn(jp.personalStartUrl || '/cco-personal-start.html', 'Personalstart (demo)')}
+          ${linkBtn(jp.primaryStartUrl || jp.welcomeUrl || jp.personalStartUrl || '/cco-demo.html', 'Välkommen till CCO')}
           ${linkBtn(jp.kundkortUrl || '/kunder.html', 'Kundkort')}
         </div>
       </section>`;
@@ -504,8 +504,8 @@
         title: 'Journalpilot',
         status: journalOps,
         detail: `Personal kan journalföra: ${personalJa}`,
-        href: '/cco-personal-start.html',
-        label: 'Personalstart',
+        href: '/cco-demo.html',
+        label: 'Välkommen till CCO',
       },
       {
         title: 'Photo Review',
@@ -828,6 +828,7 @@
       '/cco-staff-training-mode.html': trainingStatus,
       '/cco-journalpilot-faq.html': faqStatus,
       '/cco-journalpilot-go-live.html': goLiveStatus,
+      '/cco-demo.html': 200,
       '/cco-personal-start.html': 200,
     };
     const gateFail =
@@ -842,7 +843,7 @@
     root.innerHTML = `
       <header class="cow-header">
         <h1>CCO Ops Workbench</h1>
-        <p class="cow-muted">Read-only · blocker-köer · ersätter inte personal-start · stör inte journaldemo</p>
+        <p class="cow-muted">Read-only · blocker-köer · ersätter inte Välkommen till CCO · stör inte journaldemo</p>
       </header>
       ${
         gateFail
@@ -876,7 +877,8 @@
         ${renderNextStepsSection(ops, morning, journalLive, photoOp, mailOp, importQ)}
       </div>
       <p class="cow-muted" style="margin-top:1.25rem">
-        Presentation: <a class="cow-btn" href="/cco-personal-start.html">cco-personal-start</a>
+        Presentation: <a class="cow-btn" href="/cco-demo.html">Välkommen till CCO</a>
+        · legacy <a class="cow-btn" href="/cco-personal-start.html">personal-start</a> redirectar
         · denna vy är endast för ops efter mötet.
       </p>`;
   }

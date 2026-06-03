@@ -253,7 +253,9 @@ function buildJournalPilotShiftPayload(ctx) {
     journalPilotOps: ops,
     escalationQueue: escalations,
     links: {
-      personalStart: '/cco-personal-start.html',
+      welcomeCco: '/cco-demo.html',
+      personalStart: '/cco-demo.html',
+      legacyPersonalStart: '/cco-personal-start.html',
       kundkort: '/kunder.html',
       journalGuide: '/journal-pilot-guide.html',
       staffTraining: '/cco-staff-training-mode.html',

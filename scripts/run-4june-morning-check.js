@@ -38,8 +38,11 @@ const READINESS_RUN = path.join(REPO, 'data/reports/cco-personal-demo-readiness-
 const OPS_STATUS = path.join(REPO, 'public/cco-presentation-ops-status.json');
 const MANIFEST_PATH = path.join(REPO, 'public/cco-personal-demo-manifest.json');
 
+const PRIMARY_WELCOME = '/cco-demo.html';
 const PRESENTATION_LINKS = {
-  personalStart: '/cco-personal-start.html',
+  welcomeCco: PRIMARY_WELCOME,
+  personalStart: PRIMARY_WELCOME,
+  legacyPersonalStart: '/cco-personal-start.html',
   presenterMode: '/personal-demo.html',
   printPack: '/journal-pilot-guide.html',
   journalGuide: '/journal-pilot-guide.html',
@@ -111,7 +114,8 @@ function buildBlockers(payload) {
   if (payload.presentationGate === 'FAIL') {
     blockers.push('Presentation gate FAIL — journaldemo ej säker för 4 juni');
   }
-  if (payload.demoLinks === 'FAIL') blockers.push('Demo-länkar FAIL på personal-start');
+  if (payload.demoLinks === 'FAIL')
+    blockers.push('Demo-länkar FAIL på Välkommen till CCO (/cco-demo.html)');
   if (payload.journalE2E === 'FAIL') blockers.push('Journal E2E FAIL');
   if (payload.pilot1 === 'FAIL' || payload.pilot2 === 'FAIL' || payload.pilot3 === 'FAIL') {
     blockers.push('Minst en pilotkund FAIL (feed/timeline/E2E)');
@@ -238,8 +242,10 @@ async function main() {
   const payload = {
     generatedAt,
     title: '4 juni Command Status',
-    prodUrl: absUrl(BASE, PRESENTATION_LINKS.personalStart),
-    backupUrl: absUrl(BACKUP_BASE, PRESENTATION_LINKS.personalStart),
+    prodUrl: absUrl(BASE, PRIMARY_WELCOME),
+    backupUrl: absUrl(BACKUP_BASE, PRIMARY_WELCOME),
+    fazliPresentationFlow:
+      'Välkommen till CCO → Kunder → Pilotkund → Journal → Signera → Rättelse → Timeline',
     presentationGate,
     journalMounts,
     demoLinks,
@@ -253,8 +259,11 @@ async function main() {
     routeHealthPass: journalLive?.routeHealthPass || 'UNKNOWN',
     links: {
       ...PRESENTATION_LINKS,
-      prodPersonalStart: absUrl(BASE, PRESENTATION_LINKS.personalStart),
-      backupPersonalStart: absUrl(BACKUP_BASE, PRESENTATION_LINKS.personalStart),
+      prodWelcomeCco: absUrl(BASE, PRIMARY_WELCOME),
+      backupWelcomeCco: absUrl(BACKUP_BASE, PRIMARY_WELCOME),
+      prodPersonalStart: absUrl(BASE, PRIMARY_WELCOME),
+      backupPersonalStart: absUrl(BACKUP_BASE, PRIMARY_WELCOME),
+      legacyPersonalStart: absUrl(BASE, PRESENTATION_LINKS.legacyPersonalStart),
       pilots: buildPilotLinks(manifest),
     },
     dailyReadinessSnapshot: dailyReadinessSnapshot(ops),

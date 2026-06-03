@@ -129,7 +129,7 @@ function staffUsability(report) {
     report.e2eJournal === 'PASS'
   ) {
     can.push(
-      'Journalpilot demo (personal-start → pilotkund → journal → sign → rättelse → timeline)'
+      'Journalpilot demo (Välkommen till CCO → Kunder → pilotkund → journal → sign → rättelse → timeline)'
     );
   } else {
     cannot.push('Journaldemo tills presentation-gate PASS');
@@ -157,7 +157,7 @@ function staffUsability(report) {
   cannot.push('Mail auto-write · fuzzy merge · Graph-fetch från UI');
   cannot.push('Import approve/reject — write AV · ingen auto-import · ingen ny kund');
   cannot.push('Ny kund vid osäker match');
-  cannot.push('Aisia · extern AI på journaltext · Drive-länkar i personal-start');
+  cannot.push('Aisia · extern AI på journaltext · Drive-länkar i Välkommen-sidan');
   return { can, cannot };
 }
 
@@ -442,6 +442,14 @@ _Prod: ${BASE}_
 
 ---
 
+## Fazli visar (4 juni)
+
+**Välkommen till CCO** (\`/cco-demo.html\`) → **Kunder** → **Pilotkund** → **Journal** → **Signera** → **Rättelse** → **Timeline**
+
+Legacy \`/cco-personal-start.html\` redirectar till Välkommen — **inte** huvudprodukt.
+
+---
+
 ## Executive snapshot (kväll)
 
 | Spår | Status |
@@ -715,6 +723,11 @@ async function main() {
 
   console.log('=== CCO Daily Readiness Report ===');
   console.log('Base:', BASE);
+  console.log(
+    'Fazli visar:',
+    'Välkommen till CCO → Kunder → Pilotkund → Journal → Signera → Rättelse → Timeline'
+  );
+  console.log('Primary start: /cco-demo.html (legacy /cco-personal-start.html redirect)');
   console.log('');
 
   const mounts = run('node scripts/verify-journal-pilot-routes.js');
@@ -908,9 +921,16 @@ async function main() {
       pilot3,
       presentationGate: journalPilotOk ? 'PASS' : 'FAIL',
       checkedAt: generatedAt,
-      personalStartUrl: '/cco-personal-start.html',
+      primaryStartUrl: '/cco-demo.html',
+      welcomeUrl: '/cco-demo.html',
+      personalStartUrl: '/cco-demo.html',
+      legacyPersonalStartUrl: '/cco-personal-start.html',
       kundkortUrl: '/kunder.html',
+      fazliPresentationFlow:
+        'Välkommen till CCO → Kunder → Pilotkund → Journal → Signera → Rättelse → Timeline',
     },
+    fazliPresentationFlow:
+      'Välkommen till CCO → Kunder → Pilotkund → Journal → Signera → Rättelse → Timeline',
     journalPilotLive: journalLive,
     photoReviewOperator: photoOperator,
     mailReviewOperator: mailOperator,

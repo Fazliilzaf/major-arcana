@@ -180,8 +180,9 @@ async function main() {
 
   const routes = [
     { name: 'kunder.html', path: '/kunder.html', expected: [200] },
-    { name: 'personal-start', path: '/cco-personal-start.html', expected: [200] },
-    { name: 'personal-demo-alt', path: '/personal-demo.html', expected: [200] },
+    { name: 'welcome-cco', path: '/cco-demo.html', expected: [200] },
+    { name: 'legacy-personal-start', path: '/cco-personal-start.html', expected: [200] },
+    { name: 'ops-workbench', path: '/cco-ops-workbench.html', expected: [200] },
     { name: 'public-manifest', path: '/cco-personal-demo-manifest.json', expected: [200] },
     {
       name: 'journal-feed',
@@ -261,8 +262,27 @@ async function main() {
   console.log('\nE2E all pilots:', e2eAllPass ? 'PASS' : 'FAIL');
 
   manifest.generatedAt = new Date().toISOString();
-  manifest.version = '1.1.0';
+  manifest.version = '1.2.0';
   manifest.deadline = '2026-06-04';
+  manifest.primaryStartUrl = '/cco-demo.html';
+  manifest.welcomePage = '/cco-demo.html';
+  manifest.personalStartPage = '/cco-demo.html';
+  manifest.legacyPersonalStartPage = '/cco-personal-start.html';
+  manifest.presentationOrder = [
+    'Öppna /cco-demo.html (Välkommen till CCO)',
+    'Säg: Det här är CCO — vårt nya kundkort och arbetsnav',
+    'Visa arbetsnav: Kunder, Journal, Formulär, Historik, Bilder, Avtal, Kommunikation, Ekonomi',
+    'Säg: Idag börjar vi i Kunder — klicka Kunder',
+    'Öppna pilotkund (A/B/C)',
+    'Visa kundkort',
+    'Visa journal-feed',
+    'Skapa journal på pilotkund A',
+    'Signera/lås — visa att låst post inte ändras',
+    'Skapa rättelse (pilot C)',
+    'Visa timeline',
+    'Visa Behöver granskning',
+    'Avsluta med dag-1-regler',
+  ];
   manifest.routePreflight = routeResults.map(({ name, path, status, result }) => ({
     name,
     path,
