@@ -53,6 +53,8 @@
     "smoke:local": "bash ./scripts/run-smoke-local.sh",
     "predeploy:quick": "bash ./scripts/predeploy-quick.sh",
     "cco:verify-kundresa-canonical-9-step": "node scripts/verify-kundresa-canonical-9-step.js",
+    "cco:verify-automation-prod": "node scripts/verify-automation-prod.js",
+    "cco:real-cco-gate": "bash scripts/run-real-cco-gate.sh",
     "smoke:public": "bash ./scripts/smoke-public.sh",
     "verify:mobile-pilot-prod": "bash ./scripts/verify-mobile-pilot-prod.sh",
     "verify:auth-go-live-prod": "bash ./scripts/verify-auth-go-live-prod.sh",
