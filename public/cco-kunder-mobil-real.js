@@ -300,7 +300,7 @@
       state.loaded = true;
       state.loading = false;
       renderSegmentChips();
-      renderList('Mina kunder: sätt ARCANA_CCO_MINE_OWNER (Pipedrive Ägare) i localStorage.');
+      renderList('Mina kunder: sätt ARCANA_CCO_MINE_OWNER (Kräver ägare per kund · P1).');
       updateMeta();
       return;
     }
@@ -496,6 +496,15 @@
 
     const name = displayName(card);
     const contact = contactLine(card);
+    const actionCtx = { tenantId: TENANT_ID, role: getRole(), surface: 'mobile' };
+    const dossierBar = global.CcoKunderActions?.buildDossierBar(card, actionCtx) || [];
+    const dossierActionsHtml = global.CcoKunderActions
+      ? global.CcoKunderActions.renderMatrixLegend(dossierBar) +
+        global.CcoKunderActions.renderActionsHtml(dossierBar, {
+          linkClass: 'mk-actions',
+          buttonClass: 'mk-actions',
+        })
+      : '';
     titleHost.innerHTML = `
       <h2>${escapeHtml(name)}</h2>
       <p>${escapeHtml(contact.main)} · ${escapeHtml(card.patientId)}</p>`;
@@ -526,20 +535,7 @@
       </section>
       <section class="mk-panel">
         <h3>Åtgärder</h3>
-        <div class="mk-actions" data-kunder-actions-host>
-          ${
-            global.CcoKunderActions
-              ? global.CcoKunderActions.renderActionsHtml(
-                  global.CcoKunderActions.buildMatrix(card, {
-                    tenantId: TENANT_ID,
-                    role: getRole(),
-                    surface: 'mobile',
-                  }),
-                  { linkClass: 'mk-actions', buttonClass: 'mk-actions' }
-                )
-              : ''
-          }
-        </div>
+        <div class="mk-actions" data-kunder-actions-host>${dossierActionsHtml}</div>
         ${
           card.journalBlocked
             ? `<p class="mk-data-missing">Spärrad åtkomst: ${escapeHtml(card.journalBlockReason || 'journal spärrad')}</p>`
@@ -568,6 +564,11 @@
       global.CcoKunderActions.bindDossierHandlers(actionsHost, {
         scrollAssets: () => {
           $('mkAssetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+        scrollCommunication: () => {
+          body
+            .querySelector('[data-mk-komm-host]')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         },
       });
     }

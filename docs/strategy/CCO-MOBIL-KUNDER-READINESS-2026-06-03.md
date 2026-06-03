@@ -12,7 +12,7 @@
 
 | Mått                              | Desktop (P1.1)                       | Mobil (P1.1)            |
 | --------------------------------- | ------------------------------------ | ----------------------- |
-| **Readiness (verksam arbetsyta)** | **~96%**                             | **~97%**                |
+| **Readiness (verksam arbetsyta)** | **~96%**                             | **~97%** (P1.1 actions) |
 | Lista                             | REAL                                 | REAL                    |
 | Segment/filter                    | REAL + partial/disabled från API     | REAL + partial/disabled |
 | Global sök                        | REAL (`q=`)                          | REAL (`q=`)             |

@@ -144,13 +144,62 @@ function hasJournalFromPatient(patient) {
   return Number(fs.journalPdfs) > 0;
 }
 
+const MINE_DISABLED_REASON = 'Kräver ägare per kund · P1';
+
+/** Inventera vilka ägarfält som finns på patient (readiness, ingen mock). */
+function auditOwnerFieldsOnPatient(patient) {
+  const present = [];
+  const pipedrive = asObject(patient.pipedrive);
+  const cliento = asObject(patient.cliento);
+  if (normalizeText(pipedrive.owner)) present.push('pipedrive.owner');
+  if (normalizeText(pipedrive.ownerId)) present.push('pipedrive.ownerId');
+  if (normalizeText(cliento.owner)) present.push('cliento.owner');
+  if (normalizeText(cliento.assignedStaff)) present.push('cliento.assignedStaff');
+  if (normalizeText(cliento.Ägare)) present.push('cliento.Ägare');
+  if (normalizeText(cliento.responsibleStaff)) present.push('cliento.responsibleStaff');
+  if (normalizeText(cliento.behandlare)) present.push('cliento.behandlare');
+  if (normalizeText(cliento.operator)) present.push('cliento.operator');
+  if (normalizeText(patient.ownerId)) present.push('patient.ownerId');
+  if (normalizeText(patient.assignedStaffId)) present.push('patient.assignedStaffId');
+  if (normalizeText(patient.responsibleStaff)) present.push('patient.responsibleStaff');
+  if (normalizeText(patient.createdBy)) present.push('patient.createdBy');
+  if (normalizeText(patient.lastHandledBy)) present.push('patient.lastHandledBy');
+  return present;
+}
+
+function buildOwnerFieldInventory(patients = []) {
+  const fieldCounts = {};
+  let withAnyOwner = 0;
+  for (const patient of patients) {
+    const fields = auditOwnerFieldsOnPatient(patient);
+    if (fields.length) withAnyOwner += 1;
+    for (const f of fields) fieldCounts[f] = (fieldCounts[f] || 0) + 1;
+  }
+  return {
+    fieldsPresent: Object.keys(fieldCounts).sort(),
+    fieldCounts,
+    patientsWithAnyOwner: withAnyOwner,
+    primaryField: fieldCounts['pipedrive.owner']
+      ? 'pipedrive.owner'
+      : fieldCounts['cliento.owner']
+        ? 'cliento.owner'
+        : null,
+  };
+}
+
 /** Pipedrive Ägare / assigned staff label on patient (no PII beyond name already in CRM). */
 function getPatientOwnerName(patient) {
   const pipedrive = asObject(patient.pipedrive);
   const owner = normalizeText(pipedrive.owner);
   if (owner) return owner;
   const cliento = asObject(patient.cliento);
-  return normalizeText(cliento.owner || cliento.assignedStaff || cliento.Ägare);
+  return normalizeText(
+    cliento.owner ||
+      cliento.assignedStaff ||
+      cliento.Ägare ||
+      cliento.responsibleStaff ||
+      cliento.behandlare
+  );
 }
 
 function ownerMatchesAssigned(ownerName, assignedOwner) {
@@ -280,6 +329,7 @@ function computeNextStep(readout) {
     return `Kommande: ${readout.nextBookingType || 'besök'}`;
   }
   if (readout.onWaitlist) return 'Väntelista — bokningsärende';
+  if (readout.readyForVisit === true) return 'Redo för besök';
   return null;
 }
 
@@ -370,9 +420,7 @@ function buildSegmentCatalog(bookingCoverage = 'missing', ownerCoverage = 'none'
   const treatmentStatus = bookingCoverage === 'missing' ? 'disabled' : 'real';
   const mineDisabled = ownerCoverage === 'none';
   const mineStatus = mineDisabled ? 'disabled' : 'partial';
-  const mineReason = mineDisabled
-    ? 'Kräver ägare per rad · P1'
-    : 'Koppla Pipedrive Ägare eller skicka assignedOwner';
+  const mineReason = mineDisabled ? MINE_DISABLED_REASON : null;
 
   const treatmentSegments = TREATMENT_SEGMENT_DEFS.map((def) => ({
     id: def.id,
@@ -514,6 +562,7 @@ function computeSegmentStats(
 ) {
   const assignedOwner = normalizeText(opts.assignedOwner);
   const ownerMeta = computeOwnerCoverage(patients);
+  const ownerInventory = buildOwnerFieldInventory(patients);
   const ownerCoverage =
     ownerMeta.coverage === 'none' ? 'none' : assignedOwner ? 'real' : ownerMeta.coverage;
   const SEGMENT_CATALOG = buildSegmentCatalog(bookingCoverage, ownerMeta.coverage);
@@ -566,11 +615,11 @@ function computeSegmentStats(
     if (meta.id === 'mine') {
       if (ownerMeta.coverage === 'none') {
         status = 'disabled';
-        reason = 'Kräver ägare per rad · P1';
+        reason = MINE_DISABLED_REASON;
         count = null;
       } else if (!assignedOwner) {
         status = 'partial';
-        reason = 'Kräver ägare per rad · P1';
+        reason = 'Sätt assignedOwner (Pipedrive Ägare) för filter';
         count = ownerMeta.withOwner;
       } else {
         status = 'real';
@@ -588,11 +637,20 @@ function computeSegmentStats(
     };
   });
 
+  const mineSegment = segments.find((s) => s.id === 'mine');
+
   return {
     segments,
     ownerCoverage,
     patientsWithOwner: ownerMeta.withOwner,
     assignedOwnerActive: Boolean(assignedOwner),
+    mineKunder: {
+      status: mineSegment?.status || 'disabled',
+      reason: mineSegment?.reason || MINE_DISABLED_REASON,
+      count: mineSegment?.count ?? null,
+      ownerFieldInventory: ownerInventory,
+      filterQuery: mineSegment?.filterQuery || null,
+    },
     panel: {
       withJournal,
       missingJournal,
@@ -663,8 +721,11 @@ module.exports = {
   loadKunderBookingIndex,
   matchSegment,
   getPatientOwnerName,
+  auditOwnerFieldsOnPatient,
+  buildOwnerFieldInventory,
   ownerMatchesAssigned,
   computeOwnerCoverage,
   maskEmail,
   maskPhone,
+  MINE_DISABLED_REASON,
 };

@@ -324,7 +324,7 @@
       state.loaded = true;
       state.loading = false;
       setListStatus(
-        'Mina kunder: sätt Pipedrive-ägare i localStorage ARCANA_CCO_MINE_OWNER (eller matcha mot inloggad e-post).',
+        'Mina kunder: sätt Pipedrive-ägare i localStorage ARCANA_CCO_MINE_OWNER (Kräver ägare per kund · P1).',
         'warn'
       );
       refreshSegmentCounts();
@@ -490,7 +490,7 @@
       <div>
         <div class="cr-revenue kunder-revenue-disabled" title="Intäkt — data saknas">—</div>
       </div>
-      <div><div class="cr-ai" title="Regelbaserat nästa steg (ej AI)">${escapeHtml(nextStepLabel(card))}</div></div>
+      <div><div class="cr-ai" data-rule-based="1" title="Regelbaserat nästa steg (ej AI)">${escapeHtml(nextStepLabel(card))}</div></div>
       <div class="cr-arrow">›</div>
     </div>`;
         })
@@ -757,6 +757,12 @@
     if (row) row.classList.add('selected');
 
     const name = displayName(card);
+    const actionCtx = { tenantId: TENANT_ID, role: getRole(), surface: 'desktop' };
+    const dossierBar = global.CcoKunderActions?.buildDossierBar(card, actionCtx) || [];
+    const dossierActionsHtml = global.CcoKunderActions
+      ? global.CcoKunderActions.renderMatrixLegend(dossierBar) +
+        global.CcoKunderActions.renderActionsHtml(dossierBar)
+      : '';
     intelCustomerView.innerHTML = `
     <div class="dossier-head">
       <div class="dossier-avatar">${escapeHtml((name.slice(0, 2) || '??').toUpperCase())}</div>
@@ -825,19 +831,7 @@
         <div class="cco-komm-loading">Laddar…</div>
       </details>
     </div>
-    <div class="dossier-actions" data-kunder-actions-host>
-      ${
-        global.CcoKunderActions
-          ? global.CcoKunderActions.renderActionsHtml(
-              global.CcoKunderActions.buildMatrix(card, {
-                tenantId: TENANT_ID,
-                role: getRole(),
-                surface: 'desktop',
-              })
-            )
-          : ''
-      }
-    </div>
+    <div class="dossier-actions" data-kunder-actions-host>${dossierActionsHtml}</div>
     ${
       card.journalBlocked
         ? `<p class="kunder-data-missing">Spärrad åtkomst: ${escapeHtml(card.journalBlockReason || 'journal spärrad')}</p>`
@@ -886,6 +880,9 @@
       global.CcoKunderActions.bindDossierHandlers(actionsHost, {
         scrollAssets: () => {
           assetsHost?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+        scrollCommunication: () => {
+          kommHost?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         },
       });
     }
@@ -1067,6 +1064,10 @@
       .kunder-load-more-meta { font-size:12px; color:var(--cco-text-secondary); }
       .kunder-filter-note { padding:8px 14px; font-size:11px; color:var(--cco-text-secondary); border-bottom:1px solid rgba(132,117,107,.12); }
       #searchOverlayInput::placeholder { color:var(--cco-text-tertiary); }
+      .kunder-action-legend { width:100%; font-size:10px; color:var(--cco-text-secondary); margin:0 0 8px; }
+      .kunder-action--partial { opacity:.72; border-style:dashed; }
+      .kunder-action--blocked { opacity:.55; }
+      .cr-ai[data-rule-based="1"] { font-style:normal; }
     `;
     document.head.appendChild(style);
   }

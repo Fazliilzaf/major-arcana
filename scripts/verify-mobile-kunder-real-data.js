@@ -207,10 +207,16 @@ if (!/hasUpcomingBooking|todayVisit|nextBookingAt/.test(js)) {
   pass('cco-kunder-mobil-real.js booking UI-fält');
 }
 
-if (!/CcoKunderActions/.test(js)) {
-  fail('cco-kunder-mobil-real.js saknar CcoKunderActions (P1.1)');
+if (!/CcoKunderActions/.test(js) || !/buildDossierBar/.test(js)) {
+  fail('cco-kunder-mobil-real.js saknar CcoKunderActions dossier bar (P1.1)');
 } else {
   pass('cco-kunder-mobil-real.js action matrix P1.1');
+}
+
+if (!/data-kunder-status/.test(actionsSrc)) {
+  fail('cco-kunder-actions.js saknar data-kunder-status attribut');
+} else {
+  pass('cco-kunder-actions.js action status attribut');
 }
 
 if (!/treatment_fue|treatment_curatiio/.test(js)) {

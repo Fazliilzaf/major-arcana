@@ -48,6 +48,17 @@
 
 **Readiness:** desktop **~96%**, mobil **~97%**.
 
+### Action matrix (P1.1)
+
+| Status       | Actions                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------ |
+| **real**     | Kundkort, Journal, Timeline, Assets, Kalender (`?patientId=`), Kommunikation (panel), Avtal (→ assets) |
+| **partial**  | Kommunikation (scroll i dossier)                                                                       |
+| **disabled** | Boka, Omboka, Formulär, Offert, Foto, Export, Bulk, Merge, GDPR, Betalning                             |
+| **blocked**  | Journal + åtkomst när `journalBlocked`                                                                 |
+
+Modul: `cco-kunder-actions.js` · attribut `data-kunder-status` · ingen fake GDPR-toast i HTML.
+
 ## P0.3 — leverans (2026-06-03)
 
 | Område                                      | P0.2 (~82%)               | P0.3 (~90%+)                                                                                                        |

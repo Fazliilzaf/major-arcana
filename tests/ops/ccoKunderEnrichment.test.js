@@ -8,6 +8,7 @@ const {
   computeSegmentStats,
   matchSegment,
   getPatientOwnerName,
+  buildOwnerFieldInventory,
   ownerMatchesAssigned,
   computeOwnerCoverage,
   maskEmail,
@@ -135,7 +136,22 @@ describe('ccoKunderEnrichment', () => {
     const stats = computeSegmentStats(patients, new Map());
     const mine = stats.segments.find((s) => s.id === 'mine');
     assert.equal(mine.status, 'disabled');
-    assert.equal(mine.reason, 'Kräver ägare per rad · P1');
+    assert.equal(mine.reason, 'Kräver ägare per kund · P1');
     assert.equal(mine.count, null);
+    assert.ok(stats.mineKunder);
+    assert.equal(stats.mineKunder.status, 'disabled');
+  });
+
+  it('buildOwnerFieldInventory lists pipedrive.owner', () => {
+    const inv = buildOwnerFieldInventory([
+      {
+        id: 'o1',
+        pipedrive: { owner: 'Staff A' },
+        fileSummary: {},
+        flags: [],
+      },
+    ]);
+    assert.ok(inv.fieldsPresent.includes('pipedrive.owner'));
+    assert.equal(inv.patientsWithAnyOwner, 1);
   });
 });

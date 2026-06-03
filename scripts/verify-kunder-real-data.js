@@ -235,10 +235,40 @@ if (!/kalender\.html\?patientId=/.test(js) && !fs.existsSync(ACTIONS_JS)) {
 }
 
 const enrich = fs.readFileSync(path.join(REPO, 'src/ops/ccoKunderEnrichment.js'), 'utf8');
-if (!/getPatientOwnerName/.test(enrich) || !/Kräver ägare per rad/.test(enrich)) {
+if (!/getPatientOwnerName/.test(enrich) || !/Kräver ägare per kund/.test(enrich)) {
   fail('ccoKunderEnrichment saknar mine/owner P1.1');
 } else {
   pass('ccoKunderEnrichment mine/owner P1.1');
+}
+
+if (!/buildOwnerFieldInventory|mineKunder/.test(enrich)) {
+  fail('ccoKunderEnrichment saknar owner field inventory P1.1');
+} else {
+  pass('ccoKunderEnrichment owner field inventory P1.1');
+}
+
+if (
+  /Exportera GDPR-paket|Radera kund permanent|MutationObserver.*gdpr|AI-åtgärd startad/.test(
+    customersHtml
+  ) ||
+  /<div class="gdpr-row"/.test(customersHtml)
+) {
+  fail('kunder.html customers-shell har fake GDPR/toast injection');
+} else {
+  pass('kunder.html utan fake GDPR toast injection');
+}
+
+const actionsSrcFull = fs.existsSync(ACTIONS_JS) ? fs.readFileSync(ACTIONS_JS, 'utf8') : '';
+if (!/data-kunder-status/.test(actionsSrcFull) || !/buildDossierBar/.test(actionsSrcFull)) {
+  fail('cco-kunder-actions.js saknar full status matrix P1.1');
+} else {
+  pass('cco-kunder-actions.js full status matrix P1.1');
+}
+
+if (!/buildDossierBar/.test(js)) {
+  fail('cco-kunder-real.js använder inte dossier action bar');
+} else {
+  pass('cco-kunder-real.js dossier action bar P1.1');
 }
 
 if (!/assignedOwner/.test(staff)) {
