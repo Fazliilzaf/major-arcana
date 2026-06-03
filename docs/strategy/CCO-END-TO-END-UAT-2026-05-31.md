@@ -121,37 +121,37 @@ _Ingen patientdata i denna rapport._
 
 ### Cycle-12 statusrefresh 2026-06-03T23:50Z
 
-| Spår | Status |
-|---|---|
-| Journalpilot | **PASS** ✅ |
-| Personalstart | **PASS** ✅ |
-| Pilot 1/2/3 | **PASS · PASS · PASS** |
-| Pre-Signering Check (NY) | **LIVE** (5-stegs UI-skydd) |
-| Review-Material Warning (NY) | **LIVE** (visualiserad varning) |
-| CF API | mounted + RBAC enforced (auth-test pending) |
-| Mail Phase 2 | operativ (mailbox 248/175/67/3) |
-| Photo Review | **pending** (~885 assets) |
-| Drive/historik | **imported + review-badges + warning-sidan** |
-| Aisia | **paused** |
+| Spår                         | Status                                       |
+| ---------------------------- | -------------------------------------------- |
+| Journalpilot                 | **PASS** ✅                                  |
+| Personalstart                | **PASS** ✅                                  |
+| Pilot 1/2/3                  | **PASS · PASS · PASS**                       |
+| Pre-Signering Check (NY)     | **LIVE** (5-stegs UI-skydd)                  |
+| Review-Material Warning (NY) | **LIVE** (visualiserad varning)              |
+| CF API                       | mounted + RBAC enforced (auth-test pending)  |
+| Mail Phase 2                 | operativ (mailbox 248/175/67/3)              |
+| Photo Review                 | **pending** (~885 assets)                    |
+| Drive/historik               | **imported + review-badges + warning-sidan** |
+| Aisia                        | **paused**                                   |
 
 ### Cycle-13 statusrefresh 2026-06-04T00:30Z
 
-| Spår | Status |
-|---|---|
-| Journalpilot | **PASS** |
-| Personalstart | **PASS** |
-| Pilot 1/2/3 | **PASS · PASS · PASS** |
-| Efter mötet-start (NY) | **LIVE** (8-stegs konkret startguide) |
-| Role Cards (NY) | **DOCUMENTED** (4 roller med får/får-inte/eskalera) |
-| First 3 Patients Plan (NY) | **DOCUMENTED** (P1 enkel · P2 rättelse · P3 historik) |
-| Pre-Signering Check | **LIVE** |
-| Review-Material Warning | **LIVE** |
-| Training Mode · FAQ · Go-Live · Sign-off | **LIVE** |
-| CF API | mounted + RBAC enforced (auth-test pending) |
-| Mail Phase 2 | operativ (mailbox 248/175/67/3) |
-| Photo Review | **pending** |
-| Drive/historik | **imported** + review-badges + warning |
-| Aisia | **paused** |
+| Spår                                     | Status                                                |
+| ---------------------------------------- | ----------------------------------------------------- |
+| Journalpilot                             | **PASS**                                              |
+| Personalstart                            | **PASS**                                              |
+| Pilot 1/2/3                              | **PASS · PASS · PASS**                                |
+| Efter mötet-start (NY)                   | **LIVE** (8-stegs konkret startguide)                 |
+| Role Cards (NY)                          | **DOCUMENTED** (4 roller med får/får-inte/eskalera)   |
+| First 3 Patients Plan (NY)               | **DOCUMENTED** (P1 enkel · P2 rättelse · P3 historik) |
+| Pre-Signering Check                      | **LIVE**                                              |
+| Review-Material Warning                  | **LIVE**                                              |
+| Training Mode · FAQ · Go-Live · Sign-off | **LIVE**                                              |
+| CF API                                   | mounted + RBAC enforced (auth-test pending)           |
+| Mail Phase 2                             | operativ (mailbox 248/175/67/3)                       |
+| Photo Review                             | **pending**                                           |
+| Drive/historik                           | **imported** + review-badges + warning                |
+| Aisia                                    | **paused**                                            |
 
 ### Cycle-14 statusrefresh 2026-06-04T01:00Z
 
@@ -185,3 +185,5 @@ _Ingen patientdata i denna rapport._
 | Photo Review | **pending** |
 | Import review | **pending** (~1497) |
 | Aisia | **paused** |
+
+Presentation gate: länkpreflight även go-live-control + training-completion.

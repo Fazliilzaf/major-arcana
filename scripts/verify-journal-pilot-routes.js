@@ -90,6 +90,8 @@ const STATIC_PAGES = [
   'public/kunder.html',
   'public/journal-feed-demo.html',
   'public/cco-ops-workbench.html',
+  'public/cco-staff-go-live-control.html',
+  'public/cco-staff-training-completion.html',
 ];
 
 function main() {

@@ -32,248 +32,558 @@
         --purple: #6b5b95;
         --purple-bg: #e6e0f0;
       }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background:
           radial-gradient(1200px 600px at 10% -10%, #f7eed7 0%, transparent 60%),
-          radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%),
-          var(--bg);
+          radial-gradient(900px 500px at 100% 100%, #ecd9b5 0%, transparent 55%), var(--bg);
         color: var(--ink);
-        font: 14px/1.55 -apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, system-ui, sans-serif;
+        font:
+          14px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          'SF Pro Display',
+          Inter,
+          system-ui,
+          sans-serif;
         min-height: 100vh;
       }
-      .container { max-width: 1180px; margin: 0 auto; padding: 24px 28px 70px; }
+      .container {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 24px 28px 70px;
+      }
 
       .topbar {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         padding: 16px 20px;
         background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
-        border: 1px solid var(--line); border-radius: 16px;
-        box-shadow: 0 6px 18px rgba(80,60,30,0.1), inset 0 1px 0 rgba(255,255,255,0.55);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow:
+          0 6px 18px rgba(80, 60, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
         margin-bottom: 18px;
       }
-      .brand { display: flex; align-items: center; gap: 12px; }
-      .brand-mark {
-        width: 42px; height: 42px; border-radius: 11px;
-        background: linear-gradient(135deg, #b08b3f, #6d4e1c);
-        color: #fff; font-weight: 700; font-size: 14px;
-        display: grid; place-items: center;
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
-      .brand-title { font-size: 16px; font-weight: 700; }
-      .brand-sub { font-size: 12px; color: var(--ink-soft); }
-      .topbar-actions { display: flex; gap: 8px; }
-      .refresh-btn, .back-btn {
-        padding: 9px 14px; background: var(--paper); color: var(--ink);
-        border: 1px solid var(--line); border-radius: 10px;
-        font-weight: 600; font-size: 12.5px; text-decoration: none;
+      .brand-mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #b08b3f, #6d4e1c);
+        color: #fff;
+        font-weight: 700;
+        font-size: 14px;
+        display: grid;
+        place-items: center;
+      }
+      .brand-title {
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .brand-sub {
+        font-size: 12px;
+        color: var(--ink-soft);
+      }
+      .topbar-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .refresh-btn,
+      .back-btn {
+        padding: 9px 14px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 12.5px;
+        text-decoration: none;
         cursor: pointer;
       }
-      .refresh-btn:hover, .back-btn:hover { background: #fff8e8; border-color: var(--accent); }
+      .refresh-btn:hover,
+      .back-btn:hover {
+        background: #fff8e8;
+        border-color: var(--accent);
+      }
 
       /* SECTION */
       .section-head {
-        display: flex; align-items: center; gap: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
         margin: 22px 0 10px;
       }
       .section-num {
-        display: inline-grid; place-items: center;
-        width: 24px; height: 24px; border-radius: 6px;
-        background: var(--accent); color: #fff;
-        font-weight: 800; font-size: 12px;
+        display: inline-grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 800;
+        font-size: 12px;
       }
       .section-title {
-        font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;
-        color: var(--ink-soft); font-weight: 700;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--ink-soft);
+        font-weight: 700;
       }
       .section-sub {
-        margin-left: auto; font-size: 11.5px; color: var(--ink-muted);
+        margin-left: auto;
+        font-size: 11.5px;
+        color: var(--ink-muted);
         font-style: italic;
       }
 
       /* 1 · STARTSTATUS hero */
       .status-hero {
-        padding: 22px 26px; border-radius: 16px;
+        padding: 22px 26px;
+        border-radius: 16px;
         background: linear-gradient(180deg, var(--green-bg) 0%, #d4e0bd 100%);
         border: 2px solid var(--green);
-        box-shadow: 0 6px 18px rgba(95,124,60,0.18), inset 0 1px 0 rgba(255,255,255,0.5);
+        box-shadow:
+          0 6px 18px rgba(95, 124, 60, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
         margin-bottom: 6px;
         transition: all 0.3s;
       }
       .status-hero.warning {
         background: linear-gradient(180deg, var(--orange-bg) 0%, #f0c887 100%);
         border-color: var(--orange);
-        box-shadow: 0 6px 18px rgba(196,129,50,0.18);
+        box-shadow: 0 6px 18px rgba(196, 129, 50, 0.18);
       }
       .status-hero.stop {
         background: linear-gradient(180deg, var(--red-bg) 0%, #e9a89c 100%);
         border-color: var(--red);
-        box-shadow: 0 6px 18px rgba(160,68,50,0.18);
+        box-shadow: 0 6px 18px rgba(160, 68, 50, 0.18);
       }
       .status-hero.loading {
         background: var(--paper);
         border-color: var(--line);
       }
       .status-big {
-        font-size: 38px; font-weight: 800; letter-spacing: -0.6px; line-height: 1.1;
-        color: var(--green-deep); margin-bottom: 6px;
+        font-size: 38px;
+        font-weight: 800;
+        letter-spacing: -0.6px;
+        line-height: 1.1;
+        color: var(--green-deep);
+        margin-bottom: 6px;
       }
-      .status-hero.warning .status-big { color: #6a4a14; }
-      .status-hero.stop .status-big { color: var(--red-deep); }
-      .status-hero.loading .status-big { color: var(--ink-soft); }
+      .status-hero.warning .status-big {
+        color: #6a4a14;
+      }
+      .status-hero.stop .status-big {
+        color: var(--red-deep);
+      }
+      .status-hero.loading .status-big {
+        color: var(--ink-soft);
+      }
       .status-meta {
-        font-size: 13px; color: var(--ink-soft);
+        font-size: 13px;
+        color: var(--ink-soft);
       }
-      .status-meta strong { color: var(--ink); }
+      .status-meta strong {
+        color: var(--ink);
+      }
       .status-grid {
-        margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
       }
       .status-cell {
-        background: rgba(255,255,255,0.45); border-radius: 10px;
-        padding: 10px 14px; border: 1px solid rgba(132,117,107,0.18);
+        background: rgba(255, 255, 255, 0.45);
+        border-radius: 10px;
+        padding: 10px 14px;
+        border: 1px solid rgba(132, 117, 107, 0.18);
       }
-      .status-cell-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-soft); font-weight: 600; }
-      .status-cell-value { font-size: 14px; font-weight: 700; margin-top: 3px; }
-      .status-cell-value.ok { color: var(--green-deep); }
-      .status-cell-value.warn { color: #6a4a14; }
-      .status-cell-value.bad { color: var(--red-deep); }
+      .status-cell-label {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--ink-soft);
+        font-weight: 600;
+      }
+      .status-cell-value {
+        font-size: 14px;
+        font-weight: 700;
+        margin-top: 3px;
+      }
+      .status-cell-value.ok {
+        color: var(--green-deep);
+      }
+      .status-cell-value.warn {
+        color: #6a4a14;
+      }
+      .status-cell-value.bad {
+        color: var(--red-deep);
+      }
 
       /* 2 · ROLES */
       .roles-grid {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
       }
       .role-card {
-        padding: 14px 16px; background: var(--paper);
-        border: 1px solid var(--line); border-radius: 12px;
+        padding: 14px 16px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
         border-top: 4px solid var(--accent);
-        box-shadow: 0 2px 8px rgba(80,60,30,0.08), inset 0 1px 0 rgba(255,255,255,0.55);
+        box-shadow:
+          0 2px 8px rgba(80, 60, 30, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
       }
-      .role-card.personal { border-top-color: var(--green); }
-      .role-card.admin { border-top-color: var(--blue); }
-      .role-card.owner { border-top-color: var(--accent); }
-      .role-card.observer { border-top-color: var(--purple); }
+      .role-card.personal {
+        border-top-color: var(--green);
+      }
+      .role-card.admin {
+        border-top-color: var(--blue);
+      }
+      .role-card.owner {
+        border-top-color: var(--accent);
+      }
+      .role-card.observer {
+        border-top-color: var(--purple);
+      }
       .role-kicker {
-        font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.5px;
-        font-weight: 700; margin-bottom: 4px;
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-weight: 700;
+        margin-bottom: 4px;
       }
-      .role-card.personal .role-kicker { color: var(--green-deep); }
-      .role-card.admin .role-kicker { color: var(--blue-deep); }
-      .role-card.owner .role-kicker { color: var(--accent-deep); }
-      .role-card.observer .role-kicker { color: var(--purple); }
-      .role-card h3 { margin: 0 0 6px; font-size: 14.5px; font-weight: 700; }
-      .role-card p { margin: 0; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
-      .role-card p strong { color: var(--ink); font-weight: 700; }
+      .role-card.personal .role-kicker {
+        color: var(--green-deep);
+      }
+      .role-card.admin .role-kicker {
+        color: var(--blue-deep);
+      }
+      .role-card.owner .role-kicker {
+        color: var(--accent-deep);
+      }
+      .role-card.observer .role-kicker {
+        color: var(--purple);
+      }
+      .role-card h3 {
+        margin: 0 0 6px;
+        font-size: 14.5px;
+        font-weight: 700;
+      }
+      .role-card p {
+        margin: 0;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        line-height: 1.5;
+      }
+      .role-card p strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
 
       /* 3 · BLOCKS */
       .blocks-grid {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
       }
       .block-card {
-        padding: 14px 16px; background: var(--paper);
-        border: 1px solid var(--line); border-radius: 12px;
+        padding: 14px 16px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
         position: relative;
-        box-shadow: 0 2px 8px rgba(80,60,30,0.08), inset 0 1px 0 rgba(255,255,255,0.55);
+        box-shadow:
+          0 2px 8px rgba(80, 60, 30, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
       }
       .block-num {
-        position: absolute; top: -10px; left: 12px;
-        width: 28px; height: 28px; border-radius: 50%;
-        background: var(--accent); color: #fff;
-        font-weight: 800; font-size: 13px;
-        display: grid; place-items: center;
-        box-shadow: 0 2px 6px rgba(80,60,20,0.25);
+        position: absolute;
+        top: -10px;
+        left: 12px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 800;
+        font-size: 13px;
+        display: grid;
+        place-items: center;
+        box-shadow: 0 2px 6px rgba(80, 60, 20, 0.25);
       }
       .block-card h3 {
-        margin: 6px 0 4px; font-size: 14px; font-weight: 700;
+        margin: 6px 0 4px;
+        font-size: 14px;
+        font-weight: 700;
       }
       .block-card .time {
-        font-family: SFMono-Regular, Menlo, monospace; font-size: 11px;
-        color: var(--accent-deep); font-weight: 700; margin-bottom: 6px;
+        font-family: SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        color: var(--accent-deep);
+        font-weight: 700;
+        margin-bottom: 6px;
       }
       .block-card p {
-        margin: 0; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5;
+        margin: 0;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        line-height: 1.5;
       }
       .block-card ul {
-        margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: var(--ink-soft);
+        margin: 6px 0 0;
+        padding-left: 18px;
+        font-size: 12px;
+        color: var(--ink-soft);
       }
-      .block-card li { margin: 2px 0; }
+      .block-card li {
+        margin: 2px 0;
+      }
 
       /* 4 · STOP RULES */
       .stop-grid {
-        display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
       }
       .stop-rule {
         padding: 12px 16px;
         background: linear-gradient(180deg, var(--red-bg) 0%, #efbeb1 100%);
-        border: 1px solid var(--red); border-radius: 10px;
-        font-size: 13px; color: var(--ink); line-height: 1.5;
+        border: 1px solid var(--red);
+        border-radius: 10px;
+        font-size: 13px;
+        color: var(--ink);
+        line-height: 1.5;
       }
-      .stop-rule strong { color: var(--red-deep); font-weight: 800; }
+      .stop-rule strong {
+        color: var(--red-deep);
+        font-weight: 800;
+      }
       .stop-rule .label {
-        display: block; font-size: 10.5px; text-transform: uppercase;
-        letter-spacing: 1px; color: var(--red-deep); font-weight: 800;
+        display: block;
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--red-deep);
+        font-weight: 800;
         margin-bottom: 3px;
       }
 
       /* 5 · ESCALATION */
       .esc-table {
-        width: 100%; border-collapse: collapse;
-        background: var(--paper); border-radius: 12px; overflow: hidden;
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--paper);
+        border-radius: 12px;
+        overflow: hidden;
         border: 1px solid var(--line);
-        box-shadow: 0 2px 8px rgba(80,60,30,0.06);
+        box-shadow: 0 2px 8px rgba(80, 60, 30, 0.06);
       }
       .esc-table th {
-        padding: 11px 14px; text-align: left; font-size: 11.5px;
-        font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-        background: var(--paper-deep); color: var(--accent-deep);
+        padding: 11px 14px;
+        text-align: left;
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: var(--paper-deep);
+        color: var(--accent-deep);
         border-bottom: 1.5px solid var(--line);
       }
       .esc-table td {
-        padding: 10px 14px; border-top: 1px solid var(--line-soft);
-        font-size: 12.5px; line-height: 1.5; vertical-align: top;
+        padding: 10px 14px;
+        border-top: 1px solid var(--line-soft);
+        font-size: 12.5px;
+        line-height: 1.5;
+        vertical-align: top;
       }
-      .esc-table td strong { color: var(--ink); font-weight: 700; }
-      .esc-table tr:nth-child(even) td { background: rgba(176,139,63,0.04); }
+      .esc-table td strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .esc-table tr:nth-child(even) td {
+        background: rgba(176, 139, 63, 0.04);
+      }
 
-      /* 6 · LINKS */
+      /* 7 · DRIFTKORT */
+      .ops-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      .ops-card {
+        padding: 16px 18px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        border-left: 4px solid var(--accent);
+        box-shadow:
+          0 2px 8px rgba(80, 60, 30, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
+      }
+      .ops-card h3 {
+        margin: 0 0 8px;
+        font-size: 14.5px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .ops-card p {
+        margin: 0 0 8px;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        line-height: 1.55;
+      }
+      .ops-card ul {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 12px;
+        color: var(--ink-soft);
+        line-height: 1.5;
+      }
+      .ops-card li {
+        margin: 3px 0;
+      }
+      .ops-card strong {
+        color: var(--ink);
+      }
+      .ops-card.accent-green {
+        border-left-color: var(--green);
+        background: linear-gradient(180deg, #f8fcf0 0%, var(--paper) 100%);
+      }
+      .ops-card.accent-orange {
+        border-left-color: var(--orange);
+        background: linear-gradient(180deg, #fff8ee 0%, var(--paper) 100%);
+      }
+      .ops-card.accent-red {
+        border-left-color: var(--red);
+        background: linear-gradient(180deg, #fff5f2 0%, var(--paper) 100%);
+      }
+      .ops-card.accent-blue {
+        border-left-color: var(--blue);
+        background: linear-gradient(180deg, #f0f4fa 0%, var(--paper) 100%);
+      }
+
+      /* 8 · LINKS */
       .links-grid {
-        display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
       }
       .link-card {
-        padding: 12px 10px; background: var(--paper-soft);
-        border: 1px solid var(--line); border-radius: 10px;
-        text-decoration: none; color: var(--ink);
-        text-align: center; font-size: 12px; font-weight: 700;
+        padding: 12px 10px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        text-decoration: none;
+        color: var(--ink);
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
         transition: all 0.15s;
       }
-      .link-card:hover { background: #fff8e8; border-color: var(--accent); transform: translateY(-1px); }
-      .link-card .icon { font-size: 20px; display: block; line-height: 1; margin-bottom: 4px; }
-      .link-card .sub { display: block; font-size: 10.5px; color: var(--ink-soft); font-weight: 500; margin-top: 2px; }
+      .link-card:hover {
+        background: #fff8e8;
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
+      .link-card .icon {
+        font-size: 20px;
+        display: block;
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+      .link-card .sub {
+        display: block;
+        font-size: 10.5px;
+        color: var(--ink-soft);
+        font-weight: 500;
+        margin-top: 2px;
+      }
 
       /* DOCS NOTE */
       .docs-note {
-        margin-top: 24px; padding: 14px 18px;
-        background: var(--paper-soft); border: 1px solid var(--line);
-        border-radius: 10px; font-size: 12.5px; color: var(--ink-soft);
+        margin-top: 24px;
+        padding: 14px 18px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 12.5px;
+        color: var(--ink-soft);
         line-height: 1.6;
       }
-      .docs-note strong { color: var(--ink); }
-      .docs-note code { background: var(--paper-deep); padding: 1px 6px; border-radius: 4px; font-size: 11.5px; color: var(--accent-deep); }
+      .docs-note strong {
+        color: var(--ink);
+      }
+      .docs-note code {
+        background: var(--paper-deep);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 11.5px;
+        color: var(--accent-deep);
+      }
 
-      .loading-dim { opacity: 0.55; transition: opacity 0.2s; }
+      .loading-dim {
+        opacity: 0.55;
+        transition: opacity 0.2s;
+      }
 
       @media (max-width: 900px) {
-        .container { padding: 16px; }
-        .topbar { flex-direction: column; gap: 12px; align-items: stretch; }
-        .roles-grid, .blocks-grid { grid-template-columns: 1fr 1fr; }
-        .status-grid { grid-template-columns: 1fr 1fr; }
-        .stop-grid { grid-template-columns: 1fr; }
-        .links-grid { grid-template-columns: repeat(3, 1fr); }
-        .esc-table { font-size: 11.5px; }
+        .container {
+          padding: 16px;
+        }
+        .topbar {
+          flex-direction: column;
+          gap: 12px;
+          align-items: stretch;
+        }
+        .roles-grid,
+        .blocks-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .status-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .stop-grid {
+          grid-template-columns: 1fr;
+        }
+        .ops-cards-grid {
+          grid-template-columns: 1fr;
+        }
+        .links-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .esc-table {
+          font-size: 11.5px;
+        }
       }
       @media (max-width: 600px) {
-        .roles-grid, .blocks-grid { grid-template-columns: 1fr; }
-        .links-grid { grid-template-columns: 1fr 1fr; }
-        .status-big { font-size: 28px; }
+        .roles-grid,
+        .blocks-grid {
+          grid-template-columns: 1fr;
+        }
+        .links-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .status-big {
+          font-size: 28px;
+        }
       }
     </style>
   </head>
@@ -303,10 +613,30 @@
         <div class="status-big" id="heroBig">…</div>
         <div class="status-meta" id="heroSub">Hämtar morning-check · fallback ops-status</div>
         <div class="status-grid">
-          <div class="status-cell"><div class="status-cell-label">Journalpilot</div><div class="status-cell-value" id="cellJP">—</div></div>
-          <div class="status-cell"><div class="status-cell-label">Pilot 1/2/3</div><div class="status-cell-value" id="cellPilots">—</div></div>
-          <div class="status-cell"><div class="status-cell-label">Morning check</div><div class="status-cell-value" id="cellMorning">—</div></div>
-          <div class="status-cell"><div class="status-cell-label">Ops Workbench</div><div class="status-cell-value"><a href="/cco-ops-workbench.html" target="_blank" rel="noopener" style="color:var(--accent-deep); text-decoration:none; font-weight:700;">Öppna →</a></div></div>
+          <div class="status-cell">
+            <div class="status-cell-label">Journalpilot</div>
+            <div class="status-cell-value" id="cellJP">—</div>
+          </div>
+          <div class="status-cell">
+            <div class="status-cell-label">Pilot 1/2/3</div>
+            <div class="status-cell-value" id="cellPilots">—</div>
+          </div>
+          <div class="status-cell">
+            <div class="status-cell-label">Morning check</div>
+            <div class="status-cell-value" id="cellMorning">—</div>
+          </div>
+          <div class="status-cell">
+            <div class="status-cell-label">Ops Workbench</div>
+            <div class="status-cell-value">
+              <a
+                href="/cco-ops-workbench.html"
+                target="_blank"
+                rel="noopener"
+                style="color: var(--accent-deep); text-decoration: none; font-weight: 700"
+                >Öppna →</a
+              >
+            </div>
+          </div>
         </div>
       </div>
 
@@ -319,17 +649,25 @@
         <div class="role-card personal">
           <div class="role-kicker">Personal</div>
           <h3>Journalföring</h3>
-          <p>Verifiera identitet · skriv journal · signera · rättelse. <strong>Eskalera vid osäkerhet.</strong></p>
+          <p>
+            Verifiera identitet · skriv journal · signera · rättelse.
+            <strong>Eskalera vid osäkerhet.</strong>
+          </p>
         </div>
         <div class="role-card admin">
           <div class="role-kicker">Operator / admin</div>
           <h3>Review-köer</h3>
-          <p>Identitet · dubbletter · mail/photo/Drive-review. <strong>Skapar inte journaler.</strong></p>
+          <p>
+            Identitet · dubbletter · mail/photo/Drive-review.
+            <strong>Skapar inte journaler.</strong>
+          </p>
         </div>
         <div class="role-card owner">
           <div class="role-kicker">Fazli / owner</div>
           <h3>Beslut + eskalering</h3>
-          <p>Övervaka Command Center + Render. Avgör om pilot stoppas. <strong>P0/P1-fix.</strong></p>
+          <p>
+            Övervaka Command Center + Render. Avgör om pilot stoppas. <strong>P0/P1-fix.</strong>
+          </p>
         </div>
         <div class="role-card observer">
           <div class="role-kicker">Revisor / observatör</div>
@@ -348,19 +686,27 @@
           <div class="block-num">1</div>
           <h3>1–3 kända patienter</h3>
           <div class="time">~45 min</div>
-          <p>Kontrollerad start enligt First 3 Patients-planen. Enkel journal · rättelse-test · historik + warning.</p>
+          <p>
+            Kontrollerad start enligt First 3 Patients-planen. Enkel journal · rättelse-test ·
+            historik + warning.
+          </p>
         </div>
         <div class="block-card">
           <div class="block-num">2</div>
           <h3>Kontroll feed/timeline</h3>
           <div class="time">~15 min</div>
-          <p>Verifiera att posterna syns kronologiskt. Rättelse länkad till original. Render-loggar tysta.</p>
+          <p>
+            Verifiera att posterna syns kronologiskt. Rättelse länkad till original. Render-loggar
+            tysta.
+          </p>
         </div>
         <div class="block-card">
           <div class="block-num">3</div>
           <h3>Eventuella rättelser</h3>
           <div class="time">vid behov</div>
-          <p>Personal som upptäcker fel skapar rättelse som ny post. Verifiera i timeline efteråt.</p>
+          <p>
+            Personal som upptäcker fel skapar rättelse som ny post. Verifiera i timeline efteråt.
+          </p>
         </div>
         <div class="block-card">
           <div class="block-num">4</div>
@@ -455,13 +801,34 @@
         <span class="section-title">Stoppregler · pilot stoppas direkt om</span>
       </div>
       <div class="stop-grid">
-        <div class="stop-rule"><span class="label">Stoppa</span><strong>Fel patient</strong> — personal har skrivit på fel kort. SPARA INTE. Stäng kortet. Fazli direkt.</div>
-        <div class="stop-rule"><span class="label">Stoppa</span><strong>Signering på osäker identitet</strong> — en post signerades innan identitet kontrollerats. Fazli + admin/ops.</div>
-        <div class="stop-rule"><span class="label">Stoppa</span><strong>Journalroute fail</strong> — /journal-feed, /journal-timeline eller /cco-forms returnerar 5xx på prod.</div>
-        <div class="stop-rule"><span class="label">Stoppa</span><strong>5xx i Render</strong> — server-fel som påverkar journal-API. Vänta 2 min, om kvarstår: stoppa.</div>
-        <div class="stop-rule"><span class="label">Stoppa</span><strong>Patientdata i fel kundkort</strong> — data renderas på fel patient (binding-bug). Stoppa + dokumentera.</div>
-        <div class="stop-rule"><span class="label">Stoppa</span><strong>Review-material som klinisk sanning</strong> — diagnos/dosering baserad på oferifierat material.</div>
-        <div class="stop-rule" style="grid-column: span 2;"><span class="label">Stoppa</span><strong>Extern AI på journaltext</strong> — copy-paste från ChatGPT/Claude/Copilot upptäckt. GDPR-incident — Fazli + juridisk.</div>
+        <div class="stop-rule">
+          <span class="label">Stoppa</span><strong>Fel patient</strong> — personal har skrivit på
+          fel kort. SPARA INTE. Stäng kortet. Fazli direkt.
+        </div>
+        <div class="stop-rule">
+          <span class="label">Stoppa</span><strong>Signering på osäker identitet</strong> — en post
+          signerades innan identitet kontrollerats. Fazli + admin/ops.
+        </div>
+        <div class="stop-rule">
+          <span class="label">Stoppa</span><strong>Journalroute fail</strong> — /journal-feed,
+          /journal-timeline eller /cco-forms returnerar 5xx på prod.
+        </div>
+        <div class="stop-rule">
+          <span class="label">Stoppa</span><strong>5xx i Render</strong> — server-fel som påverkar
+          journal-API. Vänta 2 min, om kvarstår: stoppa.
+        </div>
+        <div class="stop-rule">
+          <span class="label">Stoppa</span><strong>Patientdata i fel kundkort</strong> — data
+          renderas på fel patient (binding-bug). Stoppa + dokumentera.
+        </div>
+        <div class="stop-rule">
+          <span class="label">Stoppa</span><strong>Review-material som klinisk sanning</strong> —
+          diagnos/dosering baserad på oferifierat material.
+        </div>
+        <div class="stop-rule" style="grid-column: span 2">
+          <span class="label">Stoppa</span><strong>Extern AI på journaltext</strong> — copy-paste
+          från ChatGPT/Claude/Copilot upptäckt. GDPR-incident — Fazli + juridisk.
+        </div>
       </div>
 
       <!-- 5 · ESKALERING -->
@@ -472,10 +839,10 @@
       <table class="esc-table">
         <thead>
           <tr>
-            <th style="width:24%;">Problem</th>
-            <th style="width:18%;">Eskalera till</th>
-            <th style="width:30%;">Dokumentera</th>
-            <th style="width:28%;">Säg till patienten</th>
+            <th style="width: 24%">Problem</th>
+            <th style="width: 18%">Eskalera till</th>
+            <th style="width: 30%">Dokumentera</th>
+            <th style="width: 28%">Säg till patienten</th>
           </tr>
         </thead>
         <tbody>
@@ -507,7 +874,9 @@
             <td><strong>GDPR-export-förfrågan</strong></td>
             <td>Admin/ops + Fazli</td>
             <td>Patient-ID + förfrågan ordagrant</td>
-            <td><em>"Jag vidarebefordrar din förfrågan — du får återkoppling inom X dagar."</em></td>
+            <td>
+              <em>"Jag vidarebefordrar din förfrågan — du får återkoppling inom X dagar."</em>
+            </td>
           </tr>
           <tr>
             <td><strong>Review-material missbrukat</strong></td>
@@ -525,7 +894,12 @@
             <td><strong>Patient frågar Fortnox-faktura</strong></td>
             <td>Säg själv (ingen eskalering)</td>
             <td>—</td>
-            <td><em>"Vår fakturasync är pausad — vi tar betalt som vanligt, kvitto skickas manuellt."</em></td>
+            <td>
+              <em
+                >"Vår fakturasync är pausad — vi tar betalt som vanligt, kvitto skickas
+                manuellt."</em
+              >
+            </td>
           </tr>
         </tbody>
       </table>
@@ -556,7 +930,12 @@
           <span class="icon">🛡</span>Pre-Sign Check
           <span class="sub">5-stegs säkerhet</span>
         </a>
-        <a class="link-card" href="/cco-review-material-warning.html" target="_blank" rel="noopener">
+        <a
+          class="link-card"
+          href="/cco-review-material-warning.html"
+          target="_blank"
+          rel="noopener"
+        >
           <span class="icon">⚠️</span>Review Warning
           <span class="sub">vad är INTE sanning</span>
         </a>
@@ -568,9 +947,27 @@
           <span class="icon">📸</span>Photo Review
           <span class="sub">~885 pending</span>
         </a>
-        <a class="link-card" href="/mail-review.html" target="_blank" rel="noopener">
+        <a
+          class="link-card"
+          href="/ambiguous-mail-enrichment-review.html"
+          target="_blank"
+          rel="noopener"
+        >
           <span class="icon">📧</span>Mail Review
-          <span class="sub">493 ambiguous</span>
+          <span class="sub">operator · ej personal</span>
+        </a>
+        <a class="link-card" href="/cco-import-review.html" target="_blank" rel="noopener">
+          <span class="icon">📋</span>Import Review
+          <span class="sub">operator · ej personal</span>
+        </a>
+        <a
+          class="link-card"
+          href="/cco-staff-training-completion.html"
+          target="_blank"
+          rel="noopener"
+        >
+          <span class="icon">✅</span>Training Completion
+          <span class="sub">printbar bekräftelse</span>
         </a>
         <a class="link-card" href="/cco-4june-command-center.html" target="_blank" rel="noopener">
           <span class="icon">🎯</span>Command Center
@@ -580,7 +977,12 @@
 
       <!-- DOCS NOTE -->
       <div class="docs-note">
-        <strong>Dokumentation:</strong> Daily Readiness uppdateras dagligen — <code>docs/strategy/CCO-DAILY-READINESS-2026-06-04.md</code>. Rollkort: <code>CCO-STAFF-ROLE-CARDS-2026-06-04.md</code>. First Week Rollout: <code>CCO-FIRST-WEEK-JOURNAL-ROLLOUT-2026-06-04.md</code>. First 3 Patients-plan: <code>CCO-FIRST-3-PATIENTS-PILOT-PLAN-2026-06-04.md</code>.
+        <strong>Dokumentation:</strong>
+        <code>docs/strategy/CCO-JOURNAL-PILOT-OPERATING-RULES-2026-06-04.md</code> (driftregler) ·
+        Daily Readiness: <code>CCO-DAILY-READINESS-2026-06-04.md</code> · Rollkort:
+        <code>CCO-STAFF-ROLE-CARDS-2026-06-04.md</code> · First Week:
+        <code>CCO-FIRST-WEEK-JOURNAL-ROLLOUT-2026-06-04.md</code> · First 3 Patients:
+        <code>CCO-FIRST-3-PATIENTS-PILOT-PLAN-2026-06-04.md</code>.
       </div>
     </div>
 
@@ -598,21 +1000,33 @@
         let data = null;
         let source = '';
         try {
-          const r1 = await fetch('/cco-4june-morning-check.json?ts=' + Date.now(), { cache: 'no-store' });
-          if (r1.ok) { data = await r1.json(); source = 'morning-check'; }
+          const r1 = await fetch('/cco-4june-morning-check.json?ts=' + Date.now(), {
+            cache: 'no-store',
+          });
+          if (r1.ok) {
+            data = await r1.json();
+            source = 'morning-check';
+          }
         } catch (e) {}
         if (!data) {
           try {
-            const r2 = await fetch('/cco-presentation-ops-status.json?ts=' + Date.now(), { cache: 'no-store' });
-            if (r2.ok) { data = await r2.json(); source = 'ops-status (fallback)'; }
+            const r2 = await fetch('/cco-presentation-ops-status.json?ts=' + Date.now(), {
+              cache: 'no-store',
+            });
+            if (r2.ok) {
+              data = await r2.json();
+              source = 'ops-status (fallback)';
+            }
           } catch (e) {}
         }
         hero.classList.remove('loading-dim');
 
         if (!data) {
-          hero.classList.remove('loading','warning'); hero.classList.add('stop');
+          hero.classList.remove('loading', 'warning');
+          hero.classList.add('stop');
           heroBig.textContent = 'STOP';
-          heroSub.innerHTML = 'Kunde inte hämta status. Kör <code>npm run cco:presentation-gate</code> manuellt.';
+          heroSub.innerHTML =
+            'Kunde inte hämta status. Kör <code>npm run cco:presentation-gate</code> manuellt.';
           statusMeta.textContent = 'fel';
           return;
         }
@@ -624,14 +1038,23 @@
         const p3 = (jp.pilot3 || '').toUpperCase();
         const e2e = (jp.e2eJournal || '').toUpperCase();
         const gen = data.generatedAt || jp.checkedAt || '—';
-        const morning = source === 'morning-check' ? (data.overallStatus || 'GO').toUpperCase() : '(via ops-status)';
+        const morning =
+          source === 'morning-check'
+            ? (data.overallStatus || 'GO').toUpperCase()
+            : '(via ops-status)';
 
-        hero.classList.remove('loading','warning','stop');
+        hero.classList.remove('loading', 'warning', 'stop');
         let big = 'GO';
-        const allPass = overall === 'PASS' && e2e === 'PASS' && p1 === 'PASS' && p2 === 'PASS' && p3 === 'PASS';
-        const anyFail = [overall, e2e, p1, p2, p3].some(v => v === 'FAIL' || v === 'P0');
-        if (anyFail) { hero.classList.add('stop'); big = 'STOP'; }
-        else if (!allPass) { hero.classList.add('warning'); big = 'WARNING'; }
+        const allPass =
+          overall === 'PASS' && e2e === 'PASS' && p1 === 'PASS' && p2 === 'PASS' && p3 === 'PASS';
+        const anyFail = [overall, e2e, p1, p2, p3].some((v) => v === 'FAIL' || v === 'P0');
+        if (anyFail) {
+          hero.classList.add('stop');
+          big = 'STOP';
+        } else if (!allPass) {
+          hero.classList.add('warning');
+          big = 'WARNING';
+        }
         heroBig.textContent = big;
 
         const ago = (() => {
@@ -640,21 +1063,35 @@
             const t = new Date(gen).getTime();
             const sec = Math.floor((Date.now() - t) / 1000);
             if (sec < 60) return sec + ' sek sedan';
-            if (sec < 3600) return Math.floor(sec/60) + ' min sedan';
-            if (sec < 86400) return Math.floor(sec/3600) + ' h sedan';
-            return Math.floor(sec/86400) + ' d sedan';
-          } catch (e) { return ''; }
+            if (sec < 3600) return Math.floor(sec / 60) + ' min sedan';
+            if (sec < 86400) return Math.floor(sec / 3600) + ' h sedan';
+            return Math.floor(sec / 86400) + ' d sedan';
+          } catch (e) {
+            return '';
+          }
         })();
-        heroSub.innerHTML = 'Källa: <code>/' + (source === 'morning-check' ? 'cco-4june-morning-check.json' : 'cco-presentation-ops-status.json') + '</code> · ' + (ago || gen);
+        heroSub.innerHTML =
+          'Källa: <code>/' +
+          (source === 'morning-check'
+            ? 'cco-4june-morning-check.json'
+            : 'cco-presentation-ops-status.json') +
+          '</code> · ' +
+          (ago || gen);
         statusMeta.textContent = ago || '—';
 
-        function cls(v) { return v === 'PASS' ? 'ok' : (v === 'FAIL' || v === 'P0' ? 'bad' : 'warn'); }
-        cellJP.textContent = overall || '—'; cellJP.className = 'status-cell-value ' + cls(overall);
-        const ps = [p1,p2,p3];
-        cellPilots.textContent = ps.map(p => p || '—').join(' / ');
-        cellPilots.className = 'status-cell-value ' + (ps.every(p => p === 'PASS') ? 'ok' : ps.some(p => p === 'FAIL') ? 'bad' : 'warn');
+        function cls(v) {
+          return v === 'PASS' ? 'ok' : v === 'FAIL' || v === 'P0' ? 'bad' : 'warn';
+        }
+        cellJP.textContent = overall || '—';
+        cellJP.className = 'status-cell-value ' + cls(overall);
+        const ps = [p1, p2, p3];
+        cellPilots.textContent = ps.map((p) => p || '—').join(' / ');
+        cellPilots.className =
+          'status-cell-value ' +
+          (ps.every((p) => p === 'PASS') ? 'ok' : ps.some((p) => p === 'FAIL') ? 'bad' : 'warn');
         cellMorning.textContent = morning;
-        cellMorning.className = 'status-cell-value ' + (morning === 'GO' ? 'ok' : morning === 'STOP' ? 'bad' : 'warn');
+        cellMorning.className =
+          'status-cell-value ' + (morning === 'GO' ? 'ok' : morning === 'STOP' ? 'bad' : 'warn');
       }
 
       document.getElementById('btnRefresh').addEventListener('click', loadStatus);

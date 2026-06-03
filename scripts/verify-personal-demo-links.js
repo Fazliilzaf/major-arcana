@@ -25,6 +25,8 @@ const https = require('node:https');
 const REPO = path.join(__dirname, '..');
 const HTML_CANDIDATES = [
   path.join(REPO, 'public/cco-personal-start.html'),
+  path.join(REPO, 'public/cco-staff-go-live-control.html'),
+  path.join(REPO, 'public/cco-staff-training-completion.html'),
   path.join(REPO, 'public/personal-demo.html'),
 ];
 const MANIFEST_PATH = path.join(REPO, 'data/reports/cco-personal-demo-manifest.json');
