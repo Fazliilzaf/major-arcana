@@ -25,12 +25,13 @@ echo "== CCO real gate =="
 echo "Base: $BASE"
 echo
 
-echo "[1/3] Static verify (repo)..."
+echo "[1/4] Static verify (repo)..."
 node scripts/verify-kunder-real-data.js
+node scripts/verify-mobile-kunder-real-data.js
 echo
 
-echo "[2/3] Prod static assets..."
-for path in /cco-demo.html /kunder.html /cco-kunder-real.js; do
+echo "[2/4] Prod static assets..."
+for path in /cco-demo.html /kunder.html /m-kunder.html /cco-kunder-real.js /cco-kunder-mobil-real.js; do
   code=$(curl -sS -o /dev/null -w "%{http_code}" "${BASE}${path}")
   if [ "$code" = "200" ]; then
     pass "${path} HTTP ${code}"
@@ -40,7 +41,7 @@ for path in /cco-demo.html /kunder.html /cco-kunder-real.js; do
 done
 echo
 
-echo "[3/3] customers-shell auth boundary..."
+echo "[3/4] customers-shell auth boundary..."
 code=$(curl -sS -o /dev/null -w "%{http_code}" "${BASE}/api/v1/cco/staff/customers-shell?limit=1&offset=0")
 if [ "$code" = "401" ] || [ "$code" = "403" ]; then
   pass "customers-shell requires auth (${code} without token)"
@@ -87,6 +88,39 @@ if echo "$js" | grep -q 'Kopplas i Kalender P1'; then
   pass 'cco-kunder-real.js boka/omboka disabled copy on prod'
 else
   fail 'cco-kunder-real.js missing calendar P1 disabled copy'
+fi
+
+MKUNDER_TMP="$(mktemp)"
+trap 'rm -f "$KUNDER_TMP" "$MKUNDER_TMP"' EXIT
+if curl -sS -o "$MKUNDER_TMP" "${BASE}/m-kunder.html" && grep -q 'src="/cco-kunder-mobil-real.js"' "$MKUNDER_TMP"; then
+  pass 'm-kunder.html includes cco-kunder-mobil-real.js on prod'
+else
+  fail 'm-kunder.html missing cco-kunder-mobil-real.js on prod'
+fi
+
+if grep -qE '1[[:space:]]*247|49[[:space:]]*MSEK|Anna Karlsson|CUSTOMER_ROWS' "$MKUNDER_TMP"; then
+  fail 'm-kunder.html still has mock population markers on prod'
+else
+  pass 'm-kunder.html without mock population on prod'
+fi
+
+mjs=$(curl -sS "${BASE}/cco-kunder-mobil-real.js" 2>/dev/null || true)
+if echo "$mjs" | grep -q 'customers-shell' && echo "$mjs" | grep -q 'handlesMobileCustomers'; then
+  pass 'cco-kunder-mobil-real.js wired on prod'
+else
+  fail 'cco-kunder-mobil-real.js incomplete on prod'
+fi
+
+if echo "$mjs" | grep -q 'CcoJournalFeed.mount' && echo "$mjs" | grep -q "params.set('q'"; then
+  pass 'cco-kunder-mobil-real.js journal + global search on prod'
+else
+  fail 'cco-kunder-mobil-real.js missing journal mount or q= search on prod'
+fi
+
+if echo "$mjs" | grep -q 'data-patient-id'; then
+  pass 'cco-kunder-mobil-real.js patientId rows on prod'
+else
+  fail 'cco-kunder-mobil-real.js missing patientId on prod'
 fi
 
 echo

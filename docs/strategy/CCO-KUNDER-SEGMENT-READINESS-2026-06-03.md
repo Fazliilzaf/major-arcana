@@ -1,6 +1,6 @@
 # CCO Kunder — Segment Readiness (2026-06-03)
 
-**Uppdaterad efter P0.4** (kalender/bokning-koppling). Kod: `cco-kunder-real.js`, `ccoKunderEnrichment.js`, `ccoKunderBookingEnrichment.js`. Kalender-inventering: `CCO-KALENDER-KUNDER-INTEGRATION-READINESS-2026-06-03.md`.
+**Uppdaterad efter P0.5** (mobil kunder). Kod: `cco-kunder-real.js`, `cco-kunder-mobil-real.js`, `ccoKunderEnrichment.js`, `ccoKunderBookingEnrichment.js`. Mobil: `CCO-MOBIL-KUNDER-READINESS-2026-06-03.md`. Kalender: `CCO-KALENDER-KUNDER-INTEGRATION-READINESS-2026-06-03.md`.
 
 **Scope:** Prod `/kunder.html` vs design `CCO-Kunder-Mockup-v9-DESKTOP.html`, mobil v10, `CCO-filter-och-smarta-funktioner.md`, `CCO-SYSTEM-SCOPE.md`.
 
@@ -21,7 +21,20 @@
 
 **Nya booking-fält:** `hasUpcomingBooking`, `nextBookingAt`, `nextBookingType`, `lastVisitAt`, `lastEncounterAt`, `treatmentTypes`, `bookingCaseId`, `encounterId`, `waitingListStatus`, `todayVisit`, `thisWeekVisit`, `missingEncounterForBooking`, `readyForVisit`.
 
-**P0.5:** Mobil Kunder (`/m-kunder.html`).
+## P0.5 — leverans (2026-06-03)
+
+| Område         | P0.4 (~94%)      | P0.5 (~96% mobil)                    |
+| -------------- | ---------------- | ------------------------------------ |
+| Route          | `/kunder.html`   | **`/m-kunder.html`**                 |
+| Data           | customers-shell  | **Samma API** — ingen mock           |
+| Lista          | Desktop grid     | **Mobil rader** + badges             |
+| Segment        | Side-nav + chips | **Horisontella chips** (13+ segment) |
+| Sök            | `q=` global      | **`q=` global**                      |
+| Dossier        | Panel            | **Full-screen sheet**                |
+| Journal/assets | patientId        | **patientId** (samma mounts)         |
+| Gate           | verify-kunder    | **+ verify-mobile-kunder**           |
+
+**P0.5 klar:** Mobil Kunder som riktig CCO-arbetsyta. Se `CCO-MOBIL-KUNDER-READINESS-2026-06-03.md`.
 
 ## P0.3 — leverans (2026-06-03)
 
@@ -77,7 +90,7 @@
 
 | Mått                                    | Före P0.1    | Efter P0.1                                           |
 | --------------------------------------- | ------------ | ---------------------------------------------------- |
-| **Kunder readiness (100% verksam)**     | **~34%**     | **~94%** (P0.4)                                      |
+| **Kunder readiness (100% verksam)**     | **~34%**     | **~94%** desktop / **~96%** mobil (P0.5)             |
 | UX/layout vs v9 mockup                  | ~88%         | ~88%                                                 |
 | Data/API vs acceptance                  | ~18%         | **~62%**                                             |
 | Mock/statiska fält (aktiva i listflöde) | ~52          | **~8** (dold kalender-shell, behandling-side HTML)   |
