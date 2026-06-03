@@ -21,18 +21,35 @@ pass() {
   echo "PASS: $1"
 }
 
+skip() {
+  echo "SKIP: $1"
+}
+
+if [[ -f .env ]]; then
+  while IFS= read -r line; do
+    [[ "$line" =~ ^# ]] && continue
+    [[ "$line" =~ ^ARCANA_(STAFF_EMAIL|STAFF_PASSWORD|SMOKE_BEARER_TOKEN)= ]] || continue
+    export "$line"
+  done < <(grep -E '^ARCANA_(STAFF_EMAIL|STAFF_PASSWORD|SMOKE_BEARER_TOKEN)=' .env 2>/dev/null || true)
+fi
+
 echo "== CCO real gate =="
 echo "Base: $BASE"
 echo
 
-echo "[1/4] Static verify (repo)..."
+echo "[1/5] Static verify (repo)..."
+if [[ ! -f scripts/verify-automation-prod.js ]]; then
+  fail 'scripts/verify-automation-prod.js saknas'
+else
+  pass 'verify-automation-prod.js finns'
+fi
 node scripts/verify-kundresa-canonical-9-step.js
 node scripts/verify-smart-next-step-dry-run.js
 node scripts/verify-kunder-real-data.js
 node scripts/verify-mobile-kunder-real-data.js
 echo
 
-echo "[2/4] Prod static assets..."
+echo "[2/5] Prod static assets..."
 for path in /cco-demo.html /kunder.html /m-kunder.html /cco-kunder-real.js /cco-kunder-mobil-real.js /cco-kunder-actions.js /cco-kunder-staff-owner.js /cco-kunder-smart-next-step.js; do
   code=$(curl -sS -o /dev/null -w "%{http_code}" "${BASE}${path}")
   if [ "$code" = "200" ]; then
@@ -43,7 +60,7 @@ for path in /cco-demo.html /kunder.html /m-kunder.html /cco-kunder-real.js /cco-
 done
 echo
 
-echo "[3/4] customers-shell auth boundary..."
+echo "[3/5] customers-shell auth boundary..."
 code=$(curl -sS -o /dev/null -w "%{http_code}" "${BASE}/api/v1/cco/staff/customers-shell?limit=1&offset=0")
 if [ "$code" = "401" ] || [ "$code" = "403" ]; then
   pass "customers-shell requires auth (${code} without token)"
@@ -173,6 +190,20 @@ else
   fail "automation/catalog unexpected HTTP ${acode} on prod"
 fi
 
+echo
+echo "[4/5] ORD-3 verify-automation-prod (STAFF-auth)..."
+if [[ -n "${ARCANA_SMOKE_BEARER_TOKEN:-}" ]] || {
+  [[ -n "${ARCANA_STAFF_EMAIL:-}" ]] && [[ -n "${ARCANA_STAFF_PASSWORD:-}" ]]
+}; then
+  if CCO_REAL_GATE_BASE="$BASE" ARCANA_PROD_URL="$BASE" node scripts/verify-automation-prod.js; then
+    pass 'verify-automation-prod'
+  else
+    fail 'verify-automation-prod'
+  fi
+else
+  skip 'verify-automation-prod — saknar ARCANA_STAFF_EMAIL/PASSWORD i .env (ORD-3 design)'
+  pass 'verify-automation-prod skipped'
+fi
 echo
 if [ "$FAILED" -gt 0 ]; then
   echo "✗ real-cco-gate FAILURES: $FAILED"
