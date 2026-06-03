@@ -291,7 +291,7 @@ const PROCESS_TEMPLATES = Object.freeze([
     category: 'clinical',
     steps: [
       { title: 'Bekräfta signerat behandlingsavtal', responsibleRole: 'STAFF' },
-      { title: 'Bekräfta signerad friskförsäkran (< 48h)', responsibleRole: 'STAFF' },
+      { title: 'Bekräfta signerad friskförsäkran (operationsdagen)', responsibleRole: 'STAFF' },
       { title: 'Verifiera legitimation + foton (före)', responsibleRole: 'STAFF' },
       { title: 'Pre-op kontroll (blodtryck, alkohol 48h, mediciner)', responsibleRole: 'STAFF' },
       { title: 'Markering av mottagarområde', responsibleRole: 'OWNER' },

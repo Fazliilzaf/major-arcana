@@ -26,7 +26,7 @@
     'treatment_followup',
     'treatment_curatiio',
     'missing_journal',
-    'missing_form',
+    'missing_health_declaration',
     'missing_encounter',
     'photos_review',
     'getaccept',
@@ -198,7 +198,9 @@
       tags.push({ kind: 'risk', label: 'Granska' });
     }
     if (card.missingJournal) tags.push({ kind: 'risk', label: 'Saknar journal' });
-    if (card.missingForm) tags.push({ kind: 'warn', label: 'Saknar formulär' });
+    if (card.missingHealthDeclaration || card.missingForm) {
+      tags.push({ kind: 'warn', label: 'Saknar hälsodeklaration' });
+    }
     if (card.missingAgreement) tags.push({ kind: 'warn', label: 'Saknar avtal' });
     if (card.needsPhotoReview) tags.push({ kind: 'risk', label: 'Bild-review' });
     if (card.needsClassification) tags.push({ kind: 'risk', label: 'Klassificering' });

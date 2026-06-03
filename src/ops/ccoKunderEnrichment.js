@@ -278,7 +278,7 @@ function matchSegment(
       return flags.has('duplicate_email');
     case 'missing_journal':
       return !hasJournal && !sig.hasDriveJournalAsset;
-    case 'missing_form':
+    case 'missing_health_declaration':
       return !sig.hasForm;
     case 'missing_encounter':
       return booking.missingEncounterForBooking || sig.needsEncounterReview;
@@ -320,7 +320,7 @@ function computeNextStep(readout) {
   if (readout.needsClassification) return 'Klassificering saknas';
   if (readout.needsEncounterReview) return 'Encounter behöver granskning';
   if (readout.missingJournal) return 'Saknar journal i CCO';
-  if (readout.missingForm) return 'Saknar formulär i assets';
+  if (readout.missingHealthDeclaration) return 'Saknar hälsodeklaration (inför konsultation)';
   if (readout.missingAgreement && readout.hasJournal) return 'Saknar avtal/samtycke';
   if (readout.flags?.includes('missing_email')) return 'Saknar e-post';
   if (readout.flags?.includes('missing_phone')) return 'Saknar telefon';
@@ -363,7 +363,8 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     hasJournal,
     missingJournal: !hasJournal,
     hasForm: sig.hasForm,
-    missingForm: !sig.hasForm,
+    missingForm: !sig.hasForm, // deprecated — use missingHealthDeclaration
+    missingHealthDeclaration: !sig.hasForm,
     hasAgreement: sig.hasAgreement,
     missingAgreement: hasJournal && !sig.hasAgreement,
     hasHalso: sig.hasHalso,
@@ -472,10 +473,10 @@ function buildSegmentCatalog(bookingCoverage = 'missing', ownerCoverage = 'none'
     { id: 'new', label: 'Nya', status: 'real', filterQuery: { segment: 'new' } },
     { id: 'dormant', label: 'Dormant', status: 'real', filterQuery: { segment: 'dormant' } },
     {
-      id: 'missing_form',
-      label: 'Saknar formulär',
+      id: 'missing_health_declaration',
+      label: 'Saknar hälsodeklaration',
       status: 'real',
-      filterQuery: { segment: 'missing_form' },
+      filterQuery: { segment: 'missing_health_declaration' },
     },
     {
       id: 'missing_journal',

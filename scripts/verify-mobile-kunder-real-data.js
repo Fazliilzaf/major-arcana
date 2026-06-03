@@ -177,7 +177,7 @@ const requiredChips = [
   'treatment_followup',
   'treatment_curatiio',
   'missing_journal',
-  'missing_form',
+  'missing_health_declaration',
   'missing_encounter',
   'photos_review',
   'getaccept',

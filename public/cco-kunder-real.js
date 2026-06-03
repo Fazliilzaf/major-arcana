@@ -38,7 +38,7 @@
     { id: 'risk', chip: 'risk' },
     { id: 'new', chip: 'nya' },
     { id: 'dormant', chip: 'dormant' },
-    { id: 'missing_form', chip: 'saknar-form', side: true },
+    { id: 'missing_health_declaration', chip: 'saknar-hd', side: true },
     { id: 'missing_journal', side: true },
     { id: 'missing_encounter' },
     { id: 'needs_review', side: true },
@@ -251,7 +251,9 @@
       tags.push({ kind: 'risk', label: 'Granska' });
     }
     if (card.missingJournal) tags.push({ kind: 'risk', label: 'Saknar journal' });
-    if (card.missingForm) tags.push({ kind: 'warn', label: 'Saknar formulär' });
+    if (card.missingHealthDeclaration || card.missingForm) {
+      tags.push({ kind: 'warn', label: 'Saknar hälsodeklaration' });
+    }
     if (card.missingAgreement) tags.push({ kind: 'warn', label: 'Saknar avtal' });
     if (card.needsPhotoReview) tags.push({ kind: 'risk', label: 'Bild-review' });
     if (card.needsClassification) tags.push({ kind: 'risk', label: 'Klassificering' });
@@ -621,7 +623,7 @@
             <div class="agg-stat-value">${fmt(panel.withForm)}</div>
           </div>
           <div class="agg-stat">
-            <div class="agg-stat-label">Saknar formulär</div>
+            <div class="agg-stat-label">Saknar hälsodeklaration</div>
             <div class="agg-stat-value">${fmt(panel.missingForm)}</div>
           </div>
           <div class="agg-stat">
@@ -940,8 +942,8 @@
                     ? SEGMENT_BY_ID.vip
                     : id === 'dormant'
                       ? SEGMENT_BY_ID.dormant
-                      : id === 'saknar-form'
-                        ? SEGMENT_BY_ID.missing_form
+                      : id === 'saknar-form' || id === 'saknar-hd'
+                        ? SEGMENT_BY_ID.missing_health_declaration
                         : SEGMENT_BY_ID[id];
         if (chipSeg) applySegment(chipSeg);
       });

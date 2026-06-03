@@ -1,13 +1,39 @@
 {
   "$schema": "https://hairtpclinic.com/schemas/treatment-document-requirements.json",
-  "version": "1.3.0",
-  "updatedAt": "2026-05-30",
-  "description": "Per-behandling-mappning av obligatoriska dokument, betänketid och mallar. Lever i GitHub som mapping/config — INNEHÅLLER INGEN PATIENTDATA. Compliance-källa: Nordbro + Insatt + Meridiq.",
+  "version": "1.4.0",
+  "updatedAt": "2026-06-03",
+  "description": "Per-behandling-mappning av obligatoriska dokument, betänketid och mallar. Lever i GitHub som mapping/config — INNEHÅLLER INGEN PATIENTDATA. Compliance-källa: Nordbro + Insatt + Meridiq. Hair TP execution: docs/strategy/CCO-KUNDRESA-9-STEG-HAIR-TP-2026-06-03.md",
   "changelog": [
-    { "version": "1.3.0", "date": "2026-05-30", "by": "fas-d-owner-decisions", "changes": "Owner-beslut: (1) DHI 2-day är canonical (agreement_hair_tp_dhi_2day_nordbro), 7-day behålls som deprecated_alternative. (2) fat_dissolving sätts enabled=false (Curatiio erbjuder inte just nu), re-enable-checklist sparad för framtid." },
-    { "version": "1.2.0", "date": "2026-05-30", "by": "sharepoint-import-FasC", "changes": "Löste 3 av 4 MISSING_TEMPLATE-flaggor via SharePoint-import (Profhilo + Orthopedics_prp patient_info + orthopedics_prp agreement). Fat_dissolving har sharePointGap-flagga: ingen 2026-tjänstespec finns på SharePoint." },
-    { "version": "1.1.0", "date": "2026-05-29", "by": "meridiq-journey-extraction-audit-FasA", "changes": "Lade till 3 saknade treatments: profhilo, fat_dissolving, orthopedics_prp. Refererar till Meridiq-overrides och flaggar template-status (MISSING/PARTIAL) där Nordbro/Insatt PDF-import krävs." },
-    { "version": "1.0.0", "date": "2026-05-29", "by": "initial-seed", "changes": "10 behandlingar med blocking-doc-krav." }
+    {
+      "version": "1.4.0",
+      "date": "2026-06-03",
+      "by": "kundresa-9-steg-p0",
+      "changes": "Hair TP surgical (fue/dhi): operational coolingOffDays 2 (not 14). fitness_certificate: operations_day (removed T-48 deadlineHoursBefore). Distansavtalslagen 14d ångerrätt remains in legal PDFs — separate from CCO 2d gate."
+    },
+    {
+      "version": "1.3.0",
+      "date": "2026-05-30",
+      "by": "fas-d-owner-decisions",
+      "changes": "Owner-beslut: (1) DHI 2-day är canonical (agreement_hair_tp_dhi_2day_nordbro), 7-day behålls som deprecated_alternative. (2) fat_dissolving sätts enabled=false (Curatiio erbjuder inte just nu), re-enable-checklist sparad för framtid."
+    },
+    {
+      "version": "1.2.0",
+      "date": "2026-05-30",
+      "by": "sharepoint-import-FasC",
+      "changes": "Löste 3 av 4 MISSING_TEMPLATE-flaggor via SharePoint-import (Profhilo + Orthopedics_prp patient_info + orthopedics_prp agreement). Fat_dissolving har sharePointGap-flagga: ingen 2026-tjänstespec finns på SharePoint."
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-05-29",
+      "by": "meridiq-journey-extraction-audit-FasA",
+      "changes": "Lade till 3 saknade treatments: profhilo, fat_dissolving, orthopedics_prp. Refererar till Meridiq-overrides och flaggar template-status (MISSING/PARTIAL) där Nordbro/Insatt PDF-import krävs."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-05-29",
+      "by": "initial-seed",
+      "changes": "10 behandlingar med blocking-doc-krav."
+    }
   ],
   "complianceSources": {
     "legal": ["nordbro.com", "insatt.com"],
@@ -20,9 +46,10 @@
       "domain": "hairtpclinic.com",
       "category": "hair_transplant",
       "defaultCoolingOffDays": {
-        "distance_purchase": 14,
+        "distance_purchase": 2,
         "in_clinic_aesthetic": 7
-      }
+      },
+      "executionNote": "CCO-KUNDRESA-9-STEG: betänketid 2d för Hair TP offers/agreements"
     },
     "curatiio": {
       "displayName": "Curatiio",
@@ -40,16 +67,54 @@
       "brand": "hair_tp",
       "category": "surgical",
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_hair_tp", "deadlineHoursBefore": 48 },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_fue", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_fue", "mustStoreVersionShownToPatient": true },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_fue", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_hair_tp"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_hair_tp",
+          "timing": "operation_day",
+          "note": "Signeras på operationsdagen — inte T-48h"
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_fue",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_fue",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_fue",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
-      "coolingOffDays": 14,
+      "coolingOffDays": 2,
       "coolingOffType": "distance_purchase",
       "journalTemplate": "tp_journal_v3",
       "aftercareTemplate": "aftercare_fue",
@@ -61,20 +126,68 @@
       "category": "surgical",
       "canonicalAgreementVariant": "2_day",
       "agreementVariants": {
-        "2_day": { "templateRef": "agreement_hair_tp_dhi_2day_nordbro", "isCanonical": true, "note": "Canonical-version per owner-beslut 2026-05-30" },
-        "7_day": { "templateRef": "agreement_hair_tp_dhi_7day_nordbro", "isCanonical": false, "status": "deprecated_alternative", "note": "Behålls i registry för historisk referens men används inte aktivt" }
+        "2_day": {
+          "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+          "isCanonical": true,
+          "note": "Canonical-version per owner-beslut 2026-05-30"
+        },
+        "7_day": {
+          "templateRef": "agreement_hair_tp_dhi_7day_nordbro",
+          "isCanonical": false,
+          "status": "deprecated_alternative",
+          "note": "Behålls i registry för historisk referens men används inte aktivt"
+        }
       },
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_hair_tp", "deadlineHoursBefore": 48 },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_dhi", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_hair_tp_dhi_2day_nordbro", "mustStoreVersionShownToPatient": true, "canonicalNote": "DHI 2-day är canonical per owner-beslut 2026-05-30 (Nordbro 251203-version)" },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_dhi", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_hair_tp"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_hair_tp",
+          "timing": "operation_day",
+          "note": "Signeras på operationsdagen — inte T-48h"
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_dhi",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_hair_tp_dhi_2day_nordbro",
+          "mustStoreVersionShownToPatient": true,
+          "canonicalNote": "DHI 2-day är canonical per owner-beslut 2026-05-30 (Nordbro 251203-version)"
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_dhi",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
-      "coolingOffDays": 14,
+      "coolingOffDays": 2,
       "coolingOffType": "distance_purchase",
       "journalTemplate": "tp_journal_v3",
       "aftercareTemplate": "aftercare_dhi",
@@ -85,14 +198,50 @@
       "brand": "hair_tp",
       "category": "injection",
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
-        "fitnessCertificate": { "required": false, "blocking": false, "templateRef": "fitness_certificate_hair_tp" },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_prp_hair", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_prp_hair", "mustStoreVersionShownToPatient": true },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_prp_hair", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_hair_tp"
+        },
+        "fitnessCertificate": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "fitness_certificate_hair_tp"
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_prp_hair",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_prp_hair",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_prp_hair",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",
@@ -105,14 +254,51 @@
       "brand": "hair_tp",
       "category": "device",
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
-        "fitnessCertificate": { "required": false, "blocking": false, "templateRef": "fitness_certificate_hair_tp", "onlyIfWithInjection": true },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_microneedle", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_microneedle", "mustStoreVersionShownToPatient": true },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_microneedle", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_hair_tp"
+        },
+        "fitnessCertificate": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "fitness_certificate_hair_tp",
+          "onlyIfWithInjection": true
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_microneedle",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_microneedle",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_microneedle",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",
@@ -125,12 +311,30 @@
       "brand": "hair_tp",
       "category": "consultation",
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_hair_tp" },
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_hair_tp"
+        },
         "fitnessCertificate": { "required": false, "blocking": false },
-        "patientInformation": { "required": true, "blocking": false, "templateRef": "patient_info_consultation", "mustStoreVersionShownToPatient": true },
+        "patientInformation": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "patient_info_consultation",
+          "mustStoreVersionShownToPatient": true
+        },
         "treatmentAgreement": { "required": false, "blocking": false },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_consultation", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": false, "blocking": false, "templateRef": "consent_photo_internal" },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_consultation",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
         "photoConsentPublishing": { "required": false, "blocking": false },
         "idVerification": { "required": false, "blocking": false }
       },
@@ -144,14 +348,51 @@
       "brand": "curatiio",
       "category": "injection",
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_botox", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_botox_curatiio", "mustStoreVersionShownToPatient": true },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_botox", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_curatiio"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_curatiio",
+          "deadlineHoursBefore": 48
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_botox",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_botox_curatiio",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_botox",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",
@@ -164,14 +405,51 @@
       "brand": "curatiio",
       "category": "injection",
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_filler", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_filler_curatiio", "mustStoreVersionShownToPatient": true },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_filler", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_curatiio"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_curatiio",
+          "deadlineHoursBefore": 48
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_filler",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_filler_curatiio",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_filler",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",
@@ -184,14 +462,51 @@
       "brand": "curatiio",
       "category": "surgical",
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_bleph", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_bleph_curatiio", "mustStoreVersionShownToPatient": true },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_bleph", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_curatiio"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_curatiio",
+          "deadlineHoursBefore": 48
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_bleph",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_bleph_curatiio",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_bleph",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",
@@ -204,14 +519,50 @@
       "brand": "curatiio",
       "category": "injection",
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio" },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_prp_skin", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_prp_skin_curatiio", "mustStoreVersionShownToPatient": true },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_prp_skin", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_curatiio"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_curatiio"
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_prp_skin",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_prp_skin_curatiio",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_prp_skin",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",
@@ -224,14 +575,50 @@
       "brand": "curatiio",
       "category": "injection",
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio" },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_meso", "mustStoreVersionShownToPatient": true },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_meso_curatiio", "mustStoreVersionShownToPatient": true },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "consent_treatment_meso", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_curatiio"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_curatiio"
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_meso",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_meso_curatiio",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "consent_treatment_meso",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",
@@ -250,14 +637,52 @@
       "meridiqServiceIds": ["7379", "7380", "7381"],
       "meridiqConsentIds": ["153002", "153003", "170948"],
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_profhilo", "mustStoreVersionShownToPatient": true, "status": "EXISTS — Curatiio 2026 PDF (11 625 chars) importerad 2026-05-30" },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "meridiq_consent_behandlingsavtal_profilho_170948", "mustStoreVersionShownToPatient": true },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "meridiq_consent_profhilo_swe_153003", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_curatiio"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_curatiio",
+          "deadlineHoursBefore": 48
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_profhilo",
+          "mustStoreVersionShownToPatient": true,
+          "status": "EXISTS — Curatiio 2026 PDF (11 625 chars) importerad 2026-05-30"
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "meridiq_consent_behandlingsavtal_profilho_170948",
+          "mustStoreVersionShownToPatient": true
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "meridiq_consent_profhilo_swe_153003",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",
@@ -286,14 +711,53 @@
       "meridiqServiceIds": [],
       "meridiqConsentIds": ["152995", "152996"],
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_fat_dissolving", "mustStoreVersionShownToPatient": true, "status": "MISSING_TEMPLATE — kräver Nordbro-PDF-import" },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_fat_dissolving_curatiio", "mustStoreVersionShownToPatient": true, "status": "MISSING_TEMPLATE — kräver Nordbro/Insatt-PDF-import" },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "meridiq_consent_fettuplosande_injektioner_swe_152996", "mustStoreVersionShownToPatient": true },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_curatiio"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_curatiio",
+          "deadlineHoursBefore": 48
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_fat_dissolving",
+          "mustStoreVersionShownToPatient": true,
+          "status": "MISSING_TEMPLATE — kräver Nordbro-PDF-import"
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_fat_dissolving_curatiio",
+          "mustStoreVersionShownToPatient": true,
+          "status": "MISSING_TEMPLATE — kräver Nordbro/Insatt-PDF-import"
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "meridiq_consent_fettuplosande_injektioner_swe_152996",
+          "mustStoreVersionShownToPatient": true
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",
@@ -315,14 +779,54 @@
       "meridiqServiceIds": [],
       "meridiqConsentIds": ["170941", "170942", "170943"],
       "requiredDocuments": {
-        "healthDeclaration": { "required": true, "blocking": true, "templateRef": "health_declaration_curatiio" },
-        "fitnessCertificate": { "required": true, "blocking": true, "templateRef": "fitness_certificate_curatiio", "deadlineHoursBefore": 48 },
-        "patientInformation": { "required": true, "blocking": true, "templateRef": "patient_info_orthopedics_prp", "mustStoreVersionShownToPatient": true, "status": "EXISTS — Curatiio 2026 PDF (13 602 chars) importerad 2026-05-30" },
-        "treatmentAgreement": { "required": true, "blocking": true, "templateRef": "agreement_orthopedics_prp_curatiio", "mustStoreVersionShownToPatient": true, "status": "EXISTS — Curatiio Behandlingsavtal VIKTIG (7 037 chars) importerad 2026-05-30" },
-        "treatmentConsent": { "required": true, "blocking": true, "templateRef": "meridiq_consent_orthopedics_170941", "mustStoreVersionShownToPatient": true, "alternatives": ["170942", "170943"] },
-        "photoConsentInternal": { "required": true, "blocking": false, "templateRef": "consent_photo_internal" },
-        "photoConsentPublishing": { "required": false, "blocking": false, "templateRef": "consent_photo_publish", "onlyIfShowcaseRequested": true },
-        "idVerification": { "required": true, "blocking": true, "method": "staff_confirm_4_last_digits" }
+        "healthDeclaration": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "health_declaration_curatiio"
+        },
+        "fitnessCertificate": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "fitness_certificate_curatiio",
+          "deadlineHoursBefore": 48
+        },
+        "patientInformation": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "patient_info_orthopedics_prp",
+          "mustStoreVersionShownToPatient": true,
+          "status": "EXISTS — Curatiio 2026 PDF (13 602 chars) importerad 2026-05-30"
+        },
+        "treatmentAgreement": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "agreement_orthopedics_prp_curatiio",
+          "mustStoreVersionShownToPatient": true,
+          "status": "EXISTS — Curatiio Behandlingsavtal VIKTIG (7 037 chars) importerad 2026-05-30"
+        },
+        "treatmentConsent": {
+          "required": true,
+          "blocking": true,
+          "templateRef": "meridiq_consent_orthopedics_170941",
+          "mustStoreVersionShownToPatient": true,
+          "alternatives": ["170942", "170943"]
+        },
+        "photoConsentInternal": {
+          "required": true,
+          "blocking": false,
+          "templateRef": "consent_photo_internal"
+        },
+        "photoConsentPublishing": {
+          "required": false,
+          "blocking": false,
+          "templateRef": "consent_photo_publish",
+          "onlyIfShowcaseRequested": true
+        },
+        "idVerification": {
+          "required": true,
+          "blocking": true,
+          "method": "staff_confirm_4_last_digits"
+        }
       },
       "coolingOffDays": 7,
       "coolingOffType": "in_clinic_aesthetic",

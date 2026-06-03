@@ -26,6 +26,7 @@ echo "Base: $BASE"
 echo
 
 echo "[1/4] Static verify (repo)..."
+node scripts/verify-kundresa-canonical-9-step.js
 node scripts/verify-kunder-real-data.js
 node scripts/verify-mobile-kunder-real-data.js
 echo
