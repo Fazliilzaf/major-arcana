@@ -169,3 +169,19 @@ _Ingen patientdata i denna rapport._
 | Photo Review | **pending** |
 | Drive/historik | **imported** + review-badges |
 | Aisia | **paused** |
+
+### Cycle-16 statusrefresh 2026-06-04T02:30Z — drift-ready
+
+| Spår | Status |
+|---|---|
+| Journalpilot | **PASS** |
+| Personalstart | **PASS** |
+| Pilot 1/2/3 | **PASS · PASS · PASS** |
+| Go-Live Control (utökad cycle-16) | **LIVE** |
+| Training Completion (utökad cycle-16) | **LIVE** |
+| Operating Rules (NY) | **DOCUMENTED** |
+| CF intern demo | **READY** (API mounted + RBAC) |
+| Mail review | **ACTIVE** (mailbox-counts korrekt) |
+| Photo Review | **pending** |
+| Import review | **pending** (~1497) |
+| Aisia | **paused** |

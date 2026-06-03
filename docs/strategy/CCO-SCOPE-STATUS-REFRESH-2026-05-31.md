@@ -139,3 +139,16 @@ _Ingen patientdata i denna rapport._
 - 🟡 Photo Review: pending
 - 🟢 Drive/historik: imported + review-badges
 - ⏸ Aisia: paused
+
+### Cycle-16 statusrefresh 2026-06-04T02:30Z — drift-ready
+
+- ✅ Journalpilot: **PASS**
+- ✅ Personalstart: **PASS**
+- ✅ Go-Live Control: **LIVE** (utökad med 5 drift-kort)
+- ✅ Training Completion: **LIVE** (utökad till 12 checkpoints)
+- ✅ Operating Rules: **DOCUMENTED** (ny doc · 10 sektioner)
+- 🟢 CF intern demo: **READY** (API mounted + RBAC, auth-test pending)
+- 🟡 Mail review: **ACTIVE** (mailbox-counts 248/175/67/3, ej dagligt verktyg)
+- 🟡 Photo Review: **pending**
+- 🟡 Import review: **pending** (~1497)
+- ⏸ Aisia: **paused**

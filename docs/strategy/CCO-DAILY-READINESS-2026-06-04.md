@@ -302,3 +302,17 @@ Personalpaket: 16 → **17 länkbara resurser**. Personal Start Section E: 15→
 **Inga nya utbildningsguides byggda** — denna sida är operativt kontrollverktyg, inte mer kursmaterial.
 
 Server.js + journal-routes orörda.
+
+---
+
+## Cycle-16 (2026-06-04T02:30Z · Claude) — drift-ready
+
+**Inga nya sidor** — utökningar av befintliga + ny driftregler-doc:
+
+- `/cco-staff-go-live-control.html` — ny sektion 3b "Drift-kort" med 5 kort (första riktiga patienten · efter varje journal · om osäker · när pausa · när Fazli kontaktas)
+- `/cco-staff-training-completion.html` — 5 nya checkpoints (testjournal · rättelseflöde · STOP vid osäker identitet · review ej sanning · vem kontakta) — 7 → 12 totalt
+- `docs/strategy/CCO-JOURNAL-PILOT-OPERATING-RULES-2026-06-04.md` — 10 sektioner driftregler
+
+Statusmatris uppdaterad: Go-Live Control LIVE · Training Completion LIVE · Operating Rules DOCUMENTED · CF intern demo READY · Mail review ACTIVE · Import review PENDING · Aisia PAUSED.
+
+Server.js + journal-routes orörda.

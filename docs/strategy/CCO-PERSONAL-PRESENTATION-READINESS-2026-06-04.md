@@ -566,3 +566,56 @@ Alla 14 personal-resurser granskade. Inga positiva påståenden om "full cutover
 
 ### Inga nya guides byggda (per direktiv)
 Cycle 15 är **operativ kontrollpanel**, inte ny utbildning. Allt utbildningsmaterial är klart.
+
+---
+
+## Cycle-16 status 2026-06-04T02:30Z (Claude) — drift-ready
+
+### Utökningar (befintliga sidor — inga nya)
+
+- ✅ **`/cco-staff-go-live-control.html`** — Lagt till sektion 3b "Drift-kort · konkret operativ vägledning" med 5 nya kort:
+  - ▶ Första riktiga patienten (efter de 3 testpatienterna · känd lugn patient)
+  - ✓ Efter varje journal: kontrollera detta (30 sek per patient · 5 checks)
+  - ⚠ Om du blir osäker: gör så här (säg "en sekund" · öppna helpers · aldrig gissa)
+  - ⛔ När ska vi pausa journalföring? (6 triggers + Fazli säger paus)
+  - 📞 När ska Fazli kontaktas? (7 specifika incident-typer · annars Egzona först)
+- ✅ **`/cco-staff-training-completion.html`** — Lagt till 5 nya checkpoints (7 → 12 totalt):
+  - Jag har gjort testjournal
+  - Jag har sett rättelseflödet
+  - Jag förstår STOP vid osäker identitet
+  - Jag förstår att review-material inte är klinisk sanning
+  - Jag vet vem jag kontaktar
+
+### Ny doc
+
+- ✅ **`docs/strategy/CCO-JOURNAL-PILOT-OPERATING-RULES-2026-06-04.md`** — 10 sektioner driftregler:
+  1. Pilotens omfattning (i scope / inte i scope)
+  2. Vem får journalföra (per roll-matrix)
+  3. Vilka patienter först (dag 1/2-5/aldrig)
+  4. Identitetskrav (3 obligatoriska + stickprov)
+  5. Signeringskrav (7 mentala bekräftelser)
+  6. Rättelseflöde (steg-för-steg)
+  7. Review-material-regler (tillåtet/förbjudet)
+  8. Stop conditions (7 triggers + återupptagning)
+  9. Eskaleringskedja
+  10. Vad dokumenteras efter pass (personal/Egzona/Fazli)
+  + Sammanfattande pilot-DNA-tabell
+
+### Status-matris cycle-16 · drift-ready
+
+| Spår | Status |
+|---|---|
+| Journalpilot E2E | **PASS** |
+| Personalstart | **PASS** |
+| Pilot 1/2/3 | **PASS · PASS · PASS** |
+| Go-Live Control (utökad med drift-kort) | **LIVE** |
+| Training Completion (utökad med 5 nya checkpoints) | **LIVE** |
+| **Operating Rules (NY doc)** | **DOCUMENTED** |
+| CF intern demo | **READY** (API mounted + RBAC, auth-test pending) |
+| Mail review | **ACTIVE** (mailbox 248/175/67/3 = 493 ambiguous) |
+| Photo Review | **PENDING** |
+| Import review | **PENDING** (~1497) |
+| Aisia | **PAUSED** |
+
+### Komplett 4 juni-personalpaket — fortfarande 17 länkbara resurser (inga nya sidor)
+Cycle 16 = utökning av befintliga sidor + ny driftregler-doc.

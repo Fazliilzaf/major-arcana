@@ -370,6 +370,85 @@
         </div>
       </div>
 
+      <!-- 3.5 · DRIFT-KORT (Cycle 16) -->
+      <div class="section-head">
+        <span class="section-num">3b</span>
+        <span class="section-title">Drift-kort · konkret operativ vägledning</span>
+      </div>
+      <div class="blocks-grid" style="grid-template-columns: repeat(2, 1fr); gap: 12px;">
+        <!-- Första riktiga patienten -->
+        <div class="block-card" style="border-left: 4px solid var(--green);">
+          <h3 style="color: var(--green-deep);">▶ Första riktiga patienten</h3>
+          <div class="time">efter de 3 testpatienterna</div>
+          <p>När de 3 pilotkunderna (A/B/C) är klara — välj en <strong>känd, lugn patient</strong> som personalen redan haft tidigare. Inte en första-gång-patient. Inte en patient med komplicerad historik.</p>
+          <ul>
+            <li>Personalen säger till patienten: <em>"Jag dokumenterar i vårt nya system idag."</em></li>
+            <li>Pre-Signering Check öppen i sido-flik</li>
+            <li>Fazli observerar Command Center under tiden</li>
+            <li>Egzona finns nära om identitet behöver dubbelkollas</li>
+          </ul>
+        </div>
+
+        <!-- Efter varje journal -->
+        <div class="block-card" style="border-left: 4px solid var(--blue);">
+          <h3 style="color: var(--blue-deep);">✓ Efter varje journal: kontrollera detta</h3>
+          <div class="time">30 sek per patient</div>
+          <p>Innan personalen går till nästa patient — kort kontroll:</p>
+          <ul>
+            <li>Posten har <strong>"signerad"-badge</strong> i journalfeeden</li>
+            <li><strong>Timeline-fliken</strong> visar posten kronologiskt</li>
+            <li>Patient-headern visar fortfarande rätt namn/Cliento-id</li>
+            <li>Inga felmeddelanden eller spinning loaders</li>
+            <li>Vid rättelse: båda posterna länkade i timeline</li>
+          </ul>
+        </div>
+
+        <!-- Om osäker -->
+        <div class="block-card" style="border-left: 4px solid var(--orange);">
+          <h3 style="color: #6a4514;">⚠ Om du blir osäker: gör så här</h3>
+          <div class="time">alltid OK att pausa</div>
+          <p>Osäker på något — minst en av dessa:</p>
+          <ul>
+            <li>Säg till patienten: <em>"En sekund så dubbelkollar jag."</em></li>
+            <li>Öppna <strong>Pre-Signering Check</strong> eller <strong>Journal Safety Helper</strong></li>
+            <li>Kalla på Egzona eller fråga närmaste kollega</li>
+            <li>Vid teknisk osäkerhet: skärmdump + skicka till Fazli</li>
+            <li><strong>Aldrig gissa.</strong> Bättre fråga.</li>
+          </ul>
+        </div>
+
+        <!-- När pausa journalföring -->
+        <div class="block-card" style="border-left: 4px solid var(--red);">
+          <h3 style="color: var(--red-deep);">⛔ När ska vi pausa journalföring?</h3>
+          <div class="time">stopp dag 1 / vänta dag 2</div>
+          <p>Hela kliniken pausar pilot om:</p>
+          <ul>
+            <li>5xx-fel kvarstår i journal-API > 5 min</li>
+            <li>Två separata personal-rapporter om samma fel</li>
+            <li>Signerad post går att ändra direkt (binding-bug)</li>
+            <li>Patientdata renderas på fel kort</li>
+            <li>Trasig UI-rendering på journalsidan</li>
+            <li>Fazli säger "vi pausar" — beslut tas av owner</li>
+          </ul>
+        </div>
+
+        <!-- När Fazli kontaktas -->
+        <div class="block-card" style="border-left: 4px solid var(--accent); grid-column: span 2;">
+          <h3 style="color: var(--accent-deep);">📞 När ska Fazli kontaktas?</h3>
+          <div class="time">direkt — inte vänta till kvällen</div>
+          <p>Fazli kallas in på dessa specifika incidenter (inte allmänna frågor — de går till Egzona):</p>
+          <ul>
+            <li><strong>Fel patient</strong> — personal har skrivit på fel kort (även om inte signerad). STOPPA omedelbart, SPARA INTE, stäng kortet, ring Fazli</li>
+            <li><strong>Tekniskt fel</strong> — sida visar 5xx, trasig layout, knappar saknas, content som inte stämmer</li>
+            <li><strong>Signerad post går att ändra direkt</strong> — det får aldrig hända (kritisk binding-bug)</li>
+            <li><strong>GDPR-incident</strong> — patientdata exponerad i fel kontext eller misstänkt läcka</li>
+            <li><strong>Extern AI upptäckt</strong> — copy-paste från ChatGPT/Claude/Copilot på journaltext</li>
+            <li><strong>Patient-incident</strong> — patient lider skada/oro pga felaktig journaldata</li>
+            <li><strong>Inte:</strong> identitet/dubbletter/GDPR-frågor → Egzona först</li>
+          </ul>
+        </div>
+      </div>
+
       <!-- 4 · STOPPREGLER -->
       <div class="section-head">
         <span class="section-num">4</span>
