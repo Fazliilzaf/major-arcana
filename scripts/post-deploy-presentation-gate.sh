@@ -16,15 +16,19 @@ echo "== Post-deploy presentation gate =="
 echo "Base: $BASE"
 echo
 
-echo "[1/3] Journal route regression (server.js)..."
+echo "[1/4] Journal route regression (server.js)..."
 node scripts/verify-journal-pilot-routes.js
 echo
 
-echo "[2/3] Demo link preflight..."
+echo "[2/4] Kunder real-data (no mock population)..."
+node scripts/verify-kunder-real-data.js
+echo
+
+echo "[3/4] Demo link preflight..."
 CCO_PERSONAL_DEMO_BASE="$BASE" node scripts/verify-personal-demo-links.js
 echo
 
-echo "[3/3] Personal demo readiness (routes + E2E)..."
+echo "[4/4] Personal demo readiness (routes + E2E)..."
 CCO_PERSONAL_DEMO_BASE="$BASE" node scripts/run-personal-demo-readiness.js
 echo
 

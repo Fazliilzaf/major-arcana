@@ -77,6 +77,7 @@
     "predeploy:quick": "bash ./scripts/predeploy-quick.sh",
     "cco:verify-journal-mounts": "node scripts/verify-journal-pilot-routes.js",
     "cco:presentation-gate": "bash scripts/post-deploy-presentation-gate.sh",
+    "cco:verify-kunder-real-data": "node scripts/verify-kunder-real-data.js",
     "cco:route-inventory": "node scripts/build-cco-route-inventory.js",
     "cco:daily-readiness": "node scripts/run-daily-readiness-report.js",
     "cco:operator-canary-report": "node scripts/run-operator-canary-report.js",
