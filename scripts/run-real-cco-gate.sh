@@ -33,7 +33,7 @@ node scripts/verify-mobile-kunder-real-data.js
 echo
 
 echo "[2/4] Prod static assets..."
-for path in /cco-demo.html /kunder.html /m-kunder.html /cco-kunder-real.js /cco-kunder-mobil-real.js /cco-kunder-actions.js /cco-kunder-staff-owner.js; do
+for path in /cco-demo.html /kunder.html /m-kunder.html /cco-kunder-real.js /cco-kunder-mobil-real.js /cco-kunder-actions.js /cco-kunder-staff-owner.js /cco-kunder-smart-next-step.js; do
   code=$(curl -sS -o /dev/null -w "%{http_code}" "${BASE}${path}")
   if [ "$code" = "200" ]; then
     pass "${path} HTTP ${code}"
@@ -145,6 +145,32 @@ if echo "$staffown" | grep -q 'resolveAssignedOwner' && echo "$js" | grep -q 'Cc
   pass 'cco-kunder-staff-owner.js on prod (P1.2)'
 else
   fail 'cco-kunder-staff-owner.js missing on prod (P1.2)'
+fi
+
+if echo "$js" | grep -q 'includeAutomation' && echo "$js" | grep -q 'CcoKunderSmartNextStep'; then
+  pass 'cco-kunder-real.js ORD-3 smart-next-step on prod'
+else
+  fail 'cco-kunder-real.js missing ORD-3 smart-next-step wiring on prod'
+fi
+
+if echo "$mjs" | grep -q 'includeAutomation' && echo "$mjs" | grep -q 'CcoKunderSmartNextStep'; then
+  pass 'cco-kunder-mobil-real.js ORD-3 smart-next-step on prod'
+else
+  fail 'cco-kunder-mobil-real.js missing ORD-3 smart-next-step wiring on prod'
+fi
+
+smart=$(curl -sS "${BASE}/cco-kunder-smart-next-step.js" 2>/dev/null || true)
+if echo "$smart" | grep -q 'dossier-smart-next' && echo "$smart" | grep -q 'dry-run'; then
+  pass 'cco-kunder-smart-next-step.js dry-run panel on prod'
+else
+  fail 'cco-kunder-smart-next-step.js incomplete on prod'
+fi
+
+acode=$(curl -sS -o /dev/null -w "%{http_code}" "${BASE}/api/v1/cco/automation/catalog")
+if [ "$acode" = "401" ] || [ "$acode" = "403" ]; then
+  pass "automation/catalog mounted on prod (${acode})"
+else
+  fail "automation/catalog unexpected HTTP ${acode} on prod"
 fi
 
 echo

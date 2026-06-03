@@ -155,36 +155,36 @@ _Ingen patientdata i denna rapport._
 
 ### Cycle-14 statusrefresh 2026-06-04T01:00Z
 
-| Spår | Status |
-|---|---|
-| Journalpilot | **PASS** |
-| Personalstart | **PASS** |
-| Pilot 1/2/3 | **PASS · PASS · PASS** |
-| Journal Safety Helper (NY) | **LIVE** (6 checkpoints, front-end-only) |
-| Staff Training Completion (NY) | **LIVE** (printbar bekräftelse) |
-| First Week Rollout Plan (NY) | **DOCUMENTED** (Dag 1-5) |
-| Training Mode · FAQ · Go-Live · Sign-off · Pre-Signering · Review-Warning · Efter-mötet | **LIVE** |
-| CF API | mounted + RBAC (auth-test pending) |
-| Mail Phase 2 | operativ (mailbox 248/175/67/3) men inte dagligt verktyg |
-| Photo Review | **pending** |
-| Drive/historik | **imported** + review-badges |
-| Aisia | **paused** |
+| Spår                                                                                    | Status                                                   |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Journalpilot                                                                            | **PASS**                                                 |
+| Personalstart                                                                           | **PASS**                                                 |
+| Pilot 1/2/3                                                                             | **PASS · PASS · PASS**                                   |
+| Journal Safety Helper (NY)                                                              | **LIVE** (6 checkpoints, front-end-only)                 |
+| Staff Training Completion (NY)                                                          | **LIVE** (printbar bekräftelse)                          |
+| First Week Rollout Plan (NY)                                                            | **DOCUMENTED** (Dag 1-5)                                 |
+| Training Mode · FAQ · Go-Live · Sign-off · Pre-Signering · Review-Warning · Efter-mötet | **LIVE**                                                 |
+| CF API                                                                                  | mounted + RBAC (auth-test pending)                       |
+| Mail Phase 2                                                                            | operativ (mailbox 248/175/67/3) men inte dagligt verktyg |
+| Photo Review                                                                            | **pending**                                              |
+| Drive/historik                                                                          | **imported** + review-badges                             |
+| Aisia                                                                                   | **paused**                                               |
 
 ### Cycle-16 statusrefresh 2026-06-04T02:30Z — drift-ready
 
-| Spår | Status |
-|---|---|
-| Journalpilot | **PASS** |
-| Personalstart | **PASS** |
-| Pilot 1/2/3 | **PASS · PASS · PASS** |
-| Go-Live Control (utökad cycle-16) | **LIVE** |
-| Training Completion (utökad cycle-16) | **LIVE** |
-| Operating Rules (NY) | **DOCUMENTED** |
-| CF intern demo | **READY** (API mounted + RBAC) |
-| Mail review | **ACTIVE** (mailbox-counts korrekt) |
-| Photo Review | **pending** |
-| Import review | **pending** (~1497) |
-| Aisia | **paused** |
+| Spår                                  | Status                              |
+| ------------------------------------- | ----------------------------------- |
+| Journalpilot                          | **PASS**                            |
+| Personalstart                         | **PASS**                            |
+| Pilot 1/2/3                           | **PASS · PASS · PASS**              |
+| Go-Live Control (utökad cycle-16)     | **LIVE**                            |
+| Training Completion (utökad cycle-16) | **LIVE**                            |
+| Operating Rules (NY)                  | **DOCUMENTED**                      |
+| CF intern demo                        | **READY** (API mounted + RBAC)      |
+| Mail review                           | **ACTIVE** (mailbox-counts korrekt) |
+| Photo Review                          | **pending**                         |
+| Import review                         | **pending** (~1497)                 |
+| Aisia                                 | **paused**                          |
 
 Presentation gate: länkpreflight även go-live-control + training-completion.
 
@@ -195,3 +195,19 @@ Presentation gate: länkpreflight även go-live-control + training-completion.
 - ✅ Copy audit PASS
 - ✅ Inga nya sidor byggda (per owner-direktiv)
 - 🟢 17 länkbara personalresurser oförändrat · klarare struktur
+
+### Cycle-45 prod-UAT — ORD-3 B-sprint (2026-05-20)
+
+| Spår                                                  | Status                                |
+| ----------------------------------------------------- | ------------------------------------- |
+| Deploy Frankfurt `8c8101d1`                           | **live** (`dep-d8g9frog4nts739dlqn0`) |
+| `ENABLE_AUTOMATION_RUNNER`                            | **true** (Render env)                 |
+| Automation API `/api/v1/cco/automation/catalog`       | **PASS** (401 utan auth)              |
+| `customers-shell?includeAutomation=1`                 | **PASS** (401 utan auth · wired)      |
+| Smart nästa steg UI (`cco-kunder-smart-next-step.js`) | **PASS** prod assets                  |
+| Betänketid 2d policy (ORD-1)                          | **PASS** verify-gate                  |
+| `npm run cco:cycle-45-prod-uat`                       | **PASS**                              |
+
+**Manuell UAT kvar:** inloggad STAFF — öppna Kunder-dossier, bekräfta panel «Smart nästa steg» + signaler på 20+ patienter.
+
+**Checklista:** [`CCO-CYCLE-45-PROD-UAT-ORD3-2026-05-20.md`](./CCO-CYCLE-45-PROD-UAT-ORD3-2026-05-20.md)
