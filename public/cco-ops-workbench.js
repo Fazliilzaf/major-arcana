@@ -438,6 +438,33 @@
       </section>`;
   }
 
+  function renderCanarySection(canary) {
+    if (!canary) return '';
+    const p = canary.photo || {};
+    const i = canary.import || {};
+    const m = canary.mail || {};
+    const next = (canary.recommendedNextWork || [])
+      .map((t) => `<li>${escapeHtml(t)}</li>`)
+      .join('');
+    return `
+      <section class="cow-section cow-section--canary" id="operator-canary">
+        <h2>Operator canary (Cycle 15)</h2>
+        <p class="cow-muted">Kontrollerad write — max 25 beslut per spår · ingen auto/massapproval</p>
+        <div class="cow-metrics">
+          ${metric(`${p.decisionsUsed ?? 0}/${p.maxDecisions ?? 25}`, 'Photo beslut')}
+          ${metric(`${i.decisionsUsed ?? 0}/${i.maxDecisions ?? 25}`, 'Import beslut')}
+          ${metric(`${m.decisionsUsed ?? 0}/${m.maxDecisions ?? 25}`, 'Mail beslut')}
+        </div>
+        <ul class="cow-list">
+          <li>Photo: write ${escapeHtml(p.writeEnabled ? 'PÅ' : 'AV')} · approved ${escapeHtml(p.approved ?? 0)} · pending ${escapeHtml(p.pendingPhotos ?? '—')} · VISIBLE ${escapeHtml(p.coverageDelta?.visiblePhotos ?? '—')}</li>
+          <li>Import: write ${escapeHtml(i.writeEnabled ? 'PÅ' : 'AV')} · approved ${escapeHtml(i.approved ?? 0)} · queue ${escapeHtml(i.queueTotal ?? '—')}</li>
+          <li>Mail: write ${escapeHtml(m.writeEnabled ? 'PÅ' : 'AV')} · approved ${escapeHtml(m.approved ?? 0)} · remaining ${escapeHtml(m.remaining ?? '—')}</li>
+        </ul>
+        ${next ? `<h3>Nästa rekommenderade arbete</h3><ul class="cow-list">${next}</ul>` : ''}
+        <p class="cow-muted">Full rapport: <code>npm run cco:operator-canary-report</code> · <code>/cco-operator-canary-status.json</code></p>
+      </section>`;
+  }
+
   function renderCommandCenter(ops, morning, journalLive, journalShift, photoOp, mailOp, importQ) {
     const blockers = ops?.topBlockers || ops?.blockers || morning?.blockers || [];
     const action =
@@ -721,6 +748,7 @@
       photoOpRes,
       mailOpRes,
       importQRes,
+      canaryRes,
       livePhoto,
       photoStatus,
       encStatus,
@@ -744,6 +772,7 @@
       fetchJson('/cco-photo-review-operator-status.json'),
       fetchJson('/cco-mail-review-operator-status.json'),
       fetchJson('/cco-import-review-queue-status.json'),
+      fetchJson('/cco-operator-canary-status.json'),
       loadPhotoSummary(),
       probePage('/photo-review.html'),
       probePage('/encounter-mapping-review.html'),
@@ -768,6 +797,7 @@
     const photoOp = photoOpRes.ok ? photoOpRes.json : ops?.photoReviewOperator;
     const mailOp = mailOpRes.ok ? mailOpRes.json : ops?.mailReviewOperator;
     const importQ = importQRes.ok ? importQRes.json : ops?.importReviewQueue;
+    const operatorCanary = canaryRes.ok ? canaryRes.json : ops?.operatorCanary || null;
     const day1 = day1Res.ok ? day1Res.json : ops?.day1 || null;
     const journalShift = shiftRes.ok
       ? shiftRes.json
@@ -811,6 +841,7 @@
         Snapshot: ${escapeHtml(ops.generatedAt || '—')}
       </div>
       <div class="cow-grid">
+        ${renderCanarySection(operatorCanary)}
         ${renderCommandCenter(ops, morning, journalLive, journalShift, photoOp, mailOp, importQ)}
         ${renderJournalPilotOpsPanel(journalShift, morning, journalLive, day1 || ops)}
         ${renderEscalationSection(escalation)}

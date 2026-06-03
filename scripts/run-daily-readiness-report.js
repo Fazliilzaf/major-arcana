@@ -36,6 +36,10 @@ const {
   collectImportReviewQueueStatus,
   publishImportReviewQueueStatus,
 } = require('./lib/ccoImportReviewQueueSnapshot');
+const {
+  collectOperatorCanaryReport,
+  publishOperatorCanaryStatus,
+} = require('./lib/ccoOperatorCanaryReport');
 const { collectIdentitySafetyStatus } = require('./lib/ccoIdentitySafetyStatus');
 const { buildDay1OperationsSnapshot } = require('./lib/ccoDay1OperationsSnapshot');
 const {
@@ -453,6 +457,21 @@ _Prod: ${BASE}_
 | **Mail review operator** | ${report.mailOperator?.overall ?? '—'} · remaining **${report.mailOperator?.remaining ?? report.mail.progress.remaining}** |
 | **Import review queue** | **${report.importQueue?.total ?? '—'}** · ${report.importQueue?.status ?? 'WAITING_MANUAL_REVIEW'} |
 | **CF** | ${report.cf.operational} |
+| **Operator canary** | Photo **${report.operatorCanary?.photo?.writeEnabled ? 'PÅ' : 'AV'}** · Import **${report.operatorCanary?.import?.writeEnabled ? 'PÅ' : 'AV'}** · Mail **${report.operatorCanary?.mail?.writeEnabled ? 'PÅ' : 'AV'}** |
+
+---
+
+## Operator canary (Cycle 15)
+
+| Spår | Write | Beslut | Kvar |
+| ---- | ----- | ------ | ---- |
+| Photo | ${report.operatorCanary?.photo?.writeEnabled ? 'PÅ' : 'AV'} | ${report.operatorCanary?.photo?.decisionsUsed ?? '—'}/${report.operatorCanary?.photo?.maxDecisions ?? 25} | ${report.operatorCanary?.photo?.decisionsRemaining ?? '—'} |
+| Import | ${report.operatorCanary?.import?.writeEnabled ? 'PÅ' : 'AV'} | ${report.operatorCanary?.import?.decisionsUsed ?? '—'}/${report.operatorCanary?.import?.maxDecisions ?? 25} | ${report.operatorCanary?.import?.decisionsRemaining ?? '—'} |
+| Mail | ${report.operatorCanary?.mail?.writeEnabled ? 'PÅ' : 'AV'} | ${report.operatorCanary?.mail?.decisionsUsed ?? '—'}/${report.operatorCanary?.mail?.maxDecisions ?? 25} | ${report.operatorCanary?.mail?.decisionsRemaining ?? '—'} |
+
+Nästa: ${(report.operatorCanary?.recommendedNextWork || []).join(' · ') || '—'}
+
+Export: \`public/cco-operator-canary-status.json\`
 
 ---
 
@@ -759,10 +778,18 @@ async function main() {
     identitySafety = { overall: 'FAIL', error: err.message };
   }
 
+  let operatorCanary = null;
+  try {
+    operatorCanary = await collectOperatorCanaryReport({ base: BASE, projectRoot: REPO });
+  } catch (err) {
+    operatorCanary = { enabled: false, error: err.message };
+  }
+
   if (!noWrite) {
     publishImportReviewQueueStatus(importQueue, REPO);
     publishPhotoReviewOperatorStatus(photoOperator, REPO);
     publishMailReviewOperatorStatus(mailOperator, REPO);
+    if (operatorCanary) publishOperatorCanaryStatus(operatorCanary, REPO);
   }
 
   const journalPilotOk =
@@ -953,6 +980,7 @@ async function main() {
     journalPilotShift,
     journalPilotOps: journalPilotShift.journalPilotOps,
     escalationQueue: journalPilotShift.escalationQueue,
+    operatorCanary,
   };
   if (!noWrite) {
     publishMailboxReferencePublic(REPO);

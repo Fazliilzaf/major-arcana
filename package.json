@@ -78,6 +78,7 @@
     "cco:verify-journal-mounts": "node scripts/verify-journal-pilot-routes.js",
     "cco:presentation-gate": "bash scripts/post-deploy-presentation-gate.sh",
     "cco:daily-readiness": "node scripts/run-daily-readiness-report.js",
+    "cco:operator-canary-report": "node scripts/run-operator-canary-report.js",
     "cco:4june-morning-check": "node scripts/run-4june-morning-check.js",
     "cco:journal-pilot-live-monitor": "node scripts/run-journal-pilot-live-monitor.js",
     "cco:journal-pilot-shift-status": "node scripts/run-journal-pilot-shift-status.js",

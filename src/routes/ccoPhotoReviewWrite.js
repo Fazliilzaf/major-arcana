@@ -1,12 +1,22 @@
 'use strict';
 
 /**
- * Photo Review Fas 2 — single-asset write handlers.
- * Gated by ENABLE_PHOTO_REVIEW_WRITE (never on primary prod hosts).
+ * Photo Review Fas 2 — single-asset write handlers (canary-gated).
  */
 
 const { classify, isPhotoCategory } = require('../ops/ccoAssetImportPipeline');
 const { assertPilotWriteAllowed } = require('../ops/ccoPhotoReviewPilot');
+const { recordCanaryDecision } = require('../ops/ccoOperatorCanary');
+const {
+  requireApprovedCategory,
+  snapshotImmutable,
+  assertImmutableUnchanged,
+  assertNoDriveLinkInAsset,
+  validateWriteBody,
+  buildPhotoReviewNamingPatch,
+  buildPhotoReviewRejectPatch,
+  buildPhotoReviewReassignPatch,
+} = require('../ops/ccoPhotoReviewWriteValidation');
 
 const PHOTO_CATS = new Set(['photo_before', 'photo_during', 'photo_after']);
 const VALID_DECISIONS = new Set(['approve', 'reject']);
@@ -46,36 +56,6 @@ function requireReason(body) {
   return reason.slice(0, 500);
 }
 
-function snapshotAsset(asset) {
-  return {
-    assetId: asset.id,
-    patientId: asset.patientId || null,
-    status: asset.status,
-    category: asset.category || null,
-  };
-}
-
-function appendReviewAudit(auditLog, { action, actor, assetBefore, assetAfter, reason, decision }) {
-  if (!auditLog) return;
-  auditLog.append({
-    action: 'photo_review.decision',
-    actor,
-    target: { kind: 'patient_asset', id: assetBefore.assetId },
-    result: 'ok',
-    detail: {
-      decision: decision || action,
-      reviewer: actor?.userId || actor?.role || 'unknown',
-      reason,
-      oldStatus: assetBefore.status,
-      newStatus: assetAfter.status,
-      oldCategory: assetBefore.category,
-      newCategory: assetAfter.category,
-      patientId: assetAfter.patientId || assetBefore.patientId,
-      timestamp: new Date().toISOString(),
-    },
-  });
-}
-
 function assertApproveReady(asset) {
   const missing = [];
   if (!asset.patientId || asset.patientId === 'unknown') missing.push('patientId');
@@ -93,9 +73,48 @@ function assertApproveReady(asset) {
   }
 }
 
+function snapshotAsset(asset) {
+  return {
+    assetId: asset.id,
+    patientId: asset.patientId || null,
+    status: asset.status,
+    category: asset.category || null,
+  };
+}
+
+function appendReviewAudit(
+  auditLog,
+  { action, actor, assetBefore, assetAfter, reason, decision, extra }
+) {
+  if (!auditLog) {
+    const e = new Error('audit_unavailable');
+    e.statusCode = 503;
+    throw e;
+  }
+  auditLog.append({
+    action: 'photo_review.decision',
+    actor,
+    target: { kind: 'patient_asset', id: assetBefore.assetId },
+    result: 'ok',
+    detail: {
+      decision: decision || action,
+      reviewer: actor?.userId || actor?.role || 'unknown',
+      reason,
+      oldStatus: assetBefore.status,
+      newStatus: assetAfter.status,
+      oldCategory: assetBefore.category,
+      newCategory: assetAfter.category,
+      patientId: assetAfter.patientId || assetBefore.patientId,
+      timestamp: new Date().toISOString(),
+      ...extra,
+    },
+  });
+}
+
 async function applyPhotoReviewApprove(assetStore, assetId, body, ctx) {
   const { actor, auditLog, pilotConfig } = ctx;
-  const reason = requireReason(body);
+  const validated = validateWriteBody(body, actor);
+  const category = requireApprovedCategory(body, assetStore.getAsset(assetId));
   const asset = assetStore.getAsset(assetId);
   if (!asset) {
     const e = new Error('asset_not_found');
@@ -107,42 +126,74 @@ async function applyPhotoReviewApprove(assetStore, assetId, body, ctx) {
     e.statusCode = 409;
     throw e;
   }
+  assertNoDriveLinkInAsset(asset);
   assertPilotWriteAllowed({ asset, pilotConfig, auditLog });
 
-  const category = normalizeCategory(body?.category || asset.category);
+  const immutableBefore = snapshotImmutable(asset);
   const before = snapshotAsset(asset);
+  const namingPatch = buildPhotoReviewNamingPatch(
+    asset,
+    { ...body, category },
+    { reviewer: validated.reviewer }
+  );
 
+  await assetStore.patchAssetNamingMetadata(assetId, namingPatch, {
+    actor,
+    reason: validated.reason,
+  });
   await assetStore.patchAssetForReview(
     assetId,
     { category, confidence: 'high' },
-    { actor, reason }
+    { actor, reason: validated.reason }
   );
+
   const patched = assetStore.getAsset(assetId);
+  assertImmutableUnchanged(immutableBefore, snapshotImmutable(patched));
   assertApproveReady(patched);
 
-  await assetStore.transitionStatus(assetId, 'VERIFIED_IN_CCO', { actor, reason });
+  await assetStore.transitionStatus(assetId, 'VERIFIED_IN_CCO', {
+    actor,
+    reason: validated.reason,
+  });
   const visible = await assetStore.markAsVisibleOnPatientCard(assetId, { actor });
+  assertImmutableUnchanged(immutableBefore, snapshotImmutable(visible));
   const after = snapshotAsset(visible);
 
   appendReviewAudit(auditLog, {
     action: 'photo_review.approved',
-    actor,
+    actor: { ...actor, userId: validated.reviewer },
     assetBefore: before,
     assetAfter: after,
-    reason,
+    reason: validated.reason,
     decision: 'approve',
+    extra: {
+      imageStage: namingPatch.imageStage,
+      bodyArea: namingPatch.bodyArea,
+      approvedCategory: category,
+      namingStatus: namingPatch.namingStatus,
+      checksumOk: !!visible.checksum && visible.checksum === immutableBefore.checksum,
+    },
   });
+
+  if (pilotConfig?.canaryMode) {
+    recordCanaryDecision(
+      'photo',
+      { approved: 1, manualResolved: 1 },
+      { maxDecisions: pilotConfig.maxDecisions }
+    );
+  }
 
   return {
     decision: 'approve',
     asset: after,
+    manualResolved: true,
     listAssetsForPatient: assetStore.listAssetsForPatient(visible.patientId, {}, { actor }),
   };
 }
 
 async function applyPhotoReviewReject(assetStore, assetId, body, ctx) {
   const { actor, auditLog, pilotConfig } = ctx;
-  const reason = requireReason(body);
+  const validated = validateWriteBody(body, actor, { requireStageBody: false });
   const asset = assetStore.getAsset(assetId);
   if (!asset) {
     const e = new Error('asset_not_found');
@@ -154,29 +205,49 @@ async function applyPhotoReviewReject(assetStore, assetId, body, ctx) {
     e.statusCode = 409;
     throw e;
   }
+  assertNoDriveLinkInAsset(asset);
   assertPilotWriteAllowed({ asset, pilotConfig, auditLog });
 
+  const immutableBefore = snapshotImmutable(asset);
   const before = snapshotAsset(asset);
-  const rejected = await assetStore.transitionStatus(assetId, 'REJECTED', { actor, reason });
+  const rejectPatch = buildPhotoReviewRejectPatch(asset, body, { reviewer: validated.reviewer });
+  await assetStore.patchAssetNamingMetadata(assetId, rejectPatch, {
+    actor,
+    reason: validated.reason,
+  });
+  const rejected = await assetStore.transitionStatus(assetId, 'REJECTED', {
+    actor,
+    reason: validated.reason,
+  });
+  assertImmutableUnchanged(immutableBefore, snapshotImmutable(rejected));
   const after = snapshotAsset(rejected);
 
   appendReviewAudit(auditLog, {
     action: 'photo_review.rejected',
-    actor,
+    actor: { ...actor, userId: validated.reviewer },
     assetBefore: before,
     assetAfter: after,
-    reason,
+    reason: validated.reason,
     decision: 'reject',
   });
+
+  if (pilotConfig?.canaryMode) {
+    recordCanaryDecision('photo', { rejected: 1 }, { maxDecisions: pilotConfig.maxDecisions });
+  }
 
   return { decision: 'reject', asset: after };
 }
 
 async function applyPhotoReviewReassign(assetStore, assetId, body, ctx) {
   const { actor, auditLog, pilotConfig } = ctx;
-  const reason = requireReason(body);
-  const category = normalizeCategory(body?.category);
+  const validated = validateWriteBody(body, actor);
+  const category = requireApprovedCategory(body, assetStore.getAsset(assetId));
   const alsoApprove = body?.alsoApprove === true;
+  if (alsoApprove) {
+    const e = new Error('mass_approval_blocked');
+    e.statusCode = 409;
+    throw e;
+  }
 
   const asset = assetStore.getAsset(assetId);
   if (!asset) {
@@ -189,29 +260,41 @@ async function applyPhotoReviewReassign(assetStore, assetId, body, ctx) {
     e.statusCode = 409;
     throw e;
   }
+  assertNoDriveLinkInAsset(asset);
   assertPilotWriteAllowed({ asset, pilotConfig, auditLog });
 
+  const immutableBefore = snapshotImmutable(asset);
   const before = snapshotAsset(asset);
-  const updated = await assetStore.patchAssetForReview(assetId, { category }, { actor, reason });
-
-  if (alsoApprove) {
-    return applyPhotoReviewApprove(
-      assetStore,
-      assetId,
-      { category, reason: `${reason} (reassign+approve)` },
-      ctx
-    );
-  }
-
+  const namingPatch = buildPhotoReviewReassignPatch(
+    asset,
+    { ...body, category },
+    { reviewer: validated.reviewer }
+  );
+  await assetStore.patchAssetNamingMetadata(assetId, namingPatch, {
+    actor,
+    reason: validated.reason,
+  });
+  const updated = await assetStore.patchAssetForReview(
+    assetId,
+    { category },
+    { actor, reason: validated.reason }
+  );
+  assertImmutableUnchanged(immutableBefore, snapshotImmutable(updated));
   const after = snapshotAsset(updated);
+
   appendReviewAudit(auditLog, {
     action: 'photo_review.reassigned',
-    actor,
+    actor: { ...actor, userId: validated.reviewer },
     assetBefore: before,
     assetAfter: after,
-    reason,
+    reason: validated.reason,
     decision: 'reassign',
+    extra: { imageStage: namingPatch.imageStage, bodyArea: namingPatch.bodyArea },
   });
+
+  if (pilotConfig?.canaryMode) {
+    recordCanaryDecision('photo', { reassigned: 1 }, { maxDecisions: pilotConfig.maxDecisions });
+  }
 
   return { decision: 'reassign', asset: after };
 }

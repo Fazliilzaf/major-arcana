@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { isStrongCustomerMatch } = require('./ccoImportReviewMatch');
 
 const OPERATOR_SOURCES = new Set(['m365_halso', 'getaccept_import']);
 const SOURCE_META = {
@@ -43,10 +44,11 @@ function normalizeItems(raw) {
   return [];
 }
 
-function mapItemForUi(row) {
+function mapItemForUi(row, { writeEnabled = false } = {}) {
   const src = row.sourceSystem || row.source || 'unknown';
   const meta = SOURCE_META[src] || { id: src, label: src };
   const suggested = Array.isArray(row.suggestedPatientIds) ? row.suggestedPatientIds[0] : null;
+  const strongMatch = isStrongCustomerMatch(row);
   const reasonKey = row.reason || 'no_patient_match';
   const approvalRequirements = [
     'Verifierad patientmatch (ingen ny kund)',
@@ -75,12 +77,29 @@ function mapItemForUi(row) {
     signedAt: row.signedAt || null,
     brand: row.brand || null,
     approvalRequirements,
-    writeEnabled: false,
+    writeEnabled,
+    strongMatchEligible: strongMatch,
     preparedActions: [
-      { id: 'approve_match', enabled: false, note: 'Kräver explicit write-GO' },
-      { id: 'reject_match', enabled: false, note: 'Kräver explicit write-GO' },
-      { id: 'leave_unresolved', enabled: false, note: 'Kräver explicit write-GO' },
-      { id: 'needs_owner_source', enabled: false, note: 'Eskalera till owner' },
+      {
+        id: 'approve_match',
+        enabled: writeEnabled && strongMatch,
+        note: strongMatch ? 'Canary — ett beslut' : 'Kräver stark kundmatch',
+      },
+      {
+        id: 'reject_match',
+        enabled: writeEnabled,
+        note: writeEnabled ? 'Canary' : 'Write AV',
+      },
+      {
+        id: 'leave_unresolved',
+        enabled: writeEnabled,
+        note: writeEnabled ? 'Canary' : 'Write AV',
+      },
+      {
+        id: 'needs_owner_source',
+        enabled: writeEnabled,
+        note: writeEnabled ? 'Eskalera till owner' : 'Write AV',
+      },
     ],
   };
 }
@@ -202,7 +221,17 @@ function loadSummary(dataDir, projectRoot = dataDir) {
   };
 }
 
-function listQueue(dataRoot, { source = 'all', status = 'pending', limit = 50, offset = 0 } = {}) {
+function listQueue(
+  dataRoot,
+  {
+    source = 'all',
+    status = 'pending',
+    limit = 50,
+    offset = 0,
+    eligibleOnly = false,
+    writeEnabled = false,
+  } = {}
+) {
   const idx = buildIndex(dataRoot);
   let ids = [];
   if (source === 'halso' || source === 'm365_halso') ids = idx.bySource?.halso || [];
@@ -210,21 +239,30 @@ function listQueue(dataRoot, { source = 'all', status = 'pending', limit = 50, o
     ids = idx.bySource?.getaccept || [];
   else ids = [...(idx.bySource?.halso || []), ...(idx.bySource?.getaccept || [])];
 
-  const slice = ids.slice(offset, offset + limit);
+  let filteredIds = ids;
+  if (eligibleOnly) {
+    filteredIds = ids.filter((id) => {
+      const row = idx.itemsById?.[id];
+      return row && isStrongCustomerMatch(row);
+    });
+  }
+
+  const slice = filteredIds.slice(offset, offset + limit);
   const items = slice
     .map((id) => idx.itemsById?.[id])
     .filter(Boolean)
     .filter((row) => (status ? row.status === status : true))
-    .map(mapItemForUi);
+    .map((row) => mapItemForUi(row, { writeEnabled }));
 
   return {
-    total: ids.length,
+    total: filteredIds.length,
     offset,
     limit,
     source,
     status,
+    eligibleOnly,
     items,
-    writeEnabled: false,
+    writeEnabled,
   };
 }
 

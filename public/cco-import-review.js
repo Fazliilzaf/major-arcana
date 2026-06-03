@@ -1,8 +1,10 @@
-/* global document, fetch */
+/* global document, fetch, window */
 'use strict';
 
 (() => {
   const API = '/api/v1/ops/cco/import-review';
+
+  const LS_REVIEWER = 'cco-import-review-reviewer';
 
   let summary = null;
   let queue = [];
@@ -10,6 +12,11 @@
   let cursor = 0;
   let sourceFilter = 'all';
   let busy = false;
+  let writeEnabled = false;
+
+  function getReviewer() {
+    return (window.localStorage?.getItem(LS_REVIEWER) || '').trim();
+  }
 
   function escapeHtml(v) {
     return String(v ?? '')
@@ -40,10 +47,12 @@
         <h1>Import Review Queue</h1>
         <p class="cir-muted">1497 osäkra kundmatchningar (halso@ + GetAccept) · read-only · ingen auto-import · ingen ny kund</p>
       </header>
-      <div class="cir-banner" data-readonly-banner>
-        <strong>READ-ONLY — write AV</strong>
-        <p>Actions är förberedda men disabled tills explicit owner-GO. Granska matchningar utan att skapa kunder.</p>
+      <div class="cir-banner" data-mode-banner>
+        <strong>Laddar läge…</strong>
       </div>
+      <label class="cir-muted">Reviewer (audit)
+        <input type="text" data-reviewer value="${escapeHtml(getReviewer())}" placeholder="ditt namn" />
+      </label>
       <div data-summary class="cir-metrics"></div>
       <div class="cir-layout">
         <aside class="cir-queue">
@@ -72,6 +81,51 @@
     root.querySelector('[data-load-more]')?.addEventListener('click', () => {
       loadQueue({ append: true }).catch(showError);
     });
+    root.querySelector('[data-reviewer]')?.addEventListener('change', (ev) => {
+      window.localStorage?.setItem(LS_REVIEWER, ev.target.value.trim());
+    });
+  }
+
+  function updateModeBanner() {
+    const el = document.querySelector('[data-mode-banner]');
+    if (!el) return;
+    if (writeEnabled) {
+      const rem = summary?.canary?.decisionsRemaining ?? '—';
+      el.innerHTML = `<strong>CANARY WRITE PÅ</strong><p>Max 25 beslut · ${rem} kvar · endast stark kundmatch · ingen ny kund.</p>`;
+    } else {
+      el.innerHTML =
+        '<strong>READ-ONLY — write AV</strong><p>Actions disabled tills ENABLE_CCO_OPERATOR_CANARY + ENABLE_IMPORT_REVIEW_WRITE.</p>';
+    }
+  }
+
+  async function decide(action) {
+    const item = currentItem();
+    if (!item || !writeEnabled || busy) return;
+    const reviewer = getReviewer();
+    if (reviewer.length < 2) {
+      window.alert('Reviewer krävs.');
+      return;
+    }
+    let reason = '';
+    if (action === 'reject_match') {
+      reason = window.prompt('Reason (minst 3 tecken):', '') || '';
+      if (reason.trim().length < 3) return;
+    }
+    if (!window.confirm(`Bekräfta ${action} för ${item.id}?`)) return;
+    busy = true;
+    try {
+      await api('/decide', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ itemId: item.id, action, reason, reviewer }),
+      });
+      await loadSummary();
+      await loadQueue({ append: false });
+    } catch (err) {
+      showError(err);
+    } finally {
+      busy = false;
+    }
   }
 
   function renderSummary() {
@@ -129,7 +183,7 @@
     const actions = (item.preparedActions || [])
       .map(
         (a) =>
-          `<button type="button" class="cir-btn" disabled title="${escapeHtml(a.note)}">${escapeHtml(a.id)}</button>`
+          `<button type="button" class="cir-btn" data-action="${escapeHtml(a.id)}" ${a.enabled ? '' : 'disabled'} title="${escapeHtml(a.note)}">${escapeHtml(a.id)}</button>`
       )
       .join('');
 
@@ -167,6 +221,9 @@
       renderQueueList();
       renderDetail();
     });
+    el.querySelectorAll('[data-action]').forEach((btn) => {
+      btn.addEventListener('click', () => decide(btn.dataset.action));
+    });
   }
 
   function showError(err) {
@@ -178,7 +235,9 @@
 
   async function loadSummary() {
     summary = await api('/summary');
+    writeEnabled = !!summary.writeEnabled;
     renderSummary();
+    updateModeBanner();
   }
 
   async function loadQueue({ append = false } = {}) {
@@ -205,7 +264,7 @@
   async function boot() {
     renderShell();
     await loadSummary();
-    await loadQueue({ reset: true });
+    await loadQueue({ append: false });
   }
 
   if (document.readyState === 'loading')

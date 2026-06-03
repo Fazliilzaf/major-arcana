@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T04:39:27.302Z",
+  "generatedAt": "2026-06-03T05:10:23.426Z",
   "base": "https://arcana.hairtpclinic.com",
   "pageReports": [
     {
@@ -103,6 +103,24 @@
         },
         {
           "href": "/cco-review-material-warning.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-after-meeting-start.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-journal-safety-helper.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-training-completion.html",
           "status": 200,
           "ok": true,
           "issues": []

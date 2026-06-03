@@ -1659,6 +1659,16 @@ function createOpsRouter({
       }
 
       try {
+        const canaryOps = config.enableMailReviewCanary
+          ? require('../ops/ccoOperatorCanary')
+          : null;
+        if (canaryOps) {
+          canaryOps.assertCanaryAllows('mail', {
+            projectRoot: path.join(__dirname, '../..'),
+            maxDecisions: config.mailReviewCanaryMax,
+            enabled: true,
+          });
+        }
         await ensureAmbiguousReviewMailboxesLoaded();
         const result = await decideAmbiguousReviewItem(resolveAmbiguousReviewContext(tenantId), {
           conversationKey,
@@ -1691,6 +1701,17 @@ function createOpsRouter({
           },
         });
 
+        if (canaryOps) {
+          const counter = { unresolved: 0, excluded: 0, rejected: 0, approved: 0 };
+          if (action === 'approve_single_match') counter.approved = 1;
+          else if (action === 'leave_unresolved') counter.unresolved = 1;
+          else if (action === 'exclude_non_actionable') counter.excluded = 1;
+          else if (action === 'reject_candidate') counter.rejected = 1;
+          canaryOps.recordCanaryDecision('mail', counter, {
+            projectRoot: path.join(__dirname, '../..'),
+            maxDecisions: config.mailReviewCanaryMax,
+          });
+        }
         return res.json(result);
       } catch (error) {
         console.error('[ops/cco/enrichment/gap-recovery/ambiguous-review/decide]', error);

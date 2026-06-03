@@ -30,6 +30,10 @@ function createMockStore(initial = {}) {
       items[id] = { ...items[id], ...patch };
       return items[id];
     },
+    async patchAssetNamingMetadata(id, patch) {
+      items[id] = { ...items[id], ...patch };
+      return items[id];
+    },
     async transitionStatus(id, status) {
       items[id] = { ...items[id], status };
       return items[id];
@@ -132,7 +136,11 @@ test('photo-review approve requires reason and writes audit detail', async () =>
     {
       decision: 'approve',
       category: 'photo_before',
+      approvedCategory: 'photo_before',
+      imageStage: 'before',
+      bodyArea: 'skalp',
       reason: 'test_approve reason',
+      reviewer: 'tester',
     },
     {
       actor: { role: 'operator', userId: 'tester' },
@@ -170,7 +178,15 @@ test('photo-review reassign keeps NEEDS_REVIEW without alsoApprove', async () =>
   const result = await applyPhotoReviewReassign(
     store,
     'a1',
-    { category: 'photo_after', reason: 'category uncertain', alsoApprove: false },
+    {
+      category: 'photo_after',
+      approvedCategory: 'photo_after',
+      imageStage: 'after',
+      bodyArea: 'skalp',
+      reason: 'category uncertain',
+      reviewer: 'tester',
+      alsoApprove: false,
+    },
     {
       actor: { role: 'operator', userId: 'tester' },
       auditLog,
@@ -261,7 +277,11 @@ test('photo-review decide endpoint returns 409 for non-review asset when write e
       body: JSON.stringify({
         decision: 'approve',
         category: 'photo_before',
+        approvedCategory: 'photo_before',
+        imageStage: 'before',
+        bodyArea: 'skalp',
         reason: 'test reason',
+        reviewer: 'tester',
       }),
     });
     assert.equal(res.status, 409);
@@ -288,7 +308,14 @@ test('photo-review approve blocks missing fileSize', async () => {
       applyPhotoReviewDecision(
         store,
         'a1',
-        { decision: 'approve', category: 'photo_before', reason: 'missing file size' },
+        {
+          decision: 'approve',
+          category: 'photo_before',
+          imageStage: 'before',
+          bodyArea: 'skalp',
+          reason: 'missing file size',
+          reviewer: 'tester',
+        },
         {
           actor: { role: 'operator', userId: 'tester' },
           auditLog: createAudit(),
@@ -317,7 +344,7 @@ test('photo-review full cohort allows any pilot patient', async () => {
   await applyPhotoReviewReject(
     store,
     'a1',
-    { reason: 'full cohort reject test' },
+    { reason: 'full cohort reject test', reviewer: 'tester' },
     {
       actor: { role: 'operator', userId: 'tester' },
       auditLog: createAudit(),
@@ -348,7 +375,7 @@ test('photo-review pilot blocks non-pilot patient', async () => {
       applyPhotoReviewDecision(
         store,
         'a1',
-        { decision: 'reject', reason: 'not in pilot' },
+        { decision: 'reject', reason: 'not in pilot', reviewer: 'tester' },
         {
           actor: { role: 'operator', userId: 'tester' },
           auditLog: createAudit(),

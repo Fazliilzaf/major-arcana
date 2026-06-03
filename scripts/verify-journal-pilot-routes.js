@@ -79,8 +79,8 @@ const REQUIRED = [
     min: 1,
   },
   {
-    label: 'photo-review read-only flag',
-    pattern: /writeEnabled:\s*false/,
+    label: 'photo-review write gated by config',
+    pattern: /writeEnabled:\s*photoWriteEnabled/,
     min: 1,
   },
 ];

@@ -578,8 +578,13 @@
     const banner = document.querySelector('[data-readonly-banner]');
     const badge = document.querySelector('[data-write-badge]');
     if (badge) {
+      const pilot = summary?.pilot;
+      const canaryNote =
+        pilot?.canaryMode && pilot.decisionsRemaining != null
+          ? ` · canary ${pilot.decisionsUsed}/${pilot.maxDecisions}`
+          : '';
       badge.textContent = summary?.writeEnabled
-        ? 'WRITE PÅ — ett beslut per bild'
+        ? `WRITE CANARY — ett beslut per bild${canaryNote}`
         : 'READ-ONLY — operator beta (inga beslut sparas)';
       badge.classList.toggle('cco-photo-review-badge-readonly', !summary?.writeEnabled);
       badge.classList.toggle('cco-photo-review-badge-write', !!summary?.writeEnabled);
@@ -646,6 +651,8 @@
           body: JSON.stringify({
             decision: 'approve',
             category: categoryOverride,
+            approvedCategory: categoryOverride,
+            reviewer: getReviewer(),
             ...bodyBase,
           }),
         });
@@ -653,14 +660,25 @@
       } else if (action === 'reject') {
         result = await api(`/assets/${encodeURIComponent(item.assetId)}/decide`, {
           method: 'POST',
-          body: JSON.stringify({ decision: 'reject', ...bodyBase }),
+          body: JSON.stringify({
+            decision: 'reject',
+            reviewer: getReviewer(),
+            ...bodyBase,
+          }),
         });
         sessionStats.rejected += 1;
       } else {
         const category = document.querySelector('[data-category-select]')?.value;
         result = await api(`/assets/${encodeURIComponent(item.assetId)}/reassign`, {
           method: 'POST',
-          body: JSON.stringify({ category, reason, alsoApprove: false, ...bodyBase }),
+          body: JSON.stringify({
+            category,
+            approvedCategory: category,
+            reviewer: getReviewer(),
+            reason,
+            alsoApprove: false,
+            ...bodyBase,
+          }),
         });
         sessionStats.reassigned += 1;
       }

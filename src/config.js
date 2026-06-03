@@ -1129,6 +1129,41 @@ const config = {
     process.env.SWISH_CALLBACK_URL,
     `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-swish/callback`
   ),
+
+  enableCcoOperatorCanary: asBool(process.env.ENABLE_CCO_OPERATOR_CANARY, false),
+  enablePhotoReviewWrite: (() => {
+    const requested = asBool(process.env.ENABLE_PHOTO_REVIEW_WRITE, false);
+    if (!requested) return false;
+    const allowProd = asBool(process.env.ENABLE_PHOTO_REVIEW_CANARY_ON_PROD, false);
+    const blockedHosts = asStringArray(process.env.PHOTO_REVIEW_WRITE_BLOCKED_HOSTS).length
+      ? asStringArray(process.env.PHOTO_REVIEW_WRITE_BLOCKED_HOSTS)
+      : ['arcana.hairtpclinic.com', 'arcana.hairtpclinic.se', 'arcana-cco.onrender.com'];
+    const hosts = [];
+    for (const u of [process.env.PUBLIC_BASE_URL, process.env.RENDER_EXTERNAL_URL]) {
+      if (!u) continue;
+      try {
+        hosts.push(new URL(u).hostname);
+      } catch {
+        /* skip */
+      }
+    }
+    if (process.env.RENDER_EXTERNAL_HOSTNAME) hosts.push(process.env.RENDER_EXTERNAL_HOSTNAME);
+    const onBlocked = hosts.some((h) => blockedHosts.some((b) => h === b || h.endsWith(`.${b}`)));
+    if (onBlocked && !allowProd) return false;
+    return true;
+  })(),
+  photoReviewFullCohort: asBool(process.env.PHOTO_REVIEW_FULL_COHORT, false),
+  photoReviewCanaryMax: asInt(process.env.PHOTO_REVIEW_CANARY_MAX_DECISIONS, 25),
+  enableImportReviewWrite: (() => {
+    const master = asBool(process.env.ENABLE_CCO_OPERATOR_CANARY, false);
+    return master && asBool(process.env.ENABLE_IMPORT_REVIEW_WRITE, false);
+  })(),
+  importReviewCanaryMax: asInt(process.env.IMPORT_REVIEW_CANARY_MAX_DECISIONS, 25),
+  enableMailReviewCanary: (() => {
+    const master = asBool(process.env.ENABLE_CCO_OPERATOR_CANARY, false);
+    return master && asBool(process.env.ENABLE_MAIL_REVIEW_CANARY, false);
+  })(),
+  mailReviewCanaryMax: asInt(process.env.MAIL_REVIEW_CANARY_MAX_DECISIONS, 25),
 };
 
 if (

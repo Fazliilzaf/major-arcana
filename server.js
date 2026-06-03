@@ -9283,7 +9283,15 @@ try {
     '[cco-asset-qa] monterad: GET /api/v1/cco/asset-qa/snapshot + invalidate · /patients/:id/assets · /assets/:id/{download,thumbnail}'
   );
 
-  // Photo Review — READ-ONLY på prod (writeEnabled=false tills explicit GO).
+  const photoWriteEnabled = config.enablePhotoReviewWrite === true;
+  const photoPilotConfig = photoWriteEnabled
+    ? {
+        canaryMode: config.enableCcoOperatorCanary,
+        maxDecisions: config.photoReviewCanaryMax,
+        fullCohort: config.photoReviewFullCohort,
+        maxPatients: Number(process.env.PHOTO_REVIEW_PILOT_MAX_PATIENTS) || 5,
+      }
+    : null;
   const { createCcoPhotoReviewRouter } = require('./src/routes/ccoPhotoReview');
   app.use(
     '/api/v1/cco',
@@ -9292,17 +9300,25 @@ try {
       attachRole,
       requirePermission,
       auditLog: ccoAuditLog,
-      writeEnabled: false,
+      writeEnabled: photoWriteEnabled,
+      pilotConfig: photoPilotConfig,
     })
   );
   console.log(
-    '[cco-photo-review] monterad READ-ONLY: GET /api/v1/cco/photo-review/{summary,queue,patients,progress}'
+    `[cco-photo-review] monterad write=${photoWriteEnabled ? 'CANARY' : 'READ-ONLY'}: GET/POST photo-review/*`
   );
 
   const { createCcoImportReviewReadRouter } = require('./src/routes/ccoImportReviewRead');
-  app.use('/api/v1/ops', createCcoImportReviewReadRouter({ projectRoot: __dirname }));
+  app.use(
+    '/api/v1/ops',
+    createCcoImportReviewReadRouter({
+      projectRoot: __dirname,
+      config,
+      auditLog: ccoAuditLog,
+    })
+  );
   console.log(
-    '[cco-import-review] monterad READ-ONLY: GET /api/v1/ops/cco/import-review/{summary,queue}'
+    `[cco-import-review] import write=${config.enableImportReviewWrite ? 'CANARY' : 'READ-ONLY'}`
   );
 } catch (err) {
   console.warn('[cco-asset-qa] kunde inte montera:', err.message);

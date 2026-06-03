@@ -40,7 +40,7 @@ function countPilotDecisions(auditLog) {
 }
 
 function aggregateDecisionStats(auditLog) {
-  const stats = { approve: 0, reject: 0, reassign: 0, total: 0 };
+  const stats = { approve: 0, reject: 0, reassign: 0, manualResolved: 0, total: 0 };
   if (!auditLog?.query) return stats;
   const items = auditLog.query({ action: 'photo_review.decision', limit: 100000 }) || [];
   for (const entry of items) {
@@ -49,11 +49,25 @@ function aggregateDecisionStats(auditLog) {
     if (d === 'approve') stats.approve += 1;
     else if (d === 'reject') stats.reject += 1;
     else if (d === 'reassign') stats.reassign += 1;
+    if (entry.detail?.namingStatus === 'manual_resolved') stats.manualResolved += 1;
   }
   return stats;
 }
 
 function assertPilotWriteAllowed({ asset, pilotConfig, auditLog }) {
+  const maxDecisions = Number(pilotConfig?.maxDecisions) || 0;
+  const used = countPilotDecisions(auditLog);
+
+  if (pilotConfig?.canaryMode && maxDecisions > 0) {
+    if (used >= maxDecisions) {
+      const e = new Error('canary_decision_limit_reached');
+      e.statusCode = 429;
+      e.detail = { maxDecisions, used, mode: 'canary' };
+      throw e;
+    }
+    return;
+  }
+
   if (!isPilotRestricted(pilotConfig)) return;
 
   const patientIds = resolvePilotPatientIds(pilotConfig);
@@ -64,12 +78,11 @@ function assertPilotWriteAllowed({ asset, pilotConfig, auditLog }) {
     throw e;
   }
 
-  const maxDecisions = Number(pilotConfig.maxDecisions) || 20;
-  const used = countPilotDecisions(auditLog);
-  if (used >= maxDecisions) {
+  const cap = maxDecisions || 20;
+  if (used >= cap) {
     const e = new Error('pilot_decision_limit_reached');
     e.statusCode = 429;
-    e.detail = { maxDecisions, used };
+    e.detail = { maxDecisions: cap, used };
     throw e;
   }
 }
@@ -81,6 +94,20 @@ function filterPatientsForPilot(patients, pilotConfig) {
 }
 
 function pilotSummary(pilotConfig, auditLog) {
+  if (pilotConfig?.canaryMode) {
+    const maxDecisions = Number(pilotConfig.maxDecisions) || 25;
+    const decisionsUsed = countPilotDecisions(auditLog);
+    return {
+      active: true,
+      canaryMode: true,
+      fullCohort: false,
+      patientIds: [],
+      maxDecisions,
+      decisionsUsed,
+      decisionsRemaining: Math.max(0, maxDecisions - decisionsUsed),
+    };
+  }
+
   if (pilotConfig?.fullCohort === true) {
     const decisionsUsed = countPilotDecisions(auditLog);
     return {
