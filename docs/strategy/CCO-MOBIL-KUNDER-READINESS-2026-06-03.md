@@ -1,6 +1,6 @@
 # CCO Mobil Kunder — Readiness (2026-06-03)
 
-**Fas:** P0.5 — Mobil Kunder som riktig arbetsyta.
+**Fas:** P1.1 — Mobil paritet (behandling + actions + Mina).
 
 **Route:** `/m-kunder.html` + `cco-kunder-mobil-real.js`
 
@@ -10,9 +10,9 @@
 
 ## Executive summary
 
-| Mått                              | Desktop (P0.4)                       | Mobil (P0.5)            |
+| Mått                              | Desktop (P1.1)                       | Mobil (P1.1)            |
 | --------------------------------- | ------------------------------------ | ----------------------- |
-| **Readiness (verksam arbetsyta)** | **~94%**                             | **~96%**                |
+| **Readiness (verksam arbetsyta)** | **~96%**                             | **~97%**                |
 | Lista                             | REAL                                 | REAL                    |
 | Segment/filter                    | REAL + partial/disabled från API     | REAL + partial/disabled |
 | Global sök                        | REAL (`q=`)                          | REAL (`q=`)             |
@@ -47,23 +47,23 @@
 
 ## Segment (mobil chips)
 
-| Segment                       | Status                                                     |
-| ----------------------------- | ---------------------------------------------------------- |
-| Alla                          | REAL                                                       |
-| Granska (`needs_review`)      | REAL                                                       |
-| Idag (`today_visits`)         | REAL                                                       |
-| Denna vecka (`this_week`)     | REAL                                                       |
-| Väntelista (`waitlist`)       | REAL                                                       |
-| Saknar journal                | REAL                                                       |
-| Saknar formulär               | REAL                                                       |
-| Saknar encounter              | REAL / partial                                             |
-| Bild-review (`photos_review`) | REAL                                                       |
-| GetAccept                     | REAL                                                       |
-| halso@                        | REAL                                                       |
-| Drive journal                 | REAL                                                       |
-| Drive dokument                | REAL                                                       |
-| Behandling FUE/DHI/PRP/…      | **Ej mobil chip** (desktop side-nav) — P1 parity om behövs |
-| Mina                          | disabled (ägare P1)                                        |
+| Segment                                                                 | Status                                                       |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Alla                                                                    | REAL                                                         |
+| Granska (`needs_review`)                                                | REAL                                                         |
+| Idag (`today_visits`)                                                   | REAL                                                         |
+| Denna vecka (`this_week`)                                               | REAL                                                         |
+| Väntelista (`waitlist`)                                                 | REAL                                                         |
+| Saknar journal                                                          | REAL                                                         |
+| Saknar formulär                                                         | REAL                                                         |
+| Saknar encounter                                                        | REAL / partial                                               |
+| Bild-review (`photos_review`)                                           | REAL                                                         |
+| GetAccept                                                               | REAL                                                         |
+| halso@                                                                  | REAL                                                         |
+| Drive journal                                                           | REAL                                                         |
+| Drive dokument                                                          | REAL                                                         |
+| FUE / DHI / PRP / Microneedling / Konsultation / Uppföljning / Curatiio | **REAL** (segmentStats)                                      |
+| Mina                                                                    | **partial/real** — `ARCANA_CCO_MINE_OWNER` + `assignedOwner` |
 
 Om API returnerar `status: disabled` → chip `disabled`, ingen mock-count.
 
@@ -71,15 +71,14 @@ Om API returnerar `status: disabled` → chip `disabled`, ingen mock-count.
 
 ## Actions
 
-| Action                                   | Mobil                              |
-| ---------------------------------------- | ---------------------------------- |
-| Öppna dossier                            | REAL                               |
-| Visa journal / timeline                  | REAL (länk + feed mount)           |
-| Visa assets                              | REAL                               |
-| Kalender (länk)                          | REAL                               |
-| Boka / omboka                            | disabled — "Kopplas i Kalender P1" |
-| Skicka formulär / skapa offert / ta bild | disabled — "Kommer i P1"           |
-| Bulk                                     | Ej exponerad på mobil              |
+| Action                                                              | Mobil                              |
+| ------------------------------------------------------------------- | ---------------------------------- |
+| Öppna dossier                                                       | REAL                               |
+| Visa journal / timeline                                             | REAL (länk + feed mount)           |
+| Visa assets                                                         | REAL                               |
+| Kalender                                                            | REAL — `/kalender.html?patientId=` |
+| Boka / omboka                                                       | disabled — "Kopplas i Kalender P1" |
+| Formulär / offert / foto / export / bulk / merge / GDPR / betalning | disabled (`cco-kunder-actions.js`) |
 
 Inga fake-toasts.
 
@@ -87,14 +86,11 @@ Inga fake-toasts.
 
 ## Kvarvarande P0 / P1
 
-| Item                                       | Prioritet     |
-| ------------------------------------------ | ------------- |
-| Behandlingssegment på mobil                | P1            |
-| Boka/omboka från dossier                   | P1 (Kalender) |
-| Formulär/avtal actions                     | P1            |
-| Foto capture full koppling                 | P1            |
-| Mina-filter (ägare)                        | P1            |
-| Desktop 100% (agg AI/LTV borttaget — klar) | —             |
+| Item                                       | Prioritet        |
+| ------------------------------------------ | ---------------- |
+| Automatisk staff→ägare (utan localStorage) | P1               |
+| Boka/omboka write                          | P1 (Kalender GO) |
+| Formulär / offert / foto routes            | P1               |
 
 ---
 

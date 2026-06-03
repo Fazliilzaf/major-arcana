@@ -60,6 +60,10 @@ function createCcoStaffRouter({
         const offsetVal = parseIntParam(req.query.offset, 0);
         const query = normalizeText(req.query.q || req.query.query);
         const segment = normalizeText(req.query.segment);
+        const assignedOwner =
+          normalizeText(req.query.assignedOwner) ||
+          (segment === 'mine' ? normalizeText(actor.email) : '');
+        const segmentOpts = { assignedOwner };
         const flags = String(req.query.flags || '')
           .split(',')
           .map((item) => item.trim())
@@ -68,7 +72,7 @@ function createCcoStaffRouter({
           ? readCache.buildKey(
               'customers-shell',
               actor.tenantId,
-              JSON.stringify({ limit, offset: offsetVal, query, flags, segment })
+              JSON.stringify({ limit, offset: offsetVal, query, flags, segment, assignedOwner })
             )
           : '';
 
@@ -102,7 +106,8 @@ function createCcoStaffRouter({
               segment,
               assetIndex,
               bookingIndex,
-              bookingCoverage
+              bookingCoverage,
+              segmentOpts
             );
           }
 
@@ -112,12 +117,19 @@ function createCcoStaffRouter({
                 'customers-shell-segments',
                 actor.tenantId,
                 bookingCoverage,
-                String(bookingBundle.sources?.engineBookings ?? 0)
+                String(bookingBundle.sources?.engineBookings ?? 0),
+                assignedOwner
               )
             : '';
           if (readCache && statsCacheKey) {
             const wrapped = await readCache.wrap(statsCacheKey, 120_000, async () =>
-              computeSegmentStats(allForStats, assetIndex, bookingIndex, bookingCoverage)
+              computeSegmentStats(
+                allForStats,
+                assetIndex,
+                bookingIndex,
+                bookingCoverage,
+                segmentOpts
+              )
             );
             segmentStats = wrapped.value;
           } else {
@@ -125,7 +137,8 @@ function createCcoStaffRouter({
               allForStats,
               assetIndex,
               bookingIndex,
-              bookingCoverage
+              bookingCoverage,
+              segmentOpts
             );
           }
 
@@ -153,7 +166,7 @@ function createCcoStaffRouter({
               offset: start,
               limit: max,
               patients: page.map((patient) =>
-                buildKunderReadout(patient, assetIndex, bookingIndex)
+                buildKunderReadout(patient, assetIndex, bookingIndex, segmentOpts)
               ),
             },
             offerTemplates: { templates: listOfferTemplates() },

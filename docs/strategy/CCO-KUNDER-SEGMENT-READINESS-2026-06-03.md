@@ -1,6 +1,6 @@
 # CCO Kunder — Segment Readiness (2026-06-03)
 
-**Uppdaterad efter P0.5** (mobil kunder). Kod: `cco-kunder-real.js`, `cco-kunder-mobil-real.js`, `ccoKunderEnrichment.js`, `ccoKunderBookingEnrichment.js`. Mobil: `CCO-MOBIL-KUNDER-READINESS-2026-06-03.md`. Kalender: `CCO-KALENDER-KUNDER-INTEGRATION-READINESS-2026-06-03.md`.
+**Uppdaterad efter P1.1** (actions + Mina + mobil behandling). Kod: `cco-kunder-real.js`, `cco-kunder-mobil-real.js`, `cco-kunder-actions.js`, `ccoKunderEnrichment.js`, `ccoKunderBookingEnrichment.js`. Mobil: `CCO-MOBIL-KUNDER-READINESS-2026-06-03.md`.
 
 **Scope:** Prod `/kunder.html` vs design `CCO-Kunder-Mockup-v9-DESKTOP.html`, mobil v10, `CCO-filter-och-smarta-funktioner.md`, `CCO-SYSTEM-SCOPE.md`.
 
@@ -35,6 +35,18 @@
 | Gate           | verify-kunder    | **+ verify-mobile-kunder**           |
 
 **P0.5 klar:** Mobil Kunder som riktig CCO-arbetsyta. Se `CCO-MOBIL-KUNDER-READINESS-2026-06-03.md`.
+
+## P1.1 — leverans (2026-06-03)
+
+| Område             | Efter P0.5       | P1.1                                                          |
+| ------------------ | ---------------- | ------------------------------------------------------------- |
+| Action matrix      | Delvis i dossier | **`cco-kunder-actions.js`** — real/disabled, inga fake toasts |
+| Mina kunder        | disabled         | **partial/real** via `ownerName` + `assignedOwner`            |
+| Mobil behandling   | Saknades         | **Paritet** FUE/DHI/PRP/…/Curatiio chips                      |
+| Kalender från kort | `/kalender.html` | **`?patientId=`** deep link                                   |
+| Boka/omboka        | disabled         | **disabled** "Kopplas i Kalender P1" (ingen write)            |
+
+**Readiness:** desktop **~96%**, mobil **~97%**.
 
 ## P0.3 — leverans (2026-06-03)
 

@@ -12,6 +12,7 @@ const path = require('node:path');
 const REPO = path.join(__dirname, '..');
 const MOBILE_HTML = path.join(REPO, 'public/m-kunder.html');
 const MOBILE_JS = path.join(REPO, 'public/cco-kunder-mobil-real.js');
+const ACTIONS_JS = path.join(REPO, 'public/cco-kunder-actions.js');
 const DESKTOP_JS = path.join(REPO, 'public/cco-kunder-real.js');
 
 let failed = 0;
@@ -42,6 +43,12 @@ if (!html.includes('cco-kunder-mobil-real.js')) {
   fail('m-kunder.html inkluderar inte cco-kunder-mobil-real.js');
 } else {
   pass('m-kunder.html laddar cco-kunder-mobil-real.js');
+}
+
+if (!html.includes('cco-kunder-actions.js')) {
+  fail('m-kunder.html inkluderar inte cco-kunder-actions.js (P1.1)');
+} else {
+  pass('m-kunder.html laddar cco-kunder-actions.js');
 }
 
 if (!html.includes('cco-journal-feed.js')) {
@@ -148,10 +155,18 @@ if (!/segmentStats/.test(js)) {
 
 const requiredChips = [
   'all',
+  'mine',
   'needs_review',
   'today_visits',
   'this_week',
   'waitlist',
+  'treatment_fue',
+  'treatment_dhi',
+  'treatment_prp',
+  'treatment_microneedling',
+  'treatment_consultation',
+  'treatment_followup',
+  'treatment_curatiio',
   'missing_journal',
   'missing_form',
   'missing_encounter',
@@ -170,10 +185,14 @@ for (const id of requiredChips) {
   }
 }
 
-if (!/Kopplas i Kalender P1|Kommer i P1/.test(js)) {
-  fail('cco-kunder-mobil-real.js saknar disabled-action copy');
+const actionsSrc = fs.existsSync(ACTIONS_JS) ? fs.readFileSync(ACTIONS_JS, 'utf8') : '';
+if (
+  !/Kopplas i Kalender P1|Kommer i P1/.test(js) &&
+  !/Kopplas i Kalender P1|Kommer i P1/.test(actionsSrc)
+) {
+  fail('mobil saknar disabled-action copy (P1.1 matrix)');
 } else {
-  pass('cco-kunder-mobil-real.js disabled actions märkta');
+  pass('mobil disabled actions märkta (P1.1)');
 }
 
 if (!/mkLoadMore|Ladda fler/.test(js) && !html.includes('mkLoadMore')) {
@@ -186,6 +205,43 @@ if (!/hasUpcomingBooking|todayVisit|nextBookingAt/.test(js)) {
   fail('cco-kunder-mobil-real.js saknar booking-fält');
 } else {
   pass('cco-kunder-mobil-real.js booking UI-fält');
+}
+
+if (!/CcoKunderActions/.test(js)) {
+  fail('cco-kunder-mobil-real.js saknar CcoKunderActions (P1.1)');
+} else {
+  pass('cco-kunder-mobil-real.js action matrix P1.1');
+}
+
+if (!/treatment_fue|treatment_curatiio/.test(js)) {
+  fail('mobil saknar behandlingssegment P1.1');
+} else {
+  pass('mobil behandlingssegment parity P1.1');
+}
+
+if (!/ARCANA_CCO_MINE_OWNER|assignedOwner/.test(js)) {
+  fail('mobil saknar Mina kunder readiness P1.1');
+} else {
+  pass('mobil Mina kunder readiness P1.1');
+}
+
+const treatmentIds = [
+  'treatment_fue',
+  'treatment_dhi',
+  'treatment_prp',
+  'treatment_microneedling',
+  'treatment_consultation',
+  'treatment_followup',
+  'treatment_curatiio',
+];
+let treatmentInChips = true;
+for (const tid of treatmentIds) {
+  if (!js.includes(`'${tid}'`)) treatmentInChips = false;
+}
+if (!treatmentInChips) {
+  fail('mobil MOBILE_CHIP_IDS saknar alla behandlingssegment');
+} else {
+  pass('mobil alla behandlingssegment i chips');
 }
 
 if (/\.pdf|\.heic|\.docx/.test(js) && /displayName\(/.test(js)) {

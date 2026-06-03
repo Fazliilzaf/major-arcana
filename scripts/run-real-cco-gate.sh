@@ -31,7 +31,7 @@ node scripts/verify-mobile-kunder-real-data.js
 echo
 
 echo "[2/4] Prod static assets..."
-for path in /cco-demo.html /kunder.html /m-kunder.html /cco-kunder-real.js /cco-kunder-mobil-real.js; do
+for path in /cco-demo.html /kunder.html /m-kunder.html /cco-kunder-real.js /cco-kunder-mobil-real.js /cco-kunder-actions.js; do
   code=$(curl -sS -o /dev/null -w "%{http_code}" "${BASE}${path}")
   if [ "$code" = "200" ]; then
     pass "${path} HTTP ${code}"
@@ -121,6 +121,19 @@ if echo "$mjs" | grep -q 'data-patient-id'; then
   pass 'cco-kunder-mobil-real.js patientId rows on prod'
 else
   fail 'cco-kunder-mobil-real.js missing patientId on prod'
+fi
+
+if echo "$mjs" | grep -q 'treatment_fue'; then
+  pass 'cco-kunder-mobil-real.js treatment segments on prod (P1.1)'
+else
+  fail 'cco-kunder-mobil-real.js missing treatment segments (P1.1)'
+fi
+
+actions=$(curl -sS "${BASE}/cco-kunder-actions.js" 2>/dev/null || true)
+if echo "$actions" | grep -q 'handlesKunderActions' && echo "$actions" | grep -q 'Kopplas i Kalender P1'; then
+  pass 'cco-kunder-actions.js on prod (P1.1)'
+else
+  fail 'cco-kunder-actions.js missing on prod (P1.1)'
 fi
 
 echo

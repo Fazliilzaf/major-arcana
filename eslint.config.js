@@ -274,6 +274,7 @@ module.exports = [
       'public/cco-ambiguous-mail-enrichment-review.js',
       'public/cco-kunder-real.js',
       'public/cco-kunder-mobil-real.js',
+      'public/cco-kunder-actions.js',
       'public/konversationer-bottom-actions.js',
     ],
     languageOptions: {

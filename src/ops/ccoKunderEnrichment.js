@@ -144,12 +144,46 @@ function hasJournalFromPatient(patient) {
   return Number(fs.journalPdfs) > 0;
 }
 
+/** Pipedrive Ägare / assigned staff label on patient (no PII beyond name already in CRM). */
+function getPatientOwnerName(patient) {
+  const pipedrive = asObject(patient.pipedrive);
+  const owner = normalizeText(pipedrive.owner);
+  if (owner) return owner;
+  const cliento = asObject(patient.cliento);
+  return normalizeText(cliento.owner || cliento.assignedStaff || cliento.Ägare);
+}
+
+function ownerMatchesAssigned(ownerName, assignedOwner) {
+  const owner = normalizeKey(ownerName);
+  const assigned = normalizeKey(assignedOwner);
+  if (!owner || !assigned) return false;
+  if (owner === assigned) return true;
+  if (owner.includes(assigned) || assigned.includes(owner)) return true;
+  const emailLocal = assigned.includes('@') ? assigned.split('@')[0] : assigned;
+  if (emailLocal.length >= 3 && owner.includes(emailLocal)) return true;
+  const ownerTokens = owner.split(/\s+/).filter((t) => t.length >= 2);
+  const assignedTokens = assigned.split(/\s+/).filter((t) => t.length >= 2);
+  return (
+    ownerTokens.some((t) => assigned.includes(t)) || assignedTokens.some((t) => owner.includes(t))
+  );
+}
+
+function computeOwnerCoverage(patients = []) {
+  let withOwner = 0;
+  for (const patient of patients) {
+    if (getPatientOwnerName(patient)) withOwner += 1;
+  }
+  if (withOwner === 0) return { coverage: 'none', withOwner: 0 };
+  return { coverage: 'partial', withOwner };
+}
+
 function matchSegment(
   patient,
   segmentId,
   assetSignals,
   bookingIndex = null,
-  bookingCoverage = 'missing'
+  bookingCoverage = 'missing',
+  opts = {}
 ) {
   const id = normalizeKey(segmentId);
   if (!id || id === 'all') return true;
@@ -221,8 +255,11 @@ function matchSegment(
       return updatedDays != null && updatedDays > DORMANT_DAYS && !hasJournal;
     case 'vip':
       return isVipPatient(patient);
-    case 'mine':
-      return false;
+    case 'mine': {
+      const assignedOwner = normalizeText(opts.assignedOwner);
+      if (!assignedOwner) return false;
+      return ownerMatchesAssigned(getPatientOwnerName(patient), assignedOwner);
+    }
     default:
       return false;
   }
@@ -246,7 +283,7 @@ function computeNextStep(readout) {
   return null;
 }
 
-function buildKunderReadout(patient, assetIndex = null, bookingIndex = null) {
+function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opts = {}) {
   const base = buildPatientCardReadout(patient);
   const sig = getAssetSignals(assetIndex, base.patientId);
   const fs = asObject(patient.fileSummary);
@@ -317,15 +354,25 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null) {
     },
   };
   applyBookingToReadout(readout, getBookingSignals(bookingIndex, base.patientId));
+  const ownerName = getPatientOwnerName(patient);
+  readout.ownerName = ownerName || null;
+  readout.assignedStaffId = null;
+  readout.isMinePatient =
+    Boolean(opts.assignedOwner) && ownerMatchesAssigned(ownerName, opts.assignedOwner);
   readout.nextStep = computeNextStep(readout);
   readout.nextRequirement = readout.nextStep;
   return readout;
 }
 
-function buildSegmentCatalog(bookingCoverage = 'missing') {
+function buildSegmentCatalog(bookingCoverage = 'missing', ownerCoverage = 'none') {
   const calendarStatus = bookingCoverage === 'missing' ? 'disabled' : 'real';
   const calendarReason = bookingCoverage === 'missing' ? 'Bokningsdata saknas i store' : null;
   const treatmentStatus = bookingCoverage === 'missing' ? 'disabled' : 'real';
+  const mineDisabled = ownerCoverage === 'none';
+  const mineStatus = mineDisabled ? 'disabled' : 'partial';
+  const mineReason = mineDisabled
+    ? 'Kräver ägare per rad · P1'
+    : 'Koppla Pipedrive Ägare eller skicka assignedOwner';
 
   const treatmentSegments = TREATMENT_SEGMENT_DEFS.map((def) => ({
     id: def.id,
@@ -342,13 +389,12 @@ function buildSegmentCatalog(bookingCoverage = 'missing') {
 
   return [
     { id: 'all', label: 'Alla kunder', status: 'real', filterQuery: {} },
-    { id: 'all', label: 'Alla kunder', status: 'real', filterQuery: {} },
     {
       id: 'mine',
       label: 'Mina kunder',
-      status: 'disabled',
-      reason: 'Ägare per rad saknas (P1)',
-      filterQuery: null,
+      status: mineStatus,
+      reason: mineReason,
+      filterQuery: mineDisabled ? null : { segment: 'mine' },
     },
     {
       id: 'today_visits',
@@ -463,9 +509,14 @@ function computeSegmentStats(
   patients,
   assetIndex,
   bookingIndex = null,
-  bookingCoverage = 'missing'
+  bookingCoverage = 'missing',
+  opts = {}
 ) {
-  const SEGMENT_CATALOG = buildSegmentCatalog(bookingCoverage);
+  const assignedOwner = normalizeText(opts.assignedOwner);
+  const ownerMeta = computeOwnerCoverage(patients);
+  const ownerCoverage =
+    ownerMeta.coverage === 'none' ? 'none' : assignedOwner ? 'real' : ownerMeta.coverage;
+  const SEGMENT_CATALOG = buildSegmentCatalog(bookingCoverage, ownerMeta.coverage);
   const counts = Object.fromEntries(SEGMENT_CATALOG.map((s) => [s.id, 0]));
   let withJournal = 0;
   let missingJournal = 0;
@@ -501,23 +552,47 @@ function computeSegmentStats(
 
     for (const seg of SEGMENT_CATALOG) {
       if (seg.status === 'disabled') continue;
-      if (matchSegment(patient, seg.id, sig, bookingIndex, bookingCoverage)) {
+      if (seg.id === 'mine' && !assignedOwner) continue;
+      if (matchSegment(patient, seg.id, sig, bookingIndex, bookingCoverage, opts)) {
         counts[seg.id] += 1;
       }
     }
   }
 
-  const segments = SEGMENT_CATALOG.map((meta) => ({
-    id: meta.id,
-    label: meta.label,
-    count: meta.status === 'disabled' ? null : (counts[meta.id] ?? 0),
-    status: meta.status,
-    reason: meta.reason || null,
-    filterQuery: meta.filterQuery,
-  }));
+  const segments = SEGMENT_CATALOG.map((meta) => {
+    let status = meta.status;
+    let reason = meta.reason || null;
+    let count = meta.status === 'disabled' ? null : (counts[meta.id] ?? 0);
+    if (meta.id === 'mine') {
+      if (ownerMeta.coverage === 'none') {
+        status = 'disabled';
+        reason = 'Kräver ägare per rad · P1';
+        count = null;
+      } else if (!assignedOwner) {
+        status = 'partial';
+        reason = 'Kräver ägare per rad · P1';
+        count = ownerMeta.withOwner;
+      } else {
+        status = 'real';
+        reason = null;
+        count = counts.mine ?? 0;
+      }
+    }
+    return {
+      id: meta.id,
+      label: meta.label,
+      count,
+      status,
+      reason,
+      filterQuery: meta.filterQuery,
+    };
+  });
 
   return {
     segments,
+    ownerCoverage,
+    patientsWithOwner: ownerMeta.withOwner,
+    assignedOwnerActive: Boolean(assignedOwner),
     panel: {
       withJournal,
       missingJournal,
@@ -564,14 +639,17 @@ function filterPatientsBySegment(
   segmentId,
   assetIndex,
   bookingIndex = null,
-  bookingCoverage = 'missing'
+  bookingCoverage = 'missing',
+  opts = {}
 ) {
   const id = normalizeKey(segmentId);
   if (!id || id === 'all') return patients;
-  const meta = buildSegmentCatalog(bookingCoverage).find((s) => s.id === id);
+  const ownerMeta = computeOwnerCoverage(patients);
+  const meta = buildSegmentCatalog(bookingCoverage, ownerMeta.coverage).find((s) => s.id === id);
   if (!meta || meta.status === 'disabled') return [];
+  if (id === 'mine' && !normalizeText(opts.assignedOwner)) return [];
   return patients.filter((p) =>
-    matchSegment(p, id, getAssetSignals(assetIndex, p.id), bookingIndex, bookingCoverage)
+    matchSegment(p, id, getAssetSignals(assetIndex, p.id), bookingIndex, bookingCoverage, opts)
   );
 }
 
@@ -584,6 +662,9 @@ module.exports = {
   loadAssetSignalsIndex,
   loadKunderBookingIndex,
   matchSegment,
+  getPatientOwnerName,
+  ownerMatchesAssigned,
+  computeOwnerCoverage,
   maskEmail,
   maskPhone,
 };

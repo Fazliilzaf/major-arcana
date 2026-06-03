@@ -56,6 +56,7 @@ async function resolveCcoRouteActor(req, { authStore, config }) {
     return {
       tenantId: context.membership.tenantId,
       userId: context.user.id,
+      email: normalizeText(context.user.email),
       role: context.membership.role,
       authMode: 'session',
     };

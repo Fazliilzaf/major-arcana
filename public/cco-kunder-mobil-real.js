@@ -9,14 +9,23 @@
   const SEARCH_PAGE_SIZE = 40;
   const TENANT_ID = 'hairtpclinic';
   const TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
+  const MINE_OWNER_KEY = 'ARCANA_CCO_MINE_OWNER';
   const LOGIN_HREF = '/major-arcana-preview/index.html';
 
   const MOBILE_CHIP_IDS = [
     'all',
+    'mine',
     'needs_review',
     'today_visits',
     'this_week',
     'waitlist',
+    'treatment_fue',
+    'treatment_dhi',
+    'treatment_prp',
+    'treatment_microneedling',
+    'treatment_consultation',
+    'treatment_followup',
+    'treatment_curatiio',
     'missing_journal',
     'missing_form',
     'missing_encounter',
@@ -69,6 +78,25 @@
 
   function getRole() {
     return 'staff';
+  }
+
+  function getAssignedOwner() {
+    try {
+      return (localStorage.getItem(MINE_OWNER_KEY) || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  function shellQueryParams(limit) {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(state.offset) });
+    if (state.query) params.set('q', state.query);
+    if (state.flagFilter) params.set('flags', state.flagFilter);
+    const activeSeg = state.segmentById[state.activeSegmentId];
+    if (activeSeg?.segment) params.set('segment', activeSeg.segment);
+    const assignedOwner = getAssignedOwner();
+    if (assignedOwner) params.set('assignedOwner', assignedOwner);
+    return params;
   }
 
   async function api(path, options = {}) {
@@ -183,6 +211,8 @@
     if (card.todayVisit) tags.push({ kind: 'ready', label: 'Idag' });
     if (card.onWaitlist) tags.push({ kind: 'warn', label: 'Väntelista' });
     if (card.readyForVisit === true) tags.push({ kind: 'ready', label: 'Redo' });
+    if (card.isMinePatient) tags.push({ kind: 'ready', label: 'Min kund' });
+    else if (card.ownerName) tags.push({ kind: 'cycle', label: card.ownerName });
     return tags;
   }
 
@@ -262,11 +292,18 @@
     }
 
     const limit = state.query ? SEARCH_PAGE_SIZE : PAGE_SIZE;
-    const params = new URLSearchParams({ limit: String(limit), offset: String(state.offset) });
-    if (state.query) params.set('q', state.query);
-    if (state.flagFilter) params.set('flags', state.flagFilter);
-    const activeSeg = state.segmentById[state.activeSegmentId];
-    if (activeSeg?.segment) params.set('segment', activeSeg.segment);
+    const params = shellQueryParams(limit);
+    if (state.activeSegmentId === 'mine' && !getAssignedOwner()) {
+      state.error = '';
+      state.patients = [];
+      state.total = 0;
+      state.loaded = true;
+      state.loading = false;
+      renderSegmentChips();
+      renderList('Mina kunder: sätt ARCANA_CCO_MINE_OWNER (Pipedrive Ägare) i localStorage.');
+      updateMeta();
+      return;
+    }
 
     try {
       const payload = await api(`/api/v1/cco/staff/customers-shell?${params}`);
@@ -488,17 +525,26 @@
         ${card.missingEncounterForBooking ? '<p class="mk-data-missing">Kommande bokning utan encounter.</p>' : ''}
       </section>
       <section class="mk-panel">
-        <h3>Snabböppna</h3>
-        <div class="mk-actions">
-          <a href="/journal-feed-demo.html?customerId=${encodeURIComponent(card.patientId)}&tenant=${encodeURIComponent(TENANT_ID)}&role=${encodeURIComponent(getRole())}">Journal</a>
-          <a href="/journal-feed-demo.html?customerId=${encodeURIComponent(card.patientId)}&tenant=${encodeURIComponent(TENANT_ID)}&view=timeline">Timeline</a>
-          <button type="button" data-mk-scroll="assets">Assets</button>
-          <button type="button" disabled title="Kommer i P1">Formulär</button>
-          <button type="button" disabled title="Kommer i P1">Avtal</button>
-          <a href="/kalender.html">Kalender</a>
-          <button type="button" disabled title="Kopplas i Kalender P1">Boka</button>
-          <button type="button" disabled title="Kopplas i Kalender P1">Omboka</button>
+        <h3>Åtgärder</h3>
+        <div class="mk-actions" data-kunder-actions-host>
+          ${
+            global.CcoKunderActions
+              ? global.CcoKunderActions.renderActionsHtml(
+                  global.CcoKunderActions.buildMatrix(card, {
+                    tenantId: TENANT_ID,
+                    role: getRole(),
+                    surface: 'mobile',
+                  }),
+                  { linkClass: 'mk-actions', buttonClass: 'mk-actions' }
+                )
+              : ''
+          }
         </div>
+        ${
+          card.journalBlocked
+            ? `<p class="mk-data-missing">Spärrad åtkomst: ${escapeHtml(card.journalBlockReason || 'journal spärrad')}</p>`
+            : ''
+        }
       </section>
       <section class="mk-panel" id="mkJournalPanel">
         <h3>Journal</h3>
@@ -517,9 +563,14 @@
     sheet.hidden = false;
     document.body.style.overflow = 'hidden';
 
-    body.querySelector('[data-mk-scroll="assets"]')?.addEventListener('click', () => {
-      $('mkAssetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    const actionsHost = body.querySelector('[data-kunder-actions-host]');
+    if (actionsHost && global.CcoKunderActions) {
+      global.CcoKunderActions.bindDossierHandlers(actionsHost, {
+        scrollAssets: () => {
+          $('mkAssetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+      });
+    }
 
     const assetsHost = body.querySelector('[data-mk-assets-host]');
     if (assetsHost) ASSETS.load(assetsHost, card.patientId);

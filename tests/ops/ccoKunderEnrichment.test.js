@@ -7,6 +7,9 @@ const {
   buildKunderReadout,
   computeSegmentStats,
   matchSegment,
+  getPatientOwnerName,
+  ownerMatchesAssigned,
+  computeOwnerCoverage,
   maskEmail,
   maskPhone,
 } = require('../../src/ops/ccoKunderEnrichment');
@@ -93,5 +96,46 @@ describe('ccoKunderEnrichment', () => {
     assert.ok(stats.counts.needs_review >= 1);
     assert.ok(stats.counts.new >= 1);
     assert.equal(stats.panel.totalPatients, 2);
+  });
+
+  it('mine segment uses pipedrive owner when assignedOwner set', () => {
+    const patient = {
+      id: 'mine1',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      pipedrive: { owner: 'Egzona Krasniqi' },
+      updatedAt: new Date().toISOString(),
+    };
+    assert.equal(getPatientOwnerName(patient), 'Egzona Krasniqi');
+    assert.equal(ownerMatchesAssigned('Egzona Krasniqi', 'egzona'), true);
+    assert.equal(
+      matchSegment(patient, 'mine', null, null, 'missing', { assignedOwner: 'Egzona Krasniqi' }),
+      true
+    );
+    const stats = computeSegmentStats([patient], new Map(), null, 'missing', {
+      assignedOwner: 'Egzona Krasniqi',
+    });
+    const mine = stats.segments.find((s) => s.id === 'mine');
+    assert.equal(mine.status, 'real');
+    assert.equal(mine.count, 1);
+  });
+
+  it('mine segment disabled when no owner on patients', () => {
+    const patients = [
+      {
+        id: 'x',
+        matchStatus: 'matched',
+        flags: [],
+        fileSummary: {},
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+    assert.equal(computeOwnerCoverage(patients).coverage, 'none');
+    const stats = computeSegmentStats(patients, new Map());
+    const mine = stats.segments.find((s) => s.id === 'mine');
+    assert.equal(mine.status, 'disabled');
+    assert.equal(mine.reason, 'Kräver ägare per rad · P1');
+    assert.equal(mine.count, null);
   });
 });

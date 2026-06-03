@@ -12,6 +12,7 @@ const path = require('node:path');
 const REPO = path.join(__dirname, '..');
 const KUNDER = path.join(REPO, 'public/kunder.html');
 const REAL_JS = path.join(REPO, 'public/cco-kunder-real.js');
+const ACTIONS_JS = path.join(REPO, 'public/cco-kunder-actions.js');
 
 let failed = 0;
 function fail(msg) {
@@ -43,6 +44,18 @@ if (!html.includes('cco-kunder-real.js')) {
   fail('kunder.html inkluderar inte cco-kunder-real.js');
 } else {
   pass('kunder.html laddar cco-kunder-real.js');
+}
+
+if (!html.includes('cco-kunder-actions.js')) {
+  fail('kunder.html inkluderar inte cco-kunder-actions.js (P1.1)');
+} else {
+  pass('kunder.html laddar cco-kunder-actions.js');
+}
+
+if (!fs.existsSync(ACTIONS_JS)) {
+  fail('cco-kunder-actions.js saknas');
+} else {
+  pass('cco-kunder-actions.js finns');
 }
 
 if (!js.includes('kunderLoadMore') && !js.includes('Ladda fler')) {
@@ -167,10 +180,11 @@ if (!/hasUpcomingBooking|nextBookingAt|todayVisit/.test(js)) {
   pass('cco-kunder-real.js booking UI-fält');
 }
 
-if (!/Kopplas i Kalender P1/.test(js)) {
-  fail('cco-kunder-real.js saknar disabled copy för boka/omboka');
+const actionsSrc = fs.existsSync(ACTIONS_JS) ? fs.readFileSync(ACTIONS_JS, 'utf8') : '';
+if (!/Kopplas i Kalender P1/.test(js) && !/Kopplas i Kalender P1/.test(actionsSrc)) {
+  fail('saknar disabled copy för boka/omboka (P1.1 action matrix)');
 } else {
-  pass('cco-kunder-real.js boka/omboka disabled korrekt');
+  pass('boka/omboka disabled korrekt (P1.1)');
 }
 
 if (/>\s*\d{2,4}\s*</.test(customersHtml) && /DHI|PRP|Microneedling/.test(customersHtml)) {
@@ -185,6 +199,52 @@ if (/toast\([^)]*bokning|fake.*booking/i.test(js)) {
   fail('cco-kunder-real.js fake booking toast');
 } else {
   pass('cco-kunder-real.js utan fake booking toast');
+}
+
+if (!/CcoKunderActions/.test(js)) {
+  fail('cco-kunder-real.js saknar CcoKunderActions (P1.1)');
+} else {
+  pass('cco-kunder-real.js använder action matrix P1.1');
+}
+
+if (!/assignedOwner|ARCANA_CCO_MINE_OWNER/.test(js)) {
+  fail('cco-kunder-real.js saknar Mina kunder assignedOwner (P1.1)');
+} else {
+  pass('cco-kunder-real.js Mina kunder readiness P1.1');
+}
+
+if (!/ownerName|isMinePatient/.test(js)) {
+  fail('cco-kunder-real.js saknar owner-rad-badge P1.1');
+} else {
+  pass('cco-kunder-real.js owner-rad-badge P1.1');
+}
+
+if (!/kalender\.html\?patientId=/.test(js) && !fs.existsSync(ACTIONS_JS)) {
+  fail('kalender patientId-länk saknas');
+} else if (fs.existsSync(ACTIONS_JS)) {
+  const actionsJs = fs.readFileSync(ACTIONS_JS, 'utf8');
+  if (!/kalender\.html\?patientId=/.test(actionsJs)) {
+    fail('cco-kunder-actions.js saknar kalender patientId-länk');
+  } else if (/toast\(/.test(actionsJs)) {
+    fail('cco-kunder-actions.js har fake toast');
+  } else if (!/Kopplas i Kalender P1/.test(actionsJs)) {
+    fail('cco-kunder-actions.js saknar disabled boka/omboka');
+  } else {
+    pass('cco-kunder-actions.js kalender + disabled boka P1.1');
+  }
+}
+
+const enrich = fs.readFileSync(path.join(REPO, 'src/ops/ccoKunderEnrichment.js'), 'utf8');
+if (!/getPatientOwnerName/.test(enrich) || !/Kräver ägare per rad/.test(enrich)) {
+  fail('ccoKunderEnrichment saknar mine/owner P1.1');
+} else {
+  pass('ccoKunderEnrichment mine/owner P1.1');
+}
+
+if (!/assignedOwner/.test(staff)) {
+  fail('ccoStaff saknar assignedOwner query P1.1');
+} else {
+  pass('ccoStaff assignedOwner P1.1');
 }
 
 if (failed) {

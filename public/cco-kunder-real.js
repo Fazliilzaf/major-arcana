@@ -8,6 +8,7 @@
   const SEARCH_PAGE_SIZE = 40;
   const TENANT_ID = 'hairtpclinic';
   const TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
+  const MINE_OWNER_KEY = 'ARCANA_CCO_MINE_OWNER';
   const LOGIN_HREF = '/major-arcana-preview/index.html';
 
   const MATCH_LABELS = {
@@ -114,6 +115,28 @@
 
   function getRole() {
     return 'staff';
+  }
+
+  function getAssignedOwner() {
+    try {
+      return (localStorage.getItem(MINE_OWNER_KEY) || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  function shellQueryParams(limit) {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(state.offset),
+    });
+    if (state.query) params.set('q', state.query);
+    if (state.flagFilter) params.set('flags', state.flagFilter);
+    const activeSeg = SEGMENT_BY_ID[state.activeSegmentId];
+    if (activeSeg?.segment) params.set('segment', activeSeg.segment);
+    const assignedOwner = getAssignedOwner();
+    if (assignedOwner) params.set('assignedOwner', assignedOwner);
+    return params;
   }
 
   async function api(path, options = {}) {
@@ -242,6 +265,8 @@
     if (card.readyForVisit === true) tags.push({ kind: 'ready', label: 'Redo besök' });
     if (card.driveLinked) tags.push({ kind: 'cycle', label: 'Drive' });
     if (card.clientoLinked) tags.push({ kind: 'ready', label: 'Cliento' });
+    if (card.isMinePatient) tags.push({ kind: 'ready', label: 'Min kund' });
+    else if (card.ownerName) tags.push({ kind: 'cycle', label: card.ownerName });
     return tags;
   }
 
@@ -291,14 +316,23 @@
     setListStatus('Hämtar kunder…', 'loading');
 
     const limit = state.query ? SEARCH_PAGE_SIZE : PAGE_SIZE;
-    const params = new URLSearchParams({
-      limit: String(limit),
-      offset: String(state.offset),
-    });
-    if (state.query) params.set('q', state.query);
-    if (state.flagFilter) params.set('flags', state.flagFilter);
-    const activeSeg = SEGMENT_BY_ID[state.activeSegmentId];
-    if (activeSeg?.segment) params.set('segment', activeSeg.segment);
+    const params = shellQueryParams(limit);
+    if (state.activeSegmentId === 'mine' && !getAssignedOwner()) {
+      state.error = '';
+      state.patients = [];
+      state.total = 0;
+      state.loaded = true;
+      state.loading = false;
+      setListStatus(
+        'Mina kunder: sätt Pipedrive-ägare i localStorage ARCANA_CCO_MINE_OWNER (eller matcha mot inloggad e-post).',
+        'warn'
+      );
+      refreshSegmentCounts();
+      renderList();
+      renderCounts();
+      renderRightPanel();
+      return;
+    }
 
     try {
       const payload = await api(`/api/v1/cco/staff/customers-shell?${params}`);
@@ -791,15 +825,24 @@
         <div class="cco-komm-loading">Laddar…</div>
       </details>
     </div>
-    <div class="dossier-actions">
-      <a class="quick-pill full" href="/journal-feed-demo.html?customerId=${encodeURIComponent(card.patientId)}&tenant=${encodeURIComponent(TENANT_ID)}&role=${encodeURIComponent(getRole())}">Öppna journal (full vy)</a>
-      <a class="quick-pill" href="/kalender.html" title="Kalender-arbetsyta">Öppna i kalender</a>
-      <button type="button" class="quick-pill" disabled title="Kopplas i Kalender P1">Boka</button>
-      <button type="button" class="quick-pill" disabled title="Kopplas i Kalender P1">Omboka</button>
-      <button type="button" class="quick-pill" disabled title="Kommer i P1">Skicka formulär</button>
-      <button type="button" class="quick-pill" disabled title="Kommer i P1">Skapa offert</button>
-      <button type="button" class="quick-pill" disabled title="Ej kopplat ännu">↓ Massåtgärd</button>
-    </div>`;
+    <div class="dossier-actions" data-kunder-actions-host>
+      ${
+        global.CcoKunderActions
+          ? global.CcoKunderActions.renderActionsHtml(
+              global.CcoKunderActions.buildMatrix(card, {
+                tenantId: TENANT_ID,
+                role: getRole(),
+                surface: 'desktop',
+              })
+            )
+          : ''
+      }
+    </div>
+    ${
+      card.journalBlocked
+        ? `<p class="kunder-data-missing">Spärrad åtkomst: ${escapeHtml(card.journalBlockReason || 'journal spärrad')}</p>`
+        : ''
+    }`;
 
     intelShell.dataset.context = 'customer';
     if (breadcrumbSlot) {
@@ -836,6 +879,15 @@
       } catch (e) {
         kommHost.innerHTML = `<p class="kunder-data-missing">Kommunikation: ${escapeHtml(e.message)}</p>`;
       }
+    }
+
+    const actionsHost = intelCustomerView.querySelector('[data-kunder-actions-host]');
+    if (actionsHost && global.CcoKunderActions) {
+      global.CcoKunderActions.bindDossierHandlers(actionsHost, {
+        scrollAssets: () => {
+          assetsHost?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+      });
     }
   }
 
