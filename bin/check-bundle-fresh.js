@@ -23,6 +23,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const MANIFEST = path.join(__dirname, 'bundle-manifest.json');
+const DEFERRED_MANIFEST = path.join(__dirname, 'bundle-manifest-staff-deferred.json');
 const PREVIEW_DIR = path.join(ROOT, 'public/major-arcana-preview');
 const LATEST_JSON = path.join(PREVIEW_DIR, 'app.bundle.latest.json');
 
@@ -51,15 +52,28 @@ if (sources.length === 0) {
 // Hitta senaste bundle (eller använd latest.json)
 let latestBundlePath = null;
 let latestBundleMtime = 0;
+let latestMeta = null;
+const splitBundlePaths = [];
 
 if (fs.existsSync(LATEST_JSON)) {
   try {
-    const meta = JSON.parse(fs.readFileSync(LATEST_JSON, 'utf8'));
-    if (meta.hash) {
-      const candidate = path.join(PREVIEW_DIR, `app.bundle.${meta.hash}.min.js`);
+    latestMeta = JSON.parse(fs.readFileSync(LATEST_JSON, 'utf8'));
+    if (latestMeta.hash) {
+      const candidate = path.join(PREVIEW_DIR, `app.bundle.${latestMeta.hash}.min.js`);
       if (fs.existsSync(candidate)) {
         latestBundlePath = candidate;
         latestBundleMtime = fs.statSync(candidate).mtimeMs;
+      }
+    }
+    for (const key of ['staffCore', 'staffDeferred']) {
+      const entry = latestMeta?.[key];
+      if (entry?.hash) {
+        const prefix = key === 'staffCore' ? 'staff-core' : 'staff-deferred';
+        const splitPath = path.join(PREVIEW_DIR, `app.bundle.${prefix}.${entry.hash}.min.js`);
+        if (fs.existsSync(splitPath)) {
+          splitBundlePaths.push(splitPath);
+          latestBundleMtime = Math.max(latestBundleMtime, fs.statSync(splitPath).mtimeMs);
+        }
       }
     }
   } catch (_e) {}
@@ -104,9 +118,38 @@ for (const src of sources) {
   }
 }
 
-if (staleSources.length === 0) {
-  log('[check-bundle] ✓ Bundle är fresh — alla source-filer äldre än bundle.');
+const deferredSources = fs.existsSync(DEFERRED_MANIFEST)
+  ? JSON.parse(fs.readFileSync(DEFERRED_MANIFEST, 'utf8')).sources || []
+  : [];
+
+const splitManifestIssues = [];
+if (deferredSources.length > 0) {
+  const unknownDeferred = deferredSources.filter((s) => !sources.includes(s));
+  if (unknownDeferred.length) {
+    splitManifestIssues.push(
+      `deferred manifest har ${unknownDeferred.length} fil(er) som saknas i full manifest`
+    );
+  }
+  if (latestMeta?.staffCore && splitBundlePaths.length < 2) {
+    splitManifestIssues.push('latest.json har staffCore/staffDeferred men split-bundles saknas lokalt');
+  }
+}
+
+if (staleSources.length === 0 && splitManifestIssues.length === 0) {
+  const splitNote =
+    splitBundlePaths.length > 0
+      ? ` (+ ${splitBundlePaths.length} split-chunk(s))`
+      : '';
+  log(`[check-bundle] ✓ Bundle är fresh — alla source-filer äldre än bundle${splitNote}.`);
   process.exit(0);
+}
+
+if (splitManifestIssues.length > 0) {
+  warn('');
+  warn('⚠️  [check-bundle] Split-manifest/bundle mismatch:');
+  splitManifestIssues.forEach((issue) => warn(`   - ${issue}`));
+  warn('');
+  process.exit(1);
 }
 
 warn('');

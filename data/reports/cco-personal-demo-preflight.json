@@ -1,0 +1,309 @@
+{
+  "generatedAt": "2026-06-03T06:10:32.301Z",
+  "base": "https://arcana.hairtpclinic.com",
+  "pageReports": [
+    {
+      "htmlPath": "/private/tmp/arcana-deploy/public/cco-personal-start.html",
+      "results": [
+        {
+          "href": "/cco-demo.html",
+          "status": 200,
+          "ok": false,
+          "issues": [
+            "/cco-demo\\.html/i"
+          ]
+        },
+        {
+          "href": "/kunder.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-build-demo.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-pilot-guide.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-presenter-mode.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-pre-signering-check.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-review-material-warning.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-training-mode.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-journalpilot-faq.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-go-live-control.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-ops-workbench.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-4june-command-center.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-after-meeting-start.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-journal-safety-helper.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-journalpilot-go-live.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-morning-checklist.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-day1-checklist.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-pilot-print-pack.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-pilot-signoff-sheet.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-training-completion.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-review.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-reports.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        }
+      ],
+      "failed": 2
+    },
+    {
+      "htmlPath": "/private/tmp/arcana-deploy/public/cco-staff-go-live-control.html",
+      "results": [
+        {
+          "href": "/cco-personal-start.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-ops-workbench.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/journal-pilot-guide.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-training-mode.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-pre-signering-check.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-review-material-warning.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/photo-review.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/ambiguous-mail-enrichment-review.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-import-review.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-staff-training-completion.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/cco-4june-command-center.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        }
+      ],
+      "failed": 0
+    },
+    {
+      "htmlPath": "/private/tmp/arcana-deploy/public/cco-staff-training-completion.html",
+      "results": [
+        {
+          "href": "/cco-personal-start.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        }
+      ],
+      "failed": 0
+    },
+    {
+      "htmlPath": "/private/tmp/arcana-deploy/public/personal-demo.html",
+      "results": [
+        {
+          "href": "/kunder.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html#journal",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html#timeline",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/kunder.html#formular",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-review.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        },
+        {
+          "href": "/finance-reports.html",
+          "status": 200,
+          "ok": true,
+          "issues": []
+        }
+      ],
+      "failed": 0
+    }
+  ],
+  "failed": 2
+}

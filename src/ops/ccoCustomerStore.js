@@ -94,19 +94,25 @@ function normalizeDirectory(values) {
       .map(([key, value]) => {
         const normalizedKey = normalizeKey(key);
         if (!normalizedKey || !value || typeof value !== 'object') return null;
-        return [
-          normalizedKey,
-          {
-            name: normalizeText(value.name) || normalizedKey,
-            vip: normalizeBoolean(value.vip, false),
-            emailCoverage: normalizeCount(value.emailCoverage, 0),
-            duplicateCandidate: normalizeBoolean(value.duplicateCandidate, false),
-            profileCount: Math.max(1, normalizeCount(value.profileCount, 1)),
-            customerValue: normalizeCount(value.customerValue, 0),
-            totalConversations: normalizeCount(value.totalConversations, 0),
-            totalMessages: normalizeCount(value.totalMessages, 0),
-          },
-        ];
+        const out = {
+          name: normalizeText(value.name) || normalizedKey,
+          vip: normalizeBoolean(value.vip, false),
+          emailCoverage: normalizeCount(value.emailCoverage, 0),
+          duplicateCandidate: normalizeBoolean(value.duplicateCandidate, false),
+          profileCount: Math.max(1, normalizeCount(value.profileCount, 1)),
+          customerValue: normalizeCount(value.customerValue, 0),
+          totalConversations: normalizeCount(value.totalConversations, 0),
+          totalMessages: normalizeCount(value.totalMessages, 0),
+        };
+        // P0.9 — bevara meridiq/drive-koppling så QA-dashboard kan räkna.
+        // Pass-through (counts only — ingen ny PII introduceras här).
+        if (value.meridiqMeta && typeof value.meridiqMeta === 'object') {
+          out.meridiqMeta = value.meridiqMeta;
+        }
+        if (value.noMeridiqJournal === true) out.noMeridiqJournal = true;
+        if (value.driveFolderId) out.driveFolderId = value.driveFolderId;
+        if (value.clientoId) out.clientoId = value.clientoId;
+        return [normalizedKey, out];
       })
       .filter(Boolean)
   );

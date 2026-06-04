@@ -4,7 +4,7 @@
 
 - Date: 2026-05-16
 - Scope: production readiness and live verification checklist for CCO Booking on Hair TP
-- Builds on: [cco-booking-phone-booking-level-1_5-plan.md](/Users/fazlikrasniqi/Desktop/Arcana/docs/strategy/cco-booking-phone-booking-level-1_5-plan.md)
+- Builds on: [cco-booking-phone-booking-level-1_5-plan.md](./cco-booking-phone-booking-level-1_5-plan.md)
 
 ## Purpose
 
@@ -55,16 +55,16 @@ Booking is considered live-ready when an operator can:
 
 ### Backend and orchestration
 
-- Booking API: `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoBookings.js`
-- Booking persistence: `/Users/fazlikrasniqi/Desktop/Arcana/src/ops/ccoBookingStore.js`
-- Workspace bootstrap: `/Users/fazlikrasniqi/Desktop/Arcana/src/routes/ccoWorkspace.js`
-- Runtime async bootstrap: `/Users/fazlikrasniqi/Desktop/Arcana/public/major-arcana-preview/runtime-async-orchestration.js`
-- Server mounting: `/Users/fazlikrasniqi/Desktop/Arcana/server.js`
+- Booking API: `src/routes/ccoBookings.js`
+- Booking persistence: `src/ops/ccoBookingStore.js`
+- Workspace bootstrap: `src/routes/ccoWorkspace.js`
+- Runtime async bootstrap: `public/major-arcana-preview/runtime-async-orchestration.js`
+- Server mounting: `server.js`
 
 ### Config and dependencies
 
-- Config: `/Users/fazlikrasniqi/Desktop/Arcana/src/config.js`
-- Brand runtime config: `/Users/fazlikrasniqi/Desktop/Arcana/src/brand/runtimeConfig.js`
+- Config: `src/config.js`
+- Brand runtime config: `src/brand/runtimeConfig.js`
 - Intelligence classifier context: `cco-server/src/intelligence/*`
 
 ## Preflight assumptions

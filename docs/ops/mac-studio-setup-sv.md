@@ -18,8 +18,8 @@ Viktigt:
 Om GitHub är tillgängligt:
 
 ```bash
-git clone https://github.com/Fazliilzaf/Arcana.git "$HOME/Desktop/Arcana"
-cd "$HOME/Desktop/Arcana"
+git clone https://github.com/Fazliilzaf/major-arcana.git "$HOME/Code/major-arcana"
+cd "$HOME/Code/major-arcana"
 ```
 
 ## 3. Kör bootstrap
@@ -56,7 +56,7 @@ render whoami
 ## 5. Installera Arcana lokalt
 
 ```bash
-cd "$HOME/Desktop/Arcana"
+cd "$HOME/Code/major-arcana"
 npm ci
 ```
 
@@ -71,7 +71,7 @@ BASE_URL=https://arcana.hairtpclinic.se npm run smoke:public
 Nar Mac Studio ar bootstrapad och Arcana finns dar kan du sta pa MacBook Air och skicka jobbet dit:
 
 ```bash
-cd "$HOME/Desktop/Arcana"
+cd "$HOME/Code/major-arcana"
 npm run studio:sync
 npm run studio:shell
 ```
@@ -79,7 +79,7 @@ npm run studio:shell
 Om Codex-appen ar installerad pa Mac Studio kan du starta Codex i Arcana-mappen med:
 
 ```bash
-cd "$HOME/Desktop/Arcana"
+cd "$HOME/Code/major-arcana"
 npm run studio:codex
 ```
 

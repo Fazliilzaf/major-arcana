@@ -23,11 +23,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Verify blueprint targets prod service
         if: env.RENDER_API_KEY != ''
@@ -36,6 +42,7 @@ jobs:
       - name: Wait for Render blueprint sync
         if: env.RENDER_API_KEY != ''
         run: bash ./scripts/wait-for-render-blueprint-sync.sh
+        # Deploy-drift: script avslutar 0 vid sync-lag; heal fortsätter (env-restore + readyz).
 
       - name: Wait for prod deploy (commit match)
         run: |
@@ -88,6 +95,20 @@ jobs:
             echo "::error::För få env-nycklar efter restore ($count)"
             exit 1
           fi
+
+      - name: Verify U2.4 field prep (prod)
+        if: env.RENDER_API_KEY != ''
+        continue-on-error: false
+        env:
+          ARCANA_STAFF_EMAIL: ${{ secrets.ARCANA_STAFF_EMAIL }}
+          ARCANA_STAFF_PASSWORD: ${{ secrets.ARCANA_STAFF_PASSWORD }}
+          ARCANA_OWNER_MFA_SECRET: ${{ secrets.ARCANA_OWNER_MFA_SECRET }}
+        run: |
+          if [[ -z "${ARCANA_STAFF_EMAIL:-}" || -z "${ARCANA_STAFF_PASSWORD:-}" ]]; then
+            echo "::warning::ARCANA_STAFF_* secrets saknas — hoppar verify:u2-4-field-prep-prod"
+            exit 0
+          fi
+          npm run verify:u2-4-field-prep-prod
 
       - name: Verify prod version
         run: curl -fsS "${ARCANA_PROD_URL}/api/v1/_diag/version"

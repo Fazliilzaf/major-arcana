@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Major Arcana · Admin</title>
+    <title>Admin · Arcana</title>
     <meta name="arcana-ui-build" content="__ARCANA_UI_BUILD__" />
     <link rel="icon" type="image/png" href="/assets/major-arcana-mark-final.png" />
     <link rel="apple-touch-icon" href="/assets/major-arcana-mark-final.png" />
@@ -2193,6 +2193,41 @@
         }
       }
       }
+
+      /* ─── ADMIN ADAPTIVE RESPONSIVE ─── */
+
+      /* Mobile (≤767px) */
+      @media (max-width: 767px) {
+        body { padding: 8px !important; }
+        .dashboardPanel { padding: 12px !important; }
+        .sectionNavRow { flex-wrap: wrap !important; gap: 6px !important; overflow-x: auto; }
+        .sectionNavBtn { font-size: 12px !important; padding: 6px 10px !important; min-height: 36px; }
+        h1 { font-size: 22px !important; }
+        h2 { font-size: 18px !important; }
+        .kpiRow, .kpiGrid { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+        .kpiCard { width: 100% !important; min-width: 0 !important; }
+        table { display: block !important; overflow-x: auto !important; font-size: 12px !important; }
+        table th, table td { padding: 6px 8px !important; white-space: nowrap; }
+        textarea { min-height: 80px !important; }
+        input, select, textarea, button { min-height: 44px; font-size: 14px !important; }
+        .glass-panel, .glassSectionPanel { padding: 14px !important; }
+        pre { font-size: 11px !important; overflow-x: auto !important; }
+      }
+
+      /* Tablet (768–1023px) */
+      @media (min-width: 768px) and (max-width: 1023px) {
+        body { padding: 16px !important; }
+        .kpiRow, .kpiGrid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+        .sectionNavRow { flex-wrap: wrap !important; }
+      }
+
+      /* Touch targets */
+      @media (max-width: 1023px) {
+        button, [role="button"], a, select, input[type="checkbox"] {
+          min-height: 44px;
+          min-width: 44px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2387,6 +2422,9 @@
             >
               CCO
             </button>
+            <button class="btn small sectionNavBtn" data-target="cmSection" data-i18n="nav_cm">
+              CM
+            </button>
           </nav>
         </div>
 
@@ -2497,6 +2535,110 @@
               referrerpolicy="same-origin"
             ></iframe>
           </div>
+        </section>
+
+        <!-- CM Corporate Expense Management -->
+        <section data-section-group="cmSection" hidden aria-hidden="true">
+          <h2 style="margin-bottom: 16px">CM — Corporate Expense Management</h2>
+          <div class="kpiRow" id="cmKpiRow">
+            <div class="kpiCard">
+              <div class="kpiLabel">Inbox</div>
+              <div class="kpiValue" id="cmInbox">—</div>
+            </div>
+            <div class="kpiCard">
+              <div class="kpiLabel">Granskning</div>
+              <div class="kpiValue" id="cmReview">—</div>
+            </div>
+            <div class="kpiCard">
+              <div class="kpiLabel">Fakturor</div>
+              <div class="kpiValue" id="cmInvoices">—</div>
+            </div>
+            <div class="kpiCard">
+              <div class="kpiLabel">Kvitton</div>
+              <div class="kpiValue" id="cmReceipts">—</div>
+            </div>
+            <div class="kpiCard">
+              <div class="kpiLabel">Resor</div>
+              <div class="kpiValue" id="cmTravel">—</div>
+            </div>
+            <div class="kpiCard">
+              <div class="kpiLabel">Godkännande</div>
+              <div class="kpiValue" id="cmApprovals">—</div>
+            </div>
+            <div class="kpiCard">
+              <div class="kpiLabel">Redo bokföring</div>
+              <div class="kpiValue" id="cmReady">—</div>
+            </div>
+            <div class="kpiCard">
+              <div class="kpiLabel">Exporterat</div>
+              <div class="kpiValue" id="cmExported">—</div>
+            </div>
+            <div class="kpiCard">
+              <div class="kpiLabel">Dubbletter</div>
+              <div class="kpiValue" id="cmDuplicates">—</div>
+            </div>
+            <div class="kpiCard">
+              <div class="kpiLabel">Fel</div>
+              <div class="kpiValue" id="cmErrors">—</div>
+            </div>
+          </div>
+          <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap">
+            <button class="btn" id="cmSyncMailBtn" type="button">Synka mail</button>
+            <button class="btn" id="cmUploadBtn" type="button">Ladda upp kvitto/faktura</button>
+          </div>
+          <div id="cmStatus" style="margin-top: 12px; font-size: 13px; color: var(--muted)"></div>
+          <script>
+            (function () {
+              async function loadCmDashboard() {
+                try {
+                  const token = typeof getToken === 'function' ? getToken() : state?.token;
+                  if (!token) return;
+                  const res = await fetch('/api/v1/cm/dashboard', {
+                    headers: { Authorization: 'Bearer ' + token },
+                  });
+                  if (!res.ok) return;
+                  const d = await res.json();
+                  document.getElementById('cmInbox').textContent = d.inbox ?? '—';
+                  document.getElementById('cmReview').textContent = d.needsReview ?? '—';
+                  document.getElementById('cmInvoices').textContent = d.invoices ?? '—';
+                  document.getElementById('cmReceipts').textContent = d.receipts ?? '—';
+                  document.getElementById('cmTravel').textContent = d.travel ?? '—';
+                  document.getElementById('cmApprovals').textContent = d.approvalQueue ?? '—';
+                  document.getElementById('cmReady').textContent = d.readyForBookkeeping ?? '—';
+                  document.getElementById('cmExported').textContent = d.exported ?? '—';
+                  document.getElementById('cmDuplicates').textContent = d.duplicates ?? '—';
+                  document.getElementById('cmErrors').textContent = d.importErrors ?? '—';
+                } catch {}
+              }
+              document.getElementById('cmSyncMailBtn')?.addEventListener('click', async () => {
+                const token = typeof getToken === 'function' ? getToken() : state?.token;
+                document.getElementById('cmStatus').textContent = 'Synkar mail...';
+                try {
+                  const res = await fetch('/api/v1/cm/mail-sync', {
+                    method: 'POST',
+                    headers: {
+                      Authorization: 'Bearer ' + token,
+                      'Content-Type': 'application/json',
+                    },
+                  });
+                  const d = await res.json();
+                  document.getElementById('cmStatus').textContent = d.ok
+                    ? 'Synk klar: ' + (d.totalImported || 0) + ' importerade'
+                    : 'Fel: ' + (d.error || '');
+                  loadCmDashboard();
+                } catch (e) {
+                  document.getElementById('cmStatus').textContent = 'Fel: ' + e.message;
+                }
+              });
+              const observer = new MutationObserver(() => {
+                const visible = !document.querySelector('[data-section-group="cmSection"]')?.hidden;
+                if (visible) loadCmDashboard();
+              });
+              const section = document.querySelector('[data-section-group="cmSection"]');
+              if (section)
+                observer.observe(section, { attributes: true, attributeFilter: ['hidden'] });
+            })();
+          </script>
         </section>
 
         <div
@@ -5304,6 +5446,157 @@ const BOOKING_STATUSES = Object.freeze([
     <script src="/admin/cmo-connectors.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/executive-feed.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin/cao-workspace.js?v=__ARCANA_UI_BUILD__"></script>
+    <script src="/arcana-page-titles.js?v=__ARCANA_UI_BUILD__"></script>
     <script src="/admin.js?v=__ARCANA_UI_BUILD__"></script>
+    <script>
+      // Inline contextual docs per section
+      (function () {
+        const SECTION_MAP = {
+          overviewSection: 'overview',
+          templateLifecycleSection: 'booking',
+          cooSection: 'coo',
+          caoSection: 'cao',
+          cfoSection: 'cfo',
+          cmoSection: 'cmo',
+          opsSection: 'ops',
+          cmSection: 'compliance',
+        };
+        let docsPanel = null;
+        function ensureDocsPanel() {
+          if (docsPanel) return docsPanel;
+          docsPanel = document.createElement('div');
+          docsPanel.id = 'adminContextDocs';
+          docsPanel.style.cssText =
+            'position:fixed;bottom:0;right:0;width:340px;max-height:40vh;overflow-y:auto;background:var(--panel,#23201D);border:1px solid var(--line,#3A332C);border-radius:14px 0 0 0;padding:16px;font-size:12px;z-index:500;display:none;color:var(--muted,#E8DDD5);';
+          docsPanel.innerHTML =
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><strong style="color:var(--text);">Relevant dokumentation</strong><button onclick="this.parentElement.parentElement.style.display=\'none\'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;">×</button></div><div id="adminContextDocsList"></div>';
+          document.body.appendChild(docsPanel);
+          return docsPanel;
+        }
+        async function loadDocsForSection(sectionKey) {
+          const panel = ensureDocsPanel();
+          const list = document.getElementById('adminContextDocsList');
+          if (!list) return;
+          try {
+            const res = await fetch('/api/v1/docs/section/' + sectionKey);
+            if (!res.ok) {
+              panel.style.display = 'none';
+              return;
+            }
+            const data = await res.json();
+            if (!data.documents?.length) {
+              panel.style.display = 'none';
+              return;
+            }
+            list.innerHTML = data.documents
+              .map(function (doc) {
+                return (
+                  '<div style="margin-bottom:8px;padding:8px;background:var(--panel-soft,#2F2A25);border-radius:8px;"><a href="#" onclick="event.preventDefault();loadDocContent(\'' +
+                  doc.path +
+                  '\')" style="color:var(--accent,#C2AA9C);font-weight:500;text-decoration:none;">' +
+                  doc.title +
+                  '</a><br><span style="font-size:11px;opacity:0.7;">' +
+                  (doc.description || '') +
+                  '</span></div>'
+                );
+              })
+              .join('');
+            panel.style.display = 'block';
+          } catch {
+            panel.style.display = 'none';
+          }
+        }
+        window.loadDocContent = async function (docPath) {
+          const list = document.getElementById('adminContextDocsList');
+          if (!list) return;
+          try {
+            const res = await fetch('/api/v1/docs/content?path=' + encodeURIComponent(docPath));
+            if (!res.ok) return;
+            const data = await res.json();
+            list.innerHTML =
+              '<button onclick="history.back();location.reload();" style="background:none;border:none;color:var(--accent);cursor:pointer;margin-bottom:8px;">← Tillbaka</button><pre style="white-space:pre-wrap;font-size:11px;line-height:1.4;max-height:30vh;overflow-y:auto;">' +
+              (data.content || '').replace(/</g, '&lt;').slice(0, 5000) +
+              '</pre>';
+          } catch {}
+        };
+        // Komplett dokumentbibliotek — ALLA docs i repot, grupperade per segment.
+        window.loadDocLibrary = async function () {
+          const panel = ensureDocsPanel();
+          const list = document.getElementById('adminContextDocsList');
+          if (!list) return;
+          panel.style.width = '460px';
+          panel.style.maxHeight = '72vh';
+          list.innerHTML = 'Laddar dokument…';
+          panel.style.display = 'block';
+          try {
+            const res = await fetch('/api/v1/docs/library');
+            const data = await res.json();
+            if (!data.ok || !Array.isArray(data.segments)) {
+              list.innerHTML = 'Kunde inte ladda dokumentbiblioteket.';
+              return;
+            }
+            list.innerHTML =
+              '<div style="font-size:11px;opacity:0.7;margin-bottom:8px;">' +
+              data.totalDocuments +
+              ' dokument i ' +
+              data.totalSegments +
+              ' kategorier</div>' +
+              data.segments
+                .map(function (seg) {
+                  return (
+                    '<details style="margin-bottom:6px;"><summary style="cursor:pointer;color:var(--text);font-weight:600;padding:4px 0;">' +
+                    seg.title +
+                    ' (' +
+                    seg.documentCount +
+                    ')</summary>' +
+                    seg.documents
+                      .map(function (doc) {
+                        return (
+                          '<div style="margin:4px 0 4px 12px;"><a href="#" onclick="event.preventDefault();loadDocContent(\'' +
+                          doc.path +
+                          '\')" style="color:var(--accent,#C2AA9C);text-decoration:none;font-size:12px;">' +
+                          doc.title +
+                          '</a></div>'
+                        );
+                      })
+                      .join('') +
+                    '</details>'
+                  );
+                })
+                .join('');
+          } catch {
+            list.innerHTML = 'Fel vid laddning.';
+          }
+        };
+        // Alltid tillgänglig launcher-knapp för hela dokumentytan.
+        (function ensureDocsLauncher() {
+          if (document.getElementById('adminDocsLauncher')) return;
+          const btn = document.createElement('button');
+          btn.id = 'adminDocsLauncher';
+          btn.type = 'button';
+          btn.textContent = '📚 Alla dokument';
+          btn.style.cssText =
+            'position:fixed;bottom:8px;right:8px;z-index:600;background:var(--accent,#C2AA9C);color:#1d1a17;border:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.25);';
+          btn.addEventListener('click', function () {
+            window.loadDocLibrary();
+          });
+          document.body.appendChild(btn);
+        })();
+        const observer = new MutationObserver(function () {
+          document.querySelectorAll('[data-section-group]').forEach(function (section) {
+            if (!section.hidden) {
+              const target = section.getAttribute('data-section-group');
+              const key = SECTION_MAP[target];
+              if (key) loadDocsForSection(key);
+            }
+          });
+        });
+        observer.observe(document.body, {
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['hidden'],
+        });
+      })();
+    </script>
   </body>
 </html>

@@ -12,13 +12,13 @@ Använd det här dokumentet när du snabbt behöver svar på:
 - vad som är nästa rimliga spår
 
 För målbild och fasordning:
-- [`cco-mail-foundation-gap-blueprint.md`](/Users/fazlikrasniqi/Desktop/Arcana/docs/cco-mail-foundation-gap-blueprint.md)
+- [`cco-mail-foundation-gap-blueprint.md`](./cco-mail-foundation-gap-blueprint.md)
 
 För rekommenderad arbetssekvens:
-- [`cco-mail-foundation-working-sequence.md`](/Users/fazlikrasniqi/Desktop/Arcana/docs/cco-mail-foundation-working-sequence.md)
+- [`cco-mail-foundation-working-sequence.md`](./cco-mail-foundation-working-sequence.md)
 
 För riktad nästa teknisk plan för högre mailfidelity:
-- [`cco-mail-mime-fidelity-plan.md`](/Users/fazlikrasniqi/Desktop/Arcana/docs/cco-mail-mime-fidelity-plan.md)
+- [`cco-mail-mime-fidelity-plan.md`](./cco-mail-mime-fidelity-plan.md)
 
 ## Nuvarande läge
 Mail foundation-spåret är inte längre bara planerat. Det är byggt i riktiga faser och därefter kopplat in i aktiv drift.
@@ -133,7 +133,7 @@ Det här är nu de mest rimliga fortsättningarna, i prioriterad ordning:
 1. `Selective MIME-backed fidelity`
 - foundationen är starkare nu, men vissa mailfamiljer tappar fortfarande innehållsfidelity
 - nästa riktiga tekniska steg är att ge öppnade high-risk mail ett rikare source-spår via selektiv MIME-fetch
-- se [`cco-mail-mime-fidelity-plan.md`](/Users/fazlikrasniqi/Desktop/Arcana/docs/cco-mail-mime-fidelity-plan.md)
+- se [`cco-mail-mime-fidelity-plan.md`](./cco-mail-mime-fidelity-plan.md)
 
 2. `Performance / startup / heavy-state optimization`
 - foundationen fungerar, men lokal boot kan fortfarande optimeras vidare på verklig ready-tid

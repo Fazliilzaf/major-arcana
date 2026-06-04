@@ -1,0 +1,1168 @@
+/* ─── CCO Communication-panel — Sprint 1 (Komm/Journey) ─────────────────
+ * Återanvänder --cco-* tokens, prefix .cco-komm-*.
+ * ─────────────────────────────────────────────────────────────────── */
+
+.cco-komm-host {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+/* Snabbactions */
+.cco-komm-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.cco-komm-action {
+  appearance: none;
+  cursor: pointer;
+  padding: 9px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--cco-color-brand);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: transform 0.1s ease;
+  text-align: center;
+  line-height: 1.2;
+}
+.cco-komm-action:hover {
+  transform: translateY(-1px);
+}
+.cco-komm-action-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+.cco-komm-action[data-action="internal"] {
+  background: linear-gradient(
+    180deg,
+    var(--rose-pill-top, rgba(252, 233, 240, 0.98)),
+    var(--rose-pill-bottom, rgba(241, 207, 220, 0.95))
+  );
+  color: var(--accent-studio, #bb4779);
+  border-color: rgba(187, 71, 121, 0.25);
+}
+
+@media (max-width: 720px) {
+  .cco-komm-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Feed */
+.cco-komm-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cco-komm-feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+}
+.cco-komm-feed-counters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cco-komm-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  font-size: 10.5px;
+  color: var(--cco-text-secondary, rgba(70, 60, 50, 0.62));
+}
+.cco-komm-counter strong {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--cco-color-brand, #2b251f);
+  font-variant-numeric: tabular-nums;
+}
+.cco-komm-feed-lastcontact {
+  font-size: 10.5px;
+  color: var(--cco-text-tertiary, #8a8174);
+  font-style: italic;
+}
+
+/* Empty-state */
+.cco-komm-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--cco-text-tertiary, #8a8174);
+  font-style: italic;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px dashed rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+}
+
+/* List */
+.cco-komm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.cco-komm-event {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-left: 3px solid var(--cco-text-tertiary, #8a8174);
+  font-size: 11.5px;
+}
+.cco-komm-event--success {
+  border-left-color: var(--cco-status-success, #4a8268);
+}
+.cco-komm-event--warning {
+  border-left-color: var(--cco-status-warning, #c8821e);
+}
+.cco-komm-event--info {
+  border-left-color: var(--cco-status-info, #4a7ba8);
+}
+.cco-komm-event-icon {
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+}
+.cco-komm-event-body {
+  min-width: 0;
+}
+.cco-komm-event-title {
+  font-weight: 700;
+  font-size: 11.5px;
+  color: var(--cco-color-brand, #2b251f);
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+.cco-komm-event-meta {
+  font-size: 10px;
+  color: var(--cco-text-tertiary, #8a8174);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cco-komm-event-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.cco-komm-event-note-body {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  font-size: 11.5px;
+  color: var(--cco-color-brand, #2b251f);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.cco-komm-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+.cco-komm-pill--warning {
+  background: rgba(200, 130, 30, 0.14);
+  color: var(--cco-status-warning, #c8821e);
+}
+
+/* Modal (intern notis) */
+.cco-komm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(43, 37, 31, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+.cco-komm-modal {
+  background: linear-gradient(
+    180deg,
+    var(--panel-shell-top, rgba(250, 246, 242, 0.94)),
+    var(--panel-shell-bottom, rgba(244, 238, 233, 0.86))
+  );
+  border-radius: 22px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 32px 70px rgba(93, 74, 60, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+}
+.cco-komm-modal-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(215, 202, 194, 0.4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cco-komm-modal-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--cco-color-brand);
+}
+.cco-komm-modal-close {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 6px;
+  color: var(--cco-text-tertiary);
+}
+.cco-komm-modal-body {
+  padding: 14px 18px;
+}
+.cco-komm-modal-lead {
+  font-size: 11.5px;
+  color: var(--cco-text-secondary);
+  margin-bottom: 12px;
+}
+.cco-komm-modal-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cco-text-tertiary);
+  margin-bottom: 6px;
+}
+.cco-komm-modal-input {
+  width: 100%;
+  font: inherit;
+  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  color: var(--cco-color-brand);
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 80px;
+}
+.cco-komm-modal-input:focus {
+  outline: none;
+  border-color: rgba(187, 71, 121, 0.45);
+  box-shadow:
+    0 0 0 3px rgba(187, 71, 121, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+.cco-komm-modal-error {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(185, 74, 74, 0.1);
+  border: 1px solid rgba(185, 74, 74, 0.3);
+  color: var(--cco-status-danger);
+  font-size: 11px;
+}
+.cco-komm-modal-foot {
+  padding: 12px 18px;
+  border-top: 1px solid rgba(215, 202, 194, 0.4);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.cco-komm-modal-cancel,
+.cco-komm-modal-submit {
+  appearance: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+.cco-komm-modal-cancel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  color: var(--cco-color-brand);
+}
+.cco-komm-modal-submit {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  border-color: rgba(187, 71, 121, 0.25);
+}
+.cco-komm-modal-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Mobile bottom-sheet */
+@media (max-width: 720px) {
+  .cco-komm-modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .cco-komm-modal {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 22px 22px 0 0;
+    animation: ccoKommSlide 0.25s cubic-bezier(0.34, 1.32, 0.64, 1);
+  }
+  .cco-komm-modal::before {
+    content: "";
+    display: block;
+    width: 38px;
+    height: 4px;
+    background: rgba(74, 73, 70, 0.2);
+    border-radius: 999px;
+    margin: 8px auto -4px;
+  }
+}
+@keyframes ccoKommSlide {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Toast */
+.cco-komm-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 10000;
+  box-shadow: 0 18px 38px rgba(93, 74, 60, 0.18);
+}
+.cco-komm-toast--ok {
+  background: linear-gradient(180deg, rgba(216, 234, 221, 1), rgba(184, 216, 197, 1));
+  color: var(--cco-status-success);
+  border: 1px solid rgba(74, 130, 104, 0.32);
+}
+.cco-komm-toast--error {
+  background: linear-gradient(180deg, rgba(245, 214, 211, 1), rgba(232, 181, 176, 1));
+  color: var(--cco-status-danger);
+  border: 1px solid rgba(185, 74, 74, 0.32);
+}
+
+/* ─── Svarstudio (Sprint 2) — template-picker + edit-vy ───────────── */
+.cco-komm-modal--wide {
+  max-width: 720px;
+}
+.cco-komm-svar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cco-komm-svar-templates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+.cco-komm-svar-template {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 14px;
+  border: 1px solid rgba(187, 159, 122, 0.28);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 243, 235, 0.78));
+  color: var(--cco-color-text);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 3px rgba(56, 40, 28, 0.04);
+}
+.cco-komm-svar-template:hover {
+  transform: translateY(-1px);
+  border-color: rgba(187, 71, 121, 0.35);
+  box-shadow: 0 6px 14px rgba(56, 40, 28, 0.08);
+}
+.cco-komm-svar-template-stage {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cco-color-brand);
+}
+.cco-komm-svar-template-subject {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cco-color-text);
+  line-height: 1.3;
+}
+.cco-komm-svar-template-meta {
+  font-size: 10.5px;
+  color: var(--cco-color-muted);
+  letter-spacing: 0.04em;
+}
+
+.cco-komm-svar-edit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.cco-komm-svar-back {
+  background: transparent;
+  border: 0;
+  color: var(--cco-color-brand);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.cco-komm-svar-back:hover {
+  text-decoration: underline;
+}
+.cco-komm-svar-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--cco-color-muted);
+}
+
+.cco-komm-svar-banner {
+  padding: 9px 12px;
+  background: linear-gradient(180deg, rgba(255, 244, 219, 0.96), rgba(248, 233, 198, 0.82));
+  border: 1px solid rgba(178, 132, 38, 0.25);
+  border-radius: 10px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: rgba(118, 81, 18, 0.92);
+}
+
+.cco-komm-svar-textarea {
+  min-height: 200px;
+  font-family: var(--cco-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-size: 12.5px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.cco-komm-svar-merge-hint {
+  font-size: 10.5px;
+  color: var(--cco-color-muted);
+  font-style: italic;
+  padding: 4px 2px;
+}
+.cco-komm-svar-foot {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.cco-komm-modal-submit--gold {
+  background: linear-gradient(180deg, rgba(248, 222, 168, 1), rgba(228, 192, 122, 1)) !important;
+  color: rgba(78, 52, 8, 0.96) !important;
+  border-color: rgba(178, 132, 38, 0.35) !important;
+}
+.cco-komm-modal-submit--queue {
+  background: linear-gradient(180deg, rgba(216, 228, 240, 1), rgba(184, 204, 224, 1)) !important;
+  color: rgba(36, 58, 90, 0.95) !important;
+  border-color: rgba(74, 110, 158, 0.35) !important;
+}
+
+/* Status-pill (för drafts i feed) */
+.cco-komm-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+.cco-komm-status--draft {
+  background: rgba(220, 215, 207, 0.72);
+  color: rgba(96, 88, 76, 0.96);
+}
+.cco-komm-status--needs_approval {
+  background: rgba(252, 234, 200, 0.82);
+  color: rgba(132, 92, 22, 0.96);
+}
+.cco-komm-status--approved {
+  background: rgba(216, 235, 219, 0.82);
+  color: rgba(54, 110, 78, 0.96);
+}
+.cco-komm-status--queued {
+  background: rgba(216, 228, 240, 0.82);
+  color: rgba(36, 58, 90, 0.96);
+}
+.cco-komm-status--sent {
+  background: rgba(199, 222, 207, 0.96);
+  color: rgba(36, 84, 56, 0.96);
+}
+.cco-komm-status--failed {
+  background: rgba(244, 210, 207, 0.92);
+  color: rgba(140, 38, 38, 0.96);
+}
+.cco-komm-status--cancelled {
+  background: rgba(228, 222, 220, 0.8);
+  color: rgba(98, 88, 80, 0.96);
+}
+
+@media (max-width: 720px) {
+  .cco-komm-svar-templates {
+    grid-template-columns: 1fr;
+  }
+  .cco-komm-svar-textarea {
+    min-height: 160px;
+  }
+  .cco-komm-svar-foot {
+    flex-direction: column-reverse;
+  }
+  .cco-komm-svar-foot button {
+    width: 100%;
+  }
+}
+
+/* ─── Sprint 4 — Thread-view (tabs + thread-list per kund) ────────── */
+.cco-komm-threads {
+  margin-top: 18px;
+  padding: 14px 12px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 243, 235, 0.74));
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  box-shadow: 0 2px 6px rgba(56, 40, 28, 0.05);
+}
+.cco-komm-threads-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.cco-komm-threads-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+  letter-spacing: -0.01em;
+}
+.cco-komm-threads-meta {
+  font-size: 9.5px;
+  color: var(--cco-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cco-komm-thread-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(187, 159, 122, 0.18);
+}
+.cco-komm-thread-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--cco-text-secondary);
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+.cco-komm-thread-tab:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--cco-color-brand);
+}
+.cco-komm-thread-tab.is-active {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  border-color: rgba(187, 71, 121, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+.cco-komm-thread-tab-count {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: inherit;
+}
+.cco-komm-thread-tab.is-active .cco-komm-thread-tab-count {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.cco-komm-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cco-komm-thread-row {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 243, 235, 0.62));
+  border: 1px solid rgba(187, 159, 122, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.14s ease;
+}
+.cco-komm-thread-row:hover {
+  border-color: rgba(187, 71, 121, 0.26);
+  box-shadow: 0 4px 10px rgba(56, 40, 28, 0.06);
+}
+.cco-komm-thread-row--unanswered {
+  border-left: 3px solid var(--cco-status-warning);
+}
+.cco-komm-thread-row--needs_approval {
+  border-left: 3px solid var(--cco-status-warning);
+  background: linear-gradient(180deg, rgba(255, 244, 219, 0.88), rgba(248, 233, 198, 0.72));
+}
+.cco-komm-thread-row--handled {
+  opacity: 0.68;
+  border-left: 3px solid var(--cco-status-success);
+}
+.cco-komm-thread-row--snoozed {
+  opacity: 0.68;
+}
+
+.cco-komm-thread-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.cco-komm-thread-from {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cco-komm-thread-ts {
+  font-size: 10px;
+  color: var(--cco-color-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.cco-komm-thread-subject {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cco-color-text);
+  line-height: 1.3;
+}
+.cco-komm-thread-preview {
+  font-size: 11px;
+  color: var(--cco-text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cco-komm-thread-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  color: var(--cco-text-tertiary);
+  margin-top: 2px;
+}
+.cco-komm-thread-flag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: rgba(200, 130, 30, 0.14);
+  color: var(--cco-status-warning);
+}
+.cco-komm-thread-flag--ok {
+  background: rgba(74, 130, 104, 0.14);
+  color: var(--cco-status-success);
+}
+
+.cco-komm-thread-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.cco-komm-thread-btn {
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--cco-color-brand);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.cco-komm-thread-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(187, 71, 121, 0.35);
+}
+.cco-komm-thread-btn--primary {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  border-color: rgba(187, 71, 121, 0.28);
+}
+
+@media (max-width: 720px) {
+  .cco-komm-thread-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 6px;
+  }
+  .cco-komm-thread-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .cco-komm-thread-actions {
+    flex-direction: column;
+  }
+  .cco-komm-thread-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ─── Sprint 5 — Kundresa stepper ─────────────────────────────────── */
+.cco-komm-journey {
+  margin-top: 18px;
+  padding: 14px 12px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 243, 235, 0.74));
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  box-shadow: 0 2px 6px rgba(56, 40, 28, 0.05);
+}
+.cco-komm-journey-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.cco-komm-journey-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cco-color-brand);
+}
+.cco-komm-journey-meta {
+  font-size: 9.5px;
+  color: var(--cco-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cco-komm-stepper {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.cco-komm-step {
+  flex: 1 1 calc(25% - 6px);
+  min-width: 110px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid rgba(187, 159, 122, 0.2);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--cco-text-secondary);
+  transition: all 0.14s ease;
+}
+.cco-komm-step:hover {
+  border-color: rgba(187, 71, 121, 0.35);
+}
+.cco-komm-step-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  font-weight: 700;
+  font-size: 9.5px;
+}
+.cco-komm-step--completed {
+  background: linear-gradient(180deg, rgba(216, 235, 219, 0.92), rgba(184, 216, 197, 0.78));
+  border-color: rgba(74, 130, 104, 0.32);
+  color: var(--cco-status-success);
+}
+.cco-komm-step--completed .cco-komm-step-order {
+  background: rgba(74, 130, 104, 0.22);
+  color: var(--cco-status-success);
+}
+.cco-komm-step--current {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  border-color: rgba(187, 71, 121, 0.35);
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+.cco-komm-step--current .cco-komm-step-order {
+  background: rgba(187, 71, 121, 0.22);
+  color: var(--accent-studio);
+}
+
+.cco-komm-journey-side {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(187, 159, 122, 0.15);
+  flex-wrap: wrap;
+}
+.cco-komm-journey-side-label {
+  font-size: 10px;
+  color: var(--cco-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cco-komm-side-btn {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  color: var(--cco-text-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.cco-komm-side-btn:hover {
+  border-color: rgba(187, 71, 121, 0.32);
+}
+.cco-komm-side-btn.is-active {
+  background: linear-gradient(180deg, rgba(244, 210, 207, 0.92), rgba(228, 180, 176, 0.82));
+  color: var(--cco-status-danger);
+  border-color: rgba(185, 74, 74, 0.35);
+  font-weight: 700;
+}
+
+.cco-komm-journey-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.cco-komm-journey-btn {
+  padding: 5px 11px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  color: var(--cco-color-brand);
+  cursor: pointer;
+}
+.cco-komm-journey-btn--primary {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  color: var(--accent-studio);
+  border-color: rgba(187, 71, 121, 0.28);
+}
+
+@media (max-width: 720px) {
+  .cco-komm-step {
+    flex: 1 1 100%;
+  }
+  .cco-komm-journey-actions {
+    flex-direction: column;
+  }
+  .cco-komm-journey-btn {
+    width: 100%;
+  }
+}
+
+/* ─── Sprint 6 — Unified timeline ─────────────────────────────── */
+.cco-komm-timeline {
+  margin-top: 18px;
+  padding: 14px 12px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 243, 235, 0.74));
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  box-shadow: 0 2px 6px rgba(56, 40, 28, 0.05);
+}
+.cco-komm-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cco-komm-timeline-date {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cco-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 10px 0 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed rgba(187, 159, 122, 0.22);
+}
+.cco-komm-timeline-event {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(187, 159, 122, 0.14);
+  transition: all 0.12s ease;
+}
+.cco-komm-timeline-event:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(187, 71, 121, 0.26);
+}
+.cco-komm-timeline-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(248, 243, 235, 0.82);
+  font-size: 13px;
+  border: 1px solid rgba(187, 159, 122, 0.2);
+}
+.cco-komm-timeline-body {
+  flex: 1;
+  min-width: 0;
+}
+.cco-komm-timeline-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cco-color-text);
+}
+.cco-komm-timeline-cat {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--cco-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cco-komm-timeline-summary {
+  font-size: 11px;
+  color: var(--cco-text-secondary);
+  margin-top: 3px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cco-komm-timeline-ts {
+  font-size: 10px;
+  color: var(--cco-text-tertiary);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Sprint 9 — Svarstudio sök + batch-bar ───────────────────────── */
+.cco-komm-svar-search {
+  margin: 8px 0 12px !important;
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+  border-radius: 10px !important;
+}
+.cco-komm-batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  background: linear-gradient(180deg, rgba(255, 244, 219, 0.92), rgba(248, 233, 198, 0.78));
+  border: 1px solid rgba(200, 130, 30, 0.32);
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--cco-status-warning);
+}
+.cco-komm-batch-bar button {
+  margin-left: auto;
+}
+@media (max-width: 720px) {
+  .cco-komm-batch-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .cco-komm-batch-bar button {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ─── Sprint 11 — Banners + sticky tabs ──────────────────────────── */
+.cco-komm-thread-banners {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px;
+}
+.cco-komm-thread-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid rgba(187, 159, 122, 0.22);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--cco-color-brand);
+  cursor: pointer;
+  transition: all 0.14s ease;
+  min-height: 36px;
+}
+.cco-komm-thread-banner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(56, 40, 28, 0.08);
+}
+.cco-komm-thread-banner--unanswered {
+  background: linear-gradient(180deg, rgba(255, 244, 219, 0.96), rgba(248, 233, 198, 0.82));
+  border-color: rgba(200, 130, 30, 0.36);
+  color: var(--cco-status-warning);
+}
+.cco-komm-thread-banner--needs {
+  background: linear-gradient(180deg, rgba(245, 222, 198, 0.95), rgba(232, 197, 165, 0.82));
+  border-color: rgba(200, 130, 30, 0.32);
+  color: rgba(170, 110, 30, 0.95);
+}
+.cco-komm-thread-banner--studio {
+  background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+  border-color: rgba(187, 71, 121, 0.28);
+  color: var(--accent-studio);
+}
+.cco-komm-thread-banner-ico {
+  font-size: 13px;
+}
+.cco-komm-thread-banner-cta {
+  margin-left: 4px;
+  opacity: 0.7;
+  font-weight: 600;
+  font-size: 10.5px;
+}
+.cco-komm-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 2px 6px;
+  margin-left: 6px;
+  border-radius: 6px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+  color: var(--cco-color-brand);
+}
+
+.cco-komm-thread-tabs--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 243, 235, 0.88));
+  backdrop-filter: blur(8px);
+  padding: 8px 0;
+  margin: -8px 0 10px;
+  border-radius: 10px;
+}
+
+/* ─── Sprint 13 — Mobile-polish v2: FAB + swipe-hint + sticky bottom ──── */
+@media (max-width: 720px) {
+  .cco-komm-thread-banners {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cco-komm-thread-banner {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+    font-size: 13px;
+  }
+  .cco-komm-thread-banner--studio {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    right: 16px;
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(187, 71, 121, 0.28);
+    width: auto;
+  }
+  .cco-komm-kbd {
+    display: none;
+  }
+
+  /* Sticky tabs på mobil — alltid synliga */
+  .cco-komm-thread-tabs--sticky {
+    position: sticky;
+    top: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 243, 235, 0.92));
+    box-shadow: 0 1px 6px rgba(56, 40, 28, 0.06);
+    margin: 0 -8px 8px;
+    padding: 8px;
+    border-radius: 0;
+  }
+
+  /* Thread-row tap-feedback */
+  .cco-komm-thread-row:active {
+    background: rgba(255, 240, 230, 0.85);
+    transform: scale(0.995);
+  }
+
+  /* Hint för att swipa actions */
+  .cco-komm-thread-actions::after {
+    content: "";
+  }
+}

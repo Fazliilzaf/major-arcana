@@ -1,0 +1,205 @@
+{
+  "generatedAt": "2026-06-03T05:33:31.896Z",
+  "enabled": false,
+  "statePath": "/Users/fazlikrasniqi/Code/major-arcana/data/cco-operator-canary-state.json",
+  "limits": {
+    "photo": 25,
+    "import": 25,
+    "mail": 25
+  },
+  "photo": {
+    "writeEnabled": false,
+    "decisionsUsed": 0,
+    "maxDecisions": 25,
+    "approved": 0,
+    "rejected": 0,
+    "reassigned": 0,
+    "manualResolved": 0,
+    "unresolved": 0,
+    "excluded": 0,
+    "needsOwnerSource": 0,
+    "newAssets": 0,
+    "customerIdMismatch": 0,
+    "storageKeyChanged": 0,
+    "wrongPatient": 0,
+    "lastDecisionAt": null,
+    "decisionsRemaining": 25,
+    "limitReached": false,
+    "pendingPhotos": 0,
+    "visiblePhotos": 0,
+    "decisionsFromAudit": {
+      "approve": 0,
+      "reject": 0,
+      "reassign": 0,
+      "manualResolved": 0,
+      "total": 0
+    },
+    "pilot": {
+      "active": false,
+      "fullCohort": true,
+      "patientIds": [],
+      "maxDecisions": 0,
+      "decisionsUsed": 0,
+      "decisionsRemaining": null
+    },
+    "checksumOk": true,
+    "driveLinksInUi": 0,
+    "visibleWithoutReview": 0,
+    "coverageDelta": {
+      "visiblePhotos": 0,
+      "pendingPhotos": 0
+    },
+    "patientsAffected": [],
+    "storageKeyUnchanged": true,
+    "checksumMismatch": false
+  },
+  "import": {
+    "writeEnabled": false,
+    "decisionsUsed": 0,
+    "maxDecisions": 25,
+    "approved": 0,
+    "rejected": 0,
+    "reassigned": 0,
+    "manualResolved": 0,
+    "unresolved": 0,
+    "excluded": 0,
+    "needsOwnerSource": 0,
+    "newAssets": 0,
+    "customerIdMismatch": 0,
+    "storageKeyChanged": 0,
+    "wrongPatient": 0,
+    "lastDecisionAt": null,
+    "decisionsRemaining": 25,
+    "limitReached": false,
+    "queueTotal": 1497,
+    "sourceBreakdown": [
+      {
+        "id": "halso",
+        "label": "halso@",
+        "queueCount": 1366,
+        "status": {
+          "pending": 0,
+          "resolved": 0
+        },
+        "note": "osäkra kundmatchningar"
+      },
+      {
+        "id": "getaccept",
+        "label": "GetAccept",
+        "queueCount": 131,
+        "status": {
+          "pending": 0,
+          "resolved": 0
+        },
+        "note": "osäkra kundmatchningar"
+      }
+    ]
+  },
+  "mail": {
+    "writeEnabled": false,
+    "decisionsUsed": 0,
+    "maxDecisions": 25,
+    "approved": 0,
+    "rejected": 0,
+    "reassigned": 0,
+    "manualResolved": 0,
+    "unresolved": 0,
+    "excluded": 0,
+    "needsOwnerSource": 0,
+    "newAssets": 0,
+    "customerIdMismatch": 0,
+    "storageKeyChanged": 0,
+    "wrongPatient": 0,
+    "lastDecisionAt": null,
+    "decisionsRemaining": 25,
+    "limitReached": false,
+    "remaining": 493,
+    "mailboxBreakdown": {
+      "contact@hairtpclinic.com": 248,
+      "egzona@hairtpclinic.com": 175,
+      "fazli@hairtpclinic.com": 67,
+      "marknad@hairtpclinic.com": 3
+    },
+    "operationalReadinessDelta": {
+      "remainingBefore": 493,
+      "approvedInCanary": 0,
+      "readyForWork": null
+    }
+  },
+  "rules": {
+    "noAutoApprove": true,
+    "noMassApproval": true,
+    "noAiAutoApproval": true,
+    "noNewCustomerOnUncertainMatch": true,
+    "noGraphFetchFromUi": true,
+    "noFuzzyMerge": true,
+    "oneDecisionPerAsset": true
+  },
+  "cycle": "controlled-completion-canaries",
+  "recommendedNextWork": [
+    "Canary write AV på prod — sätt ENABLE_CCO_OPERATOR_CANARY + per-spår write · kör gate"
+  ],
+  "completionReport": {
+    "photo": {
+      "approved": 0,
+      "rejected": 0,
+      "reassigned": 0,
+      "manualResolved": 0,
+      "pending": 0,
+      "patientsAffected": [],
+      "checksumOk": true,
+      "storageKeyUnchanged": true,
+      "driveLinksInUi": 0,
+      "wrongPatient": 0
+    },
+    "import": {
+      "approved": 0,
+      "rejected": 0,
+      "unresolved": 0,
+      "needsOwnerSource": 0,
+      "queueTotal": 1497,
+      "newAssets": 0,
+      "customerIdMismatch": 0,
+      "sourceBreakdown": [
+        {
+          "id": "halso",
+          "label": "halso@",
+          "queueCount": 1366,
+          "status": {
+            "pending": 0,
+            "resolved": 0
+          },
+          "note": "osäkra kundmatchningar"
+        },
+        {
+          "id": "getaccept",
+          "label": "GetAccept",
+          "queueCount": 131,
+          "status": {
+            "pending": 0,
+            "resolved": 0
+          },
+          "note": "osäkra kundmatchningar"
+        }
+      ]
+    },
+    "mail": {
+      "approved": 0,
+      "unresolved": 0,
+      "excluded": 0,
+      "rejected": 0,
+      "remaining": 493,
+      "mailboxBreakdown": {
+        "contact@hairtpclinic.com": 248,
+        "egzona@hairtpclinic.com": 175,
+        "fazli@hairtpclinic.com": 67,
+        "marknad@hairtpclinic.com": 3
+      },
+      "operationalReadinessDelta": {
+        "remainingBefore": 493,
+        "approvedInCanary": 0,
+        "readyForWork": null
+      }
+    }
+  }
+}

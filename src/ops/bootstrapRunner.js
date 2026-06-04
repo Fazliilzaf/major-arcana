@@ -69,6 +69,22 @@ function resolveMailboxIds(customMailboxes) {
       .map((m) => String(m || '').trim().toLowerCase())
       .filter(Boolean);
   }
+  const phase1Only = ['1', 'true', 'yes', 'y', 'on'].includes(
+    String(process.env.ARCANA_BOOTSTRAP_PHASE1_ONLY || '').trim().toLowerCase()
+  );
+  if (phase1Only) {
+    const preferred = String(
+      process.env.ARCANA_BOOTSTRAP_PREFERRED_MAILBOX || 'contact@hairtpclinic.com'
+    )
+      .trim()
+      .toLowerCase();
+    return preferred ? [preferred] : ['contact@hairtpclinic.com'];
+  }
+  const envPhase1List = String(process.env.ARCANA_BOOTSTRAP_MAILBOX_IDS || '')
+    .split(/[\s,]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  if (envPhase1List.length > 0) return envPhase1List;
   // Fall tillbaka på CCO_GRAPH_READ_DEFAULT_ALLOWLIST (lista i kod) eller env
   const envList = String(process.env.ARCANA_GRAPH_READ_ALLOWLIST || '')
     .split(/[\s,]+/)

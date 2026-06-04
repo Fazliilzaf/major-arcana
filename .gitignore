@@ -1,6 +1,10 @@
 node_modules/
 coverage/
 data/
+# Demo-import-artifacts (kör med DEMO_IMPORT_RUN=true eller --demo).
+# data/ är redan ignorerad ovan men vi listar data/demo/ explicit som
+# extra säkerhet och som dokumentation av separat demo-storage.
+data/demo/
 .env
 .DS_Store
 *.olm
@@ -51,3 +55,16 @@ reports/stryker/
 .tmp_*
 /false
 /true
+
+# Playwright generated artifacts (should not be committed)
+test-results/
+
+# Temp baseline screenshots
+tmp-*.png
+data/arcana.sqlite
+
+# Pipedrive person/affärs-CSV — PII får inte finnas i GitHub (compliance-regel)
+# Soft-fix 2026-05-29. Full git-history purge (git-filter-repo) väntar på owner-beslut.
+migration/pipedrive/*.csv
+migration/pipedrive/*.json
+!migration/pipedrive/README.md

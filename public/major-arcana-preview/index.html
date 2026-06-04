@@ -1,10 +1,88 @@
 <!doctype html>
-<html lang="sv" data-build="build-f7c1ae6">
+<html lang="sv" data-build="build-1ccb8f9">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HairTP Clinic CCO</title>
-    <meta name="theme-color" content="#a8744c" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- ARCANA bundle URLs (content-hash: 670ea24722) -->
+    <script>
+      window.__ARCANA_BUNDLE_URLS__ = {
+        full: './app.bundle.670ea24722.min.js',
+        staffCore: './app.bundle.staff-core.6bdb330ca4.min.js',
+        staffDeferred: './app.bundle.staff-deferred.70f30879ad.min.js',
+      };
+    </script>
+    <!-- ARCANA bundle preload (content-hash: d9a770ff9d) -->
+    <script>
+      (function arcanaPreloadBundle() {
+        try {
+          var urls = window.__ARCANA_BUNDLE_URLS__ || {};
+          var href = urls.full || './app.bundle.0bee8a1fb5.min.js';
+          var view = String(
+            new URLSearchParams(window.location.search || '').get('view') || 'customers'
+          ).trim();
+          var inboxViews = { conversations: 1, inbox: 1, home: 1, queue: 1 };
+          if (!inboxViews[view] && urls.staffCore) {
+            href = urls.staffCore;
+            window.__ARCANA_STAFF_BUNDLE_SPLIT__ = true;
+            window.__ARCANA_DEFER_APP_BUNDLE__ = true;
+          }
+          var link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'script';
+          link.href = href;
+          document.head.appendChild(link);
+        } catch (preloadError) {
+          /* best-effort */
+        }
+      })();
+    </script>
+
+    <!-- Bundlade scripts preload (content-hash: d9a770ff9d) -->
+    <link rel="preload" as="script" href="./app/mobile-deeplink-boot.js?v=build-bundle-split-a" />
+    <link rel="preload" as="script" href="./app/patient-master-ui.js?v=build-bundle-split-a" />
+    <script>
+      (function deferInboxUntilNeeded() {
+        try {
+          var params = new URLSearchParams(window.location.search || '');
+          var view = String(params.get('view') || 'customers').trim();
+          if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
+            return;
+          }
+          document.documentElement.setAttribute('data-cco-mobile-defer-inbox', 'on');
+        } catch (deferInboxError) {
+          /* best-effort */
+        }
+      })();
+    </script>
+    <script>
+      (function mobileCustomersShellEarly() {
+        try {
+          if (!window.matchMedia('(max-width: 768px)').matches) return;
+          var params = new URLSearchParams(window.location.search || '');
+          if (String(params.get('view') || 'customers').trim() !== 'customers') return;
+          var reveal = function () {
+            document.querySelectorAll('[data-shell-view]').forEach(function (section) {
+              section.hidden = section.getAttribute('data-shell-view') !== 'customers';
+            });
+            var canvas = document.querySelector('.preview-canvas');
+            if (canvas) {
+              canvas.dataset.appShellView = 'customers';
+              canvas.dataset.appView = 'customers';
+            }
+          };
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', reveal, { once: true });
+          } else {
+            reveal();
+          }
+        } catch (shellEarlyError) {
+          /* best-effort */
+        }
+      })();
+    </script>
+    <script src="./app/mobile-deeplink-boot.js?v=build-bundle-split-a"></script>
+    <title>Operatörsvy · Arcana</title>
+    <meta name="theme-color" content="#fbf7f1" />
     <meta name="description" content="HairTP Clinic CCO — Major Arcana Preview" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -15,9 +93,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Jost:wght@400;500;600;700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media = 'all'"
     />
+    <noscript
+      ><link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Jost:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    /></noscript>
     <link rel="stylesheet" href="./design-tokens.css" />
     <!-- styles.css laddas via legacy-styles-loader.css → @layer legacy
          (Fas 3 Steg B: gör att modern CSS i cco-polish.css kan vinna utan !important).
@@ -25,11 +110,41 @@
          Lit-switchover som sätter style="display:none !important" på
          .queue-history-list. Min critical CSS försökte tvinga listan synlig
          → konfliktade med Lit:s parallella container → vit yta. -->
-    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-f7c1ae6" />
+    <link rel="stylesheet" href="./legacy-styles-loader.css?v=build-1ccb8f9" />
     <!-- CCO polish: SVG-symboler för emoji-badges + tight footer (alltid på) -->
-    <link rel="stylesheet" href="./cco-polish.css?v=build-mobile-journal" />
-    <script src="./cco-polish.js?v=build-f7c1ae6" defer></script>
+    <link rel="stylesheet" href="./adaptive-tokens.css?v=build-1ccb8f9" />
+    <link rel="stylesheet" href="./adaptive-overrides.css?v=build-1ccb8f9" />
+    <link rel="stylesheet" href="./cco-polish.css?v=build-1ccb8f9" />
+    <link rel="stylesheet" href="/cco-scalp-analysis.css" />
+    <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-1ccb8f9" />
+    <link rel="stylesheet" href="./cco-tablet-shell.css?v=build-1ccb8f9" />
+    <script src="./booking-lazy-load.js?v=build-1ccb8f9"></script>
+    <script src="./cco-polish.js?v=build-1ccb8f9" defer></script>
+    <script src="./cco-mobile-core.js?v=build-1ccb8f9" defer></script>
+    <script src="./adaptive-runtime.js?v=build-1ccb8f9" defer></script>
+    <script src="./cco-mobile-autosave.js?v=build-1ccb8f9" defer></script>
+    <script src="./cco-mobile-shell.js?v=build-1ccb8f9" defer></script>
+    <script src="./cco-tablet-shell.js?v=build-1ccb8f9" defer></script>
+    <script src="./app/cco-care-panel.js?v=build-1ccb8f9" defer></script>
+    <script src="./app/thread-ai-summary.js?v=build-1ccb8f9" defer></script>
+    <script>
+      (function loadInboxOnlyScripts() {
+        try {
+          var view = String(
+            new URLSearchParams(window.location.search || '').get('view') || 'customers'
+          ).trim();
+          if (view === 'conversations' || view === 'inbox' || view === 'home' || view === 'queue') {
+            if (window.__ARCANA_ENSURE_INBOX_SCRIPTS__) {
+              void window.__ARCANA_ENSURE_INBOX_SCRIPTS__();
+            }
+          }
+        } catch (loadInboxScriptsError) {
+          /* best-effort */
+        }
+      })();
+    </script>
   </head>
+
   <body class="is-preview-ready is-runtime-loading">
     <script>
       (function () {
@@ -48,10 +163,34 @@
       })();
     </script>
     <main class="preview-page">
-      <div class="preview-canvas">
+      <div
+        class="preview-canvas"
+        data-app-shell-view="conversations"
+        data-app-view="conversations"
+        data-mobile-workspace-view="queue"
+      >
         <header class="preview-topbar" aria-label="Huvudnavigation">
           <div class="preview-topbar-left">
             <div class="preview-brand" aria-label="CCO">CCO</div>
+            <button
+              type="button"
+              class="cco-mobile-back-button"
+              id="cco-mobile-back-button"
+              hidden
+              aria-label="Tillbaka till kundlistan"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  d="M14.5 5.5 8 12l6.5 6.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                />
+              </svg>
+            </button>
+            <p class="cco-mobile-app-title" id="cco-mobile-app-title" aria-live="polite"></p>
 
             <nav class="preview-nav" aria-label="Primär navigation">
               <button
@@ -117,6 +256,34 @@
                   />
                 </svg>
                 <span data-i18n="nav.customers">Kunder</span>
+              </button>
+
+              <button
+                class="preview-nav-item"
+                type="button"
+                data-nav-view="calendar"
+                aria-pressed="false"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <rect
+                    x="2.5"
+                    y="3.5"
+                    width="11"
+                    height="10"
+                    rx="1.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                  />
+                  <path
+                    d="M2.5 6.5h11M5.5 2.5v2M10.5 2.5v2"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-width="1.4"
+                  />
+                </svg>
+                <span>Kalender</span>
               </button>
 
               <button
@@ -212,6 +379,14 @@
                   <button
                     class="preview-nav-item preview-more-item"
                     type="button"
+                    data-tour-start
+                    role="menuitem"
+                  >
+                    Rundtur
+                  </button>
+                  <button
+                    class="preview-nav-item preview-more-item"
+                    type="button"
                     data-nav-view="sent"
                     role="menuitem"
                     data-i18n="ui.skickat.324faa"
@@ -273,6 +448,20 @@
           </div>
 
           <div class="preview-topbar-right">
+            <button
+              type="button"
+              class="cco-mobile-menu-button"
+              id="cco-mobile-menu-button"
+              aria-label="Fler sidor"
+              aria-haspopup="dialog"
+              aria-controls="cco-mobile-more-sheet"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true" width="18" height="18">
+                <circle cx="4" cy="8" r="1.2" fill="currentColor" />
+                <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+                <circle cx="12" cy="8" r="1.2" fill="currentColor" />
+              </svg>
+            </button>
             <span
               class="preview-live-pill preview-live-pill--demo"
               id="preview-live-status"
@@ -400,9 +589,36 @@
               </button>
 
               <button
+                class="preview-utility-button"
+                type="button"
+                aria-label="Kalender"
+                data-cco-tablet-calendar-open
+                title="Kalender — månad och daglista"
+                hidden
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path
+                    d="M3.2 3.4h9.6a1.1 1.1 0 0 1 1.1 1.1v8.4a1.1 1.1 0 0 1-1.1 1.1H3.2a1.1 1.1 0 0 1-1.1-1.1V4.5a1.1 1.1 0 0 1 1.1-1.1Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.2"
+                  />
+                  <path
+                    d="M2.6 6.4h10.8M5.4 2.4v2M10.6 2.4v2"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-width="1.2"
+                  />
+                </svg>
+              </button>
+
+              <button
                 class="preview-utility-button preview-utility-button-alert"
                 type="button"
-                aria-label="Notifieringar"
+                aria-label="CCO Care"
+                data-cco-care-open
+                title="CCO Care — formulär, påminnelser, journalutkast"
               >
                 <svg viewBox="0 0 16 16" aria-hidden="true">
                   <path
@@ -414,6 +630,7 @@
                     stroke-width="1.3"
                   />
                 </svg>
+                <span class="preview-utility-badge" data-cco-care-badge hidden></span>
               </button>
 
               <button class="preview-utility-button" type="button" aria-label="Anteckningar">
@@ -2898,135 +3115,139 @@
           ></button>
 
           <section
+            class="calendar-shell"
+            data-shell-view="calendar"
+            aria-labelledby="calendar-title"
+            hidden
+          >
+            <div class="calendar-shell-surface">
+              <header class="calendar-shell-header">
+                <h1 id="calendar-title">Kalender</h1>
+                <p class="calendar-shell-lead">
+                  Bokade tider, lediga slots och resursplanering för mottagningen.
+                </p>
+              </header>
+              <div data-booking-calendar-host class="cco-cal-host" aria-live="polite"></div>
+            </div>
+          </section>
+
+          <section
             class="customers-shell"
             data-shell-view="customers"
             aria-labelledby="customers-title"
             hidden
           >
             <div class="customers-surface">
-              <div class="customers-head">
-                <div class="customers-head-main">
-                  <div class="customers-head-mark" aria-hidden="true">
-                    <svg viewBox="0 0 16 16">
-                      <circle
-                        cx="5.2"
-                        cy="5.5"
-                        r="1.9"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.35"
-                      />
-                      <path
-                        d="M2.8 10.8a3.2 3.2 0 0 1 4.8 0M10.1 4.9h3.1M11.65 3.35v3.1M9.9 10.7l1.6 1.6 2.7-3.1"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.35"
-                      />
-                    </svg>
-                  </div>
-                  <div class="customers-title-group">
-                    <p class="customers-kicker" data-i18n="ui.kunder.40ba99">Kunder</p>
+              <header class="customers-register-header customers-head">
+                <div class="customers-register-top">
+                  <div class="customers-register-top-main">
                     <h1 id="customers-title">Kundregister</h1>
-                    <p>Sök kunder, öppna kundkort med importerad journal och Drive-filer.</p>
+                    <p class="customers-register-lead" data-customers-lead hidden>
+                      Hantera kundprofiler, slå ihop dubbletter och få full överblick.
+                    </p>
+                    <div class="patient-master-mode-toggle" role="tablist" aria-label="Kundvy">
+                      <button
+                        class="patient-master-mode-button is-active"
+                        type="button"
+                        data-patient-master-mode="register"
+                        role="tab"
+                        aria-pressed="true"
+                      >
+                        Kundregister
+                      </button>
+                      <button
+                        class="patient-master-mode-button"
+                        type="button"
+                        data-patient-master-mode="identity"
+                        role="tab"
+                        aria-pressed="false"
+                      >
+                        Identitet
+                      </button>
+                    </div>
+                  </div>
+                  <div class="customers-head-actions">
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-customer-command="bulk_merge"
+                    >
+                      Massammanfoga <span data-customer-bulk-count>(2)</span>
+                    </button>
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-customer-command="export"
+                      data-i18n="ui.exportera.59e749"
+                    >
+                      Exportera
+                    </button>
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-customer-command="import"
+                      data-i18n="ui.importera.4c615a"
+                    >
+                      Importera
+                    </button>
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-post-op-reviews-open
+                      hidden
+                    >
+                      Omdömen <span data-post-op-toolbar-count></span>
+                    </button>
+                    <button
+                      class="customers-utility-button"
+                      type="button"
+                      data-customer-command="settings"
+                      data-i18n="ui.installningar.04700b"
+                    >
+                      Inställningar
+                    </button>
+                    <p class="shell-status customers-shell-status" data-customers-status hidden></p>
                   </div>
                 </div>
 
-                <div class="patient-master-mode-toggle" role="tablist" aria-label="Kundvy">
-                  <button
-                    class="patient-master-mode-button is-active"
-                    type="button"
-                    data-patient-master-mode="register"
-                    role="tab"
-                    aria-pressed="true"
+                <div class="customers-metric-row" aria-label="Kundöversikt">
+                  <article
+                    class="customers-metric-card customers-metric-card-blue"
+                    data-patient-metric="total"
                   >
-                    Kundregister
-                  </button>
-                  <button
-                    class="patient-master-mode-button"
-                    type="button"
-                    data-patient-master-mode="identity"
-                    role="tab"
-                    aria-pressed="false"
+                    <span>Totalt kunder</span>
+                    <strong>0</strong>
+                  </article>
+                  <article
+                    class="customers-metric-card customers-metric-card-green"
+                    data-patient-metric="matched"
                   >
-                    Identitet
-                  </button>
+                    <span>Kopplade (Cliento + Drive)</span>
+                    <strong>0</strong>
+                  </article>
+                  <article
+                    class="customers-metric-card customers-metric-card-violet"
+                    data-patient-metric="journal"
+                  >
+                    <span>Med personnummer</span>
+                    <strong>0</strong>
+                  </article>
+                  <article
+                    class="customers-metric-card customers-metric-card-gold"
+                    data-patient-metric="review"
+                  >
+                    <span>Behöver granskning</span>
+                    <strong>0</strong>
+                  </article>
+                  <article
+                    class="customers-metric-card customers-metric-card-rose"
+                    data-patient-metric="drive"
+                  >
+                    <span>Endast Drive</span>
+                    <strong>0</strong>
+                  </article>
                 </div>
-
-                <div class="customers-head-actions">
-                  <button
-                    class="customers-utility-button"
-                    type="button"
-                    data-customer-command="bulk_merge"
-                  >
-                    Massammanfoga <span data-customer-bulk-count>(2)</span>
-                  </button>
-                  <button
-                    class="customers-utility-button"
-                    type="button"
-                    data-customer-command="export"
-                    data-i18n="ui.exportera.59e749"
-                  >
-                    Exportera
-                  </button>
-                  <button
-                    class="customers-utility-button"
-                    type="button"
-                    data-customer-command="import"
-                    data-i18n="ui.importera.4c615a"
-                  >
-                    Importera
-                  </button>
-                  <button
-                    class="customers-utility-button"
-                    type="button"
-                    data-customer-command="settings"
-                    data-i18n="ui.installningar.04700b"
-                  >
-                    Inställningar
-                  </button>
-                  <p class="shell-status customers-shell-status" data-customers-status hidden></p>
-                </div>
-              </div>
-
-              <div class="customers-metric-row" aria-label="Kundöversikt">
-                <article
-                  class="customers-metric-card customers-metric-card-blue"
-                  data-patient-metric="total"
-                >
-                  <span>Totalt kunder</span>
-                  <strong>0</strong>
-                </article>
-                <article
-                  class="customers-metric-card customers-metric-card-green"
-                  data-patient-metric="matched"
-                >
-                  <span>Kopplade (Cliento + Drive)</span>
-                  <strong>0</strong>
-                </article>
-                <article
-                  class="customers-metric-card customers-metric-card-violet"
-                  data-patient-metric="journal"
-                >
-                  <span>Med personnummer</span>
-                  <strong>0</strong>
-                </article>
-                <article
-                  class="customers-metric-card customers-metric-card-gold"
-                  data-patient-metric="review"
-                >
-                  <span>Behöver granskning</span>
-                  <strong>0</strong>
-                </article>
-                <article
-                  class="customers-metric-card customers-metric-card-rose"
-                  data-patient-metric="drive"
-                >
-                  <span>Endast Drive</span>
-                  <strong>0</strong>
-                </article>
-              </div>
+              </header>
 
               <div class="customers-toolbar">
                 <label class="customers-search">
@@ -3085,7 +3306,45 @@
                     data-patient-master-rail
                     aria-label="Kundkort"
                   ></section>
-
+                  <script>
+                    (function primeMobilePatientDeepLink() {
+                      try {
+                        if (!window.matchMedia('(max-width: 768px)').matches) return;
+                        var params = new URLSearchParams(window.location.search || '');
+                        var patientId = String(params.get('patientId') || '').trim();
+                        if (!patientId) return;
+                        var rail = document.querySelector('[data-patient-master-rail]');
+                        if (!rail) return;
+                        if (!window.__ARCANA_MOBILE_DEEPLINK_PRIME__) {
+                          window.__ARCANA_MOBILE_DEEPLINK_PRIME__ = patientId;
+                          window.__ARCANA_DEEPLINK_PRIME_MS__ = performance.now();
+                          document.documentElement.setAttribute('data-cco-patient-detail', 'on');
+                        }
+                        rail.innerHTML =
+                          '<section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">' +
+                          '<article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">' +
+                          '<div class="focus-customer-hero-main"><div class="focus-customer-avatar">…</div>' +
+                          '<div class="focus-customer-copy"><h2>Laddar kund…</h2>' +
+                          '<p class="patient-master-muted patient-master-loading-line">Hämtar kundkort…</p></div></div></article>' +
+                          '<div class="patient-master-tabs" role="tablist" aria-hidden="true">' +
+                          '<span class="patient-master-tab is-active">Profil</span><span class="patient-master-tab">Filer</span></div>' +
+                          '<div class="patient-master-detail-skeleton" aria-hidden="true">' +
+                          '<div class="patient-master-detail-skeleton-bar"></div>' +
+                          '<div class="patient-master-detail-skeleton-bar is-short"></div>' +
+                          '<div class="patient-master-detail-skeleton-bar"></div></div></section>';
+                      } catch (e) {
+                        /* best-effort */
+                      }
+                    })();
+                  </script>
+                  <script src="./app/post-op-internal-reviews-ui.js?v=build-1ccb8f9"></script>
+                  <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
+                  <script src="./app/cco-fetch-instrumentation.js?v=build-1ccb8f9"></script>
+                  <script src="./app/cco-cache-policy.js?v=build-1ccb8f9"></script>
+                  <script src="./app/cco-request-cache.js?v=build-1ccb8f9"></script>
+                  <script src="./app/cco-patient-list-virtual.js?v=build-1ccb8f9"></script>
+                  <script defer src="/cco-scalp-analysis.js"></script>
+                  <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
                   <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
@@ -3439,7 +3698,7 @@
 
                             <div class="customers-portal-draft-card">
                               <div class="customers-rail-panel-head">
-                                <h5>Layers-sketch</h5>
+                                <h5>Kundportal</h5>
                                 <span class="customers-rail-inline-note"
                                   >Redigera och publicera</span
                                 >
@@ -3679,6 +3938,49 @@
                   data-i18n="ui.sla_ihop_profiler.49bca0"
                 >
                   Slå ihop profiler
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="customers-modal-shell"
+            id="customers-post-op-reviews-shell"
+            aria-hidden="true"
+          >
+            <div class="customers-modal-backdrop" data-post-op-reviews-close></div>
+            <div
+              class="customers-modal-surface post-op-reviews-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="customers-post-op-reviews-title"
+              data-post-op-google-reviews
+            >
+              <div class="customers-modal-head">
+                <div>
+                  <p class="customers-modal-kicker">Kund → Google</p>
+                  <h2 id="customers-post-op-reviews-title">Omdömen</h2>
+                  <p class="patient-master-muted post-op-reviews-modal-lead">
+                    Alla betyg 1–5. Godkänn eller avvisa innan något når Google.
+                  </p>
+                </div>
+                <button
+                  class="customers-modal-close"
+                  type="button"
+                  data-post-op-reviews-close
+                  aria-label="Stäng omdömen"
+                >
+                  ×
+                </button>
+              </div>
+              <p class="shell-status" data-post-op-google-status hidden></p>
+              <p class="patient-master-empty" data-post-op-google-empty hidden>
+                Inga omdömen väntar på godkännande just nu.
+              </p>
+              <div class="post-op-internal-list" data-post-op-google-list></div>
+              <div class="customers-modal-actions">
+                <button class="customers-utility-button" type="button" data-post-op-reviews-close>
+                  Stäng
                 </button>
               </div>
             </div>
@@ -6663,6 +6965,13 @@
                 <button
                   class="aux-filter-pill"
                   type="button"
+                  data-integration-category="accounting"
+                >
+                  Bokföring
+                </button>
+                <button
+                  class="aux-filter-pill"
+                  type="button"
                   data-integration-category="communication"
                   data-i18n="ui.kommunikation.910c2a"
                 >
@@ -7163,6 +7472,171 @@
                           data-settings-toggle="office_hours_auto_reply"
                           checked
                         />
+                      </label>
+                    </div>
+                    <div class="settings-panel-subhead">
+                      <h3>Bokningspåminnelser (lead time)</h3>
+                      <p>
+                        Samma konfiguration för SMS (P6.10.4) och e-post/ICS (P6.10.5).
+                        Cliento-startvärden: 4 h online, 24 h fysisk.
+                      </p>
+                    </div>
+                    <div class="settings-toggle-list">
+                      <label class="settings-toggle-row">
+                        <div class="settings-toggle-copy">
+                          <strong>Global default</strong>
+                          <span>Timmar före besök om inget annat anges</span>
+                        </div>
+                        <input
+                          class="settings-number-input"
+                          type="number"
+                          min="1"
+                          max="168"
+                          step="1"
+                          data-settings-lead-time="globalDefaultHours"
+                          value="24"
+                        />
+                      </label>
+                      <label class="settings-toggle-row">
+                        <div class="settings-toggle-copy">
+                          <strong>Online-kanal</strong>
+                          <span>Override för onlinebesök (Cliento: 4 h)</span>
+                        </div>
+                        <input
+                          class="settings-number-input"
+                          type="number"
+                          min="1"
+                          max="168"
+                          step="1"
+                          data-settings-lead-time="channel_online"
+                          value="4"
+                        />
+                      </label>
+                      <label class="settings-toggle-row">
+                        <div class="settings-toggle-copy">
+                          <strong>Fysisk kanal</strong>
+                          <span>Override för fysiska besök (Cliento: 24 h)</span>
+                        </div>
+                        <input
+                          class="settings-number-input"
+                          type="number"
+                          min="1"
+                          max="168"
+                          step="1"
+                          data-settings-lead-time="channel_physical"
+                          value="24"
+                        />
+                      </label>
+                      <label class="settings-toggle-row settings-toggle-row--stack">
+                        <div class="settings-toggle-copy">
+                          <strong>Override per tjänst (JSON)</strong>
+                          <span>Tjänst-id → timmar, t.ex. <code>{"prp-hair": 48}</code></span>
+                        </div>
+                        <textarea
+                          class="settings-json-input"
+                          rows="2"
+                          spellcheck="false"
+                          data-settings-lead-time-json="serviceOverrides"
+                          placeholder='{"consultation-online": 4}'
+                        ></textarea>
+                      </label>
+                      <label class="settings-toggle-row settings-toggle-row--stack">
+                        <div class="settings-toggle-copy">
+                          <strong>Override per resurs (JSON)</strong>
+                          <span>Resurs-id → timmar, t.ex. <code>{"fazli": 24}</code></span>
+                        </div>
+                        <textarea
+                          class="settings-json-input"
+                          rows="2"
+                          spellcheck="false"
+                          data-settings-lead-time-json="resourceOverrides"
+                          placeholder='{"fazli": 24}'
+                        ></textarea>
+                      </label>
+                    </div>
+                    <div class="settings-panel-subhead">
+                      <h3>Bokningspolicy (min-notice &amp; avbokning)</h3>
+                      <p>
+                        Styr smart slots i bokningsmotorn. Cliento-startvärden: 2 h online, 1 h
+                        fysisk, max 180 dagar, avbokning 24 h.
+                      </p>
+                    </div>
+                    <div class="settings-toggle-list">
+                      <label class="settings-toggle-row">
+                        <div class="settings-toggle-copy">
+                          <strong>Global min-notice online</strong>
+                          <span>Timmar före onlinebesök</span>
+                        </div>
+                        <input
+                          class="settings-number-input"
+                          type="number"
+                          min="0"
+                          max="168"
+                          step="1"
+                          data-settings-booking-policy="minNoticeOnlineHours"
+                          value="2"
+                        />
+                      </label>
+                      <label class="settings-toggle-row">
+                        <div class="settings-toggle-copy">
+                          <strong>Global min-notice fysisk</strong>
+                          <span>Timmar före fysiska besök</span>
+                        </div>
+                        <input
+                          class="settings-number-input"
+                          type="number"
+                          min="0"
+                          max="168"
+                          step="1"
+                          data-settings-booking-policy="minNoticePhysicalHours"
+                          value="1"
+                        />
+                      </label>
+                      <label class="settings-toggle-row">
+                        <div class="settings-toggle-copy">
+                          <strong>Max bokningsdagar framåt</strong>
+                          <span>Övre gräns för tillgängliga datum</span>
+                        </div>
+                        <input
+                          class="settings-number-input"
+                          type="number"
+                          min="1"
+                          max="365"
+                          step="1"
+                          data-settings-booking-policy="maxBookingDaysAhead"
+                          value="180"
+                        />
+                      </label>
+                      <label class="settings-toggle-row">
+                        <div class="settings-toggle-copy">
+                          <strong>Avbokningsgräns</strong>
+                          <span>Timmar före besök som avbokning tillåts</span>
+                        </div>
+                        <input
+                          class="settings-number-input"
+                          type="number"
+                          min="0"
+                          max="168"
+                          step="1"
+                          data-settings-booking-policy="cancellationPolicyHours"
+                          value="24"
+                        />
+                      </label>
+                      <label class="settings-toggle-row settings-toggle-row--stack">
+                        <div class="settings-toggle-copy">
+                          <strong>Override per tjänst (JSON)</strong>
+                          <span
+                            >Tjänst-id → policy-fält, t.ex.
+                            <code>{"consultation-online": {"minNoticeMinutes": 120}}</code></span
+                          >
+                        </div>
+                        <textarea
+                          class="settings-json-input"
+                          rows="3"
+                          spellcheck="false"
+                          data-settings-booking-policy-json="serviceOverrides"
+                          placeholder='{"followup-transplant": {"minNoticeMinutes": 60, "vipTokenRequired": true}}'
+                        ></textarea>
                       </label>
                     </div>
                   </section>
@@ -10425,20 +10899,350 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
         </div>
       </div>
     </main>
-    <script src="/cco-next-customer-intelligence.js"></script>
-    <script src="/cco-next-collaboration.js"></script>
+
+    <nav class="cco-mobile-tabbar" aria-label="Mobil navigation" data-cco-mobile-tabbar>
+      <button
+        type="button"
+        class="cco-mobile-tabbar-item"
+        data-mobile-tab="home"
+        data-nav-view="conversations"
+        aria-pressed="false"
+      >
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16">
+            <path
+              d="M2.5 8.5 8 3l5.5 5.5V13a1 1 0 0 1-1 1h-3.5v-3H7v3H3.5a1 1 0 0 1-1-1V8.5Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Hem</span>
+      </button>
+      <button
+        type="button"
+        class="cco-mobile-tabbar-item"
+        data-mobile-tab="booking"
+        aria-pressed="false"
+      >
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16">
+            <rect
+              x="2.5"
+              y="3.5"
+              width="11"
+              height="10"
+              rx="1.8"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <path
+              d="M2.5 6.5h11M5.5 1.8v1.8M10.5 1.8v1.8"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linecap="round"
+            />
+          </svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Boka</span>
+      </button>
+      <button
+        type="button"
+        class="cco-mobile-tabbar-item"
+        data-mobile-tab="calendar"
+        aria-pressed="false"
+      >
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16">
+            <rect
+              x="2.5"
+              y="3.5"
+              width="11"
+              height="10"
+              rx="1.8"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <path
+              d="M2.5 6.5h11M5.5 1.8v1.8M10.5 1.8v1.8M5 9h2M9 9h2M5 11.5h2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Kalender</span>
+      </button>
+      <button
+        type="button"
+        class="cco-mobile-tabbar-item"
+        data-mobile-tab="customers"
+        data-nav-view="customers"
+        aria-pressed="false"
+      >
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16">
+            <circle cx="8" cy="5.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.3" />
+            <path
+              d="M3.5 13.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linecap="round"
+            />
+          </svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Kund</span>
+      </button>
+      <button
+        type="button"
+        class="cco-mobile-tabbar-item"
+        data-mobile-tab="journal"
+        aria-pressed="false"
+      >
+        <span class="cco-mobile-tabbar-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16">
+            <path
+              d="M4.5 2.5h5.8L12.5 4.2V13a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <path
+              d="M8 2.5v2.2M6.2 8.2h3.6M6.2 10.4h2.4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </span>
+        <span class="cco-mobile-tabbar-label">Journal</span>
+      </button>
+    </nav>
+
+    <div
+      class="cco-mobile-more-sheet"
+      id="cco-mobile-more-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cco-mobile-more-title"
+      hidden
+    >
+      <button
+        type="button"
+        class="cco-mobile-more-backdrop"
+        data-mobile-more-close
+        aria-label="Stäng"
+      ></button>
+      <div class="cco-mobile-more-panel">
+        <header class="cco-mobile-more-head">
+          <h2 id="cco-mobile-more-title">Mer</h2>
+          <button
+            type="button"
+            class="cco-mobile-more-close"
+            data-mobile-more-close
+            aria-label="Stäng"
+          >
+            ✕
+          </button>
+        </header>
+        <div
+          class="cco-mobile-more-list cco-mobile-more-actions"
+          role="group"
+          aria-label="Snabbåtgärder"
+        >
+          <button
+            type="button"
+            class="cco-mobile-more-item"
+            data-mobile-more-action="compose"
+            role="menuitem"
+          >
+            Nytt mejl
+          </button>
+          <button
+            type="button"
+            class="cco-mobile-more-item"
+            data-mobile-more-action="sprint"
+            role="menuitem"
+          >
+            Fokuspass
+          </button>
+          <button
+            type="button"
+            class="cco-mobile-more-item"
+            data-mobile-more-action="cco-care"
+            role="menuitem"
+          >
+            CCO Care <span class="cco-care-mobile-badge" data-cco-care-badge hidden></span>
+          </button>
+          <button
+            type="button"
+            class="cco-mobile-more-item"
+            data-mobile-more-action="language"
+            role="menuitem"
+          >
+            Språk
+          </button>
+        </div>
+        <div class="cco-mobile-more-divider" role="separator" aria-hidden="true"></div>
+        <div class="cco-mobile-more-list" role="menu">
+          <button
+            type="button"
+            class="cco-mobile-more-item"
+            data-nav-view="automation"
+            role="menuitem"
+          >
+            Automatisering
+          </button>
+          <button
+            type="button"
+            class="cco-mobile-more-item"
+            data-nav-view="analytics"
+            role="menuitem"
+          >
+            Analys
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="later" role="menuitem">
+            Senare
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="sent" role="menuitem">
+            Skickat
+          </button>
+          <button
+            type="button"
+            class="cco-mobile-more-item"
+            data-nav-view="integrations"
+            role="menuitem"
+          >
+            Integrationer
+          </button>
+          <button type="button" class="cco-mobile-more-item" data-nav-view="macros" role="menuitem">
+            Makron
+          </button>
+          <button
+            type="button"
+            class="cco-mobile-more-item"
+            data-nav-view="settings"
+            role="menuitem"
+          >
+            Inställningar
+          </button>
+          <button
+            type="button"
+            class="cco-mobile-more-item"
+            data-nav-view="showcase"
+            role="menuitem"
+          >
+            Showcase
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function deferNextScripts() {
+        function inject(src) {
+          var script = document.createElement('script');
+          script.src = src;
+          script.async = true;
+          document.body.appendChild(script);
+        }
+        function loadNextScripts() {
+          inject('/cco-next-customer-intelligence.js');
+          inject('/cco-next-collaboration.js');
+        }
+        if (typeof requestIdleCallback === 'function') {
+          requestIdleCallback(loadNextScripts, { timeout: 8000 });
+        } else {
+          window.setTimeout(loadNextScripts, 1800);
+        }
+      })();
+    </script>
     <!-- Previewn kör nu på explicita källfiler.
          Den gamla bundlen låg efter källan och kunde visa en äldre booking-surface i browsern. -->
     <!-- Fas 46: IndexedDB thread-cache måste laddas FÖRE bundlen så
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
-    <script src="./app/thread-cache-idb.js?v=build-f7c1ae6"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 1221d5a4ad) -->
-    <script src="./app.bundle.1221d5a4ad.min.js"></script>
+    <script src="/arcana-page-titles.js"></script>
+    <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 670ea24722) -->
+    <script>
+      (function arcanaLoadAppBundle() {
+        var urls = window.__ARCANA_BUNDLE_URLS__ || {};
+        var fullSrc = urls.full || './app.bundle.670ea24722.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.6bdb330ca4.min.js';
+        var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.70f30879ad.min.js';
+
+        function injectScript(src, onload) {
+          var script = document.createElement('script');
+          script.src = src;
+          script.async = false;
+          if (onload) script.onload = onload;
+          document.body.appendChild(script);
+        }
+
+        function injectDeferredChunk() {
+          if (!deferSrc || window.__ARCANA_STAFF_DEFERRED_LOADING__) return;
+          window.__ARCANA_STAFF_DEFERRED_LOADING__ = true;
+          injectScript(deferSrc);
+        }
+        window.__ARCANA_LOAD_STAFF_DEFERRED__ = injectDeferredChunk;
+
+        function inject() {
+          if (window.__ARCANA_APP_BUNDLE_LOADING__) return;
+          window.__ARCANA_APP_BUNDLE_LOADING__ = true;
+
+          var useSplit = !!(window.__ARCANA_STAFF_BUNDLE_SPLIT__ && coreSrc && deferSrc);
+          if (useSplit) {
+            injectScript(coreSrc, function () {
+              if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(injectDeferredChunk, { timeout: 5000 });
+              } else {
+                window.setTimeout(injectDeferredChunk, 80);
+              }
+            });
+            return;
+          }
+          injectScript(fullSrc);
+        }
+
+        if (window.__ARCANA_DEFER_APP_BUNDLE__) {
+          var loaded = false;
+          function finish() {
+            if (loaded) return;
+            loaded = true;
+            inject();
+          }
+          window.addEventListener('arcana-deeplink-detail-ready', finish, { once: true });
+          window.addEventListener(
+            'DOMContentLoaded',
+            function () {
+              if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(finish, { timeout: 1600 });
+              } else {
+                window.setTimeout(finish, 120);
+              }
+            },
+            { once: true }
+          );
+          window.setTimeout(finish, 3200);
+          if (window.__ARCANA_DEEPLINK_HYDRATED__) finish();
+        } else {
+          inject();
+        }
+      })();
+    </script>
     <!-- Lit web components (Fas 11 av Lit-migration, 2026-05-16):
          arcana-thread-card.js innehåller den rika CCO-designen med avatar,
          pillar, action-knappar och CTA. Renderas via lit-switchover.js's
          replace-mode för alla köer. -->
-    <script type="module" src="./app/components/arcana-thread-card.js?v=build-f7c1ae6"></script>
-    <script type="module" src="./app/components/lit-switchover.js?v=build-f7c1ae6"></script>
+    <script type="module" src="./app/components/arcana-thread-card.js?v=build-1ccb8f9"></script>
+    <script type="module" src="./app/components/lit-switchover.js?v=build-1ccb8f9"></script>
   </body>
 </html>

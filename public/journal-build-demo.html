@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CCO · Journalbygge</title>
+<style>
+  :root {
+    --cco-bg-page:           #faf6f2;
+    --cco-bg-surface:        #ffffff;
+    --cco-bg-surface-sunken: #f5efe6;
+    --cco-color-brand:       #2b251f;
+    --cco-text-secondary:    rgba(70, 60, 50, 0.62);
+    --cco-text-tertiary:     #8a8174;
+
+    --cco-status-success:    #4a8268;
+    --cco-status-success-bg: rgba(74,130,104,.14);
+    --cco-status-warning:    #c8821e;
+    --cco-status-warning-bg: rgba(200,130,30,.14);
+    --cco-status-danger:     #b94a4a;
+    --cco-status-danger-bg:  rgba(185,74,74,.14);
+    --cco-status-info:       #4a7ba8;
+    --cco-status-info-bg:    rgba(74,123,168,.14);
+
+    --panel-shell-top:    rgba(250, 246, 242, 0.94);
+    --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+    --panel-shell-shadow:
+      0 18px 38px rgba(93,74,60,.07),
+      0 6px 18px rgba(156,145,166,.04),
+      0 0 0 1px rgba(255,255,255,.18),
+      inset 0 1px 0 rgba(255,255,255,.5);
+    --panel-shell-shadow-strong:
+      0 32px 70px rgba(93,74,60,.10),
+      0 14px 32px rgba(156,145,166,.06),
+      0 0 0 1px rgba(255,255,255,.22),
+      inset 0 1px 0 rgba(255,255,255,.55);
+    --panel-card-top:    rgba(255,255,255,.94);
+    --panel-card-bottom: rgba(247,241,236,.86);
+    --panel-card-shadow: 0 3px 10px rgba(56,40,28,.08), inset 0 1px 0 rgba(255,255,255,.86);
+    --panel-card-shadow-hover: 0 8px 22px rgba(56,40,28,.12), inset 0 1px 0 rgba(255,255,255,.92);
+
+    --rose-pill-top:    rgba(252, 233, 240, 0.98);
+    --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+    --accent-studio:    #bb4779;
+
+    --calendar-accent:       #c8821e;
+    --calendar-accent-soft:  rgba(200,130,30,.14);
+    --calendar-accent-glow:  rgba(200,130,30,.22);
+
+    --gold:                  #d4a847;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background:
+      radial-gradient(ellipse at 12% 0%, rgba(255,225,200,.42), transparent 38%),
+      radial-gradient(ellipse at 88% 4%, rgba(255,210,225,.34), transparent 42%),
+      radial-gradient(circle at 50% 100%, rgba(220,210,255,.18), transparent 48%),
+      var(--cco-bg-page);
+    color: var(--cco-color-brand);
+    font-family: Inter, "Segoe UI", -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    min-height: 100vh;
+    padding: 14px;
+  }
+
+  /* ─── Top-nav (identisk med kunder.html) ─── */
+  .top-nav { display: flex; align-items: center; gap: 14px; padding: 0 10px 14px; color: var(--cco-text-tertiary); font-size: 12px; }
+  .top-nav .brand { font-weight: 800; color: var(--cco-color-brand); letter-spacing: .06em; font-size: 13px; }
+  .top-nav a { color: inherit; text-decoration: none; padding: 6px 12px; border-radius: 999px; transition: color .15s ease, background .15s ease; }
+  .top-nav a:hover { color: var(--cco-color-brand); }
+  .top-nav a.active {
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio); font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 4px 14px rgba(187, 71, 121, .14);
+  }
+  .top-nav .spacer { flex: 1; }
+  .top-nav .meta { color: var(--cco-text-tertiary); font-size: 11px; }
+
+  /* ─── Page wrap ─── */
+  .page { max-width: 1180px; margin: 0 auto; }
+
+  /* ─── Hero / kicker ─── */
+  .hero {
+    padding: 18px 22px 16px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+    box-shadow: var(--panel-shell-shadow);
+    backdrop-filter: blur(14px);
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    background: radial-gradient(circle at 12% 6%, rgba(255,255,255,.6), transparent 24%), radial-gradient(circle at 56% 10%, rgba(255,236,222,.32), transparent 24%), radial-gradient(circle at 88% 14%, rgba(255,228,238,.28), transparent 22%);
+    pointer-events: none;
+  }
+  .hero > * { position: relative; z-index: 1; }
+  .hero-kicker { color: #84756b; font-size: 10.5px; line-height: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+  .hero h1 { margin: 6px 0 4px; color: #17191f; font-size: 22px; line-height: 24px; font-weight: 700; letter-spacing: -.03em; }
+  .hero-sub { color: var(--cco-text-secondary); font-size: 12.5px; margin: 0; max-width: 720px; }
+  .hero-sub code { background: rgba(255,255,255,.55); padding: 1px 6px; border-radius: 5px; border: 1px solid rgba(255,255,255,.7); font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; }
+
+  /* Stats-rad */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;
+    margin: 14px 0 0;
+  }
+  .stat-card {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+    box-shadow: var(--panel-card-shadow);
+    border: 1px solid rgba(255,255,255,.7);
+  }
+  .stat-num { font-size: 20px; font-weight: 800; letter-spacing: -.03em; color: var(--cco-color-brand); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .stat-label { font-size: 10px; color: var(--cco-text-tertiary); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
+
+  /* ─── Sektion-header ─── */
+  .section { margin-bottom: 18px; }
+  .section-head { padding: 0 12px 8px; display: flex; align-items: baseline; gap: 10px; }
+  .section-head h2 { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: -.01em; color: var(--cco-color-brand); }
+  .section-head .sub { font-size: 10.5px; color: var(--cco-text-tertiary); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+
+  /* ─── Shell-panel ─── */
+  .shell-panel {
+    padding: 16px 18px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+    box-shadow: var(--panel-shell-shadow);
+    backdrop-filter: blur(14px);
+  }
+
+  /* ─── Card-grid (story-card mönster) ─── */
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+  .story-card {
+    position: relative;
+    padding: 14px 14px 12px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+    box-shadow: var(--panel-card-shadow);
+    border: 1px solid rgba(255,255,255,.7);
+    display: flex; flex-direction: column; gap: 8px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .12s ease, box-shadow .14s ease;
+  }
+  .story-card::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 18% 6%, rgba(255,255,255,.5), transparent 36%);
+    pointer-events: none;
+  }
+  .story-card > * { position: relative; z-index: 1; }
+  .story-card[href]:hover { transform: translateY(-2px); box-shadow: var(--panel-card-shadow-hover); }
+
+  .story-card-kicker {
+    font-size: 9.5px; font-weight: 800;
+    letter-spacing: .14em; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--cco-text-tertiary);
+  }
+  .story-card-kicker .icon {
+    width: 18px; height: 18px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+    font-size: 11px;
+  }
+  .story-card[data-kind="live"] .story-card-kicker { color: var(--cco-status-success); }
+  .story-card[data-kind="live"] .icon { background: var(--cco-status-success-bg); color: var(--cco-status-success); }
+  .story-card[data-kind="patient"] .story-card-kicker { color: var(--calendar-accent); }
+  .story-card[data-kind="patient"] .icon { background: var(--calendar-accent-soft); color: var(--calendar-accent); }
+  .story-card[data-kind="staff"] .story-card-kicker { color: var(--cco-status-info); }
+  .story-card[data-kind="staff"] .icon { background: var(--cco-status-info-bg); color: var(--cco-status-info); }
+  .story-card[data-kind="qa"] .story-card-kicker { color: var(--accent-studio); }
+  .story-card[data-kind="qa"] .icon { background: rgba(187,71,121,.12); color: var(--accent-studio); }
+
+  .story-card-headline {
+    font-size: 15px; line-height: 1.25;
+    font-weight: 700; margin: 0;
+    letter-spacing: -.015em; color: var(--cco-color-brand);
+  }
+  .story-card-sub {
+    font-size: 11.5px; color: var(--cco-text-secondary);
+    margin: 0; line-height: 1.45;
+  }
+  .story-card-sub code {
+    background: rgba(255,255,255,.55);
+    padding: 1px 5px; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,.7);
+    font-family: "SF Mono", Monaco, monospace; font-size: 10.5px;
+  }
+
+  /* ─── API-list ─── */
+  .api-row {
+    display: grid; grid-template-columns: 56px 1fr;
+    gap: 12px; align-items: center;
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.7);
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+  .api-row:last-child { margin-bottom: 0; }
+  .verb-pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 9.5px; font-weight: 800;
+    letter-spacing: .04em;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+  }
+  .verb-pill.get  { background: var(--cco-status-info-bg); color: var(--cco-status-info); }
+  .verb-pill.post { background: var(--cco-status-success-bg); color: var(--cco-status-success); }
+  .api-path { color: var(--cco-color-brand); font-weight: 600; }
+  .api-label {
+    font-family: Inter, sans-serif;
+    color: var(--cco-text-secondary);
+    font-style: italic;
+    font-size: 11px;
+    margin-left: 6px;
+  }
+
+  /* ─── Commit-list ─── */
+  .commit-list { display: flex; flex-direction: column; gap: 4px; }
+  .commit-row {
+    display: grid; grid-template-columns: 76px 1fr;
+    gap: 12px; align-items: baseline;
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.7);
+  }
+  .commit-sha {
+    font-family: "SF Mono", Monaco, monospace;
+    color: var(--accent-studio);
+    font-weight: 700;
+    font-size: 11px;
+  }
+  .commit-msg { font-size: 11.5px; color: var(--cco-text-secondary); line-height: 1.45; }
+  .commit-msg strong { color: var(--cco-color-brand); font-weight: 700; }
+
+  /* ─── Status-pill (kalender-DNA) ─── */
+  .status-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    min-height: 22px; padding: 0 10px; border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.84);
+    background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+    font-size: 10.5px; line-height: 12px; font-weight: 700;
+    box-shadow: 0 2px 6px rgba(56,40,28,.06), inset 0 1px 0 rgba(255,255,255,.88);
+    white-space: nowrap;
+  }
+  .status-pill .dot { width: 6px; height: 6px; border-radius: 999px; box-shadow: 0 0 0 2px rgba(255,255,255,.9); }
+  .status-pill--success { color: var(--cco-status-success); } .status-pill--success .dot { background: var(--cco-status-success); }
+  .status-pill--warning { color: var(--cco-status-warning); } .status-pill--warning .dot { background: var(--cco-status-warning); }
+
+  /* ─── Footer ─── */
+  .footer-note {
+    margin-top: 18px;
+    padding: 14px 18px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+    box-shadow: var(--panel-shell-shadow);
+    backdrop-filter: blur(14px);
+    font-size: 11.5px; line-height: 1.55;
+    color: var(--cco-text-secondary);
+  }
+  .footer-note strong { color: var(--cco-color-brand); }
+  .footer-note a { color: var(--accent-studio); text-decoration: none; font-weight: 600; }
+  .footer-note a:hover { text-decoration: underline; }
+
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: repeat(3, 1fr); }
+    .grid-3 { grid-template-columns: 1fr; }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+  <div class="page">
+
+    <!-- Top-nav (identisk DNA med kunder.html) -->
+    <div class="top-nav">
+      <div class="brand">CCO</div>
+      <a href="/">Kalender</a>
+      <a href="/kunder.html">Kunder</a>
+      <a href="#">Konversationer</a>
+      <a href="#">Automation</a>
+      <a href="#">Analytics</a>
+      <a href="/journal-qa.html">Journal-QA</a>
+      <a href="/journal-build-demo.html" class="active">Journalbygge</a>
+      <div class="spacer"></div>
+      <span class="meta">Hair TP Clinic · Demo · localhost:3097</span>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-kicker">⌘ CCO · Customer & Clinic Operations</div>
+      <h1>Journalbygge — översikt</h1>
+      <p class="hero-sub">
+        Vad vi byggt för journalflödet i CCO. Allt material läses från CCO secure storage —
+        <code>inga Drive-länkar i UI</code>, ingen extern AI på journalinnehåll.
+        8 commits idag på <code>compliance/pipedrive-pii-purge</code>.
+      </p>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num">52/52</div><div class="stat-label">TP-fält parity</div></div>
+        <div class="stat-card"><div class="stat-num">18/18</div><div class="stat-label">formulär-checks</div></div>
+        <div class="stat-card"><div class="stat-num">19/19</div><div class="stat-label">tidslinje-checks</div></div>
+        <div class="stat-card"><div class="stat-num">15/15</div><div class="stat-label">rättelse-checks</div></div>
+        <div class="stat-card"><div class="stat-num">13/13</div><div class="stat-label">sign→asset-checks</div></div>
+        <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">Drive-länkar i UI</div></div>
+      </div>
+    </div>
+
+    <!-- Live demos -->
+    <div class="section">
+      <div class="section-head"><h2>Live demos</h2><span class="sub">klicka för att öppna i ny flik</span></div>
+      <div class="shell-panel">
+        <div class="grid-3">
+
+          <a class="story-card" href="/journal-feed-demo.html" target="_blank" data-kind="live">
+            <div class="story-card-kicker"><span class="icon">📋</span><span>Live</span></div>
+            <h3 class="story-card-headline">Patientkort · journal-feed</h3>
+            <p class="story-card-sub">
+              Demo med customer-ID + RBAC-roll → ser hela journalflödet:
+              Tidslinje · Alla · Journaler · Bilder · Dokument · Samtycken · Avtal · Formulär · Aisia.
+            </p>
+            <span class="status-pill status-pill--success"><span class="dot"></span>Aktiv</span>
+          </a>
+
+          <a class="story-card" href="/kunder.html" target="_blank" data-kind="patient">
+            <div class="story-card-kicker"><span class="icon">👥</span><span>Patientregister</span></div>
+            <h3 class="story-card-headline">Kunder · dossier</h3>
+            <p class="story-card-sub">
+              Hela kundvyn med journal-flik. 7 257 patienter, RBAC, audit, blocker-pillar.
+              Journal-feed-modulen wirad in.
+            </p>
+            <span class="status-pill status-pill--success"><span class="dot"></span>Wirad</span>
+          </a>
+
+          <a class="story-card" href="/patient-portal.html" target="_blank" data-kind="patient">
+            <div class="story-card-kicker"><span class="icon">📱</span><span>Patient-side</span></div>
+            <h3 class="story-card-headline">Patient-portal</h3>
+            <p class="story-card-sub">
+              Token-portal som renderar formulär. Hälsodeklaration · friskförsäkran ·
+              samtycken — submitas → journal-entry + PDF + asset.
+            </p>
+            <span class="status-pill status-pill--warning"><span class="dot"></span>Demo</span>
+          </a>
+
+          <a class="story-card" href="/friskforsakran.html" target="_blank" data-kind="patient">
+            <div class="story-card-kicker"><span class="icon">✍</span><span>Patient-side</span></div>
+            <h3 class="story-card-headline">Friskförsäkran · TP</h3>
+            <p class="story-card-sub">
+              Patientens friskförsäkran inför TP-behandling.
+              Submitas till <code>/api/v1/cco-forms/submit</code> → autoSign → PDF.
+            </p>
+            <span class="status-pill status-pill--success"><span class="dot"></span>Mobile-first</span>
+          </a>
+
+          <a class="story-card" href="/journal-qa.html" target="_blank" data-kind="qa">
+            <div class="story-card-kicker"><span class="icon">📊</span><span>QA</span></div>
+            <h3 class="story-card-headline">Journal-QA · cutover</h3>
+            <p class="story-card-sub">
+              5 statusblock: importstatus · matchning · journal · bild · readiness.
+              <code>link_only_files</code> som primär metric.
+            </p>
+            <span class="status-pill status-pill--success"><span class="dot"></span>Cache 60s</span>
+          </a>
+
+          <a class="story-card" href="/" target="_blank" data-kind="staff">
+            <div class="story-card-kicker"><span class="icon">🏠</span><span>Startsida</span></div>
+            <h3 class="story-card-headline">CCO · alla moduler</h3>
+            <p class="story-card-sub">
+              Kalender · kunder · konversationer · analytics · automation ·
+              journal · offerter · m.fl.
+            </p>
+            <span class="status-pill status-pill--success"><span class="dot"></span>Live</span>
+          </a>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- API -->
+    <div class="section">
+      <div class="section-head"><h2>Nya API-endpoints</h2><span class="sub">RBAC: customers.read / journal.write</span></div>
+      <div class="shell-panel">
+        <div class="api-row"><span class="verb-pill get">GET</span><span><span class="api-path">/api/v1/cco-customers/:id/journal-feed</span><span class="api-label">unified sektioner + statusar</span></span></div>
+        <div class="api-row"><span class="verb-pill get">GET</span><span><span class="api-path">/api/v1/cco-customers/:id/journal-timeline</span><span class="api-label">7+ event-typer + thread-grupp</span></span></div>
+        <div class="api-row"><span class="verb-pill post">POST</span><span><span class="api-path">/api/v1/cco-journal-quick/entry/correction</span><span class="api-label">ny rättelse (reason ≥ 10 chars)</span></span></div>
+        <div class="api-row"><span class="verb-pill post">POST</span><span><span class="api-path">/api/v1/cco-forms/submit</span><span class="api-label">hälsodeklaration/friskförsäkran → journal-entry</span></span></div>
+        <div class="api-row"><span class="verb-pill post">POST</span><span><span class="api-path">/api/v1/cco-forms/:entryId/sign</span><span class="api-label">signera tidigare submittat formulär</span></span></div>
+        <div class="api-row"><span class="verb-pill get">GET</span><span><span class="api-path">/api/v1/cco-forms/patient/:id/missing?treatment=fue</span><span class="api-label">ready-for-treatment blocker-status</span></span></div>
+      </div>
+    </div>
+
+    <!-- Vad fungerar -->
+    <div class="section">
+      <div class="section-head"><h2>Vad fungerar end-to-end</h2><span class="sub">verifierat via smoke-tests</span></div>
+      <div class="shell-panel">
+        <div class="grid-4">
+          <div class="story-card" data-kind="live">
+            <div class="story-card-kicker"><span class="icon">📝</span><span>Journal</span></div>
+            <h3 class="story-card-headline">Skapa CCO-journal</h3>
+            <p class="story-card-sub">Draft → signera → auto-PDF i secure storage → asset → VISIBLE_ON_PATIENT_CARD.</p>
+          </div>
+          <div class="story-card" data-kind="qa">
+            <div class="story-card-kicker"><span class="icon">✏</span><span>Rättelse</span></div>
+            <h3 class="story-card-headline">Ny rättelse (aldrig edit)</h3>
+            <p class="story-card-sub">Signerad journal kan inte ändras tyst. Skapar ny entry med anledning.</p>
+          </div>
+          <div class="story-card" data-kind="patient">
+            <div class="story-card-kicker"><span class="icon">📋</span><span>Formulär</span></div>
+            <h3 class="story-card-headline">Hälsodeklaration</h3>
+            <p class="story-card-sub">Submit → journal-entry + autoSign → PDF + asset (category=form).</p>
+          </div>
+          <div class="story-card" data-kind="patient">
+            <div class="story-card-kicker"><span class="icon">⚕</span><span>Formulär</span></div>
+            <h3 class="story-card-headline">Friskförsäkran · TP</h3>
+            <p class="story-card-sub">Samma flöde som hälsodeklaration. PDF + tamper-hash, signering bevarad.</p>
+          </div>
+          <div class="story-card" data-kind="live">
+            <div class="story-card-kicker"><span class="icon">🕐</span><span>Tidslinje</span></div>
+            <h3 class="story-card-headline">7+ event-typer</h3>
+            <p class="story-card-sub">form_submitted · form_signed · pdf_archived · correction_created · asset_imported.</p>
+          </div>
+          <div class="story-card" data-kind="qa">
+            <div class="story-card-kicker"><span class="icon">🧵</span><span>Relation</span></div>
+            <h3 class="story-card-headline">Original ↔ rättelse</h3>
+            <p class="story-card-sub">Thread-banner visar original-poster bundlade med sina rättelser.</p>
+          </div>
+          <div class="story-card" data-kind="staff">
+            <div class="story-card-kicker"><span class="icon">⛔</span><span>Statusar</span></div>
+            <h3 class="story-card-headline">6 asset-statusar</h3>
+            <p class="story-card-sub">VISIBLE · VERIFIED · NEEDS_REVIEW · LINK_ONLY · FAILED · DUPLICATE.</p>
+          </div>
+          <div class="story-card" data-kind="staff">
+            <div class="story-card-kicker"><span class="icon">🚦</span><span>Compliance</span></div>
+            <h3 class="story-card-headline">Ready-for-treatment</h3>
+            <p class="story-card-sub"><code>/missing?treatment=fue</code> — vilka formulär krävs, vilka finns, vilka blockerar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Commits -->
+    <div class="section">
+      <div class="section-head"><h2>Senaste commits</h2><span class="sub">branch · compliance/pipedrive-pii-purge</span></div>
+      <div class="shell-panel">
+        <div class="commit-list">
+          <div class="commit-row"><span class="commit-sha">53ceaeb9</span><span class="commit-msg"><strong>Field Parity Matrix</strong> · 14 kolumner × 52 fält · 100% parity bekräftad mot Meridiq</span></div>
+          <div class="commit-row"><span class="commit-sha">dd0296ba</span><span class="commit-msg"><strong>Hälsodeklaration + Friskförsäkran</strong> i journalflödet · 18/18 checks pass</span></div>
+          <div class="commit-row"><span class="commit-sha">c3b72051</span><span class="commit-msg"><strong>Journal-timeline</strong> · 7+ event-typer + thread-grupp · 19/19 checks</span></div>
+          <div class="commit-row"><span class="commit-sha">0995e20c</span><span class="commit-msg"><strong>Rättelse-UI</strong> · "Ny rättelse" modal · 15/15 checks</span></div>
+          <div class="commit-row"><span class="commit-sha">d6871e7b</span><span class="commit-msg"><strong>Auto-PDF vid signering</strong> → secure storage + asset · 13/13 checks</span></div>
+          <div class="commit-row"><span class="commit-sha">b60e9f18</span><span class="commit-msg"><strong>6 asset-statusar + 7 sektioner</strong> (FAILED_IMPORT, DUPLICATE separata)</span></div>
+          <div class="commit-row"><span class="commit-sha">09faaffe</span><span class="commit-msg"><strong>Unified journal-section</strong> i patientkort · mobile-first</span></div>
+          <div class="commit-row"><span class="commit-sha">75097010</span><span class="commit-msg"><strong>P0.J dry-run</strong> · 5 piloter mot riktig coupling-data · read-only</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <strong>Säkerhetsegenskaper som hålls genom hela kedjan:</strong>
+      Inga Drive-länkar i UI (verifierat via smoke-tests). Ingen extern AI på journalinnehåll.
+      All PDF i CCO secure storage med SHA-256 + tamper-hash. Signerad journal kan aldrig
+      ändras tyst (locked-guard). Audit-kedja: form_submitted → form_signed → pdf_archived →
+      asset_imported → asset_status_transition. RBAC per endpoint (owner / operator /
+      konsult / personal).
+      <br><br>
+      <strong>GitHub:</strong>
+      <a href="https://github.com/Fazliilzaf/major-arcana/tree/compliance/pipedrive-pii-purge" target="_blank">Fazliilzaf/major-arcana · compliance/pipedrive-pii-purge</a>
+    </div>
+
+  </div>
+
+</body>
+</html>

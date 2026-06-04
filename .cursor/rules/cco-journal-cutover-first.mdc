@@ -1,0 +1,126 @@
+---
+description: CCO Journal Cutover First — journalföring är P0
+alwaysApply: true
+---
+
+# CCO Journal Cutover First
+
+**Journalföring är P0.** Inget sekundärt arbete får prioriteras före journal cutover är klar.
+
+## Mål
+
+CCO ska ersätta Meridiq + Cliento för:
+
+- master patientkort
+- journal-historik (alla gamla journaler kopplade till rätt patient)
+- ny journalföring direkt i CCO
+- foto/bild-tagning direkt i CCO
+- foto/bild-arkiv
+- formulär (hälsodeklaration, friskförsäkran, behandlingsplan m.fl.)
+- samtycken (Nordbro/Insatt + Meridiq)
+- signerade PDFs med tamper-hash
+- patient-tidslinje (alla händelser per kund i kronologisk ordning)
+- audit-trail för läs + skriv + signering + rättelse
+
+## Aktuell situation (2026-05-30)
+
+- ✅ Cliento-kunder importerade: 7 250 → 7 257 efter Meridiq-commit
+- ✅ Meridiq-patienter importerade: 6 391 unika (6 455 - 64 duplikat)
+- ✅ Meridiq-formulär + samtycken: 14 questionnaires + 39 consents i `data/cco-templates.json`
+- ✅ Drive-struktur kartlagd: 7 delade Drives, 6-nivåers kalender-struktur
+- ✅ Nordbro/Insatt-mallar importerade från SharePoint
+- ✅ "Ta bild" / mobile photo flow finns i CCO
+- ⚠️ Drive-FILER inte importerade (väntar på service-account)
+- ⚠️ Master-patient-record per kund saknas (Cliento+Meridiq+Drive-IDs på samma kort)
+- ⚠️ Historiska journaler från Drive/Meridiq inte kopplade till patientkort
+- ⚠️ TP-journal full paritet mot Meridiq saknas (52 av 59 fält)
+
+## Krav INNAN cutover är klar
+
+**Datasida:**
+- En person = ett patientkort (master-record)
+- Cliento + Meridiq + Drive matched
+- Dubblettkontroll (osäkra → Review Queue, INGEN auto-merge)
+- Drive-fil-completeness (alla filer kopplade till rätt patient)
+- Historiska journal-PDF:er kopplade
+- Historiska bilder kopplade till encounter
+- Meridiq-formulär/PDF/samtycken kopplade
+
+**Funktionalitet:**
+- Ny CCO-journal-skapning end-to-end fungerar
+- Sign → lock → tamper-hash → PDF arkiverat
+- Rättelse som ny post (aldrig tyst ändring)
+- Audit för läs + skriv + signering + rättelse + export
+- Patient-tidslinje visar ALLA händelser (bokning + journal + foto + samtycke + utskick)
+- Journal QA-dashboard med 5 statusblock
+
+**Compliance:**
+- RBAC per arbetsuppgift (IMY-krav)
+- Spärrad journal / begränsad åtkomst
+- ID-verifiering vid varje besök
+- 10-års retention hard-block (PDL)
+- Inga externa AI-anrop på journalinnehåll
+- Inga patientdata i GitHub
+
+## Säkerhet (orubbliga regler)
+
+- **Inget ska raderas.** Alla historiska filer bevaras.
+- **Ingen auto-merge.** Osäkra matchningar → Migration Review Queue.
+- **Ingen patientdata i GitHub.** Endast strukturmetadata + maskerad audit.
+- **Inget journalinnehåll till extern AI.** Tone-selector + extract OK på strukturerade fält, INTE på journal-prosa.
+- **Inget cutover-grönt utan verifiering.** Cliento/Meridiq får INTE fasas ut förrän readiness-report visar grön på alla 10 kriterier.
+
+## Definition of Done (Journal Cutover Readiness = GREEN)
+
+Journal cutover är klar först när **alla 10 punkter** är ✅:
+
+1. ✅ Varje patient har ett master-kort (clientoId + meridiqId + driveFolderId + ccoId)
+2. ✅ Cliento ↔ Meridiq ↔ Drive matched (dubblettkandidater i Review Queue eller lösta)
+3. ✅ Historiska journaler kopplade till rätt patient (eller i Review Queue)
+4. ✅ Historiska bilder kopplade till rätt patient + encounter
+5. ✅ Formulär + samtycken kopplade till patient
+6. ✅ Ny CCO-journal fungerar end-to-end (skapa → signera → lås → PDF → audit)
+7. ✅ Foto-flow fungerar (ta bild → koppla till encounter → bevara original)
+8. ✅ Sign/lock/rättelse/PDF/audit verifierat med smoke-test
+9. ✅ Journal QA-dashboard visar 100% coverage på relevanta segment
+10. ✅ Cutover Readiness Report GREEN på alla blockers
+
+## Cutover-villkor per system
+
+**Cliento får fasas ut när:**
+- Alla kunder finns i CCO ✅ (KLART efter Fas 1)
+- Bokningskritiska data överförda
+- Dubbletter hanterade
+- CCO-bokning fungerar (Fas 3)
+- Personalen hittar kundkort + historik
+- Inga nya bokningar behöver skapas i Cliento
+
+**Meridiq får sättas read-only när:**
+- Journalmallar finns i CCO ✅
+- Historiska journaler/formulär/PDF/samtycken kopplade
+- Ny journalföring sker i CCO
+- Signering/låsning/rättelse fungerar
+- PDF-arkivering fungerar
+- Audit/loggning fungerar
+- QA visar att inga patientjournaler saknas
+
+## Pausa allt annat tills detta är grönt
+
+Följande arbeten **PAUSAS** tills Journal Cutover Readiness är GREEN:
+
+- Drive AI Fas 3-features (Smart Search, Foto-AI, etc.) — kan göras EFTER cutover
+- Booking-engine Fas 3 — kan börjas parallellt MEN endast om journal-resurser inte konkurrerar
+- POS + utskick Fas 4 — pausad helt
+- Sunset Fas 5 — pausad tills Readiness GREEN
+
+## Referenser
+
+- `docs/strategy/CUTOVER-PLAN-CCO-MASTER.md` — 24-veckors-planen (re-prioriteras nu)
+- `docs/strategy/MERIDIQ-CCO-GAP-ANALYSIS.md` — gap-listan med EXISTS/MISSING/PARTIAL
+- `docs/strategy/MERIDIQ-DEDUP-REPORT-2026-05-30.md` — patient-match-resultat
+- `docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md` — Drive-struktur
+- `docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md` — kommer härnäst (P0.1)
+
+---
+
+*Skapad: 2026-05-30 · Owner-mandat: stoppa allt sekundärt arbete tills journal-cutover är komplett.*

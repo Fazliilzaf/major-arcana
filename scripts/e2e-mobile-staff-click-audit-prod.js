@@ -1,0 +1,616 @@
+#!/usr/bin/env node
+/**
+ * E2E mobil klick-audit — Playwright @ prod (iPhone 13 default, Pixel 5 via ARCANA_MOBILE_DEVICE).
+ * Mäter tid per steg, flaggar blockers (scroll, overlay, saknade element).
+ */
+require('dotenv').config({ quiet: true });
+const { chromium } = require('playwright');
+const {
+  resolveMobileDeviceProfile,
+  mobileBrowserContextOptions,
+} = require('./lib/mobilePlaywrightDevices');
+const { execSync } = require('node:child_process');
+const path = require('node:path');
+const {
+  injectStaffToken,
+  waitForPatientDetailReady,
+} = require('./lib/mobile-patient-deeplink-prod');
+const { resolveSmokePatientId } = require('./lib/resolve-smoke-patient-prod');
+
+const base = (process.env.ARCANA_PROD_URL || 'https://arcana.hairtpclinic.se').replace(/\/+$/, '');
+const patientId = process.env.ARCANA_SMOKE_PATIENT_ID || '2e8d3535-cd89-418e-8b68-ca239f8836a4';
+const staffEmail = process.env.ARCANA_STAFF_EMAIL || '';
+const staffPassword = process.env.ARCANA_STAFF_PASSWORD || '';
+const tenantId = process.env.ARCANA_DEFAULT_TENANT || 'hair-tp-clinic';
+const root = path.join(__dirname, '..');
+
+const MOBILE_SHELL_PRIME_BUDGET_MS = Number(process.env.ARCANA_MOBILE_SHELL_PRIME_BUDGET_MS || 1600);
+const MOBILE_DEEPLINK_NAV_BUDGET_MS = Number(process.env.ARCANA_MOBILE_DEEPLINK_NAV_BUDGET_MS || 3000);
+const MOBILE_DEEPLINK_SKELETON_BUDGET_MS = Number(
+  process.env.ARCANA_MOBILE_DEEPLINK_SKELETON_BUDGET_MS || 1600
+);
+
+const steps = [];
+let blockers = [];
+
+function ms(start) {
+  return Date.now() - start;
+}
+
+function record(step, ok, detail = '', timingMs = null) {
+  const entry = { step, ok, detail, timingMs };
+  steps.push(entry);
+  const time = timingMs != null ? ` — ${timingMs}ms` : '';
+  console.log(`${ok ? 'OK' : 'FAIL'}: ${step}${detail ? ` — ${detail}` : ''}${time}`);
+  if (!ok) blockers.push({ step, detail });
+}
+
+function warn(step, detail = '') {
+  console.log(`WARN: ${step}${detail ? ` — ${detail}` : ''}`);
+}
+
+function getStaffToken() {
+  if (process.env.ARCANA_SMOKE_BEARER_TOKEN) return process.env.ARCANA_SMOKE_BEARER_TOKEN.trim();
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      return execSync(`node "${path.join(root, 'scripts/get-prod-auth-token.js')}"`, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }).trim();
+    } catch (err) {
+      if (attempt === 4) throw err;
+    }
+  }
+  return '';
+}
+
+async function snapshot(page, label) {
+  return page.evaluate((name) => {
+    const scrollLocked = document.documentElement.getAttribute('data-cco-scroll-locked') === 'on';
+    const bodyOverflow = getComputedStyle(document.body).overflow;
+    const pageEl = document.querySelector('.preview-page');
+    const pageOverflow = pageEl ? getComputedStyle(pageEl).overflowY : 'n/a';
+    const authRequired = document.documentElement.getAttribute('data-cco-auth-required') === 'on';
+    const loginSticky = Boolean(document.querySelector('[data-staff-login-form] .cco-mobile-sticky-cta-bar'));
+    const loginVisible = Boolean(document.querySelector('[data-staff-login-form] input[name="email"]'));
+    const loginEmailBox = document.querySelector('[data-staff-login-form] input[name="email"]');
+    const emailVisible =
+      loginEmailBox &&
+      (() => {
+        const r = loginEmailBox.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.top >= 0 && r.top < window.innerHeight;
+      })();
+    return {
+      label: name,
+      url: location.href,
+      shell: document.documentElement.getAttribute('data-cco-mobile-shell'),
+      authRequired,
+      scrollLocked,
+      bodyOverflow,
+      pageOverflow,
+      loginSticky,
+      loginVisible,
+      emailVisible,
+      detail: document.documentElement.getAttribute('data-cco-patient-detail'),
+      hasTaBild: Boolean(document.querySelector('.patient-master-camera-button')),
+    };
+  }, label);
+}
+
+async function canScroll(page) {
+  return page.evaluate(() => {
+    const pageEl = document.querySelector('.preview-page') || document.documentElement;
+    const scrollHeight = pageEl.scrollHeight || document.documentElement.scrollHeight;
+    const clientHeight = pageEl.clientHeight || window.innerHeight;
+    if (scrollHeight <= clientHeight + 4) {
+      return true;
+    }
+    const before = pageEl.scrollTop || window.scrollY;
+    pageEl.scrollBy?.(0, 80);
+    window.scrollBy(0, 80);
+    const after = pageEl.scrollTop || window.scrollY;
+    return after > before;
+  });
+}
+
+async function tapAndTime(page, selector, label, readyCheck) {
+  const loc = page.locator(selector).first();
+  await loc.waitFor({ state: 'visible', timeout: 15000 });
+  const t0 = Date.now();
+  await page.evaluate((sel) => {
+    document.querySelector(sel)?.click();
+  }, selector);
+  if (typeof readyCheck === 'function') {
+    try {
+      await page.waitForFunction(readyCheck, undefined, { timeout: 8000, polling: 16 });
+    } catch {
+      /* fall through — still record click time */
+    }
+  } else {
+    await page.waitForTimeout(300);
+  }
+  return { label, ms: ms(t0) };
+}
+
+async function main() {
+  if (!staffEmail || !staffPassword) {
+    console.error('Saknar ARCANA_STAFF_EMAIL / ARCANA_STAFF_PASSWORD');
+    process.exit(1);
+  }
+
+  execSync(`node "${path.join(root, 'scripts/lib/wait-for-prod-ready.js')}"`, { stdio: 'inherit' });
+
+  const staffToken = getStaffToken();
+  const resolvedPatientId = await resolveSmokePatientId({
+    base,
+    token: staffToken,
+    preferredId: patientId,
+  });
+
+  const deviceProfile = resolveMobileDeviceProfile();
+  console.log(`E2E mobil klick-audit @ ${base} (${deviceProfile.label})`);
+  console.log(`Patient: ${resolvedPatientId.slice(0, 8)}…\n`);
+
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext(mobileBrowserContextOptions(deviceProfile));
+  const page = await context.newPage();
+
+  try {
+    // 1. Kallstart /staff
+    let t0 = Date.now();
+    await page.goto(`${base}/staff?view=customers`, { waitUntil: 'commit', timeout: 60000 });
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute('data-cco-mobile-shell') === 'on',
+      undefined,
+      { timeout: 8000, polling: 16 }
+    );
+    const snap1 = await snapshot(page, 'after-load');
+    record('Kallstart /staff → mobil shell', snap1.shell === 'on', snap1.url, ms(t0));
+    const coldStartMs = ms(t0);
+    const shellPrimeMs = await page.evaluate(() =>
+      Math.round(Number(window.__ARCANA_MOBILE_SHELL_PRIME_MS__ || 0))
+    );
+    if (shellPrimeMs > 0) {
+      record(
+        'Mobil shell prime (head)',
+        shellPrimeMs <= MOBILE_SHELL_PRIME_BUDGET_MS,
+        `${shellPrimeMs}ms från navigation (budget ${MOBILE_SHELL_PRIME_BUDGET_MS}ms)`,
+        shellPrimeMs
+      );
+    }
+    const coldStartPass =
+      shellPrimeMs > 0 ? shellPrimeMs <= MOBILE_SHELL_PRIME_BUDGET_MS : coldStartMs <= 3000;
+    if (!coldStartPass && coldStartMs > 8000) {
+      warn('Kallstart långsam', `${coldStartMs}ms (>8000ms budget)`);
+    } else if (!coldStartPass) {
+      warn('Kallstart över mål', `${shellPrimeMs || coldStartMs}ms (>1500/3000ms mål)`);
+    }
+
+    const bundleSplitInfo = await page.evaluate(() => {
+      const resources = performance.getEntriesByType('resource');
+      const scriptUrls = resources
+        .filter((entry) => entry.initiatorType === 'script' || /\.js(\?|$)/.test(entry.name))
+        .map((entry) => entry.name);
+      const splitActive = Boolean(window.__ARCANA_STAFF_BUNDLE_SPLIT__);
+      const staffCoreLoaded = scriptUrls.some((url) => /app\.bundle\.staff-core\.[a-f0-9]+\.min\.js/.test(url));
+      const staffDeferredLoaded = scriptUrls.some((url) =>
+        /app\.bundle\.staff-deferred\.[a-f0-9]+\.min\.js/.test(url)
+      );
+      const fullBundleLoaded = scriptUrls.some((url) =>
+        /app\.bundle\.[a-f0-9]+\.min\.js/.test(url) &&
+        !/app\.bundle\.staff-(core|deferred)\./.test(url)
+      );
+      return { splitActive, staffCoreLoaded, staffDeferredLoaded, fullBundleLoaded, scriptUrls };
+    });
+    record(
+      'Mobil bundle split aktiv',
+      bundleSplitInfo.splitActive,
+      bundleSplitInfo.splitActive ? 'staff-core + deferred' : 'ej aktiv'
+    );
+    if (bundleSplitInfo.splitActive) {
+      if (!bundleSplitInfo.staffCoreLoaded) {
+        await page.waitForFunction(
+          () =>
+            performance
+              .getEntriesByType('resource')
+              .some((entry) => /app\.bundle\.staff-core\.[a-f0-9]+\.min\.js/.test(entry.name)),
+          undefined,
+          { timeout: 6000, polling: 100 }
+        ).catch(() => {});
+      }
+      const staffCoreLoaded = await page.evaluate(() =>
+        performance
+          .getEntriesByType('resource')
+          .some((entry) => /app\.bundle\.staff-core\.[a-f0-9]+\.min\.js/.test(entry.name))
+      );
+      record(
+        'Staff-core bundle laddad',
+        staffCoreLoaded,
+        staffCoreLoaded ? 'app.bundle.staff-core' : 'saknas'
+      );
+      const fullBundleLoaded = await page.evaluate(() =>
+        performance
+          .getEntriesByType('resource')
+          .some(
+            (entry) =>
+              /app\.bundle\.[a-f0-9]+\.min\.js/.test(entry.name) &&
+              !/app\.bundle\.staff-(core|deferred)\./.test(entry.name)
+          )
+      );
+      record(
+        'Full bundle ej laddad (split)',
+        !fullBundleLoaded,
+        fullBundleLoaded ? 'full bundle laddades trots split' : 'ok'
+      );
+      if (!bundleSplitInfo.staffDeferredLoaded) {
+        await page.waitForFunction(
+          () =>
+            performance
+              .getEntriesByType('resource')
+              .some((entry) => /app\.bundle\.staff-deferred\.[a-f0-9]+\.min\.js/.test(entry.name)),
+          undefined,
+          { timeout: 8000, polling: 100 }
+        ).catch(() => {});
+      }
+      const deferredLoadedAfterIdle = await page.evaluate(() =>
+        performance
+          .getEntriesByType('resource')
+          .some((entry) => /app\.bundle\.staff-deferred\.[a-f0-9]+\.min\.js/.test(entry.name))
+      );
+      if (deferredLoadedAfterIdle) {
+        record('Staff-deferred lazy chunk', true, 'laddad efter idle', null);
+      } else {
+        warn('Staff-deferred lazy chunk', 'ej laddad inom 8s idle (kan vara ok före journal)');
+      }
+    }
+
+    // 2. Login-form tillgänglig
+    t0 = Date.now();
+    const loginForm = page.locator('[data-staff-login-form]');
+    const needsLogin = (await loginForm.count()) > 0;
+    record('Login-form renderad', needsLogin, needsLogin ? 'session krävs' : 'redan inloggad', ms(t0));
+
+    if (needsLogin) {
+      const snapLogin = await snapshot(page, 'login');
+      record('Ingen sticky login-knapp', !snapLogin.loginSticky, snapLogin.loginSticky ? 'sticky CTA aktiv' : 'ok');
+      record('E-post synlig utan scroll', snapLogin.emailVisible, snapLogin.emailVisible ? 'ok' : 'fält utanför viewport');
+      record('Scroll-lås av på login', !snapLogin.scrollLocked, `body=${snapLogin.bodyOverflow} page=${snapLogin.pageOverflow}`);
+
+      const scrollOk = await canScroll(page);
+      record('Kan scrolla på login', scrollOk, scrollOk ? 'ok' : 'scroll blockerad');
+
+      t0 = Date.now();
+      await page.locator('[data-staff-login-form] input[name="email"]').fill(staffEmail);
+      await page.locator('[data-staff-login-form] input[name="password"]').fill(staffPassword);
+      const tenantInput = page.locator('[data-staff-login-form] input[name="tenantId"]');
+      if (await tenantInput.count()) {
+        await tenantInput.evaluate((node, value) => {
+          node.value = value;
+        }, tenantId);
+      }
+      await page.locator('[data-staff-login-form] .patient-master-login-button, [data-staff-login-form] button[type="submit"]').first().click();
+      await page.waitForFunction(
+        () => {
+          const token = localStorage.getItem('ARCANA_ADMIN_TOKEN');
+          return Boolean(token && token.length > 8 && !document.querySelector('[data-staff-login-form]'));
+        },
+        undefined,
+        { timeout: 30000 }
+      );
+      record('UI-inloggning → token', true, 'inloggad', ms(t0));
+    }
+
+    // 3. Kundlista
+    t0 = Date.now();
+    await page.waitForSelector('[data-customer-list]', { timeout: 20000 });
+    await page.waitForTimeout(1500);
+    const rowCount = await page.locator('[data-patient-row]').count();
+    const pilotInfo = await page.evaluate(() => ({
+      pilot: window.__ARCANA_PILOT_PATIENT_IDS__,
+      total: window.ArcanaPatientMasterUi?.getRuntime?.()?.total,
+      loaded: window.ArcanaPatientMasterUi?.getRuntime?.()?.loaded,
+      error: window.ArcanaPatientMasterUi?.getRuntime?.()?.error,
+    }));
+    record(
+      'Kundlista laddad',
+      rowCount > 0,
+      rowCount > 0 ? `${rowCount} rader` : `0 rader (pilot=${JSON.stringify(pilotInfo.pilot?.length || 0)} total=${pilotInfo.total})`,
+      ms(t0)
+    );
+
+    // 4. Öppna testpatient (deep link)
+    await injectStaffToken(page, staffToken);
+    await page.goto(`${base}/staff?view=customers&patientId=${encodeURIComponent(resolvedPatientId)}`, {
+      waitUntil: 'commit',
+      timeout: 60000,
+    });
+    await injectStaffToken(page, staffToken);
+    await page.waitForFunction(
+      () => Number(window.__ARCANA_DEEPLINK_PRIME_MS__ || 0) > 0,
+      undefined,
+      { timeout: 8000, polling: 16 }
+    ).catch(() => {});
+    const inlinePrimeMs = await page.evaluate(() => {
+      const nav = performance.getEntriesByType('navigation')[0];
+      const start = nav ? nav.startTime : 0;
+      const primeAt = Number(window.__ARCANA_DEEPLINK_PRIME_MS__ || 0);
+      return primeAt > 0 ? Math.round(primeAt - start) : null;
+    });
+    if (inlinePrimeMs != null) {
+      record(
+        'Deep link inline skeleton',
+        inlinePrimeMs <= MOBILE_DEEPLINK_SKELETON_BUDGET_MS,
+        `${inlinePrimeMs}ms från navigation (budget ${MOBILE_DEEPLINK_SKELETON_BUDGET_MS}ms)`,
+        inlinePrimeMs
+      );
+    }
+    const bundleLoadMs = await page.evaluate(() => {
+      const nav = performance.getEntriesByType('navigation')[0];
+      const start = nav ? nav.startTime : 0;
+      const bundle = performance
+        .getEntriesByType('resource')
+        .find((entry) => /app\.bundle.*\.min\.js/.test(entry.name));
+      return bundle ? Math.round(bundle.responseEnd - start) : null;
+    });
+    if (bundleLoadMs != null) {
+      record('Deep link bundle laddad', bundleLoadMs <= 8000, `${bundleLoadMs}ms från navigation`, bundleLoadMs);
+    }
+    const earlyUiMs = await page.evaluate(() => {
+      const nav = performance.getEntriesByType('navigation')[0];
+      const start = nav ? nav.startTime : 0;
+      const earlyUi = performance
+        .getEntriesByType('resource')
+        .find((entry) => /patient-master-ui\.js/.test(entry.name));
+      return earlyUi ? Math.round(earlyUi.responseEnd - start) : null;
+    });
+    if (earlyUiMs != null) {
+      record('Deep link early patient UI', earlyUiMs <= 4000, `${earlyUiMs}ms från navigation`, earlyUiMs);
+    }
+    const skeletonMs = await page
+      .waitForFunction(
+        () => {
+          const nav = performance.getEntriesByType('navigation')[0];
+          const ready =
+            document.documentElement.getAttribute('data-cco-patient-detail') === 'on' ||
+            document.querySelector('[data-patient-loading="true"]') ||
+            document.querySelector('[data-patient-master-rail] .patient-master-camera-button') ||
+            Boolean(window.__ARCANA_DEEPLINK_HYDRATED__);
+          if (ready && nav) {
+            window.__ARCANA_DEEPLINK_SKELETON_MS__ = performance.now() - nav.startTime;
+          }
+          return ready;
+        },
+        undefined,
+        { timeout: 8000, polling: 16 }
+      )
+      .then(() =>
+        page.evaluate(() => Math.round(Number(window.__ARCANA_DEEPLINK_SKELETON_MS__ || 0)))
+      )
+      .catch(() => null);
+    if (skeletonMs != null) {
+      record('Deep link skeleton/detail synlig', skeletonMs <= 4000, `${skeletonMs}ms från navigation`, skeletonMs);
+    }
+    const detailReadyStart = Date.now();
+    const detailReady = await waitForPatientDetailReady(page, {
+      timeout: 90000,
+      patientId: resolvedPatientId,
+    });
+    const detailReadyMs = detailReady ? Date.now() - detailReadyStart : null;
+    record(
+      'Deep link → kunddetail klar',
+      detailReady && detailReadyMs <= 8000,
+      resolvedPatientId.slice(0, 8),
+      detailReady ? detailReadyMs : null
+    );
+    if (detailReadyMs != null && detailReadyMs > 6000) {
+      warn('Kunddetail över budget', `${detailReadyMs}ms (>6000ms E2E-budget)`);
+    } else if (detailReadyMs != null && detailReadyMs > 5000) {
+      warn('Kunddetail över mål', `${detailReadyMs}ms (>5000ms mål, ≤6000ms budget)`);
+    } else     if (detailReadyMs != null && detailReadyMs > 1500) {
+      warn('Kunddetail långsam', `${detailReadyMs}ms (>1500ms mål)`);
+    }
+    const navDetailMs = await page.evaluate(() =>
+      Math.round(Number(window.__ARCANA_DEEPLINK_DETAIL_READY_MS__ || 0))
+    );
+    if (navDetailMs > 0) {
+      record(
+        'Deep link nav → detail (in-page)',
+        navDetailMs <= MOBILE_DEEPLINK_NAV_BUDGET_MS,
+        `${navDetailMs}ms från navigation (budget ${MOBILE_DEEPLINK_NAV_BUDGET_MS}ms)`,
+        navDetailMs
+      );
+      if (navDetailMs > 1500) {
+        warn('Deep link nav→detail över mål', `${navDetailMs}ms (>1500ms mål)`);
+      }
+    }
+
+    if (!detailReady) {
+      throw new Error(`Deep link kunddetail ej klar (${resolvedPatientId.slice(0, 8)})`);
+    }
+
+    // 5. Journal-flik (Profil → Journal, mäts in-page)
+    await page.evaluate(() => {
+      window.ArcanaPatientMasterUi?.setPatientTab?.('journal');
+    });
+    await page.waitForTimeout(400);
+    const journalTab = page
+      .locator('button[data-patient-tab="journal"], .patient-master-tab[data-patient-tab="journal"]')
+      .first();
+    const journalPanelVisible = await page
+      .locator('[data-patient-tab-panel="journal"]:not([hidden])')
+      .isVisible()
+      .catch(() => false);
+    const journalTabVisible = await journalTab.isVisible().catch(() => false);
+    if (!journalPanelVisible && !journalTabVisible) {
+      await page.evaluate(() => {
+        document
+          .querySelector('button[data-patient-tab="journal"], .patient-master-tab[data-patient-tab="journal"]')
+          ?.click();
+      });
+      await page.waitForTimeout(300);
+    }
+    const journalTiming = await page.evaluate(() => {
+      const t0 = performance.now();
+      window.ArcanaPatientMasterUi?.setPatientTab?.('profil');
+      window.ArcanaPatientMasterUi?.setPatientTab?.('journal');
+      const journalVisible = !document
+        .querySelector('[data-patient-tab-panel="journal"]')
+        ?.hasAttribute('hidden');
+      return {
+        ms: Math.round(performance.now() - t0),
+        journalVisible,
+      };
+    });
+    const tabH = journalTabVisible
+      ? await journalTab.evaluate((el) => Math.round(el.getBoundingClientRect().height)).catch(() => 0)
+      : 0;
+    record(
+      'Journal-tab klick',
+      journalTiming.journalVisible || journalPanelVisible,
+      journalTabVisible ? `${tabH}px höjd` : 'journalpanel aktiv',
+      journalTiming.ms
+    );
+
+    // 6. Ta bild
+    t0 = Date.now();
+    const taBild = page.locator('.patient-master-camera-button').first();
+    const taBildVisible = await taBild.isVisible().catch(() => false);
+    record('Ta bild synlig', taBildVisible, taBildVisible ? 'ok' : 'saknas/dold', ms(t0));
+
+    // 7. Tillbaka till lista
+    t0 = Date.now();
+    await page.evaluate(() => window.ArcanaPatientMasterUi?.goBackToPatientList?.());
+    const backMs = await page
+      .waitForFunction(
+        () => !document.documentElement.hasAttribute('data-cco-patient-detail'),
+        undefined,
+        { timeout: 8000, polling: 16 }
+      )
+      .then(() => ms(t0))
+      .catch(() => ms(t0));
+    const backOk = await page.evaluate(
+      () => !document.documentElement.hasAttribute('data-cco-patient-detail')
+    );
+    record('Back → kundlista', backOk, backOk ? 'lista' : 'fast i detail', backMs);
+    if (backOk && backMs > 1200) {
+      warn('Back långsam', `${backMs}ms (>1200ms budget)`);
+    }
+
+    // 8. Bottom tabs — tid per klick
+    const tabClicks = [];
+    for (const tab of [
+      {
+        key: 'home',
+        sel: '.cco-mobile-tabbar-item[data-mobile-tab="home"]',
+        ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'conversations',
+      },
+      {
+        key: 'booking',
+        sel: '.cco-mobile-tabbar-item[data-mobile-tab="booking"]',
+        ready: () => document.querySelector('.preview-canvas')?.dataset.mobileWorkspaceView === 'focus',
+      },
+      {
+        key: 'calendar',
+        sel: '.cco-mobile-tabbar-item[data-mobile-tab="calendar"]',
+        ready: () => document.documentElement.hasAttribute('data-cco-calendar-open'),
+      },
+      {
+        key: 'customers',
+        sel: '.cco-mobile-tabbar-item[data-mobile-tab="customers"]',
+        ready: () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
+      },
+    ]) {
+      try {
+        if (tab.key === 'calendar') {
+          await page.evaluate(() => window.ArcanaBookingMobileCalendar?.close?.());
+          await page.waitForTimeout(150);
+        }
+        const r = await tapAndTime(page, tab.sel, tab.key, tab.ready);
+        if (tab.key === 'calendar') {
+          await page.evaluate(() => window.ArcanaBookingMobileCalendar?.close?.());
+          await page.waitForTimeout(150);
+        }
+        tabClicks.push(r);
+        const slow = r.ms > 800 ? ' ⚠ långsam' : '';
+        record(`Tab ${tab.key}`, true, `${r.ms}ms${slow}`, r.ms);
+      } catch (err) {
+        record(`Tab ${tab.key}`, false, err.message?.slice(0, 80) || 'klick misslyckades');
+      }
+    }
+
+    // 9. Inställningar bottom sheet (synlig endast på kundlista)
+    await page.evaluate(() => {
+      window.ArcanaPatientMasterUi?.clearMobilePatientSelection?.();
+      window.ArcanaBookingMobileCalendar?.close?.();
+    });
+    await page.evaluate(() => {
+      document.querySelector('.cco-mobile-tabbar-item[data-mobile-tab="customers"]')?.click();
+    });
+    await page.waitForFunction(
+      () => document.querySelector('.preview-canvas')?.dataset.appShellView === 'customers',
+      undefined,
+      { timeout: 8000, polling: 16 }
+    );
+    await page.waitForFunction(
+      () => !document.documentElement.hasAttribute('data-cco-patient-detail'),
+      undefined,
+      { timeout: 8000, polling: 16 }
+    );
+    const settingsBtn = page.locator('.customers-toolbar-settings[data-customer-command="settings"]').first();
+    const settingsVisible = await settingsBtn.isVisible().catch(() => false);
+    if (settingsVisible) {
+      const settingsTiming = await tapAndTime(
+        page,
+        '.customers-toolbar-settings[data-customer-command="settings"]',
+        'settings',
+        () => document.getElementById('customers-settings-shell')?.hasAttribute('data-open')
+      );
+      record(
+        'Inställningar bottom sheet',
+        Boolean(
+          await page.evaluate(() => document.getElementById('customers-settings-shell')?.hasAttribute('data-open'))
+        ),
+        settingsTiming.ms <= 800 ? 'öppen' : 'öppen',
+        settingsTiming.ms
+      );
+      await page.locator('[data-customer-settings-close]').first().click({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(250);
+      await page.evaluate(() => window.ArcanaMobileCore?.forceUnlockBodyScroll?.());
+    } else {
+      warn('Inställningsknapp', 'dold på mobil kundlista (förväntat om ej list-läge)');
+    }
+
+    // 10. Scroll efter inloggning
+    const scrollAfter = await canScroll(page);
+    record('Kan scrolla efter inloggning', scrollAfter, scrollAfter ? 'ok' : 'blockerad');
+
+    const avgTab =
+      tabClicks.length > 0
+        ? Math.round(tabClicks.reduce((s, r) => s + r.ms, 0) / tabClicks.length)
+        : 0;
+    const slowTabs = tabClicks.filter((r) => r.ms > 800);
+
+    console.log('\n--- Sammanfattning ---');
+    const passed = steps.filter((s) => s.ok).length;
+    console.log(`Steg: ${passed}/${steps.length} OK`);
+    if (avgTab) console.log(`Snitt tab-klick: ${avgTab}ms`);
+    if (slowTabs.length) {
+      console.log(`Långsamma tabbar (>800ms): ${slowTabs.map((t) => `${t.label} ${t.ms}ms`).join(', ')}`);
+    }
+    if (blockers.length) {
+      console.log('\nBlockers:');
+      blockers.forEach((b) => console.log(`  • ${b.step}: ${b.detail}`));
+    } else {
+      console.log('\nInga blockers — flödet går att klicka igenom.');
+    }
+
+    if (blockers.length) process.exit(1);
+  } finally {
+    await browser.close();
+  }
+}
+
+main().catch((err) => {
+  console.error('E2E audit kraschade:', err.message || err);
+  process.exit(1);
+});

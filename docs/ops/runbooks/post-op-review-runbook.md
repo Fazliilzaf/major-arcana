@@ -15,8 +15,12 @@ Spec: [post-op-review-photo-flow.md](../../strategy/post-op-review-photo-flow.md
 
 ```bash
 node --test tests/capabilities/requestPostOpReview.test.js
+npm run verify:post-op-graph-prod   # riktigt M365 Graph sendMail (POST_OP_GRAPH_TEST_TO)
+npm run verify:post-op-prod         # patient lookup/upload/submit (skipGraphSend)
 bash scripts/run-rollout-sweep.sh
 ```
+
+**Graph send live (2026-05-24):** `ARCANA_GRAPH_SEND_ENABLED=true` på Render. Auto-send när operator POST:ar med `patientEmail` i body (utan `skipGraphSend:true`). Avsändare: `contact@hairtpclinic.com`.
 
 ## Env
 

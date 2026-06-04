@@ -1,10 +1,12 @@
 'use strict';
 
-const { PLAN_A_PUBLIC_SERVICE_IDS } = require('./ccoBookingEngineStore');
 const { buildTreatmentAgreementReadout } = require('./ccoTreatmentAgreementStore');
+const { resolveTemplateApprovalForAgreement } = require('./ccoTreatmentAgreementTemplateGate');
 
 const CONSULTATION_SERVICE_IDS = new Set([
-  ...PLAN_A_PUBLIC_SERVICE_IDS,
+  'consultation-online',
+  'consultation-physical',
+  'followup-transplant',
   'consultation',
   'konsultation',
 ]);
@@ -57,6 +59,7 @@ async function resolvePatientId({ patientMasterStore, tenantId, patientId, custo
 
 async function checkTreatmentBookingGate({
   treatmentAgreementStore,
+  templateVersionApprovalStore = null,
   patientMasterStore,
   tenantId,
   patientId,
@@ -109,7 +112,11 @@ async function checkTreatmentBookingGate({
     tenantId,
     patientId: resolvedPatientId,
   });
-  const agreementReadout = buildTreatmentAgreementReadout(agreement || {});
+  const templateApproval = await resolveTemplateApprovalForAgreement(
+    templateVersionApprovalStore,
+    agreement || {}
+  );
+  const agreementReadout = buildTreatmentAgreementReadout(agreement || {}, { templateApproval });
 
   if (agreementReadout.bookable) {
     return {

@@ -1,0 +1,355 @@
+@media (min-width: 768px) and (max-width: 1023px) {
+    html[data-cco-tablet-shell='on'] {
+      --topbar-height: var(--cco-tablet-topbar-h, 60px);
+    }
+
+    html[data-cco-tablet-shell='on'] .preview-page {
+      padding-inline: var(--cco-tablet-gutter, 20px);
+    }
+
+    html[data-cco-tablet-shell='on'] .preview-topbar {
+      padding-inline: var(--cco-tablet-gutter, 20px);
+    }
+
+    /* Customers — split list + detail (overrides max-width:1100px single column) */
+    html[data-cco-tablet-shell='on'] .customers-layout {
+      grid-template-columns: minmax(var(--cco-tablet-split-min, 220px), min(var(--cco-tablet-split-max, 280px), 34vw)) minmax(
+        0,
+        1fr
+      ) !important;
+      gap: var(--cco-tablet-panel-gap, 20px);
+      align-items: start;
+    }
+
+    html[data-cco-tablet-shell='on'] .customers-list {
+      display: flex !important;
+      flex-direction: column;
+      max-height: calc(100dvh - 11rem);
+      overflow: auto;
+      position: sticky;
+      top: calc(var(--topbar-height, 60px) + 0.5rem);
+      align-self: start;
+      border-right: 1px solid rgba(120, 105, 90, 0.16);
+      padding-right: 0.5rem;
+    }
+
+    html[data-cco-tablet-shell='on'] .customers-rail {
+      display: flex !important;
+      flex-direction: column;
+      min-width: 0;
+      gap: var(--cco-tablet-panel-gap, 20px);
+    }
+
+    html[data-cco-tablet-shell='on'][data-cco-tablet-patient-split='on'] .customers-list,
+    html[data-cco-tablet-shell='on'][data-cco-tablet-patient-split='on'] .customers-rail {
+      min-height: 0;
+    }
+
+    /* Journal / patient — tabs stay visible alongside detail */
+    html[data-cco-tablet-shell='on'] .patient-master-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding-block: 4px 8px;
+      background: linear-gradient(180deg, rgba(250, 246, 242, 0.98) 70%, rgba(250, 246, 242, 0));
+    }
+
+    html[data-cco-tablet-shell='on'] .patient-master-tab,
+    html[data-cco-tablet-shell='on'] .patient-master-mode-button {
+      min-height: var(--cco-touch-min, 44px);
+    }
+
+    /* Calendar / booking — side panel instead of full-screen overlay */
+    html[data-cco-tablet-shell='on'][data-cco-tablet-booking-split='on'] .preview-canvas.is-booking-open .booking-shell {
+      position: fixed;
+      top: calc(var(--topbar-height, 60px) + 12px);
+      right: var(--cco-tablet-gutter, 20px);
+      left: auto;
+      width: min(420px, calc(100vw - var(--cco-tablet-split-min, 220px) - (var(--cco-tablet-gutter, 20px) * 3)));
+      bottom: 12px;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: none;
+      z-index: 34;
+    }
+
+    html[data-cco-tablet-shell='on'][data-cco-tablet-booking-split='on'] .booking-shell-surface {
+      border-radius: 20px;
+      max-height: 100%;
+    }
+
+    html[data-cco-tablet-shell='on'][data-cco-tablet-booking-split='on'] .preview-workspace > .preview-shell,
+    html[data-cco-tablet-shell='on'][data-cco-tablet-booking-split='on'] .preview-workspace > .focus-shell {
+      margin-right: min(440px, 42vw);
+      transition: margin-right 180ms ease;
+    }
+
+    /* Tablet calendar trigger — topbar only on 768–1023 */
+    [data-cco-tablet-calendar-open] {
+      display: none !important;
+    }
+
+    html[data-cco-tablet-shell='on'] [data-cco-tablet-calendar-open] {
+      display: inline-flex !important;
+    }
+
+    /* Calendar — side panel + month/day split (768–1023) */
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-sheet {
+      position: fixed;
+      top: calc(var(--topbar-height, 60px) + 12px);
+      right: var(--cco-tablet-gutter, 20px);
+      left: auto;
+      bottom: 12px;
+      width: min(560px, calc(100vw - (var(--cco-tablet-gutter, 20px) * 2)));
+      z-index: 34;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      pointer-events: none;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-sheet[data-open='true'] {
+      pointer-events: auto;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-backdrop {
+      display: none;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-panel {
+      width: 100%;
+      max-height: none;
+      height: 100%;
+      border-radius: 20px;
+      transform: none;
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) minmax(220px, 1fr);
+      grid-template-rows: auto 1fr auto;
+      gap: var(--cco-tablet-panel-gap, 20px);
+      padding: var(--cco-tablet-gutter, 20px);
+      overflow: hidden;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-head,
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-foot,
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-next {
+      grid-column: 1 / -1;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-month {
+      grid-column: 1;
+      grid-row: 2;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-list {
+      grid-column: 2;
+      grid-row: 2;
+      min-height: 0;
+      overflow: auto;
+      margin: 0;
+      padding: 0;
+    }
+
+    html[data-cco-tablet-shell='on'][data-cco-tablet-calendar-split='on'] .preview-workspace > .preview-shell,
+    html[data-cco-tablet-shell='on'][data-cco-tablet-calendar-split='on'] .preview-workspace > .focus-shell,
+    html[data-cco-tablet-shell='on'][data-cco-tablet-calendar-split='on'] .preview-canvas[data-app-shell-view='customers'] .customers-layout {
+      margin-right: min(580px, 46vw);
+      transition: margin-right 180ms ease;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-kicker {
+      margin: 0 0 4px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--cco-text-tertiary, #8a8174);
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-head h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.2;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-close {
+      min-width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      cursor: pointer;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-month-nav {
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-day {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      cursor: pointer;
+      padding: 4px 0 8px;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-day.is-selected {
+      background: rgba(8, 145, 178, 0.14);
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-item-button {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 10px;
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      border-radius: 12px;
+      background: var(--cco-bg-surface, #fff);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-calendar-book {
+      width: 100%;
+      min-height: var(--cco-touch-comfortable, 48px);
+    }
+
+    /* Tabell → kort (tablet, same treatment as mobile mail tables) */
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards {
+      display: block !important;
+      width: 100% !important;
+      border: 0 !important;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards thead {
+      display: none;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards tbody,
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards tr,
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards td,
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards th {
+      display: block !important;
+      width: 100% !important;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards tr {
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      border-radius: 12px;
+      background: var(--cco-bg-surface, #fff);
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-mobile-table-as-cards td + td {
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    /* CCO Care panel — compact card rows on tablet */
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table {
+      display: block;
+      width: 100%;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table thead {
+      display: none;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table tbody,
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table tr {
+      display: block;
+      width: 100%;
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table tr {
+      margin-bottom: 10px;
+      padding: 12px;
+      border: 1px solid rgba(120, 105, 90, 0.14);
+      border-radius: 14px;
+      background: rgba(252, 248, 244, 0.9);
+    }
+
+    html[data-cco-tablet-shell='on'] .cco-care-panel-table td {
+      display: block;
+      padding: 2px 0;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .cco-desktop-week-calendar {
+      display: grid;
+      gap: 16px;
+      margin: 0 0 24px;
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(250, 246, 242, 0.92);
+      box-shadow:
+        0 8px 24px rgba(70, 50, 30, 0.08),
+        0 2px 6px rgba(70, 50, 30, 0.05);
+    }
+
+    .cco-desktop-week-calendar[hidden] {
+      display: none !important;
+    }
+
+    .cco-desktop-week-calendar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .cco-desktop-week-calendar-nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cco-desktop-week-calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .cco-desktop-week-day {
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(252, 248, 244, 0.9);
+      border: 1px solid rgba(120, 105, 90, 0.14);
+      min-height: 140px;
+    }
+  }

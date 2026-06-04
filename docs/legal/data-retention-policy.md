@@ -25,6 +25,7 @@ Gäller alla tenants. Tenant-specifika avvikelser dokumenteras i DPA per tenant.
 | **Auth/sessions** | `auth.json` | Session: idle timeout (180 min default) | Automatisk invalidering | System |
 | **Backups** | `data/backups/` | 50 filer / 30 dagar | Automatisk prune via scheduler | Scheduler |
 | **Scheduler-rapporter** | `data/reports/` | 60 filer / 45 dagar | Automatisk prune via scheduler | Scheduler |
+| **Patientjournal** | `cco-journal.json` | 10 år (PDL 3 kap. 17§) | Ingen automatisk radering | OWNER + juridik |
 | **Mail truth store** | `cco-mailbox-truth.json` | 90 dagar (default lookback) | Automatisk via delta sync | Scheduler |
 | **Mail history** | `data/cco/` | 90 dagar | Manuell prune | Ops |
 | **CCO conversation data** | `memory.json` | Obegränsad | Manuell rensning | OWNER |

@@ -9,6 +9,8 @@ const DEFAULT_INTEGRATIONS = Object.freeze({
   slack: true,
   looker: false,
   zapier: false,
+  fortnox: false,
+  swish: false,
 });
 
 function nowIso() {

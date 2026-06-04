@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-06-03T04:53:04.365Z",
+  "total": 1497,
+  "status": "WAITING_MANUAL_REVIEW",
+  "statusLabel": "Manuell review krävs",
+  "rule": "Ingen auto-import · ingen ny kund vid osäker match",
+  "policy": "Safe-match klar — ny riskimport kräver explicit GO",
+  "sources": [
+    {
+      "id": "halso",
+      "label": "halso@",
+      "queueCount": 1366,
+      "status": {
+        "pending": 1366,
+        "resolved": 0
+      },
+      "note": "osäkra kundmatchningar"
+    },
+    {
+      "id": "getaccept",
+      "label": "GetAccept",
+      "queueCount": 131,
+      "status": {
+        "pending": 131,
+        "resolved": 0
+      },
+      "note": "osäkra kundmatchningar"
+    }
+  ],
+  "dataSource": "live_queue_file",
+  "liveQueuePath": "/Users/fazlikrasniqi/Code/major-arcana/data/cco-import-review-queue.json",
+  "operatorNote": "Read-only kö — ingen auto-import · ingen ny kund",
+  "operatorToolPath": "/cco-import-review.html",
+  "writeEnabled": false,
+  "operatorScope": true,
+  "driveOrphanNote": "Drive/orphan (~31k) ingår inte i denna operator-vy"
+}

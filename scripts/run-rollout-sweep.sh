@@ -20,6 +20,8 @@ if curl -fsS "${BASE}/readyz" 2>/dev/null | grep -q '"ready":true'; then
   pass "Prod readyz OK"
   npm run verify:mobile-pilot-prod 2>&1 | tail -8 || warn "verify:mobile-pilot-prod misslyckades"
   npm run verify:staff-ui-prod 2>&1 || warn "verify:staff-ui-prod (Playwright iPhone viewport)"
+  npm run verify:staff-ui-desktop-prod 2>&1 || warn "verify:staff-ui-desktop-prod (1280px regression)"
+  npm run verify:staff-mobile-login-prod 2>&1 || warn "verify:staff-mobile-login-prod (STAFF mobil login)"
   if [[ -f ./data/pilot-patients.json ]]; then
     bash ./scripts/verify-all-pilot-journey-prod.sh 2>&1 | tail -12 || warn "pilot journey verify misslyckades"
   else
@@ -28,14 +30,18 @@ if curl -fsS "${BASE}/readyz" 2>/dev/null | grep -q '"ready":true'; then
 else
   warn "Prod svarar inte (deploy?) — kör lokalt: npm run smoke:mobile-journal:local"
 fi
-warn "MANUELLT: Fas 5.5–5.6 enhetstest + 5 konsultationer (cco-mobile-staff-pilot-checklist.md)"
+warn "VALFRITT: Fas 5.5–5.6 uppskjuten — kör manuellt vid behov (cco-mobile-staff-pilot-checklist.md)"
 
 section "Fas 2 — Auth/MFA (check only)"
 bash ./scripts/verify-auth-go-live-prod.sh || true
+npm run verify:graph-read-prod 2>&1 || warn "Graph read prod verify"
+npm run verify:cco-mail-start-prod 2>&1 || warn "CCO mail-start prod verify"
 
-section "Fas 3 — Post-op Fas 1 (unit)"
+section "Fas 3 — Post-op Fas 1 (unit + prod)"
 node --test tests/capabilities/requestPostOpReview.test.js
 pass "RequestPostOpReview unit tests"
+npm run verify:post-op-graph-prod 2>&1 | tail -12 || warn "post-op Graph send prod (verify-post-op-graph-prod.mjs)"
+BASE="${BASE}" node ./scripts/verify-post-op-prod.mjs 2>&1 | tail -14 || warn "post-op prod smoke (verify-post-op-prod.mjs)"
 
 section "Fas 4 — Compliance (unit)"
 if [[ -f tests/capabilities/gdprCustomer.test.js ]]; then

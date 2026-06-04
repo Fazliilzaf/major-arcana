@@ -5,8 +5,8 @@
  * för Cliento. Detta är Fas B i web-to-arcana-bridge:
  * docs/strategy/web-to-arcana-bridge.md
  *
- * När hairtpclinic.com sätter ARCANA_PROVIDER=booking-engine byter den från
- * /api/public/cliento/* till dessa endpoints och Cliento är ute för webben.
+ * När ARCANA_PUBLIC_WEB_BOOKING_ENABLED=true (efter CCO sign-off) använder
+ * hairtpclinic.com endast dessa endpoints — aldrig Cliento (/public/cliento/*).
  *
  * Säkerhet:
  *   - Ingen auth (brand-resolveras via host)
@@ -19,14 +19,29 @@ const express = require('express');
 const crypto = require('node:crypto');
 
 const { resolveBrandForHost } = require('../brand/resolveBrand');
-const { sendEmail } = require('../infra/resendMailer');
+const { createTransactionalMailer } = require('../infra/transactionalMailer');
 const {
   buildBookingReservationEmail,
   buildOperatorNotificationEmail,
 } = require('../templates/bookingReservationEmail');
+const { assertPublicWebAbuseGuard } = require('../security/publicWebAbuseGuard');
+const {
+  isPublicWebBookingEnabled,
+  publicWebBookingDisabledBody,
+} = require('../infra/publicWebBooking');
+const { syncWebReservationToJournal } = require('../ops/ccoJournalBookingBridge');
+const {
+  resolveBookingVipToken,
+  isResourceAllowedForVipToken,
+  isServiceAllowedForVipToken,
+} = require('../ops/bookingVipAccess');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function isoDateOnly(value) {
@@ -79,7 +94,10 @@ function sanitizeResource(resource) {
 
 function sanitizeService(service) {
   const duration = Number(service?.durationMinutes ?? service?.duration ?? 60);
-  const fromPrice = Number(service?.fromPriceSek ?? service?.price ?? 0);
+  const pricing = service?.pricing && typeof service.pricing === 'object' ? service.pricing : {};
+  const fromPrice = Number(
+    service?.fromPriceSek ?? pricing.basePriceSek ?? service?.price ?? 0
+  );
   return {
     id: normalizeText(service?.id || service?.serviceId) || 'service',
     title: normalizeText(service?.label || service?.title || service?.name) || 'Service',
@@ -88,6 +106,15 @@ function sanitizeService(service) {
       ? Math.max(10, Math.min(1440, Math.round(duration)))
       : 60,
     fromPriceSek: Number.isFinite(fromPrice) ? Math.max(0, Math.round(fromPrice)) : 0,
+    pricing: {
+      basePriceSek: Number(pricing.basePriceSek ?? fromPrice) || 0,
+      eveningPriceSek: Number(pricing.eveningPriceSek ?? fromPrice) || 0,
+      weekendPriceSek: Number(pricing.weekendPriceSek ?? fromPrice) || 0,
+      currency: normalizeText(pricing.currency) || 'SEK',
+    },
+    minNoticeMinutes: Number(service?.minNoticeMinutes) || undefined,
+    maxBookingDaysAhead: Number(service?.maxBookingDaysAhead) || undefined,
+    cancellationPolicyHours: Number(service?.cancellationPolicyHours) || undefined,
   };
 }
 
@@ -100,6 +127,9 @@ function sanitizeSlot(slot) {
     end,
     serviceId: normalizeText(slot?.serviceId || slot?.srvId) || '',
     resourceId: normalizeText(slot?.resourceId || slot?.resId) || '',
+    priceTier: normalizeText(slot?.priceTier) || 'base',
+    priceSek: Number.isFinite(Number(slot?.priceSek)) ? Math.max(0, Math.round(Number(slot.priceSek))) : undefined,
+    currency: normalizeText(slot?.currency) || undefined,
   };
 }
 
@@ -123,73 +153,58 @@ function synthConversationId(email, slotId) {
   return `web-${hash}`;
 }
 
-function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, config }) {
+function synthVipConversationId(tokenId, email, slotId) {
+  const seed = `vip::${normalizeText(tokenId)}::${normalizeText(email).toLowerCase()}::${normalizeText(slotId)}`;
+  const hash = crypto.createHash('sha256').update(seed).digest('hex').slice(0, 12);
+  return `vip-${hash}`;
+}
+
+function createPublicBookingEngineRouter({
+  bookingEngineStore,
+  bookingStore,
+  patientMasterStore = null,
+  journalStore = null,
+  treatmentEncounterStore = null,
+  config,
+  graphSendConnector = null,
+}) {
   const router = express.Router();
+  const { sendEmail } = createTransactionalMailer({ graphSendConnector });
 
-  // ── GET /api/public/booking-engine/catalog ────────────────────────
-  router.get('/public/booking-engine/catalog', async (req, res) => {
-    try {
-      const brand = resolveBrandFromRequest(req, config);
-      // Brand-resolution är förberedd för framtiden då booking-engine blir
-      // multi-tenant. Idag delar alla tenants samma store; tenantId-flaggan
-      // är fortfarande viktig så vi inte läcker data när det skalas upp.
-      const [resourcesRaw, servicesRaw] = await Promise.all([
-        bookingEngineStore.listResources({ tenantId: brand?.id || brand }),
-        bookingEngineStore.listPublicServices
-          ? bookingEngineStore.listPublicServices({ tenantId: brand?.id || brand })
-          : bookingEngineStore.listServices({ tenantId: brand?.id || brand }),
-      ]);
+  function rejectIfPublicWebBookingDisabled(res) {
+    if (isPublicWebBookingEnabled()) return false;
+    res.status(503).json(publicWebBookingDisabledBody());
+    return true;
+  }
 
-      const resources = (Array.isArray(resourcesRaw) ? resourcesRaw : []).map(sanitizeResource);
-      const services = (Array.isArray(servicesRaw) ? servicesRaw : []).map(sanitizeService);
+  async function executeBookingReservation(req, res, options = {}) {
+    const {
+      provider = 'cco_engine',
+      vipTokenRecord = null,
+      workspaceId = 'web-public',
+      ownerUserId = 'web-public',
+      ownerName = 'Webb-bokning',
+      conversationIdFn = synthConversationId,
+      reservationEventType = 'web_public_reservation',
+      reservationEventLabel = 'Webb-bokning skapad',
+      reservationDetailPrefix = 'Webb-bokning från',
+      journalChannel = 'web_public',
+      requireAbuseGuard = true,
+      validatePublicResource = true,
+    } = options;
 
-      return res.json({
-        provider: 'cco_engine',
-        services,
-        resources,
-      });
-    } catch (error) {
-      console.error('[public-booking-engine/catalog]', error);
-      return res.status(500).json({ ok: false, error: 'booking_engine_catalog_failed' });
-    }
-  });
-
-  // ── GET /api/public/booking-engine/availability ───────────────────
-  router.get('/public/booking-engine/availability', async (req, res) => {
-    const fromDate = isoDateOnly(req.query.fromDate);
-    const toDate = isoDateOnly(req.query.toDate);
-    if (!fromDate || !toDate) {
-      return res.status(400).json({ ok: false, error: 'availability_range_missing' });
-    }
-
-    try {
-      const brand = resolveBrandFromRequest(req, config);
-      const slots = await bookingEngineStore.listAvailability({
-        tenantId: brand?.id || brand,
-        fromDate,
-        toDate,
-        resIds: normalizeText(req.query.resIds) || undefined,
-        srvIds: normalizeText(req.query.srvIds) || undefined,
-      });
-      return res.json({
-        provider: 'cco_engine',
-        slots: (Array.isArray(slots) ? slots : []).map(sanitizeSlot),
-      });
-    } catch (error) {
-      console.error('[public-booking-engine/availability]', error);
-      return res.status(500).json({ ok: false, error: 'booking_engine_availability_failed' });
-    }
-  });
-
-  // ── POST /api/public/booking-engine/reservations ───────────────────
-  // Fas C: webb-besökaren reserverar en slot direkt. Auto-skapar CCO-thread
-  // (synthetic conversationId) så operatören ser ärendet som needs_triage.
-  // Se docs/strategy/web-to-arcana-bridge.md sektion 3.3 för fullt kontrakt.
-  router.post('/public/booking-engine/reservations', async (req, res) => {
     try {
       const body = typeof req.body === 'object' && req.body !== null ? req.body : {};
 
-      // ── 1. Consent + body-validering ──────────────────────────────
+      if (requireAbuseGuard) {
+        const abuse = await assertPublicWebAbuseGuard(req, body, {
+          turnstileSecret: config.turnstileSecret,
+        });
+        if (!abuse.ok) {
+          return res.status(abuse.status || 400).json({ ok: false, error: abuse.error || 'abuse_detected' });
+        }
+      }
+
       const consent = typeof body.consent === 'object' && body.consent !== null ? body.consent : {};
       if (consent.gdpr !== true) {
         return res.status(400).json({ ok: false, error: 'gdpr_consent_required' });
@@ -218,26 +233,48 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
         return res.status(400).json({ ok: false, error: 'invalid_slot' });
       }
 
-      // ── 2. Brand → tenantId ───────────────────────────────────────
+      if (vipTokenRecord) {
+        if (!isServiceAllowedForVipToken(slotServiceId, vipTokenRecord)) {
+          return res.status(403).json({ ok: false, error: 'vip_service_not_allowed' });
+        }
+        if (!isResourceAllowedForVipToken(slotResourceId, vipTokenRecord)) {
+          return res.status(403).json({ ok: false, error: 'vip_resource_not_allowed' });
+        }
+      }
+
       const brand = resolveBrandFromRequest(req, config);
+      if (validatePublicResource && !vipTokenRecord) {
+        const publicResources = bookingEngineStore.listPublicResources
+          ? await bookingEngineStore.listPublicResources({ tenantId: brand?.id || brand })
+          : [];
+        const publicResourceIds = new Set(
+          (Array.isArray(publicResources) ? publicResources : []).map((item) =>
+            normalizeText(item?.id)
+          )
+        );
+        if (publicResourceIds.size && !publicResourceIds.has(slotResourceId)) {
+          return res.status(400).json({ ok: false, error: 'resource_not_public' });
+        }
+      }
+
       const tenantId = normalizeText(brand?.id || brand);
       if (!tenantId) {
         return res.status(500).json({ ok: false, error: 'brand_resolution_failed' });
       }
 
-      // ── 3. Synthesize conversationId från email + slot ────────────
-      const conversationId = synthConversationId(email, slotId);
-      const workspaceId = 'web-public';
-
-      // ── 4. Reservera i booking-engine ─────────────────────────────
+      const conversationSeedArgs =
+        vipTokenRecord && typeof conversationIdFn === 'function' && conversationIdFn.length >= 3
+          ? [vipTokenRecord.tokenId, email, slotId]
+          : [email, slotId];
+      const conversationId = conversationIdFn(...conversationSeedArgs);
       const reservations = await bookingEngineStore.reserveSlots({
         tenantId,
         workspaceId,
         conversationId,
         customerEmail: email,
         customerName: name,
-        ownerUserId: 'web-public',
-        ownerName: 'Webb-bokning',
+        ownerUserId,
+        ownerName,
         selectedSlots: [
           {
             slotId,
@@ -249,9 +286,6 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
         ],
       });
 
-      // ── 5. Skapa/uppdatera CCO-case (operatörens kö-vy) ──────────
-      // Om bookingStore inte är inkopplad, hoppa förbi — då kör vi rent
-      // engine-only-läge (testbart utan CCO-shell igång).
       let bookingCase = null;
       if (bookingStore && typeof bookingStore.setCandidateSlots === 'function') {
         bookingCase = await bookingStore.setCandidateSlots({
@@ -260,23 +294,17 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
           conversationId,
           customerEmail: email,
           customerName: name,
-          ownerUserId: 'web-public',
+          ownerUserId,
           requestedTreatment: slotServiceId,
-          notes: `Webb-bokning från ${normalizeText(contact.phone)}. Patient samtyckte GDPR ${new Date().toISOString()}.`,
+          notes: `${reservationDetailPrefix} ${phone}. Patient samtyckte GDPR ${new Date().toISOString()}.`,
           selectedSlots: reservations.map((r) => r.slot),
         });
 
         if (typeof bookingStore.addEvent === 'function') {
-          // leadContext: rik metadata från /boka-formuläret som webben
-          // skickar med så operator har full kontext direkt vid case-
-          // öppning (slipper dyka i email-kopian). Lagras i event-metadata
-          // för att inte ändra ccoBookingStore-schemat — frontend läser
-          // från events-arrayen.
           const leadContextRaw =
             body.leadContext && typeof body.leadContext === 'object' ? body.leadContext : {};
-          // Sanitize: bara whitelistade fält + size-limit på fritext-fält.
           const leadContext = {
-            source: normalizeText(leadContextRaw.source) || 'hairtpclinic.com',
+            source: normalizeText(leadContextRaw.source) || (vipTokenRecord ? 'vip-booking' : 'hairtpclinic.com'),
             submittedAt: normalizeText(leadContextRaw.submittedAt) || new Date().toISOString(),
             service: normalizeText(leadContextRaw.service) || null,
             healthYes: Array.isArray(leadContextRaw.healthYes)
@@ -298,29 +326,28 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
             operatedAt:
               normalizeText(leadContextRaw.operatedAt || leadContextRaw.surgeryDate).slice(0, 32) ||
               null,
+            vipTokenId: vipTokenRecord ? normalizeText(vipTokenRecord.tokenId) : null,
           };
           bookingCase = await bookingStore.addEvent({
             tenantId,
             workspaceId,
             conversationId,
             customerEmail: email,
-            type: 'web_public_reservation',
-            label: 'Webb-bokning skapad',
-            detail: `Patient ${name} (${phone}) reserverade ${slotStart} via hairtpclinic.com.`,
+            type: reservationEventType,
+            label: reservationEventLabel,
+            detail: `Patient ${name} (${phone}) reserverade ${slotStart} via ${vipTokenRecord ? 'VIP-länk' : 'hairtpclinic.com'}.`,
             metadata: {
               slotId,
-              source: 'public_booking_engine',
+              source: vipTokenRecord ? 'vip_booking_engine' : 'public_booking_engine',
               gdprConsentAt: new Date().toISOString(),
               marketingConsent: consent.marketing === true,
               leadContext,
+              vipTokenId: vipTokenRecord ? normalizeText(vipTokenRecord.tokenId) : null,
             },
           });
         }
       }
 
-      // ── 6. Resend-bekräftelse ─────────────────────────────────────
-      // Skickas best-effort. Om Resend failar bryts inte boknings-flowet —
-      // operatören har patientens telefonnummer och ringer ändå.
       const primary = reservations[0] || null;
       const locale = normalizeText(body.locale) === 'en' ? 'en' : 'sv';
       const resolvedResource =
@@ -345,8 +372,6 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
         subject: emailContent.subject,
         html: emailContent.html,
         text: emailContent.text,
-        // idempotency: samma conversationId + slot ger samma key →
-        // Resend skickar inte två kopior om endpoint kallas flera gånger
         idempotencyKey: `booking-${conversationId}-${primary?.reservationId || slotId}`,
       });
       if (bookingStore && typeof bookingStore.addEvent === 'function') {
@@ -362,23 +387,22 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
             ? `Bekräftelse skickad (${emailResult.mode})`
             : 'Bekräftelse-mail failade',
           detail: emailResult.ok
-            ? `Resend ${emailResult.mode}-mode${emailResult.messageId ? `, id ${emailResult.messageId}` : ''}`
-            : `Resend-fel: ${emailResult.error || 'unknown'}. Operatör ringer manuellt.`,
+            ? `${emailResult.provider || 'mail'} ${emailResult.mode}-mode${emailResult.messageId ? `, id ${emailResult.messageId}` : ''}`
+            : `${emailResult.provider || 'mail'}-fel: ${emailResult.error || 'unknown'}. Operatör ringer manuellt.`,
           metadata: {
-            provider: 'resend',
+            provider: emailResult.provider || 'none',
             mode: emailResult.mode,
+            skipped: emailResult.skipped || null,
             messageId: emailResult.messageId || null,
             error: emailResult.error || null,
+            sendMode: emailResult.sendMode || null,
           },
         });
       }
       console.log(
-        `[public-reservation] web booking by ${email} for slot ${slotId} email:${emailResult.mode}`
+        `[public-reservation] ${vipTokenRecord ? 'vip' : 'web'} booking by ${email} for slot ${slotId} email:${emailResult.mode}`
       );
 
-      // ── 6b. Operatörs-notifiering ─────────────────────────────────
-      // Skicka intern notis till kliniken så operatör ser bokningen i
-      // inkorgen utöver CCO-kortet. Best-effort — failar tyst.
       const operatorTo = (process.env.OPERATOR_NOTIFY_TO || 'contact@hairtpclinic.com').trim();
       if (operatorTo) {
         try {
@@ -412,9 +436,32 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
         }
       }
 
+      if (journalStore && treatmentEncounterStore && patientMasterStore && primary) {
+        try {
+          await syncWebReservationToJournal({
+            patientMasterStore,
+            treatmentEncounterStore,
+            journalStore,
+            tenantId,
+            reservation: primary,
+            contact: { name, email, phone },
+            conversationId,
+            channel: journalChannel,
+          });
+        } catch (syncError) {
+          console.warn(
+            '[public-reservation] journal sync failed:',
+            syncError && syncError.message ? syncError.message : syncError
+          );
+        }
+      }
+
       return res.json({
         ok: true,
-        provider: 'cco_engine',
+        provider,
+        vip: vipTokenRecord
+          ? { label: vipTokenRecord.label, tokenId: vipTokenRecord.tokenId }
+          : undefined,
         reservation: primary
           ? {
               reservationId: primary.reservationId,
@@ -425,6 +472,14 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
         caseId: conversationId,
         operatorWillContact: true,
         operatorEtaMinutes: 60,
+        emailConfirmation: {
+          ok: emailResult.ok === true,
+          mode: emailResult.mode || 'mock',
+          provider: emailResult.provider || 'none',
+          skipped: emailResult.skipped || null,
+          messageId: emailResult.messageId || null,
+          error: emailResult.error || null,
+        },
       });
     } catch (error) {
       const statusCode = Number(error?.statusCode || 500);
@@ -435,9 +490,177 @@ function createPublicBookingEngineRouter({ bookingEngineStore, bookingStore, con
           message: error.message || 'Tiden är inte längre ledig.',
         });
       }
-      console.error('[public-booking-engine/reservations]', error);
+      console.error(`[public-booking-engine/reservations${vipTokenRecord ? '/vip' : ''}]`, error);
       return res.status(500).json({ ok: false, error: 'reservation_failed' });
     }
+  }
+
+  async function loadCatalogForTenant(brand) {
+    const tenantId = brand?.id || brand;
+    // Curatiio Fas 1 — brand-isolation: skicka brand-key till engine så att
+    // listPublicServices/listPublicResources filtrerar bort andra brands.
+    const brandKey = normalizeText(brand?.id || brand) || '';
+    const [resourcesRaw, servicesRaw] = await Promise.all([
+      bookingEngineStore.listPublicResources
+        ? bookingEngineStore.listPublicResources({ tenantId, brand: brandKey })
+        : bookingEngineStore.listResources({ tenantId, brand: brandKey }),
+      bookingEngineStore.listPublicServices
+        ? bookingEngineStore.listPublicServices({ tenantId, brand: brandKey })
+        : bookingEngineStore.listServices({ tenantId, brand: brandKey }),
+    ]);
+    return {
+      resources: (Array.isArray(resourcesRaw) ? resourcesRaw : []).map(sanitizeResource),
+      services: (Array.isArray(servicesRaw) ? servicesRaw : []).map(sanitizeService),
+    };
+  }
+
+  // ── VIP token routes (works when public web booking is disabled) ──
+  router.get('/public/booking-engine/vip/:token/catalog', async (req, res) => {
+    const tokenRecord = resolveBookingVipToken(req.params.token);
+    if (!tokenRecord) {
+      return res.status(404).json({ ok: false, error: 'vip_token_invalid' });
+    }
+    try {
+      const brand = resolveBrandFromRequest(req, config);
+      const catalog = await loadCatalogForTenant(brand);
+      return res.json({
+        provider: 'cco_engine_vip',
+        vip: { label: tokenRecord.label, tokenId: tokenRecord.tokenId },
+        services: catalog.services.filter((item) =>
+          isServiceAllowedForVipToken(item.id, tokenRecord)
+        ),
+        resources: catalog.resources.filter((item) =>
+          isResourceAllowedForVipToken(item.id, tokenRecord)
+        ),
+      });
+    } catch (error) {
+      console.error('[public-booking-engine/vip/catalog]', error);
+      return res.status(500).json({ ok: false, error: 'vip_catalog_failed' });
+    }
+  });
+
+  router.get('/public/booking-engine/vip/:token/availability', async (req, res) => {
+    const tokenRecord = resolveBookingVipToken(req.params.token);
+    if (!tokenRecord) {
+      return res.status(404).json({ ok: false, error: 'vip_token_invalid' });
+    }
+    const fromDate = isoDateOnly(req.query.fromDate);
+    const toDate = isoDateOnly(req.query.toDate);
+    if (!fromDate || !toDate) {
+      return res.status(400).json({ ok: false, error: 'availability_range_missing' });
+    }
+    try {
+      const brand = resolveBrandFromRequest(req, config);
+      const slots = await bookingEngineStore.listAvailability({
+        tenantId: brand?.id || brand,
+        fromDate,
+        toDate,
+        resIds: normalizeText(req.query.resIds) || undefined,
+        srvIds: normalizeText(req.query.srvIds) || undefined,
+        publicOnly: false,
+      });
+      const filtered = asArray(slots).filter((slot) => {
+        const serviceId = normalizeText(slot?.serviceId || slot?.service?.id);
+        const resourceId = normalizeText(slot?.resourceId || slot?.resource?.id);
+        return (
+          isServiceAllowedForVipToken(serviceId, tokenRecord) &&
+          (!resourceId || isResourceAllowedForVipToken(resourceId, tokenRecord))
+        );
+      });
+      return res.json({ provider: 'cco_engine_vip', slots: filtered.map(sanitizeSlot) });
+    } catch (error) {
+      console.error('[public-booking-engine/vip/availability]', error);
+      return res.status(500).json({ ok: false, error: 'vip_availability_failed' });
+    }
+  });
+
+  // ── GET /api/public/booking-engine/catalog ────────────────────────
+  router.get('/public/booking-engine/catalog', async (req, res) => {
+    if (rejectIfPublicWebBookingDisabled(res)) return;
+    try {
+      const brand = resolveBrandFromRequest(req, config);
+      const catalog = await loadCatalogForTenant(brand);
+      return res.json({
+        provider: 'cco_engine',
+        services: catalog.services,
+        resources: catalog.resources,
+      });
+    } catch (error) {
+      console.error('[public-booking-engine/catalog]', error);
+      return res.status(500).json({ ok: false, error: 'booking_engine_catalog_failed' });
+    }
+  });
+
+  // ── GET /api/public/booking-engine/availability ───────────────────
+  router.get('/public/booking-engine/availability', async (req, res) => {
+    if (rejectIfPublicWebBookingDisabled(res)) return;
+    const fromDate = isoDateOnly(req.query.fromDate);
+    const toDate = isoDateOnly(req.query.toDate);
+    if (!fromDate || !toDate) {
+      return res.status(400).json({ ok: false, error: 'availability_range_missing' });
+    }
+
+    try {
+      const brand = resolveBrandFromRequest(req, config);
+      const brandKey = normalizeText(brand?.id || brand) || '';
+      const slots = bookingEngineStore.listPublicAvailability
+        ? await bookingEngineStore.listPublicAvailability({
+            tenantId: brand?.id || brand,
+            brand: brandKey,
+            fromDate,
+            toDate,
+            resIds: normalizeText(req.query.resIds) || undefined,
+            srvIds: normalizeText(req.query.srvIds) || undefined,
+          })
+        : await bookingEngineStore.listAvailability({
+            tenantId: brand?.id || brand,
+            brand: brandKey,
+            fromDate,
+            toDate,
+            resIds: normalizeText(req.query.resIds) || undefined,
+            srvIds: normalizeText(req.query.srvIds) || undefined,
+            publicOnly: true,
+          });
+      return res.json({
+        provider: 'cco_engine',
+        slots: (Array.isArray(slots) ? slots : []).map(sanitizeSlot),
+      });
+    } catch (error) {
+      console.error('[public-booking-engine/availability]', error);
+      return res.status(500).json({ ok: false, error: 'booking_engine_availability_failed' });
+    }
+  });
+
+  // ── POST /api/public/booking-engine/reservations ───────────────────
+  // Fas C: webb-besökaren reserverar en slot direkt. Auto-skapar CCO-thread
+  // (synthetic conversationId) så operatören ser ärendet som needs_triage.
+  // Se docs/strategy/web-to-arcana-bridge.md sektion 3.3 för fullt kontrakt.
+  router.post('/public/booking-engine/reservations', async (req, res) => {
+    if (rejectIfPublicWebBookingDisabled(res)) return;
+    return executeBookingReservation(req, res);
+  });
+
+  // ── POST /api/public/booking-engine/vip/:token/reservations ────────
+  // VIP-bokning fungerar även när publik webb-bokning är avstängd.
+  router.post('/public/booking-engine/vip/:token/reservations', async (req, res) => {
+    const tokenRecord = resolveBookingVipToken(req.params.token);
+    if (!tokenRecord) {
+      return res.status(404).json({ ok: false, error: 'vip_token_invalid' });
+    }
+    return executeBookingReservation(req, res, {
+      provider: 'cco_engine_vip',
+      vipTokenRecord: tokenRecord,
+      workspaceId: 'vip-booking',
+      ownerUserId: 'vip-booking',
+      ownerName: 'VIP-bokning',
+      conversationIdFn: synthVipConversationId,
+      reservationEventType: 'vip_reservation',
+      reservationEventLabel: 'VIP-bokning skapad',
+      reservationDetailPrefix: 'VIP-bokning från',
+      journalChannel: 'vip_booking',
+      requireAbuseGuard: false,
+      validatePublicResource: false,
+    });
   });
 
   return router;

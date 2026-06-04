@@ -65,7 +65,7 @@ fi
 # mountingen. /api/public/booking-engine/* började returnera 404 i
 # production → hairtpclinic.com booking-flow degradede silent till
 # Cliento mock. Denna check fångar samma sak innan commit.
-echo "  [4/4] server.js mounts (booking-engine + post-op-review)..."
+echo "  [4/5] server.js mounts (booking-engine + post-op-review)..."
 SERVER_FAIL=0
 require_pattern() {
   local file=$1
@@ -89,6 +89,15 @@ if [ $SERVER_FAIL -eq 0 ]; then
 else
   echo -e "${YELLOW}  Hint: läs docs/strategy/web-to-arcana-bridge.md innan du rör server.js${NC}"
   FAILED=1
+fi
+
+# 5. Journal pilot routes — presentation P0 (2026-06-02 regression: journal block removed in deploy)
+echo "  [5/5] server.js journal pilot routes..."
+if node scripts/verify-journal-pilot-routes.js > /dev/null 2>&1; then
+  echo -e "${GREEN}  ✓ Journal pilot routes OK${NC}"
+else
+  echo -e "${RED}  ✗ Journal pilot routes saknas i server.js${NC}"
+  node scripts/verify-journal-pilot-routes.js || FAILED=1
 fi
 
 if [ $FAILED -eq 0 ]; then

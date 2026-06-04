@@ -17,10 +17,10 @@ const CODE_PATHS = [
   'src/ops/ccoHairTpCoolingOffPolicy.js',
   'src/routes/ccoTreatmentAgreement.js',
   'src/routes/ccoCommercial.js',
+  'src/ops/ccoKunderEnrichment.js',
   'public/cco-kunder-real.js',
   'public/cco-kunder-mobil-real.js',
-  'src/ops/ccoKunderEnrichment.js',
-].filter((rel) => fs.existsSync(path.join(ROOT, rel)));
+];
 
 const CONFIG_PATH = 'config/cco-treatment-document-requirements.json';
 

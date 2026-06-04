@@ -66,6 +66,7 @@
       normalizeStudioBusyState,
       normalizeText,
       patchStudioThreadAfterSend,
+      recordDraftFeedbackFireAndForget,
       refreshWorkspaceBootstrapForSelectedThread,
       renderFocusHistorySection,
       renderFocusNotesSection,
@@ -1340,6 +1341,7 @@
         setStudioFeedback("Välj en signatur innan du skickar från svarsstudion.", "error");
         return;
       }
+      const sentDraftBody = normalizeText(studioState.draftBody);
       studioState.sending = true;
       normalizeStudioBusyState();
       try {
@@ -1399,6 +1401,12 @@
           },
         });
         if (isComposeMode) {
+          recordDraftFeedbackFireAndForget?.({
+            thread: null,
+            studioState,
+            sentBody: sentDraftBody,
+            isComposeMode: true,
+          });
           studioState.baseDraftBody = "";
           studioState.draftBody = "";
           studioState.composeSubject = "";
@@ -1416,6 +1424,12 @@
           return;
         }
         patchStudioThreadAfterSend(thread, studioState.draftBody, sendResult);
+        recordDraftFeedbackFireAndForget?.({
+          thread,
+          studioState,
+          sentBody: sentDraftBody,
+          isComposeMode: false,
+        });
         setStudioFeedback(
           studioTruthState?.truthDriven === true
             ? `Sanningsstyrd svarstudio skickade svar från ${asText(

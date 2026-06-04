@@ -13,7 +13,11 @@ Praktisk referens när arbetet flyttas mellan Codex (Mac Studio), GitHub och and
 | **CI** | GitHub Actions — workflow `arcana-ci` |
 | **Post-deploy** | `arcana-post-deploy-heal` (kräver GitHub secret `RENDER_API_KEY`) |
 
+**Deploy-drift:** Blueprint-sync-lag eller prod-commit mismatch är **icke-blockerande** — `wait-for-render-blueprint-sync.sh` och deploy-wait avslutar med `::warning::` och heal fortsätter med env-restore + `readyz`. Hard fail endast vid blueprint sync `failed` eller `readyz` timeout efter heal.
+
 **Använd inte** iCloud-sökvägen `~/Library/Mobile Documents/.../Major Arcana 2.0` för git, npm eller Stryker. Den stör sync och mutation-tester.
+
+Rensa iCloud-kopior (`file 2.ext`): `npm run clean:icloud-duplicates -- "/path/to/iCloud/major-arcana"` (torrkörning: `DRY_RUN=1`).
 
 Arkiv utanför repo: `~/Code/MA-Archive/` — kör `bash scripts/sync-sharepoint-archive.sh` (CODE-only, inga iCloud-sökvägar).
 

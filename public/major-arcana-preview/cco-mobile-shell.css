@@ -1,0 +1,3582 @@
+/* ============================================================
+   CCO Mobile Shell — phone-first app chrome (UX sweep Fas A–B)
+   Breakpoint: max-width 1023px (phone ≤767px, tablet 768–1023px; see design-tokens)
+   Loaded after cco-polish.css in @layer components.
+   ============================================================ */
+
+@layer components {
+  @media (max-width: 767px) {
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    html[data-cco-mobile-shell="on"] {
+      --cco-shell-active: 1;
+    }
+
+    /* Global mobil scroll — preview-page är scroll-container (iOS kräver begränsad höjd) */
+    html[data-cco-mobile-shell="on"],
+    html[data-cco-mobile-shell="on"] body.is-preview-ready {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-page {
+      height: 100% !important;
+      max-height: var(--cco-vh-dynamic, 100dvh);
+      min-height: 0 !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      overscroll-behavior-y: contain;
+      contain: layout style;
+      will-change: scroll-position;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-workspace,
+    html[data-cco-mobile-shell="on"] .preview-workspace-shell,
+    html[data-cco-mobile-shell="on"] .workspace-left-pane,
+    html[data-cco-mobile-shell="on"] .workspace-right-pane,
+    html[data-cco-mobile-shell="on"] .workspace-center-pane,
+    html[data-cco-mobile-shell="on"] .focus-shell,
+    html[data-cco-mobile-shell="on"] .preview-shell {
+      max-height: none !important;
+      overflow: visible !important;
+      min-height: auto;
+    }
+
+    body.is-preview-ready {
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+
+    html[data-cco-mobile-tabbar="on"] body.is-preview-ready {
+      padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .preview-canvas {
+      --cco-mobile-gutter: 16px;
+      --topbar-height: var(--cco-mobile-topbar-h, 56px);
+      --workspace-top-clearance: 8px;
+      --workspace-sticky-top: calc(
+        var(--shell-sticky-offset, 0px) + var(--topbar-height) + var(--workspace-top-clearance)
+      );
+      --workspace-left-sticky-top: var(--workspace-sticky-top);
+      --workspace-pane-max-height: none;
+      --workspace-left-pane-max-height: none;
+      overflow-x: clip;
+    }
+
+    /* B1 — compact app bar */
+    .preview-topbar {
+      align-items: center;
+      flex-wrap: nowrap;
+      height: var(--topbar-height);
+      min-height: var(--topbar-height);
+      max-height: var(--topbar-height);
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-inline: var(--cco-mobile-gutter);
+      row-gap: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-topbar-left .preview-nav,
+    html[data-cco-mobile-shell="on"] .preview-topbar-left .preview-more {
+      display: none;
+    }
+
+    .preview-topbar-left {
+      flex: 1 1 auto;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      width: auto;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-brand {
+      display: none;
+    }
+
+    .cco-mobile-app-title {
+      display: none;
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--cco-text-primary, #2b251f);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-app-title:not([hidden]) {
+      display: block;
+    }
+
+    .preview-topbar-right {
+      position: static;
+      flex: 0 0 auto;
+      width: auto;
+      max-width: none;
+      justify-content: flex-end;
+      gap: 6px;
+      padding-right: 0;
+    }
+
+    /* B4 — hide desktop-only topbar actions on phone (proxy via Mer-sheet) */
+    html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-compose-pill,
+    html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-sprint-pill,
+    html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-utility-cluster,
+    html[data-cco-mobile-shell="on"] .preview-topbar-right .preview-profile-pill,
+    html[data-cco-mobile-shell="on"] #cco-langpicker-root {
+      display: none !important;
+    }
+
+    .preview-topbar-right .preview-live-pill {
+      width: 44px;
+      height: 44px;
+      min-height: 44px;
+    }
+
+    /* B4.1 — utility touch targets (overrides styles.css 26px @767) */
+    html[data-cco-mobile-shell="on"] .preview-utility-button {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-utility-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .preview-title-group h1,
+    .focus-head h2,
+    .preview-head .preview-title-group h1 {
+      font-size: var(--cco-mobile-page-title, 20px);
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .preview-kicker,
+    .focus-head .preview-kicker {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+    }
+
+    /* B3 — workspace switch: Konversationer (Arbetskö / Fokus-Bokning) */
+    html[data-cco-mobile-shell="on"] .mobile-workspace-switch {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .mobile-workspace-switch {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-sizing: border-box;
+      width: calc(100% - (var(--cco-mobile-gutter) * 2));
+      min-height: 48px;
+      margin: 8px var(--cco-mobile-gutter) 0;
+      padding: 4px;
+      position: sticky;
+      top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+      z-index: calc(var(--cco-z-sticky, 100) - 1);
+      border: 1px solid rgba(120, 105, 90, 0.16);
+      border-radius: 14px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(250, 246, 242, 0.48)),
+        rgba(252, 248, 244, 0.82);
+      box-shadow:
+        0 5px 14px rgba(70, 50, 30, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      background-color: rgb(250, 246, 242);
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .mobile-workspace-switch-button {
+      flex: 1 1 0;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 11px;
+      background: transparent;
+      color: rgba(74, 63, 54, 0.62);
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* B3.3 — switch är enda sticky under app-bar; kö-rubrik scrollar med innehåll */
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .queue-topzone,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .preview-head,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .focus-head {
+      position: static;
+      top: auto;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="conversations"]
+      .preview-workspace {
+      --workspace-top-clearance: 0px;
+      --workspace-sticky-top: calc(var(--topbar-height) + 52px);
+      padding-inline: var(--cco-mobile-gutter);
+      gap: 12px;
+      padding-top: 0;
+    }
+
+    .preview-workspace {
+      gap: 16px;
+      padding-inline: var(--cco-mobile-gutter);
+    }
+
+    html[data-cco-mobile-tabbar="on"] .preview-workspace {
+      padding-bottom: 8px;
+    }
+
+    .preview-shell,
+    .focus-shell {
+      padding-inline: 0;
+    }
+
+    .preview-canvas input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    .preview-canvas select,
+    .preview-canvas textarea {
+      font-size: max(16px, 1rem);
+    }
+
+    .preview-canvas .patient-master-login-field input {
+      font-size: 16px;
+    }
+
+    /* B2 — bottom tab bar */
+    .cco-mobile-tabbar {
+      display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: var(--cco-z-sticky, 100);
+      align-items: stretch;
+      justify-content: space-around;
+      gap: 0;
+      min-height: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-inline: max(env(safe-area-inset-left, 0px), 4px)
+        max(env(safe-area-inset-right, 0px), 4px);
+      border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      background: rgba(250, 246, 242, 0.98);
+    }
+
+    html[data-cco-mobile-tabbar="on"] .cco-mobile-tabbar {
+      display: flex;
+      z-index: calc(var(--cco-z-sticky, 100) + 6);
+    }
+
+    .cco-mobile-tabbar-item {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-width: 0;
+      min-height: var(--cco-mobile-tabbar-h, 56px);
+      padding: 6px 4px 4px;
+      border: 0;
+      background: transparent;
+      color: var(--cco-text-tertiary, #8a8174);
+      font: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: none;
+    }
+
+    .cco-mobile-tabbar-item.is-active {
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    .cco-mobile-tabbar-item.is-loading {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .cco-mobile-tabbar-item.is-loading .cco-mobile-tabbar-icon::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      animation: cco-tab-spin 0.6s linear infinite;
+    }
+
+    @keyframes cco-tab-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .cco-mobile-tabbar-icon {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+    }
+
+    .cco-mobile-tabbar-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .cco-mobile-tabbar-label {
+      font-size: 11px;
+      line-height: 1.1;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    /* B2.4 — Mer bottom sheet */
+    .cco-mobile-more-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: calc(var(--cco-z-modal, 10000) - 1);
+      display: grid;
+      place-items: end center;
+      pointer-events: none;
+    }
+
+    .cco-mobile-more-sheet[hidden] {
+      display: none;
+    }
+
+    html[data-cco-mobile-more-open="on"] .cco-mobile-more-sheet {
+      pointer-events: auto;
+    }
+
+    .cco-mobile-more-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      margin: 0;
+      padding: 0;
+      background: rgba(15, 23, 42, 0.42);
+      cursor: pointer;
+    }
+
+    .cco-mobile-more-panel {
+      position: relative;
+      width: min(100%, 480px);
+      max-height: min(72dvh, 520px);
+      margin: 0;
+      padding: 0 0 calc(12px + env(safe-area-inset-bottom, 0px));
+      border-radius: 16px 16px 0 0;
+      background: var(--cco-bg-surface, #fff);
+      box-shadow: var(--cco-shadow-xl);
+      overflow: auto;
+      transform: translateY(100%);
+      transition: transform 140ms var(--cco-ease-out, ease-out);
+    }
+
+    html[data-cco-mobile-more-open="on"] .cco-mobile-more-panel {
+      transform: translateY(0);
+    }
+
+    .cco-mobile-more-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px var(--cco-mobile-gutter, 16px) 10px;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    .cco-mobile-more-head h2 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .cco-mobile-more-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: inherit;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .cco-mobile-more-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px var(--cco-mobile-gutter, 16px) 0;
+    }
+
+    .cco-mobile-more-item {
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 15px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .cco-mobile-more-item.is-active,
+    .cco-mobile-more-item:active {
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
+    }
+
+    .cco-mobile-more-actions {
+      padding-bottom: 0;
+    }
+
+    .cco-mobile-more-divider {
+      height: 1px;
+      margin: 8px var(--cco-mobile-gutter, 16px);
+      background: var(--cco-border-subtle, rgba(43, 37, 31, 0.1));
+    }
+
+    .cco-mobile-more-item[hidden] {
+      display: none;
+    }
+
+    /* C1 — back button in app bar */
+    .cco-mobile-back-button {
+      display: none;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: var(--cco-text-primary, #2b251f);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cco-mobile-back-button:not([hidden]) {
+      display: inline-flex;
+    }
+
+    .cco-mobile-back-button svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-topbar-left:has(.cco-mobile-back-button:not([hidden])) {
+      gap: 4px;
+    }
+
+    /* C1 — list → detail layout */
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-head,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-metric-row,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-toolbar,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-list {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-rail {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-rail {
+      min-width: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card-empty {
+      display: none;
+    }
+
+    /* C2 — segmented patient tabs (single sticky row) */
+    html[data-cco-mobile-shell="on"] .patient-master-hero-sticky {
+      position: static;
+      top: auto;
+      z-index: auto;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .patient-master-tabs {
+      position: sticky;
+      top: calc(var(--workspace-sticky-top, 56px) + 4px);
+      z-index: 12;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 4px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      margin-inline: calc(-1 * var(--cco-mobile-gutter, 16px));
+      padding: 4px var(--cco-mobile-gutter, 16px) 8px;
+      background: var(--warm-bg, #f7f2ec);
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-topbar {
+      background-color: var(--warm-bg, #f7f2ec);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-shell {
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .focus-conversation,
+    html[data-cco-mobile-shell="on"] .focus-conversation-layout,
+    html[data-cco-mobile-shell="on"] .focus-shell {
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tab,
+    html[data-cco-mobile-shell="on"] .patient-master-mode-button {
+      flex: 1 1 0;
+      min-width: 0;
+      box-sizing: border-box;
+      min-height: var(--cco-touch-min, 44px);
+      height: auto;
+      padding: 0 10px;
+      font-size: 13px;
+      line-height: 1.2;
+      scroll-snap-align: start;
+      border-radius: 10px;
+    }
+
+    /* C4 — journal collapsibles */
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse {
+      border: 1px solid rgba(154, 126, 104, 0.16);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.72);
+      overflow: hidden;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse
+      + .patient-master-journal-collapse {
+      margin-top: 0.65rem;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-summary {
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      padding: 0 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-summary::after {
+      content: "›";
+      margin-left: auto;
+      font-size: 18px;
+      line-height: 1;
+      transform: rotate(90deg);
+      transition: transform 160ms ease;
+      color: var(--cco-text-tertiary, #8a8174);
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse[open]
+      .patient-master-journal-collapse-summary::after {
+      transform: rotate(-90deg);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-journal-collapse-body {
+      padding: 0 10px 12px;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse-body
+      .patient-master-plan-card,
+    html[data-cco-mobile-shell="on"]
+      .patient-master-journal-collapse-body
+      .patient-master-offer-box {
+      border: 0;
+      box-shadow: none;
+      padding: 0;
+      background: transparent;
+    }
+
+    /* C4.3 — tighter photo grid */
+    html[data-cco-mobile-shell="on"] .patient-master-plan-photo-grid {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    /* ============================================================
+       Fas D — Overlays & modaler (bottom sheets + booking)
+       ============================================================ */
+
+    /* D1 — customer / admin modals → bottom sheets (endast när öppna) */
+    html[data-cco-mobile-shell="on"] .customers-modal-shell[data-open],
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell[data-open],
+    html[data-cco-mobile-shell="on"] #note-mode-shell[data-open],
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell[data-open] {
+      position: fixed;
+      inset: 0;
+      z-index: calc(var(--cco-z-modal, 10000) - 2);
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-shell:not([data-open]),
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell:not([data-open]),
+    html[data-cco-mobile-shell="on"] #note-mode-shell:not([data-open]),
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell:not([data-open]) {
+      display: none !important;
+      pointer-events: none !important;
+    }
+
+    /* iOS Safari: fixed backdrop-filter på stängda modaler suddar + blockerar hela sidan.
+       Backdrop ska bara existera när shell har [data-open]. */
+    html[data-cco-mobile-shell="on"]
+      .customers-modal-shell:not([data-open])
+      .customers-modal-backdrop,
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell:not([data-open]) .mailbox-admin-backdrop,
+    html[data-cco-mobile-shell="on"] #note-mode-shell:not([data-open]) .note-mode-backdrop,
+    html[data-cco-mobile-shell="on"]
+      #shell-confirm-shell:not([data-open])
+      .customers-modal-backdrop {
+      display: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      pointer-events: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-shell[data-open] .customers-modal-backdrop,
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell[data-open] .mailbox-admin-backdrop,
+    html[data-cco-mobile-shell="on"] #note-mode-shell[data-open] .note-mode-backdrop,
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell[data-open] .customers-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.44);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    /* iOS Safari: fixed overlays med opacity:0 läcker fortfarande backdrop-filter.
+       Dölj hela shell när stängd (aria-hidden) — gäller studio/note/schedule/later m.fl. */
+    html[data-cco-mobile-shell="on"] .customers-modal-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] .mailbox-admin-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #note-mode-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #truth-worklist-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #studio-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #note-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #schedule-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #later-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #focus-context-shell[aria-hidden="true"],
+    html[data-cco-mobile-shell="on"] #booking-shell[aria-hidden="true"] {
+      display: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      pointer-events: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-surface,
+    html[data-cco-mobile-shell="on"] .mailbox-admin-surface,
+    html[data-cco-mobile-shell="on"] .shell-modal-surface,
+    html[data-cco-mobile-shell="on"] .note-mode-surface {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: auto;
+      bottom: 0;
+      width: 100%;
+      max-width: none;
+      max-height: min(92vh, 760px);
+      margin: 0;
+      transform: translateY(110%);
+      border-radius: 16px 16px 0 0;
+      padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      transition: transform 140ms var(--cco-ease-out, ease-out);
+      box-shadow: var(--cco-shadow-xl);
+    }
+
+    html[data-cco-mobile-shell="on"] #customers-merge-shell[data-open] .customers-modal-surface,
+    html[data-cco-mobile-shell="on"] #customers-settings-shell[data-open] .customers-modal-surface,
+    html[data-cco-mobile-shell="on"] #customers-import-shell[data-open] .customers-modal-surface,
+    html[data-cco-mobile-shell="on"] #customers-split-shell[data-open] .customers-modal-surface,
+    html[data-cco-mobile-shell="on"] #macro-editor-shell[data-open] .shell-modal-surface,
+    html[data-cco-mobile-shell="on"] #settings-profile-shell[data-open] .shell-modal-surface,
+    html[data-cco-mobile-shell="on"] #shell-confirm-shell[data-open] .shell-modal-surface,
+    html[data-cco-mobile-shell="on"] #mailbox-admin-shell[data-open] .mailbox-admin-surface,
+    html[data-cco-mobile-shell="on"] #note-mode-shell[data-open] .note-mode-surface {
+      transform: translateY(0);
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-surface::before,
+    html[data-cco-mobile-shell="on"] .mailbox-admin-surface::before,
+    html[data-cco-mobile-shell="on"] .shell-modal-surface::before,
+    html[data-cco-mobile-shell="on"] .note-mode-surface::before {
+      content: "";
+      display: block;
+      width: 36px;
+      height: 4px;
+      margin: 10px auto 8px;
+      border-radius: 999px;
+      background: rgba(43, 37, 31, 0.2);
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-head,
+    html[data-cco-mobile-shell="on"] .mailbox-admin-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding-top: 4px;
+      background: inherit;
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-close,
+    html[data-cco-mobile-shell="on"] .mailbox-admin-head-close {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-actions,
+    html[data-cco-mobile-shell="on"] .mailbox-admin-surface .customers-modal-actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 12px 0 calc(4px + env(safe-area-inset-bottom, 0px));
+      background: linear-gradient(
+        180deg,
+        transparent 0%,
+        color-mix(in srgb, var(--cco-bg-surface, #fff) 88%, transparent) 24%
+      );
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-actions .customers-utility-button,
+    html[data-cco-mobile-shell="on"] .customers-modal-actions .shell-button {
+      flex: 1 1 calc(50% - 4px);
+      min-height: 48px;
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-modal-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    html[data-cco-mobile-shell="on"] .mailbox-admin-surface {
+      display: flex;
+      flex-direction: column;
+      max-height: min(94vh, 820px);
+      overflow: hidden;
+      padding-bottom: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .mailbox-admin-surface .mailbox-admin-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    /* D2 — booking shell full-screen sheet */
+    html[data-cco-mobile-shell="on"] .booking-shell {
+      position: fixed;
+      top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: calc(var(--cco-z-modal, 10000) - 4);
+      transform: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .booking-shell {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell {
+      bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .booking-shell-surface {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      max-height: 100%;
+      border-radius: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell-surface {
+      border-radius: 16px 16px 0 0;
+      max-height: 100%;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell-toolbar {
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px 8px;
+      min-height: 52px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell-toolbar-kicker {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell-toolbar h2 {
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell-close-button {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+      flex: 0 0 auto;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .booking-shell-toolbar,
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .cco-booking-mobile-wizard {
+      flex: 0 0 auto;
+      background: var(--warm-bg, #f7f2ec);
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open .booking-shell-body,
+    html[data-cco-mobile-shell="on"] .preview-canvas.is-booking-open [data-booking-shell-mount] {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-bottom: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell-body,
+    html[data-cco-mobile-shell="on"] [data-booking-shell-mount] {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas.is-booking-open
+      .booking-shell
+      [data-booking-surface] {
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      text-align: left;
+      padding: 12px 16px 20px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] {
+      padding: 12px 16px 20px;
+      text-align: left;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-head,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-operator-head
+      h3,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] p,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-source-line,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-health-line,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-next-action-line,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-decision-source-line,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-note,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-status-filter-note,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-slot-overview-copy,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-feedback,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-action-hint {
+      text-align: left;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-operator-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-attention-grid,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-grid,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-handoff-checklist,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-status-flow {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-attention-grid
+      > div,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-decision-card,
+    html[data-cco-mobile-shell="on"] .booking-shell [data-booking-surface] .booking-slot-overview {
+      text-align: left;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-attention-grid
+      span,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-attention-grid
+      strong,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-decision-card
+      span,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-decision-card
+      strong,
+    html[data-cco-mobile-shell="on"]
+      .booking-shell
+      [data-booking-surface]
+      .booking-decision-card
+      p {
+      text-align: left;
+    }
+
+    /* D2.3 — mobile booking wizard stepper (injected by JS) */
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-wizard {
+      display: flex;
+      gap: 6px;
+      padding: 0 16px 10px;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      background: color-mix(in srgb, var(--cco-bg-surface, #fff) 94%, transparent);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-wizard-step {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--cco-text-tertiary, #8a8174);
+      font: inherit;
+      cursor: default;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-wizard-step::before {
+      content: attr(data-step-index);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-wizard-step.is-active,
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-wizard-step.is-done {
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-wizard-step.is-active::before,
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-wizard-step.is-done::before {
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.16));
+      border-color: transparent;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-wizard-label {
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.1;
+      text-align: left;
+      width: 100%;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-booking-mobile-progress {
+      text-align: left;
+      width: 100%;
+    }
+
+    /* Boka-fliken: fokus på bokningsytan, inte krympt konversationsband */
+    html[data-cco-mobile-booking-tab="on"]
+      .preview-canvas[data-mobile-workspace-view="focus"]
+      .focus-conversation {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-booking-tab="on"]
+      .preview-canvas[data-mobile-workspace-view="focus"]
+      .focus-conversation-layout {
+      gap: 0;
+      padding-top: 0;
+    }
+
+    html[data-cco-mobile-booking-tab="on"]
+      .preview-canvas[data-mobile-workspace-view="focus"]
+      .focus-workrail {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: left;
+      gap: 12px;
+      margin: 0 0 12px;
+      padding: 14px 16px;
+    }
+
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock-copy,
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock-copy strong,
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock-copy p {
+      text-align: left;
+    }
+
+    html[data-cco-mobile-booking-tab="on"] .booking-workspace-dock-open {
+      width: 100%;
+      min-height: var(--cco-touch-comfortable, 48px);
+    }
+
+    html[data-cco-mobile-booking-tab="on"]
+      .focus-workrail.is-booking-active
+      .booking-operator-surface {
+      margin-top: 0;
+      max-height: none;
+      padding: 12px 16px 20px;
+      text-align: left;
+    }
+
+    html[data-cco-mobile-booking-tab="on"]
+      .focus-workrail.is-booking-active
+      .booking-operator-surface
+      .booking-attention-grid,
+    html[data-cco-mobile-booking-tab="on"]
+      .focus-workrail.is-booking-active
+      .booking-operator-surface
+      .booking-decision-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* D2.4 — slot picker: single column + vertical chips */
+    html[data-cco-mobile-shell="on"] .cco-booking-date-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 16px 8px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-booking-date-chip {
+      min-height: 44px;
+      padding: 0 14px;
+      border: 1px solid rgba(154, 126, 104, 0.22);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-booking-date-chip.is-active {
+      border-color: transparent;
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.16));
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-slot-controls {
+      grid-template-columns: 1fr;
+      gap: 10px;
+      padding-inline: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-slot-controls label:has([data-booking-slot-resids]),
+    html[data-cco-mobile-shell="on"] .booking-slot-controls label:has([data-booking-slot-srvids]) {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-slot-controls .booking-action {
+      min-height: 48px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-slot-input {
+      min-height: 44px;
+      font-size: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-available-slot-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: none;
+      margin-top: 8px;
+      padding-inline: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-available-slot-list li {
+      min-height: 0;
+      list-style: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-available-slot-list .booking-live-slot {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      min-height: 0;
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-slot-select {
+      width: 100%;
+      min-height: 44px;
+      margin-top: 4px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-slot-list {
+      padding-inline: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-action-row {
+      flex-direction: column;
+      align-items: stretch;
+      padding-inline: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-action-row .booking-action {
+      width: 100%;
+      min-height: 48px;
+      font-size: 15px;
+    }
+
+    html[data-cco-mobile-shell="on"] .booking-action-row .booking-action-primary,
+    html[data-cco-mobile-shell="on"] .booking-action-row .booking-action.is-recommended {
+      order: -1;
+    }
+
+    /* D3 — cmd-k hidden on phone (desktop shortcut) */
+    html[data-cco-mobile-shell="on"] #cmd-k-overlay {
+      display: none !important;
+    }
+
+    /* ============================================================
+       Fas E — Density & affärsflöden
+       ============================================================ */
+
+    /* E1.1 — compact queue rows */
+    html[data-cco-mobile-shell="on"] .thread-card {
+      contain: content;
+    }
+
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row,
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row--mobile-compact {
+      min-height: 72px;
+      padding: 10px 12px 10px 20px;
+      border-radius: 14px;
+    }
+
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-mid {
+      grid-template-columns: 32px 1fr auto;
+      column-gap: 10px;
+    }
+
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-avatar .avatar,
+    html[data-cco-mobile-shell="on"]
+      .thread-card.unified-queue-card.warm-row
+      .warm-avatar.avatar-wrap {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      max-width: 32px;
+      max-height: 32px;
+    }
+
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card.warm-row .warm-preview {
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* E1.2 — 2-line cards, overflow actions */
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card .mailbox-trail,
+    html[data-cco-mobile-shell="on"] .thread-card.unified-queue-card .warm-why {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .thread-card.unified-queue-card.warm-row
+      .warm-actions
+      .action-icon {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .thread-card.unified-queue-card.warm-row
+      .warm-actions
+      .primary-action {
+      min-height: 44px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-menu-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+      border: 1px solid rgba(154, 126, 104, 0.18);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: calc(var(--cco-z-modal, 10000) - 1);
+      display: grid;
+      place-items: end center;
+      pointer-events: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-sheet[hidden] {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-sheet:not([hidden]) {
+      pointer-events: auto;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      margin: 0;
+      padding: 0;
+      background: rgba(15, 23, 42, 0.42);
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-panel {
+      position: relative;
+      width: min(100%, 480px);
+      margin: 0;
+      padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+      border-radius: 16px 16px 0 0;
+      background: var(--cco-bg-surface, #fff);
+      box-shadow: var(--cco-shadow-xl);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-panel button {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 48px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 15px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-queue-row-actions-panel button:active {
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+    }
+
+    /* E1.3 — collapsed queue filters */
+    html[data-cco-mobile-shell="on"] .cco-mobile-queue-filter-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      margin: 0 var(--cco-mobile-gutter, 16px) 8px;
+      padding: 0 14px;
+      border: 1px solid rgba(154, 126, 104, 0.2);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      body.has-inbox-filters-collapsed
+      .queue-stream-tools
+      .queue-scope-strip,
+    html[data-cco-mobile-shell="on"]
+      body.has-inbox-filters-collapsed
+      .queue-stream-tools
+      .queue-secondary-signal-strip,
+    html[data-cco-mobile-shell="on"]
+      body.has-inbox-filters-collapsed
+      .queue-stream-tools
+      .queue-action-row {
+      display: none !important;
+    }
+
+    /* E1.4 — page titles (also preview-head) */
+    html[data-cco-mobile-shell="on"] .preview-head h1,
+    html[data-cco-mobile-shell="on"] .preview-title-group h1,
+    html[data-cco-mobile-shell="on"] .focus-head h2,
+    html[data-cco-mobile-shell="on"] .preview-head .preview-title-group h1 {
+      font-size: 20px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    /* E2 — offer badges & wizard */
+    html[data-cco-mobile-shell="on"] .patient-master-offer-box .patient-master-offer-template {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-offer-meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0.35rem 0 0.5rem;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-status-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: var(--cco-text-secondary, #5c5348);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-status-badge.is-accent {
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.14));
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard {
+      position: fixed;
+      inset: 0;
+      z-index: calc(var(--cco-z-modal, 10000) - 1);
+      display: grid;
+      place-items: end center;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard[hidden] {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-panel {
+      width: min(100%, 480px);
+      max-height: min(92vh, 640px);
+      overflow: auto;
+      margin: 0;
+      padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      border-radius: 16px 16px 0 0;
+      background: var(--cco-bg-surface, #fff);
+      box-shadow: var(--cco-shadow-xl);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-steps {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-step {
+      flex: 1 1 0;
+      min-height: 36px;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: var(--cco-text-tertiary, #8a8174);
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-step.is-active {
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.16));
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field input,
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field select,
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field textarea {
+      min-height: 48px;
+      padding: 0 12px;
+      border: 1px solid rgba(154, 126, 104, 0.22);
+      border-radius: 12px;
+      font-size: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-field textarea {
+      min-height: 96px;
+      padding: 10px 12px;
+      resize: vertical;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-preview-wrap {
+      margin-top: 10px;
+      border: 1px solid rgba(154, 126, 104, 0.18);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      min-height: 220px;
+      max-height: 42vh;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-preview {
+      display: block;
+      width: 100%;
+      height: 42vh;
+      border: 0;
+      background: #fff;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-offer-wizard-actions .customers-utility-button {
+      flex: 1 1 0;
+      min-height: 48px;
+    }
+
+    /* E3 — agreement checklist */
+    html[data-cco-mobile-shell="on"] .patient-master-agreement-checklist {
+      list-style: none;
+      margin: 0.5rem 0 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-agreement-checklist li {
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      padding: 0 12px;
+      border: 1px solid rgba(154, 126, 104, 0.16);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--cco-text-primary, #2b251f);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-agreement-checklist li.is-done {
+      border-color: rgba(74, 130, 104, 0.24);
+      background: rgba(74, 130, 104, 0.08);
+      color: var(--cco-color-accent-strong, #2e5a47);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-next-action {
+      margin: 0 0 0.75rem;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
+      color: var(--cco-color-accent-strong, #2e5a47);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    /* E4 — forms pass + TP sticky save */
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas
+      input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    html[data-cco-mobile-shell="on"] .preview-canvas select,
+    html[data-cco-mobile-shell="on"] .preview-canvas textarea,
+    html[data-cco-mobile-shell="on"] .patient-master-tp-field input,
+    html[data-cco-mobile-shell="on"] .patient-master-tp-field select,
+    html[data-cco-mobile-shell="on"] .patient-master-tp-field textarea {
+      min-height: 44px;
+      font-size: max(16px, 1rem);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tp-section-body {
+      grid-template-columns: 1fr !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tp-form-wrap {
+      padding-bottom: calc(var(--cco-mobile-tabbar-h, 56px) + 72px);
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tp-header .patient-master-tp-save {
+      position: fixed;
+      left: var(--cco-mobile-gutter, 16px);
+      right: var(--cco-mobile-gutter, 16px);
+      bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 8px);
+      z-index: calc(var(--cco-z-sticky, 100) + 2);
+      width: auto;
+      min-height: 48px;
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    /* ============================================================
+       Fas F — kundkort mobil: platt yta, full bredd, inga klipp
+       ============================================================ */
+
+    /* Dölj arbetsyte-växlare i kundvy (hör bara till mejl/kö) */
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .mobile-workspace-switch {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-mode-toggle,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-head-actions,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .customers-title-group
+      > p:not(.customers-kicker) {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-workspace {
+      padding-inline: 0;
+      gap: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-shell,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .customers-rail,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card {
+      overflow: visible;
+      max-height: none;
+      min-height: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card {
+      padding: 0 var(--cco-mobile-gutter, 16px)
+        calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 24px);
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-offer-box,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent;
+      padding-inline: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero {
+      padding: 8px 0 12px;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .focus-customer-data-card
+      + .focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-collapse
+      + .patient-master-journal-collapse {
+      border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      margin-top: 0;
+      padding-top: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-collapse {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-material-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-material-head
+      h4 {
+      font-size: 13px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-copy h2 {
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-contact-line {
+      flex-direction: column;
+      gap: 2px;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero-main {
+      gap: 10px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-copy-link {
+      min-height: var(--cco-touch-min, 44px);
+      padding: 0 14px;
+      font-size: 13px;
+    }
+
+    /* Journal: kompakta verktyg, inga jätte-bubblor */
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-toolbar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-toolbar
+      .customers-utility-button,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-toolbar
+      .patient-master-upload-button {
+      min-height: var(--cco-touch-min, 44px);
+      padding: 0 10px;
+      font-size: var(--cco-mobile-text-label, 13px);
+      line-height: 1.2;
+      white-space: normal;
+      text-align: center;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-camera-button {
+      grid-column: 1 / -1;
+      min-height: var(--cco-touch-comfortable, 48px);
+      font-size: var(--cco-mobile-text-button, 15px);
+    }
+
+    /* Journal/offert-rader: stapla titel och knappar */
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-item {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 10px 0;
+      border-radius: 0;
+      background: transparent;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-item
+      > div:first-child {
+      min-width: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-item
+      strong,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-file-list li a,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-file-list
+      li
+      strong {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      hyphens: auto;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-start;
+      align-items: center;
+      padding-top: 2px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-actions
+      .focus-customer-chip {
+      min-height: 28px;
+      padding: 4px 10px;
+      font-size: 12px;
+      line-height: 1.2;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-actions
+      .customers-utility-button {
+      min-height: var(--cco-touch-min, 44px);
+      padding: 0 12px;
+      font-size: var(--cco-mobile-text-label, 13px);
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-plan-photo-actions {
+      flex-wrap: wrap;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo {
+      padding: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo img {
+      aspect-ratio: auto;
+      max-height: 280px;
+      object-fit: contain;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-plan-photo-remove {
+      top: 8px;
+      right: 8px;
+      width: var(--cco-touch-min, 44px);
+      height: var(--cco-touch-min, 44px);
+      min-width: var(--cco-touch-min, 44px);
+      min-height: var(--cco-touch-min, 44px);
+      font-size: 1.35rem;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-photo-delete {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-file-list li {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 10px 0;
+      border-radius: 0;
+      background: transparent;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    /* Topbar: undvik att streak/live-pill klipper kundnamn */
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-topbar-right
+      .inbox-streak-pill
+      .inbox-streak-label {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .preview-topbar-right {
+      gap: 4px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .cco-mobile-app-title {
+      max-width: calc(100vw - 140px);
+    }
+
+    /* Plan-editor: fullskärms-sheet på mobil */
+    html[data-cco-mobile-shell="on"] .journal-plan-editor-overlay {
+      z-index: calc(var(--cco-z-modal, 10000) + 2);
+      align-items: flex-end;
+      padding: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .journal-plan-editor-shell {
+      width: 100%;
+      max-height: 100vh;
+      max-height: 100dvh;
+      border-radius: 16px 16px 0 0;
+      padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+
+    html[data-cco-mobile-shell="on"] .journal-plan-editor-body {
+      flex-direction: column;
+    }
+
+    html[data-cco-mobile-shell="on"] .journal-plan-side {
+      width: 100%;
+    }
+
+    /* ============================================================
+       Fas G — kundkort mobil: full bredd, färre bubblor, flata flikar
+       ============================================================ */
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-surface,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-shell {
+      padding-inline: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card {
+      padding-inline: 12px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .patient-master-identity-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .patient-master-workflow-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .patient-master-plan-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .patient-master-history-card.focus-customer-data-card {
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      padding: 10px 0 !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tabs {
+      position: sticky;
+      top: calc(var(--workspace-sticky-top, 56px) + 4px);
+      z-index: 12;
+      margin-inline: 0;
+      padding: 4px 12px 8px;
+      gap: 0;
+      background: var(--warm-bg, #f7f2ec) !important;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.1));
+      box-shadow: 0 6px 12px -8px rgba(43, 37, 31, 0.18);
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab {
+      flex: 1 1 0;
+      min-height: 42px;
+      padding: 10px 4px;
+      border: 0;
+      border-radius: 0;
+      border-bottom: 2px solid transparent;
+      background: var(--warm-bg, #f7f2ec);
+      box-shadow: none;
+      color: var(--cco-text-secondary, #5d544a);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab.is-active {
+      color: var(--cco-text-primary, #2b251f);
+      border-bottom-color: var(--cco-status-success, #4a8268);
+      background: var(--warm-bg, #f7f2ec);
+      box-shadow: none;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-chip-row {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] [data-patient-tab="journal"],
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] [data-patient-tab="avtal"] {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero-main {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-copy-link {
+      align-self: flex-start;
+      margin-left: 0;
+      min-height: var(--cco-touch-min, 44px);
+      padding: 0 14px;
+      border: 1px solid rgba(154, 126, 104, 0.22);
+      border-radius: 999px;
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.96) 0%,
+        rgba(245, 239, 233, 0.92) 100%
+      );
+      box-shadow:
+        0 4px 10px rgba(161, 143, 126, 0.08),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+      color: var(--cco-text-primary, #2b251f);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-colleague-link-copy {
+      color: #1f6b4f;
+      border-color: rgba(74, 130, 104, 0.38);
+      background: linear-gradient(
+        180deg,
+        rgba(236, 253, 245, 0.98) 0%,
+        rgba(209, 250, 229, 0.94) 100%
+      );
+      box-shadow:
+        0 4px 10px rgba(74, 130, 104, 0.12),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-colleague-link-qr {
+      color: #6d28d9;
+      border-color: rgba(124, 58, 237, 0.34);
+      background: linear-gradient(
+        180deg,
+        rgba(245, 243, 255, 0.98) 0%,
+        rgba(233, 213, 255, 0.94) 100%
+      );
+      box-shadow:
+        0 4px 10px rgba(124, 58, 237, 0.1),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .focus-customer-hero-main
+      > .patient-master-copy-link
+      + .patient-master-copy-link {
+      margin-left: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-journal-steps {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-journal-progress {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-intro
+      h4 {
+      font-size: 12px;
+      letter-spacing: 0.06em;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-journal-collapse {
+      border: 0;
+      border-radius: 0;
+      border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      background: transparent;
+    }
+
+    /* ============================================================
+       Fas H — ingen yttre vit “låda”: innehåll direkt mot beige bakgrund
+       ============================================================ */
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-shell,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-surface,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-rail,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-layout {
+      padding: 0 !important;
+      margin: 0;
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .customers-rail
+      .patient-master-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-card {
+      padding: 0 0 calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 20px) !important;
+      margin: 0;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      gap: 0;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab-panel,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .patient-master-identity-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .patient-master-workflow-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .patient-master-plan-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .patient-master-history-card.focus-customer-data-card,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-journal-collapse,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-offer-box {
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .focus-customer-data-card::before {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .focus-customer-hero,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"]
+      .patient-master-card
+      .focus-customer-data-card {
+      padding-inline: 12px !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tabs {
+      margin-inline: 0;
+      padding-inline: 12px;
+      background-color: var(--warm-bg, #f7f2ec) !important;
+      background-image: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab.is-active,
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-tab:hover {
+      background-color: var(--warm-bg, #f7f2ec) !important;
+      box-shadow: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo {
+      padding: 0 12px 16px !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo-grid {
+      gap: 20px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .patient-master-plan-photo img {
+      width: 100%;
+      max-height: none;
+      border-radius: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-patient-detail="on"] .cco-mobile-journal-progress {
+      padding-inline: 12px;
+    }
+
+    /* Kundregister mobil: hela sidan scrollar (login + profil) via .preview-page */
+    html[data-cco-mobile-shell="on"]
+      .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas[data-app-shell-view="customers"] {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-list,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-rail,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-layout {
+      max-height: none !important;
+      overflow: visible !important;
+      position: static !important;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-shell {
+      overflow: visible;
+      padding-inline: var(--cco-mobile-gutter);
+      padding-bottom: calc(
+        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 24px
+      );
+    }
+
+    /* Kundregister: låt grid/listor fylla bredden (annars kvarstår desktop-
+       marginaler → innehåll trängs i mitten). */
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-layout,
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-rail {
+      margin-inline: 0;
+      padding-inline: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-auth-card {
+      padding-bottom: calc(
+        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 16px
+      );
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-login-field--tenant {
+      display: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-login-button {
+      min-height: 44px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-metric-row,
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-toolbar,
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-mode-toggle,
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] [data-post-op-reviews-open] {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-list {
+      display: block !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .customers-rail {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"]
+      .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-auth-card {
+      margin-top: 0.5rem;
+      padding: 1rem 0 1.25rem;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-login-form {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"]
+      .patient-master-login-field
+      input {
+      min-height: 48px;
+      font-size: 16px;
+    }
+
+    html[data-cco-mobile-shell="on"][data-cco-auth-required="on"] .patient-master-login-button {
+      width: 100%;
+      min-height: 48px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-card-loading {
+      opacity: 1;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-detail-skeleton {
+      display: grid;
+      gap: 10px;
+      padding: 0.75rem 0 1rem;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-detail-skeleton-bar {
+      height: 14px;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        rgba(139, 94, 60, 0.12) 0%,
+        rgba(139, 94, 60, 0.22) 50%,
+        rgba(139, 94, 60, 0.12) 100%
+      );
+      background-size: 200% 100%;
+      animation: cco-mobile-skeleton-pulse 1.2s ease-in-out infinite;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-detail-skeleton-bar.is-short {
+      width: 62%;
+    }
+
+    @keyframes cco-mobile-skeleton-pulse {
+      0% {
+        background-position: 100% 0;
+      }
+      100% {
+        background-position: -100% 0;
+      }
+    }
+
+    /* Fas G — kundlista mobil: kompakt header, hela sidan scrollar */
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .preview-canvas[data-app-shell-view="customers"]
+      .preview-workspace {
+      display: block;
+      overflow: visible !important;
+      min-height: auto;
+      margin-inline: 0;
+      padding-inline: var(--cco-mobile-gutter, 16px);
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .preview-canvas[data-app-shell-view="customers"]
+      .customers-surface {
+      padding: 0.65rem 0 0.85rem;
+      gap: 0.65rem;
+    }
+
+    /*
+     Mobil ambient under arbetsyta — design-sudding utan filter:blur (iOS Safari läcker
+     filter på pseudo-element över hela viewport). Gradient-wash ger samma känsla.
+    */
+    html[data-cco-mobile-shell="on"] .preview-canvas {
+      isolation: isolate;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas::before {
+      display: block !important;
+      left: 4%;
+      top: calc(var(--topbar-height, 56px) + 4px);
+      width: 92%;
+      max-width: 420px;
+      height: 200px;
+      filter: none !important;
+      -webkit-filter: none !important;
+      opacity: 0.9;
+      background: radial-gradient(
+        ellipse 95% 110% at 18% 22%,
+        rgba(234, 231, 239, 0.62) 0%,
+        rgba(244, 238, 233, 0.38) 34%,
+        rgba(255, 249, 242, 0.14) 58%,
+        transparent 82%
+      );
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas::after {
+      display: block !important;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-workspace {
+      position: relative;
+      z-index: 1;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-workspace::before {
+      display: block !important;
+      opacity: 1;
+      filter: none !important;
+      z-index: 0;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-topbar,
+    html[data-cco-mobile-shell="on"] .preview-workspace-shell,
+    html[data-cco-mobile-shell="on"] .customers-shell,
+    html[data-cco-mobile-shell="on"] .preview-shell,
+    html[data-cco-mobile-shell="on"] .focus-shell {
+      position: relative;
+      z-index: 1;
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-surface,
+    html[data-cco-mobile-shell="on"] .customers-shell {
+      position: relative;
+      isolation: isolate;
+    }
+
+    html[data-cco-mobile-shell="on"] .customers-surface::before {
+      display: block !important;
+      content: "" !important;
+      filter: none !important;
+      -webkit-filter: none !important;
+      left: -12px;
+      top: -4px;
+      width: min(100%, 360px);
+      height: 160px;
+      background: radial-gradient(
+        ellipse 90% 100% at 20% 24%,
+        rgba(255, 254, 250, 0.72) 0%,
+        rgba(255, 249, 242, 0.42) 32%,
+        rgba(255, 243, 233, 0.16) 58%,
+        transparent 84%
+      );
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-register-top-main,
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head-actions {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-head,
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-register-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      margin-bottom: 0.35rem;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .patient-master-mode-toggle {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .patient-master-mode-button {
+      min-height: 44px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-metric-card {
+      padding: 0.55rem 0.65rem;
+      min-height: 0;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-metric-card
+      span {
+      font-size: 0.68rem;
+      line-height: 1.25;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-metric-card
+      strong {
+      font-size: 1.05rem;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-toolbar {
+      position: static;
+      top: auto;
+      z-index: auto;
+      gap: 8px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-search,
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-filter {
+      min-height: 44px;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"])
+      .customers-toolbar-settings {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: var(--cco-touch-min, 44px);
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    html[data-cco-mobile-shell="on"]:not([data-cco-patient-detail="on"]) .customers-search {
+      flex: 1 1 100%;
+    }
+
+    html[data-cco-mobile-shell="on"]
+      .preview-page:has(.preview-canvas[data-app-shell-view="customers"]) {
+      overflow-y: auto !important;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-inline: 0;
+    }
+
+    /* Topbar meny-knapp (sekundära sidor) */
+    .cco-mobile-menu-button {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: var(--cco-touch-min, 44px);
+      height: var(--cco-touch-min, 44px);
+      border: 0;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: inherit;
+      cursor: pointer;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-menu-button {
+      display: inline-flex;
+    }
+
+    /* Sticky CTA längst ner ovanför tab bar */
+    .cco-mobile-sticky-cta-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
+      z-index: calc(var(--cco-z-sticky, 100) + 1);
+      display: none;
+      gap: 8px;
+      padding: 10px var(--cco-mobile-gutter, 16px);
+      border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      background: rgba(252, 248, 244, 0.98);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-sticky-cta-bar {
+      display: flex;
+    }
+
+    .cco-mobile-sticky-cta-button {
+      flex: 1 1 auto;
+      min-height: var(--cco-touch-comfortable, 48px);
+      font-size: var(--cco-mobile-text-button, 15px);
+      font-weight: 700;
+    }
+
+    .cco-mobile-sticky-cta-source {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) .patient-master-auth-card,
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) [data-staff-login-form],
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) .booking-shell-body,
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) [data-tp-journal-save-form],
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar)
+      [data-clinical-journal-save-form],
+    html[data-cco-mobile-shell="on"]:has(.cco-mobile-sticky-cta-bar) #cco-mobile-offer-wizard {
+      padding-bottom: calc(
+        var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px) + 72px
+      );
+    }
+
+    /* Offline-banner */
+    .cco-mobile-offline-banner {
+      position: fixed;
+      top: calc(var(--cco-mobile-topbar-h, 56px) + env(safe-area-inset-top, 0px) + 6px);
+      left: max(env(safe-area-inset-left, 0px), 12px);
+      right: max(env(safe-area-inset-right, 0px), 12px);
+      z-index: calc(var(--cco-z-toast, 100000) - 1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #7f1d1d;
+      color: #fff;
+      box-shadow: var(--cco-shadow-lg);
+      font-size: 13px;
+    }
+
+    .cco-mobile-offline-banner[hidden] {
+      display: none !important;
+    }
+
+    .cco-mobile-offline-banner-text {
+      flex: 1 1 auto;
+      line-height: 1.35;
+    }
+
+    .cco-mobile-offline-retry {
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Tabell → kort i mail */
+    .cco-mobile-table-as-cards {
+      display: block !important;
+      width: 100% !important;
+      border: 0 !important;
+    }
+
+    .cco-mobile-table-as-cards thead {
+      display: none;
+    }
+
+    .cco-mobile-table-as-cards tbody,
+    .cco-mobile-table-as-cards tr,
+    .cco-mobile-table-as-cards td,
+    .cco-mobile-table-as-cards th {
+      display: block !important;
+      width: 100% !important;
+    }
+
+    .cco-mobile-table-as-cards tr {
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      border-radius: 12px;
+      background: var(--cco-bg-surface, #fff);
+    }
+
+    .cco-mobile-table-as-cards td + td {
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    /* Journal steg-progress */
+    .cco-mobile-journal-steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      margin: 0 0 12px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .cco-mobile-journal-step {
+      min-height: 36px;
+      padding: 6px 4px;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: var(--cco-text-secondary, #5d544a);
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .cco-mobile-journal-step.is-active {
+      background: var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
+      color: var(--cco-status-success, #4a8268);
+    }
+
+    .cco-mobile-journal-step.is-done {
+      opacity: 0.72;
+    }
+
+    /* Kalender bottom sheet */
+    .cco-mobile-calendar-sheet {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: calc(var(--cco-mobile-tabbar-h, 56px) + env(safe-area-inset-bottom, 0px));
+      z-index: calc(var(--cco-z-sticky, 100) + 4);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .cco-mobile-calendar-sheet[hidden] {
+      display: none !important;
+    }
+
+    .cco-mobile-calendar-sheet[data-open="true"] {
+      pointer-events: auto;
+    }
+
+    .cco-mobile-calendar-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      margin: 0;
+      padding: 0;
+      background: rgba(15, 23, 42, 0.42);
+      cursor: pointer;
+    }
+
+    /* R8 (2026-05-28): studio/note-ytan på mobilkalendern. */
+    .cco-mobile-calendar-panel {
+      position: relative;
+      width: 100%;
+      max-height: min(92dvh, 760px);
+      display: flex;
+      flex-direction: column;
+      border-radius: 28px 28px 0 0;
+      background:
+        radial-gradient(circle at 18% 6%, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0) 30%),
+        linear-gradient(180deg, var(--panel-shell-top, rgba(248, 244, 240, 0.94)) 0%, var(--panel-shell-bottom, rgba(242, 236, 231, 0.9)) 100%);
+      box-shadow: var(--panel-shell-shadow-strong, var(--cco-shadow-xl));
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      transform: translateY(110%);
+      transition: transform 140ms var(--cco-ease-out, ease-out);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      /* varm palett-scope */
+      --cco-color-accent: var(--accent-studio, #bb4779);
+      --cco-color-accent-soft: rgba(187, 71, 121, 0.45);
+    }
+
+    .cco-mobile-calendar-head-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .cco-mobile-calendar-mark {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-studio, #bb4779);
+    }
+    .cco-mobile-calendar-mark svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .cco-mobile-calendar-sheet[data-open="true"] .cco-mobile-calendar-panel {
+      transform: translateY(0);
+    }
+
+    .cco-mobile-calendar-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px var(--cco-mobile-gutter, 16px) 10px;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    .cco-mobile-calendar-kicker {
+      margin: 0 0 2px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--cco-text-tertiary, #8a8174);
+    }
+
+    .cco-mobile-calendar-head h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      text-transform: capitalize;
+    }
+
+    .cco-mobile-calendar-close {
+      width: var(--cco-touch-min, 44px);
+      height: var(--cco-touch-min, 44px);
+      border: 0;
+      border-radius: 999px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      cursor: pointer;
+    }
+
+    .cco-mobile-calendar-next {
+      margin: 10px var(--cco-mobile-gutter, 16px) 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--cco-status-info-bg, rgba(74, 123, 168, 0.12));
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .cco-mobile-calendar-list {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      margin: 0;
+      padding: 8px var(--cco-mobile-gutter, 16px) 0;
+      list-style: none;
+    }
+
+    .cco-mobile-calendar-item-button {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+      min-height: var(--cco-touch-comfortable, 48px);
+      padding: 10px 12px;
+      border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+      border-radius: 12px;
+      background: var(--cco-bg-surface, #fff);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .cco-mobile-calendar-time {
+      flex: 0 0 auto;
+      min-width: 44px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-studio, #bb4779);
+    }
+
+    /* R8: vald-tid-detalj i mobilkalendern (smarta funktioner). */
+    .cco-mobile-calendar-detail {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 10px var(--cco-mobile-gutter, 16px) 16px;
+    }
+    .cco-mobile-calendar-detail[hidden] {
+      display: none !important;
+    }
+    .cco-mobile-calendar-panel[data-detail-open="true"] [data-calendar-month],
+    .cco-mobile-calendar-panel[data-detail-open="true"] [data-calendar-list],
+    .cco-mobile-calendar-panel[data-detail-open="true"] [data-calendar-next] {
+      display: none !important;
+    }
+    .cco-mobile-calendar-detail-back {
+      align-self: flex-start;
+      border: 0;
+      background: transparent;
+      color: var(--accent-studio, #bb4779);
+      font-size: 14px;
+      font-weight: 650;
+      padding: 4px 0;
+      cursor: pointer;
+    }
+    .cco-mobile-calendar-detail-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .cco-mobile-calendar-detail-head strong {
+      font-size: 17px;
+      color: var(--cco-text-primary, #2b251f);
+    }
+    .cco-mobile-calendar-detail-status {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-studio, #bb4779);
+      white-space: nowrap;
+    }
+    .cco-mobile-calendar-detail-sub {
+      margin: 0;
+      font-size: 13px;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+    .cco-mobile-calendar-detail-reco {
+      display: grid;
+      gap: 3px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(164, 70, 112, 0.22);
+      background: linear-gradient(180deg, rgba(252, 233, 240, 0.7) 0%, rgba(248, 236, 240, 0.5) 100%);
+    }
+    .cco-mobile-calendar-detail-reco[hidden] {
+      display: none !important;
+    }
+    .cco-mobile-calendar-detail-reco span {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #a1366a;
+    }
+    .cco-mobile-calendar-detail-reco strong {
+      font-size: 14px;
+      color: var(--cco-text-primary, #2b251f);
+    }
+    .cco-mobile-calendar-detail-reco p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+    .cco-mobile-calendar-detail-signals {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 4px;
+    }
+    .cco-mobile-calendar-detail-signals li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    .cco-mobile-calendar-detail-signals li span {
+      color: var(--cco-text-secondary, #5d544a);
+    }
+    .cco-mobile-calendar-detail-actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .cco-mobile-calendar-detail-actions .cco-mobile-cal-studio {
+      background: linear-gradient(180deg, rgba(156, 104, 68, 0.95) 0%, rgba(164, 70, 112, 0.96) 100%);
+      color: rgba(255, 248, 251, 0.98);
+      border-color: rgba(164, 70, 112, 0.55);
+    }
+
+    .cco-mobile-calendar-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .cco-mobile-calendar-copy strong {
+      font-size: 14px;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+    }
+
+    .cco-mobile-calendar-copy span {
+      font-size: 12px;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    .cco-mobile-calendar-empty,
+    .cco-mobile-calendar-loading {
+      padding: 16px 4px;
+      color: var(--cco-text-secondary, #5d544a);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .cco-mobile-calendar-foot {
+      padding: 10px var(--cco-mobile-gutter, 16px) 12px;
+      border-top: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    .cco-mobile-calendar-book {
+      width: 100%;
+      min-height: var(--cco-touch-comfortable, 48px);
+    }
+
+    .cco-mobile-calendar-month {
+      padding: 0 var(--cco-mobile-gutter, 16px) 8px;
+      border-bottom: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    }
+
+    .cco-mobile-calendar-month-nav {
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .cco-mobile-calendar-month-label {
+      margin: 0;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 650;
+      line-height: 1.2;
+      text-transform: capitalize;
+    }
+
+    .cco-mobile-calendar-nav-btn {
+      min-width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+      color: var(--cco-text-primary, #2d241d);
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .cco-mobile-calendar-today {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      margin: 0 0 10px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(8, 145, 178, 0.12);
+      color: #0e7490;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .cco-mobile-calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .cco-mobile-calendar-weekdays span {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cco-text-tertiary, #8a8174);
+      letter-spacing: 0.02em;
+    }
+
+    .cco-mobile-calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cco-mobile-calendar-day {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--cco-text-primary, #2d241d);
+      cursor: pointer;
+      padding: 4px 0 8px;
+    }
+
+    .cco-mobile-calendar-day.is-empty {
+      pointer-events: none;
+      visibility: hidden;
+    }
+
+    .cco-mobile-calendar-day.is-today .cco-mobile-calendar-day-num {
+      box-shadow: inset 0 0 0 2px rgba(8, 145, 178, 0.55);
+    }
+
+    .cco-mobile-calendar-day.is-selected {
+      background: rgba(8, 145, 178, 0.14);
+    }
+
+    .cco-mobile-calendar-day-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .cco-mobile-calendar-day-badge {
+      position: absolute;
+      bottom: 2px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: #0891b2;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 16px;
+      text-align: center;
+    }
+
+    .cco-mobile-calendar-day-badge.booked {
+      background: #b45309;
+    }
+
+    /* Bokning wizard progress */
+    .cco-booking-mobile-progress {
+      padding: 0 var(--cco-mobile-gutter, 16px) 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-tabbar-item {
+      min-height: var(--cco-mobile-tabbar-h, 56px);
+      padding-top: 4px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-mobile-tabbar-label {
+      font-size: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    /* Pre-treatment / TP stegflöde mobil */
+    .cco-clinical-mobile-stepper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 0 0 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--cco-bg-surface-sunken, #f5efe6);
+    }
+
+    .cco-clinical-mobile-stepper-progress {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    .cco-clinical-mobile-stepper-title {
+      margin: 2px 0 0;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .cco-clinical-mobile-stepper-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .cco-clinical-mobile-stepper-actions .customers-utility-button {
+      min-height: var(--cco-touch-min, 44px);
+      font-size: 14px;
+    }
+
+    html[data-cco-mobile-shell="on"] .cco-clinical-step-panel .patient-master-tp-section-body {
+      display: grid;
+      gap: 10px;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-tp-header {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .cco-mobile-autosave-indicator {
+      flex: 1 1 100%;
+      margin: 4px 0 0;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .cco-mobile-autosave-indicator[data-tone="success"] {
+      color: var(--cco-status-success, #4a8268);
+    }
+
+    .cco-mobile-autosave-indicator[data-tone="local"],
+    .cco-mobile-autosave-indicator[data-tone="info"] {
+      color: var(--cco-status-info, #4a7ba8);
+    }
+
+    .cco-mobile-autosave-indicator[data-tone="error"] {
+      color: var(--cco-status-danger, #b94a4a);
+    }
+
+    .cco-mobile-autosave-indicator[data-tone="loading"] {
+      color: var(--cco-text-secondary, #5d544a);
+    }
+
+    /* Kallstart kundvy — skippa layout/paint av tung inbox tills användaren byter flik */
+    html[data-cco-mobile-defer-inbox="on"] .preview-workspace > #workspace-queue,
+    html[data-cco-mobile-defer-inbox="on"]
+      .preview-workspace
+      > section[data-shell-view]:not([data-shell-view="customers"]) {
+      content-visibility: hidden;
+      contain-intrinsic-size: auto 640px;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-card-error {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px 16px;
+    }
+
+    html[data-cco-mobile-shell="on"] .patient-master-card-error h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    /* J-8.1 — saknade formulär bottom sheet */
+    .cco-missing-forms-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 12050;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .cco-missing-forms-sheet[hidden] {
+      display: none !important;
+    }
+
+    .cco-missing-forms-sheet[data-open="true"] {
+      pointer-events: auto;
+    }
+
+    .cco-missing-forms-backdrop {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      background: rgba(35, 22, 15, 0.28);
+      backdrop-filter: blur(4px);
+    }
+
+    .cco-missing-forms-panel {
+      position: relative;
+      width: min(100%, 560px);
+      max-height: min(88vh, 720px);
+      margin: 0 auto;
+      padding: 20px 16px 24px;
+      border-radius: 20px 20px 0 0;
+      background: rgba(250, 246, 242, 0.96);
+      box-shadow:
+        0 -8px 24px rgba(70, 50, 30, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+      overflow: hidden auto;
+      transform: translateY(100%);
+      transition: transform 180ms ease;
+    }
+
+    .cco-missing-forms-sheet[data-open="true"] .cco-missing-forms-panel {
+      transform: translateY(0);
+    }
+
+    .cco-missing-forms-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .cco-missing-forms-kicker {
+      margin: 0 0 4px;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(70, 60, 50, 0.55);
+    }
+
+    .cco-missing-forms-head h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .cco-missing-forms-close {
+      min-width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .cco-missing-forms-summary {
+      margin: 0 0 12px;
+      color: rgba(70, 60, 50, 0.72);
+    }
+
+    .cco-missing-forms-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cco-missing-forms-item-button {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px;
+      border: 1px solid rgba(120, 105, 90, 0.16);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.82);
+      text-align: left;
+    }
+
+    .cco-missing-forms-item-name {
+      display: block;
+      font-weight: 600;
+    }
+
+    .cco-missing-forms-item-meta {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.875rem;
+      color: rgba(70, 60, 50, 0.72);
+    }
+
+    .cco-missing-forms-empty {
+      padding: 12px 0;
+      color: rgba(70, 60, 50, 0.72);
+    }
+
+    /* Fyll skärmbredden på mobil. Tidigare staplades fyra nästlade sido-
+       marginaler (preview-page + preview-canvas + preview-workspace margin +
+       padding ≈ 54px/sida → innehåll bara ~72% av bredden, allt klämt i
+       mitten). Kollapsa till EN gutter så kö-/fokus-/boknings-innehållet
+       fyller skärmen. */
+    html[data-cco-mobile-shell="on"] .preview-page {
+      padding-inline: 0;
+    }
+    html[data-cco-mobile-shell="on"] .preview-canvas {
+      padding-inline: 0;
+      margin-inline: 0;
+      /* Återta den tomma toppbanden ovanför app-baren. Topbaren hanterar redan
+         notch/säker zon via env(safe-area-inset-top), så canvasens extra
+         topp-padding var bara dubbel/död yta (särskilt i Safari där webbläsaren
+         redan håller statusfältet). */
+      padding-top: 0;
+    }
+    html[data-cco-mobile-shell="on"] .preview-canvas .preview-workspace {
+      margin-inline: 0;
+      padding-inline: var(--cco-mobile-gutter);
+    }
+
+    /* STRUKTUR: gör Arbetskö/Fokus-toggeln till en ÄKTA vy-växling. Tidigare
+       låg kö-panelen (.preview-shell) och fokus-panelen (.focus-shell) alltid
+       staplade på varandra → man fick skrolla förbi hela kön för att nå
+       Fokusytan. Visa nu EN panel i taget, fullskärm, beroende på toggeln. */
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-mobile-workspace-view="queue"]
+      .preview-workspace
+      > .focus-shell {
+      display: none !important;
+    }
+    html[data-cco-mobile-shell="on"]
+      .preview-canvas[data-mobile-workspace-view="focus"]
+      .preview-workspace
+      > .preview-shell {
+      display: none !important;
+    }
+
+    /* DENSITET: Kundintelligens-fälten (LIVSCYKEL/VÄNTAR PÅ/UPPFÖLJNING/STATUS/
+       ÄGARE/RISK) staplades i EN kolumn på mobil (max-width:760/980px-reglerna
+       i styles.css) → halva bredden tom, lång höjd. Använd 2 kolumner så de sex
+       fälten blir tre rader och utnyttjar bredden. */
+    html[data-cco-mobile-shell="on"] .focus-intel-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 12px;
+      row-gap: 10px;
+    }
+
+    /* DENSITET: tightare vertikal rytm i fokusytan på mobil — mindre luft mellan
+       kort/sektioner och mindre kort-padding → mer info per skärm, mindre scroll.
+       Konservativa minskningar (bryter inte innehåll, bara tätare). */
+    html[data-cco-mobile-shell="on"] .focus-layout {
+      gap: 10px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-data-card {
+      padding: 10px 12px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-data-card h4 {
+      margin-bottom: 6px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-data-card dl {
+      gap: 6px;
+    }
+    html[data-cco-mobile-shell="on"] .focus-customer-grid {
+      gap: 10px;
+    }
+
+    /* DENSITET: bokningsåtgärderna (~10 knappar) staplades i en lång kolumn
+       (~395px). Lägg i 2 kolumner → halverad höjd och utnyttjar bredden. */
+    html[data-cco-mobile-shell="on"] .booking-action-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+    /* tightare avstånd mellan bokningsytans sektioner */
+    html[data-cco-mobile-shell="on"] .booking-operator-surface {
+      gap: 10px;
+    }
+  }
+
+  /* ============================================================
+     Tablet shell (768–1023px) — bottom nav + touch targets + split views
+     iPad portrait/landscape gets app-like chrome, not squeezed desktop.
+     ============================================================ */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    html[data-cco-mobile-shell="on"] {
+      --cco-shell-active: 1;
+      --cco-tablet-active: 1;
+    }
+
+    /* Bottom tab bar on tablet */
+    .cco-mobile-tabbar {
+      display: flex !important;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      z-index: 900;
+      background: rgba(250, 246, 242, 0.96);
+      border-top: 1px solid rgba(120, 105, 90, 0.14);
+      box-shadow: 0 -2px 8px rgba(70, 50, 30, 0.06);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .cco-mobile-tabbar button {
+      min-width: 64px;
+      min-height: 48px;
+      font-size: 12px;
+    }
+
+    /* More sheet on tablet */
+    .cco-mobile-more-sheet {
+      display: block;
+    }
+
+    /* Back button */
+    #cco-mobile-back-button {
+      display: flex;
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* App title */
+    #cco-mobile-app-title {
+      display: block;
+    }
+
+    /* Body padding for bottom bar */
+    html[data-cco-mobile-shell="on"] .preview-page {
+      padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Hide desktop topbar nav on tablet */
+    html[data-cco-mobile-shell="on"] .preview-topbar {
+      display: none !important;
+    }
+
+    /* Touch targets — minimum 44px everywhere */
+    button,
+    [role="button"],
+    a[href],
+    input[type="checkbox"],
+    input[type="radio"],
+    select {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Two-column split where useful */
+    .cco-tablet-split {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+      height: 100%;
+    }
+
+    /* Cards: don't stretch full width — max 600px */
+    .thread-card,
+    .queue-history-list > * {
+      max-width: 600px;
+    }
+
+    /* Compact topbar replacement */
+    .cco-mobile-compact-header {
+      display: flex;
+      align-items: center;
+      height: 52px;
+      padding: 0 16px;
+      background: rgba(250, 246, 242, 0.96);
+      border-bottom: 1px solid rgba(120, 105, 90, 0.12);
+    }
+
+    /* Fix legacy 760-820px conflicts — mobile shell owns layout */
+    html[data-cco-mobile-shell="on"] .preview-shell-queue-band {
+      min-height: auto !important;
+      max-height: none !important;
+      height: auto !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .conversation-focus-panel {
+      min-height: auto !important;
+      max-height: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-canvas {
+      --workspace-gap: 0px;
+      --workspace-focus-gap: 0px;
+      overflow: visible !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-workspace {
+      flex-direction: column;
+      gap: 0;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      overflow: visible;
+    }
+
+    html[data-cco-mobile-shell="on"] .preview-shell {
+      position: relative;
+      top: auto;
+      left: auto;
+      right: auto;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      flex: 1 1 auto;
+    }
+
+    html[data-cco-mobile-shell="on"] .workspace-resizer {
+      display: none !important;
+    }
+
+    html[data-cco-mobile-shell="on"] .focus-shell {
+      position: relative;
+      top: auto;
+      left: auto;
+      width: 100%;
+      flex: 0 0 auto;
+    }
+  }
+
+  /* Desktop only — hide mobile/tablet chrome ≥1024px */
+  @media (min-width: 1024px) {
+    .customers-toolbar-settings {
+      display: none !important;
+    }
+
+    .cco-mobile-tabbar,
+    .cco-mobile-more-sheet,
+    #cco-mobile-back-button,
+    #cco-mobile-app-title {
+      display: none;
+    }
+  }
+}

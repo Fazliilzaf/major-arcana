@@ -1,0 +1,1082 @@
+{
+  "generatedAt": "2026-06-03T04:52:57.421Z",
+  "photoReview": {
+    "pendingPhotos": 860,
+    "patientsWithPendingPhotos": 150,
+    "photosVisibleCount": 1,
+    "writeEnabled": false,
+    "readOnly": true,
+    "source": "local_snapshot_prod_api_empty",
+    "operatorToolPath": "/photo-review.html",
+    "presentationNote": "860 pending / 150 kunder / 0 VISIBLE (operatörsreferens från prod-data-snapshot)"
+  },
+  "historik": {
+    "halso": "IMPORTED_SAFE_MATCH",
+    "getAccept": "IMPORTED",
+    "driveJournals": "IMPORTED_SAFE_MATCH",
+    "driveDocuments": "IMPORTED_PARTIAL",
+    "drivePhotos": "NEEDS_REVIEW"
+  },
+  "historikReviewQueueTotal": 1497,
+  "mailAmbiguous": {
+    "operational": "PHASE_2_UI_READY",
+    "ambiguousTotal": 493,
+    "pending": 493,
+    "approved": 0,
+    "excluded": 0,
+    "unresolved": 0,
+    "remaining": 493,
+    "mailboxCounts": {
+      "contact@hairtpclinic.com": 248,
+      "egzona@hairtpclinic.com": 175,
+      "fazli@hairtpclinic.com": 67,
+      "marknad@hairtpclinic.com": 3
+    },
+    "readyForWork": false,
+    "adjustedCoveragePercent": 93,
+    "source": "reference_snapshot",
+    "mailboxPending": {
+      "contact@hairtpclinic.com": 248,
+      "egzona@hairtpclinic.com": 175,
+      "fazli@hairtpclinic.com": 67,
+      "marknad@hairtpclinic.com": 3
+    },
+    "mailboxCountsSource": "reference_snapshot",
+    "uiUrl": "/ambiguous-mail-enrichment-review.html",
+    "rules": [
+      "Ingen auto-write",
+      "Ingen fuzzy merge",
+      "Ingen customer merge",
+      "Ingen Graph-fetch",
+      "Ingen ny mailimport",
+      "Minst 3 deterministiska fält för approve"
+    ]
+  },
+  "cf": {
+    "operational": "INTERN_DEMO_READY",
+    "financeStatus": 200,
+    "reviewStatus": 200,
+    "reportsStatus": 200,
+    "fortnox": "BLOCKED_INTEGRATION",
+    "authTest": "PENDING_OWNER_TOKEN"
+  },
+  "journalPilot": {
+    "overall": "PASS",
+    "journalMounts": "PASS",
+    "demoLinks": "PASS",
+    "e2eJournal": "PASS",
+    "pilot1": "PASS",
+    "pilot2": "PASS",
+    "pilot3": "PASS",
+    "presentationGate": "PASS",
+    "checkedAt": "2026-06-03T04:52:57.421Z",
+    "personalStartUrl": "/cco-personal-start.html",
+    "kundkortUrl": "/kunder.html"
+  },
+  "journalPilotLive": {
+    "generatedAt": "2026-06-03T04:53:04.864Z",
+    "windowHours": 24,
+    "sinceIso": "2026-06-02T04:53:04.864Z",
+    "base": "https://arcana.hairtpclinic.com",
+    "authAvailable": false,
+    "overall": "PASS",
+    "personalCanContinueJournaling": "JA",
+    "journalMounts": "PASS",
+    "routeHealth": [
+      {
+        "name": "journal-quick-entry",
+        "status": 400,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": true
+      },
+      {
+        "name": "journal-quick-sign",
+        "status": 400,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": true
+      },
+      {
+        "name": "journal-quick-correction",
+        "status": 400,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": true
+      },
+      {
+        "name": "journal-quick-entries",
+        "status": 400,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": true
+      },
+      {
+        "name": "journal-quick-stats",
+        "status": 200,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": false
+      }
+    ],
+    "routeHealthPass": "PASS",
+    "route5xxCount": 0,
+    "route4xxCount": 4,
+    "feedTimelineFormsHealth": "PASS",
+    "stats": null,
+    "last24h": {
+      "journalEntriesActivity": 0,
+      "draftsCreated": 0,
+      "signedLocked": 0,
+      "corrections": 0,
+      "journalWrites": 0,
+      "signedCount": 0,
+      "correctionsCount": 0,
+      "errorsCount": 0,
+      "blockedLockedEditAttempts": 0,
+      "auditEventsCount": 0,
+      "lastSuccessfulJournalWriteAt": null,
+      "lastFailedJournalWriteAt": null
+    },
+    "pilots": [
+      {
+        "slot": 1,
+        "label": "Pilotkund A · ren journalföringstest",
+        "customerId": "cco-pilot-20260602-a",
+        "overall": "PASS",
+        "feed": 200,
+        "timeline": 200,
+        "forms": 200,
+        "feedItems": 197,
+        "timelineEvents": 590,
+        "entries24h": null
+      },
+      {
+        "slot": 2,
+        "label": "Pilotkund B · journal-feed + timeline",
+        "customerId": "cco-pilot-20260602-b",
+        "overall": "PASS",
+        "feed": 200,
+        "timeline": 200,
+        "forms": 200,
+        "feedItems": 193,
+        "timelineEvents": 578,
+        "entries24h": null
+      },
+      {
+        "slot": 3,
+        "label": "Pilotkund C · signering + rättelse verifierad",
+        "customerId": "cco-readiness-smoke-1780402011",
+        "overall": "PASS",
+        "feed": 200,
+        "timeline": 200,
+        "forms": 200,
+        "feedItems": 194,
+        "timelineEvents": 582,
+        "entries24h": null
+      }
+    ],
+    "pilot1": "PASS",
+    "pilot2": "PASS",
+    "pilot3": "PASS",
+    "note": "Read-only monitor — inga journaltexter · inga patientdata i export"
+  },
+  "photoReviewOperator": {
+    "generatedAt": "2026-06-03T04:53:04.534Z",
+    "base": "https://arcana.hairtpclinic.com",
+    "overall": "READY",
+    "operatorMode": "READY",
+    "operatorToolPath": "/photo-review.html",
+    "writeEnabled": false,
+    "readOnly": true,
+    "phase": "fas1_readonly",
+    "pendingPhotos": 860,
+    "pendingPhotosAll": 0,
+    "patientsWithPendingPhotos": 150,
+    "photosVisibleCount": 1,
+    "dataSource": "local_prod_snapshot_fallback",
+    "decisionsTotal": 0,
+    "decisionsApprove": 0,
+    "decisionsReject": 0,
+    "decisionsReassign": 0,
+    "autoApprove": false,
+    "massApproval": false,
+    "day1ClinicalUse": false,
+    "apiSummaryStatus": 200,
+    "apiProgressStatus": 200,
+    "nextAction": "Read-only beta — navigera kö, exportera session, write AV på prod"
+  },
+  "mailReviewOperator": {
+    "generatedAt": "2026-06-03T04:53:04.773Z",
+    "base": "https://arcana.hairtpclinic.com",
+    "overall": "QUEUE_ACTIVE",
+    "operatorMode": "READY",
+    "operatorToolPath": "/ambiguous-mail-enrichment-review.html",
+    "pageStatus": 200,
+    "apiStatus": 0,
+    "authAvailable": false,
+    "ambiguousTotal": 493,
+    "remaining": 493,
+    "approved": 0,
+    "excluded": 0,
+    "unresolved": 0,
+    "mailboxCounts": {
+      "contact@hairtpclinic.com": 248,
+      "egzona@hairtpclinic.com": 175,
+      "fazli@hairtpclinic.com": 67,
+      "marknad@hairtpclinic.com": 3
+    },
+    "mailboxCountsSource": "reference_snapshot",
+    "minApproveMatchFields": 3,
+    "rules": [
+      "Ingen auto-write",
+      "Ingen fuzzy merge",
+      "Ingen customer merge",
+      "Ingen Graph-fetch",
+      "Ingen ny mailimport"
+    ],
+    "nextAction": "Öppna mail review — nästa bästa rad med ≥3 deterministiska fält"
+  },
+  "importReviewQueue": {
+    "total": 1497,
+    "status": "WAITING_MANUAL_REVIEW",
+    "rule": "Ingen auto-import · ingen ny kund vid osäker match",
+    "dataSource": "live_queue_file",
+    "sources": [
+      {
+        "id": "halso",
+        "label": "halso@",
+        "queueCount": 1366,
+        "status": {
+          "pending": 1366,
+          "resolved": 0
+        },
+        "note": "osäkra kundmatchningar"
+      },
+      {
+        "id": "getaccept",
+        "label": "GetAccept",
+        "queueCount": 131,
+        "status": {
+          "pending": 131,
+          "resolved": 0
+        },
+        "note": "osäkra kundmatchningar"
+      }
+    ],
+    "operatorToolPath": "/cco-import-review.html",
+    "nextAction": "Manuell review — read-only UI · ingen auto-import · ingen ny kund"
+  },
+  "encounterMetadata": {
+    "status": "REVIEW_PAUSED_PRE_PRESENTATION",
+    "note": "Encounter/medium mapping — separat spår, ej journal-P0",
+    "operatorToolPath": "/encounter-mapping-review.html"
+  },
+  "dailyReadiness": {
+    "docFile": "docs/strategy/CCO-DAILY-READINESS-2026-06-04.md",
+    "generatedAt": "2026-06-03T04:52:57.421Z",
+    "journalPilot": "PASS",
+    "journalPilotLive": "PASS",
+    "personalCanContinueJournaling": "JA",
+    "mail": "PHASE_2_UI_READY",
+    "photoPending": 860,
+    "photoOperator": "READY",
+    "mailOperator": "QUEUE_ACTIVE",
+    "importQueueTotal": 1497,
+    "driveRule": "Ingen auto-import · ingen ny kund vid osäker match"
+  },
+  "staffCanUse": [
+    "Journalpilot demo (personal-start → pilotkund → journal → sign → rättelse → timeline)",
+    "Fortsatt journalföring efter mötet (live monitor JA)",
+    "Photo Review operator (860 pending, write AV)",
+    "Mail ambiguous review (493 kvar) — /ambiguous-mail-enrichment-review.html",
+    "Import review queue read-only (1497 osäkra) — /cco-import-review.html"
+  ],
+  "staffCannotUse": [
+    "Migrerade före/efter-bilder som kliniska behandlingsbilder",
+    "Auto-approve / massapproval Photo Review",
+    "Mail auto-write · fuzzy merge · Graph-fetch från UI",
+    "Import approve/reject — write AV · ingen auto-import · ingen ny kund",
+    "Ny kund vid osäker match",
+    "Aisia · extern AI på journaltext · Drive-länkar i personal-start"
+  ],
+  "topBlockers": [
+    "Photo Review: 860 bilder · 150 kunder · 0 VISIBLE",
+    "Mail ambiguous: 493 remaining",
+    "Import review queue: 1497 osäkra kundmatchningar",
+    "Täckning — många kunder utan importerat innehåll"
+  ],
+  "opsWorkbenchUrl": "/cco-ops-workbench.html",
+  "day1": {
+    "generatedAt": "2026-06-03T04:53:05.830Z",
+    "mode": "DAY_1_OPERATIONS",
+    "day1JournalPilot": {
+      "overall": "PASS",
+      "presentationGate": "PASS",
+      "journalMounts": "PASS",
+      "demoLinks": "PASS",
+      "journalE2E": "PASS",
+      "pilot1": "PASS",
+      "pilot2": "PASS",
+      "pilot3": "PASS",
+      "personalCanContinueJournaling": "JA",
+      "journalLiveOverall": "PASS",
+      "last24h": {
+        "journalEntriesActivity": 0,
+        "signedCount": 0,
+        "correctionsCount": 0,
+        "errorsCount": 0,
+        "blockedLockedEditAttempts": 0,
+        "auditEventsCount": 0,
+        "lastSuccessfulJournalWriteAt": null,
+        "lastFailedJournalWriteAt": null
+      },
+      "route5xxCount": 0,
+      "routeHealthPass": "PASS",
+      "shiftStatus": "redo_att_borja",
+      "shiftStatusLabel": "Redo att börja",
+      "shiftReason": "Allt grönt — personal kan starta arbetspass.",
+      "shiftStates": [
+        {
+          "id": "redo_att_borja",
+          "label": "Redo att börja",
+          "active": true
+        },
+        {
+          "id": "pagar",
+          "label": "Pågår",
+          "active": false
+        },
+        {
+          "id": "fel_upptackt",
+          "label": "Fel upptäckt",
+          "active": false
+        },
+        {
+          "id": "pausad",
+          "label": "Pausad",
+          "active": false
+        },
+        {
+          "id": "klar_for_dagen",
+          "label": "Klar för dagen",
+          "active": false
+        }
+      ],
+      "links": {
+        "personalStart": "/cco-personal-start.html",
+        "kundkort": "/kunder.html",
+        "journalGuide": "/journal-pilot-guide.html",
+        "staffTraining": "/cco-staff-training-mode.html",
+        "journalFaq": "/cco-journalpilot-faq.html",
+        "goLiveSupport": "/cco-journalpilot-go-live.html",
+        "signoffSheet": "/journal-pilot-signoff-sheet.html",
+        "preSignCheck": "/cco-pre-signering-check.html",
+        "reviewMaterialWarning": "/cco-review-material-warning.html",
+        "staffDay1Checklist": "/cco-staff-day1-checklist.html",
+        "opsWorkbench": "/cco-ops-workbench.html"
+      },
+      "recommendedWork": "Öppna personal-start → kundkort → pilotkund → journal"
+    },
+    "photoReview": {
+      "overall": "READY",
+      "pendingPhotos": 860,
+      "patientsWithPendingPhotos": 150,
+      "photosVisibleCount": 1,
+      "writeEnabled": false,
+      "readOnly": true,
+      "autoApprove": false,
+      "massApproval": false,
+      "approveButtonsWhenWriteOff": false,
+      "operatorToolPath": "/photo-review.html",
+      "recommendedWork": "Starta manuell Photo Review när personal är tränad — write AV på prod · inga approve-knappar",
+      "statusNote": "Write AV — read-only navigering · 0 VISIBLE tills granskat"
+    },
+    "importReview": {
+      "total": 1497,
+      "status": "WAITING_MANUAL_REVIEW",
+      "statusLabel": "Manuell review krävs",
+      "rule": "Ingen auto-import · ingen ny kund vid osäker match",
+      "sources": [
+        {
+          "id": "halso",
+          "label": "halso@",
+          "queueCount": 1366,
+          "status": {
+            "pending": 1366,
+            "resolved": 0
+          },
+          "note": "osäkra kundmatchningar"
+        },
+        {
+          "id": "getaccept",
+          "label": "GetAccept",
+          "queueCount": 131,
+          "status": {
+            "pending": 131,
+            "resolved": 0
+          },
+          "note": "osäkra kundmatchningar"
+        }
+      ],
+      "autoImport": false,
+      "newCustomerOnUncertainMatch": false
+    },
+    "mailReview": {
+      "overall": "QUEUE_ACTIVE",
+      "ambiguousTotal": 493,
+      "remaining": 493,
+      "approved": 0,
+      "unresolved": 0,
+      "excluded": 0,
+      "mailboxCounts": {
+        "contact@hairtpclinic.com": 248,
+        "egzona@hairtpclinic.com": 175,
+        "fazli@hairtpclinic.com": 67,
+        "marknad@hairtpclinic.com": 3
+      },
+      "uiUrl": "/ambiguous-mail-enrichment-review.html",
+      "statusNote": "Operatörsverktyg — inte dagligt mailverktyg ännu",
+      "rules": [
+        "Ingen auto-write",
+        "Ingen fuzzy merge",
+        "Ingen customer merge",
+        "Ingen Graph-fetch",
+        "Ingen ny mailimport"
+      ]
+    },
+    "identitySafety": {
+      "generatedAt": "2026-06-03T04:53:04.862Z",
+      "overall": "PASS",
+      "identityCheckAvailable": true,
+      "preSignCheckAvailable": true,
+      "reviewMaterialWarningAvailable": true,
+      "staffChecklistAvailable": true,
+      "signoffSheetAvailable": true,
+      "staffTrainingAvailable": true,
+      "journalFaqAvailable": true,
+      "goLiveSupportAvailable": true,
+      "pages": [
+        {
+          "id": "preSignCheck",
+          "label": "Pre-signering check",
+          "path": "/cco-pre-signering-check.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "reviewMaterialWarning",
+          "label": "Review-material warning",
+          "path": "/cco-review-material-warning.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "staffDay1Checklist",
+          "label": "Staff day-1 checklist",
+          "path": "/cco-staff-day1-checklist.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "signoffSheet",
+          "label": "Sign-off sheet",
+          "path": "/journal-pilot-signoff-sheet.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "staffTraining",
+          "label": "Staff training mode",
+          "path": "/cco-staff-training-mode.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "journalFaq",
+          "label": "Journalpilot FAQ",
+          "path": "/cco-journalpilot-faq.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "goLiveSupport",
+          "label": "Go-live support",
+          "path": "/cco-journalpilot-go-live.html",
+          "status": 200,
+          "available": true
+        },
+        {
+          "id": "personalStart",
+          "label": "Personal-start (identitet i flöde)",
+          "path": "/cco-personal-start.html",
+          "status": 200,
+          "available": true
+        }
+      ],
+      "note": "Read-only sidor — stödjer identitet/review-material före signering, ingen journalmotor"
+    },
+    "cf": {
+      "operational": "INTERN_DEMO_READY",
+      "financeStatus": 200,
+      "reviewStatus": 200,
+      "reportsStatus": 200
+    },
+    "blockers": [
+      "Mail: 493 ambiguous kvar — operatörsverktyg, ej dagligt mail ännu",
+      "Photo: 860 pending · 150 kunder · 0 VISIBLE",
+      "Import: 1497 osäkra matchningar — manuell review"
+    ],
+    "recommendedNextAction": "GO",
+    "opsWorkbenchUrl": "/cco-ops-workbench.html"
+  },
+  "day1JournalPilot": {
+    "overall": "PASS",
+    "presentationGate": "PASS",
+    "journalMounts": "PASS",
+    "demoLinks": "PASS",
+    "journalE2E": "PASS",
+    "pilot1": "PASS",
+    "pilot2": "PASS",
+    "pilot3": "PASS",
+    "personalCanContinueJournaling": "JA",
+    "journalLiveOverall": "PASS",
+    "last24h": {
+      "journalEntriesActivity": 0,
+      "signedCount": 0,
+      "correctionsCount": 0,
+      "errorsCount": 0,
+      "blockedLockedEditAttempts": 0,
+      "auditEventsCount": 0,
+      "lastSuccessfulJournalWriteAt": null,
+      "lastFailedJournalWriteAt": null
+    },
+    "route5xxCount": 0,
+    "routeHealthPass": "PASS",
+    "shiftStatus": "redo_att_borja",
+    "shiftStatusLabel": "Redo att börja",
+    "shiftReason": "Allt grönt — personal kan starta arbetspass.",
+    "shiftStates": [
+      {
+        "id": "redo_att_borja",
+        "label": "Redo att börja",
+        "active": true
+      },
+      {
+        "id": "pagar",
+        "label": "Pågår",
+        "active": false
+      },
+      {
+        "id": "fel_upptackt",
+        "label": "Fel upptäckt",
+        "active": false
+      },
+      {
+        "id": "pausad",
+        "label": "Pausad",
+        "active": false
+      },
+      {
+        "id": "klar_for_dagen",
+        "label": "Klar för dagen",
+        "active": false
+      }
+    ],
+    "links": {
+      "personalStart": "/cco-personal-start.html",
+      "kundkort": "/kunder.html",
+      "journalGuide": "/journal-pilot-guide.html",
+      "staffTraining": "/cco-staff-training-mode.html",
+      "journalFaq": "/cco-journalpilot-faq.html",
+      "goLiveSupport": "/cco-journalpilot-go-live.html",
+      "signoffSheet": "/journal-pilot-signoff-sheet.html",
+      "preSignCheck": "/cco-pre-signering-check.html",
+      "reviewMaterialWarning": "/cco-review-material-warning.html",
+      "staffDay1Checklist": "/cco-staff-day1-checklist.html",
+      "opsWorkbench": "/cco-ops-workbench.html"
+    },
+    "recommendedWork": "Öppna personal-start → kundkort → pilotkund → journal"
+  },
+  "identitySafety": {
+    "generatedAt": "2026-06-03T04:53:04.862Z",
+    "overall": "PASS",
+    "identityCheckAvailable": true,
+    "preSignCheckAvailable": true,
+    "reviewMaterialWarningAvailable": true,
+    "staffChecklistAvailable": true,
+    "signoffSheetAvailable": true,
+    "staffTrainingAvailable": true,
+    "journalFaqAvailable": true,
+    "goLiveSupportAvailable": true,
+    "pages": [
+      {
+        "id": "preSignCheck",
+        "label": "Pre-signering check",
+        "path": "/cco-pre-signering-check.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "reviewMaterialWarning",
+        "label": "Review-material warning",
+        "path": "/cco-review-material-warning.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "staffDay1Checklist",
+        "label": "Staff day-1 checklist",
+        "path": "/cco-staff-day1-checklist.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "signoffSheet",
+        "label": "Sign-off sheet",
+        "path": "/journal-pilot-signoff-sheet.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "staffTraining",
+        "label": "Staff training mode",
+        "path": "/cco-staff-training-mode.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "journalFaq",
+        "label": "Journalpilot FAQ",
+        "path": "/cco-journalpilot-faq.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "goLiveSupport",
+        "label": "Go-live support",
+        "path": "/cco-journalpilot-go-live.html",
+        "status": 200,
+        "available": true
+      },
+      {
+        "id": "personalStart",
+        "label": "Personal-start (identitet i flöde)",
+        "path": "/cco-personal-start.html",
+        "status": 200,
+        "available": true
+      }
+    ],
+    "note": "Read-only sidor — stödjer identitet/review-material före signering, ingen journalmotor"
+  },
+  "photoReviewDay1": {
+    "overall": "READY",
+    "pendingPhotos": 860,
+    "patientsWithPendingPhotos": 150,
+    "photosVisibleCount": 1,
+    "writeEnabled": false,
+    "readOnly": true,
+    "autoApprove": false,
+    "massApproval": false,
+    "approveButtonsWhenWriteOff": false,
+    "operatorToolPath": "/photo-review.html",
+    "recommendedWork": "Starta manuell Photo Review när personal är tränad — write AV på prod · inga approve-knappar",
+    "statusNote": "Write AV — read-only navigering · 0 VISIBLE tills granskat"
+  },
+  "mailReviewDay1": {
+    "overall": "QUEUE_ACTIVE",
+    "ambiguousTotal": 493,
+    "remaining": 493,
+    "approved": 0,
+    "unresolved": 0,
+    "excluded": 0,
+    "mailboxCounts": {
+      "contact@hairtpclinic.com": 248,
+      "egzona@hairtpclinic.com": 175,
+      "fazli@hairtpclinic.com": 67,
+      "marknad@hairtpclinic.com": 3
+    },
+    "uiUrl": "/ambiguous-mail-enrichment-review.html",
+    "statusNote": "Operatörsverktyg — inte dagligt mailverktyg ännu",
+    "rules": [
+      "Ingen auto-write",
+      "Ingen fuzzy merge",
+      "Ingen customer merge",
+      "Ingen Graph-fetch",
+      "Ingen ny mailimport"
+    ]
+  },
+  "importReviewDay1": {
+    "total": 1497,
+    "status": "WAITING_MANUAL_REVIEW",
+    "statusLabel": "Manuell review krävs",
+    "rule": "Ingen auto-import · ingen ny kund vid osäker match",
+    "sources": [
+      {
+        "id": "halso",
+        "label": "halso@",
+        "queueCount": 1366,
+        "status": {
+          "pending": 1366,
+          "resolved": 0
+        },
+        "note": "osäkra kundmatchningar"
+      },
+      {
+        "id": "getaccept",
+        "label": "GetAccept",
+        "queueCount": 131,
+        "status": {
+          "pending": 131,
+          "resolved": 0
+        },
+        "note": "osäkra kundmatchningar"
+      }
+    ],
+    "autoImport": false,
+    "newCustomerOnUncertainMatch": false
+  },
+  "blockers": [
+    "Mail: 493 ambiguous kvar — operatörsverktyg, ej dagligt mail ännu",
+    "Photo: 860 pending · 150 kunder · 0 VISIBLE",
+    "Import: 1497 osäkra matchningar — manuell review"
+  ],
+  "recommendedNextAction": "GO",
+  "journalPilotShift": {
+    "generatedAt": "2026-06-03T04:53:05.828Z",
+    "mode": "JOURNAL_PILOT_OPERATIONS",
+    "shiftStatus": "warning",
+    "shiftStatusLabel": "Varning",
+    "journalPilotOpsStatus": "WARNING",
+    "journalPilotOpsReason": "Audit/token saknas — 24h-räknare kan vara ofullständiga.",
+    "journalWrites24h": 0,
+    "signed24h": 0,
+    "corrections24h": 0,
+    "errors24h": 0,
+    "lastSuccessfulWriteAt": null,
+    "lastFailedWriteAt": null,
+    "lastJournalActivityAt": null,
+    "personalCanContinueJournaling": "JA",
+    "feedTimelineFormsHealth": "PASS",
+    "routeHealthPass": "PASS",
+    "route5xxCount": 0,
+    "pilot1": "PASS",
+    "pilot2": "PASS",
+    "pilot3": "PASS",
+    "recommendedAction": "GO",
+    "stopConditions": [
+      "journal create/sign/correction fail",
+      "feed/timeline fail",
+      "5xx på journalroutes",
+      "pilotkund fail",
+      "Drive-länk i UI",
+      "patientdata i GitHub",
+      "customerId mismatch",
+      "ny kund vid osäker match"
+    ],
+    "journalPilotOps": {
+      "opsStatus": "WARNING",
+      "opsStatusLabel": "WARNING",
+      "opsReason": "Audit/token saknas — 24h-räknare kan vara ofullständiga.",
+      "stopReasons": [],
+      "personalCanContinueJournaling": "JA",
+      "feedTimelineFormsHealth": "PASS",
+      "routeHealth": [
+        {
+          "name": "journal-quick-entry",
+          "status": 400,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": true
+        },
+        {
+          "name": "journal-quick-sign",
+          "status": 400,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": true
+        },
+        {
+          "name": "journal-quick-correction",
+          "status": 400,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": true
+        },
+        {
+          "name": "journal-quick-entries",
+          "status": 400,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": true
+        },
+        {
+          "name": "journal-quick-stats",
+          "status": 200,
+          "result": "PASS",
+          "is5xx": false,
+          "is4xx": false
+        }
+      ],
+      "routeHealthPass": "PASS",
+      "route5xxCount": 0,
+      "route4xxCount": 4,
+      "pilot1": "PASS",
+      "pilot2": "PASS",
+      "pilot3": "PASS",
+      "pilots": [
+        {
+          "slot": 1,
+          "label": "Pilotkund A · ren journalföringstest",
+          "customerId": "cco-pilot-20260602-a",
+          "overall": "PASS",
+          "feed": 200,
+          "timeline": 200,
+          "forms": 200,
+          "feedItems": 197,
+          "timelineEvents": 590,
+          "entries24h": null
+        },
+        {
+          "slot": 2,
+          "label": "Pilotkund B · journal-feed + timeline",
+          "customerId": "cco-pilot-20260602-b",
+          "overall": "PASS",
+          "feed": 200,
+          "timeline": 200,
+          "forms": 200,
+          "feedItems": 193,
+          "timelineEvents": 578,
+          "entries24h": null
+        },
+        {
+          "slot": 3,
+          "label": "Pilotkund C · signering + rättelse verifierad",
+          "customerId": "cco-readiness-smoke-1780402011",
+          "overall": "PASS",
+          "feed": 200,
+          "timeline": 200,
+          "forms": 200,
+          "feedItems": 194,
+          "timelineEvents": 582,
+          "entries24h": null
+        }
+      ],
+      "last24h": {
+        "journalEntriesActivity": 0,
+        "journalWrites24h": 0,
+        "signed24h": 0,
+        "corrections24h": 0,
+        "errors24h": 0,
+        "blockedLockedEditAttempts": 0,
+        "lastSuccessfulWriteAt": null,
+        "lastFailedWriteAt": null,
+        "lastJournalActivityAt": null
+      },
+      "legacyShift": {
+        "shiftStatus": "redo_att_borja",
+        "shiftStatusLabel": "Redo att börja",
+        "reason": "Allt grönt — personal kan starta arbetspass.",
+        "systemReady": true,
+        "hasFault": false,
+        "hasWork": false,
+        "allShiftStates": [
+          {
+            "id": "redo_att_borja",
+            "label": "Redo att börja",
+            "active": true
+          },
+          {
+            "id": "pagar",
+            "label": "Pågår",
+            "active": false
+          },
+          {
+            "id": "fel_upptackt",
+            "label": "Fel upptäckt",
+            "active": false
+          },
+          {
+            "id": "pausad",
+            "label": "Pausad",
+            "active": false
+          },
+          {
+            "id": "klar_for_dagen",
+            "label": "Klar för dagen",
+            "active": false
+          }
+        ]
+      },
+      "shiftStatus": "warning",
+      "shiftStatusLabel": "Varning",
+      "shiftReason": "Allt grönt — personal kan starta arbetspass."
+    },
+    "escalationQueue": {
+      "generatedAt": "2026-06-03T04:53:05.828Z",
+      "registered": 0,
+      "empty": true,
+      "emptyMessage": "Inga eskaleringar registrerade",
+      "items": [],
+      "note": "Read-only — härledd från audit/routes senaste 24h, inga mock-rader"
+    },
+    "links": {
+      "personalStart": "/cco-personal-start.html",
+      "kundkort": "/kunder.html",
+      "journalGuide": "/journal-pilot-guide.html",
+      "staffTraining": "/cco-staff-training-mode.html",
+      "journalFaq": "/cco-journalpilot-faq.html",
+      "opsWorkbench": "/cco-ops-workbench.html",
+      "commandCenter": "/personal-demo.html",
+      "goLiveSupport": "/cco-journalpilot-go-live.html",
+      "preSignCheck": "/cco-pre-signering-check.html",
+      "signoffSheet": "/journal-pilot-signoff-sheet.html"
+    }
+  },
+  "journalPilotOps": {
+    "opsStatus": "WARNING",
+    "opsStatusLabel": "WARNING",
+    "opsReason": "Audit/token saknas — 24h-räknare kan vara ofullständiga.",
+    "stopReasons": [],
+    "personalCanContinueJournaling": "JA",
+    "feedTimelineFormsHealth": "PASS",
+    "routeHealth": [
+      {
+        "name": "journal-quick-entry",
+        "status": 400,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": true
+      },
+      {
+        "name": "journal-quick-sign",
+        "status": 400,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": true
+      },
+      {
+        "name": "journal-quick-correction",
+        "status": 400,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": true
+      },
+      {
+        "name": "journal-quick-entries",
+        "status": 400,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": true
+      },
+      {
+        "name": "journal-quick-stats",
+        "status": 200,
+        "result": "PASS",
+        "is5xx": false,
+        "is4xx": false
+      }
+    ],
+    "routeHealthPass": "PASS",
+    "route5xxCount": 0,
+    "route4xxCount": 4,
+    "pilot1": "PASS",
+    "pilot2": "PASS",
+    "pilot3": "PASS",
+    "pilots": [
+      {
+        "slot": 1,
+        "label": "Pilotkund A · ren journalföringstest",
+        "customerId": "cco-pilot-20260602-a",
+        "overall": "PASS",
+        "feed": 200,
+        "timeline": 200,
+        "forms": 200,
+        "feedItems": 197,
+        "timelineEvents": 590,
+        "entries24h": null
+      },
+      {
+        "slot": 2,
+        "label": "Pilotkund B · journal-feed + timeline",
+        "customerId": "cco-pilot-20260602-b",
+        "overall": "PASS",
+        "feed": 200,
+        "timeline": 200,
+        "forms": 200,
+        "feedItems": 193,
+        "timelineEvents": 578,
+        "entries24h": null
+      },
+      {
+        "slot": 3,
+        "label": "Pilotkund C · signering + rättelse verifierad",
+        "customerId": "cco-readiness-smoke-1780402011",
+        "overall": "PASS",
+        "feed": 200,
+        "timeline": 200,
+        "forms": 200,
+        "feedItems": 194,
+        "timelineEvents": 582,
+        "entries24h": null
+      }
+    ],
+    "last24h": {
+      "journalEntriesActivity": 0,
+      "journalWrites24h": 0,
+      "signed24h": 0,
+      "corrections24h": 0,
+      "errors24h": 0,
+      "blockedLockedEditAttempts": 0,
+      "lastSuccessfulWriteAt": null,
+      "lastFailedWriteAt": null,
+      "lastJournalActivityAt": null
+    },
+    "legacyShift": {
+      "shiftStatus": "redo_att_borja",
+      "shiftStatusLabel": "Redo att börja",
+      "reason": "Allt grönt — personal kan starta arbetspass.",
+      "systemReady": true,
+      "hasFault": false,
+      "hasWork": false,
+      "allShiftStates": [
+        {
+          "id": "redo_att_borja",
+          "label": "Redo att börja",
+          "active": true
+        },
+        {
+          "id": "pagar",
+          "label": "Pågår",
+          "active": false
+        },
+        {
+          "id": "fel_upptackt",
+          "label": "Fel upptäckt",
+          "active": false
+        },
+        {
+          "id": "pausad",
+          "label": "Pausad",
+          "active": false
+        },
+        {
+          "id": "klar_for_dagen",
+          "label": "Klar för dagen",
+          "active": false
+        }
+      ]
+    },
+    "shiftStatus": "warning",
+    "shiftStatusLabel": "Varning",
+    "shiftReason": "Allt grönt — personal kan starta arbetspass."
+  },
+  "escalationQueue": {
+    "generatedAt": "2026-06-03T04:53:05.828Z",
+    "registered": 0,
+    "empty": true,
+    "emptyMessage": "Inga eskaleringar registrerade",
+    "items": [],
+    "note": "Read-only — härledd från audit/routes senaste 24h, inga mock-rader"
+  }
+}

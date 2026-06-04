@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { repairMojibakeFilename } = require('../../../src/ops/filenameEncoding');
 
 const PERSONNUMMER_RE = /(\d{8})[- ]?(\d{4})/;
 const JOURNAL_NAME_RE = /journal|frisk|h[aä]lso|samtycke|friskfors/i;
@@ -28,12 +29,110 @@ function normalizePhone(value) {
   return normalizeText(value).replace(/[\s()-]/g, '');
 }
 
+function phoneMatchKey(value) {
+  const digits = normalizePhone(value).replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length >= 9) return digits.slice(-9);
+  return digits;
+}
+
+function parseCsv(content) {
+  const lines = String(content || '')
+    .split(/\r?\n/)
+    .filter((line) => line.length > 0);
+  if (!lines.length) return [];
+  const headers = lines[0].split(',').map((item) => item.replace(/^"|"$/g, '').trim());
+  return lines.slice(1).map((line, index) => {
+    const cells = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (ch === ',' && !inQuotes) {
+        cells.push(current);
+        current = '';
+        continue;
+      }
+      current += ch;
+    }
+    cells.push(current);
+    const row = {};
+    headers.forEach((header, cellIndex) => {
+      row[header] = (cells[cellIndex] || '').trim();
+    });
+    row.rowNumber = index + 2;
+    return row;
+  });
+}
+
+const PIPEDRIVE_EMAIL_HEADERS = ['E-post - Arbete', 'E-post - Hem', 'E-post - Annan'];
+const PIPEDRIVE_PHONE_HEADERS = [
+  'Telefon - Mobil',
+  'Telefon - Arbete',
+  'Telefon - Hem',
+  'Telefon - Annan',
+];
+
+function collectPipedriveEmails(row = {}) {
+  return [
+    ...new Set(PIPEDRIVE_EMAIL_HEADERS.map((header) => normalizeEmail(row[header])).filter(Boolean)),
+  ];
+}
+
+function collectPipedrivePhones(row = {}) {
+  return [
+    ...new Set(PIPEDRIVE_PHONE_HEADERS.map((header) => normalizePhone(row[header])).filter(Boolean)),
+  ];
+}
+
+function discoverPipedriveCsvPair(rootDir) {
+  const dir = path.join(rootDir, 'migration', 'pipedrive');
+  if (!fs.existsSync(dir)) return null;
+  const files = fs.readdirSync(dir).filter((name) => name.toLowerCase().endsWith('.csv'));
+  const people =
+    files.find((name) => /^personer/i.test(name)) ||
+    files.find((name) => /^people/i.test(name)) ||
+    null;
+  const deals =
+    files.find((name) => /^affar/i.test(name)) ||
+    files.find((name) => /^affär/i.test(name)) ||
+    files.find((name) => /^deals/i.test(name)) ||
+    null;
+  if (!people || !deals) return null;
+  return {
+    peoplePath: path.join(dir, people),
+    dealsPath: path.join(dir, deals),
+  };
+}
+
+// The 8+4 digit pattern alone matches stray numbers in filenames (timestamps,
+// invoice ids), which is how mojibake filenames like "...-1771596438-2394.pdf"
+// spawned phantom patient profiles with impossible pnr (e.g. 76413983-1433).
+// Require the leading 8 digits to be a real YYYYMMDD before accepting the match.
+function isPlausiblePersonnummerDate(yyyymmdd) {
+  const year = Number(yyyymmdd.slice(0, 4));
+  const month = Number(yyyymmdd.slice(4, 6));
+  let day = Number(yyyymmdd.slice(6, 8));
+  if (!Number.isInteger(year) || year < 1900 || year > new Date().getFullYear()) return false;
+  if (!Number.isInteger(month) || month < 1 || month > 12) return false;
+  // Samordningsnummer carry a +60 offset on the day component.
+  if (day > 60) day -= 60;
+  return Number.isInteger(day) && day >= 1 && day <= 31;
+}
+
 function normalizePersonnummer(value) {
   const raw = normalizeText(value);
   if (!raw) return '';
-  const match = raw.match(PERSONNUMMER_RE);
-  if (!match) return '';
-  return `${match[1]}-${match[2]}`;
+  // Scan all 8+4 candidates and take the first with a plausible date, so a stray
+  // number earlier in the string doesn't shadow a real pnr later in it.
+  for (const match of raw.matchAll(/(\d{8})[- ]?(\d{4})/g)) {
+    if (isPlausiblePersonnummerDate(match[1])) return `${match[1]}-${match[2]}`;
+  }
+  return '';
 }
 
 function splitName(fullName) {
@@ -384,6 +483,19 @@ function walkFolderEntries(folderRoot, { skipHidden = true } = {}) {
   return { ok: true, entries, error: null };
 }
 
+function describeMigrationFileStreamability(file, { driveConfigured = false } = {}) {
+  const driveFileId = normalizeText(file?.driveFileId);
+  const hasFolder = file?.source === 'folder' && Boolean(normalizeText(file?.folderRoot));
+  const hasZip = Boolean(normalizeText(file?.zipName));
+  const streamable = hasFolder || (driveConfigured && Boolean(driveFileId)) || hasZip;
+  const driveLinkMissing = driveConfigured && !driveFileId && !hasFolder;
+  return {
+    streamable,
+    driveLinkMissing,
+    hasDriveFileId: Boolean(driveFileId),
+  };
+}
+
 function buildFileRecord({
   source = 'zip',
   zipName = '',
@@ -409,7 +521,7 @@ function buildFileRecord({
     mimeType: source === 'drive_api' ? mimeType : '',
     webViewLink: source === 'drive_api' ? webViewLink : '',
     relativePath,
-    fileName: path.basename(relativePath),
+    fileName: repairMojibakeFilename(path.basename(relativePath)),
     fileType: classifyFile(relativePath),
     personnummer: personnummerList[0] || '',
     personnummerCandidates: personnummerList,
@@ -421,10 +533,18 @@ function buildFileRecord({
 
 module.exports = {
   PERSONNUMMER_RE,
+  PIPEDRIVE_EMAIL_HEADERS,
+  PIPEDRIVE_PHONE_HEADERS,
   buildFileRecord,
+  describeMigrationFileStreamability,
   classifyFile,
+  collectPipedriveEmails,
+  collectPipedrivePhones,
   discoverClientoCsv,
   discoverMigrationZips,
+  discoverPipedriveCsvPair,
+  parseCsv,
+  phoneMatchKey,
   extractDisplayNameFromSegment,
   extractFileOccasionContext,
   extractPersonnummerFromPath,

@@ -6,7 +6,7 @@ const { test, expect } = require('@playwright/test');
 test.describe('CCO huvudflöden', () => {
   test('homepage laddar med rätt titel', async ({ page }) => {
     await page.goto('/major-arcana-preview/');
-    await expect(page).toHaveTitle(/HairTP Clinic CCO/i);
+    await expect(page).toHaveTitle(/Operatörsvy · Arcana/i);
   });
 
   test('alla 30+ runtime-moduler laddas', async ({ page }) => {
@@ -22,8 +22,8 @@ test.describe('CCO huvudflöden', () => {
     await page.goto('/major-arcana-preview/');
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => window.MajorArcanaPreviewCommandPalette?.open());
-    const visible = await page.evaluate(() =>
-      !!document.querySelector('.cco-cmdk-backdrop:not([hidden])')
+    const visible = await page.evaluate(
+      () => !!document.querySelector('.cco-cmdk-backdrop:not([hidden])')
     );
     expect(visible).toBe(true);
   });
@@ -58,13 +58,21 @@ test.describe('CCO huvudflöden', () => {
     expect(body.output.data.anomalies).toBeTruthy();
   });
 
-  test('mobile responsive auto-aktiveras under 768px', async ({ page, viewport }) => {
+  test('mobile shell auto-aktiveras under 768px', async ({ page }) => {
     await page.setViewportSize({ width: 414, height: 850 });
     await page.goto('/major-arcana-preview/');
     await page.waitForLoadState('networkidle');
-    const isMobile = await page.evaluate(() =>
-      document.documentElement.getAttribute('data-cco-mobile') === 'true'
+    const isMobileShell = await page.evaluate(
+      () => document.documentElement.getAttribute('data-cco-mobile-shell') === 'on'
     );
-    expect(isMobile).toBe(true);
+    expect(isMobileShell).toBe(true);
+  });
+
+  test('bokningsytan exponerar operatörstermer för webb-bokningar', async ({ page }) => {
+    await page.goto('/major-arcana-preview/');
+    await page.waitForLoadState('domcontentloaded');
+    const bookingCaseList = page.locator('[data-booking-case-list][aria-label="Bokningsärenden"]');
+    await expect(bookingCaseList).toHaveCount(1);
+    await expect(page.locator('body')).toContainText(/Webb-bokningar|Bokningsärenden/i);
   });
 });

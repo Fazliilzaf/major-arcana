@@ -6,8 +6,21 @@ const { normalizeText, resolveCcoRouteActor, buildCcoRouteContext } = require('.
 const {
   buildTreatmentAgreementReadout,
   canAcceptAgreement,
+  defaultTemplateBindingForOffer,
   DEFAULT_COOLING_OFF_DAYS,
+  AGREEMENT_VERSION,
 } = require('../ops/ccoTreatmentAgreementStore');
+const {
+  assertTemplateVersionApprovedForAgreement,
+  resolveTemplateApprovalForAgreement,
+} = require('../ops/ccoTreatmentAgreementTemplateGate');
+const {
+  applyConsentTemplateToAgreement,
+  assertBundleReadyToSend,
+  parsePublicConsentAck,
+  resolveConsentTemplateForAgreement,
+} = require('../ops/ccoTreatmentAgreementBundle');
+const { resolveTemplate } = require('../ops/meridiqConsentCatalogRuntime');
 const {
   buildTreatmentAgreementHtml,
   buildTreatmentAgreementSignPageHtml,
@@ -18,6 +31,7 @@ const { checkTreatmentBookingGate } = require('../ops/ccoTreatmentBookingGate');
 
 function createCcoTreatmentAgreementRouter({
   treatmentAgreementStore,
+  templateVersionApprovalStore = null,
   commercialStore = null,
   patientMasterStore = null,
   offerDocumentStore = null,
@@ -49,6 +63,15 @@ function createCcoTreatmentAgreementRouter({
     });
   }
 
+  async function buildAgreementReadout(agreement) {
+    if (!agreement) return null;
+    const templateApproval = await resolveTemplateApprovalForAgreement(
+      templateVersionApprovalStore,
+      agreement
+    );
+    return buildTreatmentAgreementReadout(agreement, { templateApproval });
+  }
+
   router.get(
     '/cco-treatment-agreement/patient-agreement',
     requireAuth,
@@ -63,7 +86,7 @@ function createCcoTreatmentAgreementRouter({
         });
         return res.json({
           agreement,
-          agreementReadout: agreement ? buildTreatmentAgreementReadout(agreement) : null,
+          agreementReadout: agreement ? await buildAgreementReadout(agreement) : null,
         });
       })
   );
@@ -82,6 +105,7 @@ function createCcoTreatmentAgreementRouter({
         }
         const gate = await checkTreatmentBookingGate({
           treatmentAgreementStore,
+          templateVersionApprovalStore,
           patientMasterStore,
           tenantId: actor.tenantId,
           patientId,
@@ -128,6 +152,14 @@ function createCcoTreatmentAgreementRouter({
         });
 
         const origin = `${reqInner.protocol}://${reqInner.get('host')}`;
+        const templateBinding = defaultTemplateBindingForOffer(
+          commercialCase.offerType,
+          existing?.agreementVersion || AGREEMENT_VERSION
+        );
+        const treatmentType = normalizeText(body.treatmentType) || undefined;
+        const consentResolution = resolveTemplate(
+          treatmentType || commercialCase.offerType || 'hair_transplant'
+        );
         const draft = {
           ...(existing || {}),
           tenantId: actor.tenantId,
@@ -135,6 +167,9 @@ function createCcoTreatmentAgreementRouter({
           patientName,
           deliveryMode: deliveryMode === 'distans' ? 'distans' : 'plats',
           agreementStatus: existing?.agreementStatus || 'draft',
+          templateId: normalizeText(existing?.templateId) || templateBinding.templateId,
+          templateVersion:
+            normalizeText(existing?.templateVersion) || templateBinding.templateVersion,
           linkedCommercialCaseId: commercialCase.commercialCaseId,
           linkedJournalEntryId: commercialCase.linkedJournalEntryId,
           offerType: commercialCase.offerType,
@@ -150,7 +185,9 @@ function createCcoTreatmentAgreementRouter({
           ],
         };
 
-        let agreement = await treatmentAgreementStore.upsertAgreement(draft);
+        let agreement = await treatmentAgreementStore.upsertAgreement(
+          applyConsentTemplateToAgreement(draft, consentResolution)
+        );
 
         if (offerDocumentStore) {
           const html = buildTreatmentAgreementHtml({
@@ -210,7 +247,7 @@ function createCcoTreatmentAgreementRouter({
 
         return res.json({
           agreement,
-          agreementReadout: buildTreatmentAgreementReadout(agreement),
+          agreementReadout: await buildAgreementReadout(agreement),
           agreementDocumentUrl: agreement.agreementDocumentId
             ? `/api/v1/cco-treatment-agreement/document?patientId=${encodeURIComponent(patientId)}&documentId=${encodeURIComponent(agreement.agreementDocumentId)}`
             : '',
@@ -277,7 +314,7 @@ function createCcoTreatmentAgreementRouter({
 
         return res.json({
           agreement,
-          agreementReadout: buildTreatmentAgreementReadout(agreement),
+          agreementReadout: await buildAgreementReadout(agreement),
           patientInfoPdfUrl: '/patientinformation/hartransplantation-dhi-prp-minimal.pdf',
         });
       })
@@ -303,6 +340,31 @@ function createCcoTreatmentAgreementRouter({
             .json({ error: 'Inget avtal att skicka — skapa från offert först.' });
         }
 
+        const templateGate = await assertTemplateVersionApprovedForAgreement({
+          templateVersionApprovalStore,
+          agreement: existing,
+          actionLabel: 'skicka för signering',
+        });
+        if (!templateGate.allowed) {
+          return res.status(409).json({
+            error: templateGate.reason,
+            templateId: templateGate.binding?.templateId,
+            templateVersion: templateGate.binding?.templateVersion,
+          });
+        }
+
+        const templateApproval = await resolveTemplateApprovalForAgreement(
+          templateVersionApprovalStore,
+          existing
+        );
+        const bundleGate = assertBundleReadyToSend(existing, { templateApproval });
+        if (!bundleGate.allowed) {
+          return res.status(409).json({
+            error: bundleGate.reason,
+            bundleStatus: bundleGate.bundleStatus,
+          });
+        }
+
         const sentAt = new Date().toISOString();
         const isDistans = normalizeText(existing.deliveryMode) === 'distans';
         const coolingOffEndsAt = isDistans
@@ -310,8 +372,9 @@ function createCcoTreatmentAgreementRouter({
           : '';
 
         const agreement = await treatmentAgreementStore.upsertAgreement({
-          ...existing,
+          ...applyConsentTemplateToAgreement(existing, bundleGate.resolution),
           agreementStatus: isDistans ? 'cooling_off' : 'sent',
+          bundleStatus: 'sent',
           agreementSentAt: sentAt,
           coolingOffEndsAt,
           esignToken: existing.esignToken || buildEsignToken(),
@@ -320,7 +383,7 @@ function createCcoTreatmentAgreementRouter({
             ...(Array.isArray(existing.events) ? existing.events : []),
             {
               type: 'agreement_sent_for_sign',
-              label: 'Behandlingsavtal skickat för signering',
+              label: 'Bundle skickad för signering',
               detail: isDistans ? 'distans' : 'plats',
               actorUserId: actor.userId,
             },
@@ -330,7 +393,7 @@ function createCcoTreatmentAgreementRouter({
         const origin = `${reqInner.protocol}://${reqInner.get('host')}`;
         return res.json({
           agreement,
-          agreementReadout: buildTreatmentAgreementReadout(agreement),
+          agreementReadout: await buildAgreementReadout(agreement),
           agreementSignUrl: `${origin}/api/v1/cco-treatment-agreement/sign-page?token=${encodeURIComponent(agreement.esignToken)}`,
         });
       })
@@ -359,6 +422,19 @@ function createCcoTreatmentAgreementRouter({
           return res.status(409).json({ error: gate.reason, coolingOff: gate.coolingOff });
         }
 
+        const templateGate = await assertTemplateVersionApprovedForAgreement({
+          templateVersionApprovalStore,
+          agreement: existing,
+          actionLabel: 'markera avtal som signerat',
+        });
+        if (!templateGate.allowed) {
+          return res.status(409).json({
+            error: templateGate.reason,
+            templateId: templateGate.binding?.templateId,
+            templateVersion: templateGate.binding?.templateVersion,
+          });
+        }
+
         const signedAt = new Date().toISOString();
         const agreement = await treatmentAgreementStore.upsertAgreement({
           ...existing,
@@ -379,7 +455,38 @@ function createCcoTreatmentAgreementRouter({
 
         return res.json({
           agreement,
-          agreementReadout: buildTreatmentAgreementReadout(agreement),
+          agreementReadout: await buildAgreementReadout(agreement),
+        });
+      })
+  );
+
+  router.post(
+    '/cco-treatment-agreement/template-version-approval',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (_context, actor, reqInner) => {
+        if (!templateVersionApprovalStore?.recordApproval) {
+          return res.status(503).json({ error: 'Mall-godkännande-store saknas.' });
+        }
+        const body = reqInner.body && typeof reqInner.body === 'object' ? reqInner.body : {};
+        const templateId = normalizeText(body.templateId);
+        const version = normalizeText(body.version);
+        const status = normalizeText(body.status);
+        const approvedBy = normalizeText(body.approvedBy);
+        if (!templateId || !version || !status) {
+          return res.status(400).json({ error: 'templateId, version och status krävs.' });
+        }
+        const approval = await templateVersionApprovalStore.recordApproval({
+          templateId,
+          version,
+          status,
+          approvedBy,
+          note: body.note,
+        });
+        return res.json({
+          approval,
+          recordedBy: actor.userId,
         });
       })
   );
@@ -393,12 +500,14 @@ function createCcoTreatmentAgreementRouter({
         : null;
       if (!agreement) return res.status(404).send('Signeringssida hittades inte.');
       const origin = `${req.protocol}://${req.get('host')}`;
-      const readout = buildTreatmentAgreementReadout(agreement);
+      const readout = await buildAgreementReadout(agreement);
+      const consentResolution = resolveConsentTemplateForAgreement(agreement);
       const html = buildTreatmentAgreementSignPageHtml({
         agreement,
         token,
         origin,
         coolingOff: readout.coolingOff,
+        consentBundle: consentResolution?.found ? consentResolution : null,
       });
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.send(html);
@@ -422,19 +531,48 @@ function createCcoTreatmentAgreementRouter({
         return res.status(409).send(gate.reason);
       }
 
+      const templateGate = await assertTemplateVersionApprovedForAgreement({
+        templateVersionApprovalStore,
+        agreement: existing,
+        actionLabel: 'signera avtalet',
+      });
+      if (!templateGate.allowed) {
+        return res.status(409).send(templateGate.reason);
+      }
+
+      const consentResolution = resolveConsentTemplateForAgreement(existing);
+      if (!consentResolution?.found) {
+        return res.status(409).send('Behandlingssamtycke saknas — bundle kan inte signeras.');
+      }
+      if (!parsePublicConsentAck(req.body)) {
+        return res.status(409).send('Behandlingssamtycke måste godkännas innan signering.');
+      }
+
       const signedAt = new Date().toISOString();
+      const signer = customerSignedName || 'Kund';
       await treatmentAgreementStore.upsertAgreement({
         ...existing,
         agreementStatus: 'bookable',
+        bundleStatus: 'signed',
         signedAt,
-        customerSignedName: customerSignedName || 'Kund',
+        customerSignedName: signer,
         esignStatus: 'signed',
+        consent: {
+          ...(existing.consent || {}),
+          templateId: consentResolution.template.id,
+          templateApiId: consentResolution.template.apiId,
+          templateVersion: consentResolution.template.version,
+          templateTitle: consentResolution.template.title,
+          signed: true,
+          signedAt,
+          signedBy: signer,
+        },
         events: [
           ...(Array.isArray(existing.events) ? existing.events : []),
           {
-            type: 'agreement_signed_public',
-            label: 'Behandlingsavtal signerat av kund',
-            detail: customerSignedName || 'Kund',
+            type: 'bundle_signed_public',
+            label: 'Avtal + behandlingssamtycke signerat (publik)',
+            detail: `${signer} · consent ${consentResolution.template.apiId}`,
           },
         ],
       });

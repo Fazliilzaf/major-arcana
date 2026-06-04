@@ -57,7 +57,14 @@ link "$REPO/docs/legal/pdl-mdr-assessment.md" "Journalföring-compliance-PDL-bed
 
 echo ""
 if [[ -f "$ARCHIVE/manifest.json" ]]; then
-  node - "$ARCHIVE/manifest.json" "$REPO" <<'NODE'
+  MANIFEST="$ARCHIVE/manifest.json"
+elif [[ -f "$REPO/docs/migration/sharepoint-manifest.json" ]]; then
+  MANIFEST="$REPO/docs/migration/sharepoint-manifest.json"
+  echo "Använder repo-manifest: $MANIFEST"
+fi
+
+if [[ -n "${MANIFEST:-}" && -f "$MANIFEST" ]]; then
+  node - "$MANIFEST" "$REPO" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const manifestPath = process.argv[2];

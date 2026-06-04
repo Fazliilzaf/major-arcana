@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kalender — TODO &amp; design</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --accent: #cabbae;
+      --ink: #513d34;
+      --canvas: #faf6f3;
+    }
+    body {
+      font-family: "Jost", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+      line-height: 1.55;
+      background: var(--canvas);
+      color: var(--ink);
+    }
+    h1, h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; }
+    h1 { margin-bottom: 0.25rem; }
+    .meta { opacity: 0.72; font-size: 0.92rem; margin-bottom: 1.25rem; }
+    .links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .links a {
+      display: inline-block;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+      background: rgba(255, 255, 255, 0.55);
+      color: inherit;
+      text-decoration: none;
+      font-size: 0.92rem;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font: inherit;
+      margin: 0 0 1.5rem;
+      padding: 1rem 1.1rem;
+      border-radius: 14px;
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      background: rgba(255, 255, 255, 0.72);
+    }
+    .loading { opacity: 0.6; }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <h1>Kalender — TODO &amp; design</h1>
+  <p class="meta">Lokal förhandsvisning · <code>MASTER-TODO.md</code> §6.3 + <code>cco-adaptive-layout-rules.md</code></p>
+  <div class="links">
+    <a href="http://localhost:3000/staff?view=customers">Live preview (lokal kalender)</a>
+    <a href="index.html">Strategi-index</a>
+    <a href="MASTER-TODO.md">MASTER-TODO (rå markdown)</a>
+  </div>
+  <h2>MASTER-TODO — §6.3 Intern bokning</h2>
+  <pre id="todo" class="loading">Laddar…</pre>
+  <h2>Adaptive layout — Calendar rules</h2>
+  <pre id="rules" class="loading">Laddar…</pre>
+  <script>
+    function extractSection(text, startNeedle, endNeedle) {
+      const start = text.indexOf(startNeedle);
+      if (start < 0) return 'Sektion hittades inte.';
+      const end = endNeedle ? text.indexOf(endNeedle, start + startNeedle.length) : -1;
+      return text.slice(start, end > start ? end : undefined).trim();
+    }
+
+    Promise.all([
+      fetch('./MASTER-TODO.md').then((r) => r.text()),
+      fetch('./cco-adaptive-layout-rules.md').then((r) => r.text()),
+    ])
+      .then(([todo, rules]) => {
+        document.getElementById('todo').textContent = extractSection(
+          todo,
+          '### 6.3 Bokning — intern (personal)',
+          '### 6.4 Behandlingstillfälle'
+        );
+        document.getElementById('todo').classList.remove('loading');
+
+        const rulesBlock = extractSection(rules, '## Calendar rules', '## Forms');
+        document.getElementById('rules').textContent = rulesBlock;
+        document.getElementById('rules').classList.remove('loading');
+      })
+      .catch((error) => {
+        document.getElementById('todo').textContent = 'Kunde inte ladda: ' + error;
+        document.getElementById('rules').textContent = '';
+      });
+  </script>
+</body>
+</html>

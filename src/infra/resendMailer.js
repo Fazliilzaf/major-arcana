@@ -7,7 +7,8 @@
  *
  * Aktivering:
  *   RESEND_API_KEY=re_xxx (krävs för live)
- *   RESEND_FROM=contact@hairtpclinic.com (default)
+ *   RESEND_FROM=Hair TP Clinic <booking@notifications.hairtpclinic.com> (default via RESEND_DOMAIN)
+ *   RESEND_REPLY_TO=contact@hairtpclinic.com
  *
  * Utan RESEND_API_KEY → logga + skippa (mock-mode). Inga email skickas men
  * boknings-flowet bryts inte. Operatören får ringa patienten istället.
@@ -21,8 +22,13 @@
  *     en clean HTTP-API-call så detta är den enklaste integrationen.
  */
 
+const {
+  resolveResendFrom,
+  resolveResendReplyTo,
+  getResendRuntimeSummary,
+} = require('./resendConfig');
+
 const RESEND_API_URL = 'https://api.resend.com/emails';
-const DEFAULT_FROM = 'Hair TP Clinic <contact@hairtpclinic.com>';
 
 function isConfigured() {
   return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim());
@@ -59,14 +65,24 @@ async function sendEmail(input = {}) {
   }
 
   const apiKey = process.env.RESEND_API_KEY.trim();
-  const from = input.from || process.env.RESEND_FROM || DEFAULT_FROM;
+  const from = input.from || resolveResendFrom();
+  const replyTo = input.replyTo || resolveResendReplyTo();
   const payload = {
     from,
     to: validTo,
     subject: input.subject || '(no subject)',
     html: input.html || '',
     ...(input.text ? { text: input.text } : {}),
-    ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+    ...(replyTo ? { reply_to: replyTo } : {}),
+    ...(Array.isArray(input.attachments) && input.attachments.length
+      ? {
+          attachments: input.attachments.map((item) => ({
+            filename: item.filename || 'attachment',
+            content: item.content,
+            content_type: item.contentType || item.content_type || 'application/octet-stream',
+          })),
+        }
+      : {}),
   };
 
   const headers = {
@@ -101,4 +117,5 @@ async function sendEmail(input = {}) {
 module.exports = {
   sendEmail,
   isConfigured,
+  getResendRuntimeSummary,
 };

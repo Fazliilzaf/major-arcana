@@ -48,6 +48,17 @@ async function writeJsonAtomic(filePath, data) {
   await fs.rename(tmpPath, filePath);
 }
 
+function buildFilesByPersonnummer(files) {
+  const index = new Map();
+  for (const file of asArray(files)) {
+    const pnr = normalizePersonnummer(file.personnummer);
+    if (!pnr) continue;
+    if (!index.has(pnr)) index.set(pnr, []);
+    index.get(pnr).push(file);
+  }
+  return index;
+}
+
 function aggregateProfiles(files) {
   const profiles = {};
   for (const file of files) {
@@ -77,6 +88,11 @@ function aggregateProfiles(files) {
 
 async function createCcoMigrationIndexStore({ filePath }) {
   const state = await readJson(filePath, emptyState());
+  let filesByPersonnummer = buildFilesByPersonnummer(state.files);
+
+  function rebuildFileIndex() {
+    filesByPersonnummer = buildFilesByPersonnummer(state.files);
+  }
 
   async function save() {
     state.updatedAt = nowIso();
@@ -96,6 +112,7 @@ async function createCcoMigrationIndexStore({ filePath }) {
       zipCount: scanMeta.zipCount,
       badZipCount: scanMeta.badZipCount,
     };
+    rebuildFileIndex();
     await save();
     return state.stats;
   }
@@ -122,7 +139,7 @@ async function createCcoMigrationIndexStore({ filePath }) {
   async function getFilesForPersonnummer(personnummer) {
     const pnr = normalizePersonnummer(personnummer);
     if (!pnr) return [];
-    return state.files.filter((item) => normalizePersonnummer(item.personnummer) === pnr);
+    return filesByPersonnummer.get(pnr) || [];
   }
 
   async function getProfile(personnummer) {
@@ -137,12 +154,41 @@ async function createCcoMigrationIndexStore({ filePath }) {
     return state.files.find((item) => item.id === id) || null;
   }
 
+  function listAllFiles() {
+    return asArray(state.files);
+  }
+
+  // Re-point every file from one personnummer to another. Used when merging a
+  // secondary patient (different/blank personnummer) into a primary so that the
+  // secondary's Drive files follow the patient. No-op when the personnummer are
+  // equal (files already resolve to the same profile).
+  async function reassignPersonnummer({ from, to } = {}) {
+    const fromPnr = normalizePersonnummer(from);
+    const toPnr = normalizePersonnummer(to);
+    if (!fromPnr || !toPnr || fromPnr === toPnr) return { moved: 0 };
+    let moved = 0;
+    for (const file of asArray(state.files)) {
+      if (normalizePersonnummer(file.personnummer) === fromPnr) {
+        file.personnummer = toPnr;
+        moved += 1;
+      }
+    }
+    if (moved > 0) {
+      state.profilesByPersonnummer = aggregateProfiles(state.files);
+      rebuildFileIndex();
+      await save();
+    }
+    return { moved };
+  }
+
   return {
     getFileById,
     getFilesForPersonnummer,
     getProfile,
     getStats,
+    listAllFiles,
     listProfiles,
+    reassignPersonnummer,
     replaceScanResult,
   };
 }
@@ -150,5 +196,6 @@ async function createCcoMigrationIndexStore({ filePath }) {
 module.exports = {
   aggregateProfiles,
   buildFileRecord,
+  buildFilesByPersonnummer,
   createCcoMigrationIndexStore,
 };

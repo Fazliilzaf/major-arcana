@@ -1,5 +1,8 @@
 const express = require('express');
+const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
 const path = require('node:path');
+const zlib = require('node:zlib');
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { resolveCcoRouteActor } = require('./ccoRouteShared');
 const {
@@ -7,9 +10,23 @@ const {
   discoverMigrationZips,
   walkFolderEntries,
 } = require('../../scripts/migration/lib/migrationUtils');
+const { isGoogleDriveConfigured } = require('../lib/googleDriveClient');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+const PUSH_STATE_FILES = new Set([
+  'migration-index.json',
+  'cco-patient-master.json',
+  'cco-journal.json',
+]);
+
+async function writeJsonAtomic(filePath, data) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  const tmpPath = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  await fs.writeFile(tmpPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  await fs.rename(tmpPath, filePath);
 }
 
 function createCcoMigrationRouter({
@@ -55,6 +72,10 @@ function createCcoMigrationRouter({
       const driveMirrorReady = driveMirrorRoot ? walkFolderEntries(driveMirrorRoot).ok : false;
       const indexStats = migrationIndexStore ? await migrationIndexStore.getStats() : {};
       const patientStats = await patientMasterStore.getTenantStats({ tenantId: actor.tenantId });
+      const journalImportStats =
+        journalStore && typeof journalStore.getImportSummary === 'function'
+          ? await journalStore.getImportSummary({ tenantId: actor.tenantId })
+          : null;
       return res.json({
         migrationRoot,
         recommendedPath: 'drive_api_or_folder_mirror',
@@ -62,14 +83,11 @@ function createCcoMigrationRouter({
         incompleteDownloads: crdownloads.length,
         driveMirrorRoot: driveMirrorRoot || null,
         driveMirrorReady,
-        driveApiConfigured: Boolean(
-          process.env.ARCANA_GOOGLE_DRIVE_FOLDER_ID &&
-          (process.env.ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON ||
-            process.env.GOOGLE_APPLICATION_CREDENTIALS)
-        ),
+        driveApiConfigured: isGoogleDriveConfigured(),
         clientoCsv: csvPath ? path.basename(csvPath) : null,
         indexStats,
         patientStats,
+        journalImportStats,
       });
     })
   );
@@ -97,6 +115,68 @@ function createCcoMigrationRouter({
           targetId: actor.tenantId,
         });
         return res.json({ result });
+      })
+  );
+
+  router.post(
+    '/cco-migration/push-state-file',
+    express.json({ limit: '8mb' }),
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const fileName = normalizeText(body.fileName);
+        const encoding = normalizeText(body.encoding);
+        const data = normalizeText(body.data);
+        const confirmText = normalizeText(body.confirmText);
+
+        if (!PUSH_STATE_FILES.has(fileName)) {
+          return res.status(400).json({ error: 'Ogiltigt fileName.' });
+        }
+        if (encoding !== 'gzip-base64') {
+          return res.status(400).json({ error: 'encoding måste vara gzip-base64.' });
+        }
+        if (!data) {
+          return res.status(400).json({ error: 'data saknas.' });
+        }
+        const expectedConfirm = `PUSH ${fileName}`;
+        if (confirmText !== expectedConfirm) {
+          return res.status(400).json({
+            error: `Bekräftelse saknas. Sätt confirmText till exakt "${expectedConfirm}".`,
+          });
+        }
+
+        let parsed;
+        try {
+          const raw = zlib.gunzipSync(Buffer.from(data, 'base64'));
+          parsed = JSON.parse(raw.toString('utf8'));
+        } catch {
+          return res.status(400).json({ error: 'Kunde inte avkoda gzip-base64 JSON.' });
+        }
+
+        const targetPath = path.join(config.stateRoot, fileName);
+        await writeJsonAtomic(targetPath, parsed);
+
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.migration.push_state_file',
+          outcome: 'success',
+          targetType: 'cco_migration',
+          targetId: fileName,
+          metadata: {
+            fileName,
+            bytes: Buffer.byteLength(JSON.stringify(parsed)),
+          },
+        });
+
+        return res.json({
+          ok: true,
+          fileName,
+          targetPath,
+          requiresRestart: true,
+        });
       })
   );
 

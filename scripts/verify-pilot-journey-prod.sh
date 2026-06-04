@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BASE="${ARCANA_PROD_URL:-https://arcana.hairtpclinic.se}"
 BASE="${BASE%/}"
-PATIENT_ID="${1:-f8233fca-779c-488b-a980-0e41bc01c0c0}"
+PATIENT_ID="${1:-4db24289-7f9e-431e-b7f3-bd9014d8c9f3}"
 
 pass() { echo "✓ $1"; }
 fail() { echo "✗ $1"; exit 1; }
@@ -17,7 +17,11 @@ if [[ -n "$AUTH_TOKEN" ]]; then
 fi
 
 curl_api() {
-  curl -fsS "${CURL_AUTH[@]}" "$@"
+  if ((${#CURL_AUTH[@]})); then
+    curl -fsS "${CURL_AUTH[@]}" "$@"
+  else
+    curl -fsS "$@"
+  fi
 }
 
 echo "=== Prod journey check ($BASE) ==="
@@ -29,8 +33,9 @@ echo "$VERSION" | grep -q '"ok":true' || fail "version endpoint"
 pass "version $(echo "$VERSION" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).commit.slice(0,7)));")"
 
 STATS="$(curl_api "$BASE/api/v1/cco-patient-master/stats")"
-echo "$STATS" | grep -q '"totalPatients":5' || fail "förväntar 5 pilotkunder"
-pass "pilotkunder i patient-master"
+TOTAL="$(echo "$STATS" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const s=JSON.parse(d).stats||{};console.log(s.totalPatients||0);});")"
+[[ "$TOTAL" -ge 5 ]] || fail "förväntar minst 5 kunder i patient-master (fick $TOTAL)"
+pass "patient-master: $TOTAL kunder"
 
 PATIENT="$(curl_api "$BASE/api/v1/cco-patient-master/patient?patientId=$PATIENT_ID")"
 echo "$PATIENT" | grep -q '"displayName"' || fail "patient lookup"

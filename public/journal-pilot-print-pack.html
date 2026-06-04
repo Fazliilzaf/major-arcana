@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Print Pack · Journalpilot dag 1 · Hair TP Clinic · 4 juni 2026</title>
+    <style>
+      :root {
+        --bg: #ede4d5;
+        --paper: #fcf8ec;
+        --ink: #2a2113;
+        --ink-soft: #51422f;
+        --line: rgba(132, 117, 107, 0.3);
+        --rule: rgba(132, 117, 107, 0.6);
+        --accent: #b08b3f;
+        --accent-deep: #8a6a26;
+        --green: #4a6325;
+        --red: #8a3328;
+        --blue: #2f4a6a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          13.5px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Georgia,
+          serif;
+      }
+      body {
+        background:
+          radial-gradient(900px 500px at 20% -10%, #f7eed7 0%, transparent 60%), var(--bg);
+        min-height: 100vh;
+      }
+      .toolbar {
+        max-width: 880px;
+        margin: 22px auto 0;
+        padding: 12px 18px;
+        background: #fff9e5;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(80, 60, 20, 0.08);
+      }
+      .toolbar-text {
+        font-size: 13px;
+        color: var(--ink-soft);
+      }
+      .toolbar button {
+        padding: 9px 18px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .toolbar button:hover {
+        background: var(--accent-deep);
+      }
+
+      .sheet {
+        max-width: 880px;
+        margin: 18px auto;
+        background: var(--paper);
+        padding: 44px 56px;
+        border-radius: 6px;
+        box-shadow: 0 4px 18px rgba(80, 60, 20, 0.12);
+        position: relative;
+      }
+      .sheet::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent) 0%, var(--accent-deep) 100%);
+        border-radius: 6px 6px 0 0;
+      }
+
+      .head {
+        border-bottom: 2px solid var(--ink);
+        padding-bottom: 16px;
+        margin-bottom: 22px;
+      }
+      .head-kicker {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent-deep);
+        font-weight: 700;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 4px 0 6px;
+        font-weight: 700;
+      }
+      .head-sub {
+        font-size: 13px;
+        color: var(--ink-soft);
+        font-style: italic;
+      }
+      .head-meta {
+        margin-top: 12px;
+        display: flex;
+        gap: 22px;
+        font-size: 11.5px;
+        color: var(--ink-soft);
+      }
+      .head-meta strong {
+        color: var(--ink);
+      }
+
+      section {
+        margin: 26px 0;
+        break-inside: avoid;
+      }
+      h2 {
+        font-size: 17px;
+        font-weight: 700;
+        margin: 0 0 12px;
+        padding-bottom: 6px;
+        border-bottom: 1.5px solid var(--rule);
+        color: var(--accent-deep);
+      }
+      h2 .num {
+        display: inline-block;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        text-align: center;
+        line-height: 26px;
+        font-size: 13px;
+        margin-right: 10px;
+      }
+
+      .rules-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        counter-reset: rule;
+      }
+      .rules-list li {
+        padding: 8px 0 8px 36px;
+        position: relative;
+        border-bottom: 1px dotted rgba(132, 117, 107, 0.25);
+        counter-increment: rule;
+      }
+      .rules-list li::before {
+        content: counter(rule);
+        position: absolute;
+        left: 0;
+        top: 8px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--paper);
+        border: 1.5px solid var(--accent);
+        text-align: center;
+        line-height: 21px;
+        font-weight: 700;
+        color: var(--accent-deep);
+        font-size: 12px;
+      }
+      .rules-list li:last-child {
+        border-bottom: none;
+      }
+      .rules-list strong {
+        color: var(--ink);
+      }
+
+      .check-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .check-list li {
+        padding: 6px 0 6px 30px;
+        position: relative;
+      }
+      .check-list li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 9px;
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid var(--ink-soft);
+        border-radius: 3px;
+      }
+
+      .col2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      .col2 > div {
+        background: rgba(176, 139, 63, 0.06);
+        padding: 14px 18px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+      }
+      .col2 h3 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        color: var(--accent-deep);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .ascii-flow {
+        background: #f5edd5;
+        padding: 14px 18px;
+        border-radius: 8px;
+        font-family: 'SF Mono', Menlo, monospace;
+        font-size: 11.5px;
+        white-space: pre;
+        overflow-x: auto;
+        border-left: 3px solid var(--accent);
+        line-height: 1.4;
+      }
+
+      .review-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      .review-table th,
+      .review-table td {
+        padding: 8px 12px;
+        text-align: left;
+        font-size: 12.5px;
+        border: 1px solid var(--line);
+      }
+      .review-table th {
+        background: rgba(176, 139, 63, 0.12);
+        font-weight: 700;
+        color: var(--accent-deep);
+      }
+      .review-table td.yes {
+        background: #e8f0dd;
+        color: var(--green);
+      }
+      .review-table td.no {
+        background: #f5dad5;
+        color: var(--red);
+      }
+
+      .escalate {
+        background: linear-gradient(180deg, #f9e9c4 0%, #f1d8a1 100%);
+        padding: 14px 18px;
+        border-radius: 8px;
+        border: 1px solid #d4a85b;
+      }
+      .escalate strong {
+        color: var(--accent-deep);
+      }
+      .escalate ul {
+        margin: 6px 0 0;
+        padding-left: 20px;
+      }
+      .escalate li {
+        margin: 4px 0;
+        font-size: 13px;
+      }
+
+      .timeline-30 {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        position: relative;
+        padding-left: 22px;
+      }
+      .timeline-30::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        background: var(--accent);
+      }
+      .timeline-30 li {
+        padding: 6px 0 6px 16px;
+        position: relative;
+        font-size: 12.5px;
+      }
+      .timeline-30 li::before {
+        content: '';
+        position: absolute;
+        left: -19px;
+        top: 12px;
+        width: 10px;
+        height: 10px;
+        background: var(--paper);
+        border: 2px solid var(--accent);
+        border-radius: 50%;
+      }
+      .timeline-30 .marker {
+        font-weight: 700;
+        color: var(--accent-deep);
+        display: inline-block;
+        min-width: 60px;
+      }
+
+      .qa {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .qa-row {
+        background: var(--paper);
+        padding: 10px 14px;
+        border-left: 3px solid var(--blue);
+        border-radius: 4px;
+        border-bottom: 1px dotted rgba(132, 117, 107, 0.25);
+      }
+      .qa-row .q {
+        font-weight: 700;
+        color: var(--blue);
+        font-size: 12.5px;
+      }
+      .qa-row .a {
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        margin-top: 3px;
+      }
+
+      .never {
+        background: #f5dad5;
+        padding: 14px 18px;
+        border-radius: 8px;
+        border: 1px solid var(--red);
+      }
+      .never strong {
+        color: var(--red);
+      }
+      .never ul {
+        margin: 6px 0 0;
+        padding-left: 20px;
+      }
+      .never li {
+        margin: 3px 0;
+        font-size: 13px;
+      }
+
+      .footer {
+        margin-top: 32px;
+        padding-top: 16px;
+        border-top: 1px solid var(--rule);
+        font-size: 11px;
+        text-align: center;
+        color: var(--ink-soft);
+      }
+      .footer strong {
+        color: var(--ink);
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+        .toolbar {
+          display: none;
+        }
+        .sheet {
+          box-shadow: none;
+          padding: 32px;
+          max-width: 100%;
+          margin: 0;
+          border-radius: 0;
+        }
+        section {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        h2 {
+          page-break-after: avoid;
+        }
+        @page {
+          margin: 14mm;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .sheet {
+          padding: 24px 18px;
+        }
+        .col2 {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 22px;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="/cco-staff-shell.css" />
+    <script defer src="/cco-staff-shell.js"></script>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div class="toolbar-text">
+        <strong>Print pack</strong> · skriv ut och ha på arbetsstationen · inga patientdata · inga
+        live-claims
+      </div>
+      <button onclick="window.print()">🖨 Skriv ut</button>
+    </div>
+
+    <div class="sheet">
+      <!-- HEAD -->
+      <div class="head">
+        <div class="head-kicker">Hair TP Clinic · Personal-pack</div>
+        <h1>Journalpilot · Dag 1</h1>
+        <div class="head-sub">
+          Kontrollerad journalföringspilot — startar efter personalmöte 4 juni 2026
+        </div>
+        <div class="head-meta">
+          <span><strong>Version:</strong> 2026-06-02</span>
+          <span><strong>Spår:</strong> CCO på <code>arcana.hairtpclinic.com</code></span>
+          <span><strong>Skriv ut:</strong> A4, marginal ~14 mm</span>
+        </div>
+      </div>
+
+      <!-- 1. Dag-1-regler -->
+      <section>
+        <h2><span class="num">1</span>Dag-1-regler</h2>
+        <ol class="rules-list">
+          <li>
+            <strong>Verifiera identitet</strong> före signering — namn, telefon, Cliento-id måste
+            matcha.
+          </li>
+          <li><strong>Skapa inte ny kund</strong> vid osäker match — eskalera till admin/ops.</li>
+          <li>
+            <strong>Review-material</strong> (badges: <code>needs review</code>) är
+            <strong>inte</strong> klinisk sanning.
+          </li>
+          <li>
+            <strong>Migrerade bilder</strong> används <strong>inte</strong> kliniskt före Photo
+            Review.
+          </li>
+          <li>
+            <strong>Ingen extern AI</strong> på journaltext (ChatGPT, Claude, Copilot — förbjudet).
+          </li>
+        </ol>
+      </section>
+
+      <!-- 2. Identitetskontroll -->
+      <section>
+        <h2><span class="num">2</span>Identitetskontroll — alltid först</h2>
+        <p>Innan kundkortet öppnas — bekräfta tre saker:</p>
+        <ul class="check-list">
+          <li><strong>Namn</strong> — patienten säger sitt fulla namn (inte du säger det)</li>
+          <li><strong>Telefon</strong> — sista 4 siffror, jämför med Cliento</li>
+          <li><strong>Cliento-id</strong> — matchar mot kundkortets header</li>
+        </ul>
+        <div class="ascii-flow" style="margin-top: 12px">
+          Allt 3 stämmer ─► Öppna kundkort │ └─ Något stämmer inte │ ├─ Patienten i samtal → "En
+          sekund, jag dubbelkollar" ├─ Försök inte gissa └─ Eskalera till admin/ops (se sektion 6)
+        </div>
+      </section>
+
+      <!-- 3. Signerings-checklist -->
+      <section>
+        <h2><span class="num">3</span>Signerings-checklist</h2>
+        <p>Innan du klickar "Signera" — gå igenom mentalt:</p>
+        <ul class="check-list">
+          <li>Rätt patient öppen? (kontrollera kortets header)</li>
+          <li>Anteckningen är komplett?</li>
+          <li>Jag har läst igenom texten?</li>
+          <li>Inga personnummer i fritext om inte krävs?</li>
+          <li>Ingen extern AI använd (ingen copy-paste från ChatGPT)?</li>
+          <li>Jag är säker?</li>
+        </ul>
+        <p style="margin-top: 10px; color: var(--red); font-size: 12.5px">
+          <strong>⚠ Signering är permanent.</strong> Originalet låses. Kan endast ändras via
+          rättelse.
+        </p>
+      </section>
+
+      <!-- 4. Rättelse-flöde -->
+      <section>
+        <h2><span class="num">4</span>Rättelse — när en signerad post är fel</h2>
+        <div class="ascii-flow">
+          Upptäcker fel på signerad post │ ▼ Öppna posten → "Skapa rättelse" │ ▼ Ny tom post öppnas
+          (länkad till originalet) │ ▼ Skriv det korrigerade i sin helhet (inte "stryk allt ovan") │
+          ▼ Ange anledning: typo / ny info / felaktig dos │ ▼ Spara → Signera │ ▼ Verifiera i
+          timeline att båda syns
+        </div>
+        <p style="margin-top: 10px">
+          <strong>Aldrig:</strong> försök inte ändra det låsta originalet (systemet blockerar).
+          Skapa inte rättelse utan att signera den.
+        </p>
+      </section>
+
+      <!-- 5. Vad "Behöver granskning" betyder -->
+      <section>
+        <h2><span class="num">5</span>Vad "Behöver granskning" betyder</h2>
+        <p>
+          Material flaggat med <code>needs review</code> är <strong>importerat</strong> från externa
+          källor: Drive (gamla journaler + bilder),
+          <code>halso@hairtpclinic.com</code> (hälsodeklarationer), GetAccept (signerade avtal).
+        </p>
+        <p>
+          Det är <strong>inte</strong> automatiskt verifierat. Det är <strong>inte</strong> klinisk
+          sanning.
+        </p>
+        <table class="review-table">
+          <thead>
+            <tr>
+              <th>Använd som</th>
+              <th>Använd inte som</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="yes">✓ Referens när du frågar patienten</td>
+              <td class="no">✗ Beslut för behandling utan verifiering</td>
+            </tr>
+            <tr>
+              <td class="yes">✓ Bakgrundsinfo om historik</td>
+              <td class="no">✗ Källa till diagnoser/dosering</td>
+            </tr>
+            <tr>
+              <td class="yes">✓ Underlag för uppföljningsfrågor</td>
+              <td class="no">✗ Klinisk sanning</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 6. Eskaleringsväg -->
+      <section>
+        <h2><span class="num">6</span>Eskaleringsväg</h2>
+        <div class="escalate">
+          <strong>STOPPA och eskalera om:</strong>
+          <ul>
+            <li>Du är osäker på patient-identiteten</li>
+            <li>Du misstänker dubblett-kund</li>
+            <li>Du har börjat journalföra på fel patient (<strong>STOPPA. SPARA INTE.</strong>)</li>
+            <li>Sidan beter sig konstigt</li>
+            <li>Patient ifrågasätter sin journal/historik</li>
+            <li>Patient frågar om GDPR-export</li>
+          </ul>
+        </div>
+        <p style="margin-top: 12px">Kontakta:</p>
+        <div class="col2">
+          <div>
+            <h3>Admin/ops</h3>
+            <p style="font-size: 12.5px; margin: 0">
+              Osäker identitet · dubbletter · GDPR-frågor · merging av kundkort.
+            </p>
+          </div>
+          <div>
+            <h3>Fazli direkt</h3>
+            <p style="font-size: 12.5px; margin: 0">
+              Tekniskt fel · journal på fel patient · system-krasch · presentations-bug.
+            </p>
+          </div>
+        </div>
+        <p style="margin-top: 10px; font-style: italic; font-size: 12.5px">
+          Det är aldrig fel att eskalera. Bättre fråga än gissa.
+        </p>
+      </section>
+
+      <!-- 7. Första 30 minuterna -->
+      <section>
+        <h2><span class="num">7</span>De första 30 minuterna efter mötet</h2>
+        <ul class="timeline-30">
+          <li>
+            <span class="marker">0–5 min</span> Logga in på <code>arcana.hairtpclinic.com</code> +
+            öppna <code>/cco-demo.html</code>
+          </li>
+          <li>
+            <span class="marker">5–10 min</span> Klicka igenom pilotkund 1 — feed/timeline/forms —
+            bekräfta att du ser samma som demon
+          </li>
+          <li>
+            <span class="marker">10–15 min</span> Öppna en känd patient → verifiera identitet →
+            öppna kundkort → läs befintliga poster
+          </li>
+          <li>
+            <span class="marker">15–20 min</span> Skriv din första riktiga anteckning (draft, spara,
+            granska)
+          </li>
+          <li><span class="marker">20–25 min</span> Signera. Notera känslan av låst post.</li>
+          <li>
+            <span class="marker">25–30 min</span> Om något kändes konstigt — fråga kollega eller
+            skriv ner. Eskalera om nödvändigt.
+          </li>
+        </ul>
+      </section>
+
+      <!-- 8. Snabbfrågor från patienter -->
+      <section>
+        <h2><span class="num">8</span>Snabbfrågor från patienter — svar</h2>
+        <div class="qa">
+          <div class="qa-row">
+            <div class="q">"Får ni spara mina uppgifter?"</div>
+            <div class="a">
+              "Ja, journalskyldighet enligt lag. Minst 10 år. Säkert lagrade med audit."
+            </div>
+          </div>
+          <div class="qa-row">
+            <div class="q">"Vart syns det jag säger?"</div>
+            <div class="a">"Endast i din journal — inte i någon extern AI eller delad mapp."</div>
+          </div>
+          <div class="qa-row">
+            <div class="q">"Får jag se min journal?"</div>
+            <div class="a">
+              "Ja, du har laglig rätt. Jag vidarebefordrar din förfrågan till admin."
+            </div>
+          </div>
+          <div class="qa-row">
+            <div class="q">"Varför frågar du mitt namn — du vet ju det?"</div>
+            <div class="a">
+              "Säkerhetsrutin för att vi inte ska blanda ihop journaler. Gäller alla patienter."
+            </div>
+          </div>
+          <div class="qa-row">
+            <div class="q">"Kan jag få mina bilder digitalt nu?"</div>
+            <div class="a">
+              "Bilder visas via en separat granskning som inte är klar än. Kommer separat."
+            </div>
+          </div>
+          <div class="qa-row">
+            <div class="q">"Varför går det inte att betala med kort idag?"</div>
+            <div class="a">
+              "Vår fakturasync mot Fortnox är pausad. Vi tar betalt som vanligt — kvittona skickas
+              manuellt."
+            </div>
+          </div>
+          <div class="qa-row">
+            <div class="q">"Får jag SMS-bekräftelse?"</div>
+            <div class="a">"Ja, samma som tidigare via Cliento."</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. Aldrig dag 1 -->
+      <section>
+        <h2><span class="num">9</span>Aldrig dag 1</h2>
+        <div class="never">
+          <strong>Personalen ska INTE:</strong>
+          <ul>
+            <li>Använda migrerade före/efter-bilder kliniskt (Photo Review ej klar)</li>
+            <li>Skapa ny kund manuellt vid osäker identitet</li>
+            <li>Kopiera journaltext till ChatGPT/Claude/Copilot</li>
+            <li>Lita på "Behöver granskning"-material som klinisk sanning</li>
+            <li>Använda mail-worklist / unified inbox som dagligt verktyg</li>
+            <li>Lita på AI no-show / AI triage som sanning</li>
+            <li>Aktivera Aisia / kamera/scalp-funktioner</li>
+            <li>Förvänta sig Fortnox-fakturor</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <div class="footer">
+        <strong>Hair TP Clinic · Journalpilot dag 1 · 4 juni 2026</strong><br />
+        Detta pack innehåller inga patientdata. Inga live-claims. Skriv ut och ha på
+        arbetsstationen.<br />
+        Senast uppdaterad: 2026-06-02. Komplett guide: <code>/journal-pilot-guide.html</code>.
+      </div>
+    </div>
+  </body>
+</html>

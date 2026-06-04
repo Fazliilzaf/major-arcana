@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2d2d5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Min Sida — Curatiio</title>
+  <link rel="icon" href="/assets/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf6f2;
+      --card: #ffffff;
+      --accent: #2d2d5f;
+      --accent-light: rgba(26, 77, 53, 0.08);
+      --text: #231f1d;
+      --muted: #6b5f58;
+      --border: rgba(120, 105, 90, 0.14);
+      --radius: 14px;
+      --radius-lg: 20px;
+      --shadow: 0 4px 12px rgba(70, 50, 30, 0.06);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    }
+    .patient-header {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; height: 56px;
+      background: var(--card); border-bottom: 1px solid var(--border);
+    }
+    .patient-header img { height: 32px; }
+    .patient-header h1 { font-size: 16px; font-weight: 600; }
+    .patient-content { padding: 16px; max-width: 600px; margin: 0 auto; }
+    .patient-card {
+      background: var(--card); border-radius: var(--radius);
+      padding: 20px; margin-bottom: 12px;
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+    }
+    .patient-card h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--accent); }
+    .patient-card p { font-size: 14px; line-height: 1.5; color: var(--muted); }
+    .patient-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 48px; padding: 0 24px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; border: none; cursor: pointer;
+      background: var(--accent); color: #fff; width: 100%; margin-top: 12px;
+      text-decoration: none;
+    }
+    .patient-btn--outline {
+      background: transparent; color: var(--accent);
+      border: 1.5px solid var(--accent);
+    }
+    .patient-list { list-style: none; }
+    .patient-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 0; border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .patient-list li:last-child { border-bottom: none; }
+    .patient-badge {
+      display: inline-flex; align-items: center; height: 24px;
+      padding: 0 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    }
+    .patient-badge--green { background: rgba(76, 175, 80, 0.12); color: #2e7d32; }
+    .patient-badge--yellow { background: rgba(255, 193, 7, 0.15); color: #f57f17; }
+    .patient-badge--gray { background: rgba(0,0,0,0.06); color: var(--muted); }
+
+    /* Bottom navigation */
+    .patient-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-around;
+      height: 72px; background: var(--card);
+      border-top: 1px solid var(--border);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .patient-nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      font-size: 10px; color: var(--muted); text-decoration: none;
+      min-width: 56px; padding: 8px 4px;
+    }
+    .patient-nav-item.is-active { color: var(--accent); }
+    .patient-nav-item svg { width: 22px; height: 22px; }
+
+    /* Chat */
+    .chat-messages { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; min-height: 200px; }
+    .chat-bubble { max-width: 80%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.4; }
+    .chat-bubble--user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+    .chat-bubble--bot { align-self: flex-start; background: #f0ebe6; color: var(--text); border-bottom-left-radius: 4px; }
+    .chat-input-row { display: flex; gap: 8px; }
+    .chat-input {
+      flex: 1; min-height: 48px; padding: 12px 16px; border-radius: 12px;
+      border: 1.5px solid var(--border); font-size: 15px; outline: none;
+      background: var(--card);
+    }
+    .chat-input:focus { border-color: var(--accent); }
+    .chat-send { min-width: 48px; min-height: 48px; border-radius: 12px; border: none; background: var(--accent); color: #fff; font-size: 18px; cursor: pointer; }
+
+    /* Views */
+    .patient-view { display: none; }
+    .patient-view.is-active { display: block; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 40px 20px; }
+    .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; color: var(--muted); opacity: 0.5; }
+    .empty-state p { color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="patient-header">
+    <img src="https://ma.curatiio.se/curatiio-logo.png" alt="Curatiio" style="height:36px;width:auto;">
+    <h1>Min Sida</h1>
+  </header>
+
+  <!-- BOKNINGAR -->
+  <div class="patient-view is-active" id="view-bookings">
+    <div class="patient-content">
+      <div class="patient-card">
+        <h2>Kommande bokningar</h2>
+        <ul class="patient-list" id="bookings-list">
+          <li>
+            <div><strong>Konsultation</strong><br><span style="color:var(--muted);font-size:12px;">Inga kommande bokningar</span></div>
+          </li>
+        </ul>
+        <a href="/boka" class="patient-btn">Boka ny tid</a>
+      </div>
+
+      <div class="patient-card">
+        <h2>Tidigare besök</h2>
+        <ul class="patient-list" id="history-list">
+          <li>
+            <div class="empty-state">
+              <p>Här visas dina tidigare besök</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORMULÄR -->
+  <div class="patient-view" id="view-forms">
+    <div class="patient-content">
+      <div class="patient-card">
+        <h2>Formulär att fylla i</h2>
+        <ul class="patient-list" id="forms-pending">
+          <li>
+            <div><strong>Hälsodeklaration</strong><br><span style="font-size:12px;color:var(--muted);">Fyll i innan ditt besök</span></div>
+            <span class="patient-badge patient-badge--yellow">Väntar</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="patient-card">
+        <h2>Inskickade formulär</h2>
+        <ul class="patient-list" id="forms-completed">
+          <li><div class="empty-state"><p>Inga inskickade formulär ännu</p></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="patient-view" id="view-chat">
+    <div class="patient-content">
+      <div class="patient-card" style="padding-bottom:12px;">
+        <h2>Chatt med kliniken</h2>
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-bubble chat-bubble--bot">Hej! 👋 Hur kan vi hjälpa dig? Ställ din fråga här.</div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" class="chat-input" id="chat-input" placeholder="Skriv ett meddelande..." autocomplete="off">
+          <button class="chat-send" id="chat-send">→</button>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Svar inom 24h vardagar. Vid akut behov, ring 031 88 11 66.</p>
+    </div>
+  </div>
+
+  <!-- PROFIL -->
+  <div class="patient-view" id="view-profile">
+    <div class="patient-content">
+      <div class="patient-card">
+        <h2>Min profil</h2>
+        <ul class="patient-list">
+          <li><span>Namn</span><span id="profile-name">—</span></li>
+          <li><span>E-post</span><span id="profile-email">—</span></li>
+          <li><span>Telefon</span><span id="profile-phone">—</span></li>
+          <li><span>Personnummer</span><span id="profile-pnr">***</span></li>
+        </ul>
+      </div>
+      <div class="patient-card">
+        <h2>Inställningar</h2>
+        <ul class="patient-list">
+          <li><span>SMS-påminnelser</span><span class="patient-badge patient-badge--green">På</span></li>
+          <li><span>E-postbekräftelse</span><span class="patient-badge patient-badge--green">På</span></li>
+          <li><span>Marknadsutskick</span><span class="patient-badge patient-badge--gray">Av</span></li>
+        </ul>
+        <button class="patient-btn patient-btn--outline" style="margin-top:16px;">Logga ut</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="patient-nav">
+    <a href="#" class="patient-nav-item is-active" data-view="bookings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Bokningar
+    </a>
+    <a href="#" class="patient-nav-item" data-view="forms">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Formulär
+    </a>
+    <a href="#" class="patient-nav-item" data-view="chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Chatt
+    </a>
+    <a href="#" class="patient-nav-item" data-view="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profil
+    </a>
+  </nav>
+
+  <script>
+    // Navigation
+    document.querySelectorAll('.patient-nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.patient-nav-item').forEach(i => i.classList.remove('is-active'));
+        document.querySelectorAll('.patient-view').forEach(v => v.classList.remove('is-active'));
+        item.classList.add('is-active');
+        document.getElementById('view-' + item.dataset.view).classList.add('is-active');
+      });
+    });
+
+    // Chat
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+
+    function addMessage(text, type) {
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble chat-bubble--' + type;
+      bubble.textContent = text;
+      chatMessages.appendChild(bubble);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function sendChat() {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+      addMessage(msg, 'user');
+      chatInput.value = '';
+
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, host: location.hostname }),
+        });
+        const data = await res.json();
+        addMessage(data.reply || data.message || 'Tack för ditt meddelande! Vi återkommer.', 'bot');
+      } catch {
+        addMessage('Tack! Vi har mottagit ditt meddelande och återkommer inom 24h.', 'bot');
+      }
+    }
+
+    chatSend.addEventListener('click', sendChat);
+    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+  </script>
+</body>
+</html>

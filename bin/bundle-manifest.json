@@ -14,6 +14,9 @@
     "runtime-theme.js",
     "app/demo-fixtures-data.js",
     "app/mock-worklist-api.js",
+    "app/cco-fetch-instrumentation.js",
+    "app/cco-cache-policy.js",
+    "app/cco-request-cache.js",
     "app/state-paths.js",
     "app/render-components.js",
     "app.js",
@@ -22,12 +25,21 @@
     "app/keyboard-nav.js",
     "app/bulk-actions.js",
     "app/inbox-streak.js",
+    "app/staff-onboarding-tour.js",
     "app/system-mail-parser.js",
     "app/showcase-banner.js",
+    "app/maintenance-banner.js",
     "app/journal-plan-editor.js",
     "app/journal-photo-client.js",
+    "app/journal-tp-schemas.js",
     "app/journal-tp-form.js",
-    "app/journal-pre-treatment-forms.js",
-    "app/patient-master-ui.js"
+    "app/journal-prp-schemas.js",
+    "app/journal-prp-form.js",
+    "app/journal-follow-up-schemas.js",
+    "app/journal-follow-up-form.js",
+    "app/journal-bleph-schemas.js",
+    "app/journal-bleph-form.js",
+    "app/journal-clinical-schemas.js",
+    "app/journal-pre-treatment-forms.js"
   ]
 }

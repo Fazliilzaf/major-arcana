@@ -11,7 +11,10 @@ const {
 } = require('../capabilities/executionService');
 const { createMicrosoftGraphReadConnector } = require('../infra/microsoftGraphReadConnector');
 const { createMicrosoftGraphSendConnector } = require('../infra/microsoftGraphSendConnector');
-const { createMicrosoftGraphMailboxTruthBackfill } = require('../infra/microsoftGraphMailboxTruthBackfill');
+const { getResendRuntimeSummary } = require('../infra/resendConfig');
+const {
+  createMicrosoftGraphMailboxTruthBackfill,
+} = require('../infra/microsoftGraphMailboxTruthBackfill');
 const {
   isValidEmail,
   normalizeMailboxAddress,
@@ -39,12 +42,12 @@ const {
   buildCanonicalMailMimeMetadata,
   getMailMimeTriggerReasons,
 } = require('../ops/ccoMailMimeLayer');
-const {
-  buildCanonicalCcoMailboxSettingsDocument,
-} = require('../ops/ccoMailboxSettingsDocument');
+const { buildCanonicalCcoMailboxSettingsDocument } = require('../ops/ccoMailboxSettingsDocument');
 const { buildCanonicalMailThreadDocument } = require('../ops/ccoMailThreadHydrator');
 const { createCcoMailboxTruthReadAdapter } = require('../ops/ccoMailboxTruthReadAdapter');
-const { createCcoMailboxTruthWorklistReadModel } = require('../ops/ccoMailboxTruthWorklistReadModel');
+const {
+  createCcoMailboxTruthWorklistReadModel,
+} = require('../ops/ccoMailboxTruthWorklistReadModel');
 const { createCcoMailboxTruthWorklistShadow } = require('../ops/ccoMailboxTruthWorklistShadow');
 
 const CCO_LIFECYCLE_AUDIT_STATES = new Set([
@@ -116,11 +119,7 @@ async function mapSettledWithConcurrencyLimit(items = [], limit = 2, mapper = as
   return results;
 }
 
-function buildAnalyzeInboxGraphSnapshotCacheKey({
-  tenantId = '',
-  mailboxIds = [],
-  days = 0,
-} = {}) {
+function buildAnalyzeInboxGraphSnapshotCacheKey({ tenantId = '', mailboxIds = [], days = 0 } = {}) {
   const normalizedMailboxIds = normalizeMailboxIdList(mailboxIds, 50)
     .filter((mailboxId) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(mailboxId))
     .sort();
@@ -148,11 +147,7 @@ function writeAnalyzeInboxGraphSnapshotCache(cacheKey = '', snapshot = null) {
   });
 }
 
-function buildWorklistConsumerResponseCacheKey({
-  tenantId = '',
-  mailboxIds = [],
-  limit = 0,
-} = {}) {
+function buildWorklistConsumerResponseCacheKey({ tenantId = '', mailboxIds = [], limit = 0 } = {}) {
   const normalizedMailboxIds = normalizeMailboxIdList(mailboxIds, 50).sort();
   return `${normalizeText(tenantId)}|${normalizedMailboxIds.join(',')}|${Number(limit || 0)}`;
 }
@@ -210,6 +205,30 @@ async function listWorklistEnrichmentEntries({
   return [...asArray(ccoEntries), ...asArray(analyzeEntries)];
 }
 
+function buildWorklistIngestionPayload({ ingestionStore = null, mailboxIds = [] } = {}) {
+  if (!ingestionStore || typeof ingestionStore.buildDashboardSummary !== 'function') {
+    return null;
+  }
+  const mailboxEmail = normalizeText(asArray(mailboxIds)[0]).toLowerCase();
+  const dashboard = ingestionStore.buildDashboardSummary({ mailboxEmail });
+  const reviewQueue = ingestionStore.listReviewQueue
+    ? ingestionStore.listReviewQueue({
+        mailboxEmail,
+        statuses: ['UNMATCHED', 'NEEDS_REVIEW', 'SECURITY_REVIEW'],
+        limit: 25,
+      })
+    : [];
+  return {
+    generatedAt: dashboard.generatedAt || new Date().toISOString(),
+    mailboxEmail: mailboxEmail || null,
+    counts: dashboard.counts || {},
+    queueLength: dashboard.queueLength || 0,
+    reviewQueue,
+    webhookEnabled: false,
+    transportMode: 'delta_scheduler',
+  };
+}
+
 function buildWorklistEnrichmentPayload({
   latestEntry = null,
   latestOutputData = null,
@@ -235,9 +254,8 @@ function buildWorklistEnrichmentPayload({
     conversationWorklist,
     needsReplyToday,
     bootstrapReady: true,
-    baselineSelection: baselineSelection && typeof baselineSelection === 'object'
-      ? baselineSelection
-      : null,
+    baselineSelection:
+      baselineSelection && typeof baselineSelection === 'object' ? baselineSelection : null,
   };
 }
 
@@ -269,11 +287,54 @@ function worklistRowMatchesConversationScope(row = {}, scopeSet = new Set()) {
   return false;
 }
 
+const WORKLIST_ENRICHMENT_SIGNAL_FIELDS = [
+  'intent',
+  'workflowLane',
+  'dominantRisk',
+  'priorityLevel',
+  'messageClassification',
+  'recommendedAction',
+  'slaStatus',
+];
+
+function hasWorklistEnrichmentFieldValue(field = '', value = '') {
+  const normalized = normalizeText(value);
+  if (!normalized) return false;
+  if (field === 'intent') {
+    return !['unknown', 'unspecified', 'none'].includes(normalized.toLowerCase());
+  }
+  return true;
+}
+
+function mergeEnrichmentWorklistRow(baseRow = {}, deltaRow = {}) {
+  const merged = { ...asObject(baseRow), ...asObject(deltaRow) };
+  if (!hasWorklistEnrichmentSignals(deltaRow) && hasWorklistEnrichmentSignals(baseRow)) {
+    for (const field of WORKLIST_ENRICHMENT_SIGNAL_FIELDS) {
+      const baseValue = baseRow?.[field];
+      const deltaValue = deltaRow?.[field];
+      if (
+        hasWorklistEnrichmentFieldValue(field, baseValue) &&
+        !hasWorklistEnrichmentFieldValue(field, deltaValue)
+      ) {
+        merged[field] = baseValue;
+      }
+    }
+  }
+  return merged;
+}
+
 function mergeWorklistEnrichmentRows(baseRows = [], deltaRows = [], scopeConversationIds = []) {
   const scopeSet = buildWorklistConversationScopeSet(scopeConversationIds);
   const deltaById = new Map(
     asArray(deltaRows).map((row) => [normalizeWorklistRowConversationId(row), row])
   );
+  const scopedBaseRowsById = new Map();
+  if (scopeSet.size > 0) {
+    for (const row of asArray(baseRows)) {
+      if (!worklistRowMatchesConversationScope(row, scopeSet)) continue;
+      scopedBaseRowsById.set(normalizeWorklistRowConversationId(row), row);
+    }
+  }
   const merged = asArray(baseRows).filter((row) => {
     if (scopeSet.size > 0) {
       return !worklistRowMatchesConversationScope(row, scopeSet);
@@ -282,7 +343,12 @@ function mergeWorklistEnrichmentRows(baseRows = [], deltaRows = [], scopeConvers
   });
   const deltaToApply =
     scopeSet.size > 0
-      ? asArray(deltaRows).filter((row) => worklistRowMatchesConversationScope(row, scopeSet))
+      ? asArray(deltaRows)
+          .filter((row) => worklistRowMatchesConversationScope(row, scopeSet))
+          .map((row) => {
+            const baseRow = scopedBaseRowsById.get(normalizeWorklistRowConversationId(row));
+            return baseRow ? mergeEnrichmentWorklistRow(baseRow, row) : row;
+          })
       : asArray(deltaRows);
   merged.push(...deltaToApply);
   return merged;
@@ -320,7 +386,7 @@ async function resolveLatestWorklistEnrichmentBaseline({
   const entries = await listWorklistEnrichmentEntries({
     capabilityAnalysisStore,
     tenantId,
-    limit: 50,
+    limit: 1000,
   });
   return selectLatestWorklistLegacyBaseline({
     entries,
@@ -347,11 +413,7 @@ function attachMailDocuments(messages = [], { sourceStore = 'unknown' } = {}) {
 
 function attachMailThreadHydration(
   messages = [],
-  {
-    sourceStore = 'unknown',
-    conversationId = '',
-    customerEmail = '',
-  } = {}
+  { sourceStore = 'unknown', conversationId = '', customerEmail = '' } = {}
 ) {
   const threadDocument = buildCanonicalMailThreadDocument(messages, {
     sourceStore,
@@ -398,8 +460,7 @@ async function enrichMessagesWithMailAssets({
         label,
       });
     }
-  } catch (_error) {
-  }
+  } catch (_error) {}
   return safeMessages;
 }
 
@@ -535,7 +596,8 @@ function buildSignaturePreviewDocument({
   senderMailboxId = '',
   emailHtml = '',
 } = {}) {
-  const safeProfileName = normalizeText(profile?.fullName) || normalizeText(profile?.label) || 'Fazli Krasniqi';
+  const safeProfileName =
+    normalizeText(profile?.fullName) || normalizeText(profile?.label) || 'Fazli Krasniqi';
   const safeProfileKey = normalizeText(profile?.key) || 'fazli';
   const safeSenderMailbox = normalizeText(senderMailboxId) || 'fazli@hairtpclinic.com';
   const safeEmailHtml = String(emailHtml || '');
@@ -1102,10 +1164,7 @@ function toWritingIdentityProfilesMap(source = null) {
   return map;
 }
 
-function mergeWritingIdentityProfiles({
-  storedProfiles = {},
-  inputProfiles = {},
-}) {
+function mergeWritingIdentityProfiles({ storedProfiles = {}, inputProfiles = {} }) {
   const merged = {
     ...toWritingIdentityProfilesMap(storedProfiles),
     ...toWritingIdentityProfilesMap(inputProfiles),
@@ -1159,9 +1218,7 @@ function matchesMailboxAddressAlias(target = '', candidates = []) {
 
 function parseMailboxList(raw = null) {
   if (!Array.isArray(raw)) return [];
-  return raw
-    .map((item) => toMailboxAddress(item))
-    .filter(Boolean);
+  return raw.map((item) => toMailboxAddress(item)).filter(Boolean);
 }
 
 function parseMailboxIndexes(rawValue = '', maxItems = 200) {
@@ -1310,7 +1367,9 @@ function normalizeCcoRuntimeHistoryActionTypes(values = []) {
               ? 'conversation_deleted'
               : value;
     if (
-      !['reply_sent', 'reply_later', 'customer_replied', 'conversation_deleted'].includes(actionType) ||
+      !['reply_sent', 'reply_later', 'customer_replied', 'conversation_deleted'].includes(
+        actionType
+      ) ||
       seen.has(actionType)
     ) {
       continue;
@@ -1338,7 +1397,9 @@ function normalizeCcoRuntimeHistoryOutcomeCodes(values = []) {
                 ? 'escalated'
                 : value === 'noresponse' || value === 'ingenrespons'
                   ? 'no_response'
-                  : value === 'closedwithoutaction' || value === 'stängdutanåtgärd' || value === 'stangdutanatgard'
+                  : value === 'closedwithoutaction' ||
+                      value === 'stängdutanåtgärd' ||
+                      value === 'stangdutanatgard'
                     ? 'closed_no_action'
                     : value;
     if (
@@ -1366,7 +1427,10 @@ function toAnalyzeInboxHistoryWindowBounds(
 ) {
   const safeLookbackDays = Math.max(
     30,
-    Math.min(CCO_KONS_HISTORY_MAX_LOOKBACK_DAYS, Number(lookbackDays) || CCO_ANALYZE_HISTORY_SIGNAL_LOOKBACK_DAYS)
+    Math.min(
+      CCO_KONS_HISTORY_MAX_LOOKBACK_DAYS,
+      Number(lookbackDays) || CCO_ANALYZE_HISTORY_SIGNAL_LOOKBACK_DAYS
+    )
   );
   const endMs = Date.now();
   const startMs = endMs - safeLookbackDays * 24 * 60 * 60 * 1000;
@@ -1450,11 +1514,7 @@ function resolveHistorySignalPattern(aggregate = {}) {
     bookingCount > 0 ? 'booking' : '',
   ].filter(Boolean);
   if (activeKinds.length === 0) return 'none';
-  if (
-    complaintCount >= 2 &&
-    complaintCount >= rescheduleCount &&
-    complaintCount >= bookingCount
-  ) {
+  if (complaintCount >= 2 && complaintCount >= rescheduleCount && complaintCount >= bookingCount) {
     return 'complaint';
   }
   if (
@@ -1464,11 +1524,7 @@ function resolveHistorySignalPattern(aggregate = {}) {
   ) {
     return 'reschedule';
   }
-  if (
-    bookingCount >= 2 &&
-    bookingCount >= complaintCount &&
-    bookingCount >= rescheduleCount
-  ) {
+  if (bookingCount >= 2 && bookingCount >= complaintCount && bookingCount >= rescheduleCount) {
     return 'booking';
   }
   if (activeKinds.length >= 2) return 'mixed';
@@ -1480,10 +1536,8 @@ function buildHistorySignalSummarySv({
   mailboxCount = 0,
   recentMessageCount = 0,
 } = {}) {
-  const mailboxPhrase =
-    mailboxCount > 1 ? `över ${mailboxCount} mailboxar` : 'i samma mailbox';
-  const recentPhrase =
-    recentMessageCount >= 3 ? ` (${recentMessageCount} mail senaste tiden)` : '';
+  const mailboxPhrase = mailboxCount > 1 ? `över ${mailboxCount} mailboxar` : 'i samma mailbox';
+  const recentPhrase = recentMessageCount >= 3 ? ` (${recentMessageCount} mail senaste tiden)` : '';
   if (pattern === 'complaint') {
     return `Historik visar återkommande friktion ${mailboxPhrase}${recentPhrase}.`;
   }
@@ -1576,7 +1630,13 @@ function classifyHistoryOutcomeBucket(outcomeCode = '') {
   return 'neutral';
 }
 
-function updateHistoryDecisionStat(index = {}, key = '', label = '', bucket = 'neutral', recordedAt = null) {
+function updateHistoryDecisionStat(
+  index = {},
+  key = '',
+  label = '',
+  bucket = 'neutral',
+  recordedAt = null
+) {
   const safeKey = normalizeText(key);
   if (!safeKey) return;
   const safeBucket =
@@ -1603,18 +1663,24 @@ function updateHistoryDecisionStat(index = {}, key = '', label = '', bucket = 'n
 
 function pickTopHistoryDecisionStat(index = {}, bucket = 'positive') {
   const bucketField =
-    bucket === 'negative' ? 'negativeCount' : bucket === 'neutral' ? 'neutralCount' : 'positiveCount';
-  return Object.values(index).sort((left, right) => {
-    if ((right[bucketField] || 0) !== (left[bucketField] || 0)) {
-      return (right[bucketField] || 0) - (left[bucketField] || 0);
-    }
-    if ((right.totalCount || 0) !== (left.totalCount || 0)) {
-      return (right.totalCount || 0) - (left.totalCount || 0);
-    }
-    const byRecordedAt = compareIsoDesc(left.lastRecordedAt, right.lastRecordedAt);
-    if (byRecordedAt !== 0) return byRecordedAt;
-    return String(left.label || '').localeCompare(String(right.label || ''));
-  })[0] || null;
+    bucket === 'negative'
+      ? 'negativeCount'
+      : bucket === 'neutral'
+        ? 'neutralCount'
+        : 'positiveCount';
+  return (
+    Object.values(index).sort((left, right) => {
+      if ((right[bucketField] || 0) !== (left[bucketField] || 0)) {
+        return (right[bucketField] || 0) - (left[bucketField] || 0);
+      }
+      if ((right.totalCount || 0) !== (left.totalCount || 0)) {
+        return (right.totalCount || 0) - (left.totalCount || 0);
+      }
+      const byRecordedAt = compareIsoDesc(left.lastRecordedAt, right.lastRecordedAt);
+      if (byRecordedAt !== 0) return byRecordedAt;
+      return String(left.label || '').localeCompare(String(right.label || ''));
+    })[0] || null
+  );
 }
 
 function pickDominantNegativeHistoryOutcome(outcomeCounts = {}) {
@@ -1656,7 +1722,12 @@ function buildHistoryCalibrationSummarySv({
 } = {}) {
   const positiveModeLabel = formatHistoryCalibrationModeSv(preferredMode);
   const negativeOutcomeLabel = formatHistoryNegativeOutcomeSv(dominantFailureOutcome);
-  if (positiveModeLabel && positiveOutcomeCount >= 2 && negativeOutcomeLabel && negativeOutcomeCount > 0) {
+  if (
+    positiveModeLabel &&
+    positiveOutcomeCount >= 2 &&
+    negativeOutcomeLabel &&
+    negativeOutcomeCount > 0
+  ) {
     return `Utfallshistorik: ${positiveModeLabel} gav bäst resultat, men ${negativeOutcomeLabel} återkommer i liknande trådar.`;
   }
   if (positiveModeLabel && positiveOutcomeCount >= 2) {
@@ -1794,11 +1865,13 @@ function applyHistoryOutcome(aggregate = null, outcome = {}) {
       Date.parse(recordedAt) >= Date.parse(safeAggregate.latestOutcomeAt))
   ) {
     safeAggregate.latestOutcomeCode = outcomeCode;
-    safeAggregate.latestOutcomeLabel = normalizeText(outcome?.outcomeLabel || outcome?.label) || null;
+    safeAggregate.latestOutcomeLabel =
+      normalizeText(outcome?.outcomeLabel || outcome?.label) || null;
     safeAggregate.latestOutcomeAt = recordedAt;
   } else if (!safeAggregate.latestOutcomeCode) {
     safeAggregate.latestOutcomeCode = outcomeCode;
-    safeAggregate.latestOutcomeLabel = normalizeText(outcome?.outcomeLabel || outcome?.label) || null;
+    safeAggregate.latestOutcomeLabel =
+      normalizeText(outcome?.outcomeLabel || outcome?.label) || null;
   }
 }
 
@@ -1811,10 +1884,19 @@ function finalizeHistorySignal(aggregate = {}) {
   const outcomeCode = normalizeHistoryOutcomeCode(aggregate.latestOutcomeCode);
   const outcomeSummary = buildHistoryOutcomeSummarySv(outcomeCode);
   const outcomeActionCue = buildHistoryOutcomeActionCueSv(outcomeCode);
-  const preferredModeCandidate = pickTopHistoryDecisionStat(aggregate.preferredModeStats, 'positive');
-  const preferredActionCandidate = pickTopHistoryDecisionStat(aggregate.recommendedActionStats, 'positive');
+  const preferredModeCandidate = pickTopHistoryDecisionStat(
+    aggregate.preferredModeStats,
+    'positive'
+  );
+  const preferredActionCandidate = pickTopHistoryDecisionStat(
+    aggregate.recommendedActionStats,
+    'positive'
+  );
   const dominantFailureOutcome = pickDominantNegativeHistoryOutcome(aggregate.outcomeCounts || {});
-  const dominantFailureRiskCandidate = pickTopHistoryDecisionStat(aggregate.dominantRiskStats, 'negative');
+  const dominantFailureRiskCandidate = pickTopHistoryDecisionStat(
+    aggregate.dominantRiskStats,
+    'negative'
+  );
   const preferredMode =
     preferredModeCandidate && preferredModeCandidate.positiveCount > 0
       ? preferredModeCandidate
@@ -1843,7 +1925,13 @@ function finalizeHistorySignal(aggregate = {}) {
   if (!hasOutcomeSignal && messageCount < 2 && mailboxCount <= 1 && recentMessageCount < 3) {
     if (!hasCalibrationSignal) return null;
   }
-  if (!hasOutcomeSignal && !hasCalibrationSignal && pattern === 'none' && mailboxCount <= 1 && recentMessageCount < 3) {
+  if (
+    !hasOutcomeSignal &&
+    !hasCalibrationSignal &&
+    pattern === 'none' &&
+    mailboxCount <= 1 &&
+    recentMessageCount < 3
+  ) {
     return null;
   }
   const summary = buildHistorySignalSummarySv({
@@ -1943,13 +2031,17 @@ async function buildAnalyzeInboxHistorySignalIndex({
       }
       if (
         normalizeText(message?.sentAt) &&
-        (!aggregate.latestMessageAt || Date.parse(message.sentAt) > Date.parse(aggregate.latestMessageAt))
+        (!aggregate.latestMessageAt ||
+          Date.parse(message.sentAt) > Date.parse(aggregate.latestMessageAt))
       ) {
         aggregate.latestMessageAt = message.sentAt;
       }
       applyHistorySignalPatternCounts(
         aggregate,
-        [message?.subject, message?.bodyPreview].map((item) => normalizeText(item)).filter(Boolean).join(' ')
+        [message?.subject, message?.bodyPreview]
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+          .join(' ')
       );
       aggregatesByCustomer.set(customerEmail, aggregate);
     }
@@ -2010,7 +2102,8 @@ async function augmentAnalyzeInboxSnapshotWithHistorySignals({
     ...safeSnapshot,
     conversations: conversations.map((conversation) => {
       const customerEmail =
-        resolveAnalyzeInboxCustomerEmail(conversation) || toMailboxAddress(conversation?.customerEmail);
+        resolveAnalyzeInboxCustomerEmail(conversation) ||
+        toMailboxAddress(conversation?.customerEmail);
       if (!customerEmail) return conversation;
       const historySignals = historySignalIndex.get(customerEmail);
       if (!historySignals) return conversation;
@@ -2045,7 +2138,9 @@ function toMailboxAllowlistSet(rawValue = '') {
 function resolveGraphReadAllowlistConfig(maxItems = 500) {
   const explicitAllowlist = parseMailboxIds(process.env.ARCANA_MAILBOX_ALLOWLIST, maxItems);
   if (explicitAllowlist.length > 0) {
-    const sanitized = explicitAllowlist.filter((item) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(item));
+    const sanitized = explicitAllowlist.filter((item) =>
+      CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(item)
+    );
     return {
       source: 'explicit',
       mailboxIds: sanitized.slice(0, maxItems),
@@ -2056,7 +2151,9 @@ function resolveGraphReadAllowlistConfig(maxItems = 500) {
     maxItems
   );
   if (configuredDefaultAllowlist.length > 0) {
-    const sanitized = configuredDefaultAllowlist.filter((item) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(item));
+    const sanitized = configuredDefaultAllowlist.filter((item) =>
+      CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(item)
+    );
     return {
       source: 'configured_default',
       mailboxIds: sanitized.slice(0, maxItems),
@@ -2098,17 +2195,17 @@ function toGraphReadOptionsFromEnv() {
     ? true
     : toBoolean(process.env.ARCANA_GRAPH_FULL_TENANT, false);
   const userScope = forceFullTenantAllowlist
-      ? 'all'
-      : normalizeGraphUserScope(
-          process.env.ARCANA_GRAPH_USER_SCOPE,
-          fullTenant ? 'all' : 'single'
-        );
+    ? 'all'
+    : normalizeGraphUserScope(process.env.ARCANA_GRAPH_USER_SCOPE, fullTenant ? 'all' : 'single');
   const configuredMailboxIds = parseMailboxIds(process.env.ARCANA_GRAPH_MAILBOX_IDS);
   const mailboxIds = allowlistMode
     ? allowlistMailboxIds.slice()
     : mergeUniqueMailboxIds(allowlistMailboxIds, configuredMailboxIds);
-  const defaultMailboxIndexes =
-    forceFullTenantAllowlist ? '' : (fullTenant && userScope === 'all' ? '1,2,3,5,8' : '');
+  const defaultMailboxIndexes = forceFullTenantAllowlist
+    ? ''
+    : fullTenant && userScope === 'all'
+      ? '1,2,3,5,8'
+      : '';
   const maxMessages = clampInteger(process.env.ARCANA_GRAPH_MAX_MESSAGES, 1, 200, 100);
   const maxMessagesPerUser = clampInteger(
     process.env.ARCANA_GRAPH_MAX_MESSAGES_PER_USER,
@@ -2134,12 +2231,7 @@ function toGraphReadOptionsFromEnv() {
       200,
       Math.max(1, maxMessages - splitWindow)
     ),
-    maxSentMessages: clampInteger(
-      process.env.ARCANA_GRAPH_MAX_SENT_MESSAGES,
-      1,
-      200,
-      splitWindow
-    ),
+    maxSentMessages: clampInteger(process.env.ARCANA_GRAPH_MAX_SENT_MESSAGES, 1, 200, splitWindow),
     includeRead: toBoolean(process.env.ARCANA_GRAPH_INCLUDE_READ, false),
     fullTenant,
     allowlistMode,
@@ -2160,42 +2252,12 @@ function toGraphReadOptionsFromEnv() {
       200,
       splitWindowPerUser
     ),
-    mailboxTimeoutMs: clampInteger(
-      process.env.ARCANA_GRAPH_MAILBOX_TIMEOUT_MS,
-      1000,
-      15000,
-      5000
-    ),
-    runTimeoutMs: clampInteger(
-      process.env.ARCANA_GRAPH_RUN_TIMEOUT_MS,
-      5000,
-      120000,
-      30000
-    ),
-    maxMailboxErrors: clampInteger(
-      process.env.ARCANA_GRAPH_MAX_MAILBOX_ERRORS,
-      1,
-      20,
-      5
-    ),
-    requestMaxRetries: clampInteger(
-      process.env.ARCANA_GRAPH_REQUEST_MAX_RETRIES,
-      0,
-      6,
-      2
-    ),
-    retryBaseDelayMs: clampInteger(
-      process.env.ARCANA_GRAPH_RETRY_BASE_DELAY_MS,
-      100,
-      10000,
-      500
-    ),
-    retryMaxDelayMs: clampInteger(
-      process.env.ARCANA_GRAPH_RETRY_MAX_DELAY_MS,
-      200,
-      30000,
-      5000
-    ),
+    mailboxTimeoutMs: clampInteger(process.env.ARCANA_GRAPH_MAILBOX_TIMEOUT_MS, 1000, 15000, 5000),
+    runTimeoutMs: clampInteger(process.env.ARCANA_GRAPH_RUN_TIMEOUT_MS, 5000, 120000, 30000),
+    maxMailboxErrors: clampInteger(process.env.ARCANA_GRAPH_MAX_MAILBOX_ERRORS, 1, 20, 5),
+    requestMaxRetries: clampInteger(process.env.ARCANA_GRAPH_REQUEST_MAX_RETRIES, 0, 6, 2),
+    retryBaseDelayMs: clampInteger(process.env.ARCANA_GRAPH_RETRY_BASE_DELAY_MS, 100, 10000, 500),
+    retryMaxDelayMs: clampInteger(process.env.ARCANA_GRAPH_RETRY_MAX_DELAY_MS, 200, 30000, 5000),
     maxPagesPerCollection: clampInteger(
       process.env.ARCANA_GRAPH_PAGINATION_MAX_PAGES,
       1,
@@ -2305,10 +2367,9 @@ async function hydrateAnalyzeInboxInput({
     const historyMailboxIds =
       requestedMailboxIds.length > 0
         ? requestedMailboxIds
-        : normalizeMailboxIdList(
-            asArray(safeSnapshot?.metadata?.sourceMailboxIds),
-            20
-          ).filter((mailboxId) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(mailboxId));
+        : normalizeMailboxIdList(asArray(safeSnapshot?.metadata?.sourceMailboxIds), 20).filter(
+            (mailboxId) => CCO_GRAPH_READ_LOCKED_ALLOWLIST_SET.has(mailboxId)
+          );
     const augmentedSnapshot = await augmentAnalyzeInboxSnapshotWithHistorySignals({
       tenantId,
       systemStateSnapshot: safeSnapshot,
@@ -2342,10 +2403,7 @@ async function hydrateAnalyzeInboxInput({
       : {}),
     ...asObject(graphReadOptionsOverride),
   };
-  if (
-    requestedConversationIds.length > 0 &&
-    !Array.isArray(graphReadOptions.conversationIds)
-  ) {
+  if (requestedConversationIds.length > 0 && !Array.isArray(graphReadOptions.conversationIds)) {
     graphReadOptions.conversationIds = requestedConversationIds.slice();
   }
   const skipGraphSnapshotCache =
@@ -2449,9 +2507,7 @@ async function hydrateAnalyzeInboxInput({
   });
 
   try {
-    const graphSnapshot = asObject(
-      await graphReadConnector.fetchInboxSnapshot(graphReadOptions)
-    );
+    const graphSnapshot = asObject(await graphReadConnector.fetchInboxSnapshot(graphReadOptions));
     const graphTimestamps = asObject(graphSnapshot.timestamps);
     const mergedSnapshot = {
       ...safeSnapshot,
@@ -2552,12 +2608,14 @@ async function hydrateAnalyzeInboxInput({
     });
 
     if (authStore && typeof authStore.addAuditEvent === 'function') {
-      const answeredConversations = asArray(augmentedSnapshot.conversations).filter((conversation) => {
-        const inboundAt = toIso(conversation?.lastInboundAt);
-        const outboundAt = toIso(conversation?.lastOutboundAt);
-        if (!inboundAt || !outboundAt) return false;
-        return Date.parse(outboundAt) >= Date.parse(inboundAt);
-      });
+      const answeredConversations = asArray(augmentedSnapshot.conversations).filter(
+        (conversation) => {
+          const inboundAt = toIso(conversation?.lastInboundAt);
+          const outboundAt = toIso(conversation?.lastOutboundAt);
+          if (!inboundAt || !outboundAt) return false;
+          return Date.parse(outboundAt) >= Date.parse(inboundAt);
+        }
+      );
       for (const conversation of answeredConversations.slice(0, 200)) {
         await authStore.addAuditEvent({
           tenantId,
@@ -2702,8 +2760,7 @@ async function hydrateGenerateTaskPlanInput({
       systemStateSnapshot: {
         openReviews:
           explicitSnapshotOverride.openReviews || inputSnapshotOverride.openReviews || [],
-        incidents:
-          explicitSnapshotOverride.incidents || inputSnapshotOverride.incidents || [],
+        incidents: explicitSnapshotOverride.incidents || inputSnapshotOverride.incidents || [],
         kpi: Object.keys(explicitSnapshotOverride.kpi).length
           ? explicitSnapshotOverride.kpi
           : inputSnapshotOverride.kpi,
@@ -2774,25 +2831,25 @@ async function hydrateGenerateTaskPlanInput({
     input: normalizedInput,
     systemStateSnapshot: {
       openReviews:
-      explicitSnapshotOverride.openReviews ||
-      inputSnapshotOverride.openReviews ||
-      (Array.isArray(defaultOpenReviews) ? defaultOpenReviews : []).map(toOpenReviewSnapshot),
+        explicitSnapshotOverride.openReviews ||
+        inputSnapshotOverride.openReviews ||
+        (Array.isArray(defaultOpenReviews) ? defaultOpenReviews : []).map(toOpenReviewSnapshot),
       incidents:
-      explicitSnapshotOverride.incidents ||
-      inputSnapshotOverride.incidents ||
-      (Array.isArray(defaultIncidents) ? defaultIncidents : []).map(toIncidentSnapshot),
+        explicitSnapshotOverride.incidents ||
+        inputSnapshotOverride.incidents ||
+        (Array.isArray(defaultIncidents) ? defaultIncidents : []).map(toIncidentSnapshot),
       kpi:
-      Object.keys(explicitSnapshotOverride.kpi).length > 0
-        ? explicitSnapshotOverride.kpi
-        : (Object.keys(inputSnapshotOverride.kpi).length > 0
-          ? inputSnapshotOverride.kpi
-          : kpiDefault),
+        Object.keys(explicitSnapshotOverride.kpi).length > 0
+          ? explicitSnapshotOverride.kpi
+          : Object.keys(inputSnapshotOverride.kpi).length > 0
+            ? inputSnapshotOverride.kpi
+            : kpiDefault,
       latestTemplateChanges:
-      explicitSnapshotOverride.latestTemplateChanges ||
-      inputSnapshotOverride.latestTemplateChanges ||
-      (Array.isArray(latestTemplates) ? latestTemplates : [])
-        .slice(0, 25)
-        .map(toTemplateChangeSnapshot),
+        explicitSnapshotOverride.latestTemplateChanges ||
+        inputSnapshotOverride.latestTemplateChanges ||
+        (Array.isArray(latestTemplates) ? latestTemplates : [])
+          .slice(0, 25)
+          .map(toTemplateChangeSnapshot),
     },
   };
 }
@@ -2813,9 +2870,7 @@ async function hydrateSummarizeIncidentsInput({
     normalizedInput.debug = true;
   }
 
-  const snapshotIncidents = Array.isArray(safeSnapshot.incidents)
-    ? safeSnapshot.incidents
-    : null;
+  const snapshotIncidents = Array.isArray(safeSnapshot.incidents) ? safeSnapshot.incidents : null;
   const snapshotSlaStatus =
     safeSnapshot.slaStatus && typeof safeSnapshot.slaStatus === 'object'
       ? safeSnapshot.slaStatus
@@ -3017,13 +3072,20 @@ async function hydrateCmoSystemSnapshot({
   systemStateSnapshot = {},
 } = {}) {
   let nextSnapshot =
-    systemStateSnapshot && typeof systemStateSnapshot === 'object' ? { ...systemStateSnapshot } : {};
+    systemStateSnapshot && typeof systemStateSnapshot === 'object'
+      ? { ...systemStateSnapshot }
+      : {};
   const loadedConfig = config && typeof config === 'object' ? config : require('../config');
-  const appConfig = loadedConfig.config && typeof loadedConfig.config === 'object'
-    ? loadedConfig.config
-    : loadedConfig;
+  const appConfig =
+    loadedConfig.config && typeof loadedConfig.config === 'object'
+      ? loadedConfig.config
+      : loadedConfig;
 
-  if (templateStore && typeof templateStore.listTemplates === 'function' && !Array.isArray(nextSnapshot.templates)) {
+  if (
+    templateStore &&
+    typeof templateStore.listTemplates === 'function' &&
+    !Array.isArray(nextSnapshot.templates)
+  ) {
     const templates = await templateStore.listTemplates({ tenantId, includeVersions: false });
     nextSnapshot = {
       ...nextSnapshot,
@@ -3055,7 +3117,9 @@ async function hydrateCmoSystemSnapshot({
           marketingClaimsWhitelist: await marketingClaimsWhitelistStore.listClaims(),
         };
       } else {
-        const { createMarketingClaimsWhitelistStore } = require('../ops/marketingClaimsWhitelistStore');
+        const {
+          createMarketingClaimsWhitelistStore,
+        } = require('../ops/marketingClaimsWhitelistStore');
         const store = await createMarketingClaimsWhitelistStore({
           filePath: appConfig.marketingClaimsWhitelistPath,
         });
@@ -3258,7 +3322,9 @@ async function maybeHydrateAgentPayload({
     const incidentSnapshot = asObject(incidentPayload.systemStateSnapshot);
     const taskPlanSnapshot = asObject(taskPlanPayload.systemStateSnapshot);
     const incidents = Array.isArray(incidentSnapshot.incidents) ? incidentSnapshot.incidents : [];
-    const openReviews = Array.isArray(taskPlanSnapshot.openReviews) ? taskPlanSnapshot.openReviews : [];
+    const openReviews = Array.isArray(taskPlanSnapshot.openReviews)
+      ? taskPlanSnapshot.openReviews
+      : [];
     const latestTemplateChanges = Array.isArray(taskPlanSnapshot.latestTemplateChanges)
       ? taskPlanSnapshot.latestTemplateChanges
       : [];
@@ -3276,9 +3342,15 @@ async function maybeHydrateAgentPayload({
       sourceGeneratedAt: normalizeText(baseTimestamps.sourceGeneratedAt) || null,
       version: normalizeText(baseTimestamps.version) || baseSnapshotVersion,
     };
-    const effectiveTimeframeDays = Math.max(1, Math.min(90, toNumber(incidentInput.timeframeDays, 14)));
+    const effectiveTimeframeDays = Math.max(
+      1,
+      Math.min(90, toNumber(incidentInput.timeframeDays, 14))
+    );
     const incidentTrend7d = toIncidentWindowCounts(incidents, 7);
-    const incidentTrend14d = toIncidentWindowCounts(incidents, Math.max(14, effectiveTimeframeDays));
+    const incidentTrend14d = toIncidentWindowCounts(
+      incidents,
+      Math.max(14, effectiveTimeframeDays)
+    );
     const riskTrend7d = toReviewWindowCounts(openReviews, 7);
     const riskTrend14d = toReviewWindowCounts(openReviews, Math.max(14, effectiveTimeframeDays));
     const incidentAgeBuckets = toIncidentAgeBuckets(incidents);
@@ -3305,9 +3377,10 @@ async function maybeHydrateAgentPayload({
         timestamps,
         openReviews,
         latestTemplateChanges,
-        kpi: taskPlanSnapshot.kpi && typeof taskPlanSnapshot.kpi === 'object'
-          ? taskPlanSnapshot.kpi
-          : {},
+        kpi:
+          taskPlanSnapshot.kpi && typeof taskPlanSnapshot.kpi === 'object'
+            ? taskPlanSnapshot.kpi
+            : {},
         incidentTrend7d,
         incidentTrend14d,
         riskTrend7d,
@@ -3385,9 +3458,7 @@ function toCorrelationId(req) {
 
 function toIdempotencyKey(req) {
   return (
-    normalizeText(req.get('x-idempotency-key')) ||
-    normalizeText(req.body?.idempotencyKey) ||
-    null
+    normalizeText(req.get('x-idempotency-key')) || normalizeText(req.body?.idempotencyKey) || null
   );
 }
 
@@ -3439,8 +3510,7 @@ function toTenantId(req) {
 function toGatewayBlockedResponse(gatewayResult = {}) {
   return (
     gatewayResult.safe_response || {
-      error:
-        'Capability-resultatet blockerades av risk/policy. Granska körningen i riskpanelen.',
+      error: 'Capability-resultatet blockerades av risk/policy. Granska körningen i riskpanelen.',
     }
   );
 }
@@ -3459,9 +3529,7 @@ function toErrorPayload(error) {
 }
 
 function isBlockedDecision(gatewayResult = {}) {
-  return (
-    gatewayResult.decision === 'blocked' || gatewayResult.decision === 'critical_escalate'
-  );
+  return gatewayResult.decision === 'blocked' || gatewayResult.decision === 'critical_escalate';
 }
 
 function isRoleAllowed(req) {
@@ -3632,9 +3700,7 @@ function toSinceWindow(rawValue) {
 
   const amount = clampInteger(match[1], 1, match[2] === 'd' ? 90 : 24 * 30, 7);
   const unit = match[2] === 'h' ? 'h' : 'd';
-  const durationMs = unit === 'h'
-    ? amount * 60 * 60 * 1000
-    : amount * 24 * 60 * 60 * 1000;
+  const durationMs = unit === 'h' ? amount * 60 * 60 * 1000 : amount * 24 * 60 * 60 * 1000;
   const startAtMs = Date.now() - durationMs;
   return {
     since: `${amount}${unit}`,
@@ -3698,9 +3764,11 @@ function toSlaAgeHours(value) {
 }
 
 function buildLatestCcoSprintFeedback({ startEvents = [], completeEvents = [] } = {}) {
-  const latestComplete = (Array.isArray(completeEvents) ? completeEvents : [])
-    .slice()
-    .sort((left, right) => String(right?.ts || '').localeCompare(String(left?.ts || '')))[0] || null;
+  const latestComplete =
+    (Array.isArray(completeEvents) ? completeEvents : [])
+      .slice()
+      .sort((left, right) => String(right?.ts || '').localeCompare(String(left?.ts || '')))[0] ||
+    null;
   if (!latestComplete) return null;
 
   const completeMeta = asObject(latestComplete.metadata);
@@ -3741,13 +3809,13 @@ async function runCcoSprintEventHandler({ req, res, authStore }) {
 
   const rawPayload = asObject(req.body);
   const input = asObject(
-    rawPayload.input && typeof rawPayload.input === 'object'
-      ? rawPayload.input
-      : rawPayload
+    rawPayload.input && typeof rawPayload.input === 'object' ? rawPayload.input : rawPayload
   );
   const eventType = toCcoSprintEventType(input.eventType || input.type || input.action);
   if (!eventType) {
-    return res.status(422).json({ error: 'eventType måste vara start, item_completed eller complete.' });
+    return res
+      .status(422)
+      .json({ error: 'eventType måste vara start, item_completed eller complete.' });
   }
 
   const sprintId = normalizeText(input.sprintId);
@@ -3833,9 +3901,7 @@ async function runCcoUsageEventHandler({ req, res, authStore, ccoHistoryStore = 
 
   const rawPayload = asObject(req.body);
   const input = asObject(
-    rawPayload.input && typeof rawPayload.input === 'object'
-      ? rawPayload.input
-      : rawPayload
+    rawPayload.input && typeof rawPayload.input === 'object' ? rawPayload.input : rawPayload
   );
   const eventType = toCcoUsageEventType(input.eventType || input.type || input.action);
   if (!eventType) {
@@ -3919,7 +3985,9 @@ async function runCcoUsageEventHandler({ req, res, authStore, ccoHistoryStore = 
     };
   } else if (eventType === 'indicator_override_cleared') {
     if (!conversationId) {
-      return res.status(422).json({ error: 'conversationId krävs för indicator_override_cleared.' });
+      return res
+        .status(422)
+        .json({ error: 'conversationId krävs för indicator_override_cleared.' });
     }
     action = 'cco.indicator.override.cleared';
     targetType = 'cco_conversation';
@@ -4019,9 +4087,10 @@ async function runCcoUsageEventHandler({ req, res, authStore, ccoHistoryStore = 
     const mailboxId = toMailboxAddress(input.mailboxId || input.mailboxAddress);
     const customerEmail = toMailboxAddress(input.customerEmail);
     const selectedActionType = normalizeHistoryActionType(eventType);
-    const recordedAt = toIso(
-      input.recordedAt || input.handledAt || input.deletedAt || input.replyAt || input.timestamp
-    ) || timestamp;
+    const recordedAt =
+      toIso(
+        input.recordedAt || input.handledAt || input.deletedAt || input.replyAt || input.timestamp
+      ) || timestamp;
     const selectedMode = normalizeHistoryDraftMode(input.selectedMode);
     const recommendedMode = normalizeHistoryDraftMode(input.recommendedMode);
     const priorityLevel = normalizeHistoryPriorityLevel(input.priorityLevel);
@@ -4207,8 +4276,7 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
   }).length;
   const highOver24hCount = unresolved.filter((row) => {
     return (
-      toPriorityLevel(row?.priorityLevel) === 'High' &&
-      toSlaAgeHours(row?.hoursSinceInbound) >= 24
+      toPriorityLevel(row?.priorityLevel) === 'High' && toSlaAgeHours(row?.hoursSinceInbound) >= 24
     );
   }).length;
   const unansweredCount = unresolved.length;
@@ -4231,7 +4299,9 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
       (event) => normalizeText(event?.action).toLowerCase() === 'cco.draft.mode_selected'
     );
     if (!modeEvents.length) return 0;
-    const followed = modeEvents.filter((event) => event?.metadata?.ignoredRecommended !== true).length;
+    const followed = modeEvents.filter(
+      (event) => event?.metadata?.ignoredRecommended !== true
+    ).length;
     return clampInteger((followed / modeEvents.length) * 100, 0, 100, 0) / 100;
   })();
   const activeDaySeed = new Set();
@@ -4302,7 +4372,7 @@ async function readCcoMetricsHandler({ req, res, authStore, capabilityAnalysisSt
     const delta = Math.abs(toNumber(point.score, 0) - toNumber(previous?.score, 0));
     return {
       ts: point.ts,
-      index: Number((Math.min(1, delta / 20)).toFixed(3)),
+      index: Number(Math.min(1, delta / 20).toFixed(3)),
     };
   });
   const recoveryState = evaluateRecovery({
@@ -4379,15 +4449,23 @@ function toCcoRuntimeStatusHandler({
     const tenantId = toTenantId(req);
     const graphReadOptions = toGraphReadOptionsFromEnv();
     const normalizedAllowlistMailboxIds = asArray(graphReadOptions.allowlistMailboxIds)
-      .map((mailboxId) => normalizeMailboxAddress(mailboxId) || normalizeText(mailboxId).toLowerCase())
+      .map(
+        (mailboxId) => normalizeMailboxAddress(mailboxId) || normalizeText(mailboxId).toLowerCase()
+      )
       .filter(Boolean);
-    const normalizedSendAllowlistMailboxIds = parseMailboxIds(process.env.ARCANA_GRAPH_SEND_ALLOWLIST)
-      .map((mailboxId) => normalizeMailboxAddress(mailboxId) || normalizeText(mailboxId).toLowerCase())
+    const normalizedSendAllowlistMailboxIds = parseMailboxIds(
+      process.env.ARCANA_GRAPH_SEND_ALLOWLIST
+    )
+      .map(
+        (mailboxId) => normalizeMailboxAddress(mailboxId) || normalizeText(mailboxId).toLowerCase()
+      )
       .filter(Boolean);
     const normalizedDeleteAllowlistMailboxIds = parseMailboxIds(
       process.env.ARCANA_CCO_DELETE_ALLOWLIST || process.env.ARCANA_GRAPH_SEND_ALLOWLIST
     )
-      .map((mailboxId) => normalizeMailboxAddress(mailboxId) || normalizeText(mailboxId).toLowerCase())
+      .map(
+        (mailboxId) => normalizeMailboxAddress(mailboxId) || normalizeText(mailboxId).toLowerCase()
+      )
       .filter(Boolean);
     const tenantSettings =
       ccoSettingsStore && typeof ccoSettingsStore.getTenantSettings === 'function'
@@ -4415,7 +4493,10 @@ function toCcoRuntimeStatusHandler({
         'contact@hairtpclinic.com',
       displayEmail:
         normalizeMailboxAddress(
-          profile?.displayEmail || profile?.visibleEmail || profile?.email || profile?.senderMailboxId
+          profile?.displayEmail ||
+            profile?.visibleEmail ||
+            profile?.email ||
+            profile?.senderMailboxId
         ) ||
         normalizeMailboxAddress(profile?.email || profile?.senderMailboxId) ||
         'contact@hairtpclinic.com',
@@ -4431,14 +4512,16 @@ function toCcoRuntimeStatusHandler({
     const senderMailboxOptions = asArray(mailboxSettingsDocument.senderMailboxOptions)
       .map((mailboxId) => normalizeMailboxAddress(mailboxId))
       .filter(Boolean);
-    const mailboxCapabilities = asArray(mailboxSettingsDocument.mailboxCapabilities).map((capability) => ({
-      ...capability,
-      id: normalizeMailboxAddress(capability?.id || capability?.email),
-      email: normalizeMailboxAddress(capability?.email || capability?.id),
-      label: normalizeText(capability?.label) || 'Mailbox',
-      signatureProfileId: normalizeText(capability?.signatureProfileId) || null,
-      signatureProfileLabel: normalizeText(capability?.signatureProfileLabel) || null,
-    }));
+    const mailboxCapabilities = asArray(mailboxSettingsDocument.mailboxCapabilities).map(
+      (capability) => ({
+        ...capability,
+        id: normalizeMailboxAddress(capability?.id || capability?.email),
+        email: normalizeMailboxAddress(capability?.email || capability?.id),
+        label: normalizeText(capability?.label) || 'Mailbox',
+        signatureProfileId: normalizeText(capability?.signatureProfileId) || null,
+        signatureProfileLabel: normalizeText(capability?.signatureProfileLabel) || null,
+      })
+    );
     const runtimeMode = graphReadEnabled === true ? 'live' : 'offline_history';
 
     let latestAnalysisEntry = null;
@@ -4524,6 +4607,7 @@ function toCcoRuntimeStatusHandler({
         maxInboxMessages: toNumber(graphReadOptions.maxInboxMessages, 0),
         maxSentMessages: toNumber(graphReadOptions.maxSentMessages, 0),
       },
+      resend: getResendRuntimeSummary(),
       latestCounts: {
         worklistCount: conversationWorklist.length,
         inboundFeedCount: inboundFeed.length,
@@ -4556,6 +4640,19 @@ function toCcoRuntimeHistoryQuery(query = {}) {
     CCO_KONS_HISTORY_MAX_LOOKBACK_DAYS,
     CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS
   );
+  const hasLimit =
+    safeQuery.limit !== undefined && safeQuery.limit !== null && safeQuery.limit !== '';
+  const limit = hasLimit
+    ? clampInteger(
+        safeQuery.limit,
+        1,
+        CCO_RUNTIME_HISTORY_MAX_LIMIT,
+        CCO_RUNTIME_HISTORY_DEFAULT_THREAD_LIMIT
+      )
+    : null;
+  const hasOffset =
+    safeQuery.offset !== undefined && safeQuery.offset !== null && safeQuery.offset !== '';
+  const offset = hasOffset ? clampInteger(safeQuery.offset, 0, Number.MAX_SAFE_INTEGER, 0) : 0;
 
   if (requestedCustomerEmail && !customerEmail) {
     return {
@@ -4580,6 +4677,8 @@ function toCcoRuntimeHistoryQuery(query = {}) {
     conversationId,
     includeBodyHtml,
     lookbackDays,
+    limit,
+    offset,
   };
 }
 
@@ -4608,21 +4707,27 @@ function collectHistoryMessages(snapshot = {}) {
         subject: normalizeText(message.subject) || subject,
         customerEmail,
         sentAt: toIso(message.sentAt),
-        direction: normalizeText(message.direction).toLowerCase() === 'outbound' ? 'outbound' : 'inbound',
+        direction:
+          normalizeText(message.direction).toLowerCase() === 'outbound' ? 'outbound' : 'inbound',
         bodyPreview: normalizeText(message.bodyPreview) || '',
         senderEmail: toMailboxAddress(message.senderEmail) || null,
         senderName: normalizeText(message.senderName) || null,
-        recipients: asArray(message.recipients).map((item) => toMailboxAddress(item)).filter(Boolean),
+        recipients: asArray(message.recipients)
+          .map((item) => toMailboxAddress(item))
+          .filter(Boolean),
         replyToRecipients: asArray(message.replyToRecipients)
           .map((item) => toMailboxAddress(item))
           .filter(Boolean),
         internetMessageId: normalizeText(message.internetMessageId).toLowerCase() || null,
         counterpartyEmail:
-          toMailboxAddress(message.counterpartyEmail || message.customerEmail || message.senderEmail) ||
-          null,
+          toMailboxAddress(
+            message.counterpartyEmail || message.customerEmail || message.senderEmail
+          ) || null,
         mailboxId: toMailboxAddress(message.mailboxId || conversation.mailboxId) || null,
-        mailboxAddress: toMailboxAddress(message.mailboxAddress || conversation.mailboxAddress) || null,
-        userPrincipalName: toMailboxAddress(message.userPrincipalName || conversation.userPrincipalName) || null,
+        mailboxAddress:
+          toMailboxAddress(message.mailboxAddress || conversation.mailboxAddress) || null,
+        userPrincipalName:
+          toMailboxAddress(message.userPrincipalName || conversation.userPrincipalName) || null,
       });
     }
   }
@@ -4642,6 +4747,54 @@ function filterHistoryMessages(messages = [], { conversationId = '', customerEma
     }
     return false;
   });
+}
+
+const CCO_RUNTIME_HISTORY_MAX_LIMIT = 500;
+const CCO_RUNTIME_HISTORY_DEFAULT_THREAD_LIMIT = 80;
+
+function applyCcoRuntimeHistoryPagination(messages = [], parsedQuery = {}) {
+  const sorted = asArray(messages)
+    .slice()
+    .sort((left, right) => String(left?.sentAt || '').localeCompare(String(right?.sentAt || '')));
+  const totalCount = sorted.length;
+  const limit = parsedQuery.limit;
+  const offset = Number.isFinite(parsedQuery.offset) ? parsedQuery.offset : 0;
+
+  if (!Number.isFinite(limit)) {
+    return {
+      messages: sorted,
+      pagination: {
+        totalCount,
+        limit: null,
+        offset: 0,
+        hasMore: false,
+      },
+    };
+  }
+
+  const safeLimit = clampInteger(
+    limit,
+    1,
+    CCO_RUNTIME_HISTORY_MAX_LIMIT,
+    CCO_RUNTIME_HISTORY_DEFAULT_THREAD_LIMIT
+  );
+  const safeOffset =
+    offset > 0
+      ? clampInteger(offset, 0, Math.max(totalCount - 1, 0), 0)
+      : parsedQuery.conversationId
+        ? Math.max(totalCount - safeLimit, 0)
+        : 0;
+  const page = sorted.slice(safeOffset, safeOffset + safeLimit);
+
+  return {
+    messages: page,
+    pagination: {
+      totalCount,
+      limit: safeLimit,
+      offset: safeOffset,
+      hasMore: safeOffset > 0 || safeOffset + safeLimit < totalCount,
+    },
+  };
 }
 
 function summarizeHistoryMessages(messages = []) {
@@ -4885,14 +5038,13 @@ async function ensureCcoRuntimeHistoryCoverage({
     };
   }
 
-  const chunkWindows = missingWindows
-    .flatMap((window) =>
-      splitHistoryWindowIntoChunks({
-        startIso: window.startIso,
-        endIso: window.endIso,
-        chunkDays: CCO_KONS_HISTORY_CHUNK_DAYS,
-      })
-    );
+  const chunkWindows = missingWindows.flatMap((window) =>
+    splitHistoryWindowIntoChunks({
+      startIso: window.startIso,
+      endIso: window.endIso,
+      chunkDays: CCO_KONS_HISTORY_CHUNK_DAYS,
+    })
+  );
 
   for (const chunkWindow of chunkWindows) {
     const allMessages = await fetchHistoryWindowMessagesFromGraph({
@@ -5059,11 +5211,20 @@ function toCcoRuntimeHistoryBackfillInput(input = {}) {
     CCO_KONS_HISTORY_DEFAULT_LOOKBACK_DAYS
   );
   const refresh = toBoolean(safeInput.refresh, false);
+  const maxPagesPerFolder = clampInteger(safeInput.maxPagesPerFolder, 1, 10000, 0) || null;
+  const pageSize = clampInteger(safeInput.pageSize, 1, 500, 0) || null;
+  const folderTypes = normalizeMailboxIdList(
+    parseMailboxIdValues(safeInput.folderTypes, 4),
+    4
+  ).filter((folderType) => ['inbox', 'sent', 'drafts', 'deleted'].includes(folderType));
   return {
     mailboxId: mailboxIds[0] || CCO_KONS_HISTORY_DEFAULT_MAILBOX,
     mailboxIds,
     lookbackDays,
     refresh,
+    maxPagesPerFolder,
+    pageSize,
+    folderTypes: folderTypes.length > 0 ? folderTypes : null,
   };
 }
 
@@ -5286,10 +5447,13 @@ async function materializeCustomerReplyActions({
     });
     const actions = asArray(actionResults).filter((item) => item?.resultType === 'action');
     const latestWaitingAction = actions
-      .filter((item) => ['reply_sent', 'reply_later'].includes(normalizeHistoryActionType(item?.actionType)))
+      .filter((item) =>
+        ['reply_sent', 'reply_later'].includes(normalizeHistoryActionType(item?.actionType))
+      )
       .sort((left, right) => compareIsoDesc(left?.recordedAt, right?.recordedAt))[0];
     if (!latestWaitingAction?.recordedAt) continue;
-    if (Date.parse(latestInboundMessage.sentAt) < Date.parse(latestWaitingAction.recordedAt)) continue;
+    if (Date.parse(latestInboundMessage.sentAt) < Date.parse(latestWaitingAction.recordedAt))
+      continue;
 
     const existingCustomerReply = actions.find(
       (item) =>
@@ -5307,11 +5471,12 @@ async function materializeCustomerReplyActions({
             latestInboundMessage?.mailboxAddress ||
             latestInboundMessage?.userPrincipalName
         ) || null,
-      customerEmail: toMailboxAddress(
-        latestInboundMessage?.customerEmail ||
-          latestInboundMessage?.counterpartyEmail ||
-          latestInboundMessage?.senderEmail
-      ) || null,
+      customerEmail:
+        toMailboxAddress(
+          latestInboundMessage?.customerEmail ||
+            latestInboundMessage?.counterpartyEmail ||
+            latestInboundMessage?.senderEmail
+        ) || null,
       actionType: 'customer_replied',
       actionLabel: 'Kunden svarade',
       subject: normalizeText(latestInboundMessage?.subject) || null,
@@ -5351,6 +5516,8 @@ function toCcoRuntimeHistoryHandler({
         conversationId,
         includeBodyHtml,
         lookbackDays,
+        limit,
+        offset,
       } = parsedQuery;
       const tenantId = toTenantId(req);
       const { startIso, endIso } = resolveCcoRuntimeWindowBounds({ lookbackDays });
@@ -5394,6 +5561,7 @@ function toCcoRuntimeHistoryHandler({
           conversationId,
         });
         const historyCoverage = mailboxTruthHistory.getHistoryCoverage({ mailboxIds });
+        const paginated = applyCcoRuntimeHistoryPagination(messages, parsedQuery);
         return res.json({
           ok: true,
           mailboxId,
@@ -5402,6 +5570,9 @@ function toCcoRuntimeHistoryHandler({
           conversationId: conversationId || null,
           includeBodyHtml,
           lookbackDays,
+          limit,
+          offset,
+          pagination: paginated.pagination,
           source: 'mailbox_truth_store',
           window: {
             startIso,
@@ -5410,7 +5581,7 @@ function toCcoRuntimeHistoryHandler({
           windowCount: mailboxIds.length,
           backfilledWindowCount: 0,
           summary: summarizeHistoryMessages(messages),
-          messages,
+          messages: paginated.messages,
           threadDocument: hydratedThread.threadDocument,
           events,
           store: {
@@ -5440,7 +5611,8 @@ function toCcoRuntimeHistoryHandler({
           ccoHistoryStore,
         });
         const missingCoverages = coverages.filter(
-          (coverage) => Array.isArray(coverage?.missingWindows) && coverage.missingWindows.length > 0
+          (coverage) =>
+            Array.isArray(coverage?.missingWindows) && coverage.missingWindows.length > 0
         );
 
         if (missingCoverages.length > 0 && graphReadEnabled !== true) {
@@ -5515,6 +5687,7 @@ function toCcoRuntimeHistoryHandler({
           (sum, coverage) => sum + Number(coverage?.missingWindows?.length || 0),
           0
         );
+        const paginated = applyCcoRuntimeHistoryPagination(hydratedMessages, parsedQuery);
         const mailboxSummaries = coverages
           .map((coverage, index) => ({
             mailboxId: mailboxIds[index] || null,
@@ -5545,6 +5718,9 @@ function toCcoRuntimeHistoryHandler({
           customerEmail: customerEmail || null,
           conversationId: conversationId || null,
           lookbackDays,
+          limit,
+          offset,
+          pagination: paginated.pagination,
           window: {
             startIso,
             endIso,
@@ -5552,7 +5728,7 @@ function toCcoRuntimeHistoryHandler({
           windowCount: totalWindowCount,
           backfilledWindowCount: totalBackfilledWindowCount,
           summary,
-          messages: hydratedMessages,
+          messages: paginated.messages,
           threadDocument: hydratedThread.threadDocument,
           events: eventsWithLaneFields,
           store: {
@@ -5605,6 +5781,7 @@ function toCcoRuntimeHistoryHandler({
         customerEmail,
       });
       const hydratedMessages = hydratedThread.messages;
+      const paginated = applyCcoRuntimeHistoryPagination(hydratedMessages, parsedQuery);
 
       return res.json({
         ok: true,
@@ -5613,13 +5790,16 @@ function toCcoRuntimeHistoryHandler({
         customerEmail: customerEmail || null,
         conversationId: conversationId || null,
         lookbackDays,
+        limit,
+        offset,
+        pagination: paginated.pagination,
         window: {
           startIso,
           endIso,
         },
         windowCount: result.windowCount,
         summary: summarizeHistoryMessages(hydratedMessages),
-        messages: hydratedMessages,
+        messages: paginated.messages,
         threadDocument: hydratedThread.threadDocument,
         events: [],
       });
@@ -5632,10 +5812,7 @@ function toCcoRuntimeHistoryHandler({
   };
 }
 
-function toCcoRuntimeMailAssetContentHandler({
-  graphReadConnector,
-  graphReadEnabled = false,
-}) {
+function toCcoRuntimeMailAssetContentHandler({ graphReadConnector, graphReadEnabled = false }) {
   return async (req, res) => {
     try {
       const query = toCcoRuntimeMailAssetQuery(req.query);
@@ -5702,7 +5879,10 @@ function toCcoRuntimeHistoryBackfillHandler({
 }) {
   return async (req, res) => {
     try {
-      if (ccoMailboxTruthStore && typeof ccoMailboxTruthStore.getCompletenessReport === 'function') {
+      if (
+        ccoMailboxTruthStore &&
+        typeof ccoMailboxTruthStore.getCompletenessReport === 'function'
+      ) {
         if (
           graphReadEnabled !== true ||
           !graphReadConnector ||
@@ -5715,8 +5895,8 @@ function toCcoRuntimeHistoryBackfillHandler({
         }
 
         const input = toCcoRuntimeHistoryBackfillInput({
-          ...(asObject(req.body)),
-          ...(asObject(req.query)),
+          ...asObject(req.body),
+          ...asObject(req.query),
         });
         const mailboxTruthHistory = createCcoMailboxTruthReadAdapter({
           store: ccoMailboxTruthStore,
@@ -5746,8 +5926,10 @@ function toCcoRuntimeHistoryBackfillHandler({
         });
         const result = await backfill.runBackfill({
           mailboxIds: input.mailboxIds,
-          folderTypes: ['inbox', 'sent', 'drafts', 'deleted'],
+          folderTypes: input.folderTypes || ['inbox', 'sent', 'drafts', 'deleted'],
           resume: input.refresh !== true,
+          ...(input.maxPagesPerFolder ? { maxPagesPerFolder: input.maxPagesPerFolder } : {}),
+          ...(input.pageSize ? { pageSize: input.pageSize } : {}),
         });
         const nextCoverage = mailboxTruthHistory.getHistoryCoverage({
           mailboxIds: input.mailboxIds,
@@ -5793,8 +5975,8 @@ function toCcoRuntimeHistoryBackfillHandler({
       }
 
       const input = toCcoRuntimeHistoryBackfillInput({
-        ...(asObject(req.body)),
-        ...(asObject(req.query)),
+        ...asObject(req.body),
+        ...asObject(req.query),
       });
       const tenantId = toTenantId(req);
       const coverages = await ensureCcoRuntimeHistoryCoverageForMailboxIds({
@@ -6012,12 +6194,9 @@ async function runAgentHandler({
     correlationId,
     result,
   });
-  if (
-    executiveDecisionFeed &&
-    typeof executiveDecisionFeed.addFromAgentOutput === 'function'
-  ) {
+  if (executiveDecisionFeed && typeof executiveDecisionFeed.addFromAgentOutput === 'function') {
     const normalizedAgent = String(agentName || '').toUpperCase();
-    if (['CAO', 'COO', 'CFO', 'CMO'].includes(normalizedAgent)) {
+    if (['CAO', 'COO', 'CFO', 'CMO', 'CCO'].includes(normalizedAgent)) {
       let marketingDraftIds = [];
       if (
         normalizedAgent === 'CMO' &&
@@ -6028,9 +6207,7 @@ async function runAgentHandler({
         const sync = await syncMarketingWorkspaceFromCmoOutput({
           tenantId: toTenantId(req),
           agentRunId:
-            normalizeText(result?.runId) ||
-            normalizeText(result?.agentRunId) ||
-            correlationId,
+            normalizeText(result?.runId) || normalizeText(result?.agentRunId) || correlationId,
           output: result.output || result,
           marketingCampaignDraftsStore,
           marketingContentAssetsStore,
@@ -6059,9 +6236,9 @@ async function runCcoSendHandler({
   const actor = toActor(req);
   const correlationId = toCorrelationId(req);
   const rawPayload = asObject(req.body);
-  const input = asObject(rawPayload.input && typeof rawPayload.input === 'object'
-    ? rawPayload.input
-    : rawPayload);
+  const input = asObject(
+    rawPayload.input && typeof rawPayload.input === 'object' ? rawPayload.input : rawPayload
+  );
 
   const result = await executor.runCcoSend({
     tenantId: toTenantId(req),
@@ -6077,12 +6254,10 @@ async function runCcoSendHandler({
   });
 
   const gatewayResult = result.gatewayResult || {};
-  if (
-    isBlockedDecision(gatewayResult) &&
-    normalizeText(gatewayResult.error_stage) === 'persist'
-  ) {
+  if (isBlockedDecision(gatewayResult) && normalizeText(gatewayResult.error_stage) === 'persist') {
     const statusCode =
-      Number.isFinite(Number(gatewayResult.error_status)) && Number(gatewayResult.error_status) >= 400
+      Number.isFinite(Number(gatewayResult.error_status)) &&
+      Number(gatewayResult.error_status) >= 400
         ? Number(gatewayResult.error_status)
         : 503;
     return res.status(statusCode).json({
@@ -6361,7 +6536,8 @@ async function runCcoRestoreHandler({
       restoreResult: {
         provider: normalizeText(restoreResult?.provider) || 'microsoft_graph',
         movedMessageId: normalizeText(restoreResult?.movedMessageId) || messageId,
-        destinationFolderId: normalizeText(restoreResult?.destinationFolderId) || destinationFolderId,
+        destinationFolderId:
+          normalizeText(restoreResult?.destinationFolderId) || destinationFolderId,
         movedAt: normalizeText(restoreResult?.movedAt) || new Date().toISOString(),
       },
     });
@@ -6396,7 +6572,9 @@ async function runCcoStudioDraftSaveHandler({ req, res, authStore, ccoHistorySto
   const actor = toActor(req);
   const tenantId = toTenantId(req);
   const payload = asObject(req.body);
-  const input = asObject(payload.input && typeof payload.input === 'object' ? payload.input : payload);
+  const input = asObject(
+    payload.input && typeof payload.input === 'object' ? payload.input : payload
+  );
   const conversationId = normalizeText(input.conversationId);
   const mailboxId = toMailboxAddress(input.mailboxId);
   const messageId = normalizeText(input.messageId) || null;
@@ -6547,12 +6725,7 @@ async function readWritingIdentitiesHandler({ req, res, capabilityAnalysisStore 
   });
 }
 
-async function saveWritingIdentityProfileHandler({
-  req,
-  res,
-  capabilityAnalysisStore,
-  authStore,
-}) {
+async function saveWritingIdentityProfileHandler({ req, res, capabilityAnalysisStore, authStore }) {
   if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') {
     return res.status(503).json({ error: 'Capability analysis store är inte konfigurerad.' });
   }
@@ -6570,8 +6743,8 @@ async function saveWritingIdentityProfileHandler({
     req.body?.profile && typeof req.body.profile === 'object'
       ? req.body.profile
       : req.body?.input?.profile && typeof req.body.input.profile === 'object'
-      ? req.body.input.profile
-      : req.body
+        ? req.body.input.profile
+        : req.body
   );
   const profile = toWritingProfile(sourceProfile);
   const record = await upsertWritingIdentityProfile({
@@ -6739,12 +6912,7 @@ function toAnalysisHandler({ capabilityAnalysisStore }) {
   };
 }
 
-function toCcoSendHandler({
-  executor,
-  graphSendConnector,
-  graphSendEnabled,
-  graphSendAllowlist,
-}) {
+function toCcoSendHandler({ executor, graphSendConnector, graphSendEnabled, graphSendAllowlist }) {
   return async (req, res) => {
     try {
       return await runCcoSendHandler({
@@ -7018,11 +7186,17 @@ function toCcoRuntimeHistoryStatusHandler({
       });
       if (mailboxTruthHistory) {
         const { mailboxId, mailboxIds, lookbackDays } = toCcoRuntimeHistoryStatusQuery(req.query);
+        if (
+          ccoMailboxTruthStore &&
+          typeof ccoMailboxTruthStore.ensureMailboxLoaded === 'function'
+        ) {
+          for (const currentMailboxId of mailboxIds) {
+            await ccoMailboxTruthStore.ensureMailboxLoaded(currentMailboxId);
+          }
+        }
         const historyCoverage = mailboxTruthHistory.getHistoryCoverage({ mailboxIds });
         const schedulerStatus =
-          scheduler && typeof scheduler.getStatus === 'function'
-            ? scheduler.getStatus()
-            : null;
+          scheduler && typeof scheduler.getStatus === 'function' ? scheduler.getStatus() : null;
         return res.json({
           ok: true,
           mailboxId,
@@ -7089,9 +7263,7 @@ function toCcoRuntimeHistoryStatusHandler({
         0
       );
       const schedulerStatus =
-        scheduler && typeof scheduler.getStatus === 'function'
-          ? scheduler.getStatus()
-          : null;
+        scheduler && typeof scheduler.getStatus === 'function' ? scheduler.getStatus() : null;
       const historyJob = Array.isArray(schedulerStatus?.jobs)
         ? schedulerStatus.jobs.find((job) => normalizeText(job?.id) === 'cco_history_sync') || null
         : null;
@@ -7108,13 +7280,15 @@ function toCcoRuntimeHistoryStatusHandler({
           startIso,
           endIso,
           missingWindowCount,
-          missingWindowsPreview: mailboxes.flatMap((entry) =>
-            asArray(entry?.coverage?.missingWindowsPreview).map((window) => ({
-              mailboxId: entry.mailboxId,
-              startIso: window?.startIso || null,
-              endIso: window?.endIso || null,
-            }))
-          ).slice(0, 6),
+          missingWindowsPreview: mailboxes
+            .flatMap((entry) =>
+              asArray(entry?.coverage?.missingWindowsPreview).map((window) => ({
+                mailboxId: entry.mailboxId,
+                startIso: window?.startIso || null,
+                endIso: window?.endIso || null,
+              }))
+            )
+            .slice(0, 6),
           complete: missingWindowCount === 0,
         },
         scheduler: schedulerStatus
@@ -7147,15 +7321,10 @@ function toCcoRuntimeHistoryStatusHandler({
   };
 }
 
-function toCcoRuntimeCalibrationSummaryHandler({
-  ccoHistoryStore = null,
-}) {
+function toCcoRuntimeCalibrationSummaryHandler({ ccoHistoryStore = null }) {
   return async (req, res) => {
     try {
-      if (
-        !ccoHistoryStore ||
-        typeof ccoHistoryStore.summarizeOutcomeEvaluations !== 'function'
-      ) {
+      if (!ccoHistoryStore || typeof ccoHistoryStore.summarizeOutcomeEvaluations !== 'function') {
         return res.status(503).json({
           ok: false,
           error: 'Kalibreringsstore är inte tillgänglig just nu.',
@@ -7247,9 +7416,10 @@ function formatCalibrationStatList(summary = [], formatter = (item) => item.labe
   }
   return items
     .map(
-      (item) => `<li><strong>${escapeHtml(formatter(item))}</strong><span>${escapeHtml(
-        `${item.positiveCount || 0} positiva · ${item.negativeCount || 0} negativa · ${item.totalCount || 0} totalt`
-      )}</span></li>`
+      (item) =>
+        `<li><strong>${escapeHtml(formatter(item))}</strong><span>${escapeHtml(
+          `${item.positiveCount || 0} positiva · ${item.negativeCount || 0} negativa · ${item.totalCount || 0} totalt`
+        )}</span></li>`
     )
     .join('');
 }
@@ -7261,8 +7431,7 @@ function formatCalibrationIntentBreakdown(summary = [], type = 'action') {
   }
   return items
     .map((item) => {
-      const bestLabel =
-        normalizeText(item?.best?.label || item?.best?.key) || '–';
+      const bestLabel = normalizeText(item?.best?.label || item?.best?.key) || '–';
       const worstEntry = item?.worst || null;
       const worstLabel =
         worstEntry && type === 'mode'
@@ -7307,12 +7476,8 @@ function buildMailboxComparisonCards(mailboxSummaries = []) {
         <p>${escapeHtml(
           `Positiva ${Number(entry.positiveOutcomeCount || 0)} · Negativa ${Number(entry.negativeOutcomeCount || 0)} · Totalt ${Number(entry.totalOutcomeCount || 0)}`
         )}</p>
-        <p>${escapeHtml(
-          `Bästa action: ${normalizeText(entry.preferredAction) || '–'}`
-        )}</p>
-        <p>${escapeHtml(
-          `Bästa mode: ${normalizeText(entry.preferredMode) || '–'}`
-        )}</p>
+        <p>${escapeHtml(`Bästa action: ${normalizeText(entry.preferredAction) || '–'}`)}</p>
+        <p>${escapeHtml(`Bästa mode: ${normalizeText(entry.preferredMode) || '–'}`)}</p>
         <p>${escapeHtml(
           `Svagaste utfall: ${toHistoryOutcomeLabelSv(entry.dominantFailureOutcome)}`
         )}</p>
@@ -7344,7 +7509,9 @@ function buildCalibrationReadoutDocument({
   const outcomeCodeValue = asArray(outcomeCodes).join(',');
   const positiveRate =
     Number(summary.totalOutcomeCount || 0) > 0
-      ? Math.round((Number(summary.positiveOutcomeCount || 0) / Number(summary.totalOutcomeCount || 1)) * 100)
+      ? Math.round(
+          (Number(summary.positiveOutcomeCount || 0) / Number(summary.totalOutcomeCount || 1)) * 100
+        )
       : 0;
   const bestActionLabel = normalizeText(summary.preferredAction) || '–';
   const bestModeLabel = normalizeText(summary.preferredMode) || '–';
@@ -7599,7 +7766,9 @@ function buildWorklistLegacyBaselineEntrySummary(entry = {}) {
     new Set(
       [...conversationWorklist, ...needsReplyToday]
         .map((row) =>
-          normalizeText(row?.mailboxId || row?.mailboxAddress || row?.userPrincipalName).toLowerCase()
+          normalizeText(
+            row?.mailboxId || row?.mailboxAddress || row?.userPrincipalName
+          ).toLowerCase()
         )
         .filter(Boolean)
     )
@@ -7628,10 +7797,25 @@ function getWorklistLegacyBaselineObservedAt(entry = {}) {
   );
 }
 
-function selectLatestWorklistLegacyBaseline({
-  entries = [],
-  mailboxIds = [],
-} = {}) {
+function countEnrichedWorklistRows(summary = {}) {
+  return [...asArray(summary.conversationWorklist), ...asArray(summary.needsReplyToday)].filter(
+    (row) => hasWorklistEnrichmentSignals(row)
+  ).length;
+}
+
+function hasWorklistEnrichmentSignals(row = {}) {
+  const intent = normalizeText(row?.intent).toLowerCase();
+  if (intent && !['unknown', 'unspecified', 'none'].includes(intent)) return true;
+  if (normalizeText(row?.workflowLane)) return true;
+  if (normalizeText(row?.dominantRisk)) return true;
+  if (normalizeText(row?.priorityLevel)) return true;
+  if (normalizeText(row?.messageClassification)) return true;
+  if (normalizeText(row?.recommendedAction)) return true;
+  if (normalizeText(row?.slaStatus)) return true;
+  return false;
+}
+
+function selectLatestWorklistLegacyBaseline({ entries = [], mailboxIds = [] } = {}) {
   const safeEntries = asArray(entries).sort((left, right) => {
     const observedCompare = getWorklistLegacyBaselineObservedAt(right).localeCompare(
       getWorklistLegacyBaselineObservedAt(left)
@@ -7647,8 +7831,8 @@ function selectLatestWorklistLegacyBaseline({
       .filter(Boolean)
   );
   const latestObservedEntry = safeEntries[0] || null;
-  let firstNonEmptyEntry = null;
-  let firstScopeMatchedEntry = null;
+  let bestScopeMatchedEntry = null;
+  let bestFallbackEntry = null;
   let skippedEmptyEntries = 0;
   let skippedScopeMismatchEntries = 0;
 
@@ -7658,38 +7842,55 @@ function selectLatestWorklistLegacyBaseline({
       skippedEmptyEntries += 1;
       continue;
     }
-    if (!firstNonEmptyEntry) {
-      firstNonEmptyEntry = {
-        entry,
-        summary,
-      };
-    }
+    const enrichedCount = countEnrichedWorklistRows(summary);
     const scopeMatched =
       requestedMailboxIds.size === 0 ||
       summary.mailboxIds.some((mailboxId) => requestedMailboxIds.has(mailboxId));
-    if (scopeMatched) {
-      firstScopeMatchedEntry = {
-        entry,
-        summary,
-      };
-      break;
+    if (!scopeMatched) {
+      skippedScopeMismatchEntries += 1;
+      continue;
     }
-    skippedScopeMismatchEntries += 1;
+    const candidate = {
+      entry,
+      summary,
+      enrichedCount,
+    };
+    if (
+      !bestScopeMatchedEntry ||
+      enrichedCount > bestScopeMatchedEntry.enrichedCount ||
+      (enrichedCount === bestScopeMatchedEntry.enrichedCount &&
+        getWorklistLegacyBaselineObservedAt(entry).localeCompare(
+          getWorklistLegacyBaselineObservedAt(bestScopeMatchedEntry.entry)
+        ) > 0)
+    ) {
+      bestScopeMatchedEntry = candidate;
+    }
+    if (
+      !bestFallbackEntry ||
+      enrichedCount > bestFallbackEntry.enrichedCount ||
+      (enrichedCount === bestFallbackEntry.enrichedCount &&
+        getWorklistLegacyBaselineObservedAt(entry).localeCompare(
+          getWorklistLegacyBaselineObservedAt(bestFallbackEntry.entry)
+        ) > 0)
+    ) {
+      bestFallbackEntry = candidate;
+    }
   }
 
-  const selected =
-    firstScopeMatchedEntry ||
-    firstNonEmptyEntry || {
+  const selected = bestScopeMatchedEntry ||
+    bestFallbackEntry || {
       entry: latestObservedEntry,
       summary: buildWorklistLegacyBaselineEntrySummary(latestObservedEntry),
+      enrichedCount: countEnrichedWorklistRows(
+        buildWorklistLegacyBaselineEntrySummary(latestObservedEntry)
+      ),
     };
 
-  const strategy =
-    firstScopeMatchedEntry
-      ? 'latest_non_empty_scope_match'
-      : firstNonEmptyEntry
-        ? 'latest_non_empty_fallback'
-        : 'latest_entry';
+  const strategy = bestScopeMatchedEntry
+    ? 'best_enriched_scope_match'
+    : bestFallbackEntry
+      ? 'best_enriched_fallback'
+      : 'latest_entry';
 
   return {
     latestObservedEntry,
@@ -7704,6 +7905,7 @@ function selectLatestWorklistLegacyBaseline({
       skippedEmptyEntries,
       skippedScopeMismatchEntries,
       selectedRowCount: Number(selected.summary.rowCount || 0),
+      selectedEnrichedRowCount: Number(selected.enrichedCount || 0),
       selectedMailboxIds: selected.summary.mailboxIds,
     },
   };
@@ -7924,10 +8126,7 @@ async function buildWorklistTruthContext({
   };
 }
 
-function buildWorklistConsumerParityBaseline({
-  shadowDiffReport = null,
-  mailboxIds = [],
-} = {}) {
+function buildWorklistConsumerParityBaseline({ shadowDiffReport = null, mailboxIds = [] } = {}) {
   const mailboxAssessment = asArray(shadowDiffReport?.mailboxAssessment)
     .map((item) => asObject(item))
     .filter((item) => normalizeText(item.mailboxId));
@@ -7975,6 +8174,7 @@ async function buildWorklistConsumerContext({
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
+  ccoMailIngestionStore = null,
   customerState = null,
   mailboxIds = [],
   limit = 120,
@@ -7989,6 +8189,7 @@ async function buildWorklistConsumerContext({
     customerState: resolvedCustomerState,
     tenantId,
     conversationStateStore: ccoConversationStateStore,
+    ingestionStore: ccoMailIngestionStore,
   });
   const truthContext = await buildWorklistTruthContext({
     tenantId,
@@ -8336,10 +8537,8 @@ function formatShadowIntentBreakdown(items = [], type = 'action') {
   }
   return rows
     .map((item) => {
-      const bestLabel =
-        normalizeText(item?.best?.label || item?.best?.key) || '–';
-      const worstLabel =
-        normalizeText(item?.worst?.label || item?.worst?.key) || '–';
+      const bestLabel = normalizeText(item?.best?.label || item?.best?.key) || '–';
+      const worstLabel = normalizeText(item?.worst?.label || item?.worst?.key) || '–';
       return `<li><strong>${escapeHtml(normalizeText(item?.label) || 'Okänd intent')}</strong><span>${escapeHtml(
         `${type === 'mode' ? 'Bästa mode' : 'Bästa action'}: ${bestLabel} · Svagast: ${worstLabel} · ${Number(item?.totalCount || 0)} case`
       )}</span></li>`;
@@ -8354,9 +8553,10 @@ function formatShadowFailurePatterns(items = []) {
   }
   return rows
     .map(
-      (item) => `<li><strong>${escapeHtml(normalizeText(item?.label) || 'Mönster')}</strong><span>${escapeHtml(
-        `${Number(item?.count || 0)} träffar`
-      )}</span></li>`
+      (item) =>
+        `<li><strong>${escapeHtml(normalizeText(item?.label) || 'Mönster')}</strong><span>${escapeHtml(
+          `${Number(item?.count || 0)} träffar`
+        )}</span></li>`
     )
     .join('');
 }
@@ -8405,7 +8605,9 @@ function buildShadowComparisonCards(comparisons = []) {
   }
   return items
     .map((item) => {
-      const outcomeLabel = item.outcomeCode ? toHistoryOutcomeLabelSv(item.outcomeCode) : 'Inget utfall ännu';
+      const outcomeLabel = item.outcomeCode
+        ? toHistoryOutcomeLabelSv(item.outcomeCode)
+        : 'Inget utfall ännu';
       const operatorAction = item.operatorActionType
         ? toHistoryActionLabelSv(item.operatorActionType)
         : 'Ingen operatörsåtgärd ännu';
@@ -8429,7 +8631,9 @@ function buildShadowComparisonCards(comparisons = []) {
           [
             `Mode: ${modeLabel}`,
             item.intent ? `Intent: ${item.intent}` : '',
-            item.actualIntent && item.actualIntent !== item.intent ? `Faktisk intent: ${item.actualIntent}` : '',
+            item.actualIntent && item.actualIntent !== item.intent
+              ? `Faktisk intent: ${item.actualIntent}`
+              : '',
             item.dominantRisk ? `Risk: ${item.dominantRisk}` : '',
           ]
             .filter(Boolean)
@@ -8481,9 +8685,13 @@ function buildShadowIssueCards(items = [], type = 'case') {
         <p class="result-summary">${escapeHtml(
           [
             normalizeText(item.recommendedAction) ? `CCO: ${item.recommendedAction}` : '',
-            item.operatorActionType ? `Operatör: ${toHistoryActionLabelSv(item.operatorActionType)}` : '',
+            item.operatorActionType
+              ? `Operatör: ${toHistoryActionLabelSv(item.operatorActionType)}`
+              : '',
             item.outcomeCode ? `Utfall: ${toHistoryOutcomeLabelSv(item.outcomeCode)}` : '',
-            item.actualIntent && item.actualIntent !== item.intent ? `Faktisk intent: ${item.actualIntent}` : '',
+            item.actualIntent && item.actualIntent !== item.intent
+              ? `Faktisk intent: ${item.actualIntent}`
+              : '',
           ]
             .filter(Boolean)
             .join(' · ')
@@ -8878,10 +9086,11 @@ function toCcoRuntimeWorklistShadowHandler({
           ? {
               id: context.latestObservedEntry.id,
               ts: context.latestObservedEntry.ts,
-              generatedAt: normalizeText(
-                buildWorklistLegacyBaselineEntrySummary(context.latestObservedEntry).outputData
-                  ?.generatedAt
-              ) || null,
+              generatedAt:
+                normalizeText(
+                  buildWorklistLegacyBaselineEntrySummary(context.latestObservedEntry).outputData
+                    ?.generatedAt
+                ) || null,
             }
           : null,
         legacyBaselineSelection: context.baselineSelection,
@@ -8954,10 +9163,11 @@ function toCcoRuntimeWorklistTruthHandler({
                 ? {
                     id: context.latestObservedEntry.id,
                     ts: context.latestObservedEntry.ts,
-                    generatedAt: normalizeText(
-                      buildWorklistLegacyBaselineEntrySummary(context.latestObservedEntry).outputData
-                        ?.generatedAt
-                    ) || null,
+                    generatedAt:
+                      normalizeText(
+                        buildWorklistLegacyBaselineEntrySummary(context.latestObservedEntry)
+                          .outputData?.generatedAt
+                      ) || null,
                   }
                 : null,
               legacyBaselineSelection: context.baselineSelection,
@@ -8982,6 +9192,7 @@ function toCcoRuntimeWorklistConsumerHandler({
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
+  ccoMailIngestionStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -9004,6 +9215,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         ccoMailboxTruthStore,
         ccoCustomerStore,
         ccoConversationStateStore,
+        ccoMailIngestionStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
@@ -9019,6 +9231,10 @@ function toCcoRuntimeWorklistConsumerHandler({
         latestOutputData: context.latestOutputData,
         baselineSelection: context.baselineSelection,
       });
+      const ingestion = buildWorklistIngestionPayload({
+        ingestionStore: ccoMailIngestionStore,
+        mailboxIds: query.mailboxIds,
+      });
 
       const responsePayload = {
         ok: true,
@@ -9032,6 +9248,7 @@ function toCcoRuntimeWorklistConsumerHandler({
         summary: context.consumerModel.summary,
         rows: context.consumerModel.rows,
         enrichment,
+        ingestion,
         truthCoverage: context.truthCoverage,
         deltaCoverage: context.deltaCoverage,
         consumerExposure: {
@@ -9060,10 +9277,11 @@ function toCcoRuntimeWorklistConsumerHandler({
                 ? {
                     id: context.latestObservedEntry.id,
                     ts: context.latestObservedEntry.ts,
-                    generatedAt: normalizeText(
-                      buildWorklistLegacyBaselineEntrySummary(context.latestObservedEntry).outputData
-                        ?.generatedAt
-                    ) || null,
+                    generatedAt:
+                      normalizeText(
+                        buildWorklistLegacyBaselineEntrySummary(context.latestObservedEntry)
+                          .outputData?.generatedAt
+                      ) || null,
                   }
                 : null,
               legacyBaselineSelection: context.baselineSelection,
@@ -9093,6 +9311,7 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
   ccoMailboxTruthStore = null,
   ccoCustomerStore = null,
   ccoConversationStateStore = null,
+  ccoMailIngestionStore = null,
 }) {
   return async (req, res) => {
     try {
@@ -9104,13 +9323,12 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
         ccoMailboxTruthStore,
         ccoCustomerStore,
         ccoConversationStateStore,
+        ccoMailIngestionStore,
         mailboxIds: query.mailboxIds,
         limit: query.limit,
       });
       if (!context.consumerModel) {
-        return res
-          .status(503)
-          .send(escapeHtml('Worklist consumer-preview kunde inte byggas.'));
+        return res.status(503).send(escapeHtml('Worklist consumer-preview kunde inte byggas.'));
       }
       return res.send(
         buildWorklistConsumerReadoutDocument({
@@ -9131,10 +9349,7 @@ function toCcoRuntimeWorklistConsumerReadoutHandler({
   };
 }
 
-function toCcoRuntimeHistorySearchHandler({
-  ccoHistoryStore = null,
-  ccoMailboxTruthStore = null,
-}) {
+function toCcoRuntimeHistorySearchHandler({ ccoHistoryStore = null, ccoMailboxTruthStore = null }) {
   return async (req, res) => {
     try {
       const parsedQuery = toCcoRuntimeHistorySearchQuery(req.query);
@@ -9143,8 +9358,7 @@ function toCcoRuntimeHistorySearchHandler({
           .map((item) => normalizeText(item).toLowerCase())
           .filter(Boolean)
       );
-      const explicitMessageOnlyResultType =
-        resultTypes.size === 1 && resultTypes.has('message');
+      const explicitMessageOnlyResultType = resultTypes.size === 1 && resultTypes.has('message');
       const implicitMessageOnlyFlags =
         resultTypes.size === 0 &&
         parsedQuery.includeMessages === true &&
@@ -9263,9 +9477,7 @@ function toCcoRuntimeHistorySearchHandler({
   };
 }
 
-function toCcoRuntimeCalibrationReadoutHandler({
-  ccoHistoryStore = null,
-}) {
+function toCcoRuntimeCalibrationReadoutHandler({ ccoHistoryStore = null }) {
   return async (req, res) => {
     try {
       if (!ccoHistoryStore || typeof ccoHistoryStore.summarizeOutcomeEvaluations !== 'function') {
@@ -9338,7 +9550,9 @@ function toCcoRuntimeCalibrationReadoutHandler({
         })
       );
     } catch (error) {
-      return res.status(500).send(escapeHtml(error?.message || 'Kalibreringsreadout kunde inte byggas.'));
+      return res
+        .status(500)
+        .send(escapeHtml(error?.message || 'Kalibreringsreadout kunde inte byggas.'));
     }
   };
 }
@@ -9348,6 +9562,7 @@ function createCapabilitiesRouter({
   tenantConfigStore: tenantConfigStoreParam,
   ccoSettingsStore = null,
   ccoConversationStateStore = null,
+  ccoMailIngestionStore = null,
   requireAuth,
   requireRole,
   executionGateway = null,
@@ -9420,9 +9635,7 @@ function createCapabilitiesRouter({
     if (!clientSecret) missing.push('ARCANA_GRAPH_CLIENT_SECRET');
     if (graphReadRequiresUserId && !userId) missing.push('ARCANA_GRAPH_USER_ID');
     if (missing.length > 0) {
-      throw new Error(
-        `ARCANA_GRAPH_READ_ENABLED=true requires: ${missing.join(', ')}.`
-      );
+      throw new Error(`ARCANA_GRAPH_READ_ENABLED=true requires: ${missing.join(', ')}.`);
     }
     return graphReadConnectorFactory({
       tenantId,
@@ -9460,9 +9673,7 @@ function createCapabilitiesRouter({
       missing.push('ARCANA_CCO_DELETE_ALLOWLIST|ARCANA_GRAPH_SEND_ALLOWLIST');
     }
     if (missing.length > 0) {
-      throw new Error(
-        `ARCANA_GRAPH_SEND_ENABLED=true requires: ${missing.join(', ')}.`
-      );
+      throw new Error(`ARCANA_GRAPH_SEND_ENABLED=true requires: ${missing.join(', ')}.`);
     }
     return graphSendConnectorFactory({
       tenantId,
@@ -9471,12 +9682,7 @@ function createCapabilitiesRouter({
       authorityHost: normalizeText(process.env.ARCANA_GRAPH_AUTHORITY_HOST) || undefined,
       graphBaseUrl: normalizeText(process.env.ARCANA_GRAPH_BASE_URL) || undefined,
       scope: normalizeText(process.env.ARCANA_GRAPH_SCOPE) || undefined,
-      requestTimeoutMs: clampInteger(
-        process.env.ARCANA_GRAPH_SEND_TIMEOUT_MS,
-        1000,
-        60000,
-        8000
-      ),
+      requestTimeoutMs: clampInteger(process.env.ARCANA_GRAPH_SEND_TIMEOUT_MS, 1000, 60000, 8000),
     });
   })();
   const isGraphReadOperational =
@@ -9566,9 +9772,7 @@ function createCapabilitiesRouter({
     '/cco/metrics',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
-    toRoleGuardedHandler(
-      toCcoMetricsHandler({ authStore, capabilityAnalysisStore })
-    )
+    toRoleGuardedHandler(toCcoMetricsHandler({ authStore, capabilityAnalysisStore }))
   );
 
   router.get(
@@ -9688,6 +9892,7 @@ function createCapabilitiesRouter({
         ccoMailboxTruthStore,
         ccoCustomerStore,
         ccoConversationStateStore,
+        ccoMailIngestionStore,
       })
     )
   );
@@ -9702,6 +9907,7 @@ function createCapabilitiesRouter({
         ccoMailboxTruthStore,
         ccoCustomerStore,
         ccoConversationStateStore,
+        ccoMailIngestionStore,
       })
     )
   );
@@ -9797,9 +10003,7 @@ function createCapabilitiesRouter({
     '/cco/writing-identities',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
-    toRoleGuardedHandler(
-      toWritingIdentitiesReadHandler({ capabilityAnalysisStore })
-    )
+    toRoleGuardedHandler(toWritingIdentitiesReadHandler({ capabilityAnalysisStore }))
   );
 
   router.post(
@@ -9815,9 +10019,7 @@ function createCapabilitiesRouter({
     '/cco/writing-identities/:mailbox',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
-    toRoleGuardedHandler(
-      toWritingIdentitySaveHandler({ capabilityAnalysisStore, authStore })
-    )
+    toRoleGuardedHandler(toWritingIdentitySaveHandler({ capabilityAnalysisStore, authStore }))
   );
 
   router.post(

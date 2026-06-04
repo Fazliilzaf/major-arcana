@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CCO · Demo-portal</title>
+<style>
+  :root{--bg:#faf6f2;--brand:#2b251f;--accent:#bb4779;--amber:#c8821e;--success:#4a8268;--info:#4a7ba8;--rose-top:rgba(252,233,240,.98);--rose-bot:rgba(241,207,220,.95)}
+  *{box-sizing:border-box}body{margin:0;padding:40px 20px 60px;background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.42),transparent 38%),radial-gradient(ellipse at 88% 4%,rgba(255,210,225,.34),transparent 42%),var(--bg);color:var(--brand);font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;min-height:100vh}
+  .container{max-width:1080px;margin:0 auto}
+  .kicker{color:#84756b;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;margin-bottom:16px;display:inline-flex;align-items:center;gap:10px}
+  .kicker .mark{width:22px;height:22px;border-radius:8px;background:linear-gradient(180deg,var(--rose-top),var(--rose-bot));color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+  h1{font-size:34px;font-weight:800;letter-spacing:-.03em;margin:0 0 6px}
+  h1 span{color:var(--accent)}
+  .lead{font-size:15px;color:rgba(70,60,50,.62);margin:0 0 32px;max-width:680px;line-height:1.5}
+  .section-title{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#84756b;margin:32px 0 14px}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid--3{grid-template-columns:1fr 1fr 1fr}
+  .grid--4{grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+  .card{padding:20px 22px;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,241,236,.86));border:1px solid rgba(255,255,255,.6);box-shadow:0 8px 24px rgba(56,40,28,.08),inset 0 1px 0 rgba(255,255,255,.92);text-decoration:none;color:inherit;transition:transform .12s ease,box-shadow .12s ease;display:block;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(56,40,28,.12)}
+  .card::before{content:"";position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--cc,var(--amber));box-shadow:0 0 6px var(--cc,var(--amber))}
+  .card[data-kind="kalender"]{--cc:var(--amber)}
+  .card[data-kind="kunder"]{--cc:var(--accent)}
+  .card[data-kind="konv"]{--cc:#6c9c8b}
+  .card[data-kind="analytics"]{--cc:var(--info)}
+  .card[data-kind="wizard"]{--cc:var(--amber)}
+  .card[data-kind="tour"]{--cc:var(--success)}
+  .card[data-kind="mobile"]{--cc:var(--accent)}
+  .card[data-kind="note"]{--cc:#7aa39a}
+  .card[data-kind="settings"]{--cc:#84756b}
+  .card[data-kind="print"]{--cc:var(--accent)}
+  .card[data-kind="coach"]{--cc:var(--accent)}
+  .card[data-kind="pwa"]{--cc:var(--success)}
+  .card[data-kind="watch"]{--cc:var(--accent)}
+  .card[data-kind="noshow"]{--cc:#b94a4a}
+  .card[data-kind="cohorts"]{--cc:var(--info)}
+  .card[data-kind="multi"]{--cc:var(--amber)}
+  .card[data-kind="automation"]{--cc:#7a3aaa}
+  .card[data-kind="later"]{--cc:var(--amber)}
+  .card[data-kind="macros"]{--cc:var(--accent)}
+  .card[data-kind="showcase"]{--cc:var(--success)}
+.stage-tag{position:absolute;top:10px;right:12px;font-size:8.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:2px 8px;border-radius:999px;backdrop-filter:blur(6px)}
+  .stage-tag[data-s="live"]{background:rgba(220,245,230,.96);color:#2d6347}
+  .stage-tag[data-s="beta"]{background:rgba(252,233,200,.96);color:#8a5a18}
+  .stage-tag[data-s="demo"]{background:rgba(232,215,248,.96);color:#5a2a8a}
+  .stage-tag[data-s="locked"]{background:rgba(248,215,215,.96);color:#8a3030}
+  .stage-tag::before{content:"";display:inline-block;width:5px;height:5px;border-radius:999px;margin-right:4px;vertical-align:middle}
+  .stage-tag[data-s="live"]::before{background:#4a8268}
+  .stage-tag[data-s="beta"]::before{background:#c8821e}
+  .stage-tag[data-s="demo"]::before{background:#7a3aaa}
+  .stage-tag[data-s="locked"]::before{background:#b94a4a}
+  .card-kicker{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--cc,var(--amber));margin-bottom:8px}
+  .card h2{font-size:17px;font-weight:800;margin:0 0 4px;letter-spacing:-.02em}
+  .card p{font-size:12px;color:rgba(70,60,50,.62);margin:0 0 12px;line-height:1.5}
+  .url-pill{display:inline-block;font-family:SFMono-Regular,Menlo,monospace;font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.7);color:var(--cc,var(--amber));box-shadow:inset 0 -1px 0 rgba(132,117,107,.18)}
+
+  /* Compact mobile cards */
+  .card--mini{padding:14px 16px}
+  .card--mini h2{font-size:14px}
+  .card--mini p{font-size:11px;margin-bottom:8px}
+  .card--mini .url-pill{font-size:9.5px;padding:3px 7px}
+
+  .footer{margin-top:40px;padding-top:24px;border-top:1px solid rgba(132,117,107,.18);font-size:11.5px;color:rgba(70,60,50,.55);line-height:1.7}
+  .footer kbd{background:rgba(255,255,255,.7);padding:1px 6px;border-radius:4px;font-family:inherit;font-size:10.5px;color:var(--amber);font-weight:700;box-shadow:inset 0 -1px 0 rgba(132,117,107,.18)}
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0 28px}
+  .stat{padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.85)}
+  .stat-num{font-size:24px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;color:var(--brand)}
+  .stat-lbl{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;margin-top:4px}
+</style>
+<link rel="stylesheet" href="/cco-polish.css">
+<script src="/cco-polish.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <div class="kicker"><span class="mark">CC</span>CCO Demo-portal · 29 maj 2026</div>
+    <h1>Välkommen till <span>nya CCO</span></h1>
+    <p class="lead">Klicka in på vilken vy du vill — alla har simulerad data och funkar fritt. Tryck <kbd>Cmd+K</kbd> för global kundsök var som helst.</p>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num">25</div><div class="stat-lbl">Live-vyer</div></div>
+      <div class="stat"><div class="stat-num">17+</div><div class="stat-lbl">Interaktioner</div></div>
+      <div class="stat"><div class="stat-num">1 247</div><div class="stat-lbl">Demo-kunder</div></div>
+      <div class="stat"><div class="stat-num">49 MSEK</div><div class="stat-lbl">Total intäkt</div></div>
+    </div>
+
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px;padding:14px 18px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,.3));border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.85)">
+      <span style="font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#84756b;margin-right:6px">Stage-statusar</span>
+      <span class="stage-tag" data-s="live">live</span><span style="font-size:11px;color:rgba(70,60,50,.62)">= driftsatt med riktig data</span>
+      <span style="margin-left:14px"></span>
+      <span class="stage-tag" data-s="beta">beta</span><span style="font-size:11px;color:rgba(70,60,50,.62)">= fungerar men testas</span>
+      <span style="margin-left:14px"></span>
+      <span class="stage-tag" data-s="demo">demo</span><span style="font-size:11px;color:rgba(70,60,50,.62)">= mockup för planering</span>
+      <span style="margin-left:14px"></span>
+      <span class="stage-tag" data-s="locked">låst</span><span style="font-size:11px;color:rgba(70,60,50,.62)">= prata med Fazli innan</span>
+    </div>
+    <div class="section-title">🩺 Aktiv pilot · 4 juni 2026</div>
+    <div class="grid">
+      <a class="card" href="/personal-demo.html" data-kind="kunder">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Journalpilot · personal-demo</div>
+        <h2>Journalpilot 4 juni</h2>
+        <p>Kontrollerad journalföringspilot — startar 4 juni 2026. Heligt flöde: Kunder → Kundkort → Journal.</p>
+        <span class="url-pill">/personal-demo.html</span>
+      </a>
+    </div>
+
+    <div class="section-title">★ Huvudvyer · desktop</div>
+    <div class="grid">
+      <a class="card" href="/kalender.html" data-kind="kalender">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Desktop · Kalender</div>
+        <h2>Kalender</h2>
+        <p>Veckogrid · resurser · drag-omboka · Morgon-standup · AI-rekommendationer · tid-maskin · 16 mikro/makro-interaktioner</p>
+        <span class="url-pill">/kalender.html</span>
+      </a>
+      <a class="card" href="/kunder.html" data-kind="kunder">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Desktop · Kunder</div>
+        <h2>Kunder</h2>
+        <p>1 247 kunder · filter (VIP/Risk/Nya) · AI-aggregat · sök Cmd+K · klick kund → full dossiér + 📷 kamera</p>
+        <span class="url-pill">/kunder.html</span>
+      </a>
+      <a class="card" href="/konversationer.html" data-kind="konv">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Desktop · Konversationer</div>
+        <h2>Konversationer</h2>
+        <p>Inkorg · trådvy · AI-utkast · Svarstudio-integration · kundkontext i höger-kolumn · alla källor (contact/info/fazli/egzona)</p>
+        <span class="url-pill">/konversationer.html</span>
+      </a>
+      <a class="card" href="/analytics.html" data-kind="analytics">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Desktop · Analytics</div>
+        <h2>Analytics</h2>
+        <p>6 KPI:er · intäkt per vecka · kundsegment-donut · behandlingsbreakdown · AI-insikter denna månad</p>
+        <span class="url-pill">/analytics.html</span>
+      </a>
+    </div>
+
+    <div class="section-title">📱 Mobil · iPhone-frame</div>
+    <div class="grid grid--3">
+      <a class="card card--mini" href="/m-kalender.html" data-kind="mobile">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Mobil · Kalender</div>
+        <h2>Kalender</h2>
+        <p>Bottom-sheet · dagswipe · FAB-mic · vibe-väder</p>
+        <span class="url-pill">/m-kalender.html</span>
+      </a>
+      <a class="card card--mini" href="/m-kunder.html" data-kind="mobile">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Mobil · Kunder</div>
+        <h2>Kunder</h2>
+        <p>Sökbara kort · AI-aggregat · dossiér + 📷 kamera</p>
+        <span class="url-pill">/m-kunder.html</span>
+      </a>
+      <a class="card card--mini" href="/m-konversationer.html" data-kind="mobile">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Mobil · Konversationer</div>
+        <h2>Konversationer</h2>
+        <p>Trådlista · oläst-prick · tap → fullskärm</p>
+        <span class="url-pill">/m-konversationer.html</span>
+      </a>
+    </div>
+
+    <div class="section-title">🆕 Nya verktyg · v2</div>
+    <div class="grid grid--3">
+      <a class="card card--mini" href="/smart-anteckning.html" data-kind="note">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Smart anteckning</div>
+        <h2>Anteckningar med AI</h2>
+        <p>Smart journalanteckning · auto-länkar bokningar/foton · mallar · AI-summering</p>
+        <span class="url-pill">/smart-anteckning.html</span>
+      </a>
+      <a class="card card--mini" href="/ai-coach.html" data-kind="coach">
+        <span class="stage-tag" data-s="beta">beta</span>
+        <div class="card-kicker">AI Staff Coach</div>
+        <h2>Personlig coach</h2>
+        <p>Dagliga tips · score · streak · mikro-träning · veckans fokus · alla actions kräver klick</p>
+        <span class="url-pill">/ai-coach.html</span>
+      </a>
+      <a class="card card--mini" href="/installningar.html" data-kind="settings">
+        <span class="stage-tag" data-s="beta">beta</span>
+        <div class="card-kicker">Inställningar</div>
+        <h2>Settings</h2>
+        <p>Klinikinfo · öppettider · brand-färger · 7 integrationer (Cliento/Drive/M365/Resend/Stripe/Swish/Slack)</p>
+        <span class="url-pill">/installningar.html</span>
+      </a>
+      <a class="card card--mini" href="/print.html" data-kind="print">
+        <span class="stage-tag" data-s="beta">beta</span>
+        <div class="card-kicker">Print & rapporter</div>
+        <h2>Veckoschema PDF</h2>
+        <p>A4-layout · välj period/personal/innehåll · skriv ut eller spara till Drive</p>
+        <span class="url-pill">/print.html</span>
+      </a>
+      <a class="card card--mini" href="/pwa-install.html" data-kind="pwa">
+        <span class="stage-tag" data-s="beta">beta</span>
+        <div class="card-kicker">PWA-läge</div>
+        <h2>Installera på telefon</h2>
+        <p>Add-to-Home · offline-läge · push-notiser · iOS-shortcut + Android-prompt</p>
+        <span class="url-pill">/pwa-install.html</span>
+      </a>
+      <a class="card card--mini" href="/kunder.html" data-kind="kunder">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Bulk + GDPR</div>
+        <h2>Kunder v2 (uppdaterad)</h2>
+        <p>Vänster-klick → markera flera → bulk-bar längst ner · GDPR-export/radera i dossiér</p>
+        <span class="url-pill">/kunder.html</span>
+      </a>
+    </div>
+
+    <div class="section-title">🚀 Stora projekt · v3</div>
+    <div class="grid grid--3">
+      <a class="card card--mini" href="/watch-app.html" data-kind="watch">
+        <span class="stage-tag" data-s="beta">beta</span>
+        <div class="card-kicker">Apple Watch app</div>
+        <h2>Standalone watchOS</h2>
+        <p>6 watch-skärmar · komplikationer · glance · voice booking · push-notiser · bokningsdetalj</p>
+        <span class="url-pill">/watch-app.html</span>
+      </a>
+      <a class="card card--mini" href="/no-show.html" data-kind="noshow">
+        <span class="stage-tag" data-s="locked">locked</span>
+        <div class="card-kicker">AI No-show prediction</div>
+        <h2>Risk-prediction</h2>
+        <p>Logistic regression · 12 features · SHAP-förklaring · värmekarta · 14 200 kr/v besparing</p>
+        <span class="url-pill">/no-show.html</span>
+      </a>
+      <a class="card card--mini" href="/cohorts.html" data-kind="cohorts">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Cohort-analys</div>
+        <h2>Retention & LTV</h2>
+        <p>Heatmap 12 cohorter × M+0…M+11 · LTV-kurva · behandlings-mix · konverteringsfunnel</p>
+        <span class="url-pill">/cohorts.html</span>
+      </a>
+      <a class="card card--mini" href="/multi-tenant.html" data-kind="multi">
+        <span class="stage-tag" data-s="demo">demo</span>
+        <div class="card-kicker">Multi-tenant</div>
+        <h2>Flera kliniker</h2>
+        <p>Tenant-switcher · 3 demo-kliniker · brand-färg per klinik · roller · gemensam billing</p>
+        <span class="url-pill">/multi-tenant.html</span>
+      </a>
+    </div>
+
+    <div class="section-title">⚙ Ursprungliga CCO-segment · v5</div>
+    <div class="grid grid--4">
+      <a class="card card--mini" href="/automation.html" data-kind="automation">
+        <span class="stage-tag" data-s="beta">beta</span>
+        <div class="card-kicker">Automation Hub</div>
+        <h2>Workflow-byggare</h2>
+        <p>6 tabbar · drag-drop nodes · AI · 12 aktiva flows · 8 217 körningar/mån</p>
+        <span class="url-pill">/automation.html</span>
+      </a>
+      <a class="card card--mini" href="/later-sent.html" data-kind="later">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Later & Sent</div>
+        <h2>Mejl-tidslinje</h2>
+        <p>28 schemalagda + 1 248 skickade · deliverability · funnel-bar</p>
+        <span class="url-pill">/later-sent.html</span>
+      </a>
+      <a class="card card--mini" href="/macros.html" data-kind="macros">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Macros</div>
+        <h2>Text-expansion</h2>
+        <p>28 sparade · /pris /sig /tack · 14 variabler · live-preview · AI-förslag</p>
+        <span class="url-pill">/macros.html</span>
+      </a>
+      <a class="card card--mini" href="/showcase.html" data-kind="showcase">
+        <span class="stage-tag" data-s="locked">locked</span>
+        <div class="card-kicker">Showcase</div>
+        <h2>Case studies</h2>
+        <p>47 godkända före/efter · interaktiv slider · 4,8⭐ snitt · 218 leads</p>
+        <span class="url-pill">/showcase.html</span>
+      </a>
+    </div>
+
+    <div class="section-title">🔐 Sprint 1 · Compliance-grund (LIVE)</div>
+    <div class="grid grid--3">
+      <a class="card card--mini" href="/audit-log.html" data-kind="settings">
+        <span class="stage-tag" data-s="beta">beta</span>
+        <div class="card-kicker">Audit-logg</div>
+        <h2>Compliance · 10 års retention</h2>
+        <p>Append-only events · filter per action/role · owner+revisor only · RBAC 403 för andra roller</p>
+        <span class="url-pill">/audit-log.html</span>
+      </a>
+      <a class="card card--mini" href="/kalender.html#case-drawer" data-kind="kalender">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Booking-case-flow</div>
+        <h2>State machine · 9 states</h2>
+        <p>Drawer i kalendern · inquiry → handoff_done · 5-stegs checklista · audit per transition</p>
+        <span class="url-pill">/kalender.html → 📋 FAB</span>
+      </a>
+      <a class="card card--mini" href="/showcase.html" data-kind="showcase">
+        <span class="stage-tag" data-s="beta">beta</span>
+        <div class="card-kicker">Photo-consent</div>
+        <h2>GDPR-säker showcase</h2>
+        <p>Wirad mot photo-consent backend · "endast godkända"-filter ON default · revoke = dölj omedelbart</p>
+        <span class="url-pill">/showcase.html</span>
+      </a>
+    </div>
+
+    <div class="section-title">💬 Konversationer-suite · v4</div>
+    <div class="grid grid--3">
+      <a class="card card--mini" href="/ai-triage.html" data-kind="konv">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">AI Triage Inbox</div>
+        <h2>Auto-routing + SLA</h2>
+        <p>3 prio-buckets · SLA-countdown · auto-routing till Fazli/Egzona · 12 aktiva regler</p>
+        <span class="url-pill">/ai-triage.html</span>
+      </a>
+      <a class="card card--mini" href="/email-to-booking.html" data-kind="konv">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Email → Booking magic</div>
+        <h2>Mejl in · bok ut</h2>
+        <p>AI extraherar intent + tid · 3 matchande slots · ett klick bokar + skickar bekräftelse</p>
+        <span class="url-pill">/email-to-booking.html</span>
+      </a>
+      <a class="card card--mini" href="/unified-inbox.html" data-kind="konv">
+        <span class="stage-tag" data-s="live">live</span>
+        <div class="card-kicker">Unified Inbox</div>
+        <h2>7 mailboxes + threadmerge</h2>
+        <p>Mejl från olika adresser till samma kund → AI mergar till en unified tråd · 97% konfidens</p>
+        <span class="url-pill">/unified-inbox.html</span>
+      </a>
+    </div>
+
+    <div class="section-title">🎬 Flöden & onboarding</div>
+    <div class="grid grid--3">
+      <a class="card card--mini" href="/onboarding-tour.html" data-kind="tour">
+        <span class="stage-tag" data-s="demo">demo</span>
+        <div class="card-kicker">Första gången-tour</div>
+        <h2>Välkommen-tour</h2>
+        <p>5-stegs introduktion för ny personal · roterande sol-ikon · features per slide</p>
+        <span class="url-pill">/onboarding-tour.html</span>
+      </a>
+      <a class="card card--mini" href="/booking-wizard.html" data-kind="wizard">
+        <span class="stage-tag" data-s="demo">demo</span>
+        <div class="card-kicker">Bokningsflöde</div>
+        <h2>Ny bokning-wizard</h2>
+        <p>4-stegs guide · kund → behandling → tid → bekräfta · AI-förslag i varje steg</p>
+        <span class="url-pill">/booking-wizard.html</span>
+      </a>
+      <a class="card card--mini" href="/webcal://localhost:3101/api/v1/cco-calendar.ics">
+        <div class="card-kicker">iCal-prenumeration</div>
+        <h2>Synca med iCal</h2>
+        <p>Lägg till bokningarna i Apple/Google Calendar · auto-uppdaterar · personalen kan ha kalendern i sin telefon</p>
+        <span class="url-pill">webcal:// + ICS</span>
+      </a>
+    </div>
+
+    <div class="footer">
+      <strong style="color:var(--brand)">Snabbtips för presentationen:</strong>
+      <br>
+      Tryck <kbd>Cmd+K</kbd> för global kundsök. <kbd>Cmd+Z</kbd> ångrar senaste (tid-maskinen). Klicka <kbd>🎤</kbd> mikrofonen för voice booking ("Boka Anna PRP tis 14"). Hover korta bokningar → kundnamn dyker upp.
+      <br><br>
+      <strong style="color:var(--brand)">Demo-checklist · vad du klickar i vilken ordning:</strong>
+      Öppna <strong>/onboarding-tour.html</strong> först → klicka igenom 5 slides → klickar "Sätt igång!" → landar i <strong>/kalender.html</strong> Morgon-vy → klicka Vecka → drag-omboka en bokning → klicka 📷 Ta bild på en kund → fota → annotera → spara → byt till <strong>/kunder.html</strong> → klicka Anna Karlsson → utforska dossiér → byt till <strong>/konversationer.html</strong> → läs Annas tråd → byt till <strong>/analytics.html</strong> → visa intäkts-charts. ~5 min total.
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CCO · AI Triage Inbox</title>
+    <link rel="stylesheet" href="/cco-polish.css" />
+    <script src="/cco-polish.js" defer></script>
+    <style>
+      :root {
+        --cco-bg-page: #faf6f2;
+        --cco-color-brand: #2b251f;
+        --cco-text-secondary: rgba(70, 60, 50, 0.62);
+        --cco-text-tertiary: #8a8174;
+        --cco-status-success: #4a8268;
+        --cco-status-success-bg: rgba(74, 130, 104, 0.14);
+        --cco-status-warning: #c8821e;
+        --cco-status-warning-bg: rgba(200, 130, 30, 0.14);
+        --cco-status-danger: #b94a4a;
+        --cco-status-danger-bg: rgba(185, 74, 74, 0.14);
+        --cco-status-info: #4a7ba8;
+        --cco-status-info-bg: rgba(74, 123, 168, 0.14);
+        --accent-studio: #bb4779;
+        --calendar-accent: #c8821e;
+        --rose-pill-top: rgba(252, 233, 240, 0.98);
+        --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+        --panel-shell-top: rgba(250, 246, 242, 0.94);
+        --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+        --rail-fazli: #7a9e7e;
+        --rail-egzona: #bb4779;
+        --rail-contact: #c8821e;
+        --rail-info: #4a7ba8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+          var(--cco-bg-page);
+        color: var(--cco-color-brand);
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          sans-serif;
+        font-size: 13px;
+        min-height: 100vh;
+        padding: 14px;
+      }
+      .top-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 10px 14px;
+        color: var(--cco-text-tertiary);
+        font-size: 12px;
+      }
+      .top-nav .brand {
+        font-weight: 800;
+        color: var(--cco-color-brand);
+        letter-spacing: 0.06em;
+        font-size: 13px;
+      }
+      .top-nav a {
+        color: inherit;
+        text-decoration: none;
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+      .top-nav a.active {
+        background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+        color: var(--accent-studio);
+        font-weight: 700;
+      }
+
+      .hero {
+        max-width: 1280px;
+        margin: 0 auto 14px;
+        padding: 22px 26px;
+        border-radius: 28px;
+        background: linear-gradient(135deg, rgba(255, 250, 242, 0.95), rgba(252, 224, 200, 0.62));
+        color: var(--cco-color-brand);
+        box-shadow: 0 18px 38px rgba(93, 74, 60, 0.06);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.5), transparent 42%);
+        pointer-events: none;
+      }
+      .hero h1 {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin: 0 0 4px;
+        color: var(--cco-color-brand);
+      }
+      .hero .kicker {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--calendar-accent);
+        margin-bottom: 6px;
+      }
+      .hero p {
+        margin: 0;
+        color: var(--cco-text-secondary);
+        font-size: 13px;
+        max-width: 60ch;
+        line-height: 1.5;
+      }
+      .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-top: 14px;
+        position: relative;
+      }
+      .hero-stat {
+        padding: 12px 15px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.5));
+        backdrop-filter: blur(6px);
+        border: 1px solid rgba(255, 255, 255, 0.78);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          0 4px 10px rgba(187, 71, 121, 0.05);
+      }
+      .hero-stat .num {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        color: var(--cco-color-brand);
+        font-variant-numeric: tabular-nums;
+      }
+      .hero-stat .lbl {
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-top: 4px;
+      }
+
+      /* 3-bucket layout */
+      .buckets {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        max-width: 1280px;
+        margin: 0 auto 14px;
+      }
+      .bucket {
+        padding: 18px 20px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 18px 40px rgba(93, 74, 60, 0.08),
+          0 6px 14px rgba(187, 71, 121, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        min-height: 60vh;
+        position: relative;
+        overflow: hidden;
+      }
+      .bucket::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: radial-gradient(
+          ellipse at 50% -10px,
+          rgba(255, 255, 255, 0.5),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .bucket-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 14px;
+        padding-bottom: 11px;
+        border-bottom: 1px solid rgba(132, 117, 107, 0.18);
+        position: relative;
+      }
+      .bucket-title {
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .bucket-title::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+      }
+      .bucket-akut .bucket-title::before {
+        background: var(--cco-status-danger);
+        box-shadow: 0 0 8px var(--cco-status-danger);
+      }
+      .bucket-idag .bucket-title::before {
+        background: var(--calendar-accent);
+        box-shadow: 0 0 8px var(--calendar-accent);
+      }
+      .bucket-vecka .bucket-title::before {
+        background: var(--cco-status-info);
+      }
+      .bucket-info .bucket-title::before {
+        background: var(--cco-text-tertiary);
+      }
+      .bucket-count {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-variant-numeric: tabular-nums;
+        border: 1px solid transparent;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+      }
+      .bucket-akut .bucket-count {
+        background: linear-gradient(180deg, rgba(252, 224, 210, 0.88), rgba(248, 216, 200, 0.78));
+        color: #a04545;
+        border-color: rgba(185, 74, 74, 0.18);
+      }
+      .bucket-idag .bucket-count {
+        background: linear-gradient(180deg, #fff5e6, #ffe9c8);
+        color: var(--calendar-accent);
+        border-color: rgba(200, 130, 30, 0.22);
+      }
+      .bucket-vecka .bucket-count {
+        background: linear-gradient(180deg, rgba(218, 234, 250, 0.92), rgba(196, 222, 247, 0.78));
+        color: var(--cco-status-info);
+        border-color: rgba(74, 123, 168, 0.22);
+      }
+
+      /* Mail card */
+      .mail {
+        padding: 12px 14px;
+        border-radius: 15px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.6));
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition:
+          transform 0.14s ease,
+          box-shadow 0.14s ease;
+        border-left: 3px solid transparent;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          0 4px 12px rgba(93, 74, 60, 0.05);
+        position: relative;
+      }
+      .mail:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          0 10px 24px rgba(93, 74, 60, 0.1),
+          0 4px 10px rgba(187, 71, 121, 0.06);
+      }
+      .mail.routed-fazli {
+        border-left-color: var(--rail-fazli);
+      }
+      .mail.routed-egzona {
+        border-left-color: var(--rail-egzona);
+      }
+      .mail.routed-contact {
+        border-left-color: var(--rail-contact);
+      }
+      .mail.routed-info {
+        border-left-color: var(--rail-info);
+      }
+      .mail-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 3px;
+      }
+      .mail-from {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .mail-from .vip {
+        margin-left: 5px;
+        font-size: 8.5px;
+        font-weight: 800;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #fff5e6, #ffe9c8);
+        color: var(--calendar-accent);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        vertical-align: middle;
+        border: 1px solid rgba(200, 130, 30, 0.2);
+      }
+      .mail-time {
+        font-size: 10px;
+        color: var(--cco-text-tertiary);
+        font-variant-numeric: tabular-nums;
+      }
+      .mail-subj {
+        font-size: 11.5px;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-bottom: 3px;
+        color: var(--cco-color-brand);
+      }
+      .mail-snippet {
+        font-size: 10.5px;
+        color: var(--cco-text-secondary);
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .mail-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 7px;
+        gap: 8px;
+      }
+      .mail-meta {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .mail-meta span {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(132, 117, 107, 0.1);
+        color: var(--cco-text-secondary);
+      }
+      .mail-meta .routed {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 238, 232, 0.7));
+        color: var(--cco-color-brand);
+        border: 1px solid rgba(132, 117, 107, 0.18);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+      .mail-sla {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+      }
+      .mail-sla.danger {
+        background: linear-gradient(180deg, rgba(252, 224, 210, 0.88), rgba(248, 216, 200, 0.78));
+        color: #a04545;
+        border-color: rgba(185, 74, 74, 0.18);
+        animation: pulseSoft 2.2s ease-in-out infinite;
+      }
+      .mail-sla.warn {
+        background: linear-gradient(180deg, #fff5e6, #ffe9c8);
+        color: var(--calendar-accent);
+        border-color: rgba(200, 130, 30, 0.22);
+      }
+      .mail-sla.ok {
+        background: linear-gradient(180deg, #eef7f2, #dceee4);
+        color: var(--cco-status-success);
+        border-color: rgba(74, 130, 104, 0.22);
+      }
+      @keyframes pulseSoft {
+        0%,
+        100% {
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.65),
+            0 0 0 0 rgba(185, 74, 74, 0.18);
+        }
+        50% {
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.65),
+            0 0 0 6px rgba(185, 74, 74, 0);
+        }
+      }
+
+      /* AI reason — neutral cream med amber-accent */
+      .mail-ai {
+        font-size: 10px;
+        color: var(--cco-text-secondary);
+        margin-top: 7px;
+        padding: 7px 10px;
+        background: linear-gradient(180deg, rgba(255, 250, 242, 0.92), rgba(248, 240, 228, 0.82));
+        border-radius: 10px;
+        line-height: 1.45;
+        border: 1px solid rgba(200, 130, 30, 0.14);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+      }
+      .mail-ai::before {
+        content: '★ ';
+        font-weight: 800;
+        color: var(--calendar-accent);
+      }
+
+      /* Routing rules right rail */
+      .rules {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .rule-panel {
+        padding: 20px 22px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 18px 40px rgba(93, 74, 60, 0.08),
+          0 6px 14px rgba(187, 71, 121, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        position: relative;
+        overflow: hidden;
+      }
+      .rule-panel::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: radial-gradient(
+          ellipse at 50% -10px,
+          rgba(255, 255, 255, 0.5),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .rule-panel h2 {
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin: 0 0 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .rule-panel h2 .badge {
+        font-size: 9px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--cco-status-success-bg);
+        color: var(--cco-status-success);
+      }
+
+      .rule-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 10px;
+        padding: 10px 0;
+        font-size: 11.5px;
+        align-items: center;
+        border-bottom: 1px solid rgba(132, 117, 107, 0.12);
+      }
+      .rule-row:last-child {
+        border-bottom: none;
+      }
+      .rule-condition {
+        font-size: 11px;
+        color: var(--cco-text-secondary);
+        line-height: 1.4;
+      }
+      .rule-condition code {
+        font-family: SFMono-Regular, Menlo, monospace;
+        font-size: 10.5px;
+        background: rgba(132, 117, 107, 0.1);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      .rule-arrow {
+        color: var(--cco-text-tertiary);
+        font-weight: 800;
+        font-size: 11px;
+      }
+      .rule-target {
+        font-size: 10.5px;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 999px;
+      }
+      .rule-target.fazli {
+        background: rgba(122, 158, 126, 0.16);
+        color: #3a5a3e;
+        border: 1px solid rgba(122, 158, 126, 0.22);
+      }
+      .rule-target.egzona {
+        background: rgba(132, 117, 107, 0.12);
+        color: var(--cco-color-brand);
+        border: 1px solid rgba(132, 117, 107, 0.2);
+      }
+      .rule-target.contact {
+        background: rgba(200, 130, 30, 0.14);
+        color: var(--calendar-accent);
+        border: 1px solid rgba(200, 130, 30, 0.22);
+      }
+
+      /* SLA-stats */
+      .sla-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        position: relative;
+      }
+      .sla-cell {
+        padding: 13px 15px;
+        border-radius: 15px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.55));
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          0 4px 10px rgba(93, 74, 60, 0.04);
+      }
+      .sla-cell-lbl {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cco-text-tertiary);
+        margin-bottom: 4px;
+      }
+      .sla-cell-num {
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+      .sla-cell-num.good {
+        color: var(--cco-status-success);
+      }
+      .sla-cell-num.warn {
+        color: var(--calendar-accent);
+      }
+      .sla-cell-sub {
+        font-size: 10.5px;
+        color: var(--cco-text-secondary);
+        margin-top: 2px;
+      }
+
+      /* Action buttons in mail — kalender-stil: pastell-pillar med mörk text */
+      .mail-acts {
+        display: flex;
+        gap: 5px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .mail-acts button {
+        padding: 5px 11px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+        font-size: 10.5px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--cco-color-brand);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.88),
+          0 2px 6px rgba(56, 40, 28, 0.06);
+        transition:
+          transform 0.1s ease,
+          box-shadow 0.12s ease;
+      }
+      .mail-acts button:hover {
+        transform: translateY(-1px);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          0 4px 12px rgba(56, 40, 28, 0.1);
+      }
+      .mail-acts button.prim {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
+        color: var(--cco-color-brand);
+        border-color: rgba(255, 255, 255, 0.85);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          0 3px 10px rgba(56, 40, 28, 0.08);
+        font-weight: 700;
+      }
+      .mail-acts button.prim:hover {
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          0 6px 14px rgba(56, 40, 28, 0.12);
+      }
+      .mail-acts button.send-action {
+        background: linear-gradient(180deg, #fff5e6, #ffe3b8);
+        border-color: rgba(200, 130, 30, 0.32);
+        color: var(--calendar-accent);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          0 3px 8px var(--cco-status-warning-bg);
+        font-weight: 700;
+      }
+      .mail-acts button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+
+      /* Sprint C — Dry-run banner */
+      .dryrun-banner {
+        max-width: 1280px;
+        margin: 0 auto 14px;
+        padding: 11px 18px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(252, 224, 200, 0.92), rgba(252, 233, 240, 0.78));
+        border: 1px solid rgba(200, 130, 30, 0.32);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 11.5px;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 6px 16px rgba(200, 130, 30, 0.08);
+      }
+      .dryrun-banner[hidden] {
+        display: none;
+      }
+      .dryrun-banner .pill {
+        padding: 3px 11px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--calendar-accent), #a06b1a);
+        color: white;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.32),
+          0 3px 8px rgba(200, 130, 30, 0.28);
+      }
+      .dryrun-banner .msg {
+        color: var(--cco-color-brand);
+        flex: 1;
+        line-height: 1.4;
+      }
+      .dryrun-banner .stats {
+        font-size: 10px;
+        color: var(--cco-text-tertiary);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Sprint C — Send-action toast */
+      .send-toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        padding: 14px 20px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(74, 130, 104, 0.96), rgba(74, 130, 104, 0.86));
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.22),
+          0 20px 44px rgba(0, 0, 0, 0.28),
+          0 8px 16px rgba(74, 130, 104, 0.32);
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.28s ease;
+        z-index: 300;
+        max-width: 340px;
+        line-height: 1.45;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+      .send-toast.dryrun {
+        background: linear-gradient(135deg, rgba(200, 130, 30, 0.95), rgba(200, 130, 30, 0.85));
+      }
+      .send-toast.error {
+        background: linear-gradient(135deg, rgba(185, 74, 74, 0.95), rgba(185, 74, 74, 0.85));
+      }
+      .send-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .send-toast small {
+        display: block;
+        margin-top: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body data-stage="live">
+    <div class="top-nav">
+      <span class="brand">CCO</span>
+      <a href="/kalender.html">Kalender</a>
+      <a href="/kunder.html">Kunder</a>
+      <a href="/konversationer.html">Konversationer</a>
+      <a href="/ai-triage.html" class="active">AI Triage</a>
+      <a href="/unified-inbox.html">Unified Inbox</a>
+      <a href="/email-to-booking.html">Email→Booking</a>
+    </div>
+
+    <div class="hero">
+      <div class="kicker">★ AI Triage · 7 mailboxes · uppdaterad nu</div>
+      <h1>AI har sorterat dagens 47 mejl åt dig</h1>
+      <p>
+        Modellen läser ämne + första 100 ord, identifierar intent (boka/avboka/fråga/klagomål/pris),
+        kund-LTV och deadline. Routing-reglerna under är dina egna — du kan ändra när som helst.
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num">3</div>
+          <div class="lbl">Akut · &lt; 2h</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">18</div>
+          <div class="lbl">Idag</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">22</div>
+          <div class="lbl">v.22 / info</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">4 min</div>
+          <div class="lbl">Snitt-svarstid</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sprint C — Dry-run-banner (vies bara om dry-run aktivt) -->
+    <div class="dryrun-banner" id="dryrunBanner" hidden role="status" aria-live="polite">
+      <span class="pill">Dry-run</span>
+      <span class="msg" id="dryrunMsg"
+        >Send-actions körs i dry-run-läge: ingen email skickas till patient, men audit-event
+        registreras. Sätt <code>RESEND_API_KEY</code> + <code>CCO_SEND_DRY_RUN=false</code> i .env
+        för live.</span
+      >
+      <span class="stats" id="dryrunStats"></span>
+    </div>
+
+    <!-- Sprint C — Send-action toast (visas vid klick) -->
+    <div class="send-toast" id="sendToast" role="status" aria-live="polite"></div>
+
+    <div class="buckets">
+      <!-- AKUT -->
+      <section class="bucket bucket-akut">
+        <div class="bucket-head">
+          <div class="bucket-title">Akut · svar inom 2h</div>
+          <span class="bucket-count">3</span>
+        </div>
+
+        <article
+          class="mail routed-egzona"
+          data-cid="henrik-johansson"
+          data-email="henrik@example.com"
+          data-name="Henrik Johansson"
+        >
+          <div class="mail-head">
+            <div class="mail-from">Henrik Johansson <span class="vip">VIP</span></div>
+            <div class="mail-time">09:42</div>
+          </div>
+          <div class="mail-subj">Måste flytta dagens FUE 15:00 — akut</div>
+          <div class="mail-snippet">
+            Hej, har precis fått besked om att jag måste arbeta resten av dagen. Kan vi flytta till
+            imorgon eller måndag? Beklagar verkligen…
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta">
+              <span class="routed">→ Egzona</span><span>Avbokning &lt; 24h</span
+              ><span>3:e ggn</span>
+            </div>
+            <div class="mail-sla danger">⏱ 1h 12m kvar</div>
+          </div>
+          <div class="mail-ai">
+            Hög no-show-historik — ring direkt istället för mejl. Föreslå imorgon 13:00 (ledigt
+            slot) eller måndag 09:00.
+          </div>
+          <div class="mail-acts">
+            <button class="prim">📞 Ring nu</button>
+            <button>Föreslå tider</button>
+            <button>Skapa utkast</button>
+            <button
+              class="send-action"
+              data-send="encounter"
+              data-treatment="FUE-konsultation"
+              data-staff="Egzona"
+            >
+              📅 Skicka boknings-bek.
+            </button>
+          </div>
+        </article>
+
+        <article class="mail routed-fazli">
+          <div class="mail-head">
+            <div class="mail-from">Lars Eriksson</div>
+            <div class="mail-time">09:51</div>
+          </div>
+          <div class="mail-subj">Komplikation efter FUE — blödning</div>
+          <div class="mail-snippet">
+            Vaknade nu med ovanligt mycket blod på örngottet. Inte panik men vill att ni tittar. Kan
+            jag komma in idag?
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta">
+              <span class="routed">→ Fazli (medicinskt)</span><span>Post-op fråga</span>
+            </div>
+            <div class="mail-sla danger">⏱ 38 min kvar</div>
+          </div>
+          <div class="mail-ai">
+            Medicinsk komplikation — Fazli ska svara, inte AI-utkast. Bocka av "läst" och ring inom
+            30 min.
+          </div>
+          <div class="mail-acts">
+            <button class="prim">📞 Ring</button><button>Bok akut-tid</button>
+          </div>
+        </article>
+
+        <article class="mail routed-contact">
+          <div class="mail-head">
+            <div class="mail-from">Petra Lindström</div>
+            <div class="mail-time">10:14</div>
+          </div>
+          <div class="mail-subj">SVAR: Kan inte komma 17:30 idag</div>
+          <div class="mail-snippet">
+            Försökte ringa men gick inte fram. Min son blev sjuk, kan inte komma till PRP idag.
+            Måste vi betala något?
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta">
+              <span class="routed">→ Contact</span><span>Late-cancel</span>
+            </div>
+            <div class="mail-sla warn">⏱ 1h 46m kvar</div>
+          </div>
+          <div class="mail-ai">
+            Late-cancel-policy kickar in (50% avgift). AI-mall finns: "Vi förstår, ingen avgift
+            denna gång". Skicka för signoff.
+          </div>
+          <div class="mail-acts">
+            <button class="prim">Skicka AI-utkast</button><button>Avstå avgift</button>
+          </div>
+        </article>
+      </section>
+
+      <!-- IDAG -->
+      <section class="bucket bucket-idag">
+        <div class="bucket-head">
+          <div class="bucket-title">Idag · svar innan 18:00</div>
+          <span class="bucket-count">18</span>
+        </div>
+
+        <article
+          class="mail routed-info"
+          data-cid="sara-wikander"
+          data-email="sara@example.com"
+          data-name="Sara Wikander"
+        >
+          <div class="mail-head">
+            <div class="mail-from">Sara Wikander</div>
+            <div class="mail-time">08:22</div>
+          </div>
+          <div class="mail-subj">Pris för FUE 3000 graft?</div>
+          <div class="mail-snippet">
+            Hej, jag funderar på FUE och har sett att ni har bra priser. Vad kostar det för cirka
+            3000 graft? Tar ni Klarna?
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta">
+              <span class="routed">→ Fazli</span><span>Prisförfrågan</span><span>Ny lead</span>
+            </div>
+            <div class="mail-sla ok">⏱ 7h 32m</div>
+          </div>
+          <div class="mail-ai">
+            Lead-prio. Skicka pris + bok-länk på 5 min, så ökar konvertering 2,3x enligt vår data.
+          </div>
+          <div class="mail-acts">
+            <button class="prim">AI-utkast med pris+länk</button>
+            <button>Boka konsult</button>
+            <button class="send-action" data-send="form" data-form-kind="health_declaration">
+              📋 Skicka formulär
+            </button>
+            <button
+              class="send-action"
+              data-send="file"
+              data-file-name="prislista-fue.pdf"
+              data-file-mime="application/pdf"
+            >
+              📎 Skicka prislista
+            </button>
+          </div>
+        </article>
+
+        <article class="mail routed-egzona">
+          <div class="mail-head">
+            <div class="mail-from">Anna Karlsson <span class="vip">VIP</span></div>
+            <div class="mail-time">08:48</div>
+          </div>
+          <div class="mail-subj">RE: Bekräftelse PRP imorgon</div>
+          <div class="mail-snippet">
+            Tack, ser fram emot det. En fråga bara — får jag ta värktablett innan, eller försämrar
+            det effekten?
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta">
+              <span class="routed">→ Egzona</span><span>Medicinsk fråga</span>
+            </div>
+            <div class="mail-sla ok">⏱ 6h kvar</div>
+          </div>
+          <div class="mail-ai">
+            Standardsvar finns: "Undvik NSAID 48h innan, paracetamol OK". Egzona signerar.
+          </div>
+          <div class="mail-acts"><button class="prim">Skicka AI-utkast</button></div>
+        </article>
+
+        <article class="mail routed-contact">
+          <div class="mail-head">
+            <div class="mail-from">Mikael Berg</div>
+            <div class="mail-time">09:03</div>
+          </div>
+          <div class="mail-subj">Boka konsultation</div>
+          <div class="mail-snippet">
+            Hej! Skulle vilja boka en konsultation någon gång nästa vecka. Helst tisdag eller
+            torsdag eftermiddag.
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta">
+              <span class="routed">→ Contact</span><span>Bokningsförfrågan</span>
+            </div>
+            <div class="mail-sla ok">⏱ 5h 30m</div>
+          </div>
+          <div class="mail-ai">
+            3 slots matchar: tis 14:00, tis 16:30, tor 15:00.
+            <a href="/email-to-booking.html" style="color: inherit; text-decoration: underline"
+              >Öppna Email→Booking</a
+            >
+            för 1-klicks-bok.
+          </div>
+          <div class="mail-acts"><button class="prim">→ Email→Booking</button></div>
+        </article>
+
+        <article
+          class="mail routed-egzona"
+          data-cid="jonas-persson"
+          data-email="jonas@example.com"
+          data-name="Jonas Persson"
+        >
+          <div class="mail-head">
+            <div class="mail-from">Jonas Persson</div>
+            <div class="mail-time">11:02</div>
+          </div>
+          <div class="mail-subj">Foton från 6-månaders uppföljning</div>
+          <div class="mail-snippet">
+            Bifogar foton som ni bad om. Tror det börjar synas resultat nu! Vad tycker ni?
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta">
+              <span class="routed">→ Egzona</span><span>3 bilagor</span><span>Uppföljning</span>
+            </div>
+            <div class="mail-sla ok">⏱ 4h</div>
+          </div>
+          <div class="mail-ai">
+            Foton uppladdade till Drive automatiskt. AI-utkast: "Snygg utveckling! Vi ses 12 mån."
+          </div>
+          <div class="mail-acts">
+            <button class="prim">Spara → kundkort</button>
+            <button>AI-utkast</button>
+            <button class="send-action" data-send="consent" data-consent-kind="photo_publish">
+              ✍ Skicka publiceringssamtycke
+            </button>
+          </div>
+        </article>
+
+        <article class="mail routed-info">
+          <div class="mail-head">
+            <div class="mail-from">Emma Sjöberg</div>
+            <div class="mail-time">11:30</div>
+          </div>
+          <div class="mail-subj">Recension på Google + tackmejl</div>
+          <div class="mail-snippet">
+            Lämnade nyss 5⭐ på Google! Ville bara säga tack för fantastiskt jobb och bemötande.
+            Rekommenderar er till alla!
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta">
+              <span class="routed">→ Marknad</span><span>NPS-promoter</span>
+            </div>
+            <div class="mail-sla ok">⏱ 3h 30m</div>
+          </div>
+          <div class="mail-ai">
+            Spara som testimonial — kan användas på hemsidan. Auto-tack-mall + remiss-pitch.
+          </div>
+          <div class="mail-acts"><button class="prim">Skicka tack + rabattkod</button></div>
+        </article>
+      </section>
+
+      <!-- v.22 / Info-only -->
+      <section class="bucket bucket-vecka">
+        <div class="bucket-head">
+          <div class="bucket-title">v.22 / Info-only</div>
+          <span class="bucket-count">22</span>
+        </div>
+
+        <article class="mail">
+          <div class="mail-head">
+            <div class="mail-from">Newsletter — Hairscience</div>
+            <div class="mail-time">08:00</div>
+          </div>
+          <div class="mail-subj">Veckans nyhetsbrev · nya studier</div>
+          <div class="mail-snippet">
+            Senaste forskningen inom hårtransplantation: 18-månaders studie visar 89% retention med
+            ny PRP-protokoll…
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span>Newsletter</span><span>Auto-arkivera</span></div>
+            <div class="mail-sla ok">— ingen svar krävs</div>
+          </div>
+          <div class="mail-ai">Newsletter. Markeras som läst om inte öppnad inom 7 dagar.</div>
+        </article>
+
+        <article class="mail">
+          <div class="mail-head">
+            <div class="mail-from">Resend.com</div>
+            <div class="mail-time">09:15</div>
+          </div>
+          <div class="mail-subj">Veckorapport: 1 248 mejl skickade</div>
+          <div class="mail-snippet">
+            Deliverability: 99,2%. Bounces: 4. Spam-rapporter: 0. Open rate: 64%.
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span>System</span><span>Rapport</span></div>
+            <div class="mail-sla ok">—</div>
+          </div>
+          <div class="mail-ai">System-rapport. Auto-arkiverat.</div>
+        </article>
+
+        <article class="mail">
+          <div class="mail-head">
+            <div class="mail-from">Skattemyndigheten</div>
+            <div class="mail-time">10:42</div>
+          </div>
+          <div class="mail-subj">Påminnelse · F-skatt v.22</div>
+          <div class="mail-snippet">
+            Detta är en automatisk påminnelse om att F-skatten för v.22 förfaller om 5 dagar…
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta"><span>Myndighet</span><span>→ Bokföring</span></div>
+            <div class="mail-sla warn">5 dagar</div>
+          </div>
+          <div class="mail-ai">Forward till bokföring@hairtpclinic.com automatiskt.</div>
+        </article>
+
+        <article class="mail routed-contact">
+          <div class="mail-head">
+            <div class="mail-from">Maja Birgersson</div>
+            <div class="mail-time">12:18</div>
+          </div>
+          <div class="mail-subj">Tack för senaste! Vill boka om 3 mån</div>
+          <div class="mail-snippet">
+            Allt gick bra, känner ingen smärta längre. Ville fråga om jag kan boka uppföljning för
+            augusti redan nu?
+          </div>
+          <div class="mail-foot">
+            <div class="mail-meta">
+              <span class="routed">→ Contact</span><span>Återkommande</span>
+            </div>
+            <div class="mail-sla ok">v.22-rest</div>
+          </div>
+          <div class="mail-ai">Inget brådskande, men prioritera VIP-fönster i augusti.</div>
+        </article>
+      </section>
+    </div>
+
+    <div class="rules">
+      <!-- Routing rules -->
+      <section class="rule-panel">
+        <h2>Auto-routing-regler<span class="badge">12 aktiva</span></h2>
+
+        <div class="rule-row">
+          <div class="rule-condition">
+            Avsändare i <code>VIP-lista</code> + ämne innehåller "boka"
+          </div>
+          <span class="rule-arrow">→</span>
+          <span class="rule-target egzona">Egzona</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">Ämne innehåller <code>pris|kostnad|finansiering</code></div>
+          <span class="rule-arrow">→</span>
+          <span class="rule-target fazli">Fazli</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">
+            Ämne innehåller <code>komplikation|blödning|smärta|infektion</code>
+          </div>
+          <span class="rule-arrow">→</span>
+          <span class="rule-target fazli">Fazli</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">
+            Avsändare = <code>existerande patient</code> + ämne innehåller "boka om|flytta"
+          </div>
+          <span class="rule-arrow">→</span>
+          <span class="rule-target contact">Contact</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">
+            Avsändare innehåller <code>recension|review|⭐|Trustpilot</code>
+          </div>
+          <span class="rule-arrow">→</span>
+          <span class="rule-target contact">Marknad</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">Ny avsändare + svensk språk-detektion</div>
+          <span class="rule-arrow">→</span>
+          <span class="rule-target contact">Contact</span>
+        </div>
+        <div class="rule-row">
+          <div class="rule-condition">AI sentiment = <code>negativt</code> + LTV &gt; 20 000</div>
+          <span class="rule-arrow">→</span>
+          <span class="rule-target egzona">Egzona</span>
+        </div>
+      </section>
+
+      <!-- SLA performance -->
+      <section class="rule-panel">
+        <h2>SLA · denna vecka</h2>
+        <div class="sla-grid">
+          <div class="sla-cell">
+            <div class="sla-cell-lbl">Akut &lt; 2h</div>
+            <div class="sla-cell-num good">100%</div>
+            <div class="sla-cell-sub">12 av 12 mejl ✓</div>
+          </div>
+          <div class="sla-cell">
+            <div class="sla-cell-lbl">Idag &lt; 8h</div>
+            <div class="sla-cell-num good">94%</div>
+            <div class="sla-cell-sub">62 av 66 mejl ✓</div>
+          </div>
+          <div class="sla-cell">
+            <div class="sla-cell-lbl">v.22 &lt; 48h</div>
+            <div class="sla-cell-num warn">88%</div>
+            <div class="sla-cell-sub">96 av 109 mejl ✓</div>
+          </div>
+          <div class="sla-cell">
+            <div class="sla-cell-lbl">Snitt-svarstid</div>
+            <div class="sla-cell-num">4,2 min</div>
+            <div class="sla-cell-sub">▼ från 11 min · oktober</div>
+          </div>
+        </div>
+
+        <h2 style="margin-top: 18px">Volym per mailbox · v.22</h2>
+        <div class="sla-grid">
+          <div class="sla-cell">
+            <div class="sla-cell-lbl">contact@</div>
+            <div class="sla-cell-num">73</div>
+            <div class="sla-cell-sub">38% av totalvolym</div>
+          </div>
+          <div class="sla-cell">
+            <div class="sla-cell-lbl">info@</div>
+            <div class="sla-cell-num">52</div>
+            <div class="sla-cell-sub">27%</div>
+          </div>
+          <div class="sla-cell">
+            <div class="sla-cell-lbl">egzona@</div>
+            <div class="sla-cell-num">38</div>
+            <div class="sla-cell-sub">20%</div>
+          </div>
+          <div class="sla-cell">
+            <div class="sla-cell-lbl">fazli@</div>
+            <div class="sla-cell-num">28</div>
+            <div class="sla-cell-sub">15%</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // Sprint C — Send-actions med dry-run banner + toast
+      (function () {
+        const banner = document.getElementById('dryrunBanner');
+        const bannerStats = document.getElementById('dryrunStats');
+        const toast = document.getElementById('sendToast');
+        let dryRunDefault = true;
+
+        function showToast(msg, kind, sub) {
+          if (!toast) return;
+          toast.className = 'send-toast ' + (kind || '');
+          toast.innerHTML = msg + (sub ? '<small>' + sub + '</small>' : '');
+          requestAnimationFrame(() => toast.classList.add('show'));
+          clearTimeout(showToast._t);
+          showToast._t = setTimeout(() => toast.classList.remove('show'), 4500);
+        }
+
+        async function loadStats() {
+          try {
+            const r = await fetch('/api/v1/cco-send/stats', {
+              headers: { 'X-CCO-Role': 'operator' },
+            });
+            if (!r.ok) return;
+            const data = await r.json();
+            dryRunDefault = !!data.currentDryRunDefault;
+            banner.hidden = !dryRunDefault;
+            bannerStats.textContent = `${data.total} send-events · ${data.dryRunCount} dry · ${data.liveCount} live`;
+          } catch (e) {
+            /* tyst — banner hides */
+          }
+        }
+
+        function getMailContext(btn) {
+          const article = btn.closest('article.mail');
+          if (!article) return null;
+          return {
+            customerId: article.dataset.cid || 'unknown',
+            customerEmail: article.dataset.email || '',
+            customerName: article.dataset.name || 'kund',
+          };
+        }
+
+        function buildSendBody(btn, ctx) {
+          const kind = btn.dataset.send;
+          const body = { ...ctx };
+          if (kind === 'form') body.formKind = btn.dataset.formKind || 'health_declaration';
+          if (kind === 'consent') body.consentKind = btn.dataset.consentKind || 'photo_publish';
+          if (kind === 'file') {
+            body.fileName = btn.dataset.fileName;
+            body.fileMime = btn.dataset.fileMime;
+            body.fileNote = btn.dataset.fileNote || '';
+          }
+          if (kind === 'encounter') {
+            body.treatmentLabel = btn.dataset.treatment || 'behandling';
+            body.staffName = btn.dataset.staff || 'Hair TP Clinic';
+            body.encounterDate =
+              btn.dataset.encounterDate ||
+              new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+            body.encounterTime = btn.dataset.encounterTime || '10:00';
+            body.encounterId =
+              btn.dataset.encounterId || 'enc_' + Math.random().toString(36).slice(2, 10);
+          }
+          return body;
+        }
+
+        document.body.addEventListener('click', async (e) => {
+          const btn = e.target.closest('button.send-action');
+          if (!btn) return;
+          const kind = btn.dataset.send;
+          const ctx = getMailContext(btn);
+          if (!ctx) return;
+          if (!ctx.customerEmail) {
+            showToast('⚠ Saknar email på mail-raden (data-email).', 'error');
+            return;
+          }
+          const body = buildSendBody(btn, ctx);
+          // Compliance-bekräftelse innan vi anropar — även dry-run
+          const confirmMsg = dryRunDefault
+            ? `Skicka ${kind} till ${ctx.customerName}?\n\nDry-run aktivt: ingen email skickas, men audit-event registreras.`
+            : `LIVE: Skicka ${kind} till ${ctx.customerName} (${ctx.customerEmail})?\n\nEmail går iväg på riktigt och kan inte ångras.`;
+          if (!confirm(confirmMsg)) return;
+          btn.disabled = true;
+          const orig = btn.textContent;
+          btn.textContent = '… skickar';
+          try {
+            const r = await fetch(
+              `/api/v1/cco-send/${kind}/${encodeURIComponent(ctx.customerId)}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CCO-Role': 'operator',
+                  'X-CCO-User': 'demo-operator',
+                },
+                body: JSON.stringify(body),
+              }
+            );
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+            const label = data.dryRun ? '✓ Dry-run: ' + kind : '✓ Skickat (live): ' + kind;
+            showToast(
+              label + ' → ' + data.recipientMasked,
+              data.dryRun ? 'dryrun' : '',
+              data.subject
+            );
+            if (window.CCOPolish?.pushUndo) {
+              window.CCOPolish.pushUndo({
+                label: `Send ${kind} → ${ctx.customerName}`,
+                undo: () => {
+                  /* send är audit-loggad; undo kan inte upphäva email — bara dokumentera */
+                },
+              });
+            }
+            loadStats();
+          } catch (err) {
+            showToast('⚠ Kunde inte skicka: ' + err.message, 'error');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = orig;
+          }
+        });
+
+        loadStats();
+      })();
+    </script>
+  </body>
+</html>

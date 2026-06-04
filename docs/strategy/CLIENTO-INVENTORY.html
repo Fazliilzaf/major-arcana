@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cliento Inventory — Hair TP + Curatiio</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 920px; margin: 0 auto; padding: 2rem 1.25rem 4rem; line-height: 1.55; }
+    pre { white-space: pre-wrap; word-wrap: break-word; font: inherit; margin: 0; }
+    .meta { opacity: 0.7; font-size: 0.9rem; margin-bottom: 1rem; }
+    a.back { font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <p class="meta"><a class="back" href="index.html">← Alla dokument</a> · CLIENTO-INVENTORY.md</p>
+  <pre id="doc">Laddar…</pre>
+  <script>
+    fetch('./CLIENTO-INVENTORY.md').then(r=>r.text()).then(t=>{ document.getElementById('doc').textContent=t; });
+  </script>
+</body>
+</html>

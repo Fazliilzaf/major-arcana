@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "patients": [
+    {
+      "id": "patient-1",
+      "tenantId": "hair-tp-clinic",
+      "personnummer": "19801224-5513",
+      "displayName": "David Persson",
+      "matchStatus": "matched"
+    },
+    {
+      "id": "patient-2",
+      "tenantId": "hair-tp-clinic",
+      "personnummer": "19900101-1234",
+      "displayName": "Anna Svensson",
+      "matchStatus": "matched"
+    }
+  ]
+}

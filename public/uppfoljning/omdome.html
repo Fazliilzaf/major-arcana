@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Hair TP Clinic — Dela din upplevelse</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:wght@200;300&family=Inter:wght@400;500;600&display=swap">
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;font-family:Inter,sans-serif;background:#FAF6F2;color:#231F1D;line-height:1.55}
+    .wrap{max-width:560px;margin:0 auto;padding:32px 20px 72px}
+    h1{font-family:Newsreader,Georgia,serif;font-weight:200;font-size:30px;margin:0 0 12px}
+    .card{background:#fff;border-radius:20px;padding:28px;box-shadow:0 2px 12px rgba(35,31,29,.06);margin-top:20px}
+    .muted{color:#6B5F58;font-size:14px}
+    .stars{display:flex;gap:8px;margin:16px 0}
+    .star{
+      width:44px;height:44px;border-radius:12px;border:1px solid #E5DDD3;background:#FCFAF8;
+      font-size:22px;cursor:pointer;transition:all .15s;
+    }
+    .star.is-on{background:#231F1D;border-color:#231F1D;color:#FAF6F2}
+    textarea{
+      width:100%;min-height:96px;padding:14px;border:1px solid #E5DDD3;border-radius:12px;
+      font:inherit;font-size:15px;resize:vertical;background:#FCFAF8;
+    }
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;padding:14px 24px;
+      border:0;border-radius:999px;font:inherit;font-weight:600;font-size:14px;
+      text-transform:uppercase;letter-spacing:.05em;cursor:pointer;text-decoration:none;
+    }
+    .btn-primary{background:#231F1D;color:#FAF6F2}
+    .btn-primary:disabled{opacity:.45;cursor:not-allowed}
+    .hidden{display:none}
+    .error{padding:14px;background:#FAE6E2;color:#9A4A38;border-radius:12px;font-size:14px;margin-bottom:16px}
+    .success{text-align:center;padding:12px 0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="muted" style="text-transform:uppercase;letter-spacing:.12em;font-size:12px">Hair TP Clinic</p>
+    <h1 id="title">Hur var din upplevelse?</h1>
+    <p class="muted" id="lead">Din feedback hjälper oss — och andra som funderar på samma resa.</p>
+
+    <div id="invalid" class="card hidden">
+      <p class="muted">Länken är inte giltig. Ring <a href="tel:+46318811166">031 88 11 66</a>.</p>
+    </div>
+
+    <div id="form-card" class="card">
+      <div id="error" class="error hidden"></div>
+      <p class="muted" style="margin:0 0 4px">Betygsätt din upplevelse</p>
+      <div class="stars" id="stars" aria-label="Betyg 1–5"></div>
+      <label class="muted" for="feedback" style="display:block;margin:12px 0 8px">Valfri kommentar</label>
+      <textarea id="feedback" maxlength="2000" placeholder="Berätta gärna kort hur det kändes…"></textarea>
+      <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary" id="submit-btn" disabled>Skicka</button>
+        <a class="btn" id="back-link" href="#" style="background:#fff;border:1px solid #231F1D;color:#231F1D">Tillbaka</a>
+      </div>
+    </div>
+
+    <div id="positive" class="card hidden success">
+      <h2 style="font-family:Newsreader,serif;font-weight:300;font-size:24px;margin:0 0 12px">Tack — vad roligt att höra!</h2>
+      <p class="muted">Om du vill kan du lämna ett kort omdöme på Google. Det hjälper fler att hitta oss.</p>
+      <a class="btn btn-primary" id="google-btn" href="#" style="margin-top:20px">Dela på Google →</a>
+    </div>
+
+    <div id="pending" class="card hidden success">
+      <h2 style="font-family:Newsreader,serif;font-weight:300;font-size:24px;margin:0 0 12px">Tack — vi har tagit emot ditt omdöme</h2>
+      <p class="muted">Vårt team granskar ditt omdöme (oavsett betyg). Inget skickas till Google utan vårt godkännande — om vi godkänner kan du dela via samma länk.</p>
+      <p class="muted" style="margin-top:12px">Har du frågor? Ring <a href="tel:+46318811166">031 88 11 66</a>.</p>
+    </div>
+
+    <div id="internal" class="card hidden success">
+      <h2 style="font-family:Newsreader,serif;font-weight:300;font-size:24px;margin:0 0 12px">Tack för din ärlighet</h2>
+      <p class="muted">Vi har tagit emot din feedback internt. Om du vill prata med oss direkt, ring <a href="tel:+46318811166">031 88 11 66</a> eller mejla <a href="mailto:contact@hairtpclinic.com">contact@hairtpclinic.com</a>.</p>
+    </div>
+  </div>
+  <script>
+    (function(){
+      var parts = window.location.pathname.split('/').filter(Boolean);
+      var token = (parts[0] === 'uppfoljning' && parts[1]) ? parts[1] : '';
+      var rating = 0;
+      var viewIds = ['form-card', 'positive', 'pending', 'internal', 'invalid'];
+      var $stars = document.getElementById('stars');
+      var $submit = document.getElementById('submit-btn');
+      var $back = document.getElementById('back-link');
+      $back.href = token ? '/uppfoljning/' + encodeURIComponent(token) : '/';
+
+      function hideAllViews() {
+        viewIds.forEach(function(id) {
+          var node = document.getElementById(id);
+          if (node) node.classList.add('hidden');
+        });
+      }
+
+      function showView(id) {
+        hideAllViews();
+        var node = document.getElementById(id);
+        if (node) node.classList.remove('hidden');
+      }
+
+      function showGoogleApproved() {
+        document.getElementById('google-btn').href =
+          '/api/v1/post-op-review/' + encodeURIComponent(token) + '/review-clicked';
+        showView('positive');
+      }
+
+      function showAfterFeedback(googleReviewApproved, googleReviewRejected) {
+        if (googleReviewRejected) {
+          showView('internal');
+          return;
+        }
+        if (googleReviewApproved) showGoogleApproved();
+        else showView('pending');
+      }
+
+      if (!token || token.length < 8) {
+        showView('invalid');
+        return;
+      }
+
+      for (var i = 1; i <= 5; i++) {
+        (function(value){
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'star';
+          btn.textContent = '★';
+          btn.setAttribute('aria-label', value + ' av 5');
+          btn.addEventListener('click', function(){
+            rating = value;
+            Array.from($stars.children).forEach(function(node, idx){
+              node.classList.toggle('is-on', idx < value);
+            });
+            $submit.disabled = false;
+          });
+          $stars.appendChild(btn);
+        })(i);
+      }
+
+      fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/lookup', {
+        headers: { Accept: 'application/json' },
+      })
+        .then(function(r){ return r.json().then(function(b){ return { ok: r.ok, body: b }; }); })
+        .then(function(res){
+          if (!res.ok || !res.body.ok || !res.body.submission) return;
+          var sub = res.body.submission;
+          if (!sub.reviewFeedbackAt || sub.reviewRating == null) return;
+          showAfterFeedback(
+            sub.googleReviewApproved === true,
+            sub.googleReviewRejected === true
+          );
+        })
+        .catch(function(){ /* lookup optional */ });
+
+      $submit.addEventListener('click', function(){
+        $submit.disabled = true;
+        document.getElementById('error').classList.add('hidden');
+        fetch('/api/v1/post-op-review/' + encodeURIComponent(token) + '/review-feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            rating: rating,
+            feedback: document.getElementById('feedback').value.trim(),
+          }),
+        })
+          .then(function(r){ return r.json().then(function(b){ return { ok: r.ok, body: b }; }); })
+          .then(function(res){
+            if (!res.ok || !res.body.ok) throw new Error(res.body.error || 'submit_failed');
+            if (res.body.promoteToGoogle) {
+              showGoogleApproved();
+              return;
+            }
+            if (res.body.pendingStaffApproval) {
+              showView('pending');
+              return;
+            }
+            showView('internal');
+          })
+          .catch(function(){
+            var err = document.getElementById('error');
+            err.textContent = 'Kunde inte spara just nu. Försök igen.';
+            err.classList.remove('hidden');
+            showView('form-card');
+            $submit.disabled = false;
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

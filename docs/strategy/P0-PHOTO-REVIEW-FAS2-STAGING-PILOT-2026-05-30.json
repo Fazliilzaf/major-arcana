@@ -1,0 +1,413 @@
+{
+  "generatedAt": "2026-05-30T22:41:09.055Z",
+  "phase": "fas2_staging_manual_pilot",
+  "stagingUrl": "https://arcana-staging.onrender.com",
+  "configCheck": {
+    "stagingHost": "arcana-staging.onrender.com",
+    "writeEnabledOnStaging": true,
+    "writeBlockedOnProd": true
+  },
+  "writeEnabled": true,
+  "pilotPatients": 5,
+  "maxDecisions": 20,
+  "stats": {
+    "reviewed": 8,
+    "approved": 3,
+    "rejected": 2,
+    "reassigned": 4,
+    "visibleAfterReview": 3
+  },
+  "errors": [],
+  "uiIssues": [
+    {
+      "id": "browser-staging-pending",
+      "severity": "info",
+      "note": "Deploy latest main to arcana-staging.onrender.com + set ENABLE_PHOTO_REVIEW_WRITE=true in Render UI"
+    },
+    {
+      "id": "reviewer-localstorage",
+      "severity": "low",
+      "note": "Reviewer identity via localStorage → x-cco-user; consider staff session integration later"
+    },
+    {
+      "id": "no-bulk",
+      "severity": "ok",
+      "note": "No bulk toolbar — verified in UI code"
+    }
+  ],
+  "needsReviewBefore": {
+    "allPhotos": 861,
+    "pilotCohort": 35
+  },
+  "pilotPhotosInScope": 20,
+  "stagingAssetsPath": "/Users/fazlikrasniqi/Code/major-arcana/data/staging-photo-review-fas2-pilot/cco-patient-assets.json",
+  "decisions": [
+    {
+      "type": "reassign",
+      "assetId": "9bd87401-a847-44dd-a06f-415ea2002bc1",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "9bd87401-a847-44dd-a06f-415ea2002bc1",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "NEEDS_REVIEW",
+        "category": "photo_before"
+      }
+    },
+    {
+      "type": "approve",
+      "assetId": "8f88bcaa-316a-4872-9bab-7956d66b1fb5",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "8f88bcaa-316a-4872-9bab-7956d66b1fb5",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "VISIBLE_ON_PATIENT_CARD",
+        "category": "photo_during"
+      }
+    },
+    {
+      "type": "reject",
+      "assetId": "ddef198e-4730-461d-b615-e02cbdd22a11",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "ddef198e-4730-461d-b615-e02cbdd22a11",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "REJECTED",
+        "category": "photo_during"
+      }
+    },
+    {
+      "type": "reassign",
+      "assetId": "8be6a436-ee94-42b4-ad42-fa877c351714",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "8be6a436-ee94-42b4-ad42-fa877c351714",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "NEEDS_REVIEW",
+        "category": "photo_during"
+      }
+    },
+    {
+      "type": "approve",
+      "assetId": "af092ea9-be6e-4b3f-8178-1759a0898803",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "af092ea9-be6e-4b3f-8178-1759a0898803",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "VISIBLE_ON_PATIENT_CARD",
+        "category": "photo_during"
+      }
+    },
+    {
+      "type": "reassign-approve",
+      "assetId": "748000fc-f1de-4e60-bdea-64785f77cc59",
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "result": {
+        "assetId": "748000fc-f1de-4e60-bdea-64785f77cc59",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "status": "VISIBLE_ON_PATIENT_CARD",
+        "category": "photo_after"
+      }
+    },
+    {
+      "type": "reject",
+      "assetId": "945cf7be-887c-48d7-a098-e761f22a3a65",
+      "patientId": "cliento_5a3794274f134afa8310c803",
+      "result": {
+        "assetId": "945cf7be-887c-48d7-a098-e761f22a3a65",
+        "patientId": "cliento_5a3794274f134afa8310c803",
+        "status": "REJECTED",
+        "category": "photo_during"
+      }
+    },
+    {
+      "type": "reassign",
+      "assetId": "5bc7821e-6aaa-46a1-8744-f31bcb198cea",
+      "patientId": "cliento_5a3794274f134afa8310c803",
+      "result": {
+        "assetId": "5bc7821e-6aaa-46a1-8744-f31bcb198cea",
+        "patientId": "cliento_5a3794274f134afa8310c803",
+        "status": "NEEDS_REVIEW",
+        "category": "photo_before"
+      }
+    }
+  ],
+  "needsReviewAfter": {
+    "allPhotos": 856,
+    "pilotCohort": 30
+  },
+  "approvedStorageChecks": [
+    {
+      "assetId": "8f88bcaa-316a-4872-9bab-7956d66b1fb5",
+      "ok": true,
+      "storage": {
+        "storageKey": true,
+        "checksum": true,
+        "fileSize": true,
+        "mimeType": true,
+        "patientId": true,
+        "category": true
+      }
+    },
+    {
+      "assetId": "af092ea9-be6e-4b3f-8178-1759a0898803",
+      "ok": true,
+      "storage": {
+        "storageKey": true,
+        "checksum": true,
+        "fileSize": true,
+        "mimeType": true,
+        "patientId": true,
+        "category": true
+      }
+    },
+    {
+      "assetId": "748000fc-f1de-4e60-bdea-64785f77cc59",
+      "ok": true,
+      "storage": {
+        "storageKey": true,
+        "checksum": true,
+        "fileSize": true,
+        "mimeType": true,
+        "patientId": true,
+        "category": true
+      }
+    }
+  ],
+  "listAssetsChecks": [
+    {
+      "patientId": "cliento_d611716dea0731c5ce215e61",
+      "total": 8,
+      "visiblePhotos": 0,
+      "needsReviewPhotos": 8
+    },
+    {
+      "patientId": "cliento_5a3794274f134afa8310c803",
+      "total": 8,
+      "visiblePhotos": 0,
+      "needsReviewPhotos": 6
+    },
+    {
+      "patientId": "cliento_79b2fccee972ca6ab17fb3bc",
+      "total": 8,
+      "visiblePhotos": 0,
+      "needsReviewPhotos": 7
+    },
+    {
+      "patientId": "cliento_19a20173f079b5a4fc308473",
+      "total": 8,
+      "visiblePhotos": 0,
+      "needsReviewPhotos": 7
+    },
+    {
+      "patientId": "cliento_48cac9e76bcf3162863fdd53",
+      "total": 8,
+      "visiblePhotos": 3,
+      "needsReviewPhotos": 2
+    }
+  ],
+  "auditEntries": 8,
+  "auditSample": [
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "staging-pilot-operator"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "9bd87401-a847-44dd-a06f-415ea2002bc1"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "reassign",
+        "reviewer": "staging-pilot-operator",
+        "reason": "Staging: omkategori före-bild",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "NEEDS_REVIEW",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_before",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:41:09.075Z"
+      },
+      "ts": "2026-05-30T22:41:09.075Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "staging-pilot-operator"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "8f88bcaa-316a-4872-9bab-7956d66b1fb5"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "approve",
+        "reviewer": "staging-pilot-operator",
+        "reason": "Staging: operatör godkänner bild",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "VISIBLE_ON_PATIENT_CARD",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_during",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:41:09.092Z"
+      },
+      "ts": "2026-05-30T22:41:09.092Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "staging-pilot-operator"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "ddef198e-4730-461d-b615-e02cbdd22a11"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "reject",
+        "reviewer": "staging-pilot-operator",
+        "reason": "Staging: operatör avvisar bild",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "REJECTED",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_during",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:41:09.099Z"
+      },
+      "ts": "2026-05-30T22:41:09.099Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "staging-pilot-operator"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "8be6a436-ee94-42b4-ad42-fa877c351714"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "reassign",
+        "reviewer": "staging-pilot-operator",
+        "reason": "Staging: omkategori under behandling",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "NEEDS_REVIEW",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_during",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:41:09.104Z"
+      },
+      "ts": "2026-05-30T22:41:09.104Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "staging-pilot-operator"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "af092ea9-be6e-4b3f-8178-1759a0898803"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "approve",
+        "reviewer": "staging-pilot-operator",
+        "reason": "Staging: godkänn efter omkategori",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "VISIBLE_ON_PATIENT_CARD",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_during",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:41:09.131Z"
+      },
+      "ts": "2026-05-30T22:41:09.131Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "staging-pilot-operator"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "748000fc-f1de-4e60-bdea-64785f77cc59"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "approve",
+        "reviewer": "staging-pilot-operator",
+        "reason": "Staging: byt till efter + godkänn (reassign+approve)",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "VISIBLE_ON_PATIENT_CARD",
+        "oldCategory": "photo_after",
+        "newCategory": "photo_after",
+        "patientId": "cliento_48cac9e76bcf3162863fdd53",
+        "timestamp": "2026-05-30T22:41:09.174Z"
+      },
+      "ts": "2026-05-30T22:41:09.174Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "staging-pilot-operator"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "945cf7be-887c-48d7-a098-e761f22a3a65"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "reject",
+        "reviewer": "staging-pilot-operator",
+        "reason": "Staging: avvisa otydlig bild",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "REJECTED",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_during",
+        "patientId": "cliento_5a3794274f134afa8310c803",
+        "timestamp": "2026-05-30T22:41:09.182Z"
+      },
+      "ts": "2026-05-30T22:41:09.182Z"
+    },
+    {
+      "action": "photo_review.decision",
+      "actor": {
+        "role": "operator",
+        "userId": "staging-pilot-operator"
+      },
+      "target": {
+        "kind": "patient_asset",
+        "id": "5bc7821e-6aaa-46a1-8744-f31bcb198cea"
+      },
+      "result": "ok",
+      "detail": {
+        "decision": "reassign",
+        "reviewer": "staging-pilot-operator",
+        "reason": "Staging: omkategori väntar review",
+        "oldStatus": "NEEDS_REVIEW",
+        "newStatus": "NEEDS_REVIEW",
+        "oldCategory": "photo_during",
+        "newCategory": "photo_before",
+        "patientId": "cliento_5a3794274f134afa8310c803",
+        "timestamp": "2026-05-30T22:41:09.190Z"
+      },
+      "ts": "2026-05-30T22:41:09.190Z"
+    }
+  ],
+  "auditComplete": true,
+  "driveLinksInAudit": false,
+  "apiChecks": {
+    "summaryWriteEnabled": true,
+    "summaryPhase": "fas2_single_decision",
+    "summaryPilotActive": true,
+    "postDecideStatus": 404
+  },
+  "operatorWorkflowReady": true,
+  "recommendation": "GO for wider manual review in staging (raise patient scope gradually; keep single-decision + audit). Not GO for full prod write."
+}

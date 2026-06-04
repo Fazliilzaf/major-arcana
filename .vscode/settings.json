@@ -43,7 +43,6 @@
     "**/build": true,
     "**/public/cco-next-release": true,
     "**/public/cco-next": true,
-    "**/major-arcana-cco-next": true,
     "**/package-lock.json": true,
     "**/.next": true
   },

@@ -4,6 +4,7 @@ const {
   resolveCounterpartyDisplayName,
   resolveCounterpartyIdentity,
 } = require('./ccoCounterpartyTruth');
+const { classifyConversationMessage } = require('../intelligence/messageClassification');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -834,11 +835,37 @@ function applyConversationStateProjection({
   }));
 }
 
+function applyIngestionLedgerProjection({
+  rollupRows = [],
+  ingestionStore = null,
+  mailboxEmail = '',
+} = {}) {
+  if (!ingestionStore || typeof ingestionStore.getConversationIngestionMap !== 'function') {
+    return asArray(rollupRows);
+  }
+  const ingestionByKey = ingestionStore.getConversationIngestionMap({ mailboxEmail });
+  return asArray(rollupRows).map((row) => {
+    const ingestion = ingestionByKey[normalizeText(row?.conversationKey)] || null;
+    if (!ingestion) return row;
+    const lane =
+      ingestion.needsReview === true && normalizeText(row?.lane) !== 'act-now'
+        ? 'review'
+        : row.lane;
+    return {
+      ...row,
+      lane,
+      needsReply: row.needsReply === true || ingestion.needsReview === true,
+      ingestion,
+    };
+  });
+}
+
 function createCcoMailboxTruthWorklistReadModel({
   store = null,
   customerState = null,
   tenantId = '',
   conversationStateStore = null,
+  ingestionStore = null,
 } = {}) {
   if (!store || typeof store.listMessages !== 'function') {
     return null;
@@ -1005,22 +1032,32 @@ function createCcoMailboxTruthWorklistReadModel({
     return Array.from(grouped.values())
       .map((entry) => {
         const deletedOnly = entry.hasDeleted && !entry.hasInbox && !entry.hasSent && !entry.hasDrafts;
-        const needsReply =
+        const messageClassification = classifyConversationMessage({
+          subject: entry.subject,
+          inboundPreview: entry.latestPreview,
+          sender: entry.customerEmail,
+        });
+        const isSystemMail = messageClassification === 'system_mail';
+        const rawNeedsReply =
           Boolean(entry.lastInboundAt) &&
           (!entry.lastOutboundAt || entry.lastOutboundAt < entry.lastInboundAt);
+        const needsReply = !isSystemMail && rawNeedsReply;
         const hoursSinceInbound = entry.lastInboundAt
           ? Math.max(
               0,
               Math.round(((Date.now() - Date.parse(entry.lastInboundAt)) / (60 * 60 * 1000)) * 10) / 10
             )
           : 0;
-        const activeCandidate = !deletedOnly && (entry.hasUnreadInbound || needsReply || entry.hasDrafts);
+        const activeCandidate =
+          !deletedOnly &&
+          (entry.hasUnreadInbound || needsReply || entry.hasDrafts) &&
+          (!isSystemMail || entry.hasUnreadInbound || entry.hasDrafts);
         const outOfScopeDraftReview =
           activeCandidate && isOutOfScopeDraftReview({ ...entry, needsReply });
         let lane = null;
         if (activeCandidate) {
           if (outOfScopeDraftReview) lane = 'review';
-          else if (entry.hasUnreadInbound && hoursSinceInbound >= 24) lane = 'act-now';
+          else if (!isSystemMail && entry.hasUnreadInbound && hoursSinceInbound >= 24) lane = 'act-now';
           else lane = 'all';
         }
 
@@ -1028,6 +1065,7 @@ function createCcoMailboxTruthWorklistReadModel({
           ...entry,
           ownershipMailbox: entry.mailboxId,
           deletedOnly,
+          messageClassification,
           needsReply,
           hoursSinceInbound,
           activeCandidate,
@@ -1138,10 +1176,14 @@ function createCcoMailboxTruthWorklistReadModel({
     const n = Number(limit);
     const readLimit = n === 1000 ? 5000 : Number.isFinite(n) && n > 0 ? n : 5000;
     const readModel = buildReadModel({ mailboxIds, limit: readLimit });
-    const rollupRows = applyConversationStateProjection({
-      tenantId,
-      rollupRows: buildCustomerRollupRows(readModel.rows),
-      conversationStateStore,
+    const rollupRows = applyIngestionLedgerProjection({
+      rollupRows: applyConversationStateProjection({
+        tenantId,
+        rollupRows: buildCustomerRollupRows(readModel.rows),
+        conversationStateStore,
+      }),
+      ingestionStore,
+      mailboxEmail: asArray(mailboxIds)[0] || '',
     });
     const todayCount = rollupRows.filter(
       (row) => getCalendarDayBucket(row.lastInboundAt, 'Europe/Stockholm') === 'today'
@@ -1227,14 +1269,17 @@ function createCcoMailboxTruthWorklistReadModel({
         state: {
           hasUnreadInbound: row.hasUnreadInbound === true,
           needsReply: row.needsReply === true,
+          messageClassification: row.messageClassification || 'actionable',
           messageCount: row.messageCount,
           folderPresence: asObject(row.folderPresence),
           operatorState: asObject(row.operatorState),
+          ingestion: asObject(row.ingestion),
         },
         provenance: {
           source: 'mailbox_truth_store',
           parityScope: 'in_scope',
           rollup: row.rollup,
+          ingestion: asObject(row.ingestion),
           operatorStateSource:
             row?.operatorState && Object.keys(asObject(row.operatorState)).length > 0
               ? 'cco_conversation_state_store'
@@ -1254,6 +1299,7 @@ function createCcoMailboxTruthWorklistReadModel({
 
 module.exports = {
   createCcoMailboxTruthWorklistReadModel,
+  applyIngestionLedgerProjection,
   isOutOfScopeDraftReview,
   toCanonicalMailboxConversationKey,
 };

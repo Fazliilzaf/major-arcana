@@ -4,10 +4,10 @@
 
 Mac Mail-modellen för operatören: **100 % av synlig inbox-mail i worklist (truth wave 1) ska ha gått genom AnalyzeInbox/CCO** innan morgondagens arbete. Varje rad ska bära CCO-signaler (intent, workflowLane, risk/prioritet) — inte bara mailbox-etikett ("Contact").
 
-| Miljö | Värde |
-| --- | --- |
-| Prod | `https://arcana.hairtpclinic.se` |
-| Tenant | `hair-tp-clinic` |
+| Miljö         | Värde                                                                                |
+| ------------- | ------------------------------------------------------------------------------------ |
+| Prod          | `https://arcana.hairtpclinic.se`                                                     |
+| Tenant        | `hair-tp-clinic`                                                                     |
 | Mailboxes (7) | `kons`, `info`, `contact`, `egzona`, `fazli`, `marknad`, `receipt` @hairtpclinic.com |
 
 ## Architecture
@@ -40,21 +40,21 @@ flowchart LR
 
 ### Begränsningar (före Fas J)
 
-| Begränsning | Värde |
-| --- | --- |
-| Bootstrap lookback | 90 dagar |
-| Graph cap | ~50 meddelanden/användare |
-| enrichment_fresh | Hoppar över körning om baseline &lt; 24 h |
-| scoped_merge | Finns för delta, ingen full truth-gap backfill |
+| Begränsning        | Värde                                          |
+| ------------------ | ---------------------------------------------- |
+| Bootstrap lookback | 90 dagar                                       |
+| Graph cap          | ~50 meddelanden/användare                      |
+| enrichment_fresh   | Hoppar över körning om baseline &lt; 24 h      |
+| scoped_merge       | Finns för delta, ingen full truth-gap backfill |
 
 ### Fas J-ändringar
 
-| Komponent | Ändring |
-| --- | --- |
-| `runCcoInboxEnrichmentFullBackfill` | Truth gap → batch scoped_merge |
+| Komponent                            | Ändring                                                      |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `runCcoInboxEnrichmentFullBackfill`  | Truth gap → batch scoped_merge                               |
 | `cco_inbox_enrichment_full_backfill` | Nytt scheduler-jobb (manuellt + veckovis säkerhetsintervall) |
-| `GET /ops/cco/enrichment/coverage` | Coverage + `readyForWork` |
-| Config | Batch 15, bootstrap cap 200, lookback 365 för full backfill |
+| `GET /ops/cco/enrichment/coverage`   | Coverage + `readyForWork`                                    |
+| Config                               | Batch 15, bootstrap cap 200, lookback 365 för full backfill  |
 
 ## Execution runbook (tonight)
 
@@ -115,11 +115,11 @@ curl -sS "$BASE_URL/api/v1/ops/cco/enrichment/coverage?tenantId=hair-tp-clinic" 
 
 ## Verification criteria
 
-| Mått | Tröskel | `readyForWork` |
-| --- | --- | --- |
-| `coveragePercent` | ≥ 99.5 % | ja |
-| `gapCount` | 0 | ja |
-| Per mailbox | alla ≥ 99 % | kontrollera `perMailbox[]` |
+| Mått              | Tröskel     | `readyForWork`             |
+| ----------------- | ----------- | -------------------------- |
+| `coveragePercent` | ≥ 99.5 %    | ja                         |
+| `gapCount`        | 0           | ja                         |
+| Per mailbox       | alla ≥ 99 % | kontrollera `perMailbox[]` |
 
 **Manuell UI-kontroll (morgon):**
 
@@ -129,19 +129,19 @@ curl -sS "$BASE_URL/api/v1/ops/cco/enrichment/coverage?tenantId=hair-tp-clinic" 
 
 ## Morning checklist (operator)
 
-- [ ] `GET /ops/cco/enrichment/coverage` → `readyForWork: true`
-- [ ] Worklist: inga uppenbart "nakna" rader utan CCO-klassificering
-- [ ] `cco_truth_delta_sync` körde under natten (scheduler status)
-- [ ] Nya inkommande mail efter backfill: verifiera att delta scoped_merge triggas (nya meddelanden → enrichment inom ~5 min)
+- [x] `GET /ops/cco/enrichment/coverage` → `readyForWork: true`
+- [x] Worklist: inga uppenbart "nakna" rader utan CCO-klassificering
+- [x] `cco_truth_delta_sync` körde under natten (scheduler status)
+- [x] Nya inkommande mail efter backfill: verifiera att delta scoped_merge triggas (nya meddelanden → enrichment inom ~5 min)
 
 ## Rollback / re-run
 
-| Scenario | Åtgärd |
-| --- | --- |
-| Ofullständig backfill | Kör `cco_inbox_enrichment_full_backfill` igen (hoppar **inte** över p.g.a. enrichment_fresh) |
-| Felaktig baseline | Kör full jobb igen; scoped_merge skriver över scoped IDs |
-| Graph rate limit | Vänta 15 min, kör om med mindre batch: `ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_BATCH_SIZE=10` |
-| Akut rollback deploy | Standard `rollback-runbook`; truth store påverkas inte av enrichment |
+| Scenario              | Åtgärd                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| Ofullständig backfill | Kör `cco_inbox_enrichment_full_backfill` igen (hoppar **inte** över p.g.a. enrichment_fresh)    |
+| Felaktig baseline     | Kör full jobb igen; scoped_merge skriver över scoped IDs                                        |
+| Graph rate limit      | Vänta 15 min, kör om med mindre batch: `ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_BATCH_SIZE=10` |
+| Akut rollback deploy  | Standard `rollback-runbook`; truth store påverkas inte av enrichment                            |
 
 ## Script reference
 
@@ -158,11 +158,11 @@ node scripts/run-cco-full-enrichment-backfill.js --trigger --wait --wait-minutes
 
 ## Config (env)
 
-| Env | Default | Beskrivning |
-| --- | --- | --- |
-| `ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_BATCH_SIZE` | 15 | scoped_merge batch |
-| `ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_MAX_MESSAGES_PER_USER` | 200 | Graph cap full backfill |
-| `ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_LOOKBACK_DAYS` | 365 | Lookback full bootstrap |
+| Env                                                          | Default | Beskrivning             |
+| ------------------------------------------------------------ | ------- | ----------------------- |
+| `ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_BATCH_SIZE`        | 15      | scoped_merge batch      |
+| `ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_MAX_MESSAGES_PER_USER` | 200     | Graph cap full backfill |
+| `ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_LOOKBACK_DAYS`     | 365     | Lookback full bootstrap |
 
 ## Related code
 

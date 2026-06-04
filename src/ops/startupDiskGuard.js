@@ -142,7 +142,7 @@ function buildStateFileGuards(config = {}) {
     {
       scope: 'cco_mailbox_truth_store',
       filePath: config.ccoMailboxTruthStorePath,
-      maxBytes: 150 * MB,
+      maxBytes: toPositiveInt(config.startupCcoMailboxTruthStoreMaxBytes, 2 * 1024 * 1024 * 1024),
       fallback: {
         version: 1,
         createdAt: ts,

@@ -78,7 +78,7 @@ function createAuthRouter({
   requireTenantScope,
   loginRateLimiter = null,
   selectTenantRateLimiter = null,
-  ownerMfaRequired = true,
+  ownerMfaRequired = false,
   ownerMfaBypassHosts = [],
   loginSessionRotationScope = 'none',
   bootstrapOwnerEmail = '',
@@ -95,6 +95,16 @@ function createAuthRouter({
   const applySelectTenantRateLimit =
     typeof selectTenantRateLimiter === 'function' ? selectTenantRateLimiter : (_req, _res, next) => next();
   const rotationScope = normalizeSessionRotationScope(loginSessionRotationScope, 'none');
+
+  async function safeAuditEvent(payload) {
+    if (typeof authStore.addAuditEvent !== 'function') return;
+    try {
+      await authStore.addAuditEvent(payload);
+    } catch (error) {
+      console.error('[auth] audit write failed', error?.message || error);
+    }
+  }
+
   const ownerMfaBypassHostSet = new Set(
     (Array.isArray(ownerMfaBypassHosts) ? ownerMfaBypassHosts : [])
       .map((item) => normalizeHost(item))
@@ -154,31 +164,36 @@ function createAuthRouter({
   }
 
   async function rotateSessionsAfterLogin({ userId, tenantId, currentSessionId }) {
-    if (!userId || !currentSessionId || rotationScope === 'none') return 0;
-    const tenantScope = rotationScope === 'tenant' ? tenantId : '';
+    try {
+      if (!userId || !currentSessionId || rotationScope === 'none') return 0;
+      const tenantScope = rotationScope === 'tenant' ? tenantId : '';
 
-    if (typeof authStore.revokeSessionsByUser === 'function') {
-      const result = await authStore.revokeSessionsByUser(userId, {
+      if (typeof authStore.revokeSessionsByUser === 'function') {
+        const result = await authStore.revokeSessionsByUser(userId, {
+          tenantId: tenantScope,
+          excludeSessionId: currentSessionId,
+          reason: 'login_rotation',
+        });
+        return Number(result?.count || 0);
+      }
+
+      const sessions = await authStore.listSessions({
         tenantId: tenantScope,
-        excludeSessionId: currentSessionId,
-        reason: 'login_rotation',
+        userId,
+        includeRevoked: false,
+        limit: 500,
       });
-      return Number(result?.count || 0);
+      let revokedSessions = 0;
+      for (const session of sessions) {
+        if (!session?.id || session.id === currentSessionId) continue;
+        const revoked = await authStore.revokeSession(session.id, { reason: 'login_rotation' });
+        if (revoked) revokedSessions += 1;
+      }
+      return revokedSessions;
+    } catch (error) {
+      console.error('[auth] session rotation failed', error?.message || error);
+      return 0;
     }
-
-    const sessions = await authStore.listSessions({
-      tenantId: tenantScope,
-      userId,
-      includeRevoked: false,
-      limit: 500,
-    });
-    let revokedSessions = 0;
-    for (const session of sessions) {
-      if (!session?.id || session.id === currentSessionId) continue;
-      const revoked = await authStore.revokeSession(session.id, { reason: 'login_rotation' });
-      if (revoked) revokedSessions += 1;
-    }
-    return revokedSessions;
   }
 
   function toTenantOptions(memberships) {
@@ -318,7 +333,7 @@ function createAuthRouter({
           }
           ownerCredentialSelfHealed = Boolean(user);
           if (ownerCredentialSelfHealed && ownerEmergencyResetEnabled && !ownerPasswordMatchesBootstrap) {
-            await authStore.addAuditEvent({
+            await safeAuditEvent({
               actorUserId: bootstrap?.user?.id || user?.id || null,
               action: 'auth.login.owner_emergency_reset',
               outcome: 'success',
@@ -329,7 +344,7 @@ function createAuthRouter({
             });
           }
         } catch (selfHealError) {
-          await authStore.addAuditEvent({
+          await safeAuditEvent({
             action: 'auth.login.owner_self_heal',
             outcome: 'error',
             metadata: {
@@ -340,7 +355,7 @@ function createAuthRouter({
         }
       }
       if (!user) {
-        await authStore.addAuditEvent({
+        await safeAuditEvent({
           action: 'auth.login',
           outcome: 'denied',
           metadata: { email },
@@ -352,7 +367,7 @@ function createAuthRouter({
         includeDisabled: false,
       });
       if (memberships.length === 0) {
-        await authStore.addAuditEvent({
+        await safeAuditEvent({
           actorUserId: user.id,
           action: 'auth.login',
           outcome: 'denied',
@@ -366,7 +381,7 @@ function createAuthRouter({
         selectedMembership =
           memberships.find((membership) => membership.tenantId === tenantId) || null;
         if (!selectedMembership) {
-          await authStore.addAuditEvent({
+          await safeAuditEvent({
             actorUserId: user.id,
             action: 'auth.login',
             outcome: 'denied',
@@ -384,11 +399,11 @@ function createAuthRouter({
       const hasAdminRoleMembership = hasAdminMembership(memberships);
       const ownerMfaBypassed = isOwnerMfaBypassed(req);
       const ownerAdminClientBypassed = hasAdminRoleMembership && isMajorArcanaAdminClient(req);
-      const requiresMfa = ownerMfaBypassed || ownerAdminClientBypassed
-        ? false
-        : hasOwnerMembership
-          ? ownerMfaRequired === true
-          : Boolean(user?.mfaRequired);
+      const requiresMfa =
+        ownerMfaRequired === true &&
+        !ownerMfaBypassed &&
+        !ownerAdminClientBypassed &&
+        (hasOwnerMembership ? true : Boolean(user?.mfaRequired));
 
       if (requiresMfa) {
         const pendingMfa =
@@ -404,7 +419,7 @@ function createAuthRouter({
           return res.status(500).json({ error: 'MFA challenge kunde inte initieras.' });
         }
 
-        await authStore.addAuditEvent({
+        await safeAuditEvent({
           actorUserId: user.id,
           action: 'auth.login.pending_mfa',
           outcome: 'success',
@@ -437,7 +452,7 @@ function createAuthRouter({
           membershipIds: memberships.map((membership) => membership.id),
         });
 
-        await authStore.addAuditEvent({
+        await safeAuditEvent({
           actorUserId: user.id,
           action: 'auth.login.pending_tenant_selection',
           outcome: 'success',
@@ -463,7 +478,7 @@ function createAuthRouter({
         currentSessionId: created.session.id,
       });
 
-      await authStore.addAuditEvent({
+      await safeAuditEvent({
         tenantId: selectedMembership.tenantId,
         actorUserId: user.id,
         action: 'auth.login',
@@ -1071,6 +1086,7 @@ function createAuthRouter({
       const email = normalizeEmail(req.body?.email);
       const password = typeof req.body?.password === 'string' ? req.body.password : '';
       const tenantId = normalizeTenantId(req.body?.tenantId) || req.auth.tenantId;
+      const mustChangePassword = parseBoolean(req.body?.mustChangePassword, true);
 
       if (!email || !password) {
         return res.status(400).json({ error: 'E-postadress och lösenord krävs.' });
@@ -1085,6 +1101,7 @@ function createAuthRouter({
         email,
         password,
         actorUserId: req.auth.userId,
+        mustChangePassword,
       });
 
       await authStore.addAuditEvent({
@@ -1097,6 +1114,7 @@ function createAuthRouter({
         metadata: {
           email,
           createdUser: result.createdUser,
+          mustChangePassword: Boolean(result.mustChangePassword),
         },
       });
 

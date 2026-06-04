@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Journal Cutover QA · Arcana CCO</title>
+<style>
+  :root {
+    --cco-bg-page:           #faf6f2;
+    --cco-bg-surface:        #ffffff;
+    --cco-color-brand:       #2b251f;
+    --cco-text-secondary:    rgba(70, 60, 50, 0.62);
+    --cco-text-tertiary:     #8a8174;
+
+    --cco-status-success:    #4a8268;
+    --cco-status-success-bg: rgba(74,130,104,.14);
+    --cco-status-warning:    #c8821e;
+    --cco-status-warning-bg: rgba(200,130,30,.14);
+    --cco-status-danger:     #b94a4a;
+    --cco-status-danger-bg:  rgba(185,74,74,.14);
+    --cco-status-info:       #4a7ba8;
+    --cco-status-info-bg:    rgba(74,123,168,.14);
+
+    --panel-shell-top:    rgba(250, 246, 242, 0.94);
+    --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+    --panel-shell-shadow:
+      0 18px 38px rgba(93,74,60,.07),
+      0 6px 18px rgba(156,145,166,.04),
+      0 0 0 1px rgba(255,255,255,.18),
+      inset 0 1px 0 rgba(255,255,255,.5);
+    --panel-card-top:    rgba(255,255,255,.94);
+    --panel-card-bottom: rgba(247,241,236,.86);
+    --panel-card-shadow: 0 3px 10px rgba(56,40,28,.08), inset 0 1px 0 rgba(255,255,255,.86);
+    --panel-card-shadow-hover: 0 8px 22px rgba(56,40,28,.12), inset 0 1px 0 rgba(255,255,255,.92);
+
+    --rose-pill-top:    rgba(252, 233, 240, 0.98);
+    --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+    --accent-studio:    #bb4779;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(ellipse at 12% 0%, rgba(255,225,200,.42), transparent 38%),
+      radial-gradient(ellipse at 88% 4%, rgba(255,210,225,.34), transparent 42%),
+      radial-gradient(circle at 50% 100%, rgba(220,210,255,.18), transparent 48%),
+      var(--cco-bg-page);
+    color: var(--cco-color-brand);
+    font-family: Inter, "Segoe UI", -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  .top-nav {
+    display: flex; align-items: center; gap: 12px; padding: 0 8px 14px;
+    color: var(--cco-text-tertiary); font-size: 12px; flex-wrap: wrap;
+  }
+  .top-nav .brand {
+    font-weight: 800; color: var(--cco-color-brand); letter-spacing: .06em; font-size: 13px;
+  }
+  .top-nav a {
+    color: inherit; text-decoration: none; padding: 6px 12px; border-radius: 999px;
+    transition: color .15s ease, background .15s ease;
+  }
+  .top-nav a:hover { color: var(--cco-color-brand); background: rgba(255,255,255,.5); }
+  .phase-pill {
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio); font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 4px 14px rgba(187, 71, 121, .14);
+    padding: 5px 12px; border-radius: 999px; font-size: 10.5px; letter-spacing: .08em;
+  }
+  .ml-auto { margin-left: auto; }
+
+  .refresh-btn {
+    appearance: none; border: 1px solid rgba(255,255,255,.82); cursor: pointer;
+    padding: 7px 14px; border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,238,232,.84));
+    box-shadow: 0 2px 6px rgba(56,40,28,.06), inset 0 1px 0 rgba(255,255,255,.88);
+    font-size: 11.5px; font-weight: 700; color: var(--cco-color-brand); letter-spacing: .04em;
+  }
+  .refresh-btn:hover { transform: translateY(-1px); }
+
+  .page-header {
+    padding: 4px 12px 18px;
+  }
+  .page-header h1 {
+    margin: 0 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.04em;
+  }
+  .page-header .subtitle { color: var(--cco-text-secondary); font-size: 12.5px; }
+  .page-header .meta {
+    margin-top: 8px; color: var(--cco-text-tertiary); font-size: 11px;
+    display: flex; gap: 14px; flex-wrap: wrap;
+  }
+  .page-header .meta .pill {
+    background: rgba(255,255,255,.6); padding: 3px 10px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.82);
+  }
+  .page-header .meta .pill.fallback {
+    background: rgba(200,130,30,.14); color: var(--cco-status-warning); font-weight: 700;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 18px;
+  }
+  .card {
+    background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+    border-radius: 22px;
+    padding: 20px 22px;
+    box-shadow: var(--panel-card-shadow);
+    border: 1px solid rgba(255,255,255,.6);
+    transition: box-shadow .15s ease, transform .15s ease;
+  }
+  .card:hover { box-shadow: var(--panel-card-shadow-hover); transform: translateY(-1px); }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+  }
+  .card-kicker {
+    color: #84756b; font-size: 10px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  .card-title { margin: 2px 0 0; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+    border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .status-pill .dot { width: 7px; height: 7px; border-radius: 999px; }
+  .status-pill.green {
+    background: var(--cco-status-success-bg); color: var(--cco-status-success);
+  }
+  .status-pill.green .dot { background: var(--cco-status-success); }
+  .status-pill.yellow {
+    background: var(--cco-status-warning-bg); color: var(--cco-status-warning);
+  }
+  .status-pill.yellow .dot { background: var(--cco-status-warning); }
+  .status-pill.red {
+    background: var(--cco-status-danger-bg); color: var(--cco-status-danger);
+  }
+  .status-pill.red .dot { background: var(--cco-status-danger); }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-label {
+    color: var(--cco-text-tertiary); font-size: 10.5px; letter-spacing: .04em;
+    text-transform: uppercase; font-weight: 600;
+  }
+  .stat-value {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.03em; color: var(--cco-color-brand);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-value.small { font-size: 16px; }
+  .stat-value.muted { color: var(--cco-text-tertiary); }
+  .stat-value.success { color: var(--cco-status-success); }
+  .stat-value.warning { color: var(--cco-status-warning); }
+  .stat-value.danger  { color: var(--cco-status-danger); }
+
+  .dod-list { list-style: none; padding: 0; margin: 10px 0 0; }
+  .dod-list li {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 4px; border-top: 1px solid rgba(0,0,0,.04);
+    font-size: 12px;
+  }
+  .dod-list li:first-child { border-top: 0; }
+  .dod-list .dod-check {
+    width: 18px; height: 18px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 11px; font-weight: 800;
+  }
+  .dod-list .dod-check.ok { background: var(--cco-status-success-bg); color: var(--cco-status-success); }
+  .dod-list .dod-check.no { background: var(--cco-status-danger-bg); color: var(--cco-status-danger); }
+  .dod-list .dod-text { flex: 1; }
+  .dod-list .dod-text .label { font-weight: 600; }
+  .dod-list .dod-text .note {
+    color: var(--cco-text-tertiary); font-size: 11px; margin-top: 2px;
+  }
+
+  .blockers-banner {
+    margin-top: 14px; padding: 12px 14px; border-radius: 14px;
+    background: var(--cco-status-warning-bg); color: var(--cco-status-warning);
+    font-size: 12px; line-height: 1.5;
+  }
+  .blockers-banner.red { background: var(--cco-status-danger-bg); color: var(--cco-status-danger); }
+  .blockers-banner.green { background: var(--cco-status-success-bg); color: var(--cco-status-success); }
+  .blockers-banner strong { font-weight: 800; letter-spacing: .02em; }
+  .blockers-banner a { color: inherit; font-weight: 700; text-decoration: underline; }
+
+  .footer {
+    padding: 20px 8px 4px; color: var(--cco-text-tertiary); font-size: 11px;
+    display: flex; gap: 14px; flex-wrap: wrap; justify-content: space-between;
+  }
+  .footer a { color: var(--accent-studio); text-decoration: none; font-weight: 600; }
+  .footer a:hover { text-decoration: underline; }
+
+  /* ───── Phase 2: Asset-import-metrics ───── */
+  .phase2-banner {
+    margin: 0 0 18px;
+    padding: 22px 26px;
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse at 0% 0%, rgba(252,233,240,.7), transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,241,236,.86));
+    box-shadow: var(--panel-card-shadow);
+    border: 1px solid rgba(255,255,255,.62);
+    display: grid;
+    grid-template-columns: minmax(220px, 320px) 1fr;
+    gap: 22px;
+    align-items: center;
+  }
+  .phase2-primary {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .phase2-primary .label {
+    color: var(--cco-text-tertiary); font-size: 10.5px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase;
+  }
+  .phase2-primary .value-row { display: flex; align-items: baseline; gap: 10px; }
+  .phase2-primary .value {
+    font-size: 56px; font-weight: 800; letter-spacing: -0.05em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .phase2-primary .value.zero { color: var(--cco-status-success); }
+  .phase2-primary .value.warn { color: var(--cco-status-warning); }
+  .phase2-primary .value.danger { color: var(--cco-status-danger); }
+  .phase2-primary .of { color: var(--cco-text-tertiary); font-size: 13px; }
+  .phase2-primary .sub {
+    color: var(--cco-text-secondary); font-size: 12px; margin-top: 2px;
+  }
+  .phase2-primary .gate {
+    margin-top: 8px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .phase2-primary .gate.green {
+    background: var(--cco-status-success-bg); color: var(--cco-status-success);
+  }
+  .phase2-primary .gate.red {
+    background: var(--cco-status-danger-bg); color: var(--cco-status-danger);
+  }
+  .phase2-primary .gate .dot {
+    width: 7px; height: 7px; border-radius: 999px; background: currentColor;
+  }
+  .phase2-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px 18px;
+  }
+  .phase2-metric { display: flex; flex-direction: column; gap: 2px; }
+  .phase2-metric .label {
+    color: var(--cco-text-tertiary); font-size: 10px; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  .phase2-metric .value {
+    font-size: 19px; font-weight: 800; letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums; color: var(--cco-color-brand);
+  }
+  .phase2-metric .value.success { color: var(--cco-status-success); }
+  .phase2-metric .value.warning { color: var(--cco-status-warning); }
+  .phase2-metric .value.danger { color: var(--cco-status-danger); }
+  .phase2-metric .value.muted { color: var(--cco-text-tertiary); }
+
+  .runs-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .runs-table th, .runs-table td {
+    text-align: left; padding: 7px 10px;
+    border-top: 1px solid rgba(0,0,0,.05);
+  }
+  .runs-table th {
+    color: var(--cco-text-tertiary); font-size: 10px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; border-top: 0;
+  }
+  .runs-table td.num { text-align: right; }
+  .runs-empty {
+    padding: 18px 0; text-align: center; color: var(--cco-text-tertiary);
+    font-size: 12px;
+  }
+  .reason-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--cco-status-warning-bg); color: var(--cco-status-warning);
+    font-size: 11px; font-weight: 700; letter-spacing: .02em;
+    margin: 3px 6px 3px 0;
+  }
+  .reason-pill .count { font-variant-numeric: tabular-nums; }
+  .reason-empty {
+    color: var(--cco-status-success); font-size: 12px; font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 12px; font-size: 12.5px; }
+    .grid { grid-template-columns: 1fr; gap: 14px; }
+    .card { padding: 16px 18px; border-radius: 18px; }
+    .stat-value { font-size: 19px; }
+    .page-header h1 { font-size: 19px; }
+    .phase2-banner { grid-template-columns: 1fr; padding: 18px 18px; }
+    .phase2-primary .value { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+  <nav class="top-nav">
+    <span class="brand">ARCANA · CCO</span>
+    <a href="/cco/">Tillbaka till CCO</a>
+    <a href="/admin.html">Admin</a>
+    <span class="ml-auto"></span>
+    <span class="phase-pill" id="phasePill">PHASE 2 · ASSET IMPORT</span>
+  </nav>
+
+  <header class="page-header">
+    <h1>Journal Cutover QA-dashboard</h1>
+    <div class="subtitle">Hair TP Clinic · 11 asset-import-metrics + 5 statusblock. Cutover-gate: <code>link_only_files = 0</code>.</div>
+    <div class="meta">
+      <span class="pill" id="metaTenant">Tenant: hair_tp</span>
+      <span class="pill" id="metaGenerated">Genererad: —</span>
+      <span class="pill" id="metaSource">Källa: laddar…</span>
+      <span class="ml-auto"></span>
+      <button class="refresh-btn" id="refreshBtn">Uppdatera nu</button>
+    </div>
+  </header>
+
+  <!-- PHASE 2 PRIMARY: link-only blocker pill + 11 metrics -->
+  <section class="phase2-banner" id="phase2Banner" aria-label="Asset import primary metrics">
+    <div class="phase2-primary">
+      <span class="label">🔴 Link-only files · mål 0</span>
+      <div class="value-row">
+        <span class="value" id="linkOnlyValue">—</span>
+        <span class="of" id="linkOnlyOf">av — totalt</span>
+      </div>
+      <span class="sub" id="linkOnlySub">Hämtar asset-import-status…</span>
+      <span class="gate" id="cutoverGate"><span class="dot"></span><span class="text">—</span></span>
+    </div>
+    <div class="phase2-grid" id="phase2Grid"></div>
+  </section>
+
+  <section class="card" id="phase2Detail" style="margin-bottom: 18px;">
+    <div class="card-header">
+      <div>
+        <div class="card-kicker">Phase 2 · Asset Import</div>
+        <h2 class="card-title">📦 Import-status · 👤 Patient-coverage</h2>
+      </div>
+      <span class="status-pill yellow" id="phase2DetailStatus"><span class="dot"></span>—</span>
+    </div>
+    <div class="stats" id="phase2DetailStats"></div>
+  </section>
+
+  <div class="grid" style="margin-bottom: 18px;">
+    <section class="card" id="recentRunsCard">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Phase 2 · Senaste runs</div>
+          <h2 class="card-title">🔄 Senaste import-runs</h2>
+        </div>
+      </div>
+      <div id="recentRunsBody"></div>
+    </section>
+
+    <section class="card" id="reviewStatsCard">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Phase 2 · Review queue</div>
+          <h2 class="card-title">📋 Review-queue-status</h2>
+        </div>
+      </div>
+      <div id="reviewStatsBody"></div>
+    </section>
+  </div>
+
+  <main class="grid" id="grid">
+    <!-- BLOCK 1 -->
+    <section class="card" id="card-1">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Block 1</div>
+          <h2 class="card-title">Importstatus</h2>
+        </div>
+        <span class="status-pill yellow" id="status-1"><span class="dot"></span>—</span>
+      </div>
+      <div class="stats" id="stats-1"></div>
+    </section>
+
+    <!-- BLOCK 2 -->
+    <section class="card" id="card-2">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Block 2</div>
+          <h2 class="card-title">Matchningsstatus</h2>
+        </div>
+        <span class="status-pill yellow" id="status-2"><span class="dot"></span>—</span>
+      </div>
+      <div class="stats" id="stats-2"></div>
+    </section>
+
+    <!-- BLOCK 3 -->
+    <section class="card" id="card-3">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Block 3</div>
+          <h2 class="card-title">Journalstatus</h2>
+        </div>
+        <span class="status-pill yellow" id="status-3"><span class="dot"></span>—</span>
+      </div>
+      <div class="stats" id="stats-3"></div>
+    </section>
+
+    <!-- BLOCK 4 -->
+    <section class="card" id="card-4">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Block 4</div>
+          <h2 class="card-title">Bildstatus</h2>
+        </div>
+        <span class="status-pill yellow" id="status-4"><span class="dot"></span>—</span>
+      </div>
+      <div class="stats" id="stats-4"></div>
+    </section>
+
+    <!-- BLOCK 5 -->
+    <section class="card" id="card-5" style="grid-column: 1 / -1;">
+      <div class="card-header">
+        <div>
+          <div class="card-kicker">Block 5</div>
+          <h2 class="card-title">Cutover Readiness</h2>
+        </div>
+        <span class="status-pill yellow" id="status-5"><span class="dot"></span>—</span>
+      </div>
+      <div id="readinessSummary"></div>
+      <ul class="dod-list" id="dod-list"></ul>
+      <div class="blockers-banner" id="blockers-banner"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Counts only · 0 PII i denna vy · Cache 60s · auto-refresh 60s</span>
+    <span><a href="https://github.com/anthropics/arcana" target="_blank" rel="noopener">.cursor/rules/cco-journal-cutover-first.mdc</a></span>
+  </footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Fallback-data — används om endpoint inte är aktiv ännu.
+  // Hårdkodade från docs/strategy/JOURNAL-CUTOVER-AUDIT-2026-05-30.md
+  // ─────────────────────────────────────────────────────────────────────
+  var FALLBACK_SNAPSHOT = {
+    tenantId: 'hair_tp',
+    generatedAt: new Date().toISOString(),
+    cacheTtlMs: 60000,
+    _fallback: true,
+    block1: {
+      cliento: 7257,
+      meridiq: 6268,
+      driveFolders: 0,
+      journalEntries: 16,
+      journalPdfs: 8,
+      photos: 0,
+      consents: 43,
+      forms: 29,
+      status: 'yellow'
+    },
+    block2: {
+      totalPatients: 7257,
+      matchedAll3: 0,
+      matchedClientoMeridiq: 6253,
+      withClientoOnly: 989,
+      withMeridiqOnly: 7,
+      withDriveOnly: 0,
+      uncertain: 15,
+      duplicates: 28,
+      status: 'yellow'
+    },
+    block3: {
+      totalEntries: 16,
+      signed: 8,
+      locked: 8,
+      drafts: 8,
+      corrected: 0,
+      withPdf: 8,
+      withoutPdf: 8,
+      withMeridiqImport: 0,
+      patientsWithHistoricJournal: 0,
+      patientsWithoutHistoricJournal: 989,
+      meridiqClaimsJournal: 6268,
+      meridiqFieldGap: 6268,
+      status: 'yellow'
+    },
+    block4: {
+      total: 0,
+      linkedToEncounter: 0,
+      unlinked: 0,
+      byType: { before: 0, during: 0, after: 0, reference: 0, consent: 0 },
+      bySource: { cco_camera: 0, drive: 0, upload: 0, legacy_import: 0 },
+      patientsWithPhotos: 0,
+      status: 'yellow'
+    },
+    block5: {
+      status: 'red',
+      okCount: 2,
+      totalCriteria: 10,
+      blockers: [
+        '#1: Master-kort utan Drive-folderId (väntar service-account)',
+        '#3: Meridiq historisk-import saknas (~6 268 patient-gap)',
+        '#4: Historiska bilder ej importerade',
+        '#9: Drive-coverage 0%',
+        '#10: Readiness ej GREEN'
+      ],
+      nextAction: 'Konfigurera Google Drive service-account + skaffa Meridiq read-only API-access',
+      nextActionOwner: 'Owner + DevOps',
+      readinessReportPath: 'docs/strategy/CUTOVER-READINESS-REPORT-(latest).md',
+      definitionOfDone: [
+        { n: 1, text: 'Varje patient har master-kort (clientoId + meridiqId + driveFolderId + ccoId)', ok: false, note: 'Drive-folder-koppling saknas — väntar på service-account' },
+        { n: 2, text: 'Cliento ↔ Meridiq ↔ Drive matched (dubbletter i Review Queue eller lösta)', ok: true, note: '28 dubbletter + 15 osäkra i Review Queue (under tröskel)' },
+        { n: 3, text: 'Historiska journaler kopplade till rätt patient (eller i Review Queue)', ok: false, note: 'Meridiq historik-import saknas (~6 268 patient-gap)' },
+        { n: 4, text: 'Historiska bilder kopplade till rätt patient + encounter', ok: false, note: 'Drive-bilder ej importerade — service-account-blocker' },
+        { n: 5, text: 'Formulär + samtycken kopplade till patient', ok: true, note: '43 consent-mallar + 29 formulär-mallar i registry' },
+        { n: 6, text: 'Ny CCO-journal fungerar end-to-end (skapa → signera → lås → PDF → audit)', ok: true, note: '8 signed · 8 locked · 8 PDFs (P0.5 verifierat)' },
+        { n: 7, text: 'Foto-flow fungerar (ta bild → koppla till encounter → bevara original)', ok: false, note: '0 foton i CCO photo-store ännu' },
+        { n: 8, text: 'Sign/lock/rättelse/PDF/audit verifierat med smoke-test', ok: true, note: 'P0.5 + P0.8 commits verifierade' },
+        { n: 9, text: 'Journal QA-dashboard visar 100% coverage på relevanta segment', ok: false, note: 'Drive-coverage 0% — kritiskt segment saknas' },
+        { n: 10, text: 'Cutover Readiness Report GREEN på alla blockers', ok: false, note: 'Väntar på P0.7 (Meridiq API) + Drive service-account' }
+      ]
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Rendering
+  // ─────────────────────────────────────────────────────────────────────
+  function fmt(n) {
+    if (n === null || n === undefined) return '—';
+    if (typeof n !== 'number') return String(n);
+    return n.toLocaleString('sv-SE').replace(/ /g, ' ');
+  }
+
+  function statusLabel(s) {
+    if (s === 'green') return 'OK';
+    if (s === 'yellow') return 'Varning';
+    if (s === 'red') return 'Blocker';
+    return '—';
+  }
+
+  function setStatus(id, status) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('green', 'yellow', 'red');
+    el.classList.add(status || 'yellow');
+    el.innerHTML = '<span class="dot"></span>' + statusLabel(status);
+  }
+
+  function renderStats(containerId, entries) {
+    var c = document.getElementById(containerId);
+    c.innerHTML = '';
+    entries.forEach(function (e) {
+      var div = document.createElement('div');
+      div.className = 'stat';
+      var cls = e.tone ? ' ' + e.tone : '';
+      var size = e.size ? ' ' + e.size : '';
+      div.innerHTML =
+        '<div class="stat-label">' + e.label + '</div>' +
+        '<div class="stat-value' + cls + size + '">' + fmt(e.value) + '</div>';
+      c.appendChild(div);
+    });
+  }
+
+  function render(snap) {
+    document.getElementById('metaTenant').textContent = 'Tenant: ' + snap.tenantId;
+    var d = new Date(snap.generatedAt);
+    document.getElementById('metaGenerated').textContent =
+      'Genererad: ' + d.toLocaleString('sv-SE');
+    var srcEl = document.getElementById('metaSource');
+    if (snap._fallback) {
+      srcEl.textContent = 'Källa: fallback (audit-rapport 2026-05-30)';
+      srcEl.classList.add('fallback');
+    } else {
+      srcEl.textContent = 'Källa: live API';
+      srcEl.classList.remove('fallback');
+    }
+
+    // BLOCK 1
+    setStatus('status-1', snap.block1.status);
+    renderStats('stats-1', [
+      { label: 'Cliento-kunder', value: snap.block1.cliento, tone: 'success' },
+      { label: 'Meridiq-matched', value: snap.block1.meridiq, tone: 'success' },
+      { label: 'Drive-foldrar', value: snap.block1.driveFolders, tone: snap.block1.driveFolders === 0 ? 'warning' : '' },
+      { label: 'Journal-entries', value: snap.block1.journalEntries },
+      { label: 'Journal-PDFs', value: snap.block1.journalPdfs, tone: snap.block1.journalPdfs > 0 ? 'success' : 'warning' },
+      { label: 'Bilder', value: snap.block1.photos, tone: snap.block1.photos === 0 ? 'warning' : '' },
+      { label: 'Samtycke-mallar', value: snap.block1.consents, tone: 'success' },
+      { label: 'Formulär-mallar', value: snap.block1.forms, tone: 'success' }
+    ]);
+
+    // BLOCK 2
+    setStatus('status-2', snap.block2.status);
+    renderStats('stats-2', [
+      { label: 'Patienter totalt', value: snap.block2.totalPatients },
+      { label: 'Matched (C+M+D)', value: snap.block2.matchedAll3, tone: snap.block2.matchedAll3 === 0 ? 'warning' : 'success' },
+      { label: 'Cliento + Meridiq', value: snap.block2.matchedClientoMeridiq, tone: 'success' },
+      { label: 'Bara Cliento', value: snap.block2.withClientoOnly, tone: 'warning' },
+      { label: 'Bara Meridiq', value: snap.block2.withMeridiqOnly },
+      { label: 'Bara Drive', value: snap.block2.withDriveOnly },
+      { label: 'Osäkra matches', value: snap.block2.uncertain, tone: snap.block2.uncertain > 0 ? 'warning' : '' },
+      { label: 'Dubblettkandidater', value: snap.block2.duplicates, tone: snap.block2.duplicates > 0 ? 'warning' : '' }
+    ]);
+
+    // BLOCK 3
+    setStatus('status-3', snap.block3.status);
+    renderStats('stats-3', [
+      { label: 'Journal-entries', value: snap.block3.totalEntries },
+      { label: 'Signerade', value: snap.block3.signed, tone: 'success' },
+      { label: 'Låsta', value: snap.block3.locked, tone: 'success' },
+      { label: 'Drafts (osignerade)', value: snap.block3.drafts, tone: snap.block3.drafts > 0 ? 'warning' : '' },
+      { label: 'Med PDF', value: snap.block3.withPdf, tone: 'success' },
+      { label: 'PDF saknas', value: snap.block3.withoutPdf, tone: snap.block3.withoutPdf > 0 ? 'warning' : '' },
+      { label: 'Meridiq-importerade', value: snap.block3.withMeridiqImport, tone: snap.block3.withMeridiqImport === 0 ? 'warning' : '' },
+      { label: 'Meridiq-fält gap', value: snap.block3.meridiqFieldGap, tone: snap.block3.meridiqFieldGap > 0 ? 'danger' : '' }
+    ]);
+
+    // BLOCK 4
+    setStatus('status-4', snap.block4.status);
+    renderStats('stats-4', [
+      { label: 'Bilder totalt', value: snap.block4.total, tone: snap.block4.total === 0 ? 'warning' : '' },
+      { label: 'Encounter-länkade', value: snap.block4.linkedToEncounter, tone: 'success' },
+      { label: 'Olänkade', value: snap.block4.unlinked, tone: snap.block4.unlinked > 0 ? 'warning' : '' },
+      { label: 'Före (before)', value: snap.block4.byType.before },
+      { label: 'Efter (after)', value: snap.block4.byType.after },
+      { label: 'Källa: CCO-kamera', value: snap.block4.bySource.cco_camera },
+      { label: 'Källa: Drive', value: snap.block4.bySource.drive },
+      { label: 'Källa: Upload', value: snap.block4.bySource.upload }
+    ]);
+
+    // BLOCK 5
+    setStatus('status-5', snap.block5.status);
+    var summary = document.getElementById('readinessSummary');
+    summary.innerHTML =
+      '<div class="stats" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 12px;">' +
+        '<div class="stat"><div class="stat-label">Status</div><div class="stat-value ' +
+          (snap.block5.status === 'green' ? 'success' : snap.block5.status === 'red' ? 'danger' : 'warning') +
+        '">' + statusLabel(snap.block5.status) + '</div></div>' +
+        '<div class="stat"><div class="stat-label">DoD klara</div><div class="stat-value">' +
+          snap.block5.okCount + ' / ' + snap.block5.totalCriteria + '</div></div>' +
+        '<div class="stat"><div class="stat-label">Ansvarig</div><div class="stat-value small muted">' +
+          (snap.block5.nextActionOwner || '—') + '</div></div>' +
+      '</div>';
+
+    var dodList = document.getElementById('dod-list');
+    dodList.innerHTML = '';
+    (snap.block5.definitionOfDone || []).forEach(function (d) {
+      var li = document.createElement('li');
+      li.innerHTML =
+        '<span class="dod-check ' + (d.ok ? 'ok' : 'no') + '">' + (d.ok ? '✓' : '×') + '</span>' +
+        '<div class="dod-text">' +
+          '<div class="label">#' + d.n + ' · ' + d.text + '</div>' +
+          '<div class="note">' + (d.note || '') + '</div>' +
+        '</div>';
+      dodList.appendChild(li);
+    });
+
+    var banner = document.getElementById('blockers-banner');
+    banner.classList.remove('green', 'red');
+    if (snap.block5.status === 'green') banner.classList.add('green');
+    if (snap.block5.status === 'red') banner.classList.add('red');
+    var reportLink = snap.block5.readinessReportPath
+      ? ' — <a href="/' + snap.block5.readinessReportPath + '" target="_blank">öppna readiness-rapport</a>'
+      : '';
+    banner.innerHTML =
+      '<strong>Nästa åtgärd:</strong> ' + (snap.block5.nextAction || '—') +
+      ' (ansvarig: ' + (snap.block5.nextActionOwner || 'Owner') + ')' + reportLink;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // PHASE 2: asset-import-metrics — 11 metrics + runs + review-queue
+  // ─────────────────────────────────────────────────────────────────────
+  var FALLBACK_ASSET_QA = {
+    tenantId: 'hair_tp',
+    generatedAt: new Date().toISOString(),
+    _fallback: true,
+    linkOnlyBlockers: 0,
+    cutoverReady: false,
+    metrics: {
+      totalFilesDiscovered: 0,
+      totalFilesImportedToCco: 0,
+      totalFilesVerified: 0,
+      totalLinkOnlyFiles: 0,
+      totalFilesNeedingReview: 0,
+      totalFilesFailedImport: 0,
+      totalPatientsWithCompleteHistory: 0,
+      totalPatientsWithMissingJournalPdfs: 0,
+      totalPatientsWithMissingImages: 0,
+      totalOrphanFiles: 0,
+      totalDuplicateFiles: 0
+    },
+    assetStats: { total: 0, byStatus: {}, byCategory: {}, bySourceSystem: {} },
+    recentRuns: [],
+    reviewStats: { total: 0, pending: 0, resolved: 0, byReason: {}, byDecision: {} },
+    population: { totalPatientsInTenant: 0, patientsWithAnyAsset: 0, patientsWithJournalPdf: 0, patientsWithImage: 0 }
+  };
+
+  function pct(n, d) {
+    if (!d || d <= 0) return '0%';
+    return Math.round((n / d) * 100) + '%';
+  }
+
+  function renderAssetQa(qa) {
+    var m = qa.metrics || {};
+    var stats = qa.assetStats || {};
+    var pop = qa.population || {};
+    var total = m.totalFilesDiscovered || 0;
+    var linkOnly = m.totalLinkOnlyFiles || 0;
+
+    // ── PRIMARY pill ──
+    var linkVal = document.getElementById('linkOnlyValue');
+    var linkOf = document.getElementById('linkOnlyOf');
+    var linkSub = document.getElementById('linkOnlySub');
+    var gate = document.getElementById('cutoverGate');
+    linkVal.textContent = fmt(linkOnly);
+    linkVal.classList.remove('zero', 'warn', 'danger');
+    if (linkOnly === 0) linkVal.classList.add('zero');
+    else if (linkOnly <= 25) linkVal.classList.add('warn');
+    else linkVal.classList.add('danger');
+    linkOf.textContent = 'av ' + fmt(total) + ' totalt';
+    if (linkOnly === 0 && total > 0) {
+      linkSub.textContent = 'Ingen fil är längre länk-only — cutover-grindar är öppna.';
+    } else if (linkOnly === 0 && total === 0) {
+      linkSub.textContent = 'Inga assets importerade ännu (kör asset-import-pipelinen).';
+    } else {
+      linkSub.textContent = linkOnly + ' fil(er) ligger fortfarande som ren Drive-länk. Blockerar Meridiq-cutover.';
+    }
+    gate.classList.remove('green', 'red');
+    var ready = !!qa.cutoverReady;
+    gate.classList.add(ready ? 'green' : 'red');
+    gate.querySelector('.text').textContent = ready ? 'Cutover-ready' : 'Blockerar cutover';
+
+    // ── 11-metric grid ──
+    var grid = document.getElementById('phase2Grid');
+    var items = [
+      { label: '1 · Discovered', value: m.totalFilesDiscovered, tone: '' },
+      { label: '2 · Imported', value: m.totalFilesImportedToCco, tone: m.totalFilesImportedToCco > 0 ? 'success' : 'muted' },
+      { label: '3 · Verified', value: m.totalFilesVerified, tone: m.totalFilesVerified > 0 ? 'success' : 'muted' },
+      { label: '4 · Link-only', value: m.totalLinkOnlyFiles, tone: m.totalLinkOnlyFiles === 0 ? 'success' : 'danger' },
+      { label: '5 · Needs review', value: m.totalFilesNeedingReview, tone: m.totalFilesNeedingReview > 0 ? 'warning' : 'muted' },
+      { label: '6 · Failed import', value: m.totalFilesFailedImport, tone: m.totalFilesFailedImport > 0 ? 'danger' : 'muted' },
+      { label: '7 · Patients complete', value: m.totalPatientsWithCompleteHistory, tone: 'success' },
+      { label: '8 · Missing journal-PDF', value: m.totalPatientsWithMissingJournalPdfs, tone: m.totalPatientsWithMissingJournalPdfs > 0 ? 'warning' : 'muted' },
+      { label: '9 · Missing images', value: m.totalPatientsWithMissingImages, tone: m.totalPatientsWithMissingImages > 0 ? 'warning' : 'muted' },
+      { label: '10 · Orphan files', value: m.totalOrphanFiles, tone: m.totalOrphanFiles > 0 ? 'warning' : 'muted' },
+      { label: '11 · Duplicates', value: m.totalDuplicateFiles, tone: m.totalDuplicateFiles > 0 ? 'warning' : 'muted' }
+    ];
+    grid.innerHTML = items.map(function (it) {
+      return '<div class="phase2-metric">' +
+        '<div class="label">' + it.label + '</div>' +
+        '<div class="value' + (it.tone ? ' ' + it.tone : '') + '">' + fmt(it.value) + '</div>' +
+      '</div>';
+    }).join('');
+
+    // ── Detail card (import + patient-coverage) ──
+    var detailStatus = (linkOnly === 0 && total > 0) ? 'green'
+      : (total === 0) ? 'yellow' : 'red';
+    setStatus('phase2DetailStatus', detailStatus);
+    renderStats('phase2DetailStats', [
+      { label: 'Discovered', value: m.totalFilesDiscovered },
+      { label: 'Imported (' + pct(m.totalFilesImportedToCco, total) + ')', value: m.totalFilesImportedToCco, tone: m.totalFilesImportedToCco > 0 ? 'success' : 'muted' },
+      { label: 'Verified (' + pct(m.totalFilesVerified, total) + ')', value: m.totalFilesVerified, tone: m.totalFilesVerified > 0 ? 'success' : 'muted' },
+      { label: 'Failed', value: m.totalFilesFailedImport, tone: m.totalFilesFailedImport > 0 ? 'danger' : 'muted' },
+      { label: 'Needs review', value: m.totalFilesNeedingReview, tone: m.totalFilesNeedingReview > 0 ? 'warning' : 'muted' },
+      { label: 'Orphan', value: m.totalOrphanFiles, tone: m.totalOrphanFiles > 0 ? 'warning' : 'muted' },
+      { label: 'Duplicate', value: m.totalDuplicateFiles, tone: m.totalDuplicateFiles > 0 ? 'warning' : 'muted' },
+      { label: 'Patienter m. komplett historik', value: m.totalPatientsWithCompleteHistory },
+      { label: 'Patienter m. saknad journal-PDF', value: m.totalPatientsWithMissingJournalPdfs, tone: m.totalPatientsWithMissingJournalPdfs > 0 ? 'warning' : 'muted' },
+      { label: 'Patienter m. saknade bilder', value: m.totalPatientsWithMissingImages, tone: m.totalPatientsWithMissingImages > 0 ? 'warning' : 'muted' }
+    ]);
+
+    // ── Senaste runs (tabell) ──
+    var runsBody = document.getElementById('recentRunsBody');
+    var runs = Array.isArray(qa.recentRuns) ? qa.recentRuns : [];
+    if (!runs.length) {
+      runsBody.innerHTML = '<div class="runs-empty">Inga import-runs registrerade ännu. Kör <code>node scripts/run-asset-import.js --source-system drive --commit</code>.</div>';
+    } else {
+      var rows = runs.map(function (r) {
+        var ts = r.startedAt ? new Date(r.startedAt).toLocaleString('sv-SE') : '—';
+        var statusTxt = r.finishedAt ? 'klar' : 'pågående';
+        return '<tr>' +
+          '<td>' + ts + '</td>' +
+          '<td>' + (r.sourceSystem || '—') + '</td>' +
+          '<td>' + (r.mode || '—') + '</td>' +
+          '<td class="num">' + fmt(r.totalDiscovered || 0) + '</td>' +
+          '<td class="num">' + fmt(r.totalImported || 0) + '</td>' +
+          '<td class="num">' + fmt(r.totalNeedsReview || 0) + '</td>' +
+          '<td class="num">' + fmt(r.totalFailed || 0) + '</td>' +
+          '<td>' + statusTxt + '</td>' +
+        '</tr>';
+      }).join('');
+      runsBody.innerHTML =
+        '<table class="runs-table">' +
+        '<thead><tr><th>Startad</th><th>Källa</th><th>Läge</th>' +
+        '<th class="num">Discov.</th><th class="num">Imp.</th><th class="num">Review</th>' +
+        '<th class="num">Failed</th><th>Status</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>';
+    }
+
+    // ── Review-queue-status ──
+    var reviewBody = document.getElementById('reviewStatsBody');
+    var rs = qa.reviewStats || {};
+    var byReason = rs.byReason || {};
+    var reasonEntries = Object.keys(byReason);
+    var reasonHtml = '';
+    if (!reasonEntries.length || (rs.pending || 0) === 0) {
+      reasonHtml = '<div class="reason-empty">✓ Inga väntande review-items.</div>';
+    } else {
+      reasonHtml = reasonEntries.map(function (k) {
+        var label = k.replace(/_/g, ' ');
+        return '<span class="reason-pill"><span>' + label + '</span><span class="count">' + fmt(byReason[k]) + '</span></span>';
+      }).join('');
+    }
+    reviewBody.innerHTML =
+      '<div class="stats" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 14px;">' +
+        '<div class="stat"><div class="stat-label">Pending</div><div class="stat-value ' + ((rs.pending || 0) > 0 ? 'warning' : 'muted') + '">' + fmt(rs.pending || 0) + '</div></div>' +
+        '<div class="stat"><div class="stat-label">Resolved</div><div class="stat-value success">' + fmt(rs.resolved || 0) + '</div></div>' +
+        '<div class="stat"><div class="stat-label">Total</div><div class="stat-value muted">' + fmt(rs.total || 0) + '</div></div>' +
+      '</div>' +
+      '<div>' + reasonHtml + '</div>';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Fetch loop med fallback (Phase 1 = 5 statusblock, Phase 2 = asset-import)
+  // ─────────────────────────────────────────────────────────────────────
+  async function load() {
+    var tenant = 'hair_tp';
+    // Phase 1 (existerande)
+    try {
+      var res = await fetch('/api/v1/cco/journal-qa/snapshot?tenantId=' + tenant, {
+        credentials: 'same-origin',
+        cache: 'no-store'
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      render(data);
+    } catch (err) {
+      console.warn('[journal-qa] live endpoint unavailable, using fallback:', err && err.message);
+      var fb = JSON.parse(JSON.stringify(FALLBACK_SNAPSHOT));
+      fb.generatedAt = new Date().toISOString();
+      render(fb);
+    }
+    // Phase 2 (P0.E asset-qa)
+    try {
+      var resQa = await fetch('/api/v1/cco/asset-qa/snapshot?tenantId=' + tenant, {
+        credentials: 'same-origin',
+        cache: 'no-store'
+      });
+      if (!resQa.ok) throw new Error('HTTP ' + resQa.status);
+      var qaData = await resQa.json();
+      renderAssetQa(qaData);
+    } catch (err) {
+      console.warn('[asset-qa] live endpoint unavailable, using fallback:', err && err.message);
+      var qaFb = JSON.parse(JSON.stringify(FALLBACK_ASSET_QA));
+      qaFb.generatedAt = new Date().toISOString();
+      renderAssetQa(qaFb);
+    }
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', load);
+
+  // initial + auto-refresh 60s
+  load();
+  setInterval(load, 60000);
+})();
+</script>
+</body>
+</html>

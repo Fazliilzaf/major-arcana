@@ -7,6 +7,7 @@ services:
     repo: https://github.com/Fazliilzaf/major-arcana
     branch: main
     autoDeployTrigger: commit
+    healthCheckPath: /readyz
     # plan utelämnad medvetet — prod kör Pro; Render behåller befintlig plan vid sync.
     # Build: standard npm ci + post-install playwright-chromium till
     # persistent disk så browsers cachas mellan deploys.
@@ -28,7 +29,8 @@ services:
     disk:
       name: arcana-state
       mountPath: /var/data
-      sizeGB: 2
+      # Höjt till 10 GB 2026-05-27 (truth-backfill contact@ + egzona@).
+      sizeGB: 10
     envVars:
       - key: ARCANA_STATE_ROOT
         value: /var/data
@@ -47,9 +49,9 @@ services:
       - key: ARCANA_STAFF_JOURNAL_OPEN_ACCESS
         value: "false"
       - key: ARCANA_GRAPH_READ_ENABLED
-        value: "false"
+        value: "true"
       - key: ARCANA_GRAPH_SEND_ENABLED
-        value: "false"
+        value: "true"
       - key: ARCANA_GRAPH_TENANT_ID
         sync: false
       - key: ARCANA_GRAPH_CLIENT_ID
@@ -94,11 +96,21 @@ services:
         value: hair-tp-clinic
       - key: ARCANA_BOOTSTRAP_DELAY_MS
         value: "5000"
-      # Go-live: OWNER-login kräver MFA.
-      - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
+      # Endast preferred mailbox vid start — minskar OOM-risk (502) på Render Standard.
+      - key: ARCANA_BOOTSTRAP_PHASE1_ONLY
         value: "true"
+      # Byggfas: MFA av tills allt är klart (sätt true + owner_mfa_enforced vid go-live).
+      # Webb-bokning: styrs av config.js default (true) — ingen env-override.
+      # Render Blueprint syncar INTE bort befintliga env-vars.
+      # Om Render Dashboard fortfarande har ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false:
+      # → TA BORT variabeln i Dashboard (inte ändra till true, TA BORT den).
+      # Då tar config.js default=true över.
+      - key: ARCANA_CLIENTO_INTEGRATION_ENABLED
+        value: "false"
+      - key: ARCANA_AUTH_OWNER_MFA_REQUIRED
+        value: "false"
       - key: ARCANA_PREFLIGHT_READINESS_CHECKS
-        value: cors_strict,owner_mfa_enforced
+        value: cors_strict
       # MFA reset: sätt till true manuellt i Render UI vid kontrollerad heal, sedan tillbaka false
       - key: ARCANA_BOOTSTRAP_RESET_OWNER_MFA
         value: "false"
@@ -129,3 +141,37 @@ services:
         sync: false
       - key: ARCANA_MARKETING_LINKEDIN_ACCESS_TOKEN
         sync: false
+      - key: ARCANA_GOOGLE_DRIVE_FOLDER_ID
+        sync: false
+      - key: ARCANA_GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: ARCANA_MIGRATION_INDEX_PATH
+        value: /var/data/arcana/migration-index.json
+      # CCO inkorg: snabbare delta-sync och smalare scoped-analys (2026-05-20).
+      - key: ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES
+        value: "3"
+      - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_LOOKBACK_DAYS
+        value: "3"
+      - key: ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER
+        value: "20"
+      # CCO Mail Ingestion Pipeline (read-only default; webhooks off until subscription created).
+      - key: ARCANA_CCO_MAIL_INGESTION_ENABLED
+        value: "true"
+      - key: ARCANA_CCO_MAIL_INGESTION_MODE
+        value: "read_only"
+      - key: ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX
+        value: "contact@hairtpclinic.com"
+      # Graph webhooks stay off until ingestion pipeline is stable; delta + scheduler is enough.
+      - key: ARCANA_GRAPH_CHANGE_NOTIFICATIONS_ENABLED
+        value: "false"
+      - key: ARCANA_GRAPH_CHANGE_NOTIFICATION_CLIENT_STATE
+        value: "arcana-cco-mail-ingestion"
+      - key: ARCANA_CCO_MAIL_INGESTION_QUEUE_BATCH_SIZE
+        value: "50"
+      - key: ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS
+        value: "180000"
+      - key: ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES
+        value: "2"
+      # Truth-store får växa till ~2GB (10GB disk). 150MB-cap raderade store vid varje omstart.
+      - key: ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES
+        value: "2147483648"

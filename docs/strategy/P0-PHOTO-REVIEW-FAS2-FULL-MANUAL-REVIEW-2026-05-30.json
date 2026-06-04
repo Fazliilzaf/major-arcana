@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-05-30T22:49:57.477Z",
+  "phase": "fas2_full_manual_review_in_progress",
+  "isFinal": false,
+  "queueComplete": false,
+  "baseline": {
+    "pendingPhotos": 861,
+    "patients": 150
+  },
+  "visiblePhotos": 0,
+  "decisions": {
+    "approve": 0,
+    "reject": 0,
+    "reassign": 0,
+    "total": 0
+  },
+  "milestones": [],
+  "storage": {
+    "missingStorageKey": 0,
+    "missingChecksum": 0
+  },
+  "auditEntries": 0,
+  "errors": []
+}

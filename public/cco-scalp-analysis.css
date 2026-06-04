@@ -1,0 +1,169 @@
+/* cco-scalp-analysis.css — Hair TP Imaging & Scalp Analysis tab */
+
+.cco-sa {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 24px;
+}
+
+.cco-sa__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cco-sa__title {
+  font-size: 22px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.cco-sa__disclaimer {
+  font-size: 14px;
+  color: rgba(70, 60, 50, 0.72);
+  margin: 0;
+}
+
+.cco-sa__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cco-sa__btn {
+  border: 1px solid rgba(120, 105, 90, 0.2);
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cco-sa__btn--primary {
+  background: linear-gradient(180deg, rgba(80, 55, 35, 0.94), rgba(55, 35, 20, 0.98));
+  color: #fff;
+  border-color: transparent;
+}
+
+.cco-sa__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.cco-sa__card {
+  background: rgba(252, 248, 244, 0.9);
+  border: 1px solid rgba(120, 105, 90, 0.16);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(70, 50, 30, 0.06);
+}
+
+.cco-sa__card h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.cco-sa__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(70, 60, 50, 0.7);
+}
+
+.cco-sa__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(120, 105, 90, 0.14);
+}
+
+.cco-sa__chip--ok {
+  background: rgba(40, 120, 70, 0.12);
+}
+.cco-sa__chip--warn {
+  background: rgba(180, 120, 20, 0.14);
+}
+.cco-sa__chip--draft {
+  background: rgba(100, 100, 110, 0.1);
+}
+
+.cco-sa__protocol {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.cco-sa__protocol li {
+  font-size: 14px;
+  padding: 4px 0;
+}
+
+.cco-sa__metrics table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.cco-sa__metrics th,
+.cco-sa__metrics td {
+  text-align: left;
+  padding: 6px 4px;
+  border-bottom: 1px solid rgba(120, 105, 90, 0.12);
+}
+
+.cco-sa__empty {
+  padding: 24px;
+  text-align: center;
+  color: rgba(70, 60, 50, 0.65);
+}
+
+.cco-sa__form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.cco-sa__form-row label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cco-sa__form-row input,
+.cco-sa__form-row select,
+.cco-sa__form-row textarea {
+  border: 1px solid rgba(120, 105, 90, 0.2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.cco-sa__import-panel {
+  border-top: 1px solid rgba(120, 105, 90, 0.12);
+  padding-top: 12px;
+  margin-top: 8px;
+}
+
+@media (max-width: 1023px) {
+  .cco-sa__grid {
+    grid-template-columns: 1fr;
+  }
+  .cco-sa__actions {
+    width: 100%;
+  }
+  .cco-sa__btn {
+    flex: 1 1 auto;
+  }
+}

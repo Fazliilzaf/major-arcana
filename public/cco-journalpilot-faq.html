@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Journalpilot Quick FAQ · Hair TP Clinic</title>
+    <style>
+      :root {
+        --bg: #ede4d5;
+        --paper: #faf5e9;
+        --paper-soft: #f5edda;
+        --paper-deep: #f0e6d0;
+        --ink: #2d2418;
+        --ink-soft: #51422f;
+        --line: rgba(132, 117, 107, 0.32);
+        --accent: #b08b3f;
+        --accent-deep: #8a6a26;
+        --green: #5f7c3c;
+        --green-deep: #3f5826;
+        --green-bg: #e3eed4;
+        --orange: #c48132;
+        --orange-bg: #f8e1bf;
+        --red: #a04432;
+        --red-deep: #7a3324;
+        --red-bg: #f4d4cd;
+        --blue: #4a6788;
+        --blue-deep: #2f4a6a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(1000px 500px at 12% -10%, #f7eed7 0%, transparent 60%), var(--bg);
+        color: var(--ink);
+        font:
+          14.5px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          'SF Pro Display',
+          Inter,
+          system-ui,
+          sans-serif;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 26px 28px 80px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: linear-gradient(180deg, #f8efd9 0%, #efe1c2 100%);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        margin-bottom: 20px;
+        box-shadow:
+          0 4px 12px rgba(80, 60, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #b08b3f, #6d4e1c);
+        color: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        display: grid;
+        place-items: center;
+      }
+      .brand-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .brand-sub {
+        font-size: 11.5px;
+        color: var(--ink-soft);
+      }
+      .back-btn {
+        padding: 8px 14px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 12.5px;
+        text-decoration: none;
+      }
+      .back-btn:hover {
+        background: #fff8e8;
+        border-color: var(--accent);
+      }
+
+      .hero {
+        margin-bottom: 22px;
+        padding: 22px 26px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow:
+          0 4px 12px rgba(80, 60, 30, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+      }
+      .hero-kicker {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent-deep);
+        font-weight: 700;
+      }
+      .hero h1 {
+        margin: 4px 0 6px;
+        font-size: 24px;
+      }
+      .hero p {
+        margin: 0;
+        font-size: 13.5px;
+        color: var(--ink);
+      }
+
+      .faq {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px 22px;
+        margin-bottom: 12px;
+        box-shadow:
+          0 2px 8px rgba(80, 60, 30, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        border-left: 4px solid var(--accent);
+        transition: all 0.15s;
+      }
+      .faq:hover {
+        box-shadow: 0 6px 14px rgba(80, 60, 30, 0.12);
+      }
+      .faq.go {
+        border-left-color: var(--green);
+      }
+      .faq.warn {
+        border-left-color: var(--orange);
+      }
+      .faq.stop {
+        border-left-color: var(--red);
+      }
+      .faq.info {
+        border-left-color: var(--blue);
+      }
+      .faq-q {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0 0 8px;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .faq-q .num {
+        display: inline-block;
+        padding: 2px 8px;
+        background: var(--paper-deep);
+        color: var(--accent-deep);
+        font-family: SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        border-radius: 6px;
+        flex-shrink: 0;
+      }
+      .faq-a {
+        margin: 0;
+        font-size: 13.5px;
+        color: var(--ink);
+        line-height: 1.55;
+      }
+      .faq-a strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .faq-a code {
+        background: var(--paper-deep);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: var(--accent-deep);
+      }
+      .faq-a .pill {
+        display: inline-block;
+        padding: 2px 9px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-radius: 999px;
+        margin-right: 6px;
+      }
+      .pill.go {
+        background: var(--green-bg);
+        color: var(--green-deep);
+      }
+      .pill.warn {
+        background: var(--orange-bg);
+        color: #6a4514;
+      }
+      .pill.stop {
+        background: var(--red-bg);
+        color: var(--red-deep);
+      }
+      .pill.info {
+        background: rgba(74, 103, 136, 0.18);
+        color: var(--blue-deep);
+      }
+
+      .footer {
+        margin-top: 28px;
+        padding: 16px 20px;
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        text-align: center;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+      }
+      .footer strong {
+        color: var(--ink);
+      }
+      .footer a {
+        color: var(--accent-deep);
+        text-decoration: none;
+      }
+
+      @media (max-width: 680px) {
+        .container {
+          padding: 16px;
+        }
+        .topbar {
+          flex-direction: column;
+          gap: 10px;
+          align-items: stretch;
+        }
+        .hero h1 {
+          font-size: 20px;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="/cco-staff-shell.css" />
+    <script defer src="/cco-staff-shell.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-mark">CCO</div>
+          <div>
+            <div class="brand-title">Journalpilot · Quick FAQ</div>
+            <div class="brand-sub">9 vanliga frågor · dag-1-säkra svar</div>
+          </div>
+        </div>
+        <a class="back-btn" href="/cco-demo.html">← Personalstart</a>
+      </div>
+
+      <div class="hero">
+        <div class="hero-kicker">Snabbsvar</div>
+        <h1>Vanliga frågor — dag 1</h1>
+        <p>
+          Färgkodade efter risk: <strong style="color: var(--green-deep)">grön = gör det</strong>,
+          <strong style="color: #6a4514">orange = försiktigt</strong>,
+          <strong style="color: var(--red-deep)">röd = STOPPA</strong>,
+          <strong style="color: var(--blue-deep)">blå = info</strong>.
+        </p>
+      </div>
+
+      <div class="faq go">
+        <p class="faq-q"><span class="num">01</span>Kan jag skriva journal om historik saknas?</p>
+        <p class="faq-a">
+          <span class="pill go">JA</span>Ja, absolut. Tomt kundkort = ny patient i CCO. Du kan skapa
+          journal som vanligt. Den första posten blir startpunkten i journalfeeden.
+        </p>
+      </div>
+
+      <div class="faq warn">
+        <p class="faq-q"><span class="num">02</span>Vad betyder "Behöver granskning"?</p>
+        <p class="faq-a">
+          <span class="pill warn">FÖRSIKTIGT</span>Material flaggat <code>needs review</code> är
+          <strong>importerat</strong> från externa källor (Drive, halso@, GetAccept) men
+          <strong>inte verifierat</strong>. Använd som referens när du frågar patienten — inte som
+          klinisk sanning, inte för diagnoser eller dosering.
+        </p>
+      </div>
+
+      <div class="faq stop">
+        <p class="faq-q"><span class="num">03</span>Får jag använda importerade bilder?</p>
+        <p class="faq-a">
+          <span class="pill stop">NEJ</span>Migrerade före/efter-bilder från Drive är
+          <strong>inte</strong> kliniska behandlingsbilder dag 1. De väntar Photo
+          Review-godkännande. <strong>Ta nya bilder i CCO</strong> om du behöver visuell referens.
+        </p>
+      </div>
+
+      <div class="faq stop">
+        <p class="faq-q"><span class="num">04</span>Vad gör jag om jag är osäker på kunden?</p>
+        <p class="faq-a">
+          <span class="pill stop">STOPPA</span>Säg <em>"en sekund så dubbelkollar jag"</em> till
+          patienten. Försök inte gissa — eskalera till admin/ops.
+          <strong>Skapa aldrig ny kund</strong> vid osäkerhet — då riskerar du dubbletter.
+        </p>
+      </div>
+
+      <div class="faq stop">
+        <p class="faq-q"><span class="num">05</span>Kan jag ändra en signerad journal?</p>
+        <p class="faq-a">
+          <span class="pill stop">NEJ</span>Signerade poster är <strong>permanent låsta</strong>.
+          Det är journalkraven. Om något måste ändras — gör en <strong>rättelse</strong> (se fråga
+          06).
+        </p>
+      </div>
+
+      <div class="faq go">
+        <p class="faq-q"><span class="num">06</span>Hur gör jag rättelse?</p>
+        <p class="faq-a">
+          <span class="pill go">SÅ HÄR</span>Öppna den signerade posten → klicka
+          <strong>"Skapa rättelse"</strong> → en ny tom post öppnas länkad till originalet → skriv
+          det korrigerade <strong>i sin helhet</strong> (inte "stryk allt ovan") → ange anledning
+          (typo / ny info / felaktig dos) → spara → signera. Båda syns i timeline.
+        </p>
+      </div>
+
+      <div class="faq stop">
+        <p class="faq-q">
+          <span class="num">07</span>Får jag använda AI (ChatGPT, Claude, Copilot)?
+        </p>
+        <p class="faq-a">
+          <span class="pill stop">FÖRBJUDET</span>Patientdata får <strong>aldrig</strong> kopieras
+          till externa AI-verktyg. Ingen copy-paste från ChatGPT eller liknande. Det är vår policy
+          och GDPR-kravet. Skriv allt själv eller använd CCO:s egna mallar.
+        </p>
+      </div>
+
+      <div class="faq warn">
+        <p class="faq-q"><span class="num">08</span>Vad gör jag om systemet hänger?</p>
+        <p class="faq-a">
+          <span class="pill warn">BACKUP</span>1) Refresh (Cmd+R). 2) Om kvarstår → backup-URL
+          <code>major-arcana-frankfurt.onrender.com/cco-demo.html</code>. 3) 502 → vänta 2 min,
+          refresh. 4) Sidan ser trasig ut → skärmdump → Fazli.
+          <strong>Skriv ingen ny journal i en trasig sida.</strong>
+        </p>
+      </div>
+
+      <div class="faq info">
+        <p class="faq-q"><span class="num">09</span>Vem kontaktar jag?</p>
+        <p class="faq-a">
+          <span class="pill info">KONTAKT</span><strong>Admin / ops:</strong> osäker identitet,
+          dubbletter, GDPR-frågor, merging av kundkort. <strong>Fazli direkt:</strong> tekniskt fel,
+          journal på fel patient, system-krasch, presentationsbug. Det är aldrig fel att eskalera —
+          bättre fråga än gissa.
+        </p>
+      </div>
+
+      <div class="footer">
+        <strong>Hair TP Clinic · Journalpilot dag 1 · 4 juni 2026</strong><br />
+        Komplett guide: <a href="/journal-pilot-guide.html">/journal-pilot-guide.html</a> ·
+        Träningsläge: <a href="/cco-staff-training-mode.html">/cco-staff-training-mode.html</a> ·
+        Print: <a href="/journal-pilot-print-pack.html">/journal-pilot-print-pack.html</a>
+      </div>
+    </div>
+  </body>
+</html>

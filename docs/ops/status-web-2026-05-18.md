@@ -2,7 +2,7 @@
 
 Datum: 2026-05-18
 Syfte: Veckovis status för den publika webben (hairtpclinic.com, Next.js 15). Spegel av Arcanas `ops/status-YYYY-MM-DD.md`-mönster.
-Arbetsfördelning: **Webb-repo** (`../Hairtpclinic webb/next-app/`) körs separat från Arcana-monoliten men ägs av samma roadmap. Status uppdateras varje vecka eller vid milstolpar.
+Arbetsfördelning: **Webb-repo** (hairtpclinic-web — separat Next.js på Vercel) körs separat från Arcana-monoliten men ägs av samma roadmap. Status uppdateras varje vecka eller vid milstolpar.
 
 Masterplan: `docs/strategy/web-hairtpclinic-com-masterplan.md`.
 
@@ -156,7 +156,7 @@ Per masterplan §4.A genomfördes hela SEO-pelaren samma dag som masterplanen sk
 
 ## 6. Snabb-uppslag
 
-- Repo (lokal): `/Users/fazlikrasniqi/Library/Mobile Documents/com~apple~CloudDocs/Hairtpclinic webb/next-app/`
+- Repo (lokal): `hairtpclinic-web (extern Next.js-repo, Vercel) — `
 - Masterplan: `docs/strategy/web-hairtpclinic-com-masterplan.md`
 - .env-mall: `next-app/.env.example`
 - Bild-script: `next-app/scripts/convert-images.mjs`

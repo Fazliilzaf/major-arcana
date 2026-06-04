@@ -1,0 +1,621 @@
+/* CCO Photo Review — staff UI */
+:root {
+  --pr-bg: #0f1419;
+  --pr-panel: #1a2332;
+  --pr-border: #2d3a4d;
+  --pr-text: #e8edf4;
+  --pr-muted: #8b9cb3;
+  --pr-accent: #4da3ff;
+  --pr-ok: #3ecf8e;
+  --pr-warn: #ffb347;
+  --pr-danger: #ff6b6b;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: var(--pr-bg);
+  color: var(--pr-text);
+}
+
+#cco-photo-review-root {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.cco-photo-review-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cco-photo-review-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.cco-photo-review-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--pr-border);
+}
+
+.cco-photo-review-badge-readonly {
+  background: rgba(77, 163, 255, 0.15);
+  color: var(--pr-accent);
+  border-color: var(--pr-accent);
+}
+
+.cco-photo-review-badge-write {
+  background: rgba(62, 207, 142, 0.15);
+  color: var(--pr-ok);
+  border-color: var(--pr-ok);
+}
+
+.cco-photo-review-readonly-banner {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--pr-accent);
+  background: rgba(77, 163, 255, 0.1);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.cco-photo-review-readonly-banner p {
+  margin: 0.35rem 0 0;
+}
+
+.cco-photo-review-day1 {
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--pr-warn);
+  background: rgba(255, 179, 71, 0.12);
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-readonly-focus {
+  padding: 0.65rem;
+  border: 1px dashed var(--pr-border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.cco-photo-review-pilot-banner {
+  font-size: 0.85rem;
+  color: var(--pr-warn);
+  background: rgba(255, 179, 71, 0.12);
+  border: 1px solid rgba(255, 179, 71, 0.35);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+}
+
+.cco-photo-review-reviewer {
+  display: block;
+  margin: 0.5rem 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-reviewer input {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--pr-border);
+  background: var(--pr-bg);
+  color: var(--pr-text);
+}
+
+.cco-photo-review-search {
+  display: block;
+  margin: 0.75rem 0;
+}
+
+.cco-photo-review-search input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.25rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--pr-border);
+  background: var(--pr-bg);
+  color: var(--pr-text);
+}
+
+.cco-photo-review-muted {
+  color: var(--pr-muted);
+  font-size: 0.9rem;
+}
+
+.cco-photo-review-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.cco-photo-review-stats div {
+  background: var(--pr-panel);
+  border: 1px solid var(--pr-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  min-width: 5rem;
+}
+
+.cco-photo-review-stats dt {
+  font-size: 0.75rem;
+  color: var(--pr-muted);
+  margin: 0;
+}
+
+.cco-photo-review-stats dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.cco-photo-review-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.cco-photo-review-patients,
+.cco-photo-review-detail {
+  background: var(--pr-panel);
+  border: 1px solid var(--pr-border);
+  border-radius: 12px;
+  padding: 1rem;
+  min-height: 400px;
+}
+
+.cco-photo-review-patient-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.cco-photo-review-patient-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pr-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.cco-photo-review-patient-btn:hover,
+.cco-photo-review-patient-btn.is-active {
+  background: rgba(77, 163, 255, 0.12);
+  border-color: var(--pr-accent);
+}
+
+.cco-photo-review-patient-id {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-patient-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.cco-photo-review-patient-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.cco-photo-review-patient-batch {
+  font-size: 0.7rem;
+  color: var(--pr-muted);
+}
+
+.cco-photo-review-patient-count {
+  font-size: 0.8rem;
+  color: var(--pr-muted);
+}
+
+.cco-photo-review-doc-badge {
+  font-size: 0.7rem;
+  color: var(--pr-ok);
+  border: 1px solid rgba(62, 207, 142, 0.35);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+}
+
+.cco-photo-review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.cco-photo-review-card {
+  border: 1px solid var(--pr-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #121a24;
+}
+
+.cco-photo-review-preview {
+  aspect-ratio: 4/3;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cco-photo-review-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.cco-photo-review-preview-missing,
+.cco-photo-review-preview-error {
+  color: var(--pr-muted);
+  font-size: 0.85rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.cco-photo-review-preview-error {
+  color: var(--pr-warn);
+}
+
+.cco-photo-review-status-visible {
+  border-color: var(--pr-warn);
+}
+
+.cco-photo-review-meta {
+  padding: 0.75rem;
+}
+
+.cco-photo-review-warning {
+  font-size: 0.8rem;
+  color: var(--pr-warn);
+  margin: 0 0 0.5rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(255, 179, 71, 0.1);
+  border-radius: 6px;
+}
+
+.cco-photo-review-alert {
+  font-size: 0.8rem;
+  color: var(--pr-danger);
+  margin: 0 0 0.5rem;
+}
+
+.cco-photo-review-dl {
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.cco-photo-review-dl div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.cco-photo-review-dl dt {
+  color: var(--pr-muted);
+  margin: 0;
+}
+
+.cco-photo-review-dl dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.cco-photo-review-dl code {
+  font-size: 0.75rem;
+}
+
+.cco-photo-review-conf {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.cco-photo-review-conf-high {
+  color: var(--pr-ok);
+}
+
+.cco-photo-review-conf-medium {
+  color: var(--pr-warn);
+}
+
+.cco-photo-review-conf-low {
+  color: var(--pr-danger);
+}
+
+.cco-photo-review-patient-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.cco-photo-review-patient-summary div {
+  background: #121a24;
+  border: 1px solid var(--pr-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  min-width: 6rem;
+}
+
+.cco-photo-review-patient-summary dt {
+  font-size: 0.7rem;
+  color: var(--pr-muted);
+  margin: 0;
+}
+
+.cco-photo-review-patient-summary dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+}
+
+.cco-photo-review-write {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--pr-border);
+}
+
+.cco-photo-review-write label {
+  display: block;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-write select,
+.cco-photo-review-write textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--pr-border);
+  background: var(--pr-bg);
+  color: var(--pr-text);
+  font: inherit;
+}
+
+.cco-photo-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.cco-photo-review-actions button {
+  flex: 1 1 calc(50% - 0.5rem);
+  min-width: 7rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--pr-border);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-approve {
+  background: rgba(62, 207, 142, 0.15);
+  color: var(--pr-ok);
+  border-color: var(--pr-ok);
+}
+
+.cco-photo-review-reject {
+  background: rgba(255, 107, 107, 0.12);
+  color: var(--pr-danger);
+  border-color: var(--pr-danger);
+}
+
+.cco-photo-review-reassign,
+.cco-photo-review-reassign-approve {
+  background: rgba(255, 179, 71, 0.12);
+  color: var(--pr-warn);
+  border-color: var(--pr-warn);
+}
+
+.cco-photo-review-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: var(--pr-panel);
+  border-radius: 8px;
+  border: 1px solid var(--pr-border);
+}
+
+.cco-photo-review-filter-bar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--pr-muted);
+}
+
+.cco-photo-review-filter-bar select,
+.cco-photo-review-filter-bar button {
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-operator-progress {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(77, 163, 255, 0.08);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-session-panel {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--pr-border);
+  border-radius: 8px;
+  background: var(--pr-panel);
+}
+
+.cco-photo-review-session-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.cco-photo-review-session-list {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--pr-muted);
+}
+
+.cco-photo-review-export-btn {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--pr-accent);
+  color: #0f1419;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cco-photo-review-layout-focus {
+  grid-template-columns: 240px 1fr;
+}
+
+.cco-photo-review-focus {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.cco-photo-review-focus-preview {
+  background: #000;
+  border-radius: 12px;
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cco-photo-review-focus-img {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+.cco-photo-review-quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.cco-photo-review-quick-actions button {
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--pr-border);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.cco-photo-review-nav-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.cco-photo-review-nav-actions button {
+  flex: 1;
+  padding: 0.45rem;
+  border-radius: 8px;
+  border: 1px solid var(--pr-border);
+  background: var(--pr-panel);
+  color: var(--pr-text);
+  cursor: pointer;
+}
+
+.cco-photo-review-progress-wrap {
+  margin: 0.75rem 0 1rem;
+}
+
+.cco-photo-review-progress-bar {
+  height: 8px;
+  background: #121a24;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--pr-border);
+}
+
+.cco-photo-review-progress-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--pr-accent), var(--pr-ok));
+  transition: width 0.25s ease;
+}
+
+.cco-photo-review-progress-label {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+}
+
+.cco-photo-review-progress-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--pr-muted);
+  margin: 0.25rem 0 0;
+}
+
+.cco-photo-review-shortcuts {
+  font-size: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.cco-photo-review-reason-label textarea,
+.cco-photo-review-reassign-cat select {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.25rem;
+  padding: 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--pr-border);
+  background: var(--pr-bg);
+  color: var(--pr-text);
+}
+
+@media (max-width: 900px) {
+  .cco-photo-review-focus {
+    grid-template-columns: 1fr;
+  }
+}

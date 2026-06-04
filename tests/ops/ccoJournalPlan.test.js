@@ -91,6 +91,59 @@ test('journal store manages consultation plan photos and annotations', async () 
   assert.equal(annotated.attachments[0].hasAnnotation, true);
 });
 
+test('clearConsultationPhotoAttachments keeps non-smoke photos when smokeOnly', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'journal-store-smoke-'));
+  const store = await createCcoJournalStore({ filePath: path.join(dir, 'journal.json') });
+  const actor = { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' };
+
+  const plan = await store.ensureConsultationPlan({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    personnummer: '19960830-4698',
+    actor,
+  });
+
+  let entry = await store.addConsultationPhotoAttachment({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    entryId: plan.entryId,
+    photo: {
+      photoId: 'photo-smoke',
+      fileName: 'smoke-front.jpg',
+      mimeType: 'image/jpeg',
+      storedAt: new Date().toISOString(),
+      label: 'Smoke Front',
+    },
+    actor,
+  });
+  entry = await store.addConsultationPhotoAttachment({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    entryId: plan.entryId,
+    photo: {
+      photoId: 'photo-real',
+      fileName: 'front.jpg',
+      mimeType: 'image/jpeg',
+      storedAt: new Date().toISOString(),
+      label: 'Front',
+    },
+    actor,
+  });
+
+  const cleared = await store.clearConsultationPhotoAttachments({
+    tenantId: 'hair-tp-clinic',
+    patientId: 'patient-1',
+    entryId: plan.entryId,
+    smokeOnly: true,
+    actor,
+  });
+
+  assert.equal(cleared.removed.length, 1);
+  assert.equal(cleared.removed[0].photoId, 'photo-smoke');
+  assert.equal(cleared.entry.attachments.length, 1);
+  assert.equal(cleared.entry.attachments[0].photoId, 'photo-real');
+});
+
 test('deleteEntry tar bort dubblett av hälsodeklaration men behåller sista', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'journal-store-delete-'));
   const store = await createCcoJournalStore({ filePath: path.join(dir, 'journal.json') });

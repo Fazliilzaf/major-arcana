@@ -130,6 +130,12 @@ test('executePilotChannelPublish audits published sandbox result', async () => {
 
 test('runCmoConnectorHealthCheck emits executive feed on connector errors', async () => {
   clearConnectorMetricsCache();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cmo-health-alert-'));
+  const { createCmoConnectorHealthStateStore } = require('../../src/ops/cmoConnectorHealthState');
+  const connectorHealthStateStore = createCmoConnectorHealthStateStore({
+    filePath: path.join(tempDir, 'health.json'),
+    alertAfterMs: 0,
+  });
   const feedEvents = [];
   const result = await runCmoConnectorHealthCheck({
     tenantId: 'default',
@@ -144,6 +150,7 @@ test('runCmoConnectorHealthCheck emits executive feed on connector errors', asyn
         mail: { enabled: false },
       },
     },
+    connectorHealthStateStore,
     executiveDecisionFeed: {
       addFromSchedulerNotification: (payload) => {
         feedEvents.push(payload);

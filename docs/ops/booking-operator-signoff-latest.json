@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-05-24T15:33:45.896Z",
+  "base": "https://arcana.hairtpclinic.se",
+  "rows": [
+    {
+      "id": "consultation-online",
+      "label": "A1 Online möte",
+      "pass": true,
+      "caseId": "web-fa31e57b5ae8",
+      "slotId": "egzona::consultation-online::2026-06-02T14:30:00.000Z",
+      "confirmedAt": "2026-05-24T15:33:41.372Z",
+      "operator": "verify-booking-operator-signoff-prod (automated)"
+    },
+    {
+      "id": "consultation-physical",
+      "label": "A2 Fysisk konsultation",
+      "pass": true,
+      "caseId": "web-558426e32edf",
+      "slotId": "egzona::consultation-physical::2026-06-02T14:30:00.000Z",
+      "confirmedAt": "2026-05-24T15:33:43.889Z",
+      "operator": "verify-booking-operator-signoff-prod (automated)"
+    },
+    {
+      "id": "followup-transplant",
+      "label": "A3 Uppföljning transplant",
+      "pass": true,
+      "caseId": "web-2344477e8655",
+      "slotId": "fazli::followup-transplant::2026-05-27T17:30:00.000Z",
+      "confirmedAt": "2026-05-24T15:33:45.896Z",
+      "operator": "verify-booking-operator-signoff-prod (automated)"
+    }
+  ]
+}

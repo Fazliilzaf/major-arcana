@@ -1,0 +1,674 @@
+/* ============================================================
+   CCO POLISH-BUNDLE
+   ============================================================
+   En enda CSS-fil som alla CCO-vyer länkar in.
+   Innehåller: dark mode, a11y-fixar, print-stylesheets.
+
+   Användning i varje vy:
+     <link rel="stylesheet" href="/cco-polish.css">
+   ============================================================ */
+
+/* ─── A11Y · skip-link ────────────────────────────────────── */
+.a11y-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: 10px 16px;
+  background: var(--accent-studio, #bb4779);
+  color: white;
+  border-radius: 0 0 10px 0;
+  font-weight: 700;
+  font-size: 13px;
+  z-index: 9999;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+}
+.a11y-skip:focus {
+  left: 0;
+  outline: 3px solid var(--calendar-accent, #c8821e);
+  outline-offset: 2px;
+}
+
+/* ─── A11Y · synliga fokus-ringar överallt ────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--accent-studio, #bb4779) !important;
+  outline-offset: 2px !important;
+  border-radius: 6px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  box-shadow: 0 0 0 4px rgba(187, 71, 121, 0.22) !important;
+}
+
+/* ─── A11Y · screen-reader only utility ───────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─── A11Y · prefers-reduced-motion ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cco-bg-page: #14110e;
+    --cco-color-brand: #f4e9dd;
+    --cco-text-secondary: rgba(244, 233, 221, 0.7);
+    --cco-text-tertiary: rgba(244, 233, 221, 0.5);
+    --cco-status-success: #6fb595;
+    --cco-status-success-bg: rgba(74, 130, 104, 0.22);
+    --cco-status-warning: #e8a04e;
+    --cco-status-warning-bg: rgba(200, 130, 30, 0.22);
+    --cco-status-danger: #f08b8b;
+    --cco-status-danger-bg: rgba(185, 74, 74, 0.22);
+    --cco-status-info: #7aa8d4;
+    --cco-status-info-bg: rgba(74, 123, 168, 0.22);
+    --accent-studio: #d76b9c;
+    --calendar-accent: #e8a04e;
+    --calendar-accent-glow: rgba(232, 160, 78, 0.32);
+    --rose-pill-top: rgba(80, 38, 62, 0.85);
+    --rose-pill-bottom: rgba(60, 28, 48, 0.78);
+    --panel-shell-top: rgba(34, 28, 22, 0.92);
+    --panel-shell-bottom: rgba(26, 20, 16, 0.88);
+    --rail-fazli: #a5c4a8;
+    --rail-egzona: #d76b9c;
+    --rail-contact: #e8a04e;
+    --rail-info: #7aa8d4;
+  }
+}
+
+/* Explicit dark mode (toggle) */
+:root[data-theme="dark"] {
+  --cco-bg-page: #14110e;
+  --cco-color-brand: #f4e9dd;
+  --cco-text-secondary: rgba(244, 233, 221, 0.7);
+  --cco-text-tertiary: rgba(244, 233, 221, 0.5);
+  --cco-status-success: #6fb595;
+  --cco-status-success-bg: rgba(74, 130, 104, 0.22);
+  --cco-status-warning: #e8a04e;
+  --cco-status-warning-bg: rgba(200, 130, 30, 0.22);
+  --cco-status-danger: #f08b8b;
+  --cco-status-danger-bg: rgba(185, 74, 74, 0.22);
+  --cco-status-info: #7aa8d4;
+  --cco-status-info-bg: rgba(74, 123, 168, 0.22);
+  --accent-studio: #d76b9c;
+  --calendar-accent: #e8a04e;
+  --calendar-accent-glow: rgba(232, 160, 78, 0.32);
+  --rose-pill-top: rgba(80, 38, 62, 0.85);
+  --rose-pill-bottom: rgba(60, 28, 48, 0.78);
+  --panel-shell-top: rgba(34, 28, 22, 0.92);
+  --panel-shell-bottom: rgba(26, 20, 16, 0.88);
+  --rail-fazli: #a5c4a8;
+  --rail-egzona: #d76b9c;
+  --rail-contact: #e8a04e;
+  --rail-info: #7aa8d4;
+}
+
+/* Dark mode: extra bakgrunds-tweaks som inte täcks av tokens */
+:root[data-theme="dark"] body,
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    background: radial-gradient(ellipse at 12% 0%, rgba(215, 107, 156, 0.14), transparent 38%),
+                radial-gradient(ellipse at 88% 4%, rgba(232, 160, 78, 0.08), transparent 42%),
+                var(--cco-bg-page) !important;
+  }
+}
+:root[data-theme="dark"] body {
+  background: radial-gradient(ellipse at 12% 0%, rgba(215, 107, 156, 0.14), transparent 38%),
+              radial-gradient(ellipse at 88% 4%, rgba(232, 160, 78, 0.08), transparent 42%),
+              var(--cco-bg-page);
+}
+
+/* Vita ytor (panels, kort) i dark mode */
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .group,
+:root[data-theme="dark"] .clinic {
+  background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom)) !important;
+}
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--cco-color-brand) !important;
+  border-color: rgba(244, 233, 221, 0.2) !important;
+}
+:root[data-theme="dark"] .a4 {
+  background: #2a221c !important;
+  color: #f4e9dd !important;
+}
+
+/* ─── Stage-badge (LIVE/BETA/DEMO/LOCKED) ───────────────── */
+.stage-badge {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px 5px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  z-index: 400;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: transform 0.14s ease;
+}
+.stage-badge:hover { transform: translateX(-50%) translateY(-1px); }
+.stage-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+.stage-badge[data-stage="live"] {
+  background: linear-gradient(180deg, rgba(220, 245, 230, 0.95), rgba(195, 232, 210, 0.92));
+  color: #2d6347;
+}
+.stage-badge[data-stage="live"]::before {
+  background: #4a8268;
+  box-shadow: 0 0 8px rgba(74, 130, 104, 0.6);
+  animation: livePulse 2s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(74, 130, 104, 0.6); }
+  50% { box-shadow: 0 0 14px rgba(74, 130, 104, 0.9); }
+}
+.stage-badge[data-stage="beta"] {
+  background: linear-gradient(180deg, rgba(252, 233, 200, 0.95), rgba(248, 215, 168, 0.92));
+  color: #8a5a18;
+}
+.stage-badge[data-stage="beta"]::before { background: #c8821e; }
+.stage-badge[data-stage="demo"] {
+  background: linear-gradient(180deg, rgba(232, 215, 248, 0.95), rgba(220, 196, 240, 0.92));
+  color: #5a2a8a;
+}
+.stage-badge[data-stage="demo"]::before { background: #7a3aaa; }
+.stage-badge[data-stage="locked"] {
+  background: linear-gradient(180deg, rgba(248, 215, 215, 0.95), rgba(240, 188, 188, 0.92));
+  color: #8a3030;
+}
+.stage-badge[data-stage="locked"]::before { background: #b94a4a; }
+
+/* Stage warning overlay (för LOCKED-vyer) */
+.stage-warning {
+  position: fixed;
+  top: 56px;
+  left: 14px;
+  right: 14px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(248, 215, 215, 0.96), rgba(240, 188, 188, 0.92));
+  border: 1px solid rgba(185, 74, 74, 0.32);
+  color: #8a3030;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  z-index: 399;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 14px 32px rgba(185, 74, 74, 0.18);
+  max-width: 720px;
+  margin: 0 auto;
+}
+.stage-warning::before {
+  content: "⚠";
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.stage-warning strong { font-weight: 800; }
+.stage-warning .stage-warning-close {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.6);
+  border: none;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* Stage detail-tooltip (klick på badge) */
+.stage-detail {
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  width: 320px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.18);
+  z-index: 401;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--cco-color-brand, #2b251f);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.22s ease;
+}
+.stage-detail.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+.stage-detail h4 {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.stage-detail p { margin: 0 0 8px; color: var(--cco-text-secondary, rgba(70,60,50,.62)); }
+.stage-detail .stage-detail-meta {
+  font-size: 10.5px;
+  color: var(--cco-text-tertiary, #8a8174);
+  padding-top: 8px;
+  border-top: 1px solid rgba(132, 117, 107, 0.18);
+  margin-top: 6px;
+}
+
+/* ─── Feedback-button för Egzona/Fazli ───────────────────── */
+.feedback-btn {
+  position: fixed;
+  bottom: 22px;
+  right: 76px;
+  padding: 9px 15px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-studio, #bb4779), #9e3a68);
+  color: white;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(187, 71, 121, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.14s ease;
+}
+.feedback-btn:hover { transform: translateY(-2px); }
+.feedback-btn::before { content: "✎"; font-size: 13px; }
+
+.feedback-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 16, 12, 0.62);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 14px;
+}
+.feedback-modal.show { display: flex; animation: feedbackFadeIn 0.22s ease; }
+@keyframes feedbackFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.feedback-modal-inner {
+  width: 100%;
+  max-width: 440px;
+  background: white;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.32);
+  animation: feedbackSlideUp 0.28s cubic-bezier(.32, 1.2, .64, 1);
+}
+@keyframes feedbackSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.feedback-modal h3 {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+.feedback-modal .feedback-sub {
+  font-size: 12px;
+  color: var(--cco-text-tertiary, #8a8174);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+.feedback-modal .feedback-types {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.feedback-modal .feedback-types button {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 117, 107, 0.22);
+  background: white;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--cco-text-secondary, rgba(70,60,50,.62));
+}
+.feedback-modal .feedback-types button.active {
+  background: linear-gradient(180deg, var(--rose-pill-top, rgba(252,233,240,.98)), var(--rose-pill-bottom, rgba(241,207,220,.95)));
+  color: var(--accent-studio, #bb4779);
+  border-color: transparent;
+  font-weight: 800;
+}
+.feedback-modal textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(132, 117, 107, 0.22);
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+  color: var(--cco-color-brand, #2b251f);
+}
+.feedback-modal textarea:focus {
+  border-color: var(--accent-studio, #bb4779);
+  box-shadow: 0 0 0 3px rgba(187, 71, 121, 0.16);
+}
+.feedback-modal .feedback-meta {
+  font-size: 10.5px;
+  color: var(--cco-text-tertiary, #8a8174);
+  margin-top: 8px;
+}
+.feedback-modal .feedback-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.feedback-modal .feedback-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.feedback-modal .feedback-actions .cancel {
+  background: rgba(132, 117, 107, 0.12);
+  color: var(--cco-text-secondary, rgba(70,60,50,.62));
+}
+.feedback-modal .feedback-actions .send {
+  background: linear-gradient(135deg, var(--accent-studio, #bb4779), #9e3a68);
+  color: white;
+  box-shadow: 0 8px 20px rgba(187, 71, 121, 0.28);
+}
+
+/* ─── Sprint 5.4: Color-priorities (a11y färgblinda-stöd) ── */
+:root[data-color-priorities="on"] {
+  /* Använd mönster + ikoner istället för bara färg */
+}
+:root[data-color-priorities="on"] .stage-badge[data-stage="live"]::after { content: " ●"; }
+:root[data-color-priorities="on"] .stage-badge[data-stage="beta"]::after { content: " ▲"; }
+:root[data-color-priorities="on"] .stage-badge[data-stage="demo"]::after { content: " ◆"; }
+:root[data-color-priorities="on"] .stage-badge[data-stage="locked"]::after { content: " ■"; }
+:root[data-color-priorities="on"] .risk-badge::after,
+:root[data-color-priorities="on"] .event-result::after { font-weight: 800; }
+:root[data-color-priorities="on"] .event-result.ok::after { content: " ✓"; }
+:root[data-color-priorities="on"] .event-result.error::after { content: " ✗"; }
+/* Förstärkt outline för focus i color-priority-läge */
+:root[data-color-priorities="on"] *:focus-visible {
+  outline-width: 3px !important;
+  outline-style: solid !important;
+  outline-color: currentColor !important;
+}
+
+/* ─── Sprint 5.4: Bottom-sheet (global) ─── */
+.cco-bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 16, 12, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 900;
+  display: none;
+  animation: bsFadeIn 0.24s ease;
+}
+.cco-bottom-sheet-backdrop.show { display: block; }
+@keyframes bsFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.cco-bottom-sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, rgba(250, 246, 242, 0.98), rgba(244, 238, 233, 0.96));
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -24px 60px rgba(0, 0, 0, 0.18);
+  z-index: 901;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 22px 20px 30px;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(.32, 1.2, .64, 1);
+  font-family: Inter, -apple-system, system-ui, sans-serif;
+  padding-bottom: max(30px, env(safe-area-inset-bottom));
+}
+.cco-bottom-sheet.show { transform: translateY(0); }
+.cco-bottom-sheet::before {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(132, 117, 107, 0.35);
+  margin: 0 auto 14px;
+}
+.cco-bottom-sheet h3 {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+.cco-bottom-sheet .bs-sub {
+  font-size: 12px;
+  color: var(--cco-text-tertiary, #8a8174);
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.cco-bottom-sheet .bs-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: rgba(132, 117, 107, 0.14);
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--cco-text-secondary, rgba(70,60,50,.62));
+}
+
+/* Hide both badges + feedback i print */
+@media print {
+  .stage-badge, .stage-warning, .stage-detail, .feedback-btn, .feedback-modal { display: none !important; }
+}
+
+/* ─── Theme toggle button (injekteras av cco-polish.js) ───── */
+.theme-toggle {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-studio), var(--calendar-accent));
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  transition: transform 0.18s ease;
+}
+.theme-toggle:hover { transform: scale(1.06) rotate(10deg); }
+.theme-toggle:active { transform: scale(0.95); }
+
+/* ============================================================
+   PRINT STYLESHEETS
+   ============================================================
+   Optimerar för A4 stående, dölj nav/sidebars, svartvit-vänlig
+   ============================================================ */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    font-size: 10pt !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Dölj saker som inte hör hemma på utskrift */
+  .top-nav,
+  .theme-toggle,
+  .a11y-skip,
+  .preview-toolbar,
+  .controls,
+  .head-ctrl,
+  .toast,
+  .bulk-bar,
+  nav,
+  [role="banner"],
+  [role="navigation"],
+  button.btn-print,
+  .risk-acts,
+  .tenant-switch,
+  .focus,
+  .rail,
+  .tip-actions {
+    display: none !important;
+  }
+
+  /* Layout-grids → en kolumn, ingen sticky */
+  .layout,
+  .grid,
+  .kpi-row,
+  .clinic-grid,
+  .stats-row,
+  .hero-stats,
+  .face-comp-row,
+  .det-meta {
+    display: block !important;
+  }
+
+  .panel,
+  .card,
+  .group,
+  .a4,
+  .hero,
+  .kpi,
+  .stat,
+  .feed,
+  .clinic {
+    background: white !important;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    border-radius: 6px !important;
+    page-break-inside: avoid;
+    margin-bottom: 8mm !important;
+    padding: 8mm !important;
+    color: black !important;
+  }
+
+  /* Hero med färgad bakgrund → tunn svart ram */
+  .hero {
+    background: white !important;
+    color: black !important;
+    border: 2px solid #333 !important;
+  }
+  .hero h1, .hero p, .hero .kicker, .hero .hero-stat {
+    color: black !important;
+    opacity: 1 !important;
+  }
+  .hero-stat .num { color: black !important; }
+  .hero::before { display: none !important; }
+
+  /* Länkar visa URL i fotnot */
+  a[href^="http"]::after,
+  a[href^="/"]::after {
+    content: " (" attr(href) ")";
+    font-size: 8pt;
+    color: #555;
+  }
+
+  /* Bilder/charts max bredd */
+  img, svg, canvas {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Heatmap-celler tydligare för print */
+  .hm-cell, .cal-mini .d {
+    border: 1px solid #999 !important;
+  }
+
+  /* Värdesätt sid-brytar mellan dagar i veckoschema */
+  .week-grid {
+    page-break-after: always;
+  }
+
+  /* Kunder-rader: avoid splitting */
+  .risk-row, .integ, .role-row, .bill-row, .mix-row, .step {
+    page-break-inside: avoid;
+  }
+
+  /* Watchen är ointressant på print */
+  .watch, .watch-label { display: none !important; }
+
+  /* Print-footer */
+  body::after {
+    content: "Hair TP Clinic · CCO — utskrift " attr(data-print-date);
+    display: block;
+    text-align: center;
+    font-size: 8pt;
+    color: #888;
+    margin-top: 10mm;
+    border-top: 1px solid #ddd;
+    padding-top: 4mm;
+  }
+}

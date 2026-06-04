@@ -1,0 +1,21 @@
+---
+description: Sök i repo/docs innan du påstår att något saknas eller inte finns
+alwaysApply: true
+---
+
+# Verifiera innan du påstår att något saknas
+
+Innan du skriver att info, spec, agent, plan eller funktion **inte finns**, **saknas** eller **ej är påbörjad**:
+
+1. **Sök i repot** — minst `docs/strategy/`, `docs/ops/`, `docs/architecture/`, relevant `src/`-mapp och `scripts/`.
+2. **Skilj tydligt** mellan:
+   - **Underlag finns** (spec, plan, delimplementation, relaterad agent)
+   - **J-8 / punkt X ej implementerad** (prod-ready scope)
+   - **Liknande men annat scope** (t.ex. `nightly_pilot_report` ≠ saknade formulär)
+3. **Citera källor** — filnamn eller sektion när du sammanfattar status.
+4. **Säg inte** "finns inget" eller "ej påbörjat" utan sökning — skriv i stället vad du hittade och vad som skiljer sig från den aktuella punkten.
+
+## Exempel (J-8 CCO-agent)
+
+- ❌ "Ingen CCO-agent finns"
+- ✅ "J-8.1/J-8.2 ej prod — underlag i `cco-patient-journal-build-plan.md` Fas 8, `ROLLOUT-PLAN.md` 6A; inbox-CCO (`ccoInboxAgent.js`) och `nightly_pilot_report` är annat scope"

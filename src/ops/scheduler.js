@@ -26,6 +26,16 @@ const {
   inspectBackupRestore,
   restoreFromBackup,
 } = require('./stateBackup');
+const { createJournalPhotosBackup } = require('./journalPhotosBackup');
+const {
+  buildCustomerReminderQueue,
+  buildJournalDraftProposals,
+  buildMissingFormsReport,
+  dispatchCustomerReminderDigest,
+  dispatchPatientVisitReminderEmails,
+  runFollowupDraftGenerator,
+} = require('./ccoPatientCareOps');
+const { runPostOpAutoTrigger } = require('./postOpAutoTrigger');
 const {
   computeUsageAnalytics,
   computeWorklistSnapshotMetrics,
@@ -40,7 +50,20 @@ const {
   createMicrosoftGraphMailboxTruthDelta,
 } = require('../infra/microsoftGraphMailboxTruthDelta');
 const { createCcoMailboxTruthStore } = require('./ccoMailboxTruthStore');
-const { computeCcoInboxEnrichmentCoverage } = require('./ccoInboxEnrichmentCoverage');
+const { createConfiguredCcoMailboxTruthStore } = require('./ccoMailboxTruthStoreFactory');
+const {
+  computeCcoInboxEnrichmentCoverage,
+  hasCcoEnrichmentSignals,
+} = require('./ccoInboxEnrichmentCoverage');
+const {
+  saveCcoInboxEnrichmentCheckpoint,
+  loadCcoInboxEnrichmentCheckpoint,
+  clearCcoInboxEnrichmentCheckpoint,
+  countEnrichedRows,
+} = require('./ccoInboxEnrichmentCheckpoint');
+const {
+  buildAnalyzeInboxSnapshotFromMailboxTruth,
+} = require('./buildAnalyzeInboxSnapshotFromMailboxTruth');
 const { config: defaultSchedulerConfig } = require('../config');
 
 const CCO_INBOX_FULL_BACKFILL_TRIGGER = 'cco_full_backfill';
@@ -286,10 +309,26 @@ function createScheduler({
   sloTicketStore = null,
   releaseGovernanceStore = null,
   postOpReviewStore = null,
+  postOpAutoTriggerDeps = null,
+  bookingStore = null,
   marketingCampaignDraftsStore = null,
   marketingContentAssetsStore = null,
+  connectorHealthStateStore = null,
   executiveDecisionFeed = null,
   alertNotifier = null,
+  journalStore = null,
+  patientMasterStore = null,
+  bookingEngineStore = null,
+  treatmentAgreementStore = null,
+  patientCareStateStore = null,
+  ccoSettingsStore = null,
+  dashboardSnapshot = null,
+  worklistSnapshot = null,
+  readCache = null,
+  mailIngestionSyncService = null,
+  graphChangeNotifications = null,
+  ccoMailIngestionStore = null,
+  mailIngestionWorker = null,
   logger = console,
 } = {}) {
   if (!incomingConfig) throw new Error('config saknas för scheduler.');
@@ -448,6 +487,222 @@ function createScheduler({
     };
   }
 
+  async function runCcoDailyMissingFormsReport({ tenantId }) {
+    if (!journalStore || !patientMasterStore) {
+      return { tenantId, skipped: true, reason: 'journal_or_patient_store_missing' };
+    }
+    const report = await buildMissingFormsReport({
+      journalStore,
+      patientMasterStore,
+      treatmentAgreementStore,
+      tenantId,
+    });
+    if (patientCareStateStore) {
+      await patientCareStateStore.setLastReport({
+        tenantId,
+        reportType: 'missing_forms',
+        payload: {
+          patientsWithMissing: report.patientsWithMissing,
+          patientCount: report.patientCount,
+          topRows: report.rows.slice(0, 20),
+        },
+      });
+    }
+    const reportsDir = config.reportsDir;
+    await fs.mkdir(reportsDir, { recursive: true });
+    const fileName = `CCO_MissingForms_${formatUtcStamp()}.json`;
+    const filePath = path.join(reportsDir, fileName);
+    await fs.writeFile(filePath, JSON.stringify(report, null, 2), 'utf8');
+    return {
+      tenantId,
+      fileName,
+      patientsWithMissing: report.patientsWithMissing,
+      patientCount: report.patientCount,
+    };
+  }
+
+  async function runCcoJournalDraftProposals({ tenantId }) {
+    if (!journalStore || !patientMasterStore || !patientCareStateStore) {
+      return { tenantId, skipped: true, reason: 'care_stores_missing' };
+    }
+    const result = await buildJournalDraftProposals({
+      journalStore,
+      patientMasterStore,
+      treatmentAgreementStore,
+      patientCareStateStore,
+      tenantId,
+    });
+    return {
+      tenantId,
+      proposalCount: result.proposalCount,
+      patientsWithMissing: result.reportSummary.patientsWithMissing,
+    };
+  }
+
+  async function runCcoFollowupDraftGenerator({ tenantId }) {
+    if (!journalStore || !patientMasterStore || !patientCareStateStore) {
+      return { tenantId, skipped: true, reason: 'care_stores_missing' };
+    }
+    const leadDays = Math.max(0, Number(config.schedulerCcoFollowupDraftLeadDays) || 30);
+    const result = await runFollowupDraftGenerator({
+      journalStore,
+      patientMasterStore,
+      patientCareStateStore,
+      tenantId,
+      leadDays,
+    });
+    return result;
+  }
+
+  async function runCcoCustomerReminders({ tenantId }) {
+    if (!bookingEngineStore || !patientCareStateStore) {
+      return { tenantId, skipped: true, reason: 'booking_or_care_store_missing' };
+    }
+    const queue = await buildCustomerReminderQueue({
+      bookingEngineStore,
+      journalStore,
+      patientMasterStore,
+      patientCareStateStore,
+      settingsStore: ccoSettingsStore,
+      tenantId,
+    });
+    let logged = 0;
+    for (const reminder of [...queue.visitReminders, ...queue.aftercareReminders]) {
+      await patientCareStateStore.logReminder({
+        tenantId,
+        reminderKey: reminder.reminderKey,
+        reminderType: reminder.reminderType,
+        patientId: reminder.patientId,
+        channel: 'operator_digest',
+        metadata: { message: reminder.message, startsAt: reminder.startsAt || null },
+      });
+      logged += 1;
+    }
+    if (patientCareStateStore) {
+      await patientCareStateStore.setLastReport({
+        tenantId,
+        reportType: 'customer_reminders',
+        payload: {
+          visitCount: queue.visitReminders.length,
+          aftercareCount: queue.aftercareReminders.length,
+          logged,
+        },
+      });
+    }
+    let digest = { skipped: true, reason: 'empty_queue' };
+    let patientEmails = { sent: 0, skipped: 0 };
+    const patientSms = { sent: 0, skipped: 0 };
+    if (queue.total > 0) {
+      patientEmails = await dispatchPatientVisitReminderEmails({
+        queue,
+        bookingEngineStore,
+        graphSendConnector,
+        patientCareStateStore,
+        fromEmail: config.bookingReminderFromEmail || config.ccoCareReminderFromEmail,
+      });
+
+      // SMS reminders (46elks / Twilio)
+      try {
+        const { sendSms, buildBookingReminderSms, isConfigured } = require('../sms/smsConnector');
+        if (isConfigured()) {
+          for (const reminder of queue.visitReminders) {
+            const phone = reminder.phone || reminder.customerPhone;
+            if (!phone) {
+              patientSms.skipped++;
+              continue;
+            }
+            const alreadySent = await patientCareStateStore.wasReminderSent?.({
+              tenantId,
+              patientId: reminder.patientId,
+              reminderKey: reminder.reminderKey,
+              channel: 'sms',
+            });
+            if (alreadySent) {
+              patientSms.skipped++;
+              continue;
+            }
+            const message = buildBookingReminderSms({
+              patientName: reminder.patientName || reminder.customerName || '',
+              serviceName: reminder.serviceLabel || reminder.serviceName || 'ditt besök',
+              date: reminder.date || (reminder.startsAt || '').slice(0, 10),
+              time: reminder.time || (reminder.startsAt || '').slice(11, 16),
+            });
+            const result = await sendSms({ to: phone, message });
+            if (result.ok) {
+              patientSms.sent++;
+              await patientCareStateStore.logReminder?.({
+                tenantId,
+                reminderKey: reminder.reminderKey,
+                reminderType: 'visit_sms',
+                patientId: reminder.patientId,
+                channel: 'sms',
+                metadata: { messageId: result.messageId, phone },
+              });
+            } else {
+              patientSms.skipped++;
+            }
+          }
+        }
+      } catch (_smsErr) {
+        /* SMS module optional */
+      }
+
+      digest = await dispatchCustomerReminderDigest({
+        graphSendConnector,
+        queue,
+        tenantId,
+        toEmail: config.ccoCareReminderDigestEmail,
+        fromEmail: config.ccoCareReminderFromEmail,
+      });
+    }
+    return {
+      tenantId,
+      visitReminders: queue.visitReminders.length,
+      aftercareReminders: queue.aftercareReminders.length,
+      logged,
+      patientEmails,
+      patientSms,
+      digest,
+    };
+  }
+
+  async function runJournalPhotosBackup({ tenantId }) {
+    const sourceDir = String(config.journalPhotosDir || '').trim();
+    if (!sourceDir) {
+      return { tenantId, skipped: true, reason: 'journalPhotosDir_missing' };
+    }
+    try {
+      const backup = await createJournalPhotosBackup({
+        sourceDir,
+        backupRoot: config.backupDir || path.join(config.stateRoot, 'backups'),
+      });
+      const prune = await pruneBackups({
+        backupDir: path.join(
+          config.backupDir || path.join(config.stateRoot, 'backups'),
+          'journal-photos'
+        ),
+        maxFiles: config.journalPhotosBackupRetentionMaxFiles,
+        maxAgeDays: config.journalPhotosBackupRetentionMaxAgeDays,
+        dryRun: false,
+      });
+      return {
+        tenantId,
+        archivePath: backup.archivePath,
+        fileCount: backup.fileCount,
+        sourceBytes: backup.sourceBytes,
+        archiveBytes: backup.archiveBytes,
+        pruneDeletedCount: prune.deletedCount,
+        pruneKeptCount: prune.keptCount,
+      };
+    } catch (error) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: error?.message || 'journal_photos_backup_failed',
+      };
+    }
+  }
+
   /**
    * GDPR-radering av post-op-foton: patient som submittade utan
    * publicerings-consent får sina foton raderade efter `ttlDays` (default
@@ -465,7 +720,8 @@ function createScheduler({
     const pruned = await postOpReviewStore.pruneNoConsentPhotos({ ttlDays });
     const fsPromises = require('node:fs/promises');
     const pathLib = require('node:path');
-    const photosDir = config.postOpPhotosDir || pathLib.join(config.stateRoot || process.cwd(), 'post-op-photos');
+    const photosDir =
+      config.postOpPhotosDir || pathLib.join(config.stateRoot || process.cwd(), 'post-op-photos');
     let filesDeleted = 0;
     let dirsDeleted = 0;
     let diskErrors = 0;
@@ -474,10 +730,14 @@ function createScheduler({
       try {
         const entries = await fsPromises.readdir(subDir).catch(() => []);
         for (const f of entries) {
-          await fsPromises.unlink(pathLib.join(subDir, f)).catch(() => { diskErrors++; });
+          await fsPromises.unlink(pathLib.join(subDir, f)).catch(() => {
+            diskErrors++;
+          });
           filesDeleted++;
         }
-        await fsPromises.rmdir(subDir).catch(() => { /* non-fatal */ });
+        await fsPromises.rmdir(subDir).catch(() => {
+          /* non-fatal */
+        });
         dirsDeleted++;
       } catch (err) {
         diskErrors++;
@@ -492,6 +752,30 @@ function createScheduler({
       dirsDeleted,
       diskErrors,
     };
+  }
+
+  async function runPostOpAutoTriggerJob({ tenantId }) {
+    const deps = postOpAutoTriggerDeps || {};
+    const resolvedBookingStore = deps.bookingStore || bookingStore;
+    const resolvedExecutor = deps.capabilityExecutor || null;
+    const resolvedGraphSend = deps.graphSendConnector || graphSendConnector;
+    if (!resolvedBookingStore || !resolvedExecutor || !postOpReviewStore) {
+      return {
+        tenantId,
+        skipped: true,
+        reason: 'post_op_auto_trigger_deps_missing',
+      };
+    }
+    return runPostOpAutoTrigger({
+      bookingStore: resolvedBookingStore,
+      postOpReviewStore,
+      patientMasterStore,
+      capabilityExecutor: resolvedExecutor,
+      graphSendConnector: resolvedGraphSend,
+      config,
+      tenantId,
+      logger,
+    });
   }
 
   async function runRestoreDrillPreview({ tenantId }) {
@@ -2554,6 +2838,26 @@ function createScheduler({
     };
   }
 
+  async function preloadSchedulerTruthMailboxes(truthStore, mailboxIds = []) {
+    if (!truthStore || typeof truthStore.ensureMailboxLoaded !== 'function') return;
+    const normalizedMailboxIds = Array.from(
+      new Set(
+        (Array.isArray(mailboxIds) ? mailboxIds : [])
+          .map((item) => normalizeText(item))
+          .filter(Boolean)
+      )
+    );
+    for (const mailboxId of normalizedMailboxIds) {
+      try {
+        await truthStore.ensureMailboxLoaded(mailboxId);
+      } catch (error) {
+        logger?.warn?.(
+          `[scheduler] truth_mailbox_preload_failed mailboxId=${mailboxId} error=${sanitizeError(error)}`
+        );
+      }
+    }
+  }
+
   async function runCcoInboxAnalysisRefresh({
     tenantId,
     mailboxIds = [],
@@ -2561,8 +2865,15 @@ function createScheduler({
     actorUserId = null,
     scopedConversationIds = [],
     mode = 'full',
+    truthStore = null,
+    baselineOutputDataOverride = null,
+    persistResult = true,
   } = {}) {
-    if (!graphReadConnector || typeof graphReadConnector.fetchInboxSnapshot !== 'function') {
+    const useTruthOnlyEnrichment = normalizeText(trigger) === CCO_INBOX_FULL_BACKFILL_TRIGGER;
+    if (
+      !useTruthOnlyEnrichment &&
+      (!graphReadConnector || typeof graphReadConnector.fetchInboxSnapshot !== 'function')
+    ) {
       return {
         tenantId,
         skipped: true,
@@ -2601,12 +2912,16 @@ function createScheduler({
 
     let baselineOutputData = null;
     if (useScopedMerge) {
-      const baseline = await resolveLatestWorklistEnrichmentBaseline({
-        capabilityAnalysisStore,
-        tenantId,
-        mailboxIds: effectiveMailboxIds,
-      });
-      baselineOutputData = baseline?.selectedOutputData || null;
+      if (baselineOutputDataOverride && typeof baselineOutputDataOverride === 'object') {
+        baselineOutputData = baselineOutputDataOverride;
+      } else {
+        const baseline = await resolveLatestWorklistEnrichmentBaseline({
+          capabilityAnalysisStore,
+          tenantId,
+          mailboxIds: effectiveMailboxIds,
+        });
+        baselineOutputData = baseline?.selectedOutputData || null;
+      }
       if (!baselineOutputData || typeof baselineOutputData !== 'object') {
         logger?.log?.(
           `[scheduler] cco_inbox_refresh scoped fallback to full mode trigger=${trigger} scopedCount=${scopedIds.length}`
@@ -2615,14 +2930,15 @@ function createScheduler({
     }
 
     const lookbackDays = (() => {
-      if (useScopedMerge && baselineOutputData) {
+      const normalizedTrigger = normalizeText(trigger);
+      if (normalizedTrigger === CCO_INBOX_FULL_BACKFILL_TRIGGER) {
         return Math.max(
-          1,
-          Math.min(
-            30,
-            Number(config?.schedulerCcoInboxScopedLookbackDays) || 7
-          )
+          7,
+          Math.min(365, Number(config?.schedulerCcoInboxFullBackfillLookbackDays) || 365)
         );
+      }
+      if (useScopedMerge && baselineOutputData) {
+        return Math.max(1, Math.min(30, Number(config?.schedulerCcoInboxScopedLookbackDays) || 7));
       }
       const bootstrapTriggers = new Set([
         'startup',
@@ -2631,43 +2947,27 @@ function createScheduler({
         'manual_api',
         'manual_api_suite',
       ]);
-      const normalizedTrigger = normalizeText(trigger);
-      if (mode === 'full' && normalizedTrigger === 'cco_full_backfill') {
+      if (mode === 'full' && normalizedTrigger === CCO_INBOX_FULL_BACKFILL_TRIGGER) {
         return Math.max(
           7,
-          Math.min(
-            365,
-            Number(config?.schedulerCcoInboxFullBackfillLookbackDays) || 365
-          )
+          Math.min(365, Number(config?.schedulerCcoInboxFullBackfillLookbackDays) || 365)
         );
       }
       if (mode === 'full' && bootstrapTriggers.has(normalizedTrigger)) {
         return Math.max(
           7,
-          Math.min(
-            90,
-            Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90
-          )
+          Math.min(90, Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90)
         );
       }
-      return Math.max(
-        7,
-        Math.min(30, Number(config?.schedulerCcoShadowLookbackDays) || 14)
-      );
+      return Math.max(7, Math.min(30, Number(config?.schedulerCcoShadowLookbackDays) || 14));
     })();
     const scopedMaxMessagesPerUser = Math.max(
       10,
-      Math.min(
-        50,
-        Number(config?.schedulerCcoInboxScopedMaxMessagesPerUser) || 25
-      )
+      Math.min(50, Number(config?.schedulerCcoInboxScopedMaxMessagesPerUser) || 25)
     );
     const bootstrapMaxMessagesPerUser = Math.max(
       10,
-      Math.min(
-        200,
-        Number(config?.schedulerCcoInboxBootstrapMaxMessagesPerUser) || 200
-      )
+      Math.min(200, Number(config?.schedulerCcoInboxBootstrapMaxMessagesPerUser) || 200)
     );
     const normalizedTrigger = normalizeText(trigger);
     const useElevatedBootstrapCaps =
@@ -2682,11 +2982,53 @@ function createScheduler({
     if (useScopedMerge && baselineOutputData) {
       analyzeInput.conversationIds = scopedIds;
     }
+
+    let initialSystemStateSnapshot = {};
+    if (useTruthOnlyEnrichment) {
+      let resolvedTruthStore = truthStore;
+      if (!resolvedTruthStore) {
+        try {
+          resolvedTruthStore = await resolveSchedulerTruthStore();
+        } catch (error) {
+          return {
+            tenantId,
+            skipped: true,
+            reason: 'truth_store_open_failed',
+            error: sanitizeError(error),
+          };
+        }
+      }
+      await preloadSchedulerTruthMailboxes(resolvedTruthStore, effectiveMailboxIds);
+      const scopedConversationFilter =
+        useScopedMerge && scopedIds.length > 0
+          ? scopedIds
+          : Array.isArray(analyzeInput.conversationIds)
+            ? analyzeInput.conversationIds
+            : [];
+      const truthSnapshotResult = buildAnalyzeInboxSnapshotFromMailboxTruth({
+        ccoMailboxTruthStore: resolvedTruthStore,
+        mailboxIds: effectiveMailboxIds,
+        lookbackDays,
+        conversationIds: scopedConversationFilter,
+      });
+      if (!truthSnapshotResult?.ok || !truthSnapshotResult.snapshot) {
+        return {
+          tenantId,
+          skipped: true,
+          reason: truthSnapshotResult?.reason || 'truth_snapshot_build_failed',
+        };
+      }
+      initialSystemStateSnapshot = truthSnapshotResult.snapshot;
+      logger?.log?.(
+        `[scheduler] cco_inbox_refresh truth_snapshot conversations=${(Array.isArray(initialSystemStateSnapshot.conversations) ? initialSystemStateSnapshot.conversations : []).length} messages=${Number(initialSystemStateSnapshot?.metadata?.messageCount || 0)} trigger=${trigger} mode=${mode}`
+      );
+    }
+
     const { input, systemStateSnapshot } = await hydrateAnalyzeInboxInput({
       tenantId,
       input: analyzeInput,
-      systemStateSnapshot: {},
-      graphReadConnector,
+      systemStateSnapshot: initialSystemStateSnapshot,
+      graphReadConnector: useTruthOnlyEnrichment ? null : graphReadConnector,
       capabilityAnalysisStore,
       ccoHistoryStore,
       authStore,
@@ -2705,14 +3047,8 @@ function createScheduler({
               skipGraphSnapshotCache: true,
               runTimeoutMs: 90000,
               maxMessagesPerUser: scopedMaxMessagesPerUser,
-              maxInboxMessagesPerUser: Math.max(
-                8,
-                Math.floor(scopedMaxMessagesPerUser * 0.6)
-              ),
-              maxSentMessagesPerUser: Math.max(
-                5,
-                Math.floor(scopedMaxMessagesPerUser * 0.4)
-              ),
+              maxInboxMessagesPerUser: Math.max(8, Math.floor(scopedMaxMessagesPerUser * 0.6)),
+              maxSentMessagesPerUser: Math.max(5, Math.floor(scopedMaxMessagesPerUser * 0.4)),
             }
           : useElevatedBootstrapCaps
             ? {
@@ -2722,10 +3058,7 @@ function createScheduler({
                   20,
                   Math.floor(bootstrapMaxMessagesPerUser * 0.6)
                 ),
-                maxSentMessagesPerUser: Math.max(
-                  15,
-                  Math.floor(bootstrapMaxMessagesPerUser * 0.4)
-                ),
+                maxSentMessagesPerUser: Math.max(15, Math.floor(bootstrapMaxMessagesPerUser * 0.4)),
               }
             : {}),
       },
@@ -2739,10 +3072,7 @@ function createScheduler({
       requestId,
       correlationId,
     });
-    let outputData =
-      analyzeResult?.data ||
-      analyzeResult?.output?.data ||
-      null;
+    let outputData = analyzeResult?.data || analyzeResult?.output?.data || null;
     if (!outputData || typeof outputData !== 'object') {
       return {
         tenantId,
@@ -2751,12 +3081,32 @@ function createScheduler({
       };
     }
 
-    const effectiveMode =
-      useScopedMerge && baselineOutputData ? 'scoped_merge' : 'full';
+    const effectiveMode = useScopedMerge && baselineOutputData ? 'scoped_merge' : 'full';
     if (effectiveMode === 'scoped_merge') {
       outputData = mergeWorklistEnrichmentOutput(baselineOutputData, outputData, {
         scopeConversationIds: scopedIds,
       });
+    }
+
+    const rowCount =
+      (Array.isArray(outputData?.conversationWorklist)
+        ? outputData.conversationWorklist.length
+        : 0) + (Array.isArray(outputData?.needsReplyToday) ? outputData.needsReplyToday.length : 0);
+
+    if (!persistResult) {
+      return {
+        tenantId,
+        skipped: false,
+        mailboxIds: effectiveMailboxIds,
+        lookbackDays,
+        mode: effectiveMode,
+        scopedConversationCount: effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
+        entryId: null,
+        capturedAt: null,
+        rowCount,
+        outputData,
+        persisted: false,
+      };
     }
 
     const entry = await capabilityAnalysisStore.append({
@@ -2789,8 +3139,7 @@ function createScheduler({
         lookbackDays,
         trigger,
         mode: effectiveMode,
-        scopedConversationCount:
-          effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
+        scopedConversationCount: effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
       },
       riskSummary: {},
       policySummary: {},
@@ -2806,12 +3155,64 @@ function createScheduler({
       scopedConversationCount: effectiveMode === 'scoped_merge' ? scopedIds.length : 0,
       entryId: entry?.id || null,
       capturedAt: entry?.ts || null,
-      rowCount:
-        (Array.isArray(outputData?.conversationWorklist)
-          ? outputData.conversationWorklist.length
-          : 0) +
-        (Array.isArray(outputData?.needsReplyToday) ? outputData.needsReplyToday.length : 0),
+      rowCount,
+      outputData,
+      persisted: true,
     };
+  }
+
+  async function persistAnalyzeInboxWorklistOutput({
+    tenantId,
+    mailboxIds = [],
+    trigger = '',
+    actorUserId = null,
+    mode = 'full_backfill_final',
+    outputData = null,
+    scopedConversationCount = 0,
+    correlationId = null,
+  } = {}) {
+    if (!outputData || typeof outputData !== 'object') {
+      return { ok: false, reason: 'output_missing' };
+    }
+    if (!capabilityAnalysisStore || typeof capabilityAnalysisStore.append !== 'function') {
+      return { ok: false, reason: 'capability_analysis_store_unavailable' };
+    }
+    const requestId = crypto.randomUUID();
+    const entry = await capabilityAnalysisStore.append({
+      tenantId,
+      capabilityName: 'AnalyzeInbox',
+      capabilityVersion: AnalyzeInboxCapability.version || 'v1',
+      persistStrategy: 'analysis',
+      decision: 'allow',
+      actor: {
+        id: normalizeText(actorUserId) || 'scheduler',
+        role: 'SYSTEM',
+      },
+      runId: requestId,
+      correlationId: normalizeText(correlationId) || requestId,
+      input: {
+        mailboxIds,
+        trigger,
+        mode,
+        scopedConversationCount,
+      },
+      output: {
+        data: outputData,
+        metadata: {},
+        warnings: [],
+      },
+      metadata: {
+        source: 'scheduler_inbox_refresh',
+        mailboxIds,
+        trigger,
+        mode,
+        scopedConversationCount,
+      },
+      riskSummary: {},
+      policySummary: {},
+    });
+    clearWorklistConsumerResponseCache();
+    return { ok: true, entryId: entry?.id || null, capturedAt: entry?.ts || null };
   }
 
   async function runCcoInboxEnrichmentBootstrap({
@@ -2841,10 +3242,7 @@ function createScheduler({
     );
     const requiredBootstrapLookbackDays = Math.max(
       7,
-      Math.min(
-        90,
-        Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90
-      )
+      Math.min(90, Number(config?.schedulerCcoInboxBootstrapLookbackDays) || 90)
     );
     const baseline = await resolveLatestWorklistEnrichmentBaseline({
       capabilityAnalysisStore,
@@ -2867,8 +3265,7 @@ function createScheduler({
       storedLookbackDays > 0 &&
       storedLookbackDays < requiredBootstrapLookbackDays;
     const forceRefresh =
-      normalizeText(trigger) === 'manual_api' ||
-      normalizeText(trigger) === 'manual_api_suite';
+      normalizeText(trigger) === 'manual_api' || normalizeText(trigger) === 'manual_api_suite';
     const generatedAtMs = Date.parse(generatedAt);
     const ageHours =
       Number.isFinite(generatedAtMs) && generatedAtMs > 0
@@ -2909,23 +3306,53 @@ function createScheduler({
   }
 
   async function resolveSchedulerTruthStore() {
+    if (config.ccoMailboxTruthSharded !== false) {
+      return createConfiguredCcoMailboxTruthStore(config);
+    }
     const truthPath = normalizeText(config.ccoMailboxTruthStorePath);
     if (!truthPath) return null;
-    return createCcoMailboxTruthStore({ filePath: truthPath });
+    return createCcoMailboxTruthStore({
+      filePath: truthPath,
+      deferConversationRebuild: true,
+    });
+  }
+
+  function summarizeSchedulerJobResult(result = null) {
+    if (!result || typeof result !== 'object') return result;
+    const summary = { ...result };
+    for (const key of ['coverageBefore', 'coverage', 'coverageAfterBootstrap']) {
+      if (!summary[key] || typeof summary[key] !== 'object') continue;
+      const coverage = summary[key];
+      summary[key] = {
+        ...coverage,
+        gapConversationIds: undefined,
+        sampleUnenrichedIds: Array.isArray(coverage.sampleUnenrichedIds)
+          ? coverage.sampleUnenrichedIds.slice(0, 5)
+          : [],
+        gapConversationIdsCount: Array.isArray(coverage.gapConversationIds)
+          ? coverage.gapConversationIds.length
+          : Number(coverage.gapCount || 0),
+      };
+    }
+    if (Array.isArray(summary.batchRuns) && summary.batchRuns.length > 24) {
+      summary.batchRunCount = summary.batchRuns.length;
+      summary.batchRuns = [
+        ...summary.batchRuns.slice(0, 8),
+        { note: `truncated_${summary.batchRuns.length - 16}_batch_runs` },
+        ...summary.batchRuns.slice(-8),
+      ];
+    }
+    return summary;
   }
 
   async function runCcoInboxEnrichmentFullBackfill({
     tenantId,
     trigger = 'cco_full_backfill',
     actorUserId = null,
+    canaryLimit = 0,
+    phase = 'full',
+    targetConversationIds = [],
   } = {}) {
-    if (!config.graphReadEnabled) {
-      return {
-        tenantId,
-        skipped: true,
-        reason: 'graph_read_disabled',
-      };
-    }
     const mailboxIds = resolveCcoHistoryMailboxIds(config);
     if (mailboxIds.length === 0) {
       return {
@@ -2941,17 +3368,11 @@ function createScheduler({
     );
     const maxStallRounds = Math.max(
       1,
-      Math.min(
-        20,
-        Number(config?.schedulerCcoInboxFullBackfillMaxStallRounds) || 8
-      )
+      Math.min(20, Number(config?.schedulerCcoInboxFullBackfillMaxStallRounds) || 8)
     );
     const maxBatchRounds = Math.max(
       10,
-      Math.min(
-        500,
-        Number(config?.schedulerCcoInboxFullBackfillMaxBatchRounds) || 200
-      )
+      Math.min(500, Number(config?.schedulerCcoInboxFullBackfillMaxBatchRounds) || 200)
     );
     const incomingTrigger = normalizeText(trigger);
     const effectiveTrigger = CCO_INBOX_FULL_BACKFILL_TRIGGER;
@@ -2972,33 +3393,117 @@ function createScheduler({
       };
     }
 
-    const computeCoverage = async () =>
-      computeCcoInboxEnrichmentCoverage({
+    await preloadSchedulerTruthMailboxes(truthStore, mailboxIds);
+
+    const checkpointInterval = Math.max(
+      5,
+      Math.min(50, Number(config?.schedulerCcoInboxFullBackfillCheckpointInterval) || 20)
+    );
+
+    const computeCoverage = async (baselineOutputDataOverride = null) => {
+      await preloadSchedulerTruthMailboxes(truthStore, mailboxIds);
+      return computeCcoInboxEnrichmentCoverage({
         tenantId,
         mailboxIds,
         capabilityAnalysisStore,
         ccoMailboxTruthStore: truthStore,
         ccoCustomerStore,
+        baselineOutputDataOverride,
+        stateRoot: config.stateRoot,
       });
+    };
 
-    let coverageBefore = await computeCoverage();
-    logger?.log?.(
-      `[scheduler] cco_inbox_enrichment_full_backfill START incomingTrigger=${incomingTrigger || 'none'} effectiveTrigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}% maxStallRounds=${maxStallRounds} maxBatchRounds=${maxBatchRounds}`
-    );
-
-    const fullBootstrap = await runCcoInboxAnalysisRefresh({
+    const coverageBefore = await computeCoverage();
+    const enrichmentBaseline = await resolveLatestWorklistEnrichmentBaseline({
+      capabilityAnalysisStore,
       tenantId,
       mailboxIds,
-      trigger: effectiveTrigger,
-      actorUserId,
-      mode: 'full',
     });
+    const checkpoint = await loadCcoInboxEnrichmentCheckpoint({
+      stateRoot: config.stateRoot,
+      tenantId,
+    });
+    const baselineRows = [
+      ...(Array.isArray(enrichmentBaseline?.selectedConversationWorklist)
+        ? enrichmentBaseline.selectedConversationWorklist
+        : []),
+      ...(Array.isArray(enrichmentBaseline?.selectedNeedsReplyToday)
+        ? enrichmentBaseline.selectedNeedsReplyToday
+        : []),
+    ];
+    const baselineEnrichedCount = baselineRows.filter((row) => hasCcoEnrichmentSignals(row)).length;
+    const checkpointEnrichedCount = checkpoint?.ok
+      ? Number(checkpoint.enrichedRowCount || countEnrichedRows(checkpoint.outputData))
+      : 0;
+    let rollingBaseline =
+      checkpoint?.ok && checkpoint.outputData && checkpointEnrichedCount > baselineEnrichedCount
+        ? checkpoint.outputData
+        : enrichmentBaseline?.selectedOutputData || null;
+    const rollingBaselineEnrichedCount = rollingBaseline
+      ? countEnrichedRows(rollingBaseline)
+      : baselineEnrichedCount;
+    logger?.log?.(
+      `[scheduler] cco_inbox_enrichment_full_backfill START incomingTrigger=${incomingTrigger || 'none'} effectiveTrigger=${effectiveTrigger} truth=${coverageBefore.truthConversationCount} enriched=${coverageBefore.enrichedConversationCount} gap=${coverageBefore.gapCount} coverage=${coverageBefore.coveragePercent}% baselineEnriched=${baselineEnrichedCount} checkpointEnriched=${checkpointEnrichedCount} rollingEnriched=${rollingBaselineEnrichedCount} maxStallRounds=${maxStallRounds} maxBatchRounds=${maxBatchRounds} checkpointInterval=${checkpointInterval}`
+    );
+
+    const skipFullBootstrap =
+      effectiveTrigger === CCO_INBOX_FULL_BACKFILL_TRIGGER ||
+      baselineEnrichedCount > 0 ||
+      rollingBaselineEnrichedCount > 0 ||
+      (Number(coverageBefore.enrichedConversationCount || 0) > 0 &&
+        Number(coverageBefore.gapCount || 0) > 0 &&
+        Number(coverageBefore.gapCount || 0) < Number(coverageBefore.truthConversationCount || 0));
+
+    const fullBootstrap = skipFullBootstrap
+      ? {
+          tenantId,
+          skipped: true,
+          reason: 'baseline_continuation',
+          enrichedConversationCount: coverageBefore.enrichedConversationCount,
+          gapCount: coverageBefore.gapCount,
+        }
+      : await runCcoInboxAnalysisRefresh({
+          tenantId,
+          mailboxIds,
+          trigger: effectiveTrigger,
+          actorUserId,
+          mode: 'full',
+          truthStore,
+        });
+
+    if (!skipFullBootstrap && fullBootstrap?.entryId) {
+      const refreshedBaseline = await resolveLatestWorklistEnrichmentBaseline({
+        capabilityAnalysisStore,
+        tenantId,
+        mailboxIds,
+      });
+      rollingBaseline = refreshedBaseline?.selectedOutputData || rollingBaseline;
+    }
 
     const batchRuns = [];
-    let coverageAfterBootstrap = await computeCoverage();
+    let coverageAfterBootstrap = await computeCoverage(rollingBaseline);
     let remainingGapIds = asSchedulerStringArray(coverageAfterBootstrap.gapConversationIds);
+    const scopedTargetIds = asSchedulerStringArray(targetConversationIds)
+      .map((item) => normalizeText(item))
+      .filter(Boolean);
+    if (scopedTargetIds.length > 0) {
+      const targetSet = new Set(scopedTargetIds.map((item) => item.toLowerCase()));
+      remainingGapIds = remainingGapIds.filter((gapId) => {
+        const normalized = normalizeText(gapId).toLowerCase();
+        if (targetSet.has(normalized)) return true;
+        const colon = normalized.lastIndexOf(':');
+        return colon > 0 && targetSet.has(normalized.slice(colon + 1));
+      });
+    }
+    const effectiveCanaryLimit = Math.max(0, Math.min(9338, Number(canaryLimit) || 0));
+    const effectivePhase = normalizeText(phase) === 'canary' ? 'canary' : 'full';
+    if (effectiveCanaryLimit > 0) {
+      remainingGapIds = remainingGapIds.slice(0, effectiveCanaryLimit);
+    }
+    let processedConversationCount = 0;
     let previousGapCount = Number(coverageAfterBootstrap.gapCount || 0);
     let stallRounds = 0;
+    let batchesSinceCheckpoint = 0;
 
     while (
       remainingGapIds.length > 0 &&
@@ -3007,7 +3512,14 @@ function createScheduler({
     ) {
       for (let offset = 0; offset < remainingGapIds.length; offset += batchSize) {
         if (batchRuns.length >= maxBatchRounds) break;
-        const scopedConversationIds = remainingGapIds.slice(offset, offset + batchSize);
+        if (effectiveCanaryLimit > 0 && processedConversationCount >= effectiveCanaryLimit) break;
+        let scopedConversationIds = remainingGapIds.slice(offset, offset + batchSize);
+        if (effectiveCanaryLimit > 0) {
+          const room = effectiveCanaryLimit - processedConversationCount;
+          scopedConversationIds = scopedConversationIds.slice(0, Math.max(0, room));
+          if (!scopedConversationIds.length) break;
+        }
+        processedConversationCount += scopedConversationIds.length;
         const batchResult = await runCcoInboxAnalysisRefresh({
           tenantId,
           mailboxIds,
@@ -3015,7 +3527,26 @@ function createScheduler({
           actorUserId,
           scopedConversationIds,
           mode: 'scoped_merge',
+          truthStore,
+          baselineOutputDataOverride: rollingBaseline,
+          persistResult: false,
         });
+        if (batchResult?.outputData) {
+          rollingBaseline = batchResult.outputData;
+        }
+        batchesSinceCheckpoint += 1;
+        if (batchesSinceCheckpoint >= checkpointInterval && rollingBaseline) {
+          await saveCcoInboxEnrichmentCheckpoint({
+            stateRoot: config.stateRoot,
+            tenantId,
+            outputData: rollingBaseline,
+            metadata: {
+              batchCount: batchRuns.length + 1,
+              enrichedRowCount: countEnrichedRows(rollingBaseline),
+            },
+          });
+          batchesSinceCheckpoint = 0;
+        }
         batchRuns.push({
           batchIndex: batchRuns.length,
           scopedConversationCount: scopedConversationIds.length,
@@ -3024,10 +3555,11 @@ function createScheduler({
           mode: batchResult?.mode || null,
           rowCount: Number(batchResult?.rowCount || 0),
           entryId: batchResult?.entryId || null,
+          persisted: Boolean(batchResult?.persisted),
         });
       }
 
-      const nextCoverage = await computeCoverage();
+      const nextCoverage = await computeCoverage(rollingBaseline);
       const nextGapCount = Number(nextCoverage.gapCount || 0);
       if (nextGapCount >= previousGapCount) {
         stallRounds += 1;
@@ -3037,12 +3569,59 @@ function createScheduler({
       previousGapCount = nextGapCount;
       coverageAfterBootstrap = nextCoverage;
       remainingGapIds = asSchedulerStringArray(nextCoverage.gapConversationIds);
+      if (
+        effectivePhase === 'canary' ||
+        (effectiveCanaryLimit > 0 && processedConversationCount >= effectiveCanaryLimit)
+      ) {
+        break;
+      }
       if (nextCoverage.readyForWork) break;
+    }
+
+    let finalPersist = null;
+    if (rollingBaseline) {
+      await saveCcoInboxEnrichmentCheckpoint({
+        stateRoot: config.stateRoot,
+        tenantId,
+        outputData: rollingBaseline,
+        metadata: {
+          batchCount: batchRuns.length,
+          enrichedRowCount: countEnrichedRows(rollingBaseline),
+          phase: effectivePhase === 'canary' ? 'canary' : 'pre_final_persist',
+          processedConversationCount,
+          canaryLimit: effectiveCanaryLimit || null,
+        },
+      });
+      if (effectivePhase === 'canary') {
+        finalPersist = {
+          ok: true,
+          skipped: true,
+          reason: 'canary_phase_checkpoint_only',
+          processedConversationCount,
+          canaryLimit: effectiveCanaryLimit || null,
+        };
+      } else {
+        finalPersist = await persistAnalyzeInboxWorklistOutput({
+          tenantId,
+          mailboxIds,
+          trigger: effectiveTrigger,
+          actorUserId,
+          mode: 'full_backfill_final',
+          outputData: rollingBaseline,
+          scopedConversationCount: 0,
+        });
+        if (finalPersist?.ok) {
+          await clearCcoInboxEnrichmentCheckpoint({
+            stateRoot: config.stateRoot,
+            tenantId,
+          });
+        }
+      }
     }
 
     const finalCoverage = await computeCoverage();
     logger?.log?.(
-      `[scheduler] cco_inbox_enrichment_full_backfill DONE batches=${batchRuns.length} truth=${finalCoverage.truthConversationCount} enriched=${finalCoverage.enrichedConversationCount} gap=${finalCoverage.gapCount} coverage=${finalCoverage.coveragePercent}% ready=${finalCoverage.readyForWork}`
+      `[scheduler] cco_inbox_enrichment_full_backfill DONE batches=${batchRuns.length} truth=${finalCoverage.truthConversationCount} enriched=${finalCoverage.enrichedConversationCount} gap=${finalCoverage.gapCount} coverage=${finalCoverage.coveragePercent}% ready=${finalCoverage.readyForWork} finalEntryId=${finalPersist?.entryId || 'none'}`
     );
 
     return {
@@ -3054,9 +3633,15 @@ function createScheduler({
       batchSize,
       maxStallRounds,
       maxBatchRounds,
+      checkpointInterval,
+      phase: effectivePhase,
+      canaryLimit: effectiveCanaryLimit || null,
+      targetConversationIds: scopedTargetIds.length > 0 ? scopedTargetIds : null,
+      processedConversationCount,
       coverageBefore,
       fullBootstrap,
       batchRuns,
+      finalPersist,
       coverage: finalCoverage,
       readyForWork: finalCoverage.readyForWork,
       gapCount: finalCoverage.gapCount,
@@ -3067,11 +3652,81 @@ function createScheduler({
   function asSchedulerStringArray(value) {
     return Array.from(
       new Set(
-        (Array.isArray(value) ? value : [])
-          .map((item) => normalizeText(item))
-          .filter(Boolean)
+        (Array.isArray(value) ? value : []).map((item) => normalizeText(item)).filter(Boolean)
       )
     );
+  }
+
+  async function runCcoMailIngestionQueue({ tenantId }) {
+    if (!config.ccoMailIngestionEnabled) {
+      return { tenantId, skipped: true, reason: 'mail_ingestion_disabled' };
+    }
+    if (!mailIngestionWorker || typeof mailIngestionWorker.runProcessBatch !== 'function') {
+      return { tenantId, skipped: true, reason: 'mail_ingestion_worker_unavailable' };
+    }
+    const mailboxEmail = normalizeText(config.ccoMailIngestionDefaultMailbox);
+    if (!mailboxEmail) {
+      return { tenantId, skipped: true, reason: 'default_mailbox_missing' };
+    }
+    const before = ccoMailIngestionStore?.buildDashboardSummary?.({ mailboxEmail });
+    if (!before || Number(before.queueLength || 0) <= 0) {
+      return { tenantId, skipped: true, reason: 'queue_empty', mailboxEmail };
+    }
+    const result = await mailIngestionWorker.runProcessBatch({
+      mailboxEmail,
+      mode: config.ccoMailIngestionMode || 'read_only',
+    });
+    const after = ccoMailIngestionStore?.buildDashboardSummary?.({ mailboxEmail });
+    return {
+      tenantId,
+      skipped: false,
+      mailboxEmail,
+      result,
+      queueBefore: Number(before.queueLength || 0),
+      queueAfter: Number(after?.queueLength || 0),
+    };
+  }
+
+  async function runCcoGraphSubscriptionRenewal({ tenantId }) {
+    if (!config.graphChangeNotificationsEnabled) {
+      return { tenantId, skipped: true, reason: 'graph_change_notifications_disabled' };
+    }
+    if (
+      !graphChangeNotifications ||
+      typeof graphChangeNotifications.renewSubscription !== 'function'
+    ) {
+      return { tenantId, skipped: true, reason: 'graph_change_notifications_unavailable' };
+    }
+    const mailboxEmail = normalizeText(config.ccoMailIngestionDefaultMailbox);
+    if (!mailboxEmail) {
+      return { tenantId, skipped: true, reason: 'default_mailbox_missing' };
+    }
+    try {
+      const state = ccoMailIngestionStore?.getState?.() || {};
+      const subscriptions = Object.values(state.graphSubscriptions || {});
+      if (
+        subscriptions.length === 0 &&
+        typeof graphChangeNotifications.createInboxSubscription === 'function'
+      ) {
+        const created = await graphChangeNotifications.createInboxSubscription({
+          mailboxEmail,
+          graphUserId: mailboxEmail,
+        });
+        return { tenantId, skipped: false, created: true, subscriptionId: created?.id || null };
+      }
+      const renewed = [];
+      for (const subscription of subscriptions) {
+        const result = await graphChangeNotifications.renewSubscription(subscription.id);
+        renewed.push({
+          id: subscription.id,
+          expirationDateTime: result?.expirationDateTime || null,
+        });
+      }
+      return { tenantId, skipped: false, renewedCount: renewed.length, renewed };
+    } catch (error) {
+      logger?.error?.('[scheduler] cco_graph_subscription_renewal failed', sanitizeError(error));
+      throw error;
+    }
   }
 
   async function runCcoTruthDeltaSync({ tenantId }) {
@@ -3115,9 +3770,7 @@ function createScheduler({
 
     let truthStore;
     try {
-      truthStore = await createCcoMailboxTruthStore({
-        filePath: truthPath,
-      });
+      truthStore = await createConfiguredCcoMailboxTruthStore(config);
     } catch (error) {
       logger?.log?.(
         `[scheduler] cco_truth_delta_sync skipped: truth_store_open_failed (${sanitizeError(error)})`
@@ -3188,12 +3841,36 @@ function createScheduler({
         }
       }
 
+      let mailIngestion = null;
+      if (
+        config.ccoMailIngestionEnabled === true &&
+        mailIngestionWorker &&
+        typeof mailIngestionWorker.runProcessBatch === 'function'
+      ) {
+        const defaultMailbox = normalizeText(config.ccoMailIngestionDefaultMailbox);
+        const targetMailbox = mailboxIds.includes(defaultMailbox) ? defaultMailbox : mailboxIds[0];
+        if (targetMailbox) {
+          try {
+            mailIngestion = await mailIngestionWorker.runProcessBatch({
+              mailboxEmail: targetMailbox,
+              mode: config.ccoMailIngestionMode || 'read_only',
+            });
+          } catch (ingestionError) {
+            logger?.error?.(
+              '[scheduler] cco_truth_delta_sync mail ingestion batch failed',
+              sanitizeError(ingestionError)
+            );
+          }
+        }
+      }
+
       return {
         tenantId,
         skipped: false,
         newMessages,
         affectedConversationIds,
         inboxRefresh,
+        mailIngestion,
         ...result,
       };
     } catch (error) {
@@ -3233,6 +3910,46 @@ function createScheduler({
     }
   }
 
+  async function runCcoDashboardSnapshotRefresh({ tenantId } = {}) {
+    if (!dashboardSnapshot || typeof dashboardSnapshot.saveTenantSnapshot !== 'function') {
+      return { skipped: true, reason: 'dashboard_snapshot_store_missing' };
+    }
+    const tenant = tenantId || config.defaultTenantId;
+    let patientStats = null;
+    if (patientMasterStore && typeof patientMasterStore.getTenantStats === 'function') {
+      patientStats = await patientMasterStore.getTenantStats({ tenantId: tenant });
+    }
+    const snapshot = await dashboardSnapshot.buildSnapshot({
+      tenantId: tenant,
+      monitorMetrics:
+        runtimeMetricsStore && typeof runtimeMetricsStore.getSnapshot === 'function'
+          ? runtimeMetricsStore.getSnapshot()
+          : null,
+      ownerDashboard: patientStats ? { patientStats } : null,
+    });
+    await dashboardSnapshot.saveTenantSnapshot(tenant, snapshot);
+    if (readCache?.del) {
+      await readCache.del(readCache.buildKey('dashboard-snapshot', tenant));
+    }
+    return { tenantId: tenant, saved: true };
+  }
+
+  async function runCcoWorklistSnapshotRefresh({ tenantId } = {}) {
+    if (!worklistSnapshot || typeof worklistSnapshot.saveTenantSnapshot !== 'function') {
+      return { skipped: true, reason: 'worklist_snapshot_store_missing' };
+    }
+    const tenant = tenantId || config.defaultTenantId;
+    await worklistSnapshot.saveTenantSnapshot(tenant, {
+      tenantId: tenant,
+      provider: 'scheduler',
+      builtAt: nowIso(),
+    });
+    if (readCache?.del) {
+      await readCache.del(readCache.buildKey('worklist-snapshot', tenant));
+    }
+    return { tenantId: tenant, saved: true };
+  }
+
   async function runCmoPilotPublishDueJob({ tenantId, trigger, actorUserId } = {}) {
     if (
       !marketingCampaignDraftsStore ||
@@ -3262,6 +3979,7 @@ function createScheduler({
       config,
       tenantConfigStore,
       executiveDecisionFeed,
+      connectorHealthStateStore,
     });
   }
 
@@ -3313,6 +4031,24 @@ function createScheduler({
       run: runCcoTruthDeltaSync,
     },
     {
+      id: 'cco_graph_subscription_renewal',
+      name: 'CCO Graph mail webhook subscription renewal',
+      intervalMs:
+        config.graphReadEnabled && config.graphChangeNotificationsEnabled
+          ? toHoursMs(config.schedulerCcoGraphSubscriptionRenewalIntervalHours, 24)
+          : 0,
+      run: runCcoGraphSubscriptionRenewal,
+    },
+    {
+      id: 'cco_mail_ingestion_queue',
+      name: 'CCO mail ingestion queue processor',
+      intervalMs:
+        config.ccoMailIngestionEnabled === true
+          ? toMinutesMs(config.schedulerCcoMailIngestionQueueIntervalMinutes, 1)
+          : 0,
+      run: runCcoMailIngestionQueue,
+    },
+    {
       id: 'cco_inbox_enrichment_bootstrap',
       name: 'CCO inbox enrichment bootstrap',
       intervalMs: config.graphReadEnabled
@@ -3325,7 +4061,7 @@ function createScheduler({
       name: 'CCO inbox enrichment full backfill (truth gap)',
       intervalMs: config.graphReadEnabled
         ? toHoursMs(config.schedulerCcoInboxFullBackfillIntervalHours, 168)
-        : 0,
+        : toHoursMs(config.schedulerCcoInboxFullBackfillIntervalHours, 168),
       run: runCcoInboxEnrichmentFullBackfill,
     },
     {
@@ -3357,6 +4093,50 @@ function createScheduler({
       name: 'State backup + prune',
       intervalMs: toHoursMs(config.schedulerBackupIntervalHours, 24),
       run: runBackupAndPrune,
+    },
+    {
+      id: 'journal_photos_backup',
+      name: 'Journal photos tar backup',
+      intervalMs: config.journalPhotosDir
+        ? toHoursMs(config.schedulerJournalPhotosBackupIntervalHours, 24)
+        : 0,
+      run: runJournalPhotosBackup,
+    },
+    {
+      id: 'cco_daily_missing_forms_report',
+      name: 'CCO daily missing forms report (J-8.1)',
+      intervalMs:
+        journalStore && patientMasterStore
+          ? toHoursMs(config.schedulerCcoMissingFormsReportIntervalHours, 24)
+          : 0,
+      run: runCcoDailyMissingFormsReport,
+    },
+    {
+      id: 'cco_journal_draft_proposals',
+      name: 'CCO journal draft proposals (J-8.2)',
+      intervalMs:
+        journalStore && patientMasterStore && patientCareStateStore
+          ? toHoursMs(config.schedulerCcoJournalDraftIntervalHours, 24)
+          : 0,
+      run: runCcoJournalDraftProposals,
+    },
+    {
+      id: 'cco_followup_draft_generator',
+      name: 'CCO follow-up draft generator 4/6/12 mån (P6.4.8)',
+      intervalMs:
+        journalStore && patientMasterStore && patientCareStateStore
+          ? toHoursMs(config.schedulerCcoFollowupDraftIntervalHours, 24)
+          : 0,
+      run: runCcoFollowupDraftGenerator,
+    },
+    {
+      id: 'cco_customer_reminders',
+      name: 'CCO customer reminders (J-7 / U5B)',
+      intervalMs:
+        bookingEngineStore && patientCareStateStore
+          ? toHoursMs(config.schedulerCcoCustomerRemindersIntervalHours, 6)
+          : 0,
+      run: runCcoCustomerReminders,
     },
     {
       id: 'restore_drill_preview',
@@ -3395,12 +4175,33 @@ function createScheduler({
       run: runAlertProbe,
     },
     {
+      id: 'post_op_auto_trigger',
+      name: 'Post-op review auto-trigger (U5B.3)',
+      intervalMs:
+        postOpReviewStore && (postOpAutoTriggerDeps?.capabilityExecutor || bookingStore)
+          ? toHoursMs(config.schedulerPostOpAutoTriggerIntervalHours, 6)
+          : 0,
+      run: runPostOpAutoTriggerJob,
+    },
+    {
       id: 'post_op_photo_prune',
       name: 'Post-op photo GDPR prune (no-consent + age > 12 mån)',
       intervalMs: postOpReviewStore
         ? toHoursMs(config.schedulerPostOpPhotoPruneIntervalHours, 24)
         : 0,
       run: runPostOpPhotoPrune,
+    },
+    {
+      id: 'cco_dashboard_snapshot_refresh',
+      name: 'CCO dashboard snapshot refresh',
+      intervalMs: dashboardSnapshot ? toMinutesMs(5, 5) : 0,
+      run: runCcoDashboardSnapshotRefresh,
+    },
+    {
+      id: 'cco_worklist_snapshot_refresh',
+      name: 'CCO worklist snapshot refresh',
+      intervalMs: worklistSnapshot ? toMinutesMs(2, 2) : 0,
+      run: runCcoWorklistSnapshotRefresh,
     },
     {
       id: 'cmo_pilot_publish_due',
@@ -3479,14 +4280,29 @@ function createScheduler({
     });
   }
 
-  async function runJob(jobId, { trigger = 'manual', actorUserId = null, tenantId } = {}) {
+  async function runJob(
+    jobId,
+    {
+      trigger = 'manual',
+      actorUserId = null,
+      tenantId,
+      canaryLimit,
+      phase,
+      targetConversationIds,
+    } = {}
+  ) {
     const job = jobDefinitions.find((item) => item.id === jobId);
     if (!job) {
       return { ok: false, error: 'unknown_job', message: 'Okänd scheduler-jobb.' };
     }
 
     const runtime = state.jobs[job.id];
-    if (!runtime.enabled && trigger !== 'manual') {
+    const isManualTrigger =
+      trigger === 'manual' ||
+      trigger === 'manual_api' ||
+      trigger === 'manual_api_suite' ||
+      trigger === 'manual_api_phase2_targeted';
+    if (!runtime.enabled && !isManualTrigger) {
       return { ok: false, error: 'disabled_job', message: 'Jobbet är inaktiverat.' };
     }
 
@@ -3507,6 +4323,9 @@ function createScheduler({
         tenantId: resolvedTenantId,
         trigger,
         actorUserId,
+        canaryLimit,
+        phase,
+        targetConversationIds,
       });
       const durationMs = Date.now() - startedAtMs;
       runtime.running = false;
@@ -3514,7 +4333,7 @@ function createScheduler({
       runtime.lastDurationMs = durationMs;
       runtime.lastStatus = 'success';
       runtime.lastSuccessAt = nowIso();
-      runtime.lastResult = result || null;
+      runtime.lastResult = summarizeSchedulerJobResult(result) || null;
       runtime.nextRunAt = null;
 
       await addAudit({
@@ -3526,7 +4345,7 @@ function createScheduler({
         metadata: {
           trigger,
           durationMs,
-          result,
+          result: summarizeSchedulerJobResult(result),
         },
       });
 
@@ -3537,7 +4356,7 @@ function createScheduler({
         jobId: job.id,
         trigger,
         durationMs,
-        result,
+        result: summarizeSchedulerJobResult(result),
       };
     } catch (error) {
       const durationMs = Date.now() - startedAtMs;
@@ -3625,19 +4444,23 @@ function createScheduler({
     if (config.graphReadEnabled && config.schedulerCcoInboxFullBackfillOnStart !== false) {
       const fullBackfillDelayMs = Math.max(120000, startupDelayMs + 90000);
       clearJobTimer('cco_inbox_enrichment_full_backfill_startup');
-      setLongTimeout('cco_inbox_enrichment_full_backfill_startup', fullBackfillDelayMs, async () => {
-        try {
-          await runCcoInboxEnrichmentFullBackfill({
-            tenantId: config.defaultTenantId,
-            trigger: 'scheduler_start',
-          });
-        } catch (error) {
-          logger?.error?.(
-            '[scheduler] cco_inbox_enrichment_full_backfill startup failed',
-            sanitizeError(error)
-          );
+      setLongTimeout(
+        'cco_inbox_enrichment_full_backfill_startup',
+        fullBackfillDelayMs,
+        async () => {
+          try {
+            await runCcoInboxEnrichmentFullBackfill({
+              tenantId: config.defaultTenantId,
+              trigger: 'scheduler_start',
+            });
+          } catch (error) {
+            logger?.error?.(
+              '[scheduler] cco_inbox_enrichment_full_backfill startup failed',
+              sanitizeError(error)
+            );
+          }
         }
-      });
+      );
     }
 
     return getStatus();

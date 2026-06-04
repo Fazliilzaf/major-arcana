@@ -7,7 +7,7 @@ cd "$ROOT_DIR"
 
 BASE_URL="${ARCANA_PROD_URL:-${BASE_URL:-https://arcana.hairtpclinic.se}}"
 BASE_URL="${BASE_URL%/}"
-PATIENT_ID="${1:-f8233fca-779c-488b-a980-0e41bc01c0c0}"
+PATIENT_ID="${1:-$(node -e "const p=require('./data/pilot-patients.json'); console.log((p.patientIds||[])[0]||'');")}"
 CLIENT_HEADER='x-arcana-client: major_arcana_admin'
 
 pass() { echo "✓ $1"; }
@@ -17,29 +17,48 @@ echo "=== Pilot E2E ($BASE_URL) ==="
 echo "Patient: $PATIENT_ID"
 echo
 
-AUTH_TOKEN="$(node "$ROOT_DIR/scripts/get-prod-auth-token.js" 2>/dev/null || true)"
+AUTH_TOKEN="$(node "$ROOT_DIR/scripts/get-prod-auth-token.js" --owner 2>/dev/null || true)"
 export AUTH_TOKEN
 if [[ -n "$AUTH_TOKEN" ]]; then
   pass "autentiserad API (go-live)"
 fi
 
-node - "$BASE_URL" "$PATIENT_ID" <<'NODE'
+node - "$BASE_URL" "$PATIENT_ID" "$ROOT_DIR" <<'NODE'
 const crypto = require('crypto');
+const { execSync } = require('node:child_process');
 
 const baseUrl = process.argv[2];
 const patientId = process.argv[3];
-const token = process.env.AUTH_TOKEN || '';
-const headers = {
-  Accept: 'application/json',
-  'Content-Type': 'application/json',
-  'x-arcana-client': 'major_arcana_admin',
-};
-if (token) headers.Authorization = `Bearer ${token}`;
+const rootDir = process.argv[4];
+let token = process.env.AUTH_TOKEN || '';
+
+function refreshToken() {
+  try {
+    token = execSync(`node "${rootDir}/scripts/get-prod-auth-token.js" --owner`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+    process.env.AUTH_TOKEN = token;
+    return Boolean(token);
+  } catch {
+    return false;
+  }
+}
+
+function authHeaders() {
+  const headers = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'x-arcana-client': 'major_arcana_admin',
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
 
 async function api(method, path, body, attempt = 0) {
   const res = await fetch(new URL(path, baseUrl), {
     method,
-    headers,
+    headers: authHeaders(),
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
@@ -48,6 +67,9 @@ async function api(method, path, body, attempt = 0) {
     json = text ? JSON.parse(text) : {};
   } catch {
     json = { raw: text.slice(0, 300) };
+  }
+  if (res.status === 401 && attempt < 2 && refreshToken()) {
+    return api(method, path, body, attempt + 1);
   }
   if ((res.status === 502 || res.status === 503) && attempt < 8) {
     await new Promise((resolve) => setTimeout(resolve, 4000));

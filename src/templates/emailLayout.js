@@ -28,17 +28,17 @@
 
 const BRAND = {
   // Färger från hairtpclinic.com (tailwind config)
-  ink: '#231F1D',          // primary text
-  taupe: '#6B5F58',        // secondary text + footer
-  cream: '#FAF6F2',        // page background
-  white: '#FFFFFF',        // card background
-  divider: '#EFE6E0',      // subtle border
-  // Logo — hostas på Arcana/Render (ma.hairtpclinic.se) eftersom den
+  ink: '#231F1D', // primary text
+  taupe: '#6B5F58', // secondary text + footer
+  cream: '#FAF6F2', // page background
+  white: '#FFFFFF', // card background
+  divider: '#EFE6E0', // subtle border
+  // Logo — hostas på Arcana/Render (arcana.hairtpclinic.com) eftersom den
   // deployar pålitligt. Samma sköld-logga som headern på hairtpclinic.com
   // (htp-logo.svg → 480x602 retina-PNG i public/htp-logo-email.png).
-  logoUrl: 'https://ma.hairtpclinic.se/htp-logo-email.png',
+  logoUrl: 'https://arcana.hairtpclinic.com/htp-logo-email.png',
   logoAlt: 'Hair TP Clinic',
-  logoDisplayWidth: 120,   // rendered width in email (px)
+  logoDisplayWidth: 120, // rendered width in email (px)
   // Footer-kontakt
   clinicName: 'Hair TP Clinic',
   addressSv: 'Vasaplatsen 2, 411 34 Göteborg',

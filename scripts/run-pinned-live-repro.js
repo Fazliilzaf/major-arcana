@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 const http = require('node:http');
 const { spawn, spawnSync } = require('node:child_process');
 
-const ROOT = '/Users/fazlikrasniqi/Desktop/Arcana';
+const ROOT = process.env.ARCANA_REPO_ROOT || '/Users/fazlikrasniqi/Code/major-arcana';
 const DEFAULT_PORT = Number.parseInt(process.env.PORT || '4074', 10);
 const NODE_OPTIONS = process.env.NODE_OPTIONS || '--max-old-space-size=4096';
 const BASE_URL = `http://127.0.0.1:${DEFAULT_PORT}`;

@@ -65,6 +65,7 @@ function collectInitialCopilotWarnings({
   adOutput = null,
   emailOutput = null,
   repurposeOutput = null,
+  seriesOutput = null,
   claimsOutput = null,
   complianceOutput = null,
   calendarOutput = null,
@@ -84,6 +85,7 @@ function collectInitialCopilotWarnings({
       ...asArray(asObject(adOutput).warnings),
       ...asArray(asObject(emailOutput).warnings),
       ...asArray(asObject(repurposeOutput).warnings),
+      ...asArray(asObject(seriesOutput).warnings),
       ...asArray(asObject(claimsOutput).warnings),
       ...asArray(asObject(complianceOutput).warnings),
       ...asArray(asObject(calendarOutput).warnings),
@@ -176,6 +178,7 @@ function buildMarketingCopilotExecutiveSummary({
   gateResult = null,
   enablementData = {},
   crisisData = {},
+  contentSeriesEpisodes = [],
   disclaimer = '',
 } = {}) {
   return [
@@ -186,6 +189,9 @@ function buildMarketingCopilotExecutiveSummary({
       : '',
     campaigns.length > 0
       ? `${campaigns.length} kampanjförslag (${campaignReadyCount} compliance-klara).`
+      : '',
+    contentSeriesEpisodes.length > 0
+      ? `Content-serie: ${contentSeriesEpisodes.length} episoder (trust-pelare).`
       : '',
     calendar.length > 0 ? `Content-kalender: ${calendar.length} planerade inlägg.` : '',
     scheduleItems.length > 0

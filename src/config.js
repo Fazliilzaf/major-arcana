@@ -21,12 +21,14 @@ const RENDER_RUNTIME_DEFAULTS = Object.freeze({
   ARCANA_BOOTSTRAP_PREFERRED_MAILBOX: 'contact@hairtpclinic.com',
   ARCANA_BOOTSTRAP_TENANT_ID: 'hair-tp-clinic',
   ARCANA_BOOTSTRAP_DELAY_MS: '5000',
+  ARCANA_PUBLIC_WEB_BOOKING_ENABLED: 'true',
+  ARCANA_CLIENTO_INTEGRATION_ENABLED: 'false',
   ARCANA_AUTH_OWNER_MFA_REQUIRED: 'false',
   ARCANA_PREFLIGHT_READINESS_CHECKS: 'cors_strict',
   ARCANA_BOOTSTRAP_RESET_OWNER_MFA: 'false',
   ARCANA_MARKETING_CONNECTORS_ENABLED: 'true',
-  ARCANA_MARKETING_CONNECTORS_MODE: 'fixture',
-  ARCANA_MARKETING_CONNECTORS_LIVE_FETCH: 'false',
+  ARCANA_MARKETING_CONNECTORS_MODE: 'live',
+  ARCANA_MARKETING_CONNECTORS_LIVE_FETCH: 'true',
   ARCANA_MARKETING_GOOGLE_ADS_ENABLED: 'true',
   ARCANA_MARKETING_META_ENABLED: 'true',
   ARCANA_MARKETING_LINKEDIN_ENABLED: 'true',
@@ -171,6 +173,10 @@ const ccoNextRedirectHosts = (() => {
     .filter(Boolean);
   return configured.length > 0 ? configured : ['arcana-qsiu.onrender.com'];
 })();
+const defaultLegacyHostRedirects = {
+  'arcana.hairtpclinic.se': 'https://arcana.hairtpclinic.com',
+  'ma.hairtpclinic.se': 'https://arcana.hairtpclinic.com',
+};
 const nodeEnv = asNonEmptyString(process.env.NODE_ENV, 'development').toLowerCase();
 const isProduction = nodeEnv === 'production';
 const aiProviderDefault =
@@ -197,6 +203,14 @@ const config = {
   publicBaseUrl,
   ccoNextCanonicalOrigin,
   ccoNextRedirectHosts,
+  legacySeHostRedirectEnabled: asBool(
+    process.env.ARCANA_LEGACY_SE_HOST_REDIRECT_ENABLED,
+    isProduction
+  ),
+  legacyHostRedirects: asJsonObject(
+    process.env.ARCANA_LEGACY_HOST_REDIRECTS,
+    defaultLegacyHostRedirects
+  ),
   brand,
   brandByHost,
   defaultMailbox,
@@ -227,6 +241,12 @@ const config = {
     stateRoot,
     fileName: 'patient-signals.json',
   }),
+  webBridgeAuditStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_WEB_BRIDGE_AUDIT_STORE_PATH,
+    stateRoot,
+    fileName: 'web-bridge-audit.json',
+  }),
+  turnstileSecret: (process.env.TURNSTILE_SECRET || '').trim(),
   capabilityAnalysisStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CAPABILITY_ANALYSIS_STORE_PATH,
     stateRoot,
@@ -242,6 +262,50 @@ const config = {
     stateRoot,
     fileName: 'cco-mailbox-truth.json',
   }),
+  // Sharded store reads per-mailbox files on disk. Lazy preload avoids OOM on boot.
+  ccoMailboxTruthSharded: asBool(process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARDED, true),
+  ccoMailboxTruthLazyPreload: asBool(process.env.ARCANA_CCO_MAILBOX_TRUTH_LAZY_PRELOAD, true),
+  ccoMailboxTruthShardDir: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MAILBOX_TRUTH_SHARD_DIR,
+    stateRoot,
+    fileName: 'cco-mailbox-truth',
+  }),
+  ccoMailIngestionStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_MAIL_INGESTION_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-mail-ingestion.json',
+  }),
+  ccoMailIngestionEnabled: asBool(process.env.ARCANA_CCO_MAIL_INGESTION_ENABLED, true),
+  ccoMailIngestionMode: asNonEmptyString(process.env.ARCANA_CCO_MAIL_INGESTION_MODE, 'read_only'),
+  ccoMailIngestionDefaultMailbox: asNonEmptyString(
+    process.env.ARCANA_CCO_MAIL_INGESTION_DEFAULT_MAILBOX,
+    'contact@hairtpclinic.com'
+  ),
+  ccoMailIngestionMaxProcessPerCycle: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_MAX_PROCESS_PER_CYCLE,
+    25
+  ),
+  ccoMailIngestionQueueBatchSize: asInt(process.env.ARCANA_CCO_MAIL_INGESTION_QUEUE_BATCH_SIZE, 75),
+  ccoMailIngestionStartupResumeDelayMs: asInt(
+    process.env.ARCANA_CCO_MAIL_INGESTION_STARTUP_RESUME_DELAY_MS,
+    120000
+  ),
+  schedulerCcoMailIngestionQueueIntervalMinutes: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_MAIL_INGESTION_QUEUE_INTERVAL_MINUTES,
+    1
+  ),
+  graphChangeNotificationsEnabled: asBool(
+    process.env.ARCANA_GRAPH_CHANGE_NOTIFICATIONS_ENABLED,
+    false
+  ),
+  graphChangeNotificationClientState: asNonEmptyString(
+    process.env.ARCANA_GRAPH_CHANGE_NOTIFICATION_CLIENT_STATE,
+    'arcana-cco-mail-ingestion'
+  ),
+  graphBaseUrl: asNonEmptyString(
+    process.env.ARCANA_GRAPH_BASE_URL,
+    'https://graph.microsoft.com/v1.0'
+  ),
   ccoConversationStateStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_CONVERSATION_STATE_STORE_PATH,
     stateRoot,
@@ -300,11 +364,24 @@ const config = {
     Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS) > 0
       ? Number(process.env.ARCANA_SCHED_POST_OP_PHOTO_PRUNE_HOURS)
       : 24,
+  schedulerPostOpAutoTriggerIntervalHours:
+    Number(process.env.ARCANA_SCHED_POST_OP_AUTO_TRIGGER_HOURS) > 0
+      ? Number(process.env.ARCANA_SCHED_POST_OP_AUTO_TRIGGER_HOURS)
+      : 6,
+  postOpAutoTriggerGraceHours:
+    Number(process.env.ARCANA_POST_OP_AUTO_TRIGGER_GRACE_HOURS) >= 0
+      ? Number(process.env.ARCANA_POST_OP_AUTO_TRIGGER_GRACE_HOURS)
+      : 24,
   // Sender-mailbox för auto-send av post-op review-email via M365 Graph.
-  // Default contact@hairtpclinic.com. Faller tillbaka till config.defaultMailbox.
+  // Locked default per docs/strategy/u4-post-op-decisions.md (U4.5).
   postOpReviewFromMailbox: asNonEmptyString(
     process.env.ARCANA_POST_OP_REVIEW_FROM_MAILBOX,
-    'contact@hairtpclinic.com'
+    'kons@hairtpclinic.com'
+  ),
+  // Dokumenterad kanal — kodväg är Graph send idag (ej SMS/Resend för post-op).
+  postOpNotificationChannel: asNonEmptyString(
+    process.env.ARCANA_POST_OP_NOTIFICATION_CHANNEL,
+    'graph_email'
   ),
   ccoBookingEngineStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_BOOKING_ENGINE_STORE_PATH,
@@ -320,6 +397,16 @@ const config = {
     explicitPath: process.env.ARCANA_CCO_INTEGRATION_STORE_PATH,
     stateRoot,
     fileName: 'cco-integrations.json',
+  }),
+  ccoFortnoxStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_FORTNOX_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-fortnox.json',
+  }),
+  ccoSwishStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_SWISH_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-swish.json',
   }),
   ccoSettingsStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_CCO_SETTINGS_STORE_PATH,
@@ -346,6 +433,11 @@ const config = {
     stateRoot,
     fileName: 'cco-journal.json',
   }),
+  ccoTreatmentEncounterStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_TREATMENT_ENCOUNTER_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-treatment-encounters.json',
+  }),
   ccoMigrationIndexStorePath: resolveStatePath({
     explicitPath: process.env.ARCANA_MIGRATION_INDEX_STORE_PATH,
     stateRoot,
@@ -371,6 +463,19 @@ const config = {
     stateRoot,
     fileName: 'cco-treatment-agreements.json',
   }),
+  ccoTemplateVersionApprovalStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_TEMPLATE_VERSION_APPROVAL_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-template-version-approvals.json',
+  }),
+  ccoPatientCareStateStorePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_CCO_PATIENT_CARE_STATE_STORE_PATH,
+    stateRoot,
+    fileName: 'cco-patient-care-state.json',
+  }),
+  maintenanceWindowStart: asNonEmptyString(process.env.ARCANA_MAINTENANCE_WINDOW_START),
+  maintenanceWindowEnd: asNonEmptyString(process.env.ARCANA_MAINTENANCE_WINDOW_END),
+  maintenanceWindowMessage: asNonEmptyString(process.env.ARCANA_MAINTENANCE_WINDOW_MESSAGE),
   offerDocumentsDir: process.env.ARCANA_OFFER_DOCUMENTS_DIR
     ? String(process.env.ARCANA_OFFER_DOCUMENTS_DIR).trim()
     : path.join(stateRoot, 'offer-documents'),
@@ -390,6 +495,14 @@ const config = {
   journalPhotosDir: process.env.ARCANA_JOURNAL_PHOTOS_DIR
     ? String(process.env.ARCANA_JOURNAL_PHOTOS_DIR).trim()
     : path.join(stateRoot, 'journal-photos'),
+  journalPhotosBackupRetentionMaxFiles: asInt(
+    process.env.ARCANA_JOURNAL_PHOTOS_BACKUP_RETENTION_MAX_FILES,
+    14
+  ),
+  journalPhotosBackupRetentionMaxAgeDays: asInt(
+    process.env.ARCANA_JOURNAL_PHOTOS_BACKUP_RETENTION_MAX_AGE_DAYS,
+    30
+  ),
   capabilityAnalysisMaxEntries: asInt(process.env.ARCANA_CAPABILITY_ANALYSIS_MAX_ENTRIES, 15000),
   marketingCampaignDraftsPath: resolveStatePath({
     explicitPath: process.env.ARCANA_MARKETING_CAMPAIGN_DRAFTS_PATH,
@@ -406,13 +519,10 @@ const config = {
     stateRoot,
     fileName: 'marketing-content-assets.json',
   }),
-  marketingConnectorsEnabled: asBool(process.env.ARCANA_MARKETING_CONNECTORS_ENABLED, false),
-  marketingConnectorsMode: asNonEmptyString(
-    process.env.ARCANA_MARKETING_CONNECTORS_MODE,
-    'fixture'
-  ),
-  marketingConnectorsLiveFetch: asBool(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH, false),
-  marketingPublishPilotEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_PILOT_ENABLED, false),
+  marketingConnectorsEnabled: asBool(process.env.ARCANA_MARKETING_CONNECTORS_ENABLED, true),
+  marketingConnectorsMode: asNonEmptyString(process.env.ARCANA_MARKETING_CONNECTORS_MODE, 'live'),
+  marketingConnectorsLiveFetch: asBool(process.env.ARCANA_MARKETING_CONNECTORS_LIVE_FETCH, true),
+  marketingPublishPilotEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_PILOT_ENABLED, true),
   marketingAutoPublishPilotChannels: asStringArray(
     process.env.ARCANA_MARKETING_AUTO_PUBLISH_PILOT_CHANNELS
   ),
@@ -422,7 +532,20 @@ const config = {
   ),
   marketingPublishLiveEnabled: asBool(process.env.ARCANA_MARKETING_PUBLISH_LIVE_ENABLED, false),
   marketingPublishSandbox: asBool(process.env.ARCANA_MARKETING_PUBLISH_SANDBOX, true),
-  marketingConnectorsCacheTtlMs: asInt(process.env.ARCANA_MARKETING_CONNECTORS_CACHE_TTL_MS, 300000),
+  marketingConnectorsCacheTtlMs: asInt(
+    process.env.ARCANA_MARKETING_CONNECTORS_CACHE_TTL_MS,
+    300000
+  ),
+  marketingBridgeToken: asNonEmptyString(process.env.ARCANA_MARKETING_BRIDGE_TOKEN),
+  marketingConnectorHealthStatePath: resolveStatePath({
+    explicitPath: process.env.ARCANA_MARKETING_CONNECTOR_HEALTH_STATE_PATH,
+    stateRoot,
+    fileName: 'cmo-connector-health-state.json',
+  }),
+  marketingConnectorAlertAfterMs: asInt(
+    process.env.ARCANA_MARKETING_CONNECTOR_ALERT_AFTER_MS,
+    900000
+  ),
   marketingConnectors: {
     google_ads: {
       enabled: asBool(process.env.ARCANA_MARKETING_GOOGLE_ADS_ENABLED, false),
@@ -541,6 +664,10 @@ const config = {
     process.env.ARCANA_STARTUP_CCO_HISTORY_STORE_MAX_BYTES,
     250 * 1024 * 1024
   ),
+  startupCcoMailboxTruthStoreMaxBytes: asInt(
+    process.env.ARCANA_STARTUP_CCO_MAILBOX_TRUTH_STORE_MAX_BYTES,
+    2 * 1024 * 1024 * 1024
+  ),
   startupCcoNoteStoreMaxBytes: asInt(
     process.env.ARCANA_STARTUP_CCO_NOTE_STORE_MAX_BYTES,
     12 * 1024 * 1024
@@ -589,8 +716,8 @@ const config = {
   authLoginTicketTtlMinutes: asInt(process.env.AUTH_LOGIN_TICKET_TTL_MINUTES, 10),
   authAuditMaxEntries: asInt(process.env.AUTH_AUDIT_MAX_ENTRIES, 5000),
   authAuditAppendOnly: isProduction ? true : asBool(process.env.AUTH_AUDIT_APPEND_ONLY, true),
-  authLoginRateLimitWindowSec: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_SEC, 60),
-  authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 20),
+  authLoginRateLimitWindowSec: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_SEC, 900),
+  authLoginRateLimitMax: asInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 5),
   authSelectTenantRateLimitMax: asInt(process.env.AUTH_SELECT_TENANT_RATE_LIMIT_MAX, 30),
   authOwnerMfaRequired: asBool(process.env.ARCANA_AUTH_OWNER_MFA_REQUIRED, false),
   authOwnerMfaBypassHosts: (() => {
@@ -628,6 +755,8 @@ const config = {
   orchestratorRateLimitMax: asInt(process.env.ARCANA_ORCHESTRATOR_RATE_LIMIT_MAX, 80),
   publicRateLimitWindowSec: asInt(process.env.ARCANA_PUBLIC_RATE_LIMIT_WINDOW_SEC, 60),
   publicClinicRateLimitMax: asInt(process.env.ARCANA_PUBLIC_CLINIC_RATE_LIMIT_MAX, 180),
+  publicWebBookingEnabled: asBool(process.env.ARCANA_PUBLIC_WEB_BOOKING_ENABLED, true),
+  clientoIntegrationEnabled: asBool(process.env.ARCANA_CLIENTO_INTEGRATION_ENABLED, false),
   publicChatRateLimitMax: asInt(process.env.ARCANA_PUBLIC_CHAT_RATE_LIMIT_MAX, 90),
   publicChatBetaEnabled: asBool(process.env.ARCANA_PUBLIC_CHAT_BETA_ENABLED, false),
   publicChatBetaHeader: asNonEmptyString(
@@ -731,7 +860,7 @@ const config = {
   ),
   schedulerCcoTruthDeltaIntervalMinutes: asInt(
     process.env.ARCANA_SCHEDULER_CCO_TRUTH_DELTA_INTERVAL_MINUTES,
-    5
+    3
   ),
   schedulerCcoInboxBootstrapOnStart: asBool(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_BOOTSTRAP_ON_START,
@@ -751,11 +880,15 @@ const config = {
   ),
   schedulerCcoInboxScopedLookbackDays: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_SCOPED_LOOKBACK_DAYS,
-    7
+    3
   ),
   schedulerCcoInboxScopedMaxMessagesPerUser: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_SCOPED_MAX_MESSAGES_PER_USER,
-    25
+    20
+  ),
+  schedulerCcoGraphSubscriptionRenewalIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_GRAPH_SUBSCRIPTION_RENEWAL_INTERVAL_HOURS,
+    24
   ),
   schedulerCcoInboxFullBackfillBatchSize: asInt(
     process.env.ARCANA_SCHEDULER_CCO_INBOX_FULL_BACKFILL_BATCH_SIZE,
@@ -844,6 +977,38 @@ const config = {
   ),
   schedulerReportIntervalHours: asInt(process.env.ARCANA_SCHEDULER_REPORT_INTERVAL_HOURS, 24),
   schedulerBackupIntervalHours: asInt(process.env.ARCANA_SCHEDULER_BACKUP_INTERVAL_HOURS, 24),
+  schedulerJournalPhotosBackupIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_JOURNAL_PHOTOS_BACKUP_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoMissingFormsReportIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_MISSING_FORMS_REPORT_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoJournalDraftIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_JOURNAL_DRAFT_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoFollowupDraftIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_FOLLOWUP_DRAFT_INTERVAL_HOURS,
+    24
+  ),
+  schedulerCcoFollowupDraftLeadDays: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_FOLLOWUP_DRAFT_LEAD_DAYS,
+    30
+  ),
+  schedulerCcoCustomerRemindersIntervalHours: asInt(
+    process.env.ARCANA_SCHEDULER_CCO_CUSTOMER_REMINDERS_INTERVAL_HOURS,
+    6
+  ),
+  ccoCareReminderDigestEmail: asNonEmptyString(
+    process.env.ARCANA_CCO_CARE_REMINDER_DIGEST_EMAIL,
+    'kons@hairtpclinic.com'
+  ),
+  ccoCareReminderFromEmail: asNonEmptyString(
+    process.env.ARCANA_CCO_CARE_REMINDER_FROM_EMAIL,
+    'kons@hairtpclinic.com'
+  ),
   schedulerRestoreDrillIntervalHours: asInt(
     process.env.ARCANA_SCHEDULER_RESTORE_DRILL_INTERVAL_HOURS,
     168
@@ -942,6 +1107,68 @@ const config = {
   clientoApiAuthHeader: asNonEmptyString(process.env.CLIENTO_API_AUTH_HEADER, 'Authorization'),
   clientoApiAuthScheme: asNonEmptyString(process.env.CLIENTO_API_AUTH_SCHEME, 'Bearer'),
   clientoApiTimeoutMs: asInt(process.env.CLIENTO_API_TIMEOUT_MS, 10000),
+  fortnoxEnabled: asBool(process.env.ARCANA_FORTNOX_ENABLED, false),
+  fortnoxClientId: asNonEmptyString(process.env.FORTNOX_CLIENT_ID),
+  fortnoxClientSecret: asNonEmptyString(process.env.FORTNOX_CLIENT_SECRET),
+  fortnoxScope: asNonEmptyString(process.env.FORTNOX_SCOPE, 'customer invoice'),
+  fortnoxRedirectUri: asNonEmptyString(
+    process.env.FORTNOX_REDIRECT_URI,
+    `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-fortnox/oauth/callback`
+  ),
+  // Sätt till 'service' om OAuth-appen har Service Account aktiverat i Fortnox Dev Portal.
+  // Då skickas account_type=service med i auth-URL:en, vilket triggar att Fortnox
+  // skapar/återanvänder ett service-konto (robot-användare) frikopplat från specifik
+  // user-license. Krävs för att undvika error_missing_license.
+  fortnoxAccountType: asNonEmptyString(process.env.FORTNOX_ACCOUNT_TYPE),
+  swishEnabled: asBool(process.env.ARCANA_SWISH_ENABLED, false),
+  swishApiBaseUrl: asNonEmptyString(
+    process.env.SWISH_API_BASE_URL,
+    'https://mss.cpc.getswish.net/swish-cpcapi'
+  ),
+  swishCertPath: asNonEmptyString(process.env.SWISH_CERT_PATH),
+  swishKeyPath: asNonEmptyString(process.env.SWISH_KEY_PATH),
+  swishP12Path: asNonEmptyString(process.env.SWISH_P12_PATH),
+  swishCertPassphrase: asNonEmptyString(process.env.SWISH_CERT_PASSPHRASE),
+  swishCaPath: asNonEmptyString(process.env.SWISH_CA_PATH),
+  swishCallbackUrl: asNonEmptyString(
+    process.env.SWISH_CALLBACK_URL,
+    `${asNonEmptyString(process.env.PUBLIC_BASE_URL, 'http://localhost:3000')}/api/v1/cco-swish/callback`
+  ),
+
+  enableCcoOperatorCanary: asBool(process.env.ENABLE_CCO_OPERATOR_CANARY, false),
+  enablePhotoReviewWrite: (() => {
+    const requested = asBool(process.env.ENABLE_PHOTO_REVIEW_WRITE, false);
+    if (!requested) return false;
+    const allowProd = asBool(process.env.ENABLE_PHOTO_REVIEW_CANARY_ON_PROD, false);
+    const blockedHosts = asStringArray(process.env.PHOTO_REVIEW_WRITE_BLOCKED_HOSTS).length
+      ? asStringArray(process.env.PHOTO_REVIEW_WRITE_BLOCKED_HOSTS)
+      : ['arcana.hairtpclinic.com', 'arcana.hairtpclinic.se', 'arcana-cco.onrender.com'];
+    const hosts = [];
+    for (const u of [process.env.PUBLIC_BASE_URL, process.env.RENDER_EXTERNAL_URL]) {
+      if (!u) continue;
+      try {
+        hosts.push(new URL(u).hostname);
+      } catch {
+        /* skip */
+      }
+    }
+    if (process.env.RENDER_EXTERNAL_HOSTNAME) hosts.push(process.env.RENDER_EXTERNAL_HOSTNAME);
+    const onBlocked = hosts.some((h) => blockedHosts.some((b) => h === b || h.endsWith(`.${b}`)));
+    if (onBlocked && !allowProd) return false;
+    return true;
+  })(),
+  photoReviewFullCohort: asBool(process.env.PHOTO_REVIEW_FULL_COHORT, false),
+  photoReviewCanaryMax: asInt(process.env.PHOTO_REVIEW_CANARY_MAX_DECISIONS, 25),
+  enableImportReviewWrite: (() => {
+    const master = asBool(process.env.ENABLE_CCO_OPERATOR_CANARY, false);
+    return master && asBool(process.env.ENABLE_IMPORT_REVIEW_WRITE, false);
+  })(),
+  importReviewCanaryMax: asInt(process.env.IMPORT_REVIEW_CANARY_MAX_DECISIONS, 25),
+  enableMailReviewCanary: (() => {
+    const master = asBool(process.env.ENABLE_CCO_OPERATOR_CANARY, false);
+    return master && asBool(process.env.ENABLE_MAIL_REVIEW_CANARY, false);
+  })(),
+  mailReviewCanaryMax: asInt(process.env.MAIL_REVIEW_CANARY_MAX_DECISIONS, 25),
 };
 
 if (

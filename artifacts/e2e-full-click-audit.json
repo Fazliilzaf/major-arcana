@@ -1,0 +1,297 @@
+{
+  "base": "https://arcana.hairtpclinic.se",
+  "at": "2026-05-26T10:54:20.713Z",
+  "passed": 19,
+  "total": 19,
+  "slowClickBudgetMs": 800,
+  "slowHopBudgetMs": 400,
+  "steps": [
+    {
+      "step": "Kallstart /staff",
+      "ok": true,
+      "detail": "https://arcana.hairtpclinic.se/staff?view=customers",
+      "timingMs": 4244
+    },
+    {
+      "step": "Inloggning",
+      "ok": true,
+      "detail": "session klar",
+      "timingMs": 354
+    },
+    {
+      "step": "Nav conversations",
+      "ok": true,
+      "detail": "konversationsvy · shell DOM hidden (staff-layout)",
+      "timingMs": 76
+    },
+    {
+      "step": "Nav customers",
+      "ok": true,
+      "detail": "kundlista · shell DOM hidden (staff-layout)",
+      "timingMs": 134
+    },
+    {
+      "step": "Nav calendar",
+      "ok": true,
+      "detail": "desktop kalender",
+      "timingMs": 2413
+    },
+    {
+      "step": "Nav automation",
+      "ok": true,
+      "detail": "automatisering · shell DOM hidden (staff-layout)",
+      "timingMs": 2434
+    },
+    {
+      "step": "Nav analytics",
+      "ok": true,
+      "detail": "analys · shell DOM hidden (staff-layout)",
+      "timingMs": 2586
+    },
+    {
+      "step": "Nav later (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 8063
+    },
+    {
+      "step": "Nav sent (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 4767
+    },
+    {
+      "step": "Nav integrations (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 5954
+    },
+    {
+      "step": "Nav macros (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 7796
+    },
+    {
+      "step": "Nav settings (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 5480
+    },
+    {
+      "step": "Nav showcase (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 6697
+    },
+    {
+      "step": "Kalender day",
+      "ok": true,
+      "detail": "vy aktiv",
+      "timingMs": 2184
+    },
+    {
+      "step": "Kalender resource",
+      "ok": true,
+      "detail": "vy aktiv",
+      "timingMs": 2155
+    },
+    {
+      "step": "Kalender week",
+      "ok": true,
+      "detail": "vy aktiv",
+      "timingMs": 2771
+    },
+    {
+      "step": "Kalender event → detalj",
+      "ok": true,
+      "detail": "SKIP: ingen bokad tid i aktuell vecka — signal-ikoner kräver testbokning",
+      "timingMs": 4272
+    },
+    {
+      "step": "Deep link → kunddetalj",
+      "ok": true,
+      "detail": "ab3b4751",
+      "timingMs": 3176
+    },
+    {
+      "step": "Journal-flik",
+      "ok": true,
+      "detail": "panel synlig",
+      "timingMs": 402
+    }
+  ],
+  "hops": [
+    {
+      "label": "→ conversations",
+      "ms": 271
+    },
+    {
+      "label": "→ customers",
+      "ms": 0
+    },
+    {
+      "label": "→ calendar",
+      "ms": 0
+    },
+    {
+      "label": "→ automation",
+      "ms": 0
+    },
+    {
+      "label": "→ analytics",
+      "ms": 0
+    },
+    {
+      "label": "→ later",
+      "ms": 0
+    },
+    {
+      "label": "→ sent",
+      "ms": 0
+    },
+    {
+      "label": "→ integrations",
+      "ms": 0
+    },
+    {
+      "label": "→ macros",
+      "ms": 0
+    },
+    {
+      "label": "→ settings",
+      "ms": 0
+    },
+    {
+      "label": "→ showcase",
+      "ms": 0
+    },
+    {
+      "label": "→ calendar",
+      "ms": 0
+    },
+    {
+      "label": "kalender → day",
+      "ms": 1969
+    },
+    {
+      "label": "kalender → resource",
+      "ms": 0
+    },
+    {
+      "label": "kalender → week",
+      "ms": 1
+    },
+    {
+      "label": "kalender → event",
+      "ms": 0
+    },
+    {
+      "label": "→ kund journal",
+      "ms": 0
+    },
+    {
+      "label": "profil → journal",
+      "ms": 0
+    }
+  ],
+  "blockers": [],
+  "slowClicks": [
+    {
+      "step": "Kallstart /staff",
+      "ok": true,
+      "detail": "https://arcana.hairtpclinic.se/staff?view=customers",
+      "timingMs": 4244
+    },
+    {
+      "step": "Nav calendar",
+      "ok": true,
+      "detail": "desktop kalender",
+      "timingMs": 2413
+    },
+    {
+      "step": "Nav automation",
+      "ok": true,
+      "detail": "automatisering · shell DOM hidden (staff-layout)",
+      "timingMs": 2434
+    },
+    {
+      "step": "Nav analytics",
+      "ok": true,
+      "detail": "analys · shell DOM hidden (staff-layout)",
+      "timingMs": 2586
+    },
+    {
+      "step": "Nav later (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 8063
+    },
+    {
+      "step": "Nav sent (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 4767
+    },
+    {
+      "step": "Nav integrations (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 5954
+    },
+    {
+      "step": "Nav macros (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 7796
+    },
+    {
+      "step": "Nav settings (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 5480
+    },
+    {
+      "step": "Nav showcase (Mer)",
+      "ok": true,
+      "detail": "appShellView OK · shell DOM hidden (staff-layout)",
+      "timingMs": 6697
+    },
+    {
+      "step": "Kalender day",
+      "ok": true,
+      "detail": "vy aktiv",
+      "timingMs": 2184
+    },
+    {
+      "step": "Kalender resource",
+      "ok": true,
+      "detail": "vy aktiv",
+      "timingMs": 2155
+    },
+    {
+      "step": "Kalender week",
+      "ok": true,
+      "detail": "vy aktiv",
+      "timingMs": 2771
+    },
+    {
+      "step": "Kalender event → detalj",
+      "ok": true,
+      "detail": "SKIP: ingen bokad tid i aktuell vecka — signal-ikoner kräver testbokning",
+      "timingMs": 4272
+    },
+    {
+      "step": "Deep link → kunddetalj",
+      "ok": true,
+      "detail": "ab3b4751",
+      "timingMs": 3176
+    }
+  ],
+  "slowHops": [
+    {
+      "label": "kalender → day",
+      "ms": 1969
+    }
+  ]
+}

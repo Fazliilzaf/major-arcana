@@ -215,7 +215,7 @@ test('waitForRuntimeAuthToken ger preview-token på localhost när token saknas'
 
 test('apiRequest rensar stale token och retryar utan bearer-token i localhost-preview', async () => {
   const source = fs.readFileSync(APP_PATH, 'utf8');
-  const functionSource = extractFunctionSource(source, 'apiRequest', { async: true });
+  const functionSource = extractFunctionSource(source, 'apiRequestImpl', { async: true });
   const fetchCalls = [];
   let clearedCount = 0;
   let tokenReads = 0;
@@ -260,7 +260,7 @@ test('apiRequest rensar stale token och retryar utan bearer-token i localhost-pr
     'clearAdminToken',
     'isAuthFailure',
     'normalizeText',
-    `${functionSource}; return apiRequest;`
+    `${functionSource}; return apiRequestImpl;`
   )(
     windowObject,
     fetchMock,

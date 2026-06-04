@@ -19,6 +19,19 @@ const {
   DEFAULT_COOLING_OFF_DAYS,
   coolingOffDaysForNewHairTpRecord,
 } = require('./ccoHairTpCoolingOffPolicy');
+const {
+  computeSignedAgreementBookable,
+  defaultTemplateBindingForOffer,
+  resolveAgreementTemplateBinding,
+  isTemplateVersionApproved,
+} = require('./ccoTemplateVersionApprovalStore');
+const {
+  BUNDLE_STATUSES,
+  computeBundleStatus,
+  deriveTreatmentTypeFromOffer,
+  normalizeConsentState,
+  resolveConsentTemplateForAgreement,
+} = require('./ccoTreatmentAgreementBundle');
 const AGREEMENT_VERSION = '251203';
 
 function nowIso() {
@@ -96,12 +109,22 @@ function getCoolingOffMeta(agreement = {}, nowMs = Date.now()) {
   };
 }
 
-function buildTreatmentAgreementReadout(agreement = {}, { nowMs = Date.now() } = {}) {
+function buildTreatmentAgreementReadout(
+  agreement = {},
+  { nowMs = Date.now(), templateApproval = null } = {}
+) {
   const safe = asObject(agreement);
   const status = normalizeEnum(safe.agreementStatus, AGREEMENT_STATUSES, 'draft');
   const deliveryMode = normalizeEnum(safe.deliveryMode, DELIVERY_MODES, 'plats');
   const cooling = getCoolingOffMeta(safe, nowMs);
   const patientInfoSent = Boolean(safe.patientInfoSentAt);
+  const templateBinding = resolveAgreementTemplateBinding(safe);
+  const templateVersionApproved = templateBinding.requiresApproval
+    ? isTemplateVersionApproved(templateApproval)
+    : true;
+  const consent = normalizeConsentState(safe.consent);
+  const consentResolution = resolveConsentTemplateForAgreement(safe);
+  const bundleStatus = computeBundleStatus(safe, { consentResolution, templateApproval });
 
   let phase = 'draft';
   let nextStep = 'Skicka patientinformation (bilaga 1) till kunden.';
@@ -113,9 +136,19 @@ function buildTreatmentAgreementReadout(agreement = {}, { nowMs = Date.now() } =
     nextStep = 'Avtalet är avbrutet.';
   } else if (status === 'bookable' || status === 'signed') {
     phase = status === 'bookable' ? 'bookable' : 'signed';
-    nextStep = 'Avtalet är signerat — kunden kan boka behandlingstid.';
-    waitingOn = 'customer';
-    bookable = true;
+    bookable =
+      computeSignedAgreementBookable(safe, templateApproval) &&
+      (!consent.templateApiId || consent.signed === true);
+    if (bookable) {
+      nextStep = 'Avtalet är signerat — kunden kan boka behandlingstid.';
+      waitingOn = 'customer';
+    } else if (templateBinding.requiresApproval) {
+      nextStep = `Mall ${templateBinding.templateId}@${templateBinding.templateVersion} väntar legal review.`;
+      waitingOn = 'legal';
+    } else {
+      nextStep = 'Avtalet är signerat men inte bokningsbart än.';
+      waitingOn = 'legal';
+    }
   } else if (status === 'cooling_off' || (status === 'sent' && cooling.active)) {
     phase = 'cooling_off';
     nextStep = `Betänketid till ${cooling.endsAt.slice(0, 10)} (${cooling.remainingDays} dagar kvar).`;
@@ -146,6 +179,16 @@ function buildTreatmentAgreementReadout(agreement = {}, { nowMs = Date.now() } =
     nextStep,
     waitingOn,
     bookable,
+    templateId: templateBinding.templateId || null,
+    templateVersion: templateBinding.templateVersion || null,
+    templateVersionApproved,
+    templateApprovalStatus: normalizeText(templateApproval?.status) || null,
+    treatmentType:
+      normalizeText(safe.treatmentType) || deriveTreatmentTypeFromOffer(safe.offerType),
+    bundleStatus,
+    consent,
+    consentSigned: consent.signed === true,
+    consentTemplateResolved: consentResolution?.found === true,
     angerBlanketUrl:
       deliveryMode === 'distans'
         ? 'https://www.konsumentverket.se/for-foretag/konsumentratt-for-foretagare/om-konsumentratt/om-konsumentratt/angerblankett/'
@@ -210,6 +253,17 @@ function normalizeAgreement(input = {}, existing = {}) {
     ),
     agreementVersion:
       normalizeText(safe.agreementVersion || previous.agreementVersion) || AGREEMENT_VERSION,
+    templateId: normalizeText(safe.templateId || previous.templateId),
+    templateVersion: normalizeText(safe.templateVersion || previous.templateVersion),
+    treatmentType:
+      normalizeText(safe.treatmentType || previous.treatmentType) ||
+      deriveTreatmentTypeFromOffer(safe.offerType || previous.offerType),
+    consent: normalizeConsentState(safe.consent, previous.consent),
+    bundleStatus: normalizeEnum(
+      safe.bundleStatus || previous.bundleStatus,
+      BUNDLE_STATUSES,
+      'missing_consent_template'
+    ),
     linkedCommercialCaseId: normalizeText(
       safe.linkedCommercialCaseId || previous.linkedCommercialCaseId
     ),
@@ -288,6 +342,21 @@ async function createCcoTreatmentAgreementStore({ filePath }) {
     const existing = index >= 0 ? state.agreements[index] : {};
     const normalized = normalizeAgreement(input, existing);
     if (!normalized) throw new Error('Behandlingsavtalet kunde inte normaliseras.');
+    const consentResolution = resolveConsentTemplateForAgreement(normalized);
+    normalized.bundleStatus = computeBundleStatus(normalized, { consentResolution });
+    if (
+      consentResolution?.found &&
+      consentResolution.template &&
+      !normalized.consent.templateApiId
+    ) {
+      normalized.consent = normalizeConsentState({
+        ...normalized.consent,
+        templateId: consentResolution.template.id,
+        templateApiId: consentResolution.template.apiId,
+        templateVersion: consentResolution.template.version,
+        templateTitle: consentResolution.template.title,
+      });
+    }
     if (index >= 0) {
       state.agreements[index] = normalized;
     } else {
@@ -314,10 +383,13 @@ async function createCcoTreatmentAgreementStore({ filePath }) {
 
 module.exports = {
   AGREEMENT_STATUSES,
+  BUNDLE_STATUSES,
   DELIVERY_MODES,
   AGREEMENT_VERSION,
   DEFAULT_COOLING_OFF_DAYS,
   buildTreatmentAgreementReadout,
   canAcceptAgreement,
   createCcoTreatmentAgreementStore,
+  defaultTemplateBindingForOffer,
+  computeBundleStatus,
 };

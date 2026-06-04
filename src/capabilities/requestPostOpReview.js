@@ -24,6 +24,7 @@
 const { ROLE_OWNER, ROLE_STAFF } = require('../security/roles');
 const { BaseCapability } = require('./baseCapability');
 const { renderEmailShell } = require('../templates/emailLayout');
+const { formatTreatmentLabel } = require('../lib/postOpTreatmentLabel');
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -54,10 +55,26 @@ const CLINIC_FROM = 'contact@hairtpclinic.com';
 const CLINIC_NAME = 'Hair TP Clinic';
 const CLINIC_ADDRESS = 'Vasaplatsen 2, 411 34 Göteborg';
 const CLINIC_PHONE = '031 88 11 66';
-const GBP_REVIEW_URL = 'https://maps.google.com/?cid=17939638689643749556';
+function buildReviewGateLink(reviewLink) {
+  return `${normalizeText(reviewLink).replace(/\/+$/, '')}/omdome`;
+}
 
-function buildEmailSv({ patientFirstName, reviewLink }) {
+function emailCtaButton(href, label) {
+  return [
+    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0 8px;">`,
+    `<tr><td style="border-radius:999px;background:#231F1D;">`,
+    `<a href="${escapeHtml(href)}" style="display:inline-block;padding:14px 22px;font-size:14px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;text-decoration:none;color:#FAF6F2;">`,
+    `${escapeHtml(label)}`,
+    `</a></td></tr></table>`,
+  ].join('');
+}
+
+function buildEmailSv({ patientFirstName, reviewLink, treatmentLabel = '' }) {
   const greetName = patientFirstName ? `, ${patientFirstName}` : '';
+  const treatment = formatTreatmentLabel(treatmentLabel, 'sv');
+  const reviewGateLink = buildReviewGateLink(reviewLink);
+  const photoCta = `Ladda upp dina bilder efter din ${treatment}`;
+  const reviewCta = 'Dela din upplevelse (frivilligt)';
   const subject = patientFirstName
     ? `Tack för förtroendet, ${patientFirstName} — får vi se hur resultatet blev?`
     : 'Tack för förtroendet — får vi se hur resultatet blev?';
@@ -69,15 +86,18 @@ function buildEmailSv({ patientFirstName, reviewLink }) {
     'nöjd med resultatet — och om du har möjlighet vore vi väldigt tacksamma',
     'om du kunde göra två snabba saker:',
     '',
-    '1. Ladda upp 1–6 efter-bilder via denna privata länk:',
+    `1. ${photoCta}:`,
     `   ${reviewLink}`,
     '',
-    `2. (Frivilligt) Lämna ett kort omdöme på Google:`,
-    `   ${GBP_REVIEW_URL}`,
+    `2. ${reviewCta}:`,
+    `   ${reviewGateLink}`,
     '',
     'Bilderna används bara om du själv ger samtycke, och då publiceras endast',
     'bildutsnitt från ögonbryn och uppåt — inga drag som kan identifiera dig',
     'som person. Du kan när som helst be oss radera bilderna.',
+    '',
+    'Positiva omdömen kan du välja att publicera på Google via vår sida —',
+    'annars tar vi emot din feedback internt så vi kan förbättra oss.',
     '',
     'Tack för förtroendet — det betyder mycket för oss och för andra som',
     'funderar på samma resa.',
@@ -91,12 +111,11 @@ function buildEmailSv({ patientFirstName, reviewLink }) {
   const bodyHtml = [
     `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hej${escapeHtml(greetName)},</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Det har gått ungefär ett år sedan din behandling hos oss. Vi hoppas du är nöjd med resultatet — och om du har möjlighet vore vi väldigt tacksamma om du kunde göra två snabba saker:</p>`,
-    `<ol style="font-size:15px;line-height:24px;margin:0 0 20px;padding-left:20px;">`,
-    `  <li style="margin-bottom:12px;">Ladda upp 1–6 efter-bilder via denna privata länk:<br>`,
-    `      <a href="${escapeHtml(reviewLink)}" style="color:#231F1D;">${escapeHtml(reviewLink)}</a></li>`,
-    `  <li>(Frivilligt) Lämna ett kort omdöme på Google:<br>`,
-    `      <a href="${escapeHtml(GBP_REVIEW_URL)}" style="color:#231F1D;">${escapeHtml(GBP_REVIEW_URL)}</a></li>`,
-    `</ol>`,
+    `<p style="font-size:15px;line-height:24px;margin:0 0 8px;"><strong>1.</strong> ${escapeHtml(photoCta)}</p>`,
+    emailCtaButton(reviewLink, photoCta),
+    `<p style="font-size:15px;line-height:24px;margin:20px 0 8px;"><strong>2.</strong> ${escapeHtml(reviewCta)}</p>`,
+    emailCtaButton(reviewGateLink, reviewCta),
+    `<p style="font-size:14px;line-height:22px;margin:0 0 20px;color:#6B5F58;">Positiva omdömen kan du välja att publicera på Google via vår sida. Annars sparar vi din feedback internt så vi kan förbättra oss.</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Bilderna används bara om du själv ger samtycke, och då publiceras endast bildutsnitt <strong>från ögonbryn och uppåt</strong> — inga drag som kan identifiera dig som person. Du kan när som helst be oss radera bilderna.</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 12px;">Tack för förtroendet — det betyder mycket för oss och för andra som funderar på samma resa.</p>`,
     `<p style="font-size:13px;line-height:20px;margin:24px 0 0;color:#6B5F58;">Återkalla samtycke: <a href="mailto:${escapeHtml(CLINIC_FROM)}" style="color:#6B5F58;">${escapeHtml(CLINIC_FROM)}</a></p>`,
@@ -104,11 +123,15 @@ function buildEmailSv({ patientFirstName, reviewLink }) {
 
   const html = renderEmailShell({ locale: 'sv', bodyHtml });
 
-  return { subject, plain, html };
+  return { subject, plain, html, reviewGateLink };
 }
 
-function buildEmailEn({ patientFirstName, reviewLink }) {
+function buildEmailEn({ patientFirstName, reviewLink, treatmentLabel = '' }) {
   const greetName = patientFirstName ? `, ${patientFirstName}` : '';
+  const treatment = formatTreatmentLabel(treatmentLabel, 'en');
+  const reviewGateLink = buildReviewGateLink(reviewLink);
+  const photoCta = `Upload your photos after your ${treatment}`;
+  const reviewCta = 'Share your experience (optional)';
   const subject = patientFirstName
     ? `Thank you, ${patientFirstName} — could we see how your results turned out?`
     : 'Thank you — could we see how your results turned out?';
@@ -120,15 +143,18 @@ function buildEmailEn({ patientFirstName, reviewLink }) {
     "happy with the results — and if you have the time, we'd be very grateful",
     'if you could do two quick things:',
     '',
-    '1. Upload 1–6 after photos via this private link:',
+    `1. ${photoCta}:`,
     `   ${reviewLink}`,
     '',
-    '2. (Optional) Leave a short review on Google:',
-    `   ${GBP_REVIEW_URL}`,
+    `2. ${reviewCta}:`,
+    `   ${reviewGateLink}`,
     '',
     'Photos are only used with your consent, and we only publish the area',
     'from the eyebrows up — never anything that could identify you. You can',
     'ask us to delete the photos at any time.',
+    '',
+    'Positive reviews can be published on Google via our page — otherwise',
+    'we keep your feedback internal so we can improve.',
     '',
     `Thank you — it means a lot to us and to others considering the same journey.`,
     '',
@@ -141,12 +167,11 @@ function buildEmailEn({ patientFirstName, reviewLink }) {
   const bodyHtml = [
     `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Hi${escapeHtml(greetName)},</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">It's been about a year since your treatment with us. We hope you're happy with the results — and if you have the time, we'd be very grateful if you could do two quick things:</p>`,
-    `<ol style="font-size:15px;line-height:24px;margin:0 0 20px;padding-left:20px;">`,
-    `  <li style="margin-bottom:12px;">Upload 1–6 after photos via this private link:<br>`,
-    `      <a href="${escapeHtml(reviewLink)}" style="color:#231F1D;">${escapeHtml(reviewLink)}</a></li>`,
-    `  <li>(Optional) Leave a short review on Google:<br>`,
-    `      <a href="${escapeHtml(GBP_REVIEW_URL)}" style="color:#231F1D;">${escapeHtml(GBP_REVIEW_URL)}</a></li>`,
-    `</ol>`,
+    `<p style="font-size:15px;line-height:24px;margin:0 0 8px;"><strong>1.</strong> ${escapeHtml(photoCta)}</p>`,
+    emailCtaButton(reviewLink, photoCta),
+    `<p style="font-size:15px;line-height:24px;margin:20px 0 8px;"><strong>2.</strong> ${escapeHtml(reviewCta)}</p>`,
+    emailCtaButton(reviewGateLink, reviewCta),
+    `<p style="font-size:14px;line-height:22px;margin:0 0 20px;color:#6B5F58;">Positive reviews can be published on Google via our page. Otherwise we keep your feedback internal so we can improve.</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 20px;">Photos are only used with your consent, and we only publish <strong>the area from the eyebrows up</strong> — never anything that could identify you. You can ask us to delete the photos at any time.</p>`,
     `<p style="font-size:15px;line-height:24px;margin:0 0 12px;">Thank you — it means a lot to us and to others considering the same journey.</p>`,
     `<p style="font-size:13px;line-height:20px;margin:24px 0 0;color:#6B5F58;">Withdraw consent: <a href="mailto:${escapeHtml(CLINIC_FROM)}" style="color:#6B5F58;">${escapeHtml(CLINIC_FROM)}</a></p>`,
@@ -154,7 +179,7 @@ function buildEmailEn({ patientFirstName, reviewLink }) {
 
   const html = renderEmailShell({ locale: 'en', bodyHtml });
 
-  return { subject, plain, html };
+  return { subject, plain, html, reviewGateLink };
 }
 
 // ─────── Capability ──────────────────────────────────────────────────────
@@ -179,6 +204,7 @@ class RequestPostOpReviewCapability extends BaseCapability {
       bookingCaseId: { type: 'string', description: 'cco-bookings.json cases[].bookingCaseId' },
       customerName: { type: 'string' },
       locale: { type: 'string', enum: ['sv', 'en'] },
+      treatmentLabel: { type: 'string', description: 'Visningsnamn på behandling i e-post-CTA' },
       baseUrl: { type: 'string', description: 'Origin för token-länken — default arcana.hairtpclinic.se' },
     },
     required: ['bookingCaseId'],
@@ -210,6 +236,9 @@ class RequestPostOpReviewCapability extends BaseCapability {
     const bookingCaseId = normalizeText(input.bookingCaseId);
     const customerName = normalizeText(input.customerName);
     const locale = input.locale === 'en' ? 'en' : 'sv';
+    const treatmentLabel =
+      normalizeText(input.treatmentLabel) ||
+      formatTreatmentLabel(normalizeText(input.treatmentKey), locale);
     const baseUrl = normalizeText(input.baseUrl) || 'https://arcana.hairtpclinic.se';
     const tenantId = normalizeText(safeContext.tenantId) || 'hair-tp-clinic';
 
@@ -271,6 +300,7 @@ class RequestPostOpReviewCapability extends BaseCapability {
       bookingCaseId,
       tenantId,
       patientName: customerName,
+      treatmentLabel,
     });
 
     const reviewLink = `${baseUrl.replace(/\/+$/, '')}/uppfoljning/${encodeURIComponent(token)}`;
@@ -279,6 +309,7 @@ class RequestPostOpReviewCapability extends BaseCapability {
     const email = emailBuilder({
       patientFirstName: firstName(customerName),
       reviewLink,
+      treatmentLabel,
     });
 
     return {
@@ -286,6 +317,7 @@ class RequestPostOpReviewCapability extends BaseCapability {
         submissionId: submission.submissionId,
         token,
         reviewLink,
+        reviewGateLink: email.reviewGateLink,
         emailDraft: {
           ...email,
           fromAddress: CLINIC_FROM,
@@ -309,4 +341,5 @@ module.exports = {
   // Exporta builders för enhetstester
   _buildEmailSv: buildEmailSv,
   _buildEmailEn: buildEmailEn,
+  _buildReviewGateLink: buildReviewGateLink,
 };

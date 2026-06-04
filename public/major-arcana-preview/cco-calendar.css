@@ -1,0 +1,1211 @@
+@layer components {
+  /* R1 (2026-05-26): Cursor's calendar tokens now bridge to CCO master tokens
+   * so calendar inherits theming, dark-mode, and canonical colors/typography
+   * from design-tokens.css. Existing --cco-cal-* references keep working. */
+  :root {
+    /* R8 (2026-05-28): kalendern delar nu studio/note-ytan och den varma
+     * plommon/rosa/sand-paletten. Generisk accent = plommon (--accent-studio);
+     * semantiska statusfärger (success/warn/info/danger) behålls för
+     * bekräftad/tentativ/info/konflikt så signalvärdet inte tappas. */
+    --cco-cal-accent: var(--accent-studio, #bb4779);
+    --cco-cal-accent-soft: rgba(187, 71, 121, 0.42);
+    --cco-cal-espresso: var(--cco-color-brand, #2b251f);
+    --cco-cal-espresso-soft: var(--cco-text-secondary, #5d544a);
+    --cco-cal-canvas: var(--cco-bg-page, #fbf7f1);
+    --cco-cal-panel: var(--panel-card-top, rgba(255, 255, 255, 0.9));
+    --cco-cal-card: var(--cco-bg-surface, #ffffff);
+    --cco-cal-border: var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    --cco-cal-border-strong: var(--cco-border-default, rgba(43, 37, 31, 0.15));
+    --cco-cal-success: var(--cco-status-success, #4a8268);
+    --cco-cal-warn: var(--cco-status-warning, #c8821e);
+    --cco-cal-info: var(--cco-status-info, #4a7ba8);
+    --cco-cal-video: var(--cco-status-info, #4a7ba8);
+    --cco-cal-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08));
+    --cco-cal-shadow-hover: var(--cco-shadow-md, 0 4px 8px rgba(43, 37, 31, 0.08));
+    --cco-cal-font-display: var(--cco-font-display, "Inter", system-ui, sans-serif);
+    --cco-cal-font-ui: var(--cco-font-sans, "Inter", system-ui, sans-serif);
+  }
+
+  /* R5b: calendar-shell ligger i .preview-workspace som är 2-col grid
+   * (500px kö / 1058px fokus). När kalender-vyn är aktiv måste shellen
+   * spänna båda kolumnerna så hela viewporten används. Annars klämms
+   * kalendern till 500px (4 dagar synliga, toolbar staplad). */
+  .preview-workspace > .calendar-shell,
+  .preview-workspace > .calendar-shell .calendar-shell-surface,
+  .preview-workspace > .calendar-shell .cco-cal-host {
+    grid-column: 1 / -1;
+  }
+  .preview-workspace > .calendar-shell {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Fullscreen kalendervy: fyll viewport, dölj kö/fokus, minimera dubbel-chrome. */
+  .preview-page:has(.preview-canvas[data-app-shell-view="calendar"]) {
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .preview-canvas[data-app-shell-view="calendar"] {
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .preview-canvas[data-app-shell-view="calendar"] .preview-workspace {
+    display: block;
+    height: calc(100dvh - var(--workspace-sticky-top, 72px) - 12px);
+    min-height: 0;
+    margin-inline: var(--workspace-edge-left, 12px) var(--workspace-edge-right, 12px);
+    padding-top: var(--workspace-top-clearance, 8px);
+    overflow: hidden;
+  }
+
+  .preview-canvas[data-app-shell-view="calendar"] .preview-workspace > :not(.calendar-shell) {
+    display: none !important;
+  }
+
+  .preview-canvas[data-app-shell-view="calendar"] .preview-workspace::before {
+    display: none;
+  }
+
+  .cco-cal-host {
+    display: contents;
+  }
+
+  .calendar-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    padding: var(--cco-space-3, 12px) var(--cco-space-4, 16px);
+    padding-bottom: max(var(--cco-space-4, 16px), env(safe-area-inset-bottom, 0px));
+  }
+
+  .calendar-shell-surface {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    gap: 0;
+    min-height: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .calendar-shell-header {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .calendar-shell-header h1 {
+    margin: 0;
+    font-family: var(--cco-cal-font-display);
+    font-size: clamp(1.5rem, 1.3rem + 0.5vw, 2rem);
+    color: var(--cco-cal-espresso);
+  }
+
+  .calendar-shell-lead {
+    margin: 0;
+    color: var(--cco-cal-espresso-soft);
+    font-size: 14px;
+  }
+
+  .calendar-shell .cco-cal-workstation {
+    margin-top: 0;
+  }
+
+  .cco-cal-workstation {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    gap: var(--cco-space-4, 16px);
+    min-height: 0;
+    margin: 0;
+    padding: 14px 18px 16px;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: hidden;
+    font-family: var(--cco-cal-font-ui);
+    color: var(--cco-text-primary, #2b251f);
+    /* varm palett-scope: alla generiska var(--cco-color-accent)-referenser
+     * inom kalendern blir plommon istället för grön. */
+    --cco-color-accent: var(--accent-studio, #bb4779);
+    --cco-color-accent-soft: rgba(187, 71, 121, 0.45);
+  }
+
+  .cco-cal-workstation[hidden] {
+    display: none !important;
+  }
+
+  /* R8 (2026-05-28): toolbar i studio-stil. Elementet bär både
+   * .cco-cal-toolbar och .studio-toolbar (basstyling i styles.css) — här
+   * bara kalenderspecifika tweaks samt filterraden under toolbaren. */
+  .cco-cal-toolbar.studio-toolbar {
+    flex-wrap: wrap;
+    min-height: 0;
+    padding: 0 2px 8px;
+  }
+  .cco-cal-toolbar-main {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    flex: 1 1 auto;
+  }
+  .cco-cal-toolbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .cco-cal-mark {
+    color: var(--accent-studio, #bb4779);
+  }
+  /* R9: status-räknarna som platt färgad text (signalfärgen ligger kvar via
+   * studio-status-pill-green/gold/neutral) istället för ifyllda bubblor. */
+  .cco-cal-pill {
+    min-height: 0;
+    padding: 0 2px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 11px;
+  }
+  .cco-cal-pill strong {
+    font-variant-numeric: tabular-nums;
+  }
+  /* rose-variant (konflikt) — bara färgad text, ingen bubbla */
+  .cco-cal-pill-rose {
+    color: #b23a6a;
+    background: transparent;
+  }
+  .cco-cal-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+
+  /* R9: ramlös segment-grupp — ingen bubbla-runt-bubblorna. Inaktiva =
+   * vanlig text, aktiv får en mjuk fyllning (nedan). */
+  .cco-cal-segments {
+    display: inline-flex;
+    gap: 2px;
+    padding: 0;
+    border-radius: 999px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .cco-cal-segment {
+    appearance: none;
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cco-text-secondary, #5d544a);
+    background: transparent;
+    cursor: pointer;
+    transition:
+      background 160ms ease,
+      color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
+  }
+
+  .cco-cal-segment:hover {
+    background: var(--cco-bg-surface-sunken, #f5efe6);
+  }
+
+  /* R9: aktiv segment = mjuk ljus fyllning + plommon-text, ingen tung
+   * gradient/skugga/lyft. En lugn markering istället för en stark bubbla. */
+  .cco-cal-segment.is-active {
+    color: #a1366a;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: none;
+  }
+
+  .cco-cal-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  /* R9: ghost-chips — inaktiva = vanlig dämpad text utan ram/skugga,
+   * aktiv = en enda mjuk plommon-fyllning. Tar bort 5–6 bubblor ur raden. */
+  .cco-cal-filter-chip {
+    appearance: none;
+    border: 0;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cco-text-tertiary, #8a8174);
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    transition:
+      color 160ms ease,
+      background 160ms ease;
+  }
+
+  .cco-cal-filter-chip:hover {
+    color: var(--cco-cal-espresso);
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .cco-cal-filter-chip.is-active {
+    color: #a1366a;
+    background: rgba(247, 215, 227, 0.55);
+  }
+
+  .cco-cal-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: flex-end;
+    /* R5: tillåt navet att krympa under minmax-tracken så det inte
+     * pressas över en rad var. */
+    min-width: 0;
+  }
+
+  /* R9: ghost nav-knappar — ingen ram/fyllning/skugga, bara text/ikon.
+   * Subtil yta först vid hover. */
+  .cco-cal-nav-btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 11px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--cco-cal-espresso);
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    transition:
+      background 160ms ease,
+      color 160ms ease;
+  }
+  .cco-cal-nav-btn:hover {
+    color: var(--accent-studio, #bb4779);
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .cco-cal-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--cco-space-4, 16px);
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .cco-cal-body[data-detail-open="true"] {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, min(340px, 32vw));
+  }
+
+  /* R9 (2026-05-28): ramlös — gridet ligger platt direkt på studio-skalet
+   * istället för som ett eget kort-i-kort. Ett elevation-steg, lugnare yta. */
+  .cco-cal-grid-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cco-cal-week-grid,
+  .cco-cal-resource-grid {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    min-width: 720px;
+  }
+
+  .cco-cal-week-grid {
+    /* R5: minmax(0, 1fr) ist f minmax(120px, 1fr) — 7 dagar får alltid plats
+     * även när host-containern är smal (Claude/sidebar öppen). */
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .cco-cal-resource-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .cco-cal-resource-timeline {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+    min-width: 720px;
+  }
+
+  .cco-cal-resource-time-rail {
+    display: grid;
+    gap: 0;
+    padding-top: 52px;
+  }
+
+  .cco-cal-resource-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+
+  .cco-cal-resource-col-timeline {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .cco-cal-resource-time-grid {
+    position: relative;
+    min-height: 520px;
+    border-radius: 14px;
+    border: 1px solid var(--cco-cal-border);
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        rgba(120, 105, 90, 0.08) 0,
+        rgba(120, 105, 90, 0.08) 1px,
+        transparent 1px,
+        transparent calc(100% / 10)
+      ),
+      rgba(255, 255, 255, 0.42);
+  }
+
+  .cco-cal-day-col,
+  .cco-cal-resource-col {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    min-height: 280px;
+    padding: 12px;
+    border-radius: var(--cco-radius-md, 8px);
+    border: 1px solid var(--cco-cal-border);
+    background: var(--cco-bg-surface, #ffffff);
+  }
+
+  .cco-cal-day-col.is-today {
+    border-color: var(--cco-color-accent, #4a8268);
+    box-shadow: inset 0 0 0 1px var(--cco-color-accent-soft, #6fa68a);
+  }
+
+  .cco-cal-day-col.is-selected {
+    background: rgba(252, 233, 240, 0.5);
+  }
+
+  .cco-cal-col-head {
+    display: grid;
+    gap: 2px;
+  }
+
+  .cco-cal-col-head strong {
+    font-size: 14px;
+    color: var(--cco-cal-espresso);
+  }
+
+  .cco-cal-col-head span {
+    font-size: 12px;
+    color: var(--cco-cal-espresso-soft);
+  }
+
+  .cco-cal-day-open {
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 2px 4px;
+    margin: -2px -4px 0;
+    transition:
+      background 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .cco-cal-day-open:hover,
+  .cco-cal-day-open:focus-visible {
+    outline: none;
+    background: var(--cco-bg-surface-sunken, #f5efe6);
+    box-shadow: inset 0 0 0 1px var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+  }
+
+  .cco-cal-day-stack,
+  .cco-cal-resource-stack {
+    display: grid;
+    gap: 8px;
+  }
+
+  .cco-cal-day-timeline {
+    position: relative;
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+    min-height: 520px;
+  }
+
+  .cco-cal-time-rail {
+    display: grid;
+    gap: 0;
+  }
+
+  .cco-cal-time-label {
+    height: 56px;
+    font-family: var(--cco-font-mono, ui-monospace, monospace);
+    font-size: 11px;
+    color: var(--cco-text-tertiary, #8a8174);
+  }
+
+  .cco-cal-time-grid {
+    position: relative;
+    border-left: 1px solid var(--cco-cal-border);
+  }
+
+  .cco-cal-time-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--cco-cal-border);
+  }
+
+  .cco-cal-time-events {
+    position: absolute;
+    inset: 0;
+    padding: 8px 0;
+    min-height: 560px;
+  }
+
+  .cco-cal-now-marker {
+    position: absolute;
+    left: -6px;
+    right: 0;
+    height: 2px;
+    background: var(--cco-cal-accent);
+    box-shadow: 0 0 0 3px var(--cco-status-success-bg, rgba(74, 130, 104, 0.12));
+    z-index: 2;
+  }
+
+  .cco-cal-now-marker::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cco-cal-accent);
+    transform: translate(-50%, -50%);
+  }
+
+  /* R1: warm-row-parity. Flat surface, 8px radius, 3px rail, --cco-shadow-sm.
+   * Visuellt syskon till kö-kort: samma yta, kant, typografi. */
+  .cco-cal-event {
+    appearance: none;
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--cco-space-3, 12px);
+    align-items: start;
+    text-align: left;
+    padding: var(--cco-space-3, 12px);
+    border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    border-left: 3px solid var(--cco-cal-event-accent, var(--cco-color-accent, #4a8268));
+    border-radius: var(--cco-radius-md, 8px);
+    background: var(--cco-bg-surface, #ffffff);
+    box-shadow: var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08));
+    cursor: pointer;
+    transition:
+      box-shadow var(--cco-duration-fast, 150ms) var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1)),
+      transform var(--cco-duration-fast, 150ms) var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1)),
+      border-color var(--cco-duration-fast, 150ms) var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1));
+  }
+
+  .cco-cal-event:hover,
+  .cco-cal-event.is-selected {
+    box-shadow: var(--cco-shadow-md, 0 4px 8px rgba(43, 37, 31, 0.08));
+    transform: translateY(-1px);
+    border-color: var(--cco-border-default, rgba(43, 37, 31, 0.15));
+  }
+
+  .cco-cal-event.is-compact {
+    padding: var(--cco-space-2, 8px) var(--cco-space-3, 12px);
+  }
+
+  .cco-cal-event.is-booked {
+    background: var(--cco-bg-surface, #ffffff);
+  }
+
+  .cco-cal-event.is-available {
+    border-style: dashed;
+    background: var(--cco-bg-surface-sunken, #f5efe6);
+    opacity: 0.92;
+  }
+
+  .cco-cal-event.is-available .cco-cal-event-title {
+    color: var(--cco-cal-espresso-soft);
+  }
+
+  .cco-cal-event.is-block {
+    border-style: solid;
+    border-left-width: 4px;
+    background: repeating-linear-gradient(
+      -45deg,
+      rgba(200, 192, 184, 0.18),
+      rgba(200, 192, 184, 0.18) 8px,
+      rgba(245, 241, 236, 0.72) 8px,
+      rgba(245, 241, 236, 0.72) 16px
+    );
+    cursor: default;
+    opacity: 0.95;
+  }
+
+  .cco-cal-event.is-booked[draggable="true"] {
+    cursor: grab;
+  }
+
+  .cco-cal-event.is-booked.is-dragging {
+    cursor: grabbing;
+    opacity: 0.72;
+  }
+
+  .cco-cal-drop-zone.is-drop-target {
+    outline: 2px dashed var(--cco-color-accent, #4a8268);
+    outline-offset: -2px;
+    background: rgba(255, 245, 232, 0.35);
+  }
+
+  /* R7: tidigare 0.82 opacity gjorde hela kalendern blek när busy-state
+   * råkade hänga sig. Mildare 0.96 + en subtil grön accent-rand i toppen
+   * signalerar pågående action utan att tona ner hela ytan. */
+  .cco-cal-workstation[data-cal-busy="true"] {
+    opacity: 0.96;
+    pointer-events: none;
+    position: relative;
+  }
+  .cco-cal-workstation[data-cal-busy="true"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--cco-color-accent, #4a8268) 50%,
+      transparent 100%
+    );
+    animation: cco-cal-busy-bar 1.4s ease-in-out infinite;
+    border-radius: var(--cco-radius-md, 8px) var(--cco-radius-md, 8px) 0 0;
+  }
+  @keyframes cco-cal-busy-bar {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cco-cal-workstation[data-cal-busy="true"]::before {
+      animation: none;
+      opacity: 0.8;
+    }
+  }
+
+  :root {
+    --cco-cal-block: #c8c0b8;
+  }
+
+  .cco-cal-event-time {
+    font-family: var(--cco-font-mono, ui-monospace, monospace);
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--cco-cal-espresso-soft);
+    white-space: nowrap;
+  }
+
+  .cco-cal-event-body {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .cco-cal-event-title {
+    font-size: 13px;
+    line-height: 1.25;
+    color: var(--cco-cal-espresso);
+  }
+
+  .cco-cal-event-meta {
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--cco-cal-espresso-soft);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cco-cal-event-icons {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    color: var(--cco-cal-espresso-soft);
+  }
+
+  .cco-cal-event-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+  }
+
+  .cco-cal-event-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .cco-cal-event-icon.is-sent {
+    color: var(--cco-cal-success);
+  }
+
+  .cco-cal-event-icon.is-due,
+  .cco-cal-event-icon.is-warning {
+    color: var(--cco-cal-warn);
+  }
+
+  .cco-cal-event-icon.is-missing {
+    color: var(--cco-cal-espresso-soft);
+  }
+
+  .cco-cal-empty {
+    padding: 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    color: var(--cco-cal-espresso-soft);
+    background: rgba(255, 255, 255, 0.45);
+  }
+
+  .cco-cal-detail {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+    padding: 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: linear-gradient(
+      180deg,
+      var(--panel-card-top, rgba(255, 255, 255, 0.9)) 0%,
+      var(--panel-card-bottom, rgba(247, 241, 236, 0.84)) 100%
+    );
+    box-shadow: var(--panel-card-shadow);
+  }
+
+  .cco-cal-detail[hidden] {
+    display: none !important;
+  }
+
+  /* R2 (2026-05-26): cco-cal-detail-kicker/-meta/-actions removed.
+   * Detail-pane använder nu Kundintelligens-mönstret (focus-intel-*) som
+   * definieras i styles.css. Den outer .cco-cal-detail-containern behåller
+   * sin yta/skugga ovan, men inre layout styrs av focus-intel-reglerna. */
+
+  /* R8 (2026-05-28): AI nästa-steg-banner i detaljpanelen.
+   * R9: ramlös — lätt vänster-accent + luft istället för en egen box. */
+  .cco-cal-detail-reco {
+    display: grid;
+    gap: 3px;
+    padding: 2px 0 2px 12px;
+    border-radius: 0;
+    border: 0;
+    border-left: 2px solid rgba(164, 70, 112, 0.5);
+    background: transparent;
+  }
+  .cco-cal-detail-reco[hidden] {
+    display: none !important;
+  }
+  .cco-cal-detail-reco-kicker {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #a1366a;
+  }
+  .cco-cal-detail-reco strong {
+    font-size: 14px;
+    line-height: 1.25;
+    color: var(--cco-cal-espresso);
+  }
+  .cco-cal-detail-reco p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--cco-cal-espresso-soft);
+  }
+
+  /* R8: påminnelser & signaler — eget block. */
+  .cco-cal-detail-signals {
+    display: grid;
+    gap: 6px;
+  }
+  .cco-cal-detail-signals[hidden] {
+    display: none !important;
+  }
+  .cco-cal-detail-signals-kicker {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cco-text-tertiary, #8a8174);
+  }
+  .cco-cal-detail-signals ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+  }
+  /* R9 (2026-05-28): hårlinje-rader istället for pill-i-pill. */
+  .cco-cal-detail-signals li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
+    padding: 6px 0;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--cco-cal-border);
+  }
+  .cco-cal-detail-signals li:last-child {
+    border-bottom: 0;
+  }
+  .cco-cal-detail-signals li span {
+    color: var(--cco-cal-espresso-soft);
+  }
+  .cco-cal-detail-signals li strong {
+    color: var(--cco-cal-espresso);
+    text-align: right;
+  }
+
+  /* R8: studio/note-pills i action-row — speglar konversationschipsen. */
+  .quick-action-pill--studio {
+    border-color: rgba(164, 70, 112, 0.55);
+    background: linear-gradient(180deg, rgba(156, 104, 68, 0.95) 0%, rgba(164, 70, 112, 0.96) 100%);
+    color: rgba(255, 248, 251, 0.98);
+  }
+  .quick-action-pill--note {
+    border-color: rgba(214, 200, 190, 0.85);
+    background: rgba(255, 255, 255, 0.96);
+    color: rgba(72, 58, 48, 0.94);
+  }
+
+  .cco-mobile-calendar-item-button.cco-cal-event {
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .cco-mobile-calendar-day.is-selected {
+    background: rgba(255, 235, 216, 0.55);
+    border-color: var(--cco-border-default, rgba(43, 37, 31, 0.15));
+  }
+
+  .cco-mobile-calendar-day.is-today .cco-mobile-calendar-day-num {
+    color: var(--cco-cal-espresso);
+    font-weight: 700;
+  }
+
+  .schedule-mark,
+  .schedule-status-pill-rose {
+    color: var(--cco-cal-espresso-soft) !important;
+  }
+
+  .schedule-status-pill-rose {
+    background: linear-gradient(
+      180deg,
+      rgba(239, 229, 222, 0.98) 0%,
+      rgba(202, 186, 174, 0.28) 100%
+    ) !important;
+    border: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+  }
+
+  /* === R3 (2026-05-26): konflikt, behandlingstyp-band, NU-badge ===== */
+
+  /* Konflikt: överlappande bokningar på samma resurs får röd ram + ⚠. */
+  .cco-cal-event.is-conflict {
+    border-color: var(--cco-status-danger, #b94a4a);
+    background: var(--cco-status-danger-bg, rgba(185, 74, 74, 0.08));
+  }
+  .cco-cal-event.is-conflict .cco-cal-event-title::before {
+    content: "⚠ ";
+    color: var(--cco-status-danger, #b94a4a);
+    font-weight: 700;
+  }
+
+  /* Behandlingstyp som tunn färgband i nederkant av kortet. */
+  .cco-cal-event[data-service-type]:not([data-service-type="other"])::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: var(--cco-radius-md, 8px);
+    right: var(--cco-radius-md, 8px);
+    height: 2px;
+    border-radius: 1px;
+    opacity: 0.78;
+    pointer-events: none;
+  }
+  .cco-cal-event[data-service-type="hairtx"]::after {
+    background: #7c3aed;
+  }
+  .cco-cal-event[data-service-type="prp"]::after {
+    background: #f97316;
+  }
+  .cco-cal-event[data-service-type="consultation"]::after {
+    background: #0ea5e9;
+  }
+  .cco-cal-event[data-service-type="aftercare"]::after {
+    background: #14b8a6;
+  }
+  .cco-cal-event[data-service-type="video"]::after {
+    background: var(--cco-status-info, #4a7ba8);
+  }
+
+  /* "NU HH:MM"-badge i todays kolumn-header i vecka-vyn. */
+  .cco-cal-now-badge {
+    display: inline-block;
+    margin-left: var(--cco-space-2, 8px);
+    padding: 2px var(--cco-space-2, 8px);
+    background: var(--cco-color-accent, #4a8268);
+    color: var(--cco-text-on-accent, #ffffff);
+    border-radius: var(--cco-radius-full, 9999px);
+    font-size: var(--cco-text-xs, 11px);
+    font-weight: var(--cco-weight-semibold, 600);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+  }
+
+  /* Behandlingstypsfilter — visuell distinktion mot resursfiltret. */
+  .cco-cal-filters-type {
+    border-left: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    padding-left: var(--cco-space-2, 8px);
+    margin-left: var(--cco-space-2, 8px);
+  }
+  .cco-cal-filter-chip-type.is-active {
+    background: var(--cco-color-accent, #4a8268);
+    color: var(--cco-text-on-accent, #ffffff);
+    border-color: var(--cco-color-accent, #4a8268);
+  }
+  .cco-cal-filter-chip-type small {
+    margin-left: 4px;
+    opacity: 0.7;
+    font-weight: var(--cco-weight-regular, 400);
+  }
+
+  /* === R4 (2026-05-26): veckosammanfattning, print-knapp, kortkommandon ===== */
+
+  /* Veckosammanfattning högst upp i vecka-vyn — speglar mailbox-summary-känsla. */
+  /* R9 (2026-05-28): ramlös busy/veckosammanfattning — en platt zon på
+   * skalet, avskild med en tunn hårlinje istället för en egen kort-ram. */
+  .cco-cal-week-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cco-space-3, 12px);
+    padding: 0 2px var(--cco-space-3, 12px);
+    margin-bottom: var(--cco-space-3, 12px);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--cco-cal-border);
+    border-radius: 0;
+    box-shadow: none;
+    font-size: var(--cco-text-sm, 12px);
+    color: var(--cco-text-secondary, #5d544a);
+  }
+
+  .cco-cal-week-summary-totals {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--cco-space-4, 16px);
+  }
+  .cco-cal-week-summary-kicker {
+    font-size: var(--cco-text-xs, 11px);
+    font-weight: var(--cco-weight-semibold, 600);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cco-text-tertiary, #8a8174);
+  }
+  .cco-cal-week-summary-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .cco-cal-week-summary-item strong {
+    font-size: var(--cco-text-base, 14px);
+    color: var(--cco-text-primary, #2b251f);
+    font-variant-numeric: tabular-nums;
+  }
+  .cco-cal-week-summary-item.is-confirmed strong {
+    color: var(--cco-status-success, #4a8268);
+  }
+  .cco-cal-week-summary-item.is-tentative strong {
+    color: var(--cco-status-warning, #c8821e);
+  }
+  .cco-cal-week-summary-item.is-conflict strong {
+    color: var(--cco-status-danger, #b94a4a);
+  }
+
+  /* Print-knapp: dämpad, separerad från nav-knappar. */
+  .cco-cal-nav-btn-print {
+    margin-left: var(--cco-space-2, 8px);
+    border-left: 1px solid var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+    padding-left: var(--cco-space-3, 12px);
+  }
+
+  /* @media print: göm allt utom kalender-shellen.
+   * Behåll bara grid + summary, ta bort drag-zoner, hover, skuggor. */
+  @media print {
+    body.cco-cal-printing > *:not(#cco-desktop-calendar):not(script):not(style) {
+      display: none !important;
+    }
+    body.cco-cal-printing #cco-desktop-calendar {
+      display: block !important;
+      position: static !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      background: white !important;
+    }
+    body.cco-cal-printing .cco-cal-toolbar,
+    body.cco-cal-printing .cco-cal-detail,
+    body.cco-cal-printing .cco-cal-nav-btn-print {
+      display: none !important;
+    }
+    body.cco-cal-printing .cco-cal-event {
+      box-shadow: none !important;
+      break-inside: avoid;
+    }
+    body.cco-cal-printing .cco-cal-week-summary {
+      background: white !important;
+      border: 1px solid #ccc !important;
+    }
+    @page {
+      size: A4 landscape;
+      margin: 12mm;
+    }
+  }
+
+  /* === R4-13 (2026-05-26): kapacitetsöversikt per behandlare ===== */
+  .cco-cal-capacity {
+    display: grid;
+    gap: 4px;
+    padding-top: var(--cco-space-2, 8px);
+    border-top: 1px dashed var(--cco-border-subtle, rgba(43, 37, 31, 0.08));
+  }
+  .cco-cal-capacity-row {
+    display: grid;
+    grid-template-columns: minmax(90px, 120px) 1fr minmax(36px, auto) minmax(60px, auto);
+    align-items: center;
+    gap: var(--cco-space-3, 12px);
+    font-size: var(--cco-text-xs, 11px);
+    line-height: 1.4;
+  }
+  .cco-cal-capacity-name {
+    color: var(--cco-text-primary, #2b251f);
+    font-weight: var(--cco-weight-medium, 500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cco-cal-capacity-bar {
+    position: relative;
+    height: 6px;
+    background: rgba(43, 37, 31, 0.06);
+    border-radius: var(--cco-radius-full, 9999px);
+    overflow: hidden;
+  }
+  .cco-cal-capacity-bar > span {
+    display: block;
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--util-pct, 0%);
+    background: var(--cco-color-accent, #4a8268);
+    border-radius: var(--cco-radius-full, 9999px);
+    transition: width var(--cco-duration-normal, 240ms)
+      var(--cco-ease-out, cubic-bezier(0, 0, 0.2, 1));
+  }
+  .cco-cal-capacity-row[data-util-tone="warn"] .cco-cal-capacity-bar > span {
+    background: var(--cco-status-warning, #c8821e);
+  }
+  .cco-cal-capacity-row[data-util-tone="danger"] .cco-cal-capacity-bar > span {
+    background: var(--cco-status-danger, #b94a4a);
+  }
+  .cco-cal-capacity-pct {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--cco-text-secondary, #5d544a);
+    font-weight: var(--cco-weight-medium, 500);
+  }
+  .cco-cal-capacity-hours {
+    text-align: right;
+    color: var(--cco-text-tertiary, #8a8174);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 720px) {
+    .cco-cal-capacity-row {
+      grid-template-columns: 80px 1fr 36px;
+    }
+    .cco-cal-capacity-hours {
+      display: none;
+    }
+  }
+
+  /* === R4-final (2026-05-26): källfärg på rail + expiry-pulse ===== */
+
+  /* Källa på vänsterkant: cliento = cyan, web = violet, operator = brand,
+   * cco_engine = accent (default), pipedrive = orange. Använder samma palett
+   * som mailbox-railen i kö-vyn så samma färg signalerar samma kanal. */
+  .cco-cal-event[data-source="cliento"] {
+    border-left-color: #0ea5e9;
+  }
+  .cco-cal-event[data-source="web"] {
+    border-left-color: #8b5cf6;
+  }
+  .cco-cal-event[data-source="operator"] {
+    border-left-color: var(--cco-color-brand, #2b251f);
+  }
+  .cco-cal-event[data-source="pipedrive"] {
+    border-left-color: #f97316;
+  }
+  /* cco_engine = accent (default), inget override behövs */
+
+  /* Expiry-pulse: tentativ bokning nära expiresAt får pulsande warning-ring. */
+  @keyframes cco-cal-expiry-pulse {
+    0% {
+      box-shadow:
+        var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08)),
+        0 0 0 0 var(--cco-status-warning, #c8821e);
+    }
+    70% {
+      box-shadow:
+        var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08)),
+        0 0 0 6px rgba(200, 130, 30, 0);
+    }
+    100% {
+      box-shadow:
+        var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08)),
+        0 0 0 0 rgba(200, 130, 30, 0);
+    }
+  }
+  .cco-cal-event.is-expiring {
+    border-color: var(--cco-status-warning, #c8821e);
+    animation: cco-cal-expiry-pulse 1.6s var(--cco-ease-out, ease-out) infinite;
+  }
+  .cco-cal-event.is-expiring .cco-cal-event-title::before {
+    content: "⏱ ";
+    color: var(--cco-status-warning, #c8821e);
+    font-weight: 700;
+  }
+  /* Konflikt slår expiry — ⚠ får inte stå tillsammans med ⏱ */
+  .cco-cal-event.is-conflict.is-expiring {
+    animation: none;
+  }
+  .cco-cal-event.is-conflict.is-expiring .cco-cal-event-title::before {
+    content: "⚠ ";
+  }
+
+  /* Respektera reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    .cco-cal-event.is-expiring {
+      animation: none;
+      box-shadow:
+        var(--cco-shadow-sm, 0 1px 3px rgba(43, 37, 31, 0.08)),
+        0 0 0 2px var(--cco-status-warning, #c8821e);
+    }
+  }
+
+  /* Responsiv kalender: mindre padding och smalare detaljpanel på mellanstora skärmar. */
+  @media (max-width: 1280px) {
+    .calendar-shell {
+      padding-inline: var(--cco-space-3, 12px);
+    }
+
+    .cco-cal-workstation {
+      padding: var(--cco-space-3, 12px);
+    }
+
+    .cco-cal-body[data-detail-open="true"] {
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+    }
+
+    .cco-cal-week-grid,
+    .cco-cal-resource-grid {
+      min-width: min(100%, 640px);
+    }
+  }
+
+  @media (max-width: 900px) {
+    .cco-cal-toolbar-main h2 {
+      font-size: 15px;
+    }
+
+    .cco-cal-nav-btn {
+      padding: 0 10px;
+      font-size: 12px;
+    }
+  }
+
+  /* === R4: SLA-prick — röd/orange punkt på bokningar med SLA-risk ===== */
+  .cco-cal-event-icon[data-icon="sla"] {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--cco-status-danger, #b94a4a);
+    box-shadow: 0 0 0 2px rgba(185, 74, 74, 0.2);
+  }
+  .cco-cal-event-icon[data-icon="sla"].is-warning {
+    background: var(--cco-status-warning, #c8821e);
+    box-shadow: 0 0 0 2px rgba(200, 130, 30, 0.2);
+  }
+  .cco-cal-event-icon[data-icon="sla"].is-breach {
+    background: var(--cco-status-danger, #b94a4a);
+    animation: cco-cal-expiry-pulse 1.6s ease-out infinite;
+  }
+
+  /* === R4: Återbesöks-hint — info-prick för aktiv aftercare ===== */
+  .cco-cal-event-icon[data-icon="aftercare"] {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--cco-status-info, #4a7ba8);
+    box-shadow: 0 0 0 2px rgba(74, 123, 168, 0.15);
+  }
+  .cco-cal-event-icon[data-icon="aftercare"].is-active {
+    background: #14b8a6;
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.15);
+  }
+}

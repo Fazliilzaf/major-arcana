@@ -1426,6 +1426,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
     requestMaxRetries = 2,
     retryBaseDelayMs = 500,
     retryMaxDelayMs = 5000,
+    preferImmutableIds = false,
   }) {
     const safeRetries = clampInt(requestMaxRetries, 0, 6, 2);
     const maxAttempts = safeRetries + 1;
@@ -1442,6 +1443,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
             method: 'GET',
             headers: {
               authorization: `Bearer ${accessToken}`,
+              ...(preferImmutableIds ? { Prefer: 'IdType="ImmutableId"' } : {}),
             },
           },
           timeoutMs
@@ -2221,6 +2223,7 @@ function createMicrosoftGraphReadConnector(config = {}) {
         requestMaxRetries,
         retryBaseDelayMs,
         retryMaxDelayMs,
+        preferImmutableIds: true,
       });
     } catch (error) {
       const graphServiceCode = parseGraphServiceCode(error?.details).toLowerCase();
@@ -3115,6 +3118,8 @@ function createMicrosoftGraphReadConnector(config = {}) {
   }
 
   return {
+    fetchAccessToken,
+    graphBaseUrl,
     fetchInboxSnapshot,
     enrichStoredMessagesWithMailAssets,
     enrichStoredMessagesWithInlineHtmlAssets,

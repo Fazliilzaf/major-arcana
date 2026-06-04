@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CCO · Drive-historik</title>
+<style>
+  :root {
+    --cco-bg-page:           #faf6f2;
+    --cco-bg-surface:        #ffffff;
+    --cco-bg-surface-sunken: #f5efe6;
+    --cco-color-brand:       #2b251f;
+    --cco-text-secondary:    rgba(70, 60, 50, 0.62);
+    --cco-text-tertiary:     #8a8174;
+
+    --cco-status-success:    #4a8268;
+    --cco-status-success-bg: rgba(74,130,104,.14);
+    --cco-status-warning:    #c8821e;
+    --cco-status-warning-bg: rgba(200,130,30,.14);
+    --cco-status-info:       #4a7ba8;
+    --cco-status-info-bg:    rgba(74,123,168,.14);
+
+    --panel-shell-top:    rgba(250, 246, 242, 0.94);
+    --panel-shell-bottom: rgba(244, 238, 233, 0.86);
+    --panel-shell-shadow:
+      0 18px 38px rgba(93,74,60,.07),
+      0 6px 18px rgba(156,145,166,.04),
+      0 0 0 1px rgba(255,255,255,.18),
+      inset 0 1px 0 rgba(255,255,255,.5);
+    --panel-card-top:    rgba(255,255,255,.94);
+    --panel-card-bottom: rgba(247,241,236,.86);
+    --panel-card-shadow: 0 3px 10px rgba(56,40,28,.08), inset 0 1px 0 rgba(255,255,255,.86);
+    --panel-card-shadow-hover: 0 8px 22px rgba(56,40,28,.12), inset 0 1px 0 rgba(255,255,255,.92);
+
+    --rose-pill-top:    rgba(252, 233, 240, 0.98);
+    --rose-pill-bottom: rgba(241, 207, 220, 0.95);
+    --accent-studio:    #bb4779;
+
+    --calendar-accent:       #c8821e;
+    --calendar-accent-soft:  rgba(200,130,30,.14);
+    --calendar-accent-glow:  rgba(200,130,30,.22);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background:
+      radial-gradient(ellipse at 12% 0%, rgba(255,225,200,.42), transparent 38%),
+      radial-gradient(ellipse at 88% 4%, rgba(255,210,225,.34), transparent 42%),
+      radial-gradient(circle at 50% 100%, rgba(220,210,255,.18), transparent 48%),
+      var(--cco-bg-page);
+    color: var(--cco-color-brand);
+    font-family: Inter, "Segoe UI", -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    min-height: 100vh;
+    padding: 14px;
+  }
+
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  /* Top-nav */
+  .top-nav {
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 6px 14px;
+    color: var(--cco-text-tertiary); font-size: 12px;
+  }
+  .top-nav .brand { font-weight: 800; color: var(--cco-color-brand); letter-spacing: .06em; font-size: 13px; }
+  .top-nav a { color: inherit; text-decoration: none; padding: 6px 12px; border-radius: 999px; transition: color .15s ease, background .15s ease; }
+  .top-nav a:hover { color: var(--cco-color-brand); background: rgba(255,255,255,.4); }
+  .top-nav a.active {
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio); font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 4px 14px rgba(187, 71, 121, .14);
+  }
+
+  /* Surface */
+  .surface {
+    position: relative;
+    border-radius: 28px;
+    padding: 20px 22px 22px;
+    background: linear-gradient(180deg, var(--panel-shell-top), var(--panel-shell-bottom));
+    box-shadow: var(--panel-shell-shadow);
+    backdrop-filter: blur(14px);
+  }
+  .surface::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    background:
+      radial-gradient(circle at 12% 6%, rgba(255,255,255,.6), transparent 24%),
+      radial-gradient(circle at 56% 10%, rgba(255,236,222,.32), transparent 24%),
+      radial-gradient(circle at 88% 14%, rgba(255,228,238,.28), transparent 22%);
+    pointer-events: none;
+  }
+
+  /* Header */
+  .page-head {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding-bottom: 14px;
+    box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+    flex-wrap: wrap;
+  }
+  .page-head-main { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .page-kicker {
+    color: #84756b; font-size: 10.5px; line-height: 12px;
+    font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  }
+  .page-title { margin: 0; font-size: 18px; line-height: 20px; font-weight: 700; letter-spacing: -.03em; }
+
+  .back-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    appearance: none; cursor: pointer; text-decoration: none;
+    padding: 5px 12px; border-radius: 999px;
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio);
+    font-size: 11px; font-weight: 700; letter-spacing: .02em;
+    border: 1px solid rgba(255,255,255,.78);
+    box-shadow: 0 2px 6px rgba(187,71,121,.10), inset 0 1px 0 rgba(255,255,255,.85);
+    transition: transform .1s ease;
+  }
+  .back-pill:hover { transform: translateY(-1px); }
+
+  .page-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 999px;
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio);
+    font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    box-shadow: 0 2px 6px rgba(187,71,121,.10), inset 0 1px 0 rgba(255,255,255,.92);
+  }
+
+  /* Brand-toggle */
+  .brand-toggle { display: flex; gap: 3px; padding: 3px; background: rgba(255,255,255,.55); border-radius: 12px; box-shadow: inset 0 1px 2px rgba(56,40,28,.05); }
+  .brand-toggle button {
+    appearance: none; border: 0; cursor: pointer;
+    min-height: 26px; padding: 0 14px; border-radius: 10px;
+    background: transparent;
+    font-size: 11px; font-weight: 600; color: var(--cco-text-secondary);
+    transition: color .12s ease;
+  }
+  .brand-toggle button:hover { color: var(--cco-color-brand); }
+  .brand-toggle button.active {
+    background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,238,232,.9));
+    color: var(--cco-color-brand);
+    box-shadow: 0 2px 6px rgba(56,40,28,.08), inset 0 1px 0 rgba(255,255,255,.92);
+  }
+  .brand-toggle button[data-brand="curatiio"].active {
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio);
+  }
+
+  /* Intro */
+  .intro {
+    position: relative; z-index: 1;
+    margin: 14px 0 18px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.55);
+    color: var(--cco-text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .intro strong { color: var(--cco-color-brand); font-weight: 700; }
+
+  /* Year grid */
+  .year-grid {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .year-card {
+    position: relative;
+    padding: 16px 16px 14px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel-card-top), var(--panel-card-bottom));
+    border: 1px solid rgba(255,255,255,.55);
+    box-shadow: var(--panel-card-shadow);
+    display: flex; flex-direction: column; gap: 10px;
+    transition: transform .12s ease, box-shadow .15s ease;
+  }
+  .year-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--panel-card-shadow-hover);
+  }
+  .year-card[data-current="1"] {
+    background:
+      linear-gradient(180deg, rgba(255,247,234,.95), rgba(255,239,213,.86));
+    border-color: rgba(200,130,30,.32);
+    box-shadow: 0 4px 14px var(--calendar-accent-glow), inset 0 1px 0 rgba(255,255,255,.92);
+  }
+  .year-card[data-current="1"] .year-num { color: var(--calendar-accent); }
+  .year-card[data-disabled="1"] { opacity: .58; }
+
+  .year-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  }
+  .year-num {
+    font-size: 28px; font-weight: 800;
+    letter-spacing: -.04em;
+    color: var(--cco-color-brand);
+    font-variant-numeric: tabular-nums;
+  }
+  .year-tag {
+    font-size: 9px; font-weight: 800;
+    letter-spacing: .14em; text-transform: uppercase;
+    color: var(--cco-text-tertiary);
+    padding: 2px 8px; border-radius: 999px;
+    background: rgba(255,255,255,.6);
+    border: 1px solid rgba(255,255,255,.55);
+  }
+  .year-tag--current { color: var(--calendar-accent); background: var(--calendar-accent-soft); border-color: rgba(200,130,30,.28); }
+
+  .year-stats {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 11px;
+    color: var(--cco-text-secondary);
+  }
+  .year-stat-row { display: flex; justify-content: space-between; align-items: center; }
+  .year-stat-label { font-size: 10px; letter-spacing: .04em; color: var(--cco-text-tertiary); }
+  .year-stat-value { font-weight: 700; color: var(--cco-color-brand); font-variant-numeric: tabular-nums; }
+
+  .year-link {
+    appearance: none; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 7px 12px; border-radius: 11px;
+    background: linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));
+    color: var(--accent-studio);
+    font-size: 11px; font-weight: 700; letter-spacing: .02em;
+    border: 1px solid rgba(255,255,255,.78);
+    box-shadow: 0 2px 6px rgba(187,71,121,.10), inset 0 1px 0 rgba(255,255,255,.85);
+    transition: transform .1s ease;
+    margin-top: 4px;
+  }
+  .year-link:hover { transform: translateY(-1px); }
+  .year-link[aria-disabled="true"] {
+    background: rgba(132,117,107,.10);
+    color: var(--cco-text-tertiary);
+    cursor: default; pointer-events: none;
+    box-shadow: none;
+  }
+
+  /* Stats pillar */
+  .stats-pillar {
+    margin-top: 20px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(247,241,236,.6));
+    border: 1px solid rgba(255,255,255,.55);
+    box-shadow: var(--panel-card-shadow);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    position: relative; z-index: 1;
+  }
+  .stat-item {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .stat-label {
+    font-size: 9px; font-weight: 800;
+    letter-spacing: .14em; text-transform: uppercase;
+    color: var(--cco-text-tertiary);
+  }
+  .stat-value {
+    font-size: 22px; font-weight: 800;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-sub {
+    font-size: 10.5px;
+    color: var(--cco-text-secondary);
+  }
+  .stat-value--ok { color: var(--cco-status-success); }
+
+  /* Footer note */
+  .foot-note {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 10.5px;
+    color: var(--cco-text-tertiary);
+    line-height: 1.5;
+  }
+  .foot-note a { color: var(--accent-studio); text-decoration: none; }
+  .foot-note a:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    body { padding: 10px; }
+    .surface { padding: 16px 14px 18px; border-radius: 22px; }
+    .page-head { flex-direction: column; align-items: flex-start; }
+    .year-num { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <nav class="top-nav" aria-label="Huvudmeny">
+      <span class="brand">ARCANA · CCO</span>
+      <a href="/index.html">Kalender</a>
+      <a href="/kunder.html">Kunder</a>
+      <a href="/drive-historik.html" class="active">Drive-historik</a>
+    </nav>
+
+    <section class="surface">
+
+      <header class="page-head">
+        <div class="page-head-main">
+          <a class="back-pill" href="/kunder.html" aria-label="Tillbaka till CCO">‹ Tillbaka till CCO</a>
+          <div>
+            <div class="page-kicker">★ Phase 1 · Deeplinks</div>
+            <h1 class="page-title">Drive-historik · 8 år av behandlingar</h1>
+          </div>
+        </div>
+        <div class="page-head-main">
+          <span class="page-pill" id="brandPill">Hair TP</span>
+          <div class="brand-toggle" role="tablist" aria-label="Välj brand">
+            <button type="button" class="active" data-brand="hair_tp" role="tab" aria-selected="true">Hair TP</button>
+            <button type="button" data-brand="curatiio" role="tab" aria-selected="false">Curatiio</button>
+          </div>
+        </div>
+      </header>
+
+      <p class="intro" id="intro">
+        <strong>Phase 1:</strong> Deeplinks öppnar närmaste kända mapp i Google Drive — ej specifik dag-mapp
+        (det kräver service-account, se <a href="/docs/ops/drive-service-account-setup.md">setup-guiden</a>).
+        Klicka på ett år för att hoppa till rätt Drive-mapp i nytt fönster.
+      </p>
+
+      <div class="year-grid" id="yearGrid"></div>
+
+      <div class="stats-pillar" id="statsPillar">
+        <div class="stat-item">
+          <div class="stat-label">Behandlingsdagar (estimat)</div>
+          <div class="stat-value">800</div>
+          <div class="stat-sub">8 år × 10 mån × 10 dagar/mån</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">År med data</div>
+          <div class="stat-value">8</div>
+          <div class="stat-sub">2019 – 2026 · Kunder HTP/TP/Bokade</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Drive-säkerhet</div>
+          <div class="stat-value stat-value--ok">●</div>
+          <div class="stat-sub">Read-only via service-account (när auth aktiverat)</div>
+        </div>
+      </div>
+
+      <p class="foot-note">
+        Källa: <code>docs/strategy/DRIVE-INVENTORY-REPORT-2026-05-30.md</code> ·
+        Folder-IDs är publika utan auth · Inga patientdata embedderade.
+      </p>
+
+      <p class="foot-note" style="margin-top: 4px;">
+        <strong>(Interim — ersätts av importerade assets.)</strong>
+        Per <code>.cursor/rules/cco-no-drive-links-import-only.mdc</code> är Drive
+        endast källa + provenance. Final-UI för staff = importerade filer i CCO
+        secure storage. Se <a href="/journal-qa.html">QA-dashboard</a> för
+        cutover-status (<code>link_only_files = 0</code>).
+      </p>
+
+    </section>
+  </div>
+
+<script>
+'use strict';
+
+// Inline-kopia av src/ops/ccoDriveLinkBuilder.js (Phase 1 — UI-deeplinks).
+// Håll i synk om mappen ändras.
+const DRIVE_LINK = (() => {
+  const KNOWN_FOLDERS = {
+    hair_tp: {
+      root: '0APPck7epTcZ-Uk9PVA',
+      tp: '1OegkbmShkiJreD62j4G8ayzxCtKpveoh',
+      tpBokade: '1d_ngTN-N4QsQ9Cgs72WmwLgIZV1-h_h5',
+      tpBokade2026: '10sOs6wyliXiNs1o2SdJfn61ctXaBG0gH',
+      tpBokade2026Maj: '1Gof_xzKOvdote1DCjb-riNozlvpLgjbh',
+    },
+    curatiio: { root: 'CURATIIO_ROOT_TBD' },
+  };
+  const folderUrl = (id) => 'https://drive.google.com/drive/folders/' + id;
+  const searchUrl = (q, parent) => {
+    const enc = encodeURIComponent(q);
+    return parent
+      ? 'https://drive.google.com/drive/folders/' + parent + '#search?q=' + enc
+      : 'https://drive.google.com/drive/search?q=' + enc;
+  };
+  function yearLink(year, brand) {
+    const f = KNOWN_FOLDERS[brand] || KNOWN_FOLDERS.hair_tp;
+    if (!f.root || f.root.endsWith('_TBD')) return { url: null, level: 'unknown_brand' };
+    // 2026 har vi exakt mapp-ID
+    if (brand === 'hair_tp' && year === 2026) return { url: folderUrl(f.tpBokade2026), level: 'year_folder' };
+    // Andra år: search i Bokade-mappen
+    if (brand === 'hair_tp') return { url: searchUrl('Hair TP Clinic ' + year, f.tpBokade), level: 'year_search' };
+    // Curatiio fallback (root)
+    return { url: folderUrl(f.root), level: 'brand_root' };
+  }
+  function brandRootLink(brand) {
+    const f = KNOWN_FOLDERS[brand] || KNOWN_FOLDERS.hair_tp;
+    if (!f.root || f.root.endsWith('_TBD')) return { url: null, level: 'unknown_brand' };
+    return { url: folderUrl(f.root), level: 'brand_root' };
+  }
+  return { KNOWN_FOLDERS, yearLink, brandRootLink };
+})();
+
+const YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+const CURRENT_YEAR = 2026;
+
+// Per år: estimerad mängd månader med data (placeholder — i Phase 2 hämtas
+// detta från cliento-customer-store eller drive-folder-cache).
+const YEAR_STATS = {
+  2019: { months: 6, label: 'partiell start' },
+  2020: { months: 9, label: 'pandemi-paus q2' },
+  2021: { months: 12, label: 'full kalender' },
+  2022: { months: 12, label: 'full kalender' },
+  2023: { months: 12, label: 'full kalender' },
+  2024: { months: 12, label: 'full kalender' },
+  2025: { months: 12, label: 'full kalender' },
+  2026: { months: 5, label: 'YTD · pågående' },
+};
+
+const grid = document.getElementById('yearGrid');
+const intro = document.getElementById('intro');
+const brandPill = document.getElementById('brandPill');
+const toggleButtons = document.querySelectorAll('.brand-toggle button');
+
+let currentBrand = 'hair_tp';
+
+function renderYears() {
+  const isCuratiio = currentBrand === 'curatiio';
+  const tbd = isCuratiio; // Curatiio root ej konfigurerad än
+  brandPill.textContent = isCuratiio ? 'Curatiio' : 'Hair TP';
+
+  grid.innerHTML = YEARS.map(year => {
+    const stats = YEAR_STATS[year] || { months: 0, label: '—' };
+    const link = DRIVE_LINK.yearLink(year, currentBrand);
+    const isCurrent = year === CURRENT_YEAR;
+    const linkLevelLabel = {
+      year_folder: 'Öppna år-mapp ↗',
+      year_search: 'Sök i Drive ↗',
+      brand_root: 'Öppna Drive ↗',
+    }[link.level] || 'Öppna ↗';
+
+    const linkHtml = link.url
+      ? `<a class="year-link" href="${link.url}" target="_blank" rel="noopener noreferrer" data-drive-year="${year}">${linkLevelLabel}</a>`
+      : `<span class="year-link" aria-disabled="true" title="Curatiio folder-ID väntas från ägare">Ej konfigurerad</span>`;
+
+    return `
+      <article class="year-card" data-current="${isCurrent ? '1' : '0'}" data-disabled="${tbd ? '1' : '0'}" data-year="${year}">
+        <div class="year-head">
+          <div class="year-num">${year}</div>
+          <span class="year-tag ${isCurrent ? 'year-tag--current' : ''}">${isCurrent ? 'Innevarande' : 'Arkiv'}</span>
+        </div>
+        <div class="year-stats">
+          <div class="year-stat-row">
+            <span class="year-stat-label">Månader m. data</span>
+            <span class="year-stat-value">${stats.months}/12</span>
+          </div>
+          <div class="year-stat-row">
+            <span class="year-stat-label">Status</span>
+            <span class="year-stat-value" style="font-weight:500; color: var(--cco-text-secondary);">${stats.label}</span>
+          </div>
+        </div>
+        ${linkHtml}
+      </article>
+    `;
+  }).join('');
+}
+
+function setBrand(brand) {
+  currentBrand = brand;
+  toggleButtons.forEach(btn => {
+    const isActive = btn.dataset.brand === brand;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  if (brand === 'curatiio') {
+    intro.innerHTML = '<strong>Curatiio:</strong> Drive-root är ännu inte konfigurerad (folder-ID väntas från ägare). ' +
+      'Korten visar struktur men deeplinks är inaktiva. Se <a href="/docs/ops/drive-service-account-setup.md">setup-guiden</a>.';
+  } else {
+    intro.innerHTML = '<strong>Phase 1:</strong> Deeplinks öppnar närmaste kända mapp i Google Drive — ej specifik dag-mapp ' +
+      '(det kräver service-account, se <a href="/docs/ops/drive-service-account-setup.md">setup-guiden</a>). ' +
+      'Klicka på ett år för att hoppa till rätt Drive-mapp i nytt fönster.';
+  }
+  renderYears();
+}
+
+toggleButtons.forEach(btn => {
+  btn.addEventListener('click', () => setBrand(btn.dataset.brand));
+});
+
+renderYears();
+</script>
+</body>
+</html>

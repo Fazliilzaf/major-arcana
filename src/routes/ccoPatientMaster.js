@@ -9,6 +9,10 @@ const {
   resolveZipPath,
 } = require('../../scripts/migration/lib/migrationZipReader');
 const {
+  isGoogleDriveConfigured,
+  streamDriveFileToResponse,
+} = require('../lib/googleDriveClient');
+const {
   buildOccasionTimeline,
   extractFileOccasionContext,
 } = require('../../scripts/migration/lib/migrationUtils');
@@ -17,11 +21,19 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function parseIncludeDriveFiles(value) {
+  const normalized = String(value ?? '1')
+    .trim()
+    .toLowerCase();
+  return !['0', 'false', 'no', 'off'].includes(normalized);
+}
+
 function createCcoPatientMasterRouter({
   patientMasterStore,
   journalStore = null,
   migrationIndexStore = null,
   patientSystemStore = null,
+  readCache = null,
   authStore,
   config,
   requireAuth,
@@ -62,7 +74,13 @@ function createCcoPatientMasterRouter({
     requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) =>
       handle(req, res, async (actor) => {
-        const stats = await patientMasterStore.getTenantStats({ tenantId: actor.tenantId });
+        const cacheKey = readCache ? readCache.buildKey('patient-stats', actor.tenantId) : '';
+        const load = async () =>
+          patientMasterStore.getTenantStats({ tenantId: actor.tenantId });
+        const stats =
+          readCache && cacheKey
+            ? (await readCache.wrap(cacheKey, 60_000, load)).value
+            : await load();
         await auditRead(req, actor, actor.tenantId, 'cco.patient_master.stats.read');
         return res.json({ stats });
       })
@@ -72,25 +90,131 @@ function createCcoPatientMasterRouter({
     '/cco-patient-master/patients',
     requireAuth,
     requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) => {
+      // Diagnostic: localize where slow (>1.5s) list responses spend their time.
+      // Only logs slow requests, so fast/cached calls stay silent. See PR for the
+      // 9.4s prod list-latency investigation.
+      const requestStart = process.hrtime.bigint();
+      const timing = { loadMs: 0, auditMs: 0, cardMs: 0, rows: 0, cached: false };
+      const elapsedMs = (from) => Number(process.hrtime.bigint() - from) / 1e6;
+      res.on('finish', () => {
+        const totalMs = elapsedMs(requestStart);
+        if (totalMs > 1500) {
+          console.warn(
+            `[patient-list-timing] total=${totalMs.toFixed(0)}ms ` +
+              `load=${timing.loadMs.toFixed(0)}ms audit=${timing.auditMs.toFixed(0)}ms ` +
+              `card=${timing.cardMs.toFixed(0)}ms rows=${timing.rows} cached=${timing.cached}`
+          );
+        }
+      });
+      return handle(req, res, async (actor) => {
+        const query = normalizeText(req.query.q || req.query.query);
+        const flags = String(req.query.flags || '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const limit = req.query.limit;
+        const offset = req.query.offset;
+        const cacheKey = readCache
+          ? readCache.buildKey(
+              'patient-list',
+              actor.tenantId,
+              JSON.stringify({ query, flags, limit, offset })
+            )
+          : '';
+        const load = async () =>
+          patientMasterStore.listPatients({
+            tenantId: actor.tenantId,
+            query,
+            flags,
+            limit,
+            offset,
+          });
+        const loadStart = process.hrtime.bigint();
+        let result;
+        if (readCache && cacheKey) {
+          const wrapped = await readCache.wrap(cacheKey, 30_000, load);
+          result = wrapped.value;
+          timing.cached = Boolean(wrapped.cacheHit);
+        } else {
+          result = await load();
+        }
+        timing.loadMs = elapsedMs(loadStart);
+        timing.rows = Number(result.total) || 0;
+
+        const auditStart = process.hrtime.bigint();
+        await auditRead(req, actor, actor.tenantId, 'cco.patient_master.list.read');
+        timing.auditMs = elapsedMs(auditStart);
+
+        const cardStart = process.hrtime.bigint();
+        const patients = result.patients.map((patient) =>
+          patientMasterStore.buildPatientCardReadout(patient)
+        );
+        timing.cardMs = elapsedMs(cardStart);
+
+        return res.json({ ...result, patients });
+      });
+    }
+  );
+
+  async function buildPatientPayload(actor, patient, { includeJournal = true, includeDriveFiles = true } = {}) {
+    let journalEntries = [];
+    if (includeJournal && journalStore) {
+      journalEntries = await journalStore.listEntries({
+        tenantId: actor.tenantId,
+        patientId: patient.id,
+      });
+    }
+
+    let driveFiles = [];
+    if (includeDriveFiles && migrationIndexStore && patient.personnummer) {
+      driveFiles = await migrationIndexStore.getFilesForPersonnummer(patient.personnummer);
+    }
+    const enrichedDriveFiles = driveFiles.map((file) => {
+      const occasionContext = extractFileOccasionContext(file);
+      return {
+        ...file,
+        occasionContext,
+        viewUrl: `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`,
+      };
+    });
+
+    return {
+      patient,
+      card: patientMasterStore.buildPatientCardReadout(patient),
+      journalEntries: journalStore
+        ? journalEntries.map((entry) => journalStore.buildJournalReadout(entry))
+        : [],
+      driveFiles: enrichedDriveFiles,
+      occasionTimeline: buildOccasionTimeline(enrichedDriveFiles),
+    };
+  }
+
+  router.get(
+    '/cco-patient-master/patient/summary',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
     async (req, res) =>
       handle(req, res, async (actor) => {
-        const result = await patientMasterStore.listPatients({
+        const patient = await patientMasterStore.getPatient({
           tenantId: actor.tenantId,
-          query: normalizeText(req.query.q || req.query.query),
-          flags: String(req.query.flags || '')
-            .split(',')
-            .map((item) => item.trim())
-            .filter(Boolean),
-          limit: req.query.limit,
-          offset: req.query.offset,
+          patientId: normalizeText(req.query.patientId),
+          personnummer: normalizeText(req.query.personnummer),
         });
-        await auditRead(req, actor, actor.tenantId, 'cco.patient_master.list.read');
-        return res.json({
-          ...result,
-          patients: result.patients.map((patient) =>
-            patientMasterStore.buildPatientCardReadout(patient)
-          ),
+        if (!patient) {
+          return res.status(404).json({ error: 'Patienten hittades inte.' });
+        }
+        const includeDriveFiles = parseIncludeDriveFiles(req.query.includeDriveFiles);
+        void auditRead(req, actor, patient.id, 'cco.patient_master.patient.summary.read').catch(
+          (error) => {
+            console.error('[cco.patient_master] audit summary read failed', error);
+          }
+        );
+        const payload = await buildPatientPayload(actor, patient, {
+          includeJournal: false,
+          includeDriveFiles,
         });
+        return res.json(payload);
       })
   );
 
@@ -108,36 +232,23 @@ function createCcoPatientMasterRouter({
         if (!patient) {
           return res.status(404).json({ error: 'Patienten hittades inte.' });
         }
-        await auditRead(req, actor, patient.id, 'cco.patient_master.patient.read');
 
-        let journalEntries = [];
-        if (journalStore) {
-          journalEntries = await journalStore.listEntries({
-            tenantId: actor.tenantId,
-            patientId: patient.id,
-          });
-        }
+        const includeJournal = !['0', 'false', 'no', 'off'].includes(
+          String(req.query.includeJournal ?? '1')
+            .trim()
+            .toLowerCase()
+        );
+        const includeDriveFiles = parseIncludeDriveFiles(req.query.includeDriveFiles);
 
-        let driveFiles = [];
-        if (migrationIndexStore && patient.personnummer) {
-          driveFiles = await migrationIndexStore.getFilesForPersonnummer(patient.personnummer);
-        }
-        const enrichedDriveFiles = driveFiles.map((file) => {
-          const occasionContext = extractFileOccasionContext(file);
-          return {
-            ...file,
-            occasionContext,
-            viewUrl: `/api/v1/cco-patient-master/file?fileId=${encodeURIComponent(file.id)}`,
-          };
+        void auditRead(req, actor, patient.id, 'cco.patient_master.patient.read').catch((error) => {
+          console.error('[cco.patient_master] audit read failed', error);
         });
 
-        return res.json({
-          patient,
-          card: patientMasterStore.buildPatientCardReadout(patient),
-          journalEntries: journalEntries.map((entry) => journalStore.buildJournalReadout(entry)),
-          driveFiles: enrichedDriveFiles,
-          occasionTimeline: buildOccasionTimeline(enrichedDriveFiles),
+        const payload = await buildPatientPayload(actor, patient, {
+          includeJournal,
+          includeDriveFiles,
         });
+        return res.json(payload);
       })
   );
 
@@ -162,6 +273,28 @@ function createCcoPatientMasterRouter({
           res.setHeader('Cache-Control', 'private, max-age=3600');
           return res.sendFile(absPath);
         }
+
+        if (normalizeText(file.driveFileId) && isGoogleDriveConfigured()) {
+          await auditRead(req, actor, fileId, 'cco.patient_master.file.read');
+          try {
+            await streamDriveFileToResponse({
+              driveFileId: file.driveFileId,
+              res,
+              contentType: contentTypeForPath(file.relativePath),
+              fileName: path.basename(file.relativePath),
+            });
+            return;
+          } catch (error) {
+            if (!res.headersSent) {
+              const status = Number(error?.status) === 404 ? 404 : 502;
+              return res.status(status).json({
+                error: status === 404 ? 'Filen hittades inte i Google Drive.' : 'Kunde inte streama från Drive.',
+              });
+            }
+            return;
+          }
+        }
+
         const zipPath = resolveZipPath(config.migrationDataRoot, file.zipName);
         const stream = openZipEntryStream({ zipPath, relativePath: file.relativePath });
         res.setHeader('Content-Type', contentTypeForPath(file.relativePath));
@@ -185,8 +318,195 @@ function createCcoPatientMasterRouter({
         }
         const exitCode = await exitCodePromise;
         if (Number(exitCode) !== 0 && !res.headersSent) {
+          if (normalizeText(file.driveFileId) && isGoogleDriveConfigured()) {
+            await auditRead(req, actor, fileId, 'cco.patient_master.file.read');
+            try {
+              await streamDriveFileToResponse({
+                driveFileId: file.driveFileId,
+                res,
+                contentType: contentTypeForPath(file.relativePath),
+                fileName: path.basename(file.relativePath),
+              });
+              return;
+            } catch {
+              /* fall through */
+            }
+          }
           return res.status(404).json({ error: 'Kunde inte läsa filen från zip.' });
         }
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/review-groups',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const result = await patientMasterStore.listMergeReviewGroups({
+          tenantId: actor.tenantId,
+          limit: req.query.limit,
+        });
+        await auditRead(req, actor, actor.tenantId, 'cco.patient_master.review_groups.read');
+        return res.json(result);
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/review-groups/dismiss',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const result = await patientMasterStore.dismissMergeReviewGroup({
+          tenantId: actor.tenantId,
+          groupId: normalizeText(body.groupId),
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.review_groups.dismiss',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: result.groupId,
+        });
+        return res.json(result);
+      })
+  );
+
+  router.get(
+    '/cco-patient-master/patient/gdpr-export',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.query.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const payload = await patientMasterStore.buildGdprExportPackage({
+          tenantId: actor.tenantId,
+          patientId,
+          journalStore,
+          migrationIndexStore,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.gdpr_export',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+        });
+        const fileName = `gdpr-${patientId.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.json`;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        return res.send(JSON.stringify(payload, null, 2));
+      })
+  );
+
+  router.put(
+    '/cco-patient-master/patient/demographics',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const patientId = normalizeText(body.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const existing = await patientMasterStore.getPatient({ tenantId: actor.tenantId, patientId });
+        if (!existing) return res.status(404).json({ error: 'Patient hittades inte.' });
+        const patient = await patientMasterStore.upsertPatient({
+          ...existing,
+          tenantId: actor.tenantId,
+          id: patientId,
+          demographics: body.demographics || {},
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.demographics.update',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+        });
+        return res.json({
+          patient,
+          card: patientMasterStore.buildPatientCardReadout(patient),
+        });
+      })
+  );
+
+  router.put(
+    '/cco-patient-master/patient/access',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const patientId = normalizeText(body.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const result = await patientMasterStore.setPatientAccess({
+          tenantId: actor.tenantId,
+          patientId,
+          journalBlocked: Boolean(body.journalBlocked),
+          journalBlockReason: normalizeText(body.journalBlockReason),
+          actorUserId: actor.userId,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: body.journalBlocked
+            ? 'cco.patient_master.journal.block'
+            : 'cco.patient_master.journal.unblock',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+        });
+        return res.json(result);
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/merge',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const body = req.body && typeof req.body === 'object' ? req.body : {};
+        const primaryPatientId = normalizeText(body.primaryPatientId);
+        const secondaryPatientIds = Array.isArray(body.secondaryPatientIds)
+          ? body.secondaryPatientIds
+          : [];
+        let journalMoved = 0;
+        if (journalStore) {
+          for (const secondaryId of secondaryPatientIds) {
+            const moved = await journalStore.transferEntriesToPatient({
+              tenantId: actor.tenantId,
+              fromPatientId: secondaryId,
+              toPatientId: primaryPatientId,
+              actor,
+            });
+            journalMoved += Number(moved.moved) || 0;
+          }
+        }
+        const result = await patientMasterStore.mergePatients({
+          tenantId: actor.tenantId,
+          primaryPatientId,
+          secondaryPatientIds,
+        });
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.patient.merge',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: primaryPatientId,
+        });
+        return res.json({
+          ...result,
+          journalMoved,
+          card: patientMasterStore.buildPatientCardReadout(result.patient),
+        });
       })
   );
 
@@ -212,6 +532,69 @@ function createCcoPatientMasterRouter({
         return res.json({
           patient,
           card: patientMasterStore.buildPatientCardReadout(patient),
+        });
+      })
+  );
+
+  router.post(
+    '/cco-patient-master/patient/gdpr-anonymize',
+    requireAuth,
+    requireRole(ROLE_OWNER),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.body?.patientId || req.query?.patientId);
+        if (!patientId) return res.status(400).json({ error: 'patientId krävs.' });
+        const confirmText = normalizeText(req.body?.confirmText);
+        if (confirmText !== `ANONYMIZE ${patientId}`) {
+          return res.status(400).json({
+            error: `Bekräfta med confirmText: "ANONYMIZE ${patientId}"`,
+          });
+        }
+
+        const patient = await patientMasterStore.getPatient({ tenantId: actor.tenantId, patientId });
+        if (!patient) return res.status(404).json({ error: 'Patient hittades inte.' });
+
+        const anonymizedData = {
+          displayName: '[Anonymiserad]',
+          fullName: '[Anonymiserad]',
+          firstName: '[Anonymiserad]',
+          lastName: '[Anonymiserad]',
+          personalNumber: null,
+          primaryEmail: null,
+          primaryPhone: null,
+          address: null,
+          notes: null,
+          flags: [],
+          anonymizedAt: new Date().toISOString(),
+          anonymizedBy: actor.userId,
+        };
+
+        await patientMasterStore.updatePatient({
+          tenantId: actor.tenantId,
+          patientId,
+          patch: anonymizedData,
+          actorUserId: actor.userId,
+        });
+
+        if (journalStore?.anonymizePatientEntries) {
+          await journalStore.anonymizePatientEntries({ tenantId: actor.tenantId, patientId });
+        }
+
+        await authStore.addAuditEvent({
+          tenantId: actor.tenantId,
+          actorUserId: actor.userId,
+          action: 'cco.patient_master.gdpr_anonymize',
+          outcome: 'success',
+          targetType: 'cco_patient_master',
+          targetId: patientId,
+          metadata: { anonymizedFields: Object.keys(anonymizedData) },
+        });
+
+        return res.json({
+          ok: true,
+          patientId,
+          anonymized: true,
+          anonymizedAt: anonymizedData.anonymizedAt,
         });
       })
   );

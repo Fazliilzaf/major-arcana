@@ -6,38 +6,7 @@ const path = require('node:path');
 
 const { createCcoPatientMasterStore } = require('../../src/ops/ccoPatientMasterStore');
 const { createCcoMigrationIndexStore } = require('../../src/ops/ccoMigrationIndexStore');
-const { discoverClientoCsv } = require('./lib/migrationUtils');
-
-function parseCsv(content) {
-  const lines = content.split(/\r?\n/).filter(Boolean);
-  if (!lines.length) return [];
-  const headers = lines[0].split(',').map((item) => item.replace(/^"|"$/g, '').trim());
-  return lines.slice(1).map((line, index) => {
-    const cells = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i += 1) {
-      const ch = line[i];
-      if (ch === '"') {
-        inQuotes = !inQuotes;
-        continue;
-      }
-      if (ch === ',' && !inQuotes) {
-        cells.push(current);
-        current = '';
-        continue;
-      }
-      current += ch;
-    }
-    cells.push(current);
-    const row = {};
-    headers.forEach((header, cellIndex) => {
-      row[header] = (cells[cellIndex] || '').trim();
-    });
-    row.rowNumber = index + 2;
-    return row;
-  });
-}
+const { discoverClientoCsv, parseCsv } = require('./lib/migrationUtils');
 
 function parseArgs(argv) {
   const args = {

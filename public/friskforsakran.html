@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Friskförsäkran · Hair TP Clinic</title>
+<link rel="stylesheet" href="/cco-polish.css">
+<script src="/cco-polish.js" defer></script>
+<style>
+  :root{--cco-bg-page:#faf6f2;--cco-color-brand:#2b251f;--cco-text-secondary:rgba(70,60,50,.62);--cco-text-tertiary:#8a8174;--cco-status-success:#4a8268;--cco-status-success-bg:rgba(74,130,104,.14);--cco-status-warning:#c8821e;--cco-status-warning-bg:rgba(200,130,30,.14);--cco-status-danger:#b94a4a;--cco-status-danger-bg:rgba(185,74,74,.14);--cco-status-info:#4a7ba8;--cco-status-info-bg:rgba(74,123,168,.14);--accent-studio:#bb4779;--calendar-accent:#c8821e;--rose-pill-top:rgba(252,233,240,.98);--rose-pill-bottom:rgba(241,207,220,.95);--panel-shell-top:rgba(250,246,242,.94);--panel-shell-bottom:rgba(244,238,233,.86)}
+  *{box-sizing:border-box}html,body{margin:0;padding:0}
+  body{background:radial-gradient(ellipse at 12% 0%,rgba(255,225,200,.42),transparent 38%),var(--cco-bg-page);color:var(--cco-color-brand);font-family:Inter,-apple-system,system-ui,sans-serif;font-size:14px;min-height:100vh;padding:24px;line-height:1.5}
+  .wrap{max-width:720px;margin:0 auto}
+  .head{padding:24px 28px;border-radius:28px;background:linear-gradient(135deg,var(--rose-pill-top),rgba(252,224,200,.92));color:var(--cco-color-brand);box-shadow:0 18px 38px rgba(187,71,121,.08);border:1px solid rgba(255,255,255,.72);margin-bottom:18px;position:relative;overflow:hidden}
+  .head::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% 12%,rgba(255,255,255,.5),transparent 42%);pointer-events:none}
+  .head .kicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-studio);margin-bottom:6px;position:relative}
+  .head h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;color:var(--cco-color-brand);position:relative}
+  .head p{margin:0;font-size:13px;color:var(--cco-text-secondary);max-width:60ch;line-height:1.5;position:relative}
+  .panel{padding:22px 26px;border-radius:24px;background:linear-gradient(180deg,var(--panel-shell-top),var(--panel-shell-bottom));box-shadow:0 24px 50px rgba(93,74,60,.08);margin-bottom:14px}
+  .panel h2{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--cco-text-tertiary);margin:0 0 14px}
+  .legal{padding:14px 16px;border-radius:14px;background:rgba(74,123,168,.08);border:1px solid rgba(74,123,168,.22);font-size:11.5px;color:var(--cco-status-info);line-height:1.5;margin-bottom:14px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--cco-text-tertiary);margin-bottom:5px}
+  .field input,.field textarea{width:100%;padding:10px 13px;border-radius:11px;border:1px solid rgba(132,117,107,.28);background:white;font-family:inherit;font-size:13px;color:var(--cco-color-brand);outline:none}
+  .field input:focus,.field textarea:focus{border-color:var(--accent-studio);box-shadow:0 0 0 3px rgba(187,71,121,.12)}
+  .field textarea{min-height:80px;resize:vertical}
+  .checks{display:flex;flex-direction:column;gap:8px}
+  .check{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:11px;background:rgba(255,255,255,.6);cursor:pointer;border:1px solid transparent}
+  .check:hover{border-color:rgba(187,71,121,.22)}
+  .check input{flex-shrink:0;margin-top:2px}
+  .check span{font-size:12px;line-height:1.45;color:var(--cco-color-brand)}
+  .check em{color:var(--cco-text-tertiary);font-style:normal}
+  .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .btn{flex:1;min-width:170px;padding:13px;border-radius:14px;border:none;font-size:12.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+  .btn-primary{background:linear-gradient(135deg,var(--accent-studio),#9e3a68);color:white;box-shadow:0 12px 28px rgba(187,71,121,.28)}
+  .btn-primary:hover{transform:translateY(-1px)}
+  .btn-primary:disabled{opacity:.55;cursor:wait;transform:none}
+  .btn-ghost{background:transparent;border:1px solid rgba(132,117,107,.28);color:var(--cco-text-secondary)}
+  .status{margin-top:12px;padding:11px 14px;border-radius:11px;font-size:12px;display:none}
+  .status.show{display:block}
+  .status.success{background:var(--cco-status-success-bg);color:var(--cco-status-success)}
+  .status.error{background:var(--cco-status-danger-bg);color:var(--cco-status-danger)}
+  .signed-banner{padding:18px 22px;border-radius:18px;background:linear-gradient(135deg,rgba(74,130,104,.16),rgba(74,130,104,.08));border:1px solid rgba(74,130,104,.32);text-align:center}
+  .signed-banner h3{margin:0 0 6px;font-size:16px;color:var(--cco-status-success);font-weight:800}
+  .signed-banner p{margin:0;font-size:12.5px;color:var(--cco-text-secondary)}
+</style>
+</head>
+<body data-stage="beta">
+<div class="wrap">
+  <header class="head">
+    <div class="kicker">★ Lagkrav · FUE / Hårtransplantation</div>
+    <h1>Friskförsäkran</h1>
+    <p>Måste signeras senast 48 timmar innan din behandling. Detta är ett FUE-krav i Sverige (Patientdatalagen 2008:355).</p>
+  </header>
+
+  <section class="panel">
+    <div class="legal">
+      <strong>Vad signerar du?</strong> Att du bekräftar dina svar nedan stämmer, att du varit ärlig om hälsotillstånd, mediciner och allergier, och att informationen får sparas i din patientjournal hos Hair TP Clinic i 10 år enligt journallagen.
+    </div>
+
+    <div class="field">
+      <label for="patientName">Ditt namn</label>
+      <input type="text" id="patientName" autocomplete="name" placeholder="För- och efternamn">
+    </div>
+
+    <div class="field">
+      <label for="patientId">Personnummer (ÅÅÅÅMMDD-XXXX)</label>
+      <input type="text" id="patientId" autocomplete="off" placeholder="19800101-1234" pattern="\d{8}-?\d{4}">
+    </div>
+
+    <h2 style="margin-top:18px">Hälsofrågor</h2>
+
+    <div class="checks">
+      <label class="check"><input type="checkbox" id="q1"> <span>Jag har <strong>inga</strong> hjärtsjukdomar, blödarsjukdomar eller okontrollerad blodtryck. <em>(Om du har, kontakta oss separat.)</em></span></label>
+      <label class="check"><input type="checkbox" id="q2"> <span>Jag tar <strong>inga</strong> blodförtunnande mediciner (Waran, Xarelto, Eliquis, etc.) just nu, eller har slutat enligt läkares råd minst 5 dagar före.</span></label>
+      <label class="check"><input type="checkbox" id="q3"> <span>Jag har <strong>inte</strong> haft hudinfektion, eksem eller psoriasis aktivt på hårbotten/donor-området senaste 4 veckorna.</span></label>
+      <label class="check"><input type="checkbox" id="q4"> <span>Jag är <strong>medveten</strong> om att resultatet beror på donor-täthet, kvalitet och uppföljning, och att Hair TP Clinic inte garanterar exakt antal procent täckning.</span></label>
+    </div>
+
+    <div class="field" style="margin-top:18px">
+      <label for="medications">Andra mediciner / kosttillskott du tar regelbundet (frivilligt)</label>
+      <textarea id="medications" placeholder="Lista med dosering, eller skriv 'inga'"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="allergies">Kända allergier (lidokain, latex, antibiotika, etc.)</label>
+      <textarea id="allergies" placeholder="Lista varje allergi separat, eller skriv 'inga'"></textarea>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" id="cancelBtn">Avbryt</button>
+      <button class="btn btn-primary" type="button" id="signBtn">✍ Signera friskförsäkran</button>
+    </div>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="panel" id="signedPanel" hidden>
+    <div class="signed-banner">
+      <h3>✓ Signerad och låst</h3>
+      <p>Din friskförsäkran är registrerad i Hair TP:s journal-system. Du kan stänga sidan — kliniken har fått besked.</p>
+      <p style="margin-top:10px;font-size:11px;color:var(--cco-text-tertiary)">
+        Entry-ID: <code id="signedEntryId" style="font-family:'SF Mono',ui-monospace,monospace;font-weight:700"></code>
+      </p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const signBtn = document.getElementById('signBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const status = document.getElementById('status');
+  const signedPanel = document.getElementById('signedPanel');
+  const signedEntryId = document.getElementById('signedEntryId');
+  const panel = document.querySelector('.panel');
+
+  function setStatus(msg, kind){
+    status.textContent = msg;
+    status.className = 'status show ' + (kind || '');
+  }
+
+  function getFields(){
+    return {
+      patientName: document.getElementById('patientName').value.trim(),
+      personnummer: document.getElementById('patientId').value.trim(),
+      q1: document.getElementById('q1').checked,
+      q2: document.getElementById('q2').checked,
+      q3: document.getElementById('q3').checked,
+      q4: document.getElementById('q4').checked,
+      medications: document.getElementById('medications').value.trim() || 'inga',
+      allergies: document.getElementById('allergies').value.trim() || 'inga',
+    };
+  }
+
+  function validate(f){
+    if (!f.patientName || f.patientName.length < 3) return 'Ange ditt fullständiga namn.';
+    if (!/^\d{8}-?\d{4}$/.test(f.personnummer)) return 'Personnummer måste vara i format ÅÅÅÅMMDD-XXXX.';
+    if (!f.q1 || !f.q2 || !f.q3 || !f.q4) return 'Alla fyra hälsofrågor måste bekräftas. Om du inte kan — kontakta kliniken direkt.';
+    return null;
+  }
+
+  cancelBtn.addEventListener('click', () => {
+    if (confirm('Avbryta signering? Du kan komma tillbaka senare.')) {
+      location.href = '/';
+    }
+  });
+
+  signBtn.addEventListener('click', async () => {
+    const f = getFields();
+    const err = validate(f);
+    if (err) { setStatus('⚠ ' + err, 'error'); return; }
+
+    // Explicit bekräftelse innan vi skickar — kan inte ångras
+    if (!confirm('Signera friskförsäkran?\n\nEfter signering är posten LÅST i 10 år enligt Patientdatalagen 2008:355. Endast en rättelse-post kan läggas till — original kan ej raderas.')) return;
+
+    signBtn.disabled = true;
+    setStatus('Signerar…', '');
+
+    try {
+      // Steg 1: skapa draft
+      const draftRes = await fetch('/api/v1/cco-journal-quick/entry', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-CCO-Role': 'konsult', 'X-CCO-User': f.patientName, 'X-CCO-Tenant': 'hairtpclinic' },
+        body: JSON.stringify({
+          patientId: f.personnummer.replace(/-/g, ''),
+          tenantId: 'hairtpclinic',
+          personnummer: f.personnummer,
+          journalType: 'fitness_certificate',
+          title: 'Friskförsäkran inför FUE · ' + new Date().toLocaleDateString('sv-SE'),
+          fields: {
+            patientName: f.patientName,
+            q_no_cardiovascular: f.q1,
+            q_no_blood_thinners: f.q2,
+            q_no_active_skin_infection: f.q3,
+            q_aware_of_donor_dependency: f.q4,
+            medications: f.medications,
+            allergies: f.allergies,
+            signedAtDevice: navigator.userAgent,
+          },
+        }),
+      });
+      const draftData = await draftRes.json();
+      if (!draftRes.ok) throw new Error(draftData.error || 'HTTP ' + draftRes.status);
+
+      // Steg 2: signera (auto-lockar)
+      const signRes = await fetch('/api/v1/cco-journal-quick/entry/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CCO-Role': 'konsult', 'X-CCO-User': f.patientName, 'X-CCO-Tenant': 'hairtpclinic' },
+        body: JSON.stringify({
+          patientId: f.personnummer.replace(/-/g, ''),
+          tenantId: 'hairtpclinic',
+          entryId: draftData.entry.entryId,
+        }),
+      });
+      const signData = await signRes.json();
+      if (!signRes.ok) throw new Error(signData.error || 'HTTP ' + signRes.status);
+
+      // Klart → visa bekräftelse, dölj formuläret
+      signedEntryId.textContent = signData.entry.entryId;
+      signedPanel.hidden = false;
+      panel.style.display = 'none';
+      signedPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      setStatus('⚠ Kunde inte signera: ' + e.message, 'error');
+      signBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finansrapporter & Månadsstängning · CCO</title>
+  <link rel="icon" type="image/png" href="/assets/major-arcana-mark-final.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #181818;
+      --bg-2: #2A2A2A;
+      --panel: #23201D;
+      --panel-soft: #2F2A25;
+      --text: #FDF6F4;
+      --muted: #E8DDD5;
+      --muted-2: #CABAAE;
+      --line: #3A332C;
+      --accent: #C2AA9C;
+      --accent-soft: #CDB8AA;
+      --accent-text: #1A1411;
+      --ok: #5CBF88;
+      --warn: #E5B14A;
+      --bad: #D96A6A;
+      --info: #6BA8D8;
+      --pill-shadow: 0 2px 0 rgba(0,0,0,0.18), 0 4px 14px rgba(0,0,0,0.22);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Jost', system-ui, sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+    }
+    header {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    h1 { font-family: 'Cormorant Garamond', serif; font-size: 26px; margin: 0; font-weight: 500; }
+    h2 { font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 20px; margin: 0 0 12px; }
+    h3 { font-size: 14px; font-weight: 500; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { padding: 24px 28px 80px; max-width: 1400px; margin: 0 auto; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #fff; color: #1A1411;
+      padding: 6px 14px; border-radius: 999px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: var(--pill-shadow);
+      border: 1px solid rgba(0,0,0,0.06);
+      cursor: pointer;
+    }
+    .pill:hover { transform: translateY(-1px); }
+    .pill[data-tone="ok"] { color: #1f5a3c; }
+    .pill[data-tone="warn"] { color: #7a5a1a; }
+    .pill[data-tone="bad"] { color: #6a2222; }
+    .pill[data-tone="info"] { color: #1a4661; }
+    .pill[data-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    label { font-size: 13px; color: var(--muted-2); margin-right: 6px; }
+    input[type="month"], input[type="date"], input[type="text"], select, textarea {
+      background: var(--bg-2);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 11px;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: var(--pill-shadow); }
+    .card .kind-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 500; }
+    .card .title { font-family: 'Cormorant Garamond', serif; font-size: 18px; margin: 6px 0 4px; font-weight: 500; }
+    .card .desc { font-size: 13px; color: var(--muted-2); }
+
+    .checklist { display: grid; gap: 8px; }
+    .check-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px;
+      background: var(--bg-2);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .check-row .icon {
+      width: 18px; height: 18px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600;
+    }
+    .check-row[data-pass="true"] .icon { background: rgba(92,191,136,0.18); color: var(--ok); }
+    .check-row[data-pass="false"] .icon { background: rgba(217,106,106,0.18); color: var(--bad); }
+    .check-row .count { margin-left: auto; color: var(--muted-2); font-size: 12px; }
+
+    .anomaly {
+      background: rgba(229,177,74,0.08);
+      border-left: 3px solid var(--warn);
+      padding: 8px 12px; margin: 6px 0;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .anomaly[data-severity="high"] {
+      background: rgba(217,106,106,0.08);
+      border-left-color: var(--bad);
+    }
+
+    .report-detail {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      display: none;
+    }
+    .report-detail.show { display: block; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      color: var(--muted-2);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      background: var(--bg-2);
+    }
+    .status-pill[data-status="open"] { background: rgba(107,168,216,0.18); color: var(--info); }
+    .status-pill[data-status="preparing"] { background: rgba(229,177,74,0.18); color: var(--warn); }
+    .status-pill[data-status="ready_for_review"] { background: rgba(229,177,74,0.18); color: var(--warn); }
+    .status-pill[data-status="in_review"] { background: rgba(107,168,216,0.18); color: var(--info); }
+    .status-pill[data-status="corrections_needed"] { background: rgba(217,106,106,0.18); color: var(--bad); }
+    .status-pill[data-status="approved"] { background: rgba(92,191,136,0.18); color: var(--ok); }
+    .status-pill[data-status="closed"] { background: rgba(202,186,174,0.18); color: var(--muted); }
+
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--panel); color: var(--text);
+      padding: 12px 20px; border-radius: 10px;
+      border: 1px solid var(--line);
+      box-shadow: var(--pill-shadow);
+      max-width: 80vw;
+      z-index: 999;
+    }
+    .toast[data-tone="error"] { border-color: var(--bad); }
+    .toast[data-tone="ok"] { border-color: var(--ok); }
+
+    pre {
+      background: var(--bg-2);
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 11px;
+      max-height: 380px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Finansrapporter & Månadsstängning</h1>
+      <div style="font-size:12px;color:var(--muted-2);margin-top:4px;">
+        CF.9 · Pure-function rapportmotor + period state machine ·
+        <span class="status-pill" data-status="open">Fortnox: BLOCKED_INTEGRATION</span>
+      </div>
+    </div>
+    <div class="row">
+      <a href="/finance.html" class="pill">← Finance dashboard</a>
+      <a href="/finance-review.html" class="pill">Revisorportal</a>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;">
+        <div class="row">
+          <label for="period">Period</label>
+          <input type="month" id="period" />
+          <button class="pill" id="btn-this-month">Innevarande månad</button>
+          <button class="pill" id="btn-prev-month">Föregående månad</button>
+        </div>
+        <div class="row">
+          <span id="period-status-wrap"></span>
+          <button class="pill" data-action="start-close">Starta stängning</button>
+          <button class="pill" data-action="ready">Markera klar för review</button>
+          <button class="pill" data-action="approve">Godkänn</button>
+          <button class="pill" data-action="close">Stäng</button>
+          <button class="pill" data-action="reopen">Reopen (owner)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="checklist-panel">
+      <h2>Checklista — månadsstängning</h2>
+      <div id="checklist" class="checklist"><em style="color:var(--muted-2);font-size:13px;">Välj en period...</em></div>
+    </div>
+
+    <div class="panel">
+      <h2>Rapporter</h2>
+      <div class="report-grid" id="report-grid"></div>
+    </div>
+
+    <div class="panel" id="active-report-panel" style="display:none;">
+      <div class="row" style="justify-content:space-between;">
+        <h2 id="active-report-title">Rapport</h2>
+        <div class="row">
+          <button class="pill" id="btn-build-package">Bygg paket → secure storage</button>
+          <button class="pill" id="btn-close-report">Stäng</button>
+        </div>
+      </div>
+      <div id="active-report-body"></div>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN_KEY = 'ARCANA_ADMIN_TOKEN';
+    const API = '/api/v1/cco-cf';
+    const REPORT_DEFS = [
+      { kind: 'daily', title: 'Dagrapport', desc: 'Total spend, top kategorier & leverantörer för en dag.' },
+      { kind: 'weekly', title: 'Veckorapport', desc: '7 dagar — daily breakdown + sammanställning.' },
+      { kind: 'monthly', title: 'Månadsrapport', desc: 'Full breakdown per kategori, supplier, VAT.' },
+      { kind: 'quarterly', title: 'Kvartalsrapport', desc: '3 månader — månadsuppdelning + kvartalstotal.' },
+      { kind: 'yearly', title: 'Årsöversikt', desc: '12 månader / 4 kvartal.' },
+      { kind: 'cash', title: 'Kassarapport', desc: 'Cash, swish, kort direkt-debiterat.' },
+      { kind: 'expense_summary', title: 'Expense-summary', desc: 'Status-fördelning per period.' },
+      { kind: 'receipt_summary', title: 'Receipt-summary', desc: 'Receipt-status & källsystem.' },
+      { kind: 'vat_summary', title: 'VAT/moms summary', desc: 'Netto, brutto, avdragbar moms, reverse-charge.' },
+      { kind: 'supplier_summary', title: 'Supplier summary', desc: 'Top-N vendor-spend + risk-flags + PUB.' },
+      { kind: 'recurring_summary', title: 'Recurring expenses', desc: 'Active, due, overdue, anomalies.' },
+      { kind: 'export_status', title: 'Export & revisor', desc: 'Batches + review-status per batch.' },
+    ];
+
+    function token() { return localStorage.getItem(TOKEN_KEY) || ''; }
+    function authHeaders(extra = {}) {
+      return { Authorization: 'Bearer ' + token(), ...extra };
+    }
+
+    async function api(method, path, body) {
+      const r = await fetch(API + path, {
+        method,
+        headers: authHeaders(body ? { 'Content-Type': 'application/json' } : {}),
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const j = await r.json().catch(() => null);
+      if (!r.ok) {
+        const msg = j?.error || `HTTP ${r.status}`;
+        toast(msg, 'error');
+        throw new Error(msg);
+      }
+      return j;
+    }
+
+    function toast(msg, tone = 'info') {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.setAttribute('data-tone', tone);
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4200);
+    }
+
+    function fmt(n) { return new Intl.NumberFormat('sv-SE').format(Math.round((n || 0) * 100) / 100); }
+
+    function thisMonth() { return new Date().toISOString().slice(0, 7); }
+    function prevMonth() {
+      const d = new Date();
+      d.setUTCMonth(d.getUTCMonth() - 1);
+      return d.toISOString().slice(0, 7);
+    }
+
+    function setPeriod(p) {
+      document.getElementById('period').value = p;
+      loadPeriod(p);
+    }
+
+    async function loadPeriod(periodId) {
+      try {
+        const { period, checklist } = await api('GET', `/periods/${periodId}`);
+        renderPeriodStatus(period);
+        renderChecklist(checklist);
+      } catch (err) {
+        document.getElementById('checklist').innerHTML = `<em style="color:var(--bad);">${err.message}</em>`;
+      }
+    }
+
+    function renderPeriodStatus(period) {
+      const wrap = document.getElementById('period-status-wrap');
+      wrap.innerHTML = `
+        <span class="status-pill" data-status="${period.status}">${period.status}</span>
+        ${period.reopenCount ? `<span style="font-size:11px;color:var(--muted-2);margin-left:8px;">(reopens: ${period.reopenCount})</span>` : ''}
+      `;
+    }
+
+    function renderChecklist(data) {
+      const el = document.getElementById('checklist');
+      const order = [
+        'receiptsAllProcessed',
+        'expensesAllCategorized',
+        'vatAllReviewed',
+        'noExpensesNeedsReview',
+        'recurringChecked',
+        'exportPackageCreated',
+        'reviewerAccepted',
+        'fortnoxStatus',
+      ];
+      const rows = order.map((k) => {
+        const c = data.checklist[k];
+        return `
+          <div class="check-row" data-pass="${c.pass}">
+            <span class="icon">${c.pass ? '✓' : '✗'}</span>
+            <span>${c.label}</span>
+            ${c.count > 0 ? `<span class="count">${c.count}</span>` : ''}
+          </div>
+        `;
+      }).join('');
+      const ready = data.readyForClose
+        ? `<div style="margin-top:10px;color:var(--ok);font-size:13px;">✅ Redo att stängas — alla blockerande punkter klara.</div>`
+        : `<div style="margin-top:10px;color:var(--warn);font-size:13px;">Blockerande: ${data.blockingItems.join(', ') || 'inga'}</div>`;
+      el.innerHTML = rows + ready;
+    }
+
+    function renderReportGrid() {
+      const grid = document.getElementById('report-grid');
+      grid.innerHTML = REPORT_DEFS.map((r) => `
+        <div class="card" data-kind="${r.kind}">
+          <div class="kind-label">${r.kind}</div>
+          <div class="title">${r.title}</div>
+          <div class="desc">${r.desc}</div>
+        </div>
+      `).join('');
+      grid.querySelectorAll('.card').forEach((c) => {
+        c.addEventListener('click', () => generateActiveReport(c.dataset.kind));
+      });
+    }
+
+    let activeReport = null;
+    async function generateActiveReport(kind) {
+      const period = document.getElementById('period').value || thisMonth();
+      try {
+        const { report } = await api('POST', '/reports/generate', { kind, period });
+        activeReport = report;
+        document.getElementById('active-report-panel').style.display = 'block';
+        document.getElementById('active-report-title').textContent =
+          `${kind} · ${report.periodLabel}`;
+        document.getElementById('active-report-body').innerHTML = renderReportBody(report);
+        document.getElementById('active-report-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch {}
+    }
+
+    function renderReportBody(report) {
+      const totals = report.totals || {};
+      const totalsHtml = `
+        <h3>Totals</h3>
+        <table><tbody>
+          ${Object.entries(totals).filter(([k,v]) => typeof v !== 'object').map(([k,v]) =>
+            `<tr><th>${k}</th><td>${typeof v === 'number' ? fmt(v) : v}</td></tr>`
+          ).join('')}
+        </tbody></table>
+      `;
+      const breakdowns = Object.entries(report.breakdown || {}).map(([k, v]) => {
+        if (Array.isArray(v) && v.length > 0) {
+          const headers = Object.keys(v[0]);
+          return `
+            <h3 style="margin-top:14px;">Breakdown: ${k}</h3>
+            <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+            <tbody>${v.map(row =>
+              `<tr>${headers.map(h => `<td>${typeof row[h] === 'number' ? fmt(row[h]) : (row[h] ?? '')}</td>`).join('')}</tr>`
+            ).join('')}</tbody></table>
+          `;
+        }
+        if (typeof v === 'object' && v) {
+          return `
+            <h3 style="margin-top:14px;">${k}</h3>
+            <pre>${JSON.stringify(v, null, 2)}</pre>
+          `;
+        }
+        return '';
+      }).join('');
+      const anomalies = (report.anomalies || []).map(a => `
+        <div class="anomaly" data-severity="${a.severity}">
+          <strong>${a.kind}</strong> · ${a.message}${a.count ? ` (${a.count})` : ''}
+        </div>
+      `).join('');
+      return `
+        <div style="margin-top:12px;">
+          ${totalsHtml}
+          ${anomalies ? `<h3 style="margin-top:14px;">Anomalies</h3>${anomalies}` : ''}
+          ${breakdowns}
+        </div>
+      `;
+    }
+
+    async function buildPackage() {
+      if (!activeReport) return;
+      try {
+        const { packageId, manifest } = await api('POST', '/reports/package', {
+          kind: activeReport.reportKind,
+          period: activeReport.periodLabel,
+        });
+        toast(`Paket byggt: ${packageId}`, 'ok');
+        const links = manifest.files.map(f => {
+          const url = `/api/v1/cco-cf/reports/package/${encodeURIComponent(activeReport.periodLabel)}/${activeReport.reportKind}/${packageId}/download/${f.kind}`;
+          return `<div style="margin:6px 0;">📦 <a href="#" data-url="${url}" data-fileKind="${f.kind}">${f.kind}</a> — ${fmt(f.sizeBytes)} bytes · sha256: <code style="font-size:10px;">${f.checksum.slice(0,16)}...</code></div>`;
+        }).join('');
+        const body = document.getElementById('active-report-body');
+        const div = document.createElement('div');
+        div.innerHTML = `<div class="panel" style="margin-top:14px;background:var(--bg-2);"><h3>Paket: ${packageId}</h3>${links}</div>`;
+        body.insertBefore(div, body.firstChild);
+        // Click handler för authed download
+        div.querySelectorAll('a[data-url]').forEach(a => {
+          a.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            try {
+              const r = await fetch(a.dataset.url, { headers: authHeaders() });
+              if (!r.ok) throw new Error('Download failed');
+              const blob = await r.blob();
+              const u = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = u; link.download = `${packageId}-${a.dataset.fileKind}`;
+              link.click();
+              URL.revokeObjectURL(u);
+            } catch (e) { toast(e.message, 'error'); }
+          });
+        });
+      } catch {}
+    }
+
+    // Period actions
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const action = btn.dataset.action;
+        const periodId = document.getElementById('period').value;
+        if (!periodId) { toast('Välj period först', 'error'); return; }
+        let path = null;
+        let body = null;
+        if (action === 'start-close') path = `/periods/${periodId}/start-close`;
+        else if (action === 'ready') path = `/periods/${periodId}/ready-for-review`;
+        else if (action === 'approve') path = `/periods/${periodId}/approve`;
+        else if (action === 'close') path = `/periods/${periodId}/close`;
+        else if (action === 'reopen') {
+          const reason = prompt('Reason för reopen (krävs):');
+          if (!reason) return;
+          path = `/periods/${periodId}/reopen`;
+          body = { reason };
+        }
+        if (!path) return;
+        try {
+          await api('POST', path, body || {});
+          toast(`${action} OK`, 'ok');
+          loadPeriod(periodId);
+        } catch {}
+      });
+    });
+
+    document.getElementById('btn-this-month').addEventListener('click', () => setPeriod(thisMonth()));
+    document.getElementById('btn-prev-month').addEventListener('click', () => setPeriod(prevMonth()));
+    document.getElementById('period').addEventListener('change', (e) => loadPeriod(e.target.value));
+    document.getElementById('btn-build-package').addEventListener('click', buildPackage);
+    document.getElementById('btn-close-report').addEventListener('click', () => {
+      document.getElementById('active-report-panel').style.display = 'none';
+      activeReport = null;
+    });
+
+    // Boot
+    renderReportGrid();
+    setPeriod(thisMonth());
+  </script>
+</body>
+</html>

@@ -175,3 +175,50 @@ test('createCapabilityAnalysisStore append lowercases decision', async () => {
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('createCapabilityAnalysisStore reloadFromDisk picks up external file changes', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-analysis-reload-'));
+  const filePath = path.join(dir, 'analysis-reload.json');
+  const store = await createCapabilityAnalysisStore({ filePath, maxEntries: 500 });
+  await store.append({
+    tenantId: 't-reload',
+    capabilityName: 'CapReload',
+    persistStrategy: 'analysis',
+    decision: 'allow',
+    input: {},
+    output: {},
+  });
+
+  await fs.writeFile(
+    filePath,
+    `${JSON.stringify(
+      {
+        version: 1,
+        createdAt: '2026-06-01T00:00:00.000Z',
+        updatedAt: '2026-06-01T01:00:00.000Z',
+        entries: [
+          {
+            id: 'external-entry',
+            ts: '2026-06-01T01:00:00.000Z',
+            tenantId: 't-reload',
+            capability: { name: 'CapReload', version: '1.0.0', persistStrategy: 'analysis' },
+            decision: 'allow',
+            input: {},
+            output: {},
+          },
+        ],
+      },
+      null,
+      2
+    )}\n`,
+    'utf8'
+  );
+
+  const reload = await store.reloadFromDisk();
+  assert.equal(reload.entryCount, 1);
+  const rows = await store.list({ tenantId: 't-reload', limit: 5 });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].id, 'external-entry');
+
+  await fs.rm(dir, { recursive: true, force: true });
+});

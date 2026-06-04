@@ -3147,6 +3147,9 @@
             }
           }
           conversationNextHost.innerHTML = conversationNextStepMarkup;
+          if (typeof windowObject.ArcanaThreadAiSummary?.onThreadRendered === "function") {
+            windowObject.ArcanaThreadAiSummary.onThreadRendered(thread);
+          }
           const hideConversationNextHost =
             isBookingOperational &&
             state.runtime?.bookingShellOpen !== false &&

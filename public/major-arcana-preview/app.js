@@ -88,7 +88,10 @@
     return true;
   }
 
-  function setMobileWorkspaceView(view, { persist = false, resetScroll = true } = {}) {
+  function setMobileWorkspaceView(
+    view,
+    { persist = false, resetScroll = true, syncShell = true } = {}
+  ) {
     if (!canvas) return;
     const nextView = view === "focus" ? "focus" : "queue";
     canvas.dataset.mobileWorkspaceView = nextView;
@@ -107,6 +110,9 @@
         node.scrollTop = 0;
         node.scrollLeft = 0;
       });
+    }
+    if (syncShell) {
+      window.ArcanaMobileShell?.syncFromApp?.();
     }
   }
 
@@ -180,6 +186,16 @@
   const macroCommandButtons = Array.from(document.querySelectorAll("[data-macro-command]"));
   const settingsChoiceButtons = Array.from(document.querySelectorAll("[data-settings-choice]"));
   const settingsToggleInputs = Array.from(document.querySelectorAll("[data-settings-toggle]"));
+  const settingsLeadTimeInputs = Array.from(document.querySelectorAll("[data-settings-lead-time]"));
+  const settingsLeadTimeJsonInputs = Array.from(
+    document.querySelectorAll("[data-settings-lead-time-json]")
+  );
+  const settingsBookingPolicyInputs = Array.from(
+    document.querySelectorAll("[data-settings-booking-policy]")
+  );
+  const settingsBookingPolicyJsonInputs = Array.from(
+    document.querySelectorAll("[data-settings-booking-policy-json]")
+  );
   const settingsActionButtons = Array.from(document.querySelectorAll("[data-settings-action]"));
   const showcaseFeatureButtons = Array.from(
     document.querySelectorAll("[data-showcase-feature]")
@@ -1760,6 +1776,22 @@
       owner: "Automationsteam",
       connected: false,
     },
+    {
+      key: "fortnox",
+      category: "accounting",
+      label: "Fortnox",
+      copy: "Synka patienter till Fortnox-kunder och spara kundnummer direkt i patientkortet.",
+      owner: "Ekonomiteam",
+      connected: false,
+    },
+    {
+      key: "swish",
+      category: "payment",
+      label: "Swish",
+      copy: "Ta betalt med Swish Handel — skapa betalningsförfrågningar och följ status i Arcana.",
+      owner: "Ekonomiteam",
+      connected: false,
+    },
   ];
 
   const MACRO_LIBRARY = [
@@ -2072,6 +2104,7 @@
       requestId: 0,
       pendingKey: "",
       records: [],
+      providerStatus: null,
       docsPayload: null,
       actorProfile: null,
       lastSalesLeadAt: "",
@@ -2350,6 +2383,8 @@
         color_priorities: true,
         advanced_filters: false,
       },
+      bookingReminderLeadTime: createDefaultBookingReminderLeadTimeView(),
+      bookingPolicy: createDefaultBookingPolicyView(),
     },
     macroModal: {
       open: false,
@@ -2389,6 +2424,7 @@
       isBackgroundRefresh: false,
       staleCacheActive: false,
       backgroundSyncActive: false,
+      bootLaneLocked: true,
       scopeAutoWidenedAt: "",
       backgroundRefreshSelectedThreadId: "",
       mode: "",
@@ -2916,6 +2952,45 @@
   let __runtimeShellInProgress = false;
   let __runtimeShellPendingScopes = new Set();
   let __runtimeShellRaf = 0;
+  let __mobileViewLoadsTimer = 0;
+
+  function isMobileShellViewportEarly() {
+    try {
+      return window.matchMedia("(max-width: 768px)").matches;
+    } catch {
+      return false;
+    }
+  }
+
+  function scheduleMobileIdleWork(callback, { timeout = 180 } = {}) {
+    if (typeof requestIdleCallback === "function") {
+      return requestIdleCallback(callback, { timeout });
+    }
+    return setTimeout(callback, 0);
+  }
+
+  function cancelMobileNavigationWork() {
+    if (!isMobileShellViewportEarly()) return;
+    if (__runtimeShellRaf) {
+      if (typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(__runtimeShellRaf);
+      }
+      if (typeof cancelIdleCallback === "function") {
+        cancelIdleCallback(__runtimeShellRaf);
+      }
+      clearTimeout(__runtimeShellRaf);
+      __runtimeShellRaf = 0;
+    }
+    __runtimeShellPendingScopes = new Set();
+    __runtimeShellInProgress = false;
+    if (__mobileViewLoadsTimer) {
+      clearTimeout(__mobileViewLoadsTimer);
+      if (typeof cancelIdleCallback === "function") {
+        cancelIdleCallback(__mobileViewLoadsTimer);
+      }
+      __mobileViewLoadsTimer = 0;
+    }
+  }
 
   function resolveRuntimeShellScope(scopes = new Set()) {
     if (!scopes || scopes.size === 0 || scopes.has("all")) {
@@ -2940,10 +3015,15 @@
       __runtimeShellPendingScopes.add(normalizeKey(scope) || "all");
     }
     if (__runtimeShellRaf) return;
+    const flush = flushScheduledRuntimeConversationShell;
+    if (isMobileShellViewportEarly()) {
+      __runtimeShellRaf = scheduleMobileIdleWork(flush, { timeout: 220 });
+      return;
+    }
     __runtimeShellRaf =
       typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame(flushScheduledRuntimeConversationShell)
-        : setTimeout(flushScheduledRuntimeConversationShell, 0);
+        ? requestAnimationFrame(flush)
+        : setTimeout(flush, 0);
   }
 
   function flushScheduledRuntimeConversationShell() {
@@ -2961,7 +3041,16 @@
   }
 
   let __renderScheduled = false;
+  let __renderDepth = 0;
+  let __renderDeferred = false;
   function scheduleRender(reason) {
+    // Under pågående render: mutera inte schemaläggning direkt — köa en flush
+    // efter nuvarande renderApp så state-proxy-setters inte driver sync-loop.
+    if (__renderDepth > 0) {
+      __renderDeferred = true;
+      __renderStats.deferred = (__renderStats.deferred || 0) + 1;
+      return;
+    }
     if (__renderScheduled) return;
     __renderScheduled = true;
     __renderStats.scheduled++;
@@ -2973,13 +3062,37 @@
     }
   }
 
+  // R6b: throttle scheduleRender så vi inte hamnar i render-loop. Tak vid
+  // 30 render per sekund — om vi når det signal:erar vi bara backoff istället.
+  let __renderBudget = { count: 0, windowStart: 0 };
   function __doRender() {
+    const now = Date.now();
+    if (now - __renderBudget.windowStart > 1000) {
+      __renderBudget.windowStart = now;
+      __renderBudget.count = 0;
+    }
+    __renderBudget.count++;
+    if (__renderBudget.count > 30) {
+      // Vi är i en render-loop — skippa denna och rensa scheduled-flaggan
+      __renderScheduled = false;
+      if (__renderBudget.count === 31 && typeof console !== 'undefined') {
+        console.warn('[render] >30 renders/sec, throttlar — render-loop misstänkt');
+      }
+      return;
+    }
     __renderScheduled = false;
     const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    __renderDepth++;
     try {
       renderApp(state);
     } catch (e) {
       if (typeof console !== 'undefined') console.warn('[render] fel:', e);
+    } finally {
+      __renderDepth--;
+      if (__renderDeferred) {
+        __renderDeferred = false;
+        scheduleRender('deferred');
+      }
     }
     const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
     __renderStats.lastDurationMs = t1 - t0;
@@ -3011,6 +3124,11 @@
   function renderRuntimeShellHook(state) {
     if (!__renderHooks.runtimeShell) return;
     if (state.status.bootstrapped !== true) return;
+    const shellView = normalizeKey(canvas?.dataset?.appShellView || "");
+    if (shellView && shellView !== "conversations") {
+      __renderStats.runtimeShellSkipped++;
+      return;
+    }
     if (__runtimeShellInProgress) {
       __renderStats.runtimeShellSkipped++;
       return;
@@ -3062,6 +3180,14 @@
       bootstrapLastDurationMs: Number(asyncRuntimeRefs.bootstrapLastDurationMs || 0),
       bootstrapNetworkLoads: Number(asyncRuntimeRefs.bootstrapNetworkLoads || 0),
     });
+    if (typeof window.__getFetchStats !== "function") {
+      window.__getFetchStats = () => ({
+        total: 0,
+        ok: 0,
+        error: 0,
+        note: "cco-fetch-instrumentation not loaded",
+      });
+    }
     window.__scheduleRuntimeConversationShell = scheduleRuntimeConversationShell;
     window.__renderApp = () => {
       __doRender();
@@ -4645,40 +4771,19 @@
   // Expose workspace-state to runtime-fix-shims for permanent thread-card click-handler.
   // Behövs eftersom app.js är en sluten IIFE och workspaceSourceOfTruth annars
   // är oåtkomligt för external shims.
+  function widenRuntimeMailboxScopeToAll() {
+    const availableMailboxIds = getCanonicalAvailableRuntimeMailboxIds();
+    if (!availableMailboxIds.length) return false;
+    workspaceSourceOfTruth.setSelectedMailboxIds([...availableMailboxIds]);
+    state.runtime.mailboxScopePinned = false;
+    state.runtime.mailboxScopeWidenHint = false;
+    ensureRuntimeMailboxSelection();
+    ensureRuntimeSelection({ allowLaneFallback: state.runtime?.bootLaneLocked !== true });
+    renderRuntimeConversationShell();
+    return true;
+  }
+  workspaceSourceOfTruth.widenMailboxScopeToAll = widenRuntimeMailboxScopeToAll;
   try { window.__ccoWorkspace = workspaceSourceOfTruth; } catch (_e) {}
-  try {
-    window.__ccoCustomerList = {
-      /**
-       * Byter till kundvyn och väljer kundrad — samma kedja som klick på
-       * `[data-customer-row]` (customerList → setSelectedCustomerIdentity).
-       */
-      selectCustomerKey(customerKey) {
-        const normalized = normalizeKey(customerKey);
-        if (!normalized) return;
-        setAppView("customers");
-        const maxAttempts = 50;
-        const intervalMs = 50;
-        let attempt = 0;
-        const tick = () => {
-          attempt += 1;
-          const esc =
-            typeof CSS !== "undefined" && typeof CSS.escape === "function"
-              ? CSS.escape(normalized)
-              : String(normalized).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-          const row = document.querySelector(`[data-customer-row="${esc}"]`);
-          if (row) {
-            row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            row.click();
-            return;
-          }
-          if (attempt < maxAttempts) {
-            window.setTimeout(tick, intervalMs);
-          }
-        };
-        window.requestAnimationFrame(tick);
-      },
-    };
-  } catch (_e) {}
 
   const runtimeReentryState = PREVIEW_REENTRY_STATE.createRuntimeReentryStateApi({
     asArray,
@@ -4710,6 +4815,22 @@
     return typeof runtimeReentryState?.getRuntimeReentrySnapshot === "function"
       ? runtimeReentryState.getRuntimeReentrySnapshot()
       : null;
+  }
+
+  function getCurrentWorkspaceSnapshot() {
+    return typeof runtimeReentryState?.getCurrentSnapshot === "function"
+      ? runtimeReentryState.getCurrentSnapshot()
+      : null;
+  }
+
+  function applyRuntimeReentrySnapshot(snapshot, options = {}) {
+    if (
+      !runtimeReentryState ||
+      typeof runtimeReentryState.applyRuntimeReentrySnapshot !== "function"
+    ) {
+      return null;
+    }
+    return runtimeReentryState.applyRuntimeReentrySnapshot(snapshot, options);
   }
 
   function debugRuntimeReentrySnapshot(label = "reentry") {
@@ -4980,6 +5101,30 @@
     return AUTOMATION_VIEW_ALIASES[normalizedView] ? "automation" : normalizedView || "conversations";
   }
 
+  const CCO_SHELL_PAGE_TITLES = Object.freeze({
+    conversations: "Konversationer",
+    customers: "Kundregister",
+    calendar: "Kalender",
+    automation: "Automatisering",
+    analytics: "Analys",
+    later: "Senare",
+    sent: "Skickat",
+    integrations: "Integrationer",
+    macros: "Makron",
+    settings: "Inställningar",
+    showcase: "Showcase",
+  });
+
+  function syncCcoDocumentTitle(view) {
+    const shellView = resolveShellView(view);
+    const pageName = CCO_SHELL_PAGE_TITLES[shellView] || "Operatörsvy";
+    if (window.ArcanaPageTitles?.applyArcanaTitle) {
+      window.ArcanaPageTitles.applyArcanaTitle(pageName);
+      return;
+    }
+    document.title = `${pageName} · Arcana`;
+  }
+
   function resolveAutomationSectionForView(view) {
     return AUTOMATION_VIEW_ALIASES[normalizeKey(view)] || "";
   }
@@ -4989,6 +5134,26 @@
       return { view: "conversations", automationSection: "", portalCustomerKey: "" };
     }
     const params = new URLSearchParams(window.location.search || "");
+    const path = String(window.location.pathname || "");
+    let requestedView = normalizeKey(params.get("view"));
+    if (!requestedView) {
+      let mobileDefault = false;
+      try {
+        mobileDefault = window.matchMedia("(max-width: 768px)").matches;
+      } catch {
+        mobileDefault = false;
+      }
+      if (
+        mobileDefault ||
+        path.startsWith("/staff") ||
+        path.startsWith("/mobil") ||
+        path.includes("/major-arcana-preview")
+      ) {
+        requestedView = "customers";
+      } else {
+        requestedView = "conversations";
+      }
+    }
     // Fas 37 (2026-05-19): portalCustomerKey kräver nu EXPLICIT opt-in via
     // ?showcase=1. Tidigare räckte det med portalCustomerKey ensam — vilket
     // poisonade state vid varje reload av en URL som råkat ha keyen kvar
@@ -5001,7 +5166,7 @@
     const wantsShowcase = params.get("showcase") === "1";
     const portalCustomerKey = wantsShowcase ? rawPortalKey : "";
     return {
-      view: normalizeKey(params.get("view")) || "conversations",
+      view: requestedView,
       automationSection:
         normalizeKey(params.get("automationSection") || params.get("section")) || "",
       portalCustomerKey,
@@ -5957,6 +6122,7 @@
       communication: "Kommunikation",
       analytics: "Analys",
       automation: "Automatisering",
+      accounting: "Bokföring",
     };
     return labels[normalized] || humanizeCode(normalized, "Alla");
   }
@@ -6151,7 +6317,170 @@
         signatureProfileId: "",
       },
       toggles: Object.fromEntries(SETTINGS_TOGGLE_KEYS.map((key) => [key, false])),
+      bookingReminderLeadTime: {
+        globalDefaultHours: 24,
+        channelDefaults: { online: 4, physical: 24, default: 24 },
+        serviceOverrides: {},
+        resourceOverrides: {},
+      },
+      bookingPolicy: createDefaultBookingPolicyView(),
     };
+  }
+
+  function createDefaultBookingPolicyView() {
+    return {
+      minNoticeOnlineHours: 2,
+      minNoticePhysicalHours: 1,
+      maxBookingDaysAhead: 180,
+      cancellationPolicyHours: 24,
+      serviceOverrides: {},
+    };
+  }
+
+  function normalizeBookingPolicyView(input = {}) {
+    const defaults = createDefaultBookingPolicyView();
+    const safe = input && typeof input === "object" ? input : {};
+    const global =
+      safe.globalDefaults && typeof safe.globalDefaults === "object"
+        ? safe.globalDefaults
+        : safe;
+    const clampHours = (value, fallback) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(0, Math.min(168, Math.round(parsed)));
+    };
+    const clampDays = (value, fallback) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(1, Math.min(365, Math.round(parsed)));
+    };
+    const onlineMinutes = Number(global.minNoticeOnlineMinutes);
+    const physicalMinutes = Number(global.minNoticePhysicalMinutes);
+    const normalizeServiceOverrides = (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+      const out = {};
+      Object.entries(value).forEach(([key, override]) => {
+        const id = normalizeText(key);
+        if (!id || !override || typeof override !== "object" || Array.isArray(override)) return;
+        out[id] = { ...override };
+      });
+      return out;
+    };
+    return {
+      minNoticeOnlineHours: clampHours(
+        safe.minNoticeOnlineHours ??
+          (Number.isFinite(onlineMinutes) ? onlineMinutes / 60 : undefined),
+        defaults.minNoticeOnlineHours
+      ),
+      minNoticePhysicalHours: clampHours(
+        safe.minNoticePhysicalHours ??
+          (Number.isFinite(physicalMinutes) ? physicalMinutes / 60 : undefined),
+        defaults.minNoticePhysicalHours
+      ),
+      maxBookingDaysAhead: clampDays(global.maxBookingDaysAhead, defaults.maxBookingDaysAhead),
+      cancellationPolicyHours: clampHours(
+        global.cancellationPolicyHours,
+        defaults.cancellationPolicyHours
+      ),
+      serviceOverrides: normalizeServiceOverrides(safe.serviceOverrides),
+    };
+  }
+
+  function buildBookingPolicyPayloadFromView(view = {}) {
+    const normalized = normalizeBookingPolicyView(view);
+    return {
+      globalDefaults: {
+        minNoticeOnlineMinutes: normalized.minNoticeOnlineHours * 60,
+        minNoticePhysicalMinutes: normalized.minNoticePhysicalHours * 60,
+        maxBookingDaysAhead: normalized.maxBookingDaysAhead,
+        cancellationPolicyHours: normalized.cancellationPolicyHours,
+      },
+      serviceOverrides: normalized.serviceOverrides,
+    };
+  }
+
+  function serializeBookingPolicyJson(map = {}) {
+    try {
+      return JSON.stringify(map && typeof map === "object" ? map : {}, null, 0);
+    } catch {
+      return "{}";
+    }
+  }
+
+  function parseBookingPolicyServiceOverridesJson(raw = "") {
+    const text = normalizeText(raw);
+    if (!text) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return normalizeBookingPolicyView({ serviceOverrides: parsed }).serviceOverrides;
+    } catch {
+      return null;
+    }
+  }
+
+  function createDefaultBookingReminderLeadTimeView() {
+    return {
+      globalDefaultHours: 24,
+      channelDefaults: { online: 4, physical: 24, default: 24 },
+      serviceOverrides: {},
+      resourceOverrides: {},
+    };
+  }
+
+  function normalizeBookingReminderLeadTimeView(input = {}) {
+    const defaults = createDefaultBookingReminderLeadTimeView();
+    const safe = input && typeof input === "object" ? input : {};
+    const channels =
+      safe.channelDefaults && typeof safe.channelDefaults === "object"
+        ? safe.channelDefaults
+        : {};
+    const clampHours = (value, fallback) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(1, Math.min(168, Math.round(parsed)));
+    };
+    const normalizeMap = (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+      const out = {};
+      Object.entries(value).forEach(([key, hours]) => {
+        const id = normalizeText(key);
+        if (!id) return;
+        out[id] = clampHours(hours, null);
+        if (!Number.isFinite(Number(hours))) delete out[id];
+      });
+      return out;
+    };
+    return {
+      globalDefaultHours: clampHours(safe.globalDefaultHours, defaults.globalDefaultHours),
+      channelDefaults: {
+        online: clampHours(channels.online, defaults.channelDefaults.online),
+        physical: clampHours(channels.physical, defaults.channelDefaults.physical),
+        default: clampHours(channels.default, defaults.channelDefaults.default),
+      },
+      serviceOverrides: normalizeMap(safe.serviceOverrides),
+      resourceOverrides: normalizeMap(safe.resourceOverrides),
+    };
+  }
+
+  function serializeLeadTimeOverrideJson(map = {}) {
+    try {
+      return JSON.stringify(map && typeof map === "object" ? map : {}, null, 0);
+    } catch {
+      return "{}";
+    }
+  }
+
+  function parseLeadTimeOverrideJson(raw = "", mapKey = "serviceOverrides") {
+    const text = normalizeText(raw);
+    if (!text) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return normalizeBookingReminderLeadTimeView({
+        [mapKey]: parsed,
+      })[mapKey];
+    } catch {
+      return null;
+    }
   }
 
   function normalizeMailFoundationDefaults(defaults = {}) {
@@ -6266,6 +6595,10 @@
       deleteRequestedAt: asText(settings?.deleteRequestedAt),
       mailFoundationDefaults: normalizeMailFoundationDefaults(settings?.mailFoundation?.defaults),
       mailFoundationCustomMailboxes: asArray(settings?.mailFoundation?.customMailboxes),
+      bookingReminderLeadTime: normalizeBookingReminderLeadTimeView(
+        settings?.bookingReminderLeadTime
+      ),
+      bookingPolicy: normalizeBookingPolicyView(settings?.bookingPolicy),
       toggles,
     };
   }
@@ -6321,6 +6654,10 @@
           customMailboxes || state.data.customMailboxes
         ),
       },
+      bookingReminderLeadTime: normalizeBookingReminderLeadTimeView(
+        state.settingsRuntime.bookingReminderLeadTime
+      ),
+      bookingPolicy: buildBookingPolicyPayloadFromView(state.settingsRuntime.bookingPolicy),
     };
   }
 
@@ -6339,6 +6676,10 @@
       ...state.settingsRuntime.toggles,
       ...mapped.toggles,
     };
+    state.settingsRuntime.bookingReminderLeadTime = normalizeBookingReminderLeadTimeView(
+      mapped.bookingReminderLeadTime
+    );
+    state.settingsRuntime.bookingPolicy = normalizeBookingPolicyView(mapped.bookingPolicy);
     if (
       nextState?.mailFoundation &&
       Object.prototype.hasOwnProperty.call(nextState.mailFoundation, "customMailboxes")
@@ -6753,18 +7094,203 @@
     return recipientName ? `Hej ${recipientName},` : "Hej,";
   }
 
+  const preparedDraftModesCache = new Map();
+  const preparedDraftModesInflight = new Map();
+
   function getStudioDraftModes(thread) {
+    const conversationId = asText(thread?.id);
+    const cachedModes = conversationId ? preparedDraftModesCache.get(conversationId) : null;
     const draftModes =
       thread?.raw?.draftModes && typeof thread.raw.draftModes === "object"
-        ? thread.raw.draftModes
-        : {};
+        ? { ...thread.raw.draftModes, ...(cachedModes || {}) }
+        : cachedModes || {};
     return {
       professional: asText(draftModes.professional),
       warm: asText(draftModes.warm),
       short: asText(draftModes.short),
       recommendedMode:
-        normalizeKey(thread?.raw?.recommendedMode || "professional") || "professional",
+        normalizeKey(thread?.raw?.recommendedMode || draftModes.recommendedMode || "professional") ||
+        "professional",
+      loading: Boolean(conversationId && preparedDraftModesInflight.has(conversationId)),
     };
+  }
+
+  function isSmartReplyFeatureEnabled() {
+    if (state.settingsRuntime?.toggles?.smart_reply === false) return false;
+    const toggle = document.querySelector('[data-settings-toggle="smart_reply"]');
+    if (toggle && !toggle.checked) return false;
+    return true;
+  }
+
+  function studioDraftModesAreEmpty(thread) {
+    const modes = getStudioDraftModes(thread);
+    return !modes.professional && !modes.warm && !modes.short;
+  }
+
+  function mapRefineKeyToInstruction(refineKey) {
+    const normalized = normalizeKey(refineKey);
+    if (normalized === "shorter") return "shorten";
+    if (normalized === "professional") return "professional";
+    return "improve";
+  }
+
+  function buildPrepareDraftConversationSnapshot(thread) {
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    return {
+      conversationId: asText(thread?.id),
+      id: asText(thread?.id),
+      customerName: asText(thread?.customerName),
+      customerEmail: asText(getRuntimeCustomerEmail(thread)),
+      subject: asText(thread?.subject),
+      status: "needs_reply",
+      needsReply: true,
+      direction: "inbound",
+      detectedIntent: asText(thread?.intentLabel || raw.intent || "general"),
+      latestInboundBody: asText(raw.latestInboundBody || raw.snippet || thread?.previewBody),
+      snippet: asText(raw.snippet || thread?.previewBody),
+    };
+  }
+
+  function markStudioAiDraftOrigin(studioState, draftText) {
+    if (!studioState) return;
+    const text = normalizeText(draftText);
+    if (!text) return;
+    studioState.lastAiDraftOriginal = text;
+    studioState.aiDraftTrackedAt = new Date().toISOString();
+  }
+
+  function applyPreparedDraftModesToThread(thread, draftModes = {}, recommendedMode = "professional") {
+    if (!thread) return;
+    thread.raw = thread.raw && typeof thread.raw === "object" ? thread.raw : {};
+    thread.raw.draftModes = {
+      ...(thread.raw.draftModes || {}),
+      ...draftModes,
+    };
+    if (!normalizeText(thread.raw.recommendedMode)) {
+      thread.raw.recommendedMode = recommendedMode;
+    }
+    const conversationId = asText(thread.id);
+    if (conversationId) {
+      preparedDraftModesCache.set(conversationId, {
+        professional: asText(draftModes.professional),
+        warm: asText(draftModes.warm),
+        short: asText(draftModes.short),
+        recommendedMode: normalizeKey(recommendedMode) || "professional",
+      });
+    }
+  }
+
+  async function hydrateStudioDraftModesFromApi(thread, { force = false } = {}) {
+    if (!thread || !isSmartReplyFeatureEnabled()) return null;
+    if (isOfflineHistoryContextThread(thread)) return null;
+    const conversationId = asText(thread.id);
+    if (!conversationId) return null;
+    if (!force && !studioDraftModesAreEmpty(thread)) return getStudioDraftModes(thread);
+    if (!force && preparedDraftModesCache.has(conversationId)) {
+      applyPreparedDraftModesToThread(thread, preparedDraftModesCache.get(conversationId));
+      return getStudioDraftModes(thread);
+    }
+    if (preparedDraftModesInflight.has(conversationId)) {
+      return preparedDraftModesInflight.get(conversationId);
+    }
+    const snapshot = {
+      conversations: [buildPrepareDraftConversationSnapshot(thread)],
+      templates: asArray(state.noteTemplates),
+      timestamps: { capturedAt: new Date().toISOString() },
+    };
+    const studioState =
+      state.studio && runtimeConversationIdsMatch(state.studio.threadId, conversationId)
+        ? state.studio
+        : null;
+    if (studioState) studioState.draftModesLoading = true;
+    if (typeof renderStudioShell === "function") renderStudioShell();
+    const flight = Promise.all(
+      ["professional", "warm", "short"].map((tone) =>
+        apiRequest("/api/v1/capabilities/PrepareResponseDrafts/run", {
+          method: "POST",
+          headers: {
+            "x-idempotency-key": createIdempotencyKey(`major-arcana-prepare-${tone}`),
+          },
+          body: {
+            channel: "admin",
+            input: { tone, maxDrafts: 1 },
+            systemStateSnapshot: snapshot,
+          },
+        }).catch(() => null)
+      )
+    )
+      .then((responses) => {
+        const draftModes = {};
+        responses.forEach((payload, index) => {
+          const tone = ["professional", "warm", "short"][index];
+          const draft = asArray(payload?.output?.data?.drafts)[0];
+          const body = asText(draft?.draft);
+          if (body) draftModes[tone] = body;
+        });
+        if (Object.keys(draftModes).length) {
+          applyPreparedDraftModesToThread(thread, draftModes, "professional");
+        }
+        return getStudioDraftModes(thread);
+      })
+      .finally(() => {
+        preparedDraftModesInflight.delete(conversationId);
+        if (state.studio && runtimeConversationIdsMatch(state.studio.threadId, conversationId)) {
+          state.studio.draftModesLoading = false;
+        }
+        if (typeof renderStudioShell === "function") renderStudioShell();
+      });
+    preparedDraftModesInflight.set(conversationId, flight);
+    return flight;
+  }
+
+  async function runRefineReplyDraftCapability(thread, draft, refineKey) {
+    if (!thread || !isSmartReplyFeatureEnabled()) return null;
+    const raw = thread?.raw && typeof thread.raw === "object" ? thread.raw : {};
+    const payload = await apiRequest("/api/v1/capabilities/RefineReplyDraft/run", {
+      method: "POST",
+      headers: {
+        "x-idempotency-key": createIdempotencyKey("major-arcana-refine-draft"),
+      },
+      body: {
+        channel: "admin",
+        input: {
+          conversationId: asText(thread.id),
+          messageId: asText(raw.messageId || thread.id),
+          mailboxId: asText(thread.mailboxAddress || raw.mailboxId),
+          subject: asText(thread.subject) || "(utan amne)",
+          draft: normalizeText(draft),
+          instruction: mapRefineKeyToInstruction(refineKey),
+        },
+      },
+    });
+    return asText(payload?.output?.data?.refinedReply);
+  }
+
+  function recordDraftFeedbackFireAndForget({ thread, studioState, sentBody, isComposeMode = false }) {
+    const originalDraft = asText(studioState?.lastAiDraftOriginal || studioState?.baseDraftBody);
+    const editedDraft = asText(sentBody);
+    if (!originalDraft || !editedDraft) return;
+    void apiRequest("/api/v1/capabilities/RecordDraftFeedback/run", {
+      method: "POST",
+      headers: {
+        "x-idempotency-key": createIdempotencyKey("major-arcana-draft-feedback"),
+      },
+      body: {
+        channel: "admin",
+        input: {
+          conversationId: isComposeMode ? "" : asText(thread?.id),
+          threadSubject: isComposeMode
+            ? asText(studioState?.composeSubject)
+            : asText(thread?.subject),
+          customerEmail: isComposeMode ? asText(studioState?.composeTo) : asText(getRuntimeCustomerEmail(thread)),
+          originalDraft,
+          editedDraft,
+          sentAt: new Date().toISOString(),
+          tone: asText(studioState?.activeToneKey),
+          track: asText(studioState?.activeTrackKey),
+        },
+      },
+    }).catch(() => {});
   }
 
   function inferStudioTrackKey(thread) {
@@ -8277,7 +8803,25 @@
     return studioState;
   }
 
+  // R6: recursion-guard + try/catch så studio-policy-utvärdering aldrig
+  // kan kraschera appen. En render-loop någonstans i state-systemet hamnar
+  // i regex.test stack-overflow vid djup recursion — guard bryter cykeln.
+  let __evalStudioPolicyInFlight = false;
   function evaluateStudioPolicy(thread, draftBody) {
+    if (__evalStudioPolicyInFlight) {
+      return { label: "Policy hoppas över", summary: "Utkast utvärderas redan.", tone: "warning" };
+    }
+    __evalStudioPolicyInFlight = true;
+    try {
+      return __evaluateStudioPolicyImpl(thread, draftBody);
+    } catch (err) {
+      if (typeof console !== "undefined") console.warn("[evaluateStudioPolicy] krasch:", err && err.message);
+      return { label: "Policy-fel", summary: "Kunde inte utvärdera utkastet just nu.", tone: "warning" };
+    } finally {
+      __evalStudioPolicyInFlight = false;
+    }
+  }
+  function __evaluateStudioPolicyImpl(thread, draftBody) {
     const body = String(draftBody || "");
     const words = countWords(body);
     const bookingKeywords = /\b(bok|tid|appointment|book)\b/i.test(body);
@@ -11783,10 +12327,6 @@
       customerName,
       customerEmail,
       customerKey,
-      customerCluster:
-        row?.customerCluster && typeof row.customerCluster === "object"
-          ? { ...row.customerCluster }
-          : null,
       customerIdentity:
         identityEnvelope.customerIdentity ||
         row?.customerSummary?.customerIdentity ||
@@ -12489,7 +13029,11 @@
       fallback: "Ingen förhandsvisning tillgänglig.",
     });
     const laneSignals = mapTruthConsumerLaneToRuntimeSignals(item);
-    const needsReply = item?.state?.needsReply === true;
+    const ingestion = item?.state?.ingestion || item?.provenance?.ingestion || null;
+    let needsReply = item?.state?.needsReply === true;
+    if (ingestion?.needsReview === true || Number(ingestion?.unmatchedCount || 0) > 0) {
+      needsReply = true;
+    }
     const hasUnreadInbound = item?.state?.hasUnreadInbound === true;
 
     return {
@@ -12520,7 +13064,9 @@
         ? "Unread inbound och needs reply läses från mejlsanning i wave 1."
         : "Raden kommer från mejlsanning i wave 1.",
       operatorCue: needsReply
-        ? "Sanningsstyrd rad: svara kunden via arbetslistan."
+        ? ingestion?.hasUnmatched === true
+          ? "Sanningsstyrd rad: koppla mail till patient i ingestion-kön."
+          : "Sanningsstyrd rad: svara kunden via arbetslistan."
         : "Sanningsstyrd rad: kontrollera senaste aktivitet.",
       primaryLaneId: laneSignals.primaryLaneId,
       workflowLane: laneSignals.workflowLane,
@@ -12528,7 +13074,16 @@
       priorityLevel: laneSignals.priorityLevel,
       slaStatus: laneSignals.slaStatus,
       dominantRisk: laneSignals.dominantRisk,
-      needsReview: laneSignals.needsReview === true,
+      needsReview: laneSignals.needsReview === true || ingestion?.needsReview === true,
+      ingestionReview:
+        ingestion && typeof ingestion === "object"
+          ? {
+              dominantStatus: asText(ingestion.dominantStatus),
+              unmatchedCount: Number(ingestion.unmatchedCount || 0),
+              needsReviewCount: Number(ingestion.needsReviewCount || 0),
+              latestRawMessageId: asText(ingestion.latestRawMessageId),
+            }
+          : null,
       customerEmail,
       sender: customerEmail || customerName,
       senderName: customerName,
@@ -13118,7 +13673,7 @@
     const selectedSignature = getStudioReplyDefaultSignatureProfile(thread).id;
     const baseDraft = buildStudioTrackDraft(thread, trackKey);
     const senderMailboxId = getStudioDefaultSenderMailboxId(thread);
-    return applyTruthPrimaryStudioState({
+    const studioState = applyTruthPrimaryStudioState({
       mode: "reply",
       threadId: asText(thread?.id),
       replyContextThreadId: asText(thread?.id),
@@ -13152,7 +13707,16 @@
       bookingStudioReason: "",
       bookingStudioChangedFrom: "",
       bookingStudioChangedTo: "",
+      lastAiDraftOriginal: "",
+      aiDraftTrackedAt: "",
     }, thread);
+    const modes = getStudioDraftModes(thread);
+    const recommended =
+      modes[modes.recommendedMode] || modes.professional || modes.warm || modes.short;
+    if (recommended && normalizeText(studioState.draftBody) === normalizeText(recommended)) {
+      markStudioAiDraftOrigin(studioState, recommended);
+    }
+    return studioState;
   }
 
   function createComposeStudioState(thread = null) {
@@ -13201,24 +13765,31 @@
     };
   }
 
+  function assignStudioStateInPlace(nextStudioState) {
+    const existing = __stateInternal.studio;
+    if (existing && typeof existing === "object") {
+      Object.assign(existing, nextStudioState);
+      return existing;
+    }
+    state.studio = nextStudioState;
+    return nextStudioState;
+  }
+
   function prepareComposeStudioState(thread = null) {
-    state.studio = createComposeStudioState(thread);
-    return state.studio;
+    return assignStudioStateInPlace(createComposeStudioState(thread));
   }
 
   function ensureStudioState(thread) {
     if (!thread) return null;
-    const replyContextThreadId = asText(state.studio.replyContextThreadId);
+    const isComposeMode = normalizeKey(state.forms.studioMode) === "compose";
+    const threadMatches = runtimeConversationIdsMatch(state.forms.studioThreadId, thread.id);
+    const replyContextThreadId = asText(state.studio?.replyContextThreadId);
     const hasReplyContextMismatch =
-      normalizeKey(state.forms.studioMode) !== "compose" &&
+      !isComposeMode &&
       replyContextThreadId &&
       !runtimeConversationIdsMatch(replyContextThreadId, thread.id);
-    if (
-      normalizeKey(state.forms.studioMode) === "compose" ||
-      !runtimeConversationIdsMatch(state.forms.studioThreadId, thread.id) ||
-      hasReplyContextMismatch
-    ) {
-      state.studio = createStudioState(thread);
+    if (isComposeMode || !threadMatches || hasReplyContextMismatch) {
+      assignStudioStateInPlace(createStudioState(thread));
     }
     if (!normalizeText(state.forms.studioDraftBody)) {
       state.forms.studioDraftBody =
@@ -13234,6 +13805,9 @@
     );
     state.forms.studioMode = "reply";
     state.studio.replyContextThreadId = asText(thread?.id);
+    if (studioDraftModesAreEmpty(thread) && !preparedDraftModesInflight.has(asText(thread.id))) {
+      void hydrateStudioDraftModesFromApi(thread);
+    }
     return applyTruthPrimaryStudioState(state.studio, thread);
   }
 
@@ -13696,6 +14270,16 @@
     windowObject: window,
   });
 
+  // Defined here (referencing the hoisted apiRequestImpl) so it is initialized
+  // before the workspace orchestration helpers below capture it. Previously the
+  // `const apiRequest` lived ~27k lines later, causing a temporal-dead-zone
+  // crash that aborted view-switching wiring (desktop/tablet stuck on
+  // conversations, /staff?view=customers ignored).
+  const apiRequest = (window.ArcanaCcoFetchInstrumentation?.instrumentAsyncFn || ((fn) => fn))(
+    apiRequestImpl,
+    { getPath: (path) => path }
+  );
+
   const {
     deleteRuntimeThread,
     handleFocusHistoryDelete,
@@ -13790,6 +14374,7 @@
       normalizeText,
       normalizeWorkspaceState,
       patchStudioThreadAfterSend,
+      recordDraftFeedbackFireAndForget,
       refreshWorkspaceBootstrapForSelectedThread,
       renderBookingSurface,
       renderFocusHistorySection,
@@ -13858,6 +14443,7 @@
     handleWorkspaceDocumentClick,
     handleWorkspaceDocumentKeydown,
     initializeWorkspaceSurface,
+    ensureMobileInboxReady,
     loadLiveRuntime,
     requestRuntimeThreadHydration,
     selectOfflineHistoryConversation,
@@ -13993,6 +14579,12 @@
       getSelectedRuntimeFocusThread,
       getSelectedRuntimeThread,
       hasMeaningfulRuntimeReentryState,
+      captureRuntimeReentrySnapshot,
+      getRuntimeReentryOutcome,
+      getRuntimeReentrySnapshot,
+      getCurrentWorkspaceSnapshot,
+      applyRuntimeReentrySnapshot,
+      restoreRuntimeReentrySnapshot,
       getStudioSenderMailboxId,
       getStudioSignatureOverride,
       getStudioSignatureProfiles,
@@ -14504,15 +15096,15 @@
       (thread) => normalizeKey(thread?.worklistSource || "") !== "demo"
     );
     const availableMailboxIds = getCanonicalAvailableRuntimeMailboxIds();
-    if (
+    const selectedMailboxIds = workspaceSourceOfTruth.getSelectedMailboxIds();
+    const mailboxScopeIsPartial =
+      selectedMailboxIds.length > 0 && selectedMailboxIds.length < availableMailboxIds.length;
+    state.runtime.mailboxScopeWidenHint =
       !getQueueScopedRuntimeThreads().length &&
-      liveThreads.length &&
+      liveThreads.length > 0 &&
       availableMailboxIds.length > 1 &&
-      !state.runtime?.scopeAutoWidenedAt
-    ) {
-      workspaceSourceOfTruth.setSelectedMailboxIds([...availableMailboxIds]);
-      state.runtime.scopeAutoWidenedAt = new Date().toISOString();
-    }
+      mailboxScopeIsPartial &&
+      state.runtime?.bootLaneLocked !== true;
 
     if (
       !getFilteredRuntimeThreads().length &&
@@ -14531,7 +15123,11 @@
     }
 
     let visibleThreads = getFilteredRuntimeThreads();
-    if (!visibleThreads.length && options.allowLaneFallback) {
+    if (
+      !visibleThreads.length &&
+      options.allowLaneFallback &&
+      state.runtime?.bootLaneLocked !== true
+    ) {
       const activeQueueThreads = getQueueScopedRuntimeThreads().filter((thread) => !isHandledRuntimeThread(thread));
       if (activeQueueThreads.length) {
         const lanePriorityRank = {
@@ -15404,7 +16000,7 @@
       leftColumnState.mode === "default"
     ) {
       return normalizeVisibleRuntimeScope({
-        allowLaneFallback: true,
+        allowLaneFallback: state.runtime?.bootLaneLocked !== true,
         preferredThreadId: workspaceSourceOfTruth.getSelectedThreadId(),
         resetHistoryOnChange: false,
       });
@@ -22668,7 +23264,7 @@
       portalOwnerHistory.innerHTML = `
         <article class="customers-portal-owner-empty">
           <strong>Ingen versionshistorik ännu</strong>
-          <p>Spara eller publicera en layers-sketch för att se ägarhistoriken här.</p>
+          <p>Spara eller publicera en kundportal-version för att se ägarhistoriken här.</p>
         </article>
       `;
       return;
@@ -22700,7 +23296,7 @@
       portalOwnerActivity.innerHTML = `
         <article class="customers-portal-empty">
           <strong>Ingen aktivitet ännu</strong>
-          <p>Publicera eller öppna en layers-sketch för att börja se händelser här.</p>
+          <p>Publicera eller öppna en kundportal-version för att börja se händelser här.</p>
         </article>
       `;
       return;
@@ -22808,7 +23404,7 @@
             ? "Kunden ser den senaste publicerade layers-skissen."
             : portalState === "draft"
               ? "Ägaren har ett sparat utkast som ännu inte publicerats."
-              : "Publicera en layers-sketch för att fylla kundportalen.";
+              : "Publicera en kundportal-version för att fylla kundportalen.";
       const latestVersionLabel = selectedVersion
         ? `Version ${selectedVersion.versionNumber}`
         : "Version —";
@@ -24303,9 +24899,10 @@
     renderIntegrations();
 
     try {
-      const [statusResult, meResult] = await Promise.allSettled([
+      const [statusResult, meResult, providerResult] = await Promise.allSettled([
         apiRequest("/api/v1/cco/integrations/status"),
         apiRequest("/api/v1/auth/me"),
+        loadIntegrationProviderStatus(),
       ]);
 
       if (runtime.requestId !== requestId) {
@@ -24316,17 +24913,19 @@
         throw statusResult.reason;
       }
 
-      runtime.records = asArray(statusResult.value?.integrations).map((record) => ({
-        id: normalizeKey(record?.id),
-        category: normalizeKey(record?.category) || "automation",
-        isConnected: record?.isConnected !== false,
-        statusTone: normalizeKey(record?.statusTone) || "idle",
-        statusSummary: asText(record?.statusSummary),
-        watchLabel: asText(record?.watchLabel),
-        updatedAt: asText(record?.updatedAt || record?.configuredAt),
-        configurable: record?.configurable !== false,
-        docsAvailable: record?.docsAvailable !== false,
-      }));
+      runtime.records = mergeIntegrationProviderRecords(
+        asArray(statusResult.value?.integrations).map((record) => ({
+          id: normalizeKey(record?.id),
+          category: normalizeKey(record?.category) || "automation",
+          isConnected: record?.isConnected !== false,
+          statusTone: normalizeKey(record?.statusTone) || "idle",
+          statusSummary: asText(record?.statusSummary),
+          watchLabel: asText(record?.watchLabel),
+          updatedAt: asText(record?.updatedAt || record?.configuredAt),
+          configurable: record?.configurable !== false,
+          docsAvailable: record?.docsAvailable !== false,
+        }))
+      );
       runtime.loaded = true;
       runtime.lastLoadedAt = asText(statusResult.value?.generatedAt) || new Date().toISOString();
       state.integrationsConnectedKeys = runtime.records
@@ -24518,6 +25117,58 @@
       input.checked = Boolean(
         state.settingsRuntime.toggles[normalizeKey(input.dataset.settingsToggle)]
       );
+    });
+
+    const leadTime = normalizeBookingReminderLeadTimeView(
+      state.settingsRuntime.bookingReminderLeadTime
+    );
+    settingsLeadTimeInputs.forEach((input) => {
+      const key = normalizeKey(input.dataset.settingsLeadTime);
+      if (key === "globaldefaulthours") {
+        input.value = String(leadTime.globalDefaultHours);
+        return;
+      }
+      if (key === "channel_online") {
+        input.value = String(leadTime.channelDefaults.online);
+        return;
+      }
+      if (key === "channel_physical") {
+        input.value = String(leadTime.channelDefaults.physical);
+      }
+    });
+    settingsLeadTimeJsonInputs.forEach((input) => {
+      const mapKey = normalizeKey(input.dataset.settingsLeadTimeJson);
+      if (mapKey === "serviceoverrides") {
+        input.value = serializeLeadTimeOverrideJson(leadTime.serviceOverrides);
+      } else if (mapKey === "resourceoverrides") {
+        input.value = serializeLeadTimeOverrideJson(leadTime.resourceOverrides);
+      }
+    });
+
+    const bookingPolicy = normalizeBookingPolicyView(state.settingsRuntime.bookingPolicy);
+    settingsBookingPolicyInputs.forEach((input) => {
+      const key = normalizeKey(input.dataset.settingsBookingPolicy);
+      if (key === "minnoticeonlinehours") {
+        input.value = String(bookingPolicy.minNoticeOnlineHours);
+        return;
+      }
+      if (key === "minnoticephysicalhours") {
+        input.value = String(bookingPolicy.minNoticePhysicalHours);
+        return;
+      }
+      if (key === "maxbookingdaysahead") {
+        input.value = String(bookingPolicy.maxBookingDaysAhead);
+        return;
+      }
+      if (key === "cancellationpolicyhours") {
+        input.value = String(bookingPolicy.cancellationPolicyHours);
+      }
+    });
+    settingsBookingPolicyJsonInputs.forEach((input) => {
+      const mapKey = normalizeKey(input.dataset.settingsBookingPolicyJson);
+      if (mapKey === "serviceoverrides") {
+        input.value = serializeBookingPolicyJson(bookingPolicy.serviceOverrides);
+      }
     });
 
     const activeGuardrails = [
@@ -25628,6 +26279,15 @@
   }
 
   function applyCustomerFilters() {
+    if (window.ArcanaPatientMasterUi?.renderStaffAuth?.()) {
+      return;
+    }
+    if (
+      isMobileShellViewportEarly() &&
+      window.ArcanaPatientMasterUi?.getRuntime?.()?.mode === "register"
+    ) {
+      return;
+    }
     ensureCustomerRuntimeProfilesFromLive();
     const visibleKeys = getVisibleCustomerKeys();
     const portalLockedCustomerKey = normalizeKey(
@@ -26034,21 +26694,39 @@
     renderAnalyticsRuntime();
 
     const days = getAnalyticsDaysForPeriod();
-    const requests = [
-      ["monitorMetrics", "/api/v1/monitor/metrics"],
-      ["readiness", "/api/v1/monitor/readiness"],
-      ["ownerDashboard", "/api/v1/dashboard/owner"],
-      ["pilotReport", `/api/v1/reports/pilot?days=${days}`],
-      ["riskSummary", "/api/v1/risk/summary"],
-      ["incidentSummary", "/api/v1/incidents/summary"],
-      ["mailInsights", "/api/v1/mail/insights"],
-    ];
+    let snapshotPayload = null;
+    try {
+      const snapshotPolicy = window.ArcanaCcoData?.policy?.ANALYTICS || { staleTime: 300000 };
+      const snapshotResult = window.ArcanaCcoData?.fetch
+        ? await window.ArcanaCcoData.fetch(
+            "dashboard-snapshot",
+            () => apiRequest("/api/v1/cco/staff/dashboard-snapshot"),
+            { staleTime: snapshotPolicy.staleTime, force }
+          )
+        : await apiRequest("/api/v1/cco/staff/dashboard-snapshot");
+      snapshotPayload = snapshotResult?.snapshot || null;
+    } catch {
+      snapshotPayload = null;
+    }
 
-    const settled = await Promise.allSettled(
-      requests.map(([, path]) => apiRequest(path))
-    ).catch((error) => {
-      throw error;
-    });
+    const requests = snapshotPayload
+      ? []
+      : [
+          ["monitorMetrics", "/api/v1/monitor/metrics"],
+          ["readiness", "/api/v1/monitor/readiness"],
+          ["ownerDashboard", "/api/v1/dashboard/owner"],
+          ["pilotReport", `/api/v1/reports/pilot?days=${days}`],
+          ["riskSummary", "/api/v1/risk/summary"],
+          ["incidentSummary", "/api/v1/incidents/summary"],
+          ["mailInsights", "/api/v1/mail/insights"],
+        ];
+
+    const settled =
+      requests.length > 0
+        ? await Promise.allSettled(requests.map(([, path]) => apiRequest(path))).catch((error) => {
+            throw error;
+          })
+        : [];
 
     if (requestId !== state.analyticsRuntime.requestId) return;
 
@@ -26057,21 +26735,34 @@
     const failures = [];
     let hasAuthFailure = false;
 
-    settled.forEach((result, index) => {
-      const [key] = requests[index];
-      if (result.status === "fulfilled") {
-        nextValues[key] = result.value;
-        successCount += 1;
-        return;
-      }
-      nextValues[key] = state.analyticsRuntime[key] || null;
-      const statusCode = Number(result.reason?.statusCode || result.reason?.status || 0);
-      const message = result.reason instanceof Error ? result.reason.message : String(result.reason || "");
-      if (isAuthFailure(statusCode, message)) {
-        hasAuthFailure = true;
-      }
-      failures.push(result.reason);
-    });
+    if (snapshotPayload) {
+      Object.assign(nextValues, {
+        monitorMetrics: snapshotPayload.monitorMetrics || null,
+        readiness: snapshotPayload.readiness || null,
+        ownerDashboard: snapshotPayload.ownerDashboard || null,
+        pilotReport: snapshotPayload.pilotReport || null,
+        riskSummary: snapshotPayload.riskSummary || null,
+        incidentSummary: snapshotPayload.incidentSummary || null,
+        mailInsights: snapshotPayload.mailInsights || null,
+      });
+      successCount = Object.values(nextValues).filter(Boolean).length;
+    } else {
+      settled.forEach((result, index) => {
+        const [key] = requests[index];
+        if (result.status === "fulfilled") {
+          nextValues[key] = result.value;
+          successCount += 1;
+          return;
+        }
+        nextValues[key] = state.analyticsRuntime[key] || null;
+        const statusCode = Number(result.reason?.statusCode || result.reason?.status || 0);
+        const message = result.reason instanceof Error ? result.reason.message : String(result.reason || "");
+        if (isAuthFailure(statusCode, message)) {
+          hasAuthFailure = true;
+        }
+        failures.push(result.reason);
+      });
+    }
 
     if (!successCount && !state.analyticsRuntime.loaded) {
       const firstFailure = failures[0];
@@ -27657,6 +28348,102 @@
     exitAuxViewToConversations({ focusSection: "conversation" });
   }
 
+  function mergeIntegrationProviderRecords(records) {
+    const map = Object.fromEntries(asArray(records).map((record) => [normalizeKey(record.id), { ...record }]));
+    const fortnoxRuntime = state.integrationsRuntime.providerStatus?.fortnox;
+    const swishRuntime = state.integrationsRuntime.providerStatus?.swish;
+    if (map.fortnox && fortnoxRuntime) {
+      map.fortnox.isConnected = fortnoxRuntime.connected === true;
+      map.fortnox.statusTone = fortnoxRuntime.connected ? "healthy" : "idle";
+      map.fortnox.statusSummary = fortnoxRuntime.connected
+        ? "Fortnox OAuth är ansluten och patienter kan synkas."
+        : fortnoxRuntime.configured
+          ? "Fortnox är konfigurerat — anslut via OAuth."
+          : "Fortnox saknar serverkonfiguration (FORTNOX_CLIENT_ID m.fl.).";
+      map.fortnox.watchLabel = fortnoxRuntime.connected
+        ? "Synka patienter från kundkortet eller via API."
+        : "Klicka Koppla för att öppna Fortnox OAuth.";
+    }
+    if (map.swish && swishRuntime) {
+      map.swish.isConnected = swishRuntime.connected === true;
+      map.swish.statusTone = swishRuntime.connected ? "healthy" : "idle";
+      map.swish.statusSummary = swishRuntime.connected
+        ? `Swish Handel är ansluten (${swishRuntime.payeeAlias || "handelsnummer"}).`
+        : swishRuntime.configured
+          ? "Swish är konfigurerat — ange handelsnummer för att ansluta."
+          : "Swish saknar serverkonfiguration (certifikat m.fl.).";
+      map.swish.watchLabel = swishRuntime.connected
+        ? "Skapa betalningsförfrågningar från patientkortet."
+        : "Klicka Koppla och ange ert Swish Handelsnummer.";
+    }
+    return Object.values(map);
+  }
+
+  async function loadIntegrationProviderStatus() {
+    const providerStatus = {
+      fortnox: { configured: false, connected: false },
+      swish: { configured: false, connected: false },
+    };
+    const [fortnoxResult, swishResult] = await Promise.allSettled([
+      apiRequest("/api/v1/cco-fortnox/status"),
+      apiRequest("/api/v1/cco-swish/status"),
+    ]);
+    if (fortnoxResult.status === "fulfilled") {
+      providerStatus.fortnox = {
+        configured: fortnoxResult.value?.configured === true,
+        connected: fortnoxResult.value?.connected === true,
+        scope: asText(fortnoxResult.value?.scope),
+      };
+    }
+    if (swishResult.status === "fulfilled") {
+      providerStatus.swish = {
+        configured: swishResult.value?.configured === true,
+        connected: swishResult.value?.connected === true,
+        payeeAlias: asText(swishResult.value?.payeeAlias),
+      };
+    }
+    state.integrationsRuntime.providerStatus = providerStatus;
+    return providerStatus;
+  }
+
+  async function connectFortnoxIntegration() {
+    const payload = await apiRequest("/api/v1/cco-fortnox/connect");
+    const authorizeUrl = asText(payload?.authorizeUrl);
+    if (!authorizeUrl) {
+      throw new Error("Fortnox returnerade ingen OAuth-URL.");
+    }
+    const popup = window.open(authorizeUrl, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      window.location.assign(authorizeUrl);
+    }
+    return "Fortnox OAuth öppnades. När du godkänt, uppdatera integrationsvyn.";
+  }
+
+  async function disconnectFortnoxIntegration() {
+    await apiRequest("/api/v1/cco-fortnox/disconnect", { method: "POST" });
+    return "Fortnox kopplades från.";
+  }
+
+  async function connectSwishIntegration() {
+    const payeeAlias = window.prompt(
+      "Ange Swish Handelsnummer (10 siffror, samma som i certifikatet):",
+      asText(state.integrationsRuntime.providerStatus?.swish?.payeeAlias)
+    );
+    if (!payeeAlias) {
+      throw new Error("Swish-anslutning avbröts.");
+    }
+    await apiRequest("/api/v1/cco-swish/connect", {
+      method: "POST",
+      body: { payeeAlias },
+    });
+    return "Swish Handel anslöts.";
+  }
+
+  async function disconnectSwishIntegration() {
+    await apiRequest("/api/v1/cco-swish/disconnect", { method: "POST" });
+    return "Swish kopplades från.";
+  }
+
   async function handleIntegrationToggle(integrationKey) {
     const key = normalizeKey(integrationKey);
     if (!key) return;
@@ -27673,6 +28460,25 @@
     let feedbackTone = "";
     renderIntegrations();
     try {
+      if (key === "fortnox") {
+        feedbackMessage = record.isConnected
+          ? await disconnectFortnoxIntegration()
+          : await connectFortnoxIntegration();
+        feedbackTone = "success";
+        await loadIntegrationProviderStatus();
+        await loadIntegrationsRuntime({ force: true });
+        return;
+      }
+      if (key === "swish") {
+        feedbackMessage = record.isConnected
+          ? await disconnectSwishIntegration()
+          : await connectSwishIntegration();
+        feedbackTone = "success";
+        await loadIntegrationProviderStatus();
+        await loadIntegrationsRuntime({ force: true });
+        return;
+      }
+
       const action = record.isConnected ? "disconnect" : "connect";
       const payload = await apiRequest(`/api/v1/cco/integrations/${key}/${action}`, {
         method: "POST",
@@ -27989,6 +28795,90 @@
     renderSettings();
     saveSettingsRuntime("Inställningen sparades i nya CCO.").catch((error) => {
       console.warn("Settings toggle-save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsLeadTimeField(fieldKey, rawValue) {
+    const leadTime = normalizeBookingReminderLeadTimeView(
+      state.settingsRuntime.bookingReminderLeadTime
+    );
+    const key = normalizeKey(fieldKey);
+    const parsed = Number(rawValue);
+    if (key === "globaldefaulthours" && Number.isFinite(parsed)) {
+      leadTime.globalDefaultHours = Math.max(1, Math.min(168, Math.round(parsed)));
+    } else if (key === "channel_online" && Number.isFinite(parsed)) {
+      leadTime.channelDefaults.online = Math.max(1, Math.min(168, Math.round(parsed)));
+    } else if (key === "channel_physical" && Number.isFinite(parsed)) {
+      leadTime.channelDefaults.physical = Math.max(1, Math.min(168, Math.round(parsed)));
+    }
+    state.settingsRuntime.bookingReminderLeadTime = leadTime;
+    renderSettings();
+    saveSettingsRuntime("Lead time sparades i nya CCO.").catch((error) => {
+      console.warn("Settings lead-time save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsLeadTimeJson(mapKey, rawValue) {
+    const leadTime = normalizeBookingReminderLeadTimeView(
+      state.settingsRuntime.bookingReminderLeadTime
+    );
+    const key = normalizeKey(mapKey);
+    const parsed =
+      key === "resourceoverrides"
+        ? parseLeadTimeOverrideJson(rawValue, "resourceOverrides")
+        : parseLeadTimeOverrideJson(rawValue, "serviceOverrides");
+    if (parsed === null) {
+      setAuxStatus(settingsStatus, "Ogiltig JSON för lead time override.", "error");
+      return;
+    }
+    if (key === "resourceoverrides") {
+      leadTime.resourceOverrides = parsed;
+    } else {
+      leadTime.serviceOverrides = parsed;
+    }
+    state.settingsRuntime.bookingReminderLeadTime = leadTime;
+    renderSettings();
+    saveSettingsRuntime("Lead time override sparades i nya CCO.").catch((error) => {
+      console.warn("Settings lead-time JSON save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsBookingPolicyField(fieldKey, rawValue) {
+    const bookingPolicy = normalizeBookingPolicyView(state.settingsRuntime.bookingPolicy);
+    const key = normalizeKey(fieldKey);
+    const parsed = Number(rawValue);
+    if (key === "minnoticeonlinehours" && Number.isFinite(parsed)) {
+      bookingPolicy.minNoticeOnlineHours = Math.max(0, Math.min(168, Math.round(parsed)));
+    } else if (key === "minnoticephysicalhours" && Number.isFinite(parsed)) {
+      bookingPolicy.minNoticePhysicalHours = Math.max(0, Math.min(168, Math.round(parsed)));
+    } else if (key === "maxbookingdaysahead" && Number.isFinite(parsed)) {
+      bookingPolicy.maxBookingDaysAhead = Math.max(1, Math.min(365, Math.round(parsed)));
+    } else if (key === "cancellationpolicyhours" && Number.isFinite(parsed)) {
+      bookingPolicy.cancellationPolicyHours = Math.max(0, Math.min(168, Math.round(parsed)));
+    }
+    state.settingsRuntime.bookingPolicy = bookingPolicy;
+    renderSettings();
+    saveSettingsRuntime("Bokningspolicy sparades i nya CCO.").catch((error) => {
+      console.warn("Settings booking-policy save misslyckades.", error);
+    });
+  }
+
+  function handleSettingsBookingPolicyJson(mapKey, rawValue) {
+    const bookingPolicy = normalizeBookingPolicyView(state.settingsRuntime.bookingPolicy);
+    const key = normalizeKey(mapKey);
+    const parsed =
+      key === "serviceoverrides"
+        ? parseBookingPolicyServiceOverridesJson(rawValue)
+        : null;
+    if (parsed === null) {
+      setAuxStatus(settingsStatus, "Ogiltig JSON för bokningspolicy override.", "error");
+      return;
+    }
+    bookingPolicy.serviceOverrides = parsed;
+    state.settingsRuntime.bookingPolicy = bookingPolicy;
+    renderSettings();
+    saveSettingsRuntime("Bokningspolicy override sparades i nya CCO.").catch((error) => {
+      console.warn("Settings booking-policy JSON save misslyckades.", error);
     });
   }
 
@@ -39505,6 +40395,26 @@
     });
   }
 
+  function isMobileShellViewport() {
+    try {
+      return window.matchMedia('(max-width: 768px)').matches;
+    } catch {
+      return false;
+    }
+  }
+
+  function isMobileCustomersDeepLinkRoute() {
+    try {
+      if (!isMobileShellViewport()) return false;
+      const params = new URLSearchParams(window.location.search || "");
+      const view = normalizeKey(params.get("view") || "customers");
+      const patientId = normalizeText(params.get("patientId"));
+      return view === "customers" && Boolean(patientId);
+    } catch {
+      return false;
+    }
+  }
+
   function setAppView(view = "conversations") {
     markExplicitNavigationIntent();
     const normalizedView = workspaceSourceOfTruth.setView(view);
@@ -39514,10 +40424,16 @@
     const shellStructureChanged =
       appliedShellViewState !== shellView ||
       appliedConversationShellState !== showConversations;
+    const mobileShell = isMobileShellViewport();
+    const mobileDeepLink = mobileShell && isMobileCustomersDeepLinkRoute();
+    const mobileFastNav = mobileShell && !mobileDeepLink;
     canvas.dataset.appView = normalizedView;
     canvas.dataset.appShellView = shellView;
 
-    if (shellStructureChanged) {
+    const applyShellStructure = () => {
+      if (shellView !== "conversations") {
+        document.documentElement.setAttribute("data-cco-mobile-defer-inbox", "on");
+      }
       shellViewSections.forEach((section) => {
         section.hidden = normalizeKey(section.dataset.shellView) !== shellView;
       });
@@ -39529,100 +40445,170 @@
       });
       appliedShellViewState = shellView;
       appliedConversationShellState = showConversations;
+    };
+
+    const finalizeAppView = () => {
+      normalizeWorkspaceState();
+      syncShellViewToLocation();
+      syncCcoDocumentTitle(normalizedView);
+      window.ArcanaMobileShell?.syncFromApp?.();
+    };
+
+    if (shellStructureChanged) {
+      applyShellStructure();
     }
 
-    navViewButtons.forEach((button) => {
-      const buttonView = normalizeKey(button.dataset.navView);
-      const isActive =
-        buttonView === normalizedView ||
-        (buttonView === "automation" && shellView === "automation");
-      button.classList.toggle("preview-nav-item-active", isActive);
-      button.setAttribute("aria-pressed", isActive ? "true" : "false");
-    });
+    if (mobileShell && !shellStructureChanged && shellView === appliedShellViewState) {
+      finalizeAppView();
+      return;
+    }
+
+    if (!mobileShell) {
+      navViewButtons.forEach((button) => {
+        const buttonView = normalizeKey(button.dataset.navView);
+        const isActive =
+          buttonView === normalizedView ||
+          (buttonView === "automation" && shellView === "automation");
+        button.classList.toggle("preview-nav-item-active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+    }
 
     closeMailboxDropdowns();
-    if (moreMenuToggle) {
-      const isMoreView = AUX_VIEWS.has(shellView);
-      moreMenuToggle.classList.toggle("preview-nav-item-active", isMoreView);
-      moreMenuToggle.setAttribute("aria-pressed", isMoreView ? "true" : "false");
-    }
-
     setMoreMenuOpen(false);
 
-    if (!showConversations && shellStructureChanged) {
-      setStudioOpen(false);
-      setNoteOpen(false);
-      setNoteModeOpen(false);
-      setScheduleOpen(false);
-      setLaterOpen(false);
-      setContextCollapsed(false);
-    }
-
-    if (shellView === "customers") {
-      loadCustomersRuntime().catch((error) => {
-      console.warn("Kundernas live-laddning misslyckades.", error);
-        applyCustomerFilters();
-      });
-      if (window.ArcanaPatientMasterUi?.onCustomersViewOpen) {
-        window.ArcanaPatientMasterUi.onCustomersViewOpen();
+    const closeConversationPanels = () => {
+      if (!showConversations && shellStructureChanged) {
+        setStudioOpen(false);
+        setNoteOpen(false);
+        setNoteModeOpen(false);
+        setScheduleOpen(false);
+        setLaterOpen(false);
+        setContextCollapsed(false);
       }
-    }
+    };
 
-    if (shellView === "analytics") {
-      renderAnalyticsRuntime();
-      loadAnalyticsRuntime().catch((error) => {
-        console.warn("Analysens live-laddning misslyckades.", error);
-      });
-    }
+    const runViewLoads = () => {
+      closeConversationPanels();
 
-    if (shellView === "automation") {
-      if (aliasAutomationSection) {
-        setAutomationSubnav(aliasAutomationSection);
+      if (shellView === "conversations") {
+        if (typeof window.__ARCANA_ENSURE_INBOX_SCRIPTS__ === "function") {
+          window.__ARCANA_ENSURE_INBOX_SCRIPTS__().catch((error) => {
+            console.warn("Inbox-skript kunde inte laddas.", error);
+          });
+        }
       }
-      renderAutomationTemplateConfig();
-      renderAutomationTestingState();
-      renderAutomationVersions();
-      loadAutomationVersions(state.selection.automationTemplate).catch((error) => {
-        console.warn("Automation live-laddning misslyckades.", error);
-      });
+
+      if (shellView === "customers") {
+        if (!mobileDeepLink && !mobileShell) {
+          const deferLegacyCustomers = () => {
+            loadCustomersRuntime().catch((error) => {
+              console.warn("Kundernas live-laddning misslyckades.", error);
+              applyCustomerFilters();
+            });
+          };
+          if (window.ArcanaPatientMasterUi) {
+            if (typeof requestIdleCallback === "function") {
+              requestIdleCallback(deferLegacyCustomers, { timeout: 4500 });
+            } else {
+              window.setTimeout(deferLegacyCustomers, 1500);
+            }
+          } else {
+            deferLegacyCustomers();
+          }
+        }
+        if (window.ArcanaPatientMasterUi?.onCustomersViewOpen) {
+          window.ArcanaPatientMasterUi.onCustomersViewOpen();
+        }
+      }
+
+      if (shellView === "calendar") {
+        const runCalendarView = () => {
+          window.ArcanaBookingDesktopWeek?.syncVisibility?.();
+          window.ArcanaBookingDesktopWeek?.refresh?.();
+        };
+        if (typeof window.__ARCANA_ENSURE_BOOKING_SCRIPTS__ === "function") {
+          window.__ARCANA_ENSURE_BOOKING_SCRIPTS__()
+            .then(runCalendarView)
+            .catch((error) => {
+              console.warn("Kalender kunde inte laddas.", error);
+            });
+        } else {
+          runCalendarView();
+        }
+      }
+
+      if (shellView === "analytics") {
+        renderAnalyticsRuntime();
+        loadAnalyticsRuntime().catch((error) => {
+          console.warn("Analysens live-laddning misslyckades.", error);
+        });
+      }
+
+      if (shellView === "automation") {
+        if (aliasAutomationSection) {
+          setAutomationSubnav(aliasAutomationSection);
+        }
+        renderAutomationTemplateConfig();
+        renderAutomationTestingState();
+        renderAutomationVersions();
+        renderAutomationSuggestions();
+        loadAutomationVersions(state.selection.automationTemplate).catch((error) => {
+          console.warn("Automation live-laddning misslyckades.", error);
+        });
+      }
+
+      if (shellView === "integrations") {
+        renderIntegrations();
+        loadIntegrationsRuntime().catch((error) => {
+          console.warn("Integrations live-laddning misslyckades.", error);
+        });
+      }
+
+      if (shellView === "macros") {
+        renderMacros();
+        loadMacrosRuntime().catch((error) => {
+          console.warn("Macros live-laddning misslyckades.", error);
+        });
+      }
+
+      if (shellView === "settings") {
+        renderSettings();
+        loadSettingsRuntime().catch((error) => {
+          console.warn("Settings live-laddning misslyckades.", error);
+        });
+      }
+
+      if (shellView === "showcase") {
+        renderShowcase();
+        loadMacrosRuntime().catch((error) => {
+          console.warn("Showcase macros-laddning misslyckades.", error);
+        });
+        loadSettingsRuntime().catch((error) => {
+          console.warn("Showcase settings-laddning misslyckades.", error);
+        });
+        loadIntegrationsRuntime().catch((error) => {
+          console.warn("Showcase integrations-laddning misslyckades.", error);
+        });
+      }
+
+      if (shellView === "conversations" && mobileShell) {
+        void ensureMobileInboxReady({ backgroundRefresh: true }).catch((error) => {
+          console.warn("CCO mobil inbox kunde inte förberedas.", error);
+        });
+      }
+    };
+
+    if (mobileShell && shellView === "conversations") {
+      __mobileViewLoadsTimer = scheduleMobileIdleWork(runViewLoads, { timeout: 120 });
+      scheduleMobileIdleWork(() => {
+        document.documentElement.removeAttribute("data-cco-mobile-defer-inbox");
+      }, { timeout: 480 });
+    } else {
+      runViewLoads();
     }
 
-    if (shellView === "integrations") {
-      renderIntegrations();
-      loadIntegrationsRuntime().catch((error) => {
-        console.warn("Integrations live-laddning misslyckades.", error);
-      });
-    }
-
-    if (shellView === "macros") {
-      renderMacros();
-      loadMacrosRuntime().catch((error) => {
-        console.warn("Macros live-laddning misslyckades.", error);
-      });
-    }
-
-    if (shellView === "settings") {
-      renderSettings();
-      loadSettingsRuntime().catch((error) => {
-        console.warn("Settings live-laddning misslyckades.", error);
-      });
-    }
-
-    if (shellView === "showcase") {
-      renderShowcase();
-      loadMacrosRuntime().catch((error) => {
-        console.warn("Showcase macros-laddning misslyckades.", error);
-      });
-      loadSettingsRuntime().catch((error) => {
-        console.warn("Showcase settings-laddning misslyckades.", error);
-      });
-      loadIntegrationsRuntime().catch((error) => {
-        console.warn("Showcase integrations-laddning misslyckades.", error);
-      });
-    }
-
-    normalizeWorkspaceState();
-    syncShellViewToLocation();
+    finalizeAppView();
   }
 
   function setSelectedAnalyticsPeriod(periodKey) {
@@ -40152,7 +41138,7 @@
     renderNoteDestination(state.note?.activeKey);
   }
 
-  async function apiRequest(path, options = {}) {
+  async function apiRequestImpl(path, options = {}) {
     const url = new URL(path, window.location.origin);
     const isWorkspaceRequest = path.includes("/api/v1/cco-workspace/");
     const context = getActiveWorkspaceContext();
@@ -40345,7 +41331,12 @@
     }
     const studioState = ensureStudioState(thread);
     studioState.activeToneKey = normalizeKey(toneKey) || "professional";
+    const draftModes = getStudioDraftModes(thread);
+    const toneDraft = draftModes[studioState.activeToneKey];
     studioState.draftBody = buildStudioToneDraft(thread, studioState.draftBody, studioState.activeToneKey);
+    if (toneDraft && normalizeText(studioState.draftBody) === normalizeText(toneDraft)) {
+      markStudioAiDraftOrigin(studioState, toneDraft);
+    }
     studioState.baseDraftBody = studioState.draftBody;
     renderStudioShell();
     setStudioFeedback(
@@ -40356,15 +41347,31 @@
     );
   }
 
-  function applyStudioRefineSelection(refineKey) {
+  async function applyStudioRefineSelection(refineKey) {
     if (normalizeKey(state.forms.studioMode) === "compose") {
       const studioState = state.studio;
-      studioState.activeRefineKey = normalizeKey(refineKey);
-      studioState.draftBody = buildComposeRefinedDraft(
+      const normalizedRefine = normalizeKey(refineKey);
+      studioState.activeRefineKey = normalizedRefine;
+      const beforeRefine = normalizeText(studioState.draftBody);
+      let nextDraft = buildComposeRefinedDraft(
         studioState.draftBody,
         studioState.activeRefineKey,
         studioState.composeTo
       );
+      if (isSmartReplyFeatureEnabled()) {
+        try {
+          const refined = await runRefineReplyDraftCapability(
+            { id: "compose", subject: studioState.composeSubject, raw: {} },
+            beforeRefine || nextDraft,
+            normalizedRefine
+          );
+          if (refined) nextDraft = refined;
+        } catch {
+          /* fallback */
+        }
+      }
+      studioState.draftBody = nextDraft;
+      markStudioAiDraftOrigin(studioState, beforeRefine || nextDraft);
       renderStudioShell();
       setStudioFeedback(`Finjusteringen "${studioState.activeRefineKey}" applicerades i nytt mejl.`, "success");
       return;
@@ -40377,7 +41384,22 @@
     }
     const studioState = ensureStudioState(thread);
     studioState.activeRefineKey = normalizeKey(refineKey);
-    studioState.draftBody = buildStudioRefinedDraft(thread, studioState.draftBody, studioState.activeRefineKey);
+    const beforeRefine = normalizeText(studioState.draftBody);
+    let nextDraft = buildStudioRefinedDraft(thread, studioState.draftBody, studioState.activeRefineKey);
+    if (isSmartReplyFeatureEnabled()) {
+      try {
+        const refined = await runRefineReplyDraftCapability(
+          thread,
+          beforeRefine || nextDraft,
+          studioState.activeRefineKey
+        );
+        if (refined) nextDraft = refined;
+      } catch {
+        /* fallback */
+      }
+    }
+    studioState.draftBody = nextDraft;
+    markStudioAiDraftOrigin(studioState, beforeRefine || nextDraft);
     renderStudioShell();
     setStudioFeedback(
       isStudioBookingUpdateMode(studioState)
@@ -41235,6 +42257,9 @@
 
 	  document.addEventListener("pointerup", (event) => {
 	    const activateWorkspaceLane = (laneId, statusMessage) => {
+	      if (state.runtime?.bootLaneLocked === true) {
+	        state.runtime.bootLaneLocked = false;
+	      }
 	      const workspaceApi = window.__ccoWorkspace;
 	      if (workspaceApi && typeof workspaceApi.setActiveLaneId === "function") {
 	        workspaceApi.setActiveLaneId(laneId);
@@ -41319,6 +42344,12 @@
 
   if (customerList) {
     customerList.addEventListener("click", (event) => {
+      if (
+        isMobileShellViewportEarly() &&
+        window.ArcanaPatientMasterUi?.getRuntime?.()?.mode === "register"
+      ) {
+        return;
+      }
       const check = event.target.closest(".customer-record-check");
       const row = event.target.closest("[data-customer-row]");
       if (check && row) {
@@ -41763,6 +42794,30 @@
     });
   });
 
+  settingsLeadTimeInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsLeadTimeField(input.dataset.settingsLeadTime, input.value);
+    });
+  });
+
+  settingsLeadTimeJsonInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsLeadTimeJson(input.dataset.settingsLeadTimeJson, input.value);
+    });
+  });
+
+  settingsBookingPolicyInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsBookingPolicyField(input.dataset.settingsBookingPolicy, input.value);
+    });
+  });
+
+  settingsBookingPolicyJsonInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      handleSettingsBookingPolicyJson(input.dataset.settingsBookingPolicyJson, input.value);
+    });
+  });
+
   settingsActionButtons.forEach((button) => {
     button.addEventListener("click", () => {
       handleSettingsAction(button.dataset.settingsAction).catch((error) => {
@@ -42015,39 +43070,6 @@
   void (async () => {
     const initialShellViewState = readShellViewStateFromLocation();
     await ensurePreviewBootstrapSession();
-    // Fas 46 (2026-05-20): Apple-Mail-pattern steg 3 — instant inbox från
-    // IndexedDB-cache. Läs cachen async (blockerar inte). Om den finns OCH
-    // live-load inte hunnit klart → injicera cachade trådar + rendera direkt
-    // så användaren ser sin inbox på en gång. Live-fetchen overrider sedan
-    // med färsk data när den är klar (Fas 39-logiken i live-composition).
-    try {
-      const __hasTokenFas46 =
-        typeof localStorage !== "undefined" &&
-        Boolean(localStorage.getItem("ARCANA_ADMIN_TOKEN"));
-      if (__hasTokenFas46 && window.CcoThreadCache?.loadThreads) {
-        window.CcoThreadCache.loadThreads()
-          .then((cached) => {
-            if (!Array.isArray(cached) || cached.length === 0) return;
-            // Bara injicera om live-load INTE redan fyllt kön — annars
-            // skulle vi skriva över färskare data med äldre cache.
-            const alreadyLive =
-              state.runtime?.loaded === true ||
-              asArray(state.runtime?.threads).some(
-                (t) => String(t?.worklistSource || "").toLowerCase() !== "demo"
-              );
-            if (alreadyLive) return;
-            state.runtime.threads = cached;
-            try {
-              renderRuntimeConversationShell();
-            } catch (_e) {
-              if (typeof window.__renderApp === "function") window.__renderApp();
-            }
-          })
-          .catch(() => {});
-      }
-    } catch (_e) {
-      /* tyst — cache är best-effort */
-    }
     state.forms.customerFilter = normalizeText(customerFilterSelect?.value) || "Alla kunder";
     setSelectedCustomerIdentity("");
     setSelectedAnalyticsPeriod("week");
@@ -42061,18 +43083,6 @@
     setAutomationCanvasScale(100);
     setAutomationRailCollapsed(false);
     renderAutomationTestingState();
-    const scheduleDeferredAuxShellRenders = () => {
-      renderAutomationVersions();
-      renderAutomationSuggestions();
-      renderIntegrations();
-      renderMacros();
-      renderSettings();
-    };
-    if (typeof requestIdleCallback === "function") {
-      requestIdleCallback(scheduleDeferredAuxShellRenders, { timeout: 2000 });
-    } else {
-      setTimeout(scheduleDeferredAuxShellRenders, 0);
-    }
     setAutomationSubnav("Byggare");
     setSelectedShowcaseFeature("command_palette");
     applyCustomerFilters();
@@ -42483,5 +43493,137 @@
     getRuntimeReentrySnapshot,
     getRuntimeReentryOutcome,
     openRuntimeHistoryConversationForDiagnostics,
+  });
+
+  function prefillBookingFromCalendarSlot(slot = {}) {
+    const normalizedSlot =
+      slot && typeof slot === "object"
+        ? {
+            ...slot,
+            startsAt: slot.startsAt || slot.startAt || slot.start || "",
+            endsAt: slot.endsAt || slot.endAt || slot.end || "",
+          }
+        : null;
+    if (!normalizedSlot?.startsAt) return false;
+    state.booking.phoneMode = "phone";
+    state.booking.availableSlots = [normalizedSlot];
+    state.booking.calendarPrefillSlot = normalizedSlot;
+    state.booking.recentSelectedSlotId = getBookingSlotKey(normalizedSlot);
+    state.booking.recentSelectedSlotAction = "added";
+    state.runtime.bookingShellOpen = true;
+    setBookingOpen(true);
+    renderBookingSurface();
+    setFeedback(
+      getBookingDom().feedback,
+      "success",
+      "Ledig tid från kalendern är förifylld. Välj kund och bekräfta bokningen."
+    );
+    return true;
+  }
+
+  window.ArcanaBookingCalendarActions = Object.freeze({
+    openBookingCase(bookingCase = {}) {
+      const payload =
+        bookingCase?.bookingCaseSnapshot && typeof bookingCase.bookingCaseSnapshot === "object"
+          ? bookingCase.bookingCaseSnapshot
+          : bookingCase;
+      if (!asText(payload?.bookingCaseId)) return false;
+      syncBookingCaseListItem(payload);
+      setAppView("conversations");
+      return openBookingCaseInWorkspace(payload, {
+        message: "Bokningsärendet öppnades från kalendern.",
+      });
+    },
+    // R8: öppna Svarstudio för en bokning — landa operatören i conversations
+    // på rätt bokningskontext och öppna sedan studio-overlayen (nästa tick så
+    // arbetsytan hunnit rendera den valda tråden).
+    openStudioForBooking(bookingCase = {}) {
+      const payload =
+        bookingCase?.bookingCaseSnapshot && typeof bookingCase.bookingCaseSnapshot === "object"
+          ? bookingCase.bookingCaseSnapshot
+          : bookingCase;
+      setAppView("conversations");
+      if (asText(payload?.bookingCaseId)) {
+        syncBookingCaseListItem(payload);
+        openBookingCaseInWorkspace(payload, { message: "Bokningen öppnades i Svarstudio." });
+      }
+      window.setTimeout(() => {
+        try {
+          runtimeActionEngine?.openRuntimeStudio?.("reply");
+        } catch {
+          setStudioOpen(true);
+        }
+      }, 0);
+      return true;
+    },
+    // R8: öppna Smart anteckning för en bokning (samma overlay som i FOKUSYTA).
+    openNoteForBooking(bookingCase = {}) {
+      const payload =
+        bookingCase?.bookingCaseSnapshot && typeof bookingCase.bookingCaseSnapshot === "object"
+          ? bookingCase.bookingCaseSnapshot
+          : bookingCase;
+      setAppView("conversations");
+      if (asText(payload?.bookingCaseId)) {
+        syncBookingCaseListItem(payload);
+        openBookingCaseInWorkspace(payload, { message: "Bokningen öppnades i Smart anteckning." });
+      }
+      window.setTimeout(() => {
+        runtimeActionEngine?.openRuntimeNote?.().catch(() => {});
+      }, 0);
+      return true;
+    },
+    openCustomerCard({ patientId = "", customerEmail = "", customerName = "" } = {}) {
+      setAppView("customers");
+      const ui = window.ArcanaPatientMasterUi;
+      if (!ui) return false;
+      if (asText(patientId)) {
+        void ui.openPatient?.(patientId);
+        return true;
+      }
+      void ui.openPatientByEmail?.(customerEmail, customerName);
+      return true;
+    },
+    openJournal({ patientId = "", customerEmail = "", customerName = "" } = {}) {
+      setAppView("customers");
+      const ui = window.ArcanaPatientMasterUi;
+      if (!ui) return false;
+      if (asText(patientId)) {
+        void ui.openPatient?.(patientId, { tab: "journal" });
+        return true;
+      }
+      void ui.openPatientByEmail?.(customerEmail, customerName, { tab: "journal" });
+      return true;
+    },
+    openNewBookingFromSlot(slot = {}) {
+      setAppView("conversations");
+      window.ArcanaMobileShell?.navigateToBooking?.();
+      return prefillBookingFromCalendarSlot(slot);
+    },
+    async rebookFromCalendar(bookingCaseId, slot, reason = "Ombokad från kalendern") {
+      const shared = window.ArcanaBookingCalendarShared;
+      if (!shared?.rebookCalendarBooking || !asText(bookingCaseId)) return false;
+      const payload = await shared.rebookCalendarBooking(bookingCaseId, slot, reason);
+      if (payload?.bookingCase) {
+        syncBookingCaseListItem(payload.bookingCase);
+        syncBookingRuntimePayload(payload);
+      }
+      refreshBookingCaseList();
+      return payload;
+    },
+    showToast(message = "", tone = "success") {
+      const dom = getBookingDom();
+      if (dom?.feedback) {
+        setFeedback(dom.feedback, tone === "error" ? "error" : "success", message);
+        return;
+      }
+      window.ArcanaPatientMasterUi?.showMobileToast?.(message);
+    },
+  });
+
+  window.ArcanaAppNav = Object.freeze({
+    setAppView,
+    setMobileWorkspaceView,
+    ensureMobileInboxReady,
+    cancelMobileNavigationWork,
   });
 })();

@@ -1,0 +1,907 @@
+{
+  "exportedAt": "2026-05-25",
+  "source": "buildLegacyCatalogs.py",
+  "mappedBuckets": 20,
+  "entries": [
+    {
+      "arcanaServiceId": "consultation-online",
+      "label": "Online konsultation",
+      "brand": "Hair TP Clinic",
+      "confidence": "exact",
+      "journalTypes": [
+        "health_declaration"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "44939",
+        "srvIds": [
+          "44939"
+        ],
+        "resIds": [
+          "9259"
+        ],
+        "primaryName": "Online konsultation"
+      },
+      "meridiq": {
+        "primaryApiId": 7079,
+        "apiIds": [
+          7079
+        ],
+        "count": 1,
+        "categories": [
+          "Konsultationer · Hair TP Clinic"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "consultation-physical",
+      "label": "Fysisk konsultation",
+      "brand": "Hair TP Clinic",
+      "confidence": "exact",
+      "journalTypes": [
+        "health_declaration",
+        "fitness_certificate"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "31779",
+        "srvIds": [
+          "31779"
+        ],
+        "resIds": [
+          "7533"
+        ],
+        "primaryName": "Fysisk konsultation"
+      },
+      "meridiq": {
+        "primaryApiId": 7078,
+        "apiIds": [
+          7078
+        ],
+        "count": 1,
+        "categories": [
+          "Konsultationer · Hair TP Clinic"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "followup-transplant",
+      "label": "Uppföljning hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "confidence": "exact",
+      "journalTypes": [
+        "follow_up"
+      ],
+      "notes": "Cliento intern kalender: 31788 TP uppföljning (ej online).",
+      "cliento": {
+        "primarySrvId": "63017",
+        "srvIds": [
+          "63017"
+        ],
+        "resIds": [
+          "11458",
+          "10326"
+        ],
+        "primaryName": "Uppföljning (VIP)"
+      },
+      "meridiq": {
+        "primaryApiId": 7130,
+        "apiIds": [
+          7130,
+          7131,
+          7134,
+          7137,
+          7405
+        ],
+        "count": 5,
+        "categories": [
+          "Uppföljning · Hair TP Clinic"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "fue",
+      "label": "FUE hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "confidence": "category",
+      "journalTypes": [
+        "tp_treatment",
+        "fitness_certificate"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "31785",
+        "srvIds": [
+          "31785"
+        ],
+        "resIds": [
+          "6677"
+        ],
+        "primaryName": "Transplantation FUE"
+      },
+      "meridiq": {
+        "primaryApiId": 7092,
+        "apiIds": [
+          7086,
+          7087,
+          7088,
+          7089,
+          7090,
+          7091,
+          7092,
+          7106,
+          7128,
+          7397
+        ],
+        "count": 10,
+        "categories": [
+          "FUE Hårtransplantation"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "dhi",
+      "label": "DHI hårtransplantation",
+      "brand": "Hair TP Clinic",
+      "confidence": "category",
+      "journalTypes": [
+        "tp_treatment",
+        "fitness_certificate"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "47778",
+        "srvIds": [
+          "47778"
+        ],
+        "resIds": [
+          "6677"
+        ],
+        "primaryName": "Transplantation  DHI"
+      },
+      "meridiq": {
+        "primaryApiId": 7097,
+        "apiIds": [
+          7093,
+          7094,
+          7095,
+          7096,
+          7097,
+          7103,
+          7414,
+          8727
+        ],
+        "count": 8,
+        "categories": [
+          "DHI Hårtransplantation"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "beard",
+      "label": "Skäggtransplantation",
+      "brand": "Hair TP Clinic",
+      "confidence": "category",
+      "journalTypes": [
+        "tp_treatment"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "51522",
+        "srvIds": [
+          "51522"
+        ],
+        "resIds": [
+          "6677"
+        ],
+        "primaryName": "Transplantation · Skägg"
+      },
+      "meridiq": {
+        "primaryApiId": 7127,
+        "apiIds": [
+          7127,
+          7135,
+          7144,
+          7387,
+          7388,
+          7389,
+          7398,
+          7399,
+          7400,
+          7401,
+          7404
+        ],
+        "count": 11,
+        "categories": [
+          "DHI Skäggtransplantation",
+          "FUE Skäggtransplantation"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "eyebrow",
+      "label": "Ögonbrynstransplantation",
+      "brand": "Hair TP Clinic",
+      "confidence": "fuzzy",
+      "journalTypes": [
+        "tp_treatment"
+      ],
+      "notes": "Cliento 50561 = PRP TP ögonbryn; Meridiq 7104 = DHI ögonbrynstransplantation.",
+      "cliento": {
+        "primarySrvId": "50561",
+        "srvIds": [
+          "50561"
+        ],
+        "resIds": [
+          "6677"
+        ],
+        "primaryName": "PRP TP ögonbryn"
+      },
+      "meridiq": {
+        "primaryApiId": 7104,
+        "apiIds": [
+          7104,
+          7132
+        ],
+        "count": 2,
+        "categories": [
+          "DHI Ögonbrynstransplantation"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "prp-hair",
+      "label": "PRP hår",
+      "brand": "Hair TP Clinic",
+      "confidence": "exact",
+      "journalTypes": [
+        "prp_treatment"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "31775",
+        "srvIds": [
+          "31775"
+        ],
+        "resIds": [],
+        "primaryName": "PRP Hår Standard"
+      },
+      "meridiq": {
+        "primaryApiId": 7112,
+        "apiIds": [
+          7112,
+          7113,
+          7114,
+          7116,
+          7133,
+          7395
+        ],
+        "count": 6,
+        "categories": [
+          "PRP · Hår"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "prp-skin",
+      "label": "PRP hud",
+      "brand": "Hair TP Clinic",
+      "confidence": "category",
+      "journalTypes": [
+        "prp_treatment"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "50556",
+        "srvIds": [
+          "50556"
+        ],
+        "resIds": [],
+        "primaryName": "PRP · Ansikte"
+      },
+      "meridiq": {
+        "primaryApiId": 7117,
+        "apiIds": [
+          7117,
+          7118,
+          7119,
+          7120,
+          7122
+        ],
+        "count": 5,
+        "categories": [
+          "PRP · Hud"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "microneedling",
+      "label": "Microneedling + PRP",
+      "brand": "Hair TP Clinic",
+      "confidence": "category",
+      "journalTypes": [
+        "prp_treatment"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "50558",
+        "srvIds": [
+          "50558"
+        ],
+        "resIds": [],
+        "primaryName": "PRP + Microneedling · Ansikte"
+      },
+      "meridiq": {
+        "primaryApiId": 7121,
+        "apiIds": [
+          7121,
+          7392,
+          7393,
+          7394,
+          7396
+        ],
+        "count": 5,
+        "categories": [
+          "Microneedling med Dermapen"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "consultation-curatiio-aesthetic",
+      "label": "Konsultation estetiska injektioner",
+      "brand": "Curatiio",
+      "confidence": "meridiq-only",
+      "journalTypes": [
+        "health_declaration"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": null,
+        "srvIds": [],
+        "resIds": [],
+        "primaryName": null
+      },
+      "meridiq": {
+        "primaryApiId": 8694,
+        "apiIds": [
+          8694
+        ],
+        "count": 1,
+        "categories": [
+          "Konsultationer · Curatiio"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "consultation-bleph",
+      "label": "Konsultation ögonlocksplastik",
+      "brand": "Curatiio",
+      "confidence": "exact",
+      "journalTypes": [
+        "health_declaration",
+        "fitness_certificate"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "36607",
+        "srvIds": [
+          "36607"
+        ],
+        "resIds": [],
+        "primaryName": "Ögonlocksplastik · Konsultation"
+      },
+      "meridiq": {
+        "primaryApiId": 7080,
+        "apiIds": [
+          7080
+        ],
+        "count": 1,
+        "categories": [
+          "Konsultationer · Curatiio"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "consultation-ortho",
+      "label": "Konsultation ortopedi",
+      "brand": "Curatiio",
+      "confidence": "exact",
+      "journalTypes": [
+        "health_declaration"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "50767",
+        "srvIds": [
+          "50767"
+        ],
+        "resIds": [
+          "10300"
+        ],
+        "primaryName": "Ortopedisk PRP/PRF · Konsultation"
+      },
+      "meridiq": {
+        "primaryApiId": 7081,
+        "apiIds": [
+          7081
+        ],
+        "count": 1,
+        "categories": [
+          "Konsultationer · Curatiio"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "bleph-upper",
+      "label": "Övre ögonlocksplastik",
+      "brand": "Curatiio",
+      "confidence": "exact",
+      "journalTypes": [
+        "bleph_treatment"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "38376",
+        "srvIds": [
+          "38376"
+        ],
+        "resIds": [],
+        "primaryName": "Ögonplastik · Övre Ögonlock"
+      },
+      "meridiq": {
+        "primaryApiId": 7085,
+        "apiIds": [
+          7085,
+          7105
+        ],
+        "count": 2,
+        "categories": [
+          "Ögonlocksplastik · Curatiio"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "bleph-lower",
+      "label": "Nedre ögonlocksplastik",
+      "brand": "Curatiio",
+      "confidence": "exact",
+      "journalTypes": [
+        "bleph_treatment"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "57998",
+        "srvIds": [
+          "57998"
+        ],
+        "resIds": [],
+        "primaryName": "Ögonplastik · Nedre Ögonlock"
+      },
+      "meridiq": {
+        "primaryApiId": 7082,
+        "apiIds": [
+          7082,
+          7105
+        ],
+        "count": 2,
+        "categories": [
+          "Ögonlocksplastik · Curatiio"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "bleph-combined",
+      "label": "Kombinerad ögonlocksplastik",
+      "brand": "Curatiio",
+      "confidence": "exact",
+      "journalTypes": [
+        "bleph_treatment"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "58000",
+        "srvIds": [
+          "58000"
+        ],
+        "resIds": [],
+        "primaryName": "Ögonlocksplastik · Total"
+      },
+      "meridiq": {
+        "primaryApiId": 7105,
+        "apiIds": [
+          7105
+        ],
+        "count": 1,
+        "categories": [
+          "Ögonlocksplastik · Curatiio"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "botox",
+      "label": "Botox",
+      "brand": "Curatiio",
+      "confidence": "category",
+      "journalTypes": [
+        "health_declaration"
+      ],
+      "notes": "Cliento Botox-tjänster ligger i groupName Hair TP Clinic — troligen felgruppering.",
+      "cliento": {
+        "primarySrvId": "64399",
+        "srvIds": [
+          "64399"
+        ],
+        "resIds": [],
+        "primaryName": "Botox · Behandling"
+      },
+      "meridiq": {
+        "primaryApiId": 7382,
+        "apiIds": [
+          7382,
+          7383,
+          7384,
+          7385
+        ],
+        "count": 4,
+        "categories": [
+          "Estetiska injektioner · Curatiio"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "fillers",
+      "label": "Fillers",
+      "brand": "Curatiio",
+      "confidence": "meridiq-only",
+      "journalTypes": [
+        "health_declaration"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": null,
+        "srvIds": [],
+        "resIds": [],
+        "primaryName": null
+      },
+      "meridiq": {
+        "primaryApiId": 7377,
+        "apiIds": [
+          7376,
+          7377,
+          7378
+        ],
+        "count": 3,
+        "categories": [
+          "Estetiska injektioner · Curatiio"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "profhilo",
+      "label": "Profhilo",
+      "brand": "Curatiio",
+      "confidence": "meridiq-only",
+      "journalTypes": [
+        "health_declaration"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": null,
+        "srvIds": [],
+        "resIds": [],
+        "primaryName": null
+      },
+      "meridiq": {
+        "primaryApiId": 7379,
+        "apiIds": [
+          7379,
+          7380,
+          7381
+        ],
+        "count": 3,
+        "categories": [
+          "Estetiska injektioner · Curatiio"
+        ]
+      }
+    },
+    {
+      "arcanaServiceId": "ortho-treatment",
+      "label": "Ortopedisk PRP/PRF",
+      "brand": "Curatiio",
+      "confidence": "category",
+      "journalTypes": [
+        "health_declaration"
+      ],
+      "notes": null,
+      "cliento": {
+        "primarySrvId": "50766",
+        "srvIds": [
+          "50766"
+        ],
+        "resIds": [
+          "10300"
+        ],
+        "primaryName": "Ortopedisk PRP/PRF · Behandling"
+      },
+      "meridiq": {
+        "primaryApiId": 7109,
+        "apiIds": [
+          7109,
+          7123,
+          7124,
+          7406,
+          7411,
+          7412,
+          7413
+        ],
+        "count": 7,
+        "categories": [
+          "Ortopedi · Curatiio"
+        ]
+      }
+    }
+  ],
+  "unmappedCliento": {
+    "count": 38,
+    "services": [
+      {
+        "srvId": "60340",
+        "name": "Konsultation · Telefon",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "62138",
+        "name": "Ortopedi · Telefonuppföljning",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "62137",
+        "name": "Ortopedi · Uppföljning",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "62135",
+        "name": "Ortopedisk PRP/PRF · Konsultation via telefon",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "38377",
+        "name": "Stygnborttagning",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "58285",
+        "name": "Uppföljning",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "60223",
+        "name": "Uppföljning via telefon",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "62134",
+        "name": "Ögonplastik · Digital konsultation",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "62139",
+        "name": "Ögonplastik · Digital uppföljning",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "62136",
+        "name": "Ögonplastik · Uppföljning",
+        "brand": "Curatiio",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "50555",
+        "name": "Biofillers",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "64401",
+        "name": "Botox · Konsultation",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "64400",
+        "name": "Botox · Återbesök",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "60199",
+        "name": "Content · Andrea",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "64814",
+        "name": "Injektionsbehandling · Konsultation",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "50487",
+        "name": "Konsultation · Inkl. AI",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "45119",
+        "name": "Konsultation · Ögonbryn",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "42176",
+        "name": "Microneedling konsultation",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "59990",
+        "name": "Online uppföljning",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "50560",
+        "name": "PDO - (beroende på område)",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "50553",
+        "name": "PRF Microneedling",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "31784",
+        "name": "PRP Mini",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "31781",
+        "name": "PRP Skägg",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "31782",
+        "name": "PRP efter TP",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "31787",
+        "name": "PRP uppföljning",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "31776",
+        "name": "PRP · Ansikte",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "50554",
+        "name": "PRP · Mini",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "61695",
+        "name": "PRP · OP-dagen",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "50559",
+        "name": "PRP · Skägg",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "50562",
+        "name": "PRP · Underhåll efter TP",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "50557",
+        "name": "PRP · XL",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "51630",
+        "name": "Samarbete",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "41930",
+        "name": "Skägg konsultation",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "58638",
+        "name": "Special",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "38382",
+        "name": "Stygn borttagning",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "31788",
+        "name": "TP uppföljning",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "60041",
+        "name": "Uppföljning via telefon",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      },
+      {
+        "srvId": "41931",
+        "name": "Ögonbryn konsultation",
+        "brand": "Hair TP Clinic",
+        "onlineVisible": "Nej"
+      }
+    ]
+  },
+  "unmappedMeridiq": {
+    "count": 5,
+    "services": [
+      {
+        "apiId": 8952,
+        "name": "Uppföljning: Botox",
+        "category": "Uppföljning · Curatiio"
+      },
+      {
+        "apiId": 8953,
+        "name": "Uppföljning: Filler",
+        "category": "Uppföljning · Curatiio"
+      },
+      {
+        "apiId": 8954,
+        "name": "Uppföljning: Profilho",
+        "category": "Uppföljning · Curatiio"
+      },
+      {
+        "apiId": 7410,
+        "name": "Uppföljning: Ögonlocksplastik",
+        "category": "Uppföljning · Curatiio"
+      },
+      {
+        "apiId": 7107,
+        "name": "Ögonlocksplastik: Suturborttagning",
+        "category": "Uppföljning · Curatiio"
+      }
+    ]
+  }
+}

@@ -63,8 +63,9 @@ else pass('canonical mockup uploads/');
 if (!fs.existsSync(PLAN)) fail('restoration plan doc saknas');
 else pass('CCO-KUNDER-V9-VISUAL-RESTORATION-PLAN');
 
-if (html.includes('data-kunder-agg-insights')) pass('agg-insights host data-kunder-agg-insights (ORD-12)');
-else if (html.includes('data-kunder-story-grid')) pass('story-grid host data-kunder-story-grid');
+if (html.includes('data-kunder-story-grid')) pass('story-grid host data-kunder-story-grid');
+else if (html.includes('data-kunder-agg-insights')) pass('agg-insights host data-kunder-agg-insights (ORD-12)');
+else if (html.includes('data-kunder-story-grid')) pass('story-grid host data-kunder-story-grid (ORD-12 P1)');
 else fail('insights host saknas');
 
 if (!html.includes('grid-template-columns: 200px minmax(0, 1fr) 360px')) {

@@ -11,6 +11,7 @@ const express = require('express');
 const { createCcoJournalRouter } = require('../../src/routes/ccoJournal');
 const { createCcoJournalStore } = require('../../src/ops/ccoJournalStore');
 const { createCcoJournalPhotoStore } = require('../../src/ops/ccoJournalPhotoStore');
+const { createCcoTreatmentEncounterStore } = require('../../src/ops/ccoTreatmentEncounterStore');
 
 async function withServer(app, run) {
   const server = http.createServer(app);
@@ -32,6 +33,9 @@ async function createFixture(overrides = {}) {
   const journalPhotoStore = await createCcoJournalPhotoStore({
     baseDir: path.join(tempDir, 'photos'),
   });
+  const treatmentEncounterStore = await createCcoTreatmentEncounterStore({
+    filePath: path.join(tempDir, 'encounters.json'),
+  });
   const auditEvents = [];
   const app = express();
   app.use(express.json({ limit: '2mb' }));
@@ -40,6 +44,7 @@ async function createFixture(overrides = {}) {
     createCcoJournalRouter({
       journalStore,
       journalPhotoStore,
+      treatmentEncounterStore,
       authStore: {
         async addAuditEvent(event) {
           auditEvents.push(event);
@@ -57,7 +62,7 @@ async function createFixture(overrides = {}) {
       requireRole: overrides.requireRole || (() => (_req, _res, next) => next()),
     })
   );
-  return { app, tempDir, journalStore, auditEvents };
+  return { app, tempDir, journalStore, treatmentEncounterStore, auditEvents };
 }
 
 async function buildJpegBuffer() {
@@ -99,6 +104,8 @@ test('photo upload creates consultation plan when entryId missing', async () => 
       assert.equal(payload.entry.journalType, 'consultation_plan');
       assert.equal(payload.entry.attachments.length, 1);
       assert.equal(payload.entry.attachments[0].label, 'Front');
+      assert.ok(payload.entry.treatmentEncounterId);
+      assert.equal(payload.encounter?.encounterId, payload.entry.treatmentEncounterId);
       assert.ok(fixture.auditEvents.some((event) => event.action === 'cco.journal.photo.upload'));
     });
   } finally {
@@ -196,6 +203,99 @@ test('photo GET returns stored image bytes', async () => {
       assert.match(String(getResponse.headers.get('content-type') || ''), /image\//);
       const bytes = Buffer.from(await getResponse.arrayBuffer());
       assert.ok(bytes.length > 0);
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('plan-photos/clear removes smoke attachments in bulk', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const plan = await fixture.journalStore.ensureConsultationPlan({
+        tenantId: 'tenant-a',
+        patientId: 'patient-1',
+        personnummer: '19900101-1234',
+        actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' },
+      });
+      await fixture.journalStore.addConsultationPhotoAttachment({
+        tenantId: 'tenant-a',
+        patientId: 'patient-1',
+        entryId: plan.entryId,
+        photo: {
+          photoId: 'smoke-1',
+          fileName: 'smoke.jpg',
+          mimeType: 'image/jpeg',
+          storedAt: new Date().toISOString(),
+          label: 'Smoke Front',
+        },
+        actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' },
+      });
+      await fixture.journalStore.addConsultationPhotoAttachment({
+        tenantId: 'tenant-a',
+        patientId: 'patient-1',
+        entryId: plan.entryId,
+        photo: {
+          photoId: 'real-1',
+          fileName: 'front.jpg',
+          mimeType: 'image/jpeg',
+          storedAt: new Date().toISOString(),
+          label: 'Front',
+        },
+        actor: { userId: 'staff-1', role: 'OWNER', displayName: 'Staff' },
+      });
+
+      const res = await fetch(`${baseUrl}/cco-journal/plan-photos/clear`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: 'patient-1',
+          entryId: plan.entryId,
+          smokeOnly: true,
+        }),
+      });
+      assert.equal(res.status, 200);
+      const payload = await res.json();
+      assert.equal(payload.removedCount, 1);
+      assert.equal(payload.entry.attachments.length, 1);
+      assert.equal(payload.entry.attachments[0].photoId, 'real-1');
+    });
+  } finally {
+    await fs.rm(fixture.tempDir, { recursive: true, force: true });
+  }
+});
+
+test('photo DELETE removes attachment and stored bytes', async () => {
+  const fixture = await createFixture();
+  try {
+    await withServer(fixture.app, async (baseUrl) => {
+      const upload = await postPhoto(baseUrl, {
+        patientId: 'patient-photo-del',
+        personnummer: '19960830-4698',
+        label: 'Front',
+      });
+      assert.equal(upload.status, 200);
+      const payload = await upload.json();
+      const entry = payload.entry;
+      const attachment = entry.attachments[0];
+      const deleteResponse = await fetch(`${baseUrl}/cco-journal/photo`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: 'patient-photo-del',
+          entryId: entry.entryId,
+          attachmentId: attachment.attachmentId,
+          photoId: attachment.photoId,
+        }),
+      });
+      assert.equal(deleteResponse.status, 200);
+      const deleted = await deleteResponse.json();
+      assert.equal(deleted.entry.attachments.length, 0);
+      const getResponse = await fetch(
+        `${baseUrl}/cco-journal/photo?patientId=patient-photo-del&photoId=${encodeURIComponent(attachment.photoId)}`
+      );
+      assert.equal(getResponse.status, 404);
     });
   } finally {
     await fs.rm(fixture.tempDir, { recursive: true, force: true });

@@ -26,7 +26,7 @@ Det betyder:
 Om du sitter direkt pa iMac och vill satta upp allt lokalt:
 
 ```bash
-cd "$HOME/Desktop/Arcana"
+cd "$HOME/Code/major-arcana"
 npm run workstation:bootstrap
 ```
 
@@ -42,7 +42,7 @@ Det installerar:
 Nar SSH fungerar till iMac:
 
 ```bash
-cd "$HOME/Desktop/Arcana"
+cd "$HOME/Code/major-arcana"
 arcana-imac-bootstrap
 ```
 

@@ -1,0 +1,152 @@
+---
+description: Meridiq is source of truth for CCO customer journey, document requirements and clinical workflow parity
+alwaysApply: true
+---
+
+# Meridiq Journey Extraction Rules
+
+Meridiq är källan för existerande kundresa, dokumentkrav, journalformulär, samtycken, avtal, eftervård och uppföljningsflöden. CCO ska bevara Meridiq-journey-logiken men implementera den i nya CCO-designen.
+
+## Grundprincip
+
+**Extrahera arbetsflödet, inte det gamla UI:t.**
+
+- Meridiq = journey-källa (read-only efter cutover)
+- CCO = target-system (nya UI:t + nya state-machines)
+- GitHub = endast kod/schema/template registry/version/regler — ALDRIG patientdata
+
+## Innan implementation
+
+Implementera INTE CCO-kommunikation, formulär, samtycke, journal eller eftervårdsflöden förrän en **Meridiq Journey Extraction** är klar.
+
+Krävd första leverans:
+
+**Document Coverage Report** som listar:
+- alla Meridiq-dokument funna
+- alla Meridiq-dokument lästa
+- alla olästa dokument + skäl
+- dokumenttyp
+- version/datum
+- brand (Hair TP vs Curatiio)
+- behandling
+- kundresesteg
+- patient-data eller mall/regel
+- får ligga i GitHub Y/N
+- behöver legal review Y/N
+
+## Säkerhet
+
+**FÅR ALDRIG ligga i GitHub:**
+- journaler (ifyllda)
+- personnummer
+- patientnamn
+- signerade avtal
+- ifyllda hälsodeklarationer
+- patientformulär (ifyllda)
+- patientbilder (före/efter)
+- råa patient-PDFs
+
+**FÅR ALDRIG skickas till extern AI:**
+- journalinnehåll
+- patientidentifierande data
+
+**Får ligga i GitHub:**
+- kod
+- schemas
+- template-ID:n
+- template-versioner
+- workflow-definitioner
+- compliance-regler
+- anonymiserade fixtures
+- mall-struktur från Meridiq (utan patientdata)
+
+## Krävda outputs
+
+Efter Coverage Report, producera:
+
+1. Source of Truth Matrix
+2. Meridiq Customer Journey Blueprint
+3. Document Requirement Matrix per behandling
+4. Journal/Form Parity Matrix
+5. Communication Template Registry
+6. Consent & Agreement Flow
+7. Aftercare & Follow-up Matrix
+8. Trigger & Automation Matrix
+9. CCO Gap Analysis
+10. Compliance Blockers
+11. Implementation Plan
+
+## Status-värden
+
+Använd:
+- `EXISTS` — CCO har funktionen
+- `MISSING` — CCO saknar helt
+- `PARTIAL` — CCO har delvis
+- `UPGRADE` — finns men behöver uppdateras till Meridiq-paritet
+- `VERSION_CONFLICT` — versioner skiljer sig mellan källor
+- `NEEDS_LEGAL_REVIEW` — juridiskt oklart
+- `BLOCKING_COMPLIANCE_REQUIREMENT` — vården kan inte ges utan detta
+
+## Blocking-regler
+
+Flagga blocker om:
+- samtycke saknas före behandling
+- avtal saknas före behandling
+- patient-information version inte loggas
+- hälsodeklaration saknas
+- friskförsäkran saknas
+- journal-field-parity med Meridiq är ofullständig
+- eftervård saknas
+- audit-event saknas
+- Hair TP- och Curatiio-flöden är blandade
+- patientdata håller på att committas till GitHub
+- AI får journaldata
+
+## Källordning
+
+När källor säger olika:
+
+1. **Meridiq** har högst auktoritet för kundresan och kliniska formulär
+2. **Nordbro/Insatt** har högst auktoritet för juridiska samtycken/avtal
+3. **Cliento** har högst auktoritet för bokningar/kundregister/POS
+4. **GetAccept** har högst auktoritet för signerade avtal-arkiv
+5. **Drive** är endast referensplats — får inte vara primärkälla
+6. **GitHub** är endast kod — får inte vara primärkälla för patientdata
+
+Vid konflikt mellan källor: flagga `VERSION_CONFLICT` och eskalera till owner.
+
+## Brand-isolation
+
+Hair TP Clinic och Curatiio har **separata kundresor**:
+- Olika formulär
+- Olika samtycken
+- Olika avtal
+- Olika eftervård
+- Olika kommunikation
+
+Om Meridiq-data har inkonsekvent brand-taggning (t.ex. Curatiio-titel men Hair TP brand-tagg) → flagga som NEEDS_BRAND_REVIEW.
+
+Cliento delar kundbas mellan brands → vid import är `tenantId='hair_tp'` default; per-behandling-tilldelning sker via service-binding i CCO.
+
+## Implementationsordning
+
+**Fas 1 — Inventory:** läs Meridiq + kanaler, klassificera, flagga olästa
+**Fas 2 — Extract:** kundresesteg, dokumentkrav, signeringsflöden, journalfält, eftervård, kommunikationsmallar
+**Fas 3 — Compare:** EXISTS/MISSING/PARTIAL/UPGRADE per modul + version-conflicts
+**Fas 4 — Design:** CCO-moduler, statusar, blockers, triggers, audit-events, UI-placering
+**Fas 5 — Build:** endast efter godkänd matris, börja med P0-blockers
+
+## Audit-trail
+
+Varje patient-touching action MÅSTE skapa audit-event med:
+- actor (user-id + role)
+- action (template-id + version)
+- target (customerId)
+- timestamp
+- mustStoreVersionShownToPatient ✓
+
+Audit får inte raderas inom 10-års-fönstret (PDL Art. 9).
+
+---
+
+*Skapad: 2026-05-29 · Referens: docs/strategy/MERIDIQ-DOCUMENT-COVERAGE-REPORT.md*

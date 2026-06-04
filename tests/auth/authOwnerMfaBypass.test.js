@@ -50,6 +50,7 @@ test('owner login bypasses MFA on configured prelaunch hosts only', async () => 
       requireAuth: (_req, _res, next) => next(),
       requireRole: () => (_req, _res, next) => next(),
       requireTenantScope: () => (_req, _res, next) => next(),
+      ownerMfaRequired: true,
       ownerMfaBypassHosts: ['arcana-staging.onrender.com', 'localhost', '127.0.0.1'],
       loginSessionRotationScope: 'none',
     })

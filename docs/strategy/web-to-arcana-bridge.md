@@ -2,7 +2,7 @@
 
 Skapad: 2026-05-18
 Syfte: Låsa kontrakten mellan `hairtpclinic.com` och Arcana CCO-booking innan integration byggs. Ersätter steg 4.D.1 + 4.D.4 i `web-hairtpclinic-com-masterplan.md` med en disciplinerad migration som **inte använder Cliento på sikt**.
-Status: design — inga endpoints byggda ännu på publika sidan.
+Status: Fas B/C live på prod. Pass 4 (web-events audit) + abuse guard implementerad 2026-05-20.
 
 Relaterat:
 - `docs/strategy/cco-booking-phone-booking-level-1_5-plan.md` — Level 1.5 operator-flöde
@@ -12,6 +12,12 @@ Relaterat:
 ---
 
 ## 0. Kompass
+
+0.0. **Driftregel (låst, 2026-05-24):** **Ingen Cliento** och **ingen CCO** på hemsidans kundbokning tills CCO-bokning är redo och uttryckligen godkänd.
+
+0.0.1. **Prod-default:** `ARCANA_PUBLIC_WEB_BOOKING_ENABLED=false` och `ARCANA_CLIENTO_INTEGRATION_ENABLED=false` — alla `/api/public/booking-engine/*` svarar `503 public_web_booking_disabled`; `/public/cliento/*` svarar `cliento_booking_disabled`.
+
+0.0.2. **Efter sign-off:** sätt endast `ARCANA_PUBLIC_WEB_BOOKING_ENABLED=true` (aldrig Cliento på `.com`). Se `.cursor/rules/website-booking-policy.mdc`.
 
 0.1. "Webbens roll är att fånga intentionen, Arcanas roll är att äga sanningen — gränsen mellan dem ska vara så smal att en patient inte märker den, men så tydlig att en operatör alltid vet vem som har bollen."
 
@@ -139,7 +145,40 @@ Auto-skapar CCO-thread och reserverar slot åt en patient via webben.
 - Rate-limit: max 5 reservations per IP per timme (befintlig `multiLayerRateLimit.js` kan användas)
 - Origin-check: `Origin` måste matcha en allow-list (`hairtpclinic.com`, `www.hairtpclinic.com`)
 - GDPR: `consent.gdpr === true` är hård validering
-- Honeypot-fält + Cloudflare Turnstile-rekommendation
+- Honeypot-fält (`website` / `company_url` måste vara tomma) — **live i Arcana**
+- Cloudflare Turnstile — aktiveras när `TURNSTILE_SECRET` sätts på Render (valfritt tills keys finns)
+
+### 3.4 POST `/api/public/web-events` *(Pass 4 — live)*
+
+Audit-ingest för icke-bokningshändelser från webben (form utan slot, analyzer, chat-intent, exit-intent, pdf-guide).
+
+**Body (minimum):**
+```json
+{
+  "host": "hairtpclinic.com",
+  "eventType": "form_submit",
+  "contact": { "email": "...", "name": "..." },
+  "page": "/kontakt",
+  "submittedAt": "2026-05-20T12:00:00.000Z",
+  "metadata": { "service": "konsultation" }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "eventType": "form_submit",
+  "runId": "<execution-gateway-run-id>",
+  "decision": "allow",
+  "correlationId": "...",
+  "auditCount": 2
+}
+```
+
+Alla events går via `ExecutionGateway.run()` och persisteras i `web-bridge-audit.json` (audit trail + event log).
+
+**Publik katalog (E4):** `/catalog` och `/availability` returnerar endast Plan A-resurser (`fazli`, `egzona`, `arya`). Sjuksköterskor finns kvar i engine för intern/PRP-expansion men `publicBookable: false`.
 
 ---
 
@@ -205,7 +244,7 @@ Auto-skapar CCO-thread och reserverar slot åt en patient via webben.
 3.4. Webbens `/api/lead` POSTar parallellt till denna endpoint + email-fallback för backup.
 
 ### Pass 4 — Audit-trail till Arcana
-4.1. ExecutionGateway tar emot alla webb-events (form-submit, AI-analys, exit-intent) för audit.
+4.1. ExecutionGateway tar emot alla webb-events (form-submit, AI-analys, exit-intent) för audit. **✓ klart 2026-05-20** — `POST /api/public/web-events`.
 4.2. CCO-operatör ser hela patient-journey från första klick till bokning.
 
 ---

@@ -146,7 +146,7 @@ Arcana riskerar att klassificeras som medicinteknisk produkt om:
 
 | #   | Åtgärd                                             | Status                          |
 | --- | -------------------------------------------------- | ------------------------------- |
-| 8   | Juridisk granskning av PDL-avgränsning             | ❌ Krävs extern rådgivare       |
+| 8   | Juridisk granskning av PDL-avgränsning             | ✅ Signerat externt (2026-05-24) |
 | 9   | MDR-klassificeringsbedömning av extern expert      | ❌ Krävs vid expansion till CDS |
 | 10  | Kontakt med Läkemedelsverket om SaMD-gränsdragning | ❌ Vid behov                    |
 
@@ -159,6 +159,42 @@ Arcana riskerar att klassificeras som medicinteknisk produkt om:
 **MDR:** Arcana klassificeras **inte** som en medicinteknisk produkt så länge AI-output förblir administrativt (mallar, kommunikation) och inte kliniskt (diagnos, behandling, prognos). Policy floor, OWNER-gate och kill-switch utgör de primära skyddsbarriärerna.
 
 **Rekommendation:** Behåll nuvarande avgränsning. Om kliniska funktioner övervägs i framtiden (t.ex. AI-triagering, CDS-integration), genomför formell MDR-klassificering med extern SaMD-expert innan implementation.
+
+---
+
+## 6. EU/EES datalagring och driftregion (C5)
+
+### 6.1 Produktionsmiljö
+
+| Komponent | Leverantör | Region | Data |
+| --------- | ---------- | ------ | ---- |
+| Arcana API + state | Render.com | **Frankfurt (eu-central)** | Patient master, journal metadata, migration-index, auth |
+| Journalbilder (konsultation) | Render persistent disk | **Frankfurt** | `/var/data/arcana/journal-photos` |
+| Transactionell mail | Microsoft Graph / Resend | EU/EES (Graph tenant) | Bokningsbekräftelser |
+| Webb (hairtpclinic.com) | Vercel | Edge (ingen journal persist) | Lead-formulär → Arcana API |
+
+**Verifiering:** Render Dashboard → Service → Region = Frankfurt (verifierad 2026-05-24). Backup: `npm run backup:state` + `npm run backup:journal-photos`.
+
+### 6.2 Källor utanför Arcana runtime
+
+| Källa | Plats | Arcana-koppling |
+| ----- | ----- | ---------------- |
+| Google Drive (journalarkiv) | Google Cloud (EU-policy enligt klinikens Workspace) | Read-only API → `migration-index.json` (referenser, ej full filkopia) |
+| SharePoint (mallar) | Microsoft 365 | Ersatt av GitHub source of truth + `docs/migration/sharepoint-manifest.json` |
+| Cliento CSV | `MA-Archive/cliento/` | Engångsimport → patient master |
+
+### 6.3 Personuppgiftsbiträde och underleverantörer
+
+- **Render** — hosting (DPA via Render)
+- **Microsoft** — Graph mail, M365 (DPA via tenant)
+- **Google** — Drive read-only för migration (service account, ingen write-back)
+- **Vercel** — statisk webb + `/api/lead` proxy (ingen journaldata persist)
+
+### 6.4 Transfer impact assessment (förenklad)
+
+Webb-leads och bokningar skickas från Vercel (global edge) till Arcana Frankfurt — personuppgifter i transit (TLS 1.2+). Journalhistorik indexeras från Drive utan att ladda ner zip till operatörs dator; filreferenser (`driveFileId`, `webViewLink`) lagras i Arcana.
+
+**Status C5:** Dokumenterad 2026-05-20. Render EU Frankfurt verifierad i Dashboard 2026-05-24. Juridiska underlag (PDL/DPA m.m.) godkända av advokater enligt svensk lag 2026-05-24.
 
 ---
 
