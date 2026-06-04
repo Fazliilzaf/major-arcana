@@ -5556,6 +5556,21 @@
         color: var(--cco-status-danger);
         border-color: rgba(216, 82, 107, 0.34);
       }
+
+      /* v9 kundvy — tvinga mockup-layout även före JS (dölj kalender-story i mitten) */
+      body:not([data-cco-view='calendar']) .calendar-shell {
+        display: none !important;
+      }
+      body:not([data-cco-view='calendar']) .customers-shell .agg-insights {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      body:not([data-cco-view='calendar']) .customers-shell .story-grid,
+      body:not([data-cco-view='calendar']) .morgon-story {
+        display: none !important;
+      }
     </style>
   </head>
   <body>
@@ -6598,16 +6613,16 @@
       Lugnt läge aktivt — fokusera på en sak i taget
     </div>
 
-    <script src="/cco-polish.js" defer></script>
-    <script src="/cco-kundkort-historik-strip.js" defer></script>
-    <script src="/cco-kunder-staff-owner.js" defer></script>
-    <script src="/cco-kunder-actions.js" defer></script>
-    <script src="/cco-kunder-smart-next-step.js" defer></script>
-    <script src="/cco-journal-feed.js" defer></script>
-    <script src="/cco-kalender-shell.js" defer></script>
-    <script src="/cco-komm-panel.js" defer></script>
-    <script src="/cco-kunder-v9-mock-seed.js" defer></script>
-    <script src="/cco-kunder-real.js" defer></script>
+    <script src="/cco-polish.js?v=build-39eec9b8" defer></script>
+    <script src="/cco-kundkort-historik-strip.js?v=build-39eec9b8" defer></script>
+    <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
+    <script src="/cco-kunder-actions.js?v=build-39eec9b8" defer></script>
+    <script src="/cco-kunder-smart-next-step.js?v=build-39eec9b8" defer></script>
+    <script src="/cco-journal-feed.js?v=build-39eec9b8" defer></script>
+    <script src="/cco-kalender-shell.js?v=build-39eec9b8" defer></script>
+    <script src="/cco-komm-panel.js?v=build-39eec9b8" defer></script>
+    <script src="/cco-kunder-v9-mock-seed.js?v=build-39eec9b8" defer></script>
+    <script src="/cco-kunder-real.js?v=build-39eec9b8" defer></script>
     <script>
       /* Kalender-/mock-demo — körs inte på /kunder.html (ORD-12 real-data) */
       (function () {
