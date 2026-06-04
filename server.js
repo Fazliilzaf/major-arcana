@@ -602,6 +602,12 @@ const { createCcoIntegrationsRouter } = require('./src/routes/ccoIntegrations');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
 const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
+const { createCcoStaffRouter } = require('./src/routes/ccoStaff');
+const { createCcoReadCache } = require('./src/infra/ccoReadCache');
+const {
+  createCcoStaffDashboardSnapshot,
+  createCcoWorklistSnapshot,
+} = require('./src/ops/ccoStaffDashboardSnapshot');
 const { createCcoPatientMasterRouter } = require('./src/routes/ccoPatientMaster');
 const { createCcoJournalRouter } = require('./src/routes/ccoJournal');
 const { createCcoCommercialRouter } = require('./src/routes/ccoCommercial');
@@ -1097,6 +1103,12 @@ process.once('SIGTERM', () => {
     active: distributedRedisReady,
   };
 
+  const ccoReadCache = createCcoReadCache({
+    redisClient,
+    keyPrefix: `${config.redisKeyPrefix}:cco-read`,
+    defaultTtlMs: 30_000,
+  });
+
   const loginRateLimiter = createRateLimiter({
     windowMs: config.authLoginRateLimitWindowSec * 1000,
     max: config.authLoginRateLimitMax,
@@ -1279,6 +1291,14 @@ process.once('SIGTERM', () => {
   });
   const ccoPatientMasterStore = await createCcoPatientMasterStore({
     filePath: config.ccoPatientMasterStorePath,
+  });
+  const ccoDashboardSnapshot = createCcoStaffDashboardSnapshot({
+    filePath: path.join(config.stateRoot || './data', 'cco-dashboard-snapshot.json'),
+    readCache: ccoReadCache,
+  });
+  const ccoWorklistSnapshot = createCcoWorklistSnapshot({
+    filePath: path.join(config.stateRoot || './data', 'cco-worklist-snapshot.json'),
+    readCache: ccoReadCache,
   });
   const ccoJournalStore = await createCcoJournalStore({
     filePath: config.ccoJournalStorePath,
@@ -1890,6 +1910,20 @@ process.once('SIGTERM', () => {
       journalStore: ccoJournalStore,
       migrationIndexStore: ccoMigrationIndexStore,
       patientSystemStore: ccoPatientSystemStore,
+      authStore,
+      config,
+      requireAuth: auth.requireAuth,
+      requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoStaffRouter({
+      patientMasterStore: ccoPatientMasterStore,
+      readCache: ccoReadCache,
+      dashboardSnapshot: ccoDashboardSnapshot,
+      worklistSnapshot: ccoWorklistSnapshot,
       authStore,
       config,
       requireAuth: auth.requireAuth,
