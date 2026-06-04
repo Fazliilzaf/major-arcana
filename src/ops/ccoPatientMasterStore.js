@@ -18,10 +18,8 @@ const {
 } = require('../../scripts/migration/lib/migrationUtils');
 const { normalizePhotoPublishConsent } = require('./ccoPhotoPublishConsent');
 const { normalizeFortnoxPatientRef } = require('./ccoFortnoxPatientSync');
-const {
-  normalizePatientDemographics,
-  buildDemographicsReadout,
-} = require('./patientDemographics');
+const { normalizePatientDemographics, buildDemographicsReadout } = require('./patientDemographics');
+const { sanitizePatientDisplayName } = require('../lib/patientDisplayName');
 const {
   rebuildPatientMasterIndexes,
   lookupPatientsByQuery,
@@ -492,7 +490,8 @@ function mergePatientSources(primary, secondary) {
   else matchStatus = 'unmatched';
 
   return {
-    personnummer: normalizePersonnummer(left.personnummer) || normalizePersonnummer(right.personnummer),
+    personnummer:
+      normalizePersonnummer(left.personnummer) || normalizePersonnummer(right.personnummer),
     displayName: left.displayName || right.displayName,
     firstName: left.firstName || right.firstName,
     lastName: left.lastName || right.lastName,
@@ -505,7 +504,11 @@ function mergePatientSources(primary, secondary) {
     pipedrive,
     fileSummary,
     matchStatus,
-    matchConfidence: Math.max(Number(left.matchConfidence) || 0, Number(right.matchConfidence) || 0, 0.95),
+    matchConfidence: Math.max(
+      Number(left.matchConfidence) || 0,
+      Number(right.matchConfidence) || 0,
+      0.95
+    ),
     duplicateEmail: Boolean(left.duplicateEmail || right.duplicateEmail),
   };
 }
@@ -517,7 +520,7 @@ function buildPatientCardReadout(patient) {
   return {
     patientId: safe.id,
     personnummer: safe.personnummer || '',
-    displayName: safe.displayName || '',
+    displayName: sanitizePatientDisplayName(safe.displayName, { fallback: '' }),
     primaryEmail: safe.primaryEmail || '',
     primaryPhone: safe.primaryPhone || '',
     matchStatus: safe.matchStatus || 'unmatched',
@@ -767,11 +770,7 @@ async function createCcoPatientMasterStore({ filePath }) {
     return bucket.imports.drive;
   }
 
-  async function mergePipedriveProfiles({
-    tenantId,
-    peopleRows = [],
-    dealRows = [],
-  } = {}) {
+  async function mergePipedriveProfiles({ tenantId, peopleRows = [], dealRows = [] } = {}) {
     const bucket = tenantBucket(state, tenantId);
     const dealsByPersonId = new Map();
     for (const row of asArray(dealRows)) {
@@ -879,8 +878,7 @@ async function createCcoPatientMasterStore({ filePath }) {
   async function listMergeReviewGroups({ tenantId, limit = 80 } = {}) {
     const bucket = tenantBucket(state, tenantId);
     const reviewPatients = bucket.patients.filter(
-      (item) =>
-        item.matchStatus === 'needs_review' || asArray(item.flags).includes('needs_review')
+      (item) => item.matchStatus === 'needs_review' || asArray(item.flags).includes('needs_review')
     );
     const patientById = new Map(reviewPatients.map((item) => [item.id, item]));
     const parent = new Map();
@@ -980,9 +978,7 @@ async function createCcoPatientMasterStore({ filePath }) {
       });
     });
 
-    const dismissed = new Set(
-      asArray(bucket.mergeDismissals).map(normalizeText).filter(Boolean)
-    );
+    const dismissed = new Set(asArray(bucket.mergeDismissals).map(normalizeText).filter(Boolean));
     const visible = groups.filter((group) => !dismissed.has(group.groupId));
 
     visible.sort((a, b) => b.members.length - a.members.length);
@@ -1022,7 +1018,7 @@ async function createCcoPatientMasterStore({ filePath }) {
       {
         journalBlocked: Boolean(journalBlocked),
         journalBlockReason: normalizeText(journalBlockReason),
-        journalBlockedBy: Boolean(journalBlocked) ? normalizeText(actorUserId) : null,
+        journalBlockedBy: journalBlocked ? normalizeText(actorUserId) : null,
       },
       patient.access
     );
@@ -1093,15 +1089,15 @@ async function createCcoPatientMasterStore({ filePath }) {
     };
   }
 
-  async function mergePatients({
-    tenantId,
-    primaryPatientId,
-    secondaryPatientIds = [],
-  } = {}) {
+  async function mergePatients({ tenantId, primaryPatientId, secondaryPatientIds = [] } = {}) {
     const bucket = tenantBucket(state, tenantId);
     const primaryId = normalizeText(primaryPatientId);
     const secondaryIds = [
-      ...new Set(asArray(secondaryPatientIds).map(normalizeText).filter((id) => id && id !== primaryId)),
+      ...new Set(
+        asArray(secondaryPatientIds)
+          .map(normalizeText)
+          .filter((id) => id && id !== primaryId)
+      ),
     ];
     if (!primaryId || !secondaryIds.length) {
       throw new Error('primaryPatientId och minst en secondaryPatientId krävs.');
@@ -1166,9 +1162,7 @@ async function createCcoPatientMasterStore({ filePath }) {
       primaryPatientId: primaryId,
       removedPatientIds: secondaryIds, // legacy alias
       archivedPatientIds: secondaryIds,
-      patient: clonePatient(
-        bucket.patients.find((item) => item.id === primaryId) || merged
-      ),
+      patient: clonePatient(bucket.patients.find((item) => item.id === primaryId) || merged),
     };
   }
 

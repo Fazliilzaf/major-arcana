@@ -17,6 +17,7 @@ const {
   patientMatchesTreatmentSegment,
 } = require('./ccoKunderBookingEnrichment');
 const { applyFasAReadoutFields } = require('./ccoKunderFasAReadiness');
+const { sanitizePatientDisplayName } = require('../lib/patientDisplayName');
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -635,12 +636,8 @@ function buildSegmentCatalog(bookingCoverage = 'missing', ownerCoverage = 'none'
 }
 
 function safeAggPatientName(patient) {
-  const name = normalizeText(patient?.displayName);
-  if (!name) return null;
-  if (/\.(pdf|zip|jpe?g|png|heic|docx?)$/i.test(name) || /^[a-f0-9-]{20,}$/i.test(name)) {
-    return null;
-  }
-  return name;
+  const name = sanitizePatientDisplayName(patient?.displayName, { fallback: '' });
+  return name || null;
 }
 
 function computeAggInsights(

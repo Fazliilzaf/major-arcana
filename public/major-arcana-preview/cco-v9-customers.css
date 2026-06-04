@@ -310,6 +310,25 @@ html[data-v9-enabled="on"] .customers-v9-filters .filter-chip-spacer {
 }
 
 @media (max-width: 767px) {
+  html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    min-width: 0;
+    row-gap: 8px;
+  }
+
+  html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .status-pill {
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .v9-snitt-ltv {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   html[data-v9-enabled="on"] .customers-v9-filters .customers-filters {
     flex-wrap: nowrap;
     overflow-x: auto;

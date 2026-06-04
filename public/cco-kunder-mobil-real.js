@@ -133,12 +133,28 @@
   }
 
   function displayName(card) {
-    const name = (card.displayName || '').trim();
-    if (!name) return 'Namn saknas';
-    if (/\.(pdf|zip|jpe?g|png|heic|docx?)$/i.test(name) || /^[a-f0-9-]{20,}$/i.test(name)) {
-      return 'Namn saknas';
+    const candidates = [
+      card.displayName,
+      [card.firstName, card.lastName].filter(Boolean).join(' '),
+      card.name,
+      card.fullName,
+    ];
+    for (const candidate of candidates) {
+      const name = (candidate || '').trim();
+      if (!name) continue;
+      if (/\.(pdf|zip|jpe?g|png|heic|webp|gif|tiff?|docx?|xlsx?|mov|mp4)$/i.test(name)) continue;
+      if (/^[a-f0-9-]{20,}$/i.test(name)) continue;
+      if (
+        /^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}(_\d+)+(_c)?(\.[a-z0-9]+)?$/i.test(
+          name
+        )
+      ) {
+        continue;
+      }
+      if (/^(IMG|DSC|PXL|Screenshot)[_\s.-]?\d{3,}/i.test(name)) continue;
+      return name;
     }
-    return name;
+    return 'Namn saknas';
   }
 
   function formatDate(iso) {

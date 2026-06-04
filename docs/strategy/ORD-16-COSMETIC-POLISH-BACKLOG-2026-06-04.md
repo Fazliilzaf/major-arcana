@@ -20,47 +20,12 @@ Cursor läser denna fil när han kör polish-sprint. Claude verifierar fixar.
 
 ## Aktiva items
 
-### [P2] Drive-only kunder visar JPEG-filename istället för "Namn saknas"
-
-**Var:** Customer-list rader för kunder importerade från Drive utan kund-namn
-**Exempel:** `4A61-A14D-766A3C251538_1_105_c.jpeg` syns som "namn"
-**Fix:** `displayNameForList()` i `app/patient-master-ui.js` — Cursor fixade delvis i steg 4 polish. Verifiera att ALL rader matchar:
-
-```js
-function displayNameForList(card) {
-  if (!card.name || /\.(jpe?g|png|pdf|docx?)$/i.test(card.name)) {
-    return 'Namn saknas';
-  }
-  return card.name;
-}
-```
-
-**Status:** Partiellt fixad i steg 4 commit, men 2026-06-04 UAT visade fortfarande filnamn i rad 2-3. Behöver verifiering.
-
----
-
 ### [P2] Story-list i agg-cards: hardcoded "Anna Karlsson" / "Karl Lindberg" / "Eva K." (på `/major-arcana-preview/?view=customers` v9-experiment)
 
 **Var:** `/major-arcana-preview/?view=customers` (ej preview-SPA)
 **Exempel:** RISKER-card visar `Anna Karlsson — friskförsäkran saknas` hårdkodat
 **Fix:** Ingen — `/major-arcana-preview/?view=customers` ska avvecklas i ORD-17 (301 redirect till preview-SPA)
 **Status:** Ej blocker (sidan är inte produktion). ORD-17 raderar filen.
-
----
-
-### [P3] "Behöver granskning 0" chip ser tom ut
-
-**Var:** Filter-chip-rad när `count = 0`
-**Fix:** Antingen göm chip helt eller visa "—" istället för `0`
-**Status:** Cosmetic, inget block
-
----
-
-### [P3] Status-pill "Endast Drive 541" pillen wrappar på smala skärmar
-
-**Var:** Mockup-mobile-version (375px viewport)
-**Fix:** `flex-wrap: wrap` + `min-width: 0` på pill-container
-**Status:** Inte testat ännu på mobil — gör i steg 10
 
 ---
 
@@ -72,7 +37,28 @@ function displayNameForList(card) {
 
 ---
 
-### [Done] Filfnamn-fix i `displayNameForList()`
+### [Done] Drive-only kunder visar JPEG-filename istället för "Namn saknas"
+
+**Datum:** 2026-06-04 (Fas 2 cosmetic)
+**Detalj:** `src/lib/patientDisplayName.js` + API/UI-sanering (iOS UUID/filnamn → `Namn saknas`).
+
+---
+
+### [Done] "Behöver granskning 0" chip ser tom ut
+
+**Datum:** 2026-06-04 (Fas 2 cosmetic)
+**Detalj:** Segment/filter counts visar `—` vid 0 (utom Alla); legacy metric-kort visar `—`.
+
+---
+
+### [Done] Status-pill wrap på smala skärmar (375–767px)
+
+**Datum:** 2026-06-04 (Fas 2 cosmetic)
+**Detalj:** `calendar-status-bar` får `flex-wrap` + `min-width: 0` i `cco-v9-customers.css`.
+
+---
+
+### [Done] Filfnamn-fix i `displayNameForList()` (delvis, steg 4)
 
 **Datum:** 2026-06-04 (steg 4 polish)
 **Commit:** 0abf64ea

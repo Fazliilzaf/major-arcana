@@ -1006,6 +1006,8 @@
     if (idag.count > 0) {
       const names = asArray(idag.names)
         .slice(0, 3)
+        .map((name) => sanitizePatientDisplayName(name, ''))
+        .filter(Boolean)
         .map((name) => escapeHtml(name))
         .join(', ');
       setV9AggInsightBody(
@@ -1047,6 +1049,8 @@
     } else if (risk.count > 0) {
       const names = asArray(risk.names)
         .slice(0, 3)
+        .map((name) => sanitizePatientDisplayName(name, ''))
+        .filter(Boolean)
         .map((name) => escapeHtml(name))
         .join(', ');
       setV9AggInsightBody(
@@ -1112,6 +1116,8 @@
     if (agg?.idag?.count > 0) {
       const names = asArray(agg.idag.names)
         .slice(0, 3)
+        .map((name) => sanitizePatientDisplayName(name, ''))
+        .filter(Boolean)
         .map((name) => escapeHtml(name))
         .join(', ');
       push(
@@ -1130,6 +1136,8 @@
     if (agg?.risk?.count > 0) {
       const names = asArray(agg.risk.names)
         .slice(0, 3)
+        .map((name) => sanitizePatientDisplayName(name, ''))
+        .filter(Boolean)
         .map((name) => escapeHtml(name))
         .join(', ');
       push(
@@ -1512,14 +1520,14 @@
     const key = normalizeText(seg.id) || 'all';
     if (key === 'all') {
       const total = runtime.segmentTotals.all;
-      return total === null || total === undefined ? '—' : formatMetricNumber(total);
+      return formatV9ZeroCount(total, { allowZero: true });
     }
     if (Object.prototype.hasOwnProperty.call(runtime.segmentTotals, key)) {
       const value = runtime.segmentTotals[key];
-      return value === null || value === undefined ? '—' : formatMetricNumber(value);
+      return formatV9ZeroCount(value);
     }
     if (seg.count === null || seg.count === undefined) return '—';
-    return formatMetricNumber(seg.count);
+    return formatV9ZeroCount(seg.count);
   }
 
   function renderV9SegmentSidebarLinkHtml(seg, active) {
@@ -1787,7 +1795,7 @@
       const key = normalizeText(node.dataset.v9FilterCount);
       if (!Object.prototype.hasOwnProperty.call(countMap, key)) return;
       const value = countMap[key];
-      node.textContent = value === null || value === undefined ? '0' : formatMetricNumber(value);
+      node.textContent = formatV9ZeroCount(value, { allowZero: key === 'all' });
     });
     syncV9FilterChipsActive();
   }
@@ -1901,7 +1909,8 @@
       const key = card.dataset.patientMetric;
       const node = card.querySelector('strong');
       if (node && Object.prototype.hasOwnProperty.call(mapping, key)) {
-        node.textContent = String(mapping[key] ?? 0);
+        const value = mapping[key] ?? 0;
+        node.textContent = Number(value) === 0 ? '—' : String(value);
       }
     });
     renderV9MetricHeader(stats, runtime.segmentStats);
@@ -3025,13 +3034,60 @@
     }
   }
 
-  function displayNameForList(card) {
-    const name = normalizeText(card?.displayName);
-    if (!name) return 'Namn saknas';
-    if (/\.(pdf|zip|jpe?g|png|heic|docx?)$/i.test(name) || /^[a-f0-9-]{20,}$/i.test(name)) {
-      return 'Namn saknas';
+  function looksLikeTechnicalPatientName(name) {
+    const n = normalizeText(name);
+    if (!n) return true;
+    if (/\.(pdf|zip|jpe?g|png|heic|webp|gif|tiff?|docx?|xlsx?|mov|mp4)$/i.test(n)) return true;
+    if (/^[a-f0-9-]{20,}$/i.test(n)) return true;
+    if (
+      /^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}(_\d+)+(_c)?(\.[a-z0-9]+)?$/i.test(
+        n
+      )
+    ) {
+      return true;
     }
+    if (/^(IMG|DSC|PXL|Screenshot)[_\s.-]?\d{3,}/i.test(n)) return true;
+    if (
+      !/\s/.test(n) &&
+      n.length >= 18 &&
+      /^[\w.-]+$/.test(n) &&
+      /[_-]/.test(n) &&
+      !/[åäöÅÄÖ]/.test(n)
+    ) {
+      const alphaWords = n
+        .split(/[_\-.]+/)
+        .filter((part) => /^[a-z]+$/i.test(part) && part.length > 2);
+      if (alphaWords.length === 0) return true;
+    }
+    return false;
+  }
+
+  function sanitizePatientDisplayName(rawName, fallback = 'Namn saknas') {
+    const name = normalizeText(rawName);
+    if (!name || looksLikeTechnicalPatientName(name)) return fallback;
     return name;
+  }
+
+  function displayNameForList(card) {
+    const candidates = [
+      card?.displayName,
+      [card?.firstName, card?.lastName].filter(Boolean).join(' '),
+      card?.name,
+      card?.fullName,
+    ];
+    for (const candidate of candidates) {
+      const sanitized = sanitizePatientDisplayName(candidate, '');
+      if (sanitized) return sanitized;
+    }
+    return 'Namn saknas';
+  }
+
+  function formatV9ZeroCount(value, { allowZero = false } = {}) {
+    if (value === null || value === undefined) return '—';
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '—';
+    if (!allowZero && n === 0) return '—';
+    return formatMetricNumber(n);
   }
 
   function v9AvatarInitials(name) {
@@ -3311,7 +3367,7 @@
     if (isV9CustomersEnabled()) {
       return renderV9DossierHeroHtml(card, journalEntries, { loading });
     }
-    const displayName = card?.displayName || 'Okänd kund';
+    const displayName = displayNameForList(card);
     return `
         <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
           <div class="focus-customer-hero-main">
@@ -3444,7 +3500,7 @@
           >
             <div class="customer-record-main">
               <div class="customer-record-head">
-                <h3>${escapeHtml(card.displayName || 'Okänd kund')}</h3>
+                <h3>${escapeHtml(displayNameForList(card))}</h3>
                 ${
                   journalCount || imageCount
                     ? `<span class="customer-record-file-badge">${journalCount} PDF · ${imageCount} bild</span>`
