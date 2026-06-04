@@ -14,13 +14,21 @@
     return document.documentElement.getAttribute('data-v9-enabled') === 'on';
   }
 
+  function isV9DemoOn() {
+    return (
+      isV9On() &&
+      (document.documentElement.getAttribute('data-v9-demo') === 'on' ||
+        window.__ARCANA_V9_DEMO_ENABLED__ === true)
+    );
+  }
+
   function isCustomersView() {
     const canvas = document.querySelector('.preview-canvas');
     return canvas && canvas.dataset.appShellView === 'customers';
   }
 
   function isActiveScope() {
-    return isV9On() && isCustomersView();
+    return isV9DemoOn() && isCustomersView();
   }
 
   function isTypingTarget(el) {
@@ -190,7 +198,9 @@
 
   function selectSearchResult(patientId) {
     closeSearch();
-    const row = document.querySelector(`[data-patient-row="${String(patientId).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`);
+    const row = document.querySelector(
+      `[data-patient-row="${String(patientId).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`
+    );
     if (row) row.click();
   }
 
@@ -222,10 +232,13 @@
       window.setTimeout(() => text.children[i]?.classList.add('is-visible'), 300 + i * 280)
     );
     voiceTimers.push(
-      window.setTimeout(() => {
-        stopVoice();
-        sheet?.classList.add('is-visible');
-      }, 300 + VOICE_WORDS.length * 280 + 500)
+      window.setTimeout(
+        () => {
+          stopVoice();
+          sheet?.classList.add('is-visible');
+        },
+        300 + VOICE_WORDS.length * 280 + 500
+      )
     );
   }
 
@@ -262,6 +275,35 @@
     overlay.classList.remove('is-visible');
     overlay.hidden = true;
     camContinueHandler = null;
+  }
+
+  function teardownDemoOverlays() {
+    [
+      'v9-search-overlay',
+      'v9-voice-overlay',
+      'v9-voice-sheet',
+      'v9-calm-banner',
+      'v9-cam-overlay',
+    ].forEach((id) => {
+      const node = document.getElementById(id);
+      if (node) node.remove();
+    });
+    stopVoice();
+  }
+
+  function syncDemoChrome() {
+    document.getElementById('v9-mockup-label')?.remove();
+    document.getElementById('v9-mockup-caption')?.remove();
+    if (!isV9DemoOn()) {
+      teardownDemoOverlays();
+      return;
+    }
+    ensureEl('v9-mockup-label', 'v9-mockup-label', 'v9 · KUNDER');
+    ensureEl(
+      'v9-mockup-caption',
+      'v9-mockup-caption',
+      `<strong>v9 Kunder-vyn (demo):</strong> filter-chips · sökbar lista · AI-aggregat · kunddossiér i höger kolumn. Kortkommandon: <span class="key">⌘K</span> sök · <span class="key">V</span> röst · <span class="key">B</span> lugnt läge.`
+    );
   }
 
   function bindOverlayEvents() {
@@ -322,9 +364,13 @@
     document.addEventListener('keydown', (event) => {
       if (!isActiveScope() || isTypingTarget(event.target)) return;
 
-      const searchOpen = document.getElementById('v9-search-overlay')?.classList.contains('is-visible');
+      const searchOpen = document
+        .getElementById('v9-search-overlay')
+        ?.classList.contains('is-visible');
       const camOpen = document.getElementById('v9-cam-overlay')?.classList.contains('is-visible');
-      const voiceOpen = document.getElementById('v9-voice-overlay')?.classList.contains('is-active');
+      const voiceOpen = document
+        .getElementById('v9-voice-overlay')
+        ?.classList.contains('is-active');
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
@@ -341,7 +387,10 @@
         }
         if (event.key === 'ArrowDown') {
           event.preventDefault();
-          searchSelectedIdx = Math.min(searchSelectedIdx + 1, Math.max(0, searchResults.length - 1));
+          searchSelectedIdx = Math.min(
+            searchSelectedIdx + 1,
+            Math.max(0, searchResults.length - 1)
+          );
           renderSearchList();
           return;
         }
@@ -385,6 +434,7 @@
   }
 
   if (isV9On()) {
+    syncDemoChrome();
     bindOverlayEvents();
     bindKeyboard();
   }

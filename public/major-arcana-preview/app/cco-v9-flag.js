@@ -4,11 +4,17 @@
  *   ?v9=on  → localStorage arcana.v9.enabled = '1'   (sticky ON)
  *   ?v9=off → localStorage arcana.v9.enabled = '0'   (sticky OFF, kill-switch)
  *   inget   → enabled = (localStorage !== '0')       (default ON, men respect sticky off)
+ *
+ * Rek. 9 — mockup/demo-only UI (watch, overlays, mockup-label, caption):
+ *   ?demo=on  → localStorage arcana.v9.demo = '1'  (sticky ON)
+ *   ?demo=off → localStorage arcana.v9.demo = '0'  (sticky OFF)
+ *   inget     → demo OFF (prod-port: renderas inte)
  */
 (function () {
   'use strict';
 
-  var KEY = 'arcana.v9.enabled';
+  var V9_KEY = 'arcana.v9.enabled';
+  var DEMO_KEY = 'arcana.v9.demo';
   var params;
 
   try {
@@ -17,35 +23,60 @@
     params = null;
   }
 
-  var query = params
-    ? String(params.get('v9') || '')
-        .trim()
-        .toLowerCase()
-    : '';
+  function readQuery(name) {
+    return params
+      ? String(params.get(name) || '')
+          .trim()
+          .toLowerCase()
+      : '';
+  }
 
-  if (query === 'on') {
+  var v9Query = readQuery('v9');
+  if (v9Query === 'on') {
     try {
-      localStorage.setItem(KEY, '1');
+      localStorage.setItem(V9_KEY, '1');
     } catch (_error) {
       /* private mode */
     }
-  } else if (query === 'off') {
+  } else if (v9Query === 'off') {
     try {
-      // ORD-20: sätt '0' (sticky off) istället för removeItem så default-ON inte slår på efter reload
-      localStorage.setItem(KEY, '0');
+      localStorage.setItem(V9_KEY, '0');
     } catch (_error) {
       /* private mode */
     }
   }
 
-  // ORD-20: default ON. Avstängd endast om explicit ?v9=off körts (localStorage = '0').
-  var enabled = true;
+  var demoQuery = readQuery('demo');
+  if (demoQuery === 'on') {
+    try {
+      localStorage.setItem(DEMO_KEY, '1');
+    } catch (_error) {
+      /* private mode */
+    }
+  } else if (demoQuery === 'off') {
+    try {
+      localStorage.setItem(DEMO_KEY, '0');
+    } catch (_error) {
+      /* private mode */
+    }
+  }
+
+  var v9Enabled = true;
   try {
-    enabled = localStorage.getItem(KEY) !== '0';
+    v9Enabled = localStorage.getItem(V9_KEY) !== '0';
   } catch (_error) {
-    enabled = true;
+    v9Enabled = true;
   }
 
-  document.documentElement.setAttribute('data-v9-enabled', enabled ? 'on' : 'off');
-  window.__ARCANA_V9_ENABLED__ = enabled;
+  var demoEnabled = false;
+  try {
+    demoEnabled = localStorage.getItem(DEMO_KEY) === '1';
+  } catch (_error) {
+    demoEnabled = false;
+  }
+
+  document.documentElement.setAttribute('data-v9-enabled', v9Enabled ? 'on' : 'off');
+  document.documentElement.setAttribute('data-v9-demo', demoEnabled ? 'on' : 'off');
+  window.__ARCANA_V9_ENABLED__ = v9Enabled;
+  window.__ARCANA_V9_DEMO_ENABLED__ = v9Enabled && demoEnabled;
 })();

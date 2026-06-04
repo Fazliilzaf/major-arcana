@@ -929,6 +929,20 @@
     );
   }
 
+  function isV9DemoEnabled() {
+    return (
+      isV9CustomersEnabled() &&
+      (document.documentElement.getAttribute('data-v9-demo') === 'on' ||
+        window.__ARCANA_V9_DEMO_ENABLED__ === true)
+    );
+  }
+
+  function teardownV9WatchDemoChrome() {
+    document.querySelector('[data-v9-watch-restore]')?.remove();
+    document.querySelector('[data-v9-watch-toast]')?.remove();
+    document.querySelectorAll('.v9-watch-wrap').forEach((node) => node.remove());
+  }
+
   function syncV9CustomersChrome() {
     if (!els.v9Header && !els.v9Filters && !els.v9Sidebar && !els.v9AggInsights) return;
     const show = isV9CustomersEnabled() && runtime.mode === 'register';
@@ -1077,6 +1091,16 @@
       trend: segmentStats?.aggInsights?.trend,
       panel,
     };
+  }
+
+  function v9AggKeyToKind(key) {
+    const map = {
+      idag: 'action',
+      opp: 'opp',
+      trend: 'trend',
+      risk: 'risk',
+    };
+    return map[normalizeText(key)] || '';
   }
 
   function buildV9AggregateInsightRows(segmentStats) {
@@ -1239,6 +1263,7 @@
   }
 
   function showV9WatchToast(message) {
+    if (!isV9DemoEnabled()) return;
     let toast = document.querySelector('[data-v9-watch-toast]');
     if (!toast) {
       toast = document.createElement('div');
@@ -1270,7 +1295,10 @@
   }
 
   function syncV9WatchHiddenState() {
-    if (!isV9CustomersEnabled()) return;
+    if (!isV9DemoEnabled()) {
+      teardownV9WatchDemoChrome();
+      return;
+    }
     let hidden = false;
     try {
       hidden = localStorage.getItem(V9_WATCH_HIDDEN_KEY) === '1';
@@ -1282,7 +1310,10 @@
   }
 
   function initV9WatchChrome() {
-    if (!isV9CustomersEnabled()) return;
+    if (!isV9CustomersEnabled() || !isV9DemoEnabled()) {
+      teardownV9WatchDemoChrome();
+      return;
+    }
     ensureV9WatchRestoreButton();
     syncV9WatchHiddenState();
   }
@@ -1292,6 +1323,7 @@
   }
 
   function renderV9WatchWidgetHtml(segmentStats) {
+    if (!isV9DemoEnabled()) return '';
     const upcoming = resolveV9UpcomingTreatment(segmentStats);
 
     if (upcoming.empty) {
@@ -1399,7 +1431,9 @@
               .map(
                 (row) =>
                   `<button type="button" class="agg-ai-row${row.empty ? ' agg-ai-row--empty' : ''}"${
-                    row.key ? ` data-v9-agg="${escapeHtml(row.key)}"` : ''
+                    row.key
+                      ? ` data-v9-agg="${escapeHtml(row.key)}" data-kind="${escapeHtml(v9AggKeyToKind(row.key))}"`
+                      : ''
                   }>${row.html}</button>`
               )
               .join('')}
@@ -1705,12 +1739,14 @@
       chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
     // Bakåt-kompat: sync flag-only chips (utan segment-chip attribut)
-    els.v9Filters.querySelectorAll('[data-v9-flag-filter]:not([data-v9-segment-chip])').forEach((chip) => {
-      const flag = normalizeFlagFilter(chip.getAttribute('data-v9-flag-filter') ?? '');
-      const isActive = activeFlag !== null && flag === activeFlag;
-      chip.classList.toggle('is-active', isActive);
-      chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    });
+    els.v9Filters
+      .querySelectorAll('[data-v9-flag-filter]:not([data-v9-segment-chip])')
+      .forEach((chip) => {
+        const flag = normalizeFlagFilter(chip.getAttribute('data-v9-flag-filter') ?? '');
+        const isActive = activeFlag !== null && flag === activeFlag;
+        chip.classList.toggle('is-active', isActive);
+        chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
   }
 
   function resolveV9FilterChipCounts(stats, segmentStats) {
@@ -7223,7 +7259,7 @@
     );
 
     document.addEventListener('pointerdown', (event) => {
-      if (!isV9CustomersEnabled()) return;
+      if (!isV9DemoEnabled()) return;
       const swipe = event.target.closest('[data-v9-watch-swipe]');
       if (!swipe || swipe.dataset.swipeState === 'ok') return;
       const rect = swipe.getBoundingClientRect();
@@ -7240,7 +7276,7 @@
     });
 
     document.addEventListener('click', (event) => {
-      if (isV9CustomersEnabled()) {
+      if (isV9DemoEnabled()) {
         const dismiss = event.target.closest('[data-v9-watch-dismiss]');
         if (dismiss) {
           event.preventDefault();
@@ -7976,6 +8012,7 @@
     setMode,
     getRuntime: () => ({ ...runtime }),
     isV9CustomersEnabled,
+    isV9DemoEnabled,
     needsStaffLogin,
     renderStaffAuth,
     clearMobilePatientSelection,
