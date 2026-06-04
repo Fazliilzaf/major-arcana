@@ -2721,7 +2721,7 @@
       </svg>
       <input type="search" id="searchOverlayInput" placeholder="Sök kund eller bokning… (försök 'Anna' eller 'PRP')" autocomplete="off" />
     </div>
-    <div class="search-panel-kicker" id="searchPanelKicker">Senaste · 1 247 kunder totalt</div>
+    <div class="search-panel-kicker" id="searchPanelKicker">Senaste · kunder i register</div>
     <div class="search-panel-list" id="searchPanelList"></div>
     <div class="search-footer">
       <span><kbd>↑</kbd><kbd>↓</kbd> navigera</span>
@@ -3946,7 +3946,7 @@ let searchSelectedIdx = 0;
 function renderSearch(q = '') {
   const ql = q.toLowerCase().trim();
   const filtered = ql ? CUSTOMERS.filter(c => c.name.toLowerCase().includes(ql) || c.sub.toLowerCase().includes(ql)) : CUSTOMERS;
-  searchPanelKicker.textContent = ql ? `${filtered.length} träffar för "${q}"` : 'Senaste · 1 247 kunder totalt';
+  searchPanelKicker.textContent = ql ? `${filtered.length} träffar för "${q}"` : 'Senaste · kunder i register';
   if (filtered.length === 0) {
     searchPanelList.innerHTML = `<div class="search-empty">Ingen kund matchar "${q}"</div>`;
     return;
@@ -4338,94 +4338,7 @@ document.addEventListener('keydown', (ev) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════════
-   KUNDER-LISTA — render
-   ═══════════════════════════════════════════════════════════════ */
-
-const CUSTOMER_ROWS = [
-  { name: 'Anna Karlsson',     init: 'AK', bg: 'linear-gradient(180deg,#d8c1f0,#b48ad6)', email: 'contact@…', source: 'contact', phone: '0704-12 34 56', state: 'vip',    stateLabel: 'VIP', lastVisit: '5 maj 2026', lastSub: 'PRP 3/6 · Egzona', revenue: '38 400 kr', trend: '+18% YTD', trendUp: true, ai: 'Boka 5:e PRP ~12 jun · friskförs. saknas', tags: [{kind:'vip',label:'VIP'},{kind:'cycle',label:'PRP 4/6'},{kind:'risk',label:'⚠ Friskförs.'}] },
-  { name: 'Karl Lindberg',     init: 'KL', bg: 'linear-gradient(180deg,#c5d8a8,#92b86e)', email: 'info@…',    source: 'info',    phone: '0708-55 12 33', state: 'active', stateLabel: 'Aktiv', lastVisit: '12 apr 2026', lastSub: 'Konsultation · Fazli', revenue: '14 200 kr', trend: '+ny', trendUp: true, ai: 'DHI ögonbryn imorgon 09:00 · ✓ Redo', tags: [{kind:'cycle',label:'DHI-track'},{kind:'ready',label:'✓ Redo'}] },
-  { name: 'Eva Karlsson',      init: 'EK', bg: 'linear-gradient(180deg,#f4d4f0,#d48ac8)', email: 'egzona@…',  source: 'egzona',  phone: '0709-44 22 11', state: 'risk',   stateLabel: 'Risk', lastVisit: '14 mar 2026', lastSub: 'No-show (3:e)', revenue: '4 800 kr', trend: '−2 besök', trendUp: false, ai: 'Begär 50% deposition vid nästa bokning', tags: [{kind:'risk',label:'!! No-show ×3'}] },
-  { name: 'Sofie Andersson',   init: 'SA', bg: 'linear-gradient(180deg,#ffe3b8,#e8a04e)', email: 'contact@…', source: 'contact', phone: '0707-89 22 14', state: 'new',    stateLabel: 'Ny', lastVisit: '—', lastSub: 'På väntelistan', revenue: '0 kr', trend: 'Ny denna v.', trendUp: true, ai: 'Matchar Maria-luckan 14:30 idag → ring nu', tags: [{kind:'new',label:'Ny'},{kind:'ready',label:'★ Match 92%'}] },
-  { name: 'Marcus Berg',       init: 'MB', bg: 'linear-gradient(180deg,#b8d4e8,#7aa8d4)', email: 'info@…',    source: 'info',    phone: '0703-15 88 92', state: 'active', stateLabel: 'Aktiv', lastVisit: '8 feb 2026', lastSub: 'PRP-paus', revenue: '18 600 kr', trend: '+3%', trendUp: true, ai: 'PRP återbesök väntar — föreslå tis 09:00', tags: [{kind:'cycle',label:'PRP 3/6'}] },
-  { name: 'Eva Johansson',     init: 'EJ', bg: 'linear-gradient(180deg,#ffd4b5,#f0a070)', email: 'egzona@…',  source: 'egzona',  phone: '0706-77 31 09', state: 'new',    stateLabel: 'Ny', lastVisit: '—', lastSub: 'Microneedling-förfrågan', revenue: '0 kr', trend: 'Ny idag', trendUp: true, ai: 'Boka konsultation · uppgrad → microneedling-paket?', tags: [{kind:'new',label:'Ny'}] },
-  { name: 'Anna Larsson',      init: 'AL', bg: 'linear-gradient(180deg,#e8d4ff,#b894e8)', email: 'fazli@…',   source: 'fazli',   phone: '0705-90 14 23', state: 'vip',    stateLabel: 'VIP', lastVisit: '23 jan 2026', lastSub: 'DHI konsultation', revenue: '52 800 kr', trend: '+22%', trendUp: true, ai: 'Tystnad 60+ dagar — outreach via Svarstudio?', tags: [{kind:'vip',label:'VIP'},{kind:'risk',label:'Tyst 65d'}] },
-  { name: 'Erik Nordström',    init: 'EN', bg: 'linear-gradient(180deg,#f4e8c8,#d4b870)', email: 'contact@…', source: 'contact', phone: '0706-22 18 14', state: 'active', stateLabel: 'Aktiv', lastVisit: '2 maj 2026', lastSub: 'PRP 4/6 · Egzona', revenue: '24 400 kr', trend: '+stabilt', trendUp: true, ai: 'PRP 5/6 om ~3v · boka tis 14:00?', tags: [{kind:'cycle',label:'PRP 4/6'},{kind:'ready',label:'✓ Redo'}] },
-  { name: 'Lisa Holm',         init: 'LH', bg: 'linear-gradient(180deg,#c8e8e0,#88c8b8)', email: 'info@…',    source: 'info',    phone: '0708-44 19 67', state: 'new',    stateLabel: 'Ny', lastVisit: '—', lastSub: 'Väntar bekräftelse', revenue: '0 kr', trend: 'Ny i v.21', trendUp: true, ai: 'Skicka välkomstmejl + boka konsultation', tags: [{kind:'new',label:'Ny'}] },
-  { name: 'Maria Larsson',     init: 'ML', bg: 'linear-gradient(180deg,#f0c8c8,#d48484)', email: 'contact@…', source: 'contact', phone: '0707-32 91 02', state: 'active', stateLabel: 'Aktiv', lastVisit: '18 apr 2026', lastSub: 'Avbokade tor 28', revenue: '8 600 kr', trend: 'Stabilt', trendUp: true, ai: 'Föreslå ny tid — fre 14:00 ledig', tags: [] },
-  { name: 'Sara Pettersson',   init: 'SP', bg: 'linear-gradient(180deg,#f0c8c8,#d48484)', email: 'egzona@…',  source: 'egzona',  phone: '0703-67 22 89', state: 'active', stateLabel: 'Aktiv', lastVisit: '17 maj 2026', lastSub: 'PRP 2/6', revenue: '12 800 kr', trend: '+10%', trendUp: true, ai: 'Saknar samtycke inför ons 27 — påminn nu', tags: [{kind:'cycle',label:'PRP 2/6'},{kind:'risk',label:'⚠ Samtycke'}] },
-  { name: 'Johan Svensson',    init: 'JS', bg: 'linear-gradient(180deg,#d4d4d4,#a8a8a8)', email: 'info@…',    source: 'info',    phone: '0702-19 84 55', state: 'active', stateLabel: 'Aktiv', lastVisit: '14 maj 2026', lastSub: 'Återbesök · Clara', revenue: '6 200 kr', trend: '+ny', trendUp: true, ai: 'Återbesök idag 16:00 · ✓ Redo', tags: [{kind:'ready',label:'Idag 16:00'}] },
-  { name: 'Petter Gustafsson', init: 'PG', bg: 'linear-gradient(180deg,#d0c8f0,#9a8ad8)', email: 'fazli@…',   source: 'fazli',   phone: '0705-66 19 44', state: 'dormant',stateLabel: 'Dormant', lastVisit: '14 nov 2025', lastSub: 'DHI komplett', revenue: '42 800 kr', trend: '−6m tystnad', trendUp: false, ai: 'Skicka årsuppföljning + check-in?', tags: [{kind:'vip',label:'VIP'}] },
-];
-
-function rowHtml(c) {
-  return `
-    <div class="customer-row" data-name="${c.name}">
-      <span class="cr-avatar" style="background:${c.bg}">${c.init}</span>
-      <div>
-        <div class="cr-name">${c.name}</div>
-        ${c.tags.length ? `<div class="cr-name-tags">${c.tags.map(t => `<span class="cr-tag cr-tag--${t.kind}">${t.label}</span>`).join('')}</div>` : ''}
-      </div>
-      <div class="cr-meta">
-        <div>${c.email}</div>
-        <div class="cr-meta-sub">${c.phone}</div>
-      </div>
-      <div><span class="cr-status" data-state="${c.state}"><span class="dot"></span>${c.stateLabel}</span></div>
-      <div class="cr-meta">
-        <div class="cr-meta-strong">${c.lastVisit}</div>
-        <div class="cr-meta-sub">${c.lastSub}</div>
-      </div>
-      <div>
-        <div class="cr-revenue">${c.revenue}</div>
-        <div class="cr-revenue-trend ${c.trendUp ? 'up' : 'down'}">${c.trend}</div>
-      </div>
-      <div><div class="cr-ai">${c.ai}</div></div>
-      <div class="cr-arrow">›</div>
-    </div>
-  `;
-}
-
-document.getElementById('customerList').innerHTML = CUSTOMER_ROWS.map(rowHtml).join('');
-
-// Klick på rad → öppna dossiéren
-document.querySelectorAll('.customer-row').forEach(row => {
-  row.addEventListener('click', () => {
-    document.querySelectorAll('.customer-row.selected').forEach(r => r.classList.remove('selected'));
-    row.classList.add('selected');
-    openCustomerDossier(row.dataset.name);
-  });
-});
-
-// Filter-chips (mock filtrering — bara visuell selection)
-document.querySelectorAll('.filter-chip').forEach(c => {
-  c.addEventListener('click', () => {
-    document.querySelectorAll('.filter-chip').forEach(o => o.classList.remove('active'));
-    c.classList.add('active');
-  });
-});
-
-// Side-links highlight
-document.querySelectorAll('.side-link').forEach(l => {
-  l.addEventListener('click', () => {
-    document.querySelectorAll('.side-link').forEach(o => o.classList.remove('active'));
-    l.classList.add('active');
-  });
-});
-
-// Agg-insight-cards: klick → toast
-document.querySelectorAll('.agg-insight, .agg-ai-row').forEach(el => {
-  el.addEventListener('click', () => {
-    const t = document.createElement('div');
-    t.className = 'ai-toast';
-    t.style.background = 'linear-gradient(180deg, #eef7f2, #c8e0d2)';
-    t.style.borderColor = 'rgba(74,130,104,.34)';
-    t.style.color = 'var(--cco-status-success)';
-    t.textContent = '✓ AI-åtgärd startad — väntar på godkännande';
-    document.body.appendChild(t);
-    requestAnimationFrame(() => t.classList.add('is-visible'));
-    setTimeout(() => { t.classList.remove('is-visible'); setTimeout(() => t.remove(), 320); }, 2400);
-  });
-});
+/* Kundlista: patient-master via /cco-kunder-real.js (ORD-12) */
 
 // Override closeDossier för Kunder-vyn — efter close ska aggregate-view komma tillbaka
 // (intel-booking-view innehåller agg-shell, så den syns naturligt när context byts till "booking")
