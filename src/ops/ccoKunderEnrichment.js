@@ -12,6 +12,7 @@ const {
   computeVisitTrendFromBundle,
   getBookingSignals,
   isBookingWithinDays,
+  isTodayVisit,
   loadKunderBookingIndex,
   patientMatchesTreatmentSegment,
 } = require('./ccoKunderBookingEnrichment');
@@ -666,6 +667,59 @@ function computeAggInsights(
   };
 }
 
+function parseBookingMs(iso) {
+  const ms = Date.parse(normalizeText(iso));
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function computeUpcomingTreatment(patients, assetIndex, bookingIndex, bookingCoverage) {
+  if (bookingCoverage === 'missing' || !bookingIndex) {
+    return { empty: true, reason: 'Inga kommande' };
+  }
+  const now = Date.now();
+  let best = null;
+
+  for (const patient of patients) {
+    const booking = getBookingSignals(bookingIndex, patient.id);
+    if (!booking.hasUpcomingBooking || !booking.nextBookingAt) continue;
+    const startsAtMs = parseBookingMs(booking.nextBookingAt);
+    if (startsAtMs == null || startsAtMs < now) continue;
+
+    if (!best || startsAtMs < best.startsAtMs) {
+      const assetSig = getAssetSignals(assetIndex, patient.id);
+      best = {
+        patientId: patient.id,
+        patientName: safeAggPatientName(patient) || 'Kund',
+        startsAt: booking.nextBookingAt,
+        startsAtMs,
+        treatmentLabel: normalizeText(booking.nextBookingType) || 'Behandling',
+        practitionerLabel: normalizeText(booking.nextBookingResourceLabel) || '',
+        missingForm: !assetSig.hasForm,
+      };
+    }
+  }
+
+  if (!best) {
+    return { empty: true, reason: 'Inga kommande' };
+  }
+
+  const remindNow =
+    best.missingForm && (isTodayVisit(best.startsAt) || isBookingWithinDays(best.startsAt, 3));
+
+  return {
+    empty: false,
+    patientId: best.patientId,
+    patientName: best.patientName,
+    startsAt: best.startsAt,
+    treatmentLabel: best.treatmentLabel,
+    practitionerLabel: best.practitionerLabel,
+    alert: isTodayVisit(best.startsAt) ? 'high' : 'normal',
+    kicker: remindNow ? 'Påminnelse' : 'Nästa besök',
+    remindNow,
+    missingForm: best.missingForm,
+  };
+}
+
 function computeSegmentStats(
   patients,
   assetIndex,
@@ -804,6 +858,12 @@ function computeSegmentStats(
       bookingCoverage,
       bookingBundle
     ),
+    upcomingTreatment: computeUpcomingTreatment(
+      patients,
+      assetIndex,
+      bookingIndex,
+      bookingCoverage
+    ),
     counts,
     bookingCoverage,
   };
@@ -854,6 +914,7 @@ module.exports = {
   buildAssetSignalsIndex,
   buildKunderReadout,
   computeAggInsights,
+  computeUpcomingTreatment,
   computeSegmentStats,
   filterPatientsBySegment,
   loadAssetSignalsIndex,

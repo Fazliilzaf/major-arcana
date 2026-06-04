@@ -1160,6 +1160,74 @@
         </div>`;
   }
 
+  function formatV9WatchClock(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    } catch (_) {
+      return '—';
+    }
+  }
+
+  function resolveV9UpcomingTreatment(segmentStats) {
+    const upcoming = segmentStats?.upcomingTreatment;
+    if (upcoming && typeof upcoming === 'object') return upcoming;
+    return { empty: true, reason: 'Inga kommande' };
+  }
+
+  function renderV9WatchWidgetHtml(segmentStats) {
+    const upcoming = resolveV9UpcomingTreatment(segmentStats);
+
+    if (upcoming.empty) {
+      return `
+        <div class="v9-watch-wrap">
+          <div class="v9-watch-widget watch-widget watch-widget--empty" data-v9-watch-widget>
+            <div class="watch-band-top"></div>
+            <div class="watch-body" data-alert="none">
+              <div class="watch-screen">
+                <div class="watch-time"><span>NÄSTA</span><span class="clock">—</span></div>
+                <div class="watch-kicker">Inga kommande</div>
+                <div class="watch-title">${escapeHtml(upcoming.reason || 'Inga bokningar')}</div>
+                <div class="watch-sub">Bokningsmotor eller kalender</div>
+              </div>
+            </div>
+            <div class="watch-band-bottom"></div>
+            <div class="watch-caption">På din handled</div>
+          </div>
+        </div>`;
+    }
+
+    const clock = formatV9WatchClock(upcoming.startsAt);
+    const sub = [upcoming.patientName, upcoming.practitionerLabel].filter(Boolean).join(' · ');
+    const alert = upcoming.alert === 'high' ? 'high' : 'normal';
+    const kicker = upcoming.remindNow
+      ? '⚠ Påminn nu'
+      : normalizeText(upcoming.kicker) || 'Nästa besök';
+
+    return `
+        <div class="v9-watch-wrap">
+          <div class="v9-watch-widget watch-widget" data-v9-watch-widget data-v9-watch-patient="${escapeHtml(upcoming.patientId || '')}">
+            <div class="watch-band-top"></div>
+            <div class="watch-body" data-alert="${alert}">
+              <div class="watch-screen">
+                <div class="watch-time"><span>NÄSTA</span><span class="clock">${escapeHtml(clock)}</span></div>
+                <div class="watch-kicker">${escapeHtml(kicker)}</div>
+                <div class="watch-title">${escapeHtml(upcoming.treatmentLabel || 'Behandling')}</div>
+                <div class="watch-sub">${escapeHtml(sub || '—')}</div>
+                <button type="button" class="watch-ai-pill" data-v9-watch-sms disabled title="Dry-run — SMS kopplas i P1">★ AI · Skicka SMS</button>
+                <div class="watch-swipe" data-v9-watch-swipe role="button" tabindex="0" aria-label="Svep för ankomst">
+                  <div class="watch-swipe-fill"></div>
+                  <span class="watch-swipe-label">Svep för ankomst</span>
+                  <span class="watch-swipe-arrow">→</span>
+                </div>
+              </div>
+            </div>
+            <div class="watch-band-bottom"></div>
+            <div class="watch-caption">På din handled</div>
+          </div>
+        </div>`;
+  }
+
   function renderV9AggregatePanelHtml() {
     const stats = runtime.stats || {};
     const segmentStats = runtime.segmentStats;
@@ -1217,6 +1285,7 @@
               )
               .join('')}
           </div>
+          ${renderV9WatchWidgetHtml(segmentStats)}
         </div>
       </section>`;
   }
@@ -6816,6 +6885,52 @@
     }
   }
 
+  let v9WatchSwipeState = null;
+
+  function resetV9WatchSwipeEl(swipeEl) {
+    if (!swipeEl) return;
+    swipeEl.dataset.swipeState = '';
+    const fill = swipeEl.querySelector('.watch-swipe-fill');
+    const arrow = swipeEl.querySelector('.watch-swipe-arrow');
+    if (fill) fill.style.transform = 'translateX(-100%)';
+    if (arrow) {
+      arrow.style.transform = 'translateY(-50%) translateX(0)';
+      arrow.style.opacity = '1';
+    }
+  }
+
+  function cleanupV9WatchSwipe() {
+    if (!v9WatchSwipeState) return;
+    document.removeEventListener('pointermove', onV9WatchSwipeMove);
+    document.removeEventListener('pointerup', onV9WatchSwipeEnd);
+    document.removeEventListener('pointercancel', onV9WatchSwipeEnd);
+    v9WatchSwipeState = null;
+  }
+
+  function onV9WatchSwipeMove(event) {
+    if (!v9WatchSwipeState) return;
+    const { swipeEl, fill, arrow, startX, width } = v9WatchSwipeState;
+    const dx = Math.max(0, Math.min(width, event.clientX - startX));
+    const pct = dx / Math.max(width - 22, 1);
+    if (fill) fill.style.transform = `translateX(${-100 + pct * 100}%)`;
+    if (arrow) arrow.style.transform = `translateY(-50%) translateX(${dx * 0.8}px)`;
+    if (pct >= 0.85) {
+      swipeEl.dataset.swipeState = 'ok';
+      cleanupV9WatchSwipe();
+      window.setTimeout(() => resetV9WatchSwipeEl(swipeEl), 3200);
+    }
+  }
+
+  function onV9WatchSwipeEnd() {
+    if (!v9WatchSwipeState) return;
+    const { swipeEl, fill, arrow } = v9WatchSwipeState;
+    if (swipeEl.dataset.swipeState !== 'ok') {
+      if (fill) fill.style.transform = 'translateX(-100%)';
+      if (arrow) arrow.style.transform = 'translateY(-50%) translateX(0)';
+    }
+    cleanupV9WatchSwipe();
+  }
+
   function bindEvents() {
     document.addEventListener(
       'pointerdown',
@@ -6826,6 +6941,23 @@
       },
       { passive: true, capture: true }
     );
+
+    document.addEventListener('pointerdown', (event) => {
+      if (!isV9CustomersEnabled()) return;
+      const swipe = event.target.closest('[data-v9-watch-swipe]');
+      if (!swipe || swipe.dataset.swipeState === 'ok') return;
+      const rect = swipe.getBoundingClientRect();
+      v9WatchSwipeState = {
+        swipeEl: swipe,
+        fill: swipe.querySelector('.watch-swipe-fill'),
+        arrow: swipe.querySelector('.watch-swipe-arrow'),
+        startX: event.clientX,
+        width: rect.width,
+      };
+      document.addEventListener('pointermove', onV9WatchSwipeMove);
+      document.addEventListener('pointerup', onV9WatchSwipeEnd);
+      document.addEventListener('pointercancel', onV9WatchSwipeEnd);
+    });
 
     document.addEventListener('click', (event) => {
       const modeButton = event.target.closest('[data-patient-master-mode]');

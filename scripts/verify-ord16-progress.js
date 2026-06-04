@@ -148,6 +148,21 @@ async function backendDiag() {
   record(0, 'backend commit', true, commit);
 }
 
+async function step10WatchMobile() {
+  const css = (await fetchText(`${PREVIEW}/cco-v9-customers.css`)).body;
+  const js = (await fetchText(`${PREVIEW}/app/patient-master-ui.js?v=build-bundle-split-a`)).body;
+  const hasCss =
+    /\.v9-watch-widget/.test(css) &&
+    /\.watch-swipe/.test(css) &&
+    /data-cco-patient-detail="on"\] \.v9-dossier-hero/.test(css);
+  const hasJs =
+    /renderV9WatchWidgetHtml/.test(js) &&
+    /data-v9-watch-widget/.test(js) &&
+    /data-v9-watch-swipe/.test(js) &&
+    /På din handled/.test(js);
+  record(10, 'watch-frame + mobile parity', hasCss && hasJs, `css=${hasCss} js=${hasJs}`);
+}
+
 async function main() {
   console.log(`# ORD-16 progress against ${BASE}\n`);
 
@@ -162,6 +177,7 @@ async function main() {
   await step7DossierHero();
   await step8DossierBodyTabs();
   await step9AggregatePanel();
+  await step10WatchMobile();
 
   let pass = 0,
     fail = 0;

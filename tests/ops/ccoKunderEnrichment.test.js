@@ -181,4 +181,49 @@ describe('ccoKunderEnrichment', () => {
     assert.equal(stats.aggInsights.idag.names[0], 'Anna Test');
     assert.equal(stats.aggInsights.opp.count, 1);
   });
+
+  it('computeSegmentStats includes upcomingTreatment from nearest booking', () => {
+    const future = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const later = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const patients = [
+      { id: 'p1', displayName: 'Eva K', matchStatus: 'matched', flags: [], fileSummary: {} },
+      { id: 'p2', displayName: 'Senare', matchStatus: 'matched', flags: [], fileSummary: {} },
+    ];
+    const assetIndex = buildAssetSignalsIndex([]);
+    const bookingIndex = new Map([
+      [
+        'p1',
+        {
+          ...emptyBookingSignals(),
+          hasUpcomingBooking: true,
+          nextBookingAt: future,
+          nextBookingType: 'Konsultation',
+          nextBookingResourceLabel: 'Egzona',
+        },
+      ],
+      [
+        'p2',
+        {
+          ...emptyBookingSignals(),
+          hasUpcomingBooking: true,
+          nextBookingAt: later,
+          nextBookingType: 'PRP',
+          nextBookingResourceLabel: 'Anna',
+        },
+      ],
+    ]);
+    const stats = computeSegmentStats(patients, assetIndex, bookingIndex, 'real');
+    assert.equal(stats.upcomingTreatment.empty, false);
+    assert.equal(stats.upcomingTreatment.patientId, 'p1');
+    assert.equal(stats.upcomingTreatment.patientName, 'Eva K');
+    assert.equal(stats.upcomingTreatment.treatmentLabel, 'Konsultation');
+    assert.equal(stats.upcomingTreatment.practitionerLabel, 'Egzona');
+    assert.equal(stats.upcomingTreatment.remindNow, true);
+  });
+
+  it('computeSegmentStats upcomingTreatment empty when booking missing', () => {
+    const stats = computeSegmentStats([], new Map(), null, 'missing');
+    assert.equal(stats.upcomingTreatment.empty, true);
+    assert.equal(stats.upcomingTreatment.reason, 'Inga kommande');
+  });
 });
