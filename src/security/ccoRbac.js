@@ -160,11 +160,25 @@ const PERMISSIONS = {
 
 const ALL_ROLES = ['owner', 'operator', 'konsult', 'personal', 'revisor'];
 
+/** Map auth/session roles (OWNER/STAFF) → ccoRbac permission roles. */
+const AUTH_ROLE_ALIASES = {
+  owner: 'owner',
+  staff: 'operator',
+  operator: 'operator',
+  konsult: 'konsult',
+  personal: 'personal',
+  revisor: 'revisor',
+  doctor: 'operator',
+  admin: 'owner',
+};
+
 function normalizeRole(role) {
   const r = String(role || '')
     .toLowerCase()
     .trim();
-  return ALL_ROLES.includes(r) ? r : null;
+  if (ALL_ROLES.includes(r)) return r;
+  const aliased = AUTH_ROLE_ALIASES[r];
+  return ALL_ROLES.includes(aliased) ? aliased : null;
 }
 
 function roleHasPermission(role, permission) {
@@ -194,7 +208,10 @@ function listPermissionsForRole(role) {
  *   4. fallback: 'operator' (vanligaste vid demo)
  */
 function getRoleFromRequest(req) {
-  return req.auth?.role || req.user?.role || req.headers?.['x-cco-role'] || 'operator';
+  const raw =
+    req.cco?.role || req.auth?.role || req.user?.role || req.headers?.['x-cco-role'] || 'operator';
+  const normalized = normalizeRole(raw);
+  return normalized || 'operator';
 }
 
 /**

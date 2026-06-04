@@ -150,6 +150,7 @@
     import_review: 'dot--import-review',
   };
   const V9_DOSSIER_TABS = [
+    { key: 'oversikt', label: 'Översikt', accent: 'overview' },
     { key: 'profil', label: 'Profil', accent: 'studio' },
     { key: 'journal', label: 'Journal', accent: 'journal' },
     { key: 'tidslinje', label: 'Bokningar', accent: 'booking' },
@@ -157,6 +158,16 @@
     { key: 'avtal', label: 'Ekonomi', accent: 'economy' },
     { key: 'anteckningar', label: 'Anteckningar', accent: 'notes' },
   ];
+  const V9_SECTION_TAB_JUMP = {
+    historik: 'tidslinje',
+    ekonomi: 'avtal',
+    journal: 'journal',
+    filer: 'filer',
+    kontakt: 'profil',
+    compliance: 'profil',
+    upcoming: 'oversikt',
+    ai: 'oversikt',
+  };
   const photoObjectUrls = new Set();
   const fileObjectUrls = new Set();
   const patientDetailInflight = new Map();
@@ -180,6 +191,8 @@
     selectedPatientId: '',
     detail: null,
     detailTab: 'profil',
+    v9SortKey: 'activity',
+    v9ListView: 'list',
     detailLoading: false,
     detailShellOnly: false,
     commercialCase: null,
@@ -1068,8 +1081,20 @@
   function applyV9AggInsightAction(key) {
     const agg = runtime.segmentStats?.aggInsights?.[key];
     if (!agg) return;
-    if ((key === 'opp' || key === 'trend') && agg.ctaView) {
+    if (key === 'risk') {
+      window.CcoV9CustomersParity?.runBulkReminder?.(window.CcoPatientMasterUi);
+      return;
+    }
+    if (key === 'opp') {
+      window.CcoV9CustomersParity?.runBulkCampaign?.(window.CcoPatientMasterUi);
+      return;
+    }
+    if (key === 'trend' && agg.ctaView) {
       navigateShellView(agg.ctaView);
+      return;
+    }
+    if (key === 'idag' && agg.ctaSegment) {
+      applySegmentFromUi(agg.ctaSegment);
       return;
     }
     if (agg.ctaSegment) {
@@ -1464,6 +1489,7 @@
     }
     rail.innerHTML = renderV9AggregatePanelHtml();
     initV9WatchChrome();
+    syncV9CustomersLayoutState();
     syncMobilePatientLayout();
   }
 
@@ -2658,7 +2684,8 @@
     const tab = normalizeDetailTab(detailTab);
     const tabs = [...V9_DOSSIER_TABS];
     if (isAisiaScalpAnalysisEnabled()) {
-      tabs.splice(2, 0, {
+      const journalIdx = tabs.findIndex((item) => item.key === 'journal');
+      tabs.splice(journalIdx + 1, 0, {
         key: 'scalpanalys',
         label: isMobileViewport() ? 'Scalpanalys' : 'Hår-/scalpanalys',
         accent: 'scalp',
@@ -2747,7 +2774,9 @@
     );
     if (!hasBooking) return;
     runtime.focusTimelineKey = `encounter:${plan.treatmentEncounterId}`;
-    if (runtime.detailTab === 'profil') runtime.detailTab = 'tidslinje';
+    if (runtime.detailTab === 'profil' || runtime.detailTab === 'oversikt') {
+      runtime.detailTab = 'tidslinje';
+    }
   }
 
   function focusTimelineSegmentIfNeeded(root) {
@@ -3207,6 +3236,31 @@
     };
   }
 
+  function formatV9Sek(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '—';
+    return `${Math.round(n).toLocaleString('sv-SE')} kr`;
+  }
+
+  function syncV9CustomersLayoutState() {
+    if (!isV9CustomersEnabled()) return;
+    const layout = document.querySelector('.customers-layout');
+    const list = document.querySelector('.customers-list');
+    const rail = document.querySelector('.customers-rail');
+    const dossierOpen = Boolean(
+      runtime.selectedPatientId &&
+      (runtime.detail?.card ||
+        runtime.detailLoading ||
+        rail?.querySelector('[data-patient-detail]'))
+    );
+    if (layout) {
+      if (dossierOpen) layout.setAttribute('data-v9-dossier-open', 'on');
+      else layout.removeAttribute('data-v9-dossier-open');
+    }
+    if (list) list.classList.toggle('customers-list--compact', dossierOpen);
+    if (rail) rail.classList.toggle('customers-rail--dominant', dossierOpen);
+  }
+
   function mergeCardWithShellEnrichment(card, patientId) {
     if (!card) return card;
     const shell = runtime.patients.find(
@@ -3242,6 +3296,13 @@
       'treatmentTypes',
       'pipedriveDealCount',
       'pipedriveLinked',
+      'visitCount',
+      'bookingCount',
+      'noShowCount',
+      'lifetimeValue',
+      'lifetimeValueLabel',
+      'dealValue',
+      'avgVisitRevenue',
     ];
     enrichKeys.forEach((key) => {
       const value = shell[key];
@@ -3263,32 +3324,317 @@
     };
   }
 
-  function renderV9SmartNextStepHtml(card) {
-    if (!isV9CustomersEnabled() || !card) return '';
-    const mod = window.CcoKunderSmartNextStep;
-    if (!mod?.renderPanel) return '';
-    const panelHtml = mod.renderPanel(card, { automation: runtime.automation });
-    const wrapped =
-      isMobileViewport() && mod.mountMobileWrap ? mod.mountMobileWrap(panelHtml) : panelHtml;
-    return `<div data-v9-smart-next-step>${wrapped}</div>`;
+  function renderV9SmartNextStepHtml() {
+    return '';
   }
 
-  function renderV9CapabilityActionsHtml(card) {
+  function renderV9DossierScrollBlock(
+    card,
+    journalEntries,
+    occasionTimeline,
+    driveFiles,
+    { synthesisOnly = false } = {}
+  ) {
     if (!isV9CustomersEnabled() || !card) return '';
-    const mod = window.CcoKunderActions;
-    if (!mod?.buildDossierBar) return '';
-    const dossierBar = mod.buildDossierBar(card, resolveKunderActionContext());
-    const actionsInner =
-      mod.renderMatrixLegend(dossierBar) +
-      mod.renderActionsHtml(dossierBar, {
-        linkClass: 'quick-pill v9-dossier-action',
-        buttonClass: 'quick-pill v9-dossier-action',
-      });
+    return (
+      window.CcoV9CustomersParity?.renderDossierScrollHtml?.(
+        card,
+        journalEntries,
+        occasionTimeline,
+        driveFiles,
+        { synthesisOnly }
+      ) || ''
+    );
+  }
+
+  function renderV9QuickPillsBlock(card) {
+    if (!isV9CustomersEnabled() || !card) return '';
+    return window.CcoV9CustomersParity?.renderDossierQuickPillsHtml?.(card) || '';
+  }
+
+  function renderV9HiddenCameraBridge(card) {
+    const uploadBlocked = Boolean(card?.journalBlocked);
+    const disabledAttr = uploadBlocked ? ' disabled' : '';
     return `
-        <section class="v9-dossier-capability" data-v9-capability-actions aria-label="Dossieråtgärder">
-          <h4 class="v9-dossier-capability__title">Åtgärder</h4>
-          <div class="v9-dossier-capability__host" data-v9-capability-host>${actionsInner}</div>
-        </section>`;
+      <label class="patient-master-camera-button v9-camera-bridge" hidden aria-hidden="true">
+        <input type="file" accept="image/*" capture="environment" hidden data-patient-photo-camera${disabledAttr} />
+      </label>`;
+  }
+
+  function renderV9MockupDossierDeepShell() {
+    return `
+      <div class="v9-dossier-deep" data-v9-dossier-deep hidden aria-hidden="true">
+        <div class="v9-dossier-deep__head">
+          <strong data-v9-deep-title>Dossier</strong>
+          <button type="button" class="v9-dossier-deep__close" data-v9-deep-close>Stäng</button>
+        </div>
+        <div class="v9-dossier-deep__body" data-v9-deep-body></div>
+      </div>`;
+  }
+
+  function closeV9DossierDeepPanel() {
+    const deep = document.querySelector('[data-v9-dossier-deep]');
+    if (!deep) return;
+    deep.hidden = true;
+    deep.setAttribute('aria-hidden', 'true');
+    const body = deep.querySelector('[data-v9-deep-body]');
+    if (body) body.innerHTML = '';
+  }
+
+  function openV9DossierDeepPanel(mode, ctx) {
+    const { card, journalEntries, driveFiles } = ctx;
+    const deep = document.querySelector('[data-v9-dossier-deep]');
+    const body = deep?.querySelector('[data-v9-deep-body]');
+    const title = deep?.querySelector('[data-v9-deep-title]');
+    if (!deep || !body) return;
+    if (mode === 'journal') {
+      switchDetailTab('journal');
+      return;
+    }
+    if (mode === 'filer') {
+      switchDetailTab('filer');
+      return;
+    }
+    if (mode === 'profil') {
+      switchDetailTab('profil');
+      return;
+    }
+    if (mode === 'bookings' || mode === 'tidslinje') {
+      switchDetailTab('tidslinje');
+      return;
+    }
+    if (title) title.textContent = 'Dossier';
+    body.innerHTML = `<p class="patient-master-muted">Okänt läge: ${escapeHtml(mode || '—')}</p>`;
+    deep.hidden = false;
+    deep.removeAttribute('aria-hidden');
+  }
+
+  function triggerV9ContextAction(root, ctx, actionKey) {
+    if (!actionKey) return;
+    if (actionKey === 'consent') {
+      switchDetailTab('profil');
+      return;
+    }
+    if (actionKey === 'agreement') {
+      switchDetailTab('avtal');
+      return;
+    }
+    switchDetailTab('journal');
+    const selectorByAction = {
+      health_tp: '[data-patient-action="new-health-declaration"]',
+      fitness_tp: '[data-patient-action="new-fitness-certificate"]',
+      plan: '[data-patient-action="new-consultation-plan"]',
+      health_bleph: '[data-clinical-form-key="health_curatiio_bleph"]',
+      fitness_bleph: '[data-clinical-form-key="fitness_curatiio_bleph"]',
+    };
+    const selector = selectorByAction[actionKey];
+    if (!selector) return;
+    const clickTarget = () => {
+      const panel =
+        root.querySelector('[data-patient-tab-panel="journal"]:not([hidden])') ||
+        root.querySelector('[data-patient-tab-panel="journal"]') ||
+        root;
+      panel.querySelector(selector)?.click();
+    };
+    window.requestAnimationFrame(() => window.requestAnimationFrame(clickTarget));
+  }
+
+  function bindV9MockupDossierHandlers(root, ctx) {
+    if (!root || !isV9CustomersEnabled()) return;
+    bindV9Zone1Handlers(root, ctx);
+    window.CcoV9CustomersParity?.bindDossierScroll?.(root, {
+      openJournal: () => switchDetailTab('journal'),
+      openForm: () => switchDetailTab('journal'),
+      switchTab: (tabKey) => switchDetailTab(tabKey),
+    });
+    window.CcoV9CustomersParity?.bindDossierQuickPills?.(root, {
+      openPhoto: () => {
+        root.querySelector('.v9-camera-bridge [data-patient-photo-camera]')?.click();
+      },
+      openBook: () => {
+        window.dispatchEvent(
+          new CustomEvent('cco:v9-ghost-booking', {
+            detail: { source: 'quick-pill', patientId: ctx.card?.patientId },
+          })
+        );
+      },
+      openJournal: () => switchDetailTab('journal'),
+      openReply: () => {
+        document.querySelector('[data-studio-open]')?.click();
+      },
+      confirmBookings: () => {
+        setStatus('Öppnar bokningsytan för att bekräfta kommande tider.', 'info');
+        navigateShellView('booking');
+      },
+      openContext: (actionKey) => triggerV9ContextAction(root, ctx, actionKey),
+      openDeep: (mode) => openV9DossierDeepPanel(mode, ctx),
+    });
+    window.CcoV9CustomersParity?.bindDossierNavigation?.(root, {
+      onBack: () => closeV9DossierSelection(),
+      onCloseDeep: () => closeV9DossierDeepPanel(),
+    });
+    const closeBtn = root.querySelector('[data-v9-deep-close]');
+    if (closeBtn && closeBtn.dataset.bound !== '1') {
+      closeBtn.dataset.bound = '1';
+      closeBtn.addEventListener('click', closeV9DossierDeepPanel);
+    }
+  }
+
+  function renderV9PatientTabPanelsMarkup(
+    card,
+    patient,
+    journalEntries,
+    driveFiles,
+    occasionTimeline,
+    tab,
+    { lite = false } = {}
+  ) {
+    const oversiktActive = tab === 'oversikt';
+    const profilActive = tab === 'profil';
+    const journalActive = tab === 'journal';
+    const scalpanalysActive = isAisiaScalpAnalysisEnabled() && tab === 'scalpanalys';
+    const tidslinjeActive = tab === 'tidslinje';
+    const avtalActive = tab === 'avtal';
+    const filesActive = tab === 'filer';
+    const anteckningarActive = tab === 'anteckningar';
+    const placeholder = (label) =>
+      lite
+        ? `<p class="patient-master-muted" data-patient-shell-placeholder">Laddar ${escapeHtml(label)}…</p>`
+        : '';
+
+    return `
+        <div class="patient-master-tab-panel v9-dossier-tab-panel${oversiktActive ? ' is-active' : ''}"${oversiktActive ? '' : ' hidden'} data-patient-tab-panel="oversikt">
+          ${renderV9DossierScrollBlock(card, journalEntries, occasionTimeline, driveFiles, {
+            synthesisOnly: true,
+          })}
+        </div>
+
+        <div class="patient-master-tab-panel v9-dossier-tab-panel${profilActive ? ' is-active' : ''}"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">
+          ${
+            lite
+              ? placeholder('profil')
+              : `
+          ${renderJournalWorkflowCallout(journalEntries)}
+          ${renderScalpImagingCallout()}
+          ${renderPatientIntegrationsCard(card)}
+          ${renderPatientComplianceCard(card)}
+          ${renderPatientDemographicsCard(card)}
+          <article class="focus-customer-data-card patient-master-identity-card">
+            <h4>Identitet</h4>
+            <dl class="focus-customer-dl">
+              <div><dt>Personnummer</dt><dd>${escapeHtml(card.personnummer || '—')}</dd></div>
+              <div><dt>Matchning</dt><dd>${escapeHtml(MATCH_LABELS[card.matchStatus] || card.matchStatus || '—')}</dd></div>
+              <div><dt>Cliento</dt><dd>${card.clientoLinked ? 'Ja' : 'Nej'}</dd></div>
+              <div><dt>Drive</dt><dd>${card.driveLinked ? 'Ja' : 'Nej'}</dd></div>
+              <div><dt>Pipedrive</dt><dd>${card.pipedriveLinked ? `Ja (${card.pipedriveDealCount || 0} affärer)` : 'Nej'}</dd></div>
+            </dl>
+          </article>
+          ${renderPipedriveSection(patient)}
+          ${renderMaterialPreview(driveFiles, card)}
+          ${
+            patient?.cliento?.createdAt
+              ? `<p class="patient-master-muted">Cliento skapad: ${escapeHtml(String(patient.cliento.createdAt).slice(0, 10))}</p>`
+              : ''
+          }`
+          }
+        </div>
+
+        <div class="patient-master-tab-panel v9-dossier-tab-panel${journalActive ? ' is-active' : ''}"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
+          ${
+            lite
+              ? placeholder('journal')
+              : `
+          ${renderJournalWorkflowCallout(journalEntries)}
+          ${renderScalpImagingCallout()}
+          ${renderDraftProposalsPanel()}
+          ${
+            card.journalBlocked
+              ? `<p class="patient-master-block-banner">Journalen är spärrad${card.journalBlockReason ? `: ${escapeHtml(card.journalBlockReason)}` : ''}. Nya eller ändrade poster blockeras.</p>`
+              : ''
+          }
+          ${renderJournalEntries(journalEntries)}`
+          }
+        </div>
+
+        ${
+          isAisiaScalpAnalysisEnabled()
+            ? `<div class="patient-master-tab-panel v9-dossier-tab-panel${scalpanalysActive ? ' is-active' : ''}"${scalpanalysActive ? '' : ' hidden'} data-patient-tab-panel="scalpanalys">
+          ${
+            lite
+              ? placeholder('scalpanalys')
+              : `<div id="cco-scalp-analysis-mount" data-scalp-analysis-mount="${escapeHtml(card.patientId || runtime.selectedPatientId || '')}"></div>`
+          }
+        </div>`
+            : ''
+        }
+
+        <div class="patient-master-tab-panel v9-dossier-tab-panel${tidslinjeActive ? ' is-active' : ''}"${tidslinjeActive ? '' : ' hidden'} data-patient-tab-panel="tidslinje">
+          ${
+            lite
+              ? placeholder('tidslinje')
+              : renderUnifiedTimelinePanel(journalEntries, driveFiles, occasionTimeline)
+          }
+        </div>
+
+        <div class="patient-master-tab-panel v9-dossier-tab-panel${avtalActive ? ' is-active' : ''}"${avtalActive ? '' : ' hidden'} data-patient-tab-panel="avtal">
+          ${lite ? placeholder('avtal') : renderAgreementSection()}
+        </div>
+
+        <div class="patient-master-tab-panel v9-dossier-tab-panel${filesActive ? ' is-active' : ''}"${filesActive ? '' : ' hidden'} data-patient-tab-panel="filer">
+          ${lite ? placeholder('filer') : renderDriveFiles(driveFiles, card)}
+        </div>
+
+        <div class="patient-master-tab-panel v9-dossier-tab-panel${anteckningarActive ? ' is-active' : ''}"${anteckningarActive ? '' : ' hidden'} data-patient-tab-panel="anteckningar">
+          ${
+            lite
+              ? placeholder('anteckningar')
+              : `${renderDraftProposalsPanel()}${renderPatientNotesPanel(journalEntries)}`
+          }
+        </div>`;
+  }
+
+  function renderV9MockupDetailShell(
+    card,
+    journalEntries,
+    occasionTimeline,
+    driveFiles,
+    patient,
+    tab,
+    { lite = false } = {}
+  ) {
+    const normalizedTab = normalizeDetailTab(tab);
+    const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
+    return `
+      <section class="patient-master-card v9-mockup-dossier v9-mockup-dossier--synthesis" data-patient-detail>
+        <div class="v9-dossier-chrome">
+          ${renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
+          ${renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
+        </div>
+        <div class="v9-dossier-workspace">
+          ${renderPatientDetailBodyOpen()}
+          ${renderV9PatientTabPanelsMarkup(
+            card,
+            patient,
+            journalEntries,
+            driveFiles,
+            occasionTimeline,
+            normalizedTab,
+            { lite }
+          )}
+          ${renderPatientDetailBodyClose()}
+        </div>
+        ${renderV9QuickPillsBlock(card)}
+        ${renderV9HiddenCameraBridge(card)}
+        ${renderV9MockupDossierDeepShell()}
+      </section>`;
+  }
+
+  function ensureV9DossierDeepClosed() {
+    closeV9DossierDeepPanel();
+  }
+
+  function renderV9CapabilityActionsHtml() {
+    return '';
   }
 
   function bindV9DossierCapabilityHandlers(root) {
@@ -3302,6 +3648,15 @@
         root
           .querySelector('[data-patient-tab-panel="filer"]')
           ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      },
+      scrollCommunication: () => {
+        switchDetailTab('profil');
+      },
+      openJournal: () => {
+        switchDetailTab('journal');
+      },
+      openTimeline: () => {
+        switchDetailTab('tidslinje');
       },
     });
   }
@@ -3339,88 +3694,296 @@
     }));
   }
 
-  function resolveV9HeroStats(card, journalEntries = []) {
-    const entries = asArray(journalEntries);
-    const visitValue =
-      entries.length > 0
-        ? String(entries.length)
-        : card.lastVisitAt
-          ? '1+'
-          : card.hasJournalHistory || card.hasJournal
-            ? 'Ja'
-            : '—';
-    const visitTrend = card.lastVisitAt
-      ? `Senast ${formatV9ListDate(card.lastVisitAt)}`
-      : card.nextBookingAt
-        ? `Nästa ${formatV9ListDate(card.nextBookingAt)}`
+  function resolveV9HeroStats(card, journalEntries = [], occasionTimeline = null) {
+    let visits = Number(card?.visitCount ?? card?.bookingCount ?? 0);
+    if (!visits && card?.lastVisitAt) visits = 1;
+    if (!visits && Number(card?.fileSummary?.journalPdfs || 0) > 0) visits = 1;
+    const ltv = card?.lifetimeValue ?? card?.dealValue ?? card?.pipedriveDealValue;
+    const noShows = Number(card?.noShowCount ?? 0);
+    const hasLtv = ltv != null && Number(ltv) > 0;
+    const lastVisitLabel = card?.lastVisitAt ? String(card.lastVisitAt).slice(0, 10) : '';
+    const visitTrend =
+      visits > 0
+        ? card?.visitsThisYear != null
+          ? `+${Number(card.visitsThisYear)} i år`
+          : lastVisitLabel
+            ? `Senast ${lastVisitLabel}`
+            : `${visits} registrerade`
+        : 'Inga besök';
+    const revenueTrend = hasLtv
+      ? card?.revenueTrendLabel || card?.lifetimeValueLabel || 'Livstidsvärde'
+      : card?.pipedriveLinked
+        ? 'Pipedrive-kopplad'
         : '—';
-    const revenue = resolveV9Revenue(card);
+    const noShowTrend = noShows === 0 ? 'Klockren' : `${noShows} no-show`;
+
     return [
       {
         label: 'Besök',
-        value: visitValue,
+        value: String(visits),
         trend: visitTrend,
+        jump: 'historik',
+        iconKey: 'visits',
+        icon: '📅',
       },
       {
         label: 'Intäkt',
-        value: revenue.main,
-        trend: revenue.trend || '—',
+        value: hasLtv ? formatV9Sek(ltv) : '—',
+        trend: revenueTrend,
+        jump: 'ekonomi',
+        iconKey: 'revenue',
+        icon: '💰',
       },
       {
         label: 'No-shows',
-        value: '—',
-        trend: card.bookingCaseStatus === 'no_show' ? 'Senaste: no-show' : '—',
+        value: String(noShows),
+        trend: noShowTrend,
+        jump: 'historik',
+        iconKey: 'noshow',
+        icon: '✕',
       },
     ];
   }
 
-  function renderV9DossierHeroHtml(card, journalEntries = [], { loading = false } = {}) {
+  function collectV9Zone1Blockers(card, max = 3) {
+    const blockers = [];
+    const seen = new Set();
+    const push = (tone, text) => {
+      const key = `${tone}|${text}`;
+      if (!text || seen.has(key) || blockers.length >= max) return;
+      seen.add(key);
+      blockers.push({ tone, text });
+    };
+
+    const mod = window.CcoKunderSmartNextStep;
+    const signals = mod?.sortSignals?.(card?.automationSignals || []) || [];
+    for (const signal of signals) {
+      if (signal.status !== 'active') continue;
+      const tone = signal.risk || 'needs_review';
+      if (!['blocker', 'legal_blocker', 'legal', 'needs_review'].includes(tone)) continue;
+      push(tone, signal.what || signal.why || signal.next);
+    }
+
+    if (card?.journalBlocked) {
+      push(
+        'blocker',
+        card.journalBlockReason ? `Journal spärrad: ${card.journalBlockReason}` : 'Journal spärrad'
+      );
+    }
+    if (card?.missingHealthDeclaration && card?.hasUpcomingBooking) {
+      push('blocker', 'Saknar hälsodeklaration inför kommande besök');
+    }
+    if (card?.missingForm) {
+      push('needs_review', 'Formulär saknas före besök');
+    }
+    if (card?.missingFitnessCertificate && card?.hasUpcomingBooking) {
+      push('blocker', 'Saknar friskförsäkran inför kommande besök');
+    }
+    return blockers.slice(0, max);
+  }
+
+  function renderV9Zone1BlockersHtml(card) {
+    const items = collectV9Zone1Blockers(card);
+    if (!items.length) return '';
+    return `
+          <div class="v9-zone1-now" aria-label="Viktigt nu">
+            <div class="v9-zone1-now__kicker">Viktigt nu</div>
+            ${items
+              .map(
+                (item) =>
+                  `<div class="v9-zone1-alert" data-tone="${escapeHtml(item.tone)}">${escapeHtml(item.text)}</div>`
+              )
+              .join('')}
+          </div>`;
+  }
+
+  function resolveV9PrimaryNextStep(card) {
+    const label = resolveV9NextStepLabel(card);
+    const top = card?.automationTop;
+    const ruleId = String(top?.ruleId || '');
+    let action = 'journal';
+    if (ruleId.includes('health') || card?.missingHealthDeclaration || card?.missingForm) {
+      action = 'form';
+    } else if (ruleId.includes('agreement') || ruleId.includes('consent')) {
+      action = 'compliance';
+    } else if (ruleId.includes('booking') || card?.hasUpcomingBooking) {
+      action = 'book';
+    } else if (ruleId.includes('journal') || card?.missingJournal) {
+      action = 'journal';
+    }
+    return { label, action };
+  }
+
+  function renderV9Zone1PrimaryStepHtml(card, { loading = false } = {}) {
+    const { label, action } = resolveV9PrimaryNextStep(card);
+    return `
+          <button
+            type="button"
+            class="v9-zone1-primary${loading ? ' is-loading' : ''}"
+            data-v9-primary-step="${escapeHtml(action)}"
+            aria-label="Nästa steg: ${escapeHtml(label)}"
+          >
+            <span class="v9-zone1-primary__kicker">Nästa steg</span>
+            <span class="v9-zone1-primary__label">${escapeHtml(label)}</span>
+          </button>`;
+  }
+
+  function renderV9Zone1JumpChipsHtml() {
+    return `
+          <div class="v9-zone1-jumps" aria-label="Hoppa i dossiér" role="tablist">
+            <button type="button" class="v9-zone1-jump" data-v9-jump="upcoming" role="tab" aria-controls="v9-section-upcoming">Besök</button>
+            <button type="button" class="v9-zone1-jump" data-v9-jump="journal" role="tab" aria-controls="v9-section-journal">Journal</button>
+            <button type="button" class="v9-zone1-jump" data-v9-jump="filer" role="tab" aria-controls="v9-section-filer">Filer</button>
+            <button type="button" class="v9-zone1-jump" data-v9-jump="kontakt" role="tab" aria-controls="v9-section-kontakt">Kontakt</button>
+          </div>
+          <p class="v9-zone1-nav-hint" aria-hidden="true"><kbd>1</kbd>–<kbd>4</kbd> sektioner · <kbd>⌘K</kbd> sök · <kbd>Esc</kbd> stäng</p>`;
+  }
+
+  function scrollV9DossierSection(root, key) {
+    if (window.CcoV9CustomersParity?.scrollDossierSection) {
+      window.CcoV9CustomersParity.scrollDossierSection(root, key);
+      return;
+    }
+    if (!root) return;
+    const details = root.querySelector(`[data-v9-section="${key}"]`);
+    if (!details) return;
+    details.open = true;
+    details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function v9JumpToSection(root, key) {
+    const sectionKey = normalizeText(key);
+    if (!sectionKey || !root) return;
+    const targetTab = V9_SECTION_TAB_JUMP[sectionKey];
+    if (targetTab && targetTab !== runtime.detailTab) {
+      if (switchDetailTab(targetTab)) {
+        window.requestAnimationFrame(() => {
+          if (targetTab === 'oversikt') {
+            scrollV9DossierSection(root, sectionKey);
+          }
+        });
+      }
+      return;
+    }
+    scrollV9DossierSection(root, sectionKey);
+  }
+
+  function bindV9Zone1Handlers(root, ctx) {
+    if (!root || !isV9CustomersEnabled()) return;
+    const zone = root.querySelector('[data-v9-zone1]');
+    if (!zone || zone.dataset.bound === '1') return;
+    zone.dataset.bound = '1';
+
+    zone.querySelectorAll('[data-v9-stat-jump]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        v9JumpToSection(root, btn.getAttribute('data-v9-stat-jump') || '');
+      });
+    });
+
+    zone.querySelectorAll('[data-v9-jump]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        v9JumpToSection(root, btn.getAttribute('data-v9-jump') || '');
+      });
+    });
+
+    const primary = zone.querySelector('[data-v9-primary-step]');
+    if (primary) {
+      primary.addEventListener('click', () => {
+        const action = primary.getAttribute('data-v9-primary-step') || 'journal';
+        if (action === 'book') {
+          window.dispatchEvent(
+            new CustomEvent('cco:v9-ghost-booking', {
+              detail: { source: 'zone1-primary', patientId: ctx.card?.patientId },
+            })
+          );
+          return;
+        }
+        if (action === 'form') {
+          switchDetailTab('journal');
+          return;
+        }
+        if (action === 'compliance') {
+          switchDetailTab('profil');
+          return;
+        }
+        switchDetailTab('journal');
+      });
+    }
+  }
+
+  function renderV9DossierHeroHtml(
+    card,
+    journalEntries = [],
+    { loading = false, occasionTimeline = null } = {}
+  ) {
     const name = displayNameForList(card);
     const contact = v9DossierContactLine(card);
     const tags = buildV9DossierBadges(card);
-    const nextStep = resolveV9NextStepLabel(card);
-    const stats = resolveV9HeroStats(card, journalEntries);
+    const stats = resolveV9HeroStats(card, journalEntries, occasionTimeline);
+    const phone = card?.primaryPhone || card?.phoneMasked || '';
+    const email = card?.primaryEmail || card?.emailMasked || '';
 
     return `
-        <div class="v9-dossier-hero" data-v9-dossier-hero${loading ? ' aria-busy="true"' : ''}>
-          <div class="dossier-head">
-            <div class="dossier-avatar" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</div>
-            <div class="dossier-head-body">
-              <div class="dossier-kicker">Kunddossiér</div>
-              <h2 class="dossier-name">${escapeHtml(name)}</h2>
-              <div class="dossier-contact">${escapeHtml(contact)}</div>
-              ${
-                tags.length
-                  ? `<div class="dossier-tags">${tags
-                      .map(
-                        (tag) =>
-                          `<span class="dossier-tag dossier-tag--${escapeHtml(tag.kind)}">${escapeHtml(tag.label)}</span>`
-                      )
-                      .join('')}</div>`
-                  : ''
-              }
+        <div class="v9-dossier-zone1" data-v9-zone1>
+          <div class="v9-dossier-hero" data-v9-dossier-hero${loading ? ' aria-busy="true"' : ''}>
+            <div class="dossier-head">
+              <div class="dossier-avatar" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</div>
+              <div class="dossier-head-body">
+                <nav class="v9-dossier-crumb" aria-label="Dossiér-navigering">
+                  <button type="button" class="v9-dossier-crumb__back" data-v9-nav-back aria-label="Tillbaka till kundlistan">‹ Kunder</button>
+                  <span class="v9-dossier-crumb__sep" aria-hidden="true">/</span>
+                </nav>
+                <div class="dossier-kicker">★ Kunddossiér</div>
+                <h2 class="dossier-name v9-dossier-crumb__who">${escapeHtml(name)}</h2>
+                <div class="dossier-contact">${escapeHtml(contact)}</div>
+                ${
+                  phone || email
+                    ? `<div class="v9-zone1-contact-detail">
+                  ${phone ? `<span>${escapeHtml(phone)}</span>` : ''}
+                  ${email ? `<span>${escapeHtml(email)}</span>` : ''}
+                </div>`
+                    : ''
+                }
+                ${
+                  tags.length
+                    ? `<div class="dossier-tags">${tags
+                        .map(
+                          (tag) =>
+                            `<span class="dossier-tag dossier-tag--${escapeHtml(tag.kind)}">${escapeHtml(tag.label)}</span>`
+                        )
+                        .join('')}</div>`
+                    : ''
+                }
+              </div>
+              <button type="button" class="dossier-close" data-v9-dossier-close title="Stäng dossiér" aria-label="Stäng dossiér">×</button>
             </div>
-            <button type="button" class="dossier-close" data-v9-dossier-close title="Stäng dossiér" aria-label="Stäng dossiér">×</button>
-          </div>
-          <div class="dossier-next-step${loading ? ' is-loading' : ''}" title="Regelbaserat nästa steg">${escapeHtml(nextStep)}</div>
-          <div class="dossier-stats">
-            ${stats
-              .map(
-                (stat) => `
-              <div class="dossier-stat">
-                <div class="dossier-stat-label">${escapeHtml(stat.label)}</div>
-                <div class="dossier-stat-value">${escapeHtml(stat.value)}</div>
-                <div class="dossier-stat-trend">${escapeHtml(stat.trend)}</div>
-              </div>`
-              )
-              .join('')}
+            ${renderV9Zone1BlockersHtml(card)}
+            ${renderV9Zone1PrimaryStepHtml(card, { loading })}
+            <div class="dossier-stats">
+              ${stats
+                .map(
+                  (stat) => `
+                <button type="button" class="dossier-stat dossier-stat--jump dossier-stat--${escapeHtml(stat.iconKey || 'neutral')}" data-v9-stat-jump="${escapeHtml(stat.jump || '')}" title="Visa ${escapeHtml(stat.label.toLowerCase())}">
+                  <span class="dossier-stat-icon" aria-hidden="true">${escapeHtml(stat.icon || '•')}</span>
+                  <div class="dossier-stat-label">${escapeHtml(stat.label)}</div>
+                  <div class="dossier-stat-value">${escapeHtml(stat.value)}</div>
+                  <div class="dossier-stat-trend">${escapeHtml(stat.trend)}</div>
+                </button>`
+                )
+                .join('')}
+            </div>
+            ${renderV9Zone1JumpChipsHtml()}
           </div>
         </div>`;
   }
 
-  function renderPatientDetailHero(card, journalEntries = [], { loading = false } = {}) {
+  function renderPatientDetailHero(
+    card,
+    journalEntries = [],
+    { loading = false, occasionTimeline = null } = {}
+  ) {
     if (isV9CustomersEnabled()) {
-      return renderV9DossierHeroHtml(card, journalEntries, { loading });
+      return renderV9DossierHeroHtml(card, journalEntries, { loading, occasionTimeline });
     }
     const displayName = displayNameForList(card);
     return `
@@ -3450,11 +4013,32 @@
     const previousId = runtime.selectedPatientId;
     resetMobilePatientDetailState();
     renderDetailEmpty();
+    syncV9CustomersLayoutState();
     if (!updatePatientRowSelection(previousId, '')) {
       renderPatientRows();
     }
     syncMobilePatientLayout();
     replaceMobilePatientListUrl();
+  }
+
+  function resolveV9ListSignal(card) {
+    const blockers = collectV9Zone1Blockers(card, 1);
+    if (blockers.length) {
+      const text =
+        blockers[0].text.length > 52 ? `${blockers[0].text.slice(0, 49)}…` : blockers[0].text;
+      return { text, tone: blockers[0].tone === 'needs_review' ? 'warn' : 'blocker' };
+    }
+    if (card?.hasUpcomingBooking && card?.nextBookingAt) {
+      const ts = Date.parse(card.nextBookingAt);
+      if (Number.isFinite(ts)) {
+        const days = Math.ceil((ts - Date.now()) / 86400000);
+        if (days >= 0 && days <= 3) {
+          return { text: days === 0 ? 'Besök idag' : `Besök om ${days} d`, tone: 'ready' };
+        }
+      }
+      return { text: formatV9ListDate(card.nextBookingAt), tone: 'neutral' };
+    }
+    return { text: '—', tone: 'neutral' };
   }
 
   function renderV9PatientRowHtml(card, selected) {
@@ -3469,7 +4053,7 @@
         : card.nextBookingType || (card.hasJournal ? 'Journal' : '—');
     const bookingLine = v9BookingSubline(card);
     const revenue = resolveV9Revenue(card);
-    const nextStep = resolveV9NextStepLabel(card);
+    const signal = resolveV9ListSignal(card);
 
     return `
           <button
@@ -3509,7 +4093,7 @@
                   : ''
               }
             </div>
-            <div><div class="cr-ai" title="Regelbaserat nästa steg">${escapeHtml(nextStep)}</div></div>
+            <div><div class="cr-signal" data-tone="${escapeHtml(signal.tone)}">${escapeHtml(signal.text)}</div></div>
             <div class="cr-arrow" aria-hidden="true">›</div>
           </button>
         `;
@@ -3524,7 +4108,7 @@
             <div>Status</div>
             <div>Senaste besök</div>
             <div>Intäkt (LTV)</div>
-            <div>Nästa steg</div>
+            <div>Signal</div>
             <div></div>
           </div>
         `;
@@ -3579,6 +4163,51 @@
         `;
   }
 
+  function patientsForListRender() {
+    return sortPatientsForV9Display(runtime.patients);
+  }
+
+  function sortPatientsForV9Display(patients) {
+    const sorted = [...(patients || [])];
+    if (!isV9CustomersEnabled()) return sorted;
+    const key = runtime.v9SortKey || 'activity';
+    sorted.sort((a, b) => {
+      if (key === 'name') {
+        return displayNameForList(a).localeCompare(displayNameForList(b), 'sv');
+      }
+      if (key === 'revenue') {
+        return (
+          Number(b.lifetimeValue ?? b.dealValue ?? 0) - Number(a.lifetimeValue ?? a.dealValue ?? 0)
+        );
+      }
+      const ta = Date.parse(a.lastVisitAt || a.lastBookingAt || a.updatedAt || 0) || 0;
+      const tb = Date.parse(b.lastVisitAt || b.lastBookingAt || b.updatedAt || 0) || 0;
+      return tb - ta;
+    });
+    return sorted;
+  }
+
+  function syncV9ListChromeLocal() {
+    if (!isV9CustomersEnabled()) return;
+    resolveElements();
+    if (els.list) els.list.setAttribute('data-v9-list-view', runtime.v9ListView || 'list');
+    const sortBtn = document.querySelector('[data-v9-sort-trigger]');
+    if (sortBtn) {
+      const labels = window.CcoV9CustomersParity?.SORT_LABELS || {
+        activity: '⇅ Senaste aktivitet',
+        name: '⇅ Namn A–Ö',
+        revenue: '⇅ Intäkt (LTV)',
+      };
+      sortBtn.textContent = labels[runtime.v9SortKey] || labels.activity;
+    }
+    const viewBtn = document.querySelector('[data-v9-view-toggle]');
+    if (viewBtn) {
+      const grid = runtime.v9ListView === 'grid';
+      viewBtn.textContent = grid ? '▦ Rutnät' : '≡ Lista';
+      viewBtn.setAttribute('aria-pressed', grid ? 'false' : 'true');
+    }
+  }
+
   function renderPatientRows() {
     if (!els.list || runtime.mode !== 'register') return;
     if (syncAuthRequiredChrome()) {
@@ -3608,9 +4237,10 @@
       els.list.innerHTML = '';
     }
 
-    const hasMore = runtime.patients.length < runtime.total;
+    const listPatients = patientsForListRender();
+    const hasMore = listPatients.length < runtime.total;
     const footer = hasMore
-      ? `<button class="customers-utility-button patient-master-load-more" type="button" data-patient-load-more>Visa fler (${runtime.patients.length}/${runtime.total})</button>`
+      ? `<button class="customers-utility-button patient-master-load-more" type="button" data-patient-load-more>Visa fler (${listPatients.length}/${runtime.total})</button>`
       : runtime.total
         ? `<p class="patient-master-list-meta">${runtime.total} kunder totalt</p>`
         : '';
@@ -3620,7 +4250,7 @@
     if (virtual?.mountVirtualPatientList) {
       patientListVirtualHandle = virtual.mountVirtualPatientList({
         container: listMount,
-        items: runtime.patients,
+        items: listPatients,
         selectedId: runtime.selectedPatientId,
         renderRowHtml: (card, selected) => renderPatientRowHtml(card, selected),
         rowHeightPx,
@@ -3633,7 +4263,7 @@
         footerHost.appendChild(footerEl);
       }
     } else {
-      const rows = runtime.patients
+      const rows = listPatients
         .map((card) => renderPatientRowHtml(card, card.patientId === runtime.selectedPatientId))
         .join('');
       if (isV9CustomersEnabled()) {
@@ -3648,6 +4278,7 @@
         els.list.innerHTML = rows + footer;
       }
     }
+    syncV9ListChromeLocal();
   }
 
   function escapeSelectorValue(value) {
@@ -3698,6 +4329,7 @@
     }
     if (isV9CustomersEnabled()) {
       renderV9AggregatePanel();
+      syncV9CustomersLayoutState();
       return;
     }
     rail.innerHTML = `
@@ -3767,6 +4399,7 @@
         ${renderPatientDetailBodyClose()}
       </section>
     `;
+    syncV9CustomersLayoutState();
     syncMobilePatientLayout();
     window.ArcanaMobileShell?.syncFromApp?.();
   }
@@ -5663,6 +6296,9 @@
     if (!runtime.detail?.card || !rail?.querySelector('[data-patient-detail]')) {
       return false;
     }
+    if (isV9CustomersEnabled() && rail.querySelector('.v9-mockup-dossier')) {
+      closeV9DossierDeepPanel();
+    }
     if (normalized === runtime.detailTab) {
       syncMobilePatientLayout();
       window.ArcanaMobileShell?.syncFromApp?.();
@@ -5755,6 +6391,27 @@
     const { card: rawCard } = runtime.detail;
     const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId);
     const journalEntries = asArray(runtime.detail.journalEntries);
+    const occasionTimeline = runtime.detail?.occasionTimeline;
+    const driveFiles = runtime.detail?.driveFiles;
+
+    if (isV9CustomersEnabled()) {
+      rail.innerHTML = renderV9MockupDetailShell(
+        card,
+        journalEntries,
+        occasionTimeline,
+        driveFiles,
+        runtime.detail?.patient,
+        normalizeDetailTab(runtime.detailTab),
+        { lite: true }
+      );
+      bindV9MockupDossierHandlers(rail, { card, journalEntries, driveFiles });
+      ensureV9DossierDeepClosed();
+      runtime.detailShellOnly = true;
+      syncV9CustomersLayoutState();
+      syncMobilePatientLayout();
+      return;
+    }
+
     const tab = normalizeDetailTab(runtime.detailTab);
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
@@ -5770,8 +6427,7 @@
     rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
         ${renderPatientDetailHero(card, journalEntries)}
-        ${renderV9SmartNextStepHtml(card)}
-        ${renderV9CapabilityActionsHtml(card)}
+        ${renderV9DossierScrollBlock(card, journalEntries, runtime.detail?.occasionTimeline, driveFiles)}
 
         ${renderPatientDetailTabsMarkup(tab, fileCount)}
         ${renderPatientDetailBodyOpen()}
@@ -5801,6 +6457,7 @@
       </section>
     `;
     bindV9DossierCapabilityHandlers(rail);
+    window.CcoV9CustomersParity?.bindDossierScroll?.(rail);
     runtime.detailShellOnly = true;
     syncMobilePatientLayout();
   }
@@ -5834,6 +6491,35 @@
     revokePhotoObjectUrls();
     const { card: rawCard, patient, journalEntries, driveFiles, occasionTimeline } = detail;
     const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId);
+
+    if (isV9CustomersEnabled()) {
+      const tab = normalizeDetailTab(runtime.detailTab);
+      rail.innerHTML = renderV9MockupDetailShell(
+        card,
+        journalEntries,
+        occasionTimeline,
+        driveFiles,
+        patient,
+        tab
+      );
+      bindJournalPhotoOpenLinks(els.patientRail);
+      bindV9MockupDossierHandlers(rail, { card, journalEntries, driveFiles, patient });
+      bindV9DossierCapabilityHandlers(rail);
+      ensureV9DossierDeepClosed();
+      void hydrateJournalPhotoElements(els.patientRail);
+      void hydratePatientFileImages(els.patientRail);
+      syncV9CustomersLayoutState();
+      syncMobilePatientLayout();
+      window.requestAnimationFrame(() => {
+        bindJournalAutosaveForms();
+        focusTimelineSegmentIfNeeded(els.patientRail);
+        if (tab === 'scalpanalys' && isAisiaScalpAnalysisEnabled() && card?.patientId) {
+          void mountScalpAnalysisPanel(els.patientRail);
+        }
+      });
+      return;
+    }
+
     const tab = normalizeDetailTab(runtime.detailTab);
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
@@ -5847,8 +6533,6 @@
     rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
         ${renderPatientDetailHero(card, journalEntries)}
-        ${renderV9SmartNextStepHtml(card)}
-        ${renderV9CapabilityActionsHtml(card)}
 
         ${renderPatientDetailTabsMarkup(tab, fileCount)}
         ${renderPatientDetailBodyOpen()}
@@ -5917,6 +6601,7 @@
     `;
     bindJournalPhotoOpenLinks(els.patientRail);
     bindV9DossierCapabilityHandlers(els.patientRail);
+    window.CcoV9CustomersParity?.bindDossierScroll?.(els.patientRail);
     void hydrateJournalPhotoElements(els.patientRail);
     void hydratePatientFileImages(els.patientRail);
     syncMobilePatientLayout();
@@ -6358,7 +7043,9 @@
       runtime.journalLoading = false;
     }
     runtime.selectedPatientId = patientId;
-    if (isMobileViewport() && runtime.preferJournalOnMobile) {
+    if (openingNewPatient && isV9CustomersEnabled() && !isMobileViewport()) {
+      runtime.detailTab = 'oversikt';
+    } else if (isMobileViewport() && runtime.preferJournalOnMobile) {
       runtime.detailTab = 'journal';
     }
     runtime.detailLoading = true;
@@ -8207,6 +8894,15 @@
   }
 
   bootWhenPatientRailReady();
+  window.CcoPatientMasterUi = {
+    getRuntime: () => runtime,
+    renderRows: renderPatientRows,
+    setStatus,
+    switchDetailTab,
+    sortPatients: sortPatientsForV9Display,
+    syncListChrome: syncV9ListChromeLocal,
+  };
+  window.CcoV9CustomersParity?.install?.(window.CcoPatientMasterUi);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', watchCustomersShellActivation, { once: true });
   } else {

@@ -112,6 +112,19 @@ html[data-v9-enabled="on"]
     position: relative;
     z-index: 1;
   }
+
+  html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail.customers-rail--dominant {
+    padding: 12px 12px 14px !important;
+  }
+
+  html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail.customers-rail--dominant
+    .v9-mockup-dossier {
+    border-radius: 20px;
+  }
 }
 
 /*

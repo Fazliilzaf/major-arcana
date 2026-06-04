@@ -83,11 +83,15 @@ const REQUIRED = [
     pattern: /writeEnabled:\s*photoWriteEnabled/,
     min: 1,
   },
+  {
+    label: 'kunder.html 301 redirect to SPA customers (ORD-19)',
+    pattern: /app\.get\('\/kunder\.html'/,
+    min: 1,
+  },
 ];
 
 const STATIC_PAGES = [
   'public/cco-demo.html',
-  'public/kunder.html',
   'public/journal-feed-demo.html',
   'public/cco-ops-workbench.html',
   'public/cco-personal-start.html',

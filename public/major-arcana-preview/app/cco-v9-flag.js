@@ -1,6 +1,7 @@
 /**
  * ORD-16 steg 1 — v9 feature flag.
  * ORD-20 (2026-06-04): default ON (owner-override av 2v-stabilitetsfönster).
+ * ORD-23 (2026-06-04): 7-dagars TTL på sticky off + preference helpers.
  *   ?v9=on  → localStorage arcana.v9.enabled = '1'   (sticky ON)
  *   ?v9=off → localStorage arcana.v9.enabled = '0'   (sticky OFF, kill-switch)
  *   inget   → enabled = (localStorage !== '0')       (default ON, men respect sticky off)
@@ -10,11 +11,13 @@
  *   ?demo=off → localStorage arcana.v9.demo = '0'  (sticky OFF)
  *   inget     → demo OFF (prod-port: renderas inte)
  */
-(function () {
+(function (global) {
   'use strict';
 
   var V9_KEY = 'arcana.v9.enabled';
+  var V9_DISABLED_AT_KEY = 'arcana.v9.disabledAt';
   var DEMO_KEY = 'arcana.v9.demo';
+  var V9_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   var params;
 
   try {
@@ -31,19 +34,55 @@
       : '';
   }
 
+  function markV9Disabled() {
+    try {
+      localStorage.setItem(V9_DISABLED_AT_KEY, String(Date.now()));
+    } catch (_error) {
+      /* private mode */
+    }
+  }
+
+  function clearV9DisabledAt() {
+    try {
+      localStorage.removeItem(V9_DISABLED_AT_KEY);
+    } catch (_error) {
+      /* private mode */
+    }
+  }
+
+  function maybeExpireStickyOff() {
+    try {
+      if (localStorage.getItem(V9_KEY) !== '0') return;
+      var raw = localStorage.getItem(V9_DISABLED_AT_KEY);
+      if (!raw) return;
+      var ts = Number(raw);
+      if (!Number.isFinite(ts)) return;
+      if (Date.now() - ts >= V9_TTL_MS) {
+        localStorage.removeItem(V9_KEY);
+        localStorage.removeItem(V9_DISABLED_AT_KEY);
+      }
+    } catch (_error) {
+      /* private mode */
+    }
+  }
+
   var v9Query = readQuery('v9');
   if (v9Query === 'on') {
     try {
       localStorage.setItem(V9_KEY, '1');
+      clearV9DisabledAt();
     } catch (_error) {
       /* private mode */
     }
   } else if (v9Query === 'off') {
     try {
       localStorage.setItem(V9_KEY, '0');
+      markV9Disabled();
     } catch (_error) {
       /* private mode */
     }
+  } else {
+    maybeExpireStickyOff();
   }
 
   var demoQuery = readQuery('demo');
@@ -77,6 +116,13 @@
 
   document.documentElement.setAttribute('data-v9-enabled', v9Enabled ? 'on' : 'off');
   document.documentElement.setAttribute('data-v9-demo', demoEnabled ? 'on' : 'off');
-  window.__ARCANA_V9_ENABLED__ = v9Enabled;
-  window.__ARCANA_V9_DEMO_ENABLED__ = v9Enabled && demoEnabled;
-})();
+  global.__ARCANA_V9_ENABLED__ = v9Enabled;
+  global.__ARCANA_V9_DEMO_ENABLED__ = v9Enabled && demoEnabled;
+
+  global.CcoV9Flag = {
+    markV9Disabled: markV9Disabled,
+    clearV9DisabledAt: clearV9DisabledAt,
+    maybeExpireStickyOff: maybeExpireStickyOff,
+    TTL_MS: V9_TTL_MS,
+  };
+})(typeof window !== 'undefined' ? window : global);

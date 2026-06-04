@@ -116,8 +116,8 @@
         id: 'journal',
         label: 'Journal',
         status: journalStatus,
-        kind: 'link',
-        href: journalHref,
+        kind: 'handler',
+        handler: 'journal',
         route: journalHref,
         disabledReason: journalReason,
         requiredData: 'patientId',
@@ -126,8 +126,8 @@
         id: 'timeline',
         label: 'Timeline',
         status: journalStatus,
-        kind: 'link',
-        href: timelineHref,
+        kind: 'handler',
+        handler: 'timeline',
         route: timelineHref,
         disabledReason: journalReason,
         requiredData: 'patientId',
@@ -145,11 +145,11 @@
       def({
         id: 'communication',
         label: 'Kommunikation',
-        status: patientId && hasKomm ? 'partial' : 'disabled',
+        status: patientId ? 'real' : 'disabled',
         kind: 'handler',
         handler: 'communication',
-        disabledReason: patientId ? 'Öppnas i dossier (kommunikationspanel)' : 'Saknar patientId',
-        requiredData: 'patientId, CcoKommPanel',
+        disabledReason: 'Saknar patientId',
+        requiredData: 'patientId',
       }),
       def({
         id: 'calendar',
@@ -331,6 +331,8 @@
         if (handler === 'assets' && handlers.scrollAssets) handlers.scrollAssets();
         if (handler === 'communication' && handlers.scrollCommunication)
           handlers.scrollCommunication();
+        if (handler === 'journal' && handlers.openJournal) handlers.openJournal();
+        if (handler === 'timeline' && handlers.openTimeline) handlers.openTimeline();
       });
     });
   }

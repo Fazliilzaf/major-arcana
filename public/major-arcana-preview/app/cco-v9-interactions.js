@@ -28,6 +28,10 @@
   }
 
   function isActiveScope() {
+    return isV9On() && isCustomersView();
+  }
+
+  function isDemoChromeScope() {
     return isV9DemoOn() && isCustomersView();
   }
 
@@ -261,10 +265,16 @@
       'Kund';
     const nameNode = overlay.querySelector('[data-v9-cam-name]');
     if (nameNode) nameNode.textContent = name;
-    camContinueHandler =
-      typeof triggerBtn?.querySelector === 'function'
-        ? () => triggerBtn.querySelector('[data-patient-photo-camera]')?.click()
-        : null;
+    camContinueHandler = () => {
+      const localInput = triggerBtn?.querySelector?.('[data-patient-photo-camera]');
+      if (localInput) {
+        localInput.click();
+        return;
+      }
+      document
+        .querySelector('.v9-mockup-dossier .v9-camera-bridge [data-patient-photo-camera]')
+        ?.click();
+    };
     overlay.classList.add('is-visible');
     overlay.hidden = false;
   }
@@ -294,8 +304,11 @@
   function syncDemoChrome() {
     document.getElementById('v9-mockup-label')?.remove();
     document.getElementById('v9-mockup-caption')?.remove();
-    if (!isV9DemoOn()) {
+    if (!isV9On()) {
       teardownDemoOverlays();
+      return;
+    }
+    if (!isDemoChromeScope()) {
       return;
     }
     ensureEl('v9-mockup-label', 'v9-mockup-label', 'v9 · KUNDER');
@@ -437,5 +450,6 @@
     syncDemoChrome();
     bindOverlayEvents();
     bindKeyboard();
+    window.addEventListener('cco:v9-open-search', () => openSearch());
   }
 })();

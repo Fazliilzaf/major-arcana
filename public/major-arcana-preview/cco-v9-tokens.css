@@ -215,9 +215,17 @@ html[data-v9-enabled="on"] {
 
   /* G — layoutlogik (referens, mockup-paritet) */
   /* Rek. 4 — sid-skelett (mockup .app-grid → prod .customers-layout) */
-  --v9-layout-col-segment: 200px;
+  --v9-layout-col-segment: 180px;
+  --v9-layout-col-list-min: 260px;
+  --v9-layout-col-list-max: 320px;
+  --v9-layout-col-dossier-min: 560px;
+  /* Legacy alias — agg-vy utan vald kund */
   --v9-layout-col-intel: 360px;
-  --v9-layout-grid-cols: var(--v9-layout-col-segment) minmax(0, 1fr) var(--v9-layout-col-intel);
+  --v9-layout-grid-cols: var(--v9-layout-col-segment) minmax(0, 1fr)
+    minmax(var(--v9-layout-col-intel), 1fr);
+  --v9-layout-grid-cols-dossier: var(--v9-layout-col-segment)
+    minmax(var(--v9-layout-col-list-min), var(--v9-layout-col-list-max))
+    minmax(var(--v9-layout-col-dossier-min), 2.6fr);
   --v9-layout-gap: 16px;
   --v9-layout-gap-dense: 8px;
   --v9-layout-gap-tight: 6px;

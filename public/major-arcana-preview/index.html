@@ -3161,6 +3161,25 @@
                         </svg>
                       </span>
                       <h2 data-v9-customer-count>0 kunder</h2>
+                      <label class="v9-global-search" data-v9-global-search aria-label="Sök kunder">
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                        >
+                          <circle cx="7" cy="7" r="4.5" />
+                          <path d="M10.5 10.5 14 14" />
+                        </svg>
+                        <input
+                          type="search"
+                          data-v9-global-search-input
+                          placeholder="Sök kund, telefon, behandling…"
+                          autocomplete="off"
+                        />
+                        <kbd class="v9-global-search-kbd">⌘K</kbd>
+                      </label>
                     </div>
                     <div class="calendar-toolbar-actions">
                       <button
@@ -3540,6 +3559,8 @@
                   <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
                   <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
                   <script defer src="./app/cco-v9-interactions.js?v=build-1ccb8f9"></script>
+                  <script defer src="./app/cco-v9-customers-parity.js?v=build-ord24"></script>
+                  <script defer src="./app/cco-v9-preference-ui.js?v=build-ord23"></script>
                   <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
                   <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
 

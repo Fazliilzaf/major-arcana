@@ -10209,6 +10209,7 @@ const { createCcoSwishRouter } = require('./src/routes/ccoSwish');
 const { createCcoSettingsRouter } = require('./src/routes/ccoSettings');
 const { createCcoMacrosRouter } = require('./src/routes/ccoMacros');
 const { createCcoCustomersRouter } = require('./src/routes/ccoCustomers');
+const { createCcoCustomerCommRouter } = require('./src/routes/ccoCustomerComm');
 const { createCcoStaffRouter } = require('./src/routes/ccoStaff');
 const { createCcoPatientMasterRouter } = require('./src/routes/ccoPatientMaster');
 const { createCcoReadCache } = require('./src/infra/ccoReadCache');
@@ -12258,6 +12259,19 @@ process.once('SIGTERM', () => {
       authStore,
       requireAuth: auth.requireAuth,
       requireRole: auth.requireRole,
+    })
+  );
+
+  app.use(
+    '/api/v1',
+    createCcoCustomerCommRouter({
+      config,
+      requireAuth: auth.requireAuth,
+      journalStore: ccoJournalStore,
+      mailIngestionStore: ccoMailIngestionStore,
+      commDraftStore: app.locals?.ccoCommDraftStore || null,
+      sendActionStore: ccoSendActionStore,
+      auditLog: ccoAuditLog,
     })
   );
 
