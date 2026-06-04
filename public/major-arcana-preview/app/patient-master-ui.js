@@ -826,6 +826,7 @@
     els.v9Header = document.querySelector('[data-v9-customers-header]');
     els.v9Filters = document.querySelector('[data-v9-customers-filters]');
     els.v9Sidebar = document.querySelector('[data-v9-segment-sidebar]');
+    els.v9AggInsights = document.querySelector('[data-v9-agg-insights]');
     els.title = document.querySelector('#customers-title');
     els.subtitle = els.shell?.querySelector('[data-customers-lead]');
     els.modeButtons = Array.from(document.querySelectorAll('[data-patient-master-mode]'));
@@ -872,7 +873,7 @@
   }
 
   function syncV9CustomersChrome() {
-    if (!els.v9Header && !els.v9Filters && !els.v9Sidebar) return;
+    if (!els.v9Header && !els.v9Filters && !els.v9Sidebar && !els.v9AggInsights) return;
     const show = isV9CustomersEnabled() && runtime.mode === 'register';
     if (els.v9Header) {
       els.v9Header.hidden = !show;
@@ -882,9 +883,125 @@
       els.v9Filters.hidden = !show;
       els.v9Filters.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
+    if (els.v9AggInsights) {
+      els.v9AggInsights.hidden = !show;
+      els.v9AggInsights.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
     if (els.v9Sidebar) {
       els.v9Sidebar.hidden = !show;
       els.v9Sidebar.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+  }
+
+  function navigateShellView(view) {
+    const nextView = normalizeText(view);
+    if (!nextView) return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', nextView);
+      window.history.pushState(window.history.state, '', url.toString());
+    } catch {
+      /* ignore */
+    }
+    const navBtn = document.querySelector(`[data-nav-view="${nextView}"]`);
+    if (navBtn) {
+      navBtn.click();
+      return;
+    }
+    document.querySelectorAll('[data-shell-view]').forEach((section) => {
+      section.hidden = section.dataset.shellView !== nextView;
+    });
+  }
+
+  function setV9AggInsightBody(key, html) {
+    if (!els.v9AggInsights) return;
+    const node = els.v9AggInsights.querySelector(`[data-v9-agg-body="${key}"]`);
+    if (!node) return;
+    node.innerHTML = html;
+  }
+
+  function renderV9AggInsights(segmentStats) {
+    if (!isV9CustomersEnabled() || !els.v9AggInsights) return;
+    const agg = segmentStats?.aggInsights;
+    if (!agg) {
+      setV9AggInsightBody('idag', 'Data saknas.');
+      setV9AggInsightBody('opp', 'Data saknas.');
+      setV9AggInsightBody('trend', 'Data saknas.');
+      setV9AggInsightBody('risk', 'Data saknas.');
+      return;
+    }
+
+    const idag = agg.idag || {};
+    if (idag.count > 0) {
+      const names = asArray(idag.names)
+        .slice(0, 3)
+        .map((name) => escapeHtml(name))
+        .join(', ');
+      setV9AggInsightBody(
+        'idag',
+        `<strong>${formatMetricNumber(idag.count)} kunder</strong> behöver kontakt${
+          names ? `: ${names}` : ''
+        }`
+      );
+    } else {
+      setV9AggInsightBody('idag', escapeHtml(idag.reason || 'Inga kontaktärenden idag.'));
+    }
+
+    const opp = agg.opp || {};
+    if (opp.count > 0) {
+      setV9AggInsightBody(
+        'opp',
+        `<strong>${formatMetricNumber(opp.count)} VIP-kunder</strong> har inte bokat på 60+ dagar`
+      );
+    } else {
+      setV9AggInsightBody('opp', escapeHtml(opp.reason || 'Inga inaktiva VIP just nu.'));
+    }
+
+    const trend = agg.trend || {};
+    if (trend.disabled || trend.pctChange == null) {
+      setV9AggInsightBody('trend', escapeHtml(trend.reason || 'Trend kräver bokningshistorik.'));
+    } else {
+      const sign = trend.pctChange > 0 ? '+' : '';
+      const dir =
+        trend.direction === 'down' ? 'ned' : trend.direction === 'up' ? 'upp' : 'oförändrat';
+      setV9AggInsightBody(
+        'trend',
+        `Snittbesök ${dir} <strong>${sign}${formatMetricNumber(trend.pctChange)}%</strong> senaste 4 veckor`
+      );
+    }
+
+    const risk = agg.risk || {};
+    if (risk.disabled) {
+      setV9AggInsightBody('risk', escapeHtml(risk.reason || 'Bokningsdata saknas.'));
+    } else if (risk.count > 0) {
+      const names = asArray(risk.names)
+        .slice(0, 3)
+        .map((name) => escapeHtml(name))
+        .join(', ');
+      setV9AggInsightBody(
+        'risk',
+        `<strong>${formatMetricNumber(risk.count)} kunder</strong> har bokning inom 3 dagar men saknar friskförsäkran${
+          names ? `: ${names}` : ''
+        }`
+      );
+    } else {
+      setV9AggInsightBody('risk', escapeHtml(risk.reason || 'Inga riskärenden inom 3 dagar.'));
+    }
+  }
+
+  function applyV9AggInsightAction(key) {
+    const agg = runtime.segmentStats?.aggInsights?.[key];
+    if (!agg) return;
+    if ((key === 'opp' || key === 'trend') && agg.ctaView) {
+      navigateShellView(agg.ctaView);
+      return;
+    }
+    if (agg.ctaSegment) {
+      applySegmentFromUi(agg.ctaSegment);
+      return;
+    }
+    if (agg.ctaView) {
+      navigateShellView(agg.ctaView);
     }
   }
 
@@ -1190,6 +1307,7 @@
     renderV9MetricHeader(stats);
     renderV9FilterChips(stats, runtime.segmentStats);
     renderV9SegmentSidebar(runtime.segmentStats, stats);
+    renderV9AggInsights(runtime.segmentStats);
   }
 
   function chipHtml(label, tone = 'blue') {
@@ -6558,6 +6676,15 @@
         if (!link || runtime.mode !== 'register' || !isV9CustomersEnabled()) return;
         if (link.disabled || link.classList.contains('is-disabled')) return;
         applySegmentFromUi(link.dataset.v9Segment || 'all');
+      });
+    }
+
+    if (els.v9AggInsights && !els.v9AggInsights.dataset.bound) {
+      els.v9AggInsights.dataset.bound = '1';
+      els.v9AggInsights.addEventListener('click', (event) => {
+        const card = event.target.closest('[data-v9-agg]');
+        if (!card || runtime.mode !== 'register' || !isV9CustomersEnabled()) return;
+        applyV9AggInsightAction(normalizeText(card.dataset.v9Agg));
       });
     }
 

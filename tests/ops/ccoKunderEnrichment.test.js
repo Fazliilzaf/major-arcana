@@ -14,6 +14,7 @@ const {
   maskEmail,
   maskPhone,
 } = require('../../src/ops/ccoKunderEnrichment');
+const { emptyBookingSignals } = require('../../src/ops/ccoKunderBookingEnrichment');
 
 describe('ccoKunderEnrichment', () => {
   it('masks contact fields', () => {
@@ -142,16 +143,42 @@ describe('ccoKunderEnrichment', () => {
     assert.equal(stats.mineKunder.status, 'disabled');
   });
 
-  it('buildOwnerFieldInventory lists pipedrive.owner', () => {
-    const inv = buildOwnerFieldInventory([
+  it('computeSegmentStats includes aggInsights', () => {
+    const today = new Date().toISOString();
+    const patients = [
       {
-        id: 'o1',
-        pipedrive: { owner: 'Staff A' },
-        fileSummary: {},
+        id: 'p-today',
+        displayName: 'Anna Test',
+        matchStatus: 'matched',
         flags: [],
+        fileSummary: {},
+        updatedAt: today,
       },
+      {
+        id: 'p-vip',
+        displayName: 'VIP Old',
+        matchStatus: 'matched',
+        flags: [],
+        fileSummary: {},
+        pipedrive: { deals: [{ status: 'won', value: '30000' }] },
+        updatedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ];
+    const assetIndex = buildAssetSignalsIndex([]);
+    const bookingIndex = new Map([
+      ['p-today', { ...emptyBookingSignals(), todayVisit: true }],
+      [
+        'p-vip',
+        {
+          ...emptyBookingSignals(),
+          lastVisitAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ],
     ]);
-    assert.ok(inv.fieldsPresent.includes('pipedrive.owner'));
-    assert.equal(inv.patientsWithAnyOwner, 1);
+    const stats = computeSegmentStats(patients, assetIndex, bookingIndex, 'real', {}, {});
+    assert.ok(stats.aggInsights);
+    assert.equal(stats.aggInsights.idag.count, 1);
+    assert.equal(stats.aggInsights.idag.names[0], 'Anna Test');
+    assert.equal(stats.aggInsights.opp.count, 1);
   });
 });

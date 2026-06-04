@@ -383,7 +383,14 @@ function applyBookingToReadout(readout, bookingSignals) {
 let bookingStoresPromise = null;
 
 async function loadKunderBookingIndex(config, tenantId, patients = []) {
-  const empty = { index: new Map(), coverage: 'missing', sources: {} };
+  const empty = {
+    index: new Map(),
+    coverage: 'missing',
+    sources: {},
+    engineBookings: [],
+    bookingCases: [],
+    encounters: [],
+  };
   try {
     if (!bookingStoresPromise) {
       bookingStoresPromise = (async () => {
@@ -440,10 +447,71 @@ async function loadKunderBookingIndex(config, tenantId, patients = []) {
         bookingCases: bookingCases.length,
         encounters: encounters.length,
       },
+      engineBookings,
+      bookingCases,
+      encounters,
     };
   } catch {
     return empty;
   }
+}
+
+function isBookingWithinDays(startsAt, days, nowMs = Date.now()) {
+  const ms = parseMs(startsAt);
+  if (ms == null) return false;
+  const end = nowMs + Math.max(0, Number(days) || 0) * MS_DAY;
+  return ms >= nowMs && ms <= end;
+}
+
+/**
+ * Count past visits in the last 4 calendar weeks; compare recent 2 vs prior 2.
+ */
+function computeVisitTrendFromBundle({
+  engineBookings = [],
+  bookingCases = [],
+  encounters = [],
+} = {}) {
+  const now = Date.now();
+  const buckets = [0, 0, 0, 0];
+
+  const addPastVisit = (startsAt) => {
+    const ms = parseMs(startsAt);
+    if (ms == null || ms > now) return;
+    const ageDays = Math.floor((now - ms) / MS_DAY);
+    const weekIndex = Math.floor(ageDays / 7);
+    if (weekIndex < 0 || weekIndex > 3) return;
+    buckets[3 - weekIndex] += 1;
+  };
+
+  for (const booking of asArray(engineBookings)) {
+    if (normalizeKey(booking.status) !== 'confirmed') continue;
+    addPastVisit(asObject(booking.slot).startsAt);
+  }
+  for (const bookingCase of asArray(bookingCases)) {
+    for (const slot of asArray(bookingCase.selectedSlots)) {
+      addPastVisit(asObject(slot).startsAt);
+    }
+  }
+  for (const enc of asArray(encounters)) {
+    addPastVisit(enc.startsAt);
+  }
+
+  const priorAvg = (buckets[0] + buckets[1]) / 2;
+  const recentAvg = (buckets[2] + buckets[3]) / 2;
+  let pctChange = 0;
+  if (priorAvg > 0) {
+    pctChange = Math.round(((recentAvg - priorAvg) / priorAvg) * 100);
+  } else if (recentAvg > 0) {
+    pctChange = 100;
+  }
+
+  return {
+    buckets,
+    priorAvg,
+    recentAvg,
+    pctChange,
+    direction: pctChange > 0 ? 'up' : pctChange < 0 ? 'down' : 'flat',
+  };
 }
 
 module.exports = {
@@ -456,4 +524,6 @@ module.exports = {
   emptyBookingSignals,
   isTodayVisit,
   isThisWeekVisit,
+  isBookingWithinDays,
+  computeVisitTrendFromBundle,
 };

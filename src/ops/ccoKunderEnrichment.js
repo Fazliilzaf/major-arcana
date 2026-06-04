@@ -9,7 +9,9 @@ const { buildPatientCardReadout, derivePatientOrigin } = require('./ccoPatientMa
 const {
   TREATMENT_SEGMENT_DEFS,
   applyBookingToReadout,
+  computeVisitTrendFromBundle,
   getBookingSignals,
+  isBookingWithinDays,
   loadKunderBookingIndex,
   patientMatchesTreatmentSegment,
 } = require('./ccoKunderBookingEnrichment');
@@ -567,12 +569,110 @@ function buildSegmentCatalog(bookingCoverage = 'missing', ownerCoverage = 'none'
   ];
 }
 
+function safeAggPatientName(patient) {
+  const name = normalizeText(patient?.displayName);
+  if (!name) return null;
+  if (/\.(pdf|zip|jpe?g|png|heic|docx?)$/i.test(name) || /^[a-f0-9-]{20,}$/i.test(name)) {
+    return null;
+  }
+  return name;
+}
+
+function computeAggInsights(
+  patients,
+  assetIndex,
+  bookingIndex = null,
+  bookingCoverage = 'missing',
+  bookingBundle = null
+) {
+  const idagNames = [];
+  let idagCount = 0;
+  let vipInactiveCount = 0;
+  let riskCount = 0;
+  const riskNames = [];
+
+  for (const patient of patients) {
+    const assetSig = getAssetSignals(assetIndex, patient.id);
+    const booking = getBookingSignals(bookingIndex, patient.id);
+    const name = safeAggPatientName(patient);
+
+    if (booking.todayVisit && !assetSig.hasForm) {
+      idagCount += 1;
+      if (name && idagNames.length < 3) idagNames.push(name);
+    }
+
+    if (isVipPatient(patient)) {
+      const inactiveDays = daysSince(booking.lastVisitAt || patient.updatedAt || patient.createdAt);
+      const inactiveEnough = inactiveDays == null || inactiveDays > 60;
+      if (inactiveEnough && !booking.hasUpcomingBooking) {
+        vipInactiveCount += 1;
+      }
+    }
+
+    if (
+      bookingCoverage !== 'missing' &&
+      isBookingWithinDays(booking.nextBookingAt, 3) &&
+      !assetSig.hasHalso
+    ) {
+      riskCount += 1;
+      if (name && riskNames.length < 3) riskNames.push(name);
+    }
+  }
+
+  const trend =
+    bookingCoverage === 'missing'
+      ? { pctChange: null, direction: 'flat', buckets: [0, 0, 0, 0], disabled: true }
+      : {
+          ...computeVisitTrendFromBundle(bookingBundle || {}),
+          disabled: false,
+        };
+
+  return {
+    idag: {
+      count: idagCount,
+      names: idagNames,
+      ctaSegment: 'today_visits',
+      disabled: bookingCoverage === 'missing' && idagCount === 0,
+      reason:
+        bookingCoverage === 'missing'
+          ? 'Bokningsdata saknas — visar kontaktärenden från register.'
+          : idagCount === 0
+            ? 'Inga dagens besök saknar hälsodeklaration.'
+            : null,
+    },
+    opp: {
+      count: vipInactiveCount,
+      ctaView: 'automation',
+      disabled: false,
+      reason: vipInactiveCount === 0 ? 'Inga VIP-kunder inaktiva 60+ dagar.' : null,
+    },
+    trend: {
+      ...trend,
+      ctaView: 'analytics',
+      reason: trend.disabled || trend.pctChange == null ? 'Trend kräver bokningshistorik.' : null,
+    },
+    risk: {
+      count: riskCount,
+      names: riskNames,
+      ctaSegment: 'this_week',
+      disabled: bookingCoverage === 'missing',
+      reason:
+        bookingCoverage === 'missing'
+          ? 'Bokningsdata saknas.'
+          : riskCount === 0
+            ? 'Inga kommande besök inom 3 dagar saknar friskförsäkran.'
+            : null,
+    },
+  };
+}
+
 function computeSegmentStats(
   patients,
   assetIndex,
   bookingIndex = null,
   bookingCoverage = 'missing',
-  opts = {}
+  opts = {},
+  bookingBundle = null
 ) {
   const assignedOwner = normalizeText(opts.assignedOwner);
   const ownerMeta = computeOwnerCoverage(patients);
@@ -697,6 +797,13 @@ function computeSegmentStats(
       bookingCoverage,
       totalPatients: patients.length,
     },
+    aggInsights: computeAggInsights(
+      patients,
+      assetIndex,
+      bookingIndex,
+      bookingCoverage,
+      bookingBundle
+    ),
     counts,
     bookingCoverage,
   };
@@ -746,6 +853,7 @@ module.exports = {
   buildSegmentCatalog,
   buildAssetSignalsIndex,
   buildKunderReadout,
+  computeAggInsights,
   computeSegmentStats,
   filterPatientsBySegment,
   loadAssetSignalsIndex,

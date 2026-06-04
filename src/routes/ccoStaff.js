@@ -156,7 +156,8 @@ function createCcoStaffRouter({
                 assetIndex,
                 bookingIndex,
                 bookingCoverage,
-                segmentOpts
+                segmentOpts,
+                bookingBundle
               )
             );
             segmentStats = wrapped.value;
@@ -166,7 +167,8 @@ function createCcoStaffRouter({
               assetIndex,
               bookingIndex,
               bookingCoverage,
-              segmentOpts
+              segmentOpts,
+              bookingBundle
             );
           }
 
