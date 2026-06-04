@@ -85,21 +85,70 @@
   const V9_FLAG_FILTER_FROM_LABEL = Object.fromEntries(
     Object.entries(V9_FLAG_FILTER_LABELS).map(([flag, label]) => [label.toLowerCase(), flag])
   );
-  const V9_SEGMENT_SIDEBAR_IDS = [
-    'all',
-    'mine',
-    'today_visits',
-    'this_week',
-    'waitlist',
-    'treatment_dhi',
-    'treatment_prp',
-    'treatment_microneedling',
-    'treatment_consultation',
-    'vip',
-    'risk',
-    'new',
-    'dormant',
+  /** Sidebar placement — keep in sync with public/cco-kunder-real.js SEGMENT_UI */
+  const V9_SEGMENT_UI = [
+    { id: 'all', side: true, chip: 'all', group: 'core' },
+    { id: 'mine', side: true, group: 'core' },
+    { id: 'today_visits', side: true, group: 'core' },
+    { id: 'this_week', side: true, group: 'core' },
+    { id: 'waitlist', side: true, group: 'core' },
+    { id: 'treatment_fue', side: true, treatment: true, group: 'treatment' },
+    { id: 'treatment_dhi', side: true, treatment: true, group: 'treatment' },
+    { id: 'treatment_prp', side: true, treatment: true, group: 'treatment' },
+    { id: 'treatment_microneedling', side: true, treatment: true, group: 'treatment' },
+    { id: 'treatment_consultation', side: true, treatment: true, group: 'treatment' },
+    { id: 'treatment_followup', side: true, treatment: true, group: 'treatment' },
+    { id: 'treatment_curatiio', side: true, treatment: true, group: 'treatment' },
+    { id: 'active', chip: 'aktiva' },
+    { id: 'vip', side: true, chip: 'vip', group: 'status' },
+    { id: 'risk', side: true, chip: 'risk', group: 'status' },
+    { id: 'new', side: true, chip: 'nya', group: 'status' },
+    { id: 'dormant', side: true, chip: 'dormant', group: 'status' },
+    { id: 'missing_health_declaration', side: true, chip: 'saknar-hd', group: 'status' },
+    { id: 'missing_journal', side: true, group: 'status' },
+    { id: 'missing_encounter', group: 'status' },
+    { id: 'needs_review', side: true, group: 'status' },
+    { id: 'has_drive', side: true, group: 'status' },
+    { id: 'has_drive_journal', group: 'status' },
+    { id: 'has_drive_document', group: 'status' },
+    { id: 'drive_only', side: true, group: 'status' },
+    { id: 'cliento_only', side: true, group: 'status' },
+    { id: 'duplicate_email', side: true, group: 'status' },
+    { id: 'getaccept', group: 'status' },
+    { id: 'halso', group: 'status' },
+    { id: 'photos_review', group: 'status' },
+    { id: 'has_images', group: 'status' },
+    { id: 'import_review', group: 'status' },
   ];
+  const V9_SEGMENT_UI_BY_ID = Object.fromEntries(V9_SEGMENT_UI.map((entry) => [entry.id, entry]));
+  const V9_SEGMENT_DOT_CLASS = {
+    treatment_fue: 'dot--fue',
+    treatment_dhi: 'dot--dhi',
+    treatment_prp: 'dot--prp',
+    treatment_microneedling: 'dot--microneedling',
+    treatment_consultation: 'dot--consultation',
+    treatment_followup: 'dot--followup',
+    treatment_curatiio: 'dot--curatiio',
+    vip: 'dot--vip',
+    risk: 'dot--risk',
+    new: 'dot--new',
+    dormant: 'dot--dormant',
+    missing_health_declaration: 'dot--missing-hd',
+    missing_journal: 'dot--missing-journal',
+    missing_encounter: 'dot--missing-encounter',
+    needs_review: 'dot--review',
+    has_drive: 'dot--drive',
+    has_drive_journal: 'dot--drive-journal',
+    has_drive_document: 'dot--drive-doc',
+    drive_only: 'dot--drive-only',
+    cliento_only: 'dot--cliento-only',
+    duplicate_email: 'dot--duplicate',
+    getaccept: 'dot--getaccept',
+    halso: 'dot--halso',
+    photos_review: 'dot--photos-review',
+    has_images: 'dot--images',
+    import_review: 'dot--import-review',
+  };
   const V9_DOSSIER_TABS = [
     { key: 'profil', label: 'Profil', accent: 'studio' },
     { key: 'journal', label: 'Journal', accent: 'journal' },
@@ -1314,19 +1363,102 @@
     const list = Array.isArray(apiSegments) ? apiSegments : [];
     return list.map((seg) => {
       const fq = seg.filterQuery || {};
+      const ui = V9_SEGMENT_UI_BY_ID[seg.id] || {};
       const disabled = seg.status === 'disabled' || seg.status === 'missing';
       const segmentParam = normalizeText(fq.segment);
+      const flagsParam = normalizeText(fq.flags);
       return {
         id: seg.id,
         label: seg.label || seg.id,
-        flags: normalizeText(fq.flags),
-        segment: segmentParam || (seg.id === 'all' ? '' : seg.id),
+        flags: flagsParam,
+        segment: segmentParam,
         disabled,
         disabledReason: seg.reason || (disabled ? 'Data saknas' : ''),
         count: seg.count,
         status: seg.status,
+        side: Boolean(ui.side),
+        treatment: Boolean(ui.treatment || normalizeText(seg.id).startsWith('treatment_')),
+        group: ui.group || (ui.treatment ? 'treatment' : ui.side ? 'status' : ''),
+        chip: ui.chip || '',
       };
     });
+  }
+
+  function buildV9SidebarSegmentGroups(segments) {
+    const byId = Object.fromEntries((segments || []).map((seg) => [seg.id, seg]));
+    const groups = { core: [], treatment: [], status: [] };
+    for (const ui of V9_SEGMENT_UI) {
+      if (!ui.side) continue;
+      const seg = byId[ui.id];
+      if (!seg) continue;
+      const bucket =
+        ui.group === 'core'
+          ? 'core'
+          : ui.treatment || ui.group === 'treatment' || ui.id.startsWith('treatment_')
+            ? 'treatment'
+            : 'status';
+      groups[bucket].push(seg);
+    }
+    return groups;
+  }
+
+  function formatV9SegmentCountValue(seg) {
+    if (!seg || seg.disabled) return '—';
+    const key = normalizeText(seg.id) || 'all';
+    if (key === 'all') {
+      const total = runtime.segmentTotals.all;
+      return total === null || total === undefined ? '—' : formatMetricNumber(total);
+    }
+    if (Object.prototype.hasOwnProperty.call(runtime.segmentTotals, key)) {
+      const value = runtime.segmentTotals[key];
+      return value === null || value === undefined ? '—' : formatMetricNumber(value);
+    }
+    if (seg.count === null || seg.count === undefined) return '—';
+    return formatMetricNumber(seg.count);
+  }
+
+  function renderV9SegmentSidebarLinkHtml(seg, active) {
+    const disabled = Boolean(seg.disabled);
+    const partial = seg.status === 'partial' && !disabled;
+    const countText = formatV9SegmentCountValue(seg);
+    const dotClass = V9_SEGMENT_DOT_CLASS[seg.id] || '';
+    const labelHtml = dotClass
+      ? `<span class="side-link-label"><span class="dot ${dotClass}"></span>${escapeHtml(seg.label)}</span>`
+      : escapeHtml(seg.label);
+    const title = disabled
+      ? seg.disabledReason || 'Data saknas'
+      : partial
+        ? seg.disabledReason || ''
+        : '';
+    return `<button type="button" class="side-link${active ? ' is-active' : ''}${disabled ? ' is-disabled' : ''}${partial ? ' is-partial' : ''}" data-v9-segment="${escapeHtml(seg.id)}" aria-pressed="${active ? 'true' : 'false'}"${disabled ? ' disabled' : ''}${title ? ` title="${escapeHtml(title)}"` : ''}>${labelHtml}<span class="count${countText === '—' ? ' is-unavailable' : ''}" data-v9-segment-count="${escapeHtml(seg.id)}">${escapeHtml(countText)}</span></button>`;
+  }
+
+  function renderV9SegmentSidebarListHtml(segments, activeId) {
+    return (segments || [])
+      .map((seg) =>
+        renderV9SegmentSidebarLinkHtml(seg, (normalizeText(activeId) || 'all') === seg.id)
+      )
+      .join('');
+  }
+
+  function renderV9SegmentSidebarStructure(groups, activeId) {
+    const coreHtml = renderV9SegmentSidebarListHtml(groups.core, activeId);
+    const treatmentHtml = renderV9SegmentSidebarListHtml(groups.treatment, activeId);
+    const statusHtml = renderV9SegmentSidebarListHtml(groups.status, activeId);
+    return `
+      <div class="side-kicker">Segment</div>
+      <h2 class="side-h2">Kundgrupper</h2>
+      <div class="side-list" data-v9-segment-group="core">${coreHtml || '<p class="v9-segment-empty">Inga kundgrupper</p>'}</div>
+      ${
+        treatmentHtml
+          ? `<div class="side-section"><div class="side-kicker">Behandling</div><div class="side-list" data-v9-segment-group="treatment">${treatmentHtml}</div></div>`
+          : ''
+      }
+      ${
+        statusHtml
+          ? `<div class="side-section"><div class="side-kicker">Status</div><div class="side-list" data-v9-segment-group="status">${statusHtml}</div></div>`
+          : ''
+      }`;
   }
 
   function getSegmentById(segmentId) {
@@ -1378,6 +1510,12 @@
     if (!isV9CustomersEnabled() || !els.v9Sidebar) return;
     if (Array.isArray(segmentStats?.segments)) {
       runtime.segments = mergeSegmentsFromApi(segmentStats.segments);
+    } else if (!runtime.segments.length) {
+      runtime.segments = mergeSegmentsFromApi([]);
+    }
+    if (!runtime.segments.length) {
+      els.v9Sidebar.innerHTML = '<p class="v9-segment-sidebar-loading">Laddar segment…</p>';
+      return;
     }
     const counts = segmentStats?.counts || {};
     runtime.segmentTotals = {
@@ -1385,34 +1523,32 @@
       all: Number(stats?.totalPatients ?? segmentStats?.panel?.totalPatients ?? counts.all ?? 0),
       risk: counts.risk ?? counts.needs_review ?? 0,
     };
-    const fmt = (value) =>
-      value === null || value === undefined ? '—' : formatMetricNumber(value);
-    els.v9Sidebar.querySelectorAll('[data-v9-segment-count]').forEach((node) => {
-      const key = normalizeText(node.dataset.v9SegmentCount);
-      const seg = getSegmentById(key);
-      if (seg.disabled) {
-        node.textContent = '—';
-        return;
-      }
-      const value =
-        key === 'all'
-          ? runtime.segmentTotals.all
-          : Object.prototype.hasOwnProperty.call(runtime.segmentTotals, key)
-            ? runtime.segmentTotals[key]
-            : seg.count;
-      node.textContent = fmt(value);
-    });
-    els.v9Sidebar.querySelectorAll('[data-v9-segment]').forEach((link) => {
-      const id = normalizeText(link.dataset.v9Segment) || 'all';
-      const seg = getSegmentById(id);
-      const disabled = Boolean(seg.disabled);
-      link.disabled = disabled;
-      link.classList.toggle('is-disabled', disabled);
-      link.title = disabled ? seg.disabledReason || 'Kräver bokningsdata' : '';
-      if (seg.status === 'partial' && seg.disabledReason) {
-        link.title = seg.disabledReason;
-      }
-    });
+
+    const groups = buildV9SidebarSegmentGroups(runtime.segments);
+    const activeId = normalizeText(runtime.activeSegmentId) || 'all';
+    const renderKey = runtime.segments
+      .filter((seg) => seg.side)
+      .map((seg) => `${seg.id}:${seg.status}:${seg.disabled ? 1 : 0}`)
+      .join('|');
+
+    if (els.v9Sidebar.dataset.renderKey !== renderKey) {
+      els.v9Sidebar.dataset.renderKey = renderKey;
+      els.v9Sidebar.innerHTML = renderV9SegmentSidebarStructure(groups, activeId);
+    } else {
+      els.v9Sidebar.querySelectorAll('[data-v9-segment-count]').forEach((node) => {
+        const seg = getSegmentById(node.dataset.v9SegmentCount);
+        const countText = formatV9SegmentCountValue(seg);
+        node.textContent = countText;
+        node.classList.toggle('is-unavailable', countText === '—');
+      });
+      els.v9Sidebar.querySelectorAll('[data-v9-segment]').forEach((link) => {
+        const seg = getSegmentById(link.dataset.v9Segment);
+        const disabled = Boolean(seg.disabled);
+        link.disabled = disabled;
+        link.classList.toggle('is-disabled', disabled);
+        link.classList.toggle('is-partial', seg.status === 'partial' && !disabled);
+      });
+    }
     syncV9SegmentSidebarActive();
   }
 
@@ -1445,8 +1581,11 @@
     const nextId = normalizeText(seg.id) || 'all';
     if (nextId === runtime.activeSegmentId && !runtime.flagFilter) return;
     runtime.activeSegmentId = nextId;
-    runtime.segmentFilter = seg.segment || (nextId === 'all' ? '' : nextId);
-    runtime.flagFilter = seg.flags || '';
+    runtime.segmentFilter = normalizeText(seg.segment);
+    runtime.flagFilter = normalizeText(seg.flags);
+    if (!runtime.segmentFilter && !runtime.flagFilter && nextId !== 'all') {
+      runtime.segmentFilter = nextId;
+    }
     syncLegacyFilterSelect(runtime.flagFilter);
     syncV9FilterChipsActive();
     syncV9SegmentSidebarActive();
@@ -1460,8 +1599,14 @@
   function applyStartupSegmentFilter(segment) {
     const segmentId = normalizeText(segment);
     if (!segmentId || segmentId === 'all') return;
+    const seg = getSegmentById(segmentId);
+    if (seg.disabled) return;
     runtime.activeSegmentId = segmentId;
-    runtime.segmentFilter = segmentId;
+    runtime.segmentFilter = normalizeText(seg.segment);
+    runtime.flagFilter = normalizeText(seg.flags);
+    if (!runtime.segmentFilter && !runtime.flagFilter) {
+      runtime.segmentFilter = segmentId;
+    }
     syncV9SegmentSidebarActive();
   }
 

@@ -99,9 +99,14 @@ async function step4RowMarkup() {
 }
 
 async function step5SidebarMarkup() {
-  const { body } = await fetchText(`${PREVIEW}/cco-v9-customers.css`);
-  const hasSidebar = /customers-v9-segment-sidebar|v9-segment/.test(body);
-  record(5, 'segment-sidebar CSS', hasSidebar, `sidebar-css=${hasSidebar}`);
+  const css = (await fetchText(`${PREVIEW}/cco-v9-customers.css`)).body;
+  const js = (await fetchText(`${PREVIEW}/app/patient-master-ui.js?v=build-bundle-split-a`)).body;
+  const hasCss = /customers-v9-segment-sidebar|v9-segment/.test(css);
+  const hasJs =
+    /buildV9SidebarSegmentGroups/.test(js) &&
+    /renderV9SegmentSidebarStructure/.test(js) &&
+    /data-v9-segment-group/.test(js);
+  record(5, 'segment-sidebar dynamic', hasCss && hasJs, `css=${hasCss} js=${hasJs}`);
 }
 
 async function step6AggCards() {
