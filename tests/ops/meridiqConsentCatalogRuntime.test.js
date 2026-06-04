@@ -10,6 +10,7 @@ const {
   buildMeridiqConsentReadout,
   loadMeridiqConsentCatalog,
   normalizeConsentEntry,
+  resolveTemplate,
 } = require('../../src/ops/meridiqConsentCatalogRuntime');
 
 test('loadMeridiqConsentCatalog läser 39 Meridiq-samtycken från migration-filen', () => {
@@ -92,4 +93,12 @@ test('buildMeridiqConsentReadout activeOnly=false inkluderar inactive om sådana
 
 test('normalizeConsentEntry returnerar null när apiId saknas', () => {
   assert.equal(normalizeConsentEntry({ title: 'utan id' }), null);
+});
+
+test('resolveTemplate binder fue till Meridiq apiId 170917', () => {
+  const resolution = resolveTemplate('Hårtransplantation FUE');
+  assert.equal(resolution.found, true);
+  assert.equal(resolution.template.apiId, 170917);
+  assert.equal(resolution.checkboxes.length, 1);
+  assert.equal(resolution.checkboxes[0].required, true);
 });

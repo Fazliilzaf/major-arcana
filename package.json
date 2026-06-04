@@ -80,6 +80,7 @@
     "cco:verify-kundresa-canonical-9-step": "node scripts/verify-kundresa-canonical-9-step.js",
     "cco:verify-smart-next-step-dry-run": "node scripts/verify-smart-next-step-dry-run.js",
     "cco:verify-fas-a-readiness": "node scripts/verify-fas-a-readiness.js",
+    "cco:verify-bundle-sign-flow": "node scripts/verify-bundle-sign-flow.js",
     "cco:cycle-45-prod-uat": "bash scripts/run-cycle-45-prod-uat-ord3.sh",
     "cco:verify-automation-prod": "node scripts/verify-automation-prod.js",
     "cco:verify-kunder-real-data": "node scripts/verify-kunder-real-data.js",

@@ -24,8 +24,29 @@ const DEFAULT_CATALOG_PATH = path.resolve(
   'consent-catalog.json'
 );
 
+const DEFAULT_SERVICE_BINDINGS_PATH = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  'migration',
+  'meridiq',
+  'service-bindings-catalog.json'
+);
+
+const TREATMENT_TYPE_MATCHERS = Object.freeze([
+  { type: 'fue', patterns: ['fue', 'hårtransplantation', 'hartransplantation'] },
+  { type: 'dhi', patterns: ['dhi'] },
+  { type: 'prp', patterns: ['prp'] },
+  { type: 'microneedling', patterns: ['microneedling'] },
+  { type: 'hair_transplant', patterns: ['hair', 'transplant', 'hår'] },
+]);
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeKey(value) {
+  return normalizeText(value).toLowerCase();
 }
 
 function asArray(value) {
@@ -158,6 +179,107 @@ function bucketByBrand(consents = []) {
  * @param {boolean} [options.activeOnly=true]
  * @param {string} [options.filePath] — overrid för test.
  */
+function loadServiceBindingsCatalog({ filePath } = {}) {
+  const resolvedPath = filePath || DEFAULT_SERVICE_BINDINGS_PATH;
+  try {
+    const raw = fs.readFileSync(resolvedPath, 'utf8');
+    const payload = JSON.parse(raw);
+    return {
+      filePath: resolvedPath,
+      services: asArray(payload.services),
+    };
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return { filePath: resolvedPath, services: [] };
+    }
+    throw error;
+  }
+}
+
+function normalizeTreatmentType(value = '') {
+  const key = normalizeKey(value);
+  if (!key) return 'hair_transplant';
+  for (const matcher of TREATMENT_TYPE_MATCHERS) {
+    if (matcher.type === key) return matcher.type;
+  }
+  for (const matcher of TREATMENT_TYPE_MATCHERS) {
+    if (matcher.patterns.some((pattern) => key.includes(pattern))) {
+      return matcher.type;
+    }
+  }
+  return 'hair_transplant';
+}
+
+function serviceMatchesTreatmentType(service = {}, treatmentType = '') {
+  const type = normalizeTreatmentType(treatmentType);
+  const haystack = `${normalizeKey(service.name)} ${normalizeKey(service.category)}`;
+  const matcher = TREATMENT_TYPE_MATCHERS.find((item) => item.type === type);
+  if (!matcher) return false;
+  return matcher.patterns.some((pattern) => haystack.includes(pattern));
+}
+
+function pickServiceForTreatmentType(services = [], treatmentType = '') {
+  const list = asArray(services).filter((service) => asArray(service.consents).length > 0);
+  const direct = list.find((service) => serviceMatchesTreatmentType(service, treatmentType));
+  if (direct) return direct;
+  return list.find((service) => serviceMatchesTreatmentType(service, 'hair_transplant')) || null;
+}
+
+/**
+ * Resolve consent template for a treatment type via Meridiq service bindings + catalog.
+ *
+ * @param {string} treatmentType — t.ex. fue, dhi, prp, hair_transplant
+ * @param {object} [options]
+ * @param {string} [options.catalogPath]
+ * @param {string} [options.serviceBindingsPath]
+ */
+function resolveTemplate(treatmentType, options = {}) {
+  const normalizedType = normalizeTreatmentType(treatmentType);
+  const { consents } = loadMeridiqConsentCatalog({ filePath: options.catalogPath });
+  const { services } = loadServiceBindingsCatalog({ filePath: options.serviceBindingsPath });
+  const service = pickServiceForTreatmentType(services, normalizedType);
+  const consentRef = asArray(service?.consents)[0];
+  if (!consentRef?.consentApiId) {
+    return {
+      found: false,
+      treatmentType: normalizedType,
+      reason: 'no_consent_binding_for_treatment_type',
+    };
+  }
+  const entry = consents.find((item) => item.apiId === Number(consentRef.consentApiId));
+  if (!entry || entry.isActive === false) {
+    return {
+      found: false,
+      treatmentType: normalizedType,
+      reason: 'consent_catalog_entry_missing',
+      consentApiId: consentRef.consentApiId,
+    };
+  }
+  const label = `Jag godkänner behandlingssamtycket: ${entry.title}`;
+  return {
+    found: true,
+    treatmentType: normalizedType,
+    serviceApiId: service?.apiId ?? null,
+    template: {
+      id: entry.id,
+      apiId: entry.apiId,
+      title: entry.title,
+      version: entry.version,
+      brand: entry.brand,
+      required: true,
+      hasLetterText: entry.hasLetterText,
+      letterText: entry.letterText,
+    },
+    checkboxes: [
+      {
+        name: 'consent_ack',
+        label,
+        required: true,
+      },
+    ],
+  };
+}
+
 function buildMeridiqConsentReadout({ activeOnly = true, filePath } = {}) {
   const { catalog, consents } = loadMeridiqConsentCatalog({ filePath });
   const filtered = activeOnly ? consents.filter((entry) => entry.isActive !== false) : consents;
@@ -196,7 +318,11 @@ function buildMeridiqConsentReadout({ activeOnly = true, filePath } = {}) {
 
 module.exports = {
   DEFAULT_CATALOG_PATH,
+  DEFAULT_SERVICE_BINDINGS_PATH,
   buildMeridiqConsentReadout,
   loadMeridiqConsentCatalog,
+  loadServiceBindingsCatalog,
   normalizeConsentEntry,
+  normalizeTreatmentType,
+  resolveTemplate,
 };

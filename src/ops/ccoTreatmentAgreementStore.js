@@ -25,6 +25,13 @@ const {
   resolveAgreementTemplateBinding,
   isTemplateVersionApproved,
 } = require('./ccoTemplateVersionApprovalStore');
+const {
+  BUNDLE_STATUSES,
+  computeBundleStatus,
+  deriveTreatmentTypeFromOffer,
+  normalizeConsentState,
+  resolveConsentTemplateForAgreement,
+} = require('./ccoTreatmentAgreementBundle');
 const AGREEMENT_VERSION = '251203';
 
 function nowIso() {
@@ -115,6 +122,9 @@ function buildTreatmentAgreementReadout(
   const templateVersionApproved = templateBinding.requiresApproval
     ? isTemplateVersionApproved(templateApproval)
     : true;
+  const consent = normalizeConsentState(safe.consent);
+  const consentResolution = resolveConsentTemplateForAgreement(safe);
+  const bundleStatus = computeBundleStatus(safe, { consentResolution, templateApproval });
 
   let phase = 'draft';
   let nextStep = 'Skicka patientinformation (bilaga 1) till kunden.';
@@ -126,7 +136,9 @@ function buildTreatmentAgreementReadout(
     nextStep = 'Avtalet är avbrutet.';
   } else if (status === 'bookable' || status === 'signed') {
     phase = status === 'bookable' ? 'bookable' : 'signed';
-    bookable = computeSignedAgreementBookable(safe, templateApproval);
+    bookable =
+      computeSignedAgreementBookable(safe, templateApproval) &&
+      (!consent.templateApiId || consent.signed === true);
     if (bookable) {
       nextStep = 'Avtalet är signerat — kunden kan boka behandlingstid.';
       waitingOn = 'customer';
@@ -171,6 +183,12 @@ function buildTreatmentAgreementReadout(
     templateVersion: templateBinding.templateVersion || null,
     templateVersionApproved,
     templateApprovalStatus: normalizeText(templateApproval?.status) || null,
+    treatmentType:
+      normalizeText(safe.treatmentType) || deriveTreatmentTypeFromOffer(safe.offerType),
+    bundleStatus,
+    consent,
+    consentSigned: consent.signed === true,
+    consentTemplateResolved: consentResolution?.found === true,
     angerBlanketUrl:
       deliveryMode === 'distans'
         ? 'https://www.konsumentverket.se/for-foretag/konsumentratt-for-foretagare/om-konsumentratt/om-konsumentratt/angerblankett/'
@@ -237,6 +255,15 @@ function normalizeAgreement(input = {}, existing = {}) {
       normalizeText(safe.agreementVersion || previous.agreementVersion) || AGREEMENT_VERSION,
     templateId: normalizeText(safe.templateId || previous.templateId),
     templateVersion: normalizeText(safe.templateVersion || previous.templateVersion),
+    treatmentType:
+      normalizeText(safe.treatmentType || previous.treatmentType) ||
+      deriveTreatmentTypeFromOffer(safe.offerType || previous.offerType),
+    consent: normalizeConsentState(safe.consent, previous.consent),
+    bundleStatus: normalizeEnum(
+      safe.bundleStatus || previous.bundleStatus,
+      BUNDLE_STATUSES,
+      'missing_consent_template'
+    ),
     linkedCommercialCaseId: normalizeText(
       safe.linkedCommercialCaseId || previous.linkedCommercialCaseId
     ),
@@ -315,6 +342,21 @@ async function createCcoTreatmentAgreementStore({ filePath }) {
     const existing = index >= 0 ? state.agreements[index] : {};
     const normalized = normalizeAgreement(input, existing);
     if (!normalized) throw new Error('Behandlingsavtalet kunde inte normaliseras.');
+    const consentResolution = resolveConsentTemplateForAgreement(normalized);
+    normalized.bundleStatus = computeBundleStatus(normalized, { consentResolution });
+    if (
+      consentResolution?.found &&
+      consentResolution.template &&
+      !normalized.consent.templateApiId
+    ) {
+      normalized.consent = normalizeConsentState({
+        ...normalized.consent,
+        templateId: consentResolution.template.id,
+        templateApiId: consentResolution.template.apiId,
+        templateVersion: consentResolution.template.version,
+        templateTitle: consentResolution.template.title,
+      });
+    }
     if (index >= 0) {
       state.agreements[index] = normalized;
     } else {
@@ -341,6 +383,7 @@ async function createCcoTreatmentAgreementStore({ filePath }) {
 
 module.exports = {
   AGREEMENT_STATUSES,
+  BUNDLE_STATUSES,
   DELIVERY_MODES,
   AGREEMENT_VERSION,
   DEFAULT_COOLING_OFF_DAYS,
@@ -348,4 +391,5 @@ module.exports = {
   canAcceptAgreement,
   createCcoTreatmentAgreementStore,
   defaultTemplateBindingForOffer,
+  computeBundleStatus,
 };

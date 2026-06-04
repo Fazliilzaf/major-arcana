@@ -113,6 +113,32 @@ describe('ccoTreatmentAgreementStore', () => {
     assert.equal(readout.templateVersionApproved, true);
   });
 
+  it('readout exponerar bundleStatus och consentSigned', () => {
+    const resolution = require('../../src/ops/meridiqConsentCatalogRuntime').resolveTemplate('fue');
+    const readout = buildTreatmentAgreementReadout({
+      agreementStatus: 'bookable',
+      signedAt: '2026-01-01T00:00:00.000Z',
+      treatmentType: 'fue',
+      consent: {
+        templateApiId: resolution.template.apiId,
+        signed: true,
+        signedAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    assert.equal(readout.bundleStatus, 'signed');
+    assert.equal(readout.consentSigned, true);
+    assert.equal(readout.consentTemplateResolved, true);
+  });
+
+  it('bookable kräver consent när templateApiId är satt', () => {
+    const readout = buildTreatmentAgreementReadout({
+      agreementStatus: 'bookable',
+      signedAt: '2026-01-01T00:00:00.000Z',
+      consent: { templateApiId: 170917, signed: false },
+    });
+    assert.equal(readout.bookable, false);
+  });
+
   it('persist templateId och templateVersion', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'arcana-agreement-tpl-'));
     const filePath = path.join(tempDir, 'cco-treatment-agreements.json');

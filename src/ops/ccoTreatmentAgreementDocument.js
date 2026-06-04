@@ -104,12 +104,31 @@ function buildTreatmentAgreementSignPageHtml({
   token = '',
   origin = '',
   coolingOff = null,
+  consentBundle = null,
 } = {}) {
   const patientName = normalizeText(agreement.patientName) || 'Kund';
   const cooling = coolingOff || { active: false, endsAt: '', remainingDays: 0 };
   const acceptDisabled = cooling.active;
   const acceptUrl = `${origin}/api/v1/cco-treatment-agreement/accept-public?token=${encodeURIComponent(token)}`;
   const isDistans = normalizeText(agreement.deliveryMode) === 'distans';
+  const checkboxes = Array.isArray(consentBundle?.checkboxes) ? consentBundle.checkboxes : [];
+  const consentTitle = normalizeText(consentBundle?.template?.title) || 'Behandlingssamtycke';
+  const consentBlocks = checkboxes.length
+    ? checkboxes
+        .map(
+          (box) => `
+    <label class="consent-row">
+      <input type="checkbox" name="${escapeHtml(box.name || 'consent_ack')}" value="1"${box.required ? ' required' : ''} />
+      <span>${escapeHtml(box.label || consentTitle)}</span>
+    </label>`
+        )
+        .join('')
+    : `
+    <label class="consent-row">
+      <input type="checkbox" name="consent_ack" value="1" required />
+      <span>Behandlingssamtycke saknas i katalog — signering är blockerad.</span>
+    </label>`;
+  const bundleMissing = consentBundle?.found !== true;
 
   return `<!DOCTYPE html>
 <html lang="sv">
@@ -126,6 +145,9 @@ function buildTreatmentAgreementSignPageHtml({
     button { margin-top: 16px; padding: 12px 18px; border-radius: 999px; border: 0; background: #8b5e3c; color: #fff; font: inherit; cursor: pointer; }
     button:disabled { opacity: 0.45; cursor: not-allowed; }
     input { width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #eadfd4; border-radius: 10px; box-sizing: border-box; }
+    .consent-row { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0; font-size: 14px; line-height: 1.45; }
+    .consent-row input { width: auto; margin-top: 3px; }
+    .bundle-box { margin: 16px 0; padding: 14px 16px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; }
   </style>
 </head>
 <body>
@@ -142,14 +164,18 @@ function buildTreatmentAgreementSignPageHtml({
     ${
       cooling.active
         ? `<div class="notice is-blocked"><strong>Betänketid</strong><br/>Du kan signera avtalet tidigast ${cooling.endsAt.slice(0, 10)} (${cooling.remainingDays} dagar kvar).</div>`
-        : `<div class="notice"><strong>Redo att signera</strong><br/>Genom att signera accepterar du behandlingsavtalet och bifogad patientinformation.</div>`
+        : `<div class="notice"><strong>Redo att signera bundle</strong><br/>Avtal + behandlingssamtycke signeras i samma steg (en transaktion).</div>`
     }
+    <div class="bundle-box">
+      <strong>Behandlingssamtycke (steg 7)</strong>
+      ${consentBlocks}
+    </div>
     <form method="post" action="${acceptUrl}">
       <label>
         <span class="muted">Ditt namn</span><br/>
         <input name="customerSignedName" required />
       </label>
-      <button type="submit"${acceptDisabled ? ' disabled' : ''}>Jag signerar behandlingsavtalet</button>
+      <button type="submit"${acceptDisabled || bundleMissing ? ' disabled' : ''}>Jag signerar avtal och samtycke</button>
     </form>
   </div>
 </body>
