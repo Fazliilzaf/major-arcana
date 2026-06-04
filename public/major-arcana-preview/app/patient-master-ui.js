@@ -2005,7 +2005,240 @@
 
   let patientListVirtualHandle = null;
 
+  const V9_LIST_ROW_HEIGHT_PX = 78;
+
+  function formatV9ListDate(iso) {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+      return '—';
+    }
+  }
+
+  function formatV9ListDateTime(iso) {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleString('sv-SE', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '—';
+    }
+  }
+
+  function displayNameForList(card) {
+    const name = normalizeText(card?.displayName);
+    return name || 'Namn saknas';
+  }
+
+  function v9AvatarInitials(name) {
+    const parts = String(name || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+    }
+    return String(name || '??')
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  function v9AvatarGradient(name) {
+    const hues = [280, 200, 160, 30, 340, 220, 260, 190];
+    let hash = 0;
+    const s = String(name || '');
+    for (let i = 0; i < s.length; i += 1) {
+      hash = (hash + s.charCodeAt(i) * (i + 1)) % hues.length;
+    }
+    const h = hues[hash];
+    return `linear-gradient(180deg, hsl(${h} 65% 78%), hsl(${h} 55% 58%))`;
+  }
+
+  function v9ContactLine(card) {
+    const email = card.emailMasked || card.primaryEmail || '';
+    const phone = card.phoneMasked || card.primaryPhone || '';
+    if (!email && !phone) {
+      return { main: 'Kontakt saknas', sub: '' };
+    }
+    return { main: email || '—', sub: phone || '' };
+  }
+
+  function v9BookingSubline(card) {
+    if (card.hasUpcomingBooking && card.nextBookingAt) {
+      const res = card.nextBookingResourceLabel ? ` · ${card.nextBookingResourceLabel}` : '';
+      return `Nästa: ${formatV9ListDateTime(card.nextBookingAt)}${res}`;
+    }
+    if (card.onWaitlist) {
+      return `Väntelista: ${card.waitingListStatus || 'ärende'}`;
+    }
+    if (card.lastVisitAt) {
+      return `Senast: ${formatV9ListDate(card.lastVisitAt)}`;
+    }
+    return '—';
+  }
+
+  function resolveV9RowState(card) {
+    if (card.isVip) {
+      return { state: 'vip', label: 'VIP' };
+    }
+    if (card.segmentHints?.dormant) {
+      return { state: 'dormant', label: 'Dormant' };
+    }
+    if (card.missingHealthDeclaration && card.hasUpcomingBooking) {
+      return { state: 'risk', label: 'Risk' };
+    }
+    if (card.flags?.includes('needs_review') || card.matchStatus === 'needs_review') {
+      return { state: 'risk', label: 'Granska' };
+    }
+    if (
+      card.segmentHints?.new ||
+      card.patientOrigin === 'new' ||
+      card.matchStatus === 'unmatched'
+    ) {
+      return { state: 'new', label: 'Ny' };
+    }
+    if (card.segmentHints?.active || card.hasJournal || card.hasJournalHistory) {
+      return { state: 'active', label: 'Aktiv' };
+    }
+    return { state: 'active', label: MATCH_LABELS[card.matchStatus] || 'Kund' };
+  }
+
+  function buildV9RowBadges(card) {
+    const tags = [];
+    const add = (kind, label) => {
+      if (!label || tags.some((item) => item.label === label)) return;
+      tags.push({ kind, label });
+    };
+    if (card.isVip) add('vip', 'VIP');
+    if (card.missingHealthDeclaration && card.hasUpcomingBooking) add('risk', 'Risk');
+    else if (card.flags?.includes('needs_review') || card.matchStatus === 'needs_review') {
+      add('risk', 'Granska');
+    }
+    if (card.segmentHints?.new || card.patientOrigin === 'new') add('new', 'Nya');
+    if (card.segmentHints?.dormant) add('new', 'Dormant');
+    if (card.missingHealthDeclaration || card.missingForm) {
+      add('risk', 'Saknar formulär');
+    }
+    if (card.todayVisit) add('ready', 'Idag');
+    if (card.onWaitlist) add('risk', 'Väntelista');
+    return tags.slice(0, 3);
+  }
+
+  function resolveV9NextStepLabel(card) {
+    const top = card.automationTop;
+    if (top?.label) return top.label;
+    if (top?.summary) return top.summary;
+    if (card.nextStep) return card.nextStep;
+    return 'Ingen åtgärd registrerad';
+  }
+
+  function resolveV9Revenue(card) {
+    return {
+      main: '—',
+      trend:
+        card.pipedriveLinked && Number(card.pipedriveDealCount) > 0
+          ? `${Number(card.pipedriveDealCount)} Pipedrive-affärer`
+          : '',
+      title: 'Intäkt (LTV) — saknas i patient-master API',
+    };
+  }
+
+  function renderV9PatientRowHtml(card, selected) {
+    const name = displayNameForList(card);
+    const contact = v9ContactLine(card);
+    const state = resolveV9RowState(card);
+    const tags = buildV9RowBadges(card);
+    const lastAt = card.lastVisitAt || card.lastBookingAt || card.updatedAt;
+    const treatment =
+      asArray(card.treatmentTypes).length > 0
+        ? card.treatmentTypes.join(', ')
+        : card.nextBookingType || (card.hasJournal ? 'Journal' : '—');
+    const bookingLine = v9BookingSubline(card);
+    const revenue = resolveV9Revenue(card);
+    const nextStep = resolveV9NextStepLabel(card);
+
+    return `
+          <button
+            class="customer-row${selected ? ' is-selected' : ''}"
+            type="button"
+            data-patient-row="${escapeHtml(card.patientId)}"
+            aria-pressed="${selected ? 'true' : 'false'}"
+          >
+            <span class="cr-avatar" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
+            <div class="cr-name-block">
+              <div class="cr-name">${escapeHtml(name)}</div>
+              ${
+                tags.length
+                  ? `<div class="cr-name-tags">${tags
+                      .map(
+                        (tag) =>
+                          `<span class="cr-tag cr-tag--${escapeHtml(tag.kind)}">${escapeHtml(tag.label)}</span>`
+                      )
+                      .join('')}</div>`
+                  : ''
+              }
+            </div>
+            <div class="cr-meta">
+              <div>${escapeHtml(contact.main)}</div>
+              <div class="cr-meta-sub">${escapeHtml(contact.sub || '—')}</div>
+            </div>
+            <div><span class="cr-status" data-state="${escapeHtml(state.state)}"><span class="dot"></span>${escapeHtml(state.label)}</span></div>
+            <div class="cr-meta">
+              <div class="cr-meta-strong">${escapeHtml(formatV9ListDate(lastAt))}</div>
+              <div class="cr-meta-sub">${escapeHtml(treatment)} · ${escapeHtml(bookingLine)}</div>
+            </div>
+            <div>
+              <div class="cr-revenue" title="${escapeHtml(revenue.title)}">${escapeHtml(revenue.main)}</div>
+              ${
+                revenue.trend
+                  ? `<div class="cr-revenue-trend">${escapeHtml(revenue.trend)}</div>`
+                  : ''
+              }
+            </div>
+            <div><div class="cr-ai" title="Regelbaserat nästa steg">${escapeHtml(nextStep)}</div></div>
+            <div class="cr-arrow" aria-hidden="true">›</div>
+          </button>
+        `;
+  }
+
+  function renderV9ListHeaderHtml() {
+    return `
+          <div class="customer-row-head" aria-hidden="true">
+            <div></div>
+            <div>Kund</div>
+            <div>Kontakt</div>
+            <div>Status</div>
+            <div>Senaste besök</div>
+            <div>Intäkt (LTV)</div>
+            <div>AI nästa-steg</div>
+            <div></div>
+          </div>
+        `;
+  }
+
+  function resolveV9ListMountTarget() {
+    if (!els.list || !isV9CustomersEnabled()) return els.list;
+    let body = els.list.querySelector('[data-patient-list-body]');
+    if (!body) {
+      els.list.innerHTML = `${renderV9ListHeaderHtml()}<div data-patient-list-body></div>`;
+      body = els.list.querySelector('[data-patient-list-body]');
+    }
+    return body || els.list;
+  }
+
   function renderPatientRowHtml(card, selected) {
+    if (isV9CustomersEnabled()) {
+      return renderV9PatientRowHtml(card, selected);
+    }
     const journalCount = Number(card.fileSummary?.journalPdfs || 0);
     const imageCount = Number(card.fileSummary?.images || 0);
     return `
@@ -2065,6 +2298,11 @@
     patientListVirtualHandle?.destroy?.();
     patientListVirtualHandle = null;
 
+    const listMount = isV9CustomersEnabled() ? resolveV9ListMountTarget() : els.list;
+    if (!isV9CustomersEnabled() && els.list.querySelector('[data-patient-list-body]')) {
+      els.list.innerHTML = '';
+    }
+
     const hasMore = runtime.patients.length < runtime.total;
     const footer = hasMore
       ? `<button class="customers-utility-button patient-master-load-more" type="button" data-patient-load-more>Visa fler (${runtime.patients.length}/${runtime.total})</button>`
@@ -2073,24 +2311,37 @@
         : '';
 
     const virtual = window.ArcanaCcoPatientListVirtual;
+    const rowHeightPx = isV9CustomersEnabled() ? V9_LIST_ROW_HEIGHT_PX : undefined;
     if (virtual?.mountVirtualPatientList) {
       patientListVirtualHandle = virtual.mountVirtualPatientList({
-        container: els.list,
+        container: listMount,
         items: runtime.patients,
         selectedId: runtime.selectedPatientId,
         renderRowHtml: (card, selected) => renderPatientRowHtml(card, selected),
+        rowHeightPx,
       });
       if (footer) {
+        const footerHost = isV9CustomersEnabled() ? els.list : listMount;
         const footerEl = document.createElement('div');
         footerEl.className = 'patient-master-list-footer';
         footerEl.innerHTML = footer;
-        els.list.appendChild(footerEl);
+        footerHost.appendChild(footerEl);
       }
     } else {
       const rows = runtime.patients
         .map((card) => renderPatientRowHtml(card, card.patientId === runtime.selectedPatientId))
         .join('');
-      els.list.innerHTML = rows + footer;
+      if (isV9CustomersEnabled()) {
+        listMount.innerHTML = rows;
+        if (footer) {
+          const footerEl = document.createElement('div');
+          footerEl.className = 'patient-master-list-footer';
+          footerEl.innerHTML = footer;
+          els.list.appendChild(footerEl);
+        }
+      } else {
+        els.list.innerHTML = rows + footer;
+      }
     }
   }
 
