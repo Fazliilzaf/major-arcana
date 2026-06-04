@@ -6,6 +6,15 @@
  * Rek. 1 — 4-lagers atmosfär (ORÖR ALDRIG värden utan mockup-review):
  *   lager 1–3: radial gradients (exakta positioner/opaciteter från mockup)
  *   lager 4: solid #faf6f2 (--v9-bg-page)
+ *
+ * Rek. 3 — intel-shell (.customers-rail): --v9-panel-intel-shadow (outer-bloom + ring + inner).
+ *   customers-surface använder --v9-panel-surface-shadow (lättare lyft).
+ * Rek. 5 — sticky rails: se cco-v9-customers.css @media (min-width: 1024px).
+ * Rek. 6 — vellum/paperism: ingen backdrop-filter eller dekorativ blur (block längst ned).
+ * Rek. 8 — kompakt typografi guard: max 18px panel-rubriker, blockera --cco-text-xl/2xl-inflation.
+ * Rek. 9 — demo-only guard: watch/overlays/mockup-label dolda om inte data-v9-demo=on.
+ * Rek. 11 — watch fixed z-index: --v9-z-watch (9000) < overlays (97xx+) < staff-modaler (12xxx+).
+ * Rek. 12 — brand-anchor: aktiv Kunder-pill + compose-CTA behåller --accent-studio-rosa.
  */
 
 html[data-v9-enabled="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]),
@@ -23,12 +32,16 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"]::aft
   display: none !important;
 }
 
-html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .preview-workspace::before {
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .preview-workspace::before {
   opacity: 0 !important;
 }
 
 /* Legacy styles.css blur på .customers-surface::before — dämpar sid-atmosfär; panel-highlight återaktiveras desktop nedan */
-html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-surface::before {
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-surface::before {
   content: none !important;
   display: none !important;
 }
@@ -41,8 +54,10 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .cus
     border-radius: 28px;
     padding: 20px 22px 16px !important;
     background: var(--v9-bg-panel-shell) !important;
-    box-shadow: var(--v9-panel-shell-shadow-strong) !important;
-    /* ORD-21 F: vellum/paperism — ingen backdrop-blur, paneler ska kännas laminerade inte glassiga. */
+    box-shadow: var(--v9-panel-surface-shadow) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* ORD-21 F / Rek. 6: vellum/paperism — laminerat, inte glass. */
     overflow: hidden;
     isolation: isolate;
   }
@@ -75,14 +90,14 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .cus
   html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
     .preview-canvas[data-app-shell-view="customers"]
     .customers-rail {
-    position: sticky !important;
-    top: 14px;
     border-radius: 28px;
-    padding: 18px 16px 16px;
+    padding: 20px 20px 16px;
     background: var(--v9-bg-panel-shell) !important;
-    box-shadow: var(--v9-panel-shell-shadow-strong) !important;
-    /* ORD-21 F: vellum/paperism — ingen backdrop-blur, paneler ska kännas laminerade inte glassiga. */
-    overflow: hidden;
+    box-shadow: var(--v9-panel-intel-shadow) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* Rek. 5: sticky + scroll hanteras i cco-v9-customers.css (desktop ≥1024px). */
+    /* ORD-21 F / Rek. 6: vellum/paperism — laminerat, inte glass. */
     isolation: isolate;
   }
 
@@ -93,7 +108,7 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .cus
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: var(--v9-panel-vellum-highlight-rail);
+    background: var(--v9-panel-vellum-highlight-intel);
     pointer-events: none;
     z-index: 0;
   }
@@ -105,4 +120,120 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .cus
     position: relative;
     z-index: 1;
   }
+}
+
+/*
+ * Rek. 6 — vellum/paperism guard (laddar sist).
+ * Blockera glass-DNA: backdrop-filter och legacy filter:blur på pseudo-lager.
+ * Overlays använder opaka scrim-tokens, inte frosted glass.
+ */
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-shell,
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-surface,
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-rail,
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  [data-v9-segment-sidebar],
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .preview-workspace,
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-v9-header,
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] [data-v9-agg-insights],
+html[data-v9-enabled="on"] .v9-search-overlay,
+html[data-v9-enabled="on"] .v9-voice-overlay,
+html[data-v9-enabled="on"] .v9-voice-sheet,
+html[data-v9-enabled="on"] .v9-cam-overlay {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .customers-surface::before,
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-rail::before,
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .preview-workspace::before,
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .preview-canvas::before {
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+/*
+ * Rek. 8 — kompakt typografi guard (laddar sist).
+ * Mockup: liten, tät skala. Blockera adaptive/Major-Arcana-uppskalning av rubriker i Kunder-v9.
+ * Max h1/h2 i arbetsytan = --v9-font-title-lg (18px). Förstora inte mot --cco-text-xl/2xl.
+ */
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout {
+  --cco-text-lg: var(--v9-font-title-lg);
+  --cco-text-xl: var(--v9-font-title-lg);
+  --cco-text-2xl: var(--v9-font-title-lg);
+  --cco-text-3xl: var(--v9-font-title-lg);
+}
+
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout h1,
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout h2 {
+  font-size: var(--v9-font-title-lg) !important;
+  line-height: var(--v9-lh-title-lg) !important;
+  letter-spacing: var(--v9-tracking-title) !important;
+}
+
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout h3 {
+  font-size: var(--v9-font-title-md) !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout h4 {
+  font-size: var(--v9-font-title-sm) !important;
+}
+
+@media (max-width: 767px) {
+  html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout h1,
+  html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-layout h2 {
+    font-size: var(--v9-font-title-compact) !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/*
+ * Rek. 9 — demo-only UI (mockup-label, caption, watch, ⌘K/V/B/cam/calm overlays).
+ * Default OFF. Aktiveras med ?demo=on (localStorage arcana.v9.demo = '1').
+ */
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) .v9-watch-widget,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) .v9-watch-wrap,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) .v9-watch-restore,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) .v9-watch-toast,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) .v9-mockup-label,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) .v9-mockup-caption,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) #v9-search-overlay,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) #v9-voice-overlay,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) #v9-voice-sheet,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) #v9-calm-banner,
+html[data-v9-enabled="on"]:not([data-v9-demo="on"]) #v9-cam-overlay {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html[data-v9-demo="on"]:not(:has(.preview-canvas[data-app-shell-view="customers"]))
+  .v9-mockup-label,
+html[data-v9-demo="on"]:not(:has(.preview-canvas[data-app-shell-view="customers"]))
+  .v9-mockup-caption {
+  display: none !important;
+}
+
+/*
+ * Rek. 12 — brand-anchor (mockup .top-nav a.active).
+ * Aktiv Kunder-pill och compose-CTA delar rose-pill + --accent-studio — bevara, skriv inte över.
+ */
+html[data-v9-enabled="on"] .preview-topbar .preview-nav-item.preview-nav-item-active,
+html[data-v9-enabled="on"] .preview-topbar .preview-compose-pill {
+  border: 1px solid var(--v9-brand-anchor-border) !important;
+  background: var(--v9-brand-anchor-bg) !important;
+  color: var(--v9-brand-anchor-text) !important;
+  box-shadow: var(--v9-brand-anchor-shadow) !important;
+  font-weight: 700;
+}
+
+html[data-v9-enabled="on"] .preview-topbar .preview-nav-item.preview-nav-item-active svg {
+  color: inherit;
 }
