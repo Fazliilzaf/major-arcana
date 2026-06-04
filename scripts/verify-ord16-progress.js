@@ -7,7 +7,7 @@
  * För lokal test: VERIFY_BASE=http://localhost:3000 node scripts/verify-ord16-progress.js
  *
  * Steg-status:
- *   1. flag + tokens (filer 200, default off)
+ *   1. flag + tokens (filer 200, default ON)
  *   2. toolbar + status pills (5 pills, real counts)
  *   3. filter-chips (5 chips, real counts, klick-toggle)
  *   4. v9 customer-row (60 rader, BEM .cr-*, real data)
@@ -63,15 +63,25 @@ async function step1Filesistatus() {
   record(1, 'files 200', allOk, detail.join(' | '));
 }
 
-async function step1FlagDefaultOff() {
-  const { body } = await fetchText(`${PREVIEW}/?view=customers`);
-  const hasFlagScript = /cco-v9-flag\.js/.test(body);
-  const hasTokens = /cco-v9-tokens\.css/.test(body);
+async function step1FlagDefaultOn() {
+  const indexBody = (await fetchText(`${PREVIEW}/?view=customers`)).body;
+  const hasFlagScript = /cco-v9-flag\.js/.test(indexBody);
+  const hasTokens = /cco-v9-tokens\.css/.test(indexBody);
   record(
     1,
     'index.html mountar flag+tokens',
     hasFlagScript && hasTokens,
     `flag=${hasFlagScript} tokens=${hasTokens}`
+  );
+
+  const flagJs = (await fetchText(`${PREVIEW}/app/cco-v9-flag.js`)).body;
+  const defaultOn =
+    /v9Enabled\s*=\s*true/.test(flagJs) && /getItem\(V9_KEY\)\s*!==\s*'0'/.test(flagJs);
+  record(
+    1,
+    'flag default ON (ORD-20)',
+    defaultOn,
+    defaultOn ? 'v9Enabled=true, sticky off via localStorage 0' : 'expected ORD-20 default ON'
   );
 }
 
@@ -209,7 +219,7 @@ async function main() {
 
   await backendDiag();
   await step1Filesistatus();
-  await step1FlagDefaultOff();
+  await step1FlagDefaultOn();
   await step2ToolbarMarkup();
   await step3ChipsMarkup();
   await step4RowMarkup();

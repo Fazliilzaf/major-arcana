@@ -49,13 +49,14 @@ function check(feature, source, foundInPreview, detail) {
 function main() {
   console.log('# ORD-17 DEL B.1 — /kunder.html feature-inventering\n');
 
-  if (!fileExists(KUNDER_HTML)) {
-    console.log('OBS: public/kunder.html finns inte — antingen redan raderad eller fel path.');
-    console.log('Inventeringen ger 0 resultat. Kontrollera path.');
-    return;
+  const kunderExists = fileExists(KUNDER_HTML);
+  if (!kunderExists) {
+    console.log(
+      'OBS: public/kunder.html finns inte — SPA-inventering fortsätter (ORD-19 raderad).\n'
+    );
   }
 
-  const kunderHtml = readFile(KUNDER_HTML);
+  const kunderHtml = kunderExists ? readFile(KUNDER_HTML) : '';
   const previewIndex = readFile(PREVIEW_INDEX);
   const previewCustomersCss = readFile(path.join(PREVIEW_DIR, 'cco-v9-customers.css'));
   const patientMasterUi = readFile(path.join(PREVIEW_DIR, 'app/patient-master-ui.js'));

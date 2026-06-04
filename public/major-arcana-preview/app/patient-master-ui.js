@@ -3325,8 +3325,12 @@
     };
   }
 
-  function renderV9SmartNextStepHtml() {
-    return '';
+  function renderV9SmartNextStepHtml(card) {
+    if (!isV9CustomersEnabled() || !card) return '';
+    const mod = window.CcoKunderSmartNextStep;
+    if (!mod?.renderPanel) return '';
+    const inner = mod.renderPanel(card, { automation: runtime.automation });
+    return `<div data-v9-smart-next-step>${inner}</div>`;
   }
 
   function renderV9DossierScrollBlock(
@@ -3611,6 +3615,8 @@
           ${renderPatientDetailHero(card, journalEntries, { occasionTimeline })}
           ${renderPatientDetailTabsMarkup(normalizedTab, fileCount)}
         </div>
+        ${renderV9SmartNextStepHtml(card)}
+        ${renderV9CapabilityActionsHtml(card)}
         <div class="v9-dossier-workspace">
           ${renderPatientDetailBodyOpen()}
           ${renderV9PatientTabPanelsMarkup(
@@ -3634,8 +3640,26 @@
     closeV9DossierDeepPanel();
   }
 
-  function renderV9CapabilityActionsHtml() {
-    return '';
+  function renderV9CapabilityActionsHtml(card) {
+    if (!isV9CustomersEnabled() || !card) return '';
+    const actions = window.CcoKunderActions;
+    if (!actions?.buildDossierBar) return '';
+    const actionCtx = resolveKunderActionContext();
+    const dossierBar = actions.buildDossierBar(card, actionCtx);
+    const actionsHtml =
+      actions.renderMatrixLegend(dossierBar) +
+      actions.renderActionsHtml(dossierBar, {
+        linkClass: 'v9-dossier-action',
+        buttonClass: 'v9-dossier-action',
+        hostId: 'v9-dossier-actions',
+      });
+    return `
+      <div class="v9-dossier-capability" data-v9-capability-actions>
+        <h3 class="v9-dossier-capability__title">Åtgärder</h3>
+        <div class="v9-dossier-capability__host" data-v9-capability-host data-kunder-actions-host>
+          ${actionsHtml}
+        </div>
+      </div>`;
   }
 
   function bindV9DossierCapabilityHandlers(root) {
