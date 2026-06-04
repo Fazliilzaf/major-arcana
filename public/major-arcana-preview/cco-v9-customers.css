@@ -1,0 +1,11 @@
+/**
+ * ORD-16 — v9 customer-view skin (scoped).
+ * Steg 1: scaffold only — no active rules until steg 2+.
+ * Gate: html[data-v9-enabled="on"]
+ */
+
+/* Steg 2: .customers-register-header → v9 calendar-toolbar */
+/* Steg 3: .customers-toolbar → v9 filter-chips */
+/* Steg 4: .customer-record → v9 .customer-row */
+/* Steg 6: segment side-shell */
+/* Steg 9: .agg-insights, smart-next, .watch-widget (from kunder.html) */
