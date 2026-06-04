@@ -96,7 +96,183 @@
     error: '',
     selectedPatientId: '',
     staffOwnership: null,
+    mockupSeed: false,
   };
+
+  function shouldUseMockupSeed() {
+    const seed = global.CcoKunderV9MockSeed;
+    if (!seed) return false;
+    try {
+      if (localStorage.getItem('ARCANA_KUNDER_V9_SEED') === '0') return false;
+    } catch {
+      /* ignore */
+    }
+    const q = new URLSearchParams(location.search);
+    if (q.get('v9seed') === '0') return false;
+    if (q.get('v9seed') === '1') return true;
+    return !getToken();
+  }
+
+  function applyMockupSeed() {
+    const seed = global.CcoKunderV9MockSeed;
+    if (!seed) return false;
+    state.mockupSeed = true;
+    document.body.dataset.kunderDemo = '1';
+    state.authRequired = false;
+    state.loaded = true;
+    state.error = '';
+    state.stats = { totalPatients: seed.totalPatients, needsReview: 12, matched: 1100 };
+    state.segmentTotals = { ...seed.segmentTotals };
+    state.total = seed.customerRows.length;
+    state.patients = seed.customerRows.map((row) => seed.patientFromRow(row));
+    state.automation = { enabled: false, reason: 'demo-mockup' };
+    return true;
+  }
+
+  function showDemoBanner() {
+    let el = $('#kunder-auth-banner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'kunder-auth-banner';
+      el.className = 'kunder-auth-banner';
+      const nav = $('.top-nav');
+      if (nav) nav.insertAdjacentElement('afterend', el);
+    }
+    el.innerHTML = `
+      <strong>Demo · v9 mockdata</strong> från <code>CCO-Kunder-Mockup-v9-DESKTOP.html</code>.
+      <a href="${LOGIN_HREF}">Logga in</a> för live customers-shell.
+      <span style="margin-left:8px;opacity:.85">(?v9seed=0 stänger demo)</span>`;
+  }
+
+  function renderMockStatusBar() {
+    const bar = $('.customers-shell .calendar-status-bar');
+    const seed = global.CcoKunderV9MockSeed;
+    if (bar && seed?.statusBarHtml) bar.innerHTML = seed.statusBarHtml;
+  }
+
+  function filterMockRows(rows) {
+    const seg = state.activeSegmentId;
+    const q = state.query.trim().toLowerCase();
+    let list = rows;
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          r.email.toLowerCase().includes(q) ||
+          r.phone.includes(q) ||
+          r.lastSub.toLowerCase().includes(q) ||
+          r.ai.toLowerCase().includes(q)
+      );
+    }
+    if (seg === 'all' || seg === 'alla') return list;
+    if (seg === 'vip') return list.filter((r) => r.state === 'vip');
+    if (seg === 'risk' || seg === 'needs_review') return list.filter((r) => r.state === 'risk');
+    if (seg === 'new' || seg === 'nya') return list.filter((r) => r.state === 'new');
+    if (seg === 'dormant') return list.filter((r) => r.state === 'dormant');
+    if (seg === 'active' || seg === 'aktiva') return list.filter((r) => r.state === 'active');
+    if (seg === 'missing_health_declaration' || seg === 'saknar-hd') {
+      return list.filter((r) => r.tags.some((t) => /friskförs|samtycke|formulär/i.test(t.label)));
+    }
+    if (seg === 'treatment_prp') return list.filter((r) => /prp/i.test(r.lastSub + r.ai));
+    if (seg === 'treatment_dhi') return list.filter((r) => /dhi/i.test(r.lastSub + r.ai));
+    if (seg === 'treatment_microneedling')
+      return list.filter((r) => /microneedling/i.test(r.lastSub + r.ai));
+    if (seg === 'treatment_consultation')
+      return list.filter((r) => /konsultation/i.test(r.lastSub + r.ai));
+    if (seg === 'waitlist') return list.filter((r) => /väntelista/i.test(r.lastSub));
+    if (seg === 'today_visits')
+      return list.filter((r) => /idag|imorgon|16:00/i.test(r.ai + r.lastSub));
+    if (seg === 'this_week') return list.filter((r) => /tor|tis|ons|v\./i.test(r.ai + r.lastSub));
+    if (seg === 'mine') return list.filter((r) => /fazli|clara/i.test(r.lastSub));
+    return list;
+  }
+
+  function renderMockList() {
+    const host = $('#customerList');
+    const seed = global.CcoKunderV9MockSeed;
+    if (!host || !seed) return;
+    const rows = filterMockRows(seed.customerRows);
+    state.total = rows.length;
+    if (!rows.length) {
+      setListStatus(state.query ? 'Inga kunder matchar filtret.' : 'Inga rader i demo.', 'info');
+      return;
+    }
+    host.innerHTML = rows.map((r) => seed.rowHtml(r)).join('');
+    host.querySelectorAll('.customer-row').forEach((row) => {
+      row.addEventListener('click', () => {
+        $$('.customer-row.selected').forEach((r) => r.classList.remove('selected'));
+        row.classList.add('selected');
+        openMockDossier(row.dataset.mockName || row.dataset.patientId);
+      });
+    });
+    const kicker = $('#searchPanelKicker');
+    if (kicker) {
+      kicker.textContent = state.query
+        ? `${rows.length} träffar för "${state.query}"`
+        : 'Senaste · 1 247 kunder totalt';
+    }
+  }
+
+  function renderMockSearchPanel() {
+    const seed = global.CcoKunderV9MockSeed;
+    const searchPanelList = $('#searchPanelList');
+    if (!seed || !searchPanelList) return;
+    const ql = state.query.toLowerCase().trim();
+    const filtered = ql
+      ? seed.searchCustomers.filter(
+          (c) => c.name.toLowerCase().includes(ql) || c.sub.toLowerCase().includes(ql)
+        )
+      : seed.searchCustomers;
+    const kicker = $('#searchPanelKicker');
+    if (kicker) {
+      kicker.textContent = ql
+        ? `${filtered.length} träffar för "${state.query}"`
+        : 'Senaste · 1 247 kunder totalt';
+    }
+    if (!filtered.length) {
+      searchPanelList.innerHTML = `<div class="search-empty">Ingen kund matchar "${escapeHtml(state.query)}"</div>`;
+      return;
+    }
+    searchPanelList.innerHTML = filtered
+      .map(
+        (c, i) => `
+        <div class="search-result ${i === 0 ? 'is-selected' : ''}" data-mock-name="${escapeHtml(c.name)}">
+          <span class="search-avatar" style="background:${c.bg}">${escapeHtml(c.init)}</span>
+          <div class="search-result-meta">
+            <div class="search-result-name">${escapeHtml(c.name)}</div>
+            <div class="search-result-sub">${escapeHtml(c.sub)}</div>
+            ${c.badges.length ? `<div class="search-result-badges">${c.badges.map((b) => `<span class="search-badge search-badge--${b.kind}">${escapeHtml(b.label)}</span>`).join('')}</div>` : ''}
+          </div>
+          <span class="search-result-arrow">›</span>
+        </div>`
+      )
+      .join('');
+    searchPanelList.querySelectorAll('.search-result').forEach((el) => {
+      el.addEventListener('click', () => {
+        closeSearch();
+        openMockDossier(el.dataset.mockName);
+      });
+    });
+  }
+
+  function openMockDossier(nameOrSlug) {
+    const seed = global.CcoKunderV9MockSeed;
+    const intelShell = $('#intelShell');
+    const intelCustomerView = $('#intelCustomerView');
+    const breadcrumbSlot = $('#breadcrumbSlot');
+    if (!seed || !intelShell || !intelCustomerView) return;
+    let name = nameOrSlug;
+    if (nameOrSlug.startsWith('mock-')) {
+      const row = seed.customerRows.find((r) => seed.slug(r.name) === nameOrSlug);
+      name = row?.name || nameOrSlug;
+    }
+    intelShell.dataset.context = 'customer';
+    if (breadcrumbSlot) {
+      breadcrumbSlot.innerHTML = `<span class="breadcrumb">Kunder › ${escapeHtml(name)}</span>`;
+    }
+    intelCustomerView.innerHTML = seed.buildDossierHtml(name);
+    $('#dossierClose')?.addEventListener('click', closeDossier);
+  }
 
   function $(sel, root) {
     return (root || document).querySelector(sel);
@@ -301,7 +477,18 @@
   }
 
   async function fetchShell({ append = false } = {}) {
+    if (shouldUseMockupSeed() && !getToken()) {
+      applyMockupSeed();
+      showDemoBanner();
+      renderMockStatusBar();
+      renderCounts();
+      renderInsights();
+      renderRightPanel();
+      renderList();
+      return;
+    }
     if (!getToken()) {
+      state.mockupSeed = false;
       state.authRequired = true;
       showAuthBanner(true);
       setListStatus('Logga in för att hämta kunder från patient-master.', 'warn');
@@ -310,6 +497,7 @@
       renderRightPanel();
       return;
     }
+    state.mockupSeed = false;
     state.authRequired = false;
     showAuthBanner(false);
     if (state.loading) return;
@@ -376,10 +564,12 @@
   }
 
   function renderCounts() {
-    const total = state.stats?.totalPatients;
+    const total = state.mockupSeed
+      ? global.CcoKunderV9MockSeed?.totalPatients
+      : state.stats?.totalPatients;
     const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('sv-SE'));
 
-    const titleH2 = $('.calendar-toolbar-main h2');
+    const titleH2 = $('.customers-shell .calendar-toolbar-main h2');
     if (titleH2) {
       titleH2.textContent =
         total != null
@@ -405,9 +595,15 @@
 
     $$('.side-link[data-segment]').forEach((link) => {
       const id = link.dataset.segment;
-      const seg = SEGMENTS.find((s) => s.id === id);
       const countEl = link.querySelector('.count');
       if (!countEl) return;
+      if (state.mockupSeed) {
+        link.classList.remove('is-disabled');
+        link.title = '';
+        countEl.textContent = fmt(state.segmentTotals[id] ?? (id === 'all' ? total : null));
+        return;
+      }
+      const seg = SEGMENTS.find((s) => s.id === id);
       if (seg?.disabled) {
         link.classList.add('is-disabled');
         link.title = seg.disabledReason || 'Kräver bokningsdata';
@@ -421,9 +617,14 @@
 
     $$('.filter-chip[data-segment]').forEach((chip) => {
       const id = chip.dataset.segment;
-      const seg = SEGMENTS.find((s) => s.id === id);
       const countEl = chip.querySelector('.count');
       if (!countEl) return;
+      if (state.mockupSeed) {
+        chip.disabled = false;
+        countEl.textContent = fmt(state.segmentTotals[id] ?? (id === 'alla' ? total : null));
+        return;
+      }
+      const seg = SEGMENTS.find((s) => s.id === id);
       if (seg?.disabled) {
         chip.disabled = true;
         chip.title = seg.disabledReason || '';
@@ -436,6 +637,11 @@
   }
 
   function renderList() {
+    if (state.mockupSeed) {
+      renderMockList();
+      if ($('#searchOverlay')?.classList.contains('is-visible')) renderMockSearchPanel();
+      return;
+    }
     const host = $('#customerList');
     if (!host) return;
     if (state.error && !state.patients.length) {
@@ -537,6 +743,10 @@
   }
 
   function renderSearchPanel() {
+    if (state.mockupSeed) {
+      renderMockSearchPanel();
+      return;
+    }
     const searchPanelList = $('#searchPanelList');
     if (!searchPanelList) return;
     const filtered = state.patients.slice(0, 25);
@@ -602,7 +812,10 @@
     'customer.missing_treatment_plan': { risk: 'blocker', label: 'Behandlingsplan saknas' },
     'customer.cooling_off_active': { risk: 'info', label: 'Betänketid pågår' },
     'customer.cooling_off_passed': { risk: 'ready', label: 'Betänketid passerad' },
-    'customer.missing_agreement_consent_bundle': { risk: 'legal_blocker', label: 'Avtal + samtycke saknas' },
+    'customer.missing_agreement_consent_bundle': {
+      risk: 'legal_blocker',
+      label: 'Avtal + samtycke saknas',
+    },
     'customer.missing_operation_day_insurance': { risk: 'blocker', label: 'Friskförsäkran saknas' },
     'customer.missing_photo_consent': { risk: 'legal', label: 'Foto-samtycke saknas' },
     'customer.has_photo_review': { risk: 'needs_review', label: 'Bildreview väntar' },
@@ -662,9 +875,18 @@
       { label: 'Med formulär', value: Number(panel.withForm) || 0 },
       { label: 'Foto-review', value: Number(panel.photoReviewPending) || 0 },
       { label: 'Asset review', value: Number(panel.assetReviewPending) || 0 },
-      { label: 'Idag', value: panel.bookingCoverage === 'missing' ? 0 : Number(panel.todayVisits) || 0 },
-      { label: 'Väntelista', value: panel.bookingCoverage === 'missing' ? 0 : Number(panel.waitlist) || 0 },
-      { label: 'Kommande', value: panel.bookingCoverage === 'missing' ? 0 : Number(panel.upcomingBookings) || 0 },
+      {
+        label: 'Idag',
+        value: panel.bookingCoverage === 'missing' ? 0 : Number(panel.todayVisits) || 0,
+      },
+      {
+        label: 'Väntelista',
+        value: panel.bookingCoverage === 'missing' ? 0 : Number(panel.waitlist) || 0,
+      },
+      {
+        label: 'Kommande',
+        value: panel.bookingCoverage === 'missing' ? 0 : Number(panel.upcomingBookings) || 0,
+      },
     ];
     const max = Math.max(...slices.map((s) => s.value), 1);
     const bars = slices
@@ -708,10 +930,14 @@
     }
 
     while (htmlRows.length < 3) {
-      htmlRows.push(`<div class="agg-ai-row agg-ai-row--empty">Data saknas — färre än 3 signaltyper i vy.</div>`);
+      htmlRows.push(
+        `<div class="agg-ai-row agg-ai-row--empty">Data saknas — färre än 3 signaltyper i vy.</div>`
+      );
     }
     while (htmlRows.length < targetRows && rows.length > 0) {
-      htmlRows.push(`<div class="agg-ai-row agg-ai-row--empty">Data saknas — inga fler aktiva signaler i batch.</div>`);
+      htmlRows.push(
+        `<div class="agg-ai-row agg-ai-row--empty">Data saknas — inga fler aktiva signaler i batch.</div>`
+      );
     }
 
     return `
@@ -754,6 +980,15 @@
   function renderAggInsights() {
     const host = $('[data-kunder-agg-insights]');
     if (!host) return;
+
+    if (state.mockupSeed && global.CcoKunderV9MockSeed?.aggInsights) {
+      const a = global.CcoKunderV9MockSeed.aggInsights;
+      setAggInsightBody(host, 'idag', a.idag);
+      setAggInsightBody(host, 'opp', a.opp);
+      setAggInsightBody(host, 'trend', a.trend);
+      setAggInsightBody(host, 'risk', a.risk);
+      return;
+    }
 
     const hasStats = Boolean(state.stats) && !state.authRequired;
     const panel = state.stats?.kunderPanel || state.segmentStats?.panel || {};
@@ -841,7 +1076,9 @@
   }
 
   function activeSignalForRule(patient, ruleId) {
-    return (patient.automationSignals || []).find((s) => s.status === 'active' && s.ruleId === ruleId);
+    return (patient.automationSignals || []).find(
+      (s) => s.status === 'active' && s.ruleId === ruleId
+    );
   }
 
   function storyListEmpty(message) {
@@ -875,8 +1112,13 @@
         seen.add(patient.patientId);
         const what = sig.what || AUTOMATION_RULE_META[ruleId]?.label || ruleId;
         const severity =
-          sig.risk === 'legal_blocker' || sig.risk === 'legal' ? 'high' : sig.risk === 'blocker' ? 'med' : 'med';
-        const when = patient.todayVisit && patient.nextBookingAt ? formatTimeShort(patient.nextBookingAt) : '';
+          sig.risk === 'legal_blocker' || sig.risk === 'legal'
+            ? 'high'
+            : sig.risk === 'blocker'
+              ? 'med'
+              : 'med';
+        const when =
+          patient.todayVisit && patient.nextBookingAt ? formatTimeShort(patient.nextBookingAt) : '';
         rows.push(storyItemHtml(patient, what, when, severity));
         if (rows.length >= 3) return rows;
       }
@@ -923,7 +1165,10 @@
     for (const patient of state.patients) {
       const sig = activeSignalForRule(patient, 'customer.ready_for_treatment');
       if (!sig) continue;
-      const what = sig.what || AUTOMATION_RULE_META['customer.ready_for_treatment']?.label || 'redo för behandling';
+      const what =
+        sig.what ||
+        AUTOMATION_RULE_META['customer.ready_for_treatment']?.label ||
+        'redo för behandling';
       rows.push(storyItemHtml(patient, what, '', 'ok', '✓'));
       if (rows.length >= 3) break;
     }
@@ -988,7 +1233,8 @@
     const idagRows = topStoryIdagPatients();
     const riskRows = automationOn ? topStoryRiskPatients() : [];
     const mojRows =
-      panel.bookingCoverage === 'missing' && !state.patients.some((p) => p.onWaitlist || isDormantPatient(p))
+      panel.bookingCoverage === 'missing' &&
+      !state.patients.some((p) => p.onWaitlist || isDormantPatient(p))
         ? []
         : topStoryMojligheterPatients();
     const klarRows = automationOn ? topStoryKlarPatients() : [];
@@ -1032,12 +1278,18 @@
       <div class="story-card" data-kind="mojligheter">
         <div class="story-card-kicker"><span class="icon">${storyIconSvg('mojligheter')}</span>Möjligheter</div>
         <h2 class="story-card-headline">${
-          oppHeadline != null ? `<span class="num">${oppHeadline}</span> bokning` : mojRows.length ? 'Fyll luckor' : 'Data saknas'
+          oppHeadline != null
+            ? `<span class="num">${oppHeadline}</span> bokning`
+            : mojRows.length
+              ? 'Fyll luckor'
+              : 'Data saknas'
         }</h2>
         <p class="story-card-sub">Väntelista · kommande · dormant (laddad batch).</p>
         ${storyListFromItems(
           mojRows,
-          panel.bookingCoverage === 'missing' ? 'Data saknas — bokningsdata.' : 'Inga möjligheter i aktuell batch.'
+          panel.bookingCoverage === 'missing'
+            ? 'Data saknas — bokningsdata.'
+            : 'Inga möjligheter i aktuell batch.'
         )}
       </div>
       <div class="story-card" data-kind="klart">
@@ -1062,6 +1314,10 @@
   function renderRightPanel() {
     const bookingView = $('.intel-booking-view');
     if (!bookingView) return;
+    if (state.mockupSeed && global.CcoKunderV9MockSeed?.rightPanelHtml) {
+      bookingView.innerHTML = global.CcoKunderV9MockSeed.rightPanelHtml;
+      return;
+    }
     const stats = state.stats;
     const hasStats = Boolean(stats) && !state.authRequired;
     if (!hasStats) {
@@ -1196,6 +1452,10 @@
   })();
 
   async function openDossier(card) {
+    if (card?._mockSeed) {
+      openMockDossier(card._mockName || card.displayName);
+      return;
+    }
     const intelShell = $('#intelShell');
     const intelCustomerView = $('#intelCustomerView');
     const breadcrumbSlot = $('#breadcrumbSlot');
@@ -1357,6 +1617,10 @@
     state.flagFilter = seg.flags || '';
     state.offset = 0;
     state.patients = [];
+    if (state.mockupSeed) {
+      renderList();
+      return;
+    }
     fetchShell();
   }
 
@@ -1380,12 +1644,26 @@
         <span class="status-pill kunder-ltv-disabled" title="LTV kopplas senare">Intäkt/LTV: —</span>`;
     }
 
+    function mockSegmentIdFromChip(id) {
+      if (id === 'alla') return 'all';
+      if (id === 'aktiva') return 'active';
+      if (id === 'nya') return 'new';
+      if (id === 'risk') return 'needs_review';
+      if (id === 'saknar-hd' || id === 'saknar-form') return 'missing_health_declaration';
+      return id;
+    }
+
     $$('.filter-chip').forEach((chip) => {
       chip.addEventListener('click', () => {
         if (chip.disabled) return;
         $$('.filter-chip').forEach((c) => c.classList.remove('active'));
         chip.classList.add('active');
         const id = chip.dataset.segment;
+        if (state.mockupSeed) {
+          state.activeSegmentId = mockSegmentIdFromChip(id);
+          renderList();
+          return;
+        }
         const chipSeg =
           id === 'alla'
             ? SEGMENT_BY_ID.all
@@ -1411,7 +1689,13 @@
         if (link.classList.contains('is-disabled')) return;
         $$('.side-link').forEach((l) => l.classList.remove('active'));
         link.classList.add('active');
-        applySegment(SEGMENT_BY_ID[link.dataset.segment] || SEGMENT_BY_ID.all);
+        const id = link.dataset.segment;
+        if (state.mockupSeed) {
+          state.activeSegmentId = id;
+          renderList();
+          return;
+        }
+        applySegment(SEGMENT_BY_ID[id] || SEGMENT_BY_ID.all);
       });
     });
 
@@ -1426,7 +1710,10 @@
         searchTimer = setTimeout(() => {
           state.query = searchOverlayInput.value.trim();
           if (globalSearchInput) globalSearchInput.value = state.query;
-          fetchShell();
+          if (state.mockupSeed) {
+            renderList();
+            renderMockSearchPanel();
+          } else fetchShell();
         }, 280);
       });
     }
@@ -1440,7 +1727,10 @@
         searchTimer = setTimeout(() => {
           state.query = globalSearchInput.value.trim();
           if (searchOverlayInput) searchOverlayInput.value = state.query;
-          fetchShell();
+          if (state.mockupSeed) {
+            renderList();
+            renderMockSearchPanel();
+          } else fetchShell();
         }, 280);
       });
     }
@@ -1524,15 +1814,15 @@
       .story-card--disabled { opacity:.72; }
       .story-card--disabled .story-card-headline { font-size:16px; }
       body[data-kunder-real="1"] .agg-insights.kunder-v9-insights,
-      body.kunder-v9 .agg-insights.kunder-v9-insights { display:block !important; margin-bottom:14px; }
-      body[data-kunder-real="1"] .agg-insights .story-grid,
-      body.kunder-v9 .agg-insights .story-grid {
+      body.kunder-v9 .agg-insights.kunder-v9-insights {
         display:grid !important;
         grid-template-columns:1.1fr 1fr 1fr 0.9fr;
         gap:12px;
-        min-height:140px;
+        margin-bottom:14px;
       }
+      [data-kunder-agg-body] { min-height:2.6em; }
       body.kunder-v9 .watch-widget, body.kunder-v9 .voice-overlay, body.kunder-v9 .voice-sheet, body.kunder-v9 .calm-banner { display:none !important; }
+      body[data-kunder-demo="1"] .mockup-label, body[data-kunder-demo="1"] .caption { display:none !important; }
     `;
     document.head.appendChild(style);
   }

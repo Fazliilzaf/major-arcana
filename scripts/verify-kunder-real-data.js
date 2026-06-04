@@ -47,6 +47,32 @@ if (!html.includes('cco-kunder-real.js')) {
   pass('kunder.html laddar cco-kunder-real.js');
 }
 
+if (!html.includes('cco-kunder-v9-mock-seed.js')) {
+  fail('kunder.html inkluderar inte cco-kunder-v9-mock-seed.js (ORD-12 mock import)');
+} else {
+  pass('kunder.html laddar cco-kunder-v9-mock-seed.js');
+}
+
+const SEED_JS = path.join(REPO, 'public/cco-kunder-v9-mock-seed.js');
+if (!fs.existsSync(SEED_JS)) {
+  fail('cco-kunder-v9-mock-seed.js saknas');
+} else {
+  pass('cco-kunder-v9-mock-seed.js finns');
+}
+
+const seedSrc = fs.existsSync(SEED_JS) ? fs.readFileSync(SEED_JS, 'utf8') : '';
+if (!/CcoKunderV9MockSeed/.test(seedSrc) || !/Anna Karlsson/.test(seedSrc)) {
+  fail('mock-seed saknar CcoKunderV9MockSeed / Anna Karlsson');
+} else {
+  pass('mock-seed innehåller v9-rader');
+}
+
+if (!/shouldUseMockupSeed|mockupSeed/.test(js)) {
+  fail('cco-kunder-real.js saknar mockup-seed wiring');
+} else {
+  pass('cco-kunder-real.js mockup-seed wiring');
+}
+
 if (!html.includes('cco-kunder-actions.js')) {
   fail('kunder.html inkluderar inte cco-kunder-actions.js (P1.1)');
 } else {
