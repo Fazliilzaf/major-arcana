@@ -1,24 +1,20 @@
 /**
  * ORD-16 — v9 page canvas + panel shells (loads LAST in cascade).
- * source: uploads/CCO-Kunder-Mockup-v9-DESKTOP.html
+ * source: uploads/CCO-Kunder-Mockup-v9-DESKTOP.html body { background: … }
  * Gate: html[data-v9-enabled="on"] + customers shell view
+ *
+ * Rek. 1 — 4-lagers atmosfär (ORÖR ALDRIG värden utan mockup-review):
+ *   lager 1–3: radial gradients (exakta positioner/opaciteter från mockup)
+ *   lager 4: solid #faf6f2 (--v9-bg-page)
  */
 
 html[data-v9-enabled="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]),
 html[data-v9-enabled="on"]:has(.preview-canvas[data-app-shell-view="customers"]) body {
-  background:
-    radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
-    radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
-    radial-gradient(circle at 50% 100%, rgba(220, 210, 255, 0.18), transparent 48%),
-    var(--v9-bg-page, #faf6f2) !important;
+  background: var(--v9-bg-atmosphere, #faf6f2) !important;
 }
 
 html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] {
-  background:
-    radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
-    radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
-    radial-gradient(circle at 50% 100%, rgba(220, 210, 255, 0.18), transparent 48%),
-    var(--v9-bg-page, #faf6f2) !important;
+  background: var(--v9-bg-atmosphere, #faf6f2) !important;
 }
 
 html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"]::before,
@@ -29,6 +25,12 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"]::aft
 
 html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .preview-workspace::before {
   opacity: 0 !important;
+}
+
+/* Legacy styles.css blur på .customers-surface::before — dämpar sid-atmosfär; panel-highlight återaktiveras desktop nedan */
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .customers-surface::before {
+  content: none !important;
+  display: none !important;
 }
 
 @media (min-width: 1024px) {
@@ -44,7 +46,7 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .pre
       var(--v9-panel-shell-bottom, rgba(244, 238, 233, 0.86))
     ) !important;
     box-shadow: var(--v9-panel-shell-shadow-strong) !important;
-    backdrop-filter: blur(14px);
+    /* ORD-21 F: vellum/paperism — ingen backdrop-blur, paneler ska kännas laminerade inte glassiga. */
     overflow: hidden;
     isolation: isolate;
   }
@@ -90,7 +92,7 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .pre
       var(--v9-panel-shell-bottom, rgba(244, 238, 233, 0.86))
     ) !important;
     box-shadow: var(--v9-panel-shell-shadow-strong) !important;
-    backdrop-filter: blur(14px);
+    /* ORD-21 F: vellum/paperism — ingen backdrop-blur, paneler ska kännas laminerade inte glassiga. */
     overflow: hidden;
     isolation: isolate;
   }
