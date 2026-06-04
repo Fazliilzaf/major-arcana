@@ -1158,6 +1158,137 @@ html[data-v9-enabled="on"] .patient-master-card[data-patient-detail] .patient-ma
   margin-top: 12px;
 }
 
+/* Steg 8: dossier-body pill tabs */
+html[data-v9-enabled="on"] .v9-dossier-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 0 18px 10px;
+  margin-top: 10px;
+  scrollbar-width: none;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-tabs .v9-dossier-tab {
+  appearance: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  min-height: 24px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--v9-text-secondary, #6b6258);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-tabs .v9-dossier-tab:hover {
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--v9-color-brand, #2b251f);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-tabs .v9-dossier-tab.is-active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.82);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-tabs .v9-dossier-tab.is-active[data-v9-tab-accent="studio"] {
+  color: var(--v9-accent-studio, #bb4779);
+  border-color: rgba(187, 71, 121, 0.24);
+}
+
+html[data-v9-enabled="on"]
+  .v9-dossier-tabs
+  .v9-dossier-tab.is-active[data-v9-tab-accent="journal"] {
+  color: var(--v9-status-success, #6aab8a);
+  border-color: rgba(106, 171, 138, 0.24);
+}
+
+html[data-v9-enabled="on"]
+  .v9-dossier-tabs
+  .v9-dossier-tab.is-active[data-v9-tab-accent="booking"] {
+  color: var(--v9-status-info, #4a7ba8);
+  border-color: rgba(74, 123, 168, 0.24);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-tabs .v9-dossier-tab.is-active[data-v9-tab-accent="files"] {
+  color: var(--v9-calendar-accent, #c8821e);
+  border-color: rgba(200, 130, 30, 0.24);
+}
+
+html[data-v9-enabled="on"]
+  .v9-dossier-tabs
+  .v9-dossier-tab.is-active[data-v9-tab-accent="economy"] {
+  color: var(--v9-status-success, #6aab8a);
+  border-color: rgba(106, 171, 138, 0.28);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-tabs .v9-dossier-tab.is-active[data-v9-tab-accent="notes"] {
+  color: var(--v9-accent-studio, #bb4779);
+  border-color: rgba(187, 71, 121, 0.2);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-tabs .v9-dossier-tab.is-active[data-v9-tab-accent="scalp"] {
+  color: var(--v9-status-info, #4a7ba8);
+  border-color: rgba(74, 123, 168, 0.24);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-body {
+  min-height: 0;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-body .patient-master-tab-panel {
+  padding: 0 18px 16px;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-body .patient-master-note-item {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(215, 202, 194, 0.45);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-body .patient-master-note-item:last-child {
+  border-bottom: 0;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-body .patient-master-note-item h5 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-body .patient-master-note-item p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 767px) {
+  html[data-v9-enabled="on"] .v9-dossier-tabs {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  html[data-v9-enabled="on"] .v9-dossier-body .patient-master-tab-panel {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
 @media (max-width: 767px) {
   html[data-v9-enabled="on"] .v9-dossier-hero .dossier-stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));

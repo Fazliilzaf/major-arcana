@@ -116,6 +116,20 @@ async function step7DossierHero() {
   record(7, 'dossier-hero CSS', hasHero, `hero-css=${hasHero}`);
 }
 
+async function step8DossierBodyTabs() {
+  const css = (await fetchText(`${PREVIEW}/cco-v9-customers.css`)).body;
+  const js = (await fetchText(`${PREVIEW}/app/patient-master-ui.js?v=build-bundle-split-a`)).body;
+  const hasCss =
+    /\.v9-dossier-tabs/.test(css) &&
+    /\[data-v9-tab-accent="studio"\]/.test(css) &&
+    /\.v9-dossier-body/.test(css);
+  const hasJs =
+    /V9_DOSSIER_TABS/.test(js) &&
+    /renderV9DossierTabs/.test(js) &&
+    /data-patient-tab-panel="anteckningar"/.test(js);
+  record(8, 'dossier-body pill tabs', hasCss && hasJs, `css=${hasCss} js=${hasJs}`);
+}
+
 async function backendDiag() {
   const { body } = await fetchText(`${BASE}/api/v1/_diag/version`);
   let commit = 'unknown';
@@ -137,6 +151,7 @@ async function main() {
   await step5SidebarMarkup();
   await step6AggCards();
   await step7DossierHero();
+  await step8DossierBodyTabs();
 
   let pass = 0,
     fail = 0;

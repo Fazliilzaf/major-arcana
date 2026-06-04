@@ -100,6 +100,14 @@
     'new',
     'dormant',
   ];
+  const V9_DOSSIER_TABS = [
+    { key: 'profil', label: 'Profil', accent: 'studio' },
+    { key: 'journal', label: 'Journal', accent: 'journal' },
+    { key: 'tidslinje', label: 'Bokningar', accent: 'booking' },
+    { key: 'filer', label: 'Filer', accent: 'files' },
+    { key: 'avtal', label: 'Ekonomi', accent: 'economy' },
+    { key: 'anteckningar', label: 'Anteckningar', accent: 'notes' },
+  ];
   const photoObjectUrls = new Set();
   const fileObjectUrls = new Set();
   const patientDetailInflight = new Map();
@@ -1580,7 +1588,7 @@
   }
 
   function refreshDraftProposalsHost() {
-    if (runtime.detailTab !== 'journal') return;
+    if (runtime.detailTab !== 'journal' && runtime.detailTab !== 'anteckningar') return;
     const host = els.patientRail?.querySelector('[data-patient-draft-proposals-host]');
     if (!host) return;
     host.outerHTML = renderDraftProposalsPanel().trim();
@@ -2018,7 +2026,61 @@
             </div>`;
   }
 
+  function renderPatientNotesPanel(journalEntries) {
+    const rows = asArray(journalEntries)
+      .map((entry) => {
+        const fields = entry?.fields || {};
+        const staffNotes = normalizeText(fields.staffNotes);
+        const notes = normalizeText(fields.notes);
+        if (!staffNotes && !notes) return '';
+        const label = JOURNAL_TYPE_LABELS[entry.journalType] || entry.journalType || 'Journalpost';
+        const when = String(entry.signedAt || entry.createdAt || '').slice(0, 10);
+        return `
+          <article class="patient-master-note-item">
+            <h5>${escapeHtml(label)}${when ? ` · ${escapeHtml(when)}` : ''}</h5>
+            ${notes ? `<p><strong>Till kund:</strong> ${escapeHtml(notes)}</p>` : ''}
+            ${staffNotes ? `<p class="patient-master-muted"><strong>Internt:</strong> ${escapeHtml(staffNotes)}</p>` : ''}
+          </article>`;
+      })
+      .filter(Boolean)
+      .join('');
+    return `
+          <article class="focus-customer-data-card patient-master-notes-card">
+            <h4>Anteckningar</h4>
+            ${rows || '<p class="patient-master-muted">Inga journalanteckningar ännu.</p>'}
+          </article>`;
+  }
+
+  function renderV9DossierTabs(detailTab, fileCount = 0) {
+    const tab = normalizeDetailTab(detailTab);
+    const tabs = [...V9_DOSSIER_TABS];
+    if (isAisiaScalpAnalysisEnabled()) {
+      tabs.splice(2, 0, {
+        key: 'scalpanalys',
+        label: isMobileViewport() ? 'Scalpanalys' : 'Hår-/scalpanalys',
+        accent: 'scalp',
+      });
+    }
+    return tabs
+      .map(({ key, label, accent }) => {
+        const active = tab === key;
+        const fileSuffix = key === 'filer' && fileCount ? ` (${fileCount})` : '';
+        return `
+          <button
+            type="button"
+            class="patient-master-tab v9-dossier-tab${active ? ' is-active' : ''}"
+            data-patient-tab="${escapeHtml(key)}"
+            data-v9-tab-accent="${escapeHtml(accent)}"
+            aria-pressed="${active ? 'true' : 'false'}"
+          >${escapeHtml(label)}${fileSuffix}</button>`;
+      })
+      .join('');
+  }
+
   function renderPatientPrimaryTabs(detailTab, fileCount = 0) {
+    if (isV9CustomersEnabled()) {
+      return renderV9DossierTabs(detailTab, fileCount);
+    }
     const tab = normalizeDetailTab(detailTab);
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
@@ -2295,7 +2357,12 @@
   }
 
   function renderPatientPrimaryTabsSkeleton(detailTab) {
-    const tab = detailTab || 'profil';
+    const tab = normalizeDetailTab(detailTab || 'profil');
+    if (isV9CustomersEnabled()) {
+      return renderV9DossierTabs(tab, 0)
+        .replace(/<button/g, '<span')
+        .replace(/<\/button>/g, '</span>');
+    }
     const journalish = tab === 'journal' || runtime.preferJournalOnMobile;
     if (isMobileViewport()) {
       const profilActive = tab === 'profil';
@@ -2312,6 +2379,22 @@
           <span class="patient-master-tab${tab === 'tidslinje' ? ' is-active' : ''}">Tidslinje</span>
           <span class="patient-master-tab">Avtal</span>
           <span class="patient-master-tab">Filer</span>`;
+  }
+
+  function renderPatientDetailTabsMarkup(tab, fileCount, { ariaHidden = false } = {}) {
+    const tabsClass = isV9CustomersEnabled()
+      ? 'patient-master-tabs v9-dossier-tabs'
+      : 'patient-master-tabs';
+    const hiddenAttr = ariaHidden ? ' aria-hidden="true"' : '';
+    return `<div class="${tabsClass}" role="tablist"${hiddenAttr}>${renderPatientPrimaryTabs(tab, fileCount)}</div>`;
+  }
+
+  function renderPatientDetailBodyOpen() {
+    return isV9CustomersEnabled() ? '<div class="v9-dossier-body">' : '';
+  }
+
+  function renderPatientDetailBodyClose() {
+    return isV9CustomersEnabled() ? '</div>' : '';
   }
 
   function asArray(value) {
@@ -2966,13 +3049,14 @@
     rail.innerHTML = `
       <section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">
         ${heroHtml}
-        <div class="patient-master-tabs" role="tablist" aria-hidden="true">${renderPatientPrimaryTabsSkeleton(runtime.detailTab)}
-        </div>
+        ${renderPatientDetailTabsMarkup(runtime.detailTab, 0, { ariaHidden: true })}
+        ${renderPatientDetailBodyOpen()}
         <div class="patient-master-detail-skeleton" aria-hidden="true">
           <div class="patient-master-detail-skeleton-bar"></div>
           <div class="patient-master-detail-skeleton-bar is-short"></div>
           <div class="patient-master-detail-skeleton-bar"></div>
         </div>
+        ${renderPatientDetailBodyClose()}
       </section>
     `;
     syncMobilePatientLayout();
@@ -4881,8 +4965,11 @@
       runtime.preferJournalOnMobile = true;
       window.__ARCANA_LOAD_STAFF_DEFERRED__?.();
       void loadPatientJournalEntries(runtime.selectedPatientId);
-    } else if (normalized === 'tidslinje') {
+    } else if (normalized === 'tidslinje' || normalized === 'anteckningar') {
       void loadPatientJournalEntries(runtime.selectedPatientId);
+      if (normalized === 'anteckningar') {
+        void loadDraftProposals(runtime.selectedPatientId);
+      }
     } else {
       runtime.preferJournalOnMobile = false;
       runtime.editingTpEntryId = '';
@@ -4928,6 +5015,16 @@
       } else {
         window.requestAnimationFrame(hydrate);
       }
+    } else if (normalized === 'anteckningar') {
+      const hydrate = () => {
+        if (runtime.detailTab !== 'anteckningar') return;
+        refreshDraftProposalsHost();
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(hydrate, { timeout: 1200 });
+      } else {
+        window.requestAnimationFrame(hydrate);
+      }
     } else if (normalized === 'scalpanalys' && isAisiaScalpAnalysisEnabled()) {
       const hydrate = () => {
         if (runtime.detailTab !== 'scalpanalys') return;
@@ -4957,6 +5054,7 @@
     const tidslinjeActive = tab === 'tidslinje';
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
+    const anteckningarActive = tab === 'anteckningar';
     const fileCount = Number(
       card.fileSummary?.totalFiles || runtime.detail.driveFiles?.length || 0
     );
@@ -4965,8 +5063,8 @@
       <section class="patient-master-card" data-patient-detail>
         ${renderPatientDetailHero(card, journalEntries)}
 
-        <div class="patient-master-tabs" role="tablist">${renderPatientPrimaryTabs(tab, fileCount)}
-        </div>
+        ${renderPatientDetailTabsMarkup(tab, fileCount)}
+        ${renderPatientDetailBodyOpen()}
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil"></div>
         <div class="patient-master-tab-panel"${journalActive ? '' : ' hidden'} data-patient-tab-panel="journal">
@@ -4986,6 +5084,10 @@
         </div>
         <div class="patient-master-tab-panel"${avtalActive ? '' : ' hidden'} data-patient-tab-panel="avtal"></div>
         <div class="patient-master-tab-panel"${filesActive ? '' : ' hidden'} data-patient-tab-panel="filer"></div>
+        <div class="patient-master-tab-panel"${anteckningarActive ? '' : ' hidden'} data-patient-tab-panel="anteckningar">
+          <p class="patient-master-muted" data-patient-shell-placeholder>Laddar anteckningar…</p>
+        </div>
+        ${renderPatientDetailBodyClose()}
       </section>
     `;
     runtime.detailShellOnly = true;
@@ -5028,14 +5130,15 @@
     const tidslinjeActive = tab === 'tidslinje';
     const avtalActive = tab === 'avtal';
     const filesActive = tab === 'filer';
+    const anteckningarActive = tab === 'anteckningar';
     const fileCount = Number(card.fileSummary?.totalFiles || driveFiles?.length || 0);
 
     rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
         ${renderPatientDetailHero(card, journalEntries)}
 
-        <div class="patient-master-tabs" role="tablist">${renderPatientPrimaryTabs(tab, fileCount)}
-        </div>
+        ${renderPatientDetailTabsMarkup(tab, fileCount)}
+        ${renderPatientDetailBodyOpen()}
 
         <div class="patient-master-tab-panel"${profilActive ? '' : ' hidden'} data-patient-tab-panel="profil">
           ${renderJournalWorkflowCallout(journalEntries)}
@@ -5091,6 +5194,12 @@
         <div class="patient-master-tab-panel"${filesActive ? '' : ' hidden'} data-patient-tab-panel="filer">
           ${renderDriveFiles(driveFiles, card)}
         </div>
+
+        <div class="patient-master-tab-panel"${anteckningarActive ? '' : ' hidden'} data-patient-tab-panel="anteckningar">
+          ${renderDraftProposalsPanel()}
+          ${renderPatientNotesPanel(journalEntries)}
+        </div>
+        ${renderPatientDetailBodyClose()}
       </section>
     `;
     bindJournalPhotoOpenLinks(els.patientRail);
