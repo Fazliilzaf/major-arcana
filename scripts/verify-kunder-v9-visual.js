@@ -63,9 +63,10 @@ else pass('canonical mockup uploads/');
 if (!fs.existsSync(PLAN)) fail('restoration plan doc saknas');
 else pass('CCO-KUNDER-V9-VISUAL-RESTORATION-PLAN');
 
-if (html.includes('data-kunder-story-grid')) pass('story-grid host data-kunder-story-grid');
-else if (html.includes('data-kunder-agg-insights')) pass('agg-insights host data-kunder-agg-insights (ORD-12)');
-else if (html.includes('data-kunder-story-grid')) pass('story-grid host data-kunder-story-grid (ORD-12 P1)');
+if (html.includes('data-kunder-agg-insights'))
+  pass('agg-insights host data-kunder-agg-insights (ORD-12)');
+else if (html.includes('data-kunder-story-grid'))
+  pass('story-grid host data-kunder-story-grid (kalender)');
 else fail('insights host saknas');
 
 if (!html.includes('grid-template-columns: 200px minmax(0, 1fr) 360px')) {
@@ -142,33 +143,46 @@ else pass('body.kunder-v9');
 if (!js.includes('story-card-headline')) fail('cco-kunder-real.js saknar story-card-headline');
 else pass('story-card-headline i render');
 
-const renderStoryBlock = js.slice(js.indexOf('function renderStoryCards'), js.indexOf('function renderRightPanel'));
+const renderStoryBlock = js.slice(
+  js.indexOf('function renderStoryCards'),
+  js.indexOf('function renderRightPanel')
+);
 const storyKinds = ['idag', 'risker', 'mojligheter', 'klart'];
 for (const kind of storyKinds) {
-  if (!renderStoryBlock.includes(`data-kind="${kind}"`)) fail(`renderStoryCards saknar data-kind="${kind}"`);
+  if (!renderStoryBlock.includes(`data-kind="${kind}"`))
+    fail(`renderStoryCards saknar data-kind="${kind}"`);
 }
 pass('renderStoryCards: 4 story-kinds (Idag/Risker/Möjligheter/Klar)');
 
-const chartBlock = js.slice(js.indexOf('function populationChartHtml'), js.indexOf('function automationInsightsHtml'));
+const chartBlock = js.slice(
+  js.indexOf('function populationChartHtml'),
+  js.indexOf('function automationInsightsHtml')
+);
 const chartSlices = (chartBlock.match(/\{\s*label:/g) || []).length;
-if (chartSlices < 6) fail(`populationChartHtml: förväntat ≥6 population slices, hittade ${chartSlices}`);
+if (chartSlices < 6)
+  fail(`populationChartHtml: förväntat ≥6 population slices, hittade ${chartSlices}`);
 else pass(`populationChartHtml: ${chartSlices} population slices`);
 
-if (!js.includes('function aggregateAutomationInsights')) fail('aggregateAutomationInsights saknas');
+if (!js.includes('function aggregateAutomationInsights'))
+  fail('aggregateAutomationInsights saknas');
 else pass('aggregateAutomationInsights');
 
 if (!js.includes('function automationInsightsHtml')) fail('automationInsightsHtml saknas');
 else pass('automationInsightsHtml');
 
 const aiRowInTemplate = (js.match(/class="agg-ai-row/g) || []).length;
-if (aiRowInTemplate < 3) fail(`automationInsightsHtml: förväntat ≥3 agg-ai-row, hittade ${aiRowInTemplate}`);
+if (aiRowInTemplate < 3)
+  fail(`automationInsightsHtml: förväntat ≥3 agg-ai-row, hittade ${aiRowInTemplate}`);
 else pass(`automationInsightsHtml: ${aiRowInTemplate} agg-ai-row-mallar`);
 
 if (!js.includes('Data saknas')) fail('cco-kunder-real.js saknar "Data saknas" fallback');
 else pass('"Data saknas" fallback');
 
-if (!html.includes('kunder-v9-insights')) fail('kunder.html saknar .kunder-v9-insights override host');
-else pass('kunder-v9-insights CSS host');
+if (!html.includes('data-kunder-agg-insights') && !html.includes('kunder-v9-insights')) {
+  fail('kunder.html saknar agg-insights host (data-kunder-agg-insights)');
+} else {
+  pass('agg-insights host (mockup-paritet)');
+}
 
 if (failed) {
   console.error(`\n${failed} failure(s).`);

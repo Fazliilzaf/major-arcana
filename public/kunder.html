@@ -4752,10 +4752,9 @@
 
       .customer-row-head {
         display: grid;
-        grid-template-columns: 44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(
-            0,
-            1.1fr
-          ) minmax(0, 1.4fr) minmax(0, 2.2fr) 30px;
+        grid-template-columns:
+          44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.1fr)
+          minmax(0, 1.4fr) minmax(0, 2.2fr) 30px;
         gap: 12px;
         padding: 8px 14px;
         font-size: 9px;
@@ -4772,10 +4771,9 @@
 
       .customer-row {
         display: grid;
-        grid-template-columns: 44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(
-            0,
-            1.1fr
-          ) minmax(0, 1.4fr) minmax(0, 2.2fr) 30px;
+        grid-template-columns:
+          44px minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.1fr)
+          minmax(0, 1.4fr) minmax(0, 2.2fr) 30px;
         gap: 12px;
         align-items: center;
         padding: 10px 14px;
@@ -5753,7 +5751,7 @@
           <div class="calendar-status-bar"></div>
 
           <!-- AI-aggregat (v9 mockup — fylls av cco-kunder-real.js ORD-12 P1.1) -->
-          <div class="agg-insights kunder-v9-insights" data-kunder-agg-insights>
+          <div class="agg-insights" data-kunder-agg-insights>
             <div class="agg-insight" data-kind="action">
               <div class="agg-insight-kicker">★ Idag</div>
               <div data-kunder-agg-body="idag">—</div>
@@ -5797,7 +5795,7 @@
               Dormant <span class="count">—</span>
             </button>
             <button type="button" class="filter-chip" data-segment="saknar-hd">
-              Saknar hälsodeklaration <span class="count">—</span>
+              Saknar formulär <span class="count">—</span>
             </button>
             <span class="filter-chip-spacer"></span>
             <button class="sort-dropdown">↕ Senaste aktivitet</button>
@@ -5813,7 +5811,7 @@
               <div>Status</div>
               <div>Senaste besök</div>
               <div>Intäkt (LTV)</div>
-              <div>Nästa steg</div>
+              <div>AI nästa-steg</div>
               <div></div>
             </div>
             <div id="customerList"></div>

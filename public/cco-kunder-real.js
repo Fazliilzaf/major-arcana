@@ -99,17 +99,24 @@
     mockupSeed: false,
   };
 
+  function isKunderPage() {
+    return /\/kunder\.html$/i.test(location.pathname || '');
+  }
+
+  /** Default on /kunder.html = same v9 chrome + mockdata as :8765/CCO-Kunder-Mockup-v9-DESKTOP.html */
   function shouldUseMockupSeed() {
     const seed = global.CcoKunderV9MockSeed;
     if (!seed) return false;
+    const q = new URLSearchParams(location.search);
+    if (q.get('live') === '1') return false;
     try {
       if (localStorage.getItem('ARCANA_KUNDER_V9_SEED') === '0') return false;
     } catch {
       /* ignore */
     }
-    const q = new URLSearchParams(location.search);
     if (q.get('v9seed') === '0') return false;
     if (q.get('v9seed') === '1') return true;
+    if (isKunderPage()) return true;
     return !getToken();
   }
 
@@ -138,10 +145,11 @@
       const nav = $('.top-nav');
       if (nav) nav.insertAdjacentElement('afterend', el);
     }
+    const liveLink = isKunderPage() ? ' <a href="?live=1">Live API-data</a>' : '';
     el.innerHTML = `
-      <strong>Demo · v9 mockdata</strong> från <code>CCO-Kunder-Mockup-v9-DESKTOP.html</code>.
-      <a href="${LOGIN_HREF}">Logga in</a> för live customers-shell.
-      <span style="margin-left:8px;opacity:.85">(?v9seed=0 stänger demo)</span>`;
+      <strong>v9 mockup</strong> — samma design som <code>CCO-Kunder-Mockup-v9-DESKTOP.html</code> (:8765).
+      ${getToken() ? 'Inloggad med mockdata.' : `<a href="${LOGIN_HREF}">Logga in</a> för token.`}
+      <span style="margin-left:8px;opacity:.85">?live=1 = API · ?v9seed=0 stänger mock</span>${liveLink}`;
   }
 
   function renderMockStatusBar() {
@@ -527,7 +535,7 @@
   }
 
   async function fetchShell({ append = false } = {}) {
-    if (shouldUseMockupSeed() && !getToken()) {
+    if (shouldUseMockupSeed()) {
       applyMockupSeed();
       showDemoBanner();
       applyV9VisualChrome();
