@@ -306,6 +306,7 @@
       showAuthBanner(true);
       setListStatus('Logga in för att hämta kunder från patient-master.', 'warn');
       renderCounts();
+      renderInsights();
       renderRightPanel();
       return;
     }
@@ -358,7 +359,7 @@
       refreshSegmentCounts();
       renderList();
       renderCounts();
-      renderStoryCards();
+      renderInsights();
       renderRightPanel();
     }
   }
@@ -595,31 +596,129 @@
     return Number(n).toLocaleString('sv-SE');
   }
 
-  function populationChartHtml(panel = {}) {
+  const AUTOMATION_RULE_META = {
+    'customer.missing_health_declaration': { risk: 'blocker', label: 'Hälsodeklaration saknas' },
+    'customer.missing_journal': { risk: 'blocker', label: 'Journal saknas' },
+    'customer.missing_treatment_plan': { risk: 'blocker', label: 'Behandlingsplan saknas' },
+    'customer.cooling_off_active': { risk: 'info', label: 'Betänketid pågår' },
+    'customer.cooling_off_passed': { risk: 'ready', label: 'Betänketid passerad' },
+    'customer.missing_agreement_consent_bundle': { risk: 'legal_blocker', label: 'Avtal + samtycke saknas' },
+    'customer.missing_operation_day_insurance': { risk: 'blocker', label: 'Friskförsäkran saknas' },
+    'customer.missing_photo_consent': { risk: 'legal', label: 'Foto-samtycke saknas' },
+    'customer.has_photo_review': { risk: 'needs_review', label: 'Bildreview väntar' },
+    'customer.ready_for_treatment': { risk: 'ready', label: 'Redo för behandling' },
+  };
+
+  const RISK_SORT = {
+    legal_blocker: 0,
+    legal: 1,
+    blocker: 2,
+    needs_review: 3,
+    ready: 4,
+    info: 5,
+  };
+
+  function aggregateAutomationInsights(patients = [], automation = null) {
+    if (!automation?.enabled) {
+      return { rows: [], disabled: true };
+    }
+    const tallies = new Map();
+    for (const card of patients) {
+      for (const sig of card.automationSignals || []) {
+        if (sig.status !== 'active') continue;
+        const prev = tallies.get(sig.ruleId) || { count: 0, signal: sig };
+        prev.count += 1;
+        prev.signal = sig;
+        tallies.set(sig.ruleId, prev);
+      }
+    }
+    const rows = [...tallies.entries()]
+      .map(([ruleId, { count, signal }]) => ({
+        ruleId,
+        count,
+        risk: signal.risk || AUTOMATION_RULE_META[ruleId]?.risk || 'info',
+        label: signal.what || AUTOMATION_RULE_META[ruleId]?.label || ruleId,
+        why: signal.why || '',
+      }))
+      .sort((a, b) => {
+        const ra = RISK_SORT[a.risk] ?? 9;
+        const rb = RISK_SORT[b.risk] ?? 9;
+        if (ra !== rb) return ra - rb;
+        return b.count - a.count;
+      });
+    return { rows, disabled: false };
+  }
+
+  function populationChartHtml(panel = {}, stats = {}) {
+    const total = Number(stats.totalPatients ?? panel.totalPatients) || 0;
     const slices = [
-      { label: 'Journal', value: Number(panel.withJournal) || 0 },
+      { label: 'Totalt', value: total },
+      { label: 'Aktiva', value: Number(state.segmentTotals?.active) || 0 },
+      { label: 'VIP', value: Number(state.segmentTotals?.vip) || 0 },
+      { label: 'Granska', value: Number(panel.needsReviewPatients ?? stats.needsReview) || 0 },
       { label: 'Saknar journal', value: Number(panel.missingJournal) || 0 },
-      { label: 'Formulär', value: Number(panel.withForm) || 0 },
       { label: 'Saknar HD', value: Number(panel.missingForm) || 0 },
-      { label: 'Granska', value: Number(panel.needsReviewPatients) || 0 },
+      { label: 'Med journal', value: Number(panel.withJournal) || 0 },
+      { label: 'Med formulär', value: Number(panel.withForm) || 0 },
       { label: 'Foto-review', value: Number(panel.photoReviewPending) || 0 },
+      { label: 'Asset review', value: Number(panel.assetReviewPending) || 0 },
+      { label: 'Idag', value: panel.bookingCoverage === 'missing' ? 0 : Number(panel.todayVisits) || 0 },
+      { label: 'Väntelista', value: panel.bookingCoverage === 'missing' ? 0 : Number(panel.waitlist) || 0 },
+      { label: 'Kommande', value: panel.bookingCoverage === 'missing' ? 0 : Number(panel.upcomingBookings) || 0 },
     ];
     const max = Math.max(...slices.map((s) => s.value), 1);
     const bars = slices
-      .map((s) => {
-        const h = Math.round((s.value / max) * 100);
-        return `<div class="agg-chart-bar" style="height:${h}%" title="${escapeHtml(s.label)}: ${fmtStat(s.value)}"></div>`;
+      .map((s, i) => {
+        const h = Math.max(8, Math.round((s.value / max) * 100));
+        const current = i === slices.length - 1 ? ' current' : '';
+        return `<div class="agg-chart-bar${current}" style="height:${h}%" title="${escapeHtml(s.label)}: ${fmtStat(s.value)}"></div>`;
       })
       .join('');
     return `
       <div class="agg-chart kunder-population-chart" data-kunder-population-chart>
         <div class="agg-chart-head">
           <span class="agg-chart-title">Kundpopulation (master)</span>
-          <span class="agg-chart-value">${fmtStat(panel.totalPatients)} totalt</span>
+          <span class="agg-chart-value">${fmtStat(total)} totalt</span>
         </div>
-        <div class="agg-chart-bars">${bars}</div>
-        <div class="agg-chart-x"><span>journal</span><span>saknar</span><span>HD</span><span>granska</span><span>foto</span></div>
+        <div class="agg-chart-bars" data-kunder-chart-bars>${bars}</div>
       </div>`;
+  }
+
+  function automationInsightsHtml(patients = [], automation = null) {
+    const { rows, disabled } = aggregateAutomationInsights(patients, automation);
+    const targetRows = 7;
+    const htmlRows = [];
+
+    if (disabled) {
+      htmlRows.push(
+        `<div class="agg-ai-row agg-ai-row--empty">Automation av — ${escapeHtml(automation?.reason || 'ENABLE_AUTOMATION_RUNNER')}</div>`
+      );
+    } else if (!rows.length) {
+      htmlRows.push(
+        `<div class="agg-ai-row agg-ai-row--empty">Inga aktiva automation-signaler i aktuell vy.</div>`
+      );
+    } else {
+      for (const row of rows.slice(0, targetRows)) {
+        htmlRows.push(
+          `<div class="agg-ai-row" data-rule-id="${escapeHtml(row.ruleId)}" data-risk="${escapeHtml(row.risk)}">
+            <strong>${fmtStat(row.count)}</strong> kunder · ${escapeHtml(row.label)}${row.why ? ` — ${escapeHtml(row.why)}` : ''}
+          </div>`
+        );
+      }
+    }
+
+    while (htmlRows.length < 3) {
+      htmlRows.push(`<div class="agg-ai-row agg-ai-row--empty">Data saknas — färre än 3 signaltyper i vy.</div>`);
+    }
+    while (htmlRows.length < targetRows && rows.length > 0) {
+      htmlRows.push(`<div class="agg-ai-row agg-ai-row--empty">Data saknas — inga fler aktiva signaler i batch.</div>`);
+    }
+
+    return `
+      <div>
+        <div class="agg-kicker">Regelbaserat · dry-run</div>
+      </div>
+      <div class="agg-ai-list" data-kunder-ai-insights>${htmlRows.join('')}</div>`;
   }
 
   function storyIconSvg(kind) {
@@ -635,24 +734,41 @@
     return icons[kind] || icons.idag;
   }
 
-  function renderStoryCards() {
-    const grid = $('[data-kunder-story-grid]');
-    if (!grid) return;
-    if (state.authRequired || !state.stats) {
-      grid.innerHTML =
-        '<p class="kunder-data-missing">Story-cards — logga in för customers-shell.</p>';
+  function countActiveAutomation(ruleId) {
+    let n = 0;
+    for (const card of state.patients) {
+      for (const sig of card.automationSignals || []) {
+        if (sig.status === 'active' && sig.ruleId === ruleId) n += 1;
+      }
+    }
+    return n;
+  }
+
+  function setAggInsightBody(host, key, html) {
+    const el = host.querySelector(`[data-kunder-agg-body="${key}"]`);
+    if (!el) return;
+    el.className = 'agg-insight-body';
+    el.innerHTML = html;
+  }
+
+  function renderAggInsights() {
+    const host = $('[data-kunder-agg-insights]');
+    if (!host) return;
+
+    const hasStats = Boolean(state.stats) && !state.authRequired;
+    const panel = state.stats?.kunderPanel || state.segmentStats?.panel || {};
+    const counts = state.segmentTotals || {};
+
+    if (!hasStats) {
+      setAggInsightBody(host, 'idag', 'Data saknas — logga in för customers-shell.');
+      setAggInsightBody(host, 'opp', 'Data saknas — logga in.');
+      setAggInsightBody(host, 'trend', 'Intäkt/LTV — data saknas (ej mock).');
+      setAggInsightBody(host, 'risk', 'Data saknas — logga in.');
       return;
     }
-    const panel = state.stats.kunderPanel || state.segmentStats?.panel || {};
-    const counts = state.segmentTotals || {};
-    const todayCount =
-      panel.bookingCoverage === 'missing' ? null : (counts.today_visits ?? panel.todayVisits);
-    const riskTotal =
-      (Number(counts.needs_review ?? panel.needsReviewPatients ?? state.stats.needsReview) || 0) +
-      (Number(counts.missing_health_declaration ?? panel.missingForm) || 0) +
-      (Number(counts.missing_journal ?? panel.missingJournal) || 0);
-    const readyInView = state.patients.filter((p) => p.readyForTreatment === true).length;
 
+    const todayN =
+      panel.bookingCoverage === 'missing' ? null : (counts.today_visits ?? panel.todayVisits);
     const riskPatients = state.patients
       .filter(
         (p) =>
@@ -662,6 +778,101 @@
           p.missingJournal
       )
       .slice(0, 3);
+    const riskNames = riskPatients.map((p) => escapeHtml(displayName(p))).join(', ');
+    const riskTotal =
+      (Number(counts.needs_review ?? panel.needsReviewPatients ?? state.stats.needsReview) || 0) +
+      (Number(counts.missing_health_declaration ?? panel.missingForm) || 0) +
+      (Number(counts.missing_journal ?? panel.missingJournal) || 0);
+
+    const missingHd = Number(counts.missing_health_declaration ?? panel.missingForm) || 0;
+    const vip = Number(counts.vip ?? panel.vipPatients) || 0;
+    const active = Number(counts.active) || 0;
+
+    setAggInsightBody(
+      host,
+      'idag',
+      todayN != null
+        ? `<strong>${fmtStat(todayN)}</strong> besök idag${
+            riskNames ? ` · ${riskNames} behöver uppföljning` : ''
+          }.`
+        : riskNames
+          ? `<strong>${fmtStat(riskPatients.length)}</strong> i vy: ${riskNames}.`
+          : 'Inga dagens poster i aktuell batch.'
+    );
+
+    setAggInsightBody(
+      host,
+      'opp',
+      panel.bookingCoverage === 'missing'
+        ? 'Väntelista/kommande — bokningsdata saknas.'
+        : `<strong>${fmtStat((Number(counts.waitlist) || 0) + (Number(counts.this_week) || 0))}</strong> väntelista + denna vecka · <strong>${fmtStat(vip)}</strong> VIP i master.`
+    );
+
+    setAggInsightBody(
+      host,
+      'trend',
+      `<strong>${fmtStat(active)}</strong> aktiva · <strong>${fmtStat(state.stats?.totalPatients)}</strong> totalt. Intäkt/LTV — data saknas.`
+    );
+
+    setAggInsightBody(
+      host,
+      'risk',
+      `<strong>${fmtStat(riskTotal || missingHd)}</strong> ärenden (granska + saknar journal/HD)${
+        missingHd ? ` · <strong>${fmtStat(missingHd)}</strong> saknar hälsodeklaration` : ''
+      }.`
+    );
+  }
+
+  function renderInsights() {
+    renderAggInsights();
+    renderStoryCards();
+  }
+
+  function renderStoryCards() {
+    const grid = $('[data-kunder-story-grid]');
+    if (!grid) return;
+
+    const panel = state.stats?.kunderPanel || state.segmentStats?.panel || {};
+    const counts = state.segmentTotals || {};
+    const hasStats = Boolean(state.stats) && !state.authRequired;
+
+    const todayCount = hasStats
+      ? panel.bookingCoverage === 'missing'
+        ? null
+        : (counts.today_visits ?? panel.todayVisits)
+      : null;
+    const riskTotal = hasStats
+      ? (Number(counts.needs_review ?? panel.needsReviewPatients ?? state.stats.needsReview) || 0) +
+        (Number(counts.missing_health_declaration ?? panel.missingForm) || 0) +
+        (Number(counts.missing_journal ?? panel.missingJournal) || 0)
+      : null;
+    const readyCount = hasStats ? countActiveAutomation('customer.ready_for_treatment') : null;
+    const oppWaitlist = hasStats
+      ? panel.bookingCoverage === 'missing'
+        ? null
+        : (counts.waitlist ?? panel.waitlist)
+      : null;
+    const oppUpcoming = hasStats
+      ? panel.bookingCoverage === 'missing'
+        ? null
+        : (counts.this_week ?? panel.thisWeekVisits)
+      : null;
+    const oppHeadline =
+      oppWaitlist != null || oppUpcoming != null
+        ? fmtStat((Number(oppWaitlist) || 0) + (Number(oppUpcoming) || 0))
+        : null;
+
+    const riskPatients = hasStats
+      ? state.patients
+          .filter(
+            (p) =>
+              p.flags?.includes('needs_review') ||
+              p.missingHealthDeclaration ||
+              p.missingForm ||
+              p.missingJournal
+          )
+          .slice(0, 3)
+      : [];
 
     const riskItems = riskPatients.length
       ? riskPatients
@@ -677,32 +888,46 @@
             </div>`;
           })
           .join('')
-      : '<p class="story-card-sub">Inga riskposter i aktuell vy.</p>';
+      : `<p class="story-card-sub">${hasStats ? 'Inga riskposter i aktuell batch.' : 'Data saknas — logga in.'}</p>`;
 
     grid.innerHTML = `
       <div class="story-card" data-kind="idag">
         <div class="story-card-kicker"><span class="icon">${storyIconSvg('idag')}</span>Idag</div>
-        <h2 class="story-card-headline"><span class="num">${fmtStat(todayCount)}</span> besök</h2>
+        <h2 class="story-card-headline">${hasStats && todayCount != null ? `<span class="num">${fmtStat(todayCount)}</span> besök` : 'Data saknas'}</h2>
         <p class="story-card-sub">${
-          panel.bookingCoverage === 'missing'
-            ? 'Bokningsdata saknas — segment disabled.'
-            : 'Antal från customers-shell · today_visits.'
+          !hasStats
+            ? 'Logga in för customers-shell.'
+            : panel.bookingCoverage === 'missing'
+              ? 'Bokningsdata saknas i segmentStats.'
+              : 'segmentStats · today_visits.'
         }</p>
       </div>
       <div class="story-card" data-kind="risker">
         <div class="story-card-kicker"><span class="icon">${storyIconSvg('risker')}</span>Risker</div>
-        <h2 class="story-card-headline"><span class="num">${fmtStat(riskTotal)}</span> ärenden</h2>
+        <h2 class="story-card-headline">${hasStats && riskTotal != null ? `<span class="num">${fmtStat(riskTotal)}</span> ärenden` : 'Data saknas'}</h2>
         <div class="story-list">${riskItems}</div>
       </div>
-      <div class="story-card story-card--disabled" data-kind="mojligheter">
+      <div class="story-card" data-kind="mojligheter">
         <div class="story-card-kicker"><span class="icon">${storyIconSvg('mojligheter')}</span>Möjligheter</div>
-        <h2 class="story-card-headline">Data saknas</h2>
-        <p class="story-card-sub">Outreach/kampanj kräver egen motor — ingen mock i v9.</p>
+        <h2 class="story-card-headline">${hasStats && oppHeadline != null ? `<span class="num">${oppHeadline}</span> bokning` : 'Data saknas'}</h2>
+        <p class="story-card-sub">${
+          !hasStats
+            ? 'Logga in för customers-shell.'
+            : panel.bookingCoverage === 'missing'
+              ? 'Väntelista/kommande — bokningsdata saknas.'
+              : 'Väntelista + denna vecka (segmentStats).'
+        }</p>
       </div>
       <div class="story-card" data-kind="klart">
-        <div class="story-card-kicker"><span class="icon">${storyIconSvg('klart')}</span>Redo</div>
-        <h2 class="story-card-headline"><span class="num">${fmtStat(readyInView)}</span> i vy</h2>
-        <p class="story-card-sub">ready_for_treatment i laddad lista (automation ORD-3/5).</p>
+        <div class="story-card-kicker"><span class="icon">${storyIconSvg('klart')}</span>Klar</div>
+        <h2 class="story-card-headline">${hasStats ? `<span class="num">${fmtStat(readyCount)}</span> redo` : 'Data saknas'}</h2>
+        <p class="story-card-sub">${
+          !hasStats
+            ? 'Logga in för automation.'
+            : state.automation?.enabled
+              ? 'ready_for_treatment · aktiv i laddad batch.'
+              : 'Automation av — Data saknas.'
+        }</p>
       </div>`;
   }
 
@@ -710,16 +935,25 @@
     const bookingView = $('.intel-booking-view');
     if (!bookingView) return;
     const stats = state.stats;
-    if (!stats || state.authRequired) {
+    const hasStats = Boolean(stats) && !state.authRequired;
+    if (!hasStats) {
       bookingView.innerHTML = `
         <div class="agg-shell">
-          <div class="agg-kicker">Översikt</div>
-          <h3 class="agg-title">Kundpopulation</h3>
-          <p class="kunder-data-missing">Data saknas — logga in eller vänta på patient-master.</p>
+          <div>
+            <div class="agg-kicker">Översikt</div>
+            <h3 class="agg-title">Kundpopulation</h3>
+          </div>
+          <p class="kunder-data-missing">Data saknas — logga in för customers-shell.</p>
+          ${populationChartHtml({}, {})}
+          ${automationInsightsHtml([], state.automation)}
+          <p class="kunder-data-missing" style="margin-top:12px">Intäkt/LTV — data saknas (ej mock).</p>
         </div>`;
       return;
     }
     const panel = stats.kunderPanel || state.segmentStats?.panel || {};
+    const activeN = Number(state.segmentTotals?.active) || 0;
+    const vipN = Number(state.segmentTotals?.vip) || 0;
+    const newN = Number(state.segmentTotals?.new) || 0;
     bookingView.innerHTML = `
       <div class="agg-shell">
         <div>
@@ -730,55 +964,29 @@
           <div class="agg-stat">
             <div class="agg-stat-label">Totalt</div>
             <div class="agg-stat-value">${fmtStat(stats.totalPatients)}</div>
+            <div class="agg-stat-trend">${fmtStat(newN)} nya i segment</div>
           </div>
           <div class="agg-stat">
-            <div class="agg-stat-label">Med journal</div>
-            <div class="agg-stat-value">${fmtStat(panel.withJournal)}</div>
+            <div class="agg-stat-label">Aktiva</div>
+            <div class="agg-stat-value">${fmtStat(activeN)}</div>
+            <div class="agg-stat-trend">segmentStats · active</div>
           </div>
           <div class="agg-stat">
-            <div class="agg-stat-label">Saknar journal</div>
-            <div class="agg-stat-value">${fmtStat(panel.missingJournal)}</div>
+            <div class="agg-stat-label">VIP</div>
+            <div class="agg-stat-value">${fmtStat(vipN)}</div>
+            <div class="agg-stat-trend">segmentStats · vip</div>
           </div>
           <div class="agg-stat">
-            <div class="agg-stat-label">Med formulär</div>
-            <div class="agg-stat-value">${fmtStat(panel.withForm)}</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Saknar hälsodeklaration</div>
-            <div class="agg-stat-value">${fmtStat(panel.missingForm)}</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Granska (master)</div>
-            <div class="agg-stat-value">${fmtStat(panel.needsReviewPatients ?? stats.needsReview)}</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Bild-review</div>
-            <div class="agg-stat-value">${fmtStat(panel.photoReviewPending)}</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Asset review</div>
-            <div class="agg-stat-value">${fmtStat(panel.assetReviewPending)}</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Idag</div>
-            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmtStat(panel.todayVisits)}</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Denna vecka</div>
-            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmtStat(panel.thisWeekVisits)}</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Väntelista</div>
-            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmtStat(panel.waitlist)}</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Kommande bokn.</div>
-            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmtStat(panel.upcomingBookings)}</div>
+            <div class="agg-stat-label">Snitt LTV</div>
+            <div class="agg-stat-value">—</div>
+            <div class="agg-stat-trend">Data saknas</div>
           </div>
         </div>
-        ${populationChartHtml(panel)}
-        <p class="kunder-data-missing" style="margin-top:12px">Intäkt/LTV och AI-insikter — data saknas (ej mock).</p>
+        ${populationChartHtml(panel, stats)}
+        ${automationInsightsHtml(state.patients, state.automation)}
+        <p class="kunder-data-missing" style="margin-top:12px">Intäkt/LTV — data saknas (ej mock).</p>
         <div class="agg-actions">
+          <button type="button" class="quick-pill quick-pill--ai" disabled title="Ej kopplat ännu">★ Mass-påminnelse</button>
           <button type="button" class="quick-pill" disabled title="Ej kopplat ännu — kommer i P1">↓ Exportera urval</button>
         </div>
       </div>`;
@@ -1183,8 +1391,8 @@
       .kunder-action--partial { opacity:.72; border-style:dashed; }
       .kunder-action--blocked { opacity:.55; }
       .cr-ai[data-rule-based="1"] { font-style:normal; }
-      .kunder-v9 .agg-insights { display:block; margin-bottom:14px; }
-      .kunder-v9 .agg-insights .story-grid { display:grid; grid-template-columns:1.1fr 1fr 1fr 0.9fr; gap:12px; }
+      [data-kunder-agg-body] { font-size:12px; line-height:1.45; color:var(--cco-text-secondary); }
+      [data-kunder-agg-body].agg-insight-body strong { color:var(--cco-color-brand); font-weight:800; }
       .story-card--disabled { opacity:.72; }
       .story-card--disabled .story-card-headline { font-size:16px; }
       body.kunder-v9 .watch-widget, body.kunder-v9 .voice-overlay, body.kunder-v9 .voice-sheet, body.kunder-v9 .calm-banner { display:none !important; }
@@ -1195,6 +1403,8 @@
   async function boot() {
     injectStyles();
     bindUi();
+    renderInsights();
+    renderRightPanel();
     if (getToken() && global.CcoKunderStaffOwner?.fetchAuthMe) {
       await global.CcoKunderStaffOwner.fetchAuthMe(getToken());
     }

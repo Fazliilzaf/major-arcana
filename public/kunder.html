@@ -2738,28 +2738,28 @@
     <div class="side-kicker">Segment</div>
     <h2 class="side-h2">Kundgrupper</h2>
     <div class="side-list">
-      <div class="side-link active">Alla kunder <span class="count">1 247</span></div>
-      <div class="side-link">Mina kunder <span class="count">186</span></div>
-      <div class="side-link">Idag · besöker <span class="count">12</span></div>
-      <div class="side-link">Denna vecka <span class="count">47</span></div>
-      <div class="side-link">Väntelista <span class="count">23</span></div>
+      <div class="side-link active" data-segment="all" role="button" tabindex="0">Alla kunder <span class="count">—</span></div>
+      <div class="side-link" data-segment="mine" role="button" tabindex="0">Mina kunder <span class="count">—</span></div>
+      <div class="side-link" data-segment="today_visits" role="button" tabindex="0">Idag · besöker <span class="count">—</span></div>
+      <div class="side-link" data-segment="this_week" role="button" tabindex="0">Denna vecka <span class="count">—</span></div>
+      <div class="side-link" data-segment="waitlist" role="button" tabindex="0">Väntelista <span class="count">—</span></div>
     </div>
     <div class="side-section">
       <div class="side-kicker">Behandling</div>
-      <div class="side-list" style="margin-top:4px">
-        <div class="side-link"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--rail-fazli)"></span>DHI</span><span class="count">142</span></div>
-        <div class="side-link"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--rail-egzona)"></span>PRP</span><span class="count">389</span></div>
-        <div class="side-link"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--rail-contact)"></span>Microneedling</span><span class="count">98</span></div>
-        <div class="side-link"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--rail-info)"></span>Konsultation</span><span class="count">618</span></div>
+      <div class="side-list" data-kunder-treatment-nav style="margin-top:4px">
+        <div class="side-link" data-segment="treatment_dhi" role="button" tabindex="0"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--rail-fazli)"></span>DHI</span><span class="count">—</span></div>
+        <div class="side-link" data-segment="treatment_prp" role="button" tabindex="0"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--rail-egzona)"></span>PRP</span><span class="count">—</span></div>
+        <div class="side-link" data-segment="treatment_microneedling" role="button" tabindex="0"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--rail-contact)"></span>Microneedling</span><span class="count">—</span></div>
+        <div class="side-link" data-segment="treatment_consultation" role="button" tabindex="0"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--rail-info)"></span>Konsultation</span><span class="count">—</span></div>
       </div>
     </div>
     <div class="side-section">
       <div class="side-kicker">Status</div>
       <div class="side-list" style="margin-top:4px">
-        <div class="side-link"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--accent-studio)"></span>VIP</span><span class="count">234</span></div>
-        <div class="side-link"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--cco-status-warning)"></span>Risk</span><span class="count">12</span></div>
-        <div class="side-link"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--cco-status-info)"></span>Nya</span><span class="count">89</span></div>
-        <div class="side-link"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--cco-text-tertiary)"></span>Dormant</span><span class="count">456</span></div>
+        <div class="side-link" data-segment="vip" role="button" tabindex="0"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--accent-studio)"></span>VIP</span><span class="count">—</span></div>
+        <div class="side-link" data-segment="needs_review" role="button" tabindex="0"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--cco-status-warning)"></span>Risk</span><span class="count">—</span></div>
+        <div class="side-link" data-segment="new" role="button" tabindex="0"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--cco-status-info)"></span>Nya</span><span class="count">—</span></div>
+        <div class="side-link" data-segment="dormant" role="button" tabindex="0"><span style="display:inline-flex;gap:7px;align-items:center"><span class="dot" style="background:var(--cco-text-tertiary)"></span>Dormant</span><span class="count">—</span></div>
       </div>
     </div>
   </aside>
@@ -2775,57 +2775,49 @@
           <span class="calendar-mark" style="background:rgba(187,71,121,.14);color:var(--accent-studio);box-shadow:inset 0 1px 0 rgba(255,255,255,.8), 0 2px 6px rgba(187,71,121,.22)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
           </span>
-          <h2>1 247 kunder</h2>
+          <h2>Kunder</h2>
         </div>
         <div class="calendar-toolbar-actions">
-          <button class="nav-btn">↓ Exportera</button>
-          <button class="nav-btn nav-btn--today">+ Ny kund</button>
+          <button type="button" class="nav-btn">↓ Exportera</button>
+          <button type="button" class="nav-btn nav-btn--today">+ Ny kund</button>
         </div>
       </header>
 
-      <div class="calendar-status-bar">
-        <span class="status-pill status-pill--success"><span class="dot"></span>87 aktiva i maj</span>
-        <span class="status-pill" style="color:var(--accent-studio);background:linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));border-color:rgba(187,71,121,.32)"><span class="dot" style="background:var(--accent-studio)"></span>234 VIP</span>
-        <span class="status-pill status-pill--warning"><span class="dot"></span>12 risk</span>
-        <span class="status-pill status-pill--info"><span class="dot"></span>89 nya / 30 dagar</span>
-        <span class="status-pill"><span class="dot" style="background:var(--cco-text-tertiary)"></span>456 dormant</span>
-        <span class="spacer"></span>
-        <span class="status-pill" style="color:var(--cco-text-tertiary)">Snitt LTV: 24 800 kr</span>
-      </div>
+      <div class="calendar-status-bar"></div>
 
-      <!-- AI-aggregat (4 highlights) -->
-      <div class="agg-insights">
+      <!-- AI-aggregat (v9 mockup — fylls av cco-kunder-real.js ORD-12) -->
+      <div class="agg-insights kunder-v9-insights" data-kunder-agg-insights>
         <div class="agg-insight" data-kind="action">
           <div class="agg-insight-kicker">★ Idag</div>
-          <div class="agg-insight-body"><strong>3 kunder</strong> behöver kontakt: Anna (friskförs.), Karl (betalt halvt), Eva (no-show-risk)</div>
+          <div data-kunder-agg-body="idag">—</div>
           <span class="agg-insight-action">→ Visa alla</span>
         </div>
         <div class="agg-insight" data-kind="opp">
           <div class="agg-insight-kicker">★ Möjlighet</div>
-          <div class="agg-insight-body"><strong>5 VIP-kunder</strong> har inte bokat på 60+ dagar — föreslå outreach via Svarstudio</div>
+          <div data-kunder-agg-body="opp">—</div>
           <span class="agg-insight-action">→ Skapa kampanj</span>
         </div>
         <div class="agg-insight" data-kind="trend">
           <div class="agg-insight-kicker">★ Trend</div>
-          <div class="agg-insight-body">Snittbesök-värde upp <strong>+8% Q2</strong>. Mest p.g.a. fler kompletta PRP-kurer.</div>
+          <div data-kunder-agg-body="trend">—</div>
           <span class="agg-insight-action">→ Se analys</span>
         </div>
         <div class="agg-insight" data-kind="risk">
           <div class="agg-insight-kicker">★ Risk</div>
-          <div class="agg-insight-body"><strong>28 kunder</strong> har bokningar inom 3 dagar men saknar formulär</div>
+          <div data-kunder-agg-body="risk">—</div>
           <span class="agg-insight-action">→ Skicka mass-påminnelse</span>
         </div>
       </div>
 
       <!-- Filter-chips -->
       <div class="customers-filters">
-        <button class="filter-chip active">Alla <span class="count">1 247</span></button>
-        <button class="filter-chip">Aktiva <span class="count">87</span></button>
-        <button class="filter-chip" data-kind="vip">★ VIP <span class="count">234</span></button>
-        <button class="filter-chip" data-kind="risk">⚠ Risk <span class="count">12</span></button>
-        <button class="filter-chip">Nya <span class="count">89</span></button>
-        <button class="filter-chip">Dormant <span class="count">456</span></button>
-        <button class="filter-chip">Saknar formulär <span class="count">28</span></button>
+        <button type="button" class="filter-chip active" data-segment="alla">Alla <span class="count">—</span></button>
+        <button type="button" class="filter-chip" data-segment="aktiva">Aktiva <span class="count">—</span></button>
+        <button type="button" class="filter-chip" data-segment="vip" data-kind="vip">★ VIP <span class="count">—</span></button>
+        <button type="button" class="filter-chip" data-segment="risk" data-kind="risk">⚠ Risk <span class="count">—</span></button>
+        <button type="button" class="filter-chip" data-segment="nya">Nya <span class="count">—</span></button>
+        <button type="button" class="filter-chip" data-segment="dormant">Dormant <span class="count">—</span></button>
+        <button type="button" class="filter-chip" data-segment="saknar-hd">Saknar hälsodeklaration <span class="count">—</span></button>
         <span class="filter-chip-spacer"></span>
         <button class="sort-dropdown">↕ Senaste aktivitet</button>
         <button class="sort-dropdown">▦ Lista</button>
@@ -2840,7 +2832,7 @@
           <div>Status</div>
           <div>Senaste besök</div>
           <div>Intäkt (LTV)</div>
-          <div>AI nästa-steg</div>
+          <div>Nästa steg</div>
           <div></div>
         </div>
         <div id="customerList"></div>
@@ -3172,86 +3164,7 @@
   <!-- HÖGER INTEL -->
   <aside class="intel-shell" id="intelShell" data-context="booking">
     <div class="intel-booking-view">
-    <div class="agg-shell">
-      <div>
-        <div class="agg-kicker">Översikt</div>
-        <h3 class="agg-title">Kundpopulation</h3>
-      </div>
-
-      <div class="agg-stat-grid">
-        <div class="agg-stat">
-          <div class="agg-stat-label">Totalt</div>
-          <div class="agg-stat-value">1 247</div>
-          <div class="agg-stat-trend">+89 / 30 dagar</div>
-        </div>
-        <div class="agg-stat">
-          <div class="agg-stat-label">Aktiva</div>
-          <div class="agg-stat-value">87</div>
-          <div class="agg-stat-trend">+12% MoM</div>
-        </div>
-        <div class="agg-stat">
-          <div class="agg-stat-label">VIP</div>
-          <div class="agg-stat-value">234</div>
-          <div class="agg-stat-trend">+5 i månaden</div>
-        </div>
-        <div class="agg-stat">
-          <div class="agg-stat-label">Snitt LTV</div>
-          <div class="agg-stat-value">24,8k</div>
-          <div class="agg-stat-trend">+8% Q2</div>
-        </div>
-      </div>
-
-      <div class="agg-chart">
-        <div class="agg-chart-head">
-          <span class="agg-chart-title">Intäkt / vecka</span>
-          <span class="agg-chart-value">485 200 kr</span>
-        </div>
-        <div class="agg-chart-bars">
-          <div class="agg-chart-bar" style="height:45%"></div>
-          <div class="agg-chart-bar" style="height:62%"></div>
-          <div class="agg-chart-bar" style="height:78%"></div>
-          <div class="agg-chart-bar" style="height:55%"></div>
-          <div class="agg-chart-bar" style="height:88%"></div>
-          <div class="agg-chart-bar" style="height:72%"></div>
-          <div class="agg-chart-bar" style="height:94%"></div>
-          <div class="agg-chart-bar" style="height:68%"></div>
-          <div class="agg-chart-bar" style="height:82%"></div>
-          <div class="agg-chart-bar" style="height:76%"></div>
-          <div class="agg-chart-bar" style="height:91%"></div>
-          <div class="agg-chart-bar current" style="height:86%"></div>
-        </div>
-        <div class="agg-chart-x"><span>v.10</span><span>v.15</span><span>v.22</span></div>
-      </div>
-
-      <div>
-        <div class="agg-kicker">★ AI · Veckans insikter</div>
-      </div>
-      <div class="agg-ai-list">
-        <div class="agg-ai-row">
-          <strong>5 VIP</strong> har inte bokat på 60+ dagar — Anna L., Erik N., Sofia W., Petter G., Marie B. Föreslå outreach via Svarstudio.
-        </div>
-        <div class="agg-ai-row">
-          <strong>28 kunder</strong> har bokningar inom 3 dagar men saknar formulär. <strong>Anna K.</strong> är högst prio (imorgon 08:00).
-        </div>
-        <div class="agg-ai-row">
-          PRP-kurer ger nu <strong>+34% återbesök</strong> vs konsultationer. Föreslå PRP oftare i Svarstudio.
-        </div>
-        <div class="agg-ai-row">
-          <strong>89 nya kunder</strong> senaste 30 dagarna. <strong>contact@</strong> är toppkanal (62%), info@ ökar.
-        </div>
-        <div class="agg-ai-row">
-          <strong>Eva K.</strong> har 3 no-shows — markera som risk? AI föreslår att be om 50% deposition vid nästa bokning.
-        </div>
-        <div class="agg-ai-row">
-          Genomsnittsbesök-värde <strong>upp 8%</strong> Q2. Drivare: fler kompletta PRP-kurer + microneedling-uppgraderingar.
-        </div>
-      </div>
-
-      <div class="agg-actions">
-        <button class="quick-pill quick-pill--ai">★ Skicka mass-påminnelse (28)</button>
-        <button class="quick-pill">↓ Exportera urval</button>
-      </div>
-    </div>
+      <p class="kunder-data-missing">Laddar översikt från patient-master…</p>
     </div>
 
     <!-- KUNDDOSSIER-vy (visas när context=customer) -->
@@ -3316,7 +3229,20 @@
   Lugnt läge aktivt — fokusera på en sak i taget
 </div>
 
+<script src="/cco-polish.js" defer></script>
+<script src="/cco-kundkort-historik-strip.js" defer></script>
+<script src="/cco-kunder-staff-owner.js" defer></script>
+<script src="/cco-kunder-actions.js" defer></script>
+<script src="/cco-kunder-smart-next-step.js" defer></script>
+<script src="/cco-journal-feed.js" defer></script>
+<script src="/cco-kalender-shell.js" defer></script>
+<script src="/cco-komm-panel.js" defer></script>
+<script src="/cco-kunder-real.js" defer></script>
 <script>
+/* Kalender-/mock-demo — körs inte på /kunder.html (ORD-12 real-data) */
+(function () {
+  if (document.getElementById('customerList')) return;
+
 /* ═══════════════════════════════════════════════════════════════
    VY-BYTE (Morgon ↔ Vecka)
    ═══════════════════════════════════════════════════════════════ */
@@ -4933,6 +4859,7 @@ new MutationObserver(() => {
   });
 }).observe(document.body, { childList: true, subtree: true });
 
+})();
 </script>
 </body>
 </html>

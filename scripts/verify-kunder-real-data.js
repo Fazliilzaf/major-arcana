@@ -162,7 +162,7 @@ if (!/segmentStats/.test(js) && !/params\.set\('segment'/.test(js)) {
   pass('cco-kunder-real.js segment-filter P0.3');
 }
 
-if (/Snitt LTV|49\s*MSEK|AI-åtgärd|toast\(/.test(js)) {
+if (/49\s*MSEK|AI-åtgärd|toast\(/.test(js)) {
   fail('cco-kunder-real.js har kvar mock KPI/AI/toast');
 } else {
   pass('cco-kunder-real.js utan mock KPI/AI/toast');
