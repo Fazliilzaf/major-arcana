@@ -23,8 +23,8 @@ Layout/känsla bygger på `cco-demo.html`-DNA (Cormorant + Jost, pill-shadow, ve
 
 | Knapp | Route | Status post-preflight |
 |---|---|---|
-| Öppna kundlistan | `/kunder.html` | 200 ✅ |
-| Öppna pilotkund 1-3 | `/kunder.html?focus={cid}` eller `openRoute` från manifest | 200 ✅ (när manifest publicerat) |
+| Öppna kundlistan | `/major-arcana-preview/?view=customers` | 200 ✅ |
+| Öppna pilotkund 1-3 | `/major-arcana-preview/?view=customers&focus={cid}` eller `openRoute` från manifest | 200 ✅ (när manifest publicerat) |
 | Öppna Finance | `/finance.html` | 401 (auth req) ✅ |
 | Revisorportal | `/finance-review.html` | 401 (auth req) ✅ |
 | Rapporter | `/finance-reports.html` | 401 (auth req) ✅ |
@@ -62,14 +62,14 @@ Sidan läser `/data/reports/cco-personal-demo-manifest.json` vid laddning. Den f
       "hasTimeline": true,
       "hasHistory": true,
       "hasReview": false,
-      "openRoute": "/kunder.html?focus=cliento_XXXXX"
+      "openRoute": "/major-arcana-preview/?view=customers&focus=cliento_XXXXX"
     },
     ...
   ]
 }
 ```
 
-**Om manifestet saknas:** sidan visar en fallback ("Manifest ej publicerat ännu") med en länk till `/kunder.html`. Inget kraschar.
+**Om manifestet saknas:** sidan visar en fallback ("Manifest ej publicerat ännu") med en länk till `/major-arcana-preview/?view=customers`. Inget kraschar.
 
 ---
 

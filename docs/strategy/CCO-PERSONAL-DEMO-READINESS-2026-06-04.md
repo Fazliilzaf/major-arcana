@@ -14,9 +14,9 @@ Detta är **min UI-verification** + **14-stegs speaker-notes** för Fazli. Curso
 | URL | HTTP | Verifierad |
 |---|---|---|
 | `https://arcana.hairtpclinic.com/cco-personal-start.html` | **200** | ✅ |
-| `https://arcana.hairtpclinic.com/kunder.html` | **200** | ✅ |
+| `https://arcana.hairtpclinic.com/major-arcana-preview/?view=customers` | **200** | ✅ |
 | `https://major-arcana-frankfurt.onrender.com/cco-personal-start.html` | **200** | ✅ (backup-URL) |
-| `https://major-arcana-frankfurt.onrender.com/kunder.html` | **200** | ✅ |
+| `https://major-arcana-frankfurt.onrender.com/major-arcana-preview/?view=customers` | **200** | ✅ |
 
 ---
 
@@ -61,7 +61,7 @@ Inga hittade. Sidan är presentation-säker som den är. Inga fixar gjorda.
 ### Före mötet
 - Öppna **`https://arcana.hairtpclinic.com/cco-personal-start.html`** i Chrome
 - Om 502: vänta 2 min och refresha (Render-restart). Backup: `major-arcana-frankfurt.onrender.com/cco-personal-start.html`
-- Ha **`/kunder.html`** redo i en granne-flik
+- Ha **`/major-arcana-preview/?view=customers`** redo i en granne-flik
 
 ### Under mötet
 

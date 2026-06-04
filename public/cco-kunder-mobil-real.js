@@ -1,5 +1,5 @@
 /**
- * P0.5 — Mobil Kunder (/m-kunder.html)
+ * P0.5 — Mobil Kunder (/major-arcana-preview/?view=customers)
  * Same customers-shell API as desktop — no mock data.
  */
 (function (global) {

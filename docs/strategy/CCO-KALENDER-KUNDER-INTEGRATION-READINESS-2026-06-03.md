@@ -1,6 +1,6 @@
 # CCO Kalender ↔ Kunder — Integration Readiness (2026-06-03)
 
-**Scope:** `/kalender.html` (kalender-arbetsyta) och `/kunder.html` (kund-arbetsyta), koppling via `customers-shell` + bokningsstores.
+**Scope:** `/kalender.html` (kalender-arbetsyta) och `/major-arcana-preview/?view=customers` (kund-arbetsyta), koppling via `customers-shell` + bokningsstores.
 
 ---
 
@@ -34,7 +34,7 @@
 
 ---
 
-## `/kunder.html` — bokningskoppling (P0.4)
+## `/major-arcana-preview/?view=customers` — bokningskoppling (P0.4)
 
 | Fält / segment                           | Status                       | Källa                        |
 | ---------------------------------------- | ---------------------------- | ---------------------------- |

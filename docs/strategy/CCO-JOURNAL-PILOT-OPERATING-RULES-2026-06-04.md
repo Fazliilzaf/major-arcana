@@ -7,7 +7,7 @@
 ## 1 · Pilotens omfattning
 
 **I scope:**
-- Journalföring i CCO på kända patienter via `/kunder.html` → kundkort → Journal-fliken
+- Journalföring i CCO på kända patienter via `/major-arcana-preview/?view=customers` → kundkort → Journal-fliken
 - Identitetsverifiering före varje signering
 - Rättelse av signerade poster (alltid som ny länkad post)
 - Läsning av importerad historik som **referens**

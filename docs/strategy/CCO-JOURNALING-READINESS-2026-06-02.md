@@ -11,7 +11,7 @@ _Miljö: Frankfurt prod (`arcana.hairtpclinic.com`) + read-only prod-data snapsh
 
 | Fråga                                                                             | Svar                                                                               |
 | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **Kan personal börja journalföra?**                                               | **JA — via kundkort (`kunder.html`) + journal-quick API**                          |
+| **Kan personal börja journalföra?**                                               | **JA — via kundkort (`/major-arcana-preview customers-view`) + journal-quick API**                          |
 | **Kan personal använda fullt patientkort (tidslinje + formulär + all historik)?** | **JA — med kända begränsningar (se nedan)**                                        |
 | **Rekommenderad start**                                                           | Kontrollerad pilot dag 1 med utbildad personal; eskalera osäker identitet till ops |
 
@@ -53,7 +53,7 @@ Anonym testpatient `cco-readiness-smoke-*` (ingen riktig patientdata i rapport):
 
 CCO har **fungerande journal-backend** (skapa, signera, låsa, rättelse, audit-guards) och **7 217 patienter** i kundmaster med **5 152 historiska journalposter** importerade. Compliance-grund (inga Drive-länkar, inga LINK_ONLY_BLOCKER, audit-logg) är på plats.
 
-**Tidigare blocker (löst):** patientkortet i `kunder.html` anropar `/journal-feed` och `/journal-timeline` — dessa gav **404** efter CF-regression. Efter `e3a4d51d` returnerar de **200** för behöriga roller.
+**Tidigare blocker (löst):** patientkortet i `/major-arcana-preview customers-view` anropar `/journal-feed` och `/journal-timeline` — dessa gav **404** efter CF-regression. Efter `e3a4d51d` returnerar de **200** för behöriga roller.
 
 **Sekundärt:** ~885 historiska assets ligger i `needs_review`. Photo Review write är avstängd på prod. Mail enrichment (493 ambiguous) påverkar **inte** journalföring och är pausad.
 
@@ -75,7 +75,7 @@ CCO har **fungerande journal-backend** (skapa, signera, låsa, rättelse, audit-
 
 | Sektion           | Kod/UI                             | Prod-status                                |
 | ----------------- | ---------------------------------- | ------------------------------------------ |
-| Kundkort öppnas   | `kunder.html` (200)                | **PASS**                                   |
+| Kundkort öppnas   | `/major-arcana-preview customers-view` (200)                | **PASS**                                   |
 | Journal-sektion   | `CcoJournalFeed` + `/journal-feed` | **PASS** (efter fix)                       |
 | Formulär-sektion  | Asset-tab + `/cco-forms/*`         | **PASS** (API monterad)                    |
 | Bilder-sektion    | Asset-tab `bilder`                 | **PARTIAL** — migrerade foton NEEDS_REVIEW |

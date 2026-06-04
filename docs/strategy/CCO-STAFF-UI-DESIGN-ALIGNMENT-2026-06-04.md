@@ -8,7 +8,7 @@
 
 | Källa | URL | Vad återanvänds |
 |---|---|---|
-| Kunder / Patientkort | `/kunder.html` | CCO topnav · CCO-tokens · rose-pill active-state · vellum bg · glass cards · pill-stil · badge-stil · button-stil |
+| Kunder / Patientkort | `/major-arcana-preview/?view=customers` | CCO topnav · CCO-tokens · rose-pill active-state · vellum bg · glass cards · pill-stil · badge-stil · button-stil |
 
 ---
 
@@ -17,7 +17,7 @@
 ### 1. Gemensam CSS skapad
 **`public/cco-staff-shell.css`** — central styleguide som återanvänder Kunders DNA:
 
-- **Tokens** (exakta värden från kunder.html):
+- **Tokens** (exakta värden från /major-arcana-preview customers-view):
   - `--cco-bg-page: #faf6f2`
   - `--cco-bg-surface: #ffffff`
   - `--cco-bg-surface-sunken: #f5efe6`
@@ -28,8 +28,8 @@
   - `--accent-studio: #bb4779` (rose/pink active-state)
   - `--rose-pill-top/bottom` för active-pill
 - **Page-locala token-overrides** — `--bg`, `--paper`, `--accent`, `--ink` mappas till CCO-värden så befintliga staff-sidor automatiskt ärver CCO-känsla utan att deras lokala CSS behöver röras
-- **Vellum bg** — radial-gradient i hörnen + base color (samma som kunder.html)
-- **`.cco-top-nav`** — exakt samma styling som kunder.html (rose-pill active, brand-text, hover)
+- **Vellum bg** — radial-gradient i hörnen + base color (samma som /major-arcana-preview customers-view)
+- **`.cco-top-nav`** — exakt samma styling som /major-arcana-preview customers-view (rose-pill active, brand-text, hover)
 - **`.cco-card`** — vellum/glass-card med 0.96/0.92-gradient + 24px-blur-skugga + inset highlight
 - **`.cco-badge`** + variants (success/warning/danger/info/accent) — samma som Patientkort
 - **`.cco-btn`** + variants (primary/success) — samma som Patientkort
@@ -43,7 +43,7 @@
   CCO | Konversationer | Kunder | Kalender | Journalpilot
   ```
 - Markerar **"Journalpilot" aktiv** med rose-pill om man är på en staff-sida
-- Markerar "Kunder" aktiv om man är på kunder.html
+- Markerar "Kunder" aktiv om man är på /major-arcana-preview customers-view
 
 ### 3. Inject-tag på alla 17 staff-sidor
 I `<head>`:
@@ -84,7 +84,7 @@ I `<head>`:
 
 | Komponent | Klass | Funktion |
 |---|---|---|
-| Top-nav | `.cco-top-nav` + `.cco-brand` + `.cco-top-nav a.active` | Samma nav som kunder.html — CCO + Konversationer + Kunder + Kalender + Journalpilot |
+| Top-nav | `.cco-top-nav` + `.cco-brand` + `.cco-top-nav a.active` | Samma nav som /major-arcana-preview customers-view — CCO + Konversationer + Kunder + Kalender + Journalpilot |
 | Title-block | `.cco-title-block` + `.cco-title-kicker` | Patientkort-style hero med 3px gradient-stripe top |
 | Card | `.cco-card` + `.cco-card-kicker` | Vellum/glass-card med 24px-blur-skugga |
 | Badge | `.cco-badge` + 5 variants | Patientkort-style små pills |

@@ -355,7 +355,7 @@ Detaljerad rapport: `docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04
 
 ```
 Välkommen till CCO  →  Kunder  →  Kundkort  →  Journal
-   /cco-demo.html       /kunder.html        (pilotkund)
+   /cco-demo.html       /major-arcana-preview/?view=customers        (pilotkund)
 ```
 
 ### Vad har gjorts

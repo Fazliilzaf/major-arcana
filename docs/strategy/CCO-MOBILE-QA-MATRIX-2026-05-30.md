@@ -10,7 +10,7 @@ Datum: 2026-05-31 · Status: P0+P1 implementerade · Audit-metod: CSS-läsning +
 | Vyer utan mobil-stöd         | 4 (kunder, kalender, photo-review, journal-feed) | 0                                |
 | `.app-grid` mobil            | 200+1fr+360 (sprängde 390px)                     | flex column stack                |
 | Top-nav                      | overflow utan scroll                             | horizontal scroll touch          |
-| Touch targets <44px          | 19 i kunder.html                                 | 0                                |
+| Touch targets <44px          | 19 i /major-arcana-preview customers-view                                 | 0                                |
 | Horisontell overflow         | Vissa vyer                                       | 0 verifierat i 386px             |
 | Modal/drawer mobil           | Mest desktop-centrerade                          | Bottom-sheets med drag-handle    |
 | iOS safe-area                | Ej hanterad                                      | env() padding-bottom             |
@@ -20,8 +20,8 @@ Datum: 2026-05-31 · Status: P0+P1 implementerade · Audit-metod: CSS-läsning +
 
 | Vy                                   | Problem                                                  | Föreslagen fix                                                        | Fil                                 | Risk   | Testkrav                                    | Prio   | Status |
 | ------------------------------------ | -------------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------- | ------ | ------------------------------------------- | ------ | ------ |
-| `kunder.html`                        | 0 @media-queries, .app-grid (200+1fr+360) spränger 390px | flex-column-stack mobile, .side-shell relative, .intel-shell relative | cco-mobile.css                      | Låg    | iframe 386px → 0 horisontellt overflow      | **P0** | ✅     |
-| `kunder.html?view=calendar`          | Calendar-week 8 kolumner (48+7×~225) = 1623px            | overflow-x scroll + minmax(110px) per dag                             | cco-mobile.css                      | Låg    | iframe 386px → swipa höger ser hela veckan  | **P0** | ✅     |
+| `/major-arcana-preview customers-view`                        | 0 @media-queries, .app-grid (200+1fr+360) spränger 390px | flex-column-stack mobile, .side-shell relative, .intel-shell relative | cco-mobile.css                      | Låg    | iframe 386px → 0 horisontellt overflow      | **P0** | ✅     |
+| `/major-arcana-preview customers-view?view=calendar`          | Calendar-week 8 kolumner (48+7×~225) = 1623px            | overflow-x scroll + minmax(110px) per dag                             | cco-mobile.css                      | Låg    | iframe 386px → swipa höger ser hela veckan  | **P0** | ✅     |
 | Top-nav (alla vyer)                  | wrap istället för scroll                                 | overflow-x:auto + hide scrollbar + flex-shrink:0 per länk             | cco-mobile.css                      | Låg    | Inga länkar staplade på två rader           | **P0** | ✅     |
 | `kalender.html` mockup               | 0 @media-queries, hela story-grid 4-kol i 390px          | story-grid 1fr, greet 44px sun, vibe-strip overflow-x                 | cco-mobile.css                      | Låg    | Iframe 386px → enkolumn-stack               | **P0** | ✅     |
 | Story-CTA-row                        | 4 knappar i rad spränger                                 | flex-direction:column + width 100%                                    | cco-mobile.css                      | Låg    | Knappar wrappar inte                        | **P0** | ✅     |
@@ -76,14 +76,14 @@ Datum: 2026-05-31 · Status: P0+P1 implementerade · Audit-metod: CSS-läsning +
 
 | Fil                              | Status |
 | -------------------------------- | ------ |
-| `public/kunder.html`             | ✅     |
+| `public/major-arcana-preview/?view=customers`             | ✅     |
 | `public/kalender.html`           | ✅     |
 | `public/operator-dashboard.html` | ✅     |
 | `public/photo-review.html`       | ✅     |
 
 ### Mobile-CSS täcker selektorer från:
 
-- kunder.html: `.app-grid`, `.side-shell`, `.intel-shell`, `.customers-shell`, `.customers-filters`, `.agg-insights`, `.customer-row`, `.dossier-section`, `.top-nav`
+- /major-arcana-preview customers-view: `.app-grid`, `.side-shell`, `.intel-shell`, `.customers-shell`, `.customers-filters`, `.agg-insights`, `.customer-row`, `.dossier-section`, `.top-nav`
 - kalender.html (mockup): `.calendar-shell`, `.calendar-toolbar`, `.calendar-status-bar`, `.morgon-story`, `.greet`, `.story-grid`, `.story-card`, `.story-cta-row`, `.calendar-busy`, `.vibe-strip`, `.calendar-week`, `.mini-inbox`
 - operator-dashboard: `.grid`, `.card`, `.steps-list`, `.topnav`
 - photo-review: `.photo-grid`, `.review-grid`, `.photo-card`, `.review-card`, `.photo-actions`

@@ -61,7 +61,7 @@ Vellum-warm UI som matchar resten av CCO. Innehåller:
 - **Upload-card:** drag-and-drop / klick → multipart/form-data till `/api/v1/cco-cf/receipts/upload`
 - **Receipt Inbox:** lista med filter (Alla · Ny · Behöver granskas · Kategoriserad · Exporterad · Avvisad)
 - **Per-kvitto-rad:** thumb · supplier/kategori/datum/källa · belopp · status-badge · Visa-knapp (öppnar `/api/v1/cco-cf/receipts/:id/download`)
-- **Kund-koppling:** `→ kundkort`-länk när `customerId` är satt (går till `/kunder.html?customer=...`)
+- **Kund-koppling:** `→ kundkort`-länk när `customerId` är satt (går till `/major-arcana-preview/?view=customers&customer=...`)
 - **Mobile-friendly:** responsive grid; KPI-kort 2 kolumner under 680px
 
 **Auto-refresh:** ingen (manuell ↻-knapp). Eventuell future-feature.

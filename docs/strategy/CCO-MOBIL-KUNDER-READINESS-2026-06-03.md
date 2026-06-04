@@ -2,7 +2,7 @@
 
 **Fas:** P1.2 — Staff ownership + safe actions (samma capability map som desktop).
 
-**Route:** `/m-kunder.html` + `cco-kunder-mobil-real.js`
+**Route:** `/major-arcana-preview/?view=customers` + `cco-kunder-mobil-real.js`
 
 **Source-of-truth:** Samma API som desktop — `GET /api/v1/cco/staff/customers-shell` (`segmentStats`, enriched patients, `patientId`). Dossier: journal-feed + assets + komm via `patientId`. Ingen mockdata, ingen demo-sida.
 
@@ -21,7 +21,7 @@
 | Assets                            | REAL (`/patients/:patientId/assets`) | REAL                    |
 | Boka/omboka/bulk                  | disabled P1                          | disabled P1             |
 
-**Gate:** `npm run cco:verify-mobile-kunder-real-data` + `npm run cco:real-cco-gate` (inkl. `/m-kunder.html`).
+**Gate:** `npm run cco:verify-mobile-kunder-real-data` + `npm run cco:real-cco-gate` (inkl. `/major-arcana-preview/?view=customers`).
 
 ---
 

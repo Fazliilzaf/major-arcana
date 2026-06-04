@@ -131,7 +131,7 @@
   // ─── 2A.2: Svarstudio-modal för draft ─────────────────────────────────
   async function openSvarstudioForDraft(draftId) {
     if (!draftId) return;
-    // Minimal modal — full Svarstudio är i cco-komm-panel.js, men den körs i kunder.html.
+    // Minimal modal — full Svarstudio är i cco-komm-panel.js, men den körs i /major-arcana-preview customers-view.
     // Här erbjuder vi: Godkänn / Avbryt-väg som calling backend direkt.
     const ok = window.confirm(
       'Godkänna draft ' + draftId + '?\n\nKlicka OK för godkänd, Avbryt för att avbryta.'
@@ -316,7 +316,7 @@
         e.preventDefault();
         if (/svarstudio/i.test(label)) {
           // Sprint 12: Öppna Svarstudio direkt om CcoKommPanel laddad,
-          // annars fallback till kunder.html
+          // annars fallback till /major-arcana-preview customers-view
           const customerId =
             document.querySelector('[data-cco-komm-host]')?.dataset?.customerId ||
             window.__ccoSelectedCustomerId ||

@@ -142,7 +142,7 @@ På dag-mapp-nivå (`Maj 13/`) förväntas:
 | 3 | Kör `scripts/migration/preflightDriveApi.js` för auth-check | 2 min | (2) |
 | 4 | Kör `scripts/migration/scanGoogleDriveApi.js` med output till `Migration-data/drive-inventory-htp.json` | ~15-30 min för full crawl | (3) |
 | 5 | Bygg `scripts/import-drive-encounters.js` — path-parsa till år/månad/dag, konsolidera per patient via Cliento-match | 4-6h | (4) |
-| 6 | UI: bygg "Drive-tab" i kunder.html dossier — visa Drive-filer kopplade till denna patient | 1d | (5) |
+| 6 | UI: bygg "Drive-tab" i /major-arcana-preview customers-view dossier — visa Drive-filer kopplade till denna patient | 1d | (5) |
 | 7 | AI Fas 3 (per DRIVE-INTEGRATION-PROPOSAL): Smart Search + Foto-klassificerare + Tidslinje | 1.5v | (5)+(6) |
 
 ## 9. Quick wins (kan göras NU utan service-account)

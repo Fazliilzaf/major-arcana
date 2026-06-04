@@ -2,7 +2,7 @@
 
 **Uppdaterad efter P1.2** (staff ownership auto-resolve + safe action activation). Kod: `cco-kunder-real.js`, `cco-kunder-mobil-real.js`, `cco-kunder-actions.js`, `cco-kunder-staff-owner.js`, `ccoKunderStaffOwner.js`, `ccoKunderEnrichment.js`. Mobil: `CCO-MOBIL-KUNDER-READINESS-2026-06-03.md`.
 
-**Scope:** Prod `/kunder.html` vs design `CCO-Kunder-Mockup-v9-DESKTOP.html`, mobil v10, `CCO-filter-och-smarta-funktioner.md`, `CCO-SYSTEM-SCOPE.md`.
+**Scope:** Prod `/major-arcana-preview/?view=customers` vs design `CCO-Kunder-Mockup-v9-DESKTOP.html`, mobil v10, `CCO-filter-och-smarta-funktioner.md`, `CCO-SYSTEM-SCOPE.md`.
 
 **Arkitektur:** Lista/stats/segment via **`GET /api/v1/cco/staff/customers-shell`** (`buildKunderReadout` + `segmentStats` från patient-master + asset-index). Dossier: **`patientId`**, **`CcoJournalFeed.mount`**, assets **`/api/v1/cco/patients/:patientId/assets`**. Ingen `server.js`-ändring (asset store lazy-load i staff-route).
 
@@ -25,7 +25,7 @@
 
 | Område         | P0.4 (~94%)      | P0.5 (~96% mobil)                    |
 | -------------- | ---------------- | ------------------------------------ |
-| Route          | `/kunder.html`   | **`/m-kunder.html`**                 |
+| Route          | `/major-arcana-preview/?view=customers`   | **`/major-arcana-preview/?view=customers`**                 |
 | Data           | customers-shell  | **Samma API** — ingen mock           |
 | Lista          | Desktop grid     | **Mobil rader** + badges             |
 | Segment        | Side-nav + chips | **Horisontella chips** (13+ segment) |
@@ -121,7 +121,7 @@ Moduler: `cco-kunder-actions.js` · `cco-kunder-staff-owner.js` · attribut `dat
 | Bulk / AI / mass          | mock-toasts                     | **disabled**                          |
 | Gate                      | —                               | `verify-kunder-real-data.js` **PASS** |
 
-**Manuell test:** `localStorage.ARCANA_ADMIN_TOKEN` (samma som staff preview) → `/kunder.html`.
+**Manuell test:** `localStorage.ARCANA_ADMIN_TOKEN` (samma som staff preview) → `/major-arcana-preview/?view=customers`.
 
 ---
 
@@ -134,13 +134,13 @@ Moduler: `cco-kunder-actions.js` · `cco-kunder-staff-owner.js` · attribut `dat
 | Data/API vs acceptance                  | ~18%         | **~62%**                                             |
 | Mock/statiska fält (aktiva i listflöde) | ~52          | **~8** (dold kalender-shell, behandling-side HTML)   |
 | API-kopplingar (list + dossier)         | 2 (1 broken) | **5** (shell, journal-feed, assets, komm, identitet) |
-| Riktig kundlista på `/kunder.html`      | ❌           | **✅** (auth krävs)                                  |
+| Riktig kundlista på `/major-arcana-preview/?view=customers`      | ❌           | **✅** (auth krävs)                                  |
 
-**Slutsats:** `/kunder.html` visar **riktigt register** när staff är inloggad. Kvarvarande P0: paginering “ladda mer”, fler segment (VIP, Dormant, Mina, formulär/bild-aggregate), kalender-side mock i dold HTML, mobil v10.
+**Slutsats:** `/major-arcana-preview/?view=customers` visar **riktigt register** när staff är inloggad. Kvarvarande P0: paginering “ladda mer”, fler segment (VIP, Dormant, Mina, formulär/bild-aggregate), kalender-side mock i dold HTML, mobil v10.
 
 ---
 
-## 1. Vad finns i riktiga `/kunder.html` efter P0.1?
+## 1. Vad finns i riktiga `/major-arcana-preview/?view=customers` efter P0.1?
 
 | Yta                              | Finns      | Datakälla                                              | Status                                              |
 | -------------------------------- | ---------- | ------------------------------------------------------ | --------------------------------------------------- |
@@ -258,7 +258,7 @@ Allt nedan var `MOCK_REMOVE` / `NEEDS_REAL_API` — de flesta list-/KPI-punkter 
 ### Beteende kommenterat i kod
 
 - `// Filter-chips (mock filtrering — bara visuell selection)` → **MOCK**
-- `// kunder.html använder namn som customer-key` → **BLOCKED_DATA**
+- `// /major-arcana-preview customers-view använder namn som customer-key` → **BLOCKED_DATA**
 - `body[data-stage="live"]` → **misleading** (ej live data)
 
 **Antal unika mock/statiska datapunkter:** **~52** (räknat i JSON).
@@ -303,7 +303,7 @@ FUE, DHI, PRP, Microneedling, Konsultation, Uppföljning, Curatiio → filtrera 
 
 ### D. Import/historik — **PARTIAL**
 
-| Signal             | Store/API                          | I kunder.html           |
+| Signal             | Store/API                          | I /major-arcana-preview customers-view           |
 | ------------------ | ---------------------------------- | ----------------------- |
 | halso@             | journal/forms                      | Ej i lista              |
 | GetAccept          | `ccoLegacyAgreementStore` / offers | Ej i lista              |
@@ -311,7 +311,7 @@ FUE, DHI, PRP, Microneedling, Konsultation, Uppföljning, Curatiio → filtrera 
 | Bilder needsReview | `ccoPatientAssetStore`             | Assets API (fel nyckel) |
 | Import review      | `cco-import-review-queue`          | Ej i lista (egen route) |
 
-### E. Arbetskö — **MISSING** i `kunder.html`
+### E. Arbetskö — **MISSING** i `/major-arcana-preview customers-view`
 
 Behöver journal, formulär, bildreview, encounter review, mail review, ekonomi, redo besök, uppföljning förfallen → worklist/flags från ops + patient card readout.
 
@@ -319,7 +319,7 @@ Behöver journal, formulär, bildreview, encounter review, mail review, ekonomi,
 
 ## 4. Datakällor — mappning (efter P0.1)
 
-| Store / källa                       | Används i kunder.html?   | Koppla till                  |
+| Store / källa                       | Används i /major-arcana-preview customers-view?   | Koppla till                  |
 | ----------------------------------- | ------------------------ | ---------------------------- |
 | `ccoPatientMasterStore`             | ✅ via `customers-shell` | Lista, stats, segment counts |
 | `ccoCustomerStore`                  | ✅                       | `patientId` → journal-feed   |
@@ -456,7 +456,7 @@ Paginering, global sök, flag-segment, side-nav disabled/real counts, calendar-s
 2. **Kundrad:** behandling, avtalstatus, formulärstatus från journal-feed aggregate.
 3. **Högerpanel:** worklist-insikter (ej generativ AI).
 4. **Voice/watch overlays:** bort från HTML helt (delvis remove() i runtime).
-5. **Mobil:** `m-kunder.html`.
+5. **Mobil:** `m-/major-arcana-preview customers-view`.
 
 ### P1 — vardag
 
@@ -464,7 +464,7 @@ Paginering, global sök, flag-segment, side-nav disabled/real counts, calendar-s
 - Behandling/FUE/DHI/… filter via encounter.
 - Export GDPR från rad/dossier.
 - Koppling kalender "Idag besöker".
-- `m-kunder.html` från v10 eller redirect till responsiv `kunder.html`.
+- `m-/major-arcana-preview customers-view` från v10 eller redirect till responsiv `/major-arcana-preview customers-view`.
 
 ### P2 — polish
 

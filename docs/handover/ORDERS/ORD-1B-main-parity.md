@@ -23,7 +23,7 @@ Cherry-pick `7bca8362` → `main` så auto-deploy (`render.yaml` branch `main`) 
 
 ## Ej på main (medvetet)
 
-- `public/kunder.html`, `cco-kunder-real.js`, `run-real-cco-gate.sh` — finns på `compliance/pipedrive-pii-purge`, inte på `main`
+- `public/major-arcana-preview/?view=customers`, `cco-kunder-real.js`, `run-real-cco-gate.sh` — finns på `compliance/pipedrive-pii-purge`, inte på `main`
 
 ## Nästa
 

@@ -105,7 +105,7 @@
 
   /**
    * Mock-rader (Anna/Karl …) endast utan inloggning.
-   * Inloggad på /kunder.html → alltid customers-shell API + v9-layout.
+   * Inloggad på /major-arcana-preview/?view=customers → alltid customers-shell API + v9-layout.
    */
   function shouldUseMockupSeed() {
     const seed = global.CcoKunderV9MockSeed;

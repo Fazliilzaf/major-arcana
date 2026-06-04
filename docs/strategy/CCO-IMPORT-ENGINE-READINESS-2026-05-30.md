@@ -178,21 +178,21 @@ Per inventory §5 (10 gap-punkter), och nu åtgärdat i P0.B/B+/B++:
 
 **JA — INTERIM, flaggat i UI.**
 
-`public/kunder.html:5113` har sektion:
+`public/major-arcana-preview/?view=customers:5113` har sektion:
 
 ```html
 <summary>Drive (interim) <span class="count">arkivkälla</span></summary>
 ```
 
 Detta är **medvetet** per cursor-regelns interim-policy: predicted-folder-
-coupling + drive-historik.html + deeplink-knapp i kunder.html fortsätter
+coupling + drive-historik.html + deeplink-knapp i /major-arcana-preview customers-view fortsätter
 fungera tills riktig import är komplett. Dessa byggs **inte ut nu** — de
 flaggas och avvecklas i samband med cutover.
 
 Specifika fil-referenser:
 
-- `public/kunder.html` rad 4643-4675 — `DRIVE_LINK`-byggare (interim)
-- `public/kunder.html` rad 5113 — UI-summary flaggad "interim"
+- `public/major-arcana-preview/?view=customers` rad 4643-4675 — `DRIVE_LINK`-byggare (interim)
+- `public/major-arcana-preview/?view=customers` rad 5113 — UI-summary flaggad "interim"
 
 Den nya `Filer & journaler`-sektionen (P0.G) renderar default-open från
 `ccoPatientAssetStore` — i.e. **importerade assets** är primär källa,

@@ -12,7 +12,7 @@ _Backup: https://major-arcana-frankfurt.onrender.com/cco-personal-start.html_
 | ------------ | --------------------------- | ------------------------------------------ |
 | 1 · Huvud    | `/cco-personal-start.html`  | Demo-start                                 |
 | 2 · Guide    | `/journal-pilot-guide.html` | Personal kan scanna under mötet            |
-| 3 · (valfri) | `/kunder.html`              | Snabb öppning om du hoppar över startsidan |
+| 3 · (valfri) | `/major-arcana-preview/?view=customers`              | Snabb öppning om du hoppar över startsidan |
 | 4 · (valfri) | Backup-URL personal-start   | Om prod hänger                             |
 
 **Ha INTE öppet:** mail review, photo review, cco-demo, automation, showcase, analytics.
@@ -30,7 +30,7 @@ Båda delsteg måste vara **PASS**. Vid FAIL → stoppa, P0/P1-fix, kör om.
 ## Exakt klickordning (heliga flödet)
 
 1. `/cco-personal-start.html`
-2. **Öppna kundkort** → `/kunder.html`
+2. **Öppna kundkort** → `/major-arcana-preview/?view=customers`
 3. **Öppna pilotkund 1** (eller sök test-ID) → journal-feed-demo med `cco-pilot-20260602-a`
 4. Verifiera identitet på skärmen (namn · telefon · Cliento-id)
 5. Journal-flik → **skapa** anteckning
@@ -261,7 +261,7 @@ Detaljerad rapport: `docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04
 
 ```
 Välkommen till CCO  →  Kunder  →  Kundkort  →  Journal
-   /cco-demo.html       /kunder.html        (pilotkund)
+   /cco-demo.html       /major-arcana-preview/?view=customers        (pilotkund)
 ```
 
 ### Vad har gjorts

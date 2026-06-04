@@ -10,7 +10,7 @@
 
 ## 1. Design-DNA — vad finns och ska återanvändas
 
-### CSS-tokens (källa: `kunder.html` lines 7–67)
+### CSS-tokens (källa: `/major-arcana-preview customers-view` lines 7–67)
 
 ```
 --cco-bg-page:           #faf6f2
@@ -46,18 +46,18 @@
 
 | Komponent | Klass | Var |
 |---|---|---|
-| Calendar-shell | `.calendar-shell` + `.calendar-surface` (28px radius, blur 14px) | kunder.html L112-114 |
-| Toolbar | `.calendar-toolbar` med kicker + h2 + actions | kunder.html L3331 |
-| Segment-tabs | `.segment-group` (morgon/vecka/dag/resurs) | kunder.html L3361-3365 |
-| Density-toggle | `.density-toggle` (vanlig/stressig/maraton) | kunder.html L3346 |
-| Status-bar | `.calendar-status-bar` + `.week-pill` + `.status-pill--*` | kunder.html L3373 |
-| Morgon-story | `.morgon-story` med 4 `.story-card` (Idag/Risker/Möjligheter/Klart) | kunder.html L3384 |
-| Greet | `.greet` med animerad sol-disk | kunder.html L151 |
-| Day-spark | `.day-spark` (mini-bar-chart över dagen) | kunder.html L3395 |
-| Story-card | `.story-card` med kicker + headline + sub + list (18px radius) | kunder.html L177 |
-| Nav-btn | `.nav-btn` + `.nav-btn--today` (kalender-accent) | kunder.html L143 |
-| Mic + calm + avatar-toggles | speciella toolbar-knappar | kunder.html L3349-3353 |
-| Timemachine | `.timemachine` med slider | kunder.html L3354 |
+| Calendar-shell | `.calendar-shell` + `.calendar-surface` (28px radius, blur 14px) | /major-arcana-preview customers-view L112-114 |
+| Toolbar | `.calendar-toolbar` med kicker + h2 + actions | /major-arcana-preview customers-view L3331 |
+| Segment-tabs | `.segment-group` (morgon/vecka/dag/resurs) | /major-arcana-preview customers-view L3361-3365 |
+| Density-toggle | `.density-toggle` (vanlig/stressig/maraton) | /major-arcana-preview customers-view L3346 |
+| Status-bar | `.calendar-status-bar` + `.week-pill` + `.status-pill--*` | /major-arcana-preview customers-view L3373 |
+| Morgon-story | `.morgon-story` med 4 `.story-card` (Idag/Risker/Möjligheter/Klart) | /major-arcana-preview customers-view L3384 |
+| Greet | `.greet` med animerad sol-disk | /major-arcana-preview customers-view L151 |
+| Day-spark | `.day-spark` (mini-bar-chart över dagen) | /major-arcana-preview customers-view L3395 |
+| Story-card | `.story-card` med kicker + headline + sub + list (18px radius) | /major-arcana-preview customers-view L177 |
+| Nav-btn | `.nav-btn` + `.nav-btn--today` (kalender-accent) | /major-arcana-preview customers-view L143 |
+| Mic + calm + avatar-toggles | speciella toolbar-knappar | /major-arcana-preview customers-view L3349-3353 |
+| Timemachine | `.timemachine` med slider | /major-arcana-preview customers-view L3354 |
 
 ### Status-pill-DNA (återanvänd för bokning-status)
 
@@ -228,7 +228,7 @@ Knappar i booking-detail-drawer (toolbar längst upp):
 
 | Action | Endpoint | Audit-event |
 |---|---|---|
-| Öppna patientkort | navigera `/kunder.html?id=` | n/a |
+| Öppna patientkort | navigera `/major-arcana-preview/?view=customers&id=` | n/a |
 | Starta journal | `POST /api/v1/cco-journal-quick/entry` med tenantId+patientId+treatmentEncounterId | journal.entry.create |
 | Skicka formulär | NY `POST /api/v1/cco-forms/invite` med formType+patientId+encounterId+method=email|sms | form.invited |
 | Markera ankommen | NY `POST /api/v1/cco-bookings/:id/checkin` | booking.checked_in |
@@ -258,7 +258,7 @@ Knappar i booking-detail-drawer (toolbar längst upp):
 | Aspect | Spec |
 |---|---|
 | Layout | **3-kolumn** — sidomeny 200px + kalender 1fr + högerkolumn 360px (kundintelligens) |
-| Återanvänd | Samma som `kunder.html` `.app-grid` |
+| Återanvänd | Samma som `/major-arcana-preview customers-view` `.app-grid` |
 | Högerkolumn-innehåll | (a) Dagens AI-insikt · (b) Risker-card · (c) Patient-snapshot om bokning vald · (d) Recall-engine-suggestions |
 
 ---
@@ -315,7 +315,7 @@ GET /api/v1/calendar/booking/:id/status-pills?treatment=
 | 7 | Snabbactions-toolbar | nytt | nav-btn-DNA | 6 actions |
 | 8 | Booking-bottom-sheet (mobil) | nytt | modal-backdrop | drag-handle, slide-up |
 | 9 | iPad split | nytt | app-grid 60/40 | responsive break |
-| 10 | Desktop 3-col | återanvänd | kunder.html app-grid | wire kundintelligens |
+| 10 | Desktop 3-col | återanvänd | /major-arcana-preview customers-view app-grid | wire kundintelligens |
 
 ---
 
@@ -384,4 +384,4 @@ GET /api/v1/calendar/booking/:id/status-pills?treatment=
 
 ---
 
-*Inget byggs förrän owner godkänt planen. Refs: kunder.html L7-300 (CCO design-tokens), cco-journal-feed.{js,css} (modulär patientkort-vy), ccoBookingEngineStore.js (slot-motor).*
+*Inget byggs förrän owner godkänt planen. Refs: /major-arcana-preview customers-view L7-300 (CCO design-tokens), cco-journal-feed.{js,css} (modulär patientkort-vy), ccoBookingEngineStore.js (slot-motor).*

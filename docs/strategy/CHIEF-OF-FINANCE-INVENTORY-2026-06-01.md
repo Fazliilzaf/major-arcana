@@ -134,7 +134,7 @@ ccoPaymentStatusAdapter.getPaymentStatus({customerId})
          ↓
 ccoPatientCardSectionBuilder · sektion 'ekonomi'
          ↓
-public/kunder.html · Ekonomi & betalning + Journey Bar chips
+public/major-arcana-preview/?view=customers · Ekonomi & betalning + Journey Bar chips
    "Faktura: I kö / Skickad / Betald / Förfallen"
    "Deposition: Saknas / Betald / Krävs ej"
 ```

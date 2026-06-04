@@ -71,7 +71,7 @@
     "presentationGate": "PASS",
     "checkedAt": "2026-06-03T04:52:57.421Z",
     "personalStartUrl": "/cco-personal-start.html",
-    "kundkortUrl": "/kunder.html"
+    "kundkortUrl": "/major-arcana-preview/?view=customers"
   },
   "journalPilotLive": {
     "generatedAt": "2026-06-03T04:53:04.864Z",
@@ -365,7 +365,7 @@
       ],
       "links": {
         "personalStart": "/cco-personal-start.html",
-        "kundkort": "/kunder.html",
+        "kundkort": "/major-arcana-preview/?view=customers",
         "journalGuide": "/journal-pilot-guide.html",
         "staffTraining": "/cco-staff-training-mode.html",
         "journalFaq": "/cco-journalpilot-faq.html",
@@ -585,7 +585,7 @@
     ],
     "links": {
       "personalStart": "/cco-personal-start.html",
-      "kundkort": "/kunder.html",
+      "kundkort": "/major-arcana-preview/?view=customers",
       "journalGuide": "/journal-pilot-guide.html",
       "staffTraining": "/cco-staff-training-mode.html",
       "journalFaq": "/cco-journalpilot-faq.html",
@@ -922,7 +922,7 @@
     },
     "links": {
       "personalStart": "/cco-personal-start.html",
-      "kundkort": "/kunder.html",
+      "kundkort": "/major-arcana-preview/?view=customers",
       "journalGuide": "/journal-pilot-guide.html",
       "staffTraining": "/cco-staff-training-mode.html",
       "journalFaq": "/cco-journalpilot-faq.html",

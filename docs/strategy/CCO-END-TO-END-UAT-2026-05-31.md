@@ -9,7 +9,7 @@
 | Vy / route              | URL                                              | Status                     | Verifierad                                     |
 | ----------------------- | ------------------------------------------------ | -------------------------- | ---------------------------------------------- |
 | Personalstart           | `/cco-personal-start.html`                       | 200 ✅                     | 2026-06-02 14:17                               |
-| Kundlista/kundkort      | `/kunder.html`                                   | 200 ✅                     |                                                |
+| Kundlista/kundkort      | `/major-arcana-preview/?view=customers`                                   | 200 ✅                     |                                                |
 | Journal-feed            | `GET /api/v1/cco-customers/:id/journal-feed`     | 200 ✅                     | E2E PASS                                       |
 | Journal-timeline        | `GET /api/v1/cco-customers/:id/journal-timeline` | 200 ✅                     | E2E PASS                                       |
 | Journal-quick: skapa    | `PUT /api/v1/cco-journal-quick/entry`            | 200 ✅                     | smoke create→sign→edit_blocked→correction PASS |

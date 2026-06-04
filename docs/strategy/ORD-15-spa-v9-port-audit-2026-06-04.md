@@ -9,7 +9,7 @@
 | ------------------------- | ---------------------------------------------------------------------- |
 | SPA (prod)                | `https://arcana.hairtpclinic.com/major-arcana-preview/?view=customers` |
 | v9 mockup (design-target) | `uploads/CCO-Kunder-Mockup-v9-DESKTOP.html`                            |
-| v9 experiment (5 %)       | `public/kunder.html` (samma markup/CSS som mockup, deployad separat)   |
+| v9 experiment (5 %)       | `public/major-arcana-preview/?view=customers` (samma markup/CSS som mockup, deployad separat)   |
 
 ---
 
@@ -20,7 +20,7 @@ SPA:s kundvy är **vanilla JS** med **template-string-rendering** och **två par
 1. **Patient Master (primär, register-läge)** — `app/patient-master-ui.js` — riktiga patienter, journal, filer, avtal.
 2. **Legacy mail-katalog (sekundär, identitet + mail)** — `app.js` — mail-centrerad kundpersistens (`/api/v1/cco/customers/state`).
 
-Approach 2 ska **inte** byta datakälla. Designporten sker genom att byta markup/CSS i befintliga render-funktioner och ev. utöka `index.html`-skelettet — inte genom att flytta till `kunder.html`-experimentet som ny app.
+Approach 2 ska **inte** byta datakälla. Designporten sker genom att byta markup/CSS i befintliga render-funktioner och ev. utöka `index.html`-skelettet — inte genom att flytta till `/major-arcana-preview customers-view`-experimentet som ny app.
 
 **Största strukturella gap:** v9 mockup har **3-kolumns layout** (segment-meny + tabellista + intel/dossiér), medan SPA har **2-kolumns layout inuti customers-shell** (smal lista vänster, bred dossier höger) utan segment-sidebar och utan tabellkolumner.
 
@@ -213,7 +213,7 @@ Legacy-väg (sällan aktiv i register): `app.js` click `[data-customer-row]` →
 | `cco-tablet-shell.css`                    | Tablet-specifika justeringar                                                                             |
 | `cco-scalp-analysis.css`                  | Scalp-flik (feature-flag)                                                                                |
 
-`public/kunder.html` / mockup: **all CSS inline** i `<style>` — separat token-block, ej kopplat till SPA cascade.
+`public/major-arcana-preview/?view=customers` / mockup: **all CSS inline** i `<style>` — separat token-block, ej kopplat till SPA cascade.
 
 ### 4.2 Class-namnschema
 
@@ -352,7 +352,7 @@ Filen är en **skin-/layout-lager ovanpå befintliga vyer** utan att ändra `app
 ### Teknik & scope
 
 7. **Legacy mail-katalog:** Ska `app.js` customer render tas bort/guardas hårdare när Approach 2 startar?
-8. **`kunder.html`-experiment:** Arkiveras det när SPA portats, eller lever kvar som referens?
+8. **`/major-arcana-preview customers-view`-experiment:** Arkiveras det när SPA portats, eller lever kvar som referens?
 9. **Brand:** Hair TP vs Curatiio — ska v9 rose/accent gälla båda tenants?
 10. **Mobil/tablet:** Ska v9-design gälla mobil i samma pass, eller desktop-first med mobil i separat fas (rekommenderat)?
 
@@ -425,14 +425,14 @@ flowchart TB
 | 3   | **Deploy:** Iterativ — **ett commit per steg**                                                                       | Prod får stegvis v9; flag off = ingen synlig förändring                                                                                                             |
 | 4   | **Mobile + desktop:** Båda **parallellt per komponent**                                                              | Varje steg levererar CSS/JS för 320px + 1024px+ innan nästa steg                                                                                                    |
 | 5   | **Backward-compat:** Feature-flag `?v9=on` → `localStorage arcana.v9.enabled` · default **off**                      | `html[data-v9-enabled="on"]` aktiverar v9-markup/CSS; prod oförändrad tills flag                                                                                    |
-| 6   | **`/kunder.html`:** Porta **5 %** (agg-cards + Smart Nästa Steg + watch-widget) till SPA · **sen radera**            | Källkod: `public/kunder.html`, `public/cco-kunder-real.js`, `public/cco-kunder-smart-next-step.js` — **inte** steg 1                                                |
+| 6   | **`/major-arcana-preview/?view=customers`:** Porta **5 %** (agg-cards + Smart Nästa Steg + watch-widget) till SPA · **sen radera**            | Källkod: `public/major-arcana-preview/?view=customers`, `public/cco-kunder-real.js`, `public/cco-kunder-smart-next-step.js` — **inte** steg 1                                                |
 
 ### Beslut som stänger öppna frågor (§7)
 
 | Tidigare fråga      | Beslut                                                                |
 | ------------------- | --------------------------------------------------------------------- |
 | Mobil scope (§7.10) | Parallellt med desktop per komponent                                  |
-| kunder.html (§7.8)  | Porta 5 % → radera experimentfil                                      |
+| /major-arcana-preview customers-view (§7.8)  | Porta 5 % → radera experimentfil                                      |
 | Acceptans (§7.11)   | Major Arcana rhythm/spacing + samma SPA-data; pixel-paritet sekundärt |
 | Legacy guard (§7.7) | Ja — guarda `applyCustomerFilters()` när v9 flag on (ORD-16 steg 2+)  |
 
@@ -468,7 +468,7 @@ flowchart TB
 | 5   | Klick rad → "antagligen tabs"                     | Exakt: `loadPatientDetail` → `renderDetailPanel()` (+ prefetch på pointerdown)                                            | Behåll handlers; byt bara HTML i `renderPatientRowHtml` / `renderDetailPanel` |
 | 6   | Re-render via **`scheduleRender`**                | Patient Master: **direkt render-funktioner** efter async fetch; `scheduleRender` = inbox/app.js                           | Testa state-triggers per funktion, inte ett globalt render(state)             |
 | 7   | Claude steg 1 = **layout-shell** (nav + sidomeny) | Owner + ORD-16 steg 1 = **feature-flag + scoped tokens** (default off)                                                    | **Owner beslutar** — Claude §6 steg 1 skjuts till steg 2+                     |
-| 8   | Claude §7 öppna frågor                            | **Stängda** i owner §8 (main, iterativ deploy, flag, kunder.html)                                                         | Ingen blocker                                                                 |
+| 8   | Claude §7 öppna frågor                            | **Stängda** i owner §8 (main, iterativ deploy, flag, /major-arcana-preview customers-view)                                                         | Ingen blocker                                                                 |
 
 ### Claude tillägg värda att behålla
 

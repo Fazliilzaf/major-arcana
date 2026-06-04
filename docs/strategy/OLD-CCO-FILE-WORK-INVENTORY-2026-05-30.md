@@ -189,7 +189,7 @@ Andra parent-paths som sökts:
 
 ### Behåll INTERIM (rivs ej nu)
 
-Per cursor-regeln: predicted-folder-coupling + drive-historik.html + deeplink-knapp i kunder.html är INTERIM och fortsätter fungera tills riktig import är klar. Inget rivs i P0.B/C — bara nytt byggs.
+Per cursor-regeln: predicted-folder-coupling + drive-historik.html + deeplink-knapp i /major-arcana-preview customers-view är INTERIM och fortsätter fungera tills riktig import är klar. Inget rivs i P0.B/C — bara nytt byggs.
 
 ---
 

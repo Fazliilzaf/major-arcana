@@ -1,8 +1,8 @@
 # ORD-12 — Kunder v9 real-data wiring
 
 **Datum:** 2026-06-04  
-**Förutsättning:** ORD-11 (`877c726a`) — mockup 1:1 i `public/kunder.html` (4938 rader)  
-**Route:** `https://arcana.hairtpclinic.com/kunder.html`
+**Förutsättning:** ORD-11 (`877c726a`) — mockup 1:1 i `public/major-arcana-preview/?view=customers` (4938 rader)  
+**Route:** `https://arcana.hairtpclinic.com/major-arcana-preview/?view=customers`
 
 ## Scope
 

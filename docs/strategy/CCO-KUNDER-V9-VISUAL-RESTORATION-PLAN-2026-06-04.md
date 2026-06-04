@@ -3,7 +3,7 @@
 **Datum:** 2026-06-04 · **Status:** DONE  
 **Deploy:** `dep-d8ghaibtqb8s73bjotvg` · commit `17b4881d`  
 **Screenshots:** `docs/ops/screenshots/ord-10/`  
-**Route:** `public/kunder.html` (ingen ny sida)  
+**Route:** `public/major-arcana-preview/?view=customers` (ingen ny sida)  
 **Canonical visual:** `uploads/CCO-Kunder-Mockup-v9-DESKTOP.html`  
 **Canonical data:** `GET /api/v1/cco/staff/customers-shell` + `cco-kunder-real.js`
 

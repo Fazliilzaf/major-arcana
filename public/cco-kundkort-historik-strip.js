@@ -1,6 +1,6 @@
 /* global window, document, fetch */
 /**
- * Read-only import/historik status on kundkort (kunder.html).
+ * Read-only import/historik status on kundkort (/major-arcana-preview customers-view).
  * No Drive links · no new imports · counts from presentation ops snapshot.
  */
 (function () {

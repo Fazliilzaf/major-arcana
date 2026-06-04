@@ -213,7 +213,7 @@ Varje render-funktion i `patient-master-ui.js` returnerar HTML. Vi byter ut HTML
 **Steg 9 [P2]: V9 högerpanel default (aggregat-vy)**
 
 - När ingen kund vald: visa översikt + kundpopulation + AI-insikter
-- Implementera om från /kunder.html v9
+- Implementera om från /major-arcana-preview/?view=customers v9
 
 **Steg 10 [P2]: V9 watch-frame + mobile-parity**
 
@@ -249,7 +249,7 @@ Varje render-funktion i `patient-master-ui.js` returnerar HTML. Vi byter ut HTML
 
 5. **Backward-compat?** Ska gamla designen vara accesbar via feature-flag eller URL-param under övergång?
 
-6. **/kunder.html v9 framtid?** Radera, behåll som experiment, eller redirect?
+6. **/major-arcana-preview/?view=customers v9 framtid?** Radera, behåll som experiment, eller redirect?
 
 ---
 

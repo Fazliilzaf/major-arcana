@@ -11,11 +11,11 @@
 | **Commit**  | `17b4881d` (feat) + housekeeping            |
 | **Deploy**  | `dep-d8ghaibtqb8s73bjotvg` live             |
 | **Service** | `srv-d8b3i3tckfvc73clgeng` (Frankfurt)      |
-| **Prod**    | https://arcana.hairtpclinic.com/kunder.html |
+| **Prod**    | https://arcana.hairtpclinic.com/major-arcana-preview/?view=customers |
 
 ## Levererat
 
-- v9-shell på befintlig `/kunder.html` (app-grid 200/1fr/360, story-cards, agg-shell, dossier)
+- v9-shell på befintlig `/major-arcana-preview/?view=customers` (app-grid 200/1fr/360, story-cards, agg-shell, dossier)
 - Real data: `customers-shell`, `segmentStats`, `patientId`, Smart Nästa Steg i dossier
 - Inga mock-tal (1247, Anna, LTV, AI-insikter, voice/watch)
 - Gate: `npm run cco:verify-kunder-v9-visual`

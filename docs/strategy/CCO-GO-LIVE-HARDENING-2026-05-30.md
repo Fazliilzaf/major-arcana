@@ -14,8 +14,8 @@ Datum: 2026-05-31 · Status: P0+P1 implementerat · Owner-mandat efterlevs.
 | 2   | Inga live massutskick           | ✅ Verifierat    | ccoCommDraftStore blockar transition queued→sent utan owner-GO. Sprint 3 cron är dry-run only                                    |
 | 3   | Ingen ny tredjepartsintegration | ✅ Verifierat    | Inga nya `require('axios')`/`https.request` mot externa hosts i Sprint 4-14                                                      |
 | 4   | Patientdata inte i GitHub       | ✅ Verifierat    | `.gitignore` har `data/` rekursivt + `data/demo/` + `data/arcana.sqlite`                                                         |
-| 5   | Inga Drive-länkar               | 🟡 90%           | kunder.html disabled i Sprint 14C (3 funcs returnerar null). `drive-historik.html` standalone-vy kvar — föreslagen disable nedan |
-| 6   | CCO-modul, inget separat system | ✅ Verifierat    | Alla Sprint 4-14 frontend lever i kunder.html/komm-panel/dossier-sections                                                        |
+| 5   | Inga Drive-länkar               | 🟡 90%           | /major-arcana-preview customers-view disabled i Sprint 14C (3 funcs returnerar null). `drive-historik.html` standalone-vy kvar — föreslagen disable nedan |
+| 6   | CCO-modul, inget separat system | ✅ Verifierat    | Alla Sprint 4-14 frontend lever i /major-arcana-preview customers-view/komm-panel/dossier-sections                                                        |
 | 7   | RBAC + audit på alla actions    | ✅ 95%           | Se RBAC-matris nedan. 1 öppen endpoint (office-hours/status) acceptabel publik                                                   |
 | 8   | Mobile fungerar som app         | ✅ Sprint 8+13   | cco-mobile.css + bottom-sheets + sticky tabs + FAB + 44px touch                                                                  |
 | 9   | Token-baserad patient-auth      | ✅ Verifierat    | 192-bit crypto.randomBytes + 7d expiry + replay-skydd                                                                            |
@@ -36,7 +36,7 @@ Datum: 2026-05-31 · Status: P0+P1 implementerat · Owner-mandat efterlevs.
 | `Content-Security-Policy`   | `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'` |
 | `Strict-Transport-Security` | `max-age=15552000; includeSubDomains` (endast NODE_ENV=production)                                                                                                                                                      |
 
-### Staff-vyer (`/kunder.html`, `/kalender.html`, `/operator-dashboard.html`, `/photo-review.html`)
+### Staff-vyer (`/major-arcana-preview/?view=customers`, `/kalender.html`, `/operator-dashboard.html`, `/photo-review.html`)
 
 | Header                      | Värde                                        |
 | --------------------------- | -------------------------------------------- |
@@ -145,8 +145,8 @@ Sprint 8 + 13 stickprov uppdaterad:
 
 | Vy                          | Mobile (390px)                            | Tablet (768px)      | Touch≥44px      | Sticky/FAB    |
 | --------------------------- | ----------------------------------------- | ------------------- | --------------- | ------------- |
-| `kunder.html`               | ✅ flex-column                            | ✅ 2-kol            | ✅              | —             |
-| `kunder.html?view=calendar` | ✅ scroll-x grid                          | ✅ 2-kol            | ✅              | —             |
+| `/major-arcana-preview customers-view`               | ✅ flex-column                            | ✅ 2-kol            | ✅              | —             |
+| `/major-arcana-preview customers-view?view=calendar` | ✅ scroll-x grid                          | ✅ 2-kol            | ✅              | —             |
 | `kalender.html`             | ✅ flex-column story-grid 1fr             | ✅ 2-kol story-grid | ✅              | —             |
 | `operator-dashboard.html`   | ✅ grid 1fr                               | ✅ grid auto-fit    | ✅              | —             |
 | `photo-review.html`         | ✅ photo-grid 1fr                         | ✅ default          | ✅              | —             |
@@ -163,7 +163,7 @@ Sprint 8 + 13 stickprov uppdaterad:
 
 | Href                       | Status                                                  |
 | -------------------------- | ------------------------------------------------------- |
-| `/kunder.html`             | ✅                                                      |
+| `/major-arcana-preview/?view=customers`             | ✅                                                      |
 | `/kalender.html`           | ✅                                                      |
 | `/operator-dashboard.html` | ✅                                                      |
 | `/photo-review.html`       | ✅                                                      |
@@ -171,7 +171,7 @@ Sprint 8 + 13 stickprov uppdaterad:
 | `/patient-portal.html`     | ✅                                                      |
 | `/portal/:token`           | ✅ (server redirect)                                    |
 
-**Gap:** `/konversationer.html` saknas. Operator-dashboard har topnav-länk dit. **Fix:** Antingen ta bort länken eller skapa stub som redirectar till `/kunder.html` (eftersom konversationer numera bor i komm-panel inom dossier).
+**Gap:** `/konversationer.html` saknas. Operator-dashboard har topnav-länk dit. **Fix:** Antingen ta bort länken eller skapa stub som redirectar till `/major-arcana-preview/?view=customers` (eftersom konversationer numera bor i komm-panel inom dossier).
 
 ## 10. No-Drive-link audit
 
@@ -179,7 +179,7 @@ Sprint 8 + 13 stickprov uppdaterad:
 
 | Fil                          | Status (efter Sprint 14C)                                          |
 | ---------------------------- | ------------------------------------------------------------------ |
-| `public/kunder.html`         | ✅ Disabled (folderUrl + searchUrl returnerar null per Sprint 14C) |
+| `public/major-arcana-preview/?view=customers`         | ✅ Disabled (folderUrl + searchUrl returnerar null per Sprint 14C) |
 | `public/drive-historik.html` | 🟡 Standalone-vy med Drive-länkar kvar                             |
 
 **Fix för drive-historik.html:** Lägg owner-gate ("Drive-direct disabled, use CCO secure storage import") eller redirect.
@@ -216,7 +216,7 @@ Alla patientdata-stores skrivs till `data/` → blockade från commits. ✅
 | `server.js`                                         | Sprint 14A security headers + portal redirect rate-limit; 14B ready-for-treatment endpoints; 14B dashboard-integration; 14C global baseline headers |
 | `src/routes/patientPortal.js`                       | Sprint 14A form-spec validation (5 nya checks)                                                                                                      |
 | `src/ops/ccoReadyForTreatmentBuilder.js`            | **NY** — 8-check aggregator + queue, weighted score                                                                                                 |
-| `public/kunder.html`                                | Sprint 14C Drive-länkar disabled (folderUrl + searchUrl → null)                                                                                     |
+| `public/major-arcana-preview/?view=customers`                                | Sprint 14C Drive-länkar disabled (folderUrl + searchUrl → null)                                                                                     |
 | `docs/strategy/CCO-GO-LIVE-HARDENING-2026-05-30.md` | **NY** (denna rapport)                                                                                                                              |
 
 ### Endpoints tillagda

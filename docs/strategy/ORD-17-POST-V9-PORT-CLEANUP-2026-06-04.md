@@ -2,7 +2,7 @@
 
 **Skapad:** 2026-06-04
 **Status:** PENDING — väntar ORD-16 steg 7-10 deploy
-**Mål:** Slutföra v9-porteringen så preview-SPA är 100% mockup-parity och `/kunder.html` kan avvecklas
+**Mål:** Slutföra v9-porteringen så preview-SPA är 100% mockup-parity och `/major-arcana-preview/?view=customers` kan avvecklas
 
 ---
 
@@ -48,11 +48,11 @@ När segment ≠ "all" är chips inaktiva (Cursor implementerade detta i steg 5)
 
 ---
 
-## DEL B — Avveckling av `/kunder.html`
+## DEL B — Avveckling av `/major-arcana-preview/?view=customers`
 
-`/kunder.html` är en separat v9-experimentsida som blev ersatt av preview-SPA's v9-port. Den måste avvecklas:
+`/major-arcana-preview/?view=customers` är en separat v9-experimentsida som blev ersatt av preview-SPA's v9-port. Den måste avvecklas:
 
-### B.1 Inventering av unika features i /kunder.html
+### B.1 Inventering av unika features i /major-arcana-preview/?view=customers
 
 Innan radering, verifiera att inga unika features går förlorade:
 
@@ -66,8 +66,8 @@ Innan radering, verifiera att inga unika features går förlorade:
 I `server.js`:
 
 ```js
-// Permanent redirect: /kunder.html → preview-SPA customer-view med v9 default på
-app.get('/kunder.html', (req, res) => {
+// Permanent redirect: /major-arcana-preview/?view=customers → preview-SPA customer-view med v9 default på
+app.get('/major-arcana-preview/?view=customers', (req, res) => {
   res.redirect(301, '/major-arcana-preview/?view=customers&v9=on');
 });
 ```
@@ -75,7 +75,7 @@ app.get('/kunder.html', (req, res) => {
 ### B.3 Filradering
 
 ```bash
-git rm public/kunder.html
+git rm public/major-arcana-preview/?view=customers
 git rm public/cco-kunder-real.js
 git rm public/cco-kunder-actions.js  # om inte refererad från SPA
 git rm public/cco-kunder-v9-mock-seed.js
@@ -121,7 +121,7 @@ Ifall en bug upptäcks. Sen kan flag-fil och tokens-scoping tas bort helt.
 
 ### D.1 Uppdatera docs/
 
-- `docs/strategy/CCO-SOURCE-OF-TRUTH-LOCAL-SHEETS-2026-06-03.md` → markera /kunder.html som "deprecated"
+- `docs/strategy/CCO-SOURCE-OF-TRUTH-LOCAL-SHEETS-2026-06-03.md` → markera /major-arcana-preview/?view=customers som "deprecated"
 - Markera v9-mockupen som "implementerad i preview-SPA"
 
 ### D.2 Memory-fil
@@ -173,8 +173,8 @@ Cursor's `adaptive-runtime.js` skulle inte få långsammare första rendering. M
 
 - [ ] Alla 4 agg-cards har tom-states som matchar mockupens copy
 - [ ] Drive-only kunder visar "Namn saknas" (inte filename)
-- [ ] `/kunder.html` redirectar 301 till preview-SPA
-- [ ] Inga refs till `/kunder.html` i HTML-länkar
+- [ ] `/major-arcana-preview/?view=customers` redirectar 301 till preview-SPA
+- [ ] Inga refs till `/major-arcana-preview/?view=customers` i HTML-länkar
 - [ ] cco-kunder-\*.js-filer raderade (utom smart-next-step om porterad)
 - [ ] Mobile-vyn matchar v9 på alla 4 viewports (375/767/1024/1440)
 - [ ] Feature-flag förenklad (efter 2 veckor stabilitet)
@@ -186,7 +186,7 @@ Cursor's `adaptive-runtime.js` skulle inte få långsammare första rendering. M
 
 | Risk                                                        | Mitigation                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------ |
-| /kunder.html refereras från externa länkar (mail, dokument) | 301 redirect bevarar URL — inga 404                    |
+| /major-arcana-preview/?view=customers refereras från externa länkar (mail, dokument) | 301 redirect bevarar URL — inga 404                    |
 | Mobile-shell-CSS krockar med v9-tokens                      | Scoped under [data-v9-enabled="on"] tills C.3 cleanup  |
 | Cursor jobbar parallellt med ORD-17                         | Splittra ORD-17 i mindre delar (A, B, C, D, E separat) |
 

@@ -55,7 +55,7 @@ Journal-backend, kundkort-routes, feed, timeline och forms är verifierade på p
 | Demo-punkt                         | URL / flöde                                | Status                                  |
 | ---------------------------------- | ------------------------------------------ | --------------------------------------- |
 | **Personalstart**                  | `/cco-personal-start.html`                 | ✅ klickbar                             |
-| **Kundkort**                       | `/kunder.html`                             | ✅                                      |
+| **Kundkort**                       | `/major-arcana-preview/?view=customers`                             | ✅                                      |
 | **Pilotkund 1–3**                  | journal-feed-demo med query params         | ✅ klickbara                            |
 | **Journal skapa/signera/rättelse** | live på pilotkund A / visa C               | ✅                                      |
 | **Timeline**                       | flik i journal-feed-demo                   | ✅                                      |
@@ -160,7 +160,7 @@ Statusverifiering efter frys-lyft + staff one-pager-leverans.
 | URL                                                                  | Status                     |
 | -------------------------------------------------------------------- | -------------------------- |
 | `/cco-personal-start.html`                                           | **200** ✅                 |
-| `/kunder.html`                                                       | **200** ✅                 |
+| `/major-arcana-preview/?view=customers`                                                       | **200** ✅                 |
 | `/cco-personal-demo-manifest.json`                                   | **200** ✅ (3 pilotkunder) |
 | Backup `major-arcana-frankfurt.onrender.com/cco-personal-start.html` | **200** ✅                 |
 | `/finance.html` · `/finance-review.html` · `/finance-reports.html`   | **200** ✅ (UI-shell)      |
@@ -209,7 +209,7 @@ P1 löst. Bakgrund: server.js-IIFE (rad 668-3745) kraschade på en serie missing
 
 403 = routes mountade, RBAC `attachRole + requireAnyRole(['owner','finance','revisor'])` blockerar anonyma. Inloggad owner/finance/revisor får 200.
 
-**Presentation oförändrad:** `/cco-personal-start.html` + `/kunder.html` båda 200 ✅. Journal-routes orörda.
+**Presentation oförändrad:** `/cco-personal-start.html` + `/major-arcana-preview/?view=customers` båda 200 ✅. Journal-routes orörda.
 
 **Server.js orörd.** Allt löst via nya stub-filer.
 
@@ -676,7 +676,7 @@ Detaljerad rapport: `docs/strategy/CCO-WELCOME-PRESENTATION-READINESS-2026-06-04
 
 ```
 Välkommen till CCO  →  Kunder  →  Kundkort  →  Journal
-   /cco-demo.html       /kunder.html        (pilotkund)
+   /cco-demo.html       /major-arcana-preview/?view=customers        (pilotkund)
 ```
 
 ### Vad har gjorts

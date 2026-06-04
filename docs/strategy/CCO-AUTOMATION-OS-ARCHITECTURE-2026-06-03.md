@@ -70,7 +70,7 @@ Allt som går att **förbereda, flagga, föreslå, sortera, påminna, sammanstä
 ## 10 smart functions (ChatGPT)
 
 1. **Journey Orchestrator** — fakta: booking + encounter + journal + forms + assets + agreements + payments + communication
-2. **Next Best Action** — regelbaserat på `/kunder.html` (deterministiskt först)
+2. **Next Best Action** — regelbaserat på `/major-arcana-preview/?view=customers` (deterministiskt först)
 3. **Worklist Engine** — dagens patienter, saknar X, review-köer
 4. **Smart Communication** — föreslå → godkänn → skicka
 5. **Agreement + Consent** — legal_review, signering, betänketid, bookable gate

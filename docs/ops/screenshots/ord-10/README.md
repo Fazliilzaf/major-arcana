@@ -1,6 +1,6 @@
 # ORD-10 prod screenshots — Kunder v9
 
-**URL:** https://arcana.hairtpclinic.com/kunder.html  
+**URL:** https://arcana.hairtpclinic.com/major-arcana-preview/?view=customers  
 **Deploy:** `dep-d8ghaibtqb8s73bjotvg` · commit `17b4881d`  
 **Captured:** 2026-06-04 (Playwright, utan STAFF-token)
 

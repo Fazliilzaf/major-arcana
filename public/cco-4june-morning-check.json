@@ -32,7 +32,7 @@
     "presenterMode": "/personal-demo.html",
     "printPack": "/journal-pilot-guide.html",
     "journalGuide": "/journal-pilot-guide.html",
-    "kundkort": "/kunder.html",
+    "kundkort": "/major-arcana-preview/?view=customers",
     "opsWorkbench": "/cco-ops-workbench.html",
     "prodPersonalStart": "https://arcana.hairtpclinic.com/cco-personal-start.html",
     "backupPersonalStart": "https://major-arcana-frankfurt.onrender.com/cco-personal-start.html",
@@ -259,7 +259,7 @@
     },
     "links": {
       "personalStart": "/cco-personal-start.html",
-      "kundkort": "/kunder.html",
+      "kundkort": "/major-arcana-preview/?view=customers",
       "journalGuide": "/journal-pilot-guide.html",
       "staffTraining": "/cco-staff-training-mode.html",
       "journalFaq": "/cco-journalpilot-faq.html",
@@ -340,7 +340,7 @@
       ],
       "links": {
         "personalStart": "/cco-personal-start.html",
-        "kundkort": "/kunder.html",
+        "kundkort": "/major-arcana-preview/?view=customers",
         "journalGuide": "/journal-pilot-guide.html",
         "staffTraining": "/cco-staff-training-mode.html",
         "journalFaq": "/cco-journalpilot-faq.html",
@@ -558,7 +558,7 @@
     ],
     "links": {
       "personalStart": "/cco-personal-start.html",
-      "kundkort": "/kunder.html",
+      "kundkort": "/major-arcana-preview/?view=customers",
       "journalGuide": "/journal-pilot-guide.html",
       "staffTraining": "/cco-staff-training-mode.html",
       "journalFaq": "/cco-journalpilot-faq.html",

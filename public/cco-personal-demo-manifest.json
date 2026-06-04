@@ -20,7 +20,7 @@
       "forms": "PASS",
       "importedHistory": false,
       "reviewMaterial": false,
-      "kundkortRoute": "/kunder.html",
+      "kundkortRoute": "/major-arcana-preview/?view=customers",
       "openRoute": "/journal-feed-demo.html?customerId=cco-pilot-20260602-a&tenant=hairtpclinic&role=operator",
       "notes": "Anonym testpatient. Skapa/signera/rättelse här under mötet."
     },
@@ -33,7 +33,7 @@
       "forms": "PASS",
       "importedHistory": false,
       "reviewMaterial": false,
-      "kundkortRoute": "/kunder.html",
+      "kundkortRoute": "/major-arcana-preview/?view=customers",
       "openRoute": "/journal-feed-demo.html?customerId=cco-pilot-20260602-b&tenant=hairtpclinic&role=operator",
       "notes": "Anonym testpatient med en sparad pilotpost."
     },
@@ -46,7 +46,7 @@
       "forms": "PASS",
       "importedHistory": false,
       "reviewMaterial": false,
-      "kundkortRoute": "/kunder.html",
+      "kundkortRoute": "/major-arcana-preview/?view=customers",
       "openRoute": "/journal-feed-demo.html?customerId=cco-readiness-smoke-1780402011&tenant=hairtpclinic&role=operator",
       "notes": "Har signerad original + rättelse i prod smoke. Visa thread/timeline."
     }
@@ -57,7 +57,7 @@
       "purpose": "Personal start"
     },
     {
-      "path": "/kunder.html",
+      "path": "/major-arcana-preview/?view=customers",
       "purpose": "Kundkort (huvudnav)"
     },
     {
@@ -133,8 +133,8 @@
   "deadline": "2026-06-04",
   "routePreflight": [
     {
-      "name": "kunder.html",
-      "path": "/kunder.html",
+      "name": "/major-arcana-preview customers-view",
+      "path": "/major-arcana-preview/?view=customers",
       "status": 200,
       "result": "PASS"
     },

@@ -1,8 +1,8 @@
-/* ─── CCO Kalender-shell wire för kunder.html ─────────────────────────────
- * Aktiverar existing .calendar-shell (kunder.html L3328) och wirar
+/* ─── CCO Kalender-shell wire för /major-arcana-preview customers-view ─────────────────────────────
+ * Aktiverar existing .calendar-shell (/major-arcana-preview customers-view L3328) och wirar
  * Sprint 1-2 backend-endpoints in i existing morgon/vecka/dag/resurs-tabs.
  *
- * Owner-direktiv: ingen ny fristående kalender. kunder.html calendar-shell
+ * Owner-direktiv: ingen ny fristående kalender. /major-arcana-preview customers-view calendar-shell
  * är huvudkalendern. Behåll existing design-DNA. Sprint 1-2-funktioner får
  * gärna prefixas .cco-cal-* för att undvika kollision.
  *

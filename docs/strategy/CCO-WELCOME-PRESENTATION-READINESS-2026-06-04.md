@@ -39,7 +39,7 @@
 ## Korten på Välkommen till CCO
 
 ### A · Kunder · huvudnav (4 kort)
-- Öppna Kunder (`/kunder.html`) — **redo**
+- Öppna Kunder (`/major-arcana-preview/?view=customers`) — **redo**
 - Pilotkund 1 / 2 / 3 (`cco-pilot-20260602-a/b · readiness-smoke-c`) — **pilot 1/2/3**
 
 ### B · Journal & formulär (4 kort)
@@ -134,7 +134,7 @@ Synliga direkt under "Välkommen till CCO"-rubriken:
 | URL | Krav | Status |
 |---|---|---|
 | `/cco-demo.html` | Ny huvudstart | **200** ✅ |
-| `/kunder.html` | Huvudnav | **200** ✅ |
+| `/major-arcana-preview/?view=customers` | Huvudnav | **200** ✅ |
 | `/journal-feed-demo.html?customerId=cco-pilot-20260602-a/b/c` | Pilot 1/2/3 | **200/200/200** ✅ |
 | `/journal-pilot-guide.html` | Journalguide | **200** ✅ |
 | `/finance.html` · `/finance-review.html` · `/finance-reports.html` | Finance | **200** ✅ |

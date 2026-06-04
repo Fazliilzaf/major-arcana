@@ -31,7 +31,7 @@ Om du skrivit ut den fysiskt: ha den bredvid laptopen.
 1. Öppna Chrome → ny vanlig flik (inte incognito)
 2. Navigera till **`https://arcana.hairtpclinic.com/cco-personal-start.html`**
 3. Verifiera att sidan laddar **utan trasiga element** — pilot-hero "Journalföring · Redo för pilot" syns
-4. Klicka **"Öppna kundkort"** → ska öppna `/kunder.html` utan fel
+4. Klicka **"Öppna kundkort"** → ska öppna `/major-arcana-preview/?view=customers` utan fel
 5. Backa till `/cco-personal-start.html`
 6. Klicka **"Öppna pilotkund 1"** → ska öppna `/journal-feed-demo.html?customerId=cco-pilot-20260602-a...` utan fel
 7. Backa igen

@@ -49,7 +49,7 @@
 | Aggregator `/api/v1/cco-customers/:id/communication-feed` | **NY** — Sprint 1 |
 | Per-kund mailbox-truth listning | **NY** — Sprint 1 |
 | Listsends per customerId | **NY** — Sprint 1 |
-| "Kommunikation"-sektion i kunder.html dossier | **NY** — Sprint 1 |
+| "Kommunikation"-sektion i /major-arcana-preview customers-view dossier | **NY** — Sprint 1 |
 | Intern notis-knapp på patientkort | **NY** — Sprint 1 |
 | Booking-bekräftelse / avbokning / påminnelse-mall-wires | UPGRADE — Sprint 2 |
 | AI-utkast med human approval | **NY** — Sprint 2 (om aktiveras) |
@@ -61,7 +61,7 @@
 | # | Kundresesteg | Trigger | Kanal | Mall | Audit | Journalnot | Approval | Signering | CCO-plats | Status |
 |--:|---|---|---|---|---|---|---|---|---|---|
 | 1 | **Första kontakt / lead** | Patient hör av sig via web-chat / mail / telefon | mail / SMS | `welcome_*` (Nordbro) | Y | N | N | N | Konversationer + patientkort | UPGRADE — lead-flagga finns (989 leads), wire mot mall saknas |
-| 2 | **Konsultations-bokning** | Slot bokas via /kunder.html?view=calendar | mail | `booking_confirmation_*` | Y | N | N | N | Kalender + dossier | UPGRADE — booking-create finns, mail-dispatch saknas |
+| 2 | **Konsultations-bokning** | Slot bokas via /major-arcana-preview/?view=customers&view=calendar | mail | `booking_confirmation_*` | Y | N | N | N | Kalender + dossier | UPGRADE — booking-create finns, mail-dispatch saknas |
 | 3 | **Påminnelse 24h innan** | Cron-job dagen före | mail / SMS | `reminder_24h_*` | Y | N | N | N | Notification-cron + dossier-timeline | UPGRADE — cron finns, mall saknas |
 | 4 | **Pre-treatment formulär** | Behandling bokad → kräver dokument | patient-portal + mail | health_declaration_hair_tp + fitness_certificate_hair_tp | Y | Y (signering → journal-entry) | N (auto) | Y (patient) | Patientportal + dossier-Formulär | ✅ EXISTS — `POST /cco-send/form/:id` + form-submit wired (#222-hook) |
 | 5 | **Konsultation genomförd** | Encounter markeras "completed" | mail (sammanfattning) | `consultation_summary_*` | Y | Y (journal-entry) | Y (human approval — staff väljer) | Y (signerad journal) | Smart-anteckning → drawer | EXISTS — journal-signering finns, summary-mail saknas |
@@ -111,7 +111,7 @@
 
 ### Frontend (1 ny dossier-sektion + 4 snabbactions)
 
-1. **"Kommunikation"-sektion** i kunder.html dossier (efter Filer & journaler)
+1. **"Kommunikation"-sektion** i /major-arcana-preview customers-view dossier (efter Filer & journaler)
 2. **Snabbactions-rad** (4 knappar):
    - Skicka formulär (wirad mot `/cco-send/form/:id`)
    - Skicka friskförsäkran (wirad mot `/cco-send/form/:id` med `formType=fitness_certificate`)
@@ -157,4 +157,4 @@
 - *src/ops/ccoMailTemplateStore.js (Steg 1)*
 - *src/ops/ccoAftercareSchedulerStore.js (Steg 5)*
 - *config/cco-treatment-document-requirements.json (Sprint 2 dokument-krav)*
-- *kunder.html L5079+ (existing dossier-sektioner)*
+- */major-arcana-preview customers-view L5079+ (existing dossier-sektioner)*

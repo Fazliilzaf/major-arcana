@@ -82,7 +82,7 @@
 | **Inventering** | ❌ Ingen `DRIVE-INVENTORY.md` (motsvarande SharePoint) | Vi vet inte vilken mapp-struktur Drive har, vilka brand som blandas, hur många foton vs PDFs. |
 | **Dump till iCloud** | ❌ Ingen export till `Migration-data/drive-YYYY-MM-DD/` | Vi kan inte göra paritetstest mot Meridiq off-line. CHANNEL-INVENTORY åtgärd rad 202 olöst. |
 | **AI-lager** | ❌ Inget RAG, ingen klassifiering, ingen tidslinje | Drive är en passiv "fil-streamer" — ingen intelligens läggs på innehållet. |
-| **UI-vy** | ❌ Ingen dedikerad Drive-tab i `kunder.html`-dossier (bara foto-tile) | OWNER kan inte se Drive-inventory eller söka i Drive från CCO. |
+| **UI-vy** | ❌ Ingen dedikerad Drive-tab i `/major-arcana-preview customers-view`-dossier (bara foto-tile) | OWNER kan inte se Drive-inventory eller söka i Drive från CCO. |
 | **Compliance-rule** | ❌ Ingen `.cursor/rules/cco-drive-integration.mdc` | Drive-pattern är spritt över 3 olika rules-filer. |
 | **Coverage-rapport** | ❌ Ingen DRIVE-COVERAGE-REPORT (motsvarande MERIDIQ-DEDUP) | Vi vet inte hur många av 7 250 Cliento-kunder som har Drive-foto/PDF, eller om de 1 981 Drive-profilerna är subset/superset. |
 | **Per-fil-klassificering** | ❌ Bara `mimeType`-bucket | Drive-fil "IMG_2024.JPG" säger inget om före/efter, vilken behandling, samtycke-status. |
@@ -314,9 +314,9 @@ Verifiera att ingen `customerId` läcker till extern API i loggar.
 
 | # | Feature | Värde | Komplexitet | UI |
 |--:|---|---|---|---|
-| 1 | AI Smart Search | HÖG | Medium | kunder.html dossier + ny `drive.html` global |
-| 2 | AI Foto-klassifierare | HÖG | Hög | kunder.html dossier "Foton"-tab |
-| 3 | AI Patient-tidslinje | HÖG | Medium | kunder.html dossier "Tidslinje"-tab (ny) |
+| 1 | AI Smart Search | HÖG | Medium | /major-arcana-preview customers-view dossier + ny `drive.html` global |
+| 2 | AI Foto-klassifierare | HÖG | Hög | /major-arcana-preview customers-view dossier "Foton"-tab |
+| 3 | AI Patient-tidslinje | HÖG | Medium | /major-arcana-preview customers-view dossier "Tidslinje"-tab (ny) |
 | 4 | AI Auto-tagging | MEDIUM | Medium | drive.html staging-vy |
 | 5 | AI Anomaly-detector | KRITISK för compliance | Låg | ai-triage.html + kalender.html pre-behandlings-card |
 | 6 | AI Migration-helper | HÖG (en-gång) | Medium | drive.html → migration-vy |
@@ -332,7 +332,7 @@ samtycke" och får tillbaka ranked-lista på 5 sekunder.
 - Query-pipeline: Claude (text-to-filter-DSL) → vektor-search → re-rank på metadata
 - Anrop: `POST /api/v1/cco-drive/ai/search`
 
-**UI:** Söklåda högst upp i `drive.html` + cmd+k-overlay i `kunder.html`.
+**UI:** Söklåda högst upp i `drive.html` + cmd+k-overlay i `/major-arcana-preview customers-view`.
 
 **ETA:** 2 dagar för MVP (filnamn-only), +3 dagar för OCR-extended search.
 
@@ -349,7 +349,7 @@ Anonymisera ansikten innan extern publicering.
 - Fallback: Claude Vision med foto-redaction (svart-blur på ansikte INNAN upload)
 - Resultat sparas i `ccoJournalPhotoStore` som `aiClassification`-fält
 
-**UI:** Foto-grid i `kunder.html` dossier visar bucket-pill (`Före` / `Efter 3m`) som overlay.
+**UI:** Foto-grid i `/major-arcana-preview customers-view` dossier visar bucket-pill (`Före` / `Efter 3m`) som overlay.
 Vid hover: confidence-meter.
 
 **ETA:** 3 dagar lokal classifier; +2 dagar för Claude Vision-route med consent-guard.
@@ -373,7 +373,7 @@ Vid hover: confidence-meter.
 - Render: SVG-timeline i ren JS (samma stil som kalender-mockup-v8.html)
 - Ingen LLM behövs — bara strukturell join.
 
-**UI:** Ny tab "Tidslinje" i `kunder.html`-dossier mellan "Översikt" och "Foton". Mobile: vertikal,
+**UI:** Ny tab "Tidslinje" i `/major-arcana-preview customers-view`-dossier mellan "Översikt" och "Foton". Mobile: vertikal,
 desktop: horisontell scrollbar.
 
 **ETA:** 2 dagar render + 1 dag join-logik.
@@ -452,12 +452,12 @@ PII-guard (kan göras i fas 5).
 
 ### E.1 Var Drive bor i CCO
 
-**Förslag:** En ny global vy `public/drive.html` + tabs inom `public/kunder.html` dossier.
+**Förslag:** En ny global vy `public/drive.html` + tabs inom `public/major-arcana-preview/?view=customers` dossier.
 
 | Plats | Innehåll | Rationale |
 |---|---|---|
 | `public/drive.html` (NY) | Global Drive-explorer, AI-search, migration-helper, inventory-status | OWNER behöver översikt över hela Drive (1 981 profiler), inte bara per-kund |
-| `public/kunder.html` dossier → "Drive"-tab (NY) | Per-kund-filer: foton, PDFs, anteckningar, tidslinje | Per-kund-fokus är 90 % av staff-användning |
+| `public/major-arcana-preview/?view=customers` dossier → "Drive"-tab (NY) | Per-kund-filer: foton, PDFs, anteckningar, tidslinje | Per-kund-fokus är 90 % av staff-användning |
 | `public/kalender.html` v8+ → behandlings-card | Anomaly-badge (saknade docs) | Pre-behandlings-check vid bokningsvyn |
 | `public/ai-triage.html` → ny "Drive Compliance"-sektion | Anomaly-listor över alla kunder | Daily ops-vy för OWNER |
 
@@ -495,7 +495,7 @@ PII-guard (kan göras i fas 5).
 **Design-DNA:** Pastel-rosa header (#FCE7F3), studio-vit-card (#FFFFFF), Inter+Lora typografi,
 samma som `kalender-mockup-v8.html`.
 
-#### Mockup B — `kunder.html` dossier "Drive"-tab
+#### Mockup B — `/major-arcana-preview customers-view` dossier "Drive"-tab
 
 ```
 ┌─ Anna K · Översikt · Bokningar · Foton · DRIVE · Tidslinje ┐
@@ -518,7 +518,7 @@ samma som `kalender-mockup-v8.html`.
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**Design-DNA:** Identisk med befintlig kunder.html-dossier-stil. Tab-rad får ett nytt
+**Design-DNA:** Identisk med befintlig /major-arcana-preview customers-view-dossier-stil. Tab-rad får ett nytt
 "DRIVE"-element med fil-count-badge.
 
 #### Mockup C — `kalender.html` v8 behandlings-card med anomaly
@@ -598,7 +598,7 @@ samma som `kalender-mockup-v8.html`.
 | Steg | Output | ETA |
 |---|---|---|
 | 4.1 | `public/drive.html` global explorer (Mockup A) | 4 dagar |
-| 4.2 | `public/kunder.html` Drive-tab (Mockup B) | 3 dagar |
+| 4.2 | `public/major-arcana-preview/?view=customers` Drive-tab (Mockup B) | 3 dagar |
 | 4.3 | `public/kalender.html` v8 anomaly-badge (Mockup C) | 1 dag |
 | 4.4 | `public/ai-triage.html` Drive Compliance-sektion | 2 dagar |
 | **Summa Fas 4** | 10 dagar |

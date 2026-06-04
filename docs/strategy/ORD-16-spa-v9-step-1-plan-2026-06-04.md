@@ -37,7 +37,7 @@ Inför **v9 feature-flag** (`?v9=on` / `localStorage arcana.v9.enabled`, default
 | `public/major-arcana-preview/index.html`                | `<script>` för flag **synkront i `<head>` före CSS**; `<link>` till nya CSS efter `design-tokens.css` |
 | `docs/strategy/ORD-16-spa-v9-step-1-plan-2026-06-04.md` | Denna fil                                                                                             |
 
-**Ej i steg 1:** `app.js`, `patient-master-ui.js`, `cco-polish.css`, `kunder.html`, backend.
+**Ej i steg 1:** `app.js`, `patient-master-ui.js`, `cco-polish.css`, `/major-arcana-preview customers-view`, backend.
 
 ---
 
@@ -124,7 +124,7 @@ Endast fil-header + tomma sektioner:
 /* Steg 2+: .customers-register-header → v9 toolbar */
 /* Steg 3+: .customers-filters → filter-chips */
 /* Steg 4+: .customer-record → .customer-row */
-/* Steg N: agg-insights, smart-next, watch-widget (från kunder.html) */
+/* Steg N: agg-insights, smart-next, watch-widget (från /major-arcana-preview customers-view) */
 ```
 
 ---
@@ -199,7 +199,7 @@ ARCANA_AI_PROVIDER=fallback ARCANA_GRAPH_READ_ENABLED=false ARCANA_GRAPH_SEND_EN
 | **7**  | Layout 3-kol (owner-beslut krävs) eller 2-kol v9-skin                       | ja         |
 | **8**  | Dossier v9 skin (`renderDetailPanel`)                                       | ja         |
 | **9**  | **Port 5 %:** agg-insights + `cco-kunder-smart-next-step.js` + watch-widget | ja         |
-| **10** | Legacy guard + radera `public/kunder.html` + relaterade scripts             | ja         |
+| **10** | Legacy guard + radera `public/major-arcana-preview/?view=customers` + relaterade scripts             | ja         |
 
 **Parallellregel:** Varje steg = desktop CSS + motsvarande `@media (max-width: 767px)` / `cco-mobile-shell.css`-hooks.
 
@@ -209,9 +209,9 @@ ARCANA_AI_PROVIDER=fallback ARCANA_GRAPH_READ_ENABLED=false ARCANA_GRAPH_SEND_EN
 
 | Feature          | Källa                                                                                                  |
 | ---------------- | ------------------------------------------------------------------------------------------------------ |
-| Agg-cards        | `kunder.html` → `[data-kunder-agg-insights]`, fylls av `cco-kunder-real.js`                            |
+| Agg-cards        | `/major-arcana-preview customers-view` → `[data-kunder-agg-insights]`, fylls av `cco-kunder-real.js`                            |
 | Smart Nästa Steg | `public/cco-kunder-smart-next-step.js` — `automationSignals` via `customers-shell?includeAutomation=1` |
-| Watch-widget     | `kunder.html` → `#watchWidget` / `.watch-widget` (draggable glance UI)                                 |
+| Watch-widget     | `/major-arcana-preview customers-view` → `#watchWidget` / `.watch-widget` (draggable glance UI)                                 |
 
 ---
 

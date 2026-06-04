@@ -15,7 +15,7 @@ _Base: https://arcana.hairtpclinic.com_
 
 ## Summary
 
-- **CANONICAL:** /cco-demo.html, /kunder.html
+- **CANONICAL:** /cco-demo.html, /major-arcana-preview/?view=customers
 - **LEGACY:** /cco-personal-start.html
 - **REMOVE_FROM_NAV:** /cco/index.html, /index.html, /major-arcana-preview/index.html, /uppfoljning/index.html, /uppfoljning/omdome.html
 - **DEMO_OLD:** /ai-triage.html, /cco-concepts.html, /journal-build-demo.html
@@ -71,7 +71,7 @@ Rätt struktur (Kalender, Kunder, Konversationer, mobil, AI/watch/automation som
 | `/journal-qa.html`                                            | Journal Cutover QA · Arcana CCO                                        | SUPPORT         | 502       | nej      | ja           | —                                   |
 | `/kalender.html`                                              | Kalender                                                               | LIVE_TOOL       | 502       | ja       | ja           | ej journal-P0                       |
 | `/konversationer.html`                                        | Konversationer                                                         | PAUSED          | 502       | ja       | ja           | aktivering pågår · ej dag-1-verktyg |
-| `/kunder.html`                                                | Kunder                                                                 | CANONICAL       | 502       | ja       | ja           | —                                   |
+| `/major-arcana-preview/?view=customers`                                                | Kunder                                                                 | CANONICAL       | 502       | ja       | ja           | —                                   |
 | `/m-konversationer.html`                                      | Konversationer (mobil)                                                 | PAUSED          | 502       | nej      | nej          | mobil demo                          |
 | `/major-arcana-preview/index.html`                            | Operatörsvy · Arcana                                                   | REMOVE_FROM_NAV | 502       | nej      | nej          | —                                   |
 | `/operator-dashboard.html`                                    | Operator dashboard                                                     | LIVE_TOOL       | 502       | nej      | nej          | —                                   |

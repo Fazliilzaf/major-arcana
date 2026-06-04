@@ -203,7 +203,7 @@ offerId: metadata.offerId || null,
 
 | Aspekt | Verifierat |
 |---|---|
-| customerId → "→ kundkort"-länk på `finance.html` (rad 226) | ✅ `/kunder.html?customer=${customerId}` |
+| customerId → "→ kundkort"-länk på `finance.html` (rad 226) | ✅ `/major-arcana-preview/?view=customers&customer=${customerId}` |
 | encounterId / treatmentId / offerId sparas | ✅ bevaras i record |
 | encounterId / treatmentId / offerId visas i UI | ⚠️ **endast `sourceSystem` visas i meta-raden** (rad 227-233). encounterId/treatmentId/offerId sparas men ingen UI-rendering. |
 | CF skapar inte patientdata | ✅ inga writes till `ccoCustomerStore` / patient-stores |

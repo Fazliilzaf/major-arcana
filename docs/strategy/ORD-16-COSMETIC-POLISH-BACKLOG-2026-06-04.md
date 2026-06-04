@@ -39,11 +39,11 @@ function displayNameForList(card) {
 
 ---
 
-### [P2] Story-list i agg-cards: hardcoded "Anna Karlsson" / "Karl Lindberg" / "Eva K." (på `/kunder.html` v9-experiment)
+### [P2] Story-list i agg-cards: hardcoded "Anna Karlsson" / "Karl Lindberg" / "Eva K." (på `/major-arcana-preview/?view=customers` v9-experiment)
 
-**Var:** `/kunder.html` (ej preview-SPA)
+**Var:** `/major-arcana-preview/?view=customers` (ej preview-SPA)
 **Exempel:** RISKER-card visar `Anna Karlsson — friskförsäkran saknas` hårdkodat
-**Fix:** Ingen — `/kunder.html` ska avvecklas i ORD-17 (301 redirect till preview-SPA)
+**Fix:** Ingen — `/major-arcana-preview/?view=customers` ska avvecklas i ORD-17 (301 redirect till preview-SPA)
 **Status:** Ej blocker (sidan är inte produktion). ORD-17 raderar filen.
 
 ---

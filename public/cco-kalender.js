@@ -347,7 +347,7 @@
     const headers = { 'x-cco-role': role, 'x-cco-tenant': tenantId, 'Content-Type': 'application/json' };
 
     if (actionId === 'open-card') {
-      if (pills.patientId) window.open('/kunder.html?id=' + encodeURIComponent(pills.patientId), '_blank');
+      if (pills.patientId) window.open('/major-arcana-preview/?view=customers&id=' + encodeURIComponent(pills.patientId), '_blank');
       return;
     }
 

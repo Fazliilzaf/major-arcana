@@ -74,7 +74,7 @@ Den ska inte lita på en manuell status, utan räkna från fakta:
 
 ### 2. Next Best Action
 
-På varje kundrad i `/kunder.html`:
+På varje kundrad i `/major-arcana-preview/?view=customers`:
 
 - Saknar hälsodeklaration
 - Saknar friskförsäkran
@@ -251,7 +251,7 @@ AI/OCR senare, men bara med separat GO.
 > Målet är att automatisera så mycket som möjligt i riktiga CCO, men utan nya demo-lager.  
 > **Bygg inte direkt.** Gör först en teknisk automation-arkitektur.  
 > Skapa: `docs/strategy/CCO-AUTOMATION-OS-ARCHITECTURE-2026-06-03.md`, `data/reports/cco-automation-os-inventory.json`  
-> Utgå från: riktiga `/kunder.html`, `/m-kunder.html`, customers-shell, booking engine, journal-feed, forms, agreements, assets, review queues, mail truth/worklist, CF stores, CCO-SYSTEM-SCOPE.md, filter/smart-funktioner, mockups, kalender.  
+> Utgå från: riktiga `/major-arcana-preview/?view=customers`, `/major-arcana-preview/?view=customers`, customers-shell, booking engine, journal-feed, forms, agreements, assets, review queues, mail truth/worklist, CF stores, CCO-SYSTEM-SCOPE.md, filter/smart-funktioner, mockups, kalender.  
 > Rapporten ska svara: (1) vilka automationer finns, (2) vilka saknas per domän, (3) Automation Rules Engine-arkitektur, (4) automation catalog, (5) AI policy, (6) P0/P1/P2, (7) exakt första build-step.  
 > Regler: ingen ny demo, ingen support-sida, ingen extern AI på journaldata, ingen autoapproval, ingen massapproval, ingen ny import, inga writes i första analysen.
 

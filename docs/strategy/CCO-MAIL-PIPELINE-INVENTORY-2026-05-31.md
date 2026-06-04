@@ -136,10 +136,10 @@ När ett mail kommer in genom Graph delta-sync körs **automatiskt**:
 
 Sprint 17-fix:
 
-- Top-nav `Konversationer` i `kunder.html`, `kalender.html`, `operator-dashboard.html` → pekar nu till `/major-arcana-preview/?view=conversations`
+- Top-nav `Konversationer` i `/major-arcana-preview customers-view`, `kalender.html`, `operator-dashboard.html` → pekar nu till `/major-arcana-preview/?view=conversations`
 - Hela pipelinen aktiveras automatiskt när användaren går dit
 
-Nuvarande integration i kunder.html:
+Nuvarande integration i /major-arcana-preview customers-view:
 
 - Sprint 4 `cco-komm-panel.js` thread-view använder `ccoMailIngestionStore.listPatientMessages` (frontend-helper Sprint 4.1)
 - Sprint 4.1 review-endpoints `/cco-mail/unmatched`, `/cco-mail/ambiguous`, `/cco-mail/mailbox-stats` är nya wrappers ovanpå existing ingest-store
@@ -149,7 +149,7 @@ Nuvarande integration i kunder.html:
 | Use case                                                | Var den lever                                               |
 | ------------------------------------------------------- | ----------------------------------------------------------- |
 | Operatör vill se alla inkomna mail med Svarstudio       | `/major-arcana-preview/?view=conversations` (full pipeline) |
-| Operatör vill se en kunds mail-historik i patientkortet | `/kunder.html` dossier → Komm-panel thread-view (Sprint 4)  |
+| Operatör vill se en kunds mail-historik i patientkortet | `/major-arcana-preview/?view=customers` dossier → Komm-panel thread-view (Sprint 4)  |
 | Operatör vill skapa snabbt utkast från template         | komm-panel Svarstudio modal (Sprint 2 + 11)                 |
 | Operatör vill batch-godkänna 10 utkast                  | komm-panel batch-bar (Sprint 9)                             |
 | Owner vill se mail-ingest-status / unmatched-queue      | `/major-arcana-preview/` → ingestion-dashboard              |

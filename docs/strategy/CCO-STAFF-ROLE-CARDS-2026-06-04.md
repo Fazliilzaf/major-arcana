@@ -71,7 +71,7 @@
 - `/cco-ops-workbench.html` — blocker-köer (mail/photo/historik)
 - `/personal-demo.html` — live-status under pilot
 - `/cco-journalpilot-go-live.html` — roller och scenarios
-- `/kunder.html` — kundlistan för merge/admin
+- `/major-arcana-preview/?view=customers` — kundlistan för merge/admin
 - Ops-status JSON: `/cco-presentation-ops-status.json`
 
 ---

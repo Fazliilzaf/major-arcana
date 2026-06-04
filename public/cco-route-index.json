@@ -367,7 +367,7 @@
       "risks": ["aktivering pågår · ej dag-1-verktyg"]
     },
     {
-      "path": "/kunder.html",
+      "path": "/major-arcana-preview/?view=customers",
       "title": "Kunder",
       "purpose": "Huvudnav · kundkort · journal · timeline",
       "status": "CANONICAL",
@@ -508,7 +508,7 @@
     }
   ],
   "summary": {
-    "canonical": ["/cco-demo.html", "/kunder.html"],
+    "canonical": ["/cco-demo.html", "/major-arcana-preview/?view=customers"],
     "legacy": ["/cco-personal-start.html"],
     "removeFromNav": [
       "/cco/index.html",

@@ -22,7 +22,7 @@ _Utskriftsbar checklista för personal · Hair TP Clinic · Kontrollerad journal
 
 ### 1 · Öppna kundkort
 
-- [ ] Gå via personal-start → **Öppna kundkort** eller direkt `/kunder.html`
+- [ ] Gå via personal-start → **Öppna kundkort** eller direkt `/major-arcana-preview/?view=customers`
 - [ ] Sök/öppna rätt patient
 
 ### 2 · Skapa journal
