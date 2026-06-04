@@ -85,7 +85,7 @@
     "cco:verify-automation-prod": "node scripts/verify-automation-prod.js",
     "cco:verify-kunder-real-data": "node scripts/verify-kunder-real-data.js",
     "cco:verify-kunder-v9-visual": "node scripts/verify-kunder-v9-visual.js",
-    "cco:mockup-kunder-v9": "python3 -m http.server 8765 --bind 127.0.0.1 --directory uploads",
+    "cco:mockup-kunder-v9": "node scripts/serve-kunder-mockup-v9.js",
     "cco:verify-mobile-kunder-real-data": "node scripts/verify-mobile-kunder-real-data.js",
     "cco:real-cco-gate": "bash scripts/run-real-cco-gate.sh",
     "cco:route-inventory": "node scripts/build-cco-route-inventory.js",
