@@ -130,6 +130,15 @@ async function step8DossierBodyTabs() {
   record(8, 'dossier-body pill tabs', hasCss && hasJs, `css=${hasCss} js=${hasJs}`);
 }
 
+async function step9AggregatePanel() {
+  const css = (await fetchText(`${PREVIEW}/cco-v9-customers.css`)).body;
+  const js = (await fetchText(`${PREVIEW}/app/patient-master-ui.js?v=build-bundle-split-a`)).body;
+  const hasCss = /\.v9-aggregate-panel/.test(css) && /\.agg-ai-list/.test(css);
+  const hasJs =
+    /renderV9AggregatePanel/.test(js) && /data-v9-aggregate-panel/.test(js) && /Snitt LTV/.test(js);
+  record(9, 'right aggregate panel', hasCss && hasJs, `css=${hasCss} js=${hasJs}`);
+}
+
 async function backendDiag() {
   const { body } = await fetchText(`${BASE}/api/v1/_diag/version`);
   let commit = 'unknown';
@@ -152,6 +161,7 @@ async function main() {
   await step6AggCards();
   await step7DossierHero();
   await step8DossierBodyTabs();
+  await step9AggregatePanel();
 
   let pass = 0,
     fail = 0;

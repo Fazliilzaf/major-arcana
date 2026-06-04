@@ -1013,6 +1013,234 @@
     }
   }
 
+  function resolveV9AggregateStats(stats, segmentStats) {
+    const panel = segmentStats?.panel || {};
+    const counts = segmentStats?.counts || runtime.segmentTotals || {};
+    const total = Number(stats?.totalPatients ?? panel.totalPatients ?? counts.all ?? 0);
+    const active = Number(counts.active ?? runtime.segmentTotals?.active ?? 0);
+    const vip = Number(counts.vip ?? runtime.segmentTotals?.vip ?? 0);
+    const newN = Number(counts.new ?? runtime.segmentTotals?.new ?? 0);
+    return {
+      total,
+      active,
+      vip,
+      newN,
+      trend: segmentStats?.aggInsights?.trend,
+      panel,
+    };
+  }
+
+  function buildV9AggregateInsightRows(segmentStats) {
+    const agg = segmentStats?.aggInsights;
+    const rows = [];
+    const push = (key, html) => {
+      if (html) rows.push({ key, html });
+    };
+    if (agg?.idag?.count > 0) {
+      const names = asArray(agg.idag.names)
+        .slice(0, 3)
+        .map((name) => escapeHtml(name))
+        .join(', ');
+      push(
+        'idag',
+        `<strong>${formatMetricNumber(agg.idag.count)} kunder</strong> · Dagens besök saknar HD${
+          names ? ` — ${names}` : ''
+        }`
+      );
+    }
+    if (agg?.opp?.count > 0) {
+      push(
+        'opp',
+        `<strong>${formatMetricNumber(agg.opp.count)} kunder</strong> · Inaktiva VIP — inte bokat på 60+ dagar`
+      );
+    }
+    if (agg?.risk?.count > 0) {
+      const names = asArray(agg.risk.names)
+        .slice(0, 3)
+        .map((name) => escapeHtml(name))
+        .join(', ');
+      push(
+        'risk',
+        `<strong>${formatMetricNumber(agg.risk.count)} kunder</strong> · Friskförsäkran saknas${
+          names ? ` — ${names}` : ''
+        }`
+      );
+    }
+    if (agg?.trend?.pctChange != null && !agg.trend.disabled) {
+      const sign = agg.trend.pctChange > 0 ? '+' : '';
+      const dir =
+        agg.trend.direction === 'down'
+          ? 'ned'
+          : agg.trend.direction === 'up'
+            ? 'upp'
+            : 'oförändrat';
+      push(
+        'trend',
+        `<strong>Besökstrend</strong> · Snitt ${dir} ${sign}${formatMetricNumber(agg.trend.pctChange)}% senaste 4 veckor`
+      );
+    }
+    while (rows.length < 3) {
+      rows.push({
+        key: '',
+        html: 'Data saknas — inga fler aktiva signaler i batch',
+        empty: true,
+      });
+    }
+    return rows.slice(0, 5);
+  }
+
+  function renderV9PopulationChartHtml(segmentStats, stats) {
+    const panel = segmentStats?.panel || {};
+    const total = Number(stats?.totalPatients ?? panel.totalPatients ?? 0);
+    const trend = segmentStats?.aggInsights?.trend;
+    let barsHtml = '';
+    let xLabels = '';
+    let chartValue = total ? `${formatMetricNumber(total)} totalt` : '—';
+
+    if (
+      trend &&
+      !trend.disabled &&
+      Array.isArray(trend.buckets) &&
+      trend.buckets.some((v) => v > 0)
+    ) {
+      const buckets = trend.buckets;
+      const max = Math.max(...buckets, 1);
+      barsHtml = buckets
+        .map((value, index) => {
+          const height = Math.max(8, Math.round((value / max) * 100));
+          const current = index === buckets.length - 1 ? ' current' : '';
+          return `<div class="agg-chart-bar${current}" style="height:${height}%" title="${formatMetricNumber(value)} besök"></div>`;
+        })
+        .join('');
+      xLabels = '<span>v-4</span><span>v-2</span><span>v-1</span>';
+      chartValue = `${formatMetricNumber(buckets[buckets.length - 1])} senaste v`;
+    } else if (total > 0) {
+      const counts = segmentStats?.counts || runtime.segmentTotals || {};
+      const slices = [
+        { label: 'Aktiva', value: Number(counts.active) || 0 },
+        { label: 'VIP', value: Number(counts.vip) || 0 },
+        { label: 'Nya', value: Number(counts.new) || 0 },
+        { label: 'Dormant', value: Number(counts.dormant) || 0 },
+        { label: 'Granska', value: Number(counts.risk ?? counts.needs_review) || 0 },
+      ]
+        .filter((slice) => slice.value > 0)
+        .slice(0, 12);
+      if (slices.length) {
+        const max = Math.max(...slices.map((slice) => slice.value), 1);
+        barsHtml = slices
+          .map((slice, index) => {
+            const height = Math.max(8, Math.round((slice.value / max) * 100));
+            const current = index === slices.length - 1 ? ' current' : '';
+            return `<div class="agg-chart-bar${current}" style="height:${height}%" title="${escapeHtml(slice.label)}: ${formatMetricNumber(slice.value)}"></div>`;
+          })
+          .join('');
+        xLabels = `<span>${escapeHtml(slices[0].label)}</span><span>…</span><span>${escapeHtml(slices[slices.length - 1].label)}</span>`;
+      }
+    }
+
+    if (!barsHtml) {
+      return `
+        <div class="agg-chart agg-chart--empty">
+          <div class="agg-chart-head">
+            <span class="agg-chart-title">Kundpopulation (master)</span>
+            <span class="agg-chart-value">—</span>
+          </div>
+          <p class="patient-master-muted agg-chart-empty">Data saknas</p>
+        </div>`;
+    }
+
+    return `
+        <div class="agg-chart" data-v9-population-chart>
+          <div class="agg-chart-head">
+            <span class="agg-chart-title">Kundpopulation (master)</span>
+            <span class="agg-chart-value">${escapeHtml(chartValue)}</span>
+          </div>
+          <div class="agg-chart-bars">${barsHtml}</div>
+          <div class="agg-chart-x">${xLabels}</div>
+        </div>`;
+  }
+
+  function renderV9AggregatePanelHtml() {
+    const stats = runtime.stats || {};
+    const segmentStats = runtime.segmentStats;
+    const { total, active, vip, newN, trend } = resolveV9AggregateStats(stats, segmentStats);
+    const totalTrend =
+      newN > 0
+        ? `+${formatMetricNumber(newN)} nya i register`
+        : trend?.pctChange != null && !trend?.disabled
+          ? `${trend.pctChange > 0 ? '+' : ''}${formatMetricNumber(trend.pctChange)}% besök 4 v`
+          : '—';
+    const activeTrend = active > 0 ? 'Aktiva i register' : '—';
+    const vipTrend = vip > 0 ? 'VIP-segment' : '—';
+    const insightRows = buildV9AggregateInsightRows(segmentStats);
+
+    return `
+      <section class="patient-master-card v9-aggregate-panel" data-v9-aggregate-panel>
+        <div class="agg-shell">
+          <div>
+            <div class="agg-kicker">Översikt</div>
+            <h3 class="agg-title">Kundpopulation</h3>
+          </div>
+          <div class="agg-stat-grid">
+            <div class="agg-stat">
+              <div class="agg-stat-label">Totalt</div>
+              <div class="agg-stat-value">${escapeHtml(formatMetricNumber(total))}</div>
+              <div class="agg-stat-trend">${escapeHtml(totalTrend)}</div>
+            </div>
+            <div class="agg-stat">
+              <div class="agg-stat-label">Aktiva</div>
+              <div class="agg-stat-value">${escapeHtml(formatMetricNumber(active))}</div>
+              <div class="agg-stat-trend">${escapeHtml(activeTrend)}</div>
+            </div>
+            <div class="agg-stat">
+              <div class="agg-stat-label">VIP</div>
+              <div class="agg-stat-value">${escapeHtml(formatMetricNumber(vip))}</div>
+              <div class="agg-stat-trend">${escapeHtml(vipTrend)}</div>
+            </div>
+            <div class="agg-stat">
+              <div class="agg-stat-label">Snitt LTV</div>
+              <div class="agg-stat-value">—</div>
+              <div class="agg-stat-trend">Intäkt ej kopplad</div>
+            </div>
+          </div>
+          ${renderV9PopulationChartHtml(segmentStats, stats)}
+          <div>
+            <div class="agg-kicker">★ AI · Veckans insikter</div>
+          </div>
+          <div class="agg-ai-list">
+            ${insightRows
+              .map(
+                (row) =>
+                  `<button type="button" class="agg-ai-row${row.empty ? ' agg-ai-row--empty' : ''}"${
+                    row.key ? ` data-v9-agg="${escapeHtml(row.key)}"` : ''
+                  }>${row.html}</button>`
+              )
+              .join('')}
+          </div>
+        </div>
+      </section>`;
+  }
+
+  function renderV9AggregatePanel() {
+    resolveElements();
+    const rail = document.querySelector('[data-patient-master-rail]');
+    if (!rail) return;
+    els.patientRail = rail;
+    if (syncAuthRequiredChrome()) {
+      rail.innerHTML = '';
+      syncMobilePatientLayout();
+      return;
+    }
+    rail.innerHTML = renderV9AggregatePanelHtml();
+    syncMobilePatientLayout();
+  }
+
+  function refreshV9AggregatePanelIfIdle() {
+    if (!isV9CustomersEnabled() || runtime.mode !== 'register') return;
+    if (runtime.selectedPatientId) return;
+    renderV9AggregatePanel();
+  }
+
   function mergeSegmentsFromApi(apiSegments) {
     const list = Array.isArray(apiSegments) ? apiSegments : [];
     return list.map((seg) => {
@@ -1316,6 +1544,7 @@
     renderV9FilterChips(stats, runtime.segmentStats);
     renderV9SegmentSidebar(runtime.segmentStats, stats);
     renderV9AggInsights(runtime.segmentStats);
+    refreshV9AggregatePanelIfIdle();
   }
 
   function chipHtml(label, tone = 'blue') {
@@ -2990,6 +3219,10 @@
     if (syncAuthRequiredChrome()) {
       rail.innerHTML = '';
       syncMobilePatientLayout();
+      return;
+    }
+    if (isV9CustomersEnabled()) {
+      renderV9AggregatePanel();
       return;
     }
     rail.innerHTML = `
@@ -5319,8 +5552,10 @@
         }
       }
       if (!runtime.selectedPatientId && runtime.patients[0] && !isCompactFormViewport()) {
-        runtime.selectedPatientId = runtime.patients[0].patientId;
-        await loadPatientDetail(runtime.selectedPatientId);
+        if (!isV9CustomersEnabled()) {
+          runtime.selectedPatientId = runtime.patients[0].patientId;
+          await loadPatientDetail(runtime.selectedPatientId);
+        }
       }
     } catch (error) {
       runtime.error = isAuthFailure(error.statusCode, error.message)
@@ -6629,6 +6864,12 @@
         return;
       }
 
+      const aggInsightRow = event.target.closest('[data-v9-aggregate-panel] [data-v9-agg]');
+      if (aggInsightRow && runtime.mode === 'register' && isV9CustomersEnabled()) {
+        applyV9AggInsightAction(normalizeText(aggInsightRow.dataset.v9Agg));
+        return;
+      }
+
       const loadMore = event.target.closest('[data-patient-load-more]');
       if (loadMore && runtime.mode === 'register') {
         runtime.offset += PAGE_SIZE;
@@ -7011,6 +7252,14 @@
     } catch {
       window.addEventListener('resize', syncMobilePatientLayout);
     }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (runtime.mode !== 'register' || !isV9CustomersEnabled()) return;
+      if (!runtime.selectedPatientId) return;
+      event.preventDefault();
+      closeV9DossierSelection();
+    });
   }
 
   function onCustomersViewOpenImpl() {
