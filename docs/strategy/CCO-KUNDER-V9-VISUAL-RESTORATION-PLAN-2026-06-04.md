@@ -1,6 +1,9 @@
 # CCO Kunder v9 Visual Restoration — ORD-10
 
-**Datum:** 2026-06-04 · **Route:** `public/kunder.html` (ingen ny sida)  
+**Datum:** 2026-06-04 · **Status:** DONE  
+**Deploy:** `dep-d8ghaibtqb8s73bjotvg` · commit `17b4881d`  
+**Screenshots:** `docs/ops/screenshots/ord-10/`  
+**Route:** `public/kunder.html` (ingen ny sida)  
 **Canonical visual:** `uploads/CCO-Kunder-Mockup-v9-DESKTOP.html`  
 **Canonical data:** `GET /api/v1/cco/staff/customers-shell` + `cco-kunder-real.js`
 
@@ -32,4 +35,4 @@ npm run cco:real-cco-gate
 
 ## Blocker
 
-ORD-7/8/9 startar **efter** ORD-10 deploy + STAFF-UAT.
+~~ORD-7/8/9 startar efter ORD-10~~ — ORD-10 deploy + screenshots klara; ORD-7 kan återupptas.
