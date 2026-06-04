@@ -85,6 +85,21 @@
   const V9_FLAG_FILTER_FROM_LABEL = Object.fromEntries(
     Object.entries(V9_FLAG_FILTER_LABELS).map(([flag, label]) => [label.toLowerCase(), flag])
   );
+  const V9_SEGMENT_SIDEBAR_IDS = [
+    'all',
+    'mine',
+    'today_visits',
+    'this_week',
+    'waitlist',
+    'treatment_dhi',
+    'treatment_prp',
+    'treatment_microneedling',
+    'treatment_consultation',
+    'vip',
+    'risk',
+    'new',
+    'dormant',
+  ];
   const photoObjectUrls = new Set();
   const fileObjectUrls = new Set();
   const patientDetailInflight = new Map();
@@ -97,6 +112,11 @@
     authRequired: false,
     query: '',
     flagFilter: '',
+    activeSegmentId: 'all',
+    segmentFilter: '',
+    segments: [],
+    segmentTotals: {},
+    staffOwnership: null,
     offset: 0,
     total: 0,
     patients: [],
@@ -674,9 +694,10 @@
         patientId: normalizeText(params.get('patientId')),
         view: normalizeText(params.get('view')),
         flags: normalizeText(params.get('flags')),
+        segment: normalizeText(params.get('segment')),
       };
     } catch {
-      return { patientId: '', view: '', flags: '' };
+      return { patientId: '', view: '', flags: '', segment: '' };
     }
   }
 
@@ -804,6 +825,7 @@
     els.metrics = document.querySelector('.customers-metric-row');
     els.v9Header = document.querySelector('[data-v9-customers-header]');
     els.v9Filters = document.querySelector('[data-v9-customers-filters]');
+    els.v9Sidebar = document.querySelector('[data-v9-segment-sidebar]');
     els.title = document.querySelector('#customers-title');
     els.subtitle = els.shell?.querySelector('[data-customers-lead]');
     els.modeButtons = Array.from(document.querySelectorAll('[data-patient-master-mode]'));
@@ -850,7 +872,7 @@
   }
 
   function syncV9CustomersChrome() {
-    if (!els.v9Header && !els.v9Filters) return;
+    if (!els.v9Header && !els.v9Filters && !els.v9Sidebar) return;
     const show = isV9CustomersEnabled() && runtime.mode === 'register';
     if (els.v9Header) {
       els.v9Header.hidden = !show;
@@ -860,6 +882,165 @@
       els.v9Filters.hidden = !show;
       els.v9Filters.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
+    if (els.v9Sidebar) {
+      els.v9Sidebar.hidden = !show;
+      els.v9Sidebar.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+  }
+
+  function mergeSegmentsFromApi(apiSegments) {
+    const list = Array.isArray(apiSegments) ? apiSegments : [];
+    return list.map((seg) => {
+      const fq = seg.filterQuery || {};
+      const disabled = seg.status === 'disabled' || seg.status === 'missing';
+      const segmentParam = normalizeText(fq.segment);
+      return {
+        id: seg.id,
+        label: seg.label || seg.id,
+        flags: normalizeText(fq.flags),
+        segment: segmentParam || (seg.id === 'all' ? '' : seg.id),
+        disabled,
+        disabledReason: seg.reason || (disabled ? 'Data saknas' : ''),
+        count: seg.count,
+        status: seg.status,
+      };
+    });
+  }
+
+  function getSegmentById(segmentId) {
+    const id = normalizeText(segmentId) || 'all';
+    const found = runtime.segments.find((seg) => seg.id === id);
+    if (found) return found;
+    if (id === 'all') {
+      return {
+        id: 'all',
+        label: 'Alla kunder',
+        flags: '',
+        segment: '',
+        disabled: false,
+      };
+    }
+    return {
+      id,
+      label: id,
+      flags: '',
+      segment: id,
+      disabled: false,
+    };
+  }
+
+  function resolveAssignedOwnerForShell() {
+    if (window.CcoKunderStaffOwner?.resolveAssignedOwner) {
+      return (
+        window.CcoKunderStaffOwner.resolveAssignedOwner({
+          shellPayload: runtime.staffOwnership ? { staffOwnership: runtime.staffOwnership } : null,
+        })?.value || ''
+      );
+    }
+    return normalizeText(runtime.staffOwnership?.assignedOwner);
+  }
+
+  function syncV9SegmentSidebarActive() {
+    if (!els.v9Sidebar || !isV9CustomersEnabled()) return;
+    const activeId = normalizeText(runtime.activeSegmentId) || 'all';
+    els.v9Sidebar.querySelectorAll('[data-v9-segment]').forEach((link) => {
+      const id = normalizeText(link.dataset.v9Segment) || 'all';
+      const isActive = id === activeId;
+      link.classList.toggle('is-active', isActive);
+      link.classList.toggle('active', isActive);
+      link.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  }
+
+  function renderV9SegmentSidebar(segmentStats, stats) {
+    if (!isV9CustomersEnabled() || !els.v9Sidebar) return;
+    if (Array.isArray(segmentStats?.segments)) {
+      runtime.segments = mergeSegmentsFromApi(segmentStats.segments);
+    }
+    const counts = segmentStats?.counts || {};
+    runtime.segmentTotals = {
+      ...counts,
+      all: Number(stats?.totalPatients ?? segmentStats?.panel?.totalPatients ?? counts.all ?? 0),
+      risk: counts.risk ?? counts.needs_review ?? 0,
+    };
+    const fmt = (value) =>
+      value === null || value === undefined ? '—' : formatMetricNumber(value);
+    els.v9Sidebar.querySelectorAll('[data-v9-segment-count]').forEach((node) => {
+      const key = normalizeText(node.dataset.v9SegmentCount);
+      const seg = getSegmentById(key);
+      if (seg.disabled) {
+        node.textContent = '—';
+        return;
+      }
+      const value =
+        key === 'all'
+          ? runtime.segmentTotals.all
+          : Object.prototype.hasOwnProperty.call(runtime.segmentTotals, key)
+            ? runtime.segmentTotals[key]
+            : seg.count;
+      node.textContent = fmt(value);
+    });
+    els.v9Sidebar.querySelectorAll('[data-v9-segment]').forEach((link) => {
+      const id = normalizeText(link.dataset.v9Segment) || 'all';
+      const seg = getSegmentById(id);
+      const disabled = Boolean(seg.disabled);
+      link.disabled = disabled;
+      link.classList.toggle('is-disabled', disabled);
+      link.title = disabled ? seg.disabledReason || 'Kräver bokningsdata' : '';
+      if (seg.status === 'partial' && seg.disabledReason) {
+        link.title = seg.disabledReason;
+      }
+    });
+    syncV9SegmentSidebarActive();
+  }
+
+  function syncCustomersFilterUrl() {
+    if (!isV9CustomersEnabled() || runtime.mode !== 'register') return;
+    try {
+      const url = new URL(window.location.href);
+      const segmentId = normalizeText(runtime.activeSegmentId) || 'all';
+      if (segmentId && segmentId !== 'all') {
+        url.searchParams.set('segment', segmentId);
+      } else {
+        url.searchParams.delete('segment');
+      }
+      const flag = normalizeFlagFilter(runtime.flagFilter);
+      if (flag) {
+        url.searchParams.set('flags', flag);
+      } else {
+        url.searchParams.delete('flags');
+      }
+      window.history.replaceState(window.history.state, '', url.toString());
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function applySegmentFromUi(segmentId) {
+    if (runtime.mode !== 'register') return;
+    const seg = getSegmentById(segmentId);
+    if (!seg || seg.disabled) return;
+    const nextId = normalizeText(seg.id) || 'all';
+    if (nextId === runtime.activeSegmentId && !runtime.flagFilter) return;
+    runtime.activeSegmentId = nextId;
+    runtime.segmentFilter = seg.segment || (nextId === 'all' ? '' : nextId);
+    runtime.flagFilter = seg.flags || '';
+    syncLegacyFilterSelect(runtime.flagFilter);
+    syncV9FilterChipsActive();
+    syncV9SegmentSidebarActive();
+    runtime.selectedPatientId = '';
+    runtime.detail = null;
+    renderDetailEmpty();
+    syncCustomersFilterUrl();
+    void loadPatientList();
+  }
+
+  function applyStartupSegmentFilter(segment) {
+    const segmentId = normalizeText(segment);
+    if (!segmentId || segmentId === 'all') return;
+    runtime.activeSegmentId = segmentId;
+    runtime.segmentFilter = segmentId;
+    syncV9SegmentSidebarActive();
   }
 
   function normalizeFlagFilter(value) {
@@ -875,10 +1056,12 @@
 
   function syncV9FilterChipsActive() {
     if (!els.v9Filters || !isV9CustomersEnabled()) return;
-    const activeFlag = normalizeFlagFilter(runtime.flagFilter);
+    const segmentActive =
+      normalizeText(runtime.activeSegmentId) && normalizeText(runtime.activeSegmentId) !== 'all';
+    const activeFlag = segmentActive ? null : normalizeFlagFilter(runtime.flagFilter);
     els.v9Filters.querySelectorAll('[data-v9-flag-filter]').forEach((chip) => {
       const flag = normalizeFlagFilter(chip.getAttribute('data-v9-flag-filter') ?? '');
-      const isActive = flag === activeFlag;
+      const isActive = activeFlag !== null && flag === activeFlag;
       chip.classList.toggle('is-active', isActive);
       chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
@@ -921,10 +1104,19 @@
   function applyFlagFilterFromUi(nextFlag) {
     if (runtime.mode !== 'register') return;
     const flagFilter = normalizeFlagFilter(nextFlag);
-    if (flagFilter === runtime.flagFilter && flagFilter !== 'needs_review') return;
+    if (
+      flagFilter === runtime.flagFilter &&
+      runtime.activeSegmentId === 'all' &&
+      flagFilter !== 'needs_review'
+    ) {
+      return;
+    }
+    runtime.activeSegmentId = 'all';
+    runtime.segmentFilter = '';
     runtime.flagFilter = flagFilter;
     syncLegacyFilterSelect(flagFilter);
     syncV9FilterChipsActive();
+    syncV9SegmentSidebarActive();
     if (runtime.flagFilter === 'needs_review') {
       setMode('identity');
       return;
@@ -932,15 +1124,19 @@
     runtime.selectedPatientId = '';
     runtime.detail = null;
     renderDetailEmpty();
+    syncCustomersFilterUrl();
     void loadPatientList();
   }
 
   function applyStartupFlagFilter(flags) {
     const flagFilter = normalizeFlagFilter(flags);
     if (!flagFilter) return;
+    runtime.activeSegmentId = 'all';
+    runtime.segmentFilter = '';
     runtime.flagFilter = flagFilter;
     syncLegacyFilterSelect(flagFilter);
     syncV9FilterChipsActive();
+    syncV9SegmentSidebarActive();
   }
 
   function formatMetricNumber(value) {
@@ -993,6 +1189,7 @@
     });
     renderV9MetricHeader(stats);
     renderV9FilterChips(stats, runtime.segmentStats);
+    renderV9SegmentSidebar(runtime.segmentStats, stats);
   }
 
   function chipHtml(label, tone = 'blue') {
@@ -2036,7 +2233,11 @@
 
   function displayNameForList(card) {
     const name = normalizeText(card?.displayName);
-    return name || 'Namn saknas';
+    if (!name) return 'Namn saknas';
+    if (/\.(pdf|zip|jpe?g|png|heic|docx?)$/i.test(name) || /^[a-f0-9-]{20,}$/i.test(name)) {
+      return 'Namn saknas';
+    }
+    return name;
   }
 
   function v9AvatarInitials(name) {
@@ -4664,9 +4865,12 @@
     });
     if (runtime.query) params.set('q', runtime.query);
     if (runtime.flagFilter) params.set('flags', runtime.flagFilter);
+    if (runtime.segmentFilter) params.set('segment', runtime.segmentFilter);
+    const assignedOwner = resolveAssignedOwnerForShell();
+    if (assignedOwner) params.set('assignedOwner', assignedOwner);
 
     try {
-      const shellKey = `customers-shell:list:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.offset}`;
+      const shellKey = `customers-shell:list:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.segmentFilter}:${runtime.offset}`;
       const payload = await apiRequest(`/api/v1/cco/staff/customers-shell?${params}`, {
         cacheKey: shellKey,
         staleTime: window.ArcanaCcoData?.policy?.PATIENT_LIST?.staleTime,
@@ -4679,6 +4883,10 @@
       runtime.patients = append ? runtime.patients.concat(batch) : batch;
       if (payload.stats) runtime.stats = payload.stats;
       if (payload.segmentStats) runtime.segmentStats = payload.segmentStats;
+      if (payload.staffOwnership) {
+        runtime.staffOwnership = payload.staffOwnership;
+        window.CcoKunderStaffOwner?.rememberShellOwnership?.(payload);
+      }
       if (Array.isArray(payload.offerTemplates?.templates)) {
         runtime.offerTemplates = payload.offerTemplates.templates;
       } else if (Array.isArray(payload.offerTemplates)) {
@@ -6343,6 +6551,16 @@
       });
     }
 
+    if (els.v9Sidebar && !els.v9Sidebar.dataset.bound) {
+      els.v9Sidebar.dataset.bound = '1';
+      els.v9Sidebar.addEventListener('click', (event) => {
+        const link = event.target.closest('[data-v9-segment]');
+        if (!link || runtime.mode !== 'register' || !isV9CustomersEnabled()) return;
+        if (link.disabled || link.classList.contains('is-disabled')) return;
+        applySegmentFromUi(link.dataset.v9Segment || 'all');
+      });
+    }
+
     window.addEventListener('popstate', () => {
       if (suppressMobilePatientPopstate) {
         suppressMobilePatientPopstate = false;
@@ -6375,10 +6593,12 @@
     ensureCustomersShellVisible();
     resolveElements();
     applyStartupFlagFilter(parseStartupParams().flags);
+    applyStartupSegmentFilter(parseStartupParams().segment);
     renderModeChrome();
     ensureMobilePatientListHistory();
     const startup = parseStartupParams();
     applyStartupFlagFilter(startup.flags);
+    applyStartupSegmentFilter(startup.segment);
     if (startup.patientId) {
       runtime.pendingPatientId = startup.patientId;
       runtime.preferJournalOnMobile = true;
