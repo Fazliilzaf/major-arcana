@@ -84,6 +84,7 @@
     "cco:cycle-45-prod-uat": "bash scripts/run-cycle-45-prod-uat-ord3.sh",
     "cco:verify-automation-prod": "node scripts/verify-automation-prod.js",
     "cco:verify-kunder-real-data": "node scripts/verify-kunder-real-data.js",
+    "cco:verify-kunder-v9-visual": "node scripts/verify-kunder-v9-visual.js",
     "cco:verify-mobile-kunder-real-data": "node scripts/verify-mobile-kunder-real-data.js",
     "cco:real-cco-gate": "bash scripts/run-real-cco-gate.sh",
     "cco:route-inventory": "node scripts/build-cco-route-inventory.js",

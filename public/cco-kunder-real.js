@@ -358,6 +358,7 @@
       refreshSegmentCounts();
       renderList();
       renderCounts();
+      renderStoryCards();
       renderRightPanel();
     }
   }
@@ -589,6 +590,122 @@
     $('#globalSearch')?.classList.remove('is-focused');
   }
 
+  function fmtStat(n) {
+    if (n == null || n === '') return '—';
+    return Number(n).toLocaleString('sv-SE');
+  }
+
+  function populationChartHtml(panel = {}) {
+    const slices = [
+      { label: 'Journal', value: Number(panel.withJournal) || 0 },
+      { label: 'Saknar journal', value: Number(panel.missingJournal) || 0 },
+      { label: 'Formulär', value: Number(panel.withForm) || 0 },
+      { label: 'Saknar HD', value: Number(panel.missingForm) || 0 },
+      { label: 'Granska', value: Number(panel.needsReviewPatients) || 0 },
+      { label: 'Foto-review', value: Number(panel.photoReviewPending) || 0 },
+    ];
+    const max = Math.max(...slices.map((s) => s.value), 1);
+    const bars = slices
+      .map((s) => {
+        const h = Math.round((s.value / max) * 100);
+        return `<div class="agg-chart-bar" style="height:${h}%" title="${escapeHtml(s.label)}: ${fmtStat(s.value)}"></div>`;
+      })
+      .join('');
+    return `
+      <div class="agg-chart kunder-population-chart" data-kunder-population-chart>
+        <div class="agg-chart-head">
+          <span class="agg-chart-title">Kundpopulation (master)</span>
+          <span class="agg-chart-value">${fmtStat(panel.totalPatients)} totalt</span>
+        </div>
+        <div class="agg-chart-bars">${bars}</div>
+        <div class="agg-chart-x"><span>journal</span><span>saknar</span><span>HD</span><span>granska</span><span>foto</span></div>
+      </div>`;
+  }
+
+  function storyIconSvg(kind) {
+    const icons = {
+      idag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>',
+      risker:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>',
+      mojligheter:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 2l2.39 4.84L20 8l-3.5 4 1.5 6L12 15l-6 3 1.5-6L4 8l5.61-1.16L12 2z"/></svg>',
+      klart:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>',
+    };
+    return icons[kind] || icons.idag;
+  }
+
+  function renderStoryCards() {
+    const grid = $('[data-kunder-story-grid]');
+    if (!grid) return;
+    if (state.authRequired || !state.stats) {
+      grid.innerHTML =
+        '<p class="kunder-data-missing">Story-cards — logga in för customers-shell.</p>';
+      return;
+    }
+    const panel = state.stats.kunderPanel || state.segmentStats?.panel || {};
+    const counts = state.segmentTotals || {};
+    const todayCount =
+      panel.bookingCoverage === 'missing' ? null : (counts.today_visits ?? panel.todayVisits);
+    const riskTotal =
+      (Number(counts.needs_review ?? panel.needsReviewPatients ?? state.stats.needsReview) || 0) +
+      (Number(counts.missing_health_declaration ?? panel.missingForm) || 0) +
+      (Number(counts.missing_journal ?? panel.missingJournal) || 0);
+    const readyInView = state.patients.filter((p) => p.readyForTreatment === true).length;
+
+    const riskPatients = state.patients
+      .filter(
+        (p) =>
+          p.flags?.includes('needs_review') ||
+          p.missingHealthDeclaration ||
+          p.missingForm ||
+          p.missingJournal
+      )
+      .slice(0, 3);
+
+    const riskItems = riskPatients.length
+      ? riskPatients
+          .map((p) => {
+            const what = p.flags?.includes('needs_review')
+              ? 'behöver granskning'
+              : p.missingJournal
+                ? 'saknar journal'
+                : 'saknar hälsodeklaration';
+            return `<div class="story-item" data-severity="med">
+              <span class="badge">!</span>
+              <span><span class="who">${escapeHtml(displayName(p))}</span> <span class="what">— ${escapeHtml(what)}</span></span>
+            </div>`;
+          })
+          .join('')
+      : '<p class="story-card-sub">Inga riskposter i aktuell vy.</p>';
+
+    grid.innerHTML = `
+      <div class="story-card" data-kind="idag">
+        <div class="story-card-kicker"><span class="icon">${storyIconSvg('idag')}</span>Idag</div>
+        <h2 class="story-card-headline"><span class="num">${fmtStat(todayCount)}</span> besök</h2>
+        <p class="story-card-sub">${
+          panel.bookingCoverage === 'missing'
+            ? 'Bokningsdata saknas — segment disabled.'
+            : 'Antal från customers-shell · today_visits.'
+        }</p>
+      </div>
+      <div class="story-card" data-kind="risker">
+        <div class="story-card-kicker"><span class="icon">${storyIconSvg('risker')}</span>Risker</div>
+        <h2 class="story-card-headline"><span class="num">${fmtStat(riskTotal)}</span> ärenden</h2>
+        <div class="story-list">${riskItems}</div>
+      </div>
+      <div class="story-card story-card--disabled" data-kind="mojligheter">
+        <div class="story-card-kicker"><span class="icon">${storyIconSvg('mojligheter')}</span>Möjligheter</div>
+        <h2 class="story-card-headline">Data saknas</h2>
+        <p class="story-card-sub">Outreach/kampanj kräver egen motor — ingen mock i v9.</p>
+      </div>
+      <div class="story-card" data-kind="klart">
+        <div class="story-card-kicker"><span class="icon">${storyIconSvg('klart')}</span>Redo</div>
+        <h2 class="story-card-headline"><span class="num">${fmtStat(readyInView)}</span> i vy</h2>
+        <p class="story-card-sub">ready_for_treatment i laddad lista (automation ORD-3/5).</p>
+      </div>`;
+  }
+
   function renderRightPanel() {
     const bookingView = $('.intel-booking-view');
     if (!bookingView) return;
@@ -602,7 +719,6 @@
         </div>`;
       return;
     }
-    const fmt = (n) => Number(n ?? 0).toLocaleString('sv-SE');
     const panel = stats.kunderPanel || state.segmentStats?.panel || {};
     bookingView.innerHTML = `
       <div class="agg-shell">
@@ -613,54 +729,55 @@
         <div class="agg-stat-grid">
           <div class="agg-stat">
             <div class="agg-stat-label">Totalt</div>
-            <div class="agg-stat-value">${fmt(stats.totalPatients)}</div>
+            <div class="agg-stat-value">${fmtStat(stats.totalPatients)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Med journal</div>
-            <div class="agg-stat-value">${fmt(panel.withJournal)}</div>
+            <div class="agg-stat-value">${fmtStat(panel.withJournal)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Saknar journal</div>
-            <div class="agg-stat-value">${fmt(panel.missingJournal)}</div>
+            <div class="agg-stat-value">${fmtStat(panel.missingJournal)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Med formulär</div>
-            <div class="agg-stat-value">${fmt(panel.withForm)}</div>
+            <div class="agg-stat-value">${fmtStat(panel.withForm)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Saknar hälsodeklaration</div>
-            <div class="agg-stat-value">${fmt(panel.missingForm)}</div>
+            <div class="agg-stat-value">${fmtStat(panel.missingForm)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Granska (master)</div>
-            <div class="agg-stat-value">${fmt(panel.needsReviewPatients ?? stats.needsReview)}</div>
+            <div class="agg-stat-value">${fmtStat(panel.needsReviewPatients ?? stats.needsReview)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Bild-review</div>
-            <div class="agg-stat-value">${fmt(panel.photoReviewPending)}</div>
+            <div class="agg-stat-value">${fmtStat(panel.photoReviewPending)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Asset review</div>
-            <div class="agg-stat-value">${fmt(panel.assetReviewPending)}</div>
+            <div class="agg-stat-value">${fmtStat(panel.assetReviewPending)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Idag</div>
-            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmt(panel.todayVisits)}</div>
+            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmtStat(panel.todayVisits)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Denna vecka</div>
-            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmt(panel.thisWeekVisits)}</div>
+            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmtStat(panel.thisWeekVisits)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Väntelista</div>
-            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmt(panel.waitlist)}</div>
+            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmtStat(panel.waitlist)}</div>
           </div>
           <div class="agg-stat">
             <div class="agg-stat-label">Kommande bokn.</div>
-            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmt(panel.upcomingBookings)}</div>
+            <div class="agg-stat-value">${panel.bookingCoverage === 'missing' ? '—' : fmtStat(panel.upcomingBookings)}</div>
           </div>
         </div>
-        <p class="kunder-data-missing" style="margin-top:12px">Intäkt, LTV, AI-insikter och diagram — data saknas (ej mock).</p>
+        ${populationChartHtml(panel)}
+        <p class="kunder-data-missing" style="margin-top:12px">Intäkt/LTV och AI-insikter — data saknas (ej mock).</p>
         <div class="agg-actions">
           <button type="button" class="quick-pill" disabled title="Ej kopplat ännu — kommer i P1">↓ Exportera urval</button>
         </div>
@@ -909,17 +1026,12 @@
 
   function bindUi() {
     document.body.dataset.kunderReal = '1';
+    document.body.classList.add('kunder-v9');
 
     $('.calendar-shell[data-cco-shell="calendar"]')?.remove();
 
-    const listHead = $('.customers-head');
+    const listHead = $('.customer-row-head');
     if (listHead?.children?.[6]) listHead.children[6].textContent = 'Nästa steg';
-
-    const aggInsights = $('.agg-insights');
-    if (aggInsights) {
-      aggInsights.innerHTML =
-        '<p class="kunder-data-missing">Insikter avstängda — ingen mock-data i Kunder (P0.3).</p>';
-    }
 
     const statusBar = $('.calendar-status-bar');
     if (statusBar) {
@@ -1035,6 +1147,8 @@
     $('#watchWidget')?.remove();
     $('#voiceOverlay')?.remove();
     $('#voiceSheet')?.remove();
+    $('#calmBanner')?.remove();
+    $('#camOverlay')?.remove();
     const searchInput = $('#searchOverlayInput');
     if (searchInput) {
       searchInput.placeholder = 'Sök hela registret (namn, e-post, telefon)…';
@@ -1069,6 +1183,11 @@
       .kunder-action--partial { opacity:.72; border-style:dashed; }
       .kunder-action--blocked { opacity:.55; }
       .cr-ai[data-rule-based="1"] { font-style:normal; }
+      .kunder-v9 .agg-insights { display:block; margin-bottom:14px; }
+      .kunder-v9 .agg-insights .story-grid { display:grid; grid-template-columns:1.1fr 1fr 1fr 0.9fr; gap:12px; }
+      .story-card--disabled { opacity:.72; }
+      .story-card--disabled .story-card-headline { font-size:16px; }
+      body.kunder-v9 .watch-widget, body.kunder-v9 .voice-overlay, body.kunder-v9 .voice-sheet, body.kunder-v9 .calm-banner { display:none !important; }
     `;
     document.head.appendChild(style);
   }

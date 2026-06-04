@@ -48,6 +48,7 @@ node scripts/verify-smart-next-step-dry-run.js
 node scripts/verify-fas-a-readiness.js
 node scripts/verify-bundle-sign-flow.js
 node scripts/verify-kunder-real-data.js
+node scripts/verify-kunder-v9-visual.js
 node scripts/verify-mobile-kunder-real-data.js
 echo
 
