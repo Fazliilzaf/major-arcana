@@ -18,6 +18,7 @@ const {
 } = require('./ccoKunderBookingEnrichment');
 const { applyFasAReadoutFields } = require('./ccoKunderFasAReadiness');
 const { sanitizePatientDisplayName } = require('../lib/patientDisplayName');
+const { isPipedriveDealWon, parseDealValue, maxIsoDate } = require('./pipedriveDealHelpers');
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -35,6 +36,7 @@ function normalizeKey(value) {
 const MS_DAY = 24 * 60 * 60 * 1000;
 const ACTIVE_BOOKING_DAYS = 30;
 const DORMANT_BOOKING_DAYS = 180;
+const DORMANT_ACTIVITY_DAYS = 365;
 const NEW_PATIENT_DAYS = 30;
 const RISK_BOOKING_WINDOW_DAYS = 3;
 const RISK_NOSHOW_THRESHOLD = 2;
@@ -76,22 +78,60 @@ function resolveSourceCreatedAt(patient) {
   );
 }
 
-function parseDealValue(value) {
-  const raw = normalizeText(value);
-  if (!raw) return 0;
-  const digits = raw.replace(/\s/g, '').replace(/[^\d]/g, '');
-  const n = Number.parseInt(digits, 10);
-  return Number.isFinite(n) ? n : 0;
+function resolvePipedriveActivityAt(patient) {
+  const deals = asArray(asObject(patient.pipedrive).deals);
+  const dates = [];
+  for (const deal of deals) {
+    const safe = asObject(deal);
+    dates.push(safe.treatmentDate, safe.wonAt, safe.updatedAt);
+  }
+  return maxIsoDate(...dates);
+}
+
+function hasPatientEverEngaged(patient, booking, sig, hasJournal) {
+  const fs = asObject(patient.fileSummary);
+  if (
+    booking.lastVisitAt ||
+    booking.lastEncounterAt ||
+    booking.lastBookingAt ||
+    Number(booking.completedVisitCount) > 0
+  ) {
+    return true;
+  }
+  if (hasJournal || sig.hasDriveJournalAsset) return true;
+  if (Number(fs.totalFiles) > 0 || sig.hasPhoto || sig.hasDriveDocumentAsset) return true;
+  if (resolvePipedriveActivityAt(patient)) return true;
+  return false;
+}
+
+function resolveLastActivityAt(patient, booking, sig, hasJournal) {
+  const fs = asObject(patient.fileSummary);
+  const candidates = [
+    booking.lastActivityAt,
+    booking.lastVisitAt,
+    booking.lastEncounterAt,
+    booking.lastBookingAt,
+    resolvePipedriveActivityAt(patient),
+    hasJournal || Number(fs.totalFiles) > 0 ? patient.updatedAt : null,
+  ];
+  return maxIsoDate(...candidates);
+}
+
+function resolveNoShowCount(patient, booking) {
+  const fromBooking = Number(booking?.noShowCount);
+  if (Number.isFinite(fromBooking) && fromBooking > 0) return fromBooking;
+  const fromPatient = Number(patient?.noShowCount);
+  return Number.isFinite(fromPatient) && fromPatient > 0 ? fromPatient : 0;
 }
 
 function isVipPatient(patient) {
   const deals = asArray(asObject(patient.pipedrive).deals);
   return deals.some((deal) => {
-    const v = parseDealValue(deal.value);
-    const status = normalizeKey(deal.status);
-    const stage = normalizeKey(deal.stage);
+    const safe = asObject(deal);
+    const v = parseDealValue(safe.value);
+    const stage = normalizeKey(safe.stage);
     if (stage.includes('vip')) return true;
-    return status === 'won' && v >= VIP_DEAL_VALUE_MIN;
+    return isPipedriveDealWon(safe) && v >= VIP_DEAL_VALUE_MIN;
   });
 }
 
@@ -299,6 +339,7 @@ function matchSegment(
     case 'import_review':
       return matchStatus === 'needs_review' || flags.has('needs_review');
     case 'risk': {
+      const noShowCount = resolveNoShowCount(patient, booking);
       if (
         booking.hasUpcomingBooking &&
         isBookingWithinDays(booking.nextBookingAt, RISK_BOOKING_WINDOW_DAYS) &&
@@ -306,9 +347,7 @@ function matchSegment(
       ) {
         return true;
       }
-      if (typeof patient.noShowCount === 'number' && patient.noShowCount >= RISK_NOSHOW_THRESHOLD) {
-        return true;
-      }
+      if (noShowCount >= RISK_NOSHOW_THRESHOLD) return true;
       if (sig.assetNeedsReview && booking.hasUpcomingBooking) return true;
       return false;
     }
@@ -343,7 +382,7 @@ function matchSegment(
     case 'active': {
       if (bookingCoverage !== 'missing') {
         if (booking.hasUpcomingBooking) return true;
-        for (const iso of [booking.lastBookingAt, booking.lastVisitAt]) {
+        for (const iso of [booking.lastVisitAt, booking.lastBookingAt, booking.lastActivityAt]) {
           if (!iso) continue;
           const days = daysSinceIso(iso);
           if (days != null && days <= ACTIVE_BOOKING_DAYS) return true;
@@ -361,19 +400,22 @@ function matchSegment(
       return days != null && days <= NEW_PATIENT_DAYS;
     }
     case 'dormant': {
-      if (bookingCoverage !== 'missing') {
-        if (booking.lastBookingAt) {
-          const days = daysSinceIso(booking.lastBookingAt);
-          return days != null && days > DORMANT_BOOKING_DAYS;
-        }
-        const created = resolveSourceCreatedAt(patient);
-        if (created) {
-          const days = daysSinceIso(created);
-          if (days != null && days > DORMANT_BOOKING_DAYS) return true;
-        }
-        return updatedDays != null && updatedDays > DORMANT_UPDATED_DAYS;
+      if (booking.hasUpcomingBooking) return false;
+      if (!hasPatientEverEngaged(patient, booking, sig, hasJournal)) return false;
+
+      const activityAt = resolveLastActivityAt(patient, booking, sig, hasJournal);
+      if (activityAt) {
+        const activityDays = daysSinceIso(activityAt);
+        if (activityDays != null && activityDays > DORMANT_ACTIVITY_DAYS) return true;
       }
-      return updatedDays != null && updatedDays > DORMANT_UPDATED_DAYS;
+
+      if (bookingCoverage !== 'missing' && booking.lastBookingAt) {
+        const bookingDays = daysSinceIso(booking.lastBookingAt);
+        if (bookingDays != null && bookingDays > DORMANT_BOOKING_DAYS) return true;
+      }
+
+      if (updatedDays != null && updatedDays > DORMANT_UPDATED_DAYS) return true;
+      return false;
     }
     case 'vip':
       return isVipPatient(patient);

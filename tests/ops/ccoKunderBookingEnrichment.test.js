@@ -10,8 +10,8 @@ const {
 } = require('../../src/ops/ccoKunderBookingEnrichment');
 
 describe('ccoKunderBookingEnrichment', () => {
-  it('flags today and week visits from engine booking', () => {
-    const startsAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+  it('flags upcoming engine booking with treatment label', () => {
+    const startsAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
     const patients = [
       {
         id: 'p1',
@@ -40,10 +40,10 @@ describe('ccoKunderBookingEnrichment', () => {
       encounters: [],
     });
     const sig = getBookingSignals(index, 'p1');
-    assert.equal(sig.todayVisit, true);
     assert.equal(sig.thisWeekVisit, true);
     assert.equal(sig.hasUpcomingBooking, true);
     assert.equal(sig.treatmentTypes.includes('DHI'), true);
+    assert.equal(sig.nextBookingResourceLabel, 'Fazli');
   });
 
   it('waitlist from booking case status', () => {
@@ -104,5 +104,58 @@ describe('ccoKunderBookingEnrichment', () => {
     assert.equal(sig.nextBookingType, 'Konsultation');
     assert.equal(sig.nextBookingResourceLabel, 'Egzona');
     assert.equal(sig.engineBookingId, 'cl-1');
+  });
+
+  it('counts Cliento no_show without treating as completed visit', () => {
+    const past = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const patients = [
+      { id: 'p4', primaryEmail: 'd@example.com', emails: [], flags: [], fileSummary: {} },
+    ];
+    const { index } = buildBookingSignalsIndex({
+      patients,
+      engineBookings: [],
+      bookingCases: [],
+      encounters: [],
+      clientoBookings: [
+        {
+          bookingId: 'cl-ns-1',
+          customerEmail: 'd@example.com',
+          startsAt: past,
+          status: 'no_show',
+          serviceLabel: 'Konsultation',
+        },
+      ],
+    });
+    const sig = getBookingSignals(index, 'p4');
+    assert.equal(sig.noShowCount, 1);
+    assert.equal(sig.completedVisitCount, 0);
+    assert.equal(sig.lastVisitAt, null);
+  });
+
+  it('derives activity from pipedrive treatment dates on patient', () => {
+    const treatmentDate = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
+    const patients = [
+      {
+        id: 'p5',
+        primaryEmail: 'e@example.com',
+        emails: [],
+        flags: [],
+        fileSummary: {},
+        pipedrive: {
+          deals: [{ status: 'Vunnen', value: '40000', treatmentDate }],
+        },
+      },
+    ];
+    const { index } = buildBookingSignalsIndex({
+      patients,
+      engineBookings: [],
+      bookingCases: [],
+      encounters: [],
+      clientoBookings: [],
+    });
+    const sig = getBookingSignals(index, 'p5');
+    assert.equal(sig.lastVisitAt, treatmentDate);
+    assert.equal(sig.lastActivityAt, treatmentDate);
+    assert.equal(sig.completedVisitCount, 1);
   });
 });

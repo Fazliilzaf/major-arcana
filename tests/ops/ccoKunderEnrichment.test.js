@@ -55,6 +55,18 @@ describe('ccoKunderEnrichment', () => {
     assert.equal(matchSegment(patient, 'vip', null), true);
   });
 
+  it('ORD-22 fas 5 matches VIP from Swedish Pipedrive export status', () => {
+    const patient = {
+      id: 'vip-sv',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      pipedrive: { deals: [{ status: 'Vunnen', value: '35 000 kr' }] },
+      updatedAt: new Date().toISOString(),
+    };
+    assert.equal(matchSegment(patient, 'vip', null), true);
+  });
+
   it('buildKunderReadout sums pipedrive won deals as lifetimeValue', () => {
     const readout = buildKunderReadout(
       {
@@ -214,6 +226,21 @@ describe('ccoKunderEnrichment', () => {
     };
     assert.equal(matchSegment(noShowPatient, 'risk', null, null, 'missing'), true);
 
+    const bookingNoShowIndex = new Map([
+      ['risk-booking-noshow', { ...emptyBookingSignals(), noShowCount: 2 }],
+    ]);
+    const bookingNoShowPatient = {
+      id: 'risk-booking-noshow',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      updatedAt: new Date().toISOString(),
+    };
+    assert.equal(
+      matchSegment(bookingNoShowPatient, 'risk', null, bookingNoShowIndex, 'real'),
+      true
+    );
+
     const assetIndex = buildAssetSignalsIndex([
       {
         patientId: 'risk-form',
@@ -356,6 +383,19 @@ describe('ccoKunderEnrichment', () => {
     const neverBookedIndex = new Map([['dormant-never', { ...emptyBookingSignals() }]]);
     assert.equal(matchSegment(neverBooked, 'dormant', null, neverBookedIndex, 'real'), true);
 
+    const neverEngaged = {
+      id: 'dormant-lead',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      cliento: {
+        clientoCreatedAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      updatedAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    const leadIndex = new Map([['dormant-lead', { ...emptyBookingSignals() }]]);
+    assert.equal(matchSegment(neverEngaged, 'dormant', null, leadIndex, 'real'), false);
+
     const fallbackPatient = {
       id: 'dormant-fallback',
       matchStatus: 'matched',
@@ -366,7 +406,7 @@ describe('ccoKunderEnrichment', () => {
     assert.equal(matchSegment(fallbackPatient, 'dormant', null, null, 'missing'), true);
   });
 
-  it('ORD-22 dormant segment uses source createdAt when never booked', () => {
+  it('ORD-22 dormant segment excludes never-engaged imports without activity', () => {
     const neverBooked = {
       id: 'dormant-cliento-old',
       matchStatus: 'matched',
@@ -378,7 +418,30 @@ describe('ccoKunderEnrichment', () => {
       updatedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
     };
     const bookingIndex = new Map([['dormant-cliento-old', { ...emptyBookingSignals() }]]);
-    assert.equal(matchSegment(neverBooked, 'dormant', null, bookingIndex, 'real'), true);
+    assert.equal(matchSegment(neverBooked, 'dormant', null, bookingIndex, 'real'), false);
+  });
+
+  it('ORD-22 dormant segment marks engaged stale patients inactive', () => {
+    const staleVisit = new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString();
+    const engagedStale = {
+      id: 'dormant-engaged',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: { journalPdfs: 2 },
+      updatedAt: staleVisit,
+    };
+    const bookingIndex = new Map([
+      [
+        'dormant-engaged',
+        {
+          ...emptyBookingSignals(),
+          lastVisitAt: staleVisit,
+          lastActivityAt: staleVisit,
+          completedVisitCount: 1,
+        },
+      ],
+    ]);
+    assert.equal(matchSegment(engagedStale, 'dormant', null, bookingIndex, 'real'), true);
   });
 
   it('mine segment uses pipedrive owner when assignedOwner set', () => {

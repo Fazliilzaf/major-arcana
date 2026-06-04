@@ -5,6 +5,7 @@
  */
 
 const path = require('node:path');
+const { maxIsoDate } = require('./pipedriveDealHelpers');
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
@@ -130,7 +131,10 @@ function emptyBookingSignals() {
     nextBookingResourceLabel: null,
     lastBookingAt: null,
     lastVisitAt: null,
+    lastActivityAt: null,
     lastEncounterAt: null,
+    noShowCount: 0,
+    completedVisitCount: 0,
     treatmentTypes: [],
     treatmentServiceIds: [],
     bookingCaseId: null,
@@ -148,19 +152,99 @@ function emptyBookingSignals() {
   };
 }
 
-function buildEmailToPatientMap(patients = []) {
-  const map = new Map();
+function normalizeEmail(value) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/^mailto:/, '');
+}
+
+function phoneMatchKey(value) {
+  const digits = normalizeText(value).replace(/\D/g, '');
+  if (digits.length < 6) return '';
+  return digits.slice(-10);
+}
+
+function buildPatientLookupMaps(patients = []) {
+  const emailToPatient = new Map();
+  const clientoIdToPatient = new Map();
+  const phoneToPatient = new Map();
   for (const patient of asArray(patients)) {
     const patientId = normalizeText(patient.id);
     if (!patientId) continue;
     const emails = new Set(
-      [patient.primaryEmail, ...asArray(patient.emails)].map(normalizeKey).filter(Boolean)
+      [patient.primaryEmail, ...asArray(patient.emails)].map(normalizeEmail).filter(Boolean)
     );
     for (const email of emails) {
-      if (!map.has(email)) map.set(email, patientId);
+      if (!emailToPatient.has(email)) emailToPatient.set(email, patientId);
+    }
+    const clientoId = normalizeText(asObject(patient.cliento).sourceId);
+    if (clientoId && !clientoIdToPatient.has(clientoId)) {
+      clientoIdToPatient.set(clientoId, patientId);
+    }
+    const phones = new Set(
+      [patient.primaryPhone, ...asArray(patient.phones)].map(phoneMatchKey).filter(Boolean)
+    );
+    for (const phone of phones) {
+      if (!phoneToPatient.has(phone)) phoneToPatient.set(phone, patientId);
     }
   }
-  return map;
+  return { emailToPatient, clientoIdToPatient, phoneToPatient };
+}
+
+function buildEmailToPatientMap(patients = []) {
+  return buildPatientLookupMaps(patients).emailToPatient;
+}
+
+function resolvePatientIdFromClientoBooking(clientoBooking, lookup) {
+  const email = normalizeEmail(clientoBooking.customerEmail);
+  if (email && lookup.emailToPatient.has(email)) {
+    return lookup.emailToPatient.get(email);
+  }
+  const clientoId = normalizeText(clientoBooking.clientoCustomerId || clientoBooking.customerId);
+  if (clientoId && lookup.clientoIdToPatient.has(clientoId)) {
+    return lookup.clientoIdToPatient.get(clientoId);
+  }
+  const phone = phoneMatchKey(clientoBooking.customerPhone || clientoBooking.phone);
+  if (phone && lookup.phoneToPatient.has(phone)) {
+    return lookup.phoneToPatient.get(phone);
+  }
+  return null;
+}
+
+function bumpActivityAt(sig, iso) {
+  const next = normalizeText(iso);
+  if (!next) return;
+  const curMs = parseMs(sig.lastActivityAt);
+  const nextMs = parseMs(next);
+  if (nextMs == null) return;
+  if (curMs == null || nextMs > curMs) sig.lastActivityAt = next;
+}
+
+function applyPipedriveActivityToSignals(patient, sig) {
+  const deals = asArray(asObject(patient.pipedrive).deals);
+  for (const deal of deals) {
+    const safe = asObject(deal);
+    const activityAt = maxIsoDate(safe.treatmentDate, safe.wonAt, safe.updatedAt);
+    if (!activityAt) continue;
+    bumpActivityAt(sig, activityAt);
+    if (isPastVisit(activityAt)) {
+      const visitMs = parseMs(activityAt);
+      const curVisitMs = parseMs(sig.lastVisitAt);
+      if (curVisitMs == null || (visitMs != null && visitMs > curVisitMs)) {
+        sig.lastVisitAt = activityAt;
+        sig.lastBookingAt = activityAt;
+        sig.completedVisitCount += 1;
+      }
+    }
+  }
+}
+
+function applyPatientDerivedActivity(patient, sig) {
+  applyPipedriveActivityToSignals(patient, sig);
+  const fs = asObject(patient.fileSummary);
+  if (Number(fs.journalPdfs) > 0 || Number(fs.totalFiles) > 0) {
+    bumpActivityAt(sig, patient.updatedAt);
+  }
 }
 
 function getOrCreate(index, patientId) {
@@ -214,6 +298,12 @@ function applyVisitSlot(sig, slot, bookingStatus, extra = {}) {
       sig.lastVisitAt = startsAt;
       sig.lastBookingAt = startsAt;
     }
+    if (normalizeKey(bookingStatus) !== 'no_show') {
+      sig.completedVisitCount += 1;
+    }
+    bumpActivityAt(sig, startsAt);
+  } else if (isFutureVisit(startsAt, now)) {
+    bumpActivityAt(sig, startsAt);
   }
 }
 
@@ -225,11 +315,13 @@ function buildBookingSignalsIndex({
   clientoBookings = [],
 } = {}) {
   const index = new Map();
-  const emailToPatient = buildEmailToPatientMap(patients);
+  const lookup = buildPatientLookupMaps(patients);
+  const emailToPatient = lookup.emailToPatient;
   const conversationToPatient = new Map();
 
   for (const patient of asArray(patients)) {
-    getOrCreate(index, patient.id);
+    const sig = getOrCreate(index, patient.id);
+    if (sig) applyPatientDerivedActivity(patient, sig);
   }
 
   for (const enc of asArray(encounters)) {
@@ -246,7 +338,9 @@ function buildBookingSignalsIndex({
       if (isPastVisit(startsAt)) {
         const lv = parseMs(sig.lastVisitAt);
         if (!lv || next > lv) sig.lastVisitAt = startsAt;
+        sig.completedVisitCount += 1;
       }
+      bumpActivityAt(sig, startsAt);
       if (isFutureVisit(startsAt)) {
         sig.hasUpcomingBooking = true;
         const nb = parseMs(sig.nextBookingAt);
@@ -314,8 +408,7 @@ function buildBookingSignalsIndex({
   }
 
   for (const clientoBooking of asArray(clientoBookings)) {
-    const email = normalizeKey(clientoBooking.customerEmail);
-    const patientId = emailToPatient.get(email);
+    const patientId = resolvePatientIdFromClientoBooking(clientoBooking, lookup);
     if (!patientId) continue;
     const sig = getOrCreate(index, patientId);
     if (!sig) continue;
@@ -329,9 +422,8 @@ function buildBookingSignalsIndex({
       resourceLabel: normalizeText(clientoBooking.staffName),
     };
     if (status === 'no_show') {
-      if (isPastVisit(startsAt)) {
-        applyVisitSlot(sig, slot, 'no_show', { bookingId: clientoBooking.bookingId });
-      }
+      sig.noShowCount += 1;
+      if (isPastVisit(startsAt)) bumpActivityAt(sig, startsAt);
       continue;
     }
     const bookingStatus =
@@ -340,6 +432,9 @@ function buildBookingSignalsIndex({
   }
 
   for (const [, sig] of index) {
+    if (sig.lastVisitAt || sig.lastEncounterAt || sig.lastBookingAt) {
+      bumpActivityAt(sig, sig.lastVisitAt || sig.lastEncounterAt || sig.lastBookingAt);
+    }
     if (sig.hasUpcomingBooking && !sig.encounterId) {
       sig.missingEncounterForBooking = true;
     } else {
@@ -349,7 +444,7 @@ function buildBookingSignalsIndex({
     sig.readyForTreatment = null;
   }
 
-  return { index, emailToPatient, conversationToPatient };
+  return { index, emailToPatient, conversationToPatient, lookup };
 }
 
 function getBookingSignals(index, patientId) {
@@ -379,7 +474,10 @@ function applyBookingToReadout(readout, bookingSignals) {
   readout.nextBookingResourceLabel = sig.nextBookingResourceLabel;
   readout.lastBookingAt = sig.lastBookingAt;
   readout.lastVisitAt = sig.lastVisitAt || readout.lastVisitAt;
+  readout.lastActivityAt = sig.lastActivityAt;
   readout.lastEncounterAt = sig.lastEncounterAt;
+  readout.noShowCount = sig.noShowCount;
+  readout.completedVisitCount = sig.completedVisitCount;
   readout.treatmentTypes = [
     ...new Set([...asArray(readout.treatmentTypes), ...sig.treatmentTypes]),
   ];
@@ -459,11 +557,24 @@ async function loadKunderBookingIndex(config, tenantId, patients = []) {
     let clientoBookings = [];
     try {
       const { createClientoBookingStore } = require('./clientoBookingStore');
-      const clientoPath =
-        config?.clientoBookingStorePath ||
-        path.join(process.cwd(), 'data', 'cco', 'cliento-bookings.json');
-      const clientoStore = await createClientoBookingStore({ filePath: clientoPath });
-      clientoBookings = clientoStore.listAllBookings({ tenantId: tid, limit: 20000 });
+      const candidatePaths = [
+        config?.clientoBookingStorePath,
+        path.join(process.cwd(), 'data', 'cco', 'cliento-bookings.json'),
+        path.join(process.cwd(), 'data', 'cliento-booking-store.json'),
+      ].filter(Boolean);
+      for (const clientoPath of candidatePaths) {
+        try {
+          const clientoStore = await createClientoBookingStore({ filePath: clientoPath });
+          const batch = clientoStore.listAllBookings({ tenantId: tid, limit: 50000 });
+          if (batch.length > 0) {
+            clientoBookings = batch;
+            break;
+          }
+          if (!clientoBookings.length) clientoBookings = batch;
+        } catch {
+          /* try next path */
+        }
+      }
     } catch {
       clientoBookings = [];
     }

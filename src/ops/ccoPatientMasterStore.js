@@ -20,6 +20,7 @@ const { normalizePhotoPublishConsent } = require('./ccoPhotoPublishConsent');
 const { normalizeFortnoxPatientRef } = require('./ccoFortnoxPatientSync');
 const { normalizePatientDemographics, buildDemographicsReadout } = require('./patientDemographics');
 const { sanitizePatientDisplayName } = require('../lib/patientDisplayName');
+const { isPipedriveDealWon, parseDealValue } = require('./pipedriveDealHelpers');
 const {
   rebuildPatientMasterIndexes,
   lookupPatientsByQuery,
@@ -518,11 +519,8 @@ function sumPipedriveWonDeals(pipedrive) {
   let total = 0;
   let wonCount = 0;
   for (const deal of deals) {
-    const status = normalizeKey(asObject(deal).status);
-    if (status !== 'won') continue;
-    const raw = normalizeText(asObject(deal).value);
-    const digits = raw.replace(/\s/g, '').replace(/[^\d]/g, '');
-    const n = Number.parseInt(digits, 10);
+    if (!isPipedriveDealWon(deal)) continue;
+    const n = parseDealValue(asObject(deal).value);
     if (!Number.isFinite(n) || n <= 0) continue;
     total += n;
     wonCount += 1;

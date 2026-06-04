@@ -4,7 +4,7 @@
 **Owner-spår:** Cursor (write — backend logic i `src/ops/`)
 **Claude-spår:** UAT efter deploy
 **Prio:** P1
-**Status:** IMPLEMENTED (2026-06-04) — source createdAt-fix + lastVisitAt active + dormant fallback
+**Status:** IMPLEMENTED (2026-06-04) — fas 2–5: Cliento CSV-import, aktivitetsbaserad dormant, risk noShow, Pipedrive VIP (Vunnen)
 
 ---
 
