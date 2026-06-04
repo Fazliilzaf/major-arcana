@@ -103,21 +103,31 @@
     return /\/kunder\.html$/i.test(location.pathname || '');
   }
 
-  /** Default on /kunder.html = same v9 chrome + mockdata as :8765/CCO-Kunder-Mockup-v9-DESKTOP.html */
+  /**
+   * Mock-rader (Anna/Karl …) endast utan inloggning.
+   * Inloggad på /kunder.html → alltid customers-shell API + v9-layout.
+   */
   function shouldUseMockupSeed() {
     const seed = global.CcoKunderV9MockSeed;
     if (!seed) return false;
     const q = new URLSearchParams(location.search);
     if (q.get('live') === '1') return false;
+    if (q.get('mock') === '1' || q.get('v9seed') === '1') return true;
     try {
       if (localStorage.getItem('ARCANA_KUNDER_V9_SEED') === '0') return false;
     } catch {
       /* ignore */
     }
     if (q.get('v9seed') === '0') return false;
-    if (q.get('v9seed') === '1') return true;
+    if (isKunderPage() && getToken()) return false;
     if (isKunderPage()) return true;
     return !getToken();
+  }
+
+  function ensureV9Layout() {
+    if (!isKunderPage()) return;
+    document.body.classList.add('kunder-v9');
+    document.body.dataset.kunderReal = '1';
   }
 
   function applyMockupSeed() {
@@ -145,11 +155,23 @@
       const nav = $('.top-nav');
       if (nav) nav.insertAdjacentElement('afterend', el);
     }
-    const liveLink = isKunderPage() ? ' <a href="?live=1">Live API-data</a>' : '';
     el.innerHTML = `
-      <strong>v9 mockup</strong> — samma design som <code>CCO-Kunder-Mockup-v9-DESKTOP.html</code> (:8765).
-      ${getToken() ? 'Inloggad med mockdata.' : `<a href="${LOGIN_HREF}">Logga in</a> för token.`}
-      <span style="margin-left:8px;opacity:.85">?live=1 = API · ?v9seed=0 stänger mock</span>${liveLink}`;
+      <strong>v9 demo</strong> — mockdata som <code>CCO-Kunder-Mockup-v9-DESKTOP.html</code>.
+      <a href="${LOGIN_HREF}">Logga in</a> för alla kunder från patient-master.
+      <span style="margin-left:8px;opacity:.85"><a href="?mock=1">mock</a> · ?v9seed=0</span>`;
+  }
+
+  function showLiveV9Banner() {
+    let el = $('#kunder-auth-banner');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'kunder-auth-banner';
+    el.className = 'kunder-auth-banner kunder-auth-banner--live';
+    const nav = $('.top-nav');
+    if (nav) nav.insertAdjacentElement('afterend', el);
+    el.innerHTML = `
+      <strong>v9 · live kunder</strong> från patient-master (samma layout som mockup).
+      <a href="?mock=1">Visa demo-mock</a>`;
   }
 
   function renderMockStatusBar() {
@@ -163,7 +185,7 @@
     const seed = global.CcoKunderV9MockSeed;
     if (!seed || !$('#customerList')) return;
 
-    document.body.classList.add('kunder-v9');
+    ensureV9Layout();
     renderMockStatusBar();
 
     const host = $('[data-kunder-agg-insights]');
@@ -800,7 +822,10 @@
     }
     state.mockupSeed = false;
     state.authRequired = false;
+    delete document.body.dataset.kunderDemo;
     showAuthBanner(false);
+    showLiveV9Banner();
+    ensureV9Layout();
     if (state.loading) return;
     state.loading = true;
     state.error = '';
@@ -1242,11 +1267,62 @@
       );
     }
 
+    const kicker = isKunderPage() ? '★ AI · Veckans insikter' : 'Regelbaserat · dry-run';
     return `
       <div>
-        <div class="agg-kicker">Regelbaserat · dry-run</div>
+        <div class="agg-kicker">${kicker}</div>
       </div>
       <div class="agg-ai-list" data-kunder-ai-insights>${htmlRows.join('')}</div>`;
+  }
+
+  function renderV9PopulationPanel() {
+    const bookingView = $('.intel-booking-view');
+    const stats = state.stats;
+    if (!bookingView || !stats) return;
+    const c = state.segmentTotals || {};
+    const total = Number(stats.totalPatients) || 0;
+    const newN = Number(c.new) || 0;
+    const activeN = Number(c.active) || 0;
+    const vipN = Number(c.vip) || 0;
+    const panel = stats.kunderPanel || state.segmentStats?.panel || {};
+    const riskN = Number(c.needs_review ?? c.risk ?? stats.needsReview) || 0;
+    const missingHd = Number(c.missing_health_declaration ?? panel.missingForm) || 0;
+
+    bookingView.innerHTML = `
+      <div class="agg-shell">
+        <div>
+          <div class="agg-kicker">Översikt</div>
+          <h3 class="agg-title">Kundpopulation</h3>
+        </div>
+        <div class="agg-stat-grid">
+          <div class="agg-stat">
+            <div class="agg-stat-label">Totalt</div>
+            <div class="agg-stat-value">${fmtStat(total)}</div>
+            <div class="agg-stat-trend">+${fmtStat(newN)} nya i segment</div>
+          </div>
+          <div class="agg-stat">
+            <div class="agg-stat-label">Aktiva</div>
+            <div class="agg-stat-value">${fmtStat(activeN)}</div>
+            <div class="agg-stat-trend">patient-master</div>
+          </div>
+          <div class="agg-stat">
+            <div class="agg-stat-label">VIP</div>
+            <div class="agg-stat-value">${fmtStat(vipN)}</div>
+            <div class="agg-stat-trend">segmentStats</div>
+          </div>
+          <div class="agg-stat">
+            <div class="agg-stat-label">Snitt LTV</div>
+            <div class="agg-stat-value">—</div>
+            <div class="agg-stat-trend">Intäkt ej kopplad</div>
+          </div>
+        </div>
+        ${populationChartHtml(panel, stats)}
+        ${automationInsightsHtml(state.patients, state.automation)}
+        <div class="agg-actions">
+          <button type="button" class="quick-pill quick-pill--ai" disabled title="Kopplas i P1">★ Skicka mass-påminnelse (${fmtStat(missingHd || riskN)})</button>
+          <button type="button" class="quick-pill" disabled title="Kopplas i P1">↓ Exportera urval</button>
+        </div>
+      </div>`;
   }
 
   function storyIconSvg(kind) {
@@ -1631,6 +1707,10 @@
     const stats = state.stats;
     const hasStats = Boolean(stats) && !state.authRequired;
     if (!hasStats) {
+      if (isKunderPage() && global.CcoKunderV9MockSeed?.rightPanelHtml) {
+        bookingView.innerHTML = global.CcoKunderV9MockSeed.rightPanelHtml;
+        return;
+      }
       bookingView.innerHTML = `
         <div class="agg-shell">
           <div>
@@ -1640,50 +1720,95 @@
           <p class="kunder-data-missing">Data saknas — logga in för customers-shell.</p>
           ${populationChartHtml({}, {})}
           ${automationInsightsHtml([], state.automation)}
-          <p class="kunder-data-missing" style="margin-top:12px">Intäkt/LTV — data saknas (ej mock).</p>
         </div>`;
       return;
     }
-    const panel = stats.kunderPanel || state.segmentStats?.panel || {};
-    const activeN = Number(state.segmentTotals?.active) || 0;
-    const vipN = Number(state.segmentTotals?.vip) || 0;
-    const newN = Number(state.segmentTotals?.new) || 0;
-    bookingView.innerHTML = `
-      <div class="agg-shell">
-        <div>
-          <div class="agg-kicker">Översikt</div>
-          <h3 class="agg-title">Kundpopulation</h3>
+    renderV9PopulationPanel();
+  }
+
+  function liveDossierInsightsHtml(card) {
+    const rows = [];
+    for (const sig of card.automationSignals || []) {
+      if (sig.status !== 'active') continue;
+      const label = sig.what || sig.label || sig.ruleId || 'Åtgärd';
+      rows.push(`<div class="dossier-insight"><strong>★ AI</strong> ${escapeHtml(label)}</div>`);
+      if (rows.length >= 4) break;
+    }
+    if (!rows.length) {
+      rows.push(`<div class="dossier-insight">${escapeHtml(nextStepLabel(card))}</div>`);
+    }
+    return rows.join('');
+  }
+
+  function buildLiveV9DossierHtml(card, dossierActionsHtml, smartNextHtml) {
+    const name = displayName(card);
+    const init = (name.slice(0, 2) || '??').toUpperCase();
+    const bg = 'linear-gradient(180deg,#d8c1f0,#b48ad6)';
+    const bgAttr = bg.replace(/"/g, '&quot;');
+    const tags = rowBadges(card);
+    const upcomingN = card.hasUpcomingBooking ? 1 : 0;
+    const kommCount = card.primaryEmail ? 1 : 0;
+
+    return `
+    <div class="dossier-head">
+      <div class="dossier-avatar" style="background:${bg}">${escapeHtml(init)}</div>
+      <div class="dossier-head-body">
+        <div class="dossier-kicker">★ Kunddossiér</div>
+        <div class="dossier-name">${escapeHtml(name)}</div>
+        <div class="dossier-contact">${escapeHtml(card.primaryEmail || '—')} · ${escapeHtml(card.primaryPhone || '—')}</div>
+        <div class="dossier-tags">
+          ${tags.map((t) => `<span class="dossier-tag dossier-tag--${t.kind}">${escapeHtml(t.label)}</span>`).join('')}
         </div>
-        <div class="agg-stat-grid">
-          <div class="agg-stat">
-            <div class="agg-stat-label">Totalt</div>
-            <div class="agg-stat-value">${fmtStat(stats.totalPatients)}</div>
-            <div class="agg-stat-trend">${fmtStat(newN)} nya i segment</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Aktiva</div>
-            <div class="agg-stat-value">${fmtStat(activeN)}</div>
-            <div class="agg-stat-trend">segmentStats · active</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">VIP</div>
-            <div class="agg-stat-value">${fmtStat(vipN)}</div>
-            <div class="agg-stat-trend">segmentStats · vip</div>
-          </div>
-          <div class="agg-stat">
-            <div class="agg-stat-label">Snitt LTV</div>
-            <div class="agg-stat-value">—</div>
-            <div class="agg-stat-trend">Data saknas</div>
-          </div>
+      </div>
+      <button type="button" class="dossier-close" id="dossierClose" title="Stäng dossiér">×</button>
+    </div>
+    <div class="dossier-stats">
+      <div class="dossier-stat"><div class="dossier-stat-label">Journal</div><div class="dossier-stat-value">${card.hasJournal ? 'Ja' : 'Nej'}</div><div class="dossier-stat-trend">${card.hasForm ? 'Form OK' : 'Form saknas'}</div></div>
+      <div class="dossier-stat"><div class="dossier-stat-label">Filer</div><div class="dossier-stat-value">${Number(card.fileSummary?.totalFiles || card.assetCount || 0)}</div><div class="dossier-stat-trend">CCO + Drive</div></div>
+      <div class="dossier-stat"><div class="dossier-stat-label">Senast</div><div class="dossier-stat-value">${escapeHtml(formatDate(card.lastVisitAt))}</div><div class="dossier-stat-trend">${escapeHtml(card.nextBookingType || '—')}</div></div>
+    </div>
+    ${smartNextHtml}
+    <div class="dossier-scroll">
+      ${
+        card.hasUpcomingBooking
+          ? `
+      <details class="dossier-section" open>
+        <summary>Kommande bokningar <span class="count">${upcomingN}</span></summary>
+        <div class="dossier-booking" data-source="contact">
+          <div class="db-date"><div class="day">—</div><div class="num">·</div><div class="mon">—</div></div>
+          <div class="db-meta"><div class="db-title">${escapeHtml(card.nextBookingType || 'Bokning')}</div><div class="db-sub">${escapeHtml(formatDateTime(card.nextBookingAt))} · ${escapeHtml(card.nextBookingResourceLabel || '')}</div></div>
+          <span class="db-status" data-state="ready">${escapeHtml(card.bookingCaseStatus || '—')}</span>
         </div>
-        ${populationChartHtml(panel, stats)}
-        ${automationInsightsHtml(state.patients, state.automation)}
-        <p class="kunder-data-missing" style="margin-top:12px">Intäkt/LTV — data saknas (ej mock).</p>
-        <div class="agg-actions">
-          <button type="button" class="quick-pill quick-pill--ai" disabled title="Ej kopplat ännu">★ Mass-påminnelse</button>
-          <button type="button" class="quick-pill" disabled title="Ej kopplat ännu — kommer i P1">↓ Exportera urval</button>
-        </div>
-      </div>`;
+      </details>`
+          : ''
+      }
+      <details class="dossier-section" open>
+        <summary>Journal &amp; tidslinje</summary>
+        <div id="kunder-journal-feed-mount"></div>
+      </details>
+      <details class="dossier-section" open data-cco-assets-host data-patient-id="${escapeHtml(card.patientId)}">
+        <summary>Filer <span class="count" data-cco-assets-count>…</span></summary>
+        <div class="cco-assets-loading" data-cco-assets-loading>Hämtar från CCO storage…</div>
+        <div data-cco-assets-body hidden></div>
+      </details>
+      <details class="dossier-section" open data-cco-komm-host data-customer-id="${escapeHtml(card.patientId)}">
+        <summary>Kommunikation <span class="count">${kommCount}</span></summary>
+        <div class="cco-komm-loading">Laddar…</div>
+      </details>
+      <details class="dossier-section" open>
+        <summary>AI-insikter <span class="count">${Math.min(4, (card.automationSignals || []).length || 1)}</span></summary>
+        ${liveDossierInsightsHtml(card)}
+      </details>
+    </div>
+    <div class="dossier-actions dossier-actions--live">
+      <button type="button" class="quick-pill dossier-camera-cta full" data-camera-open data-name="${escapeHtml(name)}" data-init="${escapeHtml(init)}" data-bg="${bgAttr}">📷 Ta bild · spara i journal</button>
+      <div class="dossier-actions-api full" data-kunder-actions-host>${dossierActionsHtml}</div>
+    </div>
+    ${
+      card.journalBlocked
+        ? `<p class="kunder-data-missing">Spärrad åtkomst: ${escapeHtml(card.journalBlockReason || 'journal spärrad')}</p>`
+        : ''
+    }`;
   }
 
   const ASSETS = (function () {
@@ -1786,81 +1911,19 @@
     const smartNextHtml = global.CcoKunderSmartNextStep?.renderPanel
       ? global.CcoKunderSmartNextStep.renderPanel(card, { automation: state.automation })
       : '';
-    intelCustomerView.innerHTML = `
+    intelCustomerView.innerHTML = isKunderPage()
+      ? buildLiveV9DossierHtml(card, dossierActionsHtml, smartNextHtml)
+      : `
     <div class="dossier-head">
       <div class="dossier-avatar">${escapeHtml((name.slice(0, 2) || '??').toUpperCase())}</div>
       <div class="dossier-head-body">
         <div class="dossier-kicker">Kundkort</div>
         <div class="dossier-name">${escapeHtml(name)}</div>
         <div class="dossier-contact">${escapeHtml(card.primaryEmail || '—')} · ${escapeHtml(card.primaryPhone || '—')}</div>
-        <div class="dossier-tags">
-          <span class="dossier-tag dossier-tag--lifecycle">${escapeHtml(MATCH_LABELS[card.matchStatus] || '—')}</span>
-          ${card.flags?.includes('needs_review') ? '<span class="dossier-tag dossier-tag--risk">Granska</span>' : ''}
-        </div>
       </div>
       <button type="button" class="dossier-close" id="dossierClose" title="Stäng">×</button>
     </div>
-    <div class="dossier-stats">
-      <div class="dossier-stat"><div class="dossier-stat-label">Patient-ID</div><div class="dossier-stat-value" style="font-size:11px">${escapeHtml(card.patientId)}</div></div>
-      <div class="dossier-stat"><div class="dossier-stat-label">Journal</div><div class="dossier-stat-value">${card.hasJournal ? 'Ja' : 'Nej'}</div></div>
-      <div class="dossier-stat"><div class="dossier-stat-label">Formulär</div><div class="dossier-stat-value">${card.hasForm ? 'Ja' : card.missingForm ? 'Saknas' : '—'}</div></div>
-      <div class="dossier-stat"><div class="dossier-stat-label">Avtal</div><div class="dossier-stat-value">${card.hasAgreement ? 'Ja' : card.missingAgreement ? 'Saknas' : '—'}</div></div>
-      <div class="dossier-stat"><div class="dossier-stat-label">Filer (Drive)</div><div class="dossier-stat-value">${Number(card.fileSummary?.totalFiles || 0)}</div></div>
-      <div class="dossier-stat"><div class="dossier-stat-label">CCO assets</div><div class="dossier-stat-value">${Number(card.assetCount ?? 0)}</div></div>
-    </div>
-    ${smartNextHtml}
-    <div class="dossier-review-flags">
-      ${
-        rowBadges(card)
-          .map(
-            (t) => `<span class="dossier-tag dossier-tag--${t.kind}">${escapeHtml(t.label)}</span>`
-          )
-          .join('') || '<span class="kunder-data-missing">Inga review-flaggor</span>'
-      }
-      <div class="dossier-next-step">Nästa steg: ${escapeHtml(nextStepLabel(card))}</div>
-    </div>
-    <div class="dossier-scroll">
-      <details class="dossier-section" open>
-        <summary>Bokning &amp; kalender</summary>
-        <div class="dossier-booking-grid">
-          <div><span class="dossier-stat-label">Kommande</span><br>${card.hasUpcomingBooking ? escapeHtml(formatDateTime(card.nextBookingAt)) : '—'}</div>
-          <div><span class="dossier-stat-label">Typ</span><br>${escapeHtml(card.nextBookingType || '—')}</div>
-          <div><span class="dossier-stat-label">Resurs</span><br>${escapeHtml(card.nextBookingResourceLabel || '—')}</div>
-          <div><span class="dossier-stat-label">Senast besök</span><br>${escapeHtml(formatDate(card.lastVisitAt))}</div>
-          <div><span class="dossier-stat-label">Encounter</span><br>${escapeHtml(card.encounterId || '—')}</div>
-          <div><span class="dossier-stat-label">Ärende</span><br>${escapeHtml(card.bookingCaseStatus || '—')}</div>
-        </div>
-        ${
-          card.missingEncounterForBooking
-            ? '<p class="kunder-data-missing dossier-warning">Kommande bokning utan kopplat encounter.</p>'
-            : ''
-        }
-        ${
-          card.onWaitlist
-            ? `<p class="kunder-data-missing">Väntelista: ${escapeHtml(card.waitingListStatus || 'ärende')}</p>`
-            : ''
-        }
-      </details>
-      <details class="dossier-section" open>
-        <summary>Journal &amp; tidslinje</summary>
-        <div id="kunder-journal-feed-mount"></div>
-      </details>
-      <details class="dossier-section" open data-cco-assets-host data-patient-id="${escapeHtml(card.patientId)}">
-        <summary>Filer &amp; journaler <span class="count" data-cco-assets-count>…</span></summary>
-        <div class="cco-assets-loading" data-cco-assets-loading>Hämtar från CCO storage…</div>
-        <div data-cco-assets-body hidden></div>
-      </details>
-      <details class="dossier-section" open data-cco-komm-host data-customer-id="${escapeHtml(card.patientId)}">
-        <summary>Kommunikation</summary>
-        <div class="cco-komm-loading">Laddar…</div>
-      </details>
-    </div>
-    <div class="dossier-actions" data-kunder-actions-host>${dossierActionsHtml}</div>
-    ${
-      card.journalBlocked
-        ? `<p class="kunder-data-missing">Spärrad åtkomst: ${escapeHtml(card.journalBlockReason || 'journal spärrad')}</p>`
-        : ''
-    }`;
+    <div class="dossier-actions" data-kunder-actions-host>${dossierActionsHtml}</div>`;
 
     intelShell.dataset.context = 'customer';
     if (breadcrumbSlot) {
@@ -1910,6 +1973,10 @@
         },
       });
     }
+    if (isKunderPage()) {
+      const actionsRow = intelCustomerView.querySelector('.dossier-actions--live');
+      attachGdprRowToDossier(actionsRow || actionsHost);
+    }
   }
 
   function closeDossier() {
@@ -1935,13 +2002,12 @@
   }
 
   function bindUi() {
-    document.body.dataset.kunderReal = '1';
-    document.body.classList.add('kunder-v9');
+    ensureV9Layout();
 
     $('.calendar-shell[data-cco-shell="calendar"]')?.remove();
 
     const listHead = $('.customer-row-head');
-    if (listHead?.children?.[6]) listHead.children[6].textContent = 'Nästa steg';
+    if (listHead?.children?.[6]) listHead.children[6].textContent = 'AI nästa-steg';
 
     function mockSegmentIdFromChip(id) {
       if (id === 'alla') return 'all';
@@ -2125,6 +2191,10 @@
       [data-kunder-agg-body] { min-height:2.6em; }
       body.kunder-v9 .watch-widget, body.kunder-v9 .voice-overlay, body.kunder-v9 .voice-sheet, body.kunder-v9 .calm-banner { display:none !important; }
       body[data-kunder-demo="1"] .mockup-label, body[data-kunder-demo="1"] .caption { display:none !important; }
+      .dossier-actions--live .dossier-actions-api { grid-column:1/-1; }
+      .dossier-actions--live .dossier-actions-api .kunder-action-legend { display:none; }
+      .dossier-actions--live .dossier-actions-api button { width:100%; margin:2px 0; }
+      .kunder-auth-banner--live { background:rgba(74,130,104,.12); border-color:rgba(74,130,104,.28); }
     `;
     document.head.appendChild(style);
   }
@@ -2132,8 +2202,9 @@
   async function boot() {
     injectStyles();
     KUNDER_V9_CAMERA.init();
-    applyV9VisualChrome();
+    ensureV9Layout();
     bindUi();
+    if (shouldUseMockupSeed()) applyV9VisualChrome();
     renderInsights();
     renderRightPanel();
     if (getToken() && global.CcoKunderStaffOwner?.fetchAuthMe) {
