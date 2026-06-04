@@ -579,7 +579,7 @@
     'send-mail': () => document.querySelector('.composer-send, .send, [data-send-mail]')?.click(),
     'show-shortcuts': () => showShortcutsOverlay(),
     'open-kalender': () => (window.location.href = '/kalender.html'),
-    'open-kunder': () => (window.location.href = '/kunder.html'),
+    'open-kunder': () => (window.location.href = '/major-arcana-preview/?view=customers&v9=on'),
     'open-konversationer': () => (window.location.href = '/konversationer.html'),
     'open-analytics': () => (window.location.href = '/analytics.html'),
     'undo': () => performUndo(),

@@ -105,7 +105,7 @@
         <span class="cow-cta cow-cta--disabled" title="Read-only — pausa via Fazli/command center">Pausa journalföring</span>
         <a class="cow-cta cow-cta--warn" href="${escapeHtml(lk.commandCenter || '/personal-demo.html')}">Eskalera till Fazli</a>
         <a class="cow-cta" href="${escapeHtml(lk.journalGuide || '/journal-pilot-guide.html')}">Öppna journalguide</a>
-        <a class="cow-cta" href="${escapeHtml(lk.kundkort || '/kunder.html')}">Öppna kundkort</a>
+        <a class="cow-cta" href="${escapeHtml(lk.kundkort || '/major-arcana-preview/?view=customers&v9=on')}">Öppna kundkort</a>
       </div>
       <p class="cow-muted">CTA är read-only vägledning — ingen server-write för paus/start.</p>`;
   }
@@ -267,7 +267,7 @@
           ${linkBtn(m.links?.presenterMode || '/personal-demo.html', 'Presenter mode')}
           ${linkBtn(m.links?.printPack || '/journal-pilot-guide.html', 'Print pack')}
           ${linkBtn(m.links?.journalGuide || '/journal-pilot-guide.html', 'Journal guide')}
-          ${linkBtn(m.links?.kundkort || '/kunder.html', 'Kundkort')}
+          ${linkBtn(m.links?.kundkort || '/major-arcana-preview/?view=customers&v9=on', 'Kundkort')}
           ${pilotBtns}
         </div>
         <p class="cow-muted">Prod: <a href="${escapeHtml(m.prodUrl || '#')}">${escapeHtml(m.prodUrl || '—')}</a> · Backup: <a href="${escapeHtml(m.backupUrl || '#')}">${escapeHtml(m.backupUrl || '—')}</a></p>
@@ -308,7 +308,7 @@
         <ul class="cow-list">${pilotRows || ''}</ul>
         <div class="cow-actions cow-actions--wrap">
           ${linkBtn('/cco-demo.html', 'Välkommen till CCO')}
-          ${linkBtn('/kunder.html', 'Kundkort')}
+          ${linkBtn('/major-arcana-preview/?view=customers&v9=on', 'Kundkort')}
           ${linkBtn('/journal-pilot-guide.html', 'Journal guide')}
           ${linkBtn('/personal-demo.html', 'Presenter mode')}
         </div>
@@ -344,7 +344,7 @@
         ${pilotRows ? `<ul class="cow-list">${pilotRows}</ul>` : ''}
         <div class="cow-actions">
           ${linkBtn(jp.primaryStartUrl || jp.welcomeUrl || jp.personalStartUrl || '/cco-demo.html', 'Välkommen till CCO')}
-          ${linkBtn(jp.kundkortUrl || '/kunder.html', 'Kundkort')}
+          ${linkBtn(jp.kundkortUrl || '/major-arcana-preview/?view=customers&v9=on', 'Kundkort')}
         </div>
       </section>`;
   }

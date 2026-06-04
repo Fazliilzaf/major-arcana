@@ -332,7 +332,7 @@
             );
             return;
           }
-          window.location.href = '/kunder.html#svarstudio';
+          window.location.href = '/major-arcana-preview/?view=customers&v9=on#svarstudio';
           return;
         }
         if (/markera ankommen/i.test(label)) {

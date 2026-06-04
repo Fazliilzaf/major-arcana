@@ -440,7 +440,7 @@
     }
     $('receipts-list').innerHTML = filtered.map((r) => {
       const thumb = (r.mimeType || '').includes('pdf') ? '📄' : '🖼';
-      const customer = r.customerId ? `<a class="receipt-customerlink" href="/kunder.html?customer=${esc(r.customerId)}">→ kundkort</a>` : '';
+      const customer = r.customerId ? `<a class="receipt-customerlink" href="/major-arcana-preview/?view=customers&v9=on&customer=${esc(r.customerId)}">→ kundkort</a>` : '';
       // CF.2-fix 2026-06-01 (BUG-3): visa encounter/treatment/offer-IDs när satta.
       // Trunkera till sista 6 tecken så raden inte sprängs — full ID syns vid hover (title).
       const tail6 = (s) => String(s || '').slice(-6);
@@ -603,7 +603,7 @@
     }
     $('expenses-list').innerHTML = filtered.map((e) => {
       const thumb = e.receiptId ? '📄' : '💳';
-      const customer = e.customerId ? `<a class="receipt-customerlink" href="/kunder.html?customer=${esc(e.customerId)}" onclick="event.stopPropagation()">→ kundkort</a>` : '';
+      const customer = e.customerId ? `<a class="receipt-customerlink" href="/major-arcana-preview/?view=customers&v9=on&customer=${esc(e.customerId)}" onclick="event.stopPropagation()">→ kundkort</a>` : '';
       const tail6 = (s) => String(s||'').slice(-6);
       const enc = e.encounterId ? `<span class="receipt-link-chip" title="encounterId: ${esc(e.encounterId)}">enc:${esc(tail6(e.encounterId))}</span>` : '';
       const tx = e.treatmentId ? `<span class="receipt-link-chip" title="treatmentId: ${esc(e.treatmentId)}">tx:${esc(tail6(e.treatmentId))}</span>` : '';

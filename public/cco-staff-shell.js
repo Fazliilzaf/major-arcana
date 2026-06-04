@@ -25,7 +25,7 @@
     nav.innerHTML = [
       '<span class="cco-brand">CCO</span>',
       '<a href="/konversationer.html">Konversationer</a>',
-      '<a href="/kunder.html">Kunder</a>',
+      '<a href="/major-arcana-preview/?view=customers&v9=on">Kunder</a>',
       '<a href="/kalender.html">Kalender</a>',
       '<a href="/cco-demo.html" class="cco-nav-active-welcome">Välkommen</a>'
     ].join('');
@@ -58,8 +58,8 @@
     } else if (staffPaths.indexOf(path) !== -1) {
       var welcomeLink2 = nav.querySelector('.cco-nav-active-welcome');
       if (welcomeLink2) welcomeLink2.classList.add('active');
-    } else if (path === '/kunder.html') {
-      var kunderLink = nav.querySelector('a[href="/kunder.html"]');
+    } else if (path === '/major-arcana-preview/?view=customers&v9=on') {
+      var kunderLink = nav.querySelector('a[href="/major-arcana-preview/?view=customers&v9=on"]');
       if (kunderLink) kunderLink.classList.add('active');
     }
 

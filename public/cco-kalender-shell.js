@@ -78,7 +78,7 @@
       document.querySelectorAll('.top-nav a').forEach(a => {
         const href = a.getAttribute('href') || '';
         const isCalendar = href.includes('/kalender.html') || href.includes('view=calendar');
-        const isKunder = href.includes('/kunder.html') && !href.includes('view=');
+        const isKunder = href.includes('/major-arcana-preview/?view=customers&v9=on') && !href.includes('view=');
         if (isCalendar) a.classList.add('active');
         else if (isKunder) a.classList.remove('active');
       });
@@ -363,7 +363,7 @@
     const headers = { 'x-cco-role': role, 'x-cco-tenant': tenantId, 'Content-Type': 'application/json' };
 
     if (actionId === 'open-card') {
-      if (pills.patientId) window.location.href = '/kunder.html?id=' + encodeURIComponent(pills.patientId);
+      if (pills.patientId) window.location.href = '/major-arcana-preview/?view=customers&v9=on&id=' + encodeURIComponent(pills.patientId);
       return;
     }
     if (actionId === 'start-journal') {
