@@ -26288,6 +26288,12 @@
     ) {
       return;
     }
+    if (
+      window.ArcanaPatientMasterUi?.isV9CustomersEnabled?.() === true &&
+      window.ArcanaPatientMasterUi?.getRuntime?.()?.mode === "register"
+    ) {
+      return;
+    }
     ensureCustomerRuntimeProfilesFromLive();
     const visibleKeys = getVisibleCustomerKeys();
     const portalLockedCustomerKey = normalizeKey(

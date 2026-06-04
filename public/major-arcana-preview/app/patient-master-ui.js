@@ -68,6 +68,23 @@
   };
 
   const PHOTO_LABEL_OPTIONS = ['Front', 'Vertex', 'Baksida', 'Profil', 'Annan'];
+  const V9_FLAG_FILTER_VALUES = new Set([
+    '',
+    'has_drive_files',
+    'needs_review',
+    'cliento_only',
+    'drive_only',
+  ]);
+  const V9_FLAG_FILTER_LABELS = {
+    '': 'Alla kunder',
+    has_drive_files: 'Med Drive-filer',
+    needs_review: 'Behöver granskning',
+    cliento_only: 'Endast Cliento',
+    drive_only: 'Endast Drive',
+  };
+  const V9_FLAG_FILTER_FROM_LABEL = Object.fromEntries(
+    Object.entries(V9_FLAG_FILTER_LABELS).map(([flag, label]) => [label.toLowerCase(), flag])
+  );
   const photoObjectUrls = new Set();
   const fileObjectUrls = new Set();
   const patientDetailInflight = new Map();
@@ -100,6 +117,7 @@
     agreementSignUrl: '',
     offerTemplates: [],
     stats: null,
+    segmentStats: null,
     reviewGroups: null,
     reviewGroupsLoading: false,
     draftProposals: null,
@@ -655,9 +673,10 @@
       return {
         patientId: normalizeText(params.get('patientId')),
         view: normalizeText(params.get('view')),
+        flags: normalizeText(params.get('flags')),
       };
     } catch {
-      return { patientId: '', view: '' };
+      return { patientId: '', view: '', flags: '' };
     }
   }
 
@@ -784,6 +803,7 @@
     els.filter = document.querySelector('[data-customer-filter]');
     els.metrics = document.querySelector('.customers-metric-row');
     els.v9Header = document.querySelector('[data-v9-customers-header]');
+    els.v9Filters = document.querySelector('[data-v9-customers-filters]');
     els.title = document.querySelector('#customers-title');
     els.subtitle = els.shell?.querySelector('[data-customers-lead]');
     els.modeButtons = Array.from(document.querySelectorAll('[data-patient-master-mode]'));
@@ -830,10 +850,97 @@
   }
 
   function syncV9CustomersChrome() {
-    if (!els.v9Header) return;
+    if (!els.v9Header && !els.v9Filters) return;
     const show = isV9CustomersEnabled() && runtime.mode === 'register';
-    els.v9Header.hidden = !show;
-    els.v9Header.setAttribute('aria-hidden', show ? 'false' : 'true');
+    if (els.v9Header) {
+      els.v9Header.hidden = !show;
+      els.v9Header.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+    if (els.v9Filters) {
+      els.v9Filters.hidden = !show;
+      els.v9Filters.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+  }
+
+  function normalizeFlagFilter(value) {
+    const flag = normalizeText(value);
+    return V9_FLAG_FILTER_VALUES.has(flag) ? flag : '';
+  }
+
+  function syncLegacyFilterSelect(flagFilter) {
+    if (!els.filter) return;
+    const flag = normalizeFlagFilter(flagFilter);
+    els.filter.value = V9_FLAG_FILTER_LABELS[flag] || V9_FLAG_FILTER_LABELS[''];
+  }
+
+  function syncV9FilterChipsActive() {
+    if (!els.v9Filters || !isV9CustomersEnabled()) return;
+    const activeFlag = normalizeFlagFilter(runtime.flagFilter);
+    els.v9Filters.querySelectorAll('[data-v9-flag-filter]').forEach((chip) => {
+      const flag = normalizeFlagFilter(chip.getAttribute('data-v9-flag-filter') ?? '');
+      const isActive = flag === activeFlag;
+      chip.classList.toggle('is-active', isActive);
+      chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  }
+
+  function resolveV9FilterChipCounts(stats, segmentStats) {
+    const segmentCounts = segmentStats?.counts || {};
+    const pick = (segmentKey, statsKey) => {
+      if (Object.prototype.hasOwnProperty.call(segmentCounts, segmentKey)) {
+        const value = segmentCounts[segmentKey];
+        if (value !== null && value !== undefined) return value;
+      }
+      if (stats && Object.prototype.hasOwnProperty.call(stats, statsKey)) {
+        return stats[statsKey];
+      }
+      return 0;
+    };
+    return {
+      all: Number(segmentStats?.panel?.totalPatients ?? stats?.totalPatients ?? 0),
+      has_drive_files: pick('has_drive', null),
+      needs_review: pick('needs_review', 'needsReview'),
+      cliento_only: pick('cliento_only', 'clientoOnly'),
+      drive_only: pick('drive_only', 'driveOnly'),
+    };
+  }
+
+  function renderV9FilterChips(stats, segmentStats) {
+    if (!isV9CustomersEnabled() || !els.v9Filters) return;
+    if (!stats && !segmentStats) return;
+    const countMap = resolveV9FilterChipCounts(stats, segmentStats);
+    els.v9Filters.querySelectorAll('[data-v9-filter-count]').forEach((node) => {
+      const key = normalizeText(node.dataset.v9FilterCount);
+      if (!Object.prototype.hasOwnProperty.call(countMap, key)) return;
+      const value = countMap[key];
+      node.textContent = value === null || value === undefined ? '0' : formatMetricNumber(value);
+    });
+    syncV9FilterChipsActive();
+  }
+
+  function applyFlagFilterFromUi(nextFlag) {
+    if (runtime.mode !== 'register') return;
+    const flagFilter = normalizeFlagFilter(nextFlag);
+    if (flagFilter === runtime.flagFilter && flagFilter !== 'needs_review') return;
+    runtime.flagFilter = flagFilter;
+    syncLegacyFilterSelect(flagFilter);
+    syncV9FilterChipsActive();
+    if (runtime.flagFilter === 'needs_review') {
+      setMode('identity');
+      return;
+    }
+    runtime.selectedPatientId = '';
+    runtime.detail = null;
+    renderDetailEmpty();
+    void loadPatientList();
+  }
+
+  function applyStartupFlagFilter(flags) {
+    const flagFilter = normalizeFlagFilter(flags);
+    if (!flagFilter) return;
+    runtime.flagFilter = flagFilter;
+    syncLegacyFilterSelect(flagFilter);
+    syncV9FilterChipsActive();
   }
 
   function formatMetricNumber(value) {
@@ -885,6 +992,7 @@
       }
     });
     renderV9MetricHeader(stats);
+    renderV9FilterChips(stats, runtime.segmentStats);
   }
 
   function chipHtml(label, tone = 'blue') {
@@ -4319,6 +4427,7 @@
         : Number(patientsPayload.total || batch.length);
       runtime.patients = append ? runtime.patients.concat(batch) : batch;
       if (payload.stats) runtime.stats = payload.stats;
+      if (payload.segmentStats) runtime.segmentStats = payload.segmentStats;
       if (Array.isArray(payload.offerTemplates?.templates)) {
         runtime.offerTemplates = payload.offerTemplates.templates;
       } else if (Array.isArray(payload.offerTemplates)) {
@@ -4357,6 +4466,7 @@
       setStatus(runtime.error, 'error');
     } finally {
       runtime.loading = false;
+      renderMetricCards();
       renderPatientRows();
     }
   }
@@ -5969,23 +6079,16 @@
       els.filter.addEventListener('change', () => {
         if (runtime.mode !== 'register') return;
         const value = normalizeText(els.filter.value);
-        const flagMap = {
-          'matchade kunder': '',
-          'med drive-filer': 'has_drive_files',
-          'behöver granskning': 'needs_review',
-          'endast cliento': 'cliento_only',
-          'endast drive': 'drive_only',
-          'importerad journal': '',
-        };
-        runtime.flagFilter = flagMap[value.toLowerCase()] || '';
-        if (runtime.flagFilter === 'needs_review' && runtime.mode !== 'identity') {
-          setMode('identity');
-          return;
-        }
-        runtime.selectedPatientId = '';
-        runtime.detail = null;
-        renderDetailEmpty();
-        void loadPatientList();
+        applyFlagFilterFromUi(V9_FLAG_FILTER_FROM_LABEL[value.toLowerCase()] || '');
+      });
+    }
+
+    if (els.v9Filters && !els.v9Filters.dataset.bound) {
+      els.v9Filters.dataset.bound = '1';
+      els.v9Filters.addEventListener('click', (event) => {
+        const chip = event.target.closest('[data-v9-flag-filter]');
+        if (!chip || runtime.mode !== 'register' || !isV9CustomersEnabled()) return;
+        applyFlagFilterFromUi(chip.getAttribute('data-v9-flag-filter') ?? '');
       });
     }
 
@@ -6020,9 +6123,11 @@
   function onCustomersViewOpenImpl() {
     ensureCustomersShellVisible();
     resolveElements();
+    applyStartupFlagFilter(parseStartupParams().flags);
     renderModeChrome();
     ensureMobilePatientListHistory();
     const startup = parseStartupParams();
+    applyStartupFlagFilter(startup.flags);
     if (startup.patientId) {
       runtime.pendingPatientId = startup.patientId;
       runtime.preferJournalOnMobile = true;
@@ -6256,6 +6361,7 @@
     onCustomersViewOpen,
     setMode,
     getRuntime: () => ({ ...runtime }),
+    isV9CustomersEnabled,
     needsStaffLogin,
     renderStaffAuth,
     clearMobilePatientSelection,
