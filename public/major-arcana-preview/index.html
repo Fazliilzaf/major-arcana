@@ -3369,6 +3369,7 @@
                     type="button"
                     class="filter-chip is-active"
                     data-v9-flag-filter=""
+                    data-v9-segment-chip="all"
                     aria-pressed="true"
                   >
                     Alla <span class="count" data-v9-filter-count="all">0</span>
@@ -3376,40 +3377,74 @@
                   <button
                     type="button"
                     class="filter-chip"
-                    data-v9-flag-filter="has_drive_files"
+                    data-v9-segment-chip="active"
                     aria-pressed="false"
                   >
-                    Med Drive-filer
-                    <span class="count" data-v9-filter-count="has_drive_files">0</span>
+                    Aktiva
+                    <span class="count" data-v9-filter-count="active">0</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="filter-chip filter-chip--vip"
+                    data-v9-segment-chip="vip"
+                    aria-pressed="false"
+                  >
+                    ★ VIP
+                    <span class="count" data-v9-filter-count="vip">0</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="filter-chip filter-chip--risk"
+                    data-v9-segment-chip="risk"
+                    aria-pressed="false"
+                  >
+                    ⚠ Risk
+                    <span class="count" data-v9-filter-count="risk">0</span>
                   </button>
                   <button
                     type="button"
                     class="filter-chip"
-                    data-v9-flag-filter="needs_review"
+                    data-v9-segment-chip="new"
                     aria-pressed="false"
                   >
-                    Behöver granskning
-                    <span class="count" data-v9-filter-count="needs_review">0</span>
+                    Nya
+                    <span class="count" data-v9-filter-count="new">0</span>
                   </button>
                   <button
                     type="button"
                     class="filter-chip"
-                    data-v9-flag-filter="cliento_only"
+                    data-v9-segment-chip="dormant"
                     aria-pressed="false"
                   >
-                    Endast Cliento
-                    <span class="count" data-v9-filter-count="cliento_only">0</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="filter-chip"
-                    data-v9-flag-filter="drive_only"
-                    aria-pressed="false"
-                  >
-                    Endast Drive
-                    <span class="count" data-v9-filter-count="drive_only">0</span>
+                    Dormant
+                    <span class="count" data-v9-filter-count="dormant">0</span>
                   </button>
                   <span class="filter-chip-spacer" aria-hidden="true"></span>
+                  <button
+                    type="button"
+                    class="filter-chip filter-chip--missing-form"
+                    data-v9-segment-chip="missing_health_declaration"
+                    aria-pressed="false"
+                  >
+                    Saknar formulär
+                    <span class="count" data-v9-filter-count="missing_form">0</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="filter-chip filter-chip--sort"
+                    data-v9-sort-trigger
+                    aria-haspopup="listbox"
+                  >
+                    ⇅ Senaste aktivitet
+                  </button>
+                  <button
+                    type="button"
+                    class="filter-chip filter-chip--view"
+                    data-v9-view-toggle
+                    aria-pressed="true"
+                  >
+                    ≡ Lista
+                  </button>
                 </div>
               </div>
 

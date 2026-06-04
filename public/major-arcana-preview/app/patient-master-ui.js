@@ -1623,10 +1623,18 @@
 
   function syncV9FilterChipsActive() {
     if (!els.v9Filters || !isV9CustomersEnabled()) return;
-    const segmentActive =
-      normalizeText(runtime.activeSegmentId) && normalizeText(runtime.activeSegmentId) !== 'all';
+    const activeSeg = normalizeText(runtime.activeSegmentId) || 'all';
+    const segmentActive = activeSeg && activeSeg !== 'all';
     const activeFlag = segmentActive ? null : normalizeFlagFilter(runtime.flagFilter);
-    els.v9Filters.querySelectorAll('[data-v9-flag-filter]').forEach((chip) => {
+    // ORD-21: sync segment-chips
+    els.v9Filters.querySelectorAll('[data-v9-segment-chip]').forEach((chip) => {
+      const seg = normalizeText(chip.getAttribute('data-v9-segment-chip') ?? '') || 'all';
+      const isActive = seg === activeSeg && (seg !== 'all' || !activeFlag);
+      chip.classList.toggle('is-active', isActive);
+      chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+    // Bakåt-kompat: sync flag-only chips (utan segment-chip attribut)
+    els.v9Filters.querySelectorAll('[data-v9-flag-filter]:not([data-v9-segment-chip])').forEach((chip) => {
       const flag = normalizeFlagFilter(chip.getAttribute('data-v9-flag-filter') ?? '');
       const isActive = activeFlag !== null && flag === activeFlag;
       chip.classList.toggle('is-active', isActive);
@@ -1636,6 +1644,7 @@
 
   function resolveV9FilterChipCounts(stats, segmentStats) {
     const segmentCounts = segmentStats?.counts || {};
+    const panel = segmentStats?.panel || {};
     const pick = (segmentKey, statsKey) => {
       if (Object.prototype.hasOwnProperty.call(segmentCounts, segmentKey)) {
         const value = segmentCounts[segmentKey];
@@ -1647,7 +1656,15 @@
       return 0;
     };
     return {
-      all: Number(segmentStats?.panel?.totalPatients ?? stats?.totalPatients ?? 0),
+      all: Number(panel.totalPatients ?? stats?.totalPatients ?? 0),
+      // ORD-21 mockup-paritet: segment-baserade chip-counts
+      active: pick('active', null),
+      vip: pick('vip', null),
+      risk: pick('risk', null),
+      new: pick('new', null),
+      dormant: pick('dormant', null),
+      missing_form: pick('missing_health_declaration', null) || Number(panel.missingForm ?? 0),
+      // Bakåt-kompat
       has_drive_files: pick('has_drive', null),
       needs_review: pick('needs_review', 'needsReview'),
       cliento_only: pick('cliento_only', 'clientoOnly'),
@@ -7504,8 +7521,20 @@
     if (els.v9Filters && !els.v9Filters.dataset.bound) {
       els.v9Filters.dataset.bound = '1';
       els.v9Filters.addEventListener('click', (event) => {
+        if (runtime.mode !== 'register' || !isV9CustomersEnabled()) return;
+        // ORD-21: prioritera segment-chip framför flag-filter
+        const segChip = event.target.closest('[data-v9-segment-chip]');
+        if (segChip) {
+          const segId = normalizeText(segChip.getAttribute('data-v9-segment-chip') ?? '') || 'all';
+          if (segId === 'all') {
+            applyFlagFilterFromUi('');
+          } else {
+            applySegmentFromUi(segId);
+          }
+          return;
+        }
         const chip = event.target.closest('[data-v9-flag-filter]');
-        if (!chip || runtime.mode !== 'register' || !isV9CustomersEnabled()) return;
+        if (!chip) return;
         applyFlagFilterFromUi(chip.getAttribute('data-v9-flag-filter') ?? '');
       });
     }
