@@ -4,7 +4,7 @@
 **Owner-spår:** Cursor (write — backend logic i `src/ops/`)
 **Claude-spår:** UAT efter deploy
 **Prio:** P1
-**Status:** PENDING
+**Status:** IMPLEMENTED (2026-06-04) — source createdAt-fix + lastVisitAt active + dormant fallback
 
 ---
 
@@ -12,12 +12,12 @@
 
 ORD-21 (mockup-paritet i kund-vyn) är 100 % visuellt klar — pills, chips, story-cards och dossier matchar mockupen. Däremot är PILL-VÄRDENA fel:
 
-| Pill | Visar idag | Förväntat (mockup) | Problem |
-|---|---|---|---|
-| `aktiva i maj` | **7 217** (≈100 %) | ~87 av 1247 (≈7 %) | Definition matchar för brett |
-| `risk` | 0 | ~12 av 1247 (≈1 %) | Aliasar `needs_review`, fel semantik |
-| `nya / 30 dagar` | 4 | ~89 av 1247 (≈7 %) | Endast `origin === 'new'` triggar |
-| `dormant` | 0 | ~456 av 1247 (≈37 %) | Kräver `!hasJournal` — för strikt |
+| Pill             | Visar idag         | Förväntat (mockup)   | Problem                              |
+| ---------------- | ------------------ | -------------------- | ------------------------------------ |
+| `aktiva i maj`   | **7 217** (≈100 %) | ~87 av 1247 (≈7 %)   | Definition matchar för brett         |
+| `risk`           | 0                  | ~12 av 1247 (≈1 %)   | Aliasar `needs_review`, fel semantik |
+| `nya / 30 dagar` | 4                  | ~89 av 1247 (≈7 %)   | Endast `origin === 'new'` triggar    |
+| `dormant`        | 0                  | ~456 av 1247 (≈37 %) | Kräver `!hasJournal` — för strikt    |
 
 Mockupen designades runt realistiska segment-andelar (active≈7 %, risk≈1 %, new≈7 %, dormant≈37 %). Live visar 100 % aktiva eftersom backend-definitionen `matchSegment('active')` returnerar `true` för i princip alla kunder.
 
@@ -140,6 +140,7 @@ function daysSinceIso(iso) {
 ### Konstanter (toppen av filen)
 
 Förslag att lägga som named consts så det går att tweaka:
+
 ```js
 const ACTIVE_BOOKING_DAYS = 30;
 const DORMANT_BOOKING_DAYS = 180;
@@ -181,13 +182,13 @@ const RISK_NOSHOW_THRESHOLD = 2;
 
 ## Risker + Mitigation
 
-| Risk | Mitigation |
-|---|---|
-| Brytande change om `patient.createdAt` saknas | Fallback till origin-check bevarad |
-| `booking.lastBookingAt` ej alltid satt | Fallback till `updatedDays` |
+| Risk                                                         | Mitigation                                                                 |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Brytande change om `patient.createdAt` saknas                | Fallback till origin-check bevarad                                         |
+| `booking.lastBookingAt` ej alltid satt                       | Fallback till `updatedDays`                                                |
 | Befintliga callers förväntar sig att active=alla med journal | Run grep för `'active'`-referenser i `src/routes/`, `public/` innan deploy |
-| Test-data saknar nya fält | Lägg minimal mock-extension i `tests/fixtures/` |
-| Dramatiska siffror i UI vid release | Annonsera i Slack innan deploy så personal förstår |
+| Test-data saknar nya fält                                    | Lägg minimal mock-extension i `tests/fixtures/`                            |
+| Dramatiska siffror i UI vid release                          | Annonsera i Slack innan deploy så personal förstår                         |
 
 ---
 

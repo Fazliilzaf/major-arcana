@@ -62,6 +62,20 @@ function daysSinceIso(iso) {
   return Math.floor((Date.now() - ms) / MS_DAY);
 }
 
+/** Cliento/Pipedrive skapelsedatum — inte CCO record.createdAt (import-timestamp). */
+function resolveSourceCreatedAt(patient) {
+  const safe = asObject(patient);
+  const cliento = asObject(safe.cliento);
+  const pipedrive = asObject(safe.pipedrive);
+  return (
+    normalizeText(cliento.clientoCreatedAt) ||
+    normalizeText(cliento.createdAt) ||
+    normalizeText(pipedrive.createdAt) ||
+    normalizeText(safe.clientoCreatedAt) ||
+    null
+  );
+}
+
 function parseDealValue(value) {
   const raw = normalizeText(value);
   if (!raw) return 0;
@@ -329,8 +343,9 @@ function matchSegment(
     case 'active': {
       if (bookingCoverage !== 'missing') {
         if (booking.hasUpcomingBooking) return true;
-        if (booking.lastBookingAt) {
-          const days = daysSinceIso(booking.lastBookingAt);
+        for (const iso of [booking.lastBookingAt, booking.lastVisitAt]) {
+          if (!iso) continue;
+          const days = daysSinceIso(iso);
           if (days != null && days <= ACTIVE_BOOKING_DAYS) return true;
         }
         return false;
@@ -339,19 +354,22 @@ function matchSegment(
       return false;
     }
     case 'new': {
-      const created = patient.createdAt || patient.createdTime;
-      if (created) {
-        const days = daysSinceIso(created);
-        if (days != null && days <= NEW_PATIENT_DAYS) return true;
-      }
       if (origin === 'new' || matchStatus === 'web_booking') return true;
-      return false;
+      const created = resolveSourceCreatedAt(patient);
+      if (!created) return false;
+      const days = daysSinceIso(created);
+      return days != null && days <= NEW_PATIENT_DAYS;
     }
     case 'dormant': {
       if (bookingCoverage !== 'missing') {
         if (booking.lastBookingAt) {
           const days = daysSinceIso(booking.lastBookingAt);
           return days != null && days > DORMANT_BOOKING_DAYS;
+        }
+        const created = resolveSourceCreatedAt(patient);
+        if (created) {
+          const days = daysSinceIso(created);
+          if (days != null && days > DORMANT_BOOKING_DAYS) return true;
         }
         return updatedDays != null && updatedDays > DORMANT_UPDATED_DAYS;
       }

@@ -157,6 +157,21 @@ describe('ccoKunderEnrichment', () => {
     assert.equal(matchSegment(patient, 'active', null, staleIndex, 'real'), false);
   });
 
+  it('ORD-22 active segment matches lastVisitAt within window', () => {
+    const patient = {
+      id: 'active-visit',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      updatedAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    const recentVisit = new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString();
+    const bookingIndex = new Map([
+      ['active-visit', { ...emptyBookingSignals(), lastVisitAt: recentVisit }],
+    ]);
+    assert.equal(matchSegment(patient, 'active', null, bookingIndex, 'real'), true);
+  });
+
   it('ORD-22 active segment matches upcoming booking', () => {
     const patient = {
       id: 'active-upcoming',
@@ -264,12 +279,15 @@ describe('ccoKunderEnrichment', () => {
     );
   });
 
-  it('ORD-22 new segment uses createdAt with origin fallback', () => {
+  it('ORD-22 new segment uses source createdAt with origin fallback', () => {
     const recent = {
       id: 'new-recent',
       matchStatus: 'matched',
       flags: [],
       fileSummary: {},
+      cliento: {
+        clientoCreatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      },
       createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -280,10 +298,23 @@ describe('ccoKunderEnrichment', () => {
       matchStatus: 'matched',
       flags: [],
       fileSummary: {},
-      createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+      cliento: {
+        clientoCreatedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date().toISOString(),
     };
     assert.equal(matchSegment(old, 'new', null), false);
+
+    const importOnlyCreatedAt = {
+      id: 'new-import-ts',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    assert.equal(matchSegment(importOnlyCreatedAt, 'new', null), false);
 
     const webBooking = {
       id: 'new-web',
@@ -333,6 +364,21 @@ describe('ccoKunderEnrichment', () => {
       updatedAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString(),
     };
     assert.equal(matchSegment(fallbackPatient, 'dormant', null, null, 'missing'), true);
+  });
+
+  it('ORD-22 dormant segment uses source createdAt when never booked', () => {
+    const neverBooked = {
+      id: 'dormant-cliento-old',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      cliento: {
+        clientoCreatedAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      updatedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    const bookingIndex = new Map([['dormant-cliento-old', { ...emptyBookingSignals() }]]);
+    assert.equal(matchSegment(neverBooked, 'dormant', null, bookingIndex, 'real'), true);
   });
 
   it('mine segment uses pipedrive owner when assignedOwner set', () => {
