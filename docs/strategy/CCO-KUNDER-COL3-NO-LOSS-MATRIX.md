@@ -3,7 +3,7 @@
 **Syfte:** Säkerställa att v9 kunddossiér (kolumn 3) behåller alla funktioner från gamla högerpanelen/flikarna.
 
 **Gate:** `html[data-v9-enabled="on"]` + `?view=customers`  
-**Status:** Fas 1–4 implementerad 2026-06-04 — inline flikar, sticky chrome, synthesis polish, rik kunddata.
+**Status:** Fas 1–5 implementerad 2026-06-04 — inline flikar, sticky chrome, synthesis polish, rik kunddata, Pipedrive-LTV KPI + bokningsstatus-badges.
 
 ## Flik → render → verify
 

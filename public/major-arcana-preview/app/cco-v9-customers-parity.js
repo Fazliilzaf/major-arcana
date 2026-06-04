@@ -294,6 +294,11 @@
           <span class="db-staff-avatar">${escapeHtml(initials)}</span>
           ${shortName ? `<span class="db-staff-name">${escapeHtml(shortName)}</span>` : ''}
         </div>
+        ${
+          b.stateLabel
+            ? `<span class="db-synth-status" data-state="${escapeHtml(b.state || 'planned')}">${escapeHtml(b.stateLabel)}</span>`
+            : ''
+        }
         <span class="db-synth-chevron" aria-hidden="true">›</span>
       </button>`;
   }
@@ -317,13 +322,22 @@
     const rows = [];
     if (card?.hasUpcomingBooking && card?.nextBookingAt) {
       const sub = [card.nextBookingType, card.nextBookingResourceLabel].filter(Boolean).join(' · ');
+      const today = card.todayVisit === true;
+      const tentative = card.nextBookingStatus === 'tentative';
+      const missingForm = card.missingHealthDeclaration || card.missingForm;
+      let state = 'ready';
+      let stateLabel = today ? 'Idag' : '✓ Redo';
+      if (tentative || missingForm) {
+        state = 'warn';
+        stateLabel = missingForm ? '⚠ Friskförs.' : 'Planerad';
+      }
       rows.push(
         bookingParts(
           card.nextBookingAt,
           card.nextBookingType || 'Kommande besök',
           sub,
-          card.nextBookingStatus === 'tentative' ? 'warn' : 'ready',
-          card.nextBookingStatus === 'tentative' ? '⚠ Friskförs.' : '✓ Redo',
+          state,
+          stateLabel,
           resolveBookingSource(card.nextBookingResourceLabel)
         )
       );

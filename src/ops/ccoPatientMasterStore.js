@@ -513,10 +513,28 @@ function mergePatientSources(primary, secondary) {
   };
 }
 
+function sumPipedriveWonDeals(pipedrive) {
+  const deals = asArray(asObject(pipedrive).deals);
+  let total = 0;
+  let wonCount = 0;
+  for (const deal of deals) {
+    const status = normalizeKey(asObject(deal).status);
+    if (status !== 'won') continue;
+    const raw = normalizeText(asObject(deal).value);
+    const digits = raw.replace(/\s/g, '').replace(/[^\d]/g, '');
+    const n = Number.parseInt(digits, 10);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    total += n;
+    wonCount += 1;
+  }
+  return { total, wonCount };
+}
+
 function buildPatientCardReadout(patient) {
   const safe = asObject(patient);
   const access = normalizePatientAccess(safe.access);
   const patientOrigin = derivePatientOrigin(safe);
+  const pipedriveWon = sumPipedriveWonDeals(safe.pipedrive);
   return {
     patientId: safe.id,
     personnummer: safe.personnummer || '',
@@ -534,6 +552,10 @@ function buildPatientCardReadout(patient) {
     driveLinked: Boolean(safe.drive),
     pipedriveLinked: Boolean(safe.pipedrive),
     pipedriveDealCount: asArray(asObject(safe.pipedrive).deals).length,
+    lifetimeValue: pipedriveWon.total > 0 ? pipedriveWon.total : null,
+    dealValue: pipedriveWon.total > 0 ? pipedriveWon.total : null,
+    pipedriveDealValue: pipedriveWon.total > 0 ? pipedriveWon.total : null,
+    lifetimeValueLabel: pipedriveWon.wonCount > 0 ? `${pipedriveWon.wonCount} vunna affärer` : null,
     journalBlocked: access.journalBlocked,
     journalBlockReason: access.journalBlockReason,
     fortnoxCustomerId: normalizeText(asObject(safe.fortnox).customerNumber),

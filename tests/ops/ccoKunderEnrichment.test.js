@@ -55,6 +55,30 @@ describe('ccoKunderEnrichment', () => {
     assert.equal(matchSegment(patient, 'vip', null), true);
   });
 
+  it('buildKunderReadout sums pipedrive won deals as lifetimeValue', () => {
+    const readout = buildKunderReadout(
+      {
+        id: 'p-ltv',
+        displayName: 'LTV Patient',
+        matchStatus: 'matched',
+        flags: [],
+        fileSummary: {},
+        pipedrive: {
+          deals: [
+            { status: 'won', value: '12 500' },
+            { status: 'open', value: '8 000' },
+            { status: 'won', value: '7 500' },
+          ],
+        },
+        updatedAt: new Date().toISOString(),
+      },
+      null
+    );
+    assert.equal(readout.lifetimeValue, 20000);
+    assert.equal(readout.dealValue, 20000);
+    assert.equal(readout.lifetimeValueLabel, '2 vunna affärer');
+  });
+
   it('buildKunderReadout exposes enrichment fields', () => {
     const index = buildAssetSignalsIndex([
       { patientId: 'p2', category: 'journal', status: 'IMPORTED_TO_CCO' },

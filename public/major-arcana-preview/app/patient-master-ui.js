@@ -3302,6 +3302,7 @@
       'lifetimeValue',
       'lifetimeValueLabel',
       'dealValue',
+      'pipedriveDealValue',
       'avgVisitRevenue',
     ];
     enrichKeys.forEach((key) => {
