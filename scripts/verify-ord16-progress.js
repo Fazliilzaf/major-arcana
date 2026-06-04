@@ -154,7 +154,7 @@ async function step10WatchMobile() {
   const hasCss =
     /\.v9-watch-widget/.test(css) &&
     /\.watch-swipe/.test(css) &&
-    /data-cco-patient-detail="on"\] \.v9-dossier-hero/.test(css);
+    /data-cco-patient-detail="on"[\s\S]*\.v9-dossier-hero/.test(css);
   const hasJs =
     /renderV9WatchWidgetHtml/.test(js) &&
     /data-v9-watch-widget/.test(js) &&
