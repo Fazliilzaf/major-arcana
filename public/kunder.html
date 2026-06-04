@@ -2785,28 +2785,9 @@
 
       <div class="calendar-status-bar"></div>
 
-      <!-- AI-aggregat (v9 mockup — fylls av cco-kunder-real.js ORD-12) -->
-      <div class="agg-insights kunder-v9-insights" data-kunder-agg-insights>
-        <div class="agg-insight" data-kind="action">
-          <div class="agg-insight-kicker">★ Idag</div>
-          <div data-kunder-agg-body="idag">—</div>
-          <span class="agg-insight-action">→ Visa alla</span>
-        </div>
-        <div class="agg-insight" data-kind="opp">
-          <div class="agg-insight-kicker">★ Möjlighet</div>
-          <div data-kunder-agg-body="opp">—</div>
-          <span class="agg-insight-action">→ Skapa kampanj</span>
-        </div>
-        <div class="agg-insight" data-kind="trend">
-          <div class="agg-insight-kicker">★ Trend</div>
-          <div data-kunder-agg-body="trend">—</div>
-          <span class="agg-insight-action">→ Se analys</span>
-        </div>
-        <div class="agg-insight" data-kind="risk">
-          <div class="agg-insight-kicker">★ Risk</div>
-          <div data-kunder-agg-body="risk">—</div>
-          <span class="agg-insight-action">→ Skicka mass-påminnelse</span>
-        </div>
+      <!-- v9 story-cards (real data via cco-kunder-real.js ORD-12 P1) -->
+      <div class="agg-insights kunder-v9-insights" id="kunderV9Insights">
+        <div class="story-grid" data-kunder-story-grid></div>
       </div>
 
       <!-- Filter-chips -->
@@ -2936,41 +2917,14 @@
             <div class="story-card" data-kind="risker">
               <div class="story-card-kicker"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></span>3 risker</div>
               <h2 class="story-card-headline">Hantera först</h2>
-              <div class="story-list">
-                <div class="story-item" data-severity="high" data-jump="#bookAnna">
-                  <span class="badge">!</span>
-                  <span><span class="who">Anna Karlsson</span> <span class="what">— friskförsäkran saknas</span></span>
-                  <span class="when">08:00</span>
-                </div>
-                <div class="story-item" data-severity="med">
-                  <span class="badge">!</span>
-                  <span><span class="who">Karl Lindberg</span> <span class="what">— betalt halvt</span></span>
-                  <span class="when">09:00</span>
-                </div>
-                <div class="story-item" data-severity="med">
-                  <span class="badge">!</span>
-                  <span><span class="who">Eva K.</span> <span class="what">— no-show-historik (3)</span></span>
-                  <span class="when">14:30</span>
-                </div>
-              </div>
+              <div class="story-list"></div>
             </div>
 
             <!-- MÖJLIGHETER -->
             <div class="story-card" data-kind="mojligheter">
               <div class="story-card-kicker"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.39 4.84L20 8l-3.5 4 1.5 6L12 15l-6 3 1.5-6L4 8l5.61-1.16L12 2z"/></svg></span>2 möjligheter</div>
               <h2 class="story-card-headline">Fyll luckor</h2>
-              <div class="story-list">
-                <div class="story-item" data-severity="ok">
-                  <span class="badge">★</span>
-                  <span><span class="who">Maria-luckan</span> <span class="what">— ring Sofie (väntelista)</span></span>
-                  <span class="when">14:30</span>
-                </div>
-                <div class="story-item" data-severity="ok">
-                  <span class="badge">★</span>
-                  <span><span class="who">Anna-mönster</span> <span class="what">— bok PRP återbesök tis 09</span></span>
-                  <span class="when">+3v</span>
-                </div>
-              </div>
+              <div class="story-list"></div>
             </div>
 
             <!-- KLART FÖR DAGEN -->

@@ -823,6 +823,113 @@
     );
   }
 
+  const STORY_RISK_RULE_IDS = [
+    'customer.missing_health_declaration',
+    'customer.missing_journal',
+    'customer.missing_agreement_consent_bundle',
+  ];
+
+  function formatTimeShort(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  }
+
+  function activeSignalForRule(patient, ruleId) {
+    return (patient.automationSignals || []).find((s) => s.status === 'active' && s.ruleId === ruleId);
+  }
+
+  function storyListEmpty(message) {
+    return `<div class="story-list"><p class="story-card-sub">${escapeHtml(message)}</p></div>`;
+  }
+
+  function storyItemHtml(patient, what, when = '', severity = 'med', badge = '!') {
+    const whenHtml = when ? `<span class="when">${escapeHtml(when)}</span>` : '';
+    return `<div class="story-item" data-severity="${escapeHtml(severity)}">
+      <span class="badge">${escapeHtml(badge)}</span>
+      <span><span class="who">${escapeHtml(displayName(patient))}</span> <span class="what">— ${escapeHtml(what)}</span></span>
+      ${whenHtml}
+    </div>`;
+  }
+
+  function storyListFromItems(items, emptyMessage) {
+    if (!items.length) {
+      return storyListEmpty(emptyMessage);
+    }
+    return `<div class="story-list">${items.join('')}</div>`;
+  }
+
+  function topStoryRiskPatients() {
+    const seen = new Set();
+    const rows = [];
+    for (const ruleId of STORY_RISK_RULE_IDS) {
+      for (const patient of state.patients) {
+        if (seen.has(patient.patientId)) continue;
+        const sig = activeSignalForRule(patient, ruleId);
+        if (!sig) continue;
+        seen.add(patient.patientId);
+        const what = sig.what || AUTOMATION_RULE_META[ruleId]?.label || ruleId;
+        const severity =
+          sig.risk === 'legal_blocker' || sig.risk === 'legal' ? 'high' : sig.risk === 'blocker' ? 'med' : 'med';
+        const when = patient.todayVisit && patient.nextBookingAt ? formatTimeShort(patient.nextBookingAt) : '';
+        rows.push(storyItemHtml(patient, what, when, severity));
+        if (rows.length >= 3) return rows;
+      }
+    }
+    return rows;
+  }
+
+  function topStoryIdagPatients() {
+    return state.patients
+      .filter((p) => p.todayVisit === true)
+      .slice(0, 3)
+      .map((p) => {
+        const what = p.nextBookingType || p.treatmentTypes?.[0] || 'besök idag';
+        const when = formatTimeShort(p.nextBookingAt);
+        return storyItemHtml(p, what, when, 'ok', '◷');
+      });
+  }
+
+  function isDormantPatient(p) {
+    return Boolean(p.flags?.includes('dormant') || p.segment === 'dormant');
+  }
+
+  function topStoryMojligheterPatients() {
+    const pool = state.patients.filter(
+      (p) => p.onWaitlist || p.hasUpcomingBooking || isDormantPatient(p)
+    );
+    const ranked = pool.sort((a, b) => {
+      const score = (p) =>
+        (p.onWaitlist ? 4 : 0) + (p.hasUpcomingBooking ? 2 : 0) + (isDormantPatient(p) ? 1 : 0);
+      return score(b) - score(a);
+    });
+    return ranked.slice(0, 3).map((p) => {
+      let what = 'dormant';
+      if (p.onWaitlist) what = `väntelista · ${p.waitingListStatus || 'ärende'}`;
+      else if (p.hasUpcomingBooking) what = p.nextBookingType || 'kommande bokning';
+      else if (isDormantPatient(p)) what = 'dormant · återaktivera';
+      const when = p.hasUpcomingBooking ? formatTimeShort(p.nextBookingAt) : '';
+      return storyItemHtml(p, what, when, 'ok', '★');
+    });
+  }
+
+  function topStoryKlarPatients() {
+    const rows = [];
+    for (const patient of state.patients) {
+      const sig = activeSignalForRule(patient, 'customer.ready_for_treatment');
+      if (!sig) continue;
+      const what = sig.what || AUTOMATION_RULE_META['customer.ready_for_treatment']?.label || 'redo för behandling';
+      rows.push(storyItemHtml(patient, what, '', 'ok', '✓'));
+      if (rows.length >= 3) break;
+    }
+    return rows;
+  }
+
   function renderInsights() {
     renderAggInsights();
     renderStoryCards();
@@ -835,99 +942,120 @@
     const panel = state.stats?.kunderPanel || state.segmentStats?.panel || {};
     const counts = state.segmentTotals || {};
     const hasStats = Boolean(state.stats) && !state.authRequired;
+    const automationOn = Boolean(state.automation?.enabled);
 
-    const todayCount = hasStats
-      ? panel.bookingCoverage === 'missing'
-        ? null
-        : (counts.today_visits ?? panel.todayVisits)
-      : null;
-    const riskTotal = hasStats
-      ? (Number(counts.needs_review ?? panel.needsReviewPatients ?? state.stats.needsReview) || 0) +
-        (Number(counts.missing_health_declaration ?? panel.missingForm) || 0) +
-        (Number(counts.missing_journal ?? panel.missingJournal) || 0)
-      : null;
-    const readyCount = hasStats ? countActiveAutomation('customer.ready_for_treatment') : null;
-    const oppWaitlist = hasStats
-      ? panel.bookingCoverage === 'missing'
-        ? null
-        : (counts.waitlist ?? panel.waitlist)
-      : null;
-    const oppUpcoming = hasStats
-      ? panel.bookingCoverage === 'missing'
-        ? null
-        : (counts.this_week ?? panel.thisWeekVisits)
-      : null;
+    if (!hasStats) {
+      grid.innerHTML = `
+      <div class="story-card" data-kind="idag">
+        <div class="story-card-kicker"><span class="icon">${storyIconSvg('idag')}</span>Idag</div>
+        <h2 class="story-card-headline">Data saknas</h2>
+        ${storyListEmpty('Data saknas — logga in.')}
+      </div>
+      <div class="story-card" data-kind="risker">
+        <div class="story-card-kicker"><span class="icon">${storyIconSvg('risker')}</span>Risker</div>
+        <h2 class="story-card-headline">Data saknas</h2>
+        ${storyListEmpty('Data saknas — logga in.')}
+      </div>
+      <div class="story-card" data-kind="mojligheter">
+        <div class="story-card-kicker"><span class="icon">${storyIconSvg('mojligheter')}</span>Möjligheter</div>
+        <h2 class="story-card-headline">Data saknas</h2>
+        ${storyListEmpty('Data saknas — logga in.')}
+      </div>
+      <div class="story-card" data-kind="klart">
+        <div class="story-card-kicker"><span class="icon">${storyIconSvg('klart')}</span>Klar</div>
+        <h2 class="story-card-headline">Data saknas</h2>
+        ${storyListEmpty('Data saknas — logga in.')}
+      </div>`;
+      return;
+    }
+
+    const todayCount =
+      panel.bookingCoverage === 'missing' ? null : (counts.today_visits ?? panel.todayVisits);
+    const riskTotal =
+      (Number(counts.needs_review ?? panel.needsReviewPatients ?? state.stats.needsReview) || 0) +
+      (Number(counts.missing_health_declaration ?? panel.missingForm) || 0) +
+      (Number(counts.missing_journal ?? panel.missingJournal) || 0);
+    const readyCount = automationOn ? countActiveAutomation('customer.ready_for_treatment') : null;
+    const oppWaitlist =
+      panel.bookingCoverage === 'missing' ? null : (counts.waitlist ?? panel.waitlist);
+    const oppUpcoming =
+      panel.bookingCoverage === 'missing' ? null : (counts.this_week ?? panel.thisWeekVisits);
     const oppHeadline =
       oppWaitlist != null || oppUpcoming != null
         ? fmtStat((Number(oppWaitlist) || 0) + (Number(oppUpcoming) || 0))
         : null;
 
-    const riskPatients = hasStats
-      ? state.patients
-          .filter(
-            (p) =>
-              p.flags?.includes('needs_review') ||
-              p.missingHealthDeclaration ||
-              p.missingForm ||
-              p.missingJournal
-          )
-          .slice(0, 3)
-      : [];
-
-    const riskItems = riskPatients.length
-      ? riskPatients
-          .map((p) => {
-            const what = p.flags?.includes('needs_review')
-              ? 'behöver granskning'
-              : p.missingJournal
-                ? 'saknar journal'
-                : 'saknar hälsodeklaration';
-            return `<div class="story-item" data-severity="med">
-              <span class="badge">!</span>
-              <span><span class="who">${escapeHtml(displayName(p))}</span> <span class="what">— ${escapeHtml(what)}</span></span>
-            </div>`;
-          })
-          .join('')
-      : `<p class="story-card-sub">${hasStats ? 'Inga riskposter i aktuell batch.' : 'Data saknas — logga in.'}</p>`;
+    const idagRows = topStoryIdagPatients();
+    const riskRows = automationOn ? topStoryRiskPatients() : [];
+    const mojRows =
+      panel.bookingCoverage === 'missing' && !state.patients.some((p) => p.onWaitlist || isDormantPatient(p))
+        ? []
+        : topStoryMojligheterPatients();
+    const klarRows = automationOn ? topStoryKlarPatients() : [];
 
     grid.innerHTML = `
       <div class="story-card" data-kind="idag">
         <div class="story-card-kicker"><span class="icon">${storyIconSvg('idag')}</span>Idag</div>
-        <h2 class="story-card-headline">${hasStats && todayCount != null ? `<span class="num">${fmtStat(todayCount)}</span> besök` : 'Data saknas'}</h2>
+        <h2 class="story-card-headline">${
+          todayCount != null
+            ? `<span class="num">${fmtStat(todayCount)}</span> besök`
+            : idagRows.length
+              ? `<span class="num">${fmtStat(idagRows.length)}</span> i vy`
+              : 'Data saknas'
+        }</h2>
         <p class="story-card-sub">${
-          !hasStats
-            ? 'Logga in för customers-shell.'
-            : panel.bookingCoverage === 'missing'
-              ? 'Bokningsdata saknas i segmentStats.'
-              : 'segmentStats · today_visits.'
+          panel.bookingCoverage === 'missing'
+            ? 'Bokningsdata saknas i segmentStats.'
+            : 'Idag · todayVisit i laddad batch.'
         }</p>
+        ${storyListFromItems(
+          idagRows,
+          panel.bookingCoverage === 'missing' ? 'Data saknas' : 'Inga dagens besök i aktuell batch.'
+        )}
       </div>
       <div class="story-card" data-kind="risker">
         <div class="story-card-kicker"><span class="icon">${storyIconSvg('risker')}</span>Risker</div>
-        <h2 class="story-card-headline">${hasStats && riskTotal != null ? `<span class="num">${fmtStat(riskTotal)}</span> ärenden` : 'Data saknas'}</h2>
-        <div class="story-list">${riskItems}</div>
+        <h2 class="story-card-headline">${
+          riskRows.length
+            ? 'Hantera först'
+            : riskTotal
+              ? `<span class="num">${fmtStat(riskTotal)}</span> ärenden`
+              : 'Data saknas'
+        }</h2>
+        ${storyListFromItems(
+          riskRows,
+          !automationOn
+            ? 'Data saknas — automation av.'
+            : 'Inga aktiva risk-signaler i aktuell batch.'
+        )}
       </div>
       <div class="story-card" data-kind="mojligheter">
         <div class="story-card-kicker"><span class="icon">${storyIconSvg('mojligheter')}</span>Möjligheter</div>
-        <h2 class="story-card-headline">${hasStats && oppHeadline != null ? `<span class="num">${oppHeadline}</span> bokning` : 'Data saknas'}</h2>
-        <p class="story-card-sub">${
-          !hasStats
-            ? 'Logga in för customers-shell.'
-            : panel.bookingCoverage === 'missing'
-              ? 'Väntelista/kommande — bokningsdata saknas.'
-              : 'Väntelista + denna vecka (segmentStats).'
-        }</p>
+        <h2 class="story-card-headline">${
+          oppHeadline != null ? `<span class="num">${oppHeadline}</span> bokning` : mojRows.length ? 'Fyll luckor' : 'Data saknas'
+        }</h2>
+        <p class="story-card-sub">Väntelista · kommande · dormant (laddad batch).</p>
+        ${storyListFromItems(
+          mojRows,
+          panel.bookingCoverage === 'missing' ? 'Data saknas — bokningsdata.' : 'Inga möjligheter i aktuell batch.'
+        )}
       </div>
       <div class="story-card" data-kind="klart">
         <div class="story-card-kicker"><span class="icon">${storyIconSvg('klart')}</span>Klar</div>
-        <h2 class="story-card-headline">${hasStats ? `<span class="num">${fmtStat(readyCount)}</span> redo` : 'Data saknas'}</h2>
+        <h2 class="story-card-headline">${
+          readyCount != null && readyCount > 0
+            ? `<span class="num">${fmtStat(readyCount)}</span> redo`
+            : klarRows.length
+              ? `<span class="num">${fmtStat(klarRows.length)}</span> redo`
+              : 'Data saknas'
+        }</h2>
         <p class="story-card-sub">${
-          !hasStats
-            ? 'Logga in för automation.'
-            : state.automation?.enabled
-              ? 'ready_for_treatment · aktiv i laddad batch.'
-              : 'Automation av — Data saknas.'
+          automationOn ? 'ready_for_treatment · aktiv signal.' : 'Data saknas — automation av.'
         }</p>
+        ${storyListFromItems(
+          klarRows,
+          !automationOn ? 'Data saknas — automation av.' : 'Inga redo-signaler i aktuell batch.'
+        )}
       </div>`;
   }
 
@@ -1395,6 +1523,15 @@
       [data-kunder-agg-body].agg-insight-body strong { color:var(--cco-color-brand); font-weight:800; }
       .story-card--disabled { opacity:.72; }
       .story-card--disabled .story-card-headline { font-size:16px; }
+      body[data-kunder-real="1"] .agg-insights.kunder-v9-insights,
+      body.kunder-v9 .agg-insights.kunder-v9-insights { display:block !important; margin-bottom:14px; }
+      body[data-kunder-real="1"] .agg-insights .story-grid,
+      body.kunder-v9 .agg-insights .story-grid {
+        display:grid !important;
+        grid-template-columns:1.1fr 1fr 1fr 0.9fr;
+        gap:12px;
+        min-height:140px;
+      }
       body.kunder-v9 .watch-widget, body.kunder-v9 .voice-overlay, body.kunder-v9 .voice-sheet, body.kunder-v9 .calm-banner { display:none !important; }
     `;
     document.head.appendChild(style);

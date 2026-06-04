@@ -65,6 +65,7 @@ else pass('CCO-KUNDER-V9-VISUAL-RESTORATION-PLAN');
 
 if (html.includes('data-kunder-story-grid')) pass('story-grid host data-kunder-story-grid');
 else if (html.includes('data-kunder-agg-insights')) pass('agg-insights host data-kunder-agg-insights (ORD-12)');
+else if (html.includes('data-kunder-story-grid')) pass('story-grid host data-kunder-story-grid (ORD-12 P1)');
 else fail('insights host saknas');
 
 if (!html.includes('grid-template-columns: 200px minmax(0, 1fr) 360px')) {
@@ -97,6 +98,18 @@ if (!js.includes('renderAggInsights') && !js.includes('renderStoryCards')) {
   fail('cco-kunder-real.js saknar renderAggInsights/renderStoryCards');
 } else {
   pass('renderAggInsights / renderStoryCards');
+}
+
+if (!js.includes('topStoryRiskPatients') || !js.includes('STORY_RISK_RULE_IDS')) {
+  fail('cco-kunder-real.js saknar ORD-12 P1 story-list wiring');
+} else {
+  pass('ORD-12 P1 story-list helpers');
+}
+
+if (!js.includes('story-list') || !js.includes('Data saknas')) {
+  fail('cco-kunder-real.js saknar story-list / Data saknas fallback');
+} else {
+  pass('story-list + Data saknas i real.js');
 }
 
 if (!js.includes('data-kunder-story-grid')) fail('cco-kunder-real.js binder inte story-grid');
