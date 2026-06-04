@@ -2471,6 +2471,205 @@
     };
   }
 
+  function mergeCardWithShellEnrichment(card, patientId) {
+    if (!card) return card;
+    const shell = runtime.patients.find(
+      (row) => normalizeText(row?.patientId) === normalizeText(patientId || card.patientId)
+    );
+    if (!shell) return card;
+    const merged = { ...card };
+    const enrichKeys = [
+      'phoneMasked',
+      'emailMasked',
+      'sourceSystem',
+      'isVip',
+      'nextStep',
+      'nextRequirement',
+      'automationTop',
+      'automationSignals',
+      'segmentHints',
+      'missingHealthDeclaration',
+      'missingForm',
+      'hasUpcomingBooking',
+      'nextBookingAt',
+      'nextBookingType',
+      'nextBookingResourceLabel',
+      'nextBookingStatus',
+      'bookingCaseStatus',
+      'lastVisitAt',
+      'lastBookingAt',
+      'lastEncounterAt',
+      'onWaitlist',
+      'waitingListStatus',
+      'patientOrigin',
+      'todayVisit',
+      'treatmentTypes',
+      'pipedriveDealCount',
+      'pipedriveLinked',
+    ];
+    enrichKeys.forEach((key) => {
+      const value = shell[key];
+      if (value !== undefined && value !== null && value !== '') {
+        merged[key] = value;
+      }
+    });
+    if (Array.isArray(shell.flags) && shell.flags.length) {
+      merged.flags = shell.flags;
+    }
+    return merged;
+  }
+
+  function resolveV9SourceLabel(card) {
+    const source = normalizeText(card?.sourceSystem).toLowerCase();
+    if (source === 'cliento' || card?.clientoLinked) return 'Cliento';
+    if (source === 'drive' || card?.driveLinked) return 'Drive';
+    if (source === 'pipedrive' || card?.pipedriveLinked) return 'Pipedrive';
+    if (card?.clientoLinked && card?.driveLinked) return 'Cliento · Drive';
+    return '—';
+  }
+
+  function v9DossierContactLine(card) {
+    const contact = v9ContactLine(card);
+    const source = resolveV9SourceLabel(card);
+    const parts = [];
+    if (contact.main && contact.main !== 'Kontakt saknas') parts.push(contact.main);
+    else if (contact.main) return contact.main;
+    if (contact.sub) parts.push(contact.sub);
+    if (source && source !== '—') parts.push(source);
+    return parts.length ? parts.join(' · ') : 'Kontakt saknas';
+  }
+
+  function mapV9DossierBadgeKind(kind) {
+    if (kind === 'new') return 'lifecycle';
+    if (kind === 'ready') return 'engagement';
+    return kind;
+  }
+
+  function buildV9DossierBadges(card) {
+    return buildV9RowBadges(card).map((tag) => ({
+      kind: mapV9DossierBadgeKind(tag.kind),
+      label: tag.label,
+    }));
+  }
+
+  function resolveV9HeroStats(card, journalEntries = []) {
+    const entries = asArray(journalEntries);
+    const visitValue =
+      entries.length > 0
+        ? String(entries.length)
+        : card.lastVisitAt
+          ? '1+'
+          : card.hasJournalHistory || card.hasJournal
+            ? 'Ja'
+            : '—';
+    const visitTrend = card.lastVisitAt
+      ? `Senast ${formatV9ListDate(card.lastVisitAt)}`
+      : card.nextBookingAt
+        ? `Nästa ${formatV9ListDate(card.nextBookingAt)}`
+        : '—';
+    const revenue = resolveV9Revenue(card);
+    return [
+      {
+        label: 'Besök',
+        value: visitValue,
+        trend: visitTrend,
+      },
+      {
+        label: 'Intäkt',
+        value: revenue.main,
+        trend: revenue.trend || '—',
+      },
+      {
+        label: 'No-shows',
+        value: '—',
+        trend: card.bookingCaseStatus === 'no_show' ? 'Senaste: no-show' : '—',
+      },
+    ];
+  }
+
+  function renderV9DossierHeroHtml(card, journalEntries = [], { loading = false } = {}) {
+    const name = displayNameForList(card);
+    const contact = v9DossierContactLine(card);
+    const tags = buildV9DossierBadges(card);
+    const nextStep = resolveV9NextStepLabel(card);
+    const stats = resolveV9HeroStats(card, journalEntries);
+
+    return `
+        <div class="v9-dossier-hero" data-v9-dossier-hero${loading ? ' aria-busy="true"' : ''}>
+          <div class="dossier-head">
+            <div class="dossier-avatar" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</div>
+            <div class="dossier-head-body">
+              <div class="dossier-kicker">Kunddossiér</div>
+              <h2 class="dossier-name">${escapeHtml(name)}</h2>
+              <div class="dossier-contact">${escapeHtml(contact)}</div>
+              ${
+                tags.length
+                  ? `<div class="dossier-tags">${tags
+                      .map(
+                        (tag) =>
+                          `<span class="dossier-tag dossier-tag--${escapeHtml(tag.kind)}">${escapeHtml(tag.label)}</span>`
+                      )
+                      .join('')}</div>`
+                  : ''
+              }
+            </div>
+            <button type="button" class="dossier-close" data-v9-dossier-close title="Stäng dossiér" aria-label="Stäng dossiér">×</button>
+          </div>
+          <div class="dossier-next-step${loading ? ' is-loading' : ''}" title="Regelbaserat nästa steg">${escapeHtml(nextStep)}</div>
+          <div class="dossier-stats">
+            ${stats
+              .map(
+                (stat) => `
+              <div class="dossier-stat">
+                <div class="dossier-stat-label">${escapeHtml(stat.label)}</div>
+                <div class="dossier-stat-value">${escapeHtml(stat.value)}</div>
+                <div class="dossier-stat-trend">${escapeHtml(stat.trend)}</div>
+              </div>`
+              )
+              .join('')}
+          </div>
+        </div>`;
+  }
+
+  function renderPatientDetailHero(card, journalEntries = [], { loading = false } = {}) {
+    if (isV9CustomersEnabled()) {
+      return renderV9DossierHeroHtml(card, journalEntries, { loading });
+    }
+    const displayName = card?.displayName || 'Okänd kund';
+    return `
+        <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
+          <div class="focus-customer-hero-main">
+            <div class="focus-customer-avatar">${escapeHtml(displayName.slice(0, 2).toUpperCase())}</div>
+            <div class="focus-customer-copy">
+              <h2>${escapeHtml(displayName)}</h2>
+              <p class="patient-master-hero-id">${escapeHtml(card?.personnummer || 'Saknar personnummer')}</p>
+              <div class="focus-customer-contact-line">
+                <span>${escapeHtml(card?.primaryEmail || 'Saknar e-post')}</span>
+                <span>${escapeHtml(card?.primaryPhone || 'Saknar telefon')}</span>
+              </div>
+              ${renderPatientHeroChipRow(card)}
+            </div>
+            ${renderPatientHeroActions()}
+          </div>
+        </article>`;
+  }
+
+  function closeV9DossierSelection() {
+    if (!runtime.selectedPatientId) return;
+    if (isMobileViewport()) {
+      clearMobilePatientSelection();
+      return;
+    }
+    const previousId = runtime.selectedPatientId;
+    resetMobilePatientDetailState();
+    renderDetailEmpty();
+    if (!updatePatientRowSelection(previousId, '')) {
+      renderPatientRows();
+    }
+    syncMobilePatientLayout();
+    replaceMobilePatientListUrl();
+  }
+
   function renderV9PatientRowHtml(card, selected) {
     const name = displayNameForList(card);
     const contact = v9ContactLine(card);
@@ -2742,13 +2941,18 @@
     const rail = document.querySelector('[data-patient-master-rail]');
     if (!rail) return;
     els.patientRail = rail;
-    const cached = runtime.patients.find(
-      (row) => normalizeText(row?.patientId) === normalizeText(patientId)
+    const cached = mergeCardWithShellEnrichment(
+      runtime.patients.find(
+        (row) => normalizeText(row?.patientId) === normalizeText(patientId)
+      ) || { patientId, displayName: 'Laddar kund…' },
+      patientId
     );
-    const displayName = cached?.displayName || 'Laddar kund…';
-    const initials = String(displayName).slice(0, 2).toUpperCase();
-    rail.innerHTML = `
-      <section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">
+    const heroHtml = isV9CustomersEnabled()
+      ? renderV9DossierHeroHtml(cached, [], { loading: true })
+      : (() => {
+          const displayName = cached?.displayName || 'Laddar kund…';
+          const initials = String(displayName).slice(0, 2).toUpperCase();
+          return `
         <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
           <div class="focus-customer-hero-main">
             <div class="focus-customer-avatar">${escapeHtml(initials)}</div>
@@ -2757,7 +2961,11 @@
               <p class="patient-master-muted patient-master-loading-line">Hämtar kundkort…</p>
             </div>
           </div>
-        </article>
+        </article>`;
+        })();
+    rail.innerHTML = `
+      <section class="patient-master-card patient-master-card-loading" data-patient-detail data-patient-loading="true" aria-busy="true">
+        ${heroHtml}
         <div class="patient-master-tabs" role="tablist" aria-hidden="true">${renderPatientPrimaryTabsSkeleton(runtime.detailTab)}
         </div>
         <div class="patient-master-detail-skeleton" aria-hidden="true">
@@ -4739,7 +4947,8 @@
     const rail = document.querySelector('[data-patient-master-rail]');
     if (!rail || !runtime.detail?.card) return;
     els.patientRail = rail;
-    const { card } = runtime.detail;
+    const { card: rawCard } = runtime.detail;
+    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId);
     const journalEntries = asArray(runtime.detail.journalEntries);
     const tab = normalizeDetailTab(runtime.detailTab);
     const profilActive = tab === 'profil';
@@ -4754,21 +4963,7 @@
 
     rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
-        <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
-          <div class="focus-customer-hero-main">
-            <div class="focus-customer-avatar">${escapeHtml((card.displayName || '?').slice(0, 2).toUpperCase())}</div>
-            <div class="focus-customer-copy">
-              <h2>${escapeHtml(card.displayName || 'Okänd kund')}</h2>
-              <p class="patient-master-hero-id">${escapeHtml(card.personnummer || 'Saknar personnummer')}</p>
-              <div class="focus-customer-contact-line">
-                <span>${escapeHtml(card.primaryEmail || 'Saknar e-post')}</span>
-                <span>${escapeHtml(card.primaryPhone || 'Saknar telefon')}</span>
-              </div>
-              ${renderPatientHeroChipRow(card)}
-            </div>
-            ${renderPatientHeroActions()}
-          </div>
-        </article>
+        ${renderPatientDetailHero(card, journalEntries)}
 
         <div class="patient-master-tabs" role="tablist">${renderPatientPrimaryTabs(tab, fileCount)}
         </div>
@@ -4824,7 +5019,8 @@
     }
     runtime.detailShellOnly = false;
     revokePhotoObjectUrls();
-    const { card, patient, journalEntries, driveFiles, occasionTimeline } = detail;
+    const { card: rawCard, patient, journalEntries, driveFiles, occasionTimeline } = detail;
+    const card = mergeCardWithShellEnrichment(rawCard, runtime.selectedPatientId);
     const tab = normalizeDetailTab(runtime.detailTab);
     const profilActive = tab === 'profil';
     const journalActive = tab === 'journal';
@@ -4836,21 +5032,7 @@
 
     rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
-        <article class="focus-customer-hero patient-master-hero patient-master-hero-sticky">
-          <div class="focus-customer-hero-main">
-            <div class="focus-customer-avatar">${escapeHtml((card.displayName || '?').slice(0, 2).toUpperCase())}</div>
-            <div class="focus-customer-copy">
-              <h2>${escapeHtml(card.displayName || 'Okänd kund')}</h2>
-              <p class="patient-master-hero-id">${escapeHtml(card.personnummer || 'Saknar personnummer')}</p>
-              <div class="focus-customer-contact-line">
-                <span>${escapeHtml(card.primaryEmail || 'Saknar e-post')}</span>
-                <span>${escapeHtml(card.primaryPhone || 'Saknar telefon')}</span>
-              </div>
-              ${renderPatientHeroChipRow(card)}
-            </div>
-            ${renderPatientHeroActions()}
-          </div>
-        </article>
+        ${renderPatientDetailHero(card, journalEntries)}
 
         <div class="patient-master-tabs" role="tablist">${renderPatientPrimaryTabs(tab, fileCount)}
         </div>
@@ -6329,6 +6511,12 @@
       const row = event.target.closest('[data-patient-row]');
       if (row && runtime.mode === 'register') {
         void loadPatientDetail(row.dataset.patientRow);
+        return;
+      }
+
+      const dossierClose = event.target.closest('[data-v9-dossier-close]');
+      if (dossierClose && runtime.mode === 'register' && isV9CustomersEnabled()) {
+        closeV9DossierSelection();
         return;
       }
 
