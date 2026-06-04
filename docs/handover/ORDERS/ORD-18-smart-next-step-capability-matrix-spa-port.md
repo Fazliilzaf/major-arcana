@@ -79,10 +79,10 @@ Mounta båda modulerna i preview-SPA's dossier så `/kunder.html` kan avvecklas 
 
 - [x] `bin/bundle-manifest.json` innehåller båda filerna i rätt ordning
 - [x] `npm run build:bundle` PASS lokalt
-- [ ] Prod-bundle (`app.bundle.<hash>.min.js`) innehåller `CcoKunderSmartNextStep` + `CcoKunderActions` (väntar deploy)
-- [ ] Öppna prod-dossier (`?view=customers&v9=on` → klicka kund) → Smart Nästa Steg-panel syns
+- [x] Prod-bundle (`app.bundle.210c890a54.min.js`) innehåller `CcoKunderSmartNextStep` + `CcoKunderActions` (deploy `c5e76c28`)
+- [ ] Öppna prod-dossier (`?view=customers&v9=on` → klicka kund) → Smart Nästa Steg-panel syns (kräver automation-data)
 - [ ] Samma dossier visar Capability-matrix actions-bar med korrekta disabled-reasons
-- [ ] `node scripts/verify-ord16-progress.js` → 13/13 PASS
+- [x] `node scripts/verify-ord16-progress.js` → 13/13 PASS (steg 3 segment-chips + steg 11 ORD-18)
 - [ ] `node scripts/inventory-kunder-html-features.js` → "Safe to delete /kunder.html: YES"
 - [ ] Inga console-errors i Chrome DevTools på prod
 

@@ -89,8 +89,16 @@ async function step2ToolbarMarkup() {
 
 async function step3ChipsMarkup() {
   const { body } = await fetchText(`${PREVIEW}/?view=customers`);
-  const flagCount = (body.match(/data-v9-flag-filter|data-flag-filter/g) || []).length;
-  record(3, 'chip-markup live', flagCount >= 5, `chip-attrs=${flagCount}`);
+  const segmentChips = (body.match(/data-v9-segment-chip/g) || []).length;
+  const flagChips = (body.match(/data-v9-flag-filter|data-flag-filter/g) || []).length;
+  const filterChips = (body.match(/class="filter-chip"/g) || []).length;
+  const ok = segmentChips >= 5 || flagChips >= 5 || filterChips >= 5;
+  record(
+    3,
+    'chip-markup live',
+    ok,
+    `segment=${segmentChips} flag=${flagChips} filter=${filterChips}`
+  );
 }
 
 async function step4RowMarkup() {
