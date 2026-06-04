@@ -150,6 +150,56 @@
     if (bar && seed?.statusBarHtml) bar.innerHTML = seed.statusBarHtml;
   }
 
+  /** v9 mockup chrome — status pills + agg-insight + toolbar (never story-cards / kopplade-bar). */
+  function applyV9VisualChrome() {
+    const seed = global.CcoKunderV9MockSeed;
+    if (!seed || !$('#customerList')) return;
+
+    document.body.classList.add('kunder-v9');
+    renderMockStatusBar();
+
+    const host = $('[data-kunder-agg-insights]');
+    if (host && seed.aggInsights) {
+      const a = seed.aggInsights;
+      setAggInsightBody(host, 'idag', a.idag);
+      setAggInsightBody(host, 'opp', a.opp);
+      setAggInsightBody(host, 'trend', a.trend);
+      setAggInsightBody(host, 'risk', a.risk);
+    }
+
+    const titleH2 = $('.customers-shell .calendar-toolbar-main h2');
+    if (titleH2 && seed.totalPatients != null) {
+      titleH2.textContent = `${Number(seed.totalPatients).toLocaleString('sv-SE')} kunder`;
+    }
+  }
+
+  function renderV9StatusBarFromApi() {
+    if (state.mockupSeed) {
+      renderMockStatusBar();
+      return;
+    }
+    const bar = $('.customers-shell .calendar-status-bar');
+    if (!bar || !state.stats) {
+      renderMockStatusBar();
+      return;
+    }
+    const c = state.segmentTotals || {};
+    const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('sv-SE'));
+    const active = c.active;
+    const vip = c.vip;
+    const risk = c.needs_review ?? c.risk;
+    const nya = c.new;
+    const dormant = c.dormant;
+    bar.innerHTML = `
+        <span class="status-pill status-pill--success"><span class="dot"></span>${fmt(active)} aktiva</span>
+        <span class="status-pill" style="color:var(--accent-studio);background:linear-gradient(180deg, var(--rose-pill-top), var(--rose-pill-bottom));border-color:rgba(187,71,121,.32)"><span class="dot" style="background:var(--accent-studio)"></span>${fmt(vip)} VIP</span>
+        <span class="status-pill status-pill--warning"><span class="dot"></span>${fmt(risk)} risk</span>
+        <span class="status-pill status-pill--info"><span class="dot"></span>${fmt(nya)} nya</span>
+        <span class="status-pill"><span class="dot" style="background:var(--cco-text-tertiary)"></span>${fmt(dormant)} dormant</span>
+        <span class="spacer"></span>
+        <span class="status-pill" style="color:var(--cco-text-tertiary)">Intäkt/LTV: —</span>`;
+  }
+
   function filterMockRows(rows) {
     const seg = state.activeSegmentId;
     const q = state.query.trim().toLowerCase();
@@ -480,7 +530,7 @@
     if (shouldUseMockupSeed() && !getToken()) {
       applyMockupSeed();
       showDemoBanner();
-      renderMockStatusBar();
+      applyV9VisualChrome();
       renderCounts();
       renderInsights();
       renderRightPanel();
@@ -492,6 +542,7 @@
       state.authRequired = true;
       showAuthBanner(true);
       setListStatus('Logga in för att hämta kunder från patient-master.', 'warn');
+      applyV9VisualChrome();
       renderCounts();
       renderInsights();
       renderRightPanel();
@@ -549,6 +600,7 @@
       renderCounts();
       renderInsights();
       renderRightPanel();
+      renderV9StatusBarFromApi();
     }
   }
 
@@ -561,6 +613,7 @@
       state.segmentTotals.risk = state.segmentTotals.needs_review ?? state.segmentTotals.risk;
     }
     renderCounts();
+    renderV9StatusBarFromApi();
   }
 
   function renderCounts() {
@@ -571,12 +624,11 @@
 
     const titleH2 = $('.customers-shell .calendar-toolbar-main h2');
     if (titleH2) {
-      titleH2.textContent =
-        total != null
-          ? `${fmt(total)} kunder`
-          : state.authRequired
-            ? 'Kunder'
-            : 'Kunder — data saknas';
+      if (total != null) titleH2.textContent = `${fmt(total)} kunder`;
+      else if (global.CcoKunderV9MockSeed?.totalPatients != null) {
+        titleH2.textContent = `${fmt(global.CcoKunderV9MockSeed.totalPatients)} kunder`;
+      } else if (state.authRequired) titleH2.textContent = 'Kunder';
+      else titleH2.textContent = 'Kunder — data saknas';
     }
 
     $$('[data-kunder-count]').forEach((el) => {
@@ -995,6 +1047,14 @@
     const counts = state.segmentTotals || {};
 
     if (!hasStats) {
+      if (global.CcoKunderV9MockSeed?.aggInsights) {
+        const a = global.CcoKunderV9MockSeed.aggInsights;
+        setAggInsightBody(host, 'idag', a.idag);
+        setAggInsightBody(host, 'opp', a.opp);
+        setAggInsightBody(host, 'trend', a.trend);
+        setAggInsightBody(host, 'risk', a.risk);
+        return;
+      }
       setAggInsightBody(host, 'idag', 'Data saknas — logga in för customers-shell.');
       setAggInsightBody(host, 'opp', 'Data saknas — logga in.');
       setAggInsightBody(host, 'trend', 'Intäkt/LTV — data saknas (ej mock).');
@@ -1181,7 +1241,7 @@
   }
 
   function renderStoryCards() {
-    const grid = $('[data-kunder-story-grid]');
+    const grid = $('.calendar-shell [data-kunder-story-grid]');
     if (!grid) return;
 
     const panel = state.stats?.kunderPanel || state.segmentStats?.panel || {};
@@ -1633,17 +1693,6 @@
     const listHead = $('.customer-row-head');
     if (listHead?.children?.[6]) listHead.children[6].textContent = 'Nästa steg';
 
-    const statusBar = $('.calendar-status-bar');
-    if (statusBar) {
-      statusBar.innerHTML = `
-        <span class="status-pill status-pill--success"><span class="dot"></span><span data-kunder-count="matched">—</span> kopplade</span>
-        <span class="status-pill status-pill--warning"><span class="dot"></span><span data-kunder-count="needs_review">—</span> granska</span>
-        <span class="status-pill status-pill--info"><span class="dot"></span><span data-kunder-count="cliento_only">—</span> Cliento</span>
-        <span class="status-pill"><span class="dot"></span><span data-kunder-count="drive_only">—</span> Drive only</span>
-        <span class="spacer"></span>
-        <span class="status-pill kunder-ltv-disabled" title="LTV kopplas senare">Intäkt/LTV: —</span>`;
-    }
-
     function mockSegmentIdFromChip(id) {
       if (id === 'alla') return 'all';
       if (id === 'aktiva') return 'active';
@@ -1813,11 +1862,14 @@
       [data-kunder-agg-body].agg-insight-body strong { color:var(--cco-color-brand); font-weight:800; }
       .story-card--disabled { opacity:.72; }
       .story-card--disabled .story-card-headline { font-size:16px; }
+      .customers-shell .story-grid { display:none !important; }
+      body[data-kunder-real="1"] .customers-shell .agg-insights,
+      body.kunder-v9 .customers-shell .agg-insights,
       body[data-kunder-real="1"] .agg-insights.kunder-v9-insights,
       body.kunder-v9 .agg-insights.kunder-v9-insights {
         display:grid !important;
-        grid-template-columns:1.1fr 1fr 1fr 0.9fr;
-        gap:12px;
+        grid-template-columns:repeat(4, 1fr);
+        gap:8px;
         margin-bottom:14px;
       }
       [data-kunder-agg-body] { min-height:2.6em; }
@@ -1829,6 +1881,7 @@
 
   async function boot() {
     injectStyles();
+    applyV9VisualChrome();
     bindUi();
     renderInsights();
     renderRightPanel();
