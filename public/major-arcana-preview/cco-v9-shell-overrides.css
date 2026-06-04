@@ -40,11 +40,7 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .cus
     position: relative;
     border-radius: 28px;
     padding: 20px 22px 16px !important;
-    background: linear-gradient(
-      180deg,
-      var(--v9-panel-shell-top, rgba(250, 246, 242, 0.94)),
-      var(--v9-panel-shell-bottom, rgba(244, 238, 233, 0.86))
-    ) !important;
+    background: var(--v9-bg-panel-shell) !important;
     box-shadow: var(--v9-panel-shell-shadow-strong) !important;
     /* ORD-21 F: vellum/paperism — ingen backdrop-blur, paneler ska kännas laminerade inte glassiga. */
     overflow: hidden;
@@ -63,10 +59,7 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .cus
     height: auto !important;
     border-radius: inherit;
     filter: none !important;
-    background:
-      radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.6), transparent 24%),
-      radial-gradient(circle at 56% 10%, rgba(255, 236, 222, 0.32), transparent 24%),
-      radial-gradient(circle at 88% 14%, rgba(255, 228, 238, 0.28), transparent 22%) !important;
+    background: var(--v9-panel-vellum-highlight) !important;
     pointer-events: none;
     z-index: 0;
   }
@@ -86,11 +79,7 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .cus
     top: 14px;
     border-radius: 28px;
     padding: 18px 16px 16px;
-    background: linear-gradient(
-      180deg,
-      var(--v9-panel-shell-top, rgba(250, 246, 242, 0.94)),
-      var(--v9-panel-shell-bottom, rgba(244, 238, 233, 0.86))
-    ) !important;
+    background: var(--v9-bg-panel-shell) !important;
     box-shadow: var(--v9-panel-shell-shadow-strong) !important;
     /* ORD-21 F: vellum/paperism — ingen backdrop-blur, paneler ska kännas laminerade inte glassiga. */
     overflow: hidden;
@@ -104,9 +93,7 @@ html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .cus
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background:
-      radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.55), transparent 26%),
-      radial-gradient(circle at 82% 12%, rgba(255, 228, 238, 0.24), transparent 24%);
+    background: var(--v9-panel-vellum-highlight-rail);
     pointer-events: none;
     z-index: 0;
   }

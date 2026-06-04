@@ -6,6 +6,11 @@
 
 html[data-v9-enabled="on"] {
   --v9-bg-page: #faf6f2;
+  --v9-bg-atmosphere:
+    radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+    radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(220, 210, 255, 0.18), transparent 48%),
+    var(--v9-bg-page);
   --v9-bg-surface: #ffffff;
   --v9-bg-surface-sunken: #f5efe6;
   --v9-color-brand: #2b251f;
@@ -21,21 +26,62 @@ html[data-v9-enabled="on"] {
   --v9-status-info: #4a7ba8;
   --v9-status-info-bg: rgba(74, 123, 168, 0.14);
 
+  /*
+   * Rek. 2 — panel-skugga + inner-highlight (mockup :root).
+   * Primitives → composed (--v9-panel-*-shadow) → komponenter / .v9-surface-* mixins.
+   */
   --v9-panel-shell-top: rgba(250, 246, 242, 0.94);
   --v9-panel-shell-bottom: rgba(244, 238, 233, 0.86);
-  --v9-panel-shell-shadow:
-    0 18px 38px rgba(93, 74, 60, 0.07), 0 6px 18px rgba(156, 145, 166, 0.04),
-    0 0 0 1px rgba(255, 255, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  --v9-panel-shell-shadow-strong:
-    0 32px 70px rgba(93, 74, 60, 0.1), 0 14px 32px rgba(156, 145, 166, 0.06),
-    0 0 0 1px rgba(255, 255, 255, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.55);
-
   --v9-panel-card-top: rgba(255, 255, 255, 0.94);
   --v9-panel-card-bottom: rgba(247, 241, 236, 0.86);
-  --v9-panel-card-shadow:
-    0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
-  --v9-panel-card-shadow-hover:
-    0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+
+  --v9-bg-panel-shell: linear-gradient(180deg, var(--v9-panel-shell-top), var(--v9-panel-shell-bottom));
+  --v9-bg-panel-card: linear-gradient(180deg, var(--v9-panel-card-top), var(--v9-panel-card-bottom));
+  --v9-bg-control: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  --v9-bg-row-active: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 238, 232, 0.6));
+
+  --v9-shadow-outer-shell: 0 18px 38px rgba(93, 74, 60, 0.07), 0 6px 18px rgba(156, 145, 166, 0.04);
+  --v9-shadow-outer-shell-strong: 0 32px 70px rgba(93, 74, 60, 0.1), 0 14px 32px rgba(156, 145, 166, 0.06);
+  --v9-shadow-ring-shell: 0 0 0 1px rgba(255, 255, 255, 0.18);
+  --v9-shadow-ring-shell-strong: 0 0 0 1px rgba(255, 255, 255, 0.22);
+  --v9-inner-highlight-shell: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --v9-inner-highlight-shell-strong: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+
+  --v9-shadow-outer-card: 0 3px 10px rgba(56, 40, 28, 0.08);
+  --v9-shadow-outer-card-hover: 0 8px 22px rgba(56, 40, 28, 0.12);
+  --v9-inner-highlight-card: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  --v9-inner-highlight-card-hover: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+
+  --v9-shadow-outer-control: 0 2px 6px rgba(56, 40, 28, 0.06);
+  --v9-shadow-outer-control-hover: 0 4px 10px rgba(56, 40, 28, 0.1);
+  --v9-inner-highlight-control: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  --v9-inner-highlight-control-hover: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --v9-inner-highlight-control-active: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --v9-inner-highlight-row-active: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --v9-inner-highlight-pill: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --v9-shadow-divider-bottom: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+  --v9-shadow-focus-ring-studio: 0 0 0 2px var(--v9-accent-studio, #bb4779);
+  --v9-shadow-chip-active: 0 2px 8px rgba(200, 130, 30, 0.18), var(--v9-inner-highlight-card-hover);
+  --v9-shadow-rose-pill-active: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 4px 14px rgba(187, 71, 121, 0.14);
+
+  --v9-panel-vellum-highlight:
+    radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.6), transparent 24%),
+    radial-gradient(circle at 56% 10%, rgba(255, 236, 222, 0.32), transparent 24%),
+    radial-gradient(circle at 88% 14%, rgba(255, 228, 238, 0.28), transparent 22%);
+  --v9-panel-vellum-highlight-rail:
+    radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.55), transparent 26%),
+    radial-gradient(circle at 82% 12%, rgba(255, 228, 238, 0.24), transparent 24%);
+
+  --v9-panel-shell-shadow:
+    var(--v9-shadow-outer-shell), var(--v9-shadow-ring-shell), var(--v9-inner-highlight-shell);
+  --v9-panel-shell-shadow-strong:
+    var(--v9-shadow-outer-shell-strong), var(--v9-shadow-ring-shell-strong),
+    var(--v9-inner-highlight-shell-strong);
+  --v9-panel-card-shadow: var(--v9-shadow-outer-card), var(--v9-inner-highlight-card);
+  --v9-panel-card-shadow-hover: var(--v9-shadow-outer-card-hover), var(--v9-inner-highlight-card-hover);
+  --v9-shadow-control: var(--v9-shadow-outer-control), var(--v9-inner-highlight-control);
+  --v9-shadow-control-hover: var(--v9-shadow-outer-control-hover), var(--v9-inner-highlight-control-hover);
+  --v9-shadow-row-selected: var(--v9-shadow-focus-ring-studio), var(--v9-panel-card-shadow-hover);
 
   --v9-rose-pill-top: rgba(252, 233, 240, 0.98);
   --v9-rose-pill-bottom: rgba(241, 207, 220, 0.95);
@@ -55,4 +101,56 @@ html[data-v9-enabled="on"] {
 
   --v9-conflict-red: #d8526b;
   --v9-conflict-glow: rgba(216, 82, 107, 0.55);
+
+  /* G — layoutlogik (referens, mockup-paritet) */
+  --v9-layout-grid-cols: 200px minmax(0, 1fr) minmax(320px, 1fr);
+  --v9-layout-gap: 16px;
+  --v9-layout-gap-dense: 8px;
+  --v9-layout-gap-tight: 6px;
+  --v9-sticky-top: 14px;
+  --v9-z-watch: 9000;
+  --v9-z-watch-restore: 8900;
+  --v9-z-watch-toast: 10000;
+}
+
+/* Rek. 2 — surface mixins (bg + skugga + inner-highlight, återanvänd på paneler/kort) */
+html[data-v9-enabled="on"] .v9-surface-shell {
+  background: var(--v9-bg-panel-shell);
+  box-shadow: var(--v9-panel-shell-shadow);
+}
+
+html[data-v9-enabled="on"] .v9-surface-shell-strong {
+  background: var(--v9-bg-panel-shell);
+  box-shadow: var(--v9-panel-shell-shadow-strong);
+}
+
+html[data-v9-enabled="on"] .v9-surface-card {
+  background: var(--v9-bg-panel-card);
+  box-shadow: var(--v9-panel-card-shadow);
+}
+
+html[data-v9-enabled="on"] .v9-surface-card:hover,
+html[data-v9-enabled="on"] .v9-surface-card.is-hover {
+  box-shadow: var(--v9-panel-card-shadow-hover);
+}
+
+html[data-v9-enabled="on"] .v9-surface-vellum {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+html[data-v9-enabled="on"] .v9-surface-vellum::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--v9-panel-vellum-highlight);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-v9-enabled="on"] .v9-surface-vellum > * {
+  position: relative;
+  z-index: 1;
 }

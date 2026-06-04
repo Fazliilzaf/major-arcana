@@ -38,7 +38,7 @@ html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar {
   justify-content: space-between;
   gap: 14px;
   padding-bottom: 14px;
-  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+  box-shadow: var(--v9-shadow-divider-bottom);
 }
 
 html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-main {
@@ -110,10 +110,8 @@ html[data-v9-enabled="on"] .customers-v9-header .nav-btn {
   min-height: 26px;
   padding: 0 11px;
   border-radius: 11px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
-  box-shadow:
-    0 2px 6px rgba(56, 40, 28, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  background: var(--v9-bg-control);
+  box-shadow: var(--v9-shadow-control);
   font-size: 11px;
   font-weight: 600;
   color: var(--v9-color-brand, #2b251f);
@@ -121,9 +119,7 @@ html[data-v9-enabled="on"] .customers-v9-header .nav-btn {
 }
 
 html[data-v9-enabled="on"] .customers-v9-header .nav-btn:hover {
-  box-shadow:
-    0 4px 10px rgba(56, 40, 28, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  box-shadow: var(--v9-shadow-control-hover);
 }
 
 /* ─── Status bar ─── */
@@ -135,7 +131,7 @@ html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar {
   gap: 8px;
   padding: 4px 0 14px;
   margin-top: -4px;
-  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+  box-shadow: var(--v9-shadow-divider-bottom);
   flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
@@ -165,13 +161,11 @@ html[data-v9-enabled="on"] .customers-v9-header .status-pill {
   padding: 0 10px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.84);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  background: var(--v9-bg-control);
   font-size: 10.5px;
   line-height: 12px;
   font-weight: 700;
-  box-shadow:
-    0 2px 6px rgba(56, 40, 28, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  box-shadow: var(--v9-shadow-control);
   white-space: nowrap;
   color: var(--v9-color-brand, #2b251f);
 }
@@ -263,7 +257,7 @@ html[data-v9-enabled="on"] .customers-v9-filters .customers-filters {
   flex-wrap: wrap;
   padding: 10px 0 12px;
   margin-bottom: 4px;
-  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+  box-shadow: var(--v9-shadow-divider-bottom);
 }
 
 html[data-v9-enabled="on"] .customers-v9-filters .filter-chip {
@@ -272,10 +266,8 @@ html[data-v9-enabled="on"] .customers-v9-filters .filter-chip {
   cursor: pointer;
   padding: 5px 11px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
-  box-shadow:
-    0 2px 6px rgba(56, 40, 28, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  background: var(--v9-bg-control);
+  box-shadow: var(--v9-shadow-control);
   font-size: 11.5px;
   font-weight: 700;
   color: var(--v9-text-secondary, #6b6258);
@@ -287,18 +279,14 @@ html[data-v9-enabled="on"] .customers-v9-filters .filter-chip {
 }
 
 html[data-v9-enabled="on"] .customers-v9-filters .filter-chip:hover {
-  box-shadow:
-    0 4px 10px rgba(56, 40, 28, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  box-shadow: var(--v9-shadow-control-hover);
 }
 
 html[data-v9-enabled="on"] .customers-v9-filters .filter-chip.is-active {
   background: linear-gradient(180deg, #fff5e6, #ffe3b8);
   color: var(--v9-calendar-accent, #c8821e);
   border-color: rgba(200, 130, 30, 0.34);
-  box-shadow:
-    0 2px 8px rgba(200, 130, 30, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  box-shadow: var(--v9-shadow-chip-active);
 }
 
 html[data-v9-enabled="on"] .customers-v9-filters .filter-chip .count {
@@ -390,9 +378,7 @@ html[data-v9-enabled="on"] .customer-row {
   padding: 10px 14px;
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(247, 241, 236, 0.5));
-  box-shadow:
-    0 2px 6px rgba(56, 40, 28, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  box-shadow: var(--v9-panel-card-shadow);
   margin-bottom: 6px;
   cursor: pointer;
   transition:
@@ -403,16 +389,11 @@ html[data-v9-enabled="on"] .customer-row {
 
 html[data-v9-enabled="on"] .customer-row:hover {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(252, 247, 242, 0.82));
-  box-shadow:
-    0 6px 16px rgba(56, 40, 28, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  box-shadow: var(--v9-panel-card-shadow-hover);
 }
 
 html[data-v9-enabled="on"] .customer-row.is-selected {
-  box-shadow:
-    0 0 0 2px var(--v9-accent-studio, #bb4779),
-    0 4px 10px rgba(56, 40, 28, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  box-shadow: var(--v9-shadow-row-selected);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 242, 247, 0.86));
 }
 
@@ -694,11 +675,7 @@ html[data-v9-enabled="on"] [data-v9-segment-sidebar].side-shell {
   top: 14px;
   padding: 16px 14px;
   border-radius: 22px;
-  background: linear-gradient(
-    180deg,
-    var(--v9-panel-shell-top, rgba(250, 246, 242, 0.94)),
-    var(--v9-panel-shell-bottom, rgba(244, 238, 233, 0.86))
-  );
+  background: var(--v9-bg-panel-shell);
   box-shadow: var(--v9-panel-shell-shadow);
   /* ORD-21 F: vellum/paperism, ingen backdrop-blur. */
   min-width: 0;
@@ -766,10 +743,10 @@ html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link:hover:not(:disab
 
 html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link.is-active,
 html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link.active {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 238, 232, 0.6));
+  background: var(--v9-bg-row-active);
   color: var(--v9-color-brand, #2b251f);
   font-weight: 600;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  box-shadow: var(--v9-inner-highlight-row-active);
 }
 
 html[data-v9-enabled="on"] [data-v9-segment-sidebar] .side-link.is-disabled,
@@ -947,14 +924,8 @@ html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight {
   position: relative;
   padding: 10px 12px;
   border-radius: 14px;
-  background: linear-gradient(
-    180deg,
-    var(--v9-panel-shell-top, rgba(250, 246, 242, 0.92)),
-    var(--v9-panel-shell-bottom, rgba(244, 238, 232, 0.88))
-  );
-  box-shadow:
-    0 4px 14px rgba(70, 50, 30, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  background: var(--v9-bg-panel-card);
+  box-shadow: var(--v9-panel-card-shadow);
   cursor: pointer;
   transition:
     transform 0.12s ease,
@@ -963,9 +934,7 @@ html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight {
 }
 
 html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight:hover {
-  box-shadow:
-    0 8px 22px rgba(70, 50, 30, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  box-shadow: var(--v9-panel-card-shadow-hover);
 }
 
 html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight::before {
@@ -1053,7 +1022,7 @@ html[data-v9-enabled="on"] .v9-dossier-hero .dossier-head {
   padding: 0 22px 14px;
   display: flex;
   gap: 12px;
-  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+  box-shadow: var(--v9-shadow-divider-bottom);
   align-items: flex-start;
 }
 
@@ -1284,9 +1253,7 @@ html[data-v9-enabled="on"] .v9-dossier-tabs .v9-dossier-tab:hover {
 
 html[data-v9-enabled="on"] .v9-dossier-tabs .v9-dossier-tab.is-active {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 238, 232, 0.86));
-  box-shadow:
-    0 2px 6px rgba(56, 40, 28, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: var(--v9-shadow-control);
   border-color: rgba(255, 255, 255, 0.82);
 }
 
@@ -2284,7 +2251,7 @@ html[data-v9-enabled="on"] .v9-search-panel {
   display: flex;
   flex-direction: column;
   border-radius: 22px;
-  background: linear-gradient(180deg, var(--v9-panel-shell-top), var(--v9-panel-shell-bottom));
+  background: var(--v9-bg-panel-shell);
   box-shadow: var(--v9-panel-shell-shadow-strong);
   overflow: hidden;
   transform: translateY(-8px);
@@ -2441,7 +2408,7 @@ html[data-v9-enabled="on"] .v9-voice-sheet {
   width: min(520px, 100vw);
   padding: 18px 20px calc(env(safe-area-inset-bottom, 0px) + 18px);
   border-radius: 22px 22px 0 0;
-  background: linear-gradient(180deg, var(--v9-panel-shell-top), var(--v9-panel-shell-bottom));
+  background: var(--v9-bg-panel-shell);
   box-shadow: var(--v9-panel-shell-shadow-strong);
   z-index: 9850;
   transition: transform 0.32s cubic-bezier(0.34, 1.2, 0.64, 1);

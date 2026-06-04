@@ -1224,6 +1224,73 @@
     return { empty: true, reason: 'Inga kommande' };
   }
 
+  const V9_WATCH_HIDDEN_KEY = 'cco-watch-hidden';
+
+  function ensureV9WatchRestoreButton() {
+    let restore = document.querySelector('[data-v9-watch-restore]');
+    if (restore) return restore;
+    restore = document.createElement('button');
+    restore.type = 'button';
+    restore.className = 'v9-watch-restore';
+    restore.dataset.v9WatchRestore = '1';
+    restore.innerHTML = '⌚ Visa Apple Watch';
+    document.body.appendChild(restore);
+    return restore;
+  }
+
+  function showV9WatchToast(message) {
+    let toast = document.querySelector('[data-v9-watch-toast]');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'v9-watch-toast';
+      toast.dataset.v9WatchToast = '1';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.remove('is-visible');
+    window.requestAnimationFrame(() => toast.classList.add('is-visible'));
+    window.setTimeout(() => {
+      toast.classList.remove('is-visible');
+      window.setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 320);
+    }, 2400);
+  }
+
+  function setV9WatchHidden(hidden) {
+    const widget = document.querySelector('[data-v9-watch-widget]');
+    const restore = ensureV9WatchRestoreButton();
+    if (widget) widget.classList.toggle('is-hidden', hidden);
+    restore.classList.toggle('is-visible', hidden);
+    try {
+      localStorage.setItem(V9_WATCH_HIDDEN_KEY, hidden ? '1' : '0');
+    } catch (_) {
+      /* private mode */
+    }
+  }
+
+  function syncV9WatchHiddenState() {
+    if (!isV9CustomersEnabled()) return;
+    let hidden = false;
+    try {
+      hidden = localStorage.getItem(V9_WATCH_HIDDEN_KEY) === '1';
+    } catch (_) {
+      hidden = false;
+    }
+    ensureV9WatchRestoreButton();
+    setV9WatchHidden(hidden);
+  }
+
+  function initV9WatchChrome() {
+    if (!isV9CustomersEnabled()) return;
+    ensureV9WatchRestoreButton();
+    syncV9WatchHiddenState();
+  }
+
+  function renderV9WatchDismissButton() {
+    return `<button type="button" class="watch-dismiss" data-v9-watch-dismiss title="Dölj">×</button>`;
+  }
+
   function renderV9WatchWidgetHtml(segmentStats) {
     const upcoming = resolveV9UpcomingTreatment(segmentStats);
 
@@ -1231,6 +1298,7 @@
       return `
         <div class="v9-watch-wrap">
           <div class="v9-watch-widget watch-widget watch-widget--empty" data-v9-watch-widget>
+            ${renderV9WatchDismissButton()}
             <div class="watch-band-top"></div>
             <div class="watch-body" data-alert="none">
               <div class="watch-screen">
@@ -1252,10 +1320,12 @@
     const kicker = upcoming.remindNow
       ? '⚠ Påminn nu'
       : normalizeText(upcoming.kicker) || 'Nästa besök';
+    const bookingRef = upcoming.engineBookingId || upcoming.bookingCaseId || '';
 
     return `
         <div class="v9-watch-wrap">
-          <div class="v9-watch-widget watch-widget" data-v9-watch-widget data-v9-watch-patient="${escapeHtml(upcoming.patientId || '')}">
+          <div class="v9-watch-widget watch-widget" data-v9-watch-widget data-v9-watch-patient="${escapeHtml(upcoming.patientId || '')}" data-v9-watch-booking="${escapeHtml(bookingRef)}" data-v9-watch-starts-at="${escapeHtml(upcoming.startsAt || '')}" data-v9-watch-treatment="${escapeHtml(upcoming.treatmentLabel || '')}">
+            ${renderV9WatchDismissButton()}
             <div class="watch-band-top"></div>
             <div class="watch-body" data-alert="${alert}">
               <div class="watch-screen">
@@ -1263,7 +1333,7 @@
                 <div class="watch-kicker">${escapeHtml(kicker)}</div>
                 <div class="watch-title">${escapeHtml(upcoming.treatmentLabel || 'Behandling')}</div>
                 <div class="watch-sub">${escapeHtml(sub || '—')}</div>
-                <button type="button" class="watch-ai-pill" data-v9-watch-sms disabled title="Dry-run — SMS kopplas i P1">★ AI · Skicka SMS</button>
+                <button type="button" class="watch-ai-pill" data-v9-watch-sms title="Skicka SMS-påminnelse">★ AI · Skicka SMS</button>
                 <div class="watch-swipe" data-v9-watch-swipe role="button" tabindex="0" aria-label="Svep för ankomst">
                   <div class="watch-swipe-fill"></div>
                   <span class="watch-swipe-label">Svep för ankomst</span>
@@ -1350,6 +1420,7 @@
       return;
     }
     rail.innerHTML = renderV9AggregatePanelHtml();
+    initV9WatchChrome();
     syncMobilePatientLayout();
   }
 
@@ -7095,6 +7166,29 @@
     v9WatchSwipeState = null;
   }
 
+  function completeV9WatchSwipe(swipeEl) {
+    if (!swipeEl || swipeEl.dataset.swipeState === 'ok') return;
+    swipeEl.dataset.swipeState = 'ok';
+    cleanupV9WatchSwipe();
+    const widget = swipeEl.closest('[data-v9-watch-widget]');
+    const patientId = widget?.dataset?.v9WatchPatient || '';
+    const patientName =
+      widget?.querySelector('.watch-sub')?.textContent?.split(' · ')[0]?.trim() || 'Kund';
+    showV9WatchToast(`✓ ${patientName} markerad ankommen från handleden`);
+    if (patientId) {
+      void apiRequest('/api/v1/cco/staff/watch-checkin', {
+        method: 'POST',
+        body: {
+          patientId,
+          bookingId: widget?.dataset?.v9WatchBooking || null,
+        },
+      }).catch((error) => {
+        console.warn('Watch check-in misslyckades.', error);
+      });
+    }
+    window.setTimeout(() => resetV9WatchSwipeEl(swipeEl), 3200);
+  }
+
   function onV9WatchSwipeMove(event) {
     if (!v9WatchSwipeState) return;
     const { swipeEl, fill, arrow, startX, width } = v9WatchSwipeState;
@@ -7103,9 +7197,7 @@
     if (fill) fill.style.transform = `translateX(${-100 + pct * 100}%)`;
     if (arrow) arrow.style.transform = `translateY(-50%) translateX(${dx * 0.8}px)`;
     if (pct >= 0.85) {
-      swipeEl.dataset.swipeState = 'ok';
-      cleanupV9WatchSwipe();
-      window.setTimeout(() => resetV9WatchSwipeEl(swipeEl), 3200);
+      completeV9WatchSwipe(swipeEl);
     }
   }
 
@@ -7148,6 +7240,52 @@
     });
 
     document.addEventListener('click', (event) => {
+      if (isV9CustomersEnabled()) {
+        const dismiss = event.target.closest('[data-v9-watch-dismiss]');
+        if (dismiss) {
+          event.preventDefault();
+          event.stopPropagation();
+          setV9WatchHidden(true);
+          return;
+        }
+        const restore = event.target.closest('[data-v9-watch-restore]');
+        if (restore) {
+          event.preventDefault();
+          setV9WatchHidden(false);
+          return;
+        }
+        const smsButton = event.target.closest('[data-v9-watch-sms]');
+        if (smsButton && !smsButton.disabled) {
+          event.preventDefault();
+          const widget = smsButton.closest('[data-v9-watch-widget]');
+          const patientId = widget?.dataset?.v9WatchPatient || '';
+          if (!patientId) return;
+          smsButton.disabled = true;
+          void apiRequest('/api/v1/cco/staff/watch-sms', {
+            method: 'POST',
+            body: {
+              patientId,
+              startsAt: widget?.dataset?.v9WatchStartsAt || null,
+              treatmentLabel: widget?.dataset?.v9WatchTreatment || null,
+            },
+          })
+            .then((result) => {
+              if (result?.ok && !result?.dryRun) {
+                showV9WatchToast('✓ SMS skickat');
+              } else {
+                showV9WatchToast(result?.message || 'Dry-run — SMS-provider saknas');
+              }
+            })
+            .catch((error) => {
+              showV9WatchToast(error.message || 'SMS misslyckades');
+            })
+            .finally(() => {
+              smsButton.disabled = false;
+            });
+          return;
+        }
+      }
+
       const modeButton = event.target.closest('[data-patient-master-mode]');
       if (modeButton) {
         setMode(modeButton.dataset.patientMasterMode);
