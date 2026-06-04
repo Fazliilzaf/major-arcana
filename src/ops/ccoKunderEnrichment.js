@@ -32,17 +32,33 @@ function normalizeKey(value) {
 }
 
 const MS_DAY = 24 * 60 * 60 * 1000;
-const ACTIVE_DAYS = 180;
-const DORMANT_DAYS = 365;
+const ACTIVE_BOOKING_DAYS = 30;
+const DORMANT_BOOKING_DAYS = 180;
+const NEW_PATIENT_DAYS = 30;
+const RISK_BOOKING_WINDOW_DAYS = 3;
+const RISK_NOSHOW_THRESHOLD = 2;
+const DORMANT_UPDATED_DAYS = 365;
 const VIP_DEAL_VALUE_MIN = 25_000;
 
 const CALENDAR_SEGMENT_IDS = new Set(['today_visits', 'this_week', 'waitlist']);
 
+function parseBookingMs(iso) {
+  const ms = Date.parse(normalizeText(iso));
+  return Number.isFinite(ms) ? ms : null;
+}
+
 function daysSince(iso) {
   if (!iso) return null;
-  const t = Date.parse(iso);
-  if (!Number.isFinite(t)) return null;
+  const t = parseBookingMs(iso);
+  if (t == null) return null;
   return Math.floor((Date.now() - t) / MS_DAY);
+}
+
+function daysSinceIso(iso) {
+  if (!iso) return null;
+  const ms = parseBookingMs(iso);
+  if (ms == null) return null;
+  return Math.floor((Date.now() - ms) / MS_DAY);
 }
 
 function parseDealValue(value) {
@@ -265,9 +281,22 @@ function matchSegment(
 
   switch (id) {
     case 'needs_review':
-    case 'risk':
     case 'import_review':
       return matchStatus === 'needs_review' || flags.has('needs_review');
+    case 'risk': {
+      if (
+        booking.hasUpcomingBooking &&
+        isBookingWithinDays(booking.nextBookingAt, RISK_BOOKING_WINDOW_DAYS) &&
+        !sig.hasForm
+      ) {
+        return true;
+      }
+      if (typeof patient.noShowCount === 'number' && patient.noShowCount >= RISK_NOSHOW_THRESHOLD) {
+        return true;
+      }
+      if (sig.assetNeedsReview && booking.hasUpcomingBooking) return true;
+      return false;
+    }
     case 'has_drive':
       return Number(fs.totalFiles) > 0;
     case 'has_drive_journal':
@@ -296,16 +325,37 @@ function matchSegment(
       return sig.needsPhotoReview;
     case 'has_images':
       return Number(fs.images) > 0 || sig.hasPhoto;
-    case 'active':
-      return (
-        hasJournal ||
-        (updatedDays != null && updatedDays <= ACTIVE_DAYS) ||
-        matchStatus === 'matched'
-      );
-    case 'new':
-      return origin === 'new' || matchStatus === 'unmatched' || matchStatus === 'web_booking';
-    case 'dormant':
-      return updatedDays != null && updatedDays > DORMANT_DAYS && !hasJournal;
+    case 'active': {
+      if (bookingCoverage !== 'missing') {
+        if (booking.hasUpcomingBooking) return true;
+        if (booking.lastBookingAt) {
+          const days = daysSinceIso(booking.lastBookingAt);
+          if (days != null && days <= ACTIVE_BOOKING_DAYS) return true;
+        }
+        return false;
+      }
+      if (updatedDays != null && updatedDays <= ACTIVE_BOOKING_DAYS) return true;
+      return false;
+    }
+    case 'new': {
+      const created = patient.createdAt || patient.createdTime;
+      if (created) {
+        const days = daysSinceIso(created);
+        if (days != null && days <= NEW_PATIENT_DAYS) return true;
+      }
+      if (origin === 'new' || matchStatus === 'web_booking') return true;
+      return false;
+    }
+    case 'dormant': {
+      if (bookingCoverage !== 'missing') {
+        if (booking.lastBookingAt) {
+          const days = daysSinceIso(booking.lastBookingAt);
+          return days != null && days > DORMANT_BOOKING_DAYS;
+        }
+        return updatedDays != null && updatedDays > DORMANT_UPDATED_DAYS;
+      }
+      return updatedDays != null && updatedDays > DORMANT_UPDATED_DAYS;
+    }
     case 'vip':
       return isVipPatient(patient);
     case 'mine': {
@@ -410,9 +460,23 @@ function buildKunderReadout(patient, assetIndex = null, bookingIndex = null, opt
     assetCount: sig.assetCount,
     isVip: isVipPatient(patient),
     segmentHints: {
-      active: matchSegment(patient, 'active', sig),
-      dormant: matchSegment(patient, 'dormant', sig),
-      new: matchSegment(patient, 'new', sig),
+      active: matchSegment(
+        patient,
+        'active',
+        sig,
+        bookingIndex,
+        bookingIndex ? 'real' : 'missing',
+        opts
+      ),
+      dormant: matchSegment(
+        patient,
+        'dormant',
+        sig,
+        bookingIndex,
+        bookingIndex ? 'real' : 'missing',
+        opts
+      ),
+      new: matchSegment(patient, 'new', sig, bookingIndex, bookingIndex ? 'real' : 'missing', opts),
     },
   };
   applyBookingToReadout(readout, getBookingSignals(bookingIndex, base.patientId));
@@ -665,11 +729,6 @@ function computeAggInsights(
             : null,
     },
   };
-}
-
-function parseBookingMs(iso) {
-  const ms = Date.parse(normalizeText(iso));
-  return Number.isFinite(ms) ? ms : null;
 }
 
 function computeUpcomingTreatment(patients, assetIndex, bookingIndex, bookingCoverage) {

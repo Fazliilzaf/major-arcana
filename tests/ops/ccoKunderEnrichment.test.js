@@ -88,9 +88,10 @@ describe('ccoKunderEnrichment', () => {
       },
       {
         id: 'b',
-        matchStatus: 'unmatched',
+        matchStatus: 'matched',
         flags: [],
         fileSummary: {},
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
     ];
@@ -98,6 +99,216 @@ describe('ccoKunderEnrichment', () => {
     assert.ok(stats.counts.needs_review >= 1);
     assert.ok(stats.counts.new >= 1);
     assert.equal(stats.panel.totalPatients, 2);
+  });
+
+  it('ORD-22 active segment uses booking signals when coverage is real', () => {
+    const recentBooking = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    const patient = {
+      id: 'active-booking',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: { journalPdfs: 5 },
+      updatedAt: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    const bookingIndex = new Map([
+      ['active-booking', { ...emptyBookingSignals(), lastBookingAt: recentBooking }],
+    ]);
+    assert.equal(matchSegment(patient, 'active', null, bookingIndex, 'real'), true);
+    assert.equal(matchSegment(patient, 'active', null, bookingIndex, 'real', {}), true);
+    assert.equal(
+      matchSegment(
+        { ...patient, updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
+        'active',
+        null,
+        null,
+        'missing'
+      ),
+      true
+    );
+    assert.equal(matchSegment(patient, 'active', null, bookingIndex, 'real'), true);
+    const staleBooking = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+    const staleIndex = new Map([
+      ['active-booking', { ...emptyBookingSignals(), lastBookingAt: staleBooking }],
+    ]);
+    assert.equal(matchSegment(patient, 'active', null, staleIndex, 'real'), false);
+  });
+
+  it('ORD-22 active segment matches upcoming booking', () => {
+    const patient = {
+      id: 'active-upcoming',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      updatedAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    const bookingIndex = new Map([
+      [
+        'active-upcoming',
+        {
+          ...emptyBookingSignals(),
+          hasUpcomingBooking: true,
+          nextBookingAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ],
+    ]);
+    assert.equal(matchSegment(patient, 'active', null, bookingIndex, 'real'), true);
+  });
+
+  it('ORD-22 risk segment is separate from needs_review', () => {
+    const reviewPatient = {
+      id: 'review-only',
+      matchStatus: 'needs_review',
+      flags: ['needs_review'],
+      fileSummary: {},
+      updatedAt: new Date().toISOString(),
+    };
+    assert.equal(matchSegment(reviewPatient, 'needs_review', null), true);
+    assert.equal(matchSegment(reviewPatient, 'risk', null, null, 'missing'), false);
+
+    const noShowPatient = {
+      id: 'risk-noshow',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      noShowCount: 2,
+      updatedAt: new Date().toISOString(),
+    };
+    assert.equal(matchSegment(noShowPatient, 'risk', null, null, 'missing'), true);
+
+    const assetIndex = buildAssetSignalsIndex([
+      {
+        patientId: 'risk-form',
+        category: 'journal',
+        status: 'NEEDS_REVIEW',
+      },
+    ]);
+    const bookingIndex = new Map([
+      [
+        'risk-form',
+        {
+          ...emptyBookingSignals(),
+          hasUpcomingBooking: true,
+          nextBookingAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ],
+    ]);
+    const missingFormPatient = {
+      id: 'risk-form',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      updatedAt: new Date().toISOString(),
+    };
+    assert.equal(
+      matchSegment(missingFormPatient, 'risk', assetIndex.get('risk-form'), bookingIndex, 'real'),
+      true
+    );
+
+    const assetReviewPatient = {
+      id: 'risk-asset',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      updatedAt: new Date().toISOString(),
+    };
+    const assetReviewIndex = buildAssetSignalsIndex([
+      {
+        patientId: 'risk-asset',
+        category: 'photo_before',
+        status: 'NEEDS_REVIEW',
+      },
+    ]);
+    const assetBookingIndex = new Map([
+      [
+        'risk-asset',
+        {
+          ...emptyBookingSignals(),
+          hasUpcomingBooking: true,
+          nextBookingAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        },
+      ],
+    ]);
+    assert.equal(
+      matchSegment(
+        assetReviewPatient,
+        'risk',
+        assetReviewIndex.get('risk-asset'),
+        assetBookingIndex,
+        'real'
+      ),
+      true
+    );
+  });
+
+  it('ORD-22 new segment uses createdAt with origin fallback', () => {
+    const recent = {
+      id: 'new-recent',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    assert.equal(matchSegment(recent, 'new', null), true);
+
+    const old = {
+      id: 'new-old',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: {},
+      createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    assert.equal(matchSegment(old, 'new', null), false);
+
+    const webBooking = {
+      id: 'new-web',
+      matchStatus: 'web_booking',
+      flags: [],
+      fileSummary: {},
+      updatedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    assert.equal(matchSegment(webBooking, 'new', null), true);
+  });
+
+  it('ORD-22 dormant segment uses booking history and updatedDays fallback', () => {
+    const staleBooking = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString();
+    const patient = {
+      id: 'dormant-booking',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: { journalPdfs: 3 },
+      updatedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    const bookingIndex = new Map([
+      ['dormant-booking', { ...emptyBookingSignals(), lastBookingAt: staleBooking }],
+    ]);
+    assert.equal(matchSegment(patient, 'dormant', null, bookingIndex, 'real'), true);
+
+    const recentBooking = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const activeIndex = new Map([
+      ['dormant-booking', { ...emptyBookingSignals(), lastBookingAt: recentBooking }],
+    ]);
+    assert.equal(matchSegment(patient, 'dormant', null, activeIndex, 'real'), false);
+
+    const neverBooked = {
+      id: 'dormant-never',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: { journalPdfs: 1 },
+      updatedAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    const neverBookedIndex = new Map([['dormant-never', { ...emptyBookingSignals() }]]);
+    assert.equal(matchSegment(neverBooked, 'dormant', null, neverBookedIndex, 'real'), true);
+
+    const fallbackPatient = {
+      id: 'dormant-fallback',
+      matchStatus: 'matched',
+      flags: [],
+      fileSummary: { journalPdfs: 2 },
+      updatedAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    assert.equal(matchSegment(fallbackPatient, 'dormant', null, null, 'missing'), true);
   });
 
   it('mine segment uses pipedrive owner when assignedOwner set', () => {
