@@ -316,6 +316,90 @@ function createCcoStaffRouter({
       })
   );
 
+  router.post(
+    '/cco/staff/watch-checkin',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.body?.patientId);
+        if (!patientId) {
+          return res.status(400).json({ error: 'patientId saknas.' });
+        }
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId,
+        });
+        if (!patient) {
+          return res.status(404).json({ error: 'patient_not_found' });
+        }
+        const checkedInAt = new Date().toISOString();
+        return res.json({
+          ok: true,
+          patientId,
+          bookingId: normalizeText(req.body?.bookingId) || null,
+          checkedInAt,
+          source: 'v9_watch_swipe',
+        });
+      })
+  );
+
+  router.post(
+    '/cco/staff/watch-sms',
+    requireAuth,
+    requireRole(ROLE_OWNER, ROLE_STAFF),
+    async (req, res) =>
+      handle(req, res, async (actor) => {
+        const patientId = normalizeText(req.body?.patientId);
+        if (!patientId) {
+          return res.status(400).json({ error: 'patientId saknas.' });
+        }
+        const patient = await patientMasterStore.getPatient({
+          tenantId: actor.tenantId,
+          patientId,
+        });
+        if (!patient) {
+          return res.status(404).json({ error: 'patient_not_found' });
+        }
+        const phone = normalizeText(
+          patient.primaryPhone || (Array.isArray(patient.phones) ? patient.phones[0] : '')
+        );
+        const { sendSms, isConfigured, buildBookingReminderSms } = require('../sms/smsConnector');
+        if (!isConfigured()) {
+          return res.json({
+            ok: false,
+            dryRun: true,
+            error: 'sms_not_configured',
+            message: 'SMS-provider saknas — dry-run.',
+          });
+        }
+        if (!phone) {
+          return res.status(400).json({ error: 'missing_phone' });
+        }
+        const startsAt = normalizeText(req.body?.startsAt);
+        const startDate = startsAt ? new Date(startsAt) : null;
+        const date =
+          startDate && !Number.isNaN(startDate.getTime())
+            ? startDate.toLocaleDateString('sv-SE')
+            : 'snart';
+        const time =
+          startDate && !Number.isNaN(startDate.getTime())
+            ? startDate.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+            : '';
+        const message = buildBookingReminderSms({
+          patientName: normalizeText(patient.displayName) || 'där',
+          serviceName: normalizeText(req.body?.treatmentLabel) || 'besök',
+          date,
+          time,
+        });
+        const result = await sendSms({ to: phone, message });
+        if (!result.ok) {
+          return res.status(502).json({ error: result.error || 'sms_failed', details: result });
+        }
+        return res.json({ ok: true, dryRun: false, messageId: result.messageId, to: phone });
+      })
+  );
+
   attachAutomationRoutes(router, {
     patientMasterStore,
     requireAuth,
