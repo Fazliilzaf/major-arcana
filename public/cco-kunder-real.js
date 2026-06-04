@@ -313,6 +313,246 @@
     });
   }
 
+  function showKunderV9Toast(text, tone) {
+    const t = document.createElement('div');
+    t.className = 'ai-toast';
+    if (tone === 'success') {
+      t.style.background = 'linear-gradient(180deg, #eef7f2, #c8e0d2)';
+      t.style.borderColor = 'rgba(74,130,104,.34)';
+      t.style.color = 'var(--cco-status-success)';
+      t.style.boxShadow = '0 14px 38px rgba(74,130,104,.22), inset 0 1px 0 rgba(255,255,255,.95)';
+    }
+    t.textContent = text;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('is-visible'));
+    setTimeout(() => {
+      t.classList.remove('is-visible');
+      setTimeout(() => t.remove(), 320);
+    }, 2600);
+  }
+
+  function attachGdprRowToDossier(actionsEl) {
+    if (!actionsEl || actionsEl.dataset.gdprAdded === '1') return;
+    actionsEl.dataset.gdprAdded = '1';
+    const gdpr = document.createElement('div');
+    gdpr.className = 'gdpr-row';
+    gdpr.innerHTML = `
+      <button type="button" class="gdpr-btn">↓ Exportera GDPR-paket</button>
+      <button type="button" class="gdpr-btn">🔒 Aktivitetslogg</button>
+      <button type="button" class="gdpr-btn danger">🗑 Radera kund permanent</button>`;
+    actionsEl.parentNode.appendChild(gdpr);
+    gdpr.querySelectorAll('.gdpr-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        if (
+          b.classList.contains('danger') &&
+          !confirm('Permanent radering enligt GDPR? Kan inte ångras.')
+        ) {
+          return;
+        }
+        const label = b.textContent.replace(/^(↓|Exportera|🔒|🗑)\s*/i, '').trim() || b.textContent;
+        showKunderV9Toast('✓ ' + label, 'success');
+      });
+    });
+  }
+
+  function wireV9DossierPanel(intelCustomerView, customerName) {
+    if (!intelCustomerView) return;
+    const actionsEl = intelCustomerView.querySelector('.dossier-actions');
+    attachGdprRowToDossier(actionsEl);
+
+    actionsEl?.querySelectorAll('[data-dossier-action]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const kind = btn.dataset.dossierAction;
+        if (kind === 'book-prp')
+          showKunderV9Toast('✓ PRP 5/6 · 12 jun — bekräftelse skickas', 'success');
+        else if (kind === 'confirm') showKunderV9Toast('✓ Kommande tider bekräftade', 'success');
+        else if (kind === 'note') showKunderV9Toast('✓ Anteckning öppnad (demo)', 'success');
+        else if (kind === 'svarstudio') showKunderV9Toast('✓ Svarstudio — utkast klart', 'success');
+      });
+    });
+
+    intelCustomerView.querySelectorAll('.dossier-insight').forEach((ins) => {
+      ins.addEventListener('click', () => {
+        if (ins.dataset.insightAction === 'suggestPRPSlot') {
+          showKunderV9Toast(
+            '✓ Tid bokad — ' + (customerName || 'kund') + ' får bekräftelse',
+            'success'
+          );
+        }
+      });
+    });
+  }
+
+  const KUNDER_V9_CAMERA = (() => {
+    let camState = { stream: null, customer: null };
+    let wired = false;
+
+    function ensureOverlay() {
+      if ($('#camOverlay')) return;
+      const ov = document.createElement('div');
+      ov.className = 'cam-overlay';
+      ov.id = 'camOverlay';
+      ov.innerHTML = `
+    <div class="cam-head">
+      <div class="cam-head-info">
+        <div class="cam-head-avatar" id="camAvatar"></div>
+        <div class="cam-head-meta">
+          <div class="name" id="camName">—</div>
+          <div class="sub" id="camSub">Klinisk dokumentation · CCO journal</div>
+        </div>
+      </div>
+      <button type="button" class="cam-close" id="camClose" title="Stäng">×</button>
+    </div>
+    <div class="cam-stage" id="camStage" data-mode="loading">
+      <div class="cam-canvas-wrap" id="camCanvasWrap">
+        <span class="cam-badge">REC · LIVE</span>
+        <span class="cam-meta-stamp" id="camStamp"></span>
+        <video class="cam-video" id="camVideo" autoplay playsinline muted></video>
+        <canvas class="cam-photo" id="camPhoto" hidden></canvas>
+        <canvas class="cam-annot" id="camAnnot" hidden></canvas>
+      </div>
+    </div>
+    <div class="cam-toolbar" id="camToolbar"></div>`;
+      document.body.appendChild(ov);
+      $('#camClose')?.addEventListener('click', closeCamera);
+    }
+
+    function renderToolbar(mode) {
+      const tb = $('#camToolbar');
+      if (!tb) return;
+      if (mode === 'live') {
+        tb.innerHTML = `<button type="button" class="cam-capture" id="camCapture" title="Ta bild"></button>`;
+        $('#camCapture')?.addEventListener('click', capturePhoto);
+      } else if (mode === 'captured') {
+        tb.innerHTML = `
+      <div class="cam-save-row" style="margin-left:auto;display:flex;gap:8px">
+        <button type="button" class="cam-save cam-save--retake" id="camRetake">↻ Ta ny</button>
+        <button type="button" class="cam-save cam-save--primary" id="camSave">✓ Spara i journal</button>
+      </div>`;
+        $('#camRetake')?.addEventListener('click', startCamera);
+        $('#camSave')?.addEventListener('click', () => {
+          showKunderV9Toast(
+            `✓ Bild sparad i ${camState.customer?.name || 'kund'}s journal`,
+            'success'
+          );
+          closeCamera();
+        });
+      } else {
+        tb.innerHTML = '';
+      }
+    }
+
+    function startCamera() {
+      const stage = $('#camStage');
+      const video = $('#camVideo');
+      const photo = $('#camPhoto');
+      if (!stage || !video) return;
+      if (photo) photo.hidden = true;
+      video.hidden = false;
+      stage.dataset.mode = 'loading';
+      renderToolbar('loading');
+      if (camState.stream) {
+        camState.stream.getTracks().forEach((t) => t.stop());
+        camState.stream = null;
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        stage.dataset.mode = 'error';
+        stage.innerHTML =
+          '<div class="cam-error"><h3>Kamera ej tillgänglig</h3><p>HTTPS eller localhost krävs.</p></div>';
+        return;
+      }
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        .then((stream) => {
+          camState.stream = stream;
+          video.srcObject = stream;
+          stage.dataset.mode = 'live';
+          renderToolbar('live');
+        })
+        .catch((err) => {
+          stage.dataset.mode = 'error';
+          stage.innerHTML = `<div class="cam-error"><h3>Kameran kunde inte startas</h3><p>${escapeHtml(err.message || String(err))}</p></div>`;
+        });
+    }
+
+    function capturePhoto() {
+      const video = $('#camVideo');
+      const photo = $('#camPhoto');
+      const stage = $('#camStage');
+      if (!video?.videoWidth || !photo || !stage) return;
+      photo.width = video.videoWidth;
+      photo.height = video.videoHeight;
+      photo.getContext('2d').drawImage(video, 0, 0);
+      if (camState.stream) {
+        camState.stream.getTracks().forEach((t) => t.stop());
+        camState.stream = null;
+      }
+      video.hidden = true;
+      photo.hidden = false;
+      stage.dataset.mode = 'captured';
+      renderToolbar('captured');
+    }
+
+    function closeCamera() {
+      $('#camOverlay')?.classList.remove('is-visible');
+      if (camState.stream) {
+        camState.stream.getTracks().forEach((t) => t.stop());
+        camState.stream = null;
+      }
+    }
+
+    function openCamera(name, init, bgRaw) {
+      ensureOverlay();
+      const bg = String(bgRaw || '').replace(/&quot;/g, '"');
+      const av = $('#camAvatar');
+      if (av) {
+        av.style.background = bg;
+        av.textContent = init || '?';
+      }
+      const nm = $('#camName');
+      if (nm) nm.textContent = name || 'Kund';
+      const stamp = $('#camStamp');
+      if (stamp) {
+        stamp.textContent = `${name} · ${new Date().toLocaleString('sv-SE', { dateStyle: 'long', timeStyle: 'short' })}`;
+      }
+      camState.customer = { name, init, bg };
+      $('#camOverlay')?.classList.add('is-visible');
+      const stage = $('#camStage');
+      if (stage && !stage.querySelector('#camCanvasWrap')) {
+        stage.innerHTML = `
+        <div class="cam-canvas-wrap" id="camCanvasWrap">
+          <span class="cam-badge">REC · LIVE</span>
+          <span class="cam-meta-stamp" id="camStamp"></span>
+          <video class="cam-video" id="camVideo" autoplay playsinline muted></video>
+          <canvas class="cam-photo" id="camPhoto" hidden></canvas>
+          <canvas class="cam-annot" id="camAnnot" hidden></canvas>
+        </div>`;
+      }
+      startCamera();
+    }
+
+    function init() {
+      if (wired) return;
+      wired = true;
+      document.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('[data-camera-open]');
+        if (!btn) return;
+        ev.preventDefault();
+        openCamera(
+          btn.dataset.name || 'Kund',
+          btn.dataset.init || '?',
+          btn.dataset.bg || 'linear-gradient(180deg,#d4d4d4,#a8a8a8)'
+        );
+      });
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape' && $('#camOverlay')?.classList.contains('is-visible'))
+          closeCamera();
+      });
+    }
+
+    return { init, openCamera };
+  })();
+
   function openMockDossier(nameOrSlug) {
     const seed = global.CcoKunderV9MockSeed;
     const intelShell = $('#intelShell');
@@ -326,10 +566,12 @@
     }
     intelShell.dataset.context = 'customer';
     if (breadcrumbSlot) {
-      breadcrumbSlot.innerHTML = `<span class="breadcrumb">Kunder › ${escapeHtml(name)}</span>`;
+      breadcrumbSlot.innerHTML = `<span class="breadcrumb"><span class="back" id="bcBack" title="Tillbaka">‹</span> Kunder / <span class="who">${escapeHtml(name)}</span></span>`;
     }
     intelCustomerView.innerHTML = seed.buildDossierHtml(name);
     $('#dossierClose')?.addEventListener('click', closeDossier);
+    $('#bcBack')?.addEventListener('click', closeDossier);
+    wireV9DossierPanel(intelCustomerView, name);
   }
 
   function $(sel, root) {
@@ -1889,6 +2131,7 @@
 
   async function boot() {
     injectStyles();
+    KUNDER_V9_CAMERA.init();
     applyV9VisualChrome();
     bindUi();
     renderInsights();

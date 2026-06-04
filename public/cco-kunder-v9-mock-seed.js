@@ -494,7 +494,7 @@
           action: null,
         },
         {
-          text: 'Engagemang sjunker svagt (96% → 92% på 3 mån). <strong>Skicka personligt mejl?</strong>',
+          text: 'Engagemang sjunker svagt (96% → 92% på 3 mån). <strong>Skicka personligt mejl?</strong> Förslag finns i Svarstudio.',
           action: null,
         },
         {
@@ -693,8 +693,19 @@
     };
   }
 
+  function dossierBookingHtml(b, extra = '') {
+    return `
+            <div class="dossier-booking" data-source="${b.source}" ${extra}>
+              <div class="db-date"><div class="day">${b.day}</div><div class="num">${b.num}</div><div class="mon">${b.mon}</div></div>
+              <div class="db-meta"><div class="db-title">${b.title}</div><div class="db-sub">${b.sub}</div></div>
+              <span class="db-status" data-state="${b.state}">${b.stateLabel}</span>
+            </div>`;
+  }
+
+  /** 1:1 med uploads/CCO-Kunder-Mockup-v9-DESKTOP.html openCustomerDossier */
   function buildDossierHtml(name) {
     const d = getDossier(name);
+    const bgAttr = String(d.bg).replace(/"/g, '&quot;');
     return `
     <div class="dossier-head">
       <div class="dossier-avatar" style="background:${d.bg}">${d.init}</div>
@@ -708,24 +719,123 @@
       </div>
       <button type="button" class="dossier-close" id="dossierClose" title="Stäng dossiér">×</button>
     </div>
+
     <div class="dossier-stats">
-      ${d.stats.map((s) => `<div class="dossier-stat"><div class="dossier-stat-label">${s.label}</div><div class="dossier-stat-value">${s.value}</div><div class="dossier-stat-trend">${s.trend}</div></div>`).join('')}
+      ${d.stats
+        .map(
+          (s) => `
+        <div class="dossier-stat">
+          <div class="dossier-stat-label">${s.label}</div>
+          <div class="dossier-stat-value">${s.value}</div>
+          <div class="dossier-stat-trend">${s.trend}</div>
+        </div>`
+        )
+        .join('')}
     </div>
+
     <div class="dossier-scroll">
-      ${d.upcoming.length ? `<details class="dossier-section" open><summary>Kommande bokningar <span class="count">${d.upcoming.length}</span></summary>${d.upcoming.map((b) => `<div class="dossier-booking" data-source="${b.source}"><div class="db-date"><div class="day">${b.day}</div><div class="num">${b.num}</div><div class="mon">${b.mon}</div></div><div class="db-meta"><div class="db-title">${b.title}</div><div class="db-sub">${b.sub}</div></div><span class="db-status" data-state="${b.state}">${b.stateLabel}</span></div>`).join('')}</details>` : ''}
-      <details class="dossier-section"><summary>Historik <span class="count">${d.history.length}</span></summary>${d.history.map((b) => `<div class="dossier-booking" data-source="${b.source}"><div class="db-date"><div class="day">${b.day}</div><div class="num">${b.num}</div><div class="mon">${b.mon}</div></div><div class="db-meta"><div class="db-title">${b.title}</div><div class="db-sub">${b.sub}</div></div><span class="db-status" data-state="${b.state}">${b.stateLabel}</span></div>`).join('')}</details>
-      <details class="dossier-section"><summary>Filer <span class="count">${d.files.length}</span></summary><div class="dossier-files">${d.files.map((f) => `<div class="dossier-file"><div class="dossier-file-icon">${f.icon}</div><div class="dossier-file-name">${f.name}</div>${f.badge ? `<span class="dossier-file-badge">${f.badge}</span>` : ''}</div>`).join('')}</div></details>
-      <details class="dossier-section"><summary>Anteckningar <span class="count">${d.notes.length}</span></summary>${d.notes.map((n) => `<div class="dossier-note">${n.text}<div class="dossier-note-meta">${n.meta}</div></div>`).join('')}</details>
-      <details class="dossier-section"><summary>Kommunikation <span class="count">${d.comm.length}</span></summary>${d.comm.map((c) => `<div class="dossier-comm"><div class="dossier-comm-icon" data-type="${c.type}">${c.type === 'mail' ? '✉' : c.type === 'sms' ? '💬' : '📞'}</div><div class="dossier-comm-body"><div class="dossier-comm-text">${c.text}</div><div class="dossier-comm-meta">${c.meta}</div></div></div>`).join('')}</details>
-      <details class="dossier-section"><summary>Ekonomi <span class="count">${d.economy.length}</span></summary><div class="dossier-economy">${d.economy.map((m) => `<div class="dossier-money"><div class="dossier-money-label">${m.label}</div><div class="dossier-money-value">${m.value}</div></div>`).join('')}</div></details>
-      <details class="dossier-section" open><summary>AI-insikter <span class="count">${d.insights.length}</span></summary>${d.insights.map((ins) => `<div class="dossier-insight">${ins.text}</div>`).join('')}</details>
+      ${
+        d.upcoming.length
+          ? `
+        <details class="dossier-section" open>
+          <summary>Kommande bokningar <span class="count">${d.upcoming.length}</span></summary>
+          ${d.upcoming
+            .map((b, i) => dossierBookingHtml(b, `data-jump-current="${i === 0 ? '1' : '0'}"`))
+            .join('')}
+        </details>`
+          : ''
+      }
+
+      <details class="dossier-section">
+        <summary>Historik <span class="count">${d.history.length}</span></summary>
+        ${d.history
+          .map((b) =>
+            dossierBookingHtml(
+              b,
+              typeof b.historyWeek === 'number' ? `data-history-week="${b.historyWeek}"` : ''
+            )
+          )
+          .join('')}
+      </details>
+
+      <details class="dossier-section">
+        <summary>Filer <span class="count">${d.files.length}</span></summary>
+        <div class="dossier-files">
+          ${d.files
+            .map(
+              (f) => `
+            <div class="dossier-file">
+              <div class="dossier-file-icon">${f.icon}</div>
+              <div class="dossier-file-name">${f.name}</div>
+              ${f.badge ? `<span class="dossier-file-badge">${f.badge}</span>` : ''}
+            </div>`
+            )
+            .join('')}
+        </div>
+      </details>
+
+      <details class="dossier-section">
+        <summary>Anteckningar <span class="count">${d.notes.length}</span></summary>
+        ${d.notes
+          .map(
+            (n) => `
+          <div class="dossier-note">
+            ${n.text}
+            <div class="dossier-note-meta">${n.meta}</div>
+          </div>`
+          )
+          .join('')}
+      </details>
+
+      <details class="dossier-section">
+        <summary>Kommunikation <span class="count">${d.comm.length}</span></summary>
+        ${d.comm
+          .map(
+            (c) => `
+          <div class="dossier-comm">
+            <div class="dossier-comm-icon" data-type="${c.type}">${c.type === 'mail' ? '✉' : c.type === 'sms' ? '💬' : '📞'}</div>
+            <div class="dossier-comm-body">
+              <div class="dossier-comm-text">${c.text}</div>
+              <div class="dossier-comm-meta">${c.meta}</div>
+            </div>
+          </div>`
+          )
+          .join('')}
+      </details>
+
+      <details class="dossier-section">
+        <summary>Ekonomi <span class="count">${d.economy.length}</span></summary>
+        <div class="dossier-economy">
+          ${d.economy
+            .map(
+              (m) => `
+            <div class="dossier-money">
+              <div class="dossier-money-label">${m.label}</div>
+              <div class="dossier-money-value">${m.value}</div>
+            </div>`
+            )
+            .join('')}
+        </div>
+      </details>
+
+      <details class="dossier-section" open>
+        <summary>AI-insikter <span class="count">${d.insights.length}</span></summary>
+        ${d.insights
+          .map(
+            (ins, i) => `
+          <div class="dossier-insight" data-insight-action="${ins.action || ''}" data-insight-idx="${i}">${ins.text}</div>`
+          )
+          .join('')}
+      </details>
     </div>
+
     <div class="dossier-actions">
-      <button type="button" class="quick-pill quick-pill--ai full" disabled title="Demo">★ Boka nästa PRP</button>
-      <button type="button" class="quick-pill" disabled title="Demo">✎ Anteckna</button>
-      <button type="button" class="quick-pill" disabled title="Demo">✉ Svarstudio</button>
-    </div>
-    <p class="kunder-data-missing" style="padding:8px 14px;font-size:10px">Demo · v9 mockdossiér — logga in för live journal/API.</p>`;
+      <button type="button" class="quick-pill dossier-camera-cta full" data-camera-open data-name="${name}" data-init="${d.init}" data-bg="${bgAttr}">📷 Ta bild · spara i journal</button>
+      <button type="button" class="quick-pill quick-pill--ai full" data-dossier-action="book-prp">★ Boka nästa PRP (12 jun)</button>
+      <button type="button" class="quick-pill" data-dossier-action="note">✎ Anteckna</button>
+      <button type="button" class="quick-pill" data-dossier-action="svarstudio">✉ Svarstudio</button>
+      <button type="button" class="quick-pill quick-pill--success full" data-dossier-action="confirm">✓ Bekräfta kommande tider (${d.upcoming.length})</button>
+    </div>`;
   }
 
   function patientFromRow(row) {
