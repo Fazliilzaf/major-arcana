@@ -754,6 +754,8 @@ function computeUpcomingTreatment(patients, assetIndex, bookingIndex, bookingCov
         treatmentLabel: normalizeText(booking.nextBookingType) || 'Behandling',
         practitionerLabel: normalizeText(booking.nextBookingResourceLabel) || '',
         missingForm: !assetSig.hasForm,
+        engineBookingId: booking.engineBookingId || null,
+        bookingCaseId: booking.bookingCaseId || null,
       };
     }
   }
@@ -776,6 +778,8 @@ function computeUpcomingTreatment(patients, assetIndex, bookingIndex, bookingCov
     kicker: remindNow ? 'Påminnelse' : 'Nästa besök',
     remindNow,
     missingForm: best.missingForm,
+    engineBookingId: best.engineBookingId,
+    bookingCaseId: best.bookingCaseId,
   };
 }
 

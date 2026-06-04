@@ -77,4 +77,32 @@ describe('ccoKunderBookingEnrichment', () => {
     const inThreeDays = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
     assert.equal(isThisWeekVisit(inThreeDays), true);
   });
+
+  it('maps Cliento bookings into upcoming visit signals', () => {
+    const future = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const patients = [
+      { id: 'p3', primaryEmail: 'c@example.com', emails: [], flags: [], fileSummary: {} },
+    ];
+    const { index } = buildBookingSignalsIndex({
+      patients,
+      engineBookings: [],
+      bookingCases: [],
+      encounters: [],
+      clientoBookings: [
+        {
+          bookingId: 'cl-1',
+          customerEmail: 'c@example.com',
+          startsAt: future,
+          status: 'upcoming',
+          serviceLabel: 'Konsultation',
+          staffName: 'Egzona',
+        },
+      ],
+    });
+    const sig = getBookingSignals(index, 'p3');
+    assert.equal(sig.hasUpcomingBooking, true);
+    assert.equal(sig.nextBookingType, 'Konsultation');
+    assert.equal(sig.nextBookingResourceLabel, 'Egzona');
+    assert.equal(sig.engineBookingId, 'cl-1');
+  });
 });

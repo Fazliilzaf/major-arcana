@@ -222,6 +222,7 @@ function buildBookingSignalsIndex({
   engineBookings = [],
   bookingCases = [],
   encounters = [],
+  clientoBookings = [],
 } = {}) {
   const index = new Map();
   const emailToPatient = buildEmailToPatientMap(patients);
@@ -310,6 +311,32 @@ function buildBookingSignalsIndex({
         conversationId: conv,
       });
     }
+  }
+
+  for (const clientoBooking of asArray(clientoBookings)) {
+    const email = normalizeKey(clientoBooking.customerEmail);
+    const patientId = emailToPatient.get(email);
+    if (!patientId) continue;
+    const sig = getOrCreate(index, patientId);
+    if (!sig) continue;
+    const status = normalizeKey(clientoBooking.status);
+    if (status === 'cancelled') continue;
+    const startsAt = normalizeText(clientoBooking.startsAt);
+    if (!startsAt) continue;
+    const slot = {
+      startsAt,
+      serviceLabel: normalizeText(clientoBooking.serviceLabel),
+      resourceLabel: normalizeText(clientoBooking.staffName),
+    };
+    if (status === 'no_show') {
+      if (isPastVisit(startsAt)) {
+        applyVisitSlot(sig, slot, 'no_show', { bookingId: clientoBooking.bookingId });
+      }
+      continue;
+    }
+    const bookingStatus =
+      status === 'upcoming' || isFutureVisit(startsAt) ? 'confirmed' : 'confirmed';
+    applyVisitSlot(sig, slot, bookingStatus, { bookingId: clientoBooking.bookingId });
   }
 
   for (const [, sig] of index) {
@@ -429,14 +456,31 @@ async function loadKunderBookingIndex(config, tenantId, patients = []) {
         ? stores.encounterStore.listEncountersForEnrichment(tid)
         : [];
 
+    let clientoBookings = [];
+    try {
+      const { createClientoBookingStore } = require('./clientoBookingStore');
+      const clientoPath =
+        config?.clientoBookingStorePath ||
+        path.join(process.cwd(), 'data', 'cco', 'cliento-bookings.json');
+      const clientoStore = await createClientoBookingStore({ filePath: clientoPath });
+      clientoBookings = clientoStore.listAllBookings({ tenantId: tid, limit: 20000 });
+    } catch {
+      clientoBookings = [];
+    }
+
     const built = buildBookingSignalsIndex({
       patients,
       engineBookings,
       bookingCases,
       encounters,
+      clientoBookings,
     });
 
-    const hasAny = engineBookings.length > 0 || bookingCases.length > 0 || encounters.length > 0;
+    const hasAny =
+      engineBookings.length > 0 ||
+      bookingCases.length > 0 ||
+      encounters.length > 0 ||
+      clientoBookings.length > 0;
     const coverage = hasAny ? 'real' : 'partial';
 
     return {
@@ -446,6 +490,7 @@ async function loadKunderBookingIndex(config, tenantId, patients = []) {
         engineBookings: engineBookings.length,
         bookingCases: bookingCases.length,
         encounters: encounters.length,
+        clientoBookings: clientoBookings.length,
       },
       engineBookings,
       bookingCases,
