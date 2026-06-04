@@ -17,6 +17,7 @@
  *   8. dossier-body (tabs porterade)
  *   9. höger aggregat-vy
  *  10. watch-frame + mobile
+ *  11. smart-next-step + capability-matrix (ORD-18)
  */
 'use strict';
 
@@ -168,6 +169,33 @@ async function step10WatchMobile() {
   record(10, 'watch-frame + mobile parity', hasCss && hasJs, `css=${hasCss} js=${hasJs}`);
 }
 
+async function step11SmartNextCapability() {
+  const js = (await fetchText(`${PREVIEW}/app/patient-master-ui.js?v=build-bundle-split-a`)).body;
+  let bundleBody = '';
+  try {
+    const latest = JSON.parse((await fetchText(`${PREVIEW}/app.bundle.latest.json`)).body || '{}');
+    if (latest.filename) {
+      bundleBody = (await fetchText(`${PREVIEW}/${latest.filename}`)).body;
+    }
+  } catch (_) {
+    /* optional */
+  }
+  const hasJsMount =
+    /renderV9SmartNextStepHtml/.test(js) &&
+    /renderV9CapabilityActionsHtml/.test(js) &&
+    /data-v9-smart-next-step/.test(js) &&
+    /data-v9-capability-actions/.test(js) &&
+    /includeAutomation/.test(js);
+  const hasBundle =
+    /CcoKunderSmartNextStep/.test(bundleBody) && /CcoKunderActions/.test(bundleBody);
+  record(
+    11,
+    'smart-next + capability (ORD-18)',
+    hasJsMount && hasBundle,
+    `js=${hasJsMount} bundle=${hasBundle}`
+  );
+}
+
 async function main() {
   console.log(`# ORD-16 progress against ${BASE}\n`);
 
@@ -183,6 +211,7 @@ async function main() {
   await step8DossierBodyTabs();
   await step9AggregatePanel();
   await step10WatchMobile();
+  await step11SmartNextCapability();
 
   let pass = 0,
     fail = 0;

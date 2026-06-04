@@ -1315,6 +1315,71 @@ html[data-v9-enabled="on"] .v9-dossier-hero .dossier-stat-trend {
   font-weight: 700;
 }
 
+/* ORD-18: Smart nästa steg + capability-matrix i dossier */
+html[data-v9-enabled="on"] [data-v9-smart-next-step] {
+  margin: 0;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-capability {
+  padding: 0 18px 14px;
+  border-bottom: 1px solid rgba(120, 105, 90, 0.12);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-capability__title {
+  margin: 0 0 8px;
+  font-size: var(--v9-font-kicker);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--v9-text-secondary);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-capability__host {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-capability .kunder-action-legend {
+  margin: 0;
+  font-size: var(--v9-font-kicker-sm);
+  color: var(--v9-text-secondary);
+}
+
+html[data-v9-enabled="on"] .v9-dossier-capability__host .quick-pill,
+html[data-v9-enabled="on"] .v9-dossier-capability__host .v9-dossier-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 105, 90, 0.2);
+  background: rgba(255, 255, 255, 0.82);
+  font-size: var(--v9-font-chip);
+  font-weight: 600;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-capability__host .kunder-action--partial {
+  opacity: 0.88;
+}
+
+html[data-v9-enabled="on"] .v9-dossier-capability__host .kunder-action--blocked,
+html[data-v9-enabled="on"] .v9-dossier-capability__host button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+  html[data-v9-enabled="on"] .v9-dossier-capability__host {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
 html[data-v9-enabled="on"] .patient-master-card[data-patient-detail] .patient-master-tabs {
   margin-top: 12px;
 }

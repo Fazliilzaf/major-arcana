@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <script src="./app/cco-v9-flag.js?v=build-1ccb8f9"></script>
-    <!-- ARCANA bundle URLs (content-hash: 670ea24722) -->
+    <!-- ARCANA bundle URLs (content-hash: 210c890a54) -->
     <script>
       window.__ARCANA_BUNDLE_URLS__ = {
-        full: './app.bundle.670ea24722.min.js',
-        staffCore: './app.bundle.staff-core.6bdb330ca4.min.js',
+        full: './app.bundle.210c890a54.min.js',
+        staffCore: './app.bundle.staff-core.54ef4d48eb.min.js',
         staffDeferred: './app.bundle.staff-deferred.70f30879ad.min.js',
       };
     </script>
@@ -3540,6 +3540,9 @@
                   <script src="/cco-kunder-staff-owner.js?v=build-39eec9b8" defer></script>
                   <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
                   <script defer src="./app/cco-v9-interactions.js?v=build-1ccb8f9"></script>
+                  <!-- Early patient-master-ui (async): blockar inte HTML parse efter skeleton -->
+                  <script async src="./app/patient-master-ui.js?v=build-bundle-split-a"></script>
+
                   <div data-patient-identity-rail hidden>
                     <section class="customers-rail-panel customers-rail-panel-suggestions">
                       <div class="customers-rail-panel-head">
@@ -11366,12 +11369,12 @@ PRP 2/3 - Ombokning. Kunden bekräftar vanligtvis inom 2.5h.</textarea
          window.CcoThreadCache finns när bootstrap + live-load kör. -->
     <script src="/arcana-page-titles.js"></script>
     <script src="./app/thread-cache-idb.js?v=build-1ccb8f9"></script>
-    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 670ea24722) -->
+    <!-- Bundlade scripts: byggt av bin/build-bundle.js (content-hash: 210c890a54) -->
     <script>
       (function arcanaLoadAppBundle() {
         var urls = window.__ARCANA_BUNDLE_URLS__ || {};
-        var fullSrc = urls.full || './app.bundle.670ea24722.min.js';
-        var coreSrc = urls.staffCore || './app.bundle.staff-core.6bdb330ca4.min.js';
+        var fullSrc = urls.full || './app.bundle.210c890a54.min.js';
+        var coreSrc = urls.staffCore || './app.bundle.staff-core.54ef4d48eb.min.js';
         var deferSrc = urls.staffDeferred || './app.bundle.staff-deferred.70f30879ad.min.js';
 
         function injectScript(src, onload) {

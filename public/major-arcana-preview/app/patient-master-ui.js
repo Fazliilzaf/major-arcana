@@ -195,6 +195,7 @@
     offerTemplates: [],
     stats: null,
     segmentStats: null,
+    automation: null,
     reviewGroups: null,
     reviewGroupsLoading: false,
     draftProposals: null,
@@ -3185,6 +3186,9 @@
   }
 
   function resolveV9NextStepLabel(card) {
+    if (window.CcoKunderSmartNextStep?.listStepLabel) {
+      return window.CcoKunderSmartNextStep.listStepLabel(card);
+    }
     const top = card.automationTop;
     if (top?.label) return top.label;
     if (top?.summary) return top.summary;
@@ -3249,6 +3253,57 @@
       merged.flags = shell.flags;
     }
     return merged;
+  }
+
+  function resolveKunderActionContext() {
+    return {
+      tenantId: 'hairtpclinic',
+      role: 'staff',
+      surface: isMobileViewport() ? 'mobile' : 'desktop',
+    };
+  }
+
+  function renderV9SmartNextStepHtml(card) {
+    if (!isV9CustomersEnabled() || !card) return '';
+    const mod = window.CcoKunderSmartNextStep;
+    if (!mod?.renderPanel) return '';
+    const panelHtml = mod.renderPanel(card, { automation: runtime.automation });
+    const wrapped =
+      isMobileViewport() && mod.mountMobileWrap ? mod.mountMobileWrap(panelHtml) : panelHtml;
+    return `<div data-v9-smart-next-step>${wrapped}</div>`;
+  }
+
+  function renderV9CapabilityActionsHtml(card) {
+    if (!isV9CustomersEnabled() || !card) return '';
+    const mod = window.CcoKunderActions;
+    if (!mod?.buildDossierBar) return '';
+    const dossierBar = mod.buildDossierBar(card, resolveKunderActionContext());
+    const actionsInner =
+      mod.renderMatrixLegend(dossierBar) +
+      mod.renderActionsHtml(dossierBar, {
+        linkClass: 'quick-pill v9-dossier-action',
+        buttonClass: 'quick-pill v9-dossier-action',
+      });
+    return `
+        <section class="v9-dossier-capability" data-v9-capability-actions aria-label="Dossieråtgärder">
+          <h4 class="v9-dossier-capability__title">Åtgärder</h4>
+          <div class="v9-dossier-capability__host" data-v9-capability-host>${actionsInner}</div>
+        </section>`;
+  }
+
+  function bindV9DossierCapabilityHandlers(root) {
+    if (!root || !isV9CustomersEnabled()) return;
+    const host = root.querySelector('[data-v9-capability-host]');
+    if (!host || !window.CcoKunderActions?.bindDossierHandlers) return;
+    window.CcoKunderActions.bindDossierHandlers(host, {
+      scrollAssets: () => {
+        runtime.detailTab = 'filer';
+        renderDetailPanel();
+        root
+          .querySelector('[data-patient-tab-panel="filer"]')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      },
+    });
   }
 
   function resolveV9SourceLabel(card) {
@@ -5715,6 +5770,8 @@
     rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
         ${renderPatientDetailHero(card, journalEntries)}
+        ${renderV9SmartNextStepHtml(card)}
+        ${renderV9CapabilityActionsHtml(card)}
 
         ${renderPatientDetailTabsMarkup(tab, fileCount)}
         ${renderPatientDetailBodyOpen()}
@@ -5743,6 +5800,7 @@
         ${renderPatientDetailBodyClose()}
       </section>
     `;
+    bindV9DossierCapabilityHandlers(rail);
     runtime.detailShellOnly = true;
     syncMobilePatientLayout();
   }
@@ -5789,6 +5847,8 @@
     rail.innerHTML = `
       <section class="patient-master-card" data-patient-detail>
         ${renderPatientDetailHero(card, journalEntries)}
+        ${renderV9SmartNextStepHtml(card)}
+        ${renderV9CapabilityActionsHtml(card)}
 
         ${renderPatientDetailTabsMarkup(tab, fileCount)}
         ${renderPatientDetailBodyOpen()}
@@ -5856,6 +5916,7 @@
       </section>
     `;
     bindJournalPhotoOpenLinks(els.patientRail);
+    bindV9DossierCapabilityHandlers(els.patientRail);
     void hydrateJournalPhotoElements(els.patientRail);
     void hydratePatientFileImages(els.patientRail);
     syncMobilePatientLayout();
@@ -5930,9 +5991,10 @@
     if (runtime.segmentFilter) params.set('segment', runtime.segmentFilter);
     const assignedOwner = resolveAssignedOwnerForShell();
     if (assignedOwner) params.set('assignedOwner', assignedOwner);
+    params.set('includeAutomation', '1');
 
     try {
-      const shellKey = `customers-shell:list:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.segmentFilter}:${runtime.offset}`;
+      const shellKey = `customers-shell:list:${normalizeText(runtime.query)}:${runtime.flagFilter}:${runtime.segmentFilter}:${runtime.offset}:auto`;
       const payload = await apiRequest(`/api/v1/cco/staff/customers-shell?${params}`, {
         cacheKey: shellKey,
         staleTime: window.ArcanaCcoData?.policy?.PATIENT_LIST?.staleTime,
@@ -5945,6 +6007,7 @@
       runtime.patients = append ? runtime.patients.concat(batch) : batch;
       if (payload.stats) runtime.stats = payload.stats;
       if (payload.segmentStats) runtime.segmentStats = payload.segmentStats;
+      if (payload.automation) runtime.automation = payload.automation;
       if (payload.staffOwnership) {
         runtime.staffOwnership = payload.staffOwnership;
         window.CcoKunderStaffOwner?.rememberShellOwnership?.(payload);

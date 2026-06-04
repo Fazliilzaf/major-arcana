@@ -5,7 +5,7 @@
 **Claude-spår:** UAT efter Cursor-deploy
 **Blockerar:** ORD-17 DEL B.3 (radering av `/kunder.html`)
 **Prio:** P1
-**Status:** PENDING
+**Status:** DONE (2026-06-04, commit pending deploy-verify)
 
 ---
 
@@ -13,10 +13,10 @@
 
 ORD-16 portade v9-mockupens **design** till preview-SPA (10 steg, alla LIVE 2026-06-04, commit `94c32886`). Två logik-moduler från `/kunder.html` är dock **inte** porterade. De är de sista 2 av 10 features i `scripts/inventory-kunder-html-features.js` → kan inte raderas innan dessa portas.
 
-| Modul | Fil | Bytes | Public API |
-|---|---|---|---|
-| Smart Nästa Steg | `public/cco-kunder-smart-next-step.js` | 11 918 | `global.CcoKunderSmartNextStep` |
-| Capability-matrix | `public/cco-kunder-actions.js` | 10 262 | `global.CcoKunderActions` |
+| Modul             | Fil                                    | Bytes  | Public API                      |
+| ----------------- | -------------------------------------- | ------ | ------------------------------- |
+| Smart Nästa Steg  | `public/cco-kunder-smart-next-step.js` | 11 918 | `global.CcoKunderSmartNextStep` |
+| Capability-matrix | `public/cco-kunder-actions.js`         | 10 262 | `global.CcoKunderActions`       |
 
 Båda är IIFE:er som exponerar globalt namespace. Båda används idag från `public/cco-kunder-mobil-real.js` (mobil-shell utanför SPA).
 
@@ -45,8 +45,11 @@ Mounta båda modulerna i preview-SPA's dossier så `/kunder.html` kan avvecklas 
    - Anropa:
      ```js
      const dossierBar = CcoKunderActions.buildDossierBar(card, actionCtx);
-     const actionsHtml = CcoKunderActions.renderMatrixLegend(dossierBar)
-       + CcoKunderActions.renderActionsHtml(dossierBar, { hostId: 'v9-dossier-actions' });
+     const actionsHtml =
+       CcoKunderActions.renderMatrixLegend(dossierBar) +
+       CcoKunderActions.renderActionsHtml(dossierBar, {
+         hostId: 'v9-dossier-actions',
+       });
      ```
    - Mounta `actionsHtml` i ny container med `data-v9-capability-actions`.
    - Efter mount: `CcoKunderActions.bindDossierHandlers(actionsHost, { ... })` för klick-handlers.
@@ -74,9 +77,9 @@ Mounta båda modulerna i preview-SPA's dossier så `/kunder.html` kan avvecklas 
 
 ## Acceptance Criteria
 
-- [ ] `bin/bundle-manifest.json` innehåller båda filerna i rätt ordning
-- [ ] `npm run build:bundle` PASS lokalt
-- [ ] Prod-bundle (`app.bundle.<hash>.min.js`) innehåller `CcoKunderSmartNextStep` + `CcoKunderActions`
+- [x] `bin/bundle-manifest.json` innehåller båda filerna i rätt ordning
+- [x] `npm run build:bundle` PASS lokalt
+- [ ] Prod-bundle (`app.bundle.<hash>.min.js`) innehåller `CcoKunderSmartNextStep` + `CcoKunderActions` (väntar deploy)
 - [ ] Öppna prod-dossier (`?view=customers&v9=on` → klicka kund) → Smart Nästa Steg-panel syns
 - [ ] Samma dossier visar Capability-matrix actions-bar med korrekta disabled-reasons
 - [ ] `node scripts/verify-ord16-progress.js` → 13/13 PASS
@@ -87,13 +90,13 @@ Mounta båda modulerna i preview-SPA's dossier så `/kunder.html` kan avvecklas 
 
 ## Risker + Mitigation
 
-| Risk | Mitigation |
-|---|---|
-| `CcoKunderSmartNextStep` finns inte när dossier renderas (ordning i bundle fel) | Lägg dem TIDIGT i bundle-manifest, FÖRE `app/patient-master-ui.js` |
-| `automationSignals`-data saknas i SPA cards | Verifiera att SPA's cards-fetch redan inkluderar automation (om inte: lägg till `?includeAutomation=1`) |
-| Capability-matrix kräver `actionCtx` med `tenant + role + basePaths` som SPA inte har | Kopiera ctx-bygget från `cco-kunder-mobil-real.js` 1:1 |
-| Bundle-storlek växer >50 KB över baseline | Mät efter port — `cco-kunder-smart-next-step.js` (12 KB) + `cco-kunder-actions.js` (10 KB) = ~22 KB rå. Minified ~12 KB extra. Under target |
-| Disabled-buttons triggar errors vid klick | Båda modulerna har redan disabled-logik inbyggd; bara verifiera bindDossierHandlers monteras |
+| Risk                                                                                  | Mitigation                                                                                                                                  |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CcoKunderSmartNextStep` finns inte när dossier renderas (ordning i bundle fel)       | Lägg dem TIDIGT i bundle-manifest, FÖRE `app/patient-master-ui.js`                                                                          |
+| `automationSignals`-data saknas i SPA cards                                           | Verifiera att SPA's cards-fetch redan inkluderar automation (om inte: lägg till `?includeAutomation=1`)                                     |
+| Capability-matrix kräver `actionCtx` med `tenant + role + basePaths` som SPA inte har | Kopiera ctx-bygget från `cco-kunder-mobil-real.js` 1:1                                                                                      |
+| Bundle-storlek växer >50 KB över baseline                                             | Mät efter port — `cco-kunder-smart-next-step.js` (12 KB) + `cco-kunder-actions.js` (10 KB) = ~22 KB rå. Minified ~12 KB extra. Under target |
+| Disabled-buttons triggar errors vid klick                                             | Båda modulerna har redan disabled-logik inbyggd; bara verifiera bindDossierHandlers monteras                                                |
 
 ---
 

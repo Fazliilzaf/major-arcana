@@ -79,7 +79,7 @@ function main() {
   );
 
   // 1. Smart Nästa Steg (cco-kunder-smart-next-step.js)
-  const hasSmartNextSpa = /smart-next-step|smartNextStep|SmartNextStep/.test(previewBlob);
+  const hasSmartNextSpa = /data-v9-smart-next-step|CcoKunderSmartNextStep/.test(previewBlob);
   check(
     'Smart Nästa Steg',
     'cco-kunder-smart-next-step.js',
@@ -106,7 +106,7 @@ function main() {
   );
 
   // 4. Capability-matrix (cco-kunder-actions.js)
-  const hasCapMatrixSpa = /capability|buildMatrix|CcoKunderActions/.test(previewBlob);
+  const hasCapMatrixSpa = /data-v9-capability-actions|CcoKunderActions/.test(previewBlob);
   check(
     'Capability-matrix',
     'cco-kunder-actions.js',
