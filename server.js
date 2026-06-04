@@ -10034,6 +10034,13 @@ function servePreviewHtml(req, res, next) {
 app.get('/major-arcana-preview/', servePreviewHtml);
 app.get('/major-arcana-preview/index.html', servePreviewHtml);
 
+// ORD-19: /kunder.html avveckling — 301 redirect till SPA-customers-view.
+// MÅSTE ligga FÖRE express.static så filen aldrig serveras direkt.
+app.get('/kunder.html', (req, res) => {
+  const v9Param = String(req.query.v9 || 'on');
+  res.redirect(301, `/major-arcana-preview/?view=customers&v9=${encodeURIComponent(v9Param)}`);
+});
+
 app.use(
   express.static('public', {
     setHeaders: (res, filePath) => {

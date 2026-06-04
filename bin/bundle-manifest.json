@@ -40,6 +40,8 @@
     "app/journal-bleph-schemas.js",
     "app/journal-bleph-form.js",
     "app/journal-clinical-schemas.js",
-    "app/journal-pre-treatment-forms.js"
+    "app/journal-pre-treatment-forms.js",
+    "app/cco-kunder-smart-next-step.js",
+    "app/cco-kunder-actions.js"
   ]
 }

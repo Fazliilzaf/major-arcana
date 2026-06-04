@@ -60,7 +60,23 @@ function main() {
   const previewCustomersCss = readFile(path.join(PREVIEW_DIR, 'cco-v9-customers.css'));
   const patientMasterUi = readFile(path.join(PREVIEW_DIR, 'app/patient-master-ui.js'));
 
-  const previewBlob = [previewIndex, previewCustomersCss, patientMasterUi].join('\n');
+  // ORD-18: Smart Next + Capability-matrix portas via SPA-bundle, läs senaste bundle
+  let bundleContent = '';
+  try {
+    const latestPath = path.join(PREVIEW_DIR, 'app.bundle.latest.json');
+    if (fileExists(latestPath)) {
+      const latest = JSON.parse(readFile(latestPath));
+      if (latest.filename) {
+        bundleContent = readFile(path.join(PREVIEW_DIR, latest.filename));
+      }
+    }
+  } catch (_) {
+    /* silent — bundle är optional för inventering */
+  }
+
+  const previewBlob = [previewIndex, previewCustomersCss, patientMasterUi, bundleContent].join(
+    '\n'
+  );
 
   // 1. Smart Nästa Steg (cco-kunder-smart-next-step.js)
   const hasSmartNextSpa = /smart-next-step|smartNextStep|SmartNextStep/.test(previewBlob);
