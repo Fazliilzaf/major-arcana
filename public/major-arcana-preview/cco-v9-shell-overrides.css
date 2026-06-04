@@ -1,0 +1,119 @@
+/**
+ * ORD-16 — v9 page canvas + panel shells (loads LAST in cascade).
+ * source: uploads/CCO-Kunder-Mockup-v9-DESKTOP.html
+ * Gate: html[data-v9-enabled="on"] + customers shell view
+ */
+
+html[data-v9-enabled="on"] .preview-page:has(.preview-canvas[data-app-shell-view="customers"]),
+html[data-v9-enabled="on"]:has(.preview-canvas[data-app-shell-view="customers"]) body {
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+    radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(220, 210, 255, 0.18), transparent 48%),
+    var(--v9-bg-page, #faf6f2) !important;
+}
+
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] {
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+    radial-gradient(ellipse at 88% 4%, rgba(255, 210, 225, 0.34), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(220, 210, 255, 0.18), transparent 48%),
+    var(--v9-bg-page, #faf6f2) !important;
+}
+
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"]::before,
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"]::after {
+  content: none !important;
+  display: none !important;
+}
+
+html[data-v9-enabled="on"] .preview-canvas[data-app-shell-view="customers"] .preview-workspace::before {
+  opacity: 0 !important;
+}
+
+@media (min-width: 1024px) {
+  html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-surface {
+    position: relative;
+    border-radius: 28px;
+    padding: 20px 22px 16px !important;
+    background: linear-gradient(
+      180deg,
+      var(--v9-panel-shell-top, rgba(250, 246, 242, 0.94)),
+      var(--v9-panel-shell-bottom, rgba(244, 238, 233, 0.86))
+    ) !important;
+    box-shadow: var(--v9-panel-shell-shadow-strong) !important;
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-surface::before {
+    content: "" !important;
+    position: absolute;
+    inset: 0;
+    left: 0 !important;
+    top: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: inherit;
+    filter: none !important;
+    background:
+      radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.6), transparent 24%),
+      radial-gradient(circle at 56% 10%, rgba(255, 236, 222, 0.32), transparent 24%),
+      radial-gradient(circle at 88% 14%, rgba(255, 228, 238, 0.28), transparent 22%) !important;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-surface
+    > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail {
+    position: sticky !important;
+    top: 14px;
+    border-radius: 28px;
+    padding: 18px 16px 16px;
+    background: linear-gradient(
+      180deg,
+      var(--v9-panel-shell-top, rgba(250, 246, 242, 0.94)),
+      var(--v9-panel-shell-bottom, rgba(244, 238, 233, 0.86))
+    ) !important;
+    box-shadow: var(--v9-panel-shell-shadow-strong) !important;
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.55), transparent 26%),
+      radial-gradient(circle at 82% 12%, rgba(255, 228, 238, 0.24), transparent 24%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
+    .preview-canvas[data-app-shell-view="customers"]
+    .customers-rail
+    > * {
+    position: relative;
+    z-index: 1;
+  }
+}
