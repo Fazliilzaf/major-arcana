@@ -1,0 +1,36 @@
+---
+description: Inventera befintlig kod före implementation; koda bara det som saknas — utan att fråga först.
+alwaysApply: true
+---
+
+# Check before code — inventera först, implementera det som saknas
+
+## Grundregel
+
+Innan du skriver eller ändrar kod för en uppgift:
+
+1. **Sök i repot** — `docs/`, `src/`, `public/`, `scripts/`, ORD-handover, befintliga routes, CSS, tester.
+2. **Rapportera kort** vad som redan finns vs vad som faktiskt saknas.
+3. **Implementera direkt** endast det som saknas — **fråga inte** "ska jag börja koda?" om uppgiften redan är given.
+
+## Additivt som standard
+
+- **Lägg till** saknad funktion — **ändra inte** befintligt beteende, layout eller styling om det redan fungerar.
+- Visuell polish (typografi, färger, storlekar, mockup-paritet) görs **inte** om uppgiften bara saknar funktion.
+- Om något måste justeras för att ny kod ska fungera: **minimal diff** — t.ex. `:not(:disabled)` i stället för att skriva om hela blocket.
+
+## Skillnad mot "saknas"
+
+- **Finns delvis** → återanvänd/utöka; duplicera inte parallell logik.
+- **Finns i annan fil/scope** → koppla in eller flytta minimal diff; påstå inte "ej påbörjat".
+- **Finns bara lokalt / ej deployat** → säg det; implementera inte om prod-redo kod redan ligger i working tree utan commit.
+
+## Undantag (får fråga)
+
+- Destruktivt arbete (radera prod-data, force push, mass-merge).
+- Juridisk/compliance-blocker som kräver owner GO.
+- Två likvärdiga arkitekturval utan spec (sällan — föredra befintligt mönster i repot).
+
+## Verifiering
+
+Efter implementation: kör relevanta tester/scripts som redan finns (`check:syntax`, unit tests, `verify-*-prod` där det passar).
