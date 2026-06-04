@@ -2072,3 +2072,58 @@ html[data-v9-enabled="on"] [data-v9-customers-filters] .filter-chip--view:hover 
 html[data-v9-enabled="on"] [data-v9-customers-filters] .filter-chip-spacer {
   flex: 1 1 auto;
 }
+
+/* ─────────────────────────────────────────────────────────────────
+ * ORD-21 Fas 6 · Top-bar cleanup + story-card stripe-accents
+ * Mockup visar inte demo/streak/compose-pills i Kunder-vyn.
+ * Scoped: bara när v9 är på OCH preview-canvas är customers.
+ * ───────────────────────────────────────────────────────────────── */
+
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .preview-topbar
+  .preview-live-pill--demo,
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .preview-topbar
+  .inbox-streak-pill,
+html[data-v9-enabled="on"]
+  .preview-canvas[data-app-shell-view="customers"]
+  .preview-topbar
+  .preview-compose-pill {
+  display: none !important;
+}
+
+/* ─── Story-card kategori-stripes (subtle accent per kind) ───
+ * Mockup-analys: cards har tunn färgad rand i topp/vänsterkant
+ * som signalerar kategori (action=rosa, opp=blå, trend=grön, risk=amber).
+ * Implementeras via ::before pseudo-element. */
+
+html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight {
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  pointer-events: none;
+  border-radius: 14px 14px 0 0;
+}
+
+html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight[data-v9-agg="idag"]::before {
+  background: linear-gradient(90deg, var(--v9-accent-studio, #bb4779), rgba(187, 71, 121, 0.35));
+}
+html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight[data-v9-agg="opp"]::before {
+  background: linear-gradient(90deg, var(--v9-status-info, #4a7ba8), rgba(74, 123, 168, 0.35));
+}
+html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight[data-v9-agg="trend"]::before {
+  background: linear-gradient(90deg, var(--v9-status-success, #4a8268), rgba(74, 130, 104, 0.35));
+}
+html[data-v9-enabled="on"] [data-v9-agg-insights] .agg-insight[data-v9-agg="risk"]::before {
+  background: linear-gradient(90deg, var(--v9-status-warning, #c8821e), rgba(200, 130, 30, 0.35));
+}

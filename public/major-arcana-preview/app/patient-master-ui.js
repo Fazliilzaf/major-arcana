@@ -1749,7 +1749,7 @@
       drive: stats.driveOnly,
     };
     const labels = {
-      active: (n) => `${formatMetricNumber(n)} aktiva i maj`,
+      active: (n) => `${formatMetricNumber(n)} aktiva`,
       vip: (n) => `${formatMetricNumber(n)} VIP`,
       risk: (n) => `${formatMetricNumber(n)} risk`,
       new: (n) => `${formatMetricNumber(n)} nya / 30 dagar`,
