@@ -1365,7 +1365,7 @@
                 <div class="watch-kicker">${escapeHtml(kicker)}</div>
                 <div class="watch-title">${escapeHtml(upcoming.treatmentLabel || 'Behandling')}</div>
                 <div class="watch-sub">${escapeHtml(sub || '—')}</div>
-                <button type="button" class="watch-ai-pill" data-v9-watch-sms title="Skicka SMS-påminnelse">★ AI · Skicka SMS</button>
+                <button type="button" class="watch-ai-pill" data-v9-watch-sms title="Skicka SMS-påminnelse">★ Skicka SMS</button>
                 <div class="watch-swipe" data-v9-watch-swipe role="button" tabindex="0" aria-label="Svep för ankomst">
                   <div class="watch-swipe-fill"></div>
                   <span class="watch-swipe-label">Svep för ankomst</span>
@@ -1424,7 +1424,7 @@
           </div>
           ${renderV9PopulationChartHtml(segmentStats, stats)}
           <div>
-            <div class="agg-kicker">★ AI · Veckans insikter</div>
+            <div class="agg-kicker">★ Veckans insikter</div>
           </div>
           <div class="agg-ai-list">
             ${insightRows
@@ -3413,7 +3413,7 @@
             <div>Status</div>
             <div>Senaste besök</div>
             <div>Intäkt (LTV)</div>
-            <div>AI nästa-steg</div>
+            <div>Nästa steg</div>
             <div></div>
           </div>
         `;

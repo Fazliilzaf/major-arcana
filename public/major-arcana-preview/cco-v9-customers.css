@@ -585,12 +585,13 @@ html[data-v9-enabled="on"] .customer-row .cr-ai {
 }
 
 html[data-v9-enabled="on"] .customer-row .cr-ai::before {
-  content: "★ AI";
+  /* Owner-request 2026-06-04: ta bort "AI"-prefix på row-pillen */
+  content: "★";
   font-size: var(--v9-font-kicker-xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--v9-calendar-accent, #c8821e);
-  margin-right: 2px;
+  margin-right: 4px;
   flex-shrink: 0;
 }
 
@@ -1242,7 +1243,8 @@ html[data-v9-enabled="on"] .v9-dossier-hero .dossier-next-step {
 }
 
 html[data-v9-enabled="on"] .v9-dossier-hero .dossier-next-step::before {
-  content: "★ AI";
+  /* Owner-request 2026-06-04: ta bort "AI"-prefix */
+  content: "★";
   font-size: var(--v9-font-kicker-xs);
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -1651,7 +1653,8 @@ html[data-v9-enabled="on"] .v9-aggregate-panel .agg-ai-row:hover {
 }
 
 html[data-v9-enabled="on"] .v9-aggregate-panel .agg-ai-row::before {
-  content: "★ AI";
+  /* Owner-request 2026-06-04: ta bort "AI"-prefix */
+  content: "★";
   display: block;
   margin-bottom: 3px;
   color: var(--ins-color, var(--v9-calendar-accent));
