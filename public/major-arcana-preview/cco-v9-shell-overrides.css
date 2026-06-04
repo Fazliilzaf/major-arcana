@@ -47,36 +47,28 @@ html[data-v9-enabled="on"]
 }
 
 @media (min-width: 1024px) {
+  /* Owner-request 2026-06-04 17:00: "den stora rutan som allt är placerat på, kan du ta bort den?"
+     Mockup customers-shell är transparent — atmosfären ska synas igenom direkt utan vellum-platta runt allt.
+     Behåller position/isolation bara så child-z-index inte bryts. */
   html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
     .preview-canvas[data-app-shell-view="customers"]
     .customers-surface {
     position: relative;
-    border-radius: 28px;
-    padding: 20px 22px 16px !important;
-    background: var(--v9-bg-panel-shell) !important;
-    box-shadow: var(--v9-panel-surface-shadow) !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    /* ORD-21 F / Rek. 6: vellum/paperism — laminerat, inte glass. */
-    overflow: hidden;
+    overflow: visible !important;
     isolation: isolate;
   }
 
   html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
     .preview-canvas[data-app-shell-view="customers"]
     .customers-surface::before {
-    content: "" !important;
-    position: absolute;
-    inset: 0;
-    left: 0 !important;
-    top: 0 !important;
-    width: auto !important;
-    height: auto !important;
-    border-radius: inherit;
-    filter: none !important;
-    background: var(--v9-panel-vellum-highlight) !important;
-    pointer-events: none;
-    z-index: 0;
+    display: none !important;
+    content: none !important;
   }
 
   html[data-v9-enabled="on"]:not([data-cco-mobile-shell="on"])
