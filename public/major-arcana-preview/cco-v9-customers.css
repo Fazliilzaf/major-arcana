@@ -3,6 +3,8 @@
  * Gate: html[data-v9-enabled="on"]
  */
 
+/* Page canvas + panel shells → cco-v9-shell-overrides.css (loads last) */
+
 /* ─── Steg 2: hide legacy header chrome when v9 is on ─── */
 html[data-v9-enabled="on"] .customers-register-top-main > h1,
 html[data-v9-enabled="on"] .customers-register-top-main > p[data-customers-lead],
@@ -691,12 +693,10 @@ html[data-v9-enabled="on"] [data-v9-segment-sidebar].side-shell {
   border-radius: 22px;
   background: linear-gradient(
     180deg,
-    var(--v9-panel-shell-top, rgba(250, 246, 242, 0.92)),
-    var(--v9-panel-shell-bottom, rgba(244, 238, 232, 0.88))
+    var(--v9-panel-shell-top, rgba(250, 246, 242, 0.94)),
+    var(--v9-panel-shell-bottom, rgba(244, 238, 233, 0.86))
   );
-  box-shadow:
-    0 8px 24px rgba(70, 50, 30, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  box-shadow: var(--v9-panel-shell-shadow);
   backdrop-filter: blur(14px);
   min-width: 0;
   max-height: calc(100vh - 7rem);
@@ -1944,4 +1944,87 @@ html[data-v9-enabled="on"] .v9-watch-widget.watch-widget--empty .watch-body[data
     max-width: 168px;
     margin: 0 auto;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * ORD-21 · Mockup-paritet (Fas 1)
+ * Hide legacy chrome + reorder surface so layout matches v9-mockup:
+ *   header → agg-insights → filters → layout
+ * Plus styling for new Snitt LTV + + Ny kund.
+ * ───────────────────────────────────────────────────────────────── */
+
+/* Hide Kundregister/Identitet-tabs när v9 är på (mockup har inga tabs) */
+html[data-v9-enabled="on"] .patient-master-mode-toggle {
+  display: none !important;
+}
+
+/* Hide legacy stora sökrutan (mockup använder top-bar sök) */
+html[data-v9-enabled="on"] .customers-surface > .customers-toolbar {
+  display: none !important;
+}
+
+/* Reorder surface-barn till mockup-ordning */
+html[data-v9-enabled="on"] .customers-surface {
+  display: flex;
+  flex-direction: column;
+}
+html[data-v9-enabled="on"] .customers-surface > .customers-register-header {
+  order: 1;
+}
+html[data-v9-enabled="on"] .customers-surface > .customers-v9-agg-insights {
+  order: 2;
+}
+html[data-v9-enabled="on"] .customers-surface > .customers-v9-filters {
+  order: 3;
+}
+html[data-v9-enabled="on"] .customers-surface > .customers-layout {
+  order: 4;
+}
+html[data-v9-enabled="on"] .customers-surface > .customers-modal-shell,
+html[data-v9-enabled="on"] .customers-surface > .aux-shell,
+html[data-v9-enabled="on"] .customers-surface > .mailbox-admin-shell,
+html[data-v9-enabled="on"] .customers-surface > .note-mode-shell {
+  order: 100;
+}
+
+/* Snitt LTV pushed right inside pill-row */
+html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .v9-snitt-ltv {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a4338;
+  letter-spacing: 0.01em;
+}
+html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .v9-snitt-ltv-value {
+  color: #322620;
+  font-weight: 700;
+}
+
+/* + Ny kund knapp (accent-fill) */
+html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-actions .v9-add-customer {
+  background: linear-gradient(180deg, #f5e6ee 0%, #e6c9d8 100%);
+  color: #6b2b48;
+  border: 1px solid rgba(181, 72, 121, 0.35);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-actions .v9-add-customer:hover {
+  background: linear-gradient(180deg, #e6c9d8 0%, #d7b0c3 100%);
+  box-shadow: 0 2px 8px rgba(181, 72, 121, 0.25);
+}
+
+/* VIP pill — fylld lila som i mockup */
+html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .status-pill[data-v9-metric="vip"] {
+  background: linear-gradient(180deg, #ede4f1 0%, #d9c3e3 100%);
+  color: #4a2768;
+  border-color: rgba(120, 70, 160, 0.35);
+}
+html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .status-pill[data-v9-metric="vip"] .dot {
+  background: #8a4eb8;
 }

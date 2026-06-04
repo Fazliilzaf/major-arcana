@@ -1711,19 +1711,32 @@
     return Number.isFinite(n) ? n.toLocaleString('sv-SE') : '0';
   }
 
-  function renderV9MetricHeader(stats) {
+  function renderV9MetricHeader(stats, segmentStats) {
     if (!isV9CustomersEnabled() || !els.v9Header || !stats) return;
     const countNode = els.v9Header.querySelector('[data-v9-customer-count]');
     if (countNode) {
       countNode.textContent = `${formatMetricNumber(stats.totalPatients)} kunder`;
     }
+    const segCounts = segmentStats?.counts || {};
+    // ORD-21 mockup-paritet: pills mappar nu till segment-counts (aktiva/VIP/risk/nya/dormant)
+    // Behåller bakåt-kompat för matched/journal/review/drive om ngn pill fortf finns.
     const mapping = {
+      active: segCounts.active,
+      vip: segCounts.vip,
+      risk: segCounts.risk,
+      new: segCounts.new,
+      dormant: segCounts.dormant,
       matched: stats.matched,
       journal: stats.withPersonnummer,
       review: stats.needsReview,
       drive: stats.driveOnly,
     };
     const labels = {
+      active: (n) => `${formatMetricNumber(n)} aktiva i maj`,
+      vip: (n) => `${formatMetricNumber(n)} VIP`,
+      risk: (n) => `${formatMetricNumber(n)} risk`,
+      new: (n) => `${formatMetricNumber(n)} nya / 30 dagar`,
+      dormant: (n) => `${formatMetricNumber(n)} dormant`,
       matched: (n) => `${formatMetricNumber(n)} kopplade`,
       journal: (n) => `${formatMetricNumber(n)} med personnummer`,
       review: (n) => `${formatMetricNumber(n)} behöver granskning`,
@@ -1733,8 +1746,21 @@
       const key = pill.dataset.v9Metric;
       const textNode = pill.querySelector('[data-v9-metric-text]');
       if (!textNode || !Object.prototype.hasOwnProperty.call(mapping, key)) return;
-      textNode.textContent = labels[key](mapping[key]);
+      const value = mapping[key];
+      textNode.textContent = labels[key](value ?? 0);
     });
+    // Snitt LTV (read-only, "—" om data saknas)
+    const ltvNode = els.v9Header.querySelector('[data-v9-snitt-ltv-value]');
+    if (ltvNode) {
+      const totalRevenue = Number(stats.totalRevenue ?? stats.revenueTotal ?? 0);
+      const totalCustomers = Number(stats.totalPatients ?? 0);
+      if (totalRevenue > 0 && totalCustomers > 0) {
+        const avg = Math.round(totalRevenue / totalCustomers);
+        ltvNode.textContent = `${formatMetricNumber(avg)} kr`;
+      } else {
+        ltvNode.textContent = '—';
+      }
+    }
   }
 
   function renderMetricCards() {
@@ -1754,7 +1780,7 @@
         node.textContent = String(mapping[key] ?? 0);
       }
     });
-    renderV9MetricHeader(stats);
+    renderV9MetricHeader(stats, runtime.segmentStats);
     renderV9FilterChips(stats, runtime.segmentStats);
     renderV9SegmentSidebar(runtime.segmentStats, stats);
     renderV9AggInsights(runtime.segmentStats);

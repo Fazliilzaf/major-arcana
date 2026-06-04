@@ -121,6 +121,7 @@
     <link rel="stylesheet" href="/cco-scalp-analysis.css" />
     <link rel="stylesheet" href="./cco-mobile-shell.css?v=build-1ccb8f9" />
     <link rel="stylesheet" href="./cco-tablet-shell.css?v=build-1ccb8f9" />
+    <link rel="stylesheet" href="./cco-v9-shell-overrides.css?v=build-1ccb8f9" />
     <script src="./booking-lazy-load.js?v=build-1ccb8f9"></script>
     <script src="./cco-polish.js?v=build-1ccb8f9" defer></script>
     <script src="./cco-mobile-core.js?v=build-1ccb8f9" defer></script>
@@ -3170,26 +3171,40 @@
                       >
                         ↓ Exportera
                       </button>
+                      <button
+                        class="nav-btn v9-add-customer"
+                        type="button"
+                        data-customer-command="new"
+                        aria-label="Lägg till ny kund"
+                      >
+                        + Ny kund
+                      </button>
                     </div>
                   </div>
                   <div class="calendar-status-bar" aria-label="Kundstatus">
-                    <span class="status-pill status-pill--success" data-v9-metric="matched">
+                    <span class="status-pill status-pill--success" data-v9-metric="active">
                       <span class="dot"></span>
-                      <span data-v9-metric-text>0 kopplade</span>
+                      <span data-v9-metric-text>0 aktiva</span>
                     </span>
-                    <span class="status-pill status-pill--info" data-v9-metric="journal">
+                    <span class="status-pill status-pill--info" data-v9-metric="vip">
                       <span class="dot"></span>
-                      <span data-v9-metric-text>0 med personnummer</span>
+                      <span data-v9-metric-text>0 VIP</span>
                     </span>
-                    <span class="status-pill status-pill--warning" data-v9-metric="review">
+                    <span class="status-pill status-pill--warning" data-v9-metric="risk">
                       <span class="dot"></span>
-                      <span data-v9-metric-text>0 behöver granskning</span>
+                      <span data-v9-metric-text>0 risk</span>
                     </span>
-                    <span class="status-pill status-pill--neutral" data-v9-metric="drive">
+                    <span class="status-pill status-pill--neutral" data-v9-metric="new">
                       <span class="dot"></span>
-                      <span data-v9-metric-text>0 endast Drive</span>
+                      <span data-v9-metric-text>0 nya / 30 dagar</span>
                     </span>
-                    <span class="spacer" aria-hidden="true"></span>
+                    <span class="status-pill status-pill--neutral" data-v9-metric="dormant">
+                      <span class="dot"></span>
+                      <span data-v9-metric-text>0 dormant</span>
+                    </span>
+                    <span class="v9-snitt-ltv" data-v9-snitt-ltv aria-label="Snitt livstidsvärde">
+                      Snitt LTV: <span class="v9-snitt-ltv-value" data-v9-snitt-ltv-value>—</span>
+                    </span>
                   </div>
                 </div>
                 <div class="customers-register-top">
