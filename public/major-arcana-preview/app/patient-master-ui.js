@@ -783,6 +783,7 @@
     els.search = document.querySelector('[data-customer-search]');
     els.filter = document.querySelector('[data-customer-filter]');
     els.metrics = document.querySelector('.customers-metric-row');
+    els.v9Header = document.querySelector('[data-v9-customers-header]');
     els.title = document.querySelector('#customers-title');
     els.subtitle = els.shell?.querySelector('[data-customers-lead]');
     els.modeButtons = Array.from(document.querySelectorAll('[data-patient-master-mode]'));
@@ -818,6 +819,52 @@
     if (els.metrics) {
       els.metrics.hidden = !isRegister;
     }
+    syncV9CustomersChrome();
+  }
+
+  function isV9CustomersEnabled() {
+    return (
+      document.documentElement.getAttribute('data-v9-enabled') === 'on' ||
+      window.__ARCANA_V9_ENABLED__ === true
+    );
+  }
+
+  function syncV9CustomersChrome() {
+    if (!els.v9Header) return;
+    const show = isV9CustomersEnabled() && runtime.mode === 'register';
+    els.v9Header.hidden = !show;
+    els.v9Header.setAttribute('aria-hidden', show ? 'false' : 'true');
+  }
+
+  function formatMetricNumber(value) {
+    const n = Number(value ?? 0);
+    return Number.isFinite(n) ? n.toLocaleString('sv-SE') : '0';
+  }
+
+  function renderV9MetricHeader(stats) {
+    if (!isV9CustomersEnabled() || !els.v9Header || !stats) return;
+    const countNode = els.v9Header.querySelector('[data-v9-customer-count]');
+    if (countNode) {
+      countNode.textContent = `${formatMetricNumber(stats.totalPatients)} kunder`;
+    }
+    const mapping = {
+      matched: stats.matched,
+      journal: stats.withPersonnummer,
+      review: stats.needsReview,
+      drive: stats.driveOnly,
+    };
+    const labels = {
+      matched: (n) => `${formatMetricNumber(n)} kopplade`,
+      journal: (n) => `${formatMetricNumber(n)} med personnummer`,
+      review: (n) => `${formatMetricNumber(n)} behöver granskning`,
+      drive: (n) => `${formatMetricNumber(n)} endast Drive`,
+    };
+    els.v9Header.querySelectorAll('[data-v9-metric]').forEach((pill) => {
+      const key = pill.dataset.v9Metric;
+      const textNode = pill.querySelector('[data-v9-metric-text]');
+      if (!textNode || !Object.prototype.hasOwnProperty.call(mapping, key)) return;
+      textNode.textContent = labels[key](mapping[key]);
+    });
   }
 
   function renderMetricCards() {
@@ -837,6 +884,7 @@
         node.textContent = String(mapping[key] ?? 0);
       }
     });
+    renderV9MetricHeader(stats);
   }
 
   function chipHtml(label, tone = 'blue') {

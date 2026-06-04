@@ -3142,6 +3142,56 @@
           >
             <div class="customers-surface">
               <header class="customers-register-header customers-head">
+                <div class="customers-v9-header" data-v9-customers-header hidden aria-hidden="true">
+                  <div class="calendar-toolbar">
+                    <div class="calendar-toolbar-main">
+                      <span class="calendar-toolbar-kicker">Kunder</span>
+                      <span class="calendar-mark calendar-mark--customers" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.4"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <circle cx="12" cy="8" r="4" />
+                          <path d="M20 21a8 8 0 0 0-16 0" />
+                        </svg>
+                      </span>
+                      <h2 data-v9-customer-count>0 kunder</h2>
+                    </div>
+                    <div class="calendar-toolbar-actions">
+                      <button
+                        class="nav-btn"
+                        type="button"
+                        data-customer-command="export"
+                        data-i18n="ui.exportera.59e749"
+                      >
+                        ↓ Exportera
+                      </button>
+                    </div>
+                  </div>
+                  <div class="calendar-status-bar" aria-label="Kundstatus">
+                    <span class="status-pill status-pill--success" data-v9-metric="matched">
+                      <span class="dot"></span>
+                      <span data-v9-metric-text>0 kopplade</span>
+                    </span>
+                    <span class="status-pill status-pill--info" data-v9-metric="journal">
+                      <span class="dot"></span>
+                      <span data-v9-metric-text>0 med personnummer</span>
+                    </span>
+                    <span class="status-pill status-pill--warning" data-v9-metric="review">
+                      <span class="dot"></span>
+                      <span data-v9-metric-text>0 behöver granskning</span>
+                    </span>
+                    <span class="status-pill status-pill--neutral" data-v9-metric="drive">
+                      <span class="dot"></span>
+                      <span data-v9-metric-text>0 endast Drive</span>
+                    </span>
+                    <span class="spacer" aria-hidden="true"></span>
+                  </div>
+                </div>
                 <div class="customers-register-top">
                   <div class="customers-register-top-main">
                     <h1 id="customers-title">Kundregister</h1>

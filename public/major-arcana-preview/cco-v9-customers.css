@@ -1,11 +1,245 @@
 /**
  * ORD-16 — v9 customer-view skin (scoped).
- * Steg 1: scaffold only — no active rules until steg 2+.
  * Gate: html[data-v9-enabled="on"]
  */
 
-/* Steg 2: .customers-register-header → v9 calendar-toolbar */
-/* Steg 3: .customers-toolbar → v9 filter-chips */
-/* Steg 4: .customer-record → v9 .customer-row */
+/* ─── Steg 2: hide legacy header chrome when v9 is on ─── */
+html[data-v9-enabled="on"] .customers-register-top-main > h1,
+html[data-v9-enabled="on"] .customers-register-top-main > p[data-customers-lead],
+html[data-v9-enabled="on"] .customers-head-actions,
+html[data-v9-enabled="on"] .customers-metric-row {
+  display: none !important;
+}
+
+html[data-v9-enabled="on"] .customers-register-top {
+  margin-top: 0;
+}
+
+html[data-v9-enabled="on"] .customers-register-top-main {
+  width: 100%;
+}
+
+html:not([data-v9-enabled="on"]) .customers-v9-header {
+  display: none !important;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header:not([hidden]) {
+  display: block;
+}
+
+/* ─── Toolbar ─── */
+html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 14px;
+  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-kicker {
+  color: #84756b;
+  font-size: 10.5px;
+  line-height: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-mark {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 2px 6px rgba(187, 71, 121, 0.22);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-mark--customers {
+  color: var(--v9-accent-studio, #bb4779);
+  background: rgba(187, 71, 121, 0.14);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-mark svg {
+  width: 13px;
+  height: 13px;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-main h2 {
+  margin: 0;
+  color: #17191f;
+  font-size: 18px;
+  line-height: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .nav-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  min-height: 26px;
+  padding: 0 11px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--v9-color-brand, #2b251f);
+  transition: transform 0.1s ease;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .nav-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ─── Status bar ─── */
+html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 14px;
+  margin-top: -4px;
+  box-shadow: inset 0 -1px 0 rgba(215, 202, 194, 0.5);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .status-pill {
+  flex-shrink: 0;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .calendar-status-bar .spacer {
+  flex: 1 0 8px;
+  min-width: 8px;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 232, 0.84));
+  font-size: 10.5px;
+  line-height: 12px;
+  font-weight: 700;
+  box-shadow:
+    0 2px 6px rgba(56, 40, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+  color: var(--v9-color-brand, #2b251f);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill--success {
+  color: var(--v9-status-success, #4a8268);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill--success .dot {
+  background: var(--v9-status-success, #4a8268);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill--warning {
+  color: var(--v9-status-warning, #c8821e);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill--warning .dot {
+  background: var(--v9-status-warning, #c8821e);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill--info {
+  color: var(--v9-status-info, #4a7ba8);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill--info .dot {
+  background: var(--v9-status-info, #4a7ba8);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill--neutral {
+  color: var(--v9-text-tertiary, #8a8174);
+}
+
+html[data-v9-enabled="on"] .customers-v9-header .status-pill--neutral .dot {
+  background: var(--v9-text-tertiary, #8a8174);
+}
+
+/* ─── Mobile (320–767px) ─── */
+@media (max-width: 767px) {
+  html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-main {
+    flex: 1 1 100%;
+  }
+
+  html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+
+  html[data-v9-enabled="on"] .customers-v9-header .nav-btn {
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 12px;
+  }
+
+  html[data-v9-enabled="on"] .customers-v9-header .calendar-toolbar-main h2 {
+    font-size: 16px;
+  }
+}
+
+/* Steg 3+: .customers-toolbar → filter-chips */
+/* Steg 4+: .customer-record → v9 .customer-row */
 /* Steg 6: segment side-shell */
 /* Steg 9: .agg-insights, smart-next, .watch-widget (from kunder.html) */
