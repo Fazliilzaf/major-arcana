@@ -3839,7 +3839,73 @@
     if (card?.missingFitnessCertificate && card?.hasUpcomingBooking) {
       push('blocker', 'Saknar friskförsäkran inför kommande besök');
     }
+    // Owner-krav 2026-06-04: allergier + viktig anteckning ska lyftas högst upp
+    const allergies = asArray(card?.allergies || card?.demographics?.allergies)
+      .map((a) => (typeof a === 'string' ? a : a?.name || a?.label))
+      .filter(Boolean);
+    if (allergies.length) {
+      push('legal_blocker', `Allergier: ${allergies.slice(0, 4).join(', ').toUpperCase()}`);
+    }
+    const importantNote = normalizeText(card?.importantNote || card?.demographics?.importantNote);
+    if (importantNote) {
+      push('needs_review', `Viktigt: ${importantNote.slice(0, 120)}`);
+    }
     return blockers.slice(0, max);
+  }
+
+  function buildV9JourneySteps(card) {
+    // 9-stegs kundresa per memory project_hairtp_kundresa_korrigerad_2026_06.
+    // Display-only: visualiserar resa med "done/active/pending/locked" baserat på tillgängliga signaler.
+    const signals = card?.automationSignals || [];
+    const findSignal = (key) => signals.find((s) => String(s?.ruleId || '').includes(key));
+    const hasUpcoming = Boolean(card?.hasUpcomingBooking);
+    const hasJournal = Boolean(card?.hasJournal);
+    const photoConsent = card?.photoConsent;
+    const planStatus = normalizeText(card?.treatmentPlanStatus);
+    const agreementSigned = Boolean(card?.agreementSigned || findSignal('agreement_signed'));
+    const fitnessSigned = !card?.missingFitnessCertificate;
+    const completedTreatment = Boolean(card?.hasCompletedTreatment || hasJournal);
+    const hasFollowUp = Boolean(card?.hasFollowUpBooking || findSignal('follow_up'));
+    const hasReview = Boolean(card?.hasReview || findSignal('review'));
+    const sentPreInfo = Boolean(card?.preInfoSentAt || findSignal('pre_info'));
+    const hasConsultDone = hasJournal || Boolean(card?.consultDoneAt);
+
+    function step(id, label, done, active) {
+      let state = 'pending';
+      if (done) state = 'done';
+      else if (active) state = 'active';
+      return { id, label, state };
+    }
+
+    return [
+      step('pre', 'Pre-info', sentPreInfo, !sentPreInfo && hasUpcoming),
+      step('konsult', 'Konsult', hasConsultDone, !hasConsultDone && hasUpcoming),
+      step('offert', 'Offert', Boolean(planStatus && planStatus !== 'draft'), hasConsultDone && !planStatus),
+      step('avtal', 'Avtal', agreementSigned, !agreementSigned && Boolean(planStatus)),
+      step('foto', 'Foto-samtycke', Boolean(photoConsent?.signed), !photoConsent?.signed && agreementSigned),
+      step('frisk', 'Friskförs', fitnessSigned, !fitnessSigned && hasUpcoming),
+      step('op', 'Operation', completedTreatment, !completedTreatment && fitnessSigned && hasUpcoming),
+      step('uppfolj', 'Uppfölj', hasFollowUp, completedTreatment && !hasFollowUp),
+      step('omd', 'Omdöme', hasReview, hasFollowUp && !hasReview),
+    ];
+  }
+
+  function renderV9JourneyStepperHtml(card) {
+    if (!isV9CustomersEnabled() || !card) return '';
+    const steps = buildV9JourneySteps(card);
+    if (!steps.length) return '';
+    return `
+          <ol class="v9-journey-stepper" data-v9-journey-stepper aria-label="Kundresa 9 steg">
+            ${steps
+              .map(
+                (s, idx) => `
+              <li class="v9-journey-step v9-journey-step--${escapeHtml(s.state)}" data-v9-journey-step="${escapeHtml(s.id)}" title="${escapeHtml(s.label)} (${escapeHtml(s.state)})">
+                <span class="v9-journey-step__dot" aria-hidden="true">${s.state === 'done' ? '✓' : idx + 1}</span>
+                <span class="v9-journey-step__label">${escapeHtml(s.label)}</span>
+              </li>`
+              )
+              .join('')}
+          </ol>`;
   }
 
   function renderV9Zone1BlockersHtml(card) {
@@ -4018,6 +4084,7 @@
               <button type="button" class="dossier-close" data-v9-dossier-close title="Stäng dossiér" aria-label="Stäng dossiér">×</button>
             </div>
             ${renderV9Zone1BlockersHtml(card)}
+            ${renderV9JourneyStepperHtml(card)}
             ${renderV9Zone1PrimaryStepHtml(card, { loading })}
             <div class="dossier-stats">
               ${stats
