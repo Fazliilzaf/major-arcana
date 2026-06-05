@@ -919,6 +919,223 @@
     return 'Ta bild direkt i konsultationen, markera zoner och skapa offert här.';
   }
 
+  /* ORD-25 Fas B — v11 hero (render-path ägs här) */
+
+  function resolveV11DisplayName(card) {
+    return (
+      card?.displayName ||
+      card?.name ||
+      [card?.firstName, card?.lastName].filter(Boolean).join(' ') ||
+      card?.patientId ||
+      'Okänd kund'
+    );
+  }
+
+  function resolveV11Monogram(name) {
+    const parts = String(name || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+    }
+    return String(name || '??')
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  function resolveV11ContactMeta(card) {
+    const email = card?.emailMasked || card?.primaryEmail || '';
+    const phone = card?.phoneMasked || card?.primaryPhone || '';
+    const parts = [];
+    if (email) parts.push(email);
+    if (phone) parts.push(phone);
+    const visits = Number(card?.visitCount ?? card?.bookingCount ?? 0);
+    if (visits > 0) parts.push(`${visits} besök`);
+    if (card?.lastVisitAt) parts.push(`Senast ${String(card.lastVisitAt).slice(0, 10)}`);
+    return parts.length ? parts.join(' · ') : 'Kontakt saknas';
+  }
+
+  function parseV11NoteField(note, keys) {
+    const text = String(note || '');
+    for (const key of keys) {
+      const match = text.match(new RegExp(`${key}\\s*[:.]\\s*([^\\n|]+)`, 'i'));
+      if (match) return match[1].trim();
+    }
+    return '';
+  }
+
+  function buildV11MedicalBriefingModel(card) {
+    const allergies = asArray(card?.allergies || card?.demographics?.allergies)
+      .map((item) => (typeof item === 'string' ? item : item?.name || item?.label))
+      .filter(Boolean);
+    const note = card?.importantNote || card?.demographics?.importantNote || '';
+    const mediciner =
+      asArray(card?.medications)
+        .map((item) => (typeof item === 'string' ? item : item?.name || item?.label))
+        .filter(Boolean)
+        .join(', ') ||
+      parseV11NoteField(note, ['medicin', 'mediciner']) ||
+      '—';
+    const diagnoser =
+      asArray(card?.diagnoses)
+        .map((item) => (typeof item === 'string' ? item : item?.name || item?.label))
+        .filter(Boolean)
+        .join(', ') ||
+      parseV11NoteField(note, ['diagnos', 'diagnoser']) ||
+      '—';
+    const allergier =
+      allergies.join(', ') || parseV11NoteField(note, ['allergi', 'allergier']) || 'Ingen känd';
+    let ovrigt = parseV11NoteField(note, ['övrigt', 'ovrigt', 'notering']);
+    if (!ovrigt && note && !parseV11NoteField(note, ['allergi', 'allergier'])) {
+      ovrigt = note.length > 96 ? `${note.slice(0, 93)}…` : note;
+    }
+    if (!ovrigt) ovrigt = '—';
+    return { allergier, mediciner, diagnoser, ovrigt };
+  }
+
+  function buildV11HeroPills(card) {
+    const pills = [];
+    const add = (tone, label) => {
+      if (!label || pills.some((item) => item.label === label)) return;
+      pills.push({ tone, label });
+    };
+    if (card?.isVip) add('lila', 'VIP');
+    const typeBlob = [
+      ...asArray(card?.treatmentTypes),
+      card?.nextBookingType,
+      card?.lastBookingType,
+    ]
+      .join(' ')
+      .toLowerCase();
+    if (typeBlob.includes('prp')) add('gron', 'PRP-kur');
+    const visits = Number(card?.visitCount ?? card?.bookingCount ?? 0);
+    if (visits >= 3) add('gron', 'Hög lojalitet');
+    else if (card?.segmentHints?.active || card?.hasJournal) add('lila', 'Aktiv kund');
+    else if (card?.hasUpcomingBooking) add('lila', 'Kommande besök');
+    return pills.slice(0, 3);
+  }
+
+  function resolveV11HeroStats(card) {
+    let visits = Number(card?.visitCount ?? card?.bookingCount ?? 0);
+    if (!visits && card?.lastVisitAt) visits = 1;
+    const ltv = card?.lifetimeValue ?? card?.dealValue ?? card?.pipedriveDealValue;
+    const noShows = Number(card?.noShowCount ?? 0);
+    const hasLtv = ltv != null && Number(ltv) > 0;
+    const visitTrend = card?.lastVisitAt
+      ? `Senast ${String(card.lastVisitAt).slice(0, 10)}`
+      : visits > 0
+        ? `${visits} registrerade`
+        : 'Inga besök';
+    const revenueTrend = hasLtv
+      ? card?.lifetimeValueLabel || 'Livstidsvärde'
+      : card?.pipedriveLinked
+        ? 'Pipedrive-kopplad'
+        : '—';
+    return {
+      visits,
+      visitTrend,
+      revenue: hasLtv ? formatSek(ltv) : '—',
+      revenueTrend,
+      noShows,
+      heroLine:
+        noShows === 0
+          ? `${noShows} no-shows · Klockren · Topp 5%`
+          : `${noShows} no-show${noShows === 1 ? '' : 's'} · Uppfölj`,
+    };
+  }
+
+  function renderV11Hairstrand() {
+    return '<div class="v11-hairstrand" role="presentation" aria-hidden="true"></div>';
+  }
+
+  function renderV11MedicalBriefing(card) {
+    const model = buildV11MedicalBriefingModel(card);
+    const cells = [
+      { label: 'Allergier', value: model.allergier },
+      { label: 'Mediciner', value: model.mediciner },
+      { label: 'Diagnoser', value: model.diagnoser },
+      { label: 'Övrigt', value: model.ovrigt },
+    ];
+    return `
+      <section class="v11-medical-briefing" data-v11-medical-briefing aria-label="Medicinsk briefing">
+        <div class="v11-medical-briefing__grid">
+          ${cells
+            .map(
+              (cell) => `
+            <div class="v11-medical-briefing__cell">
+              <div class="v11-medical-briefing__label">${escapeHtml(cell.label)}</div>
+              <div class="v11-medical-briefing__value">${escapeHtml(cell.value)}</div>
+            </div>`
+            )
+            .join('')}
+        </div>
+      </section>`;
+  }
+
+  function renderV11StatRow(card) {
+    const stats = resolveV11HeroStats(card);
+    return `
+      <div class="v11-stat-row" data-v11-stat-row>
+        <button type="button" class="v11-stat-row__hero dossier-stat dossier-stat--jump" data-v9-stat-jump="historik" title="Visa historik">
+          <span class="v11-stat-row__hero-halo" aria-hidden="true"></span>
+          <span class="v11-stat-row__hero-value">${escapeHtml(stats.heroLine)}</span>
+        </button>
+        <button type="button" class="v11-stat-row__sub dossier-stat dossier-stat--jump" data-v9-stat-jump="historik" title="Visa besök">
+          <span class="v11-stat-row__sub-label">Besök</span>
+          <span class="v11-stat-row__sub-value">${escapeHtml(String(stats.visits))}</span>
+          <span class="v11-stat-row__sub-trend">${escapeHtml(stats.visitTrend)}</span>
+        </button>
+        <button type="button" class="v11-stat-row__sub dossier-stat dossier-stat--jump" data-v9-stat-jump="ekonomi" title="Visa intäkt">
+          <span class="v11-stat-row__sub-label">Intäkt</span>
+          <span class="v11-stat-row__sub-value">${escapeHtml(stats.revenue)}</span>
+          <span class="v11-stat-row__sub-trend">${escapeHtml(stats.revenueTrend)}</span>
+        </button>
+      </div>`;
+  }
+
+  function renderV11Hero(card, journalEntries = [], { loading = false } = {}) {
+    if (!card) return '';
+    const name = resolveV11DisplayName(card);
+    const meta = resolveV11ContactMeta(card);
+    const pills = buildV11HeroPills(card);
+    const monogram = resolveV11Monogram(name);
+
+    return `
+      <div class="v9-dossier-zone1" data-v9-zone1>
+        <div class="v9-dossier-hero v11-dossier-hero" data-v9-dossier-hero data-v11-hero${loading ? ' aria-busy="true"' : ''}>
+          <div class="v11-hero-head dossier-head">
+            <div class="v11-hero-avatar dossier-avatar" aria-hidden="true">
+              <span class="v11-hero-avatar__ring"></span>
+              <span class="v11-hero-avatar__monogram">${escapeHtml(monogram)}</span>
+            </div>
+            <div class="v11-hero-identity dossier-head-body">
+              <nav class="v9-dossier-crumb" aria-label="Dossiér-navigering">
+                <button type="button" class="v9-dossier-crumb__back" data-v9-nav-back aria-label="Tillbaka till kundlistan">‹ Kunder</button>
+                <span class="v9-dossier-crumb__sep" aria-hidden="true">/</span>
+              </nav>
+              <div class="v11-hero-kicker dossier-kicker">Kunddossiér</div>
+              <h2 class="v11-hero-name dossier-name v9-dossier-crumb__who">${escapeHtml(name)}</h2>
+              <div class="v11-hero-meta dossier-contact">${escapeHtml(meta)}</div>
+              ${
+                pills.length
+                  ? `<div class="v11-hero-pills dossier-tags">${pills
+                      .map(
+                        (pill) =>
+                          `<span class="v11-hero-pill dossier-tag dossier-tag--${escapeHtml(pill.tone)} v11-hero-pill--${escapeHtml(pill.tone)}">${escapeHtml(pill.label)}</span>`
+                      )
+                      .join('')}</div>`
+                  : ''
+              }
+            </div>
+            <button type="button" class="dossier-close" data-v9-dossier-close title="Stäng dossiér" aria-label="Stäng dossiér">×</button>
+          </div>
+          ${renderV11MedicalBriefing(card)}
+          ${renderV11StatRow(card)}
+        </div>
+      </div>`;
+  }
+
   function buildIntelligentJourneyBubbles(card, journalEntries) {
     const entries = asArray(journalEntries);
     const brand = resolvePatientBrand(card);
@@ -2063,6 +2280,10 @@
 
   global.CcoV9CustomersParity = {
     SORT_LABELS,
+    renderV11Hero,
+    renderV11MedicalBriefing,
+    renderV11StatRow,
+    renderV11Hairstrand,
     buildIntelligentJourneyBubbles,
     renderIntelligentJourneyBubblesHtml,
     bindIntelligentJourney,

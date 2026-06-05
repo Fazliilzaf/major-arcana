@@ -3880,11 +3880,26 @@
     return [
       step('pre', 'Pre-info', sentPreInfo, !sentPreInfo && hasUpcoming),
       step('konsult', 'Konsult', hasConsultDone, !hasConsultDone && hasUpcoming),
-      step('offert', 'Offert', Boolean(planStatus && planStatus !== 'draft'), hasConsultDone && !planStatus),
+      step(
+        'offert',
+        'Offert',
+        Boolean(planStatus && planStatus !== 'draft'),
+        hasConsultDone && !planStatus
+      ),
       step('avtal', 'Avtal', agreementSigned, !agreementSigned && Boolean(planStatus)),
-      step('foto', 'Foto-samtycke', Boolean(photoConsent?.signed), !photoConsent?.signed && agreementSigned),
+      step(
+        'foto',
+        'Foto-samtycke',
+        Boolean(photoConsent?.signed),
+        !photoConsent?.signed && agreementSigned
+      ),
       step('frisk', 'Friskförs', fitnessSigned, !fitnessSigned && hasUpcoming),
-      step('op', 'Operation', completedTreatment, !completedTreatment && fitnessSigned && hasUpcoming),
+      step(
+        'op',
+        'Operation',
+        completedTreatment,
+        !completedTreatment && fitnessSigned && hasUpcoming
+      ),
       step('uppfolj', 'Uppfölj', hasFollowUp, completedTreatment && !hasFollowUp),
       step('omd', 'Omdöme', hasReview, hasFollowUp && !hasReview),
     ];
@@ -4213,6 +4228,12 @@
     journalEntries = [],
     { loading = false, occasionTimeline = null } = {}
   ) {
+    if (window.CcoV9CustomersParity?.renderV11Hero) {
+      return window.CcoV9CustomersParity.renderV11Hero(card, journalEntries, {
+        loading,
+        occasionTimeline,
+      });
+    }
     const name = displayNameForList(card);
     const contact = v9DossierContactLine(card);
     const tags = buildV9DossierBadges(card);
