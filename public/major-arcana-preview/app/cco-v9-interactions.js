@@ -446,10 +446,72 @@
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Dossier accordion (2026-06-05): 1 sektion open åt gången +
+  // initial-collapse alla utom första efter dossier-mount.
+  // ─────────────────────────────────────────────────────────────
+  function bindDossierAccordion() {
+    if (!isV9On()) return;
+    // Toggle-handler: vid open av en sektion, stäng andra på samma nivå
+    document.addEventListener(
+      'toggle',
+      (event) => {
+        if (!isV9On()) return;
+        const det = event.target;
+        if (!(det instanceof Element)) return;
+        if (!det.matches('.v9-dossier-section[data-v9-section]')) return;
+        if (!det.open) return;
+        const parent = det.parentElement;
+        if (!parent) return;
+        parent
+          .querySelectorAll(':scope > .v9-dossier-section[data-v9-section][open]')
+          .forEach((other) => {
+            if (other !== det) other.open = false;
+          });
+      },
+      true
+    );
+
+    // Initial-collapse: när nytt dossier renderas, stäng alla sektioner utom första.
+    const collapseExceptFirst = (root) => {
+      const sections = root.querySelectorAll('.v9-dossier-section[data-v9-section]');
+      if (!sections.length) return;
+      sections.forEach((s, idx) => {
+        if (idx === 0) s.open = true;
+        else s.open = false;
+      });
+    };
+
+    // Observera DOM-mutations för att fånga nya dossier-renders.
+    const observer = new MutationObserver((muts) => {
+      for (const m of muts) {
+        for (const node of m.addedNodes) {
+          if (!(node instanceof Element)) continue;
+          if (node.matches?.('.v9-dossier-section[data-v9-section]')) {
+            // Single section added — kolla syskon för accordion-konsistens
+            const parent = node.parentElement;
+            if (parent && parent.querySelectorAll(':scope > .v9-dossier-section[data-v9-section][open]').length > 1) {
+              collapseExceptFirst(parent);
+            }
+          }
+          const nested = node.querySelectorAll?.('.v9-dossier-section[data-v9-section]');
+          if (nested && nested.length > 1) {
+            collapseExceptFirst(node);
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Kör en gång direkt om dossier redan finns
+    collapseExceptFirst(document.body);
+  }
+
   if (isV9On()) {
     syncDemoChrome();
     bindOverlayEvents();
     bindKeyboard();
+    bindDossierAccordion();
     window.addEventListener('cco:v9-open-search', () => openSearch());
   }
 })();
