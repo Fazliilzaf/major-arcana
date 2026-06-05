@@ -1407,7 +1407,7 @@
                 <div class="watch-kicker">${escapeHtml(kicker)}</div>
                 <div class="watch-title">${escapeHtml(upcoming.treatmentLabel || 'Behandling')}</div>
                 <div class="watch-sub">${escapeHtml(sub || '—')}</div>
-                <button type="button" class="watch-ai-pill" data-v9-watch-sms title="Skicka SMS-påminnelse">★ Skicka SMS</button>
+                <button type="button" class="watch-ai-pill" data-v9-watch-sms title="Skicka SMS-påminnelse">Skicka SMS</button>
                 <div class="watch-swipe" data-v9-watch-swipe role="button" tabindex="0" aria-label="Svep för ankomst">
                   <div class="watch-swipe-fill"></div>
                   <span class="watch-swipe-label">Svep för ankomst</span>
@@ -1466,7 +1466,7 @@
           </div>
           ${renderV9PopulationChartHtml(segmentStats, stats)}
           <div>
-            <div class="agg-kicker">★ Veckans insikter</div>
+            <div class="agg-kicker">Veckans läge</div>
           </div>
           <div class="agg-ai-list">
             ${insightRows
@@ -3366,13 +3366,15 @@
 
   function renderV9IntelligentBubblesBlock(card, journalEntries, occasionTimeline) {
     if (!isV9CustomersEnabled() || !card) return '';
-    const dossierBundle = runtime.detail?.documentBundle || runtime.detail?.dossierBundle || null;
+    const dossierBundle = runtime.detail?.dossierBundle || runtime.detail?.documentBundle || null;
+    const driveFiles = runtime.detail?.driveFiles || null;
     return (
       window.CcoV9CustomersParity?.renderIntelligentJourneyBubblesHtml?.(
         card,
         journalEntries,
         dossierBundle,
-        occasionTimeline
+        occasionTimeline,
+        driveFiles
       ) || ''
     );
   }
@@ -3381,11 +3383,12 @@
     if (!patientId) return null;
     try {
       const body = await apiRequest(
-        `/api/v1/cco-patient-master/patient/document-bundle?patientId=${encodeURIComponent(patientId)}`,
-        { cacheKey: `document-bundle:${patientId}`, staleTime: 30_000, gcTime: 120_000 }
+        `/api/v1/cco-patient-master/patient/dossier-bundle?patientId=${encodeURIComponent(patientId)}&includeJournal=0`,
+        { cacheKey: `dossier-bundle:${patientId}`, staleTime: 30_000, gcTime: 120_000 }
       );
       if (runtime.detail && normalizeText(runtime.selectedPatientId) === normalizeText(patientId)) {
-        runtime.detail.documentBundle = body;
+        runtime.detail.dossierBundle = body;
+        runtime.detail.documentBundle = body?.documentBundle || body;
       }
       return body;
     } catch {
@@ -3501,12 +3504,7 @@
   function bindV9MockupDossierHandlers(root, ctx) {
     if (!root || !isV9CustomersEnabled()) return;
     bindV9Zone1Handlers(root, ctx);
-    window.CcoV9CustomersParity?.bindDossierScroll?.(root, {
-      openJournal: () => switchDetailTab('journal'),
-      openForm: () => switchDetailTab('journal'),
-      switchTab: (tabKey) => switchDetailTab(tabKey),
-    });
-    window.CcoV9CustomersParity?.bindIntelligentJourney?.(root, ctx, {
+    const journeyHandlers = {
       openBook: () => {
         window.dispatchEvent(
           new CustomEvent('cco:v9-ghost-booking', {
@@ -3518,7 +3516,16 @@
         setStatus('Öppnar bokningsytan för att bekräfta kommande tider.', 'info');
         navigateShellView('booking');
       },
-    });
+      switchTab: (tabKey) => switchDetailTab(tabKey),
+      openJournal: () => switchDetailTab('journal'),
+      openForm: () => switchDetailTab('journal'),
+    };
+    if (root.querySelector('[data-kundkort-slide-over]')) {
+      window.CcoV9CustomersParity?.bindKundkortSlideOver?.(root, journeyHandlers, ctx);
+    } else {
+      window.CcoV9CustomersParity?.bindDossierScroll?.(root, journeyHandlers);
+      window.CcoV9CustomersParity?.bindIntelligentJourney?.(root, ctx, journeyHandlers);
+    }
     window.CcoV9CustomersParity?.bindDossierQuickPills?.(root, {
       openPhoto: () => {
         root.querySelector('.v9-camera-bridge [data-patient-photo-camera]')?.click();
@@ -4286,7 +4293,7 @@
                   <button type="button" class="v9-dossier-crumb__back" data-v9-nav-back aria-label="Tillbaka till kundlistan">‹ Kunder</button>
                   <span class="v9-dossier-crumb__sep" aria-hidden="true">/</span>
                 </nav>
-                <div class="dossier-kicker">★ Kunddossiér</div>
+                <div class="dossier-kicker">Kunddossiér</div>
                 <h2 class="dossier-name v9-dossier-crumb__who">${escapeHtml(name)}</h2>
                 <div class="dossier-contact">${escapeHtml(contact)}</div>
                 ${
@@ -4412,12 +4419,12 @@
 
     return `
           <button
-            class="customer-row${selected ? ' is-selected' : ''}"
+            class="customer-row customer-row--gloss${selected ? ' is-selected' : ''}"
             type="button"
             data-patient-row="${escapeHtml(card.patientId)}"
             aria-pressed="${selected ? 'true' : 'false'}"
           >
-            <span class="cr-avatar" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
+            <span class="cr-avatar cr-avatar--gloss" style="background:${v9AvatarGradient(name)}">${escapeHtml(v9AvatarInitials(name))}</span>
             <div class="cr-name-block">
               <div class="cr-name">${escapeHtml(name)}</div>
               ${

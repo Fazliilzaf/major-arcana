@@ -4,6 +4,8 @@
 /**
  * Lokal statisk server för design-mockup:
  *   http://127.0.0.1:8765/CCO-Kunder-Mockup-v9-DESKTOP.html
+ *   http://127.0.0.1:8765/cco-kunder-v9-egen.html
+ *   http://127.0.0.1:8765/cco-kundkort-REFERENS.html
  *
  * Ersätter python http.server — frigör port 8765 och servar uploads/.
  */
@@ -121,6 +123,8 @@ function main() {
   server.listen(PORT, HOST, () => {
     log(`[mockup-v9] uploads → http://${HOST}:${PORT}/`);
     log(`[mockup-v9] mockup  → http://${HOST}:${PORT}/${MOCKUP_FILE}`);
+    log(`[mockup-v9] lista   → http://${HOST}:${PORT}/cco-kunder-v9-egen.html`);
+    log(`[mockup-v9] kort    → http://${HOST}:${PORT}/cco-kundkort-REFERENS.html`);
     log('[mockup-v9] Avsluta med Ctrl+C');
   });
 }

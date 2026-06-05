@@ -97,10 +97,10 @@
   }
 
   function buildAiInsights(card) {
-    return buildSynthesisAiInsights(card);
+    return buildOperationalInsightCards(card);
   }
 
-  function buildSynthesisAiInsights(card) {
+  function buildOperationalInsightCards(card) {
     const treatment =
       card?.nextBookingType ||
       card?.lastBookingType ||
@@ -119,7 +119,7 @@
 
     const defaults = [
       {
-        icon: '✦',
+        icon: '↗',
         title: 'Behandlingsrespons',
         text:
           signalText(signals[0]) ||
@@ -151,6 +151,11 @@
     ];
 
     return defaults;
+  }
+
+  /** @deprecated use buildOperationalInsightCards */
+  function buildSynthesisAiInsights(card) {
+    return buildOperationalInsightCards(card);
   }
 
   function commIcon(type) {
@@ -609,7 +614,7 @@
     const files = buildSynthesisFileTiles(card, driveFiles);
     const comm = buildCommunicationItems(card, occasionTimeline);
     const economy = buildEconomyFields(card);
-    const insights = buildSynthesisAiInsights(card);
+    const insights = buildOperationalInsightCards(card);
     const compliance = buildComplianceItems(card);
 
     const upcomingHtml = upcoming.length
@@ -632,9 +637,9 @@
           .map(
             (ins, i) => `
           <button type="button" class="dossier-insight dossier-insight--synthesis" data-v9-insight-idx="${i}" data-insight-theme="${escapeHtml(aiThemes[i] || 'next')}" data-insight-action="${escapeHtml(ins.action || '')}">
-            <span class="dossier-insight__icon" aria-hidden="true">${escapeHtml(ins.icon || '★')}</span>
+            <span class="dossier-insight__icon" aria-hidden="true">${escapeHtml(ins.icon || '•')}</span>
             <span class="dossier-insight__copy">
-              <span class="dossier-insight__title">${escapeHtml(ins.title || 'AI')}</span>
+              <span class="dossier-insight__title">${escapeHtml(ins.title || 'Insikt')}</span>
               <span class="dossier-insight__body">${escapeHtml(ins.text)}</span>
             </span>
           </button>`
@@ -703,7 +708,7 @@
     ];
 
     if (!synthesisOnly) {
-      primary.push(renderSynthesisBlock('ai', 'Insikter', insights.length, aiHtml));
+      primary.push(renderSynthesisBlock('insikter', 'Insikter', insights.length, aiHtml));
     }
 
     if (synthesisOnly) {
@@ -1442,20 +1447,20 @@
         tone: bubble.tone,
       }));
 
-    const aiCards = buildSynthesisAiInsights(card).map((ins, index) => ({
-      kind: 'ai',
-      id: `ai-${index}`,
-      icon: ins.icon || '★',
-      title: ins.title || 'AI',
+    const signalCards = buildOperationalInsightCards(card).map((ins, index) => ({
+      kind: 'signal',
+      id: `signal-${index}`,
+      icon: ins.icon || '•',
+      title: ins.title || 'Insikt',
       body: ins.text || '',
       theme: ['response', 'retention', 'next'][index] || 'next',
       action: ins.action || '',
     }));
 
     const merged = [...journeyCards];
-    for (const aiCard of aiCards) {
+    for (const signalCard of signalCards) {
       if (merged.length >= 3) break;
-      merged.push(aiCard);
+      merged.push(signalCard);
     }
     return merged.slice(0, 3);
   }
@@ -1470,7 +1475,7 @@
         data-insight-theme="${escapeHtml(featured.theme || 'next')}"
         data-v9-intel-idx="${index}"
       >
-        <span class="dossier-insight__icon" aria-hidden="true">${escapeHtml(featured.icon || '★')}</span>
+        <span class="dossier-insight__icon" aria-hidden="true">${escapeHtml(featured.icon || '•')}</span>
         <span class="dossier-insight__copy">
           <span class="dossier-insight__title">${escapeHtml(featured.title || '')}</span>
           <span class="dossier-insight__body">${escapeHtml(featured.body || '')}</span>
@@ -1809,7 +1814,7 @@
     const ruleId = String(signal?.ruleId || '');
     if (ruleId.startsWith('document.')) return '📄';
     if (signal?.risk === 'legal_blocker' || signal?.risk === 'legal') return '⚖';
-    if (ruleId.includes('health')) return '✦';
+    if (ruleId.includes('health')) return '📋';
     if (ruleId.includes('photo')) return '📷';
     return '!';
   }
@@ -1929,12 +1934,12 @@
         class="v11-insight-card v11-insight-card--${escapeHtml(card.v11Tone || 'lila')}"
         data-v11-insight-card
         data-v9-intel-card="${escapeHtml(card.id)}"
-        data-v9-intel-kind="${escapeHtml(card.kind || 'ai')}"
+        data-v9-intel-kind="${escapeHtml(card.kind || 'signal')}"
         data-insight-theme="${escapeHtml(card.theme || 'next')}"
         data-v11-insight-rule-id="${escapeHtml(card.ruleId || '')}"
         data-v9-intel-idx="${Number(card.index) || 0}"
       >
-        <span class="v11-insight-card__icon" aria-hidden="true">${escapeHtml(card.icon || '★')}</span>
+        <span class="v11-insight-card__icon" aria-hidden="true">${escapeHtml(card.icon || '•')}</span>
         <span class="v11-insight-card__copy">
           <span class="v11-insight-card__state">${escapeHtml(card.stateLabel || 'Insikt')}</span>
           <span class="v11-insight-card__title">${escapeHtml(card.title || '')}</span>
@@ -2515,13 +2520,467 @@
     });
   }
 
+  /* ORD-26 — Kundkort slide-over (15 sektioner, dossier-bundle) */
+
+  function renderKundkortSlideSection(
+    id,
+    title,
+    count,
+    bodyHtml,
+    { open = false, secondary = false } = {}
+  ) {
+    return `
+      <details
+        class="kundkort-slide-over__section dossier-section v9-dossier-section${secondary ? ' dossier-section--secondary' : ''}"
+        data-kundkort-section="${escapeHtml(id)}"
+        data-v9-section="${escapeHtml(id)}"
+        ${open ? 'open' : ''}
+      >
+        <summary>${escapeHtml(title)} <span class="count">${Number(count) || 0}</span></summary>
+        <div class="kundkort-slide-over__section-body">${bodyHtml}</div>
+      </details>`;
+  }
+
+  function resolveHealthDeclarationFromBundle(dossierBundle) {
+    const docs = dossierBundle?.documents || dossierBundle?.documentBundle?.documents;
+    if (!docs) return null;
+    const rows = [
+      ...asArray(docs.healthForms),
+      ...asArray(docs.haelsoSamtycke),
+      ...asArray(docs.consents),
+    ];
+    return (
+      rows.find((row) =>
+        /16414|health_declaration|hälsodekl/i.test(String(row.documentTypeId || row.title || ''))
+      ) ||
+      rows.find((row) => /hälsodekl/i.test(String(row.title || ''))) ||
+      null
+    );
+  }
+
+  function renderKundkortContactStrip(card) {
+    const phone = card?.primaryPhone || card?.phoneMasked || '';
+    const email = card?.primaryEmail || card?.emailMasked || '';
+    const meta = [phone, email].filter(Boolean);
+    if (!meta.length) {
+      return '<p class="dossier-empty">Ingen kontaktväg registrerad.</p>';
+    }
+    return `
+      <div class="kundkort-lift__contact">
+        ${meta
+          .map(
+            (line) =>
+              `<a class="kundkort-lift__contact-line" href="${line.includes('@') ? `mailto:${escapeHtml(line)}` : `tel:${escapeHtml(line)}`}">${escapeHtml(line)}</a>`
+          )
+          .join('')}
+      </div>`;
+  }
+
+  function renderKundkortHealthDeclPanel(dossierBundle, card) {
+    const row = resolveHealthDeclarationFromBundle(dossierBundle);
+    const status = row?.status || (card?.missingHealthDeclaration ? 'pending' : 'planned');
+    const statusLabel =
+      row?.statusLabel ||
+      (status === 'signed' ? 'Signerad' : status === 'pending' ? 'Väntar ifyllnad' : 'Planerad');
+    const title = row?.title || 'Hälsodeklaration · Hair TP (Meridiq 16414)';
+    const signedMeta =
+      row?.signedAt || row?.signedBy
+        ? `${row.signedBy ? `${row.signedBy} · ` : ''}${row.signedAt ? String(row.signedAt).slice(0, 10) : ''}`
+        : card?.missingHealthDeclaration
+          ? 'Saknas före behandling'
+          : 'Ingen signerad instans i dossier-bundle ännu';
+
+    return `
+      <section class="kundkort-lift__health" data-kundkort-health-decl data-v9-section="compliance">
+        <div class="kundkort-lift__health-head">
+          <span class="kundkort-lift__health-kicker">Hälsodeklaration</span>
+          <span class="kundkort-lift__health-pill" data-status="${escapeHtml(status)}">${escapeHtml(statusLabel)}</span>
+        </div>
+        <div class="kundkort-lift__health-title">${escapeHtml(title)}</div>
+        <div class="kundkort-lift__health-meta">${escapeHtml(signedMeta)}</div>
+      </section>`;
+  }
+
+  function renderKundkortPhotoStrip(card, driveFiles) {
+    const imageCount = Number(card?.fileSummary?.images || 0);
+    const tiles = [];
+    for (const file of asArray(driveFiles)) {
+      if (tiles.length >= 4) break;
+      const mime = String(file.mimeType || file.contentType || '').toLowerCase();
+      const name = String(file.originalFileName || file.fileName || file.name || '').toLowerCase();
+      if (!mime.startsWith('image/') && !/\.(jpe?g|png|heic|webp|gif)$/i.test(name)) continue;
+      tiles.push({
+        label: (file.originalFileName || file.fileName || 'Foto').slice(0, 12),
+        badge: file.category || 'foto',
+      });
+    }
+    while (tiles.length < Math.min(4, Math.max(imageCount, 0)) && tiles.length < 4) {
+      tiles.push({ label: `Foto ${tiles.length + 1}`, badge: 'import' });
+    }
+    if (!tiles.length) {
+      return '<p class="dossier-empty kundkort-lift__photos-empty">Inga foton i dossier-bundle.</p>';
+    }
+    return `
+      <div class="kundkort-lift__photos" data-kundkort-photo-strip data-v9-section="filer">
+        ${tiles
+          .map(
+            (tile) => `
+          <button type="button" class="kundkort-lift__photo" data-v9-section-link="filer">
+            <span class="kundkort-lift__photo-icon" aria-hidden="true">🖼</span>
+            <span class="kundkort-lift__photo-label">${escapeHtml(tile.label)}</span>
+            ${tile.badge ? `<span class="kundkort-lift__photo-badge">${escapeHtml(String(tile.badge))}</span>` : ''}
+          </button>`
+          )
+          .join('')}
+      </div>`;
+  }
+
+  function renderKundkortStepStack(card, dossierBundle, journalEntries) {
+    const docsBundle = dossierBundle?.documentBundle || dossierBundle;
+    const journey = buildV11CustomerJourney(card, journalEntries, docsBundle);
+    const steps = asArray(journey?.steps).slice(0, 9);
+    if (!steps.length) {
+      return '<p class="dossier-empty">Kundresa laddas från dossier-bundle.</p>';
+    }
+    return `
+      <div class="kundkort-lift__steps" data-kundkort-step-stack role="list" aria-label="Kundresa steg">
+        ${steps
+          .map(
+            (step) => `
+          <span class="kundkort-lift__step kundkort-lift__step--${escapeHtml(step.status || 'future')}" role="listitem" title="${escapeHtml(step.label || '')}">
+            <span class="kundkort-lift__step-num">${step.step}</span>
+          </span>`
+          )
+          .join('')}
+      </div>`;
+  }
+
+  function renderKundkortLiftPanel(card, dossierBundle, journalEntries, driveFiles) {
+    return `
+      <section class="kundkort-slide-over__lift kundkort-lift v9-surface-vellum" data-kundkort-lift aria-label="Kundkort sammanfattning">
+        <div class="kundkort-lift__block">
+          <div class="kundkort-lift__label">Kontakt</div>
+          ${renderKundkortContactStrip(card)}
+        </div>
+        ${renderKundkortHealthDeclPanel(dossierBundle, card)}
+        <div class="kundkort-lift__block">
+          <div class="kundkort-lift__label">Foton</div>
+          ${renderKundkortPhotoStrip(card, driveFiles)}
+        </div>
+        <div class="kundkort-lift__block">
+          <div class="kundkort-lift__label">Kundresa</div>
+          ${renderKundkortStepStack(card, dossierBundle, journalEntries)}
+        </div>
+      </section>`;
+  }
+
+  function bindV9BulkSelection(api) {
+    if (!isV9On() || global.__ARCANA_V9_BULK_BOUND__) return;
+    global.__ARCANA_V9_BULK_BOUND__ = true;
+    const selected = new Set();
+    let bar = document.getElementById('v9BulkBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'v9BulkBar';
+      bar.className = 'v9-bulk-bar';
+      bar.hidden = true;
+      bar.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(bar);
+    }
+
+    const clearSelection = () => {
+      selected.clear();
+      document.querySelectorAll('.customer-row.is-checked').forEach((row) => {
+        row.classList.remove('is-checked');
+      });
+      bar.hidden = true;
+      bar.setAttribute('aria-hidden', 'true');
+      bar.classList.remove('is-visible');
+    };
+
+    const renderBar = () => {
+      if (!selected.size) {
+        clearSelection();
+        return;
+      }
+      bar.hidden = false;
+      bar.setAttribute('aria-hidden', 'false');
+      bar.classList.add('is-visible');
+      bar.innerHTML = `
+        <span class="v9-bulk-bar__count">${selected.size} valda</span>
+        <button type="button" class="v9-bulk-bar__action" data-v9-bulk="reminder">Skicka påminnelse</button>
+        <button type="button" class="v9-bulk-bar__action" data-v9-bulk="export">Exportera CSV</button>
+        <button type="button" class="v9-bulk-bar__close" data-v9-bulk="clear" aria-label="Avmarkera alla">×</button>`;
+    };
+
+    bar.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-v9-bulk]');
+      if (!btn) return;
+      event.preventDefault();
+      const action = btn.getAttribute('data-v9-bulk');
+      if (action === 'clear') {
+        clearSelection();
+        return;
+      }
+      if (action === 'reminder') {
+        api?.runBulkReminder?.();
+        clearSelection();
+        return;
+      }
+      if (action === 'export') {
+        api?.runBulkExport?.();
+        clearSelection();
+      }
+    });
+
+    document.addEventListener(
+      'click',
+      (event) => {
+        if (!isCustomersView()) return;
+        const row = event.target.closest('.customer-row[data-patient-row]');
+        if (!row) return;
+        const rect = row.getBoundingClientRect();
+        if (event.clientX - rect.left > 36) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const id = row.getAttribute('data-patient-row');
+        if (!id) return;
+        if (selected.has(id)) {
+          selected.delete(id);
+          row.classList.remove('is-checked');
+        } else {
+          selected.add(id);
+          row.classList.add('is-checked');
+        }
+        renderBar();
+      },
+      true
+    );
+  }
+
+  function buildSlideOverNotes(card, dossierBundle) {
+    const notes = [];
+    const important = String(card?.importantNote || '').trim();
+    if (important) {
+      notes.push({ text: important, meta: 'Viktig notering · patientkort' });
+    }
+    for (const allergy of asArray(dossierBundle?.allergies || card?.allergies)) {
+      const name = allergy?.name || allergy?.label;
+      if (!name) continue;
+      notes.push({
+        text: `Allergi: ${name}${allergy.severity ? ` (${allergy.severity})` : ''}`,
+        meta: allergy.noteAt || allergy.source || 'Medicinsk',
+      });
+    }
+    for (const ev of asArray(dossierBundle?.recentEvents)) {
+      const kind = String(ev?.kind || '').toLowerCase();
+      if (!kind.includes('note') && !kind.includes('anteck')) continue;
+      notes.push({
+        text: ev.subject || ev.body || ev.text || 'Anteckning',
+        meta: ev.at || ev.occurredAt || '',
+      });
+    }
+    return notes.slice(0, 5);
+  }
+
+  function renderSlideOverNotesHtml(notes) {
+    if (!notes.length) {
+      return '<p class="dossier-empty">Inga anteckningar registrerade.</p>';
+    }
+    return notes
+      .map(
+        (note) => `
+        <div class="dossier-note kundkort-slide-over__note">
+          ${escapeHtml(note.text)}
+          <div class="dossier-note-meta">${escapeHtml(note.meta || '')}</div>
+        </div>`
+      )
+      .join('');
+  }
+
+  function renderKundkortSlideOverFooter(card) {
+    const patientId = card?.patientId || card?.id || '';
+    return `
+      <footer class="kundkort-slide-over__footer" data-kundkort-section="footer" aria-label="Dossiér-footer">
+        <button type="button" class="kundkort-slide-over__footer-btn" data-patient-action="gdpr-export">
+          Exportera GDPR-paket
+        </button>
+        <button type="button" class="kundkort-slide-over__footer-btn" data-v9-slide-footer="activity">
+          Aktivitetslog
+        </button>
+        ${
+          patientId
+            ? `<span class="kundkort-slide-over__footer-id" title="Patient-ID">${escapeHtml(String(patientId).slice(0, 8))}…</span>`
+            : ''
+        }
+      </footer>`;
+  }
+
+  function renderKundkortSlideOverHtml(
+    card,
+    journalEntries,
+    dossierBundle,
+    occasionTimeline = null,
+    driveFiles = null
+  ) {
+    if (!isV9On() || !card) return '';
+
+    const bundleCard =
+      dossierBundle?.card && typeof dossierBundle.card === 'object'
+        ? { ...card, ...dossierBundle.card }
+        : card;
+    const docsBundle = dossierBundle?.documentBundle || dossierBundle;
+
+    const upcomingList = buildV11UpcomingDisplayList(bundleCard, occasionTimeline);
+    const upcomingInner = upcomingList.length
+      ? `<div class="v11-upcoming-bookings__list">${upcomingList
+          .map((row, index) => renderV11UpcomingBookingRow(row, index))
+          .join('')}</div>`
+      : '<p class="dossier-empty">Inga kommande bokningar.</p>';
+
+    const history = buildHistoryBookings(bundleCard, occasionTimeline);
+    const historyHtml = history.length
+      ? history.map((b) => renderSynthesisBookingRow(b)).join('')
+      : '<p class="dossier-empty">Ingen historik ännu.</p>';
+
+    const files = buildSynthesisFileTiles(bundleCard, driveFiles);
+    const fileCount = countRealFiles(bundleCard, driveFiles);
+    const filesHtml = files.length
+      ? `<div class="dossier-files dossier-files--synthesis">${files.map((f) => renderSynthesisFileTile(f)).join('')}</div>`
+      : '<p class="dossier-empty">Inga filer importerade ännu.</p>';
+
+    const notes = buildSlideOverNotes(bundleCard, dossierBundle);
+    const notesHtml = renderSlideOverNotesHtml(notes);
+
+    const comm = buildCommunicationItems(bundleCard, occasionTimeline);
+    const commHtml = comm.length
+      ? comm
+          .map(
+            (c) => `
+            <div class="dossier-comm">
+              <div class="dossier-comm-icon" data-type="${escapeHtml(c.type)}">${commIcon(c.type)}</div>
+              <div class="dossier-comm-body">
+                <div class="dossier-comm-text">${escapeHtml(c.text)}</div>
+                <div class="dossier-comm-meta">${escapeHtml(String(c.meta))}</div>
+              </div>
+            </div>`
+          )
+          .join('')
+      : '<p class="dossier-empty">Ingen registrerad kommunikation.</p>';
+
+    const economy = buildEconomyFields(bundleCard);
+    const economyHtml = `
+      <div class="dossier-economy">
+        ${economy
+          .map(
+            (m) => `
+          <div class="dossier-money">
+            <div class="dossier-money-label">${escapeHtml(m.label)}</div>
+            <div class="dossier-money-value">${escapeHtml(m.value)}</div>
+          </div>`
+          )
+          .join('')}
+      </div>`;
+
+    const compliance = buildComplianceItems(bundleCard);
+    const complianceHtml =
+      compliance.length > 0
+        ? compliance
+            .map(
+              (item) => `
+            <button type="button" class="dossier-compliance-row" data-tone="${escapeHtml(item.tone)}" data-v9-compliance-action="${escapeHtml(item.action)}">
+              <span class="dossier-compliance-label">${escapeHtml(item.label)}</span>
+              <span class="dossier-compliance-go">Åtgärda</span>
+            </button>`
+            )
+            .join('')
+        : '<p class="dossier-empty">Alla formulär och krav är uppfyllda.</p>';
+
+    const docSegments = renderV11DocumentSegments(bundleCard, docsBundle, {});
+    const journey = renderV11CustomerJourney(bundleCard, journalEntries, docsBundle);
+    const sticky = renderV11StickyActions(bundleCard, journalEntries);
+    const footer = renderKundkortSlideOverFooter(bundleCard);
+    const lift = renderKundkortLiftPanel(bundleCard, dossierBundle, journalEntries, driveFiles);
+
+    const sections = [
+      renderKundkortSlideSection(
+        'upcoming',
+        'Kommande bokningar',
+        upcomingList.length,
+        upcomingInner,
+        {
+          open: true,
+        }
+      ),
+      renderKundkortSlideSection('historik', 'Historik', history.length, historyHtml),
+      renderKundkortSlideSection('filer', 'Filer', fileCount, filesHtml),
+      renderKundkortSlideSection('anteckningar', 'Anteckningar', notes.length, notesHtml),
+      renderKundkortSlideSection('kontakt', 'Kommunikation', comm.length, commHtml),
+      renderKundkortSlideSection('ekonomi', 'Ekonomi', economy.length, economyHtml, {
+        secondary: true,
+      }),
+      renderKundkortSlideSection(
+        'compliance',
+        'Formulär & krav',
+        compliance.length,
+        complianceHtml
+      ),
+    ];
+
+    return `
+      <div class="kundkort-slide-over kundkort-slide-over--v2 v9-surface-vellum" data-kundkort-slide-over data-v11-dossier-zones>
+        ${lift}
+        ${renderV11Hairstrand()}
+        <div class="kundkort-slide-over__scroll" data-kundkort-slide-over-scroll data-v9-dossier-scroll aria-label="Kunddossiér">
+          ${sections.join('')}
+          ${renderV11Hairstrand()}
+          ${docSegments ? `<div data-kundkort-section="dokument">${docSegments}</div>` : ''}
+          ${journey ? `<div data-kundkort-section="kundresan">${journey}</div>` : ''}
+          ${renderV11Hairstrand()}
+          ${sticky ? `<div data-kundkort-section="actions">${sticky}</div>` : ''}
+          ${footer}
+        </div>
+      </div>`;
+  }
+
+  function bindKundkortSlideOver(root, handlers = {}, ctx = null) {
+    if (!root) return;
+    const liveCtx = ctx || root._v9IntelCtx || { card: null, journalEntries: [] };
+    bindIntelligentJourney(root, liveCtx, handlers);
+    bindDossierScroll(root, handlers);
+    bindDossierNavigation(root, handlers);
+
+    root.querySelectorAll('[data-v9-slide-footer="activity"]').forEach((btn) => {
+      if (btn.dataset.slideFooterBound === '1') return;
+      btn.dataset.slideFooterBound = '1';
+      btn.addEventListener('click', () => {
+        if (handlers.switchTab) {
+          handlers.switchTab('tidslinje');
+          return;
+        }
+        scrollDossierSection(root, 'kontakt');
+      });
+    });
+  }
+
   function renderIntelligentJourneyBubblesHtml(
     card,
     journalEntries,
     dossierBundle,
-    occasionTimeline
+    occasionTimeline,
+    driveFiles = null
   ) {
     if (!isV9On() || !card) return '';
+
+    const slideOver = renderKundkortSlideOverHtml(
+      card,
+      journalEntries,
+      dossierBundle,
+      occasionTimeline,
+      driveFiles
+    );
+    if (slideOver) return slideOver;
+
     const v11 = renderV11DossierZonesHtml(
       card,
       journalEntries,
@@ -2659,7 +3118,7 @@
           return;
         }
         openDrawer({
-          title: copy.title || 'AI-insikt',
+          title: copy.title || 'Insikt',
           intro: copy.body || journey.lead,
         });
         return;
@@ -2690,8 +3149,8 @@
     const upcomingCount = upcoming.length;
     const nextDate = formatShortBookingDate(card?.nextBookingAt);
     const bookLabel = card?.nextBookingAt
-      ? `★ Boka nästa ${card.nextBookingType || 'PRP'}${nextDate ? ` (${nextDate})` : ''}`
-      : '★ Boka nästa tid';
+      ? `Boka nästa ${card.nextBookingType || 'PRP'}${nextDate ? ` (${nextDate})` : ''}`
+      : 'Boka nästa tid';
     const confirmDisabled = upcomingCount === 0;
     const contextPills = buildZone3ContextPills(card);
     const brand = resolvePatientBrand(card);
@@ -2875,8 +3334,12 @@
 
   function scrollDossierSection(root, sectionId) {
     if (!root || !sectionId) return false;
-    const zone2 = root.querySelector('[data-v9-dossier-scroll]');
-    const target = root.querySelector(`[data-v9-section="${sectionId}"]`);
+    const zone2 =
+      root.querySelector('[data-kundkort-slide-over-scroll]') ||
+      root.querySelector('[data-v9-dossier-scroll]');
+    const target =
+      root.querySelector(`[data-kundkort-section="${sectionId}"]`) ||
+      root.querySelector(`[data-v9-section="${sectionId}"]`);
     if (!target) return false;
 
     if (target.tagName === 'DETAILS') {
@@ -2931,7 +3394,7 @@
     'kontakt',
     'compliance',
     'ekonomi',
-    'ai',
+    'insikter',
   ];
 
   function resolveSpyJumpSection(sectionId) {
@@ -3246,6 +3709,7 @@
 
     bindListControls(api);
     bindAggBulkActions(api);
+    bindV9BulkSelection(api);
     syncGlobalSearchInput();
 
     global.addEventListener('cco:v9-ghost-booking', (event) => {
@@ -3257,6 +3721,9 @@
   global.CcoV9CustomersParity = {
     SORT_LABELS,
     renderV11Hero,
+    renderKundkortSlideOverHtml,
+    bindKundkortSlideOver,
+    bindV9BulkSelection,
     renderV11MedicalBriefing,
     renderV11StatRow,
     renderV11Hairstrand,

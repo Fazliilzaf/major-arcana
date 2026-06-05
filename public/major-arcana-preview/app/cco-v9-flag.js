@@ -9,7 +9,13 @@
  * Rek. 9 — mockup/demo-only UI (watch, overlays, mockup-label, caption):
  *   ?demo=on  → localStorage arcana.v9.demo = '1'  (sticky ON)
  *   ?demo=off → localStorage arcana.v9.demo = '0'  (sticky OFF)
+ *   ?demo=off → localStorage arcana.v9.demo = '0'  (sticky OFF)
  *   inget     → demo OFF (prod-port: renderas inte)
+ *
+ * ORD-27 — v9 polish (gloss-lift, mikro-effekter, 3D-avatar):
+ *   ?v9polish=on  → localStorage arcana.v9.polish = '1'
+ *   ?v9polish=off → localStorage arcana.v9.polish = '0'
+ *   inget         → polish OFF (opt-in via URL)
  */
 (function (global) {
   'use strict';
@@ -17,6 +23,7 @@
   var V9_KEY = 'arcana.v9.enabled';
   var V9_DISABLED_AT_KEY = 'arcana.v9.disabledAt';
   var DEMO_KEY = 'arcana.v9.demo';
+  var POLISH_KEY = 'arcana.v9.polish';
   var V9_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   var params;
 
@@ -100,6 +107,21 @@
     }
   }
 
+  var polishQuery = readQuery('v9polish');
+  if (polishQuery === 'on') {
+    try {
+      localStorage.setItem(POLISH_KEY, '1');
+    } catch (_error) {
+      /* private mode */
+    }
+  } else if (polishQuery === 'off') {
+    try {
+      localStorage.setItem(POLISH_KEY, '0');
+    } catch (_error) {
+      /* private mode */
+    }
+  }
+
   var v9Enabled = true;
   try {
     v9Enabled = localStorage.getItem(V9_KEY) !== '0';
@@ -114,10 +136,19 @@
     demoEnabled = false;
   }
 
+  var polishEnabled = false;
+  try {
+    polishEnabled = localStorage.getItem(POLISH_KEY) === '1';
+  } catch (_error) {
+    polishEnabled = false;
+  }
+
   document.documentElement.setAttribute('data-v9-enabled', v9Enabled ? 'on' : 'off');
   document.documentElement.setAttribute('data-v9-demo', demoEnabled ? 'on' : 'off');
+  document.documentElement.setAttribute('data-v9-polish', polishEnabled ? 'on' : 'off');
   global.__ARCANA_V9_ENABLED__ = v9Enabled;
   global.__ARCANA_V9_DEMO_ENABLED__ = v9Enabled && demoEnabled;
+  global.__ARCANA_V9_POLISH_ENABLED__ = v9Enabled && polishEnabled;
 
   global.CcoV9Flag = {
     markV9Disabled: markV9Disabled,

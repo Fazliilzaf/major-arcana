@@ -93,7 +93,7 @@
       'v9-voice-sheet',
       'v9-voice-sheet',
       `
-      <div class="v9-voice-sheet-kicker">★ AI · TOLKAT</div>
+      <div class="v9-voice-sheet-kicker">Röst · tolkat</div>
       <h3>Förslag</h3>
       <p class="v9-voice-sheet-original">"Boka Anna PRP nästa tisdag fjorton hos Egzona"</p>
       <dl class="v9-voice-sheet-grid">
@@ -150,6 +150,7 @@
         const name = row.querySelector('.cr-name')?.textContent?.trim() || id;
         const sub =
           row.querySelector('.cr-meta')?.textContent?.trim() ||
+          row.querySelector('.cr-signal')?.textContent?.trim() ||
           row.querySelector('.cr-ai')?.textContent?.trim() ||
           '';
         const hay = `${name} ${sub} ${row.textContent || ''} ${id}`.toLowerCase();
@@ -490,7 +491,11 @@
           if (node.matches?.('.v9-dossier-section[data-v9-section]')) {
             // Single section added — kolla syskon för accordion-konsistens
             const parent = node.parentElement;
-            if (parent && parent.querySelectorAll(':scope > .v9-dossier-section[data-v9-section][open]').length > 1) {
+            if (
+              parent &&
+              parent.querySelectorAll(':scope > .v9-dossier-section[data-v9-section][open]')
+                .length > 1
+            ) {
               collapseExceptFirst(parent);
             }
           }

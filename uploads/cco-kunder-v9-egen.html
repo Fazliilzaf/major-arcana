@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="sv" data-v9-polish="on">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ORD-27 REF — CCO Kunder v9 (lista)</title>
+    <style>
+      :root {
+        --page: #faf6f2;
+        --brand: #2b251f;
+        --muted: rgba(70, 60, 50, 0.62);
+        --accent: #bb4779;
+        --gold: #c8821e;
+        --success: #4a8268;
+        --panel-top: rgba(250, 246, 242, 0.94);
+        --panel-bottom: rgba(244, 238, 233, 0.86);
+        --card-shadow: 0 8px 22px rgba(56, 40, 28, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        --row-shadow: 0 3px 10px rgba(56, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, 'Segoe UI', sans-serif;
+        font-size: 13px;
+        color: var(--brand);
+        background:
+          radial-gradient(ellipse at 12% 0%, rgba(255, 225, 200, 0.42), transparent 38%),
+          var(--page);
+        padding: 24px;
+      }
+      .ref-banner {
+        margin-bottom: 20px;
+        padding: 12px 16px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(120, 105, 90, 0.16);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .ref-banner strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .customers-surface {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 20px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, var(--panel-top), var(--panel-bottom));
+        box-shadow: var(--card-shadow);
+      }
+      .agg-insights {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .agg-insight {
+        position: relative;
+        padding: 14px 14px 12px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        box-shadow: var(--row-shadow);
+        cursor: pointer;
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+      .agg-insight::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 12px;
+        bottom: 12px;
+        width: 3px;
+        border-radius: 999px;
+        background: var(--gold);
+      }
+      .agg-insight[data-kind='opp']::before {
+        background: #7c3aed;
+      }
+      .agg-insight[data-kind='trend']::before {
+        background: #2596a8;
+      }
+      .agg-insight[data-kind='risk']::before {
+        background: #b94a4a;
+      }
+      html[data-v9-polish='on'] .agg-insight:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(56, 40, 28, 0.14);
+      }
+      .agg-insight-kicker {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .agg-insight-body {
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .agg-insight-body strong {
+        color: var(--gold);
+      }
+      .customers-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+        align-items: center;
+      }
+      .filter-chip {
+        border: 0;
+        cursor: pointer;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.78);
+        font-size: 11px;
+        font-weight: 700;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 2px 6px rgba(56, 40, 28, 0.06);
+      }
+      .filter-chip.active {
+        background: linear-gradient(180deg, rgba(252, 233, 240, 0.98), rgba(241, 207, 220, 0.95));
+        color: var(--accent);
+      }
+      .filter-chip .count {
+        opacity: 0.65;
+        margin-left: 4px;
+      }
+      .customer-row-head,
+      .customer-row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1.4fr) 1fr 0.8fr 1fr 0.9fr 0.9fr 20px;
+        gap: 10px;
+        align-items: center;
+      }
+      .customer-row-head {
+        padding: 0 14px 8px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .customer-row--gloss {
+        position: relative;
+        width: 100%;
+        margin: 0 0 8px;
+        padding: 12px 14px;
+        border: 0;
+        text-align: left;
+        cursor: pointer;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 236, 0.86));
+        box-shadow: var(--row-shadow);
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+      .customer-row--gloss::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        margin-top: -8px;
+        border-radius: 5px;
+        border: 1px solid rgba(120, 105, 90, 0.25);
+        background: rgba(255, 255, 255, 0.8);
+      }
+      .customer-row--gloss.is-checked::before {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      html[data-v9-polish='on'] .customer-row--gloss:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(56, 40, 28, 0.12);
+      }
+      .cr-avatar--gloss {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.45),
+          0 6px 14px rgba(56, 40, 28, 0.18);
+      }
+      .cr-name {
+        font-weight: 800;
+        font-size: 14px;
+      }
+      .cr-name-tags {
+        display: flex;
+        gap: 4px;
+        margin-top: 4px;
+        flex-wrap: wrap;
+      }
+      .cr-tag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+      }
+      .cr-tag--vip {
+        color: var(--accent);
+        background: linear-gradient(180deg, rgba(252, 233, 240, 0.98), rgba(241, 207, 220, 0.95));
+      }
+      .cr-meta {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .cr-meta-strong {
+        font-weight: 700;
+        color: var(--brand);
+      }
+      .cr-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        background: rgba(74, 130, 104, 0.14);
+        color: var(--success);
+      }
+      .cr-status .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+      .cr-revenue {
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .cr-signal {
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(255, 244, 224, 0.82);
+        color: #7a4f12;
+      }
+      .cr-arrow {
+        text-align: center;
+        color: var(--muted);
+        font-size: 18px;
+      }
+      .v9-bulk-bar {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(43, 37, 31, 0.92);
+        color: #fff;
+        box-shadow: 0 12px 32px rgba(35, 22, 15, 0.28);
+      }
+      .v9-bulk-bar[hidden] {
+        display: none;
+      }
+      @media (max-width: 900px) {
+        .agg-insights {
+          grid-template-columns: 1fr 1fr;
+        }
+        .customer-row-head {
+          display: none;
+        }
+        .customer-row {
+          grid-template-columns: 44px minmax(0, 1fr) 20px;
+        }
+        .customer-row > :nth-child(n + 3):not(:last-child) {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ref-banner">
+      <strong>ORD-27 REF — Kundlista (cco-kunder-v9-egen.html)</strong>
+      Prod: <code>patient-master-ui.js</code> + <code>cco-v9-customers.css</code>. Ingen ★/AI.
+      Multi-select: klick vänster 36px. Polish: <code>?v9polish=on</code>.
+    </div>
+
+    <section class="customers-surface">
+      <div class="agg-insights">
+        <div class="agg-insight" data-kind="action">
+          <div class="agg-insight-kicker">Idag</div>
+          <div class="agg-insight-body"><strong>12 kunder</strong> · Dagens besök saknar HD</div>
+        </div>
+        <div class="agg-insight" data-kind="opp">
+          <div class="agg-insight-kicker">Möjlighet</div>
+          <div class="agg-insight-body"><strong>8 VIP</strong> · Inaktiva 60+ dagar</div>
+        </div>
+        <div class="agg-insight" data-kind="trend">
+          <div class="agg-insight-kicker">Trend</div>
+          <div class="agg-insight-body"><strong>+8%</strong> snittbesök Q2</div>
+        </div>
+        <div class="agg-insight" data-kind="risk">
+          <div class="agg-insight-kicker">Risk</div>
+          <div class="agg-insight-body"><strong>28 kunder</strong> · Formulär saknas inom 3 d</div>
+        </div>
+      </div>
+
+      <div class="customers-filters">
+        <button class="filter-chip active">Alla <span class="count">1 247</span></button>
+        <button class="filter-chip">Aktiva <span class="count">87</span></button>
+        <button class="filter-chip">VIP <span class="count">234</span></button>
+        <button class="filter-chip">Risk <span class="count">12</span></button>
+        <button class="filter-chip">Saknar formulär <span class="count">28</span></button>
+      </div>
+
+      <div class="customer-row-head">
+        <div></div>
+        <div>Kund</div>
+        <div>Kontakt</div>
+        <div>Status</div>
+        <div>Senaste besök</div>
+        <div>Intäkt (LTV)</div>
+        <div>Signal</div>
+        <div></div>
+      </div>
+
+      <button type="button" class="customer-row customer-row--gloss is-checked" data-demo-row="1">
+        <span
+          class="cr-avatar cr-avatar--gloss"
+          style="background: linear-gradient(180deg, #f0c8a8, #c8821e)"
+          >AK</span
+        >
+        <div>
+          <div class="cr-name">Anna Karlsson</div>
+          <div class="cr-name-tags">
+            <span class="cr-tag cr-tag--vip">VIP</span><span class="cr-tag">PRP</span>
+          </div>
+        </div>
+        <div class="cr-meta">
+          <div>anna@…</div>
+          <div>070-123 45 67</div>
+        </div>
+        <div>
+          <span class="cr-status"><span class="dot"></span>Aktiv</span>
+        </div>
+        <div class="cr-meta">
+          <div class="cr-meta-strong">28 maj 2026</div>
+          <div>PRP · om 2 d</div>
+        </div>
+        <div><div class="cr-revenue">84 200 kr</div></div>
+        <div><div class="cr-signal">Besök om 2 d</div></div>
+        <div class="cr-arrow">›</div>
+      </button>
+
+      <button type="button" class="customer-row customer-row--gloss" data-demo-row="2">
+        <span
+          class="cr-avatar cr-avatar--gloss"
+          style="background: linear-gradient(180deg, #d0c8f0, #7c3aed)"
+          >PG</span
+        >
+        <div>
+          <div class="cr-name">Petter Gustafsson</div>
+          <div class="cr-name-tags"><span class="cr-tag cr-tag--vip">VIP</span></div>
+        </div>
+        <div class="cr-meta">
+          <div>petter@…</div>
+          <div>0705-66 19 44</div>
+        </div>
+        <div>
+          <span class="cr-status"><span class="dot"></span>Dormant</span>
+        </div>
+        <div class="cr-meta">
+          <div class="cr-meta-strong">14 nov 2025</div>
+          <div>DHI komplett</div>
+        </div>
+        <div><div class="cr-revenue">42 800 kr</div></div>
+        <div><div class="cr-signal">—</div></div>
+        <div class="cr-arrow">›</div>
+      </button>
+    </section>
+
+    <div class="v9-bulk-bar" id="bulkBar">
+      <span>1 vald</span>
+      <button type="button">Skicka påminnelse</button>
+      <button type="button">Exportera CSV</button>
+    </div>
+
+    <script>
+      const selected = new Set(['1']);
+      document.querySelectorAll('[data-demo-row]').forEach((row) => {
+        row.addEventListener('click', (ev) => {
+          const rect = row.getBoundingClientRect();
+          if (ev.clientX - rect.left <= 36) {
+            ev.stopPropagation();
+            const id = row.dataset.demoRow;
+            if (selected.has(id)) {
+              selected.delete(id);
+              row.classList.remove('is-checked');
+            } else {
+              selected.add(id);
+              row.classList.add('is-checked');
+            }
+            document.getElementById('bulkBar').hidden = selected.size === 0;
+            return;
+          }
+          document
+            .querySelectorAll('.customer-row--gloss')
+            .forEach((r) => r.classList.remove('is-selected'));
+          row.classList.add('is-selected');
+        });
+      });
+    </script>
+  </body>
+</html>

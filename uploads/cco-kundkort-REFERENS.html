@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="sv" data-v9-polish="on">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ORD-27 REF — Kundkort slide-over v2</title>
+    <style>
+      :root {
+        --brand: #2b251f;
+        --muted: rgba(70, 60, 50, 0.62);
+        --accent: #bb4779;
+        --success: #4a8268;
+        --lila: #7c3aed;
+        --vellum: rgba(252, 248, 244, 0.9);
+        --border: rgba(120, 105, 90, 0.16);
+        --shadow: 0 8px 24px rgba(70, 50, 30, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, sans-serif;
+        font-size: 13px;
+        color: var(--brand);
+        background: #faf6f2;
+        display: flex;
+        justify-content: flex-end;
+        padding: 24px;
+      }
+      .ref-banner {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        right: 420px;
+        padding: 12px 16px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid var(--border);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .kundkort-slide-over {
+        width: min(420px, 100%);
+        max-height: calc(100vh - 48px);
+        display: flex;
+        flex-direction: column;
+        border-radius: 20px;
+        background: var(--vellum);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      html[data-v9-polish='on'] .kundkort-slide-over__lift {
+        animation: lift-in 0.4s ease-out;
+      }
+      @keyframes lift-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .kundkort-lift {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent);
+      }
+      .kundkort-lift__block {
+        margin-bottom: 14px;
+      }
+      .kundkort-lift__block:last-child {
+        margin-bottom: 0;
+      }
+      .kundkort-lift__label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .kundkort-lift__contact-line {
+        display: block;
+        color: var(--brand);
+        text-decoration: none;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .kundkort-lift__health {
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        margin-bottom: 14px;
+      }
+      .kundkort-lift__health-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .kundkort-lift__health-kicker {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .kundkort-lift__health-pill {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(74, 130, 104, 0.14);
+        color: var(--success);
+      }
+      .kundkort-lift__health-title {
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .kundkort-lift__health-meta {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .kundkort-lift__photos {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .kundkort-lift__photo {
+        border: 0;
+        cursor: pointer;
+        padding: 10px 6px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+        text-align: center;
+      }
+      .kundkort-lift__photo-label {
+        display: block;
+        font-size: 10px;
+        margin-top: 4px;
+        color: var(--muted);
+      }
+      .kundkort-lift__steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .kundkort-lift__step {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--muted);
+      }
+      .kundkort-lift__step--done {
+        background: rgba(74, 130, 104, 0.14);
+        color: var(--success);
+      }
+      .kundkort-lift__step--active {
+        background: rgba(124, 58, 237, 0.14);
+        color: var(--lila);
+        box-shadow: 0 4px 10px rgba(124, 58, 237, 0.18);
+      }
+      .kundkort-slide-over__scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 18px 20px;
+      }
+      .dossier-section summary {
+        list-style: none;
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 8px 0;
+      }
+      .dossier-section summary .count {
+        margin-left: auto;
+        padding: 1px 7px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.7);
+      }
+      .dossier-booking {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+      .db-title {
+        font-weight: 700;
+      }
+      .db-sub {
+        font-size: 11px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ref-banner">
+      <strong>ORD-27 REF — Slide-over v2 (cco-kundkort-REFERENS.html)</strong>
+      Prod: <code>renderKundkortSlideOverHtml</code> + <code>renderKundkortLiftPanel</code>.
+      Hälsodekl: Meridiq <strong>16414</strong> via <code>dossier-bundle</code>. Ingen AI-sektion.
+    </div>
+
+    <aside class="kundkort-slide-over kundkort-slide-over--v2">
+      <section class="kundkort-slide-over__lift kundkort-lift">
+        <div class="kundkort-lift__block">
+          <div class="kundkort-lift__label">Kontakt</div>
+          <a class="kundkort-lift__contact-line" href="tel:0701234567">070-123 45 67</a>
+          <a class="kundkort-lift__contact-line" href="mailto:anna@example.se">anna@example.se</a>
+        </div>
+
+        <section class="kundkort-lift__health">
+          <div class="kundkort-lift__health-head">
+            <span class="kundkort-lift__health-kicker">Hälsodeklaration</span>
+            <span class="kundkort-lift__health-pill">Signerad</span>
+          </div>
+          <div class="kundkort-lift__health-title">Hälsodeklaration · Hair TP (Meridiq 16414)</div>
+          <div class="kundkort-lift__health-meta">Anna Karlsson · 2026-05-12</div>
+        </section>
+
+        <div class="kundkort-lift__block">
+          <div class="kundkort-lift__label">Foton</div>
+          <div class="kundkort-lift__photos">
+            <button type="button" class="kundkort-lift__photo">
+              <span>🖼</span><span class="kundkort-lift__photo-label">Före</span>
+            </button>
+            <button type="button" class="kundkort-lift__photo">
+              <span>🖼</span><span class="kundkort-lift__photo-label">Efter</span>
+            </button>
+            <button type="button" class="kundkort-lift__photo">
+              <span>🖼</span><span class="kundkort-lift__photo-label">PRP-1</span>
+            </button>
+            <button type="button" class="kundkort-lift__photo">
+              <span>🖼</span><span class="kundkort-lift__photo-label">PRP-2</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="kundkort-lift__block">
+          <div class="kundkort-lift__label">Kundresa</div>
+          <div class="kundkort-lift__steps">
+            <span class="kundkort-lift__step kundkort-lift__step--done" title="Bokning">1</span>
+            <span class="kundkort-lift__step kundkort-lift__step--done" title="Hälsodeklaration"
+              >2</span
+            >
+            <span class="kundkort-lift__step kundkort-lift__step--active" title="Konsultation"
+              >3</span
+            >
+            <span class="kundkort-lift__step" title="Offert">4</span>
+            <span class="kundkort-lift__step" title="Plan">5</span>
+            <span class="kundkort-lift__step" title="Behandling">6</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="kundkort-slide-over__scroll">
+        <details class="dossier-section" open>
+          <summary>Kommande bokningar <span class="count">1</span></summary>
+          <div class="dossier-booking">
+            <div>
+              <div class="db-title">PRP behandling</div>
+              <div class="db-sub">Tis 3 jun · 14:00 · Egzona</div>
+            </div>
+          </div>
+        </details>
+        <details class="dossier-section">
+          <summary>Historik <span class="count">4</span></summary>
+          <p style="color: var(--muted); font-size: 12px">Accordion-sektioner enligt ORD-26…</p>
+        </details>
+        <details class="dossier-section">
+          <summary>Filer <span class="count">12</span></summary>
+        </details>
+        <details class="dossier-section">
+          <summary>Formulär &amp; krav <span class="count">1</span></summary>
+        </details>
+      </div>
+    </aside>
+  </body>
+</html>
